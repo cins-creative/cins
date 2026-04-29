@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Shadows</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html, body { margin: 0; padding: 30px; background: var(--bg-page); box-sizing: border-box; font-family: var(--font-sans); }
+  .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; width: 640px; }
+  .cell { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .box { width: 90px; height: 70px; background: white; border-radius: var(--radius-md); border: 1px solid rgba(0,0,0,.03); }
+  .name { font-size: 11px; font-weight: 600; color: var(--fg-2); }
+</style>
+</head>
+<body>
+<div class="grid">
+  <div class="cell"><div class="box" style="box-shadow: var(--shadow-xs);"></div><div class="name">xs</div></div>
+  <div class="cell"><div class="box" style="box-shadow: var(--shadow-sm);"></div><div class="name">sm</div></div>
+  <div class="cell"><div class="box" style="box-shadow: var(--shadow-md);"></div><div class="name">md</div></div>
+  <div class="cell"><div class="box" style="box-shadow: var(--shadow-lg);"></div><div class="name">lg</div></div>
+  <div class="cell"><div class="box" style="box-shadow: var(--shadow-pop);"></div><div class="name">pop</div></div>
+</div>
+</body>
+</html>

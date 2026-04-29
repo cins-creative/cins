@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Sidebar Tabs — Pill + Shape Dots</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html, body { margin: 0; padding: 18px; background: var(--bg-page); box-sizing: border-box; font-family: var(--font-sans); }
+  .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; align-items: start; }
+  .label-meta { font-family: var(--font-mono); font-size: 10px; color: var(--fg-4); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+
+  /* Shared panel */
+  .panel { background: white; border-radius: var(--radius-lg); border: 1px solid var(--border); padding: 12px; box-shadow: var(--shadow-xs); }
+
+  /* Pill segmented */
+  .seg { display: flex; background: var(--neutral-100); border-radius: 999px; padding: 4px; margin-bottom: 12px; }
+  .seg .s { flex: 1; text-align: center; font-size: 12px; padding: 7px 10px; border-radius: 999px; color: var(--fg-3); cursor: pointer; font-weight: 500; transition: background .15s, color .15s; }
+  .seg .s:hover { color: var(--cins-blue); }
+  .seg .s.active { background: white; color: var(--cins-blue); font-weight: 700; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+
+  /* Nav items with shape dot */
+  .nav-item {
+    padding: 9px 10px; font-size: 13px; color: var(--fg-2);
+    display: flex; align-items: center; gap: 10px;
+    cursor: pointer; border-radius: 8px;
+    transition: background .12s, color .12s, padding-left .12s;
+    position: relative;
+  }
+  .nav-item:hover { background: var(--neutral-50); }
+  .nav-item.active { background: var(--cins-blue-soft); color: var(--cins-blue); font-weight: 700; }
+
+  /* Shape dot — same vocabulary as tags (circle / diamond / triangle / rsquare / blob) */
+  .sh { width: 12px; height: 12px; flex-shrink: 0; background: var(--cins-yellow); border-radius: 50%; }
+  .sh.mint   { background: var(--cins-mint); border-radius: 3px; transform: rotate(45deg); }
+  .sh.lilac  { background: var(--cins-lilac); border-radius: 3px; }
+  .sh.orange { width: 0; height: 0; background: transparent; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 11px solid var(--cins-orange); border-radius: 0; }
+  .sh.blob   { background: var(--cins-mint); border-radius: 60% 40% 55% 45% / 50% 60% 40% 50%; }
+  .sh.gray   { background: var(--neutral-400); }
+
+  .count { margin-left: auto; font-size: 11px; color: var(--fg-4); font-family: var(--font-mono); padding: 2px 7px; background: var(--neutral-100); border-radius: 999px; }
+  .nav-item.active .count { background: white; color: var(--cins-blue); }
+
+  /* Sub items */
+  .sub { padding: 6px 10px 6px 32px; font-size: 12px; color: var(--fg-3); cursor: pointer; border-radius: 6px; }
+  .sub:hover { color: var(--cins-blue); background: var(--neutral-50); }
+  .sub.active { color: var(--cins-blue); font-weight: 600; }
+
+  /* Section divider */
+  .section-label { font-size: 10px; color: var(--fg-4); text-transform: uppercase; letter-spacing: 0.08em; padding: 10px 10px 6px; font-weight: 600; }
+
+  /* Card-like rail variant */
+  .rail .nav-item { padding: 11px 12px; border-radius: 12px; border: 1px solid transparent; }
+  .rail .nav-item.active { background: white; color: var(--cins-blue); border-color: var(--cins-blue); box-shadow: 0 4px 12px -6px rgba(31,116,201,0.25); }
+</style>
+</head>
+<body>
+<div class="grid">
+
+  <div>
+    <div class="label-meta">B · default · with sub-items expanded</div>
+    <div class="panel">
+      <div class="seg">
+        <div class="s active">Nghề nghiệp</div>
+        <div class="s">Ngành học</div>
+      </div>
+      <div class="nav-item active"><span class="sh"></span>Game<span class="count">128</span></div>
+      <div class="sub active">Thiết kế game</div>
+      <div class="sub">Lập trình game</div>
+      <div class="sub">Technical Art</div>
+      <div class="nav-item"><span class="sh mint"></span>Hoạt hình<span class="count">94</span></div>
+      <div class="nav-item"><span class="sh orange"></span>Kỹ xảo điện ảnh<span class="count">62</span></div>
+      <div class="nav-item"><span class="sh lilac"></span>Phim &amp; Điện ảnh<span class="count">48</span></div>
+      <div class="nav-item"><span class="sh blob"></span>Sản xuất hậu kỳ<span class="count">31</span></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="label-meta">B · "Ngành học" tab active · with section labels</div>
+    <div class="panel">
+      <div class="seg">
+        <div class="s">Nghề nghiệp</div>
+        <div class="s active">Ngành học</div>
+      </div>
+      <div class="section-label">Sáng tạo thị giác</div>
+      <div class="nav-item"><span class="sh"></span>Thiết kế đồ họa</div>
+      <div class="nav-item active"><span class="sh mint"></span>Mỹ thuật đa phương tiện</div>
+      <div class="nav-item"><span class="sh lilac"></span>Thiết kế thời trang</div>
+      <div class="section-label">Điện ảnh &amp; Truyền hình</div>
+      <div class="nav-item"><span class="sh orange"></span>Đạo diễn</div>
+      <div class="nav-item"><span class="sh"></span>Quay phim</div>
+      <div class="nav-item"><span class="sh blob"></span>Dựng phim</div>
+    </div>
+  </div>
+
+  <div>
+    <div class="label-meta">B · card-rail variant (more breathing room)</div>
+    <div class="panel rail">
+      <div class="seg">
+        <div class="s active">Nghề nghiệp</div>
+        <div class="s">Ngành học</div>
+      </div>
+      <div class="nav-item active"><span class="sh"></span>Game<span class="count">128</span></div>
+      <div class="nav-item"><span class="sh mint"></span>Hoạt hình<span class="count">94</span></div>
+      <div class="nav-item"><span class="sh orange"></span>Kỹ xảo điện ảnh<span class="count">62</span></div>
+      <div class="nav-item"><span class="sh lilac"></span>Phim &amp; Điện ảnh<span class="count">48</span></div>
+      <div class="nav-item"><span class="sh blob"></span>Hậu kỳ<span class="count">31</span></div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

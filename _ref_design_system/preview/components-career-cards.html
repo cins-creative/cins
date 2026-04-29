@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Career Card — A + C</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html, body { margin: 0; padding: 18px; background: var(--bg-page); box-sizing: border-box; font-family: var(--font-sans); }
+  .stack { display: flex; flex-direction: column; gap: 18px; width: 660px; }
+  .label-meta { font-family: var(--font-mono); font-size: 10px; color: var(--fg-4); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+
+  /* A · flat tile */
+  .a { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .a .card { background: white; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 8px; box-shadow: var(--shadow-xs); transition: transform .15s, box-shadow .15s, border-color .15s; cursor: pointer; }
+  .a .card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: var(--cins-blue); }
+  .a .img { width: 100%; aspect-ratio: 4/3; background: var(--cins-orange-soft); border-radius: var(--radius-sm); overflow: hidden; }
+  .a .img img { width: 100%; height: 100%; object-fit: cover; }
+  .a .title { font-weight: 700; color: var(--cins-blue); font-size: 13px; margin: 7px 0 2px; line-height: 1.25; }
+  .a .meta { font-size: 10px; color: var(--fg-4); }
+
+  /* A — selected state (active filter) */
+  .a .card.active { border-color: var(--cins-blue); box-shadow: 0 0 0 3px var(--cins-blue-soft); }
+
+  /* C · horizontal row card with inline meta + tag */
+  .c { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .c .card { background: white; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 10px; display: flex; gap: 12px; align-items: center; box-shadow: var(--shadow-xs); transition: transform .15s, box-shadow .15s, border-color .15s; cursor: pointer; }
+  .c .card:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); border-color: var(--cins-blue); }
+  .c .img { width: 72px; height: 72px; flex-shrink: 0; background: var(--cins-orange-soft); border-radius: 12px; overflow: hidden; }
+  .c .img.mint   { background: var(--cins-mint-soft); }
+  .c .img.lilac  { background: #ECDCFC; }
+  .c .img.yellow { background: var(--cins-yellow-soft); }
+  .c .img img { width: 100%; height: 100%; object-fit: cover; }
+  .c .body { flex: 1; min-width: 0; }
+  .c .title { font-weight: 700; color: var(--cins-blue); font-size: 14px; line-height: 1.25; }
+  .c .row { display: flex; align-items: center; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+  .c .tag { font-size: 10px; padding: 2px 8px; border-radius: 999px; background: var(--cins-blue-soft); color: var(--cins-blue); font-weight: 700; }
+  .c .tag.hot { background: var(--cins-orange); color: white; }
+  .c .meta { font-size: 11px; color: var(--fg-4); }
+  .c .arrow { color: var(--fg-4); font-size: 18px; padding-right: 6px; flex-shrink: 0; }
+  .c .card:hover .arrow { color: var(--cins-blue); transform: translateX(2px); }
+
+  /* C — list density (1 col) */
+  .c.list { grid-template-columns: 1fr; }
+</style>
+</head>
+<body>
+<div class="stack">
+
+  <div>
+    <div class="label-meta">A · flat tile (default · hover · selected)</div>
+    <div class="a">
+      <div class="card"><div class="img"><img src="../assets/career-illustration-1.png"></div><div class="title">Thiết kế đồ họa</div><div class="meta">Mã ngành: 7210403</div></div>
+      <div class="card active"><div class="img"><img src="../assets/career-illustration-2.png"></div><div class="title">Đồ họa</div><div class="meta">Mã ngành: 7210104</div></div>
+      <div class="card"><div class="img"><img src="../assets/career-illustration-3.png"></div><div class="title">Thiết kế công nghiệp</div><div class="meta">Mã ngành: 7210402</div></div>
+      <div class="card"><div class="img"><img src="../assets/career-illustration-4.png"></div><div class="title">Mỹ thuật số</div><div class="meta">Mã ngành: 7210408</div></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="label-meta">C · horizontal row · 2 columns (with tags)</div>
+    <div class="c">
+      <div class="card"><div class="img"><img src="../assets/career-illustration-1.png"></div><div class="body"><div class="title">Thiết kế đồ họa</div><div class="row"><span class="tag hot">HOT</span><span class="meta">Mã ngành: 7210403</span></div></div><span class="arrow">›</span></div>
+      <div class="card"><div class="img mint"><img src="../assets/career-illustration-2.png"></div><div class="body"><div class="title">Đồ họa</div><div class="row"><span class="meta">Mã ngành: 7210104</span></div></div><span class="arrow">›</span></div>
+      <div class="card"><div class="img lilac"><img src="../assets/career-illustration-3.png"></div><div class="body"><div class="title">Thiết kế công nghiệp</div><div class="row"><span class="tag">Mới</span><span class="meta">Mã ngành: 7210402</span></div></div><span class="arrow">›</span></div>
+      <div class="card"><div class="img yellow"><img src="../assets/career-illustration-4.png"></div><div class="body"><div class="title">Mỹ thuật số</div><div class="row"><span class="meta">Mã ngành: 7210408</span></div></div><span class="arrow">›</span></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="label-meta">C · list density (1 column · search results)</div>
+    <div class="c list">
+      <div class="card"><div class="img"><img src="../assets/career-illustration-1.png"></div><div class="body"><div class="title">Thiết kế đồ họa</div><div class="row"><span class="tag hot">HOT</span><span class="meta">Mã ngành: 7210403</span><span class="meta">· 24 trường đào tạo</span></div></div><span class="arrow">›</span></div>
+      <div class="card"><div class="img mint"><img src="../assets/career-illustration-2.png"></div><div class="body"><div class="title">Đồ họa</div><div class="row"><span class="meta">Mã ngành: 7210104</span><span class="meta">· 18 trường đào tạo</span></div></div><span class="arrow">›</span></div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

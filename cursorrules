@@ -1,0 +1,279 @@
+# CINs — Cursor Rules
+# Platform: Career & Community for Vietnam's Visual Creative Industries
+# Stack: Next.js 14 App Router · TypeScript · Tailwind CSS · Supabase
+# Last updated: 2026-04-29
+
+---
+
+## 1. Project context
+
+CINs là platform kết nối ngành sáng tạo thị giác Việt Nam (Film, Game, Kiến trúc, Thời trang, Thiết kế).
+Ba nhóm người dùng: Học sinh THPT khám phá nghề · Cơ sở đào tạo · Doanh nghiệp sáng tạo.
+
+Supabase project: ospzzzxcomrmhqrnkoiw.supabase.co
+Schema prefixes: `job_` (career/nghề nghiệp) · `dh_` (education/đại học)
+RLS: public SELECT cho tất cả content pages · authenticated cho write operations.
+
+---
+
+## 2. Tech stack rules
+
+- **Framework:** Next.js 14 App Router only. KHÔNG dùng Pages Router.
+- **Language:** TypeScript everywhere. Không dùng `any` — dùng Supabase generated types.
+- **Styling:** Tailwind CSS + CSS variables từ design system (xem mục 4). KHÔNG inline style trừ dynamic values.
+- **Icons:** `lucide-react` only. Stroke weight 1.5–2px. Color `var(--neutral-500)` default, `var(--cins-blue)` on active.
+- **Fonts:** Be Vietnam Pro (body/headings) + Anton (display titles only) + Crimson Pro (editorial serif, dùng sparingly).
+- **Server vs Client:** Server Components là default. Chỉ dùng `"use client"` khi cần interactivity (useState, useEffect, event handlers).
+- **Data fetching:** Server Components dùng `createServerClient` từ `@supabase/ssr`. Client Components dùng `createBrowserClient`.
+
+---
+
+## 3. File & folder structure
+
+```
+src/
+├── app/
+│   ├── layout.tsx              # Root layout — font loading, global CSS
+│   ├── page.tsx                # Trang chủ
+│   ├── nghe-nghiep/
+│   │   ├── page.tsx            # Career browser (sidebar + grid)
+│   │   └── [slug]/page.tsx     # Career detail
+│   ├── nganh-hoc/
+│   │   ├── page.tsx            # Field/major browser
+│   │   └── [slug]/page.tsx     # Major detail
+│   ├── truong-dai-hoc/
+│   │   ├── page.tsx            # University directory
+│   │   └── [slug]/page.tsx     # University detail
+│   ├── bai-viet/
+│   │   ├── page.tsx            # Article list
+│   │   └── [slug]/page.tsx     # Article detail
+│   └── (auth)/
+│       └── login/page.tsx
+├── components/
+│   ├── layout/
+│   │   ├── TopNav.tsx
+│   │   ├── Sidebar.tsx
+│   │   └── Footer.tsx
+│   ├── cards/
+│   │   ├── CareerCard.tsx
+│   │   ├── RoleCard.tsx
+│   │   ├── SchoolCard.tsx
+│   │   └── PromoCard.tsx
+│   ├── ui/
+│   │   ├── Button.tsx
+│   │   ├── Tag.tsx
+│   │   ├── SearchField.tsx
+│   │   └── MascotIcon.tsx
+│   └── article/
+│       ├── ArticleHeader.tsx
+│       └── KeywordPanel.tsx
+├── lib/
+│   ├── supabase/
+│   │   ├── client.ts           # Browser client
+│   │   └── server.ts           # Server client (SSR)
+│   └── utils.ts                # cn(), formatDate(), slugify()
+└── types/
+    └── database.ts             # Supabase generated types
+```
+
+---
+
+## 4. Design system — CSS variables
+
+Tất cả tokens sống trong `src/app/globals.css` (import từ design system). Luôn dùng CSS variables, KHÔNG hardcode màu hex.
+
+### Colors
+```css
+--cins-blue: #1F74C9        /* Primary — logo, headlines, links, CTA */
+--cins-blue-dark: #1656A0   /* Hover/pressed */
+--cins-blue-soft: #E7F0FB   /* Tonal background, selected tab */
+
+/* Mascot accent quartet */
+--cins-yellow: #FDE859      /* Artist mascot */
+--cins-mint: #6EFEC0        /* Supporter mascot */
+--cins-orange: #FFB85C      /* Manager mascot */
+--cins-violet: #BB89F8      /* Technical Artist mascot */
+
+/* Soft tints */
+--cins-yellow-soft: #FFF8C9
+--cins-mint-soft: #D9FBED
+--cins-orange-soft: #FFE6C9
+--cins-violet-soft: #ECDDFE
+
+/* Neutrals */
+--neutral-0: #FFFFFF
+--neutral-50: #F8F9FB
+--neutral-100: #F1F2F5
+--neutral-200: #E4E6EB       /* divider, input border */
+--neutral-400: #9AA0AB       /* placeholder */
+--neutral-500: #6B7280       /* muted body */
+--neutral-700: #2F3441
+
+/* Ink (text) */
+--ink-display: rgba(0,0,0,0.85)
+--ink-title: rgba(0,0,0,0.60)
+--ink-body: rgba(0,0,0,0.55)
+--ink-muted: rgba(0,0,0,0.40)
+
+/* Semantic */
+--bg-page: #F4F5F8           /* signature lavender-grey */
+--bg-surface: #FFFFFF
+--border: #E4E6EB
+```
+
+### Radii (bo góc — LUÔN dùng, KHÔNG bao giờ sharp corners)
+```css
+--radius-xs: 6px
+--radius-sm: 10px
+--radius-md: 14px            /* default cards, buttons */
+--radius-lg: 20px            /* large cards, panels */
+--radius-xl: 28px            /* hero cards */
+--radius-pill: 999px         /* buttons, tags */
+```
+
+### Shadows (soft, flat-ish — KHÔNG dùng harsh shadows)
+```css
+--shadow-xs: 0 1px 2px rgba(15,23,42,.04)
+--shadow-sm: 0 2px 6px rgba(15,23,42,.06)
+--shadow-md: 0 6px 16px rgba(15,23,42,.08)
+--shadow-pop: 0 8px 0 rgba(31,116,201,.18)   /* sticker lift — dùng sparingly */
+```
+
+### Spacing scale
+```
+--space-1: 4px  --space-2: 8px  --space-3: 12px  --space-4: 16px
+--space-5: 20px --space-6: 24px --space-8: 32px  --space-10: 40px
+--space-12: 48px --space-16: 64px --space-20: 80px
+```
+
+---
+
+## 5. Typography rules
+
+| Class | Font | Weight | Size | Use |
+|-------|------|--------|------|-----|
+| `.cins-display` | Anton | 400 | 88px | Decorative poster headlines only |
+| `.cins-h1` | Be Vietnam Pro | 800 | 48px | Page titles (màu `--cins-blue`) |
+| `.cins-h2` | Be Vietnam Pro | 700 | 36px | Section headings |
+| `.cins-h3` | Be Vietnam Pro | 600 | 22px | Card titles, sub-sections |
+| `.cins-h4` | Be Vietnam Pro | 600 | 18px | Small headings |
+| `.cins-eyebrow` | Be Vietnam Pro | 500 | 14px | Labels above headings |
+| `.cins-body` | Be Vietnam Pro | 400 | 16px | Body text |
+| `.cins-body-lg` | Be Vietnam Pro | 400 | 18px | Lead paragraphs |
+| `.cins-caption` | Be Vietnam Pro | 400 | 14px | Meta, captions |
+| `.cins-editorial` | Crimson Pro | 400 | 18px | Long-form article body |
+| `.cins-pullquote` | Crimson Pro | 600i | 28px | Pull quotes |
+
+**Rules:**
+- Be Vietnam Pro cho tất cả UI. Anton chỉ cho decorative display (sparingly).
+- Crimson Pro chỉ cho long-form article body và pull quotes.
+- H1/H2/H3 màu `--cins-blue` theo brand spec.
+- Body text luôn dùng `--ink-body` (rgba softened, KHÔNG pure black).
+- **Sentence case everywhere.** KHÔNG all-caps, KHÔNG Title Case For Every Word.
+- Vietnamese-first: giữ diacritics đúng. Loanwords giữ tiếng Anh (Animator, Game Designer, VFX...).
+
+---
+
+## 6. Layout rules
+
+- Max content width: **1200px**, gutter **24px**, 12-column grid.
+- **Sticky top nav** 72px height — luôn hiển thị.
+- **Sidebar + content** là layout chính cho career browser và articles.
+  - Sidebar: 240px fixed width, content: 1fr.
+  - Article layout: 1fr content, 280px sidebar.
+- Sections separated by `--space-16` to `--space-20` whitespace, KHÔNG dùng dividers.
+- Page background luôn là `--bg-page` (#F4F5F8).
+- Cards: white background (`--bg-surface`), `1px solid var(--border)`, `border-radius: var(--radius-lg)`, `box-shadow: var(--shadow-sm)`.
+
+---
+
+## 7. Component patterns
+
+### Cards
+```tsx
+// Hover: translateY(-2px) + shadow-md, 180ms ease
+// Active/selected border: 2px solid var(--cins-blue)
+// Always rounded — radius-lg for large cards, radius-md for small
+```
+
+### Buttons
+```tsx
+// Primary: bg --cins-blue, text white, radius-pill
+// Hover: bg --cins-blue-dark
+// Press: scale(0.98)
+// Easing: cubic-bezier(0.2, 0.7, 0.3, 1) — ALL transitions
+```
+
+### Tags
+```tsx
+// Pill shape (radius-pill), small padding
+// Màu: dùng soft accent tints (--cins-violet-soft + --cins-violet text) cho keyword tags
+// KHÔNG dùng solid dark backgrounds cho tags
+```
+
+### Mascots
+```tsx
+// 4 mascot images: artist, technical-artist, manager, supporter
+// Đặt ở /public/mascots/
+// KHÔNG substitute bằng emoji hoặc SVG — dùng placeholder box nếu thiếu
+```
+
+---
+
+## 8. Visual rules (KHÔNG vi phạm)
+
+- **KHÔNG bao giờ** dùng sharp corners (0px radius) trên containers.
+- **KHÔNG** dùng gradients trong body UI. Gradients bị cấm — brand đọc "flat illustrated", không phải "tech SaaS".
+- **KHÔNG** dùng black (#000) cho text. Luôn dùng ink tokens (rgba softened).
+- **KHÔNG** dùng emoji trong UI copy hoặc nav.
+- **KHÔNG** dùng heavy shadows — CINs không phải Material Design.
+- **KHÔNG** dùng full-bleed photography trong marketing surfaces.
+- Logo CINs **chỉ** đặt trên nền trắng. Nếu cần đặt trên nền khác, wrap trong white card.
+- Backgrounds: **luôn opaque** — không dùng transparency/blur trừ trường hợp đặc biệt.
+- Animation: KHÔNG chỉ fade — luôn kết hợp với tiny translate để feel intentional.
+- **KHÔNG bounce easing** cho UI elements (bounce chỉ cho mascot reveals/onboarding).
+
+---
+
+## 9. Content & copy rules
+
+- **Vietnamese-first.** Diacritics phải đúng.
+- Tone: thân thiện, khuyến khích — như người anh/chị lớn trong ngành, KHÔNG như brochure.
+- Dùng "bạn" (casual) — KHÔNG "quý vị" hay "quý khách".
+- CTA verbs: _Khám phá, Tìm, Xem ngay, Góp ý_.
+- Brand name: **"CINs"** — lowercase 's', giữ đúng spelling này.
+- **Sentence case** cho nav, buttons, headings. Proper nouns giữ case (Game, VFX, UX).
+- KHÔNG emoji trong UI. KHÔNG hype words ("revolutionary", "amazing", "thay đổi cuộc đời").
+
+---
+
+## 10. Supabase patterns
+
+```typescript
+// Server Component
+import { createServerClient } from '@/lib/supabase/server'
+const supabase = await createServerClient()
+const { data } = await supabase.from('job_nghe_nghiep').select('*')
+
+// Client Component
+import { createClient } from '@/lib/supabase/client'
+const supabase = createClient()
+```
+
+- RLS: public `SELECT` phải work mà không cần auth (content là public).
+- Luôn handle error từ Supabase (`const { data, error } = await...`).
+- Dùng Supabase generated types — generate bằng `supabase gen types typescript`.
+- `job_` prefix = career/nghề nghiệp content.
+- `dh_` prefix = education/đại học content.
+
+---
+
+## 11. Workflow
+
+Design/prototype trong Claude.ai → copy components vào Cursor → Cursor handles project wiring → GitHub → Vercel.
+
+Khi nhận component từ Claude:
+1. Kiểm tra imports (đặc biệt icon library — chỉ lucide-react).
+2. Đổi CSS class strings sang CSS variables đúng token.
+3. Wire Supabase data nếu component dùng mock data.
+4. Thêm TypeScript types.

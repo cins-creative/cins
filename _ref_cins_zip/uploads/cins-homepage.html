@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CINs — Khám phá ngành sáng tạo thị giác tại Việt Nam</title>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,700;1,800&family=Anton&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --blue:       #1F74C9;
+  --blue-dark:  #1656A0;
+  --blue-soft:  #E7F0FB;
+  --yellow:     #FDE859;
+  --yellow-soft:#FFF8C9;
+  --mint:       #6EFEC0;
+  --mint-soft:  #D9FBED;
+  --orange:     #FFB85C;
+  --orange-soft:#FFE6C9;
+  --violet:     #BB89F8;
+  --violet-soft:#ECDDFE;
+  --bg:         #F4F5F8;
+  --surface:    #FFFFFF;
+  --border:     #E4E6EB;
+  --border-s:   #C9CCD3;
+  --ink1:       rgba(0,0,0,.85);
+  --ink2:       rgba(0,0,0,.60);
+  --ink3:       rgba(0,0,0,.55);
+  --ink4:       rgba(0,0,0,.38);
+  --r-xs:6px; --r-sm:10px; --r-md:14px; --r-lg:20px; --r-xl:28px; --r-pill:999px;
+  --shadow-xs:0 1px 2px rgba(15,23,42,.04);
+  --shadow-sm:0 2px 6px rgba(15,23,42,.06);
+  --shadow-md:0 6px 16px rgba(15,23,42,.08);
+  --shadow-pop:0 6px 0 rgba(31,116,201,.20);
+  --sans:"Be Vietnam Pro",system-ui,sans-serif;
+  --display:"Anton","Be Vietnam Pro",sans-serif;
+  --ease:cubic-bezier(.2,.7,.3,1);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink3);min-height:100vh;-webkit-font-smoothing:antialiased}
+
+/* ─── NAV ─── */
+.nav{position:sticky;top:0;z-index:100;height:60px;background:rgba(255,255,255,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 32px}
+.nav-logo{font-family:var(--sans);font-weight:800;font-size:20px;color:var(--blue);letter-spacing:-.4px;text-decoration:none}
+.nav-logo span{color:var(--ink4);font-weight:400;font-size:12px;margin-left:6px}
+.nav-links{display:flex;gap:28px}
+.nav-links a{font-size:13px;font-weight:500;color:var(--ink3);text-decoration:none;transition:color .18s var(--ease)}
+.nav-links a:hover,.nav-links a.active{color:var(--blue)}
+.nav-links a.active{font-weight:700}
+.nav-cta{font-size:13px;font-weight:700;color:#fff;background:var(--blue);padding:9px 22px;border-radius:var(--r-pill);text-decoration:none;box-shadow:var(--shadow-pop);transition:background .18s var(--ease),transform .18s var(--ease)}
+.nav-cta:hover{background:var(--blue-dark);transform:translateY(-1px)}
+
+/* ─── BENTO WRAPPER ─── */
+.bento{display:grid;grid-template-columns:repeat(12,1fr);gap:12px;padding:20px 28px 28px;max-width:1280px;margin:0 auto}
+
+/* ─── CELL BASE ─── */
+.cell{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow-sm);overflow:hidden;transition:box-shadow .2s var(--ease),transform .2s var(--ease)}
+.cell:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
+
+/* grid spans */
+.c-hero{grid-column:1/13}
+.c-port{grid-column:1/6;display:flex;flex-direction:column}
+.c-quiz{grid-column:6/10}
+.c-stat{grid-column:10/13;display:flex;flex-direction:column;justify-content:space-between}
+.c-path{grid-column:1/13}
+.c-j1{grid-column:1/4}
+.c-j2{grid-column:4/7}
+.c-j3{grid-column:7/10}
+.c-cta{grid-column:10/13;background:var(--blue-soft);border-color:#B8D4F5;display:flex;flex-direction:column;justify-content:space-between}
+
+/* ─── HERO CELL — full-width banner ─── */
+.c-hero{
+  padding:0;
+  min-height:280px;
+  display:grid;
+  grid-template-columns:1fr 420px;
+  position:relative;
+  overflow:hidden;
+  background:linear-gradient(120deg,#001F4D 0%,#0D4A9E 55%,#1F74C9 100%);
+  border-color:transparent;
+}
+.hero-left{padding:44px 48px;display:flex;flex-direction:column;justify-content:center;position:relative;z-index:2}
+.hero-right{position:relative;overflow:hidden}
+.hero-right-bg{position:absolute;inset:0;background:linear-gradient(to left,rgba(253,232,89,.12) 0%,transparent 60%)}
+.hero-blobs{position:absolute;inset:0;pointer-events:none}
+.hero-blob{position:absolute;border-radius:50%;background:var(--yellow);opacity:.14}
+.hero-blob.b1{width:280px;height:280px;top:-80px;right:-60px}
+.hero-blob.b2{width:160px;height:160px;bottom:-40px;right:120px;background:var(--orange);opacity:.12}
+.hero-blob.b3{width:100px;height:100px;top:40px;right:200px;background:var(--mint);opacity:.08}
+.hero-illus{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.hero-illus-cards{display:flex;flex-direction:column;gap:10px;padding:28px 32px 28px 48px;justify-content:center;height:100%}
+.hero-mini-card{background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.16);border-radius:var(--r-md);padding:10px 14px;backdrop-filter:blur(8px);display:flex;align-items:center;gap:10px;transition:transform .2s var(--ease)}
+.hero-mini-card:hover{transform:translateX(4px)}
+.hmc-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.hmc-info{flex:1}
+.hmc-title{font-size:12px;font-weight:700;color:#fff}
+.hmc-sub{font-size:10px;color:rgba(255,255,255,.55);margin-top:1px}
+.hmc-arrow{font-size:13px;color:rgba(255,255,255,.4)}
+.hero-eyebrow{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:700;color:rgba(255,255,255,.75);margin-bottom:20px;background:rgba(255,255,255,.1);padding:5px 14px;border-radius:var(--r-pill);border:1px solid rgba(255,255,255,.18);width:fit-content}
+.eyebrow-dot{width:6px;height:6px;border-radius:50%;background:var(--yellow);flex-shrink:0;box-shadow:0 0 0 2px rgba(253,232,89,.35)}
+.hero-h1{font-family:var(--sans);font-weight:800;font-size:38px;line-height:1.08;color:#fff;letter-spacing:-.7px}
+.hero-h1 .dim{color:rgba(255,255,255,.45);font-weight:300}
+.hero-h1 .accent{color:var(--yellow)}
+.hero-sub{font-size:14px;color:rgba(255,255,255,.65);margin-top:14px;line-height:1.65;max-width:440px}
+.hero-btns{display:flex;gap:12px;margin-top:26px;align-items:center}
+.btn-pri{font-family:var(--sans);font-size:14px;font-weight:700;color:var(--blue);background:var(--yellow);padding:11px 24px;border-radius:var(--r-pill);border:none;cursor:pointer;box-shadow:0 6px 0 rgba(180,160,0,.35);transition:all .18s var(--ease);text-decoration:none}
+.btn-pri:hover{background:#ffe93a;transform:translateY(-2px);box-shadow:0 8px 0 rgba(180,160,0,.4)}
+.btn-sec{font-size:13px;font-weight:600;color:rgba(255,255,255,.75);cursor:pointer;text-decoration:none;transition:color .15s}
+.btn-sec:hover{color:#fff}
+.trust-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:22px}
+.trust-pill{font-size:11px;font-weight:500;padding:4px 12px;border-radius:var(--r-pill);background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);color:rgba(255,255,255,.7)}
+
+/* ─── PORTFOLIO CELL ─── */
+.port-head{padding:16px 18px 12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.port-htitle{font-size:13px;font-weight:700;color:var(--ink1)}
+.port-hlink{font-size:12px;font-weight:600;color:var(--blue);text-decoration:none;transition:opacity .15s}
+.port-hlink:hover{opacity:.7}
+.port-list{flex:1}
+.pcard{display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s}
+.pcard:last-child{border-bottom:none}
+.pcard:hover{background:var(--bg)}
+.pthumb{width:44px;height:44px;border-radius:var(--r-sm);flex-shrink:0;position:relative;overflow:hidden}
+.pthumb-fill{position:absolute;inset:0}
+.pinfo{flex:1;min-width:0}
+.pname{font-size:13px;font-weight:700;color:var(--ink1)}
+.pmeta{font-size:11px;color:var(--ink4);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ptags{display:flex;gap:4px;margin-top:5px;flex-wrap:wrap}
+.ptag{font-size:10px;font-weight:600;padding:2px 8px;border-radius:var(--r-pill)}
+.pchevron{font-size:18px;color:var(--border-s);flex-shrink:0}
+.port-foot{padding:12px 18px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--bg);flex-shrink:0}
+.pfoot-t{font-size:11px;color:var(--ink4)}
+.pfoot-l{font-size:12px;font-weight:700;color:var(--blue);text-decoration:none}
+
+/* ─── QUIZ CELL ─── */
+.c-quiz{padding:22px}
+.cell-ey{font-size:11px;font-weight:600;color:var(--ink4);margin-bottom:6px;letter-spacing:.3px}
+.cell-title{font-size:15px;font-weight:700;color:var(--ink1);margin-bottom:14px}
+.chips{display:flex;gap:7px;flex-wrap:wrap}
+.chip{font-size:12px;font-weight:500;padding:6px 14px;border-radius:var(--r-pill);border:1.5px solid var(--border);color:var(--ink3);cursor:pointer;background:var(--surface);transition:all .15s var(--ease)}
+.chip:hover{border-color:var(--blue);color:var(--blue)}
+.chip.on{background:var(--blue-soft);border-color:var(--blue);color:var(--blue);font-weight:700}
+.qres{margin-top:14px;padding:12px 14px;border-radius:var(--r-md);background:var(--mint-soft);border:1px solid #9EFCD8}
+.qres-label{font-size:10px;font-weight:600;color:var(--ink4);margin-bottom:7px;text-transform:lowercase;letter-spacing:.2px}
+.qjobs{display:flex;gap:5px;flex-wrap:wrap}
+.qjob{font-size:11px;font-weight:700;padding:4px 10px;border-radius:var(--r-pill);background:var(--mint);color:rgba(0,0,0,.65)}
+.quiz-more{font-size:12px;font-weight:700;color:var(--blue);margin-top:12px;cursor:pointer;text-decoration:none;display:inline-block;transition:opacity .15s}
+.quiz-more:hover{opacity:.7}
+
+/* ─── STAT CELL ─── */
+.c-stat{padding:22px}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}
+.scard{background:var(--bg);border-radius:var(--r-md);padding:12px 14px;border:1px solid var(--border)}
+.scard.hi{background:var(--blue-soft);border-color:#B8D4F5}
+.snum{font-family:var(--sans);font-size:22px;font-weight:800;color:var(--ink1);line-height:1}
+.scard.hi .snum{color:var(--blue)}
+.slbl{font-size:11px;color:var(--ink4);margin-top:3px;font-weight:500}
+.stat-note{font-size:11px;color:var(--ink4);line-height:1.5}
+
+/* ─── PATHWAY CELL ─── */
+.c-path{padding:22px 24px}
+.path-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px}
+.pstep{border-radius:var(--r-md);padding:16px;border:1px solid var(--border);background:var(--bg);position:relative}
+.pstep::after{content:'›';position:absolute;right:-14px;top:50%;transform:translateY(-50%);font-size:20px;color:var(--border-s);font-family:var(--sans)}
+.pstep:last-child::after{display:none}
+.pstep.hi{background:var(--yellow-soft);border-color:#F0D94A}
+.ps-n{font-size:10px;font-weight:700;color:var(--ink4);margin-bottom:6px;text-transform:lowercase;letter-spacing:.2px}
+.pstep.hi .ps-n{color:#8B7200}
+.ps-t{font-size:13px;font-weight:700;color:var(--ink1)}
+.ps-d{font-size:11px;color:var(--ink4);margin-top:5px;line-height:1.5}
+
+/* ─── JOB CARDS ─── */
+.c-j1,.c-j2,.c-j3{padding:20px}
+.job-thumb{height:60px;border-radius:var(--r-md);margin-bottom:14px;position:relative;overflow:hidden;display:flex;align-items:flex-end;padding:8px 10px}
+.jbadge{font-size:10px;font-weight:700;padding:3px 10px;border-radius:var(--r-pill);position:relative;z-index:1}
+.job-decor{position:absolute;inset:0;opacity:.5}
+.jname{font-size:15px;font-weight:700;color:var(--ink1);line-height:1.2}
+.jfield{font-size:11px;color:var(--ink4);margin-top:3px;font-weight:500}
+.jskills{display:flex;gap:5px;flex-wrap:wrap;margin-top:10px}
+.jsk{font-size:11px;font-weight:600;padding:4px 10px;border-radius:var(--r-pill);background:var(--bg);color:var(--ink3);border:1px solid var(--border)}
+.jlink{font-size:12px;font-weight:700;color:var(--blue);margin-top:12px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;text-decoration:none;transition:gap .15s}
+.jlink:hover{gap:8px}
+
+/* ─── CTA CELL ─── */
+.c-cta{padding:24px}
+.cta-kicker{font-size:11px;font-weight:700;color:var(--blue);margin-bottom:10px;text-transform:lowercase;letter-spacing:.2px;opacity:.7}
+.cta-h{font-size:18px;font-weight:800;color:var(--blue);line-height:1.22;letter-spacing:-.4px}
+.cta-sub{font-size:12px;color:var(--ink3);margin-top:8px;line-height:1.6}
+.cta-btn{font-family:var(--sans);font-size:14px;font-weight:700;color:#fff;background:var(--blue);padding:12px 20px;border-radius:var(--r-pill);border:none;cursor:pointer;text-align:center;margin-top:18px;display:block;width:100%;box-shadow:var(--shadow-pop);transition:all .18s var(--ease);text-decoration:none}
+.cta-btn:hover{background:var(--blue-dark);transform:translateY(-2px)}
+.cta-note{font-size:11px;color:var(--blue);margin-top:8px;text-align:center;opacity:.6}
+
+/* ─── FOOTER NAV ─── */
+.footer-nav{display:flex;justify-content:center;gap:2px;padding:8px 28px 20px;max-width:1280px;margin:0 auto}
+.fnav{font-size:12px;font-weight:600;padding:8px 20px;border-radius:var(--r-pill);color:var(--ink3);cursor:pointer;transition:all .15s;text-decoration:none}
+.fnav.active{background:var(--blue-soft);color:var(--blue)}
+.fnav:hover:not(.active){background:var(--surface)}
+
+/* ─── SECTION SHARED ─── */
+.section-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:20px}
+.section-ey{font-size:11px;font-weight:600;color:var(--ink4);letter-spacing:.3px;margin-bottom:4px}
+.section-title{font-size:17px;font-weight:700;color:var(--ink1)}
+.section-link{font-size:13px;font-weight:700;color:var(--blue);text-decoration:none;transition:opacity .15s}
+.section-link:hover{opacity:.7}
+
+/* ─── FEATURED SCHOOLS — full-width horizontal cards ─── */
+.c-schools-featured{padding:24px 28px}
+.featured-schools-grid{display:flex;flex-direction:column;gap:14px}
+.fschool{border-radius:var(--r-lg);border:1px solid var(--border);overflow:hidden;background:var(--surface);box-shadow:var(--shadow-sm);cursor:pointer;transition:all .2s var(--ease);display:grid;grid-template-columns:280px 1fr auto}
+.fschool:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
+.fschool-cover{width:280px;min-height:140px;position:relative;overflow:hidden;flex-shrink:0}
+.fschool-cover-overlay{position:absolute;inset:0;background:linear-gradient(to right,rgba(0,0,0,.18) 0%,transparent 70%)}
+.fschool-badge{position:absolute;top:12px;left:12px;font-size:10px;font-weight:700;padding:3px 10px;border-radius:var(--r-pill)}
+.fschool-logo-wrap{position:absolute;bottom:14px;right:-18px;width:52px;height:52px;border-radius:var(--r-md);background:var(--surface);border:2px solid var(--surface);box-shadow:var(--shadow-md);overflow:hidden;display:flex;align-items:center;justify-content:center;z-index:2}
+.fschool-logo-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff}
+.fschool-body{padding:22px 20px 22px 34px;display:flex;flex-direction:column;justify-content:center}
+.fschool-name{font-size:16px;font-weight:800;color:var(--ink1);line-height:1.2}
+.fschool-code{font-size:12px;color:var(--ink4);margin-top:4px;font-weight:500}
+.fschool-desc{font-size:12px;color:var(--ink3);margin-top:8px;line-height:1.55;max-width:420px}
+.fschool-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:12px}
+.fschool-tag{font-size:10px;font-weight:600;padding:3px 10px;border-radius:var(--r-pill);background:var(--blue-soft);color:var(--blue)}
+.fschool-right{padding:22px 24px;display:flex;flex-direction:column;justify-content:space-between;align-items:flex-end;border-left:1px solid var(--border);min-width:160px}
+.fschool-loc{font-size:11px;color:var(--ink4);display:flex;align-items:center;gap:4px;white-space:nowrap}
+.fschool-arrow{font-size:13px;font-weight:700;color:var(--blue);text-decoration:none;white-space:nowrap}
+.fschool-stat{text-align:right}
+.fschool-stat-n{font-size:22px;font-weight:800;color:var(--blue)}
+.fschool-stat-l{font-size:10px;color:var(--ink4);margin-top:1px}
+
+/* ─── UNIVERSITY GRID ─── */
+.c-uni-grid{grid-column:1/13;padding:0 28px 8px}
+.uni-filter-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.uni-filter{font-size:12px;font-weight:600;padding:6px 16px;border-radius:var(--r-pill);border:1.5px solid var(--border);color:var(--ink3);cursor:pointer;background:var(--surface);transition:all .15s var(--ease)}
+.uni-filter:hover{border-color:var(--blue);color:var(--blue)}
+.uni-filter.on{background:var(--blue);border-color:var(--blue);color:#fff}
+.uni-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+.uni-card{border-radius:var(--r-md);border:1px solid var(--border);overflow:hidden;background:var(--surface);box-shadow:var(--shadow-xs);cursor:pointer;transition:all .18s var(--ease)}
+.uni-card:hover{box-shadow:var(--shadow-sm);transform:translateY(-2px);border-color:var(--blue)}
+.uni-card-cover{height:56px;position:relative;overflow:hidden}
+.uni-card-cover-bg{position:absolute;inset:0;object-fit:cover;width:100%;height:100%}
+.uni-card-cover-overlay{position:absolute;inset:0}
+.uni-card-logo{position:absolute;bottom:-14px;left:10px;width:36px;height:36px;border-radius:8px;background:var(--surface);border:2px solid var(--surface);box-shadow:var(--shadow-xs);overflow:hidden;display:flex;align-items:center;justify-content:center}
+.uni-card-logo-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff}
+.uni-card-body{padding:20px 10px 10px}
+.uni-card-name{font-size:11px;font-weight:700;color:var(--ink1);line-height:1.3}
+.uni-card-code{font-size:10px;color:var(--ink4);margin-top:2px}
+.uni-card-type{font-size:9px;font-weight:700;padding:2px 7px;border-radius:var(--r-pill);margin-top:6px;display:inline-block}
+.uni-card-type.cong-lap{background:#E7F0FB;color:var(--blue)}
+.uni-card-type.dan-lap{background:var(--orange-soft);color:#8B4500}
+.uni-show-more{grid-column:1/-1;display:flex;align-items:center;justify-content:center;padding:16px;border-radius:var(--r-md);border:1.5px dashed var(--border);cursor:pointer;transition:all .15s;text-decoration:none}
+.uni-show-more:hover{border-color:var(--blue);background:var(--blue-soft)}
+.uni-show-more span{font-size:13px;font-weight:700;color:var(--blue)}
+
+/* ─── ANIMATIONS ─── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.cell{animation:fadeUp .4s var(--ease) both}
+.c-hero{animation-delay:.05s}
+.c-port{animation-delay:.1s}
+.c-quiz{animation-delay:.15s}
+.c-stat{animation-delay:.18s}
+.c-path{animation-delay:.22s}
+.c-j1{animation-delay:.26s}
+.c-j2{animation-delay:.29s}
+.c-j3{animation-delay:.32s}
+.c-cta{animation-delay:.35s}
+.c-schools-featured{animation:fadeUp .4s var(--ease) .4s both}
+.c-uni-grid{animation:fadeUp .4s var(--ease) .45s both}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="#" class="nav-logo">CINs <span>— khám phá ngành sáng tạo</span></a>
+  <div class="nav-links">
+    <a href="#" class="active">Khám phá nghề</a>
+    <a href="#">Ngành học</a>
+    <a href="#">Trường ĐH</a>
+    <a href="#">Bài viết</a>
+  </div>
+  <a href="#" class="nav-cta">Đăng ký miễn phí</a>
+</nav>
+
+<main>
+<div class="bento">
+
+  <!-- HERO BANNER -->
+  <div class="cell c-hero">
+    <div class="hero-blobs">
+      <div class="hero-blob b1"></div>
+      <div class="hero-blob b2"></div>
+      <div class="hero-blob b3"></div>
+    </div>
+    <div class="hero-left">
+      <div class="hero-eyebrow">
+        <div class="eyebrow-dot"></div>
+        dành cho học sinh THPT
+      </div>
+      <h1 class="hero-h1">
+        Chưa biết<br/>
+        <span class="dim">mình hợp với</span><br/>
+        <span class="accent">nghề gì?</span>
+      </h1>
+      <p class="hero-sub">Khám phá 120+ vị trí nghề trong ngành sáng tạo thị giác — từ Game, Hoạt hình đến UI/UX và Điện ảnh. Hiểu rõ trước khi chọn ngành.</p>
+      <div class="hero-btns">
+        <a href="#" class="btn-pri">Tìm ngành phù hợp →</a>
+        <a href="#" class="btn-sec">Xem tất cả nghề</a>
+      </div>
+      <div class="trust-row">
+        <span class="trust-pill">120+ vị trí nghề</span>
+        <span class="trust-pill">38 trường đại học</span>
+        <span class="trust-pill">Hoàn toàn miễn phí</span>
+        <span class="trust-pill">Không cần đăng ký để xem</span>
+      </div>
+    </div>
+    <div class="hero-right">
+      <div class="hero-right-bg"></div>
+      <div class="hero-illus-cards">
+        <div class="hero-mini-card">
+          <div class="hmc-dot" style="background:var(--violet)"></div>
+          <div class="hmc-info">
+            <div class="hmc-title">UI/UX Designer</div>
+            <div class="hmc-sub">Thiết kế · Digital · Product</div>
+          </div>
+          <span class="hmc-arrow">›</span>
+        </div>
+        <div class="hero-mini-card">
+          <div class="hmc-dot" style="background:var(--mint)"></div>
+          <div class="hmc-info">
+            <div class="hmc-title">3D Animator</div>
+            <div class="hmc-sub">Hoạt hình · Game · VFX</div>
+          </div>
+          <span class="hmc-arrow">›</span>
+        </div>
+        <div class="hero-mini-card">
+          <div class="hmc-dot" style="background:var(--orange)"></div>
+          <div class="hmc-info">
+            <div class="hmc-title">Concept Artist</div>
+            <div class="hmc-sub">Game · Phim hoạt hình</div>
+          </div>
+          <span class="hmc-arrow">›</span>
+        </div>
+        <div class="hero-mini-card">
+          <div class="hmc-dot" style="background:var(--yellow)"></div>
+          <div class="hmc-info">
+            <div class="hmc-title">Motion Designer</div>
+            <div class="hmc-sub">Branding · Social · Film</div>
+          </div>
+          <span class="hmc-arrow">›</span>
+        </div>
+        <div class="hero-mini-card" style="background:rgba(255,255,255,.05);border-style:dashed">
+          <div class="hmc-dot" style="background:rgba(255,255,255,.3)"></div>
+          <div class="hmc-info">
+            <div class="hmc-title" style="color:rgba(255,255,255,.5)">Xem 116 nghề khác →</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PORTFOLIO FEED -->
+  <div class="cell c-port">
+    <div class="port-head">
+      <span class="port-htitle">Portfolio sinh viên mới nhất</span>
+      <a href="#" class="port-hlink">Xem tất cả →</a>
+    </div>
+    <div class="port-list">
+      <div class="pcard">
+        <div class="pthumb">
+          <div class="pthumb-fill" style="background:linear-gradient(135deg,#ECDDFE,#BB89F8)"></div>
+        </div>
+        <div class="pinfo">
+          <div class="pname">Minh Châu</div>
+          <div class="pmeta">Motion Design · RMIT · Năm 2</div>
+          <div class="ptags">
+            <span class="ptag" style="background:var(--violet-soft);color:#7B3FF0">After Effects</span>
+            <span class="ptag" style="background:var(--violet-soft);color:#7B3FF0">Cinema 4D</span>
+          </div>
+        </div>
+        <span class="pchevron">›</span>
+      </div>
+      <div class="pcard">
+        <div class="pthumb">
+          <div class="pthumb-fill" style="background:linear-gradient(135deg,#D9FBED,#6EFEC0)"></div>
+        </div>
+        <div class="pinfo">
+          <div class="pname">Gia Huy</div>
+          <div class="pmeta">UI/UX · UEF · Năm 3</div>
+          <div class="ptags">
+            <span class="ptag" style="background:var(--mint-soft);color:#0A6B4A">Figma</span>
+            <span class="ptag" style="background:var(--mint-soft);color:#0A6B4A">Research</span>
+          </div>
+        </div>
+        <span class="pchevron">›</span>
+      </div>
+      <div class="pcard">
+        <div class="pthumb">
+          <div class="pthumb-fill" style="background:linear-gradient(135deg,#FFE6C9,#FFB85C)"></div>
+        </div>
+        <div class="pinfo">
+          <div class="pname">Bảo Ngọc</div>
+          <div class="pmeta">Illustration · HCMUFA · Năm 1</div>
+          <div class="ptags">
+            <span class="ptag" style="background:var(--orange-soft);color:#8B4500">Procreate</span>
+            <span class="ptag" style="background:var(--orange-soft);color:#8B4500">Photoshop</span>
+          </div>
+        </div>
+        <span class="pchevron">›</span>
+      </div>
+      <div class="pcard">
+        <div class="pthumb">
+          <div class="pthumb-fill" style="background:linear-gradient(135deg,#FFF8C9,#FDE859)"></div>
+        </div>
+        <div class="pinfo">
+          <div class="pname">Thanh Lâm</div>
+          <div class="pmeta">Branding · Văn Lang · Năm 4</div>
+          <div class="ptags">
+            <span class="ptag" style="background:var(--yellow-soft);color:#7A6200">Illustrator</span>
+            <span class="ptag" style="background:var(--yellow-soft);color:#7A6200">Branding</span>
+          </div>
+        </div>
+        <span class="pchevron">›</span>
+      </div>
+    </div>
+    <div class="port-foot">
+      <span class="pfoot-t">2,400+ portfolio đang hoạt động</span>
+      <a href="#" class="pfoot-l">Tạo portfolio →</a>
+    </div>
+  </div>
+
+  <!-- QUIZ -->
+  <div class="cell c-quiz">
+    <div class="cell-ey">gợi ý nhanh</div>
+    <div class="cell-title">Bạn thích làm gì nhất?</div>
+    <div class="chips" id="chips">
+      <span class="chip on" onclick="toggleChip(this)">Vẽ & thiết kế</span>
+      <span class="chip" onclick="toggleChip(this)">Xem phim</span>
+      <span class="chip" onclick="toggleChip(this)">Chơi game</span>
+      <span class="chip" onclick="toggleChip(this)">Chụp ảnh</span>
+      <span class="chip" onclick="toggleChip(this)">Lập trình</span>
+      <span class="chip" onclick="toggleChip(this)">Âm nhạc</span>
+    </div>
+    <div class="qres" id="qres">
+      <div class="qres-label">có thể phù hợp với bạn:</div>
+      <div class="qjobs" id="qjobs">
+        <span class="qjob">UI/UX Designer</span>
+        <span class="qjob">Graphic Designer</span>
+        <span class="qjob">Motion Designer</span>
+        <span class="qjob">Illustrator</span>
+      </div>
+    </div>
+    <a href="#" class="quiz-more">Xem đầy đủ gợi ý →</a>
+  </div>
+
+  <!-- STATS -->
+  <div class="cell c-stat">
+    <div>
+      <div class="cell-ey">cộng đồng CINs</div>
+      <div class="stat-grid">
+        <div class="scard hi"><div class="snum">120+</div><div class="slbl">vị trí nghề</div></div>
+        <div class="scard"><div class="snum">38</div><div class="slbl">trường đại học</div></div>
+        <div class="scard"><div class="snum">2,400+</div><div class="slbl">portfolio</div></div>
+        <div class="scard"><div class="snum">5</div><div class="slbl">lĩnh vực</div></div>
+      </div>
+    </div>
+    <div class="stat-note">Dữ liệu được cập nhật liên tục bởi đội ngũ CINs và cộng đồng sáng tạo.</div>
+  </div>
+
+  <!-- PATHWAY -->
+  <div class="cell c-path">
+    <div class="cell-ey">lộ trình hướng nghiệp</div>
+    <div class="cell-title">Từ "chưa biết" đến "có định hướng"</div>
+    <div class="path-grid">
+      <div class="pstep hi">
+        <div class="ps-n">bước 1 — bắt đầu ở đây</div>
+        <div class="ps-t">Khám phá nghề nghiệp</div>
+        <div class="ps-d">Tìm hiểu các vị trí trong ngành sáng tạo — làm gì, cần kỹ năng gì, triển vọng lương ra sao</div>
+      </div>
+      <div class="pstep">
+        <div class="ps-n">bước 2</div>
+        <div class="ps-t">Chọn ngành & trường học</div>
+        <div class="ps-d">Tìm ngành học và trường ĐH, CĐ phù hợp với định hướng nghề của bạn</div>
+      </div>
+      <div class="pstep">
+        <div class="ps-n">bước 3</div>
+        <div class="ps-t">Tạo portfolio cá nhân</div>
+        <div class="ps-d">Bắt đầu ghi lại các dự án từ sớm — dù còn đang học THPT hay năm nhất đại học</div>
+      </div>
+      <div class="pstep">
+        <div class="ps-n">bước 4</div>
+        <div class="ps-t">Kết nối cơ hội thực tế</div>
+        <div class="ps-d">Được employer, studio và trường học trong ngành tìm thấy qua portfolio của bạn</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- JOB CARD 1 -->
+  <div class="cell c-j1">
+    <div class="job-thumb" style="background:var(--violet-soft)">
+      <div class="job-decor" style="background:radial-gradient(circle at 80% 20%,var(--violet),transparent 60%)"></div>
+      <span class="jbadge" style="background:var(--violet);color:#fff">Thiết kế</span>
+    </div>
+    <div class="jname">UI/UX Designer</div>
+    <div class="jfield">Digital · Product · App</div>
+    <div class="jskills">
+      <span class="jsk">Figma</span>
+      <span class="jsk">User Research</span>
+      <span class="jsk">Prototyping</span>
+    </div>
+    <a href="#" class="jlink">Xem chi tiết nghề →</a>
+  </div>
+
+  <!-- JOB CARD 2 -->
+  <div class="cell c-j2">
+    <div class="job-thumb" style="background:var(--mint-soft)">
+      <div class="job-decor" style="background:radial-gradient(circle at 80% 20%,var(--mint),transparent 60%)"></div>
+      <span class="jbadge" style="background:var(--mint);color:rgba(0,0,0,.65)">Hoạt hình</span>
+    </div>
+    <div class="jname">3D Animator</div>
+    <div class="jfield">Game · Phim · VFX</div>
+    <div class="jskills">
+      <span class="jsk">Blender</span>
+      <span class="jsk">Maya</span>
+      <span class="jsk">Rigging</span>
+    </div>
+    <a href="#" class="jlink">Xem chi tiết nghề →</a>
+  </div>
+
+  <!-- JOB CARD 3 -->
+  <div class="cell c-j3">
+    <div class="job-thumb" style="background:var(--orange-soft)">
+      <div class="job-decor" style="background:radial-gradient(circle at 80% 20%,var(--orange),transparent 60%)"></div>
+      <span class="jbadge" style="background:var(--orange);color:rgba(0,0,0,.65)">Game</span>
+    </div>
+    <div class="jname">Concept Artist</div>
+    <div class="jfield">Game · Phim hoạt hình</div>
+    <div class="jskills">
+      <span class="jsk">Procreate</span>
+      <span class="jsk">Photoshop</span>
+      <span class="jsk">Narrative</span>
+    </div>
+    <a href="#" class="jlink">Xem chi tiết nghề →</a>
+  </div>
+
+  <!-- CTA -->
+  <div class="cell c-cta">
+    <div>
+      <div class="cta-kicker">miễn phí · không cần thẻ tín dụng</div>
+      <div class="cta-h">Bắt đầu hành trình khám phá của bạn.</div>
+      <div class="cta-sub">Tạo tài khoản, khám phá nghề và xây portfolio ngay hôm nay — hoàn toàn miễn phí.</div>
+    </div>
+    <div>
+      <a href="#" class="cta-btn">Đăng ký miễn phí →</a>
+      <div class="cta-note">Không cần thẻ tín dụng</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══ UNIVERSITY GRID ═══ -->
+<div style="max-width:1280px;margin:0 auto">
+
+<div class="c-uni-grid">
+  <div class="section-head">
+    <div>
+      <div class="section-ey">danh sách trường đại học</div>
+      <div class="section-title">38 trường đào tạo ngành sáng tạo thị giác</div>
+    </div>
+    <a href="#" class="section-link">Xem tất cả →</a>
+  </div>
+  <div class="uni-filter-row">
+    <span class="uni-filter on" onclick="filterUni(this,'all')">Tất cả</span>
+    <span class="uni-filter" onclick="filterUni(this,'cong-lap')">Công lập</span>
+    <span class="uni-filter" onclick="filterUni(this,'dan-lap')">Dân lập</span>
+    <span class="uni-filter" onclick="filterUni(this,'quoc-te')">Quốc tế</span>
+    <span class="uni-filter" onclick="filterUni(this,'hcm')">TP. Hồ Chí Minh</span>
+    <span class="uni-filter" onclick="filterUni(this,'hn')">Hà Nội</span>
+  </div>
+  <div class="uni-grid" id="uni-grid"></div>
+</div>
+
+<!-- ═══ FEATURED SCHOOLS — horizontal full-width ═══ -->
+<div class="c-schools-featured">
+  <div class="section-head">
+    <div>
+      <div class="section-ey">cơ sở đào tạo nổi bật</div>
+      <div class="section-title">Các trường đang được chú ý</div>
+    </div>
+    <a href="#" class="section-link">Xem tất cả trường →</a>
+  </div>
+  <div class="featured-schools-grid">
+
+    <!-- RMIT -->
+    <div class="fschool">
+      <div class="fschool-cover" style="background:linear-gradient(120deg,#001F4D 0%,#1F74C9 100%)">
+        <div class="fschool-cover-overlay"></div>
+        <span class="fschool-badge" style="background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.3)">Quốc tế</span>
+        <div class="fschool-logo-wrap">
+          <div class="fschool-logo-placeholder" style="background:#001F4D;font-size:9px;letter-spacing:-.5px">RMIT</div>
+        </div>
+      </div>
+      <div class="fschool-body">
+        <div class="fschool-name">RMIT University Vietnam</div>
+        <div class="fschool-code">Mã trường: RMT · TP. Hồ Chí Minh</div>
+        <div class="fschool-desc">Chương trình đào tạo quốc tế theo chuẩn Úc — nổi bật với Digital Media, Game Design và Communication Design.</div>
+        <div class="fschool-tags">
+          <span class="fschool-tag">Digital Media</span>
+          <span class="fschool-tag">Game Design</span>
+          <span class="fschool-tag">Communication</span>
+          <span class="fschool-tag">Fashion</span>
+        </div>
+      </div>
+      <div class="fschool-right">
+        <div class="fschool-stat">
+          <div class="fschool-stat-n">4</div>
+          <div class="fschool-stat-l">ngành sáng tạo</div>
+        </div>
+        <div>
+          <div class="fschool-loc" style="justify-content:flex-end;margin-bottom:8px">
+            <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M8 1.5C5.515 1.5 3.5 3.515 3.5 6c0 3.75 4.5 8.5 4.5 8.5s4.5-4.75 4.5-8.5c0-2.485-2.015-4.5-4.5-4.5zm0 6a1.5 1.5 0 110-3 1.5 1.5 0 010 3z" fill="currentColor" opacity=".5"/></svg>
+            Hồ Chí Minh
+          </div>
+          <a href="#" class="fschool-arrow">Xem chi tiết →</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- HCMUFA -->
+    <div class="fschool">
+      <div class="fschool-cover" style="background:linear-gradient(120deg,#6B0F0F 0%,#C0392B 100%)">
+        <div class="fschool-cover-overlay"></div>
+        <span class="fschool-badge" style="background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.3)">Công lập</span>
+        <div class="fschool-logo-wrap">
+          <div class="fschool-logo-placeholder" style="background:#6B0F0F;font-size:9px">MTS</div>
+        </div>
+      </div>
+      <div class="fschool-body">
+        <div class="fschool-name">Đại học Mỹ thuật TP. Hồ Chí Minh</div>
+        <div class="fschool-code">Mã trường: MTS · TP. Hồ Chí Minh</div>
+        <div class="fschool-desc">Trường mỹ thuật lâu đời và uy tín nhất miền Nam — đào tạo chuyên sâu hội hoạ, đồ hoạ, điêu khắc và thiết kế thời trang.</div>
+        <div class="fschool-tags">
+          <span class="fschool-tag">Mỹ thuật ứng dụng</span>
+          <span class="fschool-tag">Đồ hoạ</span>
+          <span class="fschool-tag">Điêu khắc</span>
+          <span class="fschool-tag">Thời trang</span>
+        </div>
+      </div>
+      <div class="fschool-right">
+        <div class="fschool-stat">
+          <div class="fschool-stat-n">6</div>
+          <div class="fschool-stat-l">ngành sáng tạo</div>
+        </div>
+        <div>
+          <div class="fschool-loc" style="justify-content:flex-end;margin-bottom:8px">
+            <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M8 1.5C5.515 1.5 3.5 3.515 3.5 6c0 3.75 4.5 8.5 4.5 8.5s4.5-4.75 4.5-8.5c0-2.485-2.015-4.5-4.5-4.5zm0 6a1.5 1.5 0 110-3 1.5 1.5 0 010 3z" fill="currentColor" opacity=".5"/></svg>
+            Hồ Chí Minh
+          </div>
+          <a href="#" class="fschool-arrow">Xem chi tiết →</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Văn Lang -->
+    <div class="fschool">
+      <div class="fschool-cover" style="background:linear-gradient(120deg,#4A0E8F 0%,#9B59B6 100%)">
+        <div class="fschool-cover-overlay"></div>
+        <span class="fschool-badge" style="background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.3)">Dân lập</span>
+        <div class="fschool-logo-wrap">
+          <div class="fschool-logo-placeholder" style="background:#4A0E8F;font-size:9px">VLU</div>
+        </div>
+      </div>
+      <div class="fschool-body">
+        <div class="fschool-name">Đại học Văn Lang</div>
+        <div class="fschool-code">Mã trường: VLU · TP. Hồ Chí Minh</div>
+        <div class="fschool-desc">Trường đa ngành với thế mạnh thiết kế sáng tạo — Kiến trúc, Nội thất, Thời trang và Truyền thông đa phương tiện.</div>
+        <div class="fschool-tags">
+          <span class="fschool-tag">Kiến trúc</span>
+          <span class="fschool-tag">Thiết kế nội thất</span>
+          <span class="fschool-tag">Thời trang</span>
+          <span class="fschool-tag">Truyền thông</span>
+        </div>
+      </div>
+      <div class="fschool-right">
+        <div class="fschool-stat">
+          <div class="fschool-stat-n">5</div>
+          <div class="fschool-stat-l">ngành sáng tạo</div>
+        </div>
+        <div>
+          <div class="fschool-loc" style="justify-content:flex-end;margin-bottom:8px">
+            <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M8 1.5C5.515 1.5 3.5 3.515 3.5 6c0 3.75 4.5 8.5 4.5 8.5s4.5-4.75 4.5-8.5c0-2.485-2.015-4.5-4.5-4.5zm0 6a1.5 1.5 0 110-3 1.5 1.5 0 010 3z" fill="currentColor" opacity=".5"/></svg>
+            HCM · Đà Nẵng · Hà Nội
+          </div>
+          <a href="#" class="fschool-arrow">Xem chi tiết →</a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</div>
+
+<div class="footer-nav">
+  <a href="#" class="fnav active">Dành cho học sinh</a>
+  <a href="#" class="fnav">Dành cho trường ĐH</a>
+  <a href="#" class="fnav">Dành cho doanh nghiệp</a>
+</div>
+</main>
+
+<script>
+const map = {
+  'Vẽ & thiết kế':['UI/UX Designer','Graphic Designer','Motion Designer','Illustrator'],
+  'Xem phim':['Director','Screenwriter','Video Editor','Cinematographer'],
+  'Chơi game':['Game Designer','Concept Artist','3D Animator','UX Game Designer'],
+  'Chụp ảnh':['Photographer','Art Director','Visual Designer','Content Creator'],
+  'Lập trình':['Creative Technologist','Interaction Designer','Technical Artist','WebGL Developer'],
+  'Âm nhạc':['Sound Designer','Music Composer','Audio Engineer','Motion Designer'],
+};
+
+function toggleChip(el) {
+  el.classList.toggle('on');
+  const selected = [...document.querySelectorAll('.chip.on')].map(c=>c.textContent.trim());
+  const jobs = selected.length
+    ? [...new Set(selected.flatMap(k=>map[k]||[]))].slice(0,5)
+    : ['UI/UX Designer','Graphic Designer','Motion Designer','Illustrator'];
+  const container = document.getElementById('qjobs');
+  container.innerHTML = jobs.map(j=>`<span class="qjob">${j}</span>`).join('');
+}
+
+const universities = [
+  {code:'KTS',name:'ĐH Kiến trúc TP.HCM',type:'cong-lap',city:'hcm',color:'#1B4F72',short:'KTS',majors:['Kiến trúc','Thiết kế nội thất']},
+  {code:'MTS',name:'ĐH Mỹ thuật TP.HCM',type:'cong-lap',city:'hcm',color:'#8B1A1A',short:'MTS',majors:['Đồ hoạ','Thời trang']},
+  {code:'VLU',name:'ĐH Văn Lang',type:'dan-lap',city:'hcm',color:'#7B1FA2',short:'VLU',majors:['Kiến trúc','Thiết kế']},
+  {code:'HSU',name:'ĐH Hoa Sen',type:'dan-lap',city:'hcm',color:'#E65100',short:'HSU',majors:['Thiết kế đồ hoạ','Truyền thông']},
+  {code:'DKC',name:'ĐH Công nghệ TP.HCM',type:'dan-lap',city:'hcm',color:'#1565C0',short:'DKC',majors:['Thiết kế','Truyền thông đa phương tiện']},
+  {code:'DHB',name:'ĐH Quốc tế Hồng Bàng',type:'dan-lap',city:'hcm',color:'#B71C1C',short:'DHB',majors:['Thiết kế đồ hoạ']},
+  {code:'RMT',name:'RMIT University Vietnam',type:'quoc-te',city:'hcm',color:'#002B5C',short:'RMIT',majors:['Digital Media','Game Design']},
+  {code:'UAH',name:'ĐH Kiến trúc Hà Nội',type:'cong-lap',city:'hn',color:'#1B5E20',short:'UAH',majors:['Kiến trúc','Thiết kế nội thất']},
+  {code:'MTHN',name:'ĐH Mỹ thuật Hà Nội',type:'cong-lap',city:'hn',color:'#4A148C',short:'MTHN',majors:['Hội hoạ','Điêu khắc','Đồ hoạ']},
+  {code:'SKDK',name:'ĐH Sân khấu – Điện ảnh HN',type:'cong-lap',city:'hn',color:'#BF360C',short:'SKĐK',majors:['Điện ảnh','Truyền hình']},
+  {code:'FPT',name:'ĐH FPT',type:'dan-lap',city:'hcm',color:'#F57F17',short:'FPT',majors:['Thiết kế mỹ thuật số']},
+  {code:'UEF',name:'ĐH Kinh tế Tài chính TP.HCM',type:'dan-lap',city:'hcm',color:'#006064',short:'UEF',majors:['Thiết kế thời trang','Truyền thông']},
+];
+
+let currentFilter = 'all';
+
+function renderUnis(filter) {
+  const grid = document.getElementById('uni-grid');
+  const filtered = filter==='all' ? universities : universities.filter(u=>u.type===filter||u.city===filter);
+  grid.innerHTML = filtered.map(u=>`
+    <div class="uni-card">
+      <div class="uni-card-cover" style="background:${u.color}">
+        <div class="uni-card-cover-overlay" style="background:linear-gradient(to top,rgba(0,0,0,.3),transparent)"></div>
+        <div class="uni-card-logo">
+          <div class="uni-card-logo-ph" style="background:${u.color};font-size:${u.short.length>3?'8':'10'}px">${u.short}</div>
+        </div>
+      </div>
+      <div class="uni-card-body">
+        <div class="uni-card-name">${u.name}</div>
+        <div class="uni-card-code">Mã: ${u.code}</div>
+        <span class="uni-card-type ${u.type==='cong-lap'?'cong-lap':u.type==='quoc-te'?'cong-lap':'dan-lap'}">${u.type==='cong-lap'?'Công lập':u.type==='quoc-te'?'Quốc tế':'Dân lập'}</span>
+      </div>
+    </div>
+  `).join('') + `<a href="#" class="uni-show-more"><span>Xem tất cả 38 trường →</span></a>`;
+}
+
+function filterUni(el, filter) {
+  document.querySelectorAll('.uni-filter').forEach(f=>f.classList.remove('on'));
+  el.classList.add('on');
+  renderUnis(filter);
+}
+
+renderUnis('all');
+</script>
+</body>
+</html>

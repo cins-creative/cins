@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Mascot Accents</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html, body { margin: 0; padding: 24px; background: var(--bg-page); font-family: var(--font-sans); box-sizing: border-box; }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; width: 652px; }
+  .swatch {
+    border-radius: var(--radius-md); padding: 14px;
+    min-height: 110px; color: rgba(0,0,0,.7);
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .swatch .role { font-size: 11px; opacity: .65; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500; }
+  .swatch .name { font-weight: 700; font-size: 15px; }
+  .swatch .hex  { font-family: var(--font-mono); font-size: 12px; opacity: .8; }
+</style>
+</head>
+<body>
+<div class="grid">
+  <div class="swatch" style="background: var(--cins-yellow);">
+    <div class="role">Artist</div>
+    <div>
+      <div class="name">yellow</div>
+      <div class="hex">#FDE859</div>
+    </div>
+  </div>
+  <div class="swatch" style="background: var(--cins-violet);">
+    <div class="role">Technical Artist</div>
+    <div>
+      <div class="name">violet</div>
+      <div class="hex">#BB89F8</div>
+    </div>
+  </div>
+  <div class="swatch" style="background: var(--cins-orange);">
+    <div class="role">Manager</div>
+    <div>
+      <div class="name">orange</div>
+      <div class="hex">#FFB85C</div>
+    </div>
+  </div>
+  <div class="swatch" style="background: var(--cins-mint);">
+    <div class="role">Supporter</div>
+    <div>
+      <div class="name">mint</div>
+      <div class="hex">#6EFEC0</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

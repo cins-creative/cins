@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Logo</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html, body { margin: 0; padding: 0; background: var(--bg-page); font-family: var(--font-sans); }
+  .card {
+    width: 700px; height: 200px;
+    background: var(--bg-page);
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px;
+    box-sizing: border-box;
+  }
+  .logo-box {
+    background: white;
+    padding: 28px 56px;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+  }
+  .logo-box img { display: block; height: 88px; }
+  .rule {
+    margin-left: 28px;
+    max-width: 220px;
+    font-size: 13px;
+    color: var(--fg-2);
+    line-height: 1.5;
+  }
+  .rule .label {
+    font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.6px;
+    color: var(--cins-blue);
+    margin-bottom: 6px;
+  }
+  .rule .body { color: var(--fg-3); }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo-box"><img src="../assets/logo-cins.png" alt="CINs logo"></div>
+  <div class="rule">
+    <div class="label">Quy tắc</div>
+    <div class="body">Logo CINs <strong>chỉ được đặt trên nền trắng</strong>.</div>
+  </div>
+</div>
+</body>
+</html>

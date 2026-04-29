@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Brand Color</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html, body { margin: 0; padding: 24px; background: var(--bg-page); font-family: var(--font-sans); box-sizing: border-box; }
+  .row { display: flex; gap: 12px; align-items: stretch; width: 652px; }
+  .primary {
+    flex: 1; background: var(--cins-blue); border-radius: var(--radius-md);
+    color: white; padding: 18px 20px; min-height: 100px;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .primary .name { font-weight: 700; font-size: 18px; }
+  .primary .hex  { font-family: var(--font-mono); font-size: 14px; opacity: .85; }
+  .shades { display: flex; flex-direction: column; gap: 8px; width: 200px; }
+  .shade { padding: 10px 12px; border-radius: var(--radius-sm); display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+  .shade .h { font-family: var(--font-mono); opacity: .85; }
+</style>
+</head>
+<body>
+<div class="row">
+  <div class="primary">
+    <div class="name">Primary · cins-blue</div>
+    <div class="hex">#1F74C9</div>
+  </div>
+  <div class="shades">
+    <div class="shade" style="background: var(--cins-blue-dark); color: white;"><span>blue-dark</span><span class="h">#1656A0</span></div>
+    <div class="shade" style="background: var(--cins-blue-soft); color: var(--cins-blue);"><span>blue-soft</span><span class="h">#E7F0FB</span></div>
+  </div>
+</div>
+</body>
+</html>

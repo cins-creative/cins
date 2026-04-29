@@ -1,0 +1,214 @@
+/* Design tokens + utilities (from colors_and_type.css, fonts via next/font) */
+:root {
+  /* ---------- BRAND COLOR ---------- */
+  --cins-blue:       #1F74C9;  /* Primary — logo blue, headlines, links */
+  --cins-blue-dark:  #1656A0;  /* Hover/pressed primary */
+  --cins-blue-soft:  #E7F0FB;  /* Tonal background, selected tab */
+
+  /* ---------- ACCENT QUARTET (mascot palette) ---------- */
+  --cins-yellow: #FDE859;  /* Artist mascot · sun · CTA energy */
+  --cins-mint:   #6EFEC0;  /* Supporter mascot · success · refresh */
+  --cins-orange: #FFB85C;  /* Manager mascot · warmth · highlight */
+  --cins-violet: #BB89F8;  /* Technical Artist mascot · creativity */
+
+  /* Tints (10–20% versions for backgrounds) */
+  --cins-yellow-soft: #FFF8C9;
+  --cins-mint-soft:   #D9FBED;
+  --cins-orange-soft: #FFE6C9;
+  --cins-violet-soft: #ECDDFE;
+
+  /* ---------- NEUTRALS ---------- */
+  --neutral-0:    #FFFFFF;
+  --neutral-50:   #F8F9FB;   /* page background tint */
+  --neutral-100:  #F1F2F5;   /* card surface alt */
+  --neutral-200:  #E4E6EB;   /* divider, input border */
+  --neutral-300:  #C9CCD3;
+  --neutral-400:  #9AA0AB;   /* placeholder */
+  --neutral-500:  #6B7280;   /* muted body */
+  --neutral-600:  #4A5160;
+  --neutral-700:  #2F3441;
+  --neutral-800:  #1B1F2A;
+  --neutral-900:  #0E1117;
+
+  /* Brand sheet specifies title/body text @ Black 50%–60% — i.e. soft black */
+  --ink-display: rgba(0, 0, 0, 0.85);  /* large display headings */
+  --ink-title:   rgba(0, 0, 0, 0.60);  /* section titles per brand sheet */
+  --ink-body:    rgba(0, 0, 0, 0.55);  /* body text */
+  --ink-muted:   rgba(0, 0, 0, 0.40);  /* secondary, captions */
+
+  /* ---------- SEMANTIC ---------- */
+  --fg-1: var(--ink-display);
+  --fg-2: var(--ink-title);
+  --fg-3: var(--ink-body);
+  --fg-4: var(--ink-muted);
+  --fg-link: var(--cins-blue);
+
+  --bg-page:    #F4F5F8;     /* signature lavender-grey page bg, see screenshots */
+  --bg-surface: #FFFFFF;
+  --bg-tint:    var(--cins-blue-soft);
+
+  --border: #E4E6EB;
+  --border-strong: #C9CCD3;
+
+  --success: #1FB36B;
+  --warning: #F4A52A;
+  --danger:  #E5484D;
+
+  /* ---------- RADII ---------- */
+  /* The brand sheet emphasizes "bo góc" (rounded corners) — NEVER sharp corners */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 14px;   /* default cards, buttons */
+  --radius-lg: 20px;   /* large cards, panels */
+  --radius-xl: 28px;   /* hero cards */
+  --radius-pill: 999px;
+
+  /* ---------- SPACING ---------- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+
+  /* ---------- SHADOWS ---------- */
+  /* CINs uses very soft, flat-ish shadows; nothing harsh */
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-sm: 0 2px 6px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 6px 16px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 14px 32px rgba(15, 23, 42, 0.10);
+  --shadow-pop: 0 8px 0 rgba(31, 116, 201, 0.18);  /* playful 'sticker' lift */
+
+  /* ---------- TYPE FAMILIES ---------- */
+  /* Không dùng Anton ở đây — Anton chỉ gán cho h1 trong cins-font-bridge.css */
+  --font-display: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", Roboto,
+    sans-serif;
+  --font-sans: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", Roboto,
+    sans-serif;
+  --font-serif:   "Crimson Pro", Georgia, "Times New Roman", serif;  /* editorial only */
+  --font-mono:    "JetBrains Mono", "SF Mono", Menlo, monospace;
+
+  /* ---------- TYPE SIZE SCALE ---------- */
+  --text-xs:   12px;
+  --text-sm:   14px;
+  --text-md:   16px;
+  --text-lg:   18px;
+  --text-xl:   22px;
+  --text-2xl:  28px;
+  --text-3xl:  36px;
+  --text-4xl:  48px;
+  --text-5xl:  64px;
+  --text-display: 88px;
+
+  /* ---------- WEIGHTS ---------- */
+  --weight-regular: 400;
+  --weight-medium:  500;
+  --weight-semibold: 600;
+  --weight-bold:    700;
+  --weight-extrabold: 800;
+}
+
+/* ========================================================
+   SEMANTIC TYPE STYLES
+   ======================================================== */
+
+.cins-display {
+  font-family: var(--font-display);
+  font-size: var(--text-display);
+  line-height: 1.0;
+  letter-spacing: 0.5px;
+  color: var(--fg-1);
+}
+
+.cins-h1 {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-extrabold);
+  font-size: var(--text-4xl);
+  line-height: 1.1;
+  color: var(--cins-blue);  /* signature blue page titles */
+  letter-spacing: -0.5px;
+}
+
+.cins-h2 {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-bold);
+  font-size: var(--text-3xl);
+  line-height: 1.15;
+  color: var(--cins-blue);
+  letter-spacing: -0.3px;
+}
+
+.cins-h3 {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-xl);
+  line-height: 1.25;
+  color: var(--cins-blue);
+}
+
+.cins-h4 {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-lg);
+  line-height: 1.3;
+  color: var(--fg-1);
+}
+
+.cins-eyebrow {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-medium);
+  font-size: var(--text-sm);
+  text-transform: lowercase;  /* CINs uses casual lowercase eyebrows e.g. "Khám phá" */
+  color: var(--fg-3);
+  letter-spacing: 0.2px;
+}
+
+.cins-body {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-regular);
+  font-size: var(--text-md);
+  line-height: 1.55;
+  color: var(--fg-3);
+}
+
+.cins-body-lg {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-regular);
+  font-size: var(--text-lg);
+  line-height: 1.55;
+  color: var(--fg-3);
+}
+
+.cins-caption {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-regular);
+  font-size: var(--text-sm);
+  line-height: 1.4;
+  color: var(--fg-4);
+}
+
+.cins-label {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-medium);
+  font-size: var(--text-sm);
+  color: var(--fg-2);
+}
+
+.cins-mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--fg-3);
+}
+
+.cins-editorial {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: var(--text-lg);
+  line-height: 1.6;
+  color: var(--fg-2);
+}

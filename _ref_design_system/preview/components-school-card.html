@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>School Card</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html, body { margin: 0; padding: 18px; background: var(--bg-page); box-sizing: border-box; font-family: var(--font-sans); }
+  .stack { display: flex; flex-direction: column; gap: 16px; width: 660px; }
+  .label-meta { font-family: var(--font-mono); font-size: 10px; color: var(--fg-4); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+  /* A · current — photo + crest overlap */
+  .a .card { background: white; border-radius: var(--radius-md); border: 1px solid var(--border); overflow: hidden; box-shadow: var(--shadow-xs); }
+  .a .photo { aspect-ratio: 16/9; background: linear-gradient(135deg, #5C8DBF, #B5C9DC); position: relative; }
+  .a .photo.b { background: linear-gradient(135deg, #ECECEC, #B0B0B0); }
+  .a .crest { position: absolute; left: 12px; bottom: -20px; width: 46px; height: 46px; background: white; border-radius: 12px; box-shadow: var(--shadow-sm); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--cins-blue); font-size: 13px; }
+  .a .body { padding: 24px 14px 14px; }
+  .a .name { font-weight: 700; color: var(--fg-1); font-size: 14px; }
+  .a .row { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 11px; color: var(--fg-3); }
+  .a .badge { font-size: 10px; padding: 2px 8px; border-radius: 999px; background: var(--neutral-200); color: var(--fg-2); }
+  .a .pin { color: #E5484D; font-size: 11px; }
+
+  /* B · horizontal w/ inline crest */
+  .b .card { background: white; border-radius: var(--radius-md); border: 1px solid var(--border); padding: 12px; display: flex; gap: 12px; align-items: center; box-shadow: var(--shadow-xs); }
+  .b .crest { width: 56px; height: 56px; flex-shrink: 0; background: var(--cins-blue-soft); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--cins-blue); font-size: 14px; }
+  .b .crest.red { background: #FFE5E5; color: #C8102E; }
+  .b .body { flex: 1; min-width: 0; }
+  .b .name { font-weight: 700; color: var(--fg-1); font-size: 14px; line-height: 1.25; }
+  .b .row { display: flex; align-items: center; gap: 8px; margin-top: 4px; font-size: 11px; color: var(--fg-3); flex-wrap: wrap; }
+  .b .badge { font-size: 10px; padding: 2px 8px; border-radius: 999px; background: var(--neutral-200); color: var(--fg-2); }
+  .b .badge.private { background: var(--cins-orange-soft); color: #8B5A1A; }
+
+  /* C · compact tile (search-result density) */
+  .c .card { background: white; border-radius: 12px; border: 1px solid var(--border); padding: 10px; display: flex; flex-direction: column; gap: 6px; box-shadow: var(--shadow-xs); }
+  .c .top { display: flex; align-items: center; gap: 8px; }
+  .c .crest { width: 36px; height: 36px; background: var(--cins-blue-soft); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--cins-blue); font-size: 11px; flex-shrink: 0; }
+  .c .name { font-weight: 700; color: var(--fg-1); font-size: 12px; line-height: 1.2; }
+  .c .meta { font-size: 10px; color: var(--fg-4); }
+  .c .pin { color: #E5484D; font-size: 10px; }
+
+  /* D · feature card with stats */
+  .d-card { background: white; border-radius: var(--radius-lg); border: 1px solid var(--border); overflow: hidden; box-shadow: var(--shadow-md); display: flex; }
+  .d-card .photo { width: 200px; flex-shrink: 0; background: linear-gradient(135deg, #5C8DBF, #B5C9DC); position: relative; }
+  .d-card .crest { position: absolute; left: 14px; top: 14px; width: 44px; height: 44px; background: white; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--cins-blue); font-size: 12px; box-shadow: var(--shadow-sm); }
+  .d-card .body { padding: 14px 16px; flex: 1; }
+  .d-card .name { font-weight: 700; color: var(--fg-1); font-size: 16px; }
+  .d-card .row { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 11px; color: var(--fg-3); flex-wrap: wrap; }
+  .d-card .badge { font-size: 10px; padding: 2px 8px; border-radius: 999px; background: var(--neutral-200); color: var(--fg-2); }
+  .d-card .stats { display: flex; gap: 18px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); }
+  .d-card .stat .n { font-family: var(--font-display); font-size: 22px; color: var(--cins-blue); line-height: 1; }
+  .d-card .stat .l { font-size: 10px; color: var(--fg-4); margin-top: 2px; }
+</style>
+</head>
+<body>
+<div class="stack">
+
+  <div>
+    <div class="label-meta">A · current — photo + overlapping crest</div>
+    <div class="grid2 a">
+      <div class="card">
+        <div class="photo"><div class="crest">UAH</div></div>
+        <div class="body">
+          <div class="name">Đại học Kiến trúc TP.HCM</div>
+          <div class="row"><span style="color:var(--fg-4);">Mã trường: KTS</span><span class="badge">Công lập</span></div>
+          <div class="row"><span class="pin">▸</span><span>Hồ Chí Minh</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="photo b"><div class="crest" style="color:#C8102E;">VLU</div></div>
+        <div class="body">
+          <div class="name">Đại học Văn Lang</div>
+          <div class="row"><span style="color:var(--fg-4);">Mã trường: VLU</span><span class="badge" style="background:var(--cins-orange-soft); color:#8B5A1A;">Dân lập</span></div>
+          <div class="row"><span class="pin">▸</span><span>Hồ Chí Minh, Đà Nẵng, Hà Nội</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="label-meta">B · horizontal — list density (no photo)</div>
+    <div class="grid2 b">
+      <div class="card">
+        <div class="crest">UAH</div>
+        <div class="body">
+          <div class="name">Đại học Kiến trúc TP.HCM</div>
+          <div class="row"><span style="color:var(--fg-4);">KTS</span><span class="badge">Công lập</span><span style="color:#E5484D;">▸</span><span>Hồ Chí Minh</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="crest red">VLU</div>
+        <div class="body">
+          <div class="name">Đại học Văn Lang</div>
+          <div class="row"><span style="color:var(--fg-4);">VLU</span><span class="badge private">Dân lập</span><span style="color:#E5484D;">▸</span><span>HCM, Đà Nẵng, Hà Nội</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="label-meta">C · compact tile (3-column search results)</div>
+    <div class="grid3 c">
+      <div class="card"><div class="top"><div class="crest">UAH</div><div class="name">ĐH Kiến trúc TP.HCM</div></div><div class="meta">KTS · Công lập</div><div class="meta"><span class="pin">▸</span> Hồ Chí Minh</div></div>
+      <div class="card"><div class="top"><div class="crest" style="background:#FFE5E5;color:#C8102E;">VLU</div><div class="name">ĐH Văn Lang</div></div><div class="meta">VLU · Dân lập</div><div class="meta"><span class="pin">▸</span> HCM, Đà Nẵng</div></div>
+      <div class="card"><div class="top"><div class="crest" style="background:var(--cins-yellow-soft);color:#A36A00;">HSU</div><div class="name">ĐH Hoa Sen</div></div><div class="meta">HSU · Dân lập</div><div class="meta"><span class="pin">▸</span> Hồ Chí Minh</div></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="label-meta">D · featured (stats)</div>
+    <div class="d-card">
+      <div class="photo"><div class="crest">UAH</div></div>
+      <div class="body">
+        <div class="name">Đại học Kiến trúc TP.HCM</div>
+        <div class="row"><span style="color:var(--fg-4);">Mã trường: KTS</span><span class="badge">Công lập</span><span style="color:#E5484D;">▸</span><span>Hồ Chí Minh</span></div>
+        <div class="stats">
+          <div class="stat"><div class="n">12</div><div class="l">Ngành sáng tạo</div></div>
+          <div class="stat"><div class="n">3.2k</div><div class="l">Sinh viên / năm</div></div>
+          <div class="stat"><div class="n">95%</div><div class="l">Có việc sau TN</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,56 @@
+/*
+ * Gradient nút primary — theo CINs Design System
+ * (preview/components-buttons.html trong CINs Design System.zip · .grad-blue)
+ */
+:root {
+  --btn-grad-blue: linear-gradient(
+    135deg,
+    #3da0ff 0%,
+    var(--cins-blue) 60%,
+    #154f99 100%
+  );
+  --btn-grad-blue-hover: linear-gradient(
+    135deg,
+    #50b0ff 0%,
+    #2a82d9 60%,
+    #1a5fad 100%
+  );
+  --btn-grad-shadow: 0 6px 16px -6px rgba(31, 116, 201, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.nav-cta {
+  background: var(--btn-grad-blue) !important;
+  color: #fff !important;
+  box-shadow: var(--btn-grad-shadow) !important;
+  border: none !important;
+}
+
+.nav-cta:hover {
+  background: var(--btn-grad-blue-hover) !important;
+  filter: brightness(1.03);
+  transform: translateY(-1px);
+}
+
+.hero-cmm-search-btn {
+  background: var(--btn-grad-blue) !important;
+  box-shadow: var(--btn-grad-shadow) !important;
+  border: none !important;
+}
+
+.hero-cmm-search-btn:hover {
+  background: var(--btn-grad-blue-hover) !important;
+  filter: brightness(1.03);
+}
+
+.bs-cta {
+  background: var(--btn-grad-blue) !important;
+  box-shadow: var(--btn-grad-shadow), 0 10px 26px -8px rgba(31, 116, 201, 0.5) !important;
+  border: none !important;
+  color: #fff !important;
+}
+
+.bs-cta:hover {
+  background: var(--btn-grad-blue-hover) !important;
+  filter: brightness(1.03);
+}

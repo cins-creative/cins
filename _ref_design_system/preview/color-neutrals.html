@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Neutrals</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html, body { margin: 0; padding: 24px; background: var(--bg-page); font-family: var(--font-sans); box-sizing: border-box; }
+  .ramp { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; width: 652px; }
+  .step { aspect-ratio: 1/1.2; border-radius: var(--radius-sm); display: flex; flex-direction: column; justify-content: flex-end; padding: 8px; font-size: 10px; border: 1px solid rgba(0,0,0,.04); }
+  .step .l { font-weight: 700; }
+  .step .h { font-family: var(--font-mono); opacity: .8; font-size: 9px; }
+</style>
+</head>
+<body>
+<div class="ramp">
+  <div class="step" style="background: var(--neutral-0); color: var(--neutral-700);"><div class="l">0</div><div class="h">FFF</div></div>
+  <div class="step" style="background: var(--neutral-50); color: var(--neutral-700);"><div class="l">50</div><div class="h">F8F9FB</div></div>
+  <div class="step" style="background: var(--neutral-100); color: var(--neutral-700);"><div class="l">100</div><div class="h">F1F2F5</div></div>
+  <div class="step" style="background: var(--neutral-200); color: var(--neutral-700);"><div class="l">200</div><div class="h">E4E6EB</div></div>
+  <div class="step" style="background: var(--neutral-300); color: var(--neutral-800);"><div class="l">300</div><div class="h">C9CCD3</div></div>
+  <div class="step" style="background: var(--neutral-400); color: white;"><div class="l">400</div><div class="h">9AA0AB</div></div>
+  <div class="step" style="background: var(--neutral-500); color: white;"><div class="l">500</div><div class="h">6B7280</div></div>
+  <div class="step" style="background: var(--neutral-600); color: white;"><div class="l">600</div><div class="h">4A5160</div></div>
+  <div class="step" style="background: var(--neutral-700); color: white;"><div class="l">700</div><div class="h">2F3441</div></div>
+  <div class="step" style="background: var(--neutral-900); color: white;"><div class="l">900</div><div class="h">0E1117</div></div>
+</div>
+</body>
+</html>

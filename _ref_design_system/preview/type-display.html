@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Display Type</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html, body { margin: 0; padding: 28px; background: var(--bg-page); box-sizing: border-box; }
+  .stack > * + * { margin-top: 14px; }
+  .specimen { display: flex; align-items: baseline; gap: 16px; }
+  .meta { font-family: var(--font-mono); font-size: 11px; color: var(--fg-4); width: 130px; flex-shrink: 0; padding-top: 12px; }
+  .anton { font-family: 'Anton'; font-size: 64px; line-height: 1; color: var(--ink-display); letter-spacing: 0.5px; }
+</style>
+</head>
+<body>
+<div class="stack">
+  <div class="specimen">
+    <div class="meta">Anton 64/64<br>Display</div>
+    <div class="anton">SÁNG TẠO</div>
+  </div>
+  <div class="specimen">
+    <div class="meta">Anton 40/40<br>Section poster</div>
+    <div class="anton" style="font-size:40px;">CINs · Khám phá</div>
+  </div>
+</div>
+</body>
+</html>

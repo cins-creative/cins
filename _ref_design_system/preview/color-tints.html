@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Tints</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html, body { margin: 0; padding: 24px; background: var(--bg-page); font-family: var(--font-sans); box-sizing: border-box; }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; width: 652px; }
+  .swatch {
+    border-radius: var(--radius-md); padding: 14px;
+    min-height: 110px; color: rgba(0,0,0,.65);
+    display: flex; flex-direction: column; justify-content: space-between;
+    border: 1px solid var(--border);
+  }
+  .swatch .role { font-size: 11px; opacity: .55; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500; }
+  .swatch .name { font-weight: 700; font-size: 14px; }
+  .swatch .hex  { font-family: var(--font-mono); font-size: 12px; opacity: .8; }
+</style>
+</head>
+<body>
+<div class="grid">
+  <div class="swatch" style="background: var(--cins-yellow-soft);">
+    <div class="role">Soft tint</div>
+    <div>
+      <div class="name">yellow-soft</div>
+      <div class="hex">#FFF8C9</div>
+    </div>
+  </div>
+  <div class="swatch" style="background: var(--cins-violet-soft);">
+    <div class="role">Soft tint</div>
+    <div>
+      <div class="name">violet-soft</div>
+      <div class="hex">#ECDDFE</div>
+    </div>
+  </div>
+  <div class="swatch" style="background: var(--cins-orange-soft);">
+    <div class="role">Soft tint</div>
+    <div>
+      <div class="name">orange-soft</div>
+      <div class="hex">#FFE6C9</div>
+    </div>
+  </div>
+  <div class="swatch" style="background: var(--cins-mint-soft);">
+    <div class="role">Soft tint</div>
+    <div>
+      <div class="name">mint-soft</div>
+      <div class="hex">#D9FBED</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

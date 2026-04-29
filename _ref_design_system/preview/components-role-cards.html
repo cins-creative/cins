@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Role Cards — A + D</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html, body { margin: 0; padding: 18px; background: var(--bg-page); box-sizing: border-box; font-family: var(--font-sans); }
+  .stack { display: flex; flex-direction: column; gap: 18px; width: 660px; }
+  .label-meta { font-family: var(--font-mono); font-size: 10px; color: var(--fg-4); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+
+  /* A · plain tile */
+  .a { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .a .card { background: white; border-radius: var(--radius-md); border: 1px solid var(--border); padding: 10px; box-shadow: var(--shadow-xs); transition: transform .15s, box-shadow .15s, border-color .15s; cursor: pointer; }
+  .a .card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: var(--cins-blue); }
+  .a .card.active { border-color: var(--cins-blue); box-shadow: 0 0 0 3px var(--cins-blue-soft); }
+  .a .img { aspect-ratio: 1/1; background: white; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .a .img img { max-width: 92%; max-height: 92%; }
+  .a .title { color: var(--cins-blue); font-weight: 700; font-size: 13px; line-height: 1.25; margin-top: 6px; }
+
+  /* A · 3 cols (denser) */
+  .a3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .a3 .card { background: white; border-radius: var(--radius-md); border: 1px solid var(--border); padding: 10px; box-shadow: var(--shadow-xs); cursor: pointer; transition: transform .15s, box-shadow .15s, border-color .15s; }
+  .a3 .card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: var(--cins-blue); }
+  .a3 .img { aspect-ratio: 1/1; background: white; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .a3 .img img { max-width: 90%; max-height: 90%; }
+  .a3 .title { color: var(--cins-blue); font-weight: 700; font-size: 14px; line-height: 1.25; margin-top: 8px; }
+  .a3 .sub { font-size: 11px; color: var(--fg-3); margin-top: 2px; }
+
+  /* D · horizontal w/ avatar */
+  .d { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .d .card { background: white; border-radius: 14px; border: 1px solid var(--border); padding: 8px 12px 8px 8px; display: flex; align-items: center; gap: 10px; box-shadow: var(--shadow-xs); cursor: pointer; transition: transform .15s, box-shadow .15s, border-color .15s; }
+  .d .card:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); border-color: var(--cins-blue); }
+  .d .av { width: 54px; height: 54px; border-radius: 12px; background: var(--cins-yellow-soft); display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; }
+  .d .av.lilac  { background: #ECDCFC; }
+  .d .av.orange { background: var(--cins-orange-soft); }
+  .d .av.mint   { background: var(--cins-mint-soft); }
+  .d .av img { max-width: 90%; max-height: 90%; }
+  .d .title { color: var(--cins-blue); font-weight: 700; font-size: 13px; line-height: 1.2; }
+  .d .sub { font-size: 11px; color: var(--fg-3); margin-top: 2px; }
+  .d .arrow { margin-left: auto; color: var(--fg-4); font-size: 18px; }
+  .d .card:hover .arrow { color: var(--cins-blue); transform: translateX(2px); }
+
+  /* D · 1 col list density */
+  .d.list { grid-template-columns: 1fr; }
+  .d.list .av { width: 48px; height: 48px; }
+</style>
+</head>
+<body>
+<div class="stack">
+
+  <div>
+    <div class="label-meta">A · plain tile · 4 cols (default + selected)</div>
+    <div class="a">
+      <div class="card"><div class="img"><img src="../assets/mascot-artist.png"></div><div class="title">Balance Game Designer</div></div>
+      <div class="card active"><div class="img"><img src="../assets/mascot-technical-artist.png"></div><div class="title">Narrative Game Designer</div></div>
+      <div class="card"><div class="img"><img src="../assets/mascot-manager.png"></div><div class="title">Gameplay Designer</div></div>
+      <div class="card"><div class="img"><img src="../assets/mascot-supporter.png"></div><div class="title">Lead Game Designer</div></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="label-meta">A · 3 cols + subtitle (department context)</div>
+    <div class="a3">
+      <div class="card"><div class="img"><img src="../assets/mascot-artist.png"></div><div class="title">Balance Game Designer</div><div class="sub">Bộ phận: Thiết kế game</div></div>
+      <div class="card"><div class="img"><img src="../assets/mascot-technical-artist.png"></div><div class="title">UI Game Designer</div><div class="sub">Bộ phận: Thiết kế game</div></div>
+      <div class="card"><div class="img"><img src="../assets/mascot-manager.png"></div><div class="title">Producer</div><div class="sub">Bộ phận: Quản lý</div></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="label-meta">D · horizontal · 2 cols (avatar + meta)</div>
+    <div class="d">
+      <div class="card"><div class="av"><img src="../assets/mascot-artist.png"></div><div><div class="title">Balance Game Designer</div><div class="sub">Artist · Junior–Mid</div></div><span class="arrow">›</span></div>
+      <div class="card"><div class="av lilac"><img src="../assets/mascot-technical-artist.png"></div><div><div class="title">Gameplay Engineer</div><div class="sub">Technical · Senior</div></div><span class="arrow">›</span></div>
+      <div class="card"><div class="av orange"><img src="../assets/mascot-manager.png"></div><div><div class="title">Producer</div><div class="sub">Manager · Lead</div></div><span class="arrow">›</span></div>
+      <div class="card"><div class="av mint"><img src="../assets/mascot-supporter.png"></div><div><div class="title">QA Tester</div><div class="sub">Supporter · Junior</div></div><span class="arrow">›</span></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="label-meta">D · 1 col list (search results)</div>
+    <div class="d list">
+      <div class="card"><div class="av"><img src="../assets/mascot-artist.png"></div><div><div class="title">Balance Game Designer</div><div class="sub">Artist · Junior–Mid · Bộ phận: Thiết kế game</div></div><span class="arrow">›</span></div>
+      <div class="card"><div class="av lilac"><img src="../assets/mascot-technical-artist.png"></div><div><div class="title">Gameplay Engineer</div><div class="sub">Technical · Senior · Bộ phận: Lập trình</div></div><span class="arrow">›</span></div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

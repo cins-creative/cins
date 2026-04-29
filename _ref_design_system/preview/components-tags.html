@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Tags & Badges — Shape Icon</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html, body { margin: 0; padding: 22px; background: var(--bg-page); box-sizing: border-box; font-family: var(--font-sans); }
+  .stack { display: flex; flex-direction: column; gap: 16px; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .label-meta { font-family: var(--font-mono); font-size: 10px; color: var(--fg-4); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+
+  /* Shape-icon tag — the chosen direction.
+     Each tag carries a small mascot-color shape that maps to the role/industry family.
+     ● circle = Artist (yellow)         ▲ triangle = Manager (orange)
+     ◆ diamond = Supporter (mint)       ■ rounded square = Technical Artist (lilac)
+   */
+  .tag {
+    font-size: 13px;
+    padding: 6px 14px 6px 8px;
+    border-radius: 999px;
+    background: white;
+    border: 1px solid var(--border);
+    color: var(--fg-2);
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: border-color .12s, background .12s, color .12s, transform .12s;
+  }
+  .tag:hover { border-color: var(--cins-blue); background: var(--cins-blue-soft); color: var(--cins-blue); }
+  .tag.active { border-color: var(--cins-blue); background: var(--cins-blue-soft); color: var(--cins-blue); font-weight: 700; }
+
+  /* Sizes */
+  .tag.sz-sm { font-size: 11px; padding: 4px 10px 4px 6px; gap: 6px; }
+  .tag.sz-lg { font-size: 14px; padding: 8px 16px 8px 10px; gap: 10px; }
+
+  /* Shape glyph */
+  .shape { width: 16px; height: 16px; flex-shrink: 0; }
+  .tag.sz-sm .shape { width: 12px; height: 12px; }
+  .tag.sz-lg .shape { width: 18px; height: 18px; }
+
+  .shape.circle { border-radius: 50%; background: var(--cins-yellow); }
+  .shape.diamond { background: var(--cins-mint); border-radius: 4px; transform: rotate(45deg); }
+  .shape.triangle { width: 0; height: 0; background: transparent; border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 14px solid var(--cins-orange); }
+  .tag.sz-sm .shape.triangle { border-left-width: 6px; border-right-width: 6px; border-bottom-width: 11px; }
+  .tag.sz-lg .shape.triangle { border-left-width: 9px; border-right-width: 9px; border-bottom-width: 16px; }
+  .shape.rsquare { border-radius: 5px; background: var(--cins-lilac); }
+  .shape.blob {
+    background: var(--cins-mint);
+    border-radius: 60% 40% 55% 45% / 50% 60% 40% 50%;
+  }
+  .shape.pill {
+    background: var(--cins-mint);
+    border-radius: 999px;
+    width: 22px; height: 10px;
+    transform: rotate(-20deg);
+    align-self: center;
+  }
+
+  /* Solid (filled) variant */
+  .tag.solid { background: var(--cins-yellow); border-color: transparent; color: var(--ink-display); font-weight: 700; }
+  .tag.solid:hover { filter: brightness(1.05); background: var(--cins-yellow); color: var(--ink-display); }
+  .tag.solid .shape.circle { background: var(--ink-display); }
+  .tag.solid.mint { background: var(--cins-mint); }
+  .tag.solid.lilac { background: var(--cins-lilac); color: white; }
+  .tag.solid.lilac .shape.rsquare { background: white; }
+  .tag.solid.orange { background: var(--cins-orange); }
+  .tag.solid.orange .shape.triangle { border-bottom-color: var(--ink-display); }
+
+  /* Bigger card-like tag for filter rail (with count) */
+  .tag.card { background: white; border: 1.5px solid var(--border); padding: 8px 14px 8px 10px; border-radius: 12px; font-size: 13px; }
+  .tag.card.active { border-color: var(--cins-blue); background: white; color: var(--cins-blue); }
+  .tag.card .count { font-family: var(--font-mono); font-size: 10px; color: var(--fg-4); margin-left: 6px; padding: 2px 6px; background: var(--neutral-100); border-radius: 999px; }
+  .tag.card.active .count { background: var(--cins-blue-soft); color: var(--cins-blue); }
+</style>
+</head>
+<body>
+<div class="stack">
+
+  <div>
+    <div class="label-meta">role / industry · default rail</div>
+    <div class="row">
+      <span class="tag active"><span class="shape circle"></span>Artist</span>
+      <span class="tag"><span class="shape rsquare"></span>Technical Artist</span>
+      <span class="tag"><span class="shape triangle"></span>Manager</span>
+      <span class="tag"><span class="shape diamond"></span>Supporter</span>
+    </div>
+  </div>
+
+  <div>
+    <div class="label-meta">industry — same shapes, more options</div>
+    <div class="row">
+      <span class="tag"><span class="shape circle"></span>Game</span>
+      <span class="tag"><span class="shape diamond"></span>Hoạt hình</span>
+      <span class="tag"><span class="shape triangle"></span>Kỹ xảo điện ảnh</span>
+      <span class="tag"><span class="shape rsquare"></span>Phim &amp; Điện ảnh</span>
+      <span class="tag"><span class="shape blob"></span>Sản xuất hậu kỳ</span>
+      <span class="tag"><span class="shape pill"></span>Digital Marketing</span>
+    </div>
+  </div>
+
+  <div>
+    <div class="label-meta">sizes · sm · md · lg</div>
+    <div class="row">
+      <span class="tag sz-sm"><span class="shape circle"></span>Game</span>
+      <span class="tag"><span class="shape circle"></span>Game</span>
+      <span class="tag sz-lg"><span class="shape circle"></span>Game</span>
+    </div>
+  </div>
+
+  <div>
+    <div class="label-meta">solid (filled) — promo emphasis</div>
+    <div class="row">
+      <span class="tag solid"><span class="shape circle"></span>Artist</span>
+      <span class="tag solid lilac"><span class="shape rsquare"></span>Technical</span>
+      <span class="tag solid orange"><span class="shape triangle"></span>Manager</span>
+      <span class="tag solid mint"><span class="shape diamond"></span>Supporter</span>
+    </div>
+  </div>
+
+  <div>
+    <div class="label-meta">card (filter rail with count)</div>
+    <div class="row">
+      <span class="tag card active"><span class="shape circle"></span>Game<span class="count">128</span></span>
+      <span class="tag card"><span class="shape diamond"></span>Hoạt hình<span class="count">94</span></span>
+      <span class="tag card"><span class="shape triangle"></span>Kỹ xảo điện ảnh<span class="count">62</span></span>
+      <span class="tag card"><span class="shape rsquare"></span>Phim &amp; Điện ảnh<span class="count">48</span></span>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

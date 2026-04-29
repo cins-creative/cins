@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Buttons — Gradient</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html, body { margin: 0; padding: 22px; background: var(--bg-page); box-sizing: border-box; font-family: var(--font-sans); }
+  .stack { display: flex; flex-direction: column; gap: 18px; width: 656px; }
+  .label-meta { font-family: var(--font-mono); font-size: 10px; color: var(--fg-4); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+  .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .cell { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
+  .label { font-family: var(--font-mono); font-size: 10px; color: var(--fg-4); }
+
+  .btn { font-family: var(--font-sans); font-weight: 700; border: none; cursor: pointer; transition: transform .12s ease, box-shadow .12s ease, filter .12s ease; display: inline-flex; align-items: center; gap: 8px; }
+  .btn:hover { filter: brightness(1.05); transform: translateY(-1px); }
+  .btn:active { transform: translateY(0); filter: brightness(0.96); }
+
+  /* Sizes */
+  .sz-sm { font-size: 12px; padding: 7px 16px; border-radius: 999px; }
+  .sz-md { font-size: 14px; padding: 10px 22px; border-radius: 999px; }
+  .sz-lg { font-size: 16px; padding: 13px 28px; border-radius: 999px; }
+
+  /* Gradient palette — 3 brand-aligned families */
+  .grad-blue {
+    background: linear-gradient(135deg, #3DA0FF 0%, var(--cins-blue) 60%, #154F99 100%);
+    color: #fff;
+    box-shadow: 0 6px 16px -6px rgba(31, 116, 201, 0.55), inset 0 1px 0 rgba(255,255,255,0.18);
+  }
+  .grad-sunny {
+    background: linear-gradient(135deg, var(--cins-yellow) 0%, var(--cins-orange) 100%);
+    color: var(--ink-display);
+    box-shadow: 0 6px 16px -6px rgba(240, 178, 73, 0.6), inset 0 1px 0 rgba(255,255,255,0.4);
+  }
+  .grad-festive {
+    background: linear-gradient(95deg,
+      var(--cins-yellow) 0%,
+      var(--cins-orange) 32%,
+      var(--cins-lilac) 66%,
+      var(--cins-mint) 100%);
+    color: var(--ink-display);
+    box-shadow: 0 6px 16px -6px rgba(187, 137, 248, 0.5), inset 0 1px 0 rgba(255,255,255,0.35);
+  }
+  .grad-mint {
+    background: linear-gradient(135deg, #9DF3D6 0%, var(--cins-mint) 50%, #34BE92 100%);
+    color: var(--ink-display);
+    box-shadow: 0 6px 16px -6px rgba(110, 239, 192, 0.6), inset 0 1px 0 rgba(255,255,255,0.4);
+  }
+  .grad-lilac {
+    background: linear-gradient(135deg, #D4B6FB 0%, var(--cins-lilac) 60%, #8857D6 100%);
+    color: #fff;
+    box-shadow: 0 6px 16px -6px rgba(187, 137, 248, 0.6), inset 0 1px 0 rgba(255,255,255,0.2);
+  }
+
+  /* States */
+  .state-disabled { opacity: 0.45; cursor: not-allowed; pointer-events: none; }
+  .state-loading { position: relative; color: transparent !important; pointer-events: none; }
+  .state-loading::after { content: ""; position: absolute; left: 50%; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.5); border-top-color: white; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Outlined gradient (border only) */
+  .grad-outline {
+    color: var(--cins-blue);
+    background: white;
+    border: 2px solid transparent;
+    background-image: linear-gradient(white, white), linear-gradient(135deg, var(--cins-yellow), var(--cins-orange), var(--cins-lilac));
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+    font-weight: 700;
+  }
+
+  /* Animated shimmer hover for hero CTA */
+  .grad-shimmer {
+    background: linear-gradient(95deg, var(--cins-yellow), var(--cins-orange), var(--cins-lilac), var(--cins-mint), var(--cins-yellow));
+    background-size: 240% 100%;
+    background-position: 0% 50%;
+    color: var(--ink-display);
+    box-shadow: 0 6px 18px -6px rgba(187, 137, 248, 0.55);
+    transition: background-position .6s ease, transform .12s ease;
+  }
+  .grad-shimmer:hover { background-position: 100% 50%; transform: translateY(-1px); }
+
+  .ic { font-size: 1.05em; }
+</style>
+</head>
+<body>
+<div class="stack">
+
+  <div>
+    <div class="label-meta">primary gradient · sizes</div>
+    <div class="row">
+      <div class="cell"><button class="btn grad-blue sz-sm">Đăng ký</button><span class="label">sm · 12 / 7×16</span></div>
+      <div class="cell"><button class="btn grad-blue sz-md">Đăng ký ngay</button><span class="label">md · 14 / 10×22</span></div>
+      <div class="cell"><button class="btn grad-blue sz-lg">Bắt đầu hành trình</button><span class="label">lg · 16 / 13×28</span></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="label-meta">gradient family · with icon</div>
+    <div class="row">
+      <button class="btn grad-blue sz-md"><span class="ic">→</span>Đăng ký ngay</button>
+      <button class="btn grad-sunny sz-md">Khám phá ngành <span class="ic">✦</span></button>
+      <button class="btn grad-mint sz-md">Tham gia CINs</button>
+      <button class="btn grad-lilac sz-md">Tìm ứng viên</button>
+    </div>
+  </div>
+
+  <div>
+    <div class="label-meta">festive (4-stop · hero only) · shimmer · outlined</div>
+    <div class="row">
+      <button class="btn grad-festive sz-lg">Bắt đầu hành trình của bạn →</button>
+      <button class="btn grad-shimmer sz-md">CINs Talk</button>
+      <button class="btn grad-outline sz-md">Đăng nhập</button>
+    </div>
+  </div>
+
+  <div>
+    <div class="label-meta">states · default · hover · disabled · loading</div>
+    <div class="row">
+      <div class="cell"><button class="btn grad-blue sz-md">Default</button><span class="label">default</span></div>
+      <div class="cell"><button class="btn grad-blue sz-md" style="filter:brightness(1.07);transform:translateY(-1px);">Hover</button><span class="label">hover</span></div>
+      <div class="cell"><button class="btn grad-blue sz-md state-disabled">Disabled</button><span class="label">disabled</span></div>
+      <div class="cell"><button class="btn grad-blue sz-md state-loading">Loading</button><span class="label">loading</span></div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

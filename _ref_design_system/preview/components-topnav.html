@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Top Nav — Pill Floating</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html, body { margin: 0; padding: 0; background: var(--bg-page); box-sizing: border-box; font-family: var(--font-sans); }
+  .stack { display: flex; flex-direction: column; gap: 14px; padding: 14px 0; }
+  .label-meta { font-family: var(--font-mono); font-size: 10px; color: var(--fg-4); text-transform: uppercase; letter-spacing: 0.06em; padding: 0 18px; }
+  .wrap { width: 700px; padding: 12px 18px; box-sizing: border-box; }
+
+  /* ----- B base · pill floating ----- */
+  .nav {
+    background: white; border-radius: 999px; padding: 8px 8px 8px 22px; height: 56px;
+    display: flex; align-items: center; gap: 22px; box-sizing: border-box;
+    box-shadow: 0 8px 24px -10px rgba(31,116,201,0.22), 0 2px 6px rgba(0,0,0,0.04);
+    border: 1px solid rgba(31,116,201,0.08);
+  }
+  .nav .logo img { height: 28px; display: block; }
+  .nav .links { display: flex; gap: 18px; flex: 1; }
+  .nav .link { font-size: 14px; color: var(--fg-2); cursor: pointer; font-weight: 500; padding: 6px 4px; transition: color .12s; display: inline-flex; align-items: center; gap: 4px; }
+  .nav .link:hover { color: var(--cins-blue); }
+  .nav .link.active { color: var(--cins-blue); font-weight: 700; }
+  .nav .link .ch { color: currentColor; opacity: 0.6; font-size: 9px; }
+  .nav .right { display: flex; align-items: center; gap: 8px; }
+  .nav .icon-btn { width: 40px; height: 40px; border-radius: 999px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .nav .icon-btn.search { background: var(--neutral-100); color: var(--fg-2); }
+  .nav .icon-btn.search:hover { background: var(--cins-blue-soft); color: var(--cins-blue); }
+  .nav .icon-btn.bell { background: transparent; color: var(--fg-2); position: relative; }
+  .nav .icon-btn.bell:hover { color: var(--cins-blue); }
+  .nav .icon-btn.bell .glyph {
+    width: 18px; height: 18px;
+    display: inline-block;
+    background: currentColor;
+    -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M6 8a6 6 0 0 1 12 0c0 4 1.5 5.5 2 6.5H4c.5-1 2-2.5 2-6.5z'/><path d='M10 18a2 2 0 0 0 4 0'/></svg>") center / contain no-repeat;
+            mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M6 8a6 6 0 0 1 12 0c0 4 1.5 5.5 2 6.5H4c.5-1 2-2.5 2-6.5z'/><path d='M10 18a2 2 0 0 0 4 0'/></svg>") center / contain no-repeat;
+  }
+  .nav .icon-btn.bell .dot { position: absolute; top: 9px; right: 11px; width: 8px; height: 8px; border-radius: 50%; background: var(--cins-orange); border: 2px solid white; }
+  .nav .avatar { width: 40px; height: 40px; border-radius: 999px; background: var(--cins-mint); display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer; }
+  .nav .avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+  /* ----- B-search · with inline search field ----- */
+  .nav.with-search { padding: 6px 6px 6px 16px; gap: 14px; }
+  .nav.with-search .search-field { flex: 1; background: var(--neutral-100); border-radius: 999px; padding: 8px 16px; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--fg-3); }
+  .nav.with-search .search-field input { border: none; outline: none; background: transparent; font: inherit; flex: 1; color: var(--fg-1); }
+
+  /* ----- B-mobile · compact ----- */
+  .nav.mobile { padding: 6px 6px 6px 18px; height: 52px; gap: 10px; }
+  .nav.mobile .logo img { height: 24px; }
+  .nav.mobile .ham { width: 38px; height: 38px; border-radius: 999px; background: var(--neutral-100); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .nav.mobile .search-mini { flex: 1; background: var(--neutral-100); border-radius: 999px; padding: 6px 14px; font-size: 12px; color: var(--fg-3); display: flex; align-items: center; gap: 6px; }
+
+  /* ----- States ----- */
+  .nav.with-dropdown { position: relative; overflow: visible; }
+  .dropdown { position: absolute; left: 240px; top: calc(100% + 6px); background: white; border-radius: 16px; padding: 8px; min-width: 220px; box-shadow: 0 12px 28px -8px rgba(0,0,0,0.18), 0 0 0 1px var(--border); z-index: 5; }
+  .dropdown .item { padding: 9px 12px; border-radius: 8px; font-size: 13px; color: var(--fg-2); display: flex; align-items: center; gap: 8px; cursor: pointer; }
+  .dropdown .item:hover { background: var(--cins-blue-soft); color: var(--cins-blue); }
+  .dropdown .item .sh { width: 10px; height: 10px; border-radius: 50%; background: var(--cins-yellow); flex-shrink: 0; }
+  .dropdown .item .sh.mint { background: var(--cins-mint); border-radius: 3px; transform: rotate(45deg); }
+  .dropdown .item .sh.orange { background: var(--cins-orange); border-radius: 3px; transform: rotate(45deg); }
+  .dropdown .item .sh.lilac { background: var(--cins-lilac); border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="stack">
+
+  <div>
+    <div class="label-meta">B · pill floating · default (signed-in)</div>
+    <div class="wrap">
+      <div class="nav">
+        <div class="logo"><img src="../assets/logo-cins.png" alt="CINs"></div>
+        <div class="links">
+          <span class="link active">Trang chủ</span>
+          <span class="link">Trường Đại học</span>
+          <span class="link">Hướng nghiệp <span class="ch">▾</span></span>
+          <span class="link">Bài viết <span class="ch">▾</span></span>
+        </div>
+        <div class="right">
+          <div class="icon-btn search">⌕</div>
+          <div class="icon-btn bell"><span class="glyph"></span><span class="dot"></span></div>
+          <div class="avatar"><img src="../assets/mascot-supporter.png" alt="Me"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="label-meta">B · with inline search field</div>
+    <div class="wrap">
+      <div class="nav with-search">
+        <div class="logo"><img src="../assets/logo-cins.png" alt="CINs"></div>
+        <div class="search-field">⌕<input placeholder="Tìm ngành, trường, vị trí…"></div>
+        <div class="right">
+          <div class="icon-btn bell"><span class="glyph"></span><span class="dot"></span></div>
+          <div class="avatar"><img src="../assets/mascot-supporter.png" alt="Me"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="label-meta">B · with dropdown open (Hướng nghiệp)</div>
+    <div class="wrap">
+      <div class="nav with-dropdown">
+        <div class="logo"><img src="../assets/logo-cins.png" alt="CINs"></div>
+        <div class="links">
+          <span class="link">Trang chủ</span>
+          <span class="link">Trường Đại học</span>
+          <span class="link active">Hướng nghiệp <span class="ch">▾</span></span>
+          <span class="link">Bài viết <span class="ch">▾</span></span>
+        </div>
+        <div class="right">
+          <div class="icon-btn search">⌕</div>
+          <div class="icon-btn bell"><span class="glyph"></span></div>
+          <div class="avatar"><img src="../assets/mascot-supporter.png" alt="Me"></div>
+        </div>
+        <div class="dropdown">
+          <div class="item"><span class="sh"></span>Game</div>
+          <div class="item"><span class="sh mint"></span>Hoạt hình</div>
+          <div class="item"><span class="sh orange"></span>Kỹ xảo điện ảnh</div>
+          <div class="item"><span class="sh lilac"></span>Phim &amp; Điện ảnh</div>
+          <div class="item"><span class="sh"></span>Sản xuất hậu kỳ</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="label-meta">B · mobile compact (hamburger + search)</div>
+    <div class="wrap" style="width:380px;">
+      <div class="nav mobile">
+        <div class="ham">≡</div>
+        <div class="logo"><img src="../assets/logo-cins.png" alt="CINs"></div>
+        <div class="search-mini">⌕ Tìm…</div>
+        <div class="avatar" style="width:34px;height:34px;"><img src="../assets/mascot-supporter.png" alt="Me"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Form Fields</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html, body { margin: 0; padding: 22px; background: var(--bg-page); box-sizing: border-box; font-family: var(--font-sans); }
+  .stack { display: flex; flex-direction: column; gap: 14px; width: 656px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  .label-meta { font-family: var(--font-mono); font-size: 10px; color: var(--fg-4); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+  .lbl { font-size: 12px; font-weight: 600; color: var(--fg-2); margin-bottom: 6px; display: block; }
+  .lbl .req { color: var(--cins-orange); margin-left: 2px; }
+  .help { font-size: 11px; color: var(--fg-4); margin-top: 4px; }
+  .err { font-size: 11px; color: #d44a2c; margin-top: 4px; display: flex; align-items: center; gap: 4px; }
+
+  /* Pill (rounded) */
+  .field { background: white; border: 1px solid var(--border); border-radius: 999px; padding: 11px 18px; font-size: 14px; color: var(--fg-3); display: flex; align-items: center; }
+  .field input { border: none; outline: none; flex: 1; font-family: inherit; font-size: inherit; color: inherit; background: transparent; }
+  .field.focus { border-color: var(--cins-blue); box-shadow: 0 0 0 3px var(--cins-blue-soft); color: var(--fg-1); }
+  .field.error { border-color: #d44a2c; box-shadow: 0 0 0 3px rgba(212,74,44,0.12); }
+  .field .ic { color: var(--neutral-400); margin-right: 10px; }
+
+  /* Squared (12px radius) variant */
+  .field-sq { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 11px 14px; font-size: 14px; color: var(--fg-3); display: flex; align-items: center; gap: 8px; }
+  .field-sq input { border: none; outline: none; flex: 1; font: inherit; color: inherit; background: transparent; }
+  .field-sq.focus { border-color: var(--cins-blue); box-shadow: 0 0 0 3px var(--cins-blue-soft); color: var(--fg-1); }
+
+  /* Floating label */
+  .field-float { position: relative; }
+  .field-float input { width: 100%; padding: 18px 14px 8px; border: 1px solid var(--border); border-radius: 12px; background: white; font: inherit; color: var(--fg-1); outline: none; box-sizing: border-box; }
+  .field-float input:focus { border-color: var(--cins-blue); box-shadow: 0 0 0 3px var(--cins-blue-soft); }
+  .field-float label { position: absolute; left: 14px; top: 6px; font-size: 11px; color: var(--cins-blue); font-weight: 600; pointer-events: none; }
+
+  /* Textarea */
+  .ta { width: 100%; min-height: 80px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; font: inherit; resize: vertical; outline: none; box-sizing: border-box; }
+  .ta:focus { border-color: var(--cins-blue); box-shadow: 0 0 0 3px var(--cins-blue-soft); }
+
+  /* Toggle */
+  .toggle { width: 44px; height: 24px; background: var(--cins-blue); border-radius: 999px; position: relative; cursor: pointer; }
+  .toggle::after { content: ""; position: absolute; top: 3px; left: 23px; width: 18px; height: 18px; border-radius: 999px; background: white; transition: left .15s; }
+  .toggle.off { background: var(--neutral-300); }
+  .toggle.off::after { left: 3px; }
+
+  /* Radio + Checkbox */
+  .opt { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--fg-2); cursor: pointer; }
+  .opt .rd { width: 18px; height: 18px; border-radius: 999px; border: 2px solid var(--neutral-300); display: inline-flex; align-items: center; justify-content: center; }
+  .opt.on .rd { border-color: var(--cins-blue); }
+  .opt.on .rd::after { content: ""; width: 8px; height: 8px; border-radius: 999px; background: var(--cins-blue); }
+  .opt .cb { width: 18px; height: 18px; border-radius: 5px; border: 2px solid var(--neutral-300); display: inline-flex; align-items: center; justify-content: center; color: white; font-size: 11px; font-weight: 800; line-height: 1; }
+  .opt.on .cb { border-color: var(--cins-blue); background: var(--cins-blue); }
+
+  /* File upload */
+  .upload { border: 2px dashed var(--neutral-300); background: var(--neutral-50); border-radius: 14px; padding: 14px; text-align: center; font-size: 13px; color: var(--fg-3); }
+  .upload b { color: var(--cins-blue); }
+
+  /* Tag input */
+  .taginput { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 6px 8px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-height: 38px; }
+  .taginput .ti { background: var(--cins-blue-soft); color: var(--cins-blue); font-size: 13px; padding: 4px 10px; border-radius: 999px; font-weight: 500; display: inline-flex; gap: 6px; align-items: center; }
+  .taginput .ti span { cursor: pointer; opacity: 0.6; }
+  .taginput input { border: none; outline: none; flex: 1; min-width: 80px; font: inherit; padding: 4px; }
+</style>
+</head>
+<body>
+<div class="stack">
+
+  <div>
+    <div class="label-meta">pill · search default · focus · error</div>
+    <div class="stack" style="gap:8px;width:100%;">
+      <div class="field"><span class="ic">⌕</span><input placeholder="Nhập tên ngành học mà bạn quan tâm"></div>
+      <div class="field focus"><span class="ic">⌕</span><input value="Animator"></div>
+      <div class="field error"><span class="ic">⌕</span><input value="!@#$"></div>
+    </div>
+  </div>
+
+  <div class="row2">
+    <div>
+      <div class="label-meta">labelled · required</div>
+      <label class="lbl">Họ và tên<span class="req">*</span></label>
+      <div class="field-sq"><input placeholder="Nguyễn Văn A"></div>
+      <div class="help">Hiện thị công khai trên hồ sơ</div>
+    </div>
+    <div>
+      <div class="label-meta">floating label</div>
+      <div class="field-float"><label>Email liên hệ</label><input value="ban@example.vn"></div>
+    </div>
+  </div>
+
+  <div class="row2">
+    <div>
+      <div class="label-meta">select (squared)</div>
+      <div class="field-sq" style="justify-content:space-between;"><span>Tìm ngành</span><span style="color:var(--fg-3);">⌄</span></div>
+    </div>
+    <div>
+      <div class="label-meta">tag input</div>
+      <div class="taginput">
+        <span class="ti">Game <span>×</span></span>
+        <span class="ti">Hoạt hình <span>×</span></span>
+        <input placeholder="Thêm sở thích…">
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="label-meta">textarea · với lỗi</div>
+    <textarea class="ta" placeholder="Giới thiệu bản thân (tối đa 280 ký tự)…"></textarea>
+    <div class="err">⚠ Vui lòng nhập tối thiểu 20 ký tự</div>
+  </div>
+
+  <div class="row3">
+    <div>
+      <div class="label-meta">radio</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <span class="opt on"><span class="rd"></span>THPT</span>
+        <span class="opt"><span class="rd"></span>Doanh nghiệp</span>
+      </div>
+    </div>
+    <div>
+      <div class="label-meta">checkbox</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <span class="opt on"><span class="cb">✓</span>Game</span>
+        <span class="opt"><span class="cb"></span>Hoạt hình</span>
+      </div>
+    </div>
+    <div>
+      <div class="label-meta">toggle</div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <span style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--fg-2);"><span class="toggle"></span>Nhận tin</span>
+        <span style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--fg-2);"><span class="toggle off"></span>Hồ sơ ẩn</span>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="label-meta">file upload</div>
+    <div class="upload">📎 Kéo thả CV vào đây hoặc <b>chọn tệp</b> · PDF, DOC · tối đa 5MB</div>
+  </div>
+
+</div>
+</body>
+</html>
