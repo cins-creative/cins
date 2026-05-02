@@ -71,6 +71,24 @@ export default async function NgheNghiepIndexPage(props: {
   }
 
   const groups = tab === "nghe" ? groupCareersByBoPhan(filtered) : [];
+
+  /** Nghề gán đúng lĩnh vực đang chọn — dùng để nav tag, tránh liệt kê mọi bo_phan khi fallback hiển thị toàn DB */
+  const inActiveLinhVuc =
+    activeLv && tab === "nghe"
+      ? allCareers.filter((n) => n.linh_vuc_id?.includes(activeLv.id))
+      : null;
+  const inActiveLinhIds =
+    inActiveLinhVuc != null
+      ? new Set(inActiveLinhVuc.map((n) => n.id))
+      : null;
+
+  const tagGroups =
+    tab === "nghe" && inActiveLinhIds != null
+      ? groups.filter((g) =>
+          g.careers.some((c) => inActiveLinhIds.has(c.id)),
+        )
+      : groups;
+
   const linhVucSidebarGroups = groupLinhVucForSidebar(linhVucs);
 
   return (
@@ -82,8 +100,12 @@ export default async function NgheNghiepIndexPage(props: {
           activeLinhVuc={activeLv}
           searchQuery={qRaw}
           groups={groups}
+          tagGroups={tagGroups}
           sampleCareers={filtered}
           showFallbackNote={showFallbackNote}
+          thumbEditorEnabled={
+            process.env.NEXT_PUBLIC_ENABLE_CAREER_THUMB_EDITOR === "1"
+          }
         />
       </div>
       <SiteFooter />

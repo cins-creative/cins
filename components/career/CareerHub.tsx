@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { CareerHubCardThumb } from "@/components/career/CareerHubCardThumb";
 import { CareerHubSideAccordion } from "@/components/career/CareerHubSideAccordion";
 import { introForBoPhan } from "@/lib/career/boPhanIntro";
 import { MsIcon } from "@/components/cins/MsIcon";
@@ -25,10 +26,14 @@ type Props = {
   activeLinhVuc: LinhVucRow | null;
   searchQuery: string;
   groups: BoPhanGroup[];
+  /** Nav “Bộ phận”: chỉ các nhóm có nghề thuộc lĩnh vực đang chọn (khác `groups` khi fallback DB) */
+  tagGroups?: BoPhanGroup[];
   /** Nghề thuộc lĩnh vực (để mô tả hero) */
   sampleCareers: NgheNghiepHubItem[];
   /** Hiển thị khi không có linh_vuc_id — đang xem toàn bộ */
   showFallbackNote?: boolean;
+  /** Bật chọn/dán ảnh → Cloudflare → Supabase (cần env token + Cloudflare + service role) */
+  thumbEditorEnabled?: boolean;
 };
 
 export function CareerHub({
@@ -37,9 +42,12 @@ export function CareerHub({
   activeLinhVuc,
   searchQuery,
   groups,
+  tagGroups,
   sampleCareers,
   showFallbackNote,
+  thumbEditorEnabled = false,
 }: Props) {
+  const tagsNav = tagGroups ?? groups;
   const heroTitle = linhTitle(activeLinhVuc);
   const firstDesc = sampleCareers.find((c) => c.short_description?.trim())
     ?.short_description;
@@ -142,9 +150,9 @@ export function CareerHub({
             </div>
           </section>
 
-          {groups.length > 0 ? (
+          {tagsNav.length > 0 ? (
             <nav className="career-hub-tags" aria-label="Bộ phận">
-              {groups.map((g) => (
+              {tagsNav.map((g) => (
                 <a key={g.id} href={`#${g.id}`} className="career-hub-tag">
                   {g.boPhan}
                 </a>
@@ -183,30 +191,43 @@ export function CareerHub({
                     </p>
                   </header>
                   <ul className="career-hub-card-grid">
-                    {group.careers.map((n) => (
-                      <li key={n.id}>
-                        <Link
-                          href={`/nghe-nghiep/${n.slug}`}
-                          className="career-hub-card"
-                        >
-                          <div className="career-hub-card-thumb">
-                            {n.thumbnail_mascot ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img
-                                src={n.thumbnail_mascot}
-                                alt=""
-                                className="career-hub-card-img"
-                              />
-                            ) : (
-                              <div className="career-hub-card-ph" />
-                            )}
+                    {group.careers.map((n) =>
+                      thumbEditorEnabled ? (
+                        <li key={n.id}>
+                          <div className="career-hub-card career-hub-card--split">
+                            <CareerHubCardThumb
+                              careerId={n.id}
+                              thumbnailUrl={n.thumbnail_mascot}
+                              editorEnabled
+                            />
+                            <Link
+                              href={`/nghe-nghiep/${n.slug}`}
+                              className="career-hub-card-title-link"
+                            >
+                              <span className="career-hub-card-title">
+                                {jobTitle(n)}
+                              </span>
+                            </Link>
                           </div>
-                          <span className="career-hub-card-title">
-                            {jobTitle(n)}
-                          </span>
-                        </Link>
-                      </li>
-                    ))}
+                        </li>
+                      ) : (
+                        <li key={n.id}>
+                          <Link
+                            href={`/nghe-nghiep/${n.slug}`}
+                            className="career-hub-card"
+                          >
+                            <CareerHubCardThumb
+                              careerId={n.id}
+                              thumbnailUrl={n.thumbnail_mascot}
+                              editorEnabled={false}
+                            />
+                            <span className="career-hub-card-title">
+                              {jobTitle(n)}
+                            </span>
+                          </Link>
+                        </li>
+                      ),
+                    )}
                   </ul>
                 </section>
               ))

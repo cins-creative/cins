@@ -1008,6 +1008,21 @@
   border-color: rgba(31, 116, 201, 0.35);
 }
 
+.career-hub-card--split {
+  cursor: default;
+}
+
+.career-hub-card-title-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  flex: 1;
+}
+
+.career-hub-card-title-link:hover .career-hub-card-title {
+  text-decoration: underline;
+}
+
 .career-hub-card-thumb {
   aspect-ratio: 4 / 3;
   border-radius: 10px;
@@ -1031,6 +1046,37 @@
     var(--neutral-100),
     var(--neutral-50)
   );
+}
+
+.career-hub-card-ph--editor {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  text-align: center;
+  cursor: pointer;
+  outline: none;
+  border: 1px dashed rgba(31, 116, 201, 0.35);
+  box-sizing: border-box;
+}
+
+.career-hub-card-ph--editor:focus-visible {
+  box-shadow: 0 0 0 2px rgba(31, 116, 201, 0.45);
+}
+
+.career-hub-card-ph-hint {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--cins-blue);
+  max-width: 12ch;
+}
+
+.career-hub-card-ph-err {
+  margin: 6px 0 0;
+  font-size: 11px;
+  line-height: 1.35;
+  color: #b91c1c;
 }
 
 .career-hub-card-title {

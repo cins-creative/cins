@@ -1,0 +1,2032 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CINs — Khám phá ngành sáng tạo thị giác tại Việt Nam</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Be+Vietnam+Pro:wght@300;400;500;600;700;800;900&family=Crimson+Pro:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
+<style>
+/* =====================================================
+   CINs Design System — Tokens
+   (mirrors colors_and_type.css; inlined for standalone)
+   ===================================================== */
+:root{
+  --blue:#1F74C9; --blue-dark:#1656A0; --blue-soft:#E7F0FB;
+  --yellow:#FDE859; --yellow-soft:#FFF8C9;
+  --mint:#6EFEC0;   --mint-soft:#D9FBED;
+  --orange:#FFB85C; --orange-soft:#FFE6C9;
+  --violet:#BB89F8; --violet-soft:#ECDDFE;
+  --bg:#F4F5F8; --surface:#FFFFFF;
+  --border:#E4E6EB; --border-s:#C9CCD3;
+  --ink1:rgba(0,0,0,.85); --ink2:rgba(0,0,0,.60);
+  --ink3:rgba(0,0,0,.55); --ink4:rgba(0,0,0,.40);
+  --r-xs:6px; --r-sm:10px; --r-md:14px; --r-lg:20px; --r-xl:28px; --r-2xl:36px; --r-pill:999px;
+  --sh-xs:0 1px 2px rgba(15,23,42,.04);
+  --sh-sm:0 2px 6px rgba(15,23,42,.06);
+  --sh-md:0 6px 16px rgba(15,23,42,.08);
+  --sh-lg:0 14px 32px rgba(15,23,42,.10);
+  --sh-pop:0 6px 0 rgba(31,116,201,.20);
+  --sans:"Be Vietnam Pro",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  --display:"Anton","Be Vietnam Pro",sans-serif;
+  --serif:"Crimson Pro",Georgia,serif;
+  --ease:cubic-bezier(.2,.7,.3,1);
+  --dur:.18s;
+}
+
+/* =====================================================
+   Reset & global
+   ===================================================== */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{
+  font-family:var(--sans);background:var(--bg);color:var(--ink3);
+  font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+img{max-width:100%;display:block}
+a{color:inherit;text-decoration:none}
+button{font:inherit;cursor:pointer;border:none;background:none}
+
+/* layout shell */
+.shell{max-width:1240px;margin:0 auto;padding:0 28px}
+
+/* generic section */
+section{padding:72px 0}
+.section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:32px;flex-wrap:wrap}
+.section-head .right{font-size:13px;font-weight:700;color:var(--blue);display:flex;align-items:center;gap:6px;transition:gap var(--dur) var(--ease)}
+.section-head .right:hover{gap:10px}
+.eyebrow{font-size:12px;font-weight:600;color:var(--ink4);letter-spacing:.4px;text-transform:lowercase;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.eyebrow::before{content:"";width:24px;height:1.5px;background:var(--blue);border-radius:1px;display:inline-block}
+.title-xl{font-family:var(--sans);font-weight:800;font-size:38px;line-height:1.1;color:var(--ink1);letter-spacing:-.6px;max-width:680px}
+.title-xl .accent{color:var(--blue)}
+.title-xl em{font-family:var(--serif);font-style:italic;font-weight:600;color:var(--blue)}
+.subtitle{font-size:16px;color:var(--ink3);margin-top:14px;max-width:560px;line-height:1.6}
+
+/* =====================================================
+   NAV — hover-expand sidebar + topbar
+   ===================================================== */
+
+/* sidebar: 64px collapsed → 240px on hover */
+.sidebar{
+  position:fixed;top:0;left:0;height:100vh;width:64px;
+  background:var(--surface);border-right:1px solid var(--border);
+  z-index:60;display:flex;flex-direction:column;overflow:hidden;
+  transition:width .26s var(--ease),box-shadow .26s var(--ease);
+}
+.sidebar:hover,.sidebar:focus-within{width:240px;box-shadow:6px 0 24px rgba(15,23,42,.06)}
+.sb-brand{
+  height:64px;display:flex;align-items:center;gap:12px;
+  padding:0 18px;border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.sb-brand-mark{
+  width:32px;height:32px;background:var(--blue);border-radius:9px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;color:#fff;
+  font-family:var(--display);font-size:17px;letter-spacing:.5px;
+}
+.sb-brand-text{font-weight:800;font-size:19px;color:var(--blue);letter-spacing:-.4px;white-space:nowrap;opacity:0;transform:translateX(-6px);transition:all .18s var(--ease) .06s;pointer-events:none}
+.sidebar:hover .sb-brand-text,.sidebar:focus-within .sb-brand-text{opacity:1;transform:none}
+.sb-list{list-style:none;padding:14px 12px 4px;display:flex;flex-direction:column;gap:2px;flex:1;overflow-y:auto;overflow-x:hidden}
+.sb-list::-webkit-scrollbar{width:0;display:none}
+.sb-item{
+  display:flex;align-items:center;gap:14px;padding:11px 8px;
+  border-radius:var(--r-md);color:var(--ink2);font-size:13.5px;font-weight:500;
+  white-space:nowrap;cursor:pointer;position:relative;
+  transition:background var(--dur) var(--ease),color var(--dur) var(--ease);
+}
+.sb-item:hover{background:var(--blue-soft);color:var(--blue)}
+.sb-item.active{background:var(--blue-soft);color:var(--blue);font-weight:700}
+.sb-item.active::before{content:"";position:absolute;left:-12px;top:9px;bottom:9px;width:3px;border-radius:0 3px 3px 0;background:var(--blue)}
+.sb-ico{width:24px;height:24px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.sb-ico svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.sb-label{opacity:0;transform:translateX(-4px);transition:opacity .18s var(--ease) .04s,transform .18s var(--ease) .04s;pointer-events:none}
+.sidebar:hover .sb-label,.sidebar:focus-within .sb-label{opacity:1;transform:none;pointer-events:auto}
+.sb-foot{padding:12px 12px 18px;border-top:1px solid var(--border);flex-shrink:0;display:flex;flex-direction:column;gap:6px}
+.sb-foot .sb-item{font-size:12.5px;color:var(--ink3)}
+
+/* sidebar cursor-following tooltip */
+.sb-tooltip{
+  position:fixed;z-index:200;pointer-events:none;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r-md);box-shadow:var(--sh-lg);
+  padding:11px 14px;max-width:280px;
+  opacity:0;transform:translateY(4px) scale(.97);
+  transition:opacity .14s var(--ease),transform .14s var(--ease);
+  left:0;top:0;
+}
+.sb-tooltip.show{opacity:1;transform:none}
+.sb-tooltip .tt-title{font-size:13px;font-weight:700;color:var(--ink1);line-height:1.2;display:flex;align-items:center;gap:8px}
+.sb-tooltip .tt-title::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--blue);flex-shrink:0}
+.sb-tooltip .tt-desc{font-size:12px;color:var(--ink3);margin-top:6px;line-height:1.5}
+@media (max-width:960px){.sb-tooltip{display:none}}
+
+/* topbar */
+.topbar{
+  position:sticky;top:0;z-index:50;height:64px;
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  transition:box-shadow var(--dur) var(--ease);
+}
+.topbar.scrolled{box-shadow:0 4px 14px rgba(15,23,42,.04)}
+.topbar-inner{height:100%;display:flex;align-items:center;justify-content:space-between;padding:0 16px;gap:10px}
+.tb-left{display:flex;align-items:center;gap:10px}
+.tb-right{display:flex;align-items:center;gap:10px}
+.tb-burger{display:none;width:38px;height:38px;border-radius:var(--r-pill);background:var(--surface);border:1px solid var(--border);align-items:center;justify-content:center;color:var(--ink1)}
+.tb-burger svg{width:20px;height:20px}
+.tb-quiz{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:9px 16px;border-radius:var(--r-pill);
+  background:var(--yellow-soft);border:1px solid #F0D94A66;
+  color:var(--ink1);font-size:13px;font-weight:700;
+  transition:all var(--dur) var(--ease);
+}
+.tb-quiz:hover{background:var(--yellow);border-color:var(--yellow);transform:translateY(-1px);box-shadow:0 4px 12px rgba(253,232,89,.4)}
+.tb-quiz svg{width:16px;height:16px;color:#9A6E00;flex-shrink:0}
+.tb-ask{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:9px 16px;border-radius:var(--r-pill);
+  color:var(--ink2);font-size:13px;font-weight:600;
+  transition:all var(--dur) var(--ease);
+}
+.tb-ask:hover{background:var(--surface);color:var(--ink1);box-shadow:var(--sh-xs)}
+.tb-ask svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.tb-divider{width:1px;height:24px;background:var(--border);margin:0 4px}
+.tb-auth{display:flex;align-items:center;gap:6px}
+.tb-login{font-size:13px;font-weight:600;color:var(--ink2);padding:9px 14px;border-radius:var(--r-pill);transition:all var(--dur) var(--ease)}
+.tb-login:hover{color:var(--blue);background:var(--blue-soft)}
+.tb-signup{font-size:13px;font-weight:700;color:#fff;background:var(--blue);padding:10px 18px;border-radius:var(--r-pill);box-shadow:var(--sh-pop);transition:all var(--dur) var(--ease);display:inline-flex;align-items:center;gap:6px}
+.tb-signup:hover{background:var(--blue-dark);transform:translateY(-1px);box-shadow:0 8px 0 rgba(31,116,201,.22)}
+
+/* footer brand (legacy classes still in use below) */
+.footer .brand{display:inline-flex;align-items:center;gap:10px}
+.footer .brand-mark{width:34px;height:34px;background:var(--blue);border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--display);font-size:18px;letter-spacing:.5px}
+.footer .brand-text{font-weight:800;font-size:20px;color:var(--blue);letter-spacing:-.4px}
+
+/* body offset for fixed sidebar */
+@media (min-width:961px){body{padding-left:64px}}
+@media (max-width:960px){
+  .sidebar{transform:translateX(-100%);width:240px;box-shadow:var(--sh-lg)}
+  .sidebar.open{transform:none}
+  .sidebar .sb-brand-text,.sidebar .sb-label{opacity:1;transform:none;pointer-events:auto}
+  .tb-burger{display:inline-flex}
+  .topbar-inner{padding:0 12px;gap:6px}
+  .tb-quiz span,.tb-ask span,.tb-divider{display:none}
+  .tb-quiz,.tb-ask{padding:9px}
+  .tb-login{display:none}
+}
+
+/* =====================================================
+   HERO — magazine cover, single editorial spotlight
+   ===================================================== */
+.hero{position:relative;overflow:hidden;padding:80px 0 64px;background:#F4F5F8}
+.hero-grid{position:relative;z-index:1;display:grid;grid-template-columns:1.1fr .9fr;gap:56px;align-items:center}
+
+.hero-tag{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:6px 14px;background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r-pill);font-size:12px;font-weight:600;color:var(--ink2);
+  margin-bottom:24px;width:fit-content;
+}
+.hero-tag .pulse{width:8px;height:8px;border-radius:50%;background:var(--blue);position:relative}
+.hero-tag .pulse::after{
+  content:"";position:absolute;inset:-4px;border-radius:50%;background:var(--blue);
+  opacity:.35;animation:pulse 1.8s ease-out infinite;
+}
+@keyframes pulse{0%{transform:scale(.6);opacity:.5}100%{transform:scale(1.6);opacity:0}}
+.hero h1{
+  font-family:var(--sans);font-weight:900;font-size:60px;line-height:1.04;
+  color:var(--ink1);letter-spacing:-1.1px;
+}
+.hero h1 .em{font-family:var(--serif);font-style:italic;font-weight:600;color:var(--blue);letter-spacing:-.5px}
+.hero h1 .hl{background:var(--yellow);padding:0 10px;border-radius:6px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.hero-lead{font-size:17px;line-height:1.6;color:var(--ink3);margin-top:22px;max-width:520px}
+.hero-cta-row{display:flex;align-items:center;gap:14px;margin-top:30px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:15px;padding:14px 26px;border-radius:var(--r-pill);transition:all var(--dur) var(--ease)}
+.btn-primary{background:var(--blue);color:#fff;box-shadow:var(--sh-pop)}
+.btn-primary:hover{background:var(--blue-dark);transform:translateY(-2px);box-shadow:0 8px 0 rgba(31,116,201,.22)}
+.btn-secondary{color:var(--ink2);background:var(--surface);border:1.5px solid var(--border)}
+.btn-secondary:hover{border-color:var(--blue);color:var(--blue)}
+.btn-arrow{transition:transform var(--dur) var(--ease)}
+.btn:hover .btn-arrow{transform:translateX(3px)}
+
+.hero-trust{display:flex;gap:36px;margin-top:36px;flex-wrap:wrap;padding-top:24px;border-top:1px solid var(--border)}
+.hero-trust-item{display:flex;flex-direction:column}
+.hero-trust-num{font-family:var(--display);font-size:30px;color:var(--blue);line-height:1;letter-spacing:.5px}
+.hero-trust-lbl{font-size:12px;color:var(--ink4);font-weight:500;margin-top:4px}
+
+/* RIGHT — single editorial spotlight card + trending rail underneath */
+.hero-side{display:flex;flex-direction:column;gap:14px;max-width:480px;margin-left:auto;position:relative}
+.hero-side::before{
+  content:"";position:absolute;width:110px;height:110px;background:var(--mint);opacity:.45;
+  border-radius:60% 40% 70% 30%/50% 60% 40% 50%;
+  bottom:-40px;left:-50px;z-index:0;pointer-events:none;
+}
+
+.spotlight{
+  position:relative;z-index:1;
+  background:var(--surface);
+  border:1px solid var(--border);border-radius:var(--r-2xl);
+  box-shadow:var(--sh-lg);overflow:hidden;
+  display:flex;flex-direction:column;
+  transition:transform .3s var(--ease),box-shadow .3s var(--ease);
+}
+.spotlight:hover{transform:translateY(-4px);box-shadow:0 22px 44px rgba(15,23,42,.13)}
+
+/* cover (top half — colored, illustration) */
+.sp-cover{
+  position:relative;height:300px;
+  background:var(--yellow);overflow:hidden;
+  display:flex;align-items:flex-end;justify-content:center;
+}
+.sp-cover::before{
+  content:"";position:absolute;inset:0;
+  background-image:radial-gradient(circle,rgba(0,0,0,.07) 1.2px,transparent 1.5px);
+  background-size:18px 18px;background-position:9px 9px;pointer-events:none;
+}
+.sp-cover::after{
+  content:"";position:absolute;width:300px;height:300px;
+  background:var(--orange);opacity:.5;border-radius:50%;
+  bottom:-110px;left:50%;transform:translateX(-50%);pointer-events:none;
+}
+.sp-cover img{
+  position:relative;z-index:2;
+  max-height:240px;width:auto;object-fit:contain;
+  margin-bottom:-8px;
+  filter:drop-shadow(4px 6px 12px rgba(0,0,0,.12));
+}
+.sp-badge{
+  position:absolute;top:18px;left:18px;z-index:3;
+  display:inline-flex;align-items:center;gap:7px;
+  font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;
+  background:var(--ink1);color:#fff;padding:6px 12px;border-radius:var(--r-pill);
+}
+.sp-badge .dot{
+  width:7px;height:7px;border-radius:50%;background:var(--mint);
+  box-shadow:0 0 0 3px rgba(110,254,192,.3);position:relative;
+}
+.sp-pin{
+  position:absolute;top:16px;right:16px;z-index:3;
+  background:var(--surface);border:2px solid var(--ink1);
+  border-radius:12px;padding:7px 11px;text-align:center;line-height:1;
+  box-shadow:4px 4px 0 var(--ink1);min-width:48px;
+}
+.sp-pin .d{font-family:var(--display);font-size:20px;color:var(--ink1);letter-spacing:.4px}
+.sp-pin .l{font-size:9px;color:var(--ink2);font-weight:700;margin-top:3px;text-transform:uppercase;letter-spacing:.4px}
+
+/* body (bottom half — white, content) */
+.sp-body{padding:24px 28px 26px;background:var(--surface)}
+.sp-kicker{font-size:11px;font-weight:700;color:var(--ink4);letter-spacing:.5px;text-transform:uppercase;display:inline-flex;align-items:center;gap:8px}
+.sp-kicker::before{content:"";width:18px;height:1.5px;background:var(--blue);border-radius:1px}
+.sp-title{font-family:var(--sans);font-weight:800;font-size:24px;line-height:1.18;color:var(--ink1);margin-top:8px;letter-spacing:-.4px}
+.sp-title em{font-family:var(--serif);font-style:italic;font-weight:600;color:var(--blue)}
+.sp-desc{font-size:13.5px;color:var(--ink3);margin-top:10px;line-height:1.55}
+.sp-row{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:18px;padding-top:16px;border-top:1px dashed var(--border);flex-wrap:wrap}
+.sp-stats{display:flex;gap:22px}
+.sp-stats .s .n{font-family:var(--display);font-size:24px;color:var(--blue);line-height:1;letter-spacing:.4px}
+.sp-stats .s .l{font-size:10px;color:var(--ink4);font-weight:600;margin-top:3px;text-transform:lowercase}
+.sp-cta{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:13px;font-weight:700;color:#fff;
+  background:var(--ink1);padding:10px 16px;border-radius:var(--r-pill);
+  transition:all var(--dur) var(--ease);
+}
+.sp-cta:hover{background:var(--blue);transform:translateY(-1px)}
+.sp-cta .arr{transition:transform var(--dur) var(--ease)}
+.sp-cta:hover .arr{transform:translateX(3px)}
+
+/* trending rail underneath spotlight */
+.sp-rail{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 14px;background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r-pill);position:relative;z-index:1;
+  box-shadow:var(--sh-xs);
+}
+.sp-rail .label{font-size:10.5px;font-weight:700;color:var(--ink4);text-transform:uppercase;letter-spacing:.5px;flex-shrink:0;padding-right:10px;border-right:1px solid var(--border)}
+.sp-rail .chips{display:flex;gap:6px;overflow:hidden;flex-wrap:wrap}
+.sp-rail .chip{font-size:11.5px;font-weight:600;color:var(--ink2);padding:4px 10px;background:var(--bg);border-radius:var(--r-pill);white-space:nowrap;cursor:pointer;transition:all var(--dur) var(--ease)}
+.sp-rail .chip:hover{background:var(--blue-soft);color:var(--blue)}
+.sp-rail .chip.hot{background:var(--blue);color:#fff}
+
+/* =====================================================
+   EVENTS — featured banner + poster cards
+   ===================================================== */
+.events{padding:80px 0 80px;background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border);position:relative;overflow:hidden}
+.events::before{
+  content:"";position:absolute;width:200px;height:200px;background:var(--yellow);opacity:.18;
+  top:-80px;right:6%;border-radius:50%;pointer-events:none;
+}
+.events .shell{position:relative;z-index:2}
+.ic{flex-shrink:0;color:currentColor;opacity:.65}
+
+/* FEATURED EVENT — full-width banner */
+.ev-feat{
+  position:relative;
+  display:grid;grid-template-columns:.9fr 1.1fr;
+  background:var(--surface);
+  border:1px solid var(--border);border-radius:var(--r-2xl);
+  overflow:hidden;margin-bottom:20px;min-height:360px;
+  cursor:pointer;
+  transition:transform .25s var(--ease),box-shadow .25s var(--ease);
+}
+.ev-feat:hover{transform:translateY(-3px);box-shadow:var(--sh-lg)}
+
+.ev-feat-cover{
+  position:relative;background:var(--yellow);overflow:hidden;
+  display:flex;align-items:center;justify-content:center;padding:36px;
+}
+.ev-feat-cover::before{
+  content:"";position:absolute;width:380px;height:380px;
+  background:var(--orange);opacity:.45;border-radius:50%;
+  top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;
+}
+.ev-feat-cover::after{
+  content:"";position:absolute;inset:0;
+  background-image:radial-gradient(circle,rgba(0,0,0,.06) 1.2px,transparent 1.5px);
+  background-size:20px 20px;pointer-events:none;
+}
+.ev-feat-cover img{
+  position:relative;z-index:2;max-height:240px;width:auto;
+  filter:drop-shadow(6px 8px 16px rgba(0,0,0,.12));
+  transition:transform .4s var(--ease);
+}
+.ev-feat:hover .ev-feat-cover img{transform:scale(1.04)}
+
+.ev-stamp{
+  position:absolute;top:24px;left:24px;z-index:3;
+  background:var(--surface);border:2.5px solid var(--ink1);
+  border-radius:14px;padding:10px 16px;text-align:center;
+  box-shadow:5px 5px 0 var(--ink1);min-width:84px;
+}
+.ev-stamp .d{font-family:var(--display);font-size:38px;color:var(--ink1);line-height:1;letter-spacing:.5px}
+.ev-stamp .m{font-size:10px;color:var(--ink2);font-weight:700;margin-top:3px;text-transform:uppercase;letter-spacing:.4px}
+.ev-stamp .wd{font-size:9px;color:var(--blue);font-weight:700;margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);text-transform:uppercase;letter-spacing:.4px}
+
+.ev-countdown{
+  position:absolute;bottom:24px;left:24px;z-index:3;
+  display:inline-flex;align-items:center;gap:8px;
+  font-size:11.5px;font-weight:700;color:#fff;
+  background:var(--ink1);padding:7px 13px;border-radius:var(--r-pill);
+}
+.ev-countdown .pulse{width:7px;height:7px;border-radius:50%;background:var(--mint);position:relative}
+.ev-countdown .pulse::after{content:"";position:absolute;inset:-3px;border-radius:50%;background:var(--mint);opacity:.5;animation:pulse 1.8s ease-out infinite}
+
+.ev-feat-body{padding:34px 40px 30px;display:flex;flex-direction:column;justify-content:center}
+.ev-feat-tag{
+  display:inline-flex;align-items:center;gap:6px;width:fit-content;
+  font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;
+  background:var(--ink1);color:var(--yellow);
+  padding:5px 12px;border-radius:var(--r-pill);
+}
+.ev-feat-body h3{
+  font-family:var(--sans);font-weight:800;font-size:28px;line-height:1.18;
+  color:var(--ink1);margin-top:14px;letter-spacing:-.5px;max-width:480px;
+}
+.ev-feat-body h3 em{font-family:var(--serif);font-style:italic;font-weight:600;color:var(--blue)}
+.ev-feat-desc{font-size:14px;color:var(--ink3);margin-top:12px;line-height:1.6;max-width:460px}
+.ev-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+.ev-chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--ink2);background:var(--bg);padding:7px 13px;border-radius:var(--r-pill)}
+.ev-chip svg{flex-shrink:0;opacity:.6}
+.ev-feat-cta-row{display:flex;align-items:center;gap:18px;margin-top:22px;padding-top:20px;border-top:1px dashed var(--border);flex-wrap:wrap}
+.ev-feat-cta{
+  background:var(--blue);color:#fff;font-size:14px;font-weight:700;
+  padding:13px 24px;border-radius:var(--r-pill);box-shadow:var(--sh-pop);
+  display:inline-flex;align-items:center;gap:8px;
+  transition:all var(--dur) var(--ease);
+}
+.ev-feat-cta:hover{background:var(--blue-dark);transform:translateY(-1px);box-shadow:0 8px 0 rgba(31,116,201,.22)}
+.ev-feat-seats{font-size:12.5px;color:var(--ink3);font-weight:500;display:inline-flex;align-items:center;gap:6px}
+.ev-feat-seats strong{color:var(--ink1);font-weight:800}
+
+/* SECONDARY EVENTS — poster cards */
+.ev-list{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.poster{
+  position:relative;
+  background:var(--surface);
+  border:1px solid var(--border);border-radius:var(--r-xl);
+  overflow:hidden;cursor:pointer;
+  display:flex;flex-direction:column;
+  transition:all var(--dur) var(--ease);
+}
+.poster:hover{transform:translateY(-4px);box-shadow:var(--sh-md);border-color:var(--border-s)}
+
+/* COVER — colored, with mascot/typography + date stamp */
+.po-cover{
+  position:relative;
+  height:200px;
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;
+}
+.po-cover::before{
+  content:"";position:absolute;
+  width:220px;height:220px;border-radius:50%;
+  left:50%;top:55%;transform:translate(-50%,-50%);
+  pointer-events:none;z-index:1;
+}
+.po-cover::after{
+  content:"";position:absolute;
+  width:80px;height:80px;
+  bottom:-20px;right:-20px;
+  border-radius:55% 45% 60% 40%/50% 60% 40% 50%;
+  pointer-events:none;z-index:1;
+}
+.po-cover img.mascot{
+  position:relative;z-index:2;
+  width:170px;height:170px;object-fit:contain;
+  transition:transform .35s var(--ease);
+}
+.poster:hover .po-cover img.mascot{transform:scale(1.05) rotate(-3deg)}
+/* tiny dot grid texture */
+.po-cover .grid-tex{
+  position:absolute;inset:0;z-index:1;opacity:.18;pointer-events:none;
+  background-image:radial-gradient(currentColor 1px,transparent 1px);
+  background-size:14px 14px;
+}
+
+/* COVER VARIANTS */
+.po-cover.orange{background:var(--orange-soft);color:rgba(0,0,0,.5)}
+.po-cover.orange::before{background:var(--orange);opacity:.5}
+.po-cover.orange::after{background:var(--yellow);opacity:.55}
+.po-cover.mint{background:var(--mint-soft);color:rgba(0,0,0,.5)}
+.po-cover.mint::before{background:var(--mint);opacity:.55}
+.po-cover.mint::after{background:var(--blue);opacity:.18;border-radius:50%}
+.po-cover.dark{background:var(--ink1);color:rgba(255,255,255,.6)}
+.po-cover.dark::before{background:var(--violet);opacity:.45}
+.po-cover.dark::after{background:var(--yellow);opacity:.55}
+
+/* TAG pill — top-left overlay */
+.po-tag{
+  position:absolute;top:14px;left:14px;z-index:5;
+  display:inline-flex;align-items:center;gap:6px;width:fit-content;
+  font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;
+  padding:5px 11px 5px 10px;border-radius:var(--r-pill);
+  background:#fff;color:var(--ink1);
+  box-shadow:var(--sh-xs);
+}
+.po-tag .tg-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.po-tag.dark{background:rgba(255,255,255,.95);color:var(--ink1)}
+
+/* DATE stamp — top-right, tilted slightly */
+.po-date{
+  position:absolute;top:14px;right:14px;z-index:5;
+  background:#fff;color:var(--ink1);
+  border:1.5px solid var(--ink1);
+  border-radius:var(--r-md);
+  padding:7px 12px 6px;
+  text-align:center;
+  display:flex;flex-direction:column;align-items:center;
+  box-shadow:3px 3px 0 var(--ink1);
+  min-width:54px;
+  transform:rotate(3deg);
+  transition:transform var(--dur) var(--ease);
+}
+.poster:hover .po-date{transform:rotate(0deg) translateY(-2px)}
+.po-date .dd{font-family:var(--display);font-size:24px;line-height:1;letter-spacing:.5px}
+.po-date .mm{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:3px;color:var(--ink3)}
+/* deadline = orange variant */
+.po-date.deadline{background:var(--orange);box-shadow:3px 3px 0 var(--ink1)}
+.po-date.deadline .mm{color:var(--ink1);opacity:.7}
+
+/* big typographic poster (Card 3 — contest) */
+.po-poster-text{
+  position:relative;z-index:2;
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  text-align:center;padding:0 20px;
+}
+.po-poster-text .super{
+  font-family:var(--display);
+  font-size:64px;line-height:.92;
+  color:var(--yellow);letter-spacing:.5px;
+}
+.po-poster-text .super-sub{
+  font-size:11px;font-weight:700;color:#fff;
+  letter-spacing:1.5px;text-transform:uppercase;opacity:.9;
+}
+.po-poster-text .super-sub em{
+  font-style:normal;color:var(--yellow);font-weight:800;
+}
+.po-poster-text .trophy{
+  position:absolute;font-size:34px;
+  top:-12px;left:-2px;transform:rotate(-12deg);
+  filter:drop-shadow(2px 3px 0 rgba(0,0,0,.3));
+}
+
+/* BODY */
+.po-body{padding:18px 20px 18px;display:flex;flex-direction:column;gap:10px;flex:1}
+.po-body h4{font-family:var(--sans);font-weight:800;font-size:16px;line-height:1.3;color:var(--ink1);letter-spacing:-.2px}
+.po-meta{display:flex;flex-direction:column;gap:6px;margin-top:auto;padding-top:14px;border-top:1px dashed var(--border)}
+.po-meta-line{font-size:12px;color:var(--ink3);display:inline-flex;align-items:center;gap:7px;line-height:1.3}
+.po-meta-line svg{flex-shrink:0;opacity:.55}
+.po-meta-line strong{color:var(--ink1);font-weight:700}
+.po-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px}
+.po-seats{font-size:11.5px;color:var(--ink2);font-weight:700;display:inline-flex;align-items:center;gap:6px}
+.po-seats .live-dot{width:7px;height:7px;border-radius:50%;background:var(--mint);box-shadow:0 0 0 3px rgba(110,254,192,.25)}
+.po-link{
+  font-size:12.5px;font-weight:700;color:#fff;
+  background:var(--ink1);
+  padding:8px 16px 8px 14px;border-radius:var(--r-pill);
+  display:inline-flex;align-items:center;gap:5px;
+  transition:all var(--dur) var(--ease);
+}
+.poster:hover .po-link{background:var(--blue);gap:9px}
+
+/* =====================================================
+   FEATURED SCHOOLS
+   ===================================================== */
+.schools{padding:72px 0;background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.school-row{display:flex;flex-direction:column;gap:18px}
+.school-card{
+  display:grid;grid-template-columns:280px 1fr 200px;gap:0;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r-xl);overflow:hidden;
+  transition:all var(--dur) var(--ease);cursor:pointer;
+}
+.school-card:hover{border-color:var(--border-s);box-shadow:var(--sh-md);transform:translateY(-2px)}
+.school-cover{
+  position:relative;min-height:170px;display:flex;align-items:flex-end;padding:18px;
+  overflow:hidden;
+}
+.school-cover::before{
+  content:"";position:absolute;width:200px;height:200px;border-radius:50%;
+  background:radial-gradient(circle at 30% 30%,rgba(255,255,255,.18),rgba(255,255,255,0) 70%);
+  top:-60px;right:-50px;pointer-events:none;
+}
+.school-cover::after{
+  content:"";position:absolute;width:100px;height:100px;border-radius:60% 40% 70% 30%/50% 60% 40% 50%;
+  background:rgba(255,255,255,.08);
+  bottom:-30px;left:30%;pointer-events:none;
+}
+.school-cover .stat-pill{
+  position:absolute;bottom:14px;right:14px;
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:10px;font-weight:700;color:#fff;
+  background:rgba(0,0,0,.32);backdrop-filter:blur(6px);
+  padding:5px 10px;border-radius:var(--r-pill);
+}
+.school-cover .stat-pill .live{width:6px;height:6px;border-radius:50%;background:var(--mint);box-shadow:0 0 0 3px rgba(110,254,192,.25)}
+.school-cover .badge{
+  position:absolute;top:14px;left:14px;
+  font-size:10px;font-weight:700;padding:4px 11px;border-radius:var(--r-pill);
+  background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.32);
+  text-transform:uppercase;letter-spacing:.4px;
+}
+.school-logo{
+  width:60px;height:60px;border-radius:var(--r-md);background:#fff;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:800;color:#fff;font-size:14px;letter-spacing:-.3px;
+  box-shadow:var(--sh-sm);position:relative;z-index:2;
+}
+.school-body{padding:22px 28px;display:flex;flex-direction:column;justify-content:center}
+.school-name{font-family:var(--sans);font-weight:800;font-size:20px;color:var(--ink1);line-height:1.2;letter-spacing:-.3px}
+.school-code{font-size:12px;color:var(--ink4);margin-top:5px;font-weight:500}
+.school-desc{font-size:13.5px;color:var(--ink3);margin-top:10px;line-height:1.55;max-width:480px}
+.school-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:14px}
+.school-tag{
+  font-size:11px;font-weight:600;padding:4px 11px;border-radius:var(--r-pill);
+  background:var(--blue-soft);color:var(--blue);
+}
+.school-side{
+  border-left:1px solid var(--border);padding:22px 24px;
+  display:flex;flex-direction:column;justify-content:space-between;align-items:flex-end;text-align:right;
+}
+.school-side .stat-n{font-family:var(--display);font-size:42px;color:var(--blue);line-height:1;letter-spacing:.5px}
+.school-side .stat-l{font-size:11px;color:var(--ink4);margin-top:4px;font-weight:500}
+.school-side .loc{font-size:12px;color:var(--ink3);font-weight:500;display:flex;align-items:center;gap:5px;margin-top:14px}
+.school-side .arrow{
+  font-size:13px;font-weight:700;color:var(--blue);margin-top:14px;
+  display:inline-flex;align-items:center;gap:5px;
+  transition:gap var(--dur) var(--ease);
+}
+.school-card:hover .arrow{gap:9px}
+
+/* =====================================================
+   CAREER PATHS (mascots — the brand pillars)
+   ===================================================== */
+.paths{padding:88px 0}
+.path-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+.path-card{
+  position:relative;background:var(--surface);
+  border:1px solid var(--border);border-radius:var(--r-xl);
+  padding:24px;overflow:hidden;cursor:pointer;
+  transition:all var(--dur) var(--ease);
+  display:flex;flex-direction:column;min-height:380px;
+}
+.path-card:hover{transform:translateY(-4px);box-shadow:var(--sh-md)}
+.path-card .mascot-bg{
+  position:absolute;top:0;left:0;right:0;height:170px;
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;
+}
+.path-card .mascot-bg::before{
+  content:"";position:absolute;inset:0;border-bottom-left-radius:50% 24px;border-bottom-right-radius:50% 24px;
+}
+.path-card .mascot-bg img{
+  width:140px;height:140px;object-fit:contain;position:relative;z-index:2;
+  transition:transform var(--dur) var(--ease);
+}
+.path-card:hover .mascot-bg img{transform:scale(1.05) rotate(-2deg)}
+.path-card .body{margin-top:170px;padding-top:18px;display:flex;flex-direction:column;flex:1}
+.path-card .role-name{
+  font-family:var(--sans);font-weight:800;font-size:18px;color:var(--ink1);line-height:1.2;
+}
+.path-card .role-tagline{font-size:12.5px;color:var(--ink3);margin-top:6px;line-height:1.5;flex:1}
+.path-card .role-roles{display:flex;flex-wrap:wrap;gap:5px;margin-top:14px}
+.path-card .rr{
+  font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:var(--r-pill);
+  background:var(--bg);color:var(--ink2);
+}
+.path-card .role-foot{
+  display:flex;justify-content:space-between;align-items:center;margin-top:16px;
+  padding-top:14px;border-top:1px dashed var(--border);
+}
+.path-card .role-count{font-size:11px;color:var(--ink4);font-weight:500}
+.path-card .role-count strong{color:var(--ink1);font-weight:800;font-size:14px}
+.path-card .role-arrow{font-size:13px;font-weight:700;color:var(--blue);transition:transform var(--dur) var(--ease)}
+.path-card:hover .role-arrow{transform:translateX(3px)}
+
+/* mascot accent variants */
+.path-card.artist .mascot-bg{background:var(--yellow-soft)}
+.path-card.artist .mascot-bg::before{background:var(--yellow);opacity:.4;border-radius:50%;width:120px;height:120px;left:50%;top:50%;transform:translate(-50%,-50%);right:auto;bottom:auto}
+.path-card.tech .mascot-bg{background:var(--violet-soft)}
+.path-card.tech .mascot-bg::before{background:var(--violet);opacity:.35;border-radius:50%;width:120px;height:120px;left:50%;top:50%;transform:translate(-50%,-50%);right:auto;bottom:auto}
+.path-card.manager .mascot-bg{background:var(--orange-soft)}
+.path-card.manager .mascot-bg::before{background:var(--orange);opacity:.4;border-radius:50%;width:120px;height:120px;left:50%;top:50%;transform:translate(-50%,-50%);right:auto;bottom:auto}
+.path-card.support .mascot-bg{background:var(--mint-soft)}
+.path-card.support .mascot-bg::before{background:var(--mint);opacity:.4;border-radius:50%;width:120px;height:120px;left:50%;top:50%;transform:translate(-50%,-50%);right:auto;bottom:auto}
+
+/* =====================================================
+   STUDENT WORK
+   ===================================================== */
+.work{padding:80px 0;background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.work-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.work-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);
+  overflow:hidden;cursor:pointer;transition:all var(--dur) var(--ease);
+  display:flex;flex-direction:column;
+}
+.work-card:hover{transform:translateY(-3px);box-shadow:var(--sh-md);border-color:var(--border-s)}
+.work-cover{
+  height:200px;position:relative;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+}
+.work-cover .deco{position:absolute;border-radius:50%}
+.work-cover img{
+  position:relative;z-index:2;max-height:150px;width:auto;object-fit:contain;
+  transition:transform .3s var(--ease);
+}
+.work-card:hover .work-cover img{transform:scale(1.05)}
+.work-cover .label{
+  position:absolute;left:14px;bottom:12px;z-index:3;
+  font-family:var(--display);font-size:14px;letter-spacing:.5px;
+  color:var(--ink1);background:var(--surface);
+  padding:4px 11px;border-radius:var(--r-pill);
+  border:1px solid var(--border);
+}
+.work-cover .duration{
+  position:absolute;right:14px;top:12px;z-index:3;
+  font-size:10px;font-weight:700;color:var(--ink2);
+  background:rgba(255,255,255,.85);padding:3px 8px;border-radius:var(--r-pill);
+  backdrop-filter:blur(4px);
+}
+.wc-1{background:var(--violet-soft)} .wc-1 .deco{background:var(--violet);opacity:.4;width:140px;height:140px;top:-30px;right:-30px}
+.wc-2{background:var(--mint-soft)} .wc-2 .deco{background:var(--mint);opacity:.5;width:130px;height:130px;bottom:-30px;left:-30px;border-radius:55% 45% 60% 40%/50% 60% 40% 50%}
+.wc-3{background:var(--orange-soft)} .wc-3 .deco{background:var(--orange);opacity:.5;width:120px;height:120px;top:30px;right:40px}
+.wc-4{background:var(--yellow-soft)} .wc-4 .deco{background:var(--yellow);opacity:.55;width:140px;height:140px;bottom:-40px;right:-30px;border-radius:60% 40% 70% 30%/50% 60% 40% 50%}
+.wc-5{background:var(--blue-soft)} .wc-5 .deco{background:var(--blue);opacity:.18;width:160px;height:160px;top:20px;left:-30px;border-radius:50%}
+.wc-6{background:#FCE7F3} .wc-6 .deco{background:#EC4899;opacity:.25;width:130px;height:130px;bottom:-30px;right:-30px}
+
+.work-body{padding:18px 20px;display:flex;flex-direction:column;gap:8px}
+.work-author{display:flex;align-items:center;justify-content:space-between}
+.work-author .name{font-size:14px;font-weight:700;color:var(--ink1)}
+.work-author .school{font-size:11px;color:var(--ink4);font-weight:500}
+.work-title{font-size:13px;color:var(--ink2);line-height:1.4}
+.work-tags{display:flex;gap:5px;margin-top:6px;flex-wrap:wrap}
+.work-tag{font-size:10px;font-weight:600;padding:3px 9px;border-radius:var(--r-pill);background:var(--bg);color:var(--ink3)}
+
+/* =====================================================
+   HOT COURSES
+   ===================================================== */
+.courses{padding:88px 0;background:var(--bg);position:relative;overflow:hidden}
+.courses .section-head{margin-bottom:18px}
+.courses-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:32px}
+.courses-filter{
+  padding:9px 16px;background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r-pill);font-size:13px;font-weight:600;color:var(--ink2);
+  cursor:pointer;transition:all var(--dur) var(--ease);
+  display:inline-flex;align-items:center;gap:6px;
+}
+.courses-filter:hover{color:var(--blue);border-color:var(--blue)}
+.courses-filter.on{background:var(--ink1);color:#fff;border-color:var(--ink1)}
+.courses-filter .flame{display:inline-block;font-size:13px;line-height:1}
+.courses-filter .ct{
+  font-size:11px;padding:1px 8px;border-radius:var(--r-pill);
+  background:rgba(0,0,0,.06);color:inherit;font-weight:700;
+}
+.courses-filter.on .ct{background:rgba(255,255,255,.18);color:#fff}
+.courses-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+.course-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);
+  overflow:hidden;display:flex;flex-direction:column;cursor:pointer;
+  transition:all var(--dur) var(--ease);position:relative;
+}
+.course-card:hover{transform:translateY(-4px);box-shadow:var(--sh-md);border-color:var(--border-s)}
+.course-cover{position:relative;height:180px;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.course-cover .deco{position:absolute;border-radius:50%}
+.course-cover img{
+  position:relative;z-index:2;max-height:140px;width:auto;object-fit:contain;
+  transition:transform .35s var(--ease);
+}
+.course-card:hover .course-cover img{transform:scale(1.06) rotate(-3deg)}
+.cc-1{background:var(--violet-soft)} .cc-1 .deco{background:var(--violet);opacity:.42;width:160px;height:160px;top:-50px;right:-30px}
+.cc-2{background:var(--orange-soft)} .cc-2 .deco{background:var(--orange);opacity:.45;width:140px;height:140px;bottom:-40px;left:-30px;border-radius:60% 40% 70% 30%/50% 60% 40% 50%}
+.cc-3{background:var(--yellow-soft)} .cc-3 .deco{background:var(--yellow);opacity:.55;width:150px;height:150px;top:-40px;left:-30px;border-radius:55% 45% 60% 40%/50% 60% 40% 50%}
+.cc-4{background:var(--mint-soft)} .cc-4 .deco{background:var(--mint);opacity:.45;width:140px;height:140px;bottom:-30px;right:-30px}
+.course-hot{
+  position:absolute;top:14px;left:14px;z-index:3;
+  display:inline-flex;align-items:center;gap:5px;
+  padding:5px 11px;border-radius:var(--r-pill);
+  background:var(--ink1);color:#fff;font-size:11px;font-weight:700;letter-spacing:.3px;
+}
+.course-hot .flame{color:var(--yellow);font-size:12px;line-height:1}
+.course-level{
+  position:absolute;top:14px;right:14px;z-index:3;
+  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;
+  color:var(--ink1);background:rgba(255,255,255,.92);padding:5px 10px;
+  border-radius:var(--r-pill);backdrop-filter:blur(4px);
+}
+.course-body{padding:18px 20px 20px;display:flex;flex-direction:column;gap:10px;flex:1}
+.course-school{display:flex;align-items:center;gap:8px;font-size:11.5px;font-weight:600;color:var(--ink3)}
+.course-school .logo{
+  width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:9.5px;font-weight:800;flex-shrink:0;letter-spacing:-.2px;
+}
+.course-title{font-size:15px;font-weight:800;color:var(--ink1);line-height:1.32;letter-spacing:-.2px}
+.course-meta{display:flex;align-items:center;gap:10px;font-size:11.5px;color:var(--ink3);flex-wrap:wrap;margin-top:2px}
+.course-meta span{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.course-meta .dot{color:var(--ink4)}
+.course-meta strong{color:var(--ink1);font-weight:700}
+.course-rating{
+  display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--ink3);
+  padding:4px 10px;border-radius:var(--r-pill);background:var(--bg);width:fit-content;
+}
+.course-rating .star{color:#F5A623;font-size:12px;line-height:1}
+.course-rating strong{color:var(--ink1);font-weight:800}
+.course-rating .count{color:var(--ink4);font-size:11px}
+.course-foot{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding-top:14px;border-top:1px dashed var(--border);margin-top:auto;
+}
+.course-price{display:flex;flex-direction:column;line-height:1.1}
+.course-price .now{
+  font-family:var(--sans);font-size:18px;font-weight:900;color:var(--blue);
+  letter-spacing:-.4px;line-height:1;
+}
+.course-price .was{
+  font-size:11px;color:var(--ink4);text-decoration:line-through;
+  font-weight:500;margin-top:3px;
+}
+.course-cta{
+  width:38px;height:38px;border-radius:50%;background:var(--bg);
+  display:flex;align-items:center;justify-content:center;
+  color:var(--ink2);transition:all var(--dur) var(--ease);
+  font-size:15px;font-weight:800;flex-shrink:0;
+}
+.course-card:hover .course-cta{background:var(--blue);color:#fff;transform:rotate(-12deg)}
+
+/* =====================================================
+   OPEN DAYS — vertical schedule
+   ===================================================== */
+.opendays{padding:88px 0}
+.opendays-wrap{display:grid;grid-template-columns:340px 1fr;gap:48px;align-items:start}
+.opendays-aside{position:sticky;top:96px}
+.opendays-aside .filter-row{display:flex;flex-direction:column;gap:8px;margin-top:20px}
+.filter-pill{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:11px 16px;background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r-pill);font-size:13px;font-weight:600;color:var(--ink2);
+  cursor:pointer;transition:all var(--dur) var(--ease);
+}
+.filter-pill:hover{border-color:var(--blue);color:var(--blue)}
+.filter-pill.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+.filter-pill .count{
+  font-size:11px;padding:2px 8px;border-radius:var(--r-pill);
+  background:rgba(0,0,0,.06);color:inherit;
+}
+.filter-pill.on .count{background:rgba(255,255,255,.2);color:#fff}
+
+.schedule{display:flex;flex-direction:column;gap:14px}
+.sch-item{
+  display:grid;grid-template-columns:88px 1fr auto;gap:20px;align-items:center;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r-lg);padding:18px 22px;
+  transition:all var(--dur) var(--ease);cursor:pointer;
+}
+.sch-item:hover{border-color:var(--blue);background:#FBFCFE}
+.sch-date{
+  text-align:center;border-right:1px dashed var(--border);padding-right:20px;
+}
+.sch-date .day{font-family:var(--display);font-size:36px;color:var(--blue);line-height:1;letter-spacing:.5px}
+.sch-date .mon{font-size:11px;color:var(--ink4);font-weight:600;margin-top:4px;text-transform:uppercase;letter-spacing:.4px}
+.sch-info .school{font-size:15px;font-weight:700;color:var(--ink1)}
+.sch-info .meta{font-size:12px;color:var(--ink3);margin-top:4px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.sch-info .meta span{display:inline-flex;align-items:center;gap:4px}
+.sch-info .meta .dot{color:var(--ink4)}
+.sch-side{display:flex;align-items:center;gap:10px}
+.sch-tag{
+  font-size:11px;font-weight:700;padding:5px 12px;border-radius:var(--r-pill);
+  background:var(--mint-soft);color:#0a6b4a;
+}
+.sch-tag.live{background:var(--orange-soft);color:#8B4500}
+.sch-tag.virtual{background:var(--violet-soft);color:#5b2bb8}
+.sch-arrow{
+  width:34px;height:34px;border-radius:50%;background:var(--bg);
+  display:flex;align-items:center;justify-content:center;color:var(--ink2);
+  transition:all var(--dur) var(--ease);
+}
+.sch-item:hover .sch-arrow{background:var(--blue);color:#fff}
+
+/* =====================================================
+   FAQ
+   ===================================================== */
+.faq{padding:80px 0;background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.faq-wrap{display:grid;grid-template-columns:340px 1fr;gap:64px;align-items:start}
+.faq-aside .lead{font-size:14px;color:var(--ink3);margin-top:14px;line-height:1.6}
+.faq-aside .ask-cta{
+  display:inline-flex;align-items:center;gap:8px;margin-top:24px;
+  padding:11px 20px;background:var(--bg);border:1px solid var(--border);
+  border-radius:var(--r-pill);font-size:13px;font-weight:600;color:var(--ink1);
+  transition:all var(--dur) var(--ease);
+}
+.faq-aside .ask-cta:hover{background:var(--blue);color:#fff;border-color:var(--blue)}
+.faq-list{display:flex;flex-direction:column;gap:0;border-top:1px solid var(--border)}
+.faq-item{border-bottom:1px solid var(--border)}
+.faq-q{
+  width:100%;padding:22px 0;display:flex;align-items:center;justify-content:space-between;gap:20px;
+  font-size:16px;font-weight:600;color:var(--ink1);text-align:left;
+  transition:color var(--dur) var(--ease);
+}
+.faq-q:hover{color:var(--blue)}
+.faq-q .ico{
+  width:28px;height:28px;border-radius:50%;background:var(--bg);
+  display:flex;align-items:center;justify-content:center;color:var(--ink2);
+  font-size:18px;font-weight:700;flex-shrink:0;
+  transition:all var(--dur) var(--ease);
+}
+.faq-item[open] .faq-q .ico{background:var(--blue);color:#fff;transform:rotate(45deg)}
+.faq-item[open] .faq-q{color:var(--blue)}
+.faq-a{
+  padding:0 0 24px;font-size:14.5px;line-height:1.65;color:var(--ink3);
+  max-width:680px;
+}
+.faq-a a{color:var(--blue);font-weight:600;border-bottom:1px solid currentColor}
+.faq-q::-webkit-details-marker{display:none}
+.faq-q{list-style:none}
+
+/* =====================================================
+   FOOTER CTA
+   ===================================================== */
+.foot-cta{padding:88px 0}
+.foot-cta-card{
+  position:relative;background:var(--blue);color:#fff;
+  border-radius:var(--r-2xl);padding:64px 64px 56px;overflow:hidden;
+  display:grid;grid-template-columns:1.4fr auto;gap:48px;align-items:center;
+}
+.foot-cta-card::before,.foot-cta-card::after{
+  content:"";position:absolute;border-radius:50%;pointer-events:none;
+}
+.foot-cta-card::before{
+  width:340px;height:340px;background:var(--yellow);opacity:.15;
+  top:-100px;right:-80px;
+}
+.foot-cta-card::after{
+  width:200px;height:200px;background:var(--mint);opacity:.18;
+  bottom:-80px;left:30%;border-radius:60% 40% 70% 30%/50% 60% 40% 50%;
+}
+.foot-cta-card .left{position:relative;z-index:2}
+.foot-cta-card .eyebrow{color:rgba(255,255,255,.7)}
+.foot-cta-card .eyebrow::before{background:var(--yellow)}
+.foot-cta-card h2{
+  font-family:var(--sans);font-weight:900;font-size:44px;line-height:1.1;
+  color:#fff;letter-spacing:-.8px;
+}
+.foot-cta-card h2 em{font-family:var(--serif);font-style:italic;font-weight:600;color:var(--yellow)}
+.foot-cta-card .lead{font-size:16px;color:rgba(255,255,255,.78);margin-top:16px;max-width:520px;line-height:1.6}
+.foot-cta-card .right{position:relative;z-index:2;display:flex;flex-direction:column;gap:14px;align-items:stretch}
+.foot-cta-card .btn-yellow{
+  background:var(--yellow);color:var(--ink1);font-size:16px;font-weight:800;
+  padding:18px 32px;border-radius:var(--r-pill);text-align:center;
+  box-shadow:0 6px 0 rgba(180,160,0,.4);
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  transition:all var(--dur) var(--ease);
+}
+.foot-cta-card .btn-yellow:hover{transform:translateY(-2px);box-shadow:0 8px 0 rgba(180,160,0,.45);background:#FFE93A}
+.foot-cta-card .meta{font-size:12px;color:rgba(255,255,255,.55);text-align:center}
+
+/* =====================================================
+   FOOTER
+   ===================================================== */
+.footer{background:var(--bg);border-top:1px solid var(--border);padding:48px 0 32px}
+.footer-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:48px;margin-bottom:40px}
+.footer-grid h4{font-size:13px;font-weight:700;color:var(--ink1);margin-bottom:16px;letter-spacing:.2px}
+.footer-grid ul{list-style:none;display:flex;flex-direction:column;gap:8px}
+.footer-grid a{font-size:13px;color:var(--ink3);transition:color var(--dur) var(--ease)}
+.footer-grid a:hover{color:var(--blue)}
+.footer-bio{font-size:13px;color:var(--ink3);line-height:1.6;margin-top:14px;max-width:340px}
+.footer-bottom{
+  padding-top:24px;border-top:1px solid var(--border);
+  display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;
+}
+.footer-bottom .seg{display:flex;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-pill);padding:4px}
+.footer-bottom .seg a{
+  font-size:12px;font-weight:600;padding:6px 16px;border-radius:var(--r-pill);
+  color:var(--ink3);transition:all var(--dur) var(--ease);
+}
+.footer-bottom .seg a.on{background:var(--blue);color:#fff}
+.footer-bottom .copy{font-size:12px;color:var(--ink4)}
+
+/* =====================================================
+   Responsive
+   ===================================================== */
+@media (max-width:1100px){
+  .hero h1{font-size:48px}
+  .hero-grid{grid-template-columns:1fr;gap:48px}
+  .hero-side{max-width:540px;margin:0 auto}
+  .ev-feat{grid-template-columns:1fr;min-height:auto}
+  .ev-feat-cover{min-height:280px}
+  .ev-feat-body{padding:30px 30px 28px}
+  .ev-feat-body h3{font-size:24px}
+  .ev-list{grid-template-columns:1fr 1fr;gap:14px}
+  .school-card{grid-template-columns:240px 1fr;}
+  .school-side{grid-column:1/-1;flex-direction:row;align-items:center;border-left:none;border-top:1px solid var(--border);padding:18px 24px}
+  .school-side .arrow{margin-top:0}
+  .school-side .loc{margin-top:0}
+  .path-grid{grid-template-columns:1fr 1fr;gap:14px}
+  .work-grid{grid-template-columns:1fr 1fr}
+  .courses-grid{grid-template-columns:1fr 1fr;gap:16px}
+  .opendays-wrap,.faq-wrap{grid-template-columns:1fr;gap:32px}
+  .opendays-aside{position:static}
+  .opendays-aside .filter-row{flex-direction:row;flex-wrap:wrap}
+  .footer-grid{grid-template-columns:1fr 1fr;gap:32px}
+}
+@media (max-width:680px){
+  section{padding:56px 0}
+  .shell{padding:0 20px}
+  .hero{padding:56px 0 48px}
+  .hero h1{font-size:38px;line-height:1.06}
+  .hero-side{max-width:100%}
+  .sp-cover{height:240px}
+  .sp-cover img{max-height:200px}
+  .sp-body{padding:20px 20px 22px}
+  .sp-title{font-size:21px}
+  .sp-stats{gap:16px}
+  .sp-rail{padding:8px 12px;flex-wrap:wrap}
+  .sp-rail .label{padding-right:0;border-right:none}
+  .hero-trust{gap:20px}
+  .ev-feat-cover{min-height:240px;padding:24px}
+  .ev-feat-cover img{max-height:180px}
+  .ev-feat-body{padding:24px 22px 24px}
+  .ev-feat-body h3{font-size:21px}
+  .ev-stamp{top:16px;left:16px;padding:8px 12px;min-width:72px}
+  .ev-stamp .d{font-size:30px}
+  .ev-list{grid-template-columns:1fr}
+  .school-card{grid-template-columns:1fr}
+  .school-cover{min-height:140px}
+  .school-side{flex-direction:column;align-items:flex-start;text-align:left}
+  .path-grid{grid-template-columns:1fr}
+  .work-grid{grid-template-columns:1fr}
+  .courses-grid{grid-template-columns:1fr}
+  .courses-filters{flex-wrap:nowrap;overflow-x:auto;padding-bottom:6px;-ms-overflow-style:none;scrollbar-width:none}
+  .courses-filters::-webkit-scrollbar{display:none}
+  .courses-filter{flex-shrink:0}
+  .foot-cta-card{grid-template-columns:1fr;padding:40px 28px;gap:28px}
+  .foot-cta-card h2{font-size:32px}
+  .footer-grid{grid-template-columns:1fr;gap:24px}
+  .sch-item{grid-template-columns:1fr;gap:12px}
+  .sch-date{border-right:none;border-bottom:1px dashed var(--border);padding-right:0;padding-bottom:14px;display:flex;align-items:baseline;gap:10px;justify-content:flex-start;text-align:left}
+  .sch-date .mon{margin-top:0}
+}
+
+/* small reveal */
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.hero-grid{animation:fadeUp .5s var(--ease) both}
+.ev-feat{animation:fadeUp .5s var(--ease) .1s both}
+.ev-list{animation:fadeUp .5s var(--ease) .2s both}
+.school-row{animation:fadeUp .5s var(--ease) both}
+.path-grid{animation:fadeUp .5s var(--ease) both}
+.courses-grid{animation:fadeUp .5s var(--ease) both}
+</style>
+</head>
+<body>
+
+<!-- =====================================================
+     SIDEBAR — collapsed by default, expands on hover
+     ===================================================== -->
+<aside class="sidebar" id="sidebar" aria-label="Điều hướng chính">
+  <a href="#" class="sb-brand" aria-label="CINs trang chủ">
+    <div class="sb-brand-mark">C</div>
+    <div class="sb-brand-text">CINs</div>
+  </a>
+  <ul class="sb-list">
+    <li><a href="#" class="sb-item active" data-tip="Tin nóng, sự kiện, khoá học và trường nổi bật cập nhật hằng ngày">
+      <span class="sb-ico"><svg viewBox="0 0 24 24"><path d="M3 11.5L12 4l9 7.5"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg></span>
+      <span class="sb-label">Trang chủ</span></a></li>
+    <li><a href="#" class="sb-item" data-tip="2,400+ tác phẩm sinh viên các trường — tìm cảm hứng, phong cách và kỹ thuật">
+      <span class="sb-ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span>
+      <span class="sb-label">Gallery Portfolio</span></a></li>
+    <li><a href="/nghe-nghiep" target="_top" class="sb-item" data-tip="120+ vị trí nghề: mô tả công việc, kỹ năng cần học, lương trung bình và lộ trình">
+      <span class="sb-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5L13 13l-4.5 2.5L11 11l4.5-2.5z"/></svg></span>
+      <span class="sb-label">Khám phá nghề</span></a></li>
+    <li><a href="#schools" class="sb-item" data-tip="38 trường đào tạo ngành sáng tạo — học phí, chương trình, học bổng và open day">
+      <span class="sb-ico"><svg viewBox="0 0 24 24"><path d="M12 4l10 4-10 4L2 8l10-4z"/><path d="M6 10v5c0 2 3 3.5 6 3.5s6-1.5 6-3.5v-5"/><path d="M22 8v6"/></svg></span>
+      <span class="sb-label">Trường đại học</span></a></li>
+    <li><a href="#" class="sb-item" data-tip="Trung tâm đào tạo ngắn hạn, học viện kỹ năng nghề và bootcamp chuyên ngành">
+      <span class="sb-ico"><svg viewBox="0 0 24 24"><path d="M3 21V8l9-5 9 5v13"/><path d="M9 21v-7h6v7"/><path d="M3 21h18"/></svg></span>
+      <span class="sb-label">Cơ sở đào tạo</span></a></li>
+    <li><a href="#courses" class="sb-item" data-tip="Khoá học online & offline — từ nhập môn cho học sinh đến chuyên sâu cho người đi làm">
+      <span class="sb-ico"><svg viewBox="0 0 24 24"><path d="M3 4.5A1.5 1.5 0 014.5 3H11v17H4.5A1.5 1.5 0 013 18.5v-14z"/><path d="M21 4.5A1.5 1.5 0 0019.5 3H13v17h6.5a1.5 1.5 0 001.5-1.5v-14z"/><path d="M6 7h2M6 10h2M16 7h2M16 10h2"/></svg></span>
+      <span class="sb-label">Tìm khoá học</span></a></li>
+    <li><a href="#" class="sb-item" data-tip="Studio, agency và công ty đang tuyển — danh sách thực tập, fulltime và freelance">
+      <span class="sb-ico"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2"/><path d="M3 12h18"/></svg></span>
+      <span class="sb-label">Doanh nghiệp</span></a></li>
+    <li><a href="#events" class="sb-item" data-tip="Open day, talkshow, workshop và cuộc thi sắp diễn ra trong 30 ngày tới">
+      <span class="sb-ico"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18"/><path d="M8 3v4M16 3v4"/></svg></span>
+      <span class="sb-label">Sự kiện</span></a></li>
+    <li><a href="#" class="sb-item" data-tip="Bài viết chuyên sâu, hướng dẫn nghề và phỏng vấn người trong ngành sáng tạo">
+      <span class="sb-ico"><svg viewBox="0 0 24 24"><path d="M14 3l7 7-11 11H3v-7L14 3z"/><path d="M13 4l7 7"/></svg></span>
+      <span class="sb-label">Blog</span></a></li>
+  </ul>
+  <div class="sb-foot">
+    <a href="#" class="sb-item" data-tip="Câu hỏi thường gặp, hỗ trợ tài khoản và liên hệ với đội ngũ CINs">
+      <span class="sb-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 015 0c0 1.5-2.5 2-2.5 3.5"/><path d="M12 17h.01"/></svg></span>
+      <span class="sb-label">Trợ giúp</span></a>
+    <a href="#" class="sb-item" data-tip="Cập nhật thông tin cá nhân, thông báo, quyền riêng tư và ngôn ngữ">
+      <span class="sb-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33h0a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51h0a1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82v0a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></span>
+      <span class="sb-label">Cài đặt</span></a>
+  </div>
+</aside>
+
+<!-- =====================================================
+     TOPBAR — Quiz (left) · Tư vấn nghề · Auth (right)
+     ===================================================== -->
+<nav class="topbar" id="topbar">
+  <div class="topbar-inner">
+    <div class="tb-left">
+      <button class="tb-burger" id="tb-burger" aria-label="Mở menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+      <a href="#" class="tb-quiz">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.8 5.4L19 9.2l-4.5 3.3L16 18l-4-3-4 3 1.5-5.5L5 9.2l5.2-1.8L12 2z"/></svg>
+        <span>Quiz khám phá tính cách nghề</span>
+      </a>
+    </div>
+    <div class="tb-right">
+      <a href="#" class="tb-ask">
+        <svg viewBox="0 0 24 24"><path d="M21 12a8 8 0 01-11.6 7.1L4 21l1.9-5.4A8 8 0 1121 12z"/><path d="M9 10h6M9 13h4"/></svg>
+        <span>Tư vấn nghề</span>
+      </a>
+      <span class="tb-divider"></span>
+      <div class="tb-auth">
+        <a href="#" class="tb-login">Đăng nhập</a>
+        <a href="#" class="tb-signup">Đăng ký <span aria-hidden="true">→</span></a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- =====================================================
+     HERO
+     ===================================================== -->
+<header class="hero">
+  <div class="shell hero-grid">
+    <div class="hero-text">
+      <div class="hero-tag">
+        <span class="pulse"></span>
+        Mùa tuyển sinh 2026 — đã mở
+      </div>
+      <h1>
+        Chọn nghề <span class="em">sáng tạo</span><br/>
+        không còn là <span class="hl">nỗi lo</span><br/>
+        của ba mẹ.
+      </h1>
+      <p class="hero-lead">
+        Khám phá 120+ nghề trong ngành sáng tạo thị giác — từ Game, Hoạt hình đến Kiến trúc và Thời trang. So sánh 38 trường, đăng ký open day chỉ trong 30 giây.
+      </p>
+      <div class="hero-cta-row">
+        <a href="#" class="btn btn-primary">Tìm nghề phù hợp <span class="btn-arrow">→</span></a>
+        <a href="#events" class="btn btn-secondary">Xem lịch open day</a>
+      </div>
+      <div class="hero-trust">
+        <div class="hero-trust-item">
+          <div class="hero-trust-num">120+</div>
+          <div class="hero-trust-lbl">vị trí nghề</div>
+        </div>
+        <div class="hero-trust-item">
+          <div class="hero-trust-num">38</div>
+          <div class="hero-trust-lbl">trường đại học</div>
+        </div>
+        <div class="hero-trust-item">
+          <div class="hero-trust-num">2,400+</div>
+          <div class="hero-trust-lbl">portfolio sinh viên</div>
+        </div>
+        <div class="hero-trust-item">
+          <div class="hero-trust-num">5</div>
+          <div class="hero-trust-lbl">lĩnh vực</div>
+        </div>
+      </div>
+    </div>
+
+    <aside class="hero-side">
+      <article class="spotlight" aria-label="Ngành đang nổi bật">
+        <div class="sp-cover">
+          <span class="sp-badge"><span class="dot"></span> Đang xem nhiều</span>
+          <div class="sp-pin"><div class="d">02</div><div class="l">Th 5</div></div>
+          <img src="/assets/illustration-gamepad.png" alt="Game design illustration"/>
+        </div>
+        <div class="sp-body">
+          <div class="sp-kicker">Spotlight tuần này</div>
+          <h3 class="sp-title">Game <em>Designer</em> — ngành đang được tìm kiếm nhiều nhất.</h3>
+          <p class="sp-desc">8 vị trí cụ thể, lương khởi điểm 12–22 triệu/tháng. Dẫn đầu lượt xem 4 tuần liên tiếp trên CINs.</p>
+          <div class="sp-row">
+            <div class="sp-stats">
+              <div class="s"><div class="n">2.4k</div><div class="l">lượt xem</div></div>
+              <div class="s"><div class="n">8</div><div class="l">vị trí</div></div>
+              <div class="s"><div class="n">12</div><div class="l">trường đào tạo</div></div>
+            </div>
+            <a href="#" class="sp-cta">Xem chi tiết <span class="arr">→</span></a>
+          </div>
+        </div>
+      </article>
+      <div class="sp-rail">
+        <span class="label">Trending</span>
+        <div class="chips">
+          <span class="chip hot">UI/UX</span>
+          <span class="chip">3D Animation</span>
+          <span class="chip">Concept Art</span>
+          <span class="chip">VFX</span>
+        </div>
+      </div>
+    </aside>
+  </div>
+</header>
+
+<!-- =====================================================
+     EVENT BANNERS — addresses "thiếu các banner sự kiện"
+     ===================================================== -->
+<section class="events" id="events">
+  <div class="shell">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">sắp diễn ra · tháng 5 — tháng 6</div>
+        <h2 class="title-xl">Sự kiện tuyển sinh <em>tuần này</em>.</h2>
+        <p class="subtitle">3 sự kiện nóng nhất, cập nhật theo thời gian thực. Đăng ký miễn phí, có nhắc lịch qua email.</p>
+      </div>
+      <a href="#" class="right">Xem 12 sự kiện khác →</a>
+    </div>
+
+    <!-- FEATURED EVENT — full-width banner -->
+    <article class="ev-feat">
+      <div class="ev-feat-cover">
+        <div class="ev-stamp">
+          <div class="d">18</div>
+          <div class="m">tháng 5</div>
+          <div class="wd">Chủ nhật</div>
+        </div>
+        <div class="ev-countdown"><span class="pulse"></span>Còn 16 ngày</div>
+        <img src="/assets/illustration-gamepad.png" alt="RMIT Open Day cover">
+      </div>
+      <div class="ev-feat-body">
+        <span class="ev-feat-tag">Open day · sự kiện trong tuần</span>
+        <h3>RMIT Open Day 2026 — khám phá <em>Digital Media</em> &amp; Game Design.</h3>
+        <p class="ev-feat-desc">Tham quan campus Saigon South, gặp giảng viên Australia, xem sinh viên năm cuối demo project Unreal Engine. Có shuttle bus đưa đón từ trung tâm Q.1 lúc 8h sáng.</p>
+        <div class="ev-chips">
+          <span class="ev-chip"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M8 1.5C5.5 1.5 3.5 3.5 3.5 6c0 3.75 4.5 8.5 4.5 8.5s4.5-4.75 4.5-8.5c0-2.5-2-4.5-4.5-4.5zm0 6a1.5 1.5 0 110-3 1.5 1.5 0 010 3z" fill="currentColor"/></svg> RMIT Saigon South · Q.7</span>
+          <span class="ev-chip"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.5"/><path d="M8 4v4l2.5 1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> 09:00 — 16:00</span>
+          <span class="ev-chip">Miễn phí · không cần đăng ký trước</span>
+        </div>
+        <div class="ev-feat-cta-row">
+          <a href="#" class="ev-feat-cta">Đăng ký tham gia <span>→</span></a>
+          <span class="ev-feat-seats"><svg class="ic" width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 8a3 3 0 100-6 3 3 0 000 6zm0 1.5c-3.5 0-5.5 2-5.5 4v.5h11V13.5c0-2-2-4-5.5-4z" fill="currentColor"/></svg> <strong>240</strong> đã đăng ký · còn 60 chỗ shuttle bus</span>
+        </div>
+      </div>
+    </article>
+
+    <!-- 3 SECONDARY TICKET CARDS -->
+    <div class="ev-list">
+      <!-- Card 1: Talkshow online -->
+      <article class="poster">
+        <div class="po-cover orange">
+          <span class="grid-tex"></span>
+          <span class="po-tag"><span class="tg-dot" style="background:var(--orange)"></span>Talkshow online</span>
+          <div class="po-date"><div class="dd">22</div><div class="mm">Th 5</div></div>
+          <img class="mascot" src="/assets/mascot-manager.png" alt="">
+        </div>
+        <div class="po-body">
+          <h4>Animator Việt làm tại Pixar — chia sẻ con đường du học &amp; làm việc nước ngoài.</h4>
+          <div class="po-meta">
+            <span class="po-meta-line"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M5.5 14.5h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> Online <strong>· Zoom</strong> (link qua email)</span>
+            <span class="po-meta-line"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.5"/><path d="M8 4v4l2.5 1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> <strong>19:30 — 21:00</strong> · có Q&amp;A</span>
+          </div>
+          <div class="po-foot">
+            <span class="po-seats"><span class="live-dot"></span>580 đã đăng ký</span>
+            <a href="#" class="po-link">Giữ chỗ →</a>
+          </div>
+        </div>
+      </article>
+
+      <!-- Card 2: Workshop fashion -->
+      <article class="poster">
+        <div class="po-cover mint">
+          <span class="grid-tex"></span>
+          <span class="po-tag"><span class="tg-dot" style="background:#0a6b4a"></span>Workshop trải nghiệm</span>
+          <div class="po-date"><div class="dd">25</div><div class="mm">Th 5</div></div>
+          <img class="mascot" src="/assets/mascot-supporter.png" alt="">
+        </div>
+        <div class="po-body">
+          <h4>Một ngày làm Nhà thiết kế thời trang tại ĐH Văn Lang.</h4>
+          <div class="po-meta">
+            <span class="po-meta-line"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M8 1.5C5.5 1.5 3.5 3.5 3.5 6c0 3.75 4.5 8.5 4.5 8.5s4.5-4.75 4.5-8.5c0-2.5-2-4.5-4.5-4.5z" stroke="currentColor" stroke-width="1.5"/></svg> Cơ sở 3 <strong>· Bình Thạnh</strong>, TP. HCM</span>
+            <span class="po-meta-line"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.5"/><path d="M8 4v4l2.5 1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> <strong>08:30 — 12:00</strong> · 50k vé</span>
+          </div>
+          <div class="po-foot">
+            <span class="po-seats"><span class="live-dot"></span>còn <strong style="color:var(--ink1)">6 / 30</strong> chỗ</span>
+            <a href="#" class="po-link">Đặt chỗ →</a>
+          </div>
+        </div>
+      </article>
+
+      <!-- Card 3: Contest — typographic poster -->
+      <article class="poster">
+        <div class="po-cover dark">
+          <span class="grid-tex"></span>
+          <span class="po-tag dark"><span class="tg-dot" style="background:var(--violet)"></span>Cuộc thi · học bổng</span>
+          <div class="po-date deadline"><div class="dd">10</div><div class="mm">Hạn nộp</div></div>
+          <div class="po-poster-text">
+            <span class="trophy" aria-hidden="true">
+              <svg width="36" height="36" viewBox="0 0 32 32" fill="none">
+                <path d="M9 6h14v6a7 7 0 11-14 0V6z" fill="#FDE859" stroke="#1a1a1a" stroke-width="1.5" stroke-linejoin="round"/>
+                <path d="M9 8H5v3a4 4 0 004 4M23 8h4v3a4 4 0 01-4 4" stroke="#FDE859" stroke-width="1.5" stroke-linecap="round"/>
+                <path d="M13 19h6v4h-6z" fill="#FDE859" stroke="#1a1a1a" stroke-width="1.5"/>
+                <path d="M10 26h12" stroke="#FDE859" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </span>
+            <span class="super">50 triệu</span>
+            <span class="super-sub">học bổng <em>· Award 2026</em></span>
+          </div>
+        </div>
+        <div class="po-body">
+          <h4>CINs Portfolio Award 2026 — học bổng tiền mặt cho học sinh THPT.</h4>
+          <div class="po-meta">
+            <span class="po-meta-line"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M4 2h8v3a4 4 0 11-8 0V2z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M6 11h4v3H6z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg> Vòng chung kết <strong>· ĐH Văn Lang</strong></span>
+            <span class="po-meta-line"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M3 5h10v8H3z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M3 5l5-3 5 3" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg> Nộp <strong>5 tác phẩm</strong> digital</span>
+          </div>
+          <div class="po-foot">
+            <span class="po-seats"><span class="live-dot"></span><strong style="color:var(--ink1)">128</strong> portfolio đã nộp</span>
+            <a href="#" class="po-link">Tham gia →</a>
+          </div>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================
+     HOT COURSES — trending this week
+     ===================================================== -->
+<section class="courses" id="courses">
+  <div class="shell">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">khoá học · top tuần này</div>
+        <h2 class="title-xl">Khoá học <em>đang được học nhiều</em>.</h2>
+        <p class="subtitle">Top khoá ngắn hạn được học sinh THPT và sinh viên đăng ký nhiều nhất 7 ngày qua. Lọc theo loại nghề hoặc hình thức học.</p>
+      </div>
+      <a href="#" class="right">Xem 142 khoá học →</a>
+    </div>
+
+    <div class="courses-filters" role="tablist">
+      <button class="courses-filter on"><svg class="flame" width="12" height="14" viewBox="0 0 12 14" fill="none" aria-hidden="true"><path d="M6 1c0 2.5-3 3-3 6a3 3 0 006 0c0-1.2-.5-2-1-2.5.4 1-.3 2-1 2 .3-1.5-1-2.8-1-5.5z" fill="#FDE859" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/></svg>Hot tuần này <span class="ct">12</span></button>
+      <button class="courses-filter">Đang giảm giá <span class="ct">28</span></button>
+      <button class="courses-filter">Online <span class="ct">64</span></button>
+      <button class="courses-filter">Tại trường <span class="ct">42</span></button>
+      <button class="courses-filter">Thiết kế</button>
+      <button class="courses-filter">Game &amp; 3D</button>
+      <button class="courses-filter">Hoạt hình</button>
+    </div>
+
+    <div class="courses-grid">
+
+      <!-- Course 1 — UI/UX (Arena Multimedia) -->
+      <article class="course-card">
+        <div class="course-cover cc-1">
+          <div class="deco"></div>
+          <span class="course-hot"><svg class="flame" width="11" height="13" viewBox="0 0 12 14" fill="none" aria-hidden="true"><path d="M6 1c0 2.5-3 3-3 6a3 3 0 006 0c0-1.2-.5-2-1-2.5.4 1-.3 2-1 2 .3-1.5-1-2.8-1-5.5z" fill="#FDE859" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/></svg>248 đăng ký</span>
+          <span class="course-level">Cơ bản</span>
+          <img src="/assets/career-illustration-3.png" alt="">
+        </div>
+        <div class="course-body">
+          <div class="course-school">
+            <span class="logo" style="background:#E5322D">AM</span>
+            <span>Arena Multimedia</span>
+          </div>
+          <div class="course-title">UI/UX Design Foundation — từ Figma đến Design System</div>
+          <div class="course-meta">
+            <span><strong>12</strong> buổi</span>
+            <span class="dot">·</span>
+            <span><strong>36</strong> giờ</span>
+            <span class="dot">·</span>
+            <span>Hybrid</span>
+          </div>
+          <span class="course-rating"><span class="star">★</span><strong>4.8</strong><span class="count">(180)</span></span>
+          <div class="course-foot">
+            <div class="course-price">
+              <span class="now">4.500.000đ</span>
+              <span class="was">5.800.000đ</span>
+            </div>
+            <span class="course-cta">→</span>
+          </div>
+        </div>
+      </article>
+
+      <!-- Course 2 — 3D Character (FPT Polytechnic) -->
+      <article class="course-card">
+        <div class="course-cover cc-2">
+          <div class="deco"></div>
+          <span class="course-hot"><svg class="flame" width="11" height="13" viewBox="0 0 12 14" fill="none" aria-hidden="true"><path d="M6 1c0 2.5-3 3-3 6a3 3 0 006 0c0-1.2-.5-2-1-2.5.4 1-.3 2-1 2 .3-1.5-1-2.8-1-5.5z" fill="#FDE859" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/></svg>192 đăng ký</span>
+          <span class="course-level">Trung cấp</span>
+          <img src="/assets/career-illustration-2.png" alt="">
+        </div>
+        <div class="course-body">
+          <div class="course-school">
+            <span class="logo" style="background:#F37021">FPT</span>
+            <span>FPT Polytechnic</span>
+          </div>
+          <div class="course-title">3D Character Modeling cho Game — Maya + ZBrush</div>
+          <div class="course-meta">
+            <span><strong>16</strong> buổi</span>
+            <span class="dot">·</span>
+            <span><strong>48</strong> giờ</span>
+            <span class="dot">·</span>
+            <span>Tại trường</span>
+          </div>
+          <span class="course-rating"><span class="star">★</span><strong>4.7</strong><span class="count">(96)</span></span>
+          <div class="course-foot">
+            <div class="course-price">
+              <span class="now">6.800.000đ</span>
+              <span class="was">8.200.000đ</span>
+            </div>
+            <span class="course-cta">→</span>
+          </div>
+        </div>
+      </article>
+
+      <!-- Course 3 — Concept Art (MAAC) -->
+      <article class="course-card">
+        <div class="course-cover cc-3">
+          <div class="deco"></div>
+          <span class="course-hot"><svg class="flame" width="11" height="13" viewBox="0 0 12 14" fill="none" aria-hidden="true"><path d="M6 1c0 2.5-3 3-3 6a3 3 0 006 0c0-1.2-.5-2-1-2.5.4 1-.3 2-1 2 .3-1.5-1-2.8-1-5.5z" fill="#FDE859" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/></svg>312 đăng ký</span>
+          <span class="course-level">Cho người mới</span>
+          <img src="/assets/career-illustration-1.png" alt="">
+        </div>
+        <div class="course-body">
+          <div class="course-school">
+            <span class="logo" style="background:#1B1F3B">MA</span>
+            <span>MAAC Vietnam</span>
+          </div>
+          <div class="course-title">Concept Art &amp; Digital Painting — vẽ nhân vật chuyên nghiệp</div>
+          <div class="course-meta">
+            <span><strong>10</strong> buổi</span>
+            <span class="dot">·</span>
+            <span><strong>30</strong> giờ</span>
+            <span class="dot">·</span>
+            <span>Online</span>
+          </div>
+          <span class="course-rating"><span class="star">★</span><strong>4.9</strong><span class="count">(240)</span></span>
+          <div class="course-foot">
+            <div class="course-price">
+              <span class="now">3.200.000đ</span>
+              <span class="was">4.500.000đ</span>
+            </div>
+            <span class="course-cta">→</span>
+          </div>
+        </div>
+      </article>
+
+      <!-- Course 4 — Unreal Engine (RMIT Short Course) -->
+      <article class="course-card">
+        <div class="course-cover cc-4">
+          <div class="deco"></div>
+          <span class="course-hot"><svg class="flame" width="11" height="13" viewBox="0 0 12 14" fill="none" aria-hidden="true"><path d="M6 1c0 2.5-3 3-3 6a3 3 0 006 0c0-1.2-.5-2-1-2.5.4 1-.3 2-1 2 .3-1.5-1-2.8-1-5.5z" fill="#FDE859" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/></svg>156 đăng ký</span>
+          <span class="course-level">Nâng cao</span>
+          <img src="/assets/career-illustration-4.png" alt="">
+        </div>
+        <div class="course-body">
+          <div class="course-school">
+            <span class="logo" style="background:#001F4D">RM</span>
+            <span>RMIT Short Course</span>
+          </div>
+          <div class="course-title">Unreal Engine 5 Foundation — dựng game world thực tế</div>
+          <div class="course-meta">
+            <span><strong>8</strong> buổi</span>
+            <span class="dot">·</span>
+            <span><strong>32</strong> giờ</span>
+            <span class="dot">·</span>
+            <span>Hybrid</span>
+          </div>
+          <span class="course-rating"><span class="star">★</span><strong>4.6</strong><span class="count">(124)</span></span>
+          <div class="course-foot">
+            <div class="course-price">
+              <span class="now">8.500.000đ</span>
+              <span class="was">10.200.000đ</span>
+            </div>
+            <span class="course-cta">→</span>
+          </div>
+        </div>
+      </article>
+
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================
+     FEATURED SCHOOLS
+     ===================================================== -->
+<section class="schools" id="schools">
+  <div class="shell">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">cơ sở đào tạo nổi bật</div>
+        <h2 class="title-xl">Trường đại học <em>đang được chú ý</em>.</h2>
+        <p class="subtitle">3 trường được học sinh xem nhiều nhất tuần này. Click để xem chi tiết chương trình, học phí và open day sắp tới.</p>
+      </div>
+      <a href="#" class="right">Xem 38 trường →</a>
+    </div>
+
+    <div class="school-row">
+
+      <!-- RMIT -->
+      <article class="school-card">
+        <div class="school-cover" style="background:#001F4D">
+          <span class="badge">Quốc tế · Úc</span>
+          <div class="school-logo" style="background:#001F4D;color:#fff;font-size:11px">RMIT</div>
+          <span class="stat-pill"><span class="live"></span>Open day 18.05</span>
+        </div>
+        <div class="school-body">
+          <div class="school-name">RMIT University Vietnam</div>
+          <div class="school-code">Mã trường: RMT · TP. Hồ Chí Minh, Hà Nội</div>
+          <p class="school-desc">Chương trình quốc tế theo chuẩn Úc — nổi bật với Digital Media, Game Design và Communication Design. Học bằng tiếng Anh, bằng cấp được công nhận toàn cầu.</p>
+          <div class="school-tags">
+            <span class="school-tag">Digital Media</span>
+            <span class="school-tag">Game Design</span>
+            <span class="school-tag">Communication</span>
+            <span class="school-tag">Fashion</span>
+          </div>
+        </div>
+        <div class="school-side">
+          <div>
+            <div class="stat-n">4</div>
+            <div class="stat-l">ngành sáng tạo</div>
+          </div>
+          <div class="loc">Học phí · 250-310 tr/năm</div>
+          <a href="#" class="arrow">Xem chi tiết →</a>
+        </div>
+      </article>
+
+      <!-- HCMUFA -->
+      <article class="school-card">
+        <div class="school-cover" style="background:#6B0F0F">
+          <span class="badge">Công lập</span>
+          <div class="school-logo" style="background:#6B0F0F;color:#fff;font-size:12px">MTS</div>
+          <span class="stat-pill"><span class="live"></span>Open day 15.05</span>
+        </div>
+        <div class="school-body">
+          <div class="school-name">ĐH Mỹ thuật TP. Hồ Chí Minh</div>
+          <div class="school-code">Mã trường: MTS · TP. Hồ Chí Minh</div>
+          <p class="school-desc">Trường mỹ thuật lâu đời và uy tín nhất miền Nam — đào tạo chuyên sâu hội hoạ, đồ hoạ ứng dụng, điêu khắc và thiết kế thời trang. Học phí phải chăng theo chuẩn công lập.</p>
+          <div class="school-tags">
+            <span class="school-tag">Mỹ thuật ứng dụng</span>
+            <span class="school-tag">Đồ hoạ</span>
+            <span class="school-tag">Điêu khắc</span>
+            <span class="school-tag">Thời trang</span>
+          </div>
+        </div>
+        <div class="school-side">
+          <div>
+            <div class="stat-n">6</div>
+            <div class="stat-l">ngành sáng tạo</div>
+          </div>
+          <div class="loc">Học phí · 14-18 tr/năm</div>
+          <a href="#" class="arrow">Xem chi tiết →</a>
+        </div>
+      </article>
+
+      <!-- Văn Lang -->
+      <article class="school-card">
+        <div class="school-cover" style="background:#4A0E8F">
+          <span class="badge">Dân lập</span>
+          <div class="school-logo" style="background:#4A0E8F;color:#fff;font-size:12px">VLU</div>
+          <span class="stat-pill"><span class="live"></span>Open day 25.05</span>
+        </div>
+        <div class="school-body">
+          <div class="school-name">ĐH Văn Lang</div>
+          <div class="school-code">Mã trường: VLU · TP. HCM, Đà Nẵng, Hà Nội</div>
+          <p class="school-desc">Trường đa ngành với thế mạnh thiết kế sáng tạo — Kiến trúc, Nội thất, Thời trang và Truyền thông đa phương tiện. Cơ sở mới khang trang, nhiều studio thực hành.</p>
+          <div class="school-tags">
+            <span class="school-tag">Kiến trúc</span>
+            <span class="school-tag">Thiết kế nội thất</span>
+            <span class="school-tag">Thời trang</span>
+            <span class="school-tag">Truyền thông</span>
+          </div>
+        </div>
+        <div class="school-side">
+          <div>
+            <div class="stat-n">5</div>
+            <div class="stat-l">ngành sáng tạo</div>
+          </div>
+          <div class="loc">Học phí · 38-65 tr/năm</div>
+          <a href="#" class="arrow">Xem chi tiết →</a>
+        </div>
+      </article>
+
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================
+     CAREER PATHS (mascots)
+     ===================================================== -->
+<section class="paths" id="career">
+  <div class="shell">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">4 nhóm nghề · ngành sáng tạo thị giác</div>
+        <h2 class="title-xl">Bạn thuộc <em>nhóm nào</em>?</h2>
+        <p class="subtitle">Mỗi nghề trong ngành sáng tạo có một tính cách. Chọn nhóm hợp với mình để xem các vị trí cụ thể, kỹ năng cần học và lương trung bình.</p>
+      </div>
+      <a href="#" class="right">Làm bài trắc nghiệm 2 phút →</a>
+    </div>
+
+    <div class="path-grid">
+      <article class="path-card artist">
+        <div class="mascot-bg"><img src="/assets/mascot-artist.png" alt="Mascot Artist"></div>
+        <div class="body">
+          <div class="role-name">Artist</div>
+          <p class="role-tagline">Bạn thích vẽ, kể chuyện bằng hình ảnh, có đầu óc thẩm mỹ tốt — và muốn nhìn thấy ý tưởng của mình hiện ra trên màn hình.</p>
+          <div class="role-roles">
+            <span class="rr">Concept Artist</span>
+            <span class="rr">Illustrator</span>
+            <span class="rr">2D Animator</span>
+          </div>
+          <div class="role-foot">
+            <div class="role-count"><strong>32</strong> vị trí</div>
+            <span class="role-arrow">→</span>
+          </div>
+        </div>
+      </article>
+
+      <article class="path-card tech">
+        <div class="mascot-bg"><img src="/assets/mascot-technical-artist.png" alt="Mascot Technical Artist"></div>
+        <div class="body">
+          <div class="role-name">Technical Artist</div>
+          <p class="role-tagline">Bạn yêu nghệ thuật nhưng cũng thích code, biết logic và tò mò công nghệ — cây cầu giữa designer và developer.</p>
+          <div class="role-roles">
+            <span class="rr">3D Modeler</span>
+            <span class="rr">VFX Artist</span>
+            <span class="rr">Shader Programmer</span>
+          </div>
+          <div class="role-foot">
+            <div class="role-count"><strong>28</strong> vị trí</div>
+            <span class="role-arrow">→</span>
+          </div>
+        </div>
+      </article>
+
+      <article class="path-card manager">
+        <div class="mascot-bg"><img src="/assets/mascot-manager.png" alt="Mascot Manager"></div>
+        <div class="body">
+          <div class="role-name">Manager</div>
+          <p class="role-tagline">Bạn giỏi tổ chức, kể chuyện và làm việc với nhiều người — giữ cho dự án sáng tạo đi đúng hướng và đúng deadline.</p>
+          <div class="role-roles">
+            <span class="rr">Producer</span>
+            <span class="rr">Art Director</span>
+            <span class="rr">Game Designer</span>
+          </div>
+          <div class="role-foot">
+            <div class="role-count"><strong>24</strong> vị trí</div>
+            <span class="role-arrow">→</span>
+          </div>
+        </div>
+      </article>
+
+      <article class="path-card support">
+        <div class="mascot-bg"><img src="/assets/mascot-supporter.png" alt="Mascot Supporter"></div>
+        <div class="body">
+          <div class="role-name">Supporter</div>
+          <p class="role-tagline">Bạn thích hỗ trợ, kết nối, đảm bảo mọi thứ vận hành mượt — vai trò "ít visible" nhưng cực quan trọng trong ngành.</p>
+          <div class="role-roles">
+            <span class="rr">QA Tester</span>
+            <span class="rr">Sound Designer</span>
+            <span class="rr">Community Manager</span>
+          </div>
+          <div class="role-foot">
+            <div class="role-count"><strong>36</strong> vị trí</div>
+            <span class="role-arrow">→</span>
+          </div>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================
+     STUDENT WORK SHOWCASE
+     ===================================================== -->
+<section class="work">
+  <div class="shell">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">tác phẩm sinh viên · cập nhật hôm nay</div>
+        <h2 class="title-xl">Đang học, <em>đã có sản phẩm</em>.</h2>
+        <p class="subtitle">2,400+ sinh viên đang xây portfolio trên CINs. Đây là 6 tác phẩm mới được đăng tải trong tuần.</p>
+      </div>
+      <a href="#" class="right">Xem tất cả portfolio →</a>
+    </div>
+
+    <div class="work-grid">
+
+      <article class="work-card">
+        <div class="work-cover wc-1">
+          <div class="deco"></div>
+          <span class="duration">02:34</span>
+          <img src="/assets/career-illustration-4.png" alt="">
+          <span class="label">Motion</span>
+        </div>
+        <div class="work-body">
+          <div class="work-author"><span class="name">Minh Châu</span><span class="school">RMIT · Năm 2</span></div>
+          <p class="work-title">"Hà Nội bốn mùa" — title sequence cho phim ngắn tốt nghiệp</p>
+          <div class="work-tags"><span class="work-tag">After Effects</span><span class="work-tag">Cinema 4D</span></div>
+        </div>
+      </article>
+
+      <article class="work-card">
+        <div class="work-cover wc-2">
+          <div class="deco"></div>
+          <span class="duration">case study</span>
+          <img src="/assets/career-illustration-1.png" alt="">
+          <span class="label">UI/UX</span>
+        </div>
+        <div class="work-body">
+          <div class="work-author"><span class="name">Gia Huy</span><span class="school">UEF · Năm 3</span></div>
+          <p class="work-title">App đặt vé xe khách — case study với user research thật</p>
+          <div class="work-tags"><span class="work-tag">Figma</span><span class="work-tag">Research</span></div>
+        </div>
+      </article>
+
+      <article class="work-card">
+        <div class="work-cover wc-3">
+          <div class="deco"></div>
+          <span class="duration">12 ảnh</span>
+          <img src="/assets/career-illustration-2.png" alt="">
+          <span class="label">Illust.</span>
+        </div>
+        <div class="work-body">
+          <div class="work-author"><span class="name">Bảo Ngọc</span><span class="school">MTS · Năm 1</span></div>
+          <p class="work-title">Bộ minh hoạ "12 con giáp" theo phong cách dân gian Việt</p>
+          <div class="work-tags"><span class="work-tag">Procreate</span><span class="work-tag">Photoshop</span></div>
+        </div>
+      </article>
+
+      <article class="work-card">
+        <div class="work-cover wc-4">
+          <div class="deco"></div>
+          <span class="duration">brand kit</span>
+          <img src="/assets/promo-game-card.png" alt="">
+          <span class="label">Brand</span>
+        </div>
+        <div class="work-body">
+          <div class="work-author"><span class="name">Thanh Lâm</span><span class="school">VLU · Năm 4</span></div>
+          <p class="work-title">Bộ nhận diện thương hiệu cho cà phê đặc sản Đà Lạt</p>
+          <div class="work-tags"><span class="work-tag">Illustrator</span><span class="work-tag">Branding</span></div>
+        </div>
+      </article>
+
+      <article class="work-card">
+        <div class="work-cover wc-5">
+          <div class="deco"></div>
+          <span class="duration">8 view</span>
+          <img src="/assets/career-illustration-3.png" alt="">
+          <span class="label">3D</span>
+        </div>
+        <div class="work-body">
+          <div class="work-author"><span class="name">Quốc Anh</span><span class="school">FPT · Năm 3</span></div>
+          <p class="work-title">Environment art — Phố cổ Hội An tái hiện trong Unreal 5</p>
+          <div class="work-tags"><span class="work-tag">Unreal Engine</span><span class="work-tag">Blender</span></div>
+        </div>
+      </article>
+
+      <article class="work-card">
+        <div class="work-cover wc-6">
+          <div class="deco"></div>
+          <span class="duration">24 ảnh</span>
+          <img src="/assets/illustration-gamepad.png" alt="">
+          <span class="label">Photo</span>
+        </div>
+        <div class="work-body">
+          <div class="work-author"><span class="name">Như Quỳnh</span><span class="school">HSU · Năm 2</span></div>
+          <p class="work-title">Bộ ảnh tài liệu về làng gốm Bát Tràng — 6 tháng theo dõi</p>
+          <div class="work-tags"><span class="work-tag">Documentary</span><span class="work-tag">Lightroom</span></div>
+        </div>
+      </article>
+
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================
+     OPEN DAYS — vertical schedule
+     ===================================================== -->
+<section class="opendays">
+  <div class="shell">
+    <div class="opendays-wrap">
+      <aside class="opendays-aside">
+        <div class="eyebrow">lịch open day · 30 ngày tới</div>
+        <h2 class="title-xl" style="font-size:32px">Tham quan trường <em>trước khi quyết định</em>.</h2>
+        <p class="subtitle">Open day là cách nhanh nhất để thấy được thực tế trường — từ studio thực hành, ký túc xá đến đội ngũ giảng viên.</p>
+        <div class="filter-row">
+          <button class="filter-pill on">Tất cả <span class="count">12</span></button>
+          <button class="filter-pill">TP. Hồ Chí Minh <span class="count">7</span></button>
+          <button class="filter-pill">Hà Nội <span class="count">3</span></button>
+          <button class="filter-pill">Online <span class="count">2</span></button>
+        </div>
+      </aside>
+
+      <div class="schedule">
+
+        <div class="sch-item">
+          <div class="sch-date"><div class="day">12</div><div class="mon">Tháng 5</div></div>
+          <div class="sch-info">
+            <div class="school">ĐH Kiến trúc TP.HCM — tour studio Kiến trúc &amp; Nội thất</div>
+            <div class="meta"><span>196 Pasteur, Q.3</span><span class="dot">·</span><span>08:30 — 11:30</span><span class="dot">·</span><span>còn 18 chỗ</span></div>
+          </div>
+          <div class="sch-side"><span class="sch-tag live">Trực tiếp</span><div class="sch-arrow">→</div></div>
+        </div>
+
+        <div class="sch-item">
+          <div class="sch-date"><div class="day">15</div><div class="mon">Tháng 5</div></div>
+          <div class="sch-info">
+            <div class="school">ĐH Mỹ thuật TP.HCM — gặp giảng viên ngành Đồ hoạ ứng dụng</div>
+            <div class="meta"><span>5 Phan Đăng Lưu, Bình Thạnh</span><span class="dot">·</span><span>14:00 — 17:00</span><span class="dot">·</span><span>còn 32 chỗ</span></div>
+          </div>
+          <div class="sch-side"><span class="sch-tag live">Trực tiếp</span><div class="sch-arrow">→</div></div>
+        </div>
+
+        <div class="sch-item">
+          <div class="sch-date"><div class="day">18</div><div class="mon">Tháng 5</div></div>
+          <div class="sch-info">
+            <div class="school">RMIT University Vietnam — Open Day toàn campus, có shuttle bus</div>
+            <div class="meta"><span>RMIT Saigon South, Q.7</span><span class="dot">·</span><span>09:00 — 16:00</span><span class="dot">·</span><span>đăng ký không giới hạn</span></div>
+          </div>
+          <div class="sch-side"><span class="sch-tag">Khuyến nghị</span><div class="sch-arrow">→</div></div>
+        </div>
+
+        <div class="sch-item">
+          <div class="sch-date"><div class="day">22</div><div class="mon">Tháng 5</div></div>
+          <div class="sch-info">
+            <div class="school">Talkshow online — Animator Pixar người Việt chia sẻ thực tế</div>
+            <div class="meta"><span>Zoom · link gửi qua email</span><span class="dot">·</span><span>19:30 — 21:00</span><span class="dot">·</span><span>có Q&amp;A trực tiếp</span></div>
+          </div>
+          <div class="sch-side"><span class="sch-tag virtual">Online</span><div class="sch-arrow">→</div></div>
+        </div>
+
+        <div class="sch-item">
+          <div class="sch-date"><div class="day">25</div><div class="mon">Tháng 5</div></div>
+          <div class="sch-info">
+            <div class="school">ĐH Văn Lang — workshop "Một ngày làm Nhà thiết kế thời trang"</div>
+            <div class="meta"><span>Cơ sở 3, Bình Thạnh</span><span class="dot">·</span><span>08:30 — 12:00</span><span class="dot">·</span><span>còn 6 chỗ</span></div>
+          </div>
+          <div class="sch-side"><span class="sch-tag live">Trực tiếp</span><div class="sch-arrow">→</div></div>
+        </div>
+
+        <div class="sch-item">
+          <div class="sch-date"><div class="day">02</div><div class="mon">Tháng 6</div></div>
+          <div class="sch-info">
+            <div class="school">ĐH Sân khấu Điện ảnh Hà Nội — buổi giới thiệu khoa Điện ảnh</div>
+            <div class="meta"><span>Mai Dịch, Cầu Giấy, Hà Nội</span><span class="dot">·</span><span>14:00 — 16:30</span><span class="dot">·</span><span>còn 24 chỗ</span></div>
+          </div>
+          <div class="sch-side"><span class="sch-tag live">Trực tiếp</span><div class="sch-arrow">→</div></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================
+     FAQ
+     ===================================================== -->
+<section class="faq">
+  <div class="shell">
+    <div class="faq-wrap">
+      <aside class="faq-aside">
+        <div class="eyebrow">câu hỏi thường gặp</div>
+        <h2 class="title-xl" style="font-size:32px">Ba mẹ và học sinh <em>hay hỏi gì</em>?</h2>
+        <p class="lead">Tổng hợp 6 câu hỏi xuất hiện nhiều nhất trong các open day. Còn thắc mắc khác? Để lại câu hỏi, đội ngũ CINs trả lời trong 24 giờ.</p>
+        <a href="#" class="ask-cta">Đặt câu hỏi mới →</a>
+      </aside>
+
+      <div class="faq-list">
+        <details class="faq-item" open>
+          <summary class="faq-q">Học ngành sáng tạo có tìm được việc lương cao không?<span class="ico">+</span></summary>
+          <div class="faq-a">
+            Tuỳ vị trí và kinh nghiệm. Lương khởi điểm của UI/UX Designer tại các studio ở TP.HCM hiện ở mức 12–18 triệu/tháng. Sau 3 năm, mức trung bình của Senior Designer là 30–45 triệu, và Art Director ở studio quốc tế có thể đạt 60–90 triệu. Mức lương đầy đủ theo từng vị trí có trong <a href="#">trang Khám phá nghề</a>.
+          </div>
+        </details>
+
+        <details class="faq-item">
+          <summary class="faq-q">Có phải vẽ giỏi mới học được ngành thiết kế?<span class="ico">+</span></summary>
+          <div class="faq-a">
+            Không bắt buộc. Vẽ tay là kỹ năng cơ bản cho một số nhánh (Concept Art, Illustration), nhưng UI/UX, Game Design, Sound Design, hay Producer thì không cần vẽ giỏi — quan trọng là tư duy thẩm mỹ và khả năng làm việc nhóm. Hầu hết trường có học phần "vẽ căn bản" cho người mới bắt đầu.
+          </div>
+        </details>
+
+        <details class="faq-item">
+          <summary class="faq-q">Học phí các trường chênh lệch ra sao? Có học bổng không?<span class="ico">+</span></summary>
+          <div class="faq-a">
+            Trường công lập (ĐH Mỹ thuật, ĐH Kiến trúc) khoảng 14–22 triệu/năm. Trường dân lập (Văn Lang, FPT, Hoa Sen) từ 38–80 triệu/năm. Quốc tế (RMIT) từ 250–310 triệu/năm. Hầu hết trường có học bổng đầu vào dựa trên portfolio hoặc điểm thi — chi tiết xem trong từng trang trường.
+          </div>
+        </details>
+
+        <details class="faq-item">
+          <summary class="faq-q">Con tôi mới lớp 11 — có sớm để bắt đầu chuẩn bị portfolio không?<span class="ico">+</span></summary>
+          <div class="faq-a">
+            Hoàn toàn phù hợp. Tài khoản CINs miễn phí cho học sinh THPT, dùng để lưu lại bài tập, dự án trường, và tác phẩm cá nhân. 10 tác phẩm chất lượng tích luỹ trong 1.5 năm sẽ là portfolio mạnh khi xét tuyển — đặc biệt với các trường yêu cầu nộp portfolio như RMIT, Văn Lang.
+          </div>
+        </details>
+
+        <details class="faq-item">
+          <summary class="faq-q">Đăng ký open day có mất phí gì không?<span class="ico">+</span></summary>
+          <div class="faq-a">
+            Tất cả open day liệt kê trên CINs đều miễn phí, không yêu cầu đăng ký trước trên CINs (đăng ký để được nhắc lịch). Một số trường có shuttle bus đưa đón từ trung tâm TP — chi tiết hiển thị trong trang sự kiện.
+          </div>
+        </details>
+
+        <details class="faq-item">
+          <summary class="faq-q">CINs có giúp tư vấn 1-1 chọn ngành không?<span class="ico">+</span></summary>
+          <div class="faq-a">
+            Có. Sau khi làm bài trắc nghiệm 2 phút, hệ thống đề xuất 3–5 nghề phù hợp. Nếu cần trao đổi sâu hơn, đặt lịch tư vấn 1-1 (30 phút, miễn phí) với cố vấn nghề nghiệp của CINs — họ là cựu sinh viên đang làm trong ngành.
+          </div>
+        </details>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================
+     FOOTER CTA
+     ===================================================== -->
+<section class="foot-cta">
+  <div class="shell">
+    <div class="foot-cta-card">
+      <div class="left">
+        <div class="eyebrow">bắt đầu miễn phí · không cần thẻ tín dụng</div>
+        <h2>Định hướng nghề <em>không phải may rủi</em>.<br/>Bắt đầu hôm nay.</h2>
+        <p class="lead">Tài khoản CINs miễn phí trọn đời cho học sinh THPT. Khám phá nghề, lưu portfolio, đăng ký open day — tất cả ở một chỗ.</p>
+      </div>
+      <div class="right">
+        <a href="#" class="btn-yellow">Đăng ký miễn phí <span>→</span></a>
+        <span class="meta">Đã có tài khoản? <a href="#" style="color:#fff;text-decoration:underline">Đăng nhập</a></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================
+     FOOTER
+     ===================================================== -->
+<footer class="footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div>
+        <a href="#" class="brand">
+          <div class="brand-mark">C</div>
+          <div class="brand-text">CINs</div>
+        </a>
+        <p class="footer-bio">CINs là nền tảng kết nối ngành sáng tạo thị giác Việt Nam — Phim, Game, Điện ảnh, Kiến trúc, Thời trang, Thiết kế. Dành cho học sinh THPT, các trường đào tạo và doanh nghiệp.</p>
+      </div>
+      <div>
+        <h4>Khám phá</h4>
+        <ul>
+          <li><a href="#">120+ vị trí nghề</a></li>
+          <li><a href="#">38 trường đại học</a></li>
+          <li><a href="#">Bài viết chuyên sâu</a></li>
+          <li><a href="#">Trắc nghiệm nghề</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Cộng đồng</h4>
+        <ul>
+          <li><a href="#">Portfolio sinh viên</a></li>
+          <li><a href="#">Sự kiện sắp tới</a></li>
+          <li><a href="#">Cuộc thi Portfolio Award</a></li>
+          <li><a href="#">Tư vấn 1-1</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Về CINs</h4>
+        <ul>
+          <li><a href="#">Câu chuyện CINs</a></li>
+          <li><a href="#">Đối tác trường ĐH</a></li>
+          <li><a href="#">Doanh nghiệp tuyển dụng</a></li>
+          <li><a href="#">Liên hệ &amp; góp ý</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div class="seg">
+        <a href="#" class="on">Dành cho học sinh</a>
+        <a href="#">Cho trường ĐH</a>
+        <a href="#">Cho doanh nghiệp</a>
+      </div>
+      <div class="copy">© 2026 CINs · Hà Nội &amp; TP. Hồ Chí Minh</div>
+    </div>
+  </div>
+</footer>
+
+<script>
+// FAQ — only one open at a time
+document.querySelectorAll('.faq-item').forEach(item=>{
+  item.addEventListener('toggle',()=>{
+    if(item.open){
+      document.querySelectorAll('.faq-item').forEach(o=>{ if(o!==item) o.open=false; });
+    }
+  });
+});
+
+// Filter pills (visual only)
+document.querySelectorAll('.filter-pill').forEach(p=>{
+  p.addEventListener('click',()=>{
+    document.querySelectorAll('.filter-pill').forEach(x=>x.classList.remove('on'));
+    p.classList.add('on');
+  });
+});
+
+// Course filters (visual only)
+document.querySelectorAll('.courses-filter').forEach(p=>{
+  p.addEventListener('click',()=>{
+    document.querySelectorAll('.courses-filter').forEach(x=>x.classList.remove('on'));
+    p.classList.add('on');
+  });
+});
+
+// Sticky topbar — toggle .scrolled state on scroll
+const topbar=document.getElementById('topbar');
+window.addEventListener('scroll',()=>{
+  topbar.classList.toggle('scrolled', window.scrollY>4);
+});
+
+// Mobile burger — toggles sidebar
+const burger=document.getElementById('tb-burger');
+const sidebar=document.getElementById('sidebar');
+if(burger){
+  burger.addEventListener('click',(e)=>{
+    e.stopPropagation();
+    sidebar.classList.toggle('open');
+  });
+  document.addEventListener('click',(e)=>{
+    if(!sidebar.contains(e.target) && !burger.contains(e.target)){
+      sidebar.classList.remove('open');
+    }
+  });
+}
+
+// Sidebar cursor-following tooltip
+(function(){
+  if(window.matchMedia('(max-width:960px)').matches) return;
+  const tip=document.createElement('div');
+  tip.className='sb-tooltip';
+  tip.innerHTML='<div class="tt-title"></div><div class="tt-desc"></div>';
+  document.body.appendChild(tip);
+  const tT=tip.querySelector('.tt-title');
+  const tD=tip.querySelector('.tt-desc');
+  const place=(x,y)=>{
+    const w=tip.offsetWidth, h=tip.offsetHeight;
+    let nx=x+18, ny=y+16;
+    if(nx+w>window.innerWidth-12) nx=x-w-14;
+    if(ny+h>window.innerHeight-12) ny=y-h-14;
+    tip.style.left=nx+'px';
+    tip.style.top=ny+'px';
+  };
+  document.querySelectorAll('.sb-item[data-tip]').forEach(item=>{
+    item.addEventListener('mouseenter',e=>{
+      const lbl=item.querySelector('.sb-label');
+      tT.textContent=lbl?lbl.textContent.trim():'';
+      tD.textContent=item.dataset.tip||'';
+      place(e.clientX,e.clientY);
+      tip.classList.add('show');
+    });
+    item.addEventListener('mousemove',e=>place(e.clientX,e.clientY));
+    item.addEventListener('mouseleave',()=>tip.classList.remove('show'));
+  });
+})();
+</script>
+</body>
+</html>

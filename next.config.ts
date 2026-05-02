@@ -18,6 +18,11 @@ const nextConfig: NextConfig = {
         hostname: "ospzzzxcomrmhqrnkoiw.supabase.co",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "imagedelivery.net",
+        pathname: "/**",
+      },
     ],
   },
 };
