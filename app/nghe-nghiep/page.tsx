@@ -4,18 +4,19 @@ import { boPhanTen } from "@/lib/career/boPhanDisplay";
 import { CareerHub } from "@/components/career/CareerHub";
 import { CinsShell } from "@/components/cins/CinsShell";
 import { SiteFooter } from "@/components/cins/SiteFooter";
+import { listNgheArticlesForHub } from "@/lib/articles/queries";
+import { mapNgheArticlesToHubItems } from "@/lib/career/articleMappers";
 import { groupCareersByBoPhan } from "@/lib/career/groupCareers";
 import { groupLinhVucForSidebar } from "@/lib/career/groupLinhVuc";
-import {
-  listLinhVucForHub,
-  listPublishedNgheForHub,
-} from "@/lib/career/queries";
+import { listLinhVucForHub } from "@/lib/career/queries";
 
 export const metadata: Metadata = {
   title: "Nghề nghiệp — Khám phá ngành sáng tạo thị giác | CINs",
   description:
     "Danh sách nghề nghiệp trong ngành sáng tạo thị giác tại Việt Nam — phim, game, hoạt hình, thiết kế và hơn thế nữa.",
 };
+
+export const dynamic = "force-dynamic";
 
 type SearchParams = {
   linh_vuc?: string;
@@ -30,10 +31,15 @@ export default async function NgheNghiepIndexPage(props: {
   const tab = sp.tab === "nganh-hoc" ? "nganh-hoc" : "nghe";
   const qRaw = (sp.q ?? "").trim();
 
-  const [linhVucs, allCareers] = await Promise.all([
+  const [linhVucs, ngheArticlesResult] = await Promise.all([
     listLinhVucForHub(),
-    listPublishedNgheForHub(),
+    listNgheArticlesForHub(),
   ]);
+
+  const allCareers =
+    ngheArticlesResult.ok && ngheArticlesResult.items.length > 0
+      ? mapNgheArticlesToHubItems(ngheArticlesResult.items)
+      : [];
 
   const defaultSlug = linhVucs[0]?.slug ?? "";
   const requested = sp.linh_vuc;
@@ -66,6 +72,7 @@ export default async function NgheNghiepIndexPage(props: {
       (n) =>
         (n.title_eng ?? "").toLowerCase().includes(ql) ||
         (n.title_vietnam ?? "").toLowerCase().includes(ql) ||
+        (n.short_description ?? "").toLowerCase().includes(ql) ||
         (boPhanTen(n) ?? "").toLowerCase().includes(ql),
     );
   }
@@ -103,8 +110,14 @@ export default async function NgheNghiepIndexPage(props: {
           tagGroups={tagGroups}
           sampleCareers={filtered}
           showFallbackNote={showFallbackNote}
-          thumbEditorEnabled={
-            process.env.NEXT_PUBLIC_ENABLE_CAREER_THUMB_EDITOR === "1"
+          detailPathPrefix="/bai-viet"
+          listError={
+            !ngheArticlesResult.ok
+              ? {
+                  reason: ngheArticlesResult.reason,
+                  message: ngheArticlesResult.message,
+                }
+              : undefined
           }
         />
       </div>

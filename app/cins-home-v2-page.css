@@ -234,6 +234,21 @@ html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
   border-color:var(--blue);
   background:var(--surface);
 }
+/*
+  Global `cins-styles.css` có `.hero .btn-secondary { color:#fff !important }` cho hero tối.
+  Home v2 dùng hero nền sáng (#F4F5F8) — cần ghi đè !important để chữ đọc được.
+*/
+.cins-home-v2-page .hero .btn.btn-secondary{
+  color:var(--ink2)!important;
+  background:var(--surface)!important;
+  border:1.5px solid var(--border)!important;
+  backdrop-filter:none;
+}
+.cins-home-v2-page .hero .btn.btn-secondary:hover{
+  color:var(--blue)!important;
+  border-color:var(--blue)!important;
+  background:var(--surface)!important;
+}
 .btn-arrow{transition:transform var(--dur) var(--ease)}
 .btn:hover .btn-arrow{transform:translateX(3px)}
 

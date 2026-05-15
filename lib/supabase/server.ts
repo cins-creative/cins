@@ -1,9 +1,16 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
+import {
+  getTrimmedSupabaseAnonKey,
+  getTrimmedSupabaseUrl,
+} from "@/lib/supabase/env";
+
+export { hasSupabaseEnv } from "@/lib/supabase/env";
+
 export async function createClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const url = getTrimmedSupabaseUrl();
+  const key = getTrimmedSupabaseAnonKey();
   if (!url || !key) {
     throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY");
   }
@@ -26,12 +33,4 @@ export async function createClient() {
       },
     },
   });
-}
-
-/** Tránh throw khi build/preview không có env — gọi chỗ không bắt buộc DB */
-export function hasSupabaseEnv(): boolean {
-  return !!(
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  );
 }

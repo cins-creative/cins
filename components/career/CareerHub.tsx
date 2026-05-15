@@ -32,6 +32,10 @@ type Props = {
   sampleCareers: NgheNghiepHubItem[];
   /** Hiển thị khi không có linh_vuc_id — đang xem toàn bộ */
   showFallbackNote?: boolean;
+  /** Đường dẫn chi tiết từng card — mặc định `/nghe-nghiep` */
+  detailPathPrefix?: string;
+  /** Lỗi tải danh sách (Supabase / query) */
+  listError?: { reason: "no_env" | "query_error"; message?: string };
   /** Bật chọn/dán ảnh → Cloudflare → Supabase (cần env token + Cloudflare + service role) */
   thumbEditorEnabled?: boolean;
 };
@@ -45,8 +49,12 @@ export function CareerHub({
   tagGroups,
   sampleCareers,
   showFallbackNote,
+  detailPathPrefix = "/nghe-nghiep",
+  listError,
   thumbEditorEnabled = false,
 }: Props) {
+  const detailHref = (slug: string) =>
+    `${detailPathPrefix.replace(/\/$/, "")}/${slug}`;
   const tagsNav = tagGroups ?? groups;
   const heroTitle = linhTitle(activeLinhVuc);
   const firstDesc = sampleCareers.find((c) => c.short_description?.trim())
@@ -132,8 +140,8 @@ export function CareerHub({
                 </div>
                 {showFallbackNote ? (
                   <p className="career-hub-fallback-note cins-caption">
-                    Một số nghề chưa gán lĩnh vực trong CSDL — đang hiển thị toàn
-                    bộ vị trí đã xuất bản.
+                    Một số bài nghề chưa gán lĩnh vực — đang hiển thị toàn bộ
+                    bài đã xuất bản.
                   </p>
                 ) : null}
               </div>
@@ -161,12 +169,33 @@ export function CareerHub({
           ) : null}
 
           <div className="career-hub-sections">
-            {groups.length === 0 ? (
+            {listError ? (
+              <div className="career-hub-empty career-surface">
+                <p className="cins-body">
+                  {listError.reason === "no_env" ? (
+                    <>
+                      <strong>Chưa cấu hình Supabase.</strong> Thêm biến môi
+                      trường trong <code>.env.local</code> rồi chạy lại dev
+                      server.
+                    </>
+                  ) : (
+                    <>
+                      <strong>Không tải được danh sách bài nghề.</strong>
+                      {listError.message ? (
+                        <span className="block mt-2 text-sm opacity-90">
+                          {listError.message}
+                        </span>
+                      ) : null}
+                    </>
+                  )}
+                </p>
+              </div>
+            ) : groups.length === 0 ? (
               <div className="career-hub-empty career-surface">
                 <p className="cins-body">
                   {searchQuery
                     ? "Không có vị trí khớp từ khóa — thử bỏ bộ lọc hoặc từ khác."
-                    : "Chưa có nghề được xuất bản trong lĩnh vực này."}
+                    : "Chưa có bài nghề nào được xuất bản trong lĩnh vực này."}
                 </p>
               </div>
             ) : (
@@ -201,7 +230,7 @@ export function CareerHub({
                               editorEnabled
                             />
                             <Link
-                              href={`/nghe-nghiep/${n.slug}`}
+                              href={detailHref(n.slug)}
                               className="career-hub-card-title-link"
                             >
                               <span className="career-hub-card-title">
@@ -213,7 +242,7 @@ export function CareerHub({
                       ) : (
                         <li key={n.id}>
                           <Link
-                            href={`/nghe-nghiep/${n.slug}`}
+                            href={detailHref(n.slug)}
                             className="career-hub-card"
                           >
                             <CareerHubCardThumb

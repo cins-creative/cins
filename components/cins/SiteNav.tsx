@@ -10,6 +10,8 @@ export function SiteNav() {
   const isHome = pathname === "/";
   const isCareer =
     pathname === "/nghe-nghiep" || pathname.startsWith("/nghe-nghiep/");
+  const isArticles =
+    pathname === "/bai-viet" || pathname.startsWith("/bai-viet/");
 
   return (
     <header className="site-nav" role="banner">
@@ -34,7 +36,10 @@ export function SiteNav() {
           <Link href="#" className="site-nav-link">
             Trường Đại học
           </Link>
-          <Link href="#" className="site-nav-link">
+          <Link
+            href="/bai-viet"
+            className={`site-nav-link${isArticles ? " is-active" : ""}`}
+          >
             Bài viết
           </Link>
         </nav>
@@ -73,7 +78,10 @@ export function SiteNav() {
               <Link href="#" className="site-nav-menu-link">
                 Trường Đại học
               </Link>
-              <Link href="#" className="site-nav-menu-link">
+              <Link
+                href="/bai-viet"
+                className={`site-nav-menu-link${isArticles ? " is-active" : ""}`}
+              >
                 Bài viết
               </Link>
               <button
