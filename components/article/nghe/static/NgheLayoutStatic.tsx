@@ -1,9 +1,14 @@
-﻿import Image from "next/image";
+import type { ReactNode } from "react";
+import Image from "next/image";
 import Link from "next/link";
 
+import type { ArticleCard } from "@/lib/articles/types";
+import { imagedeliveryPreferPublicInHtml } from "@/lib/cloudflare/imagedelivery-prefer-public";
 import {
+  NGHE_COURSE_CARDS,
   NGHE_GALLERY,
   NGHE_JOB_CARDS,
+  NGHE_LEAD_BODY_HTML,
   NGHE_LEAD_HTML,
   NGHE_SIDEBAR_KEYWORDS,
   NGHE_SIDEBAR_NGANH,
@@ -11,10 +16,17 @@ import {
   NGHE_SW_TILES,
 } from "@/components/article/nghe/static/nghe-static-data";
 import {
+  NgheRelCard,
+  NgheRelItem,
+  NgheRelTile,
+} from "@/components/article/nghe/NgheRelParts";
+import {
   StaticRelCard,
   StaticRelItem,
   StaticRelTile,
 } from "@/components/article/nghe/static/NgheStaticParts";
+import { NgheLeadRich } from "@/components/article/nghe/NgheLeadRich";
+import { NgheLeadVideo } from "@/components/article/nghe/NgheLeadVideo";
 import { NgheSidebarTabs } from "@/components/article/nghe/NgheSidebarTabs";
 
 function IconEye() {
@@ -43,64 +55,157 @@ function IconComment() {
   );
 }
 
-/** Khung tĩnh — bám sát OpenDesign `first-draft-layout-nghe.html` (chưa map DB). */
-export function NgheLayoutStatic() {
+const NGHE_HERO_TITLE_FALLBACK = "3D Modeller";
+
+type NgheLayoutStaticProps = {
+  /**
+   * `article_bai_viet.noi_dung` / `noi_dung_markdown` — HTML hoặc markdown cho `.nghe-lead-rich`.
+   * Rỗng → giữ bản mẫu tĩnh `NGHE_LEAD_HTML`.
+   */
+  leadSource?: string | null;
+  /**
+   * Bài đích từ `article_lien_quan` (resolve trong `fetchRelatedArticles`).
+   * · Lưới công việc: chỉ `loai_bai_viet = nghe`.
+   * · Hàng phần mềm: chỉ `loai_bai_viet = phan_mem`.
+   * · Tab sidebar «Kỹ thuật»: chỉ `loai_bai_viet = keyword`.
+   * · Mục «Các khóa học liên quan»: chỉ `loai_bai_viet = mon_hoc`.
+   */
+  lienQuan?: ArticleCard[];
+  /** `article_bai_viet.tieu_de` — hero H1 (dòng chính). */
+  heroTitle?: string | null;
+  /**
+   * Dòng trong `<em>` dưới H1: ưu tiên `tieu_de_viet`, không có thì `tieu_de_eng`.
+   */
+  heroEmLine?: string | null;
+  /** `article_bai_viet.tom_tat` — đoạn `.h-summary`. */
+  heroSummary?: string | null;
+  /** Lĩnh vực từ `article_bai_viet.id_linh_vuc` — badge đầu hero. */
+  heroLinhVucLabel?: string | null;
+  /** `article_bai_viet.meta.video_url` — video/embed đặt trước nội dung lead. */
+  leadVideoUrl?: string | null;
+  /** Nút công cụ draft trong hero (chỉ khi bật chế độ thử). */
+  heroDraftTools?: ReactNode;
+  /**
+   * Khi có (chế độ draft nghề) — thay cả khối hero + `.nghe-lead-panel` bằng nội dung client
+   * (sửa tại chỗ). Các prop hero/lead phía trên bị bỏ qua cho khối này.
+   */
+  heroLeadBlock?: ReactNode;
+};
+
+/** Khung tĩnh — bám sát OpenDesign `first-draft-layout-nghe.html`; khối lead map DB khi có `leadSource`. */
+export function NgheLayoutStatic({
+  leadSource,
+  lienQuan = [],
+  heroTitle,
+  heroEmLine,
+  heroSummary,
+  heroLinhVucLabel,
+  leadVideoUrl,
+  heroDraftTools,
+  heroLeadBlock,
+}: NgheLayoutStaticProps = {}) {
+  const leadTrim = leadSource?.trim() ?? "";
+  const leadVid = leadVideoUrl?.trim() ?? "";
+  const displayTitle =
+    (heroTitle ?? "").trim() || NGHE_HERO_TITLE_FALLBACK;
+  const displayEmLine = (heroEmLine ?? "").trim();
+  const displaySummary = (heroSummary ?? "").trim();
+  const displayLinhVuc = (heroLinhVucLabel ?? "").trim();
+  const ngheLienQuan = lienQuan.filter(
+    (c) => String(c.loai_bai_viet) === "nghe",
+  );
+  const useDbJobCards = ngheLienQuan.length > 0;
+  const phanMemLienQuan = lienQuan.filter(
+    (c) => String(c.loai_bai_viet) === "phan_mem",
+  );
+  const useDbSwTiles = phanMemLienQuan.length > 0;
+  const keywordLienQuan = lienQuan.filter(
+    (c) => String(c.loai_bai_viet) === "keyword",
+  );
+  const useDbKeywords = keywordLienQuan.length > 0;
+  const monHocLienQuan = lienQuan.filter(
+    (c) => String(c.loai_bai_viet) === "mon_hoc",
+  );
+  const useDbCourseCards = monHocLienQuan.length > 0;
   return (
     <div className="article-wrap article-wrap--nghe-first-draft">
       <main className="article-main">
         <div className="article-grid">
         <div className="nghe-main-sidebar-row">
         <div className="nghe-grid-primary">
-          <div className="nghe-hero-panel" data-rich-hero-slot="true">
-            <div className="l1-hero">
-              <h1 className="h-disp nghe-hero-title">
-                3D Modeller
-                <br />
-                <em>người dựng hình ảnh</em>
-              </h1>
-              <div className="nghe-hero-row">
-                <div className="nghe-hero-copy">
-                  <span className="kicker k-nghe">
-                    Nghề nghiệp · Ngành Game · Phim
-                  </span>
-                  <p className="h-summary">
-                    Người xây dựng mô hình 3 chiều cho game, phim, quảng cáo và
-                    kiến trúc — từ nhân vật, vũ khí, props đến cả một thành phố.
-                  </p>
-                </div>
-                <div className="mascot">
-                  <Image
-                    src="/assets/mascot-technical-artist.png"
-                    alt="Technical artist mascot"
-                    width={280}
-                    height={280}
-                    className="arv2-mascot-img"
-                  />
+          {heroLeadBlock ? (
+            heroLeadBlock
+          ) : (
+            <>
+              <div className="nghe-hero-panel" data-rich-hero-slot="true">
+                <div className="l1-hero">
+                  {heroDraftTools}
+                  <h1 className="h-disp nghe-hero-title">
+                    {displayTitle}
+                    {displayEmLine ? (
+                      <>
+                        <br />
+                        <em className="tieu_de_viet" data-hero-line="subtitle">
+                          {displayEmLine}
+                        </em>
+                      </>
+                    ) : null}
+                  </h1>
+                  <div className="nghe-hero-row">
+                    <div className="nghe-hero-copy">
+                      <span className="kicker k-nghe">
+                        {displayLinhVuc
+                          ? `Nghề nghiệp · ${displayLinhVuc}`
+                          : "Nghề nghiệp"}
+                      </span>
+                      {displaySummary ? (
+                        <p className="h-summary">{displaySummary}</p>
+                      ) : null}
+                    </div>
+                    <div className="mascot">
+                      <Image
+                        src="/assets/mascot-technical-artist.png"
+                        alt={displayTitle}
+                        width={280}
+                        height={280}
+                        className="arv2-mascot-img"
+                      />
+                    </div>
+                  </div>
+                  <div className="h-meta">
+                    <span>
+                      <IconEye />
+                      980 lượt xem
+                    </span>
+                    <span>
+                      <IconCal />
+                      Cập nhật 14/05/2026
+                    </span>
+                    <span>
+                      <IconComment />
+                      23 bình luận
+                    </span>
+                  </div>
                 </div>
               </div>
-              <div className="h-meta">
-                <span>
-                  <IconEye />
-                  980 lượt xem
-                </span>
-                <span>
-                  <IconCal />
-                  Cập nhật 14/05/2026
-                </span>
-                <span>
-                  <IconComment />
-                  23 bình luận
-                </span>
-              </div>
-            </div>
-          </div>
 
-          <div className="nghe-lead-panel" data-rich-lead-slot="true">
-            <div
-              className="nghe-lead-rich"
-              dangerouslySetInnerHTML={{ __html: NGHE_LEAD_HTML }}
-            />
-          </div>
+              <div className="nghe-lead-panel" data-rich-lead-slot="true">
+                {leadVid ? <NgheLeadVideo url={leadVid} /> : null}
+                {leadTrim ? (
+                  <NgheLeadRich source={leadTrim} />
+                ) : (
+                  <div
+                    className="nghe-lead-rich article-rich-content article-content-html"
+                    dangerouslySetInnerHTML={{
+                      __html: imagedeliveryPreferPublicInHtml(
+                        leadVid ? NGHE_LEAD_BODY_HTML : NGHE_LEAD_HTML,
+                      ),
+                    }}
+                  />
+                )}
+              </div>
+            </>
+          )}
         </div>
 
         <aside className="article-side">
@@ -109,16 +214,29 @@ export function NgheLayoutStatic() {
               header: (
                 <div className="rel-header">
                   <h4>
-                    Keyword liên quan <em>6 kỹ thuật</em>
+                    Keyword liên quan{" "}
+                    <em>
+                      {useDbKeywords
+                        ? `${keywordLienQuan.length} kỹ thuật`
+                        : "6 kỹ thuật"}
+                    </em>
                   </h4>
                   <span className="hint">Hover để xem mô tả</span>
                 </div>
               ),
               body: (
                 <div className="rel-list">
-                  {NGHE_SIDEBAR_KEYWORDS.map((item) => (
-                    <StaticRelItem key={item.name} item={item} />
-                  ))}
+                  {useDbKeywords
+                    ? keywordLienQuan.map((card, i) => (
+                        <NgheRelItem
+                          key={card.id}
+                          card={card}
+                          tipClass={i % 2 === 0 ? "tip-left" : "tip-right"}
+                        />
+                      ))
+                    : NGHE_SIDEBAR_KEYWORDS.map((item) => (
+                        <StaticRelItem key={item.name} item={item} />
+                      ))}
                 </div>
               ),
             }}
@@ -183,9 +301,17 @@ export function NgheLayoutStatic() {
             Vị trí công việc liên quan
           </h2>
           <div className="job-grid">
-            {NGHE_JOB_CARDS.map((card) => (
-              <StaticRelCard key={card.name} item={card} />
-            ))}
+            {useDbJobCards
+              ? ngheLienQuan.map((card, i) => (
+                  <NgheRelCard
+                    key={card.id}
+                    card={card}
+                    tipClass={i % 3 === 2 ? "tip-right" : "tip-left"}
+                  />
+                ))
+              : NGHE_JOB_CARDS.map((card) => (
+                  <StaticRelCard key={card.name} item={card} />
+                ))}
           </div>
 
           <h2 className="section-h">
@@ -193,9 +319,35 @@ export function NgheLayoutStatic() {
             Phần mềm sử dụng
           </h2>
           <div className="sw-row">
-            {NGHE_SW_TILES.map((tile) => (
-              <StaticRelTile key={tile.name} item={tile} />
-            ))}
+            {useDbSwTiles
+              ? phanMemLienQuan.map((card, i) => (
+                  <NgheRelTile
+                    key={card.id}
+                    card={card}
+                    tipClass={i % 3 === 2 ? "tip-right" : "tip-left"}
+                  />
+                ))
+              : NGHE_SW_TILES.map((tile) => (
+                  <StaticRelTile key={tile.name} item={tile} />
+                ))}
+          </div>
+
+          <h2 className="section-h">
+            <span className="num">05</span>
+            Các khóa học liên quan
+          </h2>
+          <div className="job-grid">
+            {useDbCourseCards
+              ? monHocLienQuan.map((card, i) => (
+                  <NgheRelCard
+                    key={card.id}
+                    card={card}
+                    tipClass={i % 3 === 2 ? "tip-right" : "tip-left"}
+                  />
+                ))
+              : NGHE_COURSE_CARDS.map((card) => (
+                  <StaticRelCard key={card.name} item={card} />
+                ))}
           </div>
 
           <div className="section-link">

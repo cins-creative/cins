@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { ArticleLoaiBadge } from "@/components/article/ArticleLoaiBadge";
 import { CinsShell } from "@/components/cins/CinsShell";
+import { MissingSupabaseEnvNotice } from "@/components/cins/MissingSupabaseEnvNotice";
 import { SiteFooter } from "@/components/cins/SiteFooter";
 import { formatRelativeTimeVi } from "@/lib/articles/format";
 import { LOAI_LABELS } from "@/lib/articles/labels";
@@ -66,15 +67,7 @@ export default async function BaiVietIndexPage({ searchParams }: Props) {
 
           {!result.ok && result.reason === "no_env" ? (
             <div className="article-listing-panel article-listing-panel-warn">
-              <strong>Chưa cấu hình Supabase.</strong> Thêm{" "}
-              <code className="rounded bg-zinc-200 px-1 py-0.5 text-sm">
-                NEXT_PUBLIC_SUPABASE_URL
-              </code>{" "}
-              và{" "}
-              <code className="rounded bg-zinc-200 px-1 py-0.5 text-sm">
-                NEXT_PUBLIC_SUPABASE_ANON_KEY
-              </code>{" "}
-              trong <code className="text-sm">.env.local</code> rồi chạy lại dev server.
+              <MissingSupabaseEnvNotice />
             </div>
           ) : null}
 

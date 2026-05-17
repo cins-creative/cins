@@ -13,7 +13,9 @@ export function createPublicSupabaseClient() {
   const url = getTrimmedSupabaseUrl();
   const key = getTrimmedSupabaseAnonKey();
   if (!url || !key) {
-    throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY");
+    throw new Error(
+      "Missing Supabase URL or anon key (NEXT_PUBLIC_* or SUPABASE_URL / SUPABASE_ANON_KEY)",
+    );
   }
   return createClient(url, key, {
     auth: {

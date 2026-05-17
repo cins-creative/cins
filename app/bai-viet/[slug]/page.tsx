@@ -6,12 +6,15 @@ import { CinsShell } from "@/components/cins/CinsShell";
 import { SiteFooter } from "@/components/cins/SiteFooter";
 import {
   fetchRelatedArticles,
+  fetchRelatedJobsLienQuan,
   fetchTruongDaoTaoForNganh,
   fetchTacPhamGalleryForArticle,
   getArticleById,
   getArticleBySlug,
 } from "@/lib/articles/queries";
+import { isInlineArticleEditEnabled } from "@/lib/dev/inline-article-edit";
 import { hasSupabaseEnv } from "@/lib/supabase/server";
+import { hasServiceRoleEnv } from "@/lib/supabase/service-role";
 import type { ArticleBaiViet, LoaiBaiViet } from "@/lib/articles/types";
 
 export const dynamic = "force-dynamic";
@@ -84,13 +87,20 @@ export default async function BaiVietSlugPage({ params }: Props) {
     notFound();
   }
 
-  const [lienQuan, tacPham, truongRows] = await Promise.all([
-    fetchRelatedArticles(article.id),
-    fetchTacPhamGalleryForArticle(article.id),
-    article.loai_bai_viet === "nganh_dao_tao"
-      ? fetchTruongDaoTaoForNganh(article.id)
-      : Promise.resolve([]),
-  ]);
+  const [lienQuan, tacPham, truongRows, relatedJobsLienQuan] =
+    await Promise.all([
+      fetchRelatedArticles(article.id),
+      fetchTacPhamGalleryForArticle(article.id),
+      article.loai_bai_viet === "nganh_dao_tao"
+        ? fetchTruongDaoTaoForNganh(article.id)
+        : Promise.resolve([]),
+      article.loai_bai_viet === "nghe"
+        ? fetchRelatedJobsLienQuan(article.id)
+        : Promise.resolve([]),
+    ]);
+
+  const draftUiEnabled = isInlineArticleEditEnabled();
+  const draftPersistEnabled = hasServiceRoleEnv();
 
   return (
     <CinsShell data-screen-label={`Bai-viet-${slug}`}>
@@ -99,6 +109,9 @@ export default async function BaiVietSlugPage({ params }: Props) {
         lienQuan={lienQuan}
         tacPham={tacPham}
         truongRows={truongRows}
+        relatedJobsLienQuan={relatedJobsLienQuan}
+        draftUiEnabled={draftUiEnabled}
+        draftPersistEnabled={draftPersistEnabled}
       />
       <SiteFooter />
     </CinsShell>

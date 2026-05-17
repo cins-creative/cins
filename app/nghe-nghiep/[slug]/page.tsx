@@ -1,15 +1,18 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 
-import { CareerDetailView } from "@/components/career/CareerDetailView";
+import { ArticlePageView } from "@/components/article/ArticlePageView";
 import { CinsShell } from "@/components/cins/CinsShell";
 import { SiteFooter } from "@/components/cins/SiteFooter";
 import {
-  getKyNangByIds,
-  getLinhVucByIds,
-  getNgheNghiepBySlug,
-  getRelatedCareers,
-} from "@/lib/career/queries";
+  fetchRelatedArticles,
+  fetchRelatedJobsLienQuan,
+  getArticleById,
+  getNgheArticleBySlug,
+} from "@/lib/articles/queries";
+import { isInlineArticleEditEnabled } from "@/lib/dev/inline-article-edit";
+import { hasSupabaseEnv } from "@/lib/supabase/server";
+import { hasServiceRoleEnv } from "@/lib/supabase/service-role";
 
 export const dynamic = "force-dynamic";
 
@@ -19,52 +22,59 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const nghe = await getNgheNghiepBySlug(slug);
-  if (!nghe) {
+  if (!hasSupabaseEnv()) {
+    return { title: "Nghề nghiệp | CINs" };
+  }
+  const article = await getNgheArticleBySlug(slug);
+  if (!article) {
     return { title: "Không tìm thấy | CINs" };
   }
   const title =
-    nghe.meta_title?.trim() ||
-    `${nghe.title_eng ?? slug} là gì? | CINs`;
+    article.meta_title?.trim() ||
+    `${article.tieu_de_viet?.trim() || article.tieu_de} | CINs`;
   const description =
-    nghe.meta_description?.trim() ||
-    nghe.short_description ||
-    undefined;
-  return {
-    title,
-    description,
-    openGraph: {
-      title: nghe.meta_title || nghe.title_eng || undefined,
-      description,
-      images: nghe.thumbnail_mascot ? [nghe.thumbnail_mascot] : [],
-    },
-  };
+    article.meta_description?.trim() || article.tom_tat?.trim() || undefined;
+  return { title, description };
 }
 
 export default async function NgheNghiepDetailPage({ params }: Props) {
   const { slug } = await params;
-  const nghe = await getNgheNghiepBySlug(slug);
-  if (!nghe) {
+
+  if (!hasSupabaseEnv()) {
     notFound();
   }
 
-  const relatedIds = nghe.nghe_nghiep_id ?? [];
-  const skillIds = nghe.skill_id ?? [];
-  const linhIds = nghe.linh_vuc_id ?? [];
+  const article = await getNgheArticleBySlug(slug);
+  if (!article) {
+    notFound();
+  }
 
-  const [related, skills, linhVucs] = await Promise.all([
-    getRelatedCareers(relatedIds),
-    getKyNangByIds(skillIds),
-    getLinhVucByIds(linhIds),
+  if (article.trang_thai_noi_dung === "merged" && article.merged_vao_id) {
+    const target = await getArticleById(article.merged_vao_id);
+    if (target?.slug) {
+      permanentRedirect(`/nghe-nghiep/${encodeURIComponent(target.slug)}`);
+    }
+    notFound();
+  }
+
+  const [lienQuan, relatedJobsLienQuan] = await Promise.all([
+    fetchRelatedArticles(article.id),
+    fetchRelatedJobsLienQuan(article.id),
   ]);
+
+  const draftUiEnabled = isInlineArticleEditEnabled();
+  const draftPersistEnabled = hasServiceRoleEnv();
 
   return (
     <CinsShell data-screen-label={`Nghe-nghiep-${slug}`}>
-      <CareerDetailView
-        nghe={nghe}
-        linhVucs={linhVucs}
-        related={related}
-        skills={skills}
+      <ArticlePageView
+        article={article}
+        lienQuan={lienQuan}
+        tacPham={[]}
+        truongRows={[]}
+        relatedJobsLienQuan={relatedJobsLienQuan}
+        draftUiEnabled={draftUiEnabled}
+        draftPersistEnabled={draftPersistEnabled}
       />
       <SiteFooter />
     </CinsShell>

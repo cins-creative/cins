@@ -6,9 +6,24 @@ import { CinsShell } from "@/components/cins/CinsShell";
 import { SiteFooter } from "@/components/cins/SiteFooter";
 import { listNgheArticlesForHub } from "@/lib/articles/queries";
 import { mapNgheArticlesToHubItems } from "@/lib/career/articleMappers";
-import { groupCareersByBoPhan } from "@/lib/career/groupCareers";
+import {
+  careerMatchesActiveLinhVuc,
+  collectBoPhanNhomIdsForHub,
+} from "@/lib/career/articleNhomHub";
+import { groupCareersByArticleNhomForLinhVuc } from "@/lib/career/hubSections";
+import {
+  listBoPhanNhomOrderForLinhVuc,
+  orderHubSectionsByNhomThuTu,
+} from "@/lib/career/hubNhomOrder";
 import { groupLinhVucForSidebar } from "@/lib/career/groupLinhVuc";
 import { listLinhVucForHub } from "@/lib/career/queries";
+import type { LinhVucRow } from "@/lib/career/types";
+import {
+  groupNhomNganhForSidebar,
+  nganhMatchesActiveNhom,
+} from "@/lib/nganh/groupNhomNganh";
+import { groupNganhByNhomNganh } from "@/lib/nganh/hubSections";
+import { listNganhArticlesForHub } from "@/lib/nganh/queries";
 
 export const metadata: Metadata = {
   title: "Nghề nghiệp — Khám phá ngành sáng tạo thị giác | CINs",
@@ -22,6 +37,7 @@ type SearchParams = {
   linh_vuc?: string;
   tab?: string;
   q?: string;
+  nhom?: string;
 };
 
 export default async function NgheNghiepIndexPage(props: {
@@ -31,39 +47,55 @@ export default async function NgheNghiepIndexPage(props: {
   const tab = sp.tab === "nganh-hoc" ? "nganh-hoc" : "nghe";
   const qRaw = (sp.q ?? "").trim();
 
-  const [linhVucs, ngheArticlesResult] = await Promise.all([
-    listLinhVucForHub(),
-    listNgheArticlesForHub(),
-  ]);
+  const linhVucs = await listLinhVucForHub();
+
+  const requestedRawEarly = sp.linh_vuc;
+  const requestedEarly =
+    typeof requestedRawEarly === "string"
+      ? decodeURIComponent(requestedRawEarly).trim()
+      : undefined;
+
+  const slugMatchesEarly = (lv: LinhVucRow, q: string) => {
+    const s = (lv.slug ?? "").trim().toLowerCase();
+    const qn = q.trim().toLowerCase();
+    if (!s || !qn) return false;
+    if (s === qn) return true;
+    const sCore = s.replace(/^lv-/, "");
+    const qCore = qn.replace(/^lv-/, "");
+    return sCore.length > 0 && sCore === qCore;
+  };
+
+  const defaultSlugEarly = linhVucs[0]?.slug ?? "";
+  const activeSlugEarly =
+    requestedEarly && linhVucs.some((l) => slugMatchesEarly(l, requestedEarly))
+      ? (linhVucs.find((l) => slugMatchesEarly(l, requestedEarly))?.slug ?? "").trim() ||
+        defaultSlugEarly
+      : defaultSlugEarly;
+
+  const activeLvEarly =
+    linhVucs.find((l) => slugMatchesEarly(l, activeSlugEarly)) ?? linhVucs[0] ?? null;
+
+  const ngheArticlesResult = await listNgheArticlesForHub(
+    qRaw
+      ? { limit: 500 }
+      : activeLvEarly?.id
+        ? { linhVucId: activeLvEarly.id, limit: 500 }
+        : { limit: 500 },
+  );
 
   const allCareers =
     ngheArticlesResult.ok && ngheArticlesResult.items.length > 0
       ? mapNgheArticlesToHubItems(ngheArticlesResult.items)
       : [];
 
-  const defaultSlug = linhVucs[0]?.slug ?? "";
-  const requested = sp.linh_vuc;
-  const activeSlug =
-    requested && linhVucs.some((l) => l.slug === requested)
-      ? requested
-      : defaultSlug;
-
-  const activeLv =
-    linhVucs.find((l) => l.slug === activeSlug) ?? linhVucs[0] ?? null;
+  const activeLv = activeLvEarly;
+  const activeSlug = activeSlugEarly;
 
   let filtered = allCareers;
-  let showFallbackNote = false;
+  const showFallbackNote = false;
 
-  if (activeLv && tab === "nghe") {
-    const inLinh = allCareers.filter(
-      (n) => n.linh_vuc_id?.includes(activeLv.id),
-    );
-    if (inLinh.length > 0) {
-      filtered = inLinh;
-    } else if (allCareers.length > 0) {
-      filtered = allCareers;
-      showFallbackNote = true;
-    }
+  if (activeLv && tab === "nghe" && !qRaw) {
+    filtered = allCareers.filter((n) => careerMatchesActiveLinhVuc(n, activeLv));
   }
 
   if (qRaw) {
@@ -77,26 +109,59 @@ export default async function NgheNghiepIndexPage(props: {
     );
   }
 
-  const groups = tab === "nghe" ? groupCareersByBoPhan(filtered) : [];
+  const boPhanIdsForCatalog =
+    tab === "nghe" ? collectBoPhanNhomIdsForHub(filtered) : [];
 
-  /** Nghề gán đúng lĩnh vực đang chọn — dùng để nav tag, tránh liệt kê mọi bo_phan khi fallback hiển thị toàn DB */
-  const inActiveLinhVuc =
-    activeLv && tab === "nghe"
-      ? allCareers.filter((n) => n.linh_vuc_id?.includes(activeLv.id))
-      : null;
-  const inActiveLinhIds =
-    inActiveLinhVuc != null
-      ? new Set(inActiveLinhVuc.map((n) => n.id))
-      : null;
+  const nhomOrderCatalog =
+    tab === "nghe" && activeLv?.id
+      ? await listBoPhanNhomOrderForLinhVuc(activeLv.id, boPhanIdsForCatalog)
+      : [];
 
-  const tagGroups =
-    tab === "nghe" && inActiveLinhIds != null
-      ? groups.filter((g) =>
-          g.careers.some((c) => inActiveLinhIds.has(c.id)),
-        )
-      : groups;
+  const groupsRaw =
+    tab === "nghe"
+      ? groupCareersByArticleNhomForLinhVuc(filtered, activeLv)
+      : [];
+  const groups =
+    tab === "nghe" && nhomOrderCatalog.length > 0
+      ? orderHubSectionsByNhomThuTu(groupsRaw, nhomOrderCatalog)
+      : groupsRaw;
 
   const linhVucSidebarGroups = groupLinhVucForSidebar(linhVucs);
+
+  const nganhResult =
+    tab === "nganh-hoc"
+      ? await listNganhArticlesForHub({ limit: 500 })
+      : { ok: true as const, items: [] };
+  const allNganh = nganhResult.ok ? nganhResult.items : [];
+  const nganhSidebarGroups = groupNhomNganhForSidebar(allNganh);
+  const nhomParam = (sp.nhom ?? "").trim();
+  const activeNhomId =
+    nhomParam && nganhSidebarGroups.some((g) => g.id === nhomParam)
+      ? nhomParam
+      : "";
+  const activeNhomLabel =
+    nganhSidebarGroups.find((g) => g.id === activeNhomId)?.heading ?? null;
+
+  let filteredNganh = allNganh;
+  if (activeNhomId) {
+    filteredNganh = allNganh.filter((n) =>
+      nganhMatchesActiveNhom(n, activeNhomId),
+    );
+  }
+  if (qRaw && tab === "nganh-hoc") {
+    const ql = qRaw.toLowerCase();
+    filteredNganh = filteredNganh.filter(
+      (n) =>
+        (n.title ?? "").toLowerCase().includes(ql) ||
+        (n.titleVi ?? "").toLowerCase().includes(ql) ||
+        (n.titleEng ?? "").toLowerCase().includes(ql) ||
+        (n.ma_nganh ?? "").toLowerCase().includes(ql) ||
+        (n.short_description ?? "").toLowerCase().includes(ql) ||
+        (n.article_nhom?.ten ?? "").toLowerCase().includes(ql),
+    );
+  }
+  const nganhGroups =
+    tab === "nganh-hoc" ? groupNganhByNhomNganh(filteredNganh) : [];
 
   return (
     <CinsShell data-screen-label="Nghe-nghiep-index">
@@ -106,8 +171,9 @@ export default async function NgheNghiepIndexPage(props: {
           linhVucSidebarGroups={linhVucSidebarGroups}
           activeLinhVuc={activeLv}
           searchQuery={qRaw}
+          showLinhVucOnCards={Boolean(qRaw)}
           groups={groups}
-          tagGroups={tagGroups}
+          tagGroups={groups}
           sampleCareers={filtered}
           showFallbackNote={showFallbackNote}
           detailPathPrefix="/bai-viet"
@@ -116,6 +182,19 @@ export default async function NgheNghiepIndexPage(props: {
               ? {
                   reason: ngheArticlesResult.reason,
                   message: ngheArticlesResult.message,
+                }
+              : undefined
+          }
+          nganhSidebarGroups={nganhSidebarGroups}
+          activeNhomId={activeNhomId}
+          activeNhomLabel={activeNhomLabel}
+          nganhGroups={nganhGroups}
+          sampleNganh={filteredNganh}
+          nganhListError={
+            tab === "nganh-hoc" && !nganhResult.ok
+              ? {
+                  reason: nganhResult.reason,
+                  message: nganhResult.message,
                 }
               : undefined
           }

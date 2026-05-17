@@ -151,13 +151,62 @@
 }
 
 .arv2-nghe .nghe-hero-panel > .l1-hero {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 16px;
   border-bottom: none;
   margin-bottom: 0;
   padding: 20px 22px 22px;
+  padding-right: 52px;
   grid-template-columns: unset;
+}
+
+.arv2-nghe .nghe-hero-panel > .l1-hero[data-nghe-draft-open="true"] {
+  padding-right: 96px;
+}
+
+/* Cụm nút draft — góc phải hero; khi mở: cột dọc (Lưu / Hủy / thu gọn) */
+.arv2-nghe .nghe-hero-panel .nghe-hero-draft-toolbar {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: nowrap;
+  gap: 8px;
+  max-width: calc(100% - 32px);
+}
+
+.arv2-nghe .nghe-hero-panel .nghe-hero-draft-toolbar[data-nghe-draft-toolbar="stack"] {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  width: auto;
+  min-width: 76px;
+  max-width: 104px;
+}
+
+.arv2-nghe .nghe-hero-panel .nghe-hero-draft-edit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 10px;
+  background: var(--bg-surface, #fff);
+  color: var(--cins-blue, #1f74c9);
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.08);
+}
+
+.arv2-nghe .nghe-hero-panel .nghe-hero-draft-edit:hover {
+  background: var(--cins-blue-soft, #e7f0fb);
+  border-color: var(--cins-blue, #1f74c9);
 }
 
 .arv2-nghe .nghe-hero-panel .nghe-hero-title {
@@ -241,6 +290,47 @@
   padding: 20px 22px 22px;
 }
 
+.arv2-nghe .nghe-lead-panel .nghe-lead-video {
+  margin: 0 0 24px;
+  width: 100%;
+  min-width: 0;
+}
+
+/* Padding-bottom 16:9 — ổn định hơn aspect-ratio + iframe absolute trên một số layout */
+.arv2-nghe .nghe-lead-panel .nghe-lead-video--embed {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  height: 0;
+  padding-bottom: 56.25%;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--neutral-900, #171717);
+}
+
+.arv2-nghe .nghe-lead-panel .nghe-lead-video--embed iframe,
+.arv2-nghe .nghe-lead-panel .nghe-lead-video--embed .nghe-lead-video-iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  border: 0;
+  display: block;
+  z-index: 1;
+}
+
+.arv2-nghe .nghe-lead-panel .nghe-lead-video--file .nghe-lead-video-el {
+  display: block;
+  width: 100%;
+  max-height: min(70vh, 720px);
+  border-radius: 12px;
+  background: #000;
+}
+
 .arv2-nghe .nghe-lead-rich .mock-vid.nghe-lead-mock-vid {
   margin: 0 0 24px;
   aspect-ratio: 16 / 9;
@@ -251,6 +341,15 @@
 
 .arv2-nghe .nghe-lead-rich {
   min-width: 0;
+}
+
+/* Đồng bộ typography / arc-* với `styles/article-rich-content.css` (export CMS) trong lead */
+.arv2-nghe .nghe-lead-panel .article-rich-content,
+.arv2-nghe .nghe-lead-panel .nghe-lead-rich.article-rich-content {
+  font-family: var(--font-sans);
+  font-size: var(--text-md);
+  line-height: 1.6;
+  color: var(--fg-3);
 }
 
 .arv2-nghe .nghe-lead-panel .body {
@@ -1036,6 +1135,16 @@
   .arv2-nghe .nghe-hero-panel > .l1-hero {
     padding: 18px 16px 20px;
     align-items: start;
+  }
+
+  .arv2-nghe .nghe-hero-panel > .l1-hero[data-nghe-draft-open="true"] {
+    padding-right: 16px;
+    padding-top: 12px;
+  }
+
+  .arv2-nghe .nghe-hero-panel .nghe-hero-draft-toolbar[data-nghe-draft-toolbar="stack"] {
+    top: 12px;
+    right: 12px;
   }
 
   .arv2-nghe .nghe-lead-panel {

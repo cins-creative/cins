@@ -25,14 +25,38 @@ export type MetaPhanMem = {
 export type MetaNganhDaoTao = {
   ma_nganh: string;
   khoi_thi: string[];
+  mon_nang_khieu?: string | null;
+  thoi_gian_dao_tao?: string | null;
+  /** URL đầy đủ hoặc Cloudflare Images id */
+  editorial_images?: string[];
 };
 
-export type ArticleMeta = MetaPhanMem | MetaNganhDaoTao | null;
+export type MetaNgheBaiViet = {
+  video_url?: string | null;
+};
+
+export type ArticleMeta =
+  | MetaPhanMem
+  | MetaNganhDaoTao
+  | MetaNgheBaiViet
+  | null;
+
+/** Embed `linh_vuc` từ FK `article_bai_viet.id_linh_vuc` (bài `nghe`). */
+export type LinhVucEmbed = {
+  id: string;
+  slug: string;
+  ten: string;
+};
 
 export interface ArticleBaiViet {
   id: string;
   slug: string;
   tieu_de: string;
+  /** FK → `linh_vuc.id` — bắt buộc với `loai_bai_viet = nghe`. */
+  id_linh_vuc?: string | null;
+  linh_vuc?: LinhVucEmbed | null;
+  /** Dòng phụ tiếng Việt trong hero (ví dụ `<em>` dưới H1). */
+  tieu_de_viet?: string | null;
   tieu_de_eng?: string | null;
   loai_bai_viet: LoaiBaiViet;
   tom_tat?: string | null;
@@ -105,9 +129,32 @@ export type NgheArticleHubRow = {
   id: string;
   slug: string;
   tieu_de: string;
+  tieu_de_viet: string | null;
   tieu_de_eng: string | null;
   tom_tat: string | null;
   cover_id: string | null;
-  /** Gán qua `article_lien_quan` → bài `linh_vuc` (slug khớp `lv_linh_vuc`) */
+  article_nhom_id?: string | null;
+  /** Điền sau truy vấn `article_nhom` — đủ field theo bảng public.article_nhom */
+  article_nhom?: {
+    id: string;
+    slug: string;
+    ten: string;
+    mo_ta: string | null;
+    loai_nhom: string;
+    thu_tu: number;
+  } | null;
+  /** Mọi nhóm từ `article_gan_nhom` (một bài có thể gán nhiều `id_nhom`). */
+  article_nhom_all?: {
+    id: string;
+    slug: string;
+    ten: string;
+    mo_ta: string | null;
+    loai_nhom: string;
+    thu_tu: number;
+  }[] | null;
+  /** FK trực tiếp `article_bai_viet.id_linh_vuc` (mảng 1 phần tử cho tương thích hub). */
+  id_linh_vuc?: string | null;
+  linh_vuc?: LinhVucEmbed | null;
   linh_vuc_id: string[] | null;
+  linh_vuc_slugs: string[] | null;
 };

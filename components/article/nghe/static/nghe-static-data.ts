@@ -421,6 +421,53 @@ export const NGHE_SW_TILES: StaticRelTileData[] = [
   },
 ];
 
+export const NGHE_COURSE_CARDS: StaticRelCardData[] = [
+  {
+    thumb: "3D",
+    thumbBg: G.blue,
+    name: "3D Modeling Fundamentals",
+    sub: "Topology & UV — 8 tuần",
+    tipClass: "tip-left",
+    tip: {
+      name: "3D Modeling Fundamentals",
+      kind: "Khóa học · Online",
+      desc: "Blocking, edge flow, UV unwrap — bài tập theo tuần, mentor feedback.",
+      meta: ["Beginner", "Tiếng Việt"],
+      thumbnailSrc: "/assets/career-illustration-1.png",
+      thumbnailAlt: "3D Modeling",
+    },
+  },
+  {
+    thumb: "Zb",
+    thumbBg: G.zbrush,
+    name: "Digital Sculpting cơ bản",
+    sub: "ZBrush workflow — 6 tuần",
+    tip: {
+      name: "Digital Sculpting cơ bản",
+      kind: "Khóa học · Workshop",
+      desc: "Dynamesh, ZRemesher, high-poly → game-ready low — demo character bust.",
+      meta: ["Beginner+", "Live"],
+      thumbnailSrc: "/assets/career-illustration-2.png",
+      thumbnailAlt: "Sculpting",
+    },
+  },
+  {
+    thumb: "Tx",
+    thumbBg: G.violet,
+    name: "PBR Texturing cho game",
+    sub: "Substance Painter — 5 tuần",
+    tipClass: "tip-right",
+    tip: {
+      name: "PBR Texturing cho game",
+      kind: "Khóa học · Project-based",
+      desc: "Smart materials, bakers, UDIM — asset cuối kỳ đưa vào Unreal/Unity.",
+      meta: ["Intermediate", "Certificate"],
+      thumbnailSrc: "/assets/career-illustration-4.png",
+      thumbnailAlt: "Texturing",
+    },
+  },
+];
+
 export const NGHE_GALLERY = [
   { handle: "@minh.modeller", av: "var(--cins-yellow)" },
   { handle: "@studio.dotnine", av: "var(--cins-mint)" },
@@ -430,100 +477,8 @@ export const NGHE_GALLERY = [
   { handle: "@BakeLabVN", av: "linear-gradient(135deg,#6EFEC0,#3F8DFD)" },
 ];
 
-export type NgheSkillRow = {
-  label: string;
-  hot: boolean;
-  /** Nội dung mở rộng (plain text, sẽ escape khi nhúng HTML). */
-  detail: string;
-};
-
-export const NGHE_SKILLS: NgheSkillRow[] = [
-  {
-    label: "Tư duy không gian 3 chiều",
-    hot: true,
-    detail:
-      "Bạn cần hình dung được khối trong không gian: xoay, cắt, dựng lại tỷ lệ và silhouette dù chỉ nhìn một góc camera. Điều này giúp tránh model bị méo khi animate, và giữ form rõ khi bake lighting hoặc render real-time.",
-  },
-  {
-    label: "UV unwrapping",
-    hot: true,
-    detail:
-      "UV là bản đồ 2D của bề mặt 3D: đặt seam hợp lý, tránh stretch, cân nhắc texel density theo shot. Kỹ năng này ảnh hưởng trực tiếp đến độ nét texture và hiệu suất draw call khi asset lên engine.",
-  },
-  {
-    label: "Hiểu về anatomy",
-    hot: false,
-    detail:
-      "Với nhân vật và sinh vật, cần nắm cơ và xương cơ bản để silhouette đọc được cảm xúc và pose. Không nhất thiết phải như nghệ sĩ giải phẫu, nhưng phải đủ để tránh lỗi gãy khớp hoặc deform khi rig chạy.",
-  },
-  {
-    label: "Quản lý polygon count",
-    hot: false,
-    detail:
-      "Game và mobile đòi hỏi budget poly rõ ràng; phim có thể nới hơn nhưng vẫn cần LOD và tổ chức topology. Biết chỗ nào giữ chi tiết, chỗ nào tối giản giúp asset ổn định qua pipeline lighting và collision.",
-  },
-  {
-    label: "Đọc được concept art",
-    hot: false,
-    detail:
-      "Chuyển 2D sang 3D là lấp chỗ trống thông tin: tỉ lệ, vật liệu, wear & tear. Bạn phải hỏi đúng chỗ khi concept mơ hồ, và chủ động đề xuất thay đổi nhỏ để asset production-ready.",
-  },
-  {
-    label: "PBR materials & texturing",
-    hot: false,
-    detail:
-      "Quy trình PBR (Base Color, Normal, Roughness, Metallic…) giúp bề mặt nhất quán giữa DCC và engine. Hiểu cách đọc reference vật liệu thật và bake chi tiết từ high-poly xuống low là phần cốt lõi của shading hiện đại.",
-  },
-  {
-    label: "Reference research",
-    hot: false,
-    detail:
-      "Thu thập ảnh, blueprint hoặc scan trước khi chamfer edge hay sculpt chi tiết. Reference tốt giảm vòng chỉnh sửa với director và giữ asset đúng thời đại / đúng lore của dự án.",
-  },
-  {
-    label: "Tự kỷ luật & deadline",
-    hot: false,
-    detail:
-      "Pipeline 3D là chuỗi iteration: blocking → polish → UV → texture → feedback. Giữ naming, layer và version file gọn giúp team không mất thời gian săn asset; đúng deadline là một phần kỹ năng senior.",
-  },
-];
-
-function escapeHtmlPlain(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
-function buildNgheSkillsSectionHtml(skills: readonly NgheSkillRow[]): string {
-  const items = skills
-    .map((s) => {
-      const cls = s.hot ? "skill-item hot" : "skill-item";
-      return `<details class="${cls}">
-  <summary>${escapeHtmlPlain(s.label)}</summary>
-  <div class="skill-item-detail"><p>${escapeHtmlPlain(s.detail)}</p></div>
-</details>`;
-    })
-    .join("\n");
-
-  return `<h2 class="section-h nghe-skills-section-h">
-  <span class="num">02</span>
-  3D Modeller cần giỏi gì?
-</h2>
-<div class="skill-grid">
-${items}
-</div>`;
-}
-
-const NGHE_LEAD_HTML_CORE = `
-<div class="mock-vid nghe-lead-mock-vid">
-  <div class="label">
-    <span>Video — "Một ngày của 3D Modeller tại studio"</span>
-    <span class="dur">06:24</span>
-  </div>
-</div>
-
+/** Phần mô tả tĩnh (không khối mock video) — dùng khi có `meta.video_url` thay mock. */
+export const NGHE_LEAD_BODY_HTML = `
 <div class="body">
   <p>
     3D Modeller là người tạo ra các <strong>mô hình 3 chiều</strong>
@@ -532,67 +487,18 @@ const NGHE_LEAD_HTML_CORE = `
     lĩnh vực mới nổi như AR/VR hay Metaverse.
   </p>
 </div>
+`.trim();
 
-<h2 class="section-h nghe-lead-section-h">
-  <span class="num">01</span>
-  Công việc cụ thể<em>— ba mảng chính</em>
-</h2>
-
-<div class="nghe-tech-section">
-  <h3>Tạo Mô Hình (Modeling)</h3>
-  <div class="body">
-    <p>
-      Xây dựng hình dạng 3D từ đầu bằng cách thao tác
-      <strong>vertices, edges và faces</strong>. Có hai hướng
-      chính: <em>Hard Surface</em> (vũ khí, xe, kiến trúc — thiên
-      về geometry chuẩn) và <em>Organic</em> (nhân vật, sinh vật,
-      thực vật — yêu cầu sculpt mềm mại).
-    </p>
-  </div>
-  <div class="tech-grid cols-3">
-    <div class="mock"><span>Hard Surface · Sci-fi rifle</span></div>
-    <div class="mock"><span>Organic · Character bust</span></div>
-    <div class="mock"><span>Wireframe · Topology</span></div>
-  </div>
-</div>
-
-<div class="nghe-tech-section">
-  <h3>Texturing &amp; Shading</h3>
-  <div class="body">
-    <p>
-      Tạo bề mặt cho mô hình — màu sắc, độ bóng, vân da, vết trầy
-      xước. Dùng <strong>UV mapping</strong> để trải bề mặt 3D thành
-      bản đồ 2D, rồi vẽ texture hoặc bake từ high-poly xuống
-      low-poly.
-    </p>
-  </div>
-  <div class="mock" style="aspect-ratio:16/7">
-    <span>
-      Texture showcase · PBR maps (BaseColor, Normal, Roughness,
-      Metallic)
-    </span>
-  </div>
-</div>
-
-<div class="nghe-tech-section">
-  <h3>
-    Rigging &amp; Animation
-    <em class="nghe-tech-note">(tuỳ vị trí)</em>
-  </h3>
-  <div class="body">
-    <p>
-      Một số 3D Modeller cũng làm rigging —
-      <strong>tạo bộ xương kỹ thuật số</strong> cho nhân vật, để
-      animator có công cụ điều khiển. Ở các studio lớn, đây thường
-      là vị trí riêng biệt.
-    </p>
-  </div>
-  <div class="tech-grid cols-2">
-    <div class="mock"><span>Skeleton rig setup</span></div>
-    <div class="mock"><span>T-pose &amp; weight paint</span></div>
+const NGHE_LEAD_MOCK_HTML = `
+<div class="mock-vid nghe-lead-mock-vid">
+  <div class="label">
+    <span>Video — "Một ngày của 3D Modeller tại studio"</span>
+    <span class="dur">06:24</span>
   </div>
 </div>
 `.trim();
 
-/** HTML rich text — `.nghe-lead-panel`: core + mục 02 (skill accordion). */
-export const NGHE_LEAD_HTML = `${NGHE_LEAD_HTML_CORE}\n\n${buildNgheSkillsSectionHtml(NGHE_SKILLS)}`;
+/** HTML rich text — `.nghe-lead-panel`: mock video + đoạn dẫn (mục 01/02 tĩnh đã bỏ). */
+export const NGHE_LEAD_HTML = `${NGHE_LEAD_MOCK_HTML}
+
+${NGHE_LEAD_BODY_HTML}`.trim();

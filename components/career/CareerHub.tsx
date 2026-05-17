@@ -1,21 +1,26 @@
 import Image from "next/image";
 import Link from "next/link";
 
-import { CareerHubCardThumb } from "@/components/career/CareerHubCardThumb";
-import { CareerHubSideAccordion } from "@/components/career/CareerHubSideAccordion";
-import { introForBoPhan } from "@/lib/career/boPhanIntro";
-import { MsIcon } from "@/components/cins/MsIcon";
-import type { BoPhanGroup } from "@/lib/career/groupCareers";
+import { CareerHubDeptTabs } from "@/components/career/CareerHubDeptTabs";
+import { CareerHubPageHead } from "@/components/career/CareerHubPageHead";
+import { CareerHubRail } from "@/components/career/CareerHubRail";
+import { CareerHubRoleCard } from "@/components/career/CareerHubRoleCard";
+import { NganhHubCard } from "@/components/nganh/NganhHubCard";
+import { MissingSupabaseEnvNotice } from "@/components/cins/MissingSupabaseEnvNotice";
+import type { CareerHubSection } from "@/lib/career/hubSections";
+import { deptCardThemeByIndex } from "@/lib/career/hubRailTheme";
 import type { LinhVucSidebarGroup } from "@/lib/career/groupLinhVuc";
 import type { LinhVucRow, NgheNghiepHubItem } from "@/lib/career/types";
+import type { NganhHubItem, NganhHubSection, NganhSidebarGroup } from "@/lib/nganh/types";
 
 function linhTitle(lv: LinhVucRow | null): string {
   if (!lv) return "Khám phá nghề nghiệp";
-  return lv.ten_en ?? lv.ten_vi ?? String(lv.slug ?? "");
+  return lv.ten_en ?? lv.ten_vi ?? lv.ten ?? String(lv.slug ?? "");
 }
 
-function jobTitle(n: NgheNghiepHubItem): string {
-  return n.title_eng ?? n.title_vietnam ?? n.slug;
+function linhTitleVi(lv: LinhVucRow | null): string {
+  if (!lv) return "Nghề nghiệp";
+  return lv.ten_vi ?? lv.ten ?? lv.ten_en ?? "Nghề nghiệp";
 }
 
 type TabKey = "nghe" | "nganh-hoc";
@@ -25,19 +30,19 @@ type Props = {
   linhVucSidebarGroups: LinhVucSidebarGroup[];
   activeLinhVuc: LinhVucRow | null;
   searchQuery: string;
-  groups: BoPhanGroup[];
-  /** Nav “Bộ phận”: chỉ các nhóm có nghề thuộc lĩnh vực đang chọn (khác `groups` khi fallback DB) */
-  tagGroups?: BoPhanGroup[];
-  /** Nghề thuộc lĩnh vực (để mô tả hero) */
+  groups: CareerHubSection[];
+  tagGroups?: CareerHubSection[];
   sampleCareers: NgheNghiepHubItem[];
-  /** Hiển thị khi không có linh_vuc_id — đang xem toàn bộ */
+  showLinhVucOnCards?: boolean;
   showFallbackNote?: boolean;
-  /** Đường dẫn chi tiết từng card — mặc định `/nghe-nghiep` */
   detailPathPrefix?: string;
-  /** Lỗi tải danh sách (Supabase / query) */
   listError?: { reason: "no_env" | "query_error"; message?: string };
-  /** Bật chọn/dán ảnh → Cloudflare → Supabase (cần env token + Cloudflare + service role) */
-  thumbEditorEnabled?: boolean;
+  nganhSidebarGroups?: NganhSidebarGroup[];
+  activeNhomId?: string;
+  activeNhomLabel?: string | null;
+  nganhGroups?: NganhHubSection[];
+  sampleNganh?: NganhHubItem[];
+  nganhListError?: { reason: "no_env" | "query_error"; message?: string };
 };
 
 export function CareerHub({
@@ -48,20 +53,31 @@ export function CareerHub({
   groups,
   tagGroups,
   sampleCareers,
+  showLinhVucOnCards = false,
   showFallbackNote,
   detailPathPrefix = "/nghe-nghiep",
   listError,
-  thumbEditorEnabled = false,
+  nganhSidebarGroups = [],
+  activeNhomId = "",
+  activeNhomLabel = null,
+  nganhGroups = [],
+  sampleNganh = [],
+  nganhListError,
 }: Props) {
   const detailHref = (slug: string) =>
     `${detailPathPrefix.replace(/\/$/, "")}/${slug}`;
+  const sectionsNav = groups;
   const tagsNav = tagGroups ?? groups;
   const heroTitle = linhTitle(activeLinhVuc);
-  const firstDesc = sampleCareers.find((c) => c.short_description?.trim())
+  const heroTitleVi = linhTitleVi(activeLinhVuc);
+  const linhMoTa = activeLinhVuc?.mo_ta?.trim();
+  const firstJobDesc = sampleCareers.find((c) => c.short_description?.trim())
     ?.short_description;
   const heroBody =
-    firstDesc?.trim() ??
-    `Khám phá các vị trí công việc trong lĩnh vực ${heroTitle} — mô tả ngắn, kỹ năng và lộ trình gợi ý trên CINs.`;
+    linhMoTa && linhMoTa.length > 0
+      ? linhMoTa
+      : firstJobDesc?.trim() ??
+        `Khám phá các vị trí công việc trong lĩnh vực ${heroTitle} — mô tả ngắn, kỹ năng và lộ trình gợi ý trên CINs.`;
 
   const slugForLink = activeLinhVuc?.slug ?? "";
   const heroArtSrc =
@@ -69,31 +85,168 @@ export function CareerHub({
       ? "/assets/illustration-gamepad.png"
       : "/assets/career-illustration-1.png";
 
+  const careerCount = sampleCareers.length;
+  const deptCount = sectionsNav.length;
+  const linhVucCount = linhVucSidebarGroups.reduce(
+    (n, g) => n + g.links.length,
+    0,
+  );
+
+  const deptTabs = tagsNav.map((g) => ({
+    id: g.id,
+    title: g.title,
+    count: g.careers.length,
+  }));
+
   if (tab === "nganh-hoc") {
+    const nganhCount = sampleNganh.length;
+    const nhomCount = nganhGroups.length;
+    const heroNhom = activeNhomLabel?.trim() || "đại học";
+    const nganhDeptTabs = nganhGroups.map((g) => ({
+      id: g.id,
+      title: g.title,
+      count: g.items.length,
+    }));
+
     return (
-      <div className="career-hub">
-        <div className="page career-hub-page-inner">
-          <div className="career-hub-layout">
-            <CareerHubSidebar
-              tab={tab}
-              sidebarGroups={linhVucSidebarGroups}
-              activeSlug={slugForLink}
-            />
-            <div className="career-hub-main">
-            <section className="career-hub-panel career-surface career-hub-placeholder">
-              <h2 className="cins-h2 career-hub-placeholder-title">
-                Ngành học đại học
-              </h2>
-              <p className="cins-body career-hub-placeholder-text">
-                Danh mục ngành học và chương trình đào tạo đang được cập nhật.
-                Bạn có thể xem{" "}
-                <Link href="/" className="text-[var(--cins-blue)] font-semibold">
-                  trang chủ
-                </Link>{" "}
-                hoặc mục trường đại học sau khi nội dung được đăng tải.
-              </p>
+      <div className="career-hub career-hub--hn career-hub--nganh">
+        <CareerHubPageHead
+          tab={tab}
+          activeLinhVuc={activeLinhVuc}
+          activeSlug={slugForLink}
+          searchQuery={searchQuery}
+          activeNhomLabel={activeNhomLabel}
+          activeNhomId={activeNhomId}
+        />
+        <div className="hn-main">
+          <CareerHubRail
+            tab={tab}
+            sidebarGroups={linhVucSidebarGroups}
+            activeSlug={slugForLink}
+            nganhSidebarGroups={nganhSidebarGroups}
+            activeNhomId={activeNhomId}
+          />
+          <div className="hn-content">
+            <section className="hn-ad-hero" aria-labelledby="hn-nganh-hero-title">
+              <div className="hn-ad-hero-text">
+                <p className="hn-eyebrow">khám phá · ngành học</p>
+                <h1 id="hn-nganh-hero-title">
+                  <span className="em">Ngành học · {heroNhom}</span>
+                  Chọn đúng ngành
+                </h1>
+                <p className="hn-ad-hero-desc">
+                  Mã ngành, khối thi và nhóm ngành — tra cứu nhanh trước khi chọn
+                  trường. Mỗi ngành có trang chi tiết với môn học, nghề liên quan
+                  và danh sách trường đào tạo.
+                </p>
+                <div className="hn-ad-stats">
+                  <div className="hn-ad-stat">
+                    <span className="n">{nganhCount}</span>
+                    <span className="l">ngành đào tạo</span>
+                  </div>
+                  <div className="hn-ad-stat">
+                    <span className="n">{nhomCount}</span>
+                    <span className="l">nhóm ngành</span>
+                  </div>
+                </div>
+              </div>
+              <div className="hn-ad-hero-visual" aria-hidden>
+                <span className="hn-ad-pin hn-ad-pin-1">
+                  {nganhCount} ngành · CINs
+                </span>
+                <div className="hn-ad-hero-card hn-ad-hero-card--nganh">
+                  <Image
+                    src="/assets/career-illustration-1.png"
+                    alt=""
+                    width={200}
+                    height={200}
+                    className="hn-ad-hero-card-img"
+                    priority
+                  />
+                </div>
+                <span className="hn-ad-pin hn-ad-pin-2">Mã ngành · Khối thi</span>
+              </div>
             </section>
-            </div>
+
+            {nganhDeptTabs.length > 0 ? (
+              <CareerHubDeptTabs groups={nganhDeptTabs} />
+            ) : null}
+
+            {nganhListError ? (
+              <div className="hn-empty">
+                <p className="cins-body">
+                  {nganhListError.reason === "no_env" ? (
+                    <MissingSupabaseEnvNotice />
+                  ) : (
+                    <>
+                      <strong>Không tải được danh sách ngành học.</strong>
+                      {nganhListError.message ? (
+                        <span className="block mt-2 text-sm opacity-90">
+                          {nganhListError.message}
+                        </span>
+                      ) : null}
+                    </>
+                  )}
+                </p>
+              </div>
+            ) : nganhGroups.length === 0 ? (
+              <div className="hn-empty">
+                <p className="cins-body">
+                  {searchQuery
+                    ? "Không có ngành khớp từ khóa — thử bỏ bộ lọc hoặc từ khác."
+                    : "Chưa có ngành đào tạo nào được xuất bản."}
+                </p>
+              </div>
+            ) : (
+              nganhGroups.map((group, groupIndex) => (
+                <section
+                  key={group.id}
+                  id={group.id}
+                  className="hn-dept"
+                  aria-labelledby={`${group.id}-title`}
+                >
+                  <header className="hn-dept-head">
+                    <div>
+                      <h2 className="hn-dept-name" id={`${group.id}-title`}>
+                        {group.title}
+                        <span className="hn-dept-badge">
+                          {String(groupIndex + 1).padStart(2, "0")} ·{" "}
+                          {group.items.length} ngành
+                        </span>
+                      </h2>
+                      {group.intro?.trim() ? (
+                        <p className="hn-dept-desc">{group.intro.trim()}</p>
+                      ) : null}
+                    </div>
+                  </header>
+                  <ul className="hn-role-grid">
+                    {group.items.map((item) => (
+                      <NganhHubCard
+                        key={item.id}
+                        item={item}
+                        href={`/nganh-hoc/${item.slug}`}
+                        deptTheme={deptCardThemeByIndex(groupIndex)}
+                      />
+                    ))}
+                  </ul>
+                </section>
+              ))
+            )}
+
+            <section className="hn-foot-strip" aria-labelledby="hn-nganh-foot-title">
+              <div>
+                <h3 id="hn-nganh-foot-title">
+                  Chưa chắc ngành nào <em>phù hợp</em>? Làm bài quiz 2 phút.
+                </h3>
+                <p>
+                  Gợi ý hướng ngành dựa trên sở thích — kết hợp với khám phá nghề
+                  nghiệp trên CINs.
+                </p>
+              </div>
+              <Link href="#" className="hn-foot-btn">
+                Làm quiz miễn phí <span aria-hidden="true">→</span>
+              </Link>
+            </section>
           </div>
         </div>
       </div>
@@ -101,265 +254,150 @@ export function CareerHub({
   }
 
   return (
-    <div className="career-hub">
-      <div className="page career-hub-page-inner">
-        <div className="career-hub-layout">
-          <CareerHubSidebar
-            tab={tab}
-            sidebarGroups={linhVucSidebarGroups}
-            activeSlug={slugForLink}
-          />
+    <div className="career-hub career-hub--hn">
+      <CareerHubPageHead
+        tab={tab}
+        activeLinhVuc={activeLinhVuc}
+        activeSlug={slugForLink}
+        searchQuery={searchQuery}
+      />
 
-          <div className="career-hub-main">
-          <section className="career-hub-hero career-surface">
-            <div className="career-hub-hero-grid">
-              <div className="career-hub-hero-copy">
-                <p className="career-hub-eyebrow">Lĩnh vực</p>
-                <h1 className="career-hub-hero-title cins-h1">{heroTitle}</h1>
-                <p className="career-hub-hero-desc cins-body-lg">{heroBody}</p>
-                <div className="career-hub-search-row">
-                  <form
-                    action="/nghe-nghiep"
-                    method="get"
-                    className="career-hub-search-form"
-                    role="search"
-                  >
-                    <input type="hidden" name="linh_vuc" value={slugForLink} />
-                    <input
-                      type="search"
-                      name="q"
-                      defaultValue={searchQuery}
-                      placeholder="Nhập tên vị trí công việc mà bạn quan tâm"
-                      className="career-hub-search-input"
-                      aria-label="Tìm vị trí công việc"
-                    />
-                    <button type="submit" className="sr-only">
-                      Tìm
-                    </button>
-                  </form>
+      <div className="hn-main">
+        <CareerHubRail
+          tab={tab}
+          sidebarGroups={linhVucSidebarGroups}
+          activeSlug={slugForLink}
+        />
+
+        <div className="hn-content">
+          <section className="hn-ad-hero" aria-labelledby="hn-hero-title">
+            <div className="hn-ad-hero-text">
+              <p className="hn-eyebrow">khám phá · nghề nghiệp</p>
+              <h1 id="hn-hero-title">
+                <span className="em">Hướng nghiệp · {heroTitleVi}</span>
+                {heroTitle}
+              </h1>
+              <p className="hn-ad-hero-desc">{heroBody}</p>
+              {showFallbackNote ? (
+                <p className="hn-fallback-note">
+                  Một số bài nghề chưa gán lĩnh vực — đang hiển thị toàn bộ bài
+                  đã xuất bản.
+                </p>
+              ) : null}
+              <div className="hn-ad-stats">
+                <div className="hn-ad-stat">
+                  <span className="n">{careerCount}</span>
+                  <span className="l">vị trí nghề</span>
                 </div>
-                {showFallbackNote ? (
-                  <p className="career-hub-fallback-note cins-caption">
-                    Một số bài nghề chưa gán lĩnh vực — đang hiển thị toàn bộ
-                    bài đã xuất bản.
-                  </p>
-                ) : null}
+                <div className="hn-ad-stat">
+                  <span className="n">{deptCount}</span>
+                  <span className="l">bộ phận</span>
+                </div>
+                <div className="hn-ad-stat">
+                  <span className="n">{linhVucCount}</span>
+                  <span className="l">lĩnh vực</span>
+                </div>
               </div>
-              <div className="career-hub-hero-art" aria-hidden>
+            </div>
+            <div className="hn-ad-hero-visual" aria-hidden>
+              <span className="hn-ad-pin hn-ad-pin-1">
+                {careerCount} vị trí · CINs
+              </span>
+              <div className="hn-ad-hero-card">
                 <Image
                   src={heroArtSrc}
                   alt=""
-                  width={320}
-                  height={280}
-                  className="career-hub-hero-img"
+                  width={200}
+                  height={200}
+                  className="hn-ad-hero-card-img"
                   priority
                 />
               </div>
+              <span className="hn-ad-pin hn-ad-pin-2">Khám phá nghề</span>
             </div>
           </section>
 
-          {tagsNav.length > 0 ? (
-            <nav className="career-hub-tags" aria-label="Bộ phận">
-              {tagsNav.map((g) => (
-                <a key={g.id} href={`#${g.id}`} className="career-hub-tag">
-                  {g.boPhan}
-                </a>
-              ))}
-            </nav>
-          ) : null}
+          {deptTabs.length > 0 ? <CareerHubDeptTabs groups={deptTabs} /> : null}
 
-          <div className="career-hub-sections">
-            {listError ? (
-              <div className="career-hub-empty career-surface">
-                <p className="cins-body">
-                  {listError.reason === "no_env" ? (
-                    <>
-                      <strong>Chưa cấu hình Supabase.</strong> Thêm biến môi
-                      trường trong <code>.env.local</code> rồi chạy lại dev
-                      server.
-                    </>
-                  ) : (
-                    <>
-                      <strong>Không tải được danh sách bài nghề.</strong>
-                      {listError.message ? (
-                        <span className="block mt-2 text-sm opacity-90">
-                          {listError.message}
-                        </span>
-                      ) : null}
-                    </>
-                  )}
-                </p>
-              </div>
-            ) : groups.length === 0 ? (
-              <div className="career-hub-empty career-surface">
-                <p className="cins-body">
-                  {searchQuery
-                    ? "Không có vị trí khớp từ khóa — thử bỏ bộ lọc hoặc từ khác."
-                    : "Chưa có bài nghề nào được xuất bản trong lĩnh vực này."}
-                </p>
-              </div>
-            ) : (
-              groups.map((group) => (
-                <section
-                  key={group.id}
-                  id={group.id}
-                  className="career-hub-section career-surface"
-                >
-                  <header className="career-hub-section-head">
-                    <h2 className="cins-h2 career-hub-section-title">
-                      {group.boPhan === "Khác"
-                        ? "Vị trí khác"
-                        : /bộ phận/i.test(group.boPhan)
-                          ? group.boPhan
-                          : `Bộ phận ${group.boPhan}`}
+          {listError ? (
+            <div className="hn-empty">
+              <p className="cins-body">
+                {listError.reason === "no_env" ? (
+                  <MissingSupabaseEnvNotice />
+                ) : (
+                  <>
+                    <strong>Không tải được danh sách bài nghề.</strong>
+                    {listError.message ? (
+                      <span className="block mt-2 text-sm opacity-90">
+                        {listError.message}
+                      </span>
+                    ) : null}
+                  </>
+                )}
+              </p>
+            </div>
+          ) : groups.length === 0 ? (
+            <div className="hn-empty">
+              <p className="cins-body">
+                {searchQuery
+                  ? "Không có vị trí khớp từ khóa — thử bỏ bộ lọc hoặc từ khác."
+                  : "Chưa có bài nghề nào được xuất bản trong lĩnh vực này."}
+              </p>
+            </div>
+          ) : (
+            sectionsNav.map((group, groupIndex) => (
+              <section
+                key={group.id}
+                id={group.id}
+                className="hn-dept"
+                aria-labelledby={`${group.id}-title`}
+              >
+                <header className="hn-dept-head">
+                  <div>
+                    <h2 className="hn-dept-name" id={`${group.id}-title`}>
+                      {group.title}
+                      <span className="hn-dept-badge">
+                        {String(groupIndex + 1).padStart(2, "0")} ·{" "}
+                        {group.careers.length} vị trí
+                      </span>
                     </h2>
-                    <p className="cins-body career-hub-section-intro">
-                      {group.mo_ta?.trim()
-                        ? group.mo_ta.trim()
-                        : introForBoPhan(group.boPhan)}
-                    </p>
-                  </header>
-                  <ul className="career-hub-card-grid">
-                    {group.careers.map((n) =>
-                      thumbEditorEnabled ? (
-                        <li key={n.id}>
-                          <div className="career-hub-card career-hub-card--split">
-                            <CareerHubCardThumb
-                              careerId={n.id}
-                              thumbnailUrl={n.thumbnail_mascot}
-                              editorEnabled
-                            />
-                            <Link
-                              href={detailHref(n.slug)}
-                              className="career-hub-card-title-link"
-                            >
-                              <span className="career-hub-card-title">
-                                {jobTitle(n)}
-                              </span>
-                            </Link>
-                          </div>
-                        </li>
-                      ) : (
-                        <li key={n.id}>
-                          <Link
-                            href={detailHref(n.slug)}
-                            className="career-hub-card"
-                          >
-                            <CareerHubCardThumb
-                              careerId={n.id}
-                              thumbnailUrl={n.thumbnail_mascot}
-                              editorEnabled={false}
-                            />
-                            <span className="career-hub-card-title">
-                              {jobTitle(n)}
-                            </span>
-                          </Link>
-                        </li>
-                      ),
-                    )}
-                  </ul>
-                </section>
-              ))
-            )}
-          </div>
-          </div>
+                    {group.intro?.trim() ? (
+                      <p className="hn-dept-desc">{group.intro.trim()}</p>
+                    ) : null}
+                  </div>
+                </header>
+                <ul className="hn-role-grid">
+                  {group.careers.map((n) => (
+                    <CareerHubRoleCard
+                      key={n.id}
+                      career={n}
+                      href={detailHref(n.slug)}
+                      deptTheme={deptCardThemeByIndex(groupIndex)}
+                      showLinhVuc={showLinhVucOnCards}
+                    />
+                  ))}
+                </ul>
+              </section>
+            ))
+          )}
+
+          <section className="hn-foot-strip" aria-labelledby="hn-foot-title">
+            <div>
+              <h3 id="hn-foot-title">
+                Vẫn đang phân vân giữa các <em>vị trí nghề</em>? Làm bài quiz 2
+                phút.
+              </h3>
+              <p>
+                15 câu hỏi nhanh dựa trên tính cách và sở thích — kết quả gợi ý
+                hướng phát triển phù hợp trên CINs.
+              </p>
+            </div>
+            <Link href="#" className="hn-foot-btn">
+              Làm quiz miễn phí <span aria-hidden="true">→</span>
+            </Link>
+          </section>
         </div>
       </div>
     </div>
-  );
-}
-
-function CareerHubSidebar({
-  tab,
-  sidebarGroups,
-  activeSlug,
-}: {
-  tab: TabKey;
-  sidebarGroups: LinhVucSidebarGroup[];
-  activeSlug: string;
-}) {
-  const base = "/nghe-nghiep";
-  return (
-    <aside className="career-hub-sidebar career-surface" aria-label="Lĩnh vực">
-      <div className="career-hub-tabs" role="tablist">
-        <Link
-          href={base}
-          className={`career-hub-tab${tab === "nghe" ? " is-active" : ""}`}
-          role="tab"
-          aria-selected={tab === "nghe"}
-        >
-          Nghề nghiệp
-        </Link>
-        <Link
-          href={`${base}?tab=nganh-hoc`}
-          className={`career-hub-tab${tab === "nganh-hoc" ? " is-active" : ""}`}
-          role="tab"
-          aria-selected={tab === "nganh-hoc"}
-        >
-          Ngành học
-        </Link>
-      </div>
-      <nav className="career-hub-side-nav" aria-label="Danh sách lĩnh vực">
-        {sidebarGroups.map((group) => {
-          const sideLinks = (
-            <ul className="career-hub-side-list">
-              {group.links.map((lv) => {
-                const slug = lv.slug ?? "";
-                const active = slug === activeSlug && tab === "nghe";
-                const label = lv.ten_en ?? lv.ten_vi ?? slug;
-                if (!slug) return null;
-                return (
-                  <li key={lv.id}>
-                    <Link
-                      href={`${base}?linh_vuc=${encodeURIComponent(slug)}`}
-                      className={`career-hub-side-link${active ? " is-active" : ""}`}
-                    >
-                      <span className="career-hub-side-link-inner">
-                        <MsIcon
-                          name="chevron_right"
-                          className="career-hub-side-link-icon"
-                        />
-                        <span className="career-hub-side-link-label">
-                          {label}
-                        </span>
-                      </span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          );
-
-          if (!group.heading) {
-            return (
-              <div
-                key={group.id}
-                className="career-hub-side-group career-hub-side-stack career-hub-side-stack--flat"
-              >
-                {sideLinks}
-              </div>
-            );
-          }
-
-          const openDefault =
-            tab === "nghe" &&
-            group.links.some((lv) => (lv.slug ?? "") === activeSlug);
-
-          return (
-            <div
-              key={group.id}
-              className="career-hub-side-group career-hub-side-stack"
-            >
-              <CareerHubSideAccordion
-                heading={group.heading}
-                defaultOpen={openDefault}
-              >
-                {sideLinks}
-              </CareerHubSideAccordion>
-            </div>
-          );
-        })}
-      </nav>
-    </aside>
   );
 }

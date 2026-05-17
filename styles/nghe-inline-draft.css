@@ -1,0 +1,125 @@
+/* Thanh góc: global `button { border:none; background:none }` (cins-styles) không được cắt mất viền/nền nút. */
+[data-inline-draft-bar-variant="nghe-corner"] button[type="button"] {
+  border-style: solid;
+  border-width: 1px;
+  background-clip: padding-box;
+}
+
+/* Trường form tại chỗ trên hero nghề (chế độ draft) */
+.nghe-draft-field {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  background: rgb(255 255 255 / 0.65);
+  border: 1px dashed rgb(100 116 139 / 0.45);
+  border-radius: 6px;
+  padding: 0.12em 0.28em;
+  outline: none;
+}
+
+.nghe-draft-field:focus {
+  border-color: var(--cins-blue, #1f74c9);
+  background: #fff;
+  box-shadow: 0 0 0 2px rgb(31 116 201 / 0.2);
+}
+
+.nghe-draft-field--title {
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: 1.15;
+}
+
+.nghe-draft-field--subtitle {
+  font-size: inherit;
+  font-style: italic;
+  font-weight: inherit;
+}
+
+.nghe-draft-field-eng-wrap {
+  display: block;
+  margin-top: 0.35em;
+}
+
+.nghe-draft-field--eng {
+  font-size: 0.82em;
+  font-style: normal;
+  font-weight: 500;
+  opacity: 0.92;
+}
+
+.nghe-draft-field--summary {
+  margin-top: 0.5rem;
+  width: 100%;
+  resize: vertical;
+  min-height: 4.5rem;
+  font-size: inherit;
+  line-height: inherit;
+  font-weight: inherit;
+  color: inherit;
+}
+
+button.nghe-hero-draft-edit[data-nghe-draft-active="true"] {
+  background: var(--cins-blue-soft, #e7f0fb);
+  border-color: var(--cins-blue, #1f74c9);
+}
+
+/* Lưu / Hủy cạnh nút bút trên hero */
+.nghe-hero-draft-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 14px;
+  font-family: var(--font-sans, system-ui, sans-serif);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border-radius: 10px;
+  border: 1px solid var(--border, #e2e8f0);
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.06);
+  white-space: nowrap;
+}
+
+.nghe-hero-draft-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.nghe-hero-draft-btn--primary {
+  border-color: var(--cins-blue, #1f74c9);
+  background: var(--cins-blue, #1f74c9);
+  color: #fff;
+}
+
+.nghe-hero-draft-btn--primary:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+.nghe-hero-draft-btn--danger {
+  background: var(--bg-surface, #fff);
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+.nghe-hero-draft-btn--danger:hover:not(:disabled) {
+  background: #fef2f2;
+}
+
+.arv2-nghe .nghe-hero-draft-toolbar[data-nghe-draft-toolbar="stack"] .nghe-hero-draft-btn {
+  width: 100%;
+  min-height: 36px;
+  padding-left: 10px;
+  padding-right: 10px;
+  justify-content: center;
+}
+
+.arv2-nghe .nghe-hero-draft-toolbar[data-nghe-draft-toolbar="stack"] .nghe-hero-draft-edit {
+  width: 100%;
+  min-width: 0;
+}

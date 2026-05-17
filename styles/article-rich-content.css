@@ -1,0 +1,557 @@
+/* ============================================================
+   CINS — Article Rich Content CSS
+   Scope: .article-rich-content (wrapper của dangerouslySetInnerHTML)
+   Layout arc-* đồng bộ export CMS (`article-rich-content.css`).
+   Biến: cins-design-tokens.css (tương đương colors_and_type trong export).
+   Prefix class: arc- (article rich content)
+   ============================================================ */
+
+/* ── Wrapper ── */
+.article-rich-content {
+  font-family: var(--font-sans);
+  font-size: var(--text-md);
+  line-height: 1.6;
+  color: var(--fg-3);
+}
+
+/* ── Intro ── */
+.article-rich-content .arc-intro p {
+  font-size: var(--text-lg);
+  line-height: 1.65;
+  color: var(--fg-2);
+  margin-bottom: var(--space-4);
+}
+
+/* ── Section ── */
+.article-rich-content .arc-section {
+  margin-bottom: var(--space-12);
+  padding-bottom: var(--space-12);
+  border-bottom: 1px solid var(--border);
+  min-width: 0;
+}
+.article-rich-content .arc-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+.article-rich-content .arc-section-intro {
+  font-size: var(--text-md);
+  color: var(--fg-3);
+  margin-bottom: var(--space-6);
+  line-height: 1.65;
+}
+
+/* ── Headings ── */
+.article-rich-content .arc-h2 {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-bold);
+  font-size: var(--text-xl);
+  color: var(--cins-blue);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+  line-height: 1.2;
+}
+.article-rich-content .arc-h3 {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-md);
+  color: var(--fg-1);
+  margin: var(--space-6) 0 var(--space-2);
+}
+
+/* Section number badge */
+.article-rich-content .arc-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 var(--space-2);
+  background: var(--cins-blue);
+  color: var(--neutral-0);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  border-radius: var(--radius-xs);
+  flex-shrink: 0;
+  letter-spacing: 0.5px;
+}
+
+/* ── Body text & lists ── */
+.article-rich-content p {
+  margin-bottom: var(--space-3);
+  color: var(--fg-3);
+  line-height: 1.65;
+}
+.article-rich-content .arc-list {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-3) 0 var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.article-rich-content .arc-list li {
+  display: block;
+  padding-left: 16px;
+  position: relative;
+  font-size: var(--text-md);
+  color: var(--fg-3);
+  line-height: 1.65;
+}
+.article-rich-content .arc-list li::before {
+  content: "–";
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--cins-blue);
+  font-weight: var(--weight-semibold);
+}
+
+/* Tiptap / trang CINs: badge số mục (data-arc-section), ảnh, YouTube */
+.article-rich-content h2.arc-h2[data-arc-section]::before {
+  content: attr(data-arc-section);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 var(--space-2);
+  background: var(--cins-blue);
+  color: var(--neutral-0);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  border-radius: var(--radius-xs);
+  flex-shrink: 0;
+  letter-spacing: 0.5px;
+}
+.article-rich-content h2.arc-h2 > .arc-heading-body {
+  flex: 1;
+  min-width: 0;
+}
+.article-rich-content h3.arc-h3[data-arc-section] {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.article-rich-content h3.arc-h3[data-arc-section]::before {
+  content: attr(data-arc-section);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 var(--space-2);
+  background: var(--cins-blue);
+  color: var(--neutral-0);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  border-radius: var(--radius-xs);
+  flex-shrink: 0;
+  letter-spacing: 0.5px;
+}
+.article-rich-content h3.arc-h3 > .arc-heading-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.article-rich-content img {
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 10px;
+  box-sizing: border-box;
+}
+
+.article-rich-content [data-youtube-video] {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  aspect-ratio: 16 / 9;
+  margin: var(--space-6) 0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #0f172a;
+}
+
+.article-rich-content [data-youtube-video] iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* Fix Tailwind preflight: strong/em/b bị reset thành display:block */
+.article-rich-content strong,
+.article-rich-content b {
+  display: inline;
+  font-weight: var(--weight-semibold);
+  color: var(--fg-1);
+}
+.article-rich-content em {
+  display: inline;
+  font-style: italic;
+}
+
+/* ── Info box ── */
+.article-rich-content .arc-infobox {
+  background: var(--cins-blue-soft);
+  border-left: 3px solid var(--cins-blue);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: var(--space-4) var(--space-5);
+  margin: var(--space-6) 0;
+}
+.article-rich-content .arc-infobox-label {
+  display: block;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  color: var(--cins-blue);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: var(--space-2);
+}
+.article-rich-content .arc-infobox p {
+  font-size: var(--text-sm);
+  color: var(--fg-2);
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* ── Job item (công việc cụ thể) ── */
+.article-rich-content .arc-job-item {
+  margin-bottom: var(--space-8);
+}
+.article-rich-content .arc-job-item:last-child {
+  margin-bottom: 0;
+}
+
+/* ── Skill icon grid ── */
+.article-rich-content .arc-skill-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+  margin: var(--space-5) 0;
+}
+.article-rich-content .arc-skill-icon-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-5) var(--space-3);
+  background: var(--neutral-50);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  text-align: center;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.article-rich-content .arc-skill-icon-item:hover {
+  border-color: var(--cins-blue);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Material Symbols — glyph CMS; không viền tròn */
+.article-rich-content .arc-skill-emoji.arc-skill-ms.material-symbols-outlined {
+  display: inline-block;
+  font-size: 32px !important;
+  line-height: 1 !important;
+  color: var(--cins-blue);
+  flex-shrink: 0;
+  font-variation-settings:
+    "FILL" 0,
+    "wght" 500,
+    "GRAD" 0,
+    "opsz" 32 !important;
+}
+
+.article-rich-content .arc-skill-emoji:not(.arc-skill-ms) {
+  display: inline-block;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.article-rich-content .arc-skill-icon-item .arc-skill-label,
+.article-rich-content .arc-skill-icon-item span:last-child {
+  display: block;
+  margin-top: var(--space-1);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--fg-2);
+  line-height: 1.35;
+}
+.article-rich-content .arc-skill-icon-item span.arc-skill-emoji + .arc-skill-label {
+  margin-top: var(--space-2);
+}
+
+/* ── Accordion (kỹ năng) ── */
+.article-rich-content .arc-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+.article-rich-content .arc-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+.article-rich-content .arc-card[open] {
+  border-color: var(--cins-blue);
+  box-shadow: var(--shadow-xs);
+}
+.article-rich-content .arc-card summary {
+  padding: var(--space-4) var(--space-5);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--fg-1);
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  user-select: none;
+  line-height: 1.4;
+}
+.article-rich-content .arc-card summary::-webkit-details-marker { display: none; }
+.article-rich-content .arc-card summary::after {
+  content: "+";
+  font-size: var(--text-xl);
+  font-weight: var(--weight-regular);
+  color: var(--neutral-400);
+  margin-left: var(--space-4);
+  flex-shrink: 0;
+  transition: transform 0.2s;
+}
+.article-rich-content .arc-card[open] summary {
+  color: var(--cins-blue);
+  border-bottom: 1px solid var(--border);
+}
+.article-rich-content .arc-card[open] summary::after {
+  content: "−";
+  color: var(--cins-blue);
+}
+.article-rich-content .arc-card-body {
+  padding: var(--space-4) var(--space-5);
+  background: var(--neutral-50);
+}
+.article-rich-content .arc-card-body p {
+  font-size: var(--text-sm);
+  line-height: 1.65;
+  color: var(--fg-3);
+  margin-bottom: var(--space-3);
+}
+.article-rich-content .arc-card-body p:last-child { margin-bottom: 0; }
+
+/* ── Related jobs (data-dynamic inject) ── */
+/* Frontend inject .arc-related-grid vào section[data-dynamic="related-jobs"] */
+.article-rich-content .arc-related-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+}
+.article-rich-content .arc-related-card {
+  display: grid;
+  grid-template-columns: 48px 1fr auto;
+  align-items: start;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.article-rich-content .arc-related-card:hover {
+  border-color: var(--cins-blue);
+  box-shadow: var(--shadow-sm);
+}
+.article-rich-content .arc-related-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+.article-rich-content .arc-related-info {
+  min-width: 0;
+}
+.article-rich-content .arc-related-title {
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  color: var(--fg-1);
+  margin-bottom: var(--space-1);
+  display: block;
+}
+/* tom_tat của bài liên quan */
+.article-rich-content .arc-related-desc {
+  font-size: var(--text-sm);
+  color: var(--fg-3);
+  line-height: 1.5;
+  margin-bottom: var(--space-2);
+  display: block;
+}
+/* Mô tả tương tác — mới, sâu hơn */
+.article-rich-content .arc-related-note {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+  background: var(--cins-blue-soft);
+  border-radius: var(--radius-xs);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--cins-blue-dark);
+  line-height: 1.5;
+}
+.article-rich-content .arc-related-note::before {
+  content: "↔";
+  font-weight: var(--weight-bold);
+  flex-shrink: 0;
+}
+.article-rich-content .arc-related-arrow {
+  font-size: var(--text-lg);
+  color: var(--neutral-300);
+  padding-top: 2px;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+.article-rich-content .arc-related-card:hover .arc-related-arrow {
+  color: var(--cins-blue);
+}
+
+/* ── Path steps (lộ trình) ── */
+.article-rich-content .arc-path {
+  display: flex;
+  flex-direction: column;
+  margin-top: var(--space-5);
+}
+.article-rich-content .arc-path-step {
+  display: flex;
+  gap: var(--space-4);
+  padding-bottom: var(--space-8);
+  position: relative;
+}
+.article-rich-content .arc-path-step:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  left: 15px;
+  top: 34px;
+  bottom: 0;
+  width: 2px;
+  background: var(--border);
+}
+.article-rich-content .arc-step-num {
+  width: 32px;
+  height: 32px;
+  background: var(--neutral-800);
+  color: var(--neutral-0);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+.article-rich-content .arc-step-body {
+  padding-top: 4px;
+  min-width: 0;
+}
+.article-rich-content .arc-step-body strong {
+  display: block;
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  color: var(--fg-1);
+  margin-bottom: var(--space-2);
+}
+.article-rich-content .arc-step-body p {
+  font-size: var(--text-sm);
+  line-height: 1.65;
+  color: var(--fg-3);
+  margin-bottom: var(--space-2);
+}
+.article-rich-content .arc-step-body p:last-child { margin-bottom: 0; }
+
+/* ── Image blocks ── */
+.article-rich-content .arc-image-block {
+  margin: var(--space-6) 0;
+}
+.article-rich-content .arc-image-placeholder {
+  background: var(--neutral-100);
+  border: 2px dashed var(--neutral-300);
+  border-radius: var(--radius-md);
+  min-height: 180px;
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  text-align: center;
+}
+.article-rich-content .arc-image-placeholder .arc-img-hint-label {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  color: var(--neutral-400);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+.article-rich-content .arc-image-placeholder .arc-img-hint-kw {
+  font-size: var(--text-sm);
+  color: var(--neutral-500);
+  font-style: italic;
+  line-height: 1.5;
+}
+.article-rich-content .arc-image-placeholder--wide {
+  min-height: 140px;
+}
+.article-rich-content .arc-image-caption {
+  font-size: var(--text-xs);
+  color: var(--fg-4);
+  text-align: center;
+  margin-top: var(--space-2);
+  font-style: italic;
+}
+/* Grid layouts */
+.article-rich-content .arc-image-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+.article-rich-content .arc-image-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: var(--space-3);
+}
+
+/* Year block (dùng trong nganh_dao_tao) */
+.article-rich-content .arc-year-block {
+  border-left: 3px solid var(--neutral-200);
+  padding: var(--space-2) var(--space-4);
+  margin-bottom: var(--space-3);
+}
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .article-rich-content .arc-skill-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .article-rich-content .arc-related-card {
+    grid-template-columns: 40px 1fr auto;
+    gap: var(--space-3);
+  }
+  .article-rich-content .arc-image-grid-2,
+  .article-rich-content .arc-image-grid-3 {
+    grid-template-columns: 1fr;
+  }
+}

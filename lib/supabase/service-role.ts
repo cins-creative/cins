@@ -1,18 +1,20 @@
 import { createClient } from "@supabase/supabase-js";
 
+import { getTrimmedSupabaseUrl } from "@/lib/supabase/env";
+
 /** Chỉ gọi từ server (API route / server action). Không import vào client bundle. */
 export function hasServiceRoleEnv(): boolean {
-  return !!(
-    process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
-  );
+  const url = getTrimmedSupabaseUrl();
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  return !!(url && key);
 }
 
 export function createServiceRoleClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const url = getTrimmedSupabaseUrl();
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
   if (!url || !key) {
     throw new Error(
-      "Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY",
+      "Missing Supabase project URL or SUPABASE_SERVICE_ROLE_KEY",
     );
   }
   return createClient(url, key, {

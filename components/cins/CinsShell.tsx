@@ -1,6 +1,10 @@
 import type { ComponentPropsWithoutRef } from "react";
 
-import { SiteNav } from "@/components/cins/SiteNav";
+import {
+  CinsAppSidebar,
+  CinsAppTopbar,
+  SiteNavEffects,
+} from "@/components/cins/SiteNav";
 
 export function CinsShell({
   children,
@@ -8,8 +12,12 @@ export function CinsShell({
 }: ComponentPropsWithoutRef<"div"> & { children: React.ReactNode }) {
   return (
     <div className="cins-shell" {...shellProps}>
-      <SiteNav />
-      <main className="cins-main">{children}</main>
+      <SiteNavEffects />
+      <CinsAppSidebar />
+      <div className="cins-shell-column">
+        <CinsAppTopbar />
+        <main className="cins-main">{children}</main>
+      </div>
     </div>
   );
 }

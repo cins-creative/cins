@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { pickImageDeliveryUrl } from "@/lib/cloudflare/pick-image-delivery-url";
 import { createServiceRoleClient, hasServiceRoleEnv } from "@/lib/supabase/service-role";
 
 const MAX_BYTES = 12 * 1024 * 1024;
@@ -26,6 +27,7 @@ function badRequest(message: string) {
  * - CAREER_THUMB_UPLOAD_TOKEN
  * - CLOUDFLARE_ACCOUNT_ID
  * - CLOUDFLARE_IMAGES_API_TOKEN (quyền Account → Cloudflare Images → Edit)
+ * - CLOUDFLARE_IMAGES_VARIANT (tùy chọn) — ưu tiên variant URL sau upload
  * - SUPABASE_SERVICE_ROLE_KEY
  * - NEXT_PUBLIC_SUPABASE_URL
  */
@@ -126,8 +128,7 @@ export async function POST(request: Request) {
   };
 
   const variants = payload.result?.variants;
-  const imageUrl =
-    Array.isArray(variants) && variants.length > 0 ? variants[0] : null;
+  const imageUrl = pickImageDeliveryUrl(variants);
 
   if (!imageUrl || typeof imageUrl !== "string") {
     return NextResponse.json(

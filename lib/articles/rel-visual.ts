@@ -67,6 +67,23 @@ export function relTagForCard(card: ArticleCard): {
   return { className: "rel-tag", label };
 }
 
+export function partitionNganhRelated(items: ArticleCard[]) {
+  const monHoc = items.filter((i) => String(i.loai_bai_viet) === "mon_hoc");
+  const nganhCompare = items.filter(
+    (i) => String(i.loai_bai_viet) === "nganh_dao_tao",
+  );
+  const nghe = items.filter((i) => String(i.loai_bai_viet) === "nghe");
+  const keywords = items.filter((i) => String(i.loai_bai_viet) === "keyword");
+  const phanMem = items.filter((i) => String(i.loai_bai_viet) === "phan_mem");
+  const other = items.filter((i) => {
+    const l = String(i.loai_bai_viet);
+    return !["mon_hoc", "nganh_dao_tao", "nghe", "keyword", "phan_mem"].includes(
+      l,
+    );
+  });
+  return { monHoc, nganhCompare, nghe, keywords, phanMem, other };
+}
+
 export function partitionNgheRelated(items: ArticleCard[]) {
   const keywords = items.filter((i) => String(i.loai_bai_viet) === "keyword");
   const nghe = items.filter((i) => String(i.loai_bai_viet) === "nghe");

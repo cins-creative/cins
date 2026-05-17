@@ -75,9 +75,33 @@ export type NgheNghiepListItem = Pick<
   | "nn_bo_phan"
 > & { id: string };
 
+/** Nhóm bài (`article_nhom`) — `bo_phan` | `ky_thuat` | `nhom_nganh` | `cap_do`. */
+export type ArticleNhomHubEmbed = {
+  id: string;
+  slug: string;
+  ten: string;
+  mo_ta: string | null;
+  loai_nhom: string;
+  thu_tu: number;
+};
+
+export type LinhVucHubEmbed = {
+  id: string;
+  slug: string;
+  ten: string;
+};
+
 /** Danh sách hub — thêm lĩnh vực + mô tả ngắn cho card/section */
 export type NgheNghiepHubItem = NgheNghiepListItem &
-  Pick<NgheNghiepRow, "linh_vuc_id" | "short_description">;
+  Pick<NgheNghiepRow, "linh_vuc_id" | "short_description"> & {
+    /** FK trực tiếp trên `article_bai_viet`. */
+    id_linh_vuc?: string | null;
+    linh_vuc?: LinhVucHubEmbed | null;
+    linh_vuc_slugs?: string[] | null;
+    article_nhom_id?: string | null;
+    article_nhom?: ArticleNhomHubEmbed | null;
+    article_nhom_all?: ArticleNhomHubEmbed[] | null;
+  };
 
 export type RelatedCareerCard = {
   id: string;
@@ -104,4 +128,12 @@ export type LinhVucRow = {
   linh_vuc_id?: string | null;
   /** Nhóm hiển thị sidebar — các dòng cùng giá trị gộp một tiêu đề */
   nhom_vi?: string | null;
+  /** Một số schema: bảng `linh_vuc` dùng `nhom` / `ten` (ưu tiên map vào đây khi query) */
+  nhom?: string | null;
+  ten?: string | null;
+  /** Bảng `linh_vuc`: thứ tự hiển thị trong nhóm */
+  thu_tu?: number | null;
+  /** Bảng `linh_vuc`: ví dụ `active` */
+  trang_thai?: string | null;
+  cover_id?: string | null;
 };

@@ -1,7 +1,14 @@
-import type { ArticleBaiViet, ArticleCard, TacPhamGalleryItem, TruongNganhRow } from "@/lib/articles/types";
+import type {
+  ArticleBaiViet,
+  ArticleCard,
+  TacPhamGalleryItem,
+  TruongNganhRow,
+} from "@/lib/articles/types";
+import type { RelatedJobLienQuanRow } from "@/lib/articles/related-jobs-dynamic";
 import { ArticleContent } from "@/components/article/ArticleContent";
 import { ArticleHeroV2 } from "@/components/article/ArticleHeroV2";
 import { ArticleJsonLd } from "@/components/article/ArticleJsonLd";
+import { InlineArticleDraftBar } from "@/components/article/InlineArticleDraftBar";
 import { ArticleNgheView } from "@/components/article/nghe/ArticleNgheView";
 import { ArticleSidebar } from "@/components/article/ArticleSidebar";
 import { TacPhamSection } from "@/components/article/TacPhamSection";
@@ -12,6 +19,11 @@ type Props = {
   lienQuan: ArticleCard[];
   tacPham: TacPhamGalleryItem[];
   truongRows: TruongNganhRow[];
+  relatedJobsLienQuan?: RelatedJobLienQuanRow[];
+  /** Hiện nút sửa + form khi dev hoặc CINS_INLINE_ARTICLE_EDIT (không cần service role). */
+  draftUiEnabled?: boolean;
+  /** Cho phép lưu Supabase — cần SUPABASE_SERVICE_ROLE_KEY. */
+  draftPersistEnabled?: boolean;
 };
 
 export function ArticlePageView({
@@ -19,6 +31,9 @@ export function ArticlePageView({
   lienQuan,
   tacPham,
   truongRows,
+  relatedJobsLienQuan = [],
+  draftUiEnabled = false,
+  draftPersistEnabled = false,
 }: Props) {
   const slugPath = `/bai-viet/${article.slug}`;
   const markdown =
@@ -27,7 +42,15 @@ export function ArticlePageView({
     "";
 
   if (article.loai_bai_viet === "nghe") {
-    return <ArticleNgheView article={article} />;
+    return (
+      <ArticleNgheView
+        article={article}
+        lienQuan={lienQuan}
+        relatedJobsLienQuan={relatedJobsLienQuan}
+        showDraftBar={draftUiEnabled}
+        draftPersistEnabled={draftPersistEnabled}
+      />
+    );
   }
 
   return (
@@ -46,6 +69,13 @@ export function ArticlePageView({
           <ArticleSidebar lienQuan={lienQuan} />
         </div>
       </div>
+      {draftUiEnabled ? (
+        <InlineArticleDraftBar
+          key={`${article.id}-${article.cap_nhat_luc}`}
+          article={article}
+          persistEnabled={draftPersistEnabled}
+        />
+      ) : null}
     </div>
   );
 }

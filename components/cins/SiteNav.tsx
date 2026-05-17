@@ -3,104 +3,144 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { MsIcon } from "@/components/cins/MsIcon";
+import { SidebarNavIcon } from "@/components/cins/SidebarNavIcon";
+import { useCinsSidebarNav } from "@/components/cins/useCinsSidebarNav";
+import {
+  MAIN_NAV_FOOT_ITEMS,
+  MAIN_NAV_ITEMS,
+  type MainNavItem,
+} from "@/lib/cins/mainNav";
 
-export function SiteNav() {
-  const pathname = usePathname();
-  const isHome = pathname === "/";
-  const isCareer =
-    pathname === "/nghe-nghiep" || pathname.startsWith("/nghe-nghiep/");
-  const isArticles =
-    pathname === "/bai-viet" || pathname.startsWith("/bai-viet/");
-
+function SidebarLink({
+  item,
+  pathname,
+}: {
+  item: MainNavItem;
+  pathname: string;
+}) {
+  const active = item.isActive(pathname);
   return (
-    <header className="site-nav" role="banner">
-      <div className="site-nav-inner">
-        <Link href="/" className="site-nav-brand">
-          <img src="/assets/logo-cins.png" alt="CINs" width={112} height={28} />
-        </Link>
-
-        <nav className="site-nav-desktop" aria-label="Điều hướng chính">
-          <Link
-            href="/"
-            className={`site-nav-link${isHome ? " is-active" : ""}`}
-          >
-            Trang chủ
-          </Link>
-          <Link
-            href="/nghe-nghiep"
-            className={`site-nav-link${isCareer ? " is-active" : ""}`}
-          >
-            Hướng nghiệp
-          </Link>
-          <Link href="#" className="site-nav-link">
-            Trường Đại học
-          </Link>
-          <Link
-            href="/bai-viet"
-            className={`site-nav-link${isArticles ? " is-active" : ""}`}
-          >
-            Bài viết
-          </Link>
-        </nav>
-
-        <div className="site-nav-end">
-          <div className="site-nav-tools">
-            <button
-              type="button"
-              className="site-nav-search-btn"
-              aria-label="Tìm kiếm"
-            >
-              <MsIcon name="search" className="site-nav-search-ic" />
-            </button>
-            <Link href="#" className="site-nav-cta">
-              Đăng ký miễn phí
-            </Link>
-          </div>
-
-          <details className="site-nav-menu">
-            <summary className="site-nav-menu-toggle" aria-label="Mở menu">
-              <MsIcon name="menu" className="site-nav-menu-icon" />
-            </summary>
-            <div className="site-nav-menu-panel">
-              <Link
-                href="/"
-                className={`site-nav-menu-link${isHome ? " is-active" : ""}`}
-              >
-                Trang chủ
-              </Link>
-              <Link
-                href="/nghe-nghiep"
-                className={`site-nav-menu-link${isCareer ? " is-active" : ""}`}
-              >
-                Hướng nghiệp
-              </Link>
-              <Link href="#" className="site-nav-menu-link">
-                Trường Đại học
-              </Link>
-              <Link
-                href="/bai-viet"
-                className={`site-nav-menu-link${isArticles ? " is-active" : ""}`}
-              >
-                Bài viết
-              </Link>
-              <button
-                type="button"
-                className="site-nav-menu-search"
-                aria-label="Tìm kiếm"
-              >
-                <MsIcon name="search" className="site-nav-ic" />
-                Tìm kiếm
-              </button>
-              <div className="site-nav-menu-actions">
-                <Link href="#" className="site-nav-menu-cta">
-                  Đăng ký miễn phí
-                </Link>
-              </div>
-            </div>
-          </details>
-        </div>
-      </div>
-    </header>
+    <li>
+      <Link
+        href={item.href}
+        className={`sb-item${active ? " active" : ""}`}
+        data-tip={item.tip}
+        aria-current={active ? "page" : undefined}
+      >
+        <span className="sb-ico">
+          <SidebarNavIcon name={item.icon} />
+        </span>
+        <span className="sb-label">{item.label}</span>
+      </Link>
+    </li>
   );
 }
+
+function SidebarFootLink({
+  item,
+  pathname,
+}: {
+  item: MainNavItem;
+  pathname: string;
+}) {
+  const active = item.isActive(pathname);
+  return (
+    <Link
+      href={item.href}
+      className={`sb-item${active ? " active" : ""}`}
+      data-tip={item.tip}
+      aria-current={active ? "page" : undefined}
+    >
+      <span className="sb-ico">
+        <SidebarNavIcon name={item.icon} />
+      </span>
+      <span className="sb-label">{item.label}</span>
+    </Link>
+  );
+}
+
+export function CinsAppSidebar() {
+  const pathname = usePathname() ?? "/";
+
+  return (
+    <aside
+      className="sidebar cins-app-sidebar"
+      id="app-sidebar"
+      aria-label="Điều hướng chính"
+    >
+      <Link href="/" className="sb-brand" aria-label="CINs trang chủ">
+        <div className="sb-brand-mark">C</div>
+        <div className="sb-brand-text">CINs</div>
+      </Link>
+      <ul className="sb-list">
+        {MAIN_NAV_ITEMS.map((item) => (
+          <SidebarLink key={item.id} item={item} pathname={pathname} />
+        ))}
+      </ul>
+      <div className="sb-foot">
+        {MAIN_NAV_FOOT_ITEMS.map((item) => (
+          <SidebarFootLink key={item.id} item={item} pathname={pathname} />
+        ))}
+      </div>
+    </aside>
+  );
+}
+
+export function CinsAppTopbar() {
+  return (
+    <nav className="topbar cins-app-topbar" id="app-topbar">
+      <div className="topbar-inner">
+        <div className="tb-left">
+          <button
+            type="button"
+            className="tb-burger"
+            id="app-tb-burger"
+            aria-label="Mở menu"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.8}
+              strokeLinecap="round"
+              aria-hidden
+            >
+              <path d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+          <Link href="#" className="tb-quiz">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+              <path d="M12 2l1.8 5.4L19 9.2l-4.5 3.3L16 18l-4-3-4 3 1.5-5.5L5 9.2l5.2-1.8L12 2z" />
+            </svg>
+            <span>Quiz khám phá tính cách nghề</span>
+          </Link>
+        </div>
+        <div className="tb-right">
+          <Link href="#" className="tb-ask">
+            <svg viewBox="0 0 24 24" aria-hidden>
+              <path d="M21 12a8 8 0 01-11.6 7.1L4 21l1.9-5.4A8 8 0 1121 12z" />
+              <path d="M9 10h6M9 13h4" />
+            </svg>
+            <span>Tư vấn nghề</span>
+          </Link>
+          <span className="tb-divider" aria-hidden />
+          <div className="tb-auth">
+            <Link href="#" className="tb-login">
+              Đăng nhập
+            </Link>
+            <Link href="#" className="tb-signup">
+              Đăng ký <span aria-hidden="true">→</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+    </nav>
+  );
+}
+
+/** Khởi tạo tooltip sidebar + burger (render null). */
+export function SiteNavEffects() {
+  useCinsSidebarNav("app-sidebar");
+  return null;
+}
+

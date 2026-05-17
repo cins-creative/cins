@@ -3,6 +3,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 import type { ArticleCard } from "@/lib/articles/types";
+import { labelLoaiQuanHe } from "@/lib/articles/quan-he-labels";
 import {
   relGradient,
   relInitials,
@@ -33,7 +34,7 @@ function RelTip({
           <div className="rel-tip-kind">
             {relLoaiKind(loai)}
             {card.loai_quan_he
-              ? ` · ${card.loai_quan_he.replace(/_/g, " ")}`
+              ? ` · ${labelLoaiQuanHe(card.loai_quan_he)}`
               : ""}
           </div>
         </div>
@@ -128,7 +129,12 @@ export function NgheRelTile({
           </div>
           <div>
             <div className="rel-tip-name">{card.tieu_de}</div>
-            <div className="rel-tip-kind">{relLoaiKind(loai)}</div>
+            <div className="rel-tip-kind">
+              {relLoaiKind(loai)}
+              {card.loai_quan_he
+                ? ` · ${labelLoaiQuanHe(card.loai_quan_he)}`
+                : ""}
+            </div>
           </div>
         </div>
         {desc ? <div className="rel-tip-desc">{desc}</div> : null}

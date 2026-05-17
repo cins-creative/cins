@@ -273,21 +273,22 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .voc-arrow { color: var(--cins-blue); font-weight: 700; transition: transform 180ms; }
 .voc-card:hover .voc-arrow { transform: translateX(4px); }
 
-/* ─── LAYOUT: thanh điều hướng trên + main full width ─── */
+/* ─── LAYOUT: sidebar + topbar — chi tiết trong cins-app-nav.css ─── */
 .cins-shell {
-  display: flex;
-  flex-direction: column;
   width: 100%;
   min-height: 100vh;
-  align-items: stretch;
-  --site-nav-height: 56px;
+}
+.cins-shell-column {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-width: 0;
 }
 .cins-main {
   flex: 1;
   min-width: 0;
   position: relative;
   z-index: 0;
-  height: fit-content;
 }
 
 /* ─── Site navigation — một hàng, tối giản ─── */
@@ -301,13 +302,13 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 
 .site-nav-inner {
-  max-width: 1200px;
+  max-width: 1440px;
   margin: 0 auto;
-  padding: 8px 20px;
+  padding: 0 16px 0 12px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
   min-height: var(--site-nav-height);
   box-sizing: border-box;
 }
@@ -315,58 +316,115 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .site-nav-brand {
   display: flex;
   align-items: center;
-  height: 28px;
+  gap: 10px;
   flex-shrink: 0;
   text-decoration: none;
+  padding: 4px 6px 4px 4px;
+  border-radius: 10px;
 }
 .site-nav-brand:hover {
-  opacity: 0.85;
+  opacity: 0.92;
 }
 .site-nav-brand:focus-visible {
   outline: 2px solid var(--cins-blue);
   outline-offset: 4px;
-  border-radius: 6px;
 }
-.site-nav-brand img {
-  height: 100%;
-  width: auto;
-  max-width: min(108px, 40vw);
+.site-nav-brand-mark {
+  width: 32px;
+  height: 32px;
+  background: var(--cins-blue);
+  border-radius: 9px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-family: var(--font-anton), Anton, sans-serif;
+  font-size: 17px;
+  letter-spacing: 0.5px;
+}
+.site-nav-brand-text {
+  font-weight: 800;
+  font-size: 19px;
+  color: var(--cins-blue);
+  letter-spacing: -0.4px;
+  white-space: nowrap;
 }
 
-/* Menu chữ — không icon, không wrap */
+/* Menu ngang — cùng pattern sidebar home v2 (.sb-item) */
 .site-nav-desktop {
   display: none;
   flex: 1;
-  align-items: center;
-  justify-content: center;
-  gap: clamp(12px, 3vw, 32px);
   min-width: 0;
-  flex-wrap: nowrap;
+  align-items: stretch;
+  justify-content: flex-start;
 }
-.site-nav-link {
+.site-nav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.site-nav-list::-webkit-scrollbar {
+  display: none;
+}
+.site-nav-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   flex-shrink: 0;
-  padding: 6px 2px;
-  font-size: 15px;
+  padding: 9px 10px;
+  border-radius: 14px;
+  font-size: 13.5px;
   font-weight: 500;
-  letter-spacing: -0.02em;
-  color: #64748b;
+  line-height: 1.2;
+  color: rgba(0, 0, 0, 0.6);
   text-decoration: none;
   white-space: nowrap;
-  border-bottom: 2px solid transparent;
-  transition: color 0.15s ease, border-color 0.15s ease;
+  position: relative;
+  transition:
+    background 0.18s cubic-bezier(0.2, 0.7, 0.3, 1),
+    color 0.18s cubic-bezier(0.2, 0.7, 0.3, 1);
 }
-.site-nav-link:hover {
-  color: #0f172a;
-}
-.site-nav-link.is-active {
+.site-nav-item:hover {
+  background: var(--cins-blue-soft, #e7f0fb);
   color: var(--cins-blue);
-  font-weight: 600;
-  border-bottom-color: var(--cins-blue);
 }
-.site-nav-link:focus-visible {
+.site-nav-item.is-active {
+  background: var(--cins-blue-soft, #e7f0fb);
+  color: var(--cins-blue);
+  font-weight: 700;
+}
+.site-nav-item:focus-visible {
   outline: 2px solid var(--cins-blue);
-  outline-offset: 4px;
-  border-radius: 4px;
+  outline-offset: 2px;
+}
+.site-nav-ico {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.site-nav-ico svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.site-nav-label {
+  line-height: 1.2;
 }
 
 .site-nav-end {
@@ -473,22 +531,46 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12);
   z-index: 100;
 }
-.site-nav-menu-link {
-  display: block;
-  padding: 10px 6px;
-  font-size: 15px;
-  font-weight: 600;
-  color: #334155;
+.site-nav-menu-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.site-nav-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.65);
   text-decoration: none;
-  border-radius: 8px;
+  border-radius: 14px;
+  transition: background 0.15s ease, color 0.15s ease;
 }
-.site-nav-menu-link:hover {
-  background: rgba(31, 116, 201, 0.06);
+.site-nav-menu-item:hover {
+  background: var(--cins-blue-soft, #e7f0fb);
   color: var(--cins-blue);
 }
-.site-nav-menu-link.is-active {
+.site-nav-menu-item.is-active {
   color: var(--cins-blue);
-  background: var(--cins-blue-soft);
+  background: var(--cins-blue-soft, #e7f0fb);
+  font-weight: 700;
+}
+.site-nav-menu-item--foot {
+  font-size: 13px;
+  color: rgba(0, 0, 0, 0.55);
+}
+.site-nav-menu-foot {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 .site-nav-menu-search {
   display: flex;
@@ -548,7 +630,8 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .site-nav-link,
+  .site-nav-item,
+  .site-nav-menu-item,
   .site-nav-search-btn,
   .site-nav-cta,
   .site-nav-menu-toggle {
