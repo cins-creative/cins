@@ -1,9 +1,9 @@
-import { ArticleMarkdownBody } from "@/components/article/ArticleMarkdownBody";
+import { ArticleRichBody } from "@/components/article/ArticleRichBody";
 
 export function ArticleContent({ markdown }: { markdown: string }) {
   return (
     <div className="article-content-html">
-      <ArticleMarkdownBody markdown={markdown} className="body" />
+      <ArticleRichBody source={markdown} />
     </div>
   );
 }

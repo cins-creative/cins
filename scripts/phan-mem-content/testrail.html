@@ -1,0 +1,209 @@
+<section class="arc-intro">
+  <p>Bạn tham gia dự án phát triển app di động cho trường, sau khi lập trình viên báo «đã xong tính năng đăng nhập», QA mở một bảng test case liệt kê từng bước: nhập email hợp lệ, sai mật khẩu, quên mật khẩu, đăng nhập bằng Google — tick Pass/Fail và ghi lại bug kèm ảnh chụp màn hình. Rất có thể team đang dùng <strong>TestRail</strong>, công cụ quản lý test case chuyên biệt mà nhiều công ty phần mềm và outsourcing tại Việt Nam tin dùng.</p>
+  <p>TestRail không thay thế Jira hay Slack — nó tập trung vào <strong>viết, tổ chức và thực thi test case</strong>, theo dõi kết quả từng lần chạy test (test run) và báo cáo độ phủ kiểm thử cho PM. Hiểu TestRail giúp bạn không chỉ «biết test thủ công» mà nắm được cách phòng QA chuyên nghiệp đảm bảo phần mềm đủ ổn định trước khi release — kỹ năng quan trọng nếu bạn định hướng ngành CNTT, QA hoặc quản lý dự án phần mềm.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>TestRail là gì?</h2>
+  <p>TestRail do <strong>Gurock</strong> (thuộc Idera) phát triển — nền tảng <strong>quản lý test case và kiểm thử phần mềm</strong> chạy trên web, có bản Cloud và Server. Khác với Jira (quản lý task tổng quát), TestRail được thiết kế riêng cho QA: mỗi test case mô tả bước thực hiện, kết quả mong đợi, mức ưu tiên và liên kết với requirement hoặc user story.</p>
+  <p>Khác với spreadsheet Excel tự làm, TestRail có cấu trúc <strong>project → suite → section → test case → test run → result</strong>: bạn tổ chức hàng trăm case theo module (Login, Payment, Profile…), chạy regression trước mỗi release và xem báo cáo Pass/Fail/Blocked theo thời gian. Giao diện ban đầu có nhiều thuật ngữ QA, nhưng mỗi khái niệm phục vụ một bước trong quy trình kiểm thử có hệ thống — đặc biệt hữu ích nếu bạn tham gia CLB lập trình, hackathon hoặc internship tại công ty phần mềm.</p>
+  <ul class="arc-list">
+    <li><strong>Test case management</strong> — viết, nhóm và tái sử dụng case với bước, expected result, preconditions</li>
+    <li><strong>Test runs &amp; milestones</strong> — chọn tập case cho sprint/release, gán tester, theo dõi tiến độ thực thi</li>
+    <li><strong>Báo cáo &amp; metrics</strong> — activity chart, case coverage, defect summary theo module</li>
+    <li><strong>Tích hợp</strong> — Jira, GitHub, Slack, CI/CD (Jenkins, Azure DevOps) để đồng bộ bug và automation</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"TestRail test case management dashboard interface screenshot"</span>
+    </div>
+    <p class="arc-image-caption">Giao diện TestRail — danh sách test case, suite và trạng thái test run</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>TestRail thường đứng ở giai đoạn <strong>kiểm thử sau khi dev hoàn thành feature</strong>: BA hoặc QA lead viết test case từ requirement, tester thực thi trong test run gắn milestone (ví dụ «Release 1.2»), log kết quả Pass/Fail và tạo defect trong Jira khi phát hiện lỗi. Với dự án nhỏ, team có thể dùng checklist trên Jira — TestRail mạnh nhất khi có hàng trăm case, nhiều tester và cần báo cáo coverage cho stakeholder. Thường làm việc cùng Jira (bug tracking), Confluence (tài liệu) và công cụ automation như Selenium hoặc Postman.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Viết và tổ chức test case</h3>
+    <p>Trái tim của TestRail là <strong>test case</strong> — tài liệu mô tả cách kiểm tra một chức năng. Mỗi case có tiêu đề («Đăng nhập với email hợp lệ»), các bước thực hiện, kết quả mong đợi, mức ưu tiên (Critical/High/Medium/Low) và loại test (Functional, Regression, Smoke). Bạn nhóm case vào <strong>test suite</strong> và <strong>section</strong> theo module — ví dụ suite «Authentication» chứa section Login, Register, Forgot Password.</p>
+    <p>Đối với học sinh THPT tham gia dự án app CLB hoặc Capstone, bài tập thực tế hay gặp: viết 10–15 test case cho tính năng đăng ký sự kiện — bao gồm happy path và edge case (email trống, ngày quá khứ, file đính kèm quá lớn) — vừa luyện tư duy kiểm thử vừa làm portfolio QA cơ bản cho ngành CNTT.</p>
+    <ul class="arc-list">
+      <li><strong>Steps &amp; expected result</strong> — mỗi bước rõ ràng, tester mới cũng làm theo được</li>
+      <li><strong>Template &amp; custom fields</strong> — chuẩn hóa format case theo quy trình công ty</li>
+      <li><strong>Reuse &amp; copy</strong> — nhân bản case cho phiên bản mới, tránh viết lại từ đầu</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"TestRail test case editor steps expected result screenshot"</span>
+        </div>
+        <p class="arc-image-caption">Soạn test case — bước thực hiện, kết quả mong đợi và metadata</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"TestRail test suite section organization hierarchy"</span>
+        </div>
+        <p class="arc-image-caption">Tổ chức suite — section theo module chức năng</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Test run, milestone &amp; thực thi kiểm thử</h3>
+    <p>Sau khi có bộ test case, bạn tạo <strong>test run</strong> — chọn case cần chạy cho sprint hoặc release cụ thể, gán cho tester và đặt deadline. Tester mở run, làm từng case, đánh dấu <strong>Passed</strong>, <strong>Failed</strong>, <strong>Blocked</strong> hoặc <strong>Retest</strong>, kèm comment và ảnh chụp màn hình. <strong>Milestone</strong> gom nhiều run lại (ví dụ «Beta 2.0») để PM nhìn tổng tiến độ trước ngày go-live.</p>
+    <p>Đây là kỹ năng «sản xuất thực tế» mà studio phần mềm luôn yêu cầu: không chỉ tìm bug ngẫu nhiên mà chạy regression có hệ thống — đảm bảo tính năng cũ không bị hỏng khi thêm code mới. Học sinh THPT có thể mô phỏng bằng test run cho app web lớp tự làm, chia vai dev/test trong nhóm 4–5 người.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"TestRail test run execution pass fail blocked results screenshot"</span>
+      </div>
+      <p class="arc-image-caption">Test run — tester thực thi case và ghi kết quả Pass/Fail</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Báo cáo, tích hợp Jira &amp; automation</h3>
+    <p>TestRail cung cấp <strong>dashboard và báo cáo</strong>: biểu đồ activity theo ngày, tỷ lệ Pass/Fail theo module, case chưa chạy, defect density. QA lead trình bày cho PM trước release: «85% case đã pass, 3 bug Critical còn mở — chưa nên deploy production». Tích hợp <strong>Jira</strong> cho phép tạo bug từ case Failed, đồng bộ trạng thái hai chiều; tích hợp CI/CD ghi nhận kết quả automated test vào TestRail.</p>
+    <p>Luồng làm việc điển hình: dev merge code → CI chạy smoke test → QA chạy manual run trên TestRail → bug Failed push sang Jira → dev fix → QA retest case. Hiểu quy trình này giúp bạn thấy QA không «chỉ bấm lung tung» mà là cầu nối giữa requirement và chất lượng sản phẩm.</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"TestRail Jira integration defect workflow QA pipeline"</span>
+      </div>
+      <p class="arc-image-caption">Luồng tích hợp — test case Failed tạo bug Jira, retest sau khi fix</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai công cụ hay được đặt cạnh TestRail nhất là <strong>Jira</strong> (quản lý dự án tổng quát, có plugin test) và <strong>Zephyr</strong> (add-on test management gắn Jira). Không có câu trả lời «đúng duy nhất» — tùy quy mô team, ngân sách và mức độ chuyên sâu về QA mà công ty chọn giải pháp riêng hoặc kết hợp.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">TestRail vs Jira</h3>
+    <p>Jira là nền tảng quản lý issue và Agile — mạnh về sprint, backlog, bug tracking cho toàn team dev/PM/QA. Jira có thể thêm checklist hoặc custom field để «giả lập» test case, nhưng không có cấu trúc test run, milestone và báo cáo coverage chuyên biệt như TestRail. Nhiều công ty dùng <strong>cả hai</strong>: Jira cho task và bug, TestRail cho test case — tích hợp sẵn để Failed case tạo Jira issue.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"TestRail test case coverage report dashboard professional"</span>
+        </div>
+        <p class="arc-image-caption">TestRail — báo cáo coverage và test run chuyên cho QA</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Atlassian Jira Software Scrum board issue tracking screenshot"</span>
+        </div>
+        <p class="arc-image-caption">Jira — quản lý sprint, bug và task cho cả team phát triển</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>TestRail mạnh hơn:</strong> viết và tổ chức test case có cấu trúc, test run/milestone, báo cáo QA chuyên sâu, workflow kiểm thử regression.<br>
+      <strong>Jira mạnh hơn:</strong> quản lý toàn bộ dự án Agile, bug tracking, tích hợp Git/Confluence, phù hợp team chưa cần tool QA riêng.<br>
+      <strong>Chọn TestRail khi:</strong> phòng QA có nhiều tester, hàng trăm case, cần báo cáo coverage và tích hợp Jira song song.<br>
+      <strong>Chọn chỉ Jira khi:</strong> team nhỏ, test đơn giản, ngân sách hạn chế — dùng checklist hoặc plugin test nhẹ.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">TestRail vs Zephyr</h3>
+    <p>Zephyr (SmartBear) là <strong>plugin test management chạy bên trong Jira</strong> — test case, cycle và execution nằm ngay trên giao diện Jira, không cần chuyển tab sang app khác. TestRail là sản phẩm độc lập, UI tập trung 100% vào QA, tích hợp Jira qua API. Công ty đã «sống» trong Jira thường cân nhắc Zephyr để giảm context switching; công ty coi QA là phòng riêng với quy trình phức tạp thường chọn TestRail.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"TestRail standalone QA test management interface"</span>
+        </div>
+        <p class="arc-image-caption">TestRail — nền tảng QA độc lập, báo cáo và suite chuyên sâu</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Zephyr Scale Jira test management plugin screenshot"</span>
+        </div>
+        <p class="arc-image-caption">Zephyr — test case và cycle nhúng trực tiếp trong Jira</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>TestRail mạnh hơn:</strong> giao diện QA chuyên dụng, báo cáo phong phú, phù hợp team test lớn không muốn phụ thuộc UI Jira.<br>
+      <strong>Zephyr mạnh hơn:</strong> một nền tảng duy nhất (Jira), traceability requirement–test–bug trong cùng hệ sinh thái Atlassian.<br>
+      <strong>Chọn TestRail khi:</strong> QA cần tool riêng, nhiều project test, báo cáo executive cho stakeholder ngoài dev.<br>
+      <strong>Chọn Zephyr khi:</strong> toàn công ty đã chuẩn hóa Jira, muốn test management không rời khỏi board quen thuộc.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học TestRail như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Nắm tư duy kiểm thử phần mềm cơ bản</strong>
+        <p>Trước khi mở TestRail, hãy hiểu khái niệm test case, bug, regression, smoke test và happy path vs edge case. Thử test thủ công một app web đơn giản (form đăng ký, giỏ hàng demo) và ghi lại bước + kết quả mong đợi bằng Google Doc. Mục tiêu là biết «viết case» nghĩa là gì — nhiều bạn THPT nhảy vào tool mà chưa rõ logic kiểm thử nên case viết mơ hồ, khó thực thi.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Làm quen giao diện project và suite</strong>
+        <p>Đăng ký trial TestRail Cloud (hoặc dùng môi trường demo công ty internship). Tạo project «App CLB trường», thêm suite «User Management», tạo section Login/Register. Viết 5 test case mẫu với steps và expected result đầy đủ. Tuần đầu chỉ tập tổ chức cấu trúc — chưa cần test run phức tạp.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Thực hành test run và ghi kết quả</strong>
+        <p>Tạo test run «Sprint 1 — Smoke Test», chọn 10 case, tự assign và thực thi trên app thật (hoặc bản staging). Đánh dấu Pass/Fail, thêm comment mô tả lỗi khi Failed — kèm ảnh chụp màn hình nếu có thể. Mục tiêu là quen workflow: mở run → làm từng case → đóng run → xem báo cáo tổng hợp.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Tích hợp Jira và quy trình bug</strong>
+        <p>Nếu nhóm dự án dùng Jira, cấu hình integration: case Failed tạo bug Jira tự động hoặc thủ công, link hai chiều. Luyện quy trình: tester log bug → dev fix → tester retest case trong run mới. Đây là kỹ năng thực tế mà phòng QA outsourcing tại Việt Nam làm hàng ngày — hiểu sớm giúp bạn internship mượt hơn.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Milestone, báo cáo và regression</strong>
+        <p>Tạo milestone «Release Beta», gom 2–3 test run (smoke, functional, regression). Xem dashboard: bao nhiêu % pass, module nào nhiều fail. Viết tóm tắt 1 trang cho «PM giả định»: có nên release không, rủi ro còn lại. Bài tập này dạy bạn giao tiếp kết quả QA — không chỉ tìm bug mà còn đánh giá chất lượng release.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Portfolio và định hướng nghề QA</strong>
+        <p>Tổng hợp dự án: bộ test case (export PDF hoặc screenshot), báo cáo test run, ví dụ bug report chuyên nghiệp. Ghi trên CV/LinkedIn: «Viết 50+ test case, thực thi regression, tích hợp Jira». Tìm hiểu thêm ISTQB Foundation (chứng chỉ QA cơ bản), Selenium hoặc Postman cho automation — TestRail là bước đầu trong hành trình QA Engineer tại Việt Nam.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

@@ -4,6 +4,7 @@
     "Segoe UI", Roboto, sans-serif;
   /* Tiêu đề “display” marketing (KHÔNG Anton): luôn Be Vietnam Pro */
   --font-display: var(--font-be-vietnam), "Be Vietnam Pro", system-ui, sans-serif;
+  --font-meta: var(--font-sans);
 }
 
 h1 {

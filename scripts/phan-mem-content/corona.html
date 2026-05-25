@@ -1,0 +1,209 @@
+<section class="arc-intro">
+  <p>Bạn lướt portfolio kiến trúc trên Behance, dừng lại ở một căn penthouse — ánh sáng buổi chiều xuyên rèm, gỗ sàn phản chiếu mềm, bóng đổ tự nhiên trên sofa — và tự hỏi vì sao hình render «giống ảnh chụp» đến vậy. Rất nhiều still archviz đó được tạo bằng <strong>Corona Renderer</strong>, plugin render gắn vào 3ds Max hoặc Cinema 4D, nổi tiếng với ánh sáng tự nhiên và workflow đơn giản hơn nhiều engine render «studio» khác.</p>
+  <p>Corona không phải phần mềm dựng hình 3D — bạn vẫn model trong Max/C4D — mà là <strong>engine tính toán ánh sáng</strong> cuối cùng. Tại Việt Nam, Corona cạnh tranh sát với V-Ray trong studio archviz và nội thất; hiểu Corona giúp học sinh THPT hướng kiến trúc–đồ họa 3D nắm được một trong những công cụ tuyển dụng phổ biến nhất sau khi đã dựng xong scene.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>Corona Renderer là gì?</h2>
+  <p>Corona Renderer do <strong>Chaos</strong> phát triển (cùng hãng với V-Ray) — <strong>renderer biased/unbiased</strong> tích hợp dưới dạng plugin cho <strong>Autodesk 3ds Max</strong> và <strong>Maxon Cinema 4D</strong>. Corona dùng thuật toán path tracing (và các tối ưu nội bộ) để mô phỏng ánh sáng, vật liệu PBR và bóng đổ — xuất ra still hoặc animation walkthrough cho kiến trúc, nội thất và visualisation sản phẩm.</p>
+  <p>Khác với render realtime (Enscape, Lumion) ưu tiên xem nhanh khi thiết kế, Corona ưu tiên <strong>chất lượng khung hình cuối</strong>: mỗi ảnh 4K có thể render từ vài phút đến vài giờ tùy GPU/CPU và số pass. Giao diện nằm trong host DCC: Corona Frame Buffer (VFB), material CoronaMtl, ánh sáng Corona Sun/Sky và HDRI — triết lý «ít nút, kết quả nhanh đẹp» khiến Corona được nhiều artist archviz mới chọn làm engine đầu tiên.</p>
+  <ul class="arc-list">
+    <li><strong>CoronaMtl &amp; PBR</strong> — vật liệu gỗ, vải, kính, kim loại với preset và tham số trực quan</li>
+    <li><strong>Corona Sun/Sky &amp; HDRI</strong> — ánh sáng ban ngày tự nhiên, chiều vàng, đêm nội thất</li>
+    <li><strong>Interactive rendering</strong> — preview cập nhật khi chỉnh ánh sáng/vật liệu trong viewport</li>
+    <li><strong>Denosing &amp; Light Mix</strong> — giảm noise bằng AI denoiser; chỉnh cường độ từng nguồn sáng sau render</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"Corona Renderer 3ds Max VFB interior archviz render screenshot"</span>
+    </div>
+    <p class="arc-image-caption">Corona Frame Buffer — preview render nội thất và bảng điều khiển Light Mix</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>Corona đứng ở <strong>giai đoạn render cuối</strong> sau khi kiến trúc sư hoặc designer nội thất đã có model (từ Max, SketchUp import, Revit workflow…). Artist gán CoronaMtl, bố trí ánh sáng, render still cho catalogue bất động sản hoặc sequence camera walkthrough. Output thường là PNG/JPG chất lượng cao hoặc EXR nếu cần chỉnh màu sau trong Photoshop/Lightroom. Trong pipeline archviz Việt Nam, Corona làm việc cùng 3ds Max, Forest Pack (cây cối), Photoshop và đôi khi After Effects cho post-production nhẹ.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. CoronaMtl và vật liệu PBR thực tế</h3>
+    <p>Trái tim workflow Corona là <strong>CoronaMtl</strong> — shader PBR với Base color, Reflection, Roughness, IOR cho kính/kim loại, và các layer cho vải, gỗ sơn mờ. Preset có sẵn giúp artist mới gán gỗ oak, marble trắng, vải linen nhanh; sau đó tinh chỉnh UV scale và bump/normal map từ thư viện texture (Poliigon, Quixel, v.v.).</p>
+    <p>Đối với học sinh THPT, bài tập thực tế: dựng phòng ngủ đơn giản trong 3ds Max, gán 3–4 vật liệu Corona khác nhau (tường, sàn, vải, kính) — so sánh Roughness 0.2 vs 0.8 để thấy phản xạ thay đổi thế nào. Hiểu PBR là nền tảng cho mọi engine render hiện đại, không chỉ Corona.</p>
+    <ul class="arc-list">
+      <li><strong>CoronaLayeredMtl</strong> — xếp lớp sơn bong tróc, bụi, decal trên bề mặt</li>
+      <li><strong>CoronaRaySwitchMtl</strong> — vật liệu khác nhau cho camera vs reflection (tối ưu scene phức tạp)</li>
+      <li><strong>Triplanar &amp; mapping</strong> — phủ texture lên model không cần unwrap hoàn hảo (hữu ích kiến trúc)</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Corona Renderer CoronaMtl material editor PBR wood fabric"</span>
+        </div>
+        <p class="arc-image-caption">CoronaMtl — tham số PBR và preset vật liệu nội thất</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Corona Renderer material roughness reflection comparison render"</span>
+        </div>
+        <p class="arc-image-caption">Roughness — so sánh bề mặt bóng và mờ trong Corona</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Ánh sáng tự nhiên, HDRI và Light Mix</h3>
+    <p>Corona nổi tiếng vì <strong>ánh sáng ban ngày trông «đúng»</strong> với ít tinh chỉnh: combo Corona Sun + Corona Sky hoặc một HDRI chất lượng cho interior có cửa sổ lớn. Artist archviz thường bắt đầu bằng HDRI, thêm Corona Light (area, mesh) cho đèn trần, bàn làm việc — rồi cân bằng exposure trong VFB.</p>
+    <p><strong>Light Mix</strong> là tính năng signature: sau khi render xong, bạn bật/tắt hoặc chỉnh intensity từng nguồn sáng mà không cần render lại toàn scene — tiết kiệm hàng giờ khi khách yêu cầu «sáng hơn một chút» hoặc «tắt đèn trần, chỉ để ánh cửa sổ». Với walkthrough animation, cần lên kế hoạch thời gian render farm hoặc overnight trên máy mạnh.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Corona Renderer Light Mix HDRI interior daylight archviz"</span>
+      </div>
+      <p class="arc-image-caption">Light Mix — chỉnh từng nguồn sáng sau render trong Corona VFB</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Denoiser, interactive render và xuất deliverable</h3>
+    <p>Corona tích hợp <strong>denoiser</strong> (Intel OIDN / NVIDIA nếu có GPU) giúp giảm thời gian chờ: preview ít pass đã «nhìn được», final render ít pass hơn V-Ray truyền thống trong nhiều scene nội thất. Chế độ <strong>Interactive Rendering</strong> cập nhật viewport khi di chuyển đèn hoặc đổi màu tường — phù hợp iteration nhanh trước khi bấm render 4K gửi khách.</p>
+    <p>Luồng deliverable archviz: render still 3–5 góc máy → chỉnh màu nhẹ trong VFB hoặc Photoshop → ghép logo dự án, overlay plan (nếu có) → gửi PDF presentation hoặc upload web bất động sản. Hiểu trade-off chất lượng/thời gian là kỹ năng sản xuất mà studio junior luôn kiểm tra khi tuyển dụng.</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Corona Renderer archviz exterior interior deliverable presentation workflow"</span>
+      </div>
+      <p class="arc-image-caption">Deliverable archviz — still Corona, post nhẹ và trình bày dự án bất động sản</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai đối thủ hay được đặt cạnh Corona nhất là <strong>Chaos V-Ray</strong> (cùng hãng, linh hoạt studio lớn) và <strong>Enscape</strong> (render realtime gắn Revit/SketchUp). Không có engine «tốt nhất» — tùy bạn cần chất lượng final, tốc độ duyệt thiết kế hay quy mô pipeline VFX.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Corona Renderer vs V-Ray</h3>
+    <p>V-Ray và Corona đều thuộc Chaos, dùng chung kiến thức ánh sáng PBR — nhiều studio Việt Nam chuyển dần từ V-Ray sang Corona cho archviz thuần vì setup nhanh, kết quả interior đẹp với ít tham số. V-Ray vẫn mạnh hơn khi cần <strong>đa dụng</strong>: VFX, sản phẩm quảng cáo phức tạp, GPU rendering quy mô farm, tích hợp sâu Maya/Houdini và tùy biến shader nâng cao mà pipeline lớn yêu cầu.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Corona Renderer interior archviz natural lighting render"</span>
+        </div>
+        <p class="arc-image-caption">Corona — ánh sáng nội thất tự nhiên, workflow gọn cho archviz</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Chaos V-Ray 3ds Max render VFX product visualization"</span>
+        </div>
+        <p class="arc-image-caption">V-Ray — đa nền tảng DCC, linh hoạt studio và VFX</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Corona mạnh hơn:</strong> học nhanh, interior/exterior archviz «ra hình» sớm, Light Mix tiện iteration, ít overwhelm cho người mới.<br>
+      <strong>V-Ray mạnh hơn:</strong> phạm vi DCC rộng (Maya, SketchUp, Rhino…), tùy biến sâu, GPU/Cosmos ecosystem, dự án quảng cáo và VFX đòi hỏi control chi tiết.<br>
+      <strong>Chọn Corona khi:</strong> mục tiêu archviz/nội thất trên 3ds Max hoặc C4D, ưu tiên chất lượng still và walkthrough với workflow đơn giản.<br>
+      <strong>Chọn V-Ray khi:</strong> studio đa loại dự án (archviz + product + animation), cần một engine xuyên suốt nhiều phần mềm hoặc shader/farm nâng cao.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Corona Renderer vs Enscape</h3>
+    <p>Enscape là <strong>plugin render realtime</strong> chạy trong Revit, SketchUp, Rhino, ArchiCAD — bạn xoay camera và thấy ánh sáng cập nhật gần như tức thì, rất phù hợp kiến trúc sư trình bày cho khách trong họp. Corona (qua Max/C4D) không realtime như vậy nhưng <strong>chất lượng final và kiểm soát vật liệu</strong> thường cao hơn cho ảnh marketing, catalogue cao cấp và video walkthrough có post-production.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Corona Renderer high quality interior still 4K archviz"</span>
+        </div>
+        <p class="arc-image-caption">Corona — still chất lượng marketing, tinh chỉnh sâu</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Enscape realtime rendering Revit SketchUp walkthrough"</span>
+        </div>
+        <p class="arc-image-caption">Enscape — xem realtime trong BIM/CAD, trình bày nhanh</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Corona mạnh hơn:</strong> chất lượng render final, Light Mix, vật liệu PBR chi tiết, pipeline visualization chuyên nghiệp từ Max/C4D.<br>
+      <strong>Enscape mạnh hơn:</strong> tốc độ duyệt thiết kế, gắn trực tiếp Revit/SketchUp, VR walkthrough nhanh, ít cần artist 3D riêng.<br>
+      <strong>Chọn Corona khi:</strong> bạn là visualization artist, làm ảnh/video bán hàng BĐS chất lượng cao.<br>
+      <strong>Chọn Enscape khi:</strong> bạn là KTS dùng BIM, cần preview cho khách hàng ngay trong buổi họp thiết kế.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học Corona Renderer như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Nắm vững host DCC trước (3ds Max hoặc C4D)</strong>
+        <p>Corona là plugin — bạn cần biết dựng scene cơ bản: import model, scale đúng mét, camera và viewport. Tuần đầu trên Max: một phòng box đơn giản, cửa sổ cut, sàn và tường tách object. Mục tiêu là có scene «render được» trước khi cài Corona; nhiều bạn THPT cài render engine sớm nhưng chưa biết model nên gặp lỗi đen màn hoặc scale sai.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Cài Corona và render thử đầu tiên</strong>
+        <p>Cài Corona (bản trial nếu chưa mua), set Corona làm renderer mặc định, mở VFB và bấm Render. Gán CoronaMtl mặc định cho mọi object, thêm Corona Sun — quan sát bóng đổ và exposure. Mục tiêu: một still «có ánh sáng» dù chưa đẹp — hiểu VFB, pause/resume và cách dừng render.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Vật liệu PBR và HDRI nội thất</strong>
+        <p>Học CoronaMtl: base color, reflection level, roughness; thêm normal map cho gỗ và gạch. Dùng HDRI interior cho ánh sáng cửa sổ, bổ sung area light trần. So sánh render với/không denoiser. Bài tập: một góc phòng khách với sofa, thảm, kính — 2 tuần luyện material thường thấy tiến bộ rõ trên portfolio.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Light Mix và tinh chỉnh sau render</strong>
+        <p>Bật Light Mix trong VFB, render đủ pass để tách nguồn sáng; thử tăng/giảm đèn trần, chỉ giữ ánh HDRI. Học thêm color correction cơ bản trong VFB hoặc đưa sang Photoshop. Kỹ năng này mô phỏng revision thực tế với khách archviz — «giữ mood chiều, sáng thêm 10%».</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Exterior, cây cối và dự án archviz hoàn chỉnh</strong>
+        <p>Mở rộng sang ngoại thất: Corona Sun/Sky, fog nhẹ, thêm cây (Corona Scatter hoặc Forest Pack nếu có). Hoàn thiện một căn hộ mẫu: 3 still nội thất + 1 ngoại thất + camera path 15 giây. Quản lý thời gian render overnight; ghi chú resolution và pass đã dùng — thói quen professional khi làm việc nhóm.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Portfolio và định hướng nghề</strong>
+        <p>Đăng 3–5 work lên Behance/ArtStation: ghi rõ 3ds Max + Corona, mô tả ngắn concept (căn hộ mẫu, pavilion, quán cà phê). Tìm hiểu vị trí junior archviz tại studio BĐS, nội thất hoặc freelance — nhiều job posting Việt Nam ghi «Corona/V-Ray» như một cụm. Học thêm Photoshop post và có thể so sánh một scene render cả Enscape (nếu trường dạy Revit) để hiểu vai trò từng công cụ.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

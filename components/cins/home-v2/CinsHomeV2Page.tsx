@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 
 import "@/app/cins-home-v2-page.css";
@@ -14,10 +15,24 @@ type Props = {
  */
 export function CinsHomeV2Page({ markup }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   useEffect(() => {
     const root = rootRef.current;
     if (!root) return;
+
+    const onSidebarNavClick = (e: MouseEvent) => {
+      const link = (e.target as Element).closest<HTMLAnchorElement>(
+        "a.sb-item[href]",
+      );
+      if (!link || !root.contains(link)) return;
+      const href = link.getAttribute("href") ?? "";
+      if (!href.startsWith("/") || href.startsWith("//")) return;
+      e.preventDefault();
+      document.getElementById("sidebar")?.classList.remove("open");
+      router.push(href);
+    };
+    root.addEventListener("click", onSidebarNavClick);
 
     const faqItems = root.querySelectorAll<HTMLDetailsElement>(".faq-item");
     const faqHandlers: Array<{
@@ -129,6 +144,7 @@ export function CinsHomeV2Page({ markup }: Props) {
     }
 
     return () => {
+      root.removeEventListener("click", onSidebarNavClick);
       faqHandlers.forEach(({ el, fn }) =>
         el.removeEventListener("toggle", fn),
       );
@@ -148,7 +164,7 @@ export function CinsHomeV2Page({ markup }: Props) {
       });
       tip?.remove();
     };
-  }, [markup]);
+  }, [markup, router]);
 
   return (
     <div

@@ -1,0 +1,209 @@
+<section class="arc-intro">
+  <p>Bạn chơi game indie trên Steam thấy nhân vật low-poly đáng yêu, xem short film Blender trên YouTube đoạt giải, hoặc ngắm render kiến trúc miễn phí trên ArtStation — rất nhiều trong số đó được tạo bằng <strong>Blender</strong>, bộ công cụ 3D mã nguồn mở miễn phí: modeling, sculpting, hoạt hình, simulation, render và thậm chí video editing trong một package. Cùng phần mềm này cũng là cánh cửa vào ngành 3D cho hàng triệu học sinh, sinh viên không có ngân sách thuê Maya hay 3ds Max.</p>
+  <p>Blender không phải «phần mềm đồ họa nhẹ» hay app filter — nó là <strong>full DCC (Digital Content Creation)</strong> cạnh tranh trực tiếp với các suite trả phí hàng nghìn USD/năm. Hiểu Blender giúp bạn bắt đầu sự nghiệp 3D, game art hoặc animation ngay từ THPT mà không bị rào cản license, đồng thời nắm pipeline hiện đại (EEVEE, Cycles, Geometry Nodes, USD).</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>Blender là gì?</h2>
+  <p>Blender do <strong>Blender Foundation</strong> (Hà Lan) phát triển — phần mềm <strong>3D miễn phí, mã nguồn mở</strong>, chạy trên Windows, macOS và Linux. Ban đầu được xem là công cụ hobby; sau các bản 2.8+ và 3.x/4.x, Blender được studio indie, freelancer và cả một phần pipeline commercial tin dùng cho modeling, animation và render.</p>
+  <p>Khác với phần mềm 2D hay chỉ render, Blender là <strong>không gian làm việc 3D all-in-one</strong>: bạn model mesh, sculpt chi tiết, rig nhân vật, animate, simulate cloth/fluid, composite và render bằng Cycles (path tracing) hoặc EEVEE (real-time). Giao diện có viewport, outliner, properties và timeline — ban đầu trông dày, nhưng mỗi workspace (Layout, Modeling, Sculpting, Animation) tập trung một giai đoạn sản xuất.</p>
+  <ul class="arc-list">
+    <li><strong>Modeling &amp; sculpting</strong> — polygon, subdivision, modifiers; sculpt high-poly cho nhân vật và prop</li>
+    <li><strong>Rigging &amp; animation</strong> — armature, weight paint, Graph Editor và NLA cho hoạt hình</li>
+    <li><strong>Render engines</strong> — Cycles (chất lượng cao), EEVEE (nhanh, gần real-time)</li>
+    <li><strong>Geometry Nodes &amp; simulation</strong> — procedural modeling, cloth, fluid, rigid body cho VFX và motion</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"Blender 4 viewport interface modeling Cycles render screenshot"</span>
+    </div>
+    <p class="arc-image-caption">Giao diện Blender — viewport 3D, outliner và bảng thuộc tính modifier</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>Blender có thể đứng ở <strong>gần như mọi giai đoạn 3D</strong>: concept blocking, modeling asset game, rig/animate nhân vật short film, render still archviz, hoặc export FBX/glTF sang Unreal/Unity. Studio lớn có thể dùng Blender cho previz rồi chuyển sang Maya/Houdini cho production; indie thường làm trọn pipeline trong Blender. Thường làm việc cùng Substance Painter (texture), DaVinci Resolve (edit) và game engine khi deliver sản phẩm cuối.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Modeling, modifiers &amp; Geometry Nodes</h3>
+    <p>Thế mạnh ngày càng rõ của Blender là <strong>modeling linh hoạt</strong> kết hợp modifier không phá hủy: Mirror, Array, Solidify, Subdivision Surface — chỉnh param mà không mất mesh gốc. Blender 3.x+ đẩy mạnh <strong>Geometry Nodes</strong> cho procedural: rải cây cỏ, kiến trúc parametric, scatter object theo surface — rất hữu ích environment game và motion graphics.</p>
+    <p>Đối với học sinh THPT mới làm quen, bài tập thực tế hay gặp: dựng bàn ghế, phòng học low-poly, hoặc nhân vật stylized đơn giản — vừa luyện tư duy không gian vừa làm portfolio 3D cơ bản không tốn tiền license.</p>
+    <ul class="arc-list">
+      <li><strong>Edit Mode</strong> — extrude, inset, loop cut, bevel cho hard-surface và props</li>
+      <li><strong>Modifier stack</strong> — thử nghiệm phi phá hủy, non-destructive workflow</li>
+      <li><strong>Geometry Nodes</strong> — procedural scatter, instancing cho scene lớn</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Blender modeling modifiers subdivision viewport hard surface"</span>
+        </div>
+        <p class="arc-image-caption">Modeling — modifier stack và Subdivision Surface trên viewport</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Blender Geometry Nodes procedural scatter environment"</span>
+        </div>
+        <p class="arc-image-caption">Geometry Nodes — procedural scatter và instancing môi trường</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Sculpting, materials &amp; rendering</h3>
+    <p>Blender có <strong>Sculpt Mode</strong> mạnh cho organic form: đất sét sống, nhân vật cartoon, creature concept. Sau đó retopology (hoặc quad remesh) để có mesh sạch cho game/animation. <strong>Shader Editor</strong> xây material PBR (Principled BSDF); render Cycles cho chất lượng cao, EEVEE cho preview nhanh và stylized look.</p>
+    <p>Một still character hoặc interior có thể mất vài phút đến vài giờ render tùy GPU — học cách tối ưu samples, light setup và denoise là kỹ năng «sản xuất thật» mà mọi 3D artist cần, kể cả khi dùng Blender miễn phí.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Blender Cycles render PBR material character lighting"</span>
+      </div>
+      <p class="arc-image-caption">Render Cycles — material PBR, HDRI và ánh sáng area cho nhân vật</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Rigging, animation &amp; game export</h3>
+    <p>Blender rig nhân vật bằng <strong>Armature</strong>, weight paint và constraints — đủ cho short film, game indie và VTuber avatar. Graph Editor và Dope Sheet chỉnh keyframe; NLA cho layer animation. Xuất <strong>FBX/glTF</strong> sang Unreal Engine hoặc Unity là luồng game artist phổ biến toàn cầu.</p>
+    <p>Quy trình điển hình: model + rig trong Blender → animate hoặc export T-pose → texture Substance → import engine → kiểm tra scale và animation. Nắm pipeline này giúp bạn từ «biết xoay khối cube» đến «có asset chạy được trong game».</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Blender rigging armature export FBX Unreal Engine game pipeline"</span>
+      </div>
+      <p class="arc-image-caption">Luồng game — rig Blender, animate, export FBX/glTF import Unreal/Unity</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai phần mềm hay được đặt cạnh Blender nhất là <strong>Maya</strong> (tiêu chuẩn animation/VFX studio lớn) và <strong>3ds Max</strong> (mạnh archviz và game asset tại nhiều studio Việt Nam). Không có câu trả lời «đúng duy nhất» — tùy bạn hướng tới game indie, phim hoạt hình, archviz hay studio AAA.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Blender vs Maya</h3>
+    <p>Maya (Autodesk) vẫn là <strong>tiêu chuẩn tuyển dụng</strong> tại nhiều studio animation và VFX quốc tế — rigging, pipeline TD và tool nội bộ xây quanh Maya nhiều thập kỷ. Blender miễn phí, cập nhật nhanh, animation và rigging ngày càng tốt — phù hợp indie, freelancer và học sinh THPT bắt đầu ngay không cần license trường học.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Blender animation rigging viewport open source 3D"</span>
+        </div>
+        <p class="arc-image-caption">Blender — rig, animate miễn phí, cộng đồng tutorial toàn cầu</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Autodesk Maya character rigging animation studio pipeline"</span>
+        </div>
+        <p class="arc-image-caption">Maya — rig nhân vật và pipeline animation studio AAA</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Blender mạnh hơn:</strong> chi phí bằng không, all-in-one (model+sculpt+comp+video), cập nhật nhanh, indie game/film.<br>
+      <strong>Maya mạnh hơn:</strong> pipeline studio lớn, MEL/Python TD tool mature, tiêu chuẩn tuyển animation/VFX AAA.<br>
+      <strong>Chọn Blender khi:</strong> học 3D từ THPT, indie game/short film, freelancer ngân sách thấp.<br>
+      <strong>Chọn Maya khi:</strong> mục tiêu Character TD/animator tại studio quốc tế dùng Autodesk stack.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Blender vs 3ds Max</h3>
+    <p>3ds Max nghiêng về <strong>archviz, nội thất và game environment</strong> tại Việt Nam — modifier stack kiến trúc, plugin V-Ray/Corona trưởng thành. Blender bù bằng chi phí zero, Cycles/EEVEE tích hợp, và Geometry Nodes — archviz bằng Blender ngày càng phổ biến nhưng một số studio BĐS vẫn yêu cầu Max + V-Ray trong JD tuyển dụng.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Blender architectural visualization interior Cycles render"</span>
+        </div>
+        <p class="arc-image-caption">Blender — archviz và interior render với Cycles, không tốn license</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"3ds Max V-Ray architectural visualization professional studio"</span>
+        </div>
+        <p class="arc-image-caption">3ds Max — archviz studio, V-Ray/Corona và modifier kiến trúc</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Blender mạnh hơn:</strong> miễn phí, sculpt/animate/VFX trong một app, cộng đồng, phù hợp học tập dài hạn.<br>
+      <strong>3ds Max mạnh hơn:</strong> ecosystem archviz VN, modifier modeling kiến trúc quen thuộc doanh nghiệp, một số pipeline game environment studio local.<br>
+      <strong>Chọn Blender khi:</strong> cá nhân/indie, đa mục đích 3D, chưa có ngân sách Autodesk.<br>
+      <strong>Chọn 3ds Max khi:</strong> làm archviz/nội thất tại studio VN yêu cầu Max+V-Ray trong hợp đồng tuyển dụng.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học Blender như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Cài Blender và làm quen viewport</strong>
+        <p>Tải Blender mới nhất từ blender.org (miễn phí). Tuần đầu tập xoay/pan/zoom (chuột giữa), chọn object, Move/Rotate/Scale, chuyển Edit Mode. Làm tutorial «Donut» kinh điển của Blender Guru — hàng triệu người bắt đầu từ đó. Mục tiêu: không còn «lạc» trong viewport trước khi rig nhân vật phức tạp.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Modeling cơ bản với modifier</strong>
+        <p>Dựng prop đơn giản: thùng, cây stylized, bàn ghế — dùng extrude, loop cut, Mirror, Subdivision. Đặt tên object/collection rõ ràng. Thường 2–3 tuần luyện đều sẽ thấy tốc độ modeling tăng; thử thách bản thân bằng chủ đề «30 ngày 1 model nhỏ» trên mạng xã hội.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Material, ánh sáng và render đầu tiên</strong>
+        <p>Học Principled BSDF, thêm HDRI (Poly Haven miễn phí), một vài area light. Render Cycles với samples thấp + denoise để có still «nhìn được». So sánh EEVEE cho preview nhanh — hiểu trade-off chất lượng/thời gian render là bài học thực tế mọi 3D artist.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Rigging &amp; animation cơ bản</strong>
+        <p>Follow tutorial rig humanoid đơn giản (Rigify add-on có sẵn), weight paint, keyframe walk cycle hoặc idle. Graph Editor chỉnh easing — animation «sống» hơn linear key. Học sinh THPT hay làm fan animation ngắn 5–10 giây cho nhân vật game/anime yêu thích.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Dự án hoàn chỉnh: short film hoặc game asset</strong>
+        <p>Chọn một hướng: short 15–30 giây (model + animate + render + edit trong Blender VSE hoặc Resolve); hoặc asset game low-poly + UV + texture + export FBX thử Unreal/Unity. Giai đoạn này dạy brief, scope và iteration — đừng ôm cả feature film khi mới học.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Portfolio và định hướng nghề</strong>
+        <p>Tổng hợp 3–5 work: still render, turn-table nhân vật, short animation hoặc environment. Đăng ArtStation, Behance, Instagram — ghi rõ Blender (+ Substance, Unreal nếu có). Tham gia Blender VN community; một số studio game VN nhận junior nếu portfolio tốt dù không bắt buộc Maya. Theo dõi Blender Conference và roadmap — kỹ năng Blender hôm nay có giá trị thương mại rõ ràng hơn một thập kỷ trước.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

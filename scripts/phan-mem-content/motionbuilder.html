@@ -1,0 +1,209 @@
+<section class="arc-intro">
+  <p>Bạn xem cutscene game có nhân vật đi, chạy, đánh nhau mượt như người thật — hoặc trailer phim có đoạn diễn viên mặc suit mocap rồi chuyển thành quái vật CGI — phần lớn chuyển động đó được xử lý và tinh chỉnh trên <strong>Autodesk MotionBuilder</strong> trước khi đưa sang Maya, Unreal Engine hoặc pipeline render cuối. Đây là phần mềm chuyên cho <strong>motion capture và hoạt hình nhân vật thời gian thực</strong>, không phải công cụ dựng hình hay cắt video.</p>
+  <p>MotionBuilder không phải lựa chọn đầu tiên khi học 3D ở THPT, nhưng nó mở cánh cửa tới ngành game AAA, phim VFX và studio hoạt hình chuyên nghiệp — nơi mocap giúp tiết kiệm hàng trăm giờ keyframe tay. Hiểu MotionBuilder giúp bạn thấy cách chuyển động người thật trở thành animation sản phẩm thương mại.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>MotionBuilder là gì?</h2>
+  <p>Autodesk MotionBuilder do <strong>Autodesk</strong> phát triển — phần mềm <strong>hoạt hình nhân vật thời gian thực và xử lý motion capture</strong> chạy trên Windows. Ban đầu nổi tiếng trong phim và game lớn; ngày nay vẫn là công cụ chuẩn khi studio cần nhập dữ liệu từ suit mocap, camera optical hoặc file BVH, rồi retarget sang rig nhân vật khác nhau trong cùng một dự án.</p>
+  <p>Khác với Maya hay Blender nơi bạn keyframe từng khung hình, MotionBuilder tập trung vào <strong>playback real-time</strong>: bạn thấy nhân vật di chuyển ngay lập tức, chỉnh pose, lọc noise mocap, ghép nhiều take và xuất sang DCC hoặc game engine. Giao diện có viewport 3D, timeline dạng layer, FCurves và bảng Character — ban đầu trông chuyên sâu, nhưng mỗi khu vực phục vụ một bước trong pipeline mocap chuyên nghiệp.</p>
+  <ul class="arc-list">
+    <li><strong>Motion capture import</strong> — nhận FBX, BVH, C3D từ suit OptiTrack, Rokoko, Xsens hoặc file mocap có sẵn</li>
+    <li><strong>Real-time playback</strong> — xem và chỉnh animation ở tốc độ thời gian thực trên rig nhân vật</li>
+    <li><strong>Retargeting</strong> — chuyển chuyển động từ skeleton nguồn sang nhân vật khác tỷ lệ, tư thế khác</li>
+    <li><strong>Pipeline integration</strong> — xuất FBX, HumanIK sang Maya, 3ds Max, Unreal Engine hoặc Unity</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"Autodesk MotionBuilder interface mocap character viewport timeline screenshot"</span>
+    </div>
+    <p class="arc-image-caption">Giao diện MotionBuilder — viewport nhân vật, timeline layer và dữ liệu mocap</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>MotionBuilder thường đứng ở giai đoạn <strong>nhập, làm sạch và retarget motion capture</strong>: diễn viên mocap thu chuyển động trong phòng capture hoặc dùng suit portable → kỹ thuật viên import take vào MotionBuilder → lọc foot sliding, chỉnh contact, ghép take → retarget sang rig nhân vật game/phim → xuất FBX sang Maya để polish hoặc thẳng sang Unreal cho cutscene. Với phim, có thể bàn giao sang Maya/Houdini cho cloth và muscle sim; với game, thường xuất trực tiếp sang engine. Thường làm việc cùng Maya (rig), Unreal (in-engine cinematics) và các hệ thống mocap hardware.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Nhập &amp; làm sạch dữ liệu mocap</h3>
+    <p>Thế mạnh cốt lõi của MotionBuilder là <strong>xử lý file motion capture</strong>. Bạn import take từ hệ thống optical (nhiều camera) hoặc inertial suit (cảm biến trên cơ thể), gán marker/skeleton lên rig HumanIK, rồi phát lại ngay trong viewport. Công cụ <strong>Plot, Filter và Smooth</strong> giúp giảm jitter, sửa foot slide khi nhân vật «trượt» trên sàn, và cắt đoạn take lỗi trước khi ghép.</p>
+    <p>Đối với học sinh THPT chưa có phòng mocap, bạn vẫn có thể luyện bằng <strong>file mocap miễn phí</strong> (Mixamo, Carnegie Mellon mocap library) — import vào MotionBuilder, quan sát skeleton và thực hành cleanup. Đây là cách tiếp cận thực tế mà junior animator hay mocap artist bắt đầu trước khi chạm hardware đắt tiền.</p>
+    <ul class="arc-list">
+      <li><strong>Take Manager</strong> — quản lý nhiều take, đặt tên và ghép sequence</li>
+      <li><strong>Foot contact &amp; floor</strong> — chỉnh chân bám mặt đất, giảm trượt khi walk/run</li>
+      <li><strong>Noise reduction</strong> — lọc rung dữ liệu mocap thô mà vẫn giữ chuyển động tự nhiên</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"MotionBuilder mocap skeleton cleanup foot sliding viewport"</span>
+        </div>
+        <p class="arc-image-caption">Cleanup mocap — chỉnh foot contact và skeleton trên viewport</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"motion capture studio optical camera suit actor performance"</span>
+        </div>
+        <p class="arc-image-caption">Phòng mocap — diễn viên suit và camera optical thu chuyển động</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Retargeting &amp; HumanIK</h3>
+    <p>Sau khi có chuyển động sạch trên skeleton nguồn, bước tiếp theo là <strong>retarget sang nhân vật đích</strong> — ví dụ chuyển walk cycle của diễn viên người thật sang nhân vật game cao gấp đôi hoặc creature bốn chân. MotionBuilder dùng hệ <strong>HumanIK</strong> (Autodesk) để map xương nguồn–đích, giữ contact và tỷ lệ chuyển động hợp lý mà không cần keyframe lại từ đầu.</p>
+    <p>Trong studio game, một take mocap có thể retarget cho hàng chục skin nhân vật khác nhau — tiết kiệm thời gian sản xuất animation đáng kể so với animate tay từng nhân vật. Kỹ năng retarget là điểm cộng lớn trên CV nếu bạn hướng tới Technical Animator hoặc Mocap Pipeline.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"MotionBuilder HumanIK retargeting character animation pipeline"</span>
+      </div>
+      <p class="arc-image-caption">Retargeting — chuyển chuyển động mocap sang rig nhân vật khác qua HumanIK</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Real-time preview &amp; xuất pipeline</h3>
+    <p>MotionBuilder được thiết kế để <strong>phát animation real-time</strong> — director có thể xem nhân vật di chuyển ngay khi diễn viên mocap, hoặc animator chỉnh pose trong khi timeline chạy. Bạn có thể gán prop, camera và trigger event theo frame; xuất <strong>FBX animation</strong> sang Maya để thêm secondary motion (tóc, vải), hoặc live link sang Unreal Engine cho previz và cinematics.</p>
+    <p>Luồng làm việc điển hình: mocap take → cleanup MotionBuilder → retarget → xuất FBX → polish trong Maya → import Unreal cho cutscene. Hiểu quy trình này giúp bạn không chỉ «biết animate» mà nắm được cách studio AAA sản xuất hàng trăm giây animation trong deadline ngắn.</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"MotionBuilder Unreal Engine live link real-time animation pipeline workflow"</span>
+      </div>
+      <p class="arc-image-caption">Pipeline xuất animation — MotionBuilder cleanup, Maya polish, Unreal cinematics</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai phần mềm hay được đặt cạnh MotionBuilder nhất là <strong>Maya animation</strong> (cùng hãng Autodesk, đa năng hơn) và <strong>iClone</strong> (Reallusion — mocap và previz thân thiện người mới). Không có câu trả lời «đúng duy nhất» — tùy bạn làm game AAA, phim VFX hay content creator indie với ngân sách hạn chế.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">MotionBuilder vs Maya animation</h3>
+    <p>Maya có module animation mạnh — keyframe, Graph Editor, animation layers, rig phức tạp — và là hub modeling/rigging/render trong nhiều studio. MotionBuilder chuyên sâu hơn cho <strong>mocap import, real-time playback và retarget hàng loạt</strong>; Maya thường nhận animation đã cleanup từ MotionBuilder để polish tay, thêm facial và secondary motion.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Autodesk MotionBuilder mocap retarget real-time viewport"</span>
+        </div>
+        <p class="arc-image-caption">MotionBuilder — chuyên mocap cleanup và retarget thời gian thực</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Autodesk Maya Graph Editor character keyframe animation viewport"</span>
+        </div>
+        <p class="arc-image-caption">Maya — keyframe, rig phức tạp và polish animation sau mocap</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>MotionBuilder mạnh hơn:</strong> xử lý mocap thô, retarget nhanh nhiều nhân vật, playback real-time khi capture hoặc review take.<br>
+      <strong>Maya mạnh hơn:</strong> modeling, rigging, keyframe animation tay, facial, render và tích hợp pipeline VFX/phim toàn diện.<br>
+      <strong>Chọn MotionBuilder khi:</strong> studio có phòng mocap hoặc làm việc nhiều với file capture, cần retarget hàng loạt cho game.<br>
+      <strong>Chọn Maya animation khi:</strong> mục tiêu là character animator keyframe tay, rigging, hoặc chưa có nguồn mocap — Maya đủ cho hầu hết dự án indie và học THPT.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">MotionBuilder vs iClone</h3>
+    <p>iClone (Reallusion) hướng tới <strong>real-time character animation và previz</strong> với giao diện thân thiện, tích hợp mocap Rokoko, Perception Neuron và thư viện motion sẵn. MotionBuilder nặng pipeline chuyên nghiệp hơn, được studio game AAA và VFX tin dùng khi cần chất lượng retarget và tích hợp Maya/Unreal ở quy mô lớn.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Autodesk MotionBuilder professional mocap pipeline studio"</span>
+        </div>
+        <p class="arc-image-caption">MotionBuilder — pipeline mocap studio game và phim chuyên nghiệp</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Reallusion iClone character animation mocap real-time interface"</span>
+        </div>
+        <p class="arc-image-caption">iClone — previz và mocap real-time, dễ tiếp cận creator indie</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>MotionBuilder mạnh hơn:</strong> chuẩn ngành AAA/VFX, retarget HumanIK mạnh, tích hợp sâu Maya/Unreal pipeline.<br>
+      <strong>iClone mạnh hơn:</strong> học nhanh hơn, chi phí và hardware thấp hơn cho solo creator, previz và short film indie.<br>
+      <strong>Chọn MotionBuilder khi:</strong> mục tiêu làm mocap artist/technical animator trong studio lớn.<br>
+      <strong>Chọn iClone khi:</strong> THPT/indie muốn thử mocap và character animation real-time mà chưa có ngân sách Autodesk đầy đủ.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học MotionBuilder như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Nền tảng animation 3D trước</strong>
+        <p>Trước MotionBuilder, hãy làm quen với khái niệm skeleton, rig và keyframe cơ bản trong Maya hoặc Blender — hiểu joint hierarchy, FK/IK và timeline. Một học sinh THPT đã từng animate walk cycle tay sẽ dễ hình dung mocap là «nguồn chuyển động có sẵn» cần cleanup thay vì vẽ từ zero. Mục tiêu tuần đầu: hiểu mocap khác keyframe ở chỗ nào và tại sao studio cần cả hai.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Import file mocap miễn phí</strong>
+        <p>Tải file FBX/BVH từ Mixamo hoặc thư viện mocap công khai, import vào MotionBuilder và gán lên character template HumanIK. Phát timeline, quan sát skeleton và thử công cụ Plot để bake chuyển động lên rig. Thường 1–2 tuần luyện import/export là đủ để không còn «lạc» trong giao diện chuyên sâu.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Cleanup foot slide &amp; noise</strong>
+        <p>Chọn take walk hoặc run, luyện chỉnh foot contact, floor constraint và filter jitter. Đây là kỹ năng thực tế nhất junior mocap artist được giao — khách hàng/studio ít quan tâm file import thế nào, họ quan tâm chân nhân vật có trượt sàn không. So sánh before/after để thấy giá trị MotionBuilder so với dùng raw mocap.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Retarget sang nhân vật khác</strong>
+        <p>Lấy cùng một take mocap, retarget sang ít nhất hai character khác tỷ lệ (người thường và stylized cao đầu to). Chỉnh pose offset nếu cần và xuất FBX animation. Mục tiêu là hiểu HumanIK mapping — kỹ năng này tách bạn khỏi animator chỉ biết keyframe tay trên một rig duy nhất.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Pipeline sang Maya hoặc Unreal</strong>
+        <p>Xuất animation đã cleanup sang Maya để thêm polish (overlap, secondary) hoặc import Unreal để previz cutscene. Học cách đặt tên take, frame range và trục tọa độ nhất quán để technical artist downstream không phải sửa lại. Giai đoạn này dạy bạn MotionBuilder không đứng một mình — nó là một mắt xích trong pipeline lớn.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Portfolio và định hướng nghề</strong>
+        <p>Tổng hợp 2–3 clip: raw mocap vs cleaned, retarget hai nhân vật khác nhau, một đoạn trong engine nếu có thể. Ghi rõ vai trò (mocap cleanup, retarget) trên ArtStation hoặc showreel — nghề Technical Animator và Mocap Artist ít phổ biến ở VN nhưng studio game outsource (Hà Nội, TP.HCM) có nhu cầu khi dự án có cinematics. Song song học Maya animation để tăng cơ hội tuyển dụng.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

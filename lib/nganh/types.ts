@@ -11,6 +11,8 @@ export type NganhHubItem = {
   ma_nganh: string | null;
   khoi_thi: string[];
   cover_id: string | null;
+  /** URL hiển thị — resolve trên server từ `cover_id`. */
+  cover_src?: string | null;
   article_nhom_id?: string | null;
   article_nhom?: ArticleNhomHubEmbed | null;
   article_nhom_all?: ArticleNhomHubEmbed[] | null;
@@ -43,6 +45,12 @@ export type NganhDetailArticle = {
   tom_tat: string | null;
   mo_ta_ngan?: string | null;
   noi_dung: string | null;
+  /** Cloudflare Images id — ảnh card / hub */
+  cover_id?: string | null;
+  /** Cột `thumbnail` trên `article_bai_viet` */
+  thumbnail?: string | null;
+  /** Video giới thiệu (YouTube URL, …) */
+  main_video?: string | null;
   meta: MetaNganhDaoTao | null;
   cap_nhat_luc: string;
   article_nhom?: ArticleNhomHubEmbed | null;

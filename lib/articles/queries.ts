@@ -1,3 +1,4 @@
+import { resolveHubArticleImages } from "@/lib/bai-viet/thumbnail";
 import { createPublicSupabaseClient } from "@/lib/supabase/public";
 import { hasSupabaseEnv } from "@/lib/supabase/server";
 import { describeFetchFailure } from "@/lib/supabase/errors";
@@ -20,10 +21,15 @@ function normalizeArticleRow(raw: Record<string, unknown>): ArticleBaiViet {
     (raw.noi_dung as string | undefined) ??
     (raw.noi_dung_markdown as string | undefined) ??
     null;
+  const main_video =
+    typeof raw.main_video === "string"
+      ? raw.main_video.trim() || null
+      : null;
   return {
     ...(raw as unknown as ArticleBaiViet),
     tieu_de,
     noi_dung,
+    main_video,
     tieu_de_viet:
       raw.tieu_de_viet === undefined || raw.tieu_de_viet === null
         ? null
@@ -31,7 +37,7 @@ function normalizeArticleRow(raw: Record<string, unknown>): ArticleBaiViet {
   };
 }
 
-function parseLinhVucEmbed(raw: unknown): LinhVucEmbed | null {
+export function parseLinhVucEmbed(raw: unknown): LinhVucEmbed | null {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
   const o = raw as Record<string, unknown>;
   const id = String(o.id ?? "").trim();
@@ -94,6 +100,24 @@ export async function getNgheArticleBySlug(
   return article;
 }
 
+export async function getKeywordArticleBySlug(
+  slug: string,
+): Promise<ArticleBaiViet | null> {
+  const article = await getArticleBySlug(slug);
+  if (!article || article.loai_bai_viet !== "keyword") return null;
+  if (article.trang_thai_noi_dung !== "published") return null;
+  return article;
+}
+
+export async function getPhanMemArticleBySlug(
+  slug: string,
+): Promise<ArticleBaiViet | null> {
+  const article = await getArticleBySlug(slug);
+  if (!article || article.loai_bai_viet !== "phan_mem") return null;
+  if (article.trang_thai_noi_dung !== "published") return null;
+  return article;
+}
+
 export async function getArticleById(
   id: string,
 ): Promise<ArticleBaiViet | null> {
@@ -112,11 +136,16 @@ export async function getArticleById(
   }
 }
 
+export type MonHocCapDoValue = "dai_cuong" | "co_so" | "chuyen_nganh";
+
 export type MonHocForNganhRow = {
   id: string;
   slug: string;
   tieu_de: string;
   tieu_de_viet: string | null;
+  cap_do: MonHocCapDoValue | null;
+  cover_id: string | null;
+  tom_tat: string | null;
 };
 
 export type NgheForNganhRow = {
@@ -142,41 +171,68 @@ export async function fetchMonHocDungTrongNganh(
     const supabase = createPublicSupabaseClient();
     const { data: edges, error: e1 } = await supabase
       .from("article_lien_quan")
-      .select("id_bai_viet_a")
+      .select("id_bai_viet_a, cap_do")
       .eq("id_bai_viet_b", nganhArticleId)
       .eq("loai_quan_he", "DUNG_TRONG_NGANH");
     if (e1 || !edges?.length) return [];
 
-    const ids = (edges as { id_bai_viet_a?: string }[])
-      .map((row) => row.id_bai_viet_a)
-      .filter(Boolean) as string[];
+    const capByMonId = new Map<string, MonHocCapDoValue | null>();
+    for (const row of edges as { id_bai_viet_a?: string; cap_do?: string | null }[]) {
+      const id = row.id_bai_viet_a?.trim();
+      if (!id || capByMonId.has(id)) continue;
+      const cap = row.cap_do?.trim();
+      capByMonId.set(
+        id,
+        cap === "dai_cuong" || cap === "co_so" || cap === "chuyen_nganh"
+          ? cap
+          : null,
+      );
+    }
+
+    const ids = [...capByMonId.keys()];
     if (!ids.length) return [];
 
     const { data: rows, error: e2 } = await supabase
       .from("article_bai_viet")
-      .select("id, slug, tieu_de, tieu_de_viet")
+      .select("id, slug, tieu_de, tieu_de_viet, cover_id, tom_tat")
       .in("id", ids)
       .eq("loai_bai_viet", "mon_hoc")
       .eq("trang_thai_noi_dung", "published");
     if (e2 || !rows) return [];
 
+    const capOrder: Record<MonHocCapDoValue, number> = {
+      dai_cuong: 0,
+      co_so: 1,
+      chuyen_nganh: 2,
+    };
+
     return (rows as Record<string, unknown>[])
-      .map((r) => ({
-        id: String(r.id),
-        slug: String(r.slug ?? ""),
-        tieu_de: String(r.tieu_de ?? "").trim() || "Môn học",
-        tieu_de_viet:
-          r.tieu_de_viet == null
-            ? null
-            : String(r.tieu_de_viet).trim() || null,
-      }))
-      .sort((a, b) =>
-        (a.tieu_de_viet ?? a.tieu_de).localeCompare(
+      .map((r) => {
+        const id = String(r.id);
+        return {
+          id,
+          slug: String(r.slug ?? ""),
+          tieu_de: String(r.tieu_de ?? "").trim() || "Môn học",
+          tieu_de_viet:
+            r.tieu_de_viet == null
+              ? null
+              : String(r.tieu_de_viet).trim() || null,
+          cap_do: capByMonId.get(id) ?? null,
+          cover_id:
+            r.cover_id == null ? null : String(r.cover_id).trim() || null,
+          tom_tat: (r.tom_tat as string | null)?.trim() || null,
+        };
+      })
+      .sort((a, b) => {
+        const ca = a.cap_do ? capOrder[a.cap_do] : 1;
+        const cb = b.cap_do ? capOrder[b.cap_do] : 1;
+        if (ca !== cb) return ca - cb;
+        return (a.tieu_de_viet ?? a.tieu_de).localeCompare(
           b.tieu_de_viet ?? b.tieu_de,
           "vi",
           { sensitivity: "base" },
-        ),
-      );
+        );
+      });
   } catch {
     return [];
   }
@@ -249,7 +305,7 @@ export async function fetchRelatedArticles(
     const supabase = createPublicSupabaseClient();
     const { data: edges, error: e1 } = await supabase
       .from("article_lien_quan")
-      .select("id_bai_viet_b, loai_quan_he")
+      .select("id_bai_viet_b, loai_quan_he, cap_do")
       .eq("id_bai_viet_a", articleId);
     if (e1 || !edges?.length) return [];
 
@@ -260,26 +316,50 @@ export async function fetchRelatedArticles(
 
     const { data: rows, error: e2 } = await supabase
       .from("article_bai_viet")
-      .select("id, slug, tieu_de, loai_bai_viet, tom_tat")
+      .select(
+        "id, slug, tieu_de, loai_bai_viet, tom_tat, cover_id, thumbnail, meta, id_linh_vuc, linh_vuc:id_linh_vuc(id, slug, ten)",
+      )
       .in("id", ids)
       .eq("trang_thai_noi_dung", "published");
     if (e2 || !rows) return [];
 
-    const loaiById = new Map(
-      edges.map((r: { id_bai_viet_b?: string; loai_quan_he?: string }) => [
-        r.id_bai_viet_b,
-        r.loai_quan_he ?? null,
-      ]),
+    type EdgeRow = {
+      id_bai_viet_b?: string;
+      loai_quan_he?: string;
+      cap_do?: string | null;
+    };
+    const edgeById = new Map(
+      (edges as EdgeRow[]).map((r) => [r.id_bai_viet_b, r]),
     );
 
-    return rows.map((r: Record<string, unknown>) => ({
-      id: String(r.id),
-      slug: String(r.slug),
-      tieu_de: String(r.tieu_de ?? "").trim() || "Không tiêu đề",
-      loai_bai_viet: r.loai_bai_viet as ArticleCard["loai_bai_viet"],
-      tom_tat: (r.tom_tat as string | null) ?? null,
-      loai_quan_he: loaiById.get(String(r.id)) ?? null,
-    }));
+    const mapped = rows.map((r: Record<string, unknown>) => {
+      const id = String(r.id);
+      const edge = edgeById.get(id);
+      return {
+        id,
+        slug: String(r.slug),
+        tieu_de: String(r.tieu_de ?? "").trim() || "Không tiêu đề",
+        loai_bai_viet: r.loai_bai_viet as ArticleCard["loai_bai_viet"],
+        tom_tat: (r.tom_tat as string | null) ?? null,
+        loai_quan_he: edge?.loai_quan_he ?? null,
+        cap_do: edge?.cap_do?.trim() || null,
+        linh_vuc: parseLinhVucEmbed(r.linh_vuc),
+        cover_id: r.cover_id == null ? null : String(r.cover_id).trim() || null,
+        thumbnail:
+          r.thumbnail == null ? null : String(r.thumbnail).trim() || null,
+        meta: (r.meta as ArticleCard["meta"]) ?? null,
+      };
+    });
+
+    return Promise.all(
+      mapped.map(async (card) => {
+        const { thumb_url } = await resolveHubArticleImages({
+          thumbnail: card.thumbnail,
+          cover_id: card.cover_id,
+        });
+        return { ...card, thumb_url };
+      }),
+    );
   } catch {
     return [];
   }
@@ -440,6 +520,52 @@ export async function fetchTacPhamGalleryForArticle(
   }));
 }
 
+/** Tác phẩm mới từ cộng đồng — fallback khi bài chưa gắn `article_gan_tac_pham`. */
+export async function fetchRecentTacPhamGallery(
+  limit = 6,
+): Promise<TacPhamGalleryItem[]> {
+  if (!hasSupabaseEnv()) return [];
+  try {
+    const supabase = createPublicSupabaseClient();
+    const { data, error } = await supabase
+      .from("content_tac_pham")
+      .select(
+        `
+        id,
+        tieu_de,
+        cover_id,
+        loai_tac_pham,
+        user_nguoi_dung ( slug, ten_hien_thi )
+      `,
+      )
+      .order("tao_luc", { ascending: false })
+      .limit(limit);
+
+    if (error || !data?.length) return [];
+
+    const out: TacPhamGalleryItem[] = [];
+    for (const row of data as Record<string, unknown>[]) {
+      const u = row.user_nguoi_dung as
+        | { slug?: string | null; ten_hien_thi?: string | null }
+        | null
+        | undefined;
+      const id = String(row.id ?? "");
+      if (!id) continue;
+      out.push({
+        id,
+        tieu_de: (row.tieu_de as string | null) ?? null,
+        cover_id: (row.cover_id as string | null) ?? null,
+        loai_tac_pham: (row.loai_tac_pham as string | null) ?? null,
+        author_slug: u?.slug ?? null,
+        author_name: u?.ten_hien_thi ?? null,
+      });
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
 /** Tác phẩm gắn tag (article) — schema có thể khác tên bảng/cột; lỗi → rỗng */
 export async function fetchTacPhamLinked(
   articleId: string,
@@ -572,7 +698,7 @@ const ARTICLE_BAI_VIET_NHOM_FK_COLUMNS = [
 ] as const;
 
 const NGHE_HUB_BASE_SELECT =
-  "id, slug, tieu_de, tieu_de_viet, tieu_de_eng, tom_tat, cover_id, id_linh_vuc";
+  "id, slug, tieu_de, tieu_de_viet, tieu_de_eng, tom_tat, meta_description, cover_id, id_linh_vuc";
 
 const NGHE_HUB_WITH_LINH_VUC_SELECT = `${NGHE_HUB_BASE_SELECT}, linh_vuc:id_linh_vuc(id, slug, ten)`;
 
@@ -602,6 +728,7 @@ function mapNgheArticleHubRow(r: Record<string, unknown>): NgheArticleHubRow {
         : String(r.tieu_de_viet).trim() || null,
     tieu_de_eng: (r.tieu_de_eng as string | null) ?? null,
     tom_tat: (r.tom_tat as string | null) ?? null,
+    meta_description: (r.meta_description as string | null) ?? null,
     cover_id: (r.cover_id as string | null) ?? null,
     article_nhom_id: pickArticleNhomFkFromRow(r),
     id_linh_vuc: idLv,

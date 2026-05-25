@@ -10,27 +10,71 @@ type TabPanel = {
   body: ReactNode;
 };
 
-type Props = {
+export type NgheSidebarTabConfig = {
+  id: string;
+  label: string;
+  header: ReactNode;
+  body: ReactNode;
+};
+
+type LegacyProps = {
   keyword: TabPanel;
   nghe: TabPanel;
   nganh: TabPanel;
+  tabs?: never;
+  defaultTabId?: never;
 };
 
-const TAB_META: { id: NgheSidebarTabId; label: string }[] = [
+type DynamicProps = {
+  tabs: NgheSidebarTabConfig[];
+  defaultTabId?: string;
+  keyword?: never;
+  nghe?: never;
+  nganh?: never;
+};
+
+type Props = LegacyProps | DynamicProps;
+
+const LEGACY_TAB_META: { id: NgheSidebarTabId; label: string }[] = [
   { id: "nganh", label: "Ngành học" },
   { id: "keyword", label: "Kỹ thuật" },
   { id: "nghe", label: "Nghề liên quan" },
 ];
 
-export function NgheSidebarTabs({ keyword, nghe, nganh }: Props) {
-  const uid = useId().replace(/:/g, "");
-  const [active, setActive] = useState<NgheSidebarTabId>("nganh");
+function legacyToTabs(props: LegacyProps): NgheSidebarTabConfig[] {
+  return LEGACY_TAB_META.map(({ id, label }) => ({
+    id,
+    label,
+    header: props[id].header,
+    body: props[id].body,
+  }));
+}
 
-  const panels: Record<NgheSidebarTabId, TabPanel> = {
-    keyword,
-    nghe,
-    nganh,
-  };
+export function NgheSidebarTabs(props: Props) {
+  const tabs = "tabs" in props && props.tabs ? props.tabs : legacyToTabs(props);
+  const defaultTabId =
+    "defaultTabId" in props && props.defaultTabId
+      ? props.defaultTabId
+      : ("nganh" as const);
+
+  const uid = useId().replace(/:/g, "");
+  const initial =
+    tabs.some((t) => t.id === defaultTabId) ? defaultTabId : (tabs[0]?.id ?? "");
+  const [active, setActive] = useState(initial);
+
+  if (tabs.length === 0) return null;
+
+  if (tabs.length === 1) {
+    const only = tabs[0]!;
+    return (
+      <div className="nghe-side-tabs nghe-side-tabs--single">
+        <div className="side-card nghe-side-tab-panel">
+          {only.header}
+          {only.body}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="nghe-side-tabs">
@@ -39,7 +83,7 @@ export function NgheSidebarTabs({ keyword, nghe, nganh }: Props) {
         role="tablist"
         aria-label="Thông tin liên quan trong sidebar"
       >
-        {TAB_META.map(({ id, label }) => (
+        {tabs.map(({ id, label }) => (
           <button
             key={id}
             type="button"
@@ -55,16 +99,18 @@ export function NgheSidebarTabs({ keyword, nghe, nganh }: Props) {
           </button>
         ))}
       </div>
-      {TAB_META.map(({ id }) => (
+      {tabs.map(({ id, header, body }) => (
         <div
           key={id}
           role="tabpanel"
           id={`${uid}-panel-${id}`}
           aria-labelledby={`${uid}-tab-${id}`}
-          className={`side-card nghe-side-tab-panel${active !== id ? " nghe-side-tab-panel--inactive-desktop" : ""}`}
+          className={`side-card nghe-side-tab-panel${
+            active !== id ? " nghe-side-tab-panel--inactive-desktop" : ""
+          }`}
         >
-          {panels[id].header}
-          {panels[id].body}
+          {header}
+          {body}
         </div>
       ))}
     </div>

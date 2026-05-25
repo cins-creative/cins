@@ -1,0 +1,182 @@
+[
+  {
+    "id": "d85ebf1f-4183-48af-b0fd-3561f376d393",
+    "slug": "affinity-photo",
+    "tieu_de_viet": "Affinity Photo — Chỉnh sửa ảnh chuyên nghiệp",
+    "tom_tat": "Trình chỉnh sửa ảnh của Serif — retouch, compositing và xử lý RAW với giá mua một lần, thay thế Photoshop cho freelancer và studio nhỏ.",
+    "meta_title": "Affinity Photo là gì? Tính năng, giá và hướng dẫn học | CINS",
+    "meta_description": "Affinity Photo: layer, mask, RAW, HDR merge. So sánh Photoshop, GIMP và lộ trình học cho người mới.",
+    "meta": {
+      "nha_phat_hanh": "Serif (Canva)",
+      "version": "2",
+      "platform": ["Windows", "macOS", "iPad"],
+      "website": "https://www.affinity.studio/photo",
+      "goi_mien_phi": "Dùng thử 30 ngày",
+      "gia_thanh": "~70 USD mua một lần (V2)",
+      "hinh_thuc_mua": "Mua một lần",
+      "link_tai": "https://www.affinity.studio/photo"
+    }
+  },
+  {
+    "id": "efb780e8-c84c-414c-8e5f-7eb762e911a7",
+    "slug": "arcgis",
+    "tieu_de_viet": "ArcGIS — Hệ thông tin địa lý (GIS)",
+    "tom_tat": "Nền tảng GIS của Esri — tạo bản đồ, phân tích không gian và trực quan hóa dữ liệu địa lý cho quy hoạch, môi trường và nghiên cứu.",
+    "meta_title": "ArcGIS là gì? GIS, bản đồ và hướng dẫn học | CINS",
+    "meta_description": "ArcGIS: bản đồ, layer, phân tích spatial, ArcGIS Online. So sánh QGIS và lộ trình học GIS cho người mới.",
+    "meta": {
+      "nha_phat_hanh": "Esri",
+      "version": "2024",
+      "platform": ["Windows", "macOS", "Web"],
+      "website": "https://www.esri.com/en-us/arcgis/about-arcgis/overview",
+      "goi_mien_phi": "ArcGIS Online giới hạn (tài khoản học sinh)",
+      "gia_thanh": "Từ ~700 USD/năm (ArcGIS Pro)",
+      "hinh_thuc_mua": "Thuê bao năm · giáo dục",
+      "link_tai": "https://www.esri.com/en-us/arcgis/products/arcgis-pro/overview"
+    }
+  },
+  {
+    "id": "ba33d863-71ce-4f73-a22f-67b9061a025f",
+    "slug": "arnold",
+    "tieu_de_viet": "Arnold — Render 3D quang học",
+    "tom_tat": "Trình render physically based tiêu chuẩn ngành VFX — tích hợp Maya, 3ds Max, Cinema 4D và Houdini cho phim và quảng cáo.",
+    "meta_title": "Arnold Renderer là gì? Render, giá và hướng dẫn | CINS",
+    "meta_description": "Arnold: path tracing, AOV, GPU render. So sánh V-Ray, Cycles và luồng render trong Maya/C4D.",
+    "meta": {
+      "nha_phat_hanh": "Autodesk",
+      "version": "7",
+      "platform": ["Windows", "macOS", "Linux"],
+      "website": "https://www.autodesk.com/products/arnold",
+      "goi_mien_phi": "Đi kèm Maya · plugin trial",
+      "gia_thanh": "Đi kèm Maya hoặc ~360 USD/năm standalone",
+      "hinh_thuc_mua": "Thuê bao · đi kèm DCC",
+      "link_tai": "https://www.autodesk.com/products/arnold"
+    }
+  },
+  {
+    "id": "80b23580-3415-4f33-89ad-5d87e21cb236",
+    "slug": "articy",
+    "tieu_de_viet": "Articy — Cốt truyện &amp; narrative design game",
+    "tom_tat": "Công cụ viết kịch bản và thiết kế narrative cho game — flowchart, dialogue, entity database và xuất sang engine.",
+    "meta_title": "Articy Draft là gì? Game writing, giá và hướng dẫn | CINS",
+    "meta_description": "Articy: flow, dialogue, export Unity/Unreal. So sánh Twine, Yarn Spinner và lộ trình narrative design.",
+    "meta": {
+      "nha_phat_hanh": "Articy Software",
+      "version": "4",
+      "platform": ["Windows"],
+      "website": "https://www.articy.com",
+      "goi_mien_phi": "Dùng thử 14 ngày",
+      "gia_thanh": "Từ ~599 EUR (indie)",
+      "hinh_thuc_mua": "Mua một lần · giấy phép indie/studio",
+      "link_tai": "https://www.articy.com/en/articy-draft"
+    }
+  },
+  {
+    "id": "63a6bd45-49f3-457b-8e11-d916056d249a",
+    "slug": "asana",
+    "tieu_de_viet": "Asana — Quản lý dự án &amp; công việc nhóm",
+    "tom_tat": "Nền tảng quản lý task và dự án — board, timeline, milestone cho team marketing, sản xuất nội dung và agency sáng tạo.",
+    "meta_title": "Asana là gì? Quản lý dự án, giá và hướng dẫn | CINS",
+    "meta_description": "Asana: task, project, timeline, automation. So sánh Trello, Notion và quy trình làm việc nhóm sáng tạo.",
+    "meta": {
+      "nha_phat_hanh": "Asana Inc.",
+      "version": "2024",
+      "platform": ["Web", "Windows", "macOS", "iOS", "Android"],
+      "website": "https://asana.com",
+      "goi_mien_phi": "Gói Personal miễn phí",
+      "gia_thanh": "Từ ~11 USD/người/tháng (Premium)",
+      "hinh_thuc_mua": "Thuê bao tháng",
+      "link_tai": "https://asana.com"
+    }
+  },
+  {
+    "id": "07353fc2-6294-4630-bc31-2f659d8e1f6b",
+    "slug": "audacity",
+    "tieu_de_viet": "Audacity — Ghi &amp; chỉnh sửa âm thanh miễn phí",
+    "tom_tat": "Phần mềm audio mã nguồn mở — ghi podcast, cắt ghép, noise reduction và xuất MP3/WAV trên Windows, macOS, Linux.",
+    "meta_title": "Audacity là gì? Podcast, miễn phí và hướng dẫn học | CINS",
+    "meta_description": "Audacity: ghi âm, multitrack cơ bản, effect. So sánh Adobe Audition, Reaper và lộ trình làm podcast.",
+    "meta": {
+      "nha_phat_hanh": "Audacity Team (Muse Group)",
+      "version": "3",
+      "platform": ["Windows", "macOS", "Linux"],
+      "website": "https://www.audacityteam.org",
+      "goi_mien_phi": "Miễn phí · mã nguồn mở",
+      "gia_thanh": "Miễn phí",
+      "hinh_thuc_mua": "Miễn phí",
+      "link_tai": "https://www.audacityteam.org/download"
+    }
+  },
+  {
+    "id": "d184ac87-9243-4c7a-899b-bbcb579d1149",
+    "slug": "autocad",
+    "tieu_de_viet": "AutoCAD — Thiết kế CAD 2D/3D",
+    "tom_tat": "Phần mềm CAD tiêu chuẩn ngành — bản vẽ kiến trúc, kỹ thuật, mô hình 3D và xuất bản vẽ cho xây dựng và cơ khí.",
+    "meta_title": "AutoCAD là gì? CAD, giá và hướng dẫn học | CINS",
+    "meta_description": "AutoCAD: bản vẽ 2D, block, layout, 3D cơ bản. So sánh Revit, SketchUp và lộ trình học CAD.",
+    "meta": {
+      "nha_phat_hanh": "Autodesk",
+      "version": "2025",
+      "platform": ["Windows", "macOS"],
+      "website": "https://www.autodesk.com/products/autocad",
+      "goi_mien_phi": "Dùng thử · giáo dục miễn phí",
+      "gia_thanh": "Từ ~220 USD/tháng hoặc gói giáo dục",
+      "hinh_thuc_mua": "Thuê bao tháng · giáo dục",
+      "link_tai": "https://www.autodesk.com/products/autocad"
+    }
+  },
+  {
+    "id": "7754a64f-2e48-467a-af22-45136b085838",
+    "slug": "autodesk-inventor",
+    "tieu_de_viet": "Autodesk Inventor — Thiết kế cơ khí 3D",
+    "tom_tat": "Phần mềm CAD cơ khí — mô hình parametric, assembly, simulation và bản vẽ kỹ thuật cho sản xuất và kỹ thuật.",
+    "meta_title": "Autodesk Inventor là gì? CAD cơ khí và hướng dẫn | CINS",
+    "meta_description": "Inventor: part, assembly, drawing, simulation. So sánh SolidWorks, Fusion 360 và lộ trình học cơ khí.",
+    "meta": {
+      "nha_phat_hanh": "Autodesk",
+      "version": "2025",
+      "platform": ["Windows"],
+      "website": "https://www.autodesk.com/products/inventor",
+      "goi_mien_phi": "Dùng thử · giáo dục",
+      "gia_thanh": "Từ ~290 USD/tháng",
+      "hinh_thuc_mua": "Thuê bao tháng · giáo dục",
+      "link_tai": "https://www.autodesk.com/products/inventor"
+    }
+  },
+  {
+    "id": "ca154339-add2-4bad-ae22-3a034c92ac53",
+    "slug": "autodesk-maya",
+    "tieu_de_viet": "Autodesk Maya — 3D, hoạt hình &amp; VFX",
+    "tom_tat": "DCC 3D hàng đầu ngành phim và game — modeling, rigging, animation, simulation và xuất sang engine hoặc render farm.",
+    "meta_title": "Autodesk Maya là gì? 3D, animation và hướng dẫn học | CINS",
+    "meta_description": "Maya: modeling, rig, animation, Arnold render. So sánh Blender, 3ds Max và lộ trình học 3D.",
+    "meta": {
+      "nha_phat_hanh": "Autodesk",
+      "version": "2025",
+      "platform": ["Windows", "macOS", "Linux"],
+      "website": "https://www.autodesk.com/products/maya",
+      "goi_mien_phi": "Dùng thử · giáo dục miễn phí",
+      "gia_thanh": "Từ ~235 USD/tháng",
+      "hinh_thuc_mua": "Thuê bao tháng · giáo dục",
+      "link_tai": "https://www.autodesk.com/products/maya"
+    }
+  },
+  {
+    "id": "efeb040f-4ddc-4ac3-9c95-10a497587596",
+    "slug": "avid-media-composer",
+    "tieu_de_viet": "Avid Media Composer — Dựng phim broadcast",
+    "tom_tat": "NLE tiêu chuẩn truyền hình và phim — Media Composer với workflow bin, AMA và tích hợp Pro Tools trong studio chuyên nghiệp.",
+    "meta_title": "Avid Media Composer là gì? Dựng phim, giá và hướng dẫn | CINS",
+    "meta_description": "Media Composer: bin, trim, multicam, DNxHD. So sánh Premiere Pro, DaVinci Resolve và lộ trình học broadcast.",
+    "meta": {
+      "nha_phat_hanh": "Avid Technology",
+      "version": "2024",
+      "platform": ["Windows", "macOS"],
+      "website": "https://www.avid.com/media-composer",
+      "goi_mien_phi": "Media Composer | First miễn phí (giới hạn)",
+      "gia_thanh": "Từ ~23 USD/tháng (subscription)",
+      "hinh_thuc_mua": "Thuê bao tháng · perpetual",
+      "link_tai": "https://www.avid.com/media-composer"
+    }
+  }
+]

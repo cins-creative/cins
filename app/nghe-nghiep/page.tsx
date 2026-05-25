@@ -18,13 +18,6 @@ import {
 import { groupLinhVucForSidebar } from "@/lib/career/groupLinhVuc";
 import { listLinhVucForHub } from "@/lib/career/queries";
 import type { LinhVucRow } from "@/lib/career/types";
-import {
-  groupNhomNganhForSidebar,
-  nganhMatchesActiveNhom,
-} from "@/lib/nganh/groupNhomNganh";
-import { groupNganhByNhomNganh } from "@/lib/nganh/hubSections";
-import { listNganhArticlesForHub } from "@/lib/nganh/queries";
-
 export const metadata: Metadata = {
   title: "Nghề nghiệp — Khám phá ngành sáng tạo thị giác | CINs",
   description:
@@ -44,7 +37,7 @@ export default async function NgheNghiepIndexPage(props: {
   searchParams: Promise<SearchParams>;
 }) {
   const sp = await props.searchParams;
-  const tab = sp.tab === "nganh-hoc" ? "nganh-hoc" : "nghe";
+  const tab = "nghe";
   const qRaw = (sp.q ?? "").trim();
 
   const linhVucs = await listLinhVucForHub();
@@ -128,41 +121,6 @@ export default async function NgheNghiepIndexPage(props: {
 
   const linhVucSidebarGroups = groupLinhVucForSidebar(linhVucs);
 
-  const nganhResult =
-    tab === "nganh-hoc"
-      ? await listNganhArticlesForHub({ limit: 500 })
-      : { ok: true as const, items: [] };
-  const allNganh = nganhResult.ok ? nganhResult.items : [];
-  const nganhSidebarGroups = groupNhomNganhForSidebar(allNganh);
-  const nhomParam = (sp.nhom ?? "").trim();
-  const activeNhomId =
-    nhomParam && nganhSidebarGroups.some((g) => g.id === nhomParam)
-      ? nhomParam
-      : "";
-  const activeNhomLabel =
-    nganhSidebarGroups.find((g) => g.id === activeNhomId)?.heading ?? null;
-
-  let filteredNganh = allNganh;
-  if (activeNhomId) {
-    filteredNganh = allNganh.filter((n) =>
-      nganhMatchesActiveNhom(n, activeNhomId),
-    );
-  }
-  if (qRaw && tab === "nganh-hoc") {
-    const ql = qRaw.toLowerCase();
-    filteredNganh = filteredNganh.filter(
-      (n) =>
-        (n.title ?? "").toLowerCase().includes(ql) ||
-        (n.titleVi ?? "").toLowerCase().includes(ql) ||
-        (n.titleEng ?? "").toLowerCase().includes(ql) ||
-        (n.ma_nganh ?? "").toLowerCase().includes(ql) ||
-        (n.short_description ?? "").toLowerCase().includes(ql) ||
-        (n.article_nhom?.ten ?? "").toLowerCase().includes(ql),
-    );
-  }
-  const nganhGroups =
-    tab === "nganh-hoc" ? groupNganhByNhomNganh(filteredNganh) : [];
-
   return (
     <CinsShell data-screen-label="Nghe-nghiep-index">
       <div className="career-page career-page--hub">
@@ -182,19 +140,6 @@ export default async function NgheNghiepIndexPage(props: {
               ? {
                   reason: ngheArticlesResult.reason,
                   message: ngheArticlesResult.message,
-                }
-              : undefined
-          }
-          nganhSidebarGroups={nganhSidebarGroups}
-          activeNhomId={activeNhomId}
-          activeNhomLabel={activeNhomLabel}
-          nganhGroups={nganhGroups}
-          sampleNganh={filteredNganh}
-          nganhListError={
-            tab === "nganh-hoc" && !nganhResult.ok
-              ? {
-                  reason: nganhResult.reason,
-                  message: nganhResult.message,
                 }
               : undefined
           }

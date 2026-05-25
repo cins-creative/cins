@@ -1,0 +1,209 @@
+<section class="arc-intro">
+  <p>Trong clip quảng cáo, logo công ty dán trên chiếc xe chạy qua phố — nhưng camera rung và góc méo khiến motion graphic 2D thông thường trông giả. Compositor mở <strong>Mocha Pro</strong>, vẽ vài điểm quanh mặt kính xe, và phần mềm tự «bám» theo bề mặt phẳng qua từng frame — đó là <strong>planar tracking</strong>, thế mạnh của Mocha Pro thuộc hãng Boris FX.</p>
+  <p>Khác với After Effects point tracker (bám một điểm sáng), Mocha Pro phân tích <strong>mặt phẳng (plane)</strong> trong cảnh — phù hợp thay màn hình điện thoại, dán poster tường, xóa logo hoặc thêm CG vào bề mặt nghiêng. Với học sinh THPT học VFX, làm phim ngắn capstone hay theo hướng motion design chuyên nghiệp, Mocha Pro là công cụ industry-standard bên cạnh Nuke và tracker tích hợp trong AE.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>Mocha Pro là gì?</h2>
+  <p><strong>Mocha Pro</strong> do <strong>Boris FX</strong> phát triển — phần mềm <strong>planar tracking và rotoscoping</strong> chuyên dụng cho VFX, quảng cáo và phim. Gốc từ plugin Mocha cho AE/Nuke; phiên bản standalone và plugin (Adobe, OFX, Avid) chia sẻ engine tracking dựa trên thuật toán planar — được Academy Scientific and Technical Award công nhận.</p>
+  <p>Khác với compositor full-node như Nuke, Mocha Pro tập trung vào <strong>theo dõi hình học mặt phẳng, mask chính xác và insert object</strong>. Giao diện có viewport footage, spline tool (X-spline, Bezier), layer tracking và export data sang After Effects, Nuke hoặc Fusion. Ban đầu trông kỹ thuật, nhưng workflow «vẽ spline → track → export corner pin» lặp lại xuyên suốt ngành quảng cáo Việt Nam.</p>
+  <ul class="arc-list">
+    <li><strong>Planar tracking</strong> — bám mặt phẳng (tường, màn hình, sàn) qua chuyển động camera</li>
+    <li><strong>PowerMesh &amp; mesh warp</strong> — biến dạng lưới trên bề mặt cong hoặc mềm</li>
+    <li><strong>Rotoscoping &amp; Object Removal</strong> — tách foreground, xóa vật thể không cần CG hóa toàn cảnh</li>
+    <li><strong>Export</strong> — corner pin, transform, shape data sang AE, Nuke, Fusion, HitFilm</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"Boris FX Mocha Pro interface planar tracking spline viewport screenshot"</span>
+    </div>
+    <p class="arc-image-caption">Giao diện Mocha Pro — spline trên mặt phẳng và dữ liệu tracking trên timeline</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>Mocha Pro đứng ở giai đoạn <strong>prep và match-move 2D/planar</strong>: nhận plate từ set hoặc phim ngắn → track mặt phẳng cần thay thế → export sang After Effects/Nuke để composite logo, màn hình UI hoặc cleanup. Không thay thế hoàn toàn 3D matchmove (3DEqualizer, SynthEyes) cho camera phức tạp, nhưng xử lý 80% shot quảng cáo «dán màn hình» nhanh hơn rig 3D. Thường làm việc cùng Premiere/Resolve (edit), After Effects (composite), và đôi khi Cinema 4D/Blender khi cần khối 3D khớp plane.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Planar tracking &amp; screen insert</h3>
+    <p>Workflow cơ bản nhất: vẽ <strong>spline bao quanh mặt phẳng</strong> (màn laptop, biển quảng cáo, bảng kính xe) → bấm Track Forward → Mocha tính toán homography và bám plane qua chuyển động camera. Layer <strong>Insert Module</strong> gán clip thay thế (UI app, video quảng cáo) với corner pin tự động — export sang AE dưới dạng precomp hoặc data.</p>
+    <p>Đối với học sinh THPT mới làm quen, bài tập thực tế hay gặp: quay clip ngắn tay cầm điện thoại → thay màn hình bằng mockup app lớp; hoặc dán poster sự kiện lên tường trong hành lang trường — vừa luyện quay phim ổn định vừa hiểu giới hạn tracking khi motion blur hoặc phản chiếu mạnh.</p>
+    <ul class="arc-list">
+      <li><strong>X-spline / Bezier</strong> — vẽ vùng track; feather và edge blending khi composite</li>
+      <li><strong>Track motion</strong> — translation, rotation, scale, perspective trên plane</li>
+      <li><strong>Insert &amp; export</strong> — gán footage insert, xuất corner pin cho After Effects</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Mocha Pro screen replacement phone tracking insert module"</span>
+        </div>
+        <p class="arc-image-caption">Screen insert — track mặt phẳng màn hình và gán footage UI</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Mocha Pro planar track billboard wall perspective"</span>
+        </div>
+        <p class="arc-image-caption">Planar track — bám biển quảng cáo hoặc tường có phối cảnh</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Rotoscoping, object removal &amp; PowerMesh</h3>
+    <p>Mocha Pro mạnh về <strong>rotoscoping</strong> — spline linked to track giúp mask nhân vật hoặc vật thể di chuyển mà ít keyframe tay hơn vẽ frame-by-frame thuần. Module <strong>Remove Objects</strong> (tùy license) hỗ trợ xóa cột điện, mic lavalier hoặc logo không mong muốn bằng cách sample nền xung quanh. <strong>PowerMesh</strong> mở rộng planar thành lưới warp — hữu ích khi bề mặt hơi cong (áo phông, gương bóng nhẹ).</p>
+    <p>Shot quảng cáo thực tế thường kết hợp: track plane cho insert + roto cho foreground che khuất + cleanup remove object — hiểu pipeline giúp bạn không chỉ «biết một nút track» mà nắm cách studio VFX nhỏ tại Việt Nam xử lý deadline gấp.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Mocha Pro rotoscoping PowerMesh object removal VFX"</span>
+      </div>
+      <p class="arc-image-caption">Rotoscoping và Remove — mask chính xác và xóa vật thể trên plate</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Plugin, standalone &amp; tích hợp pipeline</h3>
+    <p>Mocha Pro có thể chạy <strong>standalone</strong> hoặc plugin trong After Effects, Premiere Pro, Nuke, Fusion, Vegas, HitFilm — cùng project .mocha lưu spline và track data. Boris FX bán subscription hoặc perpetual license; sinh viên có thể tra <strong>academic discount</strong>. Luồng AE phổ biến: Mocha AE (lite, miễn phí kèm AE) cho shot đơn giản; Mocha Pro khi cần mesh, remove, hoặc export phức tạp sang Nuke.</p>
+    <p>Giáo dục THPT: nhiều trường dạy AE trước — học Mocha AE là bước đệm; Mocha Pro khi học sinh vào đội thi VFX hoặc internship studio quảng cáo. Luồng sản xuất: edit Resolve/Premiere → track Mocha → composite AE/Nuke → grade → delivery.</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Mocha Pro After Effects Nuke export pipeline Boris FX workflow"</span>
+      </div>
+      <p class="arc-image-caption">Pipeline VFX — track Mocha Pro, export sang AE/Nuke và composite cuối</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai hướng so sánh phổ biến với Mocha Pro là <strong>tracker tích hợp trong After Effects</strong> (point, warp, 3D camera) và <strong>Nuke</strong> (PlanarTracker, CameraTracker node). Không có công cụ «đúng duy nhất» — tùy độ phức tạp shot, pipeline studio và ngân sách license.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Mocha Pro vs After Effects tracker</h3>
+    <p>After Effects có <strong>Point Tracker</strong>, <strong>Warp Stabilizer</strong> và plugin <strong>Mocha AE</strong> (bản rút gọn) — đủ cho screen replacement đơn giản và stabilize. <strong>Mocha Pro</strong> thêm PowerMesh, Remove Objects, advanced roto linking và export mạnh hơn; spline planar thường ổn định hơn khi điểm track đơn lẻ bị che khuất hoặc motion blur nặng.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Mocha Pro planar tracking accurate screen replace"</span>
+        </div>
+        <p class="arc-image-caption">Mocha Pro — planar track ổn định trên mặt phẳng nghiêng</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"After Effects point tracker motion tracking panel"</span>
+        </div>
+        <p class="arc-image-caption">After Effects — point tracker và Mocha AE cho shot cơ bản</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Mocha Pro mạnh hơn:</strong> planar/surface track chuyên sâu, roto linked to track, Remove Objects, PowerMesh, workflow shot quảng cáo phức tạp.<br>
+      <strong>AE tracker mạnh hơn:</strong> đã nằm trong AE (không thêm license), point track nhanh cho điểm sáng, 3D Camera Tracker cho scene nhỏ, Mocha AE miễn phí kèm AE.<br>
+      <strong>Chọn Mocha Pro khi:</strong> làm screen insert chuyên nghiệp, roto hàng loạt, cleanup object, studio yêu cầu Boris pipeline.<br>
+      <strong>Chọn AE tracker khi:</strong> học sinh THPT mới học VFX, shot đơn giản, ngân sách zero thêm ngoài Creative Cloud.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Mocha Pro vs Nuke</h3>
+    <p><strong>Nuke</strong> (Foundry) là compositor node-based cấp studio — có <strong>PlanarTracker</strong>, Roto, CameraTracker và toàn bộ pipeline 2D/3D trong một app. Mocha Pro engine planar thường được coi là tiêu chu vàng và tích hợp vào Nuke qua node Mocha hoặc import shape. Nuke mạnh khi shot cần nhiều layer comp, deep compositing và CG; Mocha Pro mạnh khi artist chuyên «track/roto» làm prep nhanh rồi bàn giao cho comp lead.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Mocha Pro Boris FX rotoscope export shapes"</span>
+        </div>
+        <p class="arc-image-caption">Mocha Pro — chuyên track/roto, export shape sang compositor</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Nuke compositor PlanarTracker node VFX pipeline"</span>
+        </div>
+        <p class="arc-image-caption">Nuke — PlanarTracker và comp node-based toàn pipeline</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Mocha Pro mạnh hơn:</strong> UI chuyên track/roto, PowerMesh, Remove module, học curve dễ hơn Nuke full cho người chỉ làm prep.<br>
+      <strong>Nuke mạnh hơn:</strong> comp hoàn chỉnh, 3D space, deep, pipeline phim lớn; PlanarTracker đủ dùng nếu đã trả license Nuke.<br>
+      <strong>Chọn Mocha Pro khi:</strong> làm prep cho AE/Nuke, studio quảng cáo, hoặc AE artist cần track đẳng cấp cao hơn Mocha AE.<br>
+      <strong>Chọn Nuke khi:</strong> mục tiêu compositor phim/VFX, đã học node comp, shot cần nhiều layer và CG tích hợp.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học Mocha Pro như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Nền tảng After Effects và quay phim ổn định</strong>
+        <p>Trước Mocha Pro, nên biết AE cơ bản: layer, precomp, corner pin effect. Tuần đầu với Mocha AE (miễn phí trong AE): vẽ spline màn hình điện thoại tĩnh, track và export. Quay plate thử: tripod hoặc tay ổn định, tránh motion blur quá mạnh — nhiều bạn THPT track fail vì footage quay rung hoặc exposure nhảy.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Planar track và screen insert trong Mocha Pro</strong>
+        <p>Mở standalone hoặc plugin, import clip 1080p ngắn 5–10 giây. Vẽ X-spline quanh màn hình/laptop, set surface corners, Track Forward, kiểm tra drift từng vùng. Gán Insert clip (mockup app PNG/video), tinh chỉnh feather và export «Corner Pin» sang AE. Mục tiêu: một shot screen replace «không lộ» trong 1–2 tuần luyện.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Rotoscoping linked to track</strong>
+        <p>Shot có tay hoặc vật che một phần màn hình: track plane trước, roto spline foreground, link to track. Học adjust spline vài keyframe khi track drift — kỹ năng «fix tracking» quan trọng hơn bấm track một lần. Bài tập: thay màn hình tablet khi người cầm di chuyển qua khung hình.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Composite hoàn chỉnh trong After Effects</strong>
+        <p>Nhận corner pin data, thêm color match (levels, blur nhẹ), reflection giả trên kính, grain khớp plate. Thêm shadow và motion blur nếu cần — insert «float» là lỗi phổ biến khi mới học. Xuất MP4 cho portfolio phim ngắn trường hoặc reel VFX 30 giây.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Shot khó: góc nghiêng, reflection và PowerMesh</strong>
+        <p>Thử billboard trên tường phố, mặt kính xe hoặc áo phông — khi planar thuần không đủ, bật PowerMesh với lưới thưa, adjust warp. Thử Remove Object xóa vật thể nhỏ (nếu license có). Giai đoạn này dạy đọc brief shot và ước lượng thời gian — kỹ năng freelancer VFX junior.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Portfolio, Boris FX training và định hướng nghề</strong>
+        <p>Tổng hợp 3–5 shot: screen replace, poster wall, roto demo (before/after). Xem khóa Boris FX / Curious Turtle miễn phí trên YouTube; tìm hiểu nghề Compositor, Matchmove Artist, VFX Generalist — studio quảng cáo TP.HCM/Hà Nội thường tuyển junior biết Mocha + AE. Nếu hướng phim lớn, lên kế hoạch học Nuke sau khi vững planar trong Mocha.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

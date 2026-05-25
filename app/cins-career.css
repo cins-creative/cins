@@ -1096,7 +1096,9 @@
 }
 
 .career-hub-card:hover .career-hub-card-tooltip--static,
-.career-hub-card-title-link:hover .career-hub-card-tooltip--static {
+.career-hub-card-title-link:hover .career-hub-card-tooltip--static,
+.hn-role-card:hover .career-hub-card-tooltip--static,
+.hn-role-card:focus-within .career-hub-card-tooltip--static {
   opacity: 1;
   visibility: visible;
   transform: translateX(-50%) translateY(0);

@@ -2,8 +2,7 @@ export type MainNavIcon =
   | "home"
   | "gallery"
   | "career"
-  | "university"
-  | "training"
+  | "education"
   | "courses"
   | "business"
   | "events"
@@ -46,20 +45,13 @@ export const MAIN_NAV_ITEMS: MainNavItem[] = [
     isActive: (p) => p === "/nghe-nghiep" || p.startsWith("/nghe-nghiep/"),
   },
   {
-    id: "university",
-    href: "/#schools",
-    label: "Trường đại học",
-    tip: "38 trường đào tạo ngành sáng tạo — học phí, chương trình, học bổng và open day",
-    icon: "university",
-    isActive: () => false,
-  },
-  {
-    id: "training",
-    href: "/#training",
-    label: "Cơ sở đào tạo",
-    tip: "Trung tâm đào tạo ngắn hạn, học viện kỹ năng nghề và bootcamp chuyên ngành",
-    icon: "training",
-    isActive: () => false,
+    id: "education",
+    href: "/truong-dai-hoc",
+    label: "Tổ chức giáo dục",
+    tip: "Trường đại học và cơ sở đào tạo ngành sáng tạo — học phí, chương trình, học bổng và open day",
+    icon: "education",
+    isActive: (p) =>
+      p === "/truong-dai-hoc" || p.startsWith("/truong-dai-hoc/"),
   },
   {
     id: "courses",
@@ -88,7 +80,7 @@ export const MAIN_NAV_ITEMS: MainNavItem[] = [
   {
     id: "blog",
     href: "/bai-viet",
-    label: "Blog",
+    label: "Bài viết",
     tip: "Bài viết chuyên sâu, hướng dẫn nghề và phỏng vấn người trong ngành sáng tạo",
     icon: "blog",
     isActive: (p) => p === "/bai-viet" || p.startsWith("/bai-viet/"),

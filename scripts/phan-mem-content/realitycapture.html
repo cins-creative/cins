@@ -1,0 +1,209 @@
+<section class="arc-intro">
+  <p>Bạn lướt TikTok thấy một video quay quanh tượng Phật cổ, bấm vào và có thể xoay 360° nhìn từng vết nứt trên đá — phần lớn mô hình 3D đó được tạo bằng <strong>photogrammetry</strong>, không phải vẽ tay từng đa giác. Trong các studio khảo cổ, game AAA và VFX, công cụ hay được chọn cho quy trình đó là <strong>RealityCapture</strong> của Epic Games: phần mềm biến hàng trăm ảnh chụp thành mesh 3D chi tiết cao trong vài giờ thay vì vài tuần modeling thủ công.</p>
+  <p>RealityCapture không phải phần mềm dựng hình truyền thống như Blender hay 3ds Max — nó chuyên <strong>quét và tái tạo thực tế</strong> từ dữ liệu ảnh hoặc laser. Hiểu công cụ này giúp học sinh THPT có định hướng thực tế vào nghề 3D scan, digital heritage, environment art cho game hoặc VFX, thay vì chỉ biết «vẽ khối trên màn hình» mà chưa biết cách đưa thế giới thật vào pipeline sản xuất.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>RealityCapture là gì?</h2>
+  <p>RealityCapture do <strong>Epic Games</strong> phát triển (sau khi mua Capturing Reality) — phần mềm <strong>photogrammetry và 3D reconstruction</strong> chạy trên Windows. Bạn đưa vào bộ ảnh chụp quanh vật thể hoặc không gian (hoặc dữ liệu laser scan), phần mềm tự động khớp điểm ảnh, tính toán depth và xuất ra mesh 3D kèm texture — quy trình mà trước đây cần đội ngũ chuyên gia và phần cứng đắt đỏ.</p>
+  <p>Khác với modeling polygon thủ công trong Maya hay ZBrush, RealityCapture là công cụ <strong>capture thực tế</strong>: bạn quan tâm chất lượng ảnh đầu vào, overlap giữa các góc chụp và ánh sáng đồng nhất hơn là kỹ năng extrude hay sculpt. Giao diện có project tree, alignment view, mesh editor và texture baking panel — ban đầu trông kỹ thuật, nhưng mỗi bước phục vụ pipeline từ ảnh thô đến asset sẵn sàng import Unreal Engine hoặc game engine khác.</p>
+  <ul class="arc-list">
+    <li><strong>Automatic alignment</strong> — khớp hàng trăm đến hàng nghìn ảnh, tính camera position và sparse point cloud</li>
+    <li><strong>Dense reconstruction &amp; mesh</strong> — tạo mesh chi tiết cao, tối ưu polygon và UV unwrap tự động</li>
+    <li><strong>Texture baking</strong> — bake màu, normal, roughness từ ảnh gốc lên mesh để dùng trong realtime hoặc offline render</li>
+    <li><strong>Epic ecosystem</strong> — xuất trực tiếp sang Unreal Engine, Megascans workflow; tích hợp Twinmotion cho archviz</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"Epic RealityCapture photogrammetry interface mesh reconstruction screenshot"</span>
+    </div>
+    <p class="arc-image-caption">Giao diện RealityCapture — alignment point cloud, mesh preview và texture baking</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>RealityCapture thường đứng ở giai đoạn <strong>capture và tái tạo asset từ thực tế</strong>: team on-site chụp ảnh hoặc quét laser → import vào RealityCapture → align, reconstruct, clean mesh → bake texture → xuất FBX/USD sang Unreal Engine cho game environment, hoặc sang Maya/Houdini để retopo và polish. Với digital heritage, quy trình bảo tồm hiện vật cổ; với game, artist scan prop thật (đá, cây, kiến trúc) rồi tối ưu LOD trong engine. Thường làm việc cùng DSLR/mirrorless, drone, laser scanner (Faro, Leica), ZBrush retopo và Substance Painter khi cần chỉnh texture thủ công.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Alignment &amp; reconstruction từ ảnh</h3>
+    <p>Thế mạnh cốt lõi của RealityCapture là <strong>khớp ảnh tự động và tái tạo geometry</strong>. Bạn import folder ảnh chụp quanh vật thể (overlap 60–80% giữa các frame), phần mềm detect feature points, tính vị trí camera và tạo sparse point cloud — sau đó chạy dense reconstruction để có mesh chi tiết. Với dataset tốt, một bức tượng hoặc căn phòng có thể được xử lý trong vài giờ trên máy workstation có GPU mạnh.</p>
+    <p>Đối với học sinh THPT mới làm quen, bài tập thực tế hay gặp: chụp 50–80 ảnh quanh một vật nhỏ (giày, tượng, đồ gỗ) bằng điện thoại hoặc máy ảnh, import vào RealityCapture và xuất mesh đầu tiên — vừa luyện tư duy «quay quanh vật thể» vừa hiểu vì sao ánh sáng và overlap quan trọng hơn kỹ năng vẽ 3D.</p>
+    <ul class="arc-list">
+      <li><strong>Image alignment</strong> — khớp camera tự động, phát hiện lỗi ảnh mờ hoặc thiếu overlap</li>
+      <li><strong>Control points</strong> — đặt marker tham chiếu khi cần scale hoặc ghép nhiều scan</li>
+      <li><strong>Component management</strong> — tách nhiều vật thể trong cùng project, merge scan riêng lẻ</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"RealityCapture photogrammetry sparse point cloud alignment photos"</span>
+        </div>
+        <p class="arc-image-caption">Alignment — sparse point cloud và vị trí camera từ bộ ảnh chụp</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"RealityCapture dense mesh reconstruction high detail scan"</span>
+        </div>
+        <p class="arc-image-caption">Dense reconstruction — mesh chi tiết cao sau bước align</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Mesh editing, decimation &amp; texture baking</h3>
+    <p>Sau khi có mesh thô, bước tiếp theo là <strong>làm sạch, giảm polygon và bake texture</strong>. RealityCapture có công cụ xóa noise, lấp lỗ, simplify mesh xuống mức phù hợp game realtime (từ hàng triệu xuống vài trăm nghìn triangle) mà vẫn giữ silhouette. Texture baking chuyển màu và chi tiết bề mặt từ ảnh gốc sang UV map — output thường là albedo, normal map và có thể thêm roughness cho PBR workflow.</p>
+    <p>Một asset scan chất lượng cao cho game thường cần thêm bước retopo trong Blender hoặc ZBrush nếu mesh quá nặng; nhưng với prop nhỏ hoặc hero asset archviz, RealityCapture có thể xuất trực tiếp đủ dùng sau khi decimate cẩn thận — đây là kỹ năng «sản xuất thực tế» mà studio environment art luôn yêu cầu.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"RealityCapture mesh decimation texture baking PBR output"</span>
+      </div>
+      <p class="arc-image-caption">Mesh editing — decimation, UV và texture bake cho asset PBR</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Xuất sang Unreal Engine &amp; pipeline game/VFX</h3>
+    <p>RealityCapture gắn chặt với <strong>hệ sinh thái Epic</strong>: xuất trực tiếp sang Unreal Engine qua plugin, tương thích Megascans và Twinmotion cho archviz. Với game, artist scan môi trường thật (đường phố, hang động, di tích) rồi dựng level trong engine; với VFX, scan prop làm reference hoặc hero geometry cho shot phim. Luồng làm việc điển hình: chụp on-site → process trong RealityCapture → export FBX/OBJ → import Unreal → setup collision, LOD và lighting.</p>
+    <p>Hiểu quy trình này giúp bạn không chỉ «biết một phần mềm scan» mà nắm được cách asset photogrammetry đi từ hiện trường đến trải nghiệm người chơi hoặc khung hình phim — kỹ năng mà studio game và VFX tại Việt Nam ngày càng tuyển dụng.</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"RealityCapture export Unreal Engine photogrammetry game environment pipeline"</span>
+      </div>
+      <p class="arc-image-caption">Pipeline xuất — scan RealityCapture, import Unreal Engine, setup LOD và collision</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai phần mềm hay được đặt cạnh RealityCapture nhất là <strong>Agisoft Metashape</strong> (tiêu chuẩn photogrammetry chuyên nghiệp lâu đời) và <strong>Polycam</strong> (app quét 3D trên điện thoại, dễ tiếp cận). Không có câu trả lời «đúng duy nhất» — tùy bạn hướng tới game AAA, khảo cổ học số hay quét nhanh trên mobile cho prototype.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">RealityCapture vs Metashape</h3>
+    <p>Metashape (trước đây Agisoft PhotoScan) là <strong>chuẩn công nghiệp photogrammetry</strong> từ lâu — được dùng trong khảo cổ, đo đạc và VFX với workflow ổn định, batch processing mạnh. RealityCapture nhanh hơn trên nhiều loại dataset, miễn phí cho doanh nghiệp doanh thu dưới 1 triệu USD/năm (theo chính sách Epic), và tích hợp sâu Unreal — rất hấp dẫn studio game và indie.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Epic RealityCapture Unreal Engine photogrammetry game asset"</span>
+        </div>
+        <p class="arc-image-caption">RealityCapture — tốc độ cao, miễn phí indie, tích hợp Epic/Unreal</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Agisoft Metashape photogrammetry professional survey archaeology"</span>
+        </div>
+        <p class="arc-image-caption">Metashape — chuẩn khảo cổ, đo đạc và batch processing chuyên nghiệp</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>RealityCapture mạnh hơn:</strong> tốc độ xử lý trên GPU, chính sách miễn phí cho indie/small business, export trực tiếp Unreal và Megascans workflow.</p>
+      <p><strong>Metashape mạnh hơn:</strong> độ tin cậy trong khảo cổ và đo đạc chính xác, batch automation lâu đời, cộng đồng academic và survey chuyên sâu.</p>
+      <p><strong>Chọn RealityCapture khi:</strong> mục tiêu game environment, VFX prop scan, pipeline Epic/Unreal, ngân sách indie.</p>
+      <p><strong>Chọn Metashape khi:</strong> cần độ chính xác đo đạc, digital heritage quy mô lớn, hoặc studio đã đầu tư workflow Metashape từ trước.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">RealityCapture vs Polycam</h3>
+    <p>Polycam là app <strong>quét 3D trên iPhone/iPad</strong> (LiDAR hoặc photogrammetry) — bạn cầm điện thoại quay quanh phòng, xuất mesh trong vài phút, không cần workstation. RealityCapture yêu cầu máy tính mạnh và bộ ảnh chất lượng cao hơn, nhưng cho kết quả chi tiết và kiểm soát pipeline chuyên nghiệp hơn nhiều.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"RealityCapture professional photogrammetry high detail mesh studio"</span>
+        </div>
+        <p class="arc-image-caption">RealityCapture — mesh chi tiết cao, pipeline studio và game</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Polycam 3D scan iPhone LiDAR app room capture"</span>
+        </div>
+        <p class="arc-image-caption">Polycam — quét nhanh trên mobile, prototype và học tập cơ bản</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>RealityCapture mạnh hơn:</strong> chất lượng mesh và texture cho production, decimation/baking chuyên sâu, tích hợp Unreal và pipeline game/VFX.</p>
+      <p><strong>Polycam mạnh hơn:</strong> dễ bắt đầu (chỉ cần điện thoại), quét nhanh không gian/phòng, chia sẻ model ngay, phù hợp THPT thử nghiệm photogrammetry.</p>
+      <p><strong>Chọn RealityCapture khi:</strong> asset cần đưa vào game engine, VFX hoặc archviz chất lượng cao.</p>
+      <p><strong>Chọn Polycam khi:</strong> muốn làm quen khái niệm 3D scan nhanh, prototype nội thất, hoặc chưa có máy workstation.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học RealityCapture như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Hiểu photogrammetry và chuẩn bị chụp ảnh</strong>
+        <p>Tuần đầu hãy học nguyên tắc cơ bản: overlap 60–80% giữa các ảnh, ánh sáng đồng nhất (tránh bóng cứng thay đổi), chụp quanh vật thể theo vòng xoắn ốc từ cao xuống thấp. Thử chụp một vật nhỏ bằng điện thoại — 40–60 ảnh — trước khi đụng tới DSLR. Mục tiêu là hiểu vì sao ảnh đầu vào quyết định 80% chất lượng output, không phải nút bấm trong phần mềm.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Cài đặt và project đầu tiên</strong>
+        <p>Tải RealityCapture (miễn phí theo chính sách Epic), tạo project mới, import folder ảnh và chạy Align Images. Quan sát sparse point cloud — nếu có vùng trống, quay lại chụp thêm góc. Học cách đọc báo cáo alignment: ảnh nào bị loại, overlap có đủ không. Thường 1–2 tuần với 2–3 lần thử scan sẽ thấy kết quả cải thiện rõ khi bạn chỉnh cách chụp.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Dense reconstruction, mesh và decimation</strong>
+        <p>Sau align thành công, chạy Calculate Model để có mesh dense. Học simplify mesh: giảm polygon xuống mức game-friendly (100k–500k tùy prop), xóa noise và lấp lỗ nhỏ. Bake texture từ ảnh gốc — xuất albedo và normal map. Mục tiêu là có một prop hoàn chỉnh (ví dụ: bình gốm, giày sneaker) export FBX kèm texture.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Import Unreal Engine hoặc Blender</strong>
+        <p>Đưa mesh và texture vào Unreal Engine (hoặc Blender nếu chưa có engine): setup material PBR, kiểm tra scale và collision box. Với game, học thêm LOD và Nanite nếu dùng UE5. Đây là bước «đóng vòng» pipeline — từ ảnh thật đến asset trong scene 3D có thể đi được hoặc tương tác.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Scan không gian lớn hoặc dự án portfolio</strong>
+        <p>Thử scan một góc phòng, hành lang nhỏ hoặc công trình ngoài trời (chú ý ánh sáng và quyền chụp). Hoặc tham gia dự án digital heritage: scan hiện vật văn hóa với sự cho phép. Giai đoạn này dạy bạn quy trình sản xuất thật: planning shoot, on-site capture, post-process, deliver asset — không chỉ «bấm nút trong phần mềm».</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Portfolio và định hướng nghề</strong>
+        <p>Tổng hợp 3–5 work: prop scan chi tiết, một environment nhỏ, có thể thêm so sánh before/after decimation. Đăng ArtStation, Behance hoặc website cá nhân — ghi rõ pipeline (RealityCapture, Unreal/Blender). Tìm hiểu nghề 3D scan artist, environment artist, digital heritage specialist; nhiều studio game và VFX tại Việt Nam tuyển junior có portfolio scan thực tế hơn chứng chỉ lý thuyết.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

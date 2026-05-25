@@ -91,16 +91,32 @@ export async function POST(request: Request) {
   const cfForm = new FormData();
   cfForm.append("file", file, file.name || "upload");
 
-  const cfRes = await fetch(
-    `https://api.cloudflare.com/client/v4/accounts/${cfAccount}/images/v1`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${cfToken}`,
+  let cfRes: Response;
+  try {
+    cfRes = await fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${cfAccount}/images/v1`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${cfToken}`,
+        },
+        body: cfForm,
+        signal: AbortSignal.timeout(45_000),
       },
-      body: cfForm,
-    },
-  );
+    );
+  } catch (err) {
+    const timedOut =
+      err instanceof Error &&
+      (err.name === "TimeoutError" || err.name === "AbortError");
+    return NextResponse.json(
+      {
+        error: timedOut
+          ? "Cloudflare Images phản hồi quá chậm — thử lại hoặc kiểm tra mạng."
+          : "Không gọi được Cloudflare Images.",
+      },
+      { status: 504 },
+    );
+  }
 
   const cfJson: unknown = await cfRes.json().catch(() => null);
   if (!cfRes.ok) {

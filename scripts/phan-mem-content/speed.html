@@ -1,0 +1,209 @@
+<section class="arc-intro">
+  <p>Bạn chạy game AAA mở thế giới rừng rậm, gió thổi làm từng tán lá rung và ánh nắng lọt qua kẽ cây — phần lớn cây cối trong cảnh đó không được vẽ tay từng chiếc lá mà được tạo bằng <strong>SpeedTree</strong>, công cụ chuyên dụng cho thực vật 3D trong game, phim và archviz. Cùng phần mềm này cũng xuất hiện ở studio làm phim khi cần rừng ngoại cảnh cho shot VFX hoặc trailer cinematic.</p>
+  <p>SpeedTree do <strong>Interactive Data Visualization, Inc. (IDV)</strong> phát triển — không phải phần mềm dựng cảnh tổng thể hay engine game, mà là <strong>generator và editor cây cối, bụi rậm, cỏ</strong> với LOD, wind animation và xuất trực tiếp sang Unreal Engine, Unity hoặc pipeline DCC. Hiểu SpeedTree giúp bạn không chỉ «biết làm cây» mà nắm được quy trình vegetation trong sản xuất game và phim quy mô lớn.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>SpeedTree là gì?</h2>
+  <p>SpeedTree do <strong>IDV</strong> phát triển — phần mềm <strong>tạo và hoạt hình thực vật 3D</strong> chạy trên Windows (và macOS với một số phiên bản). Ban đầu nổi tiếng trong game PC/console; ngày nay vẫn là tiêu chuẩn ngành cho cây cối procedural trong Unreal, Unity và nhiều pipeline VFX phim, với bản quyền được cấp cho hàng trăm tựa game AAA.</p>
+  <p>Khác với việc model cây thủ công trong Blender hay Maya — tốn thời gian và khó tái sử dụng — SpeedTree dùng <strong>node graph procedural</strong>: bạn điều chỉnh thân, cành, lá, rễ và tham số sinh trưởng để tạo biến thể cây mới trong vài phút. Giao diện có viewport 3D, generator panel và wind preview — ban đầu trông chuyên sâu, nhưng mỗi tham số phục vụ một bước trong quy trình vegetation production.</p>
+  <ul class="arc-list">
+    <li><strong>Procedural tree generation</strong> — tạo cây, bụi, cỏ từ tham số sinh học và random seed</li>
+    <li><strong>LOD &amp; billboards</strong> — tự động sinh mức chi tiết giảm dần cho game engine</li>
+    <li><strong>Wind animation</strong> — mô phỏng gió trên cành, lá và cỏ; xuất animation hoặc shader wind</li>
+    <li><strong>Engine export</strong> — xuất trực tiếp sang Unreal, Unity; hỗ trợ FBX, Alembic và SpeedTree format</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"SpeedTree Modeler interface procedural tree generator viewport screenshot"</span>
+    </div>
+    <p class="arc-image-caption">Giao diện SpeedTree — generator node, viewport cây 3D và bảng tham số sinh trưởng</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>SpeedTree thường đứng ở giai đoạn <strong>vegetation asset production</strong>: environment artist nhận art direction (rừng nhiệt đới, sa mạc, đô thị) → tạo hoặc chỉnh cây trong SpeedTree → thiết lập LOD và wind → xuất sang Unreal/Unity hoặc render trong pipeline phim. Với archviz, có thể render cây chất lượng cao cho cảnh ngoại thất. Thường làm việc cùng Megascans (texture lá), Substance Designer (material) và Houdini (scatter cây hàng loạt) khi dựng world lớn.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Procedural generation &amp; biến thể cây</h3>
+    <p>Thế mạnh cốt lõi của SpeedTree là <strong>tạo cây từ thuật toán sinh trưởng</strong>. Bạn điều chỉnh chiều cao thân, số nhánh, góc phân nhánh, hình dạng lá, mật độ tán — rồi đổi seed để sinh hàng chục biến thể khác nhau mà không model lại từ đầu. Generator hỗ trợ cây thân gỗ, bụi rậm, cây cọ, tre và cỏ — phù hợp môi trường game open-world cần đa dạng thực vật.</p>
+    <p>Đối với học sinh THPT mới làm quen, bài tập thực tế hay gặp: tạo 3 loại cây cho map game nhỏ (cây cao che bóng, bụi thấp, cỏ ven đường), export FBX thử import Unity — vừa luyện tư duy environment vừa làm portfolio game art cơ bản.</p>
+    <ul class="arc-list">
+      <li><strong>Generator nodes</strong> — Trunk, Branch, Leaf, Frond; kết nối và random seed</li>
+      <li><strong>Species presets</strong> — oak, pine, palm và thư viện mẫu có sẵn làm điểm xuất phát</li>
+      <li><strong>Variation batch</strong> — sinh nhiều biến thể cùng species cho scatter trong engine</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"SpeedTree procedural oak tree generator node graph viewport"</span>
+        </div>
+        <p class="arc-image-caption">Procedural generation — node graph và biến thể cây sồi trong viewport</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"SpeedTree bush grass vegetation variation batch export"</span>
+        </div>
+        <p class="arc-image-caption">Biến thể — bụi rậm và cỏ với seed khác nhau cho cùng species</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. LOD, material &amp; tối ưu game</h3>
+    <p>Sau khi tạo cây, bước quan trọng là thiết lập <strong>Level of Detail (LOD)</strong> — SpeedTree tự sinh mesh giảm polygon ở khoảng cách xa và billboard (ảnh 2D) cho cây rất xa, giữ FPS ổn định trong game open-world. Bạn gán <strong>material PBR</strong> cho thân và lá (albedo, normal, subsurface cho lá trong suốt), tối ưu overdraw và alpha cutout.</p>
+    <p>Một cây hero close-up có thể hàng trăm nghìn polygon; LOD3 hoặc billboard chỉ vài trăm — hiểu trade-off này là kỹ năng «sản xuất thực tế» mà studio game luôn yêu cầu khi dựng rừng hàng nghìn cây.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"SpeedTree LOD billboard levels game optimization comparison"</span>
+      </div>
+      <p class="arc-image-caption">LOD &amp; billboard — mesh chi tiết gần, đơn giản hóa và sprite xa trong game</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Wind animation &amp; xuất sang engine</h3>
+    <p>SpeedTree hỗ trợ <strong>wind simulation</strong> — cành và lá rung theo gió với tham số strength, frequency và gust; preview trực tiếp trong Modeler hoặc xuất data cho shader wind trong Unreal/Unity. Plugin <strong>SpeedTree for Unreal Engine</strong> và <strong>SpeedTree for Unity</strong> import cây kèm LOD, material và wind — giảm bước setup thủ công trong engine.</p>
+    <p>Luồng làm việc điển hình: tạo cây trong SpeedTree → LOD + wind → export .spm hoặc FBX → import engine → scatter bằng foliage tool hoặc Houdini. Hiểu quy trình này giúp bạn không chỉ «biết một phần mềm» mà nắm được cách thực vật 3D đi từ generator đến world game chạy mượt.</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"SpeedTree Unreal Engine wind animation foliage import workflow"</span>
+      </div>
+      <p class="arc-image-caption">Luồng xuất — SpeedTree Modeler, wind preview và import Unreal Foliage</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai hướng hay được đặt cạnh SpeedTree là <strong>Blender kết hợp Megascans plants</strong> (model/scan thủ công hoặc asset có sẵn) và <strong>Unreal Engine Foliage</strong> (công cụ scatter và LOD trong engine). Không có câu trả lời «đúng duy nhất» — tùy quy mô dự án, ngân sách và mức độ cần cây procedural.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">SpeedTree vs Blender / Megascans plants</h3>
+    <p>Blender miễn phí, có addon Sapling Tree Gen và Geometry Nodes để tạo cây cơ bản; Megascans (Quixel) cung cấp scan cây 3D chất lượng cao sẵn dùng. SpeedTree chuyên sâu hơn: <strong>procedural control chi tiết</strong>, LOD tự động, wind animation và pipeline export tối ưu cho game AAA. Blender + Megascans phù hợp indie, học tập và dự án cần vài cây scan đẹp; SpeedTree phù hợp khi cần hàng trăm biến thể cây procedural với wind và LOD chuẩn engine.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"SpeedTree procedural forest game AAA vegetation render"</span>
+        </div>
+        <p class="arc-image-caption">SpeedTree — procedural, LOD và wind cho rừng game quy mô lớn</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Quixel Megascans 3D scanned tree Blender import asset"</span>
+        </div>
+        <p class="arc-image-caption">Blender + Megascans — scan thực tế, miễn phí (Megascans) cho indie và học tập</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>SpeedTree mạnh hơn:</strong> generator cây procedural chuyên sâu, LOD/billboard tự động, wind animation, plugin Unreal/Unity chính thức, tiêu chuẩn ngành game AAA.<br>
+      <strong>Blender/Megascans mạnh hơn:</strong> chi phí thấp hơn (Blender free, Megascans free với UE), scan photorealistic sẵn có, linh hoạt chỉnh mesh thủ công trong Blender.<br>
+      <strong>Chọn SpeedTree khi:</strong> mục tiêu environment artist game AAA, cần nhiều biến thể cây procedural với wind và LOD.<br>
+      <strong>Chọn Blender/Megascans khi:</strong> indie, học sinh THPT bắt đầu, hoặc dự án cần vài cây scan chất lượng cao không cần generator phức tạp.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">SpeedTree vs Unreal Foliage</h3>
+    <p>Unreal Engine có <strong>Foliage Mode</strong> và <strong>Procedural Foliage Spawner</strong> để đặt cây, cỏ hàng loạt trong editor — nhưng Unreal không tạo cây từ đầu, nó cần mesh asset import từ bên ngoài. SpeedTree là công cụ <strong>tạo mesh cây</strong>; Unreal Foliage là công cụ <strong>scatter và render</strong> mesh đó trong world. Hai công cụ bổ sung nhau: SpeedTree Modeler → export → Unreal Foliage paint rừng.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"SpeedTree Modeler tree asset creation LOD export"</span>
+        </div>
+        <p class="arc-image-caption">SpeedTree — tạo asset cây, LOD và wind trước khi vào engine</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Unreal Engine 5 Foliage Mode paint trees landscape screenshot"</span>
+        </div>
+        <p class="arc-image-caption">Unreal Foliage — scatter cây đã import, LOD culling và wind trong engine</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>SpeedTree mạnh hơn:</strong> tạo và chỉnh cây procedural, sinh LOD/billboard, wind data — giai đoạn asset creation.<br>
+      <strong>Unreal Foliage mạnh hơn:</strong> đặt hàng nghìn instance, culling, lighting integration, Nanite foliage (UE5) — giai đoạn world building.<br>
+      <strong>Chọn SpeedTree khi:</strong> bạn cần tạo hoặc chỉnh mesh cây chuyên nghiệp trước khi đưa vào engine.<br>
+      <strong>Chọn chỉ Unreal Foliage khi:</strong> đã có asset cây sẵn (Megascans, kitbash) và chỉ cần scatter trong map — không cần generator riêng.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học SpeedTree như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Làm quen giao diện và species preset</strong>
+        <p>Tuần đầu hãy mở SpeedTree Modeler, tải sample tree có sẵn (oak, pine) và xoay viewport, zoom, chọn node trong generator graph. Thử đổi random seed và quan sát cây thay đổi hình dạng — mục tiêu là hiểu mối liên hệ giữa tham số và kết quả trước khi tự dựng cây từ zero. Nhiều bạn THPT bắt đầu từ preset rồi chỉnh dần thay vì tạo graph phức tạp ngay.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Procedural generation cơ bản</strong>
+        <p>Học tạo cây đơn giản: Trunk → Branch → Leaf, điều chỉnh chiều cao, số tầng cành, kích thước lá. Luyện sinh 5–10 biến thể cùng species bằng seed khác nhau. Thường 2–3 tuần luyện đều sẽ thấy tốc độ tạo cây và bụi tăng rõ rệt — đủ cho một bộ vegetation nhỏ trong dự án game học đường.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Material, LOD và tối ưu</strong>
+        <p>Gán texture lá và thân (có thể dùng Megascans hoặc tự vẽ), bật subsurface cho lá, thiết lập LOD0–LOD3 và billboard. Render preview hoặc export FBX kiểm tra polygon count — mục tiêu là hiểu tại sao cây hero khác cây background về mức chi tiết.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Wind animation &amp; preview</strong>
+        <p>Bật wind trong Modeler, chỉnh strength và gust, preview cành lá rung. Học xuất wind data cho Unreal hoặc Unity nếu dùng plugin SpeedTree — đây là khác biệt lớn so với cây tĩnh model tay trong Blender.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Export và scatter trong engine</strong>
+        <p>Chọn một hướng: export sang Unreal 5 (SpeedTree plugin + Foliage paint) hoặc Unity (SpeedTree importer). Dựng map nhỏ với 2–3 species cây, bụi và cỏ — kiểm tra FPS, LOD chuyển mượt và wind trong runtime. Giai đoạn này dạy quy trình environment artist thật: asset → engine → playtest.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Portfolio và định hướng nghề</strong>
+        <p>Tổng hợp 3–5 work: screenshot rừng/cảnh ngoại thất trong engine, breakdown LOD, có thể thêm turntable cây hero. Đăng ArtStation hoặc Behance — ghi rõ SpeedTree, Unreal/Unity, Megascans nếu có. Tìm hiểu vị trí Environment Artist, Vegetation Artist tại studio game Việt Nam; nhiều studio tuyển junior dựa portfolio map và vegetation hơn chứng chỉ.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

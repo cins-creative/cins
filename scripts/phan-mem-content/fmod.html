@@ -1,0 +1,209 @@
+<section class="arc-intro">
+  <p>Bạn chơi một game mobile, bước vào rừng thì tiếng chim, gió và nhạc nền dần lẫn vào nhau; đánh boss thì nhạc dồn dập, tiếng skill vang đúng nhịp — phần lớn âm thanh đó không «phát file MP3 đơn giản» mà được điều khiển bởi <strong>FMOD</strong>, middleware âm thanh game phổ biến toàn cầu. Cùng công cụ này cũng xuất hiện ở studio indie và AAA khi cần nhạc thích ứng gameplay, hiệu ứng 3D và mix động theo từng cảnh.</p>
+  <p>FMOD không phải phần mềm thu âm hay dựng nhạc như DAW — nó là «bộ não âm thanh» gắn vào game engine: designer đặt event, parameter và bus mix; lập trình viên gọi API; build runtime nhẹ chạy trên PC, console và mobile. Học sinh THPT thích game dev hoặc sound design nên biết FMOD để hiểu cách âm thanh thật sự «sống» trong sản phẩm tương tác.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>FMOD là gì?</h2>
+  <p><strong>FMOD</strong> do <strong>Firelight Technologies</strong> (thuộc Firelight Studios) phát triển — bộ <strong>middleware âm thanh game</strong> gồm FMOD Studio (công cụ thiết kế) và FMOD Engine (runtime tích hợp Unity, Unreal, custom engine). Ban đầu nổi tiếng trong indie; ngày nay có mặt trong hàng nghìn tựa game từ mobile đến AAA nhờ license linh hoạt, API rõ ràng và hiệu năng tốt.</p>
+  <p>Khác với việc kéo file AudioClip vào Unity và bấm Play, FMOD cho phép <strong>event-driven audio</strong>: một event «Footstep» có thể random 8 mẫu tiếng bước chân, thay đổi theo parameter «Surface» (đất, gỗ, kim loại) và attenuation 3D theo khoảng cách camera. Giao diện FMOD Studio có timeline, marker, parameter sheet và mixer — ban đầu trông giống DAW nhưng tối ưu cho logic game thay vì xuất bài hát.</p>
+  <ul class="arc-list">
+    <li><strong>FMOD Studio</strong> — thiết kế event, playlist, snapshot, return bus và build bank cho game</li>
+    <li><strong>FMOD Engine API</strong> — tích hợp C/C++, C#, Java; gọi event, set parameter từ code gameplay</li>
+    <li><strong>Adaptive audio</strong> — nhạc nền chuyển layer theo combat, stealth hoặc health player</li>
+    <li><strong>Spatial audio &amp; platform</strong> — 3D sound, occlusion tùy engine; build cho Windows, mobile, console</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"FMOD Studio 2024 interface event editor mixer screenshot"</span>
+    </div>
+    <p class="arc-image-caption">Giao diện FMOD Studio — event editor, timeline và mixer bus</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>FMOD thường đứng giữa <strong>sound designer/composer</strong> và <strong>programmer/game designer</strong>: nhạc và SFX được export từ DAW (Reaper, Logic, Ableton) vào FMOD Studio, gắn logic event và parameter; build ra bank (.bank) import engine. Lập trình viên gọi <strong>StudioEventEmitter</strong> hoặc API tương đương khi player nhảy, bắn hoặc vào menu. QA kiểm tra mix trên thiết bị thật vì mobile và headphone khác nhau rất nhiều.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Event, parameter &amp; logic âm thanh</h3>
+    <p>Đơn vị cơ bản trong FMOD là <strong>Event</strong> — không phải một file WAV cố định mà container chứa instrument, multi-instrument (random/variation), nested event và logic. <strong>Parameter</strong> (local hoặc global) điều khiển volume, pitch, filter hoặc chuyển playlist: ví dụ parameter «Speed» 0–100 thay đổi nhịp nhạc nền khi player chạy nhanh.</p>
+    <p>Với học sinh THPT mới làm quen, bài tập thực tế hay gặp: tạo event «CoinPickup» random 3 tiếng «ting», event «AmbientForest» loop seamless và parameter «TimeOfDay» crossfade giữa ban ngày/ban đêm — vừa luyện tai nghe vừa hiểu tư duy interactive audio.</p>
+    <ul class="arc-list">
+      <li><strong>Multi-instrument &amp; scatterer</strong> — random variation, tránh lặp mechanical khi lặp SFX</li>
+      <li><strong>Parameter sheet</strong> — automation volume/pitch/filter theo giá trị gameplay</li>
+      <li><strong>Nested events &amp; snapshots</strong> — tái sử dụng logic và ducking mix khi pause/menu</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"FMOD Studio event parameter automation game audio"</span>
+        </div>
+        <p class="arc-image-caption">Event FMOD — parameter automation và multi-instrument</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"FMOD Studio adaptive music horizontal resequencing timeline"</span>
+        </div>
+        <p class="arc-image-caption">Adaptive music — timeline marker và chuyển layer theo gameplay</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Mixer, bus &amp; mix động</h3>
+    <p>FMOD Studio có <strong>mixer hierarchy</strong>: bus Master, Music, SFX, Voice, Return (reverb send) — sound designer set level, EQ và compressor trước khi programmer chạy game. <strong>Snapshots</strong> cho phép chuyển trạng thái mix tức thì: vào menu thì duck nhạc nền, pause thì áp snapshot «MutedGameplay» mà không cần sửa từng event.</p>
+    <p>Game mobile Việt Nam thường phải tối ưu số voice simultane và kích thước bank — FMOD hỗ trợ nén Vorbis/FAAD và streaming cho nhạc dài; đây là kỹ năng «sản xuất thực tế» mà studio game luôn kiểm tra trên máy yếu.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"FMOD Studio mixer bus routing snapshot ducking"</span>
+      </div>
+      <p class="arc-image-caption">Mixer FMOD — bus routing, return và snapshot mix</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Tích hợp engine &amp; build bank</h3>
+    <p>Sau khi thiết kế xong, bạn <strong>build bank</strong> và copy vào project Unity/Unreal cùng plugin FMOD. Programmer khởi tạo FMOD Studio System, load bank và trigger event bằng tên hoặc GUID; set parameter từ biến gameplay (máu, tốc độ, weather). FMOD cung cấp Live Update để designer nghe thay đổi trong game đang chạy — rút ngắn vòng lặp chỉnh mix.</p>
+    <p>Luồng điển hình: compose SFX trong DAW → import FMOD → gắn event + parameter → build bank → integrate engine → playtest trên target device. Hiểu quy trình này giúp bạn không chỉ «biết làm nhạc» mà nắm pipeline âm thanh game hoàn chỉnh.</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"FMOD Unity integration StudioEventEmitter bank build workflow"</span>
+      </div>
+      <p class="arc-image-caption">Luồng tích hợp — FMOD Studio build bank, import Unity/Unreal và trigger event</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai lựa chọn hay được đặt cạnh FMOD nhất là <strong>Wwise</strong> (Audiokinetic, middleware đối thủ trực tiếp) và <strong>âm thanh tích hợp sẵn Unity</strong> (AudioSource, AudioMixer). Không có câu trả lời «đúng duy nhất» — tùy quy mô game, ngân sách license và kinh nghiệm team.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">FMOD vs Wwise</h3>
+    <p><strong>Wwise</strong> cũng là middleware game audio hàng đầu, mạnh về authoring phức tạp, profiler và adoption AAA (nhiều blockbuster dùng Wwise). <strong>FMOD</strong> thường được indie và mid-size ưa chuộng vì học curve dễ hơn với team nhỏ, license rõ ràng và tích hợp Unity/Unreal mượt. Cả hai đều hỗ trợ adaptive music, RTPC (parameter) và spatial audio — khác biệt nằm ở workflow, UI và hợp đồng studio.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"FMOD Studio game audio middleware event editor"</span>
+        </div>
+        <p class="arc-image-caption">FMOD — event-driven audio, tích hợp Unity/Unreal phổ biến indie</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Audiokinetic Wwise authoring tool game audio screenshot"</span>
+        </div>
+        <p class="arc-image-caption">Wwise — middleware AAA, authoring và profiler mạnh</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>FMOD mạnh hơn:</strong> dễ bắt đầu cho solo/indie, tài liệu và plugin Unity quen thuộc cộng đồng game dev Việt Nam, license indie thân thiện.<br>
+      <strong>Wwise mạnh hơn:</strong> toolchain AAA, profiler sâu, một số studio lớn chuẩn hóa Wwise trong pipeline dài hạn.<br>
+      <strong>Chọn FMOD khi:</strong> team nhỏ, Unity/Unreal, cần middleware nhanh cho mobile/PC/indie.<br>
+      <strong>Chọn Wwise khi:</strong> studio AAA hoặc dự án yêu cầu Wwise theo contract/console spec cụ thể.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">FMOD vs Unity built-in audio</h3>
+    <p><strong>Unity AudioSource + AudioMixer</strong> đủ cho prototype và game casual đơn giản: play clip, loop, volume cơ bản, mixer group. Khi game cần hàng trăm SFX variation, nhạc adaptive, parameter từ gameplay và mix phức tạp, built-in Unity nhanh chóng «nghẽn» — designer phải nhờ programmer hard-code quá nhiều. <strong>FMOD</strong> tách trách nhiệm: designer sở hữu logic âm thanh trong Studio, programmer chỉ trigger event và set parameter.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"FMOD Unity adaptive game audio parameter event"</span>
+        </div>
+        <p class="arc-image-caption">FMOD — logic âm thanh phong phú, tách biệt khỏi code gameplay</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Unity AudioSource AudioMixer inspector simple game audio"</span>
+        </div>
+        <p class="arc-image-caption">Unity built-in — đủ prototype, hạn chế khi scale SFX/adaptive music</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>FMOD mạnh hơn:</strong> event/parameter, adaptive music, random variation, Live Update, workflow sound designer chuyên nghiệp.<br>
+      <strong>Unity built-in mạnh hơn:</strong> zero setup, không license middleware, đủ cho game jam và hyper-casual nhỏ.<br>
+      <strong>Chọn FMOD khi:</strong> game có nhiều SFX, nhạc động, 3D audio và team có vai trò sound designer.<br>
+      <strong>Chọn Unity built-in khi:</strong> scope nhỏ, một người làm tất cả và cần ship nhanh không thêm dependency.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học FMOD như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Nền tảng âm thanh &amp; DAW cơ bản</strong>
+        <p>Trước FMOD, hãy biết waveform, sample rate, loop point, normalize và export WAV/OGG sạch. THPT có thể dùng Audacity hoặc Reaper free để cắt SFX footstep, tiếng coin — mục tiêu là file import vào FMOD không bị click, lệch loop hay quá to so với mix.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Cài FMOD Studio &amp; làm event đầu tiên</strong>
+        <p>Tải FMOD Studio (free cho indie), tạo project mới, import vài sample và build event «Play» đơn giản. Luyện multi-instrument random, 3D min/max distance và build bank đầu tiên. Tuần đầu chỉ cần quen giao diện Events, Banks và Build — đừng nhảy vào adaptive music ngay.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Parameter &amp; adaptive logic</strong>
+        <p>Thêm parameter «Health» hoặc «Intensity» điều khiển volume/pitch nhạc nền; tạo snapshot «Paused» duck SFX. Bài tập: forest ambient crossfade day/night bằng parameter 0–1. Khoảng 2–3 tuần sẽ thấy tư duy «âm thanh phản hồi gameplay» rõ hơn phát file tĩnh.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Tích hợp Unity hoặc Unreal</strong>
+        <p>Cài FMOD plugin cho engine bạn dùng, copy bank vào StreamingAssets (Unity) hoặc Content (Unreal), gắn StudioEventEmitter hoặc gọi API PlayOneShot khi player hành động. Bật Live Update để chỉnh mix trong Play mode — kỹ năng này giống workflow studio thật.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Dự án game nhỏ hoàn chỉnh</strong>
+        <p>Làm game jam 1–2 tuần: platformer hoặc horror walking sim với ít nhất 15 SFX event, 1 track adaptive music, mixer bus tách Music/SFX/UI và test trên headphone + loa ngoài. Ghi chú kích thước bank và số voice — tối ưu cho mobile nếu hướng mobile game Việt Nam.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Portfolio &amp; định hướng nghề</strong>
+        <p>Quay video gameplay kèm breakdown FMOD project (che asset licensed nếu cần), đăng YouTube/itch.io/LinkedIn. Tìm hiểu vai trò sound designer, audio programmer và composer for games; nhiều studio VN tuyển junior có demo FMOD + Unity. Học thêm Wwise song song nếu nhắm AAA — tư duy middleware chuyển được giữa hai hệ.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

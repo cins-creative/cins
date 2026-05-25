@@ -1,0 +1,180 @@
+/* /bai-viet — overrides trên layout hub Hướng nghiệp (cins-huong-nghiep-hub.css) */
+
+.bv-hub-rail-label {
+  margin: 0 0 10px 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.bv-hub-rail-reset {
+  display: block;
+  margin-top: 20px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-body);
+  text-align: center;
+  text-decoration: none;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.bv-hub-rail-reset:hover {
+  background: var(--bg-page);
+  border-color: var(--border-strong);
+}
+
+.hn-rail-group--cap summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 8px;
+  border-radius: 12px;
+}
+
+.hn-rail-group--cap summary::-webkit-details-marker {
+  display: none;
+}
+
+.bv-hub-hero.hn-ad-hero {
+  grid-template-columns: 1fr;
+}
+
+.bv-hub-err {
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  border-radius: var(--radius-md);
+  background: #fef2f2;
+  color: var(--danger);
+}
+
+.bv-hub-role-meta {
+  font-size: 11px;
+  color: var(--ink-muted);
+}
+
+.bv-hub .hn-role-foot {
+  justify-content: space-between;
+  align-items: center;
+}
+
+.hn-rail-sub a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hn-rail-sub a .hn-rail-badge {
+  margin-left: auto;
+}
+
+.bv-hub-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 40px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+
+.bv-hub-pagination-info {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+.bv-hub-pagination-btns {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.bv-hub-page-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-body);
+  text-decoration: none;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.bv-hub-page-btn:hover:not(.is-active):not(.bv-hub-page-btn--disabled) {
+  border-color: var(--cins-blue);
+  color: var(--cins-blue);
+  background: var(--bg-page);
+}
+
+.bv-hub-page-btn.is-active {
+  background: var(--cins-blue);
+  border-color: var(--cins-blue);
+  color: #fff;
+  pointer-events: none;
+}
+
+.bv-hub-page-btn--disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.bv-hub-page-ellipsis {
+  min-width: 28px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--ink-muted);
+  user-select: none;
+}
+
+.cins-main:has(.career-page--hub) {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: visible;
+}
+
+/* Bài viết có ảnh — ô thumbnail trắng (không dùng màu data-dept) */
+.bv-hub .hn-role-card .hn-role-thumb--has-img {
+  background: rgba(255, 255, 255, 1) !important;
+}
+
+/* Thẻ bài viết: ảnh phủ khu vực thumb (không để vùng trắng do object-fit: contain) */
+.bv-hub .hn-role-thumb .career-hub-card-thumb {
+  overflow: hidden;
+}
+
+.bv-hub .hn-role-thumb .career-hub-card-img {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  object-fit: cover;
+  object-position: center;
+}
+
+.bv-hub .hn-role-thumb .career-hub-card-ph.hn-nganh-card-ph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

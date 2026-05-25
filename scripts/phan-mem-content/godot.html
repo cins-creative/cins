@@ -1,0 +1,209 @@
+<section class="arc-intro">
+  <p>Bạn tải một game indie 2D trên itch.io — nhân vật nhảy qua platform, đánh quái, thu thập item — và thấy credit cuối game ghi «Made with Godot». Cùng engine mã nguồn mở này cũng xuất hiện trong các cuộc thi STEM trường học, game jam cuối tuần và studio nhỏ tại Việt Nam khi team cần công cụ miễn phí nhưng vẫn xuất bản được lên Steam, mobile hoặc web.</p>
+  <p><strong>Godot Engine</strong> không phải lựa chọn duy nhất cho phát triển game, nhưng nó nổi bật nhờ miễn phí hoàn toàn, không phí royalty, cộng đồng tutorial tiếng Việt ngày càng nhiều và ngôn ngữ GDScript dễ tiếp cận với học sinh THPT đã học Python cơ bản. Hiểu Godot giúp bạn không chỉ «chơi game» mà bước vào quy trình thiết kế, lập trình và publish sản phẩm tương tác thật.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>Godot Engine là gì?</h2>
+  <p>Godot Engine do <strong>Godot Foundation</strong> phát triển — <strong>engine game mã nguồn mở, đa nền tảng</strong> chạy trên Windows, macOS, Linux và có thể export sang Windows, macOS, Linux, Android, iOS, Web (HTML5) và console (qua đối tác). Phiên bản 4.x tập trung vào renderer hiện đại, physics 3D cải thiện và hệ thống scene node linh hoạt.</p>
+  <p>Khác với phần mềm chỉ dựng đồ họa tĩnh, Godot là môi trường sản xuất game trọn vẹn: bạn tạo scene (cảnh), gắn script logic, xử lý input, âm thanh, UI và build ra file chạy được. Giao diện có Scene tree, Inspector, FileSystem và script editor — ban đầu có nhiều khái niệm (node, scene, signal), nhưng mỗi thành phần phục vụ một bước trong vòng lặp phát triển game thực tế.</p>
+  <ul class="arc-list">
+    <li><strong>Scene &amp; node system</strong> — mọi thứ là node (Sprite, CharacterBody, Camera); ghép scene con vào scene cha để tái sử dụng</li>
+    <li><strong>GDScript &amp; C#</strong> — GDScript giống Python, dễ học; C# cho ai quen .NET; có thể dùng GDExtension cho C++</li>
+    <li><strong>2D &amp; 3D</strong> — engine hỗ trợ cả hai; 2D mạnh cho platformer, RPG, visual novel; 3D phù hợp indie và prototype</li>
+    <li><strong>Export &amp; publish</strong> — one-click export template; không phí doanh thu (royalty-free) khi bán game trên Steam hay store</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"Godot Engine 4 interface scene tree viewport screenshot"</span>
+    </div>
+    <p class="arc-image-caption">Giao diện Godot 4 — Scene tree, viewport 2D/3D và Inspector thuộc tính node</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>Godot thường đứng ở giai đoạn <strong>prototype, sản xuất và publish game indie</strong>: designer hoặc lập trình viên dựng scene, viết logic bằng GDScript, test gameplay trong editor, rồi export build cho PC hoặc mobile. Với dự án học đường, Godot dạy tư duy game loop (input → update → render), quản lý state và iteration nhanh. Thường làm việc cùng Aseprite/Piskel (sprite 2D), Blender (model 3D), Audacity (SFX) và itch.io/Steam (phân phối) khi hoàn thiện sản phẩm.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Scene tree và hệ thống node</h3>
+    <p>Trái tim của Godot là <strong>scene dạng cây node</strong>. Mỗi đối tượng game — nhân vật, enemy, nút UI, camera — là node hoặc nhóm node trong một scene (.tscn). Bạn có thể lưu scene «Player» rồi kéo vào scene «Level1» nhiều lần; mỗi instance độc lập nhưng chia sẻ logic gốc. Cách này giúp tái sử dụng code và asset mà không copy-paste thủ công.</p>
+    <p>Đối với học sinh THPT, bài tập thực tế hay gặp: tạo scene Player với CharacterBody2D + Sprite + CollisionShape, scene Coin có Area2D để thu thập, scene Level chứa TileMap — vừa luyện phân tách trách nhiệm vừa hiểu kiến trúc game modular.</p>
+    <ul class="arc-list">
+      <li><strong>Node types</strong> — Node2D, Sprite2D, CharacterBody2D, Camera2D cho 2D; Node3D, MeshInstance3D cho 3D</li>
+      <li><strong>Scene instancing</strong> — prefab-like: sửa scene gốc, mọi bản copy trong level cập nhật theo</li>
+      <li><strong>Groups &amp; signals</strong> — gắn nhãn node (enemy, pickup) và giao tiếp event-driven không cần hard-code reference</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Godot scene tree node hierarchy 2D platformer"</span>
+        </div>
+        <p class="arc-image-caption">Scene tree — hierarchy node cho nhân vật platformer 2D</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Godot TileMap level design 2D game editor"</span>
+        </div>
+        <p class="arc-image-caption">TileMap — dựng level 2D nhanh từ tileset trong editor</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. GDScript, physics và gameplay loop</h3>
+    <p>Logic game viết bằng <strong>GDScript</strong> gắn vào node: hàm <code>_physics_process</code> xử lý di chuyển mỗi frame, <code>_input</code> bắt phím/chạm, signal <code>body_entered</code> phát hiện va chạm. Godot 4 có CharacterBody2D/3D với API move_and_slide trực quan — phù hợp platformer và top-down mà chưa cần viết physics từ đầu.</p>
+    <p>Một game jam 48 giờ với Godot thường đi theo lộ trình: core mechanic (nhảy, bắn) → một level playable → menu và sound cơ bản → export web hoặc Windows gửi bạn bè test. Tốc độ iteration nhanh là lý do nhiều team học sinh chọn Godot thay vì setup nặng ngay từ đầu.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Godot GDScript editor CharacterBody2D movement code"</span>
+      </div>
+      <p class="arc-image-caption">Script GDScript — logic di chuyển nhân vật và xử lý input</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. UI, âm thanh và export đa nền tảng</h3>
+    <p>Godot tích hợp <strong>Control nodes</strong> cho menu, HUD, dialogue box — layout bằng anchors và containers thay vì code tọa độ thủ công. Hệ thống <strong>AudioStreamPlayer</strong> phát nhạc nền và SFX; AnimationPlayer và Tween tạo chuyển động UI và cutscene đơn giản. Khi game sẵn sàng, Project → Export tạo bản build cho desktop, Android (cần SDK) hoặc HTML5.</p>
+    <p>Luồng publish điển hình: polish build → tạo trang itch.io hoặc Steamworks → upload executable hoặc web build → thu thập feedback và patch. Vì Godot không thu royalty, mọi doanh thu từ game học đường bán 20.000đ trên itch.io đều về tác giả — điểm cộng lớn so với một số engine thương mại.</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Godot export presets Windows Android HTML5 publish workflow"</span>
+      </div>
+      <p class="arc-image-caption">Export presets — build game Godot sang PC, mobile và web</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai engine hay được đặt cạnh Godot nhất là <strong>Unity</strong> (thương mại, ecosystem khổng lồ) và <strong>Unreal Engine</strong> (AAA, đồ họa đỉnh cao). Không có câu trả lời «đúng duy nhất» — tùy bạn làm game 2D indie, mobile casual hay 3D AAA, và ngân sách cá nhân hay yêu cầu tuyển dụng studio.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Godot vs Unity</h3>
+    <p>Unity có Asset Store, tài liệu và job market rộng — nhiều studio mobile và indie tại Việt Nam vẫn tuyển «Unity Developer». Godot miễn phí hoàn toàn, cài nhanh (~100MB), không runtime fee sau khi Unity đã từng gây tranh cãi về pricing. Với học sinh THPT, Godot ít rào cản hơn; với ai nhắm vào công ty đã chuẩn hóa trên Unity, học Unity có lợi thế CV.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Godot Engine 4 2D indie game editor open source"</span>
+        </div>
+        <p class="arc-image-caption">Godot — miễn phí, mã nguồn mở, phù hợp indie và giáo dục</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Unity game engine editor interface 2024 screenshot"</span>
+        </div>
+        <p class="arc-image-caption">Unity — ecosystem asset, C# và thị trường việc làm rộng</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Godot mạnh hơn:</strong> chi phí bằng không và royalty-free, cài nhẹ, GDScript dễ cho người mới, scene system gọn cho 2D.<br>
+      <strong>Unity mạnh hơn:</strong> Asset Store khổng lồ, tài liệu và khóa học dồi dào, nhiều studio tuyển dụng, tool mobile và analytics tích hợp.<br>
+      <strong>Chọn Godot khi:</strong> game jam, dự án học đường, indie 2D/3D nhỏ, muốn sở hữu stack mà không lo phí license.<br>
+      <strong>Chọn Unity khi:</strong> mục tiêu làm việc tại studio dùng Unity, cần plugin/asset sẵn cho mobile AR/VR hoặc live service.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Godot vs Unreal Engine</h3>
+    <p>Unreal Engine do Epic phát triển — thế mạnh ở <strong>đồ họa 3D AAA</strong>, Blueprint visual scripting và hệ sinh thái cho game console/PC lớn. Godot nhẹ hơn nhiều, phù hợp laptop học sinh và game 2D; Unreal cần máy mạnh, thời gian học dài hơn nhưng đổi lại chất lượng hình ảnh và công cụ (Nanite, Lumen) ở tầm khác.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Godot 2D pixel art game screenshot indie"</span>
+        </div>
+        <p class="arc-image-caption">Godot — game 2D indie chạy mượt trên phần cứng phổ thông</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Unreal Engine 5 editor viewport Lumen Nanite screenshot"</span>
+        </div>
+        <p class="arc-image-caption">Unreal Engine 5 — đồ họa 3D AAA và tool Blueprint</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Godot mạnh hơn:</strong> dung lượng cài đặt nhỏ, học curve thấp cho 2D, không royalty, phù hợp solo dev và THPT.<br>
+      <strong>Unreal mạnh hơn:</strong> renderer và lighting đỉnh cao, Blueprint cho designer, chuẩn ngành cho AAA và archviz realtime (Twinmotion).<br>
+      <strong>Chọn Godot khi:</strong> platformer 2D, visual novel, prototype nhanh, máy tính cấu hình trung bình.<br>
+      <strong>Chọn Unreal khi:</strong> game 3D chất lượng cao, mục tiêu nghề nghiệp ở studio AAA hoặc làm việc với art team lớn.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học Godot Engine như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Cài đặt và làm quen editor</strong>
+        <p>Tải Godot 4 từ trang chính thức (godotengine.org), chọn bản Standard. Tuần đầu: tạo project 2D, khám phá Scene tree, Inspector, FileSystem; chạy scene bằng F5. Tạo node Sprite2D gán hình PNG, thêm Camera2D — mục tiêu là hiểu «scene là tập hợp node» trước khi viết code. Nhiều bạn THPT bỏ cuộc vì nhảy thẳng vào tutorial phức tạp mà chưa biết nút Play và Save scene.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>GDScript cơ bản và input</strong>
+        <p>Học biến, hàm, if/else và <code>_process</code>/<code>_physics_process</code>. Viết script di chuyển nhân vật bằng phím mũi tên hoặc WASD trên CharacterBody2D. Thêm Area2D làm coin: khi player chạm, gọi signal và tăng điểm trên label UI. Khoảng 2–3 tuần luyện đều sẽ quen cú pháp GDScript nếu đã biết Python.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>TileMap, enemy và game loop hoàn chỉnh</strong>
+        <p>Dựng level bằng TileMap từ tileset 16×16 hoặc 32×32; thêm enemy patrol đơn giản (di chuyển qua lại, chết khi bị đạp). Thiết kế vòng lặp: start → chơi → game over → restart. Học autoload (singleton) cho GameManager lưu điểm và level hiện tại — kỹ năng tổ chức code quan trọng khi dự án lớn hơn một scene.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>UI, âm thanh và polish</strong>
+        <p>Thêm menu chính (Button Start/Quit), HUD hiển thị HP và score, nhạc nền AudioStreamPlayer và SFX khi nhảy/thu coin. Dùng AnimationPlayer hoặc Tween cho hiệu ứng nút và màn chuyển cảnh. Polish không chỉ «đẹp» — feedback âm thanh và animation giúp game cảm giác professional hơn rất nhiều khi nộp bài thi hoặc demo portfolio.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Export build và publish thử</strong>
+        <p>Cấu hình Export preset cho Windows Desktop hoặc HTML5; build và gửi file .exe hoặc link web cho bạn bè test trên máy khác. Nếu hướng mobile, cài Android SDK và export APK debug. Giai đoạn này dạy bạn debug lỗi «chạy trên máy dev nhưng fail trên máy người chơi» — kinh nghiệm thực tế mà môi trường học thuật ít mô phỏng.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Portfolio và định hướng nghề</strong>
+        <p>Hoàn thiện 1–2 game ngắn (platformer, puzzle) với trailer GIF, link itch.io và mã nguồn GitHub nếu muốn thể hiện kỹ năng. Tham gia game jam (Global Game Jam, Ludum Dare) để có deadline và feedback cộng đồng. Tìm hiểu thêm Unity song song nếu nhắm tuyển dụng studio; nhiều công ty indie Việt Nam cũng mở cửa junior biết Godot cho dự án 2D nội bộ.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

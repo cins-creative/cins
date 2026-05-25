@@ -8,8 +8,13 @@ import Placeholder from "@tiptap/extension-placeholder";
 import { Table, TableCell, TableHeader, TableRow } from "@tiptap/extension-table";
 import Youtube from "@tiptap/extension-youtube";
 import { clsx } from "clsx";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
+import {
+  ArticleDraftToolbar,
+  TruongTabTable,
+  type TruongToolTab,
+} from "@/components/article/draft/ArticleDraftToolbar";
 import { ArcImagePlaceholder } from "@/components/article/draft/arcImagePlaceholderExtension";
 import { ArcSiteHeading } from "@/components/article/draft/arcSiteHeadingExtension";
 import "@/styles/article-draft-tiptap.css";
@@ -20,39 +25,44 @@ type Props = {
   value: string;
   onChange: (html: string) => void;
   /** Gắn trong `.nghe-lead-panel` — class editor bám layout lead site. */
-  variant?: "default" | "nghe-lead-inline";
+  variant?: "default" | "nghe-lead-inline" | "truong-inline" | "nganh-admin";
+  /** Ẩn gợi ý dài phía trên toolbar. */
+  hideHint?: boolean;
+  /** Mock heading "01 — Ngành … là gì?" khi `variant="nganh-admin"`. */
+  nganhTitleVi?: string;
 };
 
-function TbBtn({
-  pressed,
-  disabled,
-  onClick,
-  title,
+function NganhEditorStage({
+  titleVi,
   children,
-  small,
 }: {
-  pressed?: boolean;
-  disabled?: boolean;
-  onClick: () => void;
-  title: string;
-  children: React.ReactNode;
-  small?: boolean;
+  titleVi?: string;
+  children: ReactNode;
 }) {
+  const label = titleVi?.trim();
   return (
-    <button
-      type="button"
-      title={title}
-      disabled={disabled}
-      data-active={pressed ? "true" : "false"}
-      className={clsx(
-        "article-draft-tiptap__btn",
-        small && "article-draft-tiptap__btn--sm",
-      )}
-      onClick={onClick}
-    >
-      {children}
-    </button>
+    <div className="article-draft-tiptap__nganh-stage nct-page">
+      {label ? (
+        <div className="nct-sec-title">
+          <div className="nct-sec-num">01</div>
+          <div>
+            <h2 className="nct-sec-h">Ngành {label} là gì?</h2>
+          </div>
+        </div>
+      ) : null}
+      <div className="nct-inline-editor-wrap">{children}</div>
+    </div>
   );
+}
+
+function proseMirrorClass(variant: Props["variant"]): string {
+  if (variant === "nghe-lead-inline") {
+    return "nghe-lead-rich article-rich-content article-content-html";
+  }
+  if (variant === "nganh-admin") {
+    return "nct-prose body article-rich-content article-content-html";
+  }
+  return "article-rich-content article-content-html";
 }
 
 const MAX_ARTICLE_IMAGE_DATA_URL = 1_500_000;
@@ -224,8 +234,12 @@ export function ArticleDraftContentEditor({
   value,
   onChange,
   variant = "default",
+  hideHint = false,
+  nganhTitleVi,
 }: Props) {
   const [tab, setTab] = useState<Tab>("visual");
+  const [truongToolTab, setTruongToolTab] = useState<TruongToolTab>("block");
+  const [, setToolbarRev] = useState(0);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [imagePasteStatus, setImagePasteStatus] =
     useState<ArticleImagePasteStatus>({ phase: "idle" });
@@ -289,10 +303,7 @@ export function ArticleDraftContentEditor({
       content: value,
       editorProps: {
         attributes: {
-          class:
-            variant === "nghe-lead-inline"
-              ? "nghe-lead-rich article-rich-content article-content-html"
-              : "article-rich-content article-content-html",
+          class: proseMirrorClass(variant),
         },
         handleDrop: (_view, event) => {
           const ed = editorRef.current;
@@ -363,6 +374,17 @@ export function ArticleDraftContentEditor({
     [],
   );
 
+  useEffect(() => {
+    if (!editor || variant !== "truong-inline") return;
+    const bump = () => setToolbarRev((n) => n + 1);
+    editor.on("selectionUpdate", bump);
+    editor.on("update", bump);
+    return () => {
+      editor.off("selectionUpdate", bump);
+      editor.off("update", bump);
+    };
+  }, [editor, variant]);
+
   const disabledVisual = tab !== "visual" || !editor;
 
   return (
@@ -370,14 +392,19 @@ export function ArticleDraftContentEditor({
       className={clsx(
         "article-draft-tiptap",
         variant === "nghe-lead-inline" && "article-draft-tiptap--nghe-lead",
+        variant === "truong-inline" && "article-draft-tiptap--truong-inline",
+        variant === "nganh-admin" && "article-draft-tiptap--nganh-admin",
       )}
     >
-      <p className="article-draft-tiptap__hint">
-        Tiptap có thể làm sạch / chuẩn hoá HTML soạn trực quan — dùng tab{" "}
-        <strong>HTML</strong> để dán nguyên khối từ Claude hoặc CMS khi cần giữ
-        class <code>arc-*</code> / layout đặc biệt (ví dụ số mục <code>arc-num</code>{" "}
-        trong tiêu đề). Khối <code>arc-image-placeholder</code> hiển thị ở Soạn thảo.
-      </p>
+      {!hideHint && variant !== "truong-inline" ? (
+        <p className="article-draft-tiptap__hint">
+          Tiptap có thể làm sạch / chuẩn hoá HTML soạn trực quan — dùng tab{" "}
+          <strong>HTML</strong> để dán nguyên khối từ Claude hoặc CMS khi cần giữ
+          class <code>arc-*</code> / layout đặc biệt (ví dụ số mục{" "}
+          <code>arc-num</code> trong tiêu đề). Khối{" "}
+          <code>arc-image-placeholder</code> hiển thị ở Soạn thảo.
+        </p>
+      ) : null}
 
       {imagePasteStatus.phase !== "idle" ? (
         <p
@@ -455,295 +482,65 @@ export function ArticleDraftContentEditor({
       </div>
 
       {tab === "visual" ? (
-        <>
-          <div className="article-draft-tiptap__toolbar">
-            <div className="article-draft-tiptap__toolbar-row">
-              <TbBtn
-                title="Đậm"
-                pressed={editor?.isActive("bold")}
-                disabled={disabledVisual}
-                onClick={() => run((ed) => ed.chain().focus().toggleBold().run())}
-              >
-                <strong>B</strong>
-              </TbBtn>
-              <TbBtn
-                title="Nghiêng"
-                pressed={editor?.isActive("italic")}
-                disabled={disabledVisual}
-                onClick={() => run((ed) => ed.chain().focus().toggleItalic().run())}
-              >
-                <em>I</em>
-              </TbBtn>
-              <TbBtn
-                title="Gạch chân"
-                pressed={editor?.isActive("underline")}
-                disabled={disabledVisual}
-                onClick={() => run((ed) => ed.chain().focus().toggleUnderline().run())}
-              >
-                <u>U</u>
-              </TbBtn>
-              <TbBtn
-                title="Gạch ngang"
-                pressed={editor?.isActive("strike")}
-                disabled={disabledVisual}
-                onClick={() => run((ed) => ed.chain().focus().toggleStrike().run())}
-              >
-                S
-              </TbBtn>
-              <TbBtn
-                title="Code inline"
-                pressed={editor?.isActive("code")}
-                disabled={disabledVisual}
-                onClick={() => run((ed) => ed.chain().focus().toggleCode().run())}
-              >
-                &lt;&gt;
-              </TbBtn>
-              <span className="article-draft-tiptap__sep" aria-hidden />
-              {[1, 2, 3].map((lvl) => (
-                <TbBtn
-                  key={lvl}
-                  title={`Tiêu đề H${lvl}`}
-                  pressed={editor?.isActive("heading", { level: lvl })}
-                  disabled={disabledVisual}
-                  onClick={() =>
-                    run((ed) =>
-                      ed.chain().focus().toggleHeading({ level: lvl as 1 | 2 | 3 }).run(),
-                    )
-                  }
-                >
-                  H{lvl}
-                </TbBtn>
-              ))}
-              <TbBtn
-                title="Đoạn văn"
-                pressed={editor?.isActive("paragraph")}
-                disabled={disabledVisual}
-                onClick={() => run((ed) => ed.chain().focus().setParagraph().run())}
-              >
-                ¶
-              </TbBtn>
-              <span className="article-draft-tiptap__sep" aria-hidden />
-              <TbBtn
-                title="Danh sách bullet"
-                pressed={editor?.isActive("bulletList")}
-                disabled={disabledVisual}
-                onClick={() => run((ed) => ed.chain().focus().toggleBulletList().run())}
-              >
-                •
-              </TbBtn>
-              <TbBtn
-                title="Danh sách số"
-                pressed={editor?.isActive("orderedList")}
-                disabled={disabledVisual}
-                onClick={() => run((ed) => ed.chain().focus().toggleOrderedList().run())}
-              >
-                1.
-              </TbBtn>
-              <TbBtn
-                title="Trích dẫn"
-                pressed={editor?.isActive("blockquote")}
-                disabled={disabledVisual}
-                onClick={() => run((ed) => ed.chain().focus().toggleBlockquote().run())}
-              >
-                “”
-              </TbBtn>
-              <TbBtn
-                title="Đường kẻ ngang"
-                disabled={disabledVisual}
-                onClick={() => run((ed) => ed.chain().focus().setHorizontalRule().run())}
-              >
-                ─
-              </TbBtn>
+        variant === "truong-inline" ? (
+          <div className="article-draft-tiptap__truong-stack">
+            <ArticleDraftToolbar
+              editor={editor}
+              disabledVisual={disabledVisual}
+              run={run}
+              layout="truong-inline"
+              truongToolTab={truongToolTab}
+              onTruongToolTabChange={setTruongToolTab}
+              truongTableDock="bottom"
+              onOpenHtmlTab={() => {
+                setTab("html");
+                requestAnimationFrame(() => htmlAreaRef.current?.focus());
+              }}
+              onOpenPreview={() => setPreviewOpen(true)}
+            />
+            <div className="article-draft-tiptap__editor-wrap">
+              {editor ? <EditorContent editor={editor} /> : null}
             </div>
-
-            <div className="article-draft-tiptap__toolbar-row">
-              <span className="article-draft-tiptap__toolbar-label">BẢNG</span>
-              <TbBtn
-                title="Chèn bảng 3×3"
-                small
-                disabled={disabledVisual}
-                onClick={() =>
-                  run((ed) =>
-                    ed.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(),
-                  )
-                }
+            {truongToolTab === "table" ? (
+              <div
+                className="article-draft-tiptap__table-dock"
+                role="tabpanel"
+                aria-label="Bảng"
               >
-                +Bảng
-              </TbBtn>
-              <TbBtn
-                title="Thêm cột trước"
-                small
-                disabled={disabledVisual}
-                onClick={() => run((ed) => ed.chain().focus().addColumnBefore().run())}
-              >
-                +←Col
-              </TbBtn>
-              <TbBtn
-                title="Thêm cột sau"
-                small
-                disabled={disabledVisual}
-                onClick={() => run((ed) => ed.chain().focus().addColumnAfter().run())}
-              >
-                Col→+
-              </TbBtn>
-              <TbBtn
-                title="Xóa cột"
-                small
-                disabled={disabledVisual}
-                onClick={() => run((ed) => ed.chain().focus().deleteColumn().run())}
-              >
-                −Col
-              </TbBtn>
-              <TbBtn
-                title="Thêm hàng trên"
-                small
-                disabled={disabledVisual}
-                onClick={() => run((ed) => ed.chain().focus().addRowBefore().run())}
-              >
-                +↑Row
-              </TbBtn>
-              <TbBtn
-                title="Thêm hàng dưới"
-                small
-                disabled={disabledVisual}
-                onClick={() => run((ed) => ed.chain().focus().addRowAfter().run())}
-              >
-                Row↓+
-              </TbBtn>
-              <TbBtn
-                title="Xóa hàng"
-                small
-                disabled={disabledVisual}
-                onClick={() => run((ed) => ed.chain().focus().deleteRow().run())}
-              >
-                −Row
-              </TbBtn>
-              <TbBtn
-                title="Gộp ô"
-                small
-                disabled={disabledVisual}
-                onClick={() => run((ed) => ed.chain().focus().mergeCells().run())}
-              >
-                ⧉
-              </TbBtn>
-              <TbBtn
-                title="Tách ô"
-                small
-                disabled={disabledVisual}
-                onClick={() => run((ed) => ed.chain().focus().splitCell().run())}
-              >
-                ⧇
-              </TbBtn>
-              <TbBtn
-                title="Bật/tắt hàng tiêu đề"
-                small
-                disabled={disabledVisual}
-                onClick={() => run((ed) => ed.chain().focus().toggleHeaderRow().run())}
-              >
-                Hàng TH
-              </TbBtn>
-              <TbBtn
-                title="Xóa bảng"
-                small
-                disabled={disabledVisual}
-                onClick={() => run((ed) => ed.chain().focus().deleteTable().run())}
-              >
-                ×Bảng
-              </TbBtn>
-            </div>
-
-            <div className="article-draft-tiptap__toolbar-row">
-              <span className="article-draft-tiptap__toolbar-label">MEDIA</span>
-              <TbBtn
-                title="Chèn liên kết"
-                disabled={disabledVisual}
-                onClick={() => {
-                  const prev = editorRef.current?.getAttributes("link").href as string | undefined;
-                  const url = window.prompt("URL liên kết", prev ?? "https://");
-                  if (url === null) return;
-                  const t = url.trim();
-                  if (t === "") {
-                    run((ed) => ed.chain().focus().extendMarkRange("link").unsetLink().run());
-                    return;
-                  }
-                  run((ed) => ed.chain().focus().extendMarkRange("link").setLink({ href: t }).run());
-                }}
-              >
-                🔗
-              </TbBtn>
-              <TbBtn
-                title="Bỏ liên kết"
-                disabled={disabledVisual}
-                onClick={() => run((ed) => ed.chain().focus().unsetLink().run())}
-              >
-                ⊘
-              </TbBtn>
-              <TbBtn
-                title="Chèn ảnh từ URL"
-                disabled={disabledVisual}
-                onClick={() => {
-                  const url = window.prompt("URL ảnh (https://…)", "https://");
-                  if (!url?.trim()) return;
-                  run((ed) =>
-                    ed.chain().focus().setImage({ src: url.trim(), alt: "" }).run(),
-                  );
-                }}
-              >
-                Ảnh
-              </TbBtn>
-              <TbBtn
-                title="YouTube"
-                disabled={disabledVisual}
-                onClick={() => {
-                  const url = window.prompt("URL YouTube", "https://www.youtube.com/watch?v=");
-                  if (!url?.trim()) return;
-                  run((ed) => ed.chain().focus().setYoutubeVideo({ src: url.trim() }).run());
-                }}
-              >
-                YouTube
-              </TbBtn>
-              <TbBtn
-                title="Chuyển sang tab HTML để dán embed / block tùy ý"
-                disabled={false}
-                onClick={() => {
-                  setTab("html");
-                  requestAnimationFrame(() => htmlAreaRef.current?.focus());
-                }}
-              >
-                {"{}"} HTML
-              </TbBtn>
-              <TbBtn
-                title="Xem trước HTML trên trang"
-                disabled={false}
-                onClick={() => setPreviewOpen(true)}
-              >
-                Review HTML
-              </TbBtn>
-              <span className="article-draft-tiptap__sep" aria-hidden />
-              <TbBtn
-                title="Hoàn tác"
-                disabled={disabledVisual}
-                onClick={() => run((ed) => ed.chain().focus().undo().run())}
-              >
-                ↶
-              </TbBtn>
-              <TbBtn
-                title="Làm lại"
-                disabled={disabledVisual}
-                onClick={() => run((ed) => ed.chain().focus().redo().run())}
-              >
-                ↷
-              </TbBtn>
-              <span className="article-draft-tiptap__toolbar-label" style={{ marginLeft: "auto" }}>
-                Paste / kéo thả ảnh
-              </span>
-            </div>
+                <TruongTabTable
+                  editor={editor}
+                  disabledVisual={disabledVisual}
+                  run={run}
+                />
+              </div>
+            ) : null}
           </div>
-
-          <div className="article-draft-tiptap__editor-wrap">
-            {editor ? <EditorContent editor={editor} /> : null}
-          </div>
-        </>
+        ) : (
+          <>
+            <ArticleDraftToolbar
+              editor={editor}
+              disabledVisual={disabledVisual}
+              run={run}
+              layout="default"
+              onOpenHtmlTab={() => {
+                setTab("html");
+                requestAnimationFrame(() => htmlAreaRef.current?.focus());
+              }}
+              onOpenPreview={() => setPreviewOpen(true)}
+            />
+            {variant === "nganh-admin" ? (
+              <NganhEditorStage titleVi={nganhTitleVi}>
+                <div className="article-draft-tiptap__editor-wrap">
+                  {editor ? <EditorContent editor={editor} /> : null}
+                </div>
+              </NganhEditorStage>
+            ) : (
+              <div className="article-draft-tiptap__editor-wrap">
+                {editor ? <EditorContent editor={editor} /> : null}
+              </div>
+            )}
+          </>
+        )
       ) : (
         <>
           <textarea
@@ -777,10 +574,29 @@ export function ArticleDraftContentEditor({
                 Đóng
               </button>
             </div>
-            <div
-              className="article-draft-tiptap__preview-body article-rich-content article-content-html"
-              dangerouslySetInnerHTML={{ __html: value }}
-            />
+            {variant === "nganh-admin" ? (
+              <div className="article-draft-tiptap__preview-nganh nct-page">
+                {nganhTitleVi?.trim() ? (
+                  <div className="nct-sec-title">
+                    <div className="nct-sec-num">01</div>
+                    <div>
+                      <h2 className="nct-sec-h">
+                        Ngành {nganhTitleVi.trim()} là gì?
+                      </h2>
+                    </div>
+                  </div>
+                ) : null}
+                <div
+                  className="article-draft-tiptap__preview-body nct-prose body article-rich-content article-content-html"
+                  dangerouslySetInnerHTML={{ __html: value }}
+                />
+              </div>
+            ) : (
+              <div
+                className="article-draft-tiptap__preview-body article-rich-content article-content-html"
+                dangerouslySetInnerHTML={{ __html: value }}
+              />
+            )}
           </div>
         </div>
       ) : null}

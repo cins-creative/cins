@@ -1,0 +1,211 @@
+<section class="arc-intro">
+  <p>Bạn mở một file material trong game và thấy mặt sàn vừa có vết bùn khô, vừa lộ lớp gạch cũ bên dưới — không phải một texture đơn mà là kết quả trộn nhiều surface scan thật. Công cụ từng giúp artist làm việc đó là <strong>Quixel Mixer</strong>, phần mềm blend material PBR từ thư viện Megascans trước khi xuất sang Unreal hay Blender.</p>
+  <p>Mixer không phải phần mềm quét 3D hay dựng cảnh — nó tập trung vào <strong>trộn layer surface scan</strong> thành material mới: mask theo height, blend màu patina, thêm decal moss hoặc crack. Lưu ý quan trọng: app Mixer độc lập hiện ở trạng thái <strong>legacy</strong>; Epic chuyển nhiều chức năng sang Mixer trong Quixel Bridge và Fab, nhưng hiểu Mixer vẫn giúp học sinh THPT nắm tư duy «blend scan» trong pipeline PBR.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>Quixel Mixer là gì?</h2>
+  <p>Quixel Mixer do <strong>Quixel</strong> (nay thuộc <strong>Epic Games</strong>) phát triển — phần mềm <strong>tạo material PBR bằng cách blend surface Megascans</strong> trên Windows và macOS. Thay vì vẽ từng pixel trong Photoshop hay dựng node phức tạp trong Substance Designer, bạn xếp layer scan (gỗ, bê tông, rỉ sét) lên nhau, chỉnh mask và export bộ map chuẩn PBR.</p>
+  <p>Khác với Substance 3D Painter (texture lên mesh 3D), Mixer làm việc trên <strong>material tileable phẳng</strong> — output là Albedo, Normal, Roughness, Height, AO để gán lên sàn, tường hoặc import engine. App desktop Mixer v1 được Epic đánh dấu <strong>legacy</strong>: không còn phát triển mạnh, chức năng blend dần chuyển vào <strong>Quixel Bridge</strong> (tab Mixer) và ecosystem Fab; bản cũ vẫn tải miễn phí và hữu ích cho học tập.</p>
+  <ul class="arc-list">
+    <li><strong>Layer blend</strong> — xếp chồng surface Megascans, chỉnh opacity và blend mode</li>
+    <li><strong>Mask &amp; height blend</strong> — tách vùng theo height map, curvature hoặc mask vẽ tay</li>
+    <li><strong>Adjust &amp; FX</strong> — chỉnh hue, saturation, thêm moss, grime, edge wear trên layer</li>
+    <li><strong>Export PBR maps</strong> — xuất bộ texture tileable sang UE, Blender, 3ds Max, v.v.</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"Quixel Mixer interface layer blend material PBR screenshot"</span>
+    </div>
+    <p class="arc-image-caption">Giao diện Quixel Mixer — layer stack blend surface Megascans và preview PBR</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>Mixer thường đứng giữa <strong>thư viện Megascans và giai đoạn gán material lên scene</strong>: environment artist cần một loại sàn «bùn + bê tông nứt + cỏ» mà không có sẵn một scan duy nhất — blend trong Mixer, export maps, import Unreal hoặc gán shader Blender. Không thay Painter cho hero prop 3D — nhưng tiết kiệm thời gian tạo surface tileable custom. Hiện nay nhiều studio chuyển sang Mixer trong Bridge hoặc Substance Designer/Sampler; Mixer desktop vẫn là cách học blend scan trực quan cho người mới. Thường làm việc cùng Megascans, Bridge và engine target.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Layer stack &amp; blend surface scan</h3>
+    <p>Thế mạnh cốt lõi của Mixer là <strong>layer stack trực quan</strong> giống Photoshop nhưng cho PBR scan. Mỗi layer là một Megascans surface — bạn kéo «Forest Ground» lên «Mud Dry», chỉnh blend «Height Based» để bùn lấp khe đất, hoặc dùng mask vẽ vùng patina rỉ trên tấm kim loại. Mọi thay đổi cập nhật preview realtime trên sphere/plane 3D với ánh sáng PBR.</p>
+    <p>Đối với học sinh THPT mới làm quen, bài tập thực tế hay gặp: blend hai surface (ví dụ «Concrete Clean» + «Concrete Damaged») tạo sàn nhà kho cũ — xuất map và gán lên plane Blender, so sánh với dùng một scan đơn. Vừa hiểu PBR maps vừa thấy giá trị blend trong art direction.</p>
+    <ul class="arc-list">
+      <li><strong>Drag-and-drop Megascans</strong> — layer từ thư viện cloud qua Bridge/Mixer</li>
+      <li><strong>Blend modes</strong> — height blend, multiply, overlay cho wear và dirt</li>
+      <li><strong>Live preview</strong> — xoay mesh preview, đổi HDRI kiểm tra ánh sáng</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Quixel Mixer layer stack height blend concrete material"</span>
+        </div>
+        <p class="arc-image-caption">Layer stack — height blend giữa hai surface bê tông</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Quixel Mixer mask painting moss grime material layer"</span>
+        </div>
+        <p class="arc-image-caption">Mask painting — thêm moss và grime lên vùng chỉ định</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Mask, điều chỉnh &amp; hiệu ứng wear</h3>
+    <p>Sau khi xếp layer, bước tinh chỉnh dùng <strong>mask</strong> (vẽ, gradient, hoặc tách từ curvature/ambient occlusion của mesh preview) để kiểm soát vùng blend. Mixer có adjustment per layer: độ sáng, contrast, hue shift — hữu ích khi cần đồng bộ màu với palette art direction game. Hiệu ứng như <strong>edge wear, cavity dirt, surface scatter</strong> giúp material trông «đã qua sử dụng» mà không cần Substance Painter.</p>
+    <p>Đây là kỹ năng lookdev surface mà studio environment hay yêu cầu: biến tấu scan thành material độc cho dự án, vẫn giữ chất photoreal từ nguồn gốc.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Quixel Mixer edge wear cavity dirt PBR material effect"</span>
+      </div>
+      <p class="arc-image-caption">Hiệu ứng wear — edge wear và cavity dirt trên material blend</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Export maps &amp; trạng thái legacy</h3>
+    <p>Khi hài lòng preview, Mixer <strong>export bộ map PBR</strong> — chọn độ phân giải (2K, 4K), format (PNG, TIFF), có hay không packing channel — rồi import vào Unreal Material Editor hoặc shader Blender Principled BSDF. Project Mixer (.mix) lưu layer stack để chỉnh sau; với pipeline mới, Epic khuyến khích dùng <strong>Mixer trong Quixel Bridge</strong> hoặc asset Fab có sẵn blend tương tự.</p>
+    <p>Hiểu trạng thái legacy quan trọng cho học sinh định hướng nghề: Mixer desktop vẫn dạy tư duy blend scan, nhưng khi apply việc làm nên kiểm tra studio dùng Bridge Mixer, Substance Designer hay Sampler — và cập nhật skill theo tool còn được Epic/Adobe active phát triển.</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Quixel Mixer export PBR maps Unreal Engine workflow legacy Bridge"</span>
+      </div>
+      <p class="arc-image-caption">Export workflow — maps PBR từ Mixer sang Unreal; Bridge thay thế dần app legacy</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai công cụ hay được đặt cạnh Mixer nhất là <strong>Substance 3D Designer</strong> (material procedural node-based của Adobe) và <strong>Materialize</strong> (app miễn phí chuyển ảnh chụp thành PBR maps). Không có câu trả lời «đúng duy nhất» — tùy bạn cần blend scan nhanh, material procedural linh hoạt hay texture từ ảnh thật tự chụp.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Mixer vs Substance 3D Designer</h3>
+    <p>Substance 3D Designer là <strong>trình tạo material procedural bằng node graph</strong> — bạn dựng từ noise, shape, gradient để tạo pattern vô hạn, không phụ thuộc thư viện scan. Linh hoạt và mạnh cho stylized hoặc sci-fi, nhưng <strong>đường cong học cao hơn</strong> và cần tư duy node; output photoreal «tự nhiên» đôi khi cần nhiều iteration hơn blend scan có sẵn.</p>
+    <p>Mixer (và Mixer trong Bridge) mạnh ở <strong>tốc độ blend scan Megascans</strong> — artist không rành node vẫn tạo surface tileable trong 30 phút. Designer mạnh khi studio cần material parametric export nhiều biến thể (màu, wear level) từ một graph duy nhất cho game lớn.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Quixel Mixer blend Megascans layers material preview"</span>
+        </div>
+        <p class="arc-image-caption">Quixel Mixer — blend scan trực quan, ít node</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Substance 3D Designer node graph material procedural"</span>
+        </div>
+        <p class="arc-image-caption">Substance Designer — node graph procedural, linh hoạt dài hạn</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Mixer mạnh hơn:</strong> blend scan Megascans nhanh, giao diện layer quen thuộc, miễn phí, phù hợp photoreal môi trường tự nhiên.<br>
+      <strong>Designer mạnh hơn:</strong> material procedural không giới hạn, parametric export, tiêu chuẩn ngành cho technical artist và material TD.<br>
+      <strong>Chọn Mixer khi:</strong> cần surface tileable từ scan nhanh, pipeline Epic/Megascans, mới học PBR blend.<br>
+      <strong>Chọn Designer khi:</strong> mục tiêu material TD, stylized/sci-fi procedural, studio dùng stack Adobe Substance.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Mixer vs Materialize</h3>
+    <p><strong>Materialize</strong> (Bounding Box Software) là công cụ <strong>miễn phí, mã nguồn mở</strong> giúp chuyển <strong>ảnh chụp 2D</strong> (một bề mặt bạn tự chụp) thành Normal, Height, Roughness, Metallic maps — workflow «photo → PBR». Mixer không xử lý ảnh thô; nó <strong>trộn scan Megascans đã chuẩn hóa</strong> thành material mới. Hai tool giải bài toán khác nhau: Materialize cho texture từ reference thực tế local; Mixer cho biến tấu thư viện scan cloud.</p>
+    <p>Học sinh THPT có thể kết hợp: chụp tường trường → Materialize tạo map → trộn với Megascans trong Mixer — hiểu cả hai luồng giúp portfolio đa dạng hơn.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Quixel Mixer Megascans surface blend export maps"</span>
+        </div>
+        <p class="arc-image-caption">Mixer — blend surface scan có sẵn từ Megascans</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Materialize Bounding Box photo to PBR normal map"</span>
+        </div>
+        <p class="arc-image-caption">Materialize — ảnh chụp 2D chuyển thành bộ map PBR</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Mixer mạnh hơn:</strong> chất lượng scan Megascans, blend nhiều layer phức tạp, tích hợp Epic ecosystem.<br>
+      <strong>Materialize mạnh hơn:</strong> miễn phí open-source, texture từ ảnh tự chụp, không cần thư viện cloud.<br>
+      <strong>Chọn Mixer khi:</strong> có Megascans/Bridge, cần biến tấu scan chuẩn studio cho game/archviz.<br>
+      <strong>Chọn Materialize khi:</strong> ngân sách zero, muốn PBR từ ảnh thực tế Việt Nam (gạch, đá, tường) tự quét/chụp.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học Quixel Mixer như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Cài Mixer hoặc Bridge và làm quen legacy</strong>
+        <p>Tải <strong>Quixel Mixer</strong> (bản desktop legacy, miễn phí) hoặc cài <strong>Quixel Bridge</strong> mới có tab Mixer. Đăng nhập Epic account để truy cập surface Megascans. Đọc ghi chú Epic về trạng thái legacy — mục tiêu tuần đầu là hiểu Mixer dùng để blend tileable surface, không thay Painter cho model 3D; biết Bridge là hướng phát triển lâu dài.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Blend hai layer surface đầu tiên</strong>
+        <p>Tạo project mới, kéo hai surface Megascans (ví dụ «Gravel» + «Asphalt») vào stack. Thử blend mode «Height Based» và quan sát preview. Chỉnh scale tiling từng layer để không lộ pattern lặp quá rõ. Export bộ map 2K, import Blender gán Principled BSDF — mục tiêu là thấy mối liên hệ layer trong Mixer và maps trên mesh.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Mask vẽ tay và hiệu ứng wear</strong>
+        <p>Thêm layer thứ ba (moss hoặc dirt), vẽ mask để chỉ xuất hiện ở góc tường hoặc khe nứt. Bật thử edge wear và cavity dirt ở mức nhẹ — so sánh trước/sau trên preview sphere dưới HDRI outdoor. Kỹ năng mask là nền tảng cho mọi tool material sau này (Painter, Designer).</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Export và gán material trong Unreal hoặc Blender</strong>
+        <p>Export full PBR set (Albedo, Normal, Roughness, Height, AO), import Unreal tạo Material Instance hoặc setup Blender với displacement (optional). Test dưới 3 điều kiện ánh sáng: studio, sunset, interior spot — material tileable «đẹp» phải ổn ở nhiều context. Ghi chú naming convention folder cho studio sau này.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Dự án surface custom cho scene</strong>
+        <p>Chọn brief: sàn nhà máy bỏ hoang, đường làng đất lầy, hoặc tường bê tông phủ rêu. Blend 3–5 layer trong Mixer, export, gán lên blockout environment có sẵn (từ Blender/Unreal). Render 2 góc camera — breakdown ngắn giải thích layer stack. Giai đoạn này dạy art direction: material kể chuyện «không gian cũ, ẩm» qua lựa chọn scan và mask.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Mở rộng skill và định hướng nghề</strong>
+        <p>Thử Mixer trong Bridge; so sánh Substance Designer trial hoặc Materialize cho ảnh tự chụp. Portfolio: 2–3 material tileable + 1 environment; ghi rõ Quixel Mixer/Bridge. Tìm hiểu role material artist, environment artist tại studio game Việt Nam.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

@@ -1,0 +1,209 @@
+<section class="arc-intro">
+  <p>Bạn mở link trên điện thoại, vuốt qua màn hình đăng nhập app giao hàng, bấm «Theo dõi đơn» và thấy chuyển sang màn hình bản đồ với nút gọi tài xế — trước khi developer viết code, team sản phẩm thường đã dựng <strong>prototype</strong> có thể bấm thử trong <strong>Figma</strong>. Designer vẽ UI, nối màn hình bằng hotspot, gửi link cho bạn bè trong lớp «test» xem luồng có hợp lý không.</p>
+  <p>Figma là công cụ <strong>thiết kế giao diện và cộng tác UI/UX</strong> chạy trên trình duyệt (và app desktop) — tiêu chuẩn de facto tại startup Việt Nam và Big Tech toàn cầu. Học sinh THPT làm mockup app ý tưởng, dự án khởi nghiệp số hay portfolio design đều có thể bắt đầu miễn phí với gói Figma Education hoặc Starter.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>Figma là gì?</h2>
+  <p><strong>Figma</strong> là nền tảng <strong>thiết kế UI/UX và prototype</strong> trên cloud — file lưu online, nhiều người chỉnh sửa đồng thời, comment trực tiếp trên khung thiết kế. Không giống Photoshop (chỉnh ảnh pixel), Figma xây cho <strong>digital product</strong>: frame (artboard), component tái sử dụng, auto layout, design token và Dev Mode cho developer lấy spec CSS.</p>
+  <p>Giao diện gồm canvas giữa, panel layer bên trái, properties bên phải; chế độ Prototype để nối frame thành luồng tương tác. File .fig đồng bộ real-time — phù hợp nhóm học sinh THPT làm dự án nhóm: một bạn UX wireframe, một bạn UI polish, cả lớp comment mà không gửi file qua lại.</p>
+  <ul class="arc-list">
+    <li><strong>Frame &amp; auto layout</strong> — khung iPhone, Android, desktop; layout co giãn như Flexbox</li>
+    <li><strong>Component &amp; variants</strong> — nút, input, card tái sử dụng; đổi state (default, hover, disabled)</li>
+    <li><strong>Prototype</strong> — hotspot, smart animate, overlay modal, scroll behavior</li>
+    <li><strong>Dev Mode &amp; handoff</strong> — đo khoảng cách, copy CSS, export SVG/PNG cho developer</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"Figma interface design mode frame component panel screenshot 2024"</span>
+    </div>
+    <p class="arc-image-caption">Giao diện Figma — canvas frame mobile, panel Layers và Properties</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>Figma đứng ở giai đoạn <strong>research → wireframe → mockup → prototype → handoff</strong>: UX đặt cấu trúc thông tin; UI designer dựng visual trong Figma; PM và stakeholder bấm prototype; sau khi duyệt, developer dùng Dev Mode hoặc export asset. Với dự án trường học, Figma thay slide tĩnh — mockup app «thư viện số lớp» có thể demo trước hội đồng. Thường làm việc cùng FigJam (brainstorm), Notion (brief) và GitHub (implementation).</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Thiết kế UI với frame, vector và auto layout</h3>
+    <p>Figma cung cấp công cụ vector (rectangle, ellipse, pen), text với Google Fonts, và <strong>auto layout</strong> — nhóm element tự căn khoảng cách khi thêm nút hoặc đổi copy, tương tự CSS Flexbox. Bạn dựng wireframe grayscale trước, sau đó áp màu, typography và icon — quy trình «structure trước, visual sau» mà studio UX chuyên nghiệp luôn theo.</p>
+    <p>Với học sinh THPT, bài tập thực tế: thiết kế 6–10 frame app «đặt suất ăn căn tin» hoặc «tra cứu điểm thi» — dùng grid 8px, font Inter hoặc Be Vietnam Pro, màu thương hiệu trường. Auto layout giúp danh sách món ăn hoặc bảng điểm co giãn mà không phải căn tay từng pixel.</p>
+    <ul class="arc-list">
+      <li><strong>Frame preset</strong> — iPhone 15, Pixel 8, desktop 1440px có sẵn</li>
+      <li><strong>Auto layout</strong> — padding, gap, hug/fill contents cho responsive cơ bản</li>
+      <li><strong>Styles</strong> — color, text style tái sử dụng xuyên suốt file</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Figma auto layout mobile app list design padding gap"</span>
+        </div>
+        <p class="arc-image-caption">Auto layout — danh sách card co giãn với padding và gap</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Figma wireframe to high fidelity UI design progression"</span>
+        </div>
+        <p class="arc-image-caption">Wireframe → mockup — cùng frame, thêm màu và typography</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Component, variants &amp; design system nhẹ</h3>
+    <p><strong>Component</strong> là khối tái sử dụng: tạo nút Primary một lần, instance trên mọi màn hình — sửa Main Component thì tất cả instance cập nhật. <strong>Variants</strong> gom state (size S/M/L, type primary/secondary) trong một component set — giảm lặp lại và giữ UI nhất quán.</p>
+    <p>Dự án THPT có thể có «design system mini»: 3 màu brand, 2 font size, 5 component (button, input, card, navbar, tab bar). Khi giáo viên yêu cầu đổi màu chủ đạo, bạn sửa style một chỗ thay vì 40 màn hình — đây là tư duy scalable design mà intern UI tại startup được kỳ vọng.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Figma component variants button states design system"</span>
+      </div>
+      <p class="arc-image-caption">Component variants — nút với state default, hover, disabled</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Prototype, test luồng &amp; Dev Mode handoff</h3>
+    <p>Chuyển sang tab <strong>Prototype</strong>, kéo mũi tên từ nút «Đăng nhập» sang frame tiếp theo, chọn transition (dissolve, smart animate). Gửi link <strong>Present</strong> — người xem bấm thử trên trình duyệt như app thật. Thu thập comment («màn này thiếu nút quay lại») trước khi code.</p>
+    <p><strong>Dev Mode</strong> (gói trả phí team) giúp developer đo spacing, copy mã CSS/iOS/Android, export icon @2x. Luồng điển hình: designer handoff file Figma → dev implement React/Flutter → designer review pixel trên staging. Hiểu prototype + handoff giúp bạn nói chung ngôn ngữ với lập trình viên — kỹ năng cross-functional rất giá trị.</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Figma prototype flow Dev Mode handoff developer inspect CSS"</span>
+      </div>
+      <p class="arc-image-caption">Prototype flow — nối frame và Dev Mode inspect cho developer</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai công cụ hay được đặt cạnh Figma nhất là <strong>Adobe XD</strong> (cùng hệ Adobe, Adobe đã ngừng phát triển tính năng mới) và <strong>Sketch</strong> (Mac-only, từng là tiêu chuẩn UI trước Figma). Không có câu trả lời «đúng duy nhất» — tùy team, hệ điều hành và nhu cầu cộng tác cloud.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Figma vs Adobe XD</h3>
+    <p>Cả hai đều thiết kế UI và prototype cho app/web. XD tích hợp Creative Cloud, quen với designer dùng Photoshop/Illustrator; Adobe đã chuyển hướng sang Figma partnership và không còn đẩy tính năng XD mới. <strong>Figma mạnh về cộng tác real-time, plugin community, FigJam và Dev Mode</strong> — hầu hết studio Việt Nam tuyển Figma trên JD UI designer hiện nay.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Figma collaborative editing multiplayer cursors design file"</span>
+        </div>
+        <p class="arc-image-caption">Figma — cộng tác real-time, nhiều cursor trên cùng file</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Adobe XD prototype mobile app design interface"</span>
+        </div>
+        <p class="arc-image-caption">Adobe XD — UI/prototype trong hệ Adobe (duy trì file legacy)</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Figma mạnh hơn:</strong> cloud-first, cộng tác đa nền tảng (Windows/Mac/web), plugin &amp; community lớn, FigJam, Dev Mode, tiêu chuẩn tuyển dụng UI hiện tại.</p>
+      <p><strong>Adobe XD mạnh hơn:</strong> quen thuộc nếu team đã trả Creative Cloud, một số workflow với After Effects/Illustrator cũ.</p>
+      <p><strong>Chọn Figma khi:</strong> dự án mới, làm việc nhóm, học UI/UX từ THPT đến intern — hầu hết trường hợp nên chọn Figma.</p>
+      <p><strong>Chọn XD khi:</strong> duy trì file cũ, công ty bắt buộc stack Adobe và chưa migrate.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Figma vs Sketch</h3>
+    <p><strong>Sketch</strong> chạy chỉ trên macOS, file local (.sketch) với hệ plugin mạnh — từng là công cụ số 1 cho UI trước 2018. Figma browser-based, miễn phí tier rộng, không bắt buộc Mac. Sketch giờ có cloud collaboration nhưng Figma vẫn dẫn về số người dùng đồng thời và handoff tích hợp.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Figma web browser design file Windows cross platform"</span>
+        </div>
+        <p class="arc-image-caption">Figma — chạy trên trình duyệt, Windows và Mac không cần license riêng</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Sketch Mac UI design symbols library interface"</span>
+        </div>
+        <p class="arc-image-caption">Sketch — UI design trên macOS với symbols và plugin</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Figma mạnh hơn:</strong> đa nền tảng, cộng tác cloud native, miễn phí cho cá nhân/học sinh, không cần Mac.</p>
+      <p><strong>Sketch mạnh hơn:</strong> performance local trên Mac mạnh, một số plugin legacy, designer Mac-only quen workflow cũ.</p>
+      <p><strong>Chọn Figma khi:</strong> học sinh THPT trên Windows, làm việc nhóm online, portfolio và tuyển dụng UI tại VN.</p>
+      <p><strong>Chọn Sketch khi:</strong> team toàn Mac, dự án kế thừa file .sketch lớn chưa migrate.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học Figma như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Tạo tài khoản và làm quen canvas</strong>
+        <p>Đăng ký Figma miễn phí (hoặc Education nếu trường hỗ trợ), tạo file Draft đầu tiên. Tuần đầu luyện zoom, pan, chọn object, frame tool (F), rectangle, text — đặt frame iPhone preset và vẽ vài hình. Mục tiêu là thao tác nhanh trên canvas trước khi học component — nhiều bạn THPT bối rối vì layer lồng nhau; hãy đặt tên layer rõ ràng ngay từ đầu.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Wireframe grayscale 4–6 màn hình</strong>
+        <p>Chọn một app đơn giản (todo list, menu căn tin, hồ sơ CLB). Vẽ wireframe chỉ xám/trắng: header, list, nút FAB — chưa cần màu đẹp. Tập trung <strong>thông tin và thứ bậc</strong>: cái gì người dùng thấy trước, CTA ở đâu. Nhờ 2–3 bạn bạn cùng lớp nhìn 5 giây mỗi màn và trả lời «app này làm gì» — nếu không trả lời được, wireframe chưa rõ.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Mockup visual, auto layout &amp; component cơ bản</strong>
+        <p>Áp color style, typography (Be Vietnam Pro cho tiếng Việt), icon từ Figma Community. Tạo component Button và Input; dùng auto layout cho list item. Duplicate frame sang dark mode nếu muốn thử thách thêm. Mục tiêu: 6–8 màn hình visual nhất quán — đủ cho slide báo cáo môn Tin hoặc cuộc thi học sinh sáng tạo.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Prototype luồng chính và user test</strong>
+        <p>Nối frame: splash → đăng nhập → home → chi tiết → quay lại. Thêm overlay cho dialog xác nhận; thử smart animate cho chuyển tab. Gửi link prototype cho 5 người (bạn, em, phụ huynh) làm task «đặt một món ăn» — ghi lại chỗ họ vấp. Iteration theo feedback là core UX, không phải «vẽ xong là xong».</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Dự án case study hoàn chỉnh</strong>
+        <p>Chọn brief có story: «App nhắc uống nước cho học sinh thi cử» hoặc «Nền tảng chia sẻ tài liệu lớp». Viết 1 trang: vấn đề, persona, giải pháp; trong Figma có wireframe, final UI, prototype link. Giai đoạn này dạy quy trình sản phẩm thật — research ngắn, ưu tiên MVP, không thiết kế 40 màn không ai dùng.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Portfolio và bước nghề nghiệp</strong>
+        <p>Đăng case study lên Behance, personal site hoặc Notion — embed prototype Figma, mô tả vai trò và quyết định design. Tham gia Figma Community duplicate file mentor, học thêm accessibility (contrast, touch target 44px). Tìm intern UI tại startup VN thường cần Figma + hiểu UX cơ bản; chứng chỉ ít quan trọng hơn 2–3 project chất lượng trong portfolio.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

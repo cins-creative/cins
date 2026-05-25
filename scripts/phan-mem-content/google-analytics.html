@@ -1,0 +1,209 @@
+<section class="arc-intro">
+  <p>Bạn mở trang web CLB trường vừa làm xong, đăng lên hosting và muốn biết có bao nhiêu bạn truy cập, họ đọc bài nào lâu nhất, bao nhiêu % dùng điện thoại — thầy cô gợi ý gắn <strong>Google Analytics 4 (GA4)</strong> để đo lường. Sau vài tuần, dashboard hiển thị biểu đồ lượt xem theo ngày, nguồn traffic từ Facebook hay Google Search, và sự kiện «bấm nút đăng ký» bạn tự định nghĩa.</p>
+  <p>Google Analytics không phải công cụ duy nhất để hiểu hành vi người dùng web, nhưng nó miễn phí ở quy mô phổ biến, tích hợp sâu với Google Ads và Search Console, và là kỹ năng được nhiều agency digital marketing tại Việt Nam yêu cầu. Học GA4 sớm giúp học sinh THPT biết cách dự án web «có số liệu» thay vì chỉ cảm giác chủ quan.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>Google Analytics GA4 là gì?</h2>
+  <p>Google Analytics 4 do <strong>Google</strong> phát triển — nền tảng <strong>phân tích web và app (web analytics)</strong> miễn phí, thay thế Universal Analytics (UA) từ năm 2023. GA4 thu thập dữ liệu qua thẻ JavaScript (gtag.js) hoặc Google Tag Manager, gửi về property trên analytics.google.com để báo cáo và phân tích.</p>
+  <p>Khác với công cụ thiết kế web hay hosting, GA4 không hiển thị nội dung site — nó <strong>theo dõi và tổng hợp hành vi người dùng</strong>: page view, session, thời gian tương tác, sự kiện tùy chỉnh, conversion. Giao diện có Reports, Explore, Advertising và Admin — ban đầu nhiều thuật ngữ (event, parameter, dimension), nhưng mỗi mục trả lời câu hỏi kinh doanh hoặc vận hành cụ thể.</p>
+  <ul class="arc-list">
+    <li><strong>Event-based data model</strong> — mọi tương tác là event (page_view, scroll, click); linh hoạt hơn mô hình session/page cũ</li>
+    <li><strong>Báo cáo realtime &amp; acquisition</strong> — xem ai đang online, traffic đến từ organic, paid, social hay direct</li>
+    <li><strong>Conversion &amp; audience</strong> — đánh dấu mục tiêu (mua hàng, submit form) và xây audience remarketing</li>
+    <li><strong>Tích hợp Google stack</strong> — Search Console, Google Ads, BigQuery export cho phân tích nâng cao</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"Google Analytics 4 dashboard reports interface screenshot"</span>
+    </div>
+    <p class="arc-image-caption">Giao diện GA4 — báo cáo acquisition, engagement và demographics</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>GA4 thường đứng ở giai đoạn <strong>đo lường, tối ưu và báo cáo sau khi website/app đã live</strong>: developer hoặc marketer gắn measurement ID, định nghĩa key events, theo dõi dashboard hàng tuần và điều chỉnh nội dung hoặc quảng cáo. Với dự án học đường, GA4 chứng minh dự án có người dùng thật và biết trang nào cần cải thiện UX. Thường làm việc cùng Google Tag Manager (quản lý thẻ), Google Search Console (SEO) và Looker Studio (dashboard trình bày) khi báo cáo cho thầy cô hoặc khách hàng.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Cài đặt thu thập dữ liệu (data collection)</h3>
+    <p>Để GA4 hoạt động, bạn tạo <strong>GA4 property</strong> trong tài khoản Google Analytics, lấy Measurement ID (dạng G-XXXXXXXX) và chèn thẻ gtag.js vào &lt;head&gt; mọi trang — hoặc triển khai qua <strong>Google Tag Manager</strong> container để quản lý nhiều thẻ (GA4, Ads conversion) mà không sửa code liên tục.</p>
+    <p>Đối với học sinh THPT làm web tĩnh hoặc WordPress, bài tập thực tế: tạo property cho site portfolio CLB, xác minh Realtime có hiển thị «1 user active» khi tự mở trang ở tab ẩn danh — bước đầu tiên quan trọng để tin vào dữ liệu sau này.</p>
+    <ul class="arc-list">
+      <li><strong>gtag.js / GTM</strong> — gắn thẻ trực tiếp hoặc qua container GTM-XXXXXXX</li>
+      <li><strong>Data stream</strong> — Web, iOS, Android; mỗi stream có ID riêng</li>
+      <li><strong>Enhanced measurement</strong> — tự động track scroll, outbound click, site search nếu bật</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Google Tag Manager container GA4 tag setup screenshot"</span>
+        </div>
+        <p class="arc-image-caption">Google Tag Manager — cấu hình thẻ GA4 Configuration</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"GA4 realtime report active users screenshot"</span>
+        </div>
+        <p class="arc-image-caption">Báo cáo Realtime — xác minh thu thập dữ liệu đang hoạt động</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Events, conversions và báo cáo</h3>
+    <p>GA4 coi mọi thứ là <strong>event</strong>: page_view mặc định, thêm event tùy chỉnh như <code>generate_lead</code>, <code>click_cta</code> với parameters (button_name, page_section). Trong Admin, bạn đánh dấu event quan trọng thành <strong>conversion</strong> để theo dõi mục tiêu — ví dụ «submit form liên hệ» trên site trường.</p>
+    <p>Báo cáo Reports gồm Acquisition (nguồn traffic), Engagement (trang/phổ session), Monetization (e-commerce nếu có) và Demographics. Explore cho phép kéo thả dimension/metric tạo biểu đồ funnel hoặc path — kỹ năng «kể chuyện bằng số liệu» hữu ích khi thuyết trình đồ án.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"GA4 Explore funnel analysis report screenshot"</span>
+      </div>
+      <p class="arc-image-caption">Explore — phân tích funnel và hành trình người dùng</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Audience, quyền riêng tư và tích hợp marketing</h3>
+    <p>GA4 cho phép tạo <strong>audience</strong> (người xem &gt;3 trang, người Việt Nam trên mobile) để dùng remarketing trên Google Ads hoặc phân tích segment. Với quy định privacy (GDPR, luật VN về dữ liệu cá nhân), cần hiển thị cookie consent banner và cấu hình consent mode khi triển khai thực tế — đây là phần «đạo đức dữ liệu» mà dự án học đường cũng nên đề cập trong báo cáo.</p>
+    <p>Luồng marketing điển hình: GA4 đo traffic → Search Console tối ưu SEO → Google Ads đẩy campaign → GA4 attribution xem kênh nào mang conversion. Hiểu chuỗi này giúp bạn không coi analytics là công cụ cô lập mà là trung tâm ra quyết định digital.</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"GA4 Google Ads Search Console integration marketing workflow"</span>
+      </div>
+      <p class="arc-image-caption">Tích hợp marketing — GA4, Ads và Search Console trong một luồng</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai giải pháp hay được đặt cạnh GA4 là <strong>Plausible Analytics</strong> (nhẹ, privacy-first) và <strong>Meta Pixel</strong> (Facebook/Instagram ads tracking). Mỗi công cụ trả lời nhu cầu khác nhau — đo toàn site hay đo campaign social, chi phí và độ phức tạp triển khai.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Google Analytics vs Plausible Analytics</h3>
+    <p>Plausible là analytics <strong>nhẹ, không cookie, tuân thủ privacy</strong> — script ~1KB, dashboard đơn giản (pageviews, referrers, devices). GA4 miễn phí không giới hạn event ở quy mô thông thường, mạnh về funnel, BigQuery và tích hợp Google — nhưng script nặng hơn, giao diện phức tạp và cần chú ý consent pháp lý.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Google Analytics 4 reports dashboard detailed metrics"</span>
+        </div>
+        <p class="arc-image-caption">GA4 — báo cáo chi tiết, event model và tích hợp Google</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Plausible Analytics simple privacy dashboard screenshot"</span>
+        </div>
+        <p class="arc-image-caption">Plausible — dashboard gọn, privacy-friendly, trả phí theo pageview</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>GA4 mạnh hơn:</strong> miễn phí quy mô lớn, conversion tracking sâu, audience remarketing, export BigQuery, chuẩn ngành agency VN.<br>
+      <strong>Plausible mạnh hơn:</strong> cài đặt 5 phút, không cookie banner phức tạp, tốc độ site không bị ảnh hưởng, minh bạch privacy.<br>
+      <strong>Chọn GA4 khi:</strong> cần phân tích marketing đầy đủ, học nghề digital marketing, chạy Google Ads.<br>
+      <strong>Chọn Plausible khi:</strong> blog cá nhân, site cần GDPR đơn giản, chỉ cần metric cơ bản và chấp nhận trả phí hàng tháng.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Google Analytics vs Meta Pixel</h3>
+    <p><strong>Meta Pixel</strong> (Facebook Pixel) theo dõi hành vi để tối ưu quảng cáo trên Facebook và Instagram — PageView, AddToCart, Purchase gửi về Events Manager. GA4 đo toàn bộ website và nhiều kênh acquisition, không gắn riêng Meta. Trong thực tế, site thương mại thường dùng <strong>cả hai</strong>: GA4 cho báo cáo tổng, Pixel cho retargeting và conversion API campaign social.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"GA4 acquisition traffic channels report screenshot"</span>
+        </div>
+        <p class="arc-image-caption">GA4 — đo đa kênh: organic, paid, social, direct</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Meta Pixel Events Manager Facebook ads tracking setup"</span>
+        </div>
+        <p class="arc-image-caption">Meta Pixel — tracking phục vụ quảng cáo Facebook/Instagram</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>GA4 mạnh hơn:</strong> báo cáo web/app tổng thể, không phụ thuộc nền tảng Meta, SEO và content insight.<br>
+      <strong>Meta Pixel mạnh hơn:</strong> attribution cho ads Facebook/Instagram, custom audience, lookalike, tích hợp Shops.<br>
+      <strong>Chọn GA4 khi:</strong> cần hiểu toàn bộ website và nhiều nguồn traffic, báo cáo cho stakeholder tổng quát.<br>
+      <strong>Chọn Meta Pixel khi:</strong> ngân sách marketing tập trung chạy ads Meta và cần tối ưu conversion trên social (thường dùng song song GA4).</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học Google Analytics GA4 như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Tạo tài khoản và property GA4</strong>
+        <p>Đăng nhập analytics.google.com bằng Gmail, tạo Account → Property GA4 → Web data stream, copy Measurement ID. Tuần đầu: gắn thẻ cơ bản lên site cá nhân hoặc trang demo, mở Reports → Realtime và xác nhận có hit. Làm quen thuật ngữ: user, session, event, engagement — tra Google Analytics Help khi gặp từ mới thay vì đoán.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Google Tag Manager và enhanced measurement</strong>
+        <p>Học tạo container GTM, thẻ GA4 Configuration + Trigger All Pages, publish và test bằng Preview mode. Bật enhanced measurement (scroll, outbound click) và kiểm tra Events trong DebugView. Mục tiêu: quản lý thẻ tập trung — kỹ năng thực tế khi làm việc với team dev không muốn sửa HTML mỗi lần thêm tracking.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Custom events và conversions</strong>
+        <p>Định nghĩa 2–3 event quan trọng cho site học đường: click nút «Đăng ký», submit form, tải PDF brochure. Triển khai qua GTM (click trigger) hoặc gtag event. Trong Admin → Events, đánh dấu conversion. Phân tích trong Reports → Engagement → Events xem event nào xảy ra nhiều — từ đó đề xuất cải thiện UX (ví dụ form quá dài).</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Acquisition và audience cơ bản</strong>
+        <p>Đọc báo cáo Traffic acquisition: organic search, referral, social, direct chiếm bao nhiêu %. Liên kết property với Search Console để xem từ khóa (ở mức aggregated). Tạo audience đơn giản — «Người dùng Việt Nam + mobile» — để hiểu segment. Kết hợp với chiến dịch thật (post Facebook CLB) và quan sát spike traffic trong Realtime — bài học cause-effect số liệu.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Explore, Looker Studio và báo cáo dự án</strong>
+        <p>Dùng Explore tạo funnel 3 bước: landing → xem trang chi tiết → conversion. Export hoặc kết nối GA4 với Looker Studio (Google Data Studio) làm dashboard trình bày cho thầy cô — biểu đồ đẹp, cập nhật tự động. Giai đoạn này biến GA4 từ «công cụ xem số» thành phần trình bày đồ án có thuyết phục.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Chứng chỉ, thực hành và định hướng nghề</strong>
+        <p>Thi <strong>Google Analytics Certification</strong> (Skillshop, miễn phí) để củng cố kiến thức và ghi vào CV. Thực hành trên site thật 1–3 tháng để hiểu seasonality và noise. Tìm hiểu thêm Plausible/Matomo cho góc nhìn privacy; học Meta Ads Manager nếu hướng performance marketing. Nhiều agency và in-house team tại Việt Nam tuyển junior digital analyst biết GA4 + GTM.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

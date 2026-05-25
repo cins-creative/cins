@@ -1,0 +1,182 @@
+[
+  {
+    "id": "e7bb4c55-5e75-422d-9f04-55ca77f05936",
+    "slug": "d5-render",
+    "tieu_de_viet": "D5 Render — Render kiến trúc realtime",
+    "tom_tat": "Engine render realtime — import SketchUp, 3ds Max, Blender, Revit; ánh sáng, vật liệu và video walkthrough archviz nhanh trên GPU.",
+    "meta_title": "D5 Render là gì? Archviz realtime, giá và hướng dẫn | CINS",
+    "meta_description": "D5 Render: realtime, asset library, live sync. So sánh Lumion, Twinmotion, Enscape và lộ trình học render kiến trúc.",
+    "meta": {
+      "nha_phat_hanh": "D5 Render",
+      "version": "2.9",
+      "platform": ["Windows"],
+      "website": "https://www.d5render.com",
+      "goi_mien_phi": "D5 Render miễn phí (Community)",
+      "gia_thanh": "Pro ~38 USD/tháng · miễn phí Community",
+      "hinh_thuc_mua": "Miễn phí · thuê bao Pro",
+      "link_tai": "https://www.d5render.com/download"
+    }
+  },
+  {
+    "id": "e926cbd3-8295-4a41-ad74-655ba89111d8",
+    "slug": "vray",
+    "tieu_de_viet": "V-Ray — Render 3D photorealistic",
+    "tom_tat": "Engine render tiêu chuẩn ngành — plugin cho 3ds Max, Maya, SketchUp, Cinema 4D cho archviz, VFX và quảng cáo.",
+    "meta_title": "V-Ray là gì? Render 3D, giá và hướng dẫn học | CINS",
+    "meta_description": "V-Ray: GI, GPU, Chaos Cosmos. So sánh Corona, Arnold và luồng render kiến trúc/nội thất.",
+    "meta": {
+      "nha_phat_hanh": "Chaos",
+      "version": "6",
+      "platform": ["Windows", "macOS", "Linux"],
+      "website": "https://www.chaos.com/vray",
+      "goi_mien_phi": "Dùng thử 30 ngày",
+      "gia_thanh": "Từ ~35 EUR/tháng hoặc perpetual",
+      "hinh_thuc_mua": "Thuê bao · giáo dục",
+      "link_tai": "https://www.chaos.com/vray"
+    }
+  },
+  {
+    "id": "61cd00dd-ec55-48b8-b4df-f6d17cd49fd9",
+    "slug": "visual-studio",
+    "tieu_de_viet": "Visual Studio — IDE lập trình Microsoft",
+    "tom_tat": "Môi trường phát trình tích hợp — C#, C++, debug và Git cho game Unity, web và ứng dụng desktop.",
+    "meta_title": "Visual Studio là gì? IDE, miễn phí và hướng dẫn | CINS",
+    "meta_description": "Visual Studio: IntelliSense, debugger, extension. So sánh VS Code, Rider và lộ trình học lập trình game.",
+    "meta": {
+      "nha_phat_hanh": "Microsoft",
+      "version": "2022",
+      "platform": ["Windows", "macOS"],
+      "website": "https://visualstudio.microsoft.com",
+      "goi_mien_phi": "Community miễn phí",
+      "gia_thanh": "Professional/Enterprise trả phí",
+      "hinh_thuc_mua": "Miễn phí · thuê bao",
+      "link_tai": "https://visualstudio.microsoft.com/downloads"
+    }
+  },
+  {
+    "id": "6fb5fd9d-1f03-47a7-aca7-bee050f16074",
+    "slug": "vmix",
+    "tieu_de_viet": "vMix — Live production &amp; streaming",
+    "tom_tat": "Phần mềm switcher live — multi-camera, NDI, chroma key cho sự kiện, trường học và studio broadcast.",
+    "meta_title": "vMix là gì? Live stream, giá và hướng dẫn | CINS",
+    "meta_description": "vMix: multiview, replay, streaming. So sánh OBS, Wirecast và quy trình live event trường học.",
+    "meta": {
+      "nha_phat_hanh": "StudioCoast",
+      "version": "27",
+      "platform": ["Windows"],
+      "website": "https://www.vmix.com",
+      "goi_mien_phi": "vMix Basic miễn phí (4 inputs)",
+      "gia_thanh": "Từ ~350 USD (HD) · ~1,200 USD (4K)",
+      "hinh_thuc_mua": "Mua một lần · subscription",
+      "link_tai": "https://www.vmix.com/download"
+    }
+  },
+  {
+    "id": "b1c93143-c1ad-4114-a9a8-12469c2c0fae",
+    "slug": "webflow",
+    "tieu_de_viet": "Webflow — Thiết kế web visual no-code",
+    "tom_tat": "Nền tảng web design — layout responsive, CMS, hosting cho portfolio designer và landing page chuyên nghiệp.",
+    "meta_title": "Webflow là gì? Web design, giá và hướng dẫn | CINS",
+    "meta_description": "Webflow: Designer, CMS, interactions. So sánh Framer, Wix và lộ trình học web design.",
+    "meta": {
+      "nha_phat_hanh": "Webflow Inc.",
+      "version": "2024",
+      "platform": ["Web"],
+      "website": "https://webflow.com",
+      "goi_mien_phi": "Starter miễn phí (2 pages)",
+      "gia_thanh": "Từ ~14 USD/tháng (Basic)",
+      "hinh_thuc_mua": "Thuê bao tháng · giáo dục",
+      "link_tai": "https://webflow.com"
+    }
+  },
+  {
+    "id": "58f943a1-6562-41a1-8ebc-8cbcde4a86b4",
+    "slug": "wirecast",
+    "tieu_de_viet": "Wirecast — Live streaming production",
+    "tom_tat": "Phần mềm Telestream — trộn camera, slide, stream đa nền tảng cho webinar, sự kiện và phát sóng trường học.",
+    "meta_title": "Wirecast là gì? Live stream, giá và hướng dẫn | CINS",
+    "meta_description": "Wirecast: ISO recording, lower third, RTMP. So sánh vMix, OBS và quy trình live production.",
+    "meta": {
+      "nha_phat_hanh": "Telestream",
+      "version": "16",
+      "platform": ["Windows", "macOS"],
+      "website": "https://www.telestream.net/wirecast",
+      "goi_mien_phi": "Dùng thử",
+      "gia_thanh": "Từ ~599 USD (Studio)",
+      "hinh_thuc_mua": "Mua một lần · thuê bao",
+      "link_tai": "https://www.telestream.net/wirecast"
+    }
+  },
+  {
+    "id": "545eb1f7-aa6b-4d7d-8878-b93313b94d39",
+    "slug": "wix",
+    "tieu_de_viet": "Wix — Tạo website kéo-thả",
+    "tom_tat": "Website builder cloud — template, editor drag-drop, ecommerce cho shop nhỏ, portfolio và landing page nhanh.",
+    "meta_title": "Wix là gì? Website builder, giá và hướng dẫn | CINS",
+    "meta_description": "Wix: Editor, App Market, SEO. So sánh WordPress, Squarespace và lộ trình làm web cơ bản.",
+    "meta": {
+      "nha_phat_hanh": "Wix.com Ltd.",
+      "version": "2024",
+      "platform": ["Web"],
+      "website": "https://www.wix.com",
+      "goi_mien_phi": "Gói Free (subdomain Wix)",
+      "gia_thanh": "Từ ~17 USD/tháng (Light)",
+      "hinh_thuc_mua": "Miễn phí · thuê bao",
+      "link_tai": "https://www.wix.com"
+    }
+  },
+  {
+    "id": "d877fa80-dbf2-42d6-852c-292ca30408bb",
+    "slug": "wwise",
+    "tieu_de_viet": "Wwise — Middleware âm thanh game",
+    "tom_tat": "Engine audio của Audiokinetic — event, RTPC, spatial audio tích hợp Unity/Unreal cho game AAA và indie.",
+    "meta_title": "Wwise là gì? Game audio, giá và hướng dẫn | CINS",
+    "meta_description": "Wwise: event, bus, integration. So sánh FMOD, Unity Audio và lộ trình học game sound.",
+    "meta": {
+      "nha_phat_hanh": "Audiokinetic",
+      "version": "2023",
+      "platform": ["Windows", "macOS"],
+      "website": "https://www.audiokinetic.com/products/wwise",
+      "goi_mien_phi": "Miễn phí indie (doanh thu dưới ngưỡng)",
+      "gia_thanh": "Miễn phí indie · license studio",
+      "hinh_thuc_mua": "Miễn phí · royalty",
+      "link_tai": "https://www.audiokinetic.com/download"
+    }
+  },
+  {
+    "id": "ff9ecf38-e14f-4a74-b5cf-7c9b2b05a10c",
+    "slug": "zbrush",
+    "tieu_de_viet": "ZBrush — Điêu khắc digital 3D",
+    "tom_tat": "Phần mềm sculpt tiêu chuẩn ngành — DynaMesh, ZRemesher, polypaint cho character game, VFX và collectibles.",
+    "meta_title": "ZBrush là gì? Sculpt 3D, giá và hướng dẫn học | CINS",
+    "meta_description": "ZBrush: sculpt, SubTool, export. So sánh Blender Sculpt, Mudbox và lộ trình học character art.",
+    "meta": {
+      "nha_phat_hanh": "Maxon (Pixologic)",
+      "version": "2024",
+      "platform": ["Windows", "macOS"],
+      "website": "https://www.maxon.net/zbrush",
+      "goi_mien_phi": "Dùng thử 30 ngày",
+      "gia_thanh": "~39 USD/tháng hoặc ~895 USD/năm",
+      "hinh_thuc_mua": "Thuê bao · giáo dục",
+      "link_tai": "https://www.maxon.net/zbrush"
+    }
+  },
+  {
+    "id": "f35987fb-7729-49de-a14d-9947ea719aca",
+    "slug": "zoho-social",
+    "tieu_de_viet": "Zoho Social — Quản lý mạng xã hội",
+    "tom_tat": "Công cụ schedule và analytics social — đa kênh, calendar, report cho SME và team marketing.",
+    "meta_title": "Zoho Social là gì? Social media, giá và hướng dẫn | CINS",
+    "meta_description": "Zoho Social: publish, monitor, report. So sánh Buffer, Hootsuite và quy trình content calendar.",
+    "meta": {
+      "nha_phat_hanh": "Zoho Corporation",
+      "version": "2024",
+      "platform": ["Web", "iOS", "Android"],
+      "website": "https://www.zoho.com/social",
+      "goi_mien_phi": "Dùng thử 15 ngày",
+      "gia_thanh": "Từ ~10 USD/tháng (Standard)",
+      "hinh_thuc_mua": "Thuê bao tháng",
+      "link_tai": "https://www.zoho.com/social"
+    }
+  }
+]

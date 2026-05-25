@@ -1,0 +1,209 @@
+<section class="arc-intro">
+  <p>Bạn chơi Genshin Impact trên điện thoại, Among Us với bạn cùng lớp, hoặc game mobile Việt Nam trên App Store — rất nhiều tựa game đó được làm bằng <strong>Unity</strong>, engine game đa nền tảng phổ biến nhất thế giới. Cùng công cụ này cũng xuất hiện trong lớp STEM trường học, game jam cuối tuần và studio indie tại Việt Nam khi team cần xuất bản lên mobile, PC hoặc console với ecosystem plugin khổng lồ.</p>
+  <p>Unity không phải engine duy nhất cho phát triển game, nhưng nó gắn chặt với thị trường việc làm game mobile và indie — nhờ ngôn ngữ C# dễ tiếp cận, Asset Store phong phú và tài liệu tiếng Việt ngày càng nhiều. Hiểu Unity giúp học sinh THPT không chỉ «chơi game» mà bước vào quy trình thiết kế, lập trình và publish sản phẩm tương tác thật.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>Unity là gì?</h2>
+  <p>Unity do <strong>Unity Technologies</strong> phát triển — <strong>engine game đa nền tảng</strong> chạy trên Windows và macOS, export sang Windows, macOS, Linux, Android, iOS, WebGL, console và XR (VR/AR). Phiên bản Unity 6 tập trung vào render hiện đại, netcode multiplayer và workflow production scale.</p>
+  <p>Khác với phần mềm chỉ dựng đồ họa tĩnh, Unity là môi trường sản xuất game trọn vẹn: bạn tạo scene, gắn GameObject và Component, viết script C#, xử lý input, physics, âm thanh, UI và build ra file chạy được. Giao diện có Hierarchy, Scene view, Inspector, Project và Console — ban đầu có nhiều khái niệm, nhưng mỗi panel phục vụ một bước trong vòng lặp phát triển game thực tế.</p>
+  <ul class="arc-list">
+    <li><strong>GameObject &amp; Component</strong> — mọi thứ trong scene là object; behavior gắn qua component (Transform, Rigidbody, Script)</li>
+    <li><strong>C# scripting</strong> — logic gameplay viết bằng C#; Visual Scripting cho designer ít code</li>
+    <li><strong>2D &amp; 3D</strong> — Tilemap, Sprite, URP/HDRP cho 3D; một engine cho mobile casual đến PC mid-core</li>
+    <li><strong>Asset Store &amp; Package Manager</strong> — plugin, model, VFX, analytics; tích hợp Ads, IAP, Multiplayer</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"Unity 6 game engine editor interface scene hierarchy screenshot"</span>
+    </div>
+    <p class="arc-image-caption">Giao diện Unity — Hierarchy, Scene view, Inspector và Project panel</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>Unity thường đứng ở giai đoạn <strong>prototype, sản xuất và publish game commercial</strong>: designer hoặc programmer dựng scene, viết C#, test gameplay trong Play mode, build cho Android/iOS/PC rồi phát hành store. Với giáo dục, Unity dạy game loop, OOP cơ bản và iteration theo sprint. Thường làm việc cùng Blender (model 3D), Aseprite (sprite 2D), FMOD/Wwise (audio), Plastic SCM/Git (version control) và Firebase/Unity Gaming Services khi live ops.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Scene, GameObject và hệ component</h3>
+    <p>Trái tim của Unity là <strong>component-based architecture</strong>. Mỗi đối tượng game — player, enemy, UI button — là GameObject trong Hierarchy; bạn gắn Transform, SpriteRenderer, Rigidbody2D, hoặc script C# tùy nhu cầu. Prefab cho phép lưu enemy mẫu rồi kéo nhiều instance vào level; sửa prefab gốc, mọi bản copy cập nhật — pattern quen thuộc trong studio professional.</p>
+    <p>Đối với học sinh THPT, bài tập thực tế hay gặp: tạo Player với Rigidbody2D + Collider, Coin có trigger, Level dùng Tilemap — vừa luyện phân tách trách nhiệm vừa hiểu kiến trúc game modular.</p>
+    <ul class="arc-list">
+      <li><strong>Transform</strong> — vị trí, xoay, scale; parent-child hierarchy cho nhân vật và camera</li>
+      <li><strong>Prefab</strong> — template tái sử dụng; variant prefab cho enemy type khác nhau</li>
+      <li><strong>Tags &amp; Layers</strong> — phân loại collision, raycast và sorting 2D/3D</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Unity hierarchy GameObject component inspector 2D platformer"</span>
+        </div>
+        <p class="arc-image-caption">Hierarchy — GameObject, component và prefab trong scene 2D</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Unity Tilemap 2D level design editor screenshot"</span>
+        </div>
+        <p class="arc-image-caption">Tilemap — dựng level 2D nhanh từ tileset trong editor</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. C#, physics và gameplay loop</h3>
+    <p>Logic game viết bằng <strong>C#</strong> gắn vào MonoBehaviour: <code>Update()</code> xử lý input mỗi frame, <code>FixedUpdate()</code> cho physics, <code>OnTriggerEnter2D()</code> phát hiện va chạm. Unity có Rigidbody2D/3D, CharacterController và hệ animation Mecanim — phù hợp platformer, top-down shooter và mobile casual mà chưa cần viết engine từ đầu.</p>
+    <p>Một game jam 48 giờ với Unity thường đi theo lộ trình: core mechanic → một level playable → UI và sound → build Android hoặc WebGL gửi bạn bè test. Asset Store giúp «mượn» VFX, UI kit, character controller — tốc độ ship nhanh nhưng cần học cách tích hợp không phá project.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Unity C# script editor MonoBehaviour movement code screenshot"</span>
+      </div>
+      <p class="arc-image-caption">Script C# — logic di chuyển nhân vật và xử lý input</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. UI, build pipeline và publish đa nền tảng</h3>
+    <p>Unity tích hợp <strong>UI Toolkit / uGUI</strong> cho menu, HUD, shop in-app — layout bằng Canvas và Anchor. AudioSource phát nhạc nền và SFX; Timeline cho cutscene đơn giản. File → Build Settings tạo bản APK, iOS Xcode project hoặc Windows .exe; Unity Gaming Services hỗ trợ analytics, cloud save và multiplayer khi scale lên commercial.</p>
+    <p>Luồng publish điển hình: polish build → QA trên thiết bị thật → Google Play/App Store/Steam → patch theo feedback. Hiểu licensing Unity (Personal/Pro) và quy trình store giúp bạn tránh lỗi «chạy trong Editor nhưng crash trên mobile» — kinh nghiệm thực tế studio mobile VN luôn yêu cầu.</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Unity build settings Android iOS export publish workflow"</span>
+      </div>
+      <p class="arc-image-caption">Build Settings — export game Unity sang Android, iOS và PC</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai engine hay được đặt cạnh Unity nhất là <strong>Godot</strong> (mã nguồn mở, miễn phí, royalty-free) và <strong>Unreal Engine</strong> (AAA, đồ họa đỉnh cao, Blueprint). Không có câu trả lời «đúng duy nhất» — tùy bạn làm mobile casual, indie 2D hay 3D AAA, và mục tiêu tuyển dụng studio.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Unity vs Godot</h3>
+    <p>Godot miễn phí hoàn toàn, cài nhẹ (~100MB), GDScript dễ cho người mới và không royalty khi bán game. Unity có Asset Store khổng lồ, thị trường việc làm rộng — nhiều studio mobile và indie tại Việt Nam vẫn tuyển «Unity Developer». Với học sinh THPT, Godot ít rào cản hơn; với ai nhắm công ty đã chuẩn hóa Unity, học Unity có lợi thế CV và internship.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Unity game engine editor interface mobile game development"</span>
+        </div>
+        <p class="arc-image-caption">Unity — ecosystem asset, C# và thị trường việc làm rộng</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Godot Engine 4 interface scene tree viewport screenshot"</span>
+        </div>
+        <p class="arc-image-caption">Godot — miễn phí, mã nguồn mở, phù hợp indie và giáo dục</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Unity mạnh hơn:</strong> Asset Store, job market VN, tool mobile/AR/VR/analytics, tài liệu và khóa học dồi dào.<br>
+      <strong>Godot mạnh hơn:</strong> chi phí bằng không và royalty-free, cài nhẹ, GDScript dễ nếu đã biết Python, scene system gọn cho 2D.<br>
+      <strong>Chọn Unity khi:</strong> mục tiêu làm việc tại studio mobile/indie VN, cần plugin sẵn, publish iOS/Android commercial.<br>
+      <strong>Chọn Godot khi:</strong> game jam, dự án học đường, indie 2D nhỏ, muốn stack mã nguồn mở không lo phí license.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Unity vs Unreal Engine</h3>
+    <p>Unreal Engine do Epic phát triển — thế mạnh ở <strong>đồ họa 3D AAA</strong>, Nanite/Lumen, Blueprint visual scripting và pipeline console/PC lớn. Unity nhẹ hơn cho mobile và 2D, learning curve C# thường mềm hơn Blueprint + C++ cho người mới; Unreal cần máy mạnh nhưng đổi lại chất lượng hình ảnh ở tầm khác cho open world và cinematic.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Unity mobile 2D casual game development screenshot"</span>
+        </div>
+        <p class="arc-image-caption">Unity — mobile, 2D/3D mid-core và live service phổ biến</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Unreal Engine 5 editor viewport Lumen Nanite screenshot"</span>
+        </div>
+        <p class="arc-image-caption">Unreal Engine 5 — đồ họa AAA và Blueprint visual scripting</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Unity mạnh hơn:</strong> mobile performance, 2D workflow, thời gian build nhanh, ecosystem plugin cho ads/IAP/analytics.<br>
+      <strong>Unreal mạnh hơn:</strong> renderer đỉnh cao, Blueprint cho designer, chuẩn AAA console, MetaHuman và cinematic tool.<br>
+      <strong>Chọn Unity khi:</strong> hyper-casual mobile, indie 2D/3D vừa, team nhỏ cần ship nhanh lên store.<br>
+      <strong>Chọn Unreal khi:</strong> game 3D chất lượng cao, mục tiêu studio AAA hoặc archviz interactive (Twinmotion/Unreal).</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học Unity như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Cài Unity Hub và làm quen editor</strong>
+        <p>Tải Unity Hub, cài Unity 6 LTS (hoặc bản ổn định mới nhất) kèm module Android/iOS nếu hướng mobile. Tuần đầu: tạo project 2D/3D, khám phá Hierarchy, Scene, Game, Inspector, Project; bấm Play để test. Tạo Cube/Sprite, di chuyển bằng Transform — mục tiêu hiểu GameObject trước khi viết C#. Nhiều bạn THPT bỏ cuộc vì nhảy thẳng tutorial phức tạp mà chưa biết save scene và đọc Console lỗi.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>C# cơ bản và script MonoBehaviour</strong>
+        <p>Học biến, hàm, if/else trong C#; tạo script gắn Player, dùng <code>Input</code> hoặc Input System để di chuyển. Thêm trigger Coin: <code>OnTriggerEnter2D</code> tăng điểm trên UI Text. Khoảng 2–4 tuần luyện đều sẽ quen cú pháp nếu đã biết một ngôn ngữ lập trình; nếu chưa, học C# song song tutorial Unity thay vì học lý thuyết tách rời.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Tilemap, prefab và game loop hoàn chỉnh</strong>
+        <p>Dựng level bằng Tilemap; enemy patrol prefab, player health, game over/restart scene. Học Singleton hoặc ScriptableObject cho GameManager — tổ chức code quan trọng khi dự án lớn hơn một scene. Thử dùng 1–2 asset free từ Asset Store (character controller, VFX) và học cách import không conflict version.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>UI, âm thanh và polish</strong>
+        <p>Thêm Canvas menu Start/Quit, HUD HP/score, AudioSource nhạc nền và SFX. Animation hoặc Animator cho nhân vật và UI button feedback. Polish — juice game feel — giúp demo nộp trường hoặc portfolio khác hẳn prototype thô.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Build và test trên thiết bị thật</strong>
+        <p>Build APK Android hoặc Windows .exe; test trên máy/điện thoại khác với máy dev. Debug lỗi resolution, touch input và performance — profiler Unity giúp tìm bottleneck. Giai đoạn này dạy kinh nghiệm «ship» thật mà môi trường lý thuyết ít có.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Portfolio và định hướng nghề</strong>
+        <p>Hoàn thiện 1–2 game (platformer, puzzle mobile) với trailer GIF, link itch.io/Google Play internal test và GitHub nếu muốn show code. Tham gia Global Game Jam, tìm internship Unity tại studio VN (FPT, Amanotes, các indie). Chứng chỉ Unity Junior Programmer là điểm cộng; nhiều công ty tuyển junior dựa portfolio playable hơn bằng cấp.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

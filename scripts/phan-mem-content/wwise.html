@@ -1,0 +1,209 @@
+<section class="arc-intro">
+  <p>Bạn chơi một game AAA, bước từ hành lang sang phòng boss thì nhạc nền chuyển layer mượt mà không đứt đoạn; mưa rơi càng to thì tiếng mưa và sấm mix theo — phần lớn logic âm thanh đó được điều khiển bởi <strong>Wwise</strong> (Audiokinetic), middleware âm thanh game tiêu chuẩn ngành. Cùng công cụ này xuất hiện trong Assassin's Creed, Cyberpunk 2077 và hàng trăm tựa game mobile khi studio cần audio thích ứng gameplay, spatial 3D và quản lý hàng nghìn SFX.</p>
+  <p>Wwise không phải DAW để thu âm hay soạn nhạc — nó là «hệ thần kinh âm thanh» gắn vào Unreal, Unity hoặc engine custom: sound designer tạo event, RTPC, State và Switch; build soundbank; programmer gọi API runtime. Học sinh THPT thích game dev, sound design hoặc interactive media nên biết Wwise để hiểu cách âm thanh «sống» theo hành vi người chơi, không chỉ phát file WAV lặp vô hạn.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>Wwise là gì?</h2>
+  <p><strong>Wwise</strong> (Wave Works Interactive Sound Engine) do <strong>Audiokinetic</strong> (Montréal, Canada) phát triển — bộ <strong>middleware âm thanh game</strong> gồm Wwise Authoring (công cụ thiết kế trên Windows/macOS) và Wwise Sound Engine (runtime C/C++ tích hợp engine). Ra mắt từ 2006, Wwise trở thành lựa chọn hàng đầu AAA nhờ hệ RTPC/State mạnh, profiler chuyên sâu và license linh hoạt theo doanh thu.</p>
+  <p>Khác với kéo AudioClip vào Unity Inspector và gọi Play(), Wwise tổ chức âm thanh theo <strong>event-driven architecture</strong>: event «Play_Footstep» có thể random container, chọn sample theo Switch «SurfaceType» (bê tông, cỏ, nước) và điều chỉnh volume theo RTPC «PlayerSpeed». Giao diện Authoring có Project Explorer, Event Editor, Game Syncs, Mixing Desk và SoundBank — ban đầu trông dày đặc, nhưng mỗi panel phục vụ một lớp logic interactive audio mà file WAV thuần không đáp ứng được.</p>
+  <ul class="arc-list">
+    <li><strong>Events &amp; Actions</strong> — trigger Play/Stop/Pause/Break trên object âm thanh; container Random/Sequence/Blend</li>
+    <li><strong>RTPC, State &amp; Switch</strong> — tham số realtime (máu, tốc độ); chuyển trạng thái mix (Explore/Combat); chọn asset theo ngữ cảnh</li>
+    <li><strong>Interactive music</strong> — segment, transition, stinger; nhạc nền thích ứng theo gameplay không đứt nhịp</li>
+    <li><strong>Soundbanks &amp; integration</strong> — build bank cho platform; plugin Unity/Unreal; Live Connect chỉnh mix trong game đang chạy</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"Audiokinetic Wwise 2023 Authoring interface Event Editor screenshot"</span>
+    </div>
+    <p class="arc-image-caption">Giao diện Wwise Authoring — Project Explorer, Event Editor và Mixing Desk</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>Wwise thường đứng giữa <strong>composer/sound designer</strong> và <strong>audio programmer</strong>: nhạc và SFX export từ DAW (Pro Tools, Reaper, Nuendo) → import Wwise → gắn event, RTPC, bus mix → generate SoundBank (.bnk) → integrate Unity/Unreal qua AkAudio component hoặc API C++. Designer dùng Wwise Profiler và Game Object để debug voice count, CPU và occlusion; QA playtest trên console/mobile vì mix headphone vs TV khác nhau rất nhiều. Pipeline thường song hành FMOD tùy studio — nhưng AAA và nhiều outsource audio Việt Nam vẫn liệt kê Wwise trong JD. Làm việc cùng Reaper, Nuendo, Perforce và engine build CI.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Events, container &amp; Game Syncs</h3>
+    <p>Đơn vị runtime cơ bản là <strong>Event</strong> — khi game gọi PostEvent, Wwise thực thi chuỗi Action trên Actor-Mixer hoặc Interactive Music. <strong>Random/Sequence Container</strong> tránh lặp mechanical: tiếng bước chân random 6 sample; Sequence phát đúng thứ tự dialog line. <strong>Switch</strong> chọn nhánh theo ngữ cảnh (vũ khí gỗ/kim loại); <strong>State</strong> thay đổi mix toàn cục (ví dụ State «Paused» hạ volume SFX).</p>
+    <p>Với học sinh THPT mới làm quen, bài tập thực tế hay gặp: event «Pickup_Coin» random 3 variation, Switch «Footstep» với 4 surface, RTPC «Health» duck nhạc khi máu thấp — vừa luyện tai nghe vừa hiểu tư duy parameter-driven audio.</p>
+    <ul class="arc-list">
+      <li><strong>Actor-Mixer hierarchy</strong> — tổ chức SFX/music theo cây, bus và attenuation 3D</li>
+      <li><strong>RTPC (Real-Time Parameter Control)</strong> — automation volume/pitch/filter theo giá trị gameplay</li>
+      <li><strong>Blend Container</strong> — crossfade giữa ambient ban ngày/đêm theo tham số thời gian</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Wwise Event Editor Random Sequence container game audio"</span>
+        </div>
+        <p class="arc-image-caption">Event Wwise — Random/Sequence container và Game Syncs</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Wwise RTPC curve automation interactive music transition"</span>
+        </div>
+        <p class="arc-image-caption">RTPC curve — automation theo tham số gameplay realtime</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Interactive music &amp; mixing</h3>
+    <p>Wwise nổi tiếng <strong>interactive music system</strong>: Music Segment, Playlist Container, Transition Matrix — nhạc chuyển từ exploration sang combat không «nhảy» đột ngột mà qua điểm sync hoặc stinger. <strong>Audio Bus</strong> và Auxiliary Send (reverb) tổ chức mix Master/Music/SFX/VO; <strong>Effect ShareSet</strong> áp EQ, compressor, limiter nhất quán mọi platform.</p>
+    <p>Studio mobile Việt Nam phải giới hạn số voice đồng thời và dung lượng bank — Wwise hỗ trợ nén Vorbis/Opus, streaming music và voice prioritization; đây là kỹ năng «sản xuất thực tế» audio programmer luôn profile trên máy yếu.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Wwise Interactive Music segment transition matrix mixing desk"</span>
+      </div>
+      <p class="arc-image-caption">Interactive music — segment, transition matrix và Mixing Desk</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Soundbank, integration &amp; profiler</h3>
+    <p>Sau thiết kế, bạn <strong>generate SoundBank</strong> theo platform (Windows, Android, PS5…) và copy vào StreamingAssets hoặc pak engine. Programmer khởi tạo AkSoundEngine, load bank, đăng ký Game Object 3D và PostEvent; set RTPC/State từ biến C#/C++. <strong>Wwise Profiler</strong> và <strong>Live Connect</strong> cho phép designer nghe và sửa mix trong build game đang chạy — rút ngắn vòng lặp chỉnh SFX combat hay dialog lip-sync.</p>
+    <p>Luồng điển hình: record/design SFX trong DAW → import Wwise → event + RTPC + bus → generate bank → integrate Unity/Unreal → profile voice/CPU trên devkit. Hiểu quy trình này giúp bạn không chỉ «biết làm nhạc» mà nắm pipeline audio game AAA/mobile hoàn chỉnh.</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Wwise Unity Unreal integration SoundBank profiler workflow pipeline"</span>
+      </div>
+      <p class="arc-image-caption">Luồng tích hợp — SoundBank, engine plugin và Wwise Profiler</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai lựa chọn hay được đặt cạnh Wwise nhất là <strong>FMOD</strong> (middleware cạnh tranh trực tiếp) và <strong>Unity built-in audio</strong> (AudioSource, AudioMixer — có sẵn trong engine). Không có câu trả lời «đúng duy nhất» — tùy quy mô dự án, license, kinh nghiệm team và nhu cầu music system phức tạp.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Wwise vs FMOD</h3>
+    <p>Cả hai đều là middleware chuyên nghiệp: designer làm việc trong authoring tool, build bank, programmer tích hợp API. Wwise thường được AAA và cinematic game ưa chuộng nhờ interactive music, profiler và spatial audio (Reflect, Spatial Audio) mạnh; FMOD được indie và mobile yêu thích vì giao diện quen thuộc kiểu DAW, license đơn giản và tích hợp Unity mượt. Nhiều sound designer Việt Nam biết cả hai — concept event/parameter chuyển đổi tương đối dễ.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Audiokinetic Wwise Authoring interactive music AAA game"</span>
+        </div>
+        <p class="arc-image-caption">Wwise — music system, profiler và adoption AAA rộng</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"FMOD Studio event editor mixer indie game integration"</span>
+        </div>
+        <p class="arc-image-caption">FMOD — authoring trực quan, phổ biến indie &amp; mobile</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Wwise mạnh hơn:</strong> interactive music &amp; transition matrix, Wwise Profiler/Live Connect, spatial audio suite, footprint lớn trong AAA và outsourcing audio studio.<br>
+      <strong>FMOD mạnh hơn:</strong> learning curve nhẹ hơn với một số team, event timeline quen DAW user, license indie thân thiện, cộng đồng tutorial Unity dồi dào.<br>
+      <strong>Chọn Wwise khi:</strong> dự án AAA/narrative, music adaptive phức tạp, studio đã chuẩn hóa Audiokinetic pipeline.<br>
+      <strong>Chọn FMOD khi:</strong> indie/mobile, team nhỏ cần middleware nhanh, hoặc JD/game engine yêu cầu FMOD cụ thể.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Wwise vs Unity built-in audio</h3>
+    <p>Unity cung cấp <strong>AudioSource, AudioClip, AudioMixer</strong> miễn phí — đủ cho prototype, hyper-casual và game ít SFX. Khi số lượng event, variation và logic adaptive tăng (open world, RPG, multiplayer), built-in audio thiếu authoring tool tách biệt, voice management và debug chuyên sâu — team chuyển sang Wwise hoặc FMOD.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Wwise Unity integration AkAudio component SoundBank"</span>
+        </div>
+        <p class="arc-image-caption">Wwise + Unity — middleware chuyên sâu, bank và RTPC</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Unity AudioSource AudioMixer Inspector built-in audio"</span>
+        </div>
+        <p class="arc-image-caption">Unity built-in — AudioSource đơn giản, phù hợp prototype</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Wwise mạnh hơn:</strong> authoring tách khỏi code, hàng nghìn event có tổ chức, RTPC/State/Switch, profiler, platform pipeline (console/mobile).<br>
+      <strong>Unity built-in mạnh hơn:</strong> zero setup, không license middleware, đủ cho game jam và mobile casual nhỏ.<br>
+      <strong>Chọn Wwise khi:</strong> sản phẩm commercial cần mix chuyên nghiệp, nhiều SFX/music adaptive, team có sound designer riêng.<br>
+      <strong>Chọn built-in khi:</strong> học Unity lần đầu, scope audio nhỏ, hoặc prototype trước khi commit middleware.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học Wwise như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Cài Wwise &amp; làm quen Authoring</strong>
+        <p>Tuần đầu tải Wwise (bản miễn phí non-commercial hoặc trial commercial) và Wwise Launcher, tạo project trống. Khám phá Project Explorer: Audio tab, Events, Game Syncs, SoundBanks. Import vài file WAV test, tạo Actor-Mixer và Event «Play_Test» — PostEvent trong Wwise Authoring preview. Mục tiêu là hiểu phân tách «asset» vs «event gọi runtime» trước khi đụng engine — nhiều bạn THPT nhầm lẫn import file với việc game đã «biết» khi nào phát.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Container, Switch và RTPC cơ bản</strong>
+        <p>Tạo Random Container cho footstep 4 sample; thêm Switch Group «Surface» (Concrete, Grass); gán RTPC «Speed» ảnh hưởng pitch hoặc intensity. Luyện đặt tên convention rõ ràng (SFX/Character/Footstep). Thường 2–3 tuần luyện đều sẽ tự tin thiết kế bộ SFX gameplay cơ bản không lặp cứng nhắc.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Bus mix, State và music đơn giản</strong>
+        <p>Tổ chức bus Master/Music/SFX; tạo State «Gameplay» vs «Menu» duck volume; thử Music Segment với 2 playlist crossfade theo RTPC «Tension». Mục tiêu là có một loop nhạc nền «phản ứng» khi tham số thay đổi — dù chưa hoàn hảo — để hiểu sức mạnh interactive music của Wwise so với MP3 loop đơn thuần.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Integrate Unity hoặc Unreal</strong>
+        <p>Cài Wwise Integration plugin, generate SoundBank, copy vào project. Tạo AkGameObj/AkAudio trên player, PostEvent khi nhảy/bắn; set RTPC từ script (health, speed). Bật Live Connect để designer nghe chỉnh mix trong Play mode. Học thêm cách debug «event không phát» — sai bank, thiếu Init bank, hoặc listener chưa gắn.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Dự án game nhỏ hoàn chỉnh</strong>
+        <p>Chọn một vertical slice: platformer 2D hoặc FPS demo với 15–20 SFX, nhạc nền 2 state (safe/combat), UI click và pause snapshot. Profile voice count trên mobile build nếu có thiết bị Android. Giai đoạn này dạy pipeline thật: brief design, iteration theo playtest, handoff designer ↔ programmer.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Portfolio và định hướng nghề</strong>
+        <p>Quay video gameplay highlight audio (chuyển music, SFX variation, mix combat); ghi rõ Wwise + Unity/Unreal trong mô tả. Tham gia Audiokinetic certification (101/201) hoặc game jam làm role audio. Tìm hiểu thêm FMOD để mở rộng JD; studio game Việt Nam (Outsource audio, indie HCM/Hà Nội) thường tuyển junior sound designer biết middleware hơn chỉ DAW. Demo Wwise project (.wproj) đính kèm GitHub cũng là điểm cộng khi apply intern.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

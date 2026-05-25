@@ -1,0 +1,211 @@
+<section class="arc-intro">
+  <p>Bạn chơi game RPG và gặp NPC nói chuyện khác nhau tùy lựa chọn của bạn — «Giúp dân làng» mở nhánh nhiệm vụ A, «Bỏ qua» thì câu chuyện rẽ sang hướng khác. Phía sau màn hình, writer và designer thường không viết hết trong Word mà dựng <strong>sơ đồ cốt truyện</strong> bằng công cụ chuyên dụng như <strong>Articy Draft</strong>.</p>
+  <p>Articy Draft do <strong>Articy Software</strong> phát triển — phần mềm <strong>thiết kế narrative cho game</strong>: flowchart hội thoại, bảng nhân vật, biến trạng thái, xuất dữ liệu sang Unity/Unreal. Với học sinh THPT thích viết truyện tương tác hoặc làm game visual novel, Articy là «bản đồ» giúp bạn không lạc nhánh khi cốt truyện phình to.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>Articy Draft là gì?</h2>
+  <p>Articy Draft là công cụ <strong>authoring narrative</strong> — tập trung vào cấu trúc câu chuyện, hội thoại và logic rẽ nhánh thay vì code gameplay hay dựng đồ họa. Bạn tạo <strong>flow fragment</strong> (mảnh luồng), nối các <strong>dialogue node</strong> và <strong>condition</strong> (điều kiện), gán speaker cho từng dòng thoại — toàn bộ hiển thị dạng sơ đồ trực quan trên canvas.</p>
+  <p>Khác với Google Docs hay Notion chỉ liệt kê văn bản tuần tự, Articy mô hình hóa <strong>cây quyết định</strong> và <strong>biến game</strong> (ví dụ `trust_level`, `has_key`) để programmer import vào engine. Giao diện có navigator dự án, template nhân vật, hub liên kết nhiều flow — ban đầu trông phức tạp, nhưng mỗi panel phục vụ một vai trò trong pipeline game có writing team.</p>
+  <ul class="arc-list">
+    <li><strong>Flowchart narrative</strong> — node hội thoại, jump, hub, condition trên canvas kéo-thả</li>
+    <li><strong>Entity database</strong> — nhân vật, địa điểm, item, template thuộc tính tái sử dụng</li>
+    <li><strong>Variables &amp; conditions</strong> — logic rẽ nhánh theo trạng thái người chơi</li>
+    <li><strong>Export plugin</strong> — JSON/XML sang Unity, Unreal; tích hợp Yarn/Ink qua workflow trung gian</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"Articy Draft 3 flowchart dialogue node game narrative screenshot"</span>
+    </div>
+    <p class="arc-image-caption">Articy Draft — flowchart hội thoại với node, hub và điều kiện rẽ nhánh</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>Articy thường đứng giữa <strong>pre-production writing</strong> và <strong>implementation trong engine</strong>: narrative designer viết và cấu trúc hóa cốt truyện, game designer review balance nhánh, sau đó export cho programmer gắn vào dialogue system Unity/Unreal. Với indie team nhỏ, một người có thể vừa viết vừa export; studio AA/AAA thường có role Narrative Designer chuyên Articy hoặc tool nội bộ tương tự. Làm việc cùng spreadsheet balance, Figma UI dialogue và localization sheet khi dịch đa ngôn ngữ.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Flowchart hội thoại &amp; rẽ nhánh</h3>
+    <p>Trái tim của Articy là <strong>canvas flow</strong>: mỗi node có thể là đoạn hội thoại, narration, player choice hoặc instruction cho engine. Bạn nối cạnh (connection) giữa các node; thêm <strong>Condition</strong> để chỉ đi nhánh khi biến đạt ngưỡng — ví dụ chỉ hiện lựa chọn «Đòi nợ» nếu `debt &gt; 0`.</p>
+    <p>Đối với học sinh THPT làm game jam hoặc đồ án Capstone, bài tập thực tế: visual novel 3 nhân vật, 2 ending — vẽ flow trước khi viết full text để tránh «viết xong mới phát hiện nhánh chết». Hub node gom nhiều flow vào một điểm (ví dụ quay về thị trấn) mà không copy-paste hàng chục lần.</p>
+    <ul class="arc-list">
+      <li><strong>Dialogue lines</strong> — speaker, emotion tag, voice-over note cho recording</li>
+      <li><strong>Player choices</strong> — 2–4 option, mỗi option dẫn flow riêng</li>
+      <li><strong>Jump &amp; Hub</strong> — nhảy giữa fragment, tránh duplicate node</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Articy Draft player choice branching dialogue flowchart"</span>
+        </div>
+        <p class="arc-image-caption">Rẽ nhánh lựa chọn — mỗi nhánh là một node flow riêng</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Articy Draft condition variable branching logic node"</span>
+        </div>
+        <p class="arc-image-caption">Condition node — kiểm tra biến trước khi vào hội thoại</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Entity, nhân vật &amp; bible cốt truyện</h3>
+    <p>Articy không chỉ lưu câu thoại — nó có <strong>database entity</strong> cho Character, Location, Item, Faction. Mỗi entity có template field (tuổi, mối quan hệ, concept art link) giúp writer và artist cùng tham chiếu. Khi gán speaker trong dialogue, bạn chọn từ database — đổi tên hiển thị một chỗ, cập nhật mọi flow.</p>
+    <p>Đây là bước «professionalize» so với viết truyện trong Word: game có 50 NPC vẫn quản lý được; localization team export danh sách string có ID ổn định. Học sinh có thể dùng phần này làm <strong>story bible</strong> cho dự án học đường — dù chưa export sang engine.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Articy Draft character entity template database panel"</span>
+      </div>
+      <p class="arc-image-caption">Entity database — template nhân vật và metadata cốt truyện</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Export sang engine &amp; làm việc nhóm</h3>
+    <p>Articy có <strong>plugin Unity và Unreal</strong> — export project thành dữ liệu engine đọc được, giảm lỗi copy-paste thủ công. Programmer triển khai dialogue runner; writer tiếp tục sửa trong Articy và re-export. Bản Articy hỗ trợ <strong>multi-user</strong> (tùy license) và comment trên node — phù hợp team nhỏ remote.</p>
+    <p>Luồng indie điển hình: viết flow trong Articy → export → Unity Dialogue System hoặc custom JSON parser → playtest → sửa node trong Articy. Hiểu vòng lặp này giúp bạn thấy narrative design là công việc lặp iteration, không phải «viết xong một lần là xong».</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Articy Draft Unity plugin export game narrative pipeline"</span>
+      </div>
+      <p class="arc-image-caption">Export sang Unity — từ flow Articy tới dialogue runtime trong game</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai công cụ hay được so với Articy là <strong>Twine</strong> (miễn phí, hypertext cho interactive fiction) và <strong>Yarn Spinner / Ink</strong> (script dialogue gắn trực tiếp engine). Articy nghiêng về <strong>visual planning + database</strong>; Twine và Yarn/Ink nghiêng về <strong>viết nhanh và code-first</strong> — tùy quy mô game và vai trò bạn muốn đảm nhận.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Articy Draft vs Twine</h3>
+    <p>Twine xuất bản web/HTML interactive fiction cực nhanh — không cần engine 3D, phù hợp học sinh THPT thử viết truyện rẽ nhánh và publish link ngay. Articy trả phí, hướng tới <strong>game commercial</strong> với export Unity/Unreal và entity management phức tạp hơn Twine passage đơn giản.</p>
+    <p>Nếu dự án là visual novel web hoặc text adventure học đường, Twine đủ dùng và miễn phí. Khi team chuyển sang Unity 2D/3D với hàng trăm node và biến trạng thái, Articy (hoặc tool tương đương) giúp scale mà không mất overview trên một canvas khổng lồ.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Articy Draft large scale game narrative flowchart overview"</span>
+        </div>
+        <p class="arc-image-caption">Articy — overview flow quy mô game với entity và condition</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Twine interactive fiction story map passage nodes"</span>
+        </div>
+        <p class="arc-image-caption">Twine — map passage cho interactive fiction web, miễn phí</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Articy mạnh hơn:</strong> database nhân vật/item, export Unity/Unreal chính thức, condition phức tạp, workflow studio game.<br>
+      <strong>Twine mạnh hơn:</strong> miễn phí, học trong vài giờ, publish web ngay, lý tưởng IF và đồ án văn tương tác.<br>
+      <strong>Chọn Articy khi:</strong> làm game Unity/Unreal có dialogue system, team cần bible và export có cấu trúc.<br>
+      <strong>Chọn Twine khi:</strong> text/hypertext fiction, game jam nhỏ, ngân sách zero và không cần engine 3D.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Articy Draft vs Yarn Spinner / Ink</h3>
+    <p><strong>Yarn Spinner</strong> (Unity) và <strong>Ink</strong> (Inkle, dùng rộng với Unity plugin) là <strong>ngôn ngữ script</strong> viết dialogue dạng text có cú pháp — programmer-friendly, version control Git dễ diff. Articy là <strong>GUI flowchart</strong> — writer-friendly, nhìn toàn cảnh nhánh trên canvas; export ra data engine thay vì viết script trực tiếp.</p>
+    <p>Nhiều studio indie dùng Ink/Yarn vì miễn phí và gắn chặt code; studio có budget narrative thường cân Articy cho writer không code. Học sinh biết cả hai: Ink cho prototype nhanh trong Unity; Articy cho portfolio «narrative designer» chuyên nghiệp hơn.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Articy Draft visual narrative designer workflow canvas"</span>
+        </div>
+        <p class="arc-image-caption">Articy — thiết kế trực quan cho narrative designer</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Yarn Spinner Ink dialogue script Unity game example"</span>
+        </div>
+        <p class="arc-image-caption">Yarn/Ink — script text trong Unity, phổ biến indie</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Articy mạnh hơn:</strong> overview visual, entity DB, ít yêu cầu code khi viết, phù hợp writer làm việc với designer.<br>
+      <strong>Yarn/Ink mạnh hơn:</strong> miễn phí, Git-friendly, tích hợp sâu Unity, cộng đồng indie và tutorial lớn.<br>
+      <strong>Chọn Articy khi:</strong> vai trò narrative designer, flow phức tạp cần map, export Articy plugin.<br>
+      <strong>Chọn Yarn/Ink khi:</strong> bạn code Unity, team nhỏ, muốn dialogue trong repo Git cùng gameplay.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học Articy Draft như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Làm quen canvas và node cơ bản</strong>
+        <p>Tải trial Articy hoặc xem video chính thức; tạo project mới, flow fragment đầu tiên. Tuần đầu: thêm 5–7 dialogue node nối tuần tự, gán speaker tạm, chạy preview trong Articy. Mục tiêu là quen kéo-thả, zoom canvas và navigator — tương tự học sơ đồ tư duy nhưng mỗi node mang logic game.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Player choice và hai ending</strong>
+        <p>Thêm node lựa chọn với 2 option dẫn hai nhánh; mỗi nhánh kết thúc bằng ending khác nhau. Viết ngắn gọn (visual novel demo 10 phút chơi). Bài học: plan ending trước khi viết chi tiết — tránh nhánh «viết hay» nhưng không khép được câu chuyện.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Entity database và template nhân vật</strong>
+        <p>Tạo 3 character entity với field mô tả, quan hệ, avatar note; gán speaker từ DB thay vì gõ tên tay. Thêm Location và Item tham chiếu trong narration. Thói quen này mirror workflow studio — và giúp giáo viên/co-founder đọc bible mà không mở từng node.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Biến, condition và hub</strong>
+        <p>Định nghĩa biến `friendship`, tăng giá trị sau lựa chọn «Giúp đỡ»; dùng Condition để mở hội thoại bí mật khi `friendship &gt;= 3`. Thêm Hub «Quay về làng» gom nhiều nhánh. Đây là bước chuyển từ «truyện rẽ nhánh» sang «game state» — nền tảng cho quest design sau này.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Export thử sang Unity hoặc mock runtime</strong>
+        <p>Nếu có Unity, cài Articy plugin và export project demo; nếu chưa, export JSON và đọc cấu trúc file để hiểu pipeline. Playtest với bạn cùng lớp, ghi bug «nhánh không vào được» — sửa flow và re-export. Iteration vòng này quan trọng hơn viết thêm 50 node chưa test.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Portfolio narrative design</strong>
+        <p>Đóng gói một vertical slice: flowchart screenshot (che spoiler nếu cần), PDF story bible 3 nhân vật, link build Unity/Web nếu có. Ghi rõ vai trò (writer, narrative designer). So sánh thêm một dự án Twine hoặc Ink nhỏ để show đa kỹ năng. Tìm hiểu thêm khóa game writing, game jam (Global Game Jam Việt Nam) và vị trí junior narrative tại studio local — portfolio logic flow đôi khi thuyết phục hơn đoạn văn hay nhưng không có cấu trúc.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

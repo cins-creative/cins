@@ -20,6 +20,16 @@ export type MetaPhanMem = {
   version: string;
   platform: string[];
   website?: string;
+  /** VD: "Có — dùng thử 30 ngày" */
+  goi_mien_phi?: string | null;
+  /** VD: "22 USD/tháng", "Miễn phí" */
+  gia_thanh?: string | null;
+  /** VD: "Thuê bao tháng", "Mua một lần", "Freemium" */
+  hinh_thuc_mua?: string | null;
+  /** Link tải / cài đặt chính thức */
+  link_tai?: string | null;
+  tac_pham_tren_cins?: number | string | null;
+  nguoi_dung_cins?: number | string | null;
 };
 
 export type MetaNganhDaoTao = {
@@ -29,6 +39,8 @@ export type MetaNganhDaoTao = {
   thoi_gian_dao_tao?: string | null;
   /** URL đầy đủ hoặc Cloudflare Images id */
   editorial_images?: string[];
+  /** Legacy / dự phòng — ưu tiên `article_bai_viet.main_video` trên trang ngành */
+  video_url?: string | null;
 };
 
 export type MetaNgheBaiViet = {
@@ -61,6 +73,9 @@ export interface ArticleBaiViet {
   loai_bai_viet: LoaiBaiViet;
   tom_tat?: string | null;
   cover_id?: string | null;
+  thumbnail?: string | null;
+  /** Video chính (Short YouTube 9:16 trên trang keyword). */
+  main_video?: string | null;
   noi_dung?: string | null;
   /** Một số schema dùng `noi_dung_markdown` thay cho `noi_dung` */
   noi_dung_markdown?: string | null;
@@ -77,7 +92,18 @@ export interface ArticleBaiViet {
 export type ArticleCard = Pick<
   ArticleBaiViet,
   "id" | "slug" | "tieu_de" | "loai_bai_viet" | "tom_tat"
-> & { loai_quan_he?: string | null };
+> & {
+  loai_quan_he?: string | null;
+  /** `article_lien_quan.cap_do` — core / related / adjacent (trang keyword). */
+  cap_do?: string | null;
+  /** Lĩnh vực nghề (Game, Phim, …) — sidebar compact. */
+  linh_vuc?: LinhVucEmbed | null;
+  /** `article_bai_viet.meta` — dùng bảng so sánh phần mềm. */
+  meta?: ArticleMeta;
+  cover_id?: string | null;
+  thumbnail?: string | null;
+  thumb_url?: string | null;
+};
 
 export type TruongNganhRow = {
   ten_chuong_trinh?: string | null;
@@ -132,6 +158,7 @@ export type NgheArticleHubRow = {
   tieu_de_viet: string | null;
   tieu_de_eng: string | null;
   tom_tat: string | null;
+  meta_description: string | null;
   cover_id: string | null;
   article_nhom_id?: string | null;
   /** Điền sau truy vấn `article_nhom` — đủ field theo bảng public.article_nhom */

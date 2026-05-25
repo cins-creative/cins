@@ -1,0 +1,247 @@
+<section class="arc-intro">
+  <p>Khi xem một quảng cáo có cảnh sản phẩm xoay 360 độ trên nền studio, hay một MV ngắn với phong cảnh không có thật, hay một short film indie với creature phức tạp — đằng sau đó thường không phải đội ngũ 10 người chuyên môn riêng biệt, mà là 1–2 người 3D Generalist VFX làm được tất cả các khâu.</p>
+  <p>3D Generalist VFX khác Specialist (như chỉ làm modeling hoặc chỉ làm lighting) ở chỗ họ làm <strong>nhiều khâu trong pipeline</strong> — model, texture, light, render, đôi khi cả animation và compositing. Điều này đặc biệt giá trị trong indie, freelance, và studio nhỏ — nơi không có budget cho 5–10 specialist riêng.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>3D Generalist (VFX) là ai?</h2>
+  <p>3D Generalist trong VFX là người có thể xử lý nhiều khâu trong pipeline 3D — từ modeling, texturing, lighting, đến render và compositing cơ bản. Họ không quá sâu ở bất kỳ chuyên môn nào, nhưng đủ giỏi để hoàn thành cảnh VFX độc lập từ A đến Z. Đây là vai trò "T-shaped" — rộng ở nhiều mảng, sâu ở 1–2 mảng.</p>
+  <p>Khác với 3D Specialist (Modeler chỉ làm model, Lighter chỉ làm light), Generalist phải hiểu cả pipeline. Họ trade-off độ chuyên sâu lấy độ linh hoạt — phù hợp cho project nhỏ và môi trường thay đổi nhanh, nhưng có thể khó cạnh tranh ở studio AAA chuyên sâu.</p>
+  <ul class="arc-list">
+    <li>Tạo <strong>3D model</strong> từ concept hoặc reference — environment, prop, đôi khi character đơn giản</li>
+    <li>Texturing và <strong>material setup</strong> trong Substance Painter, Mari, hoặc Photoshop</li>
+    <li>Setup <strong>lighting và render</strong> trong V-Ray, Arnold, Redshift hoặc Cycles</li>
+    <li>Tích hợp 3D vào footage live-action qua <strong>compositing</strong> trong Nuke hoặc After Effects</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"3D generalist VFX workspace Maya Houdini Nuke composite"</span>
+    </div>
+    <p class="arc-image-caption">Bàn làm việc của 3D Generalist VFX — nhiều phần mềm mở cùng lúc, mỗi cái cho một khâu của pipeline</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>3D Generalist VFX thuộc <strong>giai đoạn sản xuất và hậu kỳ (production &amp; post-production)</strong>. Trong studio nhỏ hoặc freelance, họ có thể làm việc trực tiếp với <strong>Director</strong> và bàn giao kết quả cuối. Trong studio lớn, họ phối hợp với <strong>VFX Supervisor</strong>, lấy plate từ <strong>Plate Department</strong>, và bàn giao cho <strong>Senior Compositor</strong> hoặc <strong>Editor</strong>.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Công việc của một 3D Generalist VFX</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Modeling và set dressing</h3>
+    <p>Generalist xử lý nhiều loại model khác nhau — environment chính, prop, vehicle, đôi khi creature đơn giản. Họ phải cân bằng giữa độ chi tiết và budget thời gian — không thể spend 2 tuần cho 1 prop nhỏ. Hard surface modeling (vehicle, sci-fi prop) và organic modeling (rock, terrain, plant) đều phải biết cơ bản.</p>
+    <ul class="arc-list">
+      <li><strong>Kitbash</strong> — dùng asset có sẵn (Kitbash3D, Megascans) để tạo environment nhanh</li>
+      <li><strong>Procedural modeling</strong> — Houdini hoặc Geometry Nodes (Blender) để tạo thiên nhiên, kiến trúc rộng</li>
+      <li><strong>Photogrammetry</strong> — quét vật thể thật thành 3D bằng ảnh, tiết kiệm thời gian modeling</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"3D environment Maya Houdini kitbash sci-fi vehicle modeling"</span>
+      </div>
+      <p class="arc-image-caption">Environment modeling — Generalist phải làm nhanh, dùng kitbash và procedural để tiết kiệm thời gian</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Texturing và material</h3>
+    <p>Generalist không có texture artist riêng làm hộ, nên phải tự handle. Substance Painter là tiêu chuẩn ngành cho texture chất lượng cao; Mari cho film VFX; Photoshop cho asset đơn giản. Phải biết PBR workflow (Base Color, Roughness, Metallic, Normal, Height) và setup material trong render engine đang dùng.</p>
+    <ul class="arc-list">
+      <li><strong>PBR workflow</strong> — chuẩn material vật lý đúng — phải biết Albedo, Roughness, Metallic, Normal</li>
+      <li><strong>Smart material</strong> — material thông minh trong Substance Painter tự tạo wear &amp; tear</li>
+      <li><strong>UV unwrapping</strong> — chuẩn bị model để texture, kỹ năng nhàm chán nhưng bắt buộc</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Substance Painter PBR texture workflow material"</span>
+        </div>
+        <p class="arc-image-caption">Substance Painter — tiêu chuẩn texturing trong VFX</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"UV unwrap texture map 3D model Maya"</span>
+        </div>
+        <p class="arc-image-caption">UV unwrapping — bước nhàm chán nhưng quyết định texture có đẹp hay không</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Lighting, render và look development</h3>
+    <p>Sau khi có model và texture, Generalist setup lighting để cảnh trông tin được. Trong VFX, lighting còn quan trọng hơn — phải match với plate live-action: nếu plate có ánh hoàng hôn, 3D element cũng phải có cùng color temperature, cùng góc bóng, cùng diffuse softness.</p>
+    <ul class="arc-list">
+      <li><strong>HDRI lighting</strong> — dùng ảnh HDR thật để chiếu sáng và phản chiếu — cách nhanh nhất có lighting tự nhiên</li>
+      <li><strong>Match lighting</strong> — chuẩn bị light setup khớp với plate live-action — quan trọng cho VFX</li>
+      <li><strong>Render passes</strong> — xuất nhiều layer (diffuse, specular, shadow, reflection) cho compositing có quyền kiểm soát</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"3D lighting HDRI render V-Ray Arnold VFX shot"</span>
+      </div>
+      <p class="arc-image-caption">Lighting setup — match với plate live-action là kỹ năng quan trọng nhất của VFX Generalist</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">4. Compositing và integration vào plate</h3>
+    <p>Final shot không phải render đơn — mà là composite của 3D render + plate live-action + 2D elements. Generalist phải biết Nuke hoặc After Effects để tích hợp render 3D vào footage thật. Color grade, grain match, motion blur, depth of field — đều là kỹ năng compositing cần có.</p>
+    <ul class="arc-list">
+      <li><strong>Color matching</strong> — chỉnh màu 3D render để khớp với plate, không "stick out"</li>
+      <li><strong>Grain match</strong> — thêm noise grain giống plate để 3D không quá clean</li>
+      <li><strong>Atmospheric perspective</strong> — thêm fog/haze để 3D element hòa nhập vào depth của scene</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Nuke compositing 3D VFX integration plate match"</span>
+      </div>
+      <p class="arc-image-caption">Compositing trong Nuke — nơi 3D render và footage thật được hòa làm một</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>3D Generalist VFX cần giỏi gì?</h2>
+
+  <div class="arc-skill-grid">
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">⚙️</span>
+      <span>Đa năng kỹ thuật 3D</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">🌈</span>
+      <span>Lighting &amp; color matching</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">🎨</span>
+      <span>Mắt thẩm mỹ &amp; reference</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">🧠</span>
+      <span>Giải quyết vấn đề độc lập</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">⚡</span>
+      <span>Tốc độ &amp; ưu tiên</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">📋</span>
+      <span>Quản lý dự án cá nhân</span>
+    </div>
+  </div>
+
+  <div class="arc-accordion">
+
+    <details class="arc-card" open>
+      <summary>Đa năng kỹ thuật 3D</summary>
+      <div class="arc-card-body">
+        <p>Generalist phải thành thạo nhiều phần mềm — ít nhất một DCC chính (Maya, 3ds Max, Blender, Houdini), một sculpt tool (ZBrush hoặc Blender), một texturing tool (Substance Painter/Mari), một render engine (V-Ray, Arnold, Redshift, Cycles), và một compositing tool (Nuke, After Effects). Không cần expert ở mọi cái — chỉ cần đủ để hoàn thành cảnh.</p>
+        <p>Học bằng cách làm dự án end-to-end, mỗi cái dùng workflow khác nhau để mở rộng kỹ năng.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Lighting &amp; color matching</summary>
+      <div class="arc-card-body">
+        <p>Đây là kỹ năng quyết định chất lượng final shot. VFX Generalist phải đọc được plate — góc đèn ở đâu, color temperature gì, contrast bao nhiêu — và replicate trong 3D scene. Học bằng cách phân tích cinematography và làm bài tập match lighting với reference photos.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Mắt thẩm mỹ &amp; reference</summary>
+      <div class="arc-card-body">
+        <p>Render kỹ thuật giỏi không đủ — phải có mắt thẩm mỹ. Hiểu composition, color theory, và visual storytelling là cần thiết. Xây dựng kho reference cá nhân (PureRef là tool phổ biến) và phân tích các VFX shot hay từ phim như <em>Blade Runner 2049</em>, <em>Dune</em>, <em>Mad Max: Fury Road</em>.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Giải quyết vấn đề độc lập</summary>
+      <div class="arc-card-body">
+        <p>Generalist thường làm một mình hoặc trong team nhỏ. Khi gặp lỗi render, problem trong UV, hoặc issue compositing, không có ai giúp ngay. Phải tự tìm cách giải quyết — Google, forum (CGSociety, Polycount), YouTube tutorial, hoặc thử nghiệm. Đây là kỹ năng nghề nghiệp lớn nhất của Generalist.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Tốc độ &amp; ưu tiên</summary>
+      <div class="arc-card-body">
+        <p>Generalist luôn đối mặt với scope rộng và budget thời gian hạn. Phải biết khi nào dừng modeling (model đủ tốt rồi), khi nào nên dùng asset có sẵn thay vì tự làm, và khi nào nên cheat với 2D matte painting thay vì 3D. Tư duy "good enough" thay vì "perfect" là cần thiết.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Quản lý dự án cá nhân</summary>
+      <div class="arc-card-body">
+        <p>Generalist thường freelance hoặc làm trong studio nhỏ không có producer. Phải tự lên timeline, breakdown task, communicate với client, và deliver đúng hạn. Học cách dùng Notion hoặc Trello cho task tracking và Google Drive/Frame.io cho client review là cần thiết.</p>
+      </div>
+    </details>
+
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Làm cách nào để trở thành 3D Generalist VFX?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Chọn một DCC chính và học sâu</strong>
+        <p>Maya cho ai muốn vào studio lớn hoặc film, Blender cho ai muốn tiết kiệm chi phí, 3ds Max cho ai vào archviz, Houdini cho ai muốn làm FX/procedural. Học sâu một cái trước, đừng nhảy giữa các phần mềm. Mục tiêu: 6 tháng – 1 năm thành thạo modeling, texturing, lighting cơ bản.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Mở rộng sang texturing và shading</strong>
+        <p>Học Substance Painter — tiêu chuẩn ngành cho VFX. Hiểu PBR workflow, UV unwrapping, và material setup trong render engine. Marmoset Toolbag và Adobe Substance Designer là supplement tốt. Mục tiêu: texture được model độc lập, không cần ai làm hộ.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Học lighting và render chuyên sâu</strong>
+        <p>Chọn render engine (V-Ray, Arnold, Redshift cho commercial; Karma cho Houdini; Cycles cho Blender). Học HDRI lighting, three-point lighting, và quan trọng nhất — <strong>match lighting với reference</strong>. Đây là kỹ năng phân biệt VFX Generalist với hobbyist.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Học compositing cơ bản trong Nuke</strong>
+        <p>Nuke là tiêu chuẩn ngành VFX. Học node-based workflow, color grading, keying, và integration 3D vào plate. After Effects là alternative cho commercial work. Mục tiêu: tích hợp 3D render vào footage live-action sao cho không phân biệt được đâu là thật đâu là 3D.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Làm các VFX shot end-to-end</strong>
+        <p>Tải plate miễn phí từ ActionVFX hoặc Hollywood Camera Work, rồi làm shot hoàn chỉnh: track camera, model element, texture, light, render, composite. Một shot có thể là "robot xuất hiện trong sân", "phi thuyền bay qua thành phố", "creature di chuyển trong rừng". Làm 5–10 shot khác nhau để có portfolio đa dạng.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Xây dựng demo reel VFX Generalist</strong>
+        <p>Demo reel của Generalist nên dài 60–90 giây, chứa 4–6 shot hay nhất. Mở đầu bằng shot ấn tượng nhất (thường là creature hoặc complex environment). Mỗi shot kèm breakdown — plate gốc, wireframe, lighting pass, beauty render — để chứng minh bạn làm được full pipeline. Đăng lên Vimeo, link từ ArtStation và LinkedIn. Apply qua trang career của Framestore, MPC, Cinesite cho film, hoặc các post-production house lớn cho commercial.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

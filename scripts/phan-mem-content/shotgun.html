@@ -1,0 +1,205 @@
+<section class="arc-intro">
+  <p>Bạn xem phim hoạt hình trên Netflix, dừng ở phần credit cuối và thấy hàng loạt vai trò «Production Coordinator», «Pipeline TD», «Tracking Lead» — phía sau những cảnh quay đó là hệ thống ghi nhận từng <strong>shot</strong>, từng bản render và ai đang làm việc gì. Trong nhiều studio lớn, tên công cụ đó từng là <strong>Shotgun</strong>; ngày nay sản phẩm chính thức mang tên <strong>ShotGrid</strong>, nhưng cộng đồng VFX và animation vẫn hay gọi theo tên cũ khi nói về kinh nghiệm làm việc hoặc tuyển dụng.</p>
+  <p>Shotgun không phải phần mềm dựng hình hay render — nó là <strong>nền tảng production tracking</strong> cho pipeline phim hoạt hình, VFX và game cinematic: quản lý shot, asset, task, version và review frame. Hiểu tên legacy «Shotgun» giúp bạn đọc đúng JD studio và không nhầm với công cụ quản lý dự án IT thông thường.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>Shotgun là gì — và vì sao đổi tên thành ShotGrid?</h2>
+  <p><strong>Shotgun</strong> là tên gốc của nền tảng do <strong>Shotgun Software</strong> phát triển từ khoảng 2006, sau đó <strong>Autodesk mua lại năm 2014</strong> và tích hợp vào hệ sinh thái Maya, 3ds Max, Flame. Tháng 4/2021, Autodesk <strong>đổi thương hiệu thành ShotGrid</strong> — lý do chính là tránh nhầm lẫn với vũ khí và đồng bộ với dòng sản phẩm «Grid» của hãng. Tuy nhiên trên thực tế, diễn đàn nghề, tin tuyển dụng và plugin DCC vẫn xuất hiện cụm «Shotgun experience», «Shotgun publish», thậm chí thư viện Python vẫn mang tên <strong>shotgun_api3</strong>.</p>
+  <p>Bài viết này dùng slug «shotgun» như <strong>góc nhìn lịch sử</strong>: cùng sản phẩm ShotGrid hiện tại, cùng luồng shot–task–version — chỉ khác cách studio gọi tên. Khác Jira hay Trello, Shotgun/ShotGrid thiết kế cho <strong>pipeline sáng tạo</strong>: version render, note trên frame, publish từ Maya/Nuke lên server trung tâm.</p>
+  <ul class="arc-list">
+    <li><strong>Shot &amp; sequence tracking</strong> — phân cấp dự án theo sequence, shot, asset thay vì ticket IT đơn giản</li>
+    <li><strong>Version &amp; publish</strong> — lưu lịch sử file render, playblast, comp với số version rõ ràng (v001, v002…)</li>
+    <li><strong>Review &amp; notes</strong> — supervisor vẽ note trên frame, artist sửa và publish bản mới trong cùng hệ thống</li>
+    <li><strong>Pipeline API</strong> — Python/RPC cho Pipeline TD tự động hóa import, naming convention và báo cáo tiến độ</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"Autodesk ShotGrid legacy Shotgun production tracking shot browser interface"</span>
+    </div>
+    <p class="arc-image-caption">Giao diện production tracking — danh sách shot, trạng thái task và liên kết version</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>Shotgun/ShotGrid đứng ở <strong>tầng điều phối và review</strong>, không thay Maya hay Nuke. Supervisor breakdown shot; artist publish từ DCC; coordinator theo dõi deadline; director xem version qua trình duyệt hoặc RV. Một sequence phim dài có thể chứa hàng trăm shot — không có tracker thì studio mất kiểm soát version. Thường làm việc cùng ShotGrid RV và render farm nội bộ.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi (dưới góc nhìn tên Shotgun)</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Theo dõi shot, asset và cấu trúc dự án</h3>
+    <p>Trái tim của Shotgun là <strong>entity hierarchy</strong> — Project chứa Sequence, Sequence chứa Shot; song song có Asset (nhân vật, prop, environment) và Task gắn với từng đối tượng. Mỗi shot có trạng thái riêng (Layout, Animation, Lighting, Final…) và danh sách người được assign. Đây là điểm khác biệt lớn so với bảng Excel: mọi thứ có ID, lịch sử thay đổi và liên kết chéo — ví dụ shot «sq010_sh020» cần asset «char_hero» đã rig xong mới chuyển sang animation.</p>
+    <p>Học sinh THPT có thể tập tư duy tương tự: chia storyboard 15–20 shot, đặt mã sh010, sh020…, ghi ai phụ trách layout/anim — dù chưa có license, cấu trúc này giúp «nói đúng ngôn ngữ studio» khi phỏng vấn intern.</p>
+    <ul class="arc-list">
+      <li><strong>Shot code &amp; naming</strong> — quy ước tên đồng bộ giữa thư mục file và database</li>
+      <li><strong>Task template</strong> — bộ task lặp lại cho mỗi shot (model → rig → anim → light)</li>
+      <li><strong>Status &amp; milestone</strong> — báo cáo tiến độ theo sequence hoặc cả dự án</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"ShotGrid Shotgun shot sequence hierarchy production browser"</span>
+        </div>
+        <p class="arc-image-caption">Cây shot/sequence — phân cấp dự án animation hoặc VFX</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"animation studio storyboard shot breakdown sheet numbering"</span>
+        </div>
+        <p class="arc-image-caption">Breakdown shot — nền tảng tư duy trước khi nhập vào tracker</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Publish, versioning và review trên frame</h3>
+    <p>Artist không «upload file lên Drive» theo cách thủ công — họ dùng <strong>Shotgun Publish</strong> (plugin trong Maya, Nuke, Houdini…) để đẩy playblast hoặc render lên server, tự tạo <strong>Version</strong> mới (v003, v004) và link về shot tương ứng. Supervisor mở Review, phát sequence, vẽ note trực tiếp trên frame (« cánh tay frame 24 hơi cứng »), artist nhận notification và publish bản sửa. Cơ chế này tồn tại từ thời tên Shotgun và vẫn là lõi ShotGrid ngày nay.</p>
+    <p>Studio không ghi đè file «final_final2.mb» — mọi iteration được lưu và phê duyệt. Học sinh có thể mô phỏng bằng suffix _v001, _v002 và bảng note trong Google Sheet trước khi dùng công cụ chuyên dụng.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"ShotGrid review session frame notes annotation supervisor feedback"</span>
+      </div>
+      <p class="arc-image-caption">Buổi review — note trên frame và liên kết version cần sửa</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Pipeline TD, API và tích hợp DCC</h3>
+    <p>Điều khiến Shotgun trưởng thành trong studio lớn là <strong>API mở</strong> — Pipeline Technical Director viết script Python (`shotgun_api3`) để tự động tạo task khi import storyboard, đồng bộ thumbnail, gửi email khi shot chuyển trạng thái «Final», hoặc xuất báo cáo cho producer. Plugin «Shotgun» trong menu Maya/Nuke mà nhiều tutorial cũ nhắc tới thực chất trỏ về cùng backend ShotGrid; tên menu chưa đổi hết trên mọi bản cài đặt.</p>
+    <p>Luồng điển hình: publish từ DCC → script nội bộ → cập nhật Shotgun → render farm → version mới trên Review. Production tracking là <strong>hệ thần kinh</strong> nối artist, kỹ thuật và quản lý — nền tảng cho Pipeline TD, Coordinator hoặc VFX Producer.</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Maya Nuke Shotgun publish plugin pipeline Python API workflow diagram"</span>
+      </div>
+      <p class="arc-image-caption">Luồng publish — DCC, API Shotgun và review tập trung</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai hướng so sánh thường gặp khi nói về Shotgun (legacy) là <strong>ftrack</strong> — đối thủ production tracking chuyên ngành — và <strong>Jira</strong> — nền tảng quản lý dự án phổ biến mà một số studio creative từng dùng thay thế. Không có câu trả lời duy nhất; phụ thuộc quy mô studio, ngân sách và mức độ tùy biến pipeline.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Shotgun vs ftrack</h3>
+    <p><strong>ftrack</strong> (ftrack Studio) cũng phục vụ VFX và animation với shot tracking, review và plugin DCC. Shotgun/ShotGrid có lịch sử Hollywood và backing Autodesk; ftrack được studio châu Âu và mid-size ưa chuộng vì giao diện gọn và license cạnh tranh. Khác biệt nằm ở plugin, API và văn hóa tuyển dụng.</p>
+    <p>JD «Shotgun/ShotGrid required» nghĩa là stack Autodesk; «ftrack experience» thì quy trình tương tự nhưng API khác — kỹ năng <strong>tư duy production tracking</strong> vẫn chuyển được.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Autodesk ShotGrid production tracking VFX studio dashboard"</span>
+        </div>
+        <p class="arc-image-caption">Shotgun/ShotGrid — hệ sinh thái Autodesk và legacy tại studio lớn</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"ftrack studio production tracking review interface VFX"</span>
+        </div>
+        <p class="arc-image-caption">ftrack — lựa chọn chuyên ngành với review và cấu trúc shot</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Shotgun/ShotGrid mạnh hơn:</strong> kinh nghiệm tại major studio, tích hợp Maya/Flow, API và cộng đồng Pipeline TD lớn, tên legacy vẫn rộng trong JD. <strong>ftrack mạnh hơn:</strong> triển khai nhanh cho team vừa và nhỏ, UX review thân thiện, linh hoạt khi không dùng full Autodesk stack. <strong>Chọn Shotgun khi:</strong> studio chuẩn hóa Autodesk pipeline hoặc học shotgun_api3 cho nghề TD. <strong>Chọn ftrack khi:</strong> studio đích dùng ftrack, hoặc demo trước khi đề xuất tool cho dự án indie.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Shotgun vs Jira (cho team sáng tạo)</h3>
+    <p><strong>Jira</strong> (Atlassian) xuất sắc cho phát triển phần mềm: sprint, bug, story point, tích hợp Git. Một số studio nhỏ từng dùng Jira cho dự án animation vì đã có license công ty IT — nhưng Jira <strong>không sinh ra cho review frame</strong>, không có khái niệm Version gắn playblast, và workflow mặc định không hiểu «shot sq040_sh010 cần comp v005». Shotgun/ShotGrid bù đắp đúng khoảng trống đó: mọi thứ xoay quanh deliverable hình ảnh và iteration creative.</p>
+    <p>Học sinh THPT đã biết Jira: Jira = «viết code tính năng X»; Shotgun = «render cảnh frame 120–180 đúng ý director». Phòng IT dùng Jira; department animation/VFX dùng Shotgun — hai hệ thống có thể song song.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"VFX animation studio production coordinator tracking dashboard"</span>
+        </div>
+        <p class="arc-image-caption">Production tracking — shot, version và trạng thái creative</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Jira Software Scrum board software development issue tracking"</span>
+        </div>
+        <p class="arc-image-caption">Jira — sprint và issue cho phát triển phần mềm, không chuyên review frame</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Shotgun mạnh hơn cho creative:</strong> versioning media, review annotation, cấu trúc shot/sequence/asset, publish từ DCC. <strong>Jira mạnh hơn cho IT:</strong> Agile/Scrum, bug linking Git, ecosystem Atlassian. <strong>Chọn Shotgun khi:</strong> pipeline phim hoạt hình, VFX, game cinematic. <strong>Chọn Jira khi:</strong> dự án app, website, game code — hoặc team creative quá nhỏ.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Làm quen Shotgun/ShotGrid từ đâu?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Hiểu tên legacy và cấu trúc shot</strong>
+        <p>Đọc lịch sử Shotgun → ShotGrid và xem video breakdown phim ngắn. Tự chia storyboard 8–12 shot cho CLB, đặt mã và liệt kê task — giống entity trên Shotgun mà không cần license.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Tìm hiểu ShotGrid qua tài liệu Autodesk</strong>
+        <p>Truy cập trang ShotGrid, xem demo và glossary — thuật ngữ Version, Published File, Playlist giữ từ thời Shotgun. Autodesk có trial giáo dục/indie; tuần đầu click qua Project, Shot, Task, Version.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Thực hành versioning và review (kể cả thủ công)</strong>
+        <p>Playblast ba bản animation, đặt tên _v001, _v002, _v003; ghi note supervisor. Có trial thì upload và tạo Playlist review. Đọc note và trả lời bằng version mới quan trọng hơn thuộc menu.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Làm quen publish từ DCC (Maya hoặc Blender pipeline)</strong>
+        <p>Cài ShotGrid plugin cho Maya; tìm tutorial «Shotgun publish» (từ khóa legacy vẫn hữu ích). Publish playblast một shot, kiểm tra Version trên web — biết artist submit qua đâu thay vì gửi file lẻ qua chat.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Đọc JD và phỏng vấn đúng ngữ cảnh</strong>
+        <p>Tin «2 năm kinh nghiệm Shotgun» nghĩa là ShotGrid. Chuẩn bị ví dụ quản lý shot, review note, API cơ bản. Chỉ có Jira/Trello thì nhấn mạnh đã tự học cấu trúc shot — nhiều coordinator được train on-the-job.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Định hướng nghề và portfolio</strong>
+        <p>Tổng hợp dự án CLB có breakdown shot và bảng tiến độ. Định hướng: Coordinator, Pipeline TD, hoặc artist biết publish — cả ba chạm Shotgun/ShotGrid ở studio VFX Việt Nam. Theo dõi SIGGRAPH và Autodesk AREA để cập nhật tên ShotGrid song song legacy «Shotgun».</p>
+      </div>
+    </div>
+
+  </div>
+</section>

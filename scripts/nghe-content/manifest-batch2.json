@@ -1,0 +1,47 @@
+[
+  {
+    "id": "ca29ae36-7c65-449e-9136-cae5122a4c14",
+    "slug": "nghe-3d-3d-concept-artist",
+    "tieu_de_viet": "3D Concept Artist (Họa sĩ ý tưởng 3D)",
+    "tom_tat": "3D Concept Artist dùng mô hình 3D như công cụ phác thảo nhanh — kết hợp sculpting, render và paintover để tạo ra concept nhân vật, môi trường, vũ khí cho phim, game.",
+    "meta_title": "3D Concept Artist là gì? Công việc, kỹ năng và lộ trình | CINS",
+    "meta_description": "3D Concept Artist tạo concept bằng cách kết hợp 3D modeling, render và digital painting. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-3d-concept-tien-ky", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "a9454637-cdcf-46a0-bad9-bbea03d62dcd",
+    "slug": "nghe-vfx-3d-generalist",
+    "tieu_de_viet": "3D Generalist (VFX)",
+    "tom_tat": "3D Generalist trong VFX có thể làm modeling, texture, lighting, animation cơ bản — đa năng để xử lý nhiều khâu, đặc biệt giá trị trong studio nhỏ và indie.",
+    "meta_title": "3D Generalist VFX là gì? Công việc, kỹ năng và lộ trình | CINS",
+    "meta_description": "3D Generalist VFX đảm nhiệm nhiều khâu trong pipeline 3D — từ modeling đến lighting. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-vfx-3d-fx", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "7f3c25c3-007a-47d6-bd82-1b0b4bea6d7e",
+    "slug": "nghe-3d-3d-generalist",
+    "tieu_de_viet": "3D Generalist (Họa sĩ 3D tổng hợp)",
+    "tom_tat": "3D Generalist là người có thể làm nhiều khâu trong pipeline 3D — model, texture, light, render — đặc biệt cần thiết trong studio nhỏ, freelance và indie game.",
+    "meta_title": "3D Generalist là gì? Công việc, kỹ năng và lộ trình vào nghề | CINS",
+    "meta_description": "3D Generalist là người đa năng trong pipeline 3D — modeling, texturing, lighting. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-3d-modeling-sculpting", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "a1437ec8-d227-495d-a266-4c70cef53ed1",
+    "slug": "nghe-minh-hoa-3d-illustrator",
+    "tieu_de_viet": "3D Illustrator (Họa sĩ minh họa 3D)",
+    "tom_tat": "3D Illustrator dùng phần mềm 3D để tạo ra hình minh họa kết hợp cảm xúc tranh vẽ với chiều sâu lập thể — phục vụ quảng cáo, bìa sách, sản phẩm, NFT.",
+    "meta_title": "3D Illustrator là gì? Công việc, kỹ năng và lộ trình vào nghề | CINS",
+    "meta_description": "3D Illustrator tạo hình minh họa 3D phong cách bằng Blender, Cinema 4D. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-minh-hoa-ky-thuat-so", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "bf04d350-b6fe-43be-979b-48c3d658a997",
+    "slug": "nghe-hoat-hinh-3d-modeler",
+    "tieu_de_viet": "3D Modeler phim hoạt hình",
+    "tom_tat": "3D Modeler phim hoạt hình tạo ra nhân vật, đạo cụ và môi trường 3D từ concept 2D — chuẩn bị model để rigger gắn xương và animator điều khiển.",
+    "meta_title": "3D Modeler phim hoạt hình là gì? Công việc, kỹ năng và lộ trình | CINS",
+    "meta_description": "3D Modeler trong phim hoạt hình dựng nhân vật, prop và môi trường 3D bằng Maya, ZBrush, Blender. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-hoat-hinh-san-xuat-3d", "nn-bao-chi-truyen-thong"]
+  }
+]

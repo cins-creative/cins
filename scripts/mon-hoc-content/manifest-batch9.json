@@ -1,0 +1,102 @@
+[
+  {
+    "id": "1ee7c584-4f1c-407e-952a-51ff623b9aec",
+    "slug": "mon-thiet-ke-bao-bi-packaging",
+    "tieu_de": "Thiết kế bao bì (Packaging)",
+    "tieu_de_eng": "Packaging Design",
+    "tieu_de_viet": "Thiết kế bao bì (Packaging)",
+    "tom_tat": "Thiết kế bao bì sản phẩm — kết hợp thẩm mỹ, cấu trúc, kỹ thuật in và tâm lý người mua trên kệ hàng.",
+    "meta_title": "Thiết kế bao bì là gì? Học gì và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Thiết kế bao bì (Packaging): cấu trúc hộp, nhãn, dieline, kỹ thuật in. Cho FMCG, mỹ phẩm và lifestyle product."
+  },
+  {
+    "id": "c60914f1-0d4b-4cb8-866b-f911d483012d",
+    "slug": "mon-thiet-ke-canh-quan-environment-concept-artist",
+    "tieu_de": "Thiết kế cảnh quan (Environment Concept)",
+    "tieu_de_eng": "Environment Concept Art",
+    "tieu_de_viet": "Thiết kế cảnh quan (Environment Concept)",
+    "tom_tat": "Vẽ concept cảnh quan cho game và phim — thế giới quan, môi trường, ánh sáng và mood; vai trò Environment Concept Artist.",
+    "meta_title": "Thiết kế cảnh quan (Environment Concept) là gì? Học gì và ứng dụng | CINS",
+    "meta_description": "Môn Environment Concept: thế giới quan, mood painting, perspective, ánh sáng. Cho game studio, phim animation và VFX."
+  },
+  {
+    "id": "4b70104a-a54e-4f53-999c-2af82ecb8fe2",
+    "slug": "mon-thiet-ke-chu-typography",
+    "tieu_de": "Thiết kế chữ (Typography)",
+    "tieu_de_eng": "Typography",
+    "tieu_de_viet": "Thiết kế chữ (Typography)",
+    "tom_tat": "Lý thuyết và thực hành về chữ — phân loại typeface, kerning, leading, hierarchy và thiết kế font tiếng Việt.",
+    "meta_title": "Thiết kế chữ (Typography) là gì? Học gì và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Typography: serif/sans-serif, kerning, leading, hierarchy, font Việt có dấu. Nền tảng cho mọi sản phẩm thiết kế."
+  },
+  {
+    "id": "8088d8c5-7f4b-4d19-9501-cb967d58e1a3",
+    "slug": "mon-thiet-ke-digital-art",
+    "tieu_de": "Thiết kế Digital Art",
+    "tieu_de_eng": "Digital Art Design",
+    "tieu_de_viet": "Thiết kế Digital Art",
+    "tom_tat": "Sáng tác nghệ thuật số — vector illustration, digital painting và NFT art trên Procreate, Photoshop, Illustrator.",
+    "meta_title": "Thiết kế Digital Art là gì? Học gì và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Digital Art: vector, digital painting, Procreate, Photoshop, NFT, AI tool. Cho freelance illustrator và concept art."
+  },
+  {
+    "id": "65133ef5-3176-4590-8328-63f2f4e95673",
+    "slug": "mon-thiet-ke-do-hoa-marketing",
+    "tieu_de": "Thiết kế đồ họa và Marketing",
+    "tieu_de_eng": "Graphic Design and Marketing",
+    "tieu_de_viet": "Thiết kế đồ họa và Marketing",
+    "tom_tat": "Marketing cho designer — insight khách hàng, brief dự án, đo lường hiệu quả; thiết kế phục vụ mục tiêu kinh doanh.",
+    "meta_title": "Thiết kế đồ họa và Marketing là gì? Học gì và ứng dụng | CINS",
+    "meta_description": "Môn Thiết kế đồ họa và Marketing: insight, brief, ROI, A/B test. Cho designer hiểu thiết kế phục vụ kinh doanh."
+  },
+  {
+    "id": "7c617eab-258f-4c31-9de1-7da444f68183",
+    "slug": "mon-thiet-ke-do-thi",
+    "tieu_de": "Thiết kế đô thị",
+    "tieu_de_eng": "Urban Design",
+    "tieu_de_viet": "Thiết kế đô thị",
+    "tom_tat": "Thiết kế không gian đô thị scale trung — quảng trường, phố đi bộ, khu phức hợp; mối liên kết giữa kiến trúc và đô thị.",
+    "meta_title": "Thiết kế đô thị là gì? Học gì và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Thiết kế đô thị: phố đi bộ, quảng trường, complete street. Scale giữa kiến trúc và quy hoạch đô thị."
+  },
+  {
+    "id": "67509893-2e7a-4d69-bba0-3dcbb734112d",
+    "slug": "mon-thiet-ke-logo",
+    "tieu_de": "Thiết kế Logo",
+    "tieu_de_eng": "Logo Design",
+    "tieu_de_viet": "Thiết kế Logo",
+    "tom_tat": "Thiết kế logo thương hiệu — nguyên lý đơn giản, dễ nhớ, hoạt động đa kích cỡ và đa nền tảng.",
+    "meta_title": "Thiết kế Logo là gì? Học gì và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Thiết kế Logo: mark, wordmark, monogram, lockup; tỷ lệ vàng, vector chuẩn. Nền tảng cho brand identity."
+  },
+  {
+    "id": "b42de718-4e0f-4d2d-a23c-951b26df01c9",
+    "slug": "mon-thiet-ke-nhan-vat-character-concept",
+    "tieu_de": "Thiết kế nhân vật (Character Concept)",
+    "tieu_de_eng": "Character Concept Design",
+    "tieu_de_viet": "Thiết kế nhân vật (Character Concept)",
+    "tom_tat": "Thiết kế nhân vật cho game và phim — hình thể, personality, costume, turnaround và expression sheet.",
+    "meta_title": "Thiết kế nhân vật (Character Concept) là gì? Học gì và ứng dụng | CINS",
+    "meta_description": "Môn Character Concept: silhouette, costume, turnaround, expression. Cho game studio, animation và IP gốc Việt."
+  },
+  {
+    "id": "57517644-7a53-4de9-830d-3d2caf4e6984",
+    "slug": "mon-thiet-ke-phu-trang",
+    "tieu_de": "Thiết kế phụ trang",
+    "tieu_de_eng": "Accessory Design",
+    "tieu_de_viet": "Thiết kế phụ trang",
+    "tom_tat": "Thiết kế phụ kiện thời trang — túi, mũ, giày, trang sức, khăn; bổ trợ và hoàn thiện outfit hoàn chỉnh.",
+    "meta_title": "Thiết kế phụ trang là gì? Học gì và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Thiết kế phụ trang: túi, giày, mũ, trang sức, khăn. Bổ trợ outfit và brand thời trang ứng dụng."
+  },
+  {
+    "id": "26125d58-94e7-46c5-bbec-e88e9ec1831d",
+    "slug": "mon-thiet-ke-poster",
+    "tieu_de": "Thiết kế Poster",
+    "tieu_de_eng": "Poster Design",
+    "tieu_de_viet": "Thiết kế Poster",
+    "tom_tat": "Thiết kế poster truyền thông và quảng cáo — tổ chức thông tin thị giác để truyền thông điệp trong vài giây đầu nhìn.",
+    "meta_title": "Thiết kế Poster là gì? Học gì và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Thiết kế Poster: hierarchy, typography, concept-driven. Cho sự kiện, phim, social và poster trường phái Swiss."
+  }
+]

@@ -1,0 +1,209 @@
+<section class="arc-intro">
+  <p>Bạn xem video fly-through căn chung cư mẫu trên YouTube — ánh sáng chiều vàng chiếu qua sàn gỗ, cây xanh đung đưa ngoài ban công, camera lướt mượt từ sảnh vào phòng ngủ trong thời gian thực — phần lớn clip archviz kiểu này được dựng bằng <strong>Twinmotion</strong>, công cụ visualization kiến trúc realtime của Epic Games.</p>
+  <p>Twinmotion không phải phần mềm vẽ bản vẽ 2D hay model chi tiết từ đầu — nó nhận model từ SketchUp, Revit, 3ds Max, Rhino hoặc ArchiCAD qua Datasmith, «dress up» cảnh với cây cối, người, xe, thời tiết và xuất video 4K hoặc panorama 360°. Với học sinh THPT ngành kiến trúc, Twinmotion là bước trình bày cuối giúp đồ án mô hình «sống động» mà không chờ render offline hàng giờ.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>Twinmotion là gì?</h2>
+  <p>Twinmotion do <strong>Epic Games</strong> phát triển (sau khi mua công cụ gốc từ Abvent/Kalisto) — phần mềm <strong>render kiến trúc và landscape realtime</strong> chạy trên Windows (yêu cầu GPU mạnh, DirectX 12). Ban đầu song song Lumion trong archviz; ngày nay tận dụng hệ sinh thái Epic: Datasmith import, thư viện Megascans, chất lượng ánh sáng gần Unreal Engine.</p>
+  <p>Khác với V-Ray hay Corona (render offline chất lượng cực cao nhưng chờ lâu), Twinmotion tối ưu <strong>GPU realtime</strong>: di chuyển camera, đổi vật liệu, bật mưa/tuyết và thấy kết quả gần như ngay lập tức. Giao diện có Library, Scene graph và Media mode — ban đầu cần card đồ họa rời, nhưng workflow trực quan hơn setup render pass phức tạp cho người mới archviz.</p>
+  <ul class="arc-list">
+    <li><strong>Datasmith import</strong> — Revit, SketchUp, 3ds Max, Rhino, ArchiCAD, IFC với đồng bộ geometry và material cơ bản</li>
+    <li><strong>Vegetation &amp; entourage</strong> — cây, bụi, người, xe, đèn đường; tích hợp Megascans và asset Epic</li>
+    <li><strong>Path tracer &amp; Lumen-style lighting</strong> — chất lượng cao dần trong các bản mới, vẫn giữ tương tác realtime</li>
+    <li><strong>Media export</strong> — video MP4, image sequence, panorama VR, standalone executable cho client review</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"Twinmotion 2025 interface architectural visualization realtime viewport"</span>
+    </div>
+    <p class="arc-image-caption">Giao diện Twinmotion — viewport realtime, Library và cảnh kiến trúc ngoại thất</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>Twinmotion thường đứng sau giai đoạn <strong>model 3D hoặc BIM</strong>: kiến trúc sư dựng khối trong SketchUp/Revit/3ds Max, import Twinmotion qua Datasmith, gán material và landscape, thêm entourage, render still cho brochure hoặc video walkthrough cho pitch khách hàng bất động sản. Với đồ án THPT, Twinmotion là presentation cuối. Thường làm việc cùng SketchUp, Revit, 3ds Max (model nguồn), Photoshop (post still) và Premiere (edit video nếu ghép nhiều clip).</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Datasmith import &amp; đồng bộ model</h3>
+    <p>Thế mạnh nền tảng của Twinmotion là <strong>Datasmith pipeline</strong> — plugin cài trên Revit, SketchUp, 3ds Max để export scene sang Twinmotion giữ layer, material slot và instance. Khi chỉnh model nguồn, re-import hoặc sync cập nhật nhanh — tiết kiệm thời gian iteration với khách hàng hay giáo viên hướng dẫn đồ án mà không dựng lại cảnh từ đầu.</p>
+    <p>Đối với học sinh THPT mới làm quen, bài tập thực tế hay gặp: dựng nhà phố 2 tầng đơn giản trong SketchUp, export Datasmith sang Twinmotion, gán gạch/tường sơn — vừa luyện tư duy không gian vừa có still portfolio cho ngành kiến trúc/xây dựng.</p>
+    <ul class="arc-list">
+      <li><strong>Datasmith plugins</strong> — Revit, SketchUp, 3ds Max, Rhino, ArchiCAD, Blender (workflow tùy phiên bản)</li>
+      <li><strong>Material replacement</strong> — thay material import bằng thư viện Twinmotion PBR</li>
+      <li><strong>Geolocation &amp; sun study</strong> — đặt vị trí địa lý, mô phỏng ánh nắng theo giờ/ngày</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Twinmotion Datasmith Revit SketchUp import workflow"</span>
+        </div>
+        <p class="arc-image-caption">Datasmith — import và đồng bộ model từ Revit/SketchUp</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Twinmotion material assignment architectural model"</span>
+        </div>
+        <p class="arc-image-caption">Gán material — thay surface import bằng thư viện PBR</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Landscape, entourage &amp; hiệu ứng thời tiết</h3>
+    <p>Sau khi có khối công trình, Twinmotion cho phép «dress» cảnh bằng <strong>thư viện vegetation và entourage</strong>: cây, cỏ, người đi bộ, xe, đèn đường — kéo thả vào scene. Path Tracer và ánh sáng môi trường mô phỏng golden hour; hiệu ứng mưa, tuyết, sương, lá rụng theo mùa tạo cảm giác «đã có người ở» — yếu tố presentation quan trọng không kém kiến trúc.</p>
+    <p>Học sinh THPT thường học cân bằng: không nhồi quá nhiều cây/người gây rối, chọn 2–3 góc camera hero và ánh sáng chiều vàng cho still đẹp nhất với effort ít nhất.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Twinmotion landscape vegetation weather rain exterior archviz"</span>
+      </div>
+      <p class="arc-image-caption">Landscape &amp; weather — cây cối, entourage và hiệu ứng thời tiết</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Phasing, Media Creator &amp; xuất presentation</h3>
+    <p>Twinmotion hỗ trợ <strong>phasing xây dựng</strong> — animate tiến độ công trình theo giai đoạn, hữu ích cho pitch dự án lớn. <strong>Media Creator</strong> ghi camera path fly-through, depth of field, xuất video 4K hoặc image sequence; panorama 360° cho VR review. Render video 60 giây thường nhanh hơn nhiều so với animation frame-by-frame V-Ray cho cùng mục đích presentation.</p>
+    <p>Luồng làm việc điển hình: model SketchUp → Twinmotion dress → 3 still góc + 1 video 30–60 giây → post nhẹ Photoshop → trình bày đồ án. Hiểu quy trình này giúp bạn đáp ứng deadline thiết kế thực tế — archviz không chỉ là «đẹp» mà là «đúng hạn».</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Twinmotion fly-through video export architectural presentation 4K"</span>
+      </div>
+      <p class="arc-image-caption">Media export — camera path fly-through và video presentation 4K</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai phần mềm hay được đặt cạnh Twinmotion nhất là <strong>Lumion</strong> (archviz realtime trưởng thành, thư viện khổng lồ) và <strong>Enscape</strong> (plugin realtime chạy bên trong Revit/SketchUp). Không có câu trả lời «đúng duy nhất» — tùy bạn làm việc standalone, trong BIM hay ngân sách studio và GPU team.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Twinmotion vs Lumion</h3>
+    <p>Lumion do Act-3D phát triển — thế mạnh lâu đời trong archviz Việt Nam: thư viện entourage khổng lồ, LiveSync SketchUp/Revit, workflow quen thuộc với hàng nghìn studio. Twinmotion miễn phí cho nhiều use case (qua Epic account), tích hợp Megascans và chất lượng ánh sáng Unreal ngày càng tốt — cạnh tranh trực tiếp Lumion ở segment realtime presentation.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Twinmotion Epic archviz realtime exterior render screenshot"</span>
+        </div>
+        <p class="arc-image-caption">Twinmotion — Epic ecosystem, Datasmith và Megascans</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Lumion 2024 architectural visualization realtime viewport"</span>
+        </div>
+        <p class="arc-image-caption">Lumion — thư viện entourage và LiveSync trưởng thành</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Twinmotion mạnh hơn:</strong> miễn phí/cạnh tranh về giá qua Epic, Datasmith sâu với Unreal pipeline, Megascans tích hợp, path tracer mới.<br>
+      <strong>Lumion mạnh hơn:</strong> thư viện object/landscape lớn hơn, cộng đồng archviz VN quen thuộc, LiveSync ổn định lâu năm, tutorial tiếng Việt nhiều.<br>
+      <strong>Chọn Twinmotion khi:</strong> đã dùng Epic/Unreal, ngân sách hạn chế, cần chất lượng ánh sáng cao với stack Epic.<br>
+      <strong>Chọn Lumion khi:</strong> studio đã chuẩn hóa Lumion, cần entourage đa dạng ngay và đào tạo nội bộ sẵn có.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Twinmotion vs Enscape</h3>
+    <p>Enscape là <strong>plugin chạy trong host app</strong> (Revit, SketchUp, Rhino, ArchiCAD, Vectorworks) — bật một click để xem scene BIM/model realtime ngay trong phần mềm vẽ, không export sang app riêng. Twinmotion là app standalone mạnh về dress cảnh, video cinematic và phasing — nhưng cần bước import Datasmith. Enscape phù hợp review nhanh trong quá trình thiết kế; Twinmotion phù hợp deliverable marketing cuối cùng.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Twinmotion standalone archviz video presentation scene"</span>
+        </div>
+        <p class="arc-image-caption">Twinmotion — app standalone cho video và presentation polish</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Enscape Revit SketchUp realtime rendering plugin viewport"</span>
+        </div>
+        <p class="arc-image-caption">Enscape — render realtime trực tiếp trong Revit/SketchUp</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Twinmotion mạnh hơn:</strong> video cinematic, phasing, landscape scale lớn, standalone không phụ thuộc license host app.<br>
+      <strong>Enscape mạnh hơn:</strong> zero-export workflow trong Revit/SketchUp, iteration cực nhanh khi đang chỉnh bản vẽ, VR walkthrough một click.<br>
+      <strong>Chọn Twinmotion khi:</strong> cần video marketing, đồ án THPT trình bày đẹp, dress cảnh quy mô lớn.<br>
+      <strong>Chọn Enscape khi:</strong> kiến trúc sư làm việc chủ yếu trong Revit và cần client review realtime hàng ngày.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học Twinmotion như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Cài Twinmotion và kiểm tra GPU</strong>
+        <p>Tạo tài khoản Epic Games, tải Twinmotion từ Epic Launcher. Tuần đầu: kiểm tra máy đáp ứng GPU DirectX 12 (card rời khuyến nghị); mở sample scene có sẵn, luyện orbit, pan, zoom viewport. Mục tiêu là quen điều khiển camera 3D trước khi import model — nhiều bạn THPT gặp lag do laptop tích hợp, cần biết giới hạn phần cứng sớm.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Import model qua Datasmith</strong>
+        <p>Dựng khối nhà đơn giản trong SketchUp hoặc Revit, cài plugin Datasmith tương ứng, export sang Twinmotion. Kiểm tra scale, layer và material slot — gán material Twinmotion thay surface trắng mặc định. Thường 1–2 tuần với model đơn giản sẽ quen pipeline import/sync cơ bản.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Landscape, entourage và ánh sáng</strong>
+        <p>Thêm terrain, cây, người scale phù hợp; bật geolocation và sun study cho golden hour. Tránh nhồi quá nhiều object — chọn 2–3 góc camera hero. Render thử still 4K, so sánh Path Tracer bật/tắt về thời gian và chất lượng trên máy bạn.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Media Creator và fly-through</strong>
+        <p>Tạo camera path bay qua căn phòng hoặc quanh công trình ngoại thất; thêm keyframe, depth of field nhẹ. Xuất video MP4 30–60 giây — kỹ năng archviz thực tế mà khách hàng bất động sản hay yêu cầu. Học thêm panorama 360° nếu muốn demo VR trên điện thoại.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Đồ án hoàn chỉnh với post-production</strong>
+        <p>Chọn brief: nhà phố, pavilion trường, căn hộ mẫu — 3 still góc + 1 video walkthrough + layout slide trình bày. Post still nhẹ trong Photoshop (contrast, bloom); ghép video trong CapCut/Premiere nếu cần nhạc nền. Giai đoạn này dạy quy trình deliverable: đúng format, đúng deadline đồ án.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Portfolio và định hướng nghề</strong>
+        <p>Tổng hợp 2–3 dự án archviz trên Behance hoặc PDF portfolio — ghi rõ pipeline (SketchUp/Revit, Twinmotion, Photoshop). Tìm hiểu thêm Lumion/Enscape nếu studio mục tiêu dùng tool khác; học Unreal nếu hướng archviz interactive sâu hơn. Nhiều công ty kiến trúc và visualization VN tuyển junior có demo video walkthrough thật hơn chỉ bản vẽ 2D.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

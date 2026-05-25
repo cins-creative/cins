@@ -1,0 +1,209 @@
+<section class="arc-intro">
+  <p>Bạn xem credit cuối phim hoạt hình thấy hàng trăm tên artist — modeling, rigging, lighting, compositing — mỗi shot có deadline, version file và người phụ trách riêng. Phần mềm giúp producer theo dõi toàn bộ «bánh răng» đó trong studio VFX và animation thường là <strong>ShotGrid</strong> (trước đây gọi Shotgun), nền tảng production tracking do <strong>Autodesk</strong> phát triển sau khi mua lại Shotgun Software.</p>
+  <p>ShotGrid không phải công cụ dựng hình 3D hay render — nó là <strong>hệ thống quản lý sản xuất</strong> (pipeline tracking): ghi nhận shot, task, version, review và deadline cho team hàng chục đến hàng trăm người. Với học sinh THPT hướng tới producer, pipeline TD hoặc làm việc trong studio animation/VFX, hiểu ShotGrid giúp bạn thấy cách dự án lớn không «lộn xộn file» mà vận hành có hệ thống.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>ShotGrid là gì?</h2>
+  <p>ShotGrid là nền tảng <strong>production tracking và review</strong> cho ngành phim, animation, VFX và game cinematics — chạy trên web (cloud hoặc on-premise tùy studio). Ban đầu do Shotgun Software phát triển, được Autodesk mua lại và đổi tên ShotGrid; ngày nay là tiêu chuẩn de facto tại nhiều studio Hollywood, studio game AAA và công ty animation quy mô trung bình trở lên.</p>
+  <p>Khác với Trello hay Notion cho task chung, ShotGrid được thiết kế cho <strong>pipeline sản xuất hình ảnh</strong>: mỗi shot có ID, liên kết asset, task theo department (model, rig, anim, lighting), version file render và công cụ review frame-by-frame với annotation. Giao diện có bảng spreadsheet, trang detail shot/task và Media Review — ban đầu trông phức tạp, nhưng mỗi entity phục vụ một bước trong quy trình studio chuyên nghiệp.</p>
+  <ul class="arc-list">
+    <li><strong>Shot &amp; asset tracking</strong> — quản lý shot phim, sequence, asset 3D và liên kết task theo department</li>
+    <li><strong>Task &amp; schedule</strong> — giao việc, deadline, dependency giữa các bước pipeline</li>
+    <li><strong>Version &amp; publish</strong> — ghi nhận version file (v001, v002), ai publish, lúc nào</li>
+    <li><strong>Review &amp; approval</strong> — xem render, vẽ note trên frame, approve hoặc request revision</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"Autodesk ShotGrid production tracking interface shot task spreadsheet screenshot"</span>
+    </div>
+    <p class="arc-image-caption">Giao diện ShotGrid — bảng shot/task, version và trạng thái sản xuất</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>ShotGrid đứng ở <strong>lớp quản lý và điều phối</strong>, không thay thế Maya, Nuke hay Houdini: supervisor tạo shot và task → artist nhận việc, publish version từ DCC qua plugin → producer/supervisor review trong ShotGrid → approve hoặc gửi note → artist sửa và publish v002. Tích hợp với RV, Flow Production Tracking (Autodesk) và API cho pipeline TD tự động hóa. Thường làm việc cùng storage studio (Isilon, NAS), render farm và naming convention file thống nhất.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Shot, sequence &amp; asset management</h3>
+    <p>Trọng tâm của ShotGrid là <strong>cấu trúc dự án theo shot và asset</strong>. Một dự phim hoạt hình có thể có hàng nghìn shot chia theo sequence (seq010, seq020); mỗi shot liên kết asset (nhân vật, prop, environment) và task theo pipeline: modeling → rigging → animation → lighting → comp. Producer nhìn dashboard biết shot nào đang trễ, department nào bottleneck.</p>
+    <p>Đối với học sinh THPT, bài tập thực tế hay gặp: mô phỏng tracking cho short film 5 shot trên bảng (hoặc trial ShotGrid) — đặt tên shot theo convention, gán task cho từng thành viên CLB media. Hiểu cấu trúc này giúp bạn không «quên version» khi làm dự án nhóm.</p>
+    <ul class="arc-list">
+      <li><strong>Project hierarchy</strong> — Project → Sequence → Shot → Task</li>
+      <li><strong>Asset linking</strong> — nhân vật/prop dùng chung nhiều shot, track version asset riêng</li>
+      <li><strong>Custom fields</strong> — studio thêm trường frame range, lens, status nội bộ</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"ShotGrid shot sequence hierarchy production spreadsheet view"</span>
+        </div>
+        <p class="arc-image-caption">Cấu trúc shot — sequence, task và trạng thái theo department</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"ShotGrid asset tracking 3D character prop version management"</span>
+        </div>
+        <p class="arc-image-caption">Asset tracking — nhân vật và prop liên kết nhiều shot</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Task assignment, schedule &amp; dependencies</h3>
+    <p>Supervisor và producer dùng ShotGrid để <strong>giao task, đặt deadline và thiết lập dependency</strong>: task lighting không bắt đầu trước khi animation approved; comp chờ lighting publish. Gantt chart và bảng «My Tasks» giúp artist biết ưu tiên hôm nay — thay vì hỏi producer qua chat rời rạc.</p>
+    <p>Trong studio VFX deadline phim, một shot có thể qua 10–20 version — ShotGrid lưu lịch sử ai làm gì, lúc nào, tránh tranh cãi «file cuối cùng là bản nào». Kỹ năng đọc schedule và cập nhật status đúng hạn là điều producer junior và coordinator cần ngay từ đầu.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"ShotGrid task schedule Gantt chart production deadline management"</span>
+      </div>
+      <p class="arc-image-caption">Schedule — task, deadline và dependency giữa các bước pipeline</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Review, version publish &amp; pipeline integration</h3>
+    <p>ShotGrid tích hợp <strong>Media Review</strong> (và RV) để supervisor xem render, vẽ annotation trên frame, ghi note timestamp — artist mở task thấy feedback tập trung một chỗ. Plugin DCC (Maya, Nuke, Houdini) cho phép <strong>publish version</strong> trực tiếp: file tự động đặt tên đúng convention, upload thumbnail và ghi vào ShotGrid.</p>
+    <p>Pipeline TD viết script API ShotGrid để tự động tạo task khi import shot mới, sync với render farm hoặc Slack notification. Luồng điển hình: anim publish playblast → sup review ShotGrid → note «fix foot slide frame 42» → anim sửa → publish v002. Hiểu quy trình này giúp bạn thấy studio lớn vận hành không bằng «gửi file qua USB».</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"ShotGrid media review annotation frame feedback VFX production workflow"</span>
+      </div>
+      <p class="arc-image-caption">Review — annotation trên frame, approve và version history</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai nền tảng hay được đặt cạnh ShotGrid nhất là <strong>ftrack</strong> (mạnh review và scheduling, phổ biến châu Âu) và <strong>Kitsu</strong> (mã nguồn mở, miễn phí, phù hợp studio nhỏ và học tập). Không có câu trả lời «đúng duy nhất» — tùy quy mô studio, ngân sách license và mức độ tùy biến pipeline cần thiết.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">ShotGrid vs ftrack</h3>
+    <p>Cả hai đều là <strong>production tracking chuyên nghiệp</strong> cho VFX và animation. ShotGrid (Autodesk) là tiêu chuẩn tại nhiều studio Mỹ và Hollywood với hệ sinh thái Flow/Autodesk; ftrack nổi bật ở châu Âu với giao diện review trực quan, scheduling linh hoạt và giá license cạnh tranh cho studio vừa. Pipeline concept tương tự: shot, task, version, review.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Autodesk ShotGrid VFX studio production tracking dashboard"</span>
+        </div>
+        <p class="arc-image-caption">ShotGrid — tiêu chuẩn studio lớn, tích hợp Autodesk Flow</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"ftrack production tracking review scheduling interface VFX"</span>
+        </div>
+        <p class="arc-image-caption">ftrack — review và scheduling, phổ biến studio châu Âu</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>ShotGrid mạnh hơn:</strong> adoption rộng tại Hollywood/AAA, API và plugin mature, tích hợp Autodesk stack, tài liệu và community pipeline TD lớn.<br>
+      <strong>ftrack mạnh hơn:</strong> UX review một số team đánh giá nhanh hơn, giá có thể phù hợp studio mid-size, hosting linh hoạt.<br>
+      <strong>Chọn ShotGrid khi:</strong> làm việc tại studio đã chuẩn ShotGrid, mục tiêu VFX/animation quy mô lớn, cần tích hợp Flow Production Tracking.<br>
+      <strong>Chọn ftrack khi:</strong> studio châu Âu hoặc mid-size ưu tiên review/scheduling, hoặc đang so sánh chi phí license tracking.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">ShotGrid vs Kitsu</h3>
+    <p>Kitsu là nền tảng <strong>production tracking mã nguồn mở</strong> (Blender Studio và cộng đồng CG dùng) — miễn phí self-host hoặc cloud trả phí. ShotGrid trả phí license theo user, feature set enterprise và support Autodesk. Kitsu phù hợp studio indie, trường học và dự án học tập; ShotGrid phù hợp khi scale team và client yêu cầu tool industry-standard.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Autodesk ShotGrid enterprise VFX production pipeline tracking"</span>
+        </div>
+        <p class="arc-image-caption">ShotGrid — enterprise tracking cho studio và VFX lớn</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Kitsu open source production tracking animation studio interface"</span>
+        </div>
+        <p class="arc-image-caption">Kitsu — mã nguồn mở, miễn phí cho indie và giáo dục</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>ShotGrid mạnh hơn:</strong> scale enterprise, plugin DCC đa dạng, support chính thức, quen thuộc với recruiter studio lớn.<br>
+      <strong>Kitsu mạnh hơn:</strong> chi phí bằng không (self-host), mã nguồn mở tùy biến, phù hợp short film trường học và studio indie.<br>
+      <strong>Chọn ShotGrid khi:</strong> thực tập/tuyển dụng tại studio dùng ShotGrid, hoặc mục tiêu producer/pipeline tại công ty VFX quy mô lớn.<br>
+      <strong>Chọn Kitsu khi:</strong> CLB animation trường THPT, dự án nhóm cần tracking miễn phí, hoặc học concept production pipeline trước khi vào studio trả phí.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học ShotGrid như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Hiểu production pipeline VFX/animation</strong>
+        <p>Trước khi mở ShotGrid, hãy nắm luồng cơ bản: storyboard → layout → modeling → rigging → animation → lighting → comp → final. Xem video «day in the life» tại studio VFX và đọc glossary (shot, sequence, take, version, publish). Mục tiêu: biết ShotGrid track «công việc và file» chứ không tạo hình ảnh — nền tảng để mọi thuật ngữ trong giao diện có ý nghĩa.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Thử Kitsu hoặc bảng tracking đơn giản</strong>
+        <p>Học sinh THPT có thể cài Kitsu miễn phí (hoặc dùng Google Sheet mô phỏng) cho short film CLB 5 shot: cột shot ID, task, assignee, deadline, status, version. Quen convention đặt tên file (seq010_sh010_anim_v003.ma). Sau khi hiểu concept, chuyển sang xem demo ShotGrid sẽ dễ hơn nhiều — cùng logic, giao diện phong phú hơn.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Khám phá tài liệu và trial ShotGrid</strong>
+        <p>Đọc documentation Autodesk ShotGrid (Getting Started, Entities, Review) và xem video workflow trên YouTube. Nếu có trial hoặc workshop tại sự kiện ngành (SIGGRAPH, animation festival), thử tạo project mẫu: 3 shot, 2 asset, gán task modeling/anim/lighting. Luyện đọc «My Tasks» và cập nhật status — mô phỏng artist hàng ngày.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Học review workflow và version naming</strong>
+        <p>Hiểu cách supervisor review: mở version mới nhất, play frame-by-frame, vẽ arrow/note, đổi status sang «Retake» hoặc «Approved». Artist đọc note, sửa file, publish v002 với comment «fixed foot slide». Đây là kỹ năng mềm quan trọng — giao tiếp feedback rõ ràng qua tool thay vì chat lộn xộn.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Áp dụng cho dự án nhóm thật</strong>
+        <p>Dẫn dắt CLB media hoặc nhóm capstone: dùng Kitsu/Sheet/ShotGrid trial track toàn bộ short 3D 30 giây — ai model, ai animate, deadline tuần nào, file version nào được duyệt. Giai đoạn này dạy producer skills: chia task, theo dõi bottleneck, họp review cuối tuần — giống studio thu nhỏ.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Định hướng nghề và chứng chỉ</strong>
+        <p>Tổng hợp kinh nghiệm tracking vào CV: «Led 5-person short film using Kitsu/ShotGrid-style pipeline». Hướng nghề: Production Coordinator, Junior Producer, Pipeline TD, VFX Producer. Tìm hiểu thực tập tại studio animation/VFX Việt Nam — nhiều nơi dùng ShotGrid hoặc tool tương đương; hiểu concept shot/task/version là lợi thế lớn so với ứng viên chỉ biết Maya mà chưa từng track dự án nhóm có hệ thống.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

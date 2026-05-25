@@ -1,0 +1,209 @@
+<section class="arc-intro">
+  <p>Bạn xem VTuber Nhật–Hàn cười, nghiêng đầu và má phồng theo từng câu thoại — nhân vật trông như tranh anime «sống» chứ không phải sprite đổi khung hình — phía sau thường là <strong>Live2D Cubism</strong>. Công nghệ này biến illustration 2D đã tách layer thành model có thể bẻ khớp, deformation mượt và điều khiển realtime qua webcam hoặc phần mềm stream như VTube Studio.</p>
+  <p>Live2D Cubism không phải phần mềm vẽ nhân vật hay editor video — nó là <strong>engine hoạt hình 2D từ minh họa</strong> do Live2D Inc. (Nhật Bản) phát triển, phổ biến trong VTuber, visual novel, mobile game và mascot anime tại châu Á. Hiểu Live2D giúp bạn không chỉ «biết làm avatar stream» mà nắm được quy trình từ art tĩnh đến model rig, physics và xuất sang Unity hoặc app stream.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>Live2D Cubism là gì?</h2>
+  <p>Live2D Cubism do <strong>Live2D Inc.</strong> phát triển — bộ công cụ <strong>rig và hoạt hình nhân vật 2D</strong> từ file minh họa layered (PSD, PNG). Có hai nhánh chính: <strong>Cubism Editor</strong> (rig model, animation) và <strong>Cubism SDK</strong> (nhúng vào game engine hoặc app). Ban đầu nổi tiếng trong visual novel và idol game Nhật; ngày nay là tiêu chuẩn de facto cho VTuber anime và nhiều dự án media THPT khi cần nhân vật 2.5D chất lượng cao.</p>
+  <p>Khác với hoạt hình frame-by-frame hay puppet vector trong Adobe Character Animator, Live2D dùng <strong>mesh deformation</strong>: mỗi bộ phận (mặt, tóc, tay) được gán lưới tam giác, parameter (góc xoay, độ cong) điều khiển chuyển động mượt mà không cần vẽ lại từng khung. Giao diện Editor có Deformer, Parameter và Animation timeline — ban đầu cần hiểu khái niệm mesh và ArtMesh, nhưng khi rig xong model tái sử dụng được cho stream, game và video hàng năm.</p>
+  <ul class="arc-list">
+    <li><strong>Mesh &amp; Deformer</strong> — tạo lưới trên art, warp mặt, mắt, miệng và tóc theo parameter</li>
+    <li><strong>Parameter &amp; keyframe</strong> — Angle X/Y/Z, Eye Open, Mouth Open; gán vào animation hoặc face tracking</li>
+    <li><strong>Physics</strong> — tóc, váy, phụ kiện lắc theo chuyển động đầu và trọng lực ảo</li>
+    <li><strong>SDK export</strong> — xuất model sang Unity, native app hoặc tích hợp VTube Studio, OBS plugin</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"Live2D Cubism Editor interface mesh rigging parameter screenshot"</span>
+    </div>
+    <p class="arc-image-caption">Giao diện Cubism Editor — mesh, deformer và bảng parameter trên artwork layered</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>Live2D Cubism thường đứng sau giai đoạn <strong>character design và tách layer</strong>: illustrator vẽ nhân vật trong Photoshop/Clip Studio Paint (mỗi bộ phận một layer), rigger import PSD vào Cubism Editor, gán mesh và parameter, rồi bàn giao model cho streamer (VTube Studio), developer game (Unity + Cubism SDK) hoặc animator làm cutscene visual novel. Với video edited, animation export sequence hoặc quay trực tiếp từ app điều khiển. Thường làm việc cùng Photoshop/Clip Studio (art), VTube Studio hoặc OBS (stream), Unity (game) và Premiere (edit composite).</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Rig mesh &amp; deformation 2.5D</h3>
+    <p>Thế mạnh cốt lõi của Live2D là <strong>biến tranh 2D phẳng thành model có chiều sâu ảo</strong>. Bạn import PSD đã tách layer, đặt ArtMesh lên từng phần (tóc trước, tóc sau, mặt, mắt trái/phải, miệng), vẽ mesh tam giác và gán Deformer (Warp, Rotation) để khi xoay đầu, mặt «nghiêng» tự nhiên thay vì chỉ scale ảnh phẳng. Kỹ thuật này tạo cảm giác 2.5D — lý do VTuber anime trông mượt hơn sprite swap đơn giản.</p>
+    <p>Đối với học sinh THPT mới làm quen, bài tập thực tế hay gặp: tải sample model Cubism miễn phí, chỉnh màu tóc/mắt theo OC (original character), thử parameter Angle X trong Editor — vừa hiểu layer vừa làm demo CLB media hoặc stream orientation trường.</p>
+    <ul class="arc-list">
+      <li><strong>ArtMesh &amp; mesh generation</strong> — tạo lưới tam giác trên từng layer art</li>
+      <li><strong>Deformer (Warp / Rotation)</strong> — bẻ khớp mặt, tay và phụ kiện theo parameter</li>
+      <li><strong>Part hierarchy</strong> — sắp xếp thứ tự layer (tóc trước che mặt, tay trước/sau áo)</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Live2D Cubism mesh deformer face rigging viewport"</span>
+        </div>
+        <p class="arc-image-caption">Rig mesh — ArtMesh và deformer trên khuôn mặt nhân vật anime</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Live2D Cubism PSD layered import character parts"</span>
+        </div>
+        <p class="arc-image-caption">Import PSD — layer tách sẵn từ Photoshop hoặc Clip Studio Paint</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Parameter, lip sync &amp; face tracking</h3>
+    <p>Sau khi rig, bạn định nghĩa <strong>Parameter</strong> — ví dụ ParamAngleX, ParamEyeLOpen, ParamMouthOpen — rồi map chúng vào animation keyframe hoặc input từ face tracking (VTube Studio, iFacialMocap, webcam). Lip sync trong Live2D thường dùng bộ viseme (A, I, U, E, O) gán vào miệng; khi streamer nói, miệng nhân vật khớp âm tiết realtime. Head angle parameter cho phép nhân vật nhìn trái/phải/lên/xuống theo chuyển động đầu performer.</p>
+    <p>Chất lượng phụ thuộc rig miệng và calibration tracking — model commission chuyên nghiệp thường có nhiều expression preset (ngạc nhiên, giận, cười) kích hoạt bằng hotkey khi stream game hoặc talk show.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Live2D Cubism parameter lip sync mouth viseme animation"</span>
+      </div>
+      <p class="arc-image-caption">Parameter &amp; lip sync — viseme miệng và biểu cảm khuôn mặt theo input</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Physics, SDK &amp; triển khai VTuber/game</h3>
+    <p>Live2D hỗ trợ <strong>Physics</strong> — gán pendulum cho tóc, váy, tai mèo, dây chuyền để chuyển động lắc theo đầu và trọng lực ảo, tăng cảm giác «sống» mà không cần animate tay. Khi hoàn thiện, model export sang <strong>Cubism SDK for Unity</strong> cho visual novel/mobile game, hoặc file .model3.json cho VTube Studio và các app stream phổ biến trong cộng đồng VTuber.</p>
+    <p>Luồng làm việc điển hình: art PSD → rig Cubism Editor → test parameter → export → VTube Studio + OBS stream YouTube, hoặc nhúng Unity cho game dialogue. Hiểu quy trình này giúp bạn phân vai rõ: ai vẽ, ai rig, ai perform — kỹ năng team project THPT hay indie game 2D.</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Live2D VTuber VTube Studio OBS stream workflow Unity SDK"</span>
+      </div>
+      <p class="arc-image-caption">Triển khai — Cubism model trong VTube Studio, OBS stream hoặc Unity game</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai hướng hay được đặt cạnh Live2D Cubism là <strong>Adobe Character Animator</strong> (puppet 2D realtime trong Creative Cloud) và <strong>Spine</strong> (2D skeletal animation cho game). Không có câu trả lời «đúng duy nhất» — tùy bạn hướng tới VTuber anime, mascot corporate hay game 2D sprite/skeletal.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Live2D vs Character Animator</h3>
+    <p>Character Animator biến art layered Illustrator/PSD thành puppet điều khiển bằng webcam — mạnh cho mascot vector, talk show và creator đã có Creative Cloud. Live2D Cubism chuyên <strong>deformation mesh anime</strong>, aesthetic VTuber chuẩn Nhật–Hàn và ecosystem model commission khổng lồ. CHA rig nhanh hơn với art phẳng; Live2D đòi hỏi mesh rig kỹ hơn nhưng chuyển động mặt/tóc mượt hơn cho style anime.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Live2D Cubism VTuber anime avatar deformation stream"</span>
+        </div>
+        <p class="arc-image-caption">Live2D — deformation 2.5D, aesthetic anime và cộng đồng VTuber</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Adobe Character Animator puppet webcam corporate mascot"</span>
+        </div>
+        <p class="arc-image-caption">Character Animator — puppet vector, Adobe stack và mascot giáo dục</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Live2D mạnh hơn:</strong> deformation anime chuẩn, physics tóc/váy, ecosystem VTuber (VTube Studio, model shop), nhúng Unity cho visual novel/game dialogue.<br>
+      <strong>Character Animator mạnh hơn:</strong> tích hợp Illustrator/Photoshop/Premiere, rig nhanh không cần mesh, phù hợp mascot phương Tây và talk show animation.<br>
+      <strong>Chọn Live2D khi:</strong> hướng VTuber anime, visual novel, game 2D dialogue hoặc OC style manga/manhwa.<br>
+      <strong>Chọn Character Animator khi:</strong> đã có Creative Cloud, art vector/PSD, mục tiêu giáo dục/corporate stream nhanh.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Live2D vs Spine</h3>
+    <p>Spine (Esoteric Software) là công cụ <strong>skeletal 2D animation</strong> cho game: gắn bone lên sprite, skin mesh, animate walk/jump/attack — xuất JSON/binary cho Unity, Godot, Cocos. Live2D cũng có bone nhưng tập trung <strong>deformation từ illustration</strong> và face/body realtime cho VTuber hơn là combat animation loop. Studio game mobile 2D hay chọn Spine cho nhân vật chibi/action; visual novel và VTuber hay chọn Live2D cho portrait và biểu cảm mặt.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Live2D Cubism visual novel character portrait dialogue"</span>
+        </div>
+        <p class="arc-image-caption">Live2D — portrait, biểu cảm mặt và visual novel dialogue</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Spine 2D skeletal animation game character bones"</span>
+        </div>
+        <p class="arc-image-caption">Spine — skeletal animation cho nhân vật game 2D action/platformer</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Live2D mạnh hơn:</strong> deformation mặt anime, VTuber/stream workflow, visual novel aesthetic, physics tóc/váy từ một bức illustration.<br>
+      <strong>Spine mạnh hơn:</strong> animation body/action (chạy, nhảy, đánh), IK chân tay cho game, runtime nhẹ và tích hợp engine game 2D rộng rãi.<br>
+      <strong>Chọn Live2D khi:</strong> nhân vật nói chuyện, stream, visual novel hoặc mobile game góc dialogue.<br>
+      <strong>Chọn Spine khi:</strong> game 2D cần animation full body, combat, platformer hoặc side-scroller.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học Live2D Cubism như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Hiểu layer art và tải Cubism Editor</strong>
+        <p>Tuần đầu hãy xem cách illustrator tách layer (mặt, mắt, miệng, tóc trước/sau) trong Photoshop hoặc Clip Studio Paint — rig Live2D phụ thuộc art sạch. Tải Cubism Editor (có bản FREE cho học tập), mở sample model đi kèm và xoay parameter Angle X/Y trong viewport. Mục tiêu là hiểu «art tĩnh + mesh = model sống» trước khi tự rig.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Rig mesh cơ bản trên khuôn mặt</strong>
+        <p>Import PSD đơn giản (hoặc sample), tạo ArtMesh, vẽ mesh tam giác trên mặt và mắt, gán Warp Deformer để thử nghiêng đầu. Luyện đặt tên part và thứ tự layer che phủ. Thường 2–3 tuần luyện đều sẽ quen thao tác mesh — bước khó nhất với người mới chỉ quen vẽ minh họa.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Parameter, miệng &amp; biểu cảm</strong>
+        <p>Tạo parameter miệng (Mouth Open, form A/I/U/E/O), mắt nhắm/mở và lông mày. Keyframe animation ngắn «nói chào» hoặc «ngạc nhiên» trong Editor. Nếu có webcam, thử load model vào VTube Studio miễn phí để cảm nhận face tracking — cầu nối giữa rig kỹ thuật và perform thực tế.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Physics tóc &amp; phụ kiện</strong>
+        <p>Gán Physics setting cho tóc, ribbon hoặc tai — chỉnh gravity, resistance để chuyển động tự nhiên khi lắc đầu. Bài tập THPT hay làm: thêm physics cho tóc OC và quay clip 10 giây so sánh trước/sau — thấy rõ giá trị «polish» của rig hoàn chỉnh.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Stream hoặc nhúng Unity</strong>
+        <p>Chọn một hướng: export sang VTube Studio + OBS làm buổi stream demo 5 phút cho CLB; hoặc import Cubism SDK vào Unity, hiển thị nhân vật dialogue trong scene visual novel đơn giản. Giai đoạn này dạy bạn pipeline end-to-end — không dừng ở file .cmo3 trong Editor.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Portfolio và định hướng nghề</strong>
+        <p>Tổng hợp 2–3 work: clip stream VTuber, animation expression reel, hoặc scene Unity dialogue. Đăng YouTube, Booth portfolio hoặc ArtStation — ghi rõ vai trò (art / rig / perform). Tìm hiểu commission model Live2D, studio visual novel hoặc nhóm VTuber indie; nhiều rigger bắt đầu từ rig sample miễn phí rồi nhận job OC từ cộng đồng.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

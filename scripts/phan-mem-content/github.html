@@ -1,0 +1,209 @@
+<section class="arc-intro">
+  <p>Bạn vào trang GitHub của một game indie, thấy hàng trăm commit, nhánh feature và pull request được review — đó là cách team dev phân tán trên toàn cầu cùng làm một dự án mà không ghi đè code lẫn nhau. <strong>GitHub</strong> là nền tảng hosting Git lớn nhất thế giới: lưu mã nguồn, theo dõi lịch sử thay đổi, cộng tác qua pull request và tự động hóa build/test bằng GitHub Actions.</p>
+  <p>GitHub không phải ngôn ngữ lập trình — nó là <strong>công cụ quản lý phiên bản và cộng tác</strong> xoay quanh Git. Hiểu GitHub giúp học sinh THPT làm dự án nhóm (web, game, app), xây portfolio code công khai và chuẩn bị cho môi trường làm việc thực tế nơi «biết Git» thường là yêu cầu tối thiểu dù bạn frontend, backend hay game programmer.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>GitHub là gì?</h2>
+  <p>GitHub do <strong>GitHub Inc.</strong> (thuộc Microsoft từ 2018) vận hành — <strong>nền tảng cloud cho repository Git</strong>, truy cập qua web, desktop app và CLI trên Windows, macOS, Linux. Git (phần mềm local) do Linus Torvalds tạo ra để quản lý mã nguồn Linux; GitHub thêm giao diện web, social coding và tích hợp CI/CD.</p>
+  <p>Khác với lưu file trên Google Drive hay gửi ZIP qua Zalo, GitHub lưu <strong>từng commit</strong> — snapshot có message mô tả thay đổi, ai sửa, khi nào. Branch cho phép làm tính năng mới song song; merge/pull request gộp code sau khi review. Giao diện có repo file tree, Issues, Pull Requests và Actions tab — ban đầu trông kỹ thuật, nhưng workflow cơ bản (clone → edit → commit → push) học được trong vài buổi.</p>
+  <ul class="arc-list">
+    <li><strong>Repository &amp; version history</strong> — lưu code, docs, asset text; xem diff từng dòng thay đổi</li>
+    <li><strong>Branch &amp; pull request</strong> — làm việc nhóm, code review trước khi merge vào main</li>
+    <li><strong>Issues &amp; Projects</strong> — theo dõi bug, task và kanban board cho dự án nhóm</li>
+    <li><strong>GitHub Actions &amp; Pages</strong> — CI/CD tự động; host website tĩnh miễn phí từ repo</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"GitHub repository interface pull request code review screenshot"</span>
+    </div>
+    <p class="arc-image-caption">Giao diện GitHub — repository, commit history và pull request review</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>GitHub thường đứng ở <strong>toàn bộ vòng đời phát triển phần mềm</strong>: dev clone repo, tạo branch feature/login, commit từng bước nhỏ, mở PR để teammate review; sau merge, Actions chạy test và deploy lên Vercel/Netlify hoặc server. Với học sinh THPT, GitHub là nơi nộp bài nhóm CS, showcase game Unity/Godot (public repo + README + GIF demo) và tham gia open source. Thường làm việc cùng VS Code/Cursor, Discord (trao đổi nhanh) và Figma (link issue) — GitHub là «nguồn sự thật» cho code.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Git cơ bản: commit, branch và remote</h3>
+    <p>Nền tảng của GitHub là <strong>Git local trên máy bạn</strong>. Sau khi cài Git, bạn clone repo về, sửa file, dùng git add và git commit để lưu snapshot kèm message rõ ràng («fix player jump height», «add login form»). Branch (ví dụ feature/enemy-ai) tách dòng phát triển khỏi main; git push đẩy lên GitHub để người khác thấy.</p>
+    <p>Đối với học sinh THPT mới làm quen, thói quen tốt ngay từ đầu: commit nhỏ, message tiếng Việt hoặc Anh mô tả «why», không commit file .env chứa password — bài học bảo mật thực tế mà nhiều junior dev từng mắc phải.</p>
+    <ul class="arc-list">
+      <li><strong>clone / pull / push</strong> — đồng bộ code giữa máy local và remote GitHub</li>
+      <li><strong>branch &amp; merge</strong> — làm tính năng riêng, gộp khi xong và test</li>
+      <li><strong>.gitignore</strong> — loại trừ node_modules, build folder khỏi repo</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Git commit history branch graph GitHub repository"</span>
+        </div>
+        <p class="arc-image-caption">Commit history — branch graph và message mô tả thay đổi</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"VS Code Git integration commit push terminal"</span>
+        </div>
+        <p class="arc-image-caption">VS Code Git — stage, commit và push từ editor</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Pull request, code review và cộng tác nhóm</h3>
+    <p>Pull Request (PR) là <strong>đề xuất merge branch</strong> kèm mô tả thay đổi, screenshot và link issue. Teammate comment từng dòng code, yêu cầu sửa trước khi approve — mô phỏng quy trình studio thật. Với dự án học sinh 3–5 người, PR tránh tình trạng «bạn A sửa xong bạn B ghi đè mất cả tuần».</p>
+    <p>Issues gán task («Implement shop UI», «Fix collision bug #12»); Projects board kéo thả cột Todo/In Progress/Done. README.md trong repo giải thích cách cài và chạy project — recruiter và giáo viên đọc đầu tiên khi mở link portfolio.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"GitHub pull request code review comment diff lines"</span>
+      </div>
+      <p class="arc-image-caption">Pull request — diff code, comment review và approve merge</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. GitHub Actions, Pages và portfolio dev</h3>
+    <p>GitHub Actions chạy <strong>workflow tự động</strong> khi push hoặc mở PR: chạy test, lint, build và deploy. Ví dụ push lên main → Actions build Next.js → deploy Vercel. GitHub Pages host site tĩnh miễn phí từ branch gh-pages — phù hợp portfolio HTML/CSS hoặc documentation project.</p>
+    <p>Profile README (repo trùng tên username) là «landing page» dev: badge, link project, stats commit. Học sinh THPT có 2–3 repo public sạch sẽ (game jam, web app trường) thường nổi bật hơn CV dài mà không có link code khi ứng tuyển internship IT.</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"GitHub Actions CI CD workflow deploy pipeline screenshot"</span>
+      </div>
+      <p class="arc-image-caption">GitHub Actions — workflow CI/CD tự động test và deploy</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai nền tảng hay được đặt cạnh GitHub nhất là <strong>GitLab</strong> (self-host, DevOps tích hợp) và <strong>Bitbucket</strong> (Atlassian, gắn Jira). Cả ba đều dùng Git — khác nhau ở ecosystem, giá và văn hóa cộng đồng open source.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">GitHub vs GitLab</h3>
+    <p>GitLab cung cấp <strong>DevOps all-in-one</strong>: Git repo, CI/CD built-in mạnh, container registry, security scan — nhiều doanh nghiệp self-host GitLab trên server riêng. GitHub thắng ở cộng đồng open source toàn cầu, Copilot tích hợp, Actions marketplace và là nơi recruiter tìm profile dev phổ biến nhất.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"GitHub open source repository stars contributors interface"</span>
+        </div>
+        <p class="arc-image-caption">GitHub — cộng đồng open source và social coding</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"GitLab DevOps pipeline CI CD merge request interface"</span>
+        </div>
+        <p class="arc-image-caption">GitLab — DevOps pipeline và self-hosted enterprise</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>GitHub mạnh hơn:</strong> ecosystem open source lớn nhất, portfolio visibility, tích hợp VS Code/Copilot, free tier hào phóng cho public repo.<br>
+      <strong>GitLab mạnh hơn:</strong> CI/CD và DevOps tích hợp sâu, self-host miễn phí (Community Edition), phù hợp công ty cần kiểm soát data on-premise.<br>
+      <strong>Chọn GitHub khi:</strong> học sinh, indie dev, open source và portfolio công khai — tiêu chuẩn de facto.<br>
+      <strong>Chọn GitLab khi:</strong> công ty deploy GitLab nội bộ hoặc cần DevOps pipeline enterprise trên một nền tảng.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">GitHub vs Bitbucket</h3>
+    <p>Bitbucket (Atlassian) tích hợp chặt với <strong>Jira và Confluence</strong> — team agile đã dùng Atlassian stack thường chọn Bitbucket cho private repo. GitHub có Jira integration nhưng Bitbucket «native» hơn trong ecosystem đó. Bitbucket free cho team nhỏ private; GitHub free unlimited public + private repo cá nhân.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"GitHub profile README portfolio developer projects"</span>
+        </div>
+        <p class="arc-image-caption">GitHub — profile README và showcase project công khai</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Bitbucket Jira integration pull request Atlassian workflow"</span>
+        </div>
+        <p class="arc-image-caption">Bitbucket — tích hợp Jira cho team agile Atlassian</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>GitHub mạnh hơn:</strong> cộng đồng, tutorial, job market recognition, Actions/Packages ecosystem.<br>
+      <strong>Bitbucket mạnh hơn:</strong> liên kết Jira issue ↔ commit/PR tự nhiên, quen thuộc với team software đã trả phí Atlassian.<br>
+      <strong>Chọn GitHub khi:</strong> cá nhân, học tập, open source — gần như mặc định cho THPT và sinh viên.<br>
+      <strong>Chọn Bitbucket khi:</strong> internship/công ty bắt buộc Atlassian stack — học Git workflow tương tự, chỉ đổi UI.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học GitHub như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Tạo tài khoản và repo đầu tiên</strong>
+        <p>Đăng ký github.com, tạo repo public «hello-portfolio» với README. Clone về máy (HTTPS hoặc SSH), mở bằng VS Code, sửa README, commit và push. Mục tiêu là hoàn thành vòng clone → edit → commit → push một lần — nhiều bạn THPT sợ terminal nhưng VS Code Source Control panel làm được hầu hết thao tác GUI.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Branch, merge và xử lý conflict cơ bản</strong>
+        <p>Tạo branch add-feature, sửa file, merge vào main qua PR trên web (kể cả solo project để luyện thói quen). Cố ý tạo conflict đơn giản (hai branch sửa cùng dòng) và học git merge / resolve conflict. Thường 1–2 tuần sẽ tự tin hơn khi làm nhóm không panic khi Git báo conflict.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Dự án nhóm: Issues, PR review và quy ước</strong>
+        <p>Với team 2–4 người (web trường, game jam), thống nhất: ai làm branch gì, ai review PR, dùng Issues gán task. Viết CONTRIBUTING.md ngắn: cách chạy project, naming branch (feature/..., fix/...). Mục tiêu là simulate studio nhỏ — communication quan trọng không kém code.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>README chuyên nghiệp và GitHub Pages</strong>
+        <p>Viết README có: mô tả dự án, screenshot/GIF, hướng dẫn install, tech stack, link demo. Bật GitHub Pages cho site tĩnh hoặc link Vercel trong README. Portfolio dev bắt đầu từ README tốt — recruiter spend 30 giây đầu ở đó.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>GitHub Actions cơ bản và bảo mật</strong>
+        <p>Thêm workflow YAML chạy npm test hoặc build khi push; học không commit secret — dùng GitHub Secrets cho API key. Kiểm tra Dependabot alert cho dependency lỗi bảo mật. Đây là bước nâng portfolio từ «có code» lên «có quy trình chuyên nghiệp».</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Đóng góp open source và định hướng nghề</strong>
+        <p>Fork repo nhỏ (docs fix, typo, translation), mở PR lên project open source — kinh nghiệm review thật. Pin 3–6 repo tốt nhất trên profile; thêm GitHub link vào CV/LinkedIn. Tìm hiểu GitHub Student Developer Pack (miễn phí tool cho học sinh). Dù sau này công ty dùng GitLab/Bitbucket, kỹ năng Git + workflow PR là transferable — đầu tư GitHub hôm nay trả lãi suốt sự nghiệp dev.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

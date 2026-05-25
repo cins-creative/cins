@@ -192,7 +192,7 @@ export function NgheLayoutStatic({
               <div className="nghe-lead-panel" data-rich-lead-slot="true">
                 {leadVid ? <NgheLeadVideo url={leadVid} /> : null}
                 {leadTrim ? (
-                  <NgheLeadRich source={leadTrim} />
+                  <NgheLeadRich html={leadTrim} />
                 ) : (
                   <div
                     className="nghe-lead-rich article-rich-content article-content-html"

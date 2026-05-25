@@ -8,8 +8,9 @@ export function CareerHubRailIcon({ theme }: { theme: RailGroupTheme }) {
     case "g-design":
       return (
         <svg viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth={sw} aria-hidden>
-          <path d="M3 3l7 17 2-7 7-2L3 3z" />
-          <path d="M13.5 13.5l5.5 5.5" />
+          <path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4z" />
+          <path d="M14 14h2v2h-2zM18 14h2v6h-2zM14 18h2v2h-2z" />
+          <path d="M18 18h2v2h-2z" />
         </svg>
       );
     case "g-film":
@@ -23,11 +24,11 @@ export function CareerHubRailIcon({ theme }: { theme: RailGroupTheme }) {
     case "g-art":
       return (
         <svg viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth={sw} aria-hidden>
-          <path d="M12 3v3M6.5 6.5l2 2M17.5 6.5l-2 2" />
-          <circle cx="12" cy="13" r="6" />
-          <circle cx="9.5" cy="12" r="1" fill="currentColor" stroke="none" />
-          <circle cx="14" cy="15" r="1" fill="currentColor" stroke="none" />
-          <circle cx="12.5" cy="10.5" r="1" fill="currentColor" stroke="none" />
+          <path d="M12 3c-1.5 3-4.5 4.5-7 5 2.5.5 5 2 7 5-2-3-4.5-4.5-7-5 2.5-.5 5.5-2 7-5z" />
+          <path d="M5 20c2-2 4.5-3 7-3s5 1 7 3" strokeLinecap="round" />
+          <circle cx="8" cy="11" r="1.2" fill="currentColor" stroke="none" />
+          <circle cx="12" cy="9" r="1.2" fill="currentColor" stroke="none" />
+          <circle cx="15.5" cy="12" r="1.2" fill="currentColor" stroke="none" />
         </svg>
       );
     case "g-arch":

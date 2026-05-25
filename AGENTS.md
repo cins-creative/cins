@@ -1,3 +1,16 @@
+# CINs Website — hướng dẫn cho agent
+
+## Ngữ cảnh dự án (đọc trước)
+
+**Nguồn chính:** [`docs/CINS_INSTRUCTION.md`](./docs/CINS_INSTRUCTION.md) — **Schema / instruction v5** (product, DB 61+ bảng, naming, enum, quy tắc kiến trúc, ghi chú triển khai site).
+
+- Repo này là **frontend Next.js** của CINs (trang chủ, ngành học, trường đại học, nghề nghiệp, bài viết, …), không phải toàn bộ backend.
+- Khi user gửi file instruction mới (**v6, v7, v8, …**): cập nhật `docs/CINS_INSTRUCTION.md` (đổi số version ở đầu file, merge nội dung mới; không bỏ phần implementation site trừ khi user yêu cầu thay thế).
+- SQL grant / RLS mẫu: `supabase/sql/`. Query trường–ngành: `lib/truong/`, `lib/nganh/`.
+- Map trang trường (component tree, seed UUID, fetch patterns): [`docs/cursor_map_truong.md`](./docs/cursor_map_truong.md).
+
+## Next.js (repo này)
+
 <!-- BEGIN:nextjs-agent-rules -->
 # This is NOT the Next.js you know
 

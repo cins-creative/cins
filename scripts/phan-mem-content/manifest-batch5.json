@@ -1,0 +1,182 @@
+[
+  {
+    "id": "9901e3c7-21b9-4f59-a028-2422e856118f",
+    "slug": "clip-studio-paint",
+    "tieu_de_viet": "Clip Studio Paint — Vẽ manga &amp; truyện tranh",
+    "tom_tat": "Phần mềm vẽ và làm truyện tranh — nét bút, khung trang, tô màu và xuất bản webtoon/manga cho họa sĩ và fancomic.",
+    "meta_title": "Clip Studio Paint là gì? Vẽ manga, giá và hướng dẫn | CINS",
+    "meta_description": "Clip Studio Paint: pen tool, panel, 3D ref, animation. So sánh Procreate, Photoshop và lộ trình học vẽ truyện.",
+    "meta": {
+      "nha_phat_hanh": "CELSYS",
+      "version": "3",
+      "platform": ["Windows", "macOS", "iPad", "iPhone", "Android"],
+      "website": "https://www.clipstudio.net",
+      "goi_mien_phi": "Dùng thử 3 tháng · EX/PRO",
+      "gia_thanh": "Từ ~50 USD một lần (Pro) · thuê bao EX",
+      "hinh_thuc_mua": "Mua một lần · thuê bao",
+      "link_tai": "https://www.clipstudio.net/en/download"
+    }
+  },
+  {
+    "id": "31d041b3-a9da-4fb2-b010-682eedd368e7",
+    "slug": "clo-3d",
+    "tieu_de_viet": "CLO 3D — Thiết kế thời trang 3D",
+    "tom_tat": "Phần mềm may ảo và mô phỏng vải — pattern, draping, render lookbook cho nhà thiết kế thời trang và game/3D.",
+    "meta_title": "CLO 3D là gì? Thiết kế thời trang, giá và hướng dẫn | CINS",
+    "meta_description": "CLO 3D: pattern, simulation, avatar. So sánh Marvelous Designer, Browzwear và lộ trình học fashion 3D.",
+    "meta": {
+      "nha_phat_hanh": "CLO Virtual Fashion",
+      "version": "2024",
+      "platform": ["Windows", "macOS"],
+      "website": "https://www.clo3d.com",
+      "goi_mien_phi": "Dùng thử 30 ngày",
+      "gia_thanh": "Từ ~50 USD/tháng (Personal)",
+      "hinh_thuc_mua": "Thuê bao tháng · giáo dục",
+      "link_tai": "https://www.clo3d.com/en/download"
+    }
+  },
+  {
+    "id": "e9581666-d597-4aa7-8962-96cc2bc26884",
+    "slug": "construct-3",
+    "tieu_de_viet": "Construct 3 — Làm game 2D không cần code",
+    "tom_tat": "Engine game 2D trên trình duyệt — event sheet, export HTML5/mobile, phù hợp học sinh và indie làm platformer, puzzle.",
+    "meta_title": "Construct 3 là gì? Game 2D, giá và hướng dẫn học | CINS",
+    "meta_description": "Construct 3: no-code, event sheet, export web. So sánh GameMaker, Unity 2D và lộ trình làm game đầu tiên.",
+    "meta": {
+      "nha_phat_hanh": "Scirra",
+      "version": "r380+",
+      "platform": ["Web", "Windows", "macOS"],
+      "website": "https://www.construct.net",
+      "goi_mien_phi": "Gói Free giới hạn",
+      "gia_thanh": "Từ ~12 USD/tháng (Personal)",
+      "hinh_thuc_mua": "Thuê bao tháng · giáo dục",
+      "link_tai": "https://www.construct.net/en/make-games/buy-construct"
+    }
+  },
+  {
+    "id": "3afa4b0f-ae32-43c0-a5f0-836f95560799",
+    "slug": "coreldraw",
+    "tieu_de_viet": "CorelDRAW — Thiết kế vector chuyên nghiệp",
+    "tom_tat": "Suite vector và layout — logo, in ấn, signage và minh họa; phổ biến trong in offset và thiết kế đồ họa tại Việt Nam.",
+    "meta_title": "CorelDRAW là gì? Vector, giá và hướng dẫn học | CINS",
+    "meta_description": "CorelDRAW: vector, page layout, in ấn. So sánh Illustrator, Affinity Designer và lộ trình học thiết kế in.",
+    "meta": {
+      "nha_phat_hanh": "Corel",
+      "version": "2024",
+      "platform": ["Windows", "macOS"],
+      "website": "https://www.coreldraw.com",
+      "goi_mien_phi": "Dùng thử 15 ngày",
+      "gia_thanh": "Từ ~249 USD/năm hoặc perpetual",
+      "hinh_thuc_mua": "Thuê bao năm · mua một lần",
+      "link_tai": "https://www.coreldraw.com/en/product/coreldraw"
+    }
+  },
+  {
+    "id": "21ea90fa-c1f5-474a-a161-a7cf6477e73a",
+    "slug": "corona",
+    "tieu_de_viet": "Corona Renderer — Render kiến trúc &amp; archviz",
+    "tom_tat": "Engine render unbiased — plugin cho 3ds Max, Cinema 4D, tạo ảnh nội thất/ngoại thất chân thực với workflow đơn giản.",
+    "meta_title": "Corona Renderer là gì? Render 3D, giá và hướng dẫn | CINS",
+    "meta_description": "Corona: archviz, Light Mix, denoising. So sánh V-Ray, Enscape và luồng render nội thất.",
+    "meta": {
+      "nha_phat_hanh": "Chaos (Corona)",
+      "version": "12",
+      "platform": ["Windows"],
+      "website": "https://corona-renderer.com",
+      "goi_mien_phi": "Dùng thử 45 ngày",
+      "gia_thanh": "Từ ~35 EUR/tháng hoặc ~590 EUR/năm",
+      "hinh_thuc_mua": "Thuê bao · giáo dục",
+      "link_tai": "https://corona-renderer.com/download"
+    }
+  },
+  {
+    "id": "baafc4bb-23f9-4497-a430-5e5f99b6da2a",
+    "slug": "creative-cloud",
+    "tieu_de_viet": "Adobe Creative Cloud — Bộ ứng dụng sáng tạo",
+    "tom_tat": "Gói đăng ký Adobe — Photoshop, Premiere, Illustrator, After Effects và cloud sync cho designer, editor và creator.",
+    "meta_title": "Adobe Creative Cloud là gì? Gói app, giá và hướng dẫn | CINS",
+    "meta_description": "Creative Cloud: All Apps, Single App, giáo dục. So sánh mua lẻ Affinity, DaVinci và chọn gói phù hợp.",
+    "meta": {
+      "nha_phat_hanh": "Adobe",
+      "version": "2024",
+      "platform": ["Windows", "macOS", "iOS", "Android", "Web"],
+      "website": "https://www.adobe.com/creativecloud.html",
+      "goi_mien_phi": "Dùng thử 7 ngày · giáo dục giảm giá",
+      "gia_thanh": "Từ ~55 USD/tháng (All Apps)",
+      "hinh_thuc_mua": "Thuê bao tháng · giáo dục",
+      "link_tai": "https://www.adobe.com/creativecloud/plans.html"
+    }
+  },
+  {
+    "id": "2213b29d-7833-4651-9d8f-022853e43655",
+    "slug": "cryengine",
+    "tieu_de_viet": "CryEngine — Engine game 3D AAA",
+    "tom_tat": "Game engine 3D với đồ họa cao — sandbox level design, physics và render cho FPS, open world (hiện Crytek hỗ trợ hạn chế).",
+    "meta_title": "CryEngine là gì? Game 3D, giá và hướng dẫn học | CINS",
+    "meta_description": "CryEngine: Sandbox, CE 5, graphics. So sánh Unreal Engine, Unity và lộ trình học game 3D.",
+    "meta": {
+      "nha_phat_hanh": "Crytek",
+      "version": "5",
+      "platform": ["Windows"],
+      "website": "https://www.cryengine.com",
+      "goi_mien_phi": "Miễn phí · royalty theo doanh thu",
+      "gia_thanh": "Miễn phí (royalty)",
+      "hinh_thuc_mua": "Miễn phí · royalty",
+      "link_tai": "https://www.cryengine.com/download"
+    }
+  },
+  {
+    "id": "da7d5b95-c5b0-4b42-94ee-060f0914fc9c",
+    "slug": "cubase",
+    "tieu_de_viet": "Cubase — DAW sản xuất âm nhạc",
+    "tom_tat": "Digital Audio Workstation của Steinberg — ghi nhạc, MIDI, mix và master cho producer, band và nhạc phim.",
+    "meta_title": "Cubase là gì? DAW, giá và hướng dẫn học | CINS",
+    "meta_description": "Cubase: MIDI, VariAudio, VST. So sánh Logic Pro, Ableton Live và lộ trình học sản xuất nhạc.",
+    "meta": {
+      "nha_phat_hanh": "Steinberg (Yamaha)",
+      "version": "14",
+      "platform": ["Windows", "macOS"],
+      "website": "https://www.steinberg.net/cubase",
+      "goi_mien_phi": "Cubase LE đi kèm phần cứng",
+      "gia_thanh": "Từ ~99 EUR (Elements) · ~580 EUR (Pro)",
+      "hinh_thuc_mua": "Mua một lần · nâng cấp",
+      "link_tai": "https://www.steinberg.net/cubase"
+    }
+  },
+  {
+    "id": "610b898f-13ac-4e28-91e8-e75e0087fcc5",
+    "slug": "dall-e",
+    "tieu_de_viet": "DALL·E — AI tạo ảnh từ mô tả văn bản",
+    "tom_tat": "Mô hình AI của OpenAI — sinh hình minh họa, concept art và asset từ prompt; tích hợp ChatGPT và API cho creator.",
+    "meta_title": "DALL·E là gì? AI image, giá và hướng dẫn dùng | CINS",
+    "meta_description": "DALL·E 3: prompt, edit, style. So sánh Midjourney, Stable Diffusion và quy trình dùng AI có trách nhiệm.",
+    "meta": {
+      "nha_phat_hanh": "OpenAI",
+      "version": "3",
+      "platform": ["Web", "API"],
+      "website": "https://openai.com/dall-e-3",
+      "goi_mien_phi": "Giới hạn qua ChatGPT Free",
+      "gia_thanh": "Theo credit ChatGPT Plus / API",
+      "hinh_thuc_mua": "Thuê bao · pay-per-use API",
+      "link_tai": "https://chat.openai.com"
+    }
+  },
+  {
+    "id": "02223ec7-124d-40e2-b32c-35cbf7ce6a41",
+    "slug": "davinci-resolve",
+    "tieu_de_viet": "DaVinci Resolve — Dựng phim &amp; color grading",
+    "tom_tat": "Suite hậu kỳ all-in-one của Blackmagic — edit, color, Fusion VFX, Fairlight audio; bản Free mạnh, Studio trả phí.",
+    "meta_title": "DaVinci Resolve là gì? Edit, color và hướng dẫn học | CINS",
+    "meta_description": "Resolve: Edit, Color, Fusion, Fairlight. So sánh Premiere Pro, Final Cut và lộ trình học dựng phim.",
+    "meta": {
+      "nha_phat_hanh": "Blackmagic Design",
+      "version": "19",
+      "platform": ["Windows", "macOS", "Linux"],
+      "website": "https://www.blackmagicdesign.com/products/davinciresolve",
+      "goi_mien_phi": "DaVinci Resolve Free đầy đủ tính năng cơ bản",
+      "gia_thanh": "Studio ~295 USD một lần",
+      "hinh_thuc_mua": "Miễn phí · mua một lần (Studio)",
+      "link_tai": "https://www.blackmagicdesign.com/products/davinciresolve"
+    }
+  }
+]

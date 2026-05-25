@@ -1,0 +1,211 @@
+<section class="arc-intro">
+  <p>Bạn xem behind-the-scenes phim bom tấn thấy diễn viên mặc suit đốm trắng trong phòng tối đầy camera hồng ngoại — vài giờ sau, quái vật CGI bước đi, đánh nhau khớp từng cử động người thật. Phần mềm điều phối camera và ghi nhận chuyển động đó thường là <strong>OptiTrack Motive</strong>, bộ não của hệ thống motion capture optical do <strong>NaturalPoint / OptiTrack</strong> (Motive) phát triển.</p>
+  <p>Motive không phải công cụ dựng hình 3D hay animate keyframe tay — nó thu, hiệu chỉnh và xuất dữ liệu <strong>marker 3D</strong> từ camera optical, rồi bàn giao sang MotionBuilder, Maya hoặc Unreal Engine. Với học sinh THPT hướng tới game AAA, phim VFX hoặc nghiên cứu sinh học chuyển động, hiểu Motive giúp bạn thấy cách chuyển động người thật trở thành animation sản phẩm thương mại.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>OptiTrack Motive là gì?</h2>
+  <p>OptiTrack Motive là phần mềm <strong>motion capture optical</strong> — thu và xử lý dữ liệu chuyển động từ hệ camera hồng ngoại OptiTrack (Prime, Slim, Flex) bao quanh volume capture. Ban đầu phổ biến trong game AAA, phim VFX và phòng lab nghiên cứu; ngày nay vẫn là tiêu chuẩn ngành khi studio cần độ chính xác cao, nhiều performer cùng lúc và tích hợp pipeline chuyên nghiệp.</p>
+  <p>Khác với suit cảm biến inertial (Rokoko, Xsens) hoặc webcam AI, Motive dùng <strong>passive markers</strong> phản chiếu hồng ngoại — camera theo dõi vị trí 3D marker theo thời gian thực. Giao diện có viewport 3D volume, bảng camera calibration, skeleton solve và timeline take — ban đầu trông kỹ thuật, nhưng mỗi module phục vụ một bước trong pipeline mocap studio chuyên nghiệp.</p>
+  <ul class="arc-list">
+    <li><strong>Camera calibration</strong> — hiệu chỉnh vị trí và hướng từng camera trong volume capture 3D</li>
+    <li><strong>Real-time tracking</strong> — theo dõi marker và rigid body (prop, vũ khí) ở tốc độ cao</li>
+    <li><strong>Skeleton solve</strong> — gán marker lên skeleton người, tạo chuyển động xương tự động</li>
+    <li><strong>Export pipeline</strong> — xuất FBX, BVH, C3D sang MotionBuilder, Maya, Unreal, Unity</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"OptiTrack Motive software interface mocap volume camera calibration screenshot"</span>
+    </div>
+    <p class="arc-image-caption">Giao diện Motive — volume 3D, camera layout và marker tracking realtime</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>Motive đứng ở <strong>giai đoạn thu và solve motion capture</strong>: kỹ thuật viên calibrate volume → diễn viên mocap trong suit marker → Motive ghi take realtime hoặc post-process → solve skeleton, lọc gap marker → xuất FBX/BVH sang MotionBuilder để cleanup và retarget, hoặc thẳng sang Unreal cho previz. Với phim, thường bàn giao sang Maya cho facial và polish; với game AAA, pipeline Unreal + Live Link ngày càng phổ biến. Motive làm việc cùng hardware OptiTrack, MotionBuilder và các DCC animation.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Calibration volume &amp; camera tracking</h3>
+    <p>Thế mạnh cốt lõi của Motive là <strong>hiệu chỉnh không gian capture 3D</strong>. Bạn đặt wand calibration (thanh có marker cố định) trong volume; Motive tính vị trí chính xác từng camera và tạo hệ tọa độ thống nhất — nền tảng để mọi marker được định vị đúng milimet. Sau calibration, camera theo dõi marker passive trên suit diễn viên và rigid body trên prop (kiếm, súng, ghế).</p>
+    <p>Đối với học sinh THPT chưa có phòng mocap, bạn vẫn có thể hiểu khái niệm qua video demo OptiTrack hoặc thực hành cleanup file FBX mocap có sẵn trong MotionBuilder — nhưng Motive là phần «phía hardware» mà mocap technician phải thành thạo trước khi diễn viên bước vào volume.</p>
+    <ul class="arc-list">
+      <li><strong>Active vs passive markers</strong> — passive phản chiếu IR (phổ biến); active phát sóng (shot đặc biệt)</li>
+      <li><strong>Rigid body tracking</strong> — gắn cụm marker lên prop, track vũ khí/object riêng performer</li>
+      <li><strong>Latency &amp; frame rate</strong> — capture 120–360 fps tùy camera, quan trọng cho game và nghiên cứu</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"OptiTrack mocap studio calibration wand camera volume setup"</span>
+        </div>
+        <p class="arc-image-caption">Calibration volume — wand hiệu chỉnh và layout camera OptiTrack</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"motion capture performer passive marker suit optical tracking"</span>
+        </div>
+        <p class="arc-image-caption">Diễn viên mocap — suit marker passive trong volume optical</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Skeleton solve &amp; labeling marker</h3>
+    <p>Sau khi thu marker 3D, bước tiếp theo là <strong>skeleton solve</strong> — Motive gán marker lên mô hình xương người (Hoặc custom skeleton), tính rotation từng khớp và tạo animation skeleton. Công cụ <strong>auto-labeling</strong> nhận diện marker trên cơ thể qua các frame; khi marker bị che khuất (occlusion), technician chỉnh tay hoặc dùng gap filling trước khi export.</p>
+    <p>Trong studio game, một buổi mocap có thể thu hàng chục take walk, run, combat — Motive quản lý take, đặt tên và trim đoạn lỗi trước khi gửi MotionBuilder. Kỹ năng solve và label chính xác là điểm cộng lớn trên CV nếu bạn hướng tới Mocap Technician hoặc Pipeline TD.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"OptiTrack Motive skeleton solve marker labeling viewport 3D"</span>
+      </div>
+      <p class="arc-image-caption">Skeleton solve — gán marker lên rig và preview chuyển động xương</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Real-time streaming &amp; xuất pipeline</h3>
+    <p>Motive hỗ trợ <strong>streaming realtime</strong> sang Unreal Engine, Unity hoặc MotionBuilder qua plugin Live — director xem nhân vật CG di chuyển ngay khi diễn viên mocap, tiết kiệm vòng lặp chỉnh sửa. Xuất file <strong>FBX, BVH, C3D</strong> cho animation offline; tích hợp NatNet SDK cho ứng dụng tùy chỉnh (VR training, nghiên cứu y sinh, robot học).</p>
+    <p>Luồng điển hình: calibrate Motive → capture → solve → export FBX → cleanup MotionBuilder → Unreal cutscene. Hiểu quy trình này giúp bạn thấy cách studio AAA sản xuất animation trong deadline ngắn.</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"OptiTrack Motive Unreal Engine live streaming mocap pipeline workflow"</span>
+      </div>
+      <p class="arc-image-caption">Pipeline mocap — Motive capture, stream Unreal, polish MotionBuilder</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai hệ mocap hay được đặt cạnh OptiTrack Motive nhất là <strong>Rokoko</strong> (suit inertial + video, giá thấp hơn) và <strong>Vicon</strong> (optical cao cấp, đối thủ trực tiếp trong phim và nghiên cứu). Không có câu trả lời «đúng duy nhất» — tùy ngân sách studio, độ chính xác cần thiết và quy mô volume capture.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">OptiTrack vs Rokoko</h3>
+    <p>Rokoko (Studio, Smartsuit Pro, Video) dùng <strong>cảm biến inertial</strong> trên suit hoặc AI từ video smartphone — setup nhanh, di động, giá thấp hơn nhiều so với phòng optical OptiTrack. OptiTrack Motive yêu cầu phòng cố định với hàng chục camera, calibration thường xuyên, nhưng cho <strong>độ chính xác và ổn định</strong> cao hơn — ít drift, foot contact tốt hơn suit inertial trên take dài.</p>
+    <p>Indie hay bắt đầu với Rokoko hoặc Mixamo; studio AAA và lab đại học đầu tư OptiTrack. Học sinh THPT: Rokoko cho portfolio; OptiTrack hướng tới mocap technician studio lớn.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"OptiTrack optical mocap studio multiple cameras professional setup"</span>
+        </div>
+        <p class="arc-image-caption">OptiTrack — volume optical, độ chính xác cao, studio chuyên nghiệp</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Rokoko Smartsuit Pro inertial mocap portable indie workflow"</span>
+        </div>
+        <p class="arc-image-caption">Rokoko — suit inertial portable, giá thấp, phù hợp indie và creator</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>OptiTrack mạnh hơn:</strong> độ chính xác optical, nhiều performer/prop cùng lúc, latency thấp, pipeline game AAA và nghiên cứu đã chuẩn hóa.<br>
+      <strong>Rokoko mạnh hơn:</strong> chi phí thấp, setup nhanh không cần phòng cố định, phù hợp solo creator và học sinh THPT thử mocap.<br>
+      <strong>Chọn OptiTrack khi:</strong> studio có ngân sách phòng mocap, cần độ chính xác cao cho game AAA, phim hoặc lab nghiên cứu.<br>
+      <strong>Chọn Rokoko khi:</strong> ngân sách hạn chế, cần mocap tại nhà/trường, hoặc previz nhanh trước khi đầu tư optical.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">OptiTrack vs Vicon</h3>
+    <p>Vicon (Shōgun, Nexus) là đối thủ optical truyền thống — mạnh trong phim bom tấn, nghiên cứu sinh học chuyển động và y học thể thao. OptiTrack cạnh tranh trực tiếp với <strong>giá thường thấp hơn</strong> trên cùng phân khúc camera count, đồng thời được nhiều studio game (Epic, các nhà phát triển lớn) và lab toàn cầu chọn. Cả hai đều dùng passive marker và workflow calibration tương tự.</p>
+    <p>Khác biệt nằm ở ecosystem phụ kiện (glove, face cam) và pipeline studio target. Học sinh THPT thường học concept mocap optical chung trước, chuyên sâu khi vào studio có hardware sẵn.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"OptiTrack Motive game studio mocap volume real-time tracking"</span>
+        </div>
+        <p class="arc-image-caption">OptiTrack — phổ biến game AAA và giá cạnh tranh optical</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Vicon mocap system film production optical camera volume"</span>
+        </div>
+        <p class="arc-image-caption">Vicon — tiêu chuẩn phim và nghiên cứu sinh học chuyển động</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>OptiTrack mạnh hơn:</strong> giá/performance tốt, tích hợp Unreal Live, cộng đồng game dev lớn, Motive UX được nhiều technician đánh giá thân thiện.<br>
+      <strong>Vicon mạnh hơn:</strong> lịch sử phim bom tấn, nghiên cứu y sinh, face/hand capture ecosystem trưởng thành lâu đời.<br>
+      <strong>Chọn OptiTrack khi:</strong> studio game, VR training, hoặc lab cần optical chính xác với ngân sách tối ưu hơn Vicon.<br>
+      <strong>Chọn Vicon khi:</strong> pipeline phim lớn, nghiên cứu biomechanics đã chuẩn hóa Vicon, hoặc yêu cầu phụ kiện face/hand cao cấp.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học OptiTrack Motive như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Hiểu motion capture optical cơ bản</strong>
+        <p>Trước khi chạm Motive, hãy nắm khái niệm: passive marker, volume 3D, calibration, occlusion. Xem video OptiTrack official và behind-the-scenes mocap phim/game — hiểu vì sao cần phòng rộng, trần cao và sàn phẳng. Học sinh THPT có thể bắt đầu bằng file FBX mocap miễn phí (Mixamo) trong Blender/MotionBuilder để quen skeleton trước khi tiếp cận hardware đắt tiền.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Animation &amp; skeleton trong DCC</strong>
+        <p>Học cơ bản Maya hoặc MotionBuilder: hierarchy xương, rotation order, FBX import/export. Motive xuất animation skeleton — bạn cần biết cleanup foot slide, filter noise trong MotionBuilder trước khi retarget. Mục tiêu là đọc được file mocap và chỉnh pose cơ bản, không cần thành thạo Motive ngay tuần đầu.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Tiếp cận Motive qua khóa hoặc phòng lab</strong>
+        <p>Motive đi kèm hardware OptiTrack — khó tự học hoàn toàn tại nhà. Tìm khóa mocap tại trường đại học (CNTT, thiết kế, điện ảnh), studio game có phòng capture, hoặc workshop OptiTrack. Thực hành calibration wand, kiểm tra camera status và chạy take thử 30 giây. Đây là bước then chốt mà CV mocap technician cần ghi nhận kinh nghiệm thực tế.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Skeleton solve, labeling &amp; gap filling</strong>
+        <p>Học auto-label marker, chỉnh tay khi occlusion, dùng gap fill và filter trước export. Thử solve nhiều loại performer (cao/thấp, prop tay) và rigid body vũ khí. Mục tiêu là export FBX sạch — ít foot slide và jitter — sang MotionBuilder mà không cần cleanup quá nhiều giờ.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Live stream Unreal &amp; pipeline game</strong>
+        <p>Cài plugin OptiTrack Live cho Unreal Engine, stream skeleton realtime vào character mannequin. Thử previz cutscene ngắn: diễn viên walk trong volume, nhân vật CG bám chuyển động ngay lập tức. Giai đoạn này nối Motive với game production — kỹ năng được studio AAA và outsourcing animation tại Việt Nam đánh giá cao.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Portfolio và định hướng nghề</strong>
+        <p>Tổng hợp demo: video behind-the-scenes capture (nếu được phép), clip animation đã cleanup/retarget, breakdown pipeline Motive → MotionBuilder → Unreal. Ghi rõ vai trò (technician, animator cleanup). Tìm hiểu vị trí Mocap Technician, Technical Animator, Pipeline TD tại studio game/phim Việt Nam và quốc tế — nhiều nơi tuyển theo kinh nghiệm phòng capture hơn bằng cấp formal.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

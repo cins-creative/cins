@@ -1,0 +1,209 @@
+<section class="arc-intro">
+  <p>Bạn nhìn bề mặt cong mượt của chiếc đèn trang trí hoặc vỏ xe concept trên màn hình — đường NURBS uốn liên tục không góc cạnh, có thể chỉnh từng control point mà vẫn giữ độ chính xác kỹ thuật — phần lớn mô hình đó được dựng bằng <strong>Rhino 3D</strong> (Rhinoceros), phần mềm modeling 3D dựa trên NURBS của Robert McNeel &amp; Associates, dùng trong kiến trúc tham số, thiết kế công nghiệp, trang sức, thiết kế đô thị và sản xuất prototype. Cùng công cụ này cũng xuất hiện ở xưởng gia công CNC, studio thiết kế nội thất cao cấp và phòng lab khi sinh viên nộp mô hình surface phức tạp trước khi đưa vào sản xuất.</p>
+  <p>Rhino không phải công cụ 3D duy nhất, nhưng nó gắn chặt với thiết kế hình học phức tạp và giao thoa kiến trúc–công nghiệp tại Việt Nam — nhờ độ chính xác NURBS, plugin Grasshopper cho thiết kế tham số và khả năng trao đổi file với AutoCAD, SolidWorks, Revit và các máy CNC/laser cut mà hàng nghìn designer đã chọn làm công cụ làm việc hàng ngày.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>Rhino 3D là gì?</h2>
+  <p>Rhino 3D (Rhinoceros) do <strong>Robert McNeel &amp; Associates</strong> phát triển — phần mềm <strong>modeling 3D NURBS</strong> chạy trên Windows và macOS. Khác với polygon mesh thường gặp trong game (Blender, 3ds Max), Rhino xử lý <strong>đường cong NURBS và surface chính xác</strong> — phù hợp thiết kế công nghiệp, kiến trúc cong, đồ trang sức và mô hình cần xuất sang CAM/CNC.</p>
+  <p>Khác với CAD mechanical như SolidWorks (tập trung part assembly và bản vẽ kỹ thuật), Rhino là không gian làm việc <strong>linh hoạt cho hình học tự do</strong>: vẽ curve, loft surface, boolean solid, unroll phát triển mặt cong — giao diện gọn với command line quen thuộc, ban đầu trông kỹ thuật nhưng mỗi lệnh phục vụ từ concept form đến file sản xuất thực tế.</p>
+  <ul class="arc-list">
+    <li><strong>NURBS curve &amp; surface</strong> — đường cong và mặt cong chính xác, chỉnh control point mượt mà</li>
+    <li><strong>Solid modeling</strong> — boolean, fillet, shell và xuất STL/STEP cho in 3D hoặc CAM</li>
+    <li><strong>Grasshopper (plugin)</strong> — thiết kế tham số/visual scripting cho kiến trúc và fabrication</li>
+    <li><strong>Trao đổi dữ liệu</strong> — DWG, IGES, STEP, OBJ, FBX; tích hợp Render (V-Ray, KeyShot) và CNC workflow</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"Rhinoceros Rhino 8 interface NURBS surface modeling viewport screenshot"</span>
+    </div>
+    <p class="arc-image-caption">Giao diện Rhino — viewport NURBS surface, layer panel và command line</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>Rhino thường đứng ở giai đoạn <strong>thiết kế hình học phức tạp và chuẩn bị sản xuất</strong>: nhận concept hoặc sketch, dựng surface/solid chính xác, tối ưu cho unroll (panel kiến trúc), xuất file CNC/laser hoặc chuyển sang SolidWorks/Inventor cho chi tiết cơ khí. Với kiến trúc, Rhino + Grasshopper tạo form tham số; với sản phẩm, Rhino nối sang KeyShot render hoặc 3D print. Thường làm việc cùng Grasshopper, V-Ray/KeyShot, Illustrator và máy CNC tại xưởng.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. NURBS curve, surface và solid</h3>
+    <p>Thế mạnh cốt lõi của Rhino là <strong>modeling bằng NURBS</strong>. Bạn vẽ curve (Line, Arc, InterpCrv), tạo surface bằng Loft, Sweep, Revolve — chỉnh control point để uốn form mượt mà mà vẫn giữ độ chính xác. Chuyển surface thành closed solid, dùng Boolean Union/Difference cho chi tiết lỗ, góc bo fillet trước khi xuất sản xuất.</p>
+    <p>Đối với học sinh THPT theo hướng thiết kế hoặc kiến trúc, bài tập thực tế hay gặp: dựng chai/lọ đơn giản bằng Revolve, đèn trang trí bằng Loft, hoặc pavilion cong cơ bản — vừa luyện mắt nhìn form 3D vừa làm portfolio modeling cơ bản.</p>
+    <ul class="arc-list">
+      <li><strong>Curve tools</strong> — vẽ và chỉnh đường cong, fillet blend giữa các curve</li>
+      <li><strong>Surface tools</strong> — Loft, Sweep1/2, Patch, Trim và Join surface</li>
+      <li><strong>Solid &amp; boolean</strong> — đóng kín khối, cắt trừ hợp, chuẩn bị file in 3D/CNC</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Rhino NURBS loft surface control point modeling"</span>
+        </div>
+        <p class="arc-image-caption">NURBS surface — Loft và chỉnh control point trên viewport</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Rhino solid boolean difference fillet edge 3D model"</span>
+        </div>
+        <p class="arc-image-caption">Solid modeling — Boolean và fillet edge trước xuất file</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Grasshopper &amp; thiết kế tham số</h3>
+    <p>Plugin <strong>Grasshopper</strong> (đi kèm Rhino) biến Rhino thành nền tảng <strong>parametric design</strong>: kết nối các node (slider, curve, panel division) để tạo form kiến trúc thay đổi theo tham số — mặt tiền lam gỗ, mái cong, cấu trúc lưới. Kiến trúc sư và designer fabrication dùng Grasshopper để tạo hàng trăm biến thể nhanh và xuất data cho CNC/laser cut.</p>
+    <p>Đây là kỹ năng «nâng cao» nhưng ngày càng phổ biến trong giáo dục kiến trúc — nhiều trường ĐH kiến trúc tại Việt Nam đưa Rhino/Grasshopper vào chương trình sau năm thứ nhất.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Grasshopper Rhino parametric architecture facade panel definition"</span>
+      </div>
+      <p class="arc-image-caption">Grasshopper — thiết kế tham số mặt tiền và panel kiến trúc</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Unroll, CAM, render &amp; trao đổi file</h3>
+    <p>Ngoài modeling, Rhino mạnh ở <strong>chuẩn bị sản xuất</strong>: lệnh UnrollSrf «trải phẳng» mặt cong thành pattern cắt CNC; export DXF cho laser, STL cho in 3D, STEP cho gia công. Render tích hợp hoặc qua V-Ray/KeyShot cho presentation sản phẩm; import/export DWG giúp phối hợp với AutoCAD và Revit trong dự án kiến trúc.</p>
+    <p>Luồng làm việc điển hình: sketch concept → model NURBS trong Rhino → Grasshopper tối ưu (nếu cần) → unroll/export CAM → prototype xưởng → chỉnh iteration. Hiểu quy trình này giúp bạn không chỉ «biết một phần mềm» mà nắm đường đi từ ý tưởng hình học đến vật thể thật.</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Rhino unroll surface CNC laser cut fabrication workflow export DXF"</span>
+      </div>
+      <p class="arc-image-caption">Fabrication — unroll surface, xuất DXF/STL và quy trình CNC</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai phần mềm hay được đặt cạnh Rhino nhất là <strong>SolidWorks</strong> (CAD cơ khí, Dassault Systèmes) và <strong>Blender</strong> (3D miễn phí, mesh/subdivision). Không có câu trả lời «đúng duy nhất» — tùy bạn hướng tới cơ khí chính xác, hình học tự do kiến trúc hay 3D đa mục đích cho game/hoạt hình.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Rhino vs SolidWorks</h3>
+    <p><strong>SolidWorks</strong> là chuẩn CAD cơ khí: part modeling với feature tree, assembly mạnh, drawing chuẩn kỹ thuật và simulation (FEA) tích hợp — phù hợp xưởng gia công, thiết kế máy và chi tiết có tolerances chặt. <strong>Rhino</strong> linh hoạt hơn cho surface phức tạp, form tự do và giao thoa kiến trúc–sản phẩm, nhưng không thay SolidWorks cho bản vẽ cơ khí chuẩn ASME/ISO đầy đủ.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Rhino NURBS freeform product design surface modeling"</span>
+        </div>
+        <p class="arc-image-caption">Rhino — surface tự do, form phức tạp và thiết kế sản phẩm</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"SolidWorks mechanical CAD assembly drawing feature tree"</span>
+        </div>
+        <p class="arc-image-caption">SolidWorks — CAD cơ khí, assembly và bản vẽ kỹ thuật</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Rhino mạnh hơn:</strong> NURBS surface tự do, Grasshopper parametric, unroll fabrication, thiết kế trang sức/kiến trúc cong, giao thoa với CAM nhanh.<br>
+      <strong>SolidWorks mạnh hơn:</strong> feature-based part, assembly lớn, drawing kỹ thuật chuẩn, simulation, phổ biến trong cơ khí và tuyển dụng kỹ sư cơ khí tại Việt Nam.<br>
+      <strong>Chọn Rhino khi:</strong> mục tiêu thiết kế sản phẩm form phức tạp, kiến trúc tham số, jewelry, hoặc pipeline CNC/laser từ surface.<br>
+      <strong>Chọn SolidWorks khi:</strong> hướng kỹ sư cơ khí, thiết kế máy, chi tiết có tolerances và bản vẽ gia công chuẩn.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Rhino vs Blender</h3>
+    <p><strong>Blender</strong> miễn phí, mạnh về polygon/subdivision modeling, sculpting, hoạt hình và render (Cycles/Eevee) — rất phù hợp game, VFX và học sinh THPT bắt đầu 3D không tốn phí. <strong>Rhino</strong> trả phí (có giá edu), tập trung độ chính xác NURBS và workflow sản xuất thực tế — surface mượt cho industrial design, không cạnh Blender về rigging hoặc game asset pipeline.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Rhino industrial design NURBS product concept KeyShot render"</span>
+        </div>
+        <p class="arc-image-caption">Rhino — thiết kế công nghiệp chính xác và xuất sản xuất</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Blender 3D subdivision sculpting Cycles render viewport"</span>
+        </div>
+        <p class="arc-image-caption">Blender — miễn phí, mesh/sculpt và render đa mục đích</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Rhino mạnh hơn:</strong> NURBS chính xác, Grasshopper, unroll/CAM, trao đổi STEP/IGES với xưởng, thiết kế sản phẩm và kiến trúc fabrication.<br>
+      <strong>Blender mạnh hơn:</strong> chi phí bằng không, sculpting, hoạt hình, render chất lượng cao, game asset và cộng đồng tutorial khổng lồ.<br>
+      <strong>Chọn Rhino khi:</strong> cần surface chính xác, parametric architecture, xuất file CNC/3D print professional.<br>
+      <strong>Chọn Blender khi:</strong> ngân sách hạn chế, hướng game art, hoạt hình, VFX hoặc 3D đa mục đích cá nhân.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học Rhino 3D như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Làm quen viewport và command line</strong>
+        <p>Tuần đầu hãy tập điều hướng viewport: orbit, pan, zoom; bật Ortho và Osnap. Rhino dùng command line giống AutoCAD — gõ lệnh hoặc click icon. Tạo vài curve cơ bản (Line, Circle, Rectangle) và quan sát layer, properties. Mục tiêu là thao tác mượt trước khi đụng surface phức tạp — nhiều bạn THPT quen giao diện trực quan của SketchUp cần vài ngày làm quen command-driven workflow.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Curve và surface cơ bản</strong>
+        <p>Học InterpCrv, Loft giữa hai profile, Revolve tạo vật tròn xoay (ly, chai). Luyện Trim, Join, MatchSrf để nối surface mượt. Dựng một object đơn giản hoàn chỉnh — ví dụ bình nước hoặc đèn bàn — rồi kiểm tra closed solid. Thường 2–3 tuần luyện đều sẽ thấy tư duy NURBS rõ hơn polygon.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Solid, boolean và fillet</strong>
+        <p>Chuyển surface thành polysurface kín, dùng BooleanDifference tạo lỗ, FilletEdge bo góc. Export STL thử in 3D hoặc kiểm tra mesh trong slicer. Mục tiêu là hiểu mối liên hệ giữa model Rhino và file sản xuất thực tế — kích thước mm, độ dày tối thiểu và closed mesh.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Grasshopper cơ bản (tùy chọn sớm)</strong>
+        <p>Mở Grasshopper, kéo slider + curve + divide curve + panel component — tạo mặt tiền lam đơn giản thay đổi theo tham số. Không cần thành thạo ngay, nhưng nắm logic «input → xử lý → geometry output» giúp bạn mở rộng sang kiến trúc tham số sau này. Nhiều tutorial McNeel và YouTube có sẵn tiếng Anh, dễ theo từng bước.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Unroll, render và dự án hoàn chỉnh</strong>
+        <p>Thử UnrollSrf trên mặt cong đơn giản; export DXF cho laser cut giấy/cardboard prototype. Render bằng Rhino Render hoặc trial KeyShot/V-Ray. Hoàn thiện một sản phẩm (đèn, ghế mini) hoặc pavilion concept với 3 góc render và file unroll — giai đoạn này dạy brief, iteration và presentation như designer thực tế.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Portfolio và định hướng nghề</strong>
+        <p>Tổng hợp 3–5 work: product design, pavilion parametric (nếu có Grasshopper), photo render và ảnh prototype vật lý nếu in được. Đăng Behance, Instagram portfolio — ghi rõ Rhino, Grasshopper, KeyShot. Tìm hiểu khóa industrial design, kiến trúc tham số tại Việt Nam; vị trí 3D designer, fabrication designer thường xem portfolio hình học và khả năng xuất sản xuất hơn chứng chỉ.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

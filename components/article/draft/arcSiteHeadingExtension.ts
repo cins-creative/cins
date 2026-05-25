@@ -117,4 +117,4 @@ export const ArcSiteHeading = Heading.extend({
     }
     return [tag, merged, 0];
   },
-}).configure({ levels: [1, 2, 3] });
+}).configure({ levels: [1, 2, 3, 4, 5] });

@@ -1,0 +1,182 @@
+[
+  {
+    "id": "2d1f381f-6cd7-489e-aaf6-68f0219accd1",
+    "slug": "marmoset-toolbag",
+    "tieu_de_viet": "Marmoset Toolbag — Render &amp; trình bày 3D realtime",
+    "tom_tat": "Phần mềm viewport PBR realtime — turntable, material preview và portfolio render cho artist game và film prop.",
+    "meta_title": "Marmoset Toolbag là gì? Render 3D, giá và hướng dẫn | CINS",
+    "meta_description": "Toolbag: PBR, turntable, texture baker. So sánh KeyShot, Blender viewport và lộ trình portfolio 3D.",
+    "meta": {
+      "nha_phat_hanh": "Marmoset",
+      "version": "4",
+      "platform": ["Windows", "macOS"],
+      "website": "https://marmoset.co/toolbag",
+      "goi_mien_phi": "Dùng thử 30 ngày",
+      "gia_thanh": "~199 USD perpetual (Toolbag 4)",
+      "hinh_thuc_mua": "Mua một lần · giáo dục",
+      "link_tai": "https://marmoset.co/toolbag"
+    }
+  },
+  {
+    "id": "443bdc6b-70a3-4f2e-98de-7ec3fcec0f95",
+    "slug": "marvelous-designer",
+    "tieu_de_viet": "Marvelous Designer — May ảo &amp; vải 3D",
+    "tom_tat": "Phần mềm mô phỏng may — pattern, draping, physics vải cho thời trang, game character và VFX cloth.",
+    "meta_title": "Marvelous Designer là gì? Vải 3D, giá và hướng dẫn | CINS",
+    "meta_description": "Marvelous Designer: pattern, sew, export. So sánh CLO 3D, Blender cloth và lộ trình học fashion 3D.",
+    "meta": {
+      "nha_phat_hanh": "CLO Virtual Fashion",
+      "version": "12",
+      "platform": ["Windows", "macOS"],
+      "website": "https://www.marvelousdesigner.com",
+      "goi_mien_phi": "Dùng thử 30 ngày",
+      "gia_thanh": "Từ ~50 USD/tháng (Personal)",
+      "hinh_thuc_mua": "Thuê bao tháng · giáo dục",
+      "link_tai": "https://www.marvelousdesigner.com/download"
+    }
+  },
+  {
+    "id": "86be955f-8524-4a9b-8ab2-6e394f6fa7cf",
+    "slug": "maya",
+    "tieu_de_viet": "Maya — 3D, animation &amp; VFX",
+    "tom_tat": "Phần mềm 3D của Autodesk — modeling, rigging, animation và pipeline VFX/game tiêu chuẩn studio phim và AAA.",
+    "meta_title": "Maya là gì? 3D animation, giá và hướng dẫn học | CINS",
+    "meta_description": "Maya: modeling, rig, Arnold, Bifrost. So sánh Blender, 3ds Max và lộ trình học 3D chuyên nghiệp.",
+    "meta": {
+      "nha_phat_hanh": "Autodesk",
+      "version": "2025",
+      "platform": ["Windows", "macOS", "Linux"],
+      "website": "https://www.autodesk.com/products/maya",
+      "goi_mien_phi": "Dùng thử · giáo dục miễn phí",
+      "gia_thanh": "Từ ~235 USD/tháng",
+      "hinh_thuc_mua": "Thuê bao tháng · giáo dục",
+      "link_tai": "https://www.autodesk.com/products/maya"
+    }
+  },
+  {
+    "id": "27d29f49-7c7d-4d1f-aeba-c3afe4f3c80a",
+    "slug": "midjourney",
+    "tieu_de_viet": "Midjourney — AI tạo ảnh từ prompt",
+    "tom_tat": "Công cụ AI art qua Discord/web — sinh illustration, concept và mood board từ mô tả văn bản cho designer và creator.",
+    "meta_title": "Midjourney là gì? AI art, giá và hướng dẫn dùng | CINS",
+    "meta_description": "Midjourney: prompt, style, upscale. So sánh DALL·E, Stable Diffusion và quy trình dùng AI có trách nhiệm.",
+    "meta": {
+      "nha_phat_hanh": "Midjourney Inc.",
+      "version": "6",
+      "platform": ["Web", "Discord"],
+      "website": "https://www.midjourney.com",
+      "goi_mien_phi": "Không (subscription)",
+      "gia_thanh": "Từ ~10 USD/tháng (Basic)",
+      "hinh_thuc_mua": "Thuê bao tháng",
+      "link_tai": "https://www.midjourney.com"
+    }
+  },
+  {
+    "id": "16495797-8ece-4295-b30a-84880f0d4cd2",
+    "slug": "miro",
+    "tieu_de_viet": "Miro — Bảng trắng cộng tác online",
+    "tom_tat": "Whiteboard cloud — brainstorm, user journey, storyboard và workshop nhóm cho product, design và marketing.",
+    "meta_title": "Miro là gì? Whiteboard, giá và hướng dẫn dùng | CINS",
+    "meta_description": "Miro: sticky note, template, realtime. So sánh FigJam, Mural và quy trình brainstorm dự án sáng tạo.",
+    "meta": {
+      "nha_phat_hanh": "Miro",
+      "version": "2024",
+      "platform": ["Web", "Windows", "macOS", "iOS", "Android"],
+      "website": "https://miro.com",
+      "goi_mien_phi": "Free (3 boards)",
+      "gia_thanh": "Từ ~8 USD/tháng (Starter)",
+      "hinh_thuc_mua": "Thuê bao tháng · giáo dục",
+      "link_tai": "https://miro.com"
+    }
+  },
+  {
+    "id": "9e15cc50-033e-4606-9111-813fc2db4cfe",
+    "slug": "mocha-pro",
+    "tieu_de_viet": "Mocha Pro — Tracking &amp; rotoscoping VFX",
+    "tom_tat": "Công cụ planar tracking và roto — Boris FX, tích hợp After Effects, Premiere, Nuke cho hậu kỳ phim và quảng cáo.",
+    "meta_title": "Mocha Pro là gì? Tracking, giá và hướng dẫn | CINS",
+    "meta_description": "Mocha Pro: planar track, PowerMesh, insert. So sánh After Effects tracker, Nuke và luồng VFX cleanup.",
+    "meta": {
+      "nha_phat_hanh": "Boris FX",
+      "version": "2024",
+      "platform": ["Windows", "macOS", "Linux"],
+      "website": "https://borisfx.com/products/mocha-pro",
+      "goi_mien_phi": "Dùng thử",
+      "gia_thanh": "Từ ~499 USD/năm · perpetual",
+      "hinh_thuc_mua": "Thuê bao năm · perpetual",
+      "link_tai": "https://borisfx.com/products/mocha-pro"
+    }
+  },
+  {
+    "id": "d70e006e-10a2-497e-bfb4-d163d769df37",
+    "slug": "motionbuilder",
+    "tieu_de_viet": "MotionBuilder — MoCap &amp; animation 3D",
+    "tom_tat": "Phần mềm animation Autodesk — xử lý motion capture, retarget và polish cho game cinematics và VFX.",
+    "meta_title": "MotionBuilder là gì? MoCap, giá và hướng dẫn | CINS",
+    "meta_description": "MotionBuilder: mocap, retarget, story tool. So sánh Maya animation, iClone và luồng game cinematics.",
+    "meta": {
+      "nha_phat_hanh": "Autodesk",
+      "version": "2025",
+      "platform": ["Windows", "Linux"],
+      "website": "https://www.autodesk.com/products/motionbuilder",
+      "goi_mien_phi": "Dùng thử · giáo dục",
+      "gia_thanh": "Từ ~235 USD/tháng (Media & Entertainment)",
+      "hinh_thuc_mua": "Thuê bao tháng · giáo dục",
+      "link_tai": "https://www.autodesk.com/products/motionbuilder"
+    }
+  },
+  {
+    "id": "b407fd9a-8753-4d4d-acce-93764d738497",
+    "slug": "movie-magic-budgeting",
+    "tieu_de_viet": "Movie Magic Budgeting — Ngân sách phim",
+    "tom_tat": "Phần mềm lập ngân sách sản xuất phim — topsheet, fringe, báo cáo cho producer và line producer chuyên nghiệp.",
+    "meta_title": "Movie Magic Budgeting là gì? Budget phim và hướng dẫn | CINS",
+    "meta_description": "Movie Magic: topsheet, globals, report. So sánh Showbiz Budgeting, Excel và quy trình pre-pro phim.",
+    "meta": {
+      "nha_phat_hanh": "Entertainment Partners",
+      "version": "10",
+      "platform": ["Windows", "macOS"],
+      "website": "https://www.ep.com/movie-magic-budgeting",
+      "goi_mien_phi": "Không (trial)",
+      "gia_thanh": "Theo license studio · ~500+ USD/năm",
+      "hinh_thuc_mua": "Thuê bao · giáo dục",
+      "link_tai": "https://www.ep.com/movie-magic-budgeting"
+    }
+  },
+  {
+    "id": "db4a8017-dd77-4f37-8347-e09152439759",
+    "slug": "mudbox",
+    "tieu_de_viet": "Mudbox — Điêu khắc digital 3D",
+    "tom_tat": "Phần mềm sculpt của Autodesk — high-poly detail, texture painting cho character game và VFX (đang chuyển sang Maya/Blender).",
+    "meta_title": "Mudbox là gì? Sculpt 3D, giá và hướng dẫn | CINS",
+    "meta_description": "Mudbox: sculpt layer, stencil, Ptex. So sánh ZBrush, Blender Sculpt và lộ trình học character art.",
+    "meta": {
+      "nha_phat_hanh": "Autodesk",
+      "version": "2024",
+      "platform": ["Windows", "macOS"],
+      "website": "https://www.autodesk.com/products/mudbox",
+      "goi_mien_phi": "Dùng thử · giáo dục",
+      "gia_thanh": "Đi kèm M&E Collection hoặc standalone",
+      "hinh_thuc_mua": "Thuê bao tháng · giáo dục",
+      "link_tai": "https://www.autodesk.com/products/mudbox"
+    }
+  },
+  {
+    "id": "6f0f91f3-3a64-4535-8b18-87ce819714c4",
+    "slug": "notion",
+    "tieu_de_viet": "Notion — Workspace ghi chú &amp; dự án",
+    "tom_tat": "All-in-one workspace — docs, database, wiki và task cho cá nhân, team sáng tạo và quản lý dự án học tập.",
+    "meta_title": "Notion là gì? Ghi chú, database và hướng dẫn | CINS",
+    "meta_description": "Notion: page, database, template. So sánh Google Docs, Asana và quy trình tổ chức dự án cá nhân.",
+    "meta": {
+      "nha_phat_hanh": "Notion Labs",
+      "version": "2024",
+      "platform": ["Web", "Windows", "macOS", "iOS", "Android"],
+      "website": "https://www.notion.so",
+      "goi_mien_phi": "Personal Free",
+      "gia_thanh": "Từ ~8 USD/tháng (Plus)",
+      "hinh_thuc_mua": "Miễn phí · thuê bao",
+      "link_tai": "https://www.notion.so/desktop"
+    }
+  }
+]

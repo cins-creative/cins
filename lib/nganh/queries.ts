@@ -13,40 +13,33 @@ import type { ArticleBaiViet, ArticleCard, MetaNganhDaoTao } from "@/lib/article
 import type { NgheArticleHubRow } from "@/lib/articles/types";
 import type { NganhDetailArticle, NganhHubItem } from "@/lib/nganh/types";
 import type { ParsedNganhNoiDung } from "@/lib/nganh/parseNoiDung";
-import { parseEditorialImages } from "@/lib/nganh/editorialImage";
+import {
+  countUniqueTruong,
+  fetchTruongDaoTaoForNganh,
+  type NganhTruongRow,
+} from "@/lib/nganh/truong";
+import { parseMetaNganhFields } from "@/lib/nganh/media-fields";
 import { parseNganhNoiDung } from "@/lib/nganh/parseNoiDung";
+import { resolveTruongImageSrc } from "@/lib/truong/media-url";
 
 export type MonHocNganhRow = MonHocForNganhRow;
 export type NgheNganhRow = NgheForNganhRow;
 
 function parseMetaNganh(meta: ArticleBaiViet["meta"]): MetaNganhDaoTao | null {
-  if (!meta || typeof meta !== "object") return null;
-  const m = meta as Record<string, unknown>;
-  const ma = typeof m.ma_nganh === "string" ? m.ma_nganh.trim() : "";
-  const editorial_images = parseEditorialImages(m.editorial_images);
-  if (!ma && !editorial_images.length) return null;
-  return {
-    ma_nganh: ma,
-    khoi_thi: Array.isArray(m.khoi_thi)
-      ? (m.khoi_thi as string[]).map(String)
-      : [],
-    mon_nang_khieu:
-      typeof m.mon_nang_khieu === "string" ? m.mon_nang_khieu.trim() : null,
-    thoi_gian_dao_tao:
-      typeof m.thoi_gian_dao_tao === "string"
-        ? m.thoi_gian_dao_tao.trim()
-        : null,
-    editorial_images,
-  };
+  return parseMetaNganhFields(meta);
 }
 
-function mapRowToNganhHubItem(
+async function mapRowToNganhHubItem(
   row: NgheArticleHubRow & { meta?: MetaNganhDaoTao | null },
-): NganhHubItem {
+): Promise<NganhHubItem> {
   const meta = parseMetaNganh(row.meta ?? null);
   const nh =
     row.article_nhom_all?.find((n) => n.loai_nhom === "nhom_nganh") ??
     row.article_nhom;
+  const cover_id = row.cover_id ?? null;
+  const cover_src = cover_id
+    ? await resolveTruongImageSrc(cover_id, ["public", "cover", "medium"])
+    : null;
   return {
     id: row.id,
     slug: row.slug,
@@ -56,7 +49,8 @@ function mapRowToNganhHubItem(
     short_description: row.tom_tat,
     ma_nganh: meta?.ma_nganh ?? null,
     khoi_thi: meta?.khoi_thi ?? [],
-    cover_id: row.cover_id ?? null,
+    cover_id,
+    cover_src,
     article_nhom_id: nh?.id ?? row.article_nhom_id ?? null,
     article_nhom: nh ?? row.article_nhom ?? null,
     article_nhom_all: row.article_nhom_all ?? null,
@@ -129,7 +123,7 @@ export async function loadNganhHubRows(): Promise<NganhHubItem[]> {
   );
 
   const withNhom = await attachArticleNhomFromGanNhom(base);
-  return withNhom.map((row) => mapRowToNganhHubItem(row));
+  return Promise.all(withNhom.map((row) => mapRowToNganhHubItem(row)));
 }
 
 /** Nhãn khối thi — thử `edu_to_hop_mon`, fallback mã trong meta. */
@@ -165,10 +159,13 @@ export type NganhDetailBundle = {
   parsed: ParsedNganhNoiDung;
   monHoc: MonHocNganhRow[];
   nghe: NgheNganhRow[];
+  truong: NganhTruongRow[];
   khoiThiLabels: string[];
   lienQuan: ArticleCard[];
   soTruong: number;
 };
+
+export type { NganhTruongRow } from "@/lib/nganh/truong";
 
 export async function getNganhDetailBySlug(
   slug: string,
@@ -200,18 +197,27 @@ export async function getNganhDetailBySlug(
     withNhom.article_nhom ??
     null;
 
+  const rawRow = raw as unknown as Record<string, unknown>;
   const moTaNgan =
-    typeof (raw as { mo_ta_ngan?: string }).mo_ta_ngan === "string"
-      ? (raw as { mo_ta_ngan?: string }).mo_ta_ngan
+    typeof rawRow.mo_ta_ngan === "string" ? rawRow.mo_ta_ngan : null;
+  const thumbnail =
+    typeof rawRow.thumbnail === "string"
+      ? rawRow.thumbnail.trim() || null
+      : null;
+  const main_video =
+    typeof rawRow.main_video === "string"
+      ? rawRow.main_video.trim() || null
       : null;
 
-  const [monHoc, nghe, khoiThiLabels, lienQuan, soTruong] = await Promise.all([
+  const [monHoc, nghe, truong, khoiThiLabels, lienQuan] = await Promise.all([
     fetchMonHocDungTrongNganh(raw.id),
     fetchNgheDungTrongNganh(raw.id),
+    fetchTruongDaoTaoForNganh(raw.id),
     resolveKhoiThiLabels(meta?.khoi_thi ?? []),
     fetchRelatedArticles(raw.id),
-    countTruongDaoTao(raw.id),
   ]);
+
+  const soTruong = countUniqueTruong(truong);
 
   return {
     article: {
@@ -222,6 +228,9 @@ export async function getNganhDetailBySlug(
       tieu_de_eng: raw.tieu_de_eng ?? null,
       tom_tat: raw.tom_tat ?? null,
       mo_ta_ngan: moTaNgan,
+      cover_id: raw.cover_id ?? null,
+      thumbnail,
+      main_video,
       noi_dung: noiDung,
       meta,
       cap_nhat_luc: raw.cap_nhat_luc,
@@ -230,23 +239,9 @@ export async function getNganhDetailBySlug(
     parsed,
     monHoc,
     nghe,
+    truong,
     khoiThiLabels,
     lienQuan,
     soTruong,
   };
-}
-
-async function countTruongDaoTao(articleId: string): Promise<number> {
-  if (!hasSupabaseEnv()) return 0;
-  try {
-    const supabase = createPublicSupabaseClient();
-    const { count, error } = await supabase
-      .from("org_truong_nganh")
-      .select("id", { count: "exact", head: true })
-      .eq("id_nganh", articleId);
-    if (error) return 0;
-    return count ?? 0;
-  } catch {
-    return 0;
-  }
 }

@@ -1,0 +1,211 @@
+<section class="arc-intro">
+  <p>Bạn chơi một game AAA mở cửa và đi bộ trên mặt đá ướt, cỏ ven đường rung nhẹ theo gió — bề mặt đó trông «thật» vì artist dùng texture và model được quét bằng photogrammetry, không phải vẽ tay từng vết nứt. Phần lớn bộ asset chất lượng cao kiểu đó trong hệ sinh thái Epic đến từ <strong>Quixel Megascans</strong>, thư viện PBR scan lớn nhất ngành game và archviz.</p>
+  <p>Megascans không phải phần mềm dựng 3D như Blender hay Maya — nó là <strong>kho asset scan chuẩn PBR</strong> (surface, 3D model, cây cỏ, decal) kèm công cụ <strong>Quixel Bridge</strong> để kéo thả sang Unreal Engine, Blender, 3ds Max, Maya và nhiều DCC khác. Hiểu Megascans giúp học sinh THPT biết cách studio game và archviz «mua thời gian» chất lượng: tập trung dựng cảnh và gameplay thay vì tự làm mọi texture từ số không.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>Quixel Megascans là gì?</h2>
+  <p>Quixel Megascans do <strong>Quixel</strong> (nay thuộc <strong>Epic Games</strong>) phát triển — thư viện <strong>asset 3D và material PBR quét thực tế</strong> (photogrammetry) phục vụ game, phim và visualization. Thay vì tự vẽ albedo hay sculpt từng viên đá, bạn tải surface scan (gỗ, bê tông, đất, kim loại gỉ), 3D asset (đá, cọc rào, rác) hoặc cây cỏ đã được team Quixel quét và chuẩn hóa map PBR.</p>
+  <p>Khác với một trang texture JPG miễn phí trên mạng, Megascans cung cấp bộ map đầy đủ — <strong>Albedo, Normal, Roughness, Displacement, AO</strong> — cùng metadata (kích thước tile, độ phân giải 8K trở lên trên nhiều asset). <strong>Quixel Bridge</strong> là app đi kèm: duyệt thư viện, preview trên mesh, chỉnh scale UV và export trực tiếp sang Unreal hoặc file cho Blender/Max. Từ khi Epic sở hữu Quixel, nhiều asset Megascans <strong>miễn phí</strong> cho người dùng Unreal Engine và qua <strong>Fab</strong> (marketplace mới của Epic).</p>
+  <ul class="arc-list">
+    <li><strong>Surface scans</strong> — vật liệu tileable: gỗ, đá, bê tông, đất, kim loại, vải</li>
+    <li><strong>3D assets</strong> — prop scan sẵn mesh + texture: đá, cọc, rác, đồ vật môi trường</li>
+    <li><strong>3D plants &amp; atlases</strong> — cây cỏ, lá, cành cho scatter trong engine</li>
+    <li><strong>Quixel Bridge</strong> — duyệt, export sang UE, Blender, Maya, 3ds Max, Houdini, v.v.</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"Quixel Megascans Bridge library interface PBR surface preview screenshot"</span>
+    </div>
+    <p class="arc-image-caption">Quixel Bridge — duyệt thư viện Megascans, preview PBR và export sang DCC/engine</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>Megascans thường đứng ở giai đoạn <strong>texturing và populate môi trường</strong>: environment artist nhận blockout level hoặc scene archviz, chọn surface cho sàn/tường, scatter 3D plants và đặt prop scan vào cảnh. Với Unreal, Megascans plugin/Bridge import trực tiếp material instance; với Blender hay 3ds Max, export bộ map PBR rồi gán shader. Không thay thế modeling — nhưng rút ngắn thời gian làm chất liệu photoreal. Thường làm việc cùng Blender/Maya (blockout), Substance Painter (custom asset hero) và Gaea/World Creator (terrain) tùy pipeline studio.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Thư viện surface &amp; material PBR scan</h3>
+    <p>Thế mạnh cốt lõi của Megascans là <strong>surface scan chất lượng studio</strong> — mỗi vật liệu được quét nhiều góc, xử lý để tileable (lặp không lộ seam) và xuất bộ map PBR chuẩn physically based. Bạn có thể tìm «Concrete Wall Old», «Forest Ground Mossy» hay «Metal Rusted Panel» rồi kéo vào scene trong vài phút thay vì vài ngày tự làm.</p>
+    <p>Đối với học sinh THPT mới làm quen, bài tập thực tế hay gặp: dựng một góc phòng hoặc sân ngoài trời trong Blender/Unreal, gán 2–3 surface Megascans cho sàn, tường và trim — so sánh với material tự vẽ để thấy sự khác biệt về độ «thật» của micro-detail (vết bẩn, porosity, wear).</p>
+    <ul class="arc-list">
+      <li><strong>Độ phân giải cao</strong> — nhiều asset 4K–8K, phù hợp hero shot và game AAA</li>
+      <li><strong>Tileable &amp; trim sheets</strong> — surface lặp liền mạch; trim cho kiến trúc modular</li>
+      <li><strong>Displacement &amp; tessellation</strong> — chi tiết hình học khi engine/DCC hỗ trợ</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Megascans PBR surface material concrete wood 8K texture maps"</span>
+        </div>
+        <p class="arc-image-caption">Surface scan — bộ map Albedo, Normal, Roughness tileable</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Unreal Engine Megascans material applied environment scene"</span>
+        </div>
+        <p class="arc-image-caption">Megascans trong Unreal — vật liệu scan trên môi trường game</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. 3D assets, plants &amp; populate cảnh</h3>
+    <p>Ngoài surface phẳng, Megascans cung cấp <strong>3D models quét sẵn</strong> — đá, thân cây fallen, cọc gỗ, debris — mesh đã tối ưu LOD và texture đi kèm. Hạng mục <strong>3D Plants</strong> (cây, bụi, cỏ) được thiết kế để scatter trong Unreal hoặc dùng plugin foliage; atlas lá giúp tạo thảm thực vật dày mà không cần model từng cây.</p>
+    <p>Luồng populate điển hình: blockout terrain → paint Megascans ground → scatter rocks/plants → đặt hero prop ở vùng camera. Archviz hay dùng cây Megascans trong Lumion hoặc Twinmotion để lấp cảnh ngoại thất nhanh.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Megascans 3D plants rocks scatter Unreal Engine forest environment"</span>
+      </div>
+      <p class="arc-image-caption">3D plants &amp; assets — scatter cây cỏ và đá scan trong môi trường</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Quixel Bridge &amp; tích hợp Unreal Engine</h3>
+    <p><strong>Quixel Bridge</strong> là cầu nối giữa thư viện Megascans và phần mềm bạn đang dùng. Trong Bridge bạn đăng nhập tài khoản Epic, tìm asset, xem preview trên sphere/plane, chỉnh export settings (độ phân giải map, format) rồi bấm «Export» — file material hoặc mesh bay thẳng vào project Unreal, hoặc thư mục texture cho Blender.</p>
+    <p>Với Unreal Engine, tích hợp Megascans đặc biệt chặt: material instance tự map channel, plugin trong editor giúp cập nhật asset không cần import thủ công. Hiểu Bridge giúp nắm pipeline chuẩn Epic — từ thư viện cloud đến scene realtime.</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Quixel Bridge export workflow Unreal Engine Blender pipeline diagram"</span>
+      </div>
+      <p class="arc-image-caption">Luồng Bridge — duyệt Megascans, export và import vào Unreal hoặc DCC</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai nguồn asset hay được đặt cạnh Megascans nhất là <strong>Poly Haven</strong> (miễn phí CC0, cộng đồng mở) và <strong>Substance 3D Source</strong> (thư viện material procedural của Adobe). Không có lựa chọn «đúng duy nhất» — tùy bạn làm game Unreal, archviz hay indie không ngân sách, và cần scan hay material procedural.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Megascans vs Poly Haven</h3>
+    <p>Poly Haven cung cấp <strong>HDRI, texture và model 3D miễn phí CC0</strong> — không cần tài khoản, rất phù hợp học sinh THPT và indie dev Việt Nam. Chất lượng cao nhưng <strong>quy mô thư viện nhỏ hơn Megascans</strong> và không có Bridge tích hợp Unreal.</p>
+    <p>Megascans mạnh ở <strong>đa dạng asset scan</strong> (hàng chục nghìn surface, plants, 3D props), pipeline Epic (miễn phí với UE) và chuẩn hóa metadata cho production. Poly Haven mạnh ở <strong>miễn phí hoàn toàn, không ràng buộc engine</strong> và license CC0 dùng mọi dự án thương mại không lo điều khoản.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Quixel Megascans library asset browser Epic Games"</span>
+        </div>
+        <p class="arc-image-caption">Megascans — thư viện scan lớn, tích hợp Epic/Unreal</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Poly Haven textures HDRI free CC0 website"</span>
+        </div>
+        <p class="arc-image-caption">Poly Haven — texture &amp; HDRI CC0 miễn phí, không cần tài khoản</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Megascans mạnh hơn:</strong> số lượng asset scan khổng lồ, 3D plants chuyên foliage, Bridge + plugin Unreal, chuẩn pipeline game AAA.<br>
+      <strong>Poly Haven mạnh hơn:</strong> miễn phí 100% CC0, không phụ thuộc Epic account, HDRI chất lượng cao, phù hợp học tập và indie.<br>
+      <strong>Chọn Megascans khi:</strong> làm game Unreal, cần populate môi trường nhanh với scan chuẩn studio.<br>
+      <strong>Chọn Poly Haven khi:</strong> ngân sách bằng không, cần HDRI/texture CC0 cho Blender archviz hoặc dự án không dùng UE.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Megascans vs Substance 3D Source</h3>
+    <p><strong>Substance 3D Source</strong> (Adobe) là thư viện <strong>material procedural và scan</strong> tích hợp Substance 3D Painter, Designer và Sampler — bạn có thể chỉnh tham số (màu, roughness, pattern) trước khi export. Megascans tập trung vào <strong>asset scan cố định, photoreal</strong> — ít «parametric» hơn nhưng chi tiết micro-surface từ quét thực tế thường thuyết phục hơn cho môi trường tự nhiên và wear thật.</p>
+    <p>Substance Source yêu cầu subscription Adobe; Megascans miễn phí qua Unreal/Fab. Studio lớn hay dùng cả hai: Megascans cho ground/plants, Substance cho hero prop và material parametric.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Megascans photogrammetry scanned rock ground material Unreal"</span>
+        </div>
+        <p class="arc-image-caption">Megascans — scan photoreal, ít chỉnh tham số nhưng chi tiết thực tế</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Adobe Substance 3D Source material library parametric"</span>
+        </div>
+        <p class="arc-image-caption">Substance Source — material procedural, chỉnh tham số trước export</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Megascans mạnh hơn:</strong> scan photogrammetry đa dạng, 3D plants/props, miễn phí UE, không cần stack Adobe.<br>
+      <strong>Substance Source mạnh hơn:</strong> material parametric linh hoạt, tích hợp Painter/Designer, phù hợp custom look theo brief art director.<br>
+      <strong>Chọn Megascans khi:</strong> populate world game/archviz với scan «plug-and-play», pipeline Unreal.<br>
+      <strong>Chọn Substance Source khi:</strong> studio đã dùng Adobe Substance, cần tweak material nhanh và texture hero asset trong Painter.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học dùng Megascans như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Tạo tài khoản Epic và cài Quixel Bridge</strong>
+        <p>Bước đầu: đăng ký tài khoản Epic Games (miễn phí), tải <strong>Quixel Bridge</strong> từ trang quixel.com và cài Unreal Engine nếu bạn hướng game. Đăng nhập Bridge bằng Epic account — thư viện Megascans sẽ hiện trong app. Mục tiêu tuần đầu là quen giao diện duyệt asset, filter theo loại (Surface, 3D Asset, 3D Plant) và xem preview trên mesh mẫu.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Export surface đầu tiên sang Blender hoặc Unreal</strong>
+        <p>Chọn một surface đơn giản (ví dụ «Ground Forest Leaves» hoặc «Concrete Rough»), chỉnh resolution export (2K đủ cho học tập), export sang Blender (folder texture) hoặc trực tiếp vào project Unreal. Gán material lên plane hoặc sàn scene — quan sát cách Normal và Roughness ảnh hưởng đến ánh sáng. So sánh với material màu đặc để thấy giá trị PBR scan.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Populate cảnh với 3D asset và plants</strong>
+        <p>Thêm vài 3D rocks và một atlas plant vào scene blockout có sẵn. Trong Unreal, thử Foliage mode scatter cỏ; trong Blender, duplicate rocks theo composition cơ bản. Học cách scale asset cho đúng tỷ lệ thực (1 unit = 1 cm trong UE) — lỗi scale là sai phổ biến nhất của beginner khi dùng thư viện scan.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Kết hợp Megascans với model tự dựng</strong>
+        <p>Dựng một prop đơn giản trong Blender (hộp, lan can), unwrap UV cơ bản, dùng Megascans surface làm trim hoặc tile trên mặt. Hero prop có thể texture thêm trong Substance Painter — Megascans không thay Painter cho asset độc nhất, mà bổ sung cho môi trường xung quanh. Mục tiêu: phân biệt khi nào «kéo scan» và khi nào «tự paint».</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Dự án environment hoàn chỉnh</strong>
+        <p>Chọn brief: góc rừng game, sân bê tông post-apocalyptic hoặc sân vườn archviz. Hoàn thiện terrain/blockout, paint 3–5 surface Megascans, scatter plants/rocks, đặt lighting (HDRI Poly Haven + đèn area). Render 2–3 góc camera hoặc quay walkthrough ngắn trong Unreal. Giai đoạn này dạy quy trình sản xuất thật: iteration, tối ưu số lượng asset và LOD.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Portfolio và định hướng nghề</strong>
+        <p>Tổng hợp 2–3 environment shot ghi rõ pipeline: blockout + Megascans + engine render. Đăng ArtStation hoặc Behance — recruiter environment artist hay hỏi cách populate cảnh và tối ưu foliage. Tìm hiểu Fab và Megascans trong Lumion/Twinmotion nếu hướng archviz.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

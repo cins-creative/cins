@@ -1,0 +1,182 @@
+[
+  {
+    "id": "e11c0e76-2289-4657-8895-245f183dd3ef",
+    "slug": "inshot",
+    "tieu_de_viet": "InShot — Chỉnh sửa video trên điện thoại",
+    "tom_tat": "App edit video mobile phổ biến — cắt clip, nhạc, text, filter và xuất cho TikTok, Reels, Shorts ngay trên điện thoại.",
+    "meta_title": "InShot là gì? Edit video mobile, miễn phí và hướng dẫn | CINS",
+    "meta_description": "InShot: trim, music, sticker, export 9:16. So sánh CapCut, Premiere Rush và quy trình làm clip ngắn.",
+    "meta": {
+      "nha_phat_hanh": "InShot Inc.",
+      "version": "2024",
+      "platform": ["iOS", "Android"],
+      "website": "https://inshot.com",
+      "goi_mien_phi": "Miễn phí (watermark · quảng cáo)",
+      "gia_thanh": "Pro ~5 USD/tháng hoặc mua một lần",
+      "hinh_thuc_mua": "Miễn phí · thuê bao Pro",
+      "link_tai": "https://inshot.com"
+    }
+  },
+  {
+    "id": "60341493-5eac-470a-a606-4c75a85ee105",
+    "slug": "jira",
+    "tieu_de_viet": "Jira — Quản lý dự án Agile",
+    "tom_tat": "Công cụ Atlassian — board Scrum/Kanban, sprint, bug tracking cho team dev game, web và sản phẩm số.",
+    "meta_title": "Jira là gì? Agile, giá và hướng dẫn cho team | CINS",
+    "meta_description": "Jira: issue, sprint, backlog, workflow. So sánh Trello, Asana và quy trình làm việc dev.",
+    "meta": {
+      "nha_phat_hanh": "Atlassian",
+      "version": "2024",
+      "platform": ["Web", "Windows", "macOS", "iOS", "Android"],
+      "website": "https://www.atlassian.com/software/jira",
+      "goi_mien_phi": "Free cho ≤10 user",
+      "gia_thanh": "Từ ~8 USD/user/tháng (Standard)",
+      "hinh_thuc_mua": "Thuê bao tháng · giáo dục",
+      "link_tai": "https://www.atlassian.com/software/jira"
+    }
+  },
+  {
+    "id": "6bf85563-723c-43dc-98fe-eaababc79c1b",
+    "slug": "keyshot",
+    "tieu_de_viet": "KeyShot — Render sản phẩm 3D realtime",
+    "tom_tat": "Engine render realtime — ảnh và animation sản phẩm, packaging, industrial design từ CAD/3D với workflow nhanh.",
+    "meta_title": "KeyShot là gì? Render 3D, giá và hướng dẫn học | CINS",
+    "meta_description": "KeyShot: HDRI, material, animation. So sánh Blender Cycles, V-Ray và luồng render sản phẩm.",
+    "meta": {
+      "nha_phat_hanh": "Luxion (KeyShot)",
+      "version": "2024",
+      "platform": ["Windows", "macOS"],
+      "website": "https://www.keyshot.com",
+      "goi_mien_phi": "Dùng thử 14 ngày",
+      "gia_thanh": "Từ ~99 USD/tháng · ~1,995 USD/năm",
+      "hinh_thuc_mua": "Thuê bao · giáo dục",
+      "link_tai": "https://www.keyshot.com/download"
+    }
+  },
+  {
+    "id": "9c982b74-c424-4432-8ebb-9a83d738c8ca",
+    "slug": "kling-ai",
+    "tieu_de_viet": "Kling AI — Tạo video bằng AI",
+    "tom_tat": "Mô hình AI text/image-to-video của Kuaishou — sinh clip ngắn chuyển động từ prompt hoặc ảnh tĩnh cho concept và social.",
+    "meta_title": "Kling AI là gì? AI video, giá và hướng dẫn dùng | CINS",
+    "meta_description": "Kling AI: text-to-video, image-to-video. So sánh Runway, Sora và quy trình dùng AI video có trách nhiệm.",
+    "meta": {
+      "nha_phat_hanh": "Kuaishou",
+      "version": "1.6",
+      "platform": ["Web"],
+      "website": "https://klingai.com",
+      "goi_mien_phi": "Credit miễn phí hàng ngày (tùy khu vực)",
+      "gia_thanh": "Theo credit / gói subscription",
+      "hinh_thuc_mua": "Miễn phí · pay-per-use",
+      "link_tai": "https://klingai.com"
+    }
+  },
+  {
+    "id": "e35a1cec-4939-4c89-b3b6-0cef9f3868df",
+    "slug": "krita",
+    "tieu_de_viet": "Krita — Vẽ digital miễn phí",
+    "tom_tat": "Phần mềm vẽ raster mã nguồn mở — brush, layer, animation frame-by-frame cho concept art, manga và illustration.",
+    "meta_title": "Krita là gì? Digital painting, miễn phí và hướng dẫn | CINS",
+    "meta_description": "Krita: brush engine, layer, animation. So sánh Photoshop, Clip Studio Paint và lộ trình học vẽ số.",
+    "meta": {
+      "nha_phat_hanh": "Krita Foundation",
+      "version": "5",
+      "platform": ["Windows", "macOS", "Linux"],
+      "website": "https://krita.org",
+      "goi_mien_phi": "Miễn phí · mã nguồn mở",
+      "gia_thanh": "Miễn phí",
+      "hinh_thuc_mua": "Miễn phí",
+      "link_tai": "https://krita.org/en/download"
+    }
+  },
+  {
+    "id": "a76e2699-0566-4a6e-8547-044a34c5578a",
+    "slug": "lightroom",
+    "tieu_de_viet": "Adobe Lightroom — Quản lý &amp; chỉnh ảnh RAW",
+    "tom_tat": "Workflow nhiếp ảnh của Adobe — import, catalog, chỉnh màu batch và xuất cho wedding, travel và studio ảnh.",
+    "meta_title": "Adobe Lightroom là gì? Chỉnh ảnh, giá và hướng dẫn | CINS",
+    "meta_description": "Lightroom: catalog, preset, sync cloud. So sánh Capture One, Photoshop Camera Raw và lộ trình học.",
+    "meta": {
+      "nha_phat_hanh": "Adobe",
+      "version": "2024",
+      "platform": ["Windows", "macOS", "iOS", "Android"],
+      "website": "https://www.adobe.com/products/photoshop-lightroom.html",
+      "goi_mien_phi": "Dùng thử 7 ngày",
+      "gia_thanh": "Từ ~10 USD/tháng (Photography plan)",
+      "hinh_thuc_mua": "Thuê bao tháng · Creative Cloud",
+      "link_tai": "https://www.adobe.com/products/photoshop-lightroom.html"
+    }
+  },
+  {
+    "id": "c40d2637-9aaa-4fff-bbdb-3a473bfcb16a",
+    "slug": "live2d",
+    "tieu_de_viet": "Live2D — Hoạt hình 2D từ ảnh tĩnh",
+    "tom_tat": "Công nghệ rig 2D — biến illustration thành nhân vật cử động cho game, VTuber, visual novel và app.",
+    "meta_title": "Live2D là gì? Rig 2D, giá và hướng dẫn học | CINS",
+    "meta_description": "Live2D Cubism: mesh, parameter, export. So sánh Character Animator, Spine và lộ trình VTuber/game 2D.",
+    "meta": {
+      "nha_phat_hanh": "Live2D Inc.",
+      "version": "5",
+      "platform": ["Windows", "macOS"],
+      "website": "https://www.live2d.com",
+      "goi_mien_phi": "Cubism Editor Free (giới hạn)",
+      "gia_thanh": "Từ ~2,200 USD/năm (PRO) · giáo dục giảm",
+      "hinh_thuc_mua": "Thuê bao năm · giáo dục",
+      "link_tai": "https://www.live2d.com/en/download/cubism"
+    }
+  },
+  {
+    "id": "8e08a1a1-7b90-4899-b154-cdfb827a1479",
+    "slug": "logic-pro",
+    "tieu_de_viet": "Logic Pro — DAW sản xuất nhạc trên Mac",
+    "tom_tat": "Digital Audio Workstation của Apple — MIDI, Drummer, Flex Time và mix cho producer, band và nhạc phim trên macOS.",
+    "meta_title": "Logic Pro là gì? DAW, giá và hướng dẫn học | CINS",
+    "meta_description": "Logic Pro: MIDI, Drummer, Alchemy. So sánh Ableton Live, FL Studio và lộ trình sản xuất nhạc.",
+    "meta": {
+      "nha_phat_hanh": "Apple",
+      "version": "11",
+      "platform": ["macOS"],
+      "website": "https://www.apple.com/logic-pro",
+      "goi_mien_phi": "Dùng thử 90 ngày",
+      "gia_thanh": "~199 USD mua một lần (Mac App Store)",
+      "hinh_thuc_mua": "Mua một lần · giáo dục",
+      "link_tai": "https://apps.apple.com/app/logic-pro/id634148309"
+    }
+  },
+  {
+    "id": "3b9dd8d7-5bfd-441c-aec6-86877460162d",
+    "slug": "lumion",
+    "tieu_de_viet": "Lumion — Render kiến trúc realtime",
+    "tom_tat": "Phần mềm archviz realtime — import SketchUp/Revit, thêm cảnh quan, người, ánh sáng và xuất video walkthrough nhanh.",
+    "meta_title": "Lumion là gì? Render kiến trúc, giá và hướng dẫn | CINS",
+    "meta_description": "Lumion: LiveSync, asset library, animation. So sánh Enscape, Twinmotion và luồng render nội thất.",
+    "meta": {
+      "nha_phat_hanh": "Act-3D (Lumion)",
+      "version": "2024",
+      "platform": ["Windows"],
+      "website": "https://lumion.com",
+      "goi_mien_phi": "Dùng thử 14 ngày",
+      "gia_thanh": "Từ ~1,500 EUR/năm (Standard)",
+      "hinh_thuc_mua": "Thuê bao năm · giáo dục",
+      "link_tai": "https://lumion.com/download"
+    }
+  },
+  {
+    "id": "58907310-a54d-42ea-a8e1-563a3765ae3f",
+    "slug": "mantis-bug-tracker",
+    "tieu_de_viet": "Mantis Bug Tracker — Theo dõi lỗi phần mềm",
+    "tom_tat": "Hệ thống bug tracking web-based mã nguồn mở — báo cáo issue, workflow và phân công cho team dev nhỏ và dự án học tập.",
+    "meta_title": "MantisBT là gì? Bug tracking, miễn phí và hướng dẫn | CINS",
+    "meta_description": "Mantis: issue, priority, workflow. So sánh Jira, GitHub Issues và quy trình QA dự án.",
+    "meta": {
+      "nha_phat_hanh": "MantisBT Team",
+      "version": "2",
+      "platform": ["Web", "Self-hosted"],
+      "website": "https://www.mantisbt.org",
+      "goi_mien_phi": "Miễn phí · mã nguồn mở",
+      "gia_thanh": "Miễn phí (hosting tự quản)",
+      "hinh_thuc_mua": "Miễn phí · self-hosted",
+      "link_tai": "https://www.mantisbt.org/download.php"
+    }
+  }
+]

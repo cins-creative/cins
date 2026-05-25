@@ -1,5 +1,7 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+**Product & database context:** [`docs/CINS_INSTRUCTION.md`](./docs/CINS_INSTRUCTION.md) (Schema v5). Agents: see [`AGENTS.md`](./AGENTS.md).
+
 ## Getting Started
 
 First, run the development server:

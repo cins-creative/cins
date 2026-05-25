@@ -1796,6 +1796,14 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   flex-wrap: wrap;
   gap: 12px;
 }
+.footer-bottom a {
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.footer-bottom a:hover {
+  color: var(--cins-yellow);
+}
 @media (max-width: 600px) {
   .footer-inner {
     grid-template-columns: 1fr;

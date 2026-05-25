@@ -1,0 +1,209 @@
+<section class="arc-intro">
+  <p>Bạn xem một blockbuster: người hùng «bay» giữa tòa nhà chọc trời, mặt nước phản chiếu hoàn hảo, khói lửa hòa trộn với cảnh quay thật — phần lớn shot đó không quay trực tiếp mà được <strong>ghép hình</strong> (compositing) từ nhiều layer: footage, render CG, matte paint. <strong>Nuke</strong> của Foundry là một trong những công cụ compositing hàng đầu Hollywood dùng cho quy trình đó.</p>
+  <p>Nuke không phải app kéo template CapCut hay chỉnh màu nhanh trên điện thoại — nó là <strong>node-based compositor chuyên nghiệp</strong>, nơi mỗi bước xử lý (key, merge, grade, roto) là một node nối dây trên graph. Hiểu Nuke giúp học sinh THPT chuyển từ «chỉnh video» sang tư duy VFX pipeline như studio làm phim quảng cáo, phim ngắn và phim điện ảnh.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>Nuke là gì?</h2>
+  <p><strong>Nuke</strong> do <strong>Foundry</strong> phát triển — phần mềm <strong>compositing và VFX node-based</strong> chạy trên Windows, macOS và Linux. Xuất phát từ Digital Domain, Nuke trở thành tiêu chuẩn tại nhiều studio phim lớn (Marvel, Disney, v.v.) và lan rộng tới quảng cáo, phim ngắn, MV ca nhạc tại Việt Nam khi nhu cầu VFX chất lượng cao tăng.</p>
+  <p>Khác với phần mềm dựng phim 2D theo layer timeline, Nuke dùng <strong>node graph</strong>: Read → Keyer → Merge → Grade → Write. Mỗi node có input/output rõ ràng — bạn nhìn thấy luồng xử lý, tắt một node để debug, copy nhánh cho shot tương tự. Giao diện có viewer, node graph và properties panel; ban đầu trông kỹ thuật, nhưng mỗi node ánh xạ một bước trong quy trình composite chuẩn ngành.</p>
+  <ul class="arc-list">
+    <li><strong>Node compositing</strong> — merge layer, mask, transform, blur, defocus theo flow có thể nhánh và tái sử dụng</li>
+    <li><strong>Keying &amp; roto</strong> — Keylight, Primatte, spline/paint roto cho green screen và cô lập đối tượng</li>
+    <li><strong>3D system</strong> — scene 3D trong comp, camera projection, deep compositing với EXR multi-layer</li>
+    <li><strong>Pipeline &amp; scripting</strong> — Python, gizmo tùy chỉnh, render farm integration cho studio scale lớn</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"Foundry Nuke compositing node graph interface screenshot 2024"</span>
+    </div>
+    <p class="arc-image-caption">Giao diện Nuke — node graph, viewer và properties panel</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>Nuke thường đứng ở giai đoạn <strong>VFX compositing sau render</strong>: nhận plate quay thật, render CG (EXR sequence), matte paint và roto — ghép shot hoàn chỉnh, match grain/color, thêm hiệu ứng 2D rồi xuất DPX/EXR trả về colorist hoặc editor. Comp artist làm việc cùng lighters, roto/paint artist và TD. Thường kết hợp Maya/Houdini (3D), Silhouette (roto), Photoshop (matte) và DaVinci Resolve (final grade).</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Node workflow &amp; multi-pass compositing</h3>
+    <p>Thế mạnh cốt lõi của Nuke là <strong>tư duy node</strong> — mọi thao tác là khối xử lý có thể preview từng bước trên viewer. Bạn nối Read (footage) qua Grade, Merge với background, thêm Transform và Glow, cuối cùng Write. Với render 3D multi-pass (diffuse, specular, shadow, Z-depth, cryptomatte), mỗi pass là một nhánh node — ghép lại mà vẫn chỉnh sáng từng thành phần độc lập.</p>
+    <p>Đối với học sinh THPT mới làm quen, bài tập thực tế hay gặp: ghép người quay green screen lên background phong cảnh, thêm contact shadow và color match — vừa luyện tư duy VFX vừa làm portfolio comp cơ bản cho CLB media trường.</p>
+    <ul class="arc-list">
+      <li><strong>Merge node</strong> — operation Over, Plus, Screen ghép foreground/background</li>
+      <li><strong>Shuffle &amp; Copy</strong> — tách/kết hợp channel RGBA, depth, matte từ EXR</li>
+      <li><strong>Precomp &amp; group</strong> — đóng gói node tree tái sử dụng cho chuỗi shot quảng cáo</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Nuke EXR multi pass compositing node workflow screenshot"</span>
+        </div>
+        <p class="arc-image-caption">Multi-pass comp — nhánh node cho diffuse, shadow và reflection</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Nuke green screen Keylight merge composite result"</span>
+        </div>
+        <p class="arc-image-caption">Green screen comp — Keylight, edge blend và color match</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Keying, roto &amp; paint</h3>
+    <p>Nuke nổi tiếng với <strong>Keylight</strong> — keyer chuẩn ngành cho green/blue screen — kết hợp despill, edge blur và light wrap để foreground «ăn» vào background tự nhiên. Khi không có green screen, comp artist dùng <strong>Roto node</strong> (spline) hoặc <strong>RotoPaint</strong> để tạo matte frame-by-frame, hoặc nhận matte từ Silhouette/Mocha.</p>
+    <p>Đây là kỹ năng «sản xuất thực tế» mà studio VFX Việt Nam luôn yêu cầu: một shot quảng cáo 15 giây có thể cần hàng trăm frame roto — kiên nhẫn và chính xác quan trọng hơn hiệu ứng «bắt mắt» nhưng sai khung hình.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Nuke Keylight roto spline matte VFX workflow screenshot"</span>
+      </div>
+      <p class="arc-image-caption">Keying &amp; roto — Keylight, spline matte và edge treatment</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Deep compositing, 3D &amp; pipeline</h3>
+    <p>Nuke hỗ trợ <strong>deep data</strong> (Deep EXR): mỗi pixel có nhiều layer depth — ghép CG vào footage phức tạp (tóc, khói, lá cây) mà không cần roto từng sợi. Hệ <strong>3D trong Nuke</strong> cho phép camera projection matte paint, đặt card 3D và render pass nội bộ cho shot đơn giản.</p>
+    <p>Ở quy mô studio, <strong>Python scripting</strong> và gizmo tùy chỉnh tự động hóa batch comp hàng trăm shot — hiểu pipeline này giúp bạn không chỉ «biết một node» mà nắm cách sản phẩm VFX đi từ layout 3D đến pixel cuối trên màn hình.</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Nuke deep compositing 3D projection VFX pipeline diagram screenshot"</span>
+      </div>
+      <p class="arc-image-caption">Deep comp &amp; 3D — projection, depth merge và pipeline studio</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai phần mềm hay được đặt cạnh Nuke nhất là <strong>After Effects</strong> (Adobe, layer-based, phổ biến motion graphics) và <strong>Fusion</strong> (Blackmagic, node-based, tích hợp Resolve). Không có câu trả lời «đúng duy nhất» — tùy bạn hướng tới VFX phim, quảng cáo hay motion design, và ngân sách cá nhân hay studio.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Nuke vs After Effects</h3>
+    <p>After Effects (AE) là «cổng vào» compositing cho hàng triệu creator: timeline layer quen thuộc, tích hợp Premiere/Illustrator, mạnh motion graphics và title. Nuke hướng <strong>VFX film pipeline</strong>: node graph scale tốt với shot phức tạp, deep comp, color management ACES, scripting cho studio — AE dễ học hơn cho MV và YouTube, Nuke là chuẩn tuyển comp artist phim.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Foundry Nuke professional VFX compositing node graph"</span>
+        </div>
+        <p class="arc-image-caption">Nuke — pipeline VFX phim, deep comp và multi-pass EXR</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Adobe After Effects compositing timeline layers interface"</span>
+        </div>
+        <p class="arc-image-caption">After Effects — layer timeline, motion graphics và social content</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Nuke mạnh hơn:</strong> node workflow cho shot VFX phức tạp, deep compositing, pipeline studio (Python, gizmo), tiêu chuẩn tuyển comp artist phim/OTT.</p>
+      <p><strong>After Effects mạnh hơn:</strong> dễ học, motion design/title, tích hợp Creative Cloud, phù hợp quảng cáo digital và creator economy.</p>
+      <p><strong>Chọn Nuke khi:</strong> mục tiêu compositor VFX, làm việc EXR/deep, apply studio phim hoặc post house chuyên nghiệp.</p>
+      <p><strong>Chọn After Effects khi:</strong> motion graphics, MV, social ads, hoặc mới bắt đầu comp trên layer timeline.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Nuke vs Fusion</h3>
+    <p>Cả Nuke và Fusion đều dùng <strong>node graph</strong> — khác biệt nằm ở hệ sinh thái và quy mô. Fusion (standalone hoặc trong DaVinci Resolve) miễn phí/trả phí thấp hơn, phù hợp indie, TVC và phim ngắn; Nuke license đắt hơn nhưng là «ngôn ngữ» tại nhiều studio phim lớn và có NukeX/Nuke Studio cho 3D tracking, editorial.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Nuke Studio VFX compositing professional pipeline screenshot"</span>
+        </div>
+        <p class="arc-image-caption">Nuke — tiêu chuẩn studio phim lớn và pipeline scale</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Blackmagic Fusion node compositing DaVinci Resolve interface"</span>
+        </div>
+        <p class="arc-image-caption">Fusion — node comp, tích hợp Resolve, chi phí thấp hơn</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Nuke mạnh hơn:</strong> deep pipeline Hollywood, NukeX (3D tracking, particles), industry adoption cho comp artist career.</p>
+      <p><strong>Fusion mạnh hơn:</strong> miễn phí trong Resolve, chi phí standalone thấp, edit + color + comp một chỗ cho indie.</p>
+      <p><strong>Chọn Nuke khi:</strong> apply VFX house quốc tế, shot cần deep/3D comp phức tạp, studio đã chuẩn Nuke.</p>
+      <p><strong>Chọn Fusion khi:</strong> ngân sách hạn chế, pipeline Resolve, phim ngắn/quảng cáo indie tại Việt Nam.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học Nuke như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Nền tảng hình ảnh và compositing cơ bản</strong>
+        <p>Trước Nuke, nắm khái niệm layer, alpha channel, premultiply, color space và green screen trên After Effects hoặc Fusion miễn phí. Hiểu sự khác biệt footage 8-bit vs EXR 16/32-bit float. Mục tiêu là không còn «sợ node» — nhiều bạn THPT bỏ cuộc vì chưa quen tư duy graph thay vì timeline kéo thả.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Node cơ bản: Read, Merge, Grade, Write</strong>
+        <p>Tuần đầu hãy tạo script đơn giản: Read plate → Grade sáng/tối → Write PNG. Thêm Merge với background still, thử operation Over và mix opacity. Luyện navigation viewer (1, 2, A/B compare) và đặt tên node rõ ràng — thói quen pipeline quan trọng hơn hiệu ứng phức tạp ngay từ đầu.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Keying và roto cho green screen</strong>
+        <p>Quay hoặc tải footage green screen, dùng Keylight (hoặc Primatte), despill, edge blur và color match background. Nếu không có green screen, thử Roto spline cho đối tượng đơn giản 50–100 frame. Mục tiêu là một comp 5–10 giây «nhìn được» — foreground không còn viền xanh lè.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Multi-pass EXR và integration CG</strong>
+        <p>Tải render EXR mẫu (hoặc export từ Blender): diffuse, specular, shadow pass — ghép bằng Shuffle và Merge, thêm Grade cho khớp plate. Học contact shadow và reflection giả lập. Đây là bước chuyển từ «comp 2D» sang «integration 3D» mà studio VFX yêu cầu.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Dự án shot hoàn chỉnh</strong>
+        <p>Chọn một brief: title sequence 10 giây, quảng cáo sản phẩm giả với product CG, hoặc scene phim ngắn CLB. Làm đủ bước: plate + roto/key + grade + grain match + export. Giai đoạn này dạy deadline, version naming và nhận feedback — giống comp artist junior thật.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Portfolio và định hướng nghề</strong>
+        <p>Tổng hợp 3–5 shot trong demo reel 60–90 giây: green screen comp, CG integration, có thể một shot roto/paint. Đăng ArtStation, Vimeo — ghi rõ vai trò và phần mềm (Nuke, Blender nếu có). Tìm khóa VFX/compositing tại Việt Nam; Nuke Non-commercial miễn phí cho học tập — dùng để luyện trước khi studio cấp license bản thương mại.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

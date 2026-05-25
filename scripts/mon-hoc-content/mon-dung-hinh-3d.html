@@ -1,0 +1,202 @@
+<section class="arc-intro">
+  <p>Một căn phòng trống trong file thiết kế có thể "dựng" thành không gian sống động chỉ bằng vài giờ trên Blender — ánh sáng cửa sổ, gỗ sàn phản chiếu, camera bay qua từng góc mà chưa cần đụng tới công trường thật.</p>
+  <p>Dựng hình 3D (3D Modeling) dạy bạn xây khối polygon, gán vật liệu PBR, ánh sáng và render trong phần mềm như Blender, 3ds Max hoặc SketchUp. Với học sinh THPT yêu kiến trúc, thiết kế game, animation hay sản phẩm công nghiệp, đây là cầu nối giữa ý tưởng 2D và mô hình có thể in 3D, quay phim hoặc đưa vào engine game.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>Dựng hình 3D là gì?</h2>
+  <p>Dựng hình 3D là quy trình tạo <strong>đối tượng ba chiều số</strong> trong không gian máy tính: từ khối cơ bản (cube, cylinder) đến nội thất, sản phẩm công nghiệp, cảnh quay phim hoặc prop game. Mô hình gồm mesh (lưới đa giác), có thể thêm UV mapping, texture PBR, rigging và animation tùy mục đích sử dụng.</p>
+  <p>Polygon modeling dùng lưới tam giác/tứ giác — phổ biến trong game và hard-surface; NURBS dùng đường cong toán học — mạnh cho thiết kế công nghiệp và viz cao cấp. Blender (miễn phí) phổ biến trong giáo dục; 3ds Max mạnh viz kiến trúc; SketchUp thân thiện cho phác nhanh không gian. Cả ba đều chia sẻ khái niệm viewport, modifier, material và render engine.</p>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"Blender 3D viewport interior modeling student workspace wireframe render comparison"</span>
+    </div>
+    <p class="arc-image-caption">Viewport Blender — mesh nội thất với wireframe overlay hiển thị topology và bản render thử ánh sáng ban ngày</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Ba trụ cột của một mô hình 3D chất lượng</span>
+    <p><strong>Topology sạch</strong> — lưới đa giác phân bố đều, edge flow đúng hướng, không over-tessellate vùng phẳng.<br>
+    <strong>UV &amp; vật liệu PBR</strong> — unwrap không stretch, texture albedo/roughness/normal map scale đúng đơn vị thực.<br>
+    <strong>Scale &amp; tổ chức file</strong> — mô hình đúng tỷ lệ mét/cm, naming convention rõ, lưu versioned để chỉnh sửa và nộp bài.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Học những gì?</h2>
+  <p>Chương trình dựng hình 3D đi từ thao tác cơ bản đến pipeline hoàn chỉnh cho một scene nhỏ:</p>
+  <ul class="arc-list">
+    <li><strong>Interface &amp; navigation</strong> — viewport, outliner, properties panel; phím tắt xoay/pan/zoom; làm việc với collection và tổ chức scene theo layer logic.</li>
+    <li><strong>Polygon vs NURBS</strong> — extrude, inset, loop cut, bevel, mirror modifier cho hard-surface; hiểu khi nào dùng NURBS/spline cho đường cong công nghiệp hoặc import CAD.</li>
+    <li><strong>Topology &amp; clean mesh</strong> — quad-dominant mesh, tránh n-gon và triangle lộ trên bề mặt cong; subdivision surface có kiểm soát, không subdiv quá sớm.</li>
+    <li><strong>UV unwrap &amp; PBR material</strong> — unwrap UV island hợp lý, gán texture albedo, roughness, metallic, normal map; procedural material hoặc asset từ Poly Haven/Substance.</li>
+    <li><strong>Lighting, camera &amp; viewport render</strong> — HDRI environment, three-point light; focal length, depth of field; so sánh Eevee realtime vs Cycles path-traced trước khi render final.</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-grid-2">
+    <div>
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"3D modeling topology wireframe clean quad mesh hard surface student"</span>
+      </div>
+      <p class="arc-image-caption">Topology sạch trên hard-surface — quad-dominant mesh, edge flow đúng hướng, không over-tessellate vùng phẳng</p>
+    </div>
+    <div>
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"UV unwrap texture PBR material Blender viewport render interior scene"</span>
+      </div>
+      <p class="arc-image-caption">UV unwrap và gán vật liệu PBR — kiểm tra stretch trên UV editor trước khi viewport render thử</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>Tại sao môn này quan trọng?</h2>
+  <p>3D đã trở thành ngôn ngữ chung của nhiều ngành: kiến trúc bán ý tưởng bằng walkthrough, thương mại điện tử cần ảnh sản phẩm 360°, game và phim hoạt hình cần asset hàng ngày. Học sinh THPT làm quen sớm với Blender/Max/SketchUp có portfolio trực quan — và quan trọng hơn, tư duy scale đúng đơn vị, topology sạch và quản lý file versioned là nền tảng không thể bỏ qua dù chuyển sang phần mềm nào.</p>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Ứng dụng thực tế theo ngành</span>
+    <p><strong>Kiến trúc &amp; nội thất</strong> — viz căn hộ, văn phòng; fly-through cho khách hàng và thi tuyển kiến trúc.<br>
+    <strong>Thiết kế sản phẩm &amp; in 3D</strong> — prototype digital, export STL cho máy in; presentation cho crowdfunding và pitch investor.<br>
+    <strong>Game &amp; metaverse</strong> — prop, environment low-poly; pipeline sang Unity/Unreal với texture baking.<br>
+    <strong>Animation &amp; VFX</strong> — modeling nhân vật/cảnh cho short film, motion graphics 3D và previz.<br>
+    <strong>Marketing &amp; e-commerce</strong> — render sản phẩm không cần studio chụp; A/B test màu sắc trên model trước khi sản xuất.</p>
+  </div>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"Blender turntable product render student portfolio hard surface modeling showcase"</span>
+    </div>
+    <p class="arc-image-caption">Turntable render sản phẩm — showcase portfolio cho thiết kế công nghiệp hoặc đồ án cuối kỳ môn dựng hình 3D</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Đánh giá qua bài tập polygon và đồ án scene</h2>
+  <p>Môn dựng hình 3D thường chấm theo <strong>file nguồn + ảnh/video output</strong>, không chỉ screenshot cuối. Bài tập tuần là modeling một vật thể theo reference (ấm trà, ghế, điện thoại) — tập trung topology sạch và scale đúng đơn vị. Bài giữa kỳ có thể là nội thất một phòng; đồ án cuối là scene 3D hoàn chỉnh có concept, lighting, ít nhất 3 góc camera chất lượng cao và file lưu versioned.</p>
+  <p>Tiêu chí chấm thường gặp:</p>
+  <ul class="arc-list">
+    <li><strong>Độ chính xác hình khối</strong> — tỷ lệ so với reference/brief; chi tiết không méo, không intersection mesh lộ liễu</li>
+    <li><strong>Topology &amp; tổ chức file</strong> — mesh sạch, naming convention, collection rõ; modifier không collapse bừa bãi; file version v01/v02/final</li>
+    <li><strong>UV &amp; vật liệu PBR</strong> — unwrap không stretch; texture scale đúng; không dùng ảnh mặc định chưa chỉnh</li>
+    <li><strong>Ánh sáng &amp; viewport render</strong> — exposure cân bằng, noise chấp nhận được; composition camera có chủ đích</li>
+    <li><strong>Quy trình &amp; tài liệu</strong> — nộp đúng format (.blend/.max), readme ngắn mô tả render settings; đúng hạn</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-wide">
+    <div class="arc-image-placeholder arc-image-placeholder--wide">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"student 3D modeling classroom critique Blender projector complete scene Vietnam computer lab"</span>
+    </div>
+    <p class="arc-image-caption">Buổi critique đồ án scene 3D — học sinh trình bày trên máy chiếu, giảng viên và lớp góp ý topology, material PBR và góc camera</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">05</span>Những lưu ý khi dựng hình</h2>
+
+  <div class="arc-accordion">
+
+    <details class="arc-card" open>
+      <summary>Topology sạch quan trọng hơn poly count cao</summary>
+      <div class="arc-card-body">
+        <p>Thêm subdiv hoặc loop cut bừa bãi không làm mô hình đẹp hơn — chỉ làm file nặng và khó sửa. Vùng phẳng cần ít poly; vùng cong cần edge flow đúng hướng. Trước khi render, bật wireframe overlay kiểm tra: có n-gon lộ không? Có triangle spike trên bề mặt cong không? Sửa topology trước khi unwrap UV.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Đặt scale đúng đơn vị ngay từ đầu</summary>
+      <div class="arc-card-body">
+        <p>Model ghế cao 2 mét hay bàn dày 50 cm vì quên đổi unit sẽ phá toàn bộ scene. Thiết lập scene scale (mét/cm) trước khi modeling; dùng reference image với tỷ lệ đã biết hoặc import blockout kích thước chuẩn. Khi gán texture, kiểm tra scale trên viewport — gỗ sàn không được trông như ảnh pixel khổng lồ.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>UV unwrap trước khi gán texture phức tạp</summary>
+      <div class="arc-card-body">
+        <p>Gán material PBR lên mesh chưa unwrap sẽ cho kết quả stretch và seam lộ khi render. Mark seam ở góc khuất, unwrap từng island, pack UV với margin đủ cho texel density đồng đều. Kiểm tra trên UV editor bằng checker texture trước khi thay ảnh thật — tiết kiệm hàng giờ sửa sau.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Viewport render thử trước render final</summary>
+      <div class="arc-card-body">
+        <p>Đừng bấm render 4K 512 samples ngay khi chưa kiểm tra ánh sáng trên viewport. Dùng Eevee hoặc Cycles preview ở resolution thấp để test HDRI, camera angle và material. Chỉ tăng samples và resolution khi composition đã ổn — tránh chờ render cả đêm rồi phát hiện camera lệch.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Lưu file versioned, không ghi đè bừa bãi</summary>
+      <div class="arc-card-body">
+        <p>scene_v01.blend, scene_v02_topology-fix.blend, scene_final.blend — naming rõ giúp rollback khi collapse modifier nhầm. Save incremental thường xuyên; trước khi nộp, purge unused data và kiểm tra file mở được trên máy giáo viên (không missing texture vì đường dẫn tuyệt đối).</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Polygon vs NURBS — chọn đúng công cụ cho bài</summary>
+      <div class="arc-card-body">
+        <p>Bài tập hard-surface (bàn, điện thoại, nội thất) dùng polygon modeling với modifier mirror/bevel. Bài thiết kế công nghiệp có đường cong chính xác có thể cần NURBS hoặc CAD import. Đừng cố dựng mọi thứ bằng một kỹ thuật — hiểu ưu nhược từng loại giúp làm bài nhanh và đúng brief hơn.</p>
+      </div>
+    </details>
+
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">06</span>Các bước làm đồ án scene 3D</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Đọc brief và blockout scale</strong>
+        <p>Xác định phạm vi scene (một phòng, một sản phẩm, một góc phố). Thiết lập unit mét/cm, import reference hoặc vẽ blockout khối đơn giản đúng tỷ lệ. Bước này ngăn lỗi scale lan sang toàn bộ đồ án.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Modeling polygon với topology sạch</strong>
+        <p>Dựng từ khối lớn đến chi tiết: extrude, loop cut, mirror modifier. Giữ quad-dominant, tránh over-tessellate. Tổ chức collection theo vật thể (Furniture, Props, Architecture) và đặt tên object rõ ràng.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>UV unwrap và gán vật liệu PBR</strong>
+        <p>Unwrap từng object, pack UV với texel density hợp lý. Gán albedo, roughness, normal map — kiểm tra scale texture trên viewport. Dùng procedural cho bề mặt đơn giản (tường trắng, bê tông) để tiết kiệm thời gian.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Ánh sáng và camera</strong>
+        <p>Thiết lập HDRI hoặc three-point light phù hợp mood brief. Đặt 2–3 camera với focal length và composition có chủ đích. Viewport render thử ở resolution thấp — chỉnh exposure trước khi commit render dài.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Render final và kiểm tra output</strong>
+        <p>Chọn render engine (Cycles cho chất lượng, Eevee cho tốc độ), set samples và resolution theo yêu cầu. Export PNG/EXR; kiểm tra noise, firefly và seam UV trên ảnh lớn. Sửa material/lighting nếu cần, lưu version mới.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Đóng gói nộp bài</strong>
+        <p>Lưu file nguồn versioned, pack texture hoặc dùng relative path. Viết readme ngắn: phần mềm, render settings, thời gian render. Nộp đủ file .blend/.max, ảnh render 3 góc và đúng hạn — kiểm tra mở file trên máy khác không missing media.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

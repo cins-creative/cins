@@ -1,0 +1,209 @@
+<section class="arc-intro">
+  <p>Bạn mở trang ArtStation của artist game, bấm vào thumbnail nhân vật và xoay model 360° ngay trên trình duyệt — ánh sáng PBR, shadow mềm, chất liệu kim loại phản chiếu realtime mà không cần chờ render hàng giờ. Phần lớn portfolio tương tác đó được đóng gói bằng <strong>Marmoset Toolbag</strong>, công cụ trình bày 3D realtime chuyên cho game artist, concept artist và technical artist.</p>
+  <p>Toolbag không phải phần mềm modeling đầy đủ như Blender hay Maya — nó tập trung vào <strong>viewport PBR chất lượng cao, turntable, animation preview và xuất web viewer</strong>. Hiểu Toolbag giúp học sinh THPT biết cách «bán» tác phẩm 3D: không chỉ dựng model đẹp mà còn trình bày đúng chuẩn ngành khi nộp portfolio hoặc pitch cho studio game.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>Marmoset Toolbag là gì?</h2>
+  <p>Marmoset Toolbag do <strong>Marmoset</strong> phát triển — phần mềm <strong>realtime 3D presentation và lookdev</strong> chạy trên Windows và macOS. Ban đầu nổi tiếng trong cộng đồng game art khi cần showcase character và prop; ngày nay được dùng rộng rãi cho portfolio online, review nội bộ studio và turntable quảng cáo asset trước khi đưa vào engine.</p>
+  <p>Khác với renderer offline như V-Ray hay Arnold, Toolbag tối ưu cho <strong>xem trước và trình bày realtime</strong>: bạn import mesh từ Blender, Maya, ZBrush hoặc Substance Painter (FBX, OBJ, glTF), gán texture PBR, bố trí ánh sáng HDRI và xuất ảnh, video hoặc file viewer nhúng web. Giao diện gọn hơn DCC nặng — phù hợp artist muốn kết quả nhanh cho portfolio mà không cần cấu hình render phức tạp.</p>
+  <ul class="arc-list">
+    <li><strong>Import mesh &amp; texture PBR</strong> — FBX, OBJ, glTF; albedo, normal, roughness, metallic maps</li>
+    <li><strong>Realtime viewport</strong> — ánh sáng HDRI, shadow, SSAO, depth of field trực tiếp trên GPU</li>
+    <li><strong>Turntable &amp; animation</strong> — quay 360°, preview rig animation, xuất MP4/GIF</li>
+    <li><strong>Marmoset Viewer &amp; Skyshop</strong> — đóng gói scene tương tác cho web hoặc ArtStation embed</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"Marmoset Toolbag 4 interface PBR viewport character showcase screenshot"</span>
+    </div>
+    <p class="arc-image-caption">Giao diện Toolbag — viewport PBR realtime, HDRI lighting và material preview</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>Toolbag thường đứng ở giai đoạn <strong>lookdev và presentation sau khi model/texture xong</strong>: artist nhận mesh đã unwrap và texture từ Substance Painter hoặc Mari, import Toolbag, tinh chỉnh ánh sáng và vật liệu, render turntable hoặc xuất viewer cho ArtStation, Behance hoặc review nội bộ trước khi import Unreal/Unity. Không thay thế engine game — nhưng giúp khách hàng và lead artist đánh giá asset nhanh mà không mở project nặng. Thường làm việc cùng Blender/Maya (model), Substance Painter (texture) và Photoshop (chỉnh frame cuối nếu cần).</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Lookdev PBR &amp; ánh sáng realtime</h3>
+    <p>Thế mạnh cốt lõi của Toolbag là <strong>viewport PBR chất lượng cao chạy realtime trên GPU</strong>. Bạn kéo texture maps lên material slot, chỉnh roughness/metalness, thêm HDRI lighting studio hoặc outdoor — thấy ngay phản chiếu, shadow và subsurface trên da nhân vật. Không cần chờ bucket render như Arnold; mọi thay đổi ánh sáng phản hồi tức thì, rất phù hợp khi thử nhiều mood lighting cho cùng một character.</p>
+    <p>Đối với học sinh THPT mới làm quen, bài tập thực tế hay gặp: import prop hoặc nhân vật low-poly đã texture từ Blender, setup 3 góc ánh sáng khác nhau (studio, sunset, rim light) và xuất 3 still — vừa luyện tư duy presentation vừa làm portfolio game art cơ bản.</p>
+    <ul class="arc-list">
+      <li><strong>Material editor</strong> — gán PBR maps, chỉnh IOR, emissive và transparency</li>
+      <li><strong>HDRI &amp; light objects</strong> — directional, point, spot kết hợp environment map</li>
+      <li><strong>Post effects</strong> — bloom, vignette, tone mapping trực tiếp trên viewport</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Marmoset Toolbag PBR material metal roughness character lookdev"</span>
+        </div>
+        <p class="arc-image-caption">Lookdev PBR — vật liệu kim loại và da trên viewport realtime</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Marmoset Toolbag HDRI lighting setup game character render"</span>
+        </div>
+        <p class="arc-image-caption">HDRI lighting — thử nhiều mood ánh sáng cho cùng model</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Turntable, animation preview &amp; capture</h3>
+    <p>Sau khi lookdev xong, bước tiếp theo là <strong>trình bày asset dưới dạng chuyển động</strong>. Toolbag có turntable camera tự quay 360°, timeline cho preview animation rig (walk cycle, idle) và công cụ capture xuất PNG sequence hoặc MP4. Artist game thường dùng turntable 5–10 giây làm clip đầu portfolio trên ArtStation — lead artist đánh giá silhouette, texture và deformation trong vài giây.</p>
+    <p>Một turntable chất lượng cao cần cân bằng tốc độ quay, depth of field và resolution export; clip 1080p 30fps thường đủ cho portfolio THPT và junior reel — đây là kỹ năng «trình bày sản phẩm» mà studio game luôn chú ý khi tuyển intern.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Marmoset Toolbag turntable animation character 360 showcase video"</span>
+      </div>
+      <p class="arc-image-caption">Turntable — camera quay 360° và preview animation cho portfolio</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Marmoset Viewer, Skyshop &amp; xuất web</h3>
+    <p>Điểm khác biệt lớn so với chỉ render ảnh tĩnh là <strong>Marmoset Viewer</strong> — đóng gói scene thành file tương tác người xem có thể xoay, zoom trên web hoặc embed ArtStation. <strong>Skyshop</strong> (tính năng bake) giúp tạo texture lighting cho asset low-end hoặc mobile game khi cần tối ưu hiệu năng.</p>
+    <p>Luồng làm việc điển hình: model trong Blender → texture Substance Painter → lookdev &amp; turntable Toolbag → upload ArtStation hoặc gửi .mview cho client review → import FBX sang Unreal. Hiểu quy trình này giúp bạn nắm cách asset 3D được «đóng gói» trước khi vào production game thật.</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Marmoset Viewer web embed ArtStation 3D interactive portfolio"</span>
+      </div>
+      <p class="arc-image-caption">Marmoset Viewer — portfolio tương tác nhúng web và ArtStation</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai công cụ hay được đặt cạnh Marmoset Toolbag nhất là <strong>KeyShot</strong> (render sản phẩm CAD/industrial design) và <strong>viewport Blender</strong> (miễn phí, tích hợp trong DCC). Không có câu trả lời «đúng duy nhất» — tùy bạn làm game art, thiết kế sản phẩm hay cần giải pháp không tốn thêm phí.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Marmoset Toolbag vs KeyShot</h3>
+    <p>Cả hai đều render/visualize realtime trên GPU, nhưng hướng tới đối tượng khác nhau. KeyShot mạnh với <strong>CAD import (STEP, SolidWorks)</strong>, material library sản phẩm công nghiệp và render catalog điện tử; Toolbag được tối ưu cho <strong>game mesh, texture PBR từ Substance và turntable portfolio</strong>. Artist game thường chọn Toolbag vì workflow gắn ArtStation và animation preview; designer sản phẩm chọn KeyShot vì tích hợp CAD và label decal sản xuất.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Marmoset Toolbag game character PBR turntable portfolio"</span>
+        </div>
+        <p class="arc-image-caption">Toolbag — game art, PBR lookdev và turntable cho portfolio</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"KeyShot product rendering CAD industrial design studio"</span>
+        </div>
+        <p class="arc-image-caption">KeyShot — render sản phẩm CAD và thiết kế công nghiệp</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Toolbag mạnh hơn:</strong> workflow game art, turntable animation, Marmoset Viewer embed web, tích hợp ArtStation, lookdev mesh organic và hard-surface từ DCC.<br>
+      <strong>KeyShot mạnh hơn:</strong> import CAD native, material library sản phẩm, colorway marketing, phù hợp industrial design và e-commerce sản phẩm vật lý.<br>
+      <strong>Chọn Toolbag khi:</strong> mục tiêu game art, character/prop showcase, portfolio tương tác cho studio game.<br>
+      <strong>Chọn KeyShot khi:</strong> render sản phẩm từ SolidWorks/Rhino, catalog quảng cáo đồ gia dụng hoặc thiết kế công nghiệp.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Marmoset Toolbag vs Blender viewport</h3>
+    <p>Blender có viewport Eevee/Cycles preview miễn phí và đủ mạnh cho học tập — bạn có thể render turntable ngay trong Blender mà không cần phần mềm thứ ba. Toolbag trả phí (hoặc bản trial), nhưng viewport được tinh chỉnh riêng cho <strong>presentation chất lượng portfolio</strong>: HDRI library, post effect, capture pipeline và Viewer export chuyên biệt hơn Eevee mặc định.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Marmoset Toolbag professional game art presentation lighting"</span>
+        </div>
+        <p class="arc-image-caption">Toolbag — presentation chuyên biệt cho game art portfolio</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Blender Eevee viewport PBR material preview render"</span>
+        </div>
+        <p class="arc-image-caption">Blender viewport — miễn phí, đa năng, render ngay trong DCC</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Toolbag mạnh hơn:</strong> chất lượng presentation portfolio, Viewer web export, workflow capture/turntable tối ưu, ít phụ thuộc cấu hình scene Blender phức tạp.<br>
+      <strong>Blender viewport mạnh hơn:</strong> chi phí bằng không, modeling + lookdev + render trong một app, cộng đồng tutorial khổng lồ cho học sinh THPT.<br>
+      <strong>Chọn Toolbag khi:</strong> bạn làm game art chuyên sâu, cần portfolio chuẩn ArtStation và review client nhanh.<br>
+      <strong>Chọn Blender viewport khi:</strong> ngân sách hạn chế, mới học 3D, hoặc dự án indie không cần Viewer tương tác.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học Marmoset Toolbag như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Chuẩn bị asset từ DCC hoặc Substance</strong>
+        <p>Trước khi mở Toolbag, hãy có mesh sạch (FBX/OBJ) đã unwrap UV và bộ texture PBR (albedo, normal, roughness, metallic, AO) từ Blender hoặc Substance Painter. Tuần đầu chỉ cần một prop đơn giản — hộp, kiếm hoặc helmet — để tập import và gán map mà không bị choáng bởi nhân vật phức tạp. Mục tiêu: hiểu đường dẫn file và naming convention maps trước khi đụng lighting.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Import, gán material và HDRI cơ bản</strong>
+        <p>Kéo mesh vào scene, tạo material PBR và gán từng texture map đúng slot. Thêm HDRI studio mặc định, xoay environment để thấy highlight trên bề mặt kim loại và da. Luyện chỉnh roughness multiplier và normal strength — 2–3 buổi thực hành sẽ quen mắt với phản hồi realtime khác Cycles offline.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Lighting nâng cao &amp; post effects</strong>
+        <p>Thêm directional light làm rim, chỉnh shadow softness và bật SSAO/depth of field nhẹ. Thử 3 setup: studio 3-point, outdoor sunset và dark mood — xuất still PNG từng setup. Mục tiêu là có bộ ảnh presentation «nhìn được» cho một prop, tương đương mức junior game art trên ArtStation.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Turntable &amp; animation preview</strong>
+        <p>Setup camera turntable 360°, chỉnh tốc độ quay và export MP4 1080p. Nếu có rig animation từ Maya/Blender, import và preview walk cycle hoặc idle 3–5 giây. Học thêm cách crop frame và chọn resolution phù hợp upload ArtStation — kỹ năng thực tế recruiter game art hay xem trước tiên.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Marmoset Viewer &amp; dự án character hoàn chỉnh</strong>
+        <p>Đóng gói scene thành .mview hoặc embed link; thử upload lên ArtStation nếu có tài khoản. Hoàn thiện một character hoặc prop game-ready: model, texture, turntable, 3 still và viewer tương tác. Giai đoạn này dạy quy trình bàn giao asset: đặt tên file, ghi credit phần mềm, iteration theo feedback mentor.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Portfolio và định hướng nghề</strong>
+        <p>Tổng hợp 2–3 piece game art với turntable và viewer trên ArtStation hoặc Behance — ghi rõ pipeline (Blender/Maya, Substance Painter, Marmoset Toolbag). Tìm hiểu vị trí Junior 3D Artist, Character Artist tại studio game VN; nhiều nơi đánh giá presentation skill qua portfolio hơn chứng chỉ. Tiếp tục học Unreal/Unity để hiểu asset trong context game thật.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

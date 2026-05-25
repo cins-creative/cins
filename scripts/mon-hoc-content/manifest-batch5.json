@@ -1,0 +1,102 @@
+[
+  {
+    "id": "72792bd4-27a2-4188-9028-854ac0178465",
+    "slug": "mon-lua",
+    "tieu_de": "Lụa",
+    "tieu_de_eng": "Silk Painting",
+    "tieu_de_viet": "Lụa",
+    "tom_tat": "Vẽ tranh lụa truyền thống — kỹ thuật vờn rửa, màu nước trên lụa; di sản hội họa đặc trưng của Việt Nam.",
+    "meta_title": "Môn Lụa là gì? Học gì, thi như thế nào và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Lụa: vẽ tranh lụa truyền thống Việt — vờn rửa, màu nước, kỹ thuật bồi tranh. Di sản hội họa của Nguyễn Phan Chánh."
+  },
+  {
+    "id": "b8eeea02-491a-41d4-bf90-81b78c5fd7dd",
+    "slug": "mon-luat-xay-dung",
+    "tieu_de": "Luật xây dựng",
+    "tieu_de_eng": "Construction Law",
+    "tieu_de_viet": "Luật xây dựng",
+    "tom_tat": "Hệ thống pháp luật xây dựng Việt Nam — giấy phép, quy hoạch, hợp đồng và trách nhiệm pháp lý kiến trúc sư.",
+    "meta_title": "Luật xây dựng là gì? Học gì và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Luật xây dựng: Luật Xây dựng, quy hoạch, giấy phép, hợp đồng. Cho kiến trúc sư hiểu khung pháp lý hành nghề."
+  },
+  {
+    "id": "46b0755f-f137-4150-8514-a6d9b15a5334",
+    "slug": "mon-minh-hoa-sach",
+    "tieu_de": "Minh họa sách",
+    "tieu_de_eng": "Book Illustration",
+    "tieu_de_viet": "Minh họa sách",
+    "tom_tat": "Vẽ minh họa cho sách — picture book, sách thiếu nhi, sách văn học và non-fiction; kể chuyện bằng hình ảnh đồng hành với chữ.",
+    "meta_title": "Minh họa sách là gì? Học gì và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Minh họa sách: picture book, thiếu nhi, văn học, non-fiction. Kể chuyện bằng hình ảnh đồng hành cùng nội dung."
+  },
+  {
+    "id": "091c94c1-bd74-402d-a1f7-b819bbc843a7",
+    "slug": "mon-mo-hinh-prototype",
+    "tieu_de": "Mô hình và prototype",
+    "tieu_de_eng": "Model and Prototype",
+    "tieu_de_viet": "Mô hình và prototype",
+    "tom_tat": "Tạo nguyên mẫu sản phẩm — mock-up, prototype chức năng, in 3D, thử nghiệm trước khi sản xuất hàng loạt.",
+    "meta_title": "Mô hình và prototype là gì? Học gì và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Mô hình và prototype: mock-up, functional prototype, in 3D, CNC. Kiểm tra ý tưởng trước khi sản xuất hàng loạt."
+  },
+  {
+    "id": "ea661735-e96a-4426-8861-f32d3156a010",
+    "slug": "mon-mo-hinh-tuong-dai",
+    "tieu_de": "Mô hình tượng đài",
+    "tieu_de_eng": "Monument Modeling",
+    "tieu_de_viet": "Mô hình tượng đài",
+    "tom_tat": "Phác mô hình tượng đài trước khi đúc thật — tỷ lệ, không gian, môi trường đặt và ý nghĩa biểu tượng.",
+    "meta_title": "Mô hình tượng đài là gì? Học gì và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Mô hình tượng đài: phác tỷ lệ, môi trường đặt, biểu tượng và đề án. Cho điêu khắc gia làm tượng đài công cộng."
+  },
+  {
+    "id": "b378d47b-586a-4cca-93ad-92ec6d3893f1",
+    "slug": "mon-motion-graphic",
+    "tieu_de": "Motion Graphic",
+    "tieu_de_eng": "Motion Graphic",
+    "tieu_de_viet": "Motion Graphic",
+    "tom_tat": "Đồ họa chuyển động — typography animation, infographic động, intro video; kết hợp thiết kế tĩnh với animation.",
+    "meta_title": "Motion Graphic là gì? Học gì và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Motion Graphic: keyframe, easing, typography animation, infographic động. Cho video, MXH, quảng cáo và intro phim."
+  },
+  {
+    "id": "ca40d935-e68e-44d8-b235-e927b974e046",
+    "slug": "mon-my-thuat-hoc",
+    "tieu_de": "Mỹ thuật học",
+    "tieu_de_eng": "Art Studies",
+    "tieu_de_viet": "Mỹ thuật học",
+    "tom_tat": "Nghiên cứu nghệ thuật như một hệ thống — phương pháp luận, phê bình, lý luận và phương pháp nghiên cứu mỹ thuật.",
+    "meta_title": "Mỹ thuật học là gì? Học gì và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Mỹ thuật học: phương pháp luận, phê bình, lý luận nghệ thuật. Nền tảng cho nghiên cứu, giảng dạy và phê bình."
+  },
+  {
+    "id": "9b0a1746-b6af-4696-a11e-426c63538e8e",
+    "slug": "mon-nghien-cuu-cong-chung",
+    "tieu_de": "Nghiên cứu công chúng",
+    "tieu_de_eng": "Audience Research",
+    "tieu_de_viet": "Nghiên cứu công chúng",
+    "tom_tat": "Phân tích người tiếp nhận tác phẩm — hành vi, sở thích, nhân khẩu học; nền tảng cho truyền thông và sáng tạo.",
+    "meta_title": "Nghiên cứu công chúng là gì? Học gì và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Nghiên cứu công chúng: phân tích audience, persona, hành vi tiếp nhận. Cho truyền thông, quảng cáo, content và brand."
+  },
+  {
+    "id": "692e682e-e042-4bbb-829e-b19e40e40bed",
+    "slug": "mon-nghien-cuu-thi-truong-thoi-trang",
+    "tieu_de": "Nghiên cứu thị trường thời trang",
+    "tieu_de_eng": "Fashion Market Research",
+    "tieu_de_viet": "Nghiên cứu thị trường thời trang",
+    "tom_tat": "Phân tích thị trường thời trang — trend, đối thủ, khách hàng mục tiêu; nền tảng cho thiết kế và kinh doanh thương hiệu.",
+    "meta_title": "Nghiên cứu thị trường thời trang là gì? Học gì và ứng dụng | CINS",
+    "meta_description": "Môn Nghiên cứu thị trường thời trang: trend forecast, đối thủ, segment khách. Nền tảng cho designer và brand thời trang."
+  },
+  {
+    "id": "575dcb4c-59c0-40e0-8af4-78d33c7a2dd3",
+    "slug": "mon-nghiep-vu-su-pham",
+    "tieu_de": "Nghiệp vụ sư phạm",
+    "tieu_de_eng": "Teaching Pedagogy",
+    "tieu_de_viet": "Nghiệp vụ sư phạm",
+    "tom_tat": "Kỹ năng giảng dạy — phương pháp sư phạm, soạn giáo án, quản lý lớp và đánh giá học viên cho ngành mỹ thuật.",
+    "meta_title": "Nghiệp vụ sư phạm là gì? Học gì và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Nghiệp vụ sư phạm: tâm lý học giáo dục, giáo án, quản lý lớp, đánh giá. Cho người làm giáo dục mỹ thuật."
+  }
+]

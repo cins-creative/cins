@@ -1,0 +1,209 @@
+<section class="arc-intro">
+  <p>Bạn mở YouTube lúc 8 giờ tối và thấy streamer game Việt Nam vừa bật live: màn hình game, webcam góc dưới, chat overlay, alert donate — phần lớn luồng đó được phát qua <strong>OBS Studio</strong> (Open Broadcaster Software), phần mềm stream và ghi hình miễn phí, mã nguồn mở được dùng rộng rãi từ creator cá nhân tới giải esports.</p>
+  <p>OBS không phải app chỉnh sửa video sau quay như Premiere hay CapCut — nó là <strong>công cụ phát trực tiếp và ghi màn hình thời gian thực</strong>: bạn sắp xếp nguồn (game, camera, mic), mix âm thanh, thêm overlay rồi đẩy lên Twitch, YouTube, Facebook hoặc lưu file MP4/MKV. Hiểu OBS giúp học sinh THPT bắt đầu làm content, esports hoặc sản xuất sự kiện trường mà không tốn phí license.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>OBS Studio là gì?</h2>
+  <p><strong>OBS Studio</strong> do cộng đồng OBS Project phát triển — phần mềm <strong>live streaming và screen recording</strong> miễn phí, mã nguồn mở, chạy trên Windows, macOS và Linux. Ra đời từ những năm 2010, OBS trở thành lựa chọn mặc định của streamer toàn cầu nhờ miễn phí, ổn định và hệ plugin phong phú.</p>
+  <p>Khác với app quay màn hình đơn giản trên điện thoại, OBS là studio phát sóng đầy đủ: bạn tạo <strong>Scene</strong> (cảnh), thêm <strong>Source</strong> (nguồn hình/âm), cấu hình encoder và stream key tới nền tảng. Giao diện có preview, program, mixer audio và danh sách scene — ban đầu trông nhiều panel, nhưng mỗi khu vực phục vụ một bước trong quy trình phát trực tiếp hoặc ghi hình.</p>
+  <ul class="arc-list">
+    <li><strong>Scene &amp; Source</strong> — xếp game capture, webcam, image, browser source (overlay chat/donate)</li>
+    <li><strong>Audio mixer</strong> — mic, desktop audio, filter noise gate/compressor cho tiếng rõ</li>
+    <li><strong>Streaming &amp; recording</strong> — x264/NVENC/AMF encode, output RTMP tới platform hoặc ghi file local</li>
+    <li><strong>Plugin ecosystem</strong> — OBS WebSocket, virtual camera, NDI, stream deck integration</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"OBS Studio 30 interface scenes sources audio mixer screenshot"</span>
+    </div>
+    <p class="arc-image-caption">Giao diện OBS Studio — scenes, preview/program và audio mixer</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>OBS thường đứng ở giai đoạn <strong>phát trực tiếp hoặc ghi raw</strong>: trước khi edit trên Premiere/DaVinci (nếu cần hậu kỳ), hoặc là điểm cuối khi stream trực tiếp tới khán giả. Creator game dùng OBS capture gameplay + facecam; trường học dùng OBS phát lễ khai giảng, workshop online; esports dùng OBS relay tín hiệu tới platform. Thường kết hợp Streamlabs/SE.Live cho alert, Restream cho multi-platform, hoặc vMix/Wirecast ở sự kiện lớn hơn.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Scene, Source &amp; layout stream</h3>
+    <p>Thế mạnh đầu tiên của OBS là <strong>linh hoạt bố cục</strong>. Mỗi Scene là một «góc máy»: «Chỉ game», «Game + webcam», «Starting Soon», «BRB». Trong scene bạn thêm Source — Display Capture, Game Capture, Video Capture Device (webcam), Image, Text, Browser Source cho widget chat/donate — rồi kéo thả, crop, filter.</p>
+    <p>Đối với học sinh THPT mới làm quen, bài tập thực tế hay gặp: tạo layout stream CLB với logo trường, webcam tròn góc dưới, và text tên sự kiện — vừa luyện thiết kế overlay vừa chuẩn bị phát workshop hoặc giải game nội bộ.</p>
+    <ul class="arc-list">
+      <li><strong>Game Capture vs Display Capture</strong> — bắt cửa sổ game riêng hoặc toàn màn hình</li>
+      <li><strong>Filter trên source</strong> — crop, color correction, chroma key cho webcam green screen</li>
+      <li><strong>Scene transition</strong> — fade, cut giữa các cảnh khi chuyển segment stream</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"OBS Studio stream layout game capture webcam overlay"</span>
+        </div>
+        <p class="arc-image-caption">Layout stream — game capture, webcam và overlay text/logo</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"OBS Studio scene collection multiple scenes streaming setup"</span>
+        </div>
+        <p class="arc-image-caption">Nhiều scene — Starting Soon, Live, BRB cho stream dài</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Audio mixer &amp; chất lượng tiếng</h3>
+    <p>Stream hay bị bỏ qua vì <strong>tiếng kém</strong> hơn vì hình — OBS có Audio Mixer riêng cho mic và desktop audio. Bạn thêm filter Noise Suppression, Noise Gate, Compressor trên track mic để giọng ổn định khi nói to/nhỏ; tách âm lượng game và mic bằng fader độc lập.</p>
+    <p>Đây là kỹ năng «sản xuất thực tế» mà viewer YouTube/Twitch đánh giá ngay từ giây đầu — mic laptop trong phòng vang vẫn có thể cải thiện đáng kể nhờ filter OBS trước khi đầu tư mic XLR.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"OBS Studio audio mixer filters noise gate compressor screenshot"</span>
+      </div>
+      <p class="arc-image-caption">Audio mixer — filter noise gate, compressor cho mic stream</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Encode, stream key &amp; recording</h3>
+    <p>OBS hỗ trợ <strong>encoder phần cứng</strong> (NVENC trên GPU NVIDIA, AMF trên AMD, QuickSync Intel) giúp stream 1080p60 mượt mà trên PC gaming tầm trung. Bạn dán stream key từ YouTube/Twitch/Facebook vào Settings → Stream, chọn bitrate phù hợp upload (thường 4500–6000 Kbps cho 1080p).</p>
+    <p>Song song, <strong>Recording</strong> lưu file MKV/MP4/local để edit sau — luồng điển hình: stream live cho khán giả, đồng thời record bản chất lượng cao hơn làm highlight YouTube. Hiểu output settings giúp bạn cân bằng chất lượng, độ trễ và ổn định mạng.</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"OBS Studio output settings NVENC streaming recording bitrate screenshot"</span>
+      </div>
+      <p class="arc-image-caption">Output settings — encoder NVENC, stream RTMP và recording local</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai phần mềm hay được đặt cạnh OBS nhất là <strong>Streamlabs Desktop</strong> (OBS fork + widget donate/alert tích hợp) và <strong>XSplit</strong> (stream/recorder thương mại, giao diện thân thiện). Không có câu trả lời «đúng duy nhất» — tùy bạn cần miễn phí tối đa, widget sẵn có hay hỗ trợ thương mại.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">OBS Studio vs Streamlabs</h3>
+    <p>Streamlabs Desktop xây trên nền OBS nhưng bọc thêm <strong>alert box, tip jar, theme overlay</strong> và tích hợp chatbot — rất tiện streamer mới muốn «bật là chạy». OBS gốc nhẹ hơn, cập nhật nhanh từ cộng đồng, không ép đăng nhập Streamlabs — phù hợp ai muốn kiểm soát plugin và tránh overhead app phụ.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"OBS Studio clean interface open source streaming"</span>
+        </div>
+        <p class="arc-image-caption">OBS Studio — gọn, mã nguồn mở, plugin tự chọn</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Streamlabs Desktop alert overlay widget streaming interface"</span>
+        </div>
+        <p class="arc-image-caption">Streamlabs — alert, theme và widget donate tích hợp sẵn</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>OBS mạnh hơn:</strong> miễn phí 100%, nhẹ, cập nhật OBS Project chính thức, không phụ thuộc ecosystem Streamlabs, phù hợp esports và power user.</p>
+      <p><strong>Streamlabs mạnh hơn:</strong> alert/donate/widget sẵn, theme kéo-thả, onboarding nhanh cho streamer mới.</p>
+      <p><strong>Chọn OBS khi:</strong> muốn kiểm soát tối đa, PC yếu cần app gọn, hoặc dùng plugin riêng (SE.Live, own overlay).</p>
+      <p><strong>Chọn Streamlabs khi:</strong> mới stream, cần alert donate ngay mà chưa muốn cấu hình Browser Source thủ công.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">OBS Studio vs XSplit</h3>
+    <p>XSplit (Broadcaster/Gamer) là phần mềm stream <strong>thương mại</strong> với giao diện wizard thân thiện, hỗ trợ khách hàng và tính năng multi-stream trả phí. OBS miễn phí hoàn toàn — cộng đồng lớn, tutorial tiếng Việt phong phú — nhưng curve học ban đầu cao hơn một chút so với XSplit hướng dẫn từng bước.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"OBS Studio free open source live streaming setup"</span>
+        </div>
+        <p class="arc-image-caption">OBS — miễn phí, cộng đồng lớn, chuẩn ngành stream</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"XSplit Broadcaster streaming interface screenshot"</span>
+        </div>
+        <p class="arc-image-caption">XSplit — giao diện thân thiện, license thương mại</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>OBS mạnh hơn:</strong> chi phí bằng không, mã nguồn mở, plugin ecosystem khổng lồ, được platform và esports tin dùng.</p>
+      <p><strong>XSplit mạnh hơn:</strong> UI hướng dẫn rõ ràng cho người mới, hỗ trợ kỹ thuật trả phí, một số tính năng convenience built-in.</p>
+      <p><strong>Chọn OBS khi:</strong> học sinh THPT, creator indie, esports — ngân sách zero và cần tài liệu cộng đồng.</p>
+      <p><strong>Chọn XSplit khi:</strong> sẵn sàng trả license và ưu tiên setup nhanh với support chính thức.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học OBS Studio như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Cài đặt và làm quen giao diện</strong>
+        <p>Tải OBS từ trang chính thức obsproject.com, chạy Auto-Configuration Wizard chọn «Optimize for streaming» hoặc recording. Làm quen Preview vs Program, danh sách Scenes/Sources bên trái, mixer bên dưới. Mục tiêu là biết nút «Start Streaming» và «Start Recording» trước khi cấu hình phức tạp — nhiều bạn THPT lo lắng quá mức về bitrate ngay từ phút đầu.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Tạo scene và capture màn hình</strong>
+        <p>Thêm Display Capture hoặc Game Capture, tạo scene thứ hai với webcam (Video Capture Device). Crop webcam, thêm Image logo PNG. Thử chuyển scene bằng hotkey. Thường 1 tuần luyện tập sẽ quen layout cơ bản cho stream game hoặc bài giảng.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Audio: mic, filter và desktop sound</strong>
+        <p>Chọn đúng mic trong Settings → Audio, thêm Noise Suppression và Compressor trên track mic. Cân fader mic vs desktop để giọng nổi hơn tiếng game. Test ghi 2–3 phút rồi nghe lại — mục tiêu là viewer không phải chỉnh volume liên tục.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Stream test và output settings</strong>
+        <p>Lấy stream key từ YouTube (chế độ test) hoặc Twitch, dán vào OBS, chọn encoder NVENC nếu có GPU NVIDIA. Stream private/unlisted thử 10 phút, kiểm tra độ trễ và chất lượng trên điện thoại. Học điều chỉnh bitrate khi mạng không ổn định — kỹ năng thực tế mọi streamer Việt Nam đều gặp.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Overlay, plugin và sự kiện trường</strong>
+        <p>Thêm Browser Source cho chat overlay, cài OBS WebSocket nếu cần điều khiển từ xa. Tổ chức một buổi phát sự kiện CLB (workshop, giải game): nhiều scene, slide PowerPoint qua Window Capture, Q&amp;A. Giai đoạn này dạy quy trình sản xuất live: checklist trước giờ G, backup recording, người moderating chat.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Portfolio và định hướng nghề</strong>
+        <p>Tổng hợp clip highlight từ stream/record (dùng CapCut/DaVinci cắt ngắn), ghi rõ vai trò (operator OBS, layout, audio). Hướng nghề: streamer/content creator, esports broadcast trainee, kỹ thuật live event trường/doanh nghiệp. OBS là nền tảng miễn phí tốt nhất để học — sau này có thể nâng lên vMix/Wirecast khi làm sự kiện lớn.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

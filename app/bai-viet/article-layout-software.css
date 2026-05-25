@@ -1,0 +1,879 @@
+/* Phần mềm /software — layout Webflow + UI đồng bộ .arv2-nghe */
+
+.sw-page--can-edit {
+  --sw-admin-toolbar-height: 38px;
+}
+
+.sw-page--can-edit .sw-admin-toolbar-host {
+  position: sticky;
+  top: var(--site-nav-height, 64px);
+  z-index: 55;
+  background: var(--bg-page);
+}
+
+.sw-page--can-edit .sw-admin-toolbar-host .tdh-admin-toolbar {
+  min-height: var(--sw-admin-toolbar-height);
+  padding: 4px 14px;
+  gap: 4px 10px;
+  flex-wrap: nowrap;
+  box-shadow: 0 1px 0 var(--border2, rgba(0, 0, 0, 0.08));
+}
+
+.sw-page--can-edit .sw-admin-toolbar-host .tdh-admin-toolbar-badge {
+  font-size: 10px;
+  letter-spacing: 0.05em;
+}
+
+.sw-page--can-edit .sw-admin-toolbar-host .tdh-admin-toolbar-hint {
+  font-size: 12px;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.sw-page--can-edit .sw-admin-toolbar-host .tdh-mode-btn {
+  font-size: 12px;
+  padding: 4px 11px;
+  line-height: 1.25;
+}
+
+.sw-page--can-edit .sw-admin-toolbar-host .tdh-mode-btn-admin {
+  box-shadow: 0 2px 8px rgba(31, 116, 201, 0.28);
+}
+
+@media (max-width: 720px) {
+  .sw-page--can-edit .sw-admin-toolbar-host .tdh-admin-toolbar {
+    flex-wrap: wrap;
+    min-height: auto;
+    padding: 6px 12px;
+  }
+
+  .sw-page--can-edit .sw-admin-toolbar-host .tdh-admin-toolbar-hint {
+    white-space: normal;
+  }
+}
+
+/* Inline edit — chế độ quản trị */
+.sw-page--editing .sw-spec-card,
+.sw-page--editing .sw-cover-edit-panel {
+  outline: 2px dashed rgba(31, 116, 201, 0.35);
+  outline-offset: 4px;
+}
+
+.sw-page--editing .sw-cover-edit-panel {
+  position: absolute;
+  inset: auto 24px 24px 24px;
+  z-index: 3;
+  padding: 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.96);
+  max-height: min(70vh, 520px);
+  overflow-y: auto;
+}
+
+.sw-page--editing .sw-cover-edit-panel .cins-multi-image {
+  margin-top: 4px;
+}
+
+.sw-page--editing .sw-cover-edit-panel .cins-multi-image__dropzone {
+  min-height: 134px;
+}
+
+.nct-inline-field {
+  display: block;
+  margin-bottom: 12px;
+}
+
+.nct-inline-field-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--blue, #1f74c9);
+  margin-bottom: 4px;
+}
+
+.nct-inline-input {
+  width: 100%;
+  font: inherit;
+  font-size: 15px;
+  padding: 8px 12px;
+  border: 1px solid rgba(31, 116, 201, 0.35);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink, #111);
+}
+
+.nct-inline-input--title {
+  font-size: clamp(1.25rem, 3vw, 1.75rem);
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.nct-inline-input--desc {
+  resize: vertical;
+  min-height: 72px;
+}
+
+.nct-inline-editor-wrap {
+  margin-bottom: 24px;
+}
+
+.sw-page--editing .sw-lead-panel--editing {
+  outline: 2px dashed rgba(31, 116, 201, 0.35);
+  outline-offset: 4px;
+  border-radius: 12px;
+  padding: 8px;
+}
+
+.article-page.arv2.arv2-software {
+  background: var(--bg-page);
+}
+
+.arv2-software .article-wrap {
+  background: var(--bg-page);
+}
+
+.arv2-software .sw-article-grid {
+  max-width: 1224px;
+  margin: 0 auto;
+  padding: 0 40px 56px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  grid-template-columns: unset;
+}
+
+/* ── Cover showreel (tím — mock After Effects) ── */
+.arv2-software .sw-cover {
+  position: relative;
+  width: 100vw;
+  max-width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  height: clamp(260px, 36vw, 420px);
+  overflow: hidden;
+  background: linear-gradient(
+    135deg,
+    #5c2bb6 0%,
+    #7c3aed 45%,
+    #4c1d95 100%
+  );
+}
+
+.arv2-software .sw-cover-media {
+  position: absolute;
+  inset: 0;
+}
+
+.arv2-software .sw-cover--has-video {
+  background: #0f172a;
+}
+
+.arv2-software .sw-cover-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  object-fit: cover;
+}
+
+.arv2-software .sw-cover--has-video .sw-cover-scrim {
+  display: none;
+}
+
+.arv2-software .sw-cover-publisher {
+  margin: 6px 0 0;
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.arv2-software .sw-cover-publisher--overlay {
+  position: absolute;
+  left: 24px;
+  bottom: 16px;
+  z-index: 2;
+  margin: 0;
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  background: rgba(15, 23, 42, 0.65);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  backdrop-filter: blur(6px);
+  pointer-events: none;
+}
+
+.sw-page--editing .sw-spec-body .cins-multi-image {
+  margin-top: 4px;
+}
+
+.sw-page--editing .sw-spec-body .cins-multi-image__dropzone {
+  min-height: 120px;
+}
+
+.arv2-software .sw-cover-img {
+  object-fit: cover;
+  object-position: center;
+  opacity: 0.92;
+}
+
+.arv2-software .sw-cover-ph {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.arv2-software .sw-cover-ph .mascot-ph {
+  font-family: var(--font-sans);
+  font-size: clamp(40px, 7vw, 72px);
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.arv2-software .sw-cover-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(76, 29, 149, 0.15) 0%,
+    rgba(45, 15, 90, 0.55) 100%
+  );
+  pointer-events: none;
+}
+
+.arv2-software .sw-cover::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  z-index: 3;
+  background: linear-gradient(90deg, var(--cins-violet), var(--cins-orange));
+}
+
+.arv2-software .sw-cover-title-bar {
+  position: absolute;
+  left: 50%;
+  bottom: 14%;
+  transform: translateX(-50%);
+  z-index: 2;
+  min-width: min(90vw, 560px);
+  padding: 12px 28px;
+  text-align: center;
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(8px);
+}
+
+.arv2-software .sw-cover-title {
+  margin: 0;
+  font-size: clamp(26px, 3.6vw, 42px);
+  color: #fff;
+}
+
+.arv2-software .sw-cover-showreel {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
+  color: #fff;
+  transition: background 0.15s ease;
+}
+
+.arv2-software .sw-cover-showreel:hover {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.arv2-software .sw-cover-showreel-play {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--cins-violet);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+}
+
+.arv2-software .sw-cover-showreel-label {
+  font-size: clamp(28px, 4vw, 40px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.arv2-software .sw-cover-showreel-sub {
+  font-size: 14px;
+  opacity: 0.85;
+}
+
+/* ── Breadcrumb ── */
+.arv2-software .sw-breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ink-muted);
+  padding: 22px 0 4px;
+}
+
+.arv2-software .sw-breadcrumb a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.arv2-software .sw-breadcrumb a:hover {
+  color: var(--cins-blue);
+}
+
+/* ── Summary card (spec sheet — mock Figma / phần mềm) ── */
+.arv2-software .sw-main-sidebar-row {
+  padding-top: 20px;
+}
+
+.arv2-software .nghe-hero-panel.sw-summary-panel {
+  overflow: hidden;
+  box-shadow: none;
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+.arv2-software .nghe-hero-panel.sw-summary-panel::before {
+  display: none;
+}
+
+.arv2-software .sw-summary-panel {
+  margin: 0 0 20px;
+}
+
+.arv2-software .sw-spec-card {
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  box-shadow: 0 4px 24px rgba(76, 29, 149, 0.08);
+}
+
+.arv2-software .sw-spec-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  background: #fff;
+  color: var(--ink-body);
+  border-bottom: 1px solid var(--border);
+}
+
+.arv2-software .sw-spec-head__logo {
+  flex-shrink: 0;
+}
+
+.arv2-software .sw-spec-head__main {
+  min-width: 0;
+  flex: 1;
+}
+
+.arv2-software .sw-spec-head__title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 2px;
+}
+
+.arv2-software .sw-spec-kicker {
+  display: inline;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin: 0;
+}
+
+.arv2-software .sw-spec-title {
+  margin: 0;
+  font-family: var(--font-serif, "Crimson Pro", Georgia, serif);
+  font-size: clamp(22px, 2.6vw, 30px);
+  font-weight: 600;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  color: var(--ink-display);
+}
+
+.arv2-software .sw-spec-head-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  font-weight: 800;
+  color: #fff;
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.arv2-software .sw-spec-head-icon--img {
+  background: #fff;
+  padding: 6px;
+}
+
+.arv2-software .sw-spec-head-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-xs, 6px);
+  background: var(--cins-yellow);
+  color: var(--ink-display);
+  white-space: nowrap;
+}
+
+.arv2-software .sw-spec-head-icon__img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.arv2-software .sw-spec-lead {
+  margin: 0;
+  padding: 12px 18px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-body);
+  border-bottom: 1px solid var(--border);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.arv2-software .sw-spec-meta {
+  border-top: none;
+}
+
+.arv2-software .sw-spec-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.arv2-software .sw-spec-meta--editing {
+  padding: 0 14px 10px;
+  border-top: 1px solid var(--border);
+}
+
+.arv2-software .sw-spec-meta--editing .sw-spec-meta-heading {
+  padding: 10px 0 6px;
+  font-size: 10px;
+}
+
+.arv2-software .sw-spec-meta-heading {
+  margin: 0;
+  padding: 10px 18px 6px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.arv2-software .sw-meta-text--placeholder,
+.arv2-software .sw-meta-tag.is-placeholder {
+  color: var(--ink-muted);
+  font-style: italic;
+  font-weight: 500;
+  opacity: 0.85;
+}
+
+.arv2-software .sw-meta-tag.is-placeholder {
+  background: var(--neutral-100, #f1f2f5);
+  color: var(--ink-muted);
+  border: 1px dashed var(--border);
+}
+
+@media (max-width: 640px) {
+  .arv2-software .sw-spec-meta-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Meta rows — trong sw-spec-card */
+.arv2-software .sw-meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border-soft, rgba(0, 0, 0, 0.06));
+  gap: 10px;
+  font-size: 12.5px;
+  min-height: 0;
+}
+
+.arv2-software .sw-spec-meta-grid .sw-meta-row:nth-child(odd) {
+  border-right: 1px solid var(--border-soft, rgba(0, 0, 0, 0.06));
+}
+
+@media (max-width: 640px) {
+  .arv2-software .sw-spec-meta-grid .sw-meta-row:nth-child(odd) {
+    border-right: none;
+  }
+}
+
+.arv2-software .sw-meta-row-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--ink-muted);
+  flex-shrink: 0;
+}
+
+.arv2-software .sw-meta-row-value {
+  min-width: 0;
+  text-align: right;
+}
+
+.arv2-software .sw-meta-text {
+  color: var(--ink-display);
+  font-weight: 600;
+}
+
+.arv2-software .sw-meta-text--success {
+  color: #0e7a4a;
+}
+
+.arv2-software .sw-meta-link {
+  color: var(--cins-blue);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.arv2-software .sw-meta-link:hover {
+  text-decoration: underline;
+}
+
+.arv2-software .sw-meta-tags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.arv2-software .sw-meta-tag {
+  font-size: 10.5px;
+  font-weight: 700;
+  background: var(--cins-violet-soft);
+  color: var(--cins-violet-deep);
+  padding: 2px 7px;
+  border-radius: var(--radius-xs, 6px);
+}
+
+.arv2-software .sw-spec-footnote {
+  margin: 0;
+  padding: 8px 18px 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--ink-muted);
+}
+
+.arv2-software .sw-meta-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 16px 16px;
+  padding: 12px 14px;
+  background: var(--cins-mint-soft);
+  border-radius: var(--radius-sm, 10px);
+  font-size: 12.5px;
+  color: #0e5c3b;
+  line-height: 1.55;
+}
+
+.arv2-software .sw-meta-note svg {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+}
+
+.arv2-software .sw-spec-body {
+  padding: 4px 0 0;
+}
+
+.arv2-software .sw-spec-row {
+  display: grid;
+  grid-template-columns: minmax(108px, 34%) minmax(0, 1fr);
+  gap: 12px 20px;
+  align-items: center;
+  padding: 14px 22px;
+  border-bottom: 1px solid var(--border);
+}
+
+.arv2-software .sw-spec-row__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.arv2-software .sw-spec-row__value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-display);
+  min-width: 0;
+}
+
+.arv2-software .sw-spec-text {
+  line-height: 1.4;
+}
+
+.arv2-software .sw-spec-text--success {
+  color: #0e6b45;
+}
+
+.arv2-software .sw-spec-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--cins-violet);
+  text-decoration: none;
+  font-weight: 700;
+  word-break: break-word;
+}
+
+.arv2-software .sw-spec-link:hover {
+  text-decoration: underline;
+}
+
+.arv2-software .sw-spec-platforms {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.arv2-software .sw-spec-platform-tag {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  background: rgba(124, 58, 237, 0.08);
+  border: 1px solid rgba(124, 58, 237, 0.22);
+  color: #5b21b6;
+}
+
+.arv2-software .sw-spec-foot {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 18px 14px;
+  background: var(--neutral-50);
+}
+
+.arv2-software .sw-spec-cta-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 auto;
+  min-width: min(100%, 160px);
+  padding: 10px 16px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(
+    135deg,
+    #5c2bb6 0%,
+    #7c3aed 100%
+  );
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
+  text-align: center;
+  transition: filter 0.15s ease;
+}
+
+.arv2-software .sw-spec-cta-primary:hover {
+  filter: brightness(1.06);
+}
+
+.arv2-software .sw-spec-cta-secondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 16px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  color: var(--ink-display);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  transition:
+    border-color 0.12s ease,
+    color 0.12s ease;
+}
+
+.arv2-software .sw-spec-cta-secondary:hover {
+  border-color: var(--cins-violet-soft);
+  color: var(--cins-violet);
+}
+
+/* Sidebar tooltip — kế thừa arv2-nghe; đảm bảo overflow khi chỉ 1 tab (không có .nghe-side-tabs) */
+.arv2-software .side-card.nghe-side-tab-panel,
+.arv2-software .nghe-side-tabs .side-card.nghe-side-tab-panel {
+  overflow: visible;
+}
+
+.arv2-software .nghe-side-tab-panel:has(.rel-item:hover) {
+  position: relative;
+  z-index: 12;
+}
+
+/* ── Bảng so sánh ── */
+.arv2-software .sw-compare-head {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.arv2-software .sw-compare-app {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  text-decoration: none;
+  color: inherit;
+  transition:
+    border-color 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+.arv2-software .sw-compare-app:hover {
+  border-color: var(--cins-violet-soft);
+  box-shadow: 0 4px 16px rgba(92, 43, 182, 0.1);
+}
+
+.arv2-software .sw-compare-app.is-current {
+  border-color: var(--cins-violet);
+  box-shadow: 0 0 0 1px var(--cins-violet-soft);
+}
+
+.arv2-software .sw-compare-app-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 22px;
+  color: #fff;
+  overflow: hidden;
+}
+
+.arv2-software .sw-compare-app-icon.has-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.arv2-software .sw-compare-app-name {
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.3;
+  color: var(--ink-display);
+}
+
+.arv2-software .sw-compare-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+}
+
+.arv2-software .sw-compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.arv2-software .sw-compare-table th,
+.arv2-software .sw-compare-table td {
+  padding: 12px 16px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--border);
+}
+
+.arv2-software .sw-compare-table tr:last-child th,
+.arv2-software .sw-compare-table tr:last-child td {
+  border-bottom: none;
+}
+
+.arv2-software .sw-compare-table th {
+  width: 22%;
+  min-width: 140px;
+  background: var(--cins-blue);
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.arv2-software .sw-compare-table tr:nth-child(even) td {
+  background: var(--neutral-50);
+}
+
+.arv2-software .sw-compare-link {
+  color: var(--cins-blue);
+  text-decoration: underline;
+  word-break: break-all;
+}
+
+@media (max-width: 960px) {
+  .arv2-software .sw-article-grid {
+    padding-inline: 24px;
+  }
+
+  .arv2-software .sw-spec-row {
+    grid-template-columns: 1fr;
+    align-items: start;
+    gap: 6px;
+  }
+
+  .arv2-software .sw-spec-head {
+    flex-wrap: wrap;
+  }
+
+}
+
+@media (max-width: 720px) {
+  .arv2-software .sw-article-grid {
+    padding-inline: 20px;
+  }
+
+  .arv2-software .sw-cover-title-bar {
+    min-width: calc(100% - 40px);
+    padding: 10px 16px;
+  }
+}

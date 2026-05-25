@@ -1,0 +1,182 @@
+[
+  {
+    "id": "032d7870-067f-4134-b1bb-8ff617cff5b7",
+    "slug": "nuendo",
+    "tieu_de_viet": "Nuendo — DAW hậu kỳ âm thanh đa phương tiện",
+    "tom_tat": "Phần mềm Steinberg cho post-production — ADR, Foley, mix 5.1/Atmos cho phim, game và truyền hình.",
+    "meta_title": "Nuendo là gì? Post audio, giá và hướng dẫn | CINS",
+    "meta_description": "Nuendo: ADR, surround, game audio. So sánh Pro Tools, Reaper và luồng sound design phim.",
+    "meta": {
+      "nha_phat_hanh": "Steinberg (Yamaha)",
+      "version": "13",
+      "platform": ["Windows", "macOS"],
+      "website": "https://www.steinberg.net/nuendo",
+      "goi_mien_phi": "Dùng thử",
+      "gia_thanh": "Từ ~560 EUR (Elements) · Pro ~1,800 EUR",
+      "hinh_thuc_mua": "Mua một lần · nâng cấp",
+      "link_tai": "https://www.steinberg.net/nuendo"
+    }
+  },
+  {
+    "id": "7b23d3a9-ab3f-46b7-bc26-800ba6d856e7",
+    "slug": "nuke",
+    "tieu_de_viet": "Nuke — Compositing VFX node-based",
+    "tom_tat": "Công cụ compositing tiêu chuẩn Hollywood — node graph, deep compositing và pipeline VFX cho phim và quảng cáo.",
+    "meta_title": "Nuke là gì? VFX compositing, giá và hướng dẫn | CINS",
+    "meta_description": "Nuke: node, deep, roto, 3D. So sánh After Effects, Fusion và lộ trình học compositing.",
+    "meta": {
+      "nha_phat_hanh": "Foundry",
+      "version": "15",
+      "platform": ["Windows", "macOS", "Linux"],
+      "website": "https://www.foundry.com/products/nuke",
+      "goi_mien_phi": "Nuke Non-commercial miễn phí (giới hạn)",
+      "gia_thanh": "Từ ~5,000 USD/năm (Indie) · ~10,000+ USD studio",
+      "hinh_thuc_mua": "Thuê bao năm · giáo dục",
+      "link_tai": "https://www.foundry.com/products/nuke"
+    }
+  },
+  {
+    "id": "da14e8f4-6889-4980-b51b-c62407484aa6",
+    "slug": "obs-studio",
+    "tieu_de_viet": "OBS Studio — Quay màn hình &amp; livestream",
+    "tom_tat": "Phần mềm stream/record mã nguồn mở — scene, source, encoder cho Twitch, YouTube, học online và sản xuất video.",
+    "meta_title": "OBS Studio là gì? Stream, miễn phí và hướng dẫn | CINS",
+    "meta_description": "OBS: scene, plugin, NVENC. So sánh Streamlabs, XSplit và quy trình setup stream.",
+    "meta": {
+      "nha_phat_hanh": "OBS Project",
+      "version": "30",
+      "platform": ["Windows", "macOS", "Linux"],
+      "website": "https://obsproject.com",
+      "goi_mien_phi": "Miễn phí · mã nguồn mở",
+      "gia_thanh": "Miễn phí",
+      "hinh_thuc_mua": "Miễn phí",
+      "link_tai": "https://obsproject.com/download"
+    }
+  },
+  {
+    "id": "431b1fef-8fab-4eeb-9054-e3840442cd81",
+    "slug": "octane-render",
+    "tieu_de_viet": "Octane Render — GPU render unbiased",
+    "tom_tat": "Engine render GPU — path tracing nhanh cho Cinema 4D, Blender, 3ds Max; phổ biến motion design và archviz.",
+    "meta_title": "Octane Render là gì? GPU render, giá và hướng dẫn | CINS",
+    "meta_description": "Octane: GPU, LiveDB, OSL. So sánh Redshift, Cycles và luồng render motion/archviz.",
+    "meta": {
+      "nha_phat_hanh": "OTOY",
+      "version": "2024",
+      "platform": ["Windows", "macOS", "Linux"],
+      "website": "https://home.otoy.com/render/octane-render",
+      "goi_mien_phi": "Dùng thử · Octane Prime giới hạn",
+      "gia_thanh": "Từ ~20 EUR/tháng (Studio)",
+      "hinh_thuc_mua": "Thuê bao · perpetual plugin",
+      "link_tai": "https://home.otoy.com/account/downloads.php"
+    }
+  },
+  {
+    "id": "463d0648-604f-4e94-a466-913664c08869",
+    "slug": "optitrack-motive",
+    "tieu_de_viet": "OptiTrack Motive — Motion capture 3D",
+    "tom_tat": "Phần mềm điều khiển hệ MoCap OptiTrack — calibration, tracking marker và export BVH/FBX cho animation game và film.",
+    "meta_title": "OptiTrack Motive là gì? MoCap, giá và hướng dẫn | CINS",
+    "meta_description": "Motive: rigid body, skeleton, streaming. So sánh Rokoko, Vicon và luồng mocap studio.",
+    "meta": {
+      "nha_phat_hanh": "NaturalPoint (OptiTrack)",
+      "version": "3",
+      "platform": ["Windows"],
+      "website": "https://optitrack.com/software/motive",
+      "goi_mien_phi": "Đi kèm phần cứng OptiTrack",
+      "gia_thanh": "Theo gói camera + license Motive",
+      "hinh_thuc_mua": "Mua phần cứng · license",
+      "link_tai": "https://optitrack.com/software/motive"
+    }
+  },
+  {
+    "id": "e14f284f-406e-4228-8a40-ab733d601f7b",
+    "slug": "pftrack-2",
+    "tieu_de_viet": "PFTrack — Camera tracking 3D",
+    "tom_tat": "Phần mềm matchmove của Pixel Farm — reconstruct camera 3D từ footage để tích hợp CG vào live action.",
+    "meta_title": "PFTrack là gì? Matchmove, giá và hướng dẫn | CINS",
+    "meta_description": "PFTrack: auto track, mesh, export. So sánh Mocha, SynthEyes và luồng VFX tracking.",
+    "meta": {
+      "nha_phat_hanh": "Pixel Farm",
+      "version": "2024",
+      "platform": ["Windows", "macOS", "Linux"],
+      "website": "https://www.pftrack.com",
+      "goi_mien_phi": "Dùng thử PFClean/PFTrack",
+      "gia_thanh": "Từ ~1,500 USD/năm (subscription)",
+      "hinh_thuc_mua": "Thuê bao năm",
+      "link_tai": "https://www.pftrack.com/pftrack"
+    }
+  },
+  {
+    "id": "e82ce017-1630-4a60-a5a7-24cf81a6730f",
+    "slug": "pro-tools",
+    "tieu_de_viet": "Pro Tools — DAW tiêu chuẩn studio",
+    "tom_tat": "Digital Audio Workstation của Avid — thu âm, edit, mix cho nhạc, podcast chuyên nghiệp và post phim.",
+    "meta_title": "Pro Tools là gì? DAW, giá và hướng dẫn học | CINS",
+    "meta_description": "Pro Tools: session, AAX, HDX. So sánh Logic Pro, Reaper và lộ trình học thu âm.",
+    "meta": {
+      "nha_phat_hanh": "Avid",
+      "version": "2024",
+      "platform": ["Windows", "macOS"],
+      "website": "https://www.avid.com/pro-tools",
+      "goi_mien_phi": "Pro Tools Intro miễn phí",
+      "gia_thanh": "Từ ~10 USD/tháng (Artist) · Ultimate đắt hơn",
+      "hinh_thuc_mua": "Thuê bao · perpetual",
+      "link_tai": "https://www.avid.com/pro-tools"
+    }
+  },
+  {
+    "id": "3a8c4d15-7656-49a2-85c3-24eeb67dd8f0",
+    "slug": "procreate",
+    "tieu_de_viet": "Procreate — Vẽ digital trên iPad",
+    "tom_tat": "App vẽ iPad — brush engine, layer, animation assist cho illustration, concept art và fan art trên tablet.",
+    "meta_title": "Procreate là gì? Vẽ iPad, giá và hướng dẫn học | CINS",
+    "meta_description": "Procreate: brush, timelapse, animation. So sánh Clip Studio Paint, Photoshop iPad và lộ trình học vẽ số.",
+    "meta": {
+      "nha_phat_hanh": "Savage Interactive",
+      "version": "5",
+      "platform": ["iPad", "iPhone"],
+      "website": "https://procreate.com",
+      "goi_mien_phi": "Không",
+      "gia_thanh": "~13 USD một lần (App Store)",
+      "hinh_thuc_mua": "Mua một lần",
+      "link_tai": "https://apps.apple.com/app/procreate/id425073498"
+    }
+  },
+  {
+    "id": "b0dd9a57-d6ec-4fea-aa6d-1ad30c67f640",
+    "slug": "quixel-megascans",
+    "tieu_de_viet": "Quixel Megascans — Thư viện asset 3D PBR",
+    "tom_tat": "Kho scan chất lượng cao — material, surface, 3D plant cho Unreal, game và archviz; tích hợp Bridge và Fab.",
+    "meta_title": "Quixel Megascans là gì? Asset 3D, giá và hướng dẫn | CINS",
+    "meta_description": "Megascans: PBR, Bridge, Unreal. So sánh Poly Haven, Substance Source và quy trình dùng asset.",
+    "meta": {
+      "nha_phat_hanh": "Epic Games (Quixel)",
+      "version": "2024",
+      "platform": ["Windows", "macOS"],
+      "website": "https://quixel.com/megascans",
+      "goi_mien_phi": "Miễn phí với Unreal Engine · Fab",
+      "gia_thanh": "Miễn phí (UE) · subscription cũ đã chuyển Fab",
+      "hinh_thuc_mua": "Miễn phí · marketplace",
+      "link_tai": "https://quixel.com/megascans/home"
+    }
+  },
+  {
+    "id": "0e2ad3ff-2ecb-4e04-9566-849fcdeb9f27",
+    "slug": "quixel-mixer",
+    "tieu_de_viet": "Quixel Mixer — Tạo material 3D blend",
+    "tom_tat": "Công cụ blend Megascans — trộn surface scan thành material PBR mới cho game và render (legacy, thay bằng Mixer trong Bridge/Fab).",
+    "meta_title": "Quixel Mixer là gì? Material, miễn phí và hướng dẫn | CINS",
+    "meta_description": "Mixer: blend scan, export maps. So sánh Substance 3D Designer, Materialize và workflow PBR.",
+    "meta": {
+      "nha_phat_hanh": "Epic Games (Quixel)",
+      "version": "2020",
+      "platform": ["Windows", "macOS"],
+      "website": "https://quixel.com/mixer",
+      "goi_mien_phi": "Miễn phí",
+      "gia_thanh": "Miễn phí",
+      "hinh_thuc_mua": "Miễn phí",
+      "link_tai": "https://quixel.com/mixer"
+    }
+  }
+]

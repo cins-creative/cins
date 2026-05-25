@@ -1,0 +1,209 @@
+<section class="arc-intro">
+  <p>Bạn xem một cảnh siêu anh hùng bay qua thành phố, logo thương hiệu lắp ghép từ hạt sáng, hoặc màn hình «magic» trong phim fantasy — phần lớn hiệu ứng đó được dựng bằng <strong>compositing node</strong>, và <strong>Blackmagic Fusion</strong> là một trong những công cụ node-based mạnh nhất, tích hợp sẵn trong DaVinci Resolve (tab Fusion) hoặc chạy độc lập. Cùng engine này cũng xuất hiện ở studio làm title sequence, quảng cáo và VFX shot khi cần ghép nhiều layer, key green screen và xử lý 3D nhẹ trong một flow.</p>
+  <p>Fusion không phải app kéo-thả template trên CapCut hay filter AR — nó là <strong>trình compositing chuyên nghiệp theo node</strong>, nơi mỗi thao tác (blur, key, merge, color) là một node nối dây trên flow chart. Hiểu Fusion giúp bạn bước từ «chỉnh video» sang tư duy VFX: tách foreground/background, match lighting và tích hợp CG vào footage thật.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>Blackmagic Fusion là gì?</h2>
+  <p>Fusion do <strong>Blackmagic Design</strong> phát triển — phần mềm <strong>compositing và motion graphics node-based</strong>, có mặt trong DaVinci Resolve (Fusion page) và bản standalone Fusion Studio. Lịch sử lâu đời (từ Eyeon Fusion); sau khi Blackmagic mua lại, Fusion trở thành phần VFX của hệ sinh thái Resolve, rất phù hợp pipeline all-in-one từ edit → color → VFX.</p>
+  <p>Khác với After Effects làm việc chủ yếu theo layer timeline, Fusion dùng <strong>node graph</strong>: MediaIn → Keyer → Merge → Transform → MediaOut. Mỗi node có input/output rõ ràng, dễ nhìn luồng xử lý và tái sử dụng setup phức tạp. Giao diện có viewer, node editor và inspector — ban đầu trông kỹ thuật, nhưng mỗi node tương ứng một bước trong quy trình composite chuẩn ngành.</p>
+  <ul class="arc-list">
+    <li><strong>Node compositing</strong> — merge layer, mask, transform, blur, glow theo flow có thể nhánh và tái sử dụng</li>
+    <li><strong>Keying &amp; roto</strong> — Delta Keyer, Ultra Keyer, polygon/m Bézier roto cho green screen và isolation</li>
+    <li><strong>3D workspace</strong> — scene 3D nhẹ, camera track, text 3D và tích hợp object 3D cơ bản</li>
+    <li><strong>Tích hợp Resolve</strong> — Fusion clip trên timeline Resolve, round-trip không export trung gian</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"Blackmagic Fusion node graph compositing interface DaVinci Resolve screenshot"</span>
+    </div>
+    <p class="arc-image-caption">Giao diện Fusion — node graph, viewer và inspector thuộc tính node</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>Fusion thường đứng ở giai đoạn <strong>VFX compositing và motion design nâng cao</strong>: nhận render CG (EXR sequence), footage green screen, plate background và element 2D — ghép thành shot hoàn chỉnh, match grain/color, thêm glow/particle rồi trả về timeline Resolve hoặc xuất cho editor. Với quảng cáo và title, Fusion làm logo animation, screen replace, cleanup (wire removal, patch). Thường làm việc cùng Resolve (edit/color), Blender hoặc Maya (3D render) và occasionally Nuke khi facility lớn chia pipeline.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Node workflow &amp; layer compositing</h3>
+    <p>Thế mạnh cốt lõi của Fusion là <strong>tư duy node</strong> — mọi thao tác là khối xử lý có thể preview từng bước. Bạn nối MediaIn (footage) qua Color Corrector, Merge với background, thêm Transform và vignette, cuối cùng MediaOut. Node graph giúp debug: tắt một node là thấy ngay ảnh hưởng; copy nhánh cho variant nhanh hơn duplicate layer như AE.</p>
+    <p>Đối với học sinh THPT mới làm quen, bài tập thực tế hay gặp: ghép người quay green screen (hoặc tách nền bằng AI rồi tinh chỉnh) lên background fantasy, thêm drop shadow và color match — vừa luyện tư duy VFX vừa làm portfolio motion cơ bản.</p>
+    <ul class="arc-list">
+      <li><strong>Merge node</strong> — blend mode (Over, Screen, Add) ghép foreground/background</li>
+      <li><strong>Mask &amp; matte</strong> — polygon mask, bitmap mask kết hợp roto</li>
+      <li><strong>Macro &amp; template</strong> — đóng gói node group tái sử dụng cho shot series</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Fusion node compositing merge transform workflow screenshot"</span>
+        </div>
+        <p class="arc-image-caption">Node graph — MediaIn, Merge, Transform và Color Corrector nối dây</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"DaVinci Resolve Fusion clip timeline integration VFX"</span>
+        </div>
+        <p class="arc-image-caption">Fusion clip trên timeline Resolve — round-trip edit và VFX</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Keying, roto &amp; cleanup</h3>
+    <p>Fusion có bộ <strong>keyer mạnh</strong> (Delta Keyer, Ultra Keyer) cho green/blue screen — tinh chỉnh spill suppression, edge blur và despill để tóc và viền áo trông tự nhiên. Khi không có green screen, artist dùng <strong>roto</strong> (Bézier polygon) frame-by-frame hoặc kết hợp AI-assisted mask rồi refine trong Fusion.</p>
+    <p>Cleanup shot là kỹ năng thực tế: xóa dây treo, che logo, patch đối tượng thừa bằng clone/patch node. Spot quảng cáo và phim indie tại Việt Nam thường thiếu budget set lớn — compositor Fusion cứu shot bằng key + roto + paint thay vì quay lại cả ngày.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Fusion Delta Keyer green screen spill suppression composite"</span>
+      </div>
+      <p class="arc-image-caption">Keying — Delta Keyer, despill và edge refine trên green screen</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Motion graphics, 3D &amp; particle</h3>
+    <p>Ngoài composite, Fusion làm <strong>motion design</strong>: Text+ node cho typography animated, Follow Path cho logo bay, particle system cho spark/confetti. Workspace 3D cho phép import model cơ bản, match-move camera đơn giản và render pass tích hợp — đủ cho title sequence và quảng cáo, dù studio phim lớn thường render 3D ngoài (Blender/Maya) rồi comp trong Fusion/Nuke.</p>
+    <p>Luồng indie phổ biến: thiết kế logo trong Illustrator → animate trong Fusion → export từ Resolve. Hiểu quy trình này giúp bạn không chỉ «biết một tab VFX» mà nắm cách sản phẩm motion đi từ brief đến master cuối.</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Fusion motion graphics text 3D particle title sequence workflow"</span>
+      </div>
+      <p class="arc-image-caption">Motion graphics — Text+, particle và 3D workspace cho title sequence</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai phần mềm hay được đặt cạnh Fusion nhất là <strong>After Effects</strong> (layer-based, Creative Cloud, phổ biến motion design) và <strong>Nuke</strong> (node compositing chuẩn facility VFX phim lớn). Không có câu trả lời «đúng duy nhất» — tùy bạn làm YouTube/motion, indie VFX hay hướng tới studio compositor Hollywood.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Fusion vs After Effects</h3>
+    <p>After Effects (Adobe) dùng <strong>timeline layer</strong>, quen thuộc với motion designer và editor Creative Cloud — ecosystem plugin (Red Giant, etc.) khổng lồ. Fusion node-based, miễn phí trong Resolve, mạnh về comp thật sự (key, deep, multi-pass) hơn là animation character phức tạp. Nhiều studio Việt Nam dùng AE cho motion/quảng cáo và Fusion cho VFX shot trong cùng dự án Resolve.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Blackmagic Fusion node compositing professional VFX"</span>
+        </div>
+        <p class="arc-image-caption">Fusion — node comp, tích hợp Resolve, key và multi-pass</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Adobe After Effects layer timeline motion graphics interface"</span>
+        </div>
+        <p class="arc-image-caption">After Effects — layer timeline, motion design và plugin ecosystem</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Fusion mạnh hơn:</strong> node comp scale phức tạp, miễn phí trong Resolve, pipeline all-in-one, key/roto/deep workflow VFX.<br>
+      <strong>After Effects mạnh hơn:</strong> motion graphics quen thuộc, plugin và template khổng lồ, tích hợp Illustrator/Photoshop/Premiere mượt.<br>
+      <strong>Chọn Fusion khi:</strong> làm VFX comp, green screen, indie film trong Resolve, muốn node workflow không tốn thêm license.<br>
+      <strong>Chọn After Effects khi:</strong> motion design, explainer, social content trong hệ Adobe, team đã quen layer AE.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Fusion vs Nuke</h3>
+    <p>Nuke (Foundry) là <strong>tiêu chuẩn compositing</strong> tại facility VFX phim Hollywood — node graph, deep compositing, Python scripting và pipeline scale lớn. Fusion cạnh tranh ở phân khúc «pro nhưng tiếp cận được»: có trong Resolve free/Studio, đủ mạnh cho TVC và indie film, nhưng studio ILM-scale vẫn ưu tiên Nuke cho toolset và TD support.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Blackmagic Fusion compositing EXR multi pass VFX shot"</span>
+        </div>
+        <p class="arc-image-caption">Fusion — comp EXR multi-pass, indie và mid-size studio</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Foundry Nuke node compositing Hollywood VFX facility"</span>
+        </div>
+        <p class="arc-image-caption">Nuke — node comp facility-grade, deep và pipeline phim lớn</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Fusion mạnh hơn:</strong> chi phí (trong Resolve), học curve thấp hơn Nuke, edit+color+VFX một chỗ.<br>
+      <strong>Nuke mạnh hơn:</strong> deep comp, 3D system mạnh, scripting/pipeline facility, tiêu chuẩn tuyển compositor phim AAA.<br>
+      <strong>Chọn Fusion khi:</strong> học comp, freelance Resolve, studio nhỏ/vừa cần VFX không budget Nuke seat.<br>
+      <strong>Chọn Nuke khi:</strong> mục tiêu compositor tại VFX house quốc tế, shot phức tạp deep/CG integration quy mô lớn.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học Fusion như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Cài Resolve và mở tab Fusion</strong>
+        <p>Tải DaVinci Resolve (bản free đủ Fusion page), tạo project, thêm clip và chuyển sang tab Fusion hoặc tạo Fusion Composition. Tuần đầu làm quen viewer, node editor, kéo MediaIn/MediaOut và nối Transform — mục tiêu là không sợ «màn hình toàn dây nối» trước khi làm comp phức tạp. Nhiều bạn THPT đã quen Resolve edit/color nên bước sang Fusion là tự nhiên.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Composite cơ bản: merge hai layer</strong>
+        <p>Import foreground PNG (có alpha) hoặc footage, thêm background plate, dùng Merge (Over) và Transform căn vị trí. Thêm Color Corrector match sáng/tông màu giữa hai layer — kỹ năng «match lighting» là nền mọi VFX. Luyện 3–5 shot đơn giản: đặt người lên cảnh đổi, poster trên tường giả, sky replacement cơ bản.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Keying &amp; roto trên green screen</strong>
+        <p>Quay thử green screen (vải xanh, ánh sáng đều) hoặc dùng footage mẫu miễn phí. Học Delta Keyer, chỉnh despill, edge blur; nếu không có green screen thì roto polygon đơn giản. So sánh kết quả với AI mask (CapCut, Runway) rồi refine trong Fusion — pro luôn «chỉnh tay» vùng khó.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Motion graphics &amp; Fusion clip trên timeline</strong>
+        <p>Làm lower third animated: Text+, Background, Merge, animate trong Fusion → đưa về Edit page dưới dạng Fusion clip. Hiểu cách clip Fusion gắn với timeline Resolve giúp bạn làm việc thật: editor cắt timeline, bạn mở Fusion clip sửa VFX mà không mất sync.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Dự án short VFX hoàn chỉnh</strong>
+        <p>Chọn một shot 10–30 giây: green screen + background CG hoặc plate, thêm particle/glow, grain match, export ProRes. Hoặc title sequence 15 giây cho club trường / fan edit. Giai đoạn này dạy brief, iteration và deadline — giống studio nhỏ nhận job quảng cáo local.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Portfolio và định hướng nghề</strong>
+        <p>Tổng hợp reel 60–90 giây: before/after comp, breakdown node graph (screen record), ghi rõ Resolve/Fusion. Đăng Vimeo, ArtStation hoặc Behance — VFX recruiter xem reel trước CV. Song song học concept Nuke (node tư duy giống Fusion) nếu hướng compositor quốc tế; hoặc đào sâu motion trong AE nếu thích quảng cáo social. Blackmagic có tài liệu và training Fusion miễn phí — khai thác trước khi trả phí khóa ngoài.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

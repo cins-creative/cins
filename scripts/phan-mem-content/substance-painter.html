@@ -1,0 +1,209 @@
+<section class="arc-intro">
+  <p>Bạn xoay một khẩu súng 3D trên màn hình, bôi vết trầy lên nòng kim loại, vẽ bụi vào khe cán gỗ và thấy ngay kết quả trên model — không cần «đoán» texture sẽ bọc thế nào sau khi unwrap phẳng. Phần lớn bước đó diễn ra trong <strong>Substance 3D Painter</strong>, công cụ sơn texture trực tiếp lên mesh 3D của Adobe.</p>
+  <p>Substance Painter không thay thế phần mềm dựng hình như Blender hay Maya — nó đứng sau bước model và UV, giúp artist tạo bộ map PBR (Base Color, Normal, Roughness, Metallic, Height…) với brush, smart material và generator wear. Studio game Việt Nam, freelancer environment/prop artist và sinh viên ngành thiết kế đồ họa đều coi Painter là công cụ «must-know» khi làm asset 3D cho game và phim.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>Substance 3D Painter là gì?</h2>
+  <p>Substance 3D Painter do <strong>Adobe</strong> phát triển (trước đây thuộc Allegorithmic) — phần mềm <strong>texture painting 3D</strong> chạy trên Windows và macOS. Bạn import model đã có UV, chọn kênh cần sơn (màu, độ nhám, normal…) và vẽ trực tiếp lên bề mặt trong viewport 3D; mọi nét vẽ được bake vào texture map tương ứng.</p>
+  <p>Khác với Photoshop (sơn trên ảnh phẳng UV unfold), Painter cho phép bạn nhìn model từ mọi góc, dùng projection và triplanar khi UV xấu, và áp dụng <strong>smart material</strong> — preset vật liệu có logic wear tự động theo curvature và AO. Giao diện gồm viewport 3D, shelf material/brush bên trái, layer stack bên phải — quen thuộc nếu bạn từng dùng Photoshop nhưng thêm chiều không gian thứ ba.</p>
+  <ul class="arc-list">
+    <li><strong>3D texture painting</strong> — vẽ trực tiếp lên mesh, preview realtime PBR</li>
+    <li><strong>Layer &amp; smart material</strong> — stack lớp như Photoshop; generator tạo vết bụi, scratch, edge wear</li>
+    <li><strong>Texture sets &amp; UDIM</strong> — quản lý nhiều material ID; hỗ trợ UDIM cho film/VFX</li>
+    <li><strong>Xuất PBR maps</strong> — export sang Unreal, Unity, Blender, Marmoset Toolbag cho portfolio</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"Substance 3D Painter interface 3D viewport texture painting screenshot"</span>
+    </div>
+    <p class="arc-image-caption">Giao diện Substance Painter — viewport 3D, layer stack và shelf smart material</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>Substance Painter thường đứng ở giai đoạn <strong>texturing asset 3D</strong>: nhận model low-poly hoặc high-poly đã unwrap UV từ modeler, sơn vật liệu và wear, xuất bộ map PBR và bàn giao cho technical artist hoặc import thẳng engine. Với prop và nhân vật game, Painter là bước trung tâm; với environment tileable lớn, artist có thể kết hợp Substance Designer cho vật liệu nền rồi Painter cho instance riêng. Làm việc cùng Blender, Maya, 3ds Max, ZBrush và các engine trong pipeline game/mobile/AAA.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Layer stack &amp; smart material</h3>
+    <p>Trái tim của Painter là <strong>layer stack</strong> tương tự Photoshop: mỗi layer có mask, blending mode và có thể chứa fill, paint hoặc generator. <strong>Smart materials</strong> là preset do cộng đồng hoặc Adobe cung cấp — ví dụ «Painted Metal» tự thêm rust ở khe và scratch ở cạnh nhờ curvature map baked sẵn từ mesh.</p>
+    <p>Đối với học sinh THPT mới làm quen, bài tập thực tế hay gặp: texture một prop đơn giản (thùng, bình, vũ khí stylized), thử 2–3 smart material và chỉnh màu/wear — vừa luyện quan sát bề mặt thật vừa làm portfolio game art cơ bản.</p>
+    <ul class="arc-list">
+      <li><strong>Generators &amp; filters</strong> — Curvature, AO, Thickness làm mask cho dirt và edge wear</li>
+      <li><strong>Anchor points</strong> — tái sử dụng mask giữa các layer, tiết kiệm thời gian trên asset phức tạp</li>
+      <li><strong>Material ID</strong> — tô màu theo ID trên cùng mesh để gán vật liệu khác nhau cho từng bộ phận</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Substance Painter layer stack smart material weapon texturing"</span>
+        </div>
+        <p class="arc-image-caption">Layer stack — smart material, mask và generator trên prop vũ khí</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Substance Painter edge wear curvature generator mask"</span>
+        </div>
+        <p class="arc-image-caption">Edge wear — generator dùng curvature map tạo vết mòn tự nhiên</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Brush, projection &amp; baking mesh maps</h3>
+    <p>Painter cung cấp bộ <strong>brush</strong> đa dạng — paint, erode, smudge, particle spray — hoạt động trên từng kênh PBR. Khi UV khó unwrap, dùng <strong>triplanar projection</strong> hoặc projector 3D để «dán» texture từ góc nhìn cố định. Trước khi sơn chi tiết, Painter <strong>bake</strong> normal, curvature, AO, position từ high-poly sang low-poly — nền tảng cho smart mask chính xác.</p>
+    <p>Một prop game chất lượng portfolio thường mất 1–3 ngày tùy độ phức tạp; nhân vật full body có thể vài tuần. Hiểu thời gian thực tế giúp bạn lên kế hoạch dự án cá nhân và deadline học tập hợp lý.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Substance Painter mesh map bake normal curvature AO"</span>
+      </div>
+      <p class="arc-image-caption">Mesh maps — bake normal, curvature và AO từ high-poly trước khi texturing</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Xuất texture, Iray render &amp; pipeline game</h3>
+    <p>Sau khi hoàn thiện, Painter xuất <strong>bộ map PBR</strong> theo template Unreal, Unity, glTF hoặc custom — Base Color, Normal (OpenGL/DirectX), Roughness, Metallic, Opacity, Height. Có thể render still bằng <strong>Iray</strong> cho portfolio hoặc turntable video. Plugin live link với Unreal giúp xem material cập nhật trong engine mà không export thủ công từng lần.</p>
+    <p>Luồng làm việc điển hình: sculpt/detail trong ZBrush → retopo + UV trong Blender/Maya → bake và paint trong Painter → import Unreal/Unity → lighting và optimization. Hiểu quy trình này giúp bạn thấy Painter là cầu nối giữa model 3D và trải nghiệm hình ảnh trong game.</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Substance Painter export PBR textures Unreal Engine game asset pipeline"</span>
+      </div>
+      <p class="arc-image-caption">Luồng xuất — texture Painter, material trong Unreal và prop trong game</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai công cụ hay được đặt cạnh Substance Painter nhất là <strong>Blender Texture Paint</strong> (miễn phí, tích hợp trong Blender) và <strong>Mari</strong> (Foundry, chuẩn VFX/phim). Không có câu trả lời «đúng duy nhất» — tùy bạn làm game indie, AAA hay phim điện ảnh, và ngân sách cá nhân hay studio.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Substance Painter vs Blender texture paint</h3>
+    <p>Blender 3D miễn phí và có chế độ <strong>Texture Paint</strong> trực tiếp trên mesh — đủ cho dự án nhỏ, học tập và pipeline all-in-one khi bạn đã model trong Blender. Substance Painter chuyên sâu hơn: smart material, generator wear, baking mesh map mạnh, shelf preset khổng lồ và xuất template chuẩn cho Unreal/Unity — được hầu hết studio game tuyển dụng yêu cầu.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Substance Painter PBR texturing game asset professional"</span>
+        </div>
+        <p class="arc-image-caption">Substance Painter — smart material, PBR stack và workflow game industry</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Blender texture paint 3D viewport UV painting mode"</span>
+        </div>
+        <p class="arc-image-caption">Blender Texture Paint — miễn phí, tích hợp trong pipeline Blender thuần</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Substance Painter mạnh hơn:</strong> smart material/generator, baking chuyên dụng, tiêu chuẩn tuyển dụng game art, tích hợp Substance ecosystem.</p>
+      <p><strong>Blender mạnh hơn:</strong> chi phí bằng không, không cần chuyển file, đủ cho stylized/indie và học sinh THPT bắt đầu.</p>
+      <p><strong>Chọn Substance Painter khi:</strong> mục tiêu làm game artist chuyên nghiệp, cần tốc độ và chất lượng wear realistic trên asset phức tạp.</p>
+      <p><strong>Chọn Blender texture paint khi:</strong> ngân sách hạn chế, pipeline gói trong Blender, hoặc dự án stylized đơn giản.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Substance Painter vs Mari</h3>
+    <p>Mari (Foundry) được dùng rộng rãi trong <strong>phim VFX và animation</strong> — hỗ trợ UDIM nhiều tile, độ phân giải cực cao (8K, 16K+) và projection paint cho hero asset. Substance Painter thiên về <strong>game realtime PBR</strong>: viewport nhanh, smart material và xuất map tối ưu cho engine; giá và học curve thân thiện hơn Mari cho người mới.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Substance Painter game weapon PBR texturing realtime viewport"</span>
+        </div>
+        <p class="arc-image-caption">Substance Painter — PBR realtime, prop game và mobile/AAA</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Foundry Mari UDIM texture painting VFX film production"</span>
+        </div>
+        <p class="arc-image-caption">Mari — UDIM cao, projection paint cho hero asset phim</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Substance Painter mạnh hơn:</strong> chi phí và học tập cho game, smart material nhanh, export Unreal/Unity, cộng đồng tutorial lớn.</p>
+      <p><strong>Mari mạnh hơn:</strong> UDIM/phim scale, độ phân giải khổng lồ, tích hợp pipeline VFX (Nuke, Katana), chuẩn studio phim.</p>
+      <p><strong>Chọn Substance Painter khi:</strong> hướng game art, archviz realtime, prop/character cho engine.</p>
+      <p><strong>Chọn Mari khi:</strong> mục tiêu texture artist phim/VFX, hero creature cần hàng trăm UDIM tiles.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học Substance Painter như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Làm quen giao diện và import model</strong>
+        <p>Tuần đầu hãy import một mesh đơn giản (cube, barrel) đã có UV — xoay viewport, chọn texture set, thử fill màu trên Base Color. Làm quen shelf bên trái, layer bên phải và chuyển kênh Roughness/Metallic. Mục tiêu là thao tác 3D viewport và layer stack trơn tru trước khi đụng smart material — nhiều bạn THPT bỏ cuộc sớm vì UV model lỗi; hãy bắt đầu bằng asset UV sạch có sẵn.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Smart material &amp; generator cơ bản</strong>
+        <p>Áp dụng 2–3 smart material lên prop (kim loại, gỗ, nhựa), chỉnh màu và độ wear bằng exposed parameters. Thêm generator Dirt hoặc Edge Wear trên layer mới, quan sát mask từ curvature. Thường 2 tuần luyện đều sẽ tạo được prop «presentable» cho portfolio sơ khai.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Bake mesh maps &amp; high/low poly</strong>
+        <p>Học import cặp high/low poly, bake normal, curvature, AO và thickness — nền tảng cho wear chính xác. Thử prop có chi tiết sculpt (đinh tán, khắc chữ) để thấy sự khác biệt khi có normal map tốt. Mục tiêu là hiểu mối liên hệ giữa geometry và mask generator, không chỉ «bấm preset».</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Hand-paint chi tiết &amp; decal</strong>
+        <p>Dùng brush paint logo, vết xước, bụi cục bộ; import decal alpha từ Photoshop. Luyện projection khi UV stretch ở vùng khuất. Giai đoạn này biến asset từ «generic smart material» thành work có dấu ấn cá nhân — recruiter game art thường chú ý chi tiết hand-touched.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Xuất map &amp; kiểm tra trong engine</strong>
+        <p>Export theo template Unreal hoặc Unity, import vào engine và kiểm tra dưới lighting thật — metallic có bị «đen», normal có flip không. Render turntable Iray hoặc Marmoset Toolbag cho portfolio. Thử live link Unreal nếu máy đủ mạnh; hiểu bước này tránh tình trạng «đẹp trong Painter, lệch trong game».</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Portfolio và định hướng nghề</strong>
+        <p>Tổng hợp 3–5 asset: 1 vũ khí/prop hard-surface, 1 organic (đá, cây stylized), 1 có story wear (đồ cũ, abandoned). Đăng ArtStation — ghi rõ Substance Painter, Blender/Maya, engine preview. Học thêm Substance Designer cho vật liệu nền; tìm khóa game art Việt Nam — studio tuyển junior texture artist dựa portfolio và test prop hơn bằng cấp.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

@@ -1,0 +1,193 @@
+<section class="arc-intro">
+  <p>Khi một chiếc xe CG lao qua đường phố thật trong blockbusters, hay nhân vật 3D bước đi khớp từng bước chân trên nền quay thực — phía sau gần như luôn có bước <strong>matchmove</strong> (camera tracking). 3DEqualizer là một trong những công cụ tiêu chuẩn ngành cho công việc đó.</p>
+  <p>Studio chọn 3DEqualizer không phải vì nó dễ học nhất, mà vì nó giải được những shot khó — lens distortion, object track, reprojection error thấp — và xuất dữ liệu camera sang Maya, Nuke, Houdini mà pipeline lớn tin dùng.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>3DEqualizer là gì?</h2>
+  <p>3DEqualizer do Science-D-Visions (Đức) phát triển — phần mềm <strong>camera tracking 3D</strong> và <strong>object tracking</strong> cho VFX. Chạy trên Windows và Linux, chủ yếu dùng trong studio phim bom tấn và quảng cáo cao cấp.</p>
+  <p>Khác với compositing hay modeling thuần, 3DE tái tạo chuyển động camera và không gian 3D khớp với video gốc — nền tảng để gắn CG, thay mặt, hoặc mở rộng set ảo mà không «trôi» khỏi cảnh thật.</p>
+  <ul class="arc-list">
+    <li><strong>Automatic tracking</strong> — nhận feature point và giải camera từ footage</li>
+    <li><strong>Lens distortion</strong> — model và hiệu chỉnh méo ống kính trước khi solve</li>
+    <li><strong>Object tracking</strong> — track vật thể riêng lẻ trong scene phức tạp</li>
+    <li><strong>Export pipeline</strong> — xuất camera, point cloud, script sang DCC/VFX host</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"3DEqualizer interface tracking workspace viewport screenshot 2024"</span>
+    </div>
+    <p class="arc-image-caption">Giao diện 3DEqualizer — viewport 3D, track point trên footage và bảng thông số camera</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>3DE thuộc giai đoạn <strong>VFX prep / matchmove</strong>: nhận plate từ dựng phim (sau editorial), xuất camera và geometry tham chiếu sang Maya hoặc Houdini để layout CG, sau đó Nuke/Flame để composite. Thường làm việc song song với team layout và lighting.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Camera solve &amp; calibration</h3>
+    <p>Quy trình cốt lõi: import footage → đặt marker hoặc auto-track → nhập thông số lens/sensor → solve camera → đọc <strong>reprojection error</strong>. Số liệu error quyết định CG có «dính» cảnh thật hay không — matchmove artist thường nhắm dưới 0.5 pixel trên shot quan trọng.</p>
+    <ul class="arc-list">
+      <li><strong>Manual vs auto track</strong> — shot ít texture cần track tay; shot ngoài trời có thể auto nhanh hơn</li>
+      <li><strong>Focal length / sensor size</strong> — khớp metadata máy quay hoặc bracket từ set</li>
+      <li><strong>Survey data</strong> — tích hợp đo đạc set thật để scale scene chính xác</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"3DEqualizer camera solve reprojection error graph viewport"</span>
+        </div>
+        <p class="arc-image-caption">Kiểm tra solve — reprojection error và track point khớp footage</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"3DEqualizer manual tracking markers green screen VFX"</span>
+        </div>
+        <p class="arc-image-caption">Manual tracking — đặt point trên chi tiết tương phản cao</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Lens distortion &amp; undistort</h3>
+    <p>Footage từ lens rộng, GoPro hoặc anamorphic thường méo — 3DE model distortion trước khi solve. Undistort plate cũng giúp team paint/roto làm việc trên ảnh «phẳng» hơn trước khi composite.</p>
+    <ul class="arc-list">
+      <li><strong>Distortion grid</strong> — visualize méo và chỉnh curve</li>
+      <li><strong>Export undistorted plate</strong> — bàn giao cho compositing nếu pipeline yêu cầu</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"3DEqualizer lens distortion undistort grid calibration"</span>
+      </div>
+      <p class="arc-image-caption">Lưới distortion — hiệu chỉnh méo ống kính trước camera solve</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Object track &amp; export sang pipeline</h3>
+    <p>Ngoài camera, 3DE track vật thể (xe, tay, prop) để CG parent đúng chuyển động. Export qua Python script, .3de, hoặc trực tiếp sang Maya/Nuke — tùy pipeline studio đã chuẩn hóa.</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"3DEqualizer export Maya Nuke pipeline matchmove workflow diagram"</span>
+      </div>
+      <p class="arc-image-caption">Luồng export — camera và object track từ 3DE sang DCC và compositing</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai phần mềm hay được cân nhắc cùng 3DEqualizer là <strong>SynthEyes</strong> và <strong>PFTrack</strong>. Không có công cụ nào thắng tuyệt đối — phụ thuộc quy mô studio, ngân sách và độ phức tạp shot.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3DEqualizer vs SynthEyes</h3>
+    <p>SynthEyes phổ biến ở indie và mid-size vì setup nhanh, giá thấp hơn. 3DE thường xuất hiện khi shot cần độ chính xác cao hoặc pipeline đã chuẩn hóa quanh Science-D-Visions.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"3DEqualizer professional VFX tracking interface studio"</span>
+        </div>
+        <p class="arc-image-caption">3DE — lens model và object track cho shot phức tạp</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"SynthEyes matchmove tracking interface screenshot"</span>
+        </div>
+        <p class="arc-image-caption">SynthEyes — workflow nhanh, phổ biến freelancer và studio nhỏ</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>3DE mạnh hơn:</strong> lens distortion nâng cao, object track, pipeline studio AAA, reprojection trên shot khó.<br>
+      <strong>SynthEyes mạnh hơn:</strong> tốc độ học và setup, chi phí thấp, đủ tốt cho nhiều shot thương mại.<br>
+      <strong>Chọn 3DE khi:</strong> mục tiêu là Matchmove Artist trong studio VFX lớn.<br>
+      <strong>Chọn SynthEyes khi:</strong> freelance, indie, hoặc cần tracking nhanh với ngân sách hạn chế.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3DEqualizer vs PFTrack</h3>
+    <p>PFTrack (The Pixel Farm) mạnh ở photogrammetry và depth — đôi khi dùng kết hợp thay vì thay thế hoàn toàn 3DE.</p>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>3DE mạnh hơn:</strong> camera solve truyền thống, object track, tích hợp pipeline film lâu đời.<br>
+      <strong>PFTrack mạnh hơn:</strong> depth map, photogrammetry từ nhiều góc, một số luồng stereo.<br>
+      <strong>Chọn 3DE khi:</strong> vai trò matchmove camera-centric trong feature film.<br>
+      <strong>Chọn PFTrack khi:</strong> dự án cần depth reconstruction hoặc hybrid photogrammetry.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học 3DEqualizer như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Làm quen footage và viewport</strong>
+        <p>Tuần đầu: import clip ngắn, thử auto-track và manual point. Mục tiêu hiểu viewport 2D/3D, timeline và reprojection — trước khi đi sâu solve phức tạp.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Camera solve cơ bản</strong>
+        <p>Học focal length, sensor size, solve trên shot pan/tilt đơn giản. Đọc error graph và biết khi nào cần thêm track point — thường 2–3 tuần luyện đều.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Lens distortion &amp; object track</strong>
+        <p>Undistort footage GoPro hoặc lens rộng; thử track một vật thể trong cảnh. Đây là kỹ năng phân biệt junior và mid-level matchmove.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Export sang Maya / Nuke</strong>
+        <p>Xuất camera, import DCC, đặt khối proxy khớp plate. Thực hành một shot hoàn chỉnh từ plate → 3DE → layout CG đơn giản.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Shot khó &amp; quy trình studio</strong>
+        <p>Handheld, motion blur nặng, ít parallax — học chiến lược track và khi nào nhờ survey data. Tìm hiểu naming convention và version file của pipeline thật.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Portfolio matchmove</strong>
+        <p>1–2 shot hoàn chỉnh: plate + CG khớp + breakdown 30–60 giây giải thích error và workflow. Đăng Vimeo/ArtStation — ghi rõ vai trò «Matchmove Artist».</p>
+      </div>
+    </div>
+
+  </div>
+</section>

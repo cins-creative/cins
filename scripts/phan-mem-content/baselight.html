@@ -1,0 +1,209 @@
+<section class="arc-intro">
+  <p>Bạn xem một bộ phim điện ảnh trên rạp, thấy da nhân vật vẫn tự nhiên dù cảnh chuyển từ ánh nắng chiều sang đèn neon đêm — phần lớn «look» đó được hoàn thiện trên hệ thống <strong>Baselight</strong> của FilmLight, công cụ color grading chuyên nghiệp dùng trong studio phim Hollywood, quảng cáo cao cấp và post-production broadcast. Cùng nền tảng này cũng xuất hiện ở các facility làm DI (Digital Intermediate) khi cần kiểm soát màu ở độ chính xác cao trên footage RAW hoặc ACES.</p>
+  <p>Baselight không phải app chỉnh filter trên điện thoại hay trình cắt video đa năng — nó là <strong>phần mềm color grading cấp facility</strong>, thiết kế cho colorist làm việc trên timeline dài, nhiều version deliverable và pipeline màu chuẩn ngành. Hiểu Baselight giúp bạn hình dung tầng cao nhất của nghề chỉnh màu phim, khác hẳn với color grade nhẹ trên Premiere hay CapCut mà nhiều bạn THPT quen dùng.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>Baselight là gì?</h2>
+  <p>Baselight do <strong>FilmLight</strong> (Anh) phát triển — phần mềm <strong>color grading và finishing</strong> chạy trên Linux workstation hoặc hệ thống Baselight dedicated. Ban đầu phục vụ DI phim điện ảnh; ngày nay vẫn là lựa chọn hàng đầu tại facility post lớn, cùng với các hãng truyền hình và quảng cáo premium khi cần chất lượng màu «broadcast-safe» và quy trình ACES end-to-end.</p>
+  <p>Khác với NLE all-in-one, Baselight tập trung vào <strong>grading node và layer</strong>: bạn làm việc trên shot hoặc sequence đã conform, áp dụng primary/secondary correction, keying skin tone, matching giữa các cảnh quay và xuất deliverable theo spec khách hàng (DCP, ProRes, IMF). Giao diện có gallery shot, timeline, scopes và bảng grade — ban đầu trông kỹ thuật, nhưng mỗi khu vực phục vụ một bước trong quy trình finishing chuyên nghiệp.</p>
+  <ul class="arc-list">
+    <li><strong>Truelight colour science</strong> — engine màu của FilmLight, tương thích ACES, wide gamut và HDR workflow</li>
+    <li><strong>Primary &amp; secondary grading</strong> — balance exposure, contrast, hue/saturation theo vùng (qualifier, power window)</li>
+    <li><strong>Shot matching &amp; version</strong> — đồng bộ look giữa nhiều cảnh, quản lý grade version và client review</li>
+    <li><strong>Finishing &amp; deliverable</strong> — conform timeline, burn-in, xuất định dạng phim/truyền hình theo chuẩn facility</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"FilmLight Baselight color grading interface scopes timeline screenshot"</span>
+    </div>
+    <p class="arc-image-caption">Giao diện Baselight — gallery shot, bảng grade và waveform/vectorscope</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>Baselight thường đứng ở giai đoạn <strong>color grade final và DI finishing</strong>: nhận timeline đã conform từ editor (Avid, Premiere) hoặc online suite, làm việc trên footage camera gốc (ARRI RAW, RED, Sony Venice), thiết lập look theo director/DOP rồi xuất master cho rạp, streaming hoặc broadcast. Với phim lớn, colorist có thể dùng Baselight nhiều tuần trên hàng nghìn shot; với quảng cáo, thường là vài ngày grade trên spot 30–60 giây. Thường làm việc cùng Baselight linked systems, review platform và pipeline ACES/OCIO của studio.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Primary grading &amp; colour science</h3>
+    <p>Thế mạnh nền tảng của Baselight là <strong>kiểm soát màu chính xác trên footage log/RAW</strong>. Bạn balance exposure, đặt black/white point, chỉnh contrast và saturation tổng thể trước khi đụng tới từng vùng — tất cả trong không gian màu wide gamut mà Truelight engine xử lý ổn định giữa SDR và HDR. Colorist chuyên nghiệp thường bắt đầu bằng primary trên reference shot, rồi copy grade sang cảnh tương tự và tinh chỉnh từng shot.</p>
+    <p>Đối với học sinh THPT mới tìm hiểu, khái niệm quan trọng cần nắm trước: <strong>log footage</strong> trông «xám» nhưng chứa nhiều thông tin dynamic range; Baselight (và các công cụ facility khác) khai thác dữ liệu đó để tạo look cinematic mà không bị banding hay clip highlight. Đây là tầng sâu hơn so với kéo slider trên app consumer.</p>
+    <ul class="arc-list">
+      <li><strong>Input transform</strong> — chọn IDT/Input LUT đúng camera (ARRI LogC, REDLog, S-Log3)</li>
+      <li><strong>Primary balance</strong> — lift/gamma/gain hoặc offset/contrast theo workflow facility</li>
+      <li><strong>ACES &amp; OCIO</strong> — làm việc trong pipeline màu chuẩn, dễ bàn giao giữa các bước post</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Baselight primary color grade log footage before after"</span>
+        </div>
+        <p class="arc-image-caption">Primary grade — cân bằng exposure trên footage log trước secondary</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Baselight ACES colour pipeline FilmLight scopes"</span>
+        </div>
+        <p class="arc-image-caption">Pipeline ACES — input/output transform và scopes kiểm tra màu</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Secondary correction &amp; shot matching</h3>
+    <p>Sau primary, colorist dùng <strong>qualifier và power window</strong> để tách vùng: da, bầu trời, áo đỏ — rồi chỉnh hue, saturation hoặc luminance riêng. Baselight mạnh ở <strong>match shot</strong> giữa các cảnh quay khác điều kiện ánh sáng, giữ continuity cả sequence.</p>
+    <p>Đây là cốt lõi nghề colorist: không chỉ «cho đẹp» một frame mà đồng bộ look theo brief director và DOP — áp lực deadline nhưng cũng là nơi tay nghề thể hiện rõ nhất.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Baselight secondary grading qualifier power window skin tone"</span>
+      </div>
+      <p class="arc-image-caption">Secondary grade — qualifier tách da và power window chỉnh vùng cụ thể</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Finishing, HDR &amp; deliverable</h3>
+    <p>Baselight không dừng ở grade — nó hỗ trợ <strong>finishing</strong> cho output cuối: conform timeline đầy đủ, title/graphic tích hợp (tùy setup), render HDR (PQ/HLG) và SDR cùng lúc qua version grade. Facility có thể xuất DCP cho rạp, IMF cho streaming, hoặc ProRes master cho marketing — mỗi deliverable có spec riêng về gamut, gamma và metadata.</p>
+    <p>Luồng làm việc điển hình: online editor conform → colorist grade trên Baselight → QC màu và legal levels → xuất master → archive grade project. Hiểu bước này giúp bạn thấy vì sao phim rạp và spot TVC «nhìn khác» video YouTube tự grade — không chỉ do camera mà do cả pipeline finishing chuyên nghiệp.</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Baselight HDR finishing deliverable DCP film post production workflow"</span>
+      </div>
+      <p class="arc-image-caption">Finishing — grade HDR/SDR và xuất deliverable DCP, IMF, ProRes master</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai đối tượng hay được đặt cạnh Baselight nhất là <strong>DaVinci Resolve</strong> (NLE + color all-in-one, phổ biến rộng) và <strong>Baselight One</strong> (phiên bản compact của cùng hệ sinh thái FilmLight). Không có câu trả lời «đúng duy nhất» — tùy bạn làm facility phim lớn, freelance colorist hay học sinh THPT mới khám phá nghề chỉnh màu.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Baselight vs DaVinci Resolve</h3>
+    <p>DaVinci Resolve (Blackmagic) gộp edit, VFX, audio và color trong một app, có bản miễn phí mạnh — rất phù hợp creator, studio vừa và nhỏ, học sinh THPT bắt đầu với color grade. Baselight tập trung thuần grading/finishing, thường chạy trên hạ tầng facility đắt tiền, được các post house phim lớn tin dùng vì colour science Truelight và workflow DI trưởng thành hơn nhiều năm phục vụ Hollywood.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"FilmLight Baselight professional color suite facility"</span>
+        </div>
+        <p class="arc-image-caption">Baselight — color suite facility, pipeline DI phim điện ảnh</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"DaVinci Resolve color page nodes scopes interface"</span>
+        </div>
+        <p class="arc-image-caption">DaVinci Resolve — color page, node workflow, bản free mạnh cho học tập</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Baselight mạnh hơn:</strong> colour science facility-grade, finishing HDR/DCP/IMF, tin cậy trong pipeline phim lớn và broadcast premium.<br>
+      <strong>Resolve mạnh hơn:</strong> chi phí tiếp cận thấp (bản free), all-in-one edit+grade+VFX, cộng đồng tutorial khổng lồ, phù hợp YouTube đến indie film.<br>
+      <strong>Chọn Baselight khi:</strong> làm việc tại facility đã đầu tư FilmLight, dự án DI phim/truyền hình cần spec cao.<br>
+      <strong>Chọn Resolve khi:</strong> học color grade, freelance, studio nhỏ cần một app làm hết post-production.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Baselight vs Baselight One</h3>
+    <p>Baselight One là <strong>giải pháp «entry» của FilmLight</strong> — phần cứng + phần mềm gói gọn, giá thấp hơn full Baselight system nhưng vẫn dùng cùng core grading. Full Baselight chạy trên Linux cluster, hỗ trợ nhiều user, storage lớn và tích hợp facility-wide; Baselight One phù hợp boutique color suite hoặc freelancer cao cấp muốn Truelight mà chưa cần datacenter.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"FilmLight Baselight full system Linux post facility"</span>
+        </div>
+        <p class="arc-image-caption">Baselight full — hệ thống facility, storage và linked grading rooms</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Baselight One FilmLight compact color grading system"</span>
+        </div>
+        <p class="arc-image-caption">Baselight One — workstation gọn, cùng engine màu Truelight</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Baselight (full) mạnh hơn:</strong> scale lớn, multi-seat, tích hợp pipeline facility, xử lý timeline/feature phim dài.<br>
+      <strong>Baselight One mạnh hơn:</strong> chi phí và footprint nhỏ hơn, dễ đặt trong studio boutique, vẫn grade chất lượng FilmLight.<br>
+      <strong>Chọn Baselight full khi:</strong> post house phim/broadcast với nhiều colorist và dự án đồng thời.<br>
+      <strong>Chọn Baselight One khi:</strong> colorist độc lập hoặc studio nhỏ cần «Baselight DNA» mà không đầu tư hạ tầng lớn.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học Baselight như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Nền tảng color theory &amp; log footage</strong>
+        <p>Trước khi đụng Baselight, hãy hiểu wheel màu, exposure, contrast và vì sao log/RAW cần transform. Học trên DaVinci Resolve (bản free) hoặc tutorial ACES cơ bản — mục tiêu là đọc được waveform, vectorscope và nhận biết clip highlight/shadow. Học sinh THPT nên xem phim có commentary DOP/colorist để thấy «look» không phải ngẫu nhiên mà là quyết định có chủ đích.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Luyện primary grade trên công cụ tiếp cận được</strong>
+        <p>Dùng Resolve Color page: balance shot log, tạo look cinematic đơn giản (teal &amp; orange nhẹ, film emulation LUT). Luyện match 5–10 shot cùng cảnh quay khác exposure — kỹ năng này chuyển thẳng sang Baselight khi có cơ hội. Thường 1–2 tháng luyện đều sẽ thấy mắt «nhạy» màu hơn rõ rệt.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Secondary: qualifier, window, skin tone</strong>
+        <p>Học tách vùng da, bầu trời, vật thể bằng HSL qualifier và vignette/window. Tránh oversaturate da; giữ naturalism trừ khi brief yêu cầu stylized. Tài liệu FilmLight và khóa colorist (Mixing Light, ICA, fxphd) có module tương đương — concept giống nhau dù UI khác Resolve.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Hiểu pipeline post &amp; vai trò colorist</strong>
+        <p>Tìm hiểu luồng: shoot → dailies → offline edit → conform → grade → QC → deliverable. Xem credit phim để biết colorist làm việc với ai (DOP, director, online editor). Tham gia group Facebook/Discord color grading Việt Nam; một số studio HCM/Hà Nội cho intern shadow session nếu bạn có nền Resolve vững.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Tiếp cận Baselight qua training chính hãng</strong>
+        <p>Baselight không có bản free như Resolve — cách thực tế là khóa <strong>FilmLight training</strong>, học tại facility có hệ thống, hoặc chuyển từ colorist Resolve được studio đào tạo nội bộ. Một số trường đại học media nước ngoài có lab FilmLight; tại Việt Nam, cơ hội chủ yếu qua studio post lớn. Portfolio Resolve grade tốt là «vé vào» phỏng vấn junior.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Portfolio &amp; định hướng nghề colorist</strong>
+        <p>Tổng hợp 3–5 piece: short film hoặc music video bạn grade (Resolve được), before/after reel, ghi rõ camera và workflow. Đăng Vimeo/Behance — colorist thường được tuyển qua reel hơn bằng cấp. Định hướng dài hạn: junior colorist → assistant tại facility → Baselight operator; song song theo dõi ngành HDR, ACES và AI-assisted grading đang thay đổi workflow.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

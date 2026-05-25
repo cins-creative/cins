@@ -5,6 +5,11 @@ import type { LinhVucSidebarGroup } from "@/lib/career/groupLinhVuc";
 import { railGroupThemeClass } from "@/lib/career/hubRailTheme";
 import type { LinhVucRow } from "@/lib/career/types";
 import type { NganhSidebarGroup } from "@/lib/nganh/types";
+import {
+  NGANH_HOC_HUB_PATH,
+  NGHE_NGHIEP_HUB_PATH,
+  nganhHubHref,
+} from "@/lib/cins/hubPaths";
 
 type TabKey = "nghe" | "nganh-hoc";
 
@@ -27,6 +32,7 @@ function ChevronDown() {
 
 type Props = {
   tab: TabKey;
+  hubBase?: string;
   sidebarGroups: LinhVucSidebarGroup[];
   activeSlug: string;
   nganhSidebarGroups?: NganhSidebarGroup[];
@@ -35,23 +41,25 @@ type Props = {
 
 export function CareerHubRail({
   tab,
+  hubBase = "/nghe-nghiep",
   sidebarGroups,
   activeSlug,
   nganhSidebarGroups = [],
   activeNhomId = "",
 }: Props) {
-  const base = "/nghe-nghiep";
+  const careerBase = NGHE_NGHIEP_HUB_PATH;
+  const nganhBase = NGANH_HOC_HUB_PATH;
   const isNganh = tab === "nganh-hoc";
 
   if (isNganh) {
     return (
       <aside className="hn-rail" aria-label="Danh mục nhóm ngành">
         <div className="hn-rail-tab" role="tablist">
-          <Link href={base} role="tab" aria-selected={false}>
+          <Link href={careerBase} role="tab" aria-selected={false}>
             Nghề nghiệp
           </Link>
           <Link
-            href={`${base}?tab=nganh-hoc`}
+            href={nganhBase}
             className="is-on"
             role="tab"
             aria-selected
@@ -64,7 +72,7 @@ export function CareerHubRail({
             <ul className="hn-rail-sub hn-rail-sub--flat">
               <li>
                 <Link
-                  href={`${base}?tab=nganh-hoc`}
+                  href={nganhHubHref()}
                   className={!activeNhomId ? "is-on" : undefined}
                 >
                   Tất cả ngành
@@ -115,14 +123,14 @@ export function CareerHubRail({
     <aside className="hn-rail" aria-label="Danh mục lĩnh vực">
       <div className="hn-rail-tab" role="tablist">
         <Link
-          href={base}
+          href={careerBase}
           className={tab === "nghe" ? "is-on" : undefined}
           role="tab"
           aria-selected={tab === "nghe"}
         >
           Nghề nghiệp
         </Link>
-        <Link href={`${base}?tab=nganh-hoc`} role="tab" aria-selected={false}>
+        <Link href={nganhBase} role="tab" aria-selected={false}>
           Ngành học
         </Link>
       </div>
@@ -132,7 +140,14 @@ export function CareerHubRail({
           <li>
             <ul className="hn-rail-sub hn-rail-sub--flat">
               {flat.flatMap((g) => g.links).map((lv) => (
-                <RailLink key={lv.id} lv={lv} base={base} tab={tab} activeSlug={activeSlug} />
+                <RailLink
+                  key={lv.id}
+                  lv={lv}
+                  careerBase={careerBase}
+                  nganhBase={nganhBase}
+                  tab={tab}
+                  activeSlug={activeSlug}
+                />
               ))}
             </ul>
           </li>
@@ -160,7 +175,8 @@ export function CareerHubRail({
                     <RailLink
                       key={lv.id}
                       lv={lv}
-                      base={base}
+                      careerBase={careerBase}
+                      nganhBase={nganhBase}
                       tab={tab}
                       activeSlug={activeSlug}
                     />
@@ -177,12 +193,14 @@ export function CareerHubRail({
 
 function RailLink({
   lv,
-  base,
+  careerBase,
+  nganhBase,
   tab,
   activeSlug,
 }: {
   lv: LinhVucRow;
-  base: string;
+  careerBase: string;
+  nganhBase: string;
   tab: TabKey;
   activeSlug: string;
 }) {
@@ -192,8 +210,8 @@ function RailLink({
   const label = lv.ten_vi ?? lv.ten ?? lv.ten_en ?? slug;
   const href =
     tab === "nganh-hoc"
-      ? `${base}?tab=nganh-hoc`
-      : `${base}?linh_vuc=${encodeURIComponent(slug)}`;
+      ? nganhBase
+      : `${careerBase}?linh_vuc=${encodeURIComponent(slug)}`;
 
   return (
     <li>

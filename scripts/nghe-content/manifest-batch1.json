@@ -1,0 +1,47 @@
+[
+  {
+    "id": "68f2024d-7604-403a-942f-6ca40c326e70",
+    "slug": "nghe-phim-1st-assistant-camera-1st-ac",
+    "tieu_de_viet": "1st Assistant Camera (1st AC)",
+    "tom_tat": "1st AC là người chịu trách nhiệm lấy nét chính xác cho ống kính trong từng cảnh quay — vị trí đòi hỏi kỹ năng kỹ thuật, phản xạ nhanh và phối hợp chặt chẽ với DP.",
+    "meta_title": "1st Assistant Camera (1st AC) là gì? Công việc, kỹ năng và lộ trình vào nghề | CINS",
+    "meta_description": "1st Assistant Camera (1st AC) là người focus puller giữ nét cho từng khung hình. Tìm hiểu công việc, kỹ năng và lộ trình trở thành 1st AC.",
+    "nhom_slugs": ["nghe-phim-san-xuat", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "194cf7da-7dc4-4201-9f37-4f35cc6ccfd0",
+    "slug": "nghe-hoat-hinh-2d-animator",
+    "tieu_de_viet": "2D Animator (Họa sĩ hoạt hình 2D)",
+    "tom_tat": "2D Animator tạo chuyển động cho nhân vật và vật thể trong không gian 2 chiều — vẽ tay từng khung hoặc dùng phần mềm như Toon Boom, TVPaint, Adobe Animate.",
+    "meta_title": "2D Animator là gì? Công việc, kỹ năng và lộ trình vào nghề hoạt hình 2D | CINS",
+    "meta_description": "2D Animator vẽ và tạo chuyển động cho nhân vật trong phim hoạt hình 2D. Tìm hiểu công việc, kỹ năng cần có và lộ trình vào nghề.",
+    "nhom_slugs": ["nghe-hoat-hinh-san-xuat-2d", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "f5552ece-2c15-43d2-977a-151c8abb909d",
+    "slug": "nghe-3d-3d-animator",
+    "tieu_de_viet": "3D Animator (Họa sĩ hoạt hình 3D)",
+    "tom_tat": "3D Animator dùng phần mềm Maya, Blender, MotionBuilder để tạo chuyển động cho nhân vật và vật thể 3D — phục vụ phim, game, quảng cáo và VFX.",
+    "meta_title": "3D Animator là gì? Công việc, kỹ năng và lộ trình vào nghề hoạt hình 3D | CINS",
+    "meta_description": "3D Animator tạo chuyển động cho nhân vật 3D bằng Maya, Blender. Khám phá công việc, kỹ năng và lộ trình trở thành 3D Animator.",
+    "nhom_slugs": ["nghe-3d-modeling-sculpting", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "7f6a34df-99d0-4b0d-9cc0-c2a02391e4f6",
+    "slug": "nghe-hoat-hinh-3d-animator",
+    "tieu_de_viet": "3D Animator phim hoạt hình",
+    "tom_tat": "3D Animator trong phim hoạt hình chịu trách nhiệm diễn xuất nhân vật thông qua chuyển động — biến rig thành nhân vật có cảm xúc, tính cách và câu chuyện.",
+    "meta_title": "3D Animator phim hoạt hình là gì? Công việc, kỹ năng và lộ trình | CINS",
+    "meta_description": "3D Animator trong phim hoạt hình diễn xuất nhân vật bằng chuyển động — sử dụng Maya, Blender. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-hoat-hinh-san-xuat-3d", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "fd682f2d-df09-4ee4-a38d-041484273d2e",
+    "slug": "nghe-3d-3d-art-director",
+    "tieu_de_viet": "3D Art Director (Giám đốc mỹ thuật 3D)",
+    "tom_tat": "3D Art Director định hướng phong cách hình ảnh tổng thể của một dự án 3D — dẫn dắt đội ngũ artist để mọi cảnh, nhân vật và prop nhất quán với tầm nhìn nghệ thuật.",
+    "meta_title": "3D Art Director là gì? Công việc, kỹ năng và lộ trình vào nghề | CINS",
+    "meta_description": "3D Art Director định hướng phong cách và dẫn dắt đội ngũ artist cho dự án 3D. Khám phá công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-3d-quan-ly-san-xuat", "nn-my-thuat-thiet-ke"]
+  }
+]

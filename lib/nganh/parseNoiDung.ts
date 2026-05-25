@@ -1,3 +1,5 @@
+import { extractNganhSection, resolveNganhIntroHtml } from "@/lib/nganh/noi-dung-sections";
+
 export type NganhCompareItem = {
   title: string;
   maNganh: string | null;
@@ -48,15 +50,6 @@ export function heroTitlePartsVi(title: string): {
   };
 }
 
-function extractSection(html: string, className: string): string | null {
-  const re = new RegExp(
-    `<section\\s+class=["']${className}["'][^>]*>([\\s\\S]*?)</section>`,
-    "i",
-  );
-  const m = html.match(re);
-  return m?.[1]?.trim() ?? null;
-}
-
 function stripTags(html: string): string {
   return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 }
@@ -100,11 +93,10 @@ export function parseNganhNoiDung(
     return { introHtml: null, compareItems: [] };
   }
 
-  const introInner = extractSection(html, "sec-intro");
-  const compareInner = extractSection(html, "sec-compare");
+  const compareInner = extractNganhSection(html, "sec-compare");
 
   return {
-    introHtml: introInner,
+    introHtml: resolveNganhIntroHtml(html),
     compareItems: compareInner ? parseCompareItems(compareInner) : [],
   };
 }

@@ -266,8 +266,8 @@
 }
 
 .hn-rail-group.g-design .hn-rail-ico {
-  background: var(--cins-blue-soft);
-  color: var(--cins-blue-dark);
+  background: #e8f2fc;
+  color: #1565b8;
 }
 
 .hn-rail-group.g-film .hn-rail-ico,
@@ -281,7 +281,11 @@
   color: #0a6b4a;
 }
 
-.hn-rail-group.g-art .hn-rail-ico,
+.hn-rail-group.g-art .hn-rail-ico {
+  background: linear-gradient(145deg, #fce8f0 0%, #f3e8ff 100%);
+  color: #9d3a7a;
+}
+
 .hn-rail-group.g-media .hn-rail-ico {
   background: var(--cins-yellow-soft);
   color: #6b5400;
@@ -983,7 +987,31 @@
   border-radius: var(--radius-2xl);
 }
 
-/* Ngành học hub cards */
+/* Ngành học hub cards — thẻ trắng toàn bộ (tách khỏi nền xám trang) */
+.career-hub--nganh .hn-nganh-card {
+  background: var(--bg-surface, #fff);
+  overflow: hidden;
+}
+
+.career-hub--nganh .hn-nganh-card .hn-role-body,
+.career-hub--nganh .hn-nganh-card .hn-role-thumb {
+  background: var(--bg-surface, #fff) !important;
+}
+
+/* Bỏ nền màu / vòng tròn hub nghề trên thẻ ngành */
+.career-hub--nganh .hn-nganh-card .hn-role-thumb::before {
+  display: none;
+  content: none;
+}
+
+.career-hub--nganh .hn-nganh-card[data-dept="strategy"] .hn-role-thumb,
+.career-hub--nganh .hn-nganh-card[data-dept="production"] .hn-role-thumb,
+.career-hub--nganh .hn-nganh-card[data-dept="creative"] .hn-role-thumb,
+.career-hub--nganh .hn-nganh-card[data-dept="digital"] .hn-role-thumb,
+.career-hub--nganh .hn-nganh-card[data-dept="research"] .hn-role-thumb {
+  background: var(--bg-surface, #fff) !important;
+}
+
 .hn-nganh-card .hn-role-body {
   padding-top: 18px;
 }
@@ -1029,22 +1057,24 @@
 
 .hn-nganh-ma-badge {
   display: block;
-  font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 10.5px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  color: var(--ink-muted, rgba(0, 0, 0, 0.4));
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: normal;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.45));
   margin-top: 6px;
+  line-height: 1.4;
 }
 
 .hn-nganh-khoi {
   display: block;
-  margin-top: 6px;
-  font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 10.5px;
-  font-weight: 600;
-  color: var(--ink-muted, rgba(0, 0, 0, 0.4));
-  letter-spacing: 0.02em;
+  margin-top: 4px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.45));
+  letter-spacing: normal;
+  line-height: 1.4;
 }
 
 .career-hub--nganh .hn-ad-hero-card--nganh {
@@ -1053,6 +1083,251 @@
     var(--cins-violet-soft, #ecddfe),
     var(--cins-blue-soft, #e7f0fb)
   );
+}
+
+/* Hub ngành — chế độ quản trị */
+.career-hub--can-edit .hn-hub-admin-toolbar-host {
+  position: sticky;
+  top: var(--site-nav-height, 64px);
+  z-index: 55;
+  background: var(--bg-page, #f4f5f8);
+}
+
+.career-hub--can-edit .hn-hub-admin-toolbar-host .tdh-admin-toolbar {
+  min-height: 38px;
+  padding: 4px 14px;
+  box-shadow: 0 1px 0 var(--border2, rgba(0, 0, 0, 0.08));
+}
+
+/* Ngành có ảnh — ô thumbnail trắng, khớp thẻ */
+.career-hub--nganh .hn-nganh-card .hn-role-thumb--has-img {
+  display: block;
+  background: var(--bg-surface, #fff) !important;
+}
+
+.hn-nganh-card .hn-role-thumb--has-img {
+  display: block;
+}
+
+.hn-role-thumb--has-img .hn-nganh-thumb-label,
+.hn-role-thumb--has-img .career-hub-card-ph-hint {
+  display: none;
+}
+
+.hn-role-thumb--has-img.career-hub-card-ph,
+.hn-role-thumb--has-img .career-hub-card-ph {
+  display: none;
+}
+
+.hn-role-thumb--editable {
+  cursor: pointer;
+  position: relative;
+}
+
+.career-hub--can-edit .hn-role-thumb--editable.hn-role-thumb--has-img {
+  cursor: pointer;
+}
+
+.career-hub--nganh .hn-nganh-card .hn-role-thumb--has-img .hn-nganh-thumb-img,
+.career-hub--nganh .hn-nganh-card .hn-role-thumb--has-img .career-hub-card-img,
+.career-hub--nganh .hn-nganh-card .hn-role-thumb--has-img img.career-hub-card-img {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 0;
+  object-fit: cover;
+  object-position: center;
+  border-radius: 0;
+  background: transparent;
+}
+
+.hn-role-thumb--editable:focus-visible {
+  outline: 2px solid var(--cins-blue, #1f74c9);
+  outline-offset: 2px;
+}
+
+.hn-hub-thumb-actions {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  padding: 6px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.55));
+  pointer-events: none;
+}
+
+.hn-hub-thumb-actions--overlay {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+/* Chế độ quản trị: luôn thấy «Đổi ảnh» khi đã có thumbnail */
+.career-hub--can-edit .hn-role-thumb--editable.hn-role-thumb--has-img .hn-hub-thumb-actions--overlay {
+  opacity: 1;
+}
+
+.hn-role-thumb--editable:hover .hn-hub-thumb-actions--overlay,
+.hn-role-thumb--editable:focus-within .hn-hub-thumb-actions--overlay {
+  opacity: 1;
+}
+
+.hn-hub-thumb-pick-btn {
+  pointer-events: auto;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: none;
+  background: #fff;
+  color: var(--ink-display, #111);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.hn-hub-thumb-pick-btn:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.hn-hub-thumb-err {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  bottom: 36px;
+  margin: 0;
+  padding: 4px 6px;
+  font-size: 10px;
+  line-height: 1.3;
+  color: #fff;
+  background: rgba(180, 35, 24, 0.92);
+  border-radius: 4px;
+  z-index: 2;
+}
+
+.hn-nganh-card--editing {
+  cursor: default;
+  box-shadow: inset 0 0 0 2px rgba(31, 116, 201, 0.35);
+}
+
+.hn-nganh-card-edit-wrap {
+  position: relative;
+}
+
+.career-hub--nganh .hn-hub-card-remove {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(200, 50, 50, 0.35);
+  background: rgba(255, 255, 255, 0.95);
+  color: #b42318;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.career-hub--nganh .hn-hub-card-remove:hover:not(:disabled) {
+  background: #fef3f2;
+  border-color: #b42318;
+}
+
+.career-hub--nganh .hn-hub-card-remove:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.hn-hub-card-edit-link {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--cins-blue, #1f74c9);
+}
+
+.hn-hub-add-wrap {
+  flex: 0 0 auto;
+}
+
+.hn-hub-add-trigger {
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px dashed var(--cins-blue, #1f74c9);
+  background: rgba(31, 116, 201, 0.06);
+  color: var(--cins-blue, #1f74c9);
+  cursor: pointer;
+}
+
+.hn-hub-add-panel {
+  margin-top: 12px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border2, rgba(0, 0, 0, 0.1));
+  background: #fff;
+  width: min(100%, 360px);
+}
+
+.hn-hub-add-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.hn-hub-add-field input {
+  font-weight: 400;
+  padding: 8px 10px;
+  border: 1px solid var(--border2, rgba(0, 0, 0, 0.12));
+  border-radius: 6px;
+}
+
+.hn-hub-add-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.hn-hub-add-err {
+  color: #b42318;
+  font-size: 12px;
+  margin: 0 0 8px;
+}
+
+.hn-hub-add-note {
+  font-size: 11px;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.45));
+  margin: 0;
+}
+
+.nct-toast--hub {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 80;
+  padding: 12px 18px;
+  border-radius: 8px;
+  background: #111;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
 
 @media (max-width: 1100px) {

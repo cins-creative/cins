@@ -1,0 +1,213 @@
+<section class="arc-intro">
+  <p>Bạn xem cảnh phim có xe CG lao qua phố thật, hoặc quảng cáo đặt chai nước 3D lên bàn diễn viên thật đang cầm — phía sau gần như luôn có bước <strong>camera tracking</strong> (matchmove): tái tạo chuyển động máy quay thật trong không gian 3D để CG «dính» khít footage. <strong>PFTrack</strong> của The Pixel Farm là một trong những công cụ chuyên sâu cho công việc đó, từ track 2D đến solve camera 3D và xuất sang Maya, Nuke, Blender.</p>
+  <p>PFTrack không phải phần mềm dựng hình hay cắt video — nó phân tích pixel trên từng frame video, suy ra quỹ đạo camera, lens distortion và môi trường 3D tham chiếu. Với học sinh THPT hướng tới VFX và compositing, hiểu PFTrack giúp bạn thấy cách plate quay thật trở thành «sân chơi 3D» cho CG, thay mặt và set extension.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>PFTrack là gì?</h2>
+  <p>PFTrack do <strong>The Pixel Farm</strong> (Anh) phát triển — phần mềm <strong>camera tracking và matchmoving 3D</strong> chạy trên Windows và macOS. Ban đầu nổi tiếng trong VFX indie và studio quảng cáo; ngày nay vẫn được matchmove artist dùng nhờ workflow node linh hoạt, xử lý lens phức tạp và giá license cạnh tranh hơn một số công cụ enterprise.</p>
+  <p>Khác với compositor thuần (After Effects, Nuke) nơi bạn ghép layer 2D, PFTrack tái tạo <strong>camera 3D và point cloud</strong> khớp với video gốc — nền tảng để layout artist đặt model CG, lighter match ánh sáng và compositor reproject texture đúng góc nhìn. Giao diện có tree node, viewport 3D, viewer 2D và bảng solve — ban đầu trông kỹ thuật, nhưng mỗi node phục vụ một bước trong pipeline matchmove chuyên nghiệp.</p>
+  <ul class="arc-list">
+    <li><strong>Auto &amp; manual tracking</strong> — tạo track point 2D, user track và supervised solve</li>
+    <li><strong>Lens distortion</strong> — model và hiệu chỉnh méo ống kính trước khi solve camera</li>
+    <li><strong>Geometry &amp; photogrammetry</strong> — dựng mesh tham chiếu từ nhiều góc quay (PFDepth liên quan)</li>
+    <li><strong>Export pipeline</strong> — xuất camera, locators, mesh sang Maya, Nuke, Blender, Houdini</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"PFTrack camera tracking interface node tree viewport screenshot 2024"</span>
+    </div>
+    <p class="arc-image-caption">Giao diện PFTrack — node tree, track point trên footage và viewport 3D</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>PFTrack thuộc giai đoạn <strong>VFX prep / matchmove</strong>: nhận plate từ dựng phim (sau editorial, thường là ProRes hoặc EXR sequence), track feature trên footage, solve camera và xuất file sang Maya/Houdini để layout CG, sau đó Nuke/Flame để composite. Matchmove artist làm việc song song với layout và thường bàn giao sớm — delay ở bước này kéo theo toàn pipeline VFX. PFTrack làm việc cùng 3DEqualizer, SynthEyes, Mocha Pro và Blender tracking tùy quy mô studio.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Feature tracking &amp; camera solve</h3>
+    <p>Quy trình cốt lõi của PFTrack: import image sequence → tạo <strong>auto track</strong> hoặc đặt user track trên vùng có texture → nhập focal length, sensor size (từ metadata hoặc bracket set) → chạy <strong>camera solve</strong> → đọc reprojection error. Số liệu error quyết định CG có «trôi» khỏi cảnh thật hay không — matchmove artist thường nhắm dưới 0.5 pixel trên shot quan trọng.</p>
+    <p>Đối với học sinh THPT mới làm quen, bài tập thực tế: quay video 10 giây đi bộ cầm điện thoại (tránh motion blur), import PFTrack, auto track và solve — quan sát camera 3D tái hiện chuyển động tay bạn. Shot đơn giản, nhiều góc cạnh (góc tường, ô cửa) dễ track hơn cảnh trơn một màu.</p>
+    <ul class="arc-list">
+      <li><strong>User tracks</strong> — đặt tay track point trên chi tiết ổn định khi auto fail</li>
+      <li><strong>Survey constraints</strong> — nhập đo đạc set thật để scale scene chính xác</li>
+      <li><strong>Reprojection error graph</strong> — phát hiện track lỗi trước khi export sang DCC</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"PFTrack auto track feature points camera solve reprojection error"</span>
+        </div>
+        <p class="arc-image-caption">Camera solve — track point trên footage và kiểm tra reprojection error</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"PFTrack 3D viewport solved camera point cloud matchmove"</span>
+        </div>
+        <p class="arc-image-caption">Viewport 3D — camera solved và point cloud tham chiếu</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Lens distortion &amp; nodal pan</h3>
+    <p>Nhiều shot «trôi» CG không phải vì track sai mà vì <strong>lens distortion</strong> chưa được model. PFTrack có node hiệu chỉnh radial/tangential distortion — bạn grid calibrate hoặc refine từ track trước khi solve. Với handheld và zoom lens, <strong>nodal solve</strong> và focal length variable giúp camera 3D khớp từng frame thay vì giả định lens cố định.</p>
+    <p>Trong quảng cáo và phim, metadata máy quay (ARRI, RED, Sony) thường đi kèm plate — PFTrack đọc và giảm thời gian bracket thủ công. Học sinh THPT quay bằng điện thoại cần nhập focal length ước lượng và chấp nhận solve kém chính xác hơn professional plate — vẫn đủ học workflow cơ bản.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"PFTrack lens distortion calibration grid undistort workflow"</span>
+      </div>
+      <p class="arc-image-caption">Lens distortion — grid calibrate và undistort footage trước solve</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Geometry, object track &amp; export DCC</h3>
+    <p>PFTrack không chỉ solve camera — còn hỗ trợ <strong>object tracking</strong> (track vật thể di chuyển trong scene), tạo mesh tham chiếu và xuất <strong>locators, point cloud, camera FBX/Alembic</strong> sang Maya, Blender, Nuke. Compositor dùng camera PFTrack trong Nuke (CameraTracker import) để gắn Card3D, Project3D và CG pass khớp perspective.</p>
+    <p>Luồng mini VFX: quay plate → PFTrack solve → export camera sang Blender → layout CG → composite. Hiểu quy trình này là nền tảng matchmove trước mọi shot CG trên footage thật.</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"PFTrack export Maya Nuke matchmove VFX pipeline workflow diagram"</span>
+      </div>
+      <p class="arc-image-caption">Pipeline VFX — PFTrack solve, layout Maya/Blender, composite Nuke</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai nhóm công cụ hay được đặt cạnh PFTrack nhất là <strong>Mocha Pro / SynthEyes</strong> (planar track + 3D solve chuyên biệt) và <strong>Blender camera tracking</strong> (miễn phí, tích hợp DCC). Cả ba đều có thể tạo camera 3D — khác biệt nằm ở độ sâu tool, giá license và vị trí trong pipeline studio.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">PFTrack vs Mocha / SynthEyes</h3>
+    <p><strong>Mocha Pro</strong> (Boris FX) mạnh <strong>planar tracking</strong> và rotoscoping — screen insert, mask nhân vật; 3D solve có nhưng không sâu bằng PFTrack cho matchmove phức tạp. <strong>SynthEyes</strong> là đối thủ trực tiếp — camera 3D giá cạnh tranh, workflow nhanh cho indie VFX.</p>
+    <p>PFTrack nổi bật <strong>node tree</strong>, lens và geometry tích hợp; Mocha đi cùng compositor cho planar; SynthEyes cân bằng giá/tốc độ. Học sinh THPT nên thử planar Mocha trước khi chuyên PFTrack/SynthEyes.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"PFTrack matchmove camera solve professional VFX node workflow"</span>
+        </div>
+        <p class="arc-image-caption">PFTrack — camera solve 3D chuyên sâu và node pipeline</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Mocha Pro planar tracking screen insert Boris FX interface"</span>
+        </div>
+        <p class="arc-image-caption">Mocha Pro — planar track, screen insert và rotoscoping</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>PFTrack mạnh hơn:</strong> camera solve 3D full-feature, lens model sâu, geometry/photogrammetry tích hợp, export pipeline VFX trưởng thành.<br>
+      <strong>Mocha mạnh hơn:</strong> planar tracking, rotoscoping, tích hợp After Effects/Nuke, screen replacement nhanh.<br>
+      <strong>SynthEyes mạnh hơn:</strong> giá thấp, học nhanh, cộng đồng indie VFX lớn — đối thủ trực tiếp PFTrack về camera 3D.<br>
+      <strong>Chọn PFTrack khi:</strong> studio cần matchmove phức tạp, lens distortion, object track và workflow node có kiểm soát.<br>
+      <strong>Chọn Mocha khi:</strong> công việc chính là planar/screen insert trong compositing, không cần full 3D solve.<br>
+      <strong>Chọn SynthEyes khi:</strong> ngân sách freelancer, cần camera track 3D nhanh với learning curve thấp hơn PFTrack.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">PFTrack vs Blender camera tracking</h3>
+    <p>Blender có module <strong>Motion Tracking</strong> tích hợp sẵn — miễn phí, all-in-one từ track đến layout CG và render trong cùng phần mềm. PFTrack trả phí license The Pixel Farm nhưng chuyên sâu hơn cho shot khó: lens phức tạp, survey data, object track và export sang Maya/Nuke pipeline studio lớn.</p>
+    <p>Blender có Motion Tracking miễn phí — đủ học THPT và portfolio indie. PFTrack là nâng cấp khi vào studio VFX cần matchmove chuyên nghiệp và export Maya/Nuke chuẩn ngành.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"PFTrack professional matchmove lens solve export Maya pipeline"</span>
+        </div>
+        <p class="arc-image-caption">PFTrack — matchmove chuyên nghiệp và export pipeline studio</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Blender motion tracking camera solve viewport marker workflow"</span>
+        </div>
+        <p class="arc-image-caption">Blender — camera tracking miễn phí, học THPT và indie VFX</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>PFTrack mạnh hơn:</strong> tool matchmove chuyên dụng, lens/survey/object track sâu, workflow node kiểm soát shot phức tạp, export chuẩn Maya/Nuke/Houdini.<br>
+      <strong>Blender mạnh hơn:</strong> chi phí bằng không, track + model + render một nơi, cộng đồng tutorial khổng lồ cho học sinh THPT.<br>
+      <strong>Chọn PFTrack khi:</strong> làm matchmove artist trong studio VFX, xử lý plate professional và pipeline đa DCC.<br>
+      <strong>Chọn Blender khi:</strong> học tập, indie short film, hoặc generalist cần track cơ bản không tốn license.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học PFTrack như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Nắm khái niệm matchmove và plate</strong>
+        <p>Trước PFTrack, hãy hiểu: plate là footage quay thật; matchmove tái tạo camera 3D khớp plate; CG phải «dính» pixel khi composite. Xem breakdown VFX (YouTube, ArtStation) và thử Blender Motion Tracking miễn phí — quen marker, solve, error graph. Mục tiêu là không còn lẫn lộn giữa «track 2D trong AE» và «solve camera 3D» trước khi mở PFTrack.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Quay plate phù hợp học tập</strong>
+        <p>Tự quay sequence 5–15 giây: shutter nhanh (giảm motion blur), nhiều texture (góc phòng, sách, cửa), tránh pan quá nhanh. Ghi chú focal length nếu điện thoại/máy ảnh cho phép. Import PFTrack, tạo auto track và chạy solve đơn giản — quan sát camera 3D trong viewport. Shot đầu tiên không cần hoàn hảo; cần hiểu pipeline node cơ bản.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>User track, lens và reprojection error</strong>
+        <p>Học xóa track lỗi, thêm user track trên chi tiết ổn định, bật lens distortion node khi footage có méo góc rộng. Đọc reprojection error graph — mục tiêu giảm error trước export. Thường 2–4 tuần luyện shot đơn giản sẽ quen «cảm giác» track point nào tin được trên footage handheld.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Export sang Blender hoặc Maya</strong>
+        <p>Xuất camera và point cloud FBX/Alembic, import Blender/Maya, đặt cube hoặc model đơn giản khớp sàn/tường trong plate. Render CG pass và composite trong Fusion/Nuke hoặc Blender Compositor — một shot «xe CG trên bàn» hoặc «robot nhỏ trên tay» đủ làm portfolio cơ bản. Giai đoạn này nối PFTrack với layout và lighting thực tế.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Shot khó: zoom, object track, survey</strong>
+        <p>Thử plate có zoom lens, object di chuyển (hộp trên bàn) hoặc nhập kích thước survey (chiều rộng cửa 90 cm) để scale scene. Học supervised solve và object track node — kỹ năng matchmove artist junior tại studio VFX. Tham khảo tutorial The Pixel Farm official và forum matchmove.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Portfolio và định hướng nghề</strong>
+        <p>Tổng hợp 2–4 shot: breakdown track point, error graph, CG composite trước/sau. Ghi rõ PFTrack, Maya/Blender, Nuke/Fusion. Tìm hiểu vị trí Matchmove Artist, Junior Compositor, VFX Generalist tại studio Việt Nam (TP.HCM, Hà Nội) và quốc tế — nhiều nơi tuyển theo shot test và reel hơn bằng cấp. Bổ sung Mocha planar nếu hướng compositing rộng hơn thuần matchmove.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

@@ -1,0 +1,209 @@
+<section class="arc-intro">
+  <p>Bạn chơi game JRPG 2D pixel — đội ba nhân vật đi trên bản đồ tile, vào trận turn-based, chọn lệnh Tấn công/Phép thuật/Vật phẩm rồi xem sprite đối đầu — rất nhiều tựa indie Việt Nam và quốc tế được làm bằng <strong>RPG Maker</strong>, engine chuyên cho game nhập vai 2D phong cách Nhật Bản, không cần lập trình sâu để có prototype chơi được trong vài ngày. Cùng công cụ này cũng xuất hiện trong các cuộc thi game học sinh, club phát triển game trường THPT và dự án tốt nghiệp ngành multimedia khi team muốn tập trung vào cốt truyện và level design thay vì xây engine từ đầu.</p>
+  <p>RPG Maker không phải engine game duy nhất, nhưng nó gắn chặt với thể loại JRPG 2D và cộng đồng indie — nhờ map editor quen thuộc, hệ thống event/visual scripting dễ học, thư viện asset mặc định và khả năng mở rộng bằng JavaScript (MV/MZ) hoặc Ruby (VX Ace) mà hàng nghìn nhà phát triển solo đã dùng để xuất bản game thương mại trên Steam.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>RPG Maker là gì?</h2>
+  <p>RPG Maker do <strong>Gotcha Gotcha Games</strong> (trước đây Degica/Kadokawa) phát triển — <strong>engine game 2D JRPG</strong> chạy trên Windows (và macOS với một số phiên bản). Phiên bản hiện đại phổ biến là <strong>RPG Maker MZ</strong> (JavaScript, export đa nền tảng); các bản cũ MV, VX Ace vẫn có cộng đồng lớn. Engine tập trung map tile-based, event system và battle system turn-based có sẵn — bạn không cần viết collision hay menu inventory từ zero.</p>
+  <p>Khác với Unity hay Godot (general-purpose, code trung tâm), RPG Maker là không gian làm việc quanh <strong>map, event và database</strong>: vẽ bản đồ bằng tileset, đặt NPC và chest bằng event, cấu hình skill/enemy trong database — giao diện có map editor, event editor và playtest một nút. Ban đầu trông «game nhật» mặc định, nhưng custom tileset, plugin và script giúp tạo visual và gameplay riêng khi team đầu tư polish.</p>
+  <ul class="arc-list">
+    <li><strong>Map &amp; tileset editor</strong> — thiết kế overworld, dungeon, town bằng lớp tile và collision</li>
+    <li><strong>Event system</strong> — dialogue, cutscene, quest trigger, cửa, battle encounter bằng lệnh event</li>
+    <li><strong>Database</strong> — nhân vật, class, skill, item, enemy, troop cấu hình tập trung</li>
+    <li><strong>Plugin &amp; script</strong> — mở rộng battle UI, platform element, online feature (tùy phiên bản)</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"RPG Maker MZ map editor tileset event interface screenshot"</span>
+    </div>
+    <p class="arc-image-caption">Giao diện RPG Maker MZ — map editor, tileset palette và event layer</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>RPG Maker thường đứng ở giai đoạn <strong>prototype và sản xuất JRPG 2D indie</strong>: writer/designer dựng map và event cốt truyện, composer làm BGM, artist vẽ tileset/sprite thay asset mặc định — playtest nhanh rồi export Windows/macOS/mobile (tùy bản). Với dự án lớn hơn, team dùng plugin community (Yanfly, VisuStella…) để nâng battle và UI; với giáo dục, RPG Maker dạy game design loop và branching narrative mà chưa cần C#. Thường làm việc cùng Aseprite/Piskel (sprite), Audacity/DAW (BGM/SFX) và itch.io/Steam khi phát hành.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Map editor, tileset và collision</h3>
+    <p>Thế mạnh cốt lõi của RPG Maker là <strong>thiết kế bản đồ nhanh bằng tile</strong>. Import hoặc dùng tileset mặc định (cỏ, nước, tường dungeon), vẽ lớp ground/detail, đặt region và encounter zone. Collision và passability tự động theo tile — nhân vật party di chuyển bốn hướng hoặc eight-direction tùy plugin. Map có thể liên kết (door sang map khác) tạo thế giới game nhiều khu vực.</p>
+    <p>Đối với học sinh THPT mới làm quen, bài tập thực tế hay gặp: dựng làng starter với 3 NPC, một shop và một dungeon ngắn — vừa luyện level design vừa làm portfolio game 2D có thể cho người khác chơi thử trên itch.io.</p>
+    <ul class="arc-list">
+      <li><strong>Tile layers</strong> — ground, detail, overlay và star tile (trên đầu nhân vật)</li>
+      <li><strong>Map transfer</strong> — cổng, cửa và fade chuyển map mượt mà</li>
+      <li><strong>Parallax &amp; lighting</strong> — plugin hỗ trợ chiều sâu và atmosphere (tùy setup)</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"RPG Maker map editor town tileset 2D JRPG level design"</span>
+        </div>
+        <p class="arc-image-caption">Map editor — thiết kế town và dungeon bằng tileset</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"RPG Maker custom tileset sprite character sheet 2D"</span>
+        </div>
+        <p class="arc-image-caption">Custom asset — tileset và character sprite thay mặc định</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Event system, dialogue và cutscene</h3>
+    <p>Sau khi dựng map, bạn tạo <strong>event</strong> trên map: NPC nói chuyện, rương chứa item, switch mở cửa boss. Event editor dùng lệnh có sẵn — Show Text, Conditional Branch, Control Variables — tạo quest đơn giản và branching dialogue không cần code. Parallel process event chạy timer, weather hoặc hệ thống day-night khi cài plugin phù hợp.</p>
+    <p>Đây là kỹ năng «game writer + designer» thực tế — intern indie hay học sinh thi game thường dành phần lớn thời gian polish event và pacing cốt truyện hơn debug engine, vì RPG Maker đã xử lý phần kỹ thuật nền.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"RPG Maker event editor dialogue conditional branch commands"</span>
+      </div>
+      <p class="arc-image-caption">Event editor — dialogue, điều kiện và cutscene bằng lệnh event</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Battle system, database &amp; xuất bản</h3>
+    <p>RPG Maker có sẵn <strong>turn-based battle</strong>: cấu hình enemy, troop formation, skill và item effect trong database. Front-view hoặc side-view battle tùy asset và plugin. Export project sang Windows/macOS (và Android/iOS với workflow bổ sung) — đủ cho demo học đường, game jam và commercial release nhỏ trên Steam khi thay asset và dùng plugin nâng cao.</p>
+    <p>Luồng làm việc điển hình: outline cốt truyện → map + event → database combat balance → custom art/audio → playtest → export build → feedback iteration. Hiểu quy trình này giúp bạn không chỉ «biết kéo tile» mà nắm vòng lặp phát triển game JRPG professional ở quy mô indie.</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"RPG Maker MZ turn-based battle system database export Steam"</span>
+      </div>
+      <p class="arc-image-caption">Battle &amp; publish — database kẻ thù/kỹ năng và export game hoàn chỉnh</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai engine hay được đặt cạnh RPG Maker nhất là <strong>Construct 3</strong> (no-code 2D đa thể loại, chạy browser) và <strong>Godot</strong> (engine mã nguồn mở, GDScript/C#, 2D/3D). Không có câu trả lời «đúng duy nhất» — tùy bạn làm JRPG cốt truyện, platformer/action 2D hay muốn lộ trình lập trình game chuyên nghiệp.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">RPG Maker vs Construct 3</h3>
+    <p><strong>Construct 3</strong> mạnh cho game 2D đa dạng — platformer, puzzle, shooter — với event sheet trực quan và export HTML5 native, không cần cài game để chơi thử. <strong>RPG Maker</strong> chuyên sâu JRPG: map tile, party, turn-based battle và database RPG có sẵn — làm JRPG 20 giờ trong Construct phải tự xây hầu hết hệ thống; làm platformer trong RPG Maker lại «ngược với bản chất» của engine.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"RPG Maker JRPG map battle turn-based 2D game screenshot"</span>
+        </div>
+        <p class="arc-image-caption">RPG Maker — JRPG map, dialogue và battle turn-based tích hợp</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Construct 3 2D platformer event sheet browser game"</span>
+        </div>
+        <p class="arc-image-caption">Construct 3 — game 2D đa thể loại, event sheet và export web</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>RPG Maker mạnh hơn:</strong> pipeline JRPG hoàn chỉnh (map, event, battle, database), tốc độ làm game nhập vai cốt truyện, cộng đồng asset/plugin JRPG.<br>
+      <strong>Construct 3 mạnh hơn:</strong> đa thể loại 2D, physics/platform behavior, publish HTML5/mobile casual, phù hợp STEM và game jam không chỉ RPG.<br>
+      <strong>Chọn RPG Maker khi:</strong> mục tiêu game JRPG 2D, visual novel kết hợp exploration, hoặc học game design qua cốt truyện và quest.<br>
+      <strong>Chọn Construct 3 khi:</strong> cần platformer, arcade, puzzle physics hoặc demo chạy trên browser ngay không cài đặt.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">RPG Maker vs Godot</h3>
+    <p><strong>Godot</strong> miễn phí, mã nguồn mở, hỗ trợ 2D và 3D với GDScript/C# — linh hoạt mọi thể loại, phù hợp lộ trình game programmer và studio muốn kiểm soát engine. <strong>RPG Maker</strong> trả phí, giới hạn thể loại JRPG 2D nhưng giảm thời gian xây hệ thống inventory/battle/map — ideal cho solo dev và học sinh THPT muốn «có game chơi được» trước khi học lập trình sâu.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"RPG Maker indie JRPG Steam release pixel art game"</span>
+        </div>
+        <p class="arc-image-caption">RPG Maker — indie JRPG commercial và demo học đường</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Godot Engine 2D game development GDScript scene tree"</span>
+        </div>
+        <p class="arc-image-caption">Godot — engine 2D/3D mã nguồn mở, script và scene system</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>RPG Maker mạnh hơn:</strong> time-to-playable JRPG, event/database RPG sẵn có, không bắt buộc code cho dự án đầu tiên, quen thuộc với fan JRPG.<br>
+      <strong>Godot mạnh hơn:</strong> miễn phí, mọi thể loại 2D/3D, kỹ năng lập trình chuyển sang nghề game dev, không phí license khi commercial scale lớn.<br>
+      <strong>Chọn RPG Maker khi:</strong> tập trung JRPG 2D, cốt truyện và level design, team nhỏ hoặc solo chưa mạnh code.<br>
+      <strong>Chọn Godot khi:</strong> muốn học lập trình game, làm nhiều thể loại, 3D sau này, hoặc build engine skill cho tuyển dụng studio.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học RPG Maker như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Làm quen editor và playtest</strong>
+        <p>Tuần đầu hãy mở project mẫu hoặc template trống: duyệt map editor, database, playtest (F12 hoặc nút Play). Di chuyển nhân vật trên map mặc định, chạm NPC và chest — quan sát event chạy. Mục tiêu là hiểu map/event/database liên kết thế nào trước khi viết cốt truyện dài — nhiều bạn THPT vội vẽ map lớn mà chưa biết set collision và transfer event.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Map design và event cơ bản</strong>
+        <p>Dựng một map town nhỏ: 2 NPC dialogue, 1 rương item, 1 cửa sang map outdoor. Học Show Text, Give Item, Switch ON/OFF mở cửa. Luyện đặt tên switch/variable có nghĩa (ví dụ «quest_intro_done») để project không rối. Thường 1–2 tuần sẽ có demo «đi lang thang + nói chuyện» chơi được.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Database, battle và cân bằng combat</strong>
+        <p>Cấu hình party 3 người, vài enemy và skill trong database; đặt troop encounter trên map dungeon. Playtest battle — chỉnh HP, damage và MP cost để fight không quá dễ/khó. Mục tiêu là hiểu loop JRPG: explore → encounter → reward → progress story bằng variable/switch.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Custom art, audio và thay asset mặc định</strong>
+        <p>Import tileset và character sprite riêng (Aseprite, 32×32 hoặc 48×48 tùy chuẩn); thêm BGM và SE vào thư mục audio. Game commercial cần asset license rõ ràng — học cách dùng itch.io free pack hoặc tự vẽ. Giai đoạn này game bắt đầu có «bản sắc» thay vì nhìn như RPG Maker mặc định.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Plugin, quest chain và demo hoàn chỉnh</strong>
+        <p>Thử 1–2 plugin phổ biến (menu UI, quest log, battle enhancement) từ community — đọc hướng dẫn cài vào thư mục plugins. Hoàn thiện demo 30–60 phút chơi: intro town, dungeon, boss, ending branch đơn giản. Thu feedback bạn bè; sửa pacing event và combat theo playtest — kỹ năng iteration như studio indie thật.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Publish, portfolio và định hướng nghề</strong>
+        <p>Export build Windows, đăng itch.io (miễn phí) kèm screenshot và mô tả ngắn. Portfolio gồm link chơi thử, clip gameplay và ghi rõ vai trò (design, event, art). Tìm hiểu lộ trình: indie solo → học Godot/Unity nếu muốn programmer; hoặc narrative designer/game writer nếu thích cốt truyện. Nhiều game Steam indie bắt đầu từ RPG Maker — điều quan trọng là cốt truyện, polish và marketing hơn engine tag.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

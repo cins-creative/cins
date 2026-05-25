@@ -1,0 +1,209 @@
+<section class="arc-intro">
+  <p>Bạn cài phần mềm trên máy tính cá nhân, gõ prompt «phòng học THPT Việt Nam buổi chiều, ánh nắng qua cửa sổ, phong cách illustration» — vài chục giây sau có ảnh mà không cần trả phí từng lần generate hay phụ thuộc Discord. Đó là trải nghiệm điển hình với <strong>Stable Diffusion</strong>, mô hình AI tạo ảnh mã nguồn mở có thể chạy local hoặc trên cloud.</p>
+  <p>Stable Diffusion không phải một app duy nhất — nó là <strong>họ mô hình diffusion</strong> (SD 1.5, SDXL, SD 3, Flux…) với hàng trăm giao diện như Automatic1111, ComfyUI, Forge và dịch vụ cloud. Với học sinh THPT muốn kiểm soát model, LoRA, ControlNet và không bị giới hạn subscription, Stable Diffusion là cánh cửa vào AI generative «tự host» bên cạnh Midjourney hay DALL-E — mỗi nền tảng có ưu điểm riêng về aesthetic, chi phí và độ sâu kỹ thuật.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>Stable Diffusion là gì?</h2>
+  <p>Stable Diffusion do <strong>Stability AI</strong> cùng cộng đồng phát triển — <strong>mô hình text-to-image (và image-to-image) mã nguồn mở</strong>, có thể tải weights, chạy trên GPU local (Windows/Linux) hoặc qua API cloud. Phiên bản phổ biến gồm SD 1.5 (nhẹ, nhiều LoRA), SDXL (chất lượng cao hơn), và các biến thể cộng đồng (DreamShaper, RealVisXL…) tinh chỉnh cho anime, photorealistic hoặc illustration.</p>
+  <p>Khác với dịch vụ đóng như Midjourney, Stable Diffusion cho phép <strong>tùy chỉnh sâu</strong>: đổi checkpoint, gắn LoRA style, dùng ControlNet (pose, depth, canny edge), inpainting và upscale — đổi lại bạn cần GPU đủ mạnh (thường 6–8 GB VRAM trở lên cho SDXL) và thời gian học workflow phức tạp hơn. Giao diện WebUI (Automatic1111) hoặc node graph (ComfyUI) ban đầu trông kỹ thuật, nhưng cộng đồng tutorial tiếng Việt và tiếng Anh rất lớn.</p>
+  <ul class="arc-list">
+    <li><strong>Text-to-image &amp; img2img</strong> — sinh ảnh từ prompt; biến đổi ảnh có sẵn với strength</li>
+    <li><strong>Checkpoint &amp; LoRA</strong> — đổi model gốc; thêm style/nhân vật nhẹ bằng LoRA adapter</li>
+    <li><strong>ControlNet &amp; IP-Adapter</strong> — điều khiển pose, depth, composition từ ảnh reference</li>
+    <li><strong>Inpainting &amp; upscale</strong> — sửa vùng, phóng to ESRGAN/UltraSharp cho in ấn</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"Stable Diffusion Automatic1111 WebUI interface txt2img screenshot"</span>
+    </div>
+    <p class="arc-image-caption">Giao diện Automatic1111 — prompt, sampling, checkpoint và lưới ảnh kết quả</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>Stable Diffusion đứng ở giai đoạn <strong>ideation, concept art và asset draft</strong> — đặc biệt khi team cần kiểm soát model, batch generate nội bộ hoặc fine-tune LoRA nhân vật riêng. Workflow: brief → chọn checkpoint/LoRA → prompt + ControlNet (pose reference) → batch generate → chọn ảnh → inpaint sửa lỗi → upscale → chỉnh Photoshop nếu cần → dùng làm reference cho illustrator hoặc texture draft. Thường làm việc cùng Photoshop (retouch), ComfyUI (pipeline phức tạp) và bộ quy tắc AI disclosure trong dự án học đường.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Prompt, sampling &amp; checkpoint</h3>
+    <p>Trọng tâm khi dùng Stable Diffusion là <strong>viết prompt và negative prompt</strong>, chọn checkpoint phù hợp phong cách, và điều chỉnh sampler (DPM++ 2M Karras, Euler a…), steps (20–30), CFG scale (5–9). SDXL cần prompt mô tả hơn SD 1.5; cộng đồng chia sẻ prompt template cho anime, photorealistic, architectural visualization.</p>
+    <p>Đối với học sinh THPT mới làm quen, bài tập thực tế hay gặp: cài WebUI (hoặc dùng Google Colab nếu máy yếu), thử 2 checkpoint khác nhau trên cùng prompt poster sự kiện trường — so sánh kết quả và ghi chú «model nào phù hợp illustration vs photo».</p>
+    <ul class="arc-list">
+      <li><strong>Prompt &amp; negative</strong> — mô tả chủ thể; loại trừ blurry, bad hands, watermark</li>
+      <li><strong>Checkpoint swap</strong> — SD 1.5 vs SDXL vs community fine-tune</li>
+      <li><strong>Sampling params</strong> — steps, CFG, seed để tái lập kết quả</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Stable Diffusion SDXL prompt comparison different checkpoints"</span>
+        </div>
+        <p class="arc-image-caption">Checkpoint — cùng prompt, khác model cho style illustration vs realistic</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Stable Diffusion sampling settings CFG steps seed panel"</span>
+        </div>
+        <p class="arc-image-caption">Sampling — steps, CFG scale và seed cho kết quả ổn định</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. LoRA, ControlNet &amp; consistency</h3>
+    <p>Stable Diffusion hỗ trợ <strong>LoRA</strong> — file nhỏ tinh chỉnh style (anime, oil painting) hoặc nhân vật; <strong>ControlNet</strong> — điều khiển composition bằng pose OpenPose, depth map, canny edge từ ảnh sketch. Kết hợp giúp giữ dáng người và bố cục khi đổi prompt — hữu ích cho concept nhân vật game hoặc storyboard capstone có nhân vật lặp lại.</p>
+    <p>Workflow điển hình: sketch pose → ControlNet OpenPose → generate nhiều outfit/background → chọn bản tốt → inpaint sửa tay/mặt. Hiểu luồng này giúp bạn vượt qua «ảnh đẹp ngẫu nhiên» sang pipeline có kiểm soát.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Stable Diffusion ControlNet OpenPose LoRA character consistency workflow"</span>
+      </div>
+      <p class="arc-image-caption">ControlNet &amp; LoRA — pose reference và style adapter cho nhân vật nhất quán</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Local vs cloud, license &amp; AI literacy</h3>
+    <p>Stable Diffusion chạy <strong>local</strong> (miễn phí weights, tốn GPU/điện) hoặc qua <strong>cloud</strong> (RunPod, Civitai Generate, Stability API). License mở cho phép dùng thương mại với nhiều checkpoint (cần đọc license từng model trên Civitai). Giáo dục THPT ngày càng nhấn mạnh <strong>AI literacy</strong>: khai báo ảnh AI trong đồ án, tránh deepfake có hại, hiểu bias và bản quyền training data.</p>
+    <p>Luồng sản xuất thực tế: brief → setup ComfyUI/A1111 workflow → batch → curator chọn → inpaint/upscale → retouch → publish kèm disclosure. So với Midjourney, SD đòi hỏi đầu tư phần cứng hoặc cloud nhưng đổi lại kiểm soát và chi phí marginal thấp khi generate hàng trăm ảnh.</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Stable Diffusion ComfyUI workflow local GPU pipeline diagram"</span>
+      </div>
+      <p class="arc-image-caption">Pipeline — ComfyUI node graph, local GPU và batch generate nội bộ</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai công cụ text-to-image hay được đặt cạnh Stable Diffusion là <strong>Midjourney</strong> (cloud, aesthetic mạnh) và <strong>DALL-E</strong> (OpenAI, tích hợp ChatGPT). Không có công cụ «đúng duy nhất» — tùy ngân sách GPU, cần kiểm soát model và mục đích học tập hay thương mại.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Stable Diffusion vs Midjourney</h3>
+    <p>Midjourney nổi tiếng với <strong>aesthetic cinematic «đẹp ngay»</strong> — ít setup, generate qua Discord/web, phù hợp mood board nhanh và người không muốn cài GPU. Stable Diffusion <strong>mã nguồn mở</strong>, tùy checkpoint/LoRA/ControlNet sâu, chi phí marginal thấp khi generate nhiều — phù hợp học sinh THPT có PC gaming hoặc Colab, và artist cần pipeline nội bộ hoặc fine-tune style riêng.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Stable Diffusion SDXL ControlNet custom LoRA workflow output"</span>
+        </div>
+        <p class="arc-image-caption">Stable Diffusion — kiểm soát model, LoRA và ControlNet sâu</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Midjourney v6 cinematic aesthetic prompt beautiful output grid"</span>
+        </div>
+        <p class="arc-image-caption">Midjourney — aesthetic mạnh, ít setup, subscription cloud</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Stable Diffusion mạnh hơn:</strong> mã nguồn mở, local/cloud linh hoạt, LoRA/ControlNet, chi phí batch lớn thấp, fine-tune và workflow ComfyUI.<br>
+      <strong>Midjourney mạnh hơn:</strong> «đẹp ngay» ít tuning, không cần GPU, cộng đồng prompt Discord, UX đơn giản cho người mới.<br>
+      <strong>Chọn Stable Diffusion khi:</strong> có GPU hoặc cloud budget, cần kiểm soát model và generate hàng loạt nội bộ.<br>
+      <strong>Chọn Midjourney khi:</strong> cần concept nhanh, không muốn cài đặt, ưu tiên aesthetic sẵn có hơn customization.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Stable Diffusion vs DALL-E</h3>
+    <p>DALL-E 3 (OpenAI) tích hợp <strong>ChatGPT</strong> — prompt bằng hội thoại tự nhiên, hiểu tiếng Việt tốt, xử lý chữ trên poster thường ổn định; trả phí qua ChatGPT Plus/API. Stable Diffusion <strong>tự host</strong>, cộng đồng model khổng lồ (Civitai), ControlNet cho pose — mạnh hơn khi cần workflow artist chuyên sâu; DALL-E mạnh hơn khi cần simplicity và safety filter tích hợp sẵn cho người dùng phổ thông.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Stable Diffusion inpainting ControlNet pose reference edit"</span>
+        </div>
+        <p class="arc-image-caption">Stable Diffusion — inpaint, ControlNet và cộng đồng model mở</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"DALL-E 3 ChatGPT image generation text poster Vietnamese prompt"</span>
+        </div>
+        <p class="arc-image-caption">DALL-E — ChatGPT integration, prompt tự nhiên và chữ trên ảnh</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Stable Diffusion mạnh hơn:</strong> open weights, LoRA/ControlNet, không khóa vào một vendor, chi phí scale lớn.<br>
+      <strong>DALL-E mạnh hơn:</strong> UX ChatGPT, prompt tiếng Việt, chữ trên thiết kế, không cần quản lý GPU/model.<br>
+      <strong>Chọn Stable Diffusion khi:</strong> muốn học pipeline AI sâu, có GPU, hoặc dự án cần model/style tùy chỉnh.<br>
+      <strong>Chọn DALL-E khi:</strong> cần tool nhanh trong ChatGPT, poster có chữ, hoặc máy yếu không chạy local được.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học Stable Diffusion như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Cài đặt hoặc chọn môi trường chạy</strong>
+        <p>Tuần đầu hãy chọn một trong: Automatic1111 trên PC có GPU NVIDIA (6 GB+ VRAM), Forge (tối ưu hơn), ComfyUI (node workflow), hoặc Google Colab/RunPod nếu máy yếu. Cài xong, generate ảnh đầu tiên bằng checkpoint mặc định — mục tiêu là chạy được pipeline trước khi học prompt phức tạp. Nhiều bạn THPT gặp lỗi CUDA — cần update driver và đọc wiki cài đặt.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Prompt &amp; negative prompt cơ bản</strong>
+        <p>Học cấu trúc prompt: subject, style, lighting, quality tags; negative loại blurry, bad anatomy. Thử cùng prompt trên SD 1.5 và SDXL, đổi seed và CFG — 2–3 tuần luyện sẽ «cảm» được model nào phù hợp illustration vs photo cho dự án trường.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Checkpoint, LoRA và img2img</strong>
+        <p>Tải 1–2 checkpoint từ Civitai (chú ý license), thử LoRA style anime hoặc realistic. Học img2img biến sketch thành màu — bước cầu nối giữa vẽ tay và AI trong concept art học đường.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>ControlNet &amp; inpainting</strong>
+        <p>Dùng OpenPose hoặc canny ControlNet để giữ dáng người; inpaint sửa tay, mặt, nền. Mục tiêu là hoàn thiện một poster sự kiện từ generate → sửa vùng → acceptable quality mà không generate lại từ đầu mười lần.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Upscale và workflow dự án</strong>
+        <p>Học upscale (Extras tab hoặc ComfyUI upscaler) cho in A4/A3. Xây workflow cho capstone: mood board 10 ảnh cùng tone, chọn 2 hero, retouch Photoshop, ghi disclosure AI trong slide — giai đoạn này dạy AI literacy thực tế.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Portfolio và định hướng nghề</strong>
+        <p>Tổng hợp 3–5 work: before/after inpaint, ControlNet pose demo, bộ mood board có concept note. Đăng Behance hoặc blog — ghi rõ SD, checkpoint, LoRA và mức AI-assisted. Tìm hiểu AI Artist, Concept Artist (AI-assisted) và chính sách studio; nhiều nơi tuyển người biết SD + Photoshop hơn chỉ «bấm generate».</p>
+      </div>
+    </div>
+
+  </div>
+</section>

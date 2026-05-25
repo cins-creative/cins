@@ -1,0 +1,209 @@
+<section class="arc-intro">
+  <p>Bạn chơi game mobile 2D, nhân vật chạy nhảy mượt mà — tay, chân và vũ khí xoay theo khớp xương chứ không phải sprite đổi khung hình từng frame — phần lớn animation đó được rig bằng <strong>Spine</strong>, công cụ skeletal 2D animation phổ biến trong game indie và mobile toàn cầu. Cùng phần mềm này cũng xuất hiện ở studio làm UI animated và cutscene game nhẹ.</p>
+  <p>Spine do <strong>Esoteric Software</strong> phát triển — không phải phần mềm vẽ nhân vật hay engine game, mà là <strong>editor rig xương và hoạt hình 2D</strong> với runtime nhẹ cho Unity, Godot, Cocos và nhiều engine khác. Hiểu Spine giúp bạn không chỉ «biết làm nhân vật chạy» mà nắm được quy trình từ art tĩnh đến skeletal animation và export runtime trong game production.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>Spine 2D là gì?</h2>
+  <p>Spine do <strong>Esoteric Software</strong> phát triển — bộ công cụ <strong>2D skeletal animation</strong> gồm Spine Editor (rig và animate) và Spine Runtimes (thư viện chạy animation trong game). Ban đầu nổi tiếng trong game mobile và Flash; ngày nay vẫn là lựa chọn hàng đầu cho game 2D cần animation mượt, file nhẹ và pipeline rõ ràng giữa artist và programmer.</p>
+  <p>Khác với hoạt hình frame-by-frame (vẽ từng khung) hoặc Live2D (deformation mesh cho VTuber anime), Spine dùng <strong>hệ xương (bones) gắn vào mesh ảnh</strong>: bạn đặt bone, weight vertex, tạo animation bằng keyframe — nhân vật chạy, nhảy, tấn công với dung lượng runtime nhỏ hơn nhiều so với sprite sheet lớn. Giao diện Editor có skeleton tree, dopesheet và mesh view — ban đầu cần hiểu khái niệm bone hierarchy, nhưng khi rig xong animation tái sử dụng và blend dễ dàng.</p>
+  <ul class="arc-list">
+    <li><strong>Bone rigging &amp; IK</strong> — đặt xương, inverse kinematics cho tay chân và vũ khí</li>
+    <li><strong>Mesh deformation</strong> — weight mesh lên bone để uốn cong áo, tóc, đuôi</li>
+    <li><strong>Animation &amp; blend</strong> — keyframe, mix animation (idle → run → attack), events cho game logic</li>
+    <li><strong>Runtime export</strong> — xuất JSON/binary cho Unity, Godot, Cocos, Unreal plugin và web</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"Spine 2D Esoteric Software editor skeleton rigging interface screenshot"</span>
+    </div>
+    <p class="arc-image-caption">Giao diện Spine Editor — skeleton tree, mesh weight và timeline animation</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>Spine thường đứng sau giai đoạn <strong>character art và tách layer</strong>: illustrator vẽ nhân vật trong Photoshop/Clip Studio (body, limbs, weapons tách riêng), rigger import vào Spine Editor, đặt bone và weight mesh, animate walk/run/attack, rồi export runtime cho programmer nhúng vào Unity/Godot. Với cutscene, animation có thể dài hơn và export video; với gameplay, thường dùng state machine blend animation theo input. Thường làm việc cùng Photoshop/Clip Studio (art), Unity/Godot (engine) và Tiled/Aseprite (tilemap nếu cần).</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Rigging xương &amp; mesh weight</h3>
+    <p>Thế mạnh cốt lõi của Spine là <strong>rig skeletal trên art 2D</strong>. Bạn import PNG/PSD đã tách layer, đặt bone root → spine → arm → hand, gán mesh lên từng phần và weight vertex để khi xoay bone, áo và tóc uốn theo. IK (Inverse Kinematics) giúp tay chạm điểm (cầm vũ khí, chạm đất) mà không keyframe từng khớp thủ công.</p>
+    <p>Đối với học sinh THPT mới làm quen, bài tập thực tế hay gặp: rig nhân vật chibi đơn giản (đầu, thân, tay, chân), tạo animation idle và walk — vừa luyện tư duy khớp xương vừa làm demo game 2D capstone hoặc CLB lập trình.</p>
+    <ul class="arc-list">
+      <li><strong>Bone hierarchy</strong> — root, spine, limbs; parent-child transform</li>
+      <li><strong>Mesh &amp; weights</strong> — bind mesh lên bone, chỉnh weight brush</li>
+      <li><strong>IK constraints</strong> — two-bone IK cho chân, look-at cho đầu</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Spine 2D bone rigging skeleton mesh weight character"</span>
+        </div>
+        <p class="arc-image-caption">Rig xương — bone hierarchy và mesh weight trên nhân vật 2D</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Spine 2D IK inverse kinematics leg arm setup"</span>
+        </div>
+        <p class="arc-image-caption">IK — chân và tay bám mục tiêu khi chạy hoặc tấn công</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Animation, blend &amp; events</h3>
+    <p>Sau khi rig, bạn tạo <strong>animation clip</strong> — idle, walk, run, jump, attack — bằng keyframe trên timeline hoặc dopesheet. Spine hỗ trợ <strong>animation mixing</strong>: blend từ walk sang run mượt, layer animation (chạy + vẫy tay), và <strong>events</strong> (frame marker) để programmer trigger sound effect, damage hitbox hoặc spawn projectile đúng nhịp.</p>
+    <p>Chất lượng gameplay phụ thuộc timing attack và foot contact — animation «cảm giác» tốt thường cần iteration với designer; đây là kỹ năng game feel mà studio 2D mobile luôn coi trọng.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Spine 2D animation timeline dopesheet walk cycle keyframe"</span>
+      </div>
+      <p class="arc-image-caption">Animation — timeline, dopesheet và walk cycle keyframe</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Runtime, engine integration &amp; tối ưu</h3>
+    <p>Spine export <strong>runtime data</strong> (JSON hoặc binary .skel) kèm atlas texture — dung lượng nhỏ, load nhanh trên mobile. Official runtime cho <strong>Unity, Godot, Cocos2d-x, Unreal</strong> và web (spine-ts, spine-webgl). Programmer dùng API set animation, mix, skin swap (đổi trang phục) mà không cần re-export toàn bộ sprite sheet.</p>
+    <p>Luồng làm việc điển hình: art PSD → rig Spine → animate → export → Unity Spine component → gameplay code. Hiểu quy trình này giúp bạn phân vai rõ trong team game 2D THPT: ai vẽ, ai rig, ai code — và tại sao skeletal beat frame-by-frame cho action game.</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Spine 2D Unity Godot runtime integration game workflow"</span>
+      </div>
+      <p class="arc-image-caption">Runtime — export Spine sang Unity/Godot và chạy animation trong game</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai công cụ hay được đặt cạnh Spine là <strong>Live2D Cubism</strong> (deformation mesh cho VTuber và visual novel) và <strong>DragonBones</strong> (skeletal 2D mã nguồn mở, phổ biến ở Trung Quốc). Không có câu trả lời «đúng duy nhất» — tùy bạn hướng tới game 2D action, VTuber hay dự án cần giải pháp miễn phí.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Spine vs Live2D</h3>
+    <p>Live2D chuyên <strong>deformation mesh anime</strong> cho VTuber, visual novel và nhân vật 2.5D với face tracking — aesthetic mượt cho stream và dialogue. Spine chuyên <strong>skeletal animation cho game</strong>: run cycle, combat, blend state, runtime nhẹ và API engine mature. Live2D phù hợp perform realtime và cutscene vn; Spine phù hợp gameplay 2D cần nhiều animation loop và programmer control.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Spine 2D game character run attack animation Unity"</span>
+        </div>
+        <p class="arc-image-caption">Spine — skeletal animation cho gameplay 2D action và mobile</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Live2D Cubism VTuber face tracking deformation anime"</span>
+        </div>
+        <p class="arc-image-caption">Live2D — mesh deformation cho VTuber và visual novel anime</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Spine mạnh hơn:</strong> pipeline game 2D (blend, events, skin), runtime Unity/Godot/Cocos trưởng thành, tối ưu mobile, cộng đồng game indie toàn cầu.<br>
+      <strong>Live2D mạnh hơn:</strong> deformation mặt anime, face tracking VTuber, ecosystem visual novel và stream Nhật–Hàn.<br>
+      <strong>Chọn Spine khi:</strong> mục tiêu game 2D platformer, RPG, fighting — cần nhiều animation gameplay.<br>
+      <strong>Chọn Live2D khi:</strong> VTuber, visual novel, mascot stream — ưu tiên biểu cảm mặt hơn combat loop.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Spine vs DragonBones</h3>
+    <p>DragonBones (Egret Technology) là giải pháp <strong>skeletal 2D miễn phí</strong>, tích hợp Egret Engine và có plugin cho Unity/Cocos — phổ biến ở studio game Trung Quốc và dự án ngân sách thấp. Spine trả phí (hoặc runtime license cho doanh nghiệp) nhưng có <strong>editor mạnh hơn</strong>, documentation tốt hơn, cộng đồng quốc tế rộng và runtime update thường xuyên. DragonBones phù hợp học tập miễn phí; Spine phù hợp commercial game cần support và pipeline ổn định.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Spine 2D professional game animation editor workflow"</span>
+        </div>
+        <p class="arc-image-caption">Spine — editor trưởng thành và runtime cho commercial game</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"DragonBones 2D skeletal animation free open source editor"</span>
+        </div>
+        <p class="arc-image-caption">DragonBones — miễn phí, phổ biến Egret và dự án ngân sách thấp</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Spine mạnh hơn:</strong> editor UX, mesh deformation, IK, cộng đồng tutorial quốc tế, runtime Unity/Godot chính thức, dùng rộng trong game mobile global.<br>
+      <strong>DragonBones mạnh hơn:</strong> miễn phí, phù hợp Egret stack, đủ dùng cho skeletal cơ bản khi chưa có ngân sách Spine.<br>
+      <strong>Chọn Spine khi:</strong> dự án commercial, cần pipeline ổn định và programmer đã quen Spine runtime.<br>
+      <strong>Chọn DragonBones khi:</strong> học sinh THPT thử skeletal 2D miễn phí, hoặc team dùng Egret/Cocos với workflow DragonBones sẵn có.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học Spine 2D như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Làm quen giao diện và khái niệm bone</strong>
+        <p>Tuần đầu hãy tải Spine trial (hoặc xem tutorial), mở project mẫu và quan sát skeleton tree: root bone, child bones, transform local vs world. Tạo vài bone trên hình chữ nhật đơn giản, xoay và dịch chuyển — mục tiêu là hiểu parent-child trước khi rig nhân vật phức tạp. Nhiều bạn THPT bỏ cuộc sớm vì chưa nắm hierarchy xương.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Rigging cơ bản với art tách layer</strong>
+        <p>Vẽ hoặc tải art chibi tách layer (body, head, arm, leg), import vào Spine, đặt bone và bind mesh. Luyện weight cơ bản để uốn cong ít nhất khi xoay — thường 2–3 tuần luyện đều sẽ rig được nhân vật humanoid đơn giản.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Animation idle và walk cycle</strong>
+        <p>Tạo animation idle (thở nhẹ) và walk cycle 8–12 frame keyframe — học foot slide, contact frame và loop seamless. Mục tiêu là có clip «nhìn được» trước khi làm attack phức tạp; walk cycle là bài test chuẩn mọi studio 2D.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>IK, events và skin</strong>
+        <p>Thêm IK cho chân khi walk, đặt event «footstep» cho sound. Thử skin swap (đổi mũ, áo) — kỹ năng game cần customization nhân vật. Học export atlas tối ưu dung lượng texture.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Export và tích hợp engine</strong>
+        <p>Chọn Unity hoặc Godot: cài Spine runtime, import .json/.skel + atlas, viết script đổi animation theo phím (idle ↔ run ↔ jump). Hoàn thiện prototype game 2D nhỏ — giai đoạn này dạy collaboration artist-programmer thật.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Portfolio và định hướng nghề</strong>
+        <p>Tổng hợp 3–5 work: GIF/video walk + attack, screenshot trong Unity/Godot, breakdown rig nếu có thể. Đăng ArtStation, itch.io demo — ghi rõ Spine, Unity/Godot. Tìm hiểu vị trí 2D Animator, Spine Rigger tại studio mobile Việt Nam; nhiều studio tuyển dựa demo reel animation hơn bằng cấp.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

@@ -1,0 +1,182 @@
+[
+  {
+    "id": "93d83f0b-e14f-494d-8902-048b1bf10092",
+    "slug": "gaea",
+    "tieu_de_viet": "Gaea — Điêu khắc địa hình 3D",
+    "tom_tat": "Công cụ terrain của QuadSpinner — tạo núi, sa mạc, errosion và xuất heightmap/mesh cho game, film và archviz.",
+    "meta_title": "Gaea là gì? Terrain 3D, giá và hướng dẫn học | CINS",
+    "meta_description": "Gaea: erosion, biome, export Unreal/Blender. So sánh World Machine, Terragen và lộ trình học environment.",
+    "meta": {
+      "nha_phat_hanh": "QuadSpinner",
+      "version": "2",
+      "platform": ["Windows"],
+      "website": "https://quadspinner.com",
+      "goi_mien_phi": "Gaea Community miễn phí (giới hạn)",
+      "gia_thanh": "Từ ~99 USD/năm (Indie) · ~299 USD (Professional)",
+      "hinh_thuc_mua": "Thuê bao năm · perpetual",
+      "link_tai": "https://quadspinner.com/Gaea/Downloads"
+    }
+  },
+  {
+    "id": "183b9667-5725-4355-8c52-5e0ca3e5e336",
+    "slug": "gamemaker-studio-2",
+    "tieu_de_viet": "GameMaker Studio 2 — Làm game 2D",
+    "tom_tat": "IDE game 2D — GML hoặc drag-and-drop, xuất desktop/mobile/console; phù hợp indie và học lập trình game.",
+    "meta_title": "GameMaker Studio 2 là gì? Game 2D, giá và hướng dẫn | CINS",
+    "meta_description": "GameMaker: GML, room, sprite, export. So sánh Construct 3, Unity 2D và lộ trình làm game đầu tiên.",
+    "meta": {
+      "nha_phat_hanh": "YoYo Games (Opera)",
+      "version": "2024",
+      "platform": ["Windows", "macOS"],
+      "website": "https://gamemaker.io",
+      "goi_mien_phi": "Dùng thử 30 ngày",
+      "gia_thanh": "Từ ~99 USD/năm (Creator)",
+      "hinh_thuc_mua": "Thuê bao năm · giáo dục",
+      "link_tai": "https://gamemaker.io/en/download"
+    }
+  },
+  {
+    "id": "5f7428a0-c661-4d79-9514-0cf504538e64",
+    "slug": "github",
+    "tieu_de_viet": "GitHub — Quản lý mã nguồn &amp; cộng tác",
+    "tom_tat": "Nền tảng Git hosting — version control, pull request, CI/CD và portfolio code cho dev game, web và open source.",
+    "meta_title": "GitHub là gì? Git, giá và hướng dẫn cho người mới | CINS",
+    "meta_description": "GitHub: repo, branch, PR, Actions. So sánh GitLab, Bitbucket và quy trình làm việc nhóm dev.",
+    "meta": {
+      "nha_phat_hanh": "GitHub (Microsoft)",
+      "version": "2024",
+      "platform": ["Web", "Windows", "macOS", "Linux"],
+      "website": "https://github.com",
+      "goi_mien_phi": "Free cho public repo · giáo dục",
+      "gia_thanh": "Từ ~4 USD/tháng (Team)",
+      "hinh_thuc_mua": "Miễn phí · thuê bao",
+      "link_tai": "https://github.com"
+    }
+  },
+  {
+    "id": "f2bd92c1-b890-4c14-9c45-20d843f231a8",
+    "slug": "godot",
+    "tieu_de_viet": "Godot — Engine game mã nguồn mở",
+    "tom_tat": "Game engine miễn phí — GDScript/C#, 2D/3D, scene tree và export đa nền tảng cho indie và học sinh làm game.",
+    "meta_title": "Godot là gì? Game 2D/3D, miễn phí và hướng dẫn học | CINS",
+    "meta_description": "Godot 4: GDScript, tilemap, physics. So sánh Unity, Unreal và lộ trình làm game indie.",
+    "meta": {
+      "nha_phat_hanh": "Godot Engine",
+      "version": "4",
+      "platform": ["Windows", "macOS", "Linux"],
+      "website": "https://godotengine.org",
+      "goi_mien_phi": "Miễn phí · MIT license",
+      "gia_thanh": "Miễn phí",
+      "hinh_thuc_mua": "Miễn phí",
+      "link_tai": "https://godotengine.org/download"
+    }
+  },
+  {
+    "id": "ab0e3c6f-1227-47a9-bd32-ccd13c56d966",
+    "slug": "google-analytics",
+    "tieu_de_viet": "Google Analytics — Phân tích web &amp; app",
+    "tom_tat": "Công cụ đo lường traffic — session, conversion, audience cho website portfolio, landing page và dự án marketing số.",
+    "meta_title": "Google Analytics là gì? GA4, miễn phí và hướng dẫn | CINS",
+    "meta_description": "Google Analytics 4: event, funnel, report. So sánh Plausible, Meta Pixel và quy trình đo hiệu quả site.",
+    "meta": {
+      "nha_phat_hanh": "Google",
+      "version": "GA4",
+      "platform": ["Web"],
+      "website": "https://analytics.google.com",
+      "goi_mien_phi": "Miễn phí (Analytics) · Analytics 360 trả phí",
+      "gia_thanh": "Miễn phí",
+      "hinh_thuc_mua": "Miễn phí · enterprise",
+      "link_tai": "https://analytics.google.com"
+    }
+  },
+  {
+    "id": "f2a8e1f5-fa7d-49e8-a1da-42f3b711a4e3",
+    "slug": "google-doc",
+    "tieu_de_viet": "Google Docs — Soạn thảo văn bản online",
+    "tom_tat": "Trình xử lý văn bản trên cloud — cộng tác realtime, comment và chia sẻ kịch bản, báo cáo dự án và tài liệu nhóm.",
+    "meta_title": "Google Docs là gì? Soạn thảo, miễn phí và hướng dẫn | CINS",
+    "meta_description": "Google Docs: collaborate, comment, template. So sánh Microsoft Word, Notion và quy trình viết nhóm.",
+    "meta": {
+      "nha_phat_hanh": "Google",
+      "version": "2024",
+      "platform": ["Web", "iOS", "Android"],
+      "website": "https://docs.google.com",
+      "goi_mien_phi": "Miễn phí với Google account · giáo dục",
+      "gia_thanh": "Miễn phí · Workspace trả phí",
+      "hinh_thuc_mua": "Miễn phí · thuê bao Workspace",
+      "link_tai": "https://docs.google.com"
+    }
+  },
+  {
+    "id": "fd47c656-b73e-4a1a-a4fa-38545fab8fa5",
+    "slug": "google-sheets",
+    "tieu_de_viet": "Google Sheets — Bảng tính trực tuyến",
+    "tom_tat": "Spreadsheet cloud — công thức, pivot, cộng tác và theo dõi ngân sách dự án sáng tạo, sự kiện trường học.",
+    "meta_title": "Google Sheets là gì? Bảng tính, miễn phí và hướng dẫn | CINS",
+    "meta_description": "Google Sheets: formula, IMPORTRANGE, chart. So sánh Excel, Airtable và quy trình báo cáo nhóm.",
+    "meta": {
+      "nha_phat_hanh": "Google",
+      "version": "2024",
+      "platform": ["Web", "iOS", "Android"],
+      "website": "https://sheets.google.com",
+      "goi_mien_phi": "Miễn phí · giáo dục",
+      "gia_thanh": "Miễn phí · Workspace",
+      "hinh_thuc_mua": "Miễn phí · thuê bao",
+      "link_tai": "https://sheets.google.com"
+    }
+  },
+  {
+    "id": "0b45cb9a-1bb9-45bc-b4ec-7512755a8363",
+    "slug": "hootsuite",
+    "tieu_de_viet": "Hootsuite — Quản lý mạng xã hội",
+    "tom_tat": "Nền tảng social media management — lên lịch đa kênh, inbox, analytics cho brand, agency và creator chuyên nghiệp.",
+    "meta_title": "Hootsuite là gì? Social media, giá và hướng dẫn | CINS",
+    "meta_description": "Hootsuite: schedule, stream, report. So sánh Buffer, Later và quy trình content calendar.",
+    "meta": {
+      "nha_phat_hanh": "Hootsuite Inc.",
+      "version": "2024",
+      "platform": ["Web", "iOS", "Android"],
+      "website": "https://www.hootsuite.com",
+      "goi_mien_phi": "Dùng thử 30 ngày",
+      "gia_thanh": "Từ ~99 USD/tháng (Professional)",
+      "hinh_thuc_mua": "Thuê bao tháng",
+      "link_tai": "https://www.hootsuite.com"
+    }
+  },
+  {
+    "id": "b1793b54-1d3b-4853-91dc-ab7e41fbb501",
+    "slug": "houdini",
+    "tieu_de_viet": "Houdini — VFX procedural &amp; simulation",
+    "tom_tat": "DCC procedural của SideFX — FX simulation, destruction, crowd và pipeline VFX cho phim AAA và game.",
+    "meta_title": "Houdini là gì? VFX, giá và hướng dẫn học | CINS",
+    "meta_description": "Houdini: SOP, DOP, VEX, Solaris. So sánh Blender, Maya và lộ trình học FX procedural.",
+    "meta": {
+      "nha_phat_hanh": "SideFX",
+      "version": "20",
+      "platform": ["Windows", "macOS", "Linux"],
+      "website": "https://www.sidefx.com",
+      "goi_mien_phi": "Apprentice miễn phí (watermark) · giáo dục",
+      "gia_thanh": "Từ ~269 USD/năm (Indie) · Core ~4,500 USD",
+      "hinh_thuc_mua": "Thuê bao · giáo dục",
+      "link_tai": "https://www.sidefx.com/download"
+    }
+  },
+  {
+    "id": "8e768fc3-76ed-4ba3-9401-a808a196adac",
+    "slug": "inkscape",
+    "tieu_de_viet": "Inkscape — Vector miễn phí mã nguồn mở",
+    "tom_tat": "Trình chỉnh sửa vector open source — logo, icon, poster và SVG cho học sinh, club thiết kế và in ấn cơ bản.",
+    "meta_title": "Inkscape là gì? Vector, miễn phí và hướng dẫn học | CINS",
+    "meta_description": "Inkscape: Bezier, SVG, path. So sánh Illustrator, Affinity Designer và lộ trình học thiết kế vector.",
+    "meta": {
+      "nha_phat_hanh": "Inkscape Project",
+      "version": "1.3",
+      "platform": ["Windows", "macOS", "Linux"],
+      "website": "https://inkscape.org",
+      "goi_mien_phi": "Miễn phí · mã nguồn mở",
+      "gia_thanh": "Miễn phí",
+      "hinh_thuc_mua": "Miễn phí",
+      "link_tai": "https://inkscape.org/release"
+    }
+  }
+]

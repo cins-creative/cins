@@ -25,18 +25,29 @@ type Props = {
   article: ArticleBaiViet;
   /** `false` khi thiếu `SUPABASE_SERVICE_ROLE_KEY` — vẫn mở form nhưng không lưu được. */
   persistEnabled?: boolean;
+  /** Điều khiển mở panel từ toolbar quản trị (software / ngành). */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 };
 
 /** Thanh sửa thử: ghi `article_bai_viet` qua service role — bài `nghe` dùng sửa tại chỗ + thanh này khi đang mở. */
 export function InlineArticleDraftBar({
   article,
   persistEnabled = true,
+  open: openProp,
+  onOpenChange,
 }: Props) {
   const router = useRouter();
   const ngheDraft = useNgheArticleDraftOptional();
 
   const [localOpen, setLocalOpen] = useState(false);
-  const open = localOpen;
+  const isControlled = openProp !== undefined;
+  const open = isControlled ? openProp : localOpen;
+
+  const setOpen = (next: boolean) => {
+    if (isControlled) onOpenChange?.(next);
+    else setLocalOpen(next);
+  };
 
   const [tieu_de, setTieuDe] = useState(article.tieu_de);
   const [tieu_de_viet, setTieuDeViet] = useState(article.tieu_de_viet ?? "");
@@ -55,8 +66,8 @@ export function InlineArticleDraftBar({
     return <NgheCornerDraftPanel draft={ngheDraft} />;
   }
 
-  const openPanel = () => setLocalOpen(true);
-  const closePanel = () => setLocalOpen(false);
+  const openPanel = () => setOpen(true);
+  const closePanel = () => setOpen(false);
 
   async function onSave(e: FormEvent) {
     e.preventDefault();
@@ -90,6 +101,7 @@ export function InlineArticleDraftBar({
   }
 
   if (!open) {
+    if (isControlled) return null;
     return (
       <div
         className="pointer-events-none fixed inset-x-0 bottom-0 z-[9999] flex justify-center p-2"

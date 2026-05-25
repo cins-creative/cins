@@ -5,7 +5,7 @@ import Image from "next/image";
 import { ArticleDraftContentEditor } from "@/components/article/draft/ArticleDraftContentEditor";
 import { useNgheArticleDraftOptional } from "@/components/article/nghe/NgheArticleDraftContext";
 import { NgheHeroDraftEditButton } from "@/components/article/nghe/NgheHeroDraftEditButton";
-import { NgheLeadRich } from "@/components/article/nghe/NgheLeadRich";
+import { KeywordInlineLeadPreview } from "@/components/article/keyword/KeywordInlineLeadPreview";
 import { NgheLeadVideo } from "@/components/article/nghe/NgheLeadVideo";
 import {
   NGHE_LEAD_BODY_HTML,
@@ -186,7 +186,12 @@ export function NgheHeroLeadInlineDraft({ leadVideoUrl }: Props) {
             onChange={d.setNoiDung}
           />
         ) : leadTrim ? (
-          <NgheLeadRich source={d.leadPreview ?? ""} />
+          <div className="article-content-html">
+            <KeywordInlineLeadPreview
+              html={d.leadPreview ?? ""}
+              className="nghe-lead-rich article-rich-content article-content-html"
+            />
+          </div>
         ) : (
           <div
             className="nghe-lead-rich article-rich-content article-content-html"

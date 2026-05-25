@@ -1,0 +1,247 @@
+<section class="arc-intro">
+  <p>Hulk đập đất rung chuyển trong <em>Avengers</em>, nhân vật trong game AAA đi đứng tự nhiên, mascot quảng cáo nhảy múa vui nhộn — tất cả đều do 3D Animator thổi hồn vào những mô hình 3D vốn vô tri. Họ là người làm cho rig — bộ xương kỹ thuật số — trở thành nhân vật có cảm xúc.</p>
+  <p>3D Animator khác 3D Modeler ở chỗ Modeler tạo ra hình dáng tĩnh, còn Animator làm cho hình dáng đó chuyển động và "diễn xuất". Trong studio lớn, 3D Animator có thể chuyên về creature, character, hoặc cinematic — mỗi nhánh đòi hỏi kỹ năng riêng.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>3D Animator là ai?</h2>
+  <p>3D Animator dùng phần mềm như Maya, Blender, hoặc MotionBuilder để tạo chuyển động cho nhân vật, sinh vật và vật thể 3D. Họ nhận model đã được rig (gắn xương và điều khiển) từ Rigger, rồi đặt keyframe vào các bộ phận của rig theo từng thời điểm — phần mềm tự nội suy giữa các keyframe để tạo chuyển động liền mạch.</p>
+  <p>Khác với 2D Animator phải vẽ từng khung hình, 3D Animator điều khiển rig trong không gian 3 chiều — có thể xoay camera để xem nhân vật từ mọi góc và chỉnh sửa từng chi tiết. Đổi lại, họ phải hiểu sâu hơn về cấu trúc rig, ràng buộc kỹ thuật, và các nguyên tắc vật lý phức tạp hơn.</p>
+  <ul class="arc-list">
+    <li>Đặt <strong>keyframe</strong> vào các controller của rig tại các thời điểm chính của chuyển động</li>
+    <li>Điều chỉnh <strong>graph editor</strong> để kiểm soát timing, easing và spacing của animation</li>
+    <li>Tạo <strong>blocking pass</strong> trước, rồi tinh chỉnh thành <strong>spline pass</strong> mượt mà</li>
+    <li>Phối hợp với <strong>Motion Capture</strong> — chỉnh sửa và làm sạch dữ liệu mocap khi cần</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"3D animator Maya workspace rig controller keyframe character"</span>
+    </div>
+    <p class="arc-image-caption">Bàn làm việc của 3D Animator — Maya hoặc Blender, hai màn hình, và thường có gương để tự diễn lại tham khảo</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>3D Animator thuộc <strong>giai đoạn sản xuất (production)</strong>, nhận model đã rig từ <strong>Rigger</strong> và <strong>3D Modeler</strong>, làm theo storyboard từ <strong>Director</strong> hoặc <strong>Animation Director</strong>, rồi bàn giao cho <strong>Lighting Artist</strong>, <strong>Compositor</strong> và <strong>Sound Designer</strong>. Trong game, animation được xuất sang Unreal/Unity cho <strong>Gameplay Programmer</strong> tích hợp.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Công việc của một 3D Animator</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Chuẩn bị reference và lên kế hoạch</h3>
+    <p>Trước khi chạm vào phần mềm, animator quay video reference — tự diễn lại cảnh trước gương hoặc tham khảo video trên mạng. Họ vẽ thumbnail planning cho các pose chính, ghi chú timing, và lên kế hoạch chuyển động đoạn nào nhanh, đoạn nào chậm.</p>
+    <ul class="arc-list">
+      <li><strong>Reference video</strong> — tự diễn lại nhân vật để hiểu chuyển động thực trước khi cách điệu</li>
+      <li><strong>Planning pose</strong> — vẽ thumbnail các pose quan trọng nhất trong cảnh</li>
+      <li><strong>Acting choices</strong> — quyết định nhân vật sẽ thể hiện cảm xúc gì và như thế nào</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"animator reference video acting mirror desk planning thumbnail"</span>
+      </div>
+      <p class="arc-image-caption">Animator tự diễn lại cảnh trước gương — đây là nền tảng để animation có cảm xúc thật</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Blocking — đặt pose chính</h3>
+    <p>Trong giai đoạn blocking, animator chỉ đặt các keyframe quan trọng nhất — pose chính của chuyển động — với mode "stepped" để chuyển đột ngột giữa các pose. Mục đích là kiểm tra timing và acting trước khi bỏ thời gian làm mượt. Director thường duyệt blocking trước khi animator tiếp tục.</p>
+    <ul class="arc-list">
+      <li><strong>Stepped mode</strong> — keyframe không nội suy, giúp xem rõ từng pose mà không bị "trượt" mượt</li>
+      <li><strong>Extreme pose</strong> — các pose biểu cảm mạnh nhất của chuyển động, định hình nhịp điệu</li>
+      <li><strong>Breakdown pose</strong> — pose phụ thêm giữa hai extreme để xác định path of action</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"3D animation blocking pass stepped key pose Maya"</span>
+        </div>
+        <p class="arc-image-caption">Blocking pass — các pose chính đặt vào trục thời gian</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"3D animation extreme pose character action sequence"</span>
+        </div>
+        <p class="arc-image-caption">Extreme pose — những khoảnh khắc biểu cảm nhất của chuyển động</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Splining và polishing</h3>
+    <p>Sau khi blocking được duyệt, animator chuyển sang <strong>spline mode</strong> — phần mềm nội suy mượt giữa các keyframe. Sau đó họ tinh chỉnh từng đường cong trong <strong>graph editor</strong> để chuyển động có easing đúng, timing đúng, và không bị "float" (trôi không trọng lực) hay "robot" (cứng đơ).</p>
+    <ul class="arc-list">
+      <li><strong>Graph editor</strong> — chỉnh sửa đường cong animation để kiểm soát chính xác từng frame</li>
+      <li><strong>Arc</strong> — chuyển động tự nhiên đi theo đường cong, không phải đường thẳng</li>
+      <li><strong>Overlap &amp; follow-through</strong> — các bộ phận phụ trễ hoặc tiếp tục sau hành động chính</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Maya graph editor animation curve spline keyframe"</span>
+      </div>
+      <p class="arc-image-caption">Graph editor — animator dành phần lớn thời gian polishing trong cửa sổ này</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">4. Chi tiết khuôn mặt và facial animation</h3>
+    <p>Khuôn mặt là nơi cảm xúc của nhân vật được thể hiện rõ nhất. Animator phải làm việc với <strong>blend shape</strong> hoặc <strong>facial rig</strong> để tạo biểu cảm — mí mắt, lông mày, miệng đều có controller riêng. Lip sync 3D phức tạp hơn 2D vì miệng có khối lượng và phải khớp với cử động cơ mặt.</p>
+    <ul class="arc-list">
+      <li><strong>Blend shape</strong> — mô hình biểu cảm được pre-made, animator chỉ pha trộn để tạo biểu cảm</li>
+      <li><strong>FACS</strong> — Facial Action Coding System — bảng các cơ mặt và cách chúng tạo cảm xúc</li>
+      <li><strong>Eye dart</strong> — chuyển động nhỏ của mắt làm nhân vật cảm giác "sống", thay vì nhìn cố định</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"3D character facial animation blend shape expression Maya"</span>
+      </div>
+      <p class="arc-image-caption">Facial animation — chỉ vài frame thay đổi mí mắt có thể đổi hoàn toàn cảm xúc nhân vật</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>3D Animator cần giỏi gì?</h2>
+
+  <div class="arc-skill-grid">
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">⚡</span>
+      <span>Hiểu chuyển động vật lý</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">✨</span>
+      <span>Diễn xuất &amp; acting</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">⚙️</span>
+      <span>Phần mềm 3D &amp; rig</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">🧠</span>
+      <span>Quan sát &amp; phân tích</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">🎨</span>
+      <span>Cảm thẩm mỹ &amp; bố cục</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">📋</span>
+      <span>Kỷ luật &amp; quản lý cảnh</span>
+    </div>
+  </div>
+
+  <div class="arc-accordion">
+
+    <details class="arc-card" open>
+      <summary>Hiểu chuyển động vật lý</summary>
+      <div class="arc-card-body">
+        <p>3D Animator phải hiểu trọng lực, quán tính, lực ma sát, và cách trọng lượng cơ thể di chuyển trong không gian. Một nhân vật 100kg không đi giống nhân vật 50kg — họ chuyển hông khác, đặt chân khác, và mất thăng bằng khác nhau. Không hiểu vật lý sẽ làm animation trông "fake" dù vẽ kỹ thế nào.</p>
+        <p>Học bằng cách quay video bản thân làm các hành động khác nhau, xem chậm từng frame, và phân tích cách trọng lượng chuyển dịch.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Diễn xuất &amp; acting</summary>
+      <div class="arc-card-body">
+        <p>Animator chính là diễn viên — chỉ khác là diễn qua nhân vật ảo. Học diễn xuất cơ bản (improv, sân khấu) giúp animator hiểu cảm xúc được thể hiện qua cơ thể như thế nào. Đọc <em>Acting for Animators</em> của Ed Hooks là khởi đầu tốt.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Phần mềm 3D &amp; rig</summary>
+      <div class="arc-card-body">
+        <p>Maya là tiêu chuẩn ngành phim và game AAA. Blender ngày càng mạnh và là lựa chọn miễn phí tốt nhất. MotionBuilder chuyên về animation và mocap. Cần thành thạo ít nhất một, và hiểu cấu trúc rig — IK/FK, constraint, control hierarchy — để khắc phục khi rig bị lỗi.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Quan sát &amp; phân tích</summary>
+      <div class="arc-card-body">
+        <p>Animator giỏi không ngừng quan sát thế giới thực — cách trẻ con khác người lớn đi, cách người mệt khác người sung sức, cách động vật chuyển động khác người. Mang theo điện thoại để ghi video làm reference, và phân tích các cảnh hay từ Pixar, ILM, Blizzard để học từ những người giỏi nhất.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Cảm thẩm mỹ &amp; bố cục</summary>
+      <div class="arc-card-body">
+        <p>Một pose đẹp về animation là pose có silhouette rõ ràng, đường line of action mạnh, và bố cục đẹp dù nhìn từ góc nào. Animator cần học gestural drawing, posing, và composition như họa sĩ — không chỉ là kỹ năng kỹ thuật.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Kỷ luật &amp; quản lý cảnh</summary>
+      <div class="arc-card-body">
+        <p>Một cảnh 5 giây có thể mất 1–2 tuần làm. Animator phải làm việc đều đặn mỗi ngày, biết cách phân chia thời gian giữa blocking, splining và polishing, và biết khi nào nên dừng polishing — vì polishing có thể kéo dài vô tận. Quản lý version file (animation_v01, v02, v03) là kỹ năng sự nghiệp quan trọng.</p>
+      </div>
+    </details>
+
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Làm cách nào để trở thành 3D Animator?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Học 12 nguyên tắc animation</strong>
+        <p>Đây là nền tảng bắt buộc dù bạn làm 2D hay 3D. Đọc <em>The Animator's Survival Kit</em> của Richard Williams và xem các bài giảng miễn phí trên YouTube của AlanBeckerTutorials. Thực hành từng nguyên tắc qua các bài tập cơ bản — bouncing ball, pendulum, walk cycle.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Thành thạo Maya hoặc Blender</strong>
+        <p>Maya cho ai muốn vào studio AAA, Blender cho ai muốn tiết kiệm chi phí và tự học. Học giao diện, dopesheet, graph editor, cách import rig và đặt keyframe. Không cần học modeling hay rigging sâu — tập trung vào animation tools.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Hoàn thành các bài tập animation tiêu chuẩn</strong>
+        <p>Mọi animator đều đi qua cùng các bài tập: bouncing ball với weight khác nhau, pendulum, body mechanics (lift heavy box, jump), walk cycle, run cycle, body acting (push, pull), dialogue lip sync. Hoàn thành tất cả và làm lại đến khi đạt chất lượng portfolio.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Theo khóa animation chuyên sâu</strong>
+        <p>AnimSchool, Animation Mentor, iAnimate, hoặc CG Spectrum đều là khóa online được công nhận trong ngành. Mentor sẽ critique bài hằng tuần — đây là phần quan trọng nhất, vì animator học bằng critique chứ không bằng việc xem video. Nếu chi phí cao, GoMotion và Spline Doctors có nội dung tương tự với giá thấp hơn.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Làm các cảnh acting và performance dài hơn</strong>
+        <p>Sau khi xong các bài tập cơ bản, làm 3–4 cảnh acting 10–15 giây với rig nhân vật quality cao (như rig Bonnie, Stewart, Mery — free download). Chọn dialogue từ phim, podcast hay tự ghi âm, rồi animate nhân vật diễn lại. Đây là phần lớn portfolio sẽ thể hiện.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Xây dựng demo reel 3D animation</strong>
+        <p>Demo reel của 3D Animator nên dài 1–2 phút, chứa 3–5 cảnh hay nhất. Mở đầu bằng cảnh hay nhất (thường là dialogue acting). Nên có: 1 body mechanics complex (jump, fight, push), 1 dialogue performance với lip sync, 1 creature hoặc quadruped nếu muốn vào VFX. Đăng lên Vimeo, link từ ArtStation và LinkedIn. Riêng cho game, có thể thêm 1 in-game animation loop (walk, run, attack) xuất sang Unreal hoặc Unity.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

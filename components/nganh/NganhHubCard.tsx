@@ -1,7 +1,15 @@
-import Image from "next/image";
-import Link from "next/link";
+"use client";
 
-import { getCoverUrl } from "@/lib/articles/cover";
+import Link from "next/link";
+import { useState } from "react";
+
+import { removeNganhFromNhom } from "@/app/nganh/actions";
+import { NganhHubCardThumb } from "@/components/nganh/hub/NganhHubCardThumb";
+import {
+  useNganhHubEdit,
+  useNganhHubRefresh,
+} from "@/components/nganh/hub/NganhHubEditContext";
+import { NctRemoveIcon } from "@/components/nganh/NctRemoveIcon";
 import type { DeptCardTheme } from "@/lib/career/hubRailTheme";
 import type { NganhHubItem } from "@/lib/nganh/types";
 
@@ -9,6 +17,8 @@ type Props = {
   item: NganhHubItem;
   href: string;
   deptTheme: DeptCardTheme;
+  /** Nhóm section hiện tại — dùng gỡ `article_gan_nhom` khi quản trị. */
+  nhomId?: string | null;
 };
 
 function displayTitle(item: NganhHubItem): string {
@@ -21,21 +31,98 @@ function subtitle(item: NganhHubItem, main: string): string | null {
   return eng;
 }
 
-function thumbLabel(item: NganhHubItem, title: string): string {
-  const code = item.ma_nganh?.trim();
-  if (code) return code;
-  const w = title.split(/\s+/).filter(Boolean);
-  if (w.length >= 2) {
-    return `${w[0]!.slice(0, 1)}${w[1]!.slice(0, 1)}`.toUpperCase();
-  }
-  return title.slice(0, 2).toUpperCase() || "NH";
-}
-
-export function NganhHubCard({ item, href, deptTheme }: Props) {
+export function NganhHubCard({ item, href, deptTheme, nhomId }: Props) {
+  const hub = useNganhHubEdit();
+  const refresh = useNganhHubRefresh();
+  const [busy, setBusy] = useState(false);
   const main = displayTitle(item);
   const sub = subtitle(item, main);
   const khoi = item.khoi_thi?.filter(Boolean) ?? [];
-  const coverUrl = getCoverUrl(item.cover_id);
+  const editing = Boolean(hub?.isEditing);
+  const canRemoveFromNhom = editing && Boolean(nhomId?.trim());
+
+  async function onRemoveFromNhom(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!nhomId?.trim() || busy) return;
+    if (
+      !confirm(
+        "Gỡ ngành khỏi nhóm này? Ngành vẫn còn trên CINs (có thể nằm nhóm khác hoặc mục Ngành khác).",
+      )
+    ) {
+      return;
+    }
+    setBusy(true);
+    const r = await removeNganhFromNhom(item.id, nhomId.trim());
+    setBusy(false);
+    if (!r.ok) {
+      hub?.showToast(r.message);
+      return;
+    }
+    hub?.showToast("Đã gỡ ngành khỏi nhóm.");
+    refresh();
+  }
+
+  const cardBody = (
+    <>
+      <NganhHubCardThumb item={item} title={main} />
+      <div className="hn-role-body">
+        <span className="career-hub-card-text">
+          <span className="career-hub-card-title">{main}</span>
+          {sub ? (
+            <span className="career-hub-card-title-vi">{sub}</span>
+          ) : null}
+          {item.ma_nganh ? (
+            <span className="hn-nganh-ma-badge">
+              {"Mã ngành: "}
+              {item.ma_nganh}
+            </span>
+          ) : null}
+          {khoi.length > 0 ? (
+            <span className="hn-nganh-khoi">
+              {khoi.slice(0, 4).join("\u00a0\u00b7\u00a0")}
+              {khoi.length > 4 ? "\u2026" : ""}
+            </span>
+          ) : null}
+          {editing ? (
+            <Link
+              href={href}
+              className="hn-hub-card-edit-link"
+              onClick={(e) => e.stopPropagation()}
+            >
+              Sửa trang →
+            </Link>
+          ) : null}
+        </span>
+      </div>
+    </>
+  );
+
+  if (editing) {
+    return (
+      <li>
+        <div className="hn-nganh-card-edit-wrap">
+          <div
+            className="hn-role-card hn-nganh-card hn-nganh-card--editing"
+            data-dept={deptTheme}
+          >
+            {cardBody}
+          </div>
+          {canRemoveFromNhom ? (
+            <button
+              type="button"
+              className="hn-hub-card-remove"
+              disabled={busy}
+              onClick={(e) => void onRemoveFromNhom(e)}
+              aria-label={`Gỡ ${main} khỏi nhóm`}
+            >
+              <NctRemoveIcon />
+            </button>
+          ) : null}
+        </div>
+      </li>
+    );
+  }
 
   return (
     <li>
@@ -44,54 +131,13 @@ export function NganhHubCard({ item, href, deptTheme }: Props) {
         className="hn-role-card hn-nganh-card"
         data-dept={deptTheme}
         aria-label={
-          item.ma_nganh
-            ? `${main} — mã ngành ${item.ma_nganh}`
-            : main
+          item.ma_nganh ? `${main} — mã ngành ${item.ma_nganh}` : main
         }
       >
-        <div className="hn-role-thumb">
-          {coverUrl ? (
-            <Image
-              src={coverUrl}
-              alt=""
-              width={240}
-              height={160}
-              className="career-hub-card-img"
-              sizes="(max-width: 560px) 50vw, 255px"
-            />
-          ) : (
-            <div className="career-hub-card-ph hn-nganh-card-ph" aria-hidden>
-              <span className="hn-nganh-thumb-label">
-                {thumbLabel(item, main)}
-              </span>
-            </div>
-          )}
-        </div>
-        <div className="hn-role-body">
-          <span className="career-hub-card-text">
-            <span className="career-hub-card-title">{main}</span>
-            {sub ? (
-              <span className="career-hub-card-title-vi">{sub}</span>
-            ) : null}
-            {item.ma_nganh ? (
-              <span className="hn-nganh-ma-badge">
-                Mã ngành: {item.ma_nganh}
-              </span>
-            ) : null}
-            {khoi.length > 0 ? (
-              <span className="hn-nganh-khoi">
-                {khoi.slice(0, 4).join(" · ")}
-                {khoi.length > 4 ? " …" : ""}
-              </span>
-            ) : null}
-          </span>
-          <footer className="hn-role-foot">
-            <span className="hn-role-arrow" aria-hidden>
-              →
-            </span>
-          </footer>
-        </div>
+        {cardBody}
       </Link>
     </li>
   );
 }
+
+

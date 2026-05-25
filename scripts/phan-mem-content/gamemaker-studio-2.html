@@ -1,0 +1,209 @@
+<section class="arc-intro">
+  <p>Bạn chơi Undertale, Hotline Miami hay nhiều game pixel 2D trên Steam — một phần đáng kể trong số đó được làm bằng <strong>GameMaker Studio 2</strong>, IDE game 2D lâu đời kết hợp kéo-thả event và ngôn ngữ <strong>GML</strong> (GameMaker Language). Cùng công cụ này cũng xuất hiện trong lớp học STEM và game jam khi học sinh cần xuất bản nhanh lên desktop hoặc mobile mà chưa sẵn sàng học C# Unity đầy đủ.</p>
+  <p>GameMaker không phải engine 3D hay công cụ no-code thuần — nó xoay quanh <strong>room, object, sprite và event</strong>. Hiểu GameMaker giúp học sinh THPT bước vào lập trình game 2D thực tế: vừa học logic điều kiện, collision và state machine qua GML, vừa có thể publish commercial game nếu kiên trì hoàn thiện dự án.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>GameMaker Studio 2 là gì?</h2>
+  <p>GameMaker Studio 2 do <strong>YoYo Games</strong> (thuộc Opera) phát triển — <strong>IDE và runtime game 2D</strong> chạy trên Windows và macOS. Kế thừa dòng GameMaker từ GM8/Studio; phiên bản hiện tại hỗ trợ GML Visual (drag-drop) và GML Code, export sang Windows, macOS, HTML5, Android, iOS và console (tùy license).</p>
+  <p>Khác với Unity (engine 3D/2D đa năng) hay Construct (no-code browser), GameMaker là không gian làm việc quanh <strong>Room Editor, Object Events và Sprite Editor</strong>: mỗi object (player, enemy, bullet) có event Create, Step, Collision; bạn viết logic bằng GML hoặc kéo block visual. Giao diện có resource tree, room view và code editor — ban đầu trông gọn, nhưng có thể xây game commercial hoàn chỉnh khi nắm instance, room transition và data structure.</p>
+  <ul class="arc-list">
+    <li><strong>Room &amp; tile/layer system</strong> — thiết kế level 2D với layer, tileset và camera</li>
+    <li><strong>GML Visual &amp; GML Code</strong> — logic từ drag-drop đến script text linh hoạt</li>
+    <li><strong>Sprite &amp; animation</strong> — frame animation, collision mask và origin point</li>
+    <li><strong>Export đa nền tảng</strong> — desktop, mobile, web; phù hợp indie 2D và edu project</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"GameMaker Studio 2 IDE room editor GML interface screenshot"</span>
+    </div>
+    <p class="arc-image-caption">Giao diện GameMaker — room editor, resource tree và GML code panel</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>GameMaker thường đứng ở giai đoạn <strong>prototype đến sản xuất game 2D indie hoàn chỉnh</strong>: solo dev hoặc team nhỏ thiết kế sprite, dựng room, viết GML cho gameplay loop, test build desktop/mobile rồi publish Steam, itch.io hoặc app store. Với giáo dục, GameMaker dạy programming fundamentals qua game — biến, vòng lặp, function — mà học sinh thấy kết quả ngay trên màn hình. Thường làm việc cùng Aseprite (pixel art), Audacity (SFX) và Tiled (map) khi cần asset bên ngoài; game lớn hơn có thể chuyển sang Unity/Godot nếu cần 3D hoặc team scale.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Room, object và event system</h3>
+    <p>Thế mạnh cốt lõi của GameMaker là <strong>object-oriented event model</strong>. Mỗi thực thể game là một object: obj_player có event Step để đọc phím, event Collision với obj_enemy để trừ HP. Room chứa instance của object — bạn đặt player spawn, enemy patrol path và tilemap nền. Inheritance giúp obj_enemy_base chia sẻ logic cho nhiều loại quái.</p>
+    <p>Đối với học sinh THPT mới làm quen, bài tập thực tế hay gặp: clone platformer cổ điển (nhảy, coin, flag), top-down shooter đơn giản, hoặc puzzle game một màn — vừa luyện game feel vừa làm portfolio game 2D cho itch.io.</p>
+    <ul class="arc-list">
+      <li><strong>Events</strong> — Create, Step, Draw, Collision, Alarm cho state machine cơ bản</li>
+      <li><strong>Instances</strong> — mỗi enemy trên màn hình là instance riêng với biến HP, speed</li>
+      <li><strong>Room order &amp; persistent</strong> — chuyển màn, lưu progress giữa level</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"GameMaker room editor platformer tilemap layout"</span>
+        </div>
+        <p class="arc-image-caption">Room editor — tilemap, layer và đặt instance object</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"GameMaker GML object events Step Collision code"</span>
+        </div>
+        <p class="arc-image-caption">Object events — GML Step và Collision logic</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. GML, physics 2D và built-in functions</h3>
+    <p>GameMaker Language (GML) là <strong>ngôn ngữ script cấp cao</strong> gần JavaScript/C# — dễ đọc cho người mới. Bạn dùng biến instance (hp, spd), struct/array, function và coroutine-style timeline. Box2D physics tích hợp sẵn cho game physics-based; pathfinding và mp_grid hỗ trợ AI patrol đơn giản mà không cần plugin.</p>
+    <p>Học GML dạy tư duy lập trình thật: debug lỗi syntax, tối ưu vòng lặp, tách logic vào script reusable — kỹ năng chuyển sang Unity C# hoặc Godot GDScript sau này dễ hơn so với chỉ kéo block no-code.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"GameMaker GML code editor physics 2D platformer"</span>
+      </div>
+      <p class="arc-image-caption">GML scripting — movement, collision và physics 2D</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Export, monetization và pipeline indie</h3>
+    <p>Sau khi game chạy ổn trong IDE, bước tiếp theo là <strong>build và publish</strong>. GameMaker export runtime tối ưu cho 2D — file build nhỏ hơn Unity nhiều trường hợp cho game pixel. License Creator/Enterprise mở khóa export mobile và console; bản trial 30 ngày đủ để hoàn thành prototype jam.</p>
+    <p>Luồng làm việc điển hình: sprite Aseprite → object/room GameMaker → GML gameplay → QA build → Steam/itch.io page. Hiểu quy trình này giúp bạn không chỉ «biết một phần mềm» mà nắm được cách game indie 2D đi từ ý tưởng đến sản phẩm có thể bán.</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"GameMaker export Steam indie 2D game publish workflow"</span>
+      </div>
+      <p class="arc-image-caption">Luồng publish — build GameMaker, QA và đăng Steam/itch.io</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai công cụ hay được đặt cạnh GameMaker nhất là <strong>Construct 3</strong> (no-code browser, event sheet trực quan) và <strong>Unity 2D</strong> (engine đa năng, tiêu chuẩn ngành). Không có câu trả lời «đúng duy nhất» — tùy bạn cần học code sâu, prototype siêu nhanh hay lộ trình nghề game programmer/engineer.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">GameMaker vs Construct 3</h3>
+    <p>Construct 3 chạy trên browser, logic bằng <strong>event sheet block</strong> — rất phù hợp người chưa viết code và publish HTML5 nhanh. GameMaker yêu cầu học GML (hoặc GML Visual) nhưng linh hoạt hơn cho game commercial 2D phức tạp, export Steam/console mature và ecosystem indie lâu đời (Undertale, Hyper Light Drifter tradition).</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"GameMaker Studio 2 GML 2D indie game IDE interface"</span>
+        </div>
+        <p class="arc-image-caption">GameMaker — GML script và hệ sinh thái indie 2D trưởng thành</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Construct 3 game engine browser event sheet screenshot"</span>
+        </div>
+        <p class="arc-image-caption">Construct 3 — no-code event sheet, prototype browser nhanh</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>GameMaker mạnh hơn:</strong> GML linh hoạt, game commercial 2D lâu dài, export desktop/mobile/console, cộng đồng indie case study phong phú.<br>
+      <strong>Construct 3 mạnh hơn:</strong> không cần cài IDE nặng, event sheet dễ cho người mới, HTML5 export native cho web game.<br>
+      <strong>Chọn GameMaker khi:</strong> bạn muốn học lập trình game thật và hướng tới indie 2D commercial trên Steam.<br>
+      <strong>Chọn Construct 3 khi:</strong> cần prototype no-code trong giờ học STEM hoặc game web casual không cần GML.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">GameMaker vs Unity 2D</h3>
+    <p>Unity là <strong>engine 3D/2D đa năng</strong> với C#, Asset Store khổng lồ và tiêu chuẩn tuyển dụng game studio lớn. GameMaker nhẹ hơn cho pure 2D: setup nhanh, ít overhead, workflow room/object quen thuộc với pixel game. Unity 2D mạnh khi dự án cần 3D sau này, team lớn, hoặc console/AAA pipeline — nhưng learning curve dốc hơn cho học sinh mới.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"GameMaker pixel art 2D platformer indie game screenshot"</span>
+        </div>
+        <p class="arc-image-caption">GameMaker — tối ưu workflow game 2D pixel và arcade</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Unity 2D tilemap game engine interface C# script"</span>
+        </div>
+        <p class="arc-image-caption">Unity 2D — engine đa năng, C# và Asset Store</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>GameMaker mạnh hơn:</strong> thời gian từ zero đến playable 2D ngắn hơn, GML dễ hơn C# cho beginner, license indie 2D-focused.<br>
+      <strong>Unity 2D mạnh hơn:</strong> scale team lớn, 3D/2D mixed, job market rộng, plugin và tutorial toàn cầu khổng lồ.<br>
+      <strong>Chọn GameMaker khi:</strong> mục tiêu game 2D thuần, solo/small team, học programming qua game jam.<br>
+      <strong>Chọn Unity 2D khi:</strong> hướng nghề game developer tại studio lớn hoặc dự án cần 3D/engine mở rộng sau.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học GameMaker như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Làm quen IDE và tạo object đầu tiên</strong>
+        <p>Tuần đầu tải trial GameMaker, tạo sprite hình vuông, object obj_player và room test. Thêm event Step: nếu phím mũi tên thì di chuyển. Chạy game (F5) và quan sát instance trong room. Mục tiêu là hiểu mối quan hệ sprite → object → room → run — nhiều bạn THPT nhầm lẫn object (template) với instance (bản copy trên màn hình).</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Platformer cơ bản: nhảy, gravity, collision</strong>
+        <p>Học place_meeting, vspeed/gravity cho platformer; tilemap solid và obj_platform. Thêm coin (collision → destroy + score++) và spawn point. Luyện debug bằng show_debug_message. Thường 2–3 tuần sẽ có một level platformer chơi được — đủ để demo trong lớp hoặc club game trường.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>GML sâu hơn: state, alarm và script</strong>
+        <p>Tách logic enemy patrol vào script scr_enemy_patrol; dùng enum hoặc biến state cho boss phase. Học array/struct lưu inventory đơn giản. Mục tiêu là code có cấu trúc — không nhồi hết vào một event Step 200 dòng, thói quen xấu khiến project jam thành «spaghetti code».</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>UI, sound và room transition</strong>
+        <p>Thêm Draw GUI cho HUD (HP, score), audio_sound_play cho SFX/BGM, room_goto_next cho nhiều level. Học persistent object lưu global score giữa room. Đây là lớp «polish» biến prototype thành game cảm giác hoàn chỉnh hơn.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Hoàn thiện game jam hoặc dự án học kỳ</strong>
+        <p>Chọn scope nhỏ: 3–5 level platformer, bullet hell một màn, hoặc puzzle game. Làm menu, pause, game over và build Windows exe test trên máy bạn bè. Giai đoạn này dạy scope management — feature creep là lý do số một game học sinh không bao giờ ship.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Publish, portfolio và định hướng nghề</strong>
+        <p>Đăng itch.io (free) hoặc Steam (cần fee) với trailer GIF 30 giây và screenshot. Ghi rõ GameMaker, Aseprite nếu có trong README. Tổng hợp 1–3 game link + source (nếu muốn) cho portfolio dev. Tìm hiểu game jam (GMTK, Ludum Dare), khóa game dev trường hoặc chuyển Unity/Godot khi sẵn sàng — GameMaker là bàn đạp tốt, không phải trần nghề nghiệp.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

@@ -1,0 +1,209 @@
+<section class="arc-intro">
+  <p>Bạn mở link truyện trên trình duyệt — mỗi đoạn văn kết thúc bằng hai hoặc ba lựa chọn: «Đi vào rừng», «Quay về làng», «Gọi tên người bạn». Bấm một nút, câu chuyện rẽ nhánh sang hướng hoàn toàn khác — không cần cài game, không cần engine 3D. Phần lớn truyện tương tác dạng này trên web được viết bằng <strong>Twine</strong>, công cụ interactive fiction mã nguồn mở miễn phí.</p>
+  <p>Twine không phải phần mềm viết tiểu thuyết thuần văn bản hay công cụ dựng game 3D — nó tập trung vào <strong>câu chuyện rẽ nhánh</strong> xuất ra HTML: học sinh THPT có thể hoàn thành visual novel đơn giản, game text adventure hoặc dự án Ngữ văn tương tác chỉ với trình duyệt và tư duy kể chuyện, trước khi nhảy sang Unity hay Ink phức tạp hơn.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>Twine là gì?</h2>
+  <p>Twine do <strong>Chris Kottke</strong> (và cộng đồng mã nguồn mở) phát triển — <strong>IDE viết interactive fiction</strong> chạy trên Windows, macOS và Linux (bản web Twine 2 chạy trong trình duyệt). Bạn tạo «passage» (đoạn văn), nối bằng liên kết [[Như thế này]] sang passage khác; Twine biên dịch thành file HTML chạy offline hoặc host lên itch.io, Neocities, GitHub Pages.</p>
+  <p>Khác với Word hay Google Docs chỉ có thứ tự tuyến tính, Twine mô hình hóa <strong>hypertext fiction</strong>: mỗi passage là một node, sơ đồ Story Map hiển thị toàn bộ nhánh như mind map. Giao diện có editor văn bản, bảng passage list và story format (Harlowe, SugarCube, Chapbook) — ban đầu trông đơn giản, nhưng có thể mở rộng bằng biến, macro và CSS tùy chỉnh khi dự án lớn hơn.</p>
+  <ul class="arc-list">
+    <li><strong>Passage &amp; link</strong> — viết đoạn văn, tạo liên kết rẽ nhánh bằng cú pháp [[Nhãn passage]] hoặc nút bấm</li>
+    <li><strong>Story formats</strong> — Harlowe (dễ học), SugarCube (macro mạnh), Chapbook (gọn cho người mới)</li>
+    <li><strong>Variables &amp; logic</strong> — lưu điểm, cờ trạng thái, điều kiện hiện lựa chọn (tùy format)</li>
+    <li><strong>Publish HTML</strong> — xuất một file .html duy nhất, không cần server backend</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"Twine 2 story map passage editor interactive fiction screenshot"</span>
+    </div>
+    <p class="arc-image-caption">Giao diện Twine — Story Map với passage node và liên kết rẽ nhánh</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>Twine thường đứng ở giai đoạn <strong>viết và prototype narrative</strong>: tác giả hoặc học sinh dựng cấu trúc câu chuyện, playtest nhánh trên trình duyệt, thu feedback rồi publish link. Với game jam narrative-only, Twine là sản phẩm cuối; với game có đồ họa, writer có thể dùng Twine để map plot trước khi chuyển sang Ink hoặc Articy rồi import Unity. Thường làm việc cùng itch.io (host), CSS tùy chỉnh (giao diện đẹp hơn) và Audacity (nhạc nền embed nếu cần) khi polish presentation.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Passage, Story Map và hypertext</h3>
+    <p>Trái tim của Twine là <strong>passage graph</strong>: mỗi ô trên Story Map là một đoạn văn — mô tả cảnh, hội thoại hoặc lựa chọn của người chơi. Bạn double-click tạo passage mới, gõ liên kết <code>[[Đi về phía bắc]]</code> và Twine tự tạo passage đích nếu chưa có. Zoom out để thấy toàn bộ cây — cách trực quan giúp tránh «nhánh chết» (dead end) mà writer hay mắc khi viết trong Word.</p>
+    <p>Đối với học sinh THPT, bài tập thực tế hay gặp: truyện phiêu lưu ngắn 5–10 phút với 3 ending, hoặc dự án Ngữ văn «viết lại một chương truyện cổ tích theo hướng tương tác» — vừa luyện kể chuyện vừa hiểu cấu trúc không tuyến tính.</p>
+    <ul class="arc-list">
+      <li><strong>Passage title</strong> — đặt tên rõ ràng (Start, Forest, BadEnding) để Story Map dễ đọc</li>
+      <li><strong>Link syntax</strong> — <code>[[Hiển thị|Passage thật]]</code> tách nhãn nút và tên passage đích</li>
+      <li><strong>Start passage</strong> — passage có biểu tượng cây xanh, điểm vào duy nhất của truyện</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Twine story map branching passages hypertext fiction"</span>
+        </div>
+        <p class="arc-image-caption">Story Map — toàn cảnh nhánh passage và liên kết</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Twine passage editor text link interactive story"</span>
+        </div>
+        <p class="arc-image-caption">Passage editor — văn bản và cú pháp liên kết rẽ nhánh</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Story format, biến và logic điều kiện</h3>
+    <p>Twine không chỉ là link tĩnh — mỗi project chọn <strong>story format</strong> quyết định cú pháp mở rộng. <strong>Harlowe</strong> phù hợp người mới với macro <code>(set: $gold to 10)</code>; <strong>SugarCube</strong> mạnh hơn với inventory, save/load và JavaScript tùy chỉnh; <strong>Chapbook</strong> gọn cho truyện ngắn. Biến (variable) lưu trạng thái: số vàng, mức tin cậy NPC — passage sau chỉ hiện lựa chọn khi điều kiện đạt.</p>
+    <p>Đây là bước «game hóa» câu chuyện mà không cần engine: học sinh học if/else qua macro thay vì C# — nền tảng tốt trước khi chuyển sang Ink hoặc dialogue system trong Unity.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Twine SugarCube variables conditional link macro screenshot"</span>
+      </div>
+      <p class="arc-image-caption">SugarCube — biến trạng thái và liên kết có điều kiện</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. CSS, media và publish lên web</h3>
+    <p>Sau khi logic ổn, bước polish là <strong>Story Stylesheet</strong> (CSS) và <strong>Story JavaScript</strong> nếu cần — đổi font, màu nền, thêm ảnh minh họa bằng thẻ HTML trong passage, nhúng nhạc nền. Twine xuất <strong>Publish to File</strong> thành .html duy nhất — upload itch.io, gửi link giáo viên hoặc embed vào portfolio cá nhân mà không cần hosting phức tạp.</p>
+    <p>Luồng làm việc điển hình: outline nhánh trên giấy → dựng Story Map Twine → playtest mọi ending → CSS + ảnh → publish itch.io. Hiểu quy trình này giúp bạn thấy interactive fiction là sản phẩm hoàn chỉnh, không chỉ «bài văn có nút bấm».</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Twine published HTML interactive fiction itch.io browser play"</span>
+      </div>
+      <p class="arc-image-caption">Publish HTML — truyện Twine chạy trên trình duyệt và itch.io</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai công cụ hay được đặt cạnh Twine nhất là <strong>Articy Draft</strong> (authoring narrative chuyên nghiệp cho game studio) và <strong>Ink</strong> (ngôn ngữ script cốt truyện của Inkle Studios). Không có câu trả lời «đúng duy nhất» — tùy bạn viết truyện web độc lập, làm visual novel trong engine hay tham gia pipeline game AAA.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Twine vs Articy Draft</h3>
+    <p>Articy Draft trả phí, có flowchart hội thoại, entity database nhân vật và export plugin Unity/Unreal — chuẩn công nghiệp cho narrative designer trong studio. Twine miễn phí, mã nguồn mở, xuất HTML ngay — phù hợp solo writer, học sinh THPT và game jam chỉ cần text. Articy mạnh khi team 10+ người cần đồng bộ bible cốt truyện; Twine mạnh khi cần ship link playable trong vài ngày.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Twine open source interactive fiction story map editor"</span>
+        </div>
+        <p class="arc-image-caption">Twine — miễn phí, HTML publish, phù hợp học sinh và indie writer</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Articy Draft 3 flowchart dialogue node game narrative screenshot"</span>
+        </div>
+        <p class="arc-image-caption">Articy Draft — flowchart chuyên nghiệp và export sang engine</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Twine mạnh hơn:</strong> chi phí bằng không, không cần cài engine, publish web tức thì, learning curve thấp cho hypertext fiction.<br>
+      <strong>Articy mạnh hơn:</strong> entity database, condition phức tạp, multi-user, export trực tiếp Unity/Unreal, phù hợp game commercial lớn.<br>
+      <strong>Chọn Twine khi:</strong> dự án Ngữ văn tương tác, game jam narrative, prototype plot trước khi có artist/programmer.<br>
+      <strong>Chọn Articy khi:</strong> làm việc trong studio game, cần pipeline writer → programmer chuẩn hóa và bible cốt truyện dài hạn.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Twine vs Ink</h3>
+    <p>Ink là <strong>ngôn ngữ markup</strong> viết cốt truyện dạng text (file .ink), biên dịch sang JSON/runtime cho game — nổi tiếng qua 80 Days, Heaven's Vault. Twine trực quan hơn với Story Map kéo-nhìn; Ink mạnh khi programmer tích hợp sâu vào C#/Unity hoặc custom engine. Học sinh chưa code thường bắt đầu Twine; khi cần dialogue phức tạp trong game 2D/3D, chuyển sang Ink + Inky editor.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Twine Harlowe interactive story browser playable"</span>
+        </div>
+        <p class="arc-image-caption">Twine — visual editor, không bắt buộc biết lập trình</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Inky Ink language editor branching narrative Inkle"</span>
+        </div>
+        <p class="arc-image-caption">Ink/Inky — script text tích hợp vào game engine</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Twine mạnh hơn:</strong> giao diện trực quan, publish HTML độc lập, phù hợp writer thuần văn bản và THPT.<br>
+      <strong>Ink mạnh hơn:</strong> tích hợp runtime trong Unity/game, knot/stitch cấu trúc code-like, dùng trong sản phẩm commercial lớn.<br>
+      <strong>Chọn Twine khi:</strong> truyện web, homework Ngữ văn, jam không có programmer.<br>
+      <strong>Chọn Ink khi:</strong> game có đồ họa trong Unity, team đã có dev đọc JSON Ink runtime.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học Twine như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Cài Twine và tạo story đầu tiên</strong>
+        <p>Tải Twine 2 từ trang chính thức (twinery.org) hoặc dùng bản web. Tuần đầu: tạo story mới, đặt tên, mở Story Map; tạo passage Start với vài câu giới thiệu và hai liên kết <code>[[Đi tiếp]]</code> / <code>[[Quay lại]]</code>. Bấm Play (máy tính hình cây) để test — mục tiêu là hiểu passage = màn hình, link = lựa chọn trước khi thêm biến hay CSS.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Story Map và tránh nhánh chết</strong>
+        <p>Vẽ outline 3–5 ending trên giấy trước khi code. Trên Story Map, mỗi nhánh nên dẫn tới ending hoặc quay về hub chung — tránh passage không có link ra (dead end). Đặt tên passage rõ ràng: «Forest_Wolf», «Ending_Good». Thường 1–2 tuần luyện tập short story 10 passage sẽ quen tư duy hypertext.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Chọn story format và biến cơ bản</strong>
+        <p>Thử Harlowe cho dự án đầu: macro <code>(set: $trust to 0)</code>, tăng trust khi chọn đúng, ẩn link nếu <code>$trust &lt; 3</code>. Nếu cần save/load hoặc inventory, chuyển sang SugarCube và đọc wiki macro. Mục tiêu: một cơ chế game đơn giản (điểm, cờ) gắn với narrative — giống RPG text cổ điển.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>CSS và hình ảnh minh họa</strong>
+        <p>Mở Story Stylesheet: đổi font (Google Fonts), nền tối cho truyện kinh dị, max-width cho dễ đọc trên mobile. Chèn <code>&lt;img src="..."&gt;</code> trong passage (ảnh host cùng file hoặc URL). Polish giao diện giúp bài nộp trường hoặc itch.io trông professional hơn nhiều so với plain white page mặc định.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Publish và playtest có hệ thống</strong>
+        <p>Publish to File → upload itch.io (chọn «HTML»), gửi link 5–10 người chơi thử mọi nhánh. Ghi lại chỗ họ «kẹt» hoặc ending khó tìm — sửa link và thêm hint passage. Giai đoạn này dạy iteration theo feedback, giống writer game thật: không phải viết xong một lần là xong.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Portfolio và bước tiếp theo</strong>
+        <p>Hoàn thiện 1–2 truyện Twine (5–15 phút chơi) với cover itch.io và mô tả tag (#interactive-fiction, #twine). Nếu hướng game dev, thử chuyển plot sang Ink hoặc Articy rồi gắn Unity visual novel; nếu hướng văn học/sáng tác, Twine đủ làm portfolio writer tương tác. Tham gia jam narrative (NarraScope, IFComp cộng đồng quốc tế) để có deadline và đọc truyện bạn đồng trang lứa.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

@@ -1,0 +1,182 @@
+[
+  {
+    "id": "99005932-b7b3-4466-bcb9-636b05311fb3",
+    "slug": "baselight",
+    "tieu_de_viet": "Baselight — Chỉnh màu phim chuyên nghiệp",
+    "tom_tat": "Hệ thống color grading của FilmLight — dùng trong hậu kỳ phim điện ảnh và truyền hình cao cấp với công cụ primary/secondary grade mạnh.",
+    "meta_title": "Baselight là gì? Color grading, giá và hướng dẫn | CINS",
+    "meta_description": "Baselight: FilmLight, grade phim, Truelight. So sánh DaVinci Resolve, Baselight One và luồng hậu kỳ điện ảnh.",
+    "meta": {
+      "nha_phat_hanh": "FilmLight",
+      "version": "6",
+      "platform": ["Linux", "macOS", "Windows"],
+      "website": "https://www.filmlight.ltd.uk/baselight.php",
+      "goi_mien_phi": "Không (studio/facility)",
+      "gia_thanh": "Theo giấy phép facility · Baselight One ~995 USD",
+      "hinh_thuc_mua": "Thuê bao · perpetual · facility",
+      "link_tai": "https://www.filmlight.ltd.uk/baselight.php"
+    }
+  },
+  {
+    "id": "26cf54ff-de9f-4cbe-a765-0e9f37166cc3",
+    "slug": "blackmagic-fusion",
+    "tieu_de_viet": "Blackmagic Fusion — VFX &amp; compositing",
+    "tom_tat": "Công cụ compositing node-based — tích hợp DaVinci Resolve, dùng cho keying, tracking, motion graphics và hiệu ứng phim.",
+    "meta_title": "Blackmagic Fusion là gì? VFX, giá và hướng dẫn học | CINS",
+    "meta_description": "Fusion: node compositing, keying, 3D. So sánh After Effects, Nuke và lộ trình học VFX cho người mới.",
+    "meta": {
+      "nha_phat_hanh": "Blackmagic Design",
+      "version": "19",
+      "platform": ["Windows", "macOS", "Linux"],
+      "website": "https://www.blackmagicdesign.com/products/fusion",
+      "goi_mien_phi": "Miễn phí trong Resolve Studio / Fusion standalone",
+      "gia_thanh": "Miễn phí (Resolve) · Studio ~295 USD một lần",
+      "hinh_thuc_mua": "Miễn phí · mua một lần (Studio)",
+      "link_tai": "https://www.blackmagicdesign.com/products/fusion"
+    }
+  },
+  {
+    "id": "f2600106-d53a-4e19-ad50-32a1c784118e",
+    "slug": "blender",
+    "tieu_de_viet": "Blender — 3D miễn phí toàn diện",
+    "tom_tat": "Suite 3D mã nguồn mở — modeling, animation, sculpt, Cycles render, video editing và asset cho game, phim, in 3D.",
+    "meta_title": "Blender là gì? 3D, animation và hướng dẫn học | CINS",
+    "meta_description": "Blender: modeling, rig, Cycles, Geometry Nodes. So sánh Maya, 3ds Max và lộ trình học 3D miễn phí.",
+    "meta": {
+      "nha_phat_hanh": "Blender Foundation",
+      "version": "4",
+      "platform": ["Windows", "macOS", "Linux"],
+      "website": "https://www.blender.org",
+      "goi_mien_phi": "Miễn phí · mã nguồn mở",
+      "gia_thanh": "Miễn phí",
+      "hinh_thuc_mua": "Miễn phí",
+      "link_tai": "https://www.blender.org/download"
+    }
+  },
+  {
+    "id": "f829ed24-20dc-4ec3-821b-de54959fa935",
+    "slug": "boris-fx",
+    "tieu_de_viet": "Boris FX — Plugin VFX &amp; chỉnh sửa video",
+    "tom_tat": "Hãng plugin hiệu ứng — Sapphire, Continuum, Mocha Pro tích hợp Premiere, After Effects, Avid và Resolve.",
+    "meta_title": "Boris FX là gì? Sapphire, Mocha và hướng dẫn | CINS",
+    "meta_description": "Boris FX: Sapphire, Mocha tracking, Continuum. So sánh Red Giant, native AE và quy trình VFX broadcast.",
+    "meta": {
+      "nha_phat_hanh": "Boris FX",
+      "version": "2024",
+      "platform": ["Windows", "macOS"],
+      "website": "https://borisfx.com",
+      "goi_mien_phi": "Dùng thử từng sản phẩm",
+      "gia_thanh": "Từ ~295 USD/năm (Continuum) · Mocha ~499 USD",
+      "hinh_thuc_mua": "Thuê bao năm · perpetual",
+      "link_tai": "https://borisfx.com/products"
+    }
+  },
+  {
+    "id": "e69b963b-db80-444b-8ad2-1258be5d8518",
+    "slug": "buffer",
+    "tieu_de_viet": "Buffer — Lên lịch đăng mạng xã hội",
+    "tom_tat": "Công cụ schedule và phân tích social — đăng đa kênh, gợi ý thời điểm và báo cáo hiệu suất cho creator và brand.",
+    "meta_title": "Buffer là gì? Social media, giá và hướng dẫn | CINS",
+    "meta_description": "Buffer: lên lịch Instagram, TikTok, LinkedIn. So sánh Hootsuite, Later và quy trình content calendar.",
+    "meta": {
+      "nha_phat_hanh": "Buffer Inc.",
+      "version": "2024",
+      "platform": ["Web", "iOS", "Android"],
+      "website": "https://buffer.com",
+      "goi_mien_phi": "Gói Free (3 kênh, 10 bài/lần)",
+      "gia_thanh": "Từ ~6 USD/tháng (Essentials)",
+      "hinh_thuc_mua": "Thuê bao tháng",
+      "link_tai": "https://buffer.com"
+    }
+  },
+  {
+    "id": "590743be-050b-4347-9c72-62614c8938ef",
+    "slug": "canva-2",
+    "tieu_de_viet": "Canva — Thiết kế đồ họa trực tuyến",
+    "tom_tat": "Nền tảng thiết kế kéo-thả — poster, slide, social media và video ngắn với template sẵn cho học sinh và marketer.",
+    "meta_title": "Canva là gì? Thiết kế, giá và hướng dẫn học | CINS",
+    "meta_description": "Canva: template, Magic Design, brand kit. So sánh Figma, Adobe Express và lộ trình học thiết kế cơ bản.",
+    "meta": {
+      "nha_phat_hanh": "Canva Pty Ltd",
+      "version": "2024",
+      "platform": ["Web", "Windows", "macOS", "iOS", "Android"],
+      "website": "https://www.canva.com",
+      "goi_mien_phi": "Gói Free rộng rãi · Canva for Education",
+      "gia_thanh": "Từ ~13 USD/tháng (Pro)",
+      "hinh_thuc_mua": "Thuê bao tháng · giáo dục",
+      "link_tai": "https://www.canva.com"
+    }
+  },
+  {
+    "id": "47a30990-cbc1-4362-bd37-3854fb942bf8",
+    "slug": "capcut",
+    "tieu_de_viet": "CapCut — Dựng video ngắn &amp; TikTok",
+    "tom_tat": "App chỉnh sửa video của ByteDance — cắt nhanh, hiệu ứng trend, phụ đề tự động và xuất cho TikTok, Reels, Shorts.",
+    "meta_title": "CapCut là gì? Edit video, miễn phí và hướng dẫn | CINS",
+    "meta_description": "CapCut: mobile/desktop, template, auto caption. So sánh Premiere Rush, InShot và quy trình làm clip ngắn.",
+    "meta": {
+      "nha_phat_hanh": "ByteDance",
+      "version": "2024",
+      "platform": ["Windows", "macOS", "iOS", "Android", "Web"],
+      "website": "https://www.capcut.com",
+      "goi_mien_phi": "Miễn phí (Pro tùy chọn)",
+      "gia_thanh": "Miễn phí · CapCut Pro ~8 USD/tháng",
+      "hinh_thuc_mua": "Miễn phí · thuê bao Pro",
+      "link_tai": "https://www.capcut.com"
+    }
+  },
+  {
+    "id": "76086ff6-baff-4192-b08d-0bb9acc00355",
+    "slug": "celtx",
+    "tieu_de_viet": "Celtx — Kịch bản &amp; pre-production",
+    "tom_tat": "Phần mềm viết kịch bản và lập kế hoạch sản xuất — script, storyboard, breakdown và call sheet cho phim và video.",
+    "meta_title": "Celtx là gì? Kịch bản, giá và hướng dẫn học | CINS",
+    "meta_description": "Celtx: screenplay format, breakdown, shooting schedule. So sánh Final Draft, WriterDuet và quy trình pre-pro.",
+    "meta": {
+      "nha_phat_hanh": "Celtx Inc.",
+      "version": "2024",
+      "platform": ["Web", "Windows", "macOS", "iOS"],
+      "website": "https://www.celtx.com",
+      "goi_mien_phi": "Gói miễn phí giới hạn",
+      "gia_thanh": "Từ ~15 USD/tháng (Writer)",
+      "hinh_thuc_mua": "Thuê bao tháng",
+      "link_tai": "https://www.celtx.com"
+    }
+  },
+  {
+    "id": "cf937556-cf26-499a-acb0-02c4ca401043",
+    "slug": "character-animator",
+    "tieu_de_viet": "Character Animator — Hoạt hình 2D realtime",
+    "tom_tat": "Adobe Character Animator — điều khiển puppet 2D bằng webcam và mic, phát trực tiếp hoặc xuất video cho stream và giáo dục.",
+    "meta_title": "Adobe Character Animator là gì? Puppet, giá và hướng dẫn | CINS",
+    "meta_description": "Character Animator: rig, trigger, live stream. So sánh VTuber Live2D, After Effects và lộ trình học puppet animation.",
+    "meta": {
+      "nha_phat_hanh": "Adobe",
+      "version": "2024",
+      "platform": ["Windows", "macOS"],
+      "website": "https://www.adobe.com/products/character-animator.html",
+      "goi_mien_phi": "Dùng thử 7 ngày",
+      "gia_thanh": "Đi kèm Creative Cloud / ~22 USD/tháng",
+      "hinh_thuc_mua": "Thuê bao tháng · Creative Cloud",
+      "link_tai": "https://www.adobe.com/products/character-animator.html"
+    }
+  },
+  {
+    "id": "daf18fa5-7b87-44f3-92b6-6a2ba19ac975",
+    "slug": "civil-3d",
+    "tieu_de_viet": "Civil 3D — Thiết kế hạ tầng dân dụng",
+    "tom_tat": "Phần mềm BIM/civil của Autodesk — đường, san nền, thoát nước và mô hình 3D cơ sở hạ tầng cho kỹ sư xây dựng.",
+    "meta_title": "Autodesk Civil 3D là gì? BIM, giá và hướng dẫn học | CINS",
+    "meta_description": "Civil 3D: alignment, profile, corridor, survey. So sánh AutoCAD, Revit Infra và lộ trình học kỹ sư dân dụng.",
+    "meta": {
+      "nha_phat_hanh": "Autodesk",
+      "version": "2025",
+      "platform": ["Windows"],
+      "website": "https://www.autodesk.com/products/civil-3d",
+      "goi_mien_phi": "Dùng thử · giáo dục",
+      "gia_thanh": "Từ ~290 USD/tháng",
+      "hinh_thuc_mua": "Thuê bao tháng · giáo dục",
+      "link_tai": "https://www.autodesk.com/products/civil-3d"
+    }
+  }
+]

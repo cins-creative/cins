@@ -1,3 +1,9 @@
+/** URL YouTube Shorts (`/shorts/…`) hoặc dạng dọc 9:16. */
+export function isYoutubeShortUrl(url: string | null | undefined): boolean {
+  if (!url?.trim()) return false;
+  return /youtube\.com\/shorts\//i.test(url.trim());
+}
+
 /** Trích ID YouTube từ URL phổ biến (watch, embed, shorts, live, youtu.be). */
 export function getYoutubeId(url: string | null | undefined): string | null {
   if (!url || typeof url !== "string") return null;

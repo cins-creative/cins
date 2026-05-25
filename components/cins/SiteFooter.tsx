@@ -61,7 +61,14 @@ export function SiteFooter() {
       </div>
       <div className="footer-bottom">
         <div>© 2026 CINs — Visual Creative Industries connection platform.</div>
-        <div>Made with ♥ in Vietnam</div>
+        <div>made by{" "}
+          <a
+            href="https://sineart.vn"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            SineArt.vn
+          </a></div>
       </div>
     </footer>
   );

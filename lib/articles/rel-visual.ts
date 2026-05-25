@@ -57,6 +57,8 @@ export function relTagForCard(card: ArticleCard): {
     return { className: "rel-tag tag-yellow", label: "Ngành ĐT" };
   if (loai === "phan_mem")
     return { className: "rel-tag tag-orange", label: "Phần mềm" };
+  if (loai === "mon_hoc")
+    return { className: "rel-tag tag-mint", label: "Môn học" };
   if (loai === "nghe") {
     const q = (card.loai_quan_he ?? "").toUpperCase();
     if (q.includes("TIEN_QUYET") || q.includes("TIEN"))

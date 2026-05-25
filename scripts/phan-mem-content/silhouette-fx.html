@@ -1,0 +1,209 @@
+<section class="arc-intro">
+  <p>Trong cảnh phim hành động, diễn viên đu mình giữa dây điện và khói — sau khi quay xong, VFX artist phải tách nhân vật khỏi nền để thêm CG hoặc xóa dây an toàn. Công việc «vẽ viền quanh người qua từng frame» gọi là <strong>rotoscoping</strong>; studio lớn thường dùng <strong>Silhouette FX</strong> của Boris FX — công cụ chuyên rotoscoping, paint và compositing 2D cho phim và quảng cáo.</p>
+  <p>Silhouette không phải phần mềm dựng phim hay chỉnh màu tổng thể — nó tập trung vào <strong>mask chính xác, paint frame-by-frame và cleanup plate</strong> trước khi bàn giao sang Nuke, Fusion hoặc After Effects. Với học sinh THPT học VFX, làm phim ngắn capstone có hiệu ứng hoặc theo hướng compositor chuyên nghiệp, hiểu Silhouette giúp bạn nắm một mắt xích quan trọng trong pipeline post-production.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>Silhouette FX là gì?</h2>
+  <p><strong>Silhouette FX</strong> do <strong>Boris FX</strong> phát triển — phần mềm <strong>rotoscoping, paint và compositing 2D</strong> chuyên dụng cho VFX và quảng cáo. Tên «Silhouette» gợi ý thao tác tách hình bóng nhân vật hoặc vật thể khỏi nền; thực tế công cụ hỗ trợ cả spline roto, auto-tracking, paint clone và node compositing nhẹ trong cùng một ứng dụng.</p>
+  <p>Khác với After Effects (tổng hợp motion graphics và composite đa dụng), Silhouette được thiết kế cho artist làm <strong>hàng trăm frame roto/paint</strong> mỗi ngày: bàn phím tắt tối ưu, công cụ spline mượt, viewer hiển thị onion skin và reference frame. Giao diện ban đầu trông kỹ thuật, nhưng workflow «import plate → roto layer → export matte» lặp lại xuyên suốt studio VFX tại Việt Nam và châu Á.</p>
+  <ul class="arc-list">
+    <li><strong>Rotoscoping</strong> — vẽ spline/bezier bao quanh nhân vật, vật thể; track hoặc keyframe tay từng frame</li>
+    <li><strong>Paint &amp; cleanup</strong> — xóa dây treo, logo, vết bẩn trên plate bằng clone và paint tools</li>
+    <li><strong>Tracking &amp; stabilization</strong> — bám chuyển động, ổn định footage trước khi roto hoặc paint</li>
+    <li><strong>Export matte</strong> — xuất alpha, shape data sang Nuke, Fusion, AE hoặc Flame</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"Boris FX Silhouette rotoscoping interface spline matte viewport screenshot"</span>
+    </div>
+    <p class="arc-image-caption">Giao diện Silhouette FX — spline roto trên nhân vật và viewer onion skin</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>Silhouette đứng ở giai đoạn <strong>prep plate và tạo matte</strong>: nhận footage từ set (hoặc phim ngắn học sinh) → roto nhân vật/vật thể cần tách → paint cleanup (wire removal, dust) → export alpha hoặc shape sang compositor (Nuke, Fusion). Không thay thế hoàn toàn compositing cuối (grade, CG comp, multi-pass) nhưng giảm tải cho artist Nuke senior — junior roto thường làm Silhouette hoặc Nuke Roto node rồi bàn giao. Thường làm việc cùng Mocha Pro (planar track), Premiere/Resolve (edit) và pipeline màu Baselight/Resolve.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Rotoscoping spline &amp; matte chính xác</h3>
+    <p>Thế mạnh cốt lõi của Silhouette là <strong>roto bằng spline</strong> — vẽ đường bao quanh tóc, tay, áo choàng diễn viên, tinh chỉnh điểm trên từng frame hoặc dùng tracking hỗ trợ. Layer matte tách foreground/background; feather và motion blur aware giúp viền khớp khi nhân vật chuyển động nhanh — yêu cầu khắt khe trong phim điện ảnh và quảng cáo cao cấp.</p>
+    <p>Đối với học sinh THPT mới làm quen, bài tập thực tế hay gặp: quay clip 5–10 giây bạn bè đi bộ trước nền đơn giản → roto silhouette → đặt nhân vật lên background mới — vừa luyện kiên nhẫn frame-by-frame vừa hiểu giá trị matte sạch cho composite.</p>
+    <ul class="arc-list">
+      <li><strong>B-spline / X-spline</strong> — vẽ vùng roto; snap và edit điểm nhanh trên timeline</li>
+      <li><strong>Keyframe &amp; track assist</strong> — track một phần spline, chỉnh tay frame khó (motion blur, tóc)</li>
+      <li><strong>Onion skin &amp; reference</strong> — xem frame trước/sau khi roto để giữ nhịp chuyển động mượt</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Silhouette FX rotoscoping character spline matte hair detail"</span>
+        </div>
+        <p class="arc-image-caption">Roto nhân vật — spline chi tiết quanh tóc và tay, feather khớp motion blur</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Silhouette FX onion skin rotoscoping timeline frame by frame"</span>
+        </div>
+        <p class="arc-image-caption">Onion skin — so sánh frame liền kề khi roto chuyển động nhanh</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Paint, wire removal &amp; plate cleanup</h3>
+    <p>Ngoài roto, Silhouette mạnh về <strong>paint và object removal</strong> — xóa dây treo diễn viên, mic lọt khung, vết bụi sensor hoặc logo không mong muốn. Công cụ clone, blur và temporal paint (copy pixel từ frame khác) giúp « vá » plate mà không cần build CG thay thế toàn cảnh — tiết kiệm thời gian và chi phí trên set.</p>
+    <p>Một shot 50 frame wire removal có thể mất vài giờ đến vài ngày tùy độ phức tạp nền — đây là công việc «nhàu tay» mà studio VFX luôn cần roto/paint artist junior. Học sinh THPT kiên nhẫn và có mắt chi tiết thường phù hợp bước đầu trong ngành.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Silhouette FX wire removal paint cleanup VFX plate before after"</span>
+      </div>
+      <p class="arc-image-caption">Wire removal — paint và clone xóa dây treo trên plate quay thật</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Tracking, stabilization &amp; bàn giao compositor</h3>
+    <p>Trước khi roto, footage rung cần <strong>stabilize</strong> hoặc track để spline bám đúng; Silhouette tích hợp tracker 2D và planar cơ bản. Sau khi hoàn thành matte, export <strong>alpha EXR, shape SVG hoặc project sang Nuke/Fusion</strong> — compositor senior ghép CG, grade và hiệu ứng cuối. Luồng bàn giao rõ ràng giữa roto artist và comp là chuẩn studio lớn.</p>
+    <p>Luồng điển hình: edit lock cut → Silhouette roto/paint → Nuke composite → color grade. Hiểu quy trình này giúp bạn không chỉ «biết một phần mềm» mà định vị đúng vai trò trong đội VFX.</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Silhouette FX export matte Nuke compositing VFX pipeline workflow"</span>
+      </div>
+      <p class="arc-image-caption">Luồng bàn giao — matte Silhouette export sang Nuke cho composite cuối</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai công cụ hay được đặt cạnh Silhouette nhất là <strong>Mocha Pro</strong> (planar tracking &amp; roto Boris FX) và <strong>Nuke</strong> (compositor node-based có Roto node tích hợp). Không có câu trả lời «một công cụ làm tất cả» — studio thường kết hợp tùy loại shot và quy mô team.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Silhouette vs Mocha Pro</h3>
+    <p>Cả hai đều thuộc Boris FX nhưng phục vụ workflow khác nhau. <strong>Mocha Pro</strong> nổi bật với <strong>planar tracking</strong> — bám mặt phẳng (màn hình, tường, biển quảng cáo) và screen insert; roto trong Mocha gắn với track plane. <strong>Silhouette</strong> tối ưu cho <strong>roto organic</strong> (người, tóc, vật cong) và paint frame-by-frame — nơi planar track không đủ chính xác.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Silhouette FX organic rotoscoping character matte VFX"</span>
+        </div>
+        <p class="arc-image-caption">Silhouette — roto organic và paint chi tiết trên nhân vật chuyển động</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Mocha Pro planar tracking screen replacement spline interface"</span>
+        </div>
+        <p class="arc-image-caption">Mocha Pro — planar track mặt phẳng và screen insert cho quảng cáo</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Silhouette mạnh hơn:</strong> roto nhân vật/vật organic, paint cleanup, workflow chuyên roto/paint hàng ngày.<br>
+      <strong>Mocha Pro mạnh hơn:</strong> planar tracking, screen replacement, PowerMesh trên bề mặt nghiêng; tích hợp plugin AE/Nuke.<br>
+      <strong>Chọn Silhouette khi:</strong> shot cần matte người/vật phức tạp, wire removal, paint plate dài.<br>
+      <strong>Chọn Mocha Pro khi:</strong> shot «dán màn hình», track biển bảng, insert 2D lên plane — ít roto tay tóc/tay.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Silhouette vs Nuke (Roto)</h3>
+    <p><strong>Nuke</strong> là compositor industry-standard — có Roto/RotoPaint node mạnh, làm được toàn bộ pipeline comp trong một app. Tuy nhiên studio lớn thường tách <strong>roto/paint sang Silhouette</strong> (hoặc team chuyên) để compositor Nuke tập trung layout node, CG integration và grade — tránh senior comp mắc cả ngày vẽ spline.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Silhouette FX dedicated rotoscoping paint artist workflow"</span>
+        </div>
+        <p class="arc-image-caption">Silhouette — công cụ chuyên roto/paint, tối ưu tốc độ artist junior</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Foundry Nuke Roto node compositing interface VFX pipeline"</span>
+        </div>
+        <p class="arc-image-caption">Nuke — Roto node trong node graph compositing tổng thể</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Silhouette mạnh hơn:</strong> UI và toolset tập trung roto/paint; bàn phím tắt và viewer cho công việc lặp frame-by-frame.<br>
+      <strong>Nuke mạnh hơn:</strong> toàn pipeline comp trong một file node; roto nhẹ, comp CG multi-pass, deep compositing.<br>
+      <strong>Chọn Silhouette khi:</strong> bạn là roto/paint artist hoặc shot cần matte sạch bàn giao sang Nuke.<br>
+      <strong>Chọn Nuke Roto khi:</strong> indie/small team, roto ít frame, hoặc comp và roto cùng một người trong một scene.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học Silhouette FX như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Hiểu rotoscoping và vai trò trong VFX</strong>
+        <p>Trước khi cài phần mềm, xem breakdown VFX (YouTube, ArtStation) để thấy matte tách nhân vật khỏi nền trước khi ghép CG. Tuần đầu quay hoặc tải clip đơn giản (người đi trước nền phẳng, ít motion blur) — mục tiêu hiểu roto là công việc <strong>kiên nhẫn, chi tiết</strong>, không phải hiệu ứng «bấm một nút». Nhiều bạn THPT bỏ sớm vì kỳ vọng AI tự roto hoàn hảo mọi shot.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Làm quen giao diện và spline cơ bản</strong>
+        <p>Import plate, tạo roto layer, vẽ B-spline bao quanh nhân vật ở frame đầu — học thêm/xóa điểm, feather và xem matte trắng/đen. Luyện di chuyển timeline frame-by-frame bằng phím mũi tên. Thường 1–2 tuần roto clip tĩnh hoặc chuyển động chậm sẽ quen tay.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Roto chuyển động, tóc và motion blur</strong>
+        <p>Chuyển sang clip có tay vung, tóc bay — học chia nhiều layer roto (body, tay, tóc), dùng track assist rồi chỉnh tay frame khó. Bật onion skin và so sánh reference. Mục tiêu: matte 5 giây «nhìn được» khi composite lên background mới trong AE hoặc Nuke trial.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Paint cleanup và wire removal đơn giản</strong>
+        <p>Thử xóa vật nhỏ (chai nước lọt khung, vết bẩn) bằng clone paint trên vài frame — hiểu temporal paint copy pixel từ frame sạch. Đây là bước vào công việc wire removal thực tế trên phim ngắn có dây an toàn hoặc mic ẩn.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Dự án phim ngắn hoặc shot VFX hoàn chỉnh</strong>
+        <p>Chọn một shot phim ngắn trường cần tách nhân vật hoặc thay background — roto/paint trong Silhouette (hoặc Nuke/AE nếu chưa có license), composite, export final. Ghi chú thời gian làm và iteration — studio đánh giá roto artist bằng chất lượng matte và tốc độ ổn định, không chỉ «đẹp một lần».</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Portfolio và định hướng nghề</strong>
+        <p>Tổng hợp before/after: plate gốc, matte, composite cuối — 2–3 shot trong reel 30–60 giây. Ghi rõ Silhouette (hoặc công cụ tương đương), vai trò roto/paint. Tìm hiểu thêm Mocha Pro, Nuke và khóa VFX tại Việt Nam; nhiều studio outsource và tuyển junior roto — portfolio sạch quan trọng hơn bằng cấp ở bước đầu.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

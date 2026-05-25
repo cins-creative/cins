@@ -1,0 +1,182 @@
+[
+  {
+    "id": "9b6d4433-2765-4dc5-a14c-f149162ca6d7",
+    "slug": "shotpro",
+    "tieu_de_viet": "ShotPro — Previs &amp; lập kế hoạch quay phim",
+    "tom_tat": "Công cụ pre-visualization 3D — storyboard 3D, camera path và blocking cảnh trước khi quay thật cho phim ngắn và quảng cáo.",
+    "meta_title": "ShotPro là gì? Previs, giá và hướng dẫn | CINS",
+    "meta_description": "ShotPro: 3D previs, camera, blocking. So sánh Storyboard Pro, Blender previz và quy trình pre-production.",
+    "meta": {
+      "nha_phat_hanh": "ShotPro",
+      "version": "2024",
+      "platform": ["iOS", "Web"],
+      "website": "https://www.shotproapp.com",
+      "goi_mien_phi": "Gói miễn phí giới hạn",
+      "gia_thanh": "Theo subscription app",
+      "hinh_thuc_mua": "Miễn phí · thuê bao",
+      "link_tai": "https://www.shotproapp.com"
+    }
+  },
+  {
+    "id": "784bc69d-22d2-4c13-b2fa-3df8cbc7a175",
+    "slug": "silhouette-fx",
+    "tieu_de_viet": "Silhouette — Rotoscoping &amp; paint VFX",
+    "tom_tat": "Phần mềm roto và paint chuyên sâu — Boris FX/Silhouette cho cleanup, beauty work và compositing phim.",
+    "meta_title": "Silhouette FX là gì? Roto, giá và hướng dẫn | CINS",
+    "meta_description": "Silhouette: roto, paint, tracking. So sánh Mocha Pro, Nuke roto và luồng VFX cleanup.",
+    "meta": {
+      "nha_phat_hanh": "Boris FX",
+      "version": "2024",
+      "platform": ["Windows", "macOS", "Linux"],
+      "website": "https://borisfx.com/products/silhouette",
+      "goi_mien_phi": "Dùng thử",
+      "gia_thanh": "Từ ~1,695 USD/năm",
+      "hinh_thuc_mua": "Thuê bao năm · perpetual",
+      "link_tai": "https://borisfx.com/products/silhouette"
+    }
+  },
+  {
+    "id": "6c9b988e-3538-463a-a507-9730419ab134",
+    "slug": "sketch",
+    "tieu_de_viet": "Sketch — UI design trên Mac",
+    "tom_tat": "Công cụ thiết kế giao diện vector — artboard, symbol, prototype cho app và web trên macOS.",
+    "meta_title": "Sketch là gì? UI design, giá và hướng dẫn học | CINS",
+    "meta_description": "Sketch: symbol, plugin, handoff. So sánh Figma, Adobe XD và lộ trình học UI trên Mac.",
+    "meta": {
+      "nha_phat_hanh": "Sketch B.V.",
+      "version": "2024",
+      "platform": ["macOS", "Web"],
+      "website": "https://www.sketch.com",
+      "goi_mien_phi": "Dùng thử 30 ngày",
+      "gia_thanh": "Từ ~12 USD/tháng (Standard)",
+      "hinh_thuc_mua": "Thuê bao tháng · giáo dục",
+      "link_tai": "https://www.sketch.com/downloads/mac"
+    }
+  },
+  {
+    "id": "96fdad6e-e9c9-486d-aaff-933e218d00e3",
+    "slug": "sketchup",
+    "tieu_de_viet": "SketchUp — Mô hình 3D trực quan",
+    "tom_tat": "Phần mềm 3D dễ học — kiến trúc, nội thất, cảnh quan và mô hình nhanh cho học sinh và designer.",
+    "meta_title": "SketchUp là gì? 3D kiến trúc, giá và hướng dẫn | CINS",
+    "meta_description": "SketchUp: push/pull, 3D Warehouse, LayOut. So sánh Revit, Blender và lộ trình học mô hình 3D.",
+    "meta": {
+      "nha_phat_hanh": "Trimble",
+      "version": "2024",
+      "platform": ["Windows", "macOS", "Web"],
+      "website": "https://www.sketchup.com",
+      "goi_mien_phi": "SketchUp Free (web) · giáo dục",
+      "gia_thanh": "Từ ~119 USD/năm (Go)",
+      "hinh_thuc_mua": "Thuê bao năm · giáo dục",
+      "link_tai": "https://www.sketchup.com/download"
+    }
+  },
+  {
+    "id": "5e8d0953-5ab5-4bf6-9600-a629084c7e13",
+    "slug": "solidworks",
+    "tieu_de_viet": "SolidWorks — CAD cơ khí 3D",
+    "tom_tat": "Phần mềm thiết kế cơ khí parametric — part, assembly, drawing và simulation cho kỹ sư sản xuất.",
+    "meta_title": "SolidWorks là gì? CAD cơ khí, giá và hướng dẫn | CINS",
+    "meta_description": "SolidWorks: parametric, assembly, FEA. So sánh Inventor, Fusion 360 và lộ trình học cơ khí.",
+    "meta": {
+      "nha_phat_hanh": "Dassault Systèmes",
+      "version": "2024",
+      "platform": ["Windows"],
+      "website": "https://www.solidworks.com",
+      "goi_mien_phi": "Dùng thử · giáo dục",
+      "gia_thanh": "Theo license · ~4,000+ USD/năm commercial",
+      "hinh_thuc_mua": "Thuê bao · giáo dục",
+      "link_tai": "https://www.solidworks.com/support/free-downloads"
+    }
+  },
+  {
+    "id": "adb94435-dcf5-4b4a-af1f-dabe2b920f15",
+    "slug": "soundly",
+    "tieu_de_viet": "Soundly — Thư viện SFX &amp; quản lý âm thanh",
+    "tom_tat": "App tìm và quản lý hiệu ứng âm thanh — preview, tag, drag vào Premiere/Pro Tools cho editor và sound designer.",
+    "meta_title": "Soundly là gì? SFX library, giá và hướng dẫn | CINS",
+    "meta_description": "Soundly: search, cloud library, plugin. So sánh Epidemic Sound SFX, freesound và quy trình sound design.",
+    "meta": {
+      "nha_phat_hanh": "Soundly (Pocket Sound)",
+      "version": "2024",
+      "platform": ["Windows", "macOS"],
+      "website": "https://getsoundly.com",
+      "goi_mien_phi": "Free tier giới hạn",
+      "gia_thanh": "Từ ~15 USD/tháng (Pro)",
+      "hinh_thuc_mua": "Thuê bao tháng",
+      "link_tai": "https://getsoundly.com"
+    }
+  },
+  {
+    "id": "cfaa6e78-fc3e-4847-a9a2-0e28f77452c8",
+    "slug": "speed",
+    "tieu_de_viet": "SpeedTree — Mô hình cây cối 3D",
+    "tom_tat": "Phần mềm tạo vegetation — cây, cỏ, bush procedural cho game, film và realtime engine.",
+    "meta_title": "SpeedTree là gì? Vegetation 3D, giá và hướng dẫn | CINS",
+    "meta_description": "SpeedTree: procedural tree, wind, LOD. So sánh Blender Sapling, Megascans plants và luồng environment game.",
+    "meta": {
+      "nha_phat_hanh": "IDV Inc. (SpeedTree)",
+      "version": "10",
+      "platform": ["Windows", "macOS"],
+      "website": "https://store.speedtree.com",
+      "goi_mien_phi": "Dùng thử",
+      "gia_thanh": "Từ ~19 USD/tháng (Indie)",
+      "hinh_thuc_mua": "Thuê bao · giáo dục",
+      "link_tai": "https://store.speedtree.com"
+    }
+  },
+  {
+    "id": "3d4fdd05-7453-400e-85c1-dd131a90baef",
+    "slug": "spine-2d",
+    "tieu_de_viet": "Spine — Hoạt hình 2D cho game",
+    "tom_tat": "Công cụ skeletal 2D — rig bone, mesh, export JSON/atlas cho game mobile và indie platformer.",
+    "meta_title": "Spine 2D là gì? Animation game, giá và hướng dẫn | CINS",
+    "meta_description": "Spine: mesh, IK, runtime. So sánh Live2D, DragonBones và lộ trình học anim 2D game.",
+    "meta": {
+      "nha_phat_hanh": "Esoteric Software",
+      "version": "4",
+      "platform": ["Windows", "macOS", "Linux"],
+      "website": "http://esotericsoftware.com",
+      "goi_mien_phi": "Dùng thử · runtime miễn phí",
+      "gia_thanh": "Từ ~69 USD (Essential) · ~325 USD (Professional)",
+      "hinh_thuc_mua": "Mua một lần",
+      "link_tai": "http://esotericsoftware.com/spine-download"
+    }
+  },
+  {
+    "id": "c82aa986-34f6-41a8-8df1-ed26d5a71c69",
+    "slug": "stable-diffusion",
+    "tieu_de_viet": "Stable Diffusion — AI tạo ảnh mã nguồn mở",
+    "tom_tat": "Mô hình diffusion open source — txt2img, img2img, ControlNet trên local hoặc cloud cho concept art và thử nghiệm sáng tạo.",
+    "meta_title": "Stable Diffusion là gì? AI image, miễn phí và hướng dẫn | CINS",
+    "meta_description": "Stable Diffusion: checkpoint, LoRA, ComfyUI. So sánh Midjourney, DALL·E và quy trình dùng AI local.",
+    "meta": {
+      "nha_phat_hanh": "Stability AI (community)",
+      "version": "SDXL",
+      "platform": ["Windows", "macOS", "Linux", "Web"],
+      "website": "https://stability.ai",
+      "goi_mien_phi": "Miễn phí (model open weights)",
+      "gia_thanh": "Miễn phí local · cloud tùy dịch vụ",
+      "hinh_thuc_mua": "Miễn phí · open source",
+      "link_tai": "https://github.com/AUTOMATIC1111/stable-diffusion-webui"
+    }
+  },
+  {
+    "id": "fab13072-077d-498b-afde-f89abce39d3e",
+    "slug": "studiobinder",
+    "tieu_de_viet": "StudioBinder — Quản lý sản xuất phim",
+    "tom_tat": "Nền tảng pre-pro và production — script breakdown, shot list, call sheet, storyboard online cho đội quay phim ngắn.",
+    "meta_title": "StudioBinder là gì? Call sheet, giá và hướng dẫn | CINS",
+    "meta_description": "StudioBinder: breakdown, schedule, call sheet. So sánh Celtx, Yamdu và quy trình pre-production.",
+    "meta": {
+      "nha_phat_hanh": "StudioBinder Inc.",
+      "version": "2024",
+      "platform": ["Web"],
+      "website": "https://www.studiobinder.com",
+      "goi_mien_phi": "Gói Free giới hạn",
+      "gia_thanh": "Từ ~29 USD/tháng (Indie)",
+      "hinh_thuc_mua": "Thuê bao tháng · giáo dục",
+      "link_tai": "https://www.studiobinder.com"
+    }
+  }
+]

@@ -1,21 +1,25 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import type { ArticleCard } from "@/lib/articles/types";
 import { relInitials } from "@/lib/articles/rel-visual";
+import {
+  truongDetailHref,
+  truongSidebarMeta,
+  uniqueTruongByOrg,
+  type NganhTruongRow,
+} from "@/lib/nganh/truong-shared";
 
 const AV_CLASSES = ["a", "b", "c", "d", "e"] as const;
 
-type TabKey = "nganh" | "phan_mem" | "nghe";
+type TabKey = "truong" | "nghe";
 
 type Props = {
-  nganh: ArticleCard[];
-  phanMem: ArticleCard[];
+  truong: NganhTruongRow[];
   nghe: ArticleCard[];
   keywords: ArticleCard[];
-  nhomSubtitle?: string | null;
 };
 
 function articleHref(card: ArticleCard): string {
@@ -28,31 +32,34 @@ function articleHref(card: ArticleCard): string {
   return `/bai-viet/${card.slug}`;
 }
 
-export function NganhDetailSidebar({
-  nganh,
-  phanMem,
-  nghe,
-  keywords,
-  nhomSubtitle,
-}: Props) {
-  const [tab, setTab] = useState<TabKey>("nganh");
+export function NganhDetailSidebar({ truong, nghe, keywords }: Props) {
+  const truongUnique = useMemo(() => uniqueTruongByOrg(truong), [truong]);
+  const [tab, setTab] = useState<TabKey>(
+    truongUnique.length > 0 ? "truong" : "nghe",
+  );
 
-  const list =
-    tab === "nganh" ? nganh : tab === "phan_mem" ? phanMem : nghe;
+  const list = tab === "truong" ? truongUnique : nghe;
   const title =
-    tab === "nganh"
-      ? "Ngành học liên quan"
-      : tab === "phan_mem"
-        ? "Phần mềm liên quan"
-        : "Nghề liên quan";
+    tab === "truong" ? "Trường đào tạo ngành này" : "Nghề liên quan";
 
   return (
     <>
-      <div className="nct-side-tabs" role="tablist" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", background: "var(--bg-surface)", border: "1px solid var(--border)", borderRadius: "var(--r-lg, 20px)", padding: 4, gap: 2 }}>
+      <div
+        className="nct-side-tabs"
+        role="tablist"
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(2, 1fr)",
+          background: "var(--bg-surface)",
+          border: "1px solid var(--border)",
+          borderRadius: "var(--r-lg, 20px)",
+          padding: 4,
+          gap: 2,
+        }}
+      >
         {(
           [
-            ["nganh", "Ngành học", nganh.length],
-            ["phan_mem", "Phần mềm", phanMem.length],
+            ["truong", "Trường ĐH", truongUnique.length],
             ["nghe", "Nghề liên quan", nghe.length],
           ] as const
         ).map(([key, label, count]) => (
@@ -96,7 +103,7 @@ export function NganhDetailSidebar({
             <h4 style={{ fontWeight: 800, fontSize: 15, margin: 0 }}>{title}</h4>
             <span
               style={{
-                fontFamily: "var(--font-mono)",
+                fontFamily: "var(--font-sans, inherit)",
                 fontSize: 11,
                 color: "var(--ink-muted)",
               }}
@@ -104,67 +111,111 @@ export function NganhDetailSidebar({
               {list.length}
             </span>
           </div>
-          {tab === "nganh" && nhomSubtitle ? (
-            <p
-              style={{
-                padding: "0 18px 12px",
-                fontSize: 12,
-                color: "var(--ink-muted)",
-                lineHeight: 1.45,
-                margin: 0,
-              }}
-            >
-              {nhomSubtitle}
-            </p>
-          ) : null}
           <div>
-            {list.map((card, i) => (
-              <Link
-                key={card.id}
-                href={articleHref(card)}
-                className="nct-related-item"
-              >
-                <div
-                  className={`av ${AV_CLASSES[i % AV_CLASSES.length]}`}
-                  style={{
-                    background:
-                      i % 5 === 0
-                        ? "var(--cins-yellow)"
-                        : i % 5 === 1
-                          ? "var(--cins-violet)"
-                          : i % 5 === 2
-                            ? "var(--cins-mint)"
-                            : i % 5 === 3
-                              ? "var(--cins-orange)"
-                              : "var(--cins-pink, #ffc2d6)",
-                    color: i % 5 === 1 ? "#fff" : "inherit",
-                  }}
-                >
-                  {relInitials(card.tieu_de)}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 700, fontSize: 13.5, lineHeight: 1.25 }}>
-                    {card.tieu_de}
-                  </div>
-                  {card.tom_tat ? (
+            {tab === "truong"
+              ? truongUnique.map((row, i) => (
+                  <Link
+                    key={row.id}
+                    href={truongDetailHref(row.slug)}
+                    className="nct-related-item"
+                  >
                     <div
+                      className={`av ${AV_CLASSES[i % AV_CLASSES.length]}`}
                       style={{
-                        fontFamily: "var(--font-mono)",
-                        fontSize: 10.5,
-                        color: "var(--ink-muted)",
-                        marginTop: 2,
+                        background:
+                          i % 5 === 0
+                            ? "var(--cins-yellow)"
+                            : i % 5 === 1
+                              ? "var(--cins-violet)"
+                              : i % 5 === 2
+                                ? "var(--cins-mint)"
+                                : i % 5 === 3
+                                  ? "var(--cins-orange)"
+                                  : "var(--cins-pink, #ffc2d6)",
+                        color: i % 5 === 1 ? "#fff" : "inherit",
                       }}
                     >
-                      {card.tom_tat.slice(0, 56)}
-                      {card.tom_tat.length > 56 ? "…" : ""}
+                      {relInitials(row.ten)}
                     </div>
-                  ) : null}
-                </div>
-                <span aria-hidden style={{ color: "var(--ink-muted)" }}>
-                  →
-                </span>
-              </Link>
-            ))}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div
+                        style={{
+                          fontWeight: 700,
+                          fontSize: 13.5,
+                          lineHeight: 1.25,
+                        }}
+                      >
+                        {row.ten}
+                      </div>
+                      <div
+                        style={{
+                          fontFamily: "var(--font-sans, inherit)",
+                          fontSize: 10.5,
+                          color: "var(--ink-muted)",
+                          marginTop: 2,
+                        }}
+                      >
+                        {truongSidebarMeta(row)}
+                      </div>
+                    </div>
+                    <span aria-hidden style={{ color: "var(--ink-muted)" }}>
+                      →
+                    </span>
+                  </Link>
+                ))
+              : (list as ArticleCard[]).map((card, i) => (
+                  <Link
+                    key={card.id}
+                    href={articleHref(card)}
+                    className="nct-related-item"
+                  >
+                    <div
+                      className={`av ${AV_CLASSES[i % AV_CLASSES.length]}`}
+                      style={{
+                        background:
+                          i % 5 === 0
+                            ? "var(--cins-yellow)"
+                            : i % 5 === 1
+                              ? "var(--cins-violet)"
+                              : i % 5 === 2
+                                ? "var(--cins-mint)"
+                                : i % 5 === 3
+                                  ? "var(--cins-orange)"
+                                  : "var(--cins-pink, #ffc2d6)",
+                        color: i % 5 === 1 ? "#fff" : "inherit",
+                      }}
+                    >
+                      {relInitials(card.tieu_de)}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div
+                        style={{
+                          fontWeight: 700,
+                          fontSize: 13.5,
+                          lineHeight: 1.25,
+                        }}
+                      >
+                        {card.tieu_de}
+                      </div>
+                      {card.tom_tat ? (
+                        <div
+                          style={{
+                            fontFamily: "var(--font-sans, inherit)",
+                            fontSize: 10.5,
+                            color: "var(--ink-muted)",
+                            marginTop: 2,
+                          }}
+                        >
+                          {card.tom_tat.slice(0, 56)}
+                          {card.tom_tat.length > 56 ? "…" : ""}
+                        </div>
+                      ) : null}
+                    </div>
+                    <span aria-hidden style={{ color: "var(--ink-muted)" }}>
+                      →
+                    </span>
+                  </Link>
+                ))}
           </div>
         </div>
       ) : null}
@@ -187,7 +238,7 @@ export function NganhDetailSidebar({
       <div className="nct-side-quiz">
         <p
           style={{
-            fontFamily: "var(--font-mono)",
+            fontFamily: "var(--font-sans, inherit)",
             fontSize: 10,
             textTransform: "uppercase",
             letterSpacing: "0.6px",

@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import {
+  createContext,
   useCallback,
+  useContext,
   useEffect,
   useRef,
   useState,
@@ -22,6 +24,13 @@ import type { NgheNghiepHubItem } from "@/lib/career/types";
 const CURSOR_OFFSET = 14;
 const TOOLTIP_MAX_W = 360;
 const VIEWPORT_PAD = 12;
+
+/** Khi thẻ dùng `children`, nhãn con bật tooltip tĩnh (touch / coarse pointer). */
+export const CareerHubStaticTooltipContext = createContext(false);
+
+export function useCareerHubStaticTooltip(): boolean {
+  return useContext(CareerHubStaticTooltipContext);
+}
 
 type Props = {
   href: string;
@@ -111,27 +120,28 @@ export function CareerHubCardLink({
     });
   }, [hovering, useCursorTooltip, tooltip, updatePosition]);
 
+  const showStaticOnLabels = !!tooltip && !useCursorTooltip;
+
   return (
     <>
-      <Link
-        href={href}
-        className={className}
-        aria-label={careerHubCardAriaLabel(career)}
-        onMouseEnter={onEnter}
-        onMouseLeave={onLeave}
-        onMouseMove={onMove}
-        onFocus={onFocus}
-        onBlur={onLeave}
-        {...linkProps}
-      >
-        {children}
-        {children ? null : (
-          <CareerHubCardLabels
-            career={career}
-            showStaticTooltip={!useCursorTooltip && !!tooltip}
-          />
-        )}
-      </Link>
+      <CareerHubStaticTooltipContext.Provider value={showStaticOnLabels}>
+        <Link
+          href={href}
+          className={className}
+          aria-label={careerHubCardAriaLabel(career)}
+          onMouseEnter={onEnter}
+          onMouseLeave={onLeave}
+          onMouseMove={onMove}
+          onFocus={onFocus}
+          onBlur={onLeave}
+          {...linkProps}
+        >
+          {children}
+          {children ? null : (
+            <CareerHubCardLabels career={career} showStaticTooltip={showStaticOnLabels} />
+          )}
+        </Link>
+      </CareerHubStaticTooltipContext.Provider>
 
       {mounted &&
         useCursorTooltip &&

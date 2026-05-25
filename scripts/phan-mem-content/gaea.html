@@ -1,0 +1,209 @@
+<section class="arc-intro">
+  <p>Bạn chơi game open world, nhìn dãy núi phủ tuyết, thung lũng sông uốn lượn hay sa mạc gồ ghề — phần lớn địa hình đó không được vẽ tay từng đá mà được «điêu khắc» bằng phần mềm chuyên dụng như <strong>Gaea</strong> của QuadSpinner, rồi xuất heightmap hoặc mesh sang Unreal Engine, Blender hay Houdini. Cùng công cụ này cũng xuất hiện trong phim và quảng cáo khi team cần landscape photorealistic trong thời gian ngắn.</p>
+  <p>Gaea không phải engine game hay phần mềm dựng phim trọn gói — nó tập trung vào <strong>terrain sculpting procedural</strong>: mô phỏng xói mòn, sông, tuyết, sa mạc và biome để tạo địa hình có chiều sâu tự nhiên. Hiểu Gaea giúp học sinh THPT hướng tới environment art, level design 3D và VFX biết cách «sinh» cảnh quan thay vì chỉ dựng khối hộp thủ công.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>Gaea là gì?</h2>
+  <p>Gaea do <strong>QuadSpinner</strong> phát triển — phần mềm <strong>điêu khắc địa hình 3D procedural</strong> chạy trên Windows. Kế thừa tinh thần World Machine nhưng giao diện hiện đại hơn, node graph trực quan và bộ công cụ erosion/biome được cập nhật thường xuyên cho pipeline game, film và archviz landscape.</p>
+  <p>Khác với modeling polygon thông thường trong Blender hay 3ds Max, Gaea làm việc chủ yếu với <strong>heightfield và node graph</strong>: bạn kết nối các block tạo núi, rãnh sông, xói mòn gió/nước, rồi tinh chỉnh bằng brush sculpt hoặc mask vùng. Giao diện có viewport 3D, graph editor và bảng thuộc tính node — ban đầu trông giống «máy móc», nhưng mỗi node đại diện một quy trình địa lý thật (erosion, deposition, thermal).</p>
+  <ul class="arc-list">
+    <li><strong>Procedural terrain graph</strong> — tạo núi, canyon, island, sa mạc bằng node kết nối và random seed</li>
+    <li><strong>Erosion &amp; simulation</strong> — hydraulic, thermal, snow, river carving cho bề mặt tự nhiên</li>
+    <li><strong>Biome &amp; texture</strong> — phân vùng cỏ, đá, cát theo độ cao, slope và mask</li>
+    <li><strong>Export đa định dạng</strong> — heightmap 16-bit, mesh, tiled terrain sang Unreal, Unity, Blender, Houdini</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"QuadSpinner Gaea terrain sculpting node graph interface screenshot"</span>
+    </div>
+    <p class="arc-image-caption">Giao diện Gaea — node graph, viewport địa hình và bảng thuộc tính erosion</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>Gaea thường đứng ở giai đoạn <strong>blockout và hoàn thiện landscape</strong>: concept artist hoặc environment artist nhận brief (vùng núi tuyết, đảo nhiệt đới, sa mạc sci-fi), dựng terrain trong Gaea, xuất heightmap/mesh rồi import Unreal Landscape hoặc Blender để gán material, scatter cây cỏ (SpeedTree, Gaea scatter hoặc plugin engine). Với phim, mesh có thể sang Houdini hoặc Maya để lighting và render; với game, tiled export giúp tối ưu streaming open world. Thường làm việc cùng Quixel Megascans, Substance và World Creator tùy pipeline studio.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Node graph và sculpt địa hình</h3>
+    <p>Thế mạnh cốt lõi của Gaea là <strong>node-based terrain generation</strong>. Bạn bắt đầu từ node Mountain, Ridge hoặc Import heightmap, nối tiếp Erosion, Terrace, Clamp — mỗi lần đổi seed tạo biến thể mới mà vẫn giữ «DNA» địa hình. Brush sculpt cho phép bạn «vẽ» thêm đỉnh núi hoặc đào hồ trên kết quả procedural, kết hợp tốt nhất của hai thế giới: tự động và chỉnh tay.</p>
+    <p>Đối với học sinh THPT mới làm quen, bài tập thực tế hay gặp: tạo một hòn đảo nhỏ với bãi biển và đồi núi, canyon khô cho game platform 3D, hoặc terrain alpine cho scene archviz — vừa luyện tư duy không gian vừa làm portfolio environment cơ bản.</p>
+    <ul class="arc-list">
+      <li><strong>Node library</strong> — Mountain, Canyon, Island, Crater và hàng trăm node chuyên biệt</li>
+      <li><strong>Seed &amp; variation</strong> — thử nhiều phiên bản nhanh trước khi chốt layout level</li>
+      <li><strong>Sculpt &amp; mask</strong> — chỉnh vùng cụ thể mà không phá toàn bộ graph</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Gaea QuadSpinner node graph mountain terrain generation"</span>
+        </div>
+        <p class="arc-image-caption">Node graph — kết nối Mountain, Erosion và Terrace</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Gaea terrain sculpt brush viewport island landscape"</span>
+        </div>
+        <p class="arc-image-caption">Sculpt viewport — chỉnh đỉnh núi và bờ biển bằng brush</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Erosion, sông và biome</h3>
+    <p>Gaea nổi bật ở <strong>simulation xói mòn và chi tiết địa lý</strong>. Hydraulic erosion tạo rãnh suối và thung lũng; thermal erosion làm mềm sườn dốc; snow node tích tuyết theo độ cao. River node có thể «khắc» lòng sông theo đường vẽ — rất hữu ích khi level designer cần lối đi tự nhiên trong open world.</p>
+    <p>Biome và color map giúp preview vùng cỏ, đá, cát trước khi sang engine gán material thật. Một terrain «đẹp» trong Gaea thường đã có cảm giác scale đúng — tránh lỗi núi trông như đồ chơi khi import game.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Gaea erosion river canyon biome terrain realistic"</span>
+      </div>
+      <p class="arc-image-caption">Erosion &amp; river — thung lũng, sông uốn và phân vùng biome</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Xuất sang engine, DCC và tiled terrain</h3>
+    <p>Sau khi chốt địa hình, bước quan trọng là <strong>export đúng định dạng và độ phân giải</strong>. Gaea xuất heightmap 16-bit (RAW, PNG), mesh OBJ/FBX, hoặc tiled chunks cho Unreal World Partition và Unity Terrain. Build node giúp bake toàn bộ graph thành output cuối; có thể tự động hóa qua command line trong pipeline studio lớn.</p>
+    <p>Luồng làm việc điển hình: blockout terrain Gaea → import Unreal Landscape → sculpt tinh chỉnh nhẹ trong engine → scatter foliage → lighting. Hiểu quy trình này giúp bạn không chỉ «biết một phần mềm» mà nắm được cách cảnh quan open world được sản xuất trong game AAA và archviz.</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Gaea export Unreal Engine landscape heightmap pipeline workflow"</span>
+      </div>
+      <p class="arc-image-caption">Luồng xuất terrain — Gaea heightmap/mesh, import Unreal Landscape và material</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai công cụ hay được đặt cạnh Gaea nhất là <strong>World Machine</strong> (tiền thân ý tưởng terrain node, lâu đời trong game) và <strong>Terragen</strong> (render landscape và sky photorealistic). Không có câu trả lời «đúng duy nhất» — tùy bạn cần pipeline game nhanh, erosion sâu hay render cảnh quan kiểu phim.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Gaea vs World Machine</h3>
+    <p>World Machine từng là tiêu chuẩn terrain procedural trong game indie và mid-size studio — node graph quen thuộc, export heightmap ổn định. Gaea (cùng QuadSpinner, tác giả World Machine cũ) mang giao diện hiện đại hơn, erosion và sculpt realtime mạnh hơn, cộng đồng tutorial mới tập trung nhiều vào Gaea 2. World Machine vẫn được dùng ở pipeline cũ; Gaea phù hợp dự án mới và artist muốn workflow nhanh hơn.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Gaea 2 terrain erosion mountain game environment"</span>
+        </div>
+        <p class="arc-image-caption">Gaea — graph hiện đại, erosion realtime và export engine</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"World Machine terrain node graph heightmap export"</span>
+        </div>
+        <p class="arc-image-caption">World Machine — node terrain cổ điển, vẫn dùng trong pipeline lâu năm</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Gaea mạnh hơn:</strong> UI/UX mới, sculpt tích hợp, erosion đa dạng, cập nhật thường xuyên, tiled build cho open world lớn.<br>
+      <strong>World Machine mạnh hơn:</strong> license perpetual rẻ hơn một số trường hợp, tài liệu và pipeline cũ đã được nhiều studio Việt Nam tích hợp sẵn.<br>
+      <strong>Chọn Gaea khi:</strong> bắt đầu dự án terrain mới, cần erosion/biome hiện đại và export Unreal/Unity tối ưu.<br>
+      <strong>Chọn World Machine khi:</strong> studio đã có pipeline WM ổn định hoặc ngân sách chỉ cần heightmap cơ bản.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Gaea vs Terragen</h3>
+    <p>Terragen (Planetside Software) nghiêng về <strong>render landscape và atmosphere photorealistic</strong> — bầu trời, mây volumetric, ánh sáng thực tế cho phim và archviz. Gaea tập trung sinh và chỉnh địa hình để xuất sang engine/DCC; Terragen có thể tạo terrain nhưng điểm bán hàng là render cảnh quan hoàn chỉnh trong một phần mềm.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Gaea terrain export game engine landscape workflow"</span>
+        </div>
+        <p class="arc-image-caption">Gaea — tạo heightfield/mesh cho game và DCC</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Terragen landscape render atmosphere clouds photorealistic"</span>
+        </div>
+        <p class="arc-image-caption">Terragen — render cảnh quan, sky và atmosphere cho phim</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Gaea mạnh hơn:</strong> procedural erosion sâu, pipeline game (Unreal/Unity), sculpt và biome cho level design.<br>
+      <strong>Terragen mạnh hơn:</strong> render landscape + atmosphere trong một tool, phù hợp VFX/phim và still archviz cực thực.<br>
+      <strong>Chọn Gaea khi:</strong> mục tiêu environment art game, open world hoặc xuất terrain sang Blender/Houdini.<br>
+      <strong>Chọn Terragen khi:</strong> cần render cảnh quan kiểu phim, matte painting 3D hoặc archviz landscape still.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học Gaea như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Làm quen giao diện và node graph</strong>
+        <p>Tuần đầu hãy mở Gaea Community (bản miễn phí giới hạn) và tạo graph đơn giản: Mountain → Erosion → Output. Học cách xoay/zoom viewport, chọn node, nối cổng input/output và đổi seed. Mục tiêu là hiểu «dữ liệu chảy» qua graph trước khi thêm node phức tạp — nhiều bạn THPT bỏ cuộc sớm vì chưa quen tư duy node thay vì vẽ mesh trực tiếp.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Tạo terrain cơ bản và erosion</strong>
+        <p>Thực hành tạo đảo, núi đơn và canyon: thêm Hydraulic Erosion, chỉnh số iteration và strength. So sánh trước/sau erosion để thấy rãnh suối và chi tiết tự nhiên. Luyện đặt tên node và lưu preset graph — thường 2–3 tuần luyện đều sẽ tạo được terrain «nhìn thật» ở mức blockout.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Sculpt, mask và biome preview</strong>
+        <p>Dùng brush nâng/hạ vùng cụ thể, mask để erosion chỉ chạy ở một khu. Thử node Color/Biome để preview vùng cỏ/đá theo slope. Mục tiêu là kết hợp procedural và chỉnh tay — kỹ năng environment artist thực tế khi art director yêu cầu «đỉnh núi cao hơn 20%» mà không làm lại cả graph.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Export heightmap và import engine</strong>
+        <p>Build graph, xuất heightmap 16-bit hoặc mesh, import thử vào Unreal Landscape hoặc Blender (Displace modifier). Kiểm tra scale, resolution và seam nếu dùng tiled export. Học cách match kích thước world unit trong engine — lỗi scale sai làm nhân vật trông như người khổng lồ trên đồi nhỏ.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Dự án environment hoàn chỉnh</strong>
+        <p>Chọn một brief: island survival game, alpine archviz hoặc sci-fi crater. Hoàn thiện terrain Gaea, import engine, gán material Megascans/Quixel, scatter cây và render 2–3 góc camera. Giai đoạn này dạy quy trình sản xuất thật: iteration theo feedback, tối ưu poly count và LOD cho game.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Portfolio và định hướng nghề</strong>
+        <p>Tổng hợp 2–4 work: terrain breakdown (graph screenshot + final render in-engine), video flythrough 15–30 giây. Đăng ArtStation, Behance hoặc YouTube — ghi rõ Gaea, Unreal/Blender và material dùng. Tìm hiểu lộ trình environment artist, level artist hoặc technical artist terrain; nhiều studio game và archviz tại Việt Nam cần người biết procedural landscape dù không bắt buộc chứng chỉ.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

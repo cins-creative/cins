@@ -97,8 +97,8 @@ html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
 .sb-item.active::before{content:"";position:absolute;left:-12px;top:9px;bottom:9px;width:3px;border-radius:0 3px 3px 0;background:var(--blue)}
 .sb-ico{width:24px;height:24px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
 .sb-ico svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
-.sb-label{opacity:0;transform:translateX(-4px);transition:opacity .18s var(--ease) .04s,transform .18s var(--ease) .04s;pointer-events:none}
-.sidebar:hover .sb-label,.sidebar:focus-within .sb-label{opacity:1;transform:none;pointer-events:auto}
+.sb-label{opacity:0;transform:translateX(-4px);transition:opacity .18s var(--ease) .04s,transform .18s var(--ease) .04s}
+.sidebar:hover .sb-label,.sidebar:focus-within .sb-label{opacity:1;transform:none}
 .sb-foot{padding:12px 12px 18px;border-top:1px solid var(--border);flex-shrink:0;display:flex;flex-direction:column;gap:6px}
 .sb-foot .sb-item{font-size:12.5px;color:var(--ink3)}
 

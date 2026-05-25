@@ -1,0 +1,102 @@
+[
+  {
+    "id": "60372f2c-2e71-4a8e-9745-09aa3fd1eeaa",
+    "slug": "mon-san-xuat-am-thanh",
+    "tieu_de": "Sản xuất âm thanh",
+    "tieu_de_eng": "Audio Production",
+    "tieu_de_viet": "Sản xuất âm thanh",
+    "tom_tat": "Sản xuất âm thanh chuyên nghiệp — recording, mixing, mastering cho phim, nhạc, podcast và quảng cáo.",
+    "meta_title": "Sản xuất âm thanh là gì? Học gì và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Sản xuất âm thanh: DAW, recording, mixing, mastering. Cho phim, nhạc, podcast, TVC và content creator."
+  },
+  {
+    "id": "66987353-5a52-470f-966d-d45681066c19",
+    "slug": "mon-san-xuat-phim",
+    "tieu_de": "Sản xuất phim",
+    "tieu_de_eng": "Film Production",
+    "tieu_de_viet": "Sản xuất phim",
+    "tom_tat": "Quy trình sản xuất phim chuyên nghiệp — pre-production, production và post-production từ ý tưởng đến phát hành.",
+    "meta_title": "Sản xuất phim là gì? Học gì và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Sản xuất phim: pre-production, production, post-production; producer, line producer, budget và schedule."
+  },
+  {
+    "id": "0eab6056-fc38-4eea-a59d-8f0dbb04c477",
+    "slug": "mon-san-xuat-tvc",
+    "tieu_de": "Sản xuất TVC",
+    "tieu_de_eng": "TVC Production",
+    "tieu_de_viet": "Sản xuất TVC",
+    "tom_tat": "Sản xuất TVC quảng cáo — từ ý tưởng creative đến shoot và delivery; pipeline đặc thù của ngành quảng cáo.",
+    "meta_title": "Sản xuất TVC là gì? Học gì và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Sản xuất TVC: brief client, pitch, pre-production, shoot, post; pipeline agency và production house."
+  },
+  {
+    "id": "4891fcb8-7ae5-4086-8396-de68b3317b03",
+    "slug": "mon-son-dau",
+    "tieu_de": "Sơn dầu",
+    "tieu_de_eng": "Oil Painting",
+    "tieu_de_viet": "Sơn dầu",
+    "tom_tat": "Vẽ tranh sơn dầu — chất liệu cổ điển phương Tây; kỹ thuật alla prima, glazing, impasto trên toan canvas.",
+    "meta_title": "Sơn dầu là gì? Học gì, thi như thế nào và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Sơn dầu: alla prima, glazing, impasto, palette knife. Chất liệu cổ điển cho hội họa và portrait."
+  },
+  {
+    "id": "35eb92d7-08be-4240-8e5d-ddb7f8a171b7",
+    "slug": "mon-son-mai",
+    "tieu_de": "Sơn mài",
+    "tieu_de_eng": "Vietnamese Lacquer Painting",
+    "tieu_de_viet": "Sơn mài",
+    "tom_tat": "Tranh sơn mài Việt — di sản hội họa độc đáo với vàng, bạc, vỏ trứng trên nền sơn ta nhiều lớp.",
+    "meta_title": "Sơn mài là gì? Học gì và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Sơn mài: sơn ta, vàng, bạc, vỏ trứng, mài nước. Di sản hội họa Việt từ Nguyễn Gia Trí, Nguyễn Sáng."
+  },
+  {
+    "id": "531b9d82-b64f-47cf-9d9a-f85d5f8e0bcc",
+    "slug": "mon-storyboard",
+    "tieu_de": "Storyboard",
+    "tieu_de_eng": "Storyboard",
+    "tieu_de_viet": "Storyboard",
+    "tom_tat": "Vẽ storyboard chuyên sâu — panel composition, camera framing, biểu cảm nhân vật cho phim và animation.",
+    "meta_title": "Storyboard là gì? Học gì và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Storyboard: panel sketch, camera angle, frame composition. Kỹ năng vẽ pre-visualization cho phim và animation."
+  },
+  {
+    "id": "5454a344-4360-452c-902f-056fd86cde13",
+    "slug": "mon-storyline",
+    "tieu_de": "Storyline",
+    "tieu_de_eng": "Storyline and Narrative Structure",
+    "tieu_de_viet": "Storyline",
+    "tom_tat": "Cấu trúc câu chuyện — 3-act, hero's journey, character arc; nền tảng kể chuyện cho phim, animation và content.",
+    "meta_title": "Storyline là gì? Học gì và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Storyline: 3-act, hero's journey, character arc, plot point. Cấu trúc câu chuyện cho phim, animation và content."
+  },
+  {
+    "id": "9baad145-c553-4afe-84c0-43f4bb0ff74e",
+    "slug": "mon-sua-san-pham",
+    "tieu_de": "Sửa sản phẩm",
+    "tieu_de_eng": "Product Refinement",
+    "tieu_de_viet": "Sửa sản phẩm",
+    "tom_tat": "Chỉnh sửa và hoàn thiện sản phẩm thiết kế — dựa trên feedback user và iteration trước khi đưa vào sản xuất.",
+    "meta_title": "Sửa sản phẩm là gì? Học gì và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Sửa sản phẩm: nhận feedback, phân tích, iteration, refine prototype. Hoàn thiện trước khi sản xuất hàng loạt."
+  },
+  {
+    "id": "2b3fa50c-d915-4eef-867a-2bca7d150603",
+    "slug": "mon-tao-hinh-san-pham",
+    "tieu_de": "Tạo hình sản phẩm",
+    "tieu_de_eng": "Product Form Design",
+    "tieu_de_viet": "Tạo hình sản phẩm",
+    "tom_tat": "Tạo hình sản phẩm 3D — concept, sketch, modeling, tỷ lệ và ngôn ngữ tạo hình cho industrial design.",
+    "meta_title": "Tạo hình sản phẩm là gì? Học gì và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Tạo hình sản phẩm: concept sketch, form language, tỷ lệ, modeling. Tạo hình ngôn ngữ thiết kế cho sản phẩm."
+  },
+  {
+    "id": "08db9f79-bd0d-4a91-8061-8c8add20e162",
+    "slug": "mon-thi-cong-xu-ly-nen-mong",
+    "tieu_de": "Thi công xử lý nền móng",
+    "tieu_de_eng": "Foundation Construction",
+    "tieu_de_viet": "Thi công xử lý nền móng",
+    "tom_tat": "Kỹ thuật xử lý nền và thi công móng — khảo sát địa chất, loại móng, ép cọc, đào hố và an toàn công trường.",
+    "meta_title": "Thi công xử lý nền móng là gì? Học gì và ứng dụng | CINS",
+    "meta_description": "Môn Thi công xử lý nền móng: khảo sát địa chất, móng nông/sâu, ép cọc, an toàn. Nền tảng xây dựng kiến trúc."
+  }
+]

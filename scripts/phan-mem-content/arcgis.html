@@ -1,0 +1,209 @@
+<section class="arc-intro">
+  <p>Bạn mở bản đồ ngập lụt trên báo để xem vùng nào ở TP.HCM cần sơ tán, hoặc tra cứu quy hoạch đất đai quanh trường — phần lớn dữ liệu không gian đó được tổ chức, phân tích và trực quan hóa bằng nền tảng <strong>GIS</strong> (Geographic Information System). Trong phân khúc GIS doanh nghiệp và chính phủ, <strong>ArcGIS</strong> của Esri là hệ sinh thái phổ biến nhất: từ thu thập tọa độ ngoài hiện trường đến bản đồ web tương tác và báo cáo quy hoạch.</p>
+  <p>Với học sinh THPT yêu thích địa lý, môi trường, đô thị học hay dự án STEM về biến đổi khí hậu, ArcGIS mở cánh cửa tới nghề cartographer, GIS analyst và urban planner — không chỉ «vẽ bản đồ đẹp» mà phân tích không gian có cơ sở dữ liệu. Hiểu ArcGIS giúp bạn nắm quy trình sản xuất bản đồ chuyên nghiệp từ dữ liệu thô đến sản phẩm trình bày cho cơ quan và cộng đồng.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>ArcGIS là gì?</h2>
+  <p><strong>ArcGIS</strong> do <strong>Esri</strong> (Environmental Systems Research Institute, Mỹ) phát triển — <strong>nền tảng GIS</strong> gồm phần mềm desktop (ArcGIS Pro), bản đồ web (ArcGIS Online), server và ứng dụng di động (Field Maps, Survey123). Esri không chỉ bán «một app vẽ bản đồ» mà cung cấp hệ sinh thái: lưu trữ layer, metadata, phân tích không gian và chia sẻ bản đồ cho tổ chức.</p>
+  <p>Khác Google Maps (bản đồ tiêu dùng, dẫn đường), ArcGIS là <strong>công cụ chuyên nghiệp cho dữ liệu không gian</strong>: mỗi điểm, đường, vùng gắn thuộc tính (dân số, loại đất, mực nước…) — bạn truy vấn, thống kê, overlay nhiều lớp và xuất bản đồ in hoặc web theo chuẩn nghề. ArcGIS Pro chạy trên Windows; giao diện ribbon quen thuộc với người dùng Microsoft Office nhưng có thêm Table of Contents, geoprocessing tools và layout cho bản đồ in.</p>
+  <ul class="arc-list">
+    <li><strong>Data management</strong> — geodatabase, shapefile, GeoJSON, raster; hệ tọa độ và projection chuẩn</li>
+    <li><strong>Spatial analysis</strong> — buffer, overlay, hotspot, interpolation, network analysis</li>
+    <li><strong>Cartography &amp; layout</strong> — symbology, labeling, scale bar, legend cho bản đồ in và báo cáo</li>
+    <li><strong>Web &amp; mobile</strong> — ArcGIS Online, Dashboard, StoryMaps, thu thập dữ liệu hiện trường</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"ArcGIS Pro interface map layers geoprocessing pane screenshot"</span>
+    </div>
+    <p class="arc-image-caption">Giao diện ArcGIS Pro — bản đồ, Table of Contents và Geoprocessing tools</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>ArcGIS thường đứng ở giai đoạn <strong>thu thập, chuẩn hóa, phân tích và trình bày dữ liệu không gian</strong>: nhận shapefile hoặc GPS survey từ hiện trường → làm sạch và gán hệ tọa độ → phân tích (ví dụ vùng ngập trong bán kính 500 m sông) → xuất bản đồ layout hoặc web map cho Sở Tài nguyên &amp; Môi trường, viện nghiên cứu, báo chí dữ liệu. Ở Việt Nam, ArcGIS xuất hiện trong quy hoạch đô thị, quản lý tài nguyên nước, khảo sát địa chính và dự án môi trường — thường làm việc cùng Excel/CSV (bảng thuộc tính), Python (ArcPy) và occasionally QGIS khi cần mã nguồn mở.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Quản lý layer và hệ tọa độ</h3>
+    <p>Mọi dự án GIS bắt đầu từ <strong>dữ liệu có vị trí đúng</strong>. ArcGIS Pro cho phép thêm layer vector (điểm, đường, vùng), raster (ảnh vệ tinh, DEM) và basemap — mỗi layer có coordinate system (WGS 84, VN-2000…) phải thống nhất trước khi phân tích. <strong>Geodatabase</strong> (.gdb) gom nhiều feature class, bảng quan hệ và topology trong một container có cấu trúc.</p>
+    <p>Với học sinh THPT, bài tập thực tế hay gặp: import CSV điểm trường học có cột kinh độ/vĩ độ, hiển thị trên nền bản đồ hành chính tỉnh — vừa luyện tư duy dữ liệu vừa làm portfolio dự án địa lý hoặc STEM. Sai hệ tọa độ là lỗi kinh điển khiến layer «trôi» sang vị trí khác hẳn — hiểu bước này quan trọng hơn biết vẽ symbol đẹp.</p>
+    <ul class="arc-list">
+      <li><strong>Map &amp; Catalog pane</strong> — quản lý layer, kết nối folder và geodatabase</li>
+      <li><strong>Projection &amp; transformation</strong> — chuyển WGS 84 ↔ VN-2000 cho dữ liệu Việt Nam</li>
+      <li><strong>Attribute table</strong> — join bảng Excel, tính trường mới bằng Field Calculator</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"ArcGIS Pro coordinate system projection VN-2000 layers"</span>
+        </div>
+        <p class="arc-image-caption">Hệ tọa độ — projection và layer overlay trên ArcGIS Pro</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"ArcGIS Pro attribute table join CSV spatial data"</span>
+        </div>
+        <p class="arc-image-caption">Attribute table — join dữ liệu bảng với layer không gian</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Phân tích không gian (Geoprocessing)</h3>
+    <p>Sau khi dữ liệu sẵn sàng, <strong>spatial analysis</strong> trả lời câu hỏi «ở đâu, gần nhau thế nào, mật độ ra sao». ArcGIS Pro có hàng trăm công cụ geoprocessing: <strong>Buffer</strong> tạo vùng đệm quanh sông, <strong>Intersect/Union</strong> giao/hợp polygon, <strong>Hot Spot Analysis</strong> tìm cụm bất thường, <strong>Spatial Join</strong> gán thuộc tính theo vị trí.</p>
+    <p>Ví dụ thực tế: overlay bản đồ độ cao thấp với lớp dân cư để xác định khu vực ngập khi triều cường — output là layer mới dùng cho báo cáo hoặc StoryMap trình bày cho chính quyền địa phương. Đây là kỹ năng «sản xuất thực tế» mà viện nghiên cứu và công ty tư vấn môi trường luôn yêu cầu, không chỉ dừng ở bản đồ minh họa tĩnh.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"ArcGIS Pro geoprocessing buffer overlay spatial analysis flood map"</span>
+      </div>
+      <p class="arc-image-caption">Geoprocessing — buffer, overlay và phân tích vùng ngập trên ArcGIS Pro</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Cartography, layout và chia sẻ web</h3>
+    <p>Sản phẩm cuối thường là <strong>bản đồ in chuẩn nghề</strong> hoặc <strong>web map tương tác</strong>. Trong ArcGIS Pro, chế độ Layout cho phép thêm north arrow, scale bar, legend, graticule và export PDF 300 dpi. <strong>ArcGIS Online</strong> và <strong>StoryMaps</strong> đưa bản đồ lên web — người xem bật/tắt layer, click popup xem thuộc tính, theo dõi narrative dự án môi trường.</p>
+    <p>Luồng làm việc điển hình: phân tích xong trên Pro → publish layer lên ArcGIS Online → ghép Dashboard hoặc StoryMap cho hội thảo trường hoặc báo cáo đồ án. Hiểu quy trình này giúp bạn không chỉ «biết một phần mềm» mà nắm được cách thông tin không gian đi từ số liệu thô đến quyết định và truyền thông công chúng.</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"ArcGIS StoryMaps web map layout export PDF cartography"</span>
+      </div>
+      <p class="arc-image-caption">Trình bày bản đồ — layout in trên Pro và StoryMap trên ArcGIS Online</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai lựa chọn hay được đặt cạnh ArcGIS nhất là <strong>QGIS</strong> (miễn phí, mã nguồn mở) và <strong>Google Earth</strong> (bản đồ 3D tiêu dùng, dễ tra cứu). Không có câu trả lời «đúng duy nhất» — tùy bạn làm nghiên cứu cá nhân, dự án trường hay hướng tới cơ quan nhà nước/doanh nghiệp dùng Esri stack.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">ArcGIS vs QGIS</h3>
+    <p>QGIS miễn phí, cộng đồng toàn cầu lớn và cập nhật plugin liên tục — rất phù hợp học sinh THPT, sinh viên và NGO khi ngân sách bằng không. ArcGIS trả phí (license cá nhân, tổ chức hoặc gói giáo dục Esri), nhưng vẫn được Sở ngành, viện nghiên cứu và tập đoàn tại Việt Nam dùng vì hỗ trợ doanh nghiệp, ArcGIS Online và quy trình làm việc tổ chức quen thuộc.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"ArcGIS Pro enterprise GIS spatial analysis professional"</span>
+        </div>
+        <p class="arc-image-caption">ArcGIS — hệ sinh thái doanh nghiệp và ArcGIS Online</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"QGIS open source GIS interface plugins map"</span>
+        </div>
+        <p class="arc-image-caption">QGIS — miễn phí, mã nguồn mở, plugin phong phú</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>ArcGIS mạnh hơn:</strong> ArcGIS Online/Enterprise, StoryMaps, Field Maps; hỗ trợ tổ chức; geoprocessing 3D và mô hình nâng cao; tương thích workflow cơ quan nhà nước nhiều nơi.</p>
+      <p><strong>QGIS mạnh hơn:</strong> chi phí bằng không, mã nguồn mở, cộng đồng tutorial đa ngôn ngữ; đủ cho phân tích spatial cơ bản đến trung cấp và dự án học tập.</p>
+      <p><strong>Chọn ArcGIS khi:</strong> trường/công ty có license Esri, mục tiêu làm GIS analyst trong khối công hoặc doanh nghiệp dùng ArcGIS stack.</p>
+      <p><strong>Chọn QGIS khi:</strong> cần bắt đầu ngay không tốn phí, dự án cá nhân/STEM, hoặc môi trường ưu tiên open source.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">ArcGIS vs Google Earth</h3>
+    <p>Google Earth (và Google Maps) giúp mọi người xem ảnh vệ tinh, đo khoảng cách sơ bộ và khám phá địa danh — cực kỳ trực quan, không cần đào tạo GIS. ArcGIS nhắm người làm việc với <strong>dữ liệu có cấu trúc</strong>: import layer riêng, phân tích, xuất bản đồ theo tiêu chuẩn báo cáo — không thay thế nhau mà phục vụ mục đích khác nhau.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"ArcGIS Pro thematic map layout professional cartography"</span>
+        </div>
+        <p class="arc-image-caption">ArcGIS — bản đồ chuyên đề và phân tích layer tùy chỉnh</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Google Earth Pro 3D satellite view interface exploration"</span>
+        </div>
+        <p class="arc-image-caption">Google Earth — khám phá 3D và ảnh vệ tinh cho người dùng phổ thông</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>ArcGIS mạnh hơn:</strong> quản lý geodatabase, geoprocessing, bản đồ in chuẩn nghề, publish web map có quyền truy cập và metadata đầy đủ.</p>
+      <p><strong>Google Earth mạnh hơn:</strong> dễ dùng ngay, ảnh 3D và Street View phong phú, phù hợp thuyết trình nhanh hoặc giới thiệu địa điểm không cần phân tích sâu.</p>
+      <p><strong>Chọn ArcGIS khi:</strong> cần phân tích không gian, overlay nhiều nguồn dữ liệu, làm báo cáo quy hoạch/môi trường chuyên nghiệp.</p>
+      <p><strong>Chọn Google Earth khi:</strong> chỉ cần minh họa vị trí, tour ảo địa danh, hoặc bước đầu làm quen nhìn Trái Đất trước khi học GIS.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học ArcGIS như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Làm quen khái niệm GIS và giao diện Pro</strong>
+        <p>Tuần đầu hãy hiểu vector vs raster, layer, attribute table và coordinate system — trước khi chạy công cụ phân tích. Mở ArcGIS Pro (hoặc tài khoản ArcGIS Online miễn phí cho giáo dục nếu trường đăng ký), thêm basemap, zoom tới quận/huyện quen thuộc. Mục tiêu là không nhầm GIS với «vẽ trên Google Maps» — dữ liệu GIS luôn gắn thuộc tính và hệ tọa độ.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Import dữ liệu và kiểm tra hệ tọa độ</strong>
+        <p>Thử thêm shapefile, GeoJSON hoặc CSV có kinh độ/vĩ độ — kiểm tra layer hiển thị đúng vị trí Việt Nam. Học Define Projection và Project nếu layer bị lệch. Luyện join bảng Excel (dân số, điểm thi…) vào polygon hành chính. Thường 2–3 tuần sẽ quen thao tác Catalog và Map pane.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Symbology, labeling và bản đồ in cơ bản</strong>
+        <p>Chỉnh màu theo trường thuộc tính (choropleth), thêm nhãn tên, tạo Layout với legend và scale bar — export PDF. Mục tiêu là có một bản đồ «nhìn được» cho đồ án địa lý hoặc poster STEM, dù chưa phân tích phức tạp. Học thêm nguyên tắc cartography: không quá nhiều màu, chú thích rõ ràng.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Geoprocessing: buffer, overlay, spatial join</strong>
+        <p>Chọn một câu hỏi thực tế: «Trường học nằm trong bán kính 1 km sông nào?» hoặc «Khu dân cư giao với đất ngập?» — dùng Buffer, Select by Location, Intersect. Ghi lại các bước trong ModelBuilder hoặc notebook nếu cần lặp lại — đây là kỹ năng GIS analyst thực tế.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Dự án hoàn chỉnh: phân tích + StoryMap hoặc Dashboard</strong>
+        <p>Chọn chủ đề: ngập lụt quận, phân bố cây xanh trường, hay điểm thu gom rác — từ thu thập/open data đến phân tích và trình bày. Publish layer lên ArcGIS Online, dựng StoryMap kể chuyện bằng bản đồ cho hội thảo học đường. Giai đoạn này dạy quy trình sản xuất thật: nguồn dữ liệu, giới hạn độ chính xác, trình bày trung thực.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Portfolio, chứng chỉ và định hướng nghề</strong>
+        <p>Tổng hợp 2–4 dự án: PDF bản đồ in, link StoryMap, mô tả ngắn phương pháp phân tích. Tìm hiểu Esri Young Professionals Network, MOOC Esri miễn phí và ngành GIS tại Việt Nam (viện khảo sát, môi trường, logistics). Biết thêm QGIS là lợi thế; nhiều tuyển dụng GIS analyst xem portfolio và tư duy spatial hơn chỉ tên phần mềm.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

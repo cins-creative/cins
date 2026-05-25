@@ -1,0 +1,209 @@
+<section class="arc-intro">
+  <p>Bạn chơi game AAA và chạm tay vào tường đá, sàn gỗ hay vỏ kim loại gỉ — bề mặt đó thường không được vẽ tay từng pixel mà được <strong>tạo bằng toán học</strong>: một lớp gồ ghề, một lớp bụi, một lớp ố vàng xếp chồng lên nhau và có thể đổi kích thước, độ nhám hay màu sắc mà không cần vẽ lại từ đầu. Phần lớn quy trình đó diễn ra trong <strong>Substance 3D Designer</strong>, công cụ procedural material của Adobe.</p>
+  <p>Substance Designer không phải phần mềm dựng hình 3D hay sơn trực tiếp lên model — nó là xưởng «máy móc» tạo vật liệu PBR: gạch, bê tông, vải, da, kim loại… xuất ra bộ texture (Base Color, Normal, Roughness, Metallic…) dùng chung cho game, phim và archviz. Studio game Việt Nam và freelancer texture artist trên toàn cầu đều coi Designer là kỹ năng cốt lõi khi muốn làm việc chuyên sâu về vật liệu.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>Substance 3D Designer là gì?</h2>
+  <p>Substance 3D Designer do <strong>Adobe</strong> phát triển (trước đây thuộc Allegorithmic) — phần mềm <strong>tạo vật liệu procedural</strong> chạy trên Windows và macOS. Thay vì vẽ texture trên canvas 2D, bạn kết nối các <strong>node</strong> (khối xử lý) trong một đồ thị: noise tạo hạt, gradient tạo vết bẩn, blend trộn lớp — cuối cùng xuất ra material hoàn chỉnh có thể tái sử dụng và biến thể hóa vô hạn.</p>
+  <p>Khác với Photoshop hay Substance Painter (sơn trực tiếp lên model 3D), Designer làm việc chủ yếu trong không gian node-based 2D/3D hybrid: bạn «lập trình» bề mặt bằng cách nối dây giữa các node. Giao diện ban đầu trông giống sơ đồ kỹ thuật, nhưng mỗi node đại diện một thao tác — blur, tile, curvature, height blend — giúp vật liệu có thể chỉnh sửa phi cấu trúc và xuất nhiều độ phân giải từ cùng một graph.</p>
+  <ul class="arc-list">
+    <li><strong>Node graph procedural</strong> — tạo và tái sử dụng vật liệu không phụ thuộc độ phân giải cố định</li>
+    <li><strong>Xuất PBR maps</strong> — Base Color, Normal, Roughness, Metallic, Height, AO cho engine và DCC</li>
+    <li><strong>MDL &amp; tích hợp</strong> — preview trong Iray; xuất sang Unreal, Unity, Blender, 3ds Max, Maya</li>
+    <li><strong>Substance 3D Assets</strong> — thư viện graph và material có sẵn; học reverse-engineer graph của người khác</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"Substance 3D Designer node graph interface material screenshot"</span>
+    </div>
+    <p class="arc-image-caption">Giao diện Substance Designer — node graph, 3D viewport preview và bảng thuộc tính node</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>Substance Designer thường đứng ở giai đoạn <strong>tạo vật liệu nền và tileable texture</strong>: nhận brief art director (ví dụ «gạch tường cũ ẩm mốc, có thể đổi màu grout»), dựng graph procedural, xuất bộ map PBR và bàn giao cho environment artist hoặc technical artist import vào engine. Với asset riêng lẻ (vũ khí, prop), artist thường dùng Designer cho vật liệu cơ sở rồi chuyển sang Substance Painter để thêm chi tiết wear và decal. Làm việc cùng Blender, Maya, 3ds Max và các engine game trong pipeline sản xuất asset.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Node graph &amp; tư duy procedural</h3>
+    <p>Trái tim của Designer là <strong>đồ thị node</strong>: mỗi node nhận input (height map, mask, màu) và cho output — bạn nối dây để xây dựng vật liệu từng lớp. Ví dụ tạo gạch: Shape node tạo ô vuông → Tile Generator lặp lại → Grunge thêm bụi → Normal node chuyển height sang normal map. Ưu điểm lớn là <strong>non-destructive</strong>: đổi một tham số ở đầu graph, toàn bộ vật liệu cập nhật theo.</p>
+    <p>Đối với học sinh THPT mới làm quen, bài tập thực tế hay gặp: tái tạo vật liệu gỗ đơn giản, gạch ốp tường tileable, hoặc kim loại scratched metal — vừa luyện tư duy «chia nhỏ bề mặt thành lớp» vừa làm portfolio texture cơ bản cho game art.</p>
+    <ul class="arc-list">
+      <li><strong>Atomic nodes</strong> — Blend, Levels, Curvature, Flood Fill, Histogram Scan cho mask và chi tiết</li>
+      <li><strong>Generators</strong> — Brick, Tile, Wave, Scratches tạo pattern nền nhanh</li>
+      <li><strong>Graph instances</strong> — nhúng graph con, tái sử dụng module (ví dụ «edge wear») trong nhiều project</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Substance Designer brick material node graph procedural"</span>
+        </div>
+        <p class="arc-image-caption">Graph gạch — Tile Generator, grunge và blend nhiều lớp</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Substance Designer exposed parameters material variations"</span>
+        </div>
+        <p class="arc-image-caption">Exposed parameters — đổi màu, scale, độ nhám từ một graph gốc</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. PBR output &amp; preview 3D</h3>
+    <p>Sau khi hoàn thiện graph, bạn gán output vào các kênh <strong>PBR chuẩn</strong>: Base Color (Albedo), Normal, Roughness, Metallic, Height, Ambient Occlusion. Designer có viewport 3D tích hợp để xoay sphere, cube hoặc mesh import — kiểm tra vật liệu dưới ánh sáng Iray trước khi xuất. Có thể render thumbnail chất lượng cao cho portfolio hoặc thư viện nội bộ studio.</p>
+    <p>Một graph tileable chất lượng studio có thể mất vài ngày đến vài tuần tùy độ phức tạp; nhưng khi xong, bạn xuất 2K, 4K hay 8K từ cùng một nguồn mà không vẽ lại — đây là lý do studio game lớn đầu tư vào texture artist biết Designer.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Substance Designer PBR material 3D viewport Iray preview"</span>
+      </div>
+      <p class="arc-image-caption">Preview PBR — viewport 3D với ánh sáng Iray và bộ map đầy đủ</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Xuất sang engine, automation &amp; Substance Player</h3>
+    <p>Designer xuất trực tiếp sang <strong>Unreal Engine, Unity, Blender, 3ds Max</strong> qua plugin Substance hoặc file .sbsar (Substance Archive) — file này chứa graph đã «đóng gói», cho phép đổi tham số trong engine mà không cần mở Designer. Technical artist có thể dùng <strong>Substance Automation Toolkit</strong> (Python API) để batch xuất hàng trăm biến thể vật liệu cho open world game.</p>
+    <p>Luồng làm việc điển hình: model + UV trong Blender/Maya → vật liệu tileable trong Designer → chi tiết wear trong Painter (nếu cần) → import engine → kiểm tra trong lighting thật. Hiểu quy trình này giúp bạn không chỉ «biết một phần mềm» mà nắm được cách bề mặt 3D được sản xuất ở quy mô studio.</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Substance Designer export Unreal Engine sbsar material pipeline"</span>
+      </div>
+      <p class="arc-image-caption">Luồng xuất — graph Designer, file .sbsar và material live trong Unreal/Unity</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai công cụ hay được đặt cạnh Substance Designer nhất là <strong>Quixel Mixer</strong> (Megascans ecosystem, giờ thuộc Epic) và <strong>Materialize</strong> (miễn phí, chuyển ảnh 2D sang PBR). Không có câu trả lời «đúng duy nhất» — tùy bạn cần procedural sâu, scan-based nhanh hay workflow từ ảnh chụp.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Substance Designer vs Quixel Mixer</h3>
+    <p>Quixel Mixer kết hợp <strong>Megascans</strong> (ảnh scan chất lượng cao) với layer blending trực quan — rất nhanh để tạo ground, rock, debris cho environment mà không cần graph phức tạp. Substance Designer mạnh hơn khi cần <strong>vật liệu hoàn toàn tùy biến</strong>, logic procedural (wear theo curvature, edge mask tự động) và xuất .sbsar cho pipeline kỹ thuật. Mixer miễn phí với Unreal; Designer nằm trong gói Substance 3D Collection trả phí.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Substance Designer procedural material graph professional"</span>
+        </div>
+        <p class="arc-image-caption">Substance Designer — graph procedural, tái sử dụng và automation</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Quixel Mixer Megascans material blending interface"</span>
+        </div>
+        <p class="arc-image-caption">Quixel Mixer — blend scan Megascans, nhanh cho environment artist</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Substance Designer mạnh hơn:</strong> procedural thuần, exposed parameters linh hoạt, .sbsar trong engine, phù hợp technical/texture artist chuyên sâu.</p>
+      <p><strong>Quixel Mixer mạnh hơn:</strong> tốc độ với thư viện scan khổng lồ, giao diện layer quen thuộc, miễn phí cho user Unreal.</p>
+      <p><strong>Chọn Substance Designer khi:</strong> mục tiêu làm texture artist, procedural material, pipeline game/phim cần tái sử dụng graph.</p>
+      <p><strong>Chọn Quixel Mixer khi:</strong> cần lấp environment nhanh bằng scan, làm việc chủ yếu trong Unreal ecosystem.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Substance Designer vs Materialize</h3>
+    <p>Materialize (của Bounding Box Software) là công cụ <strong>miễn phí</strong> giúp tách height, normal, roughness từ một ảnh diffuse — rất hữu ích khi bạn có ảnh chụp bề mặt thật và muốn chuyển nhanh sang PBR. Substance Designer không «đoán» từ ảnh một cách tự động như vậy mà xây vật liệu từ đầu bằng node; tuy nhiên Designer linh hoạt hơn nhiều cho biến thể, tile và logic phức tạp mà Materialize không hỗ trợ.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Substance Designer height map procedural wood material"</span>
+        </div>
+        <p class="arc-image-caption">Substance Designer — height và normal tạo từ graph, không phụ thuộc ảnh gốc</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Materialize PBR material from photo Bounding Box Software"</span>
+        </div>
+        <p class="arc-image-caption">Materialize — chuyển ảnh 2D sang bộ map PBR, miễn phí và nhanh</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Substance Designer mạnh hơn:</strong> procedural đầy đủ, tileable không seam, biến thể vô hạn, tiêu chuẩn ngành game AAA.</p>
+      <p><strong>Materialize mạnh hơn:</strong> miễn phí, học trong vài giờ, phù hợp ảnh chụp một lần, indie budget thấp.</p>
+      <p><strong>Chọn Substance Designer khi:</strong> theo nghề texture/material artist, cần graph tái sử dụng và pipeline studio.</p>
+      <p><strong>Chọn Materialize khi:</strong> có ảnh reference sẵn, cần PBR nhanh cho dự án nhỏ hoặc học tập ban đầu.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học Substance Designer như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Làm quen giao diện và node cơ bản</strong>
+        <p>Tuần đầu hãy mở graph mẫu có sẵn (hoặc tutorial «first material»): quan sát cách nối node, zoom graph, xem preview 2D và 3D. Tạo vài node đơn giản — Uniform Color, Grayscale Conversion, Blending — và xem output thay đổi realtime. Mục tiêu là không còn «sợ» màn hình đầy dây nối trước khi học generator phức tạp — nhiều bạn THPT thấy Designer khó hơn Painter chỉ vì giao diện graph ban đầu.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Vật liệu tileable đầu tiên</strong>
+        <p>Học tạo gạch, gỗ plank hoặc fabric weave bằng Tile Generator và Shape — chú ý <strong>tileable seamless</strong> (không thấy đường nối khi lặp). Luyện expose parameters (màu grout, kích thước viên gạch) để tạo 3–5 biến thể từ một graph. Thường 2–3 tuần luyện đều sẽ hiểu cách «chia bề mặt thành lớp logic».</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Height, normal và wear logic</strong>
+        <p>Dùng Height Blend, Curvature, Edge Detect để tạo vết mòn ở cạnh và khe hở — kỹ năng cốt lõi cho vật liệu realistic. Học chuyển height sang normal map đúng cách và kiểm tra trong viewport 3D dưới ánh sáng khác nhau. Mục tiêu là có một material «nhìn được» trong engine, không chỉ đẹp trên flat preview.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Graph phức tạp &amp; reverse-engineer</strong>
+        <p>Tải graph miễn phí từ Substance 3D Assets hoặc Gumroad, mở ra và đọc từng nhánh — cách họ dùng Flood Fill, Histogram Scan hay custom node. Thử tái tạo một phần graph theo memory, rồi so sánh với bản gốc. Giai đoạn này giúp bạn học «pattern» thực tế mà tutorial ngắn không dạy hết.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Xuất .sbsar và tích hợp engine</strong>
+        <p>Publish graph thành .sbsar, import vào Unreal hoặc Unity, chỉnh exposed parameters trực tiếp trong engine. Thử batch export nhiều độ phân giải (1K, 2K, 4K) cho cùng material. Nếu hướng technical art, tìm hiểu Automation Toolkit để script xuất hàng loạt — kỹ năng được studio mid-size trở lên đánh giá cao.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Portfolio và định hướng nghề</strong>
+        <p>Tổng hợp 5–8 material: 2 tileable (gạch, gỗ), 2 có wear phức tạp (kim loại, bê tông), 1–2 .sbsar demo trong engine. Đăng ArtStation hoặc Behance — ghi rõ Substance Designer, có breakdown graph nếu được. Kết hợp học Substance Painter để trọn pipeline texture artist; tìm khóa game art tại Việt Nam hoặc chứng chỉ Adobe Substance — nhiều studio tuyển junior dựa trên material portfolio hơn bằng cấp.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

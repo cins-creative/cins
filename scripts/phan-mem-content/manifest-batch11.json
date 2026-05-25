@@ -1,0 +1,182 @@
+[
+  {
+    "id": "0fe98d61-a425-48c4-90f7-e0b6488bb77f",
+    "slug": "realitycapture",
+    "tieu_de_viet": "RealityCapture — Photogrammetry 3D",
+    "tom_tat": "Phần mềm quét ảnh thành mesh 3D — tái tạo đối tượng, kiến trúc và môi trường từ drone/DSLR cho game, VFX và BIM.",
+    "meta_title": "RealityCapture là gì? Scan 3D, giá và hướng dẫn | CINS",
+    "meta_description": "RealityCapture: photogrammetry, mesh, texture. So sánh Metashape, Polycam và luồng scan asset.",
+    "meta": {
+      "nha_phat_hanh": "Epic Games (Capturing Reality)",
+      "version": "1.3",
+      "platform": ["Windows"],
+      "website": "https://www.unrealengine.com/en-US/realitycapture",
+      "goi_mien_phi": "PPI pay-per-input · trial",
+      "gia_thanh": "Theo credit PPI · ~3,750 USD/năm unlimited",
+      "hinh_thuc_mua": "Pay-per-use · subscription",
+      "link_tai": "https://www.unrealengine.com/en-US/realitycapture"
+    }
+  },
+  {
+    "id": "01a0d9c5-f1b9-472c-b593-8698d92c8256",
+    "slug": "reaper",
+    "tieu_de_viet": "Reaper — DAW linh hoạt giá rẻ",
+    "tom_tat": "Digital Audio Workstation nhẹ — ghi nhạc, podcast, mix và scripting tùy biến cho producer indie và học sinh làm nhạc.",
+    "meta_title": "Reaper là gì? DAW, giá và hướng dẫn học | CINS",
+    "meta_description": "Reaper: track, routing, ReaScript. So sánh Pro Tools, Audacity và lộ trình học sản xuất âm thanh.",
+    "meta": {
+      "nha_phat_hanh": "Cockos",
+      "version": "7",
+      "platform": ["Windows", "macOS", "Linux"],
+      "website": "https://www.reaper.fm",
+      "goi_mien_phi": "Dùng thử đầy đủ 60 ngày",
+      "gia_thanh": "~60 USD cá nhân · ~225 USD commercial",
+      "hinh_thuc_mua": "Mua một lần · giáo dục giảm",
+      "link_tai": "https://www.reaper.fm/download.php"
+    }
+  },
+  {
+    "id": "368afa36-4ba7-4b89-bb7d-ce6a253eb8ec",
+    "slug": "redshift",
+    "tieu_de_viet": "Redshift — GPU render biased",
+    "tom_tat": "Engine render GPU của Maxon — nhanh, tích hợp Cinema 4D, Maya, Houdini cho motion, VFX và archviz.",
+    "meta_title": "Redshift là gì? GPU render, giá và hướng dẫn | CINS",
+    "meta_description": "Redshift: GPU, AOV, out-of-core. So sánh Octane, Arnold và luồng render studio.",
+    "meta": {
+      "nha_phat_hanh": "Maxon (Redshift)",
+      "version": "2024",
+      "platform": ["Windows", "macOS", "Linux"],
+      "website": "https://www.maxon.net/redshift",
+      "goi_mien_phi": "Dùng thử · đi kèm C4D subscription",
+      "gia_thanh": "Đi kèm Maxon One · plugin ~500 USD/năm",
+      "hinh_thuc_mua": "Thuê bao · plugin",
+      "link_tai": "https://www.maxon.net/redshift"
+    }
+  },
+  {
+    "id": "e8658db6-344f-4cfb-b809-fa0fea00412e",
+    "slug": "revit",
+    "tieu_de_viet": "Revit — BIM kiến trúc &amp; kết cấu",
+    "tom_tat": "Phần mềm BIM của Autodesk — mô hình tòa nhà, family, documentation và coordination cho kiến trúc sư và kỹ sư.",
+    "meta_title": "Revit là gì? BIM, giá và hướng dẫn học | CINS",
+    "meta_description": "Revit: family, view, sheet, clash. So sánh ArchiCAD, SketchUp và lộ trình học BIM.",
+    "meta": {
+      "nha_phat_hanh": "Autodesk",
+      "version": "2025",
+      "platform": ["Windows"],
+      "website": "https://www.autodesk.com/products/revit",
+      "goi_mien_phi": "Dùng thử · giáo dục miễn phí",
+      "gia_thanh": "Từ ~290 USD/tháng",
+      "hinh_thuc_mua": "Thuê bao tháng · giáo dục",
+      "link_tai": "https://www.autodesk.com/products/revit"
+    }
+  },
+  {
+    "id": "e8f9f16a-5218-420b-b00a-e75a73d51365",
+    "slug": "rhino",
+    "tieu_de_viet": "Rhino — Mô hình NURBS 3D",
+    "tom_tat": "Phần mềm modeling NURBS — thiết kế công nghiệp, kiến trúc parametric, jewelry và xuất mesh cho render/game.",
+    "meta_title": "Rhino là gì? NURBS 3D, giá và hướng dẫn học | CINS",
+    "meta_description": "Rhino: NURBS, Grasshopper, SubD. So sánh SolidWorks, Blender và lộ trình học thiết kế 3D.",
+    "meta": {
+      "nha_phat_hanh": "Robert McNeel and Associates",
+      "version": "8",
+      "platform": ["Windows", "macOS"],
+      "website": "https://www.rhino3d.com",
+      "goi_mien_phi": "Dùng thử 90 ngày",
+      "gia_thanh": "~995 USD perpetual · ~695 USD nâng cấp",
+      "hinh_thuc_mua": "Mua một lần · giáo dục",
+      "link_tai": "https://www.rhino3d.com/download"
+    }
+  },
+  {
+    "id": "f323b366-7d56-451d-a232-b509ae55c68c",
+    "slug": "rpg-maker",
+    "tieu_de_viet": "RPG Maker — Làm game RPG 2D",
+    "tom_tat": "Engine chuyên RPG pixel/tilemap — event, database nhân vật, battle system sẵn cho học sinh và indie làm JRPG.",
+    "meta_title": "RPG Maker là gì? Game RPG, giá và hướng dẫn | CINS",
+    "meta_description": "RPG Maker MZ: tilemap, event, plugin. So sánh Construct 3, Godot và lộ trình làm RPG đầu tiên.",
+    "meta": {
+      "nha_phat_hanh": "Gotcha Gotcha Games",
+      "version": "MZ",
+      "platform": ["Windows", "macOS"],
+      "website": "https://www.rpgmakerweb.com",
+      "goi_mien_phi": "Không (trial MZ)",
+      "gia_thanh": "~80 USD (MZ) · DLC asset riêng",
+      "hinh_thuc_mua": "Mua một lần",
+      "link_tai": "https://www.rpgmakerweb.com/products/rpg-maker-mz"
+    }
+  },
+  {
+    "id": "83a8bb2d-24b1-41eb-9e63-16d8a1a6fbf3",
+    "slug": "runway-ml",
+    "tieu_de_viet": "Runway — AI video &amp; creative tools",
+    "tom_tat": "Nền tảng AI sáng tạo — Gen-3 video, inpainting, green screen và edit cho creator, quảng cáo và thử nghiệm VFX.",
+    "meta_title": "Runway ML là gì? AI video, giá và hướng dẫn | CINS",
+    "meta_description": "Runway: Gen-3, motion brush, API. So sánh Kling AI, Pika và quy trình dùng AI video có trách nhiệm.",
+    "meta": {
+      "nha_phat_hanh": "Runway AI Inc.",
+      "version": "Gen-3",
+      "platform": ["Web"],
+      "website": "https://runwayml.com",
+      "goi_mien_phi": "Credit miễn phí hàng tháng",
+      "gia_thanh": "Từ ~12 USD/tháng (Standard)",
+      "hinh_thuc_mua": "Thuê bao · credit",
+      "link_tai": "https://runwayml.com"
+    }
+  },
+  {
+    "id": "3008a909-9a8c-4d7a-aa61-321432d13c00",
+    "slug": "vicon-shogun",
+    "tieu_de_viet": "Vicon Shogun — Phần mềm motion capture",
+    "tom_tat": "Software điều khiển hệ MoCap Vicon — calibration camera, skeleton solve và export cho game cinematics và film.",
+    "meta_title": "Vicon Shogun là gì? MoCap, giá và hướng dẫn | CINS",
+    "meta_description": "Shogun: optical mocap, retarget. So sánh OptiTrack Motive, Rokoko và luồng animation studio.",
+    "meta": {
+      "nha_phat_hanh": "Vicon",
+      "version": "2",
+      "platform": ["Windows"],
+      "website": "https://www.vicon.com/software/shogun",
+      "goi_mien_phi": "Đi kèm hệ Vicon",
+      "gia_thanh": "Theo gói camera + license",
+      "hinh_thuc_mua": "Mua phần cứng · license",
+      "link_tai": "https://www.vicon.com/software/shogun"
+    }
+  },
+  {
+    "id": "5e2bbf24-c2cd-45ee-bf6d-bfd0f5525966",
+    "slug": "shotgrid",
+    "tieu_de_viet": "ShotGrid — Quản lý pipeline VFX/animation",
+    "tom_tat": "Nền tảng production tracking của Autodesk — shot, task, version, review cho studio phim hoạt hình và VFX.",
+    "meta_title": "ShotGrid là gì? Pipeline VFX, giá và hướng dẫn | CINS",
+    "meta_description": "ShotGrid: shot, publish, review. So sánh ftrack, Kitsu và quy trình quản lý dự án animation.",
+    "meta": {
+      "nha_phat_hanh": "Autodesk (ShotGrid)",
+      "version": "2024",
+      "platform": ["Web"],
+      "website": "https://www.autodesk.com/products/shotgrid",
+      "goi_mien_phi": "Indie program giới hạn",
+      "gia_thanh": "Theo user/site · enterprise",
+      "hinh_thuc_mua": "Thuê bao · giáo dục",
+      "link_tai": "https://www.autodesk.com/products/shotgrid"
+    }
+  },
+  {
+    "id": "da391c7e-549a-4dd4-8ba0-6e0dd4fea3b8",
+    "slug": "shotgun",
+    "tieu_de_viet": "Shotgun — Production tracking (ShotGrid)",
+    "tom_tat": "Tên cũ của ShotGrid — hệ thống theo dõi shot, asset và review trong pipeline phim hoạt hình và VFX studio.",
+    "meta_title": "Shotgun (ShotGrid) là gì? Pipeline VFX và hướng dẫn | CINS",
+    "meta_description": "Shotgun/ShotGrid: versioning, review, API. So sánh ftrack, Jira và luồng studio animation.",
+    "meta": {
+      "nha_phat_hanh": "Autodesk",
+      "version": "2024",
+      "platform": ["Web"],
+      "website": "https://www.autodesk.com/products/shotgrid",
+      "goi_mien_phi": "Indie program giới hạn",
+      "gia_thanh": "Theo user/site · enterprise",
+      "hinh_thuc_mua": "Thuê bao · giáo dục",
+      "link_tai": "https://www.autodesk.com/products/shotgrid"
+    }
+  }
+]

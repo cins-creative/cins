@@ -1,0 +1,209 @@
+<section class="arc-intro">
+  <p>Bạn xem nhân vật game AAA với da có nếp nhăn, sẹo và cơ bắp tinh tế — hoặc quái vật phim với chi tiết vảy, gai được «nặn» như đất sét sống — phần lớn khối sculpt ban đầu đó được tạo trên phần mềm digital sculpting như <strong>Autodesk Mudbox</strong> hoặc ZBrush, rồi retopology và đưa texture sang Substance hoặc engine. Mudbox là một trong những công cụ sculpt chuyên nghiệp lâu đời, tập trung vào luồng làm việc trực quan trên mesh 3D.</p>
+  <p>Mudbox không phải app vẽ tranh 2D hay dựng phim — nó nằm giữa modeling cơ bản và texture painting, giúp artist tạo hình khối organic (khuôn mặt, creature, đồ da) với hàng triệu polygon. Hiểu Mudbox giúp học sinh THPT hướng Game Art, Animation hoặc VFX thấy cách nhân vật «có hồn» trước khi rig và animate.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>Mudbox là gì?</h2>
+  <p>Autodesk Mudbox do <strong>Autodesk</strong> phát triển — phần mềm <strong>digital sculpting và texture painting 3D</strong> chạy trên Windows và macOS. Ra mắt từ mid-2000s, từng là đối thủ trực tiếp của ZBrush trong studio game và phim; ngày nay vẫn được dùng ở một số pipeline (đặc biệt team đã quen Autodesk stack) dù ZBrush chiếm ưu thế rộng hơn trong ngành.</p>
+  <p>Khác với Maya modeling polygon thông thường, Mudbox cho phép bạn <strong>đẩy/kéo mesh ở mức subdivision cao</strong> như nặn đất sét — thêm chi tiết nếp nhăn, sừng, đường nứt mà không cần chỉnh từng vertex tay ở low poly. Giao diện có viewport 3D, bảng cọ sculpt (Sculpt, Grab, Flatten, Wax…) và layer — tập trung vào cảm giác tạo hình trực tiếp trên bề mặt model hơn là graph node phức tạp.</p>
+  <ul class="arc-list">
+    <li><strong>Multi-resolution sculpting</strong> — sculpt trên mesh subdivision, chuyển cấp độ chi tiết linh hoạt</li>
+    <li><strong>Texture painting</strong> — vẽ diffuse, normal, roughness trực tiếp lên UV model trong viewport 3D</li>
+    <li><strong>Vector displacement</strong> — tạo chi tiết nổi sâu (sừng, vảy) với map displacement</li>
+    <li><strong>Pipeline exchange</strong> — import/export OBJ, FBX sang Maya, 3ds Max, Substance Painter hoặc game engine</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"Autodesk Mudbox interface digital sculpting viewport brushes screenshot"</span>
+    </div>
+    <p class="arc-image-caption">Giao diện Mudbox — viewport sculpt, bảng cọ và mesh subdivision cao</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>Mudbox thường đứng ở giai đoạn <strong>sculpt high-poly và paint texture ban đầu</strong>: nhận base mesh low-poly từ Maya/Blender → subdivide và sculpt chi tiết organic → export normal/displacement map hoặc decimated mesh → retopology (trong Maya, Blender hoặc tool riêng) → UV và texture final trong Substance Painter → rig và animate. Với phim, high-res sculpt có thể render displacement trực tiếp; với game, bake map xuống low-poly. Thường làm việc cùng Maya (retopo/rig), ZBrush (nếu studio dùng cả hai) và Substance Painter. Ở Việt Nam, studio game outsource hay yêu cầu ZBrush hơn Mudbox — nhưng kỹ năng sculpt chuyển sang công cụ khác dễ nếu nắm nguyên lý.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Digital sculpting &amp; subdivision workflow</h3>
+    <p>Thế mạnh cốt lõi của Mudbox là <strong>sculpt mesh subdivision</strong>. Bạn import base head hoặc body low-poly, tăng subdivision level (Level 1 → 5 → 7 tùy nhu cầu), dùng cọ Sculpt/Inflat/Grab để tạo khối cơ bản — xương gò má, hốc mắt, môi — rồi thêm chi tiết secondary (nếp nhăn, túi mắt) ở level cao hơn. <strong>Sculpt layers</strong> cho phép thử nghiệm mà không phá mesh gốc, tương tự layer trong Photoshop.</p>
+    <p>Đối với học sinh THPT mới làm quen, bài tập thực tế hay gặp: sculpt đầu người stylized từ sphere hoặc base mesh có sẵn, creature đơn giản (quái vật một sừng) hoặc prop organic (đá, gỗ thô) — vừa luyện quan sát hình khối vừa làm portfolio character art cơ bản.</p>
+    <ul class="arc-list">
+      <li><strong>Sculpt brushes</strong> — Sculpt, Grab, Flatten, Pinch, Wax cho form và chi tiết</li>
+      <li><strong>Subdivision levels</strong> — làm việc global form ở level thấp, micro detail ở level cao</li>
+      <li><strong>Layers &amp; masks</strong> — chỉnh từng vùng (chỉ trán, chỉ cằm) an toàn</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Autodesk Mudbox face sculpt subdivision levels viewport character"</span>
+        </div>
+        <p class="arc-image-caption">Sculpt khuôn mặt — subdivision và cọ sculpt trên viewport</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Mudbox creature sculpt organic detail horns scales"</span>
+        </div>
+        <p class="arc-image-caption">Creature sculpt — chi tiết organic, sừng và bề mặt da</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Texture painting &amp; Ptex</h3>
+    <p>Ngoài sculpt, Mudbox có module <strong>texture painting 3D</strong> — bạn vẽ trực tiếp lên model đã unwrap UV hoặc dùng <strong>Ptex</strong> (texture per face, không bắt buộc UV trước) cho pipeline nhanh concept. Hỗ trợ layer paint: base color, specular, glossiness — phù hợp lookdev sơ bộ trước khi chuyển sang Substance Painter cho PBR đầy đủ.</p>
+    <p>Trong studio nhỏ hoặc dự án previz, artist có thể hoàn thiện texture trung bình ngay trong Mudbox; với game AAA thường bake normal map từ sculpt rồi paint final trong Substance — Mudbox đóng vai trò «khối và map nguồn» hơn là texture cuối.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Autodesk Mudbox 3D texture painting viewport PBR layers"</span>
+      </div>
+      <p class="arc-image-caption">Texture painting — vẽ trực tiếp lên mesh 3D trong Mudbox</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Bake maps &amp; xuất sang pipeline game/phim</h3>
+    <p>Sau sculpt high-poly, bước quan trọng là <strong>bake normal map, displacement và ambient occlusion</strong> xuống low-poly game mesh. Mudbox có công cụ bake giữa mesh high và low (hoặc subdivision level thấp), xuất map cho engine. Export OBJ/FBX sang Maya để retopology chính thức hoặc sang Unreal/Unity preview nhanh.</p>
+    <p>Luồng làm việc điển hình: base mesh Maya → sculpt Mudbox → bake maps → retopo + UV → Substance Painter → rig Maya → engine. Hiểu quy trình này giúp bạn không chỉ «biết nặn» mà nắm cách mesh high-res trở thành nhân vật chạy 60fps trên console.</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Mudbox normal map bake high poly to low poly game pipeline workflow"</span>
+      </div>
+      <p class="arc-image-caption">Pipeline bake — sculpt high-poly Mudbox, normal map, retopo và engine</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai phần mềm hay được đặt cạnh Mudbox nhất là <strong>ZBrush</strong> (Pixologic/Maxon — chuẩn ngành sculpt) và <strong>Blender Sculpt Mode</strong> (miễn phí, tích hợp trong Blender). Không có câu trả lời «đúng duy nhất» — tùy studio bạn nhắm tới, ngân sách và mức độ bạn muốn đầu tư học công cụ chuyên sculpt.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Mudbox vs ZBrush</h3>
+    <p>ZBrush là <strong>vua digital sculpting</strong> trong game AAA và VFX — DynaMesh, ZRemesher, Sculptris Pro và hệ sinh thái brush/plugin khổng lồ. Mudbox giao diện gần với phần mềm Autodesk khác (Maya, 3ds Max), dễ tiếp cận nếu bạn đã quen viewport Autodesk; ZBrush có logic riêng (tool/subtool, canvas) và đường cong học dốc hơn nhưng được tuyển dụng rộng hơn tại studio Việt Nam outsource.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Autodesk Mudbox sculpt interface Autodesk pipeline integration"</span>
+        </div>
+        <p class="arc-image-caption">Mudbox — giao diện quen thuộc với user Autodesk, sculpt &amp; paint</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"ZBrush character sculpt DynaMesh detail professional game art"</span>
+        </div>
+        <p class="arc-image-caption">ZBrush — chuẩn ngành sculpt, toolset mạnh cho game &amp; phim</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Mudbox mạnh hơn:</strong> tích hợp mental model Autodesk, texture painting 3D/Ptex trong cùng app, ít «ngôn ngữ riêng» nếu đã học Maya.<br>
+      <strong>ZBrush mạnh hơn:</strong> cộng đồng và job posting áp đảo, ZRemesher/DynaMesh, chi tiết sculpt và plugin (VD: UV Master) trưởng thành hơn.<br>
+      <strong>Chọn Mudbox khi:</strong> trường/studio cung cấp license Autodesk bundle, hoặc bạn muốn sculpt + paint nhẹ trong một app quen giao diện.<br>
+      <strong>Chọn ZBrush khi:</strong> mục tiêu character artist game AAA/VFX — đây là kỹ năng được ghi rõ trên hầu hết JD tại VN.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Mudbox vs Blender Sculpt</h3>
+    <p>Blender Sculpt Mode miễn phí, cập nhật nhanh — rất phù hợp học sinh THPT bắt đầu digital sculpt mà chưa có ngân sách. Mudbox trả phí (hoặc nằm trong Autodesk bundle), nhưng mang workflow sculpt + paint 3D chuyên biệt hơn và từng được pipeline studio lớn chuẩn hóa — dù hiện nay Blender đủ mạnh cho indie và portfolio cá nhân.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Autodesk Mudbox professional sculpt texture painting workflow"</span>
+        </div>
+        <p class="arc-image-caption">Mudbox — sculpt chuyên biệt và paint 3D trong pipeline studio</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Blender sculpt mode dynamic topology character sculpt viewport"</span>
+        </div>
+        <p class="arc-image-caption">Blender Sculpt — miễn phí, sculpt + modeling + render trong một app</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Mudbox mạnh hơn:</strong> tập trung 100% vào sculpt/paint 3D, Ptex, bake pipeline quen với Maya/Max studio cũ.<br>
+      <strong>Blender Sculpt mạnh hơn:</strong> chi phí bằng không, Dynamic Topology/Multires, cộng đồng tutorial khổng lồ cho THPT, kết hợp retopo và render không cần app khác.<br>
+      <strong>Chọn Mudbox khi:</strong> có access license Autodesk và muốn học tool sculpt «cổ điển» vẫn gặp trong một số pipeline.<br>
+      <strong>Chọn Blender Sculpt khi:</strong> bắt đầu ngay không tốn phí, làm portfolio indie, hoặc trường dạy Blender làm nền tảng 3D chính.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học Mudbox như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Nền tảng 3D và quan sát hình khối</strong>
+        <p>Trước Mudbox, hãy làm quen viewport 3D trong Maya hoặc Blender — xoay camera, hiểu mesh là gì, UV là gì. Luyện vẽ khuôn mặt và anatomy cơ bản (tỷ lệ mắt–mũi–miệng) trên giấy hoặc tablet 2D. Học sinh THPT bỏ qua bước quan sát thường sculpt «lạ» dù đã biết cọ — mục tiêu tuần đầu là nhìn reference và chỉ ra khối primary/secondary form.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Làm quen cọ và subdivision</strong>
+        <p>Import base head mesh hoặc tạo sphere trong Mudbox, luyện Sculpt/Grab/Flatten ở subdivision thấp để dựng khối lớn — không vội level cao. Tuần 1–2 chỉ tập chuyển level, undo, và layer cơ bản. Mục tiêu là tay quen «nặn số» trước khi đụng chi tiết da — giống cách nặn đất sét thật: khối lớn trước, chi tiết sau.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Sculpt portrait hoặc stylized character</strong>
+        <p>Chọn reference rõ (người thật hoặc nhân vật stylized), sculpt bust hoàn chỉnh với primary form (xương) và secondary (cơ, mỡ) ở level trung bình, thêm nếp nhăn nhẹ ở level cao. Export screenshot turnaround (front, side, 3/4) — đây là work portfolio đầu tiên. Thường 3–4 tuần luyện đều sẽ thấy tỷ lệ cải thiện rõ.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Texture painting &amp; bake map cơ bản</strong>
+        <p>Thử paint base color trực tiếp trên model hoặc bake normal map từ high subdivision xuống low export. Import low + normal vào Marmoset Toolbag, Blender hoặc Unreal để xem kết quả real-time — bước này nối sculpt với game art thực tế. Hiểu vì sao game cần low-poly + map thay vì render mesh 10 triệu poly trực tiếp.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Creature hoặc dự án hoàn chỉnh</strong>
+        <p>Sculpt một creature (rồng nhỏ, quái plant, monster stylized) từ concept đơn giản — kết hợp organic và hard surface nhẹ (sừng, giáp). Retopo trong Blender/Maya (hoặc export decimated mesh), UV và đưa sang Substance Painter nếu có thể. Giai đoạn này dạy pipeline end-to-end: không dừng ở «sculpt đẹp» mà tới asset dùng được.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Portfolio và định hướng nghề</strong>
+        <p>Tổng hợp 3–5 work: bust portrait, creature, có thể prop organic — đăng ArtStation/Behance với wireframe và map breakdown. Song song học ZBrush hoặc Blender Sculpt vì job character artist tại VN thường ghi ZBrush; kỹ năng anatomy và form từ Mudbox chuyển sang dễ. Tìm khóa Game Art, 3D Character tại các trung tâm Hà Nội/TP.HCM; nhiều studio tuyển junior dựa portfolio sculpt hơn tên phần mềm cụ thể.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

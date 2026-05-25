@@ -10,6 +10,9 @@ import { ArticleHeroV2 } from "@/components/article/ArticleHeroV2";
 import { ArticleJsonLd } from "@/components/article/ArticleJsonLd";
 import { InlineArticleDraftBar } from "@/components/article/InlineArticleDraftBar";
 import { ArticleNgheView } from "@/components/article/nghe/ArticleNgheView";
+import { KeywordArticleView } from "@/components/article/keyword/KeywordArticleView";
+import { SoftwareArticleView } from "@/components/article/software/SoftwareArticleView";
+import { MonHocArticleView } from "@/components/article/mon-hoc/MonHocArticleView";
 import { ArticleSidebar } from "@/components/article/ArticleSidebar";
 import { TacPhamSection } from "@/components/article/TacPhamSection";
 import { TruongDaoTaoSection } from "@/components/article/TruongDaoTaoSection";
@@ -48,6 +51,41 @@ export function ArticlePageView({
         lienQuan={lienQuan}
         relatedJobsLienQuan={relatedJobsLienQuan}
         showDraftBar={draftUiEnabled}
+        draftPersistEnabled={draftPersistEnabled}
+      />
+    );
+  }
+
+  if (article.loai_bai_viet === "mon_hoc") {
+    return (
+      <MonHocArticleView
+        article={article}
+        lienQuan={lienQuan}
+        tacPham={tacPham}
+        draftUiEnabled={draftUiEnabled}
+        draftPersistEnabled={draftPersistEnabled}
+      />
+    );
+  }
+
+  if (article.loai_bai_viet === "keyword") {
+    return (
+      <KeywordArticleView
+        article={article}
+        lienQuan={lienQuan}
+        tacPham={tacPham}
+        draftUiEnabled={draftUiEnabled}
+        draftPersistEnabled={draftPersistEnabled}
+      />
+    );
+  }
+
+  if (article.loai_bai_viet === "phan_mem") {
+    return (
+      <SoftwareArticleView
+        article={article}
+        lienQuan={lienQuan}
+        draftUiEnabled={draftUiEnabled}
         draftPersistEnabled={draftPersistEnabled}
       />
     );

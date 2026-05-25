@@ -1,0 +1,209 @@
+<section class="arc-intro">
+  <p>Bạn chơi một tựa game AAA trên PC — ánh sáng hoàng hôn phản chiếu trên mặt nước, cỏ lay động theo gió, nhân vật có biểu cảm sống động — phần lớn trải nghiệm đó được dựng và chạy trên <strong>Unreal Engine 5</strong> (UE5), engine do Epic Games phát triển. Cùng công cụ này cũng xuất hiện khi studio làm phim ảo (virtual production), quay cảnh sci-fi trong The Mandalorian, hoặc khách hàng bất động sản «đi bộ» trong căn hộ chưa xây qua walkthrough realtime.</p>
+  <p>Unreal Engine không phải engine duy nhất cho game hay 3D tương tác, nhưng UE5 nổi bật nhờ chất lượng đồ họa cao (Nanite, Lumen), hệ sinh thái Blueprint cho người mới, và cộng đồng tuyển dụng lớn tại Việt Nam — từ studio game outsource đến team archviz và truyền thông sự kiện. Hiểu UE5 giúp học sinh THPT không chỉ «chơi game đẹp» mà nắm được quy trình sản xuất tương tác thực tế: từ asset 3D đến trải nghiệm người dùng cuối.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>Unreal Engine 5 là gì?</h2>
+  <p>Unreal Engine do <strong>Epic Games</strong> phát triển — <strong>engine game và nền tảng realtime 3D</strong> đa nền tảng, chạy trên Windows và macOS (Linux cho build server). Phiên bản 5.x tập trung vào đồ họa thế hệ mới với Nanite (geometry chi tiết cao), Lumen (ánh sáng global động), MetaHuman (nhân vật siêu thực) và công cụ virtual production cho phim.</p>
+  <p>Khác với phần mềm DCC chỉ dựng hình tĩnh (3ds Max, Blender render still), Unreal Engine là môi trường <strong>runtime</strong>: bạn lắp level, gắn logic gameplay hoặc tương tác, xử lý input, âm thanh, UI và xuất ra file chạy được trên PC, console, mobile hoặc trình duyệt. Giao diện có World Outliner, Viewport, Content Browser và Blueprint editor — ban đầu nhiều thuật ngữ (Actor, Component, Level), nhưng mỗi khu vực phục vụ một bước trong sản xuất sản phẩm tương tác.</p>
+  <ul class="arc-list">
+    <li><strong>Rendering UE5</strong> — Nanite cho mesh chi tiết triệu polygon; Lumen cho ánh sáng phản xạ động không cần bake lightmap thủ công</li>
+    <li><strong>Blueprint Visual Scripting</strong> — lập trình bằng node kéo thả, phù hợp designer và học sinh chưa quen C++</li>
+    <li><strong>C++ &amp; gameplay framework</strong> — Character, GameMode, Actor Component cho dự án game quy mô lớn và tối ưu hiệu năng</li>
+    <li><strong>Đa ngành</strong> — game AAA/indie, archviz (Twinmotion/Unreal), phim ảo, simulation, training doanh nghiệp</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"Unreal Engine 5 editor interface viewport Lumen Nanite screenshot"</span>
+    </div>
+    <p class="arc-image-caption">Giao diện UE5 — viewport 3D, World Outliner và Content Browser asset</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>Unreal Engine thường đứng ở giai đoạn <strong>tích hợp, gameplay và xuất bản sản phẩm tương tác</strong>: nhận model, texture, animation từ Blender, Maya, 3ds Max hoặc Quixel Megascans; dựng level, gán vật liệu, viết logic Blueprint/C++; test và build ra executable hoặc app mobile. Với archviz, UE5 thay thế render offline bằng walkthrough realtime; với phim, dùng LED wall và camera tracking. Thường làm việc cùng Substance Painter, Perforce/Git và platform publish (Steam, Epic Games Store, App Store).</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Đồ họa Nanite, Lumen &amp; môi trường</h3>
+    <p>Thế mạnh nổi bật của UE5 là <strong>chất lượng hình ảnh realtime</strong> gần với offline render. Nanite cho phép import mesh cực chi tiết (từ photogrammetry hoặc ZBrush) mà engine tự LOD — bạn không cần tối ưu thủ công từng bậc polygon như game mobile truyền thống. Lumen tính ánh sáng phản xạ và indirect lighting động: đèn di chuyển, thời gian trong ngày thay đổi mà cảnh vẫn nhìn tự nhiên.</p>
+    <p>Đối với học sinh THPT, bài tập thực tế hay gặp: import một environment Megascans (phòng, sân vườn), bật Lumen, thêm Directional Light mô phỏng mặt trời và quay flythrough 30 giây — vừa luyện cảm nhận ánh sáng không gian vừa có clip portfolio archviz hoặc game environment.</p>
+    <ul class="arc-list">
+      <li><strong>Nanite</strong> — hiển thị geometry chi tiết cao trên PC/console mà không «vỡ» FPS nếu cấu hình phù hợp</li>
+      <li><strong>Lumen</strong> — global illumination và reflection động, giảm thời gian bake lightmap</li>
+      <li><strong>World Partition &amp; Data Layers</strong> — quản lý open world lớn và chia team làm việc song song trên cùng map</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Unreal Engine 5 Nanite detailed environment forest rocks"</span>
+        </div>
+        <p class="arc-image-caption">Nanite — môi trường chi tiết cao chạy realtime trong viewport</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Unreal Engine 5 Lumen dynamic lighting interior archviz"</span>
+        </div>
+        <p class="arc-image-caption">Lumen — ánh sáng động trong nội thất archviz</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Blueprint, gameplay &amp; tương tác người dùng</h3>
+    <p>Ngoài đồ họa, UE5 mạnh ở <strong>logic tương tác</strong>. Blueprint Visual Scripting cho phép bạn tạo hành vi — mở cửa khi bấm E, spawn enemy, chuyển level, cập nhật UI — mà không viết C++ ngay từ đầu. Hệ gameplay có sẵn Character Movement, Enhanced Input, Widget Blueprint cho menu và HUD; team lớn thường dùng C++ cho lõi hiệu năng và Blueprint cho iteration nhanh.</p>
+    <p>Một level playable cơ bản dạy bạn game loop thật: nhận input → cập nhật vị trí nhân vật → kiểm tra va chạm → phát animation và SFX. Đây là kỹ năng «sản xuất» mà studio game outsource tại Việt Nam luôn cần ở vị trí junior gameplay hoặc level designer.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Unreal Engine Blueprint visual scripting event graph screenshot"</span>
+      </div>
+      <p class="arc-image-caption">Blueprint — event graph kết nối logic gameplay không cần code thuần</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Virtual production, archviz &amp; xuất bản đa nền tảng</h3>
+    <p>UE5 không chỉ dành cho game. <strong>Virtual production</strong> dùng nền 3D realtime làm background khi quay phim — diễn viên đứng trước LED wall hiển thị cảnh Unreal, camera sync theo chuyển động thật. Trong kiến trúc, Twinmotion (dựa trên Unreal) và UE5 thuần giúp khách hàng «đi» trong căn hộ mẫu trên tablet hoặc VR; thay vì chờ render still vài giờ, bạn có trải nghiệm tương tác ngay.</p>
+    <p>Luồng làm việc điển hình: model trong Blender/3ds Max → texture Substance → import FBX/glTF vào UE5 → dựng level, lighting Lumen → build Windows/Android hoặc stream pixel (nếu archviz). Hiểu pipeline này giúp bạn thấy sản phẩm 3D đi từ file DCC đến trải nghiệm người dùng cuối — dù là game, phim hay bán nhà.</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Unreal Engine virtual production LED wall film set Mandalorian style"</span>
+      </div>
+      <p class="arc-image-caption">Virtual production — cảnh UE5 làm background realtime trên set quay phim</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với engine tương tự</h2>
+  <p>Hai engine hay được đặt cạnh Unreal Engine nhất là <strong>Unity</strong> (phổ biến mobile và indie) và <strong>Godot</strong> (mã nguồn mở, miễn phí hoàn toàn). Không có câu trả lời «đúng duy nhất» — tùy bạn hướng tới game AAA, mobile 2D, archviz hay học tập THPT với ngân sách và cấu hình máy.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Unreal Engine vs Unity</h3>
+    <p>Unity được nhiều studio mobile và hyper-casual tại Việt Nam dùng nhờ Asset Store và C# quen thuộc. Unreal mạnh hơn khi cần đồ họa cao, open world, archviz và virtual production; đổi lại project nặng và yêu cầu phần cứng cao hơn. Cần đọc điều khoản royalty Epic và Unity khi publish thương mại.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Unreal Engine 5 high fidelity game environment Lumen"</span>
+        </div>
+        <p class="arc-image-caption">Unreal Engine — đồ họa AAA, Nanite/Lumen và archviz</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Unity engine mobile 2D game editor interface screenshot"</span>
+        </div>
+        <p class="arc-image-caption">Unity — phổ biến mobile, 2D và indie với C#</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Unreal mạnh hơn:</strong> chất lượng hình ảnh mặc định cao, Blueprint cho designer, MetaHuman, virtual production, tuyển dụng environment/gameplay AAA tại VN.</p>
+      <p><strong>Unity mạnh hơn:</strong> mobile 2D/3D nhẹ, thời gian build nhanh, Asset Store lớn, cộng đồng tutorial game mobile đông.</p>
+      <p><strong>Chọn Unreal khi:</strong> mục tiêu game 3D đồ họa cao, archviz walkthrough, film VP, hoặc portfolio hướng studio AAA/outsource environment.</p>
+      <p><strong>Chọn Unity khi:</strong> ưu tiên mobile, 2D, hyper-casual, hoặc team đã quen C# và workflow Unity sẵn có.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Unreal Engine vs Godot</h3>
+    <p>Godot miễn phí, mã nguồn mở, không royalty và thân thiện với THPT làm game 2D trên máy trung bình. Unreal miễn phí cài nhưng target nặng hơn: cần GPU mạnh, project lớn, learning curve dốc. Godot phù hợp game jam; UE5 phù hợp khi cần chất lượng AAA hoặc archviz photoreal.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Unreal Engine 5 photoreal archviz interior realtime"</span>
+        </div>
+        <p class="arc-image-caption">Unreal Engine — archviz và 3D photoreal realtime</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Godot Engine 4 2D platformer editor viewport"</span>
+        </div>
+        <p class="arc-image-caption">Godot — nhẹ, miễn phí, lý tưởng indie 2D và học tập</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Unreal mạnh hơn:</strong> đồ họa top-tier, Nanite/Lumen, MetaHuman, archviz, VP phim, cơ hội việc làm studio lớn.</p>
+      <p><strong>Godot mạnh hơn:</strong> cài nhanh, máy yếu vẫn chạy, GDScript dễ như Python, royalty-free, phù hợp game 2D và jam.</p>
+      <p><strong>Chọn Unreal khi:</strong> máy đủ mạnh, mục tiêu 3D đẹp, archviz, hoặc nghề environment/gameplay console/PC.</p>
+      <p><strong>Chọn Godot khi:</strong> mới học lập trình game, ngân sách zero, 2D/mobile nhẹ, hoặc dự án cá nhân indie nhỏ.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học Unreal Engine 5 như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Cài đặt Epic Launcher và làm quen editor</strong>
+        <p>Tải Epic Games Launcher, cài UE5 phiên bản ổn định. Tuần đầu tập di chuyển viewport (Alt + chuột trái xoay, giữa pan, scroll zoom), mở template Third Person, bấm Play và quan sát Actor trong World Outliner. Mục tiêu: hiểu scene là tập hợp Actor trước khi dựng level từ zero. Máy THPT nên có GPU rời để editor mượt.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Level design cơ bản và import asset</strong>
+        <p>Học kéo Static Mesh vào level, dùng transform (W/E/R) di chuyển/xoay/scale, snap grid cho kiến trúc. Thử import FBX từ Blender hoặc tải sample Megascans (miễn phí qua Quixel Bridge) — gán material, bật Nanite nếu mesh phù hợp. Dựng một phòng đơn giản hoặc sân nhỏ với lighting Directional + Sky Atmosphere. Thường 2–3 tuần luyện đều sẽ quen Content Browser và cách tổ chức folder /Game.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Blueprint đầu tiên — cửa, đèn, pickup</strong>
+        <p>Tạo Blueprint Actor với Static Mesh, Box Collision và Event Graph — ví dụ overlap mở cửa hoặc bấm phím bật đèn. Học biến, Branch, Timeline cho animation đơn giản; mục tiêu là event-driven logic trước khi học C++.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Nhân vật Third Person và Enhanced Input</strong>
+        <p>Dùng template Third Person hoặc tự tạo Character Blueprint: mesh Skeletal Mesh, Animation Blueprint idle/run/jump, Character Movement Component. Gắn Enhanced Input Action cho WASD và Space. Test collision với level đã dựng — đây là nền tảng cho mọi game 3D third-person sau này. Học thêm cách debug với Print String và Visual Logger khi logic không chạy đúng.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Dự án hoàn chỉnh: mini game hoặc archviz walkthrough</strong>
+        <p>Chọn một hướng: (A) mini game — một level, một mechanic (thu thập item, timer, menu Win/Lose); hoặc (B) archviz — căn hộ mẫu Lumen, Sequencer flythrough 30–60 giây, export video MP4 hoặc packaged exe cho khách «walk». Giai đoạn này dạy brief, iteration và tối ưu (lighting too bright, collision kẹt tường) — kỹ năng studio thật.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Portfolio, publish và định hướng nghề</strong>
+        <p>Tổng hợp 2–4 work: clip gameplay hoặc flythrough archviz, ghi rõ vai trò (level, Blueprint, lighting). Đăng ArtStation, Behance hoặc YouTube. Tìm vị trí junior: Environment Artist, Level Designer, Technical Artist. Tham gia game jam; studio VN thường tuyển theo portfolio UE hơn chứng chỉ.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

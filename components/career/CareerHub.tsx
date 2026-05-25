@@ -5,6 +5,9 @@ import { CareerHubDeptTabs } from "@/components/career/CareerHubDeptTabs";
 import { CareerHubPageHead } from "@/components/career/CareerHubPageHead";
 import { CareerHubRail } from "@/components/career/CareerHubRail";
 import { CareerHubRoleCard } from "@/components/career/CareerHubRoleCard";
+import { NganhHubAddButton } from "@/components/nganh/hub/NganhHubAddButton";
+import { NganhHubAdminToolbar } from "@/components/nganh/hub/NganhHubAdminToolbar";
+import { NganhHubEditProvider } from "@/components/nganh/hub/NganhHubEditContext";
 import { NganhHubCard } from "@/components/nganh/NganhHubCard";
 import { MissingSupabaseEnvNotice } from "@/components/cins/MissingSupabaseEnvNotice";
 import type { CareerHubSection } from "@/lib/career/hubSections";
@@ -27,6 +30,8 @@ type TabKey = "nghe" | "nganh-hoc";
 
 type Props = {
   tab: TabKey;
+  /** Trang hub chính — `/nganh-hoc` hoặc `/nghe-nghiep`. */
+  hubBase?: string;
   linhVucSidebarGroups: LinhVucSidebarGroup[];
   activeLinhVuc: LinhVucRow | null;
   searchQuery: string;
@@ -43,10 +48,13 @@ type Props = {
   nganhGroups?: NganhHubSection[];
   sampleNganh?: NganhHubItem[];
   nganhListError?: { reason: "no_env" | "query_error"; message?: string };
+  /** Bật toolbar + sửa thumbnail / thêm ngành trên hub `/nganh-hoc`. */
+  nganhHubCanEdit?: boolean;
 };
 
 export function CareerHub({
   tab,
+  hubBase = "/nghe-nghiep",
   linhVucSidebarGroups,
   activeLinhVuc,
   searchQuery,
@@ -63,6 +71,7 @@ export function CareerHub({
   nganhGroups = [],
   sampleNganh = [],
   nganhListError,
+  nganhHubCanEdit = false,
 }: Props) {
   const detailHref = (slug: string) =>
     `${detailPathPrefix.replace(/\/$/, "")}/${slug}`;
@@ -100,7 +109,6 @@ export function CareerHub({
 
   if (tab === "nganh-hoc") {
     const nganhCount = sampleNganh.length;
-    const nhomCount = nganhGroups.length;
     const heroNhom = activeNhomLabel?.trim() || "đại học";
     const nganhDeptTabs = nganhGroups.map((g) => ({
       id: g.id,
@@ -108,10 +116,16 @@ export function CareerHub({
       count: g.items.length,
     }));
 
-    return (
-      <div className="career-hub career-hub--hn career-hub--nganh">
+    const hubUi = (
+      <div
+        className={`career-hub career-hub--hn career-hub--nganh${
+          nganhHubCanEdit ? " career-hub--can-edit" : ""
+        }`}
+      >
+        {nganhHubCanEdit ? <NganhHubAdminToolbar /> : null}
         <CareerHubPageHead
           tab={tab}
+          hubBase={hubBase}
           activeLinhVuc={activeLinhVuc}
           activeSlug={slugForLink}
           searchQuery={searchQuery}
@@ -121,6 +135,7 @@ export function CareerHub({
         <div className="hn-main">
           <CareerHubRail
             tab={tab}
+            hubBase={hubBase}
             sidebarGroups={linhVucSidebarGroups}
             activeSlug={slugForLink}
             nganhSidebarGroups={nganhSidebarGroups}
@@ -139,16 +154,6 @@ export function CareerHub({
                   trường. Mỗi ngành có trang chi tiết với môn học, nghề liên quan
                   và danh sách trường đào tạo.
                 </p>
-                <div className="hn-ad-stats">
-                  <div className="hn-ad-stat">
-                    <span className="n">{nganhCount}</span>
-                    <span className="l">ngành đào tạo</span>
-                  </div>
-                  <div className="hn-ad-stat">
-                    <span className="n">{nhomCount}</span>
-                    <span className="l">nhóm ngành</span>
-                  </div>
-                </div>
               </div>
               <div className="hn-ad-hero-visual" aria-hidden>
                 <span className="hn-ad-pin hn-ad-pin-1">
@@ -218,6 +223,10 @@ export function CareerHub({
                         <p className="hn-dept-desc">{group.intro.trim()}</p>
                       ) : null}
                     </div>
+                    <NganhHubAddButton
+                      nhomId={group.nhomId}
+                      sectionTitle={group.title}
+                    />
                   </header>
                   <ul className="hn-role-grid">
                     {group.items.map((item) => (
@@ -226,6 +235,7 @@ export function CareerHub({
                         item={item}
                         href={`/nganh-hoc/${item.slug}`}
                         deptTheme={deptCardThemeByIndex(groupIndex)}
+                        nhomId={group.nhomId}
                       />
                     ))}
                   </ul>
@@ -251,12 +261,18 @@ export function CareerHub({
         </div>
       </div>
     );
+
+    if (nganhHubCanEdit) {
+      return <NganhHubEditProvider canEdit>{hubUi}</NganhHubEditProvider>;
+    }
+    return hubUi;
   }
 
   return (
     <div className="career-hub career-hub--hn">
       <CareerHubPageHead
         tab={tab}
+        hubBase={hubBase}
         activeLinhVuc={activeLinhVuc}
         activeSlug={slugForLink}
         searchQuery={searchQuery}
@@ -265,6 +281,7 @@ export function CareerHub({
       <div className="hn-main">
         <CareerHubRail
           tab={tab}
+          hubBase={hubBase}
           sidebarGroups={linhVucSidebarGroups}
           activeSlug={slugForLink}
         />

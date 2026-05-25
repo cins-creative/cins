@@ -1,0 +1,247 @@
+<section class="arc-intro">
+  <p>Mọi nhân vật, đạo cụ, môi trường trong phim hoạt hình 3D — từ Sully trong <em>Monsters Inc.</em>, ngôi nhà bay trong <em>Up</em>, đến chiếc xe cũ trong <em>Cars</em> — đều bắt đầu từ concept 2D rồi được 3D Modeler dựng thành mô hình 3D thực sự. Họ là người biến tưởng tượng thành "vật chất" trong thế giới ảo.</p>
+  <p>3D Modeler phim hoạt hình khác 3D Modeler game ở chỗ không bị giới hạn polygon count quá ngặt nghèo — phim render offline, có thể dùng millions of polygon mỗi character. Nhưng đổi lại, yêu cầu chất lượng cao hơn, topology phải hoàn hảo để Animator điều khiển không bị deformation lỗi.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>3D Modeler phim hoạt hình là ai?</h2>
+  <p>3D Modeler trong phim hoạt hình là người dùng phần mềm như Maya, ZBrush, Blender để tạo ra mô hình 3D từ concept 2D — bao gồm character, đạo cụ (prop), môi trường (environment), và sinh vật. Họ chịu trách nhiệm về form, proportion, topology, và UV của model — chuẩn bị để Texture Artist tô màu và Rigger gắn xương.</p>
+  <p>Khác với Sculptor (làm sculpting nghệ thuật trong ZBrush) hay 3D Generalist (làm mọi khâu), Modeler chuyên về <strong>dựng hình kỹ thuật chính xác</strong> theo concept. Họ phải tôn trọng design của Concept Artist, đồng thời đảm bảo model technically sound để xuôi pipeline.</p>
+  <ul class="arc-list">
+    <li>Dựng <strong>character model</strong> từ concept 2D — đảm bảo proportion đúng và topology hợp lý cho animation</li>
+    <li>Tạo <strong>prop và environment</strong> — đạo cụ nhân vật cầm, kiến trúc, terrain, vegetation</li>
+    <li>Làm <strong>UV unwrapping</strong> — chuẩn bị mặt model để Texture Artist tô màu</li>
+    <li>Phối hợp với <strong>Rigger</strong> — đảm bảo model có topology hỗ trợ rigging và deformation tốt</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"3D character modeler Maya ZBrush Pixar studio character workflow"</span>
+    </div>
+    <p class="arc-image-caption">Bàn làm việc của 3D Modeler — Maya và ZBrush mở song song, concept 2D dán cạnh monitor</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>3D Modeler thuộc <strong>giai đoạn sản xuất (production)</strong>, nhận concept 2D từ <strong>Concept Artist</strong> và <strong>Character Designer</strong>, bàn giao model cho <strong>Texture/Surfacing Artist</strong> (tô vật liệu), <strong>Rigger</strong> (gắn xương), và <strong>Animator</strong> (làm chuyển động). Trong Pixar/Disney/DreamWorks, có nhiều chuyên môn riêng — Character Modeler, Set Modeler, Prop Modeler — mỗi người chuyên 1 loại.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Công việc của một 3D Modeler phim hoạt hình</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Phân tích concept và setup reference</h3>
+    <p>Trước khi dựng, Modeler nghiên cứu kỹ concept 2D — thường có turnaround (góc trước, bên, sau), close-up chi tiết, và callout về proportion, material. Họ setup reference image làm background trong Maya hoặc dùng phần mềm như PureRef để giữ tham khảo bên cạnh. Bước này quyết định model có "đúng character" hay không.</p>
+    <ul class="arc-list">
+      <li><strong>Image plane setup</strong> — đặt concept 2D vào viewport Maya làm reference khi modeling</li>
+      <li><strong>Proportion check</strong> — đo tỷ lệ cơ thể, đầu, chân tay từ concept để đảm bảo nhất quán</li>
+      <li><strong>Material reference</strong> — xác định trước phần nào sẽ là da, vải, kim loại — ảnh hưởng đến topology</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"3D modeling reference image plane Maya character turnaround"</span>
+      </div>
+      <p class="arc-image-caption">Reference setup — concept 2D đặt làm background trong viewport — bước cần thiết trước khi modeling</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Blocking primary forms</h3>
+    <p>Modeler bắt đầu từ primitive đơn giản (cube, cylinder, sphere) rồi dần dần định hình thành nhân vật. Mục tiêu giai đoạn blocking là có "khối lượng đúng" và "tỷ lệ đúng" — chưa quan tâm chi tiết. Sau khi blocking được Art Director duyệt, mới chuyển sang dựng chi tiết.</p>
+    <ul class="arc-list">
+      <li><strong>Primitive-based modeling</strong> — bắt đầu từ box/cylinder/sphere, extrude và sculpt thành form</li>
+      <li><strong>Silhouette check</strong> — xoay model nhiều góc để đảm bảo silhouette nhận ra ngay từ mọi hướng</li>
+      <li><strong>Proportion lock</strong> — chốt tỷ lệ trước khi vào detail — sửa proportion sau khi detail là rất tốn công</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"3D character blocking primitive Maya box modeling base mesh"</span>
+        </div>
+        <p class="arc-image-caption">Blocking — chỉ form chính, chưa chi tiết, đủ để check proportion</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"character silhouette test 3D modeling pose check"</span>
+        </div>
+        <p class="arc-image-caption">Silhouette test — model phải nhận ra được character từ mọi góc</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Detail sculpting và topology cleanup</h3>
+    <p>Sau khi blocking duyệt, Modeler chuyển sang ZBrush để sculpt chi tiết cao — nếp nhăn, cơ bắp, kết cấu da. Sau đó retopology — tạo lại topology sạch hơn bằng quad mesh để Rigger và Animator dùng được. Bước này tốn nhiều thời gian nhưng quyết định model có hoạt động tốt trong production hay không.</p>
+    <ul class="arc-list">
+      <li><strong>ZBrush sculpting</strong> — sculpt detail high-poly với hàng triệu polygon</li>
+      <li><strong>Retopology</strong> — tạo lại mesh với quad chuẩn từ high-poly — bằng tay trong Maya/Topogun hoặc auto với ZRemesher</li>
+      <li><strong>Edge flow</strong> — đảm bảo edge flow hỗ trợ deformation — đặc biệt khu vực khớp (vai, hông, mặt)</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"3D character retopology quad mesh edge flow Maya topology"</span>
+      </div>
+      <p class="arc-image-caption">Retopology — tạo lại mesh quad sạch — quyết định model có animate được tốt hay không</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">4. UV unwrapping và preparation cho texturing</h3>
+    <p>Sau khi có topology sạch, Modeler unwrap UV — trải mặt phẳng 2D của model để Texture Artist tô màu. UV layout phải hiệu quả (ít waste), không có stretching, và đảm bảo seam không nằm ở chỗ visible. Đây là bước nhàm chán nhưng kỹ thuật bắt buộc.</p>
+    <ul class="arc-list">
+      <li><strong>UV unwrap</strong> — trải mặt 3D thành 2D bằng cách đánh seam và unfold</li>
+      <li><strong>UV layout</strong> — sắp xếp UV island hiệu quả trong UV space, ưu tiên không gian cho phần visible</li>
+      <li><strong>Seam placement</strong> — đặt seam ở chỗ khuất (sau lưng, dưới nách, trong mũ tóc) để không thấy khi render</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"UV unwrap layout character 3D Maya texture preparation"</span>
+      </div>
+      <p class="arc-image-caption">UV layout — trải mặt 3D thành 2D — bước cần thiết để Texture Artist làm việc</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>3D Modeler phim hoạt hình cần giỏi gì?</h2>
+
+  <div class="arc-skill-grid">
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">🎨</span>
+      <span>Quan sát form &amp; proportion</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">⚙️</span>
+      <span>Maya, ZBrush &amp; Blender</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">🧠</span>
+      <span>Topology &amp; edge flow</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">📦</span>
+      <span>Hiểu giải phẫu &amp; vật liệu</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">📋</span>
+      <span>Kỷ luật &amp; chi tiết</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">💬</span>
+      <span>Giao tiếp với Rigger &amp; Texture Artist</span>
+    </div>
+  </div>
+
+  <div class="arc-accordion">
+
+    <details class="arc-card" open>
+      <summary>Quan sát form &amp; proportion</summary>
+      <div class="arc-card-body">
+        <p>Khả năng nhìn vào concept 2D và dựng thành 3D đúng tỷ lệ là kỹ năng cốt lõi. Modeler giỏi nhận ra "đầu hơi to chút", "vai lệch về sau", "tay quá dài 5cm" — và sửa ngay trong viewport. Đây là kỹ năng có thể luyện qua việc model nhiều lần từ cùng concept.</p>
+        <p>Luyện gesture drawing 2D, vẽ figure từ life model, và phân tích sculpture cổ điển (Michelangelo, Bernini) để rèn mắt cho proportion.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Maya, ZBrush &amp; Blender</summary>
+      <div class="arc-card-body">
+        <p>Maya là tiêu chuẩn film studio. ZBrush là chuẩn cho character/creature sculpting. Blender ngày càng mạnh và là alternative miễn phí cho cả hai. Phải thành thạo ít nhất Maya hoặc Blender + ZBrush. Topogun hoặc 3D-Coat cho retopology là bonus.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Topology &amp; edge flow</summary>
+      <div class="arc-card-body">
+        <p>Topology là chữ ký của Modeler chuyên nghiệp. Edge flow đúng (vòng quanh cơ mặt, dọc theo cơ tay) cho phép animation đẹp; edge flow sai sẽ làm model bị crease, twist, hoặc collapse khi deform. Học bằng cách phân tích mesh của model AAA — nhiều artist share wireframe trên ArtStation.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Hiểu giải phẫu &amp; vật liệu</summary>
+      <div class="arc-card-body">
+        <p>Modeler character cần hiểu giải phẫu cơ thể người — cơ bắp, xương, da. Đọc <em>Anatomy for Sculptors</em> của Uldis Zarins là tài liệu kinh điển. Modeler environment cần hiểu vật liệu — gỗ, kim loại, vải, đá — và cách chúng cấu trúc. Hai loại Modeler có specialization khác nhau nhưng cùng nguyên lý: hiểu thật để dựng "đúng".</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Kỷ luật &amp; chi tiết</summary>
+      <div class="arc-card-body">
+        <p>Modeling là công việc nhiều giờ ngồi với từng vertex. Phải có kỷ luật để clean up topology, làm UV cẩn thận, và check model nhiều góc trước khi gửi. Một model "gần đúng" sẽ tạo problem dây chuyền cho Texture Artist và Rigger sau này.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Giao tiếp với Rigger &amp; Texture Artist</summary>
+      <div class="arc-card-body">
+        <p>Modeler đứng ở giữa pipeline — nhận từ Concept Artist, bàn giao cho Rigger và Texture Artist. Phải hiểu hai vai trò sau cần gì và prepare model cho phù hợp. Hỏi Rigger trước khi finalize topology các khu vực khớp. Hỏi Texture Artist trước khi finalize UV layout. Đây là kỹ năng "team player" không kém kỹ năng kỹ thuật.</p>
+      </div>
+    </details>
+
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Làm cách nào để trở thành 3D Modeler phim hoạt hình?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Học nền tảng vẽ và giải phẫu</strong>
+        <p>Trước khi nghĩ đến 3D, học vẽ và giải phẫu cơ thể. Gesture drawing hằng ngày, life drawing nếu có cơ hội. Đọc <em>Anatomy for Sculptors</em> và <em>Drawing the Head and Hands</em> của Andrew Loomis. Mà không có nền tảng này, modeling sẽ chỉ là kỹ thuật, không tạo được character đẹp.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Học Maya và topology cơ bản</strong>
+        <p>Maya là tiêu chuẩn ngành film. Học giao diện, polygon modeling, edge loops, extrude, bridge, bevel. Mục tiêu 3-6 tháng đầu: model được hard surface prop (vũ khí, đồ vật) với topology sạch. Học cùng lúc về edge flow — vẽ trên paper "edge này nên đi đâu" trước khi modeling.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Học ZBrush cho character sculpting</strong>
+        <p>ZBrush là tiêu chuẩn cho character/creature trong film. Học DynaMesh, ZRemesher, brush cơ bản (Standard, ClayBuildup, Move, hPolish), và workflow sculpting từ basemesh đến detail. Khóa của Michael Pavlovich trên Pixologic Learn là tài nguyên hàng đầu.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Học retopology, UV unwrapping và baking</strong>
+        <p>Sau khi sculpt high-poly trong ZBrush, phải retopo và UV. Học manual retopology trong Maya hoặc Topogun, UV unwrapping với chuẩn film (1024 hoặc 2048 per UDIM), và baking normal/displacement map từ high-poly sang low-poly. Đây là kỹ năng phân biệt Modeler học sinh với pro.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Theo khóa chuyên sâu về character/creature</strong>
+        <p>CGMA, Schoolism, Think Tank Online, hoặc CG Spectrum đều có khóa chuyên về character modeling cho film. Mentor sẽ critique từng step và dạy industry workflow. Hoàn thành ít nhất 1 character hoàn chỉnh dưới sự hướng dẫn của mentor để có chuẩn pro thực sự.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Xây dựng portfolio character modeling</strong>
+        <p>Portfolio cho film studio cần thể hiện được: high-poly sculpting (ZBrush turnaround), retopology (wireframe screenshot), UV layout (UV map screenshot), và final render. Nên có: 1-2 character hoàn chỉnh (chân dung và full body), 1-2 creature stylized hoặc realistic, 2-3 prop hoặc set piece. Mỗi project nên có breakdown — concept reference, blocking, sculpt high-poly, retopo, UV, final render — để chứng minh full pipeline. Đăng trên ArtStation Portfolio (bắt buộc cho 3D modeler). Apply qua trang career của Pixar, DreamWorks, Sony Pictures Animation, Blue Sky Studios, hoặc Method Studios cho commercial work.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

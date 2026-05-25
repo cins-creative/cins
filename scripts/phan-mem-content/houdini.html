@@ -1,0 +1,209 @@
+<section class="arc-intro">
+  <p>Bạn xem trailer phim bom tấn Hollywood — cảnh sóng thần cuốn phá thành phố, lửa lan theo đường cong, mảnh vỡ bay tản loạn — phần lớn hiệu ứng đó không quay thật mà được dựng bằng pipeline VFX procedural, trong đó <strong>Houdini</strong> của SideFX là công cụ hàng đầu cho simulation, destruction và hiệu ứng hạt phức tạp.</p>
+  <p>Houdini không phải phần mềm «vẽ 3D cho người mới» như Blender hay 3ds Max — nó là <strong>nền tảng procedural VFX</strong> mà studio phim (Marvel, Disney), game AAA và quảng cáo cao cấp tin dùng. Hiểu Houdini giúp học sinh THPT yêu kỹ thuật và nghệ thuật số định hướng nghề FX TD, technical artist hoặc motion design nâng cao trước khi vào đại học ngành đồ họa.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>Houdini là gì?</h2>
+  <p><strong>Houdini</strong> do <strong>SideFX</strong> (Canada) phát triển — phần mềm <strong>3D procedural, simulation và VFX</strong> chạy trên Windows, macOS và Linux. Khác nhiều DCC truyền thống (model tay từng polygon), Houdini xây quanh <strong>node network</strong>: bạn kết nối các node (SOP, DOP, VOP, COP…) để mô tả quy trình — thay đổi tham số một chỗ, cả scene cập nhật theo.</p>
+  <p>Giao diện có Network Editor, viewport, parameter panel và timeline — ban đầu trông khác hẳn Maya hay Blender, nhưng triết lý procedural giúp tái sử dụng setup cho nhiều shot, scale simulation lớn và iteration nhanh trong pipeline studio. Houdini Apprentice miễn phí cho học tập (watermark render); bản commercial dùng trong sản xuất chuyên nghiệp.</p>
+  <ul class="arc-list">
+    <li><strong>Procedural modeling (SOPs)</strong> — dựng geometry, scatter, fracturing không phá hủy bằng node graph</li>
+    <li><strong>Simulation (DOPs)</strong> — rigid body, fluid (Pyro), cloth, grain, Vellum cho destruction và hiệu ứng vật lý</li>
+    <li><strong>Rendering &amp; karma</strong> — Karma (Solaris/USD), tích hợp Arnold, Redshift, RenderMan</li>
+    <li><strong>Pipeline &amp; HDA</strong> — đóng gói Digital Asset cho artist khác dùng lại; export USD/Alembic sang Maya, Nuke, Unreal</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"SideFX Houdini interface node network viewport VFX screenshot"</span>
+    </div>
+    <p class="arc-image-caption">Giao diện Houdini — node network, viewport và bảng tham số simulation</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>Houdini thường đứng ở giai đoạn <strong>FX, simulation và procedural asset</strong>: nhận model/layout từ Maya hoặc layout department, thiết lập Pyro cho lửa/khói, RBD cho đổ vỡ, FLIP cho nước, xuất cache Alembic/USD cho lighting và compositing trong Nuke. Với game, Houdini tạo HDA procedural building, scatter vegetation, export sang Unreal via Houdini Engine. Thường làm việc cùng Maya (animation), Nuke (comp), và Solaris/USD cho pipeline hiện đại — ít dùng một mình cho toàn bộ short film như Blender.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Procedural modeling &amp; Geometry Nodes (SOPs)</h3>
+    <p>Thế mạnh nền tảng của Houdini là <strong>SOP network</strong> — xây geometry bằng node: Box → Transform → Copy to Points → Boolean → Fracture. Thay đổi seed scatter hoặc số tầng building, cả block city cập nhật — không cần model lại tay từng căn nhà. Kỹ thuật này cực kỳ hữu ích cho môi trường game, cityscape phim và motion graphics abstract.</p>
+    <p>Đối với học sinh THPT đã quen Blender/Maya cơ bản, bài tập entry-level hay gặp: procedural staircase, scatter đá trên terrain, hoặc fracturing tường trước khi sang simulation — vừa luyện tư duy node vừa làm portfolio FX junior.</p>
+    <ul class="arc-list">
+      <li><strong>Node-based SOPs</strong> — non-destructive, lưu và tái sử dụng setup cho shot khác</li>
+      <li><strong>Copy to Points &amp; instancing</strong> — rải hàng nghìn object theo pattern procedural</li>
+      <li><strong>Boolean &amp; remesh</strong> — chuẩn bị mesh sạch trước simulation và fracturing</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Houdini SOP network procedural modeling node graph viewport"</span>
+        </div>
+        <p class="arc-image-caption">SOP network — modeling procedural bằng node graph</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Houdini copy to points scatter procedural environment"</span>
+        </div>
+        <p class="arc-image-caption">Copy to Points — scatter object procedural trên surface</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Simulation: Pyro, RBD, FLIP &amp; Vellum</h3>
+    <p>Trái tim VFX của Houdini là <strong>DOP context</strong> — mô phỏng vật lý điện ảnh. <strong>Pyro</strong> cho lửa và khói; <strong>RBD</strong> (rigid body dynamics) cho đổ vỡ tòa nhà, va chạm mảnh vỡ; <strong>FLIP</strong> cho nước và chất lỏng; <strong>Vellum</strong> cho vải, inflatable và soft body. Artist điều chỉnh resolution, collision, force field để cân bằng chất lượng và thời gian bake cache.</p>
+    <p>Một shot explosion 5 giây có thể mất hàng giờ simulate trên workstation mạnh — đây là thực tế nghề FX TD. Học sinh THPT nên bắt đầu từ RBD đơn giản (rơi gạch) hoặc Pyro nhỏ trước khi nhảy vào destruction phim hollywood.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Houdini Pyro fire smoke simulation RBD destruction VFX"</span>
+      </div>
+      <p class="arc-image-caption">Simulation — Pyro lửa/khói và RBD destruction trong viewport</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. HDA, Solaris/USD &amp; pipeline studio</h3>
+    <p>FX TD đóng gói setup phức tạp thành <strong>Houdini Digital Asset (HDA)</strong> — artist layout chỉ kéo slider «số tầng», «cường độ nổ» mà không cần hiểu toàn bộ node bên trong. <strong>Solaris</strong> (LOPs) và <strong>USD</strong> giúp Houdini tham gia pipeline lighting/render hiện đại, tương thích với Pixar USD workflow mà studio lớn đang chuyển dần.</p>
+    <p>Luồng làm việc điển hình: layout Maya → Houdini FX (cache sim) → USD sang lighting → Nuke comp. Hiểu pipeline này giúp bạn không chỉ «biết một phần mềm» mà nắm vị trí FX trong dây chuyền sản xuất phim và game AAA — kỹ năng được trả lương cao tại VFX house Việt Nam (ví dụ các studio outsource quốc tế).</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Houdini HDA digital asset USD Solaris pipeline VFX studio"</span>
+      </div>
+      <p class="arc-image-caption">Pipeline — HDA cho artist và USD/Solaris trong workflow studio</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai phần mềm hay được đặt cạnh Houdini nhất là <strong>Blender</strong> (miễn phí, all-in-one 3D) và <strong>Maya</strong> (Autodesk, mạnh animation và pipeline phim). Không có câu trả lời «đúng duy nhất» — tùy bạn hướng tới VFX simulation chuyên sâu, animation nhân vật hay indie all-in-one với ngân sách bằng không.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Houdini vs Blender</h3>
+    <p>Blender miễn phí, cộng đồng lớn và ngày càng mạnh về Geometry Nodes, Mantaflow fluid, rigid body — rất phù hợp học sinh THPT bắt đầu 3D và VFX cơ bản. Houdini vượt trội ở <strong>simulation quy mô lớn, procedural workflow và pipeline studio</strong>: destruction phim, Pyro production, HDA cho team — những thứ Blender đang tiến tới nhưng chưa thay thế hoàn toàn trong studio blockbuster.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Houdini VFX Pyro simulation destruction professional studio"</span>
+        </div>
+        <p class="arc-image-caption">Houdini — simulation VFX quy mô production và procedural FX</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Blender Geometry Nodes simulation viewport open source 3D"</span>
+        </div>
+        <p class="arc-image-caption">Blender — miễn phí, all-in-one, Geometry Nodes và simulation cơ bản</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Houdini mạnh hơn:</strong> Pyro/RBD/FLIP production-grade, procedural node sâu, HDA pipeline, USD/Solaris, chuẩn FX TD studio phim và game AAA.<br>
+      <strong>Blender mạnh hơn:</strong> chi phí bằng không, modeling/animation/render all-in-one, cộng đồng tutorial khổng lồ, phù hợp short film indie và học tập THPT.<br>
+      <strong>Chọn Houdini khi:</strong> mục tiêu nghề FX TD, technical artist procedural, làm việc pipeline VFX outsource.<br>
+      <strong>Chọn Blender khi:</strong> cần bắt đầu ngay không tốn phí, làm trọn short 3D cá nhân, hoặc game art generalist.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Houdini vs Maya</h3>
+    <p>Cả hai đều xuất hiện trong pipeline phim và game lớn nhưng vai trò khác nhau. Maya được ưa chuộng cho <strong>rigging, animation nhân vật và layout</strong>; Houdini cho <strong>FX, simulation và procedural asset</strong>. Nhiều studio dùng cả hai: Maya animate nhân vật, Houdini sim nước/lửa/đổ vỡ rồi bàn giao cache.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Houdini fluid simulation FX TD node network production"</span>
+        </div>
+        <p class="arc-image-caption">Houdini — fluid, Pyro và FX simulation cho shot phim</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Autodesk Maya character rigging animation viewport film"</span>
+        </div>
+        <p class="arc-image-caption">Maya — rig nhân vật và hoạt hình cho phim &amp; game AAA</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Houdini mạnh hơn:</strong> procedural FX, destruction, fluid/fire smoke, HDA tool building, tích hợp USD lighting pipeline.<br>
+      <strong>Maya mạnh hơn:</strong> character animation, rigging, skinning, layout shot, quen thuộc animator và generalist phim.<br>
+      <strong>Chọn Houdini khi:</strong> bạn thích vật lý, toán và node — hướng FX TD / technical director.<br>
+      <strong>Chọn Maya khi:</strong> mục tiêu là animator, rigger, hoặc generalist 3D làm nhân vật và diễn xuất.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học Houdini như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Nền tảng 3D trước — đừng nhảy thẳng vào Houdini</strong>
+        <p>Houdini khó nếu chưa quen viewport 3D, khái niệm mesh và keyframe. Tuần đầu nên có nền từ Blender hoặc Maya cơ bản: di chuyển camera, tạo primitive, hiểu frame và timeline. Mục tiêu là không còn «lạc» trong không gian 3D trước khi mở Network Editor — nhiều bạn THPT bỏ cuộc vì học Houdini như phần mềm đầu tiên.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Cài Houdini Apprentice và làm quen SOP cơ bản</strong>
+        <p>Tải SideFX Houdini Apprentice (miễn phí, watermark). Học tạo Box → Transform → Merge → Material — hiểu node nối node, bật/tắt display/render flag. Luyện Copy to Points scatter rock trên grid đơn giản. 2–3 tuần chỉ SOP giúp não quen «nghĩ procedural» thay vì chỉ bấm tool icon như Maya.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>RBD &amp; Pyro intro — simulation đầu tiên</strong>
+        <p>Bắt đầu Rigid Body: Voronoi fracture tường, rơi gạch, va chạm đơn giản. Sau đó thử Pyro nhỏ — khói tỏa hoặc ngọn lửa candle. Học bake cache, scrub timeline, và hiểu collision geometry. Mục tiêu là một clip 3–5 giây «nhìn được» — dù chưa hollywood — để cảm nhận thời gian simulate thực tế.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Render, comp và xuất cache</strong>
+        <p>Render thử bằng Karma hoặc Mantra (tùy bản Houdini), hoặc export Alembic/USD sang Blender/Maya nếu máy yếu. Học composite khói/lửa trong Nuke hoặc Fusion — FX hiếm khi «render xong là xong». Hiểu alpha, motion blur và color grading cơ bản giúp shot demo professional hơn trong portfolio.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Dự án FX hoàn chỉnh và HDA đơn giản</strong>
+        <p>Chọn một shot: building fracture, fountain FLIP, hoặc magic spell Pyro stylized. Làm pre-fracture → sim → render → comp 10–15 giây. Thử đóng gói một tham số (số mảnh vỡ, intensity lửa) thành HDA mini — bước đầu tư duy TD. Giai đoạn này dạy quy trình sản xuất: iteration, ghi chú version cache, quản lý dung lượng ổ cứng.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Portfolio, SideFX Learning và định hướng nghề</strong>
+        <p>Tổng hợp 2–4 shot FX trên ArtStation hoặc Vimeo: breakdown node (che IP nếu là tut), ghi rõ Houdini version và render engine. Học khóa <strong>SideFX Learning</strong>, Entagma (procedural), hoặc Rebelway/CG Spectrum nếu có ngân sách. Tìm hiểu vị trí FX TD, technical artist tại VFX house Việt Nam và overseas — portfolio sim thật nổi bật hơn bằng cấp; nhiều TD vào nghề từ THPT/sinh viên tự học Blender rồi chuyển Houdini.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

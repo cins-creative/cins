@@ -1,5 +1,5 @@
 import type { ArticleMeta } from "@/lib/articles/types";
-import { getYoutubeId } from "@/lib/youtube";
+import { getYoutubeId, isYoutubeShortUrl } from "@/lib/youtube";
 
 export function getVideoUrlFromArticleMeta(meta: ArticleMeta): string | null {
   if (meta == null || typeof meta !== "object") return null;
@@ -9,9 +9,23 @@ export function getVideoUrlFromArticleMeta(meta: ArticleMeta): string | null {
   return t || null;
 }
 
+/** `main_video` (cột DB) rồi `meta.video_url` — dùng trên trang public. */
+export function resolveArticleVideoUrl(row: {
+  main_video?: string | null;
+  meta?: ArticleMeta;
+}): string | null {
+  const col = row.main_video?.trim();
+  if (col) return col;
+  return getVideoUrlFromArticleMeta(row.meta ?? null);
+}
+
+export function isKeywordShortVideoUrl(url: string): boolean {
+  return isYoutubeShortUrl(url);
+}
+
 export type ParsedLeadVideo =
-  | { kind: "iframe"; src: string }
-  | { kind: "video"; src: string };
+  | { kind: "iframe"; src: string; aspect?: "9/16" | "16/9" }
+  | { kind: "video"; src: string; aspect?: "9/16" | "16/9" };
 
 /** Chuẩn hoá link YouTube / Vimeo / file media / URL embed https → hiển thị trong lead. */
 export function parseLeadVideoUrl(raw: string): ParsedLeadVideo | null {
@@ -38,9 +52,11 @@ export function parseLeadVideoUrl(raw: string): ParsedLeadVideo | null {
   ) {
     const id = getYoutubeId(trimmed);
     if (id && /^[\w-]{6,64}$/.test(id)) {
+      const shorts = isYoutubeShortUrl(trimmed);
       return {
         kind: "iframe",
-        src: `https://www.youtube.com/embed/${id}?rel=0&modestbranding=1`,
+        src: `https://www.youtube.com/embed/${id}?rel=0&modestbranding=1${shorts ? "&playsinline=1" : ""}`,
+        aspect: shorts ? "9/16" : "16/9",
       };
     }
     return null;

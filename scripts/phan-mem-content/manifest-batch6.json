@@ -1,0 +1,182 @@
+[
+  {
+    "id": "7708f067-b20e-451e-8902-7f6e07281ab8",
+    "slug": "daz-3d",
+    "tieu_de_viet": "Daz 3D — Nhân vật 3D &amp; scene art",
+    "tom_tat": "Nền tảng tạo nhân vật 3D — Genesis figure, morph, quần áo và render cho illustration, game ref và visual novel.",
+    "meta_title": "Daz 3D là gì? Nhân vật 3D, giá và hướng dẫn | CINS",
+    "meta_description": "Daz Studio: figure, pose, Iray render. So sánh Character Creator, Blender rig và lộ trình học 3D character.",
+    "meta": {
+      "nha_phat_hanh": "Daz 3D",
+      "version": "4",
+      "platform": ["Windows", "macOS"],
+      "website": "https://www.daz3d.com",
+      "goi_mien_phi": "Daz Studio miễn phí · asset trả phí",
+      "gia_thanh": "Studio miễn phí · asset/store theo sản phẩm",
+      "hinh_thuc_mua": "Miễn phí · mua asset",
+      "link_tai": "https://www.daz3d.com/daz-studio"
+    }
+  },
+  {
+    "id": "4c01d61f-6303-4d67-882e-5f89589c42d7",
+    "slug": "excel",
+    "tieu_de_viet": "Microsoft Excel — Bảng tính &amp; báo cáo",
+    "tom_tat": "Phần mềm spreadsheet — công thức, pivot, biểu đồ và theo dõi ngân sách cho dự án sáng tạo, sự kiện và quản lý studio nhỏ.",
+    "meta_title": "Microsoft Excel là gì? Bảng tính, giá và hướng dẫn | CINS",
+    "meta_description": "Excel: formula, PivotTable, chart. So sánh Google Sheets, Numbers và quy trình báo cáo dự án.",
+    "meta": {
+      "nha_phat_hanh": "Microsoft",
+      "version": "365",
+      "platform": ["Windows", "macOS", "Web", "iOS", "Android"],
+      "website": "https://www.microsoft.com/microsoft-365/excel",
+      "goi_mien_phi": "Excel Online giới hạn · giáo dục",
+      "gia_thanh": "Đi kèm Microsoft 365 · ~7 USD/tháng",
+      "hinh_thuc_mua": "Thuê bao tháng · giáo dục",
+      "link_tai": "https://www.microsoft.com/microsoft-365/excel"
+    }
+  },
+  {
+    "id": "74bb186f-5260-4c6c-96ba-036802688e64",
+    "slug": "figma",
+    "tieu_de_viet": "Figma — UI/UX &amp; thiết kế cộng tác",
+    "tom_tat": "Công cụ thiết kế giao diện trên cloud — frame, component, prototype và handoff cho team product và agency.",
+    "meta_title": "Figma là gì? UI design, giá và hướng dẫn học | CINS",
+    "meta_description": "Figma: component, auto layout, prototype. So sánh Adobe XD, Sketch và lộ trình học UI cho người mới.",
+    "meta": {
+      "nha_phat_hanh": "Figma Inc. (Adobe)",
+      "version": "2024",
+      "platform": ["Web", "Windows", "macOS"],
+      "website": "https://www.figma.com",
+      "goi_mien_phi": "Starter miễn phí (3 file)",
+      "gia_thanh": "Từ ~15 USD/tháng (Professional)",
+      "hinh_thuc_mua": "Thuê bao tháng · giáo dục",
+      "link_tai": "https://www.figma.com/downloads"
+    }
+  },
+  {
+    "id": "bb4525e4-c315-43d0-b108-f6ea8b8f4ae1",
+    "slug": "final-cut-pro",
+    "tieu_de_viet": "Final Cut Pro — Dựng phim trên Mac",
+    "tom_tat": "NLE chuyên nghiệp của Apple — magnetic timeline, proxy, color và xuất ProRes cho creator và studio Mac.",
+    "meta_title": "Final Cut Pro là gì? Dựng phim, giá và hướng dẫn | CINS",
+    "meta_description": "Final Cut Pro: magnetic timeline, multicam, HDR. So sánh Premiere Pro, DaVinci Resolve và lộ trình học.",
+    "meta": {
+      "nha_phat_hanh": "Apple",
+      "version": "10.8",
+      "platform": ["macOS"],
+      "website": "https://www.apple.com/final-cut-pro",
+      "goi_mien_phi": "Dùng thử 90 ngày",
+      "gia_thanh": "~299 USD mua một lần (Mac App Store)",
+      "hinh_thuc_mua": "Mua một lần · giáo dục",
+      "link_tai": "https://apps.apple.com/app/final-cut-pro/id424389933"
+    }
+  },
+  {
+    "id": "6917e566-0dab-42d2-8421-856f24ff6d74",
+    "slug": "finale",
+    "tieu_de_viet": "Finale — Soạn nhạc &amp; ký âm",
+    "tom_tat": "Phần mềm notation hàng đầu — bản nhạc orchestra, piano, hợp xướng với engraving chuẩn xuất bản in và PDF.",
+    "meta_title": "Finale là gì? Soạn nhạc, giá và hướng dẫn học | CINS",
+    "meta_description": "Finale: score, part, MusicXML. So sánh Sibelius, MuseScore và lộ trình học ký âm.",
+    "meta": {
+      "nha_phat_hanh": "MakeMusic",
+      "version": "27",
+      "platform": ["Windows", "macOS"],
+      "website": "https://www.finalemusic.com",
+      "goi_mien_phi": "Không (trial)",
+      "gia_thanh": "Từ ~600 USD perpetual · thuê bao",
+      "hinh_thuc_mua": "Mua một lần · thuê bao · giáo dục",
+      "link_tai": "https://www.finalemusic.com/products/finale"
+    }
+  },
+  {
+    "id": "4e79d7fc-c947-442a-9e05-f7cdf7f00055",
+    "slug": "fl-studio",
+    "tieu_de_viet": "FL Studio — DAW sản xuất nhạc",
+    "tom_tat": "Digital Audio Workstation phổ biến trong EDM và beatmaking — piano roll, pattern, mixer và lifetime free updates.",
+    "meta_title": "FL Studio là gì? Beatmaking, giá và hướng dẫn học | CINS",
+    "meta_description": "FL Studio: pattern, piano roll, VST. So sánh Ableton Live, Logic Pro và lộ trình làm beat.",
+    "meta": {
+      "nha_phat_hanh": "Image-Line",
+      "version": "21",
+      "platform": ["Windows", "macOS"],
+      "website": "https://www.image-line.com/fl-studio",
+      "goi_mien_phi": "Dùng thử đầy đủ tính năng",
+      "gia_thanh": "Từ ~99 EUR (Fruity) · ~499 EUR (All Plugins)",
+      "hinh_thuc_mua": "Mua một lần · nâng cấp edition",
+      "link_tai": "https://www.image-line.com/fl-studio-download"
+    }
+  },
+  {
+    "id": "22197fb4-5420-4130-9a59-bddd6942c1e8",
+    "slug": "flame",
+    "tieu_de_viet": "Autodesk Flame — VFX &amp; finishing broadcast",
+    "tom_tat": "Hệ thống compositing và finishing cao cấp — grading, tracking, 3D composite cho quảng cáo và truyền hình premium.",
+    "meta_title": "Autodesk Flame là gì? VFX, giá và hướng dẫn | CINS",
+    "meta_description": "Flame: Action, Batch, color. So sánh Nuke, Fusion và luồng finishing studio.",
+    "meta": {
+      "nha_phat_hanh": "Autodesk",
+      "version": "2025",
+      "platform": ["Linux", "macOS"],
+      "website": "https://www.autodesk.com/products/flame",
+      "goi_mien_phi": "Dùng thử · giáo dục hạn chế",
+      "gia_thanh": "Theo giấy phép facility · ~1,875 USD/tháng",
+      "hinh_thuc_mua": "Thuê bao · facility",
+      "link_tai": "https://www.autodesk.com/products/flame"
+    }
+  },
+  {
+    "id": "40bba37e-3751-450b-8850-55a1722ae4c5",
+    "slug": "fmod",
+    "tieu_de_viet": "FMOD — Middleware âm thanh game",
+    "tom_tat": "Engine audio middleware — event, adaptive music và spatial audio tích hợp Unity, Unreal cho game AAA và indie.",
+    "meta_title": "FMOD là gì? Game audio, giá và hướng dẫn | CINS",
+    "meta_description": "FMOD Studio: event, parameter, bank. So sánh Wwise, Unity Audio và lộ trình học game sound.",
+    "meta": {
+      "nha_phat_hanh": "Firelight Technologies",
+      "version": "2",
+      "platform": ["Windows", "macOS", "Linux"],
+      "website": "https://www.fmod.com",
+      "goi_mien_phi": "Miễn phí indie (doanh thu dưới ngưỡng)",
+      "gia_thanh": "Miễn phí indie · license studio theo doanh thu",
+      "hinh_thuc_mua": "Miễn phí · royalty",
+      "link_tai": "https://www.fmod.com/download"
+    }
+  },
+  {
+    "id": "13250484-58c5-4801-8e0e-2845aa440950",
+    "slug": "framer",
+    "tieu_de_viet": "Framer — UI design &amp; prototype web",
+    "tom_tat": "Công cụ thiết kế và publish site — layout responsive, animation và CMS cho landing page và portfolio designer.",
+    "meta_title": "Framer là gì? Prototype, giá và hướng dẫn học | CINS",
+    "meta_description": "Framer: design, prototype, publish. So sánh Figma, Webflow và lộ trình học UI/web.",
+    "meta": {
+      "nha_phat_hanh": "Framer B.V.",
+      "version": "2024",
+      "platform": ["Web", "macOS"],
+      "website": "https://www.framer.com",
+      "goi_mien_phi": "Gói Free (site giới hạn)",
+      "gia_thanh": "Từ ~5 USD/tháng (Mini)",
+      "hinh_thuc_mua": "Thuê bao tháng",
+      "link_tai": "https://www.framer.com"
+    }
+  },
+  {
+    "id": "4f202bb9-dbf5-402c-9b17-599d56dd2770",
+    "slug": "fusion",
+    "tieu_de_viet": "Fusion Studio — Compositing VFX node-based",
+    "tom_tat": "Phần mềm compositing của Blackmagic — node graph, keying, tracking; bản standalone hoặc tab trong DaVinci Resolve.",
+    "meta_title": "Fusion Studio là gì? VFX compositing và hướng dẫn | CINS",
+    "meta_description": "Fusion: node compositing, 3D, keying. So sánh After Effects, Nuke và luồng VFX indie.",
+    "meta": {
+      "nha_phat_hanh": "Blackmagic Design",
+      "version": "19",
+      "platform": ["Windows", "macOS", "Linux"],
+      "website": "https://www.blackmagicdesign.com/products/fusion",
+      "goi_mien_phi": "Miễn phí trong Resolve / Fusion standalone",
+      "gia_thanh": "Miễn phí · Resolve Studio ~295 USD",
+      "hinh_thuc_mua": "Miễn phí · mua một lần",
+      "link_tai": "https://www.blackmagicdesign.com/products/fusion"
+    }
+  }
+]

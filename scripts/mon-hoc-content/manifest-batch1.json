@@ -1,0 +1,52 @@
+[
+  {
+    "id": "baf55c61-666f-4ac8-bba1-4e04bf3079dc",
+    "slug": "mon-an-pham-bao-chi",
+    "tieu_de": "Ấn phẩm báo chí",
+    "tieu_de_eng": "Editorial Design",
+    "tieu_de_viet": "Ấn phẩm báo chí",
+    "tom_tat": "Thiết kế ấn phẩm in ấn — sách, tạp chí, catalogue, brochure — gồm dàn trang, chọn giấy và chuẩn bị file in.",
+    "meta_title": "Ấn phẩm báo chí là gì? Học gì, thi như thế nào và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Ấn phẩm báo chí: dàn trang sách tạp chí, typography, chuẩn bị in. Ứng dụng trong thiết kế đồ họa và xuất bản."
+  },
+  {
+    "id": "4e33f4fe-76fc-4449-b7d2-0eaf58e241d1",
+    "slug": "mon-anh-sang",
+    "tieu_de": "Ánh sáng",
+    "tieu_de_eng": "Lighting",
+    "tieu_de_viet": "Ánh sáng",
+    "tom_tat": "Nguyên lý và thực hành chiếu sáng — studio, sân khấu, quay phim và chụp ảnh; đọc ánh sáng tự nhiên và thiết lập setup.",
+    "meta_title": "Môn Ánh sáng là gì? Học gì, thi như thế nào và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Ánh sáng trong đào tạo sáng tạo: key/fill, color temperature, gaffer. Ứng dụng quay phim, chụp ảnh và sân khấu."
+  },
+  {
+    "id": "5bd262af-68be-4dd5-8b96-b27c3a091249",
+    "slug": "mon-bao-ton---trung-tu-di-tich",
+    "tieu_de": "Bảo tồn & trùng tu di tích",
+    "tieu_de_eng": "Heritage Conservation",
+    "tieu_de_viet": "Bảo tồn & trùng tu di tích",
+    "tom_tat": "Nguyên tắc bảo tồn di sản — khảo sát hiện trạng, vật liệu truyền thống và phương án trùng tu có trách nhiệm.",
+    "meta_title": "Bảo tồn & trùng tu di tích là gì? Học gì và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Bảo tồn di tích: khảo sát, phân tích vật liệu, trùng tu kiến trúc và mỹ thuật. Ứng dụng trong di sản và thiết kế không gian."
+  },
+  {
+    "id": "4a064b23-28f3-43f5-bbf1-3e02e3e37401",
+    "slug": "mon-bien-kich",
+    "tieu_de": "Biên kịch",
+    "tieu_de_eng": "Screenwriting",
+    "tieu_de_viet": "Biên kịch",
+    "tom_tat": "Viết kịch bản phim và truyền hình — cấu trúc ba hồi, nhân vật, thoại và format chuẩn ngành.",
+    "meta_title": "Biên kịch là gì? Học gì, thi như thế nào và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Biên kịch: cấu trúc phim, nhân vật, thoại, treatment. Ứng dụng làm phim, quảng cáo và content số."
+  },
+  {
+    "id": "93d2bd51-5091-40aa-91af-50a2dea36d6f",
+    "slug": "mon-chuyen-nganh-cong-cong",
+    "tieu_de": "Chuyên ngành công cộng",
+    "tieu_de_eng": "Public Interest Design",
+    "tieu_de_viet": "Chuyên ngành công cộng",
+    "tom_tat": "Thiết kế phục vụ cộng đồng — không gian công cộng, wayfinding, dự án xã hội và tác động địa phương.",
+    "meta_title": "Chuyên ngành công cộng là gì? Học gì và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Chuyên ngành công cộng: thiết kế cho cộng đồng, participatory design, dự án xã hội trong ngành sáng tạo."
+  }
+]

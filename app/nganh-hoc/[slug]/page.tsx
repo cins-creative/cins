@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { NganhChiTietView } from "@/components/nganh/NganhChiTietView";
+import { NganhChiTietPageShell } from "@/components/nganh/NganhChiTietPageShell";
 import { CinsShell } from "@/components/cins/CinsShell";
 import { SiteFooter } from "@/components/cins/SiteFooter";
+import { getNganhAdminStatus } from "@/lib/nganh/article-admin";
 import { getNganhDetailBySlug } from "@/lib/nganh/queries";
+import { hasServiceRoleEnv } from "@/lib/supabase/service-role";
 
 export const dynamic = "force-dynamic";
 
@@ -34,13 +36,19 @@ export default async function NganhChiTietPage({ params }: Props) {
   const bundle = await getNganhDetailBySlug(slug);
   if (!bundle) notFound();
 
+  const canEdit = await getNganhAdminStatus(slug);
+  const persistEnabled = hasServiceRoleEnv();
+
   return (
     <CinsShell data-screen-label="Nganh-chi-tiet">
-      <NganhChiTietView
+      <NganhChiTietPageShell
+        canEdit={canEdit}
+        persistEnabled={persistEnabled}
         article={bundle.article}
         parsed={bundle.parsed}
         monHoc={bundle.monHoc}
         nghe={bundle.nghe}
+        truong={bundle.truong}
         khoiThiLabels={bundle.khoiThiLabels}
         lienQuan={bundle.lienQuan}
         soTruong={bundle.soTruong}

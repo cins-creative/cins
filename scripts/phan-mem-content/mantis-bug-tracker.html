@@ -1,0 +1,209 @@
+<section class="arc-intro">
+  <p>Bạn vào trang bug tracker của studio game indie, thấy hàng chục lỗi: nút nhảy không phản hồi, texture lệch, crash khi mở shop — mỗi mục có người báo, ưu tiên, trạng thái «Assigned / Resolved / Closed». Nhiều team VN dùng <strong>Mantis Bug Tracker</strong> (MantisBT): công cụ web mã nguồn mở, cài server riêng, không phụ thuộc SaaS trả phí hàng tháng.</p>
+  <p>MantisBT không phải IDE hay công cụ viết code — nó là <strong>hệ thống theo dõi bug và yêu cầu phần mềm</strong> giúp nhóm dev, QA và PM cùng nhìn một nguồn sự thật về lỗi còn tồn, ai đang xử lý và bản build nào đã sửa. Hiểu Mantis (hoặc công cụ bug tracker tương đương) giúp học sinh THPT làm dự án nhóm CS, game jam và chuẩn bị cho internship IT nơi «ghi bug rõ ràng» thường quan trọng không kém «viết code chạy được».</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>Mantis Bug Tracker là gì?</h2>
+  <p><strong>Mantis Bug Tracker</strong> (viết tắt <strong>MantisBT</strong>) là phần mềm <strong>theo dõi bug và issue trên web</strong>, phát triển bởi cộng đồng mã nguồn mở, giấy phép GPL. Ra đời từ đầu thập niên 2000, MantisBT được viết bằng PHP, chạy trên server LAMP/LEMP (Linux, Apache/Nginx, MySQL/MariaDB, PHP) — bạn truy cập qua trình duyệt, không cần cài app riêng trên từng máy dev.</p>
+  <p>Khác với ghi chú bug rải rác trên Zalo, Google Sheet hay comment trong code, MantisBT gom mỗi lỗi thành một <strong>issue có ID cố định</strong> (#0001234): tiêu đề, mô tả tái hiện (steps to reproduce), mức ưu tiên, severity, người được gán, phiên bản phần mềm và timeline thay đổi trạng thái. Giao diện ban đầu trông «cổ điển» hơn Jira hay Linear, nhưng workflow rõ ràng và phù hợp team cần kiểm soát dữ liệu trên server nội bộ.</p>
+  <ul class="arc-list">
+    <li><strong>Issue tracking</strong> — tạo, gán, cập nhật trạng thái bug và feature request theo workflow tùy chỉnh</li>
+    <li><strong>Phân quyền &amp; dự án</strong> — nhiều project trong một instance; role Reporter, Developer, Manager</li>
+    <li><strong>Thông báo email</strong> — tự động gửi mail khi issue được gán, comment hoặc đổi trạng thái</li>
+    <li><strong>Báo cáo &amp; plugin</strong> — biểu đồ, filter, Graphviz; mở rộng qua plugin cộng đồng</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"MantisBT bug tracker issue list view screenshot web interface"</span>
+    </div>
+    <p class="arc-image-caption">Giao diện MantisBT — danh sách issue, filter và cột trạng thái bug</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>MantisBT đứng ở lớp <strong>QA và quản lý chất lượng</strong>, song song Git/GitHub: tester mở issue kèm screenshot và build version; dev sửa xong đánh dấu «Resolved», tester verify rồi «Closed». Với đồ án học đường, giáo viên thấy ai báo bug, ai fix, còn bao nhiêu issue Critical trước demo — thay vì «em tưởng đã sửa rồi».</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Tạo issue, mô tả bug &amp; tái hiện lỗi</h3>
+    <p>Đơn vị trung tâm là <strong>issue</strong> (bug report hoặc feature request). Người báo điền summary ngắn («Crash khi đăng nhập bằng Google»), mô tả chi tiết, <strong>steps to reproduce</strong> (bước 1 mở app → bước 2 bấm Login → bước 3 chọn Google → crash), kèm expected vs actual result. Đính kèm screenshot, log file hoặc video ngắn — thông tin càng cụ thể, dev càng ít thời gian đoán mò.</p>
+    <p>Học sinh THPT mới làm QA cần thói quen viết bug report chuẩn: trả lời «làm sao tái hiện?», «OS nào?», «build bao nhiêu?». MantisBT có custom field thêm Device, OS version tùy dự án.</p>
+    <ul class="arc-list">
+      <li><strong>Category &amp; severity</strong> — phân loại UI, gameplay, backend; mức Blocker / Critical / Major / Minor</li>
+      <li><strong>Reproducibility</strong> — Always / Sometimes / Random giúp ưu tiên xử lý</li>
+      <li><strong>Attachment</strong> — screenshot, crash dump, video tái hiện lỗi</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"MantisBT report issue form bug description screenshot"</span>
+        </div>
+        <p class="arc-image-caption">Form báo bug — summary, steps to reproduce và file đính kèm</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"MantisBT issue detail page comment history status"</span>
+        </div>
+        <p class="arc-image-caption">Chi tiết issue — lịch sử comment và thay đổi trạng thái</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Workflow, gán người xử lý &amp; thông báo nhóm</h3>
+    <p>Mỗi issue đi qua <strong>workflow trạng thái</strong> — ví dụ New → Acknowledged → Assigned → Resolved → Verified → Closed (team có thể tùy chỉnh). PM hoặc lead dev <strong>assign</strong> issue cho thành viên; Mantis gửi <strong>email notification</strong> khi có thay đổi — dev không cần refresh trang liên tục. Comment trong issue giữ toàn bộ trao đổi («Em thử trên build 1.2 chưa còn lỗi», «Cần thêm log từ máy Samsung») thay vì thread chat bị chìm.</p>
+    <p>Studio outsource hay cho khách nước ngoài account Reporter — mở bug trực tiếp, team VN fix và cập nhật status. CLB lập trình THPT có thể self-host một instance phục vụ 2–3 dự án song song.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"MantisBT workflow status assigned developer email notification"</span>
+      </div>
+      <p class="arc-image-caption">Workflow issue — gán developer, đổi trạng thái và thông báo email</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Filter, báo cáo &amp; quản lý nhiều dự án</h3>
+    <p>MantisBT hỗ trợ <strong>nhiều project</strong> trong một cài đặt: «Website trường», «Game jam 2025», «Plugin nội bộ» — mỗi project có category, version và quyền truy cập riêng. <strong>Filter</strong> lưu truy vấn hay dùng («Open bugs assigned to me», «Critical chưa resolve tuần này»); tab <strong>Summary</strong> và biểu đồ giúp PM báo cáo tiến độ trước sprint review hoặc buổi chấm đồ án.</p>
+    <p>Luồng điển hình: tester chạy checklist beta → mở issue → standup lọc «Assigned» → dev resolve → regression → close. Tích hợp API/CI giúp liên kết với IDE — nắm quy trình này là kỹ năng giao hàng phần mềm thực tế.</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"MantisBT project dashboard filter bug report chart summary"</span>
+      </div>
+      <p class="arc-image-caption">Dashboard — filter issue, báo cáo theo trạng thái và phiên bản phát hành</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai lựa chọn hay được đặt cạnh MantisBT nhất là <strong>Jira</strong> (Atlassian, SaaS/on-prem, phổ biến enterprise) và <strong>GitHub Issues</strong> (tích hợp sẵn repo Git, miễn phí cho dự án open source). Không có câu trả lời «đúng duy nhất» — tùy quy mô team, ngân sách, yêu cầu self-host và mức độ gắn với Git workflow.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">MantisBT vs Jira</h3>
+    <p>Jira là «chuẩn công nghiệp» ở nhiều công ty lớn: Scrum board, Epic, Sprint, tích hợp Confluence và marketplace app khổng lồ — nhưng chi phí license và độ phức tạp cấu hình cao. MantisBT <strong>miễn phí, mã nguồn mở</strong>, cài trên server riêng, giao diện gọn hơn, tập trung vào bug tracking thuần — phù hợp SME Việt Nam, team outsource và trường học muốn kiểm soát dữ liệu không gửi lên cloud nước ngoài.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"MantisBT open source bug tracker simple issue list"</span>
+        </div>
+        <p class="arc-image-caption">MantisBT — gọn, self-host, tập trung bug tracking</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Jira software scrum board sprint enterprise project management"</span>
+        </div>
+        <p class="arc-image-caption">Jira — Agile board, Epic/Sprint và hệ sinh thái Atlassian</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>MantisBT mạnh hơn:</strong> chi phí bằng không (self-host), cài đặt nhanh cho team nhỏ, workflow bug đơn giản, phù hợp QA thuần và khách hàng chỉ cần portal báo lỗi.<br>
+      <strong>Jira mạnh hơn:</strong> Agile/Scrum đầy đủ, roadmap, tích hợp enterprise (SSO, audit), plugin và báo cáo nâng cao cho hàng trăm dev.<br>
+      <strong>Chọn MantisBT khi:</strong> ngân sách hạn chế, cần host nội bộ, team 5–30 người tập trung fix bug hơn quản lý product phức tạp.<br>
+      <strong>Chọn Jira khi:</strong> công ty đã dùng Atlassian stack, cần Scrum scale lớn và budget cho license.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">MantisBT vs GitHub Issues</h3>
+    <p>GitHub Issues gắn <strong>repository Git</strong>: link PR «Fixes #42», label và milestone cùng nền tảng code — lý tưởng open source. MantisBT tách bug tracking khỏi repo: tester/khách không cần quyền Git; nhiều công ty dùng <strong>cả hai</strong> — Mantis cho QA, tham chiếu sang GitHub cho dev.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"MantisBT standalone bug tracker web PHP self hosted"</span>
+        </div>
+        <p class="arc-image-caption">MantisBT — portal bug độc lập, phân quyền Reporter không cần Git</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"GitHub Issues bug tracker pull request link label milestone"</span>
+        </div>
+        <p class="arc-image-caption">GitHub Issues — issue gắn commit, PR và label trong repo</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>MantisBT mạnh hơn:</strong> QA portal riêng, custom field bug chuyên sâu, email workflow truyền thống, phù hợp khách hàng/PM không dùng Git.<br>
+      <strong>GitHub Issues mạnh hơn:</strong> zero setup nếu đã có repo, liên kết PR/commit tự nhiên, miễn phí public/private repo, cộng đồng dev quen thuộc.<br>
+      <strong>Chọn MantisBT khi:</strong> team có tester riêng, khách báo bug qua web, hoặc policy yêu cầu self-host ngoài GitHub.<br>
+      <strong>Chọn GitHub Issues khi:</strong> dự án học sinh/indie trên GitHub, mọi người đều dev và muốn issue + code một chỗ.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học Mantis Bug Tracker như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Hiểu vai trò bug tracker trong dự án phần mềm</strong>
+        <p>Trước khi cài Mantis, hãy nắm vì sao cần hệ thống issue: dev cần mô tả lỗi tái hiện được, PM cần biết còn bao nhiêu bug Critical, tester cần verify fix trên đúng build. Đọc 2–3 bug report mẫu tốt trên GitHub hoặc Mantis demo — so sánh với tin nhắn «app bị lỗi rồi» không chi tiết. Mục tiêu tuần đầu: viết được một bug report giả định cho game Unity hoặc web đồ án lớp 12 của bạn.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Dùng bản demo hoặc cài MantisBT local</strong>
+        <p>Truy cập trang demo chính thức MantisBT hoặc cài trên XAMPP/Docker local (PHP + MySQL) — không cần server production ngay. Tạo account Reporter và Developer thử nghiệm, tạo project «Test THPT», điền vài issue giả. Làm quen menu View Issues, Report Issue, Change Status — giao diện không hiện đại như Notion nhưng logic rõ: mỗi thao tác đều ghi vào lịch sử issue.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Thực hành workflow và viết bug chuẩn</strong>
+        <p>Trong nhóm 3–4 bạn, một người đóng vai tester: chơi thử bản game/web và mở ít nhất 5 issue với steps to reproduce, severity và screenshot. Dev assign cho mình, comment «investigating», resolve khi sửa xong — tester verify và close. Luyện thêm custom field (OS, browser, build number). Sau 1–2 tuần bạn sẽ thấy khác biệt rõ so với track bug bằng chat nhóm.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Filter, báo cáo và liên kết với Git</strong>
+        <p>Tạo filter «My open bugs» và «All unresolved Critical»; xem tab Summary trước buổi họp nhóm. Thử ghi trong comment issue mã commit hoặc link PR GitHub («fixed in a1b2c3d») — dù Mantis không bắt buộc Git, thói quen traceability này là chuẩn industry. Nếu dự án học sinh chỉ dùng GitHub, so sánh song song một issue trên cả hai nền tảng để hiểu trade-off.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Áp dụng vào dự án thật: game jam, web trường, Capstone</strong>
+        <p>Chọn dự án có deadline (game jam, web CLB): rule «mọi lỗi qua Mantis/Issues, không báo miệng». Trưởng nhóm review dashboard hàng ngày — dạy quy trình giao hàng: team biết còn gì chưa xong.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Mở rộng: QA mindset, Jira/GitHub và hướng nghề</strong>
+        <p>Tìm hiểu ISTQB cơ bản hoặc khóa Software Testing miễn phí — bug tracker chỉ là công cụ, tư duy test case mới là lõi. Ghi portfolio: «Quản lý XX issue trên MantisBT cho dự án YY». Hướng nghề: QA Engineer, Test Automation — nhiều công ty VN tuyển junior QA dựa trên dự án và bug report mẫu.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

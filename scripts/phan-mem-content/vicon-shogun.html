@@ -1,0 +1,209 @@
+<section class="arc-intro">
+  <p>Bạn xem behind-the-scenes phim bom tấn thấy diễn viên mặc suit đốm trắng trong phòng tối đầy camera hồng ngoại — vài giờ sau, quái vật CGI bước đi, đánh nhau khớp từng cử động người thật. Phần mềm điều phối camera và ghi nhận chuyển động đó trong nhiều studio lớn là <strong>Vicon Shogun</strong>, bộ não của hệ thống motion capture optical do <strong>Vicon</strong> (Anh) phát triển.</p>
+  <p>Shogun không phải công cụ dựng hình 3D hay animate keyframe tay — nó thu, hiệu chỉnh và xuất dữ liệu <strong>marker 3D</strong> từ camera optical Vicon, rồi bàn giao sang MotionBuilder, Maya hoặc Unreal Engine. Với học sinh THPT hướng tới game AAA, phim VFX hoặc nghiên cứu sinh học chuyển động, hiểu Shogun giúp bạn thấy cách chuyển động người thật trở thành animation sản phẩm thương mại.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>Vicon Shogun là gì?</h2>
+  <p>Vicon Shogun là phần mềm <strong>motion capture optical</strong> — thu và xử lý dữ liệu chuyển động từ hệ camera hồng ngoại Vicon (Vero, Vantage, Vue) bao quanh volume capture. Ban đầu phổ biến trong phim VFX, game AAA và phòng lab nghiên cứu y sinh; ngày nay vẫn là lựa chọn hàng đầu khi studio cần độ chính xác cao, nhiều performer cùng lúc và tích hợp pipeline chuyên nghiệp quy mô lớn.</p>
+  <p>Khác với suit cảm biến inertial (Rokoko, Xsens) hoặc webcam AI, Shogun dùng <strong>passive markers</strong> phản chiếu hồng ngoại — camera theo dõi vị trí 3D marker theo thời gian thực. Giao diện có viewport 3D volume, bảng camera calibration, skeleton solve và timeline take — ban đầu trông kỹ thuật, nhưng mỗi module phục vụ một bước trong pipeline mocap studio chuyên nghiệp.</p>
+  <ul class="arc-list">
+    <li><strong>Camera calibration</strong> — hiệu chỉnh vị trí và hướng từng camera trong volume capture 3D</li>
+    <li><strong>Real-time tracking</strong> — theo dõi marker và rigid body (prop, vũ khí) ở tốc độ cao</li>
+    <li><strong>Skeleton solve &amp; labeling</strong> — gán marker lên skeleton người, tạo chuyển động xương tự động</li>
+    <li><strong>Export pipeline</strong> — xuất FBX, C3D, HTR sang MotionBuilder, Maya, Unreal, Unity</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"Vicon Shogun software interface mocap volume camera calibration screenshot"</span>
+    </div>
+    <p class="arc-image-caption">Giao diện Shogun — volume 3D, camera layout và marker tracking realtime</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>Shogun đứng ở <strong>giai đoạn thu và solve motion capture</strong>: kỹ thuật viên calibrate volume → diễn viên mocap trong suit marker → Shogun ghi take realtime hoặc post-process → solve skeleton, lọc gap marker → xuất FBX/C3D sang MotionBuilder để cleanup và retarget, hoặc thẳng sang Unreal cho previz. Với phim, thường bàn giao sang Maya cho facial và polish; với game AAA, pipeline Unreal + Live Link ngày càng phổ biến. Shogun làm việc cùng hardware Vicon, MotionBuilder và các DCC animation.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Calibration volume &amp; camera tracking</h3>
+    <p>Thế mạnh cốt lõi của Shogun là <strong>hiệu chỉnh không gian capture 3D</strong>. Bạn đặt wand calibration (thanh có marker cố định) trong volume; Shogun tính vị trí chính xác từng camera Vicon và tạo hệ tọa độ thống nhất — nền tảng để mọi marker được định vị đúng milimet. Sau calibration, camera theo dõi marker passive trên suit diễn viên và rigid body trên prop (kiếm, súng, ghế).</p>
+    <p>Đối với học sinh THPT chưa có phòng mocap, bạn vẫn có thể hiểu khái niệm qua video demo Vicon hoặc thực hành cleanup file FBX mocap có sẵn trong MotionBuilder — nhưng Shogun là phần «phía hardware» mà mocap technician phải thành thạo trước khi diễn viên bước vào volume.</p>
+    <ul class="arc-list">
+      <li><strong>Passive markers</strong> — phản chiếu hồng ngoại, tiêu chuẩn studio phim và game lớn</li>
+      <li><strong>Rigid body tracking</strong> — gắn cụm marker lên prop, track vũ khí/object riêng performer</li>
+      <li><strong>Latency &amp; frame rate</strong> — capture 120–1000 fps tùy camera Vicon, quan trọng cho game và nghiên cứu</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Vicon mocap studio calibration wand camera volume setup"</span>
+        </div>
+        <p class="arc-image-caption">Calibration volume — wand hiệu chỉnh và layout camera Vicon</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"motion capture performer passive marker suit optical tracking Vicon"</span>
+        </div>
+        <p class="arc-image-caption">Diễn viên mocap — suit marker passive trong volume optical</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Skeleton solve &amp; labeling marker</h3>
+    <p>Sau khi thu marker 3D, bước tiếp theo là <strong>skeleton solve</strong> — Shogun gán marker lên mô hình xương người (hoặc custom skeleton), tính rotation từng khớp và tạo animation skeleton. Công cụ <strong>auto-labeling</strong> nhận diện marker trên cơ thể qua các frame; khi marker bị che khuất (occlusion), technician chỉnh tay hoặc dùng gap filling trước khi export.</p>
+    <p>Trong studio game, một buổi mocap có thể thu hàng chục take walk, run, combat — Shogun quản lý take, đặt tên và trim đoạn lỗi trước khi gửi MotionBuilder. Kỹ năng solve và label chính xác là điểm cộng lớn trên CV nếu bạn hướng tới Mocap Technician hoặc Pipeline TD.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Vicon Shogun skeleton solve marker labeling viewport 3D"</span>
+      </div>
+      <p class="arc-image-caption">Skeleton solve — gán marker lên rig và preview chuyển động xương</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Real-time streaming &amp; xuất pipeline</h3>
+    <p>Shogun hỗ trợ <strong>streaming realtime</strong> sang Unreal Engine, Unity hoặc MotionBuilder qua plugin — director xem nhân vật CG di chuyển ngay khi diễn viên mocap, tiết kiệm vòng lặp chỉnh sửa. Xuất file <strong>FBX, C3D, HTR</strong> cho animation offline; tích hợp DataStream SDK cho ứng dụng tùy chỉnh (VR training, nghiên cứu y sinh, robot học, phân tích thể thao).</p>
+    <p>Luồng điển hình: calibrate Shogun → capture → solve → export FBX → cleanup MotionBuilder → Unreal cutscene. Hiểu quy trình này giúp bạn thấy cách studio AAA sản xuất animation trong deadline ngắn mà vẫn giữ chuyển động người thật.</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Vicon Shogun export FBX MotionBuilder Unreal Engine mocap pipeline workflow"</span>
+      </div>
+      <p class="arc-image-caption">Luồng xuất mocap — Shogun capture, MotionBuilder cleanup, Unreal previz</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai giải pháp hay được đặt cạnh Vicon Shogun nhất là <strong>OptiTrack Motive</strong> (NaturalPoint, phổ biến game và lab Mỹ) và <strong>Rokoko</strong> (inertial suit, giá thấp hơn, di động). Không có câu trả lời «đúng duy nhất» — tùy ngân sách studio, quy mô volume capture và yêu cầu độ chính xác milimet hay linh hoạt quay ngoài trời.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Vicon Shogun vs OptiTrack Motive</h3>
+    <p>Cả hai đều là <strong>optical mocap chuyên nghiệp</strong> với calibration volume, passive markers và skeleton solve. Vicon Shogun thường gắn với phim VFX lớn, nghiên cứu y sinh và studio có volume rộng; OptiTrack Motive phổ biến trong game AAA và phòng lab tại Mỹ với hệ camera Prime/Slim. Pipeline export FBX sang MotionBuilder tương tự — khác biệt chủ yếu ở hardware, giá license và hệ sinh thái hỗ trợ khu vực.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Vicon Shogun large volume mocap studio film VFX setup"</span>
+        </div>
+        <p class="arc-image-caption">Vicon Shogun — volume lớn, phim VFX và nghiên cứu chuyên sâu</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"OptiTrack Motive mocap studio game AAA camera volume"</span>
+        </div>
+        <p class="arc-image-caption">OptiTrack Motive — phổ biến game AAA và lab tại Mỹ</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Vicon Shogun mạnh hơn:</strong> lịch sử trong phim VFX lớn, camera tốc độ cao (Vantage), tích hợp nghiên cứu y sinh và thể thao, volume scale lớn.<br>
+      <strong>OptiTrack Motive mạnh hơn:</strong> giá entry có thể thấp hơn tùy cấu hình, cộng đồng game indie/AA tại Mỹ, NatNet SDK linh hoạt cho tích hợp tùy chỉnh.<br>
+      <strong>Chọn Vicon Shogun khi:</strong> studio đầu tư volume lớn, phim VFX, nghiên cứu cần độ chính xác cao và hỗ trợ Vicon toàn cầu.<br>
+      <strong>Chọn OptiTrack Motive khi:</strong> ưu tiên game pipeline, ngân sách volume vừa, hoặc lab đã có hệ sinh thái OptiTrack sẵn.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Vicon Shogun vs Rokoko</h3>
+    <p>Rokoko dùng <strong>inertial sensors</strong> trong suit — không cần phòng camera, capture được ở studio nhỏ hoặc ngoài trời với chi phí thấp hơn nhiều. Vicon Shogun là optical mocap: cần volume camera cố định, độ chính xác và ổn định marker cao hơn cho sản xuất AAA, nhưng đầu tư hardware và không gian lớn hơn rất nhiều.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Vicon optical mocap precision marker tracking studio professional"</span>
+        </div>
+        <p class="arc-image-caption">Vicon Shogun — độ chính xác optical cho phim và game AAA</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Rokoko Smartsuit Pro inertial motion capture indie studio"</span>
+        </div>
+        <p class="arc-image-caption">Rokoko — suit inertial, linh hoạt và chi phí thấp hơn</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Vicon Shogun mạnh hơn:</strong> độ chính xác milimet, nhiều performer và prop rigid body, không drift theo thời gian như IMU, chuẩn studio phim lớn.<br>
+      <strong>Rokoko mạnh hơn:</strong> chi phí thấp, setup nhanh, quay ngoài trời/indie, phù hợp previz và animation indie không cần optical grade.<br>
+      <strong>Chọn Vicon Shogun khi:</strong> studio có ngân sách volume optical, sản xuất AAA hoặc nghiên cứu cần dữ liệu chính xác tuyệt đối.<br>
+      <strong>Chọn Rokoko khi:</strong> indie game, animation nhỏ, học tập mocap cá nhân, hoặc cần capture linh hoạt không cố định phòng.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học Vicon Shogun như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Hiểu khái niệm motion capture optical</strong>
+        <p>Trước khi chạm Shogun, hãy xem video behind-the-scenes mocap (The Last of Us, Avatar, game AAA) và đọc về passive marker vs inertial suit. Hiểu volume capture là không gian 3D mà camera «nhìn thấy» marker — calibration là bước bắt buộc. Mục tiêu: biết Shogun không tạo nhân vật 3D mà chỉ thu dữ liệu chuyển động để gán lên rig có sẵn.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Làm quen pipeline qua file mocap có sẵn</strong>
+        <p>Nếu chưa có phòng Vicon, tải sample FBX mocap miễn phí (Mixamo, Carnegie Mellon mocap library) → import MotionBuilder hoặc Maya → quan sát skeleton animation. So sánh chuyển động mocap vs keyframe tay — hiểu vì sao studio dùng mocap cho walk cycle và combat. Đây là bước THPT có thể làm ngay trên máy cá nhân.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Học MotionBuilder cleanup &amp; retarget</strong>
+        <p>Shogun xuất raw solve — MotionBuilder (hoặc Maya) là nơi cleanup foot slide, filter noise, retarget sang rig nhân vật game. Luyện các bước: import FBX → plot to character → fix foot contact → export sang Unreal. Kỹ năng này có giá trị tuyển dụng ngay cả khi bạn chưa vận hành Shogun trực tiếp.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Thực hành tại studio hoặc khóa đào tạo</strong>
+        <p>Tìm trung tâm đào tạo animation/game tại Việt Nam có phòng mocap (hoặc workshop Vicon/OptiTrack tại sự kiện ngành). Một ngày thực hành calibration + capture + solve sẽ cố định kiến thức hơn hàng giờ xem video. Ghi chú quy trình: wand calibrate → suit marker → record take → label → export.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Dự án animation có dữ liệu mocap</strong>
+        <p>Chọn một hướng: retarget walk/run cycle lên rig game và export Unreal; hoặc dựng shot 10 giây nhân vật combat từ mocap library + polish tay trong Maya. Giai đoạn này dạy bạn quy trình sản xuất thật: nhận data từ mocap stage, deadline cleanup, iteration theo phản hồi animation lead.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Portfolio và định hướng nghề</strong>
+        <p>Tổng hợp reel 30–60 giây: before (raw mocap) vs after (cleanup/retarget) — ghi rõ phần mềm (MotionBuilder, Maya, Unreal). Tìm hiểu vai trò Mocap Technician, Pipeline TD, Character Animator. Nhiều studio game và VFX tại Việt Nam và khu vực tuyển người hiểu pipeline mocap dù không bắt buộc kinh nghiệm Shogun ngay từ đầu — MotionBuilder cleanup là bước vào thực tế nhất cho học sinh THPT.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

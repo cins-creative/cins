@@ -1,0 +1,209 @@
+<section class="arc-intro">
+  <p>Bạn push code lên Git lúc nửa đêm — vài phút sau email báo «Build failed: unit test AuthService không pass» kèm log chi tiết từng bước compile, test và deploy staging. Phần lớn quy trình «mỗi lần commit đều được kiểm tra tự động» đó do hệ thống <strong>CI/CD</strong> đảm nhiệm; trong nhiều công ty phần mềm, công cụ điều phối pipeline đó là <strong>TeamCity</strong> của JetBrains.</p>
+  <p>TeamCity không phải nơi viết code hay quản lý source như GitHub — nó là «nhà máy lắp ráp» tự động: kéo code, build, chạy test, đóng gói Docker image, triển khai lên server. Developer Việt Nam làm backend, mobile hay DevOps đều có thể gặp TeamCity ở startup mid-size trở lên, đặc biệt khi công ty đã dùng ecosystem JetBrains (IntelliJ IDEA, Kotlin).</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>TeamCity là gì?</h2>
+  <p>TeamCity do <strong>JetBrains</strong> phát triển — nền tảng <strong>Continuous Integration &amp; Continuous Delivery (CI/CD)</strong> chạy trên server (self-hosted hoặc cloud). Mỗi khi developer push code hoặc mở pull request, TeamCity kích hoạt <strong>build configuration</strong>: checkout source, chạy script build (Maven, Gradle, npm, dotnet…), thực thi test, phân tích code và có thể deploy lên môi trường test/production.</p>
+  <p>Khác với chạy build thủ công trên máy cá nhân, TeamCity chạy trên agent (máy build riêng) với môi trường nhất quán — cả team thấy cùng kết quả, lịch sử build và ai là người «phá» build. Giao diện web có dashboard xanh/đỏ, log từng bước, artifact download và tích hợp Slack, Jira — ban đầu trông nhiều thuật ngữ (trigger, snapshot dependency, build chain), nhưng logic cốt lõi là «tự động hóa kiểm tra mỗi thay đổi code».</p>
+  <ul class="arc-list">
+    <li><strong>Build configurations &amp; triggers</strong> — định nghĩa pipeline; trigger theo VCS commit, schedule hoặc build khác</li>
+    <li><strong>Build agents</strong> — máy thực thi job; pool agent cho parallel build nhiều nhánh</li>
+    <li><strong>Test reporting &amp; artifacts</strong> — JUnit, NUnit; lưu file build output, Docker image, APK/IPA</li>
+    <li><strong>Integrations</strong> — GitHub, GitLab, Bitbucket, Jira, Slack, Docker, Kubernetes, cloud deploy</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"JetBrains TeamCity dashboard build pipeline screenshot interface"</span>
+    </div>
+    <p class="arc-image-caption">Giao diện TeamCity — dashboard project, build history và trạng thái success/failure</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>TeamCity thường đứng giữa <strong>Git repository và môi trường chạy thật</strong>: developer push → TeamCity build &amp; test → artifact gửi sang staging → QA kiểm tra → pipeline promote lên production (tự động hoặc có approval). Với mobile app, pipeline có thể ký code, build APK/AAB và upload TestFlight; với web, deploy lên Kubernetes hoặc AWS. Làm việc cùng Git, Docker, SonarQube và công cụ monitoring — DevOps/SRE vận hành server TeamCity, developer thường chỉ cần đọc log khi build đỏ.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Build configuration &amp; Kotlin DSL</h3>
+    <p>Trái tim của TeamCity là <strong>build configuration</strong> — tập hợp bước (build step): compile, test, deploy. Bạn cấu hình qua giao diện web hoặc <strong>Kotlin DSL</strong> (file .kts trong repo) để version control pipeline cùng code — cách làm hiện đại được team lớn ưa chuộng. <strong>Triggers</strong> quyết định khi nào chạy: mỗi commit vào main, nightly schedule, hoặc sau khi build dependency xong.</p>
+    <p>Đối với học sinh THPT học lập trình, bài tập thực tế hay gặp: tạo project demo với Gradle/npm, cấu hình TeamCity chạy «build + unit test» mỗi push — vừa hiểu CI cơ bản vừa có điểm cộng khi apply internship backend/DevOps.</p>
+    <ul class="arc-list">
+      <li><strong>VCS roots</strong> — kết nối GitHub/GitLab, checkout nhánh và submodule</li>
+      <li><strong>Build steps</strong> — script tùy ý, runner Maven/Gradle/npm built-in</li>
+      <li><strong>Parameters &amp; env</strong> — biến môi trường, secret cho API key (che trong UI)</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"TeamCity build configuration steps triggers settings"</span>
+        </div>
+        <p class="arc-image-caption">Build configuration — steps, triggers và parameters cho pipeline</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"TeamCity Kotlin DSL pipeline as code version control"</span>
+        </div>
+        <p class="arc-image-caption">Kotlin DSL — pipeline as code trong repository Git</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Build agents, parallel &amp; build chain</h3>
+    <p>TeamCity dùng mô hình <strong>server + agents</strong>: server điều phối, agent thực thi job trên máy riêng (Linux, Windows, macOS cho iOS). Nhiều agent cho phép build song song nhiều nhánh — feature branch không phải xếp hàng chờ main. <strong>Build chain</strong> (snapshot dependency) liên kết project: build thư viện shared → build app consumer → deploy — đảm bảo artifact đồng bộ phiên bản.</p>
+    <p>Team mid-size có thể có 5–20 agent; build full monorepo lớn vẫn mất 10–30 phút — DevOps tối ưu cache, incremental build và chỉ chạy test liên quan thay đổi (test impact analysis) để rút ngắn feedback loop.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"TeamCity build agents pool parallel builds queue"</span>
+      </div>
+      <p class="arc-image-caption">Build agents — pool agent, queue job và build song song</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Test report, deploy &amp; tích hợp DevOps</h3>
+    <p>TeamCity thu thập kết quả <strong>JUnit, NUnit, pytest</strong> — hiển thị test failed ngay trên giao diện, gửi notification Slack/email. <strong>Artifacts</strong> lưu file output (JAR, WAR, Docker image tar) để bước deploy hoặc QA tải về. Plugin và build step tích hợp deploy lên <strong>Kubernetes, AWS, Azure, SSH server</strong>; kết hợp SonarQube cho quality gate.</p>
+    <p>Luồng làm việc điển hình: PR mở → TeamCity build + test → reviewer merge khi xanh → pipeline main deploy staging → QA approve → promote production. Hiểu quy trình này giúp bạn không chỉ «biết code» mà nắm cách phần mềm đến tay người dùng an toàn.</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"TeamCity CI CD deploy pipeline Docker Kubernetes workflow"</span>
+      </div>
+      <p class="arc-image-caption">Luồng CI/CD — build, test, artifact và deploy staging/production</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai nền tảng hay được đặt cạnh TeamCity nhất là <strong>GitHub Actions</strong> (CI/CD tích hợp GitHub) và <strong>Jenkins</strong> (mã nguồn mở, linh hoạt, self-hosted lâu đời). Không có câu trả lời «đúng duy nhất» — tùy repo đang ở đâu, quy mô team và ai vận hành hạ tầng build.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">TeamCity vs GitHub Actions</h3>
+    <p>GitHub Actions chạy trực tiếp trên GitHub — cấu hình file YAML trong repo, runner do GitHub host hoặc self-hosted, rất phù hợp open source và startup dùng GitHub làm trung tâm. TeamCity mạnh hơn khi cần <strong>build chain phức tạp</strong>, giao diện quản trị cho nhiều project, agent pool riêng và tích hợp sâu với stack JetBrains/Kotlin/enterprise on-prem.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"JetBrains TeamCity enterprise CI dashboard multiple projects"</span>
+        </div>
+        <p class="arc-image-caption">TeamCity — quản lý nhiều project, build chain và agent pool</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"GitHub Actions workflow YAML CI pipeline runs"</span>
+        </div>
+        <p class="arc-image-caption">GitHub Actions — workflow YAML, tích hợp sẵn trên GitHub</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>TeamCity mạnh hơn:</strong> UI quản trị pipeline phức tạp, build chain/snapshot dependency, agent macOS/Windows linh hoạt, phù hợp enterprise self-hosted.</p>
+      <p><strong>GitHub Actions mạnh hơn:</strong> zero setup với repo GitHub, marketplace action khổng lồ, miễn phí quota cho public repo, học từ file YAML đơn giản.</p>
+      <p><strong>Chọn TeamCity khi:</strong> công ty đã self-host, nhiều repo/product line, cần Kotlin DSL và support JetBrains.</p>
+      <p><strong>Chọn GitHub Actions khi:</strong> codebase trên GitHub, team nhỏ, muốn CI nhanh không cài server riêng.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">TeamCity vs Jenkins</h3>
+    <p>Jenkins là «ông tổ» CI mã nguồn mở — miễn phí, plugin vô hạn, cộng đồng lớn; nhưng giao diện cũ, cấu hình dễ phình phức tạp và bảo trì plugin hay gây đau đầu DevOps. TeamCity trả phí (có bản free với giới hạn build agent) nhưng <strong>UX hiện đại</strong>, cấu hình rõ ràng hơn và hỗ trợ chính thức từ JetBrains — trade-off giữa chi phí license và thời gian vận hành.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"TeamCity modern build overview test results interface"</span>
+        </div>
+        <p class="arc-image-caption">TeamCity — giao diện hiện đại, test report và build overview</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Jenkins open source CI CD dashboard pipeline job"</span>
+        </div>
+        <p class="arc-image-caption">Jenkins — mã nguồn mở, plugin ecosystem rộng, tự host</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>TeamCity mạnh hơn:</strong> UX, Kotlin DSL, build chain native, ít «plugin hell», support thương mại.</p>
+      <p><strong>Jenkins mạnh hơn:</strong> miễn phí hoàn toàn, plugin cho mọi thứ, phổ biến lâu năm, phù hợp budget zero và team DevOps giàu kinh nghiệm.</p>
+      <p><strong>Chọn TeamCity khi:</strong> công ty chấp nhận trả license để giảm chi phí bảo trì CI, stack JetBrains/Kotlin.</p>
+      <p><strong>Chọn Jenkins khi:</strong> cần open source thuần, tùy biến cực sâu và đã có team vận hành Jenkins lâu năm.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học TeamCity như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Hiểu CI/CD và chạy build thủ công trước</strong>
+        <p>Trước khi đụng TeamCity, hãy biết project của bạn build thế nào trên máy local: «./gradlew build», «npm test», «dotnet build». Tuần đầu với CI là hiểu vì sao cần máy build riêng — môi trường sạch, lặp lại được, cả team cùng thấy kết quả. Học sinh THPT có thể bắt đầu từ GitHub Actions miễn phí rồi chuyển sang TeamCity khi internship công ty dùng JetBrains stack.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Cài TeamCity và tạo project đầu tiên</strong>
+        <p>Dùng bản trial hoặc TeamCity Cloud, tạo project kết nối repo GitHub/GitLab demo. Thêm build configuration với một build step chạy script build + test. Kích trigger VCS commit và quan sát log agent — mục tiêu là thấy build xanh/đỏ rõ ràng và biết đọc log khi fail.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Parameters, artifacts &amp; notification</strong>
+        <p>Thêm biến môi trường (JDK version, API URL staging), lưu artifact JAR/APK sau build, bật notification Slack hoặc email khi main fail. Học cách developer fix build đỏ trong vòng vài giờ — văn hóa «keep main green» là kỹ năng mềm quan trọng không kém code.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Build chain &amp; Kotlin DSL</strong>
+        <p>Tạo hai project liên kết snapshot dependency: thư viện common build trước, app build sau. Thử chuyển cấu hình sang Kotlin DSL trong repo — pipeline as code giống GitHub Actions YAML nhưng type-safe hơn. Giai đoạn này phù hợp sinh viên/sinh viên mới muốn hướng DevOps hoặc backend senior track.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Deploy staging &amp; Docker</strong>
+        <p>Thêm bước build Docker image, push registry và deploy lên server staging (SSH hoặc Kubernetes plugin). Chạy smoke test sau deploy. Hiểu sự khác biệt CI (build/test) và CD (deliver) — nhiều công ty tách approval production để tránh deploy nhầm.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Portfolio và định hướng nghề</strong>
+        <p>Ghi trong CV/README dự án cá nhân: «CI với TeamCity/GitHub Actions — build, test, deploy». Tìm hiểu thêm Jenkins và GitLab CI để so sánh; học Docker và Linux cơ bản. Chứng chỉ AWS/Azure DevOps là điểm cộng; nhiều công ty Việt Nam tuyển DevOps junior cần hiểu CI/CD thực tế hơn lý thuyết thuần — thực hành trên repo GitHub public là bằng chứng tốt nhất.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

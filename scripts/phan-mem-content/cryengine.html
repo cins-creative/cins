@@ -1,0 +1,209 @@
+<section class="arc-intro">
+  <p>Bạn chơi <strong>Crysis</strong> và tự hỏi làm sao rừng, sương mù và ánh nắng xuyên lá trông sống động đến vậy trên máy tính cũ — phần lớn «bí mật» đó nằm ở <strong>CryEngine</strong>, game engine do Crytek (Đức) phát triển, từng nổi tiếng với đồ họa đỉnh cao và công nghệ render tiên tiến. Ngày nay CryEngine vẫn được dùng cho game AAA, mô phỏng quân sự và dự án visualization cần chất lượng hình ảnh cao, dù thị phần thương mại nhỏ hơn Unreal Engine hay Unity.</p>
+  <p>Khác với engine chỉ tập trung mobile hay indie, CryEngine gắn với triết lý «graphics-first»: ánh sáng, vật liệu PBR, vegetation và thời tiết được tối ưu trong core. Học sinh THPT muốn làm game 3D chất lượng cao sẽ thấy một nhánh kỹ thuật khác bên cạnh Unreal và Unity.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>CryEngine là gì?</h2>
+  <p>CryEngine là <strong>game engine 3D</strong> do <strong>Crytek</strong> phát triển — bộ công cụ tạo game, mô phỏng và trải nghiệm tương tác thời gian thực trên PC và console. Engine này nổi tiếng từ thế hệ Crysis (2007) với khẩu hiệu «Can it run Crysis?», và tiếp tục qua các phiên bản CryEngine 3, 5 cho đến <strong>CryEngine 5.x</strong> hiện tại với mô hình cấp phép linh hoạt hơn (bao gồm tùy chọn miễn phí cho dự án nhỏ tùy thời điểm chính sách).</p>
+  <p>Khác với phần mềm chỉ dựng mô hình 3D rồi render ảnh tĩnh, CryEngine là môi trường <strong>runtime</strong>: bạn đặt nhân vật, vật lý, AI, ánh sáng động và chạy game ngay trong editor. Giao diện Sandbox Editor cho phép «play in editor» — chỉnh scene và test gameplay không cần build riêng từng lần, giúp lặp nhanh khi thiết kế level hoặc prototype.</p>
+  <ul class="arc-list">
+    <li><strong>Renderer &amp; ánh sáng</strong> — deferred rendering, PBR materials, volumetric fog, god rays và hệ thống thời tiết động</li>
+    <li><strong>Terrain &amp; vegetation</strong> — terrain sculpting, procedural vegetation (SpeedTree tích hợp), LOD tự động cho rừng và cỏ</li>
+    <li><strong>Entity Component System</strong> — thiết kế gameplay qua entity, component và flowgraph/visual scripting</li>
+    <li><strong>Multi-platform</strong> — xuất sang PC, console; tích hợp VR và mô phỏng cho một số dự án chuyên biệt</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"CryEngine 5 Sandbox Editor interface screenshot forest scene"</span>
+    </div>
+    <p class="arc-image-caption">Giao diện CryEngine Sandbox — viewport 3D, terrain tools và hệ thống ánh sáng volumetric</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>CryEngine đứng ở giai đoạn <strong>tích hợp asset, level design, gameplay và build game</strong>: nhận model từ 3ds Max, Maya hoặc Blender, texture từ Substance Painter, import vào engine, dựng map, gắn logic (C++, C# hoặc visual scripting), test và đóng gói bản chạy. Với archviz hoặc mô phỏng, engine render cảnh thời gian thực thay vì chờ render farm. Thường làm việc cùng Perforce/Git cho source control, Jira cho quản lý task và các công cụ DCC trong pipeline studio game.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Renderer, PBR &amp; ánh sáng động</h3>
+    <p>Thế mạnh lịch sử của CryEngine là <strong>chất lượng hình ảnh thời gian thực</strong>. Hệ thống vật liệu PBR (Physically Based Rendering) mô phỏng cách ánh sáng tương tác với kim loại, gỗ, đá và nước — giúp cảnh outdoor (rừng, núi, biển) trông thuyết phục mà không cần trick 2D. <strong>Volumetric fog</strong>, god rays và sky dome tạo chiều sâu không khí; time-of-day system cho phép chuyển bình minh → trưa → hoàng hôn trong cùng một map.</p>
+    <p>Đối với học sinh THPT mới làm quen, bài tập thực tế hay gặp: dựng một clearing trong rừng với ánh sáng xuyên tán, hoặc bãi biển với reflection trên mặt nước — vừa luyện quan sát ánh sáng tự nhiên vừa hiểu vì sao game AAA «nặng» phần cứng.</p>
+    <ul class="arc-list">
+      <li><strong>PBR workflow</strong> — albedo, normal, roughness, metallic map trên mesh import</li>
+      <li><strong>Dynamic GI &amp; probes</strong> — ánh sáng gián tiếp và reflection probe cho indoor/outdoor</li>
+      <li><strong>Post-processing</strong> — color grading, depth of field, motion blur tinh chỉnh «look» cuối cùng</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"CryEngine PBR material forest sunlight volumetric fog screenshot"</span>
+        </div>
+        <p class="arc-image-caption">PBR &amp; volumetric — ánh sáng xuyên sương và vật liệu tự nhiên trong outdoor scene</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"CryEngine time of day lighting sunset terrain screenshot"</span>
+        </div>
+        <p class="arc-image-caption">Time-of-day — chuyển ánh sáng trong ngày trên cùng một level</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Terrain, vegetation &amp; level design</h3>
+    <p>CryEngine có bộ công cụ <strong>terrain sculpting</strong> mạnh: vẽ độ cao, splat texture (đá, cỏ, bùn) trực tiếp trên landscape, đặt road và river spline. Hệ thống <strong>vegetation</strong> hỗ trợ scatter cây, bụi cỏ với LOD — giảm polygon khi camera xa mà vẫn giữ cảm giác rừng rậm dày đặc gần camera. Đây là lý do nhiều game open-world của Crytek và partner trông «organic» hơn map ghép tile đơn giản.</p>
+    <p>Level designer dùng Sandbox để blockout (placeholder geometry), test khoảng cách combat, đặt cover và spawn point trước khi thay bằng art final. Học sinh THPT có thể bắt đầu bằng một map nhỏ: đồi, suối, vài cây — rồi thêm trigger zone và camera fly-through như portfolio level design cơ bản.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"CryEngine terrain editor vegetation painting LOD screenshot"</span>
+      </div>
+      <p class="arc-image-caption">Terrain &amp; vegetation — sculpt địa hình và scatter cây cỏ với LOD tự động</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Gameplay, scripting &amp; xuất bản game</h3>
+    <p>Ngoài đồ họa, CryEngine hỗ trợ <strong>gameplay logic</strong> qua C++ (hiệu năng cao), C# (Schematyc) và visual node graph. Bạn có thể gắn component cho nhân vật: health, inventory, weapon recoil; thiết kế AI patrol đơn giản bằng behavior tree hoặc flowgraph. Chế độ <strong>multiplayer</strong> từng là thế mạnh trong các dự án FPS của Crytek, dù cộng đồng indie ngày nay thường chọn Unreal cho netcode và tài liệu rộng hơn.</p>
+    <p>Luồng xuất bản: chỉnh quality settings (Low/Medium/High), build executable cho Windows, đóng gói asset pak. Hiểu pipeline này — từ ý tưởng → prototype → polish → build — giúp bạn không chỉ «biết engine» mà nắm quy trình làm game thật mà studio indie và AAA đều tuân theo.</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"CryEngine Schematyc visual scripting gameplay logic screenshot"</span>
+      </div>
+      <p class="arc-image-caption">Gameplay scripting — Schematyc/flowgraph gắn logic mà chưa cần viết C++ từ đầu</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai game engine hay được đặt cạnh CryEngine nhất là <strong>Unreal Engine</strong> (Epic Games — thống trị AAA và indie lớn) và <strong>Unity</strong> (phổ biến mobile, indie và multi-platform). Không có engine «đúng duy nhất» — tùy quy mô dự án, nền tảng target, đội ngũ và mục tiêu visual.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">CryEngine vs Unreal Engine</h3>
+    <p>Unreal Engine 5 với Nanite, Lumen và Marketplace đang chiếm phần lớn dự án AAA; nhiều khóa game dev Việt Nam dạy Unreal trước. CryEngine vẫn mạnh outdoor rendering và heritage Crysis, nhưng cộng đồng tutorial và tuyển dụng tại Việt Nam nghiêng về Unreal.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"CryEngine outdoor forest rendering high fidelity screenshot"</span>
+        </div>
+        <p class="arc-image-caption">CryEngine — outdoor &amp; volumetric lighting trong truyền thống Crytek</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Unreal Engine 5 Lumen Nanite demo environment screenshot"</span>
+        </div>
+        <p class="arc-image-caption">Unreal Engine 5 — Nanite, Lumen và Marketplace phục vụ quy mô studio lớn</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>CryEngine mạnh hơn:</strong> di sản render outdoor và vegetation trong core; một số team quen pipeline Crytek từ dự án cũ; chất lượng hình ảnh thời gian thực vẫn cạnh tranh khi tối ưu đúng.<br>
+      <strong>Unreal mạnh hơn:</strong> cộng đồng toàn cầu, Blueprint, MetaHuman, Fab/Marketplace, tài liệu và việc làm game dev tại Việt Nam; cập nhật UE5 liên tục.<br>
+      <strong>Chọn CryEngine khi:</strong> dự án gắn Crytek/partner, cần kế thừa tech stack Crysis, hoặc nghiên cứu render outdoor sâu trong engine chuyên biệt.<br>
+      <strong>Chọn Unreal khi:</strong> mục tiêu làm game commercial, học để xin việc studio, hoặc cần asset/plugin phong phú ngay từ đầu.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">CryEngine vs Unity</h3>
+    <p>Unity thống trị <strong>mobile, hyper-casual và multi-platform 2D/3D</strong> với C# thân thiện, Asset Store lớn và thời gian build nhanh trên nhiều thiết bị. CryEngine hướng tới PC/console với visual fidelity cao hơn, nhưng curve học tập dốc hơn và ít tutorial tiếng Việt. Học sinh THPT muốn làm game mobile đơn giản thường bắt đầu Unity; ai say mê FPS/graphic-heavy PC game có thể tìm hiểu CryEngine hoặc Unreal.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"CryEngine FPS shooter gameplay screenshot high graphics"</span>
+        </div>
+        <p class="arc-image-caption">CryEngine — FPS và open-world với yêu cầu phần cứng cao hơn</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Unity game engine mobile 2D 3D cross platform editor screenshot"</span>
+        </div>
+        <p class="arc-image-caption">Unity — đa nền tảng, mobile-first và workflow C# quen thuộc indie</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>CryEngine mạnh hơn:</strong> chất lượng đồ họa PC/console «out of the box» cho outdoor và lighting phức tạp; phù hợp prototype visual-heavy.<br>
+      <strong>Unity mạnh hơn:</strong> mobile, WebGL, 2D, VR đa dạng; cộng đồng khổng lồ; học C# dễ tiếp cận; nhiều game Việt trên App Store/Google Play dùng Unity.<br>
+      <strong>Chọn CryEngine khi:</strong> target PC/console, ưu tiên visual fidelity và bạn đã có nền tảng 3D/engine.<br>
+      <strong>Chọn Unity khi:</strong> game mobile, 2D, thời gian học ngắn, hoặc cần xuất đa nền tảng với team nhỏ.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học CryEngine như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Cài đặt Launcher và làm quen Sandbox</strong>
+        <p>Tải CryEngine qua Crytek Launcher (hoặc nguồn chính thức theo phiên bản hiện tại), mở Sandbox Editor và load sample level có sẵn. Tuần đầu hãy tập di chuyển camera fly mode, chọn entity trong outliner, bật «Play» để chạy in-editor. Mục tiêu là hiểu layout viewport, console và asset browser trước khi tự dựng map — nhiều bạn THPT bỏ cuộc vì chưa quen giao diện engine chuyên nghiệp.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Terrain cơ bản và vegetation</strong>
+        <p>Tạo landscape mới, sculpt vài đồi và đ valley, paint material layer (đá + cỏ). Scatter vài loại cây từ vegetation library, quan sát LOD khi zoom camera. Dựng một khu vực nhỏ «rừng + suối» trong 2–3 tuần luyện đều — đây là kỹ năng level art outdoor mà CryEngine được thiết kế để làm tốt.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Import asset và PBR material</strong>
+        <p>Export mesh FBX từ Blender hoặc 3ds Max, import vào engine, gán material PBR với texture maps. Chỉnh metallic/roughness và thêm reflection probe nếu cần. Mục tiêu là có prop (thùng, đá, nhà gỗ) trông hòa vào scene outdoor đã dựng — hiểu pipeline DCC → engine mà mọi studio game đều dùng.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Ánh sáng, time-of-day và post-process</strong>
+        <p>Bật time-of-day slider, quan sát bóng và màu sky thay đổi; thêm volumetric fog và chỉnh sun intensity. Thử post-processing: exposure, color grading nhẹ. Render screenshot 4K làm still portfolio — kỹ năng «bắt khoảnh khắc đẹp» trong engine giống nhiếp ảnh ảo.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Gameplay cơ bản với Schematyc hoặc C++</strong>
+        <p>Thêm player start, camera controller đơn giản, trigger zone (vào vùng → bật event). Nếu chưa biết C++, dùng Schematyc/visual graph để di chuyển object hoặc spawn effect. Hoàn thiện «vertical slice» nhỏ: đi trong map, tương tác một điểm — dạy bạn iteration gameplay thay vì chỉ làm cảnh đẹp.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Portfolio, so sánh engine và định hướng nghề</strong>
+        <p>Tổng hợp 2–3 work: outdoor level screenshot, fly-through video 30–60 giây, có thể thêm build .exe cho bạn bè chạy thử. Ghi rõ CryEngine version và công cụ DCC đi kèm. So sánh thêm với Unreal/Unity trên cùng brief để hiểu trade-off. Tìm hiểu vị trí level designer, technical artist, gameplay programmer tại studio game Việt Nam — phần lớn tuyển Unreal/Unity, nhưng kiến thức CryEngine vẫn có giá trị cho graphics programming và mô phỏng.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

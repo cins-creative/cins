@@ -1,0 +1,182 @@
+[
+  {
+    "id": "ba685069-fb54-47b8-94bb-be525cc04689",
+    "slug": "substance-designer",
+    "tieu_de_viet": "Substance 3D Designer — Material procedural",
+    "tom_tat": "Phần mềm tạo material node-based — PBR texture procedural cho game, film và archviz; nay thuộc Adobe Substance 3D.",
+    "meta_title": "Substance Designer là gì? Material, giá và hướng dẫn | CINS",
+    "meta_description": "Substance Designer: node graph, export maps. So sánh Quixel Mixer, Materialize và luồng PBR game.",
+    "meta": {
+      "nha_phat_hanh": "Adobe (Substance 3D)",
+      "version": "14",
+      "platform": ["Windows", "macOS"],
+      "website": "https://www.adobe.com/products/substance3d-designer.html",
+      "goi_mien_phi": "Dùng thử 30 ngày",
+      "gia_thanh": "Đi kèm Substance 3D Collection · ~50 USD/tháng",
+      "hinh_thuc_mua": "Thuê bao · giáo dục",
+      "link_tai": "https://www.adobe.com/products/substance3d-designer.html"
+    }
+  },
+  {
+    "id": "4c60ea19-132c-41c4-8450-a98eba6ab8e2",
+    "slug": "substance-painter",
+    "tieu_de_viet": "Substance 3D Painter — Texture paint 3D",
+    "tom_tat": "Công cụ tô texture trực tiếp lên model 3D — smart material, layer, export PBR cho game asset và VFX prop.",
+    "meta_title": "Substance Painter là gì? Texture 3D, giá và hướng dẫn | CINS",
+    "meta_description": "Substance Painter: layer, smart mask, UDIM. So sánh Blender texture paint, Mari và lộ trình học texture artist.",
+    "meta": {
+      "nha_phat_hanh": "Adobe (Substance 3D)",
+      "version": "10",
+      "platform": ["Windows", "macOS"],
+      "website": "https://www.adobe.com/products/substance3d-painter.html",
+      "goi_mien_phi": "Dùng thử 30 ngày",
+      "gia_thanh": "Đi kèm Substance 3D Collection",
+      "hinh_thuc_mua": "Thuê bao · giáo dục",
+      "link_tai": "https://www.adobe.com/products/substance3d-painter.html"
+    }
+  },
+  {
+    "id": "3fd0c259-2edb-4501-8381-1d86b4439b4d",
+    "slug": "teamcity",
+    "tieu_de_viet": "TeamCity — CI/CD tự động hóa build",
+    "tom_tat": "Nền tảng JetBrains — build, test và deploy tự động cho team dev game, web và plugin pipeline.",
+    "meta_title": "TeamCity là gì? CI/CD, giá và hướng dẫn | CINS",
+    "meta_description": "TeamCity: pipeline, agent, VCS. So sánh GitHub Actions, Jenkins và quy trình CI cho indie dev.",
+    "meta": {
+      "nha_phat_hanh": "JetBrains",
+      "version": "2024",
+      "platform": ["Windows", "macOS", "Linux", "Web"],
+      "website": "https://www.jetbrains.com/teamcity",
+      "goi_mien_phi": "On-Premises free 3 agents",
+      "gia_thanh": "Cloud từ ~45 USD/tháng",
+      "hinh_thuc_mua": "Miễn phí giới hạn · thuê bao",
+      "link_tai": "https://www.jetbrains.com/teamcity/download"
+    }
+  },
+  {
+    "id": "a1e00140-d560-4924-956e-890d7862a281",
+    "slug": "testrail",
+    "tieu_de_viet": "TestRail — Quản lý test case QA",
+    "tom_tat": "Công cụ web quản lý kiểm thử — test case, run, report cho team QA game và phần mềm.",
+    "meta_title": "TestRail là gì? QA testing, giá và hướng dẫn | CINS",
+    "meta_description": "TestRail: test case, milestone, report. So sánh Jira, Zephyr và quy trình QA dự án.",
+    "meta": {
+      "nha_phat_hanh": "Sembi (Gurock)",
+      "version": "2024",
+      "platform": ["Web"],
+      "website": "https://www.testrail.com",
+      "goi_mien_phi": "Dùng thử 30 ngày",
+      "gia_thanh": "Từ ~37 USD/user/tháng",
+      "hinh_thuc_mua": "Thuê bao tháng · cloud/self-hosted",
+      "link_tai": "https://www.testrail.com/trial"
+    }
+  },
+  {
+    "id": "7915962b-3961-49f1-9ba5-7c6fb1cfcae6",
+    "slug": "toonboomharmony",
+    "tieu_de_viet": "Toon Boom Harmony — Hoạt hình 2D chuyên nghiệp",
+    "tom_tat": "Phần mềm animation 2D tiêu chuẩn TV/film — rig, cut-out, frame-by-frame cho series hoạt hình và motion.",
+    "meta_title": "Toon Boom Harmony là gì? Animation 2D, giá và hướng dẫn | CINS",
+    "meta_description": "Harmony: rig, deform, compositing. So sánh TVPaint, Adobe Animate và lộ trình học anim 2D.",
+    "meta": {
+      "nha_phat_hanh": "Toon Boom Animation",
+      "version": "24",
+      "platform": ["Windows", "macOS"],
+      "website": "https://www.toonboom.com/products/harmony",
+      "goi_mien_phi": "Dùng thử 21 ngày",
+      "gia_thanh": "Từ ~25 USD/tháng (Essentials)",
+      "hinh_thuc_mua": "Thuê bao · giáo dục",
+      "link_tai": "https://www.toonboom.com/products/harmony/download"
+    }
+  },
+  {
+    "id": "60291403-4978-4e0c-a413-b73c3ec48a03",
+    "slug": "trello-wqqad",
+    "tieu_de_viet": "Trello — Quản lý công việc Kanban",
+    "tom_tat": "Công cụ board Kanban — card, list, checklist cho team nhỏ, dự án sáng tạo và cá nhân học tập.",
+    "meta_title": "Trello là gì? Kanban, miễn phí và hướng dẫn | CINS",
+    "meta_description": "Trello: board, card, Power-Ups. So sánh Asana, Notion và quy trình quản lý task nhóm.",
+    "meta": {
+      "nha_phat_hanh": "Atlassian",
+      "version": "2024",
+      "platform": ["Web", "Windows", "macOS", "iOS", "Android"],
+      "website": "https://trello.com",
+      "goi_mien_phi": "Free unlimited cards",
+      "gia_thanh": "Từ ~5 USD/user/tháng (Standard)",
+      "hinh_thuc_mua": "Miễn phí · thuê bao",
+      "link_tai": "https://trello.com"
+    }
+  },
+  {
+    "id": "17a4e16d-c849-4c6c-9d8d-7adcd53b0bb8",
+    "slug": "twine",
+    "tieu_de_viet": "Twine — Interactive fiction miễn phí",
+    "tom_tat": "Công cụ mã nguồn mở viết truyện phân nhánh — hypertext, visual novel đơn giản và game narrative cho học sinh.",
+    "meta_title": "Twine là gì? Interactive fiction, miễn phí và hướng dẫn | CINS",
+    "meta_description": "Twine: passage, link, Harlowe/SugarCube. So sánh Articy, Ink và lộ trình làm visual novel.",
+    "meta": {
+      "nha_phat_hanh": "Twine (Chris Klimas)",
+      "version": "2",
+      "platform": ["Windows", "macOS", "Linux", "Web"],
+      "website": "https://twinery.org",
+      "goi_mien_phi": "Miễn phí · mã nguồn mở",
+      "gia_thanh": "Miễn phí",
+      "hinh_thuc_mua": "Miễn phí",
+      "link_tai": "https://twinery.org"
+    }
+  },
+  {
+    "id": "ebae3173-0c72-4298-81f8-ac7e9232ffc5",
+    "slug": "twin",
+    "tieu_de_viet": "Twinmotion — Render kiến trúc realtime",
+    "tom_tat": "Engine archviz realtime của Epic — import BIM/CAD, cảnh quan, người và xuất video/VR nhanh cho kiến trúc sư.",
+    "meta_title": "Twinmotion là gì? Archviz, giá và hướng dẫn | CINS",
+    "meta_description": "Twinmotion: Datasmith, Lumion-like, VR. So sánh Lumion, Enscape và luồng render kiến trúc.",
+    "meta": {
+      "nha_phat_hanh": "Epic Games",
+      "version": "2024",
+      "platform": ["Windows", "macOS"],
+      "website": "https://www.twinmotion.com",
+      "goi_mien_phi": "Miễn phí cho archviz (license Epic)",
+      "gia_thanh": "Miễn phí (archviz/education)",
+      "hinh_thuc_mua": "Miễn phí · giáo dục",
+      "link_tai": "https://www.twinmotion.com/download"
+    }
+  },
+  {
+    "id": "6acf06c7-2cf9-4ae1-acdb-3bf870db812b",
+    "slug": "unity",
+    "tieu_de_viet": "Unity — Engine game đa nền tảng",
+    "tom_tat": "Game engine phổ biến — 2D/3D, C#, asset store và export mobile/PC/console cho indie và học làm game.",
+    "meta_title": "Unity là gì? Game engine, giá và hướng dẫn học | CINS",
+    "meta_description": "Unity: scene, prefab, URP/HDRP. So sánh Unreal, Godot và lộ trình làm game đầu tiên.",
+    "meta": {
+      "nha_phat_hanh": "Unity Technologies",
+      "version": "6",
+      "platform": ["Windows", "macOS", "Linux"],
+      "website": "https://unity.com",
+      "goi_mien_phi": "Personal miễn phí (doanh thu dưới ngưỡng)",
+      "gia_thanh": "Pro/Enterprise theo seat",
+      "hinh_thuc_mua": "Miễn phí · thuê bao",
+      "link_tai": "https://unity.com/download"
+    }
+  },
+  {
+    "id": "92942bbc-163e-4402-b643-73b2a0c69d7a",
+    "slug": "unreal-engine",
+    "tieu_de_viet": "Unreal Engine — Engine 3D AAA &amp; archviz",
+    "tom_tat": "Game engine Epic — Nanite, Lumen, Blueprint/C++ cho game AAA, virtual production và realtime archviz.",
+    "meta_title": "Unreal Engine là gì? Game 3D, miễn phí và hướng dẫn | CINS",
+    "meta_description": "Unreal Engine 5: Blueprint, Lumen, MetaHuman. So sánh Unity, Godot và lộ trình học UE.",
+    "meta": {
+      "nha_phat_hanh": "Epic Games",
+      "version": "5",
+      "platform": ["Windows", "macOS", "Linux"],
+      "website": "https://www.unrealengine.com",
+      "goi_mien_phi": "Miễn phí · royalty 5% trên doanh thu",
+      "gia_thanh": "Miễn phí (royalty)",
+      "hinh_thuc_mua": "Miễn phí · royalty",
+      "link_tai": "https://www.unrealengine.com/download"
+    }
+  }
+]

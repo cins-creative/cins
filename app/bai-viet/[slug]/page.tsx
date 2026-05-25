@@ -2,8 +2,14 @@ import type { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
 
 import { ArticlePageView } from "@/components/article/ArticlePageView";
+import { BaiVietArticleView } from "@/components/bai-viet/BaiVietArticleView";
 import { CinsShell } from "@/components/cins/CinsShell";
 import { SiteFooter } from "@/components/cins/SiteFooter";
+import {
+  fetchBlogExploreLinks,
+  fetchBlogNhomForArticle,
+  fetchBlogRelatedArticles,
+} from "@/lib/bai-viet/queries";
 import {
   fetchRelatedArticles,
   fetchRelatedJobsLienQuan,
@@ -12,6 +18,8 @@ import {
   getArticleById,
   getArticleBySlug,
 } from "@/lib/articles/queries";
+
+import "@/app/cins-bai-viet-detail.css";
 import { isInlineArticleEditEnabled } from "@/lib/dev/inline-article-edit";
 import { hasSupabaseEnv } from "@/lib/supabase/server";
 import { hasServiceRoleEnv } from "@/lib/supabase/service-role";
@@ -87,6 +95,39 @@ export default async function BaiVietSlugPage({ params }: Props) {
     notFound();
   }
 
+  if (article.loai_bai_viet === "keyword") {
+    permanentRedirect(`/keyword/${encodeURIComponent(article.slug)}`);
+  }
+
+  if (article.loai_bai_viet === "phan_mem") {
+    permanentRedirect(`/software/${encodeURIComponent(article.slug)}`);
+  }
+
+  const draftUiEnabled = isInlineArticleEditEnabled();
+  const draftPersistEnabled = hasServiceRoleEnv();
+
+  if (article.loai_bai_viet === "blog") {
+    const [nhom, related, explore] = await Promise.all([
+      fetchBlogNhomForArticle(article),
+      fetchBlogRelatedArticles(article.id),
+      fetchBlogExploreLinks(article.id),
+    ]);
+
+    return (
+      <CinsShell data-screen-label={`Bai-viet-${slug}`}>
+        <BaiVietArticleView
+          article={article}
+          nhom={nhom}
+          related={related}
+          explore={explore}
+          draftUiEnabled={draftUiEnabled}
+          draftPersistEnabled={draftPersistEnabled}
+        />
+        <SiteFooter />
+      </CinsShell>
+    );
+  }
+
   const [lienQuan, tacPham, truongRows, relatedJobsLienQuan] =
     await Promise.all([
       fetchRelatedArticles(article.id),
@@ -98,9 +139,6 @@ export default async function BaiVietSlugPage({ params }: Props) {
         ? fetchRelatedJobsLienQuan(article.id)
         : Promise.resolve([]),
     ]);
-
-  const draftUiEnabled = isInlineArticleEditEnabled();
-  const draftPersistEnabled = hasServiceRoleEnv();
 
   return (
     <CinsShell data-screen-label={`Bai-viet-${slug}`}>

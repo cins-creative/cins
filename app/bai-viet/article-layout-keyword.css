@@ -1,0 +1,438 @@
+/* Keyword — layout riêng; UI token / panel / sidebar kế thừa .arv2-nghe */
+
+.article-page.arv2.arv2-keyword {
+  background: var(--bg-page);
+  overflow-x: clip;
+  max-width: 100%;
+}
+
+.arv2-keyword .article-wrap,
+.arv2-keyword .article-main {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+.arv2-keyword .article-wrap {
+  background: var(--bg-page);
+}
+
+.arv2-keyword .kw-article-grid {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 1224px;
+  min-width: 0;
+  margin: 0 auto;
+  padding: 0 40px 56px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  grid-template-columns: unset;
+  overflow-x: clip;
+}
+
+/* ── Cover (full bleed, accent giống hero nghề) ── */
+.arv2-keyword .kw-cover {
+  position: relative;
+  /* Không dùng 100vw — gây scroll ngang khi có scrollbar dọc */
+  width: 100%;
+  max-width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+  height: clamp(260px, 38vw, 440px);
+  overflow: hidden;
+  background: linear-gradient(
+    155deg,
+    var(--cins-blue-soft),
+    rgba(232, 238, 248, 0.95)
+  );
+}
+
+.arv2-keyword .kw-cover-media {
+  position: absolute;
+  inset: 0;
+}
+
+.arv2-keyword .kw-cover-img {
+  object-fit: cover;
+  object-position: center 28%;
+}
+
+.arv2-keyword .kw-cover-ph {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.arv2-keyword .kw-cover-ph .mascot-ph {
+  font-family: var(--font-sans);
+  font-size: clamp(40px, 7vw, 72px);
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: -0.03em;
+}
+
+.arv2-keyword .kw-cover-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(15, 23, 42, 0.08) 0%,
+    rgba(15, 23, 42, 0.42) 72%,
+    rgba(15, 23, 42, 0.55) 100%
+  );
+  pointer-events: none;
+}
+
+.arv2-keyword .kw-cover::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  z-index: 3;
+  background: linear-gradient(90deg, var(--cins-blue), var(--cins-mint));
+}
+
+.arv2-keyword .kw-cover-title-bar {
+  position: absolute;
+  left: 50%;
+  bottom: 14%;
+  transform: translateX(-50%);
+  z-index: 2;
+  min-width: min(90vw, 560px);
+  padding: 12px 28px;
+  text-align: center;
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(8px);
+}
+
+.arv2-keyword .kw-cover-title {
+  margin: 0;
+  font-size: clamp(26px, 3.6vw, 42px);
+  line-height: 1.06;
+  letter-spacing: -0.055em;
+  color: #fff;
+  text-wrap: balance;
+}
+
+.arv2-keyword .kw-cover-title em {
+  color: var(--cins-mint);
+}
+
+/* ── Breadcrumb ── */
+.arv2-keyword .kw-breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ink-muted);
+  padding: 22px 0 4px;
+  font-family: var(--font-sans);
+}
+
+.arv2-keyword .kw-breadcrumb a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.arv2-keyword .kw-breadcrumb a:hover {
+  color: var(--cins-blue);
+}
+
+/* ── Summary = nghe-hero-panel, chồng cover ── */
+.arv2-keyword .nghe-hero-panel.kw-summary-panel {
+  overflow: hidden;
+  box-shadow: none;
+}
+
+/* Thanh accent trên — bo góc theo card */
+.arv2-keyword .nghe-hero-panel.kw-summary-panel::before {
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+}
+
+/* Summary nằm trong .nghe-grid-primary — không chồng cover */
+.arv2-keyword .kw-main-sidebar-row {
+  padding-top: 20px;
+}
+
+.arv2-keyword .kw-summary-panel {
+  margin: 0 0 20px;
+  position: relative;
+}
+
+/* Gỡ flex cột + padding-right draft của .arv2-nghe — đồng bộ inset panel nghề */
+.arv2-keyword .kw-summary-panel > .l1-hero.kw-summary-inner {
+  display: block;
+  gap: 0;
+  padding: 20px 22px 22px;
+  padding-right: 22px;
+}
+
+.arv2-keyword .kw-summary-panel.kw-summary-panel--has-video > .l1-hero.kw-summary-inner {
+  padding: clamp(20px, 2.5vw, 26px) clamp(22px, 2.8vw, 28px);
+  padding-right: clamp(22px, 2.8vw, 28px);
+}
+
+.arv2-keyword .kw-summary-panel .kw-summary-headline {
+  font-size: clamp(26px, 3.2vw, 38px);
+  margin: 0;
+  line-height: 1.08;
+}
+
+.arv2-keyword .kw-summary-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+  margin-bottom: 0;
+}
+
+.arv2-keyword .kw-summary-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(16px, 2.5vw, 24px);
+  align-items: start;
+}
+
+/* Chữ trái — Short 9:16 phải (cột video rộng hơn trong primary) */
+.arv2-keyword .kw-summary-layout--with-video {
+  grid-template-columns: minmax(0, 1fr) clamp(220px, 34vw, 300px);
+  column-gap: clamp(22px, 3.5vw, 36px);
+  align-items: stretch;
+}
+
+.arv2-keyword .kw-summary-main {
+  min-width: 0;
+}
+
+.arv2-keyword .kw-summary-main > .kicker {
+  margin-top: 0;
+}
+
+.arv2-keyword .kw-summary-lead {
+  margin-top: 14px;
+  margin-bottom: 0;
+  max-width: 52em;
+  color: var(--ink-body);
+  font-weight: 500;
+  line-height: 1.55;
+}
+
+.arv2-keyword .kw-summary-aside {
+  min-width: 0;
+  justify-self: stretch;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Short YouTube — 9:16, lớn trong cột summary */
+.arv2-keyword .kw-short-video {
+  position: relative;
+  margin: 0;
+  aspect-ratio: 9 / 16;
+  height: min(480px, 58vh);
+  width: 100%;
+  max-width: 300px;
+}
+
+.arv2-keyword .kw-short-video__badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 2;
+  padding: 4px 10px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #fff;
+  background: linear-gradient(135deg, rgba(63, 141, 253, 0.92), rgba(16, 185, 129, 0.88));
+  border-radius: 999px;
+}
+
+.arv2-keyword .kw-short-video__frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: #0f172a;
+}
+
+.arv2-keyword .kw-short-video__iframe,
+.arv2-keyword .kw-short-video__el {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  margin: 0;
+  border-radius: 0;
+}
+
+/* Shorts: iframe 16:9 gốc — phóng to để lấp khung 9:16 */
+.arv2-keyword .kw-short-video--portrait .kw-short-video__iframe {
+  width: 178%;
+  height: 100%;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+  max-width: none;
+}
+
+.arv2-keyword .kw-summary-aside {
+  overflow: hidden;
+}
+
+/* ── Hàng body: kế thừa .nghe-main-sidebar-row từ arv2-nghe ── */
+.arv2-keyword .kw-article-grid .nghe-main-sidebar-row {
+  padding-top: 0;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.arv2-keyword .kw-article-grid .nghe-grid-primary,
+.arv2-keyword .kw-article-grid .article-side {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.arv2-keyword .kw-article-grid .nghe-lead-panel {
+  margin-bottom: 28px;
+  max-width: 100%;
+}
+
+.arv2-keyword .kw-article-grid .nghe-lead-panel .article-content-html,
+.arv2-keyword .kw-article-grid .nghe-lead-panel .article-rich-content {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+.arv2-keyword .kw-article-grid .nghe-lead-panel pre,
+.arv2-keyword .kw-article-grid .nghe-lead-panel table {
+  max-width: 100%;
+}
+
+.arv2-keyword .kw-article-grid .nghe-lead-panel pre {
+  overflow-x: auto;
+}
+
+.arv2-keyword .kw-article-grid .nghe-grid-span > .section-h:first-of-type {
+  margin-top: 0;
+}
+
+/* Sidebar: tooltip — clip ngang trang, tip vẫn hiện trong panel */
+.arv2-keyword .side-card.nghe-side-tab-panel,
+.arv2-keyword .nghe-side-tabs .side-card.nghe-side-tab-panel {
+  overflow-x: clip;
+  overflow-y: visible;
+}
+
+.arv2-keyword .nghe-side-tab-panel:has(.rel-item:hover) {
+  position: relative;
+  z-index: 12;
+}
+
+/* cap_do badge trong rel-item compact */
+.arv2-keyword .rel-item--compact .kw-cap-do {
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.arv2-keyword .kw-cap-do {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+}
+
+.arv2-keyword .kw-cap-do--core {
+  background: var(--cins-mint-soft);
+  color: #0e5c3b;
+}
+
+.arv2-keyword .kw-cap-do--related {
+  background: var(--neutral-50);
+  color: var(--ink-muted);
+  border: 1px solid var(--border);
+}
+
+@media (max-width: 960px) {
+  .arv2-keyword .kw-article-grid {
+    padding-inline: 24px;
+  }
+
+}
+
+/* Mobile hẹp: video cạnh tiêu đề (không đẩy xuống dưới đoạn tóm tắt) */
+@media (max-width: 640px) {
+  .arv2-keyword .kw-summary-layout--with-video {
+    grid-template-columns: minmax(0, 1fr) clamp(120px, 34vw, 160px);
+    column-gap: 14px;
+    align-items: start;
+  }
+
+  .arv2-keyword .kw-summary-layout--with-video .kw-summary-main {
+    display: contents;
+  }
+
+  .arv2-keyword .kw-summary-layout--with-video .kicker {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .arv2-keyword .kw-summary-layout--with-video .kw-summary-headline {
+    grid-column: 1;
+    grid-row: 2;
+    font-size: clamp(22px, 6vw, 28px);
+  }
+
+  .arv2-keyword .kw-summary-layout--with-video .kw-summary-tags {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+
+  .arv2-keyword .kw-summary-layout--with-video .kw-summary-lead {
+    grid-column: 1 / -1;
+    grid-row: 4;
+    margin-top: 8px;
+  }
+
+  .arv2-keyword .kw-summary-layout--with-video .kw-summary-aside {
+    grid-column: 2;
+    grid-row: 1 / 4;
+    align-self: start;
+    justify-self: end;
+  }
+
+  .arv2-keyword .kw-short-video {
+    height: min(280px, 44vh);
+    max-width: 200px;
+  }
+
+}
+
+@media (max-width: 720px) {
+  .arv2-keyword .kw-article-grid {
+    padding-inline: 20px 20px;
+  }
+
+  .arv2-keyword .kw-cover-title-bar {
+    min-width: calc(100% - 40px);
+    padding: 10px 16px;
+  }
+}

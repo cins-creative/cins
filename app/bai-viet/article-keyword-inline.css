@@ -1,0 +1,152 @@
+/* Keyword inline — giữ typography gốc, chỉ gạch chân; không làm lệch flex (arc-card summary) */
+
+.kw-inline {
+  display: inline;
+}
+
+.kw-inline-mark {
+  color: inherit;
+  font: inherit;
+  font-weight: inherit;
+  font-style: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  text-decoration-color: currentColor;
+  cursor: help;
+}
+
+.kw-inline-mark:hover,
+.kw-inline-mark:focus-visible {
+  color: inherit;
+  background: none;
+  outline: none;
+}
+
+/* Ghi đè style link xanh trong .arv2 / .nct-prose */
+.arv2 .article-content-html .kw-inline-mark,
+.arv2 .article-content-html .article-rich-content .kw-inline-mark,
+.arv2 .body .kw-inline-mark,
+.arv2-nghe .nghe-lead-panel .kw-inline-mark,
+.arv2-software .nghe-lead-panel .kw-inline-mark,
+.nct-page .nct-prose.body .kw-inline-mark {
+  color: inherit;
+  font-weight: inherit;
+  cursor: help;
+  pointer-events: auto;
+}
+
+.arv2-software .nghe-lead-panel .article-content-html {
+  overflow-x: clip;
+  overflow-y: visible;
+}
+
+/* Accordion summary: inline thường — tránh flex item rời (khoảng cách giãn chữ) */
+.article-rich-content .arc-card summary .kw-inline,
+.article-rich-content .arc-card summary .kw-inline-mark {
+  display: inline;
+  color: inherit;
+}
+
+.kw-inline-tip {
+  background: var(--neutral-900, #1a1a1a);
+  color: #fff;
+  border-radius: var(--radius-md, 12px);
+  padding: 14px 14px 12px;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.22);
+  text-align: left;
+  pointer-events: auto;
+  z-index: 9999;
+}
+
+.kw-inline-tip--above::before {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -7px;
+  border: 7px solid transparent;
+  border-top-color: var(--neutral-900, #1a1a1a);
+}
+
+.kw-inline-tip:not(.kw-inline-tip--above)::before {
+  content: "";
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  margin-left: -7px;
+  border: 7px solid transparent;
+  border-bottom-color: var(--neutral-900, #1a1a1a);
+}
+
+.kw-inline-tip__head {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.kw-inline-tip__thumb {
+  flex-shrink: 0;
+  width: 40px;
+  height: 30px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.7);
+  overflow: hidden;
+}
+
+.kw-inline-tip__thumb--has-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.kw-inline-tip__name {
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.3;
+}
+
+.kw-inline-tip__kind {
+  font-size: 11px;
+  opacity: 0.65;
+  margin-top: 2px;
+}
+
+.kw-inline-tip__desc {
+  margin: 10px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  opacity: 0.9;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.kw-inline-tip__cta {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #c4b5fd;
+  text-decoration: none;
+}
+
+.kw-inline-tip__cta:hover {
+  color: #ddd6fe;
+  text-decoration: underline;
+}

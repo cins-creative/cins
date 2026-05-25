@@ -1,0 +1,94 @@
+"use client";
+
+import { useState } from "react";
+
+import { TruongInlineModal } from "@/components/truong/inline/TruongInlineModal";
+import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
+import { hasTruongGioiThieuContent } from "@/lib/truong/gioi-thieu";
+import type { TruongListItem } from "@/lib/truong/types";
+
+type Props = {
+  school: Pick<TruongListItem, "ten" | "gioi_thieu_truong">;
+};
+
+export function TruongGioiThieuTruong({ school }: Props) {
+  const ctx = useTruongInlineEdit();
+  const [open, setOpen] = useState(false);
+  const html = school.gioi_thieu_truong;
+  const hasContent = hasTruongGioiThieuContent(html);
+  const canEdit = Boolean(ctx?.canEdit);
+
+  if (!hasContent && !canEdit) return null;
+
+  function openEditor() {
+    setOpen(false);
+    ctx?.openSchoolAboutEditor();
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        className="tdh-gioi-thieu-btn"
+        onClick={() => setOpen(true)}
+        aria-haspopup="dialog"
+      >
+        Xem giới thiệu trường
+      </button>
+      <TruongInlineModal
+        open={open}
+        onClose={() => setOpen(false)}
+        className="tdh-inline-modal--wide tdh-gioi-thieu-modal"
+        labelledBy="tdh-gioi-thieu-title"
+      >
+        <header className="tdh-gioi-thieu-modal-head">
+          <h2 id="tdh-gioi-thieu-title" className="tdh-gioi-thieu-modal-title">
+            Giới thiệu {school.ten}
+          </h2>
+          <div className="tdh-gioi-thieu-modal-actions">
+            {canEdit ? (
+              <button
+                type="button"
+                className="tdh-inline-btn primary"
+                onClick={openEditor}
+              >
+                Sửa giới thiệu
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="tdh-inline-btn ghost tdh-gioi-thieu-close"
+              onClick={() => setOpen(false)}
+            >
+              Đóng
+            </button>
+          </div>
+        </header>
+        {hasContent ? (
+          <div
+            className="tdh-gioi-thieu-body article-rich-content article-content-html"
+            dangerouslySetInnerHTML={{ __html: html! }}
+          />
+        ) : (
+          <div className="tdh-gioi-thieu-empty-wrap">
+            <p className="tdh-gioi-thieu-empty">
+              Chưa có nội dung giới thiệu.
+              {canEdit
+                ? " Bấm Sửa giới thiệu để thêm nội dung rich text (giống bài đăng)."
+                : ""}
+            </p>
+            {canEdit ? (
+              <button
+                type="button"
+                className="tdh-inline-btn primary tdh-gioi-thieu-empty-cta"
+                onClick={openEditor}
+              >
+                Sửa giới thiệu
+              </button>
+            ) : null}
+          </div>
+        )}
+      </TruongInlineModal>
+    </>
+  );
+}

@@ -158,12 +158,13 @@
   justify-content: center;
 }
 
-.cins-app-sidebar .sb-ico svg {
+.cins-app-sidebar .sb-ico svg,
+.cins-app-sidebar .sb-ico .sb-mage-icon {
   width: 21px;
   height: 21px;
   stroke: currentColor;
   fill: none;
-  stroke-width: 1.6;
+  stroke-width: 1.5;
   stroke-linecap: round;
   stroke-linejoin: round;
 }

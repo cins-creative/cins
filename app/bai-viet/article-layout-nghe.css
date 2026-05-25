@@ -37,6 +37,7 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
+  overflow: visible;
 }
 
 @media (min-width: 721px) {
@@ -51,6 +52,28 @@
 .arv2-nghe .nghe-side-tabs {
   display: flex;
   flex-direction: column;
+  overflow: visible;
+}
+
+/* .rel-tip hiện phía dưới item — không clip trong side-card (arv2 .side-card { overflow: hidden }) */
+.arv2-nghe .side-card.nghe-side-tab-panel,
+.arv2-nghe .nghe-side-tabs .side-card.nghe-side-tab-panel {
+  overflow: visible;
+}
+
+@media (min-width: 721px) {
+  .arv2-nghe .nghe-main-sidebar-row > .article-side:has(.rel-item:hover),
+  .arv2-nghe .nghe-main-sidebar-row > .article-side:has(.rel-tile:hover),
+  .arv2-nghe .nghe-main-sidebar-row > .article-side:has(.rel-card:hover) {
+    z-index: 20;
+  }
+}
+
+.arv2-nghe .nghe-side-tab-panel:has(.rel-item:hover),
+.arv2-nghe .nghe-side-tab-panel:has(.rel-tile:hover),
+.arv2-nghe .nghe-side-tab-panel:has(.rel-card:hover) {
+  position: relative;
+  z-index: 12;
 }
 
 .arv2-nghe .nghe-side-tablist {
@@ -285,6 +308,48 @@
   height: auto;
 }
 
+.arv2-nghe .nghe-hero-panel .l1-hero .mascot.mascot--has-img {
+  background: #fff;
+  border: none;
+  box-shadow: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 0;
+}
+
+.arv2-nghe .nghe-hero-panel .l1-hero .mascot.mascot--has-img::before {
+  display: none;
+}
+
+.arv2-nghe .nghe-hero-panel .l1-hero .mascot.mascot--has-img .arv2-mascot-img,
+.arv2-nghe .nghe-hero-panel .l1-hero .mascot.mascot--has-img img {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  object-fit: cover;
+  object-position: center;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.arv2-nghe .nghe-hero-panel .l1-hero .mascot .mascot-ph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  font-family: var(--font-sans);
+  font-size: clamp(28px, 5vw, 40px);
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 0.02em;
+  border-radius: 6px;
+}
+
 .arv2-nghe .nghe-lead-panel {
   margin: 0 0 28px;
   padding: 20px 22px 22px;
@@ -344,12 +409,76 @@
 }
 
 /* Đồng bộ typography / arc-* với `styles/article-rich-content.css` (export CMS) trong lead */
+.arv2-nghe .nghe-lead-panel .article-content-html,
 .arv2-nghe .nghe-lead-panel .article-rich-content,
 .arv2-nghe .nghe-lead-panel .nghe-lead-rich.article-rich-content {
   font-family: var(--font-sans);
   font-size: var(--text-md);
   line-height: 1.6;
   color: var(--fg-3);
+}
+
+.arv2-nghe .nghe-lead-panel .article-content-html .article-rich-content {
+  counter-reset: arv2-h2;
+  min-width: 0;
+}
+
+/* H2/H3 markdown hoặc HTML chưa có class arc — badge số mục */
+.arv2-nghe .nghe-lead-panel .article-content-html h2:not(.arc-h2),
+.arv2-nghe .nghe-lead-panel .article-content-html .body h2:not(.arc-h2) {
+  counter-increment: arv2-h2;
+  font-family: var(--font-sans);
+  font-weight: 800;
+  font-size: 28px;
+  line-height: 1.15;
+  letter-spacing: -0.4px;
+  color: var(--cins-blue);
+  margin: 40px 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.arv2-nghe .nghe-lead-panel .article-content-html h2:not(.arc-h2)::before,
+.arv2-nghe .nghe-lead-panel .article-content-html .body h2:not(.arc-h2)::before {
+  content: counter(arv2-h2, decimal-leading-zero);
+  font-family: var(--font-display);
+  font-size: 22px;
+  color: var(--ink-muted);
+  width: 36px;
+  flex-shrink: 0;
+}
+
+.arv2-nghe .nghe-lead-panel .article-content-html h3:not(.arc-h3),
+.arv2-nghe .nghe-lead-panel .article-content-html .body h3:not(.arc-h3) {
+  font-family: var(--font-sans);
+  font-weight: 800;
+  font-size: 20px;
+  color: var(--ink-display);
+  margin: 24px 0 10px;
+}
+
+.arv2-nghe .nghe-lead-panel .article-content-html p,
+.arv2-nghe .nghe-lead-panel .article-content-html .body p {
+  font-size: 15.5px;
+  line-height: 1.7;
+  color: var(--ink-body);
+  margin-bottom: 14px;
+}
+
+.arv2-nghe .nghe-lead-panel .article-content-html .mock {
+  background: var(--neutral-100);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.3px;
+  position: relative;
+  overflow: hidden;
+  margin: 20px 0;
 }
 
 .arv2-nghe .nghe-lead-panel .body {
@@ -640,6 +769,7 @@
   list-style: none;
   padding: 0;
   margin: 0;
+  overflow: visible;
 }
 
 .arv2-nghe .rel-list .rel-item {
@@ -666,7 +796,7 @@
 .arv2-nghe .rel-list .rel-item:hover {
   background: var(--neutral-50);
   border-radius: 8px;
-  z-index: 2;
+  z-index: 20;
 }
 
 .arv2-nghe .rel-tile {
@@ -761,8 +891,8 @@
 }
 
 .arv2-nghe .rel-thumb {
-  width: 34px;
-  height: 34px;
+  width: 40px;
+  aspect-ratio: 4 / 3;
   border-radius: 8px;
   flex-shrink: 0;
   display: flex;
@@ -776,11 +906,79 @@
   letter-spacing: 0.3px;
 }
 
+.arv2-nghe .rel-thumb.rel-thumb--has-img {
+  background: #fff;
+}
+
+.arv2-nghe .rel-thumb img {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+
 .arv2-nghe .rel-thumb.thumb-sm {
-  width: 24px;
-  height: 24px;
+  width: 32px;
   font-size: 10.5px;
   border-radius: 6px;
+}
+
+/* Sidebar trang môn học — thumb 4:3 lớn hơn, nền trắng / trong suốt */
+.arv2-mon-hoc .rel-list .rel-thumb {
+  width: 64px;
+  aspect-ratio: 4 / 3;
+  border-radius: 8px;
+  background: transparent;
+  border: none;
+}
+
+.arv2-mon-hoc .rel-list .rel-thumb.rel-thumb--has-img {
+  background: #fff;
+}
+
+.arv2-mon-hoc .rel-list .rel-thumb img {
+  object-fit: contain;
+  object-position: center;
+}
+
+.arv2-mon-hoc .rel-list .rel-item,
+.arv2-mon-hoc .rel-list .rel-item--compact {
+  gap: 10px;
+  padding: 6px 4px;
+}
+
+.arv2-mon-hoc .rel-list .rel-item:first-of-type {
+  padding-top: 4px;
+}
+
+.arv2-mon-hoc .rel-list .rel-item:last-of-type {
+  padding-bottom: 4px;
+}
+
+.arv2-mon-hoc .rel-list .rel-item--compact .rel-name {
+  font-size: 13.5px;
+  line-height: 1.35;
+}
+
+.arv2-mon-hoc .rel-list .rel-item--compact .rel-name small,
+.arv2-mon-hoc .rel-list .rel-item--compact .rel-tag {
+  display: none;
+}
+
+.arv2-nghe .rel-tip-thumb.rel-tip-thumb--has-img {
+  background: #fff;
+  overflow: hidden;
+}
+
+.arv2-nghe .rel-tip-thumb.rel-tip-thumb--has-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
 }
 
 .arv2-nghe .rel-name {
@@ -858,7 +1056,7 @@
     opacity 0.18s,
     transform 0.18s,
     visibility 0.18s;
-  z-index: 50;
+  z-index: 60;
   box-shadow: 0 14px 36px rgba(0, 0, 0, 0.22);
   text-align: left;
 }
@@ -895,6 +1093,31 @@
 .arv2-nghe .rel-tile:hover > .rel-tip.tip-left,
 .arv2-nghe .rel-card:hover > .rel-tip.tip-left {
   transform: translate(0, 0);
+}
+
+/* Sidebar hẹp (280px): tooltip mở sang trái, tránh clip ngang/dọc trong side-card */
+.arv2-nghe .nghe-side-tab-panel .rel-list .rel-item > .rel-tip.tip-left {
+  top: 50%;
+  bottom: auto;
+  left: auto;
+  right: calc(100% + 10px);
+  transform: translateY(-50%) translateX(6px);
+}
+
+.arv2-nghe .nghe-side-tab-panel .rel-list .rel-item:hover > .rel-tip.tip-left {
+  transform: translateY(-50%) translateX(0);
+}
+
+.arv2-nghe .nghe-side-tab-panel .rel-list .rel-item > .rel-tip.tip-left::before {
+  bottom: auto;
+  top: 50%;
+  left: 100%;
+  right: auto;
+  margin-left: 0;
+  margin-top: -7px;
+  border: 7px solid transparent;
+  border-bottom-color: transparent;
+  border-left-color: var(--neutral-900);
 }
 
 .arv2-nghe .rel-tip.tip-right {

@@ -1,0 +1,182 @@
+[
+  {
+    "id": "aa1805be-9aad-4482-9179-742e118122f8",
+    "slug": "audition",
+    "tieu_de_viet": "Adobe Audition — Chỉnh sửa &amp; mix âm thanh",
+    "tom_tat": "Phần mềm chỉnh sửa và phối khí âm thanh của Adobe — podcast, lồng tiếng video và làm sạch noise trong sản xuất đa phương tiện.",
+    "meta_title": "Adobe Audition là gì? Tính năng, giá và hướng dẫn học | CINS",
+    "meta_description": "Adobe Audition: multitrack, noise reduction, podcast, tích hợp Premiere. So sánh Reaper và lộ trình học cho người mới.",
+    "meta": {
+      "nha_phat_hanh": "Adobe",
+      "version": "2024",
+      "platform": ["Windows", "macOS"],
+      "website": "https://www.adobe.com/products/audition.html",
+      "goi_mien_phi": "Dùng thử 7 ngày",
+      "gia_thanh": "Từ ~22 USD/tháng (Creative Cloud)",
+      "hinh_thuc_mua": "Thuê bao tháng · Creative Cloud",
+      "link_tai": "https://www.adobe.com/products/audition.html"
+    }
+  },
+  {
+    "id": "e4a8d0f0-5e6d-44eb-b99e-9ca009ade5b0",
+    "slug": "adobe-bridge",
+    "tieu_de_viet": "Adobe Bridge — Quản lý tài sản sáng tạo",
+    "tom_tat": "Ứng dụng duyệt, gắn thẻ và quản lý file ảnh, video, vector — trung tâm tài sản trong hệ sinh thái Creative Cloud.",
+    "meta_title": "Adobe Bridge là gì? Quản lý file, giá và hướng dẫn | CINS",
+    "meta_description": "Adobe Bridge: duyệt file, keyword, preview RAW, batch rename. So sánh Lightroom và cách dùng với Photoshop, Premiere.",
+    "meta": {
+      "nha_phat_hanh": "Adobe",
+      "version": "2024",
+      "platform": ["Windows", "macOS"],
+      "website": "https://www.adobe.com/products/bridge.html",
+      "goi_mien_phi": "Miễn phí với Creative Cloud",
+      "gia_thanh": "Đi kèm Creative Cloud",
+      "hinh_thuc_mua": "Thuê bao tháng · Creative Cloud",
+      "link_tai": "https://www.adobe.com/products/bridge.html"
+    }
+  },
+  {
+    "id": "090d275f-b34d-4a3d-b219-b865f35fb6c5",
+    "slug": "illustrator",
+    "tieu_de_viet": "Adobe Illustrator — Thiết kế đồ họa vector",
+    "tom_tat": "Công cụ vector tiêu chuẩn ngành — logo, minh họa, icon và ấn phẩm in với đường nét sắc nét ở mọi kích thước.",
+    "meta_title": "Adobe Illustrator là gì? Tính năng, giá và hướng dẫn học | CINS",
+    "meta_description": "Illustrator: Pen tool, vector, logo, in ấn. So sánh Figma, Affinity Designer và lộ trình học cho người mới.",
+    "meta": {
+      "nha_phat_hanh": "Adobe",
+      "version": "2024",
+      "platform": ["Windows", "macOS"],
+      "website": "https://www.adobe.com/products/illustrator.html",
+      "goi_mien_phi": "Dùng thử 7 ngày",
+      "gia_thanh": "Từ ~22 USD/tháng (Creative Cloud)",
+      "hinh_thuc_mua": "Thuê bao tháng · Creative Cloud",
+      "link_tai": "https://www.adobe.com/products/illustrator.html"
+    }
+  },
+  {
+    "id": "a0f72add-85c8-47f5-94db-3c6e29a1bead",
+    "slug": "indesign",
+    "tieu_de_viet": "Adobe InDesign — Dàn trang &amp; xuất bản",
+    "tom_tat": "Phần mềm dàn trang chuyên nghiệp — sách, tạp chí, brochure và PDF đa trang với typographic control chính xác.",
+    "meta_title": "Adobe InDesign là gì? Dàn trang, giá và hướng dẫn học | CINS",
+    "meta_description": "InDesign: layout đa trang, Master Page, xuất in/PDF. So sánh Canva, Quark và lộ trình học cho người mới.",
+    "meta": {
+      "nha_phat_hanh": "Adobe",
+      "version": "2024",
+      "platform": ["Windows", "macOS"],
+      "website": "https://www.adobe.com/products/indesign.html",
+      "goi_mien_phi": "Dùng thử 7 ngày",
+      "gia_thanh": "Từ ~22 USD/tháng (Creative Cloud)",
+      "hinh_thuc_mua": "Thuê bao tháng · Creative Cloud",
+      "link_tai": "https://www.adobe.com/products/indesign.html"
+    }
+  },
+  {
+    "id": "8a714c8b-084c-404d-919e-b86b11eded73",
+    "slug": "media-encode",
+    "tieu_de_viet": "Adobe Media Encoder — Xuất &amp; mã hóa video",
+    "tom_tat": "Công cụ encode hàng loại — chuyển đổi và xuất video/âm thanh hàng loạt, tích hợp Premiere Pro và After Effects.",
+    "meta_title": "Adobe Media Encoder là gì? Encode, giá và hướng dẫn | CINS",
+    "meta_description": "Media Encoder: H.264, ProRes, watch folder, queue render. So sánh HandBrake và luồng xuất với Premiere.",
+    "meta": {
+      "nha_phat_hanh": "Adobe",
+      "version": "2024",
+      "platform": ["Windows", "macOS"],
+      "website": "https://www.adobe.com/products/media-encoder.html",
+      "goi_mien_phi": "Đi kèm Creative Cloud",
+      "gia_thanh": "Đi kèm Premiere/AE/CC",
+      "hinh_thuc_mua": "Thuê bao tháng · Creative Cloud",
+      "link_tai": "https://www.adobe.com/products/media-encoder.html"
+    }
+  },
+  {
+    "id": "a05b8554-31fd-48b3-8349-5d763d9270d7",
+    "slug": "photoshop",
+    "tieu_de_viet": "Adobe Photoshop — Chỉnh sửa &amp; tổng hợp ảnh",
+    "tom_tat": "Phần mềm xử lý ảnh tiêu chuẩn ngành — retouch, compositing, digital painting và chuẩn bị asset cho web, in và video.",
+    "meta_title": "Adobe Photoshop là gì? Tính năng, giá và hướng dẫn học | CINS",
+    "meta_description": "Photoshop: layer, mask, retouch, compositing. So sánh GIMP, Affinity Photo và lộ trình học cho người mới.",
+    "meta": {
+      "nha_phat_hanh": "Adobe",
+      "version": "2024",
+      "platform": ["Windows", "macOS"],
+      "website": "https://www.adobe.com/products/photoshop.html",
+      "goi_mien_phi": "Dùng thử 7 ngày",
+      "gia_thanh": "Từ ~22 USD/tháng (Creative Cloud)",
+      "hinh_thuc_mua": "Thuê bao tháng · Creative Cloud",
+      "link_tai": "https://www.adobe.com/products/photoshop.html"
+    }
+  },
+  {
+    "id": "e656cdcc-11b7-4f3b-84fa-ebb79634f4de",
+    "slug": "premiere-pro",
+    "tieu_de_viet": "Adobe Premiere Pro — Dựng phim phi tuyến tính",
+    "tom_tat": "Ứng dụng dựng phim chuyên nghiệp — cắt ghép, color, audio và xuất bản cho YouTube, quảng cáo và phim ngắn.",
+    "meta_title": "Adobe Premiere Pro là gì? Dựng phim, giá và hướng dẫn học | CINS",
+    "meta_description": "Premiere Pro: timeline, multicam, Dynamic Link AE. So sánh DaVinci Resolve, Final Cut và lộ trình học.",
+    "meta": {
+      "nha_phat_hanh": "Adobe",
+      "version": "2024",
+      "platform": ["Windows", "macOS"],
+      "website": "https://www.adobe.com/products/premiere.html",
+      "goi_mien_phi": "Dùng thử 7 ngày",
+      "gia_thanh": "Từ ~22 USD/tháng (Creative Cloud)",
+      "hinh_thuc_mua": "Thuê bao tháng · Creative Cloud",
+      "link_tai": "https://www.adobe.com/products/premiere.html"
+    }
+  },
+  {
+    "id": "76fcbfd4-a121-4b73-b1bc-bc70b90a75fb",
+    "slug": "adobe-stock",
+    "tieu_de_viet": "Adobe Stock — Kho ảnh &amp; video bản quyền",
+    "tom_tat": "Thư viện stock tích hợp Creative Cloud — ảnh, video, vector và template có bản quyền cho quảng cáo và nội dung số.",
+    "meta_title": "Adobe Stock là gì? Giá, bản quyền và cách dùng | CINS",
+    "meta_description": "Adobe Stock: ảnh/video/vector có license, tìm trong PS/Premiere. So sánh Shutterstock, Envato và quy trình dùng an toàn.",
+    "meta": {
+      "nha_phat_hanh": "Adobe",
+      "version": "2024",
+      "platform": ["Web", "Windows", "macOS"],
+      "website": "https://stock.adobe.com",
+      "goi_mien_phi": "10 asset miễn phí tháng đầu (tùy gói)",
+      "gia_thanh": "Từ ~29 USD/tháng (10 ảnh)",
+      "hinh_thuc_mua": "Thuê bao tháng · credit",
+      "link_tai": "https://stock.adobe.com"
+    }
+  },
+  {
+    "id": "5ff20cc8-4de3-4a32-8282-16be2c9c7327",
+    "slug": "adobe-xd",
+    "tieu_de_viet": "Adobe XD — UI/UX &amp; prototype",
+    "tom_tat": "Công cụ thiết kế giao diện và prototype tương tác — wireframe, mockup app/web và handoff cho developer.",
+    "meta_title": "Adobe XD là gì? UI design, giá và hướng dẫn học | CINS",
+    "meta_description": "Adobe XD: artboard, component, prototype link. So sánh Figma, Sketch và lộ trình học UI cho người mới.",
+    "meta": {
+      "nha_phat_hanh": "Adobe",
+      "version": "2024",
+      "platform": ["Windows", "macOS"],
+      "website": "https://www.adobe.com/products/xd.html",
+      "goi_mien_phi": "Starter plan miễn phí giới hạn",
+      "gia_thanh": "Đi kèm Creative Cloud / Single App",
+      "hinh_thuc_mua": "Thuê bao tháng · Creative Cloud",
+      "link_tai": "https://www.adobe.com/products/xd.html"
+    }
+  },
+  {
+    "id": "dccccc51-b60b-4cfc-a0ad-cba352d6f278",
+    "slug": "affinity-designer",
+    "tieu_de_viet": "Affinity Designer — Vector &amp; thiết kế in",
+    "tom_tat": "Phần mềm vector chuyên nghiệp của Serif — logo, minh họa và layout in với giá mua một lần, không thuê bao.",
+    "meta_title": "Affinity Designer là gì? Tính năng, giá và hướng dẫn học | CINS",
+    "meta_description": "Affinity Designer: vector, Personas, in ấn. So sánh Illustrator, mua một lần vs Creative Cloud.",
+    "meta": {
+      "nha_phat_hanh": "Serif (Canva)",
+      "version": "2",
+      "platform": ["Windows", "macOS", "iPad"],
+      "website": "https://www.affinity.studio/designer",
+      "goi_mien_phi": "Dùng thử 30 ngày",
+      "gia_thanh": "~70 USD mua một lần (V2)",
+      "hinh_thuc_mua": "Mua một lần",
+      "link_tai": "https://www.affinity.studio/designer"
+    }
+  }
+]

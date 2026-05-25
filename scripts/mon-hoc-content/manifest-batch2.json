@@ -1,0 +1,102 @@
+[
+  {
+    "id": "c3081068-5d0a-4e0a-a575-4fa65cc41e21",
+    "slug": "mon-chuyen-nganh-nha-o",
+    "tieu_de": "Chuyên ngành nhà ở",
+    "tieu_de_eng": "Residential Design",
+    "tieu_de_viet": "Chuyên ngành nhà ở",
+    "tom_tat": "Thiết kế không gian sống — căn hộ, nhà phố, biệt thự; mặt bằng, nội thất và trải nghiệm cư dân.",
+    "meta_title": "Chuyên ngành nhà ở là gì? Học gì, thi như thế nào và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Chuyên ngành nhà ở: thiết kế căn hộ, nhà phố, nội thất. Ứng dụng kiến trúc nội thất và thiết kế không gian sống."
+  },
+  {
+    "id": "86f73efa-5272-4a66-89f0-9f9a1e3e945e",
+    "slug": "mon-co-so-tao-hinh",
+    "tieu_de": "Cơ sở tạo hình",
+    "tieu_de_eng": "Basic Form",
+    "tieu_de_viet": "Cơ sở tạo hình",
+    "tom_tat": "Nguyên lý tạo hình cơ bản — điểm, đường, mảng, khối, không gian — nền tảng cho mọi chuyên ngành mỹ thuật và thiết kế.",
+    "meta_title": "Cơ sở tạo hình là gì? Học gì, thi như thế nào và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Cơ sở tạo hình: điểm, đường, mảng, khối, không gian, nhịp điệu. Nền tảng tư duy thị giác cho thiết kế và mỹ thuật."
+  },
+  {
+    "id": "f0f80daa-295f-41e8-9859-01166382835c",
+    "slug": "mon-cong-thai-hoc",
+    "tieu_de": "Công thái học",
+    "tieu_de_eng": "Ergonomics",
+    "tieu_de_viet": "Công thái học",
+    "tom_tat": "Thiết kế phù hợp cơ thể người — anthropometry, tư thế, khoảng cách và an toàn trong sản phẩm và không gian.",
+    "meta_title": "Công thái học là gì? Học gì, thi như thế nào và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Công thái học: số đo nhân trắc, tư thế làm việc, thiết kế ghế bàn nội thất an toàn và thoải mái."
+  },
+  {
+    "id": "8ad48ccd-556d-4595-aca0-6935753eee3d",
+    "slug": "mon-cong-trinh-nghi-duong-3",
+    "tieu_de": "Công trình nghỉ dưỡng 3",
+    "tieu_de_eng": "Resort Design 3",
+    "tieu_de_viet": "Công trình nghỉ dưỡng 3",
+    "tom_tat": "Đồ án nâng cao công trình nghỉ dưỡng — masterplan resort, trải nghiệm khách, kiến trúc địa phương và cảnh quan.",
+    "meta_title": "Công trình nghỉ dưỡng 3 là gì? Học gì và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Công trình nghỉ dưỡng 3: đồ án resort, trải nghiệm lưu trú, masterplan và kiến trúc bản địa."
+  },
+  {
+    "id": "a8a76ce3-3cf6-40cb-b673-4ab70e90f3db",
+    "slug": "mon-cong-trinh-van-phong",
+    "tieu_de": "Công trình văn phòng",
+    "tieu_de_eng": "Office Building Design",
+    "tieu_de_viet": "Công trình văn phòng",
+    "tom_tat": "Thiết kế không gian làm việc — văn phòng, coworking, quy hoạch tầng, MEP cơ bản và trải nghiệm nhân viên.",
+    "meta_title": "Công trình văn phòng là gì? Học gì và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Công trình văn phòng: open plan, meeting room, lưu thông, MEP cơ bản và thiết kế trải nghiệm làm việc."
+  },
+  {
+    "id": "5fc36d9b-0be0-46bf-852e-472619bc7b6d",
+    "slug": "mon-dao-dien-dien-anh",
+    "tieu_de": "Đạo diễn điện ảnh",
+    "tieu_de_eng": "Film Direction",
+    "tieu_de_viet": "Đạo diễn điện ảnh",
+    "tom_tat": "Nghệ thuật dẫn dắt sản xuất phim — vision, diễn viên, bối cảnh, blocking và nhịp kể chuyện trên set.",
+    "meta_title": "Đạo diễn điện ảnh là gì? Học gì, thi như thế nào và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Đạo diễn điện ảnh: treatment, blocking, làm việc với diễn viên. Ứng dụng phim ngắn, quảng cáo và content số."
+  },
+  {
+    "id": "2ce1859f-2a58-4f4b-82a6-601d1f0b2456",
+    "slug": "mon-dien-hoa-chuyen-nganh-t",
+    "tieu_de": "Diễn họa chuyên ngành thiết kế",
+    "tieu_de_eng": "Design Presentation Drawing",
+    "tieu_de_viet": "Diễn họa chuyên ngành thiết kế",
+    "tom_tat": "Diễn họa và trình bày ý tưởng thiết kế — phác thảo tay, marker rendering, board trình bày chuyên nghiệp.",
+    "meta_title": "Diễn họa chuyên ngành thiết kế là gì? Học gì và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Diễn họa thiết kế: sketch nhanh, marker rendering, board trình bày ý tưởng cho client và giảng viên."
+  },
+  {
+    "id": "0e07c878-765c-401d-8ff7-529f4f865491",
+    "slug": "mon-dong-phuc",
+    "tieu_de": "Đồng phục",
+    "tieu_de_eng": "Uniform Design",
+    "tieu_de_viet": "Đồng phục",
+    "tom_tat": "Thiết kế đồng phục — form, chất liệu, nhận diện thương hiệu và trải nghiệm người mặc trong công việc.",
+    "meta_title": "Môn Đồng phục là gì? Học gì và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Đồng phục: thiết kế uniform doanh nghiệp, trường học, ngành dịch vụ. Thời trang ứng dụng và brand."
+  },
+  {
+    "id": "56177f34-de9c-4e2e-8069-6688d68ba8a9",
+    "slug": "mon-dung-hinh-3d",
+    "tieu_de": "Dựng hình 3D",
+    "tieu_de_eng": "3D Modeling",
+    "tieu_de_viet": "Dựng hình 3D",
+    "tom_tat": "Mô hình hóa không gian ba chiều — polygon, NURBS, vật liệu và render cho kiến trúc, game và sản phẩm.",
+    "meta_title": "Dựng hình 3D là gì? Học gì, thi như thế nào và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Dựng hình 3D: modeling polygon, UV, vật liệu, render cơ bản. Ứng dụng kiến trúc, nội thất, game, animation."
+  },
+  {
+    "id": "2d45d6c7-2d05-44d2-a068-0235018962f6",
+    "slug": "mon-dung-phim",
+    "tieu_de": "Dựng phim",
+    "tieu_de_eng": "Video Editing",
+    "tieu_de_viet": "Dựng phim",
+    "tom_tat": "Cắt ghép và hoàn thiện video — timeline, montage, âm thanh, màu và xuất bản cho phim ngắn và content số.",
+    "meta_title": "Dựng phim là gì? Học gì, thi như thế nào và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Dựng phim: Premiere/DaVinci, storytelling qua montage, color cơ bản. Ứng dụng phim ngắn và media."
+  }
+]

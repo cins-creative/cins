@@ -21,7 +21,22 @@ function isBypassedPath(pathname: string): boolean {
   return false;
 }
 
+/** URL cũ `?tab=nganh-hoc` → `/nganh-hoc` (giữ `q`, `nhom`) trước khi render trang. */
+function redirectLegacyNganhHubTab(request: NextRequest): NextResponse | null {
+  const { pathname, searchParams } = request.nextUrl;
+  if (pathname !== "/nghe-nghiep") return null;
+  if (searchParams.get("tab") !== "nganh-hoc") return null;
+
+  const url = request.nextUrl.clone();
+  url.pathname = "/nganh-hoc";
+  url.searchParams.delete("tab");
+  return NextResponse.redirect(url, 308);
+}
+
 export function middleware(request: NextRequest) {
+  const legacyNganh = redirectLegacyNganhHubTab(request);
+  if (legacyNganh) return legacyNganh;
+
   if (!MAINTENANCE_MODE) {
     return NextResponse.next();
   }

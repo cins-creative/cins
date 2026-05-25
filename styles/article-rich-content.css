@@ -302,6 +302,7 @@
   border-color: var(--cins-blue);
   box-shadow: var(--shadow-xs);
 }
+/* flow-root + float: icon + không tách từng .kw-inline thành flex item (space-between) */
 .article-rich-content .arc-card summary {
   padding: var(--space-4) var(--space-5);
   font-family: var(--font-sans);
@@ -310,20 +311,19 @@
   color: var(--fg-1);
   cursor: pointer;
   list-style: none;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  display: flow-root;
   user-select: none;
   line-height: 1.4;
 }
 .article-rich-content .arc-card summary::-webkit-details-marker { display: none; }
 .article-rich-content .arc-card summary::after {
   content: "+";
+  float: right;
   font-size: var(--text-xl);
   font-weight: var(--weight-regular);
   color: var(--neutral-400);
   margin-left: var(--space-4);
-  flex-shrink: 0;
+  line-height: 1.4;
   transition: transform 0.2s;
 }
 .article-rich-content .arc-card[open] summary {

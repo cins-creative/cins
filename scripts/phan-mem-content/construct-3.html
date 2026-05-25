@@ -1,0 +1,209 @@
+<section class="arc-intro">
+  <p>Bạn chơi game 2D trên browser — platformer nhảy qua obstacle, puzzle physics, hoặc endless runner trên điện thoại — rất nhiều tựa được làm bằng <strong>Construct 3</strong>, engine no-code/low-code cho game 2D chạy trực tiếp trên trình duyệt, không cần cài đặt nặng. Cùng công cụ này cũng xuất hiện trong giáo dục STEM và các cuộc thi game học sinh khi team cần prototype nhanh trước khi chuyển sang engine mạnh hơn.</p>
+  <p>Construct 3 không phải ngôn ngữ lập trình thuần như C# hay JavaScript từ đầu — nó xoay quanh <strong>event sheet, behavior và visual logic</strong>. Hiểu Construct giúp học sinh THPT bước vào phát triển game 2D, interactive media và web app nhẹ mà không bị chặn bởi cú pháp code phức tạp, đồng thời vẫn học được tư duy game design và logic điều kiện thực tế.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>Construct 3 là gì?</h2>
+  <p>Construct 3 do <strong>Scirra</strong> (Anh) phát triển — <strong>engine game 2D no-code chạy trên browser</strong>, hoạt động trên Windows, macOS, Linux và tablet qua trình duyệt. Kế thừa Construct 2 (desktop); Construct 3 chuyển sang cloud editor, cập nhật liên tục và export sang HTML5, Android, iOS, Windows qua Cordova/Electron wrapper.</p>
+  <p>Khác với Unity hay Godot (code/script trung tâm), Construct 3 là không gian làm việc quanh <strong>layout 2D, object types và event sheet</strong>: bạn kéo sprite, gán behavior (Platform, Bullet, Physics), viết logic bằng block event «When X → Do Y». Giao diện có layout view, properties và event sheet — ban đầu trông đơn giản, nhưng có thể xây game commercial hoàn chỉnh khi nắm vững hệ thống instance variable và function.</p>
+  <ul class="arc-list">
+    <li><strong>Visual event system</strong> — logic điều kiện, vòng lặp và function không cần gõ code (có thể thêm JavaScript tùy chọn)</li>
+    <li><strong>Behavior &amp; physics 2D</strong> — Platform, 8 Direction, Pin, Physics, Pathfinding gắn sẵn cho prototype nhanh</li>
+    <li><strong>Export đa nền tảng</strong> — HTML5 web, mobile wrapper, desktop; phù hợp game casual và edu project</li>
+    <li><strong>Timeline &amp; animation</strong> — sprite animation editor, timeline cho cutscene và UI motion cơ bản</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"Construct 3 game engine browser interface event sheet screenshot"</span>
+    </div>
+    <p class="arc-image-caption">Giao diện Construct 3 — layout 2D, properties panel và event sheet logic</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>Construct 3 thường đứng ở giai đoạn <strong>prototype, game jam và sản xuất game 2D casual/web</strong>: designer hoặc học sinh dựng level, gán behavior, test gameplay loop trong vài ngày rồi publish lên itch.io, Kongregate hoặc app store wrapper. Với dự án lớn hơn, team có thể dùng Construct để validate mechanic trước khi rewrite sang Unity/Godot; với giáo dục, Construct dạy event-driven logic mà chưa cần syntax. Thường làm việc cùng Aseprite/Piskel (sprite), Audacity (SFX) và Tiled (map) khi cần asset bên ngoài.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Layout, sprite và behavior system</h3>
+    <p>Thế mạnh cốt lõi của Construct 3 là <strong>đặt object và gán behavior trong vài phút</strong>. Import sprite sheet, tạo animation walk/jump; thêm behavior Platform cho nhân vật — engine tự xử lý gravity, jump và collision với tilemap. Instance variables cho phép mỗi enemy có HP riêng; containers và families giúp nhóm object và viết event một lần cho cả nhóm.</p>
+    <p>Đối với học sinh THPT mới làm quen, bài tập thực tế hay gặp: clone mecánica game platformer cổ điển (nhảy, coin, enemy patrol), endless runner một làn, hoặc quiz interactive — vừa luyện game feel vừa làm portfolio game 2D cơ bản cho itch.io.</p>
+    <ul class="arc-list">
+      <li><strong>Sprite &amp; tilemap</strong> — animation frame, collision polygon và tile level design</li>
+      <li><strong>Built-in behaviors</strong> — Platform, Bullet, Sine, Fade giảm code boilerplate</li>
+      <li><strong>Instance variables</strong> — lưu trạng thái từng object (HP, speed, state machine đơn giản)</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Construct 3 platformer sprite platform behavior layout"</span>
+        </div>
+        <p class="arc-image-caption">Platformer — sprite animation và Platform behavior trên layout</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Construct 3 tilemap level design 2D game editor"</span>
+        </div>
+        <p class="arc-image-caption">Tilemap — thiết kế level 2D và collision tile</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Event sheet, logic game và UI</h3>
+    <p>Sau khi dựng scene, bước tiếp theo là viết <strong>event logic</strong> trên event sheet: «On collision with coin → Add 1 to score → Destroy coin»; «Every 2 seconds → Spawn enemy at random X». Sub-events, groups và functions giúp tổ chức project lớn; Local Storage và AJAX hỗ trợ save game và leaderboard web đơn giản. UI layer (button, text, progress bar) làm trực tiếp trong editor — phù hợp menu, HUD và mobile touch control.</p>
+    <p>Một game jam 48 giờ với Construct thường cho phép team tập trung vào design và polish thay vì debug compile — đây là lợi thế «sản xuất thực tế» mà solo dev và học sinh thi đấu game hay tận dụng.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Construct 3 event sheet game logic conditions actions"</span>
+      </div>
+      <p class="arc-image-caption">Event sheet — điều kiện, hành động và sub-event cho logic game</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Export, mobile touch và mở rộng bằng JavaScript</h3>
+    <p>Ngoài prototype, Construct 3 hỗ trợ <strong>export HTML5 chạy mượt trên browser và mobile</strong> — một bản build có thể đăng web ngay. Touch control, virtual joystick và fullscreen API tích hợp sẵn cho game mobile casual. Addon store và JavaScript coding events cho phép mở rộng khi visual logic không đủ; nhiều commercial game 2D trên Steam/mobile bắt đầu từ Construct trước khi team scale lên.</p>
+    <p>Luồng làm việc điển hình: design GDD ngắn → layout + behavior → event logic → SFX/music → export web/APK test → iterate theo feedback playtest. Hiểu quy trình này giúp bạn không chỉ «biết kéo thả» mà nắm vòng lặp phát triển game professional.</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Construct 3 export HTML5 mobile game publish workflow"</span>
+      </div>
+      <p class="arc-image-caption">Export &amp; publish — HTML5 web, mobile wrapper và playtest workflow</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai engine hay được đặt cạnh Construct 3 nhất là <strong>GameMaker</strong> (visual + GML script, lâu đời trong indie 2D) và <strong>Unity 2D</strong> (engine 3D/2D đa năng, tiêu chuẩn ngành). Không có câu trả lời «đúng duy nhất» — tùy bạn cần prototype siêu nhanh, game commercial 2D hay lộ trình nghề game programmer.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Construct 3 vs GameMaker</h3>
+    <p>GameMaker (YoYo Games) kết hợp <strong>drag-drop event cùng ngôn ngữ GML</strong> — mạnh cho indie 2D lâu năm (Undertale, Celeste prototype tradition). Construct 3 thuần browser, event sheet trực quan hơn cho người chưa code và publish HTML5 native; GameMaker mạnh hơn khi cần script sâu, console export và ecosystem commercial game lớn hơn.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Construct 3 browser no-code 2D game event sheet"</span>
+        </div>
+        <p class="arc-image-caption">Construct 3 — no-code browser, event sheet trực quan cho beginner</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"GameMaker Studio 2 GML 2D indie game IDE interface"</span>
+        </div>
+        <p class="arc-image-caption">GameMaker — visual + GML script, hệ sinh thái indie 2D trưởng thành</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Construct 3 mạnh hơn:</strong> chạy trên browser không cài nặng, học curve thấp cho THPT, export HTML5 nhanh, phù hợp web game và edu.<br>
+      <strong>GameMaker mạnh hơn:</strong> GML linh hoạt, export console/Steam mature hơn, nhiều case study commercial AAA-indie 2D.<br>
+      <strong>Chọn Construct 3 khi:</strong> mục tiêu prototype web/mobile nhanh, game jam học sinh, chưa sẵn sàng học syntax.<br>
+      <strong>Chọn GameMaker khi:</strong> bạn muốn indie 2D commercial dài hạn và sẵn sàng học GML/script.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Construct 3 vs Unity 2D</h3>
+    <p>Unity là <strong>engine đa năng 3D/2D</strong> với C# script — tiêu chuẩn tuyển dụng game studio và hỗ trợ project scale lớn, multiplayer, 3D. Construct 3 nhẹ và nhanh hơn cho pure 2D casual: không lo compile, iteration instant trong browser; Unity 2D mạnh hơn khi cần shader custom, asset store khổng lồ và chuyển sang 3D sau này.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Construct 3 casual 2D web game HTML5 export"</span>
+        </div>
+        <p class="arc-image-caption">Construct 3 — casual 2D web game và iteration nhanh</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Unity 2D game development C# script tilemap interface"</span>
+        </div>
+        <p class="arc-image-caption">Unity 2D — C# script, scale lớn và pipeline studio</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Construct 3 mạnh hơn:</strong> no-code, học nhanh, browser-first, phù hợp game nhỏ và giáo dục THPT.<br>
+      <strong>Unity 2D mạnh hơn:</strong> C# career path, 3D/2D unified, networking, mobile/console AAA pipeline, job market rộng.<br>
+      <strong>Chọn Construct 3 khi:</strong> bạn mới bắt đầu game dev, cần demo web trong tuần, hoặc dự án học đường/game jam.<br>
+      <strong>Chọn Unity 2D khi:</strong> mục tiêu nghề game programmer/designer trong studio và sẵn sàng đầu tư học C# dài hạn.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học Construct 3 như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Làm quen editor browser và project cơ bản</strong>
+        <p>Tuần đầu hãy đăng ký Construct 3 (free tier hoặc trial), mở template Platformer và chạy preview (F5). Tập thêm sprite, di chuyển object, đổi layer và zoom layout. Mục tiêu là hiểu object type vs instance trước khi viết event — nhiều bạn THPT nhầm lẫn «sửa một enemy mà tất cả đổi theo» vì chưa hiểu instance.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Behavior Platform và collision cơ bản</strong>
+        <p>Clone mecánica nhảy: player + Platform behavior, tilemap solid, coin pickup bằng event «On collision → destroy + add score». Luyện debug bằng Debug layout và System → Debugger. Thường 1–2 tuần luyện đều sẽ có platformer chơi được end-to-end.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Event sheet nâng cao: state, UI và audio</strong>
+        <p>Thêm menu Start/Game Over, lives, timer và sound SFX; dùng groups để tách logic player/enemy/UI. Học Local Storage save high score. Mục tiêu là game có vòng lặp hoàn chỉnh (start → play → lose/win → retry) — dù art đơn giản — để hiểu game loop thực tế.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Mobile touch, polish và juice</strong>
+        <p>Thêm touch button, screen shake, particle và tween (Lite Tween behavior hoặc built-in). Test export HTML5 trên điện thoại qua QR/link. Đây là bước «feel» mà playtester và giám khảo game jam đánh giá cao — không chỉ logic đúng mà còn phản hồi visual/audio.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Game jam hoặc dự án học đường hoàn chỉnh</strong>
+        <p>Chọn một hướng: tham gia game jam 48h–1 tuần với chủ đề cố định; hoặc dự án cuối kỳ STEM (educational quiz game, mô phỏng vật lý đơn giản). Giai đoạn này dạy scope management: cắt feature, ưu tiên core mechanic, deadline — kỹ năng studio indie thật.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Portfolio, publish và lộ trình tiếp theo</strong>
+        <p>Đăng 2–3 game lên itch.io kèm screenshot, mô tả mechanic và link playable web. Ghi rõ Construct 3 trong portfolio; nếu muốn vào studio lớn, lên kế hoạch học C# + Unity hoặc GDScript + Godot sau khi đã vững game design. Nhiều trường và cuộc thi học sinh (STEM, Robothon game track) đánh giá sản phẩm chơi được và presentation hơn engine cao cấp.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

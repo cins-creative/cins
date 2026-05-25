@@ -1,0 +1,102 @@
+[
+  {
+    "id": "3e952741-5ca0-4d74-a753-c0bd5e6cc05e",
+    "slug": "mon-nguyen-lieu-dat",
+    "tieu_de": "Nguyên liệu đất",
+    "tieu_de_eng": "Clay Materials",
+    "tieu_de_viet": "Nguyên liệu đất",
+    "tom_tat": "Đất sét cho gốm sứ và điêu khắc — loại đất, thành phần, cách xử lý, nhào trộn và bảo quản.",
+    "meta_title": "Nguyên liệu đất là gì? Học gì và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Nguyên liệu đất: earthenware, stoneware, porcelain, xử lý đất Việt. Nền tảng cho gốm sứ và điêu khắc tạo hình."
+  },
+  {
+    "id": "65e97d35-94e9-438e-8da5-9aa817793a8c",
+    "slug": "mon-nguyen-ly-thi-giac",
+    "tieu_de": "Nguyên lý thị giác",
+    "tieu_de_eng": "Visual Perception",
+    "tieu_de_viet": "Nguyên lý thị giác",
+    "tom_tat": "Cách mắt và não tiếp nhận hình ảnh — Gestalt, contrast, attention; nền tảng dẫn dắt mắt người xem.",
+    "meta_title": "Nguyên lý thị giác là gì? Học gì và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Nguyên lý thị giác: Gestalt, contrast, attention, mắt dẫn. Nền tảng tư duy bố cục cho mọi ngành thiết kế."
+  },
+  {
+    "id": "7f1cd4ce-35c4-4d33-b543-460bdb0e5163",
+    "slug": "mon-nguyen-ly-thiet-ke-cong-nghiep",
+    "tieu_de": "Nguyên lý thiết kế công nghiệp",
+    "tieu_de_eng": "Industrial Design Principles",
+    "tieu_de_viet": "Nguyên lý thiết kế công nghiệp",
+    "tom_tat": "Nguyên lý Industrial Design — chức năng, thẩm mỹ, ergonomics; quy trình từ ý tưởng đến sản phẩm hàng loạt.",
+    "meta_title": "Nguyên lý thiết kế công nghiệp là gì? Học gì và ứng dụng | CINS",
+    "meta_description": "Môn Nguyên lý thiết kế công nghiệp: chức năng, ergonomics, sản xuất hàng loạt. Nền tảng cho industrial và product design."
+  },
+  {
+    "id": "16d270a7-90f6-42f7-822e-910f1a3a451e",
+    "slug": "mon-nguyen-ly-thiet-ke-do-hoa",
+    "tieu_de": "Nguyên lý thiết kế đồ họa",
+    "tieu_de_eng": "Graphic Design Principles",
+    "tieu_de_viet": "Nguyên lý thiết kế đồ họa",
+    "tom_tat": "Nguyên lý cốt lõi thiết kế đồ họa — cân bằng, tương phản, nhịp điệu, hierarchy; nền tảng cho mọi sản phẩm visual.",
+    "meta_title": "Nguyên lý thiết kế đồ họa là gì? Học gì và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Nguyên lý thiết kế đồ họa: cân bằng, tương phản, nhịp điệu, phân cấp thị giác. Nền tảng cho graphic design."
+  },
+  {
+    "id": "a50a4fb9-84c3-4a8c-a738-4e3ca1c38d79",
+    "slug": "mon-nguyen-ly-thiet-ke-noi-that",
+    "tieu_de": "Nguyên lý thiết kế nội thất",
+    "tieu_de_eng": "Interior Design Principles",
+    "tieu_de_viet": "Nguyên lý thiết kế nội thất",
+    "tom_tat": "Nguyên lý nội thất — không gian, tỷ lệ, ánh sáng, vật liệu và quy trình thiết kế không gian sống và làm việc.",
+    "meta_title": "Nguyên lý thiết kế nội thất là gì? Học gì và ứng dụng | CINS",
+    "meta_description": "Môn Nguyên lý thiết kế nội thất: không gian, tỷ lệ, ánh sáng, vật liệu, lưu thông. Nền tảng cho thiết kế nội thất."
+  },
+  {
+    "id": "88424190-8335-46b3-9c24-86243e2be53b",
+    "slug": "mon-nhac-phim",
+    "tieu_de": "Nhạc phim",
+    "tieu_de_eng": "Film Music and Score",
+    "tieu_de_viet": "Nhạc phim",
+    "tom_tat": "Âm nhạc cho phim — score, soundtrack, leitmotif; cách nhạc dẫn dắt cảm xúc và kể chuyện song song với hình ảnh.",
+    "meta_title": "Nhạc phim là gì? Học gì và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Nhạc phim: score, leitmotif, mixing, sync với hình ảnh. Cho nhà làm phim và nhạc sĩ hiểu nhạc kể chuyện."
+  },
+  {
+    "id": "6da716c4-2f99-43e5-86c1-428cac1db78d",
+    "slug": "mon-nhan-dien-thuong-hieu",
+    "tieu_de": "Nhận diện thương hiệu",
+    "tieu_de_eng": "Brand Identity",
+    "tieu_de_viet": "Nhận diện thương hiệu",
+    "tom_tat": "Xây dựng hệ thống nhận diện thương hiệu — logo, màu, typography và brand guideline áp dụng đa điểm chạm.",
+    "meta_title": "Nhận diện thương hiệu là gì? Học gì và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Nhận diện thương hiệu: logo, color palette, typography, brand guideline. Xây dựng identity cho thương hiệu doanh nghiệp."
+  },
+  {
+    "id": "f6bbb872-4658-466a-9f0c-0f21d8e21517",
+    "slug": "mon-nhiep-anh",
+    "tieu_de": "Nhiếp ảnh",
+    "tieu_de_eng": "Photography",
+    "tieu_de_viet": "Nhiếp ảnh",
+    "tom_tat": "Nhiếp ảnh cơ bản — ánh sáng, bố cục, phơi sáng, ống kính; hỗ trợ tư duy hình ảnh cho designer và nhà sáng tạo.",
+    "meta_title": "Nhiếp ảnh là gì? Học gì và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Nhiếp ảnh: phơi sáng, bố cục, ánh sáng, lens. Cho designer chụp reference, product, lifestyle và portrait."
+  },
+  {
+    "id": "ec59f683-29ce-4fb0-8633-210ffb36f6ff",
+    "slug": "mon-noi-that-nha-o",
+    "tieu_de": "Nội thất nhà ở",
+    "tieu_de_eng": "Residential Interior",
+    "tieu_de_viet": "Nội thất nhà ở",
+    "tom_tat": "Thiết kế nội thất nhà ở — căn hộ, nhà phố, biệt thự; lifestyle cư dân, công năng, vật liệu và phong cách.",
+    "meta_title": "Nội thất nhà ở là gì? Học gì và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Nội thất nhà ở: căn hộ, nhà phố, biệt thự; lifestyle, công năng, vật liệu. Đồ án cốt lõi của thiết kế nội thất."
+  },
+  {
+    "id": "af3eba4a-2f0a-4857-ac8c-12206ef25646",
+    "slug": "mon-noi-that-su-kien",
+    "tieu_de": "Nội thất sự kiện",
+    "tieu_de_eng": "Event Interior Design",
+    "tieu_de_viet": "Nội thất sự kiện",
+    "tom_tat": "Thiết kế không gian sự kiện tạm thời — triển lãm, gala, hội nghị, đám cưới; concept ngắn hạn nhưng ấn tượng.",
+    "meta_title": "Nội thất sự kiện là gì? Học gì và ứng dụng thực tế | CINS",
+    "meta_description": "Môn Nội thất sự kiện: triển lãm, gala, hội nghị, wedding. Thiết kế không gian tạm thời ấn tượng và thi công nhanh."
+  }
+]

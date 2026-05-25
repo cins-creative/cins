@@ -37,6 +37,7 @@ export default function RootLayout({
     <html
       lang="vi"
       className={`${beVietnam.variable} ${anton.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <head>
         {/* Load Material Symbols in <head> — @import in CSS is easy to block or apply late; icon text shows as words if the font never loads. */}
@@ -56,7 +57,9 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
+        {children}
+      </body>
     </html>
   );
 }

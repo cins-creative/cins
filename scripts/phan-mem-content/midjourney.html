@@ -1,0 +1,209 @@
+<section class="arc-intro">
+  <p>Bạn vào kênh Discord, gõ «/imagine» rồi mô tả «cô gái mặc áo dài Việt Nam đứng trước phố cổ Hội An, ánh hoàng hôn, cinematic lighting» — vài phút sau nhận bốn bức ảnh đẹp như poster phim. Đó là trải nghiệm quen thuộc với <strong>Midjourney</strong>, một trong những công cụ <strong>text-to-image</strong> được yêu thích nhất vì chất hình «đẹp ngay» và phong cách nghệ thuật mạnh.</p>
+  <p>Khác với Photoshop — nơi bạn vẽ hoặc ghép từng layer — Midjourney <strong>sinh ảnh mới từ prompt văn bản</strong> bằng mô hình diffusion, chủ yếu qua Discord hoặc website midjourney.com. Với học sinh THPT làm mood board dự án sáng tạo, poster CLB, concept art game hay thử nghiệm thiết kế, Midjourney là cánh cửa vào AI generative bên cạnh DALL-E hay Stable Diffusion — mỗi nền tảng có ưu điểm riêng về aesthetic, giá và mức kiểm soát kỹ thuật.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>Midjourney là gì?</h2>
+  <p>Midjourney do đội ngũ độc lập (trước đây gắn với Midjourney Inc.) phát triển — dịch vụ <strong>AI tạo ảnh từ mô tả ngôn ngữ tự nhiên</strong>, chạy trên cloud và tương tác qua <strong>Discord bot</strong> hoặc giao diện web chính thức. Phiên bản mới (v6, v7) cải thiện chi tiết khuôn mặt, tay, văn bản ngắn và khả năng bám prompt phức tạp hơn thế hệ đầu.</p>
+  <p>Khác với thư viện ảnh stock, Midjourney <strong>không trả về file có sẵn trên web</strong> mà generate biến thể mới mỗi lần — bạn chọn upscale (U1–U4), tạo variation (V1–V4) hoặc remix prompt. Giao diện Discord ban đầu có thể lạ với người mới, nhưng cộng đồng chia sẻ prompt và style reference rất lớn, giúp học sinh THPT học nhanh qua ví dụ thực tế.</p>
+  <ul class="arc-list">
+    <li><strong>Text-to-image</strong> — mô tả chủ thể, bối cảnh, phong cách, ánh sáng, tỷ lệ khung (--ar 16:9, 1:1)</li>
+    <li><strong>Image prompt &amp; style reference</strong> — đính kèm ảnh mẫu (--sref, --cref) để giữ phong cách hoặc nhân vật</li>
+    <li><strong>Upscale &amp; variation</strong> — phóng to ảnh chọn, tạo biến thể gần hoặc xa bản gốc</li>
+    <li><strong>Parameter nâng cao</strong> — --stylize, --chaos, --seed để tinh chỉnh mức «nghệ thuật» và tái lập kết quả</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"Midjourney Discord bot imagine command generated images grid screenshot"</span>
+    </div>
+    <p class="arc-image-caption">Giao diện Midjourney trên Discord — lệnh /imagine và lưới 4 ảnh kèm nút Upscale/Variation</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>Midjourney đứng ở giai đoạn <strong>ideation, mood board và concept art nhanh</strong>: art director hoặc học sinh mô tả ý tưởng → generate nhiều phương án → chọn ảnh upscale → chỉnh trong Photoshop/Figma nếu cần → dùng làm reference cho illustrator, 3D artist hoặc slide thuyết trình. Không thay thế hoàn toàn photographer hay concept artist chuyên nghiệp, nhưng rút ngắn vòng «thử ý tưởng trực quan». Thường làm việc cùng Photoshop (retouch), Figma (bố cục) và công cụ upscale/inpaint khi cần độ phân giải in ấn.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Tính năng cốt lõi</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Prompt engineering &amp; tham số cơ bản</h3>
+    <p>Trọng tâm khi dùng Midjourney là <strong>viết prompt có cấu trúc</strong>: chủ thể (subject), hành động, bối cảnh (setting), phong cách (cinematic, anime, watercolor, 3D render), ánh sáng (golden hour, rim light, studio softbox) và góc máy (wide shot, close-up). Thêm tham số <strong>--ar</strong> cho tỷ lệ khung, <strong>--stylize</strong> điều chỉnh mức «nghệ thuật hóa», <strong>--v</strong> chọn phiên bản model.</p>
+    <p>Đối với học sinh THPT mới làm quen, bài tập thực tế hay gặp: tạo bộ 4 poster sự kiện trường cùng tone màu, hoặc mood board phim ngắn capstone — so sánh kết quả khi thêm/bớt từ khóa «minimal», «hyperrealistic», «Studio Ghibli style». Học cách đọc prompt của người khác trên Discord cũng là cách học nhanh nhất.</p>
+    <ul class="arc-list">
+      <li><strong>Cấu trúc prompt</strong> — subject + environment + medium/style + lighting + camera</li>
+      <li><strong>--ar, --stylize, --chaos</strong> — tỷ lệ khung, độ stylize, mức ngẫu nhiên giữa 4 ảnh</li>
+      <li><strong>Multi-prompt &amp; weight</strong> — :: để ưu tiên phần mô tả quan trọng hơn</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Midjourney v6 cinematic portrait prompt example high quality"</span>
+        </div>
+        <p class="arc-image-caption">Text-to-image — prompt chi tiết về ánh sáng và phong cách quyết định aesthetic</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Midjourney prompt parameters aspect ratio stylize settings"</span>
+        </div>
+        <p class="arc-image-caption">Tham số --ar và --stylize — điều chỉnh khung hình và mức nghệ thuật hóa</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Style reference, character reference &amp; chỉnh sửa</h3>
+    <p>Midjourney hỗ trợ <strong>style reference (--sref)</strong> và <strong>character reference (--cref)</strong> — đính kèm URL ảnh để giữ phong cách hoặc khuôn mặt/nhân vật xuyên suốt nhiều lần generate. Tính năng <strong>Vary Region</strong> (inpainting) cho phép chọn vùng và mô tả thay đổi cục bộ mà giữ phần còn lại — hữu ích khi sửa tay sai, đổi nền hoặc thêm chi tiết nhỏ.</p>
+    <p>Workflow điển hình cho dự án học đường: generate concept nhân vật → cref giữ consistency → upscale bản tốt nhất → vary region sửa lỗi → export PNG làm reference cho vẽ tay hoặc dựng 3D. Hiểu luồng này giúp bạn không chỉ «chơi prompt một lần» mà xây bộ asset có tính liên tục.</p>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Midjourney style reference character reference consistent design example"</span>
+      </div>
+      <p class="arc-image-caption">Style/Character reference — giữ phong cách và nhân vật qua nhiều lần generate</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Gói đăng ký, quyền sử dụng &amp; cộng đồng</h3>
+    <p>Midjourney hoạt động theo <strong>subscription</strong> (Basic, Standard, Pro, Mega) — số giờ Fast GPU và chế độ Relax tùy gói. Người dùng trả phí thường có quyền thương mại theo điều khoản hiện hành (cần đọc Terms of Service cập nhật trên trang chính thức). Cộng đồng Discord và midjourney.com showcase là nguồn học prompt, trend aesthetic và thảo luận đạo đức AI (deepfake, bản quyền, ghi nguồn).</p>
+    <p>Giáo dục THPT ngày càng nhấn mạnh <strong>AI literacy</strong>: biết khi nào dùng Midjourney hợp lý trong bài tập, tránh copy-paste ảnh AI làm đồ án mà không khai báo, và hiểu giới hạn (chữ dài, chi tiết kỹ thuật, consistency phức tạp). Luồng sản xuất thực tế: brief → batch generate → curator chọn → retouch → publish kèm disclosure «AI-assisted» nếu cần.</p>
+
+    <div class="arc-image-block arc-image-wide">
+      <div class="arc-image-placeholder arc-image-placeholder--wide">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Midjourney subscription plans community showcase workflow diagram"</span>
+      </div>
+      <p class="arc-image-caption">Workflow sản xuất — từ prompt trên Discord đến upscale và chỉnh hoàn thiện</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>So sánh với phần mềm tương tự</h2>
+  <p>Hai công cụ text-to-image hay được đặt cạnh Midjourney là <strong>DALL-E</strong> (OpenAI, tích hợp ChatGPT) và <strong>Stable Diffusion</strong> (mã nguồn mở, chạy local hoặc cloud). Không có công cụ «đúng duy nhất» — tùy ngân sách, cần kiểm soát model và mục đích thương mại hay học tập.</p>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Midjourney vs DALL-E</h3>
+    <p>Midjourney nổi tiếng với <strong>aesthetic cinematic và painterly</strong> — nhiều artist chọn khi cần visual «đẹp ngay» cho concept art, mood board và illustration. DALL-E 3 thân thiện hơn qua ChatGPT (không bắt buộc Discord), hiểu prompt dài bằng tiếng Việt tốt và xử lý <strong>chữ trên poster</strong> thường ổn định hơn; Midjourney mạnh hơn về chất «nghệ thuật» và cộng đồng chia sẻ prompt trên Discord.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Midjourney cinematic fantasy landscape concept art aesthetic"</span>
+        </div>
+        <p class="arc-image-caption">Midjourney — aesthetic mạnh, phù hợp concept art và mood board</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"OpenAI DALL-E 3 ChatGPT image generation poster text example"</span>
+        </div>
+        <p class="arc-image-caption">DALL-E 3 — giao diện ChatGPT quen thuộc, prompt và chữ trên ảnh tốt</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Midjourney mạnh hơn:</strong> chất hình «đẹp ngay», cinematic lighting, cộng đồng prompt lớn, style reference mạnh cho concept art.<br>
+      <strong>DALL-E mạnh hơn:</strong> tích hợp ChatGPT (viết prompt tự nhiên), typography trên poster, API cho developer, không cần Discord.<br>
+      <strong>Chọn Midjourney khi:</strong> ưu tiên visual nghệ thuật, làm mood board, concept game/phim, chấp nhận học Discord.<br>
+      <strong>Chọn DALL-E khi:</strong> đã dùng ChatGPT Plus, cần poster có chữ, hoặc muốn workflow đơn giản trên một nền tảng.</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">Midjourney vs Stable Diffusion</h3>
+    <p><strong>Stable Diffusion</strong> (SDXL, SD 3, Flux…) là mã nguồn mở — chạy trên máy cá nhân (ComfyUI, Automatic1111) hoặc dịch vụ cloud, cho phép cài <strong>LoRA, ControlNet, custom checkpoint</strong> với mức kiểm soát cao. Midjourney là dịch vụ đóng gói trên cloud: ít tinh chỉnh kỹ thuật hơn nhưng chất mặc định cao và không cần GPU mạnh tại nhà.</p>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Midjourney v7 portrait illustration professional quality"</span>
+        </div>
+        <p class="arc-image-caption">Midjourney — kết quả đẹp nhanh, ít cấu hình phần cứng</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Stable Diffusion ComfyUI ControlNet workflow local GPU"</span>
+        </div>
+        <p class="arc-image-caption">Stable Diffusion — workflow node, LoRA và ControlNet cho kiểm soát sâu</p>
+      </div>
+    </div>
+
+    <div class="arc-infobox">
+      <span class="arc-infobox-label">Điểm mạnh và yếu so sánh</span>
+      <p><strong>Midjourney mạnh hơn:</strong> chất lượng mặc định cao, không cần GPU, onboarding nhanh qua Discord/web.<br>
+      <strong>Stable Diffusion mạnh hơn:</strong> miễn phí (self-host), custom model/LoRA, ControlNet (pose, depth, canny), batch không giới hạn tùy phần cứng.<br>
+      <strong>Chọn Midjourney khi:</strong> máy yếu, cần kết quả đẹp nhanh, làm concept cá nhân hoặc nhóm nhỏ.<br>
+      <strong>Chọn Stable Diffusion khi:</strong> có GPU, muốn học kỹ thuật diffusion, train LoRA nhân vật/style riêng, hoặc cần pipeline tự động hóa.</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Học Midjourney như thế nào?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Tạo tài khoản và làm quen Discord hoặc web</strong>
+        <p>Tuần đầu: đăng ký midjourney.com, chọn gói phù hợp (hoặc dùng trial nếu có), tham gia server Discord chính thức hoặc dùng giao diện web. Học lệnh <strong>/imagine</strong>, đọc lưới 4 ảnh, bấm U (upscale) và V (variation). Mục tiêu là generate được 10–20 ảnh «nhìn được» trước khi học tham số nâng cao — nhiều bạn THPT bỏ cuộc sớm vì chưa hiểu Fast/Relax mode hoặc hết quota.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Viết prompt có cấu trúc và thử --ar, --stylize</strong>
+        <p>Luyện prompt theo công thức subject + setting + style + lighting + camera. Thử --ar 16:9 cho banner, 1:1 cho avatar, --stylize thấp cho realistic và cao cho artistic. Sao chép prompt hay trên Discord, chỉnh từ khóa và so sánh kết quả — cách học hiệu quả nhất là iteration có ghi chú.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Style reference và vary region</strong>
+        <p>Chọn một ảnh bạn thích làm --sref cho dự án poster trường hoặc mood board phim ngắn. Dùng Vary Region sửa lỗi tay, đổi màu áo hoặc thêm chi tiết nền. Mục tiêu: hoàn thiện 3–5 ảnh cùng tone màu cho một chủ đề (ví dụ «CLB Robotics», «sách và cà phê»).</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Kết hợp Photoshop hoặc Figma hoàn thiện</strong>
+        <p>Export PNG upscale → chỉnh crop, thêm text thật trong Figma/Canva (Midjourney chữ dài vẫn hạn chế), hoặc retouch nhẹ trong Photoshop. Học cách ghi «AI-generated, edited in …» trong portfolio nếu trường yêu cầu minh bạch — kỹ năng đạo đức số quan trọng không kém kỹ thuật.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Dự án capstone: mood board hoặc concept art bộ</strong>
+        <p>Chọn một hướng: mood board 12 ảnh cho short film học đường; concept 4 nhân vật game 2D; bộ poster sự kiện 3 mùa. Dùng cref giữ nhân vật nếu cần. Giai đoạn này dạy brief, iteration theo phản hồi giáo viên và deadline — giống quy trình sản xuất thật.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Portfolio, so sánh công cụ và định hướng nghề</strong>
+        <p>Tổng hợp 8–12 work có ghi chú prompt và workflow. Thử DALL-E hoặc Stable Diffusion trên cùng brief để hiểu trade-off. Tìm hiểu nghề concept artist, marketing visual, UI illustration — nhiều studio tuyển junior dựa portfolio và AI literacy hơn chứng chỉ. Tham gia cộng đồng Discord Việt Nam hoặc Behance để nhận feedback.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

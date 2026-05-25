@@ -1,3 +1,5 @@
+import { getCfAccountHash } from "@/lib/cloudflare/account-hash";
+
 /**
  * Ảnh bìa Cloudflare Images — brief: imagedelivery.net/{account}/{cover_id}/public
  */
@@ -6,7 +8,7 @@ export function getCoverUrl(
   variant = "public",
 ): string | null {
   if (!coverId?.trim()) return null;
-  const hash = process.env.NEXT_PUBLIC_CF_IMAGES_ACCOUNT_HASH?.trim();
+  const hash = getCfAccountHash();
   if (!hash) return null;
-  return `https://imagedelivery.net/${hash}/${coverId}/${variant}`;
+  return `https://imagedelivery.net/${hash}/${coverId.trim()}/${variant}`;
 }

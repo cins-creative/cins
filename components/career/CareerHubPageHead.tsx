@@ -1,11 +1,13 @@
 import Link from "next/link";
 
+import { NGANH_HOC_HUB_PATH, NGHE_NGHIEP_HUB_PATH } from "@/lib/cins/hubPaths";
 import type { LinhVucRow } from "@/lib/career/types";
 
 type TabKey = "nghe" | "nganh-hoc";
 
 type Props = {
   tab: TabKey;
+  hubBase?: string;
   activeLinhVuc: LinhVucRow | null;
   activeSlug: string;
   searchQuery: string;
@@ -20,6 +22,7 @@ function linhLabel(lv: LinhVucRow | null): string {
 
 export function CareerHubPageHead({
   tab,
+  hubBase = "/nghe-nghiep",
   activeLinhVuc,
   activeSlug,
   searchQuery,
@@ -30,13 +33,15 @@ export function CareerHubPageHead({
     tab === "nganh-hoc"
       ? (activeNhomLabel?.trim() || "Ngành học")
       : linhLabel(activeLinhVuc);
+  const searchAction =
+    tab === "nganh-hoc" ? NGANH_HOC_HUB_PATH : NGHE_NGHIEP_HUB_PATH;
 
   return (
     <div className="hn-page-head">
       <div className="hn-page-head-inner">
         <div className="hn-head-row">
           <nav className="hn-crumbs" aria-label="Breadcrumb">
-            <Link href="/nghe-nghiep">Hướng nghiệp</Link>
+            <Link href={NGHE_NGHIEP_HUB_PATH}>Hướng nghiệp</Link>
             <span className="hn-crumbs-sep" aria-hidden>
               ›
             </span>
@@ -44,21 +49,16 @@ export function CareerHubPageHead({
           </nav>
 
           <form
-            action="/nghe-nghiep"
+            action={searchAction}
             method="get"
             className="hn-head-search"
             role="search"
           >
-            {tab === "nganh-hoc" ? (
-              <>
-                <input type="hidden" name="tab" value="nganh-hoc" />
-                {activeNhomId ? (
-                  <input type="hidden" name="nhom" value={activeNhomId} />
-                ) : null}
-              </>
-            ) : (
+            {tab === "nganh-hoc" && activeNhomId ? (
+              <input type="hidden" name="nhom" value={activeNhomId} />
+            ) : tab === "nghe" ? (
               <input type="hidden" name="linh_vuc" value={activeSlug} />
-            )}
+            ) : null}
             <svg
               viewBox="0 0 24 24"
               stroke="currentColor"

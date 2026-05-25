@@ -1,3 +1,6 @@
+"use client";
+
+import { useCareerHubStaticTooltip } from "@/components/career/CareerHubCardLink";
 import { linhVucLabelForHubItem } from "@/lib/career/articleNhomHub";
 import type { NgheNghiepHubItem } from "@/lib/career/types";
 
@@ -31,13 +34,16 @@ type Props = {
 /** Tiêu đề EN + tên VI (hiện khi hover thẻ). */
 export function CareerHubCardLabels({
   career,
-  showStaticTooltip = false,
+  showStaticTooltip,
   showLinhVuc = false,
 }: Props) {
+  const staticFromLink = useCareerHubStaticTooltip();
+  const useStaticTooltip = showStaticTooltip ?? staticFromLink;
+
   const eng = primaryTitle(career);
   const vi = vietSubtitle(career, eng);
   const lvLabel = showLinhVuc ? linhVucLabelForHubItem(career) : null;
-  const tooltip = showStaticTooltip
+  const tooltip = useStaticTooltip
     ? careerHubTooltipText(career.short_description)
     : null;
 
