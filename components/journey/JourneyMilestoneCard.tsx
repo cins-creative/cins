@@ -167,6 +167,7 @@ export function JourneyMilestoneCard({
       className={milestoneCls}
       data-mid={milestone.id}
       data-group={type}
+      data-post-slug={postSlug ?? undefined}
     >
       <div className="j-m-month">
         <span className="j-month-text">

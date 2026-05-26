@@ -102,6 +102,14 @@
   background: transparent;
   min-height: 0;
   position: relative;
+  /* Flex để rail (`<aside.post-rail>`) ngồi ngang hàng với canvas — rail
+     dùng `position: sticky` cần ở normal flow. `row-reverse` để rail (DOM
+     đầu tiên) hiển thị BÊN PHẢI canvas. */
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: flex-start;
+  justify-content: center;
+  column-gap: 24px;
 }
 
 /* Background của page có rồi → editor-canvas trong post-view không
@@ -112,15 +120,21 @@
   box-shadow: var(--shadow-lg, 0 14px 32px rgba(15, 23, 42, 0.10));
   padding: 36px 56px 48px;
   max-width: 880px;
-  margin: 0 auto;
+  /* Trong flex layout dùng justify-content: center ở parent thay cho
+     `margin: 0 auto`. `min-width: 0` cho phép shrink khi sheet hẹp. */
+  margin: 0;
+  flex: 0 1 880px;
+  min-width: 0;
   overflow: hidden;
 }
 
-/* Cover read-only: 320px như editor (`.cover-add.has`), full-bleed
-   (negative margin) để chạm mép canvas. */
+/* Cover read-only: 320px như editor (`.cover-add.has`), full-bleed để chạm
+   mép canvas. Negative margin chỉ dời vị trí — phải set width để thực sự
+   rộng bằng border-box của canvas (content width + padding hai bên). */
 .cins-post-view .cover-add.cover-readonly {
   cursor: default;
   margin: -36px -56px 28px;
+  width: calc(100% + 112px); /* 56px padding × 2 */
   border-radius: 0;
   border: none;
   height: 320px;
@@ -220,6 +234,20 @@
   padding: 3px 9px;
   border-radius: 999px;
   background: var(--neutral-100, #f1f2f5);
+}
+/* Loại cột mốc (▦ Cá nhân …) — neutral pill, ngồi cạnh visibility chip. */
+.cins-post-view .post-byline-type {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-title);
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--neutral-100, #f1f2f5);
+  border: 1px solid var(--border);
+  letter-spacing: 0.1px;
 }
 
 /* "Nổi bật" — đồng bộ với chip trên milestone card (gold gradient). */
@@ -558,20 +586,20 @@
    trang permalink: visibility nhất quán và không bị che bởi cuộn nội
    dung dài. Modal có z-index cao hơn nội dung của nó. */
 .post-rail {
-  position: fixed;
-  top: 50%;
-  right: 28px;
-  transform: translateY(-50%);
+  position: sticky;
+  top: 100px; /* dán vào đỉnh viewport khi cuộn qua, chừa khoảng cho topbar */
+  align-self: flex-start;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  z-index: 30;
+  flex: 0 0 56px;
+  z-index: 5;
 }
 
-/* Trong modal — overlay đã có z-index 9000 → rail phải cao hơn để
-   nổi lên trên backdrop của portal. */
+/* Trong modal — overlay đã có z-index 9000. Rail nằm trong stacking context
+   của overlay nên không cần > 9000; chỉ cần cao hơn block content xung quanh. */
 .j-post-sheet .post-rail {
-  z-index: 9010;
+  z-index: 10;
 }
 
 .post-rail-btn {
@@ -711,7 +739,7 @@
 
 @media (max-width: 1100px) {
   .post-rail {
-    right: 12px;
+    flex: 0 0 48px;
   }
   .post-rail-btn {
     width: 48px;
@@ -723,12 +751,20 @@
   .j-post-page {
     padding: 12px 8px 60px;
   }
+  /* Mobile: bỏ flex layout — canvas chiếm full width, rail chuyển thành
+     bottom bar `position: fixed`. */
+  .cins-post-view {
+    display: block;
+  }
   .cins-post-view .editor-canvas.post-canvas {
     padding: 20px 18px 32px;
     border-radius: 16px;
+    margin: 0 auto;
+    flex: none;
   }
   .cins-post-view .cover-add.cover-readonly {
     margin: -20px -18px 18px;
+    width: calc(100% + 36px); /* 18px padding × 2 */
     height: 200px;
   }
   .cins-post-view .title-in.title-ro {
@@ -738,7 +774,9 @@
     font-size: 16px;
   }
   .post-rail {
+    position: fixed; /* override sticky cho bottom bar */
     flex-direction: row;
+    flex: none;
     top: auto;
     bottom: 0;
     left: 0;
@@ -748,7 +786,10 @@
     border-top: 1px solid var(--border);
     padding: 8px;
     justify-content: space-around;
-    transform: none;
+    z-index: 30;
+  }
+  .j-post-sheet .post-rail {
+    z-index: 9010;
   }
   .post-rail-share {
     bottom: calc(100% + 12px);

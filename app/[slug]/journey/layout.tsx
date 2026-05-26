@@ -21,8 +21,24 @@ const anton = Anton({
   display: "swap",
 });
 
+/**
+ * Parallel route slot `@modal` — nhận intercepted route khi user click cột
+ * mốc trên journey để mở modal bài viết. URL update sang `/[slug]/p/...`
+ * nhưng journey page (children) vẫn render bên dưới. Vào thẳng URL bài viết
+ * KHÔNG đi qua intercepted route → fall back về `app/[slug]/p/[postSlug]/
+ * page.tsx` standalone.
+ */
 export default function JourneyLayout({
   children,
-}: Readonly<{ children: React.ReactNode }>) {
-  return <div className={anton.variable}>{children}</div>;
+  modal,
+}: Readonly<{
+  children: React.ReactNode;
+  modal: React.ReactNode;
+}>) {
+  return (
+    <div className={anton.variable}>
+      {children}
+      {modal}
+    </div>
+  );
 }

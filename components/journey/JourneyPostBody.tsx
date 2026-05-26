@@ -22,7 +22,6 @@ import {
 import {
   PostBlocksRenderer,
   PostCover,
-  PostTagChips,
 } from "@/components/editor/PostRenderer";
 
 import { PostActionsRail } from "./PostActionsRail";
@@ -166,6 +165,13 @@ export function JourneyPostBody({
             ·
           </span>
           <span
+            className="post-byline-type"
+            aria-label={`Loại cột mốc: ${typeLabel}`}
+          >
+            <span aria-hidden>▦</span>
+            <span>{typeLabel}</span>
+          </span>
+          <span
             className={`post-byline-vis post-byline-vis--${milestone.cheDoHienThi}`}
             aria-label={vis.text}
           >
@@ -193,8 +199,6 @@ export function JourneyPostBody({
             </Link>
           ) : null}
         </div>
-
-        <PostTagChips loaiMocLabel={typeLabel} tags={[]} />
 
         {blocks && blocks.length > 0 ? (
           <PostBlocksRenderer blocks={blocks} />

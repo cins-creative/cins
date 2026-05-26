@@ -2,6 +2,7 @@
 
 import { ArrowRight, Plus } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { JourneyPostModal } from "@/components/journey/JourneyPostModal";
@@ -46,7 +47,12 @@ export function JourneyTimeline({
   milestones,
   filterVisibility,
 }: Props) {
+  const router = useRouter();
   const [filter, setFilter] = useState<FilterGroup>("all");
+  /* Fallback modal state — chỉ kích hoạt cho cột mốc CHƯA có post (postSlug
+     null). Cột mốc có postSlug → navigate URL `/{ownerSlug}/p/{postSlug}` để
+     intercepted route hiển thị modal đè trên journey (URL update + share-able
+     + browser-back hoạt động tự nhiên). */
   const [openMilestoneId, setOpenMilestoneId] = useState<string | null>(null);
   const rootRef = useRef<HTMLElement>(null);
 
@@ -63,11 +69,21 @@ export function JourneyTimeline({
       if (!article || !el.contains(article)) return;
       const mid = article.getAttribute("data-mid");
       if (!mid) return;
+
+      const postSlug = article.getAttribute("data-post-slug");
+      if (postSlug) {
+        /* Có post slug → navigate URL. Next.js intercept (vì đang ở
+           `/[slug]/journey`) → render `@modal/(..)p/[postSlug]/page.tsx`
+           ở slot modal, journey vẫn live ở dưới. */
+        router.push(`/${ownerSlug}/p/${postSlug}`);
+        return;
+      }
+      /* Không có post slug → fallback modal cũ (load by milestoneId). */
       setOpenMilestoneId(mid);
     };
     el.addEventListener("click", onClick);
     return () => el.removeEventListener("click", onClick);
-  }, []);
+  }, [router, ownerSlug]);
 
   const handleClose = useCallback(() => setOpenMilestoneId(null), []);
 

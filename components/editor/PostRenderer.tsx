@@ -56,27 +56,6 @@ function classifyEmbed(rawUrl: string): {
 
 type ImgLayout = "full" | "boxed" | "duo" | "trio" | "grid4" | "mosaic";
 
-/* ─── Tag chips (chỉ render — không chỉnh sửa) ─────────────────── */
-
-export function PostTagChips({
-  loaiMocLabel,
-  tags,
-}: {
-  loaiMocLabel: string;
-  tags: ReadonlyArray<string>;
-}) {
-  return (
-    <div className="meta-chips">
-      <span className="meta-chip">▦ {loaiMocLabel}</span>
-      {tags.map((t) => (
-        <span key={t} className="meta-chip">
-          # {t}
-        </span>
-      ))}
-    </div>
-  );
-}
-
 /* ─── Cover image (read-only) ──────────────────────────────────── */
 
 export function PostCover({ seed }: { seed: string | null | undefined }) {
