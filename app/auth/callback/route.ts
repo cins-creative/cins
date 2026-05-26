@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 import { isCinsAdminEmail } from "@/lib/auth/cins-admin";
@@ -8,6 +9,21 @@ export const dynamic = "force-dynamic";
 type Intent = "register" | "login";
 function parseIntent(raw: string | null): Intent {
   return raw === "register" ? "register" : "login";
+}
+
+/**
+ * Tìm cookie PKCE code-verifier mà `@supabase/ssr` browser client viết khi
+ * `signInWithOAuth` chạy. Tên cookie có dạng `sb-<projectref>-auth-token-code-verifier`,
+ * có thể bị chunk (`.0`, `.1`).
+ */
+async function hasVerifierCookie(): Promise<boolean> {
+  const store = await cookies();
+  return store
+    .getAll()
+    .some(
+      (c) =>
+        c.name.startsWith("sb-") && c.name.includes("auth-token-code-verifier"),
+    );
 }
 
 /**
@@ -32,6 +48,19 @@ export async function GET(request: Request) {
   }
   if (!code) {
     loginUrl.searchParams.set("error", "Thiếu mã xác thực từ Google.");
+    return NextResponse.redirect(loginUrl);
+  }
+
+  /* Kiểm tra verifier cookie tồn tại trước khi gọi exchangeCodeForSession.
+     Nếu thiếu → user (1) bắt đầu OAuth ở domain khác, (2) Supabase fallback Site URL
+     do redirect URL không match allow-list, hoặc (3) browser xóa cookie giữa chừng. */
+  if (!(await hasVerifierCookie())) {
+    loginUrl.searchParams.set(
+      "error",
+      "Phiên đăng nhập không tìm thấy mã xác minh PKCE trên trình duyệt. " +
+        "Hãy chắc rằng URL hiện tại nằm trong Supabase → Authentication → URL Configuration → Redirect URLs, " +
+        "rồi xóa cookie và thử lại trong cửa sổ ẩn danh.",
+    );
     return NextResponse.redirect(loginUrl);
   }
 
