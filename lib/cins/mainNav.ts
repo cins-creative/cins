@@ -7,6 +7,7 @@ export type MainNavIcon =
   | "business"
   | "events"
   | "blog"
+  | "profile"
   | "help"
   | "settings";
 

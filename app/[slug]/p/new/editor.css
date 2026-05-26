@@ -219,11 +219,19 @@
   line-height: 1.4;
 }
 
-/* ──── EDITOR CANVAS ──── */
+/* ──── EDITOR CANVAS ────
+   Card styling matching `.cins-post-view .editor-canvas.post-canvas` để
+   trang edit/new trông cùng "vóc dáng" với trang xem bài (white card,
+   shadow, padding 36px 56px). Page background neutral phía sau làm card
+   nổi rõ. */
 .cins-editor-page .editor-canvas {
   max-width: 880px;
-  margin: 0 auto;
-  padding: 32px 24px 160px;
+  margin: 32px auto 64px;
+  padding: 36px 56px 96px;
+  background: var(--bg-surface, #ffffff);
+  border-radius: 24px;
+  box-shadow: var(--shadow-lg, 0 14px 32px rgba(15, 23, 42, 0.10));
+  overflow: hidden;
 }
 
 /* Cover — full-bleed bên trong canvas (chiếm hết chiều ngang trừ
@@ -263,7 +271,13 @@
   overflow: hidden;
   height: 320px;
   position: relative;
-  border-radius: var(--radius-lg);
+  /* Full-bleed bên trong canvas card — chạm 4 mép card. Negative margin chỉ
+     dời vị trí, cần `width: calc(100% + 112px)` (= 56px padding × 2) để cover
+     thực sự rộng bằng border-box của canvas. Border-radius 0 vì card đã
+     `overflow: hidden` (canvas tự clip góc). */
+  margin: -36px -56px 28px;
+  width: calc(100% + 112px);
+  border-radius: 0;
   cursor: default;
 }
 .cins-editor-page .cover-add.has img {
@@ -348,6 +362,7 @@
 
 /* Tag chips */
 .cins-editor-page .meta-chips {
+  position: relative; /* anchor cho .tag-picker dropdown */
   display: flex;
   gap: 7px;
   flex-wrap: wrap;
@@ -374,10 +389,159 @@
   background: var(--bg-surface);
   color: var(--ink-muted);
   border: 1px dashed var(--border-strong);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
 }
-.cins-editor-page .meta-chip.add:hover {
+.cins-editor-page .meta-chip.add:hover,
+.cins-editor-page .meta-chip.add.open {
   color: var(--cins-blue);
   border-color: var(--cins-blue);
+}
+
+/* Tag chip = bài viết đã gắn — pill 2 phần (loại + tên) + nút x */
+.cins-editor-page .meta-chip.meta-chip-tag {
+  padding: 0 4px 0 0;
+  background: var(--cins-blue-soft);
+  color: var(--cins-blue-dark);
+  font-weight: 500;
+  max-width: 320px;
+}
+.cins-editor-page .meta-chip-loai {
+  display: inline-flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 10px;
+  border-radius: var(--radius-pill) 0 0 var(--radius-pill);
+  background: var(--cins-blue);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+  flex: 0 0 auto;
+}
+.cins-editor-page .meta-chip-name {
+  padding: 0 6px 0 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.cins-editor-page .meta-chip-x {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--cins-blue-dark);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.cins-editor-page .meta-chip-x:hover {
+  background: rgba(220, 38, 38, 0.12);
+  color: rgb(185, 28, 28);
+}
+
+/* Dropdown tag picker — neo dưới `.meta-chips`, full-width 360px */
+.cins-editor-page .tag-picker {
+  position: absolute;
+  top: calc(100% - 12px);
+  left: 0;
+  z-index: 30;
+  width: 360px;
+  max-width: 100%;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg, 14px);
+  box-shadow: var(--shadow-lg, 0 16px 36px rgba(15, 23, 42, 0.14));
+  overflow: hidden;
+}
+.cins-editor-page .tag-picker-head {
+  padding: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.cins-editor-page .tag-picker-input {
+  width: 100%;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  font-family: inherit;
+  font-size: 13.5px;
+  color: var(--ink-body);
+  outline: none;
+  transition: border-color 140ms var(--ed-ease);
+}
+.cins-editor-page .tag-picker-input:focus {
+  border-color: var(--cins-blue);
+}
+.cins-editor-page .tag-picker-list {
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.cins-editor-page .tag-picker-empty {
+  padding: 22px 12px;
+  text-align: center;
+  color: var(--ink-muted);
+  font-size: 13px;
+}
+.cins-editor-page .tag-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  background: transparent;
+  border: none;
+  font-family: inherit;
+  font-size: 13.5px;
+  color: var(--ink-body);
+  text-align: left;
+  cursor: pointer;
+  transition: background 120ms var(--ed-ease);
+}
+.cins-editor-page .tag-picker-item:hover:not(:disabled) {
+  background: var(--cins-blue-soft);
+}
+.cins-editor-page .tag-picker-item.picked,
+.cins-editor-page .tag-picker-item:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+.cins-editor-page .tag-picker-loai {
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--cins-blue);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+.cins-editor-page .tag-picker-name {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cins-editor-page .tag-picker-check {
+  flex: 0 0 auto;
+  color: var(--cins-blue);
+  font-weight: 700;
 }
 
 /* ──── BLOCKS ──── */

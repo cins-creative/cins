@@ -10,6 +10,7 @@ import {
   type LucideIcon,
   Newspaper,
   Settings,
+  UserCircle,
 } from "lucide-react";
 
 import type { MainNavIcon } from "@/lib/cins/mainNav";
@@ -31,6 +32,7 @@ const ICON_MAP: Record<MainNavIcon, LucideIcon> = {
   business: Briefcase,
   events: Calendar,
   blog: Newspaper,
+  profile: UserCircle,
   help: HelpCircle,
   settings: Settings,
 };

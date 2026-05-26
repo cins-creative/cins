@@ -97,7 +97,7 @@ export type MilestoneItem = {
 
   /**
    * Slug của bài viết (`content_tac_pham.slug`) liên kết — dùng để dựng URL
-   * `/{ownerSlug}/p/{postSlug}/sua` cho menu owner "Sửa bài viết".
+   * `/{ownerSlug}/p/{postSlug}/edit` cho menu owner "Sửa bài viết".
    * Có thể null khi cột mốc chưa có tác phẩm gắn vào.
    */
   postSlug?: string | null;

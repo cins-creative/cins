@@ -132,7 +132,7 @@ export async function fetchMilestonesForUser(params: {
     const day = dateObj.getUTCDate();
 
     /* `postSlug` lấy từ tác phẩm đầu tiên (thu_tu = 0). Dùng để menu owner
-       wire link "Sửa bài viết" → `/{slug}/p/{postSlug}/sua`. */
+       wire link "Sửa bài viết" → `/{slug}/p/{postSlug}/edit`. */
     const firstPost = tps[0]?.content_tac_pham ?? null;
     const firstPostSlug = firstPost?.slug ?? null;
     const noiDungBlocks = parseServerBlocks(firstPost?.noi_dung_blocks);

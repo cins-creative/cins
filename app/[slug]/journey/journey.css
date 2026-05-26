@@ -992,20 +992,18 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
 .j-type-ca-nhan   { background: var(--neutral-100);      color: var(--ink-title); }
 .j-type-bookmark  { background: var(--j-bookmark-soft);  color: var(--j-bookmark-ink); }
 
-/* "Cá nhân" badge — biến thể "user identity": avatar 18px + tên hiển thị,
-   bo viền nhẹ để phân biệt với các type badge text-only. Ưu tiên dùng khi
-   author info có sẵn (xem JourneyMilestoneCard). */
+/* "Cá nhân" badge — biến thể "user identity": avatar tròn + tên hiển thị,
+   không viền (avatar đã đủ làm focal point). Ưu tiên dùng khi author info
+   có sẵn (xem JourneyMilestoneCard). */
 .j-type-badge.j-type-badge-user {
-  gap: 6px;
-  padding: 3px 10px 3px 3px;
+  gap: 8px;
+  padding: 2px 12px 2px 2px;
   background: var(--bg-surface, #fff);
   color: var(--ink-strong, #0f172a);
-  border: 1px solid var(--border-soft, #e5e7eb);
-  box-shadow: 0 1px 1px rgba(15, 23, 42, 0.04);
 }
 .j-type-badge-ava {
-  width: 20px;
-  height: 20px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   overflow: hidden;
   background: var(--cins-blue-soft, #dbeafe);
@@ -1013,7 +1011,7 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: var(--weight-bold, 700);
   flex: 0 0 auto;
 }
@@ -3158,10 +3156,14 @@ select.j-edit-input {
   position: absolute;
   inset: 0;
   background: rgba(15, 23, 42, 0.46);
+  /* `closest-side` để vòng transparent chạm 4 cạnh của frame (inscribed
+     circle) — match với `.ja-frame-ring` (border-radius 50% trên ô vuông).
+     Mặc định `farthest-corner` sẽ co tròn nhỏ hơn cạnh ô, gây hiểu lầm
+     vùng crop hẹp hơn frame. */
   -webkit-mask:
-    radial-gradient(circle at center, transparent 49.5%, #000 50%);
+    radial-gradient(circle closest-side at center, transparent 99%, #000 100%);
           mask:
-    radial-gradient(circle at center, transparent 49.5%, #000 50%);
+    radial-gradient(circle closest-side at center, transparent 99%, #000 100%);
   pointer-events: none;
 }
 .ja-frame-ring {

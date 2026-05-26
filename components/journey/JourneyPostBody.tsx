@@ -94,7 +94,7 @@ export function JourneyPostBody({
     .toUpperCase();
 
   const editHref =
-    isOwner && postSlug ? `/${owner.slug}/p/${postSlug}/sua` : null;
+    isOwner && postSlug ? `/${owner.slug}/p/${postSlug}/edit` : null;
   const permalinkHref =
     !hideOpenLink && postSlug ? `/${owner.slug}/p/${postSlug}` : null;
 

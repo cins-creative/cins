@@ -7,7 +7,7 @@ import "./post-page.css";
 
 /**
  * Layout chung cho `/[slug]/p/[postSlug]` (xem bài viết riêng) và
- * `/[slug]/p/[postSlug]/sua` (chỉnh sửa).
+ * `/[slug]/p/[postSlug]/edit` (chỉnh sửa).
  *
  * Mọi child route đều cần Anton font (--font-j-anton) cùng với
  * `journey.css` (cho `.j-ps-*` styles) và `article-rich-content.css`

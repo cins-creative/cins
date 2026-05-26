@@ -42,7 +42,7 @@ function isBypassedPath(pathname: string): boolean {
  *   - `/onboarding` (full-page welcome cho user mới — điền ten_hien_thi/slug/giai_doan)
  *   - `/admin`, `/admin/*` (panel)
  *   - `/{slug}/journey`, `/{slug}/journey/*` (owner journey + viewer)
- *   - `/{slug}/p/new`, `/{slug}/p/[slug]/sua` (trình tạo / sửa bài viết)
+ *   - `/{slug}/p/new`, `/{slug}/p/[slug]/edit` (trình tạo / sửa bài viết)
  *
  * Khi có session → cho qua (bỏ qua maintenance). Khi không → redirect /login.
  */
@@ -56,9 +56,9 @@ function isProtectedPath(pathname: string): boolean {
   const journeyMatch = pathname.match(/^\/([^/]+)\/journey(?:\/|$)/);
   if (journeyMatch && !journeyMatch[1].startsWith("_")) return true;
 
-  /* Trình tạo / sửa bài: `/{slug}/p/new` hoặc `/{slug}/p/{postSlug}/sua`. */
+  /* Trình tạo / sửa bài: `/{slug}/p/new` hoặc `/{slug}/p/{postSlug}/edit`. */
   const postEditorMatch = pathname.match(
-    /^\/([^/]+)\/p\/(new|[^/]+\/sua)(?:\/|$)/,
+    /^\/([^/]+)\/p\/(new|[^/]+\/edit)(?:\/|$)/,
   );
   if (postEditorMatch && !postEditorMatch[1].startsWith("_")) return true;
 

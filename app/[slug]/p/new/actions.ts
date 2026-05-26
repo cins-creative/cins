@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
+import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import { uniquePostSlugForUser, slugifyPostTitle } from "@/lib/editor/post-slug";
 import { blocksToHtml, deriveMoTaFallback } from "@/lib/editor/sanitize";
 import {
@@ -36,7 +37,9 @@ export type PublishPostInput = {
   tieuDe: string;
   moTa: string;
   coverSeed: string | null;
-  tags: string[];
+  /** Tag = `article_bai_viet` user chọn trong dropdown editor → persist
+   *  qua `article_gan_tac_pham` sau khi insert tác phẩm. */
+  tags: ArticleTagRef[];
   visibility: Visibility;
   loaiMoc: LoaiMoc;
   thoiDiem: string; // ISO date `YYYY-MM-DD`
@@ -200,6 +203,33 @@ export async function publishPost(
     return { ok: false, error: dbErrorMessage(linkErr) };
   }
 
+  /* 5b. Persist tags → `article_gan_tac_pham` (junction). Failure ở đây
+     KHÔNG rollback bài viết — best-effort, user sẽ thấy bài đăng OK nhưng
+     tag không hiện ra trong gallery của bài tag tương ứng. Log để debug
+     khi cần. */
+  const tagIds = sanitizeTagIds(input.tags);
+  if (tagIds.length > 0) {
+    const rows = tagIds.map((id_bai_viet) => ({
+      id_bai_viet,
+      id_tac_pham: tacPham.id,
+    }));
+    const { error: tagErr } = await admin
+      .from("article_gan_tac_pham")
+      .insert(rows);
+    if (tagErr) {
+      console.error("[publishPost] tag persist failed", tagErr);
+    } else {
+      /* Revalidate trang article được tag để gallery cộng đồng cập nhật
+         ngay (ví dụ /nghe-nghiep/{slug}). Có thể spam đôi chút khi user
+         tag nhiều bài; ổn vì revalidatePath là idempotent. */
+      const tagSlugs = sanitizeTagSlugs(input.tags);
+      for (const slugTag of tagSlugs) {
+        revalidatePath(`/bai-viet/${slugTag}`);
+        revalidatePath(`/nghe-nghiep/${slugTag}`);
+      }
+    }
+  }
+
   /* 6. Revalidate journey để CTA / timeline thấy bài mới. */
   revalidatePath(`/${session.profile.slug}/journey`);
 
@@ -267,6 +297,35 @@ function normalizeBlocks(raw: unknown): Block[] | null {
       config,
     });
     i += 1;
+  }
+  return out;
+}
+
+/** Lấy mảng id duy nhất từ `tags` input — drop empty / non-uuid-ish. */
+function sanitizeTagIds(tags: unknown): string[] {
+  if (!Array.isArray(tags)) return [];
+  const seen = new Set<string>();
+  for (const t of tags) {
+    if (!t || typeof t !== "object") continue;
+    const id = (t as { id?: unknown }).id;
+    if (typeof id !== "string") continue;
+    const trimmed = id.trim();
+    if (!trimmed) continue;
+    seen.add(trimmed);
+  }
+  return Array.from(seen);
+}
+
+/** Slug để revalidate route bài viết được tag. */
+function sanitizeTagSlugs(tags: unknown): string[] {
+  if (!Array.isArray(tags)) return [];
+  const out: string[] = [];
+  for (const t of tags) {
+    if (!t || typeof t !== "object") continue;
+    const slug = (t as { slug?: unknown }).slug;
+    if (typeof slug !== "string") continue;
+    const trimmed = slug.trim();
+    if (trimmed) out.push(trimmed);
   }
   return out;
 }

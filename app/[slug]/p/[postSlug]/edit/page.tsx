@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { EditorView, type EditorInitial } from "@/components/editor/EditorView";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
+import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import type {
   Block,
   LoaiMoc,
@@ -54,7 +55,7 @@ type CotMocRow = {
 };
 
 /**
- * Trình chỉnh sửa bài viết — `/[slug]/p/[postSlug]/sua`.
+ * Trình chỉnh sửa bài viết — `/[slug]/p/[postSlug]/edit`.
  *
  * Owner-only: load `content_tac_pham` theo `(slug, id_nguoi_dung)`, kèm
  * `content_cot_moc` đầu tiên qua `content_tac_pham_thuoc_moc` (thu_tu ASC).
@@ -70,7 +71,7 @@ export default async function EditPostPage({
   const session = await getCurrentSessionAndProfile();
   if (!session) {
     redirect(
-      `/login?next=${encodeURIComponent(`/${slug}/p/${postSlug}/sua`)}`,
+      `/login?next=${encodeURIComponent(`/${slug}/p/${postSlug}/edit`)}`,
     );
   }
 
@@ -119,7 +120,34 @@ export default async function EditPostPage({
   if (cmErr || !cm) notFound();
   if (cm.id_nguoi_dung !== owner.id) notFound();
 
-  /* 4. Build EditorInitial. */
+  /* 4. Tags = `article_bai_viet` đã gắn qua `article_gan_tac_pham`.
+     Embed `article_bai_viet(...)` để 1 round-trip có đủ id/slug/tieu_de
+     /loai_bai_viet, đỡ phải in() lần 2. */
+  const { data: tagRows } = await admin
+    .from("article_gan_tac_pham")
+    .select("article_bai_viet ( id, slug, tieu_de, loai_bai_viet )")
+    .eq("id_tac_pham", tp.id);
+
+  const tags: ArticleTagRef[] = [];
+  for (const row of (tagRows ?? []) as Array<{
+    article_bai_viet?: {
+      id?: string | null;
+      slug?: string | null;
+      tieu_de?: string | null;
+      loai_bai_viet?: string | null;
+    } | null;
+  }>) {
+    const a = row.article_bai_viet;
+    if (!a?.id || !a.slug) continue;
+    tags.push({
+      id: String(a.id),
+      slug: String(a.slug),
+      tieu_de: String(a.tieu_de ?? "").trim() || "Không tiêu đề",
+      loai_bai_viet: String(a.loai_bai_viet ?? "").trim() || "blog",
+    });
+  }
+
+  /* 5. Build EditorInitial. */
   const blocks = sanitizeBlocks(tp.noi_dung_blocks);
 
   const initial: EditorInitial = {
@@ -128,7 +156,7 @@ export default async function EditPostPage({
     tieuDe: tp.tieu_de ?? "",
     moTa: tp.mo_ta,
     coverSeed: tp.cover_id,
-    tags: [],
+    tags,
     visibility: (tp.che_do_hien_thi ?? cm.che_do_hien_thi ?? "public") as Visibility,
     loaiMoc: cm.loai_moc,
     thoiDiem: cm.thoi_diem ?? isoToday(),
@@ -141,6 +169,7 @@ export default async function EditPostPage({
       ownerName={owner.ten_hien_thi || `@${owner.slug}`}
       mode="edit"
       initial={initial}
+      postSlug={postSlug}
     />
   );
 }

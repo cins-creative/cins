@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
+import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import { blocksToHtml, deriveMoTaFallback } from "@/lib/editor/sanitize";
 import {
   VALID_LOAI_MOC,
@@ -34,7 +35,9 @@ export type UpdatePostInput = {
   tieuDe: string;
   moTa: string;
   coverSeed: string | null;
-  tags: string[];
+  /** Tag = `article_bai_viet` user gắn — diff với `article_gan_tac_pham`
+   *  hiện có để insert thêm / xoá bớt. */
+  tags: ArticleTagRef[];
   visibility: Visibility;
   loaiMoc: LoaiMoc;
   thoiDiem: string;
@@ -180,6 +183,67 @@ export async function updatePost(
     return { ok: false, error: dbErrorMessage(cmUpdErr) };
   }
 
+  /* 6b. Diff `article_gan_tac_pham`: lấy mảng `id_bai_viet` hiện có vs
+     mảng mới từ input → insert thêm bài chưa link, delete bài bị bỏ.
+     Best-effort (không revert tac_pham/cot_moc nếu fail). */
+  const newTagIds = sanitizeTagIds(input.tags);
+  const newSet = new Set(newTagIds);
+
+  const { data: existingLinks } = await admin
+    .from("article_gan_tac_pham")
+    .select("id_bai_viet")
+    .eq("id_tac_pham", input.tacPhamId);
+
+  const existingIds = new Set(
+    (existingLinks ?? [])
+      .map((row: { id_bai_viet?: string | null }) => row.id_bai_viet)
+      .filter((v): v is string => typeof v === "string" && v.length > 0),
+  );
+
+  const toAdd = newTagIds.filter((id) => !existingIds.has(id));
+  const toRemove = Array.from(existingIds).filter((id) => !newSet.has(id));
+
+  if (toAdd.length > 0) {
+    const rows = toAdd.map((id_bai_viet) => ({
+      id_bai_viet,
+      id_tac_pham: input.tacPhamId,
+    }));
+    const { error: addErr } = await admin
+      .from("article_gan_tac_pham")
+      .insert(rows);
+    if (addErr) console.error("[updatePost] tag add failed", addErr);
+  }
+  if (toRemove.length > 0) {
+    const { error: rmErr } = await admin
+      .from("article_gan_tac_pham")
+      .delete()
+      .eq("id_tac_pham", input.tacPhamId)
+      .in("id_bai_viet", toRemove);
+    if (rmErr) console.error("[updatePost] tag remove failed", rmErr);
+  }
+
+  /* Revalidate trang article (cả `toAdd` lẫn `toRemove`) để gallery cộng
+     đồng cập nhật ngay. Slug lấy từ input (toAdd) và từ DB join cho
+     toRemove. */
+  const tagSlugs = sanitizeTagSlugs(input.tags);
+  for (const slugTag of tagSlugs) {
+    revalidatePath(`/bai-viet/${slugTag}`);
+    revalidatePath(`/nghe-nghiep/${slugTag}`);
+  }
+  if (toRemove.length > 0) {
+    const { data: removedRows } = await admin
+      .from("article_bai_viet")
+      .select("slug")
+      .in("id", toRemove);
+    for (const r of removedRows ?? []) {
+      const s = (r as { slug?: string | null }).slug;
+      if (s) {
+        revalidatePath(`/bai-viet/${s}`);
+        revalidatePath(`/nghe-nghiep/${s}`);
+      }
+    }
+  }
+
   /* 7. Revalidate journey. */
   revalidatePath(`/${session.profile.slug}/journey`);
 
@@ -220,6 +284,33 @@ function normalizeBlocks(raw: unknown): Block[] | null {
       config,
     });
     i += 1;
+  }
+  return out;
+}
+
+function sanitizeTagIds(tags: unknown): string[] {
+  if (!Array.isArray(tags)) return [];
+  const seen = new Set<string>();
+  for (const t of tags) {
+    if (!t || typeof t !== "object") continue;
+    const id = (t as { id?: unknown }).id;
+    if (typeof id !== "string") continue;
+    const trimmed = id.trim();
+    if (!trimmed) continue;
+    seen.add(trimmed);
+  }
+  return Array.from(seen);
+}
+
+function sanitizeTagSlugs(tags: unknown): string[] {
+  if (!Array.isArray(tags)) return [];
+  const out: string[] = [];
+  for (const t of tags) {
+    if (!t || typeof t !== "object") continue;
+    const slug = (t as { slug?: unknown }).slug;
+    if (typeof slug !== "string") continue;
+    const trimmed = slug.trim();
+    if (trimmed) out.push(trimmed);
   }
   return out;
 }

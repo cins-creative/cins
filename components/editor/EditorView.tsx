@@ -15,10 +15,16 @@ import {
 } from "react";
 
 import {
+  Columns2,
+  Columns3,
   Globe,
   ImagePlus,
+  LayoutGrid,
   Lock,
+  Maximize2,
   Pencil,
+  RectangleHorizontal,
+  SquareRoundCorner,
   Star,
   Trash2,
   Users,
@@ -26,7 +32,9 @@ import {
 } from "lucide-react";
 
 import { publishPost } from "@/app/[slug]/p/new/actions";
-import { updatePost } from "@/app/[slug]/p/[postSlug]/sua/actions";
+import { updatePost } from "@/app/[slug]/p/[postSlug]/edit/actions";
+import type { ArticleTagRef } from "@/lib/editor/article-tag";
+import { searchArticlesForTag } from "@/lib/editor/search-articles-action";
 import type {
   Block as ServerBlock,
   BlockType as ServerBlockType,
@@ -105,15 +113,15 @@ const BLOCK_TYPES: Array<{
 
 const IMG_LAYOUTS: Array<{
   k: ImgLayout;
-  ico: string;
+  Ico: LucideIcon;
   n: number;
   name: string;
 }> = [
-  { k: "full", ico: "▭", n: 1, name: "Tràn viền" },
-  { k: "boxed", ico: "▢", n: 1, name: "Trong khung" },
-  { k: "duo", ico: "▌▌", n: 2, name: "Đôi" },
-  { k: "trio", ico: "▦", n: 3, name: "Ba" },
-  { k: "grid4", ico: "▦", n: 4, name: "Lưới 4" },
+  { k: "full", Ico: Maximize2, n: 1, name: "Tràn viền" },
+  { k: "boxed", Ico: RectangleHorizontal, n: 1, name: "Trong khung" },
+  { k: "duo", Ico: Columns2, n: 2, name: "Đôi" },
+  { k: "trio", Ico: Columns3, n: 3, name: "Ba" },
+  { k: "grid4", Ico: LayoutGrid, n: 4, name: "Lưới 4" },
 ];
 
 const VIS_OPTIONS: Array<{
@@ -185,7 +193,8 @@ export type EditorInitial = {
   tieuDe: string;
   moTa: string | null;
   coverSeed: string | null;
-  tags: string[];
+  /** Danh sách `article_bai_viet` đã tag (xem `article_gan_tac_pham`). */
+  tags: ArticleTagRef[];
   visibility: ServerVisibility;
   loaiMoc: LoaiMoc;
   thoiDiem: string;
@@ -198,6 +207,8 @@ type Props = {
   /** "edit" cần `initial`. Default "create". */
   mode?: "create" | "edit";
   initial?: EditorInitial;
+  /** Slug bài viết khi `mode === "edit"` — dùng cho nút "Huỷ" → trang post. */
+  postSlug?: string;
 };
 
 export function EditorView({
@@ -205,15 +216,22 @@ export function EditorView({
   ownerName,
   mode = "create",
   initial,
+  postSlug,
 }: Props) {
   const isEdit = mode === "edit" && !!initial;
+  /* Đích cho nút "Huỷ": edit → trang xem bài (giữ ngữ cảnh cho user); create →
+     trang journey (chưa có post tương ứng). */
+  const cancelHref =
+    isEdit && postSlug
+      ? `/${ownerSlug}/p/${postSlug}`
+      : `/${ownerSlug}/journey`;
 
   const [coverSeed, setCoverSeed] = useState<string | null>(
     initial?.coverSeed ?? null,
   );
   const [title, setTitle] = useState(initial?.tieuDe ?? "");
   const [sub, setSub] = useState(initial?.moTa ?? "");
-  const [tags, setTags] = useState<string[]>(initial?.tags ?? []);
+  const [tags, setTags] = useState<ArticleTagRef[]>(initial?.tags ?? []);
   const [blocks, setBlocks] = useState<Block[]>(() =>
     initial?.blocks ? fromServerBlocks(initial.blocks) : [],
   );
@@ -502,6 +520,9 @@ export function EditorView({
             </div>
           </div>
 
+          <Link href={cancelHref} className="ed-btn ghost" prefetch={false}>
+            Huỷ
+          </Link>
           <button
             type="button"
             className="ed-btn primary"
@@ -549,7 +570,17 @@ export function EditorView({
           maxRows={3}
         />
 
-        <TagChips tags={tags} onAddPlaceholder={() => setTags(["dự-án", ...tags.filter((t) => t !== "dự-án")])} />
+        <ArticleTagPicker
+          tags={tags}
+          onAdd={(t) =>
+            setTags((prev) =>
+              prev.some((p) => p.id === t.id) ? prev : [...prev, t],
+            )
+          }
+          onRemove={(id) =>
+            setTags((prev) => prev.filter((t) => t.id !== id))
+          }
+        />
 
         <div className="blocks">
           <AddZone
@@ -673,28 +704,180 @@ function CoverArea({
 
 /* ─── Tag chips (stub v1: hard-coded + 1 placeholder add). ───────── */
 
-function TagChips({
+/* ─── Article tag picker ────────────────────────────────────────────
+ * Tag = một `article_bai_viet`. User mở dropdown → search → chọn → tag
+ * persist xuống `article_gan_tac_pham` lúc Đăng/Cập nhật. Bài viết được
+ * tag sẽ thấy post này trong gallery (xem `TacPhamSection`).
+ *
+ * Dropdown logic:
+ * - Mở dropdown → fetch top 12 bài mới (empty query). Cache trong session
+ *   bằng useState (không cache giữa lần đóng/mở; OK vì danh sách short).
+ * - Gõ → debounce 280ms rồi gọi `searchArticlesForTag(q)`.
+ * - Chọn → push vào `tags`, dropdown vẫn mở để add tiếp; pill đã chọn
+ *   bị disable trong list.
+ * - Click ngoài / Esc → đóng.
+ */
+const LOAI_BAI_VIET_LABEL: Record<string, string> = {
+  nghe: "Nghề",
+  keyword: "Khái niệm",
+  phan_mem: "Phần mềm",
+  mon_hoc: "Môn học",
+  blog: "Blog",
+  event: "Sự kiện",
+  nganh_dao_tao: "Ngành đào tạo",
+  linh_vuc: "Lĩnh vực",
+};
+
+function loaiLabel(loai: string): string {
+  return LOAI_BAI_VIET_LABEL[loai] ?? loai;
+}
+
+function ArticleTagPicker({
   tags,
-  onAddPlaceholder,
+  onAdd,
+  onRemove,
 }: {
-  tags: string[];
-  onAddPlaceholder: () => void;
+  tags: ArticleTagRef[];
+  onAdd: (t: ArticleTagRef) => void;
+  onRemove: (id: string) => void;
 }) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<ArticleTagRef[]>([]);
+  const [loading, setLoading] = useState(false);
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  /* Debounced search. AbortController-style: track latest call id, drop
+     stale responses (network race). */
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    setLoading(true);
+    const t = setTimeout(async () => {
+      const data = await searchArticlesForTag(query);
+      if (cancelled) return;
+      setResults(data);
+      setLoading(false);
+    }, 280);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [open, query]);
+
+  /* Đóng khi click ngoài / Esc — gắn ở document để không miss khi click
+     trên overlay khác. */
+  useEffect(() => {
+    if (!open) return;
+    function onDoc(ev: MouseEvent) {
+      if (!wrapRef.current) return;
+      if (wrapRef.current.contains(ev.target as Node)) return;
+      setOpen(false);
+    }
+    function onKey(ev: KeyboardEvent) {
+      if (ev.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  /* Auto-focus input khi mở dropdown — UX gõ ngay được. */
+  useEffect(() => {
+    if (open) inputRef.current?.focus();
+  }, [open]);
+
+  const selectedIds = useMemo(
+    () => new Set(tags.map((t) => t.id)),
+    [tags],
+  );
+
   return (
-    <div className="meta-chips">
-      <span className="meta-chip">▦ Dự án</span>
+    <div className="meta-chips" ref={wrapRef}>
       {tags.map((t) => (
-        <span key={t} className="meta-chip">
-          # {t}
+        <span key={t.id} className="meta-chip meta-chip-tag">
+          <span className="meta-chip-loai" aria-hidden>
+            {loaiLabel(t.loai_bai_viet)}
+          </span>
+          <span className="meta-chip-name">{t.tieu_de}</span>
+          <button
+            type="button"
+            className="meta-chip-x"
+            aria-label={`Bỏ tag ${t.tieu_de}`}
+            onClick={() => onRemove(t.id)}
+          >
+            ×
+          </button>
         </span>
       ))}
+
       <button
         type="button"
-        className="meta-chip add"
-        onClick={onAddPlaceholder}
+        className={`meta-chip add${open ? " open" : ""}`}
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
       >
         + Thêm tag
       </button>
+
+      {open ? (
+        <div className="tag-picker" role="dialog" aria-label="Chọn bài viết để tag">
+          <div className="tag-picker-head">
+            <input
+              ref={inputRef}
+              type="text"
+              className="tag-picker-input"
+              placeholder="Tìm bài viết theo tên…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </div>
+          <div className="tag-picker-list" role="listbox">
+            {loading ? (
+              <div className="tag-picker-empty">Đang tìm…</div>
+            ) : results.length === 0 ? (
+              <div className="tag-picker-empty">
+                {query.trim()
+                  ? "Không có bài viết khớp."
+                  : "Chưa có bài viết nào."}
+              </div>
+            ) : (
+              results.map((r) => {
+                const picked = selectedIds.has(r.id);
+                return (
+                  <button
+                    key={r.id}
+                    type="button"
+                    className={`tag-picker-item${picked ? " picked" : ""}`}
+                    role="option"
+                    aria-selected={picked}
+                    disabled={picked}
+                    onClick={() => {
+                      onAdd(r);
+                      setQuery("");
+                    }}
+                  >
+                    <span className="tag-picker-loai">
+                      {loaiLabel(r.loai_bai_viet)}
+                    </span>
+                    <span className="tag-picker-name">{r.tieu_de}</span>
+                    {picked ? (
+                      <span className="tag-picker-check" aria-hidden>
+                        ✓
+                      </span>
+                    ) : null}
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -952,31 +1135,37 @@ function ImageBlock({ block, p }: { block: Block; p: BlockRowProps }) {
   return (
     <div className="b-imgs">
       <div className="lay-bar">
-        {IMG_LAYOUTS.map((l) => (
-          <button
-            key={l.k}
-            type="button"
-            className={`lay-btn${l.k === layout ? " active" : ""}`}
-            title={l.name}
-            onClick={(e) => {
-              e.stopPropagation();
-              p.onChangeLayout(l.k);
-            }}
-          >
-            {l.ico}
-          </button>
-        ))}
+        {IMG_LAYOUTS.map((l) => {
+          const Icon = l.Ico;
+          return (
+            <button
+              key={l.k}
+              type="button"
+              className={`lay-btn${l.k === layout ? " active" : ""}`}
+              title={l.name}
+              aria-label={l.name}
+              onClick={(e) => {
+                e.stopPropagation();
+                p.onChangeLayout(l.k);
+              }}
+            >
+              <Icon size={16} strokeWidth={1.8} aria-hidden />
+            </button>
+          );
+        })}
         <span className="lay-sep" />
         <button
           type="button"
           className={`lay-btn round-toggle${block.rounded ? " active" : ""}`}
           title={block.rounded ? "Bỏ bo góc" : "Bo góc"}
+          aria-label={block.rounded ? "Bỏ bo góc" : "Bo góc"}
+          aria-pressed={block.rounded ? "true" : "false"}
           onClick={(e) => {
             e.stopPropagation();
             p.onToggleRound();
           }}
         >
-          ◖
+          <SquareRoundCorner size={16} strokeWidth={1.8} aria-hidden />
         </button>
       </div>
 
@@ -992,30 +1181,10 @@ function ImageBlock({ block, p }: { block: Block; p: BlockRowProps }) {
                 p.onPickImage(i);
               }}
             >
-              ▦ Đổi ảnh
+              <ImagePlus size={14} strokeWidth={1.8} aria-hidden /> Đổi ảnh
             </button>
           </div>
         ))}
-      </div>
-
-      <div className="img-cap">
-        <input
-          type="text"
-          placeholder="Thêm chú thích…"
-          value={block.cap || ""}
-          onChange={(e) => p.onChangeCap(e.target.value)}
-          style={{
-            border: "none",
-            background: "transparent",
-            outline: "none",
-            textAlign: "center",
-            fontFamily: "inherit",
-            fontSize: 12,
-            color: "var(--ink-muted)",
-            fontStyle: "italic",
-            width: "100%",
-          }}
-        />
       </div>
     </div>
   );

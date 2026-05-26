@@ -191,7 +191,7 @@ export function JourneyMilestoneOwnerMenu({
 
   const editHref =
     postSlug !== null && postSlug.length > 0
-      ? `/${ownerSlug}/p/${postSlug}/sua`
+      ? `/${ownerSlug}/p/${postSlug}/edit`
       : null;
   const viewHref =
     postSlug !== null && postSlug.length > 0

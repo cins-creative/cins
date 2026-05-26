@@ -17,6 +17,8 @@ export type UserProfile = {
   ten_hien_thi: string | null;
   giai_doan: GiaiDoan | null;
   email: string | null;
+  /** Cloudflare Images id — resolve sang URL bằng `getAvatarUrl` (lib/journey). */
+  avatar_id: string | null;
 };
 
 export type SessionAndProfile = {
@@ -43,7 +45,7 @@ export async function getCurrentSessionAndProfile(): Promise<SessionAndProfile |
 
   const { data: profile } = await supabase
     .from("user_nguoi_dung")
-    .select("id, auth_user_id, slug, ten_hien_thi, giai_doan")
+    .select("id, auth_user_id, slug, ten_hien_thi, giai_doan, avatar_id")
     .eq("auth_user_id", user.id)
     .maybeSingle<{
       id: string;
@@ -51,6 +53,7 @@ export async function getCurrentSessionAndProfile(): Promise<SessionAndProfile |
       slug: string;
       ten_hien_thi: string | null;
       giai_doan: GiaiDoan | null;
+      avatar_id: string | null;
     }>();
 
   return {
