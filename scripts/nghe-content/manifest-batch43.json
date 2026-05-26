@@ -1,0 +1,47 @@
+[
+  {
+    "id": "0bbdff34-051b-44f0-a684-35c19cb176fa",
+    "slug": "nghe-minh-hoa-storyboard-artist",
+    "tieu_de_viet": "Storyboard Artist minh họa (Họa sĩ phân cảnh)",
+    "tom_tat": "Storyboard Artist illustration thiết kế storyboard cho advertising commercial, music video, explainer video, book illustration sequential. Bridge giữa client + production team, visualize concept sequential.",
+    "meta_title": "Storyboard Artist minh họa là gì? | CINS",
+    "meta_description": "Storyboard Artist minh họa advertising commercial sequential illustration. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-minh-hoa-concept-dev", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "f6f23e22-f36c-4cd1-b1ba-cf3cfd578db3",
+    "slug": "nghe-hoat-hinh-storyboard-artist",
+    "tieu_de_viet": "Storyboard Artist hoạt hình (Họa sĩ phân cảnh)",
+    "tom_tat": "Storyboard Artist hoạt hình visualize script qua sequential drawing — critical pre-production tool. Pixar, Disney, DreamWorks rely heavy on storyboard. Animation feature spend 1-2 năm storyboarding. Pitch + iterate.",
+    "meta_title": "Storyboard Artist hoạt hình là gì? | CINS",
+    "meta_description": "Storyboard Artist hoạt hình visualize script Pixar Disney animation. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-hoat-hinh-tien-san-xuat", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "b4fdb280-a26e-49ee-87b1-682284faf0ba",
+    "slug": "nghe-dohoa-structural-packaging-designer",
+    "tieu_de_viet": "Structural Packaging Designer (Nhà thiết kế cấu trúc bao bì)",
+    "tom_tat": "Structural Packaging Designer thiết kế cấu trúc 3D + die-cut bao bì — từ folding box đến blister đến complex unboxing experience. Engineering + design hybrid. Critical cho Apple-tier unboxing + cosmetic + luxury.",
+    "meta_title": "Structural Packaging Designer là gì? | CINS",
+    "meta_description": "Structural Packaging Designer cấu trúc bao bì die-cut unboxing experience. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-dohoa-packaging", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "72071b68-4305-4bbd-b0f8-952ebf216385",
+    "slug": "nghe-phim-stunt-coordinator",
+    "tieu_de_viet": "Stunt Coordinator phim (Điều phối đóng thế)",
+    "tom_tat": "Stunt Coordinator design + execute stunt sequence — fight, fall, car crash, fire, high fall. Manage stunt team safety. Bond film, John Wick, Mission Impossible iconic action đều có Stunt Coordinator. Safety + spectacle balance.",
+    "meta_title": "Stunt Coordinator phim là gì? | CINS",
+    "meta_description": "Stunt Coordinator design execute action sequence safety phim. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-phim-san-xuat", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "df32ecc3-32be-4e61-96e7-4a88a6a200f0",
+    "slug": "nghe-thoitrang-stylist",
+    "tieu_de_viet": "Stylist thời trang (Nhà tạo mẫu phong cách)",
+    "tom_tat": "Stylist thời trang chọn outfit + accessory cho client — celebrity, editorial shoot, advertising, music video. Define visual identity người mặc + brand. Anna Wintour, Rachel Zoe, Law Roach iconic Stylist.",
+    "meta_title": "Stylist thời trang là gì? Lộ trình | CINS",
+    "meta_description": "Stylist thời trang chọn outfit celebrity editorial advertising. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-thoitrang-styling", "nn-my-thuat-thiet-ke"]
+  }
+]

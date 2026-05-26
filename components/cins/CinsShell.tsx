@@ -1,8 +1,8 @@
 import type { ComponentPropsWithoutRef } from "react";
 
+import { CinsAppTopbar } from "@/components/cins/CinsAppTopbar";
 import {
   CinsAppSidebar,
-  CinsAppTopbar,
   SiteNavEffects,
 } from "@/components/cins/SiteNav";
 

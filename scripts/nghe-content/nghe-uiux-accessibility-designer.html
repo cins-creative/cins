@@ -1,0 +1,247 @@
+<section class="arc-intro">
+  <p>Bạn dùng iPhone — bật VoiceOver lên, đột nhiên màn hình "biết nói": đọc từng nút bấm, mô tả từng hình ảnh, hướng dẫn từng thao tác. Đó là kết quả công việc của Accessibility Designer — người đảm bảo người mù vẫn dùng được app, người khiếm thính vẫn xem được video, người không cử động được tay vẫn điều khiển được thiết bị.</p>
+  <p>Accessibility Designer khác UI/UX Designer thông thường ở chỗ họ thiết kế cho <em>15% dân số thế giới có khuyết tật</em> — và nhờ vậy nâng trải nghiệm cho 100% người dùng. Khác QA Tester ở chỗ họ <em>thiết kế từ đầu</em> chứ không chỉ kiểm tra cuối cùng.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>Accessibility Designer là ai?</h2>
+  <p>Accessibility Designer (còn gọi <strong>A11y Designer</strong> — số 11 là số ký tự giữa A và Y trong từ "accessibility") là người thiết kế sản phẩm số — website, app mobile, app desktop — sao cho <strong>tất cả mọi người</strong> dùng được, bao gồm <strong>người khiếm thị</strong> (mù, kém thị lực), <strong>khiếm thính</strong>, <strong>khó cử động</strong>, <strong>màu mù</strong>, và <strong>khó nhận thức</strong> (dyslexia, autism, ADHD).</p>
+  <p>Khác với UI/UX Designer thông thường — chỉ tập trung vào trải nghiệm người dùng "trung bình" — Accessibility Designer áp dụng chuẩn <strong>WCAG (Web Content Accessibility Guidelines)</strong>, hiểu cách <strong>screen reader</strong> hoạt động, biết test với <strong>keyboard navigation</strong>, và đảm bảo sản phẩm tuân thủ pháp luật như ADA (Mỹ), EAA (EU).</p>
+  <ul class="arc-list">
+    <li>Audit sản phẩm hiện có để phát hiện <strong>rào cản accessibility</strong> — màu thiếu contrast, thiếu alt text, không keyboard-friendly</li>
+    <li>Thiết kế component theo chuẩn <strong>WCAG 2.1 AA hoặc AAA</strong> — color contrast, focus state, semantic HTML</li>
+    <li>Cộng tác với <strong>developer</strong> để implement đúng ARIA attribute, semantic markup</li>
+    <li>Test với <strong>screen reader</strong> (NVDA, JAWS, VoiceOver), <strong>keyboard-only</strong>, và user khuyết tật thực tế</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"accessibility design WCAG color contrast inclusive design UI"</span>
+    </div>
+    <p class="arc-image-caption">Accessibility check — kiểm tra color contrast theo chuẩn WCAG cho từng cặp text-background</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>Accessibility Designer hoạt động <strong>xuyên suốt vòng đời sản phẩm số</strong> — không phải bước cuối. Tham gia từ <strong>discovery</strong> (nghiên cứu nhu cầu người khuyết tật), <strong>design phase</strong> (làm việc với UX/UI Designer), <strong>implementation</strong> (review code cùng developer), đến <strong>QA</strong> (audit với screen reader và user thực). Báo cáo cho <strong>Design Lead</strong> hoặc <strong>Head of Inclusive Design</strong>, phối hợp chặt với <strong>Product Manager</strong> và <strong>Legal team</strong> (đảm bảo compliance).</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Công việc của một Accessibility Designer</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Audit accessibility hiện trạng</h3>
+    <p>Bước đầu khi vào dự án — chạy <strong>accessibility audit</strong> trên sản phẩm hiện có. Dùng công cụ tự động (axe, WAVE, Lighthouse) phát hiện 30–40% vấn đề; còn lại phải <strong>manual testing</strong> với screen reader và keyboard. Kết quả audit gộp thành báo cáo phân loại theo mức độ nghiêm trọng (critical / serious / moderate / minor).</p>
+    <ul class="arc-list">
+      <li><strong>axe DevTools / WAVE / Lighthouse</strong> — extension trình duyệt phát hiện lỗi WCAG cơ bản</li>
+      <li><strong>Manual testing</strong> với <strong>NVDA</strong> (Windows free), <strong>VoiceOver</strong> (Mac/iOS built-in)</li>
+      <li><strong>Keyboard navigation test</strong> — chỉ dùng Tab, Enter, Esc, Arrow để duyệt toàn bộ flow</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"axe DevTools accessibility audit WCAG report Chrome extension"</span>
+      </div>
+      <p class="arc-image-caption">axe DevTools audit — báo cáo lỗi WCAG với mức độ severity và đề xuất sửa</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Thiết kế component theo chuẩn WCAG</h3>
+    <p>Khi thiết kế UI mới, Accessibility Designer làm việc cùng UI Designer để mọi <strong>component</strong> đều tuân thủ WCAG ngay từ đầu. Quan trọng nhất: <strong>color contrast</strong> ≥ 4.5:1 cho text thường, 3:1 cho text lớn; <strong>focus indicator</strong> rõ ràng; <strong>touch target</strong> ≥ 44×44px; <strong>text spacing</strong> đủ rộng cho người khó đọc.</p>
+    <ul class="arc-list">
+      <li><strong>Color contrast checker</strong> — extension Stark, Contrast hoặc dev tools để check ngay trong Figma</li>
+      <li><strong>Focus state</strong> — outline rõ ràng khi user dùng keyboard, không bỏ outline default</li>
+      <li><strong>Touch target size</strong> — nút bấm tối thiểu 44×44px (Apple) hoặc 48×48px (Material)</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Figma Stark accessibility plugin color contrast check design"</span>
+        </div>
+        <p class="arc-image-caption">Stark plugin trong Figma — check contrast và simulate màu mù ngay trong design tool</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"focus state keyboard navigation web button outline accessibility"</span>
+        </div>
+        <p class="arc-image-caption">Focus indicator rõ ràng — quan trọng cho người dùng keyboard, screen reader</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Viết alt text, ARIA và semantic guideline</h3>
+    <p>Designer không chỉ vẽ UI — phải document cho developer biết: <strong>alt text</strong> nào cho mỗi hình, <strong>ARIA label/role</strong> nào cho mỗi component không có semantic HTML rõ ràng (modal, accordion, tab), <strong>landmark</strong> nào cho mỗi region (header, main, nav, footer). Tạo <strong>accessibility annotation</strong> trong file Figma để developer làm theo.</p>
+    <ul class="arc-list">
+      <li><strong>Alt text</strong> — mô tả ngắn gọn nội dung hình, bỏ qua nếu chỉ trang trí</li>
+      <li><strong>ARIA label/role</strong> — bổ sung ý nghĩa cho element không có semantic HTML chuẩn</li>
+      <li><strong>Landmark</strong> — header, main, nav, aside, footer để screen reader user nhảy nhanh</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Figma accessibility annotation plugin developer handoff ARIA"</span>
+      </div>
+      <p class="arc-image-caption">Accessibility annotation trong Figma — document cho developer biết ARIA, role, alt text</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">4. Test với user khuyết tật thực tế</h3>
+    <p>Tự test bằng công cụ chỉ là khởi đầu — test với <strong>người dùng khuyết tật thực tế</strong> mới phát hiện được vấn đề mà công cụ không thấy. Tổ chức <strong>user testing session</strong> với người mù dùng screen reader, người dùng keyboard-only, người có dyslexia. Ghi nhận pain point, đề xuất cải tiến cho team.</p>
+    <ul class="arc-list">
+      <li><strong>Fable / Applause</strong> — platform kết nối với user khuyết tật để test có trả phí</li>
+      <li><strong>Empathy lab</strong> — trải nghiệm bản thân các tình huống (bịt mắt, đeo kính mờ, dùng găng tay)</li>
+      <li><strong>VPAT report</strong> — Voluntary Product Accessibility Template — báo cáo compliance cho khách enterprise</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"user testing screen reader visually impaired accessibility research"</span>
+      </div>
+      <p class="arc-image-caption">User testing với người dùng khiếm thị — phát hiện vấn đề công cụ không thấy</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>Accessibility Designer cần giỏi gì?</h2>
+
+  <div class="arc-skill-grid">
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">🧠</span>
+      <span>Hiểu chuẩn WCAG &amp; ADA</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">⚙️</span>
+      <span>Screen reader &amp; assistive tech</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">🌈</span>
+      <span>Color theory &amp; contrast</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">💬</span>
+      <span>Cộng tác với dev &amp; PM</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">🎨</span>
+      <span>UI/UX design tools</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">📋</span>
+      <span>Document &amp; báo cáo audit</span>
+    </div>
+  </div>
+
+  <div class="arc-accordion">
+
+    <details class="arc-card" open>
+      <summary>Hiểu chuẩn WCAG &amp; ADA</summary>
+      <div class="arc-card-body">
+        <p>WCAG (Web Content Accessibility Guidelines) là chuẩn quốc tế của W3C cho accessibility web. Phải hiểu 4 nguyên tắc <strong>POUR</strong> — Perceivable, Operable, Understandable, Robust — và biết khác biệt giữa 3 mức compliance (A, AA, AAA). AA là chuẩn doanh nghiệp.</p>
+        <p>Hiểu khung pháp lý: ADA (Mỹ), Section 508 (chính phủ Mỹ), EAA (EU 2025), AODA (Canada). Nhiều công ty phải tuân thủ vì lý do pháp lý — kiện cáo accessibility tăng nhanh.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Screen reader &amp; assistive tech</summary>
+      <div class="arc-card-body">
+        <p>Phải biết dùng screen reader để hiểu trải nghiệm người mù. <strong>NVDA</strong> miễn phí trên Windows, <strong>VoiceOver</strong> built-in Mac/iOS, <strong>TalkBack</strong> trên Android, <strong>JAWS</strong> thương mại nhưng phổ biến nhất. Hiểu thêm các assistive tech khác: voice control, switch control, eye tracking, magnifier.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Color theory &amp; contrast</summary>
+      <div class="arc-card-body">
+        <p>Color contrast là vấn đề accessibility phổ biến nhất. Hiểu cách tính contrast ratio (WCAG formula), khác biệt giữa relative luminance và HSB lightness. Hiểu các dạng màu mù: deuteranopia, protanopia, tritanopia, monochromacy — và cách thiết kế palette không phụ thuộc màu (dùng thêm icon, text, pattern).</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Cộng tác với dev &amp; PM</summary>
+      <div class="arc-card-body">
+        <p>Accessibility không phải việc một mình designer — phải làm chung với dev (implement ARIA, semantic HTML) và PM (ưu tiên backlog). Phải biết viết yêu cầu rõ ràng, đặt acceptance criteria cụ thể (test pass với NVDA, score Lighthouse ≥ 95), giải thích "tại sao" thay vì áp đặt rule cứng.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>UI/UX design tools</summary>
+      <div class="arc-card-body">
+        <p>Vẫn cần kỹ năng thiết kế UI/UX cơ bản — Figma là chuẩn. Học các plugin accessibility: Stark, Contrast, A11y - Color Contrast Checker, Able. Trong Figma file, dùng auto-layout đúng cách để dev dễ implement responsive — đây cũng là accessibility (zoom 200% phải dùng được).</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Document &amp; báo cáo audit</summary>
+      <div class="arc-card-body">
+        <p>Báo cáo accessibility audit phải có cấu trúc: vấn đề, ảnh hưởng đến user nào, WCAG criterion liên quan, ưu tiên (critical / serious / moderate), đề xuất sửa cụ thể. Học format <strong>VPAT</strong> (Voluntary Product Accessibility Template) — chuẩn ngành cho báo cáo compliance gửi cho khách enterprise và chính phủ.</p>
+      </div>
+    </details>
+
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Làm cách nào để trở thành Accessibility Designer?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Xây nền tảng UI/UX Design</strong>
+        <p>Accessibility Designer trước hết là UI/UX Designer. Học design fundamentals: typography, layout, color theory, hierarchy. Thành thạo Figma. Khóa "Google UX Design Certificate" hoặc "Interaction Design Foundation" là khởi đầu tốt cho người chuyển ngành.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Học WCAG 2.1 sâu</strong>
+        <p>Đọc toàn bộ WCAG 2.1 — phần "Understanding WCAG" có ví dụ cụ thể. Tham khảo Deque University (có khóa free), WebAIM, A11y Project. Hiểu cả 50+ success criteria, đặc biệt là mức AA. Mục tiêu: nhìn một UI có thể nhận ra ngay vi phạm nào.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Tự dùng screen reader và keyboard 1 tuần</strong>
+        <p>Đây là bài học mạnh nhất. Cài NVDA (Windows) hoặc bật VoiceOver (Mac), tắt chuột, chỉ dùng keyboard và screen reader trong 3–7 ngày. Sẽ trải nghiệm những "rào cản" mà thiết kế thông thường không thấy — đây là empathy thực sự.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Học HTML/CSS/ARIA cơ bản</strong>
+        <p>Khác UI Designer thuần, Accessibility Designer phải hiểu code — semantic HTML (article, nav, button vs div), ARIA attributes (aria-label, aria-describedby, role), focus management trong SPA. Không cần code production nhưng phải đọc và viết được. Tham khảo MDN Accessibility docs.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Lấy certification IAAP</strong>
+        <p>IAAP (International Association of Accessibility Professionals) có 2 cert chính: <strong>CPACC</strong> (entry-level, kiến thức tổng quát) và <strong>WAS</strong> (Web Accessibility Specialist, sâu về web). Đây là cert được công nhận quốc tế, giúp profile chuyên nghiệp hẳn — đặc biệt apply công ty Mỹ, châu Âu.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Xây dựng portfolio accessibility cụ thể</strong>
+        <p>Portfolio phải khác UI/UX Designer thông thường — không chỉ "đẹp" mà phải <strong>chứng minh accessibility</strong>. Mỗi case study nên có: before/after audit với điểm Lighthouse, ARIA/semantic markup demo, video record dùng screen reader, accessibility annotation trong Figma. 3–5 case study chất lượng tốt hơn 10 case study chung chung. Đăng trên <strong>Behance</strong>, <strong>personal site</strong> (chính website phải pass WCAG AA!). Apply qua A11y job board, Lambda Labs, Inclusive Design Lab tại các công ty lớn: Microsoft, Apple, Google, IBM (đều có team accessibility riêng), hoặc agency chuyên (Level Access, Deque, TPGi).</p>
+      </div>
+    </div>
+
+  </div>
+</section>

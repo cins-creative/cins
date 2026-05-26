@@ -1,0 +1,247 @@
+<section class="arc-intro">
+  <p>Trong sản phẩm Spotify, mỗi button xanh có chính xác cùng padding 12px-24px, mỗi card có cùng border radius 8px, mỗi heading dùng cùng Circular font ở size cụ thể. Người maintain consistency đó qua hàng trăm screen và hàng chục team designer là Design Systems Designer.</p>
+  <p>Khác với <em>Product Designer</em> (thiết kế feature mới) — Design Systems Designer thiết kế <em>foundation</em>: component library, design token, pattern documentation mà mọi designer khác consume. Họ là designer của designer.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>Design Systems Designer là ai?</h2>
+  <p>Design Systems Designer là người <strong>thiết kế và maintain design system</strong> — bộ component library, design token, pattern, và documentation giúp toàn bộ design org dùng chung ngôn ngữ. Output: <strong>Figma library</strong> (Button, Input, Card, Modal, Navigation…), <strong>design token</strong> (color, typography, spacing, radius), <strong>pattern document</strong> (when to use which component, accessibility guideline), <strong>changelog</strong> (version, breaking change).</p>
+  <p>Khác với <strong>Product Designer</strong> (consumer của design system — thiết kế feature dùng component có sẵn) — Design Systems Designer build component cho người khác dùng. Khác với <strong>UI Designer</strong> (focus visual của feature cụ thể) — Systems Designer focus reusable foundation. Khác với <strong>Frontend Engineer</strong> (implement component thành code) — Systems Designer pair tightly với engineer để bridge design + code. Sub-specialty: <strong>Foundation Designer</strong> (token, type, color), <strong>Component Designer</strong> (UI component), <strong>Pattern Designer</strong> (template, page pattern).</p>
+  <ul class="arc-list">
+    <li>Thiết kế &amp; maintain <strong>component library</strong> Figma</li>
+    <li>Define <strong>design token</strong> — color, spacing, type, radius</li>
+    <li>Write <strong>documentation</strong> — usage guideline, accessibility</li>
+    <li>Pair với <strong>engineer</strong> implement component code</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"design system component library figma token storybook material polaris"</span>
+    </div>
+    <p class="arc-image-caption">Design Systems Designer — build foundation cho cả org</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>Design Systems Designer sit trong <strong>Design System team</strong> hoặc <strong>Design Platform team</strong>. Báo cáo cho <strong>Design Systems Lead</strong>, <strong>Design Director</strong>, hoặc <strong>Head of Design</strong>. Phối hợp chặt với: <strong>Frontend Engineer</strong> (implement code), <strong>Product Designer</strong> (consumer + feedback), <strong>Design Manager</strong> (adoption strategy), <strong>Accessibility Specialist</strong>. Team size 2–10 designer + 5–20 engineer ở company lớn (Atlassian Design System, Shopify Polaris, IBM Carbon, Material Design). Tham gia ongoing — không có project deadline cố định, work là continuous evolution.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Công việc của một Design Systems Designer</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Audit &amp; identify pattern need</h3>
+    <p>Continuous work — audit product để identify <strong>pattern lặp đi lặp lại</strong> mà chưa systematized. Ví dụ: 5 designer build 5 variant của empty state khác nhau → cần component EmptyState chung. Tool: Figma plugin để inventory component, conversation với product designer, Slack channel #design-systems-request.</p>
+    <ul class="arc-list">
+      <li><strong>Component audit</strong> — inventory existing</li>
+      <li><strong>Pattern identification</strong> — repeated need</li>
+      <li><strong>Prioritization</strong> — backlog component</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"design system audit inventory pattern component variant figma"</span>
+      </div>
+      <p class="arc-image-caption">Audit pattern need — foundation cho roadmap</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Design &amp; variant component</h3>
+    <p>Bắt đầu với <strong>research</strong>: how big tech handle (Material, HIG, Polaris, Fluent), accessibility consideration, edge case. Design <strong>master component</strong> với full variant: state (default, hover, active, disabled, error), size (small, medium, large), type (primary, secondary, ghost), config (icon, no icon, leading/trailing). Build trong Figma với <strong>variant property</strong>, <strong>auto-layout</strong>, <strong>token</strong> bound.</p>
+    <ul class="arc-list">
+      <li><strong>Research benchmark</strong> — Material, HIG, Polaris</li>
+      <li><strong>Variant matrix</strong> — state × size × type</li>
+      <li><strong>Figma master component</strong></li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"figma component variant button state size design system"</span>
+        </div>
+        <p class="arc-image-caption">Master component &amp; variant</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"design token color typography spacing tailwind figma variable"</span>
+        </div>
+        <p class="arc-image-caption">Design token foundation</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Document &amp; communicate</h3>
+    <p>Component không document = vô dụng. Write doc cho mỗi component: <strong>when to use</strong>, <strong>when not to use</strong>, <strong>variant explanation</strong>, <strong>accessibility note</strong>, <strong>do/don't example</strong>. Tool: <strong>Zeroheight</strong>, <strong>Storybook</strong>, <strong>custom documentation site</strong>. Announce release via Slack, all-hands, office hour.</p>
+    <ul class="arc-list">
+      <li><strong>Usage doc</strong> — when/why</li>
+      <li><strong>Accessibility note</strong> — ARIA, keyboard, contrast</li>
+      <li><strong>Release communication</strong> — changelog, demo</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"design system documentation zeroheight storybook usage guideline"</span>
+      </div>
+      <p class="arc-image-caption">Documentation — when to use, accessibility, do/don't</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">4. Engineer pairing &amp; adoption</h3>
+    <p>Component tồn tại design world là 50%. 50% còn lại — engineer implement code. Pair tightly với frontend engineer: <strong>spec review</strong>, <strong>token mapping</strong> (CSS variable, design token sync), <strong>QA implementation</strong>, <strong>edge case discuss</strong>. Drive <strong>adoption</strong>: support designer migrate from old component, fix bug fast, run office hour Q&amp;A.</p>
+    <ul class="arc-list">
+      <li><strong>Spec review với engineer</strong></li>
+      <li><strong>Token mapping</strong> — design ↔ code</li>
+      <li><strong>Adoption support</strong> — migration, office hour</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"design engineer pairing review component code css token storybook"</span>
+      </div>
+      <p class="arc-image-caption">Engineer pairing &amp; adoption support</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>Design Systems Designer cần giỏi gì?</h2>
+
+  <div class="arc-skill-grid">
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">⚙️</span>
+      <span>Figma advanced — component, variant, token</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">🧠</span>
+      <span>System thinking &amp; abstraction</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">🎨</span>
+      <span>Visual rigor — pixel-level chính xác</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">💬</span>
+      <span>Documentation &amp; writing</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">📦</span>
+      <span>Cơ bản frontend (HTML, CSS, React)</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">📋</span>
+      <span>Accessibility (WCAG, ARIA)</span>
+    </div>
+  </div>
+
+  <div class="arc-accordion">
+
+    <details class="arc-card" open>
+      <summary>Figma advanced — component, variant, token</summary>
+      <div class="arc-card-body">
+        <p>Master Figma: <strong>variant property</strong>, <strong>auto-layout</strong>, <strong>component property</strong> (text, instance swap, boolean), <strong>variable / token</strong>, <strong>nested component</strong>, <strong>library publishing</strong>. Component bạn build phải work cho 100+ designer use case — robust, predictable.</p>
+        <p>Learn từ public design system Figma file: Material 3, Polaris, Carbon, Untitled UI.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>System thinking &amp; abstraction</summary>
+      <div class="arc-card-body">
+        <p>Skill cốt lõi: nhìn 10 variant cụ thể, abstract thành 1 component flexible. Define đúng cấp abstraction — quá rigid (limit use case) hay quá flexible (lose consistency) đều fail. Practice qua personal project: build component library cho project nhỏ trước.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Visual rigor — pixel-level chính xác</summary>
+      <div class="arc-card-body">
+        <p>Design system component bị copy hàng nghìn lần — nếu padding sai 1px, cả product impact. Phải obsess detail: spacing scale (4, 8, 12, 16, 24, 32, 48), color contrast WCAG, type scale modular, radius consistency. Build muscle qua daily attention to detail.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Documentation &amp; writing</summary>
+      <div class="arc-card-body">
+        <p>Component without doc = wasted. Write clear: what it is, when use, when not, example. Read good design system doc (Polaris, Material, Atlassian). Write practice — even start docs cho personal component.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Cơ bản frontend (HTML, CSS, React)</summary>
+      <div class="arc-card-body">
+        <p>Không cần là engineer, nhưng phải biết: HTML semantic, CSS box model + flexbox + grid, React component basic, prop pattern. Để pair effective với engineer và translate design → code. Learn through CSS Tricks, MDN, Frontend Masters.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Accessibility (WCAG, ARIA)</summary>
+      <div class="arc-card-body">
+        <p>Mỗi component phải accessible. Learn: WCAG 2.1 AA standard, ARIA role/property, keyboard navigation, screen reader (VoiceOver, NVDA), color contrast tool. Take "Inclusive Design Patterns" (Heydon Pickering), "A11ycasts" YouTube.</p>
+      </div>
+    </details>
+
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Làm cách nào để trở thành Design Systems Designer?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Học UI/UX 3–4 năm + foundation craft</strong>
+        <p>VN: ĐH Mỹ thuật Công nghiệp Multimedia, ĐH FPT, Arena. Online: Google UX Certificate, Interaction Design Foundation. Foundation: design principle, typography, color theory, spacing system, layout, Figma proficient.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>2–4 năm Product Designer / UI Designer</strong>
+        <p>Foundation: work as Product Designer ship feature actual. Trải nghiệm "consumer" của design system — biết designer cần gì, frustration nào với component cứng. Path tới Systems thường qua IC strong với obsession-level attention to detail.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Volunteer contribute design system</strong>
+        <p>Hầu hết company có design system team — ask volunteer contribute component cho team. Test interest và build credibility. Bước đầu: contribute 1–2 component nhỏ, document use, present cho team.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Build personal design system project</strong>
+        <p>Portfolio Systems Designer cần proof: build own design system public — host Figma file, document trên Notion/Zeroheight, share trên Behance/Twitter. Tham khảo: Untitled UI (Jordan Hughes), Geist (Vercel). Bonus: contribute open source design system.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Apply Design Systems Designer role</strong>
+        <p>Role này nhiều ở mid/large tech: Shopify, Atlassian, IBM, Microsoft, Adobe, scale-up Việt như Tiki, VNG, Momo. Interview focus: portfolio component thinking, system reasoning, accessibility knowledge, engineer collaboration. Salary thường cao hơn Product Designer cùng level vì niche skill.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Sự nghiệp Systems Designer</strong>
+        <p>Path: (1) <strong>Senior Design Systems Designer</strong> — own foundation category (typography, color); (2) <strong>Lead/Manager Design Systems</strong>; (3) <strong>Design Engineer</strong> — hybrid role design + code; (4) <strong>Founder design system tool</strong>; (5) <strong>Move lateral to Product Designer</strong> sau khi mastery system. Lương: VN Senior 40–80M/tháng; US tech Senior $180K–$300K total comp. Niche role nhưng demand cực cao ở large tech.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

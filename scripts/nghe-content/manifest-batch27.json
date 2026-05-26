@@ -1,0 +1,47 @@
+[
+  {
+    "id": "6ecca3c5-8e03-4028-bed6-1d97794238da",
+    "slug": "nghe-phim-location-scout",
+    "tieu_de_viet": "Location Scout (Người tìm địa điểm quay)",
+    "tom_tat": "Location Scout là người chuyên đi tìm + đánh giá địa điểm quay phù hợp cho production. Họ là cầu nối giữa script (yêu cầu địa điểm) và reality (location thực tế phù hợp + khả thi).",
+    "meta_title": "Location Scout phim là gì? | CINS",
+    "meta_description": "Location Scout tìm địa điểm quay phim. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-phim-tien-san-xuat", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "acd32300-0821-4961-9763-190a638f9ed7",
+    "slug": "nghe-dohoa-logo-designer",
+    "tieu_de_viet": "Logo Designer (Nhà thiết kế logo)",
+    "tom_tat": "Logo Designer thiết kế biểu tượng nhận diện cho brand — symbol + wordmark. Là craft cực chuyên sâu của graphic design — tạo ra dấu ấn visual mà người ta nhớ + nhận diện brand trong tích tắc.",
+    "meta_title": "Logo Designer là gì? Lộ trình | CINS",
+    "meta_description": "Logo Designer thiết kế logo, biểu tượng nhận diện brand. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-dohoa-branding", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "6ae7f9e8-a86c-4a8e-b1de-437a65234e54",
+    "slug": "nghe-thoitrang-lookbook-designer",
+    "tieu_de_viet": "Lookbook Designer (Nhà thiết kế lookbook)",
+    "tom_tat": "Lookbook Designer thiết kế cuốn lookbook — visual catalogue trình bày collection thời trang qua hình ảnh styled + layout đẹp. Là cầu nối giữa designer + thị trường — qua lookbook, buyer + press + customer hiểu collection.",
+    "meta_title": "Lookbook Designer là gì? | CINS",
+    "meta_description": "Lookbook Designer thiết kế catalogue trình bày collection thời trang. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-thoitrang-visual-marketing", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "1405e348-e4ab-41de-86be-5af6e9f813cf",
+    "slug": "nghe-phim-makeup-artist",
+    "tieu_de_viet": "Makeup Artist phim (Họa sĩ trang điểm)",
+    "tom_tat": "Makeup Artist trong phim chịu trách nhiệm trang điểm cho diễn viên — từ beauty makeup natural đến character transformation phức tạp (aging, scar, prosthetic). Là craft kết hợp art, technique, và time pressure on set.",
+    "meta_title": "Makeup Artist phim là gì? | CINS",
+    "meta_description": "Makeup Artist trang điểm diễn viên cho phim, TV. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-phim-san-xuat", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "19a7a00f-473d-40ff-b697-16977dd3aa2d",
+    "slug": "nghe-comic-mangacomic-editor",
+    "tieu_de_viet": "Manga/Comic Editor (Biên tập viên truyện tranh)",
+    "tom_tat": "Manga/Comic Editor làm việc với mangaka/comic writer xuyên suốt quá trình sáng tác — từ ý tưởng đến draft đến publish. Là role partnership creative + business critical trong publishing industry comic.",
+    "meta_title": "Manga/Comic Editor là gì? | CINS",
+    "meta_description": "Manga/Comic Editor partner với artist sáng tác comic. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-comic-quan-ly-xuat-ban", "nn-bao-chi-truyen-thong"]
+  }
+]

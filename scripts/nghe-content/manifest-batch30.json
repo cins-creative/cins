@@ -1,0 +1,47 @@
+[
+  {
+    "id": "1150f98a-2824-4332-801a-334e86c5f053",
+    "slug": "nghe-vfx-motion-graphics-artist",
+    "tieu_de_viet": "Motion Graphics Artist (Họa sĩ đồ họa chuyển động)",
+    "tom_tat": "Motion Graphics Artist là nghệ sĩ vẽ + animate graphic, typography, illustration cho video — explainer, ad, broadcast, social. Khác Motion Designer (broader strategic role) — Motion Graphics Artist execute production hands-on.",
+    "meta_title": "Motion Graphics Artist là gì? | CINS",
+    "meta_description": "Motion Graphics Artist vẽ + animate đồ họa video ad, broadcast. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-vfx-motion-graphics", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "82f8e036-cb41-4d64-8467-f053f1ab364a",
+    "slug": "nghe-hoat-hinh-music-composer",
+    "tieu_de_viet": "Music Composer hoạt hình (Nhà soạn nhạc)",
+    "tom_tat": "Music Composer hoạt hình soạn nhạc gốc cho animation — feature film, TV series, short. Music animation thường có nhiều opportunity cho composer score epic + leitmotif so với live-action.",
+    "meta_title": "Music Composer hoạt hình là gì? | CINS",
+    "meta_description": "Music Composer hoạt hình soạn nhạc gốc cho animation feature, TV. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-hoat-hinh-am-thanh", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "e354a52a-9fd2-4e44-b464-e41d9d2b7f80",
+    "slug": "nghe-phim-music-composer",
+    "tieu_de_viet": "Music Composer phim (Nhà soạn nhạc)",
+    "tom_tat": "Music Composer phim soạn nhạc gốc (score) cho phim — tăng emotional impact, định mood, support narrative. Hans Zimmer, John Williams iconic. Là role creative collaborate chặt với Director qua post-production.",
+    "meta_title": "Music Composer phim là gì? | CINS",
+    "meta_description": "Music Composer phim soạn nhạc gốc score cho film. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-phim-am-thanh", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "2eca10aa-ce76-41fa-aa0e-93f465d8c353",
+    "slug": "nghe-vfx-on-set-vfx-supervisor",
+    "tieu_de_viet": "On-set VFX Supervisor (Giám sát VFX trên trường)",
+    "tom_tat": "On-set VFX Supervisor đại diện VFX vendor / studio on set trong giai đoạn quay — đảm bảo footage shot theo yêu cầu VFX (camera info, lighting, green screen, tracking marker). Critical role bridge production + post.",
+    "meta_title": "On-set VFX Supervisor là gì? | CINS",
+    "meta_description": "On-set VFX Supervisor giám sát quay green screen, tracking. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-vfx-tien-hien-truong", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "ea195e23-d22e-41b1-8e9c-d0170f180572",
+    "slug": "nghe-3d-organic-modeler",
+    "tieu_de_viet": "Organic Modeler (Họa sĩ dựng hình hữu cơ)",
+    "tom_tat": "Organic Modeler chuyên dựng hình 3D đối tượng hữu cơ — người, động vật, sinh vật, plant, creature, anatomy. Khác Hard Surface Modeler (man-made object, mech, vehicle). Critical foundation cho character + creature VFX + animation.",
+    "meta_title": "Organic Modeler là gì? Lộ trình | CINS",
+    "meta_description": "Organic Modeler 3D dựng hình người, sinh vật, creature ZBrush. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-3d-modeling-sculpting", "nn-my-thuat-thiet-ke"]
+  }
+]

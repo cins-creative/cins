@@ -1,0 +1,47 @@
+[
+  {
+    "id": "79e6cbf9-6f52-47f7-ac9a-f2de41a02df3",
+    "slug": "nghe-minh-hoa-digital-illustrator",
+    "tieu_de_viet": "Digital Illustrator (Họa sĩ minh họa kỹ thuật số)",
+    "tom_tat": "Digital Illustrator vẽ minh họa hoàn toàn trên thiết bị số — iPad, Wacom, computer — cho book cover, editorial, advertising, social. Là evolution của họa sĩ minh họa truyền thống vào thời đại digital.",
+    "meta_title": "Digital Illustrator là gì? Lộ trình vào nghề | CINS",
+    "meta_description": "Digital Illustrator vẽ minh họa trên iPad, Wacom cho book, editorial, ads. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-minh-hoa-ky-thuat-so", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "115bbe38-fac3-4a06-9531-ba01796c0ee9",
+    "slug": "nghe-comic-digital-publisher",
+    "tieu_de_viet": "Digital Publisher (Nhà xuất bản truyện tranh kỹ thuật số)",
+    "tom_tat": "Digital Publisher comic phát hành truyện tranh trên platform digital — webtoon, Tapas, Webcomic, app riêng — manage author, monetization, growth audience trong môi trường digital-first.",
+    "meta_title": "Digital Publisher comic là gì? Lộ trình | CINS",
+    "meta_description": "Digital Publisher comic phát hành truyện tranh trên webtoon, app digital. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-comic-phat-hanh", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "3ec1f128-92a5-4726-8730-0c85a9eecea9",
+    "slug": "nghe-3d-digital-sculptor",
+    "tieu_de_viet": "Digital Sculptor",
+    "tom_tat": "Digital Sculptor điêu khắc nhân vật và creature 3D với ZBrush, Mudbox — đạt độ chi tiết high-resolution như tượng thật, là step quan trọng trước khi nhân vật được retopo và rig cho production.",
+    "meta_title": "Digital Sculptor là gì? Lộ trình vào nghề | CINS",
+    "meta_description": "Digital Sculptor điêu khắc nhân vật 3D high-res với ZBrush. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-3d-modeling-sculpting", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "ff95bbe4-85bf-46dc-b22e-054b47b66032",
+    "slug": "nghe-phim-director",
+    "tieu_de_viet": "Director (Đạo diễn phim)",
+    "tom_tat": "Đạo diễn phim là người dẫn dắt vision sáng tạo của bộ phim — quyết định mọi quyết định về performance, visual, sound. Là người &quot;author&quot; của bộ phim, dù làm việc với hàng trăm cộng sự.",
+    "meta_title": "Đạo diễn phim là gì? Lộ trình vào nghề | CINS",
+    "meta_description": "Đạo diễn phim dẫn dắt vision phim, lead diễn viên và crew. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-phim-quan-ly-san-xuat", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "014b2ad0-5250-4009-b12d-a030d208952c",
+    "slug": "nghe-hoat-hinh-director",
+    "tieu_de_viet": "Director (Đạo diễn phim hoạt hình)",
+    "tom_tat": "Đạo diễn phim hoạt hình lead vision và execution của phim animation — từ storyboard đến final render. Khác với đạo diễn live-action, họ control hoàn toàn mọi pixel xuất hiện trên màn hình.",
+    "meta_title": "Đạo diễn phim hoạt hình là gì? Lộ trình | CINS",
+    "meta_description": "Đạo diễn phim hoạt hình lead vision từ storyboard đến final render. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-hoat-hinh-quan-ly-san-xuat", "nn-bao-chi-truyen-thong"]
+  }
+]

@@ -1,0 +1,47 @@
+[
+  {
+    "id": "d5bae941-4e96-4a81-a66b-7d3aaec5a8a2",
+    "slug": "nghe-thoitrang-fashion-art-director",
+    "tieu_de_viet": "Fashion Art Director (Giám đốc mỹ thuật thời trang)",
+    "tom_tat": "Fashion Art Director định hình visual identity của campaign, lookbook, runway show và editorial. Họ là cầu nối giữa Creative Director và team sản xuất hình ảnh (photographer, stylist, set designer).",
+    "meta_title": "Fashion Art Director là gì? Lộ trình | CINS",
+    "meta_description": "Fashion Art Director chỉ đạo visual cho campaign, lookbook, show. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-thoitrang-visual-marketing", "nn-kien-truc-xay-dung"]
+  },
+  {
+    "id": "44b577e1-8d82-4f59-b4e1-e428df0fe9a4",
+    "slug": "nghe-thoitrang-fashion-designer",
+    "tieu_de_viet": "Fashion Designer (Nhà thiết kế thời trang)",
+    "tom_tat": "Fashion Designer là người sáng tạo collection thời trang — từ ý tưởng concept đến sketch, chọn fabric, fit, finishing. Là role iconic nhất của ngành — Phạm Đăng Anh Thư, Công Trí, Phương My, Karl Lagerfeld, Phoebe Philo.",
+    "meta_title": "Fashion Designer là gì? Lộ trình | CINS",
+    "meta_description": "Fashion Designer sáng tạo collection thời trang từ concept đến sample. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-thoitrang-nghien-cuu", "nn-kien-truc-xay-dung"]
+  },
+  {
+    "id": "f91b113f-7af3-4eaf-a621-1847efa65026",
+    "slug": "nghe-thoitrang-fashion-illustrator",
+    "tieu_de_viet": "Fashion Illustrator (Họa sĩ minh họa thời trang)",
+    "tom_tat": "Fashion Illustrator vẽ minh họa thời trang — từ sketch nội bộ cho designer/brand, đến editorial illustration cho Vogue/Harper&apos;s Bazaar, đến campaign visual. Là niche nghệ sĩ truyền thống còn rất giá trị trong digital era.",
+    "meta_title": "Fashion Illustrator là gì? Lộ trình | CINS",
+    "meta_description": "Fashion Illustrator vẽ minh họa cho brand, magazine, campaign thời trang. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-thoitrang-nghien-cuu", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "42dce7e7-88dd-4531-80de-31af52912dba",
+    "slug": "nghe-thoitrang-fashion-photographer",
+    "tieu_de_viet": "Fashion Photographer (Nhiếp ảnh gia thời trang)",
+    "tom_tat": "Fashion Photographer chụp ảnh cho campaign, lookbook, editorial, runway, e-commerce. Định hình visual identity của brand qua ánh sáng, composition, mood. Tên huyền thoại: Helmut Newton, Mario Testino, Annie Leibovitz, Steven Meisel.",
+    "meta_title": "Fashion Photographer là gì? Lộ trình | CINS",
+    "meta_description": "Fashion Photographer chụp campaign, lookbook, editorial thời trang. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-thoitrang-visual-marketing", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "b2064f9b-dc4c-434a-ab9b-0a654411cf4e",
+    "slug": "nghe-thoitrang-fashion-stylist",
+    "tieu_de_viet": "Fashion Stylist (Nhà tạo mẫu thời trang)",
+    "tom_tat": "Fashion Stylist chọn outfit, phụ kiện, layering cho campaign, editorial, celebrity event, runway show, music video. Là người &quot;dressing the story&quot; — biến quần áo thành language kể chuyện về nhân vật/brand.",
+    "meta_title": "Fashion Stylist là gì? Lộ trình | CINS",
+    "meta_description": "Fashion Stylist tạo mẫu outfit cho campaign, editorial, celebrity, runway. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-thoitrang-styling", "nn-kien-truc-xay-dung"]
+  }
+]

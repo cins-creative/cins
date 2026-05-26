@@ -1,0 +1,239 @@
+<section class="arc-intro">
+  <p>Con khủng long trong Jurassic World có 200+ cơ bắp di chuyển dưới da khi nó đi; Smaug trong The Hobbit có scale di chuyển khi nó thở; con kraken trong Pirates có tentacle quấn cong realistic. Người setup hệ thống kỹ thuật làm những điều đó là Creature TD.</p>
+  <p>Khác với <em>Character Rigger</em> (rig người, animal đơn giản) — Creature TD chuyên <em>complex anatomy</em>: muscle, fat jiggle, skin sliding, fur dynamic. Đây là một trong những technical role khó nhất ngành VFX.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>Creature TD là ai?</h2>
+  <p>Creature TD (Technical Director cho creature) là chuyên gia <strong>setup hệ thống kỹ thuật cho sinh vật CG phức tạp</strong> — quái vật, khủng long, động vật ngoài đời thực, sinh vật ngoài hành tinh. Họ xây <strong>muscle system</strong> (cơ co giãn realistic), <strong>fat &amp; flesh simulation</strong> (mỡ rung khi di chuyển), <strong>skin sliding</strong> (da trượt trên cơ), <strong>fur/feather/scale dynamic</strong>, <strong>creature-specific rig</strong> (tentacle, wing, multi-leg).</p>
+  <p>Khác với <strong>Character Rigger</strong> (rig anatomy chuẩn — biped, simple quadruped) — Creature TD handle <em>non-standard anatomy</em> và <em>simulation layer</em>. Khác với <strong>FX Artist</strong> (effect particle, smoke, fire) — Creature TD focus character body. Khác với <strong>Character Modeler</strong> (sculpt form) — Creature TD makes form move realistically. Có sub-specialty: <strong>Muscle TD</strong>, <strong>Cloth/Fur TD</strong>, <strong>Creature Rigger</strong>.</p>
+  <ul class="arc-list">
+    <li>Setup <strong>muscle &amp; fat simulation</strong> dưới da</li>
+    <li>Build <strong>creature-specific rig</strong> — wing, tentacle, multi-limb</li>
+    <li>Solve <strong>skin sliding, jiggle, deformation</strong> issue</li>
+    <li>Setup <strong>fur, feather, scale</strong> với dynamic</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"creature td vfx muscle simulation rigging dinosaur dragon film houdini"</span>
+    </div>
+    <p class="arc-image-caption">Creature TD — setup hệ thống kỹ thuật cho sinh vật CG</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>Creature TD ở <strong>technical layer</strong> của creature pipeline. Báo cáo cho <strong>Creature Supervisor</strong> hoặc <strong>VFX Supervisor</strong>. Phối hợp chặt với <strong>Creature Modeler</strong> (đảm bảo model deformable), <strong>Character Rigger</strong> (base skeleton + control), <strong>Animator</strong> (rig phải animator-friendly), <strong>Lighting/Look Dev</strong> (skin response with light). Trong phim VFX-heavy, Creature TD tham gia 6–18 tháng cho creature lớn. Studio điển hình: Weta FX, ILM, MPC, Framestore.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Công việc của một Creature TD</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. R&amp;D anatomy &amp; reference</h3>
+    <p>Bước đầu — research anatomy. Cho khủng long: paleontology paper, comparative anatomy với reptile/bird. Cho động vật fantasy: tổng hợp từ multiple animal (e.g., dragon = bat wing + reptile body). Study reference video: muscle flex, fat jiggle, skin slide. Build understanding cho design system kỹ thuật.</p>
+    <ul class="arc-list">
+      <li><strong>Anatomy reference</strong> — muscle layout, skeleton structure</li>
+      <li><strong>Motion reference</strong> — how it should move</li>
+      <li><strong>R&amp;D test</strong> — proof-of-concept rig nhỏ</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"creature anatomy reference muscle dinosaur reptile research paleontology"</span>
+      </div>
+      <p class="arc-image-caption">R&amp;D anatomy — foundation cho creature setup</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Build muscle system</h3>
+    <p>Setup muscle dưới skin. Tool điển hình: <strong>Ziva Dynamics</strong> (industry standard muscle &amp; tissue solver), <strong>Houdini Vellum</strong>, <strong>Maya Muscle</strong>. Tạo từng muscle với attachment point, contraction parameter, fat layer. Bí kíp: build hierarchy của muscle simulation; cache để animator preview real-time được; finalize chỉ cho final frame.</p>
+    <ul class="arc-list">
+      <li><strong>Muscle modeling</strong> — sculpt từng cơ với attachment</li>
+      <li><strong>Solver setup</strong> — Ziva, Vellum, custom</li>
+      <li><strong>Fat &amp; flesh layer</strong> — jiggle realistic</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"ziva muscle simulation creature vfx flesh fat layer maya"</span>
+      </div>
+      <p class="arc-image-caption">Muscle system — Ziva, Vellum simulation</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Skin &amp; secondary motion</h3>
+    <p>Layer trên muscle là skin. Setup <strong>skin sliding</strong> (da trượt trên cơ khi flex), <strong>wrinkle</strong> (nhăn ở joint), <strong>secondary motion</strong> (skin jiggle delay). Sau đó là <strong>fur/feather/scale</strong> — XGen, Yeti, Houdini Vellum hair. Mỗi layer add complexity và simulation time.</p>
+    <ul class="arc-list">
+      <li><strong>Skin sliding setup</strong> — slide constraint</li>
+      <li><strong>Wrinkle map</strong> — pose-based deformation</li>
+      <li><strong>Fur/feather</strong> — XGen, Yeti, Vellum</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"creature skin wrinkle deformation flex pose maya vfx"</span>
+        </div>
+        <p class="arc-image-caption">Skin sliding &amp; wrinkle</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"xgen yeti fur groom creature vfx hair simulation"</span>
+        </div>
+        <p class="arc-image-caption">Fur grooming &amp; dynamic</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">4. Optimize &amp; deliver to animation</h3>
+    <p>Animator cần rig <em>fast</em> — playback real-time hoặc gần. Final-quality muscle simulation chậm (vài phút/frame). Giải pháp: build <strong>animation rig</strong> đơn giản hoá cho animator pose; sau đó <strong>simulation rig</strong> full quality run trên final pose ở simulation department. Optimize qua: cache, proxy mesh, level-of-detail.</p>
+    <ul class="arc-list">
+      <li><strong>Animation rig</strong> — fast playback cho animator</li>
+      <li><strong>Sim rig</strong> — final quality offline</li>
+      <li><strong>Cache pipeline</strong> — Alembic, USD</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"creature animation rig optimization fast playback maya houdini cache"</span>
+      </div>
+      <p class="arc-image-caption">Animation rig vs. sim rig — optimize cho pipeline</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>Creature TD cần giỏi gì?</h2>
+
+  <div class="arc-skill-grid">
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">⚙️</span>
+      <span>Math &amp; physics simulation</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">🧠</span>
+      <span>Hiểu anatomy sâu</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">📦</span>
+      <span>Software: Ziva, Houdini, Maya</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">⚡</span>
+      <span>Coding Python &amp; MEL</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">🎨</span>
+      <span>Visual sense — đẹp/sai</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">💬</span>
+      <span>Communication với animator</span>
+    </div>
+  </div>
+
+  <div class="arc-accordion">
+
+    <details class="arc-card" open>
+      <summary>Math &amp; physics simulation</summary>
+      <div class="arc-card-body">
+        <p>Creature TD work với <em>simulation</em> daily — muscle solver, cloth solver, fluid solver. Phải hiểu cơ bản physics: stiffness, damping, mass, gravity. Hiểu linear algebra (matrix transformation), vector math. Không cần PhD nhưng intuition mạnh giúp solve problem nhanh.</p>
+        <p>Học qua: physics textbook (basics mechanics), Houdini course (procedural thinking), Ziva tutorial.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Hiểu anatomy sâu</summary>
+      <div class="arc-card-body">
+        <p>Phải biết: tên cơ chính, attachment skeleton, fiber direction, layered fat. Study artistic anatomy book (Gottfried Bammes "Art Anatomy of Animals"), comparative anatomy. Watch slow-motion animal video. Sketch muscle layout của reference animal.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Software: Ziva, Houdini, Maya</summary>
+      <div class="arc-card-body">
+        <p><strong>Ziva Dynamics</strong> — industry standard cho muscle. <strong>Houdini</strong> — procedural simulation power (Vellum, FLIP, RBD). <strong>Maya</strong> — rigging foundation. Bonus: <strong>Marvelous Designer</strong> (cloth), <strong>XGen/Yeti</strong> (fur). Master tối thiểu 2 trong số đó deep.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Coding Python &amp; MEL</summary>
+      <div class="arc-card-body">
+        <p>Pipeline không có script là pipeline chậm. Học Python cho Maya/Houdini scripting. Build tool tự động: rig auto-build, batch simulation, cache management. Senior TD viết tool dùng cho cả team.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Visual sense — đẹp/sai</summary>
+      <div class="arc-card-body">
+        <p>Tech setup đúng không đồng nghĩa với đẹp. Có "tech-correct nhưng creature feel sai". TD phải critique own work bằng artist eye: jiggle có overdo, muscle có biểu cảm, motion có believable. Học từ animator: pose, weight, anticipation.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Communication với animator</summary>
+      <div class="arc-card-body">
+        <p>Animator dùng rig của bạn 8 tiếng/ngày. Nếu rig khó dùng, họ frustrated. Build rig animator-friendly: clear control, logical naming, no hidden trap. Listen animator feedback, iterate. Pair sit với animator để hiểu workflow.</p>
+      </div>
+    </details>
+
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Làm cách nào để trở thành Creature TD?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Học 3D animation / VFX 3–4 năm</strong>
+        <p>VN: ĐH FPT Multimedia, Arena Multimedia. Quốc tế: Gnomon (LA), Animation Mentor (online), Think Tank Training Centre, CGSpectrum. Foundation: 3D modeling, rigging, animation principle, programming. STEM background (engineering, physics, math) là advantage lớn cho TD path.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Master rigging trước, rồi specialize</strong>
+        <p>Path entry: <strong>Junior Rigger → Character Rigger</strong>. Master Maya rigging deep — bone, skinning, control, deformer, blendshape. 2–3 năm rigging foundation rồi specialize Creature TD. Tutorial: Cult of Rig (Raffaele Fragapane), Rigging Dojo.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Specialize muscle &amp; simulation</strong>
+        <p>Take dedicated course: <strong>Ziva Dynamics course</strong>, <strong>Houdini Vellum course</strong>. Practice trên creature reel personal: dinosaur muscle, dragon wing, alien tentacle. Build complex reel với muscle simulation, skin sliding, fur dynamic.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Apply top creature studio</strong>
+        <p>Top studio: <strong>Weta FX</strong> (Avatar, Planet of the Apes), <strong>ILM</strong>, <strong>MPC</strong>, <strong>Framestore</strong>, <strong>DNEG</strong>. VN có studio nhỏ làm outsource. Bước đầu thường <strong>Junior Creature TD</strong> hoặc <strong>Rigging TD</strong> rồi specialize creature.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Sự nghiệp Creature TD</strong>
+        <p>Path: (1) <strong>Senior Creature TD</strong> — lead specific creature; (2) <strong>Creature Supervisor</strong> — lead all creature in show; (3) <strong>Pipeline TD</strong> — build tool/pipeline cross-show; (4) <strong>R&amp;D Engineer</strong> — develop new tech. Lương cao: top creature TD tại Weta/ILM $150K–$300K/năm. VN: 30–80M/tháng tại studio outsource lớn. Niche nhưng demand cao vì specialty hiếm.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

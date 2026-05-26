@@ -1,0 +1,47 @@
+[
+  {
+    "id": "d5a3933b-494f-43f8-b081-b62fff10b2f5",
+    "slug": "nghe-uiux-information-architect",
+    "tieu_de_viet": "Information Architect (Kiến trúc sư thông tin)",
+    "tom_tat": "Information Architect (IA) thiết kế cấu trúc + tổ chức thông tin trong digital product — sitemap, navigation, taxonomy, labeling. Là foundation cho UX work — không có IA tốt, UI không thể tốt.",
+    "meta_title": "Information Architect là gì? | CINS",
+    "meta_description": "Information Architect thiết kế cấu trúc thông tin cho website, app. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-uiux-ux-design", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "f5770d7a-4f08-4084-b57f-8d4552c81d1b",
+    "slug": "nghe-comic-inker",
+    "tieu_de_viet": "Inker comic (Họa sĩ nét mực)",
+    "tom_tat": "Inker là nghệ sĩ vẽ line cuối cùng (mực đen) lên trên pencil sketch của Penciller trong comic. Là role technical-creative quan trọng — line quality quyết định visual identity của comic.",
+    "meta_title": "Inker comic là gì? Lộ trình | CINS",
+    "meta_description": "Inker vẽ line mực cuối cho comic từ pencil sketch. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-comic-ve-san-xuat", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "76fbbd85-a408-4232-bd78-d7f2295ff1eb",
+    "slug": "nghe-uiux-interaction-designer",
+    "tieu_de_viet": "Interaction Designer (Nhà thiết kế tương tác)",
+    "tom_tat": "Interaction Designer thiết kế cách người dùng tương tác với digital product — animation, transition, micro-interaction, gesture, response. Là role cầu nối giữa Visual Designer và Engineer.",
+    "meta_title": "Interaction Designer là gì? | CINS",
+    "meta_description": "Interaction Designer thiết kế tương tác, animation, micro-interaction cho app. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-uiux-ux-design", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "1d8395ff-a4b6-4a06-b68a-61c92c8f2ba3",
+    "slug": "nghe-kien-truc-interior-designer",
+    "tieu_de_viet": "Interior Designer (Nhà thiết kế nội thất)",
+    "tom_tat": "Interior Designer thiết kế không gian sống + làm việc — residential, office, retail — bao gồm layout, material, lighting, color, furniture. Là một trong những ngành thiết kế phổ biến nhất với demand cao tại Việt Nam.",
+    "meta_title": "Interior Designer là gì? Lộ trình | CINS",
+    "meta_description": "Interior Designer thiết kế nội thất residential, office, retail. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-kien-truc-noi-that", "nn-kien-truc-xay-dung"]
+  },
+  {
+    "id": "242edbce-add4-47a8-9719-159a90bd6833",
+    "slug": "nghe-hoat-hinh-key-animator",
+    "tieu_de_viet": "Key Animator (Họa sĩ keyframe)",
+    "tom_tat": "Key Animator là animator senior vẽ keyframe (extreme pose, key moment) trong 2D animation. Họ define motion, energy, character acting — là role creative leadership trong production line, định visual identity của scene.",
+    "meta_title": "Key Animator là gì? Lộ trình | CINS",
+    "meta_description": "Key Animator vẽ keyframe extreme pose 2D animation. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-hoat-hinh-san-xuat-2d", "nn-bao-chi-truyen-thong"]
+  }
+]

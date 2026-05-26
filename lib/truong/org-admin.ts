@@ -1,6 +1,6 @@
+import { getCurrentUserIsCinsAdmin } from "@/lib/auth/cins-admin-server";
 import { isInlineArticleEditEnabled } from "@/lib/dev/inline-article-edit";
-import { hasServiceRoleEnv } from "@/lib/supabase/service-role";
-import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { createServiceRoleClient, hasServiceRoleEnv } from "@/lib/supabase/service-role";
 
 const ORG_ADMIN_ROLES = [
   "owner",
@@ -9,18 +9,34 @@ const ORG_ADMIN_ROLES = [
   "quan_ly_tuyen_sinh",
 ] as const;
 
-/** Dev / nội bộ: bật chế độ sửa khi inline edit + service role. */
+/**
+ * Precondition kỹ thuật cho server actions / API ghi DB:
+ * Yêu cầu cả flag `CINS_INLINE_ARTICLE_EDIT` (hoặc dev) lẫn service role key.
+ * KHÔNG còn dùng làm gate hiển thị toolbar.
+ */
 export function canUseTruongInlineEdit(): boolean {
   return isInlineArticleEditEnabled() && hasServiceRoleEnv();
 }
 
+/**
+ * Quyền quản trị trang trường cho UI inline edit.
+ *
+ * Trả `true` khi:
+ *   1. CINs admin login (email trong `CINS_ADMIN_EMAILS`) — quyền siêu admin,
+ *      thấy toolbar trên mọi trang trường.
+ *   2. User login đồng thời là member của `org_to_chuc` với một trong các
+ *      `vai_tro` admin (`owner`, `admin`, `quan_ly_noi_dung`,
+ *      `quan_ly_tuyen_sinh`).
+ *
+ * Mọi trường hợp khác (anon, user bình thường) → `false`.
+ */
 export async function getOrgAdminStatus(
   slug: string,
   userId?: string | null,
 ): Promise<boolean> {
-  if (canUseTruongInlineEdit() && !userId) {
-    return true;
-  }
+  if (!hasServiceRoleEnv()) return false;
+
+  if (await getCurrentUserIsCinsAdmin()) return true;
 
   if (!userId) return false;
 
@@ -45,6 +61,6 @@ export async function getOrgAdminStatus(
 
     return !!data;
   } catch {
-    return canUseTruongInlineEdit();
+    return false;
   }
 }

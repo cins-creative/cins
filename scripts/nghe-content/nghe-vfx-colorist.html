@@ -1,0 +1,246 @@
+<section class="arc-intro">
+  <p>Khi VFX team thêm robot CG vào cảnh phố thật, vấn đề lớn nhất không phải dựng robot — mà là <em>làm sao robot trông như đang đứng thật</em> trong frame. Lighting phải match, color phải match, shadow phải match, grain phải match. Người làm cho mọi thứ "ăn vào nhau" như film thật là VFX Colorist.</p>
+  <p>Khác Colorist phim (làm color grading creative cho toàn phim), VFX Colorist focus vào <em>integration</em> — biến CG element trở nên invisible giữa live footage. Đây là vị trí kỹ thuật cao trong VFX pipeline.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>Colorist VFX là ai?</h2>
+  <p>Colorist trong VFX là người làm <strong>color grading và color matching</strong> cho shot có CG element. Khi VFX team comp CG character/object vào live plate, plate raw và CG có color/lighting hoàn toàn khác — VFX Colorist <strong>balance</strong> để 2 element tích hợp seamless. Họ cũng làm <strong>DI (Digital Intermediate) grading</strong> cuối — phối hợp với Colorist phim chính để VFX shot match với non-VFX shot.</p>
+  <p>Khác với <strong>Colorist phim</strong> (creative grading cho toàn phim, mood) — VFX Colorist focus <strong>technical matching</strong>. Khác với <strong>Compositor</strong> (combine CG với plate, có làm color cơ bản) — VFX Colorist là <em>specialist</em> sâu hơn về color. Khác với <strong>Lighting TD</strong> (set up lighting cho CG asset) — VFX Colorist work với rendered output. Có overlap với <strong>DI Colorist</strong> trong workflow nhỏ.</p>
+  <ul class="arc-list">
+    <li><strong>Color matching</strong> CG element với live plate</li>
+    <li><strong>Color grading</strong> VFX shot trước và sau comp</li>
+    <li>Phối hợp với <strong>Compositor</strong> và <strong>Lighting TD</strong> giải quyết color issue</li>
+    <li>Final DI grading cho VFX-heavy sequence</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"VFX colorist DaVinci Resolve color grading shot compositing studio"</span>
+    </div>
+    <p class="arc-image-caption">VFX Colorist — match CG với plate, grading shot có VFX element</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>VFX Colorist thuộc <strong>Compositing Department</strong> hoặc <strong>DI Department</strong> của VFX studio. Báo cáo cho <strong>VFX Supervisor</strong> hoặc <strong>DI Supervisor</strong>. Work với <strong>Compositor</strong> (Nuke), <strong>Lighting TD</strong> (Maya/Houdini), <strong>DI Colorist phim</strong>. Tham gia từ middle production (khi VFX shot start rendering) đến final delivery. Studio: Industrial Light &amp; Magic, MPC, Framestore, DNEG, Method Studios, Sparx*, Bad Clay (VN nhỏ hơn nhưng có).</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Công việc của một Colorist VFX</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Plate analysis và color profile setup</h3>
+    <p>Bước đầu — analyze <strong>live plate</strong>: lighting condition, color temperature (warm/cool), exposure, white balance, color space (Rec.709, Rec.2020, ACES). Setup <strong>color profile</strong> trong DaVinci Resolve hoặc Baselight. Match input color space của plate. Xác định <strong>lighting reference</strong>: position, intensity, color của key light, fill light trong plate.</p>
+    <ul class="arc-list">
+      <li><strong>Plate analysis</strong> — lighting, color temperature, color space</li>
+      <li><strong>Color management setup</strong> — ACES, Rec.709, working color space</li>
+      <li><strong>Lighting reference identification</strong> — key, fill, ambient</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"DaVinci Resolve color management ACES color space setup workflow"</span>
+      </div>
+      <p class="arc-image-caption">Color management setup — foundation cho mọi VFX color work</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Match CG render với plate</h3>
+    <p>Phần chính — receive <strong>CG render</strong> (passes: beauty, diffuse, specular, AO, depth) từ Lighting TD. Composite trong Nuke hoặc Resolve, <strong>match</strong> color/light của CG với plate. Adjust: hue (color), saturation, value (brightness), gamma curve. Add <strong>matching element</strong>: grain (match film grain plate), motion blur, depth of field. Iterate qua nhiều round với Compositor và Lighting TD.</p>
+    <ul class="arc-list">
+      <li><strong>CG color match</strong> — adjust hue, saturation, value</li>
+      <li><strong>Match grain &amp; motion blur</strong> — CG phải match plate grain</li>
+      <li><strong>Lighting integration</strong> — shadow direction, intensity match</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"CG color match plate compositing VFX integration shot before after"</span>
+        </div>
+        <p class="arc-image-caption">CG color match — before/after comparison</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"VFX grain motion blur match plate compositing realistic"</span>
+        </div>
+        <p class="arc-image-caption">Grain &amp; motion blur match — CG seamless với live plate</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Shot-to-shot continuity</h3>
+    <p>Khi nhiều VFX shot trong sequence, đảm bảo <strong>color continuity</strong> giữa shot — không "jump" color giữa cut. Compare shot trước/sau, match exposure, color temperature, contrast. Sử dụng <strong>scopes</strong> (waveform, vectorscope) để measure quantitative, không chỉ rely on eye. Build <strong>master grade</strong> cho sequence, apply lên mọi shot.</p>
+    <ul class="arc-list">
+      <li><strong>Continuity check</strong> — compare shot adjacent trong sequence</li>
+      <li><strong>Scope analysis</strong> — waveform, vectorscope measurement</li>
+      <li><strong>Master grade</strong> — base grade cho sequence, customize per shot</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"color grading waveform vectorscope DaVinci Resolve sequence continuity"</span>
+      </div>
+      <p class="arc-image-caption">Scope analysis — measure quantitative để đảm bảo continuity</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">4. DI final grading với Colorist phim</h3>
+    <p>Bước cuối — phối hợp với <strong>DI Colorist phim chính</strong> để VFX shot match với non-VFX shot trong phim. Họp với <strong>VFX Supervisor</strong>, <strong>Director</strong>, <strong>DOP</strong> tại final DI session. Apply final creative grade từ Colorist phim chính, ensure VFX shot không "stick out" so với plate shot. Output: final graded VFX shot ready cho delivery.</p>
+    <ul class="arc-list">
+      <li><strong>Cross-team coordination</strong> — work với DI Colorist phim chính</li>
+      <li><strong>DI session</strong> — attend final review với Director, DOP</li>
+      <li><strong>Final delivery</strong> — render graded shot, đúng spec delivery</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"DI grading suite final review director DOP color cinema professional"</span>
+      </div>
+      <p class="arc-image-caption">DI grading suite — final review với Director, DOP để approve</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>Colorist VFX cần giỏi gì?</h2>
+
+  <div class="arc-skill-grid">
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">⚙️</span>
+      <span>DaVinci Resolve, Baselight, Nuke</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">🌈</span>
+      <span>Color science &amp; color space</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">💡</span>
+      <span>Lighting analysis</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">👁️</span>
+      <span>Mắt nhìn match technical</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">🎬</span>
+      <span>Hiểu VFX pipeline</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">💬</span>
+      <span>Cộng tác cross-department</span>
+    </div>
+  </div>
+
+  <div class="arc-accordion">
+
+    <details class="arc-card" open>
+      <summary>DaVinci Resolve, Baselight, Nuke</summary>
+      <div class="arc-card-body">
+        <p><strong>DaVinci Resolve</strong> (industry standard, free version đủ dùng), <strong>Baselight</strong> (premium, dùng tại studio top), <strong>Nuke</strong> (compositing + color). Master 1 sâu, hiểu 2 còn lại. Học Resolve qua <strong>Blackmagic certified training</strong> (free online), Baselight qua FilmLight training, Nuke qua Foundry tutorials.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Color science &amp; color space</summary>
+      <div class="arc-card-body">
+        <p>Phải hiểu sâu color science: Rec.709, Rec.2020, P3-D65, ACES (cinema color management), log color (S-Log3, Log-C). Hiểu LUT (Look-Up Table), gamma curve, gamut. Sách: <em>Color Correction Handbook</em> của Alexis Van Hurkman (bible), <em>The Art and Science of Digital Compositing</em>.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Lighting analysis</summary>
+      <div class="arc-card-body">
+        <p>Phải "đọc" lighting trong plate: direction key light (sun position), intensity ambient, color temperature time of day, presence của bounce light. Skill này critical cho match CG. Practice: take random film still, analyze lighting setup, replicate trong rendering. Study cinematography work.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Mắt nhìn match technical</summary>
+      <div class="arc-card-body">
+        <p>Mắt phải spot color difference nhỏ — 5% saturation off, 200K color temperature off. Develop qua practice với <strong>color matching exercise</strong> — match 2 image với scope. Use calibrated monitor (Eizo, BenQ SW270C) — uncalibrated monitor ruin perception. Take break để eye reset (Pomodoro).</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Hiểu VFX pipeline</summary>
+      <div class="arc-card-body">
+        <p>VFX Colorist work end-of-pipeline — phải hiểu mọi step trước: 3D rendering (passes, AOV), compositing (Nuke graph), lighting setup. Hiểu để communicate intelligent với Lighting TD và Compositor. Học từ Pixar in a Box, Nuke training, attendance SIGGRAPH paper.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Cộng tác cross-department</summary>
+      <div class="arc-card-body">
+        <p>Make work với Compositor (Nuke), Lighting TD (Maya/Houdini), DI Colorist phim, VFX Supervisor, sometimes Director, DOP. Phải communicate technical issue đơn giản (cho DOP không hiểu color science) hoặc creative intent (cho Lighting TD focus on technical). Tiếng Anh fluent gần như required.</p>
+      </div>
+    </details>
+
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Làm cách nào để trở thành Colorist VFX?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Background film, VFX hoặc photography</strong>
+        <p>Path 1: <strong>VFX background</strong> — học VFX (Sparx Animation Academy, Yoot, FPT Arena), specialize colorist sau. Path 2: <strong>Photography/Film school</strong> — ĐH SK&amp;ĐA chuyên Quay phim, học color sau. Path 3: <strong>Tự học</strong> — color is teachable nhưng cần discipline. Foundation 2–3 năm trong 1 path.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Master DaVinci Resolve trong 1–2 năm</strong>
+        <p>DaVinci Resolve Studio free version đủ học. Khóa: <strong>Blackmagic Certified Training</strong> (free PDF + video), <strong>MixingLight</strong> (premium, focus on color grading), <strong>Color Grading Central</strong>. Sau 1 năm, có certification Blackmagic Resolve. Practice với free footage (CC0 Stock Footage).</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Career path: Junior Colorist → VFX Colorist</strong>
+        <p>Path: <strong>Assistant Colorist</strong> (2–3 năm, lo file management, conform, tape-in) → <strong>Colorist Junior</strong> (3–5 năm, grade content nhỏ — MV, TVC, episode TV) → <strong>VFX Colorist specialist</strong> (5–8 năm). VFX Colorist là <em>specialty</em> — phải có VFX domain knowledge thêm.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Build portfolio reel 2–3 phút</strong>
+        <p>Portfolio: 2–3 phút reel show before/after grading. Đa dạng: VFX shot (CG integration), color creative (mood transformation), restoration (fix bad footage). Personal project: grade public domain footage, indie film, MV indie. Upload Vimeo, link trên LinkedIn.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Apply VFX studio hoặc post-production house</strong>
+        <p>Apply tại: <strong>VFX studio</strong> (VN: Sparx*, Bad Clay, Augmenta; quốc tế remote: DNEG, MPC, Framestore); <strong>Post-production house</strong> (VN: Yeah1, Sound &amp; Vision, ABC Post); <strong>DI facility</strong> (Company3, Picture Shop quốc tế). Junior salary VN: 12–25 triệu/tháng; international remote: $3–6K USD/tháng.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Xây dựng sự nghiệp lâu dài</strong>
+        <p>VFX Colorist có path tốt lên: (1) <strong>Senior VFX Colorist</strong> → <strong>DI Supervisor</strong> → <strong>Head of Color/DI</strong>; (2) <strong>Freelance Colorist</strong> — work cho multiple studio, day rate $500–1500 USD/ngày; (3) <strong>Setup own DI facility</strong> sau 10+ năm. Network qua <strong>HPA (Hollywood Professional Association)</strong>, <strong>SIGGRAPH</strong>, <strong>NAB Show</strong>. Lương: VN $1.5–4K USD/tháng cho Mid–Senior; international (LA, London) $80–180K USD/năm; top Colorist (Stefan Sonnenfeld, Skip Kimball) $1M+/năm với feature film grading.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

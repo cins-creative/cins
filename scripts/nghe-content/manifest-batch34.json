@@ -1,0 +1,47 @@
+[
+  {
+    "id": "46791b87-b9b6-4e7f-a9c8-58c219d41893",
+    "slug": "nghe-3d-product-visualizer",
+    "tieu_de_viet": "Product Visualizer 3D (Họa sĩ visualization sản phẩm)",
+    "tom_tat": "Product Visualizer 3D tạo render photoreal cho sản phẩm vật lý — đồng hồ, túi xách, smartphone, xe hơi, mỹ phẩm. Thay thế photography sản phẩm với 3D CGI flexibility infinite (góc, ánh sáng, scene khác).",
+    "meta_title": "Product Visualizer 3D là gì? | CINS",
+    "meta_description": "Product Visualizer 3D render photoreal cho sản phẩm. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-3d-visualization", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "cac2c0c7-de4a-494f-a57a-d2f12703d34d",
+    "slug": "nghe-phim-production-assistant",
+    "tieu_de_viet": "Production Assistant phim (Trợ lý sản xuất)",
+    "tom_tat": "Production Assistant (PA) là entry-level role trong phim — hỗ trợ tất cả mọi department, set runner, food + coffee, paperwork. Là door entry phổ biến nhất vào film industry. Hardwork + dedication = path to higher role.",
+    "meta_title": "Production Assistant phim là gì? | CINS",
+    "meta_description": "Production Assistant phim entry-level vào film industry. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-phim-quan-ly-san-xuat", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "f1dd65f4-810b-45b6-a351-ff8ccd62d1ba",
+    "slug": "nghe-hoat-hinh-production-coordinator",
+    "tieu_de_viet": "Production Coordinator hoạt hình",
+    "tom_tat": "Production Coordinator hoạt hình điều phối daily workflow giữa department — animation, lighting, FX, comp. Track shot status, schedule, communicate giữa Director + artist. Backbone vận hành studio animation.",
+    "meta_title": "Production Coordinator hoạt hình là gì? | CINS",
+    "meta_description": "Production Coordinator hoạt hình điều phối studio workflow. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-hoat-hinh-quan-ly-san-xuat", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "63b92cb2-01c4-4b8a-96f3-f458ea00af68",
+    "slug": "nghe-phim-production-coordinator",
+    "tieu_de_viet": "Production Coordinator phim",
+    "tom_tat": "Production Coordinator phim điều phối logistics + paperwork + communication giữa các department trong production phim — crew, equipment, location, schedule, vendor. Là right-hand của Producer / Line Producer.",
+    "meta_title": "Production Coordinator phim là gì? | CINS",
+    "meta_description": "Production Coordinator phim điều phối production logistics. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-phim-quan-ly-san-xuat", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "74cb7f88-b7e1-41be-a6cd-def555774783",
+    "slug": "nghe-phim-production-designer",
+    "tieu_de_viet": "Production Designer phim (Nhà thiết kế sản xuất)",
+    "tom_tat": "Production Designer phim chịu trách nhiệm về toàn bộ visual world của phim — set, prop, color, period detail, environment. Là role creative top tier — Director của visual. Oscar Best Production Design tôn vinh.",
+    "meta_title": "Production Designer phim là gì? | CINS",
+    "meta_description": "Production Designer phim thiết kế visual world set prop. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-phim-tien-san-xuat", "nn-bao-chi-truyen-thong"]
+  }
+]

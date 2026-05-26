@@ -1,0 +1,47 @@
+[
+  {
+    "id": "b7a8679c-1912-4222-a8ca-fbaea50a92db",
+    "slug": "nghe-comic-production-manager",
+    "tieu_de_viet": "Production Manager comic (Quản lý sản xuất)",
+    "tom_tat": "Production Manager comic quản lý toàn bộ quá trình sản xuất từ script đến print + ship — schedule, vendor, vendor invoice, paperwork. Là backbone vận hành publisher / studio comic, đảm bảo issue ship đúng schedule.",
+    "meta_title": "Production Manager comic là gì? | CINS",
+    "meta_description": "Production Manager comic quản lý publisher / studio. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-comic-quan-ly-xuat-ban", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "77dec743-5742-4d65-98e9-daae7907b66a",
+    "slug": "nghe-thoitrang-production-manager",
+    "tieu_de_viet": "Production Manager thời trang (Quản lý sản xuất)",
+    "tom_tat": "Production Manager thời trang quản lý toàn bộ quá trình sản xuất garment — từ pattern + sample đến mass production tại factory, quality control, shipping. Bridge giữa design team + manufacturing reality.",
+    "meta_title": "Production Manager thời trang là gì? | CINS",
+    "meta_description": "Production Manager thời trang quản lý garment factory. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-thoitrang-quan-ly-san-xuat", "nn-kien-truc-xay-dung"]
+  },
+  {
+    "id": "4b42fbd7-e2a7-47ff-a21c-c555ec21bb84",
+    "slug": "nghe-hoat-hinh-production-manager",
+    "tieu_de_viet": "Production Manager hoạt hình (Quản lý sản xuất)",
+    "tom_tat": "Production Manager hoạt hình quản lý department production / studio operation — schedule, budget, artist team, vendor. Là role mid-senior giữa Coordinator + Line Producer trong management track.",
+    "meta_title": "Production Manager hoạt hình là gì? | CINS",
+    "meta_description": "Production Manager hoạt hình quản lý department production. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-hoat-hinh-quan-ly-san-xuat", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "3e18de3d-7722-4cc2-a2a2-93e1740ecb3c",
+    "slug": "nghe-phim-production-manager",
+    "tieu_de_viet": "Production Manager phim (Quản lý sản xuất)",
+    "tom_tat": "Production Manager phim (UPM — Unit Production Manager) chịu trách nhiệm day-to-day operation của production phim — schedule, budget execution, crew, vendor, location. Right-hand của Line Producer + Producer.",
+    "meta_title": "Production Manager phim là gì? Lộ trình | CINS",
+    "meta_description": "Production Manager phim quản lý day-to-day production. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-phim-quan-ly-san-xuat", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "265e9dd4-5845-4e24-a86a-e75b56e4db61",
+    "slug": "nghe-kien-truc-project-architect",
+    "tieu_de_viet": "Project Architect (Kiến trúc sư dự án)",
+    "tom_tat": "Project Architect lead specific project — từ design development đến construction completion. Là role mid-senior architect responsible for project execution, client face, team management cho 1 project specific.",
+    "meta_title": "Project Architect là gì? Lộ trình | CINS",
+    "meta_description": "Project Architect lead specific project from design to construction. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-kien-truc-thiet-ke", "nn-kien-truc-xay-dung"]
+  }
+]

@@ -1,0 +1,47 @@
+[
+  {
+    "id": "af8e3e27-47d8-42a1-8a01-ad55507d7c64",
+    "slug": "nghe-phim-director-of-photography-dp",
+    "tieu_de_viet": "Director of Photography (DP / Giám đốc hình ảnh)",
+    "tom_tat": "DP (Director of Photography) là người chịu trách nhiệm toàn bộ visual của phim — lens, camera, lighting, framing. Là người đứng giữa vision của đạo diễn và máy quay, biến script thành hình ảnh trên màn hình.",
+    "meta_title": "DP / Giám đốc hình ảnh là gì? Lộ trình | CINS",
+    "meta_description": "DP chịu trách nhiệm visual của phim — lens, camera, lighting. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-phim-san-xuat", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "c9d93f71-3550-45af-af7c-8f0c2da6bd60",
+    "slug": "nghe-phim-distributor",
+    "tieu_de_viet": "Distributor (Nhà phân phối phim)",
+    "tom_tat": "Distributor phim đưa phim từ studio đến khán giả — qua rạp, streaming, TV, DVD, festival. Họ negotiate deal, plan release, marketing, quyết định bao nhiêu rạp, ngày nào, market nào.",
+    "meta_title": "Distributor phim là gì? Lộ trình vào nghề | CINS",
+    "meta_description": "Distributor phim đưa phim đến khán giả qua rạp, streaming, TV. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-phim-phat-hanh", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "441f8312-143f-4915-8749-f57582895684",
+    "slug": "nghe-thoitrang-draper-toile-maker",
+    "tieu_de_viet": "Draper / Toile Maker (Người may mẫu)",
+    "tom_tat": "Draper / Toile Maker là chuyên gia kỹ thuật biến sketch thành mẫu vải thật — drape vải trực tiếp trên ma-nơ-canh hoặc cắt toile (cotton mẫu) — là step quan trọng nhất giữa thiết kế và sản xuất.",
+    "meta_title": "Draper / Toile Maker là gì? Lộ trình | CINS",
+    "meta_description": "Draper biến sketch thành mẫu vải qua draping, toile. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-thoitrang-ky-thuat", "nn-kien-truc-xay-dung"]
+  },
+  {
+    "id": "6e2aa189-ec6a-4432-a7fc-e2517ff45ecf",
+    "slug": "nghe-hoat-hinh-editor",
+    "tieu_de_viet": "Editor phim hoạt hình",
+    "tom_tat": "Editor phim hoạt hình ráp animatic và shot animation thành phim hoàn chỉnh — quyết định pacing, rhythm, transition — work chặt với Director từ early animatic đến final delivery.",
+    "meta_title": "Editor hoạt hình là gì? Lộ trình vào nghề | CINS",
+    "meta_description": "Editor hoạt hình ráp animatic và shot animation thành phim. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-hoat-hinh-hau-ky", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "0bd99e00-73c8-4068-ae69-c5cabb9c005a",
+    "slug": "nghe-phim-editor",
+    "tieu_de_viet": "Editor phim (Dựng phim)",
+    "tom_tat": "Editor phim là người &quot;viết lại phim trong phòng dựng&quot; — chọn take, cắt rhythm, định pacing, build emotional arc. Là cộng sự kín tiếng nhất nhưng quyền lực nhất với đạo diễn.",
+    "meta_title": "Editor phim là gì? Lộ trình vào nghề | CINS",
+    "meta_description": "Editor phim chọn take, cắt rhythm, build emotion. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-phim-hau-ky", "nn-bao-chi-truyen-thong"]
+  }
+]

@@ -1,0 +1,47 @@
+[
+  {
+    "id": "6e7e70eb-8fa9-4078-9753-9b714e8decca",
+    "slug": "nghe-phim-hair-stylist",
+    "tieu_de_viet": "Hair Stylist phim (Nhà tạo mẫu tóc)",
+    "tom_tat": "Hair Stylist phim thiết kế + tạo kiểu tóc cho diễn viên — phản ánh nhân vật, era, mood. Khác hair salon, phim hair work cần stylized historical/fantasy, daily continuity check + on-set maintenance suốt shoot.",
+    "meta_title": "Hair Stylist phim là gì? Lộ trình | CINS",
+    "meta_description": "Hair Stylist phim thiết kế tóc diễn viên — character, era, continuity. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-phim-san-xuat", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "804ebb9d-a8d1-4b43-b380-f8bbf1fe969c",
+    "slug": "nghe-3d-hard-surface-modeler",
+    "tieu_de_viet": "Hard Surface Modeler 3D (Họa sĩ dựng hình cứng)",
+    "tom_tat": "Hard Surface Modeler chuyên dựng các vật thể có bề mặt cứng — vehicle, weapon, robot, building, mechanical asset. Khác Organic Modeler (character, creature). Là backbone của game, animation, VFX cho mọi non-organic asset.",
+    "meta_title": "Hard Surface Modeler 3D là gì? | CINS",
+    "meta_description": "Hard Surface Modeler dựng vehicle, weapon, robot, building cho game/VFX. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-3d-modeling-sculpting", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "f30b3f0f-9298-471f-9ea5-58999b582f5f",
+    "slug": "nghe-uiux-head-of-design",
+    "tieu_de_viet": "Head of Design (Trưởng bộ phận thiết kế UI/UX)",
+    "tom_tat": "Head of Design lead design organization tại tech company — define design vision, build team, advocate cho design ở C-level, đảm bảo design quality + system consistency. Role critical cho product-driven company.",
+    "meta_title": "Head of Design UI/UX là gì? Lộ trình | CINS",
+    "meta_description": "Head of Design lead design team tại tech company — vision, hiring, advocacy. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-uiux-quan-ly-san-xuat", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "9d4f08b6-4cb6-4be0-8731-5ed6a21a4fc5",
+    "slug": "nghe-hoat-hinh-head-of-story",
+    "tieu_de_viet": "Head of Story hoạt hình",
+    "tom_tat": "Head of Story là leader của story department trong animation studio — supervise tất cả storyboard artist, đảm bảo narrative consistency, work directly với Director để shape phim từ script đến animatic.",
+    "meta_title": "Head of Story hoạt hình là gì? | CINS",
+    "meta_description": "Head of Story lead storyboard team, shape narrative animation. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-hoat-hinh-tien-san-xuat", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "2145d9b7-d60a-4b10-8f2e-33db6ff04828",
+    "slug": "nghe-kien-truc-hospitality-designer",
+    "tieu_de_viet": "Hospitality Designer (Nhà thiết kế khách sạn &amp; nhà hàng)",
+    "tom_tat": "Hospitality Designer thiết kế khách sạn, resort, nhà hàng, bar, spa — biến không gian thành experience đầy đủ. Là segment lớn nhất + complex nhất của ngành interior, cần hiểu cả branding, F&amp;B operation, guest journey.",
+    "meta_title": "Hospitality Designer là gì? Lộ trình | CINS",
+    "meta_description": "Hospitality Designer thiết kế khách sạn, resort, nhà hàng. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-kien-truc-noi-that", "nn-kien-truc-xay-dung"]
+  }
+]

@@ -1,0 +1,47 @@
+[
+  {
+    "id": "08a377b6-efaa-432d-a07d-344c35383ed2",
+    "slug": "nghe-hoat-hinh-texture-surfacing-artist",
+    "tieu_de_viet": "Texture / Surfacing Artist hoạt hình",
+    "tom_tat": "Texture / Surfacing Artist hoạt hình paint texture + setup shader cho character + prop + environment. Critical look-dev role tại animation studio. Pixar's signature stylized texture, Disney's photoreal — đều là tác phẩm Texture Artist.",
+    "meta_title": "Texture Artist hoạt hình là gì? | CINS",
+    "meta_description": "Texture Surfacing Artist hoạt hình paint texture shader Pixar Disney studio. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-hoat-hinh-san-xuat-3d", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "6db1d7be-dbad-4317-b2d9-c4f738ad1cee",
+    "slug": "nghe-3d-texture-artist",
+    "tieu_de_viet": "Texture Artist 3D (Họa sĩ texture)",
+    "tom_tat": "Texture Artist 3D paint + create texture map cho 3D asset — color, normal, roughness, displacement. Foundation của look-dev pipeline. Critical cho VFX, game, animation, arch viz photoreal output.",
+    "meta_title": "Texture Artist 3D là gì? Lộ trình | CINS",
+    "meta_description": "Texture Artist 3D paint texture map color normal Substance Mari. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-3d-texturing-shading", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "fb1fc688-51d1-4cd9-a99c-cdb82551262d",
+    "slug": "nghe-hoat-hinh-tools-developer",
+    "tieu_de_viet": "Tools Developer hoạt hình",
+    "tom_tat": "Tools Developer hoạt hình build custom tool + plugin + script cho animation studio. Subset của TD role với coding heavy focus. Python + C++ + Maya/Houdini SDK. Bridge giữa artist + engineering.",
+    "meta_title": "Tools Developer hoạt hình là gì? | CINS",
+    "meta_description": "Tools Developer animation Python C++ Maya Houdini plugin studio. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-hoat-hinh-technical-art", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "4bfdf013-4d0a-4c51-9345-de2ce45e48e6",
+    "slug": "nghe-comic-translator-localizer",
+    "tieu_de_viet": "Translator / Localizer comic (Dịch thuật & bản địa hóa)",
+    "tom_tat": "Translator / Localizer comic dịch + adapt manga / Western comic sang ngôn ngữ địa phương — không chỉ dịch text mà còn culture, joke, onomatopoeia, naming. Critical cho global manga industry boom + Vietnamese comic scene.",
+    "meta_title": "Translator Localizer comic là gì? | CINS",
+    "meta_description": "Translator Localizer manga comic dịch văn hóa onomatopoeia. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-comic-hoan-thien", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "28a38e6f-5104-4558-a079-c607e76793c3",
+    "slug": "nghe-thoitrang-trend-researcher",
+    "tieu_de_viet": "Trend Researcher thời trang (Nhà nghiên cứu xu hướng)",
+    "tom_tat": "Trend Researcher / Forecaster phân tích cultural signal, predict fashion + lifestyle trend 1-3 năm trước. Critical input cho brand strategy + collection direction. WGSN, Pantone, Trendalytics đều dùng Trend Researcher.",
+    "meta_title": "Trend Researcher thời trang là gì? | CINS",
+    "meta_description": "Trend Researcher phân tích cultural signal forecast fashion 2-3 năm. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-thoitrang-nghien-cuu", "nn-my-thuat-thiet-ke"]
+  }
+]

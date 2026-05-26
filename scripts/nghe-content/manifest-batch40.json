@@ -1,0 +1,47 @@
+[
+  {
+    "id": "bf5f8ca9-2b57-488a-a09e-be73d3f522c2",
+    "slug": "nghe-uiux-service-designer",
+    "tieu_de_viet": "Service Designer (Nhà thiết kế dịch vụ)",
+    "tom_tat": "Service Designer thiết kế end-to-end customer experience cho service — không chỉ digital product mà toàn bộ touchpoint từ marketing đến checkout đến support. Là role hot tại fintech, healthcare, public service.",
+    "meta_title": "Service Designer là gì? Lộ trình | CINS",
+    "meta_description": "Service Designer thiết kế end-to-end customer journey. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-uiux-ux-design", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "faa7fcc0-2c51-4798-a115-bc1cadadb0df",
+    "slug": "nghe-kien-truc-set-designer",
+    "tieu_de_viet": "Set Designer kiến trúc (Nhà thiết kế bối cảnh sân khấu)",
+    "tom_tat": "Set Designer kiến trúc thiết kế bối cảnh cho theater, opera, ballet, concert. Là intersection của architecture + theater + visual storytelling. Tony Awards Best Scenic Design tôn vinh role này.",
+    "meta_title": "Set Designer kiến trúc là gì? | CINS",
+    "meta_description": "Set Designer kiến trúc thiết kế bối cảnh theater opera. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-kien-truc-noi-that", "nn-kien-truc-xay-dung"]
+  },
+  {
+    "id": "6ee32c3e-e7ef-48f9-b5ef-ade03cb9866f",
+    "slug": "nghe-phim-set-designer",
+    "tieu_de_viet": "Set Designer phim (Nhà thiết kế bối cảnh)",
+    "tom_tat": "Set Designer phim thiết kế set (bối cảnh) cho phim — từ technical drawing đến model. Báo cáo Production Designer + Art Director. Là technical-creative role trong Art Department.",
+    "meta_title": "Set Designer phim là gì? Lộ trình | CINS",
+    "meta_description": "Set Designer phim thiết kế bối cảnh từ drawing đến model. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-phim-tien-san-xuat", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "29db24d3-0735-45e4-a38d-c8421a61542a",
+    "slug": "nghe-3d-shader-artist",
+    "tieu_de_viet": "Shader Artist 3D (Họa sĩ shader)",
+    "tom_tat": "Shader Artist 3D develop shader (material) cho 3D asset — surface look, reflection, refraction, subsurface. Hybrid technical-artistic role bridging Texturing + Lighting + Rendering.",
+    "meta_title": "Shader Artist 3D là gì? | CINS",
+    "meta_description": "Shader Artist 3D develop material surface look 3D asset. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-3d-texturing-shading", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "29324fcd-28a5-4f14-bd5d-5fd4405e6af6",
+    "slug": "nghe-thoitrang-show-producer",
+    "tieu_de_viet": "Show Producer thời trang (Nhà sản xuất show)",
+    "tom_tat": "Show Producer thời trang orchestrate fashion show, runway event — venue, casting, music, lighting, choreography, backstage. Critical cho brand image at Fashion Week + collection launch.",
+    "meta_title": "Show Producer thời trang là gì? | CINS",
+    "meta_description": "Show Producer thời trang orchestrate runway fashion show. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-thoitrang-visual-marketing", "nn-my-thuat-thiet-ke"]
+  }
+]

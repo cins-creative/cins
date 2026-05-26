@@ -10,9 +10,6 @@ import {
   NGHE_JOB_CARDS,
   NGHE_LEAD_BODY_HTML,
   NGHE_LEAD_HTML,
-  NGHE_SIDEBAR_KEYWORDS,
-  NGHE_SIDEBAR_NGANH,
-  NGHE_SIDEBAR_NGHE,
   NGHE_SW_TILES,
 } from "@/components/article/nghe/static/nghe-static-data";
 import {
@@ -22,12 +19,14 @@ import {
 } from "@/components/article/nghe/NgheRelParts";
 import {
   StaticRelCard,
-  StaticRelItem,
   StaticRelTile,
 } from "@/components/article/nghe/static/NgheStaticParts";
 import { NgheLeadRich } from "@/components/article/nghe/NgheLeadRich";
 import { NgheLeadVideo } from "@/components/article/nghe/NgheLeadVideo";
-import { NgheSidebarTabs } from "@/components/article/nghe/NgheSidebarTabs";
+import {
+  NgheSidebarTabs,
+  type NgheSidebarTabConfig,
+} from "@/components/article/nghe/NgheSidebarTabs";
 
 function IconEye() {
   return (
@@ -123,10 +122,99 @@ export function NgheLayoutStatic({
     (c) => String(c.loai_bai_viet) === "keyword",
   );
   const useDbKeywords = keywordLienQuan.length > 0;
+  const nganhLienQuan = lienQuan.filter(
+    (c) => String(c.loai_bai_viet) === "nganh_dao_tao",
+  );
+  const useDbNganh = nganhLienQuan.length > 0;
   const monHocLienQuan = lienQuan.filter(
     (c) => String(c.loai_bai_viet) === "mon_hoc",
   );
   const useDbCourseCards = monHocLienQuan.length > 0;
+
+  const sidebarTabs: NgheSidebarTabConfig[] = [];
+  if (useDbNganh) {
+    sidebarTabs.push({
+      id: "nganh",
+      label: "Ngành học",
+      header: (
+        <div className="rel-header">
+          <h4>
+            Ngành học vào nghề{" "}
+            <em>{`${nganhLienQuan.length} ngành ĐT`}</em>
+          </h4>
+          <span className="hint">Hover để xem mã ngành &amp; thời gian</span>
+        </div>
+      ),
+      body: (
+        <div className="rel-list">
+          {nganhLienQuan.map((card, i) => (
+            <NgheRelItem
+              key={card.id}
+              card={card}
+              tipClass={i % 2 === 0 ? "tip-left" : "tip-right"}
+              showTag={false}
+              showSummary={false}
+            />
+          ))}
+        </div>
+      ),
+    });
+  }
+  if (useDbKeywords) {
+    sidebarTabs.push({
+      id: "keyword",
+      label: "Kỹ thuật",
+      header: (
+        <div className="rel-header">
+          <h4>
+            Keyword liên quan{" "}
+            <em>{`${keywordLienQuan.length} kỹ thuật`}</em>
+          </h4>
+          <span className="hint">Hover để xem mô tả</span>
+        </div>
+      ),
+      body: (
+        <div className="rel-list">
+          {keywordLienQuan.map((card, i) => (
+            <NgheRelItem
+              key={card.id}
+              card={card}
+              tipClass={i % 2 === 0 ? "tip-left" : "tip-right"}
+              showTag={false}
+              showSummary={false}
+            />
+          ))}
+        </div>
+      ),
+    });
+  }
+  if (useDbJobCards) {
+    sidebarTabs.push({
+      id: "nghe",
+      label: "Nghề liên quan",
+      header: (
+        <div className="rel-header">
+          <h4>
+            Nghề liên quan <em>cùng pipeline</em>
+          </h4>
+          <span className="hint">Hover để xem thu nhập &amp; mảng việc</span>
+        </div>
+      ),
+      body: (
+        <div className="rel-list">
+          {ngheLienQuan.map((card, i) => (
+            <NgheRelItem
+              key={card.id}
+              card={card}
+              tipClass={i % 2 === 0 ? "tip-left" : "tip-right"}
+              showTag={false}
+              showSummary={false}
+            />
+          ))}
+        </div>
+      ),
+    });
+  }
   return (
     <div className="article-wrap article-wrap--nghe-first-draft">
       <main className="article-main">
@@ -209,76 +297,9 @@ export function NgheLayoutStatic({
         </div>
 
         <aside className="article-side">
-          <NgheSidebarTabs
-            keyword={{
-              header: (
-                <div className="rel-header">
-                  <h4>
-                    Keyword liên quan{" "}
-                    <em>
-                      {useDbKeywords
-                        ? `${keywordLienQuan.length} kỹ thuật`
-                        : "6 kỹ thuật"}
-                    </em>
-                  </h4>
-                  <span className="hint">Hover để xem mô tả</span>
-                </div>
-              ),
-              body: (
-                <div className="rel-list">
-                  {useDbKeywords
-                    ? keywordLienQuan.map((card, i) => (
-                        <NgheRelItem
-                          key={card.id}
-                          card={card}
-                          tipClass={i % 2 === 0 ? "tip-left" : "tip-right"}
-                        />
-                      ))
-                    : NGHE_SIDEBAR_KEYWORDS.map((item) => (
-                        <StaticRelItem key={item.name} item={item} />
-                      ))}
-                </div>
-              ),
-            }}
-            nghe={{
-              header: (
-                <div className="rel-header">
-                  <h4>
-                    Nghề liên quan <em>cùng pipeline</em>
-                  </h4>
-                  <span className="hint">
-                    Hover để xem thu nhập &amp; mảng việc
-                  </span>
-                </div>
-              ),
-              body: (
-                <div className="rel-list">
-                  {NGHE_SIDEBAR_NGHE.map((item) => (
-                    <StaticRelItem key={item.name} item={item} />
-                  ))}
-                </div>
-              ),
-            }}
-            nganh={{
-              header: (
-                <div className="rel-header">
-                  <h4>
-                    Ngành học vào nghề <em>3 ngành ĐT</em>
-                  </h4>
-                  <span className="hint">
-                    Hover để xem mã ngành &amp; thời gian
-                  </span>
-                </div>
-              ),
-              body: (
-                <div className="rel-list">
-                  {NGHE_SIDEBAR_NGANH.map((item) => (
-                    <StaticRelItem key={item.name} item={item} />
-                  ))}
-                </div>
-              ),
-            }}
-          />
+          {sidebarTabs.length > 0 ? (
+            <NgheSidebarTabs tabs={sidebarTabs} defaultTabId="nganh" />
+          ) : null}
 
           <div className="side-card side-card-quiz">
             <h4 className="side-card-quiz-title">

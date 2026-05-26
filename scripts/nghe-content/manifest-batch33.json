@@ -1,0 +1,47 @@
+[
+  {
+    "id": "740a0459-ac4f-44ca-8364-a7cee1295e49",
+    "slug": "nghe-comic-print-production-specialist",
+    "tieu_de_viet": "Print Production Specialist comic (Kỹ thuật viên in ấn)",
+    "tom_tat": "Print Production Specialist comic chuyển final artwork comic thành file in production-ready + supervise quá trình in. Critical bridge giữa creative + manufacturing — đảm bảo color, paper, finishing đúng vision.",
+    "meta_title": "Print Production Specialist comic là gì? | CINS",
+    "meta_description": "Print Production Specialist comic chuyển artwork thành file in. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-comic-hoan-thien", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "c46b3eed-d24a-4cf1-b5c7-6c7fb1c295c5",
+    "slug": "nghe-phim-producer",
+    "tieu_de_viet": "Producer phim (Nhà sản xuất)",
+    "tom_tat": "Producer phim là role lãnh đạo chịu trách nhiệm toàn bộ về phim — từ ý tưởng, financing, casting, production, đến distribution + marketing. Là cầu nối creative team + business + studio. Một trong những role quyền lực nhất film industry.",
+    "meta_title": "Producer phim là gì? Lộ trình | CINS",
+    "meta_description": "Producer phim lãnh đạo toàn bộ project film. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-phim-quan-ly-san-xuat", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "8a46846e-b3a2-4df8-88e3-0fbd29ec11e8",
+    "slug": "nghe-hoat-hinh-producer",
+    "tieu_de_viet": "Producer hoạt hình (Nhà sản xuất)",
+    "tom_tat": "Producer hoạt hình lãnh đạo toàn bộ animation project — từ pitching, financing, studio team building, production execution, đến distribution. Là cầu nối creative vision Director + business reality studio executive.",
+    "meta_title": "Producer hoạt hình là gì? Lộ trình | CINS",
+    "meta_description": "Producer hoạt hình lãnh đạo animation project. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-hoat-hinh-quan-ly-san-xuat", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "64455109-16f9-40ac-b337-51543267b546",
+    "slug": "nghe-dohoa-product-designer",
+    "tieu_de_viet": "Product Designer đồ họa (Nhà thiết kế sản phẩm)",
+    "tom_tat": "Product Designer đồ họa thiết kế graphic + surface design cho sản phẩm vật lý — tee shirt, mug, notebook, stationery, accessory, home decor. Là cross-over giữa graphic design + product / merchandise — thị trường e-commerce + lifestyle brand growing.",
+    "meta_title": "Product Designer đồ họa là gì? | CINS",
+    "meta_description": "Product Designer thiết kế graphic cho sản phẩm tee mug stationery. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-dohoa-branding", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "89910194-c4d3-4762-8092-496b22b9060d",
+    "slug": "nghe-uiux-product-designer",
+    "tieu_de_viet": "Product Designer UI/UX (Nhà thiết kế sản phẩm số)",
+    "tom_tat": "Product Designer UI/UX là role hybrid kết hợp UX research, UI design, interaction design, prototyping — own toàn bộ design của digital product feature. Là role trend phổ biến tại tech company hiện đại (Stripe, Linear, Notion, Figma).",
+    "meta_title": "Product Designer UI/UX là gì? | CINS",
+    "meta_description": "Product Designer UI/UX hybrid UX + UI + interaction. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-uiux-ui-design", "nn-my-thuat-thiet-ke"]
+  }
+]

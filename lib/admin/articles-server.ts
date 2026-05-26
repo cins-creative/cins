@@ -44,7 +44,7 @@ export type AdminArticleFilterOptions = {
 };
 
 /** Số bài tải tối đa cho admin list (lọc phía client trên tập này). */
-export const ADMIN_ARTICLE_LIST_LIMIT = 500;
+export const ADMIN_ARTICLE_LIST_LIMIT = 2000;
 
 export type AdminArticleListRow = {
   id: string;

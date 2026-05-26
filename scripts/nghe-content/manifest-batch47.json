@@ -1,0 +1,47 @@
+[
+  {
+    "id": "7b0ecc71-6af9-4f41-8d8b-4ee2f9b60a85",
+    "slug": "nghe-uiux-ux-researcher",
+    "tieu_de_viet": "UX Researcher (Nhà nghiên cứu UX)",
+    "tom_tat": "UX Researcher chuyên sâu research function trong product team — generative + evaluative study, qualitative + quantitative method. Khác User Researcher ở phạm vi rộng hơn (strategic + service level). Critical cho mature design org.",
+    "meta_title": "UX Researcher là gì? Lộ trình nghề | CINS",
+    "meta_description": "UX Researcher generative evaluative qualitative quantitative product team. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-uiux-ux-research", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "efa635b7-b8fa-49c3-a258-2a85878da69f",
+    "slug": "nghe-uiux-ux-writer",
+    "tieu_de_viet": "UX Writer (Nhà viết UX)",
+    "tom_tat": "UX Writer / Content Designer viết microcopy + content cho digital product — button label, error message, onboarding flow, empty state. Voice + tone shape brand identity. Mailchimp, Slack, Airbnb noted cho UX writing excellent.",
+    "meta_title": "UX Writer là gì? Lộ trình nghề | CINS",
+    "meta_description": "UX Writer Content Designer microcopy button label error message app. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-uiux-content", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "e41dd2c2-c42d-4104-abd9-9e2c5b01c35d",
+    "slug": "nghe-vfx-vfx-coordinator",
+    "tieu_de_viet": "VFX Coordinator (Điều phối kỹ xảo)",
+    "tom_tat": "VFX Coordinator quản lý daily logistic của VFX team — shot list, asset tracking, vendor coordinate, schedule, budget. Báo cáo VFX Producer. Entry-to-mid production management role trong VFX pipeline.",
+    "meta_title": "VFX Coordinator là gì? Lộ trình | CINS",
+    "meta_description": "VFX Coordinator quản lý shot list asset vendor schedule VFX team. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-vfx-quan-ly-san-xuat", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "88c09340-93a5-446e-9887-bea114fbe3a8",
+    "slug": "nghe-vfx-vfx-producer",
+    "tieu_de_viet": "VFX Producer (Nhà sản xuất kỹ xảo)",
+    "tom_tat": "VFX Producer head of VFX production — budget, schedule, vendor, contract, deliverable cho phim / show. Manage 100-500 person team + multi-studio coordination. Critical cho deliver complex VFX-heavy project on time + budget.",
+    "meta_title": "VFX Producer là gì? Lộ trình | CINS",
+    "meta_description": "VFX Producer head production budget schedule vendor phim VFX heavy. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-vfx-quan-ly-san-xuat", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "02026470-dae5-411a-b9ae-861bee6ca443",
+    "slug": "nghe-phim-vfx-supervisor",
+    "tieu_de_viet": "VFX Supervisor (Giám sát kỹ xảo)",
+    "tom_tat": "VFX Supervisor head creative + technical của VFX cho phim — work với Director, plan VFX from script, supervise on-set + post. Marvel, Avatar, Avengers VFX-heavy đều có famous VFX Supervisor (Joe Letteri, Sheena Duggal, John Knoll).",
+    "meta_title": "VFX Supervisor là gì? Lộ trình nghề | CINS",
+    "meta_description": "VFX Supervisor head creative technical Avatar Marvel Avengers phim. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-phim-hau-ky", "nn-bao-chi-truyen-thong"]
+  }
+]

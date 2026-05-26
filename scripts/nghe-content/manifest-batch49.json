@@ -1,0 +1,47 @@
+[
+  {
+    "id": "f11313db-bd76-4f08-b267-e96c67f80235",
+    "slug": "nghe-dohoa-web-designer",
+    "tieu_de_viet": "Web Designer (Nhà thiết kế web)",
+    "tom_tat": "Web Designer thiết kế website + landing page — focus visual layer + brand experience + responsive. Khác UI Designer (broader product), Web Designer trang web brand + marketing. Critical cho brand + SaaS + e-commerce.",
+    "meta_title": "Web Designer là gì? Lộ trình nghề | CINS",
+    "meta_description": "Web Designer thiết kế website landing page brand SaaS e-commerce. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-dohoa-digital-social", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "e7324073-7283-4ac1-bfab-ab9e67b52f96",
+    "slug": "nghe-comic-webtoon-artist",
+    "tieu_de_viet": "Webtoon Artist (Họa sĩ webtoon)",
+    "tom_tat": "Webtoon Artist vẽ webtoon — comic vertical scroll cho mobile platform (Naver, Kakao, Webtoon). Khác manga traditional ở format vertical + color + episodic weekly. Là format comic dominant của thế hệ Gen Z + millennial Châu Á.",
+    "meta_title": "Webtoon Artist là gì? Lộ trình | CINS",
+    "meta_description": "Webtoon Artist vẽ comic vertical mobile Naver Kakao Webtoon. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-comic-ve-san-xuat", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "50c5ba7a-b166-402e-8423-679b01007bc6",
+    "slug": "nghe-hoat-hinh-writer-screenwriter",
+    "tieu_de_viet": "Writer / Screenwriter hoạt hình (Biên kịch)",
+    "tom_tat": "Writer / Screenwriter hoạt hình viết script cho animation feature + series — character, plot, dialogue, story arc. Pixar's Story Department + Disney's writer-driven process showcase importance. Long-term collaboration với director + storyboard.",
+    "meta_title": "Writer Screenwriter hoạt hình là gì? | CINS",
+    "meta_description": "Writer Screenwriter animation feature script Pixar Disney story. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-hoat-hinh-tien-san-xuat", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "31d6c609-b000-48c2-8975-97264af66931",
+    "slug": "nghe-comic-writer-scriptwriter",
+    "tieu_de_viet": "Writer / Scriptwriter comic (Biên kịch truyện tranh)",
+    "tom_tat": "Writer / Scriptwriter comic viết script + plot cho comic / manga / webtoon — không vẽ, chỉ viết. Marvel / DC nhiều writer iconic (Stan Lee, Alan Moore, Neil Gaiman). Partner với Artist để hiện thực hóa câu chuyện.",
+    "meta_title": "Writer Scriptwriter comic là gì? Lộ trình | CINS",
+    "meta_description": "Writer Scriptwriter comic manga webtoon script Stan Lee Alan Moore. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-comic-sang-tac", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "3d580480-a6cc-4c7a-af64-7c6aba79eb8e",
+    "slug": "nghe-3d-xr-ar-designer",
+    "tieu_de_viet": "XR / AR Designer (Nhà thiết kế thực tế mở rộng)",
+    "tom_tat": "XR / AR Designer thiết kế experience cho extended reality — Apple Vision Pro, Meta Quest, AR mobile (Snapchat, Instagram filter, IKEA Place). Là emerging field — design 3D + spatial + interaction. Critical cho next computing era.",
+    "meta_title": "XR AR Designer là gì? Lộ trình | CINS",
+    "meta_description": "XR AR Designer Apple Vision Pro Meta Quest spatial computing Snapchat. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-3d-visualization", "nn-my-thuat-thiet-ke"]
+  }
+]

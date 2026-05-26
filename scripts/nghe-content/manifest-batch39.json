@@ -1,0 +1,47 @@
+[
+  {
+    "id": "6aaf2e1c-da30-4439-bce2-696466661ac7",
+    "slug": "nghe-hoat-hinh-runner",
+    "tieu_de_viet": "Runner hoạt hình (Trợ lý hỗ trợ)",
+    "tom_tat": "Runner hoạt hình là entry-level role tại studio — support team với errand, asset organize, paperwork, basic admin. Door entry phổ biến cho người mới vào ngành animation, build network + learn studio operation.",
+    "meta_title": "Runner hoạt hình là gì? | CINS",
+    "meta_description": "Runner hoạt hình entry studio operation support. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-hoat-hinh-quan-ly-san-xuat", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "8d44ebde-ffeb-4a2a-abfb-f78be3a91e85",
+    "slug": "nghe-thoitrang-sample-maker",
+    "tieu_de_viet": "Sample Maker (Thợ may mẫu)",
+    "tom_tat": "Sample Maker may garment mẫu (sample) đầu tiên từ pattern + fabric — first physical version của design. Bridge giữa Pattern Maker + bulk production. Critical role technical-craft của fashion industry.",
+    "meta_title": "Sample Maker là gì? Lộ trình | CINS",
+    "meta_description": "Sample Maker may garment sample đầu tiên. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-thoitrang-ky-thuat", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "4be812e9-2fe8-416b-b4c5-5bce14fdd383",
+    "slug": "nghe-minh-hoa-scientific-illustrator",
+    "tieu_de_viet": "Scientific Illustrator (Họa sĩ minh họa khoa học)",
+    "tom_tat": "Scientific Illustrator vẽ illustration cho science publication — anatomy textbook, biology journal, archaeology, paleontology reconstruction. Khoa học + nghệ thuật hybrid, precise + visually compelling.",
+    "meta_title": "Scientific Illustrator là gì? | CINS",
+    "meta_description": "Scientific Illustrator minh họa khoa học textbook journal. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-minh-hoa-chuyen-nganh", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "95611a3d-8203-4f88-b339-38c3f094060c",
+    "slug": "nghe-phim-screenwriter",
+    "tieu_de_viet": "Screenwriter phim (Biên kịch)",
+    "tom_tat": "Screenwriter viết kịch bản phim (screenplay) — foundation của mọi phim. Là chuyên gia kể chuyện qua dialogue + action + structure. Oscar Best Screenplay (Original + Adapted) tôn vinh role này.",
+    "meta_title": "Screenwriter phim là gì? Lộ trình | CINS",
+    "meta_description": "Screenwriter biên kịch phim screenplay. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-phim-tien-san-xuat", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "0c7a7551-ba8c-40ac-8b74-ae1a1d1e33f4",
+    "slug": "nghe-phim-script-supervisor",
+    "tieu_de_viet": "Script Supervisor phim (Giám sát kịch bản)",
+    "tom_tat": "Script Supervisor (Scripty) là continuity guardian trên set — track every shot, take, prop position, costume, dialogue change. Bảo đảm phim cut smooth + no continuity error.",
+    "meta_title": "Script Supervisor phim là gì? | CINS",
+    "meta_description": "Script Supervisor scripty continuity guardian on set. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-phim-san-xuat", "nn-bao-chi-truyen-thong"]
+  }
+]

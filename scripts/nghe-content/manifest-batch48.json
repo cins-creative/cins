@@ -1,0 +1,47 @@
+[
+  {
+    "id": "e5f7632b-002a-486f-a216-efe9469b0b63",
+    "slug": "nghe-vfx-vfx-supervisor",
+    "tieu_de_viet": "VFX Supervisor (Giám sát kỹ xảo studio-side)",
+    "tom_tat": "VFX Supervisor studio-side lead VFX team tại vendor studio (ILM, Weta, DNEG) — work với production-side VFX Supervisor + Director. Manage department supervisor (CG, Comp, FX). Senior technical-creative role within VFX studio.",
+    "meta_title": "VFX Supervisor studio là gì? | CINS",
+    "meta_description": "VFX Supervisor studio ILM Weta DNEG lead team vendor. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-vfx-quan-ly-san-xuat", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "dac472f1-a2cc-400c-8c6a-137d8a75b998",
+    "slug": "nghe-uiux-visual-designer",
+    "tieu_de_viet": "Visual Designer (Nhà thiết kế thị giác)",
+    "tom_tat": "Visual Designer thiết kế visual layer của product + brand — illustration, icon, typography, layout, photography direction. Broader than UI Designer (cross-medium). Hybrid của UI + Graphic + Brand Designer. Critical cho brand-strong product.",
+    "meta_title": "Visual Designer là gì? Lộ trình | CINS",
+    "meta_description": "Visual Designer illustration icon typography layout brand product. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-uiux-ui-design", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "f0fc42e7-a46f-442b-a4e0-09ad83f525c1",
+    "slug": "nghe-thoitrang-visual-merchandiser",
+    "tieu_de_viet": "Visual Merchandiser (Nhà trưng bày thị giác)",
+    "tom_tat": "Visual Merchandiser thiết kế in-store + window display + lookbook — orchestrate visual storytelling tại retail. Convert browser → buyer. Apple Store, Uniqlo, Zara display đều có Visual Merchandiser orchestrate.",
+    "meta_title": "Visual Merchandiser là gì? Lộ trình | CINS",
+    "meta_description": "Visual Merchandiser trưng bày in-store window display lookbook retail. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-thoitrang-visual-marketing", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "9d3703f9-cacd-41d2-a08f-4f5a6597632f",
+    "slug": "nghe-hoat-hinh-voice-director",
+    "tieu_de_viet": "Voice Director hoạt hình (Đạo diễn lồng tiếng)",
+    "tom_tat": "Voice Director hoạt hình direct voice actor trong recording booth — bring character to life qua voice performance. Cast actor, give note, capture nhiều take. Pixar's Bob Bergen + Disney's Andrea Romano legendary Voice Director.",
+    "meta_title": "Voice Director hoạt hình là gì? | CINS",
+    "meta_description": "Voice Director hoạt hình direct voice actor recording Pixar Disney studio. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-hoat-hinh-am-thanh", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "89a376df-6214-4f9d-ada6-1807cd39248d",
+    "slug": "nghe-kien-truc-vr-architect",
+    "tieu_de_viet": "VR Architect (Kiến trúc sư thực tế ảo)",
+    "tom_tat": "VR Architect thiết kế architecture experience trong VR + AR — walkthrough trước build, virtual site visit cho client, immersive arch-viz. Bridge giữa traditional architecture + emerging immersive tech. Critical cho luxury developer + arch firm modern.",
+    "meta_title": "VR Architect là gì? Lộ trình nghề | CINS",
+    "meta_description": "VR Architect VR AR walkthrough virtual site immersive arch viz. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-kien-truc-visualization", "nn-kien-truc-xay-dung"]
+  }
+]

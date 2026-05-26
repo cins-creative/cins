@@ -1,0 +1,47 @@
+[
+  {
+    "id": "77c82e99-28ff-4277-a2ee-5ef482aee1c3",
+    "slug": "nghe-minh-hoa-surface-pattern-designer",
+    "tieu_de_viet": "Surface Pattern Designer (Nhà thiết kế họa tiết)",
+    "tom_tat": "Surface Pattern Designer thiết kế họa tiết / pattern lặp cho fabric, wallpaper, stationery, gift wrap, ceramics. Hybrid art + commercial license. Society6, Spoonflower, Etsy creator economy boom giúp role này phát triển.",
+    "meta_title": "Surface Pattern Designer là gì? | CINS",
+    "meta_description": "Surface Pattern Designer thiết kế họa tiết fabric wallpaper stationery. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-minh-hoa-thuong-mai", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "fd6e0b80-8928-438b-8c22-0091429a8db9",
+    "slug": "nghe-3d-surfacing-artist",
+    "tieu_de_viet": "Surfacing Artist 3D (Họa sĩ surface texture)",
+    "tom_tat": "Surfacing Artist combine texturing + shading — paint texture + setup material để 3D asset look photoreal. Bridge giữa Modeling + Lighting. Critical cho VFX, animation feature, AAA game cinematic look-dev pipeline.",
+    "meta_title": "Surfacing Artist 3D là gì? | CINS",
+    "meta_description": "Surfacing Artist 3D texturing shading look-dev photoreal asset. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-3d-texturing-shading", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "3f840fa9-2f8e-488b-aef7-9d7760049c6b",
+    "slug": "nghe-hoat-hinh-technical-director-td",
+    "tieu_de_viet": "Technical Director (TD) hoạt hình",
+    "tom_tat": "Technical Director (TD) bridge giữa Artist + Pipeline + R&D. Build tool, solve technical problem, optimize workflow cho studio. Specialty: Rigging TD, Pipeline TD, FX TD, Lighting TD, Shading TD. Critical role studio operation.",
+    "meta_title": "Technical Director TD hoạt hình là gì? | CINS",
+    "meta_description": "Technical Director TD hoạt hình tool pipeline R&D studio. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-hoat-hinh-technical-art", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "046a2b9a-0e1e-4333-9f68-88f6d8e18267",
+    "slug": "nghe-minh-hoa-technical-illustrator",
+    "tieu_de_viet": "Technical Illustrator (Họa sĩ minh họa kỹ thuật)",
+    "tom_tat": "Technical Illustrator vẽ illustration kỹ thuật precise — engineering diagram, exploded view, instructional manual, patent drawing, scientific diagram. Khác commercial illustrator — focus accuracy + clarity over aesthetic.",
+    "meta_title": "Technical Illustrator là gì? Lộ trình | CINS",
+    "meta_description": "Technical Illustrator vẽ engineering exploded view manual patent diagram. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-minh-hoa-chuyen-nganh", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "a5a94cf0-b4f6-41e7-aeb2-ebffb1bedf3c",
+    "slug": "nghe-thoitrang-textile-designer",
+    "tieu_de_viet": "Textile Designer (Nhà thiết kế vải)",
+    "tom_tat": "Textile Designer thiết kế vải — print, weave, knit, embroidery. Critical bridge giữa fabric mill + fashion designer. Specialty: print designer, weave designer, knit designer. Career path tại textile mill + brand in-house + freelance.",
+    "meta_title": "Textile Designer là gì? Lộ trình | CINS",
+    "meta_description": "Textile Designer thiết kế vải print weave knit fabric. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-thoitrang-ky-thuat", "nn-my-thuat-thiet-ke"]
+  }
+]

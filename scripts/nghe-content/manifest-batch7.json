@@ -1,0 +1,47 @@
+[
+  {
+    "id": "bc1c9df4-c605-4a56-a216-f28035d224c1",
+    "slug": "nghe-hoat-hinh-background-designer",
+    "tieu_de_viet": "Background Designer phim hoạt hình",
+    "tom_tat": "Background Designer trong phim hoạt hình thiết kế layout và composition của environment — không vẽ final paint, mà tạo bản blueprint cho Background Painter và Layout Artist follow.",
+    "meta_title": "Background Designer hoạt hình là gì? Công việc, kỹ năng và lộ trình | CINS",
+    "meta_description": "Background Designer hoạt hình thiết kế layout environment cho phim. Tìm hiểu công việc, kỹ năng và lộ trình vào nghề.",
+    "nhom_slugs": ["nghe-hoat-hinh-tien-san-xuat", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "faba31c4-02ad-4a5d-b023-9e786c24685f",
+    "slug": "nghe-hoat-hinh-background-painter",
+    "tieu_de_viet": "Background Painter phim hoạt hình",
+    "tom_tat": "Background Painter vẽ phông nền hoàn chỉnh cho phim hoạt hình 2D — tạo không gian màu sắc, lighting cho mỗi shot, là canvas cho character animation diễn ra.",
+    "meta_title": "Background Painter hoạt hình là gì? Công việc, kỹ năng và lộ trình | CINS",
+    "meta_description": "Background Painter vẽ phông phim hoạt hình 2D bằng digital painting. Tìm hiểu công việc, kỹ năng và lộ trình vào nghề.",
+    "nhom_slugs": ["nghe-hoat-hinh-san-xuat-2d", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "f9776428-b255-4e60-92f4-b43caf2f3220",
+    "slug": "nghe-kien-truc-bim-manager",
+    "tieu_de_viet": "BIM Manager (Quản lý BIM)",
+    "tom_tat": "BIM Manager quản lý workflow Building Information Modeling cho dự án kiến trúc — thiết lập standard, đào tạo team, phối hợp model giữa các bộ môn, đảm bảo data BIM chính xác.",
+    "meta_title": "BIM Manager là gì? Công việc, kỹ năng và lộ trình vào nghề | CINS",
+    "meta_description": "BIM Manager quản lý workflow Revit, ArchiCAD cho dự án xây dựng. Tìm hiểu công việc, kỹ năng và lộ trình vào nghề.",
+    "nhom_slugs": ["nghe-kien-truc-quan-ly-du-an", "nn-kien-truc-xay-dung"]
+  },
+  {
+    "id": "672601d7-95c6-47b6-bef8-15ffb56a77b3",
+    "slug": "nghe-kien-truc-bim-modeler",
+    "tieu_de_viet": "BIM Modeler (Họa sĩ dựng hình BIM)",
+    "tom_tat": "BIM Modeler dựng mô hình 3D thông minh trong Revit hoặc ArchiCAD — không chỉ hình học mà bao gồm cả data về vật liệu, kết cấu, MEP, phục vụ thiết kế và thi công.",
+    "meta_title": "BIM Modeler là gì? Công việc, kỹ năng và lộ trình vào nghề | CINS",
+    "meta_description": "BIM Modeler dựng mô hình 3D thông minh cho dự án kiến trúc bằng Revit, ArchiCAD. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-kien-truc-ho-so-kt", "nn-kien-truc-xay-dung"]
+  },
+  {
+    "id": "9b0a84ab-e0b0-4130-a1b3-a5f36dbf5089",
+    "slug": "nghe-dohoa-brand-strategist",
+    "tieu_de_viet": "Brand Strategist (Nhà chiến lược thương hiệu)",
+    "tom_tat": "Brand Strategist định hướng chiến lược thương hiệu — positioning, voice, persona, target audience — làm nền tảng cho mọi quyết định design và marketing sau này.",
+    "meta_title": "Brand Strategist là gì? Công việc, kỹ năng và lộ trình vào nghề | CINS",
+    "meta_description": "Brand Strategist định hướng chiến lược, positioning thương hiệu cho agency và client. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-dohoa-branding", "nn-my-thuat-thiet-ke"]
+  }
+]

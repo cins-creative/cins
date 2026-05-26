@@ -160,6 +160,8 @@ export type NgheArticleHubRow = {
   tom_tat: string | null;
   meta_description: string | null;
   cover_id: string | null;
+  /** Cloudflare Images id từ `article_bai_viet.thumbnail` — ưu tiên hơn `cover_id` khi render hub. */
+  thumbnail: string | null;
   article_nhom_id?: string | null;
   /** Điền sau truy vấn `article_nhom` — đủ field theo bảng public.article_nhom */
   article_nhom?: {

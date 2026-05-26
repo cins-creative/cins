@@ -1,0 +1,47 @@
+[
+  {
+    "id": "70d2508e-37fa-412e-9f88-1b3c590c3265",
+    "slug": "nghe-phim-re-recording-mixer",
+    "tieu_de_viet": "Re-recording Mixer (Kỹ sư mix âm thanh)",
+    "tom_tat": "Re-recording Mixer là final stage của sound post — kết hợp dialogue, music, sound effect thành final mix theatrical / streaming. Là người shape final audio experience cho phim. Oscar Best Sound recognize role này.",
+    "meta_title": "Re-recording Mixer là gì? | CINS",
+    "meta_description": "Re-recording Mixer kỹ sư mix âm thanh phim final stage. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-phim-am-thanh", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "cf78e442-e806-4696-b996-2cf17d8eccea",
+    "slug": "nghe-3d-render-artist",
+    "tieu_de_viet": "Render Artist 3D (Họa sĩ render)",
+    "tom_tat": "Render Artist 3D thực hiện rendering — chuyển từ scene file (model + light + texture) thành image / animation final qua render engine. Là final phase của 3D production, technical + artistic balance critical.",
+    "meta_title": "Render Artist 3D là gì? Lộ trình | CINS",
+    "meta_description": "Render Artist 3D thực hiện rendering scene engine. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-3d-lighting-rendering", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "f2ee2857-3a70-4024-83ea-9a60fdbc2027",
+    "slug": "nghe-hoat-hinh-render-td",
+    "tieu_de_viet": "Render TD hoạt hình (Technical Director render)",
+    "tom_tat": "Render TD hoạt hình build + maintain rendering pipeline + render engine setup cho studio animation. Optimize quality + speed, manage render farm, troubleshoot complex shader. Technical role critical cho render-heavy animation.",
+    "meta_title": "Render TD hoạt hình là gì? | CINS",
+    "meta_description": "Render TD hoạt hình build render pipeline studio. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-hoat-hinh-technical-art", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "a4ba6b6c-e0fa-48db-8f7b-903c6135b169",
+    "slug": "nghe-vfx-render-td",
+    "tieu_de_viet": "Render TD VFX (Technical Director render)",
+    "tom_tat": "Render TD VFX build + maintain rendering pipeline + render engine cho VFX studio. Optimize quality + speed, manage render farm, troubleshoot shot-by-shot. Critical role với VFX heavy production.",
+    "meta_title": "Render TD VFX là gì? | CINS",
+    "meta_description": "Render TD VFX build render pipeline studio. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-vfx-technical", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "5975468e-0028-4da4-949e-455bddd33002",
+    "slug": "nghe-3d-render-td",
+    "tieu_de_viet": "Render TD 3D (Technical Director render)",
+    "tom_tat": "Render TD 3D build + maintain rendering pipeline + engine cho 3D studio. Optimize render time + quality, manage render farm, develop custom shader. Technical critical role giữa Render Artist + Pipeline.",
+    "meta_title": "Render TD 3D là gì? Lộ trình | CINS",
+    "meta_description": "Render TD 3D build render pipeline studio engine. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-3d-lighting-rendering", "nn-my-thuat-thiet-ke"]
+  }
+]

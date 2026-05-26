@@ -1,0 +1,47 @@
+[
+  {
+    "id": "93439594-9fb1-4d21-9e5e-79f23ff83452",
+    "slug": "nghe-phim-gaffer",
+    "tieu_de_viet": "Gaffer (Trưởng bộ phận ánh sáng)",
+    "tom_tat": "Gaffer là Chief Lighting Technician trên set phim — người chịu trách nhiệm toàn bộ ánh sáng technical execution, dưới chỉ đạo creative của DP. Manage team electrician + lighting truck full of gear.",
+    "meta_title": "Gaffer là gì? Lộ trình nghề | CINS",
+    "meta_description": "Gaffer là trưởng bộ phận ánh sáng phim, execute vision DP. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-phim-san-xuat", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "15a1ee60-fa69-41f4-8729-941585ffa2b4",
+    "slug": "nghe-thoitrang-garment-technologist",
+    "tieu_de_viet": "Garment Technologist (Kỹ thuật viên may mặc)",
+    "tom_tat": "Garment Technologist là cầu nối giữa Fashion Designer và factory — đảm bảo design feasible sản xuất, quality control, fit standard, cost optimization. Là role technical critical cho fashion brand commercial.",
+    "meta_title": "Garment Technologist là gì? | CINS",
+    "meta_description": "Garment Technologist đảm bảo design sản xuất được, QC, fit. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-thoitrang-ky-thuat", "nn-kien-truc-xay-dung"]
+  },
+  {
+    "id": "ccc9be2e-fc78-4dd6-bc16-955651e7dd91",
+    "slug": "nghe-minh-hoa-generative-artist",
+    "tieu_de_viet": "Generative Artist (Nghệ sĩ generative)",
+    "tom_tat": "Generative Artist dùng code, algorithm, AI để tạo nghệ thuật — output có yếu tố random/procedural. Sản phẩm: NFT collection, generative art piece, brand visual identity, motion design, installation art.",
+    "meta_title": "Generative Artist là gì? Lộ trình | CINS",
+    "meta_description": "Generative Artist dùng code, algorithm tạo nghệ thuật. Tìm hiểu công việc, công cụ và lộ trình.",
+    "nhom_slugs": ["nghe-minh-hoa-ky-thuat-so", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "570df0e7-ca17-460b-983a-acfe5cdc4d2b",
+    "slug": "nghe-dohoa-graphic-designer",
+    "tieu_de_viet": "Graphic Designer (Nhà thiết kế đồ họa)",
+    "tom_tat": "Graphic Designer là role nền tảng của ngành đồ họa — thiết kế poster, brochure, logo, social post, packaging, web banner. Là entry point và đường ngang rộng nhất sang chuyên ngành sâu hơn (branding, UI/UX, illustration).",
+    "meta_title": "Graphic Designer là gì? Lộ trình | CINS",
+    "meta_description": "Graphic Designer thiết kế poster, logo, brand visual. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-dohoa-branding", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "4ee582c9-c989-4842-89e5-0d76ced06dd4",
+    "slug": "nghe-phim-grip",
+    "tieu_de_viet": "Grip (Người vận hành thiết bị máy quay)",
+    "tom_tat": "Grip là thợ technical trên set phim — chịu trách nhiệm camera support (tripod, dolly, jib, crane), lighting modifier (flag, scrim, silk), rigging. Khác Gaffer (electrician), Grip handle non-electric gear.",
+    "meta_title": "Grip là gì? Lộ trình nghề | CINS",
+    "meta_description": "Grip vận hành camera support, lighting modifier trên set phim. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-phim-san-xuat", "nn-bao-chi-truyen-thong"]
+  }
+]

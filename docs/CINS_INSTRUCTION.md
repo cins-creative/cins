@@ -6,6 +6,8 @@
 
 # Project Instructions (Schema v5 — migration v2 + v3 + v4 applied, synced với DB thực tế)
 
+> **Đã áp dụng migration v6** (2026-05-26): thêm `slug / noi_dung_blocks / noi_dung_html / meta_title / meta_description` vào `content_tac_pham` cho trình tạo bài viết (`/{slug}/p/new`). Index unique `(id_nguoi_dung, slug) WHERE slug IS NOT NULL`. Xem § content_ ở dưới.
+
 > Blog cá nhân tối ưu cho hình ảnh — với verified context mà không platform nào trong ngành creative VN có.
 
 ---
@@ -122,7 +124,7 @@ Trường tự điền môn thật + hệ số **per khối** (`id_cau_hinh_khoi
 | Bảng | Vai trò |
 |---|---|
 | content_cot_moc | SOURCE OF TRUTH. Field `thoi_diem DATE` (ngày xảy ra). Có FK context: id_du_an, id_su_kien, id_to_chuc, id_truong_nganh, id_lop_hoc, id_khoa_hoc. |
-| content_tac_pham | Output sáng tạo. Có `cover_id` Cloudflare. |
+| content_tac_pham | Output sáng tạo. Có `cover_id` Cloudflare. **Migration v6** thêm: `slug` (kebab-case, **unique per `id_nguoi_dung`**, dùng route `/{handle}/p/{slug}`), `noi_dung_blocks JSONB` (array Block `{id, loai, thu_tu, config}` theo brief `cins-editor`), `noi_dung_html TEXT` (HTML sanitize sẵn, scope `.article-rich-content`), `meta_title`, `meta_description` (SEO). |
 | content_media | File media. Có `width`, `height` cho image dimensions. |
 | content_tac_pham_thuoc_moc | M-M tác phẩm ↔ cột mốc. Có `thu_tu`. |
 | content_tac_pham_tac_gia | M-M co-author. |
@@ -242,6 +244,12 @@ loai_phong_chat_enum    : 1_1 / 1_1_an_danh / 1_org / du_an / lop_hoc / su_kien
 loai_chan_enum          : cu_the / tat_ca_an_danh / tat_ca_la / org_cu_the
 loai_nguoi_xac_nhan_enum: to_chuc / nguoi_dung / external_email / system_url
 giai_doan_enum          : moi_bat_dau / dang_hoc / dang_lam / tim_viec / freelance / dang_day
+visibility_field_enum   : public / friends / private     (user_nguoi_dung.visibility_*)
+tinh_thanh_vn_enum      : 34 đơn vị (sáp nhập 2025). LƯU Ý value TP.HCM là `hcm` (KHÔNG phải `ho_chi_minh`).
+                          ha_noi · hue · hai_phong · da_nang · hcm · can_tho · cao_bang · lang_son · quang_ninh ·
+                          dien_bien · lai_chau · son_la · nghe_an · ha_tinh · thanh_hoa · tuyen_quang · lao_cai ·
+                          thai_nguyen · phu_tho · bac_ninh · hung_yen · ninh_binh · quang_tri · quang_ngai · gia_lai ·
+                          khanh_hoa · dak_lak · lam_dong · dong_nai · tay_ninh · vinh_long · dong_thap · an_giang · ca_mau
 ten_phuong_thuc_enum    : xet_diem_thi_thpt / xet_hoc_ba / danh_gia_nang_luc / xet_tuyen_thang / nang_khieu / phong_van / danh_gia_tu_duy / thi_van_hoa_rieng / nang_khieu_ket_hop / chung_chi_sat / chung_chi_act / chung_chi_ib / bang_nuoc_ngoai / v_sat / ket_hop
 tinh_trang_tuyen_sinh_enum: sap_mo / dang_mo / da_dong / co_ket_qua
 trang_thai_bai_dang_enum: nhap / da_dang

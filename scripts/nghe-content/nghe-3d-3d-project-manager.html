@@ -1,0 +1,247 @@
+<section class="arc-intro">
+  <p>Bạn vào một studio 3D — 20 artist đang làm modeling, lighting, animation cho cùng một dự án phim ngắn. Ai phân chia shot? Ai theo dõi deadline? Ai báo cáo cho khách hàng khi có sửa đổi vào phút chót? Câu trả lời là <em>3D Project Manager</em> — người không tự tay làm 3D nhưng giữ cho cả pipeline chạy được.</p>
+  <p>3D Project Manager khác Producer ở chỗ tập trung sâu vào kỹ thuật pipeline — biết một shot mất bao lâu, asset nào nặng nhất, ai có kỹ năng phù hợp. Khác Team Lead ở chỗ quản lý đồng thời nhiều dự án thay vì chỉ làm việc chuyên môn.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>3D Project Manager là ai?</h2>
+  <p>3D Project Manager là người chịu trách nhiệm <strong>tổng thể quá trình thực hiện dự án 3D</strong> — từ nhận brief, lập timeline, phân công nhân sự, theo dõi tiến độ, kiểm soát ngân sách, đến giao thành phẩm cho khách hàng. Họ là cầu nối giữa <strong>nhóm artist</strong>, <strong>khách hàng</strong>, và <strong>ban giám đốc studio</strong>.</p>
+  <p>Khác với Art Director — người quyết định chất lượng nghệ thuật — Project Manager quyết định <strong>cách triển khai</strong>: ai làm cái gì, deadline nào, tốn bao nhiêu render farm. Đây là vai trò cần hiểu kỹ thuật 3D (để estimate thực tế) nhưng làm chủ yếu bằng tổ chức và giao tiếp.</p>
+  <ul class="arc-list">
+    <li>Lập <strong>timeline production</strong> chi tiết — chia milestone, phân shot/asset cho từng team</li>
+    <li>Quản lý <strong>budget</strong> — chi phí nhân sự, render farm, license phần mềm, outsource</li>
+    <li>Theo dõi <strong>WIP (work-in-progress)</strong> hằng ngày — báo cáo trạng thái cho khách và ban giám đốc</li>
+    <li>Xử lý <strong>change request</strong> — đánh giá ảnh hưởng đến timeline/budget khi khách yêu cầu sửa</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"3D studio project manager dashboard Shotgrid production tracking"</span>
+    </div>
+    <p class="arc-image-caption">Production dashboard — Project Manager theo dõi shot, asset, deadline trên ShotGrid hoặc ftrack</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>3D Project Manager hoạt động <strong>xuyên suốt vòng đời dự án</strong>, không thuộc giai đoạn cụ thể. Nhận yêu cầu từ <strong>Producer</strong> hoặc trực tiếp <strong>khách hàng</strong>, phối hợp với <strong>Art Director / VFX Supervisor</strong> về kỹ thuật, và quản lý <strong>tất cả lead</strong> (Modeling Lead, Lighting Lead, FX Lead). Báo cáo trạng thái và rủi ro lên <strong>Executive Producer</strong> hoặc <strong>Studio Manager</strong>.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Công việc của một 3D Project Manager</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Bidding, ước lượng và lập kế hoạch</h3>
+    <p>Trước khi dự án bắt đầu, Project Manager (cùng Producer) <strong>bid</strong> — ước lượng thời gian và chi phí cho từng shot, từng asset. Đây là khâu quyết định lợi nhuận: bid quá thấp thì studio lỗ, quá cao thì mất hợp đồng. Ước lượng dựa trên <strong>complexity</strong> (số object, vật liệu, simulation, render time) và <strong>kinh nghiệm</strong> dự án tương tự.</p>
+    <ul class="arc-list">
+      <li><strong>Shot breakdown</strong> — phân tích từng shot: số asset, FX, layer, ước tính giờ làm</li>
+      <li><strong>Resource plan</strong> — ai làm khâu nào, dùng render farm bao nhiêu node-hour</li>
+      <li><strong>Risk buffer</strong> — thêm 15–30% thời gian để dự phòng revision và sự cố kỹ thuật</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"VFX shot breakdown bidding spreadsheet production planning"</span>
+      </div>
+      <p class="arc-image-caption">Bidding sheet — ước tính giờ, người, chi phí cho từng shot trong dự án 3D</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Quản lý pipeline và theo dõi WIP hằng ngày</h3>
+    <p>Mỗi sáng, Project Manager kiểm tra <strong>dashboard production</strong> — shot nào đang trong status nào, ai bị blocker, deadline nào sắp đến. Tổ chức <strong>daily standup</strong> ngắn (15 phút) để team báo trạng thái và yêu cầu hỗ trợ. Cập nhật trạng thái lên hệ thống và báo cáo cho khách hàng / executive.</p>
+    <ul class="arc-list">
+      <li><strong>ShotGrid (cũ Autodesk Shotgun)</strong> — chuẩn ngành cho tracking shot/asset trong VFX và animation</li>
+      <li><strong>ftrack</strong> — alternative cho studio nhỏ và medium</li>
+      <li><strong>Daily standup</strong> &amp; <strong>weekly review</strong> — meeting cố định để align team và identify rủi ro</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"daily standup VFX animation studio meeting team production"</span>
+        </div>
+        <p class="arc-image-caption">Daily standup — Project Manager align team và phát hiện blocker sớm</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Shotgrid Autodesk Flow production tracking dashboard VFX"</span>
+        </div>
+        <p class="arc-image-caption">ShotGrid dashboard — trạng thái real-time của hàng trăm shot trong dự án lớn</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Giao tiếp khách hàng và xử lý revision</h3>
+    <p>Khách hàng (đạo diễn, brand manager, executive) thường có ý tưởng sửa giữa chừng. Project Manager là người <strong>đầu tiên nhận và đánh giá</strong> — sửa này tốn bao nhiêu giờ, ảnh hưởng deadline nào, có nằm trong scope hợp đồng không. Nếu out-of-scope, phải đàm phán <strong>change order</strong> (đơn yêu cầu thay đổi) — tăng phí hoặc giãn deadline.</p>
+    <ul class="arc-list">
+      <li><strong>Review session</strong> — tổ chức buổi review hàng tuần với khách, ghi note feedback có cấu trúc</li>
+      <li><strong>Change order</strong> — văn bản chính thức cho mọi thay đổi out-of-scope</li>
+      <li><strong>Cineversal / SyncSketch / Frame.io</strong> — platform review video với markup, comment timecode</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"client review session VFX studio feedback notes pitch"</span>
+      </div>
+      <p class="arc-image-caption">Client review — Project Manager ghi note, đánh giá tác động, đưa ra phương án</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">4. Quản lý ngân sách, hợp đồng và post-mortem</h3>
+    <p>Mỗi tuần, Project Manager update <strong>budget burn rate</strong> — chi phí thực tế so với ước tính ban đầu. Khi gần overrun, phải báo sớm để đàm phán với khách hoặc tối ưu pipeline. Sau khi dự án xong, tổ chức <strong>post-mortem</strong> — phân tích cái gì đi đúng/sai để cải thiện cho lần sau.</p>
+    <ul class="arc-list">
+      <li><strong>Burn rate report</strong> — theo dõi chi phí thực vs ngân sách, dự báo cuối dự án</li>
+      <li><strong>Post-mortem meeting</strong> — phân tích nguyên nhân vượt budget/deadline, document bài học</li>
+      <li><strong>Resource utilization</strong> — đánh giá ai underused/overused để rebalance team cho dự án sau</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"project budget tracking spreadsheet burn rate animation studio"</span>
+      </div>
+      <p class="arc-image-caption">Burn rate tracking — so sánh chi phí thực với plan, phát hiện overrun sớm</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>3D Project Manager cần giỏi gì?</h2>
+
+  <div class="arc-skill-grid">
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">📋</span>
+      <span>Tổ chức &amp; lập kế hoạch</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">💬</span>
+      <span>Giao tiếp &amp; đàm phán</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">🧠</span>
+      <span>Hiểu pipeline 3D</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">⚙️</span>
+      <span>Phần mềm quản lý dự án</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">⚡</span>
+      <span>Xử lý vấn đề &amp; ra quyết định nhanh</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">📦</span>
+      <span>Quản lý ngân sách &amp; tài chính</span>
+    </div>
+  </div>
+
+  <div class="arc-accordion">
+
+    <details class="arc-card" open>
+      <summary>Tổ chức &amp; lập kế hoạch</summary>
+      <div class="arc-card-body">
+        <p>Kỹ năng nền tảng — phân rã một dự án phức tạp thành milestone, task, deadline rõ ràng. Hiểu critical path (chuỗi việc quyết định deadline tổng) để biết bottleneck. Học framework như Agile (cho dự án linh hoạt), Waterfall (cho phim/quảng cáo có deliverable cố định), hoặc kết hợp.</p>
+        <p>Sách nên đọc: <em>The Producer's Business Handbook</em> của Lee &amp; Holland; <em>Making Pipeline Work</em> — series bài viết của fxguide.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Giao tiếp &amp; đàm phán</summary>
+      <div class="arc-card-body">
+        <p>Project Manager dành 60–70% thời gian giao tiếp — viết email, làm meeting, viết report. Phải biết viết ngắn gọn cho executive, chi tiết cho team, lịch sự cho khách. Đàm phán change order, deadline extension, budget adjustment là kỹ năng quyết định lợi nhuận dự án.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Hiểu pipeline 3D</summary>
+      <div class="arc-card-body">
+        <p>Khác Producer thuần (chỉ biết quản lý), 3D PM phải hiểu kỹ thuật để bid và estimate thực tế. Biết một shot lighting nặng tốn bao nhiêu render time, một character có 5M poly mất bao lâu rig. Không cần làm được nhưng phải hiểu — nhiều PM xuất thân từ artist sau đó chuyển hướng.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Phần mềm quản lý dự án</summary>
+      <div class="arc-card-body">
+        <p>Studio lớn dùng ShotGrid (giờ là Autodesk Flow Production Tracking) hoặc ftrack — chuyên cho VFX/animation. Studio nhỏ dùng Trello, Asana, ClickUp, Notion. Học Excel/Google Sheets nâng cao (pivot, formula, gantt) — vẫn là công cụ phổ biến nhất cho budget tracking.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Xử lý vấn đề &amp; ra quyết định nhanh</summary>
+      <div class="arc-card-body">
+        <p>Mỗi ngày sẽ có "lửa" — artist nghỉ ốm, render farm sập, khách đổi ý phút chót. Phải bình tĩnh đánh giá impact, thử các phương án (reschedule, outsource, đàm phán), và quyết định nhanh. Không có thời gian phân tích dài — quyết định ổn còn hơn quyết định hoàn hảo nhưng muộn.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Quản lý ngân sách &amp; tài chính</summary>
+      <div class="arc-card-body">
+        <p>Hiểu cost structure: lương + benefits, software license, render farm, outsource, overhead studio. Biết tính profit margin, gross/net cost. Hiểu hợp đồng cơ bản: fixed-fee, time-and-materials, milestone-based — mỗi loại có cách quản lý budget khác.</p>
+      </div>
+    </details>
+
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Làm cách nào để trở thành 3D Project Manager?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Bắt đầu từ vị trí artist hoặc production assistant</strong>
+        <p>Hầu hết 3D PM xuất thân từ artist (modeling, lighting, FX) sau 3–5 năm chuyển sang quản lý, hoặc từ <strong>Production Assistant / Production Coordinator</strong> — vị trí entry-level làm thủ tục, ticketing, lịch họp. Cả hai con đường đều giúp hiểu pipeline thực tế trước khi quản lý.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Học kỹ năng nền tảng quản lý dự án</strong>
+        <p>Đọc <em>PMBOK Guide</em> (chuẩn quốc tế), tham khảo Agile, Scrum, Kanban. Có thể lấy certification: PMP (Project Management Professional), CAPM, hoặc Scrum Master nếu muốn chứng chỉ chính thức. Nhưng kinh nghiệm thực tế quan trọng hơn certificate — studio tuyển PM dựa vào portfolio dự án từng quản lý.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Làm Production Coordinator 1–2 năm</strong>
+        <p>Đây là bước đệm chuẩn: làm thủ tục, lịch meeting, theo dõi WIP cho 1–2 PM cấp trên. Học cách họ ra quyết định, viết email, đàm phán. Sau 1–2 năm sẽ được giao quản lý dự án nhỏ hoặc một phần của dự án lớn (asset tracking, shot tracking).</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Học sâu phần mềm production tracking</strong>
+        <p>Master ShotGrid hoặc ftrack — biết setup pipeline, custom field, automate workflow bằng API. Học Excel/Sheets nâng cao cho budget. Học cơ bản Python nếu muốn tự động hóa report. Có khóa chính thức của Autodesk về ShotGrid administration.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Xây mạng lưới và mentor</strong>
+        <p>Tham gia VES (Visual Effects Society), Women in Animation, hoặc local meetup VFX/animation. Đọc fxguide, befores &amp; afters, Cartoon Brew để cập nhật ngành. Tìm mentor là PM/Producer senior — xin coffee chat, hỏi về case khó họ từng xử lý.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Xây dựng portfolio dự án &amp; sẵn sàng phỏng vấn</strong>
+        <p>PM không có showreel như artist — portfolio là <strong>danh sách dự án từng quản lý</strong> với scope, timeline, team size, budget range, role cụ thể của bạn. Trên LinkedIn nên có: 3–5 dự án nổi bật (movie, commercial, series), case study về crisis bạn đã xử lý, certification (nếu có). Apply qua LinkedIn, ArtStation Jobs, Cartoon Brew job board, hoặc trực tiếp studio như ILM, Framestore, MPC, DNEG, Pixar, DreamWorks.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

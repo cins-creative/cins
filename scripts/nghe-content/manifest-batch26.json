@@ -1,0 +1,47 @@
+[
+  {
+    "id": "b11506da-69e6-4756-a631-c79b3bc34e80",
+    "slug": "nghe-3d-lighting-artist",
+    "tieu_de_viet": "3D Lighting Artist (Họa sĩ ánh sáng 3D)",
+    "tom_tat": "3D Lighting Artist thiết kế ánh sáng cho 3D scene trong product visualization, archviz, advertising — không liên quan animation hay VFX. Là role chuyên về render hero image của sản phẩm, không gian, công trình.",
+    "meta_title": "3D Lighting Artist là gì? | CINS",
+    "meta_description": "3D Lighting Artist thiết kế ánh sáng cho product viz, archviz, ad. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-3d-lighting-rendering", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "d3c87624-99e5-4655-8814-c8e197f102ed",
+    "slug": "nghe-vfx-lighting-artist",
+    "tieu_de_viet": "VFX Lighting Artist (Họa sĩ ánh sáng VFX)",
+    "tom_tat": "VFX Lighting Artist thiết kế ánh sáng cho CGI element + match vào live action plate. Critical cho photoreal integration — light phải match camera angle, sun direction, color temperature của footage thực.",
+    "meta_title": "VFX Lighting Artist là gì? | CINS",
+    "meta_description": "VFX Lighting Artist match light CGI vào live action plate. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-vfx-3d-fx", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "5b256334-72a5-4183-82c6-bfb470a1a5e4",
+    "slug": "nghe-kien-truc-lighting-designer",
+    "tieu_de_viet": "Lighting Designer (Nhà thiết kế chiếu sáng)",
+    "tom_tat": "Architectural Lighting Designer thiết kế chiếu sáng cho công trình + không gian — natural + artificial light layered cho function + atmosphere. Là role chuyên môn cao trong architecture industry — separate discipline.",
+    "meta_title": "Lighting Designer là gì? Lộ trình | CINS",
+    "meta_description": "Lighting Designer thiết kế chiếu sáng công trình, không gian. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-kien-truc-noi-that", "nn-kien-truc-xay-dung"]
+  },
+  {
+    "id": "b668d06c-6aa9-414d-874c-26bfa5aa8ec3",
+    "slug": "nghe-phim-line-producer",
+    "tieu_de_viet": "Line Producer phim",
+    "tom_tat": "Line Producer là Producer chịu trách nhiệm về day-to-day production logistics + budget của phim — họ là người ground-level chuyển ý tưởng thành reality on set. Khác Executive Producer (financing) — Line Producer execution.",
+    "meta_title": "Line Producer phim là gì? | CINS",
+    "meta_description": "Line Producer phim quản lý ngân sách, logistics day-to-day. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-phim-quan-ly-san-xuat", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "872374a7-2186-4df6-b4ca-9ffdec8cff75",
+    "slug": "nghe-hoat-hinh-line-producer",
+    "tieu_de_viet": "Line Producer hoạt hình",
+    "tom_tat": "Line Producer hoạt hình quản lý production logistics + budget của animation project — từ feature film đến TV series. Họ coordinate giữa nghệ sĩ, technical, vendor, và studio executive. Backbone operations của studio animation.",
+    "meta_title": "Line Producer hoạt hình là gì? | CINS",
+    "meta_description": "Line Producer hoạt hình quản lý production animation. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-hoat-hinh-quan-ly-san-xuat", "nn-bao-chi-truyen-thong"]
+  }
+]

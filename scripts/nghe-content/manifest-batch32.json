@@ -1,0 +1,47 @@
+[
+  {
+    "id": "789cbd5a-3e78-4c0d-9747-852dc803598c",
+    "slug": "nghe-hoat-hinh-pipeline-td",
+    "tieu_de_viet": "Pipeline TD hoạt hình (Technical Director quy trình)",
+    "tom_tat": "Pipeline TD hoạt hình build + maintain pipeline production — tool, script, automation kết nối các department (modeling → rigging → animation → lighting → comp). Là role bridge technical + production, foundation cho studio efficiency.",
+    "meta_title": "Pipeline TD hoạt hình là gì? | CINS",
+    "meta_description": "Pipeline TD hoạt hình build tool, automation cho studio. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-hoat-hinh-technical-art", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "6cc95a9c-73ce-4914-bb00-e26bfaff406c",
+    "slug": "nghe-vfx-pipeline-td",
+    "tieu_de_viet": "Pipeline TD VFX (Technical Director quy trình)",
+    "tom_tat": "Pipeline TD VFX build + maintain VFX pipeline — tool, script, USD asset management, render farm integration. Là role technical critical cho major VFX studio (ILM, Weta) — millions $ savings qua pipeline efficiency.",
+    "meta_title": "Pipeline TD VFX là gì? | CINS",
+    "meta_description": "Pipeline TD VFX build tool, automation cho studio VFX. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-vfx-technical", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "2446e711-9f65-4648-837a-27c6898ffe94",
+    "slug": "nghe-vfx-previs-artist",
+    "tieu_de_viet": "Previs Artist VFX (Họa sĩ tiền hình ảnh)",
+    "tom_tat": "Previs Artist VFX tạo previsualization (pre-visualization) — 3D animated rough version của VFX-heavy scene trước khi quay. Giúp Director + DP + VFX team align trên camera, blocking, choreography. Foundation tool của modern VFX-heavy production.",
+    "meta_title": "Previs Artist VFX là gì? | CINS",
+    "meta_description": "Previs Artist VFX tạo 3D previsualization scene VFX. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-vfx-tien-hien-truong", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "1ed9f2e4-4717-4098-b8be-950d78d805d2",
+    "slug": "nghe-hoat-hinh-previs-artist",
+    "tieu_de_viet": "Previs Artist hoạt hình (Họa sĩ tiền hình ảnh)",
+    "tom_tat": "Previs Artist hoạt hình tạo previsualization 3D rough cho sequence — trước Animation full production. Test camera, blocking, timing, pacing. Critical step trong animation pipeline cho Director vision concrete trước commit resource.",
+    "meta_title": "Previs Artist hoạt hình là gì? | CINS",
+    "meta_description": "Previs Artist hoạt hình tạo 3D rough trước animation. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-hoat-hinh-tien-san-xuat", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "8ffb8a6d-62c5-4a8e-963c-c740532f40b1",
+    "slug": "nghe-kien-truc-principal-architect",
+    "tieu_de_viet": "Principal Architect (Kiến trúc sư chủ trì)",
+    "tom_tat": "Principal Architect là kiến trúc sư senior chủ trì design + sign off project. Là role partnership-level / owner của firm — chịu trách nhiệm về design quality, client relation, business development. Đỉnh sự nghiệp architect.",
+    "meta_title": "Principal Architect là gì? Lộ trình | CINS",
+    "meta_description": "Principal Architect chủ trì design, sign off project. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-kien-truc-thiet-ke", "nn-kien-truc-xay-dung"]
+  }
+]

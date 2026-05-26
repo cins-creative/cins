@@ -1,0 +1,47 @@
+[
+  {
+    "id": "2208c294-eca0-4793-97c6-dae3a92ca1de",
+    "slug": "nghe-kien-truc-cad-technician",
+    "tieu_de_viet": "CAD Technician (Kỹ thuật viên CAD)",
+    "tom_tat": "CAD Technician chuyển concept thiết kế kiến trúc thành bản vẽ kỹ thuật chính xác bằng AutoCAD — bản vẽ thi công, chi tiết cấu tạo, bản vẽ shop drawing, là cầu nối từ thiết kế đến công trường.",
+    "meta_title": "CAD Technician là gì? Công việc, kỹ năng và lộ trình | CINS",
+    "meta_description": "CAD Technician dùng AutoCAD vẽ bản vẽ kỹ thuật, shop drawing cho công trình. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-kien-truc-ho-so-kt", "nn-kien-truc-xay-dung"]
+  },
+  {
+    "id": "ce558586-d3ef-42fd-885e-239e4374c275",
+    "slug": "nghe-phim-camera-operator",
+    "tieu_de_viet": "Camera Operator (Người vận hành máy quay)",
+    "tom_tat": "Camera Operator vận hành máy quay tại hiện trường — di chuyển máy, framing, focus, theo dõi action — thực thi visual ý tưởng của DOP cho từng shot trong phim, TVC, MV.",
+    "meta_title": "Camera Operator là gì? Công việc, kỹ năng và lộ trình | CINS",
+    "meta_description": "Camera Operator vận hành máy quay tại hiện trường phim, TVC, MV. Tìm hiểu công việc, kỹ năng và lộ trình vào nghề.",
+    "nhom_slugs": ["nghe-phim-san-xuat", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "95d9e22f-e4d9-463b-92e3-a2b6a522c53b",
+    "slug": "nghe-phim-casting-director",
+    "tieu_de_viet": "Casting Director (Giám đốc tuyển vai)",
+    "tom_tat": "Casting Director tìm và tuyển diễn viên phù hợp cho từng vai trong phim — từ vai chính đến vai phụ — đảm bảo dàn diễn viên đáp ứng tầm nhìn của Director và yêu cầu sản xuất.",
+    "meta_title": "Casting Director là gì? Công việc, kỹ năng và lộ trình | CINS",
+    "meta_description": "Casting Director tuyển diễn viên cho phim, TVC, MV theo brief Director. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-phim-tien-san-xuat", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "e86d3f5a-7d41-489a-bfda-ac6ccd8f311f",
+    "slug": "nghe-3d-cg-supervisor",
+    "tieu_de_viet": "CG Supervisor (Giám sát CG)",
+    "tom_tat": "CG Supervisor giám sát chất lượng kỹ thuật và visual của toàn bộ asset CG trong dự án — modeling, texturing, lighting, rendering — đảm bảo team đạt chuẩn studio và hoàn thành đúng deadline.",
+    "meta_title": "CG Supervisor là gì? Công việc, kỹ năng và lộ trình | CINS",
+    "meta_description": "CG Supervisor giám sát chất lượng asset CG, pipeline 3D cho studio. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-3d-quan-ly-san-xuat", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "60b42609-4f30-46f9-95fc-b62619b5005f",
+    "slug": "nghe-hoat-hinh-character-concept-artist",
+    "tieu_de_viet": "Character Concept Artist phim hoạt hình",
+    "tom_tat": "Character Concept Artist thiết kế nhân vật cho phim hoạt hình — từ silhouette, expression sheet đến turnaround — đặt nền tảng visual cho nhân vật trước khi đi vào modeling 3D hoặc rigging 2D.",
+    "meta_title": "Character Concept Artist hoạt hình là gì? Lộ trình | CINS",
+    "meta_description": "Character Concept Artist thiết kế nhân vật cho phim hoạt hình. Tìm hiểu công việc, kỹ năng và lộ trình vào nghề.",
+    "nhom_slugs": ["nghe-hoat-hinh-tien-san-xuat", "nn-bao-chi-truyen-thong"]
+  }
+]

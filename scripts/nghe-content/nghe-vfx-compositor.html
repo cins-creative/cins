@@ -1,0 +1,247 @@
+<section class="arc-intro">
+  <p>Khi bạn xem Avengers và thấy Thanos đứng cạnh Iron Man trông thật như họ trong cùng 1 phòng — bạn đang nhìn vào tác phẩm của Compositor. Họ là cầu nối cuối cùng giữa CG world và reality, làm cho mọi VFX shot trở nên invisible — tức là, khán giả không thấy "VFX", chỉ thấy phim.</p>
+  <p>Compositor VFX là vị trí <em>last in pipeline</em> — mọi work của 3D team, Lighting team, FX team đều đi qua Compositor để tích hợp final. Họ là người chịu trách nhiệm cho frame cuối ship cho client. Vai trò áp lực cao nhưng cũng powerful nhất trong VFX studio.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>Compositor VFX là ai?</h2>
+  <p>Compositor VFX là người <strong>tích hợp nhiều element</strong> thành 1 final frame: <strong>live plate</strong> (footage quay thật), <strong>CG render</strong> (character, environment, prop từ 3D team), <strong>matte painting</strong> (background painted), <strong>FX element</strong> (smoke, fire, water, particle), <strong>roto/keying</strong> (separate foreground khỏi background). Output: <strong>final frame</strong> ready cho color grading và delivery.</p>
+  <p>Khác với <strong>Compositor phim</strong> (focus tích hợp shot có VFX vừa phải) — VFX Compositor làm <em>cinema-grade integration</em> cho feature film VFX-heavy. Khác với <strong>Motion Designer</strong> (After Effects, motion graphic) — VFX Compositor dùng <strong>Nuke</strong> (node-based, cinema standard). Khác với <strong>Editor</strong> — không cắt shot, focus single shot integration. Có levels: <strong>Junior Compositor</strong> → <strong>Mid Compositor</strong> → <strong>Senior Compositor</strong> → <strong>Lead Compositor</strong> → <strong>Compositing Supervisor</strong>.</p>
+  <ul class="arc-list">
+    <li><strong>Tích hợp CG element</strong> với live plate trong Nuke</li>
+    <li><strong>Keying/roto</strong> separate foreground/background</li>
+    <li>Add <strong>atmosphere, depth, motion blur, lens effect</strong></li>
+    <li>Final QC và ship shot cho color grading</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"VFX compositor Nuke node graph workstation studio cinematic film"</span>
+    </div>
+    <p class="arc-image-caption">Compositor VFX work với Nuke — node-based compositing cho cinema</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>Compositor VFX là <strong>last department</strong> trong VFX pipeline. Báo cáo cho <strong>Compositing Supervisor</strong> hoặc <strong>VFX Supervisor</strong>. Receive: live plate, CG render (passes — beauty, AO, depth, normal, ID, motion vector), matte painting, FX element. Work với <strong>Lighting TD</strong> (request re-render khi cần), <strong>Rotoscoping artist</strong> (receive roto matte), <strong>Matte Painter</strong>, <strong>FX TD</strong>. Bàn giao final frame cho <strong>DI Colorist</strong>. Studio: Industrial Light &amp; Magic, MPC, DNEG, Framestore, Method Studios, Weta FX; VN: Sparx*, Bad Clay, Augmenta, Virtuos.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Công việc của một Compositor VFX</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Receive plate và analyze shot</h3>
+    <p>Bước đầu — receive <strong>live plate</strong> (EXR sequence cinema-grade) từ DIT/Online team, <strong>CG render</strong> từ Lighting TD, <strong>shot brief</strong> từ VFX Supervisor. Analyze plate: lighting direction, color, camera move, lens (focal length, distortion), grain. Setup <strong>Nuke project</strong>: color management ACES, project resolution (2K/4K/6K), read in plate và render.</p>
+    <ul class="arc-list">
+      <li><strong>Shot brief</strong> — hiểu intent: replace background, add CG, hide rig</li>
+      <li><strong>Plate analysis</strong> — lighting, color, camera move, grain</li>
+      <li><strong>Nuke setup</strong> — project, color management, read node</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Nuke compositing project setup read node EXR plate cinema"</span>
+      </div>
+      <p class="arc-image-caption">Project setup trong Nuke — read plate, CG render, prepare composition</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Keying, rotoscoping và clean plate</h3>
+    <p>Bước tiền xử lý — <strong>keying</strong> green/blue screen (Primatte, Keylight, IBK), pull alpha channel để separate foreground. <strong>Rotoscoping</strong> object không có chroma key — frame by frame mask. <strong>Clean plate</strong>: remove tracking marker, wire, crew member visible. <strong>Patch</strong> defect trong plate với clone/paint tool.</p>
+    <ul class="arc-list">
+      <li><strong>Chroma key</strong> — pull alpha từ green/blue screen</li>
+      <li><strong>Rotoscoping</strong> — frame-by-frame manual mask</li>
+      <li><strong>Clean plate</strong> — remove unwanted element, patch defect</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Nuke chroma key green screen Primatte Keylight VFX compositing"</span>
+        </div>
+        <p class="arc-image-caption">Chroma key — separate foreground khỏi green screen</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"rotoscoping mask Nuke VFX manual frame by frame"</span>
+        </div>
+        <p class="arc-image-caption">Rotoscoping — frame-by-frame mask cho object phức tạp</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. CG integration và rebuild beauty</h3>
+    <p>Phần chính — tích hợp CG render với plate. Receive <strong>CG passes</strong> (multi-channel EXR): beauty, diffuse, specular, AO, depth, motion vector, ID map, position pass, normal pass. <strong>Rebuild beauty</strong> từ component passes — give compositor power control (adjust spec intensity, AO, color của individual material). Match CG với plate: color match, light wrap, edge integration, contact shadow.</p>
+    <ul class="arc-list">
+      <li><strong>Multi-channel EXR</strong> — read render passes</li>
+      <li><strong>Rebuild beauty</strong> — combine passes với compositor control</li>
+      <li><strong>Edge integration</strong> — light wrap, edge color match, contact shadow</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Nuke CG render passes EXR multichannel rebuild beauty compositing"</span>
+      </div>
+      <p class="arc-image-caption">Multi-channel EXR — rebuild beauty từ render passes</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">4. Add atmosphere, grain và final QC</h3>
+    <p>Bước cuối — add <strong>cinematic touch</strong>: depth of field (match plate DOF), motion blur (match camera motion), atmosphere fog/haze (depth perception), lens effect (glow, lens flare, chromatic aberration), film grain (match plate grain). <strong>Final QC</strong>: play shot ở real-time, check mọi frame, scope analysis. Submit cho <strong>Compositing Supervisor</strong>, accept feedback, iterate. Ship cho DI Colorist.</p>
+    <ul class="arc-list">
+      <li><strong>Depth of field &amp; motion blur</strong> — match plate optical</li>
+      <li><strong>Atmosphere &amp; lens effect</strong> — glow, fog, chromatic aberration</li>
+      <li><strong>Grain matching</strong> — film grain match plate</li>
+      <li><strong>Final QC &amp; delivery</strong> — submit cho Supervisor, ship</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Nuke VFX final composite atmosphere depth field motion blur grain cinematic"</span>
+      </div>
+      <p class="arc-image-caption">Final composite — atmosphere, DOF, grain match plate cho cinema-grade</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>Compositor VFX cần giỏi gì?</h2>
+
+  <div class="arc-skill-grid">
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">⚙️</span>
+      <span>Nuke chuyên sâu</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">🌈</span>
+      <span>Color science &amp; color management</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">📷</span>
+      <span>Cinematography &amp; lens knowledge</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">🎨</span>
+      <span>Mắt nhìn nghệ thuật</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">🧠</span>
+      <span>Hiểu CG pipeline sâu</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">🐍</span>
+      <span>Python &amp; gizmo scripting (bonus)</span>
+    </div>
+  </div>
+
+  <div class="arc-accordion">
+
+    <details class="arc-card" open>
+      <summary>Nuke chuyên sâu</summary>
+      <div class="arc-card-body">
+        <p>Nuke (Foundry) là industry standard cho VFX cinema. Master: node graph, multi-channel EXR, deep compositing, 3D system, particle (Nuke Particle), keying tool, expression. Học từ <strong>Foundry tutorial</strong> (free), <strong>FXPHD</strong> ($100/tháng), <strong>VFX Notes</strong> on YouTube. 1–2 năm intensive practice = competent.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Color science &amp; color management</summary>
+      <div class="arc-card-body">
+        <p>Phải hiểu sâu: ACES (Academy Color Encoding System), Rec.709, Rec.2020, log color, gamma curve, LUT. Compositor work với <em>linear color</em> (not sRGB), phải understand math behind. Sách: <em>Color and Mastering for Digital Cinema</em> của Glenn Kennel. Học từ ACES central, Foundry Nuke color management tutorial.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Cinematography &amp; lens knowledge</summary>
+      <div class="arc-card-body">
+        <p>CG phải match plate — phải hiểu plate được quay như nào. Hiểu lens characteristic: focal length, T-stop, depth of field, distortion, vignette, chromatic aberration, bokeh shape. Camera model knowledge: ARRI Alexa, RED, Sony Venice. Watch cinematography masterclass (Roger Deakins).</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Mắt nhìn nghệ thuật</summary>
+      <div class="arc-card-body">
+        <p>Compositing là 50% kỹ thuật, 50% nghệ thuật. Phải spot khi CG "stick out" — edge sharp quá, color off, lighting direction wrong. Develop eye qua xem hàng nghìn VFX shot, analyze breakdown. Watch <strong>VFX Voice</strong>, <strong>Corridor Crew</strong> for VFX deconstruction.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Hiểu CG pipeline sâu</summary>
+      <div class="arc-card-body">
+        <p>Compositor work end-of-pipeline — phải understand mọi thứ trước: 3D rendering (Arnold, Redshift, Karma), lighting setup, AOV/pass output. Hiểu để request re-render intelligent ("Need more spec on this material" thay vì "Looks weird"). Take 3D class basic (Maya/Houdini intro).</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Python &amp; gizmo scripting (bonus)</summary>
+      <div class="arc-card-body">
+        <p>Advanced compositor write Python script và Nuke gizmo để automate task lặp lại. Build personal gizmo library — competitive advantage. Học Python basic (Codecademy), Nuke Python API documentation. Senior compositor có Python skill earn 20–30% more.</p>
+      </div>
+    </details>
+
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Làm cách nào để trở thành Compositor VFX?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Background film, VFX hoặc CG</strong>
+        <p>ĐH Điện ảnh chuyên VFX, hoặc Mỹ thuật + tự học. School chuyên: Gnomon (LA), Vancouver Film School, Lost Boys School of VFX. VN: Sparx Animation Academy, Yoot Animation, FPT Arena. Foundation 2–3 năm trong VFX/cinematography là pre-requisite.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Master Nuke trong 1–2 năm</strong>
+        <p>Nuke Personal Learning Edition (free for non-commercial), Nuke Indie ($499/năm). Khóa: <strong>Foundry official tutorial</strong> (free), <strong>FXPHD</strong> (premium $100/tháng, deep dive), <strong>The Foundry Nuke Pre-comp course</strong>. Practice mỗi tuần 1 shot integration project.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Build portfolio reel 1–2 phút</strong>
+        <p>Portfolio reel: 1–2 phút show shot integration. Show: CG car drive trên street, robot trong house, environment extension, beauty enhancement. Side-by-side: plate (before) → final (after). Upload Vimeo (industry standard). Show node graph screenshot trên ArtStation cho technical demo.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Apply Junior Compositor / Rotoscoping Artist</strong>
+        <p>Path entry: <strong>Rotoscoping Artist</strong> (entry-level, 1–2 năm, learn pipeline) → <strong>Junior Compositor</strong> (2–3 năm) → <strong>Mid Compositor</strong> (3–5 năm) → <strong>Senior Compositor</strong>. Apply: VN (Sparx*, Bad Clay, Augmenta, Virtuos); international remote (MPC, Framestore, DNEG, Animal Logic outsource đến India/VN). Junior salary VN: 15–25 triệu/tháng; international remote: $3–5K USD/tháng.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Specialize: hero shot / FX integration / matte painting</strong>
+        <p>Sau 3–5 năm, specialize. <strong>Hero shot Compositor</strong> — feature film hero shot, sit at end of pipeline. <strong>FX Compositor</strong> — chuyên integrate FX heavy (smoke, fire, explosion). <strong>Matte Painting Compositor</strong> — environment extension, set extension. <strong>Stereo Compositor</strong> — 3D stereo film. Mỗi specialty có market riêng.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Xây dựng sự nghiệp lâu dài</strong>
+        <p>Compositor VFX có path: (1) <strong>Lead Compositor</strong> → <strong>Compositing Supervisor</strong> → <strong>VFX Supervisor</strong>; (2) <strong>Freelance Compositor</strong> — work cho multiple studio, rate $400–1000 USD/ngày; (3) <strong>Move quốc tế</strong> — Vancouver, London, Sydney có nhiều VFX work với immigration support. Network qua <strong>SIGGRAPH</strong>, <strong>VES (Visual Effects Society)</strong>, <strong>FMX (Germany)</strong>. Lương: VN $2–5K USD/tháng cho Senior; international (Vancouver, London, LA) $80–180K USD/năm cho Senior; top VFX Supervisor $200–400K USD/năm với feature film.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

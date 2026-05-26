@@ -9,6 +9,8 @@ import { TruongDetailView } from "@/components/truong/TruongDetailView";
 import { CinsShell } from "@/components/cins/CinsShell";
 
 
+import { getCurrentAuthUserId } from "@/lib/auth/session";
+
 import { getOrgAdminStatus } from "@/lib/truong/org-admin";
 
 import { getTruongPagePayload } from "@/lib/truong/queries";
@@ -59,7 +61,9 @@ export default async function TruongDaiHocDetailPage({ params }: Props) {
 
 
 
-  const canEdit = await getOrgAdminStatus(slug);
+  const authUserId = await getCurrentAuthUserId();
+
+  const canEdit = await getOrgAdminStatus(slug, authUserId);
 
 
 

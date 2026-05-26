@@ -1,0 +1,47 @@
+[
+  {
+    "id": "9b9ad3ba-ac51-40a5-b9eb-46332d09fa01",
+    "slug": "nghe-thoitrang-creative-director",
+    "tieu_de_viet": "Creative Director thời trang",
+    "tom_tat": "Creative Director thời trang định hình bản sắc thẩm mỹ của thương hiệu — dẫn dắt collection, campaign, runway show — quyết định brand sẽ trông như thế nào trong mắt thế giới mỗi mùa.",
+    "meta_title": "Creative Director thời trang là gì? Lộ trình | CINS",
+    "meta_description": "Creative Director thời trang dẫn dắt thẩm mỹ thương hiệu qua collection, show. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-thoitrang-quan-ly-san-xuat", "nn-kien-truc-xay-dung"]
+  },
+  {
+    "id": "e873c097-40d0-45b4-987d-5455d229264d",
+    "slug": "nghe-vfx-creative-director",
+    "tieu_de_viet": "Creative Director VFX",
+    "tom_tat": "Creative Director trong studio VFX/post-production định hình hướng sáng tạo cho project — pitch ý tưởng cho client, lead vision của TVC, MV, opening title — là bộ mặt sáng tạo của studio.",
+    "meta_title": "Creative Director VFX là gì? Lộ trình vào nghề | CINS",
+    "meta_description": "Creative Director VFX dẫn dắt vision sáng tạo cho TVC, MV, opening title. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-vfx-quan-ly-san-xuat", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "e990377f-0323-4168-bbef-d6c86ac317f0",
+    "slug": "nghe-vfx-creature-td",
+    "tieu_de_viet": "Creature TD (Technical Director cho creature)",
+    "tom_tat": "Creature TD setup hệ thống kỹ thuật cho sinh vật CG — rig, muscle, skin simulation, fur/feather — biến nhân vật 3D thành creature di chuyển sống động trong phim VFX-heavy.",
+    "meta_title": "Creature TD là gì? Lộ trình vào nghề | CINS",
+    "meta_description": "Creature TD setup rig, muscle, fur simulation cho sinh vật CG trong phim VFX. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-vfx-technical", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "05960935-244c-45a9-ae2f-66ad16084208",
+    "slug": "nghe-uiux-data-analyst-design",
+    "tieu_de_viet": "Data Analyst (Design)",
+    "tom_tat": "Data Analyst (Design) phân tích hành vi người dùng — heatmap, funnel, A/B test — biến số liệu thành insight để team UI/UX biết tính năng nào hiệu quả, tính năng nào nên bỏ.",
+    "meta_title": "Data Analyst Design là gì? Lộ trình | CINS",
+    "meta_description": "Data Analyst Design phân tích hành vi user qua heatmap, funnel, A/B test. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-uiux-ux-research", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "916b9a4d-7204-4e19-971d-bdfcce697675",
+    "slug": "nghe-uiux-design-director",
+    "tieu_de_viet": "Design Director UI/UX",
+    "tom_tat": "Design Director UI/UX lead toàn bộ team design — định hình design vision, design system, quality bar — là người chịu trách nhiệm sản phẩm có design language thống nhất, scale tốt qua nhiều năm.",
+    "meta_title": "Design Director UI/UX là gì? Lộ trình | CINS",
+    "meta_description": "Design Director UI/UX lead team, định hình vision và design system. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-uiux-quan-ly-san-xuat", "nn-my-thuat-thiet-ke"]
+  }
+]

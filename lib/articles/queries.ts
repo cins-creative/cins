@@ -698,7 +698,7 @@ const ARTICLE_BAI_VIET_NHOM_FK_COLUMNS = [
 ] as const;
 
 const NGHE_HUB_BASE_SELECT =
-  "id, slug, tieu_de, tieu_de_viet, tieu_de_eng, tom_tat, meta_description, cover_id, id_linh_vuc";
+  "id, slug, tieu_de, tieu_de_viet, tieu_de_eng, tom_tat, meta_description, cover_id, thumbnail, id_linh_vuc";
 
 const NGHE_HUB_WITH_LINH_VUC_SELECT = `${NGHE_HUB_BASE_SELECT}, linh_vuc:id_linh_vuc(id, slug, ten)`;
 
@@ -730,6 +730,7 @@ function mapNgheArticleHubRow(r: Record<string, unknown>): NgheArticleHubRow {
     tom_tat: (r.tom_tat as string | null) ?? null,
     meta_description: (r.meta_description as string | null) ?? null,
     cover_id: (r.cover_id as string | null) ?? null,
+    thumbnail: (r.thumbnail as string | null) ?? null,
     article_nhom_id: pickArticleNhomFkFromRow(r),
     id_linh_vuc: idLv,
     linh_vuc: embed ?? (idLv ? { id: idLv, slug: slug ?? "", ten: "Lĩnh vực" } : null),

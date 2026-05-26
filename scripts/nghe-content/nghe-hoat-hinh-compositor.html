@@ -1,0 +1,248 @@
+<section class="arc-intro">
+  <p>Trong pipeline hoạt hình 3D, character đã được animated, background đã được painted, FX đã được simulated — nhưng từng element là asset riêng lẻ. Người ghép tất cả thành 1 frame cinematic với lighting integration, depth of field, atmosphere là Compositor hoạt hình. Họ là họa sĩ cuối cầm cọ trước khi shot ship.</p>
+  <p>Compositor hoạt hình khác Compositor live-action ở chỗ <em>không có "plate"</em> — mọi thứ đều rendered. Họ work với multi-channel EXR pass, có control gần như tổng thể về lighting/color. Đây là vị trí critical cho final visual quality của phim.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>Compositor hoạt hình là ai?</h2>
+  <p>Compositor phim hoạt hình là người <strong>tích hợp character animation, background painting/render, FX layer</strong> thành 1 final frame cinematic. Họ work với <strong>multi-channel EXR</strong> từ render farm — combine beauty, diffuse, specular, AO, depth, ID, motion vector. Add <strong>cinematic touch</strong>: depth of field, atmospheric perspective, lens flare, glow, color grade, motion blur. Phần mềm: <strong>Nuke</strong> (animation feature standard), <strong>After Effects</strong> (TV series, indie).</p>
+  <p>Khác với <strong>Compositor live-action/VFX</strong> (tích hợp CG với plate thật) — Compositor hoạt hình work toàn bộ CG, không có "reality" để match. Khác với <strong>Lighter/Lookdev TD</strong> (set up lighting trong Maya/Houdini) — Compositor work với rendered output. Có collaboration chặt với Lighter. Trong 2D animation, <strong>2D Compositor</strong> tích hợp character cel-shaded với background painted. Trong 3D animation (Pixar style), <strong>3D Compositor</strong> work với multi-pass EXR.</p>
+  <ul class="arc-list">
+    <li><strong>Tích hợp render passes</strong> — beauty, diffuse, AO, depth thành final frame</li>
+    <li>Add <strong>atmosphere</strong>: depth of field, fog, lens flare, glow</li>
+    <li><strong>2D effect</strong>: smoke, magic, particle</li>
+    <li>Final color grade cho consistency qua shot</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"animation compositor Nuke render passes EXR studio Pixar Disney"</span>
+    </div>
+    <p class="arc-image-caption">Compositor animation tích hợp render passes thành final cinematic frame</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>Compositor animation thuộc <strong>Compositing/Final Image Department</strong>, work end-of-pipeline. Báo cáo cho <strong>Compositing Supervisor</strong>, ultimately <strong>CG Supervisor</strong> hoặc <strong>Director</strong>. Receive: rendered EXR từ <strong>Lighter</strong>, FX layer từ <strong>FX TD</strong>, BG painted từ <strong>Background Painter</strong>. Bàn giao final frame cho <strong>Editorial</strong> để conform timeline, sau cho <strong>DI Colorist</strong> grade final. Trong studio Pixar/Disney, đây là step quan trọng nhất quyết định final visual quality. VN: Sparx Vietnam (animation 2D &amp; 3D), Yoot Animation, AntWorks, Pencil Land.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Công việc của một Compositor hoạt hình</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Receive render passes và shot brief</h3>
+    <p>Bước đầu — receive <strong>render passes</strong> từ Lighter (multi-channel EXR), <strong>FX element</strong> từ FX TD, <strong>background</strong> từ BG Painter. <strong>Shot brief</strong> từ Director/Sequence Supervisor: scene mood, atmosphere, focal point. Read storyboard, animatic, color script cho shot context. Setup Nuke project: ACES color management, plate resolution, frame range.</p>
+    <ul class="arc-list">
+      <li><strong>Asset gathering</strong> — render passes, FX, BG</li>
+      <li><strong>Shot brief</strong> — Director intent, mood, focal point</li>
+      <li><strong>Project setup</strong> — Nuke ACES, frame range</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Nuke animation project setup multi-channel EXR passes preparation"</span>
+      </div>
+      <p class="arc-image-caption">Project setup — gather assets, ACES color management trong Nuke</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Rebuild beauty từ passes</h3>
+    <p>Phần chính bắt đầu — <strong>rebuild beauty</strong> từ render passes. Multi-channel EXR có: diffuse, specular, AO (ambient occlusion), reflection, refraction, emission, depth, position, normal, ID matte. Combine thành beauty bằng math node — give compositor <em>massive control</em> hơn raw beauty: tăng specular intensity, adjust AO darkness, change reflection color, all without re-render.</p>
+    <ul class="arc-list">
+      <li><strong>Read multi-channel EXR</strong> — diffuse, spec, AO, reflection</li>
+      <li><strong>Rebuild beauty</strong> — combine passes với operation node</li>
+      <li><strong>Adjust per material</strong> — use ID matte để tweak specific object</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Nuke EXR multichannel beauty rebuild AOV passes diffuse specular"</span>
+        </div>
+        <p class="arc-image-caption">EXR multichannel — rebuild beauty từ diffuse, spec, AO</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"animation ID matte material selection compositing per object"</span>
+        </div>
+        <p class="arc-image-caption">ID matte — tweak per material không cần re-render</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Atmosphere, lighting và 2D effect</h3>
+    <p>Add <strong>cinematic atmosphere</strong>: depth fog (deep depth = more fog cho aerial perspective), volumetric light (god ray, light shaft), lens flare, glow, bloom. Add <strong>2D effect</strong> nếu cần: smoke, fire, magic particle (faster than 3D simulation). Apply <strong>color grade</strong> initial — set mood color cho shot. Đây là phase 40–60% time.</p>
+    <ul class="arc-list">
+      <li><strong>Depth fog &amp; atmospheric perspective</strong> — use depth pass</li>
+      <li><strong>Volumetric light</strong> — god ray, light shaft</li>
+      <li><strong>2D effect</strong> — smoke, magic, particle 2D</li>
+      <li><strong>Initial color grade</strong> — mood color cho shot</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"animation compositing atmospheric perspective fog volumetric light god ray"</span>
+      </div>
+      <p class="arc-image-caption">Atmospheric perspective + volumetric light — biến scene thành cinematic</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">4. DOF, motion blur và final delivery</h3>
+    <p>Bước cuối — <strong>depth of field</strong> dùng depth pass: blur background nếu focus foreground, vice versa. <strong>Motion blur</strong> dùng motion vector pass: realistic blur theo motion. Lens effect: chromatic aberration, vignette. <strong>Final QC</strong>: play shot real-time, check artifact, frame-by-frame. Submit cho Supervisor, iterate. Render final EXR, bàn giao Editorial.</p>
+    <ul class="arc-list">
+      <li><strong>Depth of field</strong> — use depth pass cho blur</li>
+      <li><strong>Motion blur</strong> — use motion vector pass</li>
+      <li><strong>Lens effect</strong> — chromatic aberration, vignette</li>
+      <li><strong>Final delivery</strong> — render EXR, ship cho Editorial</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"animation depth of field motion blur final composite Pixar cinematic"</span>
+      </div>
+      <p class="arc-image-caption">Final composite — DOF, motion blur cho cinematic quality</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>Compositor hoạt hình cần giỏi gì?</h2>
+
+  <div class="arc-skill-grid">
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">⚙️</span>
+      <span>Nuke chuyên sâu</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">🌈</span>
+      <span>Color science &amp; multi-pass workflow</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">💡</span>
+      <span>Lighting &amp; atmosphere understanding</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">🎨</span>
+      <span>Mắt nhìn nghệ thuật</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">🧠</span>
+      <span>Hiểu render pipeline sâu</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">💬</span>
+      <span>Cộng tác với Lighter &amp; Director</span>
+    </div>
+  </div>
+
+  <div class="arc-accordion">
+
+    <details class="arc-card" open>
+      <summary>Nuke chuyên sâu</summary>
+      <div class="arc-card-body">
+        <p>Nuke là industry standard cho animation feature. Master: node graph, multi-channel EXR (write &amp; read), 3D system (Nuke 3D camera tracking), particle, deep image compositing, expression. Học từ <strong>Foundry tutorial</strong> (free), <strong>FXPHD</strong>, <strong>Hugo's Desk</strong> on YouTube.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Color science &amp; multi-pass workflow</summary>
+      <div class="arc-card-body">
+        <p>Hiểu sâu ACES, linear color space, gamma curve. Multi-pass EXR workflow là core animation comp. Hiểu mọi pass: diffuse vs spec, AO darken effect, depth pass vs position pass, motion vector pass. ACES Central documentation, Pixar tech paper.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Lighting &amp; atmosphere understanding</summary>
+      <div class="arc-card-body">
+        <p>Compositor add lighting/atmosphere cuối — phải hiểu lighting theory. Atmospheric perspective (Da Vinci theory), volumetric light, lens optics. Study cinematography Pixar/Disney film — họ heavy compositor work cho atmosphere.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Mắt nhìn nghệ thuật</summary>
+      <div class="arc-card-body">
+        <p>Phải có eye cho cinematic final image. Color, mood, focal attention. Watch Pixar/Disney feature với pause/analyze. Study color script, frame study từ master film. Build personal mental library "great shot".</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Hiểu render pipeline sâu</summary>
+      <div class="arc-card-body">
+        <p>Compositor work end-of-pipeline — phải hiểu render pipeline trước. Maya/Houdini với Arnold/Renderman/Karma. Hiểu để communicate với Lighter intelligent ("Need more spec pass intensity" thay vì vague feedback). Take 3D class basic.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Cộng tác với Lighter &amp; Director</summary>
+      <div class="arc-card-body">
+        <p>Daily collaboration với Lighter (request re-render), Director (creative direction), Sequence Supervisor (continuity). Phải communicate technical issue đơn giản, creative vision precise. Tiếng Anh fluent là asset cho international project.</p>
+      </div>
+    </details>
+
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Làm cách nào để trở thành Compositor hoạt hình?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Học VFX hoặc CG 2–4 năm</strong>
+        <p>School chuyên: Sparx Animation Academy (VN), Yoot Animation, FPT Arena, Gnomon (LA), Lost Boys School of VFX (Vancouver). Foundation: 2–3 năm trong VFX/CG. Background film/cinematography cũng tốt.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Master Nuke trong 1–2 năm</strong>
+        <p>Nuke Personal Learning Edition free. Khóa: <strong>Foundry tutorial</strong> (free, official), <strong>FXPHD</strong> (premium, deep dive), <strong>The Foundry Nuke 11 Animation Compositing</strong>. Practice mỗi tuần 1 shot animation full pipeline.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Build portfolio reel animation comp</strong>
+        <p>Portfolio reel 1–2 phút show animation compositing. Show: rebuild beauty from passes, atmospheric scene, depth of field, motion blur, 2D effect integration. Side-by-side raw pass vs final. Upload Vimeo. Show node graph trên ArtStation.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Apply animation studio</strong>
+        <p>Apply tại: <strong>VN animation studio</strong> (Sparx Vietnam — biggest, Yoot Animation, AntWorks, Pencil Land); <strong>service studio</strong> outsource cho Pixar/DreamWorks/Disney (gigwerks via Sparx, Bad Clay); <strong>international remote</strong> (Cartoon Saloon, Tonko House, Reel FX). Junior salary VN: 15–25 triệu/tháng; international remote: $3–6K USD/tháng.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Specialize: hero shot / FX / 2D</strong>
+        <p>Sau 3–5 năm, specialize. <strong>Hero shot Compositor</strong> — main shot trong feature, end-of-pipeline. <strong>FX Compositor</strong> — focus integrate FX heavy. <strong>2D Compositor</strong> — chuyên 2D animation pipeline (Studio Ghibli style). Choose tùy passion + opportunity.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Xây dựng sự nghiệp lâu dài</strong>
+        <p>Compositor hoạt hình có path: (1) <strong>Lead Compositor</strong> → <strong>Compositing Supervisor</strong> → <strong>CG Supervisor</strong>; (2) <strong>Freelance Compositor</strong> — work cho multiple studio remote, rate $400–800 USD/ngày; (3) <strong>Move quốc tế</strong> — Vancouver, LA, Sydney có nhiều animation studio. Network qua <strong>SIGGRAPH</strong>, <strong>VIEW Conference</strong>. Lương: VN $2–5K USD/tháng cho Senior; international $80–180K USD/năm cho Senior at Pixar/Disney/DreamWorks.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

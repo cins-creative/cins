@@ -1,0 +1,247 @@
+<section class="arc-intro">
+  <p>Bạn xem một dự án bất động sản trên tờ rơi — căn hộ chưa xây xong, nhưng hình ảnh sang trọng đến mức tưởng đang ngồi trong phòng khách thật, cảm nhận được ánh nắng chiều qua cửa kính. Đó là công việc của 3D Visualizer kiến trúc — biến bản vẽ 2D khô khan thành hình ảnh thuyết phục đến mức khách hàng quyết định ký hợp đồng.</p>
+  <p>3D Visualizer kiến trúc khác 3D Generalist ở chỗ chuyên sâu một mảng — kiến trúc và nội thất — và phải hiểu vật liệu xây dựng thật, ánh sáng tự nhiên, scale công trình. Khác Kiến trúc sư ở chỗ không thiết kế mà chỉ <em>trực quan hóa</em> thiết kế đã có.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>3D Visualizer kiến trúc là ai?</h2>
+  <p>3D Visualizer kiến trúc (còn gọi <strong>ArchViz Artist</strong>, viết tắt cho Architectural Visualization) là người dựng và render hình ảnh <strong>quang thực (photorealistic)</strong> của công trình kiến trúc và nội thất — chủ yếu phục vụ thuyết phục khách hàng, marketing dự án bất động sản, và pháp lý xây dựng.</p>
+  <p>Khác với 3D Modeler game/phim làm asset phong cách hóa, ArchViz Artist hướng đến <strong>chân thật tuyệt đối</strong> — vật liệu gỗ phải giống gỗ thật, ánh sáng phải đổ đúng theo thời gian trong ngày, kích thước phải đúng tỷ lệ thực. Nhiều hình ảnh ArchViz xuất sắc khiến người xem không phân biệt được với ảnh chụp.</p>
+  <ul class="arc-list">
+    <li>Dựng <strong>mô hình 3D công trình</strong> từ bản vẽ AutoCAD, Revit hoặc SketchUp của kiến trúc sư</li>
+    <li>Setup <strong>vật liệu PBR</strong> — gỗ, gạch, kính, bê tông, kim loại — chính xác đến mức quang thực</li>
+    <li>Render với <strong>V-Ray, Corona Renderer, Lumion, hoặc Enscape</strong> — chuẩn ngành ArchViz</li>
+    <li>Post-process trong Photoshop — thêm người, cây, sky, color grade để hoàn thiện</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"architectural visualization interior render Corona V-Ray photorealistic"</span>
+    </div>
+    <p class="arc-image-caption">Render nội thất quang thực — không phân biệt được với ảnh chụp thật</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>3D Visualizer thuộc <strong>giai đoạn marketing/pitching</strong> trong quy trình dự án kiến trúc — sau khi <strong>kiến trúc sư</strong> đã có bản vẽ kỹ thuật, trước khi xây dựng. Nhận file CAD/Revit/SketchUp từ kiến trúc sư hoặc thiết kế nội thất, bàn giao hình ảnh render cho <strong>nhóm marketing</strong>, <strong>sales</strong>, hoặc <strong>khách hàng</strong>. Trong dự án bất động sản, kết quả của họ trực tiếp ảnh hưởng đến doanh số.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Công việc của một 3D Visualizer kiến trúc</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Nhận file CAD/Revit và dựng mô hình 3D</h3>
+    <p>Mọi dự án bắt đầu bằng file bản vẽ từ kiến trúc sư — có thể là <strong>DWG (AutoCAD)</strong>, <strong>RVT (Revit)</strong>, hoặc <strong>SKP (SketchUp)</strong>. Visualizer phải import vào phần mềm 3D (thường là 3ds Max), kiểm tra scale, làm sạch geometry thừa, và bắt đầu dựng các phần chi tiết — cửa, cầu thang, lan can, đồ nội thất.</p>
+    <ul class="arc-list">
+      <li><strong>Import workflow</strong> — DWG → 3ds Max, hoặc Revit → 3ds Max qua FBX/Datasmith</li>
+      <li><strong>Block library</strong> — thư viện đồ nội thất chuẩn (sofa, đèn, bàn) để tăng tốc</li>
+      <li><strong>Scale check</strong> — verify đơn vị đo (mm, cm, m) trước khi bắt đầu — sai đơn vị thì toàn bộ render hỏng</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"3ds Max architectural model interior wireframe scene setup"</span>
+      </div>
+      <p class="arc-image-caption">Scene 3ds Max — mô hình kiến trúc đầy đủ trước khi setup material và lighting</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Setup vật liệu và lighting</h3>
+    <p>Đây là khâu quyết định <strong>"giống thật hay không"</strong>. Visualizer chọn material từ thư viện PBR (Substance Source, Quixel Megascans, Poliigon) hoặc tự tạo. Lighting setup phụ thuộc cảnh: <strong>interior day</strong> dùng HDRI sky + sun, <strong>interior night</strong> dùng đèn nội thất + sky đêm yếu, <strong>exterior</strong> dùng sun + sky + skylight.</p>
+    <ul class="arc-list">
+      <li><strong>PBR material</strong> — Albedo, Roughness, Normal, Metalness — chuẩn vật liệu hiện đại</li>
+      <li><strong>HDRI + Sun</strong> — combo phổ biến nhất cho ArchViz, cho ánh sáng tự nhiên thuyết phục</li>
+      <li><strong>Photometric lights</strong> — đèn dùng dữ liệu IES từ nhà sản xuất, mô phỏng đúng đèn thật</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Corona render interior HDRI lighting natural daylight scene"</span>
+        </div>
+        <p class="arc-image-caption">Lighting với HDRI + Sun — ánh sáng tự nhiên buổi sáng đổ qua cửa sổ</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"V-Ray PBR material setup wood marble fabric architectural"</span>
+        </div>
+        <p class="arc-image-caption">Material library PBR — gỗ, đá hoa cương, vải, kim loại với độ chân thật cao</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Camera, composition và render</h3>
+    <p>Một góc camera tốt biến một mô hình tầm thường thành hình ảnh ấn tượng. Visualizer setup camera theo <strong>quy tắc nhiếp ảnh kiến trúc</strong> — chiều cao mắt người (1.5–1.7m), tiêu cự 24–35mm cho rộng, 50–85mm cho cảnh chi tiết. Render với <strong>V-Ray, Corona, hoặc Lumion</strong> — mỗi engine có ưu nhược, V-Ray cho chất lượng tối đa, Lumion cho tốc độ thời gian thực.</p>
+    <ul class="arc-list">
+      <li><strong>Camera 2-point perspective</strong> — chuẩn ArchViz, tránh distortion ở đường thẳng đứng</li>
+      <li><strong>Rule of thirds</strong> — composition cổ điển, đặt focal point ở giao điểm thứ ba</li>
+      <li><strong>Render passes</strong> — beauty + depth + reflection + AO + shadow để composite</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"architectural photography camera angle interior composition rule of thirds"</span>
+      </div>
+      <p class="arc-image-caption">Camera setup theo nguyên tắc nhiếp ảnh kiến trúc — chiều cao mắt người, 2-point perspective</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">4. Post-process trong Photoshop</h3>
+    <p>Render xong chưa phải xong. Visualizer dùng Photoshop để <strong>thêm người</strong> (cutout có sẵn từ thư viện), <strong>cây cối</strong> (cho exterior), <strong>sky thật</strong> (thay sky procedural bằng ảnh thật), và <strong>color grade</strong> tổng thể. Đây là khâu biến render kỹ thuật thành hình ảnh marketing.</p>
+    <ul class="arc-list">
+      <li><strong>People cutout</strong> — thư viện ảnh người tách nền (Skalgubbar, Vishopper)</li>
+      <li><strong>Sky replacement</strong> — sky procedural ít cảm xúc, thay bằng ảnh sky thật cho mood tốt hơn</li>
+      <li><strong>Color grading</strong> — chỉnh tổng thể tone (ấm, lạnh, contrast) bằng Camera Raw hoặc Lumetri</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Photoshop architectural render post production people sky color grade"</span>
+      </div>
+      <p class="arc-image-caption">Post-process trong Photoshop — thêm người, sky thật, color grade biến render thành ảnh marketing</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>3D Visualizer kiến trúc cần giỏi gì?</h2>
+
+  <div class="arc-skill-grid">
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">⚙️</span>
+      <span>3ds Max, V-Ray, Corona &amp; Photoshop</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">🌈</span>
+      <span>Lighting kiến trúc</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">📦</span>
+      <span>Hiểu vật liệu xây dựng</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">🎨</span>
+      <span>Composition &amp; nhiếp ảnh kiến trúc</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">🧠</span>
+      <span>Đọc bản vẽ kiến trúc</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">💬</span>
+      <span>Giao tiếp với kiến trúc sư &amp; khách</span>
+    </div>
+  </div>
+
+  <div class="arc-accordion">
+
+    <details class="arc-card" open>
+      <summary>3ds Max, V-Ray, Corona &amp; Photoshop</summary>
+      <div class="arc-card-body">
+        <p>3ds Max là chuẩn ngành ArchViz (Maya thiên về phim, Blender đang lên nhưng chưa thay thế hoàn toàn). V-Ray và Corona Renderer là hai engine render chuẩn — V-Ray mạnh và linh hoạt, Corona đơn giản và đẹp out-of-the-box. Photoshop bắt buộc cho post-process. Lumion / Twinmotion / Enscape là engine real-time cho preview nhanh.</p>
+        <p>Học theo thứ tự: 3ds Max cơ bản (modeling, modifier) → V-Ray hoặc Corona → Photoshop post-process. Đầu tư khóa của ArchVizArtist, 3D Tudor, hoặc The School of Architecture and Design.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Lighting kiến trúc</summary>
+      <div class="arc-card-body">
+        <p>Lighting là yếu tố biến render "có vẻ đúng" thành "thuyết phục". Học three-point lighting truyền thống không đủ — cần hiểu ánh sáng tự nhiên: sun path theo giờ và mùa, gián tiếp (bounce light), skylight ngày mưa vs nắng. Tham khảo bài học từ The Lighting Handbook (IES).</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Hiểu vật liệu xây dựng</summary>
+      <div class="arc-card-body">
+        <p>Khác 3D Game Artist làm stylized, ArchViz Artist phải hiểu vật liệu xây thật — gỗ sồi khác gỗ óc chó về vân, marble Calacatta khác Carrara, kính low-e khác kính thường. Đi showroom vật liệu, lật catalogue nội thất, học từ kiến trúc sư. Thư viện Quixel Megascans, Substance Source là tài nguyên không thể thiếu.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Composition &amp; nhiếp ảnh kiến trúc</summary>
+      <div class="arc-card-body">
+        <p>Cùng một căn phòng, hai góc camera khác nhau cho hai cảm giác khác nhau. Nghiên cứu nhiếp ảnh kiến trúc — sách của Julius Shulman, ảnh trên ArchDaily, Dezeen. Học rule of thirds, leading lines, foreground/midground/background. Tránh wide-angle quá rộng làm méo hình kiến trúc.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Đọc bản vẽ kiến trúc</summary>
+      <div class="arc-card-body">
+        <p>Phải đọc được mặt bằng (plan), mặt cắt (section), mặt đứng (elevation), chi tiết cấu tạo. Hiểu ký hiệu cơ bản — tường, cửa, cửa sổ, cầu thang, đường kích thước. Không cần thiết kế được nhưng phải hiểu để dựng đúng. Nếu chưa quen, học một khóa AutoCAD/Revit cơ bản hoặc đọc sách <em>Architectural Graphic Standards</em>.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Giao tiếp với kiến trúc sư &amp; khách</summary>
+      <div class="arc-card-body">
+        <p>Kiến trúc sư cung cấp file CAD/Revit và mood reference, khách hàng góp ý về phong cách và "feel". Phải biết hỏi đúng câu — phong cách (modern, classic, industrial), thời gian trong ngày, view focus chính, mood (ấm cúng, sang trọng, năng động). Document mọi feedback bằng văn bản, gửi style frame trước khi render final.</p>
+      </div>
+    </details>
+
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Làm cách nào để trở thành 3D Visualizer kiến trúc?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Học AutoCAD/SketchUp/Revit để đọc bản vẽ kiến trúc</strong>
+        <p>Trước khi học 3ds Max, phải đọc được bản vẽ. AutoCAD cơ bản 1–2 tháng — đủ để hiểu plan, section, elevation và import. SketchUp đơn giản hơn, phù hợp người mới. Sinh viên kiến trúc đã có lợi thế lớn ở bước này.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Học 3ds Max cơ bản</strong>
+        <p>3ds Max là phần mềm chính của ArchViz. Học modeling cơ bản (extrude, bevel, edit poly), modifier stack, material editor. Khóa "Introduction to 3ds Max" của Pluralsight hoặc miễn phí trên YouTube (Arrimus 3D, The 3D Tudor). Mục tiêu: dựng được một phòng đơn giản từ bản vẽ.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Học V-Ray hoặc Corona Renderer</strong>
+        <p>Chọn 1: Corona dễ hơn cho người mới (default đẹp, ít setting), V-Ray linh hoạt hơn nhưng phức tạp. Học PBR material, HDRI lighting, IES light, camera setup, render setting. Khóa "Corona Renderer" trên ArchVizArtist.com hoặc "V-Ray Course" của VRayschool. 2–3 tháng học chuyên sâu.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Học Photoshop post-process</strong>
+        <p>Render đẹp 80%, Photoshop làm nốt 20% cuối. Học layer mask, blending mode, Camera Raw, color grading. Tutorial của Bertrand Benoit, Alex Roman (CG Architect) là chuẩn. Học "passes compositing" — kết hợp beauty pass với z-depth, reflection, AO pass để có kiểm soát tối đa.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Làm 5–10 project cá nhân từ A đến Z</strong>
+        <p>Tải bản vẽ miễn phí từ ArchDaily, Behance, Pinterest, hoặc tự thiết kế đơn giản. Mỗi project làm hoàn chỉnh: modeling → material → lighting → render → post. Bắt đầu từ interior nhỏ (1 phòng), tăng dần lên căn hộ, nhà ở, biệt thự, exterior. Có thể tham gia ArchViz challenge trên CG Architect, Ronen Bekerman, hoặc Evermotion forum.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Xây dựng portfolio &amp; apply công ty</strong>
+        <p>Portfolio cần 8–12 hình render đẹp nhất, đa dạng: 3–4 interior (phòng khách, phòng ngủ, bếp), 2–3 exterior (nhà ở, biệt thự), 1–2 commercial (cafe, văn phòng), 1–2 large-scale (chung cư, khu đô thị). Mỗi project nên có 1 hero shot + 2–3 góc bổ sung. Đăng trên <strong>Behance</strong> (chuẩn ArchViz), <strong>CGArchitect</strong>, <strong>Ronen Bekerman</strong>, và <strong>Coroflot</strong>. Apply qua các công ty bất động sản lớn (Vinhomes, Novaland, Sun Group), agency kiến trúc (NORM, KIRI Studio), hoặc studio chuyên ArchViz (MIR, The Boundary, Brick Visual) cho thị trường quốc tế.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

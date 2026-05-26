@@ -1,0 +1,47 @@
+[
+  {
+    "id": "10c683a5-8b08-455a-a66d-ee3e43aef58b",
+    "slug": "nghe-hoat-hinh-art-director",
+    "tieu_de_viet": "Art Director phim hoạt hình",
+    "tom_tat": "Art Director trong phim hoạt hình chịu trách nhiệm về toàn bộ phong cách thị giác — màu sắc, lighting, environment, prop — đảm bảo mọi shot khớp với tầm nhìn của Director.",
+    "meta_title": "Art Director hoạt hình là gì? Công việc, kỹ năng và lộ trình | CINS",
+    "meta_description": "Art Director hoạt hình định hình thẩm mỹ thị giác phim — color script, environment, prop. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-hoat-hinh-tien-san-xuat", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "d408c33f-a5a7-4929-8948-2f61b8819956",
+    "slug": "nghe-dohoa-art-director",
+    "tieu_de_viet": "Art Director thiết kế đồ họa",
+    "tom_tat": "Art Director trong agency thiết kế đồ họa định hướng concept thị giác cho chiến dịch — từ pitch idea, quản lý team designer, đến giám sát thi công ấn phẩm cuối.",
+    "meta_title": "Art Director thiết kế đồ họa là gì? Công việc, kỹ năng và lộ trình | CINS",
+    "meta_description": "Art Director đồ họa quản lý visual concept agency cho campaign branding, advertising. Tìm hiểu công việc, kỹ năng và lộ trình vào nghề.",
+    "nhom_slugs": ["nghe-dohoa-quan-ly-san-xuat", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "8a9cd675-7261-4470-a9bb-715b260b67e0",
+    "slug": "nghe-minh-hoa-art-director",
+    "tieu_de_viet": "Art Director minh họa",
+    "tom_tat": "Art Director minh họa định hướng phong cách hình ảnh cho dự án xuất bản, quảng cáo, editorial — tuyển và quản lý illustrator, đảm bảo phong cách nhất quán với brand.",
+    "meta_title": "Art Director minh họa là gì? Công việc, kỹ năng và lộ trình | CINS",
+    "meta_description": "Art Director minh họa quản lý illustrator, định hướng style cho dự án sách, magazine, packaging. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-minh-hoa-quan-ly-san-xuat", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "dc43ee5b-1ad4-4065-9256-33f83ee9036d",
+    "slug": "nghe-comic-assistant-mangaka",
+    "tieu_de_viet": "Trợ lý họa sĩ manga (Assistant Mangaka)",
+    "tom_tat": "Assistant Mangaka hỗ trợ mangaka chính trong studio — vẽ background, screentone, inking đường phụ, để mangaka tập trung vào nhân vật và panel chính.",
+    "meta_title": "Assistant Mangaka là gì? Công việc, kỹ năng và lộ trình | CINS",
+    "meta_description": "Assistant Mangaka hỗ trợ vẽ manga — background, screentone, inking. Tìm hiểu công việc, kỹ năng và lộ trình vào nghề.",
+    "nhom_slugs": ["nghe-comic-ve-san-xuat", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "dc3f18dc-d620-4697-b583-03ec9d9e3215",
+    "slug": "nghe-comic-background-artist",
+    "tieu_de_viet": "Họa sĩ phông nền comic (Background Artist)",
+    "tom_tat": "Background Artist trong comic và manga vẽ phông nền cho mỗi panel — kiến trúc, nội thất, phong cảnh — tạo không gian và mood cho câu chuyện, để character artist tập trung vào nhân vật.",
+    "meta_title": "Background Artist comic là gì? Công việc, kỹ năng và lộ trình | CINS",
+    "meta_description": "Background Artist vẽ phông nền cho comic và manga — kiến trúc, nội thất, phong cảnh. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-comic-ve-san-xuat", "nn-my-thuat-thiet-ke"]
+  }
+]

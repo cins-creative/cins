@@ -1,0 +1,47 @@
+[
+  {
+    "id": "42920cdc-be88-48c4-80f7-e900a8588871",
+    "slug": "nghe-hoat-hinh-environment-concept-artist",
+    "tieu_de_viet": "Environment Concept Artist hoạt hình",
+    "tom_tat": "Environment Concept Artist hoạt hình thiết kế world và background trong giai đoạn pre-production — explore visual cho rừng rậm, thành phố, không gian fantasy — là người &quot;mở cửa&quot; visual cho cả phim.",
+    "meta_title": "Environment Concept Artist hoạt hình | CINS",
+    "meta_description": "Environment Concept Artist hoạt hình thiết kế world, background pre-production. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-hoat-hinh-tien-san-xuat", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "6238045c-9b2e-482c-9024-9ae4cc658e27",
+    "slug": "nghe-3d-environment-modeler",
+    "tieu_de_viet": "Environment Modeler 3D",
+    "tom_tat": "Environment Modeler 3D xây dựng asset môi trường — building, terrain, prop, vegetation — cho game, animation, VFX. Là backbone của environment department cho mọi production 3D.",
+    "meta_title": "Environment Modeler 3D là gì? Lộ trình | CINS",
+    "meta_description": "Environment Modeler 3D xây asset môi trường cho game, animation, VFX. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-3d-modeling-sculpting", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "188e40e9-e167-4e92-9de0-3c97ed068aac",
+    "slug": "nghe-dohoa-environmental-graphic-designer",
+    "tieu_de_viet": "Environmental Graphic Designer (Thiết kế đồ họa không gian)",
+    "tom_tat": "Environmental Graphic Designer thiết kế hệ thống biển hiệu, wayfinding, mural trong không gian vật lý — sân bay, mall, văn phòng, museum — biến kiến trúc thành brand experience đầy đủ.",
+    "meta_title": "Environmental Graphic Designer là gì? | CINS",
+    "meta_description": "Environmental Graphic Designer thiết kế wayfinding, biển hiệu, mural trong không gian. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-dohoa-environmental", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "48300a18-f4c0-4665-be7a-678b7333544c",
+    "slug": "nghe-phim-executive-producer",
+    "tieu_de_viet": "Executive Producer (Nhà sản xuất điều hành)",
+    "tom_tat": "Executive Producer là người raise tiền, sign-off business decision lớn, và chịu trách nhiệm với studio/investor về toàn bộ project. Họ ít hands-on hơn Producer nhưng có quyền lực cao hơn.",
+    "meta_title": "Executive Producer phim là gì? Lộ trình | CINS",
+    "meta_description": "Executive Producer raise tiền, oversee business decision của phim. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-phim-quan-ly-san-xuat", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "ae709207-c36d-45ca-9c4d-e50906a07bcf",
+    "slug": "nghe-dohoa-exhibition-designer",
+    "tieu_de_viet": "Exhibition Designer (Thiết kế triển lãm)",
+    "tom_tat": "Exhibition Designer thiết kế không gian triển lãm — museum, art show, brand pavilion, trade show booth — kết hợp kiến trúc, đồ họa, lighting, multimedia để tạo experience đi qua không gian.",
+    "meta_title": "Exhibition Designer là gì? Lộ trình | CINS",
+    "meta_description": "Exhibition Designer thiết kế triển lãm museum, brand pavilion. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-dohoa-environmental", "nn-my-thuat-thiet-ke"]
+  }
+]

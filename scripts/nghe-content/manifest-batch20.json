@@ -1,0 +1,47 @@
+[
+  {
+    "id": "8ac2e5ad-0154-476a-8f24-25393a426914",
+    "slug": "nghe-kien-truc-ffe-designer",
+    "tieu_de_viet": "FF&amp;E Designer (Nhà thiết kế nội thất &amp; phụ kiện)",
+    "tom_tat": "FF&amp;E Designer (Furniture, Fixtures &amp; Equipment) specs toàn bộ đồ rời trong dự án nội thất — bàn, ghế, đèn, vải, nghệ thuật — sau khi kiến trúc + interior shell đã hoàn thiện. Là role essential cho hospitality, văn phòng, residential cao cấp.",
+    "meta_title": "FF&amp;E Designer là gì? Lộ trình | CINS",
+    "meta_description": "FF&amp;E Designer specs furniture, fixtures, equipment cho hospitality, văn phòng, residential. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-kien-truc-noi-that", "nn-kien-truc-xay-dung"]
+  },
+  {
+    "id": "c396e464-e615-4dd4-859d-ea74dc4305c2",
+    "slug": "nghe-hoat-hinh-foley-artist",
+    "tieu_de_viet": "Foley Artist hoạt hình",
+    "tom_tat": "Foley Artist trong hoạt hình tạo âm thanh đời sống — bước chân, vải áo cọ, cốc đặt xuống bàn — bằng cách diễn thực trong studio. Trong hoạt hình, mọi sound đều bắt đầu từ silence — Foley xây dựng từ con số không.",
+    "meta_title": "Foley Artist hoạt hình là gì? Lộ trình | CINS",
+    "meta_description": "Foley Artist hoạt hình tạo âm thanh đời sống cho character, prop, environment. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-hoat-hinh-am-thanh", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "810b0597-b804-4c02-bb8f-338e39a96f0b",
+    "slug": "nghe-phim-foley-artist",
+    "tieu_de_viet": "Foley Artist phim",
+    "tom_tat": "Foley Artist phim ghi lại âm thanh đời sống — bước chân, áo quần cọ, cửa đóng — bằng cách diễn thực trong studio synchronized với hình. Là nghệ nhân thầm lặng làm phim &quot;sống&quot; ngoài thoại + nhạc.",
+    "meta_title": "Foley Artist phim là gì? Lộ trình | CINS",
+    "meta_description": "Foley Artist phim tạo âm thanh đời sống synchronized với hình. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-phim-am-thanh", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "9cfa17bb-93f3-4298-8cb0-c2d9639393bd",
+    "slug": "nghe-vfx-fx-simulation-artist",
+    "tieu_de_viet": "FX / Simulation Artist VFX",
+    "tom_tat": "FX Artist trong VFX tạo hiệu ứng dynamic — lửa, nước, khói, vụ nổ, destruction, particle, cloth — bằng physics simulation. Là role technical-creative hybrid, đứng giữa nghệ thuật và toán học.",
+    "meta_title": "FX / Simulation Artist VFX là gì? | CINS",
+    "meta_description": "FX Artist VFX tạo lửa, nước, khói, destruction qua physics simulation. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-vfx-3d-fx", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "eeb3b9a0-d6d6-4c8f-bf86-e12a38303fc9",
+    "slug": "nghe-hoat-hinh-fx-artist",
+    "tieu_de_viet": "FX Artist hoạt hình",
+    "tom_tat": "FX Artist trong animation tạo hiệu ứng cho thế giới hoạt hình — magic spell, water splash, fire, smoke, dust, cloth — kết hợp giữa stylized art và technical simulation. Khác VFX live-action, animation FX có thẩm mỹ riêng.",
+    "meta_title": "FX Artist hoạt hình là gì? Lộ trình | CINS",
+    "meta_description": "FX Artist hoạt hình tạo magic, water, fire effect cho phim animation. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-hoat-hinh-technical-art", "nn-bao-chi-truyen-thong"]
+  }
+]

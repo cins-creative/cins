@@ -1,0 +1,47 @@
+[
+  {
+    "id": "69c3eee0-de7c-413a-ae1f-3549c138089d",
+    "slug": "nghe-kien-truc-landscape-architect",
+    "tieu_de_viet": "Landscape Architect (Kiến trúc sư cảnh quan)",
+    "tom_tat": "Landscape Architect thiết kế không gian ngoài trời — công viên, vườn, quảng trường, đường phố, khu đô thị — kết hợp thực vật, đất, nước, kiến trúc + ergonomic public space. Là ngành kết hợp kiến trúc, môi trường, sinh thái và nghệ thuật.",
+    "meta_title": "Landscape Architect là gì? Lộ trình | CINS",
+    "meta_description": "Landscape Architect thiết kế công viên, vườn, không gian ngoài trời. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-kien-truc-thiet-ke", "nn-kien-truc-xay-dung"]
+  },
+  {
+    "id": "96b6a3dc-3d9f-49d4-ab42-fa7272bcb873",
+    "slug": "nghe-hoat-hinh-layout-artist",
+    "tieu_de_viet": "Layout Artist (Họa sĩ dàn cảnh)",
+    "tom_tat": "Layout Artist define camera + staging cho scene trong animation. Họ là cầu nối giữa Storyboard Artist + Animator — translate storyboard sketch thành 3D space planning với camera angle, character position, prop placement.",
+    "meta_title": "Layout Artist là gì? Lộ trình | CINS",
+    "meta_description": "Layout Artist define camera, staging, scene 3D trong animation pipeline. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-hoat-hinh-tien-san-xuat", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "778c7983-45d6-4178-a732-32f7c94f6f3d",
+    "slug": "nghe-vfx-lead-compositor",
+    "tieu_de_viet": "Lead Compositor (Trưởng nhóm compositing)",
+    "tom_tat": "Lead Compositor lead compositing team trong VFX studio — chịu trách nhiệm về quality + consistency của final shot integration (live action + CGI + matte painting). Là role senior creative-technical hybrid.",
+    "meta_title": "Lead Compositor là gì? | CINS",
+    "meta_description": "Lead Compositor lead compositing team VFX. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-vfx-compositing", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "f45a4622-0bdb-41dc-959e-5d15d8bbcf10",
+    "slug": "nghe-comic-letterer",
+    "tieu_de_viet": "Letterer comic (Họa sĩ chữ thoại)",
+    "tom_tat": "Letterer thiết kế + đặt chữ trong comic — speech balloon, sound effect (SFX), caption, title. Là craft chuyên biệt — chữ thoại quyết định reading flow, pacing, mood của trang comic.",
+    "meta_title": "Letterer comic là gì? Lộ trình | CINS",
+    "meta_description": "Letterer thiết kế chữ thoại, SFX, caption trong comic. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-comic-hoan-thien", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "b1860ed9-e428-458a-946f-1f541d742077",
+    "slug": "nghe-hoat-hinh-lighting-artist",
+    "tieu_de_viet": "Lighting Artist (Họa sĩ ánh sáng)",
+    "tom_tat": "Lighting Artist thiết kế + setup ánh sáng cho 3D scene trong animation và VFX — mimic real-world light hoặc stylized cinematic light. Là role nghệ thuật-kỹ thuật quyết định mood, atmosphere, và visual quality của final image.",
+    "meta_title": "Lighting Artist là gì? Lộ trình | CINS",
+    "meta_description": "Lighting Artist thiết kế ánh sáng 3D animation VFX. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-hoat-hinh-san-xuat-3d", "nn-bao-chi-truyen-thong"]
+  }
+]

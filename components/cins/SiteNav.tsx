@@ -86,57 +86,8 @@ export function CinsAppSidebar() {
   );
 }
 
-export function CinsAppTopbar() {
-  return (
-    <nav className="topbar cins-app-topbar" id="app-topbar">
-      <div className="topbar-inner">
-        <div className="tb-left">
-          <button
-            type="button"
-            className="tb-burger"
-            id="app-tb-burger"
-            aria-label="Mở menu"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={1.8}
-              strokeLinecap="round"
-              aria-hidden
-            >
-              <path d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-          <Link href="#" className="tb-quiz">
-            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-              <path d="M12 2l1.8 5.4L19 9.2l-4.5 3.3L16 18l-4-3-4 3 1.5-5.5L5 9.2l5.2-1.8L12 2z" />
-            </svg>
-            <span>Quiz khám phá tính cách nghề</span>
-          </Link>
-        </div>
-        <div className="tb-right">
-          <Link href="#" className="tb-ask">
-            <svg viewBox="0 0 24 24" aria-hidden>
-              <path d="M21 12a8 8 0 01-11.6 7.1L4 21l1.9-5.4A8 8 0 1121 12z" />
-              <path d="M9 10h6M9 13h4" />
-            </svg>
-            <span>Tư vấn nghề</span>
-          </Link>
-          <span className="tb-divider" aria-hidden />
-          <div className="tb-auth">
-            <Link href="#" className="tb-login">
-              Đăng nhập
-            </Link>
-            <Link href="#" className="tb-signup">
-              Đăng ký <span aria-hidden="true">→</span>
-            </Link>
-          </div>
-        </div>
-      </div>
-    </nav>
-  );
-}
+/* `CinsAppTopbar` đã chuyển sang file riêng `CinsAppTopbar.tsx` (async server
+ * component) để check session + render nút "Đăng xuất" qua Server Action. */
 
 /** Khởi tạo tooltip sidebar + burger (render null). */
 export function SiteNavEffects() {

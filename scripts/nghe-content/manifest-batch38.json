@@ -1,0 +1,47 @@
+[
+  {
+    "id": "aaa29f84-12d4-4009-85aa-3411708056b6",
+    "slug": "nghe-kien-truc-retail-designer",
+    "tieu_de_viet": "Retail Designer (Nhà thiết kế không gian bán lẻ)",
+    "tom_tat": "Retail Designer thiết kế cửa hàng + boutique + flagship + concept store. Là intersection của architecture, interior, brand experience. Apple Store, Hermès flagship, Aesop shop minimalism — đều là tác phẩm Retail Designer.",
+    "meta_title": "Retail Designer là gì? Lộ trình nghề | CINS",
+    "meta_description": "Retail Designer thiết kế cửa hàng, flagship, boutique. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-kien-truc-thiet-ke", "nn-kien-truc-xay-dung"]
+  },
+  {
+    "id": "a8a3e5b4-2e8c-40b3-9c68-701ec42e0b2d",
+    "slug": "nghe-3d-rigging-artist",
+    "tieu_de_viet": "Rigging Artist 3D (Họa sĩ rigging)",
+    "tom_tat": "Rigging Artist 3D build skeleton + control system cho 3D character + object — giúp animator pose + animate. Là technical bridge giữa modeling + animation. Critical role cho mọi character-based project.",
+    "meta_title": "Rigging Artist 3D là gì? | CINS",
+    "meta_description": "Rigging Artist 3D build skeleton character animation. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-3d-modeling-sculpting", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "15e079e4-07df-4ca5-93e9-f8532c1ea218",
+    "slug": "nghe-hoat-hinh-rigging-artist",
+    "tieu_de_viet": "Rigging Artist hoạt hình (Họa sĩ rigging)",
+    "tom_tat": "Rigging Artist hoạt hình build rig (skeleton + control) cho character animation — feature, TV series, short. Rig quality define animator efficiency. Foundation technical role của 3D animation production.",
+    "meta_title": "Rigging Artist hoạt hình là gì? | CINS",
+    "meta_description": "Rigging Artist hoạt hình build rig character animation. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-hoat-hinh-san-xuat-3d", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "b76d97d7-edd2-489d-bf64-143cd6ceb20b",
+    "slug": "nghe-hoat-hinh-rigging-td",
+    "tieu_de_viet": "Rigging TD hoạt hình (Technical Director rigging)",
+    "tom_tat": "Rigging TD hoạt hình develop rigging tool, system, auto-rig framework cho studio. R&D + custom solver cho complex character. Technical + creative role bridging Rigging Artist + Pipeline.",
+    "meta_title": "Rigging TD hoạt hình là gì? | CINS",
+    "meta_description": "Rigging TD hoạt hình develop rigging tool framework. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-hoat-hinh-technical-art", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "cedcb15f-a4c4-4a28-be20-82f660bd5b4b",
+    "slug": "nghe-vfx-roto-artist",
+    "tieu_de_viet": "Roto Artist VFX (Họa sĩ rotoscoping)",
+    "tom_tat": "Roto Artist VFX vẽ matte (outline) cho object trong footage frame-by-frame, để isolate cho VFX integration. Là entry-level VFX role phổ biến, foundation cho career VFX. Tedious but critical.",
+    "meta_title": "Roto Artist VFX là gì? | CINS",
+    "meta_description": "Roto Artist VFX vẽ matte outline isolate object. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-vfx-compositing", "nn-bao-chi-truyen-thong"]
+  }
+]

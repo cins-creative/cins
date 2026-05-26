@@ -1,0 +1,47 @@
+[
+  {
+    "id": "52a7350b-6218-40c7-a5cb-275fb6cc88c8",
+    "slug": "nghe-uiux-icon-designer",
+    "tieu_de_viet": "Icon Designer (Nhà thiết kế icon)",
+    "tom_tat": "Icon Designer thiết kế hệ thống biểu tượng (icon set) cho app, OS, brand — từ 16px tiny system icon đến large illustrative app icon. Là niche craft đòi hỏi precision pixel + visual storytelling cô đọng.",
+    "meta_title": "Icon Designer là gì? Lộ trình | CINS",
+    "meta_description": "Icon Designer thiết kế biểu tượng app, OS, brand. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-uiux-ui-design", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "304ee923-0ae9-4bf4-8884-90cef2af6a78",
+    "slug": "nghe-minh-hoa-illustration-director",
+    "tieu_de_viet": "Illustration Director (Giám đốc minh họa)",
+    "tom_tat": "Illustration Director lead illustration department tại publishing, agency, brand — define visual style, commission illustrator, oversee art direction. Cầu nối giữa client + nghệ sĩ.",
+    "meta_title": "Illustration Director là gì? | CINS",
+    "meta_description": "Illustration Director lead illustration team, commission artist, art direction. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-minh-hoa-quan-ly-san-xuat", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "92dd4f46-1f58-4c77-a430-5b4b00cb872e",
+    "slug": "nghe-minh-hoa-illustrator",
+    "tieu_de_viet": "Illustrator (Họa sĩ minh họa)",
+    "tom_tat": "Illustrator là nghệ sĩ tạo hình ảnh minh họa cho mọi medium — sách, magazine, advertising, branding, app, packaging. Có nhiều sub-specialty: editorial, children&apos;s book, advertising, fashion, technical, concept.",
+    "meta_title": "Illustrator là gì? Lộ trình nghề | CINS",
+    "meta_description": "Illustrator vẽ minh họa cho sách, magazine, brand, packaging. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-minh-hoa-thuong-mai", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "ac7fcb21-6dba-4959-834d-644011f1ec5a",
+    "slug": "nghe-hoat-hinh-in-between-animator",
+    "tieu_de_viet": "In-between Animator (Họa sĩ trung gian)",
+    "tom_tat": "In-between Animator (Inbetweener) vẽ frame nằm giữa keyframe (do Key Animator vẽ) trong 2D animation. Là role entry-level critical — produce hàng nghìn frame để chuyển động smooth, học craft từ inside out.",
+    "meta_title": "In-between Animator là gì? Lộ trình | CINS",
+    "meta_description": "In-between Animator vẽ frame trung gian smooth motion 2D. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-hoat-hinh-san-xuat-2d", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "9e067d90-ddf6-489e-b508-08646daf1dda",
+    "slug": "nghe-minh-hoa-infographic-designer",
+    "tieu_de_viet": "Infographic Designer (Nhà thiết kế infographic)",
+    "tom_tat": "Infographic Designer biến data + thông tin phức tạp thành visual rõ ràng + dễ hiểu — chart, diagram, map, illustration. Là nghề kết hợp data literacy, illustration, typography, storytelling.",
+    "meta_title": "Infographic Designer là gì? | CINS",
+    "meta_description": "Infographic Designer biến data thành visual rõ ràng. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-minh-hoa-ky-thuat-so", "nn-my-thuat-thiet-ke"]
+  }
+]

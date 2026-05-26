@@ -1,0 +1,47 @@
+[
+  {
+    "id": "61d410cc-6ace-485d-868b-efe032a04dfc",
+    "slug": "nghe-kien-truc-architectural-designer",
+    "tieu_de_viet": "Nhà thiết kế kiến trúc (Architectural Designer)",
+    "tom_tat": "Architectural Designer làm việc thiết kế kiến trúc nhưng chưa có chứng chỉ hành nghề chính thức — thường là người mới ra trường hoặc tập trung concept design, hỗ trợ Architect senior.",
+    "meta_title": "Architectural Designer là gì? Công việc, kỹ năng và lộ trình | CINS",
+    "meta_description": "Architectural Designer hỗ trợ thiết kế kiến trúc từ concept đến bản vẽ kỹ thuật. Tìm hiểu công việc, kỹ năng và lộ trình vào nghề.",
+    "nhom_slugs": ["nghe-kien-truc-thiet-ke", "nn-kien-truc-xay-dung"]
+  },
+  {
+    "id": "3c27e12d-19e5-4687-8f03-22605f1cf94a",
+    "slug": "nghe-kien-truc-architectural-draftsman",
+    "tieu_de_viet": "Kỹ thuật viên vẽ kỹ thuật kiến trúc (Architectural Draftsman)",
+    "tom_tat": "Architectural Draftsman vẽ bản vẽ kỹ thuật chi tiết từ thiết kế của kiến trúc sư — đảm bảo bản vẽ chính xác, đủ chi tiết, tuân thủ chuẩn để nhà thầu thi công.",
+    "meta_title": "Architectural Draftsman là gì? Công việc, kỹ năng và lộ trình | CINS",
+    "meta_description": "Architectural Draftsman vẽ bản vẽ kỹ thuật xây dựng bằng AutoCAD, Revit. Tìm hiểu công việc, kỹ năng và lộ trình vào nghề.",
+    "nhom_slugs": ["nghe-kien-truc-ho-so-kt", "nn-kien-truc-xay-dung"]
+  },
+  {
+    "id": "2942acd2-23a6-453e-a147-72909695add0",
+    "slug": "nghe-kien-truc-architectural-visualizer",
+    "tieu_de_viet": "Họa sĩ visualization kiến trúc (Architectural Visualizer)",
+    "tom_tat": "Architectural Visualizer tạo render và animation chân thực cho công trình kiến trúc — phục vụ pitch khách hàng, marketing dự án, dự thi và xin giấy phép xây dựng.",
+    "meta_title": "Architectural Visualizer là gì? Công việc, kỹ năng và lộ trình | CINS",
+    "meta_description": "Architectural Visualizer tạo render kiến trúc chân thực cho marketing và pitching. Tìm hiểu công việc, kỹ năng và lộ trình vào nghề.",
+    "nhom_slugs": ["nghe-kien-truc-visualization", "nn-kien-truc-xay-dung"]
+  },
+  {
+    "id": "72d5efa4-8c60-4629-afc5-ca15964ec11c",
+    "slug": "nghe-3d-architectural-visualizer",
+    "tieu_de_viet": "Architectural Visualizer (3D)",
+    "tom_tat": "Architectural Visualizer chuyên ngành 3D dùng pipeline CGI hiện đại — Unreal Engine, V-Ray, real-time render — để tạo visualization kiến trúc đỉnh cao cho dự án bất động sản cao cấp toàn cầu.",
+    "meta_title": "Architectural Visualizer (3D) là gì? Công việc, kỹ năng và lộ trình | CINS",
+    "meta_description": "Architectural Visualizer 3D dùng Unreal Engine, V-Ray cho dự án bất động sản cao cấp. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-3d-visualization", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "2f4d7707-9a47-4715-820d-503c73022d53",
+    "slug": "nghe-phim-art-director",
+    "tieu_de_viet": "Giám đốc mỹ thuật phim (Art Director)",
+    "tom_tat": "Art Director phim chịu trách nhiệm về toàn bộ thẩm mỹ thị giác của bộ phim — từ bối cảnh, đạo cụ, màu sắc, mood — đảm bảo mỗi khung hình phù hợp với tầm nhìn đạo diễn.",
+    "meta_title": "Giám đốc mỹ thuật phim là gì? Công việc, kỹ năng và lộ trình | CINS",
+    "meta_description": "Art Director phim quản lý bối cảnh, đạo cụ, màu sắc, mood thị giác cho phim. Tìm hiểu công việc, kỹ năng và lộ trình vào nghề.",
+    "nhom_slugs": ["nghe-phim-tien-san-xuat", "nn-bao-chi-truyen-thong"]
+  }
+]

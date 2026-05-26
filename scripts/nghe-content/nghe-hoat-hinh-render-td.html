@@ -1,0 +1,246 @@
+<section class="arc-intro">
+  <p>Tại Pixar, "Toy Story 4" có shot render time average 75 hour per frame, single frame Buzz Lightyear close-up có thể 300+ hour. Tại Disney "Encanto" magical realism scene render-intensive với physical hair + fabric simulation. Người optimize + maintain render engine = Render TD.</p>
+  <p>Render TD (Technical Director) hoạt hình là <strong>chuyên gia build + maintain rendering pipeline + render engine setup cho studio animation</strong>. Optimize quality + speed, manage render farm, troubleshoot complex shader. <em>Technical role critical cho render-heavy animation</em>. Bridge giữa <em>R&amp;D + production</em>.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>Render TD hoạt hình là ai?</h2>
+  <p>Render TD là <strong>chuyên gia technical-focused on render engine + pipeline trong animation studio</strong>. Phân loại theo focus: (1) <strong>Engine specialist</strong> — RenderMan (Pixar — first developed), Arnold; (2) <strong>Pipeline + tool</strong> — develop render submission, queue manage; (3) <strong>Shader writer</strong> — custom OSL / RSL shader; (4) <strong>Light transport</strong> — bidirectional path tracing, denoise integration; (5) <strong>Render management</strong> — farm efficiency, cost optimization. Phân loại theo studio: <strong>Major studio</strong> (Pixar, Disney, DreamWorks) — large R&amp;D team với Render TD specialty; <strong>Mid studio</strong> (Sony, Illumination) — fewer multi-hat Render TD; <strong>VFX-leaning</strong> — different from animation Render TD.</p>
+  <p>Khác với <strong>Render Artist</strong> (shot-by-shot render execute) — Render TD tool + pipeline broad. Khác với <strong>Shading TD</strong> (shader develop creative) — Render TD engine-side focus. Khác với <strong>Pipeline TD</strong> (broader pipeline) — Render TD render sub-specialty. Khác với <strong>Lighting Supervisor</strong> (creative) — Render TD technical. Hợp tác chặt với: <strong>Lighting Supervisor + Artist</strong>, <strong>Shading TD + Artist</strong>, <strong>Render Artist</strong>, <strong>Pipeline TD</strong>, <strong>R&amp;D team</strong>, <strong>Farm wrangler</strong>.</p>
+  <ul class="arc-list">
+    <li>Render engine <strong>config + maintain</strong></li>
+    <li>Shader develop <strong>custom</strong></li>
+    <li>Pipeline + farm <strong>tool</strong></li>
+    <li>R&amp;D + new tech <strong>adopt</strong></li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"animation render td technical director renderman pixar studio engineer professional"</span>
+    </div>
+    <p class="arc-image-caption">Render TD — engine specialist</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>Render TD work tại <strong>animation studio with major rendering infrastructure</strong>. Báo cáo <strong>Head of Pipeline / Head of R&amp;D / CG Supervisor</strong>. Embed trong production team or separate R&amp;D team. Multi-show support (cross-project tool benefit all). Long-term project (engine integration takes months/years). Daily: ticket resolve (artist support), tool develop, R&amp;D experiment.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Công việc của một Render TD hoạt hình</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Render engine config + integrate</h3>
+    <p>Core. <strong>Render engine integration</strong>: RenderMan, Arnold, Cycles into studio pipeline (Maya, Houdini, Katana, Blender). <strong>Version manage</strong>: engine version + plugin version compatible. <strong>Custom integration</strong>: studio-specific need (proprietary asset format, custom file standard). <strong>Per-show config</strong>: each animation feature có config tailored cho specific look + need.</p>
+    <ul class="arc-list">
+      <li><strong>Engine integration</strong></li>
+      <li><strong>Version manage</strong></li>
+      <li><strong>Per-show config</strong></li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"animation render engine integration renderman katana maya studio pipeline professional"</span>
+      </div>
+      <p class="arc-image-caption">Engine integrate</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Custom shader develop</h3>
+    <p><strong>OSL (Open Shading Language)</strong> custom shader: per-show specific look (Spider-Verse painterly, Pixar Cars metallic). <strong>RSL (RenderMan Shading Language)</strong> for legacy Pixar pipeline. <strong>Shader optimization</strong>: balance quality + render time. <strong>Shader library</strong>: build reusable shader for Lighting Artist. <strong>Custom AOV</strong>: define new output for compositing flexibility.</p>
+    <ul class="arc-list">
+      <li><strong>OSL shader</strong></li>
+      <li><strong>Shader library</strong></li>
+      <li><strong>Custom AOV</strong></li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"animation shader development osl renderman code studio td professional"</span>
+        </div>
+        <p class="arc-image-caption">Shader develop</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"animation custom aov pass render compositing pipeline td professional"</span>
+        </div>
+        <p class="arc-image-caption">Custom AOV</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Pipeline tool + farm manage</h3>
+    <p><strong>Render submit tool</strong>: per-studio custom UI on top of Deadline / Tractor / OpenCue. <strong>Farm optimization</strong>: priority queue, resource allocation, license manage. <strong>Cost tracking</strong>: render cost per shot, per show. <strong>Cloud integration</strong>: AWS, Azure, GCP burst capacity. <strong>Render monitor + dashboard</strong>: production visibility. <strong>Render wrangler</strong> support: daily farm operation.</p>
+    <ul class="arc-list">
+      <li><strong>Submit tool</strong></li>
+      <li><strong>Farm optimize</strong></li>
+      <li><strong>Cloud burst</strong></li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"animation render farm dashboard deadline cloud aws studio td professional"</span>
+      </div>
+      <p class="arc-image-caption">Farm + tool</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">4. R&amp;D + new tech + artist support</h3>
+    <p><strong>R&amp;D</strong>: experiment new technique (path guiding, ReSTIR, AI denoise, Neural Radiance Field). Publish paper if studio big enough (Pixar publishes regular SIGGRAPH paper). <strong>New engine evaluation</strong>: per show consideration. <strong>Conference</strong>: SIGGRAPH attendance + technique adopt. <strong>Artist support</strong>: ticket triage, troubleshoot weird artifact (denoise blur, fireflies, NaN value).</p>
+    <ul class="arc-list">
+      <li><strong>R&amp;D experiment</strong></li>
+      <li><strong>SIGGRAPH adopt</strong></li>
+      <li><strong>Artist support</strong></li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"animation rnd research siggraph paper technical director studio professional"</span>
+      </div>
+      <p class="arc-image-caption">R&amp;D + support</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>Render TD hoạt hình cần giỏi gì?</h2>
+
+  <div class="arc-skill-grid">
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">💡</span>
+      <span>Render engine internal deep</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">💻</span>
+      <span>Programming expert</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">🔬</span>
+      <span>Light transport math</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">🛠️</span>
+      <span>Pipeline + DevOps</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">🌈</span>
+      <span>Color science + ACES</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">📚</span>
+      <span>SIGGRAPH research read</span>
+    </div>
+  </div>
+
+  <div class="arc-accordion">
+
+    <details class="arc-card" open>
+      <summary>Render engine internal deep</summary>
+      <div class="arc-card-body">
+        <p>Master 1-2 engine very deep: <strong>RenderMan</strong> (Pixar / Disney), <strong>Arnold</strong> (industry standard), <strong>Cycles</strong> (Blender). Hiểu source code (open source case) or developer documentation deep.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Programming expert</summary>
+      <div class="arc-card-body">
+        <p><strong>Python</strong> pipeline tool. <strong>C++</strong> engine plugin + performance critical. <strong>OSL (Open Shading Language)</strong> shader. <strong>GLSL / HLSL</strong> real-time. <strong>CUDA / OpenCL</strong> for GPU compute. Multi-language fluency.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Light transport math</summary>
+      <div class="arc-card-body">
+        <p>Monte Carlo. Path tracing variant (bidirectional, MIS, ReSTIR). Importance sampling. Russian roulette. BRDF + BSDF model. Subsurface scattering. Volumetric. Read: <strong>"Physically Based Rendering" (Pharr, Jakob, Humphreys — PBRT book)</strong>.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Pipeline + DevOps</summary>
+      <div class="arc-card-body">
+        <p>Git. CI/CD. Docker. Cloud (AWS, GCP, Azure). Farm management (Deadline, Tractor, OpenCue). Database. REST API. Linux + Windows.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Color science + ACES</summary>
+      <div class="arc-card-body">
+        <p>ACES standard. OCIO config. CIE color space. Wide gamut (DCI-P3, Rec.2020). HDR pipeline. Tone-mapping. Read: ACES documentation, <strong>"Color and Light" (Tilton)</strong>.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>SIGGRAPH research read</summary>
+      <div class="arc-card-body">
+        <p>SIGGRAPH paper annually. Stay current với new technique. Conference attendance ideal. Cite paper trong work. Sometimes contribute paper (Pixar, Disney, Weta publish regular).</p>
+      </div>
+    </details>
+
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Làm cách nào để trở thành Render TD hoạt hình?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Học Computer Graphics / Math / Physics / 3D 3–5 năm</strong>
+        <p>Background: <strong>Computer Graphics, Computer Science, Math, Physics + 3D specialty</strong>. VN: <strong>ĐH Bách khoa</strong>, <strong>FPT Arena</strong>, <strong>RMIT</strong>. Quốc tế: <strong>Stanford CS Graphics</strong>, <strong>Cornell Graphics</strong>, <strong>UCSD Visual Computing</strong>, <strong>MIT CSAIL</strong>, <strong>Gnomon School</strong>. Master degree often expected for top studio.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Junior Render TD / Render Artist 2–4 năm</strong>
+        <p>Entry — often Render Artist first, then move to TD when programming + technical depth develop. Studio: <strong>Pixar, Disney Animation, DreamWorks, Sony Pictures Imageworks, Illumination, ILM, Weta</strong>. VN: <strong>Sparx*, Sun Wolf, Glass Egg</strong>.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Render TD 4–8 năm</strong>
+        <p>Full TD role. Shader develop, tool build, integration. Specialty develop.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Senior Render TD / Lead TD 8–14 năm</strong>
+        <p>Lead. Major tool architect. R&amp;D contribute.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Render Supervisor / Pipeline Architect 14+ năm</strong>
+        <p>Senior leadership. Cross-show influence.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Sự nghiệp Render TD hoạt hình</strong>
+        <p>Long-term path: (1) <strong>Render / CG Supervisor at major studio</strong>; (2) <strong>R&amp;D Engineer</strong> at Pixar/Disney/DreamWorks/Weta; (3) <strong>Engine company</strong> — Autodesk Arnold team, Chaos V-Ray, Pixar RenderMan; (4) <strong>Real-time engine</strong> — Epic Games Unreal Engine, Unity; (5) <strong>Founder of render tech startup</strong> — sometimes successful (Render Token, OctaneRender Otoy); (6) <strong>Academic + research</strong>. Lương: VN Render TD mid 30-65M/tháng; senior 65-130M; Supervisor 130-280M+. International: $90K-$140K mid; $140K-$220K senior; $220K-$400K+ Supervisor + Principal. Highly specialized + scarce talent = high compensation. Long career — Render TD with 20+ năm experience are industry legend.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

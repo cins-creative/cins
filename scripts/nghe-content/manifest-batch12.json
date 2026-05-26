@@ -1,0 +1,47 @@
+[
+  {
+    "id": "6011748d-14ff-457a-8ead-ebfc9f81f653",
+    "slug": "nghe-minh-hoa-concept-artist",
+    "tieu_de_viet": "Concept Artist minh họa",
+    "tom_tat": "Concept Artist minh họa thiết kế visual concept cho game, advertising, book cover — character, environment, prop — đặt nền tảng visual trước khi production team thực thi final illustration.",
+    "meta_title": "Concept Artist minh họa là gì? Lộ trình vào nghề | CINS",
+    "meta_description": "Concept Artist minh họa thiết kế visual cho game, advertising, book. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-minh-hoa-concept-dev", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "7ef218be-aa25-4a59-8f8b-f38987a60cf2",
+    "slug": "nghe-kien-truc-construction-administrator",
+    "tieu_de_viet": "Construction Administrator (Quản lý hồ sơ thi công)",
+    "tom_tat": "Construction Administrator giám sát quá trình thi công của dự án kiến trúc — đảm bảo công trình được xây đúng bản vẽ, đúng spec, đúng quality — là cầu nối giữa Kiến trúc sư thiết kế và nhà thầu thi công.",
+    "meta_title": "Construction Administrator là gì? Lộ trình | CINS",
+    "meta_description": "Construction Administrator giám sát thi công, đảm bảo công trình đúng thiết kế. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-kien-truc-giam-sat", "nn-kien-truc-xay-dung"]
+  },
+  {
+    "id": "fa693435-875d-4bde-81c3-751a4d78fc56",
+    "slug": "nghe-uiux-content-strategist",
+    "tieu_de_viet": "Content Strategist UI/UX",
+    "tom_tat": "Content Strategist UI/UX thiết kế nội dung trong sản phẩm số — microcopy, info architecture, voice &amp; tone — đảm bảo user hiểu được sản phẩm và communication consistent với brand.",
+    "meta_title": "Content Strategist UI/UX là gì? Lộ trình | CINS",
+    "meta_description": "Content Strategist UI/UX thiết kế microcopy, voice tone cho sản phẩm số. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-uiux-content", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "b34377d2-83ed-490e-b338-1da9ee53d20c",
+    "slug": "nghe-phim-costume-designer",
+    "tieu_de_viet": "Costume Designer phim",
+    "tom_tat": "Costume Designer phim thiết kế và source trang phục cho diễn viên — match nhân vật, giai đoạn lịch sử, mood phim — là phần quan trọng của visual storytelling, biến diễn viên thành nhân vật.",
+    "meta_title": "Costume Designer phim là gì? Lộ trình vào nghề | CINS",
+    "meta_description": "Costume Designer phim thiết kế trang phục cho diễn viên trong phim, TVC, MV. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-phim-tien-san-xuat", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "99ed2088-fcfb-4894-b9c1-a321cccfc015",
+    "slug": "nghe-thoitrang-costume-designer",
+    "tieu_de_viet": "Costume Designer thời trang sân khấu",
+    "tom_tat": "Costume Designer trong thời trang sân khấu thiết kế trang phục cho show diễn, fashion show, theater — kết hợp tính nghệ thuật cao với yêu cầu thực dụng (di chuyển, biểu diễn, quick change).",
+    "meta_title": "Costume Designer thời trang sân khấu là gì? Lộ trình | CINS",
+    "meta_description": "Costume Designer thời trang thiết kế trang phục cho show, sân khấu, theater. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-thoitrang-nghien-cuu", "nn-kien-truc-xay-dung"]
+  }
+]

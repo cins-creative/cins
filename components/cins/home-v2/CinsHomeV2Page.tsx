@@ -23,7 +23,7 @@ export function CinsHomeV2Page({ markup }: Props) {
 
     const onSidebarNavClick = (e: MouseEvent) => {
       const link = (e.target as Element).closest<HTMLAnchorElement>(
-        "a.sb-item[href]",
+        "a.sb-item[href], a.tb-login[href], a.tb-signup[href]",
       );
       if (!link || !root.contains(link)) return;
       const href = link.getAttribute("href") ?? "";

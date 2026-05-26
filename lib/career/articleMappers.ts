@@ -11,7 +11,8 @@ export function mapNgheArticleToHubItem(row: NgheArticleHubRow): NgheNghiepHubIt
     title_vietnam: row.tieu_de_viet?.trim() || row.tieu_de,
     short_description:
       row.tom_tat?.trim() || row.meta_description?.trim() || null,
-    thumbnail_mascot: getCoverUrl(row.cover_id),
+    thumbnail_mascot:
+      getCoverUrl(row.thumbnail) ?? getCoverUrl(row.cover_id),
     bo_phan: null,
     nn_bo_phan_id: null,
     nn_bo_phan: null,

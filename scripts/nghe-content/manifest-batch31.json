@@ -1,0 +1,47 @@
+[
+  {
+    "id": "c3b84997-97e9-4178-84e5-0786c0b51ce9",
+    "slug": "nghe-dohoa-packaging-designer",
+    "tieu_de_viet": "Packaging Designer (Nhà thiết kế bao bì)",
+    "tom_tat": "Packaging Designer thiết kế bao bì sản phẩm — từ bottle, box, label đến shipper, kết hợp aesthetic, brand, function (protect product), regulatory (compliance). Là craft chuyên biệt của graphic design industry với demand cao + thị trường rộng.",
+    "meta_title": "Packaging Designer là gì? | CINS",
+    "meta_description": "Packaging Designer thiết kế bao bì sản phẩm box bottle label. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-dohoa-branding", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "2a0e6ef3-51a9-4f4e-abd2-9d5a49c711fd",
+    "slug": "nghe-vfx-paint-cleanup-artist",
+    "tieu_de_viet": "Paint / Cleanup Artist (Họa sĩ paint / cleanup)",
+    "tom_tat": "Paint / Cleanup Artist trong VFX clean unwanted element trong footage — wire removal, rig removal, blemish fix, set imperfection. Foundation role của post pipeline — necessary cleanup trước compositing + further VFX.",
+    "meta_title": "Paint / Cleanup Artist VFX là gì? | CINS",
+    "meta_description": "Paint Artist VFX clean wire, rig, blemish footage. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-vfx-compositing", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "583bbd68-be61-4823-9ab1-8c7d3b206c8f",
+    "slug": "nghe-kien-truc-parametric-designer",
+    "tieu_de_viet": "Parametric Designer (Nhà thiết kế tham số)",
+    "tom_tat": "Parametric Designer dùng coding + algorithm để generate kiến trúc form — Zaha Hadid, Frank Gehry, Snøhetta nổi tiếng. Là cutting edge của architecture, intersect design + computation + sometime AI / generative.",
+    "meta_title": "Parametric Designer là gì? | CINS",
+    "meta_description": "Parametric Designer dùng coding + algorithm tạo kiến trúc form. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-kien-truc-thiet-ke", "nn-kien-truc-xay-dung"]
+  },
+  {
+    "id": "d8915121-50de-427d-99e7-64e1f870f0a5",
+    "slug": "nghe-thoitrang-pattern-maker",
+    "tieu_de_viet": "Pattern Maker (Người làm rập)",
+    "tom_tat": "Pattern Maker chuyển sketch fashion designer thành rập 2D — bản vẽ kỹ thuật miếng vải mà tailor + may xưởng dùng cắt cut + sew. Là kỹ thuật-craft foundational của fashion industry, cầu nối design vision + manufacturing reality.",
+    "meta_title": "Pattern Maker thời trang là gì? | CINS",
+    "meta_description": "Pattern Maker chuyển sketch thành rập 2D may. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-thoitrang-ky-thuat", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "d2ee3f35-a514-4dad-87ef-6cf3dba80150",
+    "slug": "nghe-comic-penciler",
+    "tieu_de_viet": "Penciler comic (Họa sĩ phác thảo)",
+    "tom_tat": "Penciler là họa sĩ vẽ pencil sketch (bản phác thảo bằng bút chì) đầu tiên — layout, character, anatomy, scene composition cho comic. Là foundation của comic visual — Inker, Colorist sẽ build trên pencil.",
+    "meta_title": "Penciler comic là gì? Lộ trình | CINS",
+    "meta_description": "Penciler vẽ pencil sketch comic — layout, character, scene. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-comic-ve-san-xuat", "nn-my-thuat-thiet-ke"]
+  }
+]

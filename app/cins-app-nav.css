@@ -377,6 +377,51 @@
   gap: 6px;
 }
 
+/* Form wrap quanh nút Đăng xuất — không chiếm thêm khoảng. */
+.cins-app-topbar .tb-auth form {
+  display: inline-flex;
+  margin: 0;
+}
+
+.cins-app-topbar .tb-logout {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-body);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  padding: 9px 16px;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all var(--app-nav-dur) var(--app-nav-ease);
+}
+
+.cins-app-topbar .tb-logout::before {
+  content: "↩";
+  font-size: 13px;
+  line-height: 1;
+  color: var(--ink-muted);
+  transition: color var(--app-nav-dur) var(--app-nav-ease);
+}
+
+.cins-app-topbar .tb-logout:hover {
+  color: var(--cins-blue);
+  border-color: var(--cins-blue);
+  background: var(--cins-blue-soft);
+}
+
+.cins-app-topbar .tb-logout:hover::before {
+  color: var(--cins-blue);
+}
+
+.cins-app-topbar .tb-logout:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
 .cins-app-topbar .tb-login {
   font-size: 13px;
   font-weight: 600;

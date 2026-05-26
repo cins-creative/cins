@@ -1,0 +1,47 @@
+[
+  {
+    "id": "9575ff25-eff4-416c-a7af-ba86985ef2f8",
+    "slug": "nghe-hoat-hinh-color-designer",
+    "tieu_de_viet": "Color Designer phim hoạt hình",
+    "tom_tat": "Color Designer trong phim hoạt hình định nghĩa color palette cho character, environment, mood — tạo color script cho toàn bộ phim, là kim chỉ nam cho Background Painter và Colorist thực thi.",
+    "meta_title": "Color Designer hoạt hình là gì? Lộ trình | CINS",
+    "meta_description": "Color Designer định nghĩa color palette, color script cho phim hoạt hình. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-hoat-hinh-tien-san-xuat", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "2148ad3a-4ed6-47e4-9ff8-cce7660f35f2",
+    "slug": "nghe-vfx-colorist",
+    "tieu_de_viet": "Colorist VFX",
+    "tom_tat": "Colorist trong VFX làm color grading cho shot có CG element — match CG với live plate, balance lighting, color continuity giữa shot trước/sau compositing để tích hợp seamless.",
+    "meta_title": "Colorist VFX là gì? Công việc, kỹ năng và lộ trình | CINS",
+    "meta_description": "Colorist VFX làm color grading cho shot CG, match plate. Tìm hiểu công việc, kỹ năng và lộ trình vào nghề.",
+    "nhom_slugs": ["nghe-vfx-compositing", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "ed2ada16-7d9c-40bb-a9b5-843ca9e85e0e",
+    "slug": "nghe-phim-colorist",
+    "tieu_de_viet": "Colorist phim",
+    "tom_tat": "Colorist phim làm color grading cho phim feature, TVC, MV — set mood màu sắc, đảm bảo continuity giữa shot, transform raw footage thành look cinematic final.",
+    "meta_title": "Colorist phim là gì? Công việc, kỹ năng và lộ trình | CINS",
+    "meta_description": "Colorist phim làm color grading cinematic cho feature, TVC, MV. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-phim-hau-ky", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "f5a7a09e-48c5-4ab1-a4e1-e072eaac5c78",
+    "slug": "nghe-hoat-hinh-colorist",
+    "tieu_de_viet": "Colorist phim hoạt hình 2D",
+    "tom_tat": "Colorist trong phim hoạt hình 2D fill color cho line art của Clean-up Artist — match palette từ Color Designer, đảm bảo character consistent qua mọi shot trong phim.",
+    "meta_title": "Colorist hoạt hình là gì? Công việc, kỹ năng và lộ trình | CINS",
+    "meta_description": "Colorist hoạt hình 2D fill color cho line art animation. Tìm hiểu công việc, kỹ năng và lộ trình vào nghề.",
+    "nhom_slugs": ["nghe-hoat-hinh-san-xuat-2d", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "32e1e446-704b-4355-8a7b-95b105d06174",
+    "slug": "nghe-comic-colorist",
+    "tieu_de_viet": "Colorist truyện tranh",
+    "tom_tat": "Colorist trong truyện tranh tô màu cho line art của Penciler/Inker — đặt mood, lighting, atmosphere cho mỗi panel, biến comic line art thành tác phẩm full color sống động.",
+    "meta_title": "Colorist truyện tranh là gì? Công việc, kỹ năng và lộ trình | CINS",
+    "meta_description": "Colorist comic tô màu cho manga, webtoon, comic. Tìm hiểu công việc, kỹ năng và lộ trình vào nghề.",
+    "nhom_slugs": ["nghe-comic-hoan-thien", "nn-my-thuat-thiet-ke"]
+  }
+]

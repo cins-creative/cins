@@ -257,6 +257,18 @@ export function AdminArticleEditPanel({
         <div className="form-section">Thông tin cơ bản</div>
 
         <div className="form-group">
+          <label className="form-label">UUID</label>
+          <input
+            className="form-input"
+            type="text"
+            value={articleId}
+            readOnly
+            onFocus={(e) => e.currentTarget.select()}
+            style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}
+          />
+        </div>
+
+        <div className="form-group">
           <label className="form-label">Tiêu đề chính *</label>
           <input
             className="form-input"

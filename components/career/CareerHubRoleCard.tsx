@@ -17,6 +17,7 @@ export function CareerHubRoleCard({
   deptTheme,
   showLinhVuc = false,
 }: Props) {
+  const hasImg = Boolean(career.thumbnail_mascot?.trim());
   return (
     <li>
       <CareerHubCardLink
@@ -25,7 +26,11 @@ export function CareerHubRoleCard({
         className="hn-role-card"
         data-dept={deptTheme}
       >
-        <div className="hn-role-thumb">
+        <div
+          className={
+            hasImg ? "hn-role-thumb hn-role-thumb--has-img" : "hn-role-thumb"
+          }
+        >
           <CareerHubCardThumb
             careerId={career.id}
             thumbnailUrl={career.thumbnail_mascot}

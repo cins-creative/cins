@@ -1,0 +1,47 @@
+[
+  {
+    "id": "5c249c2c-bfb8-4e14-9d15-1642b6df2245",
+    "slug": "nghe-phim-sound-mixer",
+    "tieu_de_viet": "Sound Mixer phim (Kỹ sư âm thanh hiện trường)",
+    "tom_tat": "Sound Mixer (Production Sound Mixer) ghi âm dialogue + ambient on set during shoot. Là head of sound crew on set. Critical role — bad production sound = expensive ADR. Boom + lavalier mic master.",
+    "meta_title": "Sound Mixer phim là gì? Lộ trình | CINS",
+    "meta_description": "Sound Mixer ghi âm dialogue ambient on set boom lavalier. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-phim-am-thanh", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "4fc920b4-e483-4422-bb56-92b2c4e18386",
+    "slug": "nghe-kien-truc-space-planner",
+    "tieu_de_viet": "Space Planner (Nhà quy hoạch không gian)",
+    "tom_tat": "Space Planner thiết kế layout không gian — office, retail, residential — focus on functional flow + efficient use. Bridge giữa Architect (structure) + Interior Designer (finishing). Critical cho corporate office + workplace strategy.",
+    "meta_title": "Space Planner là gì? Lộ trình | CINS",
+    "meta_description": "Space Planner thiết kế layout office retail workplace. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-kien-truc-noi-that", "nn-kien-truc-xay-dung"]
+  },
+  {
+    "id": "cc974ed3-c5bc-441e-a93d-3db54258ca34",
+    "slug": "nghe-comic-story-creator",
+    "tieu_de_viet": "Story Creator comic (Tác giả cốt truyện)",
+    "tom_tat": "Story Creator comic (Writer / Author) viết câu chuyện comic — plot, character, dialogue, story arc. Một số viết solo + draw, số khác chỉ viết + work với artist. Foundation của mọi comic.",
+    "meta_title": "Story Creator comic là gì? | CINS",
+    "meta_description": "Story Creator comic tác giả cốt truyện plot character. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-comic-sang-tac", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "3c1eebeb-b7de-4848-bea4-f7f9ecc201b5",
+    "slug": "nghe-phim-story-developer",
+    "tieu_de_viet": "Story Developer phim (Biên tập kịch bản)",
+    "tom_tat": "Story Developer (Development Executive / Story Editor) đánh giá + develop script + concept cho studio + production company. Là gatekeeper + creative shepherd của development phase trước greenlight.",
+    "meta_title": "Story Developer phim là gì? | CINS",
+    "meta_description": "Story Developer biên tập kịch bản development executive studio. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-phim-tien-san-xuat", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "e9c48ca3-2fee-4f75-8a40-2d18b0732cee",
+    "slug": "nghe-phim-storyboard-artist",
+    "tieu_de_viet": "Storyboard Artist phim (Họa sĩ phân cảnh)",
+    "tom_tat": "Storyboard Artist visualize script qua sequential drawing — frame-by-frame planning của shot. Critical pre-production tool cho Director + Cinematographer + VFX. Marvel, Spielberg, Hitchcock all heavily storyboarded.",
+    "meta_title": "Storyboard Artist phim là gì? | CINS",
+    "meta_description": "Storyboard Artist visualize script qua drawing frame by frame. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-phim-tien-san-xuat", "nn-bao-chi-truyen-thong"]
+  }
+]

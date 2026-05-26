@@ -1,0 +1,247 @@
+<section class="arc-intro">
+  <p>Khi <em>Cyberpunk 2077</em> hiển thị thành phố Night City với hàng nghìn vehicle, weapon, neon sign chi tiết; khi <em>Halo Infinite</em> show off Master Chief armor; khi <em>Apex Legends</em> có dozens character với detailed mech suit — đó là tác phẩm của Hard Surface Modeler.</p>
+  <p>Trong 3D world, có 2 branch lớn của modeling: <strong>Organic</strong> (character, creature, plant — soft, flowing surface) và <strong>Hard Surface</strong> (vehicle, weapon, robot, building — geometric, mechanical surface). Hard Surface Modeler là <em>backbone</em> của game, animation, VFX cho mọi non-organic asset.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>Hard Surface Modeler là ai?</h2>
+  <p>Hard Surface Modeler (Họa sĩ dựng hình cứng) là <strong>chuyên gia 3D modeling cho mechanical, architectural, manufactured object</strong>. Subject matter: <strong>vehicle</strong> (car, plane, spaceship, boat); <strong>weapon</strong> (gun, sword, mech suit); <strong>building/architecture</strong>; <strong>prop</strong> (electronics, furniture, tool); <strong>robot/mech</strong>; <strong>industrial</strong> (machinery, factory). Phân loại theo industry: (1) <strong>Game</strong> (AAA + indie); (2) <strong>VFX</strong> (movie); (3) <strong>Animation</strong> (3D feature/series); (4) <strong>Automotive viz</strong> (car commercial, configurator); (5) <strong>Architectural viz</strong>; (6) <strong>Product design</strong>.</p>
+  <p>Khác với <strong>Organic Modeler / Character Modeler</strong> (focus living thing) — Hard Surface mechanical. Khác với <strong>Concept Artist</strong> (2D sketch design) — Modeler 3D build. Khác với <strong>Texture/Shading Artist</strong> (surface look — material, color) — Modeler shape geometry only. Khác với <strong>Rigger</strong> (control system) — Modeler không rig. Hợp tác chặt với: <strong>Art Director</strong>, <strong>Concept Artist</strong>, <strong>Texture Artist</strong>, <strong>Animator</strong> (asset must rig-friendly), <strong>Lighter</strong>, <strong>VFX Supervisor</strong>.</p>
+  <ul class="arc-list">
+    <li><strong>Build 3D mesh</strong> từ concept</li>
+    <li>Maintain <strong>topology + UV</strong> clean</li>
+    <li>Optimize <strong>polycount</strong> theo target</li>
+    <li>Handoff cho <strong>texture + animation</strong></li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"3d hard surface modeler maya blender vehicle weapon robot mech sci-fi game vfx"</span>
+    </div>
+    <p class="arc-image-caption">Hard Surface Modeler — backbone của mechanical asset</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>Hard Surface Modeler work trong <strong>3D Asset Production</strong> phase, sau Concept Art + before Texture/Rig/Animation. Báo cáo cho <strong>Lead 3D Artist / Art Director / Modeling Supervisor</strong>. Receive: <strong>concept art / orthographic view / reference</strong>, <strong>budget polycount</strong>, <strong>tech spec</strong> (low-poly for game vs high-poly for cinematic). Output: <strong>3D mesh</strong> (OBJ/FBX/USD), <strong>UV layout</strong>, <strong>LOD versions</strong> (multi-resolution for game). Phối hợp với: Concept Artist (clarify ambiguity), Texture Artist (UV friendly), Rigger (topology must rig-able). Asset complexity range: simple prop 1–3 ngày, hero vehicle 2–6 tuần.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Công việc của một Hard Surface Modeler</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Concept analysis &amp; reference gather</h3>
+    <p>Receive <strong>concept art</strong> (often single angle — front view, must imagine other angle), <strong>reference</strong> (similar real-world object). Analyze: scale, proportion, key shape, mechanical logic (door hinge how open?). Build <strong>reference board</strong>: multi-angle photo của similar object real-world, scale chart, detail close-up. Discuss với Concept Artist clarify ambiguity (back view design? interior detail?).</p>
+    <ul class="arc-list">
+      <li><strong>Concept analyze</strong> + clarify</li>
+      <li><strong>Reference gather</strong></li>
+      <li><strong>Mechanical logic</strong> check</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"3d hard surface modeler concept reference board vehicle weapon design study"</span>
+      </div>
+      <p class="arc-image-caption">Concept + reference</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Block-out &amp; primary form</h3>
+    <p>Start <strong>block-out</strong> — primitive shape: cube, cylinder, sphere → basic silhouette. Get proportion right early — easier fix now than later. Iterate quickly. Software: <strong>Maya</strong>, <strong>Blender</strong> (free + powerful), <strong>3ds Max</strong>, <strong>Modo</strong>, <strong>Plasticity</strong> (newer subdivision modeler), <strong>Cinema 4D</strong>. Tools: subdivision modeling, edge loop, bevel, boolean. Aim: silhouette readable from far distance.</p>
+    <ul class="arc-list">
+      <li><strong>Block-out</strong> primitive</li>
+      <li><strong>Proportion early</strong> get right</li>
+      <li><strong>Silhouette</strong> readable</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"3d modeling block out maya blender hard surface vehicle wireframe primitive"</span>
+        </div>
+        <p class="arc-image-caption">Block-out + proportion</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"3d hard surface modeling subdivision edge loop bevel maya professional"</span>
+        </div>
+        <p class="arc-image-caption">Subdivision modeling</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Detail pass &amp; topology refinement</h3>
+    <p>Add detail: <strong>panel line</strong>, <strong>screw + bolt</strong>, <strong>edge bevel</strong> (no edge totally sharp in real-world), <strong>weathering opportunity</strong> (recessed area for dust). Maintain <strong>clean topology</strong>: quad-dominant, even edge flow, no Ngon trừ flat area, no T-junction unless intentional. For game: <strong>low-poly</strong> + <strong>high-poly</strong> dual (low for engine, high baked into normal map). For cinematic: high-poly all way.</p>
+    <ul class="arc-list">
+      <li><strong>Detail pass</strong></li>
+      <li><strong>Clean topology</strong></li>
+      <li><strong>Low/high poly</strong> for game</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"3d hard surface detail panel line bevel maya wireframe topology professional"</span>
+      </div>
+      <p class="arc-image-caption">Detail pass + topology</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">4. UV unwrap &amp; handoff</h3>
+    <p>Final mesh → <strong>UV unwrap</strong> — flatten 3D surface to 2D for texture paint. Tool: <strong>RizomUV</strong> (industry standard auto-unwrap), <strong>Maya built-in UV editor</strong>, <strong>Blender</strong>. Pack UV efficiently — no wasted space, similar pixel density across asset. Mark seam strategic (hidden area). Export <strong>FBX / USD / OBJ</strong> → handoff Texture Artist. Document: scale, polycount, naming convention.</p>
+    <ul class="arc-list">
+      <li><strong>UV unwrap</strong> + pack</li>
+      <li><strong>Seam hidden</strong></li>
+      <li><strong>FBX export</strong> handoff</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"3d uv unwrap texture map rizomuv maya hard surface modeling export"</span>
+      </div>
+      <p class="arc-image-caption">UV unwrap + handoff</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>Hard Surface Modeler cần giỏi gì?</h2>
+
+  <div class="arc-skill-grid">
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">🛠️</span>
+      <span>3D software mastery</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">📋</span>
+      <span>Topology + edge flow</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">✨</span>
+      <span>Mechanical + engineering literacy</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">🎨</span>
+      <span>Form, proportion, silhouette eye</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">⚡</span>
+      <span>Efficient workflow + speed</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">💬</span>
+      <span>Pipeline + technical understanding</span>
+    </div>
+  </div>
+
+  <div class="arc-accordion">
+
+    <details class="arc-card" open>
+      <summary>3D software mastery</summary>
+      <div class="arc-card-body">
+        <p>Core. Industry: <strong>Maya</strong> (Hollywood + AAA game standard), <strong>Blender</strong> (free, fast-growing, indie popular), <strong>3ds Max</strong> (archviz + game), <strong>Modo</strong> (specialist hard surface), <strong>Plasticity</strong> (newer NURBS-style efficient hard surface), <strong>ZBrush</strong> (high-poly detail). For SubD: master subdivision surface technique. For procedural: <strong>Houdini</strong>.</p>
+        <p>Tutorial: <strong>Gnomon Workshop</strong>, <strong>FlippedNormals</strong>, <strong>Pluralsight</strong>, <strong>Arrimus 3D</strong>.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Topology + edge flow</summary>
+      <div class="arc-card-body">
+        <p>Hard Surface topology = science + art. Quad-dominant, even spacing, edge support for clean bevel, no pinching. Study senior artist topology breakdown (ArtStation post-mortem). Practice: re-topo public asset for exercise.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Mechanical + engineering literacy</summary>
+      <div class="arc-card-body">
+        <p>Believable mechanical design = hardware looks function. Hiểu basic: how engine fit in car body, how gun bullet eject, how robot joint hinge. Study real reference: gun parts diagram, vehicle engineering cross-section, aircraft schematic. Visit museum: automobile museum, military museum.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Form, proportion, silhouette eye</summary>
+      <div class="arc-card-body">
+        <p>Modeler must see proportion right. Practice eye via traditional drawing (life drawing, perspective sketch). Study product design principle. Read: <strong>"How to Draw" (Scott Robertson)</strong>, <strong>"Hard Surface Modeling Workflow" (Tim Bergholz)</strong>.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Efficient workflow + speed</summary>
+      <div class="arc-card-body">
+        <p>Production deadline tight. Keyboard shortcut master. Custom hotkey + script. Modifier stack reuse. Asset library personal. Senior artist build asset 3–5x speed junior.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Pipeline + technical understanding</summary>
+      <div class="arc-card-body">
+        <p>Hiểu downstream impact: how asset use trong Unreal/Unity engine vs cinematic render. Polycount budget (game low-mid poly; cinematic high-poly). LOD system. Naming convention. USD pipeline. Substance Painter handoff.</p>
+      </div>
+    </details>
+
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Làm cách nào để trở thành Hard Surface Modeler?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Học 3D / Game Art / Animation 3–4 năm</strong>
+        <p>Background phù hợp: <strong>3D Modeling / Computer Animation</strong>, <strong>Game Art</strong>, <strong>VFX</strong>, <strong>Product Design</strong>, <strong>Industrial Design</strong>. VN: <strong>FPT Polytechnic Digital Art</strong>, <strong>Arena Multimedia</strong>, <strong>iSpace</strong>, <strong>RMIT Digital Film</strong>, <strong>ĐH Mỹ thuật Công nghiệp</strong>. Quốc tế top: <strong>Gnomon School LA</strong>, <strong>SCAD</strong>, <strong>DigiPen</strong>, <strong>Ringling</strong>, <strong>Sheridan</strong>, <strong>Vancouver Film School</strong>, <strong>Think Tank Training</strong>.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Self-learn 1–2 năm intensive + build portfolio</strong>
+        <p>Tutorial + practice daily. Build 5–10 high-quality piece: vehicle (car or fighter jet), weapon (rifle + handgun), mech/robot, building, prop set. ArtStation portfolio critical — recruiter search there.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Junior Hard Surface Modeler</strong>
+        <p>Apply junior. VN studio: <strong>BadClay Studio</strong>, <strong>Sparx*</strong>, <strong>Glass Egg</strong>, <strong>Virtuos VN</strong>, <strong>Gameloft VN</strong>, <strong>VNG Game Studio</strong>; international remote possible: <strong>Naughty Dog</strong>, <strong>Ubisoft</strong>, <strong>Riot Games</strong>, <strong>Blizzard</strong>, <strong>ILM</strong>. Junior tasks: secondary asset (prop, environment piece). 2–4 năm.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Mid Hard Surface Modeler — hero asset</strong>
+        <p>4–6 năm — own hero asset (main vehicle, lead weapon, key building). Specialty develop: vehicle specialist, weapon specialist, environment hard surface, mech specialist.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Senior Modeler / Lead</strong>
+        <p>7–10 năm — Senior Modeler / Lead. Define modeling standard for show, mentor junior, work cross-discipline (with rigger, texture artist, animator).</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Sự nghiệp Hard Surface Modeler</strong>
+        <p>Long-term path: (1) <strong>Modeling Supervisor</strong> tại major studio (Naughty Dog, ILM, Pixar); (2) <strong>Senior Specialist</strong> — vehicle / mech specialist with portfolio recognized; (3) <strong>Art Director</strong> — broader oversight; (4) <strong>Concept Artist transition</strong> if drawing skill develop; (5) <strong>Freelance</strong> — work với multiple studio (freelance hard surface very in-demand); (6) <strong>Educator</strong> + workshop. Lương: VN junior 18–35M/tháng; mid 35–70M; senior 70M–150M; freelance project 30M-300M+. International: junior $55K-$85K; senior $120K-$200K; Lead $200K-$300K. Game industry high demand — every game need hard surface modeler.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

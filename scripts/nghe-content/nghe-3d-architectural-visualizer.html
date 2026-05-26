@@ -1,0 +1,247 @@
+<section class="arc-intro">
+  <p>Một dự án bất động sản cao cấp Dubai cần video walkthrough chất lượng phim cinema, render real-time để client tour bằng VR, hình ảnh chất lượng print A0 cho catalogue triển lãm. Studio thuê ai? Không phải ArchViz Artist truyền thống — họ tìm <em>Architectural Visualizer chuyên 3D pipeline hiện đại</em>: master Unreal Engine, biết Houdini cho FX, hiểu Substance cho material procedural, làm việc với Nanite/Lumen của UE5.</p>
+  <p>Đây là Architectural Visualizer ở phía 3D — không chỉ render bằng V-Ray như nhiều năm trước, mà tiếp cận theo pipeline game engine hiện đại. Khác Visualizer kiến trúc truyền thống ở chỗ <em>kỹ thuật 3D sâu hơn</em>, <em>real-time first</em>, và <em>đa lĩnh vực</em> hơn (kiến trúc + game asset + VFX).</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>Architectural Visualizer (3D) là ai?</h2>
+  <p>Architectural Visualizer (3D) là người chuyên về <strong>visualization kiến trúc dùng pipeline 3D CGI hiện đại</strong> — bao gồm <strong>Unreal Engine</strong>, <strong>V-Ray</strong>, <strong>Houdini</strong>, <strong>Substance Designer/Painter</strong>, <strong>Nuke</strong> cho composite. Khác với ArchViz truyền thống (chỉ render still image bằng V-Ray/Corona), họ làm <strong>real-time experience, VR/AR, interactive presentation, cinematic walkthrough</strong> cho dự án bất động sản cao cấp và competition quốc tế.</p>
+  <p>Vai trò này nằm ở giao điểm giữa <strong>ArchViz Artist</strong> và <strong>Game Environment Artist</strong>. Họ vẫn làm visualization kiến trúc, nhưng dùng kỹ thuật và pipeline gần với game industry hơn — optimize cho real-time, dùng Lumen lighting, Nanite mesh, vật liệu procedural. Đặc biệt phổ biến tại các studio top thế giới: MIR, The Boundary, Brick Visual, Luxigon, Pikcells.</p>
+  <ul class="arc-list">
+    <li>Tạo <strong>real-time experience</strong> trong Unreal Engine — client có thể tour bằng controller hoặc VR</li>
+    <li>Render <strong>cinematic walkthrough</strong> với Sequencer trong UE5 — chất lượng film, render nhanh</li>
+    <li>Setup pipeline <strong>asset library</strong> tối ưu — Nanite mesh, Megascans, decal system</li>
+    <li>Cộng tác với <strong>FX Artist</strong> cho hiệu ứng nâng cao (mưa, sương, lighting động) và <strong>VR Developer</strong></li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"Unreal Engine 5 architectural visualization Lumen Nanite photorealistic"</span>
+    </div>
+    <p class="arc-image-caption">Architectural visualization trong Unreal Engine 5 — real-time, photorealistic với Lumen lighting</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>Architectural Visualizer (3D) thuộc <strong>studio chuyên ArchViz cao cấp</strong> hoặc <strong>in-house team</strong> tại công ty bất động sản lớn. Nhận file BIM/CAD từ <strong>Architect / Interior Designer</strong>, làm việc song song với <strong>Marketing</strong>, <strong>Sales</strong>, <strong>VR Developer</strong>, <strong>FX Artist</strong>. Báo cáo cho <strong>Visualization Lead</strong> hoặc <strong>Art Director</strong> của studio. Trong dự án phức tạp, có thể có team gồm <strong>Lighting Artist</strong>, <strong>Material Artist</strong>, <strong>Environment Artist</strong>, <strong>Cinematic Director</strong>.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Công việc của một Architectural Visualizer (3D)</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Asset pipeline và preparation</h3>
+    <p>Khác ArchViz truyền thống (mỗi project dựng từ đầu), Architectural Visualizer 3D xây <strong>asset pipeline có hệ thống</strong>. Sử dụng <strong>Megascans</strong> (thư viện scan 3D thật của Quixel), <strong>Marketplace UE</strong>, hoặc <strong>tự tạo asset procedural</strong> trong Substance Designer. Tổ chức library chuẩn cho team — Nanite mesh, Substance material, decal pack.</p>
+    <ul class="arc-list">
+      <li><strong>Megascans library</strong> — hàng triệu asset scan thật (đá, gỗ, đất, vegetation) chuẩn PBR</li>
+      <li><strong>Substance Designer</strong> — tạo material procedural, vô hạn variation từ 1 file</li>
+      <li><strong>Nanite mesh</strong> — high-poly geometry render real-time trong UE5 không cần LOD</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Quixel Megascans library Unreal Engine asset PBR scan"</span>
+      </div>
+      <p class="arc-image-caption">Megascans library — asset chất lượng cinema, tích hợp sẵn vào Unreal Engine</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Dựng scene trong Unreal Engine với Lumen</h3>
+    <p>Import bản vẽ kiến trúc (qua Datasmith từ Revit/3ds Max), dựng scene đầy đủ với asset library. Setup <strong>Lumen</strong> (Global Illumination real-time của UE5) cho lighting, <strong>Virtual Shadow Maps</strong> cho bóng chi tiết, <strong>Path Tracer</strong> cho final render cinematic. Khác V-Ray cần render hàng giờ, UE5 render real-time hoặc vài phút cho final quality.</p>
+    <ul class="arc-list">
+      <li><strong>Datasmith</strong> — pipeline chính thức Revit/3ds Max → Unreal Engine, giữ material và metadata</li>
+      <li><strong>Lumen GI</strong> — global illumination real-time, không cần lightmap baking</li>
+      <li><strong>Path Tracer</strong> — render unbiased trong UE5 cho final quality, vẫn nhanh hơn V-Ray nhiều</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Unreal Engine 5 Lumen lighting architectural interior real-time"</span>
+        </div>
+        <p class="arc-image-caption">Lumen lighting trong UE5 — global illumination real-time, không cần baking</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Datasmith Revit Unreal architectural import workflow pipeline"</span>
+        </div>
+        <p class="arc-image-caption">Datasmith workflow — import từ Revit/3ds Max vào UE5 với material preserved</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Cinematic và interactive experience</h3>
+    <p>Đây là điểm khác biệt lớn với ArchViz truyền thống. Tạo <strong>cinematic walkthrough</strong> bằng <strong>Sequencer</strong> trong UE5 — camera path mượt, hiệu ứng phim (DOF, motion blur, color grade). Tạo <strong>interactive presentation</strong> — client cầm controller di chuyển, bật/tắt đèn, đổi vật liệu, đổi thời gian trong ngày. Tạo <strong>VR experience</strong> cho Oculus, HTC Vive — client đeo kính "đi" trong căn hộ.</p>
+    <ul class="arc-list">
+      <li><strong>Sequencer</strong> — cinematic editor của UE5, tạo camera animation và composite</li>
+      <li><strong>Blueprint scripting</strong> — visual programming cho interactive feature (đổi material, time of day)</li>
+      <li><strong>VR template</strong> — xây từ UE5 VR Template, support Oculus, Vive, Index, Pico</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Unreal Engine architectural VR experience Oculus walkthrough"</span>
+      </div>
+      <p class="arc-image-caption">VR architectural experience — client đeo kính "đi" trong không gian chưa xây</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">4. Optimize, deliver và VR-ready experience</h3>
+    <p>Real-time experience phải <strong>tối ưu hóa</strong> — vì máy client thường không mạnh bằng workstation. Optimize bằng <strong>LOD</strong>, <strong>HLOD</strong> (hierarchical LOD), <strong>Nanite</strong> cho geometry, <strong>texture streaming</strong>, <strong>lighting baking</strong> cho mobile. Deliver theo nhiều format: <strong>executable file</strong> (chạy trên PC client), <strong>video render</strong> (chia sẻ qua mạng), <strong>still image</strong> chất lượng print.</p>
+    <ul class="arc-list">
+      <li><strong>Performance profiling</strong> — Unreal Insights, GPU profiler để tìm bottleneck</li>
+      <li><strong>Packaged build</strong> — executable Windows/Mac/Linux cho client cài và tour offline</li>
+      <li><strong>Pixel Streaming</strong> — render trên server, stream qua web browser cho client xem từ xa</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Unreal Engine pixel streaming cloud architectural visualization deliver"</span>
+      </div>
+      <p class="arc-image-caption">Pixel Streaming — client xem real-time experience qua web browser, không cần cài</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>Architectural Visualizer (3D) cần giỏi gì?</h2>
+
+  <div class="arc-skill-grid">
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">⚙️</span>
+      <span>Unreal Engine 5 chuyên sâu</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">⚙️</span>
+      <span>3ds Max / Blender + V-Ray</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">🌈</span>
+      <span>Lighting real-time &amp; offline</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">📦</span>
+      <span>Material PBR &amp; procedural</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">🧠</span>
+      <span>Pipeline thinking &amp; optimization</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">🎨</span>
+      <span>Composition &amp; cinematography</span>
+    </div>
+  </div>
+
+  <div class="arc-accordion">
+
+    <details class="arc-card" open>
+      <summary>Unreal Engine 5 chuyên sâu</summary>
+      <div class="arc-card-body">
+        <p>UE5 là chuẩn ngành ArchViz cao cấp hiện nay. Phải master: Lumen, Nanite, Virtual Shadow Maps, Sequencer, Blueprint cơ bản, lighting workflow, material instance, packaging. Học từ Unreal Engine documentation chính thức, kênh YouTube William Faucher (chuyên ArchViz UE), khóa "Unreal Engine for Architectural Visualization" trên Udemy.</p>
+        <p>Mất 6–12 tháng để intermediate, 2–3 năm để expert. Nhưng đầu tư xứng đáng — lương UE5 ArchViz cao hơn V-Ray 30–50% và demand đang tăng nhanh.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>3ds Max / Blender + V-Ray</summary>
+      <div class="arc-card-body">
+        <p>UE5 mạnh cho real-time nhưng V-Ray vẫn là chuẩn cho still image chất lượng tối đa. Phải biết cả hai — dùng UE5 cho video/VR/interactive, V-Ray cho hero shot final quality. 3ds Max là chuẩn cho modeling ArchViz; Blender đang lên nhưng chưa phổ biến bằng trong studio top.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Lighting real-time &amp; offline</summary>
+      <div class="arc-card-body">
+        <p>Lighting trong real-time engine khác offline render. UE5 Lumen cho lighting động real-time, Path Tracer cho offline quality. Hiểu trade-off giữa hai. V-Ray cho lighting baked vs. real-time. Master cả hai workflow giúp linh hoạt trong dự án — đôi khi cần combination.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Material PBR &amp; procedural</summary>
+      <div class="arc-card-body">
+        <p>PBR material là chuẩn — Albedo, Roughness, Normal, Metalness. Substance Designer cho procedural material — tạo gỗ, gạch, da với vô hạn variation từ 1 file. Substance Painter cho texture painting. Hiểu khác biệt giữa material trong UE (instance, parameter) và V-Ray (vraymtl). Megascans library giảm 70% thời gian setup material.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Pipeline thinking &amp; optimization</summary>
+      <div class="arc-card-body">
+        <p>Khác ArchViz Artist cá nhân, Architectural Visualizer (3D) làm việc với team và pipeline có hệ thống. Hiểu version control (Perforce, SVN, Git LFS), asset naming convention, performance optimization. Học từ kinh nghiệm game industry — nhiều technique transfer được sang ArchViz.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Composition &amp; cinematography</summary>
+      <div class="arc-card-body">
+        <p>Real-time render không tự động đẹp — cần composition tốt. Hiểu rule of thirds, leading lines, framing, focal length effect. Cho cinematic walkthrough, cần kỹ năng camera animation — học từ cinematography phim (Roger Deakins, Hoyte van Hoytema). Sách <em>The Filmmaker's Eye</em> của Gustavo Mercado.</p>
+      </div>
+    </details>
+
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Làm cách nào để trở thành Architectural Visualizer (3D)?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Xây nền tảng ArchViz truyền thống trước</strong>
+        <p>Bắt đầu từ ArchViz cơ bản — 3ds Max + V-Ray hoặc Corona. Đọc bản vẽ, dựng model, setup material, lighting, render. 6–12 tháng học cơ bản, 1–2 năm làm thực tế. Đây là nền tảng — UE5 chỉ là engine khác, nguyên lý visualization vẫn như nhau.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Học Unreal Engine 5 và Datasmith workflow</strong>
+        <p>Sau khi vững V-Ray, học UE5. Bắt đầu với Datasmith — pipeline chính thức từ 3ds Max/Revit vào UE5. Học Lumen lighting, Nanite mesh, material instance, Sequencer. Tài nguyên: William Faucher YouTube, Unreal Engine documentation, "ArchViz with Unreal Engine 5" trên Udemy. 6–12 tháng cho intermediate.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Học Substance Designer/Painter</strong>
+        <p>Substance là tiêu chuẩn cho material PBR và procedural. Substance Designer tạo material từ node, Substance Painter cho texture painting. 2–3 tháng học cơ bản. Khóa của Adobe Substance hoặc kênh YouTube của Allegorithmic. Lợi thế lớn — vì nhiều ArchViz Artist không biết Substance.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Làm 3–5 project UE5 end-to-end</strong>
+        <p>Project cho thấy bạn làm được full pipeline UE5: import từ Revit/3ds Max → setup lighting → material → cinematic camera → render video. Có thể làm từ bản vẽ miễn phí trên ArchDaily hoặc dự án cũ của bản thân. Mục tiêu: 1 hero render still + 1 cinematic video 30–60s cho mỗi project.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Học VR/AR và pixel streaming</strong>
+        <p>Mở rộng skill: làm VR experience với UE5 VR Template (Oculus, Vive). Học Pixel Streaming để stream từ cloud server cho client xem qua browser. Đây là feature mà nhiều studio ArchViz chưa support — bạn sẽ nổi bật. Khóa "VR with Unreal Engine" trên Udemy hoặc Coursera.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Xây dựng portfolio &amp; apply công ty top quốc tế</strong>
+        <p>Portfolio cần thể hiện <strong>full modern pipeline</strong>: 3–4 UE5 cinematic video, 3–4 high-quality still render, 1 VR experience demo (video record gameplay), 1 interactive demo (executable hoặc Pixel Streaming link). Đăng trên <strong>ArtStation</strong> (đáng đăng ở đây hơn Behance vì hướng game/3D), <strong>Vimeo</strong> (cho cinematic), <strong>personal site</strong>. Apply qua: studio ArchViz top thế giới (MIR, The Boundary, Brick Visual, Luxigon, Pikcells, Bloom Images), game studio có ArchViz division (Epic Games, Unity, Frontier Developments), hoặc tech company với metaverse focus (Meta, Apple). Lương ở studio top: $80–200K USD/năm cho mid-senior level.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

@@ -1,0 +1,247 @@
+<section class="arc-intro">
+  <p>Một tòa văn phòng 30 tầng được thiết kế trên máy tính trước khi đặt viên gạch đầu tiên — model 3D với hàng trăm nghìn element, mỗi cái có data về vật liệu, kích thước, nhà sản xuất, ngày bảo trì. Khi xây xong, owner có thể click vào bất kỳ van nước nào, xem hạn bảo hành, gọi đúng technician. Đó là sức mạnh của BIM — và BIM Modeler là người dựng nên model thông minh đó.</p>
+  <p>BIM Modeler khác Architectural Draftsman ở chỗ <em>dựng 3D thông minh với data</em>, không chỉ vẽ 2D. Khác Architect ở chỗ <em>không thiết kế</em>, chỉ thực thi từ thiết kế kiến trúc sư trong môi trường BIM.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>BIM Modeler là ai?</h2>
+  <p>BIM Modeler là người dựng <strong>mô hình 3D thông minh (intelligent 3D model)</strong> trong phần mềm BIM — chủ yếu là <strong>Revit</strong> (Autodesk, phổ biến nhất), <strong>ArchiCAD</strong> (Graphisoft, châu Âu), hoặc <strong>Tekla</strong> (kết cấu thép). Khác với 3D model thông thường, BIM model chứa <strong>data</strong> về mỗi element — vật liệu, kích thước, nhà sản xuất, mã spec, hạn bảo hành — phục vụ cả thiết kế, thi công, và facility management.</p>
+  <p>Khác với <strong>Architectural Draftsman</strong> (vẽ bản vẽ 2D), BIM Modeler <strong>dựng 3D parametric</strong> — thay đổi 1 chỗ thì 2D drawing tự update theo. Khác với <strong>Architect</strong> (thiết kế concept), BIM Modeler <strong>thực thi thiết kế</strong> trong môi trường BIM, không tham gia concept design. Có thể chuyên 1 discipline: <strong>Architecture BIM Modeler</strong>, <strong>Structural BIM Modeler</strong>, <strong>MEP BIM Modeler</strong>.</p>
+  <ul class="arc-list">
+    <li>Dựng <strong>3D model</strong> trong Revit/ArchiCAD từ bản vẽ concept của Architect</li>
+    <li>Tạo và quản lý <strong>family/object</strong> — components reusable cho project</li>
+    <li>Generate <strong>2D drawing</strong> tự động từ 3D model — plan, section, elevation</li>
+    <li>Phối hợp với BIM Modeler các discipline khác qua <strong>central model</strong></li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"BIM modeler Revit 3D architectural model construction workstation"</span>
+    </div>
+    <p class="arc-image-caption">BIM Modeler làm việc với Revit — dựng 3D model thông minh từ bản vẽ kiến trúc</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>BIM Modeler thuộc <strong>team BIM</strong> của studio kiến trúc, công ty xây dựng, hoặc consultancy. Báo cáo cho <strong>BIM Manager</strong> hoặc <strong>BIM Coordinator</strong>. Nhận <strong>concept design</strong> từ Architect, dựng thành <strong>BIM model</strong>. Bàn giao <strong>2D drawing</strong> tự động generate từ model cho thi công. Phối hợp với BIM Modeler khác (Structural, MEP) qua <strong>central model</strong>. Có thể chuyên 1 discipline (Architecture, Structural, MEP) hoặc generalist trong studio nhỏ.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Công việc của một BIM Modeler</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Setup project và đọc concept design</h3>
+    <p>Bước đầu — open <strong>project template</strong> đã được BIM Manager setup, hoặc tạo mới. Set <strong>level</strong> (cao độ tầng), <strong>grid</strong> (lưới trục), <strong>coordinate system</strong>. Đọc <strong>concept design</strong> từ Architect — sketch tay, model SketchUp, mặt bằng 2D — hiểu intent trước khi dựng 3D parametric.</p>
+    <ul class="arc-list">
+      <li><strong>Project template</strong> — file Revit pre-setup với standard family, view, sheet</li>
+      <li><strong>Grid &amp; level setup</strong> — lưới trục và cao độ tầng, foundation cho mọi modeling</li>
+      <li><strong>Concept review</strong> — họp với Architect để hiểu intent thiết kế</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Revit project setup grid level template architecture"</span>
+      </div>
+      <p class="arc-image-caption">Project setup — grid, level, template trước khi bắt đầu modeling</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Dựng building shell và component chính</h3>
+    <p>Bước chính — dựng <strong>building shell</strong>: walls, floors, roof, structural component. Sử dụng <strong>system family</strong> (built-in trong Revit) cho component standard, <strong>loadable family</strong> cho component custom. Mỗi element gắn data: type, material, fire rating, manufacturer. Đây là phần tốn nhiều thời gian nhất — 60–70% công việc.</p>
+    <ul class="arc-list">
+      <li><strong>Wall, floor, roof modeling</strong> — system family Revit, đặt theo grid/level</li>
+      <li><strong>Type properties</strong> — gán data về material, thickness, fire rating</li>
+      <li><strong>Custom family</strong> — load loadable family cho cửa, cửa sổ, đồ nội thất specific</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Revit building shell wall floor roof model architecture"</span>
+        </div>
+        <p class="arc-image-caption">Building shell trong Revit — walls, floors, roof với system family</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"Revit family creation custom door window parametric"</span>
+        </div>
+        <p class="arc-image-caption">Loadable family — cửa, cửa sổ custom với parametric data</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Detail modeling và scheduling</h3>
+    <p>Sau shell, thêm <strong>detail</strong>: cầu thang, lan can, MEP fixture, đồ nội thất. Setup <strong>view template</strong> cho consistent appearance trên drawing. Tạo <strong>schedule</strong> — bảng tự động liệt kê element (door schedule, window schedule, material take-off). Đây là power chính của BIM — schedule auto-update khi model thay đổi.</p>
+    <ul class="arc-list">
+      <li><strong>Detail component</strong> — cầu thang, lan can, fixture, đồ nội thất</li>
+      <li><strong>View template</strong> — chuẩn appearance cho drawing (visibility, line style)</li>
+      <li><strong>Schedule generation</strong> — door, window, material schedule auto-update từ model</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Revit schedule door window material take-off architectural"</span>
+      </div>
+      <p class="arc-image-caption">Revit schedule — bảng auto-generate từ model, update khi model thay đổi</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">4. Sheet setup, drawing và coordination</h3>
+    <p>Bước cuối — setup <strong>sheet</strong> cho deliverable: title block, plan view, section view, elevation, detail. Drawing tự generate từ model — chỉ cần setup view và đặt vào sheet. Phối hợp với BIM Modeler các discipline khác qua <strong>central model</strong>, sync model định kỳ, attend coordination meeting để giải quyết clash.</p>
+    <ul class="arc-list">
+      <li><strong>Sheet setup</strong> — title block, view placement, dimension, annotation</li>
+      <li><strong>Worksharing</strong> — sync với central model định kỳ, không xung đột với teammate</li>
+      <li><strong>Coordination</strong> — attend meeting với BIM Modeler MEP, Structural để giải quyết clash</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"Revit sheet drawing layout architectural deliverable construction"</span>
+      </div>
+      <p class="arc-image-caption">Sheet setup — drawing tự generate từ model, sẵn sàng cho construction</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>BIM Modeler cần giỏi gì?</h2>
+
+  <div class="arc-skill-grid">
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">⚙️</span>
+      <span>Revit / ArchiCAD chuyên sâu</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">🧠</span>
+      <span>Tư duy không gian 3D &amp; parametric</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">📦</span>
+      <span>Hiểu xây dựng &amp; vật liệu</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">📋</span>
+      <span>BIM standard &amp; convention</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">⚡</span>
+      <span>Family creation &amp; tự động hóa</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">💬</span>
+      <span>Cộng tác đa discipline</span>
+    </div>
+  </div>
+
+  <div class="arc-accordion">
+
+    <details class="arc-card" open>
+      <summary>Revit / ArchiCAD chuyên sâu</summary>
+      <div class="arc-card-body">
+        <p>Master 1 phần mềm sâu hơn biết qua loa nhiều. Revit là phổ biến nhất — phải master: modeling, family creation (system + loadable), view template, worksharing, schedule, Dynamo cơ bản. ArchiCAD nếu làm cho thị trường châu Âu. Có certification Autodesk Certified Professional - Revit là lợi thế.</p>
+        <p>Tổng thời gian học: 6–12 tháng cho intermediate, 2–3 năm cho expert.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Tư duy không gian 3D &amp; parametric</summary>
+      <div class="arc-card-body">
+        <p>Khác Draftsman (chỉ 2D), BIM Modeler phải tư duy 3D — biết hình khối tổng thể, biết element relation với nhau. Parametric thinking: nếu đổi 1 parameter, gì sẽ thay đổi theo? Đây là tư duy khác với 2D drafting — cần practice 6–12 tháng để natural.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Hiểu xây dựng &amp; vật liệu</summary>
+      <div class="arc-card-body">
+        <p>BIM Modeler phải hiểu kỹ thuật xây dựng — vì model phải thi công được. Hiểu tường gạch xây ra sao, sàn bê tông đổ thế nào, kết cấu thép lắp ráp ra sao. Đi công trường, đọc sách <em>Building Construction Illustrated</em> của Francis Ching. Hiểu vật liệu xây dựng phổ biến — gạch, bê tông, thép, gỗ, kính.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>BIM standard &amp; convention</summary>
+      <div class="arc-card-body">
+        <p>Phải tuân thủ <strong>BIM Execution Plan (BEP)</strong> và <strong>standard công ty</strong>: naming convention, layer/category standard, family library structure. Hiểu ISO 19650 nếu làm dự án quốc tế. Standard không tuân thủ = model bị reject — toàn bộ team không sync được.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Family creation &amp; tự động hóa</summary>
+      <div class="arc-card-body">
+        <p>Family creation là kỹ năng phân biệt Senior với Junior. Tạo loadable family parametric (cửa với multiple type, panel có thể flex). Học Dynamo (visual programming) để automate task lặp lại — có thể save 50–80% thời gian cho task như renaming, batch parameter assignment, complex modeling.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Cộng tác đa discipline</summary>
+      <div class="arc-card-body">
+        <p>BIM project có nhiều discipline cùng work trên central model — phải sync định kỳ, không conflict với teammate. Hiểu workset concept, checkout/checkin element. Attend coordination meeting, hiểu vấn đề của MEP/Structural team, đề xuất solution. Communication là key.</p>
+      </div>
+    </details>
+
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Làm cách nào để trở thành BIM Modeler?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Học Kiến trúc, Xây dựng hoặc Civil Engineering</strong>
+        <p>Có thể từ <strong>Cao đẳng/Trung cấp</strong> chuyên Drafting (2–3 năm) hoặc <strong>ĐH Kiến trúc / Xây dựng / Bách Khoa</strong> (5 năm). Background trong industry quan trọng để hiểu xây dựng. Khác Architect, BIM Modeler không bắt buộc bằng ĐH 5 năm — kỹ năng phần mềm và kinh nghiệm quan trọng hơn.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Master Revit trong 6–12 tháng</strong>
+        <p>Đây là kỹ năng cốt lõi. Khóa miễn phí trên YouTube (Autodesk official, Balkan Architect), trả phí trên LinkedIn Learning, Pluralsight. Có thể học tại trung tâm dạy nghề VN (Vimeco, BIM Academy). Mục tiêu: dựng được model 3D đầy đủ cho biệt thự nhỏ trong 1 tuần.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Apply Junior BIM Modeler position</strong>
+        <p>Apply tại: <strong>contractor lớn</strong> (Coteccons, Hòa Bình), <strong>studio kiến trúc</strong> (S&amp;P, NORM), <strong>MEP consultancy</strong>, <strong>BIM service company</strong>. Có outsource market lớn — VN BIM Modeler làm remote cho công ty Mỹ, Úc, Singapore với lương quốc tế.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Chuyên môn hóa: Architecture / Structural / MEP</strong>
+        <p>Sau 1–2 năm generalist, chọn 1 discipline để chuyên: <strong>Architecture BIM Modeler</strong> (kiến trúc), <strong>Structural BIM Modeler</strong> (kết cấu — học thêm Tekla), <strong>MEP BIM Modeler</strong> (cơ điện — học thêm Revit MEP). Mỗi discipline có depth khác nhau, lương cũng khác.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Học Dynamo, Python và automation</strong>
+        <p>Sau 2–3 năm, học automation để tăng năng suất 5–10x. <strong>Dynamo</strong> (visual programming, dễ học) trước, <strong>Python</strong> (Revit API) sau. Học từ Dynamo Primer (free), Sixty Second Revit. Có thể tự build script library — tài sản giá trị cho sự nghiệp.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Xây dựng sự nghiệp lâu dài</strong>
+        <p>Sau 3–5 năm Junior, lên <strong>Senior BIM Modeler</strong>. Có nhiều con đường: (1) <strong>BIM Coordinator</strong> → <strong>BIM Manager</strong> (leadership track); (2) <strong>BIM Specialist</strong> chuyên 1 discipline khó (curtain wall, complex structure); (3) <strong>Dynamo/Revit Developer</strong> nếu master programming; (4) <strong>BIM Trainer / Consultant</strong> độc lập. Portfolio: list dự án với role, scope, software. Đăng trên <strong>LinkedIn</strong>, <strong>personal site</strong>. Apply qua LinkedIn, job board VN. Lương: VN $700–2K USD/tháng cho Junior–Mid, $2–4K cho Senior; outsource cho US/Australia có thể $3–6K USD/tháng remote.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

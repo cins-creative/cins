@@ -1,0 +1,47 @@
+[
+  {
+    "id": "5fbfab5a-440b-4d11-87b8-3f6b11394fc9",
+    "slug": "nghe-comic-character-designer",
+    "tieu_de_viet": "Character Designer truyện tranh",
+    "tom_tat": "Character Designer trong truyện tranh thiết kế nhân vật cho manga, comic — đảm bảo design đơn giản đủ để vẽ lặp lại hàng nghìn panel mà vẫn truyền tải tính cách rõ ràng.",
+    "meta_title": "Character Designer truyện tranh là gì? Lộ trình | CINS",
+    "meta_description": "Character Designer comic thiết kế nhân vật manga, webtoon. Tìm hiểu công việc, kỹ năng và lộ trình vào nghề.",
+    "nhom_slugs": ["nghe-comic-sang-tac", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "a6a8fc12-153b-4696-b1e8-34d67d0f1b7a",
+    "slug": "nghe-3d-character-modeler",
+    "tieu_de_viet": "Character Modeler 3D",
+    "tom_tat": "Character Modeler dựng nhân vật 3D cho phim, game, VFX — từ sculpt high-poly trong ZBrush đến retopology, UV, ready cho rigging và texturing.",
+    "meta_title": "Character Modeler 3D là gì? Công việc, kỹ năng, lộ trình | CINS",
+    "meta_description": "Character Modeler 3D dựng nhân vật cho phim, game, VFX. Tìm hiểu công việc, kỹ năng và lộ trình vào nghề.",
+    "nhom_slugs": ["nghe-3d-modeling-sculpting", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "c405992d-aca4-41c8-b66a-02c4e69e372c",
+    "slug": "nghe-hoat-hinh-character-modeler",
+    "tieu_de_viet": "Character Modeler phim hoạt hình",
+    "tom_tat": "Character Modeler trong phim hoạt hình dựng nhân vật 3D từ concept art — geometry topology tối ưu cho deformation, sẵn sàng cho rigging và animation cinematic.",
+    "meta_title": "Character Modeler hoạt hình là gì? Lộ trình vào nghề | CINS",
+    "meta_description": "Character Modeler hoạt hình dựng nhân vật 3D cho phim. Tìm hiểu công việc, kỹ năng và lộ trình vào nghề.",
+    "nhom_slugs": ["nghe-hoat-hinh-san-xuat-3d", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "9831f929-4cfa-4dfc-8f5f-96e692d3628b",
+    "slug": "nghe-minh-hoa-childrens-book-illustrator",
+    "tieu_de_viet": "Họa sĩ minh họa sách thiếu nhi",
+    "tom_tat": "Children's Book Illustrator vẽ minh họa cho sách thiếu nhi — kết hợp storytelling, design nhân vật cute, color palette ấm để khơi gợi tưởng tượng và đồng cảm cảm xúc của trẻ.",
+    "meta_title": "Họa sĩ sách thiếu nhi là gì? Công việc, kỹ năng và lộ trình | CINS",
+    "meta_description": "Họa sĩ sách thiếu nhi vẽ minh họa cho sách trẻ em, picture book. Tìm hiểu công việc, kỹ năng và lộ trình vào nghề.",
+    "nhom_slugs": ["nghe-minh-hoa-chuyen-nganh", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "e83ad1f1-70d4-4efd-89a6-76d39f9f25a2",
+    "slug": "nghe-hoat-hinh-clean-up-artist",
+    "tieu_de_viet": "Clean-up Artist phim hoạt hình 2D",
+    "tom_tat": "Clean-up Artist trong phim hoạt hình 2D làm sạch sketch của Animator — chuyển rough sketch thành final line art consistent với character design sheet, sẵn sàng cho coloring.",
+    "meta_title": "Clean-up Artist hoạt hình là gì? Lộ trình vào nghề | CINS",
+    "meta_description": "Clean-up Artist làm sạch sketch animation 2D thành final line art. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-hoat-hinh-san-xuat-2d", "nn-bao-chi-truyen-thong"]
+  }
+]

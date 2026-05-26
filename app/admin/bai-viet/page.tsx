@@ -3,6 +3,9 @@ import { renderAdminPage } from "@/lib/admin/admin-page";
 import { checkAdminAccess } from "@/lib/admin/require-admin";
 import { listArticlesForAdmin } from "@/lib/admin/articles-server";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function AdminBaiVietPage() {
   const gate = checkAdminAccess();
   if (!gate.ok) return renderAdminPage(null);

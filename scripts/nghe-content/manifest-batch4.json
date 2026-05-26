@@ -1,0 +1,47 @@
+[
+  {
+    "id": "51c380bf-4800-4621-8acd-67b754fdc0dd",
+    "slug": "nghe-phim-actor-actress",
+    "tieu_de_viet": "Diễn viên (Actor / Actress)",
+    "tom_tat": "Diễn viên hóa thân vào nhân vật trên sân khấu, phim, truyền hình, quảng cáo — kết hợp kỹ thuật diễn xuất, giọng nói và biểu cảm cơ thể để kể câu chuyện cho khán giả.",
+    "meta_title": "Diễn viên là gì? Công việc, kỹ năng và lộ trình vào nghề | CINS",
+    "meta_description": "Diễn viên hóa thân vào nhân vật trên phim, truyền hình, sân khấu. Tìm hiểu công việc, kỹ năng và lộ trình vào nghề diễn xuất.",
+    "nhom_slugs": ["nghe-phim-san-xuat", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "ac8760a3-3e3c-4d43-82e4-fc8e08da4372",
+    "slug": "nghe-minh-hoa-advertising-illustrator",
+    "tieu_de_viet": "Họa sĩ minh họa quảng cáo (Advertising Illustrator)",
+    "tom_tat": "Advertising Illustrator tạo hình minh họa cho chiến dịch quảng cáo — billboard, banner, social media, packaging — phản ánh ý tưởng và phong cách thương hiệu một cách trực quan, thu hút.",
+    "meta_title": "Họa sĩ minh họa quảng cáo là gì? Công việc, kỹ năng và lộ trình | CINS",
+    "meta_description": "Advertising Illustrator vẽ minh họa cho chiến dịch quảng cáo, packaging, social media. Tìm hiểu công việc, kỹ năng và lộ trình vào nghề.",
+    "nhom_slugs": ["nghe-minh-hoa-thuong-mai", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "5bd418b9-70d3-4724-bc5e-30904d4b34bc",
+    "slug": "nghe-kien-truc-animation-walkthrough-artist",
+    "tieu_de_viet": "Họa sĩ animation kiến trúc (Animation & Walkthrough Artist)",
+    "tom_tat": "Animation & Walkthrough Artist tạo video tour 3D cho công trình kiến trúc — camera di chuyển qua không gian, mô phỏng trải nghiệm thực để khách hàng hình dung trước khi xây.",
+    "meta_title": "Animation & Walkthrough Artist là gì? Công việc, kỹ năng và lộ trình | CINS",
+    "meta_description": "Animation Walkthrough Artist tạo video 3D tour công trình kiến trúc bằng Lumion, Twinmotion, 3ds Max. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-kien-truc-visualization", "nn-kien-truc-xay-dung"]
+  },
+  {
+    "id": "9d76a2bc-9409-4f69-82a0-0601eeb05507",
+    "slug": "nghe-hoat-hinh-animation-producer",
+    "tieu_de_viet": "Animation Producer",
+    "tom_tat": "Animation Producer điều phối toàn bộ dự án phim hoạt hình — từ ngân sách, timeline, hiring team, đến quan hệ với studio, network, distributor — đảm bảo phim ra mắt đúng kế hoạch và đạt mục tiêu.",
+    "meta_title": "Animation Producer là gì? Công việc, kỹ năng và lộ trình vào nghề | CINS",
+    "meta_description": "Animation Producer quản lý dự án phim hoạt hình từ A đến Z — ngân sách, team, lịch trình. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-hoat-hinh-quan-ly-san-xuat", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "187f18ff-af9c-4dbc-aaee-6241c9a5e16d",
+    "slug": "nghe-kien-truc-architect",
+    "tieu_de_viet": "Kiến trúc sư (Architect)",
+    "tom_tat": "Kiến trúc sư thiết kế công trình từ ý tưởng đến bản vẽ kỹ thuật — đảm bảo công trình đáp ứng chức năng, thẩm mỹ, an toàn và phù hợp môi trường, ngân sách của khách hàng.",
+    "meta_title": "Kiến trúc sư là gì? Công việc, kỹ năng và lộ trình vào nghề | CINS",
+    "meta_description": "Kiến trúc sư thiết kế nhà ở, công trình thương mại, công cộng từ concept đến bản vẽ kỹ thuật. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-kien-truc-thiet-ke", "nn-kien-truc-xay-dung"]
+  }
+]

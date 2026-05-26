@@ -1,0 +1,47 @@
+[
+  {
+    "id": "f438e8f8-ea2a-412c-9253-7cd705555593",
+    "slug": "nghe-dohoa-typography-designer",
+    "tieu_de_viet": "Typography Designer (Nhà thiết kế chữ)",
+    "tom_tat": "Typography Designer thiết kế typeface + font + chữ — từ system font cho OS đến custom typeface cho brand identity. Là intersection của design + technology + typography history. Helvetica, Comic Sans, San Francisco đều có Typography Designer.",
+    "meta_title": "Typography Designer là gì? Lộ trình | CINS",
+    "meta_description": "Typography Designer thiết kế typeface font chữ custom brand. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-dohoa-branding", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "ff337330-bfdf-450c-b71c-2f8676fe9acc",
+    "slug": "nghe-uiux-ui-designer",
+    "tieu_de_viet": "UI Designer (Nhà thiết kế giao diện)",
+    "tom_tat": "UI Designer thiết kế visual layer của digital product — typography, color, spacing, icon, component. Bridge giữa UX (logic + flow) và visual (look + feel). Critical cho product feeling premium + branded.",
+    "meta_title": "UI Designer là gì? Lộ trình nghề | CINS",
+    "meta_description": "UI Designer thiết kế visual interface app website. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-uiux-ui-design", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "62427930-b1b8-41a8-8906-fddf89d75b11",
+    "slug": "nghe-kien-truc-urban-designer",
+    "tieu_de_viet": "Urban Designer (Nhà thiết kế đô thị)",
+    "tom_tat": "Urban Designer thiết kế không gian đô thị tại scale block + neighborhood + district — street, plaza, park, transit hub. Bridge giữa Architecture (single building) và Urban Planning (region). Critical cho liveable city.",
+    "meta_title": "Urban Designer là gì? Lộ trình | CINS",
+    "meta_description": "Urban Designer thiết kế đô thị block neighborhood plaza park. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-kien-truc-thiet-ke", "nn-kien-truc-xay-dung"]
+  },
+  {
+    "id": "88901df1-b13d-4d6a-bd58-e32a1375d8e6",
+    "slug": "nghe-uiux-user-researcher",
+    "tieu_de_viet": "User Researcher (Nhà nghiên cứu người dùng)",
+    "tom_tat": "User Researcher tìm hiểu nhu cầu, hành vi, pain point của user qua interview, survey, usability test, ethnographic study. Cung cấp insight làm input cho design decision. Critical cho product không guess + grounded in user reality.",
+    "meta_title": "User Researcher là gì? Lộ trình | CINS",
+    "meta_description": "User Researcher interview usability test ethnographic survey. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-uiux-ux-research", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "3f788a3f-13e0-472b-aaaf-9c22a6ad954a",
+    "slug": "nghe-uiux-ux-designer",
+    "tieu_de_viet": "UX Designer (Nhà thiết kế trải nghiệm)",
+    "tom_tat": "UX Designer thiết kế flow + structure + interaction của digital product — wireframe, prototype, user journey, information architecture. Focus problem-solving + usability over visual. Là role nền tảng của product design discipline.",
+    "meta_title": "UX Designer là gì? Lộ trình nghề | CINS",
+    "meta_description": "UX Designer flow wireframe prototype user journey IA product. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-uiux-ux-design", "nn-my-thuat-thiet-ke"]
+  }
+]

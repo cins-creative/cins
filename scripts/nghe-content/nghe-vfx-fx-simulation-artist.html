@@ -1,0 +1,247 @@
+<section class="arc-intro">
+  <p>Khi <em>Doctor Strange</em> mở Mirror Dimension và thành phố bẻ cong, khi <em>Avengers: Endgame</em> dust effect bùng nổ, khi <em>Avatar 2</em> nước biển simulate hàng triệu particle realistic — bạn đang nhìn vào sản phẩm của FX / Simulation Artist. Họ tạo những element <em>không thể quay</em>.</p>
+  <p>FX Artist trong VFX là <strong>nghệ sĩ-kỹ sư hybrid</strong> — đứng giữa nghệ thuật và toán học. Họ dùng physics simulation (fluid dynamics, rigid body, soft body, particle) để tạo lửa, nước, khói, destruction, magic. Là một trong những role <em>technical phức tạp nhất</em> trong VFX.</p>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">01</span>FX / Simulation Artist là ai?</h2>
+  <p>FX / Simulation Artist (Họa sĩ mô phỏng) là <strong>chuyên gia tạo hiệu ứng dynamic dùng physics simulation</strong>. Phân loại theo specialty: (1) <strong>Fluid FX</strong> — water, ocean, splash, blood, lava; (2) <strong>Pyro / Combustion FX</strong> — fire, smoke, explosion; (3) <strong>Destruction FX</strong> — building collapse, glass shatter, rigid body break; (4) <strong>Particle FX</strong> — dust, magic spell, sparks, snow, leaves; (5) <strong>Cloth / Soft Body FX</strong> — flag, dress wave, soft tissue; (6) <strong>Hair / Fur FX</strong>; (7) <strong>Crowd Simulation</strong> — thousands character behavior (Massive software).</p>
+  <p>Khác với <strong>Compositor</strong> (layer plate + CG together) — FX Artist tạo CG element thực sự. Khác với <strong>3D Animator</strong> (keyframe character) — FX Artist procedural simulation. Khác với <strong>Lighter</strong> (light scene) — FX có lighting nhưng focus motion physics. Khác với <strong>TD/Technical Director</strong> (build tool) — FX Artist sử dụng tool nhưng có technical depth gần TD. Hợp tác chặt với: <strong>VFX Supervisor</strong>, <strong>CG Supervisor</strong>, <strong>Lighter</strong>, <strong>Compositor</strong>, <strong>Animator</strong>, <strong>FX Lead/TD</strong>.</p>
+  <ul class="arc-list">
+    <li>Setup <strong>simulation</strong> trong Houdini</li>
+    <li>Iterate <strong>parameter tuning</strong></li>
+    <li>Render simulation thành <strong>visual element</strong></li>
+    <li>Handoff cho compositor + lighter</li>
+  </ul>
+
+  <div class="arc-image-block arc-image-single">
+    <div class="arc-image-placeholder">
+      <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+      <span class="arc-img-hint-kw">"vfx fx simulation artist houdini fluid fire destruction particle visual effects film"</span>
+    </div>
+    <p class="arc-image-caption">FX Artist — physics simulation cho VFX</p>
+  </div>
+
+  <div class="arc-infobox">
+    <span class="arc-infobox-label">Vị trí trong quy trình sản xuất</span>
+    <p>FX Artist work trong <strong>3D production phase</strong> của VFX pipeline, sau modeling + before lighting/compositing. Báo cáo cho <strong>FX Lead / CG Supervisor / VFX Supervisor</strong>. Receive: <strong>animated character/camera</strong>, <strong>scene geometry</strong>, <strong>plate</strong>. Output: <strong>simulation cache</strong> (.bgeo, .vdb format) + render layer. Phối hợp với: <strong>Animator</strong> (sync action), <strong>Lighter</strong> (light simulation), <strong>Compositor</strong> (composite back into plate). Shot complex (Avatar water, Avengers destruction) — 1 shot có thể 4–12 tuần FX work. Project gồm 50–200 shot trải qua 6–18 tháng.</p>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">02</span>Công việc của một FX / Simulation Artist</h2>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">1. Brief + R&amp;D + concept</h3>
+    <p>Receive shot từ <strong>VFX Supervisor</strong>: action description, reference image (real footage, previous movie reference), look brief. Initial R&amp;D — research how to approach: which solver (FLIP cho fluid, Pyro cho fire/smoke, Bullet cho rigid, Vellum cho cloth/soft), reference real footage (slow-mo lửa, water tank shoot). Sketch approach with concept FX test.</p>
+    <ul class="arc-list">
+      <li><strong>Brief + reference</strong></li>
+      <li><strong>Solver choice</strong></li>
+      <li><strong>Concept test</strong></li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"vfx fx research reference real footage explosion fire water simulation study"</span>
+      </div>
+      <p class="arc-image-caption">Brief + R&amp;D</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">2. Simulation setup &amp; node network</h3>
+    <p>Build <strong>simulation setup</strong> trong <strong>Houdini</strong> (industry standard). Node-based workflow: import scene + character; define emitter (source — pipe nozzle, explosion point); set up solver (FLIP for water, Pyro for fire); add force (gravity, wind, curl noise); add collider (object character interact); set substep (resolution time); cache simulation. Low-res preview first (fast iteration), then high-res final. Houdini có thousand node — master qua year practice.</p>
+    <ul class="arc-list">
+      <li><strong>Houdini node network</strong></li>
+      <li><strong>Emitter + force + collider</strong></li>
+      <li><strong>Low-res → high-res</strong> iteration</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-grid-2">
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"houdini fx node network sidefx simulation setup professional 3d software"</span>
+        </div>
+        <p class="arc-image-caption">Houdini node network</p>
+      </div>
+      <div>
+        <div class="arc-image-placeholder">
+          <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+          <span class="arc-img-hint-kw">"fluid simulation flip houdini water splash physics render preview"</span>
+        </div>
+        <p class="arc-image-caption">Simulation iteration</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">3. Parameter tuning &amp; iteration</h3>
+    <p>FX day-to-day = <strong>parameter tuning</strong>. Adjust hundred parameter: substep count (accuracy vs time), viscosity, surface tension, vorticity, density, temperature. Wait cache (minute → hour per iteration). Review playblast với VFX Supervisor — get note ("more chaos", "less violent", "more arc"). Iterate. Final shot 20–80 simulation iteration. Mental endurance critical.</p>
+    <ul class="arc-list">
+      <li><strong>100s parameter</strong> to tune</li>
+      <li><strong>Cache wait</strong> minute–hour</li>
+      <li><strong>Review + note</strong> iterate</li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"vfx fx parameter tuning houdini simulation render artist tweaking professional"</span>
+      </div>
+      <p class="arc-image-caption">Parameter tuning + iteration</p>
+    </div>
+  </div>
+
+  <div class="arc-job-item">
+    <h3 class="arc-h3">4. Render &amp; handoff</h3>
+    <p>Final cache → <strong>render</strong>. Setup material/shader (fire emissive volume, water refractive surface), light, render layer. Render engine: <strong>Mantra</strong> (Houdini native), <strong>Karma</strong> (newer Houdini), <strong>Arnold</strong>, <strong>RenderMan</strong>. Frame render time: 30 phút - 5+ hour per frame. Output EXR multi-layer (beauty, depth, motion vector, AOV pass) → Compositor composite into plate.</p>
+    <ul class="arc-list">
+      <li><strong>Material + light</strong> simulation</li>
+      <li><strong>Render EXR</strong> multi-layer</li>
+      <li><strong>Handoff Compositor</strong></li>
+    </ul>
+
+    <div class="arc-image-block arc-image-single">
+      <div class="arc-image-placeholder">
+        <span class="arc-img-hint-label">Gợi ý tìm ảnh</span>
+        <span class="arc-img-hint-kw">"vfx render fx pass layer compositor handoff houdini arnold karma"</span>
+      </div>
+      <p class="arc-image-caption">Render + handoff</p>
+    </div>
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">03</span>FX / Simulation Artist cần giỏi gì?</h2>
+
+  <div class="arc-skill-grid">
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">🛠️</span>
+      <span>Houdini deep mastery</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">📋</span>
+      <span>Physics + math understanding</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">🎨</span>
+      <span>Visual reference + art eye</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">⚡</span>
+      <span>Iteration + patience</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">💬</span>
+      <span>Python + VEX scripting</span>
+    </div>
+    <div class="arc-skill-icon-item">
+      <span class="arc-skill-emoji">✨</span>
+      <span>Pipeline + render knowledge</span>
+    </div>
+  </div>
+
+  <div class="arc-accordion">
+
+    <details class="arc-card" open>
+      <summary>Houdini deep mastery</summary>
+      <div class="arc-card-body">
+        <p>Industry standard. <strong>SideFX Houdini</strong> dominate FX work — Pixar, ILM, Weta, MPC, Framestore all use. Learning curve steep — 6–12 tháng intensive trước productive. Resource: <strong>SideFX official tutorial</strong>, <strong>Rohan Dalvi</strong>, <strong>Steven Knipping</strong> (Applied Houdini series), <strong>Manuel Casasola Merkle</strong>, <strong>CGCircuit</strong>, <strong>Entagma</strong> youtube.</p>
+        <p>Focus 1–2 area first (cho pyro hoặc fluid) → expand qua year.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Physics + math understanding</summary>
+      <div class="arc-card-body">
+        <p>FX = applied physics. Hiểu: <strong>fluid dynamics</strong> (Navier-Stokes basic), <strong>rigid body</strong> dynamics, <strong>thermodynamics</strong> (heat → buoyancy fire), <strong>vector math</strong> (force direction, velocity), <strong>differential equation</strong> intuition. Không cần PhD nhưng intuitive grasp physics behavior critical.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Visual reference + art eye</summary>
+      <div class="arc-card-body">
+        <p>FX phải look right — physics correct không enough. Study real footage: slow-mo splash, fire video, demolition video. Library Pinterest / Save. Reference dataset: <strong>Phantom HighSpeed footage</strong>, <strong>BlackmagicDesign URSA Mini Pro 12K</strong> slow-mo, <strong>VFX Reference Platform</strong>. Develop art eye qua nghiên cứu painting (Turner storm water, Hokusai wave).</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Iteration + patience</summary>
+      <div class="arc-card-body">
+        <p>Simulation slow. Cache hour, render hour. Tuning need patience. Build "background workflow" — start sim → work else (R&amp;D, email, learning) → review → iterate. Maintain morale through long tweak. Mental health protect.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Python + VEX scripting</summary>
+      <div class="arc-card-body">
+        <p>Houdini có <strong>VEX</strong> (proprietary C-like) + <strong>Python</strong> integration. Scripting unlock advanced control: custom force, procedural setup, pipeline tool. Mid-senior FX phải Python + VEX productive. Resource: <strong>Junichiro Horikawa</strong>, <strong>Matt Estela cgwiki</strong>.</p>
+      </div>
+    </details>
+
+    <details class="arc-card">
+      <summary>Pipeline + render knowledge</summary>
+      <div class="arc-card-body">
+        <p>Hiểu VFX pipeline: USD scene description, geometry cache format, render farm, AOV passes, color space (ACES). Tool: <strong>Shotgrid/Flow Production</strong>, <strong>Deadline</strong> render farm, <strong>Nuke</strong> compositing basic.</p>
+      </div>
+    </details>
+
+  </div>
+</section>
+
+<section class="arc-section">
+  <h2 class="arc-h2"><span class="arc-num">04</span>Làm cách nào để trở thành FX / Simulation Artist?</h2>
+  <div class="arc-path">
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">1</div>
+      <div class="arc-step-body">
+        <strong>Học 3D / VFX + math/physics 3–4 năm</strong>
+        <p>Background phù hợp: <strong>Computer Animation</strong>, <strong>VFX</strong>, <strong>Computer Graphics</strong>; bonus <strong>Computer Science</strong>, <strong>Physics</strong>, <strong>Engineering</strong>. VN: <strong>FPT Polytechnic Digital Art</strong>, <strong>ĐH Sân khấu Điện ảnh</strong>, <strong>RMIT Digital Film &amp; Animation</strong>. Quốc tế top: <strong>Gnomon School (LA)</strong>, <strong>SCAD</strong>, <strong>NCCA Bournemouth</strong>, <strong>Vancouver Film School</strong>, <strong>ESMA France</strong>, <strong>Think Tank Training</strong>. Plus: math/physics class strongly bonus.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">2</div>
+      <div class="arc-step-body">
+        <strong>Self-learn Houdini 1–2 năm intensive</strong>
+        <p>Critical step. Buy <strong>Houdini Indie license</strong> ($269/year reasonable). Follow tutorial: <strong>SideFX official</strong>, <strong>Applied Houdini (Steven Knipping)</strong>, <strong>Pluralsight</strong>, <strong>CGMA / CGSpectrum</strong> online course. Build 3–5 FX reel: pyro explosion, water splash, destruction sequence, particle magic. Reel critical job application.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">3</div>
+      <div class="arc-step-body">
+        <strong>Junior FX Artist / FX TD trainee</strong>
+        <p>Apply junior FX. VN VFX studio: <strong>BadClay Studio</strong>, <strong>Sparx*</strong>, <strong>Glassegg</strong>, <strong>Virtuos</strong>; international remote: <strong>The Mill</strong>, <strong>MPC</strong>, <strong>Framestore</strong>, <strong>Method</strong>, <strong>Weta</strong>, <strong>ILM</strong>. Junior tasks: simple FX shot (small explosion, dust kick, smoke trail), under FX Lead supervision. 2–4 năm.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">4</div>
+      <div class="arc-step-body">
+        <strong>Mid FX Artist — own complex shot</strong>
+        <p>4–7 năm — own complex shot. Specialty develop: pyro specialist, fluid specialist, destruction specialist. Work on featured VFX movie/series.</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">5</div>
+      <div class="arc-step-body">
+        <strong>Senior FX Artist / FX Lead</strong>
+        <p>7–10 năm — senior. Lead FX team trên show, mentor junior. Tackle hardest shot. Possibly transition FX TD (build tool + pipeline).</p>
+      </div>
+    </div>
+
+    <div class="arc-path-step">
+      <div class="arc-step-num">6</div>
+      <div class="arc-step-body">
+        <strong>Sự nghiệp FX / Simulation Artist</strong>
+        <p>Long-term path: (1) <strong>Senior FX Artist</strong> tại top studio (ILM, Weta, MPC, Framestore); (2) <strong>FX Supervisor</strong> — oversee FX team show-wide; (3) <strong>CG Supervisor</strong> — broader CG oversight; (4) <strong>FX TD / R&amp;D</strong> — build tool + new technique (Pixar, DreamWorks R&amp;D); (5) <strong>Crossover game</strong> — Naughty Dog, Riot, Epic Games VFX position; (6) <strong>Real-time FX</strong> — Unreal Engine Niagara, Unity VFX Graph; (7) <strong>Freelance / Studio founder</strong>. Lương: VN junior 18–35M/tháng; mid 35–80M; senior 80M–250M+; FX TD 100M–300M+. International: junior $60K-$90K; senior $130K-$250K; FX Supervisor $250K-$500K+. Một trong những highest-paid technical role VFX.</p>
+      </div>
+    </div>
+
+  </div>
+</section>

@@ -1,0 +1,47 @@
+[
+  {
+    "id": "9b98d6a4-dd04-46c3-9394-11187eef413f",
+    "slug": "nghe-comic-community-manager",
+    "tieu_de_viet": "Community Manager (Quản lý cộng đồng comic)",
+    "tom_tat": "Community Manager trong comic/webtoon xây dựng và nurture fan community trên Discord, Twitter, Reddit — engage với reader, run event, manage feedback, là cầu nối giữa Creator và fan.",
+    "meta_title": "Community Manager comic/webtoon là gì? Lộ trình | CINS",
+    "meta_description": "Community Manager xây dựng fan community cho comic, webtoon. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-comic-phat-hanh", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "0bb41ed0-9fba-4391-91af-20159057734c",
+    "slug": "nghe-phim-compositor",
+    "tieu_de_viet": "Compositor phim",
+    "tom_tat": "Compositor phim tích hợp nhiều layer hình ảnh — live plate, CG, matte painting, effect — thành 1 frame final seamless, đảm bảo VFX shot khớp với cinematography overall.",
+    "meta_title": "Compositor phim là gì? Công việc, kỹ năng và lộ trình | CINS",
+    "meta_description": "Compositor phim tích hợp VFX, CG, plate thành shot final với Nuke, After Effects. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-phim-hau-ky", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "ef67e75b-a9ac-4918-a17c-c168d5691b2d",
+    "slug": "nghe-hoat-hinh-compositor",
+    "tieu_de_viet": "Compositor phim hoạt hình",
+    "tom_tat": "Compositor phim hoạt hình tích hợp character animation, background painting, effect layer — add lighting, motion blur, depth of field — biến scene thành final cinematic frame.",
+    "meta_title": "Compositor hoạt hình là gì? Công việc, kỹ năng và lộ trình | CINS",
+    "meta_description": "Compositor hoạt hình tích hợp animation, background, effect cho phim. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-hoat-hinh-hau-ky", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "77290aaa-9b4f-4a6e-9f3a-45ed5c14c3e2",
+    "slug": "nghe-vfx-compositor",
+    "tieu_de_viet": "Compositor VFX",
+    "tom_tat": "Compositor VFX là vai trò cuối trong VFX pipeline — tích hợp CG render với live plate trong Nuke, làm cho CG element trông như đã được quay thật, là cây cầu cuối nối CG và reality.",
+    "meta_title": "Compositor VFX là gì? Công việc, kỹ năng và lộ trình | CINS",
+    "meta_description": "Compositor VFX tích hợp CG với live plate trong Nuke. Tìm hiểu công việc, kỹ năng và lộ trình vào nghề.",
+    "nhom_slugs": ["nghe-vfx-compositing", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "af47b90a-04ce-473d-82a9-1e626d009962",
+    "slug": "nghe-hoat-hinh-concept-artist",
+    "tieu_de_viet": "Concept Artist phim hoạt hình",
+    "tom_tat": "Concept Artist trong phim hoạt hình thiết kế visual concept — character, environment, prop, key scene — đặt nền tảng visual cho cả phim trước khi đi vào sản xuất chính thức.",
+    "meta_title": "Concept Artist hoạt hình là gì? Lộ trình vào nghề | CINS",
+    "meta_description": "Concept Artist phim hoạt hình thiết kế visual cho character, environment. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-hoat-hinh-tien-san-xuat", "nn-bao-chi-truyen-thong"]
+  }
+]

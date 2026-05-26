@@ -1,0 +1,47 @@
+[
+  {
+    "id": "f8bd4442-06b9-4603-ba2a-4c63ad18552b",
+    "slug": "nghe-comic-merchandise-designer",
+    "tieu_de_viet": "Merchandise Designer comic (Nhà thiết kế merchandise)",
+    "tom_tat": "Merchandise Designer comic thiết kế sản phẩm có in/dùng character từ comic + manga + IP — figure, apparel, accessory, stationery. Là cầu nối creative giữa IP holder + retail manufacturer, monetize fanbase.",
+    "meta_title": "Merchandise Designer comic là gì? | CINS",
+    "meta_description": "Merchandise Designer comic thiết kế figure, apparel, accessory IP. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-comic-phat-hanh", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "14ee390a-e8c3-4a15-b4ef-591944827b79",
+    "slug": "nghe-thoitrang-mood-board-designer",
+    "tieu_de_viet": "Mood Board Designer thời trang",
+    "tom_tat": "Mood Board Designer trong fashion industry là chuyên gia tạo visual reference board — curate hình ảnh, màu sắc, texture, typography để define mood + direction cho collection / campaign. Foundation cho creative direction.",
+    "meta_title": "Mood Board Designer thời trang là gì? | CINS",
+    "meta_description": "Mood Board Designer thời trang curate visual reference collection. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-thoitrang-nghien-cuu", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "c20b1aec-6e74-442d-b3e9-ba33bcd7a5cf",
+    "slug": "nghe-vfx-motion-design-director",
+    "tieu_de_viet": "Motion Design Director (Giám đốc motion design)",
+    "tom_tat": "Motion Design Director lead motion design team — strategic visual direction cho project (TV title sequence, ad, brand video, music video). Là role creative leadership top trong motion graphic industry.",
+    "meta_title": "Motion Design Director là gì? | CINS",
+    "meta_description": "Motion Design Director lead motion graphic team strategic. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-vfx-motion-graphics", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "8d64609b-3bd1-43b2-8412-88529fc70dca",
+    "slug": "nghe-vfx-motion-designer",
+    "tieu_de_viet": "Motion Designer (Nhà thiết kế chuyển động)",
+    "tom_tat": "Motion Designer thiết kế + animate graphic cho video, brand, ad, title sequence, app — kết hợp 2D graphic, typography, illustration với motion (animation). Là craft kết hợp graphic design + animation.",
+    "meta_title": "Motion Designer là gì? Lộ trình nghề | CINS",
+    "meta_description": "Motion Designer thiết kế chuyển động đồ họa video brand ad. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-vfx-motion-graphics", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "41e6298c-6ffa-486c-9d2f-9c256cae98f5",
+    "slug": "nghe-uiux-motion-designer-ui",
+    "tieu_de_viet": "Motion Designer UI (Nhà thiết kế chuyển động UI)",
+    "tom_tat": "UI Motion Designer thiết kế motion (animation, transition, micro-interaction) cho digital product — app, website. Khác Motion Designer general (broadcast / brand), UI Motion focus tích hợp interface + interaction.",
+    "meta_title": "UI Motion Designer là gì? | CINS",
+    "meta_description": "UI Motion Designer thiết kế motion cho app website digital. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-uiux-ui-design", "nn-my-thuat-thiet-ke"]
+  }
+]

@@ -816,6 +816,39 @@
   background: transparent;
 }
 
+/* Card nghề đã có thumbnail: nền trắng, bỏ vòng tròn dept, ảnh full bleed */
+.hn-role-card .hn-role-thumb--has-img,
+.hn-role-card[data-dept="strategy"] .hn-role-thumb--has-img,
+.hn-role-card[data-dept="production"] .hn-role-thumb--has-img,
+.hn-role-card[data-dept="creative"] .hn-role-thumb--has-img,
+.hn-role-card[data-dept="digital"] .hn-role-thumb--has-img,
+.hn-role-card[data-dept="research"] .hn-role-thumb--has-img {
+  background: var(--bg-surface, #fff);
+  padding: 0;
+}
+
+.hn-role-thumb--has-img::before {
+  display: none;
+  content: none;
+}
+
+.hn-role-thumb--has-img .career-hub-card-img {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 0;
+  object-fit: cover;
+  object-position: center;
+  border-radius: 0;
+  background: transparent;
+}
+
 .hn-role-body {
   padding: 16px 18px 18px;
   display: flex;

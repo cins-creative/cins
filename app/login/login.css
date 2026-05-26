@@ -1,0 +1,423 @@
+/* ===========================================================
+   CINs Login — design tokens aligned (cins-design-tokens.css)
+   =========================================================== */
+
+.cins-login-page {
+  position: relative;
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  background: var(--bg-page);
+  color: var(--ink-body);
+  font-family: var(--font-sans);
+  overflow: hidden;
+}
+
+/* ── Floating gradient blobs (giống promo-banner) ── */
+.cins-login-bg-deco {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+.cins-login-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.45;
+}
+.cins-login-blob--y {
+  width: 380px;
+  height: 380px;
+  background: var(--cins-yellow);
+  top: -120px;
+  right: 8%;
+}
+.cins-login-blob--m {
+  width: 320px;
+  height: 320px;
+  background: var(--cins-mint);
+  bottom: -100px;
+  left: 6%;
+}
+.cins-login-blob--o {
+  width: 260px;
+  height: 260px;
+  background: var(--cins-orange);
+  top: 45%;
+  right: -80px;
+  opacity: 0.4;
+}
+.cins-login-blob--v {
+  width: 220px;
+  height: 220px;
+  background: var(--cins-violet);
+  top: 35%;
+  left: -60px;
+  opacity: 0.35;
+}
+
+/* ── Top nav ── */
+.cins-login-top {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-5) var(--space-8);
+  max-width: 1280px;
+  margin: 0 auto;
+  width: 100%;
+}
+.cins-login-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-weight: var(--weight-extrabold);
+  font-size: 22px;
+  color: var(--ink-display);
+  letter-spacing: -0.3px;
+}
+.cins-login-logo-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: var(--cins-blue);
+  color: #fff;
+  font-weight: 800;
+  font-size: 18px;
+  box-shadow: var(--shadow-sm);
+}
+.cins-login-logo-text {
+  display: inline-flex;
+  align-items: baseline;
+  letter-spacing: -0.5px;
+}
+.cins-login-logo-dot {
+  color: var(--cins-blue);
+  font-size: 1.4em;
+  line-height: 0.5;
+  margin: 0 1px;
+}
+.cins-login-back {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--ink-title);
+  padding: 8px 14px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  transition:
+    transform 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+.cins-login-back:hover {
+  color: var(--cins-blue);
+  border-color: var(--cins-blue);
+  transform: translateX(-2px);
+}
+
+/* ── Main area: centered card ── */
+.cins-login-main {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  padding: var(--space-6) var(--space-5) var(--space-10);
+}
+
+.cins-login-card {
+  position: relative;
+  width: min(480px, 100%);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: 36px 36px 32px;
+  box-shadow:
+    var(--shadow-lg),
+    0 0 0 6px rgba(255, 255, 255, 0.6);
+  text-align: left;
+}
+
+/* ── Headings ── */
+.cins-login-eyebrow {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--ink-muted);
+  text-transform: lowercase;
+  letter-spacing: 0.2px;
+  margin-bottom: 8px;
+}
+.cins-login-title {
+  font-family: var(--font-display);
+  font-size: clamp(32px, 4vw, 40px);
+  font-weight: var(--weight-extrabold);
+  line-height: 1.1;
+  letter-spacing: -0.6px;
+  color: var(--cins-blue);
+  margin-bottom: 12px;
+}
+.cins-login-title em {
+  font-style: italic;
+  font-family: var(--font-serif);
+  font-weight: 600;
+  color: var(--ink-display);
+}
+.cins-login-sub {
+  font-size: var(--text-sm);
+  line-height: 1.55;
+  color: var(--ink-body);
+  margin-bottom: 22px;
+}
+
+/* ── Error banner ── */
+.cins-login-banner {
+  display: flex;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  margin-bottom: 18px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.cins-login-banner strong {
+  display: block;
+  font-weight: var(--weight-bold);
+  color: var(--ink-display);
+  margin-bottom: 2px;
+}
+.cins-login-banner p {
+  color: var(--ink-body);
+  margin: 0;
+  word-break: break-word;
+}
+.cins-login-banner-dot {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-top: 5px;
+}
+.cins-login-banner--err {
+  background: #fff0f1;
+  border: 1px solid #f5c8ca;
+}
+.cins-login-banner--err .cins-login-banner-dot {
+  background: var(--danger);
+}
+
+/* ── Google buttons (primary register + secondary login) ── */
+.cins-login-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.cins-login-google {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 22px;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 15px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    border-color 0.15s ease,
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+/* Primary — Đăng ký với Google */
+.cins-login-google--primary {
+  background: var(--cins-blue);
+  color: #fff;
+  border: 1.5px solid var(--cins-blue);
+  box-shadow:
+    var(--shadow-sm),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+.cins-login-google--primary .cins-login-google-ico {
+  background: #fff;
+  border-radius: 6px;
+  padding: 2px;
+}
+.cins-login-google--primary:hover:not(:disabled) {
+  background: var(--cins-blue-dark);
+  border-color: var(--cins-blue-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+.cins-login-google--primary:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: var(--shadow-xs);
+}
+
+/* Secondary — Đăng nhập với Google */
+.cins-login-google--secondary {
+  background: var(--bg-surface);
+  color: var(--ink-display);
+  border: 1.5px solid var(--border-strong);
+  box-shadow:
+    var(--shadow-xs),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+.cins-login-google--secondary:hover:not(:disabled) {
+  border-color: var(--cins-blue);
+  background: var(--cins-blue-soft);
+  transform: translateY(-1px);
+  box-shadow:
+    var(--shadow-sm),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+.cins-login-google--secondary:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: var(--shadow-xs);
+}
+
+.cins-login-google:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+.cins-login-google-ico {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+}
+.cins-login-google-label {
+  letter-spacing: 0.1px;
+}
+.cins-login-spin {
+  color: currentColor;
+  animation: cins-login-rot 0.9s linear infinite;
+}
+@keyframes cins-login-rot {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.cins-login-error {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--danger);
+  line-height: 1.45;
+}
+
+/* ── Hint divider giữa actions và bullets ── */
+.cins-login-hint {
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--ink-muted);
+  margin: 0 0 22px;
+  padding: 10px 14px;
+  background: var(--neutral-50);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--cins-yellow);
+}
+.cins-login-hint strong {
+  color: var(--ink-title);
+  font-weight: var(--weight-semibold);
+}
+
+/* ── Bullets ── */
+.cins-login-bullets {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.cins-login-bullets li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ink-body);
+}
+.cins-login-bullets strong {
+  color: var(--ink-display);
+  font-weight: var(--weight-semibold);
+}
+.cins-login-bullet-ico {
+  flex-shrink: 0;
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--cins-blue-soft);
+  color: var(--cins-blue);
+  font-size: 11px;
+  font-weight: 800;
+  margin-top: 1px;
+}
+
+/* ── Fineprint ── */
+.cins-login-fineprint {
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--ink-muted);
+  margin: 0;
+}
+.cins-login-fineprint a {
+  color: var(--cins-blue);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.cins-login-fineprint a:hover {
+  color: var(--cins-blue-dark);
+}
+
+/* ── Footer ── */
+.cins-login-footer {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px var(--space-8);
+  max-width: 1280px;
+  margin: 0 auto;
+  width: 100%;
+  font-size: 12.5px;
+  color: var(--ink-muted);
+}
+.cins-login-footer-links {
+  display: flex;
+  gap: 16px;
+}
+.cins-login-footer-links a:hover {
+  color: var(--cins-blue);
+}
+
+/* ── Responsive ── */
+@media (max-width: 640px) {
+  .cins-login-top,
+  .cins-login-footer {
+    padding-left: var(--space-5);
+    padding-right: var(--space-5);
+  }
+  .cins-login-card {
+    padding: 30px 22px 26px;
+    border-radius: var(--radius-lg);
+  }
+  .cins-login-footer {
+    flex-direction: column;
+    gap: 8px;
+    text-align: center;
+  }
+}

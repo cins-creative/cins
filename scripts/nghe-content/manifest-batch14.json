@@ -1,0 +1,47 @@
+[
+  {
+    "id": "855fe98d-0e23-486b-93d9-abb3513ad04d",
+    "slug": "nghe-thoitrang-design-director",
+    "tieu_de_viet": "Design Director thời trang",
+    "tom_tat": "Design Director thời trang lead toàn bộ design team của thương hiệu — coordinate các category (RTW, accessories, footwear), đảm bảo collection thống nhất và execute đúng vision của Creative Director.",
+    "meta_title": "Design Director thời trang là gì? Lộ trình | CINS",
+    "meta_description": "Design Director thời trang lead team design các category, đảm bảo collection consistent. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-thoitrang-quan-ly-san-xuat", "nn-kien-truc-xay-dung"]
+  },
+  {
+    "id": "84785803-a098-483f-ae53-c6d4610d38a4",
+    "slug": "nghe-kien-truc-design-manager",
+    "tieu_de_viet": "Design Manager kiến trúc",
+    "tom_tat": "Design Manager kiến trúc quản lý team thiết kế của studio kiến trúc — coordinate Kiến trúc sư, giám sát timeline, communicate với client — đảm bảo dự án giao đúng tiến độ và chất lượng thiết kế.",
+    "meta_title": "Design Manager kiến trúc là gì? Lộ trình | CINS",
+    "meta_description": "Design Manager kiến trúc quản lý team thiết kế, timeline và client. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-kien-truc-quan-ly-du-an", "nn-kien-truc-xay-dung"]
+  },
+  {
+    "id": "96aebeac-4853-4b02-ab00-61c81e31eb62",
+    "slug": "nghe-uiux-design-manager",
+    "tieu_de_viet": "Design Manager UI/UX",
+    "tom_tat": "Design Manager UI/UX manage team designer — 1:1, career development, hiring, performance review. Là người làm growth của designer trong team thay vì làm design tay.",
+    "meta_title": "Design Manager UI/UX là gì? Lộ trình | CINS",
+    "meta_description": "Design Manager UI/UX manage team, focus people development, hiring, performance. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-uiux-quan-ly-san-xuat", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "1a9d1cf0-3726-41a4-8290-723374cbeee8",
+    "slug": "nghe-uiux-design-systems-designer",
+    "tieu_de_viet": "Design Systems Designer",
+    "tom_tat": "Design Systems Designer thiết kế và maintain component library &amp; design language của sản phẩm — button, input, color token, spacing — đảm bảo designer và engineer dùng chung ngôn ngữ.",
+    "meta_title": "Design Systems Designer là gì? Lộ trình | CINS",
+    "meta_description": "Design Systems Designer build component library, token, design language thống nhất. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-uiux-ui-design", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "9576f081-578f-4b8a-952f-2b7b634d4d0b",
+    "slug": "nghe-dohoa-digital-designer",
+    "tieu_de_viet": "Digital Designer",
+    "tom_tat": "Digital Designer thiết kế visual cho mọi kênh digital — website, banner ads, social media, email — biến brand thành asset digital consistent và performant.",
+    "meta_title": "Digital Designer là gì? Lộ trình vào nghề | CINS",
+    "meta_description": "Digital Designer thiết kế cho website, ads, social, email. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-dohoa-digital-social", "nn-my-thuat-thiet-ke"]
+  }
+]

@@ -9,5 +9,6 @@ export function articlePublicHref(
   if (loai === "nghe") return `/nghe-nghiep/${s}`;
   if (loai === "keyword") return `/keyword/${s}`;
   if (loai === "phan_mem") return `/software/${s}`;
+  if (loai === "nganh_dao_tao") return `/nganh-hoc/${s}`;
   return `/bai-viet/${s}`;
 }

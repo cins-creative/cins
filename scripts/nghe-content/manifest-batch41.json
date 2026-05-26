@@ -1,0 +1,47 @@
+[
+  {
+    "id": "e3d9dd75-0bcc-4d16-a46b-d23d40efb657",
+    "slug": "nghe-dohoa-signage-designer",
+    "tieu_de_viet": "Signage Designer (Nhà thiết kế biển hiệu)",
+    "tom_tat": "Signage Designer thiết kế hệ thống biển hiệu + wayfinding cho sân bay, bệnh viện, museum, mall, public transit. Là intersection của graphic design + environmental design + UX. Critical cho navigation + safety + brand experience.",
+    "meta_title": "Signage Designer là gì? Lộ trình | CINS",
+    "meta_description": "Signage Designer thiết kế biển hiệu wayfinding sân bay mall. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-dohoa-environmental", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "ce19a519-de35-4cd9-8a20-4059b39683e3",
+    "slug": "nghe-kien-truc-site-architect",
+    "tieu_de_viet": "Site Architect (Kiến trúc sư giám sát công trình)",
+    "tom_tat": "Site Architect là kiến trúc sư on-site giám sát construction — đảm bảo build đúng design intent + spec + code. Bridge giữa design office + construction crew. Critical cho project quality + delivery.",
+    "meta_title": "Site Architect là gì? Lộ trình nghề | CINS",
+    "meta_description": "Site Architect giám sát construction on site đảm bảo design intent. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-kien-truc-thiet-ke", "nn-kien-truc-xay-dung"]
+  },
+  {
+    "id": "7c2a3ae6-c943-4463-ba16-0804bdb52239",
+    "slug": "nghe-dohoa-social-media-designer",
+    "tieu_de_viet": "Social Media Designer (Nhà thiết kế mạng xã hội)",
+    "tom_tat": "Social Media Designer thiết kế visual content cho social platform — Instagram, TikTok, Facebook, LinkedIn, YouTube. Static post + story + reel + thumbnail. Là role hot tại agency + brand + creator economy.",
+    "meta_title": "Social Media Designer là gì? | CINS",
+    "meta_description": "Social Media Designer thiết kế visual Instagram TikTok Facebook content. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-dohoa-digital-social", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "988edd2d-4abc-4575-801d-fad13b6c1a14",
+    "slug": "nghe-hoat-hinh-sound-designer",
+    "tieu_de_viet": "Sound Designer hoạt hình (Nhà thiết kế âm thanh)",
+    "tom_tat": "Sound Designer hoạt hình design + create sound effect + ambience + Foley cho animation. Vì animation không có production sound, mọi audio là designed. Critical role shape animation feeling + storytelling.",
+    "meta_title": "Sound Designer hoạt hình là gì? | CINS",
+    "meta_description": "Sound Designer hoạt hình design sound effect Foley ambience. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-hoat-hinh-am-thanh", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "11f17339-2267-464f-b53c-7ee595d8eb9e",
+    "slug": "nghe-phim-sound-designer",
+    "tieu_de_viet": "Sound Designer phim (Nhà thiết kế âm thanh)",
+    "tom_tat": "Sound Designer phim create signature sound + sonic palette cho phim — từ creature roar đến futuristic interface bleep đến surreal atmosphere. Là creative sonic storyteller. Star Wars lightsaber, Inception BWAAH iconic sound đều từ Sound Designer.",
+    "meta_title": "Sound Designer phim là gì? Lộ trình | CINS",
+    "meta_description": "Sound Designer phim create signature sound sonic palette. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-phim-am-thanh", "nn-bao-chi-truyen-thong"]
+  }
+]

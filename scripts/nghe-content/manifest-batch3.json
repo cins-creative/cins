@@ -1,0 +1,47 @@
+[
+  {
+    "id": "740975a2-1717-4e8b-bf90-953a334552b1",
+    "slug": "nghe-vfx-3d-motion-artist",
+    "tieu_de_viet": "3D Motion Artist",
+    "tom_tat": "3D Motion Artist dùng phần mềm 3D và motion graphics để tạo ra animation cho quảng cáo, logo, broadcast, hợp chất Cinema 4D, Houdini và After Effects để hoàn thiện.",
+    "meta_title": "3D Motion Artist là gì? Công việc, kỹ năng và lộ trình vào nghề | CINS",
+    "meta_description": "3D Motion Artist tạo motion graphics 3D cho quảng cáo, brand, broadcast bằng Cinema 4D và After Effects. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-vfx-motion-graphics", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "141c6521-3411-4cbc-a616-1032601ab1d8",
+    "slug": "nghe-3d-3d-project-manager",
+    "tieu_de_viet": "3D Project Manager (Quản lý dự án 3D)",
+    "tom_tat": "3D Project Manager điều phối team artist, timeline, ngân sách và liên lạc khách hàng — đảm bảo dự án 3D giao đúng hạn, đúng chất lượng và trong ngân sách cho phép.",
+    "meta_title": "3D Project Manager là gì? Công việc, kỹ năng và lộ trình | CINS",
+    "meta_description": "3D Project Manager quản lý timeline, team, ngân sách và khách hàng cho dự án 3D. Tìm hiểu công việc, kỹ năng và lộ trình vào nghề.",
+    "nhom_slugs": ["nghe-3d-quan-ly-san-xuat", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "ddda75da-4c39-4b5c-992c-82219af33cd8",
+    "slug": "nghe-kien-truc-3d-visualizer",
+    "tieu_de_viet": "3D Visualizer kiến trúc (Họa sĩ dựng hình 3D)",
+    "tom_tat": "3D Visualizer kiến trúc biến bản vẽ kỹ thuật và ý tưởng kiến trúc sư thành hình ảnh render quang thực — phục vụ thuyết phục khách hàng, marketing dự án và pháp lý xây dựng.",
+    "meta_title": "3D Visualizer kiến trúc là gì? Công việc, kỹ năng và lộ trình | CINS",
+    "meta_description": "3D Visualizer kiến trúc tạo render quang thực từ bản vẽ kiến trúc bằng 3ds Max, Corona, V-Ray. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-kien-truc-visualization", "nn-kien-truc-xay-dung"]
+  },
+  {
+    "id": "23166d61-d28e-468a-9482-d32c54733e02",
+    "slug": "nghe-uiux-accessibility-designer",
+    "tieu_de_viet": "Accessibility Designer (Nhà thiết kế tiếp cận)",
+    "tom_tat": "Accessibility Designer đảm bảo sản phẩm số (web, app) sử dụng được bởi tất cả mọi người — bao gồm người khiếm thị, khiếm thính, vận động khó khăn hoặc gặp khó với màu sắc.",
+    "meta_title": "Accessibility Designer là gì? Công việc, kỹ năng và lộ trình | CINS",
+    "meta_description": "Accessibility Designer thiết kế sản phẩm số phù hợp WCAG, screen reader, keyboard navigation. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-uiux-ux-design", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "e04fd65e-7791-49ee-bb3b-4190ea1a9c30",
+    "slug": "nghe-thoitrang-accessories-designer",
+    "tieu_de_viet": "Accessories Designer (Nhà thiết kế phụ kiện)",
+    "tom_tat": "Accessories Designer thiết kế phụ kiện thời trang — túi xách, giày, mũ, trang sức, kính, thắt lưng — đảm bảo phụ kiện hài hòa với bộ sưu tập trang phục và phản ánh tinh thần thương hiệu.",
+    "meta_title": "Accessories Designer là gì? Công việc, kỹ năng và lộ trình | CINS",
+    "meta_description": "Accessories Designer thiết kế túi xách, giày, trang sức cho thương hiệu thời trang. Tìm hiểu công việc, kỹ năng và lộ trình vào nghề.",
+    "nhom_slugs": ["nghe-thoitrang-ky-thuat", "nn-kien-truc-xay-dung"]
+  }
+]

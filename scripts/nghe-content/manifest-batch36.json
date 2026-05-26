@@ -1,0 +1,47 @@
+[
+  {
+    "id": "3000a6a2-7c1c-4cfa-92b1-9940dc4aa18c",
+    "slug": "nghe-dohoa-project-manager",
+    "tieu_de_viet": "Project Manager đồ họa (Quản lý dự án thiết kế)",
+    "tom_tat": "Project Manager đồ họa quản lý project design — từ kick-off đến delivery + invoice. Là bridge giữa client + creative team, manage timeline + budget + scope. Critical role tại agency + design studio.",
+    "meta_title": "Project Manager đồ họa là gì? | CINS",
+    "meta_description": "Project Manager đồ họa quản lý project design agency. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-dohoa-quan-ly-san-xuat", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "16f88d33-e866-4924-839c-b7deb0fe01f4",
+    "slug": "nghe-phim-props-master",
+    "tieu_de_viet": "Props Master phim (Quản lý đạo cụ)",
+    "tom_tat": "Props Master phim quản lý toàn bộ prop (đạo cụ) trong phim — tìm + tạo + maintain + on-set deploy. Từ Indiana Jones whip đến Harry Potter wand — mỗi iconic prop là tác phẩm Props Master.",
+    "meta_title": "Props Master phim là gì? Lộ trình | CINS",
+    "meta_description": "Props Master phim quản lý đạo cụ on set. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-phim-san-xuat", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "ab344aa1-3eb4-414b-a03e-fb0be9b0d9c8",
+    "slug": "nghe-dohoa-publication-designer",
+    "tieu_de_viet": "Publication Designer (Nhà thiết kế ấn phẩm)",
+    "tom_tat": "Publication Designer thiết kế editorial — magazine, book, newspaper, annual report, catalog. Layout typography heavy, image + text balance, narrative visual. Là classic graphic design craft.",
+    "meta_title": "Publication Designer là gì? | CINS",
+    "meta_description": "Publication Designer thiết kế magazine, book, editorial. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-dohoa-print-editorial", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "38fa70b7-eff6-4c26-9610-542c1642981b",
+    "slug": "nghe-phim-publicist",
+    "tieu_de_viet": "Publicist phim (PR phim)",
+    "tom_tat": "Publicist phim quản lý PR + media + publicity cho phim — press release, junket, premiere event, awards campaign, talent media training. Critical cho film success ở box office + critical reception.",
+    "meta_title": "Publicist phim là gì? Lộ trình | CINS",
+    "meta_description": "Publicist phim quản lý PR media awards campaign. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-phim-phat-hanh", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "f945aca0-43be-4219-bbae-f7cbf6e839a8",
+    "slug": "nghe-thoitrang-quality-control-specialist",
+    "tieu_de_viet": "Quality Control Specialist thời trang",
+    "tom_tat": "Quality Control Specialist thời trang kiểm tra chất lượng garment ở mọi giai đoạn production — fabric inspection, mid-production check, final inspection trước ship. Đảm bảo product brand standard + customer expectation.",
+    "meta_title": "Quality Control Specialist thời trang là gì? | CINS",
+    "meta_description": "QC Specialist thời trang kiểm tra chất lượng garment factory. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-thoitrang-kiem-soat-cl", "nn-kien-truc-xay-dung"]
+  }
+]

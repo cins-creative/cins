@@ -1,0 +1,47 @@
+[
+  {
+    "id": "cb728ac0-2c5d-4b0f-b804-87b7d20015d9",
+    "slug": "nghe-comic-mangaka",
+    "tieu_de_viet": "Mangaka (Tác giả manga)",
+    "tom_tat": "Mangaka là tác giả truyện tranh Nhật Bản — vừa viết story vừa vẽ. Là role kết hợp writer + artist + director, sáng tạo + chịu trách nhiệm vision đến từng panel. Nghề legendary tại Nhật với culture-defining influence.",
+    "meta_title": "Mangaka là gì? Lộ trình nghề | CINS",
+    "meta_description": "Mangaka tác giả manga viết + vẽ truyện Nhật. Tìm hiểu công việc, kỹ năng và lộ trình.",
+    "nhom_slugs": ["nghe-comic-sang-tac", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "ef08f170-e9db-4b3c-9b0b-47123f62db34",
+    "slug": "nghe-phim-marketing-producer",
+    "tieu_de_viet": "Marketing Producer phim",
+    "tom_tat": "Marketing Producer chịu trách nhiệm về marketing campaign cho phim — trailer, poster, social media, premiere, PR, publicity. Là cầu nối giữa creative team film và studio marketing department.",
+    "meta_title": "Marketing Producer phim là gì? | CINS",
+    "meta_description": "Marketing Producer quản lý campaign quảng bá phim. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-phim-phat-hanh", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "a2382344-ab81-4d45-8d37-f8dbe437213f",
+    "slug": "nghe-vfx-matchmove-artist",
+    "tieu_de_viet": "Matchmove Artist (Họa sĩ matchmove)",
+    "tom_tat": "Matchmove Artist tracking chuyển động camera + object trong live footage, để CGI element add later khớp perfectly với plate. Là role technical foundation của VFX pipeline — không có matchmove, không có CGI integration.",
+    "meta_title": "Matchmove Artist là gì? | CINS",
+    "meta_description": "Matchmove Artist tracking camera VFX cho CGI integration. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-vfx-technical", "nn-bao-chi-truyen-thong"]
+  },
+  {
+    "id": "3c07328a-2877-4438-b203-3e6c18bc0762",
+    "slug": "nghe-vfx-matte-painter",
+    "tieu_de_viet": "Matte Painter (Họa sĩ vẽ phông kỹ thuật số)",
+    "tom_tat": "Matte Painter vẽ digital painting (kết hợp photo bashing + 3D + paint) cho background impossible to film — fantasy landscape, sci-fi city, alien planet. Modern descendant của glass painting era Hollywood golden age.",
+    "meta_title": "Matte Painter là gì? Lộ trình | CINS",
+    "meta_description": "Matte Painter vẽ digital background cho phim VFX. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-vfx-compositing", "nn-my-thuat-thiet-ke"]
+  },
+  {
+    "id": "fef5cf4e-e740-49a4-8f2c-a45a5183041e",
+    "slug": "nghe-3d-medical-scientific-visualizer",
+    "tieu_de_viet": "Medical / Scientific Visualizer (Họa sĩ visualization khoa học)",
+    "tom_tat": "Medical / Scientific Visualizer tạo 3D visualization cho ngành y khoa, dược, khoa học — anatomy, surgical animation, drug mechanism of action, molecular structure. Niche cao chuyên môn với demand từ medical school, pharma, science publishing.",
+    "meta_title": "Medical / Scientific Visualizer là gì? | CINS",
+    "meta_description": "Medical / Scientific Visualizer 3D anatomy, surgical, molecular. Tìm hiểu công việc và lộ trình.",
+    "nhom_slugs": ["nghe-3d-visualization", "nn-my-thuat-thiet-ke"]
+  }
+]
