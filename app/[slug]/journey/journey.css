@@ -33,7 +33,10 @@
   --j-gallery-w:       280px;
   --j-gutter:          40px;
   --j-rail-x:          28px;
-  --j-content-pad-l:   64px;
+  /* Khoảng cách từ mép trái container tới mép trái card (cũng = vị trí cuối
+     của connector line từ rail tới card). 48px = đủ chỗ cho diamond marker
+     (đến x≈23) + 25px gap thoáng tới card. Mobile sẽ giảm thêm. */
+  --j-content-pad-l:   48px;
 
   --j-ease: cubic-bezier(0.2, 0.7, 0.3, 1);
 
@@ -1933,6 +1936,15 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   }
   .cins-journey-page .j-timeline {
     margin: 0 auto;
+  }
+}
+@media (max-width: 720px) {
+  /* Mobile: thu hẹp rail + content padding để card không bị đẩy lệch quá xa
+     bên phải. Diamond / connector / chip tháng tự co theo `--j-rail-x` và
+     `--j-content-pad-l` (đều dùng token). */
+  .cins-journey-page {
+    --j-rail-x: 16px;
+    --j-content-pad-l: 32px;
   }
 }
 @media (max-width: 560px) {
