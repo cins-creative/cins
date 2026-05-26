@@ -31,10 +31,7 @@ import type {
   MilestoneType,
 } from "@/components/journey/milestone-types";
 import { articlePublicHref } from "@/lib/articles/article-href";
-import {
-  articleTagLabel,
-  articleTagLoaiClass,
-} from "@/lib/editor/article-tag";
+import { articleTagLoaiClass } from "@/lib/editor/article-tag";
 import { getNameInitials } from "@/lib/journey/profile";
 
 type Props = {
@@ -263,6 +260,22 @@ export function JourneyMilestoneCard({
             ) : null}
           </div>
 
+          {articleTags.length > 0 ? (
+            <div className="j-m-art-tags" aria-label="Bài viết liên quan">
+              {articleTags.map((t) => (
+                <Link
+                  key={t.id}
+                  href={articlePublicHref(t.loai_bai_viet, t.slug)}
+                  className={`j-m-art-tag ${articleTagLoaiClass(t.loai_bai_viet)}`}
+                  prefetch={false}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  #{t.tieu_de}
+                </Link>
+              ))}
+            </div>
+          ) : null}
+
           <h2 className="j-m-title">{title}</h2>
           {org ? (
             <div
@@ -289,25 +302,6 @@ export function JourneyMilestoneCard({
             <div className={`j-m-media ${mediaGridClass(mediaCount)}`}>
               {media.slice(0, 3).map((m, i) => (
                 <MediaThumb key={`${m.src}-${i}`} m={m} />
-              ))}
-            </div>
-          ) : null}
-
-          {articleTags.length > 0 ? (
-            <div className="j-m-art-tags" aria-label="Bài viết liên quan">
-              {articleTags.map((t) => (
-                <Link
-                  key={t.id}
-                  href={articlePublicHref(t.loai_bai_viet, t.slug)}
-                  className={`j-m-art-tag ${articleTagLoaiClass(t.loai_bai_viet)}`}
-                  prefetch={false}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <span className="j-m-art-tag-loai" aria-hidden>
-                    {articleTagLabel(t.loai_bai_viet)}
-                  </span>
-                  <span className="j-m-art-tag-name">{t.tieu_de}</span>
-                </Link>
               ))}
             </div>
           ) : null}

@@ -1380,71 +1380,30 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
 }
 
 /* ── Article tags (bài viết `article_bai_viet` đã gắn) ────────────
-   Render dưới block content, trên row `.j-m-tags` cũ. Mỗi pill là 1
-   Link đến trang article tương ứng theo `loai_bai_viet`; click vào
-   stop propagation để KHÔNG trigger open card modal. Màu theo loại
-   để dễ scan. */
+   Render NGAY TRÊN title, dạng hashtag gọn — chỉ tên bài, không có
+   badge loại. Màu chữ tách theo `loai_bai_viet` để vẫn phân biệt
+   được visually. Click stopPropagation → không trigger open card. */
 .j-m-art-tags {
   display: flex;
-  gap: 6px;
+  gap: 6px 10px;
   flex-wrap: wrap;
-  margin: 12px 0 6px;
+  margin: 0 0 8px;
+  line-height: 1.2;
 }
 .j-m-art-tag {
   display: inline-flex;
-  align-items: stretch;
-  border-radius: var(--radius-pill);
-  background: var(--neutral-100, #f1f5f9);
-  color: var(--ink-body);
+  align-items: center;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: var(--weight-medium, 500);
   text-decoration: none;
-  overflow: hidden;
-  transition: background 120ms ease, transform 120ms ease;
+  color: var(--ink-muted);
+  transition: color 120ms ease, text-decoration-color 120ms ease;
 }
 .j-m-art-tag:hover {
-  background: var(--neutral-200, #e2e8f0);
-  transform: translateY(-1px);
-}
-.j-m-art-tag-loai {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 9px;
-  color: #fff;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.3px;
-  text-transform: uppercase;
-}
-.j-m-art-tag-name {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 10px 4px 8px;
-}
-
-.j-m-art-tag.is-loai-nghe .j-m-art-tag-loai {
-  background: #f59e0b;
-}
-.j-m-art-tag.is-loai-keyword .j-m-art-tag-loai {
-  background: #8b5cf6;
-}
-.j-m-art-tag.is-loai-phan-mem .j-m-art-tag-loai {
-  background: #2563eb;
-}
-.j-m-art-tag.is-loai-mon-hoc .j-m-art-tag-loai {
-  background: #10b981;
-}
-.j-m-art-tag.is-loai-blog .j-m-art-tag-loai {
-  background: #64748b;
-}
-.j-m-art-tag.is-loai-event .j-m-art-tag-loai {
-  background: #ec4899;
-}
-.j-m-art-tag.is-loai-nganh-dao-tao .j-m-art-tag-loai {
-  background: #4f46e5;
-}
-.j-m-art-tag.is-loai-linh-vuc .j-m-art-tag-loai {
-  background: #0d9488;
+  color: var(--ink-body);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
 }
 
 /* TAGS & FOOTER */
@@ -2671,7 +2630,7 @@ select.j-edit-input {
 }
 
 .j-post-sheet {
-  max-width: 900px;
+  max-width: 1080px;
   margin: 32px auto;
   position: relative;
   animation: j-sheet-in 240ms var(--j-ease, ease) both;

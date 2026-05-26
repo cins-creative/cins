@@ -36,18 +36,14 @@ import { rememberCfAccountHashFromDeliveryUrl } from "@/lib/cloudflare/account-h
 import { uploadToCloudflareImages } from "@/lib/cloudflare/upload-image";
 import { hasAdminDbUrl } from "@/lib/admin/db-url";
 import { runAdminSql, type AdminSqlMode, type AdminSqlResult } from "@/lib/admin/sql-runner";
-import { isInlineArticleEditEnabled } from "@/lib/dev/inline-article-edit";
 import { revalidatePath } from "next/cache";
 import { createServiceRoleClient, hasServiceRoleEnv } from "@/lib/supabase/service-role";
 
+/* Admin server actions chỉ cần service-role key trên server. Trang
+   /admin đã có gate riêng (Supabase auth + SUPABASE_SERVICE_ROLE_KEY).
+   Bỏ feature-flag CINS_INLINE_ARTICLE_EDIT vì nó dành cho inline editor
+   ở trang public — không liên quan tới admin panel. */
 async function requireDraftTools(): Promise<{ ok: true } | { ok: false; message: string }> {
-  if (!isInlineArticleEditEnabled()) {
-    return {
-      ok: false,
-      message:
-        "Chế độ sửa thử đã tắt. Bật NODE_ENV=development hoặc đặt CINS_INLINE_ARTICLE_EDIT=1.",
-    };
-  }
   if (!hasServiceRoleEnv()) {
     return { ok: false, message: "Thiếu SUPABASE_SERVICE_ROLE_KEY trên server." };
   }

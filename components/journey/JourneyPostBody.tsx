@@ -25,10 +25,7 @@ import {
   PostCover,
 } from "@/components/editor/PostRenderer";
 import { articlePublicHref } from "@/lib/articles/article-href";
-import {
-  articleTagLabel,
-  articleTagLoaiClass,
-} from "@/lib/editor/article-tag";
+import { articleTagLoaiClass } from "@/lib/editor/article-tag";
 import { getAvatarUrl } from "@/lib/journey/profile";
 
 import { PostActionsRail } from "./PostActionsRail";
@@ -230,10 +227,7 @@ export function JourneyPostBody({
                 className={`post-art-tag ${articleTagLoaiClass(t.loai_bai_viet)}`}
                 prefetch={false}
               >
-                <span className="post-art-tag-loai" aria-hidden>
-                  {articleTagLabel(t.loai_bai_viet)}
-                </span>
-                <span className="post-art-tag-name">{t.tieu_de}</span>
+                #{t.tieu_de}
               </Link>
             ))}
           </div>

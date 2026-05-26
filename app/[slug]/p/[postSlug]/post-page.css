@@ -22,7 +22,7 @@
 }
 
 .j-post-page-inner {
-  max-width: 960px;
+  max-width: 1080px;
   margin: 0 auto;
   position: relative;
 }
@@ -102,14 +102,12 @@
   background: transparent;
   min-height: 0;
   position: relative;
-  /* Flex để rail (`<aside.post-rail>`) ngồi ngang hàng với canvas — rail
-     dùng `position: sticky` cần ở normal flow. `row-reverse` để rail (DOM
-     đầu tiên) hiển thị BÊN PHẢI canvas. */
-  display: flex;
-  flex-direction: row-reverse;
-  align-items: flex-start;
-  justify-content: center;
-  column-gap: 24px;
+  /* Block layout: canvas dùng `margin: 0 auto` để centered TUYỆT ĐỐI trong
+     parent (sheet/inner). Rail `float: right + position: sticky` — float
+     đẩy rail sang phải, sticky giữ nó dán đỉnh khi scroll. Float KHÔNG ảnh
+     hưởng tới margin auto của block canvas (canvas centered theo full
+     width của container, không trừ float). */
+  display: block;
 }
 
 /* Background của page có rồi → editor-canvas trong post-view không
@@ -120,12 +118,12 @@
   box-shadow: var(--shadow-lg, 0 14px 32px rgba(15, 23, 42, 0.10));
   padding: 36px 56px 48px;
   max-width: 880px;
-  /* Trong flex layout dùng justify-content: center ở parent thay cho
-     `margin: 0 auto`. `min-width: 0` cho phép shrink khi sheet hẹp. */
-  margin: 0;
-  flex: 0 1 880px;
+  margin: 0 auto;
   min-width: 0;
   overflow: hidden;
+  /* `position: relative` để canvas tạo stacking context riêng — rail
+     (z-index 5) vẫn cao hơn shadow nhưng dưới các overlay nội bộ canvas. */
+  position: relative;
 }
 
 /* Cover read-only: 320px như editor (`.cover-add.has`), full-bleed để chạm
@@ -714,13 +712,18 @@
    trang permalink: visibility nhất quán và không bị che bởi cuộn nội
    dung dài. Modal có z-index cao hơn nội dung của nó. */
 .post-rail {
+  /* Float right + sticky combo: float đẩy rail bám mép phải của
+     `.cins-post-view`; sticky giữ nó dán đỉnh viewport khi scroll. Hai
+     thuộc tính tương thích — float thay đổi vị trí block, sticky kiểm
+     soát scroll behavior. Vì rail là DOM child ĐẦU TIÊN của cins-post-view,
+     float right hoạt động đúng (floats to top-right). */
+  float: right;
   position: sticky;
   top: 100px; /* dán vào đỉnh viewport khi cuộn qua, chừa khoảng cho topbar */
-  align-self: flex-start;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  flex: 0 0 56px;
+  width: 56px;
   z-index: 5;
 }
 
@@ -866,8 +869,10 @@
 /* ╔══ 5. Responsive ═══════════════════════════════════════════════ */
 
 @media (max-width: 1100px) {
+  /* Viewport hẹp — rail thu nhỏ 48px, float-right vẫn hoạt động. Canvas
+     vẫn centered qua margin auto. */
   .post-rail {
-    flex: 0 0 48px;
+    width: 48px;
   }
   .post-rail-btn {
     width: 48px;
@@ -879,16 +884,11 @@
   .j-post-page {
     padding: 12px 8px 60px;
   }
-  /* Mobile: bỏ flex layout — canvas chiếm full width, rail chuyển thành
-     bottom bar `position: fixed`. */
-  .cins-post-view {
-    display: block;
-  }
+  /* Mobile: canvas full width, rail chuyển thành bottom bar `position: fixed`. */
   .cins-post-view .editor-canvas.post-canvas {
     padding: 20px 18px 32px;
     border-radius: 16px;
     margin: 0 auto;
-    flex: none;
   }
   .cins-post-view .cover-add.cover-readonly {
     margin: -20px -18px 18px;
@@ -903,8 +903,9 @@
   }
   .post-rail {
     position: fixed; /* override sticky cho bottom bar */
+    float: none;
     flex-direction: row;
-    flex: none;
+    width: auto;
     top: auto;
     bottom: 0;
     left: 0;
@@ -928,72 +929,31 @@
 }
 
 /* ╔══ 6. Article tags row (dưới byline) ═══════════════════════════ */
-/* Render bài viết article_bai_viet đã gắn vào tác phẩm (junction
-   article_gan_tac_pham). Mỗi pill = 1 Link đến trang article tương
-   ứng theo loai_bai_viet. Pattern visually đồng bộ với picker trong
-   editor (`tag-picker-loai`) — màu badge theo loại. */
+/* Render bài viết article_bai_viet đã gắn vào tác phẩm. Hashtag style
+   gọn, không badge loại — đồng bộ visual với `.j-m-art-tags` trên
+   card Journey. Màu xám muted, hover underline 3px-offset. */
 
 .cins-post-view .post-art-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 6px 12px;
   margin: -4px 0 18px;
+  line-height: 1.3;
 }
 .cins-post-view .post-art-tag {
   display: inline-flex;
-  align-items: stretch;
-  border-radius: var(--radius-pill, 999px);
-  background: var(--neutral-100, #f1f5f9);
-  color: var(--ink-body);
-  font-size: 12.5px;
+  align-items: center;
+  font-size: 13px;
   font-weight: 500;
   text-decoration: none;
-  overflow: hidden;
-  transition: background 120ms ease, transform 120ms ease;
+  color: var(--ink-muted);
+  transition: color 120ms ease;
 }
 .cins-post-view .post-art-tag:hover {
-  background: var(--neutral-200, #e2e8f0);
-  transform: translateY(-1px);
-}
-.cins-post-view .post-art-tag-loai {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 10px;
-  color: #fff;
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.3px;
-  text-transform: uppercase;
-}
-.cins-post-view .post-art-tag-name {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 12px 4px 8px;
-}
-
-.cins-post-view .post-art-tag.is-loai-nghe .post-art-tag-loai {
-  background: #f59e0b;
-}
-.cins-post-view .post-art-tag.is-loai-keyword .post-art-tag-loai {
-  background: #8b5cf6;
-}
-.cins-post-view .post-art-tag.is-loai-phan-mem .post-art-tag-loai {
-  background: #2563eb;
-}
-.cins-post-view .post-art-tag.is-loai-mon-hoc .post-art-tag-loai {
-  background: #10b981;
-}
-.cins-post-view .post-art-tag.is-loai-blog .post-art-tag-loai {
-  background: #64748b;
-}
-.cins-post-view .post-art-tag.is-loai-event .post-art-tag-loai {
-  background: #ec4899;
-}
-.cins-post-view .post-art-tag.is-loai-nganh-dao-tao .post-art-tag-loai {
-  background: #4f46e5;
-}
-.cins-post-view .post-art-tag.is-loai-linh-vuc .post-art-tag-loai {
-  background: #0d9488;
+  color: var(--ink-body);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
 }
 
 /* ╔══ 7. Intercepted-modal loading skeleton ═══════════════════════ */
