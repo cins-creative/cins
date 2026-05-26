@@ -32,6 +32,7 @@ export function TruongUserChatLauncher() {
   if (ctx.canEdit && ctx.isEditing) return null;
 
   function send() {
+    if (!ctx) return;
     if (!body.trim()) return;
     ctx.showToast("Đã gửi tin nhắn tới trường (mock). Trường sẽ phản hồi qua Journey.");
     setSubject("");

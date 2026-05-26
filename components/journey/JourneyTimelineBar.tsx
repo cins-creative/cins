@@ -233,7 +233,7 @@ export function JourneyTimelineBar({
                 }
                 onToggleVis={
                   isToggleableLoaiMoc(opt.group)
-                    ? () => onToggleVis(opt.group)
+                    ? () => onToggleVis(opt.group as LoaiMocFilterKey)
                     : undefined
                 }
               />

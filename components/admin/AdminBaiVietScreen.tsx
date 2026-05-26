@@ -283,13 +283,17 @@ export function AdminBaiVietScreen({
                 locked: c.locked,
               }))}
               visibleColumns={visibleColumns}
-              onColumnsChange={setVisibleColumns}
+              onColumnsChange={(ids) =>
+                setVisibleColumns(new Set(ids) as Set<AdminTableColumnId>)
+              }
               filters={ADMIN_FILTER_FIELDS.map((f) => ({
                 id: f.id,
                 label: f.label,
               }))}
               visibleFilters={visibleFilters}
-              onFiltersChange={setVisibleFilters}
+              onFiltersChange={(ids) =>
+                setVisibleFilters(new Set(ids) as Set<AdminFilterFieldId>)
+              }
             />
           </div>
           <div className="filter-bar filter-bar--articles">

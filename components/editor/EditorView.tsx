@@ -81,7 +81,7 @@ type Block = {
   size?: "s" | "m" | "l";
 };
 
-type Visibility = "public" | "theo_nhom" | "chi_minh";
+type Visibility = "feature" | "public" | "theo_nhom" | "chi_minh";
 
 const SEED_BASE = "https://picsum.photos/seed/";
 const ph = (s: string, w = 900, h = 600) => `${SEED_BASE}${s}/${w}/${h}`;

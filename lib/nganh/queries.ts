@@ -97,7 +97,7 @@ export async function loadNganhHubRows(): Promise<NganhHubItem[]> {
   const { data, error } = await supabase
     .from("article_bai_viet")
     .select(
-      "id, slug, tieu_de, tieu_de_viet, tieu_de_eng, tom_tat, cover_id, meta",
+      "id, slug, tieu_de, tieu_de_viet, tieu_de_eng, tom_tat, meta_description, cover_id, thumbnail, meta",
     )
     .eq("loai_bai_viet", "nganh_dao_tao")
     .eq("trang_thai_noi_dung", "published")
@@ -115,7 +115,9 @@ export async function loadNganhHubRows(): Promise<NganhHubItem[]> {
         r.tieu_de_viet == null ? null : String(r.tieu_de_viet).trim() || null,
       tieu_de_eng: (r.tieu_de_eng as string | null) ?? null,
       tom_tat: (r.tom_tat as string | null) ?? null,
+      meta_description: (r.meta_description as string | null) ?? null,
       cover_id: (r.cover_id as string | null) ?? null,
+      thumbnail: (r.thumbnail as string | null) ?? null,
       linh_vuc_id: null,
       linh_vuc_slugs: null,
       meta: r.meta as MetaNganhDaoTao | null,
@@ -186,7 +188,9 @@ export async function getNganhDetailBySlug(
       tieu_de_viet: raw.tieu_de_viet ?? null,
       tieu_de_eng: raw.tieu_de_eng ?? null,
       tom_tat: raw.tom_tat ?? null,
+      meta_description: (raw as { meta_description?: string | null }).meta_description ?? null,
       cover_id: raw.cover_id ?? null,
+      thumbnail: (raw as { thumbnail?: string | null }).thumbnail ?? null,
       linh_vuc_id: null,
       linh_vuc_slugs: null,
     },

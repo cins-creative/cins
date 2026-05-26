@@ -71,7 +71,9 @@ export function AdminArticleThumbnailGallery({
   );
 
   const uploadImage = useCallback(
-    async (file: File) => {
+    async (
+      file: File,
+    ): Promise<{ ok: true; url: string } | { ok: false; message: string }> => {
       const fd = new FormData();
       fd.append("file", file);
       const res = await updateAdminArticleThumbnail(articleId, fd);

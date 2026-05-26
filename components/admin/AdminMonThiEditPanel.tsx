@@ -86,12 +86,13 @@ export function AdminMonThiEditPanel({ row, onCancel, onSaved }: Props) {
     fd.set("thumbnail_id", thumbnail_id);
     fd.set("id_bai_viet", id_bai_viet);
 
-    const r = isCreate
-      ? await adminCreateMonThi(fd)
-      : (() => {
-          fd.set("id", row!.id);
-          return adminSaveMonThi(fd);
-        })();
+    let r: { ok: boolean; message?: string };
+    if (isCreate) {
+      r = await adminCreateMonThi(fd);
+    } else {
+      fd.set("id", row!.id);
+      r = await adminSaveMonThi(fd);
+    }
 
     setSaving(false);
     if (r.ok) {

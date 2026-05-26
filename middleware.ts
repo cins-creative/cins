@@ -10,13 +10,15 @@ import {
 /** Đổi thành `false` trước khi deploy production bình thường. */
 const MAINTENANCE_MODE = true;
 
-function isLocalHost(hostname: string): boolean {
-  return (
-    hostname === "localhost" ||
-    hostname === "127.0.0.1" ||
-    hostname === "[::1]" ||
-    hostname.endsWith(".localhost")
-  );
+/**
+ * Hostname bị maintenance khi `MAINTENANCE_MODE = true`.
+ * Hiện tại chỉ chặn ở custom domain production `cins.vn`. Vercel preview
+ * (`*.vercel.app`) và localhost vẫn hoạt động bình thường để team test.
+ */
+const MAINTENANCE_HOSTS = new Set<string>(["cins.vn", "www.cins.vn"]);
+
+function shouldApplyMaintenance(hostname: string): boolean {
+  return MAINTENANCE_HOSTS.has(hostname.toLowerCase());
 }
 
 /**
@@ -154,12 +156,11 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  /* Còn lại: maintenance rewrite (trừ localhost). */
+  /* Còn lại: maintenance rewrite — chỉ áp dụng cho host trong `MAINTENANCE_HOSTS`. */
   if (!MAINTENANCE_MODE) {
     return NextResponse.next();
   }
-  const hostname = request.nextUrl.hostname;
-  if (isLocalHost(hostname)) {
+  if (!shouldApplyMaintenance(request.nextUrl.hostname)) {
     return NextResponse.next();
   }
   return NextResponse.rewrite(new URL("/maintenance", request.url));

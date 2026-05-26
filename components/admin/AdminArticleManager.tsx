@@ -22,7 +22,7 @@ const STATUS_OPTIONS = [
 ] as const;
 
 function mergedBody(r: AdminArticleDetailRow): string {
-  return (r.noi_dung ?? r.noi_dung_markdown ?? "").replace(/\r\n/g, "\n");
+  return (r.noi_dung ?? "").replace(/\r\n/g, "\n");
 }
 
 type Props = {
