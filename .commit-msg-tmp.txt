@@ -1,7 +1,0 @@
-style(journey): giảm gap card↔rail desktop + balance mobile
-
-- Desktop: `--j-content-pad-l` từ 64 → 48px → card sát rail hơn (~20px
-  gap thay vì 36px).
-- Mobile (≤ 720px): override `--j-rail-x: 16px` + `--j-content-pad-l:
-  32px` → card không bị lệch sang phải trên viewport hẹp. Diamond,
-  connector, timeline line đều neo theo token nên tự align.
