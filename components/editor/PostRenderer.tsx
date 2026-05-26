@@ -69,6 +69,37 @@ function classifyEmbed(rawUrl: string): {
   return null;
 }
 
+/* Tách video ID từ các dạng URL YouTube hợp lệ:
+ *   • youtu.be/<ID>[?si=…]
+ *   • youtube.com/watch?v=<ID>
+ *   • youtube.com/embed/<ID> · /shorts/<ID> · /live/<ID> · /v/<ID>
+ * Return null nếu không nhận diện được — caller fallback về anchor link. */
+function extractYouTubeId(url: string): string | null {
+  let u: URL;
+  try {
+    u = new URL(url);
+  } catch {
+    return null;
+  }
+  const host = u.hostname.replace(/^www\./, "");
+  if (host === "youtu.be") {
+    const id = u.pathname.replace(/^\/+/, "").split("/")[0];
+    return id || null;
+  }
+  if (host === "youtube.com" || host === "m.youtube.com") {
+    const v = u.searchParams.get("v");
+    if (v) return v;
+    const m = u.pathname.match(/^\/(embed|shorts|live|v)\/([^/?#]+)/);
+    if (m) return m[2];
+  }
+  return null;
+}
+
+/* Figma embed URL — bọc URL gốc qua proxy embed của Figma. */
+function figmaEmbedUrl(originalUrl: string): string {
+  return `https://www.figma.com/embed?embed_host=cins&url=${encodeURIComponent(originalUrl)}`;
+}
+
 type ImgLayout = "full" | "boxed" | "duo" | "trio" | "grid4" | "mosaic";
 
 /* ─── Cover image (read-only) ──────────────────────────────────── */
@@ -164,6 +195,47 @@ function ReadOnlyBlock({ block }: { block: Block }) {
     const url = typeof cfg.url === "string" ? cfg.url : "";
     const cls = classifyEmbed(url);
     if (!cls) return null;
+
+    /* YouTube → iframe nocookie. Bọc trong wrapper `is-iframe` để CSS
+       set aspect-ratio 16/9 + clip overflow. */
+    if (cls.provider === "youtube") {
+      const id = extractYouTubeId(cls.url);
+      if (id) {
+        return (
+          <div
+            className="b-embed b-embed-ro is-iframe"
+            data-provider="youtube"
+          >
+            <iframe
+              src={`https://www.youtube-nocookie.com/embed/${id}`}
+              title="YouTube video player"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              referrerPolicy="strict-origin-when-cross-origin"
+              allowFullScreen
+              loading="lazy"
+            />
+          </div>
+        );
+      }
+    }
+
+    /* Figma → iframe qua proxy embed_host. Figma không yêu cầu tách ID. */
+    if (cls.provider === "figma") {
+      return (
+        <div className="b-embed b-embed-ro is-iframe" data-provider="figma">
+          <iframe
+            src={figmaEmbedUrl(cls.url)}
+            title="Figma file"
+            allowFullScreen
+            loading="lazy"
+          />
+        </div>
+      );
+    }
+
+    /* Behance (hoặc YouTube không extract được ID): fallback anchor link
+       — Behance dùng project ID không có trong public URL, không inline
+       được. User vẫn mở được tab mới qua link. */
     return (
       <div className="b-embed b-embed-ro" data-provider={cls.provider}>
         <div className="em-ic" aria-hidden>

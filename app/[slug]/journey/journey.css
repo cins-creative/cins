@@ -1251,6 +1251,26 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   padding: 10px 14px;
   font-size: 13px;
 }
+/* Iframe variant trong card — vẫn 16/9 nhưng radius nhỏ + border subtle.
+   Card có max-height 360px (xs) / 460px (default) + fade gradient → iframe
+   có thể bị clip phần dưới (chấp nhận được, user click vào card mở chi tiết). */
+.j-m-blocks .b-embed-ro.is-iframe {
+  display: block;
+  padding: 0;
+  font-size: inherit;
+  background: var(--neutral-900, #0f172a);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 8px);
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  width: 100%;
+}
+.j-m-blocks .b-embed-ro.is-iframe iframe {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border: 0;
+}
 
 /* MEDIA grid */
 .j-m-media {
@@ -1909,10 +1929,22 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   margin-bottom: 6px;
 }
 
-/* ────────────────────────────────────────────────────────────────
- * RESPONSIVE
- * ──────────────────────────────────────────────────────────────── */
-@media (max-width: 1240px) {
+/* ╔══════════════════════════════════════════════════════════════════╗
+ * ║ RESPONSIVE — Bootstrap 5 breakpoints (desktop-first cascade)     ║
+ * ║                                                                  ║
+ * ║   • xxl ≥ 1400px → default (3-col: sidebar + timeline + gallery) ║
+ * ║   • xl  ≥ 1200px → default (3-col)                               ║
+ * ║   • lg  ≥ 992px  → max-width:1199.98px → 2-col (ẩn gallery)      ║
+ * ║   • md  ≥ 768px  → max-width:991.98px  → 1-col (sidebar static)  ║
+ * ║   • sm  ≥ 576px  → max-width:767.98px  → rail compact            ║
+ * ║   • xs  < 576px  → max-width:575.98px  → fonts/cards thu nhỏ     ║
+ * ║                                                                  ║
+ * ║ `--j-rail-x` + `--j-content-pad-l` là token chính co theo BP.    ║
+ * ║ Diamond / connector / chip tháng tự co theo các token này.        ║
+ * ╚══════════════════════════════════════════════════════════════════╝ */
+
+/* ── lg (≤1199.98px / under xl): ẩn gallery, 2-col ── */
+@media (max-width: 1199.98px) {
   .cins-journey-page .j-shell {
     grid-template-columns: var(--j-sidebar-w) 1fr;
     max-width: 1080px;
@@ -1921,11 +1953,13 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
     display: none;
   }
 }
-@media (max-width: 1080px) {
+
+/* ── md (≤991.98px / under lg): 1-col, sidebar static (above timeline) ── */
+@media (max-width: 991.98px) {
   .cins-journey-page .j-shell {
     grid-template-columns: 1fr;
     gap: 0;
-    max-width: 720px;
+    max-width: 760px;
   }
   .cins-journey-page .j-sidebar {
     position: static;
@@ -1936,24 +1970,120 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   }
   .cins-journey-page .j-timeline {
     margin: 0 auto;
+    max-width: none;
   }
 }
-@media (max-width: 720px) {
-  /* Mobile: thu hẹp rail + content padding để card không bị đẩy lệch quá xa
-     bên phải. Diamond / connector / chip tháng tự co theo `--j-rail-x` và
-     `--j-content-pad-l` (đều dùng token). */
+
+/* ── sm (≤767.98px / under md): rail + content pad thu hẹp ──
+ *
+ * Mục tiêu: card sát mép trái hơn so với desktop. Giữ `--j-rail-x: 16px`
+ * để diamond marker (left: rail-x − 5 = 11px, rotate 45° ~17px wide) không
+ * bị crop khi shell padding = 16px. `--j-content-pad-l: 28px` cho connector
+ * line dài 28 − 16 − 5 = 7px. */
+@media (max-width: 767.98px) {
   .cins-journey-page {
     --j-rail-x: 16px;
-    --j-content-pad-l: 32px;
+    --j-content-pad-l: 28px;
+  }
+  .cins-journey-page .j-shell {
+    padding: 0 16px;
+  }
+  .cins-journey-page .j-m-card {
+    padding: 16px 16px;
+  }
+  .cins-journey-page .j-m-title {
+    font-size: 17px;
+  }
+  .cins-journey-page .j-m-body {
+    font-size: 13.5px;
+  }
+  .cins-journey-page .j-create-cta {
+    padding: 14px 16px;
   }
 }
-@media (max-width: 560px) {
+
+/* ── xs (≤575.98px / phone): rail sát mép, card chiếm tối đa chiều ngang ──
+ *
+ * Trên màn ≤375px (iPhone SE), mỗi pixel ngang quý. `--j-rail-x: 12px` +
+ * shell padding 8px → rail cách mép viewport 20px (đủ cho diamond marker
+ * 12px center tại x=20, mép trái marker ~7px). `--j-content-pad-l: 22px`
+ * cho connector line 22 − 12 − 5 = 5px (vừa đủ thấy nét nối). */
+@media (max-width: 575.98px) {
+  .cins-journey-page {
+    --j-rail-x: 12px;
+    --j-content-pad-l: 22px;
+  }
   .cins-journey-page .j-shell {
-    padding: 0 20px;
+    padding: 0 8px;
   }
   .cins-journey-page .j-year-label,
   .cins-journey-page .j-tlb-year {
     font-size: 26px;
+  }
+  .cins-journey-page .j-m-card {
+    padding: 14px 14px;
+    border-radius: 12px;
+  }
+  .cins-journey-page .j-m-title {
+    font-size: 16px;
+  }
+  .cins-journey-page .j-m-body {
+    font-size: 13px;
+  }
+  .cins-journey-page .j-m-blocks {
+    max-height: 360px;
+  }
+  .cins-journey-page .j-profile-cover {
+    height: 88px;
+  }
+  .cins-journey-page .j-avatar {
+    width: 80px;
+    height: 80px;
+    font-size: 28px;
+    border-width: 3px;
+  }
+  /* Context bar sticky — bớt padding, dropdown menu co dồn về phải */
+  .cins-journey-page .j-tlb {
+    column-gap: 10px;
+    padding: 0 4px 0 calc(var(--j-rail-x) - 6px);
+  }
+  .cins-journey-page .j-tlb-dd-btn {
+    height: 30px;
+    padding: 0 10px;
+    font-size: 12px;
+  }
+  .cins-journey-page .j-tlb-dd-menu {
+    right: -8px;
+    min-width: 200px;
+  }
+  /* Bookmark / tagged-by strip cao thấp gọn */
+  .cins-journey-page .j-tagged-by,
+  .cins-journey-page .j-bookmark-src {
+    padding: 7px 10px;
+    font-size: 11.5px;
+  }
+  /* Open-hint chip ẩn trên xs — tap target = card luôn rõ */
+  .cins-journey-page .j-m-open-hint {
+    display: none;
+  }
+  /* Kebab menu sát mép — chỉnh popover right anchor */
+  .cins-journey-page .j-m-menu {
+    top: 8px;
+    right: 8px;
+  }
+  .cins-journey-page .j-m-menu-pop {
+    min-width: 200px;
+  }
+  /* Create CTA — padding + font nhỏ. margin-left tự co qua --j-content-pad-l. */
+  .cins-journey-page .j-create-cta {
+    padding: 12px 14px;
+    gap: 10px;
+  }
+  .cins-journey-page .j-create-cta-title {
+    font-size: 13.5px;
+  }
+  .cins-journey-page .j-create-cta-sub {
+    font-size: 11.5px;
   }
 }
 
@@ -2067,7 +2197,7 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   grid-template-columns: 1fr 1fr;
   gap: 16px;
 }
-@media (max-width: 560px) {
+@media (max-width: 575.98px) {
   .j-edit-row {
     grid-template-columns: 1fr;
   }
@@ -2160,7 +2290,7 @@ select.j-edit-input {
   gap: 8px;
   align-items: center;
 }
-@media (max-width: 560px) {
+@media (max-width: 575.98px) {
   .j-edit-link-row {
     grid-template-columns: 1fr 32px;
   }
@@ -2222,7 +2352,7 @@ select.j-edit-input {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
-@media (max-width: 560px) {
+@media (max-width: 575.98px) {
   .j-edit-chips {
     grid-template-columns: 1fr;
   }
@@ -3048,10 +3178,30 @@ select.j-edit-input {
   word-break: break-word;
 }
 
-/* RESPONSIVE — sheet narrower trên mobile, padding bớt. */
-@media (max-width: 720px) {
+/* RESPONSIVE — Bootstrap 5 breakpoints */
+/* md (≤991.98px): sheet width co theo viewport */
+@media (max-width: 991.98px) {
   .j-post-sheet {
-    margin: 16px;
+    margin: 24px 16px;
+  }
+  .j-ps-hero {
+    padding: 28px 32px 20px;
+  }
+  .j-ps-title {
+    font-size: 30px;
+  }
+  .j-ps-block-lead,
+  .j-ps-block-rich,
+  .j-ps-comments {
+    padding-left: 32px;
+    padding-right: 32px;
+  }
+}
+/* sm (≤767.98px): padding hẹp lại, close button gần mép */
+@media (max-width: 767.98px) {
+  .j-post-sheet {
+    margin: 16px 12px;
+    padding-bottom: 40px;
   }
   .j-ps-hero {
     padding: 24px 20px 18px;
@@ -3068,6 +3218,43 @@ select.j-edit-input {
   .j-post-close {
     top: 12px;
     right: 12px;
+    width: 38px;
+    height: 38px;
+    font-size: 20px;
+  }
+}
+/* xs (≤575.98px): sheet edge-to-edge, font block nhỏ hơn */
+@media (max-width: 575.98px) {
+  .j-post-sheet {
+    margin: 8px 0;
+    border-radius: 0;
+  }
+  .j-ps-main {
+    border-radius: 0;
+  }
+  .j-ps-hero {
+    padding: 20px 16px 16px;
+  }
+  .j-ps-title {
+    font-size: 22px;
+  }
+  .j-ps-block-lead,
+  .j-ps-block-rich,
+  .j-ps-comments {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .j-ps-block-lead,
+  .j-ps-block-rich {
+    font-size: 15px;
+    line-height: 1.65;
+  }
+  .j-ps-block-lead p {
+    font-size: 16px;
+  }
+  .j-ps-meta {
+    font-size: 12px;
+    gap: 8px;
   }
 }
 
@@ -3416,7 +3603,7 @@ select.j-edit-input {
   to { transform: rotate(360deg); }
 }
 
-@media (max-width: 520px) {
+@media (max-width: 575.98px) {
   .ja-sheet {
     max-width: 100%;
   }

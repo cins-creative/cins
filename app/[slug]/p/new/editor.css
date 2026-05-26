@@ -1600,21 +1600,9 @@
     border-color: var(--cins-blue);
     color: #fff;
   }
-  /* Picker bottom-sheet trên mobile (380px desktop khó vừa viewport ≤
-     400px). Anchor đáy màn hình, để gần tay người dùng. */
-  .cins-editor-page .picker {
-    position: fixed;
-    top: auto;
-    right: 12px;
-    bottom: 12px;
-    left: 12px;
-    transform: none;
-    width: auto;
-    max-width: none;
-    max-height: 70vh;
-    overflow-y: auto;
-    z-index: 320;
-  }
+  /* `.picker` bottom-sheet được handle ở `@media (max-width: 767.98px)`
+     bên dưới — dùng viewport width thay vì hover/pointer detection để
+     hoạt động cả trên dev-tools mobile mode + desktop hẹp. */
 }
 
 .cins-editor-page .picker {
@@ -1844,4 +1832,227 @@
   color: var(--ink-muted);
   font-size: 12px;
   margin-top: 40px;
+}
+
+/* ╔══════════════════════════════════════════════════════════════════╗
+   ║ RESPONSIVE — Bootstrap 5 breakpoints (desktop-first cascade)     ║
+   ║                                                                  ║
+   ║   • xxl ≥ 1400px → mặc định trên                                 ║
+   ║   • xl  ≥ 1200px → mặc định trên                                 ║
+   ║   • lg  ≥ 992px  → mặc định trên                                 ║
+   ║   • md  ≥ 768px  → @media (max-width:991.98px)                   ║
+   ║   • sm  ≥ 576px  → @media (max-width:767.98px)                   ║
+   ║   • xs  < 576px  → @media (max-width:575.98px)                   ║
+   ║                                                                  ║
+   ║ Bao phủ: canvas padding, cover full-bleed margin/height, title/  ║
+   ║ sub font-size, topbar gap+buttons, meta-chips, picker, image     ║
+   ║ picker grid. Tab portrait/landscape thiếu sẽ rơi vào breakpoint  ║
+   ║ gần nhất.                                                        ║
+   ╚══════════════════════════════════════════════════════════════════╝ */
+
+/* ── md (≤ 991.98px / tablet landscape) ── */
+@media (max-width: 991.98px) {
+  .cins-editor-page .editor-canvas {
+    max-width: none;
+    margin: 24px 16px 56px;
+    padding: 32px 40px 80px;
+    border-radius: 18px;
+  }
+  .cins-editor-page .cover-add.has {
+    margin: -32px -40px 24px;
+    width: calc(100% + 80px);
+    border-radius: 18px 18px 0 0;
+    height: 280px;
+  }
+  .cins-editor-page .title-in {
+    font-size: 32px;
+    letter-spacing: -0.6px;
+  }
+  .cins-editor-page .sub-in {
+    font-size: 17px;
+  }
+  .cins-editor-page .ed-topbar-inner {
+    padding: 0 16px;
+    gap: 10px;
+  }
+}
+
+/* ── sm (≤ 767.98px / tablet portrait) ── */
+@media (max-width: 767.98px) {
+  .cins-editor-page .editor-canvas {
+    margin: 16px 12px 48px;
+    padding: 24px 24px 64px;
+    border-radius: 14px;
+  }
+  .cins-editor-page .cover-add {
+    height: 160px;
+  }
+  .cins-editor-page .cover-add.has {
+    margin: -24px -24px 20px;
+    width: calc(100% + 48px);
+    border-radius: 14px 14px 0 0;
+    height: 220px;
+  }
+  .cins-editor-page .cover-actions {
+    top: 10px;
+    right: 10px;
+    gap: 5px;
+  }
+  .cins-editor-page .cover-act {
+    padding: 5px 10px;
+    font-size: 11px;
+  }
+  .cins-editor-page .title-in {
+    font-size: 26px;
+    letter-spacing: -0.4px;
+  }
+  .cins-editor-page .sub-in {
+    font-size: 15px;
+  }
+  /* Topbar gọn: ẩn title chữ + status "đã lưu" để nhường chỗ cho buttons. */
+  .cins-editor-page .ed-topbar-inner {
+    padding: 0 12px;
+    gap: 8px;
+  }
+  .cins-editor-page .ed-title,
+  .cins-editor-page .ed-status {
+    display: none;
+  }
+  .cins-editor-page .ed-btn {
+    height: 34px;
+    padding: 0 12px;
+    font-size: 12px;
+  }
+  .cins-editor-page .vis-btn {
+    height: 34px;
+    padding: 0 10px;
+    font-size: 12px;
+  }
+  .cins-editor-page .meta-chips {
+    gap: 6px;
+    margin-bottom: 14px;
+    padding-bottom: 14px;
+  }
+  .cins-editor-page .meta-chip {
+    height: 28px;
+    padding: 0 10px;
+    font-size: 11px;
+  }
+  /* Picker grid 1 cột — đỡ chật khi viewport hẹp. */
+  .cins-editor-page .picker-grid {
+    grid-template-columns: 1fr;
+  }
+  /* Picker bottom-sheet — Đặt cố định đáy viewport, full chiều ngang trừ
+     12px mỗi bên. Cần vì default `width: 380px` + `transform: translateX(-50%)`
+     gây overflow ngang trên màn ≤ 400px, hoặc bị canvas/overflow chain cắt
+     mất phần hai bên. `position: fixed` ngắt khỏi mọi stacking context và
+     dán đáy gần ngón tay user. */
+  .cins-editor-page .picker {
+    position: fixed;
+    /* `inset: auto 12 12 12` = top:auto + right/bottom/left:12. Override
+       hết default `top: calc(100%+8px); left: 50%` ở rule mặc định. */
+    inset: auto 12px 12px 12px;
+    transform: none;
+    width: auto;
+    max-width: none;
+    max-height: 70vh;
+    overflow-y: auto;
+    z-index: 320;
+    box-shadow:
+      0 -10px 28px rgba(15, 23, 42, 0.18),
+      var(--shadow-lg);
+  }
+  .cins-editor-page .ip-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* ── xs (< 576px / phone portrait) ── */
+@media (max-width: 575.98px) {
+  .cins-editor-page {
+    --ed-topbar-h: 52px;
+  }
+  .cins-editor-page .editor-canvas {
+    margin: 8px 0 32px;
+    padding: 20px 16px 48px;
+    border-radius: 0;
+    box-shadow: none;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .cins-editor-page .cover-add {
+    height: 140px;
+  }
+  .cins-editor-page .cover-add.has {
+    margin: -20px -16px 18px;
+    width: calc(100% + 32px);
+    border-radius: 0;
+    height: 180px;
+  }
+  .cins-editor-page .title-in {
+    font-size: 22px;
+    letter-spacing: -0.2px;
+    line-height: 1.2;
+  }
+  .cins-editor-page .sub-in {
+    font-size: 14px;
+  }
+  .cins-editor-page .ed-topbar-inner {
+    padding: 0 10px;
+    gap: 6px;
+  }
+  .cins-editor-page .ed-btn {
+    height: 32px;
+    padding: 0 10px;
+    font-size: 11px;
+  }
+  .cins-editor-page .ed-btn.primary {
+    padding: 0 12px;
+  }
+  /* Hủy (ghost) chỉ giữ chữ ngắn — nếu cần ẩn hẳn, bỏ comment dòng dưới. */
+  /* .cins-editor-page .ed-btn.ghost { display: none; } */
+  .cins-editor-page .vis-btn {
+    padding: 0 8px;
+    font-size: 11px;
+    gap: 4px;
+  }
+  /* Trên xs hộp topbar đã chật: chỉ giữ icon + caret cho vis-btn, hide label
+     ("Công khai" / "Riêng tư" / "Sau"). Menu vẫn xổ ra đầy đủ. */
+  .cins-editor-page .vis-btn > span:not(.ico):not(.caret) {
+    display: none;
+  }
+  .cins-editor-page .vis-menu {
+    right: -8px;
+    min-width: 240px;
+  }
+  /* Block text font hơi nhỏ lại cho khớp nội dung canvas hẹp. */
+  .cins-editor-page .b-text {
+    font-size: 15px;
+  }
+  .cins-editor-page .b-text.h2 {
+    font-size: 22px;
+  }
+  .cins-editor-page .b-text.h3 {
+    font-size: 18px;
+  }
+  .cins-editor-page .b-quote textarea {
+    font-size: 20px;
+  }
+  /* Image picker modal sheet rộng full viewport. */
+  .cins-editor-page .ip-sheet {
+    width: calc(100% - 16px);
+    max-width: none;
+    max-height: 88vh;
+  }
+  .cins-editor-page .ip-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  /* Block side controls (drag/del) đè vào padding canvas, gây overflow.
+     Giấu trên mobile — owner edit qua tap-and-hold (lượt sau). */
+  .cins-editor-page .block-side {
+    display: none;
+  }
+  .cins-editor-page .block::before {
+    display: none;
+  }
 }

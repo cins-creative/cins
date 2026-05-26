@@ -166,6 +166,21 @@ export function JourneyMilestoneCard({
   const mediaCount = media.length;
   const TypeIco = TYPE_ICON[type];
 
+  /* Hiển thị badge người đăng (avatar + tên) khi:
+   *   - variant === "self" (chính chủ đăng — `authorName` là tác giả thật)
+   *   - có thông tin tên / avatar
+   * Với "tagged"/"verified"/"bookmark": tác giả thật là người khác → KHÔNG
+   * dùng `authorName` (vốn là chủ Journey, không phải author bài). Các panel
+   * `TaggedByPanel` / `BookmarkSourcePanel` đã hiển thị attribution riêng.
+   *
+   * Với type === "ca-nhan": chỉ render user-badge, không kèm type-badge —
+   * label "Cá nhân" trùng nghĩa với user-badge nên thừa.
+   * Với các type khác (hoc/lam/du-an/...): render CẢ user-badge VÀ type-badge
+   * để giữ ngữ cảnh loại cột mốc. */
+  const showAuthorBadge =
+    variant === "self" && Boolean(authorName || authorAvatarUrl);
+  const showTypeBadge = !(showAuthorBadge && type === "ca-nhan");
+
   return (
     <article
       className={milestoneCls}
@@ -212,9 +227,9 @@ export function JourneyMilestoneCard({
           ) : null}
 
           <div className="j-m-badges">
-            {type === "ca-nhan" && (authorName || authorAvatarUrl) ? (
+            {showAuthorBadge ? (
               <span
-                className={`j-type-badge ${TYPE_CLASS[type]} j-type-badge-user`}
+                className={`j-type-badge ${TYPE_CLASS["ca-nhan"]} j-type-badge-user`}
               >
                 <span className="j-type-badge-ava" aria-hidden>
                   {authorAvatarUrl ? (
@@ -230,12 +245,13 @@ export function JourneyMilestoneCard({
                   {authorName || `@${ownerSlug ?? ""}`}
                 </span>
               </span>
-            ) : (
+            ) : null}
+            {showTypeBadge ? (
               <span className={`j-type-badge ${TYPE_CLASS[type]}`}>
                 <TypeIco size={13} strokeWidth={1.8} aria-hidden />
                 {TYPE_LABEL[type]}
               </span>
-            )}
+            ) : null}
             {verifiedBy ? (
               <span className="j-verify-badge">{verifiedBy}</span>
             ) : null}

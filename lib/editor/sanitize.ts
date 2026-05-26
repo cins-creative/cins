@@ -73,6 +73,45 @@ export function classifyEmbedUrl(
   return null;
 }
 
+/* Tách video ID YouTube (đồng bộ với `PostRenderer.extractYouTubeId`). */
+function extractYouTubeIdSrv(url: string): string | null {
+  let u: URL;
+  try {
+    u = new URL(url);
+  } catch {
+    return null;
+  }
+  const host = u.hostname.replace(/^www\./, "");
+  if (host === "youtu.be") {
+    const id = u.pathname.replace(/^\/+/, "").split("/")[0];
+    return id || null;
+  }
+  if (host === "youtube.com" || host === "m.youtube.com") {
+    const v = u.searchParams.get("v");
+    if (v) return v;
+    const m = u.pathname.match(/^\/(embed|shorts|live|v)\/([^/?#]+)/);
+    if (m) return m[2];
+  }
+  return null;
+}
+
+/* Build iframe HTML cho embed. Behance trả về null → caller dùng anchor. */
+function buildEmbedIframe(cls: {
+  provider: "youtube" | "figma" | "behance";
+  url: string;
+}): string | null {
+  if (cls.provider === "youtube") {
+    const id = extractYouTubeIdSrv(cls.url);
+    if (!id) return null;
+    return `<iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}" title="YouTube video player" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen loading="lazy"></iframe>`;
+  }
+  if (cls.provider === "figma") {
+    const src = `https://www.figma.com/embed?embed_host=cins&url=${encodeURIComponent(cls.url)}`;
+    return `<iframe src="${escapeHtml(src)}" title="Figma file" allowfullscreen loading="lazy"></iframe>`;
+  }
+  return null;
+}
+
 /**
  * Render toàn bộ array Block sang HTML để lưu vào `content_tac_pham.noi_dung_html`.
  *
@@ -134,9 +173,18 @@ export function blocksToHtml(blocks: ReadonlyArray<Block>): string {
         const url = b.config?.url as string | undefined;
         const cls = classifyEmbedUrl(url);
         if (cls) {
-          parts.push(
-            `<div class="rich-embed" data-provider="${cls.provider}"><a href="${escapeHtml(cls.url)}" rel="noopener noreferrer" target="_blank">${escapeHtml(cls.url)}</a></div>`,
-          );
+          /* YouTube/Figma → iframe thật để render trực tiếp trong HTML cache.
+             Behance (không bóc được project ID) fallback anchor link. */
+          const iframe = buildEmbedIframe(cls);
+          if (iframe) {
+            parts.push(
+              `<div class="rich-embed rich-embed-iframe" data-provider="${cls.provider}">${iframe}</div>`,
+            );
+          } else {
+            parts.push(
+              `<div class="rich-embed" data-provider="${cls.provider}"><a href="${escapeHtml(cls.url)}" rel="noopener noreferrer" target="_blank">${escapeHtml(cls.url)}</a></div>`,
+            );
+          }
         }
         break;
       }

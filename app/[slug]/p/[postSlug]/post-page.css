@@ -307,7 +307,10 @@
 .cins-post-view .blocks-readonly {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  /* Bỏ gap — block tự tạo khoảng cách qua padding của từng kiểu (h2/h3
+     có line-height; b-divider/b-spacer có padding riêng) → đồng bộ với
+     editor (`add-zone` height=0). */
+  gap: 0;
 }
 .cins-post-view .blocks-readonly .block {
   cursor: default;
@@ -386,6 +389,29 @@
 .cins-post-view .b-embed-ro .em-link:hover {
   text-decoration: underline;
 }
+
+/* Iframe variant — YouTube / Figma đã được PostRenderer dựng thành iframe
+   16/9. Bỏ padding + viền của link variant; clip overflow để iframe bo cùng
+   border-radius với canvas. `aspect-ratio: 16/9` đảm bảo chiều cao tự co
+   theo chiều rộng canvas (responsive sẵn). */
+.cins-post-view .b-embed-ro.is-iframe {
+  display: block;
+  padding: 0;
+  background: var(--neutral-900, #0f172a);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md, 12px);
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  width: 100%;
+}
+.cins-post-view .b-embed-ro.is-iframe iframe {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border: 0;
+}
+/* Figma thường là portrait/canvas tỉ lệ tự do → giữ 16/9 hoặc cho cao hơn.
+   Để đơn giản, dùng cùng tỉ lệ. Nếu cần riêng có thể override sau. */
 
 .cins-post-view .post-empty {
   text-align: center;
@@ -866,11 +892,22 @@
   font-style: italic;
 }
 
-/* ╔══ 5. Responsive ═══════════════════════════════════════════════ */
+/* ╔══════════════════════════════════════════════════════════════════╗
+   ║ 5. Responsive — Bootstrap 5 breakpoints (desktop-first cascade)  ║
+   ║                                                                  ║
+   ║   • xxl ≥ 1400px → default (rail 56px, canvas 880px max)         ║
+   ║   • xl  ≥ 1200px → default                                       ║
+   ║   • lg  ≥ 992px  → default                                       ║
+   ║   • md  ≥ 768px  → max-width:991.98px → rail 48px, canvas hẹp     ║
+   ║   • sm  ≥ 576px  → max-width:767.98px → rail bottom-bar           ║
+   ║   • xs  < 576px  → max-width:575.98px → canvas edge-to-edge       ║
+   ╚══════════════════════════════════════════════════════════════════╝ */
 
-@media (max-width: 1100px) {
-  /* Viewport hẹp — rail thu nhỏ 48px, float-right vẫn hoạt động. Canvas
-     vẫn centered qua margin auto. */
+/* ── md (≤991.98px / under lg): rail compact, canvas hẹp ── */
+@media (max-width: 991.98px) {
+  .j-post-page {
+    padding: 16px 16px 80px;
+  }
   .post-rail {
     width: 48px;
   }
@@ -878,22 +915,36 @@
     width: 48px;
     height: 48px;
   }
+  .cins-post-view .editor-canvas.post-canvas {
+    padding: 32px 40px 40px;
+  }
+  .cins-post-view .cover-add.cover-readonly {
+    margin: -32px -40px 24px;
+    width: calc(100% + 80px);
+    height: 280px;
+  }
+  .cins-post-view .title-in.title-ro {
+    font-size: 32px;
+  }
+  .cins-post-view .sub-in.sub-ro {
+    font-size: 17px;
+  }
 }
 
-@media (max-width: 720px) {
+/* ── sm (≤767.98px / under md): rail → bottom-bar; canvas full-width ── */
+@media (max-width: 767.98px) {
   .j-post-page {
-    padding: 12px 8px 60px;
+    padding: 12px 12px 80px;
   }
-  /* Mobile: canvas full width, rail chuyển thành bottom bar `position: fixed`. */
   .cins-post-view .editor-canvas.post-canvas {
-    padding: 20px 18px 32px;
+    padding: 24px 24px 32px;
     border-radius: 16px;
     margin: 0 auto;
   }
   .cins-post-view .cover-add.cover-readonly {
-    margin: -20px -18px 18px;
-    width: calc(100% + 36px); /* 18px padding × 2 */
-    height: 200px;
+    margin: -24px -24px 20px;
+    width: calc(100% + 48px);
+    height: 220px;
   }
   .cins-post-view .title-in.title-ro {
     font-size: 26px;
@@ -901,8 +952,13 @@
   .cins-post-view .sub-in.sub-ro {
     font-size: 16px;
   }
+  /* Byline gọn lại để wrap đẹp */
+  .cins-post-view .post-byline {
+    gap: 8px;
+  }
+  /* Rail bottom-bar — float + sticky → fixed full-width footer */
   .post-rail {
-    position: fixed; /* override sticky cho bottom bar */
+    position: fixed;
     float: none;
     flex-direction: row;
     width: auto;
@@ -925,6 +981,99 @@
     right: 0;
     left: auto;
     top: auto;
+  }
+}
+
+/* ── xs (≤575.98px / phone): canvas edge-to-edge, fonts thu nhỏ ── */
+@media (max-width: 575.98px) {
+  .j-post-page {
+    padding: 0 0 88px;
+    background: var(--bg-surface, #ffffff);
+  }
+  .j-post-page-inner {
+    padding: 0;
+  }
+  .j-post-page-crumb {
+    margin: 12px 12px 12px;
+  }
+  .cins-post-view .editor-canvas.post-canvas {
+    padding: 20px 16px 32px;
+    border-radius: 0;
+    box-shadow: none;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .cins-post-view .cover-add.cover-readonly {
+    margin: -20px -16px 18px;
+    width: calc(100% + 32px);
+    height: 180px;
+  }
+  .cins-post-view .title-in.title-ro {
+    font-size: 22px;
+    letter-spacing: -0.2px;
+    line-height: 1.2;
+  }
+  .cins-post-view .sub-in.sub-ro {
+    font-size: 14px;
+  }
+  .cins-post-view .post-byline {
+    font-size: 12px;
+    gap: 6px;
+  }
+  .cins-post-view .post-byline-vis,
+  .cins-post-view .post-byline-type,
+  .cins-post-view .post-byline-action {
+    font-size: 10px;
+    padding: 3px 8px;
+  }
+  .cins-post-view .post-byline-avatar {
+    width: 28px;
+    height: 28px;
+  }
+  /* Comments form: input full-width row, send button đầy chiều rộng */
+  .cins-post-view .post-comments-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .cins-post-view .post-comments-input {
+    height: 42px;
+    padding: 0 14px;
+    font-size: 13px;
+  }
+  .cins-post-view .post-comments-send {
+    height: 40px;
+    padding: 0 18px;
+    align-self: flex-end;
+  }
+  .cins-post-view .post-comments-avatar {
+    width: 32px;
+    height: 32px;
+  }
+  /* Block text nhỏ hơn cho khớp canvas hẹp */
+  .cins-post-view .b-text-ro {
+    font-size: 15px;
+  }
+  .cins-post-view .b-text-ro.h2 {
+    font-size: 22px;
+  }
+  .cins-post-view .b-text-ro.h3 {
+    font-size: 18px;
+  }
+  .cins-post-view .b-quote .b-quote-ro {
+    font-size: 20px;
+  }
+  /* Rail bottom-bar — button shrink để vừa 3-4 nút trên màn hẹp */
+  .post-rail {
+    padding: 6px;
+    gap: 6px;
+  }
+  .post-rail-btn {
+    width: 44px;
+    height: 44px;
+    font-size: 8px;
+  }
+  .post-rail-share {
+    min-width: 180px;
   }
 }
 
@@ -1038,10 +1187,25 @@
   }
 }
 
-@media (max-width: 720px) {
+/* Skeleton cover — match BS5 breakpoints với canvas thật ở mục 5. */
+@media (max-width: 991.98px) {
   .j-post-skel-cover {
-    margin: -20px -18px 18px;
-    width: calc(100% + 36px);
-    height: 180px;
+    margin: -32px -40px 24px;
+    width: calc(100% + 80px);
+    height: 240px;
+  }
+}
+@media (max-width: 767.98px) {
+  .j-post-skel-cover {
+    margin: -24px -24px 20px;
+    width: calc(100% + 48px);
+    height: 200px;
+  }
+}
+@media (max-width: 575.98px) {
+  .j-post-skel-cover {
+    margin: -20px -16px 18px;
+    width: calc(100% + 32px);
+    height: 160px;
   }
 }

@@ -1,15 +1,14 @@
 import { MessageCircleQuestion, Sparkles, Menu as MenuIcon } from "lucide-react";
 import Link from "next/link";
 
-import { signOutAction } from "@/app/auth/sign-out-action";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 
 /**
  * Topbar chính của site — render khác nhau theo trạng thái phiên:
  *
  * - **Chưa đăng nhập** → 2 link "Đăng nhập" (ghost) + "Đăng ký →" (gradient blue).
- * - **Đã đăng nhập**   → 1 nút "Đăng xuất" (form submit → server action
- *   `signOutAction` xoá phiên Supabase + redirect `/login`).
+ * - **Đã đăng nhập**   → KHÔNG hiển thị nút auth nào ở topbar; user đăng
+ *   xuất qua kebab menu trên sidebar account card (`CinsAppSidebar`).
  *
  * Là async server component → đặt ở file riêng (sidebar `CinsAppSidebar` cần
  * `"use client"` vì dùng `usePathname`, không thể chung file).
@@ -40,29 +39,19 @@ export async function CinsAppTopbar() {
             <MessageCircleQuestion size={16} strokeWidth={1.6} aria-hidden />
             <span>Tư vấn nghề</span>
           </Link>
-          <span className="tb-divider" aria-hidden />
-          <div className="tb-auth">
-            {isAuthed ? (
-              <form action={signOutAction}>
-                <button
-                  type="submit"
-                  className="tb-logout"
-                  aria-label="Đăng xuất và quay lại trang đăng nhập"
-                >
-                  Đăng xuất
-                </button>
-              </form>
-            ) : (
-              <>
+          {isAuthed ? null : (
+            <>
+              <span className="tb-divider" aria-hidden />
+              <div className="tb-auth">
                 <Link href="/login" className="tb-login">
                   Đăng nhập
                 </Link>
                 <Link href="/login?auto=register" className="tb-signup">
                   Đăng ký <span aria-hidden="true">→</span>
                 </Link>
-              </>
-            )}
-          </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </nav>
