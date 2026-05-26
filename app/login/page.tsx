@@ -52,25 +52,12 @@ export default async function LoginPage({
       </nav>
 
       <main className="cins-login-main">
-        <section className="cins-login-card" aria-labelledby="cins-login-title">
+        <section className="cins-login-card" aria-label="Đăng nhập C.INS">
           <p className="cins-login-eyebrow">khám phá hành trình của bạn</p>
-          <h1 id="cins-login-title" className="cins-login-title">
-            Bước vào <em>C.INS</em>
-          </h1>
-          <p className="cins-login-sub">
-            Tài khoản miễn phí — không lưu mật khẩu, không spam email. Dùng
-            Google để bắt đầu Journey sáng tạo của bạn.
-          </p>
 
           {errorMsg ? <ErrorBanner message={errorMsg} /> : null}
 
           <LoginActions initialError={null} autoIntent={autoIntent} />
-
-          <p className="cins-login-hint">
-            Lần đầu vào CINs? Chọn <strong>“Đăng ký với Google”</strong> để
-            thiết lập hồ sơ. Đã có tài khoản? Bấm{" "}
-            <strong>“Đăng nhập với Google”</strong>.
-          </p>
 
           <ul className="cins-login-bullets" aria-label="Lợi ích tài khoản CINs">
             <li>
