@@ -1,3 +1,4 @@
+import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import type { Block as ServerBlock } from "@/lib/editor/types";
 
 /**
@@ -123,6 +124,14 @@ export type MilestoneItem = {
 
   /** Tags hệ thống (#concept-art) hoặc free (#side-project). */
   tags?: ReadonlyArray<{ label: string; isSystem?: boolean }>;
+
+  /**
+   * Article tags — bài viết `article_bai_viet` được tác giả gắn vào tác phẩm
+   * chính của cột mốc (qua `article_gan_tac_pham`). Render trên card Journey
+   * dưới dạng pill màu theo `loai_bai_viet`, click vào → trang article tương
+   * ứng (`articlePublicHref`).
+   */
+  articleTags?: ReadonlyArray<ArticleTagRef>;
 
   /** Số views + comments (footer). Bỏ trống → ẩn footer. */
   views?: number | null;

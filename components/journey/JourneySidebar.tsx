@@ -10,10 +10,10 @@ import {
 
 import type { EditProfileInitial } from "@/components/journey/JourneyEditProfileModal";
 import { JourneyAvatarTrigger } from "@/components/journey/JourneyAvatarTrigger";
+import { JourneyCoverTrigger } from "@/components/journey/JourneyCoverTrigger";
 import { JourneySidebarOwnerActions } from "@/components/journey/JourneySidebarOwnerActions";
 import type { GiaiDoan } from "@/lib/auth/session";
 import {
-  formatJourneyBadge,
   formatTinhThanh,
   getGiaiDoanLabel,
   getNameInitials,
@@ -25,14 +25,14 @@ export type SidebarProfile = {
   slug: string;
   /** Avatar URL đã resolve ở server (Cloudflare imagedelivery). Null → fallback initials. */
   avatarUrl: string | null;
+  /** Cover URL đã resolve ở server. Null → giữ gradient mặc định + blob vàng. */
+  coverUrl: string | null;
   bio: string | null;
   tinhThanh: string | null;
   emailLienHe: string | null;
   mxhLinks: unknown;
   aiSummaryJourney: string | null;
   giaiDoan: GiaiDoan | null;
-  /** Index thứ tự Journey (#001…) — chưa wire, để mặc định 1. */
-  journeyIndex?: number | null;
 };
 
 export type SidebarStats = {
@@ -72,38 +72,53 @@ export function JourneySidebar({
   isOwner,
   editProfileInitial,
 }: Props) {
-  const { avatarUrl } = profile;
+  const { avatarUrl, coverUrl } = profile;
   const initials = getNameInitials(profile.tenHienThi, profile.slug);
   const cityLabel = formatTinhThanh(profile.tinhThanh);
   const socialLinks = normalizeSocialLinks(profile.mxhLinks);
-  const journeyBadge = formatJourneyBadge(profile.journeyIndex);
 
   /* "Vai trò" tạm dùng giai_doan label. Sau này có thể thay bằng vai trò tự nhập. */
   const roleLine = getGiaiDoanLabel(profile.giaiDoan);
 
   return (
     <aside className="j-sidebar" aria-label="Hồ sơ người dùng">
-      <div className="j-profile-cover" aria-hidden>
-        <div className="j-profile-cover-blob" />
-      </div>
+      {isOwner ? (
+        <JourneyCoverTrigger
+          coverUrl={coverUrl}
+          alt={profile.tenHienThi || profile.slug}
+        />
+      ) : (
+        <div
+          className={`j-profile-cover${coverUrl ? " has-img" : ""}`}
+          aria-hidden
+        >
+          {coverUrl ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={coverUrl}
+              alt=""
+              className="j-profile-cover-img"
+            />
+          ) : (
+            <div className="j-profile-cover-blob" />
+          )}
+        </div>
+      )}
 
       {isOwner ? (
         <JourneyAvatarTrigger
           avatarUrl={avatarUrl}
           initials={initials}
           alt={profile.tenHienThi || profile.slug}
-          badge={journeyBadge}
         />
       ) : (
         <div className="j-avatar">
           {avatarUrl ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
             <img src={avatarUrl} alt={profile.tenHienThi || profile.slug} />
           ) : (
             <span aria-hidden>{initials}</span>
           )}
-          <span className="j-avatar-badge" aria-label={`Journey ${journeyBadge}`}>
-            {journeyBadge}
-          </span>
         </div>
       )}
 

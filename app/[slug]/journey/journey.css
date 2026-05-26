@@ -90,15 +90,30 @@
   display: none;
 }
 
-/* Profile cover banner + blob (gradient blue→violet) */
+/* Profile cover banner + blob (gradient blue→violet).
+   Cover cao 100px; avatar 96px chồng lên 48px → đủ chỗ cho cả cover
+   reveal phía trên (52px) lẫn nửa avatar dưới (48px) trên background
+   trắng của sidebar. */
 .j-profile-cover {
-  height: 74px;
+  height: 100px;
   border-radius: var(--radius-lg);
   background: linear-gradient(120deg, var(--cins-blue) 0%, var(--cins-violet) 100%);
   position: relative;
-  margin-bottom: -34px;
+  margin-bottom: -48px;
   box-shadow: var(--shadow-xs);
-  overflow: visible;
+  overflow: hidden;
+}
+.j-profile-cover.has-img {
+  background: var(--neutral-100);
+}
+.j-profile-cover-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
 }
 .j-profile-cover-blob {
   position: absolute;
@@ -116,13 +131,58 @@
   pointer-events: none;
 }
 
+/* Editable cover (owner) — wrap toàn bộ cover thành button, reveal
+   overlay + camera icon khi hover/focus. Inherit dimension từ
+   `.j-profile-cover` ở trên. */
+button.j-profile-cover.j-profile-cover-editable {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  appearance: none;
+  font: inherit;
+  outline: none;
+  cursor: pointer;
+  transition: box-shadow 0.18s ease;
+}
+button.j-profile-cover.j-profile-cover-editable:hover,
+button.j-profile-cover.j-profile-cover-editable:focus-visible {
+  box-shadow:
+    var(--shadow-xs),
+    0 0 0 3px rgba(37, 99, 235, 0.22);
+}
+.j-profile-cover-edit-ico {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: rgba(15, 23, 42, 0.5);
+  color: #fff;
+  font-size: 12px;
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.2px;
+  opacity: 0;
+  transition: opacity 0.16s ease;
+  pointer-events: none;
+  z-index: 2;
+}
+button.j-profile-cover.j-profile-cover-editable:hover .j-profile-cover-edit-ico,
+button.j-profile-cover.j-profile-cover-editable:focus-visible .j-profile-cover-edit-ico {
+  opacity: 1;
+}
+.j-profile-cover-edit-label {
+  display: inline-block;
+}
+
 .j-avatar {
   position: relative;
-  width: 68px;
-  height: 68px;
+  width: 96px;
+  height: 96px;
   border-radius: 50%;
   overflow: visible;
-  border: 3px solid var(--bg-surface);
+  border: 4px solid var(--bg-surface);
   background: var(--cins-blue-soft);
   margin-left: 8px;
   box-shadow: var(--shadow-sm);
@@ -131,7 +191,7 @@
   justify-content: center;
   color: var(--cins-blue);
   font-family: var(--font-sans);
-  font-size: 24px;
+  font-size: 32px;
   font-weight: var(--weight-extrabold);
 }
 .j-avatar img {
@@ -141,22 +201,6 @@
   object-fit: cover;
   display: block;
 }
-.j-avatar-badge {
-  position: absolute;
-  bottom: -3px;
-  right: -5px;
-  background: var(--neutral-900);
-  color: #fff;
-  font-family: var(--font-sans);
-  font-variant-numeric: tabular-nums;
-  font-size: 9px;
-  font-weight: var(--weight-bold);
-  padding: 2px 6px;
-  border-radius: var(--radius-pill);
-  border: 2px solid var(--bg-surface);
-  letter-spacing: 0.3px;
-}
-
 /* Editable avatar (owner) — reset button styles, hover reveals camera icon */
 button.j-avatar.j-avatar-editable {
   padding: 0;
@@ -1333,6 +1377,74 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
 }
 .j-lf-expand:hover {
   background: var(--cins-blue-dark);
+}
+
+/* ── Article tags (bài viết `article_bai_viet` đã gắn) ────────────
+   Render dưới block content, trên row `.j-m-tags` cũ. Mỗi pill là 1
+   Link đến trang article tương ứng theo `loai_bai_viet`; click vào
+   stop propagation để KHÔNG trigger open card modal. Màu theo loại
+   để dễ scan. */
+.j-m-art-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 12px 0 6px;
+}
+.j-m-art-tag {
+  display: inline-flex;
+  align-items: stretch;
+  border-radius: var(--radius-pill);
+  background: var(--neutral-100, #f1f5f9);
+  color: var(--ink-body);
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: none;
+  overflow: hidden;
+  transition: background 120ms ease, transform 120ms ease;
+}
+.j-m-art-tag:hover {
+  background: var(--neutral-200, #e2e8f0);
+  transform: translateY(-1px);
+}
+.j-m-art-tag-loai {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 9px;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+.j-m-art-tag-name {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px 4px 8px;
+}
+
+.j-m-art-tag.is-loai-nghe .j-m-art-tag-loai {
+  background: #f59e0b;
+}
+.j-m-art-tag.is-loai-keyword .j-m-art-tag-loai {
+  background: #8b5cf6;
+}
+.j-m-art-tag.is-loai-phan-mem .j-m-art-tag-loai {
+  background: #2563eb;
+}
+.j-m-art-tag.is-loai-mon-hoc .j-m-art-tag-loai {
+  background: #10b981;
+}
+.j-m-art-tag.is-loai-blog .j-m-art-tag-loai {
+  background: #64748b;
+}
+.j-m-art-tag.is-loai-event .j-m-art-tag-loai {
+  background: #ec4899;
+}
+.j-m-art-tag.is-loai-nganh-dao-tao .j-m-art-tag-loai {
+  background: #4f46e5;
+}
+.j-m-art-tag.is-loai-linh-vuc .j-m-art-tag-loai {
+  background: #0d9488;
 }
 
 /* TAGS & FOOTER */
@@ -3175,6 +3287,33 @@ select.j-edit-input {
     inset 0 0 0 1px rgba(15, 23, 42, 0.18),
     0 0 18px rgba(15, 23, 42, 0.18);
   pointer-events: none;
+}
+
+/* Cover variant — frame chữ nhật 3:1, không mask, ring vuông góc. Sheet
+   rộng hơn để chứa frame 480px + padding. Preview ảnh cover hiện tại
+   render dạng banner 16:6 thay cho avatar tròn 44×44. */
+.ja-sheet.ja-sheet--cover {
+  max-width: 560px;
+}
+.ja-frame.ja-frame--cover {
+  border-radius: 12px;
+}
+.ja-frame-ring.ja-frame-ring--cover {
+  border-radius: 12px;
+}
+.ja-current.ja-current--cover {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+.ja-current.ja-current--cover img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 1;
+  border-radius: 10px;
+  object-fit: cover;
+  border: 1px solid var(--border-soft, #e5e7eb);
+  box-shadow: var(--shadow-xs);
 }
 .ja-controls {
   width: 100%;

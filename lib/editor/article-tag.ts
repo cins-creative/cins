@@ -11,3 +11,41 @@ export type ArticleTagRef = {
   tieu_de: string;
   loai_bai_viet: string;
 };
+
+/* ─── Shared label + color class helpers ─────────────────────────────
+ * Dùng chung giữa editor (ArticleTagPicker), JourneyPostBody (hiển thị
+ * tag dưới byline) và JourneyMilestoneCard (hiển thị tag trên card).
+ * ────────────────────────────────────────────────────────────────── */
+
+export const LOAI_BAI_VIET_LABEL: Record<string, string> = {
+  nghe: "Nghề",
+  keyword: "Khái niệm",
+  phan_mem: "Phần mềm",
+  mon_hoc: "Môn học",
+  blog: "Blog",
+  event: "Sự kiện",
+  nganh_dao_tao: "Ngành đào tạo",
+  linh_vuc: "Lĩnh vực",
+};
+
+export function articleTagLabel(loai: string): string {
+  return LOAI_BAI_VIET_LABEL[loai] ?? loai;
+}
+
+const KNOWN_LOAI = new Set([
+  "nghe",
+  "keyword",
+  "phan_mem",
+  "mon_hoc",
+  "blog",
+  "event",
+  "nganh_dao_tao",
+  "linh_vuc",
+]);
+
+/** CSS modifier class theo loại (dùng cho dropdown picker + pill hiển thị).
+ *  `loai_bai_viet` enum DB dùng `_`, CSS prefer `-` → convert.   */
+export function articleTagLoaiClass(loai: string): string {
+  const k = KNOWN_LOAI.has(loai) ? loai : "blog";
+  return `is-loai-${k.replace(/_/g, "-")}`;
+}

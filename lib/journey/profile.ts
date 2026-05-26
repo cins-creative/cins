@@ -177,9 +177,3 @@ const GIAI_DOAN_LABEL: Record<GiaiDoan, string> = {
 export function getGiaiDoanLabel(g: GiaiDoan | null): string {
   return g ? GIAI_DOAN_LABEL[g] : "Đang khởi tạo hồ sơ";
 }
-
-/** Avatar badge "#NNN" — index user theo thứ tự đăng ký Journey. Dùng tạm. */
-export function formatJourneyBadge(index: number | null | undefined): string {
-  if (!index || index < 1) return "#001";
-  return "#" + String(index).padStart(3, "0");
-}

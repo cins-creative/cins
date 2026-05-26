@@ -96,18 +96,26 @@
   font-family: inherit;
 }
 .cins-editor-page .ed-btn.primary {
-  background: var(--cins-blue);
+  background: #16a34a;
   color: #fff;
   height: 38px;
   padding: 0 18px;
   font-size: 13px;
 }
 .cins-editor-page .ed-btn.primary:hover:not(:disabled) {
-  background: var(--cins-blue-dark);
+  background: #15803d;
 }
 .cins-editor-page .ed-btn.primary:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+}
+.cins-editor-page .ed-spin {
+  animation: ed-spin 0.9s linear infinite;
+}
+@keyframes ed-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 .cins-editor-page .ed-btn.ghost {
   background: transparent;
@@ -542,6 +550,127 @@
   flex: 0 0 auto;
   color: var(--cins-blue);
   font-weight: 700;
+}
+.cins-editor-page .tag-picker-count {
+  padding: 6px 4px 0;
+  font-size: 11px;
+  color: var(--ink-muted);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.cins-editor-page .tag-picker-more {
+  padding: 10px;
+  text-align: center;
+  color: var(--ink-muted);
+  font-size: 12px;
+  font-style: italic;
+}
+
+/* ──────────────────────────────────────────────────────────────────
+ * Màu sắc theo `loai_bai_viet` — áp dụng cả cho `.tag-picker-loai`
+ * (badge trong dropdown) lẫn `.meta-chip-tag .meta-chip-loai` (pill
+ * đã chọn). Mỗi loại 1 hue riêng để dễ scan visually.
+ *
+ *   • nghe          → cam đậm (amber 500)
+ *   • keyword       → tím (violet 500)
+ *   • phan_mem      → xanh dương (cins-blue)
+ *   • mon_hoc       → xanh lá (emerald 500)
+ *   • blog          → xám than (slate 500)
+ *   • event         → hồng (pink 500)
+ *   • nganh_dao_tao → chàm (indigo 500)
+ *   • linh_vuc      → ngọc (teal 500)
+ * ────────────────────────────────────────────────────────────────── */
+
+.cins-editor-page .tag-picker-loai.is-loai-nghe,
+.cins-editor-page .meta-chip-tag.is-loai-nghe .meta-chip-loai {
+  background: #f59e0b;
+}
+.cins-editor-page .tag-picker-loai.is-loai-keyword,
+.cins-editor-page .meta-chip-tag.is-loai-keyword .meta-chip-loai {
+  background: #8b5cf6;
+}
+.cins-editor-page .tag-picker-loai.is-loai-phan-mem,
+.cins-editor-page .meta-chip-tag.is-loai-phan-mem .meta-chip-loai {
+  background: #2563eb;
+}
+.cins-editor-page .tag-picker-loai.is-loai-mon-hoc,
+.cins-editor-page .meta-chip-tag.is-loai-mon-hoc .meta-chip-loai {
+  background: #10b981;
+}
+.cins-editor-page .tag-picker-loai.is-loai-blog,
+.cins-editor-page .meta-chip-tag.is-loai-blog .meta-chip-loai {
+  background: #64748b;
+}
+.cins-editor-page .tag-picker-loai.is-loai-event,
+.cins-editor-page .meta-chip-tag.is-loai-event .meta-chip-loai {
+  background: #ec4899;
+}
+.cins-editor-page .tag-picker-loai.is-loai-nganh-dao-tao,
+.cins-editor-page .meta-chip-tag.is-loai-nganh-dao-tao .meta-chip-loai {
+  background: #4f46e5;
+}
+.cins-editor-page .tag-picker-loai.is-loai-linh-vuc,
+.cins-editor-page .meta-chip-tag.is-loai-linh-vuc .meta-chip-loai {
+  background: #0d9488;
+}
+
+/* Pill `meta-chip-tag` nền soft theo loại — pastel match badge → đỡ
+   nặng UI khi nhiều tag. Text giữ đậm để contrast trên nền soft. */
+.cins-editor-page .meta-chip-tag.is-loai-nghe {
+  background: #fef3c7;
+  color: #92400e;
+}
+.cins-editor-page .meta-chip-tag.is-loai-nghe .meta-chip-x {
+  color: #92400e;
+}
+.cins-editor-page .meta-chip-tag.is-loai-keyword {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+.cins-editor-page .meta-chip-tag.is-loai-keyword .meta-chip-x {
+  color: #5b21b6;
+}
+.cins-editor-page .meta-chip-tag.is-loai-phan-mem {
+  background: #dbeafe;
+  color: #1e40af;
+}
+.cins-editor-page .meta-chip-tag.is-loai-phan-mem .meta-chip-x {
+  color: #1e40af;
+}
+.cins-editor-page .meta-chip-tag.is-loai-mon-hoc {
+  background: #d1fae5;
+  color: #065f46;
+}
+.cins-editor-page .meta-chip-tag.is-loai-mon-hoc .meta-chip-x {
+  color: #065f46;
+}
+.cins-editor-page .meta-chip-tag.is-loai-blog {
+  background: #e2e8f0;
+  color: #334155;
+}
+.cins-editor-page .meta-chip-tag.is-loai-blog .meta-chip-x {
+  color: #334155;
+}
+.cins-editor-page .meta-chip-tag.is-loai-event {
+  background: #fce7f3;
+  color: #9d174d;
+}
+.cins-editor-page .meta-chip-tag.is-loai-event .meta-chip-x {
+  color: #9d174d;
+}
+.cins-editor-page .meta-chip-tag.is-loai-nganh-dao-tao {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+.cins-editor-page .meta-chip-tag.is-loai-nganh-dao-tao .meta-chip-x {
+  color: #3730a3;
+}
+.cins-editor-page .meta-chip-tag.is-loai-linh-vuc {
+  background: #ccfbf1;
+  color: #115e59;
+}
+.cins-editor-page .meta-chip-tag.is-loai-linh-vuc .meta-chip-x {
+  color: #115e59;
 }
 
 /* ──── BLOCKS ──── */

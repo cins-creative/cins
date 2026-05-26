@@ -12,6 +12,10 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
  *
  * Empty `query` → trả top 12 bài mới cập nhật (làm "browse" mặc định khi
  * dropdown vừa mở).
+ *
+ * Note: client picker ưu tiên `loadAllArticlesForTagPicker()` + filter
+ * client-side. Hàm này giữ làm fallback cho UX server-side search nếu
+ * cache miss / muốn refresh.
  */
 export async function searchArticlesForTag(
   query: string,
@@ -40,6 +44,42 @@ export async function searchArticlesForTag(
   }
 
   const { data, error } = await req;
+  if (error || !data) return [];
+
+  return data.map((row) => ({
+    id: String(row.id),
+    slug: String(row.slug),
+    tieu_de: String(row.tieu_de ?? "").trim() || "Không tiêu đề",
+    loai_bai_viet: String(row.loai_bai_viet ?? "").trim() || "blog",
+  }));
+}
+
+/**
+ * Load bulk — trả về toàn bộ article_bai_viet `published` cho TagPicker,
+ * cap 2000 dòng (tránh transfer payload quá lớn). Client cache vào
+ * sessionStorage, filter local cho instant search + infinite scroll.
+ *
+ * Order theo `cap_nhat_luc DESC` để bài mới sửa luôn ưu tiên đầu list khi
+ * empty query — match UX của `searchArticlesForTag` "browse mặc định".
+ *
+ * Estimate: id (36B) + slug (~30B) + title (~50B) + loai (~10B) ≈ 130B/row
+ * → 2000 rows ≈ 260KB JSON, gzip xuống còn ~80KB → chấp nhận được cho
+ * 1 lần load mỗi session.
+ */
+const TAG_PICKER_MAX_ROWS = 2000;
+
+export async function loadAllArticlesForTagPicker(): Promise<ArticleTagRef[]> {
+  const session = await getCurrentSessionAndProfile();
+  if (!session?.profile) return [];
+
+  const admin = createServiceRoleClient();
+  const { data, error } = await admin
+    .from("article_bai_viet")
+    .select("id, slug, tieu_de, loai_bai_viet")
+    .eq("trang_thai_noi_dung", "published")
+    .order("cap_nhat_luc", { ascending: false })
+    .limit(TAG_PICKER_MAX_ROWS);
+
   if (error || !data) return [];
 
   return data.map((row) => ({

@@ -14,7 +14,11 @@ import {
 } from "@/lib/journey/filter-visibility";
 import { fetchGalleryForUser } from "@/lib/journey/gallery-fetch";
 import { fetchMilestonesForUser } from "@/lib/journey/milestones-fetch";
-import { getAvatarUrl, normalizeSocialLinks } from "@/lib/journey/profile";
+import {
+  getAvatarUrl,
+  getProfileCoverUrl,
+  normalizeSocialLinks,
+} from "@/lib/journey/profile";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 export const dynamic = "force-dynamic";
@@ -159,13 +163,13 @@ export default async function JourneyPage({
           slug: owner.slug,
           tenHienThi: owner.ten_hien_thi,
           avatarUrl: getAvatarUrl(owner.avatar_id),
+          coverUrl: getProfileCoverUrl(owner.cover_id),
           bio: owner.bio,
           tinhThanh: owner.tinh_thanh,
           emailLienHe: emailForView,
           mxhLinks: owner.mxh_links,
           aiSummaryJourney: owner.ai_summary_journey,
           giaiDoan: owner.giai_doan,
-          journeyIndex: 1,
         }}
         stats={stats}
         isOwner={isOwner}

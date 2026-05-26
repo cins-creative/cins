@@ -206,6 +206,14 @@
   justify-content: center;
   font-weight: 700;
   font-size: 13px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.cins-post-view .post-byline-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 .cins-post-view .post-byline-name {
   display: inline-flex;
@@ -532,6 +540,13 @@
   font-weight: 700;
   font-size: 14px;
   flex-shrink: 0;
+  overflow: hidden;
+}
+.cins-post-view .post-comments-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 .cins-post-view .post-comments-bub {
   flex: 1;
@@ -554,8 +569,12 @@
   font-size: 11px;
   color: var(--ink-muted);
 }
-.cins-post-view .post-comments-del {
+.cins-post-view .post-comments-menu {
   margin-left: auto;
+  position: relative;
+  display: inline-flex;
+}
+.cins-post-view .post-comments-more {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -568,9 +587,118 @@
   cursor: pointer;
   transition: background 120ms ease, color 120ms ease;
 }
-.cins-post-view .post-comments-del:hover {
+.cins-post-view .post-comments-more:hover,
+.cins-post-view .post-comments-menu.open .post-comments-more {
+  background: rgba(15, 23, 42, 0.06);
+  color: var(--ink-title);
+}
+.cins-post-view .post-comments-menu-pop {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 30;
+  min-width: 132px;
+  padding: 4px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.16);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.cins-post-view .post-comments-menu-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border: none;
+  background: transparent;
+  color: var(--ink-body);
+  font: inherit;
+  font-size: 13px;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 120ms ease, color 120ms ease;
+}
+.cins-post-view .post-comments-menu-item:hover {
+  background: rgba(15, 23, 42, 0.06);
+}
+.cins-post-view .post-comments-menu-item-danger {
+  color: #b91c1c;
+}
+.cins-post-view .post-comments-menu-item-danger:hover {
   background: #fee2e2;
   color: #b91c1c;
+}
+
+/* Inline edit form — thay thế `.post-comments-text` khi user chọn
+   Sửa từ kebab menu. Layout dọc: textarea + (optional err) + actions. */
+.cins-post-view .post-comments-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 2px;
+}
+.cins-post-view .post-comments-edit-input {
+  width: 100%;
+  resize: vertical;
+  min-height: 60px;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink-body);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  outline: none;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+.cins-post-view .post-comments-edit-input:focus {
+  border-color: var(--ink-title);
+  box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.08);
+}
+.cins-post-view .post-comments-edit-err {
+  font-size: 12px;
+  color: #b91c1c;
+}
+.cins-post-view .post-comments-edit-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.cins-post-view .post-comments-edit-cancel,
+.cins-post-view .post-comments-edit-save {
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease,
+    border-color 120ms ease, opacity 120ms ease;
+}
+.cins-post-view .post-comments-edit-cancel {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink-body);
+}
+.cins-post-view .post-comments-edit-cancel:hover:not(:disabled) {
+  background: rgba(15, 23, 42, 0.04);
+}
+.cins-post-view .post-comments-edit-save {
+  border: 1px solid var(--ink-title);
+  background: var(--ink-title);
+  color: #fff;
+}
+.cins-post-view .post-comments-edit-save:hover:not(:disabled) {
+  opacity: 0.9;
+}
+.cins-post-view .post-comments-edit-cancel:disabled,
+.cins-post-view .post-comments-edit-save:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 .cins-post-view .post-comments-text {
   font-size: 14px;
@@ -796,5 +924,164 @@
     right: 0;
     left: auto;
     top: auto;
+  }
+}
+
+/* ╔══ 6. Article tags row (dưới byline) ═══════════════════════════ */
+/* Render bài viết article_bai_viet đã gắn vào tác phẩm (junction
+   article_gan_tac_pham). Mỗi pill = 1 Link đến trang article tương
+   ứng theo loai_bai_viet. Pattern visually đồng bộ với picker trong
+   editor (`tag-picker-loai`) — màu badge theo loại. */
+
+.cins-post-view .post-art-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: -4px 0 18px;
+}
+.cins-post-view .post-art-tag {
+  display: inline-flex;
+  align-items: stretch;
+  border-radius: var(--radius-pill, 999px);
+  background: var(--neutral-100, #f1f5f9);
+  color: var(--ink-body);
+  font-size: 12.5px;
+  font-weight: 500;
+  text-decoration: none;
+  overflow: hidden;
+  transition: background 120ms ease, transform 120ms ease;
+}
+.cins-post-view .post-art-tag:hover {
+  background: var(--neutral-200, #e2e8f0);
+  transform: translateY(-1px);
+}
+.cins-post-view .post-art-tag-loai {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+.cins-post-view .post-art-tag-name {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px 4px 8px;
+}
+
+.cins-post-view .post-art-tag.is-loai-nghe .post-art-tag-loai {
+  background: #f59e0b;
+}
+.cins-post-view .post-art-tag.is-loai-keyword .post-art-tag-loai {
+  background: #8b5cf6;
+}
+.cins-post-view .post-art-tag.is-loai-phan-mem .post-art-tag-loai {
+  background: #2563eb;
+}
+.cins-post-view .post-art-tag.is-loai-mon-hoc .post-art-tag-loai {
+  background: #10b981;
+}
+.cins-post-view .post-art-tag.is-loai-blog .post-art-tag-loai {
+  background: #64748b;
+}
+.cins-post-view .post-art-tag.is-loai-event .post-art-tag-loai {
+  background: #ec4899;
+}
+.cins-post-view .post-art-tag.is-loai-nganh-dao-tao .post-art-tag-loai {
+  background: #4f46e5;
+}
+.cins-post-view .post-art-tag.is-loai-linh-vuc .post-art-tag-loai {
+  background: #0d9488;
+}
+
+/* ╔══ 7. Intercepted-modal loading skeleton ═══════════════════════ */
+/* Hiển thị ngay khi user click cột mốc trên Journey — Next.js render
+   `loading.tsx` (file này nằm trong client router cache khi prefetch).
+   Skeleton mô phỏng layout `JourneyPostBody` để tránh layout shift khi
+   data tới và replace fallback bằng nội dung thật. */
+
+.j-post-skel .editor-canvas.post-canvas {
+  min-height: 480px;
+}
+.j-post-skel-cover {
+  margin: -56px -56px 24px;
+  width: calc(100% + 112px);
+  height: 280px;
+  background: linear-gradient(
+      90deg,
+      rgba(15, 23, 42, 0.04) 0%,
+      rgba(15, 23, 42, 0.08) 50%,
+      rgba(15, 23, 42, 0.04) 100%
+    )
+    var(--neutral-100, #f1f5f9);
+  background-size: 200% 100%;
+  animation: j-post-skel-shimmer 1.4s ease-in-out infinite;
+}
+.j-post-skel-byline {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 18px;
+}
+.j-post-skel-ava {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--neutral-100, #f1f5f9);
+  flex-shrink: 0;
+  animation: j-post-skel-shimmer 1.4s ease-in-out infinite;
+}
+.j-post-skel-meta {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.j-post-skel-title {
+  height: 32px;
+  width: 70%;
+  border-radius: 6px;
+  background: var(--neutral-100, #f1f5f9);
+  margin-bottom: 18px;
+  animation: j-post-skel-shimmer 1.4s ease-in-out infinite;
+}
+.j-post-skel-line {
+  height: 12px;
+  border-radius: 4px;
+  background: var(--neutral-100, #f1f5f9);
+  animation: j-post-skel-shimmer 1.4s ease-in-out infinite;
+  margin-bottom: 10px;
+}
+.j-post-skel-line--full {
+  width: 100%;
+}
+.j-post-skel-line--lg {
+  width: 80%;
+}
+.j-post-skel-line--md {
+  width: 55%;
+}
+.j-post-skel-line--sm {
+  width: 35%;
+  height: 10px;
+}
+
+@keyframes j-post-skel-shimmer {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@media (max-width: 720px) {
+  .j-post-skel-cover {
+    margin: -20px -18px 18px;
+    width: calc(100% + 36px);
+    height: 180px;
   }
 }

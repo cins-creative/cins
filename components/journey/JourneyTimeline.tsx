@@ -56,8 +56,23 @@ export function JourneyTimeline({
   const [openMilestoneId, setOpenMilestoneId] = useState<string | null>(null);
   const rootRef = useRef<HTMLElement>(null);
 
-  /* Delegate click trên `.j-m-card`. Bỏ qua nếu click rơi vào `.j-m-menu`
-     (kebab + popup) hoặc các tương tác có ý nghĩa riêng. */
+  /* Prefetch dedupe — track những href đã gọi `router.prefetch()` để tránh
+     nhân đôi request (đặc biệt khi cùng card vừa enter viewport vừa hover). */
+  const prefetchedRef = useRef<Set<string>>(new Set());
+  const prefetch = useCallback(
+    (postSlug: string) => {
+      const href = `/${ownerSlug}/p/${postSlug}`;
+      if (prefetchedRef.current.has(href)) return;
+      prefetchedRef.current.add(href);
+      router.prefetch(href);
+    },
+    [router, ownerSlug],
+  );
+
+  /* Delegate click chỉ trên `.j-m-card.is-clickable` (NOT cả `.j-milestone`
+     — `j-m-month` / diamond / dash đường ngang nằm ngoài card cũng thuộc
+     article nhưng không nên trigger modal). Bỏ qua khi click rơi vào
+     `.j-m-menu` (kebab + popup) — owner menu xử lý riêng. */
   useEffect(() => {
     const el = rootRef.current;
     if (!el) return;
@@ -65,8 +80,13 @@ export function JourneyTimeline({
       const target = e.target as Element | null;
       if (!target) return;
       if (target.closest(".j-m-menu")) return;
-      const article = target.closest<HTMLElement>(".j-milestone[data-mid]");
-      if (!article || !el.contains(article)) return;
+
+      const card = target.closest<HTMLElement>(".j-m-card.is-clickable");
+      if (!card || !el.contains(card)) return;
+
+      /* Lấy data-mid / data-post-slug từ `.j-milestone` chứa card đó. */
+      const article = card.closest<HTMLElement>(".j-milestone[data-mid]");
+      if (!article) return;
       const mid = article.getAttribute("data-mid");
       if (!mid) return;
 
@@ -81,9 +101,119 @@ export function JourneyTimeline({
       /* Không có post slug → fallback modal cũ (load by milestoneId). */
       setOpenMilestoneId(mid);
     };
+    /* Keyboard parity: card là `<div role="button" tabIndex=0>` nên Enter /
+       Space cần trigger giống click. Listener riêng cho keydown. */
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      const target = e.target as Element | null;
+      if (!target) return;
+      const card = target.closest<HTMLElement>(".j-m-card.is-clickable");
+      if (!card || !el.contains(card)) return;
+      /* Chỉ trigger khi card đang focus — tránh bắt phím khi user gõ trong
+         input/textarea bên trong card (chưa có nhưng future-proof). */
+      if (document.activeElement !== card) return;
+      e.preventDefault();
+      const article = card.closest<HTMLElement>(".j-milestone[data-mid]");
+      if (!article) return;
+      const mid = article.getAttribute("data-mid");
+      if (!mid) return;
+      const postSlug = article.getAttribute("data-post-slug");
+      if (postSlug) {
+        router.push(`/${ownerSlug}/p/${postSlug}`);
+        return;
+      }
+      setOpenMilestoneId(mid);
+    };
+    /* Prefetch on hover — user di chuột tới card = intent rõ ràng → fire
+       prefetch ngay để khi click là instant. Dùng `pointerover` (bubbles)
+       thay `pointerenter` (không bubble, không delegate qua root được).
+       `prefetch()` đã dedupe nên gọi nhiều lần khi chuột di chuyển trong
+       card cũng OK. */
+    let lastHoveredCard: Element | null = null;
+    const onPointerOver = (e: Event) => {
+      const target = e.target as Element | null;
+      if (!target) return;
+      const card = target.closest<HTMLElement>(".j-m-card.is-clickable");
+      if (!card || card === lastHoveredCard) return;
+      lastHoveredCard = card;
+      const article = card.closest<HTMLElement>(".j-milestone[data-mid]");
+      const postSlug = article?.getAttribute("data-post-slug");
+      if (postSlug) prefetch(postSlug);
+    };
+
     el.addEventListener("click", onClick);
-    return () => el.removeEventListener("click", onClick);
-  }, [router, ownerSlug]);
+    el.addEventListener("keydown", onKey);
+    el.addEventListener("pointerover", onPointerOver);
+    return () => {
+      el.removeEventListener("click", onClick);
+      el.removeEventListener("keydown", onKey);
+      el.removeEventListener("pointerover", onPointerOver);
+    };
+  }, [router, ownerSlug, prefetch]);
+
+  /* Prefetch eager — gọi `router.prefetch` cho 8 milestone đầu tiên (above
+     fold + ngay dưới). Next.js cache RSC payload của route intercepted, lần
+     click sau navigation gần như không có latency. Dùng `requestIdleCallback`
+     để không block initial render; fallback `setTimeout` cho browser cũ. */
+  useEffect(() => {
+    const eager = milestones
+      .filter((m) => m.postSlug)
+      .slice(0, 8)
+      .map((m) => m.postSlug as string);
+    if (eager.length === 0) return;
+
+    const run = () => {
+      for (const postSlug of eager) prefetch(postSlug);
+    };
+    const ric: typeof window.requestIdleCallback | undefined = (
+      window as unknown as {
+        requestIdleCallback?: typeof window.requestIdleCallback;
+      }
+    ).requestIdleCallback;
+    if (typeof ric === "function") {
+      const id = ric(run);
+      return () => {
+        const cic: typeof window.cancelIdleCallback | undefined = (
+          window as unknown as {
+            cancelIdleCallback?: typeof window.cancelIdleCallback;
+          }
+        ).cancelIdleCallback;
+        cic?.(id);
+      };
+    }
+    const tid = window.setTimeout(run, 200);
+    return () => window.clearTimeout(tid);
+  }, [milestones, prefetch]);
+
+  /* Prefetch lazy bằng IntersectionObserver — khi card cuộn vào viewport
+     mới prefetch. Tránh blast 100+ request cùng lúc với journey dài. Dùng
+     rootMargin dương để bắt đầu prefetch ngay TRƯỚC khi card thật sự visible
+     (user scroll xuống = sẽ thấy ngay sau đó). */
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          const article = entry.target as HTMLElement;
+          const postSlug = article.getAttribute("data-post-slug");
+          if (postSlug) prefetch(postSlug);
+          observer.unobserve(article);
+        }
+      },
+      { root: null, rootMargin: "200px 0px", threshold: 0 },
+    );
+
+    const articles = el.querySelectorAll<HTMLElement>(
+      ".j-milestone[data-post-slug]",
+    );
+    articles.forEach((a) => observer.observe(a));
+
+    return () => observer.disconnect();
+    /* Re-bind khi milestones / filter đổi vì DOM article tree thay đổi. */
+  }, [milestones, filter, prefetch]);
 
   const handleClose = useCallback(() => setOpenMilestoneId(null), []);
 

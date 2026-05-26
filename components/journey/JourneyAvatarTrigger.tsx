@@ -20,15 +20,9 @@ type Props = {
   avatarUrl: string | null;
   initials: string;
   alt: string;
-  badge: string;
 };
 
-export function JourneyAvatarTrigger({
-  avatarUrl,
-  initials,
-  alt,
-  badge,
-}: Props) {
+export function JourneyAvatarTrigger({ avatarUrl, initials, alt }: Props) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -45,9 +39,6 @@ export function JourneyAvatarTrigger({
         ) : (
           <span aria-hidden>{initials}</span>
         )}
-        <span className="j-avatar-badge" aria-label={`Journey ${badge}`}>
-          {badge}
-        </span>
         <span className="j-avatar-edit-ico" aria-hidden>
           <Camera size={18} strokeWidth={1.8} />
         </span>

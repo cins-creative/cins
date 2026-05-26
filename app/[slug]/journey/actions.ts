@@ -15,6 +15,8 @@ import {
   uiKeyToDbEnum,
   type LoaiMocFilterKey,
 } from "@/lib/journey/filter-visibility";
+import type { ArticleTagRef } from "@/lib/editor/article-tag";
+import { fetchArticleTagsForTacPham } from "@/lib/journey/article-tags-batch";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 const GIAI_DOAN_VALID = new Set<GiaiDoan>([
@@ -503,6 +505,50 @@ export async function updateAvatar(
 }
 
 /* ──────────────────────────────────────────────────────────────────────
+ * Cover (banner sidebar) — lưu Cloudflare imageId vào
+ * `user_nguoi_dung.cover_id`. Cùng pattern với `updateAvatar`:
+ *   1. Upload qua POST /api/cover/upload → imageId
+ *   2. updateCover(imageId) gắn vào hồ sơ
+ *   3. revalidatePath để Sidebar refetch URL Cloudflare delivery
+ *
+ * Truyền `null` để xoá cover (rollback về gradient mặc định).
+ * ────────────────────────────────────────────────────────────────────── */
+export async function updateCover(
+  imageId: string | null,
+): Promise<ActionResult<{ slug: string; coverId: string | null }>> {
+  const session = await getCurrentSessionAndProfile();
+  if (!session?.profile) {
+    return { ok: false, error: "Phiên đăng nhập đã hết hạn." };
+  }
+
+  const cleaned =
+    typeof imageId === "string" && imageId.trim().length > 0
+      ? imageId.trim()
+      : null;
+
+  if (cleaned && !/^[A-Za-z0-9-]{8,64}$/.test(cleaned)) {
+    return { ok: false, error: "imageId không hợp lệ." };
+  }
+
+  const admin = createServiceRoleClient();
+  const { error: updateErr } = await admin
+    .from("user_nguoi_dung")
+    .update({ cover_id: cleaned })
+    .eq("auth_user_id", session.authUserId);
+
+  if (updateErr) {
+    console.error("[updateCover] supabase error:", updateErr);
+    return { ok: false, error: "Không lưu được cover: " + updateErr.message };
+  }
+
+  revalidatePath(`/${session.profile.slug}/journey`);
+  return {
+    ok: true,
+    data: { slug: session.profile.slug, coverId: cleaned },
+  };
+}
+
+/* ──────────────────────────────────────────────────────────────────────
  * Journey filter visibility — toggle 1 loai_moc giữa public ↔ private.
  *
  * Lưu JSONB `journey_loai_moc_visibility` trên `user_nguoi_dung`.
@@ -771,6 +817,12 @@ export type MilestonePostContent = {
    */
   noiDungBlocks: ServerBlock[] | null;
   coverId: string | null;
+  /**
+   * Article tags — bài viết (`article_bai_viet`) được tác giả gắn vào post
+   * này qua `article_gan_tac_pham`. Render dưới byline trong view, click vào
+   * sẽ điều hướng tới trang article tương ứng theo `loai_bai_viet`.
+   */
+  articleTags: ArticleTagRef[];
 };
 
 export type MilestonePostComment = {
@@ -911,7 +963,7 @@ export async function loadMilestoneDetail(
       }>
     >();
 
-  const posts: MilestonePostContent[] = (linkedTacPham ?? [])
+  const tacPhamRows: TacPhamRow[] = (linkedTacPham ?? [])
     .map((row): TacPhamRow | null => {
       const tp = row.content_tac_pham;
       if (!tp) return null;
@@ -926,16 +978,25 @@ export async function loadMilestoneDetail(
         thu_tu: row.thu_tu,
       };
     })
-    .filter((x): x is TacPhamRow => x !== null)
-    .map((tp) => ({
-      id: tp.id,
-      slug: tp.slug ?? "",
-      tieuDe: tp.tieu_de,
-      moTa: tp.mo_ta,
-      noiDungHtml: tp.noi_dung_html,
-      noiDungBlocks: parseServerBlocks(tp.noi_dung_blocks),
-      coverId: tp.cover_id,
-    }));
+    .filter((x): x is TacPhamRow => x !== null);
+
+  /* Article tags — gắn cho từng tác phẩm trong cột mốc. Query 1 lượt theo
+     batch `id_tac_pham IN (...)` rồi group lại theo tác phẩm để tránh N+1. */
+  const tagsByTacPham = await fetchArticleTagsForTacPham(
+    admin,
+    tacPhamRows.map((t) => t.id),
+  );
+
+  const posts: MilestonePostContent[] = tacPhamRows.map((tp) => ({
+    id: tp.id,
+    slug: tp.slug ?? "",
+    tieuDe: tp.tieu_de,
+    moTa: tp.mo_ta,
+    noiDungHtml: tp.noi_dung_html,
+    noiDungBlocks: parseServerBlocks(tp.noi_dung_blocks),
+    coverId: tp.cover_id,
+    articleTags: tagsByTacPham.get(tp.id) ?? [],
+  }));
 
   /* Comments — lấy top-level (id_cha IS NULL), sort cũ → mới. */
   const { data: cmtRows } = await admin
@@ -1191,6 +1252,60 @@ export async function deleteMilestoneComment(
   }
 
   return { ok: true, data: null };
+}
+
+/**
+ * Cập nhật nội dung bình luận của user hiện tại. Chỉ author của comment
+ * sửa được — không cho admin override (tránh impersonation). Trả về
+ * `noiDung` đã trim sau khi update để client cập nhật state ngay (không
+ * cần refetch).
+ */
+export async function editMilestoneComment(
+  commentId: string,
+  noiDung: string,
+): Promise<ActionResult<{ id: string; noiDung: string }>> {
+  const session = await getCurrentSessionAndProfile();
+  if (!session?.profile) {
+    return { ok: false, error: "Phiên đăng nhập đã hết hạn." };
+  }
+  if (!commentId || typeof commentId !== "string") {
+    return { ok: false, error: "Thiếu ID bình luận." };
+  }
+
+  const text = (noiDung || "").trim();
+  if (!text) return { ok: false, error: "Nội dung bình luận trống." };
+  if (text.length > MAX_COMMENT_LEN) {
+    return {
+      ok: false,
+      error: `Bình luận tối đa ${MAX_COMMENT_LEN} ký tự.`,
+    };
+  }
+
+  const admin = createServiceRoleClient();
+  const { data: cmt } = await admin
+    .from("social_binh_luan")
+    .select("id, nguoi_binh_luan, da_xoa")
+    .eq("id", commentId)
+    .maybeSingle<{ id: string; nguoi_binh_luan: string; da_xoa: boolean }>();
+  if (!cmt) {
+    return { ok: false, error: "Bình luận không tồn tại." };
+  }
+  if (cmt.nguoi_binh_luan !== session.profile.id) {
+    return { ok: false, error: "Bạn không có quyền sửa bình luận này." };
+  }
+  if (cmt.da_xoa) {
+    return { ok: false, error: "Bình luận đã bị xoá, không thể sửa." };
+  }
+
+  const { error } = await admin
+    .from("social_binh_luan")
+    .update({ noi_dung: text })
+    .eq("id", commentId);
+  if (error) {
+    return { ok: false, error: "Không sửa được bình luận: " + error.message };
+  }
+
+  return { ok: true, data: { id: commentId, noiDung: text } };
 }
 
 /* ──────────────────────────────────────────────────────────────────────

@@ -7,6 +7,7 @@ import type {
   MilestoneVisibility,
 } from "@/components/journey/milestone-types";
 import type { Block as ServerBlock } from "@/lib/editor/types";
+import { fetchArticleTagsForTacPham } from "@/lib/journey/article-tags-batch";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 /* ╔══════════════════════════════════════════════════════════════════╗
@@ -113,6 +114,16 @@ export async function fetchMilestonesForUser(params: {
     tpByMoc.set(t.id_cot_moc, arr);
   }
 
+  /* Article tags — batch fetch cho tác phẩm CHÍNH (thu_tu = 0) của mỗi cột
+     mốc. Chỉ lấy first post vì card Journey render 1 bài chính; nếu muốn
+     tag cho mọi post cần đổi quan hệ render trên card. */
+  const firstPostIds: string[] = [];
+  for (const arr of tpByMoc.values()) {
+    const first = arr[0]?.content_tac_pham;
+    if (first?.id) firstPostIds.push(first.id);
+  }
+  const tagsByTacPham = await fetchArticleTagsForTacPham(admin, firstPostIds);
+
   /* Sort: `feature` ghim lên đầu (giữ thứ tự `thoi_diem` desc trong nhóm).
      Sau đó tới các milestone thường (cũng sort `thoi_diem` desc đã có sẵn
      từ query). Stable sort của `Array.prototype.sort` đảm bảo thứ tự
@@ -136,6 +147,9 @@ export async function fetchMilestonesForUser(params: {
     const firstPost = tps[0]?.content_tac_pham ?? null;
     const firstPostSlug = firstPost?.slug ?? null;
     const noiDungBlocks = parseServerBlocks(firstPost?.noi_dung_blocks);
+    const articleTags = firstPost?.id
+      ? (tagsByTacPham.get(firstPost.id) ?? [])
+      : [];
 
     return {
       id: m.id,
@@ -153,6 +167,7 @@ export async function fetchMilestonesForUser(params: {
          `JourneyMilestoneCard`). */
       media: [],
       noiDungBlocks,
+      articleTags,
     };
   });
 
