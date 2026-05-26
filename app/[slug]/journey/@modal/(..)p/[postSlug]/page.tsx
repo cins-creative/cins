@@ -16,6 +16,10 @@ import { PostModalShell } from "@/components/journey/PostModalShell";
    ║                                                                  ║
    ║ Khi user refresh hoặc share URL → KHÔNG còn match intercepted    ║
    ║ context → render `app/[slug]/p/[postSlug]/page.tsx` standalone.  ║
+   ║                                                                  ║
+   ║ Lưu ý: các CTA điều hướng tới `/p/new` (editor) phải dùng `<a>`  ║
+   ║ thay vì `<Link>` → tránh kích hoạt soft-nav vào intercepting,    ║
+   ║ vì `[postSlug]` sẽ bắt nhầm cả `"new"`.                          ║
    ╚══════════════════════════════════════════════════════════════════╝ */
 
 export const dynamic = "force-dynamic";

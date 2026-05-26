@@ -15,6 +15,12 @@
   font-size: 15px;
   line-height: 1.55;
   min-height: 100vh;
+  /* Body root layout là `flex flex-col` (xem `app/layout.tsx`). `flex: 1`
+     để editor page fill 100% chiều cao body khi content ngắn hơn viewport —
+     không có dải nền trắng phía dưới. Trong post-view (`.cins-post-view`)
+     parent là `.j-post-page` / `.j-post-sheet` (block, không flex) nên
+     `flex: 1` ở đây không gây side-effect. */
+  flex: 1 1 auto;
   -webkit-font-smoothing: antialiased;
 }
 .cins-editor-page *,
@@ -239,7 +245,10 @@
   background: var(--bg-surface, #ffffff);
   border-radius: 24px;
   box-shadow: var(--shadow-lg, 0 14px 32px rgba(15, 23, 42, 0.10));
-  overflow: hidden;
+  /* `overflow: visible` để picker (`.add-zone .picker`) bung ra ngoài card
+     không bị crop. Cover full-bleed tự bo top corners qua
+     `.cover-add.has { border-radius: 24px 24px 0 0 }`. */
+  overflow: visible;
 }
 
 /* Cover — full-bleed bên trong canvas (chiếm hết chiều ngang trừ
@@ -281,11 +290,12 @@
   position: relative;
   /* Full-bleed bên trong canvas card — chạm 4 mép card. Negative margin chỉ
      dời vị trí, cần `width: calc(100% + 112px)` (= 56px padding × 2) để cover
-     thực sự rộng bằng border-box của canvas. Border-radius 0 vì card đã
-     `overflow: hidden` (canvas tự clip góc). */
+     thực sự rộng bằng border-box của canvas. Canvas đã chuyển sang
+     `overflow: visible` (để picker bung ra) nên cover phải tự bo góc trên
+     khớp `border-radius: 24px` của canvas. */
   margin: -36px -56px 28px;
   width: calc(100% + 112px);
-  border-radius: 0;
+  border-radius: 24px 24px 0 0;
   cursor: default;
 }
 .cins-editor-page .cover-add.has img {
@@ -680,7 +690,8 @@
 }
 .cins-editor-page .block {
   position: relative;
-  border-radius: var(--radius-md);
+  /* Không bo góc — viền chọn block (box-shadow 2px) chạy thẳng cạnh. */
+  border-radius: 0;
   transition: background 0.15s;
 }
 .cins-editor-page .block::before {
@@ -797,16 +808,72 @@
   color: rgba(31, 116, 201, 0.35);
 }
 .cins-editor-page .b-divider {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 14px 0;
 }
 .cins-editor-page .b-divider span {
-  width: 40px;
+  /* `width` được set inline (theo `dividerLen`) — 5%–100% canvas. */
   height: 3px;
   border-radius: 3px;
   background: var(--border-strong);
+  transition: width 0.12s var(--ed-ease);
+}
+
+/* Slider chỉnh độ dài — chỉ hiện khi block selected (xem JSX). */
+.cins-editor-page .divider-ctrl {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 4px 10px 4px 4px;
+  box-shadow: var(--shadow-sm);
+}
+.cins-editor-page .divider-ctrl input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 120px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--neutral-200);
+  outline: none;
+  margin: 0;
+  cursor: pointer;
+}
+.cins-editor-page .divider-ctrl input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--cins-blue);
+  cursor: pointer;
+  border: 2px solid var(--bg-surface);
+  box-shadow: var(--shadow-xs);
+}
+.cins-editor-page .divider-ctrl input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--cins-blue);
+  cursor: pointer;
+  border: 2px solid var(--bg-surface);
+}
+.cins-editor-page .divider-ctrl-val {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-title);
+  font-variant-numeric: tabular-nums;
+  min-width: 32px;
+  text-align: right;
 }
 
 /* Spacer */
@@ -880,7 +947,7 @@
 }
 .cins-editor-page .imgwrap {
   display: grid;
-  gap: 5px;
+  gap: 0;
 }
 .cins-editor-page .imgwrap.rounded {
   border-radius: var(--radius-md);
@@ -1028,6 +1095,298 @@
   background: var(--cins-blue);
 }
 
+/* ─── Mosaic (Lưới tùy chỉnh) ─────────────────────────────────────── */
+.cins-editor-page .b-imgs.mosaic-mode {
+  position: relative;
+}
+.cins-editor-page .mosaic {
+  display: grid;
+  gap: 0;
+  grid-auto-flow: dense;
+  grid-auto-rows: 96px;
+}
+.cins-editor-page .mosaic.rounded {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.cins-editor-page .mz {
+  position: relative;
+  overflow: hidden;
+  background: var(--neutral-100);
+}
+.cins-editor-page .mz img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.cins-editor-page .mz .ph-change {
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.cins-editor-page .mz.empty {
+  background: var(--bg-surface);
+  border: 2px dashed var(--border-strong);
+}
+.cins-editor-page .mz-fill {
+  position: absolute;
+  inset: 0;
+  border: none;
+  background: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--ink-muted);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+}
+.cins-editor-page .mz-fill:hover {
+  color: var(--cins-blue);
+  background: var(--cins-blue-soft);
+}
+.cins-editor-page .mz-del {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(14, 17, 23, 0.7);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.12s;
+  z-index: 5;
+  pointer-events: none;
+}
+.cins-editor-page .mosaic.editing .mz-del {
+  opacity: 0.65;
+  pointer-events: auto;
+}
+.cins-editor-page .mosaic.editing .mz:hover .mz-del {
+  opacity: 1;
+}
+.cins-editor-page .mosaic.editing .mz.empty .mz-del {
+  background: var(--neutral-300);
+  color: var(--ink-body);
+  opacity: 0.9;
+}
+.cins-editor-page .mz .hdl {
+  position: absolute;
+  background: var(--cins-blue);
+  opacity: 0;
+  transition: opacity 0.12s;
+  z-index: 4;
+  pointer-events: none;
+  touch-action: none;
+}
+.cins-editor-page .mosaic.editing .mz:hover .hdl {
+  opacity: 0.9;
+  pointer-events: auto;
+}
+.cins-editor-page .mz .hdl.r {
+  right: 0;
+  top: 20%;
+  bottom: 20%;
+  width: 6px;
+  cursor: ew-resize;
+  border-radius: 3px 0 0 3px;
+}
+.cins-editor-page .mz .hdl.b {
+  bottom: 0;
+  left: 20%;
+  right: 20%;
+  height: 6px;
+  cursor: ns-resize;
+  border-radius: 3px 3px 0 0;
+}
+.cins-editor-page .mz .hdl:hover {
+  opacity: 1;
+}
+.cins-editor-page .mz-add {
+  border: 2px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-muted);
+  cursor: pointer;
+  background: var(--bg-surface);
+  min-height: 96px;
+}
+.cins-editor-page .mz-add:hover {
+  border-color: var(--cins-blue);
+  color: var(--cins-blue);
+  background: var(--cins-blue-soft);
+}
+.cins-editor-page .mos-edit {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 6;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: var(--radius-pill);
+  background: rgba(14, 17, 23, 0.78);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #fff;
+  border: none;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.cins-editor-page .b-imgs.mosaic-mode:hover .mos-edit,
+.cins-editor-page .block.selected .b-imgs.mosaic-mode .mos-edit {
+  opacity: 1;
+}
+.cins-editor-page .mos-hint {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  color: var(--ink-muted);
+  margin-top: 9px;
+}
+.cins-editor-page .mos-hint svg {
+  color: var(--cins-blue);
+}
+
+/* Control bar (mosaic edit mode) — static, không đè lên grid */
+.cins-editor-page .ctrl-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  background: var(--neutral-900);
+  border-radius: var(--radius-pill);
+  padding: 5px 8px;
+  margin-bottom: 10px;
+}
+.cins-editor-page .ctrl-bar .cb-group {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.cins-editor-page .ctrl-bar .lay-btn {
+  position: static;
+  width: 30px;
+  min-width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: var(--radius-pill);
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cins-editor-page .ctrl-bar .lay-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+.cins-editor-page .ctrl-bar .lay-btn.active {
+  background: #fff;
+  color: var(--neutral-900);
+}
+.cins-editor-page .cb-sep {
+  width: 1px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.18);
+}
+.cins-editor-page .cb-spacer {
+  flex: 1;
+}
+.cins-editor-page .cbtn {
+  width: 26px;
+  height: 26px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: transparent;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  font-family: inherit;
+}
+.cins-editor-page .cbtn:hover {
+  border-color: #fff;
+  color: #fff;
+}
+.cins-editor-page .cbtn.active {
+  background: var(--cins-blue);
+  border-color: var(--cins-blue);
+  color: #fff;
+}
+.cins-editor-page .cb-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-pill);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+}
+.cins-editor-page .cb-pill:hover {
+  border-color: #fff;
+  background: rgba(255, 255, 255, 0.16);
+}
+.cins-editor-page .cb-pill.icon-only {
+  width: 32px;
+  height: 28px;
+  padding: 0;
+  justify-content: center;
+  gap: 0;
+}
+.cins-editor-page .cb-pill.round-pill.active {
+  background: var(--cins-yellow);
+  color: var(--neutral-900);
+  border-color: var(--cins-yellow);
+}
+.cins-editor-page .cb-save {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 14px;
+  border-radius: var(--radius-pill);
+  background: var(--cins-mint, #6efec0);
+  border: 1px solid var(--cins-mint, #6efec0);
+  color: var(--neutral-900);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.cins-editor-page .cb-save:hover {
+  filter: brightness(0.95);
+}
+
 /* Embed block */
 .cins-editor-page .b-embed {
   border: 1px solid var(--border);
@@ -1098,13 +1457,27 @@
    Trạng thái `.starter` (truyền khi `blocks.length === 0` cho zone
    đầu tiên) — `+` xanh nổi bật + hint chữ "Bắt đầu — chọn loại block"
    ngay bên cạnh để hướng user. */
+/* Add-zone giữa các block: KHÔNG chiếm chiều cao (`min-height: 0`) để các
+   block dính sát nhau. Nút `+` và đường gạch ngang chỉ hiện khi hover/open,
+   được đẩy ra ngoài flow bằng `position: absolute` nên không tạo gap. Hover
+   target được mở rộng bằng `::after` (vùng trong suốt 16px). */
 .cins-editor-page .add-zone {
   position: relative;
-  min-height: 20px;
+  min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 4;
+}
+.cins-editor-page .add-zone::after {
+  /* Vùng hover ẩn — bao phủ ±8px quanh đường biên block để dễ click. */
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -8px;
+  bottom: -8px;
+  z-index: -1;
 }
 .cins-editor-page .add-zone::before {
   content: "";
@@ -1118,6 +1491,7 @@
   opacity: 0;
   transition: opacity 0.15s;
   border-radius: 2px;
+  pointer-events: none;
 }
 .cins-editor-page .add-zone:hover::before,
 .cins-editor-page .add-zone.open::before {
@@ -1135,7 +1509,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0.45;
+  opacity: 0;
   transition: all 0.15s var(--ed-ease);
   z-index: 5;
   font-family: inherit;
@@ -1143,6 +1517,17 @@
   font-weight: 600;
   line-height: 1;
   padding: 0;
+}
+/* Inter-block zone (không phải starter): nút `+` floating tuyệt đối, KHÔNG
+   chiếm chiều cao → blocks dính sát nhau, button hiện đè lên đường biên.
+   Default opacity 0 (ẩn) — chỉ hiện khi hover vùng add-zone (đã được mở
+   rộng ±8px qua `::after`). */
+.cins-editor-page .add-zone:not(.starter) .add-btn {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0;
 }
 .cins-editor-page .add-zone:hover .add-btn {
   opacity: 1;
@@ -1188,6 +1573,48 @@
 .cins-editor-page .add-zone.starter .add-hint {
   font-weight: 600;
   color: var(--cins-blue-dark);
+}
+
+/* Mobile / touch — hover không tồn tại nên nút `+` phải luôn nhìn thấy.
+   Vẫn không chiếm chiều cao (button `position: absolute` ở phần trên).
+   Tăng kích thước ~32px để dễ chạm, opacity 0.6 cho lộ rõ nhưng không gây
+   ồn. Đường gạch xanh `::before` cũng nhú nhẹ cho biết đây là khe chèn. */
+@media (hover: none) and (pointer: coarse) {
+  .cins-editor-page .add-zone:not(.starter) .add-btn {
+    opacity: 0.6;
+    width: 32px;
+    height: 32px;
+    font-size: 18px;
+    background: var(--bg-surface);
+    border-color: var(--border-strong);
+    color: var(--ink-body);
+    box-shadow: var(--shadow-xs);
+  }
+  .cins-editor-page .add-zone:not(.starter)::before {
+    opacity: 0.12;
+  }
+  .cins-editor-page .add-zone:not(.starter).open .add-btn,
+  .cins-editor-page .add-zone:not(.starter) .add-btn:active {
+    opacity: 1;
+    background: var(--cins-blue);
+    border-color: var(--cins-blue);
+    color: #fff;
+  }
+  /* Picker bottom-sheet trên mobile (380px desktop khó vừa viewport ≤
+     400px). Anchor đáy màn hình, để gần tay người dùng. */
+  .cins-editor-page .picker {
+    position: fixed;
+    top: auto;
+    right: 12px;
+    bottom: 12px;
+    left: 12px;
+    transform: none;
+    width: auto;
+    max-width: none;
+    max-height: 70vh;
+    overflow-y: auto;
+    z-index: 320;
+  }
 }
 
 .cins-editor-page .picker {
@@ -1321,11 +1748,38 @@
   cursor: pointer;
   margin-bottom: 18px;
   transition: all 0.15s;
+  outline: none;
 }
-.cins-editor-page .ip-upload:hover {
+.cins-editor-page .ip-upload:hover,
+.cins-editor-page .ip-upload:focus-visible {
   border-color: var(--cins-blue);
   color: var(--cins-blue);
   background: var(--cins-blue-soft);
+}
+.cins-editor-page .ip-upload.is-drag {
+  border-color: var(--cins-blue);
+  color: var(--cins-blue);
+  background: var(--cins-blue-soft);
+  transform: scale(1.01);
+}
+.cins-editor-page .ip-upload.is-uploading {
+  cursor: progress;
+  border-color: var(--cins-blue);
+  color: var(--cins-blue);
+  background: var(--cins-blue-soft);
+}
+.cins-editor-page .ip-upload b {
+  font-weight: 700;
+  color: inherit;
+}
+.cins-editor-page .ip-error {
+  margin: -8px 0 14px;
+  padding: 8px 12px;
+  background: rgba(220, 38, 38, 0.08);
+  border: 1px solid rgba(220, 38, 38, 0.2);
+  color: #b91c1c;
+  font-size: 12px;
+  border-radius: var(--radius-sm);
 }
 .cins-editor-page .ip-lbl {
   font-size: 9px;

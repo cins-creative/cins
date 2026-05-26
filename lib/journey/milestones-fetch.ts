@@ -36,6 +36,8 @@ type CotMocRow = {
   mo_ta: string | null;
   thoi_diem: string; // YYYY-MM-DD
   che_do_hien_thi: "public" | "theo_nhom" | "chi_minh" | "feature";
+  /** Thời điểm tạo record (timestamptz) — tiebreak khi cùng `thoi_diem`. */
+  tao_luc: string | null;
 };
 
 type ThuocMocRow = {
@@ -74,10 +76,13 @@ export async function fetchMilestonesForUser(params: {
   const { data: cotMocs, error } = await admin
     .from("content_cot_moc")
     .select(
-      "id, loai_moc, nguon_goc, tieu_de, mo_ta, thoi_diem, che_do_hien_thi",
+      "id, loai_moc, nguon_goc, tieu_de, mo_ta, thoi_diem, che_do_hien_thi, tao_luc",
     )
     .eq("id_nguoi_dung", userId)
+    /* Order chính: ngày xảy ra (`thoi_diem`) DESC. Tiebreak: `tao_luc` DESC
+       → milestone mới tạo trong cùng ngày lên trên. */
     .order("thoi_diem", { ascending: false })
+    .order("tao_luc", { ascending: false, nullsFirst: false })
     .returns<CotMocRow[]>();
 
   if (error || !cotMocs || cotMocs.length === 0) {
@@ -159,6 +164,7 @@ export async function fetchMilestonesForUser(params: {
       year,
       month,
       day,
+      createdAt: m.tao_luc,
       title: m.tieu_de,
       body: m.mo_ta || null,
       postSlug: firstPostSlug,

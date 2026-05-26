@@ -12,13 +12,28 @@
    ║ client. Nhận `blocks` đã sort theo `thu_tu`.                     ║
    ╚══════════════════════════════════════════════════════════════════╝ */
 
+import { getCfAccountHash } from "@/lib/cloudflare/account-hash";
 import type { Block } from "@/lib/editor/types";
 
 const PICSUM = "https://picsum.photos/seed/";
+const CF_UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/**
+ * Build URL từ seed (giống `EditorView.ph`).
+ * - UUID Cloudflare → `imagedelivery.net/{hash}/{id}/public`.
+ * - Khác → picsum (placeholder).
+ */
 function ph(seed: string, w = 900, h = 600): string {
   if (!seed) return "";
-  return `${PICSUM}${encodeURIComponent(seed)}/${w}/${h}`;
+  const trimmed = seed.trim();
+  if (CF_UUID_RE.test(trimmed)) {
+    const hash = getCfAccountHash();
+    if (hash) {
+      return `https://imagedelivery.net/${hash}/${trimmed}/public`;
+    }
+  }
+  return `${PICSUM}${encodeURIComponent(trimmed)}/${w}/${h}`;
 }
 
 /* Embed URL classifier (client-safe; duplicate of `sanitize.ts` vì file đó
@@ -109,9 +124,13 @@ function ReadOnlyBlock({ block }: { block: Block }) {
     );
   }
   if (block.loai === "divider") {
+    const lenRaw =
+      typeof cfg.len === "number" && cfg.len >= 5 && cfg.len <= 100
+        ? cfg.len
+        : 8;
     return (
       <div className="b-divider">
-        <span />
+        <span style={{ width: `${lenRaw}%` }} />
       </div>
     );
   }
@@ -168,6 +187,57 @@ function ReadOnlyBlock({ block }: { block: Block }) {
         : "full";
     const rounded = !!cfg.rounded;
     const cap = typeof cfg.cap === "string" ? cfg.cap : "";
+
+    if (layout === "mosaic") {
+      // Lưới tùy chỉnh: cells chứa col/row span riêng, render bằng grid
+      // theo `cols`. Cell rỗng (seed bắt đầu bằng `m-` hoặc `extra-`)
+      // bị bỏ qua trong read-only view.
+      const cols =
+        typeof cfg.cols === "number" && cfg.cols >= 2 && cfg.cols <= 4
+          ? cfg.cols
+          : 3;
+      const rawCells = Array.isArray(cfg.cells) ? (cfg.cells as unknown[]) : [];
+      const cells = rawCells
+        .map((raw) => {
+          const c = raw as
+            | { seed?: unknown; c?: unknown; r?: unknown }
+            | null;
+          if (!c || typeof c.seed !== "string") return null;
+          if (!c.seed || /^m-|^extra-/.test(c.seed)) return null;
+          return {
+            seed: c.seed,
+            c:
+              typeof c.c === "number" && c.c >= 1 && c.c <= 4 ? c.c : 1,
+            r:
+              typeof c.r === "number" && c.r >= 1 && c.r <= 4 ? c.r : 1,
+          };
+        })
+        .filter((x): x is { seed: string; c: number; r: number } => x !== null);
+      if (cells.length === 0) return null;
+      return (
+        <div className="b-imgs b-imgs-ro mosaic-mode">
+          <div
+            className={`mosaic${rounded ? " rounded" : ""}`}
+            style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}
+          >
+            {cells.map((cell, i) => (
+              <div
+                key={`${cell.seed}-${i}`}
+                className="mz"
+                style={{
+                  gridColumn: `span ${cell.c}`,
+                  gridRow: `span ${cell.r}`,
+                }}
+              >
+                <img src={ph(cell.seed, 900, 900)} alt="" loading="lazy" />
+              </div>
+            ))}
+          </div>
+          {cap ? <div className="img-cap img-cap-ro">{cap}</div> : null}
+        </div>
+      );
+    }
+
     const imgs = Array.isArray(cfg.imgs)
       ? (cfg.imgs as unknown[])
           .map((s) => (typeof s === "string" ? s : ""))

@@ -1,7 +1,6 @@
 "use client";
 
 import { ArrowRight, Plus } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -382,9 +381,17 @@ function groupByYearDesc(
     .sort((a, b) => b[0] - a[0])
     .map(([year, items]) => ({
       year,
-      milestones: items
-        .slice()
-        .sort((a, b) => (b.month - a.month) || a.id.localeCompare(b.id)),
+      /* Sort trong năm: tháng DESC → ngày DESC → `createdAt` DESC → id ASC.
+         Cùng ngày dùng `createdAt` (tao_luc) để mốc mới hơn lên đầu; nếu
+         vẫn tie (createdAt null) thì id ASC ổn định cuối. */
+      milestones: items.slice().sort((a, b) => {
+        if (b.month !== a.month) return b.month - a.month;
+        if (b.day !== a.day) return b.day - a.day;
+        const ac = a.createdAt ? Date.parse(a.createdAt) : 0;
+        const bc = b.createdAt ? Date.parse(b.createdAt) : 0;
+        if (bc !== ac) return bc - ac;
+        return a.id.localeCompare(b.id);
+      }),
     }));
 }
 
@@ -404,12 +411,15 @@ function OwnerEmptyState({ ownerSlug }: { ownerSlug: string }) {
           một suy nghĩ về định hướng. Bắt đầu từ một cột mốc nhỏ nhất cũng được.
         </p>
         <div className="j-empty-actions">
-          <Link
+          {/* `<a>` thay vì `<Link>`: tránh soft-nav vào intercepting route
+              `(..)p/[postSlug]` (bắt nhầm "new"). Hard-nav để route đúng
+              `/[slug]/p/new` (editor) được match. */}
+          <a
             href={`/${ownerSlug}/p/new`}
             className="j-empty-btn j-empty-btn--primary"
           >
             <Plus size={16} strokeWidth={2} aria-hidden /> Thêm cột mốc đầu tiên
-          </Link>
+          </a>
           <button
             type="button"
             className="j-empty-btn j-empty-btn--ghost"
@@ -431,8 +441,12 @@ function OwnerEmptyState({ ownerSlug }: { ownerSlug: string }) {
  * milestones lẫn lúc trống). Click → mở trình tạo bài viết.
  */
 function CreateMilestoneCta({ ownerSlug }: { ownerSlug: string }) {
+  /* Dùng `<a>` (hard-nav) thay vì `<Link>` (soft-nav): intercepting route
+     `(..)p/[postSlug]` sẽ bắt nhầm cả `/p/new` (vì `[postSlug]` match
+     "new") → load post "new" → báo "Bài viết không tồn tại". Hard-nav
+     thoát intercepting context, route thật `/[slug]/p/new` được render. */
   return (
-    <Link
+    <a
       href={`/${ownerSlug}/p/new`}
       className="j-create-cta"
       aria-label="Thêm nội dung mới vào Journey"
@@ -449,7 +463,7 @@ function CreateMilestoneCta({ ownerSlug }: { ownerSlug: string }) {
       <span className="j-create-cta-arrow" aria-hidden>
         <ArrowRight size={16} strokeWidth={1.8} />
       </span>
-    </Link>
+    </a>
   );
 }
 

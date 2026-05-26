@@ -89,6 +89,12 @@ export type MilestoneItem = {
   month: number;
   day: number;
 
+  /**
+   * Thời điểm tạo record (`content_cot_moc.tao_luc`, ISO string) — dùng để
+   * tiebreak khi 2 milestone cùng `thoi_diem` (cùng ngày). Mới hơn lên trên.
+   */
+  createdAt?: string | null;
+
   /** Tiêu đề chính (Fraunces, lớn). */
   title: string;
   /** Dòng "org" mô tả vai trò + tổ chức (tuỳ chọn). */
