@@ -159,8 +159,10 @@ function ReadOnlyBlock({ block }: { block: Block }) {
       typeof cfg.len === "number" && cfg.len >= 5 && cfg.len <= 100
         ? cfg.len
         : 8;
+    const thick: "thin" | "med" | "thick" =
+      cfg.thick === "thin" || cfg.thick === "thick" ? cfg.thick : "med";
     return (
-      <div className="b-divider">
+      <div className={`b-divider thick-${thick}`}>
         <span style={{ width: `${lenRaw}%` }} />
       </div>
     );

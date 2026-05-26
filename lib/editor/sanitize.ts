@@ -143,8 +143,12 @@ export function blocksToHtml(blocks: ReadonlyArray<Block>): string {
       case "divider": {
         const lenRaw = (b.config?.len as number | undefined) ?? 8;
         const len = Math.max(5, Math.min(100, lenRaw));
+        const thickRaw = b.config?.thick as string | undefined;
+        const thick: "thin" | "med" | "thick" =
+          thickRaw === "thin" || thickRaw === "thick" ? thickRaw : "med";
+        const heightPx = thick === "thin" ? 2 : thick === "thick" ? 6 : 3;
         parts.push(
-          `<hr class="rich-divider" style="width:${len}%;margin-left:auto;margin-right:auto">`,
+          `<hr class="rich-divider rich-divider-${thick}" style="width:${len}%;height:${heightPx}px;border:0;background:currentColor;border-radius:${heightPx}px;margin-left:auto;margin-right:auto">`,
         );
         break;
       }

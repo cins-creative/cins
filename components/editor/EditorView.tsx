@@ -121,6 +121,8 @@ type Block = {
   size?: "s" | "m" | "l";
   /* Divider: phần trăm chiều rộng canvas (5–100). Mặc định 8 (~70px). */
   dividerLen?: number;
+  /* Divider: độ dày line (thin/med/thick → 2/3/6 px). Mặc định "med". */
+  dividerThick?: "thin" | "med" | "thick";
 };
 
 type Visibility = "feature" | "public" | "theo_nhom" | "chi_minh";
@@ -311,6 +313,67 @@ export function EditorView({
   const visRef = useRef<HTMLDivElement | null>(null);
   const editorRef = useRef<HTMLDivElement | null>(null);
 
+  /* ╔══ Undo stack (Ctrl/Cmd+Z) ══════════════════════════════════════
+   * Lưu snapshot `blocks` TRƯỚC mỗi thao tác cấu trúc (add/delete/move/
+   * setLayout/mosaic/onPickImage). KHÔNG snapshot cho updateBlock (text
+   * edits, divider slider, embed url) — focus trong textarea/input vẫn
+   * cho phép browser-native Ctrl+Z hoạt động.
+   *
+   * `blocksRef` mirror state qua useEffect — `pushHistory()` đọc giá trị
+   * mới nhất mà không cần truyền vào dep tree, tránh re-create callback. */
+  const HISTORY_LIMIT = 50;
+  const historyRef = useRef<Block[][]>([]);
+  const blocksRef = useRef<Block[]>([]);
+  useEffect(() => {
+    blocksRef.current = blocks;
+  }, [blocks]);
+
+  const pushHistory = useCallback(() => {
+    /* Deep clone — block.config nested object share reference với updateBlock
+       (spread shallow). Không clone → snapshot bị mutate khi user edit tiếp. */
+    historyRef.current.push(
+      JSON.parse(JSON.stringify(blocksRef.current)) as Block[],
+    );
+    if (historyRef.current.length > HISTORY_LIMIT) {
+      historyRef.current.shift();
+    }
+  }, []);
+
+  const undo = useCallback(() => {
+    const prev = historyRef.current.pop();
+    if (!prev) {
+      setToast("Không còn thao tác để hoàn tác.");
+      return;
+    }
+    setBlocks(prev);
+    setSelectedId(null);
+    setToast("Đã hoàn tác.");
+  }, []);
+
+  /* Keyboard: Ctrl/Cmd+Z khi focus KHÔNG nằm trong text input. Trong input
+     thì để browser xử lý undo text bản thân nó. */
+  useEffect(() => {
+    function onKey(e: globalThis.KeyboardEvent) {
+      if (!(e.ctrlKey || e.metaKey) || e.shiftKey) return;
+      if (e.key.toLowerCase() !== "z") return;
+      const target = e.target as HTMLElement | null;
+      if (target) {
+        const tag = target.tagName?.toUpperCase();
+        if (
+          tag === "INPUT" ||
+          tag === "TEXTAREA" ||
+          target.isContentEditable
+        ) {
+          return;
+        }
+      }
+      e.preventDefault();
+      undo();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [undo]);
+
   /* Đóng dropdown khi click ra ngoài. */
   useEffect(() => {
     function onDocClick(e: globalThis.MouseEvent) {
@@ -349,6 +412,7 @@ export function EditorView({
       if (type === "spacer") b.size = "m";
       if (type === "palette") b.colors = DEMO_PALETTE.slice();
       if (["h2", "h3", "body", "quote"].includes(type)) b.text = "";
+      pushHistory();
       setBlocks((prev) => {
         const next = prev.slice();
         next.splice(idx, 0, b);
@@ -357,7 +421,7 @@ export function EditorView({
       setOpenAddIdx(null);
       setSelectedId(b.id);
     },
-    [],
+    [pushHistory],
   );
 
   const updateBlock = useCallback(
@@ -375,17 +439,22 @@ export function EditorView({
       if (i < 0) return prev;
       const j = i + dir;
       if (j < 0 || j >= prev.length) return prev;
+      pushHistory();
       const next = prev.slice();
       const [moved] = next.splice(i, 1);
       next.splice(j, 0, moved);
       return next;
     });
-  }, []);
+  }, [pushHistory]);
 
-  const deleteBlock = useCallback((id: string) => {
-    setBlocks((prev) => prev.filter((b) => b.id !== id));
-    setSelectedId((cur) => (cur === id ? null : cur));
-  }, []);
+  const deleteBlock = useCallback(
+    (id: string) => {
+      pushHistory();
+      setBlocks((prev) => prev.filter((b) => b.id !== id));
+      setSelectedId((cur) => (cur === id ? null : cur));
+    },
+    [pushHistory],
+  );
 
   const openImgPicker = useCallback((blockId: string, slot: number) => {
     setImgPickerTarget({ blockId, slot });
@@ -395,6 +464,7 @@ export function EditorView({
     (seed: string) => {
       if (!imgPickerTarget) return;
       const { blockId, slot, mosaic } = imgPickerTarget;
+      pushHistory();
       setBlocks((prev) =>
         prev.map((b) => {
           if (b.id !== blockId) return b;
@@ -411,11 +481,12 @@ export function EditorView({
       );
       setImgPickerTarget(null);
     },
-    [imgPickerTarget],
+    [imgPickerTarget, pushHistory],
   );
 
   const setLayout = useCallback(
     (id: string, layout: ImgLayout) => {
+      pushHistory();
       setBlocks((prev) =>
         prev.map((b) => {
           if (b.id !== id || b.t !== "imgs") return b;
@@ -456,21 +527,26 @@ export function EditorView({
         }),
       );
     },
-    [],
+    [pushHistory],
   );
 
   /* ─── Mosaic helpers ───────────────────────────────────────────── */
 
-  const setMosaicCols = useCallback((id: string, cols: number) => {
-    setBlocks((prev) =>
-      prev.map((b) =>
-        b.id === id && b.t === "imgs" ? { ...b, cols } : b,
-      ),
-    );
-  }, []);
+  const setMosaicCols = useCallback(
+    (id: string, cols: number) => {
+      pushHistory();
+      setBlocks((prev) =>
+        prev.map((b) =>
+          b.id === id && b.t === "imgs" ? { ...b, cols } : b,
+        ),
+      );
+    },
+    [pushHistory],
+  );
 
   const mosaicPreset = useCallback(
     (id: string, preset: "big-left" | "strip") => {
+      pushHistory();
       setBlocks((prev) =>
         prev.map((b) => {
           if (b.id !== id || b.t !== "imgs" || !b.cells) return b;
@@ -489,23 +565,28 @@ export function EditorView({
         }),
       );
     },
-    [],
+    [pushHistory],
   );
 
-  const mosaicAddCell = useCallback((id: string) => {
-    setBlocks((prev) =>
-      prev.map((b) => {
-        if (b.id !== id || b.t !== "imgs" || !b.cells) return b;
-        const cells = b.cells.concat([
-          { seed: `m-${b.id}-${Date.now()}`, c: 1, r: 1 },
-        ]);
-        return { ...b, cells };
-      }),
-    );
-  }, []);
+  const mosaicAddCell = useCallback(
+    (id: string) => {
+      pushHistory();
+      setBlocks((prev) =>
+        prev.map((b) => {
+          if (b.id !== id || b.t !== "imgs" || !b.cells) return b;
+          const cells = b.cells.concat([
+            { seed: `m-${b.id}-${Date.now()}`, c: 1, r: 1 },
+          ]);
+          return { ...b, cells };
+        }),
+      );
+    },
+    [pushHistory],
+  );
 
   const mosaicDeleteCell = useCallback(
     (id: string, slot: number) => {
+      pushHistory();
       setBlocks((prev) =>
         prev.map((b) => {
           if (b.id !== id || b.t !== "imgs" || !b.cells) return b;
@@ -514,7 +595,7 @@ export function EditorView({
         }),
       );
     },
-    [],
+    [pushHistory],
   );
 
   const mosaicResizeCell = useCallback(
@@ -544,11 +625,12 @@ export function EditorView({
 
   const toggleRound = useCallback(
     (id: string) => {
+      pushHistory();
       setBlocks((prev) =>
         prev.map((b) => (b.id === id ? { ...b, rounded: !b.rounded } : b)),
       );
     },
-    [],
+    [pushHistory],
   );
 
   const handlePublish = useCallback(() => {
@@ -782,6 +864,9 @@ export function EditorView({
                 onChangeEmbedUrl={(u) => updateBlock(b.id, { embedUrl: u })}
                 onChangeDividerLen={(dividerLen) =>
                   updateBlock(b.id, { dividerLen })
+                }
+                onChangeDividerThick={(dividerThick) =>
+                  updateBlock(b.id, { dividerThick })
                 }
                 onUp={() => moveBlock(b.id, -1)}
                 onDown={() => moveBlock(b.id, 1)}
@@ -1279,6 +1364,7 @@ type BlockRowProps = {
   onChangeCap: (c: string) => void;
   onChangeEmbedUrl: (u: string) => void;
   onChangeDividerLen: (len: number) => void;
+  onChangeDividerThick: (thick: "thin" | "med" | "thick") => void;
   onUp: () => void;
   onDown: () => void;
   onDelete: () => void;
@@ -1379,16 +1465,46 @@ function BlockInner(p: BlockRowProps) {
 
   if (b.t === "divider") {
     const len = Math.max(5, Math.min(100, b.dividerLen ?? 8));
+    const thick: "thin" | "med" | "thick" =
+      b.dividerThick === "thin" || b.dividerThick === "thick"
+        ? b.dividerThick
+        : "med";
     return (
-      <div className="b-divider">
+      <div className={`b-divider thick-${thick}`}>
         <span style={{ width: `${len}%` }} />
-        {/* Slider chỉ hiện khi block đang chọn — kéo để chỉnh độ dài đường
+        {/* Khi block đang chọn — hiện 3 nút độ dày + slider độ dài đường
             chia (% chiều rộng canvas). */}
         {p.selected ? (
           <div
             className="divider-ctrl"
             onClick={(e) => e.stopPropagation()}
           >
+            <div className="divider-thick-pick" role="group" aria-label="Độ dày">
+              {(
+                [
+                  { v: "thin", lbl: "Mảnh" },
+                  { v: "med", lbl: "Vừa" },
+                  { v: "thick", lbl: "Đậm" },
+                ] as const
+              ).map((opt) => (
+                <button
+                  key={opt.v}
+                  type="button"
+                  className={`divider-thick-btn t-${opt.v}${
+                    thick === opt.v ? " active" : ""
+                  }`}
+                  title={opt.lbl}
+                  aria-label={opt.lbl}
+                  aria-pressed={thick === opt.v}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    p.onChangeDividerThick(opt.v);
+                  }}
+                >
+                  <i aria-hidden />
+                </button>
+              ))}
+            </div>
             <input
               type="range"
               min={5}
@@ -1408,12 +1524,15 @@ function BlockInner(p: BlockRowProps) {
   }
 
   if (b.t === "spacer") {
-    const size = b.size || "m";
+    /* Bài cũ có size="s" vẫn render đúng (PostRenderer/sanitize tolerate),
+       nhưng editor chỉ cho chọn M/L để đỡ rối. Block mặc định "m". */
+    const rawSize = b.size || "m";
+    const size = rawSize === "s" ? "m" : rawSize;
     return (
       <div className={`b-spacer ${size}`}>
         <div className="sp-line" />
         <div className="sp-ctrl">
-          {(["s", "m", "l"] as const).map((s) => (
+          {(["m", "l"] as const).map((s) => (
             <button
               key={s}
               type="button"
@@ -2217,6 +2336,10 @@ function fromServerBlocks(blocks: ServerBlock[]): Block[] {
         typeof cfg.len === "number" && cfg.len >= 5 && cfg.len <= 100
           ? cfg.len
           : 8;
+      local.dividerThick =
+        cfg.thick === "thin" || cfg.thick === "thick" || cfg.thick === "med"
+          ? cfg.thick
+          : "med";
     }
     return local;
   });
@@ -2272,8 +2395,13 @@ function toServerBlocks(blocks: Block[]): ServerBlock[] {
     } else if (b.t === "spacer") {
       config = { size: b.size || "m" };
     } else if (b.t === "divider") {
+      const thick: "thin" | "med" | "thick" =
+        b.dividerThick === "thin" || b.dividerThick === "thick"
+          ? b.dividerThick
+          : "med";
       config = {
         len: Math.max(5, Math.min(100, b.dividerLen ?? 8)),
+        thick,
       };
     }
     return { id: b.id, loai, thu_tu: i, config };

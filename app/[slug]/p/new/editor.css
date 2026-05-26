@@ -815,11 +815,26 @@
   padding: 14px 0;
 }
 .cins-editor-page .b-divider span {
-  /* `width` được set inline (theo `dividerLen`) — 5%–100% canvas. */
+  /* `width` được set inline (theo `dividerLen`) — 5%–100% canvas.
+     `height` được set theo class `.thick-{thin|med|thick}` (default = med). */
   height: 3px;
   border-radius: 3px;
   background: var(--border-strong);
-  transition: width 0.12s var(--ed-ease);
+  transition:
+    width 0.12s var(--ed-ease),
+    height 0.12s var(--ed-ease);
+}
+.cins-editor-page .b-divider.thick-thin span {
+  height: 2px;
+  border-radius: 2px;
+}
+.cins-editor-page .b-divider.thick-med span {
+  height: 3px;
+  border-radius: 3px;
+}
+.cins-editor-page .b-divider.thick-thick span {
+  height: 6px;
+  border-radius: 6px;
 }
 
 /* Slider chỉnh độ dài — chỉ hiện khi block selected (xem JSX). */
@@ -874,6 +889,58 @@
   font-variant-numeric: tabular-nums;
   min-width: 32px;
   text-align: right;
+}
+
+/* 3 nút chọn độ dày — mỗi nút render 1 đoạn line preview với chiều cao
+   đúng tương ứng (thin = 2px, med = 3px, thick = 6px). */
+.cins-editor-page .divider-thick-pick {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-right: 6px;
+  margin-right: 2px;
+  border-right: 1px solid var(--border);
+}
+.cins-editor-page .divider-thick-btn {
+  border: 1px solid transparent;
+  background: transparent;
+  width: 30px;
+  height: 24px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.12s var(--ed-ease), border-color 0.12s var(--ed-ease);
+}
+.cins-editor-page .divider-thick-btn:hover {
+  background: var(--neutral-50);
+}
+.cins-editor-page .divider-thick-btn.active {
+  background: var(--neutral-50);
+  border-color: var(--border);
+}
+.cins-editor-page .divider-thick-btn i {
+  display: block;
+  width: 18px;
+  background: var(--border-strong);
+  border-radius: 3px;
+}
+.cins-editor-page .divider-thick-btn.t-thin i {
+  height: 2px;
+  border-radius: 2px;
+}
+.cins-editor-page .divider-thick-btn.t-med i {
+  height: 3px;
+  border-radius: 3px;
+}
+.cins-editor-page .divider-thick-btn.t-thick i {
+  height: 6px;
+  border-radius: 6px;
+}
+.cins-editor-page .divider-thick-btn.active i {
+  background: var(--cins-blue);
 }
 
 /* Spacer */
