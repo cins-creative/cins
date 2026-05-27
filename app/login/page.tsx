@@ -57,7 +57,7 @@ export default async function LoginPage({
 
           {errorMsg ? <ErrorBanner message={errorMsg} /> : null}
 
-          <LoginActions initialError={null} autoIntent={autoIntent} />
+          <LoginActions initialError={errorMsg} autoIntent={autoIntent} />
 
           <ul className="cins-login-bullets" aria-label="Lợi ích tài khoản CINs">
             <li>

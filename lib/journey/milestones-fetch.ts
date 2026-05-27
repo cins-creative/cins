@@ -70,10 +70,14 @@ export async function fetchMilestonesForUser(params: {
   isOwner: boolean;
 }): Promise<{
   milestones: MilestoneItem[];
-  stats: { cotMoc: number; cotMocVerified: number; tacPham: number };
+  stats: { cotMoc: number; cotMocVerified: number; tacPham: number; noiBat: number };
 }> {
   const { userId, isOwner } = params;
   const admin = createServiceRoleClient();
+  const { count: totalTacPham } = await admin
+    .from("content_tac_pham")
+    .select("id", { count: "exact", head: true })
+    .eq("id_nguoi_dung", userId);
 
   const { data: cotMocs, error } = await admin
     .from("content_cot_moc")
@@ -90,7 +94,12 @@ export async function fetchMilestonesForUser(params: {
   if (error || !cotMocs || cotMocs.length === 0) {
     return {
       milestones: [],
-      stats: { cotMoc: 0, cotMocVerified: 0, tacPham: 0 },
+      stats: {
+        cotMoc: 0,
+        cotMocVerified: 0,
+        tacPham: totalTacPham ?? 0,
+        noiBat: 0,
+      },
     };
   }
 
@@ -196,7 +205,15 @@ export async function fetchMilestonesForUser(params: {
     stats: {
       cotMoc: cotMocs.length,
       cotMocVerified: 0,
-      tacPham: thuocMocs.length,
+      tacPham: totalTacPham ?? 0,
+      noiBat: new Set(
+        thuocMocs
+          .filter((row) => {
+            const cm = cotMocs.find((m) => m.id === row.id_cot_moc);
+            return cm?.che_do_hien_thi === "feature";
+          })
+          .map((row) => row.id_tac_pham),
+      ).size,
     },
   };
 }
@@ -212,7 +229,7 @@ async function fetchTaggedMilestonesForUser(params: {
     .from("content_tac_pham_tac_gia")
     .select("id_tac_pham, vai_tro")
     .eq("id_nguoi_dung", userId)
-    .eq("trang_thai", "accepted")
+    .in("trang_thai", isOwner ? ["accepted", "pending"] : ["accepted"])
     .eq("la_chu_so_huu", false);
 
   if (!tagRows?.length) return [];
@@ -298,7 +315,7 @@ async function fetchTaggedMilestonesForUser(params: {
     const owner = ownerById.get(tp.id_nguoi_dung);
     const dateObj = new Date(cm.thoi_diem);
     return {
-      id: cm.id,
+      id: `${cm.id}:${tacPhamId}`,
       variant: "tagged" as MilestoneVariant,
       type: LOAI_MOC_TO_TYPE[cm.loai_moc],
       visibility: mapVisibility(cm.che_do_hien_thi),
@@ -309,6 +326,7 @@ async function fetchTaggedMilestonesForUser(params: {
       title: cm.tieu_de,
       body: cm.mo_ta || null,
       postSlug: tp.slug,
+      postOwnerSlug: (owner?.slug as string) ?? null,
       media: [],
       noiDungBlocks: parseServerBlocks(tp.noi_dung_blocks),
       articleTags: tagsByTacPham.get(tacPhamId) ?? [],
@@ -317,6 +335,7 @@ async function fetchTaggedMilestonesForUser(params: {
             name: (owner.ten_hien_thi as string) || (owner.slug as string),
             role: myRole,
             slug: owner.slug as string,
+            avatarUrl: getAvatarUrl((owner.avatar_id as string) || null) ?? null,
             initial: ((owner.ten_hien_thi as string) || owner.slug as string)
               .slice(0, 1)
               .toUpperCase(),

@@ -120,9 +120,9 @@ export default async function JourneyPage({
   const activeView =
     view === "gallery" || view === "friends" ? view : "journey";
   const stats = {
-    cotMoc: milestoneStats.cotMoc,
+    cotMoc: milestoneStats.tacPham,
     cotMocVerified: milestoneStats.cotMocVerified,
-    tacPham: milestoneStats.tacPham,
+    tacPham: milestoneStats.noiBat,
     toChuc: 0,
   };
 

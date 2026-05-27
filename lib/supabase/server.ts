@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
+import { getSupabaseCookieOptions } from "@/lib/supabase/cookie-options";
 import {
   getTrimmedSupabaseAnonKey,
   getTrimmedSupabaseUrl,
@@ -20,6 +21,7 @@ export async function createClient() {
   const cookieStore = await cookies();
 
   return createServerClient(url, key, {
+    cookieOptions: getSupabaseCookieOptions(),
     cookies: {
       getAll() {
         return cookieStore.getAll();

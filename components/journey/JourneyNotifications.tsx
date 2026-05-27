@@ -4,22 +4,32 @@ import Link from "next/link";
 import { Bell, Check, ExternalLink, X } from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
 
-import type { PendingFollowRequest } from "@/lib/social/types";
+import type {
+  FollowAcceptedNotification,
+  PendingFollowRequest,
+} from "@/lib/social/types";
 
 type Props = {
   initialFollowRequests: ReadonlyArray<PendingFollowRequest>;
+  initialAcceptedNotifications?: ReadonlyArray<FollowAcceptedNotification>;
 };
 
-export function JourneyNotifications({ initialFollowRequests }: Props) {
+export function JourneyNotifications({
+  initialFollowRequests,
+  initialAcceptedNotifications = [],
+}: Props) {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<PendingFollowRequest | null>(null);
   const [requests, setRequests] = useState<PendingFollowRequest[]>(
     [...initialFollowRequests],
   );
+  const [accepted, setAccepted] = useState<FollowAcceptedNotification[]>(
+    [...initialAcceptedNotifications],
+  );
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const count = requests.length;
+  const count = requests.length + accepted.length;
   const title = count > 0 ? `${count} thông báo mới` : "Không có thông báo mới";
   const selectedStillPending = useMemo(
     () => selected && requests.some((r) => r.idNguoiDung === selected.idNguoiDung),
@@ -46,6 +56,9 @@ export function JourneyNotifications({ initialFollowRequests }: Props) {
         ? (json.requests as PendingFollowRequest[])
         : requests.filter((r) => r.idNguoiDung !== request.idNguoiDung);
       setRequests(next);
+      if (Array.isArray(json.accepted)) {
+        setAccepted(json.accepted as FollowAcceptedNotification[]);
+      }
       setSelected(null);
     });
   };
@@ -73,6 +86,20 @@ export function JourneyNotifications({ initialFollowRequests }: Props) {
             <p className="j-notify-empty">Chưa có lời mời kết nối mới.</p>
           ) : (
             <ul className="j-notify-list">
+              {accepted.map((notice) => (
+                <li key={notice.notificationId}>
+                  <Link
+                    href={`/${notice.slug}/journey`}
+                    className="j-notify-item is-accepted"
+                  >
+                    <Avatar request={notice} />
+                    <span>
+                      <strong>{notice.tenHienThi}</strong> đã chấp nhận kết bạn.
+                      <small>@{notice.slug}</small>
+                    </span>
+                  </Link>
+                </li>
+              ))}
               {requests.map((request) => (
                 <li key={request.idNguoiDung}>
                   <button
@@ -147,6 +174,10 @@ export function JourneyNotifications({ initialFollowRequests }: Props) {
                 Tác phẩm
               </span>
               <span>
+                <strong>{selected.stats.banBe}</strong>
+                Bạn bè
+              </span>
+              <span>
                 <strong>{selected.stats.toChucXacThuc}</strong>
                 Xác thực
               </span>
@@ -154,16 +185,16 @@ export function JourneyNotifications({ initialFollowRequests }: Props) {
             {selected.bio ? <p className="j-notify-modal-bio">{selected.bio}</p> : null}
             <dl className="j-notify-modal-meta">
               {selected.giaiDoan ? (
-                <>
+                <div>
                   <dt>Giai đoạn</dt>
                   <dd>{selected.giaiDoan}</dd>
-                </>
+                </div>
               ) : null}
               {selected.tinhThanh ? (
-                <>
+                <div>
                   <dt>Khu vực</dt>
                   <dd>{selected.tinhThanh}</dd>
-                </>
+                </div>
               ) : null}
             </dl>
             <div className="j-notify-modal-actions">

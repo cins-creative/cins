@@ -302,6 +302,7 @@ export function EditorView({
 
   const [vis, setVis] = useState<Visibility>(initial?.visibility ?? "public");
   const [visOpen, setVisOpen] = useState(false);
+  const [coAuthorOpen, setCoAuthorOpen] = useState(false);
 
   const [imgPickerTarget, setImgPickerTarget] = useState<{
     blockId: string;
@@ -848,6 +849,19 @@ export function EditorView({
           onRemove={(id) =>
             setTags((prev) => prev.filter((t) => t.id !== id))
           }
+          extraAction={
+            <button
+              type="button"
+              className={`meta-chip add meta-chip-coauthor${coAuthorOpen ? " open" : ""}`}
+              onClick={() => setCoAuthorOpen(true)}
+            >
+              <Users size={13} strokeWidth={2} aria-hidden />
+              Thêm cộng sự
+              {coAuthors.length > 0 ? (
+                <span className="meta-chip-count">{coAuthors.length}</span>
+              ) : null}
+            </button>
+          }
         />
 
         <div className="blocks">
@@ -899,17 +913,51 @@ export function EditorView({
           ))}
         </div>
 
-        <CoAuthorSection
-          collaborators={coAuthors}
-          ownerVaiTro={ownerVaiTro}
-          onCollaboratorsChange={setCoAuthors}
-          onOwnerVaiTroChange={setOwnerVaiTro}
-        />
-
         <div className="hint-foot">
           Bấm nút <b>+</b> ở khe giữa các block để chèn nội dung mới.
         </div>
       </main>
+
+      {coAuthorOpen ? (
+        <div
+          className="ed-coauthor-modal-backdrop"
+          role="presentation"
+          onClick={() => setCoAuthorOpen(false)}
+        >
+          <div
+            className="ed-coauthor-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="ed-coauthor-heading"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="ed-coauthor-modal-close"
+              aria-label="Đóng cộng sự"
+              onClick={() => setCoAuthorOpen(false)}
+            >
+              <X size={16} aria-hidden />
+            </button>
+            <CoAuthorSection
+              collaborators={coAuthors}
+              ownerVaiTro={ownerVaiTro}
+              onCollaboratorsChange={setCoAuthors}
+              onOwnerVaiTroChange={setOwnerVaiTro}
+            />
+            <div className="ed-coauthor-modal-actions">
+              <p>Cộng sự sẽ được lưu cùng bài viết khi bạn bấm Lưu.</p>
+              <button
+                type="button"
+                className="ed-coauthor-save"
+                onClick={() => setCoAuthorOpen(false)}
+              >
+                Lưu cộng sự
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {imgPickerTarget ? (
         <ImagePickerModal
@@ -1065,10 +1113,12 @@ function ArticleTagPicker({
   tags,
   onAdd,
   onRemove,
+  extraAction,
 }: {
   tags: ArticleTagRef[];
   onAdd: (t: ArticleTagRef) => void;
   onRemove: (id: string) => void;
+  extraAction?: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -1223,6 +1273,7 @@ function ArticleTagPicker({
       >
         + Thêm tag
       </button>
+      {extraAction}
 
       {open ? (
         <div className="tag-picker" role="dialog" aria-label="Chọn bài viết để tag">

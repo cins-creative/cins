@@ -37,8 +37,13 @@ export type PendingFollowRequest = {
   stats: {
     cotMoc: number;
     tacPham: number;
+    banBe: number;
     toChucXacThuc: number;
   };
 };
 
 export type MutualFriendProfile = PendingFollowRequest;
+
+export type FollowAcceptedNotification = PendingFollowRequest & {
+  notificationId: string;
+};

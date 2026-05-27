@@ -65,8 +65,8 @@ export function JourneyTimeline({
      nhân đôi request (đặc biệt khi cùng card vừa enter viewport vừa hover). */
   const prefetchedRef = useRef<Set<string>>(new Set());
   const prefetch = useCallback(
-    (postSlug: string) => {
-      const href = `/${ownerSlug}/p/${postSlug}`;
+    (postSlug: string, postOwnerSlug?: string | null) => {
+      const href = `/${postOwnerSlug || ownerSlug}/p/${postSlug}`;
       if (prefetchedRef.current.has(href)) return;
       prefetchedRef.current.add(href);
       router.prefetch(href);
@@ -97,10 +97,12 @@ export function JourneyTimeline({
 
       const postSlug = article.getAttribute("data-post-slug");
       if (postSlug) {
+        const postOwnerSlug =
+          article.getAttribute("data-post-owner-slug") || ownerSlug;
         /* Có post slug → navigate URL. Next.js intercept (vì đang ở
            `/[slug]/journey`) → render `@modal/(..)p/[postSlug]/page.tsx`
            ở slot modal, journey vẫn live ở dưới. */
-        router.push(`/${ownerSlug}/p/${postSlug}`);
+        router.push(`/${postOwnerSlug}/p/${postSlug}`);
         return;
       }
       /* Không có post slug → fallback modal cũ (load by milestoneId). */
@@ -124,7 +126,9 @@ export function JourneyTimeline({
       if (!mid) return;
       const postSlug = article.getAttribute("data-post-slug");
       if (postSlug) {
-        router.push(`/${ownerSlug}/p/${postSlug}`);
+        const postOwnerSlug =
+          article.getAttribute("data-post-owner-slug") || ownerSlug;
+        router.push(`/${postOwnerSlug}/p/${postSlug}`);
         return;
       }
       setOpenMilestoneId(mid);
@@ -143,7 +147,8 @@ export function JourneyTimeline({
       lastHoveredCard = card;
       const article = card.closest<HTMLElement>(".j-milestone[data-mid]");
       const postSlug = article?.getAttribute("data-post-slug");
-      if (postSlug) prefetch(postSlug);
+      const postOwnerSlug = article?.getAttribute("data-post-owner-slug");
+      if (postSlug) prefetch(postSlug, postOwnerSlug);
     };
 
     el.addEventListener("click", onClick);
@@ -164,11 +169,14 @@ export function JourneyTimeline({
     const eager = milestones
       .filter((m) => m.postSlug)
       .slice(0, 8)
-      .map((m) => m.postSlug as string);
+      .map((m) => ({
+        postSlug: m.postSlug as string,
+        postOwnerSlug: m.postOwnerSlug ?? null,
+      }));
     if (eager.length === 0) return;
 
     const run = () => {
-      for (const postSlug of eager) prefetch(postSlug);
+      for (const item of eager) prefetch(item.postSlug, item.postOwnerSlug);
     };
     const ric: typeof window.requestIdleCallback | undefined = (
       window as unknown as {
@@ -204,7 +212,8 @@ export function JourneyTimeline({
           if (!entry.isIntersecting) continue;
           const article = entry.target as HTMLElement;
           const postSlug = article.getAttribute("data-post-slug");
-          if (postSlug) prefetch(postSlug);
+          const postOwnerSlug = article.getAttribute("data-post-owner-slug");
+          if (postSlug) prefetch(postSlug, postOwnerSlug);
           observer.unobserve(article);
         }
       },

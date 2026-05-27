@@ -56,6 +56,8 @@ export type MilestoneAttribution = {
   name: string;
   /** Vai trò mô tả ngắn — VD "Founder", "co-author", "Speaker". */
   role?: string | null;
+  /** Avatar người/tổ chức tag user. */
+  avatarUrl?: string | null;
   /** 1 chữ avatar khi không có ảnh. */
   initial?: string | null;
   /** Slug để link sang trang org (chưa wire). */
@@ -117,6 +119,8 @@ export type MilestoneItem = {
    * Có thể null khi cột mốc chưa có tác phẩm gắn vào.
    */
   postSlug?: string | null;
+  /** Slug chủ bài viết thật. Khác owner Journey khi đây là post được tag qua. */
+  postOwnerSlug?: string | null;
 
   /** Khi `variant === 'tagged' | 'verified'` — ai tag/verify. */
   attribution?: MilestoneAttribution | null;

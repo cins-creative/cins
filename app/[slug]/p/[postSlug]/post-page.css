@@ -270,6 +270,20 @@
 }
 .cins-post-view .post-byline-spacer {
   flex: 1;
+  min-width: 8px;
+}
+
+/* Kebab owner menu trong byline (cùng component `JourneyMilestoneOwnerMenu`). */
+.cins-post-view .post-byline .j-m-menu.post-byline-menu {
+  position: relative;
+  top: auto;
+  right: auto;
+  flex-shrink: 0;
+}
+.cins-post-view .post-byline .j-m-menu.post-byline-menu .j-m-menu-pop {
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
 }
 .cins-post-view .post-byline-action {
   display: inline-flex;

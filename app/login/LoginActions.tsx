@@ -22,7 +22,8 @@ export function LoginActions({
   autoIntent = null,
 }: Props) {
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(initialError);
+  /* Lỗi từ nút OAuth — lỗi từ `?error=` do banner trên page hiển thị. */
+  const [error, setError] = useState<string | null>(null);
   const triggered = useRef(false);
 
   useEffect(() => {

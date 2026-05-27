@@ -3,7 +3,10 @@ import Link from "next/link";
 
 import { JourneyNotifications } from "@/components/journey/JourneyNotifications";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
-import { listPendingFollowRequests } from "@/lib/social/follow";
+import {
+  listFollowAcceptedNotifications,
+  listPendingFollowRequests,
+} from "@/lib/social/follow";
 
 /**
  * Topbar chính của site — render khác nhau theo trạng thái phiên:
@@ -18,9 +21,12 @@ import { listPendingFollowRequests } from "@/lib/social/follow";
 export async function CinsAppTopbar() {
   const session = await getCurrentSessionAndProfile();
   const isAuthed = !!session;
-  const followRequests = session?.profile
-    ? await listPendingFollowRequests(session.profile.id)
-    : [];
+  const [followRequests, acceptedNotifications] = session?.profile
+    ? await Promise.all([
+        listPendingFollowRequests(session.profile.id),
+        listFollowAcceptedNotifications(session.profile.id),
+      ])
+    : [[], []];
 
   return (
     <nav className="topbar cins-app-topbar" id="app-topbar">
@@ -45,7 +51,10 @@ export async function CinsAppTopbar() {
             <span>Tư vấn nghề</span>
           </Link>
           {isAuthed ? (
-            <JourneyNotifications initialFollowRequests={followRequests} />
+            <JourneyNotifications
+              initialFollowRequests={followRequests}
+              initialAcceptedNotifications={acceptedNotifications}
+            />
           ) : null}
           {isAuthed ? null : (
             <>

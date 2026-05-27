@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+import { getSupabaseCookieOptions } from "@/lib/supabase/cookie-options";
 import {
   getTrimmedSupabaseAnonKey,
   getTrimmedSupabaseUrl,
@@ -98,6 +99,7 @@ async function resolveSession(request: NextRequest): Promise<{
   }
 
   const supabase = createServerClient(url, key, {
+    cookieOptions: getSupabaseCookieOptions(),
     cookies: {
       getAll() {
         return request.cookies.getAll();

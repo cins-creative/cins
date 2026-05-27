@@ -1,11 +1,12 @@
 "use client";
 
-import { Plus, UserCheck } from "lucide-react";
+import { Check, Clock3, UserCheck, UserPlus, X } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 
 type FollowStatus = {
   dang_theo_doi: boolean;
   theo_doi_lai: boolean;
+  duoc_theo_doi: boolean;
 };
 
 type Props = {
@@ -20,6 +21,7 @@ export function JourneyFollowButton({
 }: Props) {
   const [status, setStatus] = useState<FollowStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -46,13 +48,21 @@ export function JourneyFollowButton({
   }
 
   const following = status?.dang_theo_doi ?? false;
-  const mutual = status?.theo_doi_lai ?? false;
+  const incoming = status?.duoc_theo_doi ?? false;
+  const mutual = following && incoming;
+  const outgoingPending = following && !incoming;
+  const incomingPending = !following && incoming;
 
-  const toggle = () => {
+  useEffect(() => {
+    if (!incomingPending) setMenuOpen(false);
+  }, [incomingPending]);
+
+  const sendFriendRequest = () => {
     setError(null);
+    setMenuOpen(false);
     startTransition(async () => {
       const res = await fetch("/api/follow", {
-        method: following ? "DELETE" : "POST",
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id_doi_tuong: targetUserId,
@@ -70,24 +80,96 @@ export function JourneyFollowButton({
     });
   };
 
+  const respondIncoming = (action: "accept" | "decline") => {
+    setError(null);
+    startTransition(async () => {
+      const res = await fetch("/api/follow/requests", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id_nguoi_dung: targetUserId,
+          action,
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(
+          typeof json.error === "string" ? json.error : "Không thực hiện được.",
+        );
+        return;
+      }
+      setStatus(
+        action === "accept"
+          ? { dang_theo_doi: true, theo_doi_lai: true, duoc_theo_doi: true }
+          : { dang_theo_doi: false, theo_doi_lai: false, duoc_theo_doi: false },
+      );
+    });
+  };
+
+  const buttonState = mutual
+    ? "friends"
+    : outgoingPending || incomingPending
+      ? "pending"
+      : "idle";
+  const label = mutual
+    ? "Bạn bè"
+    : outgoingPending
+      ? "Chờ chấp nhận"
+      : incomingPending
+        ? "Chờ kết bạn"
+        : "Kết bạn";
+  const Icon = mutual
+    ? UserCheck
+    : outgoingPending || incomingPending
+      ? Clock3
+      : UserPlus;
+
   return (
     <div className="j-follow-wrap">
       <button
         type="button"
-        className={`j-btn-icon${following ? " is-following" : ""}`}
-        title={following ? "Bỏ theo dõi" : "Theo dõi"}
-        aria-label={following ? "Bỏ theo dõi" : "Theo dõi"}
+        className={`j-friend-btn is-${buttonState}`}
+        title={label}
+        aria-label={label}
+        aria-haspopup={incomingPending ? "menu" : undefined}
+        aria-expanded={incomingPending ? menuOpen : undefined}
         disabled={pending || status === null}
-        onClick={toggle}
+        onClick={
+          incomingPending
+            ? () => setMenuOpen((open) => !open)
+            : mutual || outgoingPending
+              ? undefined
+              : sendFriendRequest
+        }
       >
-        {following ? (
-          <UserCheck size={16} strokeWidth={2} aria-hidden />
-        ) : (
-          <Plus size={16} strokeWidth={2} aria-hidden />
-        )}
+        <Icon size={15} strokeWidth={2} aria-hidden />
+        <span>{label}</span>
       </button>
-      {mutual ? (
-        <span className="j-follow-mutual">Theo dõi lẫn nhau</span>
+      {incomingPending && menuOpen ? (
+        <div
+          className="j-friend-request-actions"
+          role="menu"
+          aria-label="Phản hồi lời mời kết bạn"
+        >
+          <button
+            type="button"
+            className="j-friend-action is-accept"
+            disabled={pending}
+            onClick={() => respondIncoming("accept")}
+          >
+            <Check size={13} strokeWidth={2} aria-hidden />
+            Chấp nhận
+          </button>
+          <button
+            type="button"
+            className="j-friend-action is-decline"
+            disabled={pending}
+            onClick={() => respondIncoming("decline")}
+          >
+            <X size={13} strokeWidth={2} aria-hidden />
+            Từ chối
+          </button>
+        </div>
       ) : null}
       {error ? (
         <span className="j-follow-error" role="alert">

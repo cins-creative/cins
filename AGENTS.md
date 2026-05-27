@@ -9,6 +9,13 @@
 - SQL grant / RLS mẫu: `supabase/sql/`. Query trường–ngành: `lib/truong/`, `lib/nganh/`.
 - Map trang trường (component tree, seed UUID, fetch patterns): [`docs/cursor_map_truong.md`](./docs/cursor_map_truong.md).
 
+## Auth OAuth (Google / PKCE)
+
+- Dev: `.env.local` → `NEXT_PUBLIC_SITE_URL=http://localhost:3001` (cùng origin khi mở `/login`, không lẫn `127.0.0.1`).
+- Supabase Dashboard → **Redirect URLs**: `http://localhost:3001/auth/callback` (hoặc `http://localhost:3001/**`).
+- Callback: `app/auth/callback/route.ts` — đọc verifier từ **request** cookies, ghi session lên **response** redirect (`lib/supabase/route-handler.ts`).
+- Intent đăng ký/đăng nhập: cookie `cins-oauth-intent` (không gắn `?intent=` vào `redirectTo`).
+
 ## Next.js (repo này)
 
 <!-- BEGIN:nextjs-agent-rules -->

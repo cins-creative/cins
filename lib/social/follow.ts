@@ -9,6 +9,7 @@ import {
   getProfileCoverUrl,
 } from "@/lib/journey/profile";
 import type {
+  FollowAcceptedNotification,
   FollowTargetType,
   MutualFriendProfile,
   PendingFollowRequest,
@@ -69,6 +70,7 @@ export async function isFollowing(
 export type FollowStatus = {
   dang_theo_doi: boolean;
   theo_doi_lai: boolean;
+  duoc_theo_doi: boolean;
 };
 
 export async function getFollowStatus(
@@ -77,14 +79,12 @@ export async function getFollowStatus(
   loai: FollowTargetType,
 ): Promise<FollowStatus> {
   if (!viewerId || viewerId === targetId) {
-    return { dang_theo_doi: false, theo_doi_lai: false };
+    return { dang_theo_doi: false, theo_doi_lai: false, duoc_theo_doi: false };
   }
   const dang_theo_doi = await isFollowing(viewerId, targetId, loai);
-  let theo_doi_lai = false;
-  if (loai === "user" && dang_theo_doi) {
-    theo_doi_lai = await isFollowing(targetId, viewerId, "user");
-  }
-  return { dang_theo_doi, theo_doi_lai };
+  const duoc_theo_doi =
+    loai === "user" ? await isFollowing(targetId, viewerId, "user") : false;
+  return { dang_theo_doi, theo_doi_lai: dang_theo_doi && duoc_theo_doi, duoc_theo_doi };
 }
 
 export async function followTarget(
@@ -149,6 +149,55 @@ export async function removeIncomingUserFollow(
   return { ok: true };
 }
 
+export async function notifyFollowAccepted(
+  requesterId: string,
+  accepterId: string,
+): Promise<void> {
+  const admin = createServiceRoleClient();
+  await admin.from("social_thong_bao").insert({
+    nguoi_nhan: requesterId,
+    noi_dung_ai: accepterId,
+    loai_doi_tuong: "follow_accepted",
+    id_doi_tuong: accepterId,
+  });
+}
+
+export async function listFollowAcceptedNotifications(
+  viewerId: string,
+): Promise<FollowAcceptedNotification[]> {
+  const admin = createServiceRoleClient();
+  const { data: rows } = await admin
+    .from("social_thong_bao")
+    .select("id, id_doi_tuong, tao_luc")
+    .eq("nguoi_nhan", viewerId)
+    .eq("loai_doi_tuong", "follow_accepted")
+    .order("tao_luc", { ascending: false })
+    .limit(10);
+
+  const actorIds = [
+    ...new Set(
+      (rows ?? [])
+        .map((row) => row.id_doi_tuong as string | null)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  if (actorIds.length === 0) return [];
+
+  const profiles = await loadFollowProfiles(admin, actorIds);
+  const byId = new Map(profiles.map((profile) => [profile.idNguoiDung, profile]));
+  return (rows ?? [])
+    .map((row) => {
+      const actorId = row.id_doi_tuong as string | null;
+      const profile = actorId ? byId.get(actorId) : null;
+      if (!profile) return null;
+      return {
+        ...profile,
+        notificationId: (row.id as string | null) ?? actorId,
+      };
+    })
+    .filter((item): item is FollowAcceptedNotification => item !== null);
+}
+
 /** Người đang follow viewer nhưng viewer chưa follow lại. */
 export async function listPendingFollowRequests(
   viewerId: string,
@@ -177,12 +226,29 @@ export async function listPendingFollowRequests(
   const pendingIds = incomingIds.filter((id) => !alreadyMutual.has(id));
   if (pendingIds.length === 0) return [];
 
+  return loadFollowProfiles(admin, pendingIds);
+}
+
+export async function listMutualFriendProfiles(
+  viewerId: string,
+): Promise<MutualFriendProfile[]> {
+  const mutualIds = await listMutualFollowUserIds(viewerId);
+  if (mutualIds.length === 0) return [];
+
+  const admin = createServiceRoleClient();
+  return loadFollowProfiles(admin, mutualIds, 60);
+}
+
+async function loadFollowProfiles(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  userIds: string[],
+  limit = 20,
+): Promise<PendingFollowRequest[]> {
   const { data: profiles } = await admin
     .from("user_nguoi_dung")
     .select("id, slug, ten_hien_thi, avatar_id, cover_id, bio, giai_doan, tinh_thanh")
-    .in("id", pendingIds)
-    .limit(20);
-
+    .in("id", userIds)
+    .limit(limit);
   const stats = await loadUserSocialStats(
     admin,
     (profiles ?? []).map((p) => p.id as string),
@@ -201,34 +267,8 @@ export async function listPendingFollowRequests(
   }));
 }
 
-export async function listMutualFriendProfiles(
-  viewerId: string,
-): Promise<MutualFriendProfile[]> {
-  const mutualIds = await listMutualFollowUserIds(viewerId);
-  if (mutualIds.length === 0) return [];
-
-  const admin = createServiceRoleClient();
-  const { data: profiles } = await admin
-    .from("user_nguoi_dung")
-    .select("id, slug, ten_hien_thi, avatar_id, cover_id, bio, giai_doan, tinh_thanh")
-    .in("id", mutualIds)
-    .limit(60);
-
-  return (profiles ?? []).map((p) => ({
-    idNguoiDung: p.id as string,
-    slug: (p.slug as string) ?? "",
-    tenHienThi: (p.ten_hien_thi as string | null) || (p.slug as string) || "User",
-    avatarUrl: getAvatarUrl((p.avatar_id as string | null) ?? null),
-    coverUrl: getProfileCoverUrl((p.cover_id as string | null) ?? null),
-    bio: (p.bio as string | null) ?? null,
-    giaiDoan: getGiaiDoanLabel((p.giai_doan as Parameters<typeof getGiaiDoanLabel>[0]) ?? null),
-    tinhThanh: formatTinhThanh((p.tinh_thanh as string | null) ?? null),
-    stats: emptySocialStats(),
-  }));
-}
-
 function emptySocialStats() {
-  return { cotMoc: 0, tacPham: 0, toChucXacThuc: 0 };
+  return { cotMoc: 0, tacPham: 0, banBe: 0, toChucXacThuc: 0 };
 }
 
 async function loadUserSocialStats(
@@ -239,36 +279,94 @@ async function loadUserSocialStats(
   for (const id of userIds) out.set(id, emptySocialStats());
   if (userIds.length === 0) return out;
 
-  const [{ data: cotMocs }, { data: tacPhams }, { data: orgRows }] =
+  const [
+    { data: tacPhams },
+    { data: featuredTacPhams },
+    { data: orgRows },
+    { data: followsFrom },
+    { data: followsTo },
+  ] =
     await Promise.all([
-      admin
-        .from("content_cot_moc")
-        .select("id_nguoi_dung")
-        .in("id_nguoi_dung", userIds)
-        .returns<Array<{ id_nguoi_dung: string }>>(),
       admin
         .from("content_tac_pham")
         .select("id_nguoi_dung")
         .in("id_nguoi_dung", userIds)
         .returns<Array<{ id_nguoi_dung: string }>>(),
       admin
+        .from("content_tac_pham_thuoc_moc")
+        .select(
+          "id_tac_pham, content_cot_moc:content_cot_moc!inner(id_nguoi_dung, che_do_hien_thi)",
+        )
+        .in("content_cot_moc.id_nguoi_dung", userIds)
+        .eq("content_cot_moc.che_do_hien_thi", "feature")
+        .returns<
+          Array<{
+            id_tac_pham: string;
+            content_cot_moc: {
+              id_nguoi_dung: string;
+              che_do_hien_thi: string;
+            } | null;
+          }>
+        >(),
+      admin
         .from("user_thanh_vien_to_chuc")
         .select("id_nguoi_dung")
         .in("id_nguoi_dung", userIds)
         .returns<Array<{ id_nguoi_dung: string }>>(),
+      admin
+        .from("user_theo_doi")
+        .select("id_nguoi_theo_doi, id_doi_tuong")
+        .eq("loai_doi_tuong", FOLLOW_TARGET_DB_VALUE.user)
+        .in("id_nguoi_theo_doi", userIds)
+        .returns<Array<{ id_nguoi_theo_doi: string; id_doi_tuong: string }>>(),
+      admin
+        .from("user_theo_doi")
+        .select("id_nguoi_theo_doi, id_doi_tuong")
+        .eq("loai_doi_tuong", FOLLOW_TARGET_DB_VALUE.user)
+        .in("id_doi_tuong", userIds)
+        .returns<Array<{ id_nguoi_theo_doi: string; id_doi_tuong: string }>>(),
     ]);
 
-  for (const row of cotMocs ?? []) {
+  for (const row of tacPhams ?? []) {
     const stat = out.get(row.id_nguoi_dung);
     if (stat) stat.cotMoc += 1;
   }
-  for (const row of tacPhams ?? []) {
-    const stat = out.get(row.id_nguoi_dung);
-    if (stat) stat.tacPham += 1;
+  const featuredByUser = new Map<string, Set<string>>();
+  for (const row of featuredTacPhams ?? []) {
+    const ownerId = row.content_cot_moc?.id_nguoi_dung;
+    if (!ownerId) continue;
+    const ids = featuredByUser.get(ownerId) ?? new Set<string>();
+    ids.add(row.id_tac_pham);
+    featuredByUser.set(ownerId, ids);
+  }
+  for (const [ownerId, ids] of featuredByUser) {
+    const stat = out.get(ownerId);
+    if (stat) stat.tacPham = ids.size;
   }
   for (const row of orgRows ?? []) {
     const stat = out.get(row.id_nguoi_dung);
     if (stat) stat.toChucXacThuc += 1;
+  }
+  const followingByUser = new Map<string, Set<string>>();
+  const followerByUser = new Map<string, Set<string>>();
+  for (const id of userIds) {
+    followingByUser.set(id, new Set());
+    followerByUser.set(id, new Set());
+  }
+  for (const row of followsFrom ?? []) {
+    followingByUser.get(row.id_nguoi_theo_doi)?.add(row.id_doi_tuong);
+  }
+  for (const row of followsTo ?? []) {
+    followerByUser.get(row.id_doi_tuong)?.add(row.id_nguoi_theo_doi);
+  }
+  for (const id of userIds) {
+    const following = followingByUser.get(id) ?? new Set<string>();
+    const followers = followerByUser.get(id) ?? new Set<string>();
+    const stat = out.get(id);
+    if (!stat) continue;
+    for (const target of following) {
+      if (followers.has(target)) stat.banBe += 1;
+    }
   }
   return out;
 }

@@ -149,6 +149,7 @@ export function JourneyMilestoneCard({
     month,
     day,
     postSlug,
+    postOwnerSlug,
     noiDungBlocks,
   } = milestone;
 
@@ -166,6 +167,7 @@ export function JourneyMilestoneCard({
   const vis = visibilityIcon(visibility);
   const mediaCount = media.length;
   const TypeIco = TYPE_ICON[type];
+  const canManage = isOwner && variant === "self" && Boolean(ownerSlug);
 
   /* Hiển thị badge người đăng (avatar + tên) khi:
    *   - variant === "self" (chính chủ đăng — `authorName` là tác giả thật)
@@ -188,12 +190,12 @@ export function JourneyMilestoneCard({
       data-mid={milestone.id}
       data-group={type}
       data-post-slug={postSlug ?? undefined}
+      data-post-owner-slug={postOwnerSlug ?? undefined}
     >
       <div className="j-m-month">
         <span className="j-month-text">
-          NGÀY {day} · THÁNG {month}
+          {String(day).padStart(2, "0")}/{String(month).padStart(2, "0")}/{year}
         </span>
-        <span>{year}</span>
         {!src.hide && src.Icon ? (
           <span className="j-source-tag">
             <src.Icon size={11} strokeWidth={2} aria-hidden /> {src.text}
@@ -204,7 +206,7 @@ export function JourneyMilestoneCard({
 
       <div className="j-m-body-wrap">
         <div className="j-m-card is-clickable" role="button" tabIndex={0}>
-          {isOwner && ownerSlug ? (
+          {canManage && ownerSlug ? (
             <JourneyMilestoneOwnerMenu
               milestoneId={milestone.id}
               ownerSlug={ownerSlug}
@@ -247,33 +249,35 @@ export function JourneyMilestoneCard({
                 </span>
               </span>
             ) : null}
-            {showTypeBadge ? (
-              <span className={`j-type-badge ${TYPE_CLASS[type]}`}>
-                <TypeIco size={13} strokeWidth={1.8} aria-hidden />
-                {TYPE_LABEL[type]}
+            {showTypeBadge || vis ? (
+              <span className="j-m-context-badges">
+                {showTypeBadge ? (
+                  <span className={`j-type-badge ${TYPE_CLASS[type]}`}>
+                    <TypeIco size={13} strokeWidth={1.8} aria-hidden />
+                    {TYPE_LABEL[type]}
+                  </span>
+                ) : null}
+                {vis ? (
+                  <span
+                    className={`j-visibility-icon j-vis-${visibility ?? "public"}`}
+                    aria-label={vis.label}
+                    title={vis.label}
+                  >
+                    <vis.Icon
+                      size={13}
+                      strokeWidth={1.8}
+                      aria-hidden
+                      /* Sao "Nổi bật" → fill vàng đậm để pop khỏi card. */
+                      {...(visibility === "feature"
+                        ? { fill: "currentColor" }
+                        : {})}
+                    />
+                  </span>
+                ) : null}
               </span>
             ) : null}
             {verifiedBy ? (
               <span className="j-verify-badge">{verifiedBy}</span>
-            ) : null}
-            {vis ? (
-              <span
-                className={`j-visibility-icon j-vis-${visibility ?? "public"}`}
-                aria-label={vis.label}
-              >
-                <vis.Icon
-                  size={13}
-                  strokeWidth={1.8}
-                  aria-hidden
-                  /* Sao "Nổi bật" → fill vàng đậm để pop khỏi card. */
-                  {...(visibility === "feature"
-                    ? { fill: "currentColor" }
-                    : {})}
-                />
-                {visibility === "private" || visibility === "feature" ? (
-                  <span>{vis.label}</span>
-                ) : null}
-              </span>
             ) : null}
           </div>
 
@@ -405,16 +409,22 @@ function TaggedByPanel({ attr }: { attr: MilestoneAttribution }) {
   return (
     <div className="j-tagged-by">
       <div className={"j-tb-avatar" + (attr.isOrg ? " is-org" : "")}>
-        {initial}
+        {attr.avatarUrl ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img src={attr.avatarUrl} alt="" />
+        ) : (
+          initial
+        )}
       </div>
       <span className="j-tb-text">
+        <span className="j-tb-label">Bài viết được tag từ</span>{" "}
         <span className="j-tb-org">{attr.name}</span>{" "}
         {attr.role ? (
           <>
-            tag bạn là <strong>{attr.role}</strong>
+            với vai trò <strong>{attr.role}</strong>
           </>
         ) : (
-          "đã tag bạn"
+          "vào Journey của bạn"
         )}
       </span>
       <span className="j-tb-arrow" aria-hidden>

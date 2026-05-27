@@ -24,8 +24,13 @@ import {
   PostBlocksRenderer,
   PostCover,
 } from "@/components/editor/PostRenderer";
+import { JourneyMilestoneOwnerMenu } from "@/components/journey/JourneyMilestoneOwnerMenu";
 import { articlePublicHref } from "@/lib/articles/article-href";
 import { articleTagLoaiClass } from "@/lib/editor/article-tag";
+import {
+  mapCheDoToMilestoneVisibility,
+  mapLoaiMocToMilestoneType,
+} from "@/lib/journey/milestone-ui-map";
 import { getAvatarUrl } from "@/lib/journey/profile";
 
 import { PostActionsRail } from "./PostActionsRail";
@@ -70,6 +75,8 @@ type Props = {
   isOwner?: boolean;
   /** Khi true → không render link permalink "Mở bài viết" (đang ở permalink rồi). */
   hideOpenLink?: boolean;
+  /** Sau khi owner đổi loại/hiển thị/xoá từ menu — refetch detail (modal). */
+  onMilestoneUpdated?: () => void;
 };
 
 export function JourneyPostBody({
@@ -77,9 +84,14 @@ export function JourneyPostBody({
   postSlug,
   isOwner = false,
   hideOpenLink = false,
+  onMilestoneUpdated,
 }: Props) {
   const [detail, setDetail] = useState<MilestonePostDetail>(initialDetail);
   const { milestone, owner, posts, comments, viewerCanComment } = detail;
+
+  useEffect(() => {
+    setDetail(initialDetail);
+  }, [initialDetail]);
 
   /* `posts[0]` là tác phẩm chính. Khi cột mốc có nhiều tác phẩm (lượt sau)
      sẽ render tuần tự — hiện tại UI editor chỉ tạo 1 tác phẩm/cột mốc. */
@@ -98,8 +110,6 @@ export function JourneyPostBody({
     .toUpperCase();
   const ownerAvatarUrl = getAvatarUrl(owner.avatarId);
 
-  const editHref =
-    isOwner && postSlug ? `/${owner.slug}/p/${postSlug}/edit` : null;
   const permalinkHref =
     !hideOpenLink && postSlug ? `/${owner.slug}/p/${postSlug}` : null;
 
@@ -179,43 +189,56 @@ export function JourneyPostBody({
             ·
           </span>
           <span className="post-byline-date">{dateLabel}</span>
-          <span className="post-byline-dot" aria-hidden>
-            ·
-          </span>
-          <span
-            className="post-byline-type"
-            aria-label={`Loại cột mốc: ${typeLabel}`}
-          >
-            <span aria-hidden>▦</span>
-            <span>{typeLabel}</span>
-          </span>
-          <span
-            className={`post-byline-vis post-byline-vis--${milestone.cheDoHienThi}`}
-            aria-label={vis.text}
-          >
-            <vis.Icon
-              size={13}
-              strokeWidth={1.8}
-              aria-hidden
-              {...(milestone.cheDoHienThi === "feature"
-                ? { fill: "currentColor" }
-                : {})}
-            />
-            <span>{vis.text}</span>
-          </span>
-          <span className="post-byline-spacer" />
-          {editHref ? (
-            <Link href={editHref} className="post-byline-action">
-              <Pencil size={13} strokeWidth={1.8} aria-hidden />
-              <span>Sửa bài</span>
-            </Link>
-          ) : null}
-          {permalinkHref ? (
-            <Link href={permalinkHref} className="post-byline-action">
-              <ExternalLink size={13} strokeWidth={1.8} aria-hidden />
-              <span>Mở bài viết</span>
-            </Link>
-          ) : null}
+          {isOwner ? (
+            <>
+              <span className="post-byline-spacer" />
+              <JourneyMilestoneOwnerMenu
+                className="post-byline-menu"
+                milestoneId={milestone.id}
+                ownerSlug={owner.slug}
+                currentType={mapLoaiMocToMilestoneType(milestone.loaiMoc)}
+                currentVisibility={mapCheDoToMilestoneVisibility(
+                  milestone.cheDoHienThi,
+                )}
+                postSlug={postSlug ?? null}
+                onAfterChange={onMilestoneUpdated}
+              />
+            </>
+          ) : (
+            <>
+              <span className="post-byline-dot" aria-hidden>
+                ·
+              </span>
+              <span
+                className="post-byline-type"
+                aria-label={`Loại cột mốc: ${typeLabel}`}
+              >
+                <span aria-hidden>▦</span>
+                <span>{typeLabel}</span>
+              </span>
+              <span
+                className={`post-byline-vis post-byline-vis--${milestone.cheDoHienThi}`}
+                aria-label={vis.text}
+              >
+                <vis.Icon
+                  size={13}
+                  strokeWidth={1.8}
+                  aria-hidden
+                  {...(milestone.cheDoHienThi === "feature"
+                    ? { fill: "currentColor" }
+                    : {})}
+                />
+                <span>{vis.text}</span>
+              </span>
+              <span className="post-byline-spacer" />
+              {permalinkHref ? (
+                <Link href={permalinkHref} className="post-byline-action">
+                  <ExternalLink size={13} strokeWidth={1.8} aria-hidden />
+                  <span>Mở bài viết</span>
+                </Link>
+              ) : null}
+            </>
+          )}
         </div>
 
         {mainPost && mainPost.articleTags.length > 0 ? (

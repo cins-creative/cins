@@ -1,18 +1,20 @@
 "use client";
 
+import {
+  authOriginMismatchMessage,
+  resolveAuthOrigin,
+} from "@/lib/auth/auth-origin";
+import type { LoginIntent } from "@/lib/auth/login-intent";
+import { stashOAuthIntent } from "@/lib/auth/oauth-intent-client";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
-export type LoginIntent = "register" | "login";
+export type { LoginIntent } from "@/lib/auth/login-intent";
 
 /**
- * Khởi tạo Google OAuth flow cho 1 intent — dùng cả từ click button lẫn auto-trigger
- * khi user vào `/login?auto=register`.
+ * Khởi tạo Google OAuth (PKCE + cookie) — dùng từ nút hoặc `/login?auto=...`.
  *
- * Trả về Promise resolve với `{ error }`. Nếu không lỗi → browser sẽ điều hướng sang
- * Google (caller giữ trạng thái loading=true cho tới khi quay lại).
- *
- * Intent được forward qua query của `redirectTo` (Supabase tự sinh OAuth `state` cho CSRF,
- * không override được — vì vậy không dùng `queryParams.state`).
+ * `redirectTo` = `{SITE_ORIGIN}/auth/callback` (không query) để khớp Supabase Redirect URLs.
+ * Intent lưu cookie `cins-oauth-intent` trước khi redirect sang Google.
  */
 export async function startGoogleLogin(
   intent: LoginIntent,
@@ -20,18 +22,28 @@ export async function startGoogleLogin(
   if (typeof window === "undefined") {
     return { error: "Phải chạy ở client để khởi tạo OAuth." };
   }
+
+  const originMismatch = authOriginMismatchMessage();
+  if (originMismatch) {
+    return { error: originMismatch };
+  }
+
   try {
+    stashOAuthIntent(intent);
+
     const supabase = createSupabaseBrowserClient();
-    const cbUrl = new URL("/auth/callback", window.location.origin);
-    cbUrl.searchParams.set("intent", intent);
+    const origin = resolveAuthOrigin();
+    const redirectTo = `${origin}/auth/callback`;
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: cbUrl.toString(),
+        redirectTo,
         queryParams: {
           access_type: "offline",
           prompt: "select_account",
         },
+        skipBrowserRedirect: false,
       },
     });
     if (error) return { error: error.message };

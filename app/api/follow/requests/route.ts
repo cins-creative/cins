@@ -3,7 +3,9 @@ import { NextResponse } from "next/server";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import {
   followTarget,
+  listFollowAcceptedNotifications,
   listPendingFollowRequests,
+  notifyFollowAccepted,
   removeIncomingUserFollow,
 } from "@/lib/social/follow";
 
@@ -13,8 +15,11 @@ export async function GET() {
     return NextResponse.json({ error: "Cần đăng nhập." }, { status: 401 });
   }
 
-  const requests = await listPendingFollowRequests(session.profile.id);
-  return NextResponse.json({ requests });
+  const [requests, accepted] = await Promise.all([
+    listPendingFollowRequests(session.profile.id),
+    listFollowAcceptedNotifications(session.profile.id),
+  ]);
+  return NextResponse.json({ requests, accepted });
 }
 
 export async function PATCH(req: Request) {
@@ -48,6 +53,13 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: result.error }, { status: 400 });
   }
 
-  const requests = await listPendingFollowRequests(session.profile.id);
-  return NextResponse.json({ ok: true, requests });
+  if (action === "accept") {
+    await notifyFollowAccepted(targetId, session.profile.id);
+  }
+
+  const [requests, accepted] = await Promise.all([
+    listPendingFollowRequests(session.profile.id),
+    listFollowAcceptedNotifications(session.profile.id),
+  ]);
+  return NextResponse.json({ ok: true, requests, accepted });
 }

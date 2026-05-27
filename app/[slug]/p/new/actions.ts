@@ -246,6 +246,9 @@ export async function publishPost(
 
   /* 6. Revalidate journey để CTA / timeline thấy bài mới. */
   revalidatePath(`/${session.profile.slug}/journey`);
+  for (const c of input.coAuthors ?? []) {
+    if (c.slug) revalidatePath(`/${c.slug}/journey`);
+  }
 
   return {
     ok: true,

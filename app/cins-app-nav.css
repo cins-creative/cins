@@ -670,11 +670,21 @@
   color: var(--ink-body);
   text-align: left;
   cursor: pointer;
+  text-decoration: none;
 }
 
 .j-notify-item:hover {
   border-color: #bfdbfe;
   background: #eff6ff;
+}
+
+.j-notify-item.is-accepted {
+  background: #f0fdf4;
+}
+
+.j-notify-item.is-accepted:hover {
+  border-color: #86efac;
+  background: #dcfce7;
 }
 
 .j-notify-item span:not(.j-notify-avatar) {
@@ -727,10 +737,11 @@
 .j-notify-modal {
   position: relative;
   width: min(430px, 100%);
-  padding: 0 0 22px;
-  border-radius: 22px;
-  background: var(--bg-surface);
-  box-shadow: var(--shadow-xl);
+  padding: 14px 14px 18px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 32px;
+  background: #fff;
+  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.18);
   text-align: center;
   overflow: hidden;
 }
@@ -740,19 +751,34 @@
   top: 12px;
   right: 12px;
   z-index: 2;
-  width: 32px;
-  height: 32px;
-  border: 1px solid var(--border);
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
   border-radius: 999px;
-  background: #fff;
+  background: rgba(255, 255, 255, 0.92);
   cursor: pointer;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .j-notify-cover {
-  height: 132px;
+  position: relative;
+  height: 150px;
+  border-radius: 24px;
+  overflow: hidden;
   background:
-    radial-gradient(circle at 18% 20%, rgba(253, 232, 89, 0.9), transparent 28%),
-    linear-gradient(135deg, #1d4ed8, #7c3aed 55%, #0f172a);
+    radial-gradient(circle at 24% 28%, rgba(253, 232, 89, 0.78), transparent 28%),
+    radial-gradient(circle at 70% 20%, rgba(255, 255, 255, 0.7), transparent 30%),
+    linear-gradient(135deg, #dbeafe, #bfdbfe 48%, #e0e7ff);
+}
+
+.j-notify-cover::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.16));
 }
 
 .j-notify-cover img {
@@ -765,72 +791,91 @@
 .j-notify-profile-main {
   position: relative;
   display: flex;
-  align-items: flex-end;
-  gap: 14px;
-  padding: 0 22px;
-  margin-top: -38px;
-  text-align: left;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 0 20px;
+  margin-top: -58px;
+  text-align: center;
 }
 
 .j-notify-profile-main .j-notify-avatar.is-large {
   margin: 0;
-  border: 4px solid var(--bg-surface);
-  box-shadow: var(--shadow-md);
+  width: 96px;
+  height: 96px;
+  border: 5px solid #fff;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.16);
 }
 
 .j-notify-profile-title {
   min-width: 0;
-  padding-bottom: 7px;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .j-notify-modal h2 {
   margin: 0;
-  font-size: 22px;
+  font-size: 24px;
+  font-weight: 850;
   letter-spacing: -0.02em;
+  color: var(--ink-display);
 }
 
 .j-notify-modal-slug {
-  margin: 4px 0 0;
+  margin: 5px 0 0;
   color: var(--ink-muted);
   font-size: 13px;
 }
 
 .j-notify-stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  padding: 16px 22px 0;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  margin: 18px 0 0;
+  padding: 12px 10px;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
 }
 
 .j-notify-stats span {
   min-width: 0;
-  padding: 10px 8px;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: #f8fafc;
+  padding: 4px 6px;
+  border: none;
+  border-right: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 0;
+  background: transparent;
   color: var(--ink-muted);
   display: flex;
   flex-direction: column;
   gap: 3px;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 
+.j-notify-stats span:last-child {
+  border-right: none;
+}
+
 .j-notify-stats strong {
   font-family: var(--font-j-anton, "Anton"), var(--font-sans);
   color: var(--ink-display);
-  font-size: 24px;
+  font-size: 23px;
   line-height: 1;
   letter-spacing: 0;
 }
 
 .j-notify-modal-bio {
-  margin: 14px 22px 0;
+  margin: 14px 24px 0;
   padding: 12px 14px;
-  border-radius: 14px;
-  background: #f8fafc;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #f8fafc, #fff);
+  border: 1px solid rgba(148, 163, 184, 0.16);
   color: var(--ink-body);
   font-size: 13px;
   line-height: 1.5;
@@ -838,52 +883,68 @@
 }
 
 .j-notify-modal-meta {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
   gap: 8px;
-  margin: 14px 22px 0;
+  margin: 14px 0 0;
 }
 
-.j-notify-modal-meta dt,
-.j-notify-modal-meta dd {
-  margin: 0;
-  font-size: 12px;
+.j-notify-modal-meta div {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
 }
 
 .j-notify-modal-meta dt {
-  color: var(--ink-muted);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  margin: 0;
+  font-size: 13px;
+  color: var(--cins-blue);
+  font-weight: 800;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.j-notify-modal-meta dt::after {
+  content: ":";
 }
 
 .j-notify-modal-meta dd {
-  margin-top: 2px;
+  margin: 0;
   color: var(--ink-display);
   font-weight: 700;
+  text-align: left;
+  font-size: 13px;
 }
 
 .j-notify-modal-actions {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
   justify-content: center;
-  gap: 8px;
-  margin: 18px 22px 0;
+  gap: 10px;
+  margin: 20px 0 0;
 }
 
 .j-notify-action {
-  min-height: 36px;
-  padding: 0 12px;
+  min-height: 38px;
+  padding: 0 10px;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: #fff;
   color: var(--ink-body);
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 800;
   text-decoration: none;
+  text-align: center;
   cursor: pointer;
 }
 
@@ -891,10 +952,12 @@
   border-color: var(--cins-blue);
   background: var(--cins-blue);
   color: #fff;
+  box-shadow: none;
 }
 
 .j-notify-action.is-link {
   border-color: #bfdbfe;
+  background: #eff6ff;
   color: var(--cins-blue);
 }
 

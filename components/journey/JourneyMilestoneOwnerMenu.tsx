@@ -44,6 +44,10 @@ type Props = {
   currentVisibility: MilestoneVisibility;
   /** Slug của tác phẩm đầu tiên gắn vào cột mốc — null = không có bài viết. */
   postSlug: string | null;
+  /** Gọi sau khi đổi loại/hiển thị/xoá thành công (vd. refetch modal post). */
+  onAfterChange?: () => void;
+  /** Class wrapper — vd. `post-byline-menu` trong JourneyPostBody. */
+  className?: string;
 };
 
 /* ╔══════════════════════════════════════════════════════════════════╗
@@ -115,6 +119,8 @@ export function JourneyMilestoneOwnerMenu({
   currentType,
   currentVisibility,
   postSlug,
+  onAfterChange,
+  className,
 }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -160,6 +166,7 @@ export function JourneyMilestoneOwnerMenu({
       }
       close();
       router.refresh();
+      onAfterChange?.();
     });
   }
 
@@ -173,6 +180,7 @@ export function JourneyMilestoneOwnerMenu({
       }
       close();
       router.refresh();
+      onAfterChange?.();
     });
   }
 
@@ -186,6 +194,7 @@ export function JourneyMilestoneOwnerMenu({
       }
       close();
       router.refresh();
+      onAfterChange?.();
     });
   }
 
@@ -217,7 +226,7 @@ export function JourneyMilestoneOwnerMenu({
 
   return (
     <div
-      className="j-m-menu"
+      className={className ? `j-m-menu ${className}` : "j-m-menu"}
       ref={rootRef}
       /* Chặn bubble lên `.j-milestone` để click vào menu không mở post modal. */
       onClick={(e) => e.stopPropagation()}

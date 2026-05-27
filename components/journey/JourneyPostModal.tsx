@@ -135,9 +135,14 @@ export function JourneyPostModal({ milestoneId, onClose }: Props) {
             initialDetail={detail}
             postSlug={postSlug}
             isOwner={detail.viewerIsOwner}
-            /* Trong modal: vẫn hiển thị link permalink để user có thể mở
-               bài viết ở tab riêng/share URL. */
             hideOpenLink={false}
+            onMilestoneUpdated={() => {
+              if (!milestoneId) return;
+              void loadMilestoneDetail(milestoneId).then((res) => {
+                if (res.ok) setDetail(res.data);
+                else onClose();
+              });
+            }}
           />
         ) : null}
       </article>

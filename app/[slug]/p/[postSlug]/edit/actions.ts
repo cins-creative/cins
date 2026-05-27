@@ -260,6 +260,9 @@ export async function updatePost(
 
   /* 7. Revalidate journey. */
   revalidatePath(`/${session.profile.slug}/journey`);
+  for (const c of input.coAuthors ?? []) {
+    if (c.slug) revalidatePath(`/${c.slug}/journey`);
+  }
 
   return { ok: true, tacPhamId: input.tacPhamId, cotMocId: input.cotMocId };
 }

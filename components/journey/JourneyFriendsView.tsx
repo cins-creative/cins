@@ -38,13 +38,32 @@ export function JourneyFriendsView({ friends }: Props) {
                 <h3>{friend.tenHienThi}</h3>
                 <p className="j-friend-slug">@{friend.slug}</p>
                 {friend.bio ? <p className="j-friend-bio">{friend.bio}</p> : null}
+                <div className="j-friend-stats" aria-label="Thống kê hồ sơ bạn bè">
+                  <span>
+                    <strong>{friend.stats.cotMoc}</strong>
+                    Journey
+                  </span>
+                  <span>
+                    <strong>{friend.stats.tacPham}</strong>
+                    Gallery
+                  </span>
+                  <span>
+                    <strong>{friend.stats.banBe}</strong>
+                    Bạn bè
+                  </span>
+                </div>
                 <div className="j-friend-meta">
                   {friend.giaiDoan ? <span>{friend.giaiDoan}</span> : null}
                   {friend.tinhThanh ? <span>{friend.tinhThanh}</span> : null}
                 </div>
-                <Link href={`/${friend.slug}/journey`} className="j-friend-link">
-                  Xem Journey
-                </Link>
+                <div className="j-friend-actions">
+                  <button type="button" className="j-friend-message" disabled>
+                    Nhắn tin
+                  </button>
+                  <Link href={`/${friend.slug}/journey`} className="j-friend-link">
+                    Xem Journey
+                  </Link>
+                </div>
               </div>
             </article>
           ))}

@@ -2,6 +2,7 @@
 
 import { createBrowserClient } from "@supabase/ssr";
 
+import { getSupabaseCookieOptions } from "@/lib/supabase/cookie-options";
 import {
   getTrimmedSupabaseAnonKey,
   getTrimmedSupabaseUrl,
@@ -19,5 +20,7 @@ export function createSupabaseBrowserClient() {
       "Missing NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY",
     );
   }
-  return createBrowserClient(url, key);
+  return createBrowserClient(url, key, {
+    cookieOptions: getSupabaseCookieOptions(),
+  });
 }
