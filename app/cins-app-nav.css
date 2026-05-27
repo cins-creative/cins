@@ -567,6 +567,337 @@
   flex-shrink: 0;
 }
 
+.cins-app-topbar .j-notify {
+  position: relative;
+}
+
+.cins-app-topbar .j-notify-trigger {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--bg-surface);
+  color: var(--ink-body);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--app-nav-dur) var(--app-nav-ease);
+}
+
+.cins-app-topbar .j-notify-trigger:hover,
+.cins-app-topbar .j-notify-trigger.has-unread {
+  border-color: var(--cins-blue);
+  color: var(--cins-blue);
+  background: var(--cins-blue-soft);
+}
+
+.cins-app-topbar .j-notify-count {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 17px;
+  text-align: center;
+}
+
+.cins-app-topbar .j-notify-menu {
+  position: absolute;
+  z-index: 90;
+  top: calc(100% + 10px);
+  right: 0;
+  width: min(320px, calc(100vw - 32px));
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.j-notify-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 4px 10px;
+  font-size: 13px;
+}
+
+.j-notify-head span,
+.j-notify-empty,
+.j-notify-item small {
+  color: var(--ink-muted);
+}
+
+.j-notify-empty,
+.j-notify-error {
+  margin: 0;
+  padding: 10px 4px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.j-notify-error {
+  color: #b91c1c;
+}
+
+.j-notify-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.j-notify-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: var(--ink-body);
+  text-align: left;
+  cursor: pointer;
+}
+
+.j-notify-item:hover {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+}
+
+.j-notify-item span:not(.j-notify-avatar) {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.j-notify-avatar {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-weight: 800;
+}
+
+.j-notify-avatar.is-large {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 10px;
+  font-size: 24px;
+}
+
+.j-notify-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.j-notify-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.42);
+}
+
+.j-notify-modal {
+  position: relative;
+  width: min(430px, 100%);
+  padding: 0 0 22px;
+  border-radius: 22px;
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-xl);
+  text-align: center;
+  overflow: hidden;
+}
+
+.j-notify-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.j-notify-cover {
+  height: 132px;
+  background:
+    radial-gradient(circle at 18% 20%, rgba(253, 232, 89, 0.9), transparent 28%),
+    linear-gradient(135deg, #1d4ed8, #7c3aed 55%, #0f172a);
+}
+
+.j-notify-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.j-notify-profile-main {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  padding: 0 22px;
+  margin-top: -38px;
+  text-align: left;
+}
+
+.j-notify-profile-main .j-notify-avatar.is-large {
+  margin: 0;
+  border: 4px solid var(--bg-surface);
+  box-shadow: var(--shadow-md);
+}
+
+.j-notify-profile-title {
+  min-width: 0;
+  padding-bottom: 7px;
+}
+
+.j-notify-modal h2 {
+  margin: 0;
+  font-size: 22px;
+  letter-spacing: -0.02em;
+}
+
+.j-notify-modal-slug {
+  margin: 4px 0 0;
+  color: var(--ink-muted);
+  font-size: 13px;
+}
+
+.j-notify-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 16px 22px 0;
+}
+
+.j-notify-stats span {
+  min-width: 0;
+  padding: 10px 8px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #f8fafc;
+  color: var(--ink-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.j-notify-stats strong {
+  font-family: var(--font-j-anton, "Anton"), var(--font-sans);
+  color: var(--ink-display);
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.j-notify-modal-bio {
+  margin: 14px 22px 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #f8fafc;
+  color: var(--ink-body);
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.j-notify-modal-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 14px 22px 0;
+}
+
+.j-notify-modal-meta dt,
+.j-notify-modal-meta dd {
+  margin: 0;
+  font-size: 12px;
+}
+
+.j-notify-modal-meta dt {
+  color: var(--ink-muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.j-notify-modal-meta dd {
+  margin-top: 2px;
+  color: var(--ink-display);
+  font-weight: 700;
+}
+
+.j-notify-modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin: 18px 22px 0;
+}
+
+.j-notify-action {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink-body);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.j-notify-action.is-accept {
+  border-color: var(--cins-blue);
+  background: var(--cins-blue);
+  color: #fff;
+}
+
+.j-notify-action.is-link {
+  border-color: #bfdbfe;
+  color: var(--cins-blue);
+}
+
 .cins-app-topbar .tb-divider {
   width: 1px;
   height: 24px;

@@ -4,13 +4,19 @@ import {
   type GalleryGridItem,
   type GalleryPinnedBanner,
 } from "@/components/journey/JourneyGalleryAside";
+import { JourneyFriendsView } from "@/components/journey/JourneyFriendsView";
+import { JourneyGalleryGridView } from "@/components/journey/JourneyGalleryGridView";
 import {
   JourneySidebar,
+  type JourneyProfileView,
   type SidebarProfile,
   type SidebarStats,
 } from "@/components/journey/JourneySidebar";
 import { JourneyTimeline } from "@/components/journey/JourneyTimeline";
-import type { PendingCoAuthorInvite } from "@/lib/social/types";
+import type {
+  MutualFriendProfile,
+  PendingCoAuthorInvite,
+} from "@/lib/social/types";
 import type { MilestoneItem } from "@/components/journey/milestone-types";
 import type { LoaiMocVisibilityMap } from "@/lib/journey/filter-visibility";
 
@@ -37,6 +43,8 @@ type Props = {
   filterVisibility?: LoaiMocVisibilityMap;
   viewerProfileId?: string | null;
   coAuthorPendingInvites?: ReadonlyArray<PendingCoAuthorInvite>;
+  activeView?: JourneyProfileView;
+  friends?: ReadonlyArray<MutualFriendProfile>;
 };
 
 /**
@@ -63,6 +71,8 @@ export function JourneyView({
   filterVisibility,
   viewerProfileId = null,
   coAuthorPendingInvites = [],
+  activeView = "journey",
+  friends = [],
 }: Props) {
   void freshlyOnboarded;
 
@@ -75,23 +85,33 @@ export function JourneyView({
           isOwner={isOwner}
           editProfileInitial={editProfileInitial}
           viewerProfileId={viewerProfileId}
+          activeView={activeView}
+          friendCount={friends.length}
         />
-        <JourneyTimeline
-          isOwner={isOwner}
-          ownerName={profile.tenHienThi || `@${slugFromRoute}`}
-          ownerSlug={profile.slug || slugFromRoute}
-          ownerAvatarUrl={profile.avatarUrl}
-          milestones={milestones}
-          filterVisibility={filterVisibility}
-          viewerProfileId={viewerProfileId}
-          coAuthorPendingInvites={coAuthorPendingInvites}
-        />
-        <JourneyGalleryAside
-          ownerSlug={slugFromRoute}
-          totalTacPham={stats.tacPham}
-          pinned={galleryPinned}
-          items={galleryItems}
-        />
+        {activeView === "gallery" ? (
+          <JourneyGalleryGridView pinned={galleryPinned} items={galleryItems} />
+        ) : activeView === "friends" ? (
+          <JourneyFriendsView friends={friends} />
+        ) : (
+          <JourneyTimeline
+            isOwner={isOwner}
+            ownerName={profile.tenHienThi || `@${slugFromRoute}`}
+            ownerSlug={profile.slug || slugFromRoute}
+            ownerAvatarUrl={profile.avatarUrl}
+            milestones={milestones}
+            filterVisibility={filterVisibility}
+            viewerProfileId={viewerProfileId}
+            coAuthorPendingInvites={coAuthorPendingInvites}
+          />
+        )}
+        {activeView === "journey" ? (
+          <JourneyGalleryAside
+            ownerSlug={slugFromRoute}
+            totalTacPham={stats.tacPham}
+            pinned={galleryPinned}
+            items={galleryItems}
+          />
+        ) : null}
       </div>
     </div>
   );

@@ -1,7 +1,9 @@
 import { MessageCircleQuestion, Sparkles, Menu as MenuIcon } from "lucide-react";
 import Link from "next/link";
 
+import { JourneyNotifications } from "@/components/journey/JourneyNotifications";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
+import { listPendingFollowRequests } from "@/lib/social/follow";
 
 /**
  * Topbar chính của site — render khác nhau theo trạng thái phiên:
@@ -16,6 +18,9 @@ import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 export async function CinsAppTopbar() {
   const session = await getCurrentSessionAndProfile();
   const isAuthed = !!session;
+  const followRequests = session?.profile
+    ? await listPendingFollowRequests(session.profile.id)
+    : [];
 
   return (
     <nav className="topbar cins-app-topbar" id="app-topbar">
@@ -39,6 +44,9 @@ export async function CinsAppTopbar() {
             <MessageCircleQuestion size={16} strokeWidth={1.6} aria-hidden />
             <span>Tư vấn nghề</span>
           </Link>
+          {isAuthed ? (
+            <JourneyNotifications initialFollowRequests={followRequests} />
+          ) : null}
           {isAuthed ? null : (
             <>
               <span className="tb-divider" aria-hidden />

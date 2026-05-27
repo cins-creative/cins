@@ -1,11 +1,15 @@
 import {
   AtSign,
+  Grid3X3,
   Link2,
   Mail,
   MapPin,
   Pencil,
   Share2,
+  UserRound,
+  Waypoints,
 } from "lucide-react";
+import Link from "next/link";
 
 import type { EditProfileInitial } from "@/components/journey/JourneyEditProfileModal";
 import { JourneyAvatarTrigger } from "@/components/journey/JourneyAvatarTrigger";
@@ -44,6 +48,8 @@ export type SidebarStats = {
   toChuc: number;
 };
 
+export type JourneyProfileView = "journey" | "gallery" | "friends";
+
 type Props = {
   profile: SidebarProfile;
   stats: SidebarStats;
@@ -56,6 +62,8 @@ type Props = {
   editProfileInitial?: EditProfileInitial;
   /** Viewer profile id — null nếu không đăng nhập (hiếm trên Journey). */
   viewerProfileId?: string | null;
+  activeView?: JourneyProfileView;
+  friendCount?: number;
 };
 
 /**
@@ -76,6 +84,8 @@ export function JourneySidebar({
   isOwner,
   editProfileInitial,
   viewerProfileId = null,
+  activeView = "journey",
+  friendCount = 0,
 }: Props) {
   const { avatarUrl, coverUrl } = profile;
   const initials = getNameInitials(profile.tenHienThi, profile.slug);
@@ -219,25 +229,67 @@ export function JourneySidebar({
         )}
       </div>
 
-      <div className="j-profile-stats" aria-label="Thống kê hồ sơ">
-        <div className="j-stat">
-          <div className="j-stat-num">
-            {stats.cotMoc}
-            {stats.cotMocVerified > 0 ? (
-              <span className="j-stat-v">{stats.cotMocVerified}✓</span>
-            ) : null}
-          </div>
-          <div className="j-stat-label">Cột mốc</div>
-        </div>
-        <div className="j-stat">
-          <div className="j-stat-num">{stats.tacPham}</div>
-          <div className="j-stat-label">Tác phẩm</div>
-        </div>
-        <div className="j-stat">
-          <div className="j-stat-num">{stats.toChuc}</div>
-          <div className="j-stat-label">Tổ chức</div>
-        </div>
-      </div>
+      <nav className="j-profile-switch" aria-label="Chuyển giao diện hồ sơ">
+        <ProfileSwitchLink
+          slug={profile.slug}
+          view="journey"
+          activeView={activeView}
+          icon={<Waypoints size={15} aria-hidden />}
+          label="Journey"
+          count={stats.cotMoc}
+        />
+        <ProfileSwitchLink
+          slug={profile.slug}
+          view="gallery"
+          activeView={activeView}
+          icon={<Grid3X3 size={15} aria-hidden />}
+          label="Gallery"
+          count={stats.tacPham}
+        />
+        <ProfileSwitchLink
+          slug={profile.slug}
+          view="friends"
+          activeView={activeView}
+          icon={<UserRound size={15} aria-hidden />}
+          label="Bạn bè"
+          count={friendCount}
+        />
+      </nav>
     </aside>
+  );
+}
+
+function ProfileSwitchLink({
+  slug,
+  view,
+  activeView,
+  icon,
+  label,
+  count,
+}: {
+  slug: string;
+  view: JourneyProfileView;
+  activeView: JourneyProfileView;
+  icon: React.ReactNode;
+  label: string;
+  count: number;
+}) {
+  const href =
+    view === "journey"
+      ? `/${encodeURIComponent(slug)}/journey`
+      : `/${encodeURIComponent(slug)}/journey?view=${view}`;
+  const active = view === activeView;
+  return (
+    <Link
+      href={href}
+      className={`j-profile-switch-btn${active ? " is-active" : ""}`}
+      aria-current={active ? "page" : undefined}
+    >
+      <span className="j-profile-switch-ico">{icon}</span>
+      <span className="j-profile-switch-main">
+        <span>{label}</span>
+        <strong>{count}</strong>
+      </span>
+    </Link>
   );
 }

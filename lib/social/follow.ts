@@ -2,7 +2,17 @@ import "server-only";
 
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
-import type { FollowTargetType } from "@/lib/social/types";
+import {
+  formatTinhThanh,
+  getAvatarUrl,
+  getGiaiDoanLabel,
+  getProfileCoverUrl,
+} from "@/lib/journey/profile";
+import type {
+  FollowTargetType,
+  MutualFriendProfile,
+  PendingFollowRequest,
+} from "@/lib/social/types";
 
 type FollowRow = {
   id_nguoi_theo_doi: string;
@@ -123,6 +133,145 @@ export async function unfollowTarget(
 }
 
 export const unfollowUser = unfollowTarget;
+
+export async function removeIncomingUserFollow(
+  viewerId: string,
+  followerId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const admin = createServiceRoleClient();
+  const { error } = await admin
+    .from("user_theo_doi")
+    .delete()
+    .eq("id_nguoi_theo_doi", followerId)
+    .eq("id_doi_tuong", viewerId)
+    .eq("loai_doi_tuong", FOLLOW_TARGET_DB_VALUE.user);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
+
+/** Người đang follow viewer nhưng viewer chưa follow lại. */
+export async function listPendingFollowRequests(
+  viewerId: string,
+): Promise<PendingFollowRequest[]> {
+  const admin = createServiceRoleClient();
+  const { data: incoming } = await admin
+    .from("user_theo_doi")
+    .select("id_nguoi_theo_doi")
+    .eq("id_doi_tuong", viewerId)
+    .eq("loai_doi_tuong", FOLLOW_TARGET_DB_VALUE.user)
+    .returns<Array<{ id_nguoi_theo_doi: string }>>();
+
+  const incomingIds = [
+    ...new Set((incoming ?? []).map((r) => r.id_nguoi_theo_doi)),
+  ];
+  if (incomingIds.length === 0) return [];
+
+  const { data: outgoing } = await admin
+    .from("user_theo_doi")
+    .select("id_doi_tuong")
+    .eq("id_nguoi_theo_doi", viewerId)
+    .eq("loai_doi_tuong", FOLLOW_TARGET_DB_VALUE.user)
+    .in("id_doi_tuong", incomingIds)
+    .returns<Array<{ id_doi_tuong: string }>>();
+  const alreadyMutual = new Set((outgoing ?? []).map((r) => r.id_doi_tuong));
+  const pendingIds = incomingIds.filter((id) => !alreadyMutual.has(id));
+  if (pendingIds.length === 0) return [];
+
+  const { data: profiles } = await admin
+    .from("user_nguoi_dung")
+    .select("id, slug, ten_hien_thi, avatar_id, cover_id, bio, giai_doan, tinh_thanh")
+    .in("id", pendingIds)
+    .limit(20);
+
+  const stats = await loadUserSocialStats(
+    admin,
+    (profiles ?? []).map((p) => p.id as string),
+  );
+
+  return (profiles ?? []).map((p) => ({
+    idNguoiDung: p.id as string,
+    slug: (p.slug as string) ?? "",
+    tenHienThi: (p.ten_hien_thi as string | null) || (p.slug as string) || "User",
+    avatarUrl: getAvatarUrl((p.avatar_id as string | null) ?? null),
+    coverUrl: getProfileCoverUrl((p.cover_id as string | null) ?? null),
+    bio: (p.bio as string | null) ?? null,
+    giaiDoan: getGiaiDoanLabel((p.giai_doan as Parameters<typeof getGiaiDoanLabel>[0]) ?? null),
+    tinhThanh: formatTinhThanh((p.tinh_thanh as string | null) ?? null),
+    stats: stats.get(p.id as string) ?? emptySocialStats(),
+  }));
+}
+
+export async function listMutualFriendProfiles(
+  viewerId: string,
+): Promise<MutualFriendProfile[]> {
+  const mutualIds = await listMutualFollowUserIds(viewerId);
+  if (mutualIds.length === 0) return [];
+
+  const admin = createServiceRoleClient();
+  const { data: profiles } = await admin
+    .from("user_nguoi_dung")
+    .select("id, slug, ten_hien_thi, avatar_id, cover_id, bio, giai_doan, tinh_thanh")
+    .in("id", mutualIds)
+    .limit(60);
+
+  return (profiles ?? []).map((p) => ({
+    idNguoiDung: p.id as string,
+    slug: (p.slug as string) ?? "",
+    tenHienThi: (p.ten_hien_thi as string | null) || (p.slug as string) || "User",
+    avatarUrl: getAvatarUrl((p.avatar_id as string | null) ?? null),
+    coverUrl: getProfileCoverUrl((p.cover_id as string | null) ?? null),
+    bio: (p.bio as string | null) ?? null,
+    giaiDoan: getGiaiDoanLabel((p.giai_doan as Parameters<typeof getGiaiDoanLabel>[0]) ?? null),
+    tinhThanh: formatTinhThanh((p.tinh_thanh as string | null) ?? null),
+    stats: emptySocialStats(),
+  }));
+}
+
+function emptySocialStats() {
+  return { cotMoc: 0, tacPham: 0, toChucXacThuc: 0 };
+}
+
+async function loadUserSocialStats(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  userIds: string[],
+): Promise<Map<string, ReturnType<typeof emptySocialStats>>> {
+  const out = new Map<string, ReturnType<typeof emptySocialStats>>();
+  for (const id of userIds) out.set(id, emptySocialStats());
+  if (userIds.length === 0) return out;
+
+  const [{ data: cotMocs }, { data: tacPhams }, { data: orgRows }] =
+    await Promise.all([
+      admin
+        .from("content_cot_moc")
+        .select("id_nguoi_dung")
+        .in("id_nguoi_dung", userIds)
+        .returns<Array<{ id_nguoi_dung: string }>>(),
+      admin
+        .from("content_tac_pham")
+        .select("id_nguoi_dung")
+        .in("id_nguoi_dung", userIds)
+        .returns<Array<{ id_nguoi_dung: string }>>(),
+      admin
+        .from("user_thanh_vien_to_chuc")
+        .select("id_nguoi_dung")
+        .in("id_nguoi_dung", userIds)
+        .returns<Array<{ id_nguoi_dung: string }>>(),
+    ]);
+
+  for (const row of cotMocs ?? []) {
+    const stat = out.get(row.id_nguoi_dung);
+    if (stat) stat.cotMoc += 1;
+  }
+  for (const row of tacPhams ?? []) {
+    const stat = out.get(row.id_nguoi_dung);
+    if (stat) stat.tacPham += 1;
+  }
+  for (const row of orgRows ?? []) {
+    const stat = out.get(row.id_nguoi_dung);
+    if (stat) stat.toChucXacThuc += 1;
+  }
+  return out;
+}
 
 /** User ids mà `viewerId` follow và được follow lại (mutual). */
 export async function listMutualFollowUserIds(

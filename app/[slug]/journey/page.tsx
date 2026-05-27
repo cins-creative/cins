@@ -15,6 +15,7 @@ import {
 import { fetchGalleryForUser } from "@/lib/journey/gallery-fetch";
 import { fetchMilestonesForUser } from "@/lib/journey/milestones-fetch";
 import { loadPendingCoAuthorInvites } from "@/lib/social/co-author";
+import { listMutualFriendProfiles } from "@/lib/social/follow";
 import {
   getAvatarUrl,
   getProfileCoverUrl,
@@ -25,7 +26,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 export const dynamic = "force-dynamic";
 
 type Params = Promise<{ slug: string }>;
-type SearchParams = Promise<{ welcome?: string }>;
+type SearchParams = Promise<{ welcome?: string; view?: string }>;
 
 type OwnerRow = {
   id: string;
@@ -67,7 +68,7 @@ export default async function JourneyPage({
   searchParams: SearchParams;
 }) {
   const { slug } = await params;
-  const { welcome } = await searchParams;
+  const { welcome, view } = await searchParams;
 
   const session = await getCurrentSessionAndProfile();
   if (!session) {
@@ -115,6 +116,9 @@ export default async function JourneyPage({
     isOwner && session.profile
       ? await loadPendingCoAuthorInvites(session.profile.id)
       : [];
+  const friends = await listMutualFriendProfiles(owner.id);
+  const activeView =
+    view === "gallery" || view === "friends" ? view : "journey";
   const stats = {
     cotMoc: milestoneStats.cotMoc,
     cotMocVerified: milestoneStats.cotMocVerified,
@@ -187,6 +191,8 @@ export default async function JourneyPage({
         editProfileInitial={editProfileInitial}
         viewerProfileId={session.profile?.id ?? null}
         coAuthorPendingInvites={coAuthorPendingInvites}
+        activeView={activeView}
+        friends={friends}
         filterVisibility={filterVisibility}
       />
     </CinsShell>

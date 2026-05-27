@@ -24,3 +24,21 @@ export type PendingCoAuthorInvite = {
   ownerName: string;
   vaiTro: string;
 };
+
+export type PendingFollowRequest = {
+  idNguoiDung: string;
+  slug: string;
+  tenHienThi: string;
+  avatarUrl: string | null;
+  coverUrl: string | null;
+  bio: string | null;
+  giaiDoan: string | null;
+  tinhThanh: string | null;
+  stats: {
+    cotMoc: number;
+    tacPham: number;
+    toChucXacThuc: number;
+  };
+};
+
+export type MutualFriendProfile = PendingFollowRequest;
