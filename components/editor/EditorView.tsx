@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 
 import { publishPost } from "@/app/[slug]/p/new/actions";
+import { CoAuthorSection } from "@/components/editor/CoAuthorSection";
 import { updatePost } from "@/app/[slug]/p/[postSlug]/edit/actions";
 import {
   getCfAccountHash,
@@ -49,6 +50,7 @@ import {
   articleTagLoaiClass,
   type ArticleTagRef,
 } from "@/lib/editor/article-tag";
+import type { CoAuthorDraft } from "@/lib/social/types";
 import {
   loadAllArticlesForTagPicker,
   searchArticlesForTag,
@@ -253,6 +255,8 @@ export type EditorInitial = {
   loaiMoc: LoaiMoc;
   thoiDiem: string;
   blocks: ServerBlock[];
+  ownerVaiTro?: string;
+  coAuthors?: CoAuthorDraft[];
 };
 
 type Props = {
@@ -286,6 +290,10 @@ export function EditorView({
   const [title, setTitle] = useState(initial?.tieuDe ?? "");
   const [sub, setSub] = useState(initial?.moTa ?? "");
   const [tags, setTags] = useState<ArticleTagRef[]>(initial?.tags ?? []);
+  const [ownerVaiTro, setOwnerVaiTro] = useState(initial?.ownerVaiTro ?? "");
+  const [coAuthors, setCoAuthors] = useState<CoAuthorDraft[]>(
+    initial?.coAuthors ?? [],
+  );
   const [blocks, setBlocks] = useState<Block[]>(() =>
     initial?.blocks ? fromServerBlocks(initial.blocks) : [],
   );
@@ -660,6 +668,8 @@ export function EditorView({
             loaiMoc: initial.loaiMoc,
             thoiDiem: initial.thoiDiem,
             blocks: serverBlocks,
+            ownerVaiTro,
+            coAuthors,
           })
         : await publishPost({
             ownerSlug,
@@ -671,6 +681,8 @@ export function EditorView({
             loaiMoc: DEFAULT_LOAI_MOC,
             thoiDiem: isoToday(),
             blocks: serverBlocks,
+            ownerVaiTro,
+            coAuthors,
           });
 
       if (!result.ok) {
@@ -697,6 +709,8 @@ export function EditorView({
     sub,
     coverSeed,
     tags,
+    ownerVaiTro,
+    coAuthors,
     vis,
     blocks,
     ownerSlug,
@@ -842,11 +856,6 @@ export function EditorView({
             open={openAddIdx === 0}
             onToggle={(open) => setOpenAddIdx(open ? 0 : null)}
             onPick={(type) => addBlock(type, 0)}
-            hint={
-              blocks.length === 0
-                ? "Bắt đầu — chọn loại block"
-                : undefined
-            }
             starter={blocks.length === 0}
           />
           {blocks.map((b, i) => (
@@ -889,6 +898,13 @@ export function EditorView({
             </div>
           ))}
         </div>
+
+        <CoAuthorSection
+          collaborators={coAuthors}
+          ownerVaiTro={ownerVaiTro}
+          onCollaboratorsChange={setCoAuthors}
+          onOwnerVaiTroChange={setOwnerVaiTro}
+        />
 
         <div className="hint-foot">
           Bấm nút <b>+</b> ở khe giữa các block để chèn nội dung mới.
@@ -1076,9 +1092,13 @@ function ArticleTagPicker({
     let cancelled = false;
     const cached = readTagCache();
     if (cached) {
-      setAllIndexed(indexAll(cached.rows));
+      queueMicrotask(() => {
+        if (!cancelled) setAllIndexed(indexAll(cached.rows));
+      });
     } else {
-      setLoading(true);
+      queueMicrotask(() => {
+        if (!cancelled) setLoading(true);
+      });
     }
 
     (async () => {
@@ -1139,7 +1159,7 @@ function ArticleTagPicker({
   /* Reset visible window khi query thay đổi — kết quả mới nên hiện 50 đầu
      thay vì giữ offset của lần search trước. */
   useEffect(() => {
-    setVisibleCount(TAG_PAGE_SIZE);
+    queueMicrotask(() => setVisibleCount(TAG_PAGE_SIZE));
     if (listRef.current) listRef.current.scrollTop = 0;
   }, [query]);
 
@@ -1289,15 +1309,12 @@ function AddZone({
   open,
   onToggle,
   onPick,
-  hint,
   starter,
 }: {
   idx: number;
   open: boolean;
   onToggle: (next: boolean) => void;
   onPick: (t: BlockType) => void;
-  /** Nhãn chữ hiện cạnh `+`. Truyền khi editor rỗng để hướng user. */
-  hint?: string;
   /** Khi `true` → AddZone hiển thị to + xanh nổi bật (state khởi đầu). */
   starter?: boolean;
 }) {
@@ -1312,12 +1329,11 @@ function AddZone({
           e.stopPropagation();
           onToggle(!open);
         }}
-        aria-label={hint || "Chèn block"}
-        title={hint || "Chèn block"}
+        aria-label="Chèn block"
+        title="Chèn block"
       >
         +
       </button>
-      {hint && !open ? <span className="add-hint">{hint}</span> : null}
       {open ? (
         <div
           className="picker"
@@ -1331,16 +1347,13 @@ function AddZone({
                 key={b.t}
                 type="button"
                 className="pick"
+                aria-label={b.desc ? `${b.name} — ${b.desc}` : b.name}
                 onClick={() => onPick(b.t)}
               >
                 <span className="pic-ic" aria-hidden>
                   {b.ico}
                 </span>
-                <span>
-                  <span className="pic-t">{b.name}</span>
-                  <br />
-                  <span className="pic-d">{b.desc}</span>
-                </span>
+                <span className="pic-t">{b.name}</span>
               </button>
             ))}
           </div>

@@ -446,7 +446,7 @@ export function AdminBaiVietScreen({
                   </td>
                 </tr>
               ) : (
-                pageRows.map((r) => (
+                pageRows.map((r, index) => (
                   <tr
                     key={r.id}
                     className={editId === r.id ? "admin-table-row--active" : "admin-table-row--clickable"}
@@ -457,7 +457,7 @@ export function AdminBaiVietScreen({
                   >
                     {colVisible("thumb") ? (
                     <td className="cell-thumb" onClick={(e) => e.stopPropagation()}>
-                      <AdminArticleThumb row={r} />
+                      <AdminArticleThumb row={r} priority={index < 8} />
                     </td>
                     ) : null}
                     {colVisible("title") ? (

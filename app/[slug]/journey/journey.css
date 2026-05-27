@@ -3603,6 +3603,110 @@ select.j-edit-input {
   to { transform: rotate(360deg); }
 }
 
+/* Follow + mutual badge (sidebar guest actions) */
+.j-follow-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.j-btn-icon.is-following {
+  background: var(--neutral-100, #f1f5f9);
+  border-color: var(--cins-blue, #2563eb);
+  color: var(--cins-blue, #2563eb);
+}
+.j-follow-mutual {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--cins-blue, #2563eb);
+  text-align: center;
+  max-width: 88px;
+  line-height: 1.2;
+}
+.j-follow-error {
+  font-size: 10px;
+  color: #b91c1c;
+}
+
+/* Co-author pending invites (timeline top) */
+.j-coauthor-pending-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+.j-coauthor-pending {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+}
+.j-coauthor-pending-text {
+  margin: 0 0 10px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #1e3a5f;
+}
+.j-coauthor-pending-actions {
+  display: flex;
+  gap: 8px;
+}
+.j-coauthor-pending-btn {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid #93c5fd;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.j-coauthor-pending-btn.is-accept {
+  background: var(--cins-blue, #2563eb);
+  border-color: var(--cins-blue, #2563eb);
+  color: #fff;
+}
+
+/* Credit strip on milestone card */
+.j-m-coauthor-credits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.j-m-coauthor-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 4px;
+  border-radius: 999px;
+  background: var(--neutral-50, #f8fafc);
+  border: 1px solid var(--border-soft, #e5e7eb);
+  font-size: 12px;
+}
+.j-m-coauthor-ava,
+.j-m-coauthor-ava-fallback {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.j-m-coauthor-ava-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #e2e8f0;
+  font-size: 10px;
+  font-weight: 700;
+}
+.j-m-coauthor-role {
+  color: var(--ink-muted, #64748b);
+}
+.j-m-coauthor-role::before {
+  content: "· ";
+}
+
 @media (max-width: 575.98px) {
   .ja-sheet {
     max-width: 100%;

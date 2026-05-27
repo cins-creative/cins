@@ -1610,7 +1610,7 @@
 
 /* Starter — zone đầu tiên khi editor rỗng: nút nổi bật + hint. */
 .cins-editor-page .add-zone.starter {
-  min-height: 60px;
+  min-height: 44px;
   margin: 8px 0 12px;
 }
 .cins-editor-page .add-zone.starter .add-btn {
@@ -1678,7 +1678,7 @@
   top: calc(100% + 8px);
   left: 50%;
   transform: translateX(-50%);
-  width: 380px;
+  width: min(420px, calc(100vw - 32px));
   background: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -1696,19 +1696,22 @@
 }
 .cins-editor-page .picker-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 6px;
 }
 .cins-editor-page .pick {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
-  padding: 9px 10px;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 6px;
+  min-height: 72px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--bg-surface);
   cursor: pointer;
-  text-align: left;
+  text-align: center;
   transition: all 0.15s var(--ed-ease);
   font-family: inherit;
 }
@@ -1717,8 +1720,8 @@
   background: var(--cins-blue-soft);
 }
 .cins-editor-page .pick .pic-ic {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 8px;
   background: var(--neutral-100);
   display: flex;
@@ -1726,18 +1729,14 @@
   justify-content: center;
   flex-shrink: 0;
   color: var(--cins-blue);
-  font-size: 16px;
+  font-size: 15px;
 }
 .cins-editor-page .pick .pic-t {
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--ink-display);
-  line-height: 1.2;
+  line-height: 1.25;
   display: block;
-}
-.cins-editor-page .pick .pic-d {
-  font-size: 10px;
-  color: var(--ink-muted);
 }
 
 /* ──── IMAGE PICKER MODAL ──── */
@@ -2005,9 +2004,9 @@
     padding: 0 10px;
     font-size: 11px;
   }
-  /* Picker grid 1 cột — đỡ chật khi viewport hẹp. */
+  /* Picker grid 3 cột — bottom-sheet đủ rộng. */
   .cins-editor-page .picker-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, 1fr);
   }
   /* Picker bottom-sheet — Đặt cố định đáy viewport, full chiều ngang trừ
      12px mỗi bên. Cần vì default `width: 380px` + `transform: translateX(-50%)`
@@ -2122,4 +2121,110 @@
   .cins-editor-page .block::before {
     display: none;
   }
+}
+
+/* Co-author section */
+.ed-coauthor {
+  margin: 28px 0 0;
+  padding: 20px 0 0;
+  border-top: 1px solid var(--border-soft, #e5e7eb);
+}
+.ed-coauthor-title {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 700;
+}
+.ed-coauthor-hint,
+.ed-coauthor-empty,
+.ed-coauthor-loading {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--ink-muted, #64748b);
+}
+.ed-coauthor-owner-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.ed-coauthor-input,
+.ed-coauthor-search input,
+.ed-coauthor-chip-role {
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-soft, #e5e7eb);
+  font-size: 14px;
+}
+.ed-coauthor-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border: 1px solid var(--border-soft, #e5e7eb);
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+.ed-coauthor-search input {
+  flex: 1;
+  border: none;
+  padding: 0;
+  height: 34px;
+}
+.ed-coauthor-results {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  border: 1px solid var(--border-soft, #e5e7eb);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.ed-coauthor-results button {
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border: none;
+  background: #fff;
+  cursor: pointer;
+  font-size: 14px;
+}
+.ed-coauthor-results button:hover {
+  background: var(--neutral-50, #f8fafc);
+}
+.ed-coauthor-slug {
+  margin-left: 8px;
+  color: var(--ink-muted, #64748b);
+  font-size: 12px;
+}
+.ed-coauthor-chips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ed-coauthor-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.ed-coauthor-chip-name {
+  font-weight: 600;
+  font-size: 13px;
+  min-width: 100px;
+}
+.ed-coauthor-chip-role {
+  flex: 1;
+  min-width: 140px;
+}
+.ed-coauthor-chip-remove {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--ink-muted, #64748b);
+  padding: 4px;
 }

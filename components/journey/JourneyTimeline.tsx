@@ -4,12 +4,14 @@ import { ArrowRight, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { JourneyCoAuthorPendingBanner } from "@/components/journey/JourneyCoAuthorPendingBanner";
 import { JourneyPostModal } from "@/components/journey/JourneyPostModal";
 import { JourneyTimelineBar } from "@/components/journey/JourneyTimelineBar";
 import type { FilterGroup } from "@/components/journey/JourneyTimelineBar";
 import { JourneyYearBlock } from "@/components/journey/JourneyYearBlock";
 import type { MilestoneItem } from "@/components/journey/milestone-types";
 import type { LoaiMocVisibilityMap } from "@/lib/journey/filter-visibility";
+import type { PendingCoAuthorInvite } from "@/lib/social/types";
 
 type Props = {
   isOwner: boolean;
@@ -23,6 +25,8 @@ type Props = {
   /** Visibility per loai_moc filter row trong dropdown. Owner thấy toggle,
    *  visitor không thấy row nào marked `private`. */
   filterVisibility?: LoaiMocVisibilityMap;
+  viewerProfileId?: string | null;
+  coAuthorPendingInvites?: ReadonlyArray<PendingCoAuthorInvite>;
 };
 
 /**
@@ -45,6 +49,8 @@ export function JourneyTimeline({
   ownerAvatarUrl,
   milestones,
   filterVisibility,
+  viewerProfileId = null,
+  coAuthorPendingInvites = [],
 }: Props) {
   const router = useRouter();
   const [filter, setFilter] = useState<FilterGroup>("all");
@@ -259,6 +265,13 @@ export function JourneyTimeline({
         isOwner={isOwner}
         filterVisibility={filterVisibility}
       />
+
+      {isOwner && viewerProfileId && coAuthorPendingInvites.length > 0 ? (
+        <JourneyCoAuthorPendingBanner
+          invites={coAuthorPendingInvites}
+          viewerProfileId={viewerProfileId}
+        />
+      ) : null}
 
       {/* CTA "Thêm nội dung mới" ở trên cùng (trước cột mốc gần nhất) để
           owner luôn có lối tạo bài viết ngay khi mở Journey. Càng kéo

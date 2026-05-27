@@ -10,6 +10,7 @@ import {
   type SidebarStats,
 } from "@/components/journey/JourneySidebar";
 import { JourneyTimeline } from "@/components/journey/JourneyTimeline";
+import type { PendingCoAuthorInvite } from "@/lib/social/types";
 import type { MilestoneItem } from "@/components/journey/milestone-types";
 import type { LoaiMocVisibilityMap } from "@/lib/journey/filter-visibility";
 
@@ -34,6 +35,8 @@ type Props = {
    * những entry `private`.
    */
   filterVisibility?: LoaiMocVisibilityMap;
+  viewerProfileId?: string | null;
+  coAuthorPendingInvites?: ReadonlyArray<PendingCoAuthorInvite>;
 };
 
 /**
@@ -58,6 +61,8 @@ export function JourneyView({
   galleryItems,
   editProfileInitial,
   filterVisibility,
+  viewerProfileId = null,
+  coAuthorPendingInvites = [],
 }: Props) {
   void freshlyOnboarded;
 
@@ -69,6 +74,7 @@ export function JourneyView({
           stats={stats}
           isOwner={isOwner}
           editProfileInitial={editProfileInitial}
+          viewerProfileId={viewerProfileId}
         />
         <JourneyTimeline
           isOwner={isOwner}
@@ -77,6 +83,8 @@ export function JourneyView({
           ownerAvatarUrl={profile.avatarUrl}
           milestones={milestones}
           filterVisibility={filterVisibility}
+          viewerProfileId={viewerProfileId}
+          coAuthorPendingInvites={coAuthorPendingInvites}
         />
         <JourneyGalleryAside
           ownerSlug={slugFromRoute}

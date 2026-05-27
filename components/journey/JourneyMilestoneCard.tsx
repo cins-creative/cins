@@ -141,6 +141,7 @@ export function JourneyMilestoneCard({
     media = [],
     tags = [],
     articleTags = [],
+    coAuthorCredits = [],
     views,
     comments,
     visibility,
@@ -318,6 +319,27 @@ export function JourneyMilestoneCard({
             <div className={`j-m-media ${mediaGridClass(mediaCount)}`}>
               {media.slice(0, 3).map((m, i) => (
                 <MediaThumb key={`${m.src}-${i}`} m={m} />
+              ))}
+            </div>
+          ) : null}
+
+          {coAuthorCredits.length > 0 ? (
+            <div className="j-m-coauthor-credits" aria-label="Đồng tác giả">
+              {coAuthorCredits.map((c, i) => (
+                <span key={`${c.slug ?? c.name}-${i}`} className="j-m-coauthor-chip">
+                  {c.avatarUrl ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img src={c.avatarUrl} alt="" className="j-m-coauthor-ava" />
+                  ) : (
+                    <span className="j-m-coauthor-ava-fallback" aria-hidden>
+                      {c.initial ?? c.name.slice(0, 1)}
+                    </span>
+                  )}
+                  <span className="j-m-coauthor-name">{c.name}</span>
+                  {c.role ? (
+                    <span className="j-m-coauthor-role">{c.role}</span>
+                  ) : null}
+                </span>
               ))}
             </div>
           ) : null}

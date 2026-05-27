@@ -7,7 +7,9 @@ import type {
   MilestoneVisibility,
 } from "@/components/journey/milestone-types";
 import type { Block as ServerBlock } from "@/lib/editor/types";
+import type { CoAuthorCredit } from "@/components/journey/milestone-types";
 import { fetchArticleTagsForTacPham } from "@/lib/journey/article-tags-batch";
+import { getAvatarUrl } from "@/lib/journey/profile";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 /* ╔══════════════════════════════════════════════════════════════════╗
@@ -128,6 +130,7 @@ export async function fetchMilestonesForUser(params: {
     if (first?.id) firstPostIds.push(first.id);
   }
   const tagsByTacPham = await fetchArticleTagsForTacPham(admin, firstPostIds);
+  const creditsByTacPham = await loadAcceptedCredits(admin, firstPostIds);
 
   /* Sort: `feature` ghim lên đầu (giữ thứ tự `thoi_diem` desc trong nhóm).
      Sau đó tới các milestone thường (cũng sort `thoi_diem` desc đã có sẵn
@@ -174,17 +177,220 @@ export async function fetchMilestonesForUser(params: {
       media: [],
       noiDungBlocks,
       articleTags,
+      coAuthorCredits: firstPost?.id
+        ? (creditsByTacPham.get(firstPost.id) ?? [])
+        : [],
     };
   });
 
+  const tagged = await fetchTaggedMilestonesForUser({
+    userId,
+    isOwner,
+    admin,
+  });
+
+  const merged = mergeMilestoneLists(milestones, tagged);
+
   return {
-    milestones,
+    milestones: merged,
     stats: {
       cotMoc: cotMocs.length,
       cotMocVerified: 0,
       tacPham: thuocMocs.length,
     },
   };
+}
+
+async function fetchTaggedMilestonesForUser(params: {
+  userId: string;
+  isOwner: boolean;
+  admin: ReturnType<typeof createServiceRoleClient>;
+}): Promise<MilestoneItem[]> {
+  const { userId, isOwner, admin } = params;
+
+  const { data: tagRows } = await admin
+    .from("content_tac_pham_tac_gia")
+    .select("id_tac_pham, vai_tro")
+    .eq("id_nguoi_dung", userId)
+    .eq("trang_thai", "accepted")
+    .eq("la_chu_so_huu", false);
+
+  if (!tagRows?.length) return [];
+
+  const tacPhamIds = tagRows.map((r) => r.id_tac_pham as string);
+  const roleByTp = new Map(
+    tagRows.map((r) => [r.id_tac_pham as string, r.vai_tro as string | null]),
+  );
+
+  const { data: tacPhams } = await admin
+    .from("content_tac_pham")
+    .select(
+      "id, slug, tieu_de, cover_id, loai_tac_pham, noi_dung_blocks, id_nguoi_dung",
+    )
+    .in("id", tacPhamIds);
+
+  const { data: links } = await admin
+    .from("content_tac_pham_thuoc_moc")
+    .select("id_tac_pham, id_cot_moc")
+    .in("id_tac_pham", tacPhamIds)
+    .order("thu_tu", { ascending: true });
+
+  const cotMocIdByTp = new Map<string, string>();
+  for (const link of links ?? []) {
+    if (!cotMocIdByTp.has(link.id_tac_pham as string)) {
+      cotMocIdByTp.set(link.id_tac_pham as string, link.id_cot_moc as string);
+    }
+  }
+
+  const cotMocIds = [...new Set(cotMocIdByTp.values())];
+  const { data: cotMocs } = await admin
+    .from("content_cot_moc")
+    .select(
+      "id, loai_moc, nguon_goc, tieu_de, mo_ta, thoi_diem, che_do_hien_thi, tao_luc",
+    )
+    .in("id", cotMocIds)
+    .returns<CotMocRow[]>();
+
+  const cmById = new Map((cotMocs ?? []).map((cm) => [cm.id, cm]));
+
+  const items: Array<{
+    cm: CotMocRow;
+    tp: NonNullable<typeof tacPhams>[number];
+    myRole: string | null;
+    tacPhamId: string;
+  }> = [];
+
+  for (const tp of tacPhams ?? []) {
+    if (!tp.slug) continue;
+    const cmId = cotMocIdByTp.get(tp.id as string);
+    const cm = cmId ? cmById.get(cmId) : undefined;
+    if (!cm) continue;
+    if (!isOwner && cm.che_do_hien_thi === "chi_minh") continue;
+    if (
+      !isOwner &&
+      cm.che_do_hien_thi !== "public" &&
+      cm.che_do_hien_thi !== "feature"
+    ) {
+      continue;
+    }
+    items.push({
+      cm,
+      tp,
+      myRole: roleByTp.get(tp.id as string) ?? null,
+      tacPhamId: tp.id as string,
+    });
+  }
+
+  if (items.length === 0) return [];
+
+  const ownerIds = [...new Set(items.map((i) => i.tp.id_nguoi_dung))];
+  const { data: owners } = await admin
+    .from("user_nguoi_dung")
+    .select("id, slug, ten_hien_thi, avatar_id")
+    .in("id", ownerIds);
+  const ownerById = new Map((owners ?? []).map((o) => [o.id as string, o]));
+
+  const taggedTpIds = items.map((i) => i.tacPhamId);
+  const creditsByTacPham = await loadAcceptedCredits(admin, taggedTpIds);
+  const tagsByTacPham = await fetchArticleTagsForTacPham(admin, taggedTpIds);
+
+  return items.map(({ cm, tp, myRole, tacPhamId }) => {
+    const owner = ownerById.get(tp.id_nguoi_dung);
+    const dateObj = new Date(cm.thoi_diem);
+    return {
+      id: cm.id,
+      variant: "tagged" as MilestoneVariant,
+      type: LOAI_MOC_TO_TYPE[cm.loai_moc],
+      visibility: mapVisibility(cm.che_do_hien_thi),
+      year: dateObj.getUTCFullYear(),
+      month: dateObj.getUTCMonth() + 1,
+      day: dateObj.getUTCDate(),
+      createdAt: cm.tao_luc,
+      title: cm.tieu_de,
+      body: cm.mo_ta || null,
+      postSlug: tp.slug,
+      media: [],
+      noiDungBlocks: parseServerBlocks(tp.noi_dung_blocks),
+      articleTags: tagsByTacPham.get(tacPhamId) ?? [],
+      attribution: owner
+        ? {
+            name: (owner.ten_hien_thi as string) || (owner.slug as string),
+            role: myRole,
+            slug: owner.slug as string,
+            initial: ((owner.ten_hien_thi as string) || owner.slug as string)
+              .slice(0, 1)
+              .toUpperCase(),
+            isOrg: false,
+          }
+        : null,
+      coAuthorCredits: creditsByTacPham.get(tacPhamId) ?? [],
+    };
+  });
+}
+
+async function loadAcceptedCredits(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  tacPhamIds: string[],
+): Promise<Map<string, CoAuthorCredit[]>> {
+  const out = new Map<string, CoAuthorCredit[]>();
+  if (tacPhamIds.length === 0) return out;
+
+  const { data: rows } = await admin
+    .from("content_tac_pham_tac_gia")
+    .select("id_tac_pham, id_nguoi_dung, vai_tro, la_chu_so_huu, thu_tu")
+    .in("id_tac_pham", tacPhamIds)
+    .eq("trang_thai", "accepted")
+    .order("thu_tu", { ascending: true });
+
+  if (!rows?.length) return out;
+
+  const userIds = [...new Set(rows.map((r) => r.id_nguoi_dung as string))];
+  const { data: profiles } = await admin
+    .from("user_nguoi_dung")
+    .select("id, slug, ten_hien_thi, avatar_id")
+    .in("id", userIds);
+  const profileById = new Map((profiles ?? []).map((p) => [p.id as string, p]));
+
+  for (const row of rows) {
+    const p = profileById.get(row.id_nguoi_dung as string);
+    const credit: CoAuthorCredit = {
+      name: (p?.ten_hien_thi as string) || (p?.slug as string) || "?",
+      role: (row.vai_tro as string) || null,
+      slug: (p?.slug as string) ?? null,
+      avatarUrl: getAvatarUrl((p?.avatar_id as string) || null) ?? null,
+      initial: ((p?.ten_hien_thi as string) || (p?.slug as string) || "?")
+        .slice(0, 1)
+        .toUpperCase(),
+    };
+    const list = out.get(row.id_tac_pham as string) ?? [];
+    list.push(credit);
+    out.set(row.id_tac_pham as string, list);
+  }
+  return out;
+}
+
+function mergeMilestoneLists(
+  self: MilestoneItem[],
+  tagged: MilestoneItem[],
+): MilestoneItem[] {
+  const selfIds = new Set(self.map((m) => m.id));
+  const extra = tagged.filter((m) => !selfIds.has(m.id));
+  const all = [...self, ...extra];
+  return all.sort((a, b) => {
+    const aFeat = a.visibility === "feature" ? 1 : 0;
+    const bFeat = b.visibility === "feature" ? 1 : 0;
+    if (aFeat !== bFeat) return bFeat - aFeat;
+    const aDate = new Date(
+      `${a.year}-${String(a.month).padStart(2, "0")}-${String(a.day).padStart(2, "0")}`,
+    ).getTime();
+    const bDate = new Date(
+      `${b.year}-${String(b.month).padStart(2, "0")}-${String(b.day).padStart(2, "0")}`,
+    ).getTime();
+    if (aDate !== bDate) return bDate - aDate;
+    const aCreated = a.createdAt ? Date.parse(a.createdAt) : 0;
+    const bCreated = b.createdAt ? Date.parse(b.createdAt) : 0;
+    return bCreated - aCreated;
+  });
 }
 
 function mapVisibility(

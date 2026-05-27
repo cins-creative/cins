@@ -13,6 +13,8 @@ import {
   type LoaiMoc,
   type Visibility,
 } from "@/lib/editor/types";
+import { syncCoAuthorsFromEditor } from "@/lib/social/co-author";
+import type { CoAuthorDraft } from "@/lib/social/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 /* ╔══════════════════════════════════════════════════════════════════╗
@@ -42,6 +44,8 @@ export type UpdatePostInput = {
   loaiMoc: LoaiMoc;
   thoiDiem: string;
   blocks: Block[];
+  ownerVaiTro?: string;
+  coAuthors?: CoAuthorDraft[];
 };
 
 export type UpdatePostResult =
@@ -242,6 +246,16 @@ export async function updatePost(
         revalidatePath(`/nghe-nghiep/${s}`);
       }
     }
+  }
+
+  const coSync = await syncCoAuthorsFromEditor(
+    input.tacPhamId,
+    session.profile.id,
+    input.ownerVaiTro ?? "",
+    input.coAuthors ?? [],
+  );
+  if (!coSync.ok) {
+    return { ok: false, error: coSync.error };
   }
 
   /* 7. Revalidate journey. */

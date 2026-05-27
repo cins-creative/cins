@@ -13,6 +13,7 @@ import { rememberCfAccountHashFromDeliveryUrl } from "@/lib/cloudflare/account-h
 
 type Props = {
   row: AdminArticleListRow;
+  priority?: boolean;
 };
 
 function imageFileFromClipboard(data: DataTransfer | null): File | null {
@@ -28,28 +29,29 @@ function imageFileFromClipboard(data: DataTransfer | null): File | null {
   return null;
 }
 
-export function AdminArticleThumb({ row }: Props) {
+export function AdminArticleThumb({ row, priority = false }: Props) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const blobRef = useRef<string | null>(null);
+  const noticeTimerRef = useRef<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(() =>
-    getAdminArticleThumbDisplayUrl(row),
-  );
-  const [imgFailed, setImgFailed] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [waitingForUploadedImage, setWaitingForUploadedImage] = useState(false);
+  const [previewOverride, setPreviewOverride] = useState<{
+    rowId: string;
+    url: string;
+    uploaded: boolean;
+  } | null>(null);
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
 
   const title = row.tieu_de?.trim() || row.slug;
-  const thumbSrc = previewUrl;
-  const hasThumb = Boolean(thumbSrc) && !imgFailed;
+  const rowPreviewUrl = getAdminArticleThumbDisplayUrl(row);
+  const thumbSrc =
+    previewOverride?.rowId === row.id ? previewOverride.url : rowPreviewUrl;
+  const hasThumb = Boolean(thumbSrc) && failedSrc !== thumbSrc;
   const fromCoverFallback = isAdminThumbFromCoverFallback(row);
   const hasThumbnailField = Boolean(row.thumbnail?.trim());
-
-  useEffect(() => {
-    setPreviewUrl(getAdminArticleThumbDisplayUrl(row));
-    setImgFailed(false);
-    setError(null);
-  }, [row.id, row.thumbnail, row.cover_id, row.thumbnail_src, row.thumbnail_from_cover]);
 
   useEffect(() => {
     return () => {
@@ -57,12 +59,27 @@ export function AdminArticleThumb({ row }: Props) {
         URL.revokeObjectURL(blobRef.current);
         blobRef.current = null;
       }
+      if (noticeTimerRef.current) {
+        window.clearTimeout(noticeTimerRef.current);
+        noticeTimerRef.current = null;
+      }
     };
   }, []);
+
+  const showNotice = (message: string) => {
+    setNotice(message);
+    if (noticeTimerRef.current) window.clearTimeout(noticeTimerRef.current);
+    noticeTimerRef.current = window.setTimeout(() => {
+      setNotice(null);
+      noticeTimerRef.current = null;
+    }, 2600);
+  };
 
   const uploadFile = async (file: File) => {
     if (busy) return;
     setError(null);
+    setNotice("Đang upload…");
+    setWaitingForUploadedImage(false);
     setBusy(true);
 
     if (blobRef.current) {
@@ -71,7 +88,8 @@ export function AdminArticleThumb({ row }: Props) {
     }
     const objectUrl = URL.createObjectURL(file);
     blobRef.current = objectUrl;
-    setPreviewUrl(objectUrl);
+    setFailedSrc(null);
+    setPreviewOverride({ rowId: row.id, url: objectUrl, uploaded: false });
 
     const fd = new FormData();
     fd.append("file", file);
@@ -83,9 +101,10 @@ export function AdminArticleThumb({ row }: Props) {
         URL.revokeObjectURL(blobRef.current);
         blobRef.current = null;
       }
-      setPreviewUrl(getAdminArticleThumbDisplayUrl(row));
-      setImgFailed(false);
+      setPreviewOverride(null);
+      setFailedSrc(null);
       setError(res.message);
+      setNotice(null);
       setBusy(false);
       return;
     }
@@ -95,7 +114,10 @@ export function AdminArticleThumb({ row }: Props) {
       URL.revokeObjectURL(blobRef.current);
       blobRef.current = null;
     }
-    setPreviewUrl(res.thumbnail_url);
+    setFailedSrc(null);
+    setPreviewOverride({ rowId: row.id, url: res.thumbnail_url, uploaded: true });
+    setWaitingForUploadedImage(true);
+    setNotice("Đang tải ảnh mới…");
     router.refresh();
     setBusy(false);
   };
@@ -160,9 +182,11 @@ export function AdminArticleThumb({ row }: Props) {
         ref={inputRef}
         type="file"
         accept="image/jpeg,image/png,image/webp,image/gif"
-        className="admin-sr-only"
+        className="admin-article-thumb__file"
         tabIndex={-1}
-        aria-hidden
+        aria-label={hasThumb ? "Đổi ảnh thumbnail" : "Chọn ảnh thumbnail"}
+        disabled={busy}
+        onClick={(e) => e.stopPropagation()}
         onChange={onPick}
       />
 
@@ -172,9 +196,22 @@ export function AdminArticleThumb({ row }: Props) {
           src={thumbSrc!}
           alt=""
           className="admin-article-thumb__img"
-          loading="lazy"
+          loading={priority || waitingForUploadedImage ? "eager" : "lazy"}
           decoding="async"
-          onError={() => setImgFailed(true)}
+          fetchPriority={priority || waitingForUploadedImage ? "high" : "auto"}
+          width={96}
+          height={72}
+          onLoad={() => {
+            if (waitingForUploadedImage) {
+              setWaitingForUploadedImage(false);
+              showNotice("Upload hoàn tất");
+            }
+          }}
+          onError={() => {
+            setFailedSrc(thumbSrc ?? null);
+            setWaitingForUploadedImage(false);
+            if (busy || notice) setNotice(null);
+          }}
         />
       ) : (
         <span className="admin-article-thumb__ph" aria-hidden>
@@ -196,14 +233,13 @@ export function AdminArticleThumb({ row }: Props) {
             : "admin-article-thumb__actions"
         }
       >
-        <button
-          type="button"
+        <span
           className="admin-article-thumb__pick"
-          disabled={busy}
-          onClick={openPicker}
+          aria-disabled={busy}
+          aria-hidden
         >
           {busy ? "Đang tải…" : hasThumb ? "Đổi ảnh" : "Chọn ảnh"}
-        </button>
+        </span>
       </span>
 
       {fromCoverFallback && hasThumb ? (
@@ -218,7 +254,13 @@ export function AdminArticleThumb({ row }: Props) {
         </span>
       ) : null}
 
-      {imgFailed ? (
+      {notice ? (
+        <span className="admin-article-thumb__ok" role="status" aria-live="polite">
+          {notice}
+        </span>
+      ) : null}
+
+      {failedSrc === thumbSrc && previewOverride?.uploaded ? (
         <span className="admin-article-thumb__err" role="alert">
           Không tải được ảnh
         </span>

@@ -14,6 +14,7 @@ import {
 } from "@/lib/journey/filter-visibility";
 import { fetchGalleryForUser } from "@/lib/journey/gallery-fetch";
 import { fetchMilestonesForUser } from "@/lib/journey/milestones-fetch";
+import { loadPendingCoAuthorInvites } from "@/lib/social/co-author";
 import {
   getAvatarUrl,
   getProfileCoverUrl,
@@ -109,6 +110,11 @@ export default async function JourneyPage({
     userId: owner.id,
     isOwner,
   });
+
+  const coAuthorPendingInvites =
+    isOwner && session.profile
+      ? await loadPendingCoAuthorInvites(session.profile.id)
+      : [];
   const stats = {
     cotMoc: milestoneStats.cotMoc,
     cotMocVerified: milestoneStats.cotMocVerified,
@@ -160,6 +166,7 @@ export default async function JourneyPage({
       <JourneyView
         slugFromRoute={slug}
         profile={{
+          id: owner.id,
           slug: owner.slug,
           tenHienThi: owner.ten_hien_thi,
           avatarUrl: getAvatarUrl(owner.avatar_id),
@@ -178,6 +185,8 @@ export default async function JourneyPage({
         galleryPinned={galleryPinned}
         galleryItems={galleryItems}
         editProfileInitial={editProfileInitial}
+        viewerProfileId={session.profile?.id ?? null}
+        coAuthorPendingInvites={coAuthorPendingInvites}
         filterVisibility={filterVisibility}
       />
     </CinsShell>

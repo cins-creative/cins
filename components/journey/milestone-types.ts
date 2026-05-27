@@ -42,6 +42,15 @@ export type MilestoneVisibility =
   | "unlisted"
   | "private";
 
+/** Credit strip — mọi tác giả `accepted` trên tác phẩm. */
+export type CoAuthorCredit = {
+  name: string;
+  role?: string | null;
+  slug?: string | null;
+  avatarUrl?: string | null;
+  initial?: string | null;
+};
+
 export type MilestoneAttribution = {
   /** Tên tổ chức/cá nhân tag — VD "Sine Art", "Antiantiart Studio". */
   name: string;
@@ -138,6 +147,9 @@ export type MilestoneItem = {
    * ứng (`articlePublicHref`).
    */
   articleTags?: ReadonlyArray<ArticleTagRef>;
+
+  /** Dải credit đồng tác giả (accepted) dưới nội dung card. */
+  coAuthorCredits?: ReadonlyArray<CoAuthorCredit>;
 
   /** Số views + comments (footer). Bỏ trống → ẩn footer. */
   views?: number | null;

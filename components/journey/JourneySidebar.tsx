@@ -4,13 +4,13 @@ import {
   Mail,
   MapPin,
   Pencil,
-  Plus,
   Share2,
 } from "lucide-react";
 
 import type { EditProfileInitial } from "@/components/journey/JourneyEditProfileModal";
 import { JourneyAvatarTrigger } from "@/components/journey/JourneyAvatarTrigger";
 import { JourneyCoverTrigger } from "@/components/journey/JourneyCoverTrigger";
+import { JourneyFollowButton } from "@/components/journey/JourneyFollowButton";
 import { JourneySidebarOwnerActions } from "@/components/journey/JourneySidebarOwnerActions";
 import type { GiaiDoan } from "@/lib/auth/session";
 import {
@@ -21,6 +21,8 @@ import {
 } from "@/lib/journey/profile";
 
 export type SidebarProfile = {
+  /** UUID `user_nguoi_dung.id` — dùng cho follow API. */
+  id: string;
   tenHienThi: string | null;
   slug: string;
   /** Avatar URL đã resolve ở server (Cloudflare imagedelivery). Null → fallback initials. */
@@ -52,6 +54,8 @@ type Props = {
    * như `visibility_email`) để client modal không phải fetch lại.
    */
   editProfileInitial?: EditProfileInitial;
+  /** Viewer profile id — null nếu không đăng nhập (hiếm trên Journey). */
+  viewerProfileId?: string | null;
 };
 
 /**
@@ -71,6 +75,7 @@ export function JourneySidebar({
   stats,
   isOwner,
   editProfileInitial,
+  viewerProfileId = null,
 }: Props) {
   const { avatarUrl, coverUrl } = profile;
   const initials = getNameInitials(profile.tenHienThi, profile.slug);
@@ -133,15 +138,10 @@ export function JourneySidebar({
           <button type="button" className="j-btn-msg" disabled>
             <Mail size={14} strokeWidth={1.8} aria-hidden /> Nhắn tin
           </button>
-          <button
-            type="button"
-            className="j-btn-icon"
-            title="Theo dõi"
-            disabled
-            aria-label="Theo dõi"
-          >
-            <Plus size={16} strokeWidth={2} aria-hidden />
-          </button>
+          <JourneyFollowButton
+            targetUserId={profile.id}
+            viewerProfileId={viewerProfileId}
+          />
           <button
             type="button"
             className="j-btn-icon"

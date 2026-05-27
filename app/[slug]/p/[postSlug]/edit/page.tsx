@@ -9,6 +9,7 @@ import type {
   LoaiMoc,
   Visibility,
 } from "@/lib/editor/types";
+import { loadCoAuthorsForTacPham } from "@/lib/social/co-author";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 import "../../new/editor.css";
@@ -147,7 +148,20 @@ export default async function EditPostPage({
     });
   }
 
-  /* 5. Build EditorInitial. */
+  /* 5. Co-authors. */
+  const tacGiaRows = await loadCoAuthorsForTacPham(tp.id);
+  const ownerRow = tacGiaRows.find((r) => r.laChuSoHuu);
+  const coAuthors = tacGiaRows
+    .filter((r) => !r.laChuSoHuu && r.trangThai !== "declined")
+    .map((r) => ({
+      idNguoiDung: r.idNguoiDung,
+      slug: r.slug,
+      tenHienThi: r.tenHienThi,
+      avatarId: r.avatarId,
+      vaiTro: r.vaiTro,
+    }));
+
+  /* 6. Build EditorInitial. */
   const blocks = sanitizeBlocks(tp.noi_dung_blocks);
 
   const initial: EditorInitial = {
@@ -161,6 +175,8 @@ export default async function EditPostPage({
     loaiMoc: cm.loai_moc,
     thoiDiem: cm.thoi_diem ?? isoToday(),
     blocks,
+    ownerVaiTro: ownerRow?.vaiTro ?? "",
+    coAuthors,
   };
 
   return (

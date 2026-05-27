@@ -14,6 +14,8 @@ import {
   type LoaiMoc,
   type Visibility,
 } from "@/lib/editor/types";
+import { syncCoAuthorsFromEditor } from "@/lib/social/co-author";
+import type { CoAuthorDraft } from "@/lib/social/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 /* ╔══════════════════════════════════════════════════════════════════╗
@@ -44,6 +46,8 @@ export type PublishPostInput = {
   loaiMoc: LoaiMoc;
   thoiDiem: string; // ISO date `YYYY-MM-DD`
   blocks: Block[];
+  ownerVaiTro?: string;
+  coAuthors?: CoAuthorDraft[];
 };
 
 export type PublishPostResult =
@@ -228,6 +232,16 @@ export async function publishPost(
         revalidatePath(`/nghe-nghiep/${slugTag}`);
       }
     }
+  }
+
+  const coSync = await syncCoAuthorsFromEditor(
+    tacPham.id,
+    session.profile.id,
+    input.ownerVaiTro ?? "",
+    input.coAuthors ?? [],
+  );
+  if (!coSync.ok) {
+    console.error("[publishPost] co-author sync failed", coSync.error);
   }
 
   /* 6. Revalidate journey để CTA / timeline thấy bài mới. */
