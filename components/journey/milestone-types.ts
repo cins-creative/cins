@@ -121,6 +121,10 @@ export type MilestoneItem = {
   postSlug?: string | null;
   /** Slug chủ bài viết thật. Khác owner Journey khi đây là post được tag qua. */
   postOwnerSlug?: string | null;
+  /** UUID tác phẩm chính, dùng cho các action cộng sự. */
+  tacPhamId?: string | null;
+  /** Viewer là cộng sự đã được duyệt và có thể đề xuất thêm người. */
+  canProposeCoAuthor?: boolean;
 
   /** Khi `variant === 'tagged' | 'verified'` — ai tag/verify. */
   attribution?: MilestoneAttribution | null;

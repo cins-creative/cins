@@ -260,6 +260,7 @@ export type EditorInitial = {
 };
 
 type Props = {
+  ownerId: string;
   ownerSlug: string;
   ownerName: string;
   /** "edit" cần `initial`. Default "create". */
@@ -270,6 +271,7 @@ type Props = {
 };
 
 export function EditorView({
+  ownerId,
   ownerSlug,
   ownerName,
   mode = "create",
@@ -940,13 +942,14 @@ export function EditorView({
               <X size={16} aria-hidden />
             </button>
             <CoAuthorSection
+              ownerId={ownerId}
               collaborators={coAuthors}
               ownerVaiTro={ownerVaiTro}
               onCollaboratorsChange={setCoAuthors}
               onOwnerVaiTroChange={setOwnerVaiTro}
             />
             <div className="ed-coauthor-modal-actions">
-              <p>Cộng sự sẽ được lưu cùng bài viết khi bạn bấm Lưu.</p>
+              <span>Cộng sự sẽ được lưu cùng bài viết.</span>
               <button
                 type="button"
                 className="ed-coauthor-save"

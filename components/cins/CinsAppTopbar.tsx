@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { JourneyNotifications } from "@/components/journey/JourneyNotifications";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
+import { listPendingCoAuthorReviews } from "@/lib/social/co-author";
 import {
   listFollowAcceptedNotifications,
   listPendingFollowRequests,
@@ -21,12 +22,13 @@ import {
 export async function CinsAppTopbar() {
   const session = await getCurrentSessionAndProfile();
   const isAuthed = !!session;
-  const [followRequests, acceptedNotifications] = session?.profile
+  const [followRequests, acceptedNotifications, coAuthorReviews] = session?.profile
     ? await Promise.all([
         listPendingFollowRequests(session.profile.id),
         listFollowAcceptedNotifications(session.profile.id),
+        listPendingCoAuthorReviews(session.profile.id),
       ])
-    : [[], []];
+    : [[], [], []];
 
   return (
     <nav className="topbar cins-app-topbar" id="app-topbar">
@@ -54,6 +56,7 @@ export async function CinsAppTopbar() {
             <JourneyNotifications
               initialFollowRequests={followRequests}
               initialAcceptedNotifications={acceptedNotifications}
+              initialCoAuthorReviews={coAuthorReviews}
             />
           ) : null}
           {isAuthed ? null : (

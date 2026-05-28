@@ -5,14 +5,19 @@ import { PostModalShell } from "@/components/journey/PostModalShell";
 export const dynamic = "force-dynamic";
 
 type Params = Promise<{ slug: string; postSlug: string }>;
+type SearchParams = Promise<{ owner?: string }>;
 
 export default async function InterceptedPostModal({
   params,
+  searchParams,
 }: {
   params: Params;
+  searchParams: SearchParams;
 }) {
   const { slug, postSlug } = await params;
-  const res = await loadPostBySlug(slug, postSlug);
+  const query = await searchParams;
+  const ownerSlug = query.owner?.trim() || slug;
+  const res = await loadPostBySlug(ownerSlug, postSlug);
 
   if (!res.ok) {
     return (

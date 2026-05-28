@@ -9,7 +9,6 @@ import {
   FolderKanban,
   Globe,
   Lock,
-  Maximize2,
   MessageCircle,
   Pencil,
   Play,
@@ -21,6 +20,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+import { JourneyCoAuthorProposal } from "@/components/journey/JourneyCoAuthorProposal";
 import { PostBlocksRenderer } from "@/components/editor/PostRenderer";
 import { JourneyMilestoneOwnerMenu } from "@/components/journey/JourneyMilestoneOwnerMenu";
 import type {
@@ -79,6 +79,8 @@ const TYPE_ICON: Record<MilestoneType, LucideIcon> = {
   "ca-nhan": UserCircle2,
   bookmark: Bookmark,
 };
+
+const MAX_VISIBLE_COAUTHORS = 4;
 
 function variantSourceTag(variant: MilestoneItem["variant"]): {
   Icon: LucideIcon | null;
@@ -150,6 +152,8 @@ export function JourneyMilestoneCard({
     day,
     postSlug,
     postOwnerSlug,
+    tacPhamId,
+    canProposeCoAuthor,
     noiDungBlocks,
   } = milestone;
 
@@ -168,6 +172,14 @@ export function JourneyMilestoneCard({
   const mediaCount = media.length;
   const TypeIco = TYPE_ICON[type];
   const canManage = isOwner && variant === "self" && Boolean(ownerSlug);
+  const canManageCoAuthors = isOwner && variant === "self" && Boolean(tacPhamId);
+  const canShowCoAuthorAction =
+    (canProposeCoAuthor || canManageCoAuthors) && Boolean(tacPhamId);
+  const visibleCoAuthors = coAuthorCredits.slice(0, MAX_VISIBLE_COAUTHORS);
+  const hiddenCoAuthorCount = Math.max(
+    0,
+    coAuthorCredits.length - visibleCoAuthors.length,
+  );
 
   /* Hiển thị badge người đăng (avatar + tên) khi:
    *   - variant === "self" (chính chủ đăng — `authorName` là tác giả thật)
@@ -215,70 +227,71 @@ export function JourneyMilestoneCard({
               postSlug={postSlug ?? null}
             />
           ) : (
-            <span className="j-m-open-hint" aria-hidden>
-              <Maximize2 size={12} strokeWidth={1.8} />
-              <span>Xem chi tiết</span>
-            </span>
+            null
           )}
 
           {variant === "tagged" || variant === "verified" ? (
-            attribution ? <TaggedByPanel attr={attribution} /> : null
+            attribution ? <TaggedByPanel attr={attribution} type={type} /> : null
           ) : null}
 
           {variant === "bookmark" && bookmark ? (
             <BookmarkSourcePanel src={bookmark} />
           ) : null}
 
-          <div className="j-m-badges">
-            {showAuthorBadge ? (
-              <span
-                className={`j-type-badge ${TYPE_CLASS["ca-nhan"]} j-type-badge-user`}
-              >
-                <span className="j-type-badge-ava" aria-hidden>
-                  {authorAvatarUrl ? (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img src={authorAvatarUrl} alt="" />
-                  ) : (
-                    <span className="j-type-badge-ava-fallback">
-                      {getNameInitials(authorName ?? null, ownerSlug ?? "C")}
+          <div className="j-m-heading">
+            <div className="j-m-badges">
+              {showAuthorBadge ? (
+                <span
+                  className={`j-type-badge ${TYPE_CLASS["ca-nhan"]} j-type-badge-user`}
+                >
+                  <span className="j-type-badge-ava" aria-hidden>
+                    {authorAvatarUrl ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img src={authorAvatarUrl} alt="" />
+                    ) : (
+                      <span className="j-type-badge-ava-fallback">
+                        {getNameInitials(authorName ?? null, ownerSlug ?? "C")}
+                      </span>
+                    )}
+                  </span>
+                  <span className="j-type-badge-name">
+                    {authorName || `@${ownerSlug ?? ""}`}
+                  </span>
+                </span>
+              ) : null}
+              {showTypeBadge || vis ? (
+                <span className="j-m-context-badges">
+                  {showTypeBadge ? (
+                    <span className={`j-type-badge ${TYPE_CLASS[type]}`}>
+                      <TypeIco size={13} strokeWidth={1.8} aria-hidden />
+                      {TYPE_LABEL[type]}
                     </span>
-                  )}
+                  ) : null}
+                  {vis ? (
+                    <span
+                      className={`j-visibility-icon j-vis-${visibility ?? "public"}`}
+                      aria-label={vis.label}
+                      title={vis.label}
+                    >
+                      <vis.Icon
+                        size={13}
+                        strokeWidth={1.8}
+                        aria-hidden
+                        /* Sao "Nổi bật" → fill vàng đậm để pop khỏi card. */
+                        {...(visibility === "feature"
+                          ? { fill: "currentColor" }
+                          : {})}
+                      />
+                    </span>
+                  ) : null}
                 </span>
-                <span className="j-type-badge-name">
-                  {authorName || `@${ownerSlug ?? ""}`}
-                </span>
-              </span>
-            ) : null}
-            {showTypeBadge || vis ? (
-              <span className="j-m-context-badges">
-                {showTypeBadge ? (
-                  <span className={`j-type-badge ${TYPE_CLASS[type]}`}>
-                    <TypeIco size={13} strokeWidth={1.8} aria-hidden />
-                    {TYPE_LABEL[type]}
-                  </span>
-                ) : null}
-                {vis ? (
-                  <span
-                    className={`j-visibility-icon j-vis-${visibility ?? "public"}`}
-                    aria-label={vis.label}
-                    title={vis.label}
-                  >
-                    <vis.Icon
-                      size={13}
-                      strokeWidth={1.8}
-                      aria-hidden
-                      /* Sao "Nổi bật" → fill vàng đậm để pop khỏi card. */
-                      {...(visibility === "feature"
-                        ? { fill: "currentColor" }
-                        : {})}
-                    />
-                  </span>
-                ) : null}
-              </span>
-            ) : null}
-            {verifiedBy ? (
-              <span className="j-verify-badge">{verifiedBy}</span>
-            ) : null}
+              ) : null}
+              {verifiedBy ? (
+                <span className="j-verify-badge">{verifiedBy}</span>
+              ) : null}
+            </div>
+
+            <h2 className="j-m-title">{title}</h2>
           </div>
 
           {articleTags.length > 0 ? (
@@ -297,7 +310,6 @@ export function JourneyMilestoneCard({
             </div>
           ) : null}
 
-          <h2 className="j-m-title">{title}</h2>
           {org ? (
             <div
               className="j-m-org"
@@ -327,9 +339,9 @@ export function JourneyMilestoneCard({
             </div>
           ) : null}
 
-          {coAuthorCredits.length > 0 ? (
+          {coAuthorCredits.length > 0 || canShowCoAuthorAction ? (
             <div className="j-m-coauthor-credits" aria-label="Đồng tác giả">
-              {coAuthorCredits.map((c, i) => (
+              {visibleCoAuthors.map((c, i) => (
                 <span key={`${c.slug ?? c.name}-${i}`} className="j-m-coauthor-chip">
                   {c.avatarUrl ? (
                     /* eslint-disable-next-line @next/next/no-img-element */
@@ -345,6 +357,23 @@ export function JourneyMilestoneCard({
                   ) : null}
                 </span>
               ))}
+              {hiddenCoAuthorCount > 0 ? (
+                <span
+                  className="j-m-coauthor-chip is-more"
+                  title={coAuthorCredits
+                    .slice(MAX_VISIBLE_COAUTHORS)
+                    .map((c) => c.name)
+                    .join(", ")}
+                >
+                  +{hiddenCoAuthorCount} người
+                </span>
+              ) : null}
+              {canShowCoAuthorAction && tacPhamId ? (
+                <JourneyCoAuthorProposal
+                  tacPhamId={tacPhamId}
+                  mode={canManageCoAuthors ? "owner" : "proposal"}
+                />
+              ) : null}
             </div>
           ) : null}
 
@@ -404,28 +433,63 @@ function MediaThumb({ m }: { m: MilestoneMediaItem }) {
   );
 }
 
-function TaggedByPanel({ attr }: { attr: MilestoneAttribution }) {
+function TaggedByPanel({
+  attr,
+  type,
+}: {
+  attr: MilestoneAttribution;
+  type: MilestoneType;
+}) {
   const initial = (attr.initial || attr.name.charAt(0) || "?").toUpperCase();
+  const targetText =
+    type === "du-an"
+      ? "dự án này"
+      : type === "su-kien"
+        ? "sự kiện này"
+        : "cột mốc này";
   return (
     <div className="j-tagged-by">
-      <div className={"j-tb-avatar" + (attr.isOrg ? " is-org" : "")}>
-        {attr.avatarUrl ? (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img src={attr.avatarUrl} alt="" />
-        ) : (
-          initial
-        )}
-      </div>
-      <span className="j-tb-text">
-        <span className="j-tb-label">Bài viết được tag từ</span>{" "}
-        <span className="j-tb-org">{attr.name}</span>{" "}
-        {attr.role ? (
-          <>
-            với vai trò <strong>{attr.role}</strong>
-          </>
-        ) : (
-          "vào Journey của bạn"
-        )}
+      <span className="j-tb-profile" tabIndex={0} data-card-interactive>
+        <span className={"j-tb-avatar" + (attr.isOrg ? " is-org" : "")}>
+          {attr.avatarUrl ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img src={attr.avatarUrl} alt="" />
+          ) : (
+            initial
+          )}
+        </span>
+        <span className="j-tb-text">
+          <span className="j-tb-label">Được gắn bởi</span>
+          <span className="j-tb-main">
+            <span className="j-tb-org">{attr.name}</span>
+            <span className="j-tb-copy">đã gắn bạn vào {targetText}</span>
+            {attr.role ? (
+              <span className="j-tb-role">Vai trò: {attr.role}</span>
+            ) : null}
+          </span>
+        </span>
+        <span className="j-tb-popover" role="tooltip">
+          <span className="j-tbp-cover" aria-hidden />
+          <span className="j-tbp-avatar" aria-hidden>
+            {attr.avatarUrl ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src={attr.avatarUrl} alt="" />
+            ) : (
+              initial
+            )}
+          </span>
+          <span className="j-tbp-body">
+            <strong>{attr.name}</strong>
+            {attr.slug ? <small>@{attr.slug}</small> : null}
+            <span className="j-tbp-copy">Người đã gắn bạn vào {targetText}.</span>
+            {attr.role ? <span className="j-tbp-pill">{attr.role}</span> : null}
+            {attr.slug ? (
+              <Link href={`/${attr.slug}`} className="j-tbp-link">
+                Xem Journey
+              </Link>
+            ) : null}
+          </span>
+        </span>
       </span>
       <span className="j-tb-arrow" aria-hidden>
         <CornerDownRight size={14} strokeWidth={1.8} />

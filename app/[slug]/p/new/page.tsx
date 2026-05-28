@@ -44,9 +44,10 @@ export default async function NewPostPage({
   const admin = createServiceRoleClient();
   const { data: owner, error } = await admin
     .from("user_nguoi_dung")
-    .select("auth_user_id, slug, ten_hien_thi")
+    .select("id, auth_user_id, slug, ten_hien_thi")
     .eq("slug", slug)
     .maybeSingle<{
+      id: string;
       auth_user_id: string;
       slug: string;
       ten_hien_thi: string | null;
@@ -57,6 +58,7 @@ export default async function NewPostPage({
 
   return (
     <EditorView
+      ownerId={owner.id}
       ownerSlug={owner.slug}
       ownerName={owner.ten_hien_thi || `@${owner.slug}`}
     />

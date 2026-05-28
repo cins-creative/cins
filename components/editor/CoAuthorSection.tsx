@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, UserPlus, Users, X } from "lucide-react";
+import { Search, UserPlus, X } from "lucide-react";
 import { useCallback, useEffect, useId, useState } from "react";
 
 import { loadAllArticlesForTagPicker } from "@/lib/editor/search-articles-action";
@@ -15,6 +15,7 @@ type SearchUser = {
 };
 
 type Props = {
+  ownerId: string;
   collaborators: CoAuthorDraft[];
   ownerVaiTro: string;
   onCollaboratorsChange: (next: CoAuthorDraft[]) => void;
@@ -22,17 +23,18 @@ type Props = {
 };
 
 export function CoAuthorSection({
+  ownerId,
   collaborators,
-  ownerVaiTro,
   onCollaboratorsChange,
-  onOwnerVaiTroChange,
 }: Props) {
   const roleListId = useId();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchUser[]>([]);
   const [hasMutual, setHasMutual] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [roleSuggestions, setRoleSuggestions] = useState<string[]>([]);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const search = useCallback(async (q: string) => {
     setLoading(true);
@@ -48,12 +50,13 @@ export function CoAuthorSection({
         return;
       }
       const users = (json.users ?? []) as SearchUser[];
-      setResults(users);
-      if (!q) setHasMutual(users.length > 0);
+      const filtered = users.filter((u) => u.id !== ownerId);
+      setResults(filtered);
+      if (!q) setHasMutual(filtered.length > 0);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [ownerId]);
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -82,20 +85,35 @@ export function CoAuthorSection({
     };
   }, []);
 
-  const addUser = (u: SearchUser) => {
-    if (collaborators.some((c) => c.idNguoiDung === u.id)) return;
+  const addSelectedUsers = () => {
+    const selectedUsers = results.filter(
+      (u) =>
+        selectedIds.includes(u.id) &&
+        !collaborators.some((c) => c.idNguoiDung === u.id),
+    );
+    if (selectedUsers.length === 0) return;
     onCollaboratorsChange([
       ...collaborators,
-      {
+      ...selectedUsers.map((u) => ({
         idNguoiDung: u.id,
         slug: u.slug,
         tenHienThi: u.ten_hien_thi,
         avatarId: u.avatar_id,
         vaiTro: "",
-      },
+      })),
     ]);
     setQuery("");
     setResults([]);
+    setSelectedIds([]);
+    setPickerOpen(false);
+  };
+
+  const toggleSelected = (id: string) => {
+    setSelectedIds((current) =>
+      current.includes(id)
+        ? current.filter((item) => item !== id)
+        : [...current, id],
+    );
   };
 
   const removeUser = (id: string) => {
@@ -111,37 +129,54 @@ export function CoAuthorSection({
   };
 
   return (
-    <section className="ed-coauthor" aria-labelledby="ed-coauthor-heading">
-      <div className="ed-coauthor-head">
-        <span className="ed-coauthor-icon" aria-hidden>
-          <Users size={17} strokeWidth={1.9} />
-        </span>
-        <div>
-          <h2 id="ed-coauthor-heading" className="ed-coauthor-title">
-            Người cùng làm
-          </h2>
-          <p className="ed-coauthor-hint">
-            Tag mutual follow. Họ cần chấp nhận trước khi bài hiện trên Journey.
-          </p>
-        </div>
-        <span className="ed-coauthor-count">
-          {collaborators.length + 1} người
-        </span>
-      </div>
+    <section className="ed-coauthor" aria-label="Người cùng làm">
+      {collaborators.length > 0 ? (
+        <ul className="ed-coauthor-chips">
+          {collaborators.map((c) => (
+            <li key={c.idNguoiDung} className="ed-coauthor-chip">
+              <span className="ed-coauthor-chip-name">
+                <CoAuthorAvatar
+                  avatarId={c.avatarId ?? null}
+                  name={c.tenHienThi || c.slug}
+                />
+                <span>
+                  {c.tenHienThi || c.slug}
+                  <small>@{c.slug}</small>
+                </span>
+              </span>
+              <input
+                type="text"
+                className="ed-coauthor-chip-role"
+                value={c.vaiTro}
+                onChange={(e) => updateRole(c.idNguoiDung, e.target.value)}
+                placeholder="Tìm vị trí công việc"
+                aria-label={`Vị trí công việc của ${c.tenHienThi || c.slug}`}
+                list={roleListId}
+              />
+              <button
+                type="button"
+                className="ed-coauthor-chip-remove"
+                aria-label={`Bỏ ${c.tenHienThi || c.slug}`}
+                onClick={() => removeUser(c.idNguoiDung)}
+              >
+                <X size={14} aria-hidden />
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
 
-      <div className="ed-coauthor-grid">
-        <label className="ed-coauthor-owner-label">
-          <span>Vai trò của tôi</span>
-          <input
-            type="text"
-            className="ed-coauthor-input"
-            value={ownerVaiTro}
-            onChange={(e) => onOwnerVaiTroChange(e.target.value)}
-            placeholder="Tìm nghề / vai trò…"
-            list={roleListId}
-          />
-        </label>
+      <button
+        type="button"
+        className="ed-coauthor-add"
+        onClick={() => setPickerOpen((open) => !open)}
+        aria-expanded={pickerOpen}
+      >
+        <UserPlus size={15} strokeWidth={2} aria-hidden />
+        Thêm người
+      </button>
 
+      {pickerOpen ? (
         <div className="ed-coauthor-picker">
           {hasMutual === false ? (
             <p className="ed-coauthor-empty">
@@ -164,65 +199,66 @@ export function CoAuthorSection({
               ) : null}
               {results.length > 0 ? (
                 <ul className="ed-coauthor-results" role="listbox">
-                  {results.map((u) => (
-                    <li key={u.id}>
-                      <button
-                        type="button"
-                        role="option"
-                        aria-selected="false"
-                        onClick={() => addUser(u)}
-                      >
-                        <UserPlus size={14} aria-hidden />
-                        <CoAuthorAvatar
-                          avatarId={u.avatar_id}
-                          name={u.ten_hien_thi || u.slug}
-                        />
-                        <span>{u.ten_hien_thi || u.slug}</span>
-                        <span className="ed-coauthor-slug">@{u.slug}</span>
-                      </button>
-                    </li>
-                  ))}
+                  {results.map((u) => {
+                    const alreadyAdded = collaborators.some(
+                      (c) => c.idNguoiDung === u.id,
+                    );
+                    const selected = selectedIds.includes(u.id);
+                    return (
+                      <li key={u.id}>
+                        <button
+                          type="button"
+                          role="option"
+                          aria-selected={selected ? "true" : "false"}
+                          disabled={alreadyAdded}
+                          className={[
+                            alreadyAdded && "is-selected",
+                            selected && "is-pending",
+                          ]
+                            .filter(Boolean)
+                            .join(" ")}
+                          onClick={() => toggleSelected(u.id)}
+                        >
+                          <span
+                            className="ed-coauthor-check"
+                            aria-hidden
+                          >
+                            {alreadyAdded || selected ? "✓" : ""}
+                          </span>
+                          <CoAuthorAvatar
+                            avatarId={u.avatar_id}
+                            name={u.ten_hien_thi || u.slug}
+                          />
+                          <span className="ed-coauthor-result-copy">
+                            <strong>{u.ten_hien_thi || u.slug}</strong>
+                            <small>@{u.slug}</small>
+                          </span>
+                          {alreadyAdded ? (
+                            <span className="ed-coauthor-selected">Đã thêm</span>
+                          ) : selected ? (
+                            <span className="ed-coauthor-selected is-pending">
+                              Đang chọn
+                            </span>
+                          ) : null}
+                        </button>
+                      </li>
+                    );
+                  })}
                 </ul>
               ) : null}
+              <div className="ed-coauthor-picker-actions">
+                <span>{selectedIds.length} đã chọn</span>
+                <button
+                  type="button"
+                  disabled={selectedIds.length === 0}
+                  onClick={addSelectedUsers}
+                >
+                  Thêm đã chọn
+                </button>
+              </div>
             </>
           )}
         </div>
-      </div>
-
-      {collaborators.length > 0 ? (
-        <ul className="ed-coauthor-chips">
-          {collaborators.map((c) => (
-            <li key={c.idNguoiDung} className="ed-coauthor-chip">
-              <span className="ed-coauthor-chip-name">
-                <CoAuthorAvatar
-                  avatarId={c.avatarId ?? null}
-                  name={c.tenHienThi || c.slug}
-                />
-                <span>
-                  {c.tenHienThi || c.slug}
-                  <small>@{c.slug}</small>
-                </span>
-              </span>
-              <input
-                type="text"
-                className="ed-coauthor-chip-role"
-                value={c.vaiTro}
-                onChange={(e) => updateRole(c.idNguoiDung, e.target.value)}
-                placeholder="Tìm nghề / vai trò"
-                aria-label={`Vai trò của ${c.tenHienThi || c.slug}`}
-                list={roleListId}
-              />
-              <button
-                type="button"
-                className="ed-coauthor-chip-remove"
-                aria-label={`Bỏ ${c.tenHienThi || c.slug}`}
-                onClick={() => removeUser(c.idNguoiDung)}
-              >
-                <X size={14} aria-hidden />
-              </button>
-            </li>
-          ))}
-        </ul>
       ) : null}
       <datalist id={roleListId}>
         {roleSuggestions.map((role) => (

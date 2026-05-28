@@ -1,9 +1,12 @@
 import "server-only";
 
+import { getAvatarUrl } from "@/lib/journey/profile";
 import { isMutualFollow } from "@/lib/social/follow";
 import type {
   CoAuthorDraft,
   CoAuthorPersisted,
+  CoAuthorReviewProfile,
+  PendingCoAuthorReview,
   PendingCoAuthorInvite,
   TacGiaTrangThai,
 } from "@/lib/social/types";
@@ -18,6 +21,12 @@ type TacGiaRow = {
   trang_thai: TacGiaTrangThai;
   la_chu_so_huu: boolean;
   thu_tu: number | null;
+};
+
+type CoAuthorReviewPayload = {
+  proposerId?: string;
+  targetUserId?: string;
+  vaiTro?: string;
 };
 
 export async function loadCoAuthorsForTacPham(
@@ -89,6 +98,34 @@ async function notifyCoAuthorInvite(
   });
 }
 
+async function notifyOwnerCoAuthorReview(
+  ownerId: string,
+  proposerId: string,
+  targetUserId: string,
+  tacPhamId: string,
+  vaiTro: string,
+): Promise<void> {
+  const admin = createServiceRoleClient();
+  const { data: existingRows } = await admin
+    .from("social_thong_bao")
+    .select("id, noi_dung_ai")
+    .eq("nguoi_nhan", ownerId)
+    .eq("loai_doi_tuong", "tac_gia_owner_review")
+    .eq("id_doi_tuong", tacPhamId);
+  const duplicate = (existingRows ?? []).some((row) => {
+    const payload = parseReviewPayload(row.noi_dung_ai as string | null);
+    return payload?.targetUserId === targetUserId;
+  });
+  if (duplicate) return;
+
+  await admin.from("social_thong_bao").insert({
+    nguoi_nhan: ownerId,
+    noi_dung_ai: JSON.stringify({ proposerId, targetUserId, vaiTro }),
+    loai_doi_tuong: "tac_gia_owner_review",
+    id_doi_tuong: tacPhamId,
+  });
+}
+
 export async function addCoAuthor(
   tacPhamId: string,
   ownerId: string,
@@ -134,6 +171,125 @@ export async function addCoAuthor(
   });
   if (error) return { ok: false, error: error.message };
 
+  await notifyCoAuthorInvite(targetUserId, ownerId, tacPhamId, vaiTro);
+  return { ok: true };
+}
+
+export async function proposeCoAuthorFromCollaborator(
+  tacPhamId: string,
+  proposerId: string,
+  targetUserId: string,
+  vaiTro: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (proposerId === targetUserId) {
+    return { ok: false, error: "Không thể đề xuất chính mình." };
+  }
+
+  const admin = createServiceRoleClient();
+  const { data: tacPham } = await admin
+    .from("content_tac_pham")
+    .select("id_nguoi_dung")
+    .eq("id", tacPhamId)
+    .maybeSingle<{ id_nguoi_dung: string }>();
+  const ownerId = tacPham?.id_nguoi_dung;
+  if (!ownerId) return { ok: false, error: "Không tìm thấy tác phẩm." };
+  if (ownerId === proposerId) {
+    return addCoAuthor(tacPhamId, ownerId, targetUserId, vaiTro);
+  }
+
+  const { data: proposerRow } = await admin
+    .from("content_tac_pham_tac_gia")
+    .select("id_nguoi_dung")
+    .eq("id_tac_pham", tacPhamId)
+    .eq("id_nguoi_dung", proposerId)
+    .eq("trang_thai", "accepted")
+    .eq("la_chu_so_huu", false)
+    .maybeSingle();
+  if (!proposerRow) {
+    return { ok: false, error: "Chỉ cộng sự đã được duyệt mới đề xuất thêm người." };
+  }
+
+  const gate = await assertMutualFollow(proposerId, targetUserId);
+  if (!gate.ok) return gate;
+
+  const { data: existing } = await admin
+    .from("content_tac_pham_tac_gia")
+    .select("id_nguoi_dung, trang_thai")
+    .eq("id_tac_pham", tacPhamId)
+    .eq("id_nguoi_dung", targetUserId)
+    .maybeSingle();
+  if (existing && existing.trang_thai !== "declined") {
+    return { ok: false, error: "Người này đã có trong danh sách đồng tác giả." };
+  }
+
+  await notifyOwnerCoAuthorReview(
+    ownerId,
+    proposerId,
+    targetUserId,
+    tacPhamId,
+    vaiTro,
+  );
+  return { ok: true };
+}
+
+async function createPendingCoAuthorInvite(
+  tacPhamId: string,
+  ownerId: string,
+  targetUserId: string,
+  vaiTro: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const admin = createServiceRoleClient();
+  const { data: tacPham } = await admin
+    .from("content_tac_pham")
+    .select("id_nguoi_dung")
+    .eq("id", tacPhamId)
+    .maybeSingle<{ id_nguoi_dung: string }>();
+  if (tacPham?.id_nguoi_dung !== ownerId) {
+    return { ok: false, error: "Không có quyền duyệt cộng sự cho tác phẩm này." };
+  }
+
+  const { data: existing } = await admin
+    .from("content_tac_pham_tac_gia")
+    .select("id_nguoi_dung, trang_thai")
+    .eq("id_tac_pham", tacPhamId)
+    .eq("id_nguoi_dung", targetUserId)
+    .maybeSingle();
+
+  if (existing) {
+    if (existing.trang_thai === "declined") {
+      const { error } = await admin
+        .from("content_tac_pham_tac_gia")
+        .update({
+          vai_tro: vaiTro.trim() || null,
+          trang_thai: "pending",
+          xu_ly_luc: null,
+        })
+        .eq("id_tac_pham", tacPhamId)
+        .eq("id_nguoi_dung", targetUserId);
+      if (error) return { ok: false, error: error.message };
+      await notifyCoAuthorInvite(targetUserId, ownerId, tacPhamId, vaiTro);
+      return { ok: true };
+    }
+    return { ok: true };
+  }
+
+  const { data: maxRow } = await admin
+    .from("content_tac_pham_tac_gia")
+    .select("thu_tu")
+    .eq("id_tac_pham", tacPhamId)
+    .order("thu_tu", { ascending: false })
+    .limit(1)
+    .maybeSingle<{ thu_tu: number | null }>();
+
+  const { error } = await admin.from("content_tac_pham_tac_gia").insert({
+    id_tac_pham: tacPhamId,
+    id_nguoi_dung: targetUserId,
+    vai_tro: vaiTro.trim() || null,
+    trang_thai: "pending",
+    la_chu_so_huu: false,
+    thu_tu: (maxRow?.thu_tu ?? 0) + 1,
+  });
+  if (error) return { ok: false, error: error.message };
   await notifyCoAuthorInvite(targetUserId, ownerId, tacPhamId, vaiTro);
   return { ok: true };
 }
@@ -307,4 +463,141 @@ export async function loadPendingCoAuthorInvites(
       };
     })
     .filter((x): x is PendingCoAuthorInvite => x !== null);
+}
+
+export async function listPendingCoAuthorReviews(
+  ownerId: string,
+): Promise<PendingCoAuthorReview[]> {
+  const admin = createServiceRoleClient();
+  const { data: rows } = await admin
+    .from("social_thong_bao")
+    .select("id, id_doi_tuong, noi_dung_ai")
+    .eq("nguoi_nhan", ownerId)
+    .eq("loai_doi_tuong", "tac_gia_owner_review")
+    .order("tao_luc", { ascending: false })
+    .limit(20);
+
+  if (!rows?.length) return [];
+
+  const parsed = rows
+    .map((row) => {
+      const payload = parseReviewPayload(row.noi_dung_ai as string | null);
+      const tacPhamId = row.id_doi_tuong as string | null;
+      if (!payload?.proposerId || !payload.targetUserId || !tacPhamId) {
+        return null;
+      }
+      return {
+        notificationId: row.id as string,
+        tacPhamId,
+        proposerId: payload.proposerId,
+        targetUserId: payload.targetUserId,
+        vaiTro: payload.vaiTro ?? "",
+      };
+    })
+    .filter((x): x is NonNullable<typeof x> => x !== null);
+  if (parsed.length === 0) return [];
+
+  const tacPhamIds = [...new Set(parsed.map((item) => item.tacPhamId))];
+  const { data: tacPhams } = await admin
+    .from("content_tac_pham")
+    .select("id, slug, tieu_de, id_nguoi_dung")
+    .in("id", tacPhamIds);
+  const tacPhamById = new Map((tacPhams ?? []).map((tp) => [tp.id as string, tp]));
+
+  const ownerIds = [
+    ...new Set((tacPhams ?? []).map((tp) => tp.id_nguoi_dung as string)),
+  ];
+  const { data: owners } = ownerIds.length
+    ? await admin.from("user_nguoi_dung").select("id, slug").in("id", ownerIds)
+    : { data: [] };
+  const ownerSlugById = new Map((owners ?? []).map((o) => [o.id as string, o.slug as string]));
+
+  const userIds = [
+    ...new Set(
+      parsed.flatMap((item) => [item.proposerId, item.targetUserId]),
+    ),
+  ];
+  const profiles = await loadReviewProfiles(admin, userIds);
+  const profileById = new Map(profiles.map((p) => [p.idNguoiDung, p]));
+
+  return parsed
+    .map((item) => {
+      const tp = tacPhamById.get(item.tacPhamId);
+      const proposer = profileById.get(item.proposerId);
+      const target = profileById.get(item.targetUserId);
+      if (!tp || !proposer || !target) return null;
+      return {
+        notificationId: item.notificationId,
+        tacPhamId: item.tacPhamId,
+        postTitle: (tp.tieu_de as string) || "Bài viết",
+        postSlug: (tp.slug as string) || "",
+        ownerSlug: ownerSlugById.get(tp.id_nguoi_dung as string) ?? "",
+        vaiTro: item.vaiTro,
+        proposer,
+        target,
+      };
+    })
+    .filter((x): x is PendingCoAuthorReview => x !== null);
+}
+
+export async function respondCoAuthorReview(
+  notificationId: string,
+  ownerId: string,
+  action: "accept" | "decline",
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const admin = createServiceRoleClient();
+  const { data: row } = await admin
+    .from("social_thong_bao")
+    .select("id, nguoi_nhan, id_doi_tuong, noi_dung_ai")
+    .eq("id", notificationId)
+    .eq("nguoi_nhan", ownerId)
+    .eq("loai_doi_tuong", "tac_gia_owner_review")
+    .maybeSingle();
+  if (!row) return { ok: false, error: "Không tìm thấy đề xuất cộng sự." };
+
+  const payload = parseReviewPayload(row.noi_dung_ai as string | null);
+  const tacPhamId = row.id_doi_tuong as string | null;
+  if (!payload?.targetUserId || !tacPhamId) {
+    return { ok: false, error: "Dữ liệu đề xuất không hợp lệ." };
+  }
+
+  if (action === "accept") {
+    const result = await createPendingCoAuthorInvite(
+      tacPhamId,
+      ownerId,
+      payload.targetUserId,
+      payload.vaiTro ?? "",
+    );
+    if (!result.ok) return result;
+  }
+
+  await admin.from("social_thong_bao").delete().eq("id", notificationId);
+  return { ok: true };
+}
+
+function parseReviewPayload(raw: string | null): CoAuthorReviewPayload | null {
+  if (!raw) return null;
+  try {
+    const value = JSON.parse(raw) as CoAuthorReviewPayload;
+    return value && typeof value === "object" ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+async function loadReviewProfiles(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  userIds: string[],
+): Promise<CoAuthorReviewProfile[]> {
+  if (userIds.length === 0) return [];
+  const { data } = await admin
+    .from("user_nguoi_dung")
+    .select("id, slug, ten_hien_thi, avatar_id")
+    .in("id", userIds);
+  return (data ?? []).map((p) => ({
+    idNguoiDung: p.id as string,
+    slug: (p.slug as string) ?? "",
+    tenHienThi: (p.ten_hien_thi as string) || (p.slug as string) || "Người dùng",
+    avatarUrl: getAvatarUrl((p.avatar_id as string | null) ?? null) ?? null,
+  }));
 }

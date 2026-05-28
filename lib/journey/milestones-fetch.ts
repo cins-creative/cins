@@ -197,6 +197,7 @@ export async function fetchMilestonesForUser(params: {
       title: m.tieu_de,
       body: m.mo_ta || null,
       postSlug: firstPostSlug,
+      tacPhamId: firstPost?.id ?? null,
       /* `cover_id` KHÔNG render trên card Journey nữa — chỉ dùng cho
          Gallery thumb. Card render `noiDungBlocks` inline (xem
          `JourneyMilestoneCard`). */
@@ -244,7 +245,7 @@ async function fetchTaggedMilestonesForUser(params: {
 
   const { data: tagRows } = await admin
     .from("content_tac_pham_tac_gia")
-    .select("id_tac_pham, vai_tro")
+    .select("id_tac_pham, vai_tro, trang_thai")
     .eq("id_nguoi_dung", userId)
     .in("trang_thai", isOwner ? ["accepted", "pending"] : ["accepted"])
     .eq("la_chu_so_huu", false);
@@ -254,6 +255,9 @@ async function fetchTaggedMilestonesForUser(params: {
   const tacPhamIds = tagRows.map((r) => r.id_tac_pham as string);
   const roleByTp = new Map(
     tagRows.map((r) => [r.id_tac_pham as string, r.vai_tro as string | null]),
+  );
+  const statusByTp = new Map(
+    tagRows.map((r) => [r.id_tac_pham as string, r.trang_thai as string | null]),
   );
 
   const { data: tacPhams } = await admin
@@ -344,6 +348,8 @@ async function fetchTaggedMilestonesForUser(params: {
       body: cm.mo_ta || null,
       postSlug: tp.slug,
       postOwnerSlug: (owner?.slug as string) ?? null,
+      tacPhamId,
+      canProposeCoAuthor: isOwner && statusByTp.get(tacPhamId) === "accepted",
       media: [],
       noiDungBlocks: parseServerBlocks(tp.noi_dung_blocks),
       articleTags: tagsByTacPham.get(tacPhamId) ?? [],

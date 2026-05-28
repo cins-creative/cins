@@ -181,6 +181,7 @@ export default async function EditPostPage({
 
   return (
     <EditorView
+      ownerId={owner.id}
       ownerSlug={owner.slug}
       ownerName={owner.ten_hien_thi || `@${owner.slug}`}
       mode="edit"

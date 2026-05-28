@@ -47,3 +47,21 @@ export type MutualFriendProfile = PendingFollowRequest;
 export type FollowAcceptedNotification = PendingFollowRequest & {
   notificationId: string;
 };
+
+export type CoAuthorReviewProfile = {
+  idNguoiDung: string;
+  slug: string;
+  tenHienThi: string;
+  avatarUrl: string | null;
+};
+
+export type PendingCoAuthorReview = {
+  notificationId: string;
+  tacPhamId: string;
+  postTitle: string;
+  postSlug: string;
+  ownerSlug: string;
+  vaiTro: string;
+  proposer: CoAuthorReviewProfile;
+  target: CoAuthorReviewProfile;
+};

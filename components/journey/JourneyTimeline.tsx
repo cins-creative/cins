@@ -66,7 +66,11 @@ export function JourneyTimeline({
   const prefetchedRef = useRef<Set<string>>(new Set());
   const prefetch = useCallback(
     (postSlug: string, postOwnerSlug?: string | null) => {
-      const href = `/${postOwnerSlug || ownerSlug}/p/${postSlug}`;
+      const actualOwnerSlug = postOwnerSlug || ownerSlug;
+      const href =
+        actualOwnerSlug === ownerSlug
+          ? `/${actualOwnerSlug}/p/${postSlug}`
+          : `/${actualOwnerSlug}/p/${postSlug}?owner=${encodeURIComponent(actualOwnerSlug)}`;
       if (prefetchedRef.current.has(href)) return;
       prefetchedRef.current.add(href);
       router.prefetch(href);
@@ -84,7 +88,13 @@ export function JourneyTimeline({
     const onClick = (e: MouseEvent) => {
       const target = e.target as Element | null;
       if (!target) return;
-      if (target.closest(".j-m-menu")) return;
+      if (
+        target.closest(
+          "a,button,input,textarea,select,.j-m-menu,[data-card-interactive]",
+        )
+      ) {
+        return;
+      }
 
       const card = target.closest<HTMLElement>(".j-m-card.is-clickable");
       if (!card || !el.contains(card)) return;
@@ -99,10 +109,14 @@ export function JourneyTimeline({
       if (postSlug) {
         const postOwnerSlug =
           article.getAttribute("data-post-owner-slug") || ownerSlug;
+        const href =
+          postOwnerSlug === ownerSlug
+            ? `/${postOwnerSlug}/p/${postSlug}`
+            : `/${postOwnerSlug}/p/${postSlug}?owner=${encodeURIComponent(postOwnerSlug)}`;
         /* Có post slug → navigate URL. Next.js intercept (vì đang ở
            `/[slug]/journey`) → render `@modal/(..)p/[postSlug]/page.tsx`
            ở slot modal, journey vẫn live ở dưới. */
-        router.push(`/${postOwnerSlug}/p/${postSlug}`);
+        router.push(href);
         return;
       }
       /* Không có post slug → fallback modal cũ (load by milestoneId). */
@@ -128,7 +142,11 @@ export function JourneyTimeline({
       if (postSlug) {
         const postOwnerSlug =
           article.getAttribute("data-post-owner-slug") || ownerSlug;
-        router.push(`/${postOwnerSlug}/p/${postSlug}`);
+        const href =
+          postOwnerSlug === ownerSlug
+            ? `/${postOwnerSlug}/p/${postSlug}`
+            : `/${postOwnerSlug}/p/${postSlug}?owner=${encodeURIComponent(postOwnerSlug)}`;
+        router.push(href);
         return;
       }
       setOpenMilestoneId(mid);

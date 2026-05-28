@@ -37,7 +37,12 @@ type GalleryRow = {
     slug: string | null;
     tieu_de: string;
     cover_id: string | null;
+    id_nguoi_dung: string;
   } | null;
+};
+
+type TaggedTacGiaRow = {
+  id_tac_pham: string;
 };
 
 const GALLERY_LIMIT_PER_TYPE = 12;
@@ -59,7 +64,7 @@ export async function fetchGalleryForUser(params: {
   const { data: rows } = await admin
     .from("content_tac_pham_thuoc_moc")
     .select(
-      "id_cot_moc, content_cot_moc:content_cot_moc!inner(id, thoi_diem, che_do_hien_thi, id_nguoi_dung), content_tac_pham:content_tac_pham!inner(id, slug, tieu_de, cover_id)",
+      "id_cot_moc, content_cot_moc:content_cot_moc!inner(id, thoi_diem, che_do_hien_thi, id_nguoi_dung), content_tac_pham:content_tac_pham!inner(id, slug, tieu_de, cover_id, id_nguoi_dung)",
     )
     .eq("content_cot_moc.id_nguoi_dung", userId)
     .in("content_cot_moc.che_do_hien_thi", ["feature", "public"])
@@ -67,7 +72,10 @@ export async function fetchGalleryForUser(params: {
     .order("thu_tu", { ascending: true })
     .returns<GalleryRow[]>();
 
-  if (!rows || rows.length === 0) {
+  const taggedRows = await fetchTaggedGalleryRows(admin, userId);
+  const allRows = [...(rows ?? []), ...taggedRows];
+
+  if (allRows.length === 0) {
     return { pinned: [], items: [], totalTacPham: 0 };
   }
 
@@ -83,10 +91,11 @@ export async function fetchGalleryForUser(params: {
       tacPhamSlug: string | null;
       tieuDe: string;
       coverId: string;
+      postOwnerId: string;
     }
   >();
 
-  for (const r of rows) {
+  for (const r of allRows) {
     const cm = r.content_cot_moc;
     const tp = r.content_tac_pham;
     if (!cm || !tp || !tp.cover_id) continue;
@@ -103,7 +112,21 @@ export async function fetchGalleryForUser(params: {
       tacPhamSlug: tp.slug,
       tieuDe: tp.tieu_de,
       coverId: tp.cover_id,
+      postOwnerId: tp.id_nguoi_dung,
     });
+  }
+
+  const ownerIds = [...new Set(Array.from(byTacPham.values()).map((x) => x.postOwnerId))];
+  const ownerSlugById = new Map<string, string>();
+  if (ownerIds.length > 0) {
+    const { data: owners } = await admin
+      .from("user_nguoi_dung")
+      .select("id, slug")
+      .in("id", ownerIds)
+      .returns<Array<{ id: string; slug: string }>>();
+    for (const owner of owners ?? []) {
+      ownerSlugById.set(owner.id, owner.slug);
+    }
   }
 
   const all = Array.from(byTacPham.values()).sort(
@@ -123,14 +146,14 @@ export async function fetchGalleryForUser(params: {
     pin: "Nổi bật",
     title: entry.tieuDe || "Tác phẩm",
     meta: formatVnDate(entry.thoiDiem),
-    href: postHref(ownerSlug, entry.tacPhamSlug),
+    href: postHref(ownerSlugById.get(entry.postOwnerId) ?? ownerSlug, entry.tacPhamSlug),
   }));
 
   const items: GalleryGridItem[] = publicEntries.map((entry, i) => ({
     id: `grid-${entry.cotMocId}-${i}`,
     src: galleryThumb(entry.coverId, "grid"),
     label: entry.tieuDe || "Tác phẩm",
-    href: postHref(ownerSlug, entry.tacPhamSlug),
+    href: postHref(ownerSlugById.get(entry.postOwnerId) ?? ownerSlug, entry.tacPhamSlug),
   }));
 
   return {
@@ -138,6 +161,35 @@ export async function fetchGalleryForUser(params: {
     items,
     totalTacPham: byTacPham.size,
   };
+}
+
+async function fetchTaggedGalleryRows(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  userId: string,
+): Promise<GalleryRow[]> {
+  const { data: tags } = await admin
+    .from("content_tac_pham_tac_gia")
+    .select("id_tac_pham")
+    .eq("id_nguoi_dung", userId)
+    .eq("trang_thai", "accepted")
+    .eq("la_chu_so_huu", false)
+    .returns<TaggedTacGiaRow[]>();
+
+  const tacPhamIds = [...new Set((tags ?? []).map((row) => row.id_tac_pham))];
+  if (tacPhamIds.length === 0) return [];
+
+  const { data } = await admin
+    .from("content_tac_pham_thuoc_moc")
+    .select(
+      "id_cot_moc, content_cot_moc:content_cot_moc!inner(id, thoi_diem, che_do_hien_thi, id_nguoi_dung), content_tac_pham:content_tac_pham!inner(id, slug, tieu_de, cover_id, id_nguoi_dung)",
+    )
+    .in("id_tac_pham", tacPhamIds)
+    .in("content_cot_moc.che_do_hien_thi", ["feature", "public"])
+    .not("content_tac_pham.cover_id", "is", null)
+    .order("thu_tu", { ascending: true })
+    .returns<GalleryRow[]>();
+
+  return data ?? [];
 }
 
 function postHref(ownerSlug: string, postSlug: string | null): string {

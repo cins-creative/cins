@@ -4,6 +4,7 @@ import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import {
   addCoAuthor,
   loadCoAuthorsForTacPham,
+  proposeCoAuthorFromCollaborator,
 } from "@/lib/social/co-author";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -36,9 +37,6 @@ export async function POST(req: Request, ctx: RouteCtx) {
 
   const { id: tacPhamId } = await ctx.params;
   const isOwner = await assertTacPhamOwner(tacPhamId, session.profile.id);
-  if (!isOwner) {
-    return NextResponse.json({ error: "Không có quyền." }, { status: 403 });
-  }
 
   let body: { id_nguoi_dung?: string; vai_tro?: string };
   try {
@@ -53,14 +51,16 @@ export async function POST(req: Request, ctx: RouteCtx) {
     return NextResponse.json({ error: "Thiếu id_nguoi_dung." }, { status: 400 });
   }
 
-  const result = await addCoAuthor(
-    tacPhamId,
-    session.profile.id,
-    targetId,
-    vaiTro,
-  );
+  const result = isOwner
+    ? await addCoAuthor(tacPhamId, session.profile.id, targetId, vaiTro)
+    : await proposeCoAuthorFromCollaborator(
+        tacPhamId,
+        session.profile.id,
+        targetId,
+        vaiTro,
+      );
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: 400 });
   }
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, reviewRequired: !isOwner });
 }

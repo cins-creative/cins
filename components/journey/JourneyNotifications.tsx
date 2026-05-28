@@ -5,6 +5,8 @@ import { Bell, Check, ExternalLink, X } from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
 
 import type {
+  CoAuthorReviewProfile,
+  PendingCoAuthorReview,
   FollowAcceptedNotification,
   PendingFollowRequest,
 } from "@/lib/social/types";
@@ -12,11 +14,13 @@ import type {
 type Props = {
   initialFollowRequests: ReadonlyArray<PendingFollowRequest>;
   initialAcceptedNotifications?: ReadonlyArray<FollowAcceptedNotification>;
+  initialCoAuthorReviews?: ReadonlyArray<PendingCoAuthorReview>;
 };
 
 export function JourneyNotifications({
   initialFollowRequests,
   initialAcceptedNotifications = [],
+  initialCoAuthorReviews = [],
 }: Props) {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<PendingFollowRequest | null>(null);
@@ -26,10 +30,13 @@ export function JourneyNotifications({
   const [accepted, setAccepted] = useState<FollowAcceptedNotification[]>(
     [...initialAcceptedNotifications],
   );
+  const [coAuthorReviews, setCoAuthorReviews] = useState<PendingCoAuthorReview[]>(
+    [...initialCoAuthorReviews],
+  );
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const count = requests.length + accepted.length;
+  const count = requests.length + accepted.length + coAuthorReviews.length;
   const title = count > 0 ? `${count} thông báo mới` : "Không có thông báo mới";
   const selectedStillPending = useMemo(
     () => selected && requests.some((r) => r.idNguoiDung === selected.idNguoiDung),
@@ -63,6 +70,32 @@ export function JourneyNotifications({
     });
   };
 
+  const respondCoAuthorReview = (
+    review: PendingCoAuthorReview,
+    action: "accept" | "decline",
+  ) => {
+    setError(null);
+    startTransition(async () => {
+      const res = await fetch("/api/coauthor/reviews", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          notification_id: review.notificationId,
+          action,
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(typeof json.error === "string" ? json.error : "Không xử lý được.");
+        return;
+      }
+      const next = Array.isArray(json.reviews)
+        ? (json.reviews as PendingCoAuthorReview[])
+        : coAuthorReviews.filter((r) => r.notificationId !== review.notificationId);
+      setCoAuthorReviews(next);
+    });
+  };
+
   return (
     <div className="j-notify">
       <button
@@ -86,6 +119,39 @@ export function JourneyNotifications({
             <p className="j-notify-empty">Chưa có lời mời kết nối mới.</p>
           ) : (
             <ul className="j-notify-list">
+              {coAuthorReviews.map((review) => (
+                <li key={review.notificationId}>
+                  <div className="j-notify-item is-coauthor-review">
+                    <Avatar request={review.proposer} />
+                    <span>
+                      <strong>{review.proposer.tenHienThi}</strong> đề xuất thêm{" "}
+                      <b>{review.target.tenHienThi}</b> vào bài viết.
+                      <small>
+                        {review.postTitle}
+                        {review.vaiTro ? ` · ${review.vaiTro}` : ""}
+                      </small>
+                    </span>
+                    <div className="j-notify-inline-actions">
+                      <button
+                        type="button"
+                        className="j-notify-mini-action is-accept"
+                        disabled={pending}
+                        onClick={() => respondCoAuthorReview(review, "accept")}
+                      >
+                        Duyệt
+                      </button>
+                      <button
+                        type="button"
+                        className="j-notify-mini-action"
+                        disabled={pending}
+                        onClick={() => respondCoAuthorReview(review, "decline")}
+                      >
+                        Từ chối
+                      </button>
+                    </div>
+                  </div>
+                </li>
+              ))}
               {accepted.map((notice) => (
                 <li key={notice.notificationId}>
                   <Link
@@ -236,7 +302,7 @@ function Avatar({
   request,
   large = false,
 }: {
-  request: PendingFollowRequest;
+  request: PendingFollowRequest | CoAuthorReviewProfile;
   large?: boolean;
 }) {
   const initial = (request.tenHienThi || request.slug || "?").slice(0, 1).toUpperCase();

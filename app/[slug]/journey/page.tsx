@@ -119,13 +119,6 @@ export async function renderJourneyPage({
   const friends = await listMutualFriendProfiles(owner.id);
   const activeView =
     view === "gallery" || view === "friends" ? view : "journey";
-  const stats = {
-    cotMoc: milestoneStats.tacPham,
-    cotMocVerified: milestoneStats.cotMocVerified,
-    tacPham: milestoneStats.noiBat,
-    toChuc: 0,
-  };
-
   /* Gallery — tổng hợp tác phẩm có `cover_id` từ cột mốc `feature` /
      `public`. Feature → pinned banner 16:9, public → grid item 1:1. Bài
      `theo_nhom` / `chi_minh` không đưa vào (riêng tư hoặc cần nhóm
@@ -133,10 +126,17 @@ export async function renderJourneyPage({
   const {
     pinned: galleryPinned,
     items: galleryItems,
+    totalTacPham: galleryTotalTacPham,
   } = await fetchGalleryForUser({
     userId: owner.id,
     ownerSlug: owner.slug,
   });
+  const stats = {
+    cotMoc: milestoneStats.tacPham,
+    cotMocVerified: milestoneStats.cotMocVerified,
+    tacPham: galleryTotalTacPham,
+    toChuc: 0,
+  };
 
   /* Filter visibility map cho built-in loai_moc rows.
      - Owner: render toàn bộ + nút toggle.
