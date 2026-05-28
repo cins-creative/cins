@@ -4,10 +4,9 @@ import {
   Bookmark,
   BookmarkCheck,
   Heart,
-  Link2,
-  Share2,
+  MessageCircle,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 
 /* ╔══════════════════════════════════════════════════════════════════╗
    ║ PostActionsRail — thanh hành động dạng dock ở cạnh phải bài viết. ║
@@ -22,66 +21,144 @@ import { useEffect, useRef, useState } from "react";
    ╚══════════════════════════════════════════════════════════════════╝ */
 
 type Props = {
-  /** URL absolute của bài viết (truyền từ parent để share). */
-  shareUrl: string;
-  /** Tiêu đề bài viết — dùng cho intent của FB/X/Pinterest. */
-  title: string;
-  /** Ảnh cover (URL hoặc seed pre-built) — dùng cho Pinterest pin. */
-  coverImageUrl?: string | null;
+  milestoneId: string;
+  initialLiked?: boolean;
+  initialBookmarked?: boolean;
+  likeCount?: number;
+  bookmarkCount?: number;
+  commentCount?: number;
+  showCounts?: boolean;
 };
 
-export function PostActionsRail({ shareUrl, title, coverImageUrl }: Props) {
-  const [liked, setLiked] = useState(false);
-  const [bookmarked, setBookmarked] = useState(false);
-  const [shareOpen, setShareOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const shareWrapRef = useRef<HTMLDivElement | null>(null);
+export function PostActionsRail({
+  milestoneId,
+  initialLiked = false,
+  initialBookmarked = false,
+  likeCount = 0,
+  bookmarkCount = 0,
+  commentCount = 0,
+  showCounts = false,
+}: Props) {
+  const [liked, setLiked] = useState(initialLiked);
+  const [bookmarked, setBookmarked] = useState(initialBookmarked);
+  const [likes, setLikes] = useState(likeCount);
+  const [bookmarks, setBookmarks] = useState(bookmarkCount);
+  const [pending, startTransition] = useTransition();
 
-  /* Đóng popover share khi click ra ngoài. */
   useEffect(() => {
-    if (!shareOpen) return;
-    function onDoc(e: MouseEvent) {
-      const node = shareWrapRef.current;
-      if (node && !node.contains(e.target as Node)) {
-        setShareOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
-  }, [shareOpen]);
+    queueMicrotask(() => {
+      setLiked(initialLiked);
+      setBookmarked(initialBookmarked);
+      setLikes(likeCount);
+      setBookmarks(bookmarkCount);
+    });
+  }, [initialLiked, initialBookmarked, likeCount, bookmarkCount]);
 
-  function copyLink() {
-    try {
-      navigator.clipboard.writeText(shareUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      window.prompt("Sao chép URL bài viết:", shareUrl);
-    }
+  useEffect(() => {
+    const onSocial = (event: Event) => {
+      const detail = (
+        event as CustomEvent<{
+          milestoneId: string;
+          liked?: boolean;
+          likeCount?: number;
+          bookmarked?: boolean;
+          bookmarkCount?: number;
+        }>
+      ).detail;
+      if (detail.milestoneId !== milestoneId) return;
+      if (typeof detail.liked === "boolean") setLiked(detail.liked);
+      if (typeof detail.likeCount === "number") setLikes(detail.likeCount);
+      if (typeof detail.bookmarked === "boolean") setBookmarked(detail.bookmarked);
+      if (typeof detail.bookmarkCount === "number") setBookmarks(detail.bookmarkCount);
+    };
+    window.addEventListener("cins:social-action", onSocial);
+    return () => window.removeEventListener("cins:social-action", onSocial);
+  }, [milestoneId]);
+
+  function toggleLike() {
+    const nextLiked = !liked;
+    const nextCount = Math.max(0, likes + (nextLiked ? 1 : -1));
+    setLiked(nextLiked);
+    setLikes(nextCount);
+    window.dispatchEvent(
+      new CustomEvent("cins:social-action", {
+        detail: { milestoneId, liked: nextLiked, likeCount: nextCount },
+      }),
+    );
+    startTransition(async () => {
+      const res = await fetch("/api/reactions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          loai_doi_tuong: "cot_moc",
+          id_doi_tuong: milestoneId,
+          emoji: "heart",
+          active: nextLiked,
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setLiked(liked);
+        setLikes(likes);
+        return;
+      }
+      const syncedLiked = Boolean(json.liked);
+      const syncedCount = Number(json.count ?? nextCount);
+      setLiked(syncedLiked);
+      setLikes(syncedCount);
+      window.dispatchEvent(
+        new CustomEvent("cins:social-action", {
+          detail: { milestoneId, liked: syncedLiked, likeCount: syncedCount },
+        }),
+      );
+    });
   }
 
-  const fbHref = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
-    shareUrl,
-  )}`;
-  const xHref = `https://twitter.com/intent/tweet?url=${encodeURIComponent(
-    shareUrl,
-  )}&text=${encodeURIComponent(title)}`;
-  const pinHref = `https://pinterest.com/pin/create/button/?url=${encodeURIComponent(
-    shareUrl,
-  )}&description=${encodeURIComponent(title)}${
-    coverImageUrl
-      ? `&media=${encodeURIComponent(coverImageUrl)}`
-      : ""
-  }`;
+  function saveBookmark() {
+    const nextCount = bookmarked ? bookmarks : bookmarks + 1;
+    setBookmarked(true);
+    setBookmarks(nextCount);
+    window.dispatchEvent(
+      new CustomEvent("cins:social-action", {
+        detail: { milestoneId, bookmarked: true, bookmarkCount: nextCount },
+      }),
+    );
+    startTransition(async () => {
+      const res = await fetch("/api/bookmarks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          loai_doi_tuong: "cot_moc",
+          id_doi_tuong: milestoneId,
+          visibility: "public",
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setBookmarked(bookmarked);
+        setBookmarks(bookmarks);
+        return;
+      }
+      const syncedCount = Number(json.count ?? nextCount);
+      setBookmarked(true);
+      setBookmarks(syncedCount);
+      window.dispatchEvent(
+        new CustomEvent("cins:social-action", {
+          detail: { milestoneId, bookmarked: true, bookmarkCount: syncedCount },
+        }),
+      );
+    });
+  }
 
   return (
     <aside className="post-rail" aria-label="Hành động bài viết">
       <button
         type="button"
         className={`post-rail-btn ${liked ? "is-active is-like" : ""}`}
-        onClick={() => setLiked((v) => !v)}
+        onClick={toggleLike}
         aria-pressed={liked}
         aria-label={liked ? "Bỏ thích" : "Thích"}
+        disabled={pending}
       >
         <Heart
           size={20}
@@ -89,15 +166,16 @@ export function PostActionsRail({ shareUrl, title, coverImageUrl }: Props) {
           fill={liked ? "currentColor" : "none"}
           aria-hidden
         />
-        <span className="post-rail-lbl">Thích</span>
+        {showCounts ? <span className="post-rail-count">{likes}</span> : null}
       </button>
 
       <button
         type="button"
         className={`post-rail-btn ${bookmarked ? "is-active is-bookmark" : ""}`}
-        onClick={() => setBookmarked((v) => !v)}
+        onClick={saveBookmark}
         aria-pressed={bookmarked}
         aria-label={bookmarked ? "Bỏ lưu" : "Lưu"}
+        disabled={pending}
       >
         {bookmarked ? (
           <BookmarkCheck size={20} strokeWidth={1.7} aria-hidden />
@@ -105,80 +183,12 @@ export function PostActionsRail({ shareUrl, title, coverImageUrl }: Props) {
           <Bookmark size={20} strokeWidth={1.7} aria-hidden />
         )}
         <span className="post-rail-lbl">Lưu</span>
+        {showCounts ? <span className="post-rail-count">{bookmarks}</span> : null}
       </button>
 
-      <div className="post-rail-share-wrap" ref={shareWrapRef}>
-        <button
-          type="button"
-          className={`post-rail-btn ${shareOpen ? "is-active" : ""}`}
-          onClick={() => setShareOpen((v) => !v)}
-          aria-expanded={shareOpen}
-          aria-haspopup="menu"
-          aria-label="Chia sẻ"
-        >
-          <Share2 size={20} strokeWidth={1.7} aria-hidden />
-          <span className="post-rail-lbl">Chia sẻ</span>
-        </button>
-
-        {shareOpen ? (
-          <div className="post-rail-share" role="menu">
-            <button
-              type="button"
-              className="post-rail-share-item"
-              onClick={() => {
-                copyLink();
-                setShareOpen(false);
-              }}
-            >
-              <span className="post-rail-share-ic post-rail-share-ic--copy">
-                <Link2 size={16} strokeWidth={1.8} aria-hidden />
-              </span>
-              <span>{copied ? "Đã sao chép!" : "Copy link"}</span>
-            </button>
-
-            <a
-              href={fbHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="post-rail-share-item"
-              role="menuitem"
-              onClick={() => setShareOpen(false)}
-            >
-              <span className="post-rail-share-ic post-rail-share-ic--fb">
-                f
-              </span>
-              <span>Facebook</span>
-            </a>
-
-            <a
-              href={xHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="post-rail-share-item"
-              role="menuitem"
-              onClick={() => setShareOpen(false)}
-            >
-              <span className="post-rail-share-ic post-rail-share-ic--x">
-                𝕏
-              </span>
-              <span>X (Twitter)</span>
-            </a>
-
-            <a
-              href={pinHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="post-rail-share-item"
-              role="menuitem"
-              onClick={() => setShareOpen(false)}
-            >
-              <span className="post-rail-share-ic post-rail-share-ic--pin">
-                P
-              </span>
-              <span>Pinterest</span>
-            </a>
-          </div>
-        ) : null}
+      <div className="post-rail-btn is-comment-count" aria-label={`${commentCount} bình luận`}>
+        <MessageCircle size={20} strokeWidth={1.7} aria-hidden />
+        <span className="post-rail-count">{commentCount}</span>
       </div>
     </aside>
   );

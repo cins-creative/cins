@@ -11,7 +11,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 
 import {
   addMilestoneComment,
@@ -51,7 +51,7 @@ import { PostActionsRail } from "./PostActionsRail";
    ║ Wrap container = `.cins-editor-page.cins-post-view` để áp dụng   ║
    ║ editor.css; override read-only spacing trong post-view.css.     ║
    ║                                                                  ║
-   ║ Cạnh phải: `PostActionsRail` (Like · Lưu · Chia sẻ + popover).   ║
+   ║ Cạnh phải: `PostActionsRail` (Like · Lưu · Bình luận).           ║
    ╚══════════════════════════════════════════════════════════════════╝ */
 
 const TYPE_LABEL: Record<string, string> = {
@@ -88,10 +88,10 @@ export function JourneyPostBody({
   onMilestoneUpdated,
 }: Props) {
   const [detail, setDetail] = useState<MilestonePostDetail>(initialDetail);
-  const { milestone, owner, posts, comments, viewerCanComment } = detail;
+  const { milestone, owner, posts, comments, viewerCanComment, social } = detail;
 
   useEffect(() => {
-    setDetail(initialDetail);
+    queueMicrotask(() => setDetail(initialDetail));
   }, [initialDetail]);
 
   /* `posts[0]` là tác phẩm chính. Khi cột mốc có nhiều tác phẩm (lượt sau)
@@ -114,27 +114,6 @@ export function JourneyPostBody({
   const permalinkHref =
     !hideOpenLink && postSlug ? `/${owner.slug}/p/${postSlug}` : null;
 
-  /* Absolute URL cho share targets (chỉ build client-side để có origin). */
-  const [absoluteUrl, setAbsoluteUrl] = useState("");
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (postSlug) {
-      setAbsoluteUrl(
-        `${window.location.origin}/${owner.slug}/p/${postSlug}`,
-      );
-    } else {
-      setAbsoluteUrl(window.location.href);
-    }
-  }, [owner.slug, postSlug]);
-
-  const coverImageUrl = useMemo(() => {
-    if (!coverSeed) return null;
-    /* Picsum seed → URL absolute để Pinterest pin có ảnh. */
-    return `https://picsum.photos/seed/${encodeURIComponent(
-      coverSeed,
-    )}/1200/800`;
-  }, [coverSeed]);
-
   function onCommentAdded(c: MilestonePostComment) {
     setDetail((d) => ({ ...d, comments: [...d.comments, c] }));
   }
@@ -156,9 +135,13 @@ export function JourneyPostBody({
   return (
     <div className="cins-editor-page cins-post-view">
       <PostActionsRail
-        shareUrl={absoluteUrl}
-        title={heroTitle}
-        coverImageUrl={coverImageUrl}
+        milestoneId={milestone.id}
+        initialLiked={social.viewerLiked}
+        initialBookmarked={social.viewerBookmarked}
+        likeCount={social.likeCount}
+        bookmarkCount={social.bookmarkCount}
+        commentCount={comments.length}
+        showCounts={detail.viewerIsOwner}
       />
 
       <main className="editor-canvas post-canvas" aria-label="Bài viết">
@@ -441,7 +424,7 @@ function CommentSection({
         </form>
       ) : (
         <div className="post-comments-login">
-          <a href="/login">Đăng nhập</a> để bình luận.
+          <Link href="/login">Đăng nhập</Link> để bình luận.
         </div>
       )}
 
@@ -499,7 +482,7 @@ function CommentItem({
   /* Sync draft khi comment.noiDung đổi từ ngoài (sau save thành công
      parent state cập nhật → comment prop mới flow vào đây). */
   useEffect(() => {
-    if (!editing) setDraft(comment.noiDung);
+    if (!editing) queueMicrotask(() => setDraft(comment.noiDung));
   }, [comment.noiDung, editing]);
 
   /* Đóng kebab menu khi click outside / nhấn Esc — chỉ active khi mở

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useTransition } from "react";
+import { useCallback, useState, useTransition } from "react";
 
 import type { PendingCoAuthorInvite } from "@/lib/social/types";
 
@@ -16,9 +16,11 @@ export function JourneyCoAuthorPendingBanner({
 }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
 
   const respond = useCallback(
     (tacPhamId: string, trangThai: "accepted" | "declined") => {
+      setError(null);
       startTransition(async () => {
         const res = await fetch(
           `/api/tac-pham/${tacPhamId}/tac-gia/${viewerProfileId}`,
@@ -28,7 +30,16 @@ export function JourneyCoAuthorPendingBanner({
             body: JSON.stringify({ trang_thai: trangThai }),
           },
         );
-        if (res.ok) router.refresh();
+        if (res.ok) {
+          router.refresh();
+          return;
+        }
+        const json = await res.json().catch(() => ({}));
+        setError(
+          typeof json.error === "string"
+            ? json.error
+            : "Không phản hồi được lời mời.",
+        );
       });
     },
     [router, viewerProfileId],
@@ -55,7 +66,10 @@ export function JourneyCoAuthorPendingBanner({
               type="button"
               className="j-coauthor-pending-btn is-accept"
               disabled={pending}
-              onClick={() => respond(inv.tacPhamId, "accepted")}
+              onClick={(e) => {
+                e.stopPropagation();
+                respond(inv.tacPhamId, "accepted");
+              }}
             >
               Chấp nhận
             </button>
@@ -63,11 +77,15 @@ export function JourneyCoAuthorPendingBanner({
               type="button"
               className="j-coauthor-pending-btn"
               disabled={pending}
-              onClick={() => respond(inv.tacPhamId, "declined")}
+              onClick={(e) => {
+                e.stopPropagation();
+                respond(inv.tacPhamId, "declined");
+              }}
             >
               Từ chối
             </button>
           </div>
+          {error ? <p className="j-coauthor-pending-error">{error}</p> : null}
         </div>
       ))}
     </div>

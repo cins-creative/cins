@@ -49,6 +49,7 @@ export type CoAuthorCredit = {
   slug?: string | null;
   avatarUrl?: string | null;
   initial?: string | null;
+  laChuSoHuu?: boolean;
 };
 
 export type MilestoneAttribution = {
@@ -89,6 +90,8 @@ export type MilestoneMediaItem = {
 export type MilestoneItem = {
   /** UUID hoặc slug nội bộ — dùng làm key React + data-mid cho overlay. */
   id: string;
+  /** UUID thật của `content_cot_moc`, dùng cho action DB như bookmark/comment. */
+  cotMocId?: string | null;
 
   /** Hiển thị: variant + content type + visibility. */
   variant: MilestoneVariant;
@@ -162,4 +165,11 @@ export type MilestoneItem = {
   /** Số views + comments (footer). Bỏ trống → ẩn footer. */
   views?: number | null;
   comments?: number | null;
+  social?: {
+    viewerLiked: boolean;
+    viewerBookmarked: boolean;
+    likeCount: number;
+    bookmarkCount: number;
+    showCounts: boolean;
+  };
 };

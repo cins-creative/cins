@@ -110,6 +110,7 @@ export async function renderJourneyPage({
   const { milestones, stats: milestoneStats } = await fetchMilestonesForUser({
     userId: owner.id,
     isOwner,
+    viewerId: session.profile?.id ?? null,
   });
 
   const coAuthorPendingInvites =

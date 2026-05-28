@@ -90,7 +90,7 @@ export function JourneyTimeline({
       if (!target) return;
       if (
         target.closest(
-          "a,button,input,textarea,select,.j-m-menu,[data-card-interactive]",
+          "a,button,input,textarea,select,summary,.j-m-menu,.authors-details",
         )
       ) {
         return;

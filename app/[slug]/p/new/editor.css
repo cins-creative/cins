@@ -365,9 +365,9 @@
   width: 100%;
   border: none;
   background: none;
-  font-family: var(--font-serif);
-  font-style: italic;
-  font-size: 19px;
+  font-family: var(--font-sans);
+  font-style: normal;
+  font-size: 18px;
   color: var(--ink-title);
   resize: none;
   outline: none;

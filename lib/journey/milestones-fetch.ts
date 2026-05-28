@@ -8,6 +8,7 @@ import type {
 } from "@/components/journey/milestone-types";
 import type { Block as ServerBlock } from "@/lib/editor/types";
 import type { CoAuthorCredit } from "@/components/journey/milestone-types";
+import { getCfAccountHash } from "@/lib/cloudflare/account-hash";
 import { fetchArticleTagsForTacPham } from "@/lib/journey/article-tags-batch";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -56,6 +57,26 @@ type ThuocMocRow = {
   } | null;
 };
 
+type BookmarkRow = {
+  id_doi_tuong: string;
+  loai_doi_tuong: string;
+};
+
+type BookmarkLinkRow = {
+  id_cot_moc: string;
+  id_tac_pham: string;
+  thu_tu: number;
+  content_tac_pham: {
+    id: string;
+    slug: string | null;
+    tieu_de: string;
+    cover_id: string | null;
+    loai_tac_pham: string;
+    noi_dung_blocks: unknown;
+    id_nguoi_dung: string;
+  } | null;
+};
+
 const LOAI_MOC_TO_TYPE: Record<CotMocRow["loai_moc"], MilestoneType> = {
   hoc: "hoc",
   lam_viec: "lam",
@@ -65,14 +86,28 @@ const LOAI_MOC_TO_TYPE: Record<CotMocRow["loai_moc"], MilestoneType> = {
   ca_nhan: "ca-nhan",
 };
 
+const CF_UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function coverSeedUrl(seed: string | null | undefined, w = 1400, h = 560): string | null {
+  const trimmed = seed?.trim();
+  if (!trimmed) return null;
+  if (CF_UUID_RE.test(trimmed)) {
+    const hash = getCfAccountHash();
+    if (hash) return `https://imagedelivery.net/${hash}/${trimmed}/public`;
+  }
+  return `https://picsum.photos/seed/${encodeURIComponent(trimmed)}/${w}/${h}`;
+}
+
 export async function fetchMilestonesForUser(params: {
   userId: string;
   isOwner: boolean;
+  viewerId?: string | null;
 }): Promise<{
   milestones: MilestoneItem[];
   stats: { cotMoc: number; cotMocVerified: number; tacPham: number; noiBat: number };
 }> {
-  const { userId, isOwner } = params;
+  const { userId, isOwner, viewerId = null } = params;
   const admin = createServiceRoleClient();
   const { count: totalTacPham } = await admin
     .from("content_tac_pham")
@@ -104,13 +139,17 @@ export async function fetchMilestonesForUser(params: {
   }
 
   if (cotMocs.length === 0) {
-    const tagged = await fetchTaggedMilestonesForUser({
-      userId,
-      isOwner,
-      admin,
-    });
+    const [tagged, bookmarks] = await Promise.all([
+      fetchTaggedMilestonesForUser({
+        userId,
+        isOwner,
+        admin,
+      }),
+      fetchBookmarkedMilestonesForUser({ userId, isOwner, admin }),
+    ]);
+    const merged = mergeMilestoneLists(tagged, bookmarks);
     return {
-      milestones: tagged,
+      milestones: await attachSocialState(admin, merged, viewerId, isOwner),
       stats: {
         cotMoc: 0,
         cotMocVerified: 0,
@@ -187,6 +226,7 @@ export async function fetchMilestonesForUser(params: {
 
     return {
       id: m.id,
+      cotMocId: m.id,
       variant: "self" as MilestoneVariant,
       type: LOAI_MOC_TO_TYPE[m.loai_moc],
       visibility: mapVisibility(m.che_do_hien_thi),
@@ -198,10 +238,14 @@ export async function fetchMilestonesForUser(params: {
       body: m.mo_ta || null,
       postSlug: firstPostSlug,
       tacPhamId: firstPost?.id ?? null,
-      /* `cover_id` KHÔNG render trên card Journey nữa — chỉ dùng cho
-         Gallery thumb. Card render `noiDungBlocks` inline (xem
-         `JourneyMilestoneCard`). */
-      media: [],
+      media: firstPost?.cover_id
+        ? [
+            {
+              src: coverSeedUrl(firstPost.cover_id) ?? "",
+              label: firstPost.tieu_de,
+            },
+          ].filter((item) => item.src)
+        : [],
       noiDungBlocks,
       articleTags,
       coAuthorCredits: firstPost?.id
@@ -210,16 +254,20 @@ export async function fetchMilestonesForUser(params: {
     };
   });
 
-  const tagged = await fetchTaggedMilestonesForUser({
-    userId,
-    isOwner,
-    admin,
-  });
+  const [tagged, bookmarks] = await Promise.all([
+    fetchTaggedMilestonesForUser({
+      userId,
+      isOwner,
+      admin,
+    }),
+    fetchBookmarkedMilestonesForUser({ userId, isOwner, admin }),
+  ]);
 
-  const merged = mergeMilestoneLists(milestones, tagged);
+  const merged = mergeMilestoneLists(mergeMilestoneLists(milestones, tagged), bookmarks);
+  const withSocial = await attachSocialState(admin, merged, viewerId, isOwner);
 
   return {
-    milestones: merged,
+    milestones: withSocial,
     stats: {
       cotMoc: cotMocs.length,
       cotMocVerified: 0,
@@ -337,6 +385,7 @@ async function fetchTaggedMilestonesForUser(params: {
     const dateObj = new Date(cm.thoi_diem);
     return {
       id: `${cm.id}:${tacPhamId}`,
+      cotMocId: cm.id,
       variant: "tagged" as MilestoneVariant,
       type: LOAI_MOC_TO_TYPE[cm.loai_moc],
       visibility: mapVisibility(cm.che_do_hien_thi),
@@ -350,7 +399,14 @@ async function fetchTaggedMilestonesForUser(params: {
       postOwnerSlug: (owner?.slug as string) ?? null,
       tacPhamId,
       canProposeCoAuthor: isOwner && statusByTp.get(tacPhamId) === "accepted",
-      media: [],
+      media: tp.cover_id
+        ? [
+            {
+              src: coverSeedUrl(tp.cover_id as string) ?? "",
+              label: (tp.tieu_de as string) || cm.tieu_de,
+            },
+          ].filter((item) => item.src)
+        : [],
       noiDungBlocks: parseServerBlocks(tp.noi_dung_blocks),
       articleTags: tagsByTacPham.get(tacPhamId) ?? [],
       attribution: owner
@@ -370,6 +426,133 @@ async function fetchTaggedMilestonesForUser(params: {
   });
 }
 
+async function fetchBookmarkedMilestonesForUser(params: {
+  userId: string;
+  isOwner: boolean;
+  admin: ReturnType<typeof createServiceRoleClient>;
+}): Promise<MilestoneItem[]> {
+  const { userId, isOwner, admin } = params;
+  const targetTypes = isOwner ? ["cot_moc", "cot_moc_private"] : ["cot_moc"];
+  const { data: savedRows } = await admin
+    .from("social_luu")
+    .select("id_doi_tuong, loai_doi_tuong")
+    .eq("id_nguoi_dung", userId)
+    .in("loai_doi_tuong", targetTypes)
+    .returns<BookmarkRow[]>();
+
+  const cotMocIds = [
+    ...new Set((savedRows ?? []).map((row) => row.id_doi_tuong).filter(Boolean)),
+  ];
+  if (cotMocIds.length === 0) return [];
+
+  const privateIds = new Set(
+    (savedRows ?? [])
+      .filter((row) => row.loai_doi_tuong === "cot_moc_private")
+      .map((row) => row.id_doi_tuong),
+  );
+
+  const { data: cotMocs } = await admin
+    .from("content_cot_moc")
+    .select(
+      "id, loai_moc, nguon_goc, tieu_de, mo_ta, thoi_diem, che_do_hien_thi, tao_luc",
+    )
+    .in("id", cotMocIds)
+    .returns<CotMocRow[]>();
+
+  const visibleCotMocs = (cotMocs ?? []).filter((cm) => {
+    if (isOwner) return true;
+    if (privateIds.has(cm.id)) return false;
+    return cm.che_do_hien_thi !== "chi_minh";
+  });
+  if (visibleCotMocs.length === 0) return [];
+
+  const { data: links } = await admin
+    .from("content_tac_pham_thuoc_moc")
+    .select(
+      "id_cot_moc, id_tac_pham, thu_tu, content_tac_pham:content_tac_pham!inner(id, slug, tieu_de, cover_id, loai_tac_pham, noi_dung_blocks, id_nguoi_dung)",
+    )
+    .in("id_cot_moc", visibleCotMocs.map((cm) => cm.id))
+    .order("thu_tu", { ascending: true })
+    .returns<BookmarkLinkRow[]>();
+
+  const firstLinkByMoc = new Map<string, NonNullable<typeof links>[number]>();
+  for (const link of links ?? []) {
+    const id = link.id_cot_moc as string;
+    if (!firstLinkByMoc.has(id)) firstLinkByMoc.set(id, link);
+  }
+
+  const tacPhamIds = [
+    ...new Set(
+      [...firstLinkByMoc.values()]
+        .map((link) => link.content_tac_pham?.id as string | undefined)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  const [tagsByTacPham, creditsByTacPham] = await Promise.all([
+    fetchArticleTagsForTacPham(admin, tacPhamIds),
+    loadAcceptedCredits(admin, tacPhamIds),
+  ]);
+
+  const ownerIds = [
+    ...new Set(
+      [...firstLinkByMoc.values()]
+        .map((link) => link.content_tac_pham?.id_nguoi_dung as string | undefined)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  const { data: owners } = ownerIds.length
+    ? await admin
+        .from("user_nguoi_dung")
+        .select("id, slug, ten_hien_thi, avatar_id")
+        .in("id", ownerIds)
+    : { data: [] };
+  const ownerById = new Map((owners ?? []).map((owner) => [owner.id as string, owner]));
+
+  return visibleCotMocs
+    .map((cm): MilestoneItem | null => {
+      const link = firstLinkByMoc.get(cm.id);
+      const tp = link?.content_tac_pham;
+      if (!tp?.id || !tp.slug) return null;
+      const owner = ownerById.get(tp.id_nguoi_dung as string);
+      const dateObj = new Date(cm.thoi_diem);
+      return {
+        id: `bookmark:${cm.id}:${tp.id}`,
+        cotMocId: cm.id,
+        variant: "bookmark" as MilestoneVariant,
+        type: LOAI_MOC_TO_TYPE[cm.loai_moc],
+        visibility: privateIds.has(cm.id) ? "private" : mapVisibility(cm.che_do_hien_thi),
+        year: dateObj.getUTCFullYear(),
+        month: dateObj.getUTCMonth() + 1,
+        day: dateObj.getUTCDate(),
+        createdAt: cm.tao_luc,
+        title: cm.tieu_de,
+        body: cm.mo_ta || null,
+        postSlug: tp.slug as string,
+        postOwnerSlug: (owner?.slug as string) ?? null,
+        tacPhamId: tp.id as string,
+        media: tp.cover_id
+          ? [
+              {
+                src: coverSeedUrl(tp.cover_id as string) ?? "",
+                label: (tp.tieu_de as string) || cm.tieu_de,
+              },
+            ].filter((item) => item.src)
+          : [],
+        noiDungBlocks: parseServerBlocks(tp.noi_dung_blocks),
+        articleTags: tagsByTacPham.get(tp.id as string) ?? [],
+        bookmark: {
+          name: (owner?.ten_hien_thi as string) || (owner?.slug as string) || "Journey",
+          domain: owner?.slug ? `@${owner.slug}` : "CINS",
+          initial: ((owner?.ten_hien_thi as string) || (owner?.slug as string) || "C")
+            .slice(0, 1)
+            .toUpperCase(),
+        },
+        coAuthorCredits: creditsByTacPham.get(tp.id as string) ?? [],
+      };
+    })
+    .filter((item): item is MilestoneItem => item !== null);
+}
+
 async function loadAcceptedCredits(
   admin: ReturnType<typeof createServiceRoleClient>,
   tacPhamIds: string[],
@@ -382,6 +565,7 @@ async function loadAcceptedCredits(
     .select("id_tac_pham, id_nguoi_dung, vai_tro, la_chu_so_huu, thu_tu")
     .in("id_tac_pham", tacPhamIds)
     .eq("trang_thai", "accepted")
+    .order("la_chu_so_huu", { ascending: false })
     .order("thu_tu", { ascending: true });
 
   if (!rows?.length) return out;
@@ -403,6 +587,7 @@ async function loadAcceptedCredits(
       initial: ((p?.ten_hien_thi as string) || (p?.slug as string) || "?")
         .slice(0, 1)
         .toUpperCase(),
+      laChuSoHuu: Boolean(row.la_chu_so_huu),
     };
     const list = out.get(row.id_tac_pham as string) ?? [];
     list.push(credit);
@@ -433,6 +618,88 @@ function mergeMilestoneLists(
     const bCreated = b.createdAt ? Date.parse(b.createdAt) : 0;
     return bCreated - aCreated;
   });
+}
+
+async function attachSocialState(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  milestones: MilestoneItem[],
+  viewerId: string | null,
+  isProfileOwner: boolean,
+): Promise<MilestoneItem[]> {
+  const cotMocIds = [
+    ...new Set(
+      milestones
+        .map((item) => item.cotMocId ?? item.id)
+        .filter((id) => /^[0-9a-f-]{36}$/i.test(id)),
+    ),
+  ];
+  if (cotMocIds.length === 0) return milestones;
+
+  const [viewerLikes, viewerBookmarks, allLikes, allBookmarks] = await Promise.all([
+    viewerId
+      ? admin
+          .from("social_reaction")
+          .select("id_doi_tuong")
+          .eq("id_nguoi_dung", viewerId)
+          .eq("loai_doi_tuong", "cot_moc")
+          .eq("emoji", "heart")
+          .in("id_doi_tuong", cotMocIds)
+      : Promise.resolve({ data: [] }),
+    viewerId
+      ? admin
+          .from("social_luu")
+          .select("id_doi_tuong")
+          .eq("id_nguoi_dung", viewerId)
+          .in("loai_doi_tuong", ["cot_moc", "cot_moc_private"])
+          .in("id_doi_tuong", cotMocIds)
+      : Promise.resolve({ data: [] }),
+    isProfileOwner
+      ? admin
+          .from("social_reaction")
+          .select("id_doi_tuong")
+          .eq("loai_doi_tuong", "cot_moc")
+          .eq("emoji", "heart")
+          .in("id_doi_tuong", cotMocIds)
+      : Promise.resolve({ data: [] }),
+    isProfileOwner
+      ? admin
+          .from("social_luu")
+          .select("id_doi_tuong")
+          .in("loai_doi_tuong", ["cot_moc", "cot_moc_private"])
+          .in("id_doi_tuong", cotMocIds)
+      : Promise.resolve({ data: [] }),
+  ]);
+
+  const likedIds = new Set((viewerLikes.data ?? []).map((row) => row.id_doi_tuong as string));
+  const bookmarkedIds = new Set(
+    (viewerBookmarks.data ?? []).map((row) => row.id_doi_tuong as string),
+  );
+  const likeCounts = countByTarget(allLikes.data ?? []);
+  const bookmarkCounts = countByTarget(allBookmarks.data ?? []);
+
+  return milestones.map((item) => {
+    const id = item.cotMocId ?? item.id;
+    const showCounts = isProfileOwner && item.variant === "self";
+    return {
+      ...item,
+      social: {
+        viewerLiked: likedIds.has(id),
+        viewerBookmarked: bookmarkedIds.has(id),
+        likeCount: likeCounts.get(id) ?? 0,
+        bookmarkCount: bookmarkCounts.get(id) ?? 0,
+        showCounts,
+      },
+    };
+  });
+}
+
+function countByTarget(rows: Array<{ id_doi_tuong?: string | null }>): Map<string, number> {
+  const out = new Map<string, number>();
+  for (const row of rows) {
+    if (!row.id_doi_tuong) continue;
+    out.set(row.id_doi_tuong, (out.get(row.id_doi_tuong) ?? 0) + 1);
+  }
+  return out;
 }
 
 function mapVisibility(

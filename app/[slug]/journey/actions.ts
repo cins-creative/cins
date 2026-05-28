@@ -858,6 +858,12 @@ export type MilestonePostDetail = {
   viewerCanComment: boolean;
   /** True khi viewer chính là owner của cột mốc. Dùng để render nút "Sửa bài". */
   viewerIsOwner: boolean;
+  social: {
+    viewerLiked: boolean;
+    viewerBookmarked: boolean;
+    likeCount: number;
+    bookmarkCount: number;
+  };
 };
 
 type CotMocDetailRow = {
@@ -1065,6 +1071,42 @@ export async function loadMilestoneDetail(
     };
   });
 
+  const [{ count: likeCount }, { count: bookmarkCount }, viewerLiked, viewerBookmarked] =
+    await Promise.all([
+      admin
+        .from("social_reaction")
+        .select("id", { count: "exact", head: true })
+        .eq("loai_doi_tuong", "cot_moc")
+        .eq("id_doi_tuong", milestoneId)
+        .eq("emoji", "heart"),
+      admin
+        .from("social_luu")
+        .select("id", { count: "exact", head: true })
+        .in("loai_doi_tuong", ["cot_moc", "cot_moc_private"])
+        .eq("id_doi_tuong", milestoneId),
+      viewerId
+        ? admin
+            .from("social_reaction")
+            .select("id")
+            .eq("id_nguoi_dung", viewerId)
+            .eq("loai_doi_tuong", "cot_moc")
+            .eq("id_doi_tuong", milestoneId)
+            .eq("emoji", "heart")
+            .maybeSingle()
+            .then(({ data }) => Boolean(data))
+        : Promise.resolve(false),
+      viewerId
+        ? admin
+            .from("social_luu")
+            .select("id")
+            .eq("id_nguoi_dung", viewerId)
+            .in("loai_doi_tuong", ["cot_moc", "cot_moc_private"])
+            .eq("id_doi_tuong", milestoneId)
+            .maybeSingle()
+            .then(({ data }) => Boolean(data))
+        : Promise.resolve(false),
+    ]);
+
   return {
     ok: true,
     data: {
@@ -1081,6 +1123,12 @@ export async function loadMilestoneDetail(
       comments,
       viewerCanComment: !!viewerId,
       viewerIsOwner: isOwner,
+      social: {
+        viewerLiked,
+        viewerBookmarked,
+        likeCount: likeCount ?? 0,
+        bookmarkCount: bookmarkCount ?? 0,
+      },
     },
   };
 }
@@ -1276,7 +1324,7 @@ export async function addMilestoneComment(
         slug: session.profile.slug,
         tenHienThi:
           session.profile.ten_hien_thi || session.profile.slug,
-        avatarId: null,
+        avatarId: session.profile.avatar_id,
       },
     },
   };
