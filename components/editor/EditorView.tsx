@@ -282,7 +282,7 @@ export function EditorView({
   const cancelHref =
     isEdit && postSlug
       ? `/${ownerSlug}/p/${postSlug}`
-      : `/${ownerSlug}/journey`;
+      : `/${ownerSlug}`;
 
   const [coverSeed, setCoverSeed] = useState<string | null>(
     initial?.coverSeed ?? null,
@@ -699,7 +699,7 @@ export function EditorView({
       );
       /* Cho user thấy success flash 1.2s rồi nhảy về Journey. */
       setTimeout(() => {
-        router.push(`/${ownerSlug}/journey`);
+        router.push(`/${ownerSlug}`);
       }, 1200);
     });
   }, [
@@ -728,7 +728,7 @@ export function EditorView({
       {/* TOPBAR */}
       <header className="ed-topbar">
         <div className="ed-topbar-inner">
-          <Link href={`/${ownerSlug}/journey`} className="ed-brand" title="Về Journey">
+          <Link href={`/${ownerSlug}`} className="ed-brand" title="Về Journey">
             <span className="ed-brand-mark">CI</span>
             <span className="ed-title">Trình tạo bài viết</span>
           </Link>

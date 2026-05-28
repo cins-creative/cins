@@ -18,6 +18,7 @@ import {
   deleteMilestoneComment,
   editMilestoneComment,
   type MilestonePostComment,
+  type MilestonePostContributor,
   type MilestonePostDetail,
 } from "@/app/[slug]/journey/actions";
 import {
@@ -168,7 +169,7 @@ export function JourneyPostBody({
 
         <div className="post-byline">
           <Link
-            href={`/${owner.slug}/journey`}
+            href={`/${owner.slug}`}
             className="post-byline-author"
             prefetch={false}
           >
@@ -256,6 +257,10 @@ export function JourneyPostBody({
           </div>
         ) : null}
 
+        {mainPost && mainPost.contributors.length > 0 ? (
+          <PostContributors contributors={mainPost.contributors} />
+        ) : null}
+
         {blocks && blocks.length > 0 ? (
           <PostBlocksRenderer blocks={blocks} />
         ) : mainPost?.noiDungHtml ? (
@@ -283,6 +288,59 @@ export function JourneyPostBody({
         />
       </main>
     </div>
+  );
+}
+
+function PostContributors({
+  contributors,
+}: {
+  contributors: ReadonlyArray<MilestonePostContributor>;
+}) {
+  return (
+    <section className="post-contributors" aria-label="Người đóng góp dự án">
+      <div className="post-contributors-head">
+        <span>Người đóng góp dự án</span>
+        <strong>{contributors.length}</strong>
+      </div>
+      <div className="post-contributor-list">
+        {contributors.map((c) => {
+          const avatarUrl = getAvatarUrl(c.avatarId);
+          const initial = (c.tenHienThi || c.slug || "?").charAt(0).toUpperCase();
+          const body = (
+            <>
+              <span className="post-contributor-avatar" aria-hidden>
+                {avatarUrl ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img src={avatarUrl} alt="" />
+                ) : (
+                  initial
+                )}
+              </span>
+              <span className="post-contributor-copy">
+                <strong>{c.tenHienThi}</strong>
+                <span>
+                  {c.laChuSoHuu ? "Chủ bài viết" : c.vaiTro || "Cộng sự"}
+                </span>
+              </span>
+            </>
+          );
+          return c.slug ? (
+            <Link
+              key={c.id}
+              href={`/${c.slug}`}
+              className="post-contributor-card"
+              prefetch={false}
+            >
+              {body}
+            </Link>
+          ) : (
+            <span key={c.id} className="post-contributor-card">
+              {body}
+            </span>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 

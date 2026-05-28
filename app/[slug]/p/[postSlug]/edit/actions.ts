@@ -258,10 +258,10 @@ export async function updatePost(
     return { ok: false, error: coSync.error };
   }
 
-  /* 7. Revalidate journey. */
-  revalidatePath(`/${session.profile.slug}/journey`);
+  /* 7. Revalidate profile. */
+  revalidatePath(`/${session.profile.slug}`);
   for (const c of input.coAuthors ?? []) {
-    if (c.slug) revalidatePath(`/${c.slug}/journey`);
+    if (c.slug) revalidatePath(`/${c.slug}`);
   }
 
   return { ok: true, tacPhamId: input.tacPhamId, cotMocId: input.cotMocId };

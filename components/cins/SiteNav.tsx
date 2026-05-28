@@ -102,7 +102,7 @@ function SidebarUserCard({ profile }: { profile: SidebarProfile }) {
           aria-label="Tài khoản"
         >
           <Link
-            href={`/${profile.slug}/journey`}
+            href={`/${profile.slug}`}
             className="sb-user-menu-item"
             role="menuitem"
             onClick={() => setOpen(false)}

@@ -46,7 +46,7 @@ export default async function OnboardingPage({
       redirect("/admin");
     }
     const slugPart = encodeURIComponent(session.profile.slug);
-    redirect(`/${slugPart}/journey`);
+    redirect(`/${slugPart}`);
   }
 
   const initialName = session.profile.ten_hien_thi?.trim() || "";

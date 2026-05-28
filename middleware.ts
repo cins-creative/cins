@@ -42,7 +42,7 @@ function isBypassedPath(pathname: string): boolean {
  * Routes yêu cầu đăng nhập:
  *   - `/onboarding` (full-page welcome cho user mới — điền ten_hien_thi/slug/giai_doan)
  *   - `/admin`, `/admin/*` (panel)
- *   - `/{slug}/journey`, `/{slug}/journey/*` (owner journey + viewer)
+ *   - `/{slug}` và `/{slug}/journey` legacy (owner journey + viewer)
  *   - `/{slug}/p/new`, `/{slug}/p/[slug]/edit` (trình tạo / sửa bài viết)
  *
  * Khi có session → cho qua (bỏ qua maintenance). Khi không → redirect /login.
@@ -53,7 +53,34 @@ function isProtectedPath(pathname: string): boolean {
   }
   if (pathname === "/admin" || pathname.startsWith("/admin/")) return true;
 
-  /* `/{slug}/journey` — slug không bắt đầu bằng "_" (để loại _next, _internal). */
+  const publicTopLevel = new Set([
+    "api",
+    "auth",
+    "bai-viet",
+    "gallery",
+    "invite",
+    "keyword",
+    "login",
+    "maintenance",
+    "nganh-hoc",
+    "nghe-nghiep",
+    "onboarding",
+    "search",
+    "settings",
+    "truong-dai-hoc",
+  ]);
+
+  /* `/{slug}` — profile chính, slug không bắt đầu bằng "_" và không trùng route public. */
+  const profileMatch = pathname.match(/^\/([^/.]+)\/?$/);
+  if (
+    profileMatch &&
+    !profileMatch[1].startsWith("_") &&
+    !publicTopLevel.has(profileMatch[1])
+  ) {
+    return true;
+  }
+
+  /* Legacy `/{slug}/journey` — giữ protected khi link cũ còn tồn tại. */
   const journeyMatch = pathname.match(/^\/([^/]+)\/journey(?:\/|$)/);
   if (journeyMatch && !journeyMatch[1].startsWith("_")) return true;
 
@@ -75,6 +102,16 @@ function redirectLegacyNganhHubTab(request: NextRequest): NextResponse | null {
   const url = request.nextUrl.clone();
   url.pathname = "/nganh-hoc";
   url.searchParams.delete("tab");
+  return NextResponse.redirect(url, 308);
+}
+
+function redirectLegacyJourneyPath(request: NextRequest): NextResponse | null {
+  const { pathname } = request.nextUrl;
+  const match = pathname.match(/^\/([^/]+)\/journey\/?$/);
+  if (!match || match[1].startsWith("_")) return null;
+
+  const url = request.nextUrl.clone();
+  url.pathname = `/${match[1]}`;
   return NextResponse.redirect(url, 308);
 }
 
@@ -141,6 +178,8 @@ function redirectToLogin(
 export async function middleware(request: NextRequest) {
   const legacyNganh = redirectLegacyNganhHubTab(request);
   if (legacyNganh) return legacyNganh;
+  const legacyJourney = redirectLegacyJourneyPath(request);
+  if (legacyJourney) return legacyJourney;
 
   const { pathname } = request.nextUrl;
 

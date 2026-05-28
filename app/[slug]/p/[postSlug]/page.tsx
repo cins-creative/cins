@@ -87,7 +87,7 @@ export default async function PostPage({ params }: { params: Params }) {
         <div className="j-post-page">
           <div className="j-post-page-inner">
             <Link
-              href={`/${slug}/journey`}
+              href={`/${slug}`}
               className="j-post-page-crumb"
               prefetch={false}
             >
@@ -98,7 +98,7 @@ export default async function PostPage({ params }: { params: Params }) {
             <div className="j-post-page-error">
               <h1>Bài viết không khả dụng</h1>
               <p>{res.error}</p>
-              <Link href={`/${slug}/journey`}>Quay lại trang Journey</Link>
+              <Link href={`/${slug}`}>Quay lại trang Journey</Link>
             </div>
           </div>
         </div>
@@ -114,7 +114,7 @@ export default async function PostPage({ params }: { params: Params }) {
       <div className="j-post-page">
         <div className="j-post-page-inner">
           <Link
-            href={`/${detail.owner.slug}/journey`}
+            href={`/${detail.owner.slug}`}
             className="j-post-page-crumb"
             prefetch={false}
           >

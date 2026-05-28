@@ -276,8 +276,8 @@ function ProfileSwitchLink({
 }) {
   const href =
     view === "journey"
-      ? `/${encodeURIComponent(slug)}/journey`
-      : `/${encodeURIComponent(slug)}/journey?view=${view}`;
+      ? `/${encodeURIComponent(slug)}`
+      : `/${encodeURIComponent(slug)}?view=${view}`;
   const active = view === activeView;
   return (
     <Link

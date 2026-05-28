@@ -89,7 +89,7 @@ export function JourneyNotifications({
               {accepted.map((notice) => (
                 <li key={notice.notificationId}>
                   <Link
-                    href={`/${notice.slug}/journey`}
+                    href={`/${notice.slug}`}
                     className="j-notify-item is-accepted"
                   >
                     <Avatar request={notice} />
@@ -219,7 +219,7 @@ export function JourneyNotifications({
                 </>
               ) : null}
               <Link
-                href={`/${selected.slug}/journey`}
+                href={`/${selected.slug}`}
                 className="j-notify-action is-link"
               >
                 <ExternalLink size={14} aria-hidden /> Xem Journey

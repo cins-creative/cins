@@ -4022,6 +4022,9 @@ select.j-edit-input {
   border-color: #fdba74;
 }
 .j-friend-btn.is-friends {
+  min-width: 38px;
+  width: 38px;
+  padding: 0;
   background: #ecfdf5;
   color: #047857;
   border-color: #6ee7b7;

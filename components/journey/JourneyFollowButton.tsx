@@ -143,7 +143,7 @@ export function JourneyFollowButton({
         }
       >
         <Icon size={15} strokeWidth={2} aria-hidden />
-        <span>{label}</span>
+        {mutual ? null : <span>{label}</span>}
       </button>
       {incomingPending && menuOpen ? (
         <div

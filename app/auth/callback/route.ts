@@ -107,7 +107,7 @@ export async function GET(request: NextRequest) {
       destination = new URL(safeNext, origin);
     } else {
       destination = new URL(
-        `/${encodeURIComponent(profile.slug)}/journey`,
+        `/${encodeURIComponent(profile.slug)}`,
         origin,
       );
     }

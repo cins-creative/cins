@@ -228,9 +228,9 @@ export async function submitOnboarding(
   }
 
   /* Revalidate cả slug cũ lẫn slug mới — slug có thể đã thay đổi. */
-  revalidatePath(`/${session.profile.slug}/journey`);
+  revalidatePath(`/${session.profile.slug}`);
   if (slug !== session.profile.slug) {
-    revalidatePath(`/${slug}/journey`);
+    revalidatePath(`/${slug}`);
   }
 
   return { ok: true, data: { slug } };
@@ -453,7 +453,7 @@ export async function updateProfile(
     return { ok: false, error: "Không lưu được hồ sơ: " + raw };
   }
 
-  revalidatePath(`/${session.profile.slug}/journey`);
+  revalidatePath(`/${session.profile.slug}`);
   return { ok: true, data: { slug: session.profile.slug } };
 }
 
@@ -497,7 +497,7 @@ export async function updateAvatar(
     return { ok: false, error: "Không lưu được avatar: " + updateErr.message };
   }
 
-  revalidatePath(`/${session.profile.slug}/journey`);
+  revalidatePath(`/${session.profile.slug}`);
   return {
     ok: true,
     data: { slug: session.profile.slug, avatarId: cleaned },
@@ -541,7 +541,7 @@ export async function updateCover(
     return { ok: false, error: "Không lưu được cover: " + updateErr.message };
   }
 
-  revalidatePath(`/${session.profile.slug}/journey`);
+  revalidatePath(`/${session.profile.slug}`);
   return {
     ok: true,
     data: { slug: session.profile.slug, coverId: cleaned },
@@ -615,7 +615,7 @@ export async function updateLoaiMocVisibility(
     return { ok: false, error: "Không lưu được tuỳ chọn." };
   }
 
-  revalidatePath(`/${session.profile.slug}/journey`);
+  revalidatePath(`/${session.profile.slug}`);
   return { ok: true, data: null };
 }
 
@@ -688,7 +688,7 @@ export async function updateMilestoneType(
     return { ok: false, error: "Không đổi được nhóm: " + error.message };
   }
 
-  revalidatePath(`/${owner.profileSlug}/journey`);
+  revalidatePath(`/${owner.profileSlug}`);
   return { ok: true, data: null };
 }
 
@@ -729,7 +729,7 @@ export async function updateMilestoneVisibility(
       .in("id", tacPhamIds);
   }
 
-  revalidatePath(`/${owner.profileSlug}/journey`);
+  revalidatePath(`/${owner.profileSlug}`);
   return { ok: true, data: null };
 }
 
@@ -780,7 +780,7 @@ export async function deleteMilestone(
     return { ok: false, error: "Không xoá được cột mốc: " + delErr.message };
   }
 
-  revalidatePath(`/${owner.profileSlug}/journey`);
+  revalidatePath(`/${owner.profileSlug}`);
   return { ok: true, data: null };
 }
 
@@ -823,6 +823,16 @@ export type MilestonePostContent = {
    * sẽ điều hướng tới trang article tương ứng theo `loai_bai_viet`.
    */
   articleTags: ArticleTagRef[];
+  contributors: MilestonePostContributor[];
+};
+
+export type MilestonePostContributor = {
+  id: string;
+  slug: string;
+  tenHienThi: string;
+  avatarId: string | null;
+  vaiTro: string | null;
+  laChuSoHuu: boolean;
 };
 
 export type MilestonePostComment = {
@@ -884,6 +894,14 @@ type CommentRow = {
   noi_dung: string;
   tao_luc: string;
   da_xoa: boolean;
+};
+
+type TacGiaRow = {
+  id_tac_pham: string;
+  id_nguoi_dung: string;
+  vai_tro: string | null;
+  la_chu_so_huu: boolean;
+  thu_tu: number | null;
 };
 
 export async function loadMilestoneDetail(
@@ -986,6 +1004,10 @@ export async function loadMilestoneDetail(
     admin,
     tacPhamRows.map((t) => t.id),
   );
+  const contributorsByTacPham = await loadPostContributors(
+    admin,
+    tacPhamRows.map((t) => t.id),
+  );
 
   const posts: MilestonePostContent[] = tacPhamRows.map((tp) => ({
     id: tp.id,
@@ -996,6 +1018,7 @@ export async function loadMilestoneDetail(
     noiDungBlocks: parseServerBlocks(tp.noi_dung_blocks),
     coverId: tp.cover_id,
     articleTags: tagsByTacPham.get(tp.id) ?? [],
+    contributors: contributorsByTacPham.get(tp.id) ?? [],
   }));
 
   /* Comments — lấy top-level (id_cha IS NULL), sort cũ → mới. */
@@ -1118,6 +1141,50 @@ export async function loadPostBySlug(
   return loadMilestoneDetail(link.id_cot_moc);
 }
 
+async function loadPostContributors(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  tacPhamIds: string[],
+): Promise<Map<string, MilestonePostContributor[]>> {
+  const out = new Map<string, MilestonePostContributor[]>();
+  if (tacPhamIds.length === 0) return out;
+
+  const { data: rows } = await admin
+    .from("content_tac_pham_tac_gia")
+    .select("id_tac_pham, id_nguoi_dung, vai_tro, la_chu_so_huu, thu_tu")
+    .in("id_tac_pham", tacPhamIds)
+    .eq("trang_thai", "accepted")
+    .order("la_chu_so_huu", { ascending: false })
+    .order("thu_tu", { ascending: true })
+    .returns<TacGiaRow[]>();
+
+  if (!rows?.length) return out;
+
+  const userIds = [...new Set(rows.map((r) => r.id_nguoi_dung))];
+  const { data: profiles } = await admin
+    .from("user_nguoi_dung")
+    .select("id, slug, ten_hien_thi, avatar_id")
+    .in("id", userIds)
+    .returns<ProfileRow[]>();
+  const profileById = new Map((profiles ?? []).map((p) => [p.id, p]));
+
+  for (const row of rows) {
+    const profile = profileById.get(row.id_nguoi_dung);
+    const contributor: MilestonePostContributor = {
+      id: row.id_nguoi_dung,
+      slug: profile?.slug ?? "",
+      tenHienThi: profile?.ten_hien_thi || profile?.slug || "Người dùng",
+      avatarId: profile?.avatar_id ?? null,
+      vaiTro: row.vai_tro,
+      laChuSoHuu: row.la_chu_so_huu,
+    };
+    const list = out.get(row.id_tac_pham) ?? [];
+    list.push(contributor);
+    out.set(row.id_tac_pham, list);
+  }
+
+  return out;
+}
+
 const MAX_COMMENT_LEN = 1000;
 
 export async function addMilestoneComment(
@@ -1195,7 +1262,7 @@ export async function addMilestoneComment(
     .eq("id", cotMoc.id_nguoi_dung)
     .maybeSingle<{ slug: string }>();
   if (ownerProfile?.slug) {
-    revalidatePath(`/${ownerProfile.slug}/journey`);
+    revalidatePath(`/${ownerProfile.slug}`);
   }
 
   return {

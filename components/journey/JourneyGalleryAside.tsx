@@ -8,7 +8,7 @@ export type GalleryPinnedBanner = {
   pin: string;
   title: string;
   meta: string;
-  /** Link ngữ cảnh — VD /{slug}/journey?mid=cins. */
+  /** Link ngữ cảnh — VD /{slug}?mid=cins. */
   href?: string;
 };
 

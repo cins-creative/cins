@@ -60,7 +60,7 @@ export async function generateMetadata({
   };
 }
 
-export default async function JourneyPage({
+export async function renderJourneyPage({
   params,
   searchParams,
 }: {
@@ -72,7 +72,7 @@ export default async function JourneyPage({
 
   const session = await getCurrentSessionAndProfile();
   if (!session) {
-    redirect(`/login?next=${encodeURIComponent(`/${slug}/journey`)}`);
+    redirect(`/login?next=${encodeURIComponent(`/${slug}`)}`);
   }
 
   const admin = createServiceRoleClient();
@@ -197,4 +197,20 @@ export default async function JourneyPage({
       />
     </CinsShell>
   );
+}
+
+export default async function LegacyJourneyPage({
+  params,
+  searchParams,
+}: {
+  params: Params;
+  searchParams: SearchParams;
+}) {
+  const { slug } = await params;
+  const { welcome, view } = await searchParams;
+  const qs = new URLSearchParams();
+  if (welcome) qs.set("welcome", welcome);
+  if (view) qs.set("view", view);
+  const query = qs.toString();
+  redirect(`/${encodeURIComponent(slug)}${query ? `?${query}` : ""}`);
 }

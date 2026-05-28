@@ -91,9 +91,26 @@ export async function fetchMilestonesForUser(params: {
     .order("tao_luc", { ascending: false, nullsFirst: false })
     .returns<CotMocRow[]>();
 
-  if (error || !cotMocs || cotMocs.length === 0) {
+  if (error || !cotMocs) {
     return {
       milestones: [],
+      stats: {
+        cotMoc: 0,
+        cotMocVerified: 0,
+        tacPham: totalTacPham ?? 0,
+        noiBat: 0,
+      },
+    };
+  }
+
+  if (cotMocs.length === 0) {
+    const tagged = await fetchTaggedMilestonesForUser({
+      userId,
+      isOwner,
+      admin,
+    });
+    return {
+      milestones: tagged,
       stats: {
         cotMoc: 0,
         cotMocVerified: 0,

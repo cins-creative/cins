@@ -60,7 +60,7 @@ export function JourneyFriendsView({ friends }: Props) {
                   <button type="button" className="j-friend-message" disabled>
                     Nhắn tin
                   </button>
-                  <Link href={`/${friend.slug}/journey`} className="j-friend-link">
+                  <Link href={`/${friend.slug}`} className="j-friend-link">
                     Xem Journey
                   </Link>
                 </div>

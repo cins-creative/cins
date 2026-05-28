@@ -141,7 +141,7 @@ export async function fetchGalleryForUser(params: {
 }
 
 function postHref(ownerSlug: string, postSlug: string | null): string {
-  if (!postSlug) return `/${ownerSlug}/journey`;
+  if (!postSlug) return `/${ownerSlug}`;
   return `/${ownerSlug}/p/${postSlug}`;
 }
 

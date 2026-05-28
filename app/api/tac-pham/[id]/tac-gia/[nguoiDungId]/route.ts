@@ -56,14 +56,14 @@ export async function PATCH(req: Request, ctx: RouteCtx) {
       .select("slug")
       .eq("id", ownerId)
       .maybeSingle();
-    if (owner?.slug) revalidatePath(`/${owner.slug}/journey`);
+    if (owner?.slug) revalidatePath(`/${owner.slug}`);
   }
   const { data: invitee } = await admin
     .from("user_nguoi_dung")
     .select("slug")
     .eq("id", nguoiDungId)
     .maybeSingle();
-  if (invitee?.slug) revalidatePath(`/${invitee.slug}/journey`);
+  if (invitee?.slug) revalidatePath(`/${invitee.slug}`);
 
   return NextResponse.json({ ok: true });
 }

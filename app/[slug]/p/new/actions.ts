@@ -244,10 +244,10 @@ export async function publishPost(
     console.error("[publishPost] co-author sync failed", coSync.error);
   }
 
-  /* 6. Revalidate journey để CTA / timeline thấy bài mới. */
-  revalidatePath(`/${session.profile.slug}/journey`);
+  /* 6. Revalidate profile để CTA / timeline thấy bài mới. */
+  revalidatePath(`/${session.profile.slug}`);
   for (const c of input.coAuthors ?? []) {
-    if (c.slug) revalidatePath(`/${c.slug}/journey`);
+    if (c.slug) revalidatePath(`/${c.slug}`);
   }
 
   return {

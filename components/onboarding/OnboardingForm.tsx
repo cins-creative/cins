@@ -79,7 +79,7 @@ function normalizeSlugInput(raw: string): string {
  * Sử dụng CINs design system (`--cins-*` tokens + Be Vietnam Pro + Crimson Pro).
  * Class prefix `cins-onb-*`.
  *
- * Sau submit thành công → redirect `/{slug}/journey?welcome=1`.
+ * Sau submit thành công → redirect `/{slug}?welcome=1`.
  */
 export function OnboardingForm({ initialTenHienThi, initialSlug }: Props) {
   const router = useRouter();
@@ -170,7 +170,7 @@ export function OnboardingForm({ initialTenHienThi, initialSlug }: Props) {
         return;
       }
       const newSlug = result.data.slug;
-      router.replace(`/${encodeURIComponent(newSlug)}/journey?welcome=1`);
+      router.replace(`/${encodeURIComponent(newSlug)}?welcome=1`);
     });
   }
 
