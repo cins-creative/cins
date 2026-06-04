@@ -23,7 +23,7 @@ export type Block = {
   /**
    * Cấu hình theo type:
    *   - h2/h3/body/quote: { html: string }  — plain text từ textarea, server tự escape khi render.
-   *   - imgs: { layout, rounded, cap, imgs: string[], mosaic? }
+   *   - imgs: { layout, rounded, cap, imgs: string[], cols?, cells?, gap?, pad? }
    *   - embed: { url, provider?, embed_html? }
    *   - palette: { colors: string[] }
    *   - divider: {}

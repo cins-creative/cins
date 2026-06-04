@@ -23,6 +23,7 @@ import Link from "next/link";
 
 import { JourneyCoAuthorProposal } from "@/components/journey/JourneyCoAuthorProposal";
 import { JourneyBookmarkButton } from "@/components/journey/JourneyBookmarkButton";
+import { JourneyMilestoneInlineControls } from "@/components/journey/JourneyMilestoneInlineControls";
 import { JourneyLikeButton } from "@/components/journey/JourneyLikeButton";
 import { JourneyMilestoneOwnerMenu } from "@/components/journey/JourneyMilestoneOwnerMenu";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
@@ -35,6 +36,7 @@ import type {
 } from "@/components/journey/milestone-types";
 import { articlePublicHref } from "@/lib/articles/article-href";
 import { articleTagLoaiClass } from "@/lib/editor/article-tag";
+import type { LoaiMoc, Visibility } from "@/lib/editor/types";
 import { getNameInitials } from "@/lib/journey/profile";
 
 type Props = {
@@ -82,6 +84,32 @@ const TYPE_ICON: Record<MilestoneType, LucideIcon> = {
   "ca-nhan": UserCircle2,
   bookmark: Bookmark,
 };
+
+const EDITABLE_TYPE_OPTIONS: ReadonlyArray<{
+  ui: Exclude<MilestoneType, "bookmark">;
+  db: LoaiMoc;
+  label: string;
+  Icon: LucideIcon;
+}> = [
+  { ui: "hoc", db: "hoc", label: "Học tập", Icon: BookOpen },
+  { ui: "lam", db: "lam_viec", label: "Công việc", Icon: Briefcase },
+  { ui: "du-an", db: "du_an", label: "Dự án", Icon: FolderKanban },
+  { ui: "su-kien", db: "su_kien", label: "Sự kiện", Icon: Calendar },
+  { ui: "thanh-tuu", db: "thanh_tuu", label: "Thành tựu", Icon: Trophy },
+  { ui: "ca-nhan", db: "ca_nhan", label: "Cá nhân", Icon: UserCircle2 },
+];
+
+const EDITABLE_VIS_OPTIONS: ReadonlyArray<{
+  ui: NonNullable<MilestoneItem["visibility"]>;
+  db: Visibility;
+  label: string;
+  Icon: LucideIcon;
+}> = [
+  { ui: "feature", db: "feature", label: "Nổi bật", Icon: Star },
+  { ui: "public", db: "public", label: "Công khai", Icon: Globe },
+  { ui: "unlisted", db: "theo_nhom", label: "Theo nhóm", Icon: Users },
+  { ui: "private", db: "chi_minh", label: "Chỉ mình tôi", Icon: Lock },
+];
 
 const MAX_VISIBLE_COAUTHORS = 5;
 const AVATAR_TONE_CLASSES = [
@@ -241,24 +269,40 @@ export function JourneyMilestoneCard({
                 {verifiedBy ? (
                   <span className="verify-badge">{verifiedBy}</span>
                 ) : null}
-                <span className={`ctx-badge ${TYPE_CLASS[type]}`}>
-                  <TypeIco size={11} strokeWidth={1.8} aria-hidden />
-                  {TYPE_LABEL[type]}
-                </span>
-                {vis ? (
-                  <span
-                    className={`ctx-badge j-vis-${visibility ?? "public"}`}
-                    title={vis.label}
-                    aria-label={vis.label}
+                {type !== "bookmark" ? (
+                  <JourneyMilestoneInlineControls
+                    kind="type"
+                    milestoneId={cotMocId ?? milestone.id}
+                    current={type}
+                    options={EDITABLE_TYPE_OPTIONS}
                   >
-                    <vis.Icon
-                      size={11}
-                      strokeWidth={1.8}
-                      aria-hidden
-                      {...(visibility === "feature" ? { fill: "currentColor" } : {})}
-                    />
-                    {visibility === "feature" ? "Nổi bật" : vis.label}
-                  </span>
+                    <span className={`ctx-badge ${TYPE_CLASS[type]}`}>
+                      <TypeIco size={11} strokeWidth={1.8} aria-hidden />
+                      {TYPE_LABEL[type]}
+                    </span>
+                  </JourneyMilestoneInlineControls>
+                ) : null}
+                {vis ? (
+                  <JourneyMilestoneInlineControls
+                    kind="visibility"
+                    milestoneId={cotMocId ?? milestone.id}
+                    current={visibility ?? "public"}
+                    options={EDITABLE_VIS_OPTIONS}
+                  >
+                    <span
+                      className={`ctx-badge j-vis-${visibility ?? "public"}`}
+                      title={vis.label}
+                      aria-label={vis.label}
+                    >
+                      <vis.Icon
+                        size={11}
+                        strokeWidth={1.8}
+                        aria-hidden
+                        {...(visibility === "feature" ? { fill: "currentColor" } : {})}
+                      />
+                      {visibility === "feature" ? "Nổi bật" : vis.label}
+                    </span>
+                  </JourneyMilestoneInlineControls>
                 ) : null}
               </span>
               <JourneyMilestoneOwnerMenu
@@ -333,11 +377,13 @@ export function JourneyMilestoneCard({
                           ? ` và ${otherContributorCount} người khác`
                           : ""}
                       </span>
-                      <span className="expand-hint" aria-label="Xem tất cả">
-                        <Eye size={15} strokeWidth={1.9} aria-hidden />
-                      </span>
-                      <span className="collapse-hint" aria-label="Thu gọn">
-                        <ChevronUp size={15} strokeWidth={2} aria-hidden />
+                      <span className="authors-toggle-slot">
+                        <span className="expand-hint" aria-label="Xem tất cả">
+                          <Eye size={15} strokeWidth={1.9} aria-hidden />
+                        </span>
+                        <span className="collapse-hint" aria-label="Thu gọn">
+                          <ChevronUp size={15} strokeWidth={2} aria-hidden />
+                        </span>
                       </span>
                       {canShowCoAuthorAction && tacPhamId ? (
                         <JourneyCoAuthorProposal
@@ -477,7 +523,7 @@ function TaggedByPanel({
 }) {
   const initial = (attr.initial || attr.name.charAt(0) || "?").toUpperCase();
   return (
-    <div className="via-bar">
+    <div className="via-bar is-bookmark-source">
       <CornerDownRight size={13} strokeWidth={1.8} aria-hidden />
       <span>Được gắn bởi</span>
       <JourneyUserPopover

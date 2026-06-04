@@ -22,6 +22,52 @@
   margin-bottom: var(--space-4);
 }
 
+/* ── Editor mosaic typography cells ── */
+.article-rich-content .rich-mosaic-text {
+  display: flex;
+  align-items: center;
+  min-height: 96px;
+  padding: 18px;
+  background: transparent;
+  color: var(--ink-display, var(--fg-1));
+  font-family: var(--font-serif);
+  font-size: clamp(18px, 3vw, 42px);
+  font-weight: 800;
+  line-height: 1.05;
+}
+.article-rich-content .rich-mosaic-text p {
+  width: 100%;
+  margin: 0;
+  white-space: pre-wrap;
+}
+.article-rich-content .rich-mosaic-text.is-serif {
+  font-family: var(--font-serif);
+}
+.article-rich-content .rich-mosaic-text.is-sans {
+  font-family: var(--font-sans);
+}
+.article-rich-content .rich-mosaic-text.is-sm {
+  font-size: clamp(15px, 2vw, 26px);
+}
+.article-rich-content .rich-mosaic-text.is-md {
+  font-size: clamp(18px, 3vw, 42px);
+}
+.article-rich-content .rich-mosaic-text.is-lg {
+  font-size: clamp(24px, 4.5vw, 62px);
+}
+.article-rich-content .rich-mosaic-text.is-left {
+  justify-content: flex-start;
+  text-align: left;
+}
+.article-rich-content .rich-mosaic-text.is-center {
+  justify-content: center;
+  text-align: center;
+}
+.article-rich-content .rich-mosaic-text.is-right {
+  justify-content: flex-end;
+  text-align: right;
+}
+
 /* ── Section ── */
 .article-rich-content .arc-section {
   margin-bottom: var(--space-12);

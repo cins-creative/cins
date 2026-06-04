@@ -1215,6 +1215,19 @@
   inset: 0;
   border: none;
   background: none;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px;
+}
+.cins-editor-page .mz-fill-action {
+  height: 100%;
+  min-height: 58px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.72);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1224,11 +1237,111 @@
   cursor: pointer;
   font-family: inherit;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
 }
-.cins-editor-page .mz-fill:hover {
+.cins-editor-page .mz-fill-action:hover {
+  border-color: var(--cins-blue);
   color: var(--cins-blue);
   background: var(--cins-blue-soft);
+}
+.cins-editor-page .mz.text-cell {
+  background: transparent;
+}
+.cins-editor-page .mz-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  padding: 18px;
+  color: var(--ink-display);
+  font-family: var(--font-serif);
+  font-size: clamp(18px, 3vw, 42px);
+  font-weight: 800;
+  line-height: 1.05;
+}
+.cins-editor-page .mz-font-serif {
+  font-family: var(--font-serif);
+}
+.cins-editor-page .mz-font-sans {
+  font-family: var(--font-sans);
+}
+.cins-editor-page .mz-size-sm {
+  font-size: clamp(15px, 2vw, 26px);
+}
+.cins-editor-page .mz-size-md {
+  font-size: clamp(18px, 3vw, 42px);
+}
+.cins-editor-page .mz-size-lg {
+  font-size: clamp(24px, 4.5vw, 62px);
+}
+.cins-editor-page .mz-align-left {
+  justify-content: flex-start;
+  text-align: left;
+}
+.cins-editor-page .mz-align-center {
+  justify-content: center;
+  text-align: center;
+}
+.cins-editor-page .mz-align-right {
+  justify-content: flex-end;
+  text-align: right;
+}
+.cins-editor-page .mz-text p {
+  margin: 0;
+  white-space: pre-wrap;
+}
+.cins-editor-page .mz-text textarea {
+  width: 100%;
+  min-height: 72px;
+  border: 0;
+  outline: none;
+  resize: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+  text-align: inherit;
+}
+.cins-editor-page .mz-text-tools {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 6;
+  display: inline-flex;
+  gap: 3px;
+  padding: 3px;
+  border-radius: var(--radius-pill);
+  background: rgba(14, 17, 23, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.cins-editor-page .mz-tool-group {
+  display: inline-flex;
+  gap: 3px;
+}
+.cins-editor-page .mz-tool-sep {
+  width: 1px;
+  height: 18px;
+  align-self: center;
+  background: rgba(255, 255, 255, 0.22);
+}
+.cins-editor-page .mz-text-tools button {
+  min-width: 24px;
+  height: 24px;
+  padding: 0 7px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.75);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 800;
+}
+.cins-editor-page .mz-text-tools button.active,
+.cins-editor-page .mz-text-tools button:hover {
+  background: #fff;
+  color: var(--neutral-900);
 }
 .cins-editor-page .mz-del {
   position: absolute;
@@ -1395,7 +1508,41 @@
   background: rgba(255, 255, 255, 0.18);
 }
 .cins-editor-page .cb-spacer {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 24px;
+}
+.cins-editor-page .cb-actions {
+  display: inline-flex;
+  justify-content: flex-end;
+  margin-left: auto;
+}
+.cins-editor-page .cb-range-group {
+  display: inline-grid;
+  gap: 5px;
+  padding: 5px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.06);
+  min-width: 0;
+}
+.cins-editor-page .cb-range {
+  display: inline-grid;
+  grid-template-columns: 30px 72px 34px;
+  align-items: center;
+  gap: 6px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 11px;
+  font-weight: 700;
+}
+.cins-editor-page .cb-range input {
+  width: 72px;
+  accent-color: var(--cins-yellow);
+  cursor: pointer;
+}
+.cins-editor-page .cb-range output {
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
 }
 .cins-editor-page .cbtn {
   width: 26px;

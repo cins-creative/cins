@@ -15,6 +15,9 @@ import {
 } from "react";
 
 import {
+  AlignCenter,
+  AlignLeft,
+  AlignRight,
   Check,
   Columns2,
   Columns3,
@@ -100,6 +103,11 @@ type MosaicCell = {
   seed: string;
   c: number;
   r: number;
+  kind?: "image" | "text";
+  text?: string;
+  align?: "left" | "center" | "right";
+  font?: "serif" | "sans";
+  size?: "sm" | "md" | "lg";
 };
 
 type Block = {
@@ -115,6 +123,8 @@ type Block = {
   /* Mosaic-only: số cột grid (2/3/4) + cells với col/row span tuỳ chỉnh. */
   cols?: number;
   cells?: MosaicCell[];
+  gap?: number;
+  pad?: number;
   /* Embed block */
   embedUrl?: string;
   /* Palette block */
@@ -140,6 +150,9 @@ const CF_UUID_RE =
  */
 const ph = (s: string, w = 900, h = 600) => {
   const trimmed = (s || "").trim();
+  if (trimmed.startsWith("blob:") || trimmed.startsWith("data:")) {
+    return trimmed;
+  }
   if (CF_UUID_RE.test(trimmed)) {
     const hash = getCfAccountHash();
     if (hash) {
@@ -495,6 +508,20 @@ export function EditorView({
     [imgPickerTarget, pushHistory],
   );
 
+  const replaceImageSeed = useCallback((from: string, to: string) => {
+    setBlocks((prev) =>
+      prev.map((b) => {
+        if (b.t !== "imgs") return b;
+        const imgs = b.imgs?.map((seed) => (seed === from ? to : seed));
+        const cells = b.cells?.map((cell) =>
+          cell.seed === from ? { ...cell, seed: to } : cell,
+        );
+        return { ...b, imgs, cells };
+      }),
+    );
+    setCoverSeed((current) => (current === from ? to : current));
+  }, []);
+
   const setLayout = useCallback(
     (id: string, layout: ImgLayout) => {
       pushHistory();
@@ -595,6 +622,50 @@ export function EditorView({
     [pushHistory],
   );
 
+  const mosaicSetTextCell = useCallback(
+    (id: string, slot: number) => {
+      pushHistory();
+      setBlocks((prev) =>
+        prev.map((b) => {
+          if (b.id !== id || b.t !== "imgs" || !b.cells) return b;
+          const cells = b.cells.map((c, i) =>
+            i === slot
+              ? {
+                  ...c,
+                  kind: "text" as const,
+                  text: c.text || "Typography",
+                  align: c.align || "center",
+                  font: c.font || "serif",
+                  size: c.size || "md",
+                }
+              : c,
+          );
+          return { ...b, cells };
+        }),
+      );
+    },
+    [pushHistory],
+  );
+
+  const mosaicUpdateTextCell = useCallback(
+    (
+      id: string,
+      slot: number,
+      patch: Pick<MosaicCell, "text" | "align" | "font" | "size">,
+    ) => {
+      setBlocks((prev) =>
+        prev.map((b) => {
+          if (b.id !== id || b.t !== "imgs" || !b.cells) return b;
+          const cells = b.cells.map((c, i) =>
+            i === slot ? { ...c, kind: "text" as const, ...patch } : c,
+          );
+          return { ...b, cells };
+        }),
+      );
+    },
+    [],
+  );
+
   const mosaicDeleteCell = useCallback(
     (id: string, slot: number) => {
       pushHistory();
@@ -620,6 +691,20 @@ export function EditorView({
             i === slot ? { ...c, [axis]: next } : c,
           );
           return { ...b, cells };
+        }),
+      );
+    },
+    [],
+  );
+
+  const setMosaicSpacing = useCallback(
+    (id: string, key: "gap" | "pad", value: number) => {
+      setBlocks((prev) =>
+        prev.map((b) => {
+          if (b.id !== id || b.t !== "imgs") return b;
+          const max = key === "gap" ? 32 : 48;
+          const next = Math.max(0, Math.min(max, Math.round(value)));
+          return { ...b, [key]: next };
         }),
       );
     },
@@ -903,6 +988,13 @@ export function EditorView({
                 onMosaicResizeCell={(slot, axis, value) =>
                   mosaicResizeCell(b.id, slot, axis, value)
                 }
+                onMosaicSpacing={(key, value) =>
+                  setMosaicSpacing(b.id, key, value)
+                }
+                onMosaicSetTextCell={(slot) => mosaicSetTextCell(b.id, slot)}
+                onMosaicUpdateTextCell={(slot, patch) =>
+                  mosaicUpdateTextCell(b.id, slot, patch)
+                }
                 onMosaicPickImage={(slot) => mosaicPickImage(b.id, slot)}
               />
               <AddZone
@@ -966,6 +1058,7 @@ export function EditorView({
         <ImagePickerModal
           onClose={() => setImgPickerTarget(null)}
           onPick={onPickImage}
+          onUploadResolved={replaceImageSeed}
         />
       ) : null}
 
@@ -976,6 +1069,7 @@ export function EditorView({
             setCoverSeed(seed);
             setCoverPickerOpen(false);
           }}
+          onUploadResolved={replaceImageSeed}
         />
       ) : null}
 
@@ -1441,6 +1535,12 @@ type BlockRowProps = {
   onMosaicAddCell: () => void;
   onMosaicDeleteCell: (slot: number) => void;
   onMosaicResizeCell: (slot: number, axis: "c" | "r", value: number) => void;
+  onMosaicSpacing: (key: "gap" | "pad", value: number) => void;
+  onMosaicSetTextCell: (slot: number) => void;
+  onMosaicUpdateTextCell: (
+    slot: number,
+    patch: Pick<MosaicCell, "text" | "align" | "font" | "size">,
+  ) => void;
   onMosaicPickImage: (slot: number) => void;
 };
 
@@ -1762,7 +1862,9 @@ function LayBar({
 function MosaicBlock({ block, p }: { block: Block; p: BlockRowProps }) {
   const [editing, setEditing] = useState(false);
   const cols = block.cols || 3;
-  const cells = block.cells || [];
+  const cells = useMemo(() => block.cells ?? [], [block.cells]);
+  const gap = block.gap ?? 0;
+  const pad = block.pad ?? 0;
   const mosaicRef = useRef<HTMLDivElement | null>(null);
 
   /* Pointer drag-resize: tăng/giảm col span (handle phải) hoặc row span
@@ -1896,6 +1998,35 @@ function MosaicBlock({ block, p }: { block: Block; p: BlockRowProps }) {
             <LayoutGrid size={13} strokeWidth={1.8} aria-hidden />
           </button>
           <span className="cb-sep" />
+          <div className="cb-range-group" aria-label="Khoảng cách mosaic">
+            <label className="cb-range">
+              <span>Gap</span>
+              <input
+                type="range"
+                min={0}
+                max={32}
+                step={2}
+                value={gap}
+                onChange={(e) => p.onMosaicSpacing("gap", Number(e.target.value))}
+                onClick={(e) => e.stopPropagation()}
+              />
+              <output>{gap}px</output>
+            </label>
+            <label className="cb-range">
+              <span>Pad</span>
+              <input
+                type="range"
+                min={0}
+                max={48}
+                step={4}
+                value={pad}
+                onChange={(e) => p.onMosaicSpacing("pad", Number(e.target.value))}
+                onClick={(e) => e.stopPropagation()}
+              />
+              <output>{pad}px</output>
+            </label>
+          </div>
+          <span className="cb-sep" />
           <button
             type="button"
             className={`cb-pill icon-only round-pill${
@@ -1911,17 +2042,19 @@ function MosaicBlock({ block, p }: { block: Block; p: BlockRowProps }) {
             <SquareRoundCorner size={13} strokeWidth={1.8} aria-hidden />
           </button>
           <span className="cb-spacer" />
-          <button
-            type="button"
-            className="cb-save"
-            title="Lưu lưới"
-            onClick={(e) => {
-              e.stopPropagation();
-              setEditing(false);
-            }}
-          >
-            <Check size={14} strokeWidth={2} aria-hidden /> Lưu
-          </button>
+          <span className="cb-actions">
+            <button
+              type="button"
+              className="cb-save"
+              title="Lưu lưới"
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditing(false);
+              }}
+            >
+              <Check size={14} strokeWidth={2} aria-hidden /> Lưu
+            </button>
+          </span>
         </div>
       ) : (
         <>
@@ -1945,32 +2078,144 @@ function MosaicBlock({ block, p }: { block: Block; p: BlockRowProps }) {
         className={`mosaic${block.rounded ? " rounded" : ""}${
           editing ? " editing" : ""
         }`}
-        style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}
+        style={{
+          gridTemplateColumns: `repeat(${cols}, 1fr)`,
+          gap,
+          padding: pad,
+        }}
       >
         {cells.map((cell, i) => {
+          const isText = cell.kind === "text";
           const empty =
-            !cell.seed || /^m-|^extra-/.test(cell.seed);
+            !isText && (!cell.seed || /^m-|^extra-/.test(cell.seed));
           return (
             <div
               key={`${cell.seed}-${i}`}
-              className={`mz${empty ? " empty" : ""}`}
+              className={`mz${empty ? " empty" : ""}${isText ? " text-cell" : ""}`}
               style={{
                 gridColumn: `span ${cell.c}`,
                 gridRow: `span ${cell.r}`,
               }}
             >
               {empty ? (
-                <button
-                  type="button"
-                  className="mz-fill"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    p.onMosaicPickImage(i);
-                  }}
+                <div className="mz-fill">
+                  <button
+                    type="button"
+                    className="mz-fill-action"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      p.onMosaicPickImage(i);
+                    }}
+                  >
+                    <ImagePlus size={20} strokeWidth={1.8} aria-hidden />
+                    <span>Thêm ảnh</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="mz-fill-action"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      p.onMosaicSetTextCell(i);
+                    }}
+                  >
+                    <RectangleHorizontal size={20} strokeWidth={1.8} aria-hidden />
+                    <span>Thêm chữ</span>
+                  </button>
+                </div>
+              ) : isText ? (
+                <div
+                  className={`mz-text mz-align-${cell.align || "center"} mz-font-${
+                    cell.font || "serif"
+                  } mz-size-${cell.size || "md"}`}
                 >
-                  <ImagePlus size={22} strokeWidth={1.8} aria-hidden />
-                  <span>Chọn ảnh</span>
-                </button>
+                  {editing ? (
+                    <div
+                      className="mz-text-tools"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <span className="mz-tool-group">
+                        {[
+                          ["serif", "Serif"],
+                          ["sans", "Sans"],
+                        ].map(([font, label]) => (
+                          <button
+                            key={font}
+                            type="button"
+                            className={(cell.font || "serif") === font ? "active" : ""}
+                            aria-label={`Font ${label}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              p.onMosaicUpdateTextCell(i, {
+                                font: font as MosaicCell["font"],
+                              });
+                            }}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </span>
+                      <span className="mz-tool-sep" />
+                      <span className="mz-tool-group">
+                        {[
+                          ["sm", "S"],
+                          ["md", "M"],
+                          ["lg", "L"],
+                        ].map(([size, label]) => (
+                          <button
+                            key={size}
+                            type="button"
+                            className={(cell.size || "md") === size ? "active" : ""}
+                            aria-label={`Cỡ chữ ${label}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              p.onMosaicUpdateTextCell(i, {
+                                size: size as MosaicCell["size"],
+                              });
+                            }}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </span>
+                      <span className="mz-tool-sep" />
+                      {[
+                        ["left", AlignLeft],
+                        ["center", AlignCenter],
+                        ["right", AlignRight],
+                      ].map(([align, Icon]) => {
+                        const AIcon = Icon as typeof AlignLeft;
+                        return (
+                          <button
+                            key={align}
+                            type="button"
+                            className={cell.align === align ? "active" : ""}
+                            aria-label={`Căn ${align}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              p.onMosaicUpdateTextCell(i, {
+                                align: align as MosaicCell["align"],
+                              });
+                            }}
+                          >
+                            <AIcon size={13} strokeWidth={1.9} aria-hidden />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : null}
+                  {editing ? (
+                    <textarea
+                      value={cell.text || ""}
+                      placeholder="Nhập chữ..."
+                      onChange={(e) =>
+                        p.onMosaicUpdateTextCell(i, { text: e.target.value })
+                      }
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  ) : (
+                    <p>{cell.text}</p>
+                  )}
+                </div>
               ) : (
                 <>
                   <img
@@ -2057,12 +2302,13 @@ function MosaicBlock({ block, p }: { block: Block; p: BlockRowProps }) {
 function ImagePickerModal({
   onClose,
   onPick,
+  onUploadResolved,
 }: {
   onClose: () => void;
   onPick: (seed: string) => void;
+  onUploadResolved?: (from: string, to: string) => void;
 }) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
 
@@ -2075,9 +2321,8 @@ function ImagePickerModal({
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  /* Upload 1 File lên Cloudflare qua `/api/post-image/upload`. Trả về
-     `imageId` (UUID) — lưu vào block làm seed; `ph()` sẽ tự detect UUID
-     và build URL imagedelivery.net khi render. */
+  /* Insert preview local ngay bằng `blob:` URL, upload Cloudflare chạy nền.
+     Khi có `imageId` thật, parent sẽ replace seed tạm để publish dùng CF. */
   const uploadFile = useCallback(
     async (file: File) => {
       if (!file || !file.type?.startsWith("image/")) {
@@ -2085,7 +2330,9 @@ function ImagePickerModal({
         return;
       }
       setUploadError(null);
-      setUploading(true);
+      const localSeed = URL.createObjectURL(file);
+      onPick(localSeed);
+      onClose();
       try {
         const form = new FormData();
         form.append("file", file);
@@ -2107,16 +2354,16 @@ function ImagePickerModal({
           // ngay cả khi env `NEXT_PUBLIC_CF_IMAGES_ACCOUNT_HASH` không có.
           rememberCfAccountHashFromDeliveryUrl(json.url);
         }
-        onPick(json.imageId);
+        onUploadResolved?.(localSeed, json.imageId);
       } catch (err) {
         setUploadError(
           err instanceof Error ? err.message : "Upload thất bại.",
         );
       } finally {
-        setUploading(false);
+        URL.revokeObjectURL(localSeed);
       }
     },
-    [onPick],
+    [onClose, onPick, onUploadResolved],
   );
 
   /* Paste ảnh từ clipboard khi modal đang mở. */
@@ -2181,9 +2428,7 @@ function ImagePickerModal({
           </button>
         </div>
         <div
-          className={`ip-upload${dragOver ? " is-drag" : ""}${
-            uploading ? " is-uploading" : ""
-          }`}
+          className={`ip-upload${dragOver ? " is-drag" : ""}`}
           role="button"
           tabIndex={0}
           onClick={() => fileInputRef.current?.click()}
@@ -2205,28 +2450,13 @@ function ImagePickerModal({
           }}
           onDrop={onDrop}
         >
-          {uploading ? (
-            <>
-              <Loader2
-                className="ed-spin"
-                size={26}
-                strokeWidth={1.8}
-                aria-hidden
-              />
-              <div>Đang tải lên Cloudflare…</div>
-            </>
-          ) : (
-            <>
-              <ImagePlus size={26} strokeWidth={1.8} aria-hidden />
-              <div>
-                <b>Bấm để chọn</b>, kéo thả ảnh, hoặc dán (Ctrl+V) từ
-                clipboard.
-              </div>
-              <div style={{ fontSize: 11, opacity: 0.7 }}>
-                Định dạng JPG / PNG / WebP / GIF · tối đa 8MB
-              </div>
-            </>
-          )}
+          <ImagePlus size={26} strokeWidth={1.8} aria-hidden />
+          <div>
+            <b>Bấm để chọn</b>, kéo thả ảnh, hoặc dán (Ctrl+V) từ clipboard.
+          </div>
+          <div style={{ fontSize: 11, opacity: 0.7 }}>
+            Ảnh sẽ hiện ngay bằng cache cục bộ, rồi tự đồng bộ Cloudflare.
+          </div>
           <input
             ref={fileInputRef}
             type="file"
@@ -2367,6 +2597,14 @@ function fromServerBlocks(blocks: ServerBlock[]): Block[] {
           typeof cfg.cols === "number" && cfg.cols >= 2 && cfg.cols <= 4
             ? cfg.cols
             : 3;
+        local.gap =
+          typeof cfg.gap === "number" && cfg.gap >= 0 && cfg.gap <= 32
+            ? cfg.gap
+            : 0;
+        local.pad =
+          typeof cfg.pad === "number" && cfg.pad >= 0 && cfg.pad <= 48
+            ? cfg.pad
+            : 0;
         local.cells = Array.isArray(cfg.cells)
           ? (cfg.cells as unknown[])
               .map((raw) => {
@@ -2382,6 +2620,20 @@ function fromServerBlocks(blocks: ServerBlock[]): Block[] {
                     typeof c.r === "number" && c.r >= 1 && c.r <= 4
                       ? c.r
                       : 1,
+                  kind: c.kind === "text" ? "text" : "image",
+                  text: typeof c.text === "string" ? c.text : "",
+                  align:
+                    c.align === "left" || c.align === "right" || c.align === "center"
+                      ? c.align
+                      : "center",
+                  font:
+                    c.font === "sans" || c.font === "serif"
+                      ? c.font
+                      : "serif",
+                  size:
+                    c.size === "sm" || c.size === "lg" || c.size === "md"
+                      ? c.size
+                      : "md",
                 } as MosaicCell;
               })
               .filter((c): c is MosaicCell => c !== null)
@@ -2432,12 +2684,25 @@ function toServerBlocks(blocks: Block[]): ServerBlock[] {
       /* Plain text — server sẽ escape khi render HTML. */
       config = { html: (b.text || "").slice(0, 8000) };
     } else if (b.t === "imgs") {
-      const baseImgs = (b.imgs || []).slice(0, 24);
+      const baseImgs = (b.imgs || [])
+        .filter((seed) => !seed.startsWith("blob:") && !seed.startsWith("data:"))
+        .slice(0, 24);
       if (b.layout === "mosaic") {
         const cells = (b.cells || []).slice(0, 24).map((c) => ({
-          seed: c.seed.slice(0, 256),
+          seed:
+            c.seed.startsWith("blob:") || c.seed.startsWith("data:")
+              ? `m-${b.id}-${c.seed.slice(-8)}`
+              : c.seed.slice(0, 256),
           c: Math.max(1, Math.min(4, c.c)),
           r: Math.max(1, Math.min(4, c.r)),
+          kind: c.kind === "text" ? "text" : "image",
+          text: c.kind === "text" ? (c.text || "").slice(0, 280) : "",
+          align:
+            c.align === "left" || c.align === "right" || c.align === "center"
+              ? c.align
+              : "center",
+          font: c.font === "sans" || c.font === "serif" ? c.font : "serif",
+          size: c.size === "sm" || c.size === "lg" || c.size === "md" ? c.size : "md",
         }));
         config = {
           layout: "mosaic",
@@ -2445,6 +2710,8 @@ function toServerBlocks(blocks: Block[]): ServerBlock[] {
           cap: (b.cap || "").slice(0, 280),
           imgs: cells.map((c) => c.seed),
           cols: Math.max(2, Math.min(4, b.cols || 3)),
+          gap: Math.max(0, Math.min(32, b.gap ?? 0)),
+          pad: Math.max(0, Math.min(48, b.pad ?? 0)),
           cells,
         };
       } else {

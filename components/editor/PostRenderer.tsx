@@ -270,29 +270,77 @@ function ReadOnlyBlock({ block }: { block: Block }) {
         typeof cfg.cols === "number" && cfg.cols >= 2 && cfg.cols <= 4
           ? cfg.cols
           : 3;
+      const gap =
+        typeof cfg.gap === "number" && cfg.gap >= 0 && cfg.gap <= 32
+          ? cfg.gap
+          : 0;
+      const pad =
+        typeof cfg.pad === "number" && cfg.pad >= 0 && cfg.pad <= 48
+          ? cfg.pad
+          : 0;
       const rawCells = Array.isArray(cfg.cells) ? (cfg.cells as unknown[]) : [];
       const cells = rawCells
         .map((raw) => {
           const c = raw as
-            | { seed?: unknown; c?: unknown; r?: unknown }
+            | {
+                seed?: unknown;
+                c?: unknown;
+                r?: unknown;
+                kind?: unknown;
+                text?: unknown;
+                align?: unknown;
+                font?: unknown;
+                size?: unknown;
+              }
             | null;
           if (!c || typeof c.seed !== "string") return null;
-          if (!c.seed || /^m-|^extra-/.test(c.seed)) return null;
+          const kind = c.kind === "text" ? "text" : "image";
+          if (kind === "image" && (!c.seed || /^m-|^extra-/.test(c.seed))) {
+            return null;
+          }
           return {
             seed: c.seed,
             c:
               typeof c.c === "number" && c.c >= 1 && c.c <= 4 ? c.c : 1,
             r:
               typeof c.r === "number" && c.r >= 1 && c.r <= 4 ? c.r : 1,
+            kind,
+            text: typeof c.text === "string" ? c.text : "",
+            align:
+              c.align === "left" || c.align === "right" || c.align === "center"
+                ? c.align
+                : "center",
+            font: c.font === "sans" || c.font === "serif" ? c.font : "serif",
+            size:
+              c.size === "sm" || c.size === "lg" || c.size === "md"
+                ? c.size
+                : "md",
           };
         })
-        .filter((x): x is { seed: string; c: number; r: number } => x !== null);
+        .filter(
+          (
+            x,
+          ): x is {
+            seed: string;
+            c: number;
+            r: number;
+            kind: "image" | "text";
+            text: string;
+            align: "left" | "center" | "right";
+            font: "serif" | "sans";
+            size: "sm" | "md" | "lg";
+          } => x !== null,
+        );
       if (cells.length === 0) return null;
       return (
         <div className="b-imgs b-imgs-ro mosaic-mode">
           <div
             className={`mosaic${rounded ? " rounded" : ""}`}
-            style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}
+            style={{
+              gridTemplateColumns: `repeat(${cols}, 1fr)`,
+              gap,
+              padding: pad,
+            }}
           >
             {cells.map((cell, i) => (
               <div
@@ -303,7 +351,15 @@ function ReadOnlyBlock({ block }: { block: Block }) {
                   gridRow: `span ${cell.r}`,
                 }}
               >
-                <img src={ph(cell.seed, 900, 900)} alt="" loading="lazy" />
+                {cell.kind === "text" ? (
+                  <div
+                    className={`mz-text mz-align-${cell.align} mz-font-${cell.font} mz-size-${cell.size}`}
+                  >
+                    <p>{cell.text}</p>
+                  </div>
+                ) : (
+                  <img src={ph(cell.seed, 900, 900)} alt="" loading="lazy" />
+                )}
               </div>
             ))}
           </div>

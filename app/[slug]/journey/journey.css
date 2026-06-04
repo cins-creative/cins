@@ -1215,9 +1215,6 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
 .j-milestone.j-verified .j-m-card {
   border-left: 3px solid var(--j-verified);
 }
-.j-milestone.j-bookmark .j-m-card {
-  border-left: 3px solid var(--j-bookmark);
-}
 .j-milestone.j-tagged .j-m-card {
   border: 1px solid var(--border);
   border-radius: 24px;
@@ -4461,6 +4458,63 @@ select.j-edit-input {
   background: #f8fafc;
   color: var(--jcard-ink2);
 }
+.j-inline-control {
+  position: relative;
+  display: inline-flex;
+}
+.j-inline-control-trigger {
+  display: inline-flex;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.j-inline-control-trigger:hover .ctx-badge,
+.j-inline-control-trigger:focus-visible .ctx-badge {
+  border-color: rgba(37, 99, 235, 0.35);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+}
+.j-inline-control-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 40;
+  display: grid;
+  min-width: 168px;
+  padding: 6px;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.18);
+}
+.j-inline-control-option {
+  display: grid;
+  grid-template-columns: 16px 1fr 14px;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  border: 0;
+  border-radius: 10px;
+  padding: 8px 9px;
+  background: transparent;
+  color: var(--jcard-ink2);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  text-align: left;
+  cursor: pointer;
+}
+.j-inline-control-option:hover {
+  background: #f8fafc;
+  color: var(--jcard-ink);
+}
+.j-inline-control-option.is-active {
+  background: #eef6ff;
+  color: #1d4ed8;
+  cursor: default;
+}
 .verify-badge {
   border: 1px solid var(--jcard-green-border);
   background: var(--jcard-green-bg);
@@ -4522,6 +4576,21 @@ select.j-edit-input {
   gap: 6px;
   color: var(--ink-muted);
   font-size: 12px;
+}
+.via-bar.is-bookmark-source {
+  border-color: #fed7aa;
+  background: linear-gradient(135deg, #fff7ed 0%, #fffbeb 100%);
+  color: #92400e;
+}
+.via-bar.is-bookmark-source strong {
+  color: #7c2d12;
+}
+.via-bar.is-bookmark-source .via-avatar {
+  background: #fed7aa;
+  color: #9a3412;
+}
+.via-bar.is-bookmark-source .via-copy small {
+  color: #b45309;
 }
 .via-bar strong {
   color: var(--ink-display);
@@ -4854,6 +4923,13 @@ select.j-edit-input {
 .authors-summary strong {
   font-weight: 800;
 }
+.authors-toggle-slot {
+  position: relative;
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  margin-left: auto;
+}
 .expand-hint,
 .collapse-hint,
 .author-row-role,
@@ -4865,9 +4941,10 @@ select.j-edit-input {
   display: none;
   align-items: center;
   justify-content: center;
+  position: absolute;
+  inset: 0;
   width: 24px;
   height: 24px;
-  margin-top: 2px;
   border-radius: 999px;
   color: var(--jcard-ink3);
 }
@@ -4875,9 +4952,10 @@ select.j-edit-input {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  position: absolute;
+  inset: 0;
   width: 24px;
   height: 24px;
-  margin-left: auto;
   border-radius: 999px;
 }
 .authors-collapsed:hover .expand-hint {
