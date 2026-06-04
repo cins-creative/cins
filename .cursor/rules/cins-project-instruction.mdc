@@ -5,10 +5,11 @@ alwaysApply: true
 
 # CINs project instruction
 
-Before implementing or querying CINs domain features (Supabase `org_*`, `article_*`, `content_*`, trường đại học, ngành học, Journey, Gallery, verify, chat):
+Before implementing or querying CINs domain features (Supabase `org_*`, `article_*`, `content_*`, trường đại học, ngành học, Journey, Gallery, verify, chat), or changing code/security/performance conventions:
 
-1. Read **`docs/CINS_INSTRUCTION.md`** (canonical product + schema reference).
-2. Prefer field/table names and rules from that doc over assumptions from training data.
-3. When the user shares a newer instruction file (v6, v7, v8, …), **merge updates into `docs/CINS_INSTRUCTION.md`**: bump the version line at the top, integrate schema/rule changes, keep site-specific notes in § Implementation unless the user replaces them.
+1. Read **`docs/CINS_DEV_RULES.md`** first for coding, security, performance, streaming, and UI conventions.
+2. Read **`docs/CINS_INSTRUCTION.md`** for canonical product + schema reference.
+3. Prefer field/table names and rules from `CINS_INSTRUCTION.md` over assumptions from training data; prefer security/performance/style rules from `CINS_DEV_RULES.md`.
+4. When the user shares a newer instruction file (v6, v7, v8, …), **merge updates into `docs/CINS_INSTRUCTION.md`**: bump the version line at the top, integrate schema/rule changes, keep site-specific notes in § Implementation unless the user replaces them.
 
-Stack for this repo: Next.js App Router, Supabase (`ospzzzxcomrmhqrnkoiw`), Cloudflare Images, Vercel — details in the instruction doc.
+Stack for this repo: Next.js App Router, Supabase (`ospzzzxcomrmhqrnkoiw`), Cloudflare Images, Vercel — details in the instruction docs.

@@ -1,0 +1,20 @@
+---
+description: CINs page-load performance rules for Next.js, Supabase, media, and streaming
+globs: "{app,components,lib,styles}/**/*.{ts,tsx,css}"
+alwaysApply: false
+---
+
+# CINs Performance Rules
+
+Read `docs/CINS_DEV_RULES.md` §5 and §8 before changing page load, data fetching, image/media, editor upload, route rendering, or heavy UI.
+
+- Supabase list queries must select only needed columns, use pagination (`.range`) from the start, and avoid N+1 by embedding relations or batching.
+- Public pages should favor SSR/SSG/streaming with static shell first. Split data-heavy sections into async Server Components under `<Suspense>` with CINS-token skeletons and `loading.tsx` where useful.
+- Internal navigation must use `next/link`; avoid raw `<a href>` for app routes.
+- Images should use Cloudflare Images IDs/variants, include dimensions when possible, lazy-load below the fold, and use eager/fetch priority only for above-the-fold images.
+- Upload UX should be optimistic: show local preview immediately, upload in background/Direct Upload, handle failure/retry, and avoid saving temporary `blob:` URLs.
+- Heavy non-critical UI (editor, chart, map, rich widgets) should be route-split or lazy-loaded. Avoid adding dependencies without checking bundle size.
+- User input search/filter that hits APIs should be debounced around 300ms.
+- For long lists (>100 items), use virtualization or pagination; show skeleton/empty states instead of blank spinners.
+- Do not add cache layers (`unstable_cache`, `revalidate`, SWR/TanStack Query) casually; choose them only when task scope calls for it and document invalidation.
+- Before committing performance-sensitive public pages, test under slow network and aim for Lighthouse > 85 on the changed page.
