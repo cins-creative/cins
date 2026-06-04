@@ -5,6 +5,7 @@ import { Bell, Check, ExternalLink, X } from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
 
 import type {
+  CommentNotification,
   CoAuthorReviewProfile,
   PendingCoAuthorReview,
   FollowAcceptedNotification,
@@ -15,12 +16,14 @@ type Props = {
   initialFollowRequests: ReadonlyArray<PendingFollowRequest>;
   initialAcceptedNotifications?: ReadonlyArray<FollowAcceptedNotification>;
   initialCoAuthorReviews?: ReadonlyArray<PendingCoAuthorReview>;
+  initialCommentNotifications?: ReadonlyArray<CommentNotification>;
 };
 
 export function JourneyNotifications({
   initialFollowRequests,
   initialAcceptedNotifications = [],
   initialCoAuthorReviews = [],
+  initialCommentNotifications = [],
 }: Props) {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<PendingFollowRequest | null>(null);
@@ -33,10 +36,14 @@ export function JourneyNotifications({
   const [coAuthorReviews, setCoAuthorReviews] = useState<PendingCoAuthorReview[]>(
     [...initialCoAuthorReviews],
   );
+  const [commentNotifications] = useState<CommentNotification[]>(
+    [...initialCommentNotifications],
+  );
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const count = requests.length + accepted.length + coAuthorReviews.length;
+  const count =
+    requests.length + accepted.length + coAuthorReviews.length + commentNotifications.length;
   const title = count > 0 ? `${count} thông báo mới` : "Không có thông báo mới";
   const selectedStillPending = useMemo(
     () => selected && requests.some((r) => r.idNguoiDung === selected.idNguoiDung),
@@ -119,6 +126,24 @@ export function JourneyNotifications({
             <p className="j-notify-empty">Chưa có lời mời kết nối mới.</p>
           ) : (
             <ul className="j-notify-list">
+              {commentNotifications.map((notice) => (
+                <li key={notice.notificationId}>
+                  <Link
+                    href={
+                      notice.ownerSlug && notice.postSlug
+                        ? `/${notice.ownerSlug}/p/${notice.postSlug}`
+                        : `/${notice.slug}`
+                    }
+                    className="j-notify-item is-comment"
+                  >
+                    <Avatar request={notice} />
+                    <span>
+                      <strong>{notice.tenHienThi}</strong> đã bình luận bài viết.
+                      <small>{notice.postTitle}</small>
+                    </span>
+                  </Link>
+                </li>
+              ))}
               {coAuthorReviews.map((review) => (
                 <li key={review.notificationId}>
                   <div className="j-notify-item is-coauthor-review">

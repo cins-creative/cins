@@ -88,7 +88,9 @@ export function JourneyTimeline({
     const onClick = (e: MouseEvent) => {
       const target = e.target as Element | null;
       if (!target) return;
+      const openPostAction = target.closest("[data-open-post]");
       if (
+        !openPostAction &&
         target.closest(
           "a,button,input,textarea,select,summary,.j-m-menu,.authors-details",
         )

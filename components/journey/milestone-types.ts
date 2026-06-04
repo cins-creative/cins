@@ -76,6 +76,7 @@ export type MilestoneBookmarkSource = {
   url?: string | null;
   /** 1 chữ icon. */
   initial?: string | null;
+  avatarUrl?: string | null;
 };
 
 export type MilestoneMediaItem = {

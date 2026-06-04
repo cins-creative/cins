@@ -18,6 +18,7 @@ import {
 import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import { fetchArticleTagsForTacPham } from "@/lib/journey/article-tags-batch";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { notifyMilestoneComment } from "@/lib/social/follow";
 
 const GIAI_DOAN_VALID = new Set<GiaiDoan>([
   "moi_bat_dau",
@@ -1082,7 +1083,7 @@ export async function loadMilestoneDetail(
       admin
         .from("social_luu")
         .select("id", { count: "exact", head: true })
-        .in("loai_doi_tuong", ["cot_moc", "cot_moc_private"])
+        .eq("loai_doi_tuong", "cot_moc")
         .eq("id_doi_tuong", milestoneId),
       viewerId
         ? admin
@@ -1100,7 +1101,7 @@ export async function loadMilestoneDetail(
             .from("social_luu")
             .select("id")
             .eq("id_nguoi_dung", viewerId)
-            .in("loai_doi_tuong", ["cot_moc", "cot_moc_private"])
+            .eq("loai_doi_tuong", "cot_moc")
             .eq("id_doi_tuong", milestoneId)
             .maybeSingle()
             .then(({ data }) => Boolean(data))
@@ -1312,6 +1313,11 @@ export async function addMilestoneComment(
   if (ownerProfile?.slug) {
     revalidatePath(`/${ownerProfile.slug}`);
   }
+  await notifyMilestoneComment({
+    ownerId: cotMoc.id_nguoi_dung,
+    commenterId: session.profile.id,
+    milestoneId: cotMoc.id,
+  });
 
   return {
     ok: true,

@@ -28,21 +28,19 @@ export async function POST(req: Request) {
   if (loaiDoiTuong !== "cot_moc" || !idDoiTuong) {
     return NextResponse.json({ error: "Thiếu thông tin bookmark." }, { status: 400 });
   }
-  const storedTargetType =
-    visibility === "private" ? "cot_moc_private" : "cot_moc";
 
   const admin = createServiceRoleClient();
   await admin
     .from("social_luu")
     .delete()
     .eq("id_nguoi_dung", session.profile.id)
-    .in("loai_doi_tuong", ["cot_moc", "cot_moc_private"])
+    .eq("loai_doi_tuong", "cot_moc")
     .eq("id_doi_tuong", idDoiTuong);
 
   const { error } = await admin.from("social_luu").upsert(
     {
       id_nguoi_dung: session.profile.id,
-      loai_doi_tuong: storedTargetType,
+      loai_doi_tuong: "cot_moc",
       id_doi_tuong: idDoiTuong,
     },
     { onConflict: "id_nguoi_dung,loai_doi_tuong,id_doi_tuong" },
@@ -55,7 +53,7 @@ export async function POST(req: Request) {
   const { count } = await admin
     .from("social_luu")
     .select("id", { count: "exact", head: true })
-    .in("loai_doi_tuong", ["cot_moc", "cot_moc_private"])
+    .eq("loai_doi_tuong", "cot_moc")
     .eq("id_doi_tuong", idDoiTuong);
 
   return NextResponse.json({ ok: true, visibility, bookmarked: true, count: count ?? 0 });

@@ -70,10 +70,6 @@ export function JourneyGalleryAside({
           </span>
         )}
       </div>
-      <div className="j-gallery-sub">
-        Tổng hợp visual từ các cột mốc · sắp theo mới nhất
-      </div>
-
       {empty ? (
         <div className="j-gallery-empty">
           <span className="j-gallery-empty-ico" aria-hidden>

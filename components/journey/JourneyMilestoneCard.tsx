@@ -3,10 +3,12 @@ import {
   BookOpen,
   Briefcase,
   Calendar,
+  ChevronUp,
   CornerDownRight,
   ExternalLink,
   FolderKanban,
   Globe,
+  Eye,
   Image as ImageIcon,
   Link2,
   Lock,
@@ -23,6 +25,7 @@ import { JourneyCoAuthorProposal } from "@/components/journey/JourneyCoAuthorPro
 import { JourneyBookmarkButton } from "@/components/journey/JourneyBookmarkButton";
 import { JourneyLikeButton } from "@/components/journey/JourneyLikeButton";
 import { JourneyMilestoneOwnerMenu } from "@/components/journey/JourneyMilestoneOwnerMenu";
+import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
 import type {
   CoAuthorCredit,
   MilestoneAttribution,
@@ -179,7 +182,7 @@ export function JourneyMilestoneCard({
     null;
   const contributorCount = coAuthorCredits.length;
   const otherContributorCount = Math.max(0, contributorCount - 1);
-  const dateLabel = `${day} tháng ${month}, ${year}`;
+  const displayDate = `${String(day).padStart(2, "0")}-${String(month).padStart(2, "0")}-${year}`;
 
   /* Hiển thị badge người đăng (avatar + tên) khi:
    *   - variant === "self" (chính chủ đăng — `authorName` là tác giả thật)
@@ -203,78 +206,69 @@ export function JourneyMilestoneCard({
       data-post-owner-slug={postOwnerSlug ?? undefined}
     >
       <div className="j-m-month">
-        <span className="j-month-text">
-          {String(day).padStart(2, "0")}/{String(month).padStart(2, "0")}/{year}
-        </span>
         <span className="j-m-diamond" aria-hidden />
       </div>
 
       <div className="j-m-body-wrap">
         <div className="j-m-card jcard is-clickable" role="button" tabIndex={0}>
-          {canManage && ownerSlug ? (
-            <JourneyMilestoneOwnerMenu
-              milestoneId={milestone.id}
-              ownerSlug={ownerSlug}
-              currentType={type}
-              currentVisibility={visibility ?? "public"}
-              postSlug={postSlug ?? null}
-            />
-          ) : (
-            null
-          )}
-
           {variant === "tagged" || variant === "verified" ? (
-            attribution ? <TaggedByPanel attr={attribution} /> : null
+            attribution ? <TaggedByPanel attr={attribution} dateLabel={displayDate} /> : null
           ) : null}
 
           {variant === "bookmark" && bookmark ? (
-            <BookmarkSourcePanel src={bookmark} />
+            <BookmarkSourcePanel src={bookmark} dateLabel={displayDate} />
           ) : null}
 
-          <div className="jcard-datebar">
-            <span className="date-text">
-              <Calendar size={13} strokeWidth={1.8} aria-hidden />
-              {dateLabel}
-            </span>
-            <span className="badge-row">
-              {verifiedBy ? (
-                <span className="verify-badge">{verifiedBy}</span>
-              ) : null}
-              <span className={`ctx-badge ${TYPE_CLASS[type]}`}>
-                <TypeIco size={11} strokeWidth={1.8} aria-hidden />
-                {TYPE_LABEL[type]}
-              </span>
-              {vis ? (
-                <span
-                  className={`ctx-badge j-vis-${visibility ?? "public"}`}
-                  title={vis.label}
-                  aria-label={vis.label}
-                >
-                  <vis.Icon
-                    size={11}
-                    strokeWidth={1.8}
-                    aria-hidden
-                    {...(visibility === "feature" ? { fill: "currentColor" } : {})}
-                  />
-                  {visibility === "feature" ? "Nổi bật" : vis.label}
+          {canManage && ownerSlug ? (
+            <div className="jcard-datebar">
+              {showAuthorBadge ? (
+                <span className="org-chip">
+                  <span className="org-logo" aria-hidden>
+                    {authorAvatarUrl ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img src={authorAvatarUrl} alt="" />
+                    ) : (
+                      getNameInitials(authorName ?? null, ownerSlug ?? "C")
+                    )}
+                  </span>
+                  <span className="org-copy">
+                    <strong>{authorName || `@${ownerSlug ?? ""}`}</strong>
+                    <small>{displayDate}</small>
+                  </span>
                 </span>
               ) : null}
-            </span>
-          </div>
-
-          {showAuthorBadge ? (
-            <div className="org-row">
-              <span className="org-chip">
-                <span className="org-logo" aria-hidden>
-                  {authorAvatarUrl ? (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img src={authorAvatarUrl} alt="" />
-                  ) : (
-                    getNameInitials(authorName ?? null, ownerSlug ?? "C")
-                  )}
+              <span className="badge-row">
+                {verifiedBy ? (
+                  <span className="verify-badge">{verifiedBy}</span>
+                ) : null}
+                <span className={`ctx-badge ${TYPE_CLASS[type]}`}>
+                  <TypeIco size={11} strokeWidth={1.8} aria-hidden />
+                  {TYPE_LABEL[type]}
                 </span>
-                <span>{authorName || `@${ownerSlug ?? ""}`}</span>
+                {vis ? (
+                  <span
+                    className={`ctx-badge j-vis-${visibility ?? "public"}`}
+                    title={vis.label}
+                    aria-label={vis.label}
+                  >
+                    <vis.Icon
+                      size={11}
+                      strokeWidth={1.8}
+                      aria-hidden
+                      {...(visibility === "feature" ? { fill: "currentColor" } : {})}
+                    />
+                    {visibility === "feature" ? "Nổi bật" : vis.label}
+                  </span>
+                ) : null}
               </span>
+              <JourneyMilestoneOwnerMenu
+                milestoneId={cotMocId ?? milestone.id}
+                ownerSlug={ownerSlug}
+                currentType={type}
+                currentVisibility={visibility ?? "public"}
+                postSlug={postSlug ?? null}
+                className="jcard-date-menu"
+              />
             </div>
           ) : null}
 
@@ -292,7 +286,7 @@ export function JourneyMilestoneCard({
                     prefetch={false}
                     onClick={(e) => e.stopPropagation()}
                   >
-                    {t.tieu_de}
+                    #{t.tieu_de}
                   </Link>
                 ))}
               </div>
@@ -339,32 +333,50 @@ export function JourneyMilestoneCard({
                           ? ` và ${otherContributorCount} người khác`
                           : ""}
                       </span>
-                      <span className="expand-hint">Xem tất cả</span>
+                      <span className="expand-hint" aria-label="Xem tất cả">
+                        <Eye size={15} strokeWidth={1.9} aria-hidden />
+                      </span>
+                      <span className="collapse-hint" aria-label="Thu gọn">
+                        <ChevronUp size={15} strokeWidth={2} aria-hidden />
+                      </span>
+                      {canShowCoAuthorAction && tacPhamId ? (
+                        <JourneyCoAuthorProposal
+                          tacPhamId={tacPhamId}
+                          mode={canManageCoAuthors ? "owner" : "proposal"}
+                        />
+                      ) : null}
                     </span>
                   </summary>
                   <div className="authors-expanded">
                     <div className="expanded-header">
                       <span>{contributorCount} người đóng góp</span>
-                      <span className="collapse-hint">Thu gọn</span>
                     </div>
                     {coAuthorCredits.map((c, i) => (
                       <div key={`${c.slug ?? c.name}-${i}`} className="author-row-item">
-                        <AuthorAvatar
-                          credit={c}
-                          tone={AVATAR_TONE_CLASSES[i % AVATAR_TONE_CLASSES.length] ?? "av-blue"}
-                        />
-                        <span className="author-row-info">
-                          <span
-                            className={`author-row-name${
-                              variant === "tagged" && c.slug && c.slug === ownerSlug
-                                ? " is-you"
-                                : ""
-                            }`}
-                          >
-                            {c.name}
+                        <JourneyUserPopover
+                          slug={c.slug}
+                          fallbackName={c.name}
+                          fallbackAvatarUrl={c.avatarUrl}
+                        >
+                          <span className="author-row-person">
+                            <AuthorAvatar
+                              credit={c}
+                              tone={AVATAR_TONE_CLASSES[i % AVATAR_TONE_CLASSES.length] ?? "av-blue"}
+                            />
+                            <span className="author-row-info author-row-inline">
+                              <span
+                                className={`author-row-name${
+                                  variant === "tagged" && c.slug && c.slug === ownerSlug
+                                    ? " is-you"
+                                    : ""
+                                }`}
+                              >
+                                {c.name}
+                              </span>
+                              {c.role ? <span className="author-row-role">{c.role}</span> : null}
+                            </span>
                           </span>
-                          {c.role ? <span className="author-row-role">{c.role}</span> : null}
-                        </span>
+                        </JourneyUserPopover>
                         {c.laChuSoHuu ? (
                           <span className="abadge abadge-owner">Chủ bài</span>
                         ) : variant === "tagged" && c.slug && c.slug === ownerSlug ? (
@@ -375,7 +387,7 @@ export function JourneyMilestoneCard({
                   </div>
                 </details>
               ) : null}
-              {canShowCoAuthorAction && tacPhamId ? (
+              {coAuthorCredits.length === 0 && canShowCoAuthorAction && tacPhamId ? (
                 <JourneyCoAuthorProposal
                   tacPhamId={tacPhamId}
                   mode={canManageCoAuthors ? "owner" : "proposal"}
@@ -391,7 +403,12 @@ export function JourneyMilestoneCard({
               initialCount={social?.likeCount}
               showCount={social?.showCounts}
             />
-            <button type="button" className="action-btn" aria-label="Bình luận">
+            <button
+              type="button"
+              className="action-btn"
+              aria-label="Bình luận"
+              data-open-post="true"
+            >
               <MessageCircle size={16} strokeWidth={1.8} aria-hidden />
               {comments ? <span>{comments}</span> : null}
             </button>
@@ -451,40 +468,74 @@ function AuthorAvatar({
   );
 }
 
-function TaggedByPanel({ attr }: { attr: MilestoneAttribution }) {
+function TaggedByPanel({
+  attr,
+  dateLabel,
+}: {
+  attr: MilestoneAttribution;
+  dateLabel: string;
+}) {
   const initial = (attr.initial || attr.name.charAt(0) || "?").toUpperCase();
   return (
     <div className="via-bar">
       <CornerDownRight size={13} strokeWidth={1.8} aria-hidden />
       <span>Được gắn bởi</span>
-      <span className="via-author">
-        <span className="via-avatar" aria-hidden>
-          {attr.avatarUrl ? (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img src={attr.avatarUrl} alt="" />
-          ) : (
-            initial
-          )}
+      <JourneyUserPopover
+        slug={attr.slug}
+        fallbackName={attr.name}
+        fallbackAvatarUrl={attr.avatarUrl}
+      >
+        <span className="via-author">
+          <span className="via-avatar" aria-hidden>
+            {attr.avatarUrl ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src={attr.avatarUrl} alt="" />
+            ) : (
+              initial
+            )}
+          </span>
+          <span className="via-copy">
+            <strong>{attr.name}</strong>
+            <small>{dateLabel}</small>
+          </span>
         </span>
-        <strong>{attr.name}</strong>
-      </span>
-      {attr.role ? <span className="via-role">{attr.role}</span> : null}
+      </JourneyUserPopover>
     </div>
   );
 }
 
-function BookmarkSourcePanel({ src }: { src: MilestoneBookmarkSource }) {
+function BookmarkSourcePanel({
+  src,
+  dateLabel,
+}: {
+  src: MilestoneBookmarkSource;
+  dateLabel: string;
+}) {
   const initial = (src.initial || src.name.charAt(0) || "?").toUpperCase();
   return (
-    <div className="j-bookmark-src">
-      <div className="j-bs-ico">{initial}</div>
-      <span className="j-bs-text">
-        Lưu từ <strong>{src.name}</strong> ·{" "}
-        <span className="j-bs-domain">{src.domain}</span>
-      </span>
-      <span className="j-bs-ext" aria-hidden>
-        <ExternalLink size={14} strokeWidth={1.8} />
-      </span>
+    <div className="via-bar">
+      <Bookmark size={13} strokeWidth={1.8} aria-hidden />
+      <span>Lưu từ</span>
+      <JourneyUserPopover
+        slug={src.domain.replace(/^@/, "")}
+        fallbackName={src.name}
+        fallbackAvatarUrl={src.avatarUrl}
+      >
+        <span className="via-author">
+          <span className="via-avatar" aria-hidden>
+            {src.avatarUrl ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src={src.avatarUrl} alt="" />
+            ) : (
+              initial
+            )}
+          </span>
+          <span className="via-copy">
+            <strong>{src.name}</strong>
+            <small>{dateLabel}</small>
+          </span>
+        </span>
+      </JourneyUserPopover>
     </div>
   );
 }

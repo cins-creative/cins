@@ -26,6 +26,7 @@ import {
   PostCover,
 } from "@/components/editor/PostRenderer";
 import { JourneyMilestoneOwnerMenu } from "@/components/journey/JourneyMilestoneOwnerMenu";
+import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
 import { articlePublicHref } from "@/lib/articles/article-href";
 import { articleTagLoaiClass } from "@/lib/editor/article-tag";
 import {
@@ -166,13 +167,9 @@ export function JourneyPostBody({
             </span>
             <span className="post-byline-name">
               <strong>{owner.tenHienThi}</strong>
-              <span className="post-byline-handle">@{owner.slug}</span>
+              <span className="post-byline-handle">{dateLabel}</span>
             </span>
           </Link>
-          <span className="post-byline-dot" aria-hidden>
-            ·
-          </span>
-          <span className="post-byline-date">{dateLabel}</span>
           {isOwner ? (
             <>
               <span className="post-byline-spacer" />
@@ -307,19 +304,15 @@ function PostContributors({
               </span>
             </>
           );
-          return c.slug ? (
-            <Link
+          return (
+            <JourneyUserPopover
               key={c.id}
-              href={`/${c.slug}`}
-              className="post-contributor-card"
-              prefetch={false}
+              slug={c.slug}
+              fallbackName={c.tenHienThi}
+              fallbackAvatarUrl={avatarUrl}
             >
-              {body}
-            </Link>
-          ) : (
-            <span key={c.id} className="post-contributor-card">
-              {body}
-            </span>
+              <span className="post-contributor-card">{body}</span>
+            </JourneyUserPopover>
           );
         })}
       </div>
@@ -548,21 +541,23 @@ function CommentItem({
 
   return (
     <li className="post-comments-item">
-      <span className="post-comments-avatar" aria-hidden>
-        {avatarUrl ? (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img src={avatarUrl} alt="" />
-        ) : (
-          initial
-        )}
-      </span>
       <div className="post-comments-bub">
         <div className="post-comments-top">
-          <span className="post-comments-name">
-            {comment.author?.tenHienThi ?? "Người dùng"}
+          <span className="post-comments-avatar" aria-hidden>
+            {avatarUrl ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src={avatarUrl} alt="" />
+            ) : (
+              initial
+            )}
           </span>
-          <span className="post-comments-time">
-            {formatRelative(comment.taoLuc)}
+          <span className="post-comments-author">
+            <span className="post-comments-name">
+              {comment.author?.tenHienThi ?? "Người dùng"}
+            </span>
+            <span className="post-comments-time">
+              {formatRelative(comment.taoLuc)}
+            </span>
           </span>
           {comment.isOwn && !editing ? (
             <div

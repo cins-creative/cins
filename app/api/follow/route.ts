@@ -4,6 +4,7 @@ import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import {
   followTarget,
   getFollowStatus,
+  unfriendUser,
   unfollowTarget,
 } from "@/lib/social/follow";
 import type { FollowTargetType } from "@/lib/social/types";
@@ -42,7 +43,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Cần đăng nhập." }, { status: 401 });
   }
 
-  let body: { id_doi_tuong?: string; loai_doi_tuong?: string };
+  let body: { id_doi_tuong?: string; loai_doi_tuong?: string; mutual?: boolean };
   try {
     body = await req.json();
   } catch {
@@ -72,7 +73,7 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: "Cần đăng nhập." }, { status: 401 });
   }
 
-  let body: { id_doi_tuong?: string; loai_doi_tuong?: string };
+  let body: { id_doi_tuong?: string; loai_doi_tuong?: string; mutual?: boolean };
   try {
     body = await req.json();
   } catch {
@@ -88,7 +89,10 @@ export async function DELETE(req: Request) {
     );
   }
 
-  const result = await unfollowTarget(session.profile.id, id_doi_tuong, loai);
+  const result =
+    body.mutual && loai === "user"
+      ? await unfriendUser(session.profile.id, id_doi_tuong)
+      : await unfollowTarget(session.profile.id, id_doi_tuong, loai);
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: 400 });
   }

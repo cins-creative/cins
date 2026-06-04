@@ -1,4 +1,3 @@
-import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -6,6 +5,8 @@ import { notFound } from "next/navigation";
 import { loadPostBySlug } from "@/app/[slug]/journey/actions";
 import { CinsShell } from "@/components/cins/CinsShell";
 import { JourneyPostBody } from "@/components/journey/JourneyPostBody";
+
+import { PostBackButton } from "./PostBackButton";
 
 export const dynamic = "force-dynamic";
 
@@ -86,14 +87,7 @@ export default async function PostPage({ params }: { params: Params }) {
       <CinsShell data-screen-label="Bài viết riêng tư">
         <div className="j-post-page">
           <div className="j-post-page-inner">
-            <Link
-              href={`/${slug}`}
-              className="j-post-page-crumb"
-              prefetch={false}
-            >
-              <ArrowLeft size={14} strokeWidth={2} aria-hidden />
-              <span>Quay lại Journey của @{slug}</span>
-            </Link>
+            <PostBackButton fallbackHref={`/${slug}`} />
 
             <div className="j-post-page-error">
               <h1>Bài viết không khả dụng</h1>
@@ -113,14 +107,7 @@ export default async function PostPage({ params }: { params: Params }) {
     <CinsShell data-screen-label="Bài viết">
       <div className="j-post-page">
         <div className="j-post-page-inner">
-          <Link
-            href={`/${detail.owner.slug}`}
-            className="j-post-page-crumb"
-            prefetch={false}
-          >
-            <ArrowLeft size={14} strokeWidth={2} aria-hidden />
-            <span>Quay lại Journey của @{detail.owner.slug}</span>
-          </Link>
+          <PostBackButton fallbackHref={`/${detail.owner.slug}`} />
 
           <JourneyPostBody
             initialDetail={detail}

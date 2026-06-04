@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Clock3, UserCheck, UserPlus, X } from "lucide-react";
+import { Check, Clock3, UserCheck, UserMinus, UserPlus, X } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 
 type FollowStatus = {
@@ -21,7 +21,9 @@ export function JourneyFollowButton({
 }: Props) {
   const [status, setStatus] = useState<FollowStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [unfriending, setUnfriending] = useState(false);
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -43,10 +45,6 @@ export function JourneyFollowButton({
     };
   }, [targetUserId, viewerProfileId]);
 
-  if (!viewerProfileId || viewerProfileId === targetUserId) {
-    return null;
-  }
-
   const following = status?.dang_theo_doi ?? false;
   const incoming = status?.duoc_theo_doi ?? false;
   const mutual = following && incoming;
@@ -54,11 +52,18 @@ export function JourneyFollowButton({
   const incomingPending = !following && incoming;
 
   useEffect(() => {
-    if (!incomingPending) setMenuOpen(false);
-  }, [incomingPending]);
+    if (!incomingPending && !mutual) {
+      queueMicrotask(() => setMenuOpen(false));
+    }
+  }, [incomingPending, mutual]);
+
+  if (!viewerProfileId || viewerProfileId === targetUserId) {
+    return null;
+  }
 
   const sendFriendRequest = () => {
     setError(null);
+    setNotice(null);
     setMenuOpen(false);
     startTransition(async () => {
       const res = await fetch("/api/follow", {
@@ -82,6 +87,7 @@ export function JourneyFollowButton({
 
   const respondIncoming = (action: "accept" | "decline") => {
     setError(null);
+    setNotice(null);
     startTransition(async () => {
       const res = await fetch("/api/follow/requests", {
         method: "PATCH",
@@ -103,6 +109,37 @@ export function JourneyFollowButton({
           ? { dang_theo_doi: true, theo_doi_lai: true, duoc_theo_doi: true }
           : { dang_theo_doi: false, theo_doi_lai: false, duoc_theo_doi: false },
       );
+    });
+  };
+
+  const unfriend = () => {
+    setError(null);
+    setNotice(null);
+    setUnfriending(true);
+    startTransition(async () => {
+      const res = await fetch("/api/follow", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id_doi_tuong: targetUserId,
+          loai_doi_tuong: "user",
+          mutual: true,
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setUnfriending(false);
+        setError(
+          typeof json.error === "string" ? json.error : "Không hủy kết bạn được.",
+        );
+        return;
+      }
+      const nextStatus = json as FollowStatus;
+      setStatus(nextStatus);
+      setMenuOpen(false);
+      setUnfriending(false);
+      setNotice("Đã hủy kết bạn");
+      window.setTimeout(() => setNotice(null), 1800);
     });
   };
 
@@ -131,13 +168,13 @@ export function JourneyFollowButton({
         className={`j-friend-btn is-${buttonState}`}
         title={label}
         aria-label={label}
-        aria-haspopup={incomingPending ? "menu" : undefined}
-        aria-expanded={incomingPending ? menuOpen : undefined}
-        disabled={pending || status === null}
+        aria-haspopup={incomingPending || mutual ? "menu" : undefined}
+        aria-expanded={incomingPending || mutual ? menuOpen : undefined}
+        disabled={(pending && !menuOpen) || status === null}
         onClick={
-          incomingPending
+          incomingPending || mutual
             ? () => setMenuOpen((open) => !open)
-            : mutual || outgoingPending
+            : outgoingPending
               ? undefined
               : sendFriendRequest
         }
@@ -145,35 +182,54 @@ export function JourneyFollowButton({
         <Icon size={15} strokeWidth={2} aria-hidden />
         {mutual ? null : <span>{label}</span>}
       </button>
-      {incomingPending && menuOpen ? (
+      {(incomingPending || mutual) && menuOpen ? (
         <div
           className="j-friend-request-actions"
           role="menu"
-          aria-label="Phản hồi lời mời kết bạn"
+          aria-label={mutual ? "Tuỳ chọn bạn bè" : "Phản hồi lời mời kết bạn"}
         >
-          <button
-            type="button"
-            className="j-friend-action is-accept"
-            disabled={pending}
-            onClick={() => respondIncoming("accept")}
-          >
-            <Check size={13} strokeWidth={2} aria-hidden />
-            Chấp nhận
-          </button>
-          <button
-            type="button"
-            className="j-friend-action is-decline"
-            disabled={pending}
-            onClick={() => respondIncoming("decline")}
-          >
-            <X size={13} strokeWidth={2} aria-hidden />
-            Từ chối
-          </button>
+          {mutual ? (
+            <button
+              type="button"
+              className="j-friend-action is-unfriend"
+              disabled={unfriending}
+              onClick={unfriend}
+            >
+              <UserMinus size={13} strokeWidth={2} aria-hidden />
+              {unfriending ? "Đang hủy..." : "Hủy kết bạn"}
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="j-friend-action is-accept"
+                disabled={pending}
+                onClick={() => respondIncoming("accept")}
+              >
+                <Check size={13} strokeWidth={2} aria-hidden />
+                Chấp nhận
+              </button>
+              <button
+                type="button"
+                className="j-friend-action is-decline"
+                disabled={pending}
+                onClick={() => respondIncoming("decline")}
+              >
+                <X size={13} strokeWidth={2} aria-hidden />
+                Từ chối
+              </button>
+            </>
+          )}
         </div>
       ) : null}
       {error ? (
         <span className="j-follow-error" role="alert">
           {error}
+        </span>
+      ) : null}
+      {notice ? (
+        <span className="j-follow-notice" role="status">
+          {notice}
         </span>
       ) : null}
     </div>

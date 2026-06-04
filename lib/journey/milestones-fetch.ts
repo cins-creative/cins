@@ -432,24 +432,17 @@ async function fetchBookmarkedMilestonesForUser(params: {
   admin: ReturnType<typeof createServiceRoleClient>;
 }): Promise<MilestoneItem[]> {
   const { userId, isOwner, admin } = params;
-  const targetTypes = isOwner ? ["cot_moc", "cot_moc_private"] : ["cot_moc"];
   const { data: savedRows } = await admin
     .from("social_luu")
     .select("id_doi_tuong, loai_doi_tuong")
     .eq("id_nguoi_dung", userId)
-    .in("loai_doi_tuong", targetTypes)
+    .eq("loai_doi_tuong", "cot_moc")
     .returns<BookmarkRow[]>();
 
   const cotMocIds = [
     ...new Set((savedRows ?? []).map((row) => row.id_doi_tuong).filter(Boolean)),
   ];
   if (cotMocIds.length === 0) return [];
-
-  const privateIds = new Set(
-    (savedRows ?? [])
-      .filter((row) => row.loai_doi_tuong === "cot_moc_private")
-      .map((row) => row.id_doi_tuong),
-  );
 
   const { data: cotMocs } = await admin
     .from("content_cot_moc")
@@ -461,7 +454,6 @@ async function fetchBookmarkedMilestonesForUser(params: {
 
   const visibleCotMocs = (cotMocs ?? []).filter((cm) => {
     if (isOwner) return true;
-    if (privateIds.has(cm.id)) return false;
     return cm.che_do_hien_thi !== "chi_minh";
   });
   if (visibleCotMocs.length === 0) return [];
@@ -520,7 +512,7 @@ async function fetchBookmarkedMilestonesForUser(params: {
         cotMocId: cm.id,
         variant: "bookmark" as MilestoneVariant,
         type: LOAI_MOC_TO_TYPE[cm.loai_moc],
-        visibility: privateIds.has(cm.id) ? "private" : mapVisibility(cm.che_do_hien_thi),
+        visibility: mapVisibility(cm.che_do_hien_thi),
         year: dateObj.getUTCFullYear(),
         month: dateObj.getUTCMonth() + 1,
         day: dateObj.getUTCDate(),
@@ -546,6 +538,7 @@ async function fetchBookmarkedMilestonesForUser(params: {
           initial: ((owner?.ten_hien_thi as string) || (owner?.slug as string) || "C")
             .slice(0, 1)
             .toUpperCase(),
+          avatarUrl: getAvatarUrl((owner?.avatar_id as string | null) ?? null) ?? null,
         },
         coAuthorCredits: creditsByTacPham.get(tp.id as string) ?? [],
       };
@@ -635,7 +628,7 @@ async function attachSocialState(
   ];
   if (cotMocIds.length === 0) return milestones;
 
-  const [viewerLikes, viewerBookmarks, allLikes, allBookmarks] = await Promise.all([
+  const [viewerLikes, viewerBookmarks, allLikes, allBookmarks, allComments] = await Promise.all([
     viewerId
       ? admin
           .from("social_reaction")
@@ -650,7 +643,7 @@ async function attachSocialState(
           .from("social_luu")
           .select("id_doi_tuong")
           .eq("id_nguoi_dung", viewerId)
-          .in("loai_doi_tuong", ["cot_moc", "cot_moc_private"])
+          .eq("loai_doi_tuong", "cot_moc")
           .in("id_doi_tuong", cotMocIds)
       : Promise.resolve({ data: [] }),
     isProfileOwner
@@ -665,9 +658,15 @@ async function attachSocialState(
       ? admin
           .from("social_luu")
           .select("id_doi_tuong")
-          .in("loai_doi_tuong", ["cot_moc", "cot_moc_private"])
+          .eq("loai_doi_tuong", "cot_moc")
           .in("id_doi_tuong", cotMocIds)
       : Promise.resolve({ data: [] }),
+    admin
+      .from("social_binh_luan")
+      .select("id_doi_tuong")
+      .eq("loai_doi_tuong", "cot_moc")
+      .eq("da_xoa", false)
+      .in("id_doi_tuong", cotMocIds),
   ]);
 
   const likedIds = new Set((viewerLikes.data ?? []).map((row) => row.id_doi_tuong as string));
@@ -676,6 +675,7 @@ async function attachSocialState(
   );
   const likeCounts = countByTarget(allLikes.data ?? []);
   const bookmarkCounts = countByTarget(allBookmarks.data ?? []);
+  const commentCounts = countByTarget(allComments.data ?? []);
 
   return milestones.map((item) => {
     const id = item.cotMocId ?? item.id;
@@ -689,6 +689,7 @@ async function attachSocialState(
         bookmarkCount: bookmarkCounts.get(id) ?? 0,
         showCounts,
       },
+      comments: commentCounts.get(id) ?? item.comments ?? 0,
     };
   });
 }

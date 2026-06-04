@@ -9,6 +9,7 @@ import {
   getProfileCoverUrl,
 } from "@/lib/journey/profile";
 import type {
+  CommentNotification,
   FollowAcceptedNotification,
   FollowTargetType,
   MutualFriendProfile,
@@ -134,6 +135,22 @@ export async function unfollowTarget(
 
 export const unfollowUser = unfollowTarget;
 
+export async function unfriendUser(
+  viewerId: string,
+  targetId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const admin = createServiceRoleClient();
+  const { error } = await admin
+    .from("user_theo_doi")
+    .delete()
+    .eq("loai_doi_tuong", FOLLOW_TARGET_DB_VALUE.user)
+    .or(
+      `and(id_nguoi_theo_doi.eq.${viewerId},id_doi_tuong.eq.${targetId}),and(id_nguoi_theo_doi.eq.${targetId},id_doi_tuong.eq.${viewerId})`,
+    );
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
+
 export async function removeIncomingUserFollow(
   viewerId: string,
   followerId: string,
@@ -196,6 +213,109 @@ export async function listFollowAcceptedNotifications(
       };
     })
     .filter((item): item is FollowAcceptedNotification => item !== null);
+}
+
+export async function notifyMilestoneComment(params: {
+  ownerId: string;
+  commenterId: string;
+  milestoneId: string;
+}): Promise<void> {
+  if (params.ownerId === params.commenterId) return;
+  const admin = createServiceRoleClient();
+  await admin.from("social_thong_bao").insert({
+    nguoi_nhan: params.ownerId,
+    noi_dung_ai: params.commenterId,
+    loai_doi_tuong: "cot_moc_comment",
+    id_doi_tuong: params.milestoneId,
+  });
+}
+
+export async function listCommentNotifications(
+  viewerId: string,
+): Promise<CommentNotification[]> {
+  const admin = createServiceRoleClient();
+  const { data: rows } = await admin
+    .from("social_thong_bao")
+    .select("id, id_doi_tuong, noi_dung_ai, tao_luc")
+    .eq("nguoi_nhan", viewerId)
+    .eq("loai_doi_tuong", "cot_moc_comment")
+    .order("tao_luc", { ascending: false })
+    .limit(10);
+
+  const commenterIds = [
+    ...new Set(
+      (rows ?? [])
+        .map((row) => row.noi_dung_ai as string | null)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  const milestoneIds = [
+    ...new Set(
+      (rows ?? [])
+        .map((row) => row.id_doi_tuong as string | null)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  if (commenterIds.length === 0 || milestoneIds.length === 0) return [];
+
+  const [profiles, { data: milestones }, { data: links }] = await Promise.all([
+    loadFollowProfiles(admin, commenterIds),
+    admin
+      .from("content_cot_moc")
+      .select("id, id_nguoi_dung, tieu_de")
+      .in("id", milestoneIds)
+      .returns<Array<{ id: string; id_nguoi_dung: string; tieu_de: string }>>(),
+    admin
+      .from("content_tac_pham_thuoc_moc")
+      .select("id_cot_moc, thu_tu, content_tac_pham:content_tac_pham(id, slug)")
+      .in("id_cot_moc", milestoneIds)
+      .order("thu_tu", { ascending: true })
+      .returns<
+        Array<{
+          id_cot_moc: string;
+          thu_tu: number;
+          content_tac_pham: { id: string; slug: string | null } | null;
+        }>
+      >(),
+  ]);
+
+  const ownerIds = [...new Set((milestones ?? []).map((m) => m.id_nguoi_dung))];
+  const { data: owners } = ownerIds.length
+    ? await admin
+        .from("user_nguoi_dung")
+        .select("id, slug")
+        .in("id", ownerIds)
+        .returns<Array<{ id: string; slug: string }>>()
+    : { data: [] };
+
+  const profileById = new Map(profiles.map((profile) => [profile.idNguoiDung, profile]));
+  const milestoneById = new Map((milestones ?? []).map((m) => [m.id, m]));
+  const ownerSlugById = new Map((owners ?? []).map((owner) => [owner.id, owner.slug]));
+  const firstLinkByMilestone = new Map<string, NonNullable<typeof links>[number]>();
+  for (const link of links ?? []) {
+    if (!firstLinkByMilestone.has(link.id_cot_moc)) {
+      firstLinkByMilestone.set(link.id_cot_moc, link);
+    }
+  }
+
+  return (rows ?? [])
+    .map((row) => {
+      const commenterId = row.noi_dung_ai as string | null;
+      const milestoneId = row.id_doi_tuong as string | null;
+      const commenter = commenterId ? profileById.get(commenterId) : null;
+      const milestone = milestoneId ? milestoneById.get(milestoneId) : null;
+      if (!commenter || !milestone || !milestoneId) return null;
+      const link = firstLinkByMilestone.get(milestoneId);
+      return {
+        ...commenter,
+        notificationId: (row.id as string | null) ?? `${commenter.idNguoiDung}:${milestoneId}`,
+        milestoneId,
+        postTitle: milestone.tieu_de || "Bài viết",
+        postSlug: link?.content_tac_pham?.slug ?? null,
+        ownerSlug: ownerSlugById.get(milestone.id_nguoi_dung) ?? null,
+      };
+    })
+    .filter((item): item is CommentNotification => item !== null);
 }
 
 /** Người đang follow viewer nhưng viewer chưa follow lại. */

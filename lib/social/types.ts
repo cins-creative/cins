@@ -48,6 +48,14 @@ export type FollowAcceptedNotification = PendingFollowRequest & {
   notificationId: string;
 };
 
+export type CommentNotification = PendingFollowRequest & {
+  notificationId: string;
+  milestoneId: string;
+  postTitle: string;
+  postSlug: string | null;
+  ownerSlug: string | null;
+};
+
 export type CoAuthorReviewProfile = {
   idNguoiDung: string;
   slug: string;
