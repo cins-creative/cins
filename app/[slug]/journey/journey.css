@@ -1211,15 +1211,21 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
 .j-m-card.is-clickable {
   cursor: pointer;
 }
+/* Stretched-link: lớp phủ z-index 1 — click vùng text/preview mở bài viết. */
 .j-m-card-hit {
   position: absolute;
   inset: 0;
-  z-index: 0;
+  z-index: 1;
   border-radius: inherit;
 }
-.j-m-card-hit ~ * {
+/* Chỉ vùng tương tác nằm TRÊN lớp phủ — không bọc cả jcard-body. */
+.jcard-datebar,
+.jcard-actions,
+.jcard-authors,
+.jcard-body .tags,
+.j-m-menu {
   position: relative;
-  z-index: 1;
+  z-index: 2;
 }
 .j-m-card:hover {
   transform: none;
@@ -3208,6 +3214,7 @@ select.j-edit-input {
   top: calc(100% + 6px);
   right: 0;
   min-width: 220px;
+  z-index: 40;
   background: var(--bg-surface);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
@@ -4665,6 +4672,18 @@ select.j-edit-input {
   color: var(--jcard-ink);
   font-family: var(--font-sans);
 }
+/* Menu mở → không clip popover; nâng card lên trên milestone kế tiếp. */
+.j-m-card.jcard:has(.j-m-menu-btn[aria-expanded="true"]) {
+  overflow: visible;
+  z-index: 20;
+}
+.j-milestone:has(.j-m-card.jcard .j-m-menu-btn[aria-expanded="true"]) {
+  position: relative;
+  z-index: 20;
+}
+.jcard-datebar .jcard-date-menu .j-m-menu-pop {
+  z-index: 30;
+}
 .j-m-card.jcard:hover {
   border-color: var(--jcard-border);
   box-shadow: var(--shadow-xs);
@@ -5369,6 +5388,9 @@ select.j-edit-input {
   align-items: center;
   gap: 5px;
   padding: 6px 10px;
+}
+a.action-btn {
+  text-decoration: none;
 }
 .share-btn {
   display: inline-flex;

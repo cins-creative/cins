@@ -479,15 +479,28 @@ export function JourneyMilestoneCard({
               initialCount={social?.likeCount}
               showCount={social?.showCounts}
             />
-            <button
-              type="button"
-              className="action-btn"
-              aria-label="Bình luận"
-              data-open-post="true"
-            >
-              <MessageCircle size={16} strokeWidth={1.8} aria-hidden />
-              {comments ? <span>{comments}</span> : null}
-            </button>
+            {postHref ? (
+              <Link
+                href={postHref}
+                scroll={false}
+                prefetch
+                className="action-btn"
+                aria-label="Bình luận"
+              >
+                <MessageCircle size={16} strokeWidth={1.8} aria-hidden />
+                {comments ? <span>{comments}</span> : null}
+              </Link>
+            ) : (
+              <button
+                type="button"
+                className="action-btn"
+                aria-label="Bình luận"
+                data-open-post="true"
+              >
+                <MessageCircle size={16} strokeWidth={1.8} aria-hidden />
+                {comments ? <span>{comments}</span> : null}
+              </button>
+            )}
             {canBookmark ? (
               <JourneyBookmarkButton
                 milestoneId={cotMocId ?? milestone.id}
