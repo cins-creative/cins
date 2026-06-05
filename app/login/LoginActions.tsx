@@ -49,7 +49,7 @@ function RememberedAccountCard({
             /* eslint-disable-next-line @next/next/no-img-element */
             <img src={avatarUrl} alt="" />
           ) : (
-            getNameInitials(displayName)
+            getNameInitials(account.tenHienThi, account.slug)
           )}
         </span>
         <span className="cins-login-remembered-copy">
