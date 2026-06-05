@@ -5,13 +5,13 @@ import {
   Calendar,
   ChevronUp,
   CornerDownRight,
-  ExternalLink,
   FolderKanban,
   Globe,
   Eye,
   Image as ImageIcon,
   Link2,
   Lock,
+  Maximize2,
   MessageCircle,
   Star,
   Trophy,
@@ -22,6 +22,8 @@ import {
 import Link from "next/link";
 
 import { JourneyCoAuthorProposal } from "@/components/journey/JourneyCoAuthorProposal";
+import { JourneyCoverImage } from "@/components/journey/JourneyCoverImage";
+import { ImageGrid } from "@/components/journey/ImageGrid";
 import { JourneyBookmarkButton } from "@/components/journey/JourneyBookmarkButton";
 import { JourneyMilestoneInlineControls } from "@/components/journey/JourneyMilestoneInlineControls";
 import { JourneyLikeButton } from "@/components/journey/JourneyLikeButton";
@@ -37,6 +39,12 @@ import type {
 import { articlePublicHref } from "@/lib/articles/article-href";
 import { articleTagLoaiClass } from "@/lib/editor/article-tag";
 import type { LoaiMoc, Visibility } from "@/lib/editor/types";
+import { photoGridImagesFromBlocks } from "@/lib/journey/image-grid";
+import {
+  isMediaPost,
+  milestoneCardCaption,
+  shouldShowMilestoneCardTitle,
+} from "@/lib/journey/post-media";
 import { getNameInitials } from "@/lib/journey/profile";
 
 type Props = {
@@ -133,9 +141,7 @@ function visibilityIcon(
 /**
  * 1 cột mốc trên Journey — render theo `variant` (self / tagged / verified / bookmark).
  * Cẩn thận:
- *  - Diamond + đường dash horizontal trước card hoàn toàn nằm trong `.j-m-month` /
- *    `.j-m-body-wrap::before` — không cần markup riêng.
- *  - `.j-m-diamond` được dùng trong `.j-m-month` (theo mockup `cins-journey-desktop.html`).
+ *  - Card nội dung nằm trong `.j-m-body-wrap` → `.j-m-card`.
  */
 export function JourneyMilestoneCard({
   milestone,
@@ -168,6 +174,7 @@ export function JourneyMilestoneCard({
     tacPhamId,
     canProposeCoAuthor,
     social,
+    noiDungBlocks,
   } = milestone;
 
   const milestoneCls = [
@@ -183,6 +190,7 @@ export function JourneyMilestoneCard({
   const vis = visibilityIcon(visibility);
   const TypeIco = TYPE_ICON[type];
   const canManage = isOwner && variant === "self" && Boolean(ownerSlug);
+  const canBookmark = !(isOwner && variant === "self");
   const canManageCoAuthors = isOwner && variant === "self" && Boolean(tacPhamId);
   const canShowCoAuthorAction =
     (canProposeCoAuthor || canManageCoAuthors) && Boolean(tacPhamId);
@@ -191,7 +199,13 @@ export function JourneyMilestoneCard({
     0,
     coAuthorCredits.length - visibleCoAuthors.length,
   );
+  const coAuthorsOnly = coAuthorCredits.filter((c) => !c.laChuSoHuu);
+  const showAuthorsStrip = coAuthorsOnly.length > 0;
   const preview = media[0] ?? null;
+  const photoGridImages = photoGridImagesFromBlocks(noiDungBlocks);
+  const isPhotoAlbum = isMediaPost(noiDungBlocks) && photoGridImages !== null;
+  const showCardTitle = shouldShowMilestoneCardTitle(title, noiDungBlocks);
+  const cardCaption = milestoneCardCaption(body, noiDungBlocks);
   const ownerCredit =
     coAuthorCredits.find((c) => c.laChuSoHuu) ??
     (variant === "tagged" || variant === "verified"
@@ -209,8 +223,15 @@ export function JourneyMilestoneCard({
     coAuthorCredits[0] ??
     null;
   const contributorCount = coAuthorCredits.length;
-  const otherContributorCount = Math.max(0, contributorCount - 1);
+  const otherContributorCount = coAuthorsOnly.length;
   const displayDate = `${String(day).padStart(2, "0")}-${String(month).padStart(2, "0")}-${year}`;
+  const resolvedPostOwner = postOwnerSlug || ownerSlug || null;
+  const postHref =
+    postSlug && resolvedPostOwner
+      ? resolvedPostOwner === ownerSlug
+        ? `/${resolvedPostOwner}/p/${postSlug}`
+        : `/${resolvedPostOwner}/p/${postSlug}?owner=${encodeURIComponent(resolvedPostOwner)}`
+      : null;
 
   /* Hiển thị badge người đăng (avatar + tên) khi:
    *   - variant === "self" (chính chủ đăng — `authorName` là tác giả thật)
@@ -233,12 +254,22 @@ export function JourneyMilestoneCard({
       data-post-slug={postSlug ?? undefined}
       data-post-owner-slug={postOwnerSlug ?? undefined}
     >
-      <div className="j-m-month">
-        <span className="j-m-diamond" aria-hidden />
-      </div>
-
       <div className="j-m-body-wrap">
-        <div className="j-m-card jcard is-clickable" role="button" tabIndex={0}>
+        <div
+          className="j-m-card jcard is-clickable"
+          {...(postHref
+            ? {}
+            : { role: "button" as const, tabIndex: 0 })}
+        >
+          {postHref ? (
+            <Link
+              href={postHref}
+              scroll={false}
+              prefetch
+              className="j-m-card-hit"
+              aria-label={`Xem chi tiết: ${showCardTitle ? title : cardCaption || title}`}
+            />
+          ) : null}
           {variant === "tagged" || variant === "verified" ? (
             attribution ? <TaggedByPanel attr={attribution} dateLabel={displayDate} /> : null
           ) : null}
@@ -317,8 +348,8 @@ export function JourneyMilestoneCard({
           ) : null}
 
           <div className="jcard-body">
-            <h2 className="jcard-title">{title}</h2>
-            {body ? <p className="jcard-desc">{body}</p> : null}
+            {showCardTitle ? <h2 className="jcard-title">{title}</h2> : null}
+            {cardCaption ? <p className="jcard-desc">{cardCaption}</p> : null}
 
             {articleTags.length > 0 ? (
               <div className="tags" aria-label="Bài viết liên quan">
@@ -336,27 +367,33 @@ export function JourneyMilestoneCard({
               </div>
             ) : null}
 
-            <div className="preview">
-              {preview ? (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img src={preview.src} alt={preview.label || title} loading="lazy" />
+            <div className={`preview${isPhotoAlbum ? " preview--photo-grid" : ""}`}>
+              {isPhotoAlbum && photoGridImages ? (
+                <ImageGrid images={photoGridImages} readOnly />
+              ) : preview ? (
+                <JourneyCoverImage
+                  src={preview.src}
+                  srcSet={preview.srcSet}
+                  sizes={preview.srcSet ? "(max-width: 767px) 100vw, 680px" : undefined}
+                  width={preview.width}
+                  height={preview.height}
+                  alt={preview.label || title}
+                />
               ) : (
                 <div className="preview-inner">
                   <ImageIcon size={28} strokeWidth={1.5} aria-hidden />
                   <span className="preview-label">Cover - ảnh đầu tiên trong bài</span>
                 </div>
               )}
-              <span className="preview-open-hint">
-                <ExternalLink size={11} strokeWidth={1.8} aria-hidden />
-                Xem bài đầy đủ
+              <span className="preview-open-hint" aria-label="Xem bài đầy đủ">
+                <Maximize2 size={14} strokeWidth={2} aria-hidden />
               </span>
             </div>
           </div>
 
-          {coAuthorCredits.length > 0 || canShowCoAuthorAction ? (
+          {showAuthorsStrip ? (
             <div className="jcard-authors" aria-label="Đồng tác giả">
-              {coAuthorCredits.length > 0 ? (
-                <details className="authors-details">
+              <details className="authors-details">
                   <summary className="authors-collapsed">
                     <span className="av-stack" aria-hidden>
                       {visibleCoAuthors.map((c, i) => (
@@ -432,13 +469,6 @@ export function JourneyMilestoneCard({
                     ))}
                   </div>
                 </details>
-              ) : null}
-              {coAuthorCredits.length === 0 && canShowCoAuthorAction && tacPhamId ? (
-                <JourneyCoAuthorProposal
-                  tacPhamId={tacPhamId}
-                  mode={canManageCoAuthors ? "owner" : "proposal"}
-                />
-              ) : null}
             </div>
           ) : null}
 
@@ -458,13 +488,15 @@ export function JourneyMilestoneCard({
               <MessageCircle size={16} strokeWidth={1.8} aria-hidden />
               {comments ? <span>{comments}</span> : null}
             </button>
-            <JourneyBookmarkButton
-              milestoneId={cotMocId ?? milestone.id}
-              title={title}
-              initialSaved={social?.viewerBookmarked}
-              initialCount={social?.bookmarkCount}
-              showCount={social?.showCounts}
-            />
+            {canBookmark ? (
+              <JourneyBookmarkButton
+                milestoneId={cotMocId ?? milestone.id}
+                title={title}
+                initialSaved={social?.viewerBookmarked}
+                initialCount={social?.bookmarkCount}
+                showCount={social?.showCounts}
+              />
+            ) : null}
             <span className="action-spacer" />
             <button type="button" className="share-btn" aria-label="Copy link">
               <Link2 size={14} strokeWidth={1.8} aria-hidden />

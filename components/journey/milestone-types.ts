@@ -80,8 +80,14 @@ export type MilestoneBookmarkSource = {
 };
 
 export type MilestoneMediaItem = {
-  /** URL ảnh đầy đủ (Cloudflare/imagedelivery hoặc bất kỳ). */
+  /** URL ảnh (Cloudflare imagedelivery hoặc legacy picsum). */
   src: string;
+  /** Responsive srcset — Cloudflare variants (thumbnail / medium / public). */
+  srcSet?: string;
+  /** Intrinsic width — chống CLS. */
+  width?: number;
+  /** Intrinsic height — chống CLS. */
+  height?: number;
   /** Caption ngắn (in góc dưới-trái thumbnail). */
   label?: string | null;
   /** Có overlay play icon (video) hay không. */

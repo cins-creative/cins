@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
+import { Suspense } from "react";
 
+import { JourneyProfileShell } from "@/app/[slug]/_components/JourneyProfileShell";
+import { JourneySidebarNavCounts } from "@/app/[slug]/_components/JourneySidebarNavCounts";
+import { JourneySidebarNavCountsSkeleton } from "@/app/[slug]/_components/JourneySidebarNavCounts.skeleton";
 import { CinsShell } from "@/components/cins/CinsShell";
 import type { EditProfileInitial } from "@/components/journey/JourneyEditProfileModal";
-import { JourneyView } from "@/components/journey/JourneyView";
+import type { JourneyProfileView } from "@/components/journey/JourneySidebar";
 import {
   getCurrentSessionAndProfile,
   type GiaiDoan,
@@ -12,10 +16,7 @@ import {
   normalizeLoaiMocVisibility,
   type LoaiMocVisibilityMap,
 } from "@/lib/journey/filter-visibility";
-import { fetchGalleryForUser } from "@/lib/journey/gallery-fetch";
-import { fetchMilestonesForUser } from "@/lib/journey/milestones-fetch";
-import { loadPendingCoAuthorInvites } from "@/lib/social/co-author";
-import { listMutualFriendProfiles } from "@/lib/social/follow";
+import { parseComposeSearchParams } from "@/lib/journey/compose-types";
 import {
   getAvatarUrl,
   getProfileCoverUrl,
@@ -26,7 +27,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 export const dynamic = "force-dynamic";
 
 type Params = Promise<{ slug: string }>;
-type SearchParams = Promise<{ welcome?: string; view?: string }>;
+type SearchParams = Promise<{ welcome?: string; view?: string; compose?: string; edit?: string }>;
 
 type OwnerRow = {
   id: string;
@@ -43,7 +44,6 @@ type OwnerRow = {
   visibility_email: string | null;
   mxh_links: unknown;
   cho_phep_chat_an_danh: boolean | null;
-  /* JSONB: { [loai_moc_enum]: "public" | "private" }. Missing = public. */
   journey_loai_moc_visibility: Record<string, unknown> | null;
 };
 
@@ -68,7 +68,7 @@ export async function renderJourneyPage({
   searchParams: SearchParams;
 }) {
   const { slug } = await params;
-  const { welcome, view } = await searchParams;
+  const { welcome, view, compose, edit } = await searchParams;
 
   const session = await getCurrentSessionAndProfile();
   if (!session) {
@@ -90,66 +90,24 @@ export async function renderJourneyPage({
 
   const isOwner = owner.auth_user_id === session.authUserId;
 
-  /* Owner chưa hoàn tất onboarding → đi về /onboarding (full page). Tránh
-     render Journey trống với modal overlay vô nghĩa. */
   if (isOwner && owner.giai_doan === null) {
     redirect("/onboarding");
   }
 
-  /* Guest xem profile chưa onboarding → ẩn (private until ready). */
   if (!isOwner && owner.giai_doan === null) {
     notFound();
   }
 
-  /* `visibility_email` enum trong DB: public / friends / private. Owner luôn
-   * thấy email mình; guest chỉ thấy khi `public`. */
   const emailPublic = owner.visibility_email === "public";
   const emailForView = isOwner || emailPublic ? owner.email_lien_he : null;
 
-  /* Milestones + stats — fetch từ `content_cot_moc` + `content_tac_pham`. */
-  const { milestones, stats: milestoneStats } = await fetchMilestonesForUser({
-    userId: owner.id,
-    isOwner,
-    viewerId: session.profile?.id ?? null,
-  });
-
-  const coAuthorPendingInvites =
-    isOwner && session.profile
-      ? await loadPendingCoAuthorInvites(session.profile.id)
-      : [];
-  const friends = await listMutualFriendProfiles(owner.id);
-  const activeView =
+  const activeView: JourneyProfileView =
     view === "gallery" || view === "friends" ? view : "journey";
-  /* Gallery — tổng hợp tác phẩm có `cover_id` từ cột mốc `feature` /
-     `public`. Feature → pinned banner 16:9, public → grid item 1:1. Bài
-     `theo_nhom` / `chi_minh` không đưa vào (riêng tư hoặc cần nhóm
-     boundary chưa wire). */
-  const {
-    pinned: galleryPinned,
-    items: galleryItems,
-    totalTacPham: galleryTotalTacPham,
-  } = await fetchGalleryForUser({
-    userId: owner.id,
-    ownerSlug: owner.slug,
-  });
-  const stats = {
-    cotMoc: milestoneStats.tacPham,
-    cotMocVerified: milestoneStats.cotMocVerified,
-    tacPham: galleryTotalTacPham,
-    toChuc: 0,
-  };
 
-  /* Filter visibility map cho built-in loai_moc rows.
-     - Owner: render toàn bộ + nút toggle.
-     - Visitor: ẩn các row owner đã đánh dấu private. */
   const filterVisibility: LoaiMocVisibilityMap = normalizeLoaiMocVisibility(
     owner.journey_loai_moc_visibility,
   );
 
-  /* Snapshot full profile cho modal "Chỉnh sửa hồ sơ" — chỉ tạo khi owner. Modal
-     dùng cùng `updateProfile` server action; client không cần fetch lại DB.
-     Email pre-fill ưu tiên `email_lien_he` (DB), fallback `session.email` (auth)
-     — đỡ user gõ lại email mỗi lần. */
   const editProfileInitial: EditProfileInitial | undefined = isOwner
     ? {
         tenHienThi: owner.ten_hien_thi ?? "",
@@ -161,41 +119,56 @@ export async function renderJourneyPage({
           label: l.label,
           url: l.url,
         })),
-        /* Owner đã onboarded (đảm bảo bởi redirect ở trên) → giai_doan non-null. */
         giaiDoan: owner.giai_doan ?? "moi_bat_dau",
       }
     : undefined;
 
+  void welcome;
+
+  const ownerName = owner.ten_hien_thi || `@${slug}`;
+  const ownerAvatarUrl = getAvatarUrl(owner.avatar_id);
+  const viewerProfileId = session.profile?.id ?? null;
+
+  const switchNav = (
+    <Suspense fallback={<JourneySidebarNavCountsSkeleton />}>
+      <JourneySidebarNavCounts
+        ownerId={owner.id}
+        ownerSlug={owner.slug}
+        isOwner={isOwner}
+        viewerProfileId={viewerProfileId}
+      />
+    </Suspense>
+  );
+
+  const initialCompose = isOwner
+    ? parseComposeSearchParams(
+        (() => {
+          const params = new URLSearchParams();
+          if (compose) params.set("compose", compose);
+          if (edit) params.set("edit", edit);
+          return params;
+        })(),
+      )
+    : null;
+
   return (
     <CinsShell data-screen-label="Journey">
-      <JourneyView
-        slugFromRoute={slug}
-        profile={{
-          id: owner.id,
-          slug: owner.slug,
-          tenHienThi: owner.ten_hien_thi,
-          avatarUrl: getAvatarUrl(owner.avatar_id),
-          coverUrl: getProfileCoverUrl(owner.cover_id),
-          bio: owner.bio,
-          tinhThanh: owner.tinh_thanh,
-          emailLienHe: emailForView,
-          mxhLinks: owner.mxh_links,
-          aiSummaryJourney: owner.ai_summary_journey,
-          giaiDoan: owner.giai_doan,
-        }}
-        stats={stats}
-        isOwner={isOwner}
-        freshlyOnboarded={welcome === "1"}
-        milestones={milestones}
-        galleryPinned={galleryPinned}
-        galleryItems={galleryItems}
-        editProfileInitial={editProfileInitial}
-        viewerProfileId={session.profile?.id ?? null}
-        coAuthorPendingInvites={coAuthorPendingInvites}
-        activeView={activeView}
-        friends={friends}
-        filterVisibility={filterVisibility}
-      />
+      <div className="cins-journey-page">
+        <JourneyProfileShell
+          activeView={activeView}
+          owner={owner}
+          ownerAvatarUrl={ownerAvatarUrl}
+          ownerCoverUrl={getProfileCoverUrl(owner.cover_id)}
+          emailForView={emailForView}
+          ownerName={ownerName}
+          isOwner={isOwner}
+          viewerProfileId={viewerProfileId}
+          filterVisibility={filterVisibility}
+          editProfileInitial={editProfileInitial}
+          switchNav={switchNav}
+          initialCompose={initialCompose}
+        />
+      </div>
     </CinsShell>
   );
 }

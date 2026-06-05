@@ -30,6 +30,24 @@ export async function POST(req: Request) {
   }
 
   const admin = createServiceRoleClient();
+
+  const { data: cotMoc, error: cotMocErr } = await admin
+    .from("content_cot_moc")
+    .select("id, id_nguoi_dung")
+    .eq("id", idDoiTuong)
+    .maybeSingle<{ id: string; id_nguoi_dung: string }>();
+
+  if (cotMocErr || !cotMoc) {
+    return NextResponse.json({ error: "Cột mốc không tồn tại." }, { status: 404 });
+  }
+
+  if (cotMoc.id_nguoi_dung === session.profile.id) {
+    return NextResponse.json(
+      { error: "Không thể lưu bài viết của chính bạn." },
+      { status: 400 },
+    );
+  }
+
   await admin
     .from("social_luu")
     .delete()

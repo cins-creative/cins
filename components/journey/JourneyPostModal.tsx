@@ -1,6 +1,5 @@
 "use client";
 
-import { X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -27,7 +26,7 @@ type Props = {
    ║ A11y:                                                             ║
    ║  - role="dialog" + aria-modal                                    ║
    ║  - Escape đóng                                                   ║
-   ║  - Click backdrop đóng (chỉ khi click ngoài `.j-post-sheet`)     ║
+   ║  - Click backdrop đóng (chỉ khi click vùng overlay tối)           ║
    ║  - Body lock scroll trong khi mở                                 ║
    ╚══════════════════════════════════════════════════════════════════╝ */
 
@@ -111,15 +110,6 @@ export function JourneyPostModal({ milestoneId, onClose }: Props) {
       onClick={handleBackdropClick}
       ref={sheetRef}
     >
-      <button
-        type="button"
-        className="j-post-close"
-        aria-label="Đóng"
-        onClick={onClose}
-      >
-        <X size={20} strokeWidth={2} aria-hidden />
-      </button>
-
       <article className="j-post-sheet">
         {loading ? (
           <div className="j-post-loading">Đang tải nội dung…</div>

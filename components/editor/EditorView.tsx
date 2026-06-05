@@ -41,7 +41,12 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-import { publishPost } from "@/app/[slug]/p/new/actions";
+import {
+  IMG_LAYOUTS,
+  imgLayoutPreviewSlots,
+  type ImgLayout,
+  type MosaicCell,
+} from "@/lib/editor/image-layout";
 import { CoAuthorSection } from "@/components/editor/CoAuthorSection";
 import { updatePost } from "@/app/[slug]/p/[postSlug]/edit/actions";
 import {
@@ -64,6 +69,12 @@ import type {
   LoaiMoc,
   Visibility as ServerVisibility,
 } from "@/lib/editor/types";
+import {
+  deriveMediaPostTitle,
+  detectMediaPostKind,
+  extractBodyCaption,
+  mediaPostHasContent,
+} from "@/lib/journey/post-media";
 
 /* ╔══════════════════════════════════════════════════════════════════╗
    ║ CINs Editor — port từ mockup `cins-editor.html`, theo brief     ║
@@ -91,24 +102,6 @@ type BlockType =
   | "palette"
   | "divider"
   | "spacer";
-
-type ImgLayout = "full" | "boxed" | "duo" | "trio" | "grid4" | "mosaic";
-
-/**
- * Một ô (cell) trong lưới mosaic. `seed` = ID ảnh (Cloudflare imageId hoặc
- * picsum seed cho demo), `c` = col span, `r` = row span. Cell có thể to
- * nhỏ tự do — block lưu cols (số cột grid) + cells để re-build lưới.
- */
-type MosaicCell = {
-  seed: string;
-  c: number;
-  r: number;
-  kind?: "image" | "text";
-  text?: string;
-  align?: "left" | "center" | "right";
-  font?: "serif" | "sans";
-  size?: "sm" | "md" | "lg";
-};
 
 type Block = {
   id: string;
@@ -177,20 +170,6 @@ const BLOCK_TYPES: Array<{
   { t: "palette", ico: "◐", name: "Bảng màu", desc: "Rút từ ảnh" },
   { t: "divider", ico: "—", name: "Ngăn cách", desc: "Divider" },
   { t: "spacer", ico: "↕", name: "Khoảng trống", desc: "Thêm khoảng cách" },
-];
-
-const IMG_LAYOUTS: Array<{
-  k: ImgLayout;
-  Ico: LucideIcon;
-  n: number;
-  name: string;
-}> = [
-  { k: "full", Ico: Maximize2, n: 1, name: "Tràn viền" },
-  { k: "boxed", Ico: RectangleHorizontal, n: 1, name: "Trong khung" },
-  { k: "duo", Ico: Columns2, n: 2, name: "Đôi" },
-  { k: "trio", Ico: Columns3, n: 3, name: "Ba" },
-  { k: "grid4", Ico: LayoutGrid, n: 4, name: "Lưới 4" },
-  { k: "mosaic", Ico: LayoutDashboard, n: 3, name: "Lưới tùy chỉnh" },
 ];
 
 const VIS_OPTIONS: Array<{
@@ -281,6 +260,10 @@ type Props = {
   initial?: EditorInitial;
   /** Slug bài viết khi `mode === "edit"` — dùng cho nút "Huỷ" → trang post. */
   postSlug?: string;
+  /** Overlay trên Journey — không full-page navigate. */
+  presentation?: "page" | "overlay";
+  onClose?: () => void;
+  onPublished?: () => void;
 };
 
 export function EditorView({
@@ -290,7 +273,11 @@ export function EditorView({
   mode = "create",
   initial,
   postSlug,
+  presentation = "page",
+  onClose,
+  onPublished,
 }: Props) {
+  const isOverlay = presentation === "overlay";
   const isEdit = mode === "edit" && !!initial;
   /* Đích cho nút "Huỷ": edit → trang xem bài (giữ ngữ cảnh cho user); create →
      trang journey (chưa có post tương ứng). */
@@ -312,6 +299,13 @@ export function EditorView({
   const [blocks, setBlocks] = useState<Block[]>(() =>
     initial?.blocks ? fromServerBlocks(initial.blocks) : [],
   );
+
+  const mediaKind = useMemo(
+    () => detectMediaPostKind(toServerBlocks(blocks)),
+    [blocks],
+  );
+  const isMediaCompose = mediaKind !== null;
+
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [openAddIdx, setOpenAddIdx] = useState<number | null>(null);
 
@@ -556,10 +550,13 @@ export function EditorView({
               cells,
             };
           }
-          const need = IMG_LAYOUTS.find((l) => l.k === layout)?.n || 1;
+          const meta = IMG_LAYOUTS.find((l) => l.k === layout);
+          const need = imgLayoutPreviewSlots(layout, (b.imgs || []).length);
           const imgs = (b.imgs || []).slice();
-          while (imgs.length < need) {
-            imgs.push(`extra-${b.id}-${imgs.length}`);
+          if (!meta?.dynamic) {
+            while (imgs.length < need) {
+              imgs.push(`extra-${b.id}-${imgs.length}`);
+            }
           }
           return { ...b, layout, imgs };
         }),
@@ -731,16 +728,36 @@ export function EditorView({
 
   const handlePublish = useCallback(() => {
     if (isPending) return;
-    if (!title.trim()) {
-      setToast("Cần nhập tiêu đề trước khi đăng.");
-      return;
-    }
-    if (blocks.length === 0) {
-      setToast("Bài viết chưa có nội dung. Thêm ít nhất một block.");
-      return;
-    }
 
     const serverBlocks: ServerBlock[] = toServerBlocks(blocks);
+    const kind = detectMediaPostKind(serverBlocks);
+
+    if (kind) {
+      if (!mediaPostHasContent(serverBlocks, kind)) {
+        setToast(
+          kind === "photo"
+            ? "Cần ít nhất một ảnh."
+            : "Cần link video hợp lệ.",
+        );
+        return;
+      }
+    } else {
+      if (!title.trim()) {
+        setToast("Cần nhập tiêu đề trước khi đăng.");
+        return;
+      }
+      if (blocks.length === 0) {
+        setToast("Bài viết chưa có nội dung. Thêm ít nhất một block.");
+        return;
+      }
+    }
+
+    const caption = extractBodyCaption(serverBlocks);
+    const tieuDeFinal = kind
+      ? deriveMediaPostTitle(caption, kind)
+      : title.trim();
+    const moTaFinal = kind ? caption.trim().slice(0, 280) : sub.trim();
+    const coverFinal = kind ? null : coverSeed;
 
     startTransition(async () => {
       const result = isEdit && initial
@@ -748,9 +765,9 @@ export function EditorView({
             ownerSlug,
             tacPhamId: initial.tacPhamId,
             cotMocId: initial.cotMocId,
-            tieuDe: title.trim(),
-            moTa: sub.trim(),
-            coverSeed,
+            tieuDe: tieuDeFinal,
+            moTa: moTaFinal,
+            coverSeed: coverFinal,
             tags,
             visibility: vis,
             loaiMoc: initial.loaiMoc,
@@ -761,9 +778,9 @@ export function EditorView({
           })
         : await publishPost({
             ownerSlug,
-            tieuDe: title.trim(),
-            moTa: sub.trim(),
-            coverSeed,
+            tieuDe: tieuDeFinal,
+            moTa: moTaFinal,
+            coverSeed: coverFinal,
             tags,
             visibility: vis,
             loaiMoc: DEFAULT_LOAI_MOC,
@@ -781,13 +798,16 @@ export function EditorView({
       setSavedFlash(true);
       setToast(
         isEdit
-          ? "✓ Đã lưu thay đổi. Đang quay về Journey…"
-          : "✓ Đã đăng bài. Đang quay về Journey…",
+          ? "✓ Đã lưu thay đổi."
+          : "✓ Đã đăng bài.",
       );
-      /* Cho user thấy success flash 1.2s rồi nhảy về Journey. */
-      setTimeout(() => {
-        router.push(`/${ownerSlug}`);
-      }, 1200);
+      if (isOverlay && onPublished) {
+        setTimeout(() => onPublished(), 900);
+      } else {
+        setTimeout(() => {
+          router.push(`/${ownerSlug}`);
+        }, 1200);
+      }
     });
   }, [
     isEdit,
@@ -803,6 +823,8 @@ export function EditorView({
     blocks,
     ownerSlug,
     router,
+    isOverlay,
+    onPublished,
   ]);
 
   const visCurrent = useMemo(
@@ -811,14 +833,26 @@ export function EditorView({
   );
 
   return (
-    <div className="cins-editor-page" ref={editorRef}>
+    <div
+      className={`cins-editor-page${isOverlay ? " is-overlay" : ""}`}
+      ref={editorRef}
+    >
       {/* TOPBAR */}
       <header className="ed-topbar">
         <div className="ed-topbar-inner">
-          <Link href={`/${ownerSlug}`} className="ed-brand" title="Về Journey">
-            <span className="ed-brand-mark">CI</span>
-            <span className="ed-title">Trình tạo bài viết</span>
-          </Link>
+          {isOverlay ? (
+            <span className="ed-brand">
+              <span className="ed-brand-mark">CI</span>
+              <span className="ed-title">
+                {isEdit ? "Chỉnh sửa bài viết" : "Trình tạo bài viết"}
+              </span>
+            </span>
+          ) : (
+            <Link href={`/${ownerSlug}`} className="ed-brand" title="Về Journey">
+              <span className="ed-brand-mark">CI</span>
+              <span className="ed-title">Trình tạo bài viết</span>
+            </Link>
+          )}
           <span className="ed-status">
             <span className="ico" aria-hidden>
               ✓
@@ -870,9 +904,15 @@ export function EditorView({
             </div>
           </div>
 
-          <Link href={cancelHref} className="ed-btn ghost" prefetch={false}>
-            Huỷ
-          </Link>
+          {isOverlay && onClose ? (
+            <button type="button" className="ed-btn ghost" onClick={onClose}>
+              Huỷ
+            </button>
+          ) : (
+            <Link href={cancelHref} className="ed-btn ghost" prefetch={false}>
+              Huỷ
+            </Link>
+          )}
           <button
             type="button"
             className="ed-btn primary"
@@ -904,27 +944,34 @@ export function EditorView({
       </header>
 
       {/* CANVAS */}
-      <main className="editor-canvas" aria-label={`Soạn bài cho ${ownerName}`}>
-        <CoverArea
-          seed={coverSeed}
-          onPick={() => setCoverPickerOpen(true)}
-          onRemove={() => setCoverSeed(null)}
-        />
+      <main
+        className={`editor-canvas${isMediaCompose ? " editor-canvas--media" : ""}`}
+        aria-label={`Soạn bài cho ${ownerName}`}
+      >
+        {!isMediaCompose ? (
+          <>
+            <CoverArea
+              seed={coverSeed}
+              onPick={() => setCoverPickerOpen(true)}
+              onRemove={() => setCoverSeed(null)}
+            />
 
-        <AutosizeTextarea
-          className="title-in"
-          placeholder="Tiêu đề bài viết…"
-          value={title}
-          onChange={setTitle}
-          maxRows={4}
-        />
-        <AutosizeTextarea
-          className="sub-in"
-          placeholder="Mô tả ngắn (tuỳ chọn)…"
-          value={sub}
-          onChange={setSub}
-          maxRows={3}
-        />
+            <AutosizeTextarea
+              className="title-in"
+              placeholder="Tiêu đề bài viết…"
+              value={title}
+              onChange={setTitle}
+              maxRows={4}
+            />
+            <AutosizeTextarea
+              className="sub-in"
+              placeholder="Mô tả ngắn (tuỳ chọn)…"
+              value={sub}
+              onChange={setSub}
+              maxRows={3}
+            />
+          </>
+        ) : null}
 
         <ArticleTagPicker
           tags={tags}
@@ -1765,8 +1812,7 @@ function ImageBlock({ block, p }: { block: Block; p: BlockRowProps }) {
     return <MosaicBlock block={block} p={p} />;
   }
 
-  const cur = IMG_LAYOUTS.find((l) => l.k === layout) || IMG_LAYOUTS[0];
-  const need = cur.n;
+  const need = imgLayoutPreviewSlots(layout, (block.imgs || []).length);
   const imgs = (block.imgs || []).slice(0, need);
 
   return (

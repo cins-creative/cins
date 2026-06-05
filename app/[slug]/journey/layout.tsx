@@ -1,6 +1,7 @@
 import { Anton } from "next/font/google";
 
 import "./journey.css";
+import "./image-grid.css";
 import "@/styles/article-rich-content.css";
 /* Modal `JourneyPostModal` portal vào document.body và hiển thị bài viết
    theo layout editor canvas (`.cins-editor-page`). Cần load editor.css +

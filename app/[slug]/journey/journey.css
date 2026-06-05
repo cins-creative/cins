@@ -32,11 +32,9 @@
   --j-sidebar-w:       248px;
   --j-gallery-w:       280px;
   --j-gutter:          40px;
-  --j-rail-x:          28px;
-  /* Khoảng cách từ mép trái container tới mép trái card (cũng = vị trí cuối
-     của connector line từ rail tới card). 48px = đủ chỗ cho diamond marker
-     (đến x≈23) + 25px gap thoáng tới card. Mobile sẽ giảm thêm. */
-  --j-content-pad-l:   48px;
+  --j-rail-x:          0px;
+  /* Không indent rail — card full width trong timeline. */
+  --j-content-pad-l:   0px;
 
   --j-ease: cubic-bezier(0.2, 0.7, 0.3, 1);
 
@@ -483,6 +481,20 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   min-height: calc(100vh - var(--j-topbar-h));
   padding: 28px 0 80px;
 }
+.j-gallery-main {
+  padding-top: 0;
+  overflow: visible;
+}
+.j-gallery-main .j-tlb {
+  margin-bottom: 16px;
+  overflow: visible;
+}
+.j-gallery-main .j-tlb-month {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: var(--weight-regular);
+  font-size: 12px;
+}
 .j-main-panel-head {
   display: flex;
   align-items: baseline;
@@ -509,17 +521,14 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
 }
 .j-main-gallery-grid {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  grid-auto-flow: dense;
-  grid-auto-rows: 104px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
 .j-main-gallery-item {
   position: relative;
+  aspect-ratio: 16 / 9;
   min-height: 0;
-  grid-column: span 2;
-  grid-row: span 2;
-  border-radius: 20px;
+  border-radius: 16px;
   overflow: hidden;
   background: var(--neutral-100);
   box-shadow: 0 14px 38px rgba(15, 23, 42, 0.1);
@@ -529,15 +538,17 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   transform: translateY(-3px);
   box-shadow: 0 22px 56px rgba(15, 23, 42, 0.16);
 }
-.j-main-gallery-item.is-featured {
-  grid-column: span 4;
-  grid-row: span 3;
+.j-featured-flag {
+  display: inline-flex;
+  line-height: 0;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 5px rgba(15, 23, 42, 0.28));
 }
-.j-main-gallery-item:nth-child(5n + 2):not(.is-featured) {
-  grid-row: span 3;
-}
-.j-main-gallery-item:nth-child(7n + 4):not(.is-featured) {
-  grid-column: span 3;
+.j-main-gallery-pin {
+  position: absolute;
+  top: 0;
+  left: 12px;
+  z-index: 2;
 }
 .j-main-gallery-item img {
   width: 100%;
@@ -562,35 +573,15 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   opacity: 0.84;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 991.98px) {
   .j-main-gallery-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    grid-auto-rows: 96px;
-  }
-  .j-main-gallery-item,
-  .j-main-gallery-item:nth-child(7n + 4):not(.is-featured) {
-    grid-column: span 2;
-  }
-  .j-main-gallery-item.is-featured {
-    grid-column: span 4;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 575.98px) {
   .j-main-gallery-grid {
     grid-template-columns: 1fr;
-    grid-auto-rows: auto;
-  }
-  .j-main-gallery-item,
-  .j-main-gallery-item.is-featured,
-  .j-main-gallery-item:nth-child(5n + 2):not(.is-featured),
-  .j-main-gallery-item:nth-child(7n + 4):not(.is-featured) {
-    grid-column: auto;
-    grid-row: auto;
-    aspect-ratio: 1 / 1;
-  }
-  .j-main-gallery-item.is-featured {
-    aspect-ratio: 16 / 9;
   }
 }
 .j-friends-grid {
@@ -884,7 +875,9 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
+  width: max-content;
   min-width: 212px;
+  max-width: 240px;
   background: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -895,6 +888,11 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
 }
 .j-tlb-filter.is-open .j-tlb-dd-menu {
   display: block;
+}
+.j-tlb-dd-menu.is-portal {
+  z-index: 9500;
+  width: max-content;
+  max-width: min(240px, calc(100vw - 16px));
 }
 .j-dd-section-label {
   font-size: 9px;
@@ -981,12 +979,36 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
 .j-dd-opt.j-dd-opt--verified.is-active .j-dd-ico {
   color: var(--j-verified);
 }
+.j-dd-opt.j-dd-opt--verified .j-dd-ico {
+  color: var(--j-verified);
+}
+.j-dd-opt.j-dd-opt--verified .j-dd-lbl {
+  color: var(--j-verified-ink);
+}
+.j-dd-opt.j-dd-opt--verified:hover {
+  background: var(--j-verified-soft);
+}
+.j-dd-opt.j-dd-opt--verified.is-active .j-dd-opt-main {
+  color: var(--j-verified-ink);
+}
 .j-dd-opt.j-dd-opt--bookmark.is-active {
   background: var(--j-bookmark-soft);
   color: var(--j-bookmark-ink);
 }
 .j-dd-opt.j-dd-opt--bookmark.is-active .j-dd-ico {
   color: var(--j-bookmark);
+}
+.j-dd-opt.j-dd-opt--bookmark .j-dd-ico {
+  color: var(--j-bookmark);
+}
+.j-dd-opt.j-dd-opt--bookmark .j-dd-lbl {
+  color: var(--j-bookmark-ink);
+}
+.j-dd-opt.j-dd-opt--bookmark:hover {
+  background: var(--j-bookmark-soft);
+}
+.j-dd-opt.j-dd-opt--bookmark.is-active .j-dd-opt-main {
+  color: var(--j-bookmark-ink);
 }
 
 /* Visibility toggle — chỉ render cho owner trên loai_moc rows. Mặc định
@@ -1041,15 +1063,7 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
  * `.j-timeline` (timeline đã min-height = 100vh - topbar, nên rail chạm
  * đáy viewport luôn). Bottom 16px để chừa chỗ cho end-marker dot. */
 .j-timeline::before {
-  content: "";
-  position: absolute;
-  left: var(--j-rail-x);
-  top: 64px;
-  bottom: 16px;
-  width: 2px;
-  background: var(--border-strong);
-  opacity: 0.7;
-  z-index: 0;
+  display: none;
 }
 
 /* ────────────────────────────────────────────────────────────────
@@ -1178,18 +1192,7 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   padding: 0 0 0 var(--j-content-pad-l);
 }
 .j-m-body-wrap::before {
-  content: "";
-  position: absolute;
-  left: var(--j-rail-x);
-  top: 34px;
-  width: calc(var(--j-content-pad-l) - var(--j-rail-x) - 5px);
-  height: 1px;
-  background: var(--border-strong);
-  z-index: 1;
-}
-.j-milestone.j-verified .j-m-body-wrap::before {
-  background: var(--j-verified);
-  height: 2px;
+  display: none;
 }
 
 /* CARD */
@@ -1207,6 +1210,16 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
 }
 .j-m-card.is-clickable {
   cursor: pointer;
+}
+.j-m-card-hit {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+}
+.j-m-card-hit ~ * {
+  position: relative;
+  z-index: 1;
 }
 .j-m-card:hover {
   transform: none;
@@ -1258,6 +1271,20 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
 .j-m-card.is-clickable:focus-visible {
   outline: 2px solid var(--cins-blue);
   outline-offset: 2px;
+}
+
+.j-timeline.is-opening-post {
+  cursor: progress;
+}
+
+.j-timeline.is-opening-post .j-m-card.is-clickable {
+  pointer-events: none;
+}
+
+.j-milestone[data-opening="true"] .j-m-card.is-clickable {
+  outline: 2px solid var(--cins-blue);
+  outline-offset: 2px;
+  opacity: 0.92;
 }
 
 /* TAGGED-BY ATTRIBUTION */
@@ -2030,16 +2057,7 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   margin-top: auto;
 }
 .j-timeline-end::before {
-  content: "";
-  position: absolute;
-  left: calc(var(--j-rail-x) - 5px);
-  top: 26px;
-  width: 12px;
-  height: 12px;
-  transform: rotate(45deg);
-  background: var(--bg-page);
-  border: 1.5px solid var(--border-strong);
-  border-radius: 3px;
+  display: none;
 }
 .j-timeline-end-text {
   font-size: 10px;
@@ -2171,36 +2189,8 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   outline: none;
 }
 
-/* Diamond `+` neo vào rail (cùng vị trí với milestone diamond). */
 .j-create-cta-diamond {
-  position: absolute;
-  left: calc(-1 * var(--j-content-pad-l) + var(--j-rail-x) - 11px);
-  top: 50%;
-  transform: translateY(-50%) rotate(45deg);
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  background: var(--bg-surface);
-  border: 1.5px dashed var(--border-strong);
-  color: var(--cins-blue);
-  font-size: 13px;
-  font-weight: var(--weight-bold);
-  transition: all 0.18s var(--j-ease, ease);
-}
-.j-create-cta-diamond > * {
-  transform: rotate(-45deg);
-  display: block;
-  line-height: 1;
-}
-.j-create-cta:hover .j-create-cta-diamond,
-.j-create-cta:focus-visible .j-create-cta-diamond {
-  background: var(--cins-blue);
-  border-color: var(--cins-blue);
-  border-style: solid;
-  color: #fff;
+  display: none;
 }
 
 .j-create-cta-body {
@@ -2233,6 +2223,111 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   transform: translateX(3px);
 }
 
+/* Composer tạo nội dung — layout kiểu Facebook (prompt + 3 hành động). */
+.j-create-composer {
+  margin: 24px 0 0 var(--j-content-pad-l);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xs);
+  overflow: hidden;
+}
+.j-empty-card .j-create-composer {
+  margin: 20px 0 0;
+}
+.j-create-composer-prompt {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 0;
+  background: transparent;
+  text-decoration: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.j-create-composer-prompt:hover,
+.j-create-composer-prompt:focus-visible {
+  background: var(--neutral-100, #f4f4f5);
+  outline: none;
+}
+.j-create-composer-ava {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--cins-blue-soft);
+  color: var(--cins-blue-dark);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: var(--weight-bold);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.j-create-composer-ava img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.j-create-composer-placeholder {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 14px;
+  border-radius: var(--radius-pill);
+  background: var(--neutral-100, #f4f4f5);
+  color: var(--ink-muted);
+  font-size: 14px;
+  line-height: 1.3;
+}
+.j-create-composer-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 0 12px;
+}
+.j-create-composer-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  padding: 8px 10px 10px;
+}
+.j-create-composer-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  text-decoration: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: var(--weight-semibold);
+  color: var(--ink-body);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.j-create-composer-action:hover,
+.j-create-composer-action:focus-visible {
+  background: var(--neutral-100, #f4f4f5);
+  outline: none;
+}
+.j-create-composer-action--article svg {
+  color: var(--cins-blue);
+}
+.j-create-composer-action--photo svg {
+  color: #45bd62;
+}
+.j-create-composer-action--video svg {
+  color: #f3425f;
+}
+
 /* ────────────────────────────────────────────────────────────────
  * GALLERY — right column
  * ──────────────────────────────────────────────────────────────── */
@@ -2249,9 +2344,61 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
 }
 .j-gallery-head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
-  margin-bottom: 5px;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.j-gallery-dd {
+  position: relative;
+  flex-shrink: 0;
+}
+.j-gallery-dd-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: var(--weight-semibold);
+  color: var(--ink-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+.j-gallery-dd-btn:hover,
+.j-gallery-dd-btn:focus-visible {
+  border-color: var(--border-strong);
+  color: var(--ink-body);
+  outline: none;
+}
+.j-gallery-dd-caret {
+  display: inline-flex;
+  align-items: center;
+  color: var(--ink-muted);
+  transition: transform 0.15s;
+  line-height: 1;
+}
+.j-gallery-dd.is-open .j-gallery-dd-caret {
+  transform: rotate(180deg);
+}
+.j-gallery-dd-menu {
+  padding: 5px;
+}
+.j-gallery-dd-opt {
+  padding: 7px 10px;
+  font-size: 12px;
+}
+.j-gallery-empty--filter {
+  min-height: 80px;
+  padding: 16px 8px;
+  font-size: 12px;
 }
 .j-gallery-title {
   font-family: var(--font-sans);
@@ -2331,18 +2478,9 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
 }
 .j-g-banner-pin {
   position: absolute;
-  top: 9px;
-  left: 9px;
-  font-size: 9px;
-  font-weight: var(--weight-bold);
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  color: #fff;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  padding: 3px 8px;
-  border-radius: var(--radius-pill);
+  top: 0;
+  left: 10px;
+  z-index: 2;
 }
 .j-g-banner-title {
   font-size: 13px;
@@ -2626,6 +2764,17 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   }
   .cins-journey-page .j-create-cta-sub {
     font-size: 11.5px;
+  }
+  .cins-journey-page .j-create-composer {
+    margin-left: var(--j-content-pad-l);
+  }
+  .cins-journey-page .j-create-composer-actions {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+  .cins-journey-page .j-create-composer-action {
+    justify-content: flex-start;
+    padding-left: 14px;
   }
 }
 
@@ -3323,6 +3472,75 @@ select.j-edit-input {
 /* Khi JourneyPostBody render bằng layout editor canvas, `.cins-editor-page`
    bên trong có background riêng — bỏ background mặc định của sheet. */
 .j-post-sheet .cins-editor-page.cins-post-view {
+  border-radius: 16px;
+}
+
+/* Compose overlay — tạo/sửa bài viết, ảnh, video trên Journey */
+.j-compose-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9100;
+  background: rgba(14, 17, 23, 0.78);
+  overflow-y: auto;
+  -webkit-backdrop-filter: blur(7px);
+  backdrop-filter: blur(7px);
+  animation: j-overlay-in 160ms var(--j-ease, ease);
+  padding: 20px 16px 32px;
+}
+.j-compose-sheet {
+  width: min(1100px, 100%);
+  margin: 0 auto;
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--bg-page);
+  box-shadow: var(--shadow-lg, 0 24px 64px rgba(15, 23, 42, 0.28));
+}
+/* Ảnh / video — card hẹp kiểu Facebook, không full 1100px */
+.j-compose-sheet.j-compose-sheet--media {
+  width: min(500px, calc(100% - 32px));
+}
+.j-compose-sheet .cins-editor-page.is-overlay {
+  min-height: auto;
+  flex: none;
+}
+.j-compose-sheet .cins-editor-page.is-overlay .ed-topbar {
+  position: sticky;
+  top: 0;
+}
+.j-compose-error {
+  padding: 32px 24px;
+  text-align: center;
+}
+.j-compose-error p {
+  margin: 0 0 16px;
+  color: var(--ink-body);
+}
+.j-compose-skeleton {
+  padding: 24px;
+}
+.j-compose-skeleton-bar {
+  height: 52px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #eef2f7 0%, #f8fafc 50%, #eef2f7 100%);
+  background-size: 200% 100%;
+  animation: j-shimmer 1.2s ease infinite;
+  margin-bottom: 16px;
+}
+.j-compose-skeleton-body {
+  height: min(60vh, 520px);
+  border-radius: 12px;
+  background: linear-gradient(90deg, #eef2f7 0%, #f8fafc 50%, #eef2f7 100%);
+  background-size: 200% 100%;
+  animation: j-shimmer 1.2s ease infinite;
+}
+.j-compose-skeleton-label {
+  margin: 14px 0 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+.j-post-sheet .cins-editor-page.cins-post-view {
   background: transparent;
 }
 @keyframes j-sheet-in {
@@ -3537,10 +3755,63 @@ select.j-edit-input {
   grid-template-columns: 1fr 1fr;
   gap: 6px;
 }
-.j-ps-block-rich .article-rich-content .rich-imgs--triple {
+.j-ps-block-rich .article-rich-content .rich-imgs--triple,
+.j-ps-block-rich .article-rich-content .rich-imgs--row3 {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 6px;
+}
+.j-ps-block-rich .article-rich-content .rich-imgs--trio {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 6px;
+}
+.j-ps-block-rich .article-rich-content .rich-imgs--trio .rich-img-cell:first-child {
+  grid-row: span 2;
+}
+.j-ps-block-rich .article-rich-content .rich-imgs--big-right {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 6px;
+}
+.j-ps-block-rich .article-rich-content .rich-imgs--big-right .rich-img-cell:nth-child(3) {
+  grid-column: 2;
+  grid-row: span 2;
+}
+.j-ps-block-rich .article-rich-content .rich-imgs--grid4,
+.j-ps-block-rich .article-rich-content .rich-imgs--grid6,
+.j-ps-block-rich .article-rich-content .rich-imgs--grid9 {
+  display: grid;
+  gap: 6px;
+}
+.j-ps-block-rich .article-rich-content .rich-imgs--grid4 {
+  grid-template-columns: 1fr 1fr;
+}
+.j-ps-block-rich .article-rich-content .rich-imgs--grid6,
+.j-ps-block-rich .article-rich-content .rich-imgs--grid9 {
+  grid-template-columns: repeat(3, 1fr);
+}
+.j-ps-block-rich .article-rich-content .rich-imgs--strip5 {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+}
+.j-ps-block-rich .article-rich-content .rich-imgs--stack {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+.j-ps-block-rich .article-rich-content .rich-imgs--duo-stack {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.j-ps-block-rich .article-rich-content .rich-imgs--boxed {
+  max-width: 560px;
+  margin-left: auto;
+  margin-right: auto;
 }
 .j-ps-empty {
   padding: 30px 56px;
@@ -4458,6 +4729,17 @@ select.j-edit-input {
   background: #f8fafc;
   color: var(--jcard-ink2);
 }
+/* Visibility badge trên datebar — "Nổi bật" vàng đồng bộ `.j-visibility-icon.j-vis-feature`. */
+.ctx-badge.j-vis-feature {
+  color: #92400e;
+  font-weight: 700;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border-color: #f59e0b;
+  box-shadow: 0 1px 3px rgba(245, 158, 11, 0.25);
+}
+.ctx-badge.j-vis-feature svg {
+  color: #f59e0b;
+}
 .j-inline-control {
   position: relative;
   display: inline-flex;
@@ -4475,6 +4757,11 @@ select.j-edit-input {
 .j-inline-control-trigger:focus-visible .ctx-badge {
   border-color: rgba(37, 99, 235, 0.35);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+}
+.j-inline-control-trigger:hover .ctx-badge.j-vis-feature,
+.j-inline-control-trigger:focus-visible .ctx-badge.j-vis-feature {
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
 }
 .j-inline-control-menu {
   position: absolute;
@@ -4785,6 +5072,22 @@ select.j-edit-input {
 .preview:hover {
   opacity: 0.9;
 }
+.preview--photo-grid {
+  aspect-ratio: auto;
+  min-height: 0;
+  display: block;
+  background: var(--neutral-100, #f1f2f5);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.preview--photo-grid .image-grid {
+  width: 100%;
+  border-radius: 16px;
+}
+.preview--photo-grid .image-grid-cell {
+  cursor: inherit;
+  pointer-events: none;
+}
 .preview img {
   width: 100%;
   height: 100%;
@@ -4808,15 +5111,19 @@ select.j-edit-input {
   bottom: 10px;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
   border: 1px solid var(--jcard-border);
-  border-radius: 999px;
-  padding: 5px 9px;
+  border-radius: 50%;
+  padding: 0;
   background: rgba(255, 255, 255, 0.88);
   color: var(--ink-muted);
-  font-size: 11px;
-  font-weight: 800;
   backdrop-filter: blur(4px);
+  pointer-events: none;
+}
+.preview-open-hint svg {
+  display: block;
 }
 .jcard-authors {
   display: flex;
@@ -5471,5 +5778,276 @@ select.j-edit-input {
     width: 280px !important;
     height: 280px !important;
   }
+}
+
+/* ╔══════════════════════════════════════════════════════════════════╗
+   ║ Journey loading skeletons — streaming / loading.tsx              ║
+   ║ Tokens: --cins-blue-soft, neutral shimmer (§4 CINS_DEV_RULES)    ║
+   ╚══════════════════════════════════════════════════════════════════╝ */
+
+@keyframes j-skel-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.cins-journey-page .j-skel {
+  display: block;
+  border-radius: var(--radius-sm, 10px);
+  background: linear-gradient(
+      90deg,
+      rgba(31, 116, 201, 0.06) 0%,
+      rgba(31, 116, 201, 0.14) 50%,
+      rgba(31, 116, 201, 0.06) 100%
+    )
+    var(--cins-blue-soft, #e7f0fb);
+  background-size: 200% 100%;
+  animation: j-skel-shimmer 1.4s ease-in-out infinite;
+}
+
+.cins-journey-page .j-skel-switch-row {
+  pointer-events: none;
+  opacity: 0.85;
+}
+.cins-journey-page .j-skel-count {
+  width: 20px;
+  height: 14px;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+.cins-journey-page .j-skel-cover {
+  height: 100px;
+  border-radius: var(--radius-lg, 20px);
+  margin-bottom: -48px;
+}
+.cins-journey-page .j-skel-avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  margin: 0 auto 12px;
+}
+.cins-journey-page .j-skel-name {
+  width: 72%;
+  height: 22px;
+  margin: 0 auto 8px;
+}
+.cins-journey-page .j-skel-role {
+  width: 48%;
+  height: 14px;
+  margin: 0 auto 6px;
+}
+.cins-journey-page .j-skel-handle {
+  width: 56%;
+  height: 12px;
+  margin: 0 auto 16px;
+}
+.cins-journey-page .j-skel-actions {
+  width: 100%;
+  height: 36px;
+  margin-bottom: 16px;
+}
+.cins-journey-page .j-skel-summary {
+  width: 100%;
+  height: 72px;
+  margin-bottom: 16px;
+  border-radius: var(--radius-md, 14px);
+}
+
+.cins-journey-page .j-skel-timeline {
+  padding: 28px 0 40px;
+  min-width: 0;
+}
+.cins-journey-page .j-skel-tl-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 28px;
+  padding-left: var(--j-content-pad-l, 48px);
+}
+.cins-journey-page .j-skel-tl-year {
+  width: 56px;
+  height: 28px;
+}
+.cins-journey-page .j-skel-tl-month {
+  width: 40px;
+  height: 20px;
+}
+.cins-journey-page .j-skel-tl-filter {
+  width: 120px;
+  height: 32px;
+  margin-left: auto;
+}
+.cins-journey-page .j-skel-year-label {
+  width: 64px;
+  height: 32px;
+  margin: 0 0 20px var(--j-rail-x, 28px);
+  border-radius: var(--radius-pill, 999px);
+}
+.cins-journey-page .j-skel-milestone {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 16px;
+  padding-left: var(--j-content-pad-l, 48px);
+  margin-bottom: 24px;
+}
+.cins-journey-page .j-skel-m-month {
+  width: 40px;
+  height: 16px;
+  justify-self: end;
+  margin-top: 8px;
+}
+.cins-journey-page .j-skel-card {
+  border: 1px solid var(--border, #e4e6eb);
+  border-radius: var(--radius-lg, 20px);
+  background: var(--bg-surface, #fff);
+  padding: 16px 18px;
+}
+.cins-journey-page .j-skel-card-head {
+  width: 38%;
+  height: 12px;
+  margin-bottom: 12px;
+}
+.cins-journey-page .j-skel-card-title {
+  width: 68%;
+  height: 18px;
+  margin-bottom: 10px;
+}
+.cins-journey-page .j-skel-card-line {
+  width: 100%;
+  height: 10px;
+  margin-bottom: 8px;
+}
+.cins-journey-page .j-skel-card-line--short {
+  width: 62%;
+}
+.cins-journey-page .j-skel-card-media {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  margin-top: 12px;
+  border-radius: var(--radius-md, 14px);
+}
+
+.cins-journey-page .j-skel-gallery {
+  padding: 28px 0 40px;
+}
+.cins-journey-page .j-gallery-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.cins-journey-page .j-skel-gallery-title {
+  width: 120px;
+  height: 18px;
+}
+.cins-journey-page .j-skel-gallery-filter {
+  width: 52px;
+  height: 24px;
+  border-radius: var(--radius-pill);
+}
+.cins-journey-page .j-skel-gallery-link {
+  width: 72px;
+  height: 12px;
+}
+.cins-journey-page .j-skel-gallery-pin {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-md, 14px);
+  margin-bottom: 12px;
+}
+.cins-journey-page .j-skel-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+.cins-journey-page .j-skel-gallery-item {
+  aspect-ratio: 1;
+  border-radius: var(--radius-sm, 10px);
+}
+
+.cins-journey-page .j-skel-main-panel {
+  padding: 28px 0 40px;
+  min-width: 0;
+}
+.cins-journey-page .j-main-panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.cins-journey-page .j-skel-panel-label {
+  width: 88px;
+  height: 20px;
+}
+.cins-journey-page .j-skel-panel-count {
+  width: 72px;
+  height: 14px;
+}
+.cins-journey-page .j-skel-main-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.cins-journey-page .j-skel-main-gallery-item {
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-md, 14px);
+}
+.cins-journey-page .j-skel-friends-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.cins-journey-page .j-skel-friend-card {
+  height: 180px;
+  border-radius: var(--radius-lg, 20px);
+}
+
+@media (max-width: 991.98px) {
+  .cins-journey-page .j-skel-main-gallery-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 767.98px) {
+  .cins-journey-page .j-skel-milestone {
+    grid-template-columns: 1fr;
+    padding-left: 16px;
+  }
+  .cins-journey-page .j-skel-m-month {
+    display: none;
+  }
+}
+
+/* Infinite scroll — sentinel + load-more states */
+.cins-journey-page .j-timeline-scroll-sentinel {
+  height: 1px;
+  width: 100%;
+  pointer-events: none;
+}
+.cins-journey-page .j-timeline-load-more {
+  padding: 8px 0 16px;
+}
+.cins-journey-page .j-timeline-load-retry-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 12px 0 20px;
+}
+.cins-journey-page .j-timeline-load-retry {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--cins-blue);
+  background: var(--cins-blue-soft);
+  border: 1px solid rgba(31, 116, 201, 0.2);
+  border-radius: var(--radius-pill, 999px);
+  padding: 8px 16px;
+  cursor: pointer;
+}
+.cins-journey-page .j-main-gallery-grid--loading {
+  margin-top: 12px;
 }
 

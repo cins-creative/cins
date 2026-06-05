@@ -8,8 +8,8 @@ import type {
 } from "@/components/journey/milestone-types";
 import type { Block as ServerBlock } from "@/lib/editor/types";
 import type { CoAuthorCredit } from "@/components/journey/milestone-types";
-import { getCfAccountHash } from "@/lib/cloudflare/account-hash";
 import { fetchArticleTagsForTacPham } from "@/lib/journey/article-tags-batch";
+import { journeyImageFields } from "@/lib/journey/images";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -41,6 +41,7 @@ type CotMocRow = {
   che_do_hien_thi: "public" | "theo_nhom" | "chi_minh" | "feature";
   /** Thời điểm tạo record (timestamptz) — tiebreak khi cùng `thoi_diem`. */
   tao_luc: string | null;
+  id_nguoi_dung?: string;
 };
 
 type ThuocMocRow = {
@@ -86,17 +87,97 @@ const LOAI_MOC_TO_TYPE: Record<CotMocRow["loai_moc"], MilestoneType> = {
   ca_nhan: "ca-nhan",
 };
 
-const CF_UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function milestoneCoverMedia(
+  coverId: string | null | undefined,
+  label: string,
+): MilestoneItem["media"] {
+  const img = journeyImageFields(coverId, "milestone-preview");
+  if (!img?.src) return [];
+  return [
+    {
+      src: img.src,
+      srcSet: img.srcSet,
+      width: img.width,
+      height: img.height,
+      label,
+    },
+  ];
+}
 
-function coverSeedUrl(seed: string | null | undefined, w = 1400, h = 560): string | null {
-  const trimmed = seed?.trim();
-  if (!trimmed) return null;
-  if (CF_UUID_RE.test(trimmed)) {
-    const hash = getCfAccountHash();
-    if (hash) return `https://imagedelivery.net/${hash}/${trimmed}/public`;
+export async function buildSelfMilestonesForCotMocs(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  cotMocs: CotMocRow[],
+): Promise<MilestoneItem[]> {
+  if (cotMocs.length === 0) return [];
+
+  const ids = cotMocs.map((m) => m.id);
+  const { data: thuocMocRows } = await admin
+    .from("content_tac_pham_thuoc_moc")
+    .select(
+      "id_cot_moc, id_tac_pham, thu_tu, content_tac_pham:content_tac_pham!inner(id, slug, tieu_de, cover_id, loai_tac_pham, noi_dung_blocks)",
+    )
+    .in("id_cot_moc", ids)
+    .order("thu_tu", { ascending: true })
+    .returns<ThuocMocRow[]>();
+
+  const thuocMocs = thuocMocRows ?? [];
+  const tpByMoc = new Map<string, ThuocMocRow[]>();
+  for (const t of thuocMocs) {
+    const arr = tpByMoc.get(t.id_cot_moc) || [];
+    arr.push(t);
+    tpByMoc.set(t.id_cot_moc, arr);
   }
-  return `https://picsum.photos/seed/${encodeURIComponent(trimmed)}/${w}/${h}`;
+
+  const firstPostIds: string[] = [];
+  for (const arr of tpByMoc.values()) {
+    const first = arr[0]?.content_tac_pham;
+    if (first?.id) firstPostIds.push(first.id);
+  }
+  const tagsByTacPham = await fetchArticleTagsForTacPham(admin, firstPostIds);
+  const creditsByTacPham = await loadAcceptedCredits(admin, firstPostIds);
+
+  const sorted = [...cotMocs].sort((a, b) => {
+    const aFeat = a.che_do_hien_thi === "feature" ? 1 : 0;
+    const bFeat = b.che_do_hien_thi === "feature" ? 1 : 0;
+    if (aFeat !== bFeat) return bFeat - aFeat;
+    return 0;
+  });
+
+  return sorted.map((m) => {
+    const tps = tpByMoc.get(m.id) || [];
+    const dateObj = new Date(m.thoi_diem);
+    const year = dateObj.getUTCFullYear();
+    const month = dateObj.getUTCMonth() + 1;
+    const day = dateObj.getUTCDate();
+    const firstPost = tps[0]?.content_tac_pham ?? null;
+    const firstPostSlug = firstPost?.slug ?? null;
+    const noiDungBlocks = parseServerBlocks(firstPost?.noi_dung_blocks);
+    const articleTags = firstPost?.id
+      ? (tagsByTacPham.get(firstPost.id) ?? [])
+      : [];
+
+    return {
+      id: m.id,
+      cotMocId: m.id,
+      variant: "self" as MilestoneVariant,
+      type: LOAI_MOC_TO_TYPE[m.loai_moc],
+      visibility: mapVisibility(m.che_do_hien_thi),
+      year,
+      month,
+      day,
+      createdAt: m.tao_luc,
+      title: m.tieu_de,
+      body: m.mo_ta || null,
+      postSlug: firstPostSlug,
+      tacPhamId: firstPost?.id ?? null,
+      media: milestoneCoverMedia(firstPost?.cover_id, firstPost?.tieu_de ?? m.tieu_de),
+      noiDungBlocks,
+      articleTags,
+      coAuthorCredits: firstPost?.id
+        ? (creditsByTacPham.get(firstPost.id) ?? [])
+        : [],
+    };
+  });
 }
 
 export async function fetchMilestonesForUser(params: {
@@ -164,95 +245,7 @@ export async function fetchMilestonesForUser(params: {
     ? cotMocs
     : cotMocs.filter((m) => m.che_do_hien_thi !== "chi_minh");
 
-  /* Lấy tất cả tác phẩm gắn vào các cột mốc (1 query gộp). */
-  const ids = visible.map((m) => m.id);
-  let thuocMocs: ThuocMocRow[] = [];
-  if (ids.length > 0) {
-    const { data } = await admin
-      .from("content_tac_pham_thuoc_moc")
-      .select(
-        "id_cot_moc, id_tac_pham, thu_tu, content_tac_pham:content_tac_pham!inner(id, slug, tieu_de, cover_id, loai_tac_pham, noi_dung_blocks)",
-      )
-      .in("id_cot_moc", ids)
-      .order("thu_tu", { ascending: true })
-      .returns<ThuocMocRow[]>();
-    thuocMocs = data || [];
-  }
-
-  const tpByMoc = new Map<string, ThuocMocRow[]>();
-  for (const t of thuocMocs) {
-    const arr = tpByMoc.get(t.id_cot_moc) || [];
-    arr.push(t);
-    tpByMoc.set(t.id_cot_moc, arr);
-  }
-
-  /* Article tags — batch fetch cho tác phẩm CHÍNH (thu_tu = 0) của mỗi cột
-     mốc. Chỉ lấy first post vì card Journey render 1 bài chính; nếu muốn
-     tag cho mọi post cần đổi quan hệ render trên card. */
-  const firstPostIds: string[] = [];
-  for (const arr of tpByMoc.values()) {
-    const first = arr[0]?.content_tac_pham;
-    if (first?.id) firstPostIds.push(first.id);
-  }
-  const tagsByTacPham = await fetchArticleTagsForTacPham(admin, firstPostIds);
-  const creditsByTacPham = await loadAcceptedCredits(admin, firstPostIds);
-
-  /* Sort: `feature` ghim lên đầu (giữ thứ tự `thoi_diem` desc trong nhóm).
-     Sau đó tới các milestone thường (cũng sort `thoi_diem` desc đã có sẵn
-     từ query). Stable sort của `Array.prototype.sort` đảm bảo thứ tự
-     trong từng nhóm không bị xáo. */
-  const sorted = [...visible].sort((a, b) => {
-    const aFeat = a.che_do_hien_thi === "feature" ? 1 : 0;
-    const bFeat = b.che_do_hien_thi === "feature" ? 1 : 0;
-    if (aFeat !== bFeat) return bFeat - aFeat;
-    return 0;
-  });
-
-  const milestones: MilestoneItem[] = sorted.map((m) => {
-    const tps = tpByMoc.get(m.id) || [];
-    const dateObj = new Date(m.thoi_diem);
-    const year = dateObj.getUTCFullYear();
-    const month = dateObj.getUTCMonth() + 1;
-    const day = dateObj.getUTCDate();
-
-    /* `postSlug` lấy từ tác phẩm đầu tiên (thu_tu = 0). Dùng để menu owner
-       wire link "Sửa bài viết" → `/{slug}/p/{postSlug}/edit`. */
-    const firstPost = tps[0]?.content_tac_pham ?? null;
-    const firstPostSlug = firstPost?.slug ?? null;
-    const noiDungBlocks = parseServerBlocks(firstPost?.noi_dung_blocks);
-    const articleTags = firstPost?.id
-      ? (tagsByTacPham.get(firstPost.id) ?? [])
-      : [];
-
-    return {
-      id: m.id,
-      cotMocId: m.id,
-      variant: "self" as MilestoneVariant,
-      type: LOAI_MOC_TO_TYPE[m.loai_moc],
-      visibility: mapVisibility(m.che_do_hien_thi),
-      year,
-      month,
-      day,
-      createdAt: m.tao_luc,
-      title: m.tieu_de,
-      body: m.mo_ta || null,
-      postSlug: firstPostSlug,
-      tacPhamId: firstPost?.id ?? null,
-      media: firstPost?.cover_id
-        ? [
-            {
-              src: coverSeedUrl(firstPost.cover_id) ?? "",
-              label: firstPost.tieu_de,
-            },
-          ].filter((item) => item.src)
-        : [],
-      noiDungBlocks,
-      articleTags,
-      coAuthorCredits: firstPost?.id
-        ? (creditsByTacPham.get(firstPost.id) ?? [])
-        : [],
-    };
-  });
+  const milestones = await buildSelfMilestonesForCotMocs(admin, visible);
 
   const [tagged, bookmarks] = await Promise.all([
     fetchTaggedMilestonesForUser({
@@ -272,19 +265,12 @@ export async function fetchMilestonesForUser(params: {
       cotMoc: cotMocs.length,
       cotMocVerified: 0,
       tacPham: totalTacPham ?? 0,
-      noiBat: new Set(
-        thuocMocs
-          .filter((row) => {
-            const cm = cotMocs.find((m) => m.id === row.id_cot_moc);
-            return cm?.che_do_hien_thi === "feature";
-          })
-          .map((row) => row.id_tac_pham),
-      ).size,
+      noiBat: visible.filter((m) => m.che_do_hien_thi === "feature").length,
     },
   };
 }
 
-async function fetchTaggedMilestonesForUser(params: {
+export async function fetchTaggedMilestonesForUser(params: {
   userId: string;
   isOwner: boolean;
   admin: ReturnType<typeof createServiceRoleClient>;
@@ -399,14 +385,10 @@ async function fetchTaggedMilestonesForUser(params: {
       postOwnerSlug: (owner?.slug as string) ?? null,
       tacPhamId,
       canProposeCoAuthor: isOwner && statusByTp.get(tacPhamId) === "accepted",
-      media: tp.cover_id
-        ? [
-            {
-              src: coverSeedUrl(tp.cover_id as string) ?? "",
-              label: (tp.tieu_de as string) || cm.tieu_de,
-            },
-          ].filter((item) => item.src)
-        : [],
+      media: milestoneCoverMedia(
+        tp.cover_id as string,
+        (tp.tieu_de as string) || cm.tieu_de,
+      ),
       noiDungBlocks: parseServerBlocks(tp.noi_dung_blocks),
       articleTags: tagsByTacPham.get(tacPhamId) ?? [],
       attribution: owner
@@ -426,7 +408,7 @@ async function fetchTaggedMilestonesForUser(params: {
   });
 }
 
-async function fetchBookmarkedMilestonesForUser(params: {
+export async function fetchBookmarkedMilestonesForUser(params: {
   userId: string;
   isOwner: boolean;
   admin: ReturnType<typeof createServiceRoleClient>;
@@ -447,12 +429,13 @@ async function fetchBookmarkedMilestonesForUser(params: {
   const { data: cotMocs } = await admin
     .from("content_cot_moc")
     .select(
-      "id, loai_moc, nguon_goc, tieu_de, mo_ta, thoi_diem, che_do_hien_thi, tao_luc",
+      "id, loai_moc, nguon_goc, tieu_de, mo_ta, thoi_diem, che_do_hien_thi, tao_luc, id_nguoi_dung",
     )
     .in("id", cotMocIds)
     .returns<CotMocRow[]>();
 
   const visibleCotMocs = (cotMocs ?? []).filter((cm) => {
+    if (cm.id_nguoi_dung === userId) return false;
     if (isOwner) return true;
     return cm.che_do_hien_thi !== "chi_minh";
   });
@@ -522,14 +505,10 @@ async function fetchBookmarkedMilestonesForUser(params: {
         postSlug: tp.slug as string,
         postOwnerSlug: (owner?.slug as string) ?? null,
         tacPhamId: tp.id as string,
-        media: tp.cover_id
-          ? [
-              {
-                src: coverSeedUrl(tp.cover_id as string) ?? "",
-                label: (tp.tieu_de as string) || cm.tieu_de,
-              },
-            ].filter((item) => item.src)
-          : [],
+        media: milestoneCoverMedia(
+          tp.cover_id as string,
+          (tp.tieu_de as string) || cm.tieu_de,
+        ),
         noiDungBlocks: parseServerBlocks(tp.noi_dung_blocks),
         articleTags: tagsByTacPham.get(tp.id as string) ?? [],
         bookmark: {
@@ -589,13 +568,17 @@ async function loadAcceptedCredits(
   return out;
 }
 
+function milestoneCotMocKey(item: MilestoneItem): string {
+  return item.cotMocId ?? item.id;
+}
+
 function mergeMilestoneLists(
-  self: MilestoneItem[],
-  tagged: MilestoneItem[],
+  primary: MilestoneItem[],
+  secondary: MilestoneItem[],
 ): MilestoneItem[] {
-  const selfIds = new Set(self.map((m) => m.id));
-  const extra = tagged.filter((m) => !selfIds.has(m.id));
-  const all = [...self, ...extra];
+  const seenCotMocIds = new Set(primary.map((m) => milestoneCotMocKey(m)));
+  const extra = secondary.filter((m) => !seenCotMocIds.has(milestoneCotMocKey(m)));
+  const all = [...primary, ...extra];
   return all.sort((a, b) => {
     const aFeat = a.visibility === "feature" ? 1 : 0;
     const bFeat = b.visibility === "feature" ? 1 : 0;
@@ -613,7 +596,7 @@ function mergeMilestoneLists(
   });
 }
 
-async function attachSocialState(
+export async function attachSocialState(
   admin: ReturnType<typeof createServiceRoleClient>,
   milestones: MilestoneItem[],
   viewerId: string | null,

@@ -1,6 +1,5 @@
 "use client";
 
-import { X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -8,29 +7,16 @@ import { createPortal } from "react-dom";
 /* ╔══════════════════════════════════════════════════════════════════╗
    ║ PostModalShell — overlay client wrapper cho intercepted route.   ║
    ║                                                                  ║
-   ║ Khi user click cột mốc trên `/[slug]/journey`:                   ║
-   ║   1. Next.js intercept navigation tới `/[slug]/p/[postSlug]`     ║
-   ║   2. Render route `@modal/(..)p/[postSlug]/page.tsx` ở slot      ║
-   ║      `modal` của journey layout (parallel route).                 ║
-   ║   3. Trang journey vẫn render bên dưới (children) → modal đè.    ║
-   ║                                                                  ║
-   ║ Đóng modal:                                                      ║
-   ║   • Click backdrop / nút X / phím Escape → `router.back()`       ║
-   ║     để quay lại URL `/[slug]/journey`.                           ║
-   ║                                                                  ║
-   ║ Refresh / vào thẳng URL `/[slug]/p/[postSlug]` → KHÔNG match     ║
-   ║ intercepted route → render trang standalone (`p/[postSlug]/      ║
-   ║ page.tsx`). Chia sẻ link, SEO, deep-link đều OK.                 ║
+   ║ Đóng modal: click vùng overlay tối / phím Escape → router.back  ║
    ╚══════════════════════════════════════════════════════════════════╝ */
 
 export function PostModalShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  /* Portal target — chỉ resolve sau mount (tránh SSR mismatch). */
-  const [portalNode, setPortalNode] = useState<HTMLElement | null>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
+  const [portalReady, setPortalReady] = useState(false);
 
   useEffect(() => {
-    setPortalNode(document.body);
+    setPortalReady(true);
   }, []);
 
   const handleClose = useCallback(() => {
@@ -62,7 +48,7 @@ export function PostModalShell({ children }: { children: React.ReactNode }) {
     [handleClose],
   );
 
-  if (portalNode === null) return null;
+  if (!portalReady) return null;
 
   return createPortal(
     <div
@@ -73,16 +59,8 @@ export function PostModalShell({ children }: { children: React.ReactNode }) {
       onClick={handleBackdropClick}
       ref={sheetRef}
     >
-      <button
-        type="button"
-        className="j-post-close"
-        aria-label="Đóng"
-        onClick={handleClose}
-      >
-        <X size={20} strokeWidth={2} aria-hidden />
-      </button>
       <article className="j-post-sheet">{children}</article>
     </div>,
-    portalNode,
+    document.body,
   );
 }

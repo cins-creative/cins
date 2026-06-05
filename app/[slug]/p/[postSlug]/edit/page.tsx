@@ -2,6 +2,10 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
 import { EditorView, type EditorInitial } from "@/components/editor/EditorView";
+import {
+  MediaComposeView,
+  type MediaComposeMode,
+} from "@/components/editor/MediaComposeView";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import type {
@@ -9,6 +13,10 @@ import type {
   LoaiMoc,
   Visibility,
 } from "@/lib/editor/types";
+import {
+  buildMediaEditInitial,
+  detectMediaPostKind,
+} from "@/lib/journey/post-media";
 import { loadCoAuthorsForTacPham } from "@/lib/social/co-author";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -29,6 +37,7 @@ type OwnerRow = {
   auth_user_id: string;
   slug: string;
   ten_hien_thi: string | null;
+  avatar_id: string | null;
 };
 
 type TacPhamRow = {
@@ -81,7 +90,7 @@ export default async function EditPostPage({
   /* 1. Owner. */
   const { data: owner, error: ownerErr } = await admin
     .from("user_nguoi_dung")
-    .select("id, auth_user_id, slug, ten_hien_thi")
+    .select("id, auth_user_id, slug, ten_hien_thi, avatar_id")
     .eq("slug", slug)
     .maybeSingle<OwnerRow>();
 
@@ -179,11 +188,37 @@ export default async function EditPostPage({
     coAuthors,
   };
 
+  const mediaKind = detectMediaPostKind(blocks);
+  const ownerName = owner.ten_hien_thi || `@${owner.slug}`;
+
+  if (mediaKind === "photo" || mediaKind === "video") {
+    const mediaEditInitial = buildMediaEditInitial({
+      tacPhamId: tp.id,
+      cotMocId: cm.id,
+      postSlug,
+      visibility: initial.visibility,
+      loaiMoc: initial.loaiMoc,
+      thoiDiem: initial.thoiDiem,
+      blocks,
+      kind: mediaKind,
+    });
+
+    return (
+      <MediaComposeView
+        mode={mediaKind as MediaComposeMode}
+        ownerSlug={owner.slug}
+        ownerName={ownerName}
+        ownerAvatarId={owner.avatar_id}
+        editInitial={mediaEditInitial}
+      />
+    );
+  }
+
   return (
     <EditorView
       ownerId={owner.id}
       ownerSlug={owner.slug}
-      ownerName={owner.ten_hien_thi || `@${owner.slug}`}
+      ownerName={ownerName}
       mode="edit"
       initial={initial}
       postSlug={postSlug}

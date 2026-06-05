@@ -1,0 +1,245 @@
+/* Facebook-style image grid — Journey post render + compose preview */
+
+.image-grid {
+  display: grid;
+  gap: 4px;
+  border-radius: var(--radius-sm, 10px);
+  overflow: hidden;
+  width: 100%;
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.image-grid[data-count="1"] {
+  display: block;
+  background: var(--neutral-100, #f4f4f5);
+}
+.image-grid[data-count="1"] .image-grid-cell {
+  display: block;
+  width: 100%;
+  max-height: 500px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.image-grid[data-count="1"] img {
+  width: 100%;
+  max-height: 500px;
+  height: auto;
+  object-fit: contain;
+  display: block;
+}
+
+.image-grid[data-count="2"] {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  aspect-ratio: 2 / 1;
+}
+
+.image-grid[data-count="3"] {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  aspect-ratio: 3 / 2;
+}
+.image-grid[data-count="3"] .image-grid-cell:first-child {
+  grid-row: 1 / 3;
+}
+
+.image-grid[data-count="4"] {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  aspect-ratio: 1 / 1;
+}
+
+.image-grid[data-count="5"] {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  grid-template-rows: 1fr 1fr;
+  aspect-ratio: 3 / 2;
+}
+.image-grid[data-count="5"] .image-grid-cell:nth-child(1) {
+  grid-column: span 3;
+}
+.image-grid[data-count="5"] .image-grid-cell:nth-child(2) {
+  grid-column: span 3;
+}
+.image-grid[data-count="5"] .image-grid-cell:nth-child(3) {
+  grid-column: span 2;
+}
+.image-grid[data-count="5"] .image-grid-cell:nth-child(4) {
+  grid-column: span 2;
+}
+.image-grid[data-count="5"] .image-grid-cell:nth-child(5) {
+  grid-column: span 2;
+}
+
+.image-grid-cell {
+  position: relative;
+  display: block;
+  padding: 0;
+  border: 0;
+  margin: 0;
+  overflow: hidden;
+  background: var(--neutral-100, #f1f2f5);
+  cursor: pointer;
+  min-height: 0;
+  min-width: 0;
+}
+.image-grid[data-count="2"] .image-grid-cell,
+.image-grid[data-count="3"] .image-grid-cell,
+.image-grid[data-count="4"] .image-grid-cell,
+.image-grid[data-count="5"] .image-grid-cell {
+  aspect-ratio: auto;
+  height: 100%;
+}
+.image-grid-cell img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.grid-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 28px;
+  font-weight: 500;
+  pointer-events: none;
+}
+
+.image-grid-uploading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(14, 17, 23, 0.45);
+  color: #fff;
+}
+
+/* Lightbox — portal `<dialog>`, tránh fixed trong backdrop-filter */
+.image-lightbox {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  max-width: none;
+  max-height: none;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.92);
+  color: #fff;
+}
+.image-lightbox::backdrop {
+  background: rgba(0, 0, 0, 0.92);
+}
+.image-lightbox-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 56px;
+  box-sizing: border-box;
+}
+.image-lightbox-figure {
+  margin: 0;
+  max-width: min(1200px, 100%);
+  max-height: calc(100vh - 96px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.image-lightbox-figure img {
+  max-width: 100%;
+  max-height: calc(100vh - 96px);
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  display: block;
+}
+.image-lightbox-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 2;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.image-lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+.image-lightbox-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  width: 48px;
+  height: 48px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.image-lightbox-nav:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+.image-lightbox-nav--prev {
+  left: 16px;
+}
+.image-lightbox-nav--next {
+  right: 16px;
+}
+.image-lightbox-counter {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.cins-editor-page.mc-compose-page .image-grid {
+  margin-top: 12px;
+  width: 100%;
+}
+
+.post-blocks-fb .block-image-grid .block-inner {
+  padding: 0;
+}
+
+@media (max-width: 768px) {
+  .image-lightbox-inner {
+    padding: 40px 12px;
+  }
+  .image-lightbox-nav--prev {
+    left: 8px;
+  }
+  .image-lightbox-nav--next {
+    right: 8px;
+  }
+}

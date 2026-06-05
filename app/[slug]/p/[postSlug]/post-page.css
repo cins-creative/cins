@@ -9,7 +9,7 @@
    ║      điều chỉnh padding/cursor)                                  ║
    ║   3. `.post-byline` · `.post-comments-*` (mới — không có ở       ║
    ║      editor)                                                     ║
-   ║   4. `.post-rail` (floating action sidebar bên phải)             ║
+   ║   4. `.post-byline-actions` (Thích · Lưu · BL · Chia sẻ)         ║
    ╚══════════════════════════════════════════════════════════════════╝ */
 
 /* ╔══ 1. Page wrapper (route) ══════════════════════════════════════ */
@@ -104,11 +104,6 @@
   background: transparent;
   min-height: 0;
   position: relative;
-  /* Block layout: canvas dùng `margin: 0 auto` để centered TUYỆT ĐỐI trong
-     parent (sheet/inner). Rail `float: right + position: sticky` — float
-     đẩy rail sang phải, sticky giữ nó dán đỉnh khi scroll. Float KHÔNG ảnh
-     hưởng tới margin auto của block canvas (canvas centered theo full
-     width của container, không trừ float). */
   display: block;
 }
 
@@ -123,8 +118,6 @@
   margin: 0 auto;
   min-width: 0;
   overflow: hidden;
-  /* `position: relative` để canvas tạo stacking context riêng — rail
-     (z-index 5) vẫn cao hơn shadow nhưng dưới các overlay nội bộ canvas. */
   position: relative;
 }
 
@@ -171,6 +164,32 @@
   margin: 0 0 14px;
   padding: 0;
   line-height: 1.45;
+}
+
+.cins-post-view .post-canvas--media .post-byline {
+  margin-top: 0;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+}
+
+.cins-post-view .post-canvas--media .post-blocks-fb {
+  padding: 0 12px;
+}
+
+.cins-post-view .post-canvas--media .post-blocks-fb .block[data-block-type="body"] {
+  margin-bottom: 20px;
+}
+
+.cins-post-view .post-canvas--media .post-blocks-fb .block[data-block-type="body"] .b-text-ro {
+  padding: 0 4px;
+}
+
+.cins-post-view .post-canvas--media .post-blocks-fb .block-image-grid {
+  margin-top: 4px;
+}
+
+.cins-post-view .post-canvas--media .post-blocks-fb .block-image-grid .block-inner {
+  padding: 0 4px;
 }
 
 /* Byline (author + ngày + chế độ + chip hành động). */
@@ -308,6 +327,151 @@
   background: var(--neutral-100, #f1f2f5);
   border-color: var(--border-strong, #d4d7de);
   color: var(--ink-title);
+}
+
+/* Hành động gọn trong byline — Thích · Lưu · Bình luận · Chia sẻ. */
+.cins-post-view .post-byline-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.cins-post-view .post-byline-act {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-muted);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
+}
+.cins-post-view .post-byline-act:hover {
+  background: var(--neutral-100, #f1f2f5);
+  color: var(--ink-body);
+}
+.cins-post-view .post-byline-act:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.cins-post-view .post-byline-act.is-active.is-like {
+  color: #e11d48;
+  background: #fff1f2;
+}
+.cins-post-view .post-byline-act.is-active.is-bookmark {
+  color: var(--cins-blue-strong, #1d4ed8);
+  background: var(--cins-blue-soft, #eef4ff);
+}
+.cins-post-view .post-byline-act-count {
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+.cins-post-view .post-byline-share-wrap {
+  position: relative;
+}
+.cins-post-view .post-byline-share {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 210px;
+  background: var(--bg-surface, #ffffff);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.14);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 40;
+  animation: post-byline-share-pop 140ms ease-out;
+}
+@keyframes post-byline-share-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.cins-post-view .post-byline-share-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  text-decoration: none;
+  background: transparent;
+  border: none;
+  color: var(--ink-body);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: background 120ms ease;
+}
+.cins-post-view .post-byline-share-item:hover {
+  background: var(--neutral-100, #f1f2f5);
+}
+.cins-post-view .post-byline-share-ic {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 12px;
+  color: #ffffff;
+  flex-shrink: 0;
+}
+.cins-post-view .post-byline-share-ic--native {
+  background: var(--cins-blue, #2563eb);
+}
+.cins-post-view .post-byline-share-ic--copy {
+  background: var(--neutral-200, #e5e7eb);
+  color: var(--ink-title);
+}
+.cins-post-view .post-byline-share-ic--fb {
+  background: #1877f2;
+  font-family: Georgia, serif;
+  font-size: 16px;
+}
+.cins-post-view .post-byline-share-ic--x {
+  background: #000000;
+  font-size: 13px;
+}
+.cins-post-view .post-byline-share-ic--in {
+  background: #0a66c2;
+  font-size: 11px;
+  letter-spacing: -0.5px;
+}
+.cins-post-view .post-byline-share-ic--zalo {
+  background: #0068ff;
+  font-size: 13px;
+}
+.cins-post-view .post-byline-share-ic--wa {
+  background: #25d366;
+  font-size: 13px;
+}
+.cins-post-view .post-byline-share-ic--pin {
+  background: #e60023;
+  font-style: italic;
 }
 
 .cins-post-view .post-contributors {
@@ -846,195 +1010,18 @@
   word-break: break-word;
 }
 
-/* ╔══ 4. Floating actions rail ════════════════════════════════════ */
-
-/* Dock cố định bên phải viewport — pattern này dùng cho cả modal lẫn
-   trang permalink: visibility nhất quán và không bị che bởi cuộn nội
-   dung dài. Modal có z-index cao hơn nội dung của nó. */
-.post-rail {
-  /* Float right + sticky combo: float đẩy rail bám mép phải của
-     `.cins-post-view`; sticky giữ nó dán đỉnh viewport khi scroll. Hai
-     thuộc tính tương thích — float thay đổi vị trí block, sticky kiểm
-     soát scroll behavior. Vì rail là DOM child ĐẦU TIÊN của cins-post-view,
-     float right hoạt động đúng (floats to top-right). */
-  float: right;
-  position: sticky;
-  top: 100px; /* dán vào đỉnh viewport khi cuộn qua, chừa khoảng cho topbar */
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  width: 56px;
-  z-index: 5;
-}
-
-/* Trong modal — overlay đã có z-index 9000. Rail nằm trong stacking context
-   của overlay nên không cần > 9000; chỉ cần cao hơn block content xung quanh. */
-.j-post-sheet .post-rail {
-  z-index: 10;
-}
-
-.post-rail-btn {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: var(--bg-surface, #ffffff);
-  border: 1px solid var(--border);
-  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
-  color: var(--ink-body);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  cursor: pointer;
-  font-family: inherit;
-  font-size: 9px;
-  font-weight: 600;
-  transition:
-    transform 120ms ease,
-    background 120ms ease,
-    color 120ms ease,
-    border-color 120ms ease;
-}
-
-.post-rail-btn:hover {
-  transform: translateY(-1px);
-  border-color: var(--border-strong, #d4d7de);
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
-}
-
-.post-rail-btn.is-active.is-like {
-  color: #e11d48;
-  border-color: #fecdd3;
-  background: #fff1f2;
-}
-
-.post-rail-btn.is-active.is-bookmark {
-  color: var(--cins-blue-strong, #1d4ed8);
-  border-color: var(--cins-blue-soft, #c7dafe);
-  background: var(--cins-blue-soft, #eef4ff);
-}
-
-.post-rail-lbl {
-  font-size: 9px;
-  letter-spacing: 0.2px;
-}
-
-.post-rail-count {
-  color: currentColor;
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 1.25;
-}
-
-.post-rail-share-wrap {
-  position: relative;
-}
-
-.post-rail-share {
-  position: absolute;
-  right: calc(100% + 12px);
-  top: 0;
-  min-width: 200px;
-  background: var(--bg-surface, #ffffff);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.14);
-  padding: 6px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  z-index: 30;
-  animation: post-rail-pop 140ms ease-out;
-}
-
-@keyframes post-rail-pop {
-  from {
-    opacity: 0;
-    transform: translateX(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-.post-rail-share-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  text-decoration: none;
-  background: transparent;
-  border: none;
-  color: var(--ink-body);
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  text-align: left;
-  width: 100%;
-  transition: background 120ms ease;
-}
-
-.post-rail-share-item:hover {
-  background: var(--neutral-100, #f1f2f5);
-}
-
-.post-rail-share-ic {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 13px;
-  color: #ffffff;
-  flex-shrink: 0;
-}
-
-.post-rail-share-ic--copy {
-  background: var(--neutral-200, #e5e7eb);
-  color: var(--ink-title);
-}
-.post-rail-share-ic--fb {
-  background: #1877f2;
-  font-family: Georgia, serif;
-  font-size: 16px;
-}
-.post-rail-share-ic--x {
-  background: #000000;
-  font-size: 14px;
-}
-.post-rail-share-ic--pin {
-  background: #e60023;
-  font-style: italic;
-}
-
 /* ╔══════════════════════════════════════════════════════════════════╗
    ║ 5. Responsive — Bootstrap 5 breakpoints (desktop-first cascade)  ║
    ║                                                                  ║
-   ║   • xxl ≥ 1400px → default (rail 56px, canvas 880px max)         ║
-   ║   • xl  ≥ 1200px → default                                       ║
-   ║   • lg  ≥ 992px  → default                                       ║
-   ║   • md  ≥ 768px  → max-width:991.98px → rail 48px, canvas hẹp     ║
-   ║   • sm  ≥ 576px  → max-width:767.98px → rail bottom-bar           ║
-   ║   • xs  < 576px  → max-width:575.98px → canvas edge-to-edge       ║
+   ║   • md  ≤991.98px → canvas hẹp                                   ║
+   ║   • sm  ≤767.98px → byline wrap, share menu flip                 ║
+   ║   • xs  ≤575.98px → canvas edge-to-edge                          ║
    ╚══════════════════════════════════════════════════════════════════╝ */
 
-/* ── md (≤991.98px / under lg): rail compact, canvas hẹp ── */
+/* ── md (≤991.98px / under lg): canvas hẹp ── */
 @media (max-width: 991.98px) {
   .j-post-page {
-    padding: 16px 16px 80px;
-  }
-  .post-rail {
-    width: 48px;
-  }
-  .post-rail-btn {
-    width: 48px;
-    height: 48px;
+    padding: 16px 16px 40px;
   }
   .cins-post-view .editor-canvas.post-canvas {
     padding: 32px 40px 40px;
@@ -1052,10 +1039,10 @@
   }
 }
 
-/* ── sm (≤767.98px / under md): rail → bottom-bar; canvas full-width ── */
+/* ── sm (≤767.98px / under md): canvas full-width ── */
 @media (max-width: 767.98px) {
   .j-post-page {
-    padding: 12px 12px 80px;
+    padding: 12px 12px 32px;
   }
   .cins-post-view .editor-canvas.post-canvas {
     padding: 24px 24px 32px;
@@ -1077,38 +1064,21 @@
   .cins-post-view .post-byline {
     gap: 8px;
   }
-  /* Rail bottom-bar — float + sticky → fixed full-width footer */
-  .post-rail {
-    position: fixed;
-    float: none;
-    flex-direction: row;
-    width: auto;
-    top: auto;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    border-radius: 0;
-    background: var(--bg-surface);
-    border-top: 1px solid var(--border);
-    padding: 8px;
-    justify-content: space-around;
-    z-index: 30;
+  .cins-post-view .post-byline-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    margin-left: auto;
   }
-  .j-post-sheet .post-rail {
-    z-index: 9010;
-  }
-  .post-rail-share {
-    bottom: calc(100% + 12px);
+  .cins-post-view .post-byline-share {
     right: 0;
     left: auto;
-    top: auto;
   }
 }
 
 /* ── xs (≤575.98px / phone): canvas edge-to-edge, fonts thu nhỏ ── */
 @media (max-width: 575.98px) {
   .j-post-page {
-    padding: 0 0 88px;
+    padding: 0 0 24px;
     background: var(--bg-surface, #ffffff);
   }
   .j-post-page-inner {
@@ -1183,18 +1153,13 @@
   .cins-post-view .b-quote .b-quote-ro {
     font-size: 20px;
   }
-  /* Rail bottom-bar — button shrink để vừa 3-4 nút trên màn hẹp */
-  .post-rail {
-    padding: 6px;
-    gap: 6px;
+  .cins-post-view .post-byline-act {
+    min-width: 28px;
+    height: 28px;
+    padding: 0 6px;
   }
-  .post-rail-btn {
-    width: 44px;
-    height: 44px;
-    font-size: 8px;
-  }
-  .post-rail-share {
-    min-width: 180px;
+  .cins-post-view .post-byline-share {
+    min-width: 190px;
   }
 }
 

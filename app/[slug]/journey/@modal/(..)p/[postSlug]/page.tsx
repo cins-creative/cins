@@ -1,6 +1,5 @@
 import { loadPostBySlug } from "@/app/[slug]/journey/actions";
 import { JourneyPostBody } from "@/components/journey/JourneyPostBody";
-import { PostModalShell } from "@/components/journey/PostModalShell";
 
 /* ╔══════════════════════════════════════════════════════════════════╗
    ║ Intercepted modal route — `/[slug]/p/[postSlug]` khi nav từ      ║
@@ -40,14 +39,10 @@ export default async function InterceptedPostModal({
   const res = await loadPostBySlug(ownerSlug, postSlug);
 
   if (!res.ok) {
-    /* Lỗi load — render modal với thông báo gọn (giữ overlay để user
-       còn có nút đóng → router.back()). */
     return (
-      <PostModalShell>
-        <div className="j-post-err">
-          <p>{res.error}</p>
-        </div>
-      </PostModalShell>
+      <div className="j-post-err">
+        <p>{res.error}</p>
+      </div>
     );
   }
 
@@ -55,14 +50,12 @@ export default async function InterceptedPostModal({
   const postSlugFromDb = detail.posts[0]?.slug ?? postSlug;
 
   return (
-    <PostModalShell>
-      <JourneyPostBody
-        initialDetail={detail}
-        postSlug={postSlugFromDb}
-        isOwner={detail.viewerIsOwner}
-        /* Trong modal: vẫn show link permalink để user mở tab riêng / share. */
-        hideOpenLink={false}
-      />
-    </PostModalShell>
+    <JourneyPostBody
+      initialDetail={detail}
+      postSlug={postSlugFromDb}
+      isOwner={detail.viewerIsOwner}
+      /* Trong modal: vẫn show link permalink để user mở tab riêng / share. */
+      hideOpenLink={false}
+    />
   );
 }

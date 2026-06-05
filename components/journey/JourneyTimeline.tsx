@@ -1,17 +1,26 @@
 "use client";
 
-import { ArrowRight, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { JourneyCoAuthorPendingBanner } from "@/components/journey/JourneyCoAuthorPendingBanner";
+import { JourneyCreateComposer } from "@/components/journey/JourneyCreateComposer";
 import { JourneyPostModal } from "@/components/journey/JourneyPostModal";
 import { JourneyTimelineBar } from "@/components/journey/JourneyTimelineBar";
 import type { FilterGroup } from "@/components/journey/JourneyTimelineBar";
 import { JourneyYearBlock } from "@/components/journey/JourneyYearBlock";
 import type { MilestoneItem } from "@/components/journey/milestone-types";
 import type { LoaiMocVisibilityMap } from "@/lib/journey/filter-visibility";
+import type { MilestoneFilterCounts } from "@/lib/journey/milestones-page-fetch";
 import type { PendingCoAuthorInvite } from "@/lib/social/types";
+
+type ScrollLoadConfig = {
+  ownerSlug: string;
+  hasMore: boolean;
+  nextOffset: number;
+  filterCounts: MilestoneFilterCounts;
+  totalCount: number;
+};
 
 type Props = {
   isOwner: boolean;
@@ -20,13 +29,15 @@ type Props = {
   ownerSlug: string;
   /** Avatar URL owner (Cloudflare delivery) — render trong badge "Cá nhân". */
   ownerAvatarUrl?: string | null;
-  /** Milestones từ DB — không sort sẵn. Component tự group theo year + sort desc. */
+  /** Milestones trang đầu — append thêm khi user cuộn (scrollLoad). */
   milestones: ReadonlyArray<MilestoneItem>;
   /** Visibility per loai_moc filter row trong dropdown. Owner thấy toggle,
    *  visitor không thấy row nào marked `private`. */
   filterVisibility?: LoaiMocVisibilityMap;
   viewerProfileId?: string | null;
   coAuthorPendingInvites?: ReadonlyArray<PendingCoAuthorInvite>;
+  /** Infinite scroll — load trang kế qua API khi sentinel vào viewport. */
+  scrollLoad?: ScrollLoadConfig;
 };
 
 /**
@@ -47,19 +58,79 @@ export function JourneyTimeline({
   ownerName,
   ownerSlug,
   ownerAvatarUrl,
-  milestones,
+  milestones: initialMilestones,
   filterVisibility,
   viewerProfileId = null,
   coAuthorPendingInvites = [],
+  scrollLoad,
 }: Props) {
   const router = useRouter();
   const [filter, setFilter] = useState<FilterGroup>("all");
-  /* Fallback modal state — chỉ kích hoạt cho cột mốc CHƯA có post (postSlug
-     null). Cột mốc có postSlug → navigate URL `/{ownerSlug}/p/{postSlug}` để
-     intercepted route hiển thị modal đè trên journey (URL update + share-able
-     + browser-back hoạt động tự nhiên). */
+  const [items, setItems] = useState<MilestoneItem[]>(() => [...initialMilestones]);
+  const [hasMore, setHasMore] = useState(scrollLoad?.hasMore ?? false);
+  const [nextOffset, setNextOffset] = useState(
+    scrollLoad?.nextOffset ?? initialMilestones.length,
+  );
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [openMilestoneId, setOpenMilestoneId] = useState<string | null>(null);
   const rootRef = useRef<HTMLElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const loadingMoreRef = useRef(false);
+
+  useEffect(() => {
+    setItems([...initialMilestones]);
+    setHasMore(scrollLoad?.hasMore ?? false);
+    setNextOffset(scrollLoad?.nextOffset ?? initialMilestones.length);
+    setLoadError(false);
+  }, [initialMilestones, scrollLoad?.hasMore, scrollLoad?.nextOffset]);
+
+  const loadMore = useCallback(async () => {
+    if (!scrollLoad || loadingMoreRef.current || !hasMore) return;
+    loadingMoreRef.current = true;
+    setLoadingMore(true);
+    setLoadError(false);
+    try {
+      const res = await fetch(
+        `/api/journey/${encodeURIComponent(scrollLoad.ownerSlug)}/milestones?offset=${nextOffset}`,
+      );
+      if (!res.ok) throw new Error("load failed");
+      const data = (await res.json()) as {
+        milestones: MilestoneItem[];
+        hasMore: boolean;
+        nextOffset: number;
+      };
+      setItems((prev) => {
+        const seen = new Set(prev.map((m) => m.id));
+        const extra = data.milestones.filter((m) => !seen.has(m.id));
+        return [...prev, ...extra];
+      });
+      setHasMore(data.hasMore);
+      setNextOffset(data.nextOffset);
+    } catch {
+      setLoadError(true);
+    } finally {
+      loadingMoreRef.current = false;
+      setLoadingMore(false);
+    }
+  }, [scrollLoad, hasMore, nextOffset]);
+
+  useEffect(() => {
+    if (!scrollLoad || !hasMore) return;
+    const node = sentinelRef.current;
+    if (!node || typeof IntersectionObserver === "undefined") return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          void loadMore();
+        }
+      },
+      { root: null, rootMargin: "480px 0px", threshold: 0 },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [scrollLoad, hasMore, loadMore, items.length]);
 
   /* Prefetch dedupe — track những href đã gọi `router.prefetch()` để tránh
      nhân đôi request (đặc biệt khi cùng card vừa enter viewport vừa hover). */
@@ -108,19 +179,8 @@ export function JourneyTimeline({
       if (!mid) return;
 
       const postSlug = article.getAttribute("data-post-slug");
-      if (postSlug) {
-        const postOwnerSlug =
-          article.getAttribute("data-post-owner-slug") || ownerSlug;
-        const href =
-          postOwnerSlug === ownerSlug
-            ? `/${postOwnerSlug}/p/${postSlug}`
-            : `/${postOwnerSlug}/p/${postSlug}?owner=${encodeURIComponent(postOwnerSlug)}`;
-        /* Có post slug → navigate URL. Next.js intercept (vì đang ở
-           `/[slug]/journey`) → render `@modal/(..)p/[postSlug]/page.tsx`
-           ở slot modal, journey vẫn live ở dưới. */
-        router.push(href);
-        return;
-      }
+      if (postSlug) return;
+
       /* Không có post slug → fallback modal cũ (load by milestoneId). */
       setOpenMilestoneId(mid);
     };
@@ -141,16 +201,8 @@ export function JourneyTimeline({
       const mid = article.getAttribute("data-mid");
       if (!mid) return;
       const postSlug = article.getAttribute("data-post-slug");
-      if (postSlug) {
-        const postOwnerSlug =
-          article.getAttribute("data-post-owner-slug") || ownerSlug;
-        const href =
-          postOwnerSlug === ownerSlug
-            ? `/${postOwnerSlug}/p/${postSlug}`
-            : `/${postOwnerSlug}/p/${postSlug}?owner=${encodeURIComponent(postOwnerSlug)}`;
-        router.push(href);
-        return;
-      }
+      if (postSlug) return;
+
       setOpenMilestoneId(mid);
     };
     /* Prefetch on hover — user di chuột tới card = intent rõ ràng → fire
@@ -179,14 +231,14 @@ export function JourneyTimeline({
       el.removeEventListener("keydown", onKey);
       el.removeEventListener("pointerover", onPointerOver);
     };
-  }, [router, ownerSlug, prefetch]);
+  }, [ownerSlug, prefetch]);
 
   /* Prefetch eager — gọi `router.prefetch` cho 8 milestone đầu tiên (above
      fold + ngay dưới). Next.js cache RSC payload của route intercepted, lần
      click sau navigation gần như không có latency. Dùng `requestIdleCallback`
      để không block initial render; fallback `setTimeout` cho browser cũ. */
   useEffect(() => {
-    const eager = milestones
+    const eager = items
       .filter((m) => m.postSlug)
       .slice(0, 8)
       .map((m) => ({
@@ -216,7 +268,7 @@ export function JourneyTimeline({
     }
     const tid = window.setTimeout(run, 200);
     return () => window.clearTimeout(tid);
-  }, [milestones, prefetch]);
+  }, [items, prefetch]);
 
   /* Prefetch lazy bằng IntersectionObserver — khi card cuộn vào viewport
      mới prefetch. Tránh blast 100+ request cùng lúc với journey dài. Dùng
@@ -247,20 +299,22 @@ export function JourneyTimeline({
 
     return () => observer.disconnect();
     /* Re-bind khi milestones / filter đổi vì DOM article tree thay đổi. */
-  }, [milestones, filter, prefetch]);
+  }, [items, filter, prefetch]);
 
   const handleClose = useCallback(() => setOpenMilestoneId(null), []);
 
   /* Tính counts cho từng group (dùng cho dropdown). */
-  const counts = useMemo(() => computeCounts(milestones), [milestones]);
+  const counts = useMemo((): Counts => {
+    if (scrollLoad?.filterCounts) return scrollLoad.filterCounts;
+    return computeCounts(items);
+  }, [scrollLoad?.filterCounts, items]);
 
-  /* Lọc theo filter hiện tại. */
   const filtered = useMemo(() => {
-    if (filter === "all") return milestones;
-    if (filter === "verified")
-      return milestones.filter((m) => m.variant === "verified");
-    return milestones.filter((m) => m.type === filter);
-  }, [milestones, filter]);
+    if (filter === "all") return items;
+    if (filter === "verified") return items.filter((m) => m.variant === "verified");
+    if (filter === "bookmark") return items.filter((m) => m.variant === "bookmark");
+    return items.filter((m) => m.type === filter);
+  }, [items, filter]);
 
   /* Group theo năm DESC. */
   const byYear = useMemo(() => groupByYearDesc(filtered), [filtered]);
@@ -274,7 +328,7 @@ export function JourneyTimeline({
 
   const totalVisible = filtered.length;
   const options = buildOptions(counts);
-  const hasData = milestones.length > 0;
+  const hasData = (scrollLoad?.totalCount ?? items.length) > 0;
 
   return (
     <main
@@ -305,7 +359,9 @@ export function JourneyTimeline({
       {/* CTA "Thêm nội dung mới" ở trên cùng (trước cột mốc gần nhất) để
           owner luôn có lối tạo bài viết ngay khi mở Journey. Càng kéo
           xuống, milestones sẽ cũ dần (year DESC + thoi_diem DESC). */}
-      {hasData && isOwner ? <CreateMilestoneCta ownerSlug={ownerSlug} /> : null}
+      {hasData && isOwner ? (
+        <JourneyCreateComposer ownerSlug={ownerSlug} />
+      ) : null}
 
       {hasData ? (
         byYear.length > 0 ? (
@@ -330,10 +386,43 @@ export function JourneyTimeline({
           <FilteredEmptyState filter={filter} />
         )
       ) : isOwner ? (
-        <OwnerEmptyState ownerSlug={ownerSlug} />
+        <OwnerEmptyState
+          ownerSlug={ownerSlug}
+          ownerName={ownerName}
+          ownerAvatarUrl={ownerAvatarUrl ?? null}
+        />
       ) : (
         <GuestEmptyState ownerName={ownerName} />
       )}
+
+      {scrollLoad && hasMore ? (
+        <div ref={sentinelRef} className="j-timeline-scroll-sentinel" aria-hidden />
+      ) : null}
+
+      {loadingMore ? (
+        <div className="j-timeline-load-more" aria-busy="true" aria-live="polite">
+          <div className="j-skel-milestone">
+            <div className="j-skel j-skel-m-month" />
+            <div className="j-skel-card">
+              <div className="j-skel j-skel-card-head" />
+              <div className="j-skel j-skel-card-title" />
+              <div className="j-skel j-skel-card-line" />
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {loadError ? (
+        <div className="j-timeline-load-retry-wrap">
+          <button
+            type="button"
+            className="j-timeline-load-retry"
+            onClick={() => void loadMore()}
+          >
+            Không tải được thêm cột mốc — thử lại
+          </button>
+        </div>
+      ) : null}
 
       <div className="j-timeline-end" aria-hidden>
         <div className="j-timeline-end-text">— bắt đầu hành trình —</div>
@@ -441,7 +530,15 @@ function groupByYearDesc(
  * Empty states
  * ──────────────────────────────────────────────────────────────── */
 
-function OwnerEmptyState({ ownerSlug }: { ownerSlug: string }) {
+function OwnerEmptyState({
+  ownerSlug,
+  ownerName,
+  ownerAvatarUrl,
+}: {
+  ownerSlug: string;
+  ownerName: string;
+  ownerAvatarUrl?: string | null;
+}) {
   return (
     <section className="j-empty" aria-label="Hành trình của bạn">
       <div className="j-empty-card">
@@ -452,60 +549,12 @@ function OwnerEmptyState({ ownerSlug }: { ownerSlug: string }) {
           hoàn thành, dự án bạn đang làm, sự kiện bạn tham dự, hay đơn giản là
           một suy nghĩ về định hướng. Bắt đầu từ một cột mốc nhỏ nhất cũng được.
         </p>
-        <div className="j-empty-actions">
-          {/* `<a>` thay vì `<Link>`: tránh soft-nav vào intercepting route
-              `(..)p/[postSlug]` (bắt nhầm "new"). Hard-nav để route đúng
-              `/[slug]/p/new` (editor) được match. */}
-          <a
-            href={`/${ownerSlug}/p/new`}
-            className="j-empty-btn j-empty-btn--primary"
-          >
-            <Plus size={16} strokeWidth={2} aria-hidden /> Thêm cột mốc đầu tiên
-          </a>
-          <button
-            type="button"
-            className="j-empty-btn j-empty-btn--ghost"
-            disabled
-          >
-            Xem hướng dẫn
-          </button>
-        </div>
+        <JourneyCreateComposer ownerSlug={ownerSlug} />
         <p className="j-empty-hint">
-          Bài viết được lưu vào cột mốc đầu tiên trên Journey của bạn.
+          Bài viết, ảnh hoặc video sẽ xuất hiện trên timeline Journey của bạn.
         </p>
       </div>
     </section>
-  );
-}
-
-/**
- * CTA tạo cột mốc — luôn hiện ở đầu timeline cho owner (cả khi đã có
- * milestones lẫn lúc trống). Click → mở trình tạo bài viết.
- */
-function CreateMilestoneCta({ ownerSlug }: { ownerSlug: string }) {
-  /* Dùng `<a>` (hard-nav) thay vì `<Link>` (soft-nav): intercepting route
-     `(..)p/[postSlug]` sẽ bắt nhầm cả `/p/new` (vì `[postSlug]` match
-     "new") → load post "new" → báo "Bài viết không tồn tại". Hard-nav
-     thoát intercepting context, route thật `/[slug]/p/new` được render. */
-  return (
-    <a
-      href={`/${ownerSlug}/p/new`}
-      className="j-create-cta"
-      aria-label="Thêm nội dung mới vào Journey"
-    >
-      <span className="j-create-cta-diamond" aria-hidden>
-        <Plus size={20} strokeWidth={2.2} />
-      </span>
-      <span className="j-create-cta-body">
-        <span className="j-create-cta-title">Thêm nội dung mới</span>
-        <span className="j-create-cta-sub">
-          Bài viết · dự án · sự kiện · thành tựu — kể câu chuyện sáng tạo của bạn.
-        </span>
-      </span>
-      <span className="j-create-cta-arrow" aria-hidden>
-        <ArrowRight size={16} strokeWidth={1.8} />
-      </span>
-    </a>
   );
 }
 

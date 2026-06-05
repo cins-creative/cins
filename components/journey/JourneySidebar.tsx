@@ -1,15 +1,11 @@
 import {
   AtSign,
-  Grid3X3,
   Link2,
   Mail,
   MapPin,
   Pencil,
   Share2,
-  UserRound,
-  Waypoints,
 } from "lucide-react";
-import Link from "next/link";
 
 import type { EditProfileInitial } from "@/components/journey/JourneyEditProfileModal";
 import { JourneyAvatarTrigger } from "@/components/journey/JourneyAvatarTrigger";
@@ -52,8 +48,9 @@ export type JourneyProfileView = "journey" | "gallery" | "friends";
 
 type Props = {
   profile: SidebarProfile;
-  stats: SidebarStats;
   isOwner: boolean;
+  /** Nav switch (Journey / Gallery / Bạn bè) — thường bọc Suspense ở page. */
+  switchNav: React.ReactNode;
   /**
    * Dữ liệu ban đầu cho modal "Chỉnh sửa hồ sơ" — chỉ truyền khi `isOwner`.
    * Server resolve sẵn các field DB (kể cả những field không hiển thị ở sidebar
@@ -62,8 +59,6 @@ type Props = {
   editProfileInitial?: EditProfileInitial;
   /** Viewer profile id — null nếu không đăng nhập (hiếm trên Journey). */
   viewerProfileId?: string | null;
-  activeView?: JourneyProfileView;
-  friendCount?: number;
 };
 
 /**
@@ -80,12 +75,10 @@ type Props = {
  */
 export function JourneySidebar({
   profile,
-  stats,
   isOwner,
+  switchNav,
   editProfileInitial,
   viewerProfileId = null,
-  activeView = "journey",
-  friendCount = 0,
 }: Props) {
   const { avatarUrl, coverUrl } = profile;
   const initials = getNameInitials(profile.tenHienThi, profile.slug);
@@ -229,67 +222,7 @@ export function JourneySidebar({
         )}
       </div>
 
-      <nav className="j-profile-switch" aria-label="Chuyển giao diện hồ sơ">
-        <ProfileSwitchLink
-          slug={profile.slug}
-          view="journey"
-          activeView={activeView}
-          icon={<Waypoints size={15} aria-hidden />}
-          label="Journey"
-          count={stats.cotMoc}
-        />
-        <ProfileSwitchLink
-          slug={profile.slug}
-          view="gallery"
-          activeView={activeView}
-          icon={<Grid3X3 size={15} aria-hidden />}
-          label="Gallery"
-          count={stats.tacPham}
-        />
-        <ProfileSwitchLink
-          slug={profile.slug}
-          view="friends"
-          activeView={activeView}
-          icon={<UserRound size={15} aria-hidden />}
-          label="Bạn bè"
-          count={friendCount}
-        />
-      </nav>
+      {switchNav}
     </aside>
-  );
-}
-
-function ProfileSwitchLink({
-  slug,
-  view,
-  activeView,
-  icon,
-  label,
-  count,
-}: {
-  slug: string;
-  view: JourneyProfileView;
-  activeView: JourneyProfileView;
-  icon: React.ReactNode;
-  label: string;
-  count: number;
-}) {
-  const href =
-    view === "journey"
-      ? `/${encodeURIComponent(slug)}`
-      : `/${encodeURIComponent(slug)}?view=${view}`;
-  const active = view === activeView;
-  return (
-    <Link
-      href={href}
-      className={`j-profile-switch-btn${active ? " is-active" : ""}`}
-      aria-current={active ? "page" : undefined}
-    >
-      <span className="j-profile-switch-ico">{icon}</span>
-      <span className="j-profile-switch-main">
-        <span>{label}</span>
-        <strong>{count}</strong>
-      </span>
-    </Link>
   );
 }

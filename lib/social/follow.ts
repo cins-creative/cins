@@ -352,11 +352,54 @@ export async function listPendingFollowRequests(
 export async function listMutualFriendProfiles(
   viewerId: string,
 ): Promise<MutualFriendProfile[]> {
+  const page = await listMutualFriendProfilesPage(viewerId, { offset: 0, limit: 60 });
+  return page.friends;
+}
+
+export const FRIENDS_SCROLL_PAGE_SIZE = 12;
+
+export async function countMutualFriends(userId: string): Promise<number> {
+  const ids = await listMutualFollowUserIds(userId);
+  return ids.length;
+}
+
+export async function listMutualFriendProfilesPage(
+  viewerId: string,
+  params: { offset?: number; limit?: number } = {},
+): Promise<{
+  friends: MutualFriendProfile[];
+  offset: number;
+  nextOffset: number;
+  hasMore: boolean;
+  totalCount: number;
+}> {
   const mutualIds = await listMutualFollowUserIds(viewerId);
-  if (mutualIds.length === 0) return [];
+  const offset = Math.max(0, params.offset ?? 0);
+  const limit = Math.min(
+    24,
+    Math.max(1, params.limit ?? FRIENDS_SCROLL_PAGE_SIZE),
+  );
+  const slice = mutualIds.slice(offset, offset + limit);
+  if (slice.length === 0) {
+    return {
+      friends: [],
+      offset,
+      nextOffset: offset,
+      hasMore: false,
+      totalCount: mutualIds.length,
+    };
+  }
 
   const admin = createServiceRoleClient();
-  return loadFollowProfiles(admin, mutualIds, 60);
+  const friends = await loadFollowProfiles(admin, slice, slice.length);
+  const nextOffset = offset + friends.length;
+  return {
+    friends,
+    offset,
+    nextOffset,
+    hasMore: nextOffset < mutualIds.length,
+    totalCount: mutualIds.length,
+  };
 }
 
 async function loadFollowProfiles(

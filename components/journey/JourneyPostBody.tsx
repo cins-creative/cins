@@ -21,10 +21,8 @@ import {
   type MilestonePostContributor,
   type MilestonePostDetail,
 } from "@/app/[slug]/journey/actions";
-import {
-  PostBlocksRenderer,
-  PostCover,
-} from "@/components/editor/PostRenderer";
+import { PostBlockRenderer } from "@/components/journey/PostBlockRenderer";
+import { PostCover } from "@/components/editor/PostRenderer";
 import { JourneyMilestoneOwnerMenu } from "@/components/journey/JourneyMilestoneOwnerMenu";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
 import { articlePublicHref } from "@/lib/articles/article-href";
@@ -33,6 +31,7 @@ import {
   mapCheDoToMilestoneVisibility,
   mapLoaiMocToMilestoneType,
 } from "@/lib/journey/milestone-ui-map";
+import { isMediaPost } from "@/lib/journey/post-media";
 import { getAvatarUrl } from "@/lib/journey/profile";
 
 import { PostActionsRail } from "./PostActionsRail";
@@ -52,7 +51,7 @@ import { PostActionsRail } from "./PostActionsRail";
    ║ Wrap container = `.cins-editor-page.cins-post-view` để áp dụng   ║
    ║ editor.css; override read-only spacing trong post-view.css.     ║
    ║                                                                  ║
-   ║ Cạnh phải: `PostActionsRail` (Like · Lưu · Bình luận).           ║
+   ║ Cạnh phải byline: `PostActionsRail` (Thích · Lưu · BL · Chia sẻ).  ║
    ╚══════════════════════════════════════════════════════════════════╝ */
 
 const TYPE_LABEL: Record<string, string> = {
@@ -77,6 +76,10 @@ type Props = {
   isOwner?: boolean;
   /** Khi true → không render link permalink "Mở bài viết" (đang ở permalink rồi). */
   hideOpenLink?: boolean;
+  /** Thay thế khối bình luận mặc định — dùng cho Suspense stream. */
+  commentsSlot?: React.ReactNode;
+  /** Ghi đè số bình luận trên action rail khi comments stream riêng. */
+  commentCountOverride?: number;
   /** Sau khi owner đổi loại/hiển thị/xoá từ menu — refetch detail (modal). */
   onMilestoneUpdated?: () => void;
 };
@@ -86,6 +89,8 @@ export function JourneyPostBody({
   postSlug,
   isOwner = false,
   hideOpenLink = false,
+  commentsSlot,
+  commentCountOverride,
   onMilestoneUpdated,
 }: Props) {
   const [detail, setDetail] = useState<MilestonePostDetail>(initialDetail);
@@ -103,6 +108,7 @@ export function JourneyPostBody({
     milestone.tieuDe || mainPost?.tieuDe || "Cột mốc không tiêu đề";
   const heroSub = milestone.moTa || mainPost?.moTa || null;
   const blocks = mainPost?.noiDungBlocks ?? null;
+  const mediaPost = isMediaPost(blocks);
 
   const typeLabel = TYPE_LABEL[milestone.loaiMoc] ?? "Cột mốc";
   const vis = VIS_LABEL[milestone.cheDoHienThi] ?? VIS_LABEL.public;
@@ -114,6 +120,7 @@ export function JourneyPostBody({
 
   const permalinkHref =
     !hideOpenLink && postSlug ? `/${owner.slug}/p/${postSlug}` : null;
+  const sharePath = postSlug ? `/${owner.slug}/p/${postSlug}` : null;
 
   function onCommentAdded(c: MilestonePostComment) {
     setDetail((d) => ({ ...d, comments: [...d.comments, c] }));
@@ -135,21 +142,18 @@ export function JourneyPostBody({
 
   return (
     <div className="cins-editor-page cins-post-view">
-      <PostActionsRail
-        milestoneId={milestone.id}
-        initialLiked={social.viewerLiked}
-        initialBookmarked={social.viewerBookmarked}
-        likeCount={social.likeCount}
-        bookmarkCount={social.bookmarkCount}
-        commentCount={comments.length}
-        showCounts={detail.viewerIsOwner}
-      />
+      <main
+        className={`editor-canvas post-canvas${mediaPost ? " post-canvas--media" : ""}`}
+        aria-label="Bài viết"
+      >
+        {!mediaPost ? <PostCover seed={coverSeed} /> : null}
 
-      <main className="editor-canvas post-canvas" aria-label="Bài viết">
-        <PostCover seed={coverSeed} />
-
-        <h1 className="title-in title-ro">{heroTitle}</h1>
-        {heroSub ? <p className="sub-in sub-ro">{heroSub}</p> : null}
+        {!mediaPost ? (
+          <>
+            <h1 className="title-in title-ro">{heroTitle}</h1>
+            {heroSub ? <p className="sub-in sub-ro">{heroSub}</p> : null}
+          </>
+        ) : null}
 
         <div className="post-byline">
           <Link
@@ -173,6 +177,18 @@ export function JourneyPostBody({
           {isOwner ? (
             <>
               <span className="post-byline-spacer" />
+              <PostActionsRail
+                milestoneId={milestone.id}
+                initialLiked={social.viewerLiked}
+                initialBookmarked={social.viewerBookmarked}
+                likeCount={social.likeCount}
+                bookmarkCount={social.bookmarkCount}
+                commentCount={commentCountOverride ?? comments.length}
+                showCounts={detail.viewerIsOwner}
+                canBookmark={!isOwner}
+                sharePath={sharePath}
+                shareTitle={heroTitle}
+              />
               <JourneyMilestoneOwnerMenu
                 className="post-byline-menu"
                 milestoneId={milestone.id}
@@ -218,6 +234,18 @@ export function JourneyPostBody({
                   <span>Mở bài viết</span>
                 </Link>
               ) : null}
+              <PostActionsRail
+                milestoneId={milestone.id}
+                initialLiked={social.viewerLiked}
+                initialBookmarked={social.viewerBookmarked}
+                likeCount={social.likeCount}
+                bookmarkCount={social.bookmarkCount}
+                commentCount={commentCountOverride ?? comments.length}
+                showCounts={detail.viewerIsOwner}
+                canBookmark={!isOwner}
+                sharePath={sharePath}
+                shareTitle={heroTitle}
+              />
             </>
           )}
         </div>
@@ -237,12 +265,12 @@ export function JourneyPostBody({
           </div>
         ) : null}
 
-        {mainPost && mainPost.contributors.length > 0 ? (
+        {mainPost ? (
           <PostContributors contributors={mainPost.contributors} />
         ) : null}
 
         {blocks && blocks.length > 0 ? (
-          <PostBlocksRenderer blocks={blocks} />
+          <PostBlockRenderer blocks={blocks} />
         ) : mainPost?.noiDungHtml ? (
           /* Fallback cho bài cũ chưa có `noi_dung_blocks` — render HTML đã
              được server escape an toàn từ `blocksToHtml`. */
@@ -258,17 +286,27 @@ export function JourneyPostBody({
 
         <hr className="post-divider" />
 
-        <CommentSection
-          milestoneId={milestone.id}
-          comments={comments}
-          viewerCanComment={viewerCanComment}
-          onCommentAdded={onCommentAdded}
-          onCommentDeleted={onCommentDeleted}
-          onCommentEdited={onCommentEdited}
-        />
+        {commentsSlot ?? (
+          <JourneyPostCommentsBlock
+            milestoneId={milestone.id}
+            comments={comments}
+            viewerCanComment={viewerCanComment}
+            onCommentAdded={onCommentAdded}
+            onCommentDeleted={onCommentDeleted}
+            onCommentEdited={onCommentEdited}
+          />
+        )}
       </main>
     </div>
   );
+}
+
+function shouldShowPostContributors(
+  contributors: ReadonlyArray<MilestonePostContributor>,
+): boolean {
+  if (contributors.length === 0) return false;
+  if (contributors.length === 1 && contributors[0]?.laChuSoHuu) return false;
+  return true;
 }
 
 function PostContributors({
@@ -276,6 +314,8 @@ function PostContributors({
 }: {
   contributors: ReadonlyArray<MilestonePostContributor>;
 }) {
+  if (!shouldShowPostContributors(contributors)) return null;
+
   return (
     <section className="post-contributors" aria-label="Người đóng góp dự án">
       <div className="post-contributors-head">
@@ -331,7 +371,7 @@ type CommentSectionProps = {
   onCommentEdited(id: string, noiDung: string): void;
 };
 
-function CommentSection({
+export function JourneyPostCommentsBlock({
   milestoneId,
   comments,
   viewerCanComment,
@@ -391,7 +431,7 @@ function CommentSection({
   }
 
   return (
-    <section className="post-comments" aria-label="Bình luận">
+    <section className="post-comments" id="post-comments" aria-label="Bình luận">
       <header className="post-comments-head">
         <h2>Bình luận</h2>
         <span className="post-comments-count">{comments.length}</span>

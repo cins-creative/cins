@@ -1,6 +1,5 @@
-import { loadPostBySlug } from "@/app/[slug]/journey/actions";
+import { getCachedPostBySlug } from "@/lib/journey/post-page-cache";
 import { JourneyPostBody } from "@/components/journey/JourneyPostBody";
-import { PostModalShell } from "@/components/journey/PostModalShell";
 
 export const dynamic = "force-dynamic";
 
@@ -17,15 +16,13 @@ export default async function InterceptedPostModal({
   const { slug, postSlug } = await params;
   const query = await searchParams;
   const ownerSlug = query.owner?.trim() || slug;
-  const res = await loadPostBySlug(ownerSlug, postSlug);
+  const res = await getCachedPostBySlug(ownerSlug, postSlug);
 
   if (!res.ok) {
     return (
-      <PostModalShell>
-        <div className="j-post-err">
-          <p>{res.error}</p>
-        </div>
-      </PostModalShell>
+      <div className="j-post-err">
+        <p>{res.error}</p>
+      </div>
     );
   }
 
@@ -33,13 +30,11 @@ export default async function InterceptedPostModal({
   const postSlugFromDb = detail.posts[0]?.slug ?? postSlug;
 
   return (
-    <PostModalShell>
-      <JourneyPostBody
-        initialDetail={detail}
-        postSlug={postSlugFromDb}
-        isOwner={detail.viewerIsOwner}
-        hideOpenLink={false}
-      />
-    </PostModalShell>
+    <JourneyPostBody
+      initialDetail={detail}
+      postSlug={postSlugFromDb}
+      isOwner={detail.viewerIsOwner}
+      hideOpenLink={false}
+    />
   );
 }

@@ -29,6 +29,7 @@ import {
   updateMilestoneType,
   updateMilestoneVisibility,
 } from "@/app/[slug]/journey/actions";
+import { useJourneyCompose } from "@/components/journey/JourneyComposeContext";
 import type {
   MilestoneType,
   MilestoneVisibility,
@@ -123,6 +124,7 @@ export function JourneyMilestoneOwnerMenu({
   className,
 }: Props) {
   const router = useRouter();
+  const { openCompose, canCompose } = useJourneyCompose();
   const [open, setOpen] = useState(false);
   const [sub, setSub] = useState<SubMenu>("none");
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -286,18 +288,25 @@ export function JourneyMilestoneOwnerMenu({
           ) : null}
 
           {/* Sửa bài viết */}
-          {editHref ? (
-            <a
-              href={editHref}
+          {postSlug ? (
+            <button
+              type="button"
               className="j-m-menu-item"
               role="menuitem"
-              onClick={() => close()}
+              onClick={() => {
+                close();
+                if (canCompose) {
+                  openCompose({ kind: "edit", postSlug });
+                } else if (editHref) {
+                  window.location.href = editHref;
+                }
+              }}
             >
               <span className="j-m-menu-ico" aria-hidden>
                 <Pencil size={14} strokeWidth={1.7} />
               </span>
               <span className="j-m-menu-lbl">Sửa bài viết</span>
-            </a>
+            </button>
           ) : (
             <div
               className="j-m-menu-item is-disabled"

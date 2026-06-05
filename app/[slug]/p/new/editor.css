@@ -253,6 +253,10 @@
 
 /* Cover — full-bleed bên trong canvas (chiếm hết chiều ngang trừ
    padding 24px mỗi bên). Khi có ảnh: 320px cao, bo góc lớn. */
+.cins-editor-page .editor-canvas--media {
+  padding-top: 8px;
+}
+
 .cins-editor-page .cover-add {
   display: flex;
   flex-direction: column;
@@ -1055,6 +1059,32 @@
 .cins-editor-page .imgwrap.grid4 {
   grid-template-columns: 1fr 1fr;
 }
+.cins-editor-page .imgwrap.row3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+.cins-editor-page .imgwrap.big-right {
+  grid-template-columns: 1fr 2fr;
+  grid-template-rows: 1fr 1fr;
+}
+.cins-editor-page .imgwrap.big-right .ph:nth-child(3) {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+.cins-editor-page .imgwrap.strip5 {
+  grid-template-columns: repeat(5, 1fr);
+}
+.cins-editor-page .imgwrap.grid6 {
+  grid-template-columns: repeat(3, 1fr);
+}
+.cins-editor-page .imgwrap.grid9 {
+  grid-template-columns: repeat(3, 1fr);
+}
+.cins-editor-page .imgwrap.stack {
+  grid-template-columns: 1fr;
+}
+.cins-editor-page .imgwrap.duo-stack {
+  grid-template-columns: 1fr 1fr;
+}
 .cins-editor-page .ph {
   position: relative;
   background: var(--neutral-100);
@@ -1065,7 +1095,21 @@
   aspect-ratio: 4/3;
 }
 .cins-editor-page .imgwrap.duo .ph,
-.cins-editor-page .imgwrap.grid4 .ph {
+.cins-editor-page .imgwrap.grid4 .ph,
+.cins-editor-page .imgwrap.row3 .ph,
+.cins-editor-page .imgwrap.strip5 .ph,
+.cins-editor-page .imgwrap.grid6 .ph,
+.cins-editor-page .imgwrap.grid9 .ph,
+.cins-editor-page .imgwrap.duo-stack .ph {
+  aspect-ratio: 1/1;
+}
+.cins-editor-page .imgwrap.stack .ph {
+  aspect-ratio: 16/10;
+}
+.cins-editor-page .imgwrap.big-right .ph {
+  aspect-ratio: auto;
+}
+.cins-editor-page .imgwrap.big-right .ph:nth-child(3) {
   aspect-ratio: 1/1;
 }
 .cins-editor-page .imgwrap.trio .ph {
@@ -1104,6 +1148,19 @@
   opacity: 0;
   transition: opacity 0.15s;
   z-index: 5;
+  max-width: calc(100% - 24px);
+  width: max-content;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+.cins-editor-page .lay-bar::-webkit-scrollbar {
+  height: 4px;
+}
+.cins-editor-page .lay-bar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
 }
 .cins-editor-page .b-imgs:hover .lay-bar,
 .cins-editor-page .block.selected .lay-bar {
@@ -1124,6 +1181,7 @@
   font-family: inherit;
   font-size: 12px;
   font-weight: 600;
+  flex-shrink: 0;
 }
 .cins-editor-page .lay-btn:hover {
   background: rgba(255, 255, 255, 0.12);
@@ -2706,4 +2764,401 @@
     align-items: stretch;
     flex-direction: column;
   }
+}
+
+/* ─── Media compose (photo / video) ─── */
+.cins-editor-page.mc-compose-page .mc-compose-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  text-decoration: none;
+}
+.cins-editor-page.mc-compose-page .mc-compose-back:hover {
+  color: var(--ink-display);
+}
+.cins-editor-page.mc-compose-page .mc-compose-top-title {
+  flex: 1;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink-display);
+}
+.cins-editor-page.mc-compose-page .mc-compose-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.cins-editor-page.mc-compose-page .mc-compose-main {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 24px 20px 48px;
+}
+.cins-editor-page.mc-compose-page .mc-compose-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-sm);
+  padding: 16px;
+}
+.cins-editor-page.mc-compose-page .mc-compose-author {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.cins-editor-page.mc-compose-page .mc-compose-author-ava {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--cins-blue-soft);
+  color: var(--cins-blue-dark);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  overflow: hidden;
+}
+.cins-editor-page.mc-compose-page .mc-compose-author-ava img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.cins-editor-page.mc-compose-page .mc-compose-author strong {
+  display: block;
+  font-size: 14px;
+  color: var(--ink-display);
+}
+.cins-editor-page.mc-compose-page .mc-compose-author span {
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+.cins-editor-page.mc-compose-page .mc-compose-caption {
+  width: 100%;
+  border: 0;
+  resize: vertical;
+  min-height: 72px;
+  font: inherit;
+  font-size: 16px;
+  line-height: 1.45;
+  color: var(--ink-display);
+  background: transparent;
+  margin-bottom: 12px;
+}
+.cins-editor-page.mc-compose-page .mc-compose-caption:focus {
+  outline: none;
+}
+.cins-editor-page.mc-compose-page .mc-compose-caption::placeholder {
+  color: var(--ink-muted);
+}
+.cins-editor-page.mc-compose-page .mc-photo-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 180px;
+  padding: 24px 16px;
+  border: 1.5px dashed var(--border-strong);
+  border-radius: 12px;
+  background: var(--neutral-100, #f8fafc);
+  color: var(--ink-muted);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.cins-editor-page.mc-compose-page .mc-photo-drop:hover {
+  border-color: #45bd62;
+  background: #f0fdf4;
+  color: var(--ink-body);
+}
+.cins-editor-page.mc-compose-page .mc-photo-drop strong {
+  color: var(--ink-display);
+  font-size: 15px;
+}
+.cins-editor-page.mc-compose-page .mc-photo-drop span {
+  font-size: 12px;
+  max-width: 280px;
+}
+
+/* Preview ảnh kiểu editor block — lay-bar + imgwrap / mosaic */
+.cins-editor-page.mc-compose-page .mc-photo-preview {
+  margin-top: 12px;
+}
+.cins-editor-page.mc-compose-page .mc-photo-preview .lay-bar,
+.cins-editor-page.mc-compose-page .mc-photo-preview:hover .lay-bar,
+.cins-editor-page.mc-compose-page .mc-photo-preview.is-active .lay-bar {
+  opacity: 1;
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  max-width: calc(100% - 20px);
+  width: max-content;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 2px;
+}
+.cins-editor-page.mc-compose-page .mc-photo-preview .lay-bar::-webkit-scrollbar {
+  height: 4px;
+}
+.cins-editor-page.mc-compose-page .mc-photo-preview .lay-bar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+}
+.cins-editor-page.mc-compose-page .mc-photo-preview .lay-btn {
+  flex-shrink: 0;
+}
+.cins-editor-page.mc-compose-page .mc-photo-preview .ph-empty-add {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+  min-height: 120px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+}
+.cins-editor-page.mc-compose-page .mc-photo-preview .ph-empty-add:hover {
+  color: var(--cins-blue);
+  background: rgba(37, 99, 235, 0.06);
+}
+.cins-editor-page.mc-compose-page .mc-photo-preview .mc-photo-remove--ph {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 4;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.cins-editor-page.mc-compose-page .mc-photo-preview .ph:hover .mc-photo-remove--ph {
+  opacity: 1;
+}
+.cins-editor-page.mc-compose-page .mc-photo-preview .mc-photo-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(14, 17, 23, 0.45);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  z-index: 2;
+}
+.cins-editor-page.mc-compose-page .mc-photo-preview + .mc-photo-drop {
+  margin-top: 12px;
+  min-height: 120px;
+}
+.cins-editor-page.mc-compose-page .mc-photo-grid {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 12px;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.cins-editor-page.mc-compose-page .mc-photo-grid--1 {
+  grid-template-columns: 1fr;
+}
+.cins-editor-page.mc-compose-page .mc-photo-grid--2 {
+  grid-template-columns: 1fr 1fr;
+}
+.cins-editor-page.mc-compose-page .mc-photo-grid--3 {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+.cins-editor-page.mc-compose-page .mc-photo-grid--3 .mc-photo-cell:first-child {
+  grid-row: span 2;
+}
+.cins-editor-page.mc-compose-page .mc-photo-grid--4,
+.cins-editor-page.mc-compose-page .mc-photo-grid--5,
+.cins-editor-page.mc-compose-page .mc-photo-grid--6,
+.cins-editor-page.mc-compose-page .mc-photo-grid--7,
+.cins-editor-page.mc-compose-page .mc-photo-grid--8,
+.cins-editor-page.mc-compose-page .mc-photo-grid--9,
+.cins-editor-page.mc-compose-page .mc-photo-grid--10 {
+  grid-template-columns: 1fr 1fr;
+}
+.cins-editor-page.mc-compose-page .mc-photo-cell {
+  position: relative;
+  margin: 0;
+  aspect-ratio: 1;
+  background: var(--neutral-200);
+}
+.cins-editor-page.mc-compose-page .mc-photo-cell img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.cins-editor-page.mc-compose-page .mc-photo-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.45);
+  color: #fff;
+  font-size: 12px;
+  padding: 8px;
+  text-align: center;
+}
+.cins-editor-page.mc-compose-page .mc-photo-overlay--error {
+  background: rgba(185, 28, 28, 0.75);
+}
+.cins-editor-page.mc-compose-page .mc-photo-remove {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.65);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.cins-editor-page.mc-compose-page .mc-video-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cins-editor-page.mc-compose-page .mc-video-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-body);
+}
+.cins-editor-page.mc-compose-page .mc-video-label svg {
+  color: #f3425f;
+}
+.cins-editor-page.mc-compose-page .mc-video-input {
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--ink-display);
+  background: var(--bg-surface);
+}
+.cins-editor-page.mc-compose-page .mc-video-input:focus {
+  outline: none;
+  border-color: var(--cins-blue);
+  box-shadow: 0 0 0 3px rgba(31, 116, 201, 0.12);
+}
+.cins-editor-page.mc-compose-page .mc-compose-error {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: #b91c1c;
+}
+.cins-editor-page.mc-compose-page .mc-compose-toolbar {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+.cins-editor-page.mc-compose-page .mc-compose-toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-surface);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-body);
+  cursor: pointer;
+}
+.cins-editor-page.mc-compose-page .mc-compose-toolbar-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.cins-editor-page.mc-compose-page .mc-compose-toolbar-btn--danger {
+  color: #b91c1c;
+}
+.cins-editor-page.mc-compose-page .mc-compose-vis {
+  position: relative;
+}
+.cins-editor-page.mc-compose-page .mc-compose-vis-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-surface);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-body);
+  cursor: pointer;
+}
+.cins-editor-page.mc-compose-page .mc-compose-vis-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  min-width: 160px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-lg);
+}
+.cins-editor-page.mc-compose-page .mc-compose-vis-opt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink-body);
+  cursor: pointer;
+  text-align: left;
+}
+.cins-editor-page.mc-compose-page .mc-compose-vis-opt.is-active,
+.cins-editor-page.mc-compose-page .mc-compose-vis-opt:hover {
+  background: var(--neutral-100, #f4f4f5);
+}
+.cins-editor-page.mc-compose-page .mc-spin {
+  animation: mc-spin 0.8s linear infinite;
+}
+.cins-editor-page.mc-compose-page.is-overlay .mc-compose-main {
+  max-width: 100%;
+  padding: 12px 12px 20px;
+}
+.cins-editor-page.mc-compose-page.is-overlay .mc-photo-drop {
+  min-height: 140px;
+  padding: 20px 12px;
+}
+.cins-editor-page.mc-compose-page.is-overlay .mc-photo-drop span {
+  font-size: 12px;
+}
+.cins-editor-page.is-overlay .editor-canvas-wrap {
+  max-height: calc(100vh - 140px);
+  overflow-y: auto;
 }

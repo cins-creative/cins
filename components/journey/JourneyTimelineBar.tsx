@@ -15,7 +15,14 @@ import {
   UserCircle2,
   type LucideIcon,
 } from "lucide-react";
-import { useEffect, useRef, useState, useTransition } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
+import { createPortal } from "react-dom";
 
 import { updateLoaiMocVisibility } from "@/app/[slug]/journey/actions";
 import type { MilestoneType } from "@/components/journey/milestone-types";
@@ -97,6 +104,8 @@ const DOT_COLOR: Record<FilterGroup, string> = {
   verified: "var(--j-verified)",
 };
 
+const MENU_MIN_WIDTH = 212;
+
 /**
  * Context bar 3 cột: Năm | Tháng | Filter dropdown.
  *
@@ -115,7 +124,14 @@ export function JourneyTimelineBar({
   filterVisibility,
 }: Props) {
   const [open, setOpen] = useState(false);
+  const [portalReady, setPortalReady] = useState(false);
+  const [menuStyle, setMenuStyle] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   /* Local optimistic copy của visibility map — server-side revalidatePath
      sẽ refresh prop, nhưng UI cần response tức thì khi toggle. */
@@ -126,6 +142,10 @@ export function JourneyTimelineBar({
     setVisState(filterVisibility ?? {});
   }, [filterVisibility]);
   const [, startVisTransition] = useTransition();
+
+  useEffect(() => {
+    setPortalReady(true);
+  }, []);
 
   const onToggleVis = (key: LoaiMocFilterKey) => {
     const current = getVisibility(visState, key);
@@ -140,20 +160,51 @@ export function JourneyTimelineBar({
     });
   };
 
-  /* Click ngoài → đóng menu. */
+  const updateMenuPosition = () => {
+    const btn = btnRef.current;
+    if (!btn) {
+      setMenuStyle(null);
+      return;
+    }
+    const rect = btn.getBoundingClientRect();
+    setMenuStyle({
+      top: rect.bottom + 6,
+      left: Math.max(8, rect.right - MENU_MIN_WIDTH),
+    });
+  };
+
+  useLayoutEffect(() => {
+    if (!open) {
+      setMenuStyle(null);
+      return;
+    }
+    updateMenuPosition();
+    window.addEventListener("resize", updateMenuPosition);
+    window.addEventListener("scroll", updateMenuPosition, true);
+    return () => {
+      window.removeEventListener("resize", updateMenuPosition);
+      window.removeEventListener("scroll", updateMenuPosition, true);
+    };
+  }, [open]);
+
+  /* Click ngoài → đóng menu (menu portal ra body nên check cả menuRef). */
   useEffect(() => {
     if (!open) return;
     function onDocClick(e: MouseEvent) {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
+      const target = e.target as Node;
+      if (wrapRef.current?.contains(target)) return;
+      if (menuRef.current?.contains(target)) return;
+      setOpen(false);
     }
     function onEsc(e: KeyboardEvent) {
       if (e.key === "Escape") setOpen(false);
     }
-    document.addEventListener("click", onDocClick);
+    const timerId = window.setTimeout(() => {
+      document.addEventListener("click", onDocClick);
+    }, 0);
     document.addEventListener("keydown", onEsc);
     return () => {
+      window.clearTimeout(timerId);
       document.removeEventListener("click", onDocClick);
       document.removeEventListener("keydown", onEsc);
     };
@@ -181,6 +232,67 @@ export function JourneyTimelineBar({
   const typeOptions = visibleOptions.filter((o) => o.section === "type");
   const statusOptions = visibleOptions.filter((o) => o.section === "status");
 
+  const menu =
+    open && enabled && menuStyle ? (
+      <div
+        ref={menuRef}
+        className="j-tlb-dd-menu is-portal"
+        role="listbox"
+        style={{
+          position: "fixed",
+          top: menuStyle.top,
+          left: menuStyle.left,
+          width: "max-content",
+          minWidth: MENU_MIN_WIDTH,
+          maxWidth: "min(240px, calc(100vw - 16px))",
+          display: "block",
+        }}
+      >
+        <div className="j-dd-section-label">Theo loại</div>
+        {typeOptions.map((opt) => (
+          <DropdownItem
+            key={opt.group}
+            opt={opt}
+            active={opt.group === filter}
+            onSelect={() => {
+              onFilterChange(opt.group);
+              setOpen(false);
+            }}
+            isOwner={isOwner}
+            visibility={
+              isToggleableLoaiMoc(opt.group)
+                ? getVisibility(visState, opt.group)
+                : null
+            }
+            onToggleVis={
+              isToggleableLoaiMoc(opt.group)
+                ? () => onToggleVis(opt.group as LoaiMocFilterKey)
+                : undefined
+            }
+          />
+        ))}
+        {statusOptions.length > 0 ? (
+          <>
+            <div className="j-dd-divider" aria-hidden />
+            <div className="j-dd-section-label">Theo trạng thái</div>
+            {statusOptions.map((opt) => (
+              <DropdownItem
+                key={opt.group}
+                opt={opt}
+                active={opt.group === filter}
+                onSelect={() => {
+                  onFilterChange(opt.group);
+                  setOpen(false);
+                }}
+                isOwner={isOwner}
+                visibility={null}
+              />
+            ))}
+          </>
+        ) : null}
+      </div>
+    ) : null;
+
   return (
     <div className="j-tlb">
       <div className="j-tlb-year">{year}</div>
@@ -195,9 +307,13 @@ export function JourneyTimelineBar({
         className={"j-tlb-filter" + (open ? " is-open" : "")}
       >
         <button
+          ref={btnRef}
           type="button"
           className="j-tlb-dd-btn"
-          onClick={() => enabled && setOpen((v) => !v)}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (enabled) setOpen((v) => !v);
+          }}
           disabled={!enabled}
           aria-haspopup="listbox"
           aria-expanded={open}
@@ -212,54 +328,8 @@ export function JourneyTimelineBar({
             <ChevronDown size={14} strokeWidth={1.8} />
           </span>
         </button>
-
-        {enabled ? (
-          <div className="j-tlb-dd-menu" role="listbox">
-            <div className="j-dd-section-label">Theo loại</div>
-            {typeOptions.map((opt) => (
-              <DropdownItem
-                key={opt.group}
-                opt={opt}
-                active={opt.group === filter}
-                onSelect={() => {
-                  onFilterChange(opt.group);
-                  setOpen(false);
-                }}
-                isOwner={isOwner}
-                visibility={
-                  isToggleableLoaiMoc(opt.group)
-                    ? getVisibility(visState, opt.group)
-                    : null
-                }
-                onToggleVis={
-                  isToggleableLoaiMoc(opt.group)
-                    ? () => onToggleVis(opt.group as LoaiMocFilterKey)
-                    : undefined
-                }
-              />
-            ))}
-            {statusOptions.length > 0 ? (
-              <>
-                <div className="j-dd-divider" aria-hidden />
-                <div className="j-dd-section-label">Theo trạng thái</div>
-                {statusOptions.map((opt) => (
-                  <DropdownItem
-                    key={opt.group}
-                    opt={opt}
-                    active={opt.group === filter}
-                    onSelect={() => {
-                      onFilterChange(opt.group);
-                      setOpen(false);
-                    }}
-                    isOwner={isOwner}
-                    visibility={null}
-                  />
-                ))}
-              </>
-            ) : null}
-          </div>
-        ) : null}
       </div>
+      {portalReady && menu ? createPortal(menu, document.body) : null}
     </div>
   );
 }

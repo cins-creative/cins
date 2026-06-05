@@ -1,6 +1,7 @@
 import { Anton } from "next/font/google";
 
 import "./journey/journey.css";
+import "./journey/image-grid.css";
 import "@/styles/article-rich-content.css";
 import "./p/new/editor.css";
 import "./p/[postSlug]/post-page.css";

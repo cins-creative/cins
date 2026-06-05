@@ -1,31 +1,15 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
-import { loadPostBySlug } from "@/app/[slug]/journey/actions";
+import { PostPageArticle } from "@/app/[slug]/p/[postSlug]/_components/PostPageArticle";
+import { PostPageInstantFallback } from "@/app/[slug]/p/[postSlug]/_components/PostPageInstantFallback";
+import { PostBackButton } from "@/app/[slug]/p/[postSlug]/PostBackButton";
 import { CinsShell } from "@/components/cins/CinsShell";
-import { JourneyPostBody } from "@/components/journey/JourneyPostBody";
-
-import { PostBackButton } from "./PostBackButton";
+import { getCachedPostPageCore } from "@/lib/journey/post-page-cache";
 
 export const dynamic = "force-dynamic";
 
 type Params = Promise<{ slug: string; postSlug: string }>;
-
-/* ╔══════════════════════════════════════════════════════════════════╗
-   ║ /[slug]/p/[postSlug] — URL bài viết riêng (share-able, SEO).     ║
-   ║                                                                  ║
-   ║ Server-side load `MilestonePostDetail` qua `loadPostBySlug`     ║
-   ║ (resolve owner → tac_pham → cot_moc), apply visibility check    ║
-   ║ rồi pass snapshot vào `JourneyPostBody` (shared với modal).      ║
-   ║                                                                  ║
-   ║ Quy tắc visibility:                                              ║
-   ║   • public / feature / theo_nhom → ai cũng xem được             ║
-   ║   • chi_minh → chỉ owner; guest gặp lỗi private (notFound 404).  ║
-   ║                                                                  ║
-   ║ Note: không cần auth required ở đây — guest xem được post công  ║
-   ║ khai. Comment form sẽ ẩn nếu chưa login (xử lý trong body).      ║
-   ╚══════════════════════════════════════════════════════════════════╝ */
 
 export async function generateMetadata({
   params,
@@ -33,7 +17,7 @@ export async function generateMetadata({
   params: Params;
 }): Promise<Metadata> {
   const { slug, postSlug } = await params;
-  const res = await loadPostBySlug(slug, postSlug);
+  const res = await getCachedPostPageCore(slug, postSlug);
 
   if (!res.ok) {
     return {
@@ -54,7 +38,6 @@ export async function generateMetadata({
   return {
     title: `${title} · ${owner.tenHienThi} · CINS`,
     description: desc.slice(0, 160),
-    /* Bài private không index search. Featured/public/theo_nhom → index. */
     robots: isPrivate
       ? { index: false, follow: false }
       : { index: true, follow: true },
@@ -69,53 +52,20 @@ export async function generateMetadata({
 
 export default async function PostPage({ params }: { params: Params }) {
   const { slug, postSlug } = await params;
-  const res = await loadPostBySlug(slug, postSlug);
-
-  /* Bài public không tồn tại → 404 thẳng (đỡ leak structure). */
-  if (!res.ok && res.error === "Người dùng không tồn tại.") notFound();
-  if (!res.ok && res.error === "Bài viết không tồn tại.") notFound();
-  if (!res.ok && res.error === "Bài viết chưa gắn vào cột mốc nào.") notFound();
-  if (!res.ok && res.error === "Cột mốc không tồn tại hoặc đã bị xoá.") {
-    notFound();
-  }
-
-  if (!res.ok) {
-    /* Còn lại: chi_minh + not owner → hiển thị error card (không 404 để
-       owner biết link đã có nhưng đang private). Guest chỉ thấy "không có
-       quyền". */
-    return (
-      <CinsShell data-screen-label="Bài viết riêng tư">
-        <div className="j-post-page">
-          <div className="j-post-page-inner">
-            <PostBackButton fallbackHref={`/${slug}`} />
-
-            <div className="j-post-page-error">
-              <h1>Bài viết không khả dụng</h1>
-              <p>{res.error}</p>
-              <Link href={`/${slug}`}>Quay lại trang Journey</Link>
-            </div>
-          </div>
-        </div>
-      </CinsShell>
-    );
-  }
-
-  const detail = res.data;
-  const postSlugFromDb = detail.posts[0]?.slug ?? postSlug;
 
   return (
     <CinsShell data-screen-label="Bài viết">
       <div className="j-post-page">
         <div className="j-post-page-inner">
-          <PostBackButton fallbackHref={`/${detail.owner.slug}`} />
+          <PostBackButton fallbackHref={`/${slug}`} />
 
-          <JourneyPostBody
-            initialDetail={detail}
-            postSlug={postSlugFromDb}
-            isOwner={detail.viewerIsOwner}
-            /* Đang ở trang permalink rồi → ẩn link "Mở bài viết" (redundant). */
-            hideOpenLink={true}
-          />
+          <Suspense
+            fallback={
+              <PostPageInstantFallback ownerSlug={slug} postSlug={postSlug} />
+            }
+          >
+            <PostPageArticle slug={slug} postSlug={postSlug} />
+          </Suspense>
         </div>
       </div>
     </CinsShell>

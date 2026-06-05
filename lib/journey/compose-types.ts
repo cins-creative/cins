@@ -1,0 +1,35 @@
+export type ComposeCreateKind = "article" | "photo" | "video";
+
+export type JourneyComposeState =
+  | { kind: ComposeCreateKind }
+  | { kind: "edit"; postSlug: string };
+
+export function parseComposeSearchParams(
+  params: URLSearchParams,
+): JourneyComposeState | null {
+  const editSlug = params.get("edit")?.trim();
+  if (editSlug) return { kind: "edit", postSlug: editSlug };
+
+  const compose = params.get("compose")?.trim();
+  if (compose === "article" || compose === "photo" || compose === "video") {
+    return { kind: compose };
+  }
+  return null;
+}
+
+export function composeStateToSearchParams(
+  state: JourneyComposeState | null,
+): URLSearchParams {
+  const next = new URLSearchParams(
+    typeof window !== "undefined" ? window.location.search : "",
+  );
+  next.delete("compose");
+  next.delete("edit");
+  if (!state) return next;
+  if (state.kind === "edit") {
+    next.set("edit", state.postSlug);
+  } else {
+    next.set("compose", state.kind);
+  }
+  return next;
+}
