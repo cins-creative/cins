@@ -1,4 +1,5 @@
-import { createClient, hasSupabaseEnv } from "@/lib/supabase/server";
+import { createPublicSupabaseClient } from "@/lib/supabase/public";
+import { hasSupabaseEnv } from "@/lib/supabase/server";
 
 import type { CareerHubSection } from "@/lib/career/hubSections";
 
@@ -52,7 +53,7 @@ export async function listBoPhanNhomOrderForLinhVuc(
 
   try {
 
-    const supabase = await createClient();
+    const supabase = createPublicSupabaseClient();
 
     const byId = new Map<string, NhomThuTuRow>();
 

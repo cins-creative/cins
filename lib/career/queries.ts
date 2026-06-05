@@ -1,4 +1,7 @@
 import { normalizeNnBoPhanEmbed } from "@/lib/career/boPhanDisplay";
+import { cache } from "react";
+
+import { createPublicSupabaseClient } from "@/lib/supabase/public";
 import { createClient, hasSupabaseEnv } from "@/lib/supabase/server";
 import type {
   KyNangRow,
@@ -149,14 +152,12 @@ export async function listPublishedNgheForHub(): Promise<NgheNghiepHubItem[]> {
 }
 
 /** Sidebar lĩnh vực — ưu tiên bảng `linh_vuc` (ten, nhom), sau đó `lv_linh_vuc`. */
-export async function listLinhVucForHub(): Promise<LinhVucRow[]> {
+export const listLinhVucForHub = cache(async (): Promise<LinhVucRow[]> => {
   if (!hasSupabaseEnv()) return [];
   try {
-    const supabase = await createClient();
+    const supabase = createPublicSupabaseClient();
 
-    const fromLinhVuc = await supabase.from("linh_vuc").select(
-      "id, slug, ten, ten_eng, nhom_vi, nhom, mo_ta, cover_id, trang_thai, thu_tu, mau_accent, linh_vuc_id",
-    );
+    const fromLinhVuc = await supabase.from("linh_vuc").select("*");
 
     if (!fromLinhVuc.error && fromLinhVuc.data && fromLinhVuc.data.length > 0) {
       const rows = (fromLinhVuc.data as Record<string, unknown>[])
@@ -200,7 +201,7 @@ export async function listLinhVucForHub(): Promise<LinhVucRow[]> {
   } catch {
     return [];
   }
-}
+});
 
 export async function getRelatedCareers(
   ids: string[],
