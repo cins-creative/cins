@@ -24,10 +24,7 @@ function SwitchRow({
   return (
     <div className="j-profile-switch-btn j-skel-switch-row" aria-hidden>
       <span className="j-profile-switch-ico">{icon}</span>
-      <span className="j-profile-switch-main">
-        <span>{label}</span>
-        <span className="j-skel j-skel-count" />
-      </span>
+      <span className="j-profile-switch-label">{label}</span>
     </div>
   );
 }

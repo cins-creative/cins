@@ -159,6 +159,15 @@ export function MediaComposeView({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const videoFileInputRef = useRef<HTMLInputElement | null>(null);
   const visRef = useRef<HTMLDivElement | null>(null);
+  const uploadLockRef = useRef(false);
+  const uploadSessionRef = useRef(0);
+  const activeUploadRef = useRef<InstanceType<
+    typeof import("tus-js-client").Upload
+  > | null>(null);
+  const pendingBunnyRef = useRef<{ videoId: string; embedUrl: string } | null>(
+    null,
+  );
+  const initialVideoStartedRef = useRef(false);
   const avatarUrl = getAvatarUrl(ownerAvatarId ?? null);
   const bunnyPreview = useMemo(
     () => (videoUrl ? classifyBunnyVideoUrl(videoUrl) : null),
@@ -281,85 +290,122 @@ export function MediaComposeView({
     [uploadPhoto],
   );
 
-  const uploadVideoFile = useCallback(async (file: File) => {
-    if (!file.type.startsWith("video/")) {
-      setVideoUploadError("File không phải video.");
-      return;
-    }
-    if (file.size > MAX_VIDEO_BYTES) {
-      setVideoUploadError("Video quá lớn (giới hạn 500MB).");
-      return;
-    }
-
-    setVideoUploading(true);
-    setVideoUploadError(null);
-    setError(null);
-    setVideoUrl("");
-    setLocalVideoPreviewUrl((prev) => {
-      if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
-      return URL.createObjectURL(file);
-    });
-
-    try {
-      const prepRes = await fetch("/api/post-video/prepare", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: file.name }),
-      });
-      const prep = (await prepRes.json()) as BunnyPrepareResponse;
-      if (
-        !prepRes.ok ||
-        !prep.embedUrl ||
-        !prep.videoId ||
-        !prep.libraryId ||
-        !prep.authorizationSignature
-      ) {
-        throw new Error(prep.error || "Không chuẩn bị được upload video.");
-      }
-
-      setVideoUrl(prep.embedUrl);
-      setBunnyVideoId(prep.videoId);
-
-      const { Upload } = await import("tus-js-client");
-      const upload = new Upload(file, {
-        endpoint: "https://video.bunnycdn.com/tusupload",
-        retryDelays: [0, 1000, 3000, 5000, 10000],
-        headers: {
-          AuthorizationSignature: prep.authorizationSignature,
-          AuthorizationExpire: String(prep.authorizationExpire),
-          VideoId: prep.videoId,
-          LibraryId: String(prep.libraryId),
-        },
-        metadata: {
-          filetype: file.type,
-          title: file.name,
-        },
-        onError: (err) => {
-          releaseVideoUpload(prep.videoId);
-          setVideoUploading(false);
-          setVideoUploadError(
-            err instanceof Error ? err.message : "Upload video thất bại.",
-          );
-        },
-        onSuccess: () => {
-          releaseVideoUpload(prep.videoId);
-          setVideoUploading(false);
-          setLocalVideoPreviewUrl((prev) => {
-            if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
-            return null;
-          });
-        },
-      });
-
-      registerVideoUpload(prep.videoId, upload);
-      upload.start();
-    } catch (e) {
-      setVideoUploadError(
-        e instanceof Error ? e.message : "Upload video thất bại.",
-      );
-      setVideoUploading(false);
+  const abortActiveVideoUpload = useCallback(() => {
+    activeUploadRef.current?.abort();
+    activeUploadRef.current = null;
+    const pending = pendingBunnyRef.current;
+    if (pending) {
+      releaseVideoUpload(pending.videoId);
+      pendingBunnyRef.current = null;
     }
   }, []);
+
+  const uploadVideoFile = useCallback(
+    async (file: File) => {
+      if (!file.type.startsWith("video/")) {
+        setVideoUploadError("File không phải video.");
+        return;
+      }
+      if (file.size > MAX_VIDEO_BYTES) {
+        setVideoUploadError("Video quá lớn (giới hạn 500MB).");
+        return;
+      }
+
+      const session = ++uploadSessionRef.current;
+      abortActiveVideoUpload();
+      uploadLockRef.current = true;
+
+      setVideoUploading(true);
+      setVideoUploadError(null);
+      setError(null);
+      setVideoUrl("");
+      setBunnyVideoId(null);
+      setLocalVideoPreviewUrl((prev) => {
+        if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+        return URL.createObjectURL(file);
+      });
+
+      try {
+        const prepRes = await fetch("/api/post-video/prepare", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title: file.name }),
+        });
+        const prep = (await prepRes.json()) as BunnyPrepareResponse;
+        if (session !== uploadSessionRef.current) return;
+        if (
+          !prepRes.ok ||
+          !prep.embedUrl ||
+          !prep.videoId ||
+          !prep.libraryId ||
+          !prep.authorizationSignature
+        ) {
+          throw new Error(prep.error || "Không chuẩn bị được upload video.");
+        }
+
+        pendingBunnyRef.current = {
+          videoId: prep.videoId,
+          embedUrl: prep.embedUrl,
+        };
+
+        const { Upload } = await import("tus-js-client");
+        if (session !== uploadSessionRef.current) return;
+        const upload = new Upload(file, {
+          endpoint: "https://video.bunnycdn.com/tusupload",
+          retryDelays: [0, 1000, 3000, 5000, 10000],
+          headers: {
+            AuthorizationSignature: prep.authorizationSignature,
+            AuthorizationExpire: String(prep.authorizationExpire),
+            VideoId: prep.videoId,
+            LibraryId: String(prep.libraryId),
+          },
+          metadata: {
+            filetype: file.type,
+            title: file.name,
+          },
+          onError: (err) => {
+            if (session !== uploadSessionRef.current) return;
+            releaseVideoUpload(prep.videoId);
+            pendingBunnyRef.current = null;
+            activeUploadRef.current = null;
+            uploadLockRef.current = false;
+            setVideoUploading(false);
+            setVideoUploadError(
+              err instanceof Error ? err.message : "Upload video thất bại.",
+            );
+          },
+          onSuccess: () => {
+            if (session !== uploadSessionRef.current) return;
+            releaseVideoUpload(prep.videoId);
+            pendingBunnyRef.current = null;
+            activeUploadRef.current = null;
+            uploadLockRef.current = false;
+            setVideoUrl(prep.embedUrl);
+            setBunnyVideoId(prep.videoId);
+            setVideoUploading(false);
+            setLocalVideoPreviewUrl((prev) => {
+              if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+              return null;
+            });
+          },
+        });
+
+        activeUploadRef.current = upload;
+        registerVideoUpload(prep.videoId, upload);
+        upload.start();
+      } catch (e) {
+        if (session !== uploadSessionRef.current) return;
+        pendingBunnyRef.current = null;
+        activeUploadRef.current = null;
+        uploadLockRef.current = false;
+        setVideoUploadError(
+          e instanceof Error ? e.message : "Upload video thất bại.",
+        );
+        setVideoUploading(false);
+      }
+    },
+    [abortActiveVideoUpload],
+  );
 
   useEffect(() => {
     if (!initialPhotoFiles?.length || isEdit) return;
@@ -367,9 +413,10 @@ export function MediaComposeView({
   }, [initialPhotoFiles, isEdit, addFiles]);
 
   useEffect(() => {
-    if (!initialVideoFile || isEdit || videoUrl || videoUploading) return;
+    if (!initialVideoFile || isEdit || initialVideoStartedRef.current) return;
+    initialVideoStartedRef.current = true;
     void uploadVideoFile(initialVideoFile);
-  }, [initialVideoFile, isEdit, videoUrl, videoUploading, uploadVideoFile]);
+  }, [initialVideoFile, isEdit, uploadVideoFile]);
 
   useEffect(() => {
     if (
@@ -411,7 +458,10 @@ export function MediaComposeView({
   };
 
   const clearVideo = () => {
+    abortActiveVideoUpload();
     if (bunnyVideoId) releaseVideoUpload(bunnyVideoId);
+    uploadLockRef.current = false;
+    initialVideoStartedRef.current = false;
     setVideoUrl("");
     setBunnyVideoId(null);
     setVideoUploadError(null);
@@ -436,7 +486,7 @@ export function MediaComposeView({
     photos.length > 0 && photos.every((p) => p.imageId && !p.uploading && !p.error);
   const canPublish = isPhoto
     ? photosReady
-    : isValidMediaVideoUrl(videoUrl) && !isPending;
+    : isValidMediaVideoUrl(videoUrl) && !videoUploading && !isPending;
 
   const onPublish = () => {
     setError(null);
@@ -684,7 +734,18 @@ export function MediaComposeView({
             </>
           ) : (
             <>
-              {bunnyPreview ? (
+              {localVideoPreviewUrl ? (
+                <div className="mc-video-preview mc-video-preview--local">
+                  {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                  <video src={localVideoPreviewUrl} controls playsInline />
+                  {videoUploading ? (
+                    <div className="mc-video-uploading" aria-live="polite">
+                      <Loader2 size={18} strokeWidth={2} className="mc-spin" aria-hidden />
+                      <span>Đang tải video lên…</span>
+                    </div>
+                  ) : null}
+                </div>
+              ) : bunnyPreview ? (
                 <div className="mc-video-preview">
                   <iframe
                     src={bunnyIframeSrc(bunnyPreview)}
@@ -692,11 +753,6 @@ export function MediaComposeView({
                     allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
                     allowFullScreen
                   />
-                </div>
-              ) : localVideoPreviewUrl ? (
-                <div className="mc-video-preview">
-                  {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-                  <video src={localVideoPreviewUrl} controls playsInline />
                 </div>
               ) : null}
 

@@ -39,12 +39,20 @@ export function createSupabaseRouteHandlerClient(
   });
 }
 
-/** Copy mọi cookie Supabase đã set trên `from` sang response redirect mới. */
+/** Copy Set-Cookie đầy đủ (maxAge, httpOnly, secure…) sang response redirect. */
+export function appendSetCookieHeaders(
+  from: NextResponse,
+  to: NextResponse,
+): void {
+  for (const header of from.headers.getSetCookie()) {
+    to.headers.append("Set-Cookie", header);
+  }
+}
+
+/** @deprecated Dùng `appendSetCookieHeaders` — `getAll()` không giữ cookie options. */
 export function copySupabaseCookies(
   from: NextResponse,
   to: NextResponse,
 ): void {
-  from.cookies.getAll().forEach((c) => {
-    to.cookies.set(c.name, c.value);
-  });
+  appendSetCookieHeaders(from, to);
 }

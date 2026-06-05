@@ -41,7 +41,8 @@ export async function startGoogleLogin(
         redirectTo,
         queryParams: {
           access_type: "offline",
-          prompt: "select_account",
+          /* Chỉ bắt chọn tài khoản khi đăng ký — đăng nhập lại dùng Google session đã nhớ. */
+          ...(intent === "register" ? { prompt: "select_account" } : {}),
         },
         skipBrowserRedirect: false,
       },

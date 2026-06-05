@@ -88,12 +88,7 @@ export function JourneyView({
             editProfileInitial={editProfileInitial}
             viewerProfileId={viewerProfileId}
             switchNav={
-              <JourneySidebarSwitchNav
-                slug={profile.slug}
-                cotMoc={stats.cotMoc}
-                tacPham={stats.tacPham}
-                friendCount={friends.length}
-              />
+              <JourneySidebarSwitchNav slug={profile.slug} />
             }
           />
           {activeView === "gallery" ? (

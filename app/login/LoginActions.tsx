@@ -1,9 +1,15 @@
 "use client";
 
+import { Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { LoginGoogleButton } from "@/app/login/LoginGoogleButton";
 import { startGoogleLogin, type LoginIntent } from "@/lib/auth/google-oauth";
+import {
+  readRememberedAccount,
+  type RememberedAccount,
+} from "@/lib/auth/remembered-account";
+import { getAvatarUrl, getNameInitials } from "@/lib/journey/profile";
 
 type Props = {
   /** Thông báo lỗi ban đầu từ query param (?error=...). */
@@ -14,38 +20,107 @@ type Props = {
    * `useSearchParams` (cần Suspense boundary).
    */
   autoIntent?: LoginIntent | null;
+  /** Middleware redirect về login kèm `?next=` — cho phép tự đăng nhập lại. */
+  resumeAfterRedirect?: boolean;
 };
+
+function RememberedAccountCard({
+  account,
+  busy,
+  onContinue,
+}: {
+  account: RememberedAccount;
+  busy: boolean;
+  onContinue: () => void;
+}) {
+  const displayName = account.tenHienThi?.trim() || `@${account.slug}`;
+  const avatarUrl = getAvatarUrl(account.avatarId);
+
+  return (
+    <div className="cins-login-remembered">
+      <button
+        type="button"
+        className="cins-login-remembered-btn"
+        disabled={busy}
+        onClick={onContinue}
+      >
+        <span className="cins-login-remembered-ava" aria-hidden>
+          {avatarUrl ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img src={avatarUrl} alt="" />
+          ) : (
+            getNameInitials(displayName)
+          )}
+        </span>
+        <span className="cins-login-remembered-copy">
+          <strong>Tiếp tục với {displayName}</strong>
+          <span>@{account.slug}</span>
+        </span>
+        {busy ? (
+          <Loader2
+            size={18}
+            strokeWidth={2}
+            className="cins-login-remembered-spin"
+            aria-hidden
+          />
+        ) : null}
+      </button>
+    </div>
+  );
+}
 
 /** Bọc 2 nút Đăng ký / Đăng nhập + state lỗi chung — khóa chéo khi 1 nút đang chạy. */
 export function LoginActions({
   initialError = null,
   autoIntent = null,
+  resumeAfterRedirect = false,
 }: Props) {
   const [busy, setBusy] = useState(false);
+  const [remembered, setRemembered] = useState<RememberedAccount | null>(null);
   /* Lỗi từ nút OAuth — lỗi từ `?error=` do banner trên page hiển thị. */
   const [error, setError] = useState<string | null>(null);
   const triggered = useRef(false);
 
   useEffect(() => {
-    if (triggered.current) return;
-    if (initialError) return;
-    if (autoIntent !== "register" && autoIntent !== "login") return;
+    setRemembered(readRememberedAccount());
+  }, []);
 
+  const runLogin = (intent: LoginIntent) => {
+    if (triggered.current || busy) return;
     triggered.current = true;
     setBusy(true);
     setError(null);
-    void startGoogleLogin(autoIntent).then(({ error: oauthErr }) => {
+    void startGoogleLogin(intent).then(({ error: oauthErr }) => {
       if (oauthErr) {
         setError(oauthErr);
         setBusy(false);
         triggered.current = false;
       }
-      /* success → browser redirect to Google, giữ busy=true cho tới khi quay lại. */
     });
-  }, [autoIntent, initialError]);
+  };
+
+  useEffect(() => {
+    if (triggered.current || initialError) return;
+    if (autoIntent === "register") return;
+
+    const account = readRememberedAccount();
+    const shouldAuto =
+      autoIntent === "login" || (resumeAfterRedirect && account !== null);
+    if (!shouldAuto) return;
+
+    runLogin("login");
+  }, [autoIntent, initialError, resumeAfterRedirect]);
 
   return (
     <div className="cins-login-actions">
+      {remembered ? (
+        <RememberedAccountCard
+          account={remembered}
+          busy={busy}
+          onContinue={() => runLogin("login")}
+        />
+      ) : null}
+
       <LoginGoogleButton
         intent="register"
         variant="primary"

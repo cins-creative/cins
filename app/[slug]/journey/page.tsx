@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import { Suspense } from "react";
 
 import { JourneyProfileShell } from "@/app/[slug]/_components/JourneyProfileShell";
 import { JourneySidebarNavCounts } from "@/app/[slug]/_components/JourneySidebarNavCounts";
-import { JourneySidebarNavCountsSkeleton } from "@/app/[slug]/_components/JourneySidebarNavCounts.skeleton";
 import { CinsShell } from "@/components/cins/CinsShell";
 import type { EditProfileInitial } from "@/components/journey/JourneyEditProfileModal";
 import type { JourneyProfileView } from "@/components/journey/JourneySidebar";
@@ -130,14 +128,7 @@ export async function renderJourneyPage({
   const viewerProfileId = session.profile?.id ?? null;
 
   const switchNav = (
-    <Suspense fallback={<JourneySidebarNavCountsSkeleton />}>
-      <JourneySidebarNavCounts
-        ownerId={owner.id}
-        ownerSlug={owner.slug}
-        isOwner={isOwner}
-        viewerProfileId={viewerProfileId}
-      />
-    </Suspense>
+    <JourneySidebarNavCounts ownerSlug={owner.slug} />
   );
 
   const initialCompose = isOwner

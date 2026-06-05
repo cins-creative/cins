@@ -7,7 +7,7 @@ import {
   readOAuthIntent,
 } from "@/lib/auth/oauth-intent-server";
 import {
-  copySupabaseCookies,
+  appendSetCookieHeaders,
   createSupabaseRouteHandlerClient,
 } from "@/lib/supabase/route-handler";
 
@@ -60,8 +60,8 @@ export async function GET(request: NextRequest) {
     url.searchParams.get("intent"),
   );
 
-  /* Response tạm — mọi cookie session sau exchange gắn lên đây trước khi copy sang redirect cuối. */
-  const exchangeResponse = NextResponse.redirect(new URL("/login", origin));
+  /* Ghi session cookie lên response tạm — giữ nguyên Set-Cookie (maxAge, httpOnly…). */
+  const exchangeResponse = new NextResponse(null, { status: 200 });
   const supabase = createSupabaseRouteHandlerClient(request, exchangeResponse);
 
   const { error: exchangeErr } = await supabase.auth.exchangeCodeForSession(
@@ -114,7 +114,7 @@ export async function GET(request: NextRequest) {
   }
 
   const finalResponse = NextResponse.redirect(destination);
-  copySupabaseCookies(exchangeResponse, finalResponse);
+  appendSetCookieHeaders(exchangeResponse, finalResponse);
   clearOAuthIntentOnResponse(finalResponse);
   return finalResponse;
 }

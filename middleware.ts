@@ -7,6 +7,7 @@ import {
   getTrimmedSupabaseAnonKey,
   getTrimmedSupabaseUrl,
 } from "@/lib/supabase/env";
+import { appendSetCookieHeaders } from "@/lib/supabase/route-handler";
 
 /** Đổi thành `false` trước khi deploy production bình thường. */
 const MAINTENANCE_MODE = true;
@@ -168,10 +169,7 @@ function redirectToLogin(
   loginUrl.searchParams.set("next", fullPath);
 
   const redirect = NextResponse.redirect(loginUrl);
-  /* Forward cookies từ supabase session refresh (nếu có) sang response cuối. */
-  sessionResponse.cookies.getAll().forEach((c) => {
-    redirect.cookies.set(c.name, c.value);
-  });
+  appendSetCookieHeaders(sessionResponse, redirect);
   return redirect;
 }
 

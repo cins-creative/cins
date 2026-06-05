@@ -442,35 +442,17 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   justify-content: center;
   background: var(--neutral-50);
   color: var(--cins-blue);
+  flex-shrink: 0;
 }
-.j-profile-switch-main {
+.j-profile-switch-label {
   min-width: 0;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-}
-.j-profile-switch-main span {
+  max-width: 100%;
   font-size: 10px;
   font-weight: 700;
   line-height: 1.1;
-}
-.j-profile-switch-main strong {
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  border-radius: 999px;
-  background: var(--neutral-100);
-  color: var(--ink-display);
-  font-family: var(--font-sans);
-  font-size: 11px;
-  font-weight: 800;
-  line-height: 18px;
-}
-.j-profile-switch-btn.is-active .j-profile-switch-main strong {
-  background: var(--cins-blue);
-  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .j-profile-switch-btn.is-active .j-profile-switch-ico {
   color: var(--cins-blue);
@@ -2810,6 +2792,19 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   }
   .cins-journey-page .j-create-cta-sub {
     font-size: 11.5px;
+  }
+  .cins-journey-page .j-profile-switch {
+    margin-top: 12px;
+    gap: 3px;
+    padding: 3px;
+  }
+  .cins-journey-page .j-profile-switch-btn {
+    min-height: 52px;
+    padding: 7px 2px;
+    gap: 4px;
+  }
+  .cins-journey-page .j-profile-switch-label {
+    font-size: 9px;
   }
   .cins-journey-page .j-create-composer {
     margin-left: var(--j-content-pad-l);

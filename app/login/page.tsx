@@ -1,10 +1,13 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { LoginActions } from "@/app/login/LoginActions";
+import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 
 type SearchParams = Promise<{
   error?: string;
   auto?: string;
+  next?: string;
 }>;
 
 function ErrorBanner({ message }: { message: string }) {
@@ -24,8 +27,16 @@ export default async function LoginPage({
 }: {
   searchParams: SearchParams;
 }) {
-  const { error, auto } = await searchParams;
+  const { error, auto, next } = await searchParams;
   const errorMsg = error?.trim() || null;
+
+  const session = await getCurrentSessionAndProfile();
+  if (session?.profile && !errorMsg) {
+    const safeNext =
+      next && next.startsWith("/") && !next.startsWith("//") ? next : null;
+    redirect(safeNext ?? `/${encodeURIComponent(session.profile.slug)}`);
+  }
+
   /* Khi đang hiển thị banner lỗi → không auto-trigger để user thấy thông báo trước. */
   const autoIntent =
     !errorMsg && (auto === "register" || auto === "login") ? auto : null;
@@ -57,7 +68,11 @@ export default async function LoginPage({
 
           {errorMsg ? <ErrorBanner message={errorMsg} /> : null}
 
-          <LoginActions initialError={errorMsg} autoIntent={autoIntent} />
+          <LoginActions
+            initialError={errorMsg}
+            autoIntent={autoIntent}
+            resumeAfterRedirect={Boolean(next?.trim() && !errorMsg)}
+          />
 
           <ul className="cins-login-bullets" aria-label="Lợi ích tài khoản CINs">
             <li>

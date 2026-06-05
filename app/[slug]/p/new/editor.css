@@ -3109,10 +3109,19 @@
   color: var(--ink-body);
 }
 .cins-editor-page.mc-compose-page .mc-video-preview {
+  position: relative;
   overflow: hidden;
   border-radius: 12px;
   background: #000;
   aspect-ratio: 16 / 9;
+}
+.cins-editor-page.mc-compose-page .mc-video-preview--local .mc-video-uploading {
+  position: absolute;
+  inset: auto 12px 12px 12px;
+  margin: 0;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.72);
+  color: #fff;
 }
 .cins-editor-page.mc-compose-page .mc-video-preview iframe,
 .cins-editor-page.mc-compose-page .mc-video-preview video {

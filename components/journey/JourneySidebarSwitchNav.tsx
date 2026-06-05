@@ -14,17 +14,9 @@ import {
 
 type Props = {
   slug: string;
-  cotMoc: number;
-  tacPham: number;
-  friendCount: number;
 };
 
-export function JourneySidebarSwitchNav({
-  slug,
-  cotMoc,
-  tacPham,
-  friendCount,
-}: Props) {
+export function JourneySidebarSwitchNav({ slug }: Props) {
   const { view: activeView, setView } = useJourneyView();
 
   return (
@@ -36,7 +28,6 @@ export function JourneySidebarSwitchNav({
         onSelect={setView}
         icon={<Waypoints size={15} aria-hidden />}
         label="Journey"
-        count={cotMoc}
       />
       <ProfileSwitchButton
         slug={slug}
@@ -45,7 +36,6 @@ export function JourneySidebarSwitchNav({
         onSelect={setView}
         icon={<Grid3X3 size={15} aria-hidden />}
         label="Gallery"
-        count={tacPham}
       />
       <ProfileSwitchButton
         slug={slug}
@@ -54,7 +44,6 @@ export function JourneySidebarSwitchNav({
         onSelect={setView}
         icon={<UserRound size={15} aria-hidden />}
         label="Friends"
-        count={friendCount}
       />
     </nav>
   );
@@ -67,7 +56,6 @@ function ProfileSwitchButton({
   onSelect,
   icon,
   label,
-  count,
 }: {
   slug: string;
   view: JourneyProfileView;
@@ -75,7 +63,6 @@ function ProfileSwitchButton({
   onSelect: (view: JourneyProfileView) => void;
   icon: React.ReactNode;
   label: string;
-  count: number;
 }) {
   const href = journeyHrefForView(slug, view);
   const active = view === activeView;
@@ -91,10 +78,7 @@ function ProfileSwitchButton({
       }}
     >
       <span className="j-profile-switch-ico">{icon}</span>
-      <span className="j-profile-switch-main">
-        <span>{label}</span>
-        <strong>{count}</strong>
-      </span>
+      <span className="j-profile-switch-label">{label}</span>
     </a>
   );
 }
