@@ -48,8 +48,8 @@ import { PostActionsRail } from "./PostActionsRail";
    ║   • Byline (author chip + ngày + chế độ hiển thị)                ║
    ║   • Comments                                                     ║
    ║                                                                  ║
-   ║ Wrap container = `.cins-editor-page.cins-post-view` để áp dụng   ║
-   ║ editor.css; override read-only spacing trong post-view.css.     ║
+   ║ Wrap = `main.cins-editor-page.cins-post-view.editor-canvas` — một    ║
+   ║ khối duy nhất (modal + permalink), không wrapper thừa bên ngoài.  ║
    ║                                                                  ║
    ║ Cạnh phải byline: `PostActionsRail` (Thích · Lưu · BL · Chia sẻ).  ║
    ╚══════════════════════════════════════════════════════════════════╝ */
@@ -141,11 +141,10 @@ export function JourneyPostBody({
   }
 
   return (
-    <div className="cins-editor-page cins-post-view">
-      <main
-        className={`editor-canvas post-canvas${mediaPost ? " post-canvas--media" : ""}`}
-        aria-label="Bài viết"
-      >
+    <main
+      className={`cins-editor-page cins-post-view editor-canvas post-canvas${mediaPost ? " post-canvas--media" : ""}`}
+      aria-label="Bài viết"
+    >
         {!mediaPost ? <PostCover seed={coverSeed} /> : null}
 
         {!mediaPost ? (
@@ -297,7 +296,6 @@ export function JourneyPostBody({
           />
         )}
       </main>
-    </div>
   );
 }
 

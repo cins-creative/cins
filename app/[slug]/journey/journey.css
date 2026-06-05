@@ -16,12 +16,12 @@
   --j-self:           var(--neutral-400);
   --j-tagged:         var(--cins-blue);
   --j-tagged-soft:    var(--cins-blue-soft);
-  --j-verified:       #0E9B6E;
-  --j-verified-soft:  var(--cins-mint-soft);
-  --j-verified-ink:   #0E7A52;
-  --j-bookmark:       #7B4FCD;
-  --j-bookmark-soft:  var(--cins-violet-soft);
-  --j-bookmark-ink:   #5A2FA8;
+  --j-verified:       #45BD62;
+  --j-verified-soft:  #DCFCE7;
+  --j-verified-ink:   #15803D;
+  --j-bookmark:       #F59E0B;
+  --j-bookmark-soft:  var(--cins-orange-soft);
+  --j-bookmark-ink:   #8B4500;
   --j-warn-ink:       #7A5A00;
 
   /* ── Layout tokens ──
@@ -495,6 +495,9 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   font-weight: var(--weight-regular);
   font-size: 12px;
 }
+.j-gallery-main .j-tlb-filter {
+  justify-self: end;
+}
 .j-main-panel-head {
   display: flex;
   align-items: baseline;
@@ -872,6 +875,14 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
 
 /* Filter dropdown menu */
 .j-tlb-dd-menu {
+  /* Portal ra body — cần token status tại đây (không kế thừa .cins-journey-page). */
+  --j-verified: #45BD62;
+  --j-verified-soft: #DCFCE7;
+  --j-verified-ink: #15803D;
+  --j-bookmark: #F59E0B;
+  --j-bookmark-soft: var(--cins-orange-soft, #FFE6C9);
+  --j-bookmark-ink: #8B4500;
+
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
@@ -973,42 +984,44 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   color: var(--ink-muted);
 }
 .j-dd-opt.j-dd-opt--verified.is-active {
-  background: var(--j-verified-soft);
-  color: var(--j-verified-ink);
+  background: var(--j-verified-soft, #DCFCE7);
+  color: var(--j-verified-ink, #15803D);
 }
 .j-dd-opt.j-dd-opt--verified.is-active .j-dd-ico {
-  color: var(--j-verified);
+  color: var(--j-verified, #45BD62);
 }
 .j-dd-opt.j-dd-opt--verified .j-dd-ico {
-  color: var(--j-verified);
+  color: var(--j-verified, #45BD62);
 }
-.j-dd-opt.j-dd-opt--verified .j-dd-lbl {
-  color: var(--j-verified-ink);
+.j-dd-opt.j-dd-opt--verified .j-dd-lbl,
+.j-dd-opt.j-dd-opt--verified .j-dd-opt-main {
+  color: var(--j-verified-ink, #15803D);
 }
 .j-dd-opt.j-dd-opt--verified:hover {
-  background: var(--j-verified-soft);
+  background: var(--j-verified-soft, #DCFCE7);
 }
 .j-dd-opt.j-dd-opt--verified.is-active .j-dd-opt-main {
-  color: var(--j-verified-ink);
+  color: var(--j-verified-ink, #15803D);
 }
 .j-dd-opt.j-dd-opt--bookmark.is-active {
-  background: var(--j-bookmark-soft);
-  color: var(--j-bookmark-ink);
+  background: var(--j-bookmark-soft, #FFE6C9);
+  color: var(--j-bookmark-ink, #8B4500);
 }
 .j-dd-opt.j-dd-opt--bookmark.is-active .j-dd-ico {
-  color: var(--j-bookmark);
+  color: var(--j-bookmark, #F59E0B);
 }
 .j-dd-opt.j-dd-opt--bookmark .j-dd-ico {
-  color: var(--j-bookmark);
+  color: var(--j-bookmark, #F59E0B);
 }
-.j-dd-opt.j-dd-opt--bookmark .j-dd-lbl {
-  color: var(--j-bookmark-ink);
+.j-dd-opt.j-dd-opt--bookmark .j-dd-lbl,
+.j-dd-opt.j-dd-opt--bookmark .j-dd-opt-main {
+  color: var(--j-bookmark-ink, #8B4500);
 }
 .j-dd-opt.j-dd-opt--bookmark:hover {
-  background: var(--j-bookmark-soft);
+  background: var(--j-bookmark-soft, #FFE6C9);
 }
 .j-dd-opt.j-dd-opt--bookmark.is-active .j-dd-opt-main {
-  color: var(--j-bookmark-ink);
+  color: var(--j-bookmark-ink, #8B4500);
 }
 
 /* Visibility toggle — chỉ render cho owner trên loai_moc rows. Mặc định
@@ -1604,7 +1617,7 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
 .j-type-hoc       { background: var(--cins-blue-soft);   color: var(--cins-blue-dark); }
 .j-type-lam       { background: var(--cins-mint-soft);   color: var(--j-verified-ink); }
 .j-type-du-an     { background: var(--cins-orange-soft); color: #7E4A00; }
-.j-type-su-kien   { background: var(--cins-violet-soft); color: var(--j-bookmark-ink); }
+.j-type-su-kien   { background: var(--cins-violet-soft); color: #5A2FA8; }
 .j-type-thanh-tuu { background: var(--cins-yellow-soft); color: var(--j-warn-ink); }
 .j-type-ca-nhan   { background: var(--neutral-100);      color: var(--ink-title); }
 .j-type-bookmark  { background: var(--j-bookmark-soft);  color: var(--j-bookmark-ink); }
@@ -3470,16 +3483,22 @@ select.j-edit-input {
 }
 
 .j-post-sheet {
-  max-width: 1080px;
+  width: min(880px, calc(100% - 32px));
+  max-width: 880px;
   margin: 32px auto;
   position: relative;
   animation: j-sheet-in 240ms var(--j-ease, ease) both;
   padding-bottom: 60px;
 }
-/* Khi JourneyPostBody render bằng layout editor canvas, `.cins-editor-page`
-   bên trong có background riêng — bỏ background mặc định của sheet. */
-.j-post-sheet .cins-editor-page.cins-post-view {
-  border-radius: 16px;
+/* JourneyPostBody = một `main` — sheet khớp canvas 880px, không wrapper thừa. */
+.j-post-sheet .cins-editor-page.cins-post-view.editor-canvas.post-canvas {
+  width: 100%;
+  max-width: 880px;
+  margin: 0 auto;
+  min-height: 0;
+  border-radius: 24px;
+  overflow: hidden;
+  background: var(--bg-surface, #ffffff);
 }
 
 /* Compose overlay — tạo/sửa bài viết, ảnh, video trên Journey */
@@ -3495,7 +3514,8 @@ select.j-edit-input {
   padding: 20px 16px 32px;
 }
 .j-compose-sheet {
-  width: min(1100px, 100%);
+  width: min(880px, calc(100% - 32px));
+  max-width: 880px;
   margin: 0 auto;
   border-radius: 16px;
   overflow: hidden;
@@ -3513,6 +3533,19 @@ select.j-edit-input {
 .j-compose-sheet .cins-editor-page.is-overlay .ed-topbar {
   position: sticky;
   top: 0;
+}
+.j-compose-sheet .cins-editor-page.is-overlay .ed-topbar-inner {
+  max-width: none;
+  padding: 0 16px;
+}
+.j-compose-sheet .cins-editor-page.is-overlay .editor-canvas {
+  width: 100%;
+  max-width: none;
+  margin-top: 16px;
+  margin-bottom: 24px;
+  padding: 28px 32px 40px;
+  border-radius: 0;
+  box-shadow: none;
 }
 .j-compose-error {
   padding: 32px 24px;
@@ -3547,9 +3580,6 @@ select.j-edit-input {
   color: var(--ink-muted);
 }
 
-.j-post-sheet .cins-editor-page.cins-post-view {
-  background: transparent;
-}
 @keyframes j-sheet-in {
   from {
     opacity: 0;

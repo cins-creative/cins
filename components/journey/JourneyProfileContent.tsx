@@ -305,15 +305,11 @@ export function JourneyProfileContent({
           <JourneyGalleryGridView
             initialItems={galleryCache.items}
             totalCount={galleryCache.totalCount}
-            filterCounts={galleryCache.filterCounts}
             scrollLoad={{
               ownerSlug,
               hasMore: galleryCache.hasMore,
               nextOffset: galleryCache.nextOffset,
-              filterCounts: galleryCache.filterCounts,
             }}
-            isOwner={isOwner}
-            filterVisibility={filterVisibility}
           />
         )
       ) : view === "friends" ? (

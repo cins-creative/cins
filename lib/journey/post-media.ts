@@ -77,6 +77,32 @@ export function galleryMediaKindFromBlocks(
   return "article";
 }
 
+export type GalleryMediaFilter = "all" | GalleryMediaKind;
+
+export const GALLERY_MEDIA_FILTER_OPTIONS: ReadonlyArray<{
+  id: GalleryMediaFilter;
+  label: string;
+}> = [
+  { id: "all", label: "Tất cả" },
+  { id: "article", label: "Bài viết" },
+  { id: "photo", label: "Ảnh" },
+  { id: "video", label: "Video" },
+];
+
+export function galleryMediaFilterLabel(filter: GalleryMediaFilter): string {
+  return (
+    GALLERY_MEDIA_FILTER_OPTIONS.find((o) => o.id === filter)?.label ?? "Tất cả"
+  );
+}
+
+export function matchesGalleryMediaFilter(
+  mediaKind: GalleryMediaKind | undefined,
+  filter: GalleryMediaFilter,
+): boolean {
+  if (filter === "all") return true;
+  return (mediaKind ?? "article") === filter;
+}
+
 /** Card timeline: bài media không có H1 riêng → ẩn title fallback. */
 export function shouldShowMilestoneCardTitle(
   title: string,

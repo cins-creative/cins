@@ -106,15 +106,22 @@
   position: relative;
   display: block;
 }
+.cins-post-view.cins-editor-page {
+  flex: none;
+  min-height: 0;
+  background: transparent;
+}
 
 /* Background của page có rồi → editor-canvas trong post-view không
    cần padding top quá lớn vì có byline + crumb ở trên. */
+.cins-post-view.editor-canvas.post-canvas,
 .cins-post-view .editor-canvas.post-canvas {
   background: var(--bg-surface, #ffffff);
   border-radius: 24px;
   box-shadow: var(--shadow-lg, 0 14px 32px rgba(15, 23, 42, 0.10));
   padding: 36px 56px 48px;
   max-width: 880px;
+  width: 100%;
   margin: 0 auto;
   min-width: 0;
   overflow: hidden;
@@ -166,28 +173,34 @@
   line-height: 1.45;
 }
 
+.cins-post-view.post-canvas--media .post-byline,
 .cins-post-view .post-canvas--media .post-byline {
   margin-top: 0;
   margin-bottom: 24px;
   padding-bottom: 20px;
 }
 
+.cins-post-view.post-canvas--media .post-blocks-fb,
 .cins-post-view .post-canvas--media .post-blocks-fb {
   padding: 0 12px;
 }
 
+.cins-post-view.post-canvas--media .post-blocks-fb .block[data-block-type="body"],
 .cins-post-view .post-canvas--media .post-blocks-fb .block[data-block-type="body"] {
   margin-bottom: 20px;
 }
 
+.cins-post-view.post-canvas--media .post-blocks-fb .block[data-block-type="body"] .b-text-ro,
 .cins-post-view .post-canvas--media .post-blocks-fb .block[data-block-type="body"] .b-text-ro {
   padding: 0 4px;
 }
 
+.cins-post-view.post-canvas--media .post-blocks-fb .block-image-grid,
 .cins-post-view .post-canvas--media .post-blocks-fb .block-image-grid {
   margin-top: 4px;
 }
 
+.cins-post-view.post-canvas--media .post-blocks-fb .block-image-grid .block-inner,
 .cins-post-view .post-canvas--media .post-blocks-fb .block-image-grid .block-inner {
   padding: 0 4px;
 }
@@ -1023,6 +1036,7 @@
   .j-post-page {
     padding: 16px 16px 40px;
   }
+  .cins-post-view.editor-canvas.post-canvas,
   .cins-post-view .editor-canvas.post-canvas {
     padding: 32px 40px 40px;
   }
@@ -1044,6 +1058,7 @@
   .j-post-page {
     padding: 12px 12px 32px;
   }
+  .cins-post-view.editor-canvas.post-canvas,
   .cins-post-view .editor-canvas.post-canvas {
     padding: 24px 24px 32px;
     border-radius: 16px;
@@ -1087,6 +1102,7 @@
   .j-post-page-crumb {
     margin: 12px 12px 12px;
   }
+  .cins-post-view.editor-canvas.post-canvas,
   .cins-post-view .editor-canvas.post-canvas {
     padding: 20px 16px 32px;
     border-radius: 0;
@@ -1197,6 +1213,7 @@
    Skeleton mô phỏng layout `JourneyPostBody` để tránh layout shift khi
    data tới và replace fallback bằng nội dung thật. */
 
+.j-post-skel.editor-canvas.post-canvas,
 .j-post-skel .editor-canvas.post-canvas {
   min-height: 480px;
 }

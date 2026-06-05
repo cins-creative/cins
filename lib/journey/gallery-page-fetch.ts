@@ -18,6 +18,7 @@ import {
   resolveOwnerSlugs,
   type GalleryStub,
 } from "@/lib/journey/gallery-stubs";
+import type { GalleryMediaKind } from "@/lib/journey/post-media";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 export const GALLERY_SCROLL_PAGE_SIZE = 24;
@@ -44,6 +45,7 @@ export type GalleryMainItem = {
   featured: boolean;
   type: MilestoneType;
   variant: MilestoneVariant;
+  mediaKind?: GalleryMediaKind;
 };
 
 const getGalleryStubsCached = cache(collectGalleryStubs);
@@ -85,6 +87,7 @@ function hydrateMainItems(
       featured,
       type: entry.type,
       variant: entry.variant,
+      mediaKind: entry.mediaKind,
     });
   });
   return out;

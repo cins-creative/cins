@@ -3,33 +3,25 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { FeaturedFlagBadge } from "@/components/journey/FeaturedFlagBadge";
+import { GalleryMediaFilterDropdown } from "@/components/journey/GalleryMediaFilterDropdown";
 import { JourneyCoverImage } from "@/components/journey/JourneyCoverImage";
-import {
-  JourneyTimelineBar,
-  type FilterGroup,
-} from "@/components/journey/JourneyTimelineBar";
-import type { LoaiMocVisibilityMap } from "@/lib/journey/filter-visibility";
 import type { GalleryMainItem } from "@/lib/journey/gallery-page-fetch";
 import {
-  buildFilterOptions,
-  filterByGroup,
-} from "@/lib/journey/milestone-filter-options";
-import type { MilestoneFilterCounts } from "@/lib/journey/milestones-page-fetch";
+  galleryMediaFilterLabel,
+  matchesGalleryMediaFilter,
+  type GalleryMediaFilter,
+} from "@/lib/journey/post-media";
 
 type ScrollLoadConfig = {
   ownerSlug: string;
   hasMore: boolean;
   nextOffset: number;
-  filterCounts?: MilestoneFilterCounts;
 };
 
 type Props = {
   initialItems?: ReadonlyArray<GalleryMainItem>;
   totalCount?: number;
-  filterCounts?: MilestoneFilterCounts;
   scrollLoad?: ScrollLoadConfig;
-  isOwner?: boolean;
-  filterVisibility?: LoaiMocVisibilityMap;
   /** Legacy — pinned + grid tách (aside / mock). Không dùng cùng scrollLoad. */
   pinned?: ReadonlyArray<{
     id: string;
@@ -40,6 +32,7 @@ type Props = {
     title: string;
     href?: string;
     meta: string;
+    mediaKind?: GalleryMainItem["mediaKind"];
   }>;
   items?: ReadonlyArray<{
     id: string;
@@ -49,16 +42,14 @@ type Props = {
     height?: number;
     label: string;
     href?: string;
+    mediaKind?: GalleryMainItem["mediaKind"];
   }>;
 };
 
 export function JourneyGalleryGridView({
   initialItems,
   totalCount,
-  filterCounts: filterCountsProp,
   scrollLoad,
-  isOwner = false,
-  filterVisibility,
   pinned = [],
   items = [],
 }: Props) {
@@ -77,6 +68,7 @@ export function JourneyGalleryGridView({
             featured: true,
             type: "du-an" as const,
             variant: "self" as const,
+            mediaKind: item.mediaKind,
           })),
           ...items.map((item) => ({
             id: item.id,
@@ -90,11 +82,12 @@ export function JourneyGalleryGridView({
             featured: false,
             type: "du-an" as const,
             variant: "self" as const,
+            mediaKind: item.mediaKind,
           })),
         ]
       : null;
 
-  const [filter, setFilter] = useState<FilterGroup>("all");
+  const [filter, setFilter] = useState<GalleryMediaFilter>("all");
   const [galleryItems, setGalleryItems] = useState<GalleryMainItem[]>(() =>
     legacyAll ? [...legacyAll] : [...(initialItems ?? [])],
   );
@@ -163,34 +156,27 @@ export function JourneyGalleryGridView({
   }, [scrollLoad, hasMore, loadMore, galleryItems.length, legacyAll]);
 
   const filtered = useMemo(
-    () => filterByGroup(galleryItems, filter),
+    () =>
+      galleryItems.filter((item) =>
+        matchesGalleryMediaFilter(item.mediaKind, filter),
+      ),
     [galleryItems, filter],
   );
 
-  const counts = scrollLoad?.filterCounts ?? filterCountsProp;
-  const options = useMemo(
-    () => buildFilterOptions(counts ?? { all: galleryItems.length, hoc: 0, lam: 0, "du-an": 0, "su-kien": 0, "thanh-tuu": 0, "ca-nhan": 0, bookmark: 0, verified: 0 }),
-    [counts, galleryItems.length],
-  );
-
-  const totalVisible = filtered.length;
   const hasData = galleryItems.length > 0 || (totalCount ?? 0) > 0;
   const countLabel = `${totalCount ?? galleryItems.length} tác phẩm`;
 
   return (
     <main className="j-main-panel j-gallery-main" aria-label="Gallery tác phẩm">
-      <JourneyTimelineBar
-        year="Gallery"
-        month={countLabel}
-        filter={filter}
-        onFilterChange={setFilter}
-        options={options.map((o) =>
-          o.group === filter ? { ...o, count: totalVisible } : o,
-        )}
-        enabled={hasData}
-        isOwner={isOwner}
-        filterVisibility={filterVisibility}
-      />
+      <div className="j-tlb">
+        <div className="j-tlb-year">Gallery</div>
+        <div className="j-tlb-month">{countLabel}</div>
+        <div className="j-tlb-filter">
+          {hasData ? (
+            <GalleryMediaFilterDropdown filter={filter} onFilterChange={setFilter} />
+          ) : null}
+        </div>
+      </div>
 
       {!hasData ? (
         <div className="j-main-empty">
@@ -198,7 +184,8 @@ export function JourneyGalleryGridView({
         </div>
       ) : filtered.length === 0 ? (
         <div className="j-main-empty">
-          Không có tác phẩm thuộc nhóm <em>{filter}</em>. Đổi bộ lọc hoặc chọn “Tất cả”.
+          Không có tác phẩm thuộc loại{" "}
+          <em>{galleryMediaFilterLabel(filter)}</em>. Đổi bộ lọc hoặc chọn “Tất cả”.
         </div>
       ) : (
         <div className="j-main-gallery-grid">

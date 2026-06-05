@@ -280,12 +280,8 @@ export function EditorView({
 }: Props) {
   const isOverlay = presentation === "overlay";
   const isEdit = mode === "edit" && !!initial;
-  /* Đích cho nút "Huỷ": edit → trang xem bài (giữ ngữ cảnh cho user); create →
-     trang journey (chưa có post tương ứng). */
-  const cancelHref =
-    isEdit && postSlug
-      ? `/${ownerSlug}/p/${postSlug}`
-      : `/${ownerSlug}`;
+  /* Huỷ → journey (không link `/p/slug` — intercept modal sẽ mở popup thay vì thoát edit). */
+  const cancelHref = `/${ownerSlug}`;
 
   const [coverSeed, setCoverSeed] = useState<string | null>(
     initial?.coverSeed ?? null,
@@ -842,11 +838,8 @@ export function EditorView({
       <header className="ed-topbar">
         <div className="ed-topbar-inner">
           {isOverlay ? (
-            <span className="ed-brand">
-              <span className="ed-brand-mark">CI</span>
-              <span className="ed-title">
-                {isEdit ? "Chỉnh sửa bài viết" : "Trình tạo bài viết"}
-              </span>
+            <span className="ed-title">
+              {isEdit ? "Chỉnh sửa bài viết" : "Trình tạo bài viết"}
             </span>
           ) : (
             <Link href={`/${ownerSlug}`} className="ed-brand" title="Về Journey">

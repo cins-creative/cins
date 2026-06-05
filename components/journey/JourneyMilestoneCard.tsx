@@ -9,7 +9,6 @@ import {
   Globe,
   Eye,
   Image as ImageIcon,
-  Link2,
   Lock,
   Maximize2,
   MessageCircle,
@@ -206,22 +205,6 @@ export function JourneyMilestoneCard({
   const isPhotoAlbum = isMediaPost(noiDungBlocks) && photoGridImages !== null;
   const showCardTitle = shouldShowMilestoneCardTitle(title, noiDungBlocks);
   const cardCaption = milestoneCardCaption(body, noiDungBlocks);
-  const ownerCredit =
-    coAuthorCredits.find((c) => c.laChuSoHuu) ??
-    (variant === "tagged" || variant === "verified"
-      ? attribution
-        ? {
-            name: attribution.name,
-            role: attribution.role,
-            slug: attribution.slug,
-            avatarUrl: attribution.avatarUrl,
-            initial: attribution.initial,
-            laChuSoHuu: true,
-          }
-        : null
-      : null) ??
-    coAuthorCredits[0] ??
-    null;
   const contributorCount = coAuthorCredits.length;
   const otherContributorCount = coAuthorsOnly.length;
   const displayDate = `${String(day).padStart(2, "0")}-${String(month).padStart(2, "0")}-${year}`;
@@ -409,10 +392,7 @@ export function JourneyMilestoneCard({
                     </span>
                     <span className="authors-right">
                       <span className="authors-summary">
-                        <strong>{ownerCredit?.name ?? "Tác giả"}</strong>
-                        {otherContributorCount > 0
-                          ? ` và ${otherContributorCount} người khác`
-                          : ""}
+                        {otherContributorCount} người đóng góp khác
                       </span>
                       <span className="authors-toggle-slot">
                         <span className="expand-hint" aria-label="Xem tất cả">
@@ -511,10 +491,6 @@ export function JourneyMilestoneCard({
               />
             ) : null}
             <span className="action-spacer" />
-            <button type="button" className="share-btn" aria-label="Copy link">
-              <Link2 size={14} strokeWidth={1.8} aria-hidden />
-              Copy link
-            </button>
             {views ? (
               <span className="jcard-view-count" aria-label={`${formatViews(views)} lượt xem`}>
                 {formatViews(views)}

@@ -20,12 +20,10 @@ export async function JourneyGalleryMainSection({
     <JourneyGalleryGridView
       initialItems={page.items}
       totalCount={page.totalCount}
-      filterCounts={page.filterCounts}
       scrollLoad={{
         ownerSlug,
         hasMore: page.hasMore,
         nextOffset: page.nextOffset,
-        filterCounts: page.filterCounts,
       }}
     />
   );

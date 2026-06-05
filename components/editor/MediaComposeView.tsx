@@ -144,10 +144,8 @@ export function MediaComposeView({
       ? "Thêm ảnh"
       : "Thêm video";
   const publishLabel = isEdit ? "Lưu" : "Đăng";
-  const cancelHref =
-    isEdit && editInitial
-      ? `/${ownerSlug}/p/${editInitial.postSlug}`
-      : `/${ownerSlug}`;
+  /* Huỷ → journey (không link `/p/slug` — intercept modal sẽ mở popup thay vì thoát edit). */
+  const cancelHref = `/${ownerSlug}`;
 
   useEffect(() => {
     if (!visOpen) return;

@@ -1,6 +1,5 @@
 "use client";
 
-import { X } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
@@ -177,14 +176,6 @@ export function JourneyComposeOverlay({
       aria-label={ariaLabel}
       onClick={handleBackdrop}
     >
-      <button
-        type="button"
-        className="j-post-close"
-        aria-label="Đóng"
-        onClick={onClose}
-      >
-        <X size={20} strokeWidth={2} aria-hidden />
-      </button>
       <div
         className={`j-compose-sheet${isMediaSheet ? " j-compose-sheet--media" : ""}`}
       >
