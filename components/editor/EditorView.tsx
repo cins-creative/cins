@@ -49,6 +49,7 @@ import {
 } from "@/lib/editor/image-layout";
 import { CoAuthorSection } from "@/components/editor/CoAuthorSection";
 import { updatePost } from "@/app/[slug]/p/[postSlug]/edit/actions";
+import { publishPost } from "@/app/[slug]/p/new/actions";
 import {
   getCfAccountHash,
   rememberCfAccountHashFromDeliveryUrl,
@@ -2224,12 +2225,14 @@ function MosaicBlock({ block, p }: { block: Block; p: BlockRowProps }) {
                         ))}
                       </span>
                       <span className="mz-tool-sep" />
-                      {[
-                        ["left", AlignLeft],
-                        ["center", AlignCenter],
-                        ["right", AlignRight],
-                      ].map(([align, Icon]) => {
-                        const AIcon = Icon as typeof AlignLeft;
+                      {(
+                        [
+                          ["left", AlignLeft],
+                          ["center", AlignCenter],
+                          ["right", AlignRight],
+                        ] as const
+                      ).map(([align, Icon]) => {
+                        const AIcon = Icon;
                         return (
                           <button
                             key={align}
