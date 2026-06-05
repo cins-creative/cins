@@ -7,9 +7,13 @@ import type {
 import type { Block } from "@/lib/editor/types";
 import {
   extractPhotoImageIds,
+  extractVideoUrl,
   galleryMediaKindFromBlocks,
   type GalleryMediaKind,
 } from "@/lib/journey/post-media";
+import { extractVideoProcessingMeta } from "@/lib/journey/video-processing-meta";
+import { classifyBunnyVideoUrl } from "@/lib/bunny/embed";
+import { buildBunnyVideoThumbnailUrl } from "@/lib/bunny/thumbnail";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 type LoaiMocDb =
@@ -58,7 +62,11 @@ export type GalleryStub = {
   visibility: "feature" | "public";
   tacPhamSlug: string | null;
   tieuDe: string;
-  coverId: string;
+  /** Cloudflare image id — ảnh / cover bài viết. */
+  coverId: string | null;
+  /** URL thumbnail trực tiếp (Bunny video). */
+  coverSrc: string | null;
+  videoProcessing: boolean;
   postOwnerId: string;
   type: MilestoneType;
   variant: MilestoneVariant;
@@ -85,15 +93,48 @@ function parseBlocks(raw: unknown): Block[] {
   return out;
 }
 
-function resolveGalleryCoverId(
+function resolveGalleryVisual(
   coverId: string | null | undefined,
   blocks: Block[],
   mediaKind: GalleryMediaKind,
-): string | null {
-  if (coverId?.trim()) return coverId.trim();
-  if (mediaKind === "photo") {
-    return extractPhotoImageIds(blocks)[0] ?? null;
+): {
+  coverId: string | null;
+  coverSrc: string | null;
+  videoProcessing: boolean;
+} | null {
+  const processing =
+    extractVideoProcessingMeta(blocks)?.processing === true &&
+    mediaKind === "video";
+
+  if (coverId?.trim() && mediaKind !== "photo") {
+    return {
+      coverId: coverId.trim(),
+      coverSrc: null,
+      videoProcessing: processing,
+    };
   }
+
+  if (mediaKind === "photo") {
+    const photoId = extractPhotoImageIds(blocks)[0] ?? null;
+    if (photoId) {
+      return { coverId: photoId, coverSrc: null, videoProcessing: false };
+    }
+    if (coverId?.trim()) {
+      return { coverId: coverId.trim(), coverSrc: null, videoProcessing: false };
+    }
+    return null;
+  }
+
+  if (mediaKind === "video") {
+    const videoUrl = extractVideoUrl(blocks);
+    if (!videoUrl) return null;
+    const bunny = classifyBunnyVideoUrl(videoUrl);
+    const coverSrc = bunny
+      ? buildBunnyVideoThumbnailUrl(bunny.videoId)
+      : null;
+    return { coverId: null, coverSrc, videoProcessing: processing };
+  }
+
   return null;
 }
 
@@ -106,8 +147,15 @@ function rowToStub(
   if (!cm || !tp) return null;
   const blocks = parseBlocks(tp.noi_dung_blocks);
   const mediaKind = galleryMediaKindFromBlocks(blocks);
-  const coverId = resolveGalleryCoverId(tp.cover_id, blocks, mediaKind);
-  if (!coverId) return null;
+  const visual = resolveGalleryVisual(tp.cover_id, blocks, mediaKind);
+  if (!visual) return null;
+  if (
+    !visual.coverId &&
+    !visual.coverSrc &&
+    mediaKind !== "video"
+  ) {
+    return null;
+  }
   if (cm.che_do_hien_thi !== "feature" && cm.che_do_hien_thi !== "public") {
     return null;
   }
@@ -118,7 +166,9 @@ function rowToStub(
     visibility: cm.che_do_hien_thi as "feature" | "public",
     tacPhamSlug: tp.slug,
     tieuDe: tp.tieu_de,
-    coverId,
+    coverId: visual.coverId,
+    coverSrc: visual.coverSrc,
+    videoProcessing: visual.videoProcessing,
     postOwnerId: tp.id_nguoi_dung,
     type: LOAI_MOC_TO_TYPE[cm.loai_moc],
     variant: source === "tagged" ? "tagged" : "self",

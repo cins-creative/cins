@@ -565,6 +565,23 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   object-fit: cover;
   display: block;
 }
+.j-gallery-video-ph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: 80px;
+  background: linear-gradient(160deg, #0f172a 0%, #1e293b 100%);
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.j-main-gallery-item .j-g-play {
+  pointer-events: none;
+}
 .j-main-gallery-info {
   position: absolute;
   inset: auto 0 0;
@@ -1245,6 +1262,10 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
 .j-m-menu {
   position: relative;
   z-index: 2;
+}
+/* Datebar + dropdown loại/hiển thị phải trên preview video (z-index 2). */
+.jcard-datebar {
+  z-index: 3;
 }
 .j-m-card:hover {
   transform: none;
@@ -4709,11 +4730,13 @@ select.j-edit-input {
   font-family: var(--font-sans);
 }
 /* Menu mở → không clip popover; nâng card lên trên milestone kế tiếp. */
-.j-m-card.jcard:has(.j-m-menu-btn[aria-expanded="true"]) {
+.j-m-card.jcard:has(.j-m-menu-btn[aria-expanded="true"]),
+.j-m-card.jcard:has(.j-inline-control-trigger[aria-expanded="true"]) {
   overflow: visible;
   z-index: 20;
 }
-.j-milestone:has(.j-m-card.jcard .j-m-menu-btn[aria-expanded="true"]) {
+.j-milestone:has(.j-m-card.jcard .j-m-menu-btn[aria-expanded="true"]),
+.j-milestone:has(.j-m-card.jcard .j-inline-control-trigger[aria-expanded="true"]) {
   position: relative;
   z-index: 20;
 }
@@ -4798,6 +4821,7 @@ select.j-edit-input {
 .j-inline-control {
   position: relative;
   display: inline-flex;
+  z-index: 5;
 }
 .j-inline-control-trigger {
   display: inline-flex;
@@ -4822,7 +4846,7 @@ select.j-edit-input {
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
-  z-index: 40;
+  z-index: 50;
   display: grid;
   min-width: 168px;
   padding: 6px;
@@ -5192,6 +5216,77 @@ select.j-edit-input {
 .preview--photo-grid .image-grid-cell {
   cursor: inherit;
   pointer-events: none;
+}
+.preview--video {
+  position: relative;
+  z-index: 2;
+  pointer-events: auto;
+  padding: 0;
+  background: #000;
+  cursor: default;
+}
+.preview--video:hover {
+  opacity: 1;
+}
+.preview--video .j-m-video-embed {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  overflow: hidden;
+}
+.preview--video .j-m-video-embed iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+.preview--video .j-m-video-fallback {
+  pointer-events: auto;
+}
+.preview--video .j-m-video-processing {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 20px;
+  text-align: center;
+  background: linear-gradient(160deg, #0f172a 0%, #1e293b 100%);
+  color: #e2e8f0;
+  pointer-events: none;
+}
+.preview--video .j-m-video-processing strong {
+  font-size: 15px;
+  font-weight: 600;
+  color: #f8fafc;
+}
+.preview--video .j-m-video-processing span {
+  font-size: 12px;
+  line-height: 1.45;
+  color: #94a3b8;
+  max-width: 260px;
+}
+.preview--video .j-m-video-processing-spin {
+  margin-top: 4px;
+  animation: j-m-video-spin 1s linear infinite;
+  opacity: 0.85;
+}
+@keyframes j-m-video-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.j-notify-avatar.is-video {
+  background: #0ea5e9;
+  color: #fff;
+}
+.j-notify-item.is-video-ready strong {
+  color: var(--j-text, #0f172a);
 }
 .preview img {
   width: 100%;

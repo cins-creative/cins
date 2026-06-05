@@ -15,6 +15,10 @@ import "server-only";
    ╚══════════════════════════════════════════════════════════════════╝ */
 
 import type { Block, BlockType } from "@/lib/editor/types";
+import {
+  buildBunnyEmbedUrl,
+  classifyBunnyVideoUrl,
+} from "@/lib/bunny/embed";
 
 const HTML_ENTITIES: Record<string, string> = {
   "&": "&amp;",
@@ -175,6 +179,14 @@ export function blocksToHtml(blocks: ReadonlyArray<Block>): string {
       }
       case "embed": {
         const url = b.config?.url as string | undefined;
+        const bunny = classifyBunnyVideoUrl(url ?? "");
+        if (bunny) {
+          const src = buildBunnyEmbedUrl(bunny.libraryId, bunny.videoId);
+          parts.push(
+            `<div class="rich-embed rich-embed-iframe" data-provider="bunny"><iframe src="${escapeHtml(src)}" title="Video" allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;" allowfullscreen loading="lazy"></iframe></div>`,
+          );
+          break;
+        }
         const cls = classifyEmbedUrl(url);
         if (cls) {
           /* YouTube/Figma → iframe thật để render trực tiếp trong HTML cache.

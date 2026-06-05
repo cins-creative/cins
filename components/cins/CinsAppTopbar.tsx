@@ -1,6 +1,8 @@
-import { MessageCircleQuestion, Sparkles, Menu as MenuIcon } from "lucide-react";
+import { Suspense } from "react";
+import { MessageCircleQuestion, Menu as MenuIcon } from "lucide-react";
 import Link from "next/link";
 
+import { CinsTopbarSearch } from "@/components/cins/CinsTopbarSearch";
 import { JourneyNotifications } from "@/components/journey/JourneyNotifications";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { listPendingCoAuthorReviews } from "@/lib/social/co-author";
@@ -9,6 +11,7 @@ import {
   listFollowAcceptedNotifications,
   listPendingFollowRequests,
 } from "@/lib/social/follow";
+import { listVideoReadyNotifications } from "@/lib/social/video-ready";
 
 /**
  * Topbar chính của site — render khác nhau theo trạng thái phiên:
@@ -23,14 +26,15 @@ import {
 export async function CinsAppTopbar() {
   const session = await getCurrentSessionAndProfile();
   const isAuthed = !!session;
-  const [followRequests, acceptedNotifications, coAuthorReviews, commentNotifications] = session?.profile
+  const [followRequests, acceptedNotifications, coAuthorReviews, commentNotifications, videoReadyNotifications] = session?.profile
     ? await Promise.all([
         listPendingFollowRequests(session.profile.id),
         listFollowAcceptedNotifications(session.profile.id),
         listPendingCoAuthorReviews(session.profile.id),
         listCommentNotifications(session.profile.id),
+        listVideoReadyNotifications(session.profile.id),
       ])
-    : [[], [], [], []];
+    : [[], [], [], [], []];
 
   return (
     <nav className="topbar cins-app-topbar" id="app-topbar">
@@ -44,10 +48,16 @@ export async function CinsAppTopbar() {
           >
             <MenuIcon size={20} strokeWidth={1.8} aria-hidden />
           </button>
-          <Link href="#" className="tb-quiz">
-            <Sparkles size={16} strokeWidth={1.8} aria-hidden />
-            <span>Quiz khám phá tính cách nghề</span>
-          </Link>
+          <Suspense
+            fallback={
+              <div className="tb-search tb-search--fallback" aria-hidden>
+                <span className="tb-search-icon" />
+                <span className="tb-search-ph" />
+              </div>
+            }
+          >
+            <CinsTopbarSearch />
+          </Suspense>
         </div>
         <div className="tb-right">
           <Link href="#" className="tb-ask">
@@ -60,6 +70,7 @@ export async function CinsAppTopbar() {
               initialAcceptedNotifications={acceptedNotifications}
               initialCoAuthorReviews={coAuthorReviews}
               initialCommentNotifications={commentNotifications}
+              initialVideoReadyNotifications={videoReadyNotifications}
             />
           ) : null}
           {isAuthed ? null : (

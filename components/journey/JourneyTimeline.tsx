@@ -85,6 +85,25 @@ export function JourneyTimeline({
     setLoadError(false);
   }, [initialMilestones, scrollLoad?.hasMore, scrollLoad?.nextOffset]);
 
+  useEffect(() => {
+    const onMilestoneDeleted = (event: Event) => {
+      const detail = (event as CustomEvent<{ milestoneId?: string; ownerSlug?: string }>)
+        .detail;
+      if (!detail?.milestoneId || detail.ownerSlug !== ownerSlug) return;
+      setItems((prev) =>
+        prev.filter(
+          (m) => m.id !== detail.milestoneId && m.cotMocId !== detail.milestoneId,
+        ),
+      );
+      setOpenMilestoneId((open) =>
+        open === detail.milestoneId ? null : open,
+      );
+    };
+    window.addEventListener("cins:milestone-deleted", onMilestoneDeleted);
+    return () =>
+      window.removeEventListener("cins:milestone-deleted", onMilestoneDeleted);
+  }, [ownerSlug]);
+
   const loadMore = useCallback(async () => {
     if (!scrollLoad || loadingMoreRef.current || !hasMore) return;
     loadingMoreRef.current = true;
@@ -163,7 +182,7 @@ export function JourneyTimeline({
       if (
         !openPostAction &&
         target.closest(
-          "a,button,input,textarea,select,summary,.j-m-menu,.authors-details",
+          "a,button,input,textarea,select,summary,.j-m-menu,.authors-details,.preview--video",
         )
       ) {
         return;

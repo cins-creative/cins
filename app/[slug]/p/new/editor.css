@@ -3064,6 +3064,64 @@
   border-color: var(--cins-blue);
   box-shadow: 0 0 0 3px rgba(31, 116, 201, 0.12);
 }
+.cins-editor-page.mc-compose-page .mc-video-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 160px;
+  padding: 24px 16px;
+  border: 2px dashed var(--border-strong);
+  border-radius: 12px;
+  background: var(--bg-surface);
+  color: var(--ink-body);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.cins-editor-page.mc-compose-page .mc-video-drop:hover {
+  border-color: #f3425f;
+  background: rgba(243, 66, 95, 0.04);
+}
+.cins-editor-page.mc-compose-page .mc-video-drop svg {
+  color: #f3425f;
+}
+.cins-editor-page.mc-compose-page .mc-video-drop strong {
+  font-size: 15px;
+  color: var(--ink-display);
+}
+.cins-editor-page.mc-compose-page .mc-video-drop span {
+  max-width: 360px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink-muted);
+}
+.cins-editor-page.mc-compose-page .mc-video-uploading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: var(--bg-surface);
+  font-size: 14px;
+  color: var(--ink-body);
+}
+.cins-editor-page.mc-compose-page .mc-video-preview {
+  overflow: hidden;
+  border-radius: 12px;
+  background: #000;
+  aspect-ratio: 16 / 9;
+}
+.cins-editor-page.mc-compose-page .mc-video-preview iframe,
+.cins-editor-page.mc-compose-page .mc-video-preview video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  object-fit: contain;
+}
 .cins-editor-page.mc-compose-page .mc-compose-error {
   margin: 10px 0 0;
   font-size: 13px;
@@ -3156,6 +3214,13 @@
   padding: 20px 12px;
 }
 .cins-editor-page.mc-compose-page.is-overlay .mc-photo-drop span {
+  font-size: 12px;
+}
+.cins-editor-page.mc-compose-page.is-overlay .mc-video-drop {
+  min-height: 140px;
+  padding: 20px 12px;
+}
+.cins-editor-page.mc-compose-page.is-overlay .mc-video-drop span {
   font-size: 12px;
 }
 .cins-editor-page.is-overlay .editor-canvas-wrap {

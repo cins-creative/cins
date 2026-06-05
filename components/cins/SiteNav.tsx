@@ -1,6 +1,6 @@
 "use client";
 
-import { MoreHorizontal } from "lucide-react";
+import { Building2, MoreHorizontal } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
@@ -55,8 +55,8 @@ function SidebarLink({
  * X-style user card ở sidebar footer:
  * - Collapsed sidebar (60px): chỉ hiện avatar tròn (centered).
  * - Expanded (240px, hover/focus-within): avatar + (tên / @handle) + nút "..."
- * - Click "..." → popover phía trên với 4 mục: Trang cá nhân, Cài đặt,
- *   Trợ giúp, Đăng xuất. Đăng xuất là `<form action={signOutAction}>` để
+ * - Click "..." → popover phía trên: Trang cá nhân (highlight), Tạo tổ chức,
+ *   Cài đặt, Trợ giúp, Đăng xuất. Đăng xuất là `<form action={signOutAction}>` để
  *   server action xoá phiên Supabase + redirect /login.
  *
  * Chỉ render khi `profile != null` (user đã đăng nhập + có slug). Guest
@@ -103,7 +103,7 @@ function SidebarUserCard({ profile }: { profile: SidebarProfile }) {
         >
           <Link
             href={`/${profile.slug}`}
-            className="sb-user-menu-item"
+            className="sb-user-menu-item sb-user-menu-item-primary"
             role="menuitem"
             onClick={() => setOpen(false)}
           >
@@ -111,6 +111,17 @@ function SidebarUserCard({ profile }: { profile: SidebarProfile }) {
               <SidebarNavIcon name="profile" />
             </span>
             <span>Trang cá nhân</span>
+          </Link>
+          <Link
+            href="#create-org"
+            className="sb-user-menu-item"
+            role="menuitem"
+            onClick={() => setOpen(false)}
+          >
+            <span className="sb-user-menu-ico" aria-hidden>
+              <Building2 size={18} strokeWidth={1.7} />
+            </span>
+            <span>Tạo tổ chức</span>
           </Link>
           <Link
             href="/#settings"

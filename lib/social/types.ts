@@ -73,3 +73,11 @@ export type PendingCoAuthorReview = {
   proposer: CoAuthorReviewProfile;
   target: CoAuthorReviewProfile;
 };
+
+export type VideoReadyNotification = {
+  notificationId: string;
+  tacPhamId: string;
+  postTitle: string;
+  postSlug: string | null;
+  ownerSlug: string | null;
+};

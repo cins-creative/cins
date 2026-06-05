@@ -100,6 +100,24 @@ export function JourneyPostBody({
     queueMicrotask(() => setDetail(initialDetail));
   }, [initialDetail]);
 
+  useEffect(() => {
+    function focusCommentsSection() {
+      if (window.location.hash !== "#post-comments") return;
+      const section = document.getElementById("post-comments");
+      if (!section) return;
+      section.scrollIntoView({ behavior: "smooth", block: "start" });
+      window.setTimeout(() => {
+        section
+          .querySelector<HTMLInputElement>(".post-comments-input")
+          ?.focus({ preventScroll: true });
+      }, 350);
+    }
+
+    focusCommentsSection();
+    window.addEventListener("hashchange", focusCommentsSection);
+    return () => window.removeEventListener("hashchange", focusCommentsSection);
+  }, [initialDetail.milestone.id]);
+
   /* `posts[0]` là tác phẩm chính. Khi cột mốc có nhiều tác phẩm (lượt sau)
      sẽ render tuần tự — hiện tại UI editor chỉ tạo 1 tác phẩm/cột mốc. */
   const mainPost = posts[0];

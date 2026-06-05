@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, Check, ExternalLink, X } from "lucide-react";
-import { useMemo, useState, useTransition } from "react";
+import { Bell, Check, ExternalLink, Video, X } from "lucide-react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 
 import type {
   CommentNotification,
@@ -10,6 +10,7 @@ import type {
   PendingCoAuthorReview,
   FollowAcceptedNotification,
   PendingFollowRequest,
+  VideoReadyNotification,
 } from "@/lib/social/types";
 
 type Props = {
@@ -17,6 +18,7 @@ type Props = {
   initialAcceptedNotifications?: ReadonlyArray<FollowAcceptedNotification>;
   initialCoAuthorReviews?: ReadonlyArray<PendingCoAuthorReview>;
   initialCommentNotifications?: ReadonlyArray<CommentNotification>;
+  initialVideoReadyNotifications?: ReadonlyArray<VideoReadyNotification>;
 };
 
 export function JourneyNotifications({
@@ -24,6 +26,7 @@ export function JourneyNotifications({
   initialAcceptedNotifications = [],
   initialCoAuthorReviews = [],
   initialCommentNotifications = [],
+  initialVideoReadyNotifications = [],
 }: Props) {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<PendingFollowRequest | null>(null);
@@ -39,11 +42,39 @@ export function JourneyNotifications({
   const [commentNotifications] = useState<CommentNotification[]>(
     [...initialCommentNotifications],
   );
+  const [videoReady, setVideoReady] = useState<VideoReadyNotification[]>(
+    [...initialVideoReadyNotifications],
+  );
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
+  useEffect(() => {
+    setVideoReady([...initialVideoReadyNotifications]);
+  }, [initialVideoReadyNotifications]);
+
+  useEffect(() => {
+    const refreshVideoReady = () => {
+      void fetch("/api/notifications/video-ready", { cache: "no-store" })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((json: { items?: VideoReadyNotification[] } | null) => {
+          if (Array.isArray(json?.items)) {
+            setVideoReady(json.items);
+          }
+        })
+        .catch(() => {
+          /* giữ state hiện tại */
+        });
+    };
+    window.addEventListener("cins:video-ready", refreshVideoReady);
+    return () => window.removeEventListener("cins:video-ready", refreshVideoReady);
+  }, []);
+
   const count =
-    requests.length + accepted.length + coAuthorReviews.length + commentNotifications.length;
+    requests.length +
+    accepted.length +
+    coAuthorReviews.length +
+    commentNotifications.length +
+    videoReady.length;
   const title = count > 0 ? `${count} thông báo mới` : "Không có thông báo mới";
   const selectedStillPending = useMemo(
     () => selected && requests.some((r) => r.idNguoiDung === selected.idNguoiDung),
@@ -126,6 +157,27 @@ export function JourneyNotifications({
             <p className="j-notify-empty">Chưa có lời mời kết nối mới.</p>
           ) : (
             <ul className="j-notify-list">
+              {videoReady.map((notice) => (
+                <li key={notice.notificationId}>
+                  <Link
+                    href={
+                      notice.ownerSlug && notice.postSlug
+                        ? `/${notice.ownerSlug}/p/${notice.postSlug}`
+                        : "#"
+                    }
+                    className="j-notify-item is-video-ready"
+                    onClick={() => setOpen(false)}
+                  >
+                    <span className="j-notify-avatar is-video" aria-hidden>
+                      <Video size={16} strokeWidth={1.8} />
+                    </span>
+                    <span>
+                      <strong>Video đã sẵn sàng</strong>
+                      <small>{notice.postTitle}</small>
+                    </span>
+                  </Link>
+                </li>
+              ))}
               {commentNotifications.map((notice) => (
                 <li key={notice.notificationId}>
                   <Link

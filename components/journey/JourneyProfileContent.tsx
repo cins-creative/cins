@@ -10,8 +10,10 @@ import { JourneyFriendsView } from "@/components/journey/JourneyFriendsView";
 import { JourneyGalleryAside } from "@/components/journey/JourneyGalleryAside";
 import { JourneyGalleryGridView } from "@/components/journey/JourneyGalleryGridView";
 import { JourneyComposeProvider } from "@/components/journey/JourneyComposeContext";
+import { BunnyVideoProcessingPoller } from "@/components/journey/BunnyVideoProcessingPoller";
 import { JourneyTimeline } from "@/components/journey/JourneyTimeline";
 import { useJourneyView } from "@/components/journey/JourneyViewContext";
+import type { MilestoneItem } from "@/components/journey/milestone-types";
 import type { LoaiMocVisibilityMap } from "@/lib/journey/filter-visibility";
 import type { JourneyComposeState } from "@/lib/journey/compose-types";
 import {
@@ -41,6 +43,28 @@ export type JourneyProfileInitialData = {
 };
 
 type TimelineCacheData = JourneyTimelinePanelData;
+
+function milestoneMatchesId(item: MilestoneItem, milestoneId: string): boolean {
+  return item.id === milestoneId || item.cotMocId === milestoneId;
+}
+
+function removeMilestoneFromTimelineCache(
+  data: TimelineCacheData,
+  milestoneId: string,
+): TimelineCacheData {
+  const milestones = data.page.milestones.filter(
+    (m) => !milestoneMatchesId(m, milestoneId),
+  );
+  if (milestones.length === data.page.milestones.length) return data;
+  return {
+    ...data,
+    page: {
+      ...data.page,
+      milestones,
+      totalCount: Math.max(0, data.page.totalCount - 1),
+    },
+  };
+}
 
 type PanelState<T> = T | "loading" | "error" | null;
 
@@ -111,13 +135,14 @@ export function JourneyProfileContent({
   }, [ownerSlug, viewerProfileId, initialData]);
 
   const fetchTimeline = useCallback(
-    async (opts?: { background?: boolean }) => {
-      if (timelineInflightRef.current) return;
+    async (opts?: { background?: boolean; force?: boolean }) => {
+      if (timelineInflightRef.current && !opts?.force) return;
       timelineInflightRef.current = true;
       if (!opts?.background) setTimelineCache((prev) => (prev ? prev : "loading"));
       try {
         const res = await fetch(
           `/api/journey/${encodeURIComponent(ownerSlug)}/milestones?offset=0`,
+          { cache: "no-store" },
         );
         if (!res.ok) throw new Error("timeline fetch failed");
         const page = (await res.json()) as MilestoneTimelinePageResult & {
@@ -139,13 +164,14 @@ export function JourneyProfileContent({
   );
 
   const fetchGallery = useCallback(
-    async (opts?: { background?: boolean }) => {
-      if (galleryInflightRef.current) return;
+    async (opts?: { background?: boolean; force?: boolean }) => {
+      if (galleryInflightRef.current && !opts?.force) return;
       galleryInflightRef.current = true;
       if (!opts?.background) setGalleryCache((prev) => (prev ? prev : "loading"));
       try {
         const res = await fetch(
           `/api/journey/${encodeURIComponent(ownerSlug)}/gallery?offset=0`,
+          { cache: "no-store" },
         );
         if (!res.ok) throw new Error("gallery fetch failed");
         const page = (await res.json()) as JourneyGalleryPanelData;
@@ -183,13 +209,14 @@ export function JourneyProfileContent({
   );
 
   const fetchAside = useCallback(
-    async (opts?: { background?: boolean }) => {
-      if (asideInflightRef.current) return;
+    async (opts?: { background?: boolean; force?: boolean }) => {
+      if (asideInflightRef.current && !opts?.force) return;
       asideInflightRef.current = true;
       if (!opts?.background) setAsideCache((prev) => (prev ? prev : "loading"));
       try {
         const res = await fetch(
           `/api/journey/${encodeURIComponent(ownerSlug)}/gallery-aside`,
+          { cache: "no-store" },
         );
         if (!res.ok) throw new Error("aside fetch failed");
         const data = (await res.json()) as JourneyAsidePanelData;
@@ -285,6 +312,70 @@ export function JourneyProfileContent({
     viewerProfileId,
   ]);
 
+  useEffect(() => {
+    const syncGalleryPanels = () => {
+      void fetchAside({ background: true, force: true });
+      void fetchGallery({ background: true, force: true });
+    };
+
+    const onMilestoneDeleted = (event: Event) => {
+      const detail = (event as CustomEvent<{ milestoneId?: string; ownerSlug?: string }>)
+        .detail;
+      if (!detail?.milestoneId || detail.ownerSlug !== ownerSlug) return;
+
+      setTimelineCache((prev) => {
+        if (!prev || prev === "loading" || prev === "error") return prev;
+        const next = removeMilestoneFromTimelineCache(prev, detail.milestoneId!);
+        writeJourneyTimelinePanelCache(ownerSlug, viewerProfileId, next);
+        return next;
+      });
+      syncGalleryPanels();
+    };
+
+    const onMilestoneDeleteFailed = (event: Event) => {
+      const detail = (event as CustomEvent<{
+        milestoneId?: string;
+        ownerSlug?: string;
+        error?: string;
+      }>).detail;
+      if (!detail?.ownerSlug || detail.ownerSlug !== ownerSlug) return;
+      void fetchTimeline({ background: true, force: true });
+      syncGalleryPanels();
+    };
+
+    const onTimelineChanged = (event: Event) => {
+      const detail = (event as CustomEvent<{ ownerSlug?: string }>).detail;
+      if (detail?.ownerSlug && detail.ownerSlug !== ownerSlug) return;
+      void fetchTimeline({ background: true, force: true });
+      syncGalleryPanels();
+    };
+
+    const onGallerySync = (event: Event) => {
+      const detail = (event as CustomEvent<{ ownerSlug?: string }>).detail;
+      if (detail?.ownerSlug && detail.ownerSlug !== ownerSlug) return;
+      syncGalleryPanels();
+    };
+
+    window.addEventListener("cins:milestone-deleted", onMilestoneDeleted);
+    window.addEventListener("cins:milestone-delete-failed", onMilestoneDeleteFailed);
+    window.addEventListener("cins:journey-timeline-changed", onTimelineChanged);
+    window.addEventListener("cins:video-ready", onTimelineChanged);
+    window.addEventListener("cins:journey-gallery-sync", onGallerySync);
+    return () => {
+      window.removeEventListener("cins:milestone-deleted", onMilestoneDeleted);
+      window.removeEventListener(
+        "cins:milestone-delete-failed",
+        onMilestoneDeleteFailed,
+      );
+      window.removeEventListener(
+        "cins:journey-timeline-changed",
+        onTimelineChanged,
+      );
+      window.removeEventListener("cins:video-ready", onTimelineChanged);
+      window.removeEventListener("cins:journey-gallery-sync", onGallerySync);
+    };
+  }, [ownerSlug, viewerProfileId, fetchTimeline, fetchAside, fetchGallery]);
+
   return (
     <JourneyComposeProvider
       ownerId={ownerId}
@@ -294,6 +385,7 @@ export function JourneyProfileContent({
       isOwner={isOwner}
       initialCompose={initialCompose}
     >
+      {isOwner ? <BunnyVideoProcessingPoller ownerSlug={ownerSlug} /> : null}
       {view === "gallery" ? (
         galleryCache === "loading" || galleryCache === null ? (
           <JourneyGalleryMainSectionSkeleton />

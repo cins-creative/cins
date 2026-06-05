@@ -46,6 +46,7 @@ export default async function NewPhotoPage({ params }: { params: Params }) {
       ownerSlug={owner.slug}
       ownerName={owner.ten_hien_thi || `@${owner.slug}`}
       ownerAvatarId={owner.avatar_id}
+      autoOpenFilePicker
     />
   );
 }

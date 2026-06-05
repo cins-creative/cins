@@ -29,6 +29,7 @@ import { publishPost } from "@/app/[slug]/p/new/actions";
 import { updatePost } from "@/app/[slug]/p/[postSlug]/edit/actions";
 import { rememberCfAccountHashFromDeliveryUrl } from "@/lib/cloudflare/account-hash";
 import { ImageGrid } from "@/components/journey/ImageGrid";
+import { bunnyIframeSrc, classifyBunnyVideoUrl } from "@/lib/bunny/embed";
 import type { Block, Visibility } from "@/lib/editor/types";
 import {
   GRID_IMAGE_DEFAULT_HEIGHT,
@@ -41,6 +42,11 @@ import {
   type MediaEditInitial,
 } from "@/lib/journey/post-media";
 import { getAvatarUrl } from "@/lib/journey/profile";
+import { isValidMediaVideoUrl } from "@/lib/journey/video-url";
+import {
+  registerVideoUpload,
+  releaseVideoUpload,
+} from "@/lib/journey/video-upload-session";
 
 export type MediaComposeMode = "photo" | "video";
 
@@ -54,6 +60,12 @@ type Props = {
   presentation?: "page" | "overlay";
   /** Chỉnh sửa bài ảnh/video đã đăng — cùng UI với tạo mới. */
   editInitial?: MediaEditInitial | null;
+  /** Ảnh đã chọn trước khi mở overlay (từ nút Thêm ảnh trên timeline). */
+  initialPhotoFiles?: File[];
+  /** Video đã chọn trước khi mở overlay (từ nút Thêm video trên timeline). */
+  initialVideoFile?: File;
+  /** Mở hộp chọn file ngay khi mount (trang /p/new/photo hoặc /p/new/video). */
+  autoOpenFilePicker?: boolean;
   onClose?: () => void;
   onPublished?: () => void;
 };
@@ -78,15 +90,16 @@ const VIS_OPTIONS: ReadonlyArray<{
 ];
 
 const MAX_PHOTOS = 10;
+const MAX_VIDEO_BYTES = 500 * 1024 * 1024;
 
-function isValidVideoUrl(url: string): boolean {
-  const u = url.trim().toLowerCase();
-  return (
-    u.includes("youtube.com/") ||
-    u.includes("youtu.be/") ||
-    u.includes("vimeo.com/")
-  );
-}
+type BunnyPrepareResponse = {
+  videoId: string;
+  libraryId: string;
+  embedUrl: string;
+  authorizationSignature: string;
+  authorizationExpire: number;
+  error?: string;
+};
 
 function newBlockId(): string {
   return `b-${crypto.randomUUID()}`;
@@ -112,6 +125,9 @@ export function MediaComposeView({
   ownerAvatarId,
   presentation = "page",
   editInitial = null,
+  initialPhotoFiles,
+  initialVideoFile,
+  autoOpenFilePicker = false,
   onClose,
   onPublished,
 }: Props) {
@@ -120,6 +136,15 @@ export function MediaComposeView({
   const isOverlay = presentation === "overlay";
   const [caption, setCaption] = useState(editInitial?.caption ?? "");
   const [videoUrl, setVideoUrl] = useState(editInitial?.videoUrl ?? "");
+  const [bunnyVideoId, setBunnyVideoId] = useState<string | null>(() => {
+    if (!editInitial?.videoUrl) return null;
+    return classifyBunnyVideoUrl(editInitial.videoUrl)?.videoId ?? null;
+  });
+  const [videoUploading, setVideoUploading] = useState(false);
+  const [videoUploadError, setVideoUploadError] = useState<string | null>(null);
+  const [localVideoPreviewUrl, setLocalVideoPreviewUrl] = useState<string | null>(
+    null,
+  );
   const [photos, setPhotos] = useState<PhotoItem[]>(() =>
     editInitial?.photoImageIds?.length
       ? photoItemsFromIds(editInitial.photoImageIds)
@@ -132,8 +157,13 @@ export function MediaComposeView({
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const videoFileInputRef = useRef<HTMLInputElement | null>(null);
   const visRef = useRef<HTMLDivElement | null>(null);
   const avatarUrl = getAvatarUrl(ownerAvatarId ?? null);
+  const bunnyPreview = useMemo(
+    () => (videoUrl ? classifyBunnyVideoUrl(videoUrl) : null),
+    [videoUrl],
+  );
 
   const isPhoto = mode === "photo";
   const pageTitle = isEdit
@@ -161,8 +191,11 @@ export function MediaComposeView({
       for (const p of photos) {
         if (p.previewUrl.startsWith("blob:")) URL.revokeObjectURL(p.previewUrl);
       }
+      if (localVideoPreviewUrl?.startsWith("blob:")) {
+        URL.revokeObjectURL(localVideoPreviewUrl);
+      }
     };
-  }, [photos]);
+  }, [photos, localVideoPreviewUrl]);
 
   const gridImages = useMemo<GridImage[]>(
     () =>
@@ -248,6 +281,147 @@ export function MediaComposeView({
     [uploadPhoto],
   );
 
+  const uploadVideoFile = useCallback(async (file: File) => {
+    if (!file.type.startsWith("video/")) {
+      setVideoUploadError("File không phải video.");
+      return;
+    }
+    if (file.size > MAX_VIDEO_BYTES) {
+      setVideoUploadError("Video quá lớn (giới hạn 500MB).");
+      return;
+    }
+
+    setVideoUploading(true);
+    setVideoUploadError(null);
+    setError(null);
+    setVideoUrl("");
+    setLocalVideoPreviewUrl((prev) => {
+      if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(file);
+    });
+
+    try {
+      const prepRes = await fetch("/api/post-video/prepare", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: file.name }),
+      });
+      const prep = (await prepRes.json()) as BunnyPrepareResponse;
+      if (
+        !prepRes.ok ||
+        !prep.embedUrl ||
+        !prep.videoId ||
+        !prep.libraryId ||
+        !prep.authorizationSignature
+      ) {
+        throw new Error(prep.error || "Không chuẩn bị được upload video.");
+      }
+
+      setVideoUrl(prep.embedUrl);
+      setBunnyVideoId(prep.videoId);
+
+      const { Upload } = await import("tus-js-client");
+      const upload = new Upload(file, {
+        endpoint: "https://video.bunnycdn.com/tusupload",
+        retryDelays: [0, 1000, 3000, 5000, 10000],
+        headers: {
+          AuthorizationSignature: prep.authorizationSignature,
+          AuthorizationExpire: String(prep.authorizationExpire),
+          VideoId: prep.videoId,
+          LibraryId: String(prep.libraryId),
+        },
+        metadata: {
+          filetype: file.type,
+          title: file.name,
+        },
+        onError: (err) => {
+          releaseVideoUpload(prep.videoId);
+          setVideoUploading(false);
+          setVideoUploadError(
+            err instanceof Error ? err.message : "Upload video thất bại.",
+          );
+        },
+        onSuccess: () => {
+          releaseVideoUpload(prep.videoId);
+          setVideoUploading(false);
+          setLocalVideoPreviewUrl((prev) => {
+            if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+            return null;
+          });
+        },
+      });
+
+      registerVideoUpload(prep.videoId, upload);
+      upload.start();
+    } catch (e) {
+      setVideoUploadError(
+        e instanceof Error ? e.message : "Upload video thất bại.",
+      );
+      setVideoUploading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!initialPhotoFiles?.length || isEdit) return;
+    addFiles(initialPhotoFiles);
+  }, [initialPhotoFiles, isEdit, addFiles]);
+
+  useEffect(() => {
+    if (!initialVideoFile || isEdit || videoUrl || videoUploading) return;
+    void uploadVideoFile(initialVideoFile);
+  }, [initialVideoFile, isEdit, videoUrl, videoUploading, uploadVideoFile]);
+
+  useEffect(() => {
+    if (
+      !autoOpenFilePicker ||
+      isEdit ||
+      initialPhotoFiles?.length ||
+      initialVideoFile
+    ) {
+      return;
+    }
+    if (isPhoto && photos.length === 0) {
+      fileInputRef.current?.click();
+      return;
+    }
+    if (!isPhoto && !videoUrl && !videoUploading) {
+      videoFileInputRef.current?.click();
+    }
+  }, [
+    autoOpenFilePicker,
+    isPhoto,
+    isEdit,
+    initialPhotoFiles,
+    initialVideoFile,
+    photos.length,
+    videoUrl,
+    videoUploading,
+  ]);
+
+  const onVideoFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (file) void uploadVideoFile(file);
+  };
+
+  const onVideoDrop = (e: DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (file) void uploadVideoFile(file);
+  };
+
+  const clearVideo = () => {
+    if (bunnyVideoId) releaseVideoUpload(bunnyVideoId);
+    setVideoUrl("");
+    setBunnyVideoId(null);
+    setVideoUploadError(null);
+    setVideoUploading(false);
+    setLocalVideoPreviewUrl((prev) => {
+      if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+      return null;
+    });
+  };
+
   const onFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.length) addFiles(e.target.files);
     e.target.value = "";
@@ -262,7 +436,7 @@ export function MediaComposeView({
     photos.length > 0 && photos.every((p) => p.imageId && !p.uploading && !p.error);
   const canPublish = isPhoto
     ? photosReady
-    : isValidVideoUrl(videoUrl) && !isPending;
+    : isValidMediaVideoUrl(videoUrl) && !isPending;
 
   const onPublish = () => {
     setError(null);
@@ -303,11 +477,22 @@ export function MediaComposeView({
           });
         }
       } else {
+        const trimmedUrl = videoUrl.trim().slice(0, 2048);
+        const bunny = classifyBunnyVideoUrl(trimmedUrl);
+
         blocks.push({
           id: newBlockId(),
           loai: "embed",
           thu_tu: blocks.length,
-          config: { url: videoUrl.trim().slice(0, 2048) },
+          config: {
+            url: trimmedUrl,
+            ...(bunny
+              ? {
+                  bunnyVideoId: bunny.videoId,
+                  ...(!isEdit ? { videoProcessing: true } : {}),
+                }
+              : {}),
+          },
         });
       }
 
@@ -498,23 +683,55 @@ export function MediaComposeView({
               />
             </>
           ) : (
-            <div className="mc-video-field">
-              <label className="mc-video-label" htmlFor="mc-video-url">
-                <Video size={18} strokeWidth={1.8} aria-hidden />
-                Link video (YouTube hoặc Vimeo)
-              </label>
-              <input
-                id="mc-video-url"
-                type="url"
-                className="mc-video-input"
-                placeholder="https://www.youtube.com/watch?v=…"
-                value={videoUrl}
-                onChange={(e) => setVideoUrl(e.target.value)}
-              />
-              {videoUrl.trim() && !isValidVideoUrl(videoUrl) ? (
-                <p className="mc-compose-error">Chỉ hỗ trợ link YouTube hoặc Vimeo.</p>
+            <>
+              {bunnyPreview ? (
+                <div className="mc-video-preview">
+                  <iframe
+                    src={bunnyIframeSrc(bunnyPreview)}
+                    title="Xem trước video"
+                    allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+                    allowFullScreen
+                  />
+                </div>
+              ) : localVideoPreviewUrl ? (
+                <div className="mc-video-preview">
+                  {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                  <video src={localVideoPreviewUrl} controls playsInline />
+                </div>
               ) : null}
-            </div>
+
+              {!videoUrl && !videoUploading ? (
+                <div
+                  className="mc-video-drop"
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={onVideoDrop}
+                  onClick={() => videoFileInputRef.current?.click()}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      videoFileInputRef.current?.click();
+                    }
+                  }}
+                >
+                  <Video size={28} strokeWidth={1.6} aria-hidden />
+                  <strong>Chọn video</strong>
+                  <span>Kéo thả hoặc bấm để chọn — MP4, MOV, WebM (tối đa 500MB)</span>
+                </div>
+              ) : null}
+
+              <input
+                ref={videoFileInputRef}
+                type="file"
+                accept="video/*"
+                hidden
+                onChange={onVideoFileChange}
+              />
+
+              {videoUploadError ? (
+                <p className="mc-compose-error">{videoUploadError}</p>
+              ) : null}
+            </>
           )}
 
           {error ? <p className="mc-compose-error">{error}</p> : null}
@@ -545,6 +762,27 @@ export function MediaComposeView({
             >
               <Trash2 size={16} strokeWidth={1.8} aria-hidden />
               Xóa tất cả
+            </button>
+          </div>
+        ) : null}
+
+        {!isPhoto && (videoUrl || localVideoPreviewUrl) ? (
+          <div className="mc-compose-toolbar">
+            <button
+              type="button"
+              className="mc-compose-toolbar-btn"
+              onClick={() => videoFileInputRef.current?.click()}
+            >
+              <Video size={16} strokeWidth={1.8} aria-hidden />
+              Đổi video
+            </button>
+            <button
+              type="button"
+              className="mc-compose-toolbar-btn mc-compose-toolbar-btn--danger"
+              onClick={clearVideo}
+            >
+              <Trash2 size={16} strokeWidth={1.8} aria-hidden />
+              Xóa video
             </button>
           </div>
         ) : null}

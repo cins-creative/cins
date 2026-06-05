@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { FeaturedFlagBadge } from "@/components/journey/FeaturedFlagBadge";
+import { GalleryItemVisual, GalleryVideoPlayBadge } from "@/components/journey/GalleryItemVisual";
 import { GalleryMediaFilterDropdown } from "@/components/journey/GalleryMediaFilterDropdown";
-import { JourneyCoverImage } from "@/components/journey/JourneyCoverImage";
 import type { GalleryMainItem } from "@/lib/journey/gallery-page-fetch";
 import {
   galleryMediaFilterLabel,
@@ -180,7 +180,7 @@ export function JourneyGalleryGridView({
 
       {!hasData ? (
         <div className="j-main-empty">
-          Chưa có tác phẩm dạng ảnh. Các bài có cover public/feature sẽ hiện ở đây.
+          Chưa có tác phẩm công khai. Ảnh, video và bài có cover sẽ hiện ở đây.
         </div>
       ) : filtered.length === 0 ? (
         <div className="j-main-empty">
@@ -198,7 +198,7 @@ export function JourneyGalleryGridView({
               }
             >
               {item.featured ? <FeaturedFlagBadge className="j-main-gallery-pin" /> : null}
-              <JourneyCoverImage
+              <GalleryItemVisual
                 src={item.src}
                 srcSet={item.srcSet}
                 sizes={
@@ -210,7 +210,12 @@ export function JourneyGalleryGridView({
                 height={item.height}
                 alt={item.label}
                 priority={item.featured}
+                isVideo={item.isVideo || item.mediaKind === "video"}
+                videoProcessing={item.videoProcessing}
               />
+              {item.isVideo || item.mediaKind === "video" ? (
+                <GalleryVideoPlayBadge />
+              ) : null}
               <span className="j-main-gallery-info">
                 <strong>{item.label}</strong>
                 {item.meta ? <small>{item.meta}</small> : null}

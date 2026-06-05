@@ -125,12 +125,8 @@ export function CareerHub({
         {nganhHubCanEdit ? <NganhHubAdminToolbar /> : null}
         <CareerHubPageHead
           tab={tab}
-          hubBase={hubBase}
           activeLinhVuc={activeLinhVuc}
-          activeSlug={slugForLink}
-          searchQuery={searchQuery}
           activeNhomLabel={activeNhomLabel}
-          activeNhomId={activeNhomId}
         />
         <div className="hn-main">
           <CareerHubRail
@@ -270,13 +266,7 @@ export function CareerHub({
 
   return (
     <div className="career-hub career-hub--hn">
-      <CareerHubPageHead
-        tab={tab}
-        hubBase={hubBase}
-        activeLinhVuc={activeLinhVuc}
-        activeSlug={slugForLink}
-        searchQuery={searchQuery}
-      />
+      <CareerHubPageHead tab={tab} activeLinhVuc={activeLinhVuc} />
 
       <div className="hn-main">
         <CareerHubRail

@@ -3,8 +3,8 @@
 import { useMemo, useState } from "react";
 
 import { FeaturedFlagBadge } from "@/components/journey/FeaturedFlagBadge";
+import { GalleryItemVisual, GalleryVideoPlayBadge } from "@/components/journey/GalleryItemVisual";
 import { GalleryMediaFilterDropdown } from "@/components/journey/GalleryMediaFilterDropdown";
-import { JourneyCoverImage } from "@/components/journey/JourneyCoverImage";
 import type { GalleryMediaKind } from "@/lib/journey/post-media";
 import {
   matchesGalleryMediaFilter,
@@ -25,6 +25,8 @@ export type GalleryPinnedBanner = {
   /** Link ngữ cảnh — VD /{slug}?mid=cins. */
   href?: string;
   mediaKind?: GalleryMediaKind;
+  isVideo?: boolean;
+  videoProcessing?: boolean;
 };
 
 export type GalleryGridItem = {
@@ -39,6 +41,7 @@ export type GalleryGridItem = {
   isVerified?: boolean;
   /** Có overlay ▶ giữa thumbnail không. */
   isVideo?: boolean;
+  videoProcessing?: boolean;
   href?: string;
   mediaKind?: GalleryMediaKind;
 };
@@ -100,7 +103,7 @@ export function JourneyGalleryAside({
           <span className="j-gallery-empty-ico" aria-hidden>
             ▢
           </span>
-          Tác phẩm sẽ xuất hiện ở đây khi bạn đính ảnh vào cột mốc.
+          Tác phẩm sẽ xuất hiện ở đây khi bạn đăng ảnh hoặc video công khai.
         </div>
       ) : filteredEmpty ? (
         <div className="j-gallery-empty j-gallery-empty--filter">
@@ -118,7 +121,7 @@ export function JourneyGalleryAside({
                   data-pinned-id={b.id}
                 >
                   <span className="j-g-banner-bg">
-                    <JourneyCoverImage
+                    <GalleryItemVisual
                       src={b.src}
                       srcSet={b.srcSet}
                       sizes={b.srcSet ? "280px" : undefined}
@@ -126,8 +129,13 @@ export function JourneyGalleryAside({
                       height={b.height}
                       alt=""
                       priority={index === 0}
+                      isVideo={b.isVideo || b.mediaKind === "video"}
+                      videoProcessing={b.videoProcessing}
                     />
                   </span>
+                  {b.isVideo || b.mediaKind === "video" ? (
+                    <GalleryVideoPlayBadge />
+                  ) : null}
                   <FeaturedFlagBadge className="j-g-banner-pin" />
                   <span className="j-g-banner-info">
                     <span className="j-g-banner-title">{b.title}</span>
@@ -149,19 +157,19 @@ export function JourneyGalleryAside({
                   aria-label={it.label}
                 >
                   <span className="j-g-thumb">
-                    <JourneyCoverImage
+                    <GalleryItemVisual
                       src={it.src}
                       srcSet={it.srcSet}
                       sizes={it.srcSet ? "140px" : undefined}
                       width={it.width}
                       height={it.height}
                       alt={it.label}
+                      isVideo={it.isVideo || it.mediaKind === "video"}
+                      videoProcessing={it.videoProcessing}
                     />
                   </span>
                   {it.isVideo || it.mediaKind === "video" ? (
-                    <span className="j-g-play" aria-hidden>
-                      ▶
-                    </span>
+                    <GalleryVideoPlayBadge />
                   ) : null}
                   <span className="j-g-overlay">
                     <span className="j-g-label">{it.label}</span>

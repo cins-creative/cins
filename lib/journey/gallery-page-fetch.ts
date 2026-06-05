@@ -46,9 +46,33 @@ export type GalleryMainItem = {
   type: MilestoneType;
   variant: MilestoneVariant;
   mediaKind?: GalleryMediaKind;
+  isVideo?: boolean;
+  videoProcessing?: boolean;
 };
 
 const getGalleryStubsCached = cache(collectGalleryStubs);
+
+type JourneyImageRole = Parameters<typeof journeyImageFields>[1];
+
+function stubImageFields(
+  entry: GalleryStub,
+  role: JourneyImageRole,
+): {
+  src: string;
+  srcSet?: string;
+  width?: number;
+  height?: number;
+} | null {
+  if (entry.coverSrc) {
+    return { src: entry.coverSrc, width: 800, height: 450 };
+  }
+  if (entry.coverId) {
+    const img = journeyImageFields(entry.coverId, role);
+    if (!img?.src) return null;
+    return img;
+  }
+  return null;
+}
 
 function postHref(ownerSlug: string, postSlug: string | null): string {
   if (!postSlug) return `/${ownerSlug}`;
@@ -72,15 +96,16 @@ function hydrateMainItems(
   const out: GalleryMainItem[] = [];
   stubs.forEach((entry, i) => {
     const featured = entry.visibility === "feature";
-    const img = journeyImageFields(entry.coverId, "milestone-preview");
-    if (!img?.src) return;
+    const img = stubImageFields(entry, "milestone-preview");
+    const isVideo = entry.mediaKind === "video";
+    if (!img?.src && !isVideo) return;
     const slug = ownerSlugById.get(entry.postOwnerId) ?? ownerSlug;
     out.push({
       id: `${featured ? "pin" : "grid"}-${entry.cotMocId}-${i}`,
-      src: img.src,
-      srcSet: img.srcSet,
-      width: img.width,
-      height: img.height,
+      src: img?.src ?? "",
+      srcSet: img?.srcSet,
+      width: img?.width,
+      height: img?.height,
       label: entry.tieuDe || "Tác phẩm",
       href: postHref(slug, entry.tacPhamSlug),
       meta: featured ? formatVnDate(entry.thoiDiem) : "",
@@ -88,6 +113,8 @@ function hydrateMainItems(
       type: entry.type,
       variant: entry.variant,
       mediaKind: entry.mediaKind,
+      isVideo,
+      videoProcessing: entry.videoProcessing,
     });
   });
   return out;
@@ -111,14 +138,15 @@ function hydrateAsideItems(
 
   const pinned: GalleryPinnedBanner[] = [];
   featureEntries.forEach((entry, i) => {
-    const img = journeyImageFields(entry.coverId, "gallery-pinned");
-    if (!img?.src) return;
+    const img = stubImageFields(entry, "gallery-pinned");
+    const isVideo = entry.mediaKind === "video";
+    if (!img?.src && !isVideo) return;
     pinned.push({
       id: `pin-${entry.cotMocId}-${i}`,
-      src: img.src,
-      srcSet: img.srcSet,
-      width: img.width,
-      height: img.height,
+      src: img?.src ?? "",
+      srcSet: img?.srcSet,
+      width: img?.width,
+      height: img?.height,
       pin: "Nổi bật",
       title: entry.tieuDe || "Tác phẩm",
       meta: formatVnDate(entry.thoiDiem),
@@ -127,26 +155,30 @@ function hydrateAsideItems(
         entry.tacPhamSlug,
       ),
       mediaKind: entry.mediaKind,
+      isVideo,
+      videoProcessing: entry.videoProcessing,
     });
   });
 
   const items: GalleryGridItem[] = [];
   publicEntries.forEach((entry, i) => {
-    const img = journeyImageFields(entry.coverId, "gallery-grid");
-    if (!img?.src) return;
+    const img = stubImageFields(entry, "gallery-grid");
+    const isVideo = entry.mediaKind === "video";
+    if (!img?.src && !isVideo) return;
     items.push({
       id: `grid-${entry.cotMocId}-${i}`,
-      src: img.src,
-      srcSet: img.srcSet,
-      width: img.width,
-      height: img.height,
+      src: img?.src ?? "",
+      srcSet: img?.srcSet,
+      width: img?.width,
+      height: img?.height,
       label: entry.tieuDe || "Tác phẩm",
       href: postHref(
         ownerSlugById.get(entry.postOwnerId) ?? ownerSlug,
         entry.tacPhamSlug,
       ),
       mediaKind: entry.mediaKind,
-      isVideo: entry.mediaKind === "video",
+      isVideo,
+      videoProcessing: entry.videoProcessing,
     });
   });
 

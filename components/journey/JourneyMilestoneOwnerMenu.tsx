@@ -188,16 +188,45 @@ export function JourneyMilestoneOwnerMenu({
 
   function handleDelete() {
     setError(null);
-    startTransition(async () => {
+    close();
+
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("cins:milestone-deleted", {
+          detail: { milestoneId, ownerSlug },
+        }),
+      );
+    }
+
+    void (async () => {
       const res = await deleteMilestone(milestoneId);
       if (!res.ok) {
-        setError(res.error);
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("cins:milestone-delete-failed", {
+              detail: { milestoneId, ownerSlug, error: res.error },
+            }),
+          );
+        }
         return;
       }
-      close();
-      router.refresh();
+
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("cins:journey-gallery-sync", {
+            detail: { ownerSlug },
+          }),
+        );
+      }
+
+      const onPostPage =
+        typeof window !== "undefined" &&
+        window.location.pathname.startsWith(`/${ownerSlug}/p/`);
+      if (onPostPage) {
+        router.push(`/${ownerSlug}`);
+      }
       onAfterChange?.();
-    });
+    })();
   }
 
   const editHref =

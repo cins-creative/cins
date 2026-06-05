@@ -13,6 +13,11 @@
    ╚══════════════════════════════════════════════════════════════════╝ */
 
 import { getCfAccountHash } from "@/lib/cloudflare/account-hash";
+import {
+  bunnyIframeSrc,
+  classifyBunnyVideoUrl,
+} from "@/lib/bunny/embed";
+import { VideoProcessingPlaceholder } from "@/components/journey/VideoProcessingPlaceholder";
 import type { Block } from "@/lib/editor/types";
 
 const PICSUM = "https://picsum.photos/seed/";
@@ -226,6 +231,24 @@ function ReadOnlyBlock({ block }: { block: Block }) {
   }
   if (block.loai === "embed") {
     const url = typeof cfg.url === "string" ? cfg.url : "";
+    if (cfg.videoProcessing === true) {
+      return <VideoProcessingPlaceholder />;
+    }
+    const bunny = classifyBunnyVideoUrl(url);
+    if (bunny) {
+      return (
+        <div className="b-embed b-embed-ro is-iframe" data-provider="bunny">
+          <iframe
+            src={bunnyIframeSrc(bunny)}
+            title="Video"
+            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+            allowFullScreen
+            loading="lazy"
+          />
+        </div>
+      );
+    }
+
     const cls = classifyEmbed(url);
     if (!cls) return null;
 

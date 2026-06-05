@@ -24,6 +24,7 @@ import { JourneyArticleTagLink } from "@/components/journey/JourneyArticleTagLin
 import { JourneyCoAuthorProposal } from "@/components/journey/JourneyCoAuthorProposal";
 import { JourneyCoverImage } from "@/components/journey/JourneyCoverImage";
 import { ImageGrid } from "@/components/journey/ImageGrid";
+import { MilestoneVideoEmbed } from "@/components/journey/MilestoneVideoEmbed";
 import { JourneyBookmarkButton } from "@/components/journey/JourneyBookmarkButton";
 import { JourneyMilestoneInlineControls } from "@/components/journey/JourneyMilestoneInlineControls";
 import { JourneyLikeButton } from "@/components/journey/JourneyLikeButton";
@@ -40,10 +41,12 @@ import { articleTagLoaiClass } from "@/lib/editor/article-tag";
 import type { LoaiMoc, Visibility } from "@/lib/editor/types";
 import { photoGridImagesFromBlocks } from "@/lib/journey/image-grid";
 import {
-  isMediaPost,
+  detectMediaPostKind,
+  extractVideoUrl,
   milestoneCardCaption,
   shouldShowMilestoneCardTitle,
 } from "@/lib/journey/post-media";
+import { extractVideoProcessingMeta } from "@/lib/journey/video-processing-meta";
 import { getNameInitials } from "@/lib/journey/profile";
 
 type Props = {
@@ -202,7 +205,15 @@ export function JourneyMilestoneCard({
   const showAuthorsStrip = coAuthorsOnly.length > 0;
   const preview = media[0] ?? null;
   const photoGridImages = photoGridImagesFromBlocks(noiDungBlocks);
-  const isPhotoAlbum = isMediaPost(noiDungBlocks) && photoGridImages !== null;
+  const mediaKind = detectMediaPostKind(noiDungBlocks);
+  const isPhotoAlbum = mediaKind === "photo" && photoGridImages !== null;
+  const isVideoPost = mediaKind === "video";
+  const videoEmbedUrl = isVideoPost
+    ? extractVideoUrl(noiDungBlocks ?? [])
+    : null;
+  const videoProcessingMeta = isVideoPost
+    ? extractVideoProcessingMeta(noiDungBlocks ?? [])
+    : null;
   const showCardTitle = shouldShowMilestoneCardTitle(title, noiDungBlocks);
   const cardCaption = milestoneCardCaption(body, noiDungBlocks);
   const contributorCount = coAuthorCredits.length;
@@ -346,8 +357,16 @@ export function JourneyMilestoneCard({
               </div>
             ) : null}
 
-            <div className={`preview${isPhotoAlbum ? " preview--photo-grid" : ""}`}>
-              {isPhotoAlbum && photoGridImages ? (
+            <div
+              className={`preview${isPhotoAlbum ? " preview--photo-grid" : ""}${isVideoPost ? " preview--video" : ""}`}
+            >
+              {isVideoPost && videoEmbedUrl ? (
+                <MilestoneVideoEmbed
+                  url={videoEmbedUrl}
+                  title={showCardTitle ? title : cardCaption || title}
+                  processing={videoProcessingMeta?.processing === true}
+                />
+              ) : isPhotoAlbum && photoGridImages ? (
                 <ImageGrid images={photoGridImages} readOnly />
               ) : preview ? (
                 <JourneyCoverImage
@@ -364,9 +383,11 @@ export function JourneyMilestoneCard({
                   <span className="preview-label">Cover - ảnh đầu tiên trong bài</span>
                 </div>
               )}
-              <span className="preview-open-hint" aria-label="Xem bài đầy đủ">
-                <Maximize2 size={14} strokeWidth={2} aria-hidden />
-              </span>
+              {!isVideoPost ? (
+                <span className="preview-open-hint" aria-label="Xem bài đầy đủ">
+                  <Maximize2 size={14} strokeWidth={2} aria-hidden />
+                </span>
+              ) : null}
             </div>
           </div>
 
@@ -457,7 +478,7 @@ export function JourneyMilestoneCard({
             />
             {postHref ? (
               <Link
-                href={postHref}
+                href={`${postHref}#post-comments`}
                 scroll={false}
                 prefetch
                 className="action-btn"
