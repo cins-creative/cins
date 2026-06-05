@@ -1,9 +1,14 @@
 import {
+  clientUrlFromThumbnailValue,
   normalizeArticleThumbnailValue,
   resolveAdminArticleThumbSrc,
 } from "@/lib/admin/article-display";
-import { buildContentPreview, buildMetaPreview } from "@/lib/admin/article-preview";
+import { getCoverUrl } from "@/lib/articles/cover";
 import { slugifyNganhTitle, uniqueNganhArticleSlug } from "@/lib/nganh/hub-slug";
+import {
+  ADMIN_ARTICLE_PAGE_SIZE,
+  type AdminArticleListParams,
+} from "@/lib/admin/article-list-params";
 import { createServiceRoleClient, hasServiceRoleEnv } from "@/lib/supabase/service-role";
 import type { ArticleMeta } from "@/lib/articles/types";
 
@@ -43,8 +48,8 @@ export type AdminArticleFilterOptions = {
   nhom: AdminArticleNhomBrief[];
 };
 
-/** Số bài tải tối đa cho admin list (lọc phía client trên tập này). */
-export const ADMIN_ARTICLE_LIST_LIMIT = 2000;
+/** @deprecated Dùng server pagination — giữ export tránh break import cũ. */
+export const ADMIN_ARTICLE_LIST_LIMIT = ADMIN_ARTICLE_PAGE_SIZE;
 
 export type AdminArticleListRow = {
   id: string;
@@ -73,9 +78,9 @@ export type AdminArticleListRow = {
   meta_preview: string | null;
 };
 
-/** Khớp schema thực tế + `docs/cursor_map_admin.md` — không có `noi_dung_markdown`. */
+/** List admin — không tải `noi_dung` / `meta` (preview chỉ trong editor). */
 const LIST_SELECT_PLAIN =
-  "id, slug, tieu_de, tieu_de_viet, tieu_de_eng, loai_bai_viet, tom_tat, noi_dung, meta, meta_title, meta_description, main_video, trang_thai_noi_dung, luot_xem, tao_luc, cap_nhat_luc, cover_id, thumbnail, id_linh_vuc";
+  "id, slug, tieu_de, tieu_de_viet, tieu_de_eng, loai_bai_viet, tom_tat, trang_thai_noi_dung, luot_xem, tao_luc, cap_nhat_luc, cover_id, thumbnail, id_linh_vuc";
 
 const LIST_SELECT_EMBED = `${LIST_SELECT_PLAIN}, linh_vuc:id_linh_vuc(id, slug, ten), article_gan_nhom(id_nhom, article_nhom(id, ten, loai_nhom))`;
 
@@ -137,19 +142,11 @@ function parseListRow(raw: Record<string, unknown>): AdminArticleListRow {
     nhom: [...nhomMap.values()].sort((a, b) =>
       a.ten.localeCompare(b.ten, "vi", { sensitivity: "base" }),
     ),
-    ...(() => {
-      const content = buildContentPreview({
-        noi_dung: raw.noi_dung as string | null,
-      });
-      const metaP = buildMetaPreview(raw.meta);
-      return {
-        has_noi_dung: content.hasData,
-        noi_dung_preview: content.preview,
-        noi_dung_chars: content.charCount,
-        has_meta: metaP.hasData,
-        meta_preview: metaP.preview,
-      };
-    })(),
+    has_noi_dung: false,
+    noi_dung_preview: null,
+    noi_dung_chars: 0,
+    has_meta: false,
+    meta_preview: null,
   };
 }
 
@@ -249,20 +246,128 @@ export async function listAdminArticleFilterOptions(): Promise<
   return { linhVuc, nhom };
 }
 
-async function attachThumbnailSrcToRows(
+function attachThumbnailSrcSync(
   rows: AdminArticleListRow[],
-): Promise<AdminArticleListRow[]> {
-  return Promise.all(
-    rows.map(async (row) => {
-      const { src, fromCover } = await resolveAdminArticleThumbSrc(row);
-      return {
-        ...row,
-        thumbnail_src: src,
-        thumbnail_from_cover: fromCover,
-      };
-    }),
-  );
+): AdminArticleListRow[] {
+  return rows.map((row) => {
+    const thumb = normalizeArticleThumbnailValue(row.thumbnail);
+    if (thumb) {
+      const sync =
+        clientUrlFromThumbnailValue(thumb) ??
+        getCoverUrl(thumb, "thumbnail") ??
+        getCoverUrl(thumb, "public");
+      if (sync) {
+        return { ...row, thumbnail_src: sync, thumbnail_from_cover: false };
+      }
+    }
+    const cover = row.cover_id?.trim();
+    if (cover) {
+      const sync =
+        getCoverUrl(cover, "thumbnail") ?? getCoverUrl(cover, "public");
+      if (sync) {
+        return { ...row, thumbnail_src: sync, thumbnail_from_cover: true };
+      }
+    }
+    return row;
+  });
 }
+
+function escapeIlikePattern(q: string): string {
+  return q.replace(/[%_\\]/g, "\\$&");
+}
+
+type AdminArticleListFilterQuery = {
+  eq: (col: string, val: string) => AdminArticleListFilterQuery;
+  or: (filters: string) => AdminArticleListFilterQuery;
+  not: (col: string, op: string, val: null) => AdminArticleListFilterQuery;
+  is: (col: string, val: null) => AdminArticleListFilterQuery;
+  filter: (col: string, op: string, val: string) => AdminArticleListFilterQuery;
+  in: (col: string, vals: string[]) => AdminArticleListFilterQuery;
+  range: (
+    from: number,
+    to: number,
+  ) => Promise<{ data: unknown; error: { message: string } | null; count: number | null }>;
+};
+
+function applyAdminArticleListFilters(
+  query: AdminArticleListFilterQuery,
+  params: AdminArticleListParams,
+  opts?: { embed?: boolean; baiIds?: string[] | null },
+): AdminArticleListFilterQuery {
+  let q = query;
+  if (params.loai) q = q.eq("loai_bai_viet", params.loai);
+  if (params.status) q = q.eq("trang_thai_noi_dung", params.status);
+  if (params.linhVuc) q = q.eq("id_linh_vuc", params.linhVuc);
+  if (opts?.embed) {
+    if (params.nhom) {
+      q = q.filter("article_gan_nhom.id_nhom", "eq", params.nhom);
+    }
+    if (params.loaiNhom) {
+      q = q.filter(
+        "article_gan_nhom.article_nhom.loai_nhom",
+        "eq",
+        params.loaiNhom,
+      );
+    }
+  } else if (opts?.baiIds) {
+    q = q.in("id", opts.baiIds);
+  }
+  if (params.media === "has_thumb") q = q.not("thumbnail", "is", null);
+  if (params.media === "no_thumb") q = q.is("thumbnail", null);
+  if (params.media === "has_cover") q = q.not("cover_id", "is", null);
+  if (params.media === "no_cover") q = q.is("cover_id", null);
+  const text = params.q?.trim();
+  if (text) {
+    const esc = escapeIlikePattern(text);
+    q = q.or(
+      `tieu_de.ilike.%${esc}%,slug.ilike.%${esc}%,tieu_de_viet.ilike.%${esc}%,tieu_de_eng.ilike.%${esc}%`,
+    );
+  }
+  return q;
+}
+
+async function baiIdsForNhomFilters(
+  supabase: ReturnType<typeof createServiceRoleClient>,
+  params: AdminArticleListParams,
+): Promise<string[] | null> {
+  if (params.nhom) {
+    const { data } = await supabase
+      .from("article_gan_nhom")
+      .select("id_bai_viet")
+      .eq("id_nhom", params.nhom);
+    return [
+      ...new Set(
+        (data ?? [])
+          .map((r) => String((r as { id_bai_viet?: string }).id_bai_viet ?? "").trim())
+          .filter(Boolean),
+      ),
+    ];
+  }
+  if (params.loaiNhom) {
+    const { data: nhoms } = await supabase
+      .from("article_nhom")
+      .select("id")
+      .eq("loai_nhom", params.loaiNhom);
+    const nhomIds = (nhoms ?? [])
+      .map((r) => String((r as { id: string }).id).trim())
+      .filter(Boolean);
+    if (!nhomIds.length) return [];
+    const { data: gan } = await supabase
+      .from("article_gan_nhom")
+      .select("id_bai_viet")
+      .in("id_nhom", nhomIds);
+    return [
+      ...new Set(
+        (gan ?? [])
+          .map((r) => String((r as { id_bai_viet?: string }).id_bai_viet ?? "").trim())
+          .filter(Boolean),
+      ),
+    ];
+  }
+  return null;
+}
+
+export type { AdminArticleListParams };
 
 export type AdminArticleDetailRow = AdminArticleListRow & {
   noi_dung: string | null;
@@ -272,14 +377,16 @@ export type AdminArticleDetailRow = AdminArticleListRow & {
   main_video: string | null;
 };
 
-export async function listArticlesForAdmin(): Promise<
+export async function listArticlesForAdmin(
+  params: AdminArticleListParams = {},
+): Promise<
   | {
       ok: true;
       rows: AdminArticleListRow[];
       filterOptions: AdminArticleFilterOptions;
-      /** Tổng bài trong DB (count). */
       totalCount: number;
-      /** Số bài thực tế tải về (≤ ADMIN_ARTICLE_LIST_LIMIT, mới nhất trước). */
+      page: number;
+      pageSize: number;
       loadedCount: number;
     }
   | { ok: false; message: string }
@@ -289,42 +396,73 @@ export async function listArticlesForAdmin(): Promise<
   }
   try {
     const supabase = createServiceRoleClient();
+    const page = Math.max(1, params.page ?? 1);
+    const pageSize = ADMIN_ARTICLE_PAGE_SIZE;
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+
     let data: Record<string, unknown>[] | null = null;
+    let filteredCount = 0;
+    let usedEmbed = false;
 
-    const { count: totalCountRaw } = await supabase
-      .from("article_bai_viet")
-      .select("id", { count: "exact", head: true });
-    const totalCount = totalCountRaw ?? 0;
-
-    const withEmbed = await supabase
-      .from("article_bai_viet")
-      .select(LIST_SELECT_EMBED)
-      .order("cap_nhat_luc", { ascending: false })
-      .limit(ADMIN_ARTICLE_LIST_LIMIT);
+    const embedQuery = applyAdminArticleListFilters(
+      supabase
+        .from("article_bai_viet")
+        .select(LIST_SELECT_EMBED, { count: "exact" })
+        .order("cap_nhat_luc", { ascending: false }) as unknown as AdminArticleListFilterQuery,
+      params,
+      { embed: true },
+    );
+    const withEmbed = await embedQuery.range(from, to);
 
     if (!withEmbed.error && withEmbed.data) {
       data = withEmbed.data as Record<string, unknown>[];
+      filteredCount = withEmbed.count ?? data.length;
+      usedEmbed = true;
     } else {
-      const plain = await supabase
-        .from("article_bai_viet")
-        .select(LIST_SELECT_PLAIN)
-        .order("cap_nhat_luc", { ascending: false })
-        .limit(ADMIN_ARTICLE_LIST_LIMIT);
+      const nhomBaiIds = await baiIdsForNhomFilters(supabase, params);
+      if (nhomBaiIds !== null && nhomBaiIds.length === 0) {
+        const filterOptions = await listAdminArticleFilterOptions();
+        return {
+          ok: true,
+          rows: [],
+          filterOptions,
+          totalCount: 0,
+          page,
+          pageSize,
+          loadedCount: 0,
+        };
+      }
+
+      const plainQuery = applyAdminArticleListFilters(
+        supabase
+          .from("article_bai_viet")
+          .select(LIST_SELECT_PLAIN, { count: "exact" })
+          .order("cap_nhat_luc", { ascending: false }) as unknown as AdminArticleListFilterQuery,
+        params,
+        { embed: false, baiIds: nhomBaiIds ?? undefined },
+      );
+      const plain = await plainQuery.range(from, to);
       if (plain.error) return { ok: false, message: plain.error.message };
       data = (plain.data ?? []) as Record<string, unknown>[];
+      filteredCount = plain.count ?? data.length;
     }
 
     let rows = (data ?? []).map((r) => parseListRow(r));
-    rows = await attachNhomToRows(supabase, rows);
+    if (!usedEmbed) {
+      rows = await attachNhomToRows(supabase, rows);
+    }
     rows = await attachLinhVucNames(supabase, rows);
-    rows = await attachThumbnailSrcToRows(rows);
+    rows = attachThumbnailSrcSync(rows);
 
-    const filterOptions = await listAdminArticleFilterOptions();
+    const [filterOptions] = await Promise.all([listAdminArticleFilterOptions()]);
     return {
       ok: true,
       rows,
       filterOptions,
-      totalCount,
+      totalCount: filteredCount,
+      page,
+      pageSize,
       loadedCount: rows.length,
     };
   } catch (e) {

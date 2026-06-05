@@ -1,4 +1,4 @@
-import { resolveHubArticleImages } from "@/lib/bai-viet/thumbnail";
+import { resolveHubArticleThumbSync } from "@/lib/bai-viet/thumbnail";
 import { createPublicSupabaseClient } from "@/lib/supabase/public";
 import { hasSupabaseEnv } from "@/lib/supabase/server";
 import { describeFetchFailure } from "@/lib/supabase/errors";
@@ -351,15 +351,13 @@ export async function fetchRelatedArticles(
       };
     });
 
-    return Promise.all(
-      mapped.map(async (card) => {
-        const { thumb_url } = await resolveHubArticleImages({
-          thumbnail: card.thumbnail,
-          cover_id: card.cover_id,
-        });
-        return { ...card, thumb_url };
+    return mapped.map((card) => ({
+      ...card,
+      thumb_url: resolveHubArticleThumbSync({
+        thumbnail: card.thumbnail,
+        cover_id: card.cover_id,
       }),
-    );
+    }));
   } catch {
     return [];
   }
@@ -702,6 +700,12 @@ const NGHE_HUB_BASE_SELECT =
 
 const NGHE_HUB_WITH_LINH_VUC_SELECT = `${NGHE_HUB_BASE_SELECT}, linh_vuc:id_linh_vuc(id, slug, ten)`;
 
+const NGHE_HUB_WITH_NHOM_EMBED = `${NGHE_HUB_WITH_LINH_VUC_SELECT}, article_gan_nhom(id_nhom, article_nhom(id, slug, ten, mo_ta, thu_tu, loai_nhom))`;
+
+function escapeIlikePattern(q: string): string {
+  return q.replace(/[%_\\]/g, "\\$&");
+}
+
 function pickArticleNhomFkFromRow(r: Record<string, unknown>): string | null {
   for (const k of ARTICLE_BAI_VIET_NHOM_FK_COLUMNS) {
     const v = r[k];
@@ -710,7 +714,8 @@ function pickArticleNhomFkFromRow(r: Record<string, unknown>): string | null {
   return null;
 }
 
-function mapNgheArticleHubRow(r: Record<string, unknown>): NgheArticleHubRow {
+/** Map row hub bài viết — dùng chung hub nghe + ngành. */
+export function mapNgheArticleHubRow(r: Record<string, unknown>): NgheArticleHubRow {
   const embed = parseLinhVucEmbed(r.linh_vuc);
   const idLvRaw = r.id_linh_vuc;
   const idLv =
@@ -718,6 +723,26 @@ function mapNgheArticleHubRow(r: Record<string, unknown>): NgheArticleHubRow {
       ? String(idLvRaw).trim()
       : (embed?.id ?? null);
   const slug = embed?.slug?.trim() || null;
+
+  const gan = r.article_gan_nhom;
+  const nhomMap = new Map<string, ArticleNhomEmbedRow>();
+  if (Array.isArray(gan)) {
+    for (const link of gan) {
+      if (!link || typeof link !== "object") continue;
+      const l = link as Record<string, unknown>;
+      const nhRaw = l.article_nhom;
+      const nhObj = Array.isArray(nhRaw) ? nhRaw[0] : nhRaw;
+      const embedNhom = parseArticleNhomRow(
+        (nhObj ?? {}) as Parameters<typeof parseArticleNhomRow>[0],
+      );
+      const nhomId = embedNhom?.id ?? String(l.id_nhom ?? "").trim();
+      if (embedNhom && nhomId) nhomMap.set(nhomId, embedNhom);
+    }
+  }
+  const fromGan = [...nhomMap.values()].sort(sortNhomEmbeds);
+  const fkId = pickArticleNhomFkFromRow(r);
+  const primary = fromGan[0] ?? null;
+
   return {
     id: String(r.id),
     slug: String(r.slug ?? ""),
@@ -731,7 +756,9 @@ function mapNgheArticleHubRow(r: Record<string, unknown>): NgheArticleHubRow {
     meta_description: (r.meta_description as string | null) ?? null,
     cover_id: (r.cover_id as string | null) ?? null,
     thumbnail: (r.thumbnail as string | null) ?? null,
-    article_nhom_id: pickArticleNhomFkFromRow(r),
+    article_nhom_id: primary?.id ?? fkId,
+    article_nhom: primary,
+    article_nhom_all: fromGan.length ? fromGan : null,
     id_linh_vuc: idLv,
     linh_vuc: embed ?? (idLv ? { id: idLv, slug: slug ?? "", ten: "Lĩnh vực" } : null),
     linh_vuc_id: idLv ? [idLv] : null,
@@ -890,12 +917,14 @@ export async function attachArticleNhomFromGanNhom(
 export async function listNgheArticlesForHub(options?: {
   limit?: number;
   linhVucId?: string;
+  q?: string;
 }): Promise<ListNgheArticlesResult> {
   if (!hasSupabaseEnv()) {
     return { ok: false, items: [], reason: "no_env" };
   }
   const limit = Math.min(Math.max(options?.limit ?? 500, 1), 500);
   const linhVucId = options?.linhVucId?.trim() ?? "";
+  const searchText = options?.q?.trim() ?? "";
   try {
     const supabase = createPublicSupabaseClient();
 
@@ -907,31 +936,46 @@ export async function listNgheArticlesForHub(options?: {
         .eq("trang_thai_noi_dung", "published")
         .order("tieu_de", { ascending: true })
         .limit(limit);
-      if (linhVucId) q = q.eq("id_linh_vuc", linhVucId);
+      if (linhVucId && !searchText) q = q.eq("id_linh_vuc", linhVucId);
+      if (searchText) {
+        const esc = escapeIlikePattern(searchText);
+        q = q.or(
+          `tieu_de.ilike.%${esc}%,slug.ilike.%${esc}%,tieu_de_viet.ilike.%${esc}%,tieu_de_eng.ilike.%${esc}%,tom_tat.ilike.%${esc}%,meta_description.ilike.%${esc}%`,
+        );
+      }
       return q;
     };
 
     let rows: Record<string, unknown>[] | null = null;
+    let hasNhomEmbed = false;
 
-    const withEmbed = await runList(NGHE_HUB_WITH_LINH_VUC_SELECT);
-    if (!withEmbed.error && withEmbed.data != null) {
-      rows = withEmbed.data as unknown as Record<string, unknown>[];
+    const withNhom = await runList(NGHE_HUB_WITH_NHOM_EMBED);
+    if (!withNhom.error && withNhom.data != null) {
+      rows = withNhom.data as unknown as Record<string, unknown>[];
+      hasNhomEmbed = true;
     } else {
-      const plain = await runList(NGHE_HUB_BASE_SELECT);
-      if (plain.error) {
-        return {
-          ok: false,
-          items: [],
-          reason: "query_error",
-          message: plain.error.message,
-        };
+      const withEmbed = await runList(NGHE_HUB_WITH_LINH_VUC_SELECT);
+      if (!withEmbed.error && withEmbed.data != null) {
+        rows = withEmbed.data as unknown as Record<string, unknown>[];
+      } else {
+        const plain = await runList(NGHE_HUB_BASE_SELECT);
+        if (plain.error) {
+          return {
+            ok: false,
+            items: [],
+            reason: "query_error",
+            message: plain.error.message,
+          };
+        }
+        rows = (plain.data ?? []) as unknown as Record<string, unknown>[];
       }
-      rows = (plain.data ?? []) as unknown as Record<string, unknown>[];
     }
 
     let base = rows.map(mapNgheArticleHubRow);
     base = await attachLinhVucEmbedIfMissing(base);
-    const items = await attachArticleNhomFromGanNhom(base);
+    const items = hasNhomEmbed
+      ? base
+      : await attachArticleNhomFromGanNhom(base);
     return { ok: true, items };
   } catch (e) {
     return {

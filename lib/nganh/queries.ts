@@ -4,11 +4,14 @@ import {
   fetchNgheDungTrongNganh,
   fetchRelatedArticles,
   getArticleBySlug,
+  mapNgheArticleHubRow,
   type MonHocForNganhRow,
   type NgheForNganhRow,
 } from "@/lib/articles/queries";
+import { getCoverUrl } from "@/lib/articles/cover";
 import { createPublicSupabaseClient } from "@/lib/supabase/public";
 import { hasSupabaseEnv } from "@/lib/supabase/server";
+import { describeFetchFailure } from "@/lib/supabase/errors";
 import type { ArticleBaiViet, ArticleCard, MetaNganhDaoTao } from "@/lib/articles/types";
 import type { NgheArticleHubRow } from "@/lib/articles/types";
 import type { NganhDetailArticle, NganhHubItem } from "@/lib/nganh/types";
@@ -20,26 +23,49 @@ import {
 } from "@/lib/nganh/truong";
 import { parseMetaNganhFields } from "@/lib/nganh/media-fields";
 import { parseNganhNoiDung } from "@/lib/nganh/parseNoiDung";
-import { resolveTruongImageSrc } from "@/lib/truong/media-url";
 
 export type MonHocNganhRow = MonHocForNganhRow;
 export type NgheNganhRow = NgheForNganhRow;
+
+const NGANH_HUB_BASE_SELECT =
+  "id, slug, tieu_de, tieu_de_viet, tieu_de_eng, tom_tat, meta_description, cover_id, thumbnail, meta";
+
+const NGANH_HUB_WITH_NHOM_EMBED = `${NGANH_HUB_BASE_SELECT}, article_gan_nhom(id_nhom, article_nhom(id, slug, ten, mo_ta, thu_tu, loai_nhom))`;
+
+function escapeIlikePattern(q: string): string {
+  return q.replace(/[%_\\]/g, "\\$&");
+}
 
 function parseMetaNganh(meta: ArticleBaiViet["meta"]): MetaNganhDaoTao | null {
   return parseMetaNganhFields(meta);
 }
 
-async function mapRowToNganhHubItem(
-  row: NgheArticleHubRow & { meta?: MetaNganhDaoTao | null },
-): Promise<NganhHubItem> {
+type NganhHubRawRow = NgheArticleHubRow & { meta?: MetaNganhDaoTao | null };
+
+function mapNganhHubRawRow(r: Record<string, unknown>): NganhHubRawRow {
+  return {
+    ...mapNgheArticleHubRow(r),
+    meta: (r.meta as MetaNganhDaoTao | null) ?? null,
+  };
+}
+
+function resolveNganhCoverSrc(row: {
+  thumbnail?: string | null;
+  cover_id?: string | null;
+}): string | null {
+  return (
+    getCoverUrl(row.thumbnail) ??
+    getCoverUrl(row.cover_id, "thumbnail") ??
+    getCoverUrl(row.cover_id, "public")
+  );
+}
+
+function mapRowToNganhHubItem(row: NganhHubRawRow): NganhHubItem {
   const meta = parseMetaNganh(row.meta ?? null);
   const nh =
     row.article_nhom_all?.find((n) => n.loai_nhom === "nhom_nganh") ??
     row.article_nhom;
   const cover_id = row.cover_id ?? null;
-  const cover_src = cover_id
-    ? await resolveTruongImageSrc(cover_id, ["public", "cover", "medium"])
-    : null;
   return {
     id: row.id,
     slug: row.slug,
@@ -50,7 +76,7 @@ async function mapRowToNganhHubItem(
     ma_nganh: meta?.ma_nganh ?? null,
     khoi_thi: meta?.khoi_thi ?? [],
     cover_id,
-    cover_src,
+    cover_src: resolveNganhCoverSrc(row),
     article_nhom_id: nh?.id ?? row.article_nhom_id ?? null,
     article_nhom: nh ?? row.article_nhom ?? null,
     article_nhom_all: row.article_nhom_all ?? null,
@@ -61,71 +87,110 @@ export type ListNganhArticlesResult =
   | { ok: true; items: NganhHubItem[] }
   | { ok: false; items: []; reason: "no_env" | "query_error"; message?: string };
 
+async function baiIdsForNhomNganh(nhomNganhId: string): Promise<string[]> {
+  const supabase = createPublicSupabaseClient();
+  const { data: gan } = await supabase
+    .from("article_gan_nhom")
+    .select("id_bai_viet, id_nhom")
+    .eq("id_nhom", nhomNganhId);
+  const ids = [
+    ...new Set(
+      (gan ?? [])
+        .map((r) => String((r as { id_bai_viet?: string }).id_bai_viet ?? "").trim())
+        .filter(Boolean),
+    ),
+  ];
+  if (!ids.length) return [];
+
+  const { data: nhoms } = await supabase
+    .from("article_nhom")
+    .select("id")
+    .eq("id", nhomNganhId)
+    .eq("loai_nhom", "nhom_nganh")
+    .maybeSingle();
+  if (!nhoms) return [];
+  return ids;
+}
+
+async function fetchNganhHubRawRows(options?: {
+  limit?: number;
+  nhomNganhId?: string;
+  q?: string;
+}): Promise<NganhHubRawRow[]> {
+  const limit = Math.min(Math.max(options?.limit ?? 500, 1), 500);
+  const nhomNganhId = options?.nhomNganhId?.trim() ?? "";
+  const searchText = options?.q?.trim() ?? "";
+  const supabase = createPublicSupabaseClient();
+
+  const runList = async (select: string, baiIds?: string[] | null) => {
+    let q = supabase
+      .from("article_bai_viet")
+      .select(select)
+      .eq("loai_bai_viet", "nganh_dao_tao")
+      .eq("trang_thai_noi_dung", "published")
+      .order("tieu_de", { ascending: true })
+      .limit(limit);
+    if (baiIds?.length) q = q.in("id", baiIds);
+    if (searchText) {
+      const esc = escapeIlikePattern(searchText);
+      q = q.or(
+        `tieu_de.ilike.%${esc}%,slug.ilike.%${esc}%,tieu_de_viet.ilike.%${esc}%,tieu_de_eng.ilike.%${esc}%,tom_tat.ilike.%${esc}%,meta_description.ilike.%${esc}%`,
+      );
+    }
+    return q;
+  };
+
+  let rows: Record<string, unknown>[] | null = null;
+  let hasNhomEmbed = false;
+  let baiIds: string[] | null = null;
+
+  if (nhomNganhId && !searchText) {
+    baiIds = await baiIdsForNhomNganh(nhomNganhId);
+    if (!baiIds.length) return [];
+  }
+
+  const withNhom = await runList(NGANH_HUB_WITH_NHOM_EMBED, baiIds);
+  if (!withNhom.error && withNhom.data != null) {
+    rows = withNhom.data as unknown as Record<string, unknown>[];
+    hasNhomEmbed = true;
+  } else {
+    const plain = await runList(NGANH_HUB_BASE_SELECT, baiIds);
+    if (plain.error || !plain.data) return [];
+    rows = plain.data as unknown as Record<string, unknown>[];
+  }
+
+  let base = rows.map(mapNganhHubRawRow);
+  if (!hasNhomEmbed) {
+    base = await attachArticleNhomFromGanNhom(base);
+  }
+  return base;
+}
+
 export async function listNganhArticlesForHub(options?: {
   limit?: number;
   nhomNganhId?: string;
+  q?: string;
 }): Promise<ListNganhArticlesResult> {
   if (!hasSupabaseEnv()) {
     return { ok: false, items: [], reason: "no_env" };
   }
   try {
-    let items = await loadNganhHubRows();
-    const nhomId = options?.nhomNganhId?.trim();
-    if (nhomId) {
-      items = items.filter((n) =>
-        (n.article_nhom_all ?? []).some(
-          (nh) => nh.id === nhomId && nh.loai_nhom === "nhom_nganh",
-        ),
-      );
-    }
-    const limit = options?.limit ?? 500;
-    return { ok: true, items: items.slice(0, limit) };
+    const rows = await fetchNganhHubRawRows(options);
+    return { ok: true, items: rows.map(mapRowToNganhHubItem) };
   } catch (e) {
     return {
       ok: false,
       items: [],
       reason: "query_error",
-      message: e instanceof Error ? e.message : undefined,
+      message: describeFetchFailure(e),
     };
   }
 }
 
+/** @deprecated Dùng `listNganhArticlesForHub`. */
 export async function loadNganhHubRows(): Promise<NganhHubItem[]> {
-  if (!hasSupabaseEnv()) return [];
-
-  const supabase = createPublicSupabaseClient();
-  const { data, error } = await supabase
-    .from("article_bai_viet")
-    .select(
-      "id, slug, tieu_de, tieu_de_viet, tieu_de_eng, tom_tat, meta_description, cover_id, thumbnail, meta",
-    )
-    .eq("loai_bai_viet", "nganh_dao_tao")
-    .eq("trang_thai_noi_dung", "published")
-    .order("tieu_de", { ascending: true })
-    .limit(500);
-
-  if (error || !data?.length) return [];
-
-  const base: NgheArticleHubRow[] = (data as Record<string, unknown>[]).map(
-    (r) => ({
-      id: String(r.id),
-      slug: String(r.slug ?? ""),
-      tieu_de: String(r.tieu_de ?? "").trim() || "Không tiêu đề",
-      tieu_de_viet:
-        r.tieu_de_viet == null ? null : String(r.tieu_de_viet).trim() || null,
-      tieu_de_eng: (r.tieu_de_eng as string | null) ?? null,
-      tom_tat: (r.tom_tat as string | null) ?? null,
-      meta_description: (r.meta_description as string | null) ?? null,
-      cover_id: (r.cover_id as string | null) ?? null,
-      thumbnail: (r.thumbnail as string | null) ?? null,
-      linh_vuc_id: null,
-      linh_vuc_slugs: null,
-      meta: r.meta as MetaNganhDaoTao | null,
-    }),
-  );
-
-  const withNhom = await attachArticleNhomFromGanNhom(base);
-  return Promise.all(withNhom.map((row) => mapRowToNganhHubItem(row)));
+  const result = await listNganhArticlesForHub({ limit: 500 });
+  return result.ok ? result.items : [];
 }
 
 /** Nhãn khối thi — thử `edu_to_hop_mon`, fallback mã trong meta. */

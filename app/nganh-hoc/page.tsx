@@ -1,10 +1,10 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 
-import { CareerHub } from "@/components/career/CareerHub";
+import { NganhHocHubLoader } from "@/app/nganh-hoc/_components/NganhHocHubLoader";
+import { NganhHocHubSkeleton } from "@/app/nganh-hoc/_components/NganhHocHub.skeleton";
 import { CinsShell } from "@/components/cins/CinsShell";
 import { SiteFooter } from "@/components/cins/SiteFooter";
-import { getNganhAdminStatus } from "@/lib/nganh/article-admin";
-import { loadNganhHubListing } from "@/lib/nganh/loadNganhHubListing";
 
 export const metadata: Metadata = {
   title: "Ngành học — Chọn đúng ngành đại học | CINs",
@@ -14,39 +14,25 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-type SearchParams = {
+type SearchParams = Promise<{
   q?: string;
   nhom?: string;
-};
+}>;
 
 export default async function NganhHocIndexPage(props: {
-  searchParams: Promise<SearchParams>;
+  searchParams: SearchParams;
 }) {
   const sp = await props.searchParams;
-  const listing = await loadNganhHubListing(sp);
-  const canEdit = await getNganhAdminStatus("");
+  const listParams = { q: sp.q, nhom: sp.nhom };
 
   return (
     <CinsShell data-screen-label="Nganh-hoc-index">
-      <div className="career-page career-page--hub">
-        <CareerHub
-          tab="nganh-hoc"
-          hubBase="/nganh-hoc"
-          linhVucSidebarGroups={[]}
-          activeLinhVuc={null}
-          searchQuery={listing.searchQuery}
-          groups={[]}
-          tagGroups={[]}
-          sampleCareers={[]}
-          nganhSidebarGroups={listing.nganhSidebarGroups}
-          activeNhomId={listing.activeNhomId}
-          activeNhomLabel={listing.activeNhomLabel}
-          nganhGroups={listing.nganhGroups}
-          sampleNganh={listing.sampleNganh}
-          nganhListError={listing.listError}
-          nganhHubCanEdit={canEdit}
-        />
-      </div>
+      <Suspense
+        key={`${listParams.q ?? ""}|${listParams.nhom ?? ""}`}
+        fallback={<NganhHocHubSkeleton />}
+      >
+        <NganhHocHubLoader params={listParams} />
+      </Suspense>
       <SiteFooter />
     </CinsShell>
   );

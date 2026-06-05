@@ -1,18 +1,15 @@
 import type { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
+import { Suspense } from "react";
 
-import { ArticlePageView } from "@/components/article/ArticlePageView";
-import { CinsShell } from "@/components/cins/CinsShell";
-import { SiteFooter } from "@/components/cins/SiteFooter";
+import { NgheNghiepDetailLoader } from "@/app/nghe-nghiep/[slug]/_components/NgheNghiepDetailLoader";
 import {
-  fetchRelatedArticles,
-  fetchRelatedJobsLienQuan,
-  getArticleById,
-  getNgheArticleBySlug,
-} from "@/lib/articles/queries";
-import { isInlineArticleEditEnabled } from "@/lib/dev/inline-article-edit";
+  getArticleSlugById,
+  getNgheArticleMetaBySlug,
+} from "@/lib/articles/nghe-page-queries";
 import { hasSupabaseEnv } from "@/lib/supabase/server";
-import { hasServiceRoleEnv } from "@/lib/supabase/service-role";
+
+import NgheNghiepDetailLoading from "./loading";
 
 export const dynamic = "force-dynamic";
 
@@ -25,16 +22,35 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!hasSupabaseEnv()) {
     return { title: "Nghề nghiệp | CINs" };
   }
-  const article = await getNgheArticleBySlug(slug);
-  if (!article) {
+
+  const meta = await getNgheArticleMetaBySlug(slug);
+  if (!meta) {
     return { title: "Không tìm thấy | CINs" };
   }
+
   const title =
-    article.meta_title?.trim() ||
-    `${article.tieu_de_viet?.trim() || article.tieu_de} | CINs`;
+    meta.meta_title?.trim() ||
+    `${meta.tieu_de_viet?.trim() || meta.tieu_de} | CINs`;
   const description =
-    article.meta_description?.trim() || article.tom_tat?.trim() || undefined;
+    meta.meta_description?.trim() || meta.tom_tat?.trim() || undefined;
   return { title, description };
+}
+
+async function NgheNghiepDetailGate({ slug }: { slug: string }) {
+  const meta = await getNgheArticleMetaBySlug(slug);
+  if (!meta) {
+    notFound();
+  }
+
+  if (meta.trang_thai_noi_dung === "merged" && meta.merged_vao_id) {
+    const targetSlug = await getArticleSlugById(meta.merged_vao_id);
+    if (targetSlug) {
+      permanentRedirect(`/nghe-nghiep/${encodeURIComponent(targetSlug)}`);
+    }
+    notFound();
+  }
+
+  return <NgheNghiepDetailLoader slug={slug} />;
 }
 
 export default async function NgheNghiepDetailPage({ params }: Props) {
@@ -44,39 +60,9 @@ export default async function NgheNghiepDetailPage({ params }: Props) {
     notFound();
   }
 
-  const article = await getNgheArticleBySlug(slug);
-  if (!article) {
-    notFound();
-  }
-
-  if (article.trang_thai_noi_dung === "merged" && article.merged_vao_id) {
-    const target = await getArticleById(article.merged_vao_id);
-    if (target?.slug) {
-      permanentRedirect(`/nghe-nghiep/${encodeURIComponent(target.slug)}`);
-    }
-    notFound();
-  }
-
-  const [lienQuan, relatedJobsLienQuan] = await Promise.all([
-    fetchRelatedArticles(article.id),
-    fetchRelatedJobsLienQuan(article.id),
-  ]);
-
-  const draftUiEnabled = isInlineArticleEditEnabled();
-  const draftPersistEnabled = hasServiceRoleEnv();
-
   return (
-    <CinsShell data-screen-label={`Nghe-nghiep-${slug}`}>
-      <ArticlePageView
-        article={article}
-        lienQuan={lienQuan}
-        tacPham={[]}
-        truongRows={[]}
-        relatedJobsLienQuan={relatedJobsLienQuan}
-        draftUiEnabled={draftUiEnabled}
-        draftPersistEnabled={draftPersistEnabled}
-      />
-      <SiteFooter />
-    </CinsShell>
+    <Suspense fallback={<NgheNghiepDetailLoading />}>
+      <NgheNghiepDetailGate slug={slug} />
+    </Suspense>
   );
 }

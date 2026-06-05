@@ -2780,3 +2780,87 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Admin list skeletons (§8 streaming) ── */
+@keyframes admin-skel-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.cins-admin .admin-skel {
+  border-radius: var(--radius-sm, 10px);
+  background: linear-gradient(
+    90deg,
+    var(--cins-blue-soft, #e7f0fb) 0%,
+    rgba(31, 116, 201, 0.12) 50%,
+    var(--cins-blue-soft, #e7f0fb) 100%
+  );
+  background-size: 200% 100%;
+  animation: admin-skel-shimmer 1.4s ease-in-out infinite;
+}
+
+.cins-admin .admin-skel-page-title {
+  width: 220px;
+  height: 32px;
+}
+
+.cins-admin .admin-skel-btn {
+  width: 88px;
+  height: 36px;
+  border-radius: var(--radius-pill, 999px);
+}
+
+.cins-admin .admin-skel-btn--primary {
+  width: 108px;
+}
+
+.cins-admin .admin-skel-search {
+  flex: 1;
+  min-width: 200px;
+  height: 40px;
+  border-radius: var(--radius-pill, 999px);
+}
+
+.cins-admin .admin-skel-icon-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm, 10px);
+}
+
+.cins-admin .admin-skel-filter {
+  width: 140px;
+  height: 36px;
+  border-radius: var(--radius-pill, 999px);
+}
+
+.cins-admin .admin-skel-filter-count {
+  width: 96px;
+  height: 16px;
+  margin-left: auto;
+}
+
+.cins-admin .admin-skel-th {
+  width: 72px;
+  height: 12px;
+}
+
+.cins-admin .admin-skel-thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-sm, 10px);
+}
+
+.cins-admin .admin-skel-cell {
+  width: 100%;
+  height: 20px;
+}
+
+.cins-admin .admin-panel-loading {
+  padding: 24px 16px;
+  color: var(--ink-muted);
+  font-size: 14px;
+}

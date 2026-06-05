@@ -401,14 +401,22 @@ export function JourneyTimeline({
 
       {loadingMore ? (
         <div className="j-timeline-load-more" aria-busy="true" aria-live="polite">
-          <div className="j-skel-milestone">
-            <div className="j-skel j-skel-m-month" />
-            <div className="j-skel-card">
-              <div className="j-skel j-skel-card-head" />
-              <div className="j-skel j-skel-card-title" />
-              <div className="j-skel j-skel-card-line" />
+          <article className="j-milestone">
+            <div className="j-m-body-wrap">
+              <div className="j-m-card jcard j-skel-post-card">
+                <div className="jcard-datebar">
+                  <div className="j-skel j-skel-post-avatar" />
+                  <div className="j-skel-post-badges">
+                    <div className="j-skel j-skel-post-badge" />
+                  </div>
+                </div>
+                <div className="jcard-body">
+                  <div className="j-skel j-skel-post-line j-skel-post-line--title" />
+                  <div className="j-skel j-skel-post-line" />
+                </div>
+              </div>
             </div>
-          </div>
+          </article>
         </div>
       ) : null}
 

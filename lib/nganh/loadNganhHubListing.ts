@@ -27,8 +27,8 @@ export async function loadNganhHubListing(
   const searchQuery = (params.q ?? "").trim();
   const nhomParam = (params.nhom ?? "").trim();
 
-  const nganhResult = await listNganhArticlesForHub({ limit: 500 });
-  const allNganh = nganhResult.ok ? nganhResult.items : [];
+  const catalogResult = await listNganhArticlesForHub({ limit: 500 });
+  const allNganh = catalogResult.ok ? catalogResult.items : [];
   const nganhSidebarGroups = groupNhomNganhForSidebar(allNganh);
 
   const activeNhomId =
@@ -40,7 +40,7 @@ export async function loadNganhHubListing(
 
   let filteredNganh = allNganh;
   if (activeNhomId) {
-    filteredNganh = allNganh.filter((n) =>
+    filteredNganh = filteredNganh.filter((n) =>
       nganhMatchesActiveNhom(n, activeNhomId),
     );
   }
@@ -66,10 +66,10 @@ export async function loadNganhHubListing(
     activeNhomLabel,
     nganhGroups,
     sampleNganh: filteredNganh,
-    listError: !nganhResult.ok
+    listError: !catalogResult.ok
       ? {
-          reason: nganhResult.reason,
-          message: nganhResult.message,
+          reason: catalogResult.reason,
+          message: catalogResult.message,
         }
       : undefined,
   };

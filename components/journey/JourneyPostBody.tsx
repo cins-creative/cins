@@ -23,9 +23,9 @@ import {
 } from "@/app/[slug]/journey/actions";
 import { PostBlockRenderer } from "@/components/journey/PostBlockRenderer";
 import { PostCover } from "@/components/editor/PostRenderer";
+import { JourneyArticleTagLink } from "@/components/journey/JourneyArticleTagLink";
 import { JourneyMilestoneOwnerMenu } from "@/components/journey/JourneyMilestoneOwnerMenu";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
-import { articlePublicHref } from "@/lib/articles/article-href";
 import { articleTagLoaiClass } from "@/lib/editor/article-tag";
 import {
   mapCheDoToMilestoneVisibility,
@@ -252,14 +252,11 @@ export function JourneyPostBody({
         {mainPost && mainPost.articleTags.length > 0 ? (
           <div className="post-art-tags" aria-label="Bài viết liên quan">
             {mainPost.articleTags.map((t) => (
-              <Link
+              <JourneyArticleTagLink
                 key={t.id}
-                href={articlePublicHref(t.loai_bai_viet, t.slug)}
+                tag={t}
                 className={`post-art-tag ${articleTagLoaiClass(t.loai_bai_viet)}`}
-                prefetch={false}
-              >
-                #{t.tieu_de}
-              </Link>
+              />
             ))}
           </div>
         ) : null}

@@ -1,4 +1,9 @@
-import { resolveAdminArticleThumbSrc } from "@/lib/admin/article-display";
+import {
+  clientUrlFromThumbnailValue,
+  normalizeArticleThumbnailValue,
+  resolveAdminArticleThumbSrc,
+} from "@/lib/admin/article-display";
+import { getCoverUrl } from "@/lib/articles/cover";
 
 /** Đổi variant cuối trên URL Cloudflare Images (hub dùng `thumbnail` cho thẻ). */
 export function cfDeliveryUrlWithVariant(
@@ -29,4 +34,30 @@ export async function resolveHubArticleImages(row: {
     ? cfDeliveryUrlWithVariant(src, "thumbnail")
     : src;
   return { thumb_url: hubSrc, cover_url: hubSrc };
+}
+
+/** Sync URL cho list/card — tránh N async CF API trên hub/detail. */
+export function resolveHubArticleThumbSync(row: {
+  thumbnail?: string | null;
+  cover_id?: string | null;
+}): string | null {
+  const thumb = normalizeArticleThumbnailValue(row.thumbnail);
+  if (thumb) {
+    const sync =
+      clientUrlFromThumbnailValue(thumb) ??
+      getCoverUrl(thumb, "thumbnail") ??
+      getCoverUrl(thumb, "public");
+    if (sync) {
+      return sync.includes("imagedelivery.net")
+        ? cfDeliveryUrlWithVariant(sync, "thumbnail")
+        : sync;
+    }
+  }
+  const cover = row.cover_id?.trim();
+  if (!cover) return null;
+  const sync = getCoverUrl(cover, "thumbnail") ?? getCoverUrl(cover, "public");
+  if (!sync) return null;
+  return sync.includes("imagedelivery.net")
+    ? cfDeliveryUrlWithVariant(sync, "thumbnail")
+    : sync;
 }

@@ -7,6 +7,13 @@ import {
 /**
  * URL ảnh trường: ưu tiên build từ account hash (0ms), chỉ gọi CF API khi thiếu hash.
  */
+export function resolveTruongImageSrcSync(
+  imageId: string | null | undefined,
+  variants: CfImageVariant[],
+): string | null {
+  return getCfImageUrlWithFallbacks(imageId, variants);
+}
+
 export async function resolveTruongImageSrc(
   imageId: string | null | undefined,
   variants: CfImageVariant[],

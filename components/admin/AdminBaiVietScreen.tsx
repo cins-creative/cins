@@ -1,18 +1,20 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { AdminArticleCreatePanel } from "@/components/admin/AdminArticleCreatePanel";
-import { AdminArticleEditPanel } from "@/components/admin/AdminArticleEditPanel";
 import { AdminArticleThumb } from "@/components/admin/AdminArticleThumb";
 import { AdminSlideOver } from "@/components/admin/AdminSlideOver";
 import { AdminTableSettings } from "@/components/admin/AdminTableSettings";
 import { AdminArticleDataPreview } from "@/components/admin/AdminArticleDataPreview";
 import { AdminArticleStatusSelect } from "@/components/admin/AdminArticleStatusSelect";
 import { BadgeLoai } from "@/components/admin/badges";
-import { hasAdminArticleThumbnail } from "@/lib/admin/article-display";
+import {
+  buildAdminBaiVietHref,
+  type AdminArticleListParams,
+} from "@/lib/admin/article-list-params";
 import {
   ADMIN_COLUMNS_STORAGE_KEY,
   ADMIN_FILTER_FIELDS,
@@ -29,7 +31,23 @@ import type {
   AdminArticleListRow,
 } from "@/lib/admin/articles-server";
 
-const PAGE_SIZE = 30;
+const AdminArticleCreatePanel = dynamic(
+  () =>
+    import("@/components/admin/AdminArticleCreatePanel").then((m) => ({
+      default: m.AdminArticleCreatePanel,
+    })),
+  { ssr: false, loading: () => <p className="admin-panel-loading">Đang tải form…</p> },
+);
+
+const AdminArticleEditPanel = dynamic(
+  () =>
+    import("@/components/admin/AdminArticleEditPanel").then((m) => ({
+      default: m.AdminArticleEditPanel,
+    })),
+  { ssr: false, loading: () => <p className="admin-panel-loading">Đang tải editor…</p> },
+);
+
+const SEARCH_DEBOUNCE_MS = 300;
 
 const LOAI_OPTIONS = [
   "",
@@ -98,25 +116,63 @@ function loaiNhomLabel(loai: string): string {
 }
 
 type Props = {
-  initialRows: AdminArticleListRow[];
+  rows: AdminArticleListRow[];
   filterOptions: AdminArticleFilterOptions;
   totalCount: number;
+  page: number;
+  pageSize: number;
+  listParams: AdminArticleListParams;
 };
 
 export function AdminBaiVietScreen({
-  initialRows,
+  rows,
   filterOptions,
   totalCount,
+  page,
+  pageSize,
+  listParams,
 }: Props) {
   const router = useRouter();
-  const [query, setQuery] = useState("");
-  const [loaiFilter, setLoaiFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [linhVucFilter, setLinhVucFilter] = useState("");
-  const [nhomFilter, setNhomFilter] = useState("");
-  const [loaiNhomFilter, setLoaiNhomFilter] = useState("");
-  const [mediaFilter, setMediaFilter] = useState("");
-  const [page, setPage] = useState(1);
+  const [query, setQuery] = useState(listParams.q ?? "");
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    setQuery(listParams.q ?? "");
+  }, [listParams.q]);
+
+  const pushListParams = useCallback(
+    (next: Partial<AdminArticleListParams>) => {
+      router.push(
+        buildAdminBaiVietHref({
+          ...listParams,
+          ...next,
+          page: next.page ?? 1,
+        }),
+      );
+    },
+    [listParams, router],
+  );
+
+  useEffect(() => {
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      const trimmed = query.trim();
+      const current = (listParams.q ?? "").trim();
+      if (trimmed !== current) {
+        pushListParams({ q: trimmed || undefined, page: 1 });
+      }
+    }, SEARCH_DEBOUNCE_MS);
+    return () => {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    };
+  }, [query, listParams.q, pushListParams]);
+
+  const loaiFilter = listParams.loai ?? "";
+  const statusFilter = listParams.status ?? "";
+  const linhVucFilter = listParams.linhVuc ?? "";
+  const nhomFilter = listParams.nhom ?? "";
+  const loaiNhomFilter = listParams.loaiNhom ?? "";
+  const mediaFilter = listParams.media ?? "";
   const [editId, setEditId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState<Set<AdminTableColumnId>>(() => {
@@ -163,58 +219,16 @@ export function AdminBaiVietScreen({
   ).length;
 
   const editListRow = useMemo(
-    () => initialRows.find((r) => r.id === editId) ?? null,
-    [initialRows, editId],
+    () => rows.find((r) => r.id === editId) ?? null,
+    [rows, editId],
   );
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return initialRows.filter((r) => {
-      if (loaiFilter && r.loai_bai_viet !== loaiFilter) return false;
-      if (statusFilter && r.trang_thai_noi_dung !== statusFilter) return false;
-      if (linhVucFilter && r.id_linh_vuc !== linhVucFilter) return false;
-      if (nhomFilter && !r.nhom.some((n) => n.id === nhomFilter)) return false;
-      if (
-        loaiNhomFilter &&
-        !r.nhom.some((n) => n.loai_nhom === loaiNhomFilter)
-      ) {
-        return false;
-      }
-      const hasThumb = hasAdminArticleThumbnail(r);
-      const hasCover = Boolean(r.cover_id?.trim());
-      if (mediaFilter === "has_thumb" && !hasThumb) return false;
-      if (mediaFilter === "no_thumb" && hasThumb) return false;
-      if (mediaFilter === "has_cover" && !hasCover) return false;
-      if (mediaFilter === "no_cover" && hasCover) return false;
-      if (!q) return true;
-      const nhomText = r.nhom.map((n) => n.ten).join(" ");
-      return (
-        r.slug.toLowerCase().includes(q) ||
-        r.tieu_de.toLowerCase().includes(q) ||
-        (r.linh_vuc_ten ?? "").toLowerCase().includes(q) ||
-        nhomText.toLowerCase().includes(q)
-      );
-    });
-  }, [
-    initialRows,
-    query,
-    loaiFilter,
-    statusFilter,
-    linhVucFilter,
-    nhomFilter,
-    loaiNhomFilter,
-    mediaFilter,
-  ]);
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
   const safePage = Math.min(page, totalPages);
-  const pageRows = filtered.slice(
-    (safePage - 1) * PAGE_SIZE,
-    safePage * PAGE_SIZE,
-  );
+  const pageRows = rows;
 
   const editTitle =
-    initialRows.find((r) => r.id === editId)?.tieu_de ?? "Chỉnh sửa bài viết";
+    rows.find((r) => r.id === editId)?.tieu_de ?? "Chỉnh sửa bài viết";
 
   const nhomByLoai = useMemo(() => {
     const map = new Map<string, typeof filterOptions.nhom>();
@@ -270,10 +284,7 @@ export function AdminBaiVietScreen({
               type="search"
               placeholder="Tiêu đề, slug, lĩnh vực, nhóm…"
               value={query}
-              onChange={(e) => {
-                setQuery(e.target.value);
-                setPage(1);
-              }}
+              onChange={(e) => setQuery(e.target.value)}
             />
             </div>
             <AdminTableSettings
@@ -301,10 +312,9 @@ export function AdminBaiVietScreen({
           <select
             className="filter-select"
             value={loaiFilter}
-            onChange={(e) => {
-              setLoaiFilter(e.target.value);
-              setPage(1);
-            }}
+            onChange={(e) =>
+              pushListParams({ loai: e.target.value || undefined, page: 1 })
+            }
             aria-label="Lọc loại bài"
           >
             <option value="">Tất cả loại</option>
@@ -319,10 +329,9 @@ export function AdminBaiVietScreen({
           <select
             className="filter-select"
             value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-              setPage(1);
-            }}
+            onChange={(e) =>
+              pushListParams({ status: e.target.value || undefined, page: 1 })
+            }
             aria-label="Lọc trạng thái"
           >
             <option value="">Tất cả trạng thái</option>
@@ -337,10 +346,9 @@ export function AdminBaiVietScreen({
           <select
             className="filter-select"
             value={linhVucFilter}
-            onChange={(e) => {
-              setLinhVucFilter(e.target.value);
-              setPage(1);
-            }}
+            onChange={(e) =>
+              pushListParams({ linhVuc: e.target.value || undefined, page: 1 })
+            }
             aria-label="Lọc lĩnh vực"
           >
             <option value="">Tất cả lĩnh vực</option>
@@ -355,10 +363,9 @@ export function AdminBaiVietScreen({
           <select
             className="filter-select"
             value={loaiNhomFilter}
-            onChange={(e) => {
-              setLoaiNhomFilter(e.target.value);
-              setPage(1);
-            }}
+            onChange={(e) =>
+              pushListParams({ loaiNhom: e.target.value || undefined, page: 1 })
+            }
             aria-label="Lọc loại nhóm"
           >
             <option value="">Loại nhóm (tất cả)</option>
@@ -373,10 +380,9 @@ export function AdminBaiVietScreen({
           <select
             className="filter-select filter-select--wide"
             value={nhomFilter}
-            onChange={(e) => {
-              setNhomFilter(e.target.value);
-              setPage(1);
-            }}
+            onChange={(e) =>
+              pushListParams({ nhom: e.target.value || undefined, page: 1 })
+            }
             aria-label="Lọc nhóm"
           >
             <option value="">Tất cả nhóm</option>
@@ -398,10 +404,12 @@ export function AdminBaiVietScreen({
           <select
             className="filter-select"
             value={mediaFilter}
-            onChange={(e) => {
-              setMediaFilter(e.target.value);
-              setPage(1);
-            }}
+            onChange={(e) =>
+              pushListParams({
+                media: (e.target.value || undefined) as AdminArticleListParams["media"],
+                page: 1,
+              })
+            }
             aria-label="Lọc ảnh"
           >
             {MEDIA_OPTIONS.map((o) => (
@@ -585,18 +593,18 @@ export function AdminBaiVietScreen({
             </tbody>
           </table>
 
-          {filtered.length > 0 ? (
+          {totalCount > 0 ? (
             <div className="pagination">
               <span className="pagination-info">
-                Hiển thị {(safePage - 1) * PAGE_SIZE + 1}–
-                {Math.min(safePage * PAGE_SIZE, filtered.length)}
+                Hiển thị {(safePage - 1) * pageSize + 1}–
+                {Math.min(safePage * pageSize, totalCount)}
               </span>
               <div className="pagination-btns">
                 <button
                   type="button"
                   className="page-btn"
                   disabled={safePage <= 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  onClick={() => pushListParams({ page: safePage - 1 })}
                 >
                   ←
                 </button>
@@ -607,7 +615,7 @@ export function AdminBaiVietScreen({
                   type="button"
                   className="page-btn"
                   disabled={safePage >= totalPages}
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  onClick={() => pushListParams({ page: safePage + 1 })}
                 >
                   →
                 </button>

@@ -154,7 +154,9 @@ export async function listLinhVucForHub(): Promise<LinhVucRow[]> {
   try {
     const supabase = await createClient();
 
-    const fromLinhVuc = await supabase.from("linh_vuc").select("*");
+    const fromLinhVuc = await supabase.from("linh_vuc").select(
+      "id, slug, ten, ten_eng, nhom_vi, nhom, mo_ta, cover_id, trang_thai, thu_tu, mau_accent, linh_vuc_id",
+    );
 
     if (!fromLinhVuc.error && fromLinhVuc.data && fromLinhVuc.data.length > 0) {
       const rows = (fromLinhVuc.data as Record<string, unknown>[])

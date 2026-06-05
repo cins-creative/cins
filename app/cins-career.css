@@ -113,6 +113,61 @@
   min-height: 280px;
 }
 
+/* Hub index skeleton — layout `hn-main` */
+.career-skeleton--hub-head {
+  min-height: 56px;
+  margin-bottom: 8px;
+  border-radius: var(--radius-md);
+}
+
+.career-hub-skel-main {
+  display: grid;
+  grid-template-columns: minmax(200px, 240px) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.career-skeleton--hub-rail {
+  min-height: 420px;
+  border-radius: var(--radius-lg);
+}
+
+.career-hub-skel-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.career-skeleton--hub-hero {
+  min-height: 240px;
+  border-radius: var(--radius-xl);
+}
+
+.career-skeleton--hub-tabs {
+  min-height: 44px;
+  max-width: 480px;
+  border-radius: var(--radius-pill, 999px);
+}
+
+.career-skeleton--hub-dept {
+  min-height: 200px;
+  border-radius: var(--radius-lg);
+}
+
+.career-skeleton--hub-dept.short {
+  min-height: 140px;
+}
+
+@media (max-width: 960px) {
+  .career-hub-skel-main {
+    grid-template-columns: 1fr;
+  }
+
+  .career-skeleton--hub-rail {
+    min-height: 120px;
+  }
+}
+
 @keyframes career-shimmer {
   0% {
     background-position: 200% 0;

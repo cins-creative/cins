@@ -4,8 +4,8 @@ import { unstable_cache } from "next/cache";
 import { createPublicSupabaseClient } from "@/lib/supabase/public";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { formatHocPhiLabel } from "@/lib/truong/display";
-import { enrichProgramsWithCoverSrc } from "@/lib/truong/program-cover";
-import { resolveTruongImageSrc } from "@/lib/truong/media-url";
+import { enrichProgramsWithCoverSrcSync } from "@/lib/truong/program-cover";
+import { resolveTruongImageSrc, resolveTruongImageSrcSync } from "@/lib/truong/media-url";
 
 import {
   defaultTruongNganhYear,
@@ -160,16 +160,14 @@ function mapListFields(
   };
 }
 
-async function enrichListItemMedia(item: TruongListItem): Promise<TruongListItem> {
+function enrichListItemMediaSync(item: TruongListItem): TruongListItem {
   const avatarImageId = item.avatar_id ?? item.logo_id;
-  const [avatar_src, cover_src] = await Promise.all([
-    avatarImageId
-      ? resolveTruongImageSrc(avatarImageId, ["public", "avatar"])
-      : Promise.resolve(null),
-    item.cover_id
-      ? resolveTruongImageSrc(item.cover_id, ["public", "cover", "medium"])
-      : Promise.resolve(null),
-  ]);
+  const avatar_src = avatarImageId
+    ? resolveTruongImageSrcSync(avatarImageId, ["public", "avatar"])
+    : null;
+  const cover_src = item.cover_id
+    ? resolveTruongImageSrcSync(item.cover_id, ["public", "cover", "medium"])
+    : null;
   return {
     ...item,
     avatar_src: avatar_src ?? item.avatar_src ?? null,
@@ -277,7 +275,7 @@ export async function listTruongDaiHoc(): Promise<TruongListItem[]> {
       items.push(mapListFields(org, row, tagSet));
     }
 
-    const enriched = await Promise.all(items.map(enrichListItemMedia));
+    const enriched = items.map(enrichListItemMediaSync);
     return enriched.sort((a, b) => a.ten.localeCompare(b.ten, "vi"));
   } catch {
     return [];
@@ -374,7 +372,7 @@ async function fetchStats(
 
   const { count: journeyCount } = await supabase
     .from("user_thanh_vien_to_chuc")
-    .select("*", { count: "exact", head: true })
+    .select("id", { count: "exact", head: true })
     .eq("id_to_chuc", orgId);
 
   return {
@@ -809,32 +807,24 @@ async function loadTruongPagePayloadUncached(
       supabase,
       id,
     );
-    const programsRaw = await enrichProgramsWithCoverSrc(programsFetched);
+    const programsRaw = enrichProgramsWithCoverSrcSync(programsFetched);
     const programIds = programsRaw.map((p) => p.id);
 
     const baseSchool = mapListFields(org, otd, tagSet);
     const avatarImageId = baseSchool.avatar_id ?? baseSchool.logo_id;
+    const avatar_src = avatarImageId
+      ? resolveTruongImageSrcSync(avatarImageId, ["public", "avatar"])
+      : null;
+    const cover_src = baseSchool.cover_id
+      ? resolveTruongImageSrcSync(baseSchool.cover_id, [
+          "public",
+          "cover",
+          "medium",
+        ])
+      : null;
 
-    const [
-      avatar_src,
-      cover_src,
-      cauHinhYears,
-      stats,
-      baidang,
-      hinhanh,
-      tuyenSinh,
-      journeyMembers,
-    ] = await Promise.all([
-      avatarImageId
-        ? resolveTruongImageSrc(avatarImageId, ["public", "avatar"])
-        : Promise.resolve(null),
-      baseSchool.cover_id
-        ? resolveTruongImageSrc(baseSchool.cover_id, [
-            "public",
-            "cover",
-            "medium",
-          ])
-        : Promise.resolve(null),
+    const [cauHinhYears, stats, baidang, hinhanh, tuyenSinh, journeyMembers] =
+      await Promise.all([
       listCauHinhYearsForOrg(id),
       fetchStats(
         supabase,

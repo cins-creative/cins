@@ -10,6 +10,8 @@ export type ArticleTagRef = {
   slug: string;
   tieu_de: string;
   loai_bai_viet: string;
+  /** Mô tả ngắn — tooltip hover trên Journey / post modal. */
+  tom_tat?: string | null;
 };
 
 /* ─── Shared label + color class helpers ─────────────────────────────

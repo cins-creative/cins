@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
-import { NganhChiTietPageShell } from "@/components/nganh/NganhChiTietPageShell";
-import { CinsShell } from "@/components/cins/CinsShell";
-import { SiteFooter } from "@/components/cins/SiteFooter";
-import { getNganhAdminStatus } from "@/lib/nganh/article-admin";
-import { getNganhDetailBySlug } from "@/lib/nganh/queries";
-import { hasServiceRoleEnv } from "@/lib/supabase/service-role";
+import { NganhChiTietLoader } from "@/app/nganh-hoc/[slug]/_components/NganhChiTietLoader";
+import { getNganhMetaBySlugCached } from "@/lib/nganh/nganh-page-queries";
+import { hasSupabaseEnv } from "@/lib/supabase/server";
+
+import NganhChiTietLoading from "./loading";
 
 export const dynamic = "force-dynamic";
 
@@ -14,16 +14,19 @@ type Props = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const bundle = await getNganhDetailBySlug(slug);
-  if (!bundle) {
+  if (!hasSupabaseEnv()) {
+    return { title: "Ngành đào tạo | CINs" };
+  }
+
+  const meta = await getNganhMetaBySlugCached(slug);
+  if (!meta) {
     return { title: "Không tìm thấy ngành | CINs" };
   }
+
   const title =
-    bundle.article.tieu_de_viet?.trim() ||
-    bundle.article.tieu_de?.trim() ||
-    "Ngành đào tạo";
+    meta.tieu_de_viet?.trim() || meta.tieu_de?.trim() || "Ngành đào tạo";
   const desc =
-    bundle.article.tom_tat?.trim() ||
+    meta.tom_tat?.trim() ||
     `Thông tin ngành ${title} — mã ngành, khối thi, môn học và trường đào tạo trên CINs.`;
   return {
     title: `${title} — Ngành đào tạo | CINs`,
@@ -31,29 +34,21 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
+async function NganhChiTietGate({ slug }: { slug: string }) {
+  if (!hasSupabaseEnv()) notFound();
+
+  const meta = await getNganhMetaBySlugCached(slug);
+  if (!meta) notFound();
+
+  return <NganhChiTietLoader slug={slug} />;
+}
+
 export default async function NganhChiTietPage({ params }: Props) {
   const { slug } = await params;
-  const bundle = await getNganhDetailBySlug(slug);
-  if (!bundle) notFound();
-
-  const canEdit = await getNganhAdminStatus(slug);
-  const persistEnabled = hasServiceRoleEnv();
 
   return (
-    <CinsShell data-screen-label="Nganh-chi-tiet">
-      <NganhChiTietPageShell
-        canEdit={canEdit}
-        persistEnabled={persistEnabled}
-        article={bundle.article}
-        parsed={bundle.parsed}
-        monHoc={bundle.monHoc}
-        nghe={bundle.nghe}
-        truong={bundle.truong}
-        khoiThiLabels={bundle.khoiThiLabels}
-        lienQuan={bundle.lienQuan}
-        soTruong={bundle.soTruong}
-      />
-      <SiteFooter />
-    </CinsShell>
+    <Suspense fallback={<NganhChiTietLoading />}>
+      <NganhChiTietGate slug={slug} />
+    </Suspense>
   );
 }

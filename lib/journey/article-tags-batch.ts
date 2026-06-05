@@ -26,6 +26,7 @@ type GanRow = {
     slug?: string | null;
     tieu_de?: string | null;
     loai_bai_viet?: string | null;
+    tom_tat?: string | null;
   } | null;
 };
 
@@ -39,7 +40,7 @@ export async function fetchArticleTagsForTacPham(
   const { data } = await admin
     .from("article_gan_tac_pham")
     .select(
-      "id_tac_pham, article_bai_viet ( id, slug, tieu_de, loai_bai_viet )",
+      "id_tac_pham, article_bai_viet ( id, slug, tieu_de, loai_bai_viet, tom_tat )",
     )
     .in("id_tac_pham", tacPhamIds as string[])
     .returns<GanRow[]>();
@@ -52,6 +53,7 @@ export async function fetchArticleTagsForTacPham(
       slug: String(a.slug),
       tieu_de: String(a.tieu_de ?? "").trim() || "Không tiêu đề",
       loai_bai_viet: String(a.loai_bai_viet ?? "").trim() || "blog",
+      tom_tat: a.tom_tat?.trim() || null,
     };
     const arr = out.get(row.id_tac_pham);
     if (arr) arr.push(tag);

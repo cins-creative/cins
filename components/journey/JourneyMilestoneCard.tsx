@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+import { JourneyArticleTagLink } from "@/components/journey/JourneyArticleTagLink";
 import { JourneyCoAuthorProposal } from "@/components/journey/JourneyCoAuthorProposal";
 import { JourneyCoverImage } from "@/components/journey/JourneyCoverImage";
 import { ImageGrid } from "@/components/journey/ImageGrid";
@@ -35,7 +36,6 @@ import type {
   MilestoneItem,
   MilestoneType,
 } from "@/components/journey/milestone-types";
-import { articlePublicHref } from "@/lib/articles/article-href";
 import { articleTagLoaiClass } from "@/lib/editor/article-tag";
 import type { LoaiMoc, Visibility } from "@/lib/editor/types";
 import { photoGridImagesFromBlocks } from "@/lib/journey/image-grid";
@@ -337,15 +337,11 @@ export function JourneyMilestoneCard({
             {articleTags.length > 0 ? (
               <div className="tags" aria-label="Bài viết liên quan">
                 {articleTags.map((t) => (
-                  <Link
+                  <JourneyArticleTagLink
                     key={t.id}
-                    href={articlePublicHref(t.loai_bai_viet, t.slug)}
-                    className={`tag ${articleTagLoaiClass(t.loai_bai_viet)}`}
-                    prefetch={false}
+                    tag={t}
                     onClick={(e) => e.stopPropagation()}
-                  >
-                    #{t.tieu_de}
-                  </Link>
+                  />
                 ))}
               </div>
             ) : null}

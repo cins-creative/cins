@@ -673,3 +673,95 @@
     font-size: 32px;
   }
 }
+
+/* ── Listing skeletons (streaming §8) ── */
+@keyframes tdh-skel-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.tdh-page .tdh-skel {
+  border-radius: var(--radius-md, 14px);
+  background: linear-gradient(
+    90deg,
+    var(--cins-blue-soft, #e7f0fb) 0%,
+    rgba(31, 116, 201, 0.1) 50%,
+    var(--cins-blue-soft, #e7f0fb) 100%
+  );
+  background-size: 200% 100%;
+  animation: tdh-skel-shimmer 1.4s ease-in-out infinite;
+}
+
+.tdh-page .tdh-skel-kicker {
+  width: 180px;
+  height: 14px;
+  margin-bottom: 12px;
+}
+
+.tdh-page .tdh-skel-title {
+  width: min(320px, 70%);
+  height: 48px;
+  margin-bottom: 16px;
+  border-radius: var(--radius-lg, 20px);
+}
+
+.tdh-page .tdh-skel-lead {
+  width: min(560px, 100%);
+  height: 56px;
+}
+
+.tdh-page .tdh-skel-stat {
+  min-height: 88px;
+}
+
+.tdh-page .tdh-skel-pills {
+  flex: 1;
+  min-height: 40px;
+  border-radius: var(--radius-pill, 999px);
+}
+
+.tdh-page .tdh-skel-search {
+  width: 280px;
+  min-height: 44px;
+  border-radius: var(--radius-pill, 999px);
+}
+
+.tdh-page .tdh-skel-card {
+  min-height: 220px;
+  border-radius: var(--radius-xl, 28px);
+}
+
+.tdh-page .tdh-skel-detail-cover {
+  min-height: 200px;
+  border-radius: 0;
+  margin-bottom: 16px;
+}
+
+.tdh-page .tdh-skel-detail-bar {
+  min-height: 120px;
+  margin: 0 24px 16px;
+}
+
+.tdh-page .tdh-skel-detail-tabs {
+  min-height: 44px;
+  max-width: 480px;
+  margin: 0 24px 20px;
+  border-radius: var(--radius-pill, 999px);
+}
+
+.tdh-page .tdh-skel-detail-main {
+  min-height: 420px;
+  margin: 0 24px 32px;
+  border-radius: var(--radius-lg, 20px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tdh-page .tdh-skel {
+    animation: none;
+    background: var(--cins-blue-soft, #e7f0fb);
+  }
+}

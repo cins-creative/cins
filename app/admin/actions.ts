@@ -56,7 +56,9 @@ export async function adminFetchArticles(): Promise<
 > {
   const gate = await requireDraftTools();
   if (!gate.ok) return { ok: false, message: gate.message };
-  return listArticlesForAdmin();
+  const res = await listArticlesForAdmin();
+  if (!res.ok) return { ok: false, message: res.message };
+  return { ok: true, rows: res.rows };
 }
 
 export async function adminFetchArticleBody(
