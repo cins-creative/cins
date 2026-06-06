@@ -5,10 +5,7 @@ import Link from "next/link";
 import { CinsTopbarSearch } from "@/components/cins/CinsTopbarSearch";
 import { JourneyNotifications } from "@/components/journey/JourneyNotifications";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
-import {
-  EMPTY_NOTIFICATION_FEED,
-  loadNotificationFeed,
-} from "@/lib/social/notifications";
+import { countUnreadNotifications } from "@/lib/social/notifications";
 
 /**
  * Topbar chính của site — render khác nhau theo trạng thái phiên:
@@ -23,11 +20,9 @@ import {
 export async function CinsAppTopbar() {
   const session = await getCurrentSessionAndProfile();
   const isAuthed = !!session;
-  const notificationFeed = session?.profile
-    ? await loadNotificationFeed(session.profile.id, "unread").catch(
-        () => EMPTY_NOTIFICATION_FEED,
-      )
-    : null;
+  const unreadNotificationCount = session?.profile
+    ? await countUnreadNotifications(session.profile.id).catch(() => 0)
+    : 0;
 
   return (
     <nav className="topbar cins-app-topbar" id="app-topbar">
@@ -57,8 +52,8 @@ export async function CinsAppTopbar() {
             <MessageCircleQuestion size={16} strokeWidth={1.6} aria-hidden />
             <span>Tư vấn nghề</span>
           </Link>
-          {isAuthed && notificationFeed ? (
-            <JourneyNotifications initialFeed={notificationFeed} />
+          {isAuthed ? (
+            <JourneyNotifications initialUnreadCount={unreadNotificationCount} />
           ) : null}
           {isAuthed ? null : (
             <>

@@ -14,6 +14,7 @@ import type {
 
 export type { PendingCoAuthorInvite };
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { insertSocialThongBao } from "@/lib/social/thong-bao-insert";
 
 type TacGiaRow = {
   id_tac_pham: string;
@@ -92,12 +93,17 @@ async function notifyCoAuthorInvite(
   vaiTro: string,
 ): Promise<void> {
   const admin = createServiceRoleClient();
-  await admin.from("social_thong_bao").insert({
+  const result = await insertSocialThongBao(admin, {
     nguoi_nhan: recipientId,
+    loai: "hanh_dong",
+    noi_dung: vaiTro
+      ? `Lời mời làm cộng sự (${vaiTro})`
+      : "Lời mời làm cộng sự",
     noi_dung_ai: vaiTro ? `${actorId} mời bạn làm ${vaiTro}` : actorId,
     loai_doi_tuong: "tac_gia_invite",
     id_doi_tuong: tacPhamId,
   });
+  if (!result.ok) console.error("[notifyCoAuthorInvite]", result.error);
 }
 
 async function notifyOwnerCoAuthorReview(
@@ -121,12 +127,15 @@ async function notifyOwnerCoAuthorReview(
   });
   if (duplicate) return;
 
-  await admin.from("social_thong_bao").insert({
+  const result = await insertSocialThongBao(admin, {
     nguoi_nhan: ownerId,
+    loai: "hanh_dong",
+    noi_dung: "Đề xuất cộng sự cần duyệt",
     noi_dung_ai: JSON.stringify({ proposerId, targetUserId, vaiTro }),
     loai_doi_tuong: "tac_gia_owner_review",
     id_doi_tuong: tacPhamId,
   });
+  if (!result.ok) console.error("[notifyOwnerCoAuthorReview]", result.error);
 }
 
 export async function addCoAuthor(
@@ -470,7 +479,9 @@ export async function loadPendingCoAuthorInvites(
 
 export async function listPendingCoAuthorReviews(
   ownerId: string,
+  options: { limit?: number } = {},
 ): Promise<PendingCoAuthorReview[]> {
+  const rowLimit = options.limit ?? 10;
   const admin = createServiceRoleClient();
   const { data: rows } = await admin
     .from("social_thong_bao")
@@ -479,7 +490,7 @@ export async function listPendingCoAuthorReviews(
     .eq("loai_doi_tuong", "tac_gia_owner_review")
     .is("xu_ly_luc", null)
     .order("tao_luc", { ascending: false })
-    .limit(20);
+    .limit(rowLimit);
 
   if (!rows?.length) return [];
 
@@ -592,7 +603,9 @@ export async function respondCoAuthorReview(
 
 export async function listProcessedCoAuthorReviews(
   ownerId: string,
+  options: { limit?: number } = {},
 ): Promise<ProcessedCoAuthorReview[]> {
+  const rowLimit = options.limit ?? 10;
   const admin = createServiceRoleClient();
   const { data: rows } = await admin
     .from("social_thong_bao")
@@ -601,7 +614,7 @@ export async function listProcessedCoAuthorReviews(
     .eq("loai_doi_tuong", "tac_gia_owner_review")
     .not("xu_ly_luc", "is", null)
     .order("xu_ly_luc", { ascending: false })
-    .limit(30);
+    .limit(rowLimit);
 
   if (!rows?.length) return [];
 

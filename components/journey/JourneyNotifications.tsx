@@ -19,7 +19,19 @@ import type {
 } from "@/lib/social/types";
 
 type Props = {
-  initialFeed: NotificationFeed;
+  /** Badge từ server — feed chi tiết lazy-load khi mở menu. */
+  initialUnreadCount: number;
+};
+
+const EMPTY_HISTORY_FEED: NotificationFeed = {
+  unreadCount: 0,
+  followRequests: [],
+  accepted: [],
+  comments: [],
+  coAuthorReviews: [],
+  videoReady: [],
+  handledFollows: [],
+  processedCoAuthorReviews: [],
 };
 
 function formatNotifyTime(iso?: string | null): string {
@@ -34,6 +46,24 @@ function formatNotifyTime(iso?: string | null): string {
   });
 }
 
+function commentNotifyLabel(notice: CommentNotification): ReactNode {
+  const count = notice.commentCount ?? 1;
+  if (count > 1) {
+    return (
+      <>
+        <strong>{notice.tenHienThi}</strong> đã bình luận {count} lần trên bài viết.
+        <small>{notice.postTitle}</small>
+      </>
+    );
+  }
+  return (
+    <>
+      <strong>{notice.tenHienThi}</strong> đã bình luận bài viết.
+      <small>{notice.postTitle}</small>
+    </>
+  );
+}
+
 function parseFeedPayload(json: unknown): NotificationFeed | null {
   if (!json || typeof json !== "object") return null;
   const data = json as NotificationFeed;
@@ -41,52 +71,109 @@ function parseFeedPayload(json: unknown): NotificationFeed | null {
   return data;
 }
 
-export function JourneyNotifications({ initialFeed }: Props) {
+function countDisplayedItems(feed: NotificationFeed): number {
+  return (
+    feed.followRequests.length +
+    feed.accepted.length +
+    feed.comments.length +
+    feed.coAuthorReviews.length +
+    feed.videoReady.length +
+    feed.handledFollows.length +
+    feed.processedCoAuthorReviews.length
+  );
+}
+
+export function JourneyNotifications({ initialUnreadCount }: Props) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<NotificationFilter>("unread");
   const [selected, setSelected] = useState<PendingFollowRequest | null>(null);
-  const [feed, setFeed] = useState<NotificationFeed>(initialFeed);
+  const [feed, setFeed] = useState<NotificationFeed>({
+    ...EMPTY_HISTORY_FEED,
+    unreadCount: initialUnreadCount,
+  });
   const [historyFeed, setHistoryFeed] = useState<NotificationFeed | null>(null);
+  const [loadingUnread, setLoadingUnread] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [unreadLoaded, setUnreadLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   const applyFeed = useCallback((next: NotificationFeed) => {
     setFeed(next);
+    setUnreadLoaded(true);
   }, []);
 
   const unreadCount = feed.unreadCount;
   const activeFeed = tab === "history" && historyFeed ? historyFeed : feed;
 
+  const displayedCount = useMemo(
+    () => countDisplayedItems(activeFeed),
+    [activeFeed],
+  );
+
   const historyCount = useMemo(() => {
     if (!historyFeed) return null;
-    return (
-      historyFeed.accepted.length +
-      historyFeed.comments.length +
-      historyFeed.videoReady.length +
-      historyFeed.handledFollows.length +
-      historyFeed.processedCoAuthorReviews.length
-    );
+    return countDisplayedItems(historyFeed);
   }, [historyFeed]);
+
+  const loadUnread = useCallback(async () => {
+    setLoadingUnread(true);
+    try {
+      const res = await fetch("/api/notifications?filter=unread", { cache: "no-store" });
+      const json = await res.json().catch(() => null);
+      if (!res.ok) {
+        setError(
+          json && typeof json.error === "string"
+            ? json.error
+            : "Không tải được thông báo.",
+        );
+        return;
+      }
+      const next = parseFeedPayload(json);
+      if (next) applyFeed(next);
+    } finally {
+      setLoadingUnread(false);
+    }
+  }, [applyFeed]);
 
   const loadHistory = useCallback(async () => {
     setLoadingHistory(true);
     try {
       const res = await fetch("/api/notifications?filter=history", { cache: "no-store" });
-      const json = await res.json();
-      if (res.ok) {
-        setHistoryFeed(parseFeedPayload(json));
+      const json = await res.json().catch(() => null);
+      if (!res.ok) {
+        setHistoryFeed(EMPTY_HISTORY_FEED);
+        setError(
+          json && typeof json.error === "string"
+            ? json.error
+            : "Không tải được lịch sử thông báo.",
+        );
+        return;
       }
+      setHistoryFeed(parseFeedPayload(json) ?? EMPTY_HISTORY_FEED);
     } finally {
       setLoadingHistory(false);
     }
   }, []);
 
   useEffect(() => {
-    if (open && tab === "history" && !historyFeed && !loadingHistory) {
+    if (!open) return;
+    if (tab === "unread" && !unreadLoaded && !loadingUnread) {
+      void loadUnread();
+    }
+    if (tab === "history" && !historyFeed && !loadingHistory) {
       void loadHistory();
     }
-  }, [open, tab, historyFeed, loadingHistory, loadHistory]);
+  }, [
+    open,
+    tab,
+    unreadLoaded,
+    loadingUnread,
+    historyFeed,
+    loadingHistory,
+    loadUnread,
+    loadHistory,
+  ]);
 
   const refreshUnread = useCallback(() => {
     void fetch("/api/notifications?filter=unread", { cache: "no-store" })
@@ -200,8 +287,13 @@ export function JourneyNotifications({ initialFeed }: Props) {
 
   const listCount =
     tab === "unread"
-      ? unreadCount
+      ? unreadLoaded
+        ? displayedCount
+        : unreadCount
       : historyCount ?? 0;
+
+  const showMoreHint =
+    tab === "unread" && unreadLoaded && unreadCount > displayedCount;
 
   const title =
     unreadCount > 0 ? `${unreadCount} thông báo chưa đọc` : "Không có thông báo mới";
@@ -213,12 +305,7 @@ export function JourneyNotifications({ initialFeed }: Props) {
         className={`j-notify-trigger${unreadCount > 0 ? " has-unread" : ""}`}
         aria-expanded={open}
         aria-label={title}
-        onClick={() => {
-          setOpen((v) => {
-            if (!v) refreshUnread();
-            return !v;
-          });
-        }}
+        onClick={() => setOpen((v) => !v)}
       >
         <Bell size={16} strokeWidth={1.9} aria-hidden />
         {unreadCount > 0 ? <span className="j-notify-count">{unreadCount}</span> : null}
@@ -266,13 +353,14 @@ export function JourneyNotifications({ initialFeed }: Props) {
             </div>
           ) : null}
 
-          {tab === "history" && loadingHistory ? (
-            <p className="j-notify-empty">Đang tải lịch sử…</p>
+          {(tab === "unread" && loadingUnread && !unreadLoaded) ||
+          (tab === "history" && loadingHistory) ? (
+            <p className="j-notify-empty">Đang tải…</p>
           ) : listCount === 0 ? (
             <p className="j-notify-empty">
               {tab === "unread"
                 ? "Không có thông báo cần xử lý."
-                : "Chưa có thông báo đã xử lý."}
+                : "Chưa có lịch sử. Lịch sử gồm: kết nối đã chấp nhận/từ chối, ai đó chấp nhận kết bạn với bạn, bình luận/video đã đọc."}
             </p>
           ) : (
             <ul className="j-notify-list">
@@ -389,12 +477,7 @@ export function JourneyNotifications({ initialFeed }: Props) {
                           ? `/${notice.ownerSlug}/p/${notice.postSlug}`
                           : `/${notice.slug}`
                       }
-                      label={
-                        <>
-                          <strong>{notice.tenHienThi}</strong> đã bình luận bài viết.
-                          <small>{notice.postTitle}</small>
-                        </>
-                      }
+                      label={commentNotifyLabel(notice)}
                       time={formatNotifyTime(notice.taoLuc)}
                       avatar={<Avatar request={notice} />}
                     />
@@ -425,6 +508,11 @@ export function JourneyNotifications({ initialFeed }: Props) {
               )}
             </ul>
           )}
+          {showMoreHint ? (
+            <p className="j-notify-more-hint">
+              Hiển thị {displayedCount} / {unreadCount} thông báo chưa xử lý.
+            </p>
+          ) : null}
           {error ? (
             <p className="j-notify-error" role="alert">
               {error}
@@ -495,10 +583,7 @@ function UnreadCommentItem({
         onClick={onOpen}
       >
         <Avatar request={notice} />
-        <span>
-          <strong>{notice.tenHienThi}</strong> đã bình luận bài viết.
-          <small>{notice.postTitle}</small>
-        </span>
+        <span>{commentNotifyLabel(notice)}</span>
       </Link>
     </li>
   );

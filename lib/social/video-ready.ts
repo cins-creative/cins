@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { insertSocialThongBao } from "@/lib/social/thong-bao-insert";
 
 import type { VideoReadyNotification } from "@/lib/social/types";
 
@@ -19,17 +20,21 @@ export async function notifyVideoReady(params: {
 
   if (existing?.id) return;
 
-  await admin.from("social_thong_bao").insert({
+  const result = await insertSocialThongBao(admin, {
     nguoi_nhan: params.ownerId,
+    loai: "thong_tin",
+    noi_dung: "Video đã sẵn sàng",
     loai_doi_tuong: "video_ready",
     id_doi_tuong: params.tacPhamId,
   });
+  if (!result.ok) console.error("[notifyVideoReady]", result.error);
 }
 
 export async function listVideoReadyNotifications(
   viewerId: string,
-  options: { unreadOnly?: boolean; historyOnly?: boolean } = {},
+  options: { unreadOnly?: boolean; historyOnly?: boolean; limit?: number } = {},
 ): Promise<VideoReadyNotification[]> {
+  const rowLimit = options.limit ?? 10;
   const admin = createServiceRoleClient();
   let query = admin
     .from("social_thong_bao")
@@ -37,7 +42,7 @@ export async function listVideoReadyNotifications(
     .eq("nguoi_nhan", viewerId)
     .eq("loai_doi_tuong", "video_ready")
     .order("tao_luc", { ascending: false })
-    .limit(options.historyOnly ? 30 : 10);
+    .limit(rowLimit);
 
   if (options.unreadOnly) {
     query = query.eq("da_doc", false);

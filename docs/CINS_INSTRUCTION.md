@@ -131,15 +131,19 @@ Trường tự điền môn thật + hệ số **per khối** (`id_cau_hinh_khoi
 
 ---
 
-### Nhóm content_ (5 bảng)
+### Nhóm content_ (7 bảng)
 
 | Bảng | Vai trò |
 |---|---|
 | content_cot_moc | SOURCE OF TRUTH. Field `thoi_diem DATE` (ngày xảy ra). Có FK context: id_du_an, id_su_kien, id_to_chuc, id_truong_nganh, id_lop_hoc, id_khoa_hoc. |
 | content_tac_pham | Output sáng tạo. Có `cover_id` Cloudflare. **Site editor (migration 2026-05-26):** `slug` (kebab-case, unique per `id_nguoi_dung`, route `/{handle}/p/{slug}`), `noi_dung_blocks JSONB` (array Block `{id, loai, thu_tu, config}`), `noi_dung_html TEXT` (sanitize, scope `.article-rich-content`), `meta_title`, `meta_description`. |
-| content_media | File media. Có `width`, `height` cho image dimensions. |
+| content_media | File media. Có `width`, `height`, `cloudflare_id` cho image dimensions. |
 | content_tac_pham_thuoc_moc | M-M tác phẩm ↔ cột mốc. Có `thu_tu`. |
 | content_tac_pham_tac_gia | M-M co-author. Fields: `vai_tro TEXT`, `trang_thai TEXT` (`pending`/`accepted`/`declined`, default `pending`), `la_chu_so_huu BOOLEAN` (owner row = TRUE, luôn accepted), `thu_tu SMALLINT`, `ghi_chu TEXT`, `xu_ly_luc TIMESTAMPTZ`. Migration: `supabase/sql/migration_co_author.sql`. |
+| **content_thao_luan** | **Community discussion layer** — post thảo luận đa context (`loai_context` + `id_context`). v1: `cong_dong`. Fields: `nguoi_dang`, `tieu_de` nullable, `noi_dung`, `loai_post` (default `thao_luan`), `ghim`, `da_xoa` (soft delete). Migration: `supabase/sql/migration_cong_dong.sql` (+ `ALTER TYPE loai_doi_tuong_social_enum ADD VALUE 'thao_luan'`). |
+| content_thao_luan_media | Junction post ↔ `content_media` (`thu_tu`). |
+| **content_thao_luan_filter** | Nhãn taxonomy do admin cộng đồng định nghĩa (Reddit flair-style). Fields: `loai_context` + `id_context` (v1: `cong_dong` + `org_to_chuc.id`), `ten`, `slug`, `mau`, `icon` nullable, `thu_tu`. UNIQUE (`loai_context`, `id_context`, `slug`). **Lọc trên 1 feed chung** — không tách phòng. Migration: `supabase/sql/migration_cong_dong_filter.sql`. |
+| content_thao_luan_filter_gan | Junction nhiều nhãn ↔ post (`id_thao_luan`, `id_filter`). |
 
 ---
 
@@ -355,7 +359,7 @@ Check: `user_thanh_vien_to_chuc.vai_tro IN ('admin', 'quan_ly_noi_dung', 'quan_l
 - api_ (4 bảng) — public API cho developer
 - ad_ (8 bảng) — sponsored content
 - Video on demand + LMS đầy đủ — defer cùng payment phase
-- **Community discussion layer** — *(v6: TBD)* CINS cần chỗ user chuyên môn đóng góp/hỏi đáp. Chưa thiết kế cụ thể. Khi làm: ghi nhận đóng góp bằng **uy tín chuyên môn / verified hữu ích**, không phải đếm like ẩn danh; vẫn không có feed thuật toán toàn cục.
+- ~~**Community discussion layer**~~ — **đã triển khai v6** qua `content_thao_luan` + trang `/cong-dong/[slug]`. Feed scoped theo 1 cộng đồng, sort mới nhất; comment/reaction reuse `social_*`. Không feed thuật toán toàn cục.
 - ~~`user_ket_ban`~~ — **đã kích hoạt ở v6**, không còn defer.
 
 ---
@@ -430,6 +434,7 @@ Pre-launch checklist:
 | Route trường | `/truong-dai-hoc/[slug]` — layout v6 (`tdh-page--v6`) |
 | Route Journey | `/{slug}` timeline · `/{slug}/p/{postSlug}` bài viết · `/{slug}/p/new` tạo (cần login) |
 | Hub công khai | `/`, `/nganh-hoc`, `/nghe-nghiep`, `/truong-dai-hoc`, `/bai-viet`, … |
+| **Cộng đồng** | `/cong-dong` (listing) · `/cong-dong/tao` · `/cong-dong/[slug]` (feed) · `POST /api/to-chuc` · `POST/DELETE /api/cong-dong/:id/tham-gia` · `GET/POST /api/cong-dong/:id/posts` (`?filter=slug` lọc nhãn; POST `filter_ids[]`) · `GET/POST/PATCH/DELETE /api/cong-dong/:id/filters` (admin nhãn) · comment `…/posts/:postId/comments` · reaction `loai_doi_tuong=thao_luan` |
 | API tính điểm | `GET /api/truong/{org_to_chuc.id}/cau-hinh-tinh-diem?nam=&nganh=` — `nganh`=`org_truong_nganh.id`; `PUT` lưu `org_cau_hinh_mon` |
 | API catalog môn | `GET /api/truong/{id}/mon-thi-catalog` — `id, ten, loai, ma, thumbnail_id` |
 | API ngành CRUD | `POST/GET …/nganh`, `DELETE …/nganh/{programId}` → ẩn (`tam_dung`) |
@@ -545,5 +550,5 @@ Lý do tách: `truong_dai_hoc` gắn dữ liệu tuyển sinh/điểm chuẩn/ng
 
 ### Ghi chú thiết kế chưa chốt
 - **studio vs doanh_nghiep**: hiện gần như giống nhau (cùng `project_du_an`, cùng tab). Tạm giữ **2 nhãn dùng chung 1 template trang**. *[cân nhắc gộp 1 loại nếu doanh_nghiep không có gì studio không có — chốt sau.]*
-- **cong_dong KHÔNG phải FB Group**: không feed thảo luận tự do, không group chat tự do (`§2` chat phải có context). Hiện là **event hub + thông báo** + context verify tham dự (`verify_tham_du_su_kien`). Nếu thêm thảo luận → đi cùng "Community discussion layer" (§12, TBD).
+- **cong_dong** (v6 brief): model FB Group **trong phạm vi 1 org** — thành viên đăng bài + thảo luận qua `content_thao_luan` (KHÔNG nhồi vào `org_bai_dang`). Mỗi post kèm badge **nghề + verified journey** người đăng. `org_to_chuc.cau_hinh.che_do`: `cong_khai` (mặc định) / `rieng_tu`. Tạo org: `POST /api/to-chuc` → 2 dòng `user_thanh_vien_to_chuc` (CINS `owner` + creator `admin`) + **cột mốc Journey** `content_cot_moc` (`loai_moc=thanh_tuu`, `nguon_goc=sinh_tu_org_assign`, `id_to_chuc`) + `verify_xac_nhan` (`loai_nguoi_xac_nhan=to_chuc`, `trang_thai=da_xac_nhan`) → hiện filter **Verified**, vai trò **Người tạo cộng đồng**. Env: `CINS_SYSTEM_USER_ID`. **Nhãn lọc** (`content_thao_luan_filter`): admin định nghĩa taxonomy; user chọn nhiều nhãn khi đăng; feed mặc định hiện tất cả, chip lọc tuỳ chọn — **không** tách phòng. Tạo `cong_dong` → seed 4 nhãn mặc định (hardcode `lib/cong-dong/default-filters.ts`) + tutorial `/cong-dong/[slug]/nhan` (sửa/xoá/thêm, skip được).
 - **Org không có Journey riêng**: org là *context* để verify milestone của member; mọi tác phẩm/dự án quy về `content_cot_moc` của từng user (quy tắc 1 + 2).

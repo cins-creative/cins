@@ -6,7 +6,6 @@ import {
   declineFriendRequest,
   findPendingRecordId,
 } from "@/lib/social/ket-ban";
-import { logFollowRequestHandled } from "@/lib/social/follow";
 import { loadNotificationFeed } from "@/lib/social/notifications";
 
 /** @deprecated Dùng `/api/ket-ban/:id` PATCH — giữ tạm cho client cũ. */
@@ -44,18 +43,10 @@ export async function PATCH(req: Request) {
     if (!acceptResult.ok) {
       return NextResponse.json({ error: acceptResult.error }, { status: 400 });
     }
-    await logFollowRequestHandled(
-      session.profile.id,
-      acceptResult.data.idNguoiGui,
-      "accept",
-    );
   } else {
     const declineResult = await declineFriendRequest(recordId, session.profile.id);
     if (!declineResult.ok) {
       return NextResponse.json({ error: declineResult.error }, { status: 400 });
-    }
-    if (targetId) {
-      await logFollowRequestHandled(session.profile.id, targetId, "decline");
     }
   }
 

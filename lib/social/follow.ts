@@ -1,6 +1,10 @@
 import "server-only";
 
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { logFollowRequestHandled } from "@/lib/social/friend-notifications";
+import { insertSocialThongBao } from "@/lib/social/thong-bao-insert";
+
+export { logFollowRequestHandled };
 
 import {
   formatTinhThanh,
@@ -126,18 +130,49 @@ export async function notifyFollowAccepted(
   accepterId: string,
 ): Promise<void> {
   const admin = createServiceRoleClient();
-  await admin.from("social_thong_bao").insert({
+  const result = await insertSocialThongBao(admin, {
     nguoi_nhan: requesterId,
+    loai: "thong_tin",
+    noi_dung: "Đã chấp nhận kết bạn",
     noi_dung_ai: accepterId,
     loai_doi_tuong: "follow_accepted",
     id_doi_tuong: accepterId,
   });
+  if (!result.ok) console.error("[notifyFollowAccepted]", result.error);
+}
+
+const NOTIFY_PROFILE_STUB = {
+  coverUrl: null,
+  bio: null,
+  giaiDoan: null,
+  tinhThanh: null,
+  stats: { cotMoc: 0, tacPham: 0, banBe: 0, toChucXacThuc: 0 },
+} as const;
+
+/** Profile tối giản cho dropdown thông báo — không query stats/cover. */
+export async function loadNotifyProfiles(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  userIds: string[],
+): Promise<PendingFollowRequest[]> {
+  if (userIds.length === 0) return [];
+  const { data: profiles } = await admin
+    .from("user_nguoi_dung")
+    .select("id, slug, ten_hien_thi, avatar_id")
+    .in("id", userIds);
+  return (profiles ?? []).map((p) => ({
+    idNguoiDung: p.id as string,
+    slug: (p.slug as string) ?? "",
+    tenHienThi: (p.ten_hien_thi as string | null) || (p.slug as string) || "User",
+    avatarUrl: getAvatarUrl((p.avatar_id as string | null) ?? null),
+    ...NOTIFY_PROFILE_STUB,
+  }));
 }
 
 export async function listFollowAcceptedNotifications(
   viewerId: string,
-  options: { unreadOnly?: boolean; historyOnly?: boolean } = {},
+  options: { unreadOnly?: boolean; historyOnly?: boolean; limit?: number } = {},
 ): Promise<FollowAcceptedNotification[]> {
+  const rowLimit = options.limit ?? 10;
   const admin = createServiceRoleClient();
   let query = admin
     .from("social_thong_bao")
@@ -145,7 +180,7 @@ export async function listFollowAcceptedNotifications(
     .eq("nguoi_nhan", viewerId)
     .eq("loai_doi_tuong", "follow_accepted")
     .order("tao_luc", { ascending: false })
-    .limit(options.historyOnly ? 30 : 10);
+    .limit(rowLimit);
 
   if (options.unreadOnly) {
     query = query.eq("da_doc", false);
@@ -164,7 +199,7 @@ export async function listFollowAcceptedNotifications(
   ];
   if (actorIds.length === 0) return [];
 
-  const profiles = await loadFollowProfiles(admin, actorIds);
+  const profiles = await loadNotifyProfiles(admin, actorIds);
   const byId = new Map(profiles.map((profile) => [profile.idNguoiDung, profile]));
   return (rows ?? [])
     .map((row) => {
@@ -181,37 +216,111 @@ export async function listFollowAcceptedNotifications(
     .filter((item): item is NonNullable<typeof item> => item !== null);
 }
 
+function parseCommentNotifyCount(noiDung: string | null | undefined): number {
+  if (!noiDung) return 1;
+  const match = noiDung.match(/^(\d+)\s+bình luận mới/);
+  if (match) return Math.max(1, Number.parseInt(match[1] ?? "1", 10));
+  return 1;
+}
+
+/**
+ * Chủ cột mốc: tối đa 1 thông báo chưa đọc / (người bình luận × bài viết).
+ * Bình luận tiếp theo của cùng người chỉ cập nhật count + đẩy lên đầu.
+ */
 export async function notifyMilestoneComment(params: {
   ownerId: string;
   commenterId: string;
   commentId: string;
+  milestoneId: string;
 }): Promise<void> {
+  void params.commentId;
   if (params.ownerId === params.commenterId) return;
   const admin = createServiceRoleClient();
-  const { error } = await admin.from("social_thong_bao").insert({
+
+  const { data: existing } = await admin
+    .from("social_thong_bao")
+    .select("id, noi_dung")
+    .eq("nguoi_nhan", params.ownerId)
+    .eq("loai_doi_tuong", "cot_moc_comment")
+    .eq("id_doi_tuong", params.milestoneId)
+    .eq("noi_dung_ai", params.commenterId)
+    .eq("da_doc", false)
+    .maybeSingle<{ id: string; noi_dung: string | null }>();
+
+  if (existing?.id) {
+    const next = parseCommentNotifyCount(existing.noi_dung) + 1;
+    const { error } = await admin
+      .from("social_thong_bao")
+      .update({
+        noi_dung: `${next} bình luận mới trên bài viết`,
+        tao_luc: new Date().toISOString(),
+      })
+      .eq("id", existing.id);
+    if (error) console.error("[notifyMilestoneComment] update", error.message);
+    return;
+  }
+
+  const { data: legacyComments } = await admin
+    .from("social_binh_luan")
+    .select("id")
+    .eq("loai_doi_tuong", "cot_moc")
+    .eq("id_doi_tuong", params.milestoneId)
+    .eq("nguoi_binh_luan", params.commenterId)
+    .returns<Array<{ id: string }>>();
+  const legacyCommentIds = (legacyComments ?? []).map((row) => row.id);
+  if (legacyCommentIds.length > 0) {
+    const { data: legacyNotify } = await admin
+      .from("social_thong_bao")
+      .select("id, noi_dung")
+      .eq("nguoi_nhan", params.ownerId)
+      .eq("loai_doi_tuong", "cot_moc_comment")
+      .eq("noi_dung_ai", params.commenterId)
+      .eq("da_doc", false)
+      .in("id_doi_tuong", legacyCommentIds)
+      .order("tao_luc", { ascending: false })
+      .limit(1)
+      .maybeSingle<{ id: string; noi_dung: string | null }>();
+
+    if (legacyNotify?.id) {
+      const next = parseCommentNotifyCount(legacyNotify.noi_dung) + 1;
+      const { error } = await admin
+        .from("social_thong_bao")
+        .update({
+          id_doi_tuong: params.milestoneId,
+          noi_dung: `${next} bình luận mới trên bài viết`,
+          tao_luc: new Date().toISOString(),
+        })
+        .eq("id", legacyNotify.id);
+      if (error) console.error("[notifyMilestoneComment] migrate", error.message);
+      return;
+    }
+  }
+
+  const result = await insertSocialThongBao(admin, {
     nguoi_nhan: params.ownerId,
+    loai: "thong_tin",
+    noi_dung: "Có bình luận mới trên cột mốc",
     noi_dung_ai: params.commenterId,
     loai_doi_tuong: "cot_moc_comment",
-    id_doi_tuong: params.commentId,
+    id_doi_tuong: params.milestoneId,
     da_doc: false,
   });
-  if (error) {
-    console.error("[notifyMilestoneComment]", error.message);
-  }
+  if (!result.ok) console.error("[notifyMilestoneComment]", result.error);
 }
 
 export async function listCommentNotifications(
   viewerId: string,
-  options: { unreadOnly?: boolean; historyOnly?: boolean } = {},
+  options: { unreadOnly?: boolean; historyOnly?: boolean; limit?: number } = {},
 ): Promise<CommentNotification[]> {
+  const rowLimit = options.limit ?? 10;
   const admin = createServiceRoleClient();
   let query = admin
     .from("social_thong_bao")
-    .select("id, id_doi_tuong, noi_dung_ai, tao_luc, da_doc")
+    .select("id, id_doi_tuong, noi_dung_ai, noi_dung, tao_luc, da_doc")
     .eq("nguoi_nhan", viewerId)
     .eq("loai_doi_tuong", "cot_moc_comment")
     .order("tao_luc", { ascending: false })
-    .limit(options.historyOnly ? 30 : 10);
+    .limit(rowLimit);
 
   if (options.unreadOnly) {
     query = query.eq("da_doc", false);
@@ -230,15 +339,33 @@ export async function listCommentNotifications(
   ];
   if (objectIds.length === 0) return [];
 
-  const { data: commentRows } = await admin
-    .from("social_binh_luan")
-    .select("id, id_doi_tuong, nguoi_binh_luan")
+  const { data: directMilestones } = await admin
+    .from("content_cot_moc")
+    .select("id")
     .in("id", objectIds)
-    .eq("loai_doi_tuong", "cot_moc");
+    .returns<Array<{ id: string }>>();
+  const directMilestoneIds = new Set(
+    (directMilestones ?? []).map((m) => m.id as string),
+  );
+
+  const legacyCommentIds = objectIds.filter((id) => !directMilestoneIds.has(id));
+  const { data: commentRows } = legacyCommentIds.length
+    ? await admin
+        .from("social_binh_luan")
+        .select("id, id_doi_tuong, nguoi_binh_luan")
+        .in("id", legacyCommentIds)
+        .eq("loai_doi_tuong", "cot_moc")
+    : { data: [] as Array<{ id: string; id_doi_tuong: string; nguoi_binh_luan: string }> };
 
   const commentById = new Map(
     (commentRows ?? []).map((c) => [c.id as string, c]),
   );
+
+  const resolveMilestoneId = (objectId: string | null): string | null => {
+    if (!objectId) return null;
+    if (directMilestoneIds.has(objectId)) return objectId;
+    return commentById.get(objectId)?.id_doi_tuong ?? null;
+  };
 
   const commenterIds = [
     ...new Set(
@@ -255,18 +382,14 @@ export async function listCommentNotifications(
   const milestoneIds = [
     ...new Set(
       (rows ?? [])
-        .map((row) => {
-          const objectId = row.id_doi_tuong as string | null;
-          if (!objectId) return null;
-          return commentById.get(objectId)?.id_doi_tuong ?? objectId;
-        })
+        .map((row) => resolveMilestoneId(row.id_doi_tuong as string | null))
         .filter((id): id is string => Boolean(id)),
     ),
   ];
   if (commenterIds.length === 0 || milestoneIds.length === 0) return [];
 
   const [profiles, { data: milestones }, { data: links }] = await Promise.all([
-    loadFollowProfiles(admin, commenterIds, Math.max(1, commenterIds.length)),
+    loadNotifyProfiles(admin, commenterIds),
     admin
       .from("content_cot_moc")
       .select("id, id_nguoi_dung, tieu_de")
@@ -305,12 +428,13 @@ export async function listCommentNotifications(
     }
   }
 
-  return (rows ?? [])
+  const mapped = (rows ?? [])
     .map((row) => {
       const objectId = row.id_doi_tuong as string | null;
       if (!objectId) return null;
       const viaComment = commentById.get(objectId);
-      const milestoneId = viaComment?.id_doi_tuong ?? objectId;
+      const milestoneId = resolveMilestoneId(objectId);
+      if (!milestoneId) return null;
       const commenterId =
         (row.noi_dung_ai as string | null) ??
         viaComment?.nguoi_binh_luan ??
@@ -326,11 +450,41 @@ export async function listCommentNotifications(
         postTitle: milestone.tieu_de || "Bài viết",
         postSlug: link?.content_tac_pham?.slug ?? null,
         ownerSlug: ownerSlugById.get(milestone.id_nguoi_dung) ?? null,
+        commentCount: parseCommentNotifyCount(row.noi_dung as string | null),
         taoLuc: (row.tao_luc as string | null) ?? undefined,
         daDoc: Boolean(row.da_doc),
       };
     })
     .filter((item): item is NonNullable<typeof item> => item !== null);
+
+  const deduped = new Map<string, (typeof mapped)[number]>();
+  for (const item of mapped) {
+    const key = `${item.idNguoiDung}:${item.milestoneId}`;
+    const prev = deduped.get(key);
+    if (!prev) {
+      deduped.set(key, item);
+      continue;
+    }
+    const prevTime = prev.taoLuc ?? "";
+    const itemTime = item.taoLuc ?? "";
+    const mergedCount = (prev.commentCount ?? 1) + (item.commentCount ?? 1);
+    if (itemTime >= prevTime) {
+      deduped.set(key, {
+        ...item,
+        commentCount: mergedCount,
+        notificationId: item.notificationId,
+      });
+    } else {
+      deduped.set(key, {
+        ...prev,
+        commentCount: mergedCount,
+      });
+    }
+  }
+
+  return [...deduped.values()].sort((a, b) =>
+    (b.taoLuc ?? "").localeCompare(a.taoLuc ?? ""),
+  );
 }
 
 export async function loadFollowProfiles(
@@ -447,26 +601,11 @@ async function loadUserSocialStats(
   return out;
 }
 
-/** Ghi lịch sử khi user chấp nhận/từ chối lời mời kết nối. */
-export async function logFollowRequestHandled(
-  viewerId: string,
-  requesterId: string,
-  action: "accept" | "decline",
-): Promise<void> {
-  const admin = createServiceRoleClient();
-  await admin.from("social_thong_bao").insert({
-    nguoi_nhan: viewerId,
-    loai_doi_tuong: "follow_request_handled",
-    id_doi_tuong: requesterId,
-    noi_dung_ai: action,
-    da_doc: true,
-    xu_ly_luc: new Date().toISOString(),
-  });
-}
-
 export async function listFollowHandledNotifications(
   viewerId: string,
+  options: { limit?: number } = {},
 ): Promise<FollowHandledNotification[]> {
+  const rowLimit = options.limit ?? 10;
   const admin = createServiceRoleClient();
   const { data: rows } = await admin
     .from("social_thong_bao")
@@ -474,7 +613,7 @@ export async function listFollowHandledNotifications(
     .eq("nguoi_nhan", viewerId)
     .eq("loai_doi_tuong", "follow_request_handled")
     .order("xu_ly_luc", { ascending: false })
-    .limit(30);
+    .limit(rowLimit);
 
   const requesterIds = [
     ...new Set(
@@ -485,7 +624,7 @@ export async function listFollowHandledNotifications(
   ];
   if (requesterIds.length === 0) return [];
 
-  const profiles = await loadFollowProfiles(admin, requesterIds, requesterIds.length);
+  const profiles = await loadNotifyProfiles(admin, requesterIds);
   const byId = new Map(profiles.map((p) => [p.idNguoiDung, p]));
 
   return (rows ?? [])

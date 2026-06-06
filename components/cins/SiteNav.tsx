@@ -113,7 +113,7 @@ function SidebarUserCard({ profile }: { profile: SidebarProfile }) {
             <span>Trang cá nhân</span>
           </Link>
           <Link
-            href="#create-org"
+            href="/cong-dong/tao"
             className="sb-user-menu-item"
             role="menuitem"
             onClick={() => setOpen(false)}
@@ -121,7 +121,7 @@ function SidebarUserCard({ profile }: { profile: SidebarProfile }) {
             <span className="sb-user-menu-ico" aria-hidden>
               <Building2 size={18} strokeWidth={1.7} />
             </span>
-            <span>Tạo tổ chức</span>
+            <span>Tạo cộng đồng</span>
           </Link>
           <Link
             href="/#settings"

@@ -40,12 +40,18 @@ import { dispatchMilestoneInlinePatch } from "@/lib/journey/milestone-inline-pat
 type Props = {
   milestoneId: string;
   ownerSlug: string;
+  /** Slug dùng cho permalink bài (mặc định = ownerSlug; bookmark → tác giả gốc). */
+  permalinkOwnerSlug?: string | null;
   /** Loại hiện tại (UI value) — dùng để highlight option đang chọn. */
   currentType: MilestoneType;
   /** Chế độ hiển thị hiện tại (UI value). */
   currentVisibility: MilestoneVisibility;
   /** Slug của tác phẩm đầu tiên gắn vào cột mốc — null = không có bài viết. */
   postSlug: string | null;
+  /** Ẩn đổi nhóm filter (cột mốc Lưu về). */
+  hideTypeChange?: boolean;
+  /** Ẩn sửa bài (không sửa bài người khác từ Journey Lưu về). */
+  hideEdit?: boolean;
   /** Gọi sau khi đổi loại/hiển thị/xoá thành công (vd. refetch modal post). */
   onAfterChange?: () => void;
   /** Class wrapper — vd. `post-byline-menu` trong JourneyPostBody. */
@@ -118,9 +124,12 @@ const VIS_OPTIONS: ReadonlyArray<{
 export function JourneyMilestoneOwnerMenu({
   milestoneId,
   ownerSlug,
+  permalinkOwnerSlug,
   currentType,
   currentVisibility,
   postSlug,
+  hideTypeChange = false,
+  hideEdit = false,
   onAfterChange,
   className,
 }: Props) {
@@ -256,13 +265,14 @@ export function JourneyMilestoneOwnerMenu({
     })();
   }
 
+  const linkOwnerSlug = permalinkOwnerSlug || ownerSlug;
   const editHref =
-    postSlug !== null && postSlug.length > 0
-      ? `/${ownerSlug}/p/${postSlug}/edit`
+    !hideEdit && postSlug !== null && postSlug.length > 0
+      ? `/${linkOwnerSlug}/p/${postSlug}/edit`
       : null;
   const viewHref =
     postSlug !== null && postSlug.length > 0
-      ? `/${ownerSlug}/p/${postSlug}`
+      ? `/${linkOwnerSlug}/p/${postSlug}`
       : null;
   const [copied, setCopied] = useState(false);
 
@@ -344,82 +354,88 @@ export function JourneyMilestoneOwnerMenu({
           ) : null}
 
           {/* Sửa bài viết */}
-          {postSlug ? (
-            <button
-              type="button"
-              className="j-m-menu-item"
-              role="menuitem"
-              onClick={() => {
-                close();
-                if (canCompose) {
-                  openCompose({ kind: "edit", postSlug });
-                } else if (editHref) {
-                  window.location.href = editHref;
-                }
-              }}
-            >
-              <span className="j-m-menu-ico" aria-hidden>
-                <Pencil size={14} strokeWidth={1.7} />
-              </span>
-              <span className="j-m-menu-lbl">Sửa bài viết</span>
-            </button>
-          ) : (
-            <div
-              className="j-m-menu-item is-disabled"
-              role="menuitem"
-              aria-disabled="true"
-              title="Cột mốc này chưa có bài viết để sửa."
-            >
-              <span className="j-m-menu-ico" aria-hidden>
-                <Pencil size={14} strokeWidth={1.7} />
-              </span>
-              <span className="j-m-menu-lbl">Sửa bài viết</span>
-              <span className="j-m-menu-hint">không có bài</span>
-            </div>
-          )}
+          {!hideEdit ? (
+            postSlug ? (
+              <button
+                type="button"
+                className="j-m-menu-item"
+                role="menuitem"
+                onClick={() => {
+                  close();
+                  if (canCompose) {
+                    openCompose({ kind: "edit", postSlug });
+                  } else if (editHref) {
+                    window.location.href = editHref;
+                  }
+                }}
+              >
+                <span className="j-m-menu-ico" aria-hidden>
+                  <Pencil size={14} strokeWidth={1.7} />
+                </span>
+                <span className="j-m-menu-lbl">Sửa bài viết</span>
+              </button>
+            ) : (
+              <div
+                className="j-m-menu-item is-disabled"
+                role="menuitem"
+                aria-disabled="true"
+                title="Cột mốc này chưa có bài viết để sửa."
+              >
+                <span className="j-m-menu-ico" aria-hidden>
+                  <Pencil size={14} strokeWidth={1.7} />
+                </span>
+                <span className="j-m-menu-lbl">Sửa bài viết</span>
+                <span className="j-m-menu-hint">không có bài</span>
+              </div>
+            )
+          ) : null}
 
           {/* Đổi nhóm filter */}
-          <button
-            type="button"
-            className={`j-m-menu-item ${sub === "type" ? "is-open" : ""}`}
-            role="menuitem"
-            onClick={() => setSub(sub === "type" ? "none" : "type")}
-          >
-            <span className="j-m-menu-ico" aria-hidden>
-              <FolderKanban size={14} strokeWidth={1.7} />
-            </span>
-            <span className="j-m-menu-lbl">Đổi nhóm filter</span>
-            <span className="j-m-menu-chev" aria-hidden>
-              <ChevronRight size={14} strokeWidth={1.8} />
-            </span>
-          </button>
-          {sub === "type" ? (
-            <div className="j-m-submenu">
-              {TYPE_OPTIONS.map((opt) => {
-                const active = opt.ui === currentType;
-                return (
-                  <button
-                    key={opt.db}
-                    type="button"
-                    className={`j-m-submenu-item ${active ? "is-active" : ""}`}
-                    role="menuitemradio"
-                    aria-checked={active}
-                    disabled={pending || active}
-                    onClick={() => handleChangeType(opt.db)}
-                  >
-                    <span className="j-m-menu-ico" aria-hidden>
-                      <opt.Icon size={14} strokeWidth={1.7} />
-                    </span>
-                    <span className="j-m-menu-lbl">{opt.label}</span>
-                    {active ? (
-                      <span className="j-m-menu-check" aria-hidden>
-                        <Check size={14} strokeWidth={2.2} />
-                      </span>
-                    ) : null}
-                  </button>
-                );
-              })}
-            </div>
+          {!hideTypeChange ? (
+            <>
+              <button
+                type="button"
+                className={`j-m-menu-item ${sub === "type" ? "is-open" : ""}`}
+                role="menuitem"
+                onClick={() => setSub(sub === "type" ? "none" : "type")}
+              >
+                <span className="j-m-menu-ico" aria-hidden>
+                  <FolderKanban size={14} strokeWidth={1.7} />
+                </span>
+                <span className="j-m-menu-lbl">Đổi nhóm filter</span>
+                <span className="j-m-menu-chev" aria-hidden>
+                  <ChevronRight size={14} strokeWidth={1.8} />
+                </span>
+              </button>
+              {sub === "type" ? (
+                <div className="j-m-submenu">
+                  {TYPE_OPTIONS.map((opt) => {
+                    const active = opt.ui === currentType;
+                    return (
+                      <button
+                        key={opt.db}
+                        type="button"
+                        className={`j-m-submenu-item ${active ? "is-active" : ""}`}
+                        role="menuitemradio"
+                        aria-checked={active}
+                        disabled={pending || active}
+                        onClick={() => handleChangeType(opt.db)}
+                      >
+                        <span className="j-m-menu-ico" aria-hidden>
+                          <opt.Icon size={14} strokeWidth={1.7} />
+                        </span>
+                        <span className="j-m-menu-lbl">{opt.label}</span>
+                        {active ? (
+                          <span className="j-m-menu-check" aria-hidden>
+                            <Check size={14} strokeWidth={2.2} />
+                          </span>
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </>
           ) : null}
 
           {/* Đổi chế độ hiển thị */}

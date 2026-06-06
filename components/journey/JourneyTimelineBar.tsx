@@ -132,6 +132,7 @@ export function JourneyTimelineBar({
   const wrapRef = useRef<HTMLDivElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const ignoreOutsideClickRef = useRef(false);
 
   /* Local optimistic copy của visibility map — server-side revalidatePath
      sẽ refresh prop, nhưng UI cần response tức thì khi toggle. */
@@ -187,10 +188,14 @@ export function JourneyTimelineBar({
     };
   }, [open]);
 
-  /* Click ngoài → đóng menu (menu portal ra body nên check cả menuRef). */
+  /* Click ngoài → đóng menu (portal ra body; bỏ qua click mở menu). */
   useEffect(() => {
     if (!open) return;
     function onDocClick(e: MouseEvent) {
+      if (ignoreOutsideClickRef.current) {
+        ignoreOutsideClickRef.current = false;
+        return;
+      }
       const target = e.target as Node;
       if (wrapRef.current?.contains(target)) return;
       if (menuRef.current?.contains(target)) return;
@@ -312,7 +317,9 @@ export function JourneyTimelineBar({
           className="j-tlb-dd-btn"
           onClick={(e) => {
             e.stopPropagation();
-            if (enabled) setOpen((v) => !v);
+            if (!enabled) return;
+            ignoreOutsideClickRef.current = true;
+            setOpen((v) => !v);
           }}
           disabled={!enabled}
           aria-haspopup="listbox"

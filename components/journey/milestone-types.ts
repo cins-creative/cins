@@ -65,7 +65,20 @@ export type MilestoneAttribution = {
   slug?: string | null;
   /** Có phải là organization (vuông) hay person (tròn). */
   isOrg?: boolean;
+  /** Loại org — quyết định popover + link. */
+  orgKind?: "cong_dong" | "truong" | null;
+  /** URL trang công khai của org. */
+  href?: string | null;
+  /** Cover org (cộng đồng / trường) — Cloudflare delivery URL. */
+  coverUrl?: string | null;
+  /** Số thành viên — chỉ `orgKind === 'cong_dong'`. */
+  memberCount?: number;
+  /** Số bài thảo luận trong cộng đồng. */
+  postCount?: number;
 };
+
+/** Layout card đặc biệt — khác article/photo/video. */
+export type MilestoneCardLayout = "default" | "cong-dong-create";
 
 export type MilestoneBookmarkSource = {
   /** Tên platform — "ArtStation", "Behance", "YouTube"… */
@@ -142,6 +155,11 @@ export type MilestoneItem = {
   bookmark?: MilestoneBookmarkSource | null;
   /** Badge "✓ Sine Art" — chỉ khi đã được verified. */
   verifiedBy?: string | null;
+
+  /** Card layout — `cong-dong-create` = milestone tạo cộng đồng (logo org). */
+  cardLayout?: MilestoneCardLayout;
+  /** Link cộng đồng/org khi `cardLayout === 'cong-dong-create'`. */
+  orgHref?: string | null;
 
   /** Media tối đa 3 thumbnail trên grid (single/double/triple). */
   media?: MilestoneMediaItem[];

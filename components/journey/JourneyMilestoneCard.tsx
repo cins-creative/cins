@@ -8,6 +8,7 @@ import {
   ChevronDown,
   ChevronUp,
   CornerDownRight,
+  FileText,
   FolderKanban,
   Globe,
   Eye,
@@ -31,7 +32,9 @@ import { JourneyBookmarkButton } from "@/components/journey/JourneyBookmarkButto
 import { JourneyMilestoneInlineControls } from "@/components/journey/JourneyMilestoneInlineControls";
 import { JourneyLikeButton } from "@/components/journey/JourneyLikeButton";
 import { JourneyMilestoneOwnerMenu } from "@/components/journey/JourneyMilestoneOwnerMenu";
+import { JourneyOrgPopover } from "@/components/journey/JourneyOrgPopover";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
+import Link from "next/link";
 import type {
   CoAuthorCredit,
   MilestoneAttribution,
@@ -189,7 +192,36 @@ export function JourneyMilestoneCard({
     canProposeCoAuthor,
     social,
     noiDungBlocks,
+    cardLayout = "default",
+    orgHref,
   } = milestone;
+
+  const displayDate = `${String(day).padStart(2, "0")}-${String(month).padStart(2, "0")}-${year}`;
+
+  if (cardLayout === "cong-dong-create") {
+    return (
+      <CongDongCreateMilestoneCard
+        milestoneCls={[
+          "j-milestone",
+          "j-tagged",
+          "j-verified",
+          "j-cong-dong-create",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+        displayDate={displayDate}
+        type={type}
+        title={title}
+        body={body}
+        attribution={attribution}
+        orgHref={orgHref}
+        milestoneId={cotMocId ?? milestone.id}
+        year={year}
+        month={month}
+        day={day}
+      />
+    );
+  }
 
   const milestoneCls = [
     "j-milestone",
@@ -203,8 +235,10 @@ export function JourneyMilestoneCard({
 
   const vis = visibilityIcon(visibility);
   const TypeIco = TYPE_ICON[type];
-  const canManage = isOwner && variant === "self" && Boolean(ownerSlug);
-  const canBookmark = !(isOwner && variant === "self");
+  const isBookmarkMilestone = variant === "bookmark";
+  const canManage =
+    isOwner && (variant === "self" || isBookmarkMilestone) && Boolean(ownerSlug);
+  const canBookmark = !(isOwner && (variant === "self" || isBookmarkMilestone));
   const canManageCoAuthors = isOwner && variant === "self" && Boolean(tacPhamId);
   const canShowCoAuthorAction =
     (canProposeCoAuthor || canManageCoAuthors) && Boolean(tacPhamId);
@@ -235,7 +269,6 @@ export function JourneyMilestoneCard({
       : "article";
   const contributorCount = coAuthorCredits.length;
   const otherContributorCount = coAuthorsOnly.length;
-  const displayDate = `${String(day).padStart(2, "0")}-${String(month).padStart(2, "0")}-${year}`;
   const resolvedPostOwner = postOwnerSlug || ownerSlug || null;
   const isArticle = cardContentKind === "article";
   const showContent = inlineExpand?.showContent ?? false;
@@ -256,7 +289,8 @@ export function JourneyMilestoneCard({
    * Với các type khác (hoc/lam/du-an/...): render CẢ user-badge VÀ type-badge
    * để giữ ngữ cảnh loại cột mốc. */
   const showAuthorBadge =
-    variant === "self" && Boolean(authorName || authorAvatarUrl);
+    (variant === "self" || isBookmarkMilestone) &&
+    Boolean(authorName || authorAvatarUrl);
 
   function shouldIgnoreExpandTrigger(target: Element | null): boolean {
     return Boolean(
@@ -331,7 +365,12 @@ export function JourneyMilestoneCard({
                 {verifiedBy ? (
                   <span className="verify-badge">{verifiedBy}</span>
                 ) : null}
-                {type !== "bookmark" ? (
+                {isBookmarkMilestone ? (
+                  <span className="ctx-badge j-type-bookmark" title="Lưu về">
+                    <Bookmark size={11} strokeWidth={1.8} aria-hidden />
+                    {TYPE_LABEL.bookmark}
+                  </span>
+                ) : (
                   <JourneyMilestoneInlineControls
                     kind="type"
                     milestoneId={cotMocId ?? milestone.id}
@@ -343,7 +382,7 @@ export function JourneyMilestoneCard({
                       {TYPE_LABEL[type]}
                     </span>
                   </JourneyMilestoneInlineControls>
-                ) : null}
+                )}
                 {vis ? (
                   <JourneyMilestoneInlineControls
                     kind="visibility"
@@ -370,11 +409,48 @@ export function JourneyMilestoneCard({
               <JourneyMilestoneOwnerMenu
                 milestoneId={cotMocId ?? milestone.id}
                 ownerSlug={ownerSlug}
+                permalinkOwnerSlug={isBookmarkMilestone ? resolvedPostOwner : ownerSlug}
                 currentType={type}
                 currentVisibility={visibility ?? "public"}
                 postSlug={postSlug ?? null}
+                hideTypeChange={isBookmarkMilestone}
+                hideEdit={isBookmarkMilestone}
                 className="jcard-date-menu"
               />
+            </div>
+          ) : variant === "self" || isBookmarkMilestone ? (
+            <div className="jcard-datebar jcard-datebar--guest">
+              <span className="org-copy">
+                <small>{displayDate}</small>
+              </span>
+              <span className="badge-row">
+                {isBookmarkMilestone ? (
+                  <span className="ctx-badge j-type-bookmark">
+                    <Bookmark size={11} strokeWidth={1.8} aria-hidden />
+                    {TYPE_LABEL.bookmark}
+                  </span>
+                ) : (
+                  <span className={`ctx-badge ${TYPE_CLASS[type]}`}>
+                    <TypeIco size={11} strokeWidth={1.8} aria-hidden />
+                    {TYPE_LABEL[type]}
+                  </span>
+                )}
+                {isBookmarkMilestone && vis ? (
+                  <span
+                    className={`ctx-badge j-vis-${visibility ?? "public"}`}
+                    title={vis.label}
+                    aria-label={vis.label}
+                  >
+                    <vis.Icon
+                      size={11}
+                      strokeWidth={1.8}
+                      aria-hidden
+                      {...(visibility === "feature" ? { fill: "currentColor" } : {})}
+                    />
+                    {visibility === "feature" ? "Nổi bật" : vis.label}
+                  </span>
+                ) : null}
+              </span>
             </div>
           ) : null}
 
@@ -685,17 +761,23 @@ function TaggedByPanel({
   dateLabel: string;
 }) {
   const initial = (attr.initial || attr.name.charAt(0) || "?").toUpperCase();
+  const isCongDong = attr.isOrg && attr.orgKind === "cong_dong";
+  const Popover = isCongDong ? JourneyOrgPopover : JourneyUserPopover;
+  const avatarClass = isCongDong ? "via-avatar is-org" : "via-avatar";
+
   return (
-    <div className="via-bar is-bookmark-source">
+    <div className={`via-bar${isCongDong ? " is-org-source" : " is-bookmark-source"}`}>
       <CornerDownRight size={13} strokeWidth={1.8} aria-hidden />
-      <span>Được gắn bởi</span>
-      <JourneyUserPopover
+      <span>{isCongDong ? "Cộng đồng" : "Được gắn bởi"}</span>
+      <Popover
         slug={attr.slug}
+        orgKind={attr.orgKind ?? undefined}
+        href={attr.href}
         fallbackName={attr.name}
         fallbackAvatarUrl={attr.avatarUrl}
       >
         <span className="via-author">
-          <span className="via-avatar" aria-hidden>
+          <span className={avatarClass} aria-hidden>
             {attr.avatarUrl ? (
               /* eslint-disable-next-line @next/next/no-img-element */
               <img src={attr.avatarUrl} alt="" />
@@ -708,8 +790,123 @@ function TaggedByPanel({
             <small>{dateLabel}</small>
           </span>
         </span>
-      </JourneyUserPopover>
+      </Popover>
     </div>
+  );
+}
+
+function formatCongDongStatCount(count: number): string {
+  if (count < 1000) return String(count);
+  return `${(count / 1000).toFixed(1).replace(/\.0$/, "")}k`;
+}
+
+function CongDongCreateMilestoneCard({
+  milestoneCls,
+  displayDate,
+  type,
+  title,
+  body,
+  attribution,
+  orgHref,
+  milestoneId,
+  year,
+  month,
+  day,
+}: {
+  milestoneCls: string;
+  displayDate: string;
+  type: MilestoneType;
+  title: string;
+  body?: string | null;
+  attribution?: MilestoneAttribution | null;
+  orgHref?: string | null;
+  milestoneId: string;
+  year: number;
+  month: number;
+  day: number;
+}) {
+  const TypeIco = TYPE_ICON[type];
+  const communityName = attribution?.name ?? title.replace(/^Tạo cộng đồng\s+/i, "");
+  const avatarUrl = attribution?.avatarUrl ?? null;
+  const coverUrl = attribution?.coverUrl ?? null;
+  const href = orgHref ?? attribution?.href ?? null;
+  const initial = (attribution?.initial || communityName.charAt(0) || "?").toUpperCase();
+  const memberCount = attribution?.memberCount;
+  const postCount = attribution?.postCount;
+  const showStats =
+    typeof memberCount === "number" || typeof postCount === "number";
+
+  return (
+    <article
+      className={milestoneCls}
+      data-mid={milestoneId}
+      data-content-kind="cong-dong"
+      data-year={year}
+      data-month={month}
+      data-group={type}
+    >
+      <div className="j-m-body-wrap">
+        <div className="j-m-card jcard jcard--cong-dong">
+          <div className={`jcd-hero${coverUrl ? " has-cover-img" : ""}`}>
+            <div
+              className={`jcd-cover${coverUrl ? " has-img" : ""}`}
+              aria-hidden
+            >
+              {coverUrl ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img src={coverUrl} alt="" />
+              ) : null}
+            </div>
+            <div className="jcd-topbar">
+              <span className={`ctx-badge ${TYPE_CLASS[type]}`}>
+                <TypeIco size={11} strokeWidth={1.8} aria-hidden />
+                {TYPE_LABEL[type]}
+              </span>
+            </div>
+          </div>
+
+          <div className="jcd-body">
+            <div className="jcd-logo-wrap" aria-hidden>
+              {avatarUrl ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img src={avatarUrl} alt="" className="jcd-logo" />
+              ) : (
+                <span className="jcd-logo jcd-logo--fallback">{initial}</span>
+              )}
+            </div>
+            <p className="jcd-kicker">Người tạo cộng đồng</p>
+            <time className="jcd-date" dateTime={`${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`}>
+              {displayDate}
+            </time>
+            <h2 className="jcd-title">{communityName}</h2>
+            {showStats ? (
+              <div className="jcd-stats" aria-label="Quy mô cộng đồng">
+                {typeof memberCount === "number" ? (
+                  <span className="jcd-stat">
+                    <Users size={14} strokeWidth={2} aria-hidden />
+                    <strong>{formatCongDongStatCount(memberCount)}</strong>
+                    thành viên
+                  </span>
+                ) : null}
+                {typeof postCount === "number" ? (
+                  <span className="jcd-stat">
+                    <FileText size={14} strokeWidth={2} aria-hidden />
+                    <strong>{formatCongDongStatCount(postCount)}</strong>
+                    bài viết
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
+            {body ? <p className="jcd-desc">{body}</p> : null}
+            {href ? (
+              <Link href={href} className="jcd-cta" prefetch={false}>
+                Xem cộng đồng
+              </Link>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </article>
   );
 }
 

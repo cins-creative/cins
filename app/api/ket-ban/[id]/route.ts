@@ -1,15 +1,12 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
-import { logFollowRequestHandled } from "@/lib/social/follow";
 import {
   acceptFriendRequest,
   declineFriendRequest,
   removeByRecordId,
 } from "@/lib/social/ket-ban";
 import { loadNotificationFeed } from "@/lib/social/notifications";
-import { createServiceRoleClient } from "@/lib/supabase/service-role";
-
 type RouteCtx = { params: Promise<{ id: string }> };
 
 export async function PATCH(req: Request, ctx: RouteCtx) {
@@ -37,29 +34,10 @@ export async function PATCH(req: Request, ctx: RouteCtx) {
     if (!result.ok) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
-    await logFollowRequestHandled(
-      session.profile.id,
-      result.data.idNguoiGui,
-      "accept",
-    );
   } else {
-    const admin = createServiceRoleClient();
-    const { data: row } = await admin
-      .from("user_ket_ban")
-      .select("id_nguoi_gui")
-      .eq("id", id)
-      .maybeSingle<{ id_nguoi_gui: string }>();
-
     const result = await declineFriendRequest(id, session.profile.id);
     if (!result.ok) {
       return NextResponse.json({ error: result.error }, { status: 400 });
-    }
-    if (row?.id_nguoi_gui) {
-      await logFollowRequestHandled(
-        session.profile.id,
-        row.id_nguoi_gui,
-        "decline",
-      );
     }
   }
 

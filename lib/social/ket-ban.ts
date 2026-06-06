@@ -2,7 +2,13 @@ import "server-only";
 
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
-import { loadFollowProfiles } from "@/lib/social/follow";
+import {
+  logFollowRequestHandled,
+  markKetBanMoiNotificationHandled,
+  notifyFriendAccepted,
+  notifyFriendRequest,
+} from "@/lib/social/friend-notifications";
+import { loadFollowProfiles, loadNotifyProfiles } from "@/lib/social/follow";
 import type {
   MutualFriendProfile,
   PendingFollowRequest,
@@ -77,34 +83,7 @@ export async function getQuanHe(a: string, b: string): Promise<QuanHe> {
   return "none";
 }
 
-async function notifyFriendRequest(
-  recipientId: string,
-  senderId: string,
-  recordId: string,
-): Promise<void> {
-  const admin = createServiceRoleClient();
-  await admin.from("social_thong_bao").insert({
-    nguoi_nhan: recipientId,
-    noi_dung_ai: senderId,
-    loai_doi_tuong: "ket_ban_moi",
-    id_doi_tuong: recordId,
-    da_doc: false,
-  });
-}
-
-export async function notifyFriendAccepted(
-  requesterId: string,
-  accepterId: string,
-): Promise<void> {
-  const admin = createServiceRoleClient();
-  await admin.from("social_thong_bao").insert({
-    nguoi_nhan: requesterId,
-    noi_dung_ai: accepterId,
-    loai_doi_tuong: "follow_accepted",
-    id_doi_tuong: accepterId,
-    da_doc: false,
-  });
-}
+export { notifyFriendAccepted } from "@/lib/social/friend-notifications";
 
 export async function sendFriendRequest(
   gui: string,
@@ -189,7 +168,11 @@ export async function acceptFriendRequest(
     return { ok: false, error: error?.message ?? "Không chấp nhận được." };
   }
 
-  await notifyFriendAccepted(row.id_nguoi_gui, currentUserId);
+  await Promise.all([
+    markKetBanMoiNotificationHandled(recordId, currentUserId),
+    logFollowRequestHandled(currentUserId, row.id_nguoi_gui, "accept"),
+    notifyFriendAccepted(row.id_nguoi_gui, currentUserId),
+  ]);
   return { ok: true, data: mapRow(updated) };
 }
 
@@ -200,14 +183,24 @@ export async function declineFriendRequest(
   const admin = createServiceRoleClient();
   const { data: row } = await admin
     .from("user_ket_ban")
-    .select("id, id_nguoi_nhan, trang_thai")
+    .select("id, id_nguoi_gui, id_nguoi_nhan, trang_thai")
     .eq("id", recordId)
-    .maybeSingle<{ id: string; id_nguoi_nhan: string; trang_thai: string }>();
+    .maybeSingle<{
+      id: string;
+      id_nguoi_gui: string;
+      id_nguoi_nhan: string;
+      trang_thai: string;
+    }>();
 
   if (!row) return { ok: false, error: "Không tìm thấy lời mời." };
   if (row.id_nguoi_nhan !== currentUserId) {
     return { ok: false, error: "Bạn không có quyền từ chối lời mời này." };
   }
+
+  await Promise.all([
+    markKetBanMoiNotificationHandled(recordId, currentUserId),
+    logFollowRequestHandled(currentUserId, row.id_nguoi_gui, "decline"),
+  ]);
 
   const { error } = await admin.from("user_ket_ban").delete().eq("id", recordId);
   if (error) return { ok: false, error: error.message };
@@ -307,21 +300,24 @@ export type PendingFriendRequest = PendingFollowRequest & {
 
 export async function listPendingReceived(
   userId: string,
+  options: { limit?: number } = {},
 ): Promise<PendingFriendRequest[]> {
+  const rowLimit = options.limit ?? 10;
   const admin = createServiceRoleClient();
   const { data: rows } = await admin
     .from("user_ket_ban")
     .select("id, id_nguoi_gui, tao_luc")
     .eq("id_nguoi_nhan", userId)
     .eq("trang_thai", "pending")
-    .order("tao_luc", { ascending: false });
+    .order("tao_luc", { ascending: false })
+    .limit(rowLimit);
 
   const senderIds = [
     ...new Set((rows ?? []).map((r) => r.id_nguoi_gui as string)),
   ];
   if (senderIds.length === 0) return [];
 
-  const profiles = await loadFollowProfiles(admin, senderIds, senderIds.length);
+  const profiles = await loadNotifyProfiles(admin, senderIds);
   const profileById = new Map(profiles.map((p) => [p.idNguoiDung, p]));
   const rowBySender = new Map(
     (rows ?? []).map((r) => [r.id_nguoi_gui as string, r]),

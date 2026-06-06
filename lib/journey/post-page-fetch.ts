@@ -6,15 +6,31 @@ import type {
   MilestonePostContributor,
   MilestonePostDetail,
 } from "@/app/[slug]/journey/actions";
+import type { MilestoneType } from "@/components/journey/milestone-types";
 import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import type { Block as ServerBlock } from "@/lib/editor/types";
 import { fetchArticleTagsForTacPham } from "@/lib/journey/article-tags-batch";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
+import {
+  getVisibility,
+  normalizeLoaiMocVisibility,
+} from "@/lib/journey/filter-visibility";
+import { isFriend } from "@/lib/social/ket-ban";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 export type PostFetchResult =
   | { ok: true; data: MilestonePostDetail }
   | { ok: false; error: string };
+
+function mapLoaiMocToUiKey(loaiMoc: string): MilestoneType | null {
+  if (loaiMoc === "hoc") return "hoc";
+  if (loaiMoc === "lam_viec") return "lam";
+  if (loaiMoc === "du_an") return "du-an";
+  if (loaiMoc === "su_kien") return "su-kien";
+  if (loaiMoc === "thanh_tuu") return "thanh-tuu";
+  if (loaiMoc === "ca_nhan") return "ca-nhan";
+  return null;
+}
 
 type CotMocDetailRow = {
   id: string;
@@ -303,6 +319,31 @@ export async function fetchMilestonePostDetail(
   const isOwner = viewerId === cotMoc.id_nguoi_dung;
   if (cotMoc.che_do_hien_thi === "chi_minh" && !isOwner) {
     return { ok: false, error: "Cột mốc này đang ở chế độ riêng tư." };
+  }
+  if (cotMoc.che_do_hien_thi === "theo_nhom" && !isOwner) {
+    const viewerIsFriend = viewerId
+      ? await isFriend(cotMoc.id_nguoi_dung, viewerId)
+      : false;
+    if (!viewerIsFriend) {
+      return { ok: false, error: "Cột mốc này chỉ dành cho bạn bè." };
+    }
+  }
+  if (!isOwner) {
+    const { data: ownerRow } = await admin
+      .from("user_nguoi_dung")
+      .select("journey_loai_moc_visibility")
+      .eq("id", cotMoc.id_nguoi_dung)
+      .maybeSingle<{ journey_loai_moc_visibility: Record<string, unknown> | null }>();
+    const filterVisibility = normalizeLoaiMocVisibility(
+      ownerRow?.journey_loai_moc_visibility,
+    );
+    const loaiMocUi = mapLoaiMocToUiKey(cotMoc.loai_moc);
+    if (
+      loaiMocUi &&
+      getVisibility(filterVisibility, loaiMocUi) !== "public"
+    ) {
+      return { ok: false, error: "Cột mốc này không hiển thị với người xem." };
+    }
   }
 
   const includeComments = options?.includeComments ?? true;

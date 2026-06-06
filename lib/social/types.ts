@@ -66,6 +66,8 @@ export type CommentNotification = PendingFollowRequest & {
   postTitle: string;
   postSlug: string | null;
   ownerSlug: string | null;
+  /** Số bình luận gộp từ cùng người trên cùng bài (chưa đọc). */
+  commentCount?: number;
   taoLuc?: string;
   daDoc?: boolean;
 };

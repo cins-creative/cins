@@ -11,6 +11,7 @@ import type { Block as ServerBlock } from "@/lib/editor/types";
 import type { CoAuthorCredit } from "@/components/journey/milestone-types";
 import { fetchArticleTagsForTacPham } from "@/lib/journey/article-tags-batch";
 import { milestonePreviewMedia } from "@/lib/journey/milestone-preview-media";
+import { loadVerifiedMetaForCotMocs } from "@/lib/journey/milestone-verify";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -21,9 +22,8 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
    ║ qua `content_tac_pham_thuoc_moc → content_tac_pham`. Adapter map ║
    ║ về `MilestoneItem` (component-level type).                       ║
    ║                                                                  ║
-   ║ Visibility: nếu viewer KHÔNG phải owner, lọc `chi_minh` đi.      ║
-   ║ `theo_nhom` lượt này coi như public (chưa có user_nhom_boi_canh  ║
-   ║ filter — wire sau).                                              ║
+   ║ Visibility visitor: xem `milestone-viewer-access.ts` (chi_minh,   ║
+   ║ theo_nhom + bạn bè, journey_loai_moc_visibility).               ║
    ╚══════════════════════════════════════════════════════════════════╝ */
 
 type CotMocRow = {
@@ -43,6 +43,7 @@ type CotMocRow = {
   /** Thời điểm tạo record (timestamptz) — tiebreak khi cùng `thoi_diem`. */
   tao_luc: string | null;
   id_nguoi_dung?: string;
+  id_to_chuc?: string | null;
 };
 
 type ThuocMocRow = {
@@ -127,6 +128,8 @@ export async function buildSelfMilestonesForCotMocs(
   }
   const tagsByTacPham = await fetchArticleTagsForTacPham(admin, firstPostIds);
   const creditsByTacPham = await loadAcceptedCredits(admin, firstPostIds);
+  const orgByCotMoc = new Map(cotMocs.map((m) => [m.id, m.id_to_chuc ?? null]));
+  const verifiedMeta = await loadVerifiedMetaForCotMocs(ids, orgByCotMoc);
 
   const sorted = [...cotMocs].sort((a, b) => {
     const aFeat = a.che_do_hien_thi === "feature" ? 1 : 0;
@@ -147,11 +150,15 @@ export async function buildSelfMilestonesForCotMocs(
     const articleTags = firstPost?.id
       ? (tagsByTacPham.get(firstPost.id) ?? [])
       : [];
+    const verified = verifiedMeta.get(m.id);
+    const isCongDongCreate =
+      verified?.attribution.orgKind === "cong_dong" &&
+      verified.attribution.role === "Người tạo cộng đồng";
 
     return {
       id: m.id,
       cotMocId: m.id,
-      variant: "self" as MilestoneVariant,
+      variant: (verified ? "verified" : "self") as MilestoneVariant,
       type: LOAI_MOC_TO_TYPE[m.loai_moc],
       visibility: mapVisibility(m.che_do_hien_thi),
       year,
@@ -160,18 +167,27 @@ export async function buildSelfMilestonesForCotMocs(
       createdAt: m.tao_luc,
       title: m.tieu_de,
       body: m.mo_ta || null,
-      postSlug: firstPostSlug,
-      tacPhamId: firstPost?.id ?? null,
-      media: milestoneCoverMedia(
-        firstPost?.cover_id,
-        firstPost?.noi_dung_blocks,
-        firstPost?.tieu_de ?? m.tieu_de,
-      ),
-      noiDungBlocks,
-      articleTags,
-      coAuthorCredits: firstPost?.id
-        ? (creditsByTacPham.get(firstPost.id) ?? [])
-        : [],
+      org: verified?.attribution.role ?? null,
+      postSlug: isCongDongCreate ? null : firstPostSlug,
+      tacPhamId: isCongDongCreate ? null : (firstPost?.id ?? null),
+      attribution: verified?.attribution ?? null,
+      verifiedBy: verified?.verifiedBy ?? null,
+      cardLayout: isCongDongCreate ? "cong-dong-create" : "default",
+      orgHref: isCongDongCreate ? (verified?.orgHref ?? null) : null,
+      media: isCongDongCreate
+        ? []
+        : milestoneCoverMedia(
+            firstPost?.cover_id,
+            firstPost?.noi_dung_blocks,
+            firstPost?.tieu_de ?? m.tieu_de,
+          ),
+      noiDungBlocks: isCongDongCreate ? null : noiDungBlocks,
+      articleTags: isCongDongCreate ? [] : articleTags,
+      coAuthorCredits: isCongDongCreate
+        ? []
+        : firstPost?.id
+          ? (creditsByTacPham.get(firstPost.id) ?? [])
+          : [],
     };
   });
 }
@@ -194,7 +210,7 @@ export async function fetchMilestonesForUser(params: {
   const { data: cotMocs, error } = await admin
     .from("content_cot_moc")
     .select(
-      "id, loai_moc, nguon_goc, tieu_de, mo_ta, thoi_diem, che_do_hien_thi, tao_luc",
+      "id, loai_moc, nguon_goc, tieu_de, mo_ta, thoi_diem, che_do_hien_thi, tao_luc, id_to_chuc",
     )
     .eq("id_nguoi_dung", userId)
     /* Order chính: ngày xảy ra (`thoi_diem`) DESC. Tiebreak: `tao_luc` DESC
@@ -254,12 +270,13 @@ export async function fetchMilestonesForUser(params: {
 
   const merged = mergeMilestoneLists(mergeMilestoneLists(milestones, tagged), bookmarks);
   const withSocial = await attachSocialState(admin, merged, viewerId, isOwner);
+  const cotMocVerified = withSocial.filter((m) => m.variant === "verified").length;
 
   return {
     milestones: withSocial,
     stats: {
       cotMoc: cotMocs.length,
-      cotMocVerified: 0,
+      cotMocVerified,
       tacPham: totalTacPham ?? 0,
       noiBat: visible.filter((m) => m.che_do_hien_thi === "feature").length,
     },

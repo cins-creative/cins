@@ -1,0 +1,55 @@
+import "server-only";
+
+import { THAO_LUAN_LOAI_CONTEXT } from "@/lib/cong-dong/constants";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
+
+/** 4 nhãn mặc định — hardcode, không bảng template. Chỉ seed cho `cong_dong`. */
+export const DEFAULT_CONG_DONG_FILTER_TEMPLATES = [
+  {
+    ten: "🎨 Khoe tác phẩm",
+    slug: "khoe-tac-pham",
+    icon: "palette",
+    mau: "#BB89F8",
+    thu_tu: 0,
+  },
+  {
+    ten: "❓ Hỏi đáp",
+    slug: "hoi-dap",
+    icon: "help-circle",
+    mau: "#1F74C9",
+    thu_tu: 1,
+  },
+  {
+    ten: "💼 Tuyển người",
+    slug: "tuyen-nguoi",
+    icon: "briefcase",
+    mau: "#FFB85C",
+    thu_tu: 2,
+  },
+  {
+    ten: "📚 Tài nguyên",
+    slug: "tai-nguyen",
+    icon: "book-open",
+    mau: "#6EFEC0",
+    thu_tu: 3,
+  },
+] as const;
+
+export async function seedDefaultCongDongFilters(
+  orgId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const admin = createServiceRoleClient();
+  const rows = DEFAULT_CONG_DONG_FILTER_TEMPLATES.map((t) => ({
+    loai_context: THAO_LUAN_LOAI_CONTEXT.CONG_DONG,
+    id_context: orgId,
+    ten: t.ten,
+    slug: t.slug,
+    icon: t.icon,
+    mau: t.mau,
+    thu_tu: t.thu_tu,
+  }));
+
+  const { error } = await admin.from("content_thao_luan_filter").insert(rows);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}

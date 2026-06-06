@@ -4,6 +4,7 @@ export type MainNavIcon =
   | "career"
   | "education"
   | "courses"
+  | "community"
   | "business"
   | "events"
   | "blog"
@@ -61,6 +62,14 @@ export const MAIN_NAV_ITEMS: MainNavItem[] = [
     tip: "Khoá học online & offline — từ nhập môn cho học sinh đến chuyên sâu cho người đi làm",
     icon: "courses",
     isActive: () => false,
+  },
+  {
+    id: "community",
+    href: "/cong-dong",
+    label: "Cộng đồng",
+    tip: "Cộng đồng nghề — thảo luận, chia sẻ kinh nghiệm và kết nối người trong ngành",
+    icon: "community",
+    isActive: (p) => p === "/cong-dong" || p.startsWith("/cong-dong/"),
   },
   {
     id: "business",

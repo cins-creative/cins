@@ -14,6 +14,13 @@ import {
   fetchBookmarkedMilestonesForUser,
   fetchTaggedMilestonesForUser,
 } from "@/lib/journey/milestones-fetch";
+import { loadVerifiedCotMocIdSet } from "@/lib/journey/milestone-verify";
+import {
+  isForeignMilestoneVisibleToViewer,
+  isSelfMilestoneVisibleToViewer,
+  loadMilestoneViewerAccess,
+  type MilestoneViewerAccess,
+} from "@/lib/journey/milestone-viewer-access";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 /** Số cột mốc hydrate mỗi lần user cuộn tới cuối timeline. */
@@ -147,6 +154,7 @@ async function collectSelfStubs(
   admin: ReturnType<typeof createServiceRoleClient>,
   userId: string,
   isOwner: boolean,
+  access: MilestoneViewerAccess,
 ): Promise<TimelineStub[]> {
   const { data: cotMocs } = await admin
     .from("content_cot_moc")
@@ -156,9 +164,17 @@ async function collectSelfStubs(
     .order("tao_luc", { ascending: false, nullsFirst: false })
     .returns<CotMocStubRow[]>();
 
-  const visible = (cotMocs ?? []).filter(
-    (m) => isOwner || m.che_do_hien_thi !== "chi_minh",
+  const visible = (cotMocs ?? []).filter((m) =>
+    isSelfMilestoneVisibleToViewer({
+      loaiMoc: LOAI_MOC_TO_TYPE[m.loai_moc],
+      cheDoHienThi: m.che_do_hien_thi,
+      isOwner,
+      filterVisibility: access.filterVisibility,
+      viewerIsFriend: access.viewerIsFriend,
+    }),
   );
+
+  const verifiedIds = await loadVerifiedCotMocIdSet(visible.map((m) => m.id));
 
   return visible.map((m) => {
     const { year, month, day } = parseUtcDateParts(m.thoi_diem);
@@ -167,7 +183,7 @@ async function collectSelfStubs(
       source: "self" as const,
       cotMocId: m.id,
       visibility: mapVisibility(m.che_do_hien_thi),
-      variant: "self" as MilestoneVariant,
+      variant: (verifiedIds.has(m.id) ? "verified" : "self") as MilestoneVariant,
       type: LOAI_MOC_TO_TYPE[m.loai_moc],
       thoiDiem: m.thoi_diem,
       taoLuc: m.tao_luc,
@@ -182,6 +198,7 @@ async function collectTaggedStubs(
   admin: ReturnType<typeof createServiceRoleClient>,
   userId: string,
   isOwner: boolean,
+  access: MilestoneViewerAccess,
 ): Promise<TimelineStub[]> {
   const { data: tagRows } = await admin
     .from("content_tac_pham_tac_gia")
@@ -229,11 +246,11 @@ async function collectTaggedStubs(
     const cmId = cotMocIdByTp.get(tp.id as string);
     const cm = cmId ? cmById.get(cmId) : undefined;
     if (!cm) continue;
-    if (!isOwner && cm.che_do_hien_thi === "chi_minh") continue;
     if (
-      !isOwner &&
-      cm.che_do_hien_thi !== "public" &&
-      cm.che_do_hien_thi !== "feature"
+      !isForeignMilestoneVisibleToViewer(cm.che_do_hien_thi, {
+        isOwner,
+        viewerIsFriend: access.viewerIsFriend,
+      })
     ) {
       continue;
     }
@@ -260,6 +277,7 @@ async function collectBookmarkStubs(
   admin: ReturnType<typeof createServiceRoleClient>,
   userId: string,
   isOwner: boolean,
+  access: MilestoneViewerAccess,
 ): Promise<TimelineStub[]> {
   const { data: savedRows } = await admin
     .from("social_luu")
@@ -282,11 +300,13 @@ async function collectBookmarkStubs(
     .in("id", cotMocIds)
     .returns<CotMocStubRow[]>();
 
-  const visible = (cotMocs ?? []).filter(
-    (m) =>
-      m.id_nguoi_dung !== userId &&
-      (isOwner || m.che_do_hien_thi !== "chi_minh"),
-  );
+  const visible = (cotMocs ?? []).filter((m) => {
+    if (m.id_nguoi_dung === userId) return false;
+    return isForeignMilestoneVisibleToViewer(m.che_do_hien_thi, {
+      isOwner,
+      viewerIsFriend: access.viewerIsFriend,
+    });
+  });
   if (visible.length === 0) return [];
 
   const { data: links } = await admin
@@ -336,11 +356,12 @@ async function collectTimelineStubs(
   admin: ReturnType<typeof createServiceRoleClient>,
   userId: string,
   isOwner: boolean,
+  access: MilestoneViewerAccess,
 ): Promise<TimelineStub[]> {
   const [self, tagged, bookmarks] = await Promise.all([
-    collectSelfStubs(admin, userId, isOwner),
-    collectTaggedStubs(admin, userId, isOwner),
-    collectBookmarkStubs(admin, userId, isOwner),
+    collectSelfStubs(admin, userId, isOwner, access),
+    collectTaggedStubs(admin, userId, isOwner, access),
+    collectBookmarkStubs(admin, userId, isOwner, access),
   ]);
 
   const selfCotMocIds = new Set(self.map((s) => s.cotMocId));
@@ -357,9 +378,17 @@ async function collectTimelineStubs(
 }
 
 const getTimelineStubsCached = cache(
-  async (userId: string, isOwner: boolean): Promise<TimelineStub[]> => {
+  async (
+    userId: string,
+    isOwner: boolean,
+    viewerId: string | null,
+  ): Promise<TimelineStub[]> => {
     const admin = createServiceRoleClient();
-    return collectTimelineStubs(admin, userId, isOwner);
+    const access = await loadMilestoneViewerAccess(userId, {
+      isOwner,
+      viewerId,
+    });
+    return collectTimelineStubs(admin, userId, isOwner, access);
   },
 );
 
@@ -394,7 +423,7 @@ async function hydrateTimelineStubs(
       ? admin
           .from("content_cot_moc")
           .select(
-            "id, loai_moc, nguon_goc, tieu_de, mo_ta, thoi_diem, che_do_hien_thi, tao_luc",
+            "id, loai_moc, nguon_goc, tieu_de, mo_ta, thoi_diem, che_do_hien_thi, tao_luc, id_to_chuc",
           )
           .in("id", selfCotMocIds)
           .returns<CotMocFullRow[]>()
@@ -445,7 +474,7 @@ export async function fetchMilestoneTimelinePage(params: {
   );
 
   const admin = createServiceRoleClient();
-  const stubs = await getTimelineStubsCached(userId, isOwner);
+  const stubs = await getTimelineStubsCached(userId, isOwner, viewerId);
   const filterCounts = computeFilterCounts(stubs);
   const slice = stubs.slice(offset, offset + limit);
 
@@ -475,6 +504,7 @@ export async function fetchMilestoneTimelinePage(params: {
 export async function fetchMilestoneNavStats(params: {
   userId: string;
   isOwner: boolean;
+  viewerId?: string | null;
 }): Promise<{
   stats: {
     cotMoc: number;
@@ -490,16 +520,21 @@ export async function fetchMilestoneNavStats(params: {
       .from("content_tac_pham")
       .select("id", { count: "exact", head: true })
       .eq("id_nguoi_dung", params.userId),
-    getTimelineStubsCached(params.userId, params.isOwner),
+    getTimelineStubsCached(
+      params.userId,
+      params.isOwner,
+      params.viewerId ?? null,
+    ),
   ]);
 
   const selfCount = stubs.filter((s) => s.source === "self").length;
   const featureCount = stubs.filter((s) => s.visibility === "feature").length;
+  const verifiedCount = stubs.filter((s) => s.variant === "verified").length;
 
   return {
     stats: {
       cotMoc: selfCount,
-      cotMocVerified: 0,
+      cotMocVerified: verifiedCount,
       tacPham: totalTacPham ?? 0,
       noiBat: featureCount,
     },

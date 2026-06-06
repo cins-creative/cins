@@ -1,0 +1,1 @@
+-- DEPRECATED — chạy file canonical: supabase/sql/migration_cong_dong.sql

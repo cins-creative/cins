@@ -727,68 +727,64 @@ function CommentItem({
   return (
     <li className="post-comments-item">
       <div className="post-comments-bub">
-        <div className="post-comments-top">
-          <span className="post-comments-avatar" aria-hidden>
-            {avatarUrl ? (
-              /* eslint-disable-next-line @next/next/no-img-element */
-              <img src={avatarUrl} alt="" />
-            ) : (
-              initial
-            )}
-          </span>
-          <span className="post-comments-author">
+        <span className="post-comments-avatar" aria-hidden>
+          {avatarUrl ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img src={avatarUrl} alt="" />
+          ) : (
+            initial
+          )}
+        </span>
+        <div className="post-comments-body">
+          <div className="post-comments-meta">
             <span className="post-comments-name">
               {comment.author?.tenHienThi ?? "Người dùng"}
             </span>
             <span className="post-comments-time">
               {formatRelative(comment.taoLuc)}
             </span>
-          </span>
-          {comment.isOwn && !editing ? (
-            <div
-              className={`post-comments-menu${menuOpen ? " open" : ""}`}
-              ref={wrapRef}
-            >
-              <button
-                type="button"
-                className="post-comments-more"
-                onClick={() => setMenuOpen((v) => !v)}
-                aria-label="Hành động bình luận"
-                aria-haspopup="menu"
-                aria-expanded={menuOpen}
+            {comment.isOwn && !editing ? (
+              <div
+                className={`post-comments-menu${menuOpen ? " open" : ""}`}
+                ref={wrapRef}
               >
-                <MoreHorizontal size={15} strokeWidth={1.8} aria-hidden />
-              </button>
-              {menuOpen ? (
-                <div
-                  className="post-comments-menu-pop"
-                  role="menu"
+                <button
+                  type="button"
+                  className="post-comments-more"
+                  onClick={() => setMenuOpen((v) => !v)}
+                  aria-label="Hành động bình luận"
+                  aria-haspopup="menu"
+                  aria-expanded={menuOpen}
                 >
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className="post-comments-menu-item"
-                    onClick={startEdit}
-                  >
-                    <Pencil size={14} strokeWidth={1.7} aria-hidden />
-                    <span>Sửa</span>
-                  </button>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className="post-comments-menu-item post-comments-menu-item-danger"
-                    onClick={() => {
-                      setMenuOpen(false);
-                      onDelete(comment.id);
-                    }}
-                  >
-                    <span>Xoá</span>
-                  </button>
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-        </div>
+                  <MoreHorizontal size={15} strokeWidth={1.8} aria-hidden />
+                </button>
+                {menuOpen ? (
+                  <div className="post-comments-menu-pop" role="menu">
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="post-comments-menu-item"
+                      onClick={startEdit}
+                    >
+                      <Pencil size={14} strokeWidth={1.7} aria-hidden />
+                      <span>Sửa</span>
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="post-comments-menu-item post-comments-menu-item-danger"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        onDelete(comment.id);
+                      }}
+                    >
+                      <span>Xoá</span>
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
         {editing ? (
           <div className="post-comments-edit">
             <textarea
@@ -837,6 +833,7 @@ function CommentItem({
         ) : (
           <div className="post-comments-text">{comment.noiDung}</div>
         )}
+        </div>
       </div>
     </li>
   );

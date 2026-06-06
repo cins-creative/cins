@@ -967,6 +967,7 @@ export async function addMilestoneComment(
     ownerId: cotMoc.id_nguoi_dung,
     commenterId: session.profile.id,
     commentId: inserted.id,
+    milestoneId,
   });
 
   return {

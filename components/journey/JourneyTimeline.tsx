@@ -19,7 +19,10 @@ import {
   MILESTONE_INLINE_PATCH_EVENT,
   type MilestoneInlinePatchDetail,
 } from "@/lib/journey/milestone-inline-patch";
-import type { LoaiMocVisibilityMap } from "@/lib/journey/filter-visibility";
+import {
+  getVisibility,
+  type LoaiMocVisibilityMap,
+} from "@/lib/journey/filter-visibility";
 import type { MilestoneFilterCounts } from "@/lib/journey/milestones-page-fetch";
 import type { PendingCoAuthorInvite } from "@/lib/social/types";
 
@@ -251,18 +254,30 @@ export function JourneyTimeline({
     return () => el.removeEventListener("pointerover", onPointerOver);
   }, [ownerSlug]);
 
+  const visibleItems = useMemo(() => {
+    if (isOwner || !filterVisibility) return items;
+    return items.filter((m) => {
+      if (m.variant !== "self") return true;
+      return getVisibility(filterVisibility, m.type) === "public";
+    });
+  }, [items, isOwner, filterVisibility]);
+
   /* Tính counts cho từng group (dùng cho dropdown). */
   const counts = useMemo((): Counts => {
     if (scrollLoad?.filterCounts) return scrollLoad.filterCounts;
-    return computeCounts(items);
-  }, [scrollLoad?.filterCounts, items]);
+    return computeCounts(visibleItems);
+  }, [scrollLoad?.filterCounts, visibleItems]);
 
   const filtered = useMemo(() => {
-    if (filter === "all") return items;
-    if (filter === "verified") return items.filter((m) => m.variant === "verified");
-    if (filter === "bookmark") return items.filter((m) => m.variant === "bookmark");
-    return items.filter((m) => m.type === filter);
-  }, [items, filter]);
+    if (filter === "all") return visibleItems;
+    if (filter === "verified") {
+      return visibleItems.filter((m) => m.variant === "verified");
+    }
+    if (filter === "bookmark") {
+      return visibleItems.filter((m) => m.variant === "bookmark");
+    }
+    return visibleItems.filter((m) => m.type === filter);
+  }, [visibleItems, filter]);
 
   /* Group theo năm DESC. */
   const byYear = useMemo(() => groupByYearDesc(filtered), [filtered]);
@@ -307,7 +322,10 @@ export function JourneyTimeline({
 
   const totalVisible = filtered.length;
   const options = buildOptions(counts);
-  const hasData = (scrollLoad?.totalCount ?? items.length) > 0;
+  const hasData =
+    visibleItems.length > 0 ||
+    items.length > 0 ||
+    (scrollLoad?.totalCount ?? 0) > 0;
 
   return (
     <main
@@ -323,7 +341,7 @@ export function JourneyTimeline({
         options={options.map((o) =>
           o.group === filter ? { ...o, count: totalVisible } : o,
         )}
-        enabled={hasData}
+        enabled={isOwner || hasData}
         isOwner={isOwner}
         filterVisibility={filterVisibility}
       />

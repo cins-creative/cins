@@ -768,11 +768,19 @@
 }
 
 .j-notify-empty,
-.j-notify-error {
+.j-notify-error,
+.j-notify-more-hint {
   margin: 0;
   padding: 10px 4px;
   font-size: 12px;
   line-height: 1.45;
+}
+
+.j-notify-more-hint {
+  padding-top: 0;
+  color: var(--ink-muted);
+  font-size: 11px;
+  text-align: center;
 }
 
 .j-notify-error {
