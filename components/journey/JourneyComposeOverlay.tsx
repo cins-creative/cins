@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 
 import type { EditorInitial } from "@/components/editor/EditorView";
 import type { MediaComposeMode } from "@/components/editor/MediaComposeView";
+import type { CongDongComposeConfig } from "@/lib/cong-dong/types";
 import type { JourneyComposeState } from "@/lib/journey/compose-types";
 import {
   buildMediaEditInitial,
@@ -43,6 +44,7 @@ type Props = {
   ownerAvatarId?: string | null;
   consumePendingPhotoFiles: () => File[] | undefined;
   consumePendingVideoFile: () => File | undefined;
+  congDongCompose?: CongDongComposeConfig;
   onClose: () => void;
   onPublished: () => void;
 };
@@ -55,6 +57,7 @@ export function JourneyComposeOverlay({
   ownerAvatarId,
   consumePendingPhotoFiles,
   consumePendingVideoFile,
+  congDongCompose,
   onClose,
   onPublished,
 }: Props) {
@@ -195,6 +198,7 @@ export function JourneyComposeOverlay({
             ownerSlug={ownerSlug}
             ownerName={ownerName}
             presentation="overlay"
+            congDongCompose={congDongCompose}
             onClose={onClose}
             onPublished={onPublished}
           />
@@ -208,6 +212,7 @@ export function JourneyComposeOverlay({
             ownerAvatarId={ownerAvatarId}
             initialPhotoFiles={pendingPhotoFiles}
             presentation="overlay"
+            congDongCompose={congDongCompose}
             onClose={onClose}
             onPublished={onPublished}
           />
@@ -221,6 +226,7 @@ export function JourneyComposeOverlay({
             ownerAvatarId={ownerAvatarId}
             initialVideoFile={pendingVideoFile}
             presentation="overlay"
+            congDongCompose={congDongCompose}
             onClose={onClose}
             onPublished={onPublished}
           />
@@ -244,6 +250,7 @@ export function JourneyComposeOverlay({
               ownerAvatarId={ownerAvatarId}
               editInitial={mediaEditInitial}
               presentation="overlay"
+              congDongCompose={congDongCompose}
               onClose={onClose}
               onPublished={onPublished}
             />
@@ -256,6 +263,7 @@ export function JourneyComposeOverlay({
               initial={editInitial}
               postSlug={editPostSlug}
               presentation="overlay"
+              congDongCompose={congDongCompose}
               onClose={onClose}
               onPublished={onPublished}
             />

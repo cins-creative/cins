@@ -2,7 +2,7 @@ import { CongDongFilterIcon } from "@/components/cong-dong/CongDongFilterIcon";
 import type { CongDongFilter } from "@/lib/cong-dong/types";
 
 /** Toolbar: bỏ emoji đầu chuỗi — đã có lucide icon, tránh nhãn dài khó đọc. */
-function filterToolbarLabel(ten: string): string {
+export function filterToolbarLabel(ten: string): string {
   const stripped = ten.replace(/^[\p{Extended_Pictographic}\uFE0F]+\s*/u, "").trim();
   return stripped || ten;
 }

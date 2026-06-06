@@ -25,6 +25,7 @@ import {
   type DragEvent,
 } from "react";
 
+import { CongDongFeedFilterDropdown } from "@/components/cong-dong/CongDongFeedFilterDropdown";
 import { publishPost } from "@/app/[slug]/p/new/actions";
 import { updatePost } from "@/app/[slug]/p/[postSlug]/edit/actions";
 import { rememberCfAccountHashFromDeliveryUrl } from "@/lib/cloudflare/account-hash";
@@ -47,6 +48,7 @@ import {
   registerVideoUpload,
   releaseVideoUpload,
 } from "@/lib/journey/video-upload-session";
+import type { CongDongComposeConfig } from "@/lib/cong-dong/types";
 
 export type MediaComposeMode = "photo" | "video";
 
@@ -66,6 +68,7 @@ type Props = {
   initialVideoFile?: File;
   /** Mở hộp chọn file ngay khi mount (trang /p/new/photo hoặc /p/new/video). */
   autoOpenFilePicker?: boolean;
+  congDongCompose?: CongDongComposeConfig;
   onClose?: () => void;
   onPublished?: () => void;
 };
@@ -128,6 +131,7 @@ export function MediaComposeView({
   initialPhotoFiles,
   initialVideoFile,
   autoOpenFilePicker = false,
+  congDongCompose,
   onClose,
   onPublished,
 }: Props) {
@@ -154,6 +158,18 @@ export function MediaComposeView({
     editInitial?.visibility ?? "public",
   );
   const [visOpen, setVisOpen] = useState(false);
+  const sortedCongDongFilters = useMemo(
+    () =>
+      [...(congDongCompose?.filters ?? [])].sort(
+        (a, b) => a.thuTu - b.thuTu || a.ten.localeCompare(b.ten, "vi"),
+      ),
+    [congDongCompose?.filters],
+  );
+  const [composeFilterSlugs, setComposeFilterSlugs] = useState<string[]>(() => {
+    const first = sortedCongDongFilters[0]?.slug;
+    return first ? [first] : [];
+  });
+  const publishVisibility: Visibility = congDongCompose ? "public" : vis;
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -490,6 +506,10 @@ export function MediaComposeView({
 
   const onPublish = () => {
     setError(null);
+    if (congDongCompose && composeFilterSlugs.length === 0) {
+      setError("Chọn loại bài đăng trước khi đăng.");
+      return;
+    }
     startTransition(async () => {
       const blocks: Block[] = [];
       const trimmedCaption = caption.trim();
@@ -561,7 +581,7 @@ export function MediaComposeView({
               moTa: trimmedCaption.slice(0, 280),
               coverSeed: null,
               tags: [],
-              visibility: vis,
+              visibility: publishVisibility,
               loaiMoc: editInitial.loaiMoc,
               thoiDiem: editInitial.thoiDiem,
               blocks,
@@ -572,7 +592,7 @@ export function MediaComposeView({
               moTa: trimmedCaption.slice(0, 280),
               coverSeed: null,
               tags: [],
-              visibility: vis,
+              visibility: publishVisibility,
               loaiMoc: "ca_nhan",
               thoiDiem: new Date().toISOString().slice(0, 10),
               blocks,
@@ -616,36 +636,47 @@ export function MediaComposeView({
           )}
           <div className="mc-compose-top-title">{pageTitle}</div>
           <div className="mc-compose-top-actions">
-            <div className="mc-compose-vis" ref={visRef}>
-              <button
-                type="button"
-                className="mc-compose-vis-btn"
-                aria-expanded={visOpen}
-                onClick={() => setVisOpen((v) => !v)}
-              >
-                <visCurrent.Icon size={14} strokeWidth={1.8} aria-hidden />
-                <span>{visCurrent.label}</span>
-              </button>
-              {visOpen ? (
-                <div className="mc-compose-vis-menu" role="menu">
-                  {VIS_OPTIONS.map((opt) => (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      role="menuitem"
-                      className={`mc-compose-vis-opt${opt.value === vis ? " is-active" : ""}`}
-                      onClick={() => {
-                        setVis(opt.value);
-                        setVisOpen(false);
-                      }}
-                    >
-                      <opt.Icon size={14} strokeWidth={1.8} aria-hidden />
-                      <span>{opt.label}</span>
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-            </div>
+            {congDongCompose ? (
+              <CongDongFeedFilterDropdown
+                filters={sortedCongDongFilters}
+                activeFilterSlugs={composeFilterSlugs}
+                onChange={setComposeFilterSlugs}
+                variant="compose"
+                className="cd-v4-filter-dd--editor"
+                menuZIndex={9200}
+              />
+            ) : (
+              <div className="mc-compose-vis" ref={visRef}>
+                <button
+                  type="button"
+                  className="mc-compose-vis-btn"
+                  aria-expanded={visOpen}
+                  onClick={() => setVisOpen((v) => !v)}
+                >
+                  <visCurrent.Icon size={14} strokeWidth={1.8} aria-hidden />
+                  <span>{visCurrent.label}</span>
+                </button>
+                {visOpen ? (
+                  <div className="mc-compose-vis-menu" role="menu">
+                    {VIS_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        role="menuitem"
+                        className={`mc-compose-vis-opt${opt.value === vis ? " is-active" : ""}`}
+                        onClick={() => {
+                          setVis(opt.value);
+                          setVisOpen(false);
+                        }}
+                      >
+                        <opt.Icon size={14} strokeWidth={1.8} aria-hidden />
+                        <span>{opt.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            )}
             <button
               type="button"
               className="ed-btn primary mc-compose-publish"

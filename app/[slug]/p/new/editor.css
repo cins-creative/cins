@@ -169,6 +169,24 @@
 .cins-editor-page .vis-select.open .vis-btn .caret {
   transform: rotate(180deg);
 }
+
+.cins-editor-page .cd-v4-filter-dd--editor {
+  flex: none;
+  max-width: none;
+  width: auto;
+  min-width: 130px;
+}
+
+.cins-editor-page .cd-v4-filter-dd--editor .cd-v4-filter-dd-trigger {
+  height: 38px;
+  padding: 0 13px;
+  border-radius: var(--radius-pill);
+  font-size: 13px;
+}
+
+.cins-editor-page.mc-compose-page .cd-v4-filter-dd--editor .cd-v4-filter-dd-trigger {
+  height: 36px;
+}
 .cins-editor-page .vis-menu {
   position: absolute;
   top: calc(100% + 6px);

@@ -80,6 +80,12 @@ export type CongDongFilter = {
   thuTu: number;
 };
 
+/** Cấu hình compose trên trang cộng đồng — thay visibility bằng chọn nhãn loại bài. */
+export type CongDongComposeConfig = {
+  orgId: string;
+  filters: CongDongFilter[];
+};
+
 export type CongDongPost = {
   id: string;
   tieuDe: string | null;

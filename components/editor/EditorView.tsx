@@ -47,6 +47,7 @@ import {
   type ImgLayout,
   type MosaicCell,
 } from "@/lib/editor/image-layout";
+import { CongDongFeedFilterDropdown } from "@/components/cong-dong/CongDongFeedFilterDropdown";
 import { CoAuthorSection } from "@/components/editor/CoAuthorSection";
 import { updatePost } from "@/app/[slug]/p/[postSlug]/edit/actions";
 import { publishPost } from "@/app/[slug]/p/new/actions";
@@ -76,6 +77,7 @@ import {
   extractBodyCaption,
   mediaPostHasContent,
 } from "@/lib/journey/post-media";
+import type { CongDongComposeConfig } from "@/lib/cong-dong/types";
 
 /* ╔══════════════════════════════════════════════════════════════════╗
    ║ CINs Editor — port từ mockup `cins-editor.html`, theo brief     ║
@@ -263,6 +265,8 @@ type Props = {
   postSlug?: string;
   /** Overlay trên Journey — không full-page navigate. */
   presentation?: "page" | "overlay";
+  /** Trang cộng đồng — ẩn visibility, hiện chọn loại bài (mặc định công khai). */
+  congDongCompose?: CongDongComposeConfig;
   onClose?: () => void;
   onPublished?: () => void;
 };
@@ -275,6 +279,7 @@ export function EditorView({
   initial,
   postSlug,
   presentation = "page",
+  congDongCompose,
   onClose,
   onPublished,
 }: Props) {
@@ -308,6 +313,18 @@ export function EditorView({
 
   const [vis, setVis] = useState<Visibility>(initial?.visibility ?? "public");
   const [visOpen, setVisOpen] = useState(false);
+  const sortedCongDongFilters = useMemo(
+    () =>
+      [...(congDongCompose?.filters ?? [])].sort(
+        (a, b) => a.thuTu - b.thuTu || a.ten.localeCompare(b.ten, "vi"),
+      ),
+    [congDongCompose?.filters],
+  );
+  const [composeFilterSlugs, setComposeFilterSlugs] = useState<string[]>(() => {
+    const first = sortedCongDongFilters[0]?.slug;
+    return first ? [first] : [];
+  });
+  const publishVisibility: Visibility = congDongCompose ? "public" : vis;
   const [coAuthorOpen, setCoAuthorOpen] = useState(false);
 
   const [imgPickerTarget, setImgPickerTarget] = useState<{
@@ -749,6 +766,11 @@ export function EditorView({
       }
     }
 
+    if (congDongCompose && composeFilterSlugs.length === 0) {
+      setToast("Chọn loại bài đăng trước khi đăng.");
+      return;
+    }
+
     const caption = extractBodyCaption(serverBlocks);
     const tieuDeFinal = kind
       ? deriveMediaPostTitle(caption, kind)
@@ -766,7 +788,7 @@ export function EditorView({
             moTa: moTaFinal,
             coverSeed: coverFinal,
             tags,
-            visibility: vis,
+            visibility: publishVisibility,
             loaiMoc: initial.loaiMoc,
             thoiDiem: initial.thoiDiem,
             blocks: serverBlocks,
@@ -779,7 +801,7 @@ export function EditorView({
             moTa: moTaFinal,
             coverSeed: coverFinal,
             tags,
-            visibility: vis,
+            visibility: publishVisibility,
             loaiMoc: DEFAULT_LOAI_MOC,
             thoiDiem: isoToday(),
             blocks: serverBlocks,
@@ -817,6 +839,9 @@ export function EditorView({
     ownerVaiTro,
     coAuthors,
     vis,
+    publishVisibility,
+    congDongCompose,
+    composeFilterSlugs,
     blocks,
     ownerSlug,
     router,
@@ -855,48 +880,59 @@ export function EditorView({
           </span>
           <span className="ed-spacer" />
 
-          <div
-            className={`vis-select${visOpen ? " open" : ""}`}
-            ref={visRef}
-          >
-            <button
-              type="button"
-              className="vis-btn"
-              onClick={(e) => {
-                e.stopPropagation();
-                setVisOpen((v) => !v);
-              }}
+          {congDongCompose ? (
+            <CongDongFeedFilterDropdown
+              filters={sortedCongDongFilters}
+              activeFilterSlugs={composeFilterSlugs}
+              onChange={setComposeFilterSlugs}
+              variant="compose"
+              className="cd-v4-filter-dd--editor"
+              menuZIndex={9200}
+            />
+          ) : (
+            <div
+              className={`vis-select${visOpen ? " open" : ""}`}
+              ref={visRef}
             >
-              <span className="ico" aria-hidden>
-                <visCurrent.Icon size={14} strokeWidth={1.7} />
-              </span>
-              <span>{visCurrent.label}</span>
-              <span className="caret" aria-hidden>
-                ▾
-              </span>
-            </button>
-            <div className="vis-menu" role="menu">
-              {VIS_OPTIONS.map((o) => (
-                <button
-                  key={o.k}
-                  type="button"
-                  className={`vis-opt${o.k === vis ? " active" : ""}`}
-                  onClick={() => {
-                    setVis(o.k);
-                    setVisOpen(false);
-                  }}
-                >
-                  <span className="ico" aria-hidden>
-                    <o.Icon size={14} strokeWidth={1.7} />
-                  </span>
-                  <span>
-                    <b>{o.label}</b>
-                    <em>{o.desc}</em>
-                  </span>
-                </button>
-              ))}
+              <button
+                type="button"
+                className="vis-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setVisOpen((v) => !v);
+                }}
+              >
+                <span className="ico" aria-hidden>
+                  <visCurrent.Icon size={14} strokeWidth={1.7} />
+                </span>
+                <span>{visCurrent.label}</span>
+                <span className="caret" aria-hidden>
+                  ▾
+                </span>
+              </button>
+              <div className="vis-menu" role="menu">
+                {VIS_OPTIONS.map((o) => (
+                  <button
+                    key={o.k}
+                    type="button"
+                    className={`vis-opt${o.k === vis ? " active" : ""}`}
+                    onClick={() => {
+                      setVis(o.k);
+                      setVisOpen(false);
+                    }}
+                  >
+                    <span className="ico" aria-hidden>
+                      <o.Icon size={14} strokeWidth={1.7} />
+                    </span>
+                    <span>
+                      <b>{o.label}</b>
+                      <em>{o.desc}</em>
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {isOverlay && onClose ? (
             <button type="button" className="ed-btn ghost" onClick={onClose}>

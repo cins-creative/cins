@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, Check, Video, X } from "lucide-react";
+import { ArrowRight, Bell, Check, Video, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
@@ -758,7 +758,7 @@ function FollowRequestModal({
         >
           <X size={16} aria-hidden />
         </button>
-        <article className="j-friend-card j-user-pop-card">
+        <article className="j-friend-card j-user-pop-card j-frq-card">
           <div
             className={`j-friend-cover${coverUrl ? " has-img" : ""}`}
             aria-hidden
@@ -806,38 +806,39 @@ function FollowRequestModal({
               {selected.giaiDoan ? <span>{selected.giaiDoan}</span> : null}
               {selected.tinhThanh ? <span>{selected.tinhThanh}</span> : null}
             </div>
-            <div className="j-friend-actions j-notify-request-actions">
-              {showActions ? (
-                <>
-                  <button
-                    type="button"
-                    className="j-friend-action is-accept"
-                    disabled={pending}
-                    onClick={() => onRespond(selected, "accept")}
-                  >
-                    <Check size={13} strokeWidth={2} aria-hidden />
-                    Chấp nhận
-                  </button>
-                  <button
-                    type="button"
-                    className="j-friend-action is-decline"
-                    disabled={pending}
-                    onClick={() => onRespond(selected, "decline")}
-                  >
-                    <X size={13} strokeWidth={2} aria-hidden />
-                    Từ chối
-                  </button>
-                </>
-              ) : null}
-              <Link
-                href={`/${encodeURIComponent(selected.slug)}`}
-                className="j-friend-link"
-                onClick={() => onClose()}
-              >
-                Xem Journey
-              </Link>
-            </div>
           </div>
+
+          <footer className="j-frq-footer">
+            {showActions ? (
+              <div className="j-frq-actions">
+                <button
+                  type="button"
+                  className="j-frq-btn j-frq-btn--accept"
+                  disabled={pending}
+                  onClick={() => onRespond(selected, "accept")}
+                >
+                  <Check size={15} strokeWidth={2.2} aria-hidden />
+                  {pending ? "Đang xử lý…" : "Chấp nhận"}
+                </button>
+                <button
+                  type="button"
+                  className="j-frq-btn j-frq-btn--decline"
+                  disabled={pending}
+                  onClick={() => onRespond(selected, "decline")}
+                >
+                  Từ chối
+                </button>
+              </div>
+            ) : null}
+            <Link
+              href={`/${encodeURIComponent(selected.slug)}`}
+              className="j-frq-journey-link"
+              onClick={() => onClose()}
+            >
+              Xem Journey
+              <ArrowRight size={14} strokeWidth={2.2} aria-hidden />
+            </Link>
+          </footer>
         </article>
       </div>
     </div>,

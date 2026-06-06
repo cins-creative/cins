@@ -18,11 +18,15 @@ import { useAuthGate } from "@/components/auth/AuthGateProvider";
 import { BunnyVideoProcessingPoller } from "@/components/journey/BunnyVideoProcessingPoller";
 import { JourneyComposeProvider } from "@/components/journey/JourneyComposeContext";
 import { JourneyCreateComposer } from "@/components/journey/JourneyCreateComposer";
-import { CongDongFilterAdmin } from "@/components/cong-dong/CongDongFilterAdmin";
+import { CongDongFilterAdminModal } from "@/components/cong-dong/CongDongFilterAdmin";
+import { CongDongFeedFilterDropdown } from "@/components/cong-dong/CongDongFeedFilterDropdown";
 import { CongDongFilterChip } from "@/components/cong-dong/CongDongFilterChip";
 import { CongDongRoleButton } from "@/components/cong-dong/CongDongRoleButton";
 import { SOCIAL_LOAI_DOI_TUONG } from "@/lib/cong-dong/constants";
-import type { CongDongVaiTro } from "@/lib/cong-dong/vai-tro";
+import {
+  canManageLabels,
+  type CongDongVaiTro,
+} from "@/lib/cong-dong/vai-tro";
 import type { OrgNotifyLevel } from "@/lib/social/org-notify";
 import { congDongImageUrl } from "@/lib/cong-dong/images";
 import type {
@@ -146,6 +150,7 @@ export function CongDongPageClient({ initial }: Props) {
   const [sortMode, setSortMode] = useState<SortMode>("moi");
   const [loadPending, startLoadMore] = useTransition();
   const [filterPending, startFilter] = useTransition();
+  const [filterAdminOpen, setFilterAdminOpen] = useState(false);
 
   const coverUrl = getCoverUrl(org.coverId);
   const avatarUrl = getAvatarUrl(org.avatarId);
@@ -199,12 +204,6 @@ export function CongDongPageClient({ initial }: Props) {
     setIsThanhVien(false);
     setViewerVaiTro(null);
     setNotifyLevel("tat");
-  }, []);
-
-  const scrollToFilterAdmin = useCallback(() => {
-    document
-      .querySelector(".cd-filter-admin")
-      ?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
 
   const loadMore = () => {
@@ -265,6 +264,7 @@ export function CongDongPageClient({ initial }: Props) {
   };
 
   const page = (
+    <>
     <div className="cd-v4-page">
       <div className="cd-v4-layout">
         <aside className="cd-v4-id">
@@ -312,8 +312,11 @@ export function CongDongPageClient({ initial }: Props) {
               onJoined={onJoined}
               onLeft={onLeftCommunity}
               onNotifyLevelChange={setNotifyLevel}
-              onManageCommunity={scrollToFilterAdmin}
-              onManageContent={scrollToFilterAdmin}
+              onManageLabels={
+                canManageLabels(viewerVaiTro)
+                  ? () => setFilterAdminOpen(true)
+                  : undefined
+              }
               onShare={shareCommunity}
             />
 
@@ -369,33 +372,12 @@ export function CongDongPageClient({ initial }: Props) {
 
         <div className="cd-v4-main">
           <div className={`cd-v4-toolbar${filterPending ? " is-loading" : ""}`}>
-            <div className="cd-v4-chips" role="toolbar" aria-label="Lọc bài đăng">
-              <button
-                type="button"
-                className={`cd-v4-chip cd-v4-chip--all${activeFilterSlugs.length === 0 ? " is-active" : ""}`}
-                onClick={() => applyFeedFilter([])}
-              >
-                Tất cả
-              </button>
-              {filters.map((filter) => {
-                const active = activeFilterSlugs.includes(filter.slug);
-                return (
-                  <CongDongFilterChip
-                    key={filter.id}
-                    filter={filter}
-                    active={active}
-                    size="toolbar"
-                    onClick={() => {
-                      if (active) {
-                        applyFeedFilter([]);
-                        return;
-                      }
-                      applyFeedFilter([filter.slug]);
-                    }}
-                  />
-                );
-              })}
-            </div>
+            <CongDongFeedFilterDropdown
+              filters={filters}
+              activeFilterSlugs={activeFilterSlugs}
+              onChange={applyFeedFilter}
+              disabled={filterPending}
+            />
             <div className="cd-v4-tools">
               <select
                 className="cd-v4-sort"
@@ -427,14 +409,6 @@ export function CongDongPageClient({ initial }: Props) {
               </div>
             </div>
           </div>
-
-          {initial.isAdmin ? (
-            <CongDongFilterAdmin
-              orgId={org.id}
-              filters={filters}
-              onChange={setFilters}
-            />
-          ) : null}
 
           {canCompose && sortedPosts.length > 0 ? (
             <JourneyCreateComposer ownerSlug={viewerSlug} />
@@ -487,6 +461,17 @@ export function CongDongPageClient({ initial }: Props) {
       </div>
 
     </div>
+
+    {canManageLabels(viewerVaiTro) ? (
+      <CongDongFilterAdminModal
+        open={filterAdminOpen}
+        onClose={() => setFilterAdminOpen(false)}
+        orgId={org.id}
+        filters={filters}
+        onChange={setFilters}
+      />
+    ) : null}
+    </>
   );
 
   if (!canCompose) return page;
@@ -498,6 +483,7 @@ export function CongDongPageClient({ initial }: Props) {
       ownerName={initial.viewerName ?? viewerSlug}
       ownerAvatarId={initial.viewerAvatarId}
       isOwner
+      congDongCompose={{ orgId: org.id, filters }}
       onAfterPublished={refetchFeed}
     >
       <BunnyVideoProcessingPoller ownerSlug={viewerSlug} />

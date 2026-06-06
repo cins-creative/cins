@@ -39,6 +39,7 @@ type Props = {
   ownerName: string;
   /** Slug owner — wire CTA "tạo cột mốc" → `/{ownerSlug}/p/new` (chỉ owner). */
   ownerSlug: string;
+  ownerProfileId?: string;
   /** Avatar URL owner (Cloudflare delivery) — render trong badge "Cá nhân". */
   ownerAvatarUrl?: string | null;
   /** Milestones trang đầu — append thêm khi user cuộn (scrollLoad). */
@@ -68,6 +69,7 @@ export function JourneyTimeline({
   isOwner,
   ownerName,
   ownerSlug,
+  ownerProfileId,
   ownerAvatarUrl,
   milestones: initialMilestones,
   filterVisibility,
@@ -375,6 +377,7 @@ export function JourneyTimeline({
               }
               isOwner={isOwner}
               ownerSlug={ownerSlug}
+              ownerProfileId={ownerProfileId}
               authorAvatarUrl={ownerAvatarUrl ?? null}
               authorName={ownerName}
               inlineExpand={inlineExpand}

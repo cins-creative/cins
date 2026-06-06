@@ -13,6 +13,7 @@ import {
 import { useRouter } from "next/navigation";
 
 import { JourneyComposeOverlay } from "@/components/journey/JourneyComposeOverlay";
+import type { CongDongComposeConfig } from "@/lib/cong-dong/types";
 import type { JourneyComposeState } from "@/lib/journey/compose-types";
 
 type JourneyComposeContextValue = {
@@ -40,6 +41,8 @@ type ProviderProps = {
   initialCompose?: JourneyComposeState | null;
   /** Hook sau publish (vd. refetch feed cộng đồng). */
   onAfterPublished?: () => void;
+  /** Trang cộng đồng — topbar compose dùng chọn nhãn thay visibility. */
+  congDongCompose?: CongDongComposeConfig;
 };
 
 function syncComposeUrl(state: JourneyComposeState | null, mode: "push" | "replace") {
@@ -66,6 +69,7 @@ export function JourneyComposeProvider({
   isOwner,
   initialCompose = null,
   onAfterPublished,
+  congDongCompose,
 }: ProviderProps) {
   const router = useRouter();
   const [compose, setCompose] = useState<JourneyComposeState | null>(
@@ -183,6 +187,7 @@ export function JourneyComposeProvider({
           ownerAvatarId={ownerAvatarId}
           consumePendingPhotoFiles={consumePendingPhotoFiles}
           consumePendingVideoFile={consumePendingVideoFile}
+          congDongCompose={congDongCompose}
           onClose={closeCompose}
           onPublished={onPublished}
         />

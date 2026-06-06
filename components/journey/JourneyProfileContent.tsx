@@ -411,6 +411,7 @@ export function JourneyProfileContent({
           isOwner={isOwner}
           ownerName={ownerName}
           ownerSlug={ownerSlug}
+          ownerProfileId={ownerId}
           ownerAvatarUrl={ownerAvatarUrl}
           milestones={timelineCache.page.milestones}
           filterVisibility={filterVisibility}

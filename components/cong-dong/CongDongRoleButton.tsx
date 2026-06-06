@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, ChevronRight, LogOut, Settings, Share2 } from "lucide-react";
+import { Bell, ChevronRight, LogOut, Share2, Tags } from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -15,17 +15,32 @@ import { createPortal } from "react-dom";
 import { useAuthGate } from "@/components/auth/AuthGateProvider";
 import {
   canLeaveCommunity,
-  canManageCommunity,
-  canManageCommunityContent,
+  canManageLabels,
   roleButtonLabel,
   type CongDongVaiTro,
 } from "@/lib/cong-dong/vai-tro";
 import type { OrgNotifyLevel } from "@/lib/social/org-notify";
 
-const NOTIFY_OPTIONS: { value: OrgNotifyLevel; label: string }[] = [
-  { value: "tat_ca", label: "Tất cả" },
-  { value: "chi_noi_bat", label: "Chỉ nổi bật" },
-  { value: "tat", label: "Tắt" },
+const NOTIFY_OPTIONS: {
+  value: OrgNotifyLevel;
+  label: string;
+  desc: string;
+}[] = [
+  {
+    value: "tat_ca",
+    label: "Tất cả",
+    desc: "Nhận thông báo mỗi khi có bài đăng mới.",
+  },
+  {
+    value: "chi_noi_bat",
+    label: "Chỉ nổi bật",
+    desc: "Chỉ khi admin ghim bài hoặc có cập nhật quan trọng.",
+  },
+  {
+    value: "tat",
+    label: "Tắt",
+    desc: "Không nhận thông báo từ cộng đồng này.",
+  },
 ];
 
 type Props = {
@@ -37,8 +52,7 @@ type Props = {
   onJoined: (vaiTro: CongDongVaiTro) => void;
   onLeft: () => void;
   onNotifyLevelChange: (level: OrgNotifyLevel) => void;
-  onManageCommunity?: () => void;
-  onManageContent?: () => void;
+  onManageLabels?: () => void;
   onShare: () => void;
 };
 
@@ -51,8 +65,7 @@ export function CongDongRoleButton({
   onJoined,
   onLeft,
   onNotifyLevelChange,
-  onManageCommunity,
-  onManageContent,
+  onManageLabels,
   onShare,
 }: Props) {
   const { requireAuth } = useAuthGate();
@@ -87,10 +100,10 @@ export function CongDongRoleButton({
       position: "fixed",
       top: openUp ? rect.top - menuHeight - gap : rect.bottom + gap,
       left: rect.left,
-      width: rect.width,
+      width: Math.max(rect.width, notifyOpen ? 248 : 200),
       zIndex: 9200,
     });
-  }, []);
+  }, [notifyOpen]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -247,40 +260,29 @@ export function CongDongRoleButton({
                   onClick={() => setNotify(opt.value)}
                   disabled={notifyPending}
                 >
-                  {opt.label}
+                  <span className="cd-v4-role-submenu-copy">
+                    <span className="cd-v4-role-submenu-label">{opt.label}</span>
+                    <span className="cd-v4-role-submenu-desc">{opt.desc}</span>
+                  </span>
                 </button>
               ))}
             </div>
           ) : null}
         </div>
 
-        {canManageCommunityContent(displayVaiTro) ? (
+        {canManageLabels(displayVaiTro) ? (
           <button
             type="button"
             className="cd-v4-role-menu-btn"
             role="menuitem"
             onClick={() => {
               setMenuOpen(false);
-              onManageContent?.();
+              setNotifyOpen(false);
+              onManageLabels?.();
             }}
           >
-            <Settings size={15} strokeWidth={2} aria-hidden />
-            <span>Quản lý nội dung</span>
-          </button>
-        ) : null}
-
-        {canManageCommunity(displayVaiTro) ? (
-          <button
-            type="button"
-            className="cd-v4-role-menu-btn"
-            role="menuitem"
-            onClick={() => {
-              setMenuOpen(false);
-              onManageCommunity?.();
-            }}
-          >
-            <Settings size={15} strokeWidth={2} aria-hidden />
-            <span>Quản lý cộng đồng</span>
+            <Tags size={15} strokeWidth={2} aria-hidden />
+            <span>Quản lý nhãn</span>
           </button>
         ) : null}
 

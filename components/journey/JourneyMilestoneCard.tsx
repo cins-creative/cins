@@ -60,6 +60,8 @@ type Props = {
   isOwner?: boolean;
   /** Slug owner — wire link "Sửa bài viết" trong menu. Bắt buộc nếu `isOwner`. */
   ownerSlug?: string;
+  /** UUID chủ Journey — loại khỏi picker cộng sự. */
+  ownerProfileId?: string;
   /**
    * Author của Journey hiện tại — render trong badge "Cá nhân" thay vì
    * label cứng "Cá nhân", để identify rõ ai là người post. URL avatar
@@ -163,6 +165,7 @@ export function JourneyMilestoneCard({
   milestone,
   isOwner = false,
   ownerSlug,
+  ownerProfileId,
   authorAvatarUrl,
   authorName,
   inlineExpand,
@@ -710,6 +713,7 @@ export function JourneyMilestoneCard({
               <JourneyCoAuthorProposal
                 tacPhamId={tacPhamId}
                 mode={canManageCoAuthors ? "owner" : "proposal"}
+                ownerId={ownerProfileId}
               />
             ) : null}
             {inlineExpand && showUnfold ? (

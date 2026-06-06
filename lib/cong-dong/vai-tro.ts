@@ -93,6 +93,12 @@ export function canManageCommunity(
   return vaiTro === "admin";
 }
 
+export function canManageLabels(
+  vaiTro: CongDongVaiTro | null | undefined,
+): boolean {
+  return canManageCommunityContent(vaiTro) || canManageCommunity(vaiTro);
+}
+
 /** @deprecated Dùng `roleButtonLabel`. */
 export function membershipButtonLabel(
   vaiTro: CongDongVaiTro | null | undefined,

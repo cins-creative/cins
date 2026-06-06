@@ -1,34 +1,28 @@
 "use client";
 
-import { Search, UserPlus, X } from "lucide-react";
-import { useEffect, useState, useTransition } from "react";
+import { UserPlus, X } from "lucide-react";
+import { useCallback, useEffect, useId, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 
-import { getAvatarUrl } from "@/lib/journey/profile";
-
-type SearchUser = {
-  id: string;
-  slug: string;
-  ten_hien_thi: string;
-  avatar_id: string | null;
-};
+import { CoAuthorSection } from "@/components/editor/CoAuthorSection";
+import type { CoAuthorDraft } from "@/lib/social/types";
 
 type Props = {
   tacPhamId: string;
   mode: "owner" | "proposal";
+  /** Chủ Journey — loại khỏi danh sách tìm cộng sự. */
+  ownerId?: string;
 };
 
-type SelectedUser = {
-  user: SearchUser;
-  vaiTro: string;
-};
-
-export function JourneyCoAuthorProposal({ tacPhamId, mode }: Props) {
+export function JourneyCoAuthorProposal({
+  tacPhamId,
+  mode,
+  ownerId = "",
+}: Props) {
+  const headingId = useId();
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState<SearchUser[]>([]);
-  const [selected, setSelected] = useState<SelectedUser[]>([]);
+  const [collaborators, setCollaborators] = useState<CoAuthorDraft[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const isOwnerMode = mode === "owner";
@@ -36,58 +30,42 @@ export function JourneyCoAuthorProposal({ tacPhamId, mode }: Props) {
   const helperText = isOwnerMode
     ? "Người được thêm sẽ nhận lời mời cộng sự cho bài viết này."
     : "Đề xuất sẽ được gửi cho chủ bài viết duyệt trước khi mời cộng sự.";
+  const submitLabel = isOwnerMode ? "Gửi lời mời" : "Gửi đề xuất";
 
   useEffect(() => {
     queueMicrotask(() => setMounted(true));
+  }, []);
+
+  const close = useCallback(() => {
+    setOpen(false);
+    setCollaborators([]);
+    setMessage(null);
   }, []);
 
   useEffect(() => {
     if (!open) return;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") close();
+    };
+    document.addEventListener("keydown", onKey);
     return () => {
       document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", onKey);
     };
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    const timer = setTimeout(async () => {
-      const qs = new URLSearchParams({ q: query.trim(), mutual_only: "true" });
-      const res = await fetch(`/api/users/search?${qs.toString()}`);
-      const json = await res.json().catch(() => ({}));
-      setResults(res.ok && Array.isArray(json.users) ? json.users : []);
-    }, 250);
-    return () => clearTimeout(timer);
-  }, [open, query]);
-
-  const toggleUser = (user: SearchUser) => {
-    setSelected((current) => {
-      if (current.some((item) => item.user.id === user.id)) {
-        return current.filter((item) => item.user.id !== user.id);
-      }
-      return [...current, { user, vaiTro: "" }];
-    });
-  };
-
-  const updateRole = (userId: string, vaiTro: string) => {
-    setSelected((current) =>
-      current.map((item) =>
-        item.user.id === userId ? { ...item, vaiTro } : item,
-      ),
-    );
-  };
+  }, [open, close]);
 
   const submit = () => {
-    if (selected.length === 0) return;
+    if (collaborators.length === 0) return;
     setMessage(null);
     startTransition(async () => {
-      for (const item of selected) {
+      for (const item of collaborators) {
         const res = await fetch(`/api/tac-pham/${tacPhamId}/tac-gia`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            id_nguoi_dung: item.user.id,
+            id_nguoi_dung: item.idNguoiDung,
             vai_tro: item.vaiTro.trim(),
           }),
         });
@@ -106,109 +84,55 @@ export function JourneyCoAuthorProposal({ tacPhamId, mode }: Props) {
           ? "Đã gửi lời mời cộng sự."
           : "Đã gửi đề xuất cho chủ bài viết duyệt.",
       );
-      setSelected([]);
-      setQuery("");
-      setResults([]);
+      setCollaborators([]);
     });
   };
 
   const modal = open ? (
     <div
-      className="j-coauthor-propose-backdrop"
+      className="ed-coauthor-modal-backdrop"
       role="presentation"
-      onClick={() => setOpen(false)}
+      onClick={close}
     >
       <div
-        className="j-coauthor-propose-modal"
+        className="ed-coauthor-modal"
         role="dialog"
         aria-modal="true"
-        aria-label={title}
+        aria-labelledby={headingId}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="j-coauthor-propose-head">
-          <div>
-            <strong>{title}</strong>
-            <p>{helperText}</p>
-          </div>
-          <button type="button" aria-label="Đóng" onClick={() => setOpen(false)}>
-            <X size={16} aria-hidden />
-          </button>
-        </div>
-
-        {selected.length > 0 ? (
-          <ul className="j-coauthor-propose-selected-list">
-            {selected.map((item) => (
-              <li key={item.user.id} className="j-coauthor-propose-selected">
-                <UserAvatar user={item.user} />
-                <span>
-                  <strong>{item.user.ten_hien_thi || item.user.slug}</strong>
-                  <small>@{item.user.slug}</small>
-                </span>
-                <input
-                  type="text"
-                  value={item.vaiTro}
-                  onChange={(e) => updateRole(item.user.id, e.target.value)}
-                  placeholder="Tìm vị trí công việc"
-                />
-                <button
-                  type="button"
-                  aria-label={`Bỏ ${item.user.ten_hien_thi || item.user.slug}`}
-                  onClick={() => toggleUser(item.user)}
-                >
-                  <X size={14} aria-hidden />
-                </button>
-              </li>
-            ))}
-          </ul>
+        <button
+          type="button"
+          className="ed-coauthor-modal-close"
+          aria-label="Đóng"
+          onClick={close}
+        >
+          <X size={16} aria-hidden />
+        </button>
+        <h2 id={headingId} className="ed-coauthor-sr-only">
+          {title}
+        </h2>
+        <CoAuthorSection
+          ownerId={ownerId}
+          collaborators={collaborators}
+          ownerVaiTro=""
+          onCollaboratorsChange={setCollaborators}
+          onOwnerVaiTroChange={() => {}}
+        />
+        {message ? (
+          <p className="ed-coauthor-hint ed-coauthor-modal-feedback">{message}</p>
         ) : null}
-
-        <div className="j-coauthor-propose-picker">
-          <label className="j-coauthor-propose-search">
-            <Search size={15} aria-hidden />
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Tìm bạn cộng sự"
-            />
-          </label>
-          {results.length > 0 ? (
-            <ul className="j-coauthor-propose-results">
-              {results.map((user) => {
-                const isSelected = selected.some((item) => item.user.id === user.id);
-                return (
-                  <li key={user.id}>
-                    <button
-                      type="button"
-                      className={isSelected ? "is-selected" : ""}
-                      onClick={() => toggleUser(user)}
-                    >
-                      <UserAvatar user={user} />
-                      <span>
-                        <strong>{user.ten_hien_thi || user.slug}</strong>
-                        <small>@{user.slug}</small>
-                      </span>
-                      {isSelected ? <b>Đang chọn</b> : null}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : null}
-        </div>
-
-        <div className="j-coauthor-propose-actions">
-          <span>{selected.length} đã chọn</span>
+        <div className="ed-coauthor-modal-actions">
+          <span>{helperText}</span>
           <button
             type="button"
-            className="j-coauthor-propose-submit"
-            disabled={selected.length === 0 || pending}
+            className="ed-coauthor-save"
+            disabled={collaborators.length === 0 || pending}
             onClick={submit}
           >
-            {isOwnerMode ? "Gửi lời mời" : "Gửi đề xuất"}
+            {pending ? "Đang gửi…" : submitLabel}
           </button>
         </div>
-        {message ? <p className="j-coauthor-propose-note">{message}</p> : null}
       </div>
     </div>
   ) : null;
@@ -218,7 +142,7 @@ export function JourneyCoAuthorProposal({ tacPhamId, mode }: Props) {
       <button
         type="button"
         className="j-coauthor-propose-trigger"
-        onClick={() => setOpen((value) => !value)}
+        onClick={() => setOpen(true)}
         aria-expanded={open}
         aria-label={title}
         title={title}
@@ -228,20 +152,5 @@ export function JourneyCoAuthorProposal({ tacPhamId, mode }: Props) {
 
       {mounted && modal ? createPortal(modal, document.body) : null}
     </div>
-  );
-}
-
-function UserAvatar({ user }: { user: SearchUser }) {
-  const src = getAvatarUrl(user.avatar_id);
-  const initial = (user.ten_hien_thi || user.slug || "?").slice(0, 1).toUpperCase();
-  return (
-    <span className="j-coauthor-propose-avatar" aria-hidden>
-      {src ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={src} alt="" />
-      ) : (
-        <span>{initial}</span>
-      )}
-    </span>
   );
 }
