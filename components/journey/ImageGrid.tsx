@@ -18,8 +18,10 @@ type Props = {
   isFirstGroup?: boolean;
   /** Ô đang upload (compose preview). */
   uploadingSlots?: ReadonlySet<number>;
-  /** Card timeline — không lightbox, click bubble lên parent. */
+  /** Compose — không mở lightbox. */
   readOnly?: boolean;
+  /** Timeline card — chạm ảnh mở lightbox (kết hợp readOnly). */
+  timelineLightbox?: boolean;
 };
 
 export function ImageGrid({
@@ -27,10 +29,14 @@ export function ImageGrid({
   isFirstGroup = false,
   uploadingSlots,
   readOnly = false,
+  timelineLightbox = false,
 }: Props) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const total = images.length;
   if (total === 0) return null;
+
+  const lightboxEnabled = !readOnly || timelineLightbox;
+  const useButtonCells = lightboxEnabled;
 
   const displayCount = facebookGridDisplayCount(total);
   const remaining = facebookGridRemainingCount(total);
@@ -38,15 +44,15 @@ export function ImageGrid({
   const dataCount = total >= 5 ? 5 : displayCount;
 
   const openLightbox = useCallback((index: number) => {
-    if (readOnly) return;
+    if (!lightboxEnabled) return;
     setLightboxIndex(index);
-  }, [readOnly]);
+  }, [lightboxEnabled]);
 
   const closeLightbox = useCallback(() => {
     setLightboxIndex(null);
   }, []);
 
-  const CellTag = readOnly ? "div" : "button";
+  const CellTag = useButtonCells ? "button" : "div";
 
   return (
     <>
@@ -60,14 +66,17 @@ export function ImageGrid({
           return (
             <CellTag
               key={`${image.id}-${globalIndex}`}
-              {...(!readOnly
+              {...(useButtonCells
                 ? {
                     type: "button" as const,
                     "aria-label":
                       showOverlay
                         ? `Xem thêm ${remaining} ảnh, bắt đầu từ ảnh ${globalIndex + 1}`
                         : `Xem ảnh ${globalIndex + 1}`,
-                    onClick: () => openLightbox(showOverlay ? 4 : globalIndex),
+                    onClick: (e: React.MouseEvent) => {
+                      e.stopPropagation();
+                      openLightbox(showOverlay ? 4 : globalIndex);
+                    },
                   }
                 : { "aria-hidden": true as const })}
               className="image-grid-cell"
@@ -94,7 +103,7 @@ export function ImageGrid({
         })}
       </div>
 
-      {!readOnly && lightboxIndex !== null ? (
+      {lightboxEnabled && lightboxIndex !== null ? (
         <ImageLightbox
           images={images}
           index={lightboxIndex}

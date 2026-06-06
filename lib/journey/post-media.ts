@@ -2,6 +2,18 @@ import type { Block, LoaiMoc, Visibility } from "@/lib/editor/types";
 
 export type MediaPostKind = "photo" | "video";
 
+/** Loại nội dung timeline card — bài viết / album ảnh / video. */
+export type MilestoneContentKind = "article" | "photo" | "video";
+
+export function milestoneContentKind(
+  blocks: ReadonlyArray<Block> | null | undefined,
+): MilestoneContentKind {
+  const kind = detectMediaPostKind(blocks);
+  if (kind === "photo") return "photo";
+  if (kind === "video") return "video";
+  return "article";
+}
+
 /** Bài chỉ gồm caption (tuỳ chọn) + ảnh hoặc video — không phải bài viết dài. */
 export function detectMediaPostKind(
   blocks: ReadonlyArray<Block> | null | undefined,
@@ -126,6 +138,23 @@ export function milestoneCardCaption(
   return fromBlocks || null;
 }
 
+/** Caption hiển thị trên card timeline — bỏ HTML editor. */
+export function milestoneCardCaptionPlain(
+  body: string | null | undefined,
+  blocks: ReadonlyArray<Block> | null | undefined,
+): string | null {
+  const raw = milestoneCardCaption(body, blocks);
+  if (!raw) return null;
+  const text = raw
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  return text || null;
+}
+
 export function mediaPostHasContent(
   blocks: ReadonlyArray<Block>,
   kind: MediaPostKind,
@@ -172,6 +201,33 @@ export function extractVideoUrl(
     if (typeof url === "string" && url.trim()) return url.trim();
   }
   return null;
+}
+
+function extractYouTubeId(url: string): string | null {
+  let u: URL;
+  try {
+    u = new URL(url.trim());
+  } catch {
+    return null;
+  }
+  const host = u.hostname.replace(/^www\./, "");
+  if (host === "youtu.be") {
+    const id = u.pathname.replace(/^\/+/, "").split("/")[0];
+    return id || null;
+  }
+  if (host === "youtube.com" || host === "m.youtube.com") {
+    const v = u.searchParams.get("v");
+    if (v) return v;
+    const m = u.pathname.match(/^\/(embed|shorts|live|v)\/([^/?#]+)/);
+    if (m) return m[2];
+  }
+  return null;
+}
+
+/** Thumbnail YouTube — dùng fallback poster trên client khi server chưa resolve media. */
+export function youtubeVideoThumbnailUrl(url: string): string | null {
+  const id = extractYouTubeId(url);
+  return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : null;
 }
 
 export type MediaEditInitial = {

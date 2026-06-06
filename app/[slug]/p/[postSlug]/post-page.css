@@ -682,6 +682,7 @@
    theo chiều rộng canvas (responsive sẵn). */
 .cins-post-view .b-embed-ro.is-iframe {
   display: block;
+  position: relative;
   padding: 0;
   background: var(--neutral-900, #0f172a);
   border: 1px solid var(--border);
@@ -690,7 +691,17 @@
   aspect-ratio: 16 / 9;
   width: 100%;
 }
+/* Ghi đè `.cins-editor-page .b-embed` (flex + padding editor) trên trang xem. */
+.cins-editor-page.cins-post-view .b-embed.b-embed-ro.is-iframe {
+  display: block;
+  padding: 0;
+  gap: 0;
+  align-items: stretch;
+  background: var(--neutral-900, #0f172a);
+}
 .cins-post-view .b-embed-ro.is-iframe iframe {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   display: block;

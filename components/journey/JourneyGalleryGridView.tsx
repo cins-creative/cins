@@ -223,7 +223,7 @@ export function JourneyGalleryGridView({
               <span className="j-main-gallery-info">
                 <strong>{item.label}</strong>
                 {item.meta ? (
-                  <small className="j-main-gallery-date">Đăng {item.meta}</small>
+                  <small className="j-main-gallery-date">{item.meta}</small>
                 ) : null}
               </span>
             </a>

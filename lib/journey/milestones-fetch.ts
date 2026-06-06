@@ -2,6 +2,7 @@ import "server-only";
 
 import type {
   MilestoneItem,
+  MilestoneMediaItem,
   MilestoneType,
   MilestoneVariant,
   MilestoneVisibility,
@@ -9,7 +10,7 @@ import type {
 import type { Block as ServerBlock } from "@/lib/editor/types";
 import type { CoAuthorCredit } from "@/components/journey/milestone-types";
 import { fetchArticleTagsForTacPham } from "@/lib/journey/article-tags-batch";
-import { journeyImageFields } from "@/lib/journey/images";
+import { milestonePreviewMedia } from "@/lib/journey/milestone-preview-media";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -89,19 +90,10 @@ const LOAI_MOC_TO_TYPE: Record<CotMocRow["loai_moc"], MilestoneType> = {
 
 function milestoneCoverMedia(
   coverId: string | null | undefined,
+  blocks: unknown,
   label: string,
-): MilestoneItem["media"] {
-  const img = journeyImageFields(coverId, "milestone-preview");
-  if (!img?.src) return [];
-  return [
-    {
-      src: img.src,
-      srcSet: img.srcSet,
-      width: img.width,
-      height: img.height,
-      label,
-    },
-  ];
+): MilestoneMediaItem[] {
+  return milestonePreviewMedia(coverId, parseServerBlocks(blocks), label);
 }
 
 export async function buildSelfMilestonesForCotMocs(
@@ -170,7 +162,11 @@ export async function buildSelfMilestonesForCotMocs(
       body: m.mo_ta || null,
       postSlug: firstPostSlug,
       tacPhamId: firstPost?.id ?? null,
-      media: milestoneCoverMedia(firstPost?.cover_id, firstPost?.tieu_de ?? m.tieu_de),
+      media: milestoneCoverMedia(
+        firstPost?.cover_id,
+        firstPost?.noi_dung_blocks,
+        firstPost?.tieu_de ?? m.tieu_de,
+      ),
       noiDungBlocks,
       articleTags,
       coAuthorCredits: firstPost?.id
@@ -387,6 +383,7 @@ export async function fetchTaggedMilestonesForUser(params: {
       canProposeCoAuthor: isOwner && statusByTp.get(tacPhamId) === "accepted",
       media: milestoneCoverMedia(
         tp.cover_id as string,
+        tp.noi_dung_blocks,
         (tp.tieu_de as string) || cm.tieu_de,
       ),
       noiDungBlocks: parseServerBlocks(tp.noi_dung_blocks),
@@ -507,6 +504,7 @@ export async function fetchBookmarkedMilestonesForUser(params: {
         tacPhamId: tp.id as string,
         media: milestoneCoverMedia(
           tp.cover_id as string,
+          tp.noi_dung_blocks,
           (tp.tieu_de as string) || cm.tieu_de,
         ),
         noiDungBlocks: parseServerBlocks(tp.noi_dung_blocks),

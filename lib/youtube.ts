@@ -18,5 +18,7 @@ export function getYoutubeId(url: string | null | undefined): string | null {
   if (shorts?.[1]) return shorts[1];
   const live = u.match(/youtube\.com\/live\/([^?&/]+)/);
   if (live?.[1]) return live[1];
+  const nocookie = u.match(/youtube-nocookie\.com\/embed\/([^?&/]+)/);
+  if (nocookie?.[1]) return nocookie[1];
   return null;
 }

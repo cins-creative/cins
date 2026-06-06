@@ -23,7 +23,7 @@ import {
 } from "@/app/[slug]/journey/actions";
 import { useAuthGate } from "@/components/auth/AuthGateProvider";
 import { PostBlockRenderer } from "@/components/journey/PostBlockRenderer";
-import { PostCover } from "@/components/editor/PostRenderer";
+import { PostBlocksRenderer, PostCover } from "@/components/editor/PostRenderer";
 import { JourneyArticleTagLink } from "@/components/journey/JourneyArticleTagLink";
 import { JourneyMilestoneOwnerMenu } from "@/components/journey/JourneyMilestoneOwnerMenu";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
@@ -83,6 +83,21 @@ type Props = {
   commentCountOverride?: number;
   /** Sau khi owner đổi loại/hiển thị/xoá từ menu — refetch detail (modal). */
   onMilestoneUpdated?: () => void;
+  /** `inline` — mở trong timeline, bỏ cover/title trùng với card. */
+  variant?: "full" | "inline";
+  /** Id section bình luận — tránh trùng khi nhiều bài mở trên timeline. */
+  commentsSectionId?: string;
+  /** Timeline card — ẩn meta đã hiển thị trên `JourneyMilestoneCard`. */
+  inlineSkip?: {
+    byline?: boolean;
+    tags?: boolean;
+    contributors?: boolean;
+  };
+  /** Timeline inline — tách nội dung dài vs bình luận. */
+  inlineParts?: {
+    blocks?: boolean;
+    comments?: boolean;
+  };
 };
 
 export function JourneyPostBody({
@@ -93,6 +108,10 @@ export function JourneyPostBody({
   commentsSlot,
   commentCountOverride,
   onMilestoneUpdated,
+  variant = "full",
+  commentsSectionId = "post-comments",
+  inlineSkip,
+  inlineParts,
 }: Props) {
   const [detail, setDetail] = useState<MilestonePostDetail>(initialDetail);
   const { milestone, owner, posts, comments, viewerCanComment, social } = detail;
@@ -159,20 +178,32 @@ export function JourneyPostBody({
     }));
   }
 
-  return (
-    <main
-      className={`cins-editor-page cins-post-view editor-canvas post-canvas${mediaPost ? " post-canvas--media" : ""}`}
-      aria-label="Bài viết"
-    >
-        {!mediaPost ? <PostCover seed={coverSeed} /> : null}
+  const isInline = variant === "inline";
+  const showBlocks = !isInline || inlineParts?.blocks !== false;
+  const showCommentsPart = !isInline || inlineParts?.comments !== false;
+  const showByline = !isInline || !inlineSkip?.byline;
+  const showTags = showBlocks && (!isInline || !inlineSkip?.tags);
+  const showContributors =
+    showBlocks && (!isInline || !inlineSkip?.contributors);
+  const Wrapper = isInline ? "div" : "main";
+  const wrapperClass = isInline
+    ? `cins-editor-page cins-post-view j-m-unfold-post${mediaPost ? " j-m-unfold-post--media" : ""}`
+    : `cins-editor-page cins-post-view editor-canvas post-canvas${mediaPost ? " post-canvas--media" : ""}`;
 
-        {!mediaPost ? (
+  return (
+    <Wrapper className={wrapperClass} aria-label="Bài viết">
+        {variant === "full" && !mediaPost && coverSeed ? (
+          <PostCover seed={coverSeed} />
+        ) : null}
+
+        {variant === "full" && !mediaPost ? (
           <>
             <h1 className="title-in title-ro">{heroTitle}</h1>
             {heroSub ? <p className="sub-in sub-ro">{heroSub}</p> : null}
           </>
         ) : null}
 
+        {showByline ? (
         <div className="post-byline">
           <Link
             href={`/${owner.slug}`}
@@ -267,8 +298,9 @@ export function JourneyPostBody({
             </>
           )}
         </div>
+        ) : null}
 
-        {mainPost && mainPost.articleTags.length > 0 ? (
+        {showTags && mainPost && mainPost.articleTags.length > 0 ? (
           <div className="post-art-tags" aria-label="Bài viết liên quan">
             {mainPost.articleTags.map((t) => (
               <JourneyArticleTagLink
@@ -280,38 +312,47 @@ export function JourneyPostBody({
           </div>
         ) : null}
 
-        {mainPost ? (
+        {showContributors && mainPost ? (
           <PostContributors contributors={mainPost.contributors} />
         ) : null}
 
-        {blocks && blocks.length > 0 ? (
-          <PostBlockRenderer blocks={blocks} />
-        ) : mainPost?.noiDungHtml ? (
+        {showBlocks && blocks && blocks.length > 0 ? (
+          mediaPost ? (
+            <PostBlockRenderer blocks={blocks} />
+          ) : (
+            <PostBlocksRenderer blocks={blocks} />
+          )
+        ) : showBlocks && mainPost?.noiDungHtml ? (
           /* Fallback cho bài cũ chưa có `noi_dung_blocks` — render HTML đã
              được server escape an toàn từ `blocksToHtml`. */
           <div
             className="post-html-fallback article-rich-content"
             dangerouslySetInnerHTML={{ __html: mainPost.noiDungHtml }}
           />
-        ) : (
+        ) : showBlocks ? (
           <div className="post-empty">
             Cột mốc này chưa có nội dung chi tiết.
           </div>
-        )}
+        ) : null}
 
-        <hr className="post-divider" />
+        {showCommentsPart ? (
+          <>
+            <hr className="post-divider" />
 
-        {commentsSlot ?? (
-          <JourneyPostCommentsBlock
-            milestoneId={milestone.id}
-            comments={comments}
-            viewerCanComment={viewerCanComment}
-            onCommentAdded={onCommentAdded}
-            onCommentDeleted={onCommentDeleted}
-            onCommentEdited={onCommentEdited}
-          />
-        )}
-      </main>
+            {commentsSlot ?? (
+              <JourneyPostCommentsBlock
+                milestoneId={milestone.id}
+                comments={comments}
+                viewerCanComment={viewerCanComment}
+                onCommentAdded={onCommentAdded}
+                onCommentDeleted={onCommentDeleted}
+                onCommentEdited={onCommentEdited}
+                sectionId={commentsSectionId}
+              />
+            )}
+          </>
+        ) : null}
+      </Wrapper>
   );
 }
 
@@ -383,6 +424,7 @@ type CommentSectionProps = {
   onCommentAdded(c: MilestonePostComment): void;
   onCommentDeleted(id: string): void;
   onCommentEdited(id: string, noiDung: string): void;
+  sectionId?: string;
 };
 
 export function JourneyPostCommentsBlock({
@@ -392,6 +434,7 @@ export function JourneyPostCommentsBlock({
   onCommentAdded,
   onCommentDeleted,
   onCommentEdited,
+  sectionId = "post-comments",
 }: CommentSectionProps) {
   const { openAuthModal } = useAuthGate();
   const [text, setText] = useState("");
@@ -446,7 +489,7 @@ export function JourneyPostCommentsBlock({
   }
 
   return (
-    <section className="post-comments" id="post-comments" aria-label="Bình luận">
+    <section className="post-comments" id={sectionId} aria-label="Bình luận">
       <header className="post-comments-head">
         <h2>Bình luận</h2>
         <span className="post-comments-count">{comments.length}</span>

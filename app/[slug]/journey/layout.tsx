@@ -31,15 +31,11 @@ const anton = Anton({
  */
 export default function JourneyLayout({
   children,
-  modal,
+  modal: _modal,
 }: Readonly<{
   children: React.ReactNode;
   modal: React.ReactNode;
 }>) {
-  return (
-    <div className={anton.variable}>
-      {children}
-      {modal}
-    </div>
-  );
+  void _modal;
+  return <div className={anton.variable}>{children}</div>;
 }

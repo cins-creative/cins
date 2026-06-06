@@ -19,6 +19,7 @@ import {
 } from "@/lib/bunny/embed";
 import { VideoProcessingPlaceholder } from "@/components/journey/VideoProcessingPlaceholder";
 import type { Block } from "@/lib/editor/types";
+import { getYoutubeId } from "@/lib/youtube";
 
 const PICSUM = "https://picsum.photos/seed/";
 const CF_UUID_RE =
@@ -48,7 +49,10 @@ const EMBED_HOSTS: Array<{
   host: RegExp;
   provider: "youtube" | "figma" | "behance";
 }> = [
-  { host: /^(www\.)?(youtube\.com|youtu\.be)$/i, provider: "youtube" },
+  {
+    host: /^(www\.|m\.)?(youtube\.com|youtube-nocookie\.com|youtu\.be)$/i,
+    provider: "youtube",
+  },
   { host: /^(www\.)?figma\.com$/i, provider: "figma" },
   { host: /^(www\.)?behance\.net$/i, provider: "behance" },
 ];
@@ -74,30 +78,12 @@ function classifyEmbed(rawUrl: string): {
   return null;
 }
 
-/* Tách video ID từ các dạng URL YouTube hợp lệ:
- *   • youtu.be/<ID>[?si=…]
- *   • youtube.com/watch?v=<ID>
- *   • youtube.com/embed/<ID> · /shorts/<ID> · /live/<ID> · /v/<ID>
- * Return null nếu không nhận diện được — caller fallback về anchor link. */
-function extractYouTubeId(url: string): string | null {
-  let u: URL;
-  try {
-    u = new URL(url);
-  } catch {
-    return null;
+function resolveEmbedUrl(cfg: Record<string, unknown>): string {
+  if (typeof cfg.url === "string" && cfg.url.trim()) return cfg.url.trim();
+  if (typeof cfg.embedUrl === "string" && cfg.embedUrl.trim()) {
+    return cfg.embedUrl.trim();
   }
-  const host = u.hostname.replace(/^www\./, "");
-  if (host === "youtu.be") {
-    const id = u.pathname.replace(/^\/+/, "").split("/")[0];
-    return id || null;
-  }
-  if (host === "youtube.com" || host === "m.youtube.com") {
-    const v = u.searchParams.get("v");
-    if (v) return v;
-    const m = u.pathname.match(/^\/(embed|shorts|live|v)\/([^/?#]+)/);
-    if (m) return m[2];
-  }
-  return null;
+  return "";
 }
 
 /* Figma embed URL — bọc URL gốc qua proxy embed của Figma. */
@@ -230,10 +216,30 @@ function ReadOnlyBlock({ block }: { block: Block }) {
     );
   }
   if (block.loai === "embed") {
-    const url = typeof cfg.url === "string" ? cfg.url : "";
+    const url = resolveEmbedUrl(cfg);
     if (cfg.videoProcessing === true) {
       return <VideoProcessingPlaceholder />;
     }
+
+    const youtubeId = getYoutubeId(url);
+    if (youtubeId) {
+      return (
+        <div
+          className="b-embed b-embed-ro is-iframe"
+          data-provider="youtube"
+        >
+          <iframe
+            src={`https://www.youtube-nocookie.com/embed/${youtubeId}`}
+            title="YouTube video player"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            referrerPolicy="strict-origin-when-cross-origin"
+            allowFullScreen
+            loading="eager"
+          />
+        </div>
+      );
+    }
+
     const bunny = classifyBunnyVideoUrl(url);
     if (bunny) {
       return (
@@ -250,29 +256,25 @@ function ReadOnlyBlock({ block }: { block: Block }) {
     }
 
     const cls = classifyEmbed(url);
-    if (!cls) return null;
-
-    /* YouTube → iframe nocookie. Bọc trong wrapper `is-iframe` để CSS
-       set aspect-ratio 16/9 + clip overflow. */
-    if (cls.provider === "youtube") {
-      const id = extractYouTubeId(cls.url);
-      if (id) {
+    if (!cls) {
+      if (url.trim()) {
         return (
-          <div
-            className="b-embed b-embed-ro is-iframe"
-            data-provider="youtube"
-          >
-            <iframe
-              src={`https://www.youtube-nocookie.com/embed/${id}`}
-              title="YouTube video player"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              referrerPolicy="strict-origin-when-cross-origin"
-              allowFullScreen
-              loading="lazy"
-            />
+          <div className="b-embed b-embed-ro" data-provider="link">
+            <div className="em-ic" aria-hidden>
+              ▶
+            </div>
+            <a
+              className="em-link"
+              href={url.trim()}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {url.trim()}
+            </a>
           </div>
         );
       }
+      return null;
     }
 
     /* Figma → iframe qua proxy embed_host. Figma không yêu cầu tách ID. */

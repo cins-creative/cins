@@ -1,103 +1,43 @@
-import { bunnyIframeSrc, classifyBunnyVideoUrl } from "@/lib/bunny/embed";
 import { VideoProcessingPlaceholder } from "@/components/journey/VideoProcessingPlaceholder";
+import { buildVideoIframeSrc } from "@/lib/journey/video-embed";
 
 type Props = {
   url: string;
   title: string;
   processing?: boolean;
+  /** Phát ngay khi embed mount (inline card). */
+  autoplay?: boolean;
+  bunnyVideoId?: string | null;
 };
-
-function extractYouTubeId(url: string): string | null {
-  let u: URL;
-  try {
-    u = new URL(url.trim());
-  } catch {
-    return null;
-  }
-  const host = u.hostname.replace(/^www\./, "");
-  if (host === "youtu.be") {
-    const id = u.pathname.replace(/^\/+/, "").split("/")[0];
-    return id || null;
-  }
-  if (host === "youtube.com" || host === "m.youtube.com") {
-    const v = u.searchParams.get("v");
-    if (v) return v;
-    const m = u.pathname.match(/^\/(embed|shorts|live|v)\/([^/?#]+)/);
-    if (m) return m[2];
-  }
-  return null;
-}
-
-function extractVimeoId(url: string): string | null {
-  let u: URL;
-  try {
-    u = new URL(url.trim());
-  } catch {
-    return null;
-  }
-  if (!u.hostname.replace(/^www\./, "").includes("vimeo.com")) return null;
-  const m = u.pathname.match(/\/(\d+)/);
-  return m?.[1] ?? null;
-}
 
 /**
  * Video inline trên milestone card — Bunny Stream, YouTube, Vimeo.
  */
-export function MilestoneVideoEmbed({ url, title, processing = false }: Props) {
+export function MilestoneVideoEmbed({
+  url,
+  title,
+  processing = false,
+  autoplay = false,
+  bunnyVideoId = null,
+}: Props) {
   if (processing) {
     return <VideoProcessingPlaceholder />;
   }
 
-  const bunny = classifyBunnyVideoUrl(url);
-  if (bunny) {
+  const iframeSrc = buildVideoIframeSrc(url, { autoplay, bunnyVideoId });
+  if (iframeSrc) {
     return (
       <div
         className="b-embed b-embed-ro is-iframe j-m-video-embed"
-        data-provider="bunny"
+        data-provider="video"
       >
         <iframe
-          src={bunnyIframeSrc(bunny)}
-          title={title}
-          allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
-          allowFullScreen
-          loading="lazy"
-        />
-      </div>
-    );
-  }
-
-  const youtubeId = extractYouTubeId(url);
-  if (youtubeId) {
-    return (
-      <div
-        className="b-embed b-embed-ro is-iframe j-m-video-embed"
-        data-provider="youtube"
-      >
-        <iframe
-          src={`https://www.youtube-nocookie.com/embed/${youtubeId}`}
+          src={iframeSrc}
           title={title}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           referrerPolicy="strict-origin-when-cross-origin"
           allowFullScreen
-          loading="lazy"
-        />
-      </div>
-    );
-  }
-
-  const vimeoId = extractVimeoId(url);
-  if (vimeoId) {
-    return (
-      <div
-        className="b-embed b-embed-ro is-iframe j-m-video-embed"
-        data-provider="vimeo"
-      >
-        <iframe
-          src={`https://player.vimeo.com/video/${vimeoId}`}
-          title={title}
-          allow="autoplay; fullscreen; picture-in-picture"
-          allowFullScreen
-          loading="lazy"
+          loading={autoplay ? "eager" : "lazy"}
         />
       </div>
     );

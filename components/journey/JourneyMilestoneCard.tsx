@@ -1,8 +1,11 @@
+"use client";
+
 import {
   Bookmark,
   BookOpen,
   Briefcase,
   Calendar,
+  ChevronDown,
   ChevronUp,
   CornerDownRight,
   FolderKanban,
@@ -10,7 +13,6 @@ import {
   Eye,
   Image as ImageIcon,
   Lock,
-  Maximize2,
   MessageCircle,
   Star,
   Trophy,
@@ -18,14 +20,13 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
-import Link from "next/link";
-
 import { JourneyArticleTagLink } from "@/components/journey/JourneyArticleTagLink";
+import { JourneyCardVideo } from "@/components/journey/JourneyCardVideo";
+import { JourneyMilestoneUnfold } from "@/components/journey/JourneyMilestoneUnfold";
 import { JourneyCommentLink } from "@/components/journey/JourneyCommentLink";
 import { JourneyCoAuthorProposal } from "@/components/journey/JourneyCoAuthorProposal";
 import { JourneyCoverImage } from "@/components/journey/JourneyCoverImage";
 import { ImageGrid } from "@/components/journey/ImageGrid";
-import { MilestoneVideoEmbed } from "@/components/journey/MilestoneVideoEmbed";
 import { JourneyBookmarkButton } from "@/components/journey/JourneyBookmarkButton";
 import { JourneyMilestoneInlineControls } from "@/components/journey/JourneyMilestoneInlineControls";
 import { JourneyLikeButton } from "@/components/journey/JourneyLikeButton";
@@ -44,7 +45,7 @@ import { photoGridImagesFromBlocks } from "@/lib/journey/image-grid";
 import {
   detectMediaPostKind,
   extractVideoUrl,
-  milestoneCardCaption,
+  milestoneCardCaptionPlain,
   shouldShowMilestoneCardTitle,
 } from "@/lib/journey/post-media";
 import { extractVideoProcessingMeta } from "@/lib/journey/video-processing-meta";
@@ -63,6 +64,15 @@ type Props = {
    */
   authorAvatarUrl?: string | null;
   authorName?: string | null;
+  /** Mở rộng inline — chỉ bài viết (nội dung / bình luận tách riêng). */
+  inlineExpand?: {
+    showContent: boolean;
+    showComments: boolean;
+    postOwnerSlug: string;
+    onToggleContent(): void;
+    onOpenComments(): void;
+    onClose(): void;
+  };
 };
 
 const TYPE_LABEL: Record<MilestoneType, string> = {
@@ -152,6 +162,7 @@ export function JourneyMilestoneCard({
   ownerSlug,
   authorAvatarUrl,
   authorName,
+  inlineExpand,
 }: Props) {
   const {
     variant,
@@ -216,19 +227,24 @@ export function JourneyMilestoneCard({
     ? extractVideoProcessingMeta(noiDungBlocks ?? [])
     : null;
   const showCardTitle = shouldShowMilestoneCardTitle(title, noiDungBlocks);
-  const cardCaption = milestoneCardCaption(body, noiDungBlocks);
+  const cardCaption = milestoneCardCaptionPlain(body, noiDungBlocks);
+  const cardContentKind = isPhotoAlbum
+    ? "photo"
+    : isVideoPost
+      ? "video"
+      : "article";
   const contributorCount = coAuthorCredits.length;
   const otherContributorCount = coAuthorsOnly.length;
   const displayDate = `${String(day).padStart(2, "0")}-${String(month).padStart(2, "0")}-${year}`;
   const resolvedPostOwner = postOwnerSlug || ownerSlug || null;
-  const postHref =
-    postSlug && resolvedPostOwner
-      ? resolvedPostOwner === ownerSlug
-        ? `/${resolvedPostOwner}/p/${postSlug}`
-        : `/${resolvedPostOwner}/p/${postSlug}?owner=${encodeURIComponent(resolvedPostOwner)}`
-      : null;
+  const isArticle = cardContentKind === "article";
+  const showContent = inlineExpand?.showContent ?? false;
+  const showComments = inlineExpand?.showComments ?? false;
+  const showUnfold = showContent || showComments;
+  const isContentOpen = isArticle && showContent;
+  const milestoneId = cotMocId ?? milestone.id;
 
-  /* Hiển thị badge người đăng (avatar + tên) khi:
+  /* Hiển thị badge người đăng
    *   - variant === "self" (chính chủ đăng — `authorName` là tác giả thật)
    *   - có thông tin tên / avatar
    * Với "tagged"/"verified"/"bookmark": tác giả thật là người khác → KHÔNG
@@ -241,10 +257,35 @@ export function JourneyMilestoneCard({
    * để giữ ngữ cảnh loại cột mốc. */
   const showAuthorBadge =
     variant === "self" && Boolean(authorName || authorAvatarUrl);
+
+  function shouldIgnoreExpandTrigger(target: Element | null): boolean {
+    return Boolean(
+      target?.closest(
+        "a, button, input, textarea, select, summary, .j-m-menu, .authors-details, .image-grid-cell, .jcard-video-trigger, .jcard-actions",
+      ),
+    );
+  }
+
+  function handleExpandTrigger(e: React.MouseEvent<HTMLElement>) {
+    if (!isArticle || !inlineExpand || isContentOpen || shouldIgnoreExpandTrigger(e.target as Element)) {
+      return;
+    }
+    inlineExpand.onToggleContent();
+  }
+
+  function handleExpandKeyDown(e: React.KeyboardEvent<HTMLElement>) {
+    if (!isArticle || !inlineExpand || isContentOpen) return;
+    if (e.key !== "Enter" && e.key !== " ") return;
+    if (shouldIgnoreExpandTrigger(e.target as Element)) return;
+    e.preventDefault();
+    inlineExpand.onToggleContent();
+  }
+
   return (
     <article
-      className={milestoneCls}
+      className={milestoneCls + (showUnfold ? " is-card-expanded" : "")}
       data-mid={cotMocId ?? milestone.id}
+      data-content-kind={cardContentKind}
       data-year={year}
       data-month={month}
       data-group={type}
@@ -253,20 +294,13 @@ export function JourneyMilestoneCard({
     >
       <div className="j-m-body-wrap">
         <div
-          className="j-m-card jcard is-clickable"
-          {...(postHref
-            ? {}
-            : { role: "button" as const, tabIndex: 0 })}
+          className={
+            "j-m-card jcard jcard--" +
+            cardContentKind +
+            (isArticle ? " has-unfold" : "") +
+            (showUnfold ? " is-expanded" : isArticle ? " is-collapsed" : "")
+          }
         >
-          {postHref ? (
-            <Link
-              href={postHref}
-              scroll={false}
-              prefetch
-              className="j-m-card-hit"
-              aria-label={`Xem chi tiết: ${showCardTitle ? title : cardCaption || title}`}
-            />
-          ) : null}
           {variant === "tagged" || variant === "verified" ? (
             attribution ? <TaggedByPanel attr={attribution} dateLabel={displayDate} /> : null
           ) : null}
@@ -344,55 +378,138 @@ export function JourneyMilestoneCard({
             </div>
           ) : null}
 
-          <div className="jcard-body">
-            {showCardTitle ? <h2 className="jcard-title">{title}</h2> : null}
-            {cardCaption ? <p className="jcard-desc">{cardCaption}</p> : null}
+          <div
+            className={`jcard-body${isArticle && !isContentOpen ? " is-expand-trigger" : ""}`}
+            {...(isArticle && !isContentOpen
+              ? {
+                  role: "button" as const,
+                  tabIndex: 0,
+                  "aria-expanded": isContentOpen,
+                  "aria-label": `Mở bài viết: ${showCardTitle ? title : cardCaption || title}`,
+                  onClick: handleExpandTrigger,
+                  onKeyDown: handleExpandKeyDown,
+                }
+              : {})}
+          >
+            <div className="jcard-content">
+              {showCardTitle ? (
+                <h2 className="jcard-title">{title}</h2>
+              ) : null}
 
-            {articleTags.length > 0 ? (
-              <div className="tags" aria-label="Bài viết liên quan">
-                {articleTags.map((t) => (
-                  <JourneyArticleTagLink
-                    key={t.id}
-                    tag={t}
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                ))}
-              </div>
-            ) : null}
-
-            <div
-              className={`preview${isPhotoAlbum ? " preview--photo-grid" : ""}${isVideoPost ? " preview--video" : ""}`}
-            >
-              {isVideoPost && videoEmbedUrl ? (
-                <MilestoneVideoEmbed
-                  url={videoEmbedUrl}
-                  title={showCardTitle ? title : cardCaption || title}
-                  processing={videoProcessingMeta?.processing === true}
-                />
-              ) : isPhotoAlbum && photoGridImages ? (
-                <ImageGrid images={photoGridImages} readOnly />
-              ) : preview ? (
-                <JourneyCoverImage
-                  src={preview.src}
-                  srcSet={preview.srcSet}
-                  sizes={preview.srcSet ? "(max-width: 767px) 100vw, 680px" : undefined}
-                  width={preview.width}
-                  height={preview.height}
-                  alt={preview.label || title}
-                />
-              ) : (
-                <div className="preview-inner">
-                  <ImageIcon size={28} strokeWidth={1.5} aria-hidden />
-                  <span className="preview-label">Cover - ảnh đầu tiên trong bài</span>
+              {cardCaption && cardContentKind !== "article" ? (
+                <div className="jcard-lead">
+                  <p className="jcard-desc">{cardCaption}</p>
                 </div>
-              )}
-              {!isVideoPost ? (
-                <span className="preview-open-hint" aria-label="Xem bài đầy đủ">
-                  <Maximize2 size={14} strokeWidth={2} aria-hidden />
-                </span>
+              ) : null}
+
+              {cardCaption && cardContentKind === "article" ? (
+                <div
+                  className="jcard-lead"
+                  data-collapsed={isContentOpen ? "true" : "false"}
+                  aria-hidden={isContentOpen}
+                >
+                  <p className="jcard-desc">{cardCaption}</p>
+                </div>
+              ) : null}
+
+              {articleTags.length > 0 && cardContentKind === "article" ? (
+                <div className="tags jcard-tags" aria-label="Bài viết liên quan">
+                  {articleTags.map((t) => (
+                    <JourneyArticleTagLink
+                      key={t.id}
+                      tag={t}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  ))}
+                </div>
+              ) : null}
+
+              <div
+                className="jcard-media-zone"
+                data-collapsed={isArticle && isContentOpen ? "true" : "false"}
+                aria-hidden={isArticle && isContentOpen}
+              >
+                {isVideoPost && videoEmbedUrl ? (
+                  <JourneyCardVideo
+                    url={videoEmbedUrl}
+                    title={showCardTitle ? title : cardCaption || title}
+                    processing={videoProcessingMeta?.processing === true}
+                    preview={preview}
+                    noiDungBlocks={noiDungBlocks ?? undefined}
+                  />
+                ) : isPhotoAlbum && photoGridImages ? (
+                  <div className="preview preview--photo-grid">
+                    <ImageGrid
+                      images={photoGridImages}
+                      readOnly
+                      timelineLightbox
+                    />
+                  </div>
+                ) : (
+                  <div className="preview">
+                    {preview ? (
+                      <JourneyCoverImage
+                        src={preview.src}
+                        srcSet={preview.srcSet}
+                        sizes={
+                          preview.srcSet ? "(max-width: 767px) 100vw, 680px" : undefined
+                        }
+                        width={preview.width}
+                        height={preview.height}
+                        alt={preview.label || title}
+                      />
+                    ) : (
+                      <div className="preview-inner">
+                        <ImageIcon size={28} strokeWidth={1.5} aria-hidden />
+                        <span className="preview-label">Ảnh bìa bài viết</span>
+                      </div>
+                    )}
+                    {isArticle && !isContentOpen ? (
+                      <span className="jcard-expand-cta" aria-hidden>
+                        <ChevronDown size={14} strokeWidth={2.4} />
+                        Đọc bài viết
+                      </span>
+                    ) : null}
+                  </div>
+                )}
+              </div>
+
+              {articleTags.length > 0 && cardContentKind !== "article" ? (
+                <div className="tags jcard-tags jcard-tags--below-media" aria-label="Bài viết liên quan">
+                  {articleTags.map((t) => (
+                    <JourneyArticleTagLink
+                      key={t.id}
+                      tag={t}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  ))}
+                </div>
               ) : null}
             </div>
           </div>
+
+          {inlineExpand && showUnfold ? (
+            <div
+              className="j-m-card-unfold"
+              data-open="true"
+              aria-hidden={false}
+            >
+              <JourneyMilestoneUnfold
+                active
+                showBlocks={showContent}
+                showComments={showComments}
+                commentsFocus={showComments}
+                postOwnerSlug={inlineExpand.postOwnerSlug}
+                postSlug={postSlug}
+                milestoneId={milestoneId}
+                inlineSkip={{
+                  byline: canManage && showAuthorBadge,
+                  tags: articleTags.length > 0,
+                  contributors: showAuthorsStrip,
+                }}
+              />
+            </div>
+          ) : null}
 
           {showAuthorsStrip ? (
             <div className="jcard-authors" aria-label="Đồng tác giả">
@@ -479,10 +596,10 @@ export function JourneyMilestoneCard({
               initialCount={social?.likeCount}
               showCount={social?.showCounts}
             />
-            {postHref ? (
+            {inlineExpand ? (
               <JourneyCommentLink
-                href={`${postHref}#post-comments`}
                 commentCount={comments}
+                onOpenComments={inlineExpand.onOpenComments}
               />
             ) : (
               <button
@@ -505,6 +622,17 @@ export function JourneyMilestoneCard({
               />
             ) : null}
             <span className="action-spacer" />
+            {inlineExpand && showUnfold ? (
+              <button
+                type="button"
+                className="jcard-unfold-toggle"
+                onClick={inlineExpand.onClose}
+                aria-label="Thu gọn"
+              >
+                <ChevronUp size={15} strokeWidth={2.2} aria-hidden />
+                <span>Thu gọn</span>
+              </button>
+            ) : null}
             {views ? (
               <span className="jcard-view-count" aria-label={`${formatViews(views)} lượt xem`}>
                 {formatViews(views)}
