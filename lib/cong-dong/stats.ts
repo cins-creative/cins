@@ -47,3 +47,14 @@ export async function loadCongDongStatsByOrgIds(
 
   return out;
 }
+
+export async function countCongDongPosts(orgId: string): Promise<number> {
+  const admin = createServiceRoleClient();
+  const { count } = await admin
+    .from("content_thao_luan")
+    .select("id", { count: "exact", head: true })
+    .eq("loai_context", THAO_LUAN_LOAI_CONTEXT.CONG_DONG)
+    .eq("id_context", orgId)
+    .eq("da_xoa", false);
+  return count ?? 0;
+}

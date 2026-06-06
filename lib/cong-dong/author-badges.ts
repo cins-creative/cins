@@ -1,5 +1,7 @@
 import "server-only";
 
+import type { GiaiDoan } from "@/lib/auth/session";
+import { getGiaiDoanLabel } from "@/lib/journey/profile";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 export type AuthorBadgeRow = {
@@ -8,6 +10,7 @@ export type AuthorBadgeRow = {
   tenHienThi: string;
   avatarId: string | null;
   ngheLabel: string | null;
+  vaiTroLabel: string | null;
   verifiedCount: number;
 };
 
@@ -22,7 +25,7 @@ export async function loadAuthorBadges(
 
   const { data: profiles } = await admin
     .from("user_nguoi_dung")
-    .select("id, slug, ten_hien_thi, avatar_id")
+    .select("id, slug, ten_hien_thi, avatar_id, giai_doan")
     .in("id", uniqueIds)
     .returns<
       Array<{
@@ -30,6 +33,7 @@ export async function loadAuthorBadges(
         slug: string;
         ten_hien_thi: string | null;
         avatar_id: string | null;
+        giai_doan: GiaiDoan | null;
       }>
     >();
 
@@ -96,12 +100,16 @@ export async function loadAuthorBadges(
   }
 
   for (const profile of profiles ?? []) {
+    const giaiDoanLabel = profile.giai_doan
+      ? getGiaiDoanLabel(profile.giai_doan)
+      : null;
     out.set(profile.id, {
       id: profile.id,
       slug: profile.slug,
       tenHienThi: profile.ten_hien_thi?.trim() || profile.slug,
       avatarId: profile.avatar_id,
-      ngheLabel: ngheByUser.get(profile.id) ?? null,
+      ngheLabel: ngheByUser.get(profile.id) ?? giaiDoanLabel,
+      vaiTroLabel: null,
       verifiedCount: verifiedByUser.get(profile.id) ?? 0,
     });
   }

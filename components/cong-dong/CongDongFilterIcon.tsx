@@ -16,11 +16,19 @@ const ICON_MAP: Record<string, LucideIcon> = {
 type Props = {
   name: string | null | undefined;
   size?: number;
+  color?: string;
 };
 
-export function CongDongFilterIcon({ name, size = 16 }: Props) {
+export function CongDongFilterIcon({ name, size = 16, color }: Props) {
   if (!name) return null;
   const Icon = ICON_MAP[name];
   if (!Icon) return null;
-  return <Icon size={size} strokeWidth={2} aria-hidden />;
+  return (
+    <Icon
+      size={size}
+      strokeWidth={2}
+      aria-hidden
+      style={color ? { color } : undefined}
+    />
+  );
 }

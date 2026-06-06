@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { CinsShell } from "@/components/cins/CinsShell";
 import { CongDongPageClient } from "@/components/cong-dong/CongDongPageClient";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { loadCongDongPageData } from "@/lib/cong-dong/queries";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 
-export const revalidate = 30;
+/** Pulse theo phiên; face pile + career map fetch realtime qua API. */
+export const dynamic = "force-dynamic";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -30,5 +32,9 @@ export default async function CongDongDetailPage({ params }: Props) {
 
   if (!data) notFound();
 
-  return <CongDongPageClient initial={data} />;
+  return (
+    <CinsShell data-screen-label={`Cong-dong-${slug}`}>
+      <CongDongPageClient initial={data} />
+    </CinsShell>
+  );
 }

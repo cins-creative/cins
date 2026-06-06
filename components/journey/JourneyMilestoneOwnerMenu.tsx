@@ -52,6 +52,8 @@ type Props = {
   hideTypeChange?: boolean;
   /** Ẩn sửa bài (không sửa bài người khác từ Journey Lưu về). */
   hideEdit?: boolean;
+  /** Ẩn xoá cột mốc (bài được người khác gắn lên Journey). */
+  hideDelete?: boolean;
   /** Gọi sau khi đổi loại/hiển thị/xoá thành công (vd. refetch modal post). */
   onAfterChange?: () => void;
   /** Class wrapper — vd. `post-byline-menu` trong JourneyPostBody. */
@@ -130,6 +132,7 @@ export function JourneyMilestoneOwnerMenu({
   postSlug,
   hideTypeChange = false,
   hideEdit = false,
+  hideDelete = false,
   onAfterChange,
   className,
 }: Props) {
@@ -487,6 +490,8 @@ export function JourneyMilestoneOwnerMenu({
             </div>
           ) : null}
 
+          {hideDelete ? null : (
+            <>
           <div className="j-m-menu-sep" aria-hidden />
 
           {/* Xoá */}
@@ -527,6 +532,8 @@ export function JourneyMilestoneOwnerMenu({
               </span>
               <span className="j-m-menu-lbl">Xoá cột mốc</span>
             </button>
+          )}
+            </>
           )}
         </div>
       ) : null}

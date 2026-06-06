@@ -1,8 +1,55 @@
 import "server-only";
 
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import {
+  pickCommunityVaiTro,
+  type CongDongVaiTro,
+} from "@/lib/cong-dong/vai-tro";
 
 const PROTECTED_ROLES = new Set(["owner", "admin"]);
+
+export async function getViewerVaiTroInOrg(
+  userId: string,
+  orgId: string,
+): Promise<CongDongVaiTro | null> {
+  const admin = createServiceRoleClient();
+  const { data: rows } = await admin
+    .from("user_thanh_vien_to_chuc")
+    .select("vai_tro")
+    .eq("id_to_chuc", orgId)
+    .eq("id_nguoi_dung", userId);
+
+  if (!rows?.length) return null;
+  return pickCommunityVaiTro(rows.map((row) => row.vai_tro as string));
+}
+
+export async function loadAuthorOrgRoles(
+  orgId: string,
+  userIds: string[],
+): Promise<Map<string, CongDongVaiTro | null>> {
+  const out = new Map<string, CongDongVaiTro | null>();
+  if (userIds.length === 0) return out;
+
+  const admin = createServiceRoleClient();
+  const uniqueIds = [...new Set(userIds)];
+  const { data: rows } = await admin
+    .from("user_thanh_vien_to_chuc")
+    .select("id_nguoi_dung, vai_tro")
+    .eq("id_to_chuc", orgId)
+    .in("id_nguoi_dung", uniqueIds);
+
+  const byUser = new Map<string, string[]>();
+  for (const row of rows ?? []) {
+    const list = byUser.get(row.id_nguoi_dung) ?? [];
+    list.push(row.vai_tro as string);
+    byUser.set(row.id_nguoi_dung, list);
+  }
+
+  for (const userId of uniqueIds) {
+    out.set(userId, pickCommunityVaiTro(byUser.get(userId) ?? []));
+  }
+  return out;
+}
 
 export async function isThanhVien(
   userId: string,

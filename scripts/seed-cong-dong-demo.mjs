@@ -35,6 +35,57 @@ const CREATOR_SLUG = process.env.CONG_DONG_CREATOR_SLUG || "taikhoanphanmem95";
 const TEN = process.env.CONG_DONG_TEN || "Motion Designer Việt Nam";
 const SLUG = process.env.CONG_DONG_SLUG || slugify(TEN);
 
+const DEFAULT_FILTERS = [
+  {
+    ten: "🎨 Khoe tác phẩm",
+    slug: "khoe-tac-pham",
+    icon: "palette",
+    mau: "#BB89F8",
+    thu_tu: 0,
+  },
+  {
+    ten: "❓ Hỏi đáp",
+    slug: "hoi-dap",
+    icon: "help-circle",
+    mau: "#1F74C9",
+    thu_tu: 1,
+  },
+  {
+    ten: "💼 Tuyển người",
+    slug: "tuyen-nguoi",
+    icon: "briefcase",
+    mau: "#FFB85C",
+    thu_tu: 2,
+  },
+  {
+    ten: "📚 Tài nguyên",
+    slug: "tai-nguyen",
+    icon: "book-open",
+    mau: "#6EFEC0",
+    thu_tu: 3,
+  },
+];
+
+async function ensureDefaultFilters(orgId) {
+  const existing = await db`
+    SELECT slug FROM content_thao_luan_filter
+    WHERE loai_context = 'cong_dong' AND id_context = ${orgId}
+  `;
+  const slugs = new Set(existing.map((r) => r.slug));
+  const missing = DEFAULT_FILTERS.filter((f) => !slugs.has(f.slug));
+  if (missing.length === 0) return 0;
+  for (const f of missing) {
+    await db`
+      INSERT INTO content_thao_luan_filter (
+        loai_context, id_context, ten, slug, icon, mau, thu_tu
+      ) VALUES (
+        'cong_dong', ${orgId}, ${f.ten}, ${f.slug}, ${f.icon}, ${f.mau}, ${f.thu_tu}
+      )
+    `;
+  }
+  return missing.length;
+}
+
 if (!CINS_ID) {
   console.error("Missing CINS_SYSTEM_USER_ID");
   process.exit(1);
@@ -55,7 +106,13 @@ try {
     SELECT id, slug FROM org_to_chuc WHERE slug = ${SLUG} AND loai_to_chuc = 'cong_dong' LIMIT 1
   `;
   if (existing) {
-    console.log("Community already exists:", existing.slug, existing.id);
+    const inserted = await ensureDefaultFilters(existing.id);
+    console.log(
+      "Community already exists:",
+      existing.slug,
+      existing.id,
+      inserted > 0 ? `(seeded ${inserted} default labels)` : "",
+    );
     process.exit(0);
   }
 
@@ -82,7 +139,13 @@ try {
     VALUES (${org.id}, ${creator.id}, 'admin')
   `;
 
-  console.log("Created community:", org.slug, "→ /cong-dong/" + org.slug);
+  const inserted = await ensureDefaultFilters(org.id);
+  console.log(
+    "Created community:",
+    org.slug,
+    "→ /cong-dong/" + org.slug,
+    `(labels: ${inserted})`,
+  );
 } finally {
   await db.end();
 }

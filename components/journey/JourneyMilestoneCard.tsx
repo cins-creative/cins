@@ -236,12 +236,17 @@ export function JourneyMilestoneCard({
   const vis = visibilityIcon(visibility);
   const TypeIco = TYPE_ICON[type];
   const isBookmarkMilestone = variant === "bookmark";
-  const canManage =
+  const canManageSelf =
     isOwner && (variant === "self" || isBookmarkMilestone) && Boolean(ownerSlug);
+  const canManageTagged =
+    isOwner && variant === "tagged" && Boolean(ownerSlug) && Boolean(tacPhamId);
+  const canManage = canManageSelf || canManageTagged;
   const canBookmark = !(isOwner && (variant === "self" || isBookmarkMilestone));
   const canManageCoAuthors = isOwner && variant === "self" && Boolean(tacPhamId);
   const canShowCoAuthorAction =
-    (canProposeCoAuthor || canManageCoAuthors) && Boolean(tacPhamId);
+    variant !== "tagged" &&
+    (canProposeCoAuthor || canManageCoAuthors) &&
+    Boolean(tacPhamId);
   const visibleCoAuthors = coAuthorCredits.slice(0, MAX_VISIBLE_COAUTHORS);
   const hiddenCoAuthorCount = Math.max(
     0,
@@ -344,7 +349,11 @@ export function JourneyMilestoneCard({
           ) : null}
 
           {canManage && ownerSlug ? (
-            <div className="jcard-datebar">
+            <div
+              className={
+                "jcard-datebar" + (canManageTagged ? " jcard-datebar--tagged" : "")
+              }
+            >
               {showAuthorBadge ? (
                 <span className="org-chip">
                   <span className="org-logo" aria-hidden>
@@ -409,12 +418,17 @@ export function JourneyMilestoneCard({
               <JourneyMilestoneOwnerMenu
                 milestoneId={cotMocId ?? milestone.id}
                 ownerSlug={ownerSlug}
-                permalinkOwnerSlug={isBookmarkMilestone ? resolvedPostOwner : ownerSlug}
+                permalinkOwnerSlug={
+                  isBookmarkMilestone || canManageTagged
+                    ? resolvedPostOwner
+                    : ownerSlug
+                }
                 currentType={type}
                 currentVisibility={visibility ?? "public"}
                 postSlug={postSlug ?? null}
                 hideTypeChange={isBookmarkMilestone}
-                hideEdit={isBookmarkMilestone}
+                hideEdit={isBookmarkMilestone || canManageTagged}
+                hideDelete={canManageTagged}
                 className="jcard-date-menu"
               />
             </div>
@@ -615,12 +629,6 @@ export function JourneyMilestoneCard({
                           <ChevronUp size={15} strokeWidth={2} aria-hidden />
                         </span>
                       </span>
-                      {canShowCoAuthorAction && tacPhamId ? (
-                        <JourneyCoAuthorProposal
-                          tacPhamId={tacPhamId}
-                          mode={canManageCoAuthors ? "owner" : "proposal"}
-                        />
-                      ) : null}
                     </span>
                   </summary>
                   <div className="authors-expanded">
@@ -698,6 +706,12 @@ export function JourneyMilestoneCard({
               />
             ) : null}
             <span className="action-spacer" />
+            {canShowCoAuthorAction && tacPhamId ? (
+              <JourneyCoAuthorProposal
+                tacPhamId={tacPhamId}
+                mode={canManageCoAuthors ? "owner" : "proposal"}
+              />
+            ) : null}
             {inlineExpand && showUnfold ? (
               <button
                 type="button"

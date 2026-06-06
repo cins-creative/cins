@@ -191,6 +191,8 @@ export function JourneyPostBody({
   const isInline = variant === "inline";
   const showBlocks = !isInline || inlineParts?.blocks !== false;
   const showCommentsPart = !isInline || inlineParts?.comments !== false;
+  const commentsOnlyInline =
+    isInline && showCommentsPart && !showBlocks;
   const showByline = !isInline || !inlineSkip?.byline;
   const showTags = showBlocks && (!isInline || !inlineSkip?.tags);
   const showContributors =
@@ -199,7 +201,7 @@ export function JourneyPostBody({
   const focusMode = usePostFocusModeState();
   const Wrapper = isInline ? "div" : "main";
   const wrapperClass = isInline
-    ? `cins-editor-page cins-post-view j-m-unfold-post${mediaPost ? " j-m-unfold-post--media" : ""}`
+    ? `cins-editor-page cins-post-view j-m-unfold-post${mediaPost ? " j-m-unfold-post--media" : ""}${commentsOnlyInline ? " j-m-unfold-post--comments-only" : ""}`
     : `cins-editor-page cins-post-view editor-canvas post-canvas${mediaPost ? " post-canvas--media" : ""}${isSplit ? " post-canvas--split" : ""}`;
 
   const coverEl =
@@ -405,7 +407,7 @@ export function JourneyPostBody({
       {blocksEl}
       {showCommentsPart ? (
         <>
-          <hr className="post-divider" />
+          {!commentsOnlyInline ? <hr className="post-divider" /> : null}
           {commentsEl}
         </>
       ) : null}

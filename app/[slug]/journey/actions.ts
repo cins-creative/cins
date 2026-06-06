@@ -673,11 +673,56 @@ async function requireMilestoneOwnership(
   };
 }
 
+/** Chủ cột mốc hoặc đồng tác giả đã chấp nhận — đổi nhóm filter / hiển thị trên Journey. */
+async function requireMilestoneEditorAccess(
+  milestoneId: string,
+): Promise<MilestoneOwnership> {
+  const owner = await requireMilestoneOwnership(milestoneId);
+  if (owner.ok) return owner;
+
+  const session = await getCurrentSessionAndProfile();
+  if (!session?.profile) {
+    return { ok: false, error: "Phiên đăng nhập đã hết hạn." };
+  }
+
+  const admin = createServiceRoleClient();
+  const { data: links } = await admin
+    .from("content_tac_pham_thuoc_moc")
+    .select("id_tac_pham")
+    .eq("id_cot_moc", milestoneId)
+    .returns<Array<{ id_tac_pham: string }>>();
+
+  const tacPhamIds = (links ?? []).map((l) => l.id_tac_pham).filter(Boolean);
+  if (tacPhamIds.length === 0) {
+    return { ok: false, error: "Bạn không có quyền chỉnh cột mốc này." };
+  }
+
+  const { data: coRow } = await admin
+    .from("content_tac_pham_tac_gia")
+    .select("id_tac_pham")
+    .in("id_tac_pham", tacPhamIds)
+    .eq("id_nguoi_dung", session.profile.id)
+    .eq("trang_thai", "accepted")
+    .eq("la_chu_so_huu", false)
+    .limit(1)
+    .maybeSingle();
+
+  if (!coRow) {
+    return { ok: false, error: "Bạn không có quyền chỉnh cột mốc này." };
+  }
+
+  return {
+    ok: true,
+    profileSlug: session.profile.slug,
+    profileId: session.profile.id,
+  };
+}
+
 export async function updateMilestoneType(
   milestoneId: string,
   loaiMoc: LoaiMoc,
 ): Promise<ActionResult<null>> {
-  const owner = await requireMilestoneOwnership(milestoneId);
+  const owner = await requireMilestoneEditorAccess(milestoneId);
   if (!owner.ok) return { ok: false, error: owner.error };
   if (!VALID_LOAI_MOC.includes(loaiMoc)) {
     return { ok: false, error: "Nhóm filter không hợp lệ." };
@@ -700,7 +745,7 @@ export async function updateMilestoneVisibility(
   milestoneId: string,
   visibility: Visibility,
 ): Promise<ActionResult<null>> {
-  const owner = await requireMilestoneOwnership(milestoneId);
+  const owner = await requireMilestoneEditorAccess(milestoneId);
   if (!owner.ok) return { ok: false, error: owner.error };
   if (!VALID_VIS.includes(visibility)) {
     return { ok: false, error: "Chế độ hiển thị không hợp lệ." };

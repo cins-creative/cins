@@ -204,7 +204,7 @@ async function collectTaggedStubs(
     .from("content_tac_pham_tac_gia")
     .select("id_tac_pham")
     .eq("id_nguoi_dung", userId)
-    .in("trang_thai", isOwner ? ["accepted", "pending"] : ["accepted"])
+    .eq("trang_thai", "accepted")
     .eq("la_chu_so_huu", false);
 
   if (!tagRows?.length) return [];

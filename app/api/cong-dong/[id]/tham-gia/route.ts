@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
-import { joinCongDong, leaveCongDong } from "@/lib/cong-dong/membership";
+import {
+  getViewerVaiTroInOrg,
+  joinCongDong,
+  leaveCongDong,
+} from "@/lib/cong-dong/membership";
+import { setOrgFollowLevel } from "@/lib/social/org-notify";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -34,7 +39,9 @@ export async function POST(_req: Request, ctx: RouteContext) {
     return NextResponse.json({ error: result.error }, { status: 400 });
   }
 
-  return NextResponse.json({ ok: true, isThanhVien: true });
+  await setOrgFollowLevel(session.profile.id, orgId, "chi_noi_bat");
+  const viewerVaiTro = await getViewerVaiTroInOrg(session.profile.id, orgId);
+  return NextResponse.json({ ok: true, isThanhVien: true, viewerVaiTro });
 }
 
 /** DELETE — rời cộng đồng (không xoá admin/owner). */
@@ -54,5 +61,9 @@ export async function DELETE(_req: Request, ctx: RouteContext) {
     return NextResponse.json({ error: result.error }, { status: 400 });
   }
 
-  return NextResponse.json({ ok: true, isThanhVien: false });
+  return NextResponse.json({
+    ok: true,
+    isThanhVien: false,
+    viewerVaiTro: null,
+  });
 }

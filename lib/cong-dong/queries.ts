@@ -7,12 +7,32 @@ import type { CongDongCheDo } from "@/lib/cong-dong/constants";
 import {
   countThanhVien,
   isCongDongAdmin,
+  getViewerVaiTroInOrg,
   isThanhVien,
 } from "@/lib/cong-dong/membership";
 import { listCongDongFilters } from "@/lib/cong-dong/filters";
 import { listCongDongPosts } from "@/lib/cong-dong/posts";
-import type { CongDongOrg, CongDongPageData } from "@/lib/cong-dong/types";
+import { loadCommunityPulse } from "@/lib/cong-dong/sidebar-data";
+import { countCongDongPosts } from "@/lib/cong-dong/stats";
+import type {
+  CongDongOrg,
+  CongDongPageData,
+  CongDongTrangThaiTinCay,
+} from "@/lib/cong-dong/types";
+import { getCinsSystemUserId } from "@/lib/cong-dong/cins-system";
+import {
+  getOrgFollowSettings,
+  ORG_NOTIFY_DEFAULT,
+} from "@/lib/social/org-notify";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+
+function resolveCinsSystemUserId(): string | null {
+  try {
+    return getCinsSystemUserId();
+  } catch {
+    return null;
+  }
+}
 
 function parseCheDo(cauHinh: unknown): CongDongCheDo {
   if (!cauHinh || typeof cauHinh !== "object") return CONG_DONG_CHE_DO.CONG_KHAI;
@@ -33,12 +53,13 @@ export async function fetchCongDongBySlug(
   avatar_id: string | null;
   cover_id: string | null;
   cau_hinh: unknown;
+  trang_thai_tin_cay: CongDongTrangThaiTinCay;
 } | null> {
   const admin = createServiceRoleClient();
   const { data } = await admin
     .from("org_to_chuc")
     .select(
-      "id, slug, ten, mo_ta, tinh_thanh, avatar_id, cover_id, cau_hinh, loai_to_chuc",
+      "id, slug, ten, mo_ta, tinh_thanh, avatar_id, cover_id, cau_hinh, loai_to_chuc, trang_thai_tin_cay",
     )
     .eq("slug", slug.trim())
     .eq("loai_to_chuc", "cong_dong")
@@ -52,6 +73,7 @@ export async function fetchCongDongBySlug(
       cover_id: string | null;
       cau_hinh: unknown;
       loai_to_chuc: string;
+      trang_thai_tin_cay: CongDongTrangThaiTinCay;
     }>();
   if (!data) return null;
   return data;
@@ -110,7 +132,9 @@ export async function listCongDongOrgs(
       avatarId: row.avatar_id,
       coverId: row.cover_id,
       cheDo,
+      trangThaiTinCay: "binh_thuong",
       soThanhVien: countMap.get(row.id) ?? 0,
+      soBaiViet: 0,
     });
   }
   return result;
@@ -126,17 +150,61 @@ export async function loadCongDongPageData(params: {
   const cheDo = parseCheDo(orgRow.cau_hinh);
   const viewerId = params.viewerId ?? null;
   const member = viewerId ? await isThanhVien(viewerId, orgRow.id) : false;
+  const viewerVaiTroPromise = viewerId
+    ? getViewerVaiTroInOrg(viewerId, orgRow.id)
+    : Promise.resolve(null);
 
   if (cheDo === CONG_DONG_CHE_DO.RIENG_TU && !member) {
     return null;
   }
 
-  const [soThanhVien, isAdmin, filters, feed] = await Promise.all([
+  const admin = createServiceRoleClient();
+  const viewerProfilePromise = viewerId
+    ? admin
+        .from("user_nguoi_dung")
+        .select("slug, ten_hien_thi, avatar_id")
+        .eq("id", viewerId)
+        .maybeSingle<{
+          slug: string;
+          ten_hien_thi: string | null;
+          avatar_id: string | null;
+        }>()
+    : Promise.resolve({ data: null });
+
+  const [
+    soThanhVien,
+    soBaiViet,
+    isAdmin,
+    filters,
+    feed,
+    communityPulse,
+    notifySettings,
+    viewerProfileResult,
+    viewerVaiTro,
+  ] = await Promise.all([
     countThanhVien(orgRow.id),
+    countCongDongPosts(orgRow.id),
     viewerId ? isCongDongAdmin(viewerId, orgRow.id) : Promise.resolve(false),
     listCongDongFilters(orgRow.id),
     listCongDongPosts({ orgId: orgRow.id, viewerId }),
+    loadCommunityPulse(orgRow.id),
+    viewerId
+      ? getOrgFollowSettings(viewerId, orgRow.id)
+      : Promise.resolve({ muc_thong_bao: "tat" as const }),
+    viewerProfilePromise,
+    viewerVaiTroPromise,
   ]);
+
+  const viewerProfile = viewerProfileResult.data;
+  const cinsSystemId = resolveCinsSystemUserId();
+  const hideMembershipForOwner =
+    viewerVaiTro === "owner" &&
+    Boolean(viewerId && cinsSystemId && viewerId === cinsSystemId);
+
+  let notifyLevel = notifySettings.muc_thong_bao;
+  if (member && notifyLevel === "tat") {
+    notifyLevel = ORG_NOTIFY_DEFAULT;
+  }
 
   return {
     org: {
@@ -148,13 +216,25 @@ export async function loadCongDongPageData(params: {
       avatarId: orgRow.avatar_id,
       coverId: orgRow.cover_id,
       cheDo,
+      trangThaiTinCay: orgRow.trang_thai_tin_cay ?? "binh_thuong",
       soThanhVien,
+      soBaiViet,
     },
     isThanhVien: member,
     isAdmin,
+    viewerVaiTro,
+    hideMembershipForOwner,
+    notifyLevel,
     viewerId,
+    viewerSlug: viewerProfile?.slug ?? null,
+    viewerName:
+      viewerProfile?.ten_hien_thi?.trim() ||
+      viewerProfile?.slug ||
+      null,
+    viewerAvatarId: viewerProfile?.avatar_id ?? null,
     filters,
     initialPosts: feed.posts,
     nextCursor: feed.nextCursor,
+    communityPulse,
   };
 }

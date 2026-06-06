@@ -1,6 +1,7 @@
 import "server-only";
 
 import { THAO_LUAN_LOAI_CONTEXT } from "@/lib/cong-dong/constants";
+import { ensureDefaultCongDongFilters } from "@/lib/cong-dong/default-filters";
 import { isCongDongAdmin } from "@/lib/cong-dong/membership";
 import { slugifyOrgName } from "@/lib/cong-dong/org-slug";
 import type { CongDongFilter } from "@/lib/cong-dong/types";
@@ -44,6 +45,7 @@ function normalizeSlug(value: string | undefined, ten: string): string {
 }
 
 export async function listCongDongFilters(orgId: string): Promise<CongDongFilter[]> {
+  await ensureDefaultCongDongFilters(orgId);
   const admin = createServiceRoleClient();
   const { data } = await admin
     .from("content_thao_luan_filter")

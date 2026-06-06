@@ -35,11 +35,28 @@ export const DEFAULT_CONG_DONG_FILTER_TEMPLATES = [
   },
 ] as const;
 
-export async function seedDefaultCongDongFilters(
+/** Bổ sung nhãn mặc định còn thiếu (idempotent — không trùng slug). */
+export async function ensureDefaultCongDongFilters(
   orgId: string,
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<
+  | { ok: true; inserted: number }
+  | { ok: false; error: string }
+> {
   const admin = createServiceRoleClient();
-  const rows = DEFAULT_CONG_DONG_FILTER_TEMPLATES.map((t) => ({
+  const { data: existing } = await admin
+    .from("content_thao_luan_filter")
+    .select("slug")
+    .eq("loai_context", THAO_LUAN_LOAI_CONTEXT.CONG_DONG)
+    .eq("id_context", orgId)
+    .returns<Array<{ slug: string }>>();
+
+  const existingSlugs = new Set((existing ?? []).map((row) => row.slug));
+  const missing = DEFAULT_CONG_DONG_FILTER_TEMPLATES.filter(
+    (t) => !existingSlugs.has(t.slug),
+  );
+  if (missing.length === 0) return { ok: true, inserted: 0 };
+
+  const rows = missing.map((t) => ({
     loai_context: THAO_LUAN_LOAI_CONTEXT.CONG_DONG,
     id_context: orgId,
     ten: t.ten,
@@ -51,5 +68,14 @@ export async function seedDefaultCongDongFilters(
 
   const { error } = await admin.from("content_thao_luan_filter").insert(rows);
   if (error) return { ok: false, error: error.message };
+  return { ok: true, inserted: missing.length };
+}
+
+/** Seed đủ 4 nhãn khi tạo cộng đồng mới. */
+export async function seedDefaultCongDongFilters(
+  orgId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const result = await ensureDefaultCongDongFilters(orgId);
+  if (!result.ok) return result;
   return { ok: true };
 }

@@ -15,7 +15,8 @@ import {
   THAO_LUAN_LOAI_POST,
 } from "@/lib/cong-dong/constants";
 import { ensureContentMediaIds } from "@/lib/cong-dong/media";
-import { isThanhVien } from "@/lib/cong-dong/membership";
+import { isThanhVien, loadAuthorOrgRoles } from "@/lib/cong-dong/membership";
+import { authorRoleBadgeLabel } from "@/lib/cong-dong/vai-tro";
 import type { CongDongComment, CongDongPost } from "@/lib/cong-dong/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -117,15 +118,17 @@ async function loadCommentCounts(
 
 async function mapPosts(
   rows: ThaoLuanRow[],
+  orgId: string,
   viewerId: string | null,
 ): Promise<CongDongPost[]> {
   if (rows.length === 0) return [];
   const postIds = rows.map((r) => r.id);
   const authorIds = rows.map((r) => r.nguoi_dang);
 
-  const [badges, mediaByPost, reactions, commentCounts, filtersByPost] =
+  const [badges, orgRoles, mediaByPost, reactions, commentCounts, filtersByPost] =
     await Promise.all([
       loadAuthorBadges(authorIds),
+      loadAuthorOrgRoles(orgId, authorIds),
       loadPostMedia(postIds),
       loadReactionMeta(postIds, viewerId),
       loadCommentCounts(postIds),
@@ -133,13 +136,18 @@ async function mapPosts(
     ]);
 
   return rows.map((row) => {
-    const author = badges.get(row.nguoi_dang) ?? {
+    const baseAuthor = badges.get(row.nguoi_dang) ?? {
       id: row.nguoi_dang,
       slug: "user",
       tenHienThi: "Thành viên",
       avatarId: null,
       ngheLabel: null,
+      vaiTroLabel: null,
       verifiedCount: 0,
+    };
+    const author = {
+      ...baseAuthor,
+      vaiTroLabel: authorRoleBadgeLabel(orgRoles.get(row.nguoi_dang) ?? null),
     };
     const reaction = reactions.get(row.id) ?? { count: 0, liked: false };
     return {
@@ -226,7 +234,7 @@ export async function listCongDongPosts(params: {
     ...pageRows.filter((r) => !pinnedIds.has(r.id)),
   ];
 
-  const posts = await mapPosts(mergedRows, params.viewerId ?? null);
+  const posts = await mapPosts(mergedRows, params.orgId, params.viewerId ?? null);
   const nextCursor =
     hasMore && pageRows.length > 0
       ? pageRows[pageRows.length - 1]?.tao_luc ?? null
@@ -309,7 +317,7 @@ export async function createCongDongPost(params: {
     }
   }
 
-  const [post] = await mapPosts([inserted], params.authorId);
+  const [post] = await mapPosts([inserted], params.orgId, params.authorId);
   return { ok: true, data: post! };
 }
 

@@ -38,6 +38,8 @@ type ProviderProps = {
   ownerAvatarId?: string | null;
   isOwner: boolean;
   initialCompose?: JourneyComposeState | null;
+  /** Hook sau publish (vd. refetch feed cộng đồng). */
+  onAfterPublished?: () => void;
 };
 
 function syncComposeUrl(state: JourneyComposeState | null, mode: "push" | "replace") {
@@ -63,6 +65,7 @@ export function JourneyComposeProvider({
   ownerAvatarId,
   isOwner,
   initialCompose = null,
+  onAfterPublished,
 }: ProviderProps) {
   const router = useRouter();
   const [compose, setCompose] = useState<JourneyComposeState | null>(
@@ -141,8 +144,9 @@ export function JourneyComposeProvider({
         }),
       );
     }
+    onAfterPublished?.();
     router.refresh();
-  }, [closeCompose, router, ownerSlug]);
+  }, [closeCompose, onAfterPublished, router, ownerSlug]);
 
   const value = useMemo(
     () => ({

@@ -1650,6 +1650,13 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
 .j-m-unfold-post--media {
   padding-top: 2px;
 }
+.j-m-unfold-post--comments-only {
+  padding-top: 0;
+}
+.j-m-unfold-post--comments-only .post-comments {
+  padding-top: 4px;
+  background: transparent;
+}
 .j-m-card.is-expanded .jcard-body {
   padding-bottom: 4px;
 }
@@ -5426,6 +5433,13 @@ select.j-edit-input {
   gap: 12px;
   border-bottom: 1px solid var(--jcard-border2);
 }
+.jcard-datebar--tagged {
+  padding-top: 10px;
+}
+.jcard-datebar--tagged .badge-row {
+  margin-left: 0;
+  flex: 1;
+}
 .j-m-card.is-expanded .jcard-datebar {
   border-bottom-color: transparent;
   padding-bottom: 8px;
@@ -6649,17 +6663,18 @@ select.j-edit-input {
   justify-content: space-between;
   gap: 10px;
 }
-.authors-right .j-coauthor-propose {
+.jcard-actions .j-coauthor-propose {
   flex: 0 0 auto;
+  margin-left: 2px;
 }
-.authors-right .j-coauthor-propose-trigger {
-  width: 24px;
-  height: 24px;
+.jcard-actions .j-coauthor-propose-trigger {
+  width: 28px;
+  height: 28px;
   border-color: transparent;
   background: transparent;
   color: var(--jcard-ink3);
 }
-.authors-right .j-coauthor-propose-trigger:hover {
+.jcard-actions .j-coauthor-propose-trigger:hover {
   border-color: transparent;
   background: var(--neutral-100);
   color: var(--cins-blue);
