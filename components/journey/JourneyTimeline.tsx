@@ -14,6 +14,11 @@ import {
 import type { MilestoneItem } from "@/components/journey/milestone-types";
 import { prefetchMilestoneDetail } from "@/lib/journey/milestone-detail-cache";
 import { milestoneContentKind } from "@/lib/journey/post-media";
+import {
+  applyMilestoneInlinePatch,
+  MILESTONE_INLINE_PATCH_EVENT,
+  type MilestoneInlinePatchDetail,
+} from "@/lib/journey/milestone-inline-patch";
 import type { LoaiMocVisibilityMap } from "@/lib/journey/filter-visibility";
 import type { MilestoneFilterCounts } from "@/lib/journey/milestones-page-fetch";
 import type { PendingCoAuthorInvite } from "@/lib/social/types";
@@ -104,9 +109,17 @@ export function JourneyTimeline({
           : open,
       );
     };
+    const onMilestonePatch = (event: Event) => {
+      const detail = (event as CustomEvent<MilestoneInlinePatchDetail>).detail;
+      if (!detail?.milestoneId) return;
+      setItems((prev) => applyMilestoneInlinePatch(prev, detail));
+    };
     window.addEventListener("cins:milestone-deleted", onMilestoneDeleted);
-    return () =>
+    window.addEventListener(MILESTONE_INLINE_PATCH_EVENT, onMilestonePatch);
+    return () => {
       window.removeEventListener("cins:milestone-deleted", onMilestoneDeleted);
+      window.removeEventListener(MILESTONE_INLINE_PATCH_EVENT, onMilestonePatch);
+    };
   }, [ownerSlug]);
 
   const loadMore = useCallback(async () => {

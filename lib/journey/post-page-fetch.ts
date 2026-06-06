@@ -131,7 +131,7 @@ async function fetchMilestoneSocial(
   milestoneId: string,
   viewerId: string | null,
 ) {
-  const [{ count: likeCount }, { count: bookmarkCount }, viewerLiked, viewerBookmarked] =
+  const [{ count: likeCount }, { count: bookmarkCount }, { count: commentCount }, viewerLiked, viewerBookmarked] =
     await Promise.all([
       admin
         .from("social_reaction")
@@ -144,6 +144,13 @@ async function fetchMilestoneSocial(
         .select("id", { count: "exact", head: true })
         .eq("loai_doi_tuong", "cot_moc")
         .eq("id_doi_tuong", milestoneId),
+      admin
+        .from("social_binh_luan")
+        .select("id", { count: "exact", head: true })
+        .eq("loai_doi_tuong", "cot_moc")
+        .eq("id_doi_tuong", milestoneId)
+        .is("id_cha", null)
+        .eq("da_xoa", false),
       viewerId
         ? admin
             .from("social_reaction")
@@ -172,6 +179,7 @@ async function fetchMilestoneSocial(
     viewerBookmarked,
     likeCount: likeCount ?? 0,
     bookmarkCount: bookmarkCount ?? 0,
+    commentCount: commentCount ?? 0,
   };
 }
 

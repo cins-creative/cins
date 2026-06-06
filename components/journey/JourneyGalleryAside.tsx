@@ -57,6 +57,8 @@ type Props = {
   pinned?: ReadonlyArray<GalleryPinnedBanner>;
   /** Grid item vuông (0..N). 1:1. */
   items?: ReadonlyArray<GalleryGridItem>;
+  /** Timeline — chỉ hiển thị milestone gắn thẻ Nổi bật. */
+  featuredOnly?: boolean;
 };
 
 /**
@@ -67,6 +69,7 @@ export function JourneyGalleryAside({
   totalTacPham,
   pinned = [],
   items = [],
+  featuredOnly = false,
 }: Props) {
   void ownerSlug;
 
@@ -77,23 +80,33 @@ export function JourneyGalleryAside({
     [pinned, filter],
   );
   const filteredItems = useMemo(
-    () => items.filter((it) => matchesGalleryMediaFilter(it.mediaKind, filter)),
-    [items, filter],
+    () =>
+      featuredOnly
+        ? []
+        : items.filter((it) => matchesGalleryMediaFilter(it.mediaKind, filter)),
+    [items, filter, featuredOnly],
   );
 
-  const empty = pinned.length === 0 && items.length === 0;
+  const empty = featuredOnly
+    ? pinned.length === 0
+    : pinned.length === 0 && items.length === 0;
   const filteredEmpty =
     !empty && filteredPinned.length === 0 && filteredItems.length === 0;
+  const titleCount = featuredOnly ? pinned.length : totalTacPham;
+  const showFilter = featuredOnly ? pinned.length > 0 : totalTacPham > 0;
 
   return (
-    <aside className="j-gallery" aria-label="Tác phẩm gần đây">
+    <aside
+      className="j-gallery"
+      aria-label={featuredOnly ? "Bài viết nổi bật" : "Tác phẩm gần đây"}
+    >
       <div className="j-gallery-head">
         <div className="j-gallery-title">
-          Tác phẩm
-          <span className="j-gallery-count">{totalTacPham}</span>
+          {featuredOnly ? "Nổi bật" : "Tác phẩm"}
+          <span className="j-gallery-count">{titleCount}</span>
         </div>
 
-        {totalTacPham > 0 ? (
+        {showFilter ? (
           <GalleryMediaFilterDropdown filter={filter} onFilterChange={setFilter} />
         ) : null}
       </div>
@@ -101,13 +114,17 @@ export function JourneyGalleryAside({
       {empty ? (
         <div className="j-gallery-empty">
           <span className="j-gallery-empty-ico" aria-hidden>
-            ▢
+            {featuredOnly ? "★" : "▢"}
           </span>
-          Tác phẩm sẽ xuất hiện ở đây khi bạn đăng ảnh hoặc video công khai.
+          {featuredOnly
+            ? "Chưa có bài nổi bật. Gắn thẻ Nổi bật trên milestone để hiển thị ở đây."
+            : "Tác phẩm sẽ xuất hiện ở đây khi bạn đăng ảnh hoặc video công khai."}
         </div>
       ) : filteredEmpty ? (
         <div className="j-gallery-empty j-gallery-empty--filter">
-          Không có tác phẩm thuộc loại này.
+          {featuredOnly
+            ? "Không có bài nổi bật thuộc loại này."
+            : "Không có tác phẩm thuộc loại này."}
         </div>
       ) : (
         <>

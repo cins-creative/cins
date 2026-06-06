@@ -3,7 +3,7 @@ import { Suspense } from "react";
 
 import { PostPageArticle } from "@/app/[slug]/p/[postSlug]/_components/PostPageArticle";
 import { PostPageInstantFallback } from "@/app/[slug]/p/[postSlug]/_components/PostPageInstantFallback";
-import { PostBackButton } from "@/app/[slug]/p/[postSlug]/PostBackButton";
+import { PostPageShell } from "@/app/[slug]/p/[postSlug]/_components/PostPageShell";
 import { CinsShell } from "@/components/cins/CinsShell";
 import { getCachedPostPageCore } from "@/lib/journey/post-page-cache";
 
@@ -57,15 +57,15 @@ export default async function PostPage({ params }: { params: Params }) {
     <CinsShell data-screen-label="Bài viết">
       <div className="j-post-page">
         <div className="j-post-page-inner">
-          <PostBackButton fallbackHref={`/${slug}`} />
-
-          <Suspense
-            fallback={
-              <PostPageInstantFallback ownerSlug={slug} postSlug={postSlug} />
-            }
-          >
-            <PostPageArticle slug={slug} postSlug={postSlug} />
-          </Suspense>
+          <PostPageShell fallbackHref={`/${slug}`}>
+            <Suspense
+              fallback={
+                <PostPageInstantFallback ownerSlug={slug} postSlug={postSlug} />
+              }
+            >
+              <PostPageArticle slug={slug} postSlug={postSlug} />
+            </Suspense>
+          </PostPageShell>
         </div>
       </div>
     </CinsShell>

@@ -8,6 +8,7 @@ type Props = {
   /** Phát ngay khi embed mount (inline card). */
   autoplay?: boolean;
   bunnyVideoId?: string | null;
+  onIframeLoad?: () => void;
 };
 
 /**
@@ -19,6 +20,7 @@ export function MilestoneVideoEmbed({
   processing = false,
   autoplay = false,
   bunnyVideoId = null,
+  onIframeLoad,
 }: Props) {
   if (processing) {
     return <VideoProcessingPlaceholder />;
@@ -38,6 +40,7 @@ export function MilestoneVideoEmbed({
           referrerPolicy="strict-origin-when-cross-origin"
           allowFullScreen
           loading={autoplay ? "eager" : "lazy"}
+          onLoad={onIframeLoad}
         />
       </div>
     );

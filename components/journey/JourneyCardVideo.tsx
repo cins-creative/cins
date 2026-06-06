@@ -1,7 +1,7 @@
 "use client";
 
-import { Play } from "lucide-react";
-import { useMemo, useState } from "react";
+import { Loader2, Play } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 
 import { JourneyCoverImage } from "@/components/journey/JourneyCoverImage";
 import { MilestoneVideoEmbed } from "@/components/journey/MilestoneVideoEmbed";
@@ -50,6 +50,7 @@ export function JourneyCardVideo({
   noiDungBlocks,
 }: Props) {
   const [playing, setPlaying] = useState(false);
+  const [iframeReady, setIframeReady] = useState(false);
   const posterSrc = resolveVideoPoster(url, preview);
   const bunnyVideoId = useMemo(
     () => bunnyVideoIdFromBlocks(noiDungBlocks),
@@ -63,6 +64,37 @@ export function JourneyCardVideo({
       }),
     [url, bunnyVideoId],
   );
+
+  useEffect(() => {
+    if (!playing) setIframeReady(false);
+  }, [playing, url]);
+
+  function renderPosterLayer(showLoading = false) {
+    if (!posterSrc) return null;
+    return (
+      <div
+        className={
+          "jcard-video-poster-layer" +
+          (iframeReady ? " is-hidden" : "")
+        }
+        aria-hidden={iframeReady}
+      >
+        <JourneyCoverImage
+          src={posterSrc}
+          srcSet={preview?.srcSet}
+          sizes={preview?.srcSet ? "(max-width: 767px) 100vw, 680px" : undefined}
+          width={preview?.width ?? 1280}
+          height={preview?.height ?? 720}
+          alt=""
+        />
+        {showLoading ? (
+          <span className="jcard-video-play jcard-video-play--loading" aria-hidden>
+            <Loader2 size={26} strokeWidth={2.2} />
+          </span>
+        ) : null}
+      </div>
+    );
+  }
 
   if (playing) {
     if (processing) {
@@ -81,9 +113,12 @@ export function JourneyCardVideo({
     if (iframeSrc) {
       return (
         <div
-          className="jcard-video-player"
+          className={
+            "jcard-video-player" + (iframeReady ? " is-playing-ready" : "")
+          }
           onClick={(e) => e.stopPropagation()}
         >
+          {renderPosterLayer(true)}
           <iframe
             src={iframeSrc}
             title={title}
@@ -91,17 +126,27 @@ export function JourneyCardVideo({
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             referrerPolicy="strict-origin-when-cross-origin"
             allowFullScreen
+            loading="eager"
+            onLoad={() => setIframeReady(true)}
           />
         </div>
       );
     }
 
     return (
-      <div className="jcard-video-player" onClick={(e) => e.stopPropagation()}>
+      <div
+        className={
+          "jcard-video-player" + (iframeReady ? " is-playing-ready" : "")
+        }
+        onClick={(e) => e.stopPropagation()}
+      >
+        {renderPosterLayer(true)}
         <MilestoneVideoEmbed
           url={url}
           title={title}
+          autoplay
           bunnyVideoId={bunnyVideoId}
+          onIframeLoad={() => setIframeReady(true)}
         />
       </div>
     );

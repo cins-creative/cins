@@ -445,14 +445,30 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   flex-shrink: 0;
 }
 .j-profile-switch-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
   min-width: 0;
   max-width: 100%;
+  line-height: 1.1;
+}
+.j-profile-switch-label-text {
   font-size: 10px;
   font-weight: 700;
-  line-height: 1.1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 100%;
+}
+.j-profile-switch-count {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+.j-profile-switch-btn.is-active .j-profile-switch-count {
+  color: var(--cins-blue);
 }
 .j-profile-switch-btn.is-active .j-profile-switch-ico {
   color: var(--cins-blue);
@@ -471,19 +487,15 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   margin-bottom: 16px;
   overflow: visible;
 }
-.j-gallery-main .j-tlb-month {
-  text-transform: none;
-  letter-spacing: 0;
-  font-weight: var(--weight-regular);
-  font-size: 12px;
-}
-.j-gallery-main .j-tlb-filter {
+.j-gallery-main .j-tlb > .j-tlb-filter {
+  grid-column: 3;
   justify-self: end;
 }
 .j-gallery-main.j-skel-main-panel .j-tlb {
   margin-bottom: 16px;
 }
 .j-gallery-main.j-skel-main-panel .j-tlb .j-skel-tl-filter {
+  grid-column: 3;
   justify-self: end;
 }
 .j-main-panel-head {
@@ -524,12 +536,10 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   overflow: hidden;
   background: var(--bg-surface);
   border: 1px solid var(--border);
-  box-shadow: 0 14px 38px rgba(15, 23, 42, 0.1);
-  transition: transform 0.18s var(--j-ease), box-shadow 0.18s var(--j-ease);
+  transition: transform 0.18s var(--j-ease);
 }
 .j-main-gallery-item:hover {
   transform: translateY(-3px);
-  box-shadow: 0 22px 56px rgba(15, 23, 42, 0.16);
 }
 .j-main-gallery-thumb {
   position: relative;
@@ -605,16 +615,14 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
 
 @media (max-width: 575.98px) {
   .j-main-gallery-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 6px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
   }
   .j-main-gallery-item {
     border-radius: 10px;
-    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
   }
   .j-main-gallery-item:hover {
     transform: none;
-    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
   }
   .j-main-gallery-pin {
     left: 4px;
@@ -1372,16 +1380,19 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   align-items: center;
   justify-content: center;
   gap: 5px;
-  padding: 36px 14px 12px;
+  padding: 56px 14px 14px;
   background: linear-gradient(
     180deg,
     rgba(15, 23, 42, 0) 0%,
-    rgba(15, 23, 42, 0.55) 100%
+    rgba(15, 23, 42, 0.12) 38%,
+    rgba(15, 23, 42, 0.68) 72%,
+    rgba(15, 23, 42, 0.88) 100%
   );
   color: #fff;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.02em;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
   pointer-events: none;
 }
 .jcard--photo .jcard-expand-cta,
@@ -3058,14 +3069,55 @@ button.j-m-card-hit {
     display: none;
   }
   .cins-journey-page .j-shell {
-    padding: 0 16px;
+    padding: 0;
+    max-width: none;
+  }
+  .cins-journey-page .j-sidebar {
+    padding-left: 16px;
+    padding-right: 16px;
   }
   .cins-journey-page .j-m-body-wrap,
   .cins-journey-page .j-timeline-end {
     padding-left: 0;
   }
   .cins-journey-page .j-tlb {
-    padding-left: 0;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  /* Milestone — block full-width, không card bo góc; vẫn có gap giữa các post */
+  .cins-journey-page .j-milestone {
+    margin-bottom: 12px;
+  }
+  .cins-journey-page .j-milestone:last-child {
+    margin-bottom: 0;
+  }
+  .cins-journey-page .j-m-card,
+  .cins-journey-page .j-m-card.jcard,
+  .cins-journey-page .j-milestone.j-tagged .j-m-card.jcard {
+    border-radius: 0;
+    box-shadow: none;
+    border: none;
+    transform: none;
+  }
+  .cins-journey-page .j-m-card.is-expanded,
+  .cins-journey-page .j-m-card.jcard.is-expanded,
+  .cins-journey-page .j-m-card.has-unfold.is-expanded:hover,
+  .cins-journey-page .j-m-card.jcard:hover,
+  .cins-journey-page .j-milestone.j-tagged .j-m-card.jcard:hover {
+    border-radius: 0;
+    box-shadow: none;
+    transform: none;
+  }
+  .cins-journey-page .j-create-composer {
+    margin-left: 0;
+    border-radius: 0;
+    box-shadow: none;
+    border-left: none;
+    border-right: none;
+  }
+  .cins-journey-page .j-year-header {
+    padding-left: 16px;
+    padding-right: 16px;
   }
   .cins-journey-page .j-m-card {
     padding: 16px 16px;
@@ -3093,15 +3145,27 @@ button.j-m-card-hit {
     --j-content-pad-l: 0px;
   }
   .cins-journey-page .j-shell {
-    padding: 0 8px;
+    padding: 0;
+    max-width: none;
+  }
+  .cins-journey-page .j-sidebar {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  .cins-journey-page .j-tlb {
+    padding-left: 12px;
+    padding-right: 12px;
   }
   .cins-journey-page .j-year-label,
   .cins-journey-page .j-tlb-year {
     font-size: 26px;
   }
+  .cins-journey-page .j-year-header {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
   .cins-journey-page .j-m-card {
-    padding: 14px 14px;
-    border-radius: 12px;
+    padding: 14px 12px;
   }
   .cins-journey-page .j-m-title {
     font-size: 16px;
@@ -3121,10 +3185,11 @@ button.j-m-card-hit {
     font-size: 28px;
     border-width: 3px;
   }
-  /* Context bar sticky — bớt padding, dropdown menu co dồn về phải */
+  /* Context bar sticky — padding ngang khớp sidebar / card */
   .cins-journey-page .j-tlb {
     column-gap: 10px;
-    padding: 0 4px 0 0;
+    padding-left: 12px;
+    padding-right: 12px;
   }
   .cins-journey-page .j-tlb-dd-btn {
     height: 30px;
@@ -3174,19 +3239,29 @@ button.j-m-card-hit {
     padding: 7px 2px;
     gap: 4px;
   }
-  .cins-journey-page .j-profile-switch-label {
+  .cins-journey-page .j-profile-switch-label-text {
     font-size: 9px;
   }
   .cins-journey-page .j-create-composer {
     margin-left: var(--j-content-pad-l);
   }
   .cins-journey-page .j-create-composer-actions {
-    grid-template-columns: 1fr;
-    gap: 2px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+    padding: 8px 8px 10px;
   }
   .cins-journey-page .j-create-composer-action {
-    justify-content: flex-start;
-    padding-left: 14px;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    min-height: 56px;
+    padding: 8px 4px;
+    font-size: 11px;
+    text-align: center;
+  }
+  .cins-journey-page .j-create-composer-action svg {
+    width: 18px;
+    height: 18px;
   }
 }
 
@@ -5196,6 +5271,14 @@ select.j-edit-input {
   display: inline-flex;
   z-index: 5;
 }
+.j-inline-control:has(.j-inline-control-trigger[aria-expanded="true"]) {
+  z-index: 60;
+}
+.j-m-card.jcard:has(.j-inline-control-trigger[aria-expanded="true"]) .jcard-body,
+.j-m-card.jcard:has(.j-inline-control-trigger[aria-expanded="true"]) .jcard-actions,
+.j-m-card.jcard:has(.j-inline-control-trigger[aria-expanded="true"]) .jcard-authors {
+  pointer-events: none;
+}
 .j-inline-control-trigger {
   display: inline-flex;
   border: 0;
@@ -5227,6 +5310,12 @@ select.j-edit-input {
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.98);
   box-shadow: 0 18px 50px rgba(15, 23, 42, 0.18);
+  pointer-events: auto;
+}
+.j-inline-control-menu.is-portal {
+  position: fixed;
+  top: auto;
+  right: auto;
 }
 .j-inline-control-option {
   display: grid;
@@ -5633,14 +5722,17 @@ select.j-edit-input {
   background: var(--neutral-100, #f1f2f5);
   border-radius: 14px;
   overflow: hidden;
+  position: relative;
+  z-index: 2;
+  pointer-events: auto;
 }
 .preview--photo-grid .image-grid {
   width: 100%;
   border-radius: 14px;
 }
 .preview--photo-grid .image-grid-cell {
-  cursor: inherit;
-  pointer-events: none;
+  cursor: pointer;
+  pointer-events: auto;
 }
 .preview--video {
   position: relative;
@@ -5779,8 +5871,32 @@ select.j-edit-input {
   max-height: 420px;
   overflow: hidden;
   border-radius: 14px;
-  background: #000;
+  background: #0f172a;
   pointer-events: auto;
+}
+.jcard-video-poster-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  transition: opacity 0.28s ease;
+}
+.jcard-video-poster-layer.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+.jcard-video-poster-layer img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.jcard-video-play--loading {
+  background: rgba(15, 23, 42, 0.72);
+}
+.jcard-video-play--loading svg {
+  animation: j-m-video-spin 0.9s linear infinite;
 }
 .jcard-video-player .jcard-video-iframe,
 .jcard-video-player .j-m-video-embed iframe {
@@ -5790,6 +5906,13 @@ select.j-edit-input {
   height: 100%;
   border: 0;
   display: block;
+  z-index: 2;
+  opacity: 0;
+  transition: opacity 0.28s ease;
+}
+.jcard-video-player.is-playing-ready .jcard-video-iframe,
+.jcard-video-player.is-playing-ready .j-m-video-embed iframe {
+  opacity: 1;
 }
 .jcard-video-player .j-m-video-embed {
   position: absolute;

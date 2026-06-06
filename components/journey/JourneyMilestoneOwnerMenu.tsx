@@ -35,6 +35,7 @@ import type {
   MilestoneVisibility,
 } from "@/components/journey/milestone-types";
 import type { LoaiMoc, Visibility } from "@/lib/editor/types";
+import { dispatchMilestoneInlinePatch } from "@/lib/journey/milestone-inline-patch";
 
 type Props = {
   milestoneId: string;
@@ -159,28 +160,54 @@ export function JourneyMilestoneOwnerMenu({
   }
 
   function handleChangeType(db: LoaiMoc) {
+    const option = TYPE_OPTIONS.find((o) => o.db === db);
+    if (!option || option.ui === currentType) return;
+    const previous = currentType;
     setError(null);
+    close();
+    dispatchMilestoneInlinePatch({
+      milestoneId,
+      kind: "type",
+      value: option.ui,
+    });
     startTransition(async () => {
       const res = await updateMilestoneType(milestoneId, db);
       if (!res.ok) {
         setError(res.error);
+        dispatchMilestoneInlinePatch({
+          milestoneId,
+          kind: "type",
+          value: previous,
+        });
         return;
       }
-      close();
       router.refresh();
       onAfterChange?.();
     });
   }
 
   function handleChangeVisibility(db: Visibility) {
+    const option = VIS_OPTIONS.find((o) => o.db === db);
+    if (!option || option.ui === currentVisibility) return;
+    const previous = currentVisibility;
     setError(null);
+    close();
+    dispatchMilestoneInlinePatch({
+      milestoneId,
+      kind: "visibility",
+      value: option.ui,
+    });
     startTransition(async () => {
       const res = await updateMilestoneVisibility(milestoneId, db);
       if (!res.ok) {
         setError(res.error);
+        dispatchMilestoneInlinePatch({
+          milestoneId,
+          kind: "visibility",
+          value: previous,
+        });
         return;
       }
-      close();
       router.refresh();
       onAfterChange?.();
     });

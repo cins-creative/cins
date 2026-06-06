@@ -87,20 +87,33 @@ export function JourneyNotifications({ initialFeed }: Props) {
     }
   }, [open, tab, historyFeed, loadingHistory, loadHistory]);
 
-  useEffect(() => {
-    const refreshUnread = () => {
-      void fetch("/api/notifications?filter=unread", { cache: "no-store" })
-        .then((res) => (res.ok ? res.json() : null))
-        .then((json: NotificationFeed | null) => {
-          if (json) applyFeed(json);
-        })
-        .catch(() => {
-          /* giữ state hiện tại */
-        });
-    };
-    window.addEventListener("cins:video-ready", refreshUnread);
-    return () => window.removeEventListener("cins:video-ready", refreshUnread);
+  const refreshUnread = useCallback(() => {
+    void fetch("/api/notifications?filter=unread", { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json: NotificationFeed | null) => {
+        if (json) applyFeed(json);
+      })
+      .catch(() => {
+        /* giữ state hiện tại */
+      });
   }, [applyFeed]);
+
+  useEffect(() => {
+    window.addEventListener("cins:video-ready", refreshUnread);
+    window.addEventListener("cins:notifications-changed", refreshUnread);
+    return () => {
+      window.removeEventListener("cins:video-ready", refreshUnread);
+      window.removeEventListener("cins:notifications-changed", refreshUnread);
+    };
+  }, [refreshUnread]);
+
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") refreshUnread();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [refreshUnread]);
 
   const markRead = (notificationIds: string[]) => {
     if (notificationIds.length === 0) return;
@@ -197,7 +210,12 @@ export function JourneyNotifications({ initialFeed }: Props) {
         className={`j-notify-trigger${unreadCount > 0 ? " has-unread" : ""}`}
         aria-expanded={open}
         aria-label={title}
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          setOpen((v) => {
+            if (!v) refreshUnread();
+            return !v;
+          });
+        }}
       >
         <Bell size={16} strokeWidth={1.9} aria-hidden />
         {unreadCount > 0 ? <span className="j-notify-count">{unreadCount}</span> : null}

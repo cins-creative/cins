@@ -23,6 +23,14 @@ export function PostCommentsClient({
     setComments([...initialComments]);
   }, [initialComments]);
 
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent("cins:post-comments-sync", {
+        detail: { milestoneId, count: comments.length },
+      }),
+    );
+  }, [milestoneId, comments.length]);
+
   return (
     <JourneyPostCommentsBlock
       milestoneId={milestoneId}

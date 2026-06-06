@@ -164,18 +164,23 @@ export function JourneyGalleryGridView({
   );
 
   const hasData = galleryItems.length > 0 || (totalCount ?? 0) > 0;
-  const countLabel = `${totalCount ?? galleryItems.length} tác phẩm`;
+  const filterCount =
+    filter === "all"
+      ? totalCount ?? galleryItems.length
+      : filtered.length;
 
   return (
     <main className="j-main-panel j-gallery-main" aria-label="Gallery tác phẩm">
       <div className="j-tlb">
         <div className="j-tlb-year">Gallery</div>
-        <div className="j-tlb-month">{countLabel}</div>
-        <div className="j-tlb-filter">
-          {hasData ? (
-            <GalleryMediaFilterDropdown filter={filter} onFilterChange={setFilter} />
-          ) : null}
-        </div>
+        {hasData ? (
+          <GalleryMediaFilterDropdown
+            filter={filter}
+            onFilterChange={setFilter}
+            variant="toolbar"
+            count={filterCount}
+          />
+        ) : null}
       </div>
 
       {!hasData ? (

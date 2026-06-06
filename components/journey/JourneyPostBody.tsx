@@ -6,7 +6,9 @@ import {
   Lock,
   MoreHorizontal,
   Pencil,
+  Send,
   Star,
+  Loader2,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -27,6 +29,8 @@ import { PostBlocksRenderer, PostCover } from "@/components/editor/PostRenderer"
 import { JourneyArticleTagLink } from "@/components/journey/JourneyArticleTagLink";
 import { JourneyMilestoneOwnerMenu } from "@/components/journey/JourneyMilestoneOwnerMenu";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
+import { usePostFocusModeState } from "@/app/[slug]/p/[postSlug]/_components/PostPageShell";
+import { emitNotificationsChanged } from "@/lib/journey/notifications-client";
 import { articleTagLoaiClass } from "@/lib/editor/article-tag";
 import {
   mapCheDoToMilestoneVisibility,
@@ -85,6 +89,8 @@ type Props = {
   onMilestoneUpdated?: () => void;
   /** `inline` — mở trong timeline, bỏ cover/title trùng với card. */
   variant?: "full" | "inline";
+  /** Permalink — trái meta/đóng góp, giữa nội dung, phải bình luận. Modal/timeline giữ `stack`. */
+  layout?: "stack" | "split";
   /** Id section bình luận — tránh trùng khi nhiều bài mở trên timeline. */
   commentsSectionId?: string;
   /** Timeline card — ẩn meta đã hiển thị trên `JourneyMilestoneCard`. */
@@ -109,12 +115,16 @@ export function JourneyPostBody({
   commentCountOverride,
   onMilestoneUpdated,
   variant = "full",
+  layout = "stack",
   commentsSectionId = "post-comments",
   inlineSkip,
   inlineParts,
 }: Props) {
   const [detail, setDetail] = useState<MilestonePostDetail>(initialDetail);
   const { milestone, owner, posts, comments, viewerCanComment, social } = detail;
+  const displayCommentCount =
+    commentCountOverride ??
+    (comments.length > 0 ? comments.length : (social.commentCount ?? 0));
 
   useEffect(() => {
     queueMicrotask(() => setDetail(initialDetail));
@@ -185,25 +195,27 @@ export function JourneyPostBody({
   const showTags = showBlocks && (!isInline || !inlineSkip?.tags);
   const showContributors =
     showBlocks && (!isInline || !inlineSkip?.contributors);
+  const isSplit = variant === "full" && layout === "split";
+  const focusMode = usePostFocusModeState();
   const Wrapper = isInline ? "div" : "main";
   const wrapperClass = isInline
     ? `cins-editor-page cins-post-view j-m-unfold-post${mediaPost ? " j-m-unfold-post--media" : ""}`
-    : `cins-editor-page cins-post-view editor-canvas post-canvas${mediaPost ? " post-canvas--media" : ""}`;
+    : `cins-editor-page cins-post-view editor-canvas post-canvas${mediaPost ? " post-canvas--media" : ""}${isSplit ? " post-canvas--split" : ""}`;
 
-  return (
-    <Wrapper className={wrapperClass} aria-label="Bài viết">
-        {variant === "full" && !mediaPost && coverSeed ? (
-          <PostCover seed={coverSeed} />
-        ) : null}
+  const coverEl =
+    variant === "full" && !mediaPost && coverSeed ? (
+      <PostCover seed={coverSeed} />
+    ) : null;
 
-        {variant === "full" && !mediaPost ? (
-          <>
-            <h1 className="title-in title-ro">{heroTitle}</h1>
-            {heroSub ? <p className="sub-in sub-ro">{heroSub}</p> : null}
-          </>
-        ) : null}
+  const heroEl =
+    variant === "full" && !mediaPost ? (
+      <>
+        <h1 className="title-in title-ro">{heroTitle}</h1>
+        {heroSub ? <p className="sub-in sub-ro">{heroSub}</p> : null}
+      </>
+    ) : null;
 
-        {showByline ? (
+  const bylineEl = showByline ? (
         <div className="post-byline">
           <Link
             href={`/${owner.slug}`}
@@ -224,15 +236,14 @@ export function JourneyPostBody({
             </span>
           </Link>
           {isOwner ? (
-            <>
-              <span className="post-byline-spacer" />
+            <div className="post-byline-toolbar">
               <PostActionsRail
                 milestoneId={milestone.id}
                 initialLiked={social.viewerLiked}
                 initialBookmarked={social.viewerBookmarked}
                 likeCount={social.likeCount}
                 bookmarkCount={social.bookmarkCount}
-                commentCount={commentCountOverride ?? comments.length}
+                commentCount={displayCommentCount}
                 showCounts={detail.viewerIsOwner}
                 canBookmark={!isOwner}
                 sharePath={sharePath}
@@ -249,7 +260,7 @@ export function JourneyPostBody({
                 postSlug={postSlug ?? null}
                 onAfterChange={onMilestoneUpdated}
               />
-            </>
+            </div>
           ) : (
             <>
               <span className="post-byline-dot" aria-hidden>
@@ -289,7 +300,7 @@ export function JourneyPostBody({
                 initialBookmarked={social.viewerBookmarked}
                 likeCount={social.likeCount}
                 bookmarkCount={social.bookmarkCount}
-                commentCount={commentCountOverride ?? comments.length}
+                commentCount={displayCommentCount}
                 showCounts={detail.viewerIsOwner}
                 canBookmark={!isOwner}
                 sharePath={sharePath}
@@ -298,61 +309,107 @@ export function JourneyPostBody({
             </>
           )}
         </div>
-        ) : null}
+  ) : null;
 
-        {showTags && mainPost && mainPost.articleTags.length > 0 ? (
-          <div className="post-art-tags" aria-label="Bài viết liên quan">
-            {mainPost.articleTags.map((t) => (
-              <JourneyArticleTagLink
-                key={t.id}
-                tag={t}
-                className={`post-art-tag ${articleTagLoaiClass(t.loai_bai_viet)}`}
-              />
-            ))}
-          </div>
-        ) : null}
-
-        {showContributors && mainPost ? (
-          <PostContributors contributors={mainPost.contributors} />
-        ) : null}
-
-        {showBlocks && blocks && blocks.length > 0 ? (
-          mediaPost ? (
-            <PostBlockRenderer blocks={blocks} />
-          ) : (
-            <PostBlocksRenderer blocks={blocks} />
-          )
-        ) : showBlocks && mainPost?.noiDungHtml ? (
-          /* Fallback cho bài cũ chưa có `noi_dung_blocks` — render HTML đã
-             được server escape an toàn từ `blocksToHtml`. */
-          <div
-            className="post-html-fallback article-rich-content"
-            dangerouslySetInnerHTML={{ __html: mainPost.noiDungHtml }}
+  const tagsEl =
+    showTags && mainPost && mainPost.articleTags.length > 0 ? (
+      <div className="post-art-tags" aria-label="Bài viết liên quan">
+        {mainPost.articleTags.map((t) => (
+          <JourneyArticleTagLink
+            key={t.id}
+            tag={t}
+            className={`post-art-tag ${articleTagLoaiClass(t.loai_bai_viet)}`}
           />
-        ) : showBlocks ? (
-          <div className="post-empty">
-            Cột mốc này chưa có nội dung chi tiết.
+        ))}
+      </div>
+    ) : null;
+
+  const contributorsEl =
+    showContributors && mainPost ? (
+      <PostContributors contributors={mainPost.contributors} />
+    ) : null;
+
+  const blocksEl =
+    showBlocks && blocks && blocks.length > 0 ? (
+      mediaPost ? (
+        <PostBlockRenderer blocks={blocks} />
+      ) : (
+        <PostBlocksRenderer blocks={blocks} />
+      )
+    ) : showBlocks && mainPost?.noiDungHtml ? (
+      <div
+        className="post-html-fallback article-rich-content"
+        dangerouslySetInnerHTML={{ __html: mainPost.noiDungHtml }}
+      />
+    ) : showBlocks ? (
+      <div className="post-empty">Cột mốc này chưa có nội dung chi tiết.</div>
+    ) : null;
+
+  const commentsEl = showCommentsPart ? (
+    commentsSlot ?? (
+      <JourneyPostCommentsBlock
+        milestoneId={milestone.id}
+        comments={comments}
+        viewerCanComment={viewerCanComment}
+        onCommentAdded={onCommentAdded}
+        onCommentDeleted={onCommentDeleted}
+        onCommentEdited={onCommentEdited}
+        sectionId={commentsSectionId}
+      />
+    )
+  ) : null;
+
+  if (isSplit) {
+    return (
+      <Wrapper className={wrapperClass} aria-label="Bài viết">
+          <div className="post-view-layout">
+            <aside
+              className="post-view-meta"
+              aria-label="Thông tin bài viết"
+              aria-hidden={focusMode ? true : undefined}
+              hidden={focusMode}
+            >
+              {bylineEl}
+              {tagsEl}
+              {contributorsEl}
+            </aside>
+            <div
+              className={`post-view-main${mediaPost ? " post-view-main--media" : ""}`}
+            >
+              <div className="post-view-main-inner">
+                {coverEl}
+                {heroEl}
+                {blocksEl}
+              </div>
+            </div>
+            <aside
+              className="post-view-comments"
+              aria-label="Bình luận"
+              aria-hidden={focusMode ? true : undefined}
+              hidden={focusMode}
+            >
+              {commentsEl}
+            </aside>
           </div>
-        ) : null}
+        </Wrapper>
+    );
+  }
 
-        {showCommentsPart ? (
-          <>
-            <hr className="post-divider" />
-
-            {commentsSlot ?? (
-              <JourneyPostCommentsBlock
-                milestoneId={milestone.id}
-                comments={comments}
-                viewerCanComment={viewerCanComment}
-                onCommentAdded={onCommentAdded}
-                onCommentDeleted={onCommentDeleted}
-                onCommentEdited={onCommentEdited}
-                sectionId={commentsSectionId}
-              />
-            )}
-          </>
-        ) : null}
-      </Wrapper>
+  return (
+    <Wrapper className={wrapperClass} aria-label="Bài viết">
+      {coverEl}
+      {heroEl}
+      {bylineEl}
+      {tagsEl}
+      {contributorsEl}
+      {blocksEl}
+      {showCommentsPart ? (
+        <>
+          <hr className="post-divider" />
+          {commentsEl}
+        </>
+      ) : null}
+    </Wrapper>
   );
 }
 
@@ -460,6 +517,7 @@ export function JourneyPostCommentsBlock({
         isOwn: true,
       });
       setText("");
+      emitNotificationsChanged();
     });
   }
 
@@ -495,6 +553,25 @@ export function JourneyPostCommentsBlock({
         <span className="post-comments-count">{comments.length}</span>
       </header>
 
+      {comments.length === 0 ? (
+        <div className="post-comments-empty">
+          Chưa có bình luận nào. Bạn là người đầu tiên ✨
+        </div>
+      ) : (
+        <ol className="post-comments-list">
+          {comments.map((c) => (
+            <CommentItem
+              key={c.id}
+              comment={c}
+              onDelete={handleDelete}
+              onEdit={handleEdit}
+            />
+          ))}
+        </ol>
+      )}
+
+      {err ? <div className="post-comments-err">{err}</div> : null}
+
       {viewerCanComment ? (
         <form className="post-comments-form" onSubmit={handleSubmit}>
           <input
@@ -509,8 +586,18 @@ export function JourneyPostCommentsBlock({
             type="submit"
             className="post-comments-send"
             disabled={pending || !text.trim()}
+            aria-label={pending ? "Đang gửi bình luận" : "Gửi bình luận"}
           >
-            {pending ? "Đang gửi…" : "Gửi"}
+            {pending ? (
+              <Loader2
+                size={18}
+                strokeWidth={2}
+                className="post-comments-send-spin"
+                aria-hidden
+              />
+            ) : (
+              <Send size={18} strokeWidth={2} aria-hidden />
+            )}
           </button>
         </form>
       ) : (
@@ -536,25 +623,6 @@ export function JourneyPostCommentsBlock({
           </button>{" "}
           để bình luận.
         </div>
-      )}
-
-      {err ? <div className="post-comments-err">{err}</div> : null}
-
-      {comments.length === 0 ? (
-        <div className="post-comments-empty">
-          Chưa có bình luận nào. Bạn là người đầu tiên ✨
-        </div>
-      ) : (
-        <ol className="post-comments-list">
-          {comments.map((c) => (
-            <CommentItem
-              key={c.id}
-              comment={c}
-              onDelete={handleDelete}
-              onEdit={handleEdit}
-            />
-          ))}
-        </ol>
       )}
     </section>
   );

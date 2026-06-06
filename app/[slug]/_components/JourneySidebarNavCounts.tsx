@@ -1,9 +1,18 @@
 import { JourneySidebarSwitchNav } from "@/components/journey/JourneySidebarSwitchNav";
+import { fetchJourneySwitchNavCounts } from "@/lib/journey/journey-nav-counts";
 
 type Props = {
+  ownerId: string;
   ownerSlug: string;
 };
 
-export function JourneySidebarNavCounts({ ownerSlug }: Props) {
-  return <JourneySidebarSwitchNav slug={ownerSlug} />;
+export async function JourneySidebarNavCounts({
+  ownerId,
+  ownerSlug,
+}: Props) {
+  const { friendCount } = await fetchJourneySwitchNavCounts({ ownerId });
+
+  return (
+    <JourneySidebarSwitchNav slug={ownerSlug} friendCount={friendCount} />
+  );
 }

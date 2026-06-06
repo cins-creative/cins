@@ -18,6 +18,8 @@ import {
 import { Suspense } from "react";
 
 import { JourneyMainPanelSkeleton } from "@/components/journey/JourneyMainPanelSkeleton";
+import { JourneyFeaturedAsideSection } from "@/app/[slug]/_components/JourneyFeaturedAsideSection";
+import { JourneyFeaturedAsideSectionSkeleton } from "@/app/[slug]/_components/JourneyFeaturedAsideSection.skeleton";
 
 type OwnerRow = {
   id: string;
@@ -185,6 +187,13 @@ export function JourneyProfileShell({
             viewerProfileId={viewerProfileId}
             filterVisibility={filterVisibility}
             initialCompose={initialCompose}
+          />
+        </Suspense>
+
+        <Suspense fallback={<JourneyFeaturedAsideSectionSkeleton />}>
+          <JourneyFeaturedAsideSection
+            ownerId={owner.id}
+            ownerSlug={owner.slug}
           />
         </Suspense>
       </div>

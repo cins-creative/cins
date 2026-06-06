@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { JourneyProfileShell } from "@/app/[slug]/_components/JourneyProfileShell";
 import { JourneySidebarNavCounts } from "@/app/[slug]/_components/JourneySidebarNavCounts";
+import { JourneySidebarNavCountsSkeleton } from "@/app/[slug]/_components/JourneySidebarNavCounts.skeleton";
 import { CinsShell } from "@/components/cins/CinsShell";
 import type { EditProfileInitial } from "@/components/journey/JourneyEditProfileModal";
 import type { JourneyProfileView } from "@/components/journey/JourneySidebar";
@@ -21,6 +22,7 @@ import {
   normalizeSocialLinks,
 } from "@/lib/journey/profile";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { Suspense } from "react";
 
 export const dynamic = "force-dynamic";
 
@@ -127,7 +129,9 @@ export async function renderJourneyPage({
   const viewerProfileId = session?.profile?.id ?? null;
 
   const switchNav = (
-    <JourneySidebarNavCounts ownerSlug={owner.slug} />
+    <Suspense fallback={<JourneySidebarNavCountsSkeleton />}>
+      <JourneySidebarNavCounts ownerId={owner.id} ownerSlug={owner.slug} />
+    </Suspense>
   );
 
   const initialCompose = isOwner

@@ -867,6 +867,7 @@ export type MilestonePostDetail = {
     viewerBookmarked: boolean;
     likeCount: number;
     bookmarkCount: number;
+    commentCount: number;
   };
 };
 
@@ -965,7 +966,7 @@ export async function addMilestoneComment(
   await notifyMilestoneComment({
     ownerId: cotMoc.id_nguoi_dung,
     commenterId: session.profile.id,
-    milestoneId: cotMoc.id,
+    commentId: inserted.id,
   });
 
   return {

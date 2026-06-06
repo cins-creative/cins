@@ -14,6 +14,7 @@ export function PostBackButton({ fallbackHref }: Props) {
     <button
       type="button"
       className="j-post-page-crumb"
+      aria-label="Quay lại trang trước"
       onClick={() => {
         if (window.history.length > 1) {
           router.back();
@@ -22,8 +23,8 @@ export function PostBackButton({ fallbackHref }: Props) {
         router.push(fallbackHref);
       }}
     >
-      <ArrowLeft size={14} strokeWidth={2} aria-hidden />
-      <span>Quay lại trang trước</span>
+      <ArrowLeft size={15} strokeWidth={1.75} aria-hidden />
+      <span>Quay lại</span>
     </button>
   );
 }

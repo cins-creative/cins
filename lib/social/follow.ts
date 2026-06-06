@@ -230,16 +230,20 @@ export async function listFollowAcceptedNotifications(
 export async function notifyMilestoneComment(params: {
   ownerId: string;
   commenterId: string;
-  milestoneId: string;
+  commentId: string;
 }): Promise<void> {
   if (params.ownerId === params.commenterId) return;
   const admin = createServiceRoleClient();
-  await admin.from("social_thong_bao").insert({
+  const { error } = await admin.from("social_thong_bao").insert({
     nguoi_nhan: params.ownerId,
     noi_dung_ai: params.commenterId,
     loai_doi_tuong: "cot_moc_comment",
-    id_doi_tuong: params.milestoneId,
+    id_doi_tuong: params.commentId,
+    da_doc: false,
   });
+  if (error) {
+    console.error("[notifyMilestoneComment]", error.message);
+  }
 }
 
 export async function listCommentNotifications(
@@ -263,24 +267,52 @@ export async function listCommentNotifications(
 
   const { data: rows } = await query;
 
-  const commenterIds = [
-    ...new Set(
-      (rows ?? [])
-        .map((row) => row.noi_dung_ai as string | null)
-        .filter((id): id is string => Boolean(id)),
-    ),
-  ];
-  const milestoneIds = [
+  const objectIds = [
     ...new Set(
       (rows ?? [])
         .map((row) => row.id_doi_tuong as string | null)
         .filter((id): id is string => Boolean(id)),
     ),
   ];
+  if (objectIds.length === 0) return [];
+
+  const { data: commentRows } = await admin
+    .from("social_binh_luan")
+    .select("id, id_doi_tuong, nguoi_binh_luan")
+    .in("id", objectIds)
+    .eq("loai_doi_tuong", "cot_moc");
+
+  const commentById = new Map(
+    (commentRows ?? []).map((c) => [c.id as string, c]),
+  );
+
+  const commenterIds = [
+    ...new Set(
+      (rows ?? [])
+        .map((row) => {
+          const objectId = row.id_doi_tuong as string | null;
+          const viaComment = objectId ? commentById.get(objectId) : undefined;
+          const fromRow = row.noi_dung_ai as string | null;
+          return fromRow ?? viaComment?.nguoi_binh_luan ?? null;
+        })
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  const milestoneIds = [
+    ...new Set(
+      (rows ?? [])
+        .map((row) => {
+          const objectId = row.id_doi_tuong as string | null;
+          if (!objectId) return null;
+          return commentById.get(objectId)?.id_doi_tuong ?? objectId;
+        })
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
   if (commenterIds.length === 0 || milestoneIds.length === 0) return [];
 
   const [profiles, { data: milestones }, { data: links }] = await Promise.all([
-    loadFollowProfiles(admin, commenterIds),
+    loadFollowProfiles(admin, commenterIds, Math.max(1, commenterIds.length)),
     admin
       .from("content_cot_moc")
       .select("id, id_nguoi_dung, tieu_de")
@@ -321,11 +353,17 @@ export async function listCommentNotifications(
 
   return (rows ?? [])
     .map((row) => {
-      const commenterId = row.noi_dung_ai as string | null;
-      const milestoneId = row.id_doi_tuong as string | null;
+      const objectId = row.id_doi_tuong as string | null;
+      if (!objectId) return null;
+      const viaComment = commentById.get(objectId);
+      const milestoneId = viaComment?.id_doi_tuong ?? objectId;
+      const commenterId =
+        (row.noi_dung_ai as string | null) ??
+        viaComment?.nguoi_binh_luan ??
+        null;
       const commenter = commenterId ? profileById.get(commenterId) : null;
-      const milestone = milestoneId ? milestoneById.get(milestoneId) : null;
-      if (!commenter || !milestone || !milestoneId) return null;
+      const milestone = milestoneById.get(milestoneId);
+      if (!commenter || !milestone) return null;
       const link = firstLinkByMilestone.get(milestoneId);
       return {
         ...commenter,

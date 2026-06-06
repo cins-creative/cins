@@ -29,6 +29,11 @@ import {
   writeJourneyTimelinePanelCache,
 } from "@/lib/journey/journey-panel-local-cache";
 import type { MilestoneTimelinePageResult } from "@/lib/journey/milestones-page-fetch";
+import {
+  applyMilestoneInlinePatch,
+  MILESTONE_INLINE_PATCH_EVENT,
+  type MilestoneInlinePatchDetail,
+} from "@/lib/journey/milestone-inline-patch";
 
 export type JourneyProfileInitialData = {
   timeline?: JourneyTimelinePanelData;
@@ -309,11 +314,29 @@ export function JourneyProfileContent({
       syncGalleryPanel();
     };
 
+    const onMilestonePatch = (event: Event) => {
+      const detail = (event as CustomEvent<MilestoneInlinePatchDetail>).detail;
+      if (!detail?.milestoneId) return;
+      setTimelineCache((prev) => {
+        if (!prev || prev === "loading" || prev === "error") return prev;
+        const next: TimelineCacheData = {
+          ...prev,
+          page: {
+            ...prev.page,
+            milestones: applyMilestoneInlinePatch(prev.page.milestones, detail),
+          },
+        };
+        writeJourneyTimelinePanelCache(ownerSlug, viewerProfileId, next);
+        return next;
+      });
+    };
+
     window.addEventListener("cins:milestone-deleted", onMilestoneDeleted);
     window.addEventListener("cins:milestone-delete-failed", onMilestoneDeleteFailed);
     window.addEventListener("cins:journey-timeline-changed", onTimelineChanged);
     window.addEventListener("cins:video-ready", onTimelineChanged);
     window.addEventListener("cins:journey-gallery-sync", onGallerySync);
+    window.addEventListener(MILESTONE_INLINE_PATCH_EVENT, onMilestonePatch);
     return () => {
       window.removeEventListener("cins:milestone-deleted", onMilestoneDeleted);
       window.removeEventListener(
@@ -326,6 +349,7 @@ export function JourneyProfileContent({
       );
       window.removeEventListener("cins:video-ready", onTimelineChanged);
       window.removeEventListener("cins:journey-gallery-sync", onGallerySync);
+      window.removeEventListener(MILESTONE_INLINE_PATCH_EVENT, onMilestonePatch);
     };
   }, [ownerSlug, viewerProfileId, fetchTimeline, fetchGallery]);
 

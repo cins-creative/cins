@@ -7,7 +7,6 @@ export function JourneyGalleryMainSectionSkeleton() {
     >
       <div className="j-tlb">
         <div className="j-skel j-skel-tl-year" />
-        <div className="j-skel j-skel-tl-month" />
         <div className="j-skel j-skel-tl-filter" />
       </div>
       <div className="j-skel-main-gallery-grid">

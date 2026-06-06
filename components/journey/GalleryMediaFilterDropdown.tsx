@@ -21,12 +21,18 @@ type Props = {
   filter: GalleryMediaFilter;
   onFilterChange: (filter: GalleryMediaFilter) => void;
   className?: string;
+  /** Số tác phẩm — hiển thị trong nút toolbar (`.j-tlb-dd-count`). */
+  count?: number;
+  /** `toolbar` — nút `.j-tlb-dd-btn` trên context bar gallery chính. */
+  variant?: "compact" | "toolbar";
 };
 
 export function GalleryMediaFilterDropdown({
   filter,
   onFilterChange,
   className,
+  count,
+  variant = "compact",
 }: Props) {
   const [open, setOpen] = useState(false);
   const [portalReady, setPortalReady] = useState(false);
@@ -135,12 +141,17 @@ export function GalleryMediaFilterDropdown({
       </div>
     ) : null;
 
+  const label = galleryMediaFilterLabel(filter);
+  const countLabel =
+    count != null ? count.toLocaleString("vi-VN") : null;
+  const isToolbar = variant === "toolbar";
+
   return (
     <>
       <div
         ref={wrapRef}
         className={
-          "j-gallery-dd" +
+          (isToolbar ? "j-tlb-filter" : "j-gallery-dd") +
           (open ? " is-open" : "") +
           (className ? ` ${className}` : "")
         }
@@ -148,18 +159,28 @@ export function GalleryMediaFilterDropdown({
         <button
           ref={btnRef}
           type="button"
-          className="j-gallery-dd-btn"
+          className={isToolbar ? "j-tlb-dd-btn" : "j-gallery-dd-btn"}
           onClick={(e) => {
             e.stopPropagation();
             setOpen((v) => !v);
           }}
           aria-haspopup="listbox"
           aria-expanded={open}
-          aria-label={`Lọc tác phẩm: ${galleryMediaFilterLabel(filter)}`}
+          aria-label={
+            countLabel != null
+              ? `Lọc tác phẩm: ${label}, ${countLabel} tác phẩm`
+              : `Lọc tác phẩm: ${label}`
+          }
         >
-          <span>{galleryMediaFilterLabel(filter)}</span>
-          <span className="j-gallery-dd-caret" aria-hidden>
-            <ChevronDown size={12} strokeWidth={2} />
+          <span>{label}</span>
+          {countLabel != null ? (
+            <span className="j-tlb-dd-count">{countLabel}</span>
+          ) : null}
+          <span
+            className={isToolbar ? "j-tlb-dd-caret" : "j-gallery-dd-caret"}
+            aria-hidden
+          >
+            <ChevronDown size={isToolbar ? 14 : 12} strokeWidth={isToolbar ? 1.8 : 2} />
           </span>
         </button>
       </div>

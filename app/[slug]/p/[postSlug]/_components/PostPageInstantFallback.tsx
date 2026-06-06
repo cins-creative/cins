@@ -31,6 +31,7 @@ export function PostPageInstantFallback({ ownerSlug, postSlug }: Props) {
       postSlug={postSlugFromDb}
       isOwner={cached.viewerIsOwner}
       hideOpenLink
+      layout="split"
     />
   );
 }

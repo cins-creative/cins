@@ -27,11 +27,33 @@ export function PostPageClientBridge({
   commentsSlot,
 }: Props) {
   const [detail, setDetail] = useState(serverDetail);
+  const [commentCountOverride, setCommentCountOverride] = useState(
+    serverDetail.social.commentCount,
+  );
 
   useEffect(() => {
     setDetail(serverDetail);
+    setCommentCountOverride(serverDetail.social.commentCount);
     writePostPageCache(ownerSlug, postSlug, serverDetail);
   }, [ownerSlug, postSlug, serverDetail]);
+
+  useEffect(() => {
+    function onCommentsSync(event: Event) {
+      const custom = event as CustomEvent<{
+        milestoneId: string;
+        count: number;
+      }>;
+      if (custom.detail?.milestoneId !== detail.milestone.id) return;
+      setCommentCountOverride(custom.detail.count);
+    }
+    window.addEventListener("cins:post-comments-sync", onCommentsSync);
+    return () =>
+      window.removeEventListener("cins:post-comments-sync", onCommentsSync);
+  }, [detail.milestone.id]);
+
+  useEffect(() => {
+    setCommentCountOverride(detail.social.commentCount);
+  }, [detail.social.commentCount]);
 
   useEffect(() => {
     if (!isPostPageCacheStale(ownerSlug, postSlug)) return;
@@ -42,6 +64,7 @@ export function PostPageClientBridge({
       .then((fresh: MilestonePostDetail | null) => {
         if (!fresh) return;
         setDetail(fresh);
+        setCommentCountOverride(fresh.social.commentCount);
         writePostPageCache(ownerSlug, postSlug, fresh);
       })
       .catch(() => undefined);
@@ -53,6 +76,8 @@ export function PostPageClientBridge({
       postSlug={postSlugFromDb}
       isOwner={isOwner}
       hideOpenLink
+      layout="split"
+      commentCountOverride={commentCountOverride}
       commentsSlot={commentsSlot}
     />
   );
