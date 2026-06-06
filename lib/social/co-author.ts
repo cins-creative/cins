@@ -657,7 +657,7 @@ export async function respondCoAuthorReview(
   notificationId: string,
   ownerId: string,
   action: "accept" | "decline",
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<{ ok: true; tacPhamId: string } | { ok: false; error: string }> {
   const admin = createServiceRoleClient();
   const { data: row } = await admin
     .from("social_thong_bao")
