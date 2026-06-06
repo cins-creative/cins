@@ -91,7 +91,7 @@ export async function createSupabaseOAuthCallbackClient(
  */
 export async function flushDeferredAuthCookies(): Promise<void> {
   await new Promise<void>((resolve) => {
-    setImmediate(resolve);
+    queueMicrotask(resolve);
   });
   await new Promise<void>((resolve) => {
     setTimeout(resolve, 0);
