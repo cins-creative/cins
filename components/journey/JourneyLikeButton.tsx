@@ -1,5 +1,6 @@
 "use client";
 
+import { useAuthGate } from "@/components/auth/AuthGateProvider";
 import { Heart } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 
@@ -24,6 +25,7 @@ export function JourneyLikeButton({
   initialCount = 0,
   showCount = false,
 }: Props) {
+  const { requireAuth } = useAuthGate();
   const [liked, setLiked] = useState(initialLiked);
   const [count, setCount] = useState(initialCount);
   const [pending, startTransition] = useTransition();
@@ -47,41 +49,44 @@ export function JourneyLikeButton({
   }, [milestoneId]);
 
   const toggle = () => {
-    const nextLiked = !liked;
-    const nextCount = Math.max(0, count + (nextLiked ? 1 : -1));
-    setLiked(nextLiked);
-    setCount(nextCount);
-    window.dispatchEvent(
-      new CustomEvent("cins:social-action", {
-        detail: { milestoneId, liked: nextLiked, likeCount: nextCount },
-      }),
-    );
-    startTransition(async () => {
-      const res = await fetch("/api/reactions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          loai_doi_tuong: "cot_moc",
-          id_doi_tuong: milestoneId,
-          emoji: "heart",
-          active: nextLiked,
-        }),
-      });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setLiked(liked);
-        setCount(count);
-        return;
-      }
-      const syncedLiked = Boolean(json.liked);
-      const syncedCount = Number(json.count ?? nextCount);
-      setLiked(syncedLiked);
-      setCount(syncedCount);
+    requireAuth(() => {
+      const nextLiked = !liked;
+      const nextCount = Math.max(0, count + (nextLiked ? 1 : -1));
+      setLiked(nextLiked);
+      setCount(nextCount);
       window.dispatchEvent(
         new CustomEvent("cins:social-action", {
-          detail: { milestoneId, liked: syncedLiked, likeCount: syncedCount },
+          detail: { milestoneId, liked: nextLiked, likeCount: nextCount },
         }),
       );
+      startTransition(async () => {
+        const res = await fetch("/api/reactions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            loai_doi_tuong: "cot_moc",
+            id_doi_tuong: milestoneId,
+            emoji: "heart",
+            active: nextLiked,
+          }),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          if (res.status === 401) return;
+          setLiked(liked);
+          setCount(count);
+          return;
+        }
+        const syncedLiked = Boolean(json.liked);
+        const syncedCount = Number(json.count ?? nextCount);
+        setLiked(syncedLiked);
+        setCount(syncedCount);
+        window.dispatchEvent(
+          new CustomEvent("cins:social-action", {
+            detail: { milestoneId, liked: syncedLiked, likeCount: syncedCount },
+          }),
+        );
+      });
     });
   };
 

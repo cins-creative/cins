@@ -1,8 +1,7 @@
 import type { EditProfileInitial } from "@/components/journey/JourneyEditProfileModal";
-import {
-  JourneyGalleryAside,
-  type GalleryGridItem,
-  type GalleryPinnedBanner,
+import type {
+  GalleryGridItem,
+  GalleryPinnedBanner,
 } from "@/components/journey/JourneyGalleryAside";
 import { JourneyFriendsView } from "@/components/journey/JourneyFriendsView";
 import { JourneyGalleryGridView } from "@/components/journey/JourneyGalleryGridView";
@@ -50,7 +49,7 @@ type Props = {
 };
 
 /**
- * View root cho `/{slug}/journey` — 3-col layout (sidebar / timeline / gallery).
+ * View root cho `/{slug}/journey` — 2-col layout (sidebar / timeline hoặc gallery).
  *
  * Layout port từ mockup `cins-journey-desktop.html` v2. Onboarding KHÔNG render
  * ở đây nữa: nếu `giai_doan === null` → server-side redirect sang `/onboarding`
@@ -77,6 +76,7 @@ export function JourneyView({
   friends = [],
 }: Props) {
   void freshlyOnboarded;
+  void stats;
 
   return (
     <div className="cins-journey-page">
@@ -107,14 +107,6 @@ export function JourneyView({
               coAuthorPendingInvites={coAuthorPendingInvites}
             />
           )}
-          {activeView === "journey" ? (
-            <JourneyGalleryAside
-              ownerSlug={slugFromRoute}
-              totalTacPham={stats.tacPham}
-              pinned={galleryPinned}
-              items={galleryItems}
-            />
-          ) : null}
         </div>
       </JourneyViewProvider>
     </div>

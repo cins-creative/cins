@@ -44,8 +44,21 @@ export function appendSetCookieHeaders(
   from: NextResponse,
   to: NextResponse,
 ): void {
-  for (const header of from.headers.getSetCookie()) {
-    to.headers.append("Set-Cookie", header);
+  const headers =
+    typeof from.headers.getSetCookie === "function"
+      ? from.headers.getSetCookie()
+      : [];
+
+  if (headers.length > 0) {
+    for (const header of headers) {
+      to.headers.append("Set-Cookie", header);
+    }
+    return;
+  }
+
+  /* Fallback khi getSetCookie rỗng (Edge / Next 16). */
+  for (const { name, value } of from.cookies.getAll()) {
+    to.cookies.set(name, value);
   }
 }
 

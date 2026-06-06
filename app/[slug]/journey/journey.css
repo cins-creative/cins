@@ -75,7 +75,7 @@
   gap: var(--j-gutter);
   align-items: start;
 }
-.j-shell:has(.j-main-panel):not(:has(.j-gallery)) {
+.j-shell:not(:has(.j-gallery)) {
   grid-template-columns: var(--j-sidebar-w) minmax(0, 1fr);
 }
 
@@ -517,17 +517,25 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
 }
 .j-main-gallery-item {
   position: relative;
-  aspect-ratio: 16 / 9;
+  display: flex;
+  flex-direction: column;
   min-height: 0;
   border-radius: 16px;
   overflow: hidden;
-  background: var(--neutral-100);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
   box-shadow: 0 14px 38px rgba(15, 23, 42, 0.1);
   transition: transform 0.18s var(--j-ease), box-shadow 0.18s var(--j-ease);
 }
 .j-main-gallery-item:hover {
   transform: translateY(-3px);
   box-shadow: 0 22px 56px rgba(15, 23, 42, 0.16);
+}
+.j-main-gallery-thumb {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: var(--neutral-100);
 }
 .j-featured-flag {
   display: inline-flex;
@@ -541,6 +549,7 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   left: 12px;
   z-index: 2;
 }
+.j-main-gallery-thumb img,
 .j-main-gallery-item img {
   width: 100%;
   height: 100%;
@@ -561,24 +570,31 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   letter-spacing: 0.02em;
   text-transform: uppercase;
 }
+.j-main-gallery-thumb .j-g-play,
 .j-main-gallery-item .j-g-play {
   pointer-events: none;
 }
 .j-main-gallery-info {
-  position: absolute;
-  inset: auto 0 0;
-  padding: 16px;
+  padding: 10px 12px 12px;
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  color: #fff;
-  background: linear-gradient(transparent, rgba(15, 23, 42, 0.74));
+  gap: 2px;
+  color: var(--ink-body);
+  background: var(--bg-surface);
 }
 .j-main-gallery-info strong {
-  font-size: 14px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
-.j-main-gallery-info small {
-  opacity: 0.84;
+.j-main-gallery-info small,
+.j-main-gallery-date {
+  font-size: 12px;
+  color: var(--ink-muted);
 }
 
 @media (max-width: 991.98px) {
@@ -6281,5 +6297,94 @@ a.action-btn {
 }
 .cins-journey-page .j-main-gallery-grid--loading {
   margin-top: 12px;
+}
+
+/* ── Auth required modal (thích / lưu / bình luận khi chưa đăng nhập) ── */
+.j-auth-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.42);
+}
+.j-auth-modal {
+  position: relative;
+  width: min(440px, 100%);
+  padding: 24px 22px 22px;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background: var(--bg-surface);
+  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.24);
+  color: var(--ink-body);
+}
+.j-auth-modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+.j-auth-modal-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--cins-blue-soft);
+  color: var(--cins-blue);
+}
+.j-auth-modal h2 {
+  margin: 14px 0 8px;
+  font-size: 1.25rem;
+  color: var(--ink-display);
+}
+.j-auth-modal p {
+  margin: 0 0 16px;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--ink-muted);
+}
+.j-auth-modal-actions {
+  display: grid;
+  gap: 10px;
+}
+.j-auth-modal-footnote {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 14px 0 0;
+  font-size: 0.8125rem;
+  color: var(--ink-muted);
+}
+.j-auth-modal-footnote strong {
+  color: var(--ink-body);
+}
+.j-auth-modal-error {
+  margin: 12px 0 0;
+  font-size: 0.875rem;
+  color: #b42318;
+}
+.post-comments-login-btn {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--cins-blue);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.post-comments-login-btn:hover {
+  color: var(--cins-blue-dark);
 }
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { useAuthGate } from "@/components/auth/AuthGateProvider";
 import { Bookmark, CheckCircle2, Lock, Globe2, X } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
@@ -21,6 +22,7 @@ export function JourneyBookmarkButton({
   initialCount = 0,
   showCount = false,
 }: Props) {
+  const { requireAuth } = useAuthGate();
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
   const [visibility, setVisibility] = useState<BookmarkVisibility>("public");
@@ -201,7 +203,9 @@ export function JourneyBookmarkButton({
         className={`action-btn${saved ? " is-bookmarked" : ""}`}
         aria-label={saved ? "Đã lưu" : "Lưu"}
         aria-pressed={saved}
-        onClick={() => setOpen(true)}
+        onClick={() =>
+          requireAuth(() => setOpen(true))
+        }
       >
         <Bookmark size={16} strokeWidth={1.8} fill={saved ? "currentColor" : "none"} aria-hidden />
         {showCount && count > 0 ? <span>{count}</span> : null}

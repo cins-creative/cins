@@ -20,14 +20,12 @@ export function getConfiguredSiteOrigin(): string | null {
   }
 }
 
-/** Origin dùng cho `redirectTo` — ưu tiên env, fallback `window.location.origin`. */
+/** Origin dùng cho `redirectTo` OAuth — luôn khớp tab browser (PKCE cookie). */
 export function resolveAuthOrigin(): string {
-  if (typeof window === "undefined") {
-    return getConfiguredSiteOrigin() ?? "";
+  if (typeof window !== "undefined") {
+    return window.location.origin;
   }
-  const configured = getConfiguredSiteOrigin();
-  if (configured) return configured;
-  return window.location.origin;
+  return getConfiguredSiteOrigin() ?? "";
 }
 
 /**

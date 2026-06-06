@@ -5,13 +5,10 @@ import Link from "next/link";
 import { CinsTopbarSearch } from "@/components/cins/CinsTopbarSearch";
 import { JourneyNotifications } from "@/components/journey/JourneyNotifications";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
-import { listPendingCoAuthorReviews } from "@/lib/social/co-author";
 import {
-  listCommentNotifications,
-  listFollowAcceptedNotifications,
-  listPendingFollowRequests,
-} from "@/lib/social/follow";
-import { listVideoReadyNotifications } from "@/lib/social/video-ready";
+  EMPTY_NOTIFICATION_FEED,
+  loadNotificationFeed,
+} from "@/lib/social/notifications";
 
 /**
  * Topbar chính của site — render khác nhau theo trạng thái phiên:
@@ -26,15 +23,11 @@ import { listVideoReadyNotifications } from "@/lib/social/video-ready";
 export async function CinsAppTopbar() {
   const session = await getCurrentSessionAndProfile();
   const isAuthed = !!session;
-  const [followRequests, acceptedNotifications, coAuthorReviews, commentNotifications, videoReadyNotifications] = session?.profile
-    ? await Promise.all([
-        listPendingFollowRequests(session.profile.id),
-        listFollowAcceptedNotifications(session.profile.id),
-        listPendingCoAuthorReviews(session.profile.id),
-        listCommentNotifications(session.profile.id),
-        listVideoReadyNotifications(session.profile.id),
-      ])
-    : [[], [], [], [], []];
+  const notificationFeed = session?.profile
+    ? await loadNotificationFeed(session.profile.id, "unread").catch(
+        () => EMPTY_NOTIFICATION_FEED,
+      )
+    : null;
 
   return (
     <nav className="topbar cins-app-topbar" id="app-topbar">
@@ -64,14 +57,8 @@ export async function CinsAppTopbar() {
             <MessageCircleQuestion size={16} strokeWidth={1.6} aria-hidden />
             <span>Tư vấn nghề</span>
           </Link>
-          {isAuthed ? (
-            <JourneyNotifications
-              initialFollowRequests={followRequests}
-              initialAcceptedNotifications={acceptedNotifications}
-              initialCoAuthorReviews={coAuthorReviews}
-              initialCommentNotifications={commentNotifications}
-              initialVideoReadyNotifications={videoReadyNotifications}
-            />
+          {isAuthed && notificationFeed ? (
+            <JourneyNotifications initialFeed={notificationFeed} />
           ) : null}
           {isAuthed ? null : (
             <>

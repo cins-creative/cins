@@ -21,6 +21,7 @@ import {
   type MilestonePostContributor,
   type MilestonePostDetail,
 } from "@/app/[slug]/journey/actions";
+import { useAuthGate } from "@/components/auth/AuthGateProvider";
 import { PostBlockRenderer } from "@/components/journey/PostBlockRenderer";
 import { PostCover } from "@/components/editor/PostRenderer";
 import { JourneyArticleTagLink } from "@/components/journey/JourneyArticleTagLink";
@@ -392,6 +393,7 @@ export function JourneyPostCommentsBlock({
   onCommentDeleted,
   onCommentEdited,
 }: CommentSectionProps) {
+  const { openAuthModal } = useAuthGate();
   const [text, setText] = useState("");
   const [pending, startTransition] = useTransition();
   const [err, setErr] = useState<string | null>(null);
@@ -470,7 +472,26 @@ export function JourneyPostCommentsBlock({
         </form>
       ) : (
         <div className="post-comments-login">
-          <Link href="/login">Đăng nhập</Link> để bình luận.
+          <button
+            type="button"
+            className="post-comments-login-btn"
+            onClick={() =>
+              openAuthModal("Đăng nhập hoặc tạo tài khoản để bình luận bài viết này.")
+            }
+          >
+            Đăng nhập
+          </button>{" "}
+          hoặc{" "}
+          <button
+            type="button"
+            className="post-comments-login-btn"
+            onClick={() =>
+              openAuthModal("Tạo tài khoản CINs để tham gia thảo luận.")
+            }
+          >
+            tạo tài khoản
+          </button>{" "}
+          để bình luận.
         </div>
       )}
 

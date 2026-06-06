@@ -11,6 +11,7 @@ import {
 import type {
   CommentNotification,
   FollowAcceptedNotification,
+  FollowHandledNotification,
   FollowTargetType,
   MutualFriendProfile,
   PendingFollowRequest,
@@ -181,15 +182,24 @@ export async function notifyFollowAccepted(
 
 export async function listFollowAcceptedNotifications(
   viewerId: string,
+  options: { unreadOnly?: boolean; historyOnly?: boolean } = {},
 ): Promise<FollowAcceptedNotification[]> {
   const admin = createServiceRoleClient();
-  const { data: rows } = await admin
+  let query = admin
     .from("social_thong_bao")
-    .select("id, id_doi_tuong, tao_luc")
+    .select("id, id_doi_tuong, tao_luc, da_doc")
     .eq("nguoi_nhan", viewerId)
     .eq("loai_doi_tuong", "follow_accepted")
     .order("tao_luc", { ascending: false })
-    .limit(10);
+    .limit(options.historyOnly ? 30 : 10);
+
+  if (options.unreadOnly) {
+    query = query.eq("da_doc", false);
+  } else if (options.historyOnly) {
+    query = query.eq("da_doc", true);
+  }
+
+  const { data: rows } = await query;
 
   const actorIds = [
     ...new Set(
@@ -209,10 +219,12 @@ export async function listFollowAcceptedNotifications(
       if (!profile) return null;
       return {
         ...profile,
-        notificationId: (row.id as string | null) ?? actorId,
+        notificationId: String(row.id ?? actorId),
+        taoLuc: (row.tao_luc as string | null) ?? undefined,
+        daDoc: Boolean(row.da_doc),
       };
     })
-    .filter((item): item is FollowAcceptedNotification => item !== null);
+    .filter((item): item is NonNullable<typeof item> => item !== null);
 }
 
 export async function notifyMilestoneComment(params: {
@@ -232,15 +244,24 @@ export async function notifyMilestoneComment(params: {
 
 export async function listCommentNotifications(
   viewerId: string,
+  options: { unreadOnly?: boolean; historyOnly?: boolean } = {},
 ): Promise<CommentNotification[]> {
   const admin = createServiceRoleClient();
-  const { data: rows } = await admin
+  let query = admin
     .from("social_thong_bao")
-    .select("id, id_doi_tuong, noi_dung_ai, tao_luc")
+    .select("id, id_doi_tuong, noi_dung_ai, tao_luc, da_doc")
     .eq("nguoi_nhan", viewerId)
     .eq("loai_doi_tuong", "cot_moc_comment")
     .order("tao_luc", { ascending: false })
-    .limit(10);
+    .limit(options.historyOnly ? 30 : 10);
+
+  if (options.unreadOnly) {
+    query = query.eq("da_doc", false);
+  } else if (options.historyOnly) {
+    query = query.eq("da_doc", true);
+  }
+
+  const { data: rows } = await query;
 
   const commenterIds = [
     ...new Set(
@@ -313,9 +334,11 @@ export async function listCommentNotifications(
         postTitle: milestone.tieu_de || "Bài viết",
         postSlug: link?.content_tac_pham?.slug ?? null,
         ownerSlug: ownerSlugById.get(milestone.id_nguoi_dung) ?? null,
+        taoLuc: (row.tao_luc as string | null) ?? undefined,
+        daDoc: Boolean(row.da_doc),
       };
     })
-    .filter((item): item is CommentNotification => item !== null);
+    .filter((item): item is NonNullable<typeof item> => item !== null);
 }
 
 /** Người đang follow viewer nhưng viewer chưa follow lại. */
@@ -558,4 +581,61 @@ export async function listMutualFollowUserIds(
     .returns<Array<{ id_nguoi_theo_doi: string }>>();
 
   return (reverse ?? []).map((r) => r.id_nguoi_theo_doi);
+}
+
+/** Ghi lịch sử khi user chấp nhận/từ chối lời mời kết nối. */
+export async function logFollowRequestHandled(
+  viewerId: string,
+  requesterId: string,
+  action: "accept" | "decline",
+): Promise<void> {
+  const admin = createServiceRoleClient();
+  await admin.from("social_thong_bao").insert({
+    nguoi_nhan: viewerId,
+    loai_doi_tuong: "follow_request_handled",
+    id_doi_tuong: requesterId,
+    noi_dung_ai: action,
+    da_doc: true,
+    xu_ly_luc: new Date().toISOString(),
+  });
+}
+
+export async function listFollowHandledNotifications(
+  viewerId: string,
+): Promise<FollowHandledNotification[]> {
+  const admin = createServiceRoleClient();
+  const { data: rows } = await admin
+    .from("social_thong_bao")
+    .select("id, id_doi_tuong, noi_dung_ai, xu_ly_luc")
+    .eq("nguoi_nhan", viewerId)
+    .eq("loai_doi_tuong", "follow_request_handled")
+    .order("xu_ly_luc", { ascending: false })
+    .limit(30);
+
+  const requesterIds = [
+    ...new Set(
+      (rows ?? [])
+        .map((row) => row.id_doi_tuong as string | null)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  if (requesterIds.length === 0) return [];
+
+  const profiles = await loadFollowProfiles(admin, requesterIds, requesterIds.length);
+  const byId = new Map(profiles.map((p) => [p.idNguoiDung, p]));
+
+  return (rows ?? [])
+    .map((row) => {
+      const requesterId = row.id_doi_tuong as string | null;
+      const profile = requesterId ? byId.get(requesterId) : null;
+      const action = row.noi_dung_ai as string | null;
+      if (!profile || (action !== "accept" && action !== "decline")) return null;
+      return {
+        ...profile,
+        notificationId: row.id as string,
+        action,
+        xuLyLuc: (row.xu_ly_luc as string | null) ?? "",
+      };
+    })
+    .filter((item): item is FollowHandledNotification => item !== null);
 }

@@ -2,7 +2,7 @@
 
 > **File trong repo:** `docs/CINS_DEV_RULES.md`
 > **Mục đích:** Gom rule code/security/performance về **một chỗ**, đã chỉnh theo convention thực tế của CINS (không phải Basakila/Sine Art).
-> **Cặp đôi:** đọc cùng `docs/CINS_INSTRUCTION.md` (schema v5). File này nói **cách code**; file kia nói **cấu trúc dữ liệu & nghiệp vụ**.
+> **Cặp đôi:** đọc cùng `docs/CINS_INSTRUCTION.md` (schema v6). File này nói **cách code**; file kia nói **cấu trúc dữ liệu & nghiệp vụ**.
 > **Khi xung đột:** `CINS_INSTRUCTION.md` thắng về schema/naming/nghiệp vụ; file này thắng về security/performance/style code.
 
 ---
@@ -10,7 +10,7 @@
 ## 0. Thứ tự đọc (agent / dev)
 
 1. **`docs/CINS_DEV_RULES.md`** (file này) — đọc §1, §2 trước mọi task.
-2. **`docs/CINS_INSTRUCTION.md`** — schema v5, naming, nghiệp vụ, ENUM.
+2. **`docs/CINS_INSTRUCTION.md`** — schema v6, naming, nghiệp vụ, ENUM.
 3. Mở sâu §5 (Performance) / §6 (Security) / §7 (Conventions) **chỉ khi** task đụng vào mảng đó.
 
 ---
@@ -52,7 +52,7 @@
 - [ ] List trả về có **giới hạn** + đếm tổng nếu cần phân trang.
 - [ ] Response lỗi không lộ stack / secret; status HTTP đúng (400/401/403/404/422/500).
 - [ ] Check quyền ở backend (RLS hoặc check `user_thanh_vien_to_chuc.vai_tro`), **không** chỉ ẩn UI.
-- [ ] Co-author / follow / verify: validate điều kiện nghiệp vụ **trước** INSERT (vd. mutual follow trước khi tag co-author — xem `CINS_INSTRUCTION.md` §6.19).
+- [ ] Co-author / kết bạn / verify: validate điều kiện nghiệp vụ **trước** INSERT (vd. `user_ket_ban` accepted trước khi tag co-author — xem `CINS_INSTRUCTION.md` §6.19).
 
 ### Database / Supabase
 

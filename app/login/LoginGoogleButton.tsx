@@ -67,6 +67,7 @@ type Props = {
   label: string;
   /** Khóa loading chéo: 1 nút đang chạy → nút kia disable. */
   disabled?: boolean;
+  returnTo?: string | null;
   onLoadingChange?: (loading: boolean) => void;
   onError?: (message: string) => void;
 };
@@ -76,6 +77,7 @@ export function LoginGoogleButton({
   variant = "secondary",
   label,
   disabled,
+  returnTo,
   onLoadingChange,
   onError,
 }: Props) {
@@ -86,7 +88,9 @@ export function LoginGoogleButton({
     onError?.("");
     setLoading(true);
     onLoadingChange?.(true);
-    const { error } = await startGoogleLogin(intent);
+    const { error } = await startGoogleLogin(intent, {
+      returnTo: returnTo ?? undefined,
+    });
     if (error) {
       onError?.(error);
       setLoading(false);

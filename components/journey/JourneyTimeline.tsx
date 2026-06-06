@@ -50,8 +50,7 @@ type Props = {
  *   - Group theo năm DESC, milestones trong năm sort theo (month, id) DESC
  *   - Filter dropdown bật, chọn group → filter realtime
  *
- * Scroll-spy cập nhật `tl-bar.year / month` theo viewport sẽ wire ở lượt sau
- * (không critical cho design).
+ * Scroll-spy: thanh context bar cập nhật năm/tháng theo cột mốc đang xem.
  */
 export function JourneyTimeline({
   isOwner,
@@ -339,11 +338,42 @@ export function JourneyTimeline({
   const byYear = useMemo(() => groupByYearDesc(filtered), [filtered]);
 
   const yearNow = String(new Date().getFullYear());
-  const headerYear = byYear[0]?.year.toString() || yearNow;
-  const headerMonth =
-    byYear[0]?.milestones[0]?.month != null
-      ? `Tháng ${byYear[0].milestones[0].month}`
-      : "";
+
+  const [spy, setSpy] = useState<TimelineSpy>(() =>
+    timelineSpyFromMilestone(filtered[0], yearNow),
+  );
+
+  useEffect(() => {
+    setSpy(timelineSpyFromMilestone(filtered[0], yearNow));
+  }, [filter, ownerSlug, yearNow]);
+
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root || filtered.length === 0) return;
+
+    let raf = 0;
+    const sync = () => {
+      raf = 0;
+      const next = computeTimelineScrollSpy(root);
+      if (!next) return;
+      setSpy((prev) =>
+        prev.year === next.year && prev.month === next.month ? prev : next,
+      );
+    };
+    const schedule = () => {
+      if (raf) return;
+      raf = window.requestAnimationFrame(sync);
+    };
+
+    sync();
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
+    return () => {
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+      if (raf) window.cancelAnimationFrame(raf);
+    };
+  }, [filtered]);
 
   const totalVisible = filtered.length;
   const options = buildOptions(counts);
@@ -356,8 +386,8 @@ export function JourneyTimeline({
       ref={rootRef}
     >
       <JourneyTimelineBar
-        year={headerYear}
-        month={headerMonth}
+        year={spy.year}
+        month={spy.month}
         filter={filter}
         onFilterChange={setFilter}
         options={options.map((o) =>
@@ -461,6 +491,51 @@ export function JourneyTimeline({
       />
     </main>
   );
+}
+
+/* ────────────────────────────────────────────────────────────────
+ * Scroll-spy — context bar năm / tháng
+ * ──────────────────────────────────────────────────────────────── */
+
+type TimelineSpy = { year: string; month: string };
+
+function timelineSpyFromMilestone(
+  milestone: MilestoneItem | undefined,
+  fallbackYear: string,
+): TimelineSpy {
+  if (!milestone) {
+    return { year: fallbackYear, month: "" };
+  }
+  return {
+    year: String(milestone.year),
+    month: milestone.month ? `Tháng ${milestone.month}` : "",
+  };
+}
+
+/** Mép dưới `.j-tlb` sticky (= topbar + context bar). */
+const TIMELINE_SPY_ANCHOR_PX = 120;
+
+function computeTimelineScrollSpy(root: HTMLElement): TimelineSpy | null {
+  const articles = root.querySelectorAll<HTMLElement>(
+    ".j-milestone[data-year][data-month]",
+  );
+  if (!articles.length) return null;
+
+  let active: HTMLElement | null = null;
+  for (const el of articles) {
+    if (el.getBoundingClientRect().top <= TIMELINE_SPY_ANCHOR_PX + 8) {
+      active = el;
+    }
+  }
+  const target = active ?? articles[0];
+  const year = target.getAttribute("data-year");
+  const monthRaw = target.getAttribute("data-month");
+  if (!year) return null;
+  const monthNum = monthRaw ? Number(monthRaw) : NaN;
+  return {
+    year,
+    month: Number.isFinite(monthNum) && monthNum > 0 ? `Tháng ${monthNum}` : "",
+  };
 }
 
 /* ────────────────────────────────────────────────────────────────

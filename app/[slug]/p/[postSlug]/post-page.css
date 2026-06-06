@@ -838,6 +838,20 @@
 .cins-post-view .post-comments-login a:hover {
   text-decoration: underline;
 }
+.cins-post-view .post-comments-login-btn {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--cins-blue-strong, #1d4ed8);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.cins-post-view .post-comments-login-btn:hover {
+  color: var(--cins-blue-dark, #1656a0);
+}
 
 .cins-post-view .post-comments-err {
   font-size: 13px;

@@ -10,9 +10,6 @@ export async function GET(
   context: { params: Params },
 ) {
   const session = await getCurrentSessionAndProfile();
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
 
   const { slug, postSlug } = await context.params;
   const res = await fetchPostBySlug(slug, postSlug);

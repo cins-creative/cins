@@ -6,6 +6,8 @@ import {
 } from "@/lib/auth/auth-origin";
 import type { LoginIntent } from "@/lib/auth/login-intent";
 import { stashOAuthIntent } from "@/lib/auth/oauth-intent-client";
+import { resolveOAuthReturnPath } from "@/lib/auth/oauth-return-path";
+import { stashOAuthReturnTo } from "@/lib/auth/oauth-return-client";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 export type { LoginIntent } from "@/lib/auth/login-intent";
@@ -18,6 +20,7 @@ export type { LoginIntent } from "@/lib/auth/login-intent";
  */
 export async function startGoogleLogin(
   intent: LoginIntent,
+  options?: { returnTo?: string },
 ): Promise<{ error?: string }> {
   if (typeof window === "undefined") {
     return { error: "Phải chạy ở client để khởi tạo OAuth." };
@@ -30,9 +33,12 @@ export async function startGoogleLogin(
 
   try {
     stashOAuthIntent(intent);
+    const returnPath = resolveOAuthReturnPath(options);
+    stashOAuthReturnTo(returnPath);
 
     const supabase = createSupabaseBrowserClient();
     const origin = resolveAuthOrigin();
+    /* redirectTo KHÔNG thêm query — OAuth redirect_uri phải khớp chính xác Supabase allowlist. */
     const redirectTo = `${origin}/auth/callback`;
 
     const { error } = await supabase.auth.signInWithOAuth({

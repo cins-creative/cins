@@ -14,6 +14,8 @@ export async function GET() {
     );
   }
 
-  const items = await listVideoReadyNotifications(session.profile.id);
+  const items = await listVideoReadyNotifications(session.profile.id, {
+    unreadOnly: true,
+  });
   return NextResponse.json({ items });
 }

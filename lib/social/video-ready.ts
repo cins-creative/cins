@@ -28,15 +28,24 @@ export async function notifyVideoReady(params: {
 
 export async function listVideoReadyNotifications(
   viewerId: string,
+  options: { unreadOnly?: boolean; historyOnly?: boolean } = {},
 ): Promise<VideoReadyNotification[]> {
   const admin = createServiceRoleClient();
-  const { data: rows } = await admin
+  let query = admin
     .from("social_thong_bao")
-    .select("id, id_doi_tuong, tao_luc")
+    .select("id, id_doi_tuong, tao_luc, da_doc")
     .eq("nguoi_nhan", viewerId)
     .eq("loai_doi_tuong", "video_ready")
     .order("tao_luc", { ascending: false })
-    .limit(10);
+    .limit(options.historyOnly ? 30 : 10);
+
+  if (options.unreadOnly) {
+    query = query.eq("da_doc", false);
+  } else if (options.historyOnly) {
+    query = query.eq("da_doc", true);
+  }
+
+  const { data: rows } = await query;
 
   const tacPhamIds = [
     ...new Set(
@@ -84,7 +93,9 @@ export async function listVideoReadyNotifications(
         postSlug: post.slug,
         postTitle: post.tieu_de || "Video mới",
         ownerSlug: ownerSlugById.get(post.id_nguoi_dung) ?? null,
+        taoLuc: (row.tao_luc as string | null) ?? undefined,
+        daDoc: Boolean(row.da_doc),
       };
     })
-    .filter((item): item is VideoReadyNotification => item !== null);
+    .filter((item): item is NonNullable<typeof item> => item !== null);
 }

@@ -21,6 +21,7 @@ import {
 import Link from "next/link";
 
 import { JourneyArticleTagLink } from "@/components/journey/JourneyArticleTagLink";
+import { JourneyCommentLink } from "@/components/journey/JourneyCommentLink";
 import { JourneyCoAuthorProposal } from "@/components/journey/JourneyCoAuthorProposal";
 import { JourneyCoverImage } from "@/components/journey/JourneyCoverImage";
 import { ImageGrid } from "@/components/journey/ImageGrid";
@@ -244,6 +245,8 @@ export function JourneyMilestoneCard({
     <article
       className={milestoneCls}
       data-mid={cotMocId ?? milestone.id}
+      data-year={year}
+      data-month={month}
       data-group={type}
       data-post-slug={postSlug ?? undefined}
       data-post-owner-slug={postOwnerSlug ?? undefined}
@@ -477,16 +480,10 @@ export function JourneyMilestoneCard({
               showCount={social?.showCounts}
             />
             {postHref ? (
-              <Link
+              <JourneyCommentLink
                 href={`${postHref}#post-comments`}
-                scroll={false}
-                prefetch
-                className="action-btn"
-                aria-label="Bình luận"
-              >
-                <MessageCircle size={16} strokeWidth={1.8} aria-hidden />
-                {comments ? <span>{comments}</span> : null}
-              </Link>
+                commentCount={comments}
+              />
             ) : (
               <button
                 type="button"

@@ -69,9 +69,6 @@ export async function renderJourneyPage({
   const { welcome, view, compose, edit } = await searchParams;
 
   const session = await getCurrentSessionAndProfile();
-  if (!session) {
-    redirect(`/login?next=${encodeURIComponent(`/${slug}`)}`);
-  }
 
   const admin = createServiceRoleClient();
   const { data: owner, error } = await admin
@@ -86,7 +83,9 @@ export async function renderJourneyPage({
     notFound();
   }
 
-  const isOwner = owner.auth_user_id === session.authUserId;
+  const isOwner = session
+    ? owner.auth_user_id === session.authUserId
+    : false;
 
   if (isOwner && owner.giai_doan === null) {
     redirect("/onboarding");
@@ -111,7 +110,7 @@ export async function renderJourneyPage({
         tenHienThi: owner.ten_hien_thi ?? "",
         bio: owner.bio ?? "",
         tinhThanh: owner.tinh_thanh ?? "",
-        emailLienHe: owner.email_lien_he ?? session.email ?? "",
+        emailLienHe: owner.email_lien_he ?? session?.email ?? "",
         visibilityEmail: emailPublic ? "public" : "private",
         mxhLinks: normalizeSocialLinks(owner.mxh_links).map((l) => ({
           label: l.label,
@@ -125,7 +124,7 @@ export async function renderJourneyPage({
 
   const ownerName = owner.ten_hien_thi || `@${slug}`;
   const ownerAvatarUrl = getAvatarUrl(owner.avatar_id);
-  const viewerProfileId = session.profile?.id ?? null;
+  const viewerProfileId = session?.profile?.id ?? null;
 
   const switchNav = (
     <JourneySidebarNavCounts ownerSlug={owner.slug} />

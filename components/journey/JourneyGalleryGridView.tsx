@@ -197,28 +197,34 @@ export function JourneyGalleryGridView({
                 item.featured ? "j-main-gallery-item is-featured" : "j-main-gallery-item"
               }
             >
-              {item.featured ? <FeaturedFlagBadge className="j-main-gallery-pin" /> : null}
-              <GalleryItemVisual
-                src={item.src}
-                srcSet={item.srcSet}
-                sizes={
-                  item.srcSet
-                    ? "(max-width: 575px) 100vw, (max-width: 991px) 50vw, 33vw"
-                    : undefined
-                }
-                width={item.width}
-                height={item.height}
-                alt={item.label}
-                priority={item.featured}
-                isVideo={item.isVideo || item.mediaKind === "video"}
-                videoProcessing={item.videoProcessing}
-              />
-              {item.isVideo || item.mediaKind === "video" ? (
-                <GalleryVideoPlayBadge />
-              ) : null}
+              <div className="j-main-gallery-thumb">
+                {item.featured ? (
+                  <FeaturedFlagBadge className="j-main-gallery-pin" />
+                ) : null}
+                <GalleryItemVisual
+                  src={item.src}
+                  srcSet={item.srcSet}
+                  sizes={
+                    item.srcSet
+                      ? "(max-width: 575px) 100vw, (max-width: 991px) 50vw, 33vw"
+                      : undefined
+                  }
+                  width={item.width}
+                  height={item.height}
+                  alt={item.label}
+                  priority={item.featured}
+                  isVideo={item.isVideo || item.mediaKind === "video"}
+                  videoProcessing={item.videoProcessing}
+                />
+                {item.isVideo || item.mediaKind === "video" ? (
+                  <GalleryVideoPlayBadge />
+                ) : null}
+              </div>
               <span className="j-main-gallery-info">
                 <strong>{item.label}</strong>
-                {item.meta ? <small>{item.meta}</small> : null}
+                {item.meta ? (
+                  <small className="j-main-gallery-date">Đăng {item.meta}</small>
+                ) : null}
               </span>
             </a>
           ))}

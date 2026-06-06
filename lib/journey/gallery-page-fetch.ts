@@ -108,7 +108,7 @@ function hydrateMainItems(
       height: img?.height,
       label: entry.tieuDe || "Tác phẩm",
       href: postHref(slug, entry.tacPhamSlug),
-      meta: featured ? formatVnDate(entry.thoiDiem) : "",
+      meta: formatVnDate(entry.thoiDiem),
       featured,
       type: entry.type,
       variant: entry.variant,

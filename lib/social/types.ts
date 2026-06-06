@@ -46,6 +46,8 @@ export type MutualFriendProfile = PendingFollowRequest;
 
 export type FollowAcceptedNotification = PendingFollowRequest & {
   notificationId: string;
+  taoLuc?: string;
+  daDoc?: boolean;
 };
 
 export type CommentNotification = PendingFollowRequest & {
@@ -54,6 +56,8 @@ export type CommentNotification = PendingFollowRequest & {
   postTitle: string;
   postSlug: string | null;
   ownerSlug: string | null;
+  taoLuc?: string;
+  daDoc?: boolean;
 };
 
 export type CoAuthorReviewProfile = {
@@ -72,6 +76,7 @@ export type PendingCoAuthorReview = {
   vaiTro: string;
   proposer: CoAuthorReviewProfile;
   target: CoAuthorReviewProfile;
+  taoLuc?: string;
 };
 
 export type VideoReadyNotification = {
@@ -80,4 +85,30 @@ export type VideoReadyNotification = {
   postTitle: string;
   postSlug: string | null;
   ownerSlug: string | null;
+  taoLuc?: string;
+  daDoc?: boolean;
+};
+
+export type FollowHandledNotification = PendingFollowRequest & {
+  notificationId: string;
+  action: "accept" | "decline";
+  xuLyLuc: string;
+};
+
+export type ProcessedCoAuthorReview = PendingCoAuthorReview & {
+  action: "accept" | "decline";
+  xuLyLuc: string;
+};
+
+export type NotificationFilter = "unread" | "history";
+
+export type NotificationFeed = {
+  unreadCount: number;
+  followRequests: PendingFollowRequest[];
+  accepted: FollowAcceptedNotification[];
+  comments: CommentNotification[];
+  coAuthorReviews: PendingCoAuthorReview[];
+  videoReady: VideoReadyNotification[];
+  handledFollows: FollowHandledNotification[];
+  processedCoAuthorReviews: ProcessedCoAuthorReview[];
 };

@@ -62,7 +62,7 @@ const GROUP_ICON: Record<FilterGroup, LucideIcon> = {
 };
 
 type Props = {
-  /** Năm hiện tại — scroll-spy sẽ cập nhật ở lượt sau khi có data. */
+  /** Năm hiện tại — scroll-spy cập nhật khi user cuộn timeline. */
   year: string;
   /** Tháng hiển thị — VD "Tháng 5". Bỏ trống → ẩn cột. */
   month: string;
@@ -111,7 +111,7 @@ const MENU_MIN_WIDTH = 212;
  *
  * - Dropdown menu mở/đóng bằng local state, click ngoài đóng.
  * - Filter group được nâng lên parent (`JourneyTimeline`) để filter milestones.
- * - Scroll-spy cập nhật year/month sẽ wire sau ở `useEffect` listener `scroll`.
+ * - Scroll-spy cập nhật year/month theo cột mốc gần mép dưới context bar.
  */
 export function JourneyTimelineBar({
   year,

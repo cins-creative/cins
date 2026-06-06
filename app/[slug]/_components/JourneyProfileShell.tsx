@@ -10,7 +10,6 @@ import type { GiaiDoan } from "@/lib/auth/session";
 import type { LoaiMocVisibilityMap } from "@/lib/journey/filter-visibility";
 import type { JourneyComposeState } from "@/lib/journey/compose-types";
 import {
-  getCachedGalleryForUser,
   getCachedGalleryMainPage,
   getCachedMilestoneTimelinePage,
   getCachedMutualFriendsPage,
@@ -74,7 +73,7 @@ async function loadInitialData(
     return { friends };
   }
 
-  const [page, coAuthorPendingInvites, aside] = await Promise.all([
+  const [page, coAuthorPendingInvites] = await Promise.all([
     getCachedMilestoneTimelinePage({
       userId: ownerId,
       isOwner,
@@ -84,12 +83,10 @@ async function loadInitialData(
     isOwner && viewerProfileId
       ? getCachedPendingCoAuthorInvites(viewerProfileId)
       : Promise.resolve([]),
-    getCachedGalleryForUser({ userId: ownerId, ownerSlug }),
   ]);
 
   return {
     timeline: { page, coAuthorPendingInvites },
-    aside,
   };
 }
 

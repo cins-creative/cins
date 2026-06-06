@@ -30,10 +30,11 @@ export default async function LoginPage({
   const { error, auto, next } = await searchParams;
   const errorMsg = error?.trim() || null;
 
+  const safeNext =
+    next && next.startsWith("/") && !next.startsWith("//") ? next : null;
+
   const session = await getCurrentSessionAndProfile();
   if (session?.profile && !errorMsg) {
-    const safeNext =
-      next && next.startsWith("/") && !next.startsWith("//") ? next : null;
     redirect(safeNext ?? `/${encodeURIComponent(session.profile.slug)}`);
   }
 
@@ -71,7 +72,8 @@ export default async function LoginPage({
           <LoginActions
             initialError={errorMsg}
             autoIntent={autoIntent}
-            resumeAfterRedirect={Boolean(next?.trim() && !errorMsg)}
+            resumeAfterRedirect={Boolean(safeNext && !errorMsg)}
+            returnPath={safeNext}
           />
 
           <ul className="cins-login-bullets" aria-label="Lợi ích tài khoản CINs">

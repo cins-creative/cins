@@ -8,6 +8,7 @@ import type {
   CoAuthorReviewProfile,
   PendingCoAuthorReview,
   PendingCoAuthorInvite,
+  ProcessedCoAuthorReview,
   TacGiaTrangThai,
 } from "@/lib/social/types";
 
@@ -27,6 +28,7 @@ type CoAuthorReviewPayload = {
   proposerId?: string;
   targetUserId?: string;
   vaiTro?: string;
+  action?: "accept" | "decline";
 };
 
 export async function loadCoAuthorsForTacPham(
@@ -108,10 +110,11 @@ async function notifyOwnerCoAuthorReview(
   const admin = createServiceRoleClient();
   const { data: existingRows } = await admin
     .from("social_thong_bao")
-    .select("id, noi_dung_ai")
+    .select("id, noi_dung_ai, xu_ly_luc")
     .eq("nguoi_nhan", ownerId)
     .eq("loai_doi_tuong", "tac_gia_owner_review")
-    .eq("id_doi_tuong", tacPhamId);
+    .eq("id_doi_tuong", tacPhamId)
+    .is("xu_ly_luc", null);
   const duplicate = (existingRows ?? []).some((row) => {
     const payload = parseReviewPayload(row.noi_dung_ai as string | null);
     return payload?.targetUserId === targetUserId;
@@ -471,9 +474,10 @@ export async function listPendingCoAuthorReviews(
   const admin = createServiceRoleClient();
   const { data: rows } = await admin
     .from("social_thong_bao")
-    .select("id, id_doi_tuong, noi_dung_ai")
+    .select("id, id_doi_tuong, noi_dung_ai, tao_luc")
     .eq("nguoi_nhan", ownerId)
     .eq("loai_doi_tuong", "tac_gia_owner_review")
+    .is("xu_ly_luc", null)
     .order("tao_luc", { ascending: false })
     .limit(20);
 
@@ -492,6 +496,7 @@ export async function listPendingCoAuthorReviews(
         proposerId: payload.proposerId,
         targetUserId: payload.targetUserId,
         vaiTro: payload.vaiTro ?? "",
+        taoLuc: (row.tao_luc as string | null) ?? undefined,
       };
     })
     .filter((x): x is NonNullable<typeof x> => x !== null);
@@ -535,9 +540,10 @@ export async function listPendingCoAuthorReviews(
         vaiTro: item.vaiTro,
         proposer,
         target,
+        taoLuc: item.taoLuc,
       };
     })
-    .filter((x): x is PendingCoAuthorReview => x !== null);
+    .filter((x): x is NonNullable<typeof x> => x !== null);
 }
 
 export async function respondCoAuthorReview(
@@ -552,6 +558,7 @@ export async function respondCoAuthorReview(
     .eq("id", notificationId)
     .eq("nguoi_nhan", ownerId)
     .eq("loai_doi_tuong", "tac_gia_owner_review")
+    .is("xu_ly_luc", null)
     .maybeSingle();
   if (!row) return { ok: false, error: "Không tìm thấy đề xuất cộng sự." };
 
@@ -571,8 +578,98 @@ export async function respondCoAuthorReview(
     if (!result.ok) return result;
   }
 
-  await admin.from("social_thong_bao").delete().eq("id", notificationId);
+  const { error } = await admin
+    .from("social_thong_bao")
+    .update({
+      da_doc: true,
+      xu_ly_luc: new Date().toISOString(),
+      noi_dung_ai: JSON.stringify({ ...payload, action }),
+    })
+    .eq("id", notificationId);
+  if (error) return { ok: false, error: error.message };
   return { ok: true };
+}
+
+export async function listProcessedCoAuthorReviews(
+  ownerId: string,
+): Promise<ProcessedCoAuthorReview[]> {
+  const admin = createServiceRoleClient();
+  const { data: rows } = await admin
+    .from("social_thong_bao")
+    .select("id, id_doi_tuong, noi_dung_ai, tao_luc, xu_ly_luc")
+    .eq("nguoi_nhan", ownerId)
+    .eq("loai_doi_tuong", "tac_gia_owner_review")
+    .not("xu_ly_luc", "is", null)
+    .order("xu_ly_luc", { ascending: false })
+    .limit(30);
+
+  if (!rows?.length) return [];
+
+  const parsed = rows
+    .map((row) => {
+      const payload = parseReviewPayload(row.noi_dung_ai as string | null);
+      const tacPhamId = row.id_doi_tuong as string | null;
+      if (!payload?.proposerId || !payload.targetUserId || !tacPhamId) {
+        return null;
+      }
+      const action = payload.action;
+      if (action !== "accept" && action !== "decline") return null;
+      return {
+        notificationId: row.id as string,
+        tacPhamId,
+        proposerId: payload.proposerId,
+        targetUserId: payload.targetUserId,
+        vaiTro: payload.vaiTro ?? "",
+        action,
+        xuLyLuc: (row.xu_ly_luc as string | null) ?? "",
+        taoLuc: (row.tao_luc as string | null) ?? undefined,
+      };
+    })
+    .filter((x): x is NonNullable<typeof x> => x !== null);
+  if (parsed.length === 0) return [];
+
+  const tacPhamIds = [...new Set(parsed.map((item) => item.tacPhamId))];
+  const { data: tacPhams } = await admin
+    .from("content_tac_pham")
+    .select("id, slug, tieu_de, id_nguoi_dung")
+    .in("id", tacPhamIds);
+  const tacPhamById = new Map((tacPhams ?? []).map((tp) => [tp.id as string, tp]));
+
+  const ownerIds = [
+    ...new Set((tacPhams ?? []).map((tp) => tp.id_nguoi_dung as string)),
+  ];
+  const { data: owners } = ownerIds.length
+    ? await admin.from("user_nguoi_dung").select("id, slug").in("id", ownerIds)
+    : { data: [] };
+  const ownerSlugById = new Map((owners ?? []).map((o) => [o.id as string, o.slug as string]));
+
+  const userIds = [
+    ...new Set(parsed.flatMap((item) => [item.proposerId, item.targetUserId])),
+  ];
+  const profiles = await loadReviewProfiles(admin, userIds);
+  const profileById = new Map(profiles.map((p) => [p.idNguoiDung, p]));
+
+  return parsed
+    .map((item) => {
+      const tp = tacPhamById.get(item.tacPhamId);
+      const proposer = profileById.get(item.proposerId);
+      const target = profileById.get(item.targetUserId);
+      if (!tp || !proposer || !target) return null;
+      return {
+        notificationId: item.notificationId,
+        tacPhamId: item.tacPhamId,
+        postTitle: (tp.tieu_de as string) || "Bài viết",
+        postSlug: (tp.slug as string) || "",
+        ownerSlug: ownerSlugById.get(tp.id_nguoi_dung as string) ?? "",
+        vaiTro: item.vaiTro,
+        proposer,
+        target,
+        taoLuc: item.taoLuc,
+        action: item.action,
+        xuLyLuc: item.xuLyLuc,
+      };
+    })
+    .filter((x): x is NonNullable<typeof x> => x !== null);
 }
 
 function parseReviewPayload(raw: string | null): CoAuthorReviewPayload | null {

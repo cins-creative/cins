@@ -3,11 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { JourneyFriendsSectionSkeleton } from "@/app/[slug]/_components/JourneyFriendsSection.skeleton";
-import { JourneyGalleryAsideSectionSkeleton } from "@/app/[slug]/_components/JourneyGalleryAsideSection.skeleton";
 import { JourneyGalleryMainSectionSkeleton } from "@/app/[slug]/_components/JourneyGalleryMainSection.skeleton";
 import { JourneyTimelineSectionSkeleton } from "@/app/[slug]/_components/JourneyTimelineSection.skeleton";
 import { JourneyFriendsView } from "@/components/journey/JourneyFriendsView";
-import { JourneyGalleryAside } from "@/components/journey/JourneyGalleryAside";
 import { JourneyGalleryGridView } from "@/components/journey/JourneyGalleryGridView";
 import { JourneyComposeProvider } from "@/components/journey/JourneyComposeContext";
 import { BunnyVideoProcessingPoller } from "@/components/journey/BunnyVideoProcessingPoller";
@@ -20,15 +18,12 @@ import {
   hydrateJourneyPanelsFromLocalStorage,
   isJourneyPanelCacheStale,
   persistJourneyPanelsFromInitialData,
-  readJourneyAsidePanelCache,
   readJourneyFriendsPanelCache,
   readJourneyGalleryPanelCache,
   readJourneyTimelinePanelCache,
-  type JourneyAsidePanelData,
   type JourneyFriendsPanelData,
   type JourneyGalleryPanelData,
   type JourneyTimelinePanelData,
-  writeJourneyAsidePanelCache,
   writeJourneyFriendsPanelCache,
   writeJourneyGalleryPanelCache,
   writeJourneyTimelinePanelCache,
@@ -39,7 +34,6 @@ export type JourneyProfileInitialData = {
   timeline?: JourneyTimelinePanelData;
   gallery?: JourneyGalleryPanelData;
   friends?: JourneyFriendsPanelData;
-  aside?: JourneyAsidePanelData | null;
 };
 
 type TimelineCacheData = JourneyTimelinePanelData;
@@ -104,15 +98,11 @@ export function JourneyProfileContent({
   const [timelineCache, setTimelineCache] = useState<PanelState<TimelineCacheData>>(
     initialData.timeline ?? null,
   );
-  const [asideCache, setAsideCache] = useState<PanelState<JourneyAsidePanelData>>(
-    initialData.aside ?? null,
-  );
 
   const localHydratedRef = useRef(false);
   const timelineInflightRef = useRef(false);
   const galleryInflightRef = useRef(false);
   const friendsInflightRef = useRef(false);
-  const asideInflightRef = useRef(false);
 
   useEffect(() => {
     if (localHydratedRef.current) return;
@@ -122,16 +112,12 @@ export function JourneyProfileContent({
       timeline: initialData.timeline,
       gallery: initialData.gallery,
       friends: initialData.friends,
-      aside: initialData.aside,
     });
 
     const stored = hydrateJourneyPanelsFromLocalStorage(ownerSlug, viewerProfileId);
     setTimelineCache((prev) => prev ?? stored.timeline ?? null);
     setGalleryCache((prev) => prev ?? stored.gallery ?? null);
     setFriendsCache((prev) => prev ?? stored.friends ?? null);
-    if (stored.aside !== undefined) {
-      setAsideCache((prev) => prev ?? stored.aside ?? null);
-    }
   }, [ownerSlug, viewerProfileId, initialData]);
 
   const fetchTimeline = useCallback(
@@ -208,32 +194,9 @@ export function JourneyProfileContent({
     [ownerSlug, viewerProfileId],
   );
 
-  const fetchAside = useCallback(
-    async (opts?: { background?: boolean; force?: boolean }) => {
-      if (asideInflightRef.current && !opts?.force) return;
-      asideInflightRef.current = true;
-      if (!opts?.background) setAsideCache((prev) => (prev ? prev : "loading"));
-      try {
-        const res = await fetch(
-          `/api/journey/${encodeURIComponent(ownerSlug)}/gallery-aside`,
-          { cache: "no-store" },
-        );
-        if (!res.ok) throw new Error("aside fetch failed");
-        const data = (await res.json()) as JourneyAsidePanelData;
-        setAsideCache(data);
-        writeJourneyAsidePanelCache(ownerSlug, viewerProfileId, data);
-      } catch {
-        if (!opts?.background) setAsideCache("error");
-      } finally {
-        asideInflightRef.current = false;
-      }
-    },
-    [ownerSlug, viewerProfileId],
-  );
-
   const ensurePanel = useCallback(
     (
-      panel: "timeline" | "gallery" | "friends" | "aside",
+      panel: "timeline" | "gallery" | "friends",
       cache: PanelState<unknown>,
       readCache: () => unknown,
       fetch: (opts?: { background?: boolean }) => Promise<void>,
@@ -254,7 +217,6 @@ export function JourneyProfileContent({
         if (panel === "timeline") setTimelineCache(stored as TimelineCacheData);
         if (panel === "gallery") setGalleryCache(stored as JourneyGalleryPanelData);
         if (panel === "friends") setFriendsCache(stored as JourneyFriendsPanelData);
-        if (panel === "aside") setAsideCache(stored as JourneyAsidePanelData);
         if (isJourneyPanelCacheStale(ownerSlug, viewerProfileId, panel)) {
           void fetch({ background: true });
         }
@@ -273,12 +235,6 @@ export function JourneyProfileContent({
         timelineCache,
         () => readJourneyTimelinePanelCache(ownerSlug, viewerProfileId),
         fetchTimeline,
-      );
-      ensurePanel(
-        "aside",
-        asideCache,
-        () => readJourneyAsidePanelCache(ownerSlug, viewerProfileId),
-        fetchAside,
       );
     }
     if (view === "gallery") {
@@ -302,19 +258,16 @@ export function JourneyProfileContent({
     timelineCache,
     galleryCache,
     friendsCache,
-    asideCache,
     ensurePanel,
     fetchTimeline,
     fetchGallery,
     fetchFriends,
-    fetchAside,
     ownerSlug,
     viewerProfileId,
   ]);
 
   useEffect(() => {
-    const syncGalleryPanels = () => {
-      void fetchAside({ background: true, force: true });
+    const syncGalleryPanel = () => {
       void fetchGallery({ background: true, force: true });
     };
 
@@ -329,7 +282,7 @@ export function JourneyProfileContent({
         writeJourneyTimelinePanelCache(ownerSlug, viewerProfileId, next);
         return next;
       });
-      syncGalleryPanels();
+      syncGalleryPanel();
     };
 
     const onMilestoneDeleteFailed = (event: Event) => {
@@ -340,20 +293,20 @@ export function JourneyProfileContent({
       }>).detail;
       if (!detail?.ownerSlug || detail.ownerSlug !== ownerSlug) return;
       void fetchTimeline({ background: true, force: true });
-      syncGalleryPanels();
+      syncGalleryPanel();
     };
 
     const onTimelineChanged = (event: Event) => {
       const detail = (event as CustomEvent<{ ownerSlug?: string }>).detail;
       if (detail?.ownerSlug && detail.ownerSlug !== ownerSlug) return;
       void fetchTimeline({ background: true, force: true });
-      syncGalleryPanels();
+      syncGalleryPanel();
     };
 
     const onGallerySync = (event: Event) => {
       const detail = (event as CustomEvent<{ ownerSlug?: string }>).detail;
       if (detail?.ownerSlug && detail.ownerSlug !== ownerSlug) return;
-      syncGalleryPanels();
+      syncGalleryPanel();
     };
 
     window.addEventListener("cins:milestone-deleted", onMilestoneDeleted);
@@ -374,7 +327,7 @@ export function JourneyProfileContent({
       window.removeEventListener("cins:video-ready", onTimelineChanged);
       window.removeEventListener("cins:journey-gallery-sync", onGallerySync);
     };
-  }, [ownerSlug, viewerProfileId, fetchTimeline, fetchAside, fetchGallery]);
+  }, [ownerSlug, viewerProfileId, fetchTimeline, fetchGallery]);
 
   return (
     <JourneyComposeProvider
@@ -447,19 +400,6 @@ export function JourneyProfileContent({
           }}
         />
       )}
-
-      {view === "journey" ? (
-        asideCache === "loading" || asideCache === null ? (
-          <JourneyGalleryAsideSectionSkeleton />
-        ) : asideCache === "error" ? null : (
-          <JourneyGalleryAside
-            ownerSlug={ownerSlug}
-            totalTacPham={asideCache.totalTacPham}
-            pinned={asideCache.pinned}
-            items={asideCache.items}
-          />
-        )
-      ) : null}
     </JourneyComposeProvider>
   );
 }

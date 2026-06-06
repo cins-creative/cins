@@ -12,9 +12,6 @@ export async function GET(
   context: { params: Params },
 ) {
   const session = await getCurrentSessionAndProfile();
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
 
   const { slug } = await context.params;
   const { searchParams } = new URL(request.url);
@@ -35,16 +32,18 @@ export async function GET(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const isOwner = owner.auth_user_id === session.authUserId;
+  const isOwner = session
+    ? owner.auth_user_id === session.authUserId
+    : false;
   const page = await fetchMilestoneTimelinePage({
     userId: owner.id,
     isOwner,
-    viewerId: session.profile?.id ?? null,
+    viewerId: session?.profile?.id ?? null,
     offset,
   });
 
   const coAuthorPendingInvites =
-    isOwner && offset === 0 && session.profile?.id
+    isOwner && offset === 0 && session?.profile?.id
       ? await loadPendingCoAuthorInvites(session.profile.id)
       : [];
 

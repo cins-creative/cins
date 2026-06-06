@@ -1,5 +1,4 @@
 import { CinsShell } from "@/components/cins/CinsShell";
-import { JourneyGalleryAsideSectionSkeleton } from "@/app/[slug]/_components/JourneyGalleryAsideSection.skeleton";
 import { JourneySidebarSwitchNavSkeleton } from "@/app/[slug]/_components/JourneySidebarSwitchNav.skeleton";
 import { JourneyTimelineSectionSkeleton } from "@/app/[slug]/_components/JourneyTimelineSection.skeleton";
 
@@ -19,7 +18,6 @@ export default function UserJourneyLoading() {
             <JourneySidebarSwitchNavSkeleton />
           </aside>
           <JourneyTimelineSectionSkeleton />
-          <JourneyGalleryAsideSectionSkeleton />
         </div>
       </div>
     </CinsShell>

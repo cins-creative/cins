@@ -5,6 +5,7 @@ import {
   listPendingCoAuthorReviews,
   respondCoAuthorReview,
 } from "@/lib/social/co-author";
+import { loadNotificationFeed } from "@/lib/social/notifications";
 
 export async function GET() {
   const session = await getCurrentSessionAndProfile();
@@ -47,6 +48,6 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: result.error }, { status: 400 });
   }
 
-  const reviews = await listPendingCoAuthorReviews(session.profile.id);
-  return NextResponse.json({ ok: true, reviews });
+  const feed = await loadNotificationFeed(session.profile.id, "unread");
+  return NextResponse.json({ ok: true, ...feed });
 }

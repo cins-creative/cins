@@ -22,6 +22,8 @@ type Props = {
   autoIntent?: LoginIntent | null;
   /** Middleware redirect về login kèm `?next=` — cho phép tự đăng nhập lại. */
   resumeAfterRedirect?: boolean;
+  /** URL quay lại sau OAuth (từ `?next=`). */
+  returnPath?: string | null;
 };
 
 function RememberedAccountCard({
@@ -74,6 +76,7 @@ export function LoginActions({
   initialError = null,
   autoIntent = null,
   resumeAfterRedirect = false,
+  returnPath = null,
 }: Props) {
   const [busy, setBusy] = useState(false);
   const [remembered, setRemembered] = useState<RememberedAccount | null>(null);
@@ -90,7 +93,9 @@ export function LoginActions({
     triggered.current = true;
     setBusy(true);
     setError(null);
-    void startGoogleLogin(intent).then(({ error: oauthErr }) => {
+    void startGoogleLogin(intent, {
+      returnTo: returnPath ?? undefined,
+    }).then(({ error: oauthErr }) => {
       if (oauthErr) {
         setError(oauthErr);
         setBusy(false);
@@ -126,6 +131,7 @@ export function LoginActions({
         variant="primary"
         label="Đăng ký với Google"
         disabled={busy}
+        returnTo={returnPath}
         onLoadingChange={setBusy}
         onError={(m) => setError(m || null)}
       />
@@ -134,6 +140,7 @@ export function LoginActions({
         variant="secondary"
         label="Đăng nhập với Google"
         disabled={busy}
+        returnTo={returnPath}
         onLoadingChange={setBusy}
         onError={(m) => setError(m || null)}
       />

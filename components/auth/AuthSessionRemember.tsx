@@ -5,6 +5,14 @@ import { useEffect } from "react";
 import { saveRememberedAccount } from "@/lib/auth/remembered-account";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
+function getBrowserSupabase() {
+  try {
+    return createSupabaseBrowserClient();
+  } catch {
+    return null;
+  }
+}
+
 async function syncRememberedProfile(): Promise<void> {
   const res = await fetch("/api/auth/session-profile", { cache: "no-store" });
   if (!res.ok) return;
@@ -29,7 +37,8 @@ async function syncRememberedProfile(): Promise<void> {
  */
 export function AuthSessionRemember() {
   useEffect(() => {
-    const supabase = createSupabaseBrowserClient();
+    const supabase = getBrowserSupabase();
+    if (!supabase) return;
 
     void supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) void syncRememberedProfile();

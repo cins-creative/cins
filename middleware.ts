@@ -43,8 +43,10 @@ function isBypassedPath(pathname: string): boolean {
  * Routes yêu cầu đăng nhập:
  *   - `/onboarding` (full-page welcome cho user mới — điền ten_hien_thi/slug/giai_doan)
  *   - `/admin`, `/admin/*` (panel)
- *   - `/{slug}` và `/{slug}/journey` legacy (owner journey + viewer)
  *   - `/{slug}/p/new`, `/{slug}/p/[slug]/edit` (trình tạo / sửa bài viết)
+ *
+ * Journey / bài viết công khai — không chặn xem. Tương tác (thích, lưu, bình luận)
+ * yêu cầu đăng nhập qua modal client.
  *
  * Khi có session → cho qua (bỏ qua maintenance). Khi không → redirect /login.
  */
@@ -53,37 +55,6 @@ function isProtectedPath(pathname: string): boolean {
     return true;
   }
   if (pathname === "/admin" || pathname.startsWith("/admin/")) return true;
-
-  const publicTopLevel = new Set([
-    "api",
-    "auth",
-    "bai-viet",
-    "gallery",
-    "invite",
-    "keyword",
-    "login",
-    "maintenance",
-    "nganh-hoc",
-    "nghe-nghiep",
-    "onboarding",
-    "search",
-    "settings",
-    "truong-dai-hoc",
-  ]);
-
-  /* `/{slug}` — profile chính, slug không bắt đầu bằng "_" và không trùng route public. */
-  const profileMatch = pathname.match(/^\/([^/.]+)\/?$/);
-  if (
-    profileMatch &&
-    !profileMatch[1].startsWith("_") &&
-    !publicTopLevel.has(profileMatch[1])
-  ) {
-    return true;
-  }
-
-  /* Legacy `/{slug}/journey` — giữ protected khi link cũ còn tồn tại. */
-  const journeyMatch = pathname.match(/^\/([^/]+)\/journey(?:\/|$)/);
-  if (journeyMatch && !journeyMatch[1].startsWith("_")) return true;
 
   /* Trình tạo / sửa bài: `/{slug}/p/new` hoặc `/{slug}/p/{postSlug}/edit`. */
   const postEditorMatch = pathname.match(

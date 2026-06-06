@@ -1,5 +1,6 @@
 "use client";
 
+import { useAuthGate } from "@/components/auth/AuthGateProvider";
 import {
   Bookmark,
   BookmarkCheck,
@@ -61,6 +62,7 @@ export function PostActionsRail({
   sharePath = null,
   shareTitle = "",
 }: Props) {
+  const { requireAuth } = useAuthGate();
   const [liked, setLiked] = useState(initialLiked);
   const [bookmarked, setBookmarked] = useState(initialBookmarked);
   const [likes, setLikes] = useState(likeCount);
@@ -130,77 +132,83 @@ export function PostActionsRail({
   }, [shareOpen]);
 
   function toggleLike() {
-    const nextLiked = !liked;
-    const nextCount = Math.max(0, likes + (nextLiked ? 1 : -1));
-    setLiked(nextLiked);
-    setLikes(nextCount);
-    window.dispatchEvent(
-      new CustomEvent("cins:social-action", {
-        detail: { milestoneId, liked: nextLiked, likeCount: nextCount },
-      }),
-    );
-    startTransition(async () => {
-      const res = await fetch("/api/reactions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          loai_doi_tuong: "cot_moc",
-          id_doi_tuong: milestoneId,
-          emoji: "heart",
-          active: nextLiked,
-        }),
-      });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setLiked(liked);
-        setLikes(likes);
-        return;
-      }
-      const syncedLiked = Boolean(json.liked);
-      const syncedCount = Number(json.count ?? nextCount);
-      setLiked(syncedLiked);
-      setLikes(syncedCount);
+    requireAuth(() => {
+      const nextLiked = !liked;
+      const nextCount = Math.max(0, likes + (nextLiked ? 1 : -1));
+      setLiked(nextLiked);
+      setLikes(nextCount);
       window.dispatchEvent(
         new CustomEvent("cins:social-action", {
-          detail: { milestoneId, liked: syncedLiked, likeCount: syncedCount },
+          detail: { milestoneId, liked: nextLiked, likeCount: nextCount },
         }),
       );
+      startTransition(async () => {
+        const res = await fetch("/api/reactions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            loai_doi_tuong: "cot_moc",
+            id_doi_tuong: milestoneId,
+            emoji: "heart",
+            active: nextLiked,
+          }),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          if (res.status === 401) return;
+          setLiked(liked);
+          setLikes(likes);
+          return;
+        }
+        const syncedLiked = Boolean(json.liked);
+        const syncedCount = Number(json.count ?? nextCount);
+        setLiked(syncedLiked);
+        setLikes(syncedCount);
+        window.dispatchEvent(
+          new CustomEvent("cins:social-action", {
+            detail: { milestoneId, liked: syncedLiked, likeCount: syncedCount },
+          }),
+        );
+      });
     });
   }
 
   function saveBookmark() {
-    const nextCount = bookmarked ? bookmarks : bookmarks + 1;
-    setBookmarked(true);
-    setBookmarks(nextCount);
-    window.dispatchEvent(
-      new CustomEvent("cins:social-action", {
-        detail: { milestoneId, bookmarked: true, bookmarkCount: nextCount },
-      }),
-    );
-    startTransition(async () => {
-      const res = await fetch("/api/bookmarks", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          loai_doi_tuong: "cot_moc",
-          id_doi_tuong: milestoneId,
-          visibility: "public",
-        }),
-      });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setBookmarked(bookmarked);
-        setBookmarks(bookmarks);
-        return;
-      }
-      const syncedCount = Number(json.count ?? nextCount);
+    requireAuth(() => {
+      const nextCount = bookmarked ? bookmarks : bookmarks + 1;
       setBookmarked(true);
-      setBookmarks(syncedCount);
+      setBookmarks(nextCount);
       window.dispatchEvent(
         new CustomEvent("cins:social-action", {
-          detail: { milestoneId, bookmarked: true, bookmarkCount: syncedCount },
+          detail: { milestoneId, bookmarked: true, bookmarkCount: nextCount },
         }),
       );
+      startTransition(async () => {
+        const res = await fetch("/api/bookmarks", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            loai_doi_tuong: "cot_moc",
+            id_doi_tuong: milestoneId,
+            visibility: "public",
+          }),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          if (res.status === 401) return;
+          setBookmarked(bookmarked);
+          setBookmarks(bookmarks);
+          return;
+        }
+        const syncedCount = Number(json.count ?? nextCount);
+        setBookmarked(true);
+        setBookmarks(syncedCount);
+        window.dispatchEvent(
+          new CustomEvent("cins:social-action", {
+            detail: { milestoneId, bookmarked: true, bookmarkCount: syncedCount },
+          }),
+        );
+      });
     });
   }
 
@@ -345,7 +353,9 @@ export function PostActionsRail({
       <button
         type="button"
         className="post-byline-act is-comment"
-        onClick={scrollToComments}
+        onClick={() =>
+          requireAuth(scrollToComments)
+        }
         aria-label={`${commentCount} bình luận — cuộn tới phần bình luận`}
       >
         <MessageCircle size={16} strokeWidth={1.8} aria-hidden />

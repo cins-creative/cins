@@ -5,9 +5,11 @@ import {
   followTarget,
   listFollowAcceptedNotifications,
   listPendingFollowRequests,
+  logFollowRequestHandled,
   notifyFollowAccepted,
   removeIncomingUserFollow,
 } from "@/lib/social/follow";
+import { loadNotificationFeed } from "@/lib/social/notifications";
 
 export async function GET() {
   const session = await getCurrentSessionAndProfile();
@@ -17,7 +19,7 @@ export async function GET() {
 
   const [requests, accepted] = await Promise.all([
     listPendingFollowRequests(session.profile.id),
-    listFollowAcceptedNotifications(session.profile.id),
+    listFollowAcceptedNotifications(session.profile.id, { unreadOnly: true }),
   ]);
   return NextResponse.json({ requests, accepted });
 }
@@ -57,9 +59,8 @@ export async function PATCH(req: Request) {
     await notifyFollowAccepted(targetId, session.profile.id);
   }
 
-  const [requests, accepted] = await Promise.all([
-    listPendingFollowRequests(session.profile.id),
-    listFollowAcceptedNotifications(session.profile.id),
-  ]);
-  return NextResponse.json({ ok: true, requests, accepted });
+  await logFollowRequestHandled(session.profile.id, targetId, action);
+
+  const feed = await loadNotificationFeed(session.profile.id, "unread");
+  return NextResponse.json({ ok: true, ...feed });
 }
