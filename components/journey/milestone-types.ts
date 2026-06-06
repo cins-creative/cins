@@ -42,14 +42,17 @@ export type MilestoneVisibility =
   | "unlisted"
   | "private";
 
-/** Credit strip — mọi tác giả `accepted` trên tác phẩm. */
+/** Credit strip — tác giả accepted + pending trên tác phẩm. */
 export type CoAuthorCredit = {
+  /** UUID người dùng — dùng cho trạng thái kết bạn trên author row. */
+  idNguoiDung?: string;
   name: string;
   role?: string | null;
   slug?: string | null;
   avatarUrl?: string | null;
   initial?: string | null;
   laChuSoHuu?: boolean;
+  trangThai?: "pending" | "accepted";
 };
 
 export type MilestoneAttribution = {
@@ -144,6 +147,8 @@ export type MilestoneItem = {
   postSlug?: string | null;
   /** Slug chủ bài viết thật. Khác owner Journey khi đây là post được tag qua. */
   postOwnerSlug?: string | null;
+  /** UUID chủ bài viết — dùng loại trừ khi đề xuất cộng sự trên card tagged. */
+  postOwnerId?: string | null;
   /** UUID tác phẩm chính, dùng cho các action cộng sự. */
   tacPhamId?: string | null;
   /** Viewer là cộng sự đã được duyệt và có thể đề xuất thêm người. */

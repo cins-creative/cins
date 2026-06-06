@@ -6,6 +6,7 @@ import {
   loadCoAuthorsForTacPham,
   proposeCoAuthorFromCollaborator,
 } from "@/lib/social/co-author";
+import { loadCoAuthorCreditsForTacPham } from "@/lib/journey/coauthor-credits";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 type RouteCtx = { params: Promise<{ id: string }> };
@@ -63,5 +64,13 @@ export async function POST(req: Request, ctx: RouteCtx) {
     const status = result.error.includes("kết bạn") ? 403 : 400;
     return NextResponse.json({ error: result.error }, { status });
   }
-  return NextResponse.json({ ok: true, reviewRequired: !isOwner });
+  const coAuthorCredits = isOwner
+    ? await loadCoAuthorCreditsForTacPham(tacPhamId)
+    : undefined;
+  return NextResponse.json({
+    ok: true,
+    reviewRequired: !isOwner,
+    tacPhamId,
+    coAuthorCredits,
+  });
 }

@@ -5,7 +5,9 @@ import { useCallback, useEffect, useId, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 
 import { CoAuthorSection } from "@/components/editor/CoAuthorSection";
+import { dispatchMilestoneCreditsUpdated } from "@/lib/journey/coauthor-credits-events";
 import type { CoAuthorDraft } from "@/lib/social/types";
+import type { CoAuthorCredit } from "@/components/journey/milestone-types";
 
 type Props = {
   tacPhamId: string;
@@ -77,6 +79,16 @@ export function JourneyCoAuthorProposal({
               : "Không gửi được yêu cầu cộng sự.",
           );
           return;
+        }
+        if (
+          isOwnerMode &&
+          Array.isArray(json.coAuthorCredits) &&
+          typeof json.tacPhamId === "string"
+        ) {
+          dispatchMilestoneCreditsUpdated({
+            tacPhamId: json.tacPhamId,
+            coAuthorCredits: json.coAuthorCredits as CoAuthorCredit[],
+          });
         }
       }
       setMessage(

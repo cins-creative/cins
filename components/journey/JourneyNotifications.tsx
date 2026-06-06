@@ -15,6 +15,10 @@ import {
 import { createPortal } from "react-dom";
 
 import { CoAuthorInviteMessage } from "@/components/journey/CoAuthorInviteMessage";
+import type { CoAuthorCredit } from "@/components/journey/milestone-types";
+import {
+  dispatchMilestoneCreditsUpdated,
+} from "@/lib/journey/coauthor-credits-events";
 import type {
   CommentNotification,
   CoAuthorReviewProfile,
@@ -37,6 +41,14 @@ type Props = {
 function coAuthorPostHref(inv: PendingCoAuthorInviteNotification): string | null {
   if (!inv.ownerSlug || !inv.postSlug) return null;
   return `/${encodeURIComponent(inv.ownerSlug)}/p/${encodeURIComponent(inv.postSlug)}`;
+}
+
+function coAuthorReviewPostHref(review: {
+  ownerSlug: string;
+  postSlug: string;
+}): string | null {
+  if (!review.ownerSlug || !review.postSlug) return null;
+  return `/${encodeURIComponent(review.ownerSlug)}/p/${encodeURIComponent(review.postSlug)}`;
 }
 
 const EMPTY_HISTORY_FEED: NotificationFeed = {
@@ -386,6 +398,16 @@ export function JourneyNotifications({
       }
       const next = parseFeedPayload(json);
       if (next) applyFeed(next);
+      if (
+        action === "accept" &&
+        typeof json.tacPhamId === "string" &&
+        Array.isArray(json.coAuthorCredits)
+      ) {
+        dispatchMilestoneCreditsUpdated({
+          tacPhamId: json.tacPhamId,
+          coAuthorCredits: json.coAuthorCredits as CoAuthorCredit[],
+        });
+      }
       if (tab === "history") void loadHistory();
     });
   };
@@ -529,35 +551,12 @@ export function JourneyNotifications({
                   })}
                   {activeFeed.coAuthorReviews.map((review) => (
                     <li key={review.notificationId}>
-                      <div className="j-notify-item is-coauthor-review">
-                        <Avatar request={review.proposer} />
-                        <span>
-                          <strong>{review.proposer.tenHienThi}</strong> đề xuất thêm{" "}
-                          <b>{review.target.tenHienThi}</b> vào bài viết.
-                          <small>
-                            {review.postTitle}
-                            {review.vaiTro ? ` · ${review.vaiTro}` : ""}
-                          </small>
-                        </span>
-                        <div className="j-notify-inline-actions">
-                          <button
-                            type="button"
-                            className="j-notify-mini-action is-accept"
-                            disabled={pending}
-                            onClick={() => respondCoAuthorReview(review, "accept")}
-                          >
-                            Duyệt
-                          </button>
-                          <button
-                            type="button"
-                            className="j-notify-mini-action"
-                            disabled={pending}
-                            onClick={() => respondCoAuthorReview(review, "decline")}
-                          >
-                            Từ chối
-                          </button>
-                        </div>
-                      </div>
+                      <CoAuthorReviewNotifyItem
+                        review={review}
+                        pending={pending}
+                        onAccept={() => respondCoAuthorReview(review, "accept")}
+                        onDecline={() => respondCoAuthorReview(review, "decline")}
+                      />
                     </li>
                   ))}
                   {activeFeed.accepted.map((notice) => (
@@ -775,6 +774,106 @@ function UnreadAcceptedItem({
         </span>
       </Link>
     </li>
+  );
+}
+
+function CoAuthorReviewNotifyItem({
+  review,
+  pending,
+  onAccept,
+  onDecline,
+}: {
+  review: PendingCoAuthorReview;
+  pending: boolean;
+  onAccept: () => void;
+  onDecline: () => void;
+}) {
+  const postHref = coAuthorReviewPostHref(review);
+
+  return (
+    <div className="j-notify-item is-coauthor-review">
+      <div className="j-notify-coauthor-review-lead">
+        <Avatar request={review.proposer} />
+        <p>
+          <strong>{review.proposer.tenHienThi}</strong> đề xuất thêm cộng sự
+        </p>
+      </div>
+
+      <div className="j-notify-coauthor-review-people">
+        <CoAuthorReviewPersonRow
+          profile={review.target}
+          label="Người được đề xuất"
+          role={review.vaiTro || null}
+          showProfileLink
+        />
+      </div>
+
+      <p className="j-notify-coauthor-review-post">
+        Bài viết:{" "}
+        {postHref ? (
+          <Link href={postHref} className="j-notify-coauthor-review-post-link">
+            {review.postTitle}
+          </Link>
+        ) : (
+          <strong>{review.postTitle}</strong>
+        )}
+      </p>
+
+      <div className="j-notify-coauthor-review-actions">
+        <button
+          type="button"
+          className="j-notify-mini-action is-accept"
+          disabled={pending}
+          onClick={onAccept}
+        >
+          Duyệt
+        </button>
+        <button
+          type="button"
+          className="j-notify-mini-action"
+          disabled={pending}
+          onClick={onDecline}
+        >
+          Từ chối
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function CoAuthorReviewPersonRow({
+  profile,
+  label,
+  role,
+  showProfileLink = false,
+}: {
+  profile: CoAuthorReviewProfile;
+  label: string;
+  role?: string | null;
+  showProfileLink?: boolean;
+}) {
+  return (
+    <div className="j-notify-coauthor-person">
+      <Avatar request={profile} />
+      <div className="j-notify-coauthor-person-copy">
+        <span className="j-notify-coauthor-person-label">{label}</span>
+        <strong>{profile.tenHienThi}</strong>
+        <span className="j-notify-coauthor-person-slug">@{profile.slug}</span>
+        {role ? (
+          <span className="j-notify-coauthor-person-role">Vai trò: {role}</span>
+        ) : null}
+      </div>
+      {showProfileLink ? (
+        <Link
+          href={`/${encodeURIComponent(profile.slug)}`}
+          className="j-notify-mini-action is-link j-notify-coauthor-person-link"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Xem
+        </Link>
+      ) : null}
+    </div>
   );
 }
 

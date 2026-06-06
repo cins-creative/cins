@@ -8,8 +8,8 @@ import type {
   MilestoneVisibility,
 } from "@/components/journey/milestone-types";
 import type { Block as ServerBlock } from "@/lib/editor/types";
-import type { CoAuthorCredit } from "@/components/journey/milestone-types";
 import { fetchArticleTagsForTacPham } from "@/lib/journey/article-tags-batch";
+import { loadCoAuthorCredits } from "@/lib/journey/coauthor-credits";
 import { milestonePreviewMedia } from "@/lib/journey/milestone-preview-media";
 import { loadVerifiedMetaForCotMocs } from "@/lib/journey/milestone-verify";
 import { getAvatarUrl } from "@/lib/journey/profile";
@@ -132,7 +132,7 @@ export async function buildSelfMilestonesForCotMocs(
     if (first?.id) firstPostIds.push(first.id);
   }
   const tagsByTacPham = await fetchArticleTagsForTacPham(admin, firstPostIds);
-  const creditsByTacPham = await loadAcceptedCredits(admin, firstPostIds);
+  const creditsByTacPham = await loadCoAuthorCredits(admin, firstPostIds);
   const orgByCotMoc = new Map(cotMocs.map((m) => [m.id, m.id_to_chuc ?? null]));
   const verifiedMeta = await loadVerifiedMetaForCotMocs(ids, orgByCotMoc);
 
@@ -308,9 +308,6 @@ export async function fetchTaggedMilestonesForUser(params: {
   const roleByTp = new Map(
     tagRows.map((r) => [r.id_tac_pham as string, r.vai_tro as string | null]),
   );
-  const statusByTp = new Map(
-    tagRows.map((r) => [r.id_tac_pham as string, r.trang_thai as string | null]),
-  );
   const acceptedAtByTp = new Map(
     tagRows.map((r) => [
       r.id_tac_pham as string,
@@ -387,7 +384,7 @@ export async function fetchTaggedMilestonesForUser(params: {
   const ownerById = new Map((owners ?? []).map((o) => [o.id as string, o]));
 
   const taggedTpIds = items.map((i) => i.tacPhamId);
-  const creditsByTacPham = await loadAcceptedCredits(admin, taggedTpIds);
+  const creditsByTacPham = await loadCoAuthorCredits(admin, taggedTpIds);
   const tagsByTacPham = await fetchArticleTagsForTacPham(admin, taggedTpIds);
 
   return items.map(({ cm, tp, myRole, tacPhamId }) => {
@@ -410,8 +407,9 @@ export async function fetchTaggedMilestonesForUser(params: {
       body: cm.mo_ta || null,
       postSlug: tp.slug,
       postOwnerSlug: (owner?.slug as string) ?? null,
+      postOwnerId: tp.id_nguoi_dung as string,
       tacPhamId,
-      canProposeCoAuthor: isOwner && statusByTp.get(tacPhamId) === "accepted",
+      canProposeCoAuthor: isOwner,
       media: milestoneCoverMedia(
         tp.cover_id as string,
         tp.noi_dung_blocks,
@@ -495,7 +493,7 @@ export async function fetchBookmarkedMilestonesForUser(params: {
   ];
   const [tagsByTacPham, creditsByTacPham] = await Promise.all([
     fetchArticleTagsForTacPham(admin, tacPhamIds),
-    loadAcceptedCredits(admin, tacPhamIds),
+    loadCoAuthorCredits(admin, tacPhamIds),
   ]);
 
   const ownerIds = [
@@ -554,49 +552,6 @@ export async function fetchBookmarkedMilestonesForUser(params: {
       };
     })
     .filter((item): item is MilestoneItem => item !== null);
-}
-
-async function loadAcceptedCredits(
-  admin: ReturnType<typeof createServiceRoleClient>,
-  tacPhamIds: string[],
-): Promise<Map<string, CoAuthorCredit[]>> {
-  const out = new Map<string, CoAuthorCredit[]>();
-  if (tacPhamIds.length === 0) return out;
-
-  const { data: rows } = await admin
-    .from("content_tac_pham_tac_gia")
-    .select("id_tac_pham, id_nguoi_dung, vai_tro, la_chu_so_huu, thu_tu")
-    .in("id_tac_pham", tacPhamIds)
-    .eq("trang_thai", "accepted")
-    .order("la_chu_so_huu", { ascending: false })
-    .order("thu_tu", { ascending: true });
-
-  if (!rows?.length) return out;
-
-  const userIds = [...new Set(rows.map((r) => r.id_nguoi_dung as string))];
-  const { data: profiles } = await admin
-    .from("user_nguoi_dung")
-    .select("id, slug, ten_hien_thi, avatar_id")
-    .in("id", userIds);
-  const profileById = new Map((profiles ?? []).map((p) => [p.id as string, p]));
-
-  for (const row of rows) {
-    const p = profileById.get(row.id_nguoi_dung as string);
-    const credit: CoAuthorCredit = {
-      name: (p?.ten_hien_thi as string) || (p?.slug as string) || "?",
-      role: (row.vai_tro as string) || null,
-      slug: (p?.slug as string) ?? null,
-      avatarUrl: getAvatarUrl((p?.avatar_id as string) || null) ?? null,
-      initial: ((p?.ten_hien_thi as string) || (p?.slug as string) || "?")
-        .slice(0, 1)
-        .toUpperCase(),
-      laChuSoHuu: Boolean(row.la_chu_so_huu),
-    };
-    const list = out.get(row.id_tac_pham as string) ?? [];
-    list.push(credit);
-    out.set(row.id_tac_pham as string, list);
-  }
-  return out;
 }
 
 function milestoneCotMocKey(item: MilestoneItem): string {

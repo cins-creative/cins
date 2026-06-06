@@ -842,6 +842,118 @@
   cursor: default;
 }
 
+.j-notify-item.is-coauthor-review {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.j-notify-coauthor-review-lead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+}
+
+.j-notify-coauthor-review-lead p {
+  margin: 0;
+  min-width: 0;
+  flex: 1;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-body);
+}
+
+.j-notify-coauthor-review-lead strong {
+  color: var(--ink-display);
+  font-weight: 700;
+}
+
+.j-notify-coauthor-review-people {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.j-notify-coauthor-person {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid rgba(37, 99, 235, 0.14);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.j-notify-coauthor-person-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.j-notify-coauthor-person-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.j-notify-coauthor-person-copy strong {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--ink-display);
+}
+
+.j-notify-coauthor-person-slug {
+  font-size: 11px;
+  color: var(--ink-muted);
+}
+
+.j-notify-coauthor-person-role {
+  font-size: 11px;
+  font-weight: 600;
+  color: #1d4ed8;
+}
+
+.j-notify-coauthor-person-link {
+  align-self: center;
+  flex-shrink: 0;
+  min-width: 44px;
+}
+
+.j-notify-coauthor-review-post {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-body);
+}
+
+.j-notify-coauthor-review-post-link {
+  font-weight: 700;
+  color: #1d4ed8;
+  text-decoration: none;
+}
+
+.j-notify-coauthor-review-post-link:hover {
+  text-decoration: underline;
+}
+
+.j-notify-coauthor-review-actions {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.j-notify-coauthor-review-actions .j-notify-mini-action {
+  flex: 1;
+  min-width: 0;
+}
+
 .j-notify-item.is-coauthor-invite .j-notify-coauthor-invite-text {
   flex: 1;
   min-width: 0;

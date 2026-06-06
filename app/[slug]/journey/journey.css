@@ -1559,9 +1559,9 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   background: linear-gradient(
     180deg,
     rgba(15, 23, 42, 0) 0%,
-    rgba(15, 23, 42, 0.12) 38%,
-    rgba(15, 23, 42, 0.68) 72%,
-    rgba(15, 23, 42, 0.88) 100%
+    rgba(15, 23, 42, 0.22) 30%,
+    rgba(15, 23, 42, 0.78) 62%,
+    rgba(0, 0, 0, 0.96) 100%
   );
   color: #fff;
   font-size: 12px;
@@ -6243,10 +6243,6 @@ select.j-edit-input {
 .jcard-tags {
   margin-bottom: 12px;
 }
-.jcard-tags--below-media {
-  margin-top: 12px;
-  margin-bottom: 0;
-}
 .tags {
   display: flex;
   flex-wrap: wrap;
@@ -6258,14 +6254,14 @@ select.j-edit-input {
   border-radius: 0;
   padding: 0;
   background: transparent;
-  color: var(--ink-muted);
+  color: #9333ea;
   font-size: 12px;
   font-weight: 600;
   text-decoration: none;
   transition: color 0.12s;
 }
 .tag:hover {
-  color: var(--cins-blue);
+  color: #7c3aed;
 }
 
 /* Article tag tooltip — portal trên body, tránh clip bởi .j-m-card overflow */
@@ -6330,6 +6326,11 @@ select.j-edit-input {
   align-items: center;
   justify-content: center;
   transition: opacity 0.2s var(--j-unfold-ease, ease);
+}
+/* Article collapsed — phẳng đáy preview, gợi ý nội dung còn tiếp bên dưới */
+.jcard--article.is-collapsed .jcard-media-zone > .preview,
+.jcard--article.is-collapsed .jcard-media-zone > .preview img {
+  border-radius: 14px 14px 0 0;
 }
 .jcard--photo .preview--photo-grid {
   aspect-ratio: auto;
@@ -6866,10 +6867,107 @@ select.j-edit-input {
 .author-row-item:last-child {
   border-bottom: 0;
 }
+.author-row-friend-group {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.author-row-friend,
+.author-row-mutual {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.author-row-friend {
+  width: 30px;
+  height: 30px;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  transition:
+    background 0.12s,
+    border-color 0.12s,
+    color 0.12s;
+}
+.author-row-friend.is-loading {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--neutral-100);
+}
+.author-row-friend.is-friends {
+  background: var(--cins-mint-soft, #d9fbed);
+  color: #047857;
+  border-color: rgba(4, 120, 87, 0.18);
+  cursor: default;
+}
+.author-row-friend.is-add {
+  background: var(--cins-blue-soft, #e7f0fb);
+  color: var(--cins-blue, #1f74c9);
+  border-color: rgba(31, 116, 201, 0.22);
+}
+.author-row-friend.is-add:hover:not(:disabled) {
+  background: var(--cins-blue, #1f74c9);
+  color: #fff;
+  border-color: var(--cins-blue, #1f74c9);
+}
+.author-row-friend.is-pending {
+  background: #fff7ed;
+  color: #c2410c;
+  border-color: rgba(253, 186, 116, 0.65);
+}
+.author-row-friend.is-accept {
+  background: #ecfdf5;
+  color: #047857;
+  border-color: rgba(4, 120, 87, 0.22);
+}
+.author-row-friend.is-accept:hover:not(:disabled) {
+  background: #047857;
+  color: #fff;
+}
+.author-row-friend.is-decline {
+  width: 28px;
+  height: 28px;
+  background: var(--neutral-50);
+  color: var(--ink-muted);
+  border-color: var(--jcard-border2);
+}
+.author-row-friend.is-decline:hover:not(:disabled) {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: rgba(185, 28, 28, 0.18);
+}
+.author-row-friend:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.author-row-mutual {
+  gap: 5px;
+  padding: 0 10px;
+  height: 30px;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-muted);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  opacity: 0.88;
+}
+.author-row-mutual svg {
+  opacity: 0.75;
+}
 .author-row-person {
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  flex: 1;
   min-width: 0;
 }
 .author-row-name {
@@ -6900,6 +6998,14 @@ select.j-edit-input {
   border: 1px solid var(--jcard-green-border);
   background: var(--jcard-green-bg);
   color: var(--jcard-green);
+}
+.abadge-pending {
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  background: #fffbeb;
+  color: #b45309;
+}
+.author-row-item.is-pending-credit .author-row-name {
+  color: var(--jcard-ink2);
 }
 .jcard-actions {
   padding: 8px 12px 10px;

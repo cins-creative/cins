@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
+import { loadCoAuthorCreditsForTacPham } from "@/lib/journey/coauthor-credits";
 import {
   listPendingCoAuthorReviews,
   respondCoAuthorReview,
@@ -49,5 +50,14 @@ export async function PATCH(req: Request) {
   }
 
   const feed = await loadNotificationFeed(session.profile.id, "unread");
-  return NextResponse.json({ ok: true, ...feed });
+  const coAuthorCredits =
+    action === "accept"
+      ? await loadCoAuthorCreditsForTacPham(result.tacPhamId)
+      : undefined;
+  return NextResponse.json({
+    ok: true,
+    ...feed,
+    tacPhamId: result.tacPhamId,
+    coAuthorCredits,
+  });
 }

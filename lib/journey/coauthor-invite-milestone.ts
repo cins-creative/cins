@@ -161,8 +161,9 @@ export async function fetchCoAuthorInviteMilestoneCard(
     body: cm.mo_ta || null,
     postSlug: tp.slug as string,
     postOwnerSlug: (owner?.slug as string) ?? null,
+    postOwnerId: tp.id_nguoi_dung as string,
     tacPhamId,
-    canProposeCoAuthor: false,
+    canProposeCoAuthor: true,
     media: milestoneCoverMedia(
       tp.cover_id as string | null,
       tp.noi_dung_blocks,

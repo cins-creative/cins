@@ -43,6 +43,11 @@ import {
   type MilestoneInlinePatchDetail,
 } from "@/lib/journey/milestone-inline-patch";
 import {
+  applyMilestoneCreditsUpdate,
+  MILESTONE_CREDITS_UPDATED_EVENT,
+  type MilestoneCreditsUpdatedDetail,
+} from "@/lib/journey/coauthor-credits-events";
+import {
   mergeMilestoneIntoTimeline,
   removeMilestoneByTacPhamId,
 } from "@/lib/journey/timeline-merge";
@@ -343,6 +348,23 @@ export function JourneyProfileContent({
       });
     };
 
+    const onCreditsUpdated = (event: Event) => {
+      const detail = (event as CustomEvent<MilestoneCreditsUpdatedDetail>).detail;
+      if (!detail?.tacPhamId) return;
+      setTimelineCache((prev) => {
+        if (!prev || prev === "loading" || prev === "error") return prev;
+        const next: TimelineCacheData = {
+          ...prev,
+          page: {
+            ...prev.page,
+            milestones: applyMilestoneCreditsUpdate(prev.page.milestones, detail),
+          },
+        };
+        writeJourneyTimelinePanelCache(ownerSlug, viewerProfileId, next);
+        return next;
+      });
+    };
+
     const onCoAuthorAccepted = (event: Event) => {
       const detail = (event as CustomEvent<CoAuthorInviteAcceptedDetail>).detail;
       if (!detail || detail.ownerSlug !== ownerSlug) return;
@@ -419,6 +441,7 @@ export function JourneyProfileContent({
     window.addEventListener("cins:video-ready", onTimelineChanged);
     window.addEventListener("cins:journey-gallery-sync", onGallerySync);
     window.addEventListener(MILESTONE_INLINE_PATCH_EVENT, onMilestonePatch);
+    window.addEventListener(MILESTONE_CREDITS_UPDATED_EVENT, onCreditsUpdated);
     window.addEventListener(COAUTHOR_INVITE_ACCEPTED_EVENT, onCoAuthorAccepted);
     window.addEventListener(COAUTHOR_INVITE_DECLINED_EVENT, onCoAuthorDeclined);
     window.addEventListener(COAUTHOR_INVITE_FAILED_EVENT, onCoAuthorFailed);
@@ -435,6 +458,7 @@ export function JourneyProfileContent({
       window.removeEventListener("cins:video-ready", onTimelineChanged);
       window.removeEventListener("cins:journey-gallery-sync", onGallerySync);
       window.removeEventListener(MILESTONE_INLINE_PATCH_EVENT, onMilestonePatch);
+      window.removeEventListener(MILESTONE_CREDITS_UPDATED_EVENT, onCreditsUpdated);
       window.removeEventListener(COAUTHOR_INVITE_ACCEPTED_EVENT, onCoAuthorAccepted);
       window.removeEventListener(COAUTHOR_INVITE_DECLINED_EVENT, onCoAuthorDeclined);
       window.removeEventListener(COAUTHOR_INVITE_FAILED_EVENT, onCoAuthorFailed);

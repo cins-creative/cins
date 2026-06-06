@@ -694,7 +694,7 @@ export async function respondCoAuthorReview(
     })
     .eq("id", notificationId);
   if (error) return { ok: false, error: error.message };
-  return { ok: true };
+  return { ok: true, tacPhamId };
 }
 
 export async function listProcessedCoAuthorReviews(

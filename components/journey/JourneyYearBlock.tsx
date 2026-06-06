@@ -25,6 +25,7 @@ type Props = {
   /** Slug owner cho menu — bắt buộc khi `isOwner=true`. */
   ownerSlug?: string;
   ownerProfileId?: string;
+  viewerProfileId?: string | null;
   /** Avatar + tên user — forward để badge "Cá nhân" render Avatar + Name. */
   authorAvatarUrl?: string | null;
   authorName?: string | null;
@@ -55,6 +56,7 @@ export function JourneyYearBlock({
   isOwner = false,
   ownerSlug,
   ownerProfileId,
+  viewerProfileId = null,
   authorAvatarUrl,
   authorName,
   inlineExpand = null,
@@ -82,6 +84,7 @@ export function JourneyYearBlock({
               isOwner={isOwner}
               ownerSlug={ownerSlug}
               ownerProfileId={ownerProfileId}
+              viewerProfileId={viewerProfileId}
               authorAvatarUrl={authorAvatarUrl}
               authorName={authorName}
               inlineExpand={

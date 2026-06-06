@@ -22,6 +22,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { JourneyArticleTagLink } from "@/components/journey/JourneyArticleTagLink";
+import { JourneyAuthorRowFriendAction } from "@/components/journey/JourneyAuthorRowFriendAction";
 import { JourneyCardVideo } from "@/components/journey/JourneyCardVideo";
 import { JourneyMilestoneUnfold } from "@/components/journey/JourneyMilestoneUnfold";
 import { JourneyCommentLink } from "@/components/journey/JourneyCommentLink";
@@ -63,6 +64,8 @@ type Props = {
   ownerSlug?: string;
   /** UUID chủ Journey — loại khỏi picker cộng sự. */
   ownerProfileId?: string;
+  /** UUID viewer đăng nhập — trạng thái kết bạn trên author row. */
+  viewerProfileId?: string | null;
   /**
    * Author của Journey hiện tại — render trong badge "Cá nhân" thay vì
    * label cứng "Cá nhân", để identify rõ ai là người post. URL avatar
@@ -167,6 +170,7 @@ export function JourneyMilestoneCard({
   isOwner = false,
   ownerSlug,
   ownerProfileId,
+  viewerProfileId = null,
   authorAvatarUrl,
   authorName,
   inlineExpand,
@@ -191,6 +195,7 @@ export function JourneyMilestoneCard({
     day,
     postSlug,
     postOwnerSlug,
+    postOwnerId,
     cotMocId,
     tacPhamId,
     canProposeCoAuthor,
@@ -248,10 +253,12 @@ export function JourneyMilestoneCard({
   const canBookmark = !(isOwner && (variant === "self" || isBookmarkMilestone));
   const canManageCoAuthors = isOwner && variant === "self" && Boolean(tacPhamId);
   const canManageArticleTags = canManageCoAuthors;
+  const coAuthorExcludeOwnerId =
+    variant === "tagged" && postOwnerId
+      ? postOwnerId
+      : ownerProfileId ?? "";
   const canShowCoAuthorAction =
-    variant !== "tagged" &&
-    (canProposeCoAuthor || canManageCoAuthors) &&
-    Boolean(tacPhamId);
+    (canProposeCoAuthor || canManageCoAuthors) && Boolean(tacPhamId);
   const visibleCoAuthors = coAuthorCredits.slice(0, MAX_VISIBLE_COAUTHORS);
   const hiddenCoAuthorCount = Math.max(
     0,
@@ -512,7 +519,7 @@ export function JourneyMilestoneCard({
                 </div>
               ) : null}
 
-              {articleTags.length > 0 && cardContentKind === "article" ? (
+              {articleTags.length > 0 ? (
                 <div className="tags jcard-tags" aria-label="Bài viết liên quan">
                   {articleTags.map((t) => (
                     <JourneyArticleTagLink
@@ -573,18 +580,6 @@ export function JourneyMilestoneCard({
                   </div>
                 )}
               </div>
-
-              {articleTags.length > 0 && cardContentKind !== "article" ? (
-                <div className="tags jcard-tags jcard-tags--below-media" aria-label="Bài viết liên quan">
-                  {articleTags.map((t) => (
-                    <JourneyArticleTagLink
-                      key={t.id}
-                      tag={t}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                  ))}
-                </div>
-              ) : null}
             </div>
           </div>
 
@@ -646,7 +641,13 @@ export function JourneyMilestoneCard({
                       <span>{contributorCount} người đóng góp</span>
                     </div>
                     {coAuthorCredits.map((c, i) => (
-                      <div key={`${c.slug ?? c.name}-${i}`} className="author-row-item">
+                      <div
+                        key={`${c.slug ?? c.name}-${i}`}
+                        className={
+                          "author-row-item" +
+                          (c.trangThai === "pending" ? " is-pending-credit" : "")
+                        }
+                      >
                         <JourneyUserPopover
                           slug={c.slug}
                           fallbackName={c.name}
@@ -675,7 +676,13 @@ export function JourneyMilestoneCard({
                           <span className="abadge abadge-owner">Chủ bài</span>
                         ) : variant === "tagged" && c.slug && c.slug === ownerSlug ? (
                           <span className="abadge abadge-you">Bạn</span>
+                        ) : c.trangThai === "pending" ? (
+                          <span className="abadge abadge-pending">Chờ xác nhận</span>
                         ) : null}
+                        <JourneyAuthorRowFriendAction
+                          targetUserId={c.idNguoiDung}
+                          viewerProfileId={viewerProfileId}
+                        />
                       </div>
                     ))}
                   </div>
@@ -726,7 +733,7 @@ export function JourneyMilestoneCard({
               <JourneyCoAuthorProposal
                 tacPhamId={tacPhamId}
                 mode={canManageCoAuthors ? "owner" : "proposal"}
-                ownerId={ownerProfileId}
+                ownerId={coAuthorExcludeOwnerId}
               />
             ) : null}
             {inlineExpand && showUnfold ? (

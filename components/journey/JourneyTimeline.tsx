@@ -20,6 +20,11 @@ import {
   type MilestoneInlinePatchDetail,
 } from "@/lib/journey/milestone-inline-patch";
 import {
+  applyMilestoneCreditsUpdate,
+  MILESTONE_CREDITS_UPDATED_EVENT,
+  type MilestoneCreditsUpdatedDetail,
+} from "@/lib/journey/coauthor-credits-events";
+import {
   getVisibility,
   type LoaiMocVisibilityMap,
 } from "@/lib/journey/filter-visibility";
@@ -152,11 +157,18 @@ export function JourneyTimeline({
       if (!detail?.milestoneId) return;
       setItems((prev) => applyMilestoneInlinePatch(prev, detail));
     };
+    const onCreditsUpdated = (event: Event) => {
+      const detail = (event as CustomEvent<MilestoneCreditsUpdatedDetail>).detail;
+      if (!detail?.tacPhamId) return;
+      setItems((prev) => applyMilestoneCreditsUpdate(prev, detail));
+    };
     window.addEventListener("cins:milestone-deleted", onMilestoneDeleted);
     window.addEventListener(MILESTONE_INLINE_PATCH_EVENT, onMilestonePatch);
+    window.addEventListener(MILESTONE_CREDITS_UPDATED_EVENT, onCreditsUpdated);
     return () => {
       window.removeEventListener("cins:milestone-deleted", onMilestoneDeleted);
       window.removeEventListener(MILESTONE_INLINE_PATCH_EVENT, onMilestonePatch);
+      window.removeEventListener(MILESTONE_CREDITS_UPDATED_EVENT, onCreditsUpdated);
     };
   }, [ownerSlug]);
 
@@ -412,6 +424,7 @@ export function JourneyTimeline({
               isOwner={isOwner}
               ownerSlug={ownerSlug}
               ownerProfileId={ownerProfileId}
+              viewerProfileId={viewerProfileId}
               authorAvatarUrl={ownerAvatarUrl ?? null}
               authorName={ownerName}
               inlineExpand={inlineExpand}
