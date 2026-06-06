@@ -1,4 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { cookies } from "next/headers";
 import type { NextRequest, NextResponse } from "next/server";
 
 import { getSupabaseCookieOptions } from "@/lib/supabase/cookie-options";
@@ -7,15 +9,7 @@ import {
   getTrimmedSupabaseUrl,
 } from "@/lib/supabase/env";
 
-/**
- * Supabase client cho Route Handlers (vd. `/auth/callback`):
- * - Đọc cookie từ **request** (gồm PKCE code_verifier browser đã ghi).
- * - Ghi session cookie lên **response** redirect (tránh mất cookie sau exchange).
- */
-export function createSupabaseRouteHandlerClient(
-  request: NextRequest,
-  response: NextResponse,
-) {
+function requireSupabaseEnv(): { url: string; key: string } {
   const url = getTrimmedSupabaseUrl();
   const key = getTrimmedSupabaseAnonKey();
   if (!url || !key) {
@@ -23,6 +17,17 @@ export function createSupabaseRouteHandlerClient(
       "Missing NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY",
     );
   }
+  return { url, key };
+}
+
+/**
+ * Supabase client cho Route Handlers thông thường — ghi cookie lên response đích.
+ */
+export function createSupabaseRouteHandlerClient(
+  request: NextRequest,
+  response: NextResponse,
+) {
+  const { url, key } = requireSupabaseEnv();
 
   return createServerClient(url, key, {
     cookieOptions: getSupabaseCookieOptions(),
@@ -30,12 +35,66 @@ export function createSupabaseRouteHandlerClient(
       getAll() {
         return request.cookies.getAll();
       },
-      setAll(cookiesToSet) {
+      setAll(cookiesToSet, headers) {
         cookiesToSet.forEach(({ name, value, options }) => {
           response.cookies.set(name, value, options);
         });
+        if (headers) {
+          for (const [header, value] of Object.entries(headers)) {
+            response.headers.set(header, value);
+          }
+        }
       },
     },
+  });
+}
+
+/**
+ * OAuth callback — ghi cookie vào **cả** `cookies()` lẫn response redirect.
+ * Next.js 15/16 không tự merge `cookies().set()` vào `NextResponse.redirect()`.
+ */
+export async function createSupabaseOAuthCallbackClient(
+  request: NextRequest,
+  redirectResponse: NextResponse,
+): Promise<SupabaseClient> {
+  const { url, key } = requireSupabaseEnv();
+  const cookieStore = await cookies();
+
+  return createServerClient(url, key, {
+    cookieOptions: getSupabaseCookieOptions(),
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll(cookiesToSet, headers) {
+        cookiesToSet.forEach(({ name, value, options }) => {
+          try {
+            cookieStore.set(name, value, options);
+          } catch {
+            /* Route Handler có thể từ chối ghi sau khi headers đã flush. */
+          }
+          redirectResponse.cookies.set(name, value, options);
+        });
+        if (headers) {
+          for (const [header, value] of Object.entries(headers)) {
+            redirectResponse.headers.set(header, value);
+          }
+        }
+      },
+    },
+  });
+}
+
+/**
+ * supabase-js >= 2.91 hoãn SIGNED_IN qua setTimeout(0); subscriber @supabase/ssr
+ * ghi cookie trong handler đó — phải await trước khi return redirect.
+ */
+export async function flushDeferredAuthCookies(): Promise<void> {
+  await new Promise<void>((resolve) => {
+    setImmediate(resolve);
+  });
+  await new Promise<void>((resolve) => {
+    setTimeout(resolve, 0);
   });
 }
 
@@ -56,13 +115,12 @@ export function appendSetCookieHeaders(
     return;
   }
 
-  /* Fallback khi getSetCookie rỗng (Edge / Next 16). */
   for (const { name, value } of from.cookies.getAll()) {
     to.cookies.set(name, value);
   }
 }
 
-/** @deprecated Dùng `appendSetCookieHeaders` — `getAll()` không giữ cookie options. */
+/** @deprecated Dùng `appendSetCookieHeaders`. */
 export function copySupabaseCookies(
   from: NextResponse,
   to: NextResponse,

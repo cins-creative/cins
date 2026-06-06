@@ -34,7 +34,9 @@ export async function startGoogleLogin(
   try {
     stashOAuthIntent(intent);
     const returnPath = resolveOAuthReturnPath(options);
-    stashOAuthReturnTo(returnPath);
+    if (returnPath) {
+      stashOAuthReturnTo(returnPath);
+    }
 
     const supabase = createSupabaseBrowserClient();
     const origin = resolveAuthOrigin();

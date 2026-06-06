@@ -21,6 +21,27 @@ export function CinsHomeV2Page({ markup }: Props) {
     const root = rootRef.current;
     if (!root) return;
 
+    void fetch("/api/auth/session-profile", { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json: { profile?: { slug: string; tenHienThi: string | null } | null } | null) => {
+        if (!json?.profile?.slug) return;
+        const auth = root.querySelector(".tb-auth");
+        auth?.remove();
+        const divider = root.querySelector(".tb-divider");
+        divider?.remove();
+        const tbRight = root.querySelector(".tb-right");
+        if (!tbRight || tbRight.querySelector(".tb-journey-link")) return;
+        const link = document.createElement("a");
+        link.href = `/${encodeURIComponent(json.profile.slug)}`;
+        link.className = "tb-journey-link";
+        link.textContent =
+          json.profile.tenHienThi?.trim() || `@${json.profile.slug}`;
+        tbRight.appendChild(link);
+      })
+      .catch(() => {
+        /* ignore */
+      });
+
     const onSidebarNavClick = (e: MouseEvent) => {
       const link = (e.target as Element).closest<HTMLAnchorElement>(
         "a.sb-item[href], a.tb-login[href], a.tb-signup[href]",

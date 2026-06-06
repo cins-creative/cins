@@ -113,7 +113,7 @@ async function resolveSession(request: NextRequest): Promise<{
       getAll() {
         return request.cookies.getAll();
       },
-      setAll(cookiesToSet) {
+      setAll(cookiesToSet, headers) {
         cookiesToSet.forEach(({ name, value }) => {
           request.cookies.set(name, value);
         });
@@ -121,6 +121,11 @@ async function resolveSession(request: NextRequest): Promise<{
         cookiesToSet.forEach(({ name, value, options }) => {
           response.cookies.set(name, value, options);
         });
+        if (headers) {
+          for (const [header, value] of Object.entries(headers)) {
+            response.headers.set(header, value);
+          }
+        }
       },
     },
   });
@@ -156,24 +161,26 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  const { response: sessionResponse, userId } = await resolveSession(request);
+
   /* Protected routes — check session bất kể MAINTENANCE_MODE. */
   if (isProtectedPath(pathname)) {
-    const { response, userId } = await resolveSession(request);
     if (!userId) {
-      return redirectToLogin(request, response);
+      return redirectToLogin(request, sessionResponse);
     }
-    /* Có session → cho qua, KỂ CẢ trong maintenance mode (admin/tester vào được). */
-    return response;
+    return sessionResponse;
   }
 
   /* Còn lại: maintenance rewrite — chỉ áp dụng cho host trong `MAINTENANCE_HOSTS`. */
   if (!MAINTENANCE_MODE) {
-    return NextResponse.next();
+    return sessionResponse;
   }
   if (!shouldApplyMaintenance(request.nextUrl.hostname)) {
-    return NextResponse.next();
+    return sessionResponse;
   }
-  return NextResponse.rewrite(new URL("/maintenance", request.url));
+  const maintenance = NextResponse.rewrite(new URL("/maintenance", request.url));
+  appendSetCookieHeaders(sessionResponse, maintenance);
+  return maintenance;
 }
 
 export const config = {

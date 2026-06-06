@@ -6,14 +6,12 @@ import {
   clearOAuthIntentOnResponse,
   readOAuthIntent,
 } from "@/lib/auth/oauth-intent-server";
+import { OAUTH_RETURN_COOKIE } from "@/lib/auth/oauth-return-constants";
 import { normalizeOAuthReturnPath } from "@/lib/auth/oauth-return-path";
+import { clearOAuthReturnOnResponse } from "@/lib/auth/oauth-return-server";
 import {
-  clearOAuthReturnOnResponse,
-  readOAuthReturnTo,
-} from "@/lib/auth/oauth-return-server";
-import {
-  appendSetCookieHeaders,
-  createSupabaseRouteHandlerClient,
+  createSupabaseOAuthCallbackClient,
+  flushDeferredAuthCookies,
 } from "@/lib/supabase/route-handler";
 
 export const dynamic = "force-dynamic";
@@ -41,9 +39,21 @@ function hasVerifierCookie(request: NextRequest): boolean {
     );
 }
 
+function readOAuthReturnFromRequest(request: NextRequest): string | null {
+  const raw = request.cookies.get(OAUTH_RETURN_COOKIE)?.value;
+  if (!raw) return null;
+
+  try {
+    const decoded = decodeURIComponent(raw);
+    return normalizeOAuthReturnPath(decoded);
+  } catch {
+    return null;
+  }
+}
+
 /**
- * Google OAuth callback — exchange PKCE trên staging response, copy Set-Cookie
- * sang redirect cuối (Next.js 16 không gắn cookie từ cookies() lên NextResponse mới).
+ * Google OAuth callback — exchange PKCE, ghi session cookie trực tiếp lên
+ * response redirect (không copy từ staging response).
  */
 export async function GET(request: NextRequest) {
   const url = request.nextUrl;
@@ -80,8 +90,11 @@ export async function GET(request: NextRequest) {
     url.searchParams.get("intent"),
   );
 
-  const stagingResponse = NextResponse.next({ request });
-  const supabase = createSupabaseRouteHandlerClient(request, stagingResponse);
+  const redirectResponse = NextResponse.redirect(new URL("/", origin));
+  const supabase = await createSupabaseOAuthCallbackClient(
+    request,
+    redirectResponse,
+  );
 
   const { error: exchangeErr } = await supabase.auth.exchangeCodeForSession(code);
   if (exchangeErr) {
@@ -90,6 +103,8 @@ export async function GET(request: NextRequest) {
       : exchangeErr.message;
     return loginRedirect(origin, msg, safeNextFromQuery);
   }
+
+  await flushDeferredAuthCookies();
 
   const {
     data: { user },
@@ -103,9 +118,9 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const returnFromCookie = await readOAuthReturnTo();
+  const returnFromCookie = readOAuthReturnFromRequest(request);
   const safeNext =
-    safeNextFromQuery ?? normalizeOAuthReturnPath(returnFromCookie);
+    safeNextFromQuery ?? returnFromCookie;
 
   let destination: URL;
   if (intent === "register") {
@@ -122,7 +137,7 @@ export async function GET(request: NextRequest) {
 
     if (!profile || !profile.giai_doan) {
       destination = new URL("/onboarding", origin);
-    } else if (safeNext) {
+    } else if (safeNext && safeNext !== "/") {
       destination = new URL(safeNext, origin);
     } else {
       destination = new URL(
@@ -132,9 +147,8 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  const finalResponse = NextResponse.redirect(destination);
-  appendSetCookieHeaders(stagingResponse, finalResponse);
-  clearOAuthIntentOnResponse(finalResponse);
-  clearOAuthReturnOnResponse(finalResponse);
-  return finalResponse;
+  redirectResponse.headers.set("Location", destination.toString());
+  clearOAuthIntentOnResponse(redirectResponse);
+  clearOAuthReturnOnResponse(redirectResponse);
+  return redirectResponse;
 }

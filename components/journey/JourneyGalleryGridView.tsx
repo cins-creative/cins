@@ -206,7 +206,7 @@ export function JourneyGalleryGridView({
                   srcSet={item.srcSet}
                   sizes={
                     item.srcSet
-                      ? "(max-width: 575px) 100vw, (max-width: 991px) 50vw, 33vw"
+                      ? "(max-width: 575px) 33vw, (max-width: 991px) 50vw, 33vw"
                       : undefined
                   }
                   width={item.width}

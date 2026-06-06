@@ -165,6 +165,12 @@ html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
   transform:translateY(-1px);
   box-shadow:var(--btn-grad-shadow),0 8px 0 rgba(31,116,201,.22);
 }
+.tb-journey-link{
+  font-size:13px;font-weight:700;color:var(--blue);
+  padding:9px 14px;border-radius:var(--r-pill);
+  background:var(--blue-soft);transition:all var(--dur) var(--ease);
+}
+.tb-journey-link:hover{background:rgba(31,116,201,.14);color:var(--ink1)}
 
 /* footer brand (legacy classes still in use below) */
 .footer .brand{display:inline-flex;align-items:center;gap:10px}

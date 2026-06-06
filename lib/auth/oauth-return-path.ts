@@ -18,22 +18,22 @@ export function normalizeOAuthReturnPath(path: string | null | undefined): strin
   return path;
 }
 
-/** Path lưu cookie `cins-oauth-return` trước khi redirect sang Google. */
+/** Path lưu cookie `cins-oauth-return` trước khi redirect sang Google. `null` = dùng slug profile sau login. */
 export function resolveOAuthReturnPath(options?: {
   returnTo?: string;
   pathname?: string;
   search?: string;
   hash?: string;
-}): string {
+}): string | null {
   const explicit = normalizeOAuthReturnPath(options?.returnTo);
   if (explicit) return explicit;
 
   if (typeof window !== "undefined" && !options?.pathname) {
-    const fromLogin = normalizeOAuthReturnPath(
+    const fromCurrent = normalizeOAuthReturnPath(
       `${window.location.pathname}${window.location.search}${window.location.hash}`,
     );
-    if (fromLogin) return fromLogin;
-    if (window.location.pathname === "/login") return "/";
+    if (fromCurrent) return fromCurrent;
+    if (window.location.pathname === "/login") return null;
     return `${window.location.pathname}${window.location.search}${window.location.hash}`;
   }
 
@@ -43,6 +43,6 @@ export function resolveOAuthReturnPath(options?: {
   const raw = `${pathname}${search}${hash}`;
   const normalized = normalizeOAuthReturnPath(raw);
   if (normalized) return normalized;
-  if (pathname === "/login") return "/";
-  return raw.startsWith("/") && !raw.startsWith("//") ? raw : "/";
+  if (pathname === "/login") return null;
+  return raw.startsWith("/") && !raw.startsWith("//") ? raw : null;
 }
