@@ -21,6 +21,7 @@ import {
   loadMilestoneViewerAccess,
   type MilestoneViewerAccess,
 } from "@/lib/journey/milestone-viewer-access";
+import { compareTimelineOrder, resolveTaggedTimelineSortAt } from "@/lib/journey/timeline-sort";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 /** Số cột mốc hydrate mỗi lần user cuộn tới cuối timeline. */
@@ -107,24 +108,6 @@ function parseUtcDateParts(iso: string): {
   };
 }
 
-function compareTimelineStubs(a: TimelineStub, b: TimelineStub): number {
-  const aFeat = a.visibility === "feature" ? 1 : 0;
-  const bFeat = b.visibility === "feature" ? 1 : 0;
-  if (aFeat !== bFeat) return bFeat - aFeat;
-
-  const aDate = new Date(
-    `${a.year}-${String(a.month).padStart(2, "0")}-${String(a.day).padStart(2, "0")}`,
-  ).getTime();
-  const bDate = new Date(
-    `${b.year}-${String(b.month).padStart(2, "0")}-${String(b.day).padStart(2, "0")}`,
-  ).getTime();
-  if (aDate !== bDate) return bDate - aDate;
-
-  const aCreated = a.taoLuc ? Date.parse(a.taoLuc) : 0;
-  const bCreated = b.taoLuc ? Date.parse(b.taoLuc) : 0;
-  return bCreated - aCreated;
-}
-
 function computeFilterCounts(stubs: TimelineStub[]): MilestoneFilterCounts {
   const counts: MilestoneFilterCounts = {
     all: stubs.length,
@@ -202,7 +185,7 @@ async function collectTaggedStubs(
 ): Promise<TimelineStub[]> {
   const { data: tagRows } = await admin
     .from("content_tac_pham_tac_gia")
-    .select("id_tac_pham")
+    .select("id_tac_pham, xu_ly_luc")
     .eq("id_nguoi_dung", userId)
     .eq("trang_thai", "accepted")
     .eq("la_chu_so_huu", false);
@@ -210,6 +193,12 @@ async function collectTaggedStubs(
   if (!tagRows?.length) return [];
 
   const tacPhamIds = tagRows.map((r) => r.id_tac_pham as string);
+  const acceptedAtByTp = new Map(
+    tagRows.map((r) => [
+      r.id_tac_pham as string,
+      (r.xu_ly_luc as string | null) ?? null,
+    ]),
+  );
   const { data: tacPhams } = await admin
     .from("content_tac_pham")
     .select("id, slug")
@@ -263,7 +252,10 @@ async function collectTaggedStubs(
       variant: "tagged",
       type: LOAI_MOC_TO_TYPE[cm.loai_moc],
       thoiDiem: cm.thoi_diem,
-      taoLuc: cm.tao_luc,
+      taoLuc: resolveTaggedTimelineSortAt(
+        acceptedAtByTp.get(tp.id as string),
+        cm.tao_luc,
+      ),
       year,
       month,
       day,
@@ -281,17 +273,18 @@ async function collectBookmarkStubs(
 ): Promise<TimelineStub[]> {
   const { data: savedRows } = await admin
     .from("social_luu")
-    .select("id_doi_tuong")
+    .select("id_doi_tuong, tao_luc")
     .eq("id_nguoi_dung", userId)
     .eq("loai_doi_tuong", "cot_moc");
 
-  const cotMocIds = [
-    ...new Set(
-      (savedRows ?? [])
-        .map((row) => row.id_doi_tuong as string)
-        .filter(Boolean),
-    ),
-  ];
+  const savedAtByMoc = new Map(
+    (savedRows ?? []).map((row) => [
+      row.id_doi_tuong as string,
+      (row.tao_luc as string | null) ?? null,
+    ]),
+  );
+
+  const cotMocIds = [...new Set(savedAtByMoc.keys())];
   if (cotMocIds.length === 0) return [];
 
   const { data: cotMocs } = await admin
@@ -342,7 +335,7 @@ async function collectBookmarkStubs(
       variant: "bookmark",
       type: LOAI_MOC_TO_TYPE[cm.loai_moc],
       thoiDiem: cm.thoi_diem,
-      taoLuc: cm.tao_luc,
+      taoLuc: savedAtByMoc.get(cm.id) ?? cm.tao_luc,
       year,
       month,
       day,
@@ -373,7 +366,7 @@ async function collectTimelineStubs(
   const bookmarkExtra = bookmarks.filter((s) => !seenCotMocIds.has(s.cotMocId));
 
   const merged = [...self, ...taggedExtra, ...bookmarkExtra];
-  merged.sort(compareTimelineStubs);
+  merged.sort(compareTimelineOrder);
   return merged;
 }
 

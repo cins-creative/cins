@@ -8,6 +8,7 @@ import type {
   CoAuthorReviewProfile,
   PendingCoAuthorReview,
   PendingCoAuthorInvite,
+  PendingCoAuthorInviteNotification,
   ProcessedCoAuthorReview,
   TacGiaTrangThai,
 } from "@/lib/social/types";
@@ -333,6 +334,18 @@ export async function respondCoAuthor(
     .eq("id_nguoi_dung", userId);
 
   if (error) return { ok: false, error: error.message };
+
+  await admin
+    .from("social_thong_bao")
+    .update({
+      da_doc: true,
+      xu_ly_luc: new Date().toISOString(),
+    })
+    .eq("nguoi_nhan", userId)
+    .eq("loai_doi_tuong", "tac_gia_invite")
+    .eq("id_doi_tuong", tacPhamId)
+    .is("xu_ly_luc", null);
+
   return { ok: true };
 }
 
@@ -475,6 +488,89 @@ export async function loadPendingCoAuthorInvites(
       };
     })
     .filter((x): x is PendingCoAuthorInvite => x !== null);
+}
+
+export async function listPendingCoAuthorInviteNotifications(
+  userId: string,
+  options: { limit?: number } = {},
+): Promise<PendingCoAuthorInviteNotification[]> {
+  const rowLimit = options.limit ?? 10;
+  const admin = createServiceRoleClient();
+  const { data: rows } = await admin
+    .from("social_thong_bao")
+    .select("id, id_doi_tuong, tao_luc")
+    .eq("nguoi_nhan", userId)
+    .eq("loai_doi_tuong", "tac_gia_invite")
+    .eq("da_doc", false)
+    .is("xu_ly_luc", null)
+    .order("tao_luc", { ascending: false })
+    .limit(rowLimit);
+
+  if (!rows?.length) return [];
+
+  const tacPhamIds = [
+    ...new Set(
+      rows
+        .map((row) => row.id_doi_tuong as string | null)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  if (tacPhamIds.length === 0) return [];
+
+  const { data: pendingRows } = await admin
+    .from("content_tac_pham_tac_gia")
+    .select("id_tac_pham, vai_tro")
+    .eq("id_nguoi_dung", userId)
+    .eq("trang_thai", "pending")
+    .eq("la_chu_so_huu", false)
+    .in("id_tac_pham", tacPhamIds);
+
+  const pendingByTacPham = new Map(
+    (pendingRows ?? []).map((row) => [
+      row.id_tac_pham as string,
+      (row.vai_tro as string) || "",
+    ]),
+  );
+
+  const { data: tacPhams } = await admin
+    .from("content_tac_pham")
+    .select("id, slug, tieu_de, id_nguoi_dung")
+    .in("id", tacPhamIds);
+
+  const ownerIds = [
+    ...new Set((tacPhams ?? []).map((tp) => tp.id_nguoi_dung as string)),
+  ];
+  const { data: owners } = ownerIds.length
+    ? await admin
+        .from("user_nguoi_dung")
+        .select("id, slug, ten_hien_thi")
+        .in("id", ownerIds)
+    : { data: [] };
+
+  const tpById = new Map((tacPhams ?? []).map((tp) => [tp.id as string, tp]));
+  const ownerById = new Map((owners ?? []).map((o) => [o.id as string, o]));
+
+  const invites: PendingCoAuthorInviteNotification[] = [];
+  for (const row of rows) {
+    const tacPhamId = row.id_doi_tuong as string | null;
+    if (!tacPhamId || !pendingByTacPham.has(tacPhamId)) continue;
+    const tp = tpById.get(tacPhamId);
+    if (!tp?.slug) continue;
+    const owner = ownerById.get(tp.id_nguoi_dung as string);
+    const invite: PendingCoAuthorInviteNotification = {
+      notificationId: row.id as string,
+      tacPhamId,
+      postSlug: tp.slug as string,
+      postTitle: (tp.tieu_de as string) || "Bài viết",
+      ownerSlug: (owner?.slug as string) ?? "",
+      ownerName: (owner?.ten_hien_thi as string) || "Ai đó",
+      vaiTro: pendingByTacPham.get(tacPhamId) ?? "",
+    };
+    const taoLuc = row.tao_luc as string | null;
+    if (taoLuc) invite.taoLuc = taoLuc;
+    invites.push(invite);
+  }
+  return invites;
 }
 
 export async function listPendingCoAuthorReviews(

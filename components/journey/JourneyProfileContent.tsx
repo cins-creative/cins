@@ -30,10 +30,22 @@ import {
 } from "@/lib/journey/journey-panel-local-cache";
 import type { MilestoneTimelinePageResult } from "@/lib/journey/milestones-page-fetch";
 import {
+  COAUTHOR_INVITE_ACCEPTED_EVENT,
+  COAUTHOR_INVITE_DECLINED_EVENT,
+  COAUTHOR_INVITE_FAILED_EVENT,
+  type CoAuthorInviteAcceptedDetail,
+  type CoAuthorInviteDeclinedDetail,
+  type CoAuthorInviteFailedDetail,
+} from "@/lib/journey/coauthor-invite-events";
+import {
   applyMilestoneInlinePatch,
   MILESTONE_INLINE_PATCH_EVENT,
   type MilestoneInlinePatchDetail,
 } from "@/lib/journey/milestone-inline-patch";
+import {
+  mergeMilestoneIntoTimeline,
+  removeMilestoneByTacPhamId,
+} from "@/lib/journey/timeline-merge";
 
 export type JourneyProfileInitialData = {
   timeline?: JourneyTimelinePanelData;
@@ -331,12 +343,85 @@ export function JourneyProfileContent({
       });
     };
 
+    const onCoAuthorAccepted = (event: Event) => {
+      const detail = (event as CustomEvent<CoAuthorInviteAcceptedDetail>).detail;
+      if (!detail || detail.ownerSlug !== ownerSlug) return;
+      setTimelineCache((prev) => {
+        if (!prev || prev === "loading" || prev === "error") return prev;
+        const hadMilestone = prev.page.milestones.some(
+          (m) =>
+            m.tacPhamId === detail.tacPhamId ||
+            m.id.endsWith(`:${detail.tacPhamId}`),
+        );
+        const next: TimelineCacheData = {
+          ...prev,
+          coAuthorPendingInvites: prev.coAuthorPendingInvites.filter(
+            (inv) => inv.tacPhamId !== detail.tacPhamId,
+          ),
+          page: {
+            ...prev.page,
+            milestones: mergeMilestoneIntoTimeline(
+              prev.page.milestones,
+              detail.milestone,
+            ),
+            totalCount: hadMilestone
+              ? prev.page.totalCount
+              : prev.page.totalCount + 1,
+          },
+        };
+        writeJourneyTimelinePanelCache(ownerSlug, viewerProfileId, next);
+        return next;
+      });
+      syncGalleryPanel();
+    };
+
+    const onCoAuthorDeclined = (event: Event) => {
+      const detail = (event as CustomEvent<CoAuthorInviteDeclinedDetail>).detail;
+      if (!detail || detail.ownerSlug !== ownerSlug) return;
+      setTimelineCache((prev) => {
+        if (!prev || prev === "loading" || prev === "error") return prev;
+        const next: TimelineCacheData = {
+          ...prev,
+          coAuthorPendingInvites: prev.coAuthorPendingInvites.filter(
+            (inv) => inv.tacPhamId !== detail.tacPhamId,
+          ),
+        };
+        writeJourneyTimelinePanelCache(ownerSlug, viewerProfileId, next);
+        return next;
+      });
+    };
+
+    const onCoAuthorFailed = (event: Event) => {
+      const detail = (event as CustomEvent<CoAuthorInviteFailedDetail>).detail;
+      if (!detail || detail.ownerSlug !== ownerSlug) return;
+      if (detail.action !== "accepted") return;
+      setTimelineCache((prev) => {
+        if (!prev || prev === "loading" || prev === "error") return prev;
+        const next: TimelineCacheData = {
+          ...prev,
+          page: {
+            ...prev.page,
+            milestones: removeMilestoneByTacPhamId(
+              prev.page.milestones,
+              detail.tacPhamId,
+            ),
+          },
+        };
+        writeJourneyTimelinePanelCache(ownerSlug, viewerProfileId, next);
+        return next;
+      });
+      void fetchTimeline({ background: true, force: true });
+    };
+
     window.addEventListener("cins:milestone-deleted", onMilestoneDeleted);
     window.addEventListener("cins:milestone-delete-failed", onMilestoneDeleteFailed);
     window.addEventListener("cins:journey-timeline-changed", onTimelineChanged);
     window.addEventListener("cins:video-ready", onTimelineChanged);
     window.addEventListener("cins:journey-gallery-sync", onGallerySync);
     window.addEventListener(MILESTONE_INLINE_PATCH_EVENT, onMilestonePatch);
+    window.addEventListener(COAUTHOR_INVITE_ACCEPTED_EVENT, onCoAuthorAccepted);
+    window.addEventListener(COAUTHOR_INVITE_DECLINED_EVENT, onCoAuthorDeclined);
+    window.addEventListener(COAUTHOR_INVITE_FAILED_EVENT, onCoAuthorFailed);
     return () => {
       window.removeEventListener("cins:milestone-deleted", onMilestoneDeleted);
       window.removeEventListener(
@@ -350,6 +435,9 @@ export function JourneyProfileContent({
       window.removeEventListener("cins:video-ready", onTimelineChanged);
       window.removeEventListener("cins:journey-gallery-sync", onGallerySync);
       window.removeEventListener(MILESTONE_INLINE_PATCH_EVENT, onMilestonePatch);
+      window.removeEventListener(COAUTHOR_INVITE_ACCEPTED_EVENT, onCoAuthorAccepted);
+      window.removeEventListener(COAUTHOR_INVITE_DECLINED_EVENT, onCoAuthorDeclined);
+      window.removeEventListener(COAUTHOR_INVITE_FAILED_EVENT, onCoAuthorFailed);
     };
   }, [ownerSlug, viewerProfileId, fetchTimeline, fetchGallery]);
 

@@ -24,6 +24,17 @@ import {
   type LoaiMocVisibilityMap,
 } from "@/lib/journey/filter-visibility";
 import type { MilestoneFilterCounts } from "@/lib/journey/milestones-page-fetch";
+import {
+  COAUTHOR_INVITE_ACCEPTED_EVENT,
+  COAUTHOR_INVITE_FAILED_EVENT,
+  type CoAuthorInviteAcceptedDetail,
+  type CoAuthorInviteFailedDetail,
+} from "@/lib/journey/coauthor-invite-events";
+import {
+  mergeMilestoneIntoTimeline,
+  removeMilestoneByTacPhamId,
+} from "@/lib/journey/timeline-merge";
+import { compareTimelineOrder } from "@/lib/journey/timeline-sort";
 import type { PendingCoAuthorInvite } from "@/lib/social/types";
 
 type ScrollLoadConfig = {
@@ -96,6 +107,28 @@ export function JourneyTimeline({
     setNextOffset(scrollLoad?.nextOffset ?? initialMilestones.length);
     setLoadError(false);
   }, [initialMilestones, scrollLoad?.hasMore, scrollLoad?.nextOffset]);
+
+  useEffect(() => {
+    const onAccepted = (event: Event) => {
+      const detail = (event as CustomEvent<CoAuthorInviteAcceptedDetail>).detail;
+      if (!detail || detail.ownerSlug !== ownerSlug) return;
+      setItems((prev) => mergeMilestoneIntoTimeline(prev, detail.milestone));
+    };
+    const onFailed = (event: Event) => {
+      const detail = (event as CustomEvent<CoAuthorInviteFailedDetail>).detail;
+      if (!detail || detail.ownerSlug !== ownerSlug) return;
+      if (detail.action === "accepted") {
+        setItems((prev) => removeMilestoneByTacPhamId(prev, detail.tacPhamId));
+      }
+    };
+
+    window.addEventListener(COAUTHOR_INVITE_ACCEPTED_EVENT, onAccepted);
+    window.addEventListener(COAUTHOR_INVITE_FAILED_EVENT, onFailed);
+    return () => {
+      window.removeEventListener(COAUTHOR_INVITE_ACCEPTED_EVENT, onAccepted);
+      window.removeEventListener(COAUTHOR_INVITE_FAILED_EVENT, onFailed);
+    };
+  }, [ownerSlug]);
 
   useEffect(() => {
     const onMilestoneDeleted = (event: Event) => {
@@ -352,6 +385,7 @@ export function JourneyTimeline({
         <JourneyCoAuthorPendingBanner
           invites={coAuthorPendingInvites}
           viewerProfileId={viewerProfileId}
+          ownerSlug={ownerSlug}
         />
       ) : null}
 
@@ -564,17 +598,7 @@ function groupByYearDesc(
     .sort((a, b) => b[0] - a[0])
     .map(([year, items]) => ({
       year,
-      /* Sort trong năm: tháng DESC → ngày DESC → `createdAt` DESC → id ASC.
-         Cùng ngày dùng `createdAt` (tao_luc) để mốc mới hơn lên đầu; nếu
-         vẫn tie (createdAt null) thì id ASC ổn định cuối. */
-      milestones: items.slice().sort((a, b) => {
-        if (b.month !== a.month) return b.month - a.month;
-        if (b.day !== a.day) return b.day - a.day;
-        const ac = a.createdAt ? Date.parse(a.createdAt) : 0;
-        const bc = b.createdAt ? Date.parse(b.createdAt) : 0;
-        if (bc !== ac) return bc - ac;
-        return a.id.localeCompare(b.id);
-      }),
+      milestones: items.slice().sort(compareTimelineOrder),
     }));
 }
 

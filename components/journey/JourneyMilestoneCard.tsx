@@ -25,6 +25,7 @@ import { JourneyArticleTagLink } from "@/components/journey/JourneyArticleTagLin
 import { JourneyCardVideo } from "@/components/journey/JourneyCardVideo";
 import { JourneyMilestoneUnfold } from "@/components/journey/JourneyMilestoneUnfold";
 import { JourneyCommentLink } from "@/components/journey/JourneyCommentLink";
+import { JourneyArticleTagManager } from "@/components/journey/JourneyArticleTagManager";
 import { JourneyCoAuthorProposal } from "@/components/journey/JourneyCoAuthorProposal";
 import { JourneyCoverImage } from "@/components/journey/JourneyCoverImage";
 import { ImageGrid } from "@/components/journey/ImageGrid";
@@ -246,6 +247,7 @@ export function JourneyMilestoneCard({
   const canManage = canManageSelf || canManageTagged;
   const canBookmark = !(isOwner && (variant === "self" || isBookmarkMilestone));
   const canManageCoAuthors = isOwner && variant === "self" && Boolean(tacPhamId);
+  const canManageArticleTags = canManageCoAuthors;
   const canShowCoAuthorAction =
     variant !== "tagged" &&
     (canProposeCoAuthor || canManageCoAuthors) &&
@@ -344,7 +346,9 @@ export function JourneyMilestoneCard({
           }
         >
           {variant === "tagged" || variant === "verified" ? (
-            attribution ? <TaggedByPanel attr={attribution} dateLabel={displayDate} /> : null
+            attribution && !canManageTagged ? (
+              <TaggedByPanel attr={attribution} dateLabel={displayDate} />
+            ) : null
           ) : null}
 
           {variant === "bookmark" && bookmark ? (
@@ -357,6 +361,9 @@ export function JourneyMilestoneCard({
                 "jcard-datebar" + (canManageTagged ? " jcard-datebar--tagged" : "")
               }
             >
+              {canManageTagged && attribution ? (
+                <TaggedByPanel attr={attribution} dateLabel={displayDate} />
+              ) : null}
               {showAuthorBadge ? (
                 <span className="org-chip">
                   <span className="org-logo" aria-hidden>
@@ -709,6 +716,12 @@ export function JourneyMilestoneCard({
               />
             ) : null}
             <span className="action-spacer" />
+            {canManageArticleTags && tacPhamId ? (
+              <JourneyArticleTagManager
+                tacPhamId={tacPhamId}
+                initialTags={articleTags}
+              />
+            ) : null}
             {canShowCoAuthorAction && tacPhamId ? (
               <JourneyCoAuthorProposal
                 tacPhamId={tacPhamId}

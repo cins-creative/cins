@@ -3,15 +3,25 @@
 import Link from "next/link";
 import { ArrowRight, Bell, Check, Video, X } from "lucide-react";
 import type { ReactNode } from "react";
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { createPortal } from "react-dom";
 
+import { CoAuthorInviteMessage } from "@/components/journey/CoAuthorInviteMessage";
 import type {
   CommentNotification,
   CoAuthorReviewProfile,
   FollowAcceptedNotification,
   NotificationFeed,
   NotificationFilter,
+  PendingCoAuthorInviteNotification,
   PendingCoAuthorReview,
   PendingFollowRequest,
   ProcessedCoAuthorReview,
@@ -21,13 +31,20 @@ import type {
 type Props = {
   /** Badge từ server — feed chi tiết lazy-load khi mở menu. */
   initialUnreadCount: number;
+  viewerProfileId: string;
 };
+
+function coAuthorPostHref(inv: PendingCoAuthorInviteNotification): string | null {
+  if (!inv.ownerSlug || !inv.postSlug) return null;
+  return `/${encodeURIComponent(inv.ownerSlug)}/p/${encodeURIComponent(inv.postSlug)}`;
+}
 
 const EMPTY_HISTORY_FEED: NotificationFeed = {
   unreadCount: 0,
   followRequests: [],
   accepted: [],
   comments: [],
+  coAuthorInvites: [],
   coAuthorReviews: [],
   videoReady: [],
   handledFollows: [],
@@ -68,7 +85,12 @@ function parseFeedPayload(json: unknown): NotificationFeed | null {
   if (!json || typeof json !== "object") return null;
   const data = json as NotificationFeed;
   if (!Array.isArray(data.followRequests)) return null;
-  return data;
+  return {
+    ...EMPTY_HISTORY_FEED,
+    ...data,
+    coAuthorInvites: Array.isArray(data.coAuthorInvites) ? data.coAuthorInvites : [],
+    coAuthorReviews: Array.isArray(data.coAuthorReviews) ? data.coAuthorReviews : [],
+  };
 }
 
 function countDisplayedItems(feed: NotificationFeed): number {
@@ -76,6 +98,7 @@ function countDisplayedItems(feed: NotificationFeed): number {
     feed.followRequests.length +
     feed.accepted.length +
     feed.comments.length +
+    feed.coAuthorInvites.length +
     feed.coAuthorReviews.length +
     feed.videoReady.length +
     feed.handledFollows.length +
@@ -83,7 +106,10 @@ function countDisplayedItems(feed: NotificationFeed): number {
   );
 }
 
-export function JourneyNotifications({ initialUnreadCount }: Props) {
+export function JourneyNotifications({
+  initialUnreadCount,
+  viewerProfileId,
+}: Props) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<NotificationFilter>("unread");
   const [selected, setSelected] = useState<PendingFollowRequest | null>(null);
@@ -97,6 +123,64 @@ export function JourneyNotifications({ initialUnreadCount }: Props) {
   const [unreadLoaded, setUnreadLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [portalReady, setPortalReady] = useState(false);
+  const [menuStyle, setMenuStyle] = useState<{ top: number; right: number } | null>(
+    null,
+  );
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const ignoreOutsideClickRef = useRef(false);
+
+  useEffect(() => {
+    setPortalReady(true);
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!open) {
+      setMenuStyle(null);
+      return;
+    }
+    const updatePosition = () => {
+      const btn = triggerRef.current;
+      if (!btn) return;
+      const rect = btn.getBoundingClientRect();
+      setMenuStyle({
+        top: rect.bottom + 10,
+        right: Math.max(16, window.innerWidth - rect.right),
+      });
+    };
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    let removeListener: (() => void) | undefined;
+    const timer = window.setTimeout(() => {
+      function onDocClick(event: MouseEvent) {
+        if (ignoreOutsideClickRef.current) {
+          ignoreOutsideClickRef.current = false;
+          return;
+        }
+        const target = event.target as Node;
+        if (triggerRef.current?.contains(target)) return;
+        if (menuRef.current?.contains(target)) return;
+        setOpen(false);
+      }
+      document.addEventListener("click", onDocClick, true);
+      removeListener = () =>
+        document.removeEventListener("click", onDocClick, true);
+    }, 0);
+    return () => {
+      window.clearTimeout(timer);
+      removeListener?.();
+    };
+  }, [open]);
 
   const applyFeed = useCallback((next: NotificationFeed) => {
     setFeed(next);
@@ -255,6 +339,32 @@ export function JourneyNotifications({ initialUnreadCount }: Props) {
     });
   };
 
+  const respondCoAuthorInvite = (
+    invite: PendingCoAuthorInviteNotification,
+    action: "accepted" | "declined",
+  ) => {
+    setError(null);
+    startTransition(async () => {
+      const res = await fetch(
+        `/api/tac-pham/${invite.tacPhamId}/tac-gia/${viewerProfileId}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ trang_thai: action }),
+        },
+      );
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(typeof json.error === "string" ? json.error : "Không xử lý được.");
+        return;
+      }
+      const feedRes = await fetch("/api/notifications?filter=unread");
+      const feedJson = await feedRes.json().catch(() => null);
+      const next = parseFeedPayload(feedJson);
+      if (next) applyFeed(next);
+    });
+  };
+
   const respondCoAuthorReview = (
     review: PendingCoAuthorReview,
     action: "accept" | "decline",
@@ -298,21 +408,12 @@ export function JourneyNotifications({ initialUnreadCount }: Props) {
   const title =
     unreadCount > 0 ? `${unreadCount} thông báo chưa đọc` : "Không có thông báo mới";
 
-  return (
-    <div className="j-notify">
-      <button
-        type="button"
-        className={`j-notify-trigger${unreadCount > 0 ? " has-unread" : ""}`}
-        aria-expanded={open}
-        aria-label={title}
-        onClick={() => setOpen((v) => !v)}
-      >
-        <Bell size={16} strokeWidth={1.9} aria-hidden />
-        {unreadCount > 0 ? <span className="j-notify-count">{unreadCount}</span> : null}
-      </button>
-
-      {open ? (
-        <div className="j-notify-menu">
+  const menuPanel = open && menuStyle ? (
+        <div
+          ref={menuRef}
+          className="j-notify-menu is-portal"
+          style={{ top: menuStyle.top, right: menuStyle.right, left: "auto" }}
+        >
           <div className="j-notify-head">
             <strong>Thông báo</strong>
             <span>{tab === "unread" ? `${unreadCount} chưa xử lý` : `${listCount} đã xử lý`}</span>
@@ -383,6 +484,49 @@ export function JourneyNotifications({ initialUnreadCount }: Props) {
                       onOpen={() => markRead([notice.notificationId])}
                     />
                   ))}
+                  {activeFeed.coAuthorInvites.map((invite) => {
+                    const postHref = coAuthorPostHref(invite);
+                    return (
+                      <li key={invite.notificationId}>
+                        <div className="j-notify-item is-coauthor-invite">
+                          <CoAuthorInviteMessage
+                            ownerName={invite.ownerName}
+                            postTitle={invite.postTitle}
+                            vaiTro={invite.vaiTro}
+                            className="j-coauthor-invite-message j-notify-coauthor-invite-text"
+                          />
+                          <div className="j-notify-inline-actions">
+                            {postHref ? (
+                              <a
+                                href={postHref}
+                                className="j-notify-mini-action is-link"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                Xem nội dung
+                              </a>
+                            ) : null}
+                            <button
+                              type="button"
+                              className="j-notify-mini-action is-accept"
+                              disabled={pending}
+                              onClick={() => respondCoAuthorInvite(invite, "accepted")}
+                            >
+                              Chấp nhận
+                            </button>
+                            <button
+                              type="button"
+                              className="j-notify-mini-action"
+                              disabled={pending}
+                              onClick={() => respondCoAuthorInvite(invite, "declined")}
+                            >
+                              Từ chối
+                            </button>
+                          </div>
+                        </div>
+                      </li>
+                    );
+                  })}
                   {activeFeed.coAuthorReviews.map((review) => (
                     <li key={review.notificationId}>
                       <div className="j-notify-item is-coauthor-review">
@@ -519,7 +663,28 @@ export function JourneyNotifications({ initialUnreadCount }: Props) {
             </p>
           ) : null}
         </div>
-      ) : null}
+  ) : null;
+
+  return (
+    <div className="j-notify">
+      <button
+        ref={triggerRef}
+        type="button"
+        className={`j-notify-trigger${unreadCount > 0 ? " has-unread" : ""}`}
+        aria-expanded={open}
+        aria-label={title}
+        onClick={() => {
+          ignoreOutsideClickRef.current = true;
+          setOpen((v) => !v);
+        }}
+      >
+        <Bell size={16} strokeWidth={1.9} aria-hidden />
+        {unreadCount > 0 ? <span className="j-notify-count">{unreadCount}</span> : null}
+      </button>
+
+      {portalReady && menuPanel
+        ? createPortal(menuPanel, document.body)
+        : null}
 
       {selected ? (
         <FollowRequestModal

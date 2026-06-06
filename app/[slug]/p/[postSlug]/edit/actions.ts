@@ -37,9 +37,8 @@ export type UpdatePostInput = {
   tieuDe: string;
   moTa: string;
   coverSeed: string | null;
-  /** Tag = `article_bai_viet` user gắn — diff với `article_gan_tac_pham`
-   *  hiện có để insert thêm / xoá bớt. */
-  tags: ArticleTagRef[];
+  /** Tag — quản lý từ Journey card; bỏ qua khi không truyền. */
+  tags?: ArticleTagRef[];
   visibility: Visibility;
   loaiMoc: LoaiMoc;
   thoiDiem: string;
@@ -187,82 +186,80 @@ export async function updatePost(
     return { ok: false, error: dbErrorMessage(cmUpdErr) };
   }
 
-  /* 6b. Diff `article_gan_tac_pham`: lấy mảng `id_bai_viet` hiện có vs
-     mảng mới từ input → insert thêm bài chưa link, delete bài bị bỏ.
-     Best-effort (không revert tac_pham/cot_moc nếu fail). */
-  const newTagIds = sanitizeTagIds(input.tags);
-  const newSet = new Set(newTagIds);
+  if (input.tags !== undefined) {
+    const newTagIds = sanitizeTagIds(input.tags);
+    const newSet = new Set(newTagIds);
 
-  const { data: existingLinks } = await admin
-    .from("article_gan_tac_pham")
-    .select("id_bai_viet")
-    .eq("id_tac_pham", input.tacPhamId);
-
-  const existingIds = new Set(
-    (existingLinks ?? [])
-      .map((row: { id_bai_viet?: string | null }) => row.id_bai_viet)
-      .filter((v): v is string => typeof v === "string" && v.length > 0),
-  );
-
-  const toAdd = newTagIds.filter((id) => !existingIds.has(id));
-  const toRemove = Array.from(existingIds).filter((id) => !newSet.has(id));
-
-  if (toAdd.length > 0) {
-    const rows = toAdd.map((id_bai_viet) => ({
-      id_bai_viet,
-      id_tac_pham: input.tacPhamId,
-    }));
-    const { error: addErr } = await admin
+    const { data: existingLinks } = await admin
       .from("article_gan_tac_pham")
-      .insert(rows);
-    if (addErr) console.error("[updatePost] tag add failed", addErr);
-  }
-  if (toRemove.length > 0) {
-    const { error: rmErr } = await admin
-      .from("article_gan_tac_pham")
-      .delete()
-      .eq("id_tac_pham", input.tacPhamId)
-      .in("id_bai_viet", toRemove);
-    if (rmErr) console.error("[updatePost] tag remove failed", rmErr);
-  }
+      .select("id_bai_viet")
+      .eq("id_tac_pham", input.tacPhamId);
 
-  /* Revalidate trang article (cả `toAdd` lẫn `toRemove`) để gallery cộng
-     đồng cập nhật ngay. Slug lấy từ input (toAdd) và từ DB join cho
-     toRemove. */
-  const tagSlugs = sanitizeTagSlugs(input.tags);
-  for (const slugTag of tagSlugs) {
-    revalidatePath(`/bai-viet/${slugTag}`);
-    revalidatePath(`/nghe-nghiep/${slugTag}`);
-  }
-  if (toRemove.length > 0) {
-    const { data: removedRows } = await admin
-      .from("article_bai_viet")
-      .select("slug")
-      .in("id", toRemove);
-    for (const r of removedRows ?? []) {
-      const s = (r as { slug?: string | null }).slug;
-      if (s) {
-        revalidatePath(`/bai-viet/${s}`);
-        revalidatePath(`/nghe-nghiep/${s}`);
+    const existingIds = new Set(
+      (existingLinks ?? [])
+        .map((row: { id_bai_viet?: string | null }) => row.id_bai_viet)
+        .filter((v): v is string => typeof v === "string" && v.length > 0),
+    );
+
+    const toAdd = newTagIds.filter((id) => !existingIds.has(id));
+    const toRemove = Array.from(existingIds).filter((id) => !newSet.has(id));
+
+    if (toAdd.length > 0) {
+      const rows = toAdd.map((id_bai_viet) => ({
+        id_bai_viet,
+        id_tac_pham: input.tacPhamId,
+      }));
+      const { error: addErr } = await admin
+        .from("article_gan_tac_pham")
+        .insert(rows);
+      if (addErr) console.error("[updatePost] tag add failed", addErr);
+    }
+    if (toRemove.length > 0) {
+      const { error: rmErr } = await admin
+        .from("article_gan_tac_pham")
+        .delete()
+        .eq("id_tac_pham", input.tacPhamId)
+        .in("id_bai_viet", toRemove);
+      if (rmErr) console.error("[updatePost] tag remove failed", rmErr);
+    }
+
+    const tagSlugs = sanitizeTagSlugs(input.tags);
+    for (const slugTag of tagSlugs) {
+      revalidatePath(`/bai-viet/${slugTag}`);
+      revalidatePath(`/nghe-nghiep/${slugTag}`);
+    }
+    if (toRemove.length > 0) {
+      const { data: removedRows } = await admin
+        .from("article_bai_viet")
+        .select("slug")
+        .in("id", toRemove);
+      for (const r of removedRows ?? []) {
+        const s = (r as { slug?: string | null }).slug;
+        if (s) {
+          revalidatePath(`/bai-viet/${s}`);
+          revalidatePath(`/nghe-nghiep/${s}`);
+        }
       }
     }
   }
 
-  const coSync = await syncCoAuthorsFromEditor(
-    input.tacPhamId,
-    session.profile.id,
-    input.ownerVaiTro ?? "",
-    input.coAuthors ?? [],
-  );
-  if (!coSync.ok) {
-    return { ok: false, error: coSync.error };
+  if (input.coAuthors !== undefined) {
+    const coSync = await syncCoAuthorsFromEditor(
+      input.tacPhamId,
+      session.profile.id,
+      input.ownerVaiTro ?? "",
+      input.coAuthors,
+    );
+    if (!coSync.ok) {
+      return { ok: false, error: coSync.error };
+    }
+    for (const c of input.coAuthors) {
+      if (c.slug) revalidatePath(`/${c.slug}`);
+    }
   }
 
   /* 7. Revalidate profile. */
   revalidatePath(`/${session.profile.slug}`);
-  for (const c of input.coAuthors ?? []) {
-    if (c.slug) revalidatePath(`/${c.slug}`);
-  }
 
   return { ok: true, tacPhamId: input.tacPhamId, cotMocId: input.cotMocId };
 }

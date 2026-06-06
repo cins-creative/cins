@@ -9,15 +9,26 @@ export function usePostFocusMode(enabled: boolean) {
   const [focusMode, setFocusMode] = useState(false);
 
   const toggle = useCallback(() => {
+    if (!enabled) return;
     setFocusMode((v) => !v);
-  }, []);
+  }, [enabled]);
 
   const exit = useCallback(() => {
     setFocusMode(false);
   }, []);
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled && focusMode) {
+      setFocusMode(false);
+    }
+  }, [enabled, focusMode]);
+
+  useEffect(() => {
+    if (!enabled) {
+      document.querySelector(".j-post-page")?.classList.remove(PAGE_CLASS);
+      document.body.classList.remove(BODY_CLASS);
+      return;
+    }
 
     const page = document.querySelector(".j-post-page");
     page?.classList.toggle(PAGE_CLASS, focusMode);

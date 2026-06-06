@@ -3,7 +3,8 @@
 import { JourneyPostBody } from "@/components/journey/JourneyPostBody";
 import { PostArticleSkeleton } from "@/app/[slug]/p/[postSlug]/_components/PostPage.skeleton";
 import { readPostPageCache } from "@/lib/journey/post-local-cache";
-import { useSyncExternalStore } from "react";
+import { milestoneContentKind } from "@/lib/journey/post-media";
+import { useEffect, useSyncExternalStore } from "react";
 
 type Props = {
   ownerSlug: string;
@@ -20,6 +21,16 @@ export function PostPageInstantFallback({ ownerSlug, postSlug }: Props) {
     () => readPostPageCache(ownerSlug, postSlug),
     () => null,
   );
+
+  useEffect(() => {
+    if (!cached) return;
+    const page = document.querySelector(".j-post-page");
+    if (!page) return;
+    page.setAttribute(
+      "data-post-content-kind",
+      milestoneContentKind(cached.posts[0]?.noiDungBlocks ?? null),
+    );
+  }, [cached]);
 
   if (!cached) return <PostArticleSkeleton />;
 

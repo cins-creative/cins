@@ -5245,60 +5245,127 @@ select.j-edit-input {
 
 /* Co-author pending invites (timeline top) */
 .j-coauthor-pending-stack {
-  position: relative;
-  z-index: 8;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   margin: 12px 0 16px;
   padding-left: var(--j-content-pad-l);
-  pointer-events: auto;
 }
 .j-coauthor-pending {
-  position: relative;
-  z-index: 1;
-  padding: 12px 14px;
-  border-radius: 12px;
-  background: #eff6ff;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px 20px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #eff6ff 0%, #f8fafc 100%);
   border: 1px solid #bfdbfe;
-  box-shadow: 0 12px 32px rgba(37, 99, 235, 0.08);
+  box-shadow: 0 10px 28px rgba(37, 99, 235, 0.07);
 }
-.j-coauthor-pending-text {
-  margin: 0 0 10px;
-  font-size: 13px;
-  line-height: 1.45;
-  color: #1e3a5f;
+.j-coauthor-pending-body {
+  flex: 1;
+  min-width: 0;
+}
+.j-coauthor-invite-message,
+.j-coauthor-pending-message {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: #334155;
+}
+.j-coauthor-invite-message strong,
+.j-coauthor-pending-message strong {
+  color: #0f172a;
+  font-weight: 700;
+}
+.j-coauthor-invite-message em,
+.j-coauthor-pending-message em {
+  font-style: normal;
+  color: #1d4ed8;
+  font-weight: 600;
+}
+.j-coauthor-invite-work {
+  font-style: normal;
+  font-weight: 600;
+  color: #0f172a;
 }
 .j-coauthor-pending-actions {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
   gap: 8px;
+  flex-shrink: 0;
 }
 .j-coauthor-pending-btn {
-  position: relative;
-  z-index: 2;
-  height: 32px;
-  padding: 0 12px;
-  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
   border: 1px solid #93c5fd;
   background: #fff;
+  font: inherit;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
   cursor: pointer;
+  text-decoration: none;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 .j-coauthor-pending-btn:disabled {
   opacity: 0.65;
   cursor: wait;
 }
-.j-coauthor-pending-btn.is-accept {
-  background: var(--cins-blue, #2563eb);
-  border-color: var(--cins-blue, #2563eb);
+.j-coauthor-pending-btn.is-view {
+  background: #fff;
+  border-color: rgba(37, 99, 235, 0.35);
+  color: #2563eb;
+}
+.j-coauthor-pending-btn.is-view:hover {
+  background: #2563eb;
+  border-color: #2563eb;
   color: #fff;
 }
+.j-coauthor-pending-btn.is-accept {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+.j-coauthor-pending-btn.is-accept:hover:not(:disabled) {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+}
+.j-coauthor-pending-btn.is-decline {
+  border-color: #cbd5e1;
+  background: #fff;
+  color: #64748b;
+}
+.j-coauthor-pending-btn.is-decline:hover:not(:disabled) {
+  border-color: #94a3b8;
+  color: #334155;
+}
 .j-coauthor-pending-error {
-  margin: 8px 0 0;
+  flex: 1 1 100%;
+  margin: 0;
   font-size: 12px;
   font-weight: 600;
   color: #b91c1c;
+}
+@media (max-width: 640px) {
+  .j-coauthor-pending {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .j-coauthor-pending-actions {
+    justify-content: flex-start;
+  }
 }
 
 /* Credit strip on milestone card */
@@ -5435,11 +5502,18 @@ select.j-edit-input {
   border-bottom: 1px solid var(--jcard-border2);
 }
 .jcard-datebar--tagged {
-  padding-top: 10px;
+  padding: 10px 14px 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.jcard-datebar--tagged .via-bar {
+  margin: 0;
+  flex: 1 1 180px;
+  min-width: 0;
 }
 .jcard-datebar--tagged .badge-row {
   margin-left: 0;
-  flex: 1;
+  flex: 0 0 auto;
 }
 .j-m-card.is-expanded .jcard-datebar {
   border-bottom-color: transparent;
@@ -6664,9 +6738,34 @@ select.j-edit-input {
   justify-content: space-between;
   gap: 10px;
 }
+.jcard-actions .j-article-tag-manage,
 .jcard-actions .j-coauthor-propose {
   flex: 0 0 auto;
   margin-left: 2px;
+  position: relative;
+  z-index: 3;
+  pointer-events: auto;
+}
+.jcard-actions .j-article-tag-trigger {
+  pointer-events: auto;
+  width: 28px;
+  height: 28px;
+  border-color: transparent;
+  background: transparent;
+  color: var(--jcard-ink3);
+}
+.jcard-actions .j-article-tag-trigger:hover {
+  border-color: transparent;
+  background: var(--neutral-100);
+  color: #15803d;
+}
+.jcard-actions .j-article-tag-count {
+  top: -2px;
+  right: -2px;
+  min-width: 14px;
+  height: 14px;
+  font-size: 8px;
+  line-height: 14px;
 }
 .jcard-actions .j-coauthor-propose-trigger {
   width: 28px;
@@ -7015,6 +7114,88 @@ a.action-btn {
 .j-coauthor-propose-trigger:hover {
   border-color: #93c5fd;
   background: #dbeafe;
+}
+
+.j-article-tag-manage {
+  position: relative;
+  display: inline-flex;
+}
+.j-article-tag-trigger {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px dashed #bbf7d0;
+  border-radius: 999px;
+  padding: 0;
+  background: #f0fdf4;
+  color: #15803d;
+  cursor: pointer;
+}
+.j-article-tag-trigger:hover {
+  border-color: #86efac;
+  background: #dcfce7;
+}
+.j-article-tag-count {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #16a34a;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 16px;
+  text-align: center;
+}
+.jcard-actions .j-article-tag-manage {
+  margin-left: 0;
+}
+.j-article-tag-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.45);
+}
+.j-article-tag-modal.ed-coauthor-modal {
+  width: min(420px, calc(100vw - 32px));
+  max-height: min(86vh, 720px);
+}
+.j-article-tag-modal-title {
+  margin: 0;
+  padding: 18px 52px 0 16px;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--ink-display, #0f172a);
+}
+.cins-editor-page.is-tag-modal {
+  min-height: 0;
+  flex: none;
+  padding: 12px 16px 4px;
+  background: transparent;
+}
+.cins-editor-page.is-tag-modal .meta-chips.is-modal-layout {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+.cins-editor-page.is-tag-modal .meta-chips.is-modal-layout .tag-picker {
+  position: static;
+  width: 100%;
+  max-width: none;
+  margin-top: 0;
 }
 @media (max-width: 575.98px) {
   .ja-sheet {

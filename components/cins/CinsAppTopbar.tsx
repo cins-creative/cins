@@ -52,8 +52,11 @@ export async function CinsAppTopbar() {
             <MessageCircleQuestion size={16} strokeWidth={1.6} aria-hidden />
             <span>Tư vấn nghề</span>
           </Link>
-          {isAuthed ? (
-            <JourneyNotifications initialUnreadCount={unreadNotificationCount} />
+          {session?.profile ? (
+            <JourneyNotifications
+              initialUnreadCount={unreadNotificationCount}
+              viewerProfileId={session.profile.id}
+            />
           ) : null}
           {isAuthed ? null : (
             <>

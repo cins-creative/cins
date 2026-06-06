@@ -13,6 +13,10 @@ import { fetchArticleTagsForTacPham } from "@/lib/journey/article-tags-batch";
 import { milestonePreviewMedia } from "@/lib/journey/milestone-preview-media";
 import { loadVerifiedMetaForCotMocs } from "@/lib/journey/milestone-verify";
 import { getAvatarUrl } from "@/lib/journey/profile";
+import {
+  compareTimelineOrder,
+  resolveTaggedTimelineSortAt,
+} from "@/lib/journey/timeline-sort";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 /* ╔══════════════════════════════════════════════════════════════════╗
@@ -63,6 +67,7 @@ type ThuocMocRow = {
 type BookmarkRow = {
   id_doi_tuong: string;
   loai_doi_tuong: string;
+  tao_luc: string | null;
 };
 
 type BookmarkLinkRow = {
@@ -292,7 +297,7 @@ export async function fetchTaggedMilestonesForUser(params: {
 
   const { data: tagRows } = await admin
     .from("content_tac_pham_tac_gia")
-    .select("id_tac_pham, vai_tro, trang_thai")
+    .select("id_tac_pham, vai_tro, trang_thai, xu_ly_luc")
     .eq("id_nguoi_dung", userId)
     .eq("trang_thai", "accepted")
     .eq("la_chu_so_huu", false);
@@ -305,6 +310,12 @@ export async function fetchTaggedMilestonesForUser(params: {
   );
   const statusByTp = new Map(
     tagRows.map((r) => [r.id_tac_pham as string, r.trang_thai as string | null]),
+  );
+  const acceptedAtByTp = new Map(
+    tagRows.map((r) => [
+      r.id_tac_pham as string,
+      (r.xu_ly_luc as string | null) ?? null,
+    ]),
   );
 
   const { data: tacPhams } = await admin
@@ -391,7 +402,10 @@ export async function fetchTaggedMilestonesForUser(params: {
       year: dateObj.getUTCFullYear(),
       month: dateObj.getUTCMonth() + 1,
       day: dateObj.getUTCDate(),
-      createdAt: cm.tao_luc,
+      createdAt: resolveTaggedTimelineSortAt(
+        acceptedAtByTp.get(tacPhamId),
+        cm.tao_luc,
+      ),
       title: cm.tieu_de,
       body: cm.mo_ta || null,
       postSlug: tp.slug,
@@ -430,14 +444,16 @@ export async function fetchBookmarkedMilestonesForUser(params: {
   const { userId, isOwner, admin } = params;
   const { data: savedRows } = await admin
     .from("social_luu")
-    .select("id_doi_tuong, loai_doi_tuong")
+    .select("id_doi_tuong, loai_doi_tuong, tao_luc")
     .eq("id_nguoi_dung", userId)
     .eq("loai_doi_tuong", "cot_moc")
     .returns<BookmarkRow[]>();
 
-  const cotMocIds = [
-    ...new Set((savedRows ?? []).map((row) => row.id_doi_tuong).filter(Boolean)),
-  ];
+  const savedAtByMoc = new Map(
+    (savedRows ?? []).map((row) => [row.id_doi_tuong, row.tao_luc]),
+  );
+
+  const cotMocIds = [...new Set(savedAtByMoc.keys())];
   if (cotMocIds.length === 0) return [];
 
   const { data: cotMocs } = await admin
@@ -513,7 +529,7 @@ export async function fetchBookmarkedMilestonesForUser(params: {
         year: dateObj.getUTCFullYear(),
         month: dateObj.getUTCMonth() + 1,
         day: dateObj.getUTCDate(),
-        createdAt: cm.tao_luc,
+        createdAt: savedAtByMoc.get(cm.id) ?? cm.tao_luc,
         title: cm.tieu_de,
         body: cm.mo_ta || null,
         postSlug: tp.slug as string,
@@ -594,21 +610,7 @@ function mergeMilestoneLists(
   const seenCotMocIds = new Set(primary.map((m) => milestoneCotMocKey(m)));
   const extra = secondary.filter((m) => !seenCotMocIds.has(milestoneCotMocKey(m)));
   const all = [...primary, ...extra];
-  return all.sort((a, b) => {
-    const aFeat = a.visibility === "feature" ? 1 : 0;
-    const bFeat = b.visibility === "feature" ? 1 : 0;
-    if (aFeat !== bFeat) return bFeat - aFeat;
-    const aDate = new Date(
-      `${a.year}-${String(a.month).padStart(2, "0")}-${String(a.day).padStart(2, "0")}`,
-    ).getTime();
-    const bDate = new Date(
-      `${b.year}-${String(b.month).padStart(2, "0")}-${String(b.day).padStart(2, "0")}`,
-    ).getTime();
-    if (aDate !== bDate) return bDate - aDate;
-    const aCreated = a.createdAt ? Date.parse(a.createdAt) : 0;
-    const bCreated = b.createdAt ? Date.parse(b.createdAt) : 0;
-    return bCreated - aCreated;
-  });
+  return all.sort(compareTimelineOrder);
 }
 
 export async function attachSocialState(

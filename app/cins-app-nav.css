@@ -474,7 +474,8 @@
 .cins-app-topbar.topbar {
   position: sticky;
   top: 0;
-  z-index: 50;
+  /* Cao hơn `.j-tlb` sticky (120) để nút chuông luôn bấm được. */
+  z-index: 200;
   height: var(--site-nav-height);
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border);
@@ -608,10 +609,12 @@
 
 .cins-app-topbar .j-notify {
   position: relative;
+  z-index: 1;
 }
 
 .cins-app-topbar .j-notify-trigger {
   position: relative;
+  z-index: 2;
   width: 38px;
   height: 38px;
   border: 1px solid var(--border);
@@ -636,6 +639,7 @@
   position: absolute;
   top: -4px;
   right: -4px;
+  pointer-events: none;
   min-width: 17px;
   height: 17px;
   padding: 0 4px;
@@ -648,11 +652,8 @@
   text-align: center;
 }
 
-.cins-app-topbar .j-notify-menu {
-  position: absolute;
-  z-index: 90;
-  top: calc(100% + 10px);
-  right: 0;
+.cins-app-topbar .j-notify-menu,
+.j-notify-menu.is-portal {
   width: min(320px, calc(100vw - 32px));
   max-height: min(480px, calc(100vh - 120px));
   display: flex;
@@ -662,6 +663,23 @@
   border-radius: 16px;
   background: var(--bg-surface);
   box-shadow: var(--shadow-lg);
+  pointer-events: auto;
+}
+
+.cins-app-topbar .j-notify-menu {
+  position: absolute;
+  z-index: 1;
+  top: calc(100% + 10px);
+  right: 0;
+}
+
+/* Portal ra body — không còn ancestor .cins-app-topbar, cần rule độc lập. */
+.j-notify-menu.is-portal {
+  position: fixed;
+  top: auto;
+  right: auto;
+  left: auto;
+  z-index: 250;
 }
 
 .j-notify-tabs {
@@ -816,11 +834,21 @@
   background: #dcfce7;
 }
 
-.j-notify-item.is-coauthor-review {
+.j-notify-item.is-coauthor-review,
+.j-notify-item.is-coauthor-invite {
   align-items: flex-start;
   border-color: #dbeafe;
   background: linear-gradient(135deg, #eff6ff 0%, #f8fafc 100%);
   cursor: default;
+}
+
+.j-notify-item.is-coauthor-invite .j-notify-coauthor-invite-text {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-body);
 }
 
 .j-notify-item span:not(.j-notify-avatar) {
@@ -859,6 +887,20 @@
   border-color: #bbf7d0;
   background: #dcfce7;
   color: #166534;
+}
+
+a.j-notify-mini-action.is-link {
+  text-align: center;
+  text-decoration: none;
+  border-color: rgba(37, 99, 235, 0.28);
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+a.j-notify-mini-action.is-link:hover {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
 }
 
 .j-notify-mini-action:disabled {

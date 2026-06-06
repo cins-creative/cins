@@ -8,6 +8,7 @@ import {
   isPostPageCacheStale,
   writePostPageCache,
 } from "@/lib/journey/post-local-cache";
+import { milestoneContentKind } from "@/lib/journey/post-media";
 
 type Props = {
   ownerSlug: string;
@@ -54,6 +55,13 @@ export function PostPageClientBridge({
   useEffect(() => {
     setCommentCountOverride(detail.social.commentCount);
   }, [detail.social.commentCount]);
+
+  useEffect(() => {
+    const page = document.querySelector(".j-post-page");
+    if (!page) return;
+    const kind = milestoneContentKind(detail.posts[0]?.noiDungBlocks ?? null);
+    page.setAttribute("data-post-content-kind", kind);
+  }, [detail.posts]);
 
   useEffect(() => {
     if (!isPostPageCacheStale(ownerSlug, postSlug)) return;

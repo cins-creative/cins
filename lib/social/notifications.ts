@@ -3,6 +3,7 @@ import "server-only";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 import {
+  listPendingCoAuthorInviteNotifications,
   listProcessedCoAuthorReviews,
   listPendingCoAuthorReviews,
 } from "@/lib/social/co-author";
@@ -25,6 +26,7 @@ export const EMPTY_NOTIFICATION_FEED: NotificationFeed = {
   followRequests: [],
   accepted: [],
   comments: [],
+  coAuthorInvites: [],
   coAuthorReviews: [],
   videoReady: [],
   handledFollows: [],
@@ -45,6 +47,7 @@ function capUnreadLists(payload: FeedPayload, limit: number): FeedPayload {
   };
   return {
     followRequests: take(payload.followRequests),
+    coAuthorInvites: take(payload.coAuthorInvites),
     coAuthorReviews: take(payload.coAuthorReviews),
     videoReady: take(payload.videoReady),
     comments: take(payload.comments),
@@ -64,6 +67,7 @@ function capHistoryLists(payload: FeedPayload, limit: number): FeedPayload {
   };
   return {
     followRequests: [],
+    coAuthorInvites: [],
     coAuthorReviews: [],
     handledFollows: take(payload.handledFollows),
     processedCoAuthorReviews: take(payload.processedCoAuthorReviews),
@@ -101,6 +105,7 @@ async function loadNotificationFeedUnsafe(
     followRequests,
     accepted,
     comments,
+    coAuthorInvites,
     coAuthorReviews,
     videoReady,
     handledFollows,
@@ -121,6 +126,9 @@ async function loadNotificationFeedUnsafe(
       limit: rowLimit,
     }),
     unreadOnly
+      ? listPendingCoAuthorInviteNotifications(viewerId, { limit: rowLimit })
+      : Promise.resolve([]),
+    unreadOnly
       ? listPendingCoAuthorReviews(viewerId, { limit: rowLimit })
       : Promise.resolve([]),
     listVideoReadyNotifications(viewerId, {
@@ -140,6 +148,7 @@ async function loadNotificationFeedUnsafe(
     followRequests,
     accepted,
     comments,
+    coAuthorInvites: unreadOnly ? coAuthorInvites : [],
     coAuthorReviews: unreadOnly ? coAuthorReviews : [],
     videoReady,
     handledFollows,
@@ -165,7 +174,8 @@ export async function countUnreadNotifications(viewerId: string): Promise<number
     { count: pendingFriends },
     { count: accepted },
     { count: comments },
-    { count: coAuthor },
+    { count: coAuthorInvite },
+    { count: coAuthorReview },
     { count: video },
   ] = await Promise.all([
     admin
@@ -189,6 +199,13 @@ export async function countUnreadNotifications(viewerId: string): Promise<number
       .from("social_thong_bao")
       .select("id", { count: "exact", head: true })
       .eq("nguoi_nhan", viewerId)
+      .eq("loai_doi_tuong", "tac_gia_invite")
+      .eq("da_doc", false)
+      .is("xu_ly_luc", null),
+    admin
+      .from("social_thong_bao")
+      .select("id", { count: "exact", head: true })
+      .eq("nguoi_nhan", viewerId)
       .eq("loai_doi_tuong", "tac_gia_owner_review")
       .is("xu_ly_luc", null),
     admin
@@ -203,7 +220,8 @@ export async function countUnreadNotifications(viewerId: string): Promise<number
     (pendingFriends ?? 0) +
     (accepted ?? 0) +
     (comments ?? 0) +
-    (coAuthor ?? 0) +
+    (coAuthorInvite ?? 0) +
+    (coAuthorReview ?? 0) +
     (video ?? 0)
   );
 }

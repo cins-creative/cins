@@ -48,23 +48,14 @@ import {
   type MosaicCell,
 } from "@/lib/editor/image-layout";
 import { CongDongFeedFilterDropdown } from "@/components/cong-dong/CongDongFeedFilterDropdown";
-import { CoAuthorSection } from "@/components/editor/CoAuthorSection";
 import { updatePost } from "@/app/[slug]/p/[postSlug]/edit/actions";
 import { publishPost } from "@/app/[slug]/p/new/actions";
 import {
   getCfAccountHash,
   rememberCfAccountHashFromDeliveryUrl,
 } from "@/lib/cloudflare/account-hash";
-import {
-  articleTagLabel,
-  articleTagLoaiClass,
-  type ArticleTagRef,
-} from "@/lib/editor/article-tag";
+import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import type { CoAuthorDraft } from "@/lib/social/types";
-import {
-  loadAllArticlesForTagPicker,
-  searchArticlesForTag,
-} from "@/lib/editor/search-articles-action";
 import type {
   Block as ServerBlock,
   BlockType as ServerBlockType,
@@ -293,11 +284,6 @@ export function EditorView({
   );
   const [title, setTitle] = useState(initial?.tieuDe ?? "");
   const [sub, setSub] = useState(initial?.moTa ?? "");
-  const [tags, setTags] = useState<ArticleTagRef[]>(initial?.tags ?? []);
-  const [ownerVaiTro, setOwnerVaiTro] = useState(initial?.ownerVaiTro ?? "");
-  const [coAuthors, setCoAuthors] = useState<CoAuthorDraft[]>(
-    initial?.coAuthors ?? [],
-  );
   const [blocks, setBlocks] = useState<Block[]>(() =>
     initial?.blocks ? fromServerBlocks(initial.blocks) : [],
   );
@@ -325,8 +311,6 @@ export function EditorView({
     return first ? [first] : [];
   });
   const publishVisibility: Visibility = congDongCompose ? "public" : vis;
-  const [coAuthorOpen, setCoAuthorOpen] = useState(false);
-
   const [imgPickerTarget, setImgPickerTarget] = useState<{
     blockId: string;
     slot: number;
@@ -787,26 +771,20 @@ export function EditorView({
             tieuDe: tieuDeFinal,
             moTa: moTaFinal,
             coverSeed: coverFinal,
-            tags,
             visibility: publishVisibility,
             loaiMoc: initial.loaiMoc,
             thoiDiem: initial.thoiDiem,
             blocks: serverBlocks,
-            ownerVaiTro,
-            coAuthors,
           })
         : await publishPost({
             ownerSlug,
             tieuDe: tieuDeFinal,
             moTa: moTaFinal,
             coverSeed: coverFinal,
-            tags,
             visibility: publishVisibility,
             loaiMoc: DEFAULT_LOAI_MOC,
             thoiDiem: isoToday(),
             blocks: serverBlocks,
-            ownerVaiTro,
-            coAuthors,
           });
 
       if (!result.ok) {
@@ -835,9 +813,6 @@ export function EditorView({
     title,
     sub,
     coverSeed,
-    tags,
-    ownerVaiTro,
-    coAuthors,
     vis,
     publishVisibility,
     congDongCompose,
@@ -1003,31 +978,6 @@ export function EditorView({
           </>
         ) : null}
 
-        <ArticleTagPicker
-          tags={tags}
-          onAdd={(t) =>
-            setTags((prev) =>
-              prev.some((p) => p.id === t.id) ? prev : [...prev, t],
-            )
-          }
-          onRemove={(id) =>
-            setTags((prev) => prev.filter((t) => t.id !== id))
-          }
-          extraAction={
-            <button
-              type="button"
-              className={`meta-chip add meta-chip-coauthor${coAuthorOpen ? " open" : ""}`}
-              onClick={() => setCoAuthorOpen(true)}
-            >
-              <Users size={13} strokeWidth={2} aria-hidden />
-              Thêm cộng sự
-              {coAuthors.length > 0 ? (
-                <span className="meta-chip-count">{coAuthors.length}</span>
-              ) : null}
-            </button>
-          }
-        />
-
         <div className="blocks">
           <AddZone
             idx={0}
@@ -1088,48 +1038,6 @@ export function EditorView({
           Bấm nút <b>+</b> ở khe giữa các block để chèn nội dung mới.
         </div>
       </main>
-
-      {coAuthorOpen ? (
-        <div
-          className="ed-coauthor-modal-backdrop"
-          role="presentation"
-          onClick={() => setCoAuthorOpen(false)}
-        >
-          <div
-            className="ed-coauthor-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="ed-coauthor-heading"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              type="button"
-              className="ed-coauthor-modal-close"
-              aria-label="Đóng cộng sự"
-              onClick={() => setCoAuthorOpen(false)}
-            >
-              <X size={16} aria-hidden />
-            </button>
-            <CoAuthorSection
-              ownerId={ownerId}
-              collaborators={coAuthors}
-              ownerVaiTro={ownerVaiTro}
-              onCollaboratorsChange={setCoAuthors}
-              onOwnerVaiTroChange={setOwnerVaiTro}
-            />
-            <div className="ed-coauthor-modal-actions">
-              <span>Cộng sự sẽ được lưu cùng bài viết.</span>
-              <button
-                type="button"
-                className="ed-coauthor-save"
-                onClick={() => setCoAuthorOpen(false)}
-              >
-                Lưu cộng sự
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
 
       {imgPickerTarget ? (
         <ImagePickerModal
@@ -1207,326 +1115,6 @@ function CoverArea({
     </button>
   );
 }
-
-/* ─── Article tag picker ────────────────────────────────────────────
- * Tag = một `article_bai_viet`. User mở dropdown → search → chọn → tag
- * persist xuống `article_gan_tac_pham` lúc Đăng/Cập nhật. Bài viết được
- * tag sẽ thấy post này trong gallery (xem `TacPhamSection`).
- *
- * Performance model — "instant" feel:
- *   1. Lần đầu mở picker: gọi `loadAllArticlesForTagPicker()` (cap 2000
- *      rows ≈ 80KB gzipped) → cache vào sessionStorage với TTL 10 phút.
- *   2. Mở lần tiếp theo trong session: đọc thẳng cache → 0ms latency.
- *   3. Gõ tìm kiếm: filter in-memory bằng substring + diacritic-fold
- *      (gõ "nghe" hay "nghề" đều match). Không gọi server.
- *   4. Render lazy: hiển thị 50 dòng đầu; scroll gần đáy → +50 nữa,
- *      tránh lag khi list 2000 items.
- *   5. Fallback: nếu bulk action lỗi (auth/network), rớt về
- *      `searchArticlesForTag` (server-side debounce) như cũ.
- */
-const loaiLabel = articleTagLabel;
-const loaiClass = articleTagLoaiClass;
-
-/* Phẳng dấu tiếng Việt → ASCII lowercase. Dùng cho substring search ổn
-   định với cả input không dấu lẫn có dấu, đảo dấu (đ/Đ). */
-function normalizeVi(s: string): string {
-  return s
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/đ/g, "d")
-    .replace(/Đ/g, "D")
-    .toLowerCase();
-}
-
-const TAG_CACHE_KEY = "cins:tagpicker:all:v1";
-const TAG_CACHE_TTL_MS = 10 * 60 * 1000; /* 10 phút */
-const TAG_PAGE_SIZE = 50;
-
-type TagCacheEntry = { ts: number; rows: ArticleTagRef[] };
-
-function readTagCache(): TagCacheEntry | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = window.sessionStorage.getItem(TAG_CACHE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as TagCacheEntry;
-    if (
-      !parsed ||
-      typeof parsed.ts !== "number" ||
-      !Array.isArray(parsed.rows)
-    ) {
-      return null;
-    }
-    if (Date.now() - parsed.ts > TAG_CACHE_TTL_MS) return null;
-    return parsed;
-  } catch {
-    return null;
-  }
-}
-
-function writeTagCache(rows: ArticleTagRef[]) {
-  if (typeof window === "undefined") return;
-  try {
-    const entry: TagCacheEntry = { ts: Date.now(), rows };
-    window.sessionStorage.setItem(TAG_CACHE_KEY, JSON.stringify(entry));
-  } catch {
-    /* sessionStorage quota / disabled — ignore, picker vẫn chạy được. */
-  }
-}
-
-/* Index hoá `tieu_de` thành key normalized để substring search nhanh —
-   tránh re-normalize 2000 row mỗi keystroke. Trả về cùng shape items
-   nhưng kèm cột `_n` để filter. */
-type IndexedTag = ArticleTagRef & { _n: string };
-
-function indexAll(rows: ReadonlyArray<ArticleTagRef>): IndexedTag[] {
-  return rows.map((r) => ({ ...r, _n: normalizeVi(r.tieu_de) }));
-}
-
-function ArticleTagPicker({
-  tags,
-  onAdd,
-  onRemove,
-  extraAction,
-}: {
-  tags: ArticleTagRef[];
-  onAdd: (t: ArticleTagRef) => void;
-  onRemove: (id: string) => void;
-  extraAction?: ReactNode;
-}) {
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const [allIndexed, setAllIndexed] = useState<IndexedTag[] | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(TAG_PAGE_SIZE);
-  const wrapRef = useRef<HTMLDivElement | null>(null);
-  const inputRef = useRef<HTMLInputElement | null>(null);
-  const listRef = useRef<HTMLDivElement | null>(null);
-
-  /* Bulk load khi mở picker LẦN ĐẦU trong session.
-     Flow:
-     1. Đọc cache sessionStorage → nếu fresh, set ngay (0ms).
-     2. Background: fetch server để cập nhật cache (silent revalidate).
-     3. Cache miss + chưa có data → show loading, đợi fetch.
-     4. Bulk action lỗi → fallback `searchArticlesForTag("")` lấy top 12. */
-  useEffect(() => {
-    if (!open) return;
-    if (allIndexed) return;
-
-    let cancelled = false;
-    const cached = readTagCache();
-    if (cached) {
-      queueMicrotask(() => {
-        if (!cancelled) setAllIndexed(indexAll(cached.rows));
-      });
-    } else {
-      queueMicrotask(() => {
-        if (!cancelled) setLoading(true);
-      });
-    }
-
-    (async () => {
-      try {
-        const data = await loadAllArticlesForTagPicker();
-        if (cancelled) return;
-        if (data.length > 0) {
-          writeTagCache(data);
-          setAllIndexed(indexAll(data));
-        } else if (!cached) {
-          /* Bulk rỗng + chưa có cache → fallback search top 12 (chỉ chạy
-             khi không có gì để hiện, tránh hiện list trống vô lý). */
-          const fb = await searchArticlesForTag("");
-          if (!cancelled) setAllIndexed(indexAll(fb));
-        }
-      } catch {
-        if (!cancelled && !cached) {
-          const fb = await searchArticlesForTag("").catch(
-            () => [] as ArticleTagRef[],
-          );
-          if (!cancelled) setAllIndexed(indexAll(fb));
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [open, allIndexed]);
-
-  /* Đóng khi click ngoài / Esc — gắn ở document để không miss khi click
-     trên overlay khác. */
-  useEffect(() => {
-    if (!open) return;
-    function onDoc(ev: globalThis.MouseEvent) {
-      if (!wrapRef.current) return;
-      if (wrapRef.current.contains(ev.target as Node)) return;
-      setOpen(false);
-    }
-    function onKey(ev: globalThis.KeyboardEvent) {
-      if (ev.key === "Escape") setOpen(false);
-    }
-    document.addEventListener("mousedown", onDoc);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDoc);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
-
-  /* Auto-focus input khi mở dropdown — UX gõ ngay được. */
-  useEffect(() => {
-    if (open) inputRef.current?.focus();
-  }, [open]);
-
-  /* Reset visible window khi query thay đổi — kết quả mới nên hiện 50 đầu
-     thay vì giữ offset của lần search trước. */
-  useEffect(() => {
-    queueMicrotask(() => setVisibleCount(TAG_PAGE_SIZE));
-    if (listRef.current) listRef.current.scrollTop = 0;
-  }, [query]);
-
-  const selectedIds = useMemo(() => new Set(tags.map((t) => t.id)), [tags]);
-
-  /* Filter client-side. Empty query → toàn bộ list (ordered cap_nhat_luc
-     desc từ server). Có query → substring match trên `_n` đã normalize. */
-  const filtered = useMemo<IndexedTag[]>(() => {
-    if (!allIndexed) return [];
-    const q = normalizeVi(query.trim());
-    if (!q) return allIndexed;
-    return allIndexed.filter((t) => t._n.includes(q));
-  }, [allIndexed, query]);
-
-  const visible = useMemo(
-    () => filtered.slice(0, visibleCount),
-    [filtered, visibleCount],
-  );
-  const hasMore = visible.length < filtered.length;
-
-  /* Infinite scroll — khi user cuộn gần đáy (< 80px), load thêm trang. */
-  const onListScroll = useCallback(
-    (e: React.UIEvent<HTMLDivElement>) => {
-      if (!hasMore) return;
-      const t = e.currentTarget;
-      if (t.scrollHeight - (t.scrollTop + t.clientHeight) < 80) {
-        setVisibleCount((c) => c + TAG_PAGE_SIZE);
-      }
-    },
-    [hasMore],
-  );
-
-  return (
-    <div className="meta-chips" ref={wrapRef}>
-      {tags.map((t) => {
-        const cls = loaiClass(t.loai_bai_viet);
-        return (
-          <span key={t.id} className={`meta-chip meta-chip-tag ${cls}`}>
-            <span className="meta-chip-loai" aria-hidden>
-              {loaiLabel(t.loai_bai_viet)}
-            </span>
-            <span className="meta-chip-name">{t.tieu_de}</span>
-            <button
-              type="button"
-              className="meta-chip-x"
-              aria-label={`Bỏ tag ${t.tieu_de}`}
-              onClick={() => onRemove(t.id)}
-            >
-              ×
-            </button>
-          </span>
-        );
-      })}
-
-      <button
-        type="button"
-        className={`meta-chip add${open ? " open" : ""}`}
-        onClick={() => setOpen((v) => !v)}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-      >
-        + Thêm tag
-      </button>
-      {extraAction}
-
-      {open ? (
-        <div className="tag-picker" role="dialog" aria-label="Chọn bài viết để tag">
-          <div className="tag-picker-head">
-            <input
-              ref={inputRef}
-              type="text"
-              className="tag-picker-input"
-              placeholder="Tìm bài viết theo tên…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-            {allIndexed ? (
-              <div className="tag-picker-count">
-                {filtered.length} bài
-                {filtered.length !== allIndexed.length
-                  ? ` / ${allIndexed.length}`
-                  : ""}
-              </div>
-            ) : null}
-          </div>
-          <div
-            className="tag-picker-list"
-            role="listbox"
-            ref={listRef}
-            onScroll={onListScroll}
-          >
-            {loading && !allIndexed ? (
-              <div className="tag-picker-empty">Đang tải danh sách…</div>
-            ) : filtered.length === 0 ? (
-              <div className="tag-picker-empty">
-                {query.trim()
-                  ? "Không có bài viết khớp."
-                  : "Chưa có bài viết nào."}
-              </div>
-            ) : (
-              <>
-                {visible.map((r) => {
-                  const picked = selectedIds.has(r.id);
-                  const cls = loaiClass(r.loai_bai_viet);
-                  return (
-                    <button
-                      key={r.id}
-                      type="button"
-                      className={`tag-picker-item${picked ? " picked" : ""}`}
-                      role="option"
-                      aria-selected={picked}
-                      disabled={picked}
-                      onClick={() => {
-                        onAdd(r);
-                        setQuery("");
-                      }}
-                    >
-                      <span className={`tag-picker-loai ${cls}`}>
-                        {loaiLabel(r.loai_bai_viet)}
-                      </span>
-                      <span className="tag-picker-name">{r.tieu_de}</span>
-                      {picked ? (
-                        <span className="tag-picker-check" aria-hidden>
-                          ✓
-                        </span>
-                      ) : null}
-                    </button>
-                  );
-                })}
-                {hasMore ? (
-                  <div className="tag-picker-more" aria-hidden>
-                    Cuộn để xem thêm…
-                  </div>
-                ) : null}
-              </>
-            )}
-          </div>
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
 
 /* ─── AddZone + Picker ───────────────────────────────────────────── */
 

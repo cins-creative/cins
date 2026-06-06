@@ -25,6 +25,12 @@ export type PendingCoAuthorInvite = {
   vaiTro: string;
 };
 
+/** Lời mời cộng sự từ `social_thong_bao` (`tac_gia_invite`). */
+export type PendingCoAuthorInviteNotification = PendingCoAuthorInvite & {
+  notificationId: string;
+  taoLuc?: string;
+};
+
 export type PendingFollowRequest = {
   idNguoiDung: string;
   slug: string;
@@ -119,6 +125,7 @@ export type NotificationFeed = {
   followRequests: PendingFollowRequest[];
   accepted: FollowAcceptedNotification[];
   comments: CommentNotification[];
+  coAuthorInvites: PendingCoAuthorInviteNotification[];
   coAuthorReviews: PendingCoAuthorReview[];
   videoReady: VideoReadyNotification[];
   handledFollows: FollowHandledNotification[];

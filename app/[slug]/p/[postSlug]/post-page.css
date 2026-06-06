@@ -374,30 +374,41 @@
   );
 }
 
-/* ── Focus mode — overlay toàn màn (kể cả nav), chỉ giữ nội dung bài ── */
-body.post-page-focus-mode::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 150;
-  background: rgba(10, 13, 18, 0.94);
-  pointer-events: auto;
-}
-
+/* ── Focus mode — chỉ bài viết dài; page fixed phủ viewport, không dùng body::before
+   (tránh overlay che nội dung vì stacking context của shell). ── */
 body.post-page-focus-mode {
   overflow: hidden;
 }
 
-.j-post-page--focus {
-  position: relative;
-  z-index: 160;
-  background: transparent;
+.j-post-page.j-post-page--focus {
+  position: fixed;
+  inset: 0;
+  z-index: 210;
+  height: auto;
+  min-height: 0;
+  max-height: none;
+  margin: 0;
+  padding: 14px 20px 16px;
+  background: rgba(10, 13, 18, 0.94);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.j-post-page.j-post-page--focus .j-post-page-inner {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  max-width: 1440px;
+  width: 100%;
 }
 
 .j-post-page--focus .j-post-page-inner > .post-canvas--split,
 .j-post-page--focus .j-post-page-inner > .cins-post-view.post-canvas--split,
 .j-post-page--focus .j-post-page-body {
   flex: 1;
+  min-height: 0;
 }
 
 .j-post-page--focus .j-post-page-body .post-canvas--split {
@@ -407,7 +418,8 @@ body.post-page-focus-mode {
 
 .j-post-page--focus .post-view-layout {
   grid-template-columns: minmax(0, 1fr);
-  justify-items: center;
+  justify-items: stretch;
+  height: 100%;
 }
 
 .j-post-page--focus .post-view-meta,
@@ -417,16 +429,27 @@ body.post-page-focus-mode {
 
 .j-post-page--focus .post-view-main {
   width: min(820px, 100%);
-  max-height: none;
+  max-height: calc(100vh - 72px);
+  min-height: 0;
   margin: 0 auto;
   border-radius: 18px;
   box-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.06),
     0 28px 80px rgba(0, 0, 0, 0.55);
+  overflow-y: auto;
 }
 
 .j-post-page--focus .post-view-main-inner {
   max-width: none;
+}
+
+.j-post-page--focus .post-view-main--media {
+  width: min(960px, 100%);
+  max-height: calc(100vh - 72px);
+}
+
+.j-post-page--focus .post-view-main--media .post-blocks-fb {
+  min-height: 120px;
 }
 
 .post-focus-toggle {
@@ -482,7 +505,7 @@ body.post-page-focus-mode {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  body.post-page-focus-mode::before,
+  .j-post-page.j-post-page--focus,
   .post-focus-toggle {
     transition-duration: 0.01ms;
   }

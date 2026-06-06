@@ -39,9 +39,8 @@ export type PublishPostInput = {
   tieuDe: string;
   moTa: string;
   coverSeed: string | null;
-  /** Tag = `article_bai_viet` user chọn trong dropdown editor → persist
-   *  qua `article_gan_tac_pham` sau khi insert tác phẩm. */
-  tags: ArticleTagRef[];
+  /** Tag — quản lý từ Journey card sau khi đăng; bỏ qua khi không truyền. */
+  tags?: ArticleTagRef[];
   visibility: Visibility;
   loaiMoc: LoaiMoc;
   thoiDiem: string; // ISO date `YYYY-MM-DD`
@@ -211,7 +210,7 @@ export async function publishPost(
      KHÔNG rollback bài viết — best-effort, user sẽ thấy bài đăng OK nhưng
      tag không hiện ra trong gallery của bài tag tương ứng. Log để debug
      khi cần. */
-  const tagIds = sanitizeTagIds(input.tags);
+  const tagIds = input.tags ? sanitizeTagIds(input.tags) : [];
   if (tagIds.length > 0) {
     const rows = tagIds.map((id_bai_viet) => ({
       id_bai_viet,
@@ -234,21 +233,23 @@ export async function publishPost(
     }
   }
 
-  const coSync = await syncCoAuthorsFromEditor(
-    tacPham.id,
-    session.profile.id,
-    input.ownerVaiTro ?? "",
-    input.coAuthors ?? [],
-  );
-  if (!coSync.ok) {
-    console.error("[publishPost] co-author sync failed", coSync.error);
+  if (input.coAuthors !== undefined) {
+    const coSync = await syncCoAuthorsFromEditor(
+      tacPham.id,
+      session.profile.id,
+      input.ownerVaiTro ?? "",
+      input.coAuthors,
+    );
+    if (!coSync.ok) {
+      console.error("[publishPost] co-author sync failed", coSync.error);
+    }
+    for (const c of input.coAuthors) {
+      if (c.slug) revalidatePath(`/${c.slug}`);
+    }
   }
 
   /* 6. Revalidate profile để CTA / timeline thấy bài mới. */
   revalidatePath(`/${session.profile.slug}`);
-  for (const c of input.coAuthors ?? []) {
-    if (c.slug) revalidatePath(`/${c.slug}`);
-  }
 
   return {
     ok: true,
