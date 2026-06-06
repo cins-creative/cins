@@ -4,27 +4,19 @@ import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import {
   followTarget,
   getFollowStatus,
-  unfriendUser,
+  parseEntityFollowLoai,
   unfollowTarget,
 } from "@/lib/social/follow";
-import type { FollowTargetType } from "@/lib/social/types";
-
-const VALID_LOAI = new Set<FollowTargetType>(["user", "tag", "org"]);
-
-function parseLoai(raw: string | null): FollowTargetType | null {
-  if (!raw || !VALID_LOAI.has(raw as FollowTargetType)) return null;
-  return raw as FollowTargetType;
-}
 
 export async function GET(req: Request) {
   const session = await getCurrentSessionAndProfile();
   const { searchParams } = new URL(req.url);
   const id_doi_tuong = searchParams.get("id_doi_tuong")?.trim();
-  const loai = parseLoai(searchParams.get("loai_doi_tuong"));
+  const loai = parseEntityFollowLoai(searchParams.get("loai_doi_tuong"));
 
   if (!id_doi_tuong || !loai) {
     return NextResponse.json(
-      { error: "Thiếu id_doi_tuong hoặc loai_doi_tuong." },
+      { error: "Thiếu id_doi_tuong hoặc loai_doi_tuong (tag/org)." },
       { status: 400 },
     );
   }
@@ -43,7 +35,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Cần đăng nhập." }, { status: 401 });
   }
 
-  let body: { id_doi_tuong?: string; loai_doi_tuong?: string; mutual?: boolean };
+  let body: { id_doi_tuong?: string; loai_doi_tuong?: string };
   try {
     body = await req.json();
   } catch {
@@ -51,10 +43,10 @@ export async function POST(req: Request) {
   }
 
   const id_doi_tuong = body.id_doi_tuong?.trim();
-  const loai = parseLoai(body.loai_doi_tuong ?? null);
+  const loai = parseEntityFollowLoai(body.loai_doi_tuong ?? null);
   if (!id_doi_tuong || !loai) {
     return NextResponse.json(
-      { error: "Thiếu id_doi_tuong hoặc loai_doi_tuong." },
+      { error: "Chỉ theo dõi tag hoặc tổ chức — loai_doi_tuong phải là tag hoặc org." },
       { status: 400 },
     );
   }
@@ -73,7 +65,7 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: "Cần đăng nhập." }, { status: 401 });
   }
 
-  let body: { id_doi_tuong?: string; loai_doi_tuong?: string; mutual?: boolean };
+  let body: { id_doi_tuong?: string; loai_doi_tuong?: string };
   try {
     body = await req.json();
   } catch {
@@ -81,18 +73,15 @@ export async function DELETE(req: Request) {
   }
 
   const id_doi_tuong = body.id_doi_tuong?.trim();
-  const loai = parseLoai(body.loai_doi_tuong ?? null);
+  const loai = parseEntityFollowLoai(body.loai_doi_tuong ?? null);
   if (!id_doi_tuong || !loai) {
     return NextResponse.json(
-      { error: "Thiếu id_doi_tuong hoặc loai_doi_tuong." },
+      { error: "Thiếu id_doi_tuong hoặc loai_doi_tuong (tag/org)." },
       { status: 400 },
     );
   }
 
-  const result =
-    body.mutual && loai === "user"
-      ? await unfriendUser(session.profile.id, id_doi_tuong)
-      : await unfollowTarget(session.profile.id, id_doi_tuong, loai);
+  const result = await unfollowTarget(session.profile.id, id_doi_tuong, loai);
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: 400 });
   }

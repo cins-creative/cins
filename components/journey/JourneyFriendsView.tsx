@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Check, X } from "lucide-react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 
-import type { MutualFriendProfile } from "@/lib/social/types";
+import { emitNotificationsChanged } from "@/lib/journey/notifications-client";
+import type { MutualFriendProfile, PendingFollowRequest } from "@/lib/social/types";
 
 type ScrollLoadConfig = {
   ownerSlug: string;
@@ -15,16 +17,24 @@ type Props = {
   initialFriends?: ReadonlyArray<MutualFriendProfile>;
   totalCount?: number;
   scrollLoad?: ScrollLoadConfig;
-  /** Legacy prop — danh sách đầy đủ không scroll. */
   friends?: ReadonlyArray<MutualFriendProfile>;
+  isOwner?: boolean;
 };
+
+type FriendsTab = "friends" | "invites";
 
 export function JourneyFriendsView({
   initialFriends,
   totalCount,
   scrollLoad,
   friends: legacyFriends,
+  isOwner = false,
 }: Props) {
+  const [tab, setTab] = useState<FriendsTab>("friends");
+  const [inviteCount, setInviteCount] = useState(0);
+  const [invites, setInvites] = useState<PendingFollowRequest[]>([]);
+  const [loadingInvites, setLoadingInvites] = useState(false);
+  const [pending, startTransition] = useTransition();
   const [items, setItems] = useState<MutualFriendProfile[]>(() =>
     legacyFriends ? [...legacyFriends] : [...(initialFriends ?? [])],
   );
@@ -36,6 +46,43 @@ export function JourneyFriendsView({
   const [loadError, setLoadError] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const loadingRef = useRef(false);
+
+  const loadInvites = useCallback(async () => {
+    if (!isOwner) return;
+    setLoadingInvites(true);
+    try {
+      const res = await fetch("/api/ket-ban/loi-moi");
+      if (!res.ok) return;
+      const data = (await res.json()) as {
+        invites: PendingFollowRequest[];
+        count: number;
+      };
+      setInvites(data.invites ?? []);
+      setInviteCount(data.count ?? 0);
+    } finally {
+      setLoadingInvites(false);
+    }
+  }, [isOwner]);
+
+  useEffect(() => {
+    if (isOwner) void loadInvites();
+  }, [isOwner, loadInvites]);
+
+  const respondInvite = (request: PendingFollowRequest, action: "accept" | "decline") => {
+    const recordId = request.ketBanId;
+    if (!recordId) return;
+    startTransition(async () => {
+      const res = await fetch(`/api/ket-ban/${recordId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      if (res.ok) {
+        await loadInvites();
+        emitNotificationsChanged();
+      }
+    });
+  };
 
   useEffect(() => {
     if (legacyFriends) return;
@@ -94,15 +141,112 @@ export function JourneyFriendsView({
 
   const count = legacyFriends ? legacyFriends.length : (totalCount ?? items.length);
 
+  if (isOwner && tab === "invites") {
+    return (
+      <section className="j-main-panel" aria-label="Lời mời kết bạn">
+        <div className="j-main-panel-head">
+          <span>Lời mời</span>
+          <strong>{inviteCount} lời mời</strong>
+        </div>
+        {isOwner ? (
+          <div className="j-friends-tabs" role="tablist" aria-label="Bạn bè và lời mời">
+            <button
+              type="button"
+              role="tab"
+              className="j-friends-tab"
+              onClick={() => setTab("friends")}
+            >
+              Bạn bè
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected
+              className="j-friends-tab is-active"
+            >
+              Lời mời
+              {inviteCount > 0 ? <em>{inviteCount}</em> : null}
+            </button>
+          </div>
+        ) : null}
+        {loadingInvites ? (
+          <div className="j-main-empty">Đang tải…</div>
+        ) : invites.length === 0 ? (
+          <div className="j-main-empty">Không có lời mời đang chờ.</div>
+        ) : (
+          <ul className="j-friends-invite-list">
+            {invites.map((invite) => (
+              <li key={invite.ketBanId ?? invite.idNguoiDung} className="j-friends-invite-row">
+                <Link href={`/${invite.slug}`} className="j-friends-invite-user">
+                  {invite.avatarUrl ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img src={invite.avatarUrl} alt="" width={40} height={40} />
+                  ) : (
+                    <span aria-hidden>{(invite.tenHienThi || invite.slug).slice(0, 1)}</span>
+                  )}
+                  <span>
+                    <strong>{invite.tenHienThi}</strong>
+                    <small>@{invite.slug}</small>
+                  </span>
+                </Link>
+                <div className="j-friends-invite-actions">
+                  <button
+                    type="button"
+                    className="j-friend-action is-accept"
+                    disabled={pending}
+                    onClick={() => respondInvite(invite, "accept")}
+                  >
+                    <Check size={13} aria-hidden />
+                    Chấp nhận
+                  </button>
+                  <button
+                    type="button"
+                    className="j-friend-action is-decline"
+                    disabled={pending}
+                    onClick={() => respondInvite(invite, "decline")}
+                  >
+                    <X size={13} aria-hidden />
+                    Từ chối
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    );
+  }
+
   return (
     <section className="j-main-panel" aria-label="Bạn bè">
       <div className="j-main-panel-head">
         <span>Bạn bè</span>
         <strong>{count} người</strong>
       </div>
+      {isOwner ? (
+        <div className="j-friends-tabs" role="tablist" aria-label="Bạn bè và lời mời">
+          <button
+            type="button"
+            role="tab"
+            aria-selected
+            className="j-friends-tab is-active"
+          >
+            Bạn bè
+          </button>
+          <button
+            type="button"
+            role="tab"
+            className={`j-friends-tab${tab === "invites" ? " is-active" : ""}`}
+            onClick={() => setTab("invites")}
+          >
+            Lời mời
+            {inviteCount > 0 ? <em>{inviteCount}</em> : null}
+          </button>
+        </div>
+      ) : null}
       {items.length === 0 ? (
         <div className="j-main-empty">
-          Chưa có bạn bè. Khi hai người theo dõi lẫn nhau, hồ sơ sẽ xuất hiện ở đây.
+          Chưa có bạn bè. Gửi lời mời kết bạn — khi được chấp nhận, hồ sơ sẽ xuất hiện ở đây.
         </div>
       ) : (
         <div className="j-friends-grid">

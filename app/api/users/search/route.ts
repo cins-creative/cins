@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
-import { listMutualFollowUserIds } from "@/lib/social/follow";
+import { listFriends } from "@/lib/social/ket-ban";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 export async function GET(req: Request) {
@@ -17,7 +17,7 @@ export async function GET(req: Request) {
   const admin = createServiceRoleClient();
   let allowedIds: string[] | null = null;
   if (mutualOnly) {
-    allowedIds = await listMutualFollowUserIds(session.profile.id);
+    allowedIds = await listFriends(session.profile.id);
     if (allowedIds.length === 0) {
       return NextResponse.json({ users: [] });
     }

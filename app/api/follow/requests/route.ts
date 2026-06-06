@@ -2,35 +2,21 @@ import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import {
-  followTarget,
-  listFollowAcceptedNotifications,
-  listPendingFollowRequests,
-  logFollowRequestHandled,
-  notifyFollowAccepted,
-  removeIncomingUserFollow,
-} from "@/lib/social/follow";
+  acceptFriendRequest,
+  declineFriendRequest,
+  findPendingRecordId,
+} from "@/lib/social/ket-ban";
+import { logFollowRequestHandled } from "@/lib/social/follow";
 import { loadNotificationFeed } from "@/lib/social/notifications";
 
-export async function GET() {
-  const session = await getCurrentSessionAndProfile();
-  if (!session?.profile) {
-    return NextResponse.json({ error: "Cần đăng nhập." }, { status: 401 });
-  }
-
-  const [requests, accepted] = await Promise.all([
-    listPendingFollowRequests(session.profile.id),
-    listFollowAcceptedNotifications(session.profile.id, { unreadOnly: true }),
-  ]);
-  return NextResponse.json({ requests, accepted });
-}
-
+/** @deprecated Dùng `/api/ket-ban/:id` PATCH — giữ tạm cho client cũ. */
 export async function PATCH(req: Request) {
   const session = await getCurrentSessionAndProfile();
   if (!session?.profile) {
     return NextResponse.json({ error: "Cần đăng nhập." }, { status: 401 });
   }
 
-  let body: { id_nguoi_dung?: string; action?: string };
+  let body: { id_nguoi_dung?: string; action?: string; ket_ban_id?: string };
   try {
     body = await req.json();
   } catch {
@@ -39,27 +25,39 @@ export async function PATCH(req: Request) {
 
   const targetId = body.id_nguoi_dung?.trim();
   const action = body.action;
-  if (!targetId || (action !== "accept" && action !== "decline")) {
-    return NextResponse.json(
-      { error: "Thiếu id_nguoi_dung hoặc action không hợp lệ." },
-      { status: 400 },
-    );
+  if (action !== "accept" && action !== "decline") {
+    return NextResponse.json({ error: "action không hợp lệ." }, { status: 400 });
   }
 
-  const result =
-    action === "accept"
-      ? await followTarget(session.profile.id, targetId, "user")
-      : await removeIncomingUserFollow(session.profile.id, targetId);
+  const recordId =
+    body.ket_ban_id?.trim() ??
+    (targetId
+      ? await findPendingRecordId(session.profile.id, targetId)
+      : null);
 
-  if (!result.ok) {
-    return NextResponse.json({ error: result.error }, { status: 400 });
+  if (!recordId) {
+    return NextResponse.json({ error: "Không tìm thấy lời mời." }, { status: 404 });
   }
 
   if (action === "accept") {
-    await notifyFollowAccepted(targetId, session.profile.id);
+    const acceptResult = await acceptFriendRequest(recordId, session.profile.id);
+    if (!acceptResult.ok) {
+      return NextResponse.json({ error: acceptResult.error }, { status: 400 });
+    }
+    await logFollowRequestHandled(
+      session.profile.id,
+      acceptResult.data.idNguoiGui,
+      "accept",
+    );
+  } else {
+    const declineResult = await declineFriendRequest(recordId, session.profile.id);
+    if (!declineResult.ok) {
+      return NextResponse.json({ error: declineResult.error }, { status: 400 });
+    }
+    if (targetId) {
+      await logFollowRequestHandled(session.profile.id, targetId, "decline");
+    }
   }
-
-  await logFollowRequestHandled(session.profile.id, targetId, action);
 
   const feed = await loadNotificationFeed(session.profile.id, "unread");
   return NextResponse.json({ ok: true, ...feed });

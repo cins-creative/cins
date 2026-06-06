@@ -839,6 +839,176 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   }
 }
 
+.j-friends-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 0 4px;
+}
+
+.j-friends-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--j-border, rgba(15, 23, 42, 0.1));
+  background: #fff;
+  font-size: 13px;
+  color: var(--j-muted, #64748b);
+  cursor: pointer;
+}
+
+.j-friends-tab.is-active {
+  border-color: rgba(37, 99, 235, 0.35);
+  background: var(--cins-blue-soft, rgba(37, 99, 235, 0.08));
+  color: var(--cins-blue, #2563eb);
+}
+
+.j-friends-tab em {
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--cins-blue, #2563eb);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.j-friends-invite-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.j-friends-invite-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--j-border, rgba(15, 23, 42, 0.08));
+  border-radius: 12px;
+  background: #fff;
+}
+
+.j-friends-invite-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.j-friends-invite-user img,
+.j-friends-invite-user > span:first-child {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--cins-blue-soft);
+  color: var(--cins-blue);
+  font-weight: 700;
+}
+
+.j-friends-invite-user strong {
+  display: block;
+  font-size: 14px;
+}
+
+.j-friends-invite-user small {
+  display: block;
+  font-size: 12px;
+  color: var(--j-muted, #64748b);
+}
+
+.j-friends-invite-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.j-mutual-friends {
+  margin: 8px 0 4px;
+  position: relative;
+}
+
+.j-mutual-friends-trigger {
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 13px;
+  color: var(--cins-blue, #2563eb);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.j-mutual-friends-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 8px;
+  border: 1px solid var(--j-border, rgba(15, 23, 42, 0.1));
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+  max-height: 220px;
+  overflow: auto;
+}
+
+.j-mutual-friends-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px;
+  border-radius: 8px;
+  color: inherit;
+  text-decoration: none;
+  font-size: 13px;
+}
+
+.j-mutual-friends-item:hover {
+  background: rgba(37, 99, 235, 0.06);
+}
+
+.j-mutual-friends-item img,
+.j-mutual-friends-initial {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.j-mutual-friends-initial {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--cins-blue-soft);
+  color: var(--cins-blue);
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.j-follow-blocked {
+  font-size: 12px;
+  color: var(--j-muted, #64748b);
+  padding: 6px 10px;
+}
+
 /* ────────────────────────────────────────────────────────────────
  * TIMELINE — rail + diamond + cards
  *

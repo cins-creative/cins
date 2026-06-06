@@ -60,7 +60,8 @@ export async function POST(req: Request, ctx: RouteCtx) {
         vaiTro,
       );
   if (!result.ok) {
-    return NextResponse.json({ error: result.error }, { status: 400 });
+    const status = result.error.includes("kết bạn") ? 403 : 400;
+    return NextResponse.json({ error: result.error }, { status });
   }
   return NextResponse.json({ ok: true, reviewRequired: !isOwner });
 }

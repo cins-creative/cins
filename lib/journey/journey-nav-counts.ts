@@ -1,7 +1,7 @@
 import "server-only";
 
 import { fetchGalleryTotalCount } from "@/lib/journey/gallery-page-fetch";
-import { countMutualFriends } from "@/lib/social/follow";
+import { countFriends } from "@/lib/social/ket-ban";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 /** Count nhẹ cho nav switch — không hydrate timeline/gallery/friends. */
@@ -19,7 +19,7 @@ export async function fetchJourneySwitchNavCounts(params: {
       .select("id", { count: "exact", head: true })
       .eq("id_nguoi_dung", params.ownerId),
     fetchGalleryTotalCount(params.ownerId),
-    countMutualFriends(params.ownerId),
+    countFriends(params.ownerId),
   ]);
 
   return {

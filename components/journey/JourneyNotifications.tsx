@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, Check, ExternalLink, Video, X } from "lucide-react";
+import { Bell, Check, Video, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 
 import type {
   CommentNotification,
@@ -144,14 +145,16 @@ export function JourneyNotifications({ initialFeed }: Props) {
 
   const respond = (request: PendingFollowRequest, action: "accept" | "decline") => {
     setError(null);
+    const recordId = request.ketBanId;
+    if (!recordId) {
+      setError("Không tìm thấy lời mời.");
+      return;
+    }
     startTransition(async () => {
-      const res = await fetch("/api/follow/requests", {
+      const res = await fetch(`/api/ket-ban/${recordId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id_nguoi_dung: request.idNguoiDung,
-          action,
-        }),
+        body: JSON.stringify({ action }),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -590,105 +593,170 @@ function FollowRequestModal({
   onClose: () => void;
   onRespond: (request: PendingFollowRequest, action: "accept" | "decline") => void;
 }) {
-  return (
+  const [mounted, setMounted] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(true);
+  const [preview, setPreview] = useState<{
+    coverUrl: string | null;
+    aiSummaryJourney: string | null;
+    stats: { cotMoc: number; tacPham: number; banBe: number };
+  } | null>(null);
+
+  useEffect(() => {
+    queueMicrotask(() => setMounted(true));
+  }, []);
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [onClose]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setPreviewLoading(true);
+    void fetch(`/api/users/preview?slug=${encodeURIComponent(selected.slug)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (cancelled || !json?.profile) return;
+        setPreview({
+          coverUrl: json.profile.coverUrl ?? null,
+          aiSummaryJourney: json.profile.aiSummaryJourney ?? null,
+          stats: json.profile.stats ?? {
+            cotMoc: selected.stats.cotMoc,
+            tacPham: selected.stats.tacPham,
+            banBe: selected.stats.banBe,
+          },
+        });
+      })
+      .finally(() => {
+        if (!cancelled) setPreviewLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selected.slug, selected.stats.banBe, selected.stats.cotMoc, selected.stats.tacPham]);
+
+  const coverUrl = preview?.coverUrl ?? selected.coverUrl;
+  const stats = preview?.stats ?? {
+    cotMoc: selected.stats.cotMoc,
+    tacPham: selected.stats.tacPham,
+    banBe: selected.stats.banBe,
+  };
+
+  if (!mounted) return null;
+
+  return createPortal(
     <div
-      className="j-notify-modal-backdrop"
+      className="j-user-popover-backdrop"
       role="presentation"
       onClick={onClose}
     >
       <div
-        className="j-notify-modal j-notify-profile-card"
+        className="j-user-popover j-notify-request-popover"
         role="dialog"
         aria-modal="true"
         aria-label={`Thông tin ${selected.tenHienThi}`}
-        onClick={(e) => e.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
       >
         <button
           type="button"
-          className="j-notify-modal-close"
+          className="j-user-pop-close"
           aria-label="Đóng"
           onClick={onClose}
         >
           <X size={16} aria-hidden />
         </button>
-        <div
-          className={`j-notify-cover${selected.coverUrl ? " has-img" : ""}`}
-          aria-hidden
-        >
-          {selected.coverUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={selected.coverUrl} alt="" />
-          ) : (
-            <span />
-          )}
-        </div>
-        <div className="j-notify-profile-main">
-          <Avatar request={selected} large />
-          <div className="j-notify-profile-title">
-            <h2>{selected.tenHienThi}</h2>
-            <p className="j-notify-modal-slug">@{selected.slug}</p>
+        <article className="j-friend-card j-user-pop-card">
+          <div
+            className={`j-friend-cover${coverUrl ? " has-img" : ""}`}
+            aria-hidden
+          >
+            {coverUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={coverUrl} alt="" />
+            ) : null}
           </div>
-        </div>
-        <div className="j-notify-stats" aria-label="Tổng quan hồ sơ">
-          <span>
-            <strong>{selected.stats.cotMoc}</strong>
-            Cột mốc
-          </span>
-          <span>
-            <strong>{selected.stats.tacPham}</strong>
-            Tác phẩm
-          </span>
-          <span>
-            <strong>{selected.stats.banBe}</strong>
-            Bạn bè
-          </span>
-          <span>
-            <strong>{selected.stats.toChucXacThuc}</strong>
-            Xác thực
-          </span>
-        </div>
-        {selected.bio ? <p className="j-notify-modal-bio">{selected.bio}</p> : null}
-        <dl className="j-notify-modal-meta">
-          {selected.giaiDoan ? (
-            <div>
-              <dt>Giai đoạn</dt>
-              <dd>{selected.giaiDoan}</dd>
+          <div className="j-friend-avatar">
+            {selected.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={selected.avatarUrl} alt="" />
+            ) : (
+              <span>{(selected.tenHienThi || selected.slug).slice(0, 1)}</span>
+            )}
+          </div>
+          <div className="j-friend-body">
+            <h3>{selected.tenHienThi}</h3>
+            <p className="j-friend-slug">@{selected.slug}</p>
+            {selected.bio ? <p className="j-friend-bio">{selected.bio}</p> : null}
+            {preview?.aiSummaryJourney ? (
+              <p className="j-user-pop-ai">
+                <strong>AI tóm tắt</strong>
+                {preview.aiSummaryJourney}
+              </p>
+            ) : previewLoading ? (
+              <p className="j-user-pop-ai is-loading">Đang tải AI tóm tắt...</p>
+            ) : null}
+            <div className="j-friend-stats" aria-label="Thống kê hồ sơ">
+              <span>
+                <strong>{stats.cotMoc}</strong>
+                Journey
+              </span>
+              <span>
+                <strong>{stats.tacPham}</strong>
+                Gallery
+              </span>
+              <span>
+                <strong>{stats.banBe}</strong>
+                Bạn bè
+              </span>
             </div>
-          ) : null}
-          {selected.tinhThanh ? (
-            <div>
-              <dt>Khu vực</dt>
-              <dd>{selected.tinhThanh}</dd>
+            <div className="j-friend-meta">
+              {selected.giaiDoan ? <span>{selected.giaiDoan}</span> : null}
+              {selected.tinhThanh ? <span>{selected.tinhThanh}</span> : null}
             </div>
-          ) : null}
-        </dl>
-        <div className="j-notify-modal-actions">
-          {showActions ? (
-            <>
-              <button
-                type="button"
-                className="j-notify-action is-accept"
-                disabled={pending}
-                onClick={() => onRespond(selected, "accept")}
+            <div className="j-friend-actions j-notify-request-actions">
+              {showActions ? (
+                <>
+                  <button
+                    type="button"
+                    className="j-friend-action is-accept"
+                    disabled={pending}
+                    onClick={() => onRespond(selected, "accept")}
+                  >
+                    <Check size={13} strokeWidth={2} aria-hidden />
+                    Chấp nhận
+                  </button>
+                  <button
+                    type="button"
+                    className="j-friend-action is-decline"
+                    disabled={pending}
+                    onClick={() => onRespond(selected, "decline")}
+                  >
+                    <X size={13} strokeWidth={2} aria-hidden />
+                    Từ chối
+                  </button>
+                </>
+              ) : null}
+              <Link
+                href={`/${encodeURIComponent(selected.slug)}`}
+                className="j-friend-link"
+                onClick={() => onClose()}
               >
-                <Check size={14} aria-hidden /> Duyệt
-              </button>
-              <button
-                type="button"
-                className="j-notify-action"
-                disabled={pending}
-                onClick={() => onRespond(selected, "decline")}
-              >
-                Từ chối
-              </button>
-            </>
-          ) : null}
-          <Link href={`/${selected.slug}`} className="j-notify-action is-link">
-            <ExternalLink size={14} aria-hidden /> Xem Journey
-          </Link>
-        </div>
+                Xem Journey
+              </Link>
+            </div>
+          </div>
+        </article>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

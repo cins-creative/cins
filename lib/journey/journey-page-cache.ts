@@ -7,7 +7,7 @@ import {
   fetchMilestoneTimelinePage,
 } from "@/lib/journey/milestones-page-fetch";
 import { loadPendingCoAuthorInvites } from "@/lib/social/co-author";
-import { listMutualFriendProfilesPage } from "@/lib/social/follow";
+import { listMutualFriendProfilesPage } from "@/lib/social/ket-ban";
 
 /**
  * Request-level dedupe cho Journey page — nhiều Suspense boundary gọi cùng

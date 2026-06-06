@@ -1123,6 +1123,239 @@
   color: var(--cins-blue);
 }
 
+/* Friend-request profile card — portal modal (global topbar, không phụ thuộc journey.css) */
+.j-user-popover-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.48);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.j-notify-request-popover.j-user-popover {
+  position: relative;
+  width: min(420px, 100%);
+}
+
+.j-notify-request-popover .j-user-pop-close {
+  position: absolute;
+  top: -14px;
+  right: -14px;
+  z-index: 2;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-surface);
+  color: var(--ink-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+}
+
+.j-notify-request-popover .j-user-pop-card {
+  display: block;
+  width: 100%;
+  text-align: left;
+  transform: none !important;
+  box-shadow: 0 22px 70px rgba(15, 23, 42, 0.22);
+}
+
+.j-notify-request-popover .j-friend-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 20px;
+  background: var(--bg-surface);
+}
+
+.j-notify-request-popover .j-friend-cover {
+  position: relative;
+  height: 78px;
+  background:
+    radial-gradient(circle at 20% 24%, rgba(253, 232, 89, 0.95), transparent 28%),
+    linear-gradient(135deg, #1d4ed8, #7c3aed 58%, #0f172a);
+}
+
+.j-notify-request-popover .j-friend-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.j-notify-request-popover .j-friend-avatar {
+  position: relative;
+  z-index: 1;
+  width: 54px;
+  height: 54px;
+  margin: -27px 14px 0;
+  border: 3px solid var(--bg-surface);
+  border-radius: 999px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #dbeafe, #fef3c7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1d4ed8;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.j-notify-request-popover .j-friend-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.j-notify-request-popover .j-friend-body {
+  position: relative;
+  z-index: 1;
+  padding: 8px 14px 14px;
+}
+
+.j-notify-request-popover .j-friend-body h3 {
+  margin: 0;
+  font-size: 15px;
+  color: var(--ink-display);
+}
+
+.j-notify-request-popover .j-friend-slug,
+.j-notify-request-popover .j-friend-bio,
+.j-notify-request-popover .j-friend-meta {
+  margin: 4px 0 0;
+  color: var(--ink-muted);
+  font-size: 12px;
+}
+
+.j-notify-request-popover .j-user-pop-ai {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: var(--ink-body);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.j-notify-request-popover .j-user-pop-ai strong {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--cins-blue);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.j-notify-request-popover .j-user-pop-ai.is-loading {
+  color: var(--ink-muted);
+  font-style: italic;
+}
+
+.j-notify-request-popover .j-friend-stats {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.j-notify-request-popover .j-friend-stats span {
+  font-size: 11px;
+  color: var(--ink-muted);
+}
+
+.j-notify-request-popover .j-friend-stats strong {
+  display: block;
+  color: var(--ink-display);
+  font-size: 14px;
+}
+
+.j-notify-request-popover .j-friend-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.j-notify-request-popover .j-friend-meta span {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.j-notify-request-popover .j-notify-request-actions:not(:has(.j-friend-action)) {
+  grid-template-columns: 1fr;
+}
+
+.j-notify-request-popover .j-notify-request-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.j-notify-request-popover .j-notify-request-actions:has(.j-friend-action) .j-friend-link {
+  grid-column: 1 / -1;
+}
+
+.j-notify-request-popover .j-friend-action {
+  min-height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.j-notify-request-popover .j-friend-action.is-accept {
+  border-color: var(--cins-blue);
+  background: var(--cins-blue);
+  color: #fff;
+}
+
+.j-notify-request-popover .j-friend-action.is-decline {
+  color: #b91c1c;
+}
+
+.j-notify-request-popover .j-friend-action:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.j-notify-request-popover .j-friend-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  border-radius: 999px;
+  border: 1px solid rgba(37, 99, 235, 0.22);
+  background: var(--cins-blue-soft);
+  color: var(--cins-blue);
+  font-size: 12px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.j-notify-request-popover .j-friend-link:hover {
+  background: var(--cins-blue);
+  color: #fff;
+}
+
 .cins-app-topbar .tb-divider {
   width: 1px;
   height: 24px;

@@ -13,52 +13,34 @@ import type {
   FollowAcceptedNotification,
   FollowHandledNotification,
   FollowTargetType,
-  MutualFriendProfile,
   PendingFollowRequest,
 } from "@/lib/social/types";
 
-type FollowRow = {
-  id_nguoi_theo_doi: string;
-  id_doi_tuong: string;
-  loai_doi_tuong: string;
-};
-
-const FOLLOW_TARGET_DB_VALUE: Record<FollowTargetType, string> = {
-  user: "nguoi_dung",
+const ENTITY_FOLLOW_DB_VALUE: Record<Exclude<FollowTargetType, "user">, string> = {
   tag: "bai_viet",
   org: "to_chuc",
 };
 
-/**
- * Hai user follow lẫn nhau (`loai_doi_tuong = 'nguoi_dung'` trong DB).
- * Dùng làm điều kiện tag co-author.
- */
-export async function isMutualFollow(
-  userA: string,
-  userB: string,
-): Promise<boolean> {
-  if (!userA || !userB || userA === userB) return false;
-  const admin = createServiceRoleClient();
-  const { data, error } = await admin
-    .from("user_theo_doi")
-    .select("id_nguoi_theo_doi, id_doi_tuong")
-    .eq("loai_doi_tuong", FOLLOW_TARGET_DB_VALUE.user)
-    .or(
-      `and(id_nguoi_theo_doi.eq.${userA},id_doi_tuong.eq.${userB}),and(id_nguoi_theo_doi.eq.${userB},id_doi_tuong.eq.${userA})`,
-    )
-    .returns<FollowRow[]>();
+/** Follow tag/org — không dùng cho user (dùng `user_ket_ban`). */
+export type EntityFollowLoai = Exclude<FollowTargetType, "user">;
 
-  if (error || !data) return false;
-  return data.length >= 2;
+export type FollowStatus = {
+  dang_theo_doi: boolean;
+};
+
+export function parseEntityFollowLoai(raw: string | null): EntityFollowLoai | null {
+  if (raw === "tag" || raw === "bai_viet") return "tag";
+  if (raw === "org" || raw === "to_chuc") return "org";
+  return null;
 }
 
-export async function isFollowing(
+async function isFollowingEntity(
   followerId: string,
   targetId: string,
-  loai: FollowTargetType,
+  loai: EntityFollowLoai,
 ): Promise<boolean> {
   const admin = createServiceRoleClient();
-  const dbLoai = FOLLOW_TARGET_DB_VALUE[loai];
+  const dbLoai = ENTITY_FOLLOW_DB_VALUE[loai];
   const { data } = await admin
     .from("user_theo_doi")
     .select("id_nguoi_theo_doi")
@@ -69,102 +51,74 @@ export async function isFollowing(
   return Boolean(data);
 }
 
-export type FollowStatus = {
-  dang_theo_doi: boolean;
-  theo_doi_lai: boolean;
-  duoc_theo_doi: boolean;
-};
-
-export async function getFollowStatus(
-  viewerId: string | null,
-  targetId: string,
-  loai: FollowTargetType,
-): Promise<FollowStatus> {
-  if (!viewerId || viewerId === targetId) {
-    return { dang_theo_doi: false, theo_doi_lai: false, duoc_theo_doi: false };
-  }
-  const dang_theo_doi = await isFollowing(viewerId, targetId, loai);
-  const duoc_theo_doi =
-    loai === "user" ? await isFollowing(targetId, viewerId, "user") : false;
-  return { dang_theo_doi, theo_doi_lai: dang_theo_doi && duoc_theo_doi, duoc_theo_doi };
-}
-
-export async function followTarget(
+async function followEntity(
   followerId: string,
   targetId: string,
-  loai: FollowTargetType,
+  loai: EntityFollowLoai,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  if (followerId === targetId && loai === "user") {
-    return { ok: false, error: "Không thể theo dõi chính mình." };
-  }
   const admin = createServiceRoleClient();
-  const dbLoai = FOLLOW_TARGET_DB_VALUE[loai];
+  const dbLoai = ENTITY_FOLLOW_DB_VALUE[loai];
   const { error } = await admin.from("user_theo_doi").insert({
     id_nguoi_theo_doi: followerId,
     id_doi_tuong: targetId,
     loai_doi_tuong: dbLoai,
   });
   if (error) {
-    if (error.code === "23505") {
-      return { ok: true };
-    }
+    if (error.code === "23505") return { ok: true };
     return { ok: false, error: error.message };
   }
   return { ok: true };
 }
 
-export const followUser = followTarget;
-
-export async function unfollowTarget(
+async function unfollowEntity(
   followerId: string,
   targetId: string,
-  loai: FollowTargetType,
+  loai: EntityFollowLoai,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const admin = createServiceRoleClient();
-  const dbLoai = FOLLOW_TARGET_DB_VALUE[loai];
+  const dbLoai = ENTITY_FOLLOW_DB_VALUE[loai];
   const { error } = await admin
     .from("user_theo_doi")
     .delete()
     .eq("id_nguoi_theo_doi", followerId)
     .eq("id_doi_tuong", targetId)
     .eq("loai_doi_tuong", dbLoai);
-  if (error) {
-    return { ok: false, error: error.message };
-  }
-  return { ok: true };
-}
-
-export const unfollowUser = unfollowTarget;
-
-export async function unfriendUser(
-  viewerId: string,
-  targetId: string,
-): Promise<{ ok: true } | { ok: false; error: string }> {
-  const admin = createServiceRoleClient();
-  const { error } = await admin
-    .from("user_theo_doi")
-    .delete()
-    .eq("loai_doi_tuong", FOLLOW_TARGET_DB_VALUE.user)
-    .or(
-      `and(id_nguoi_theo_doi.eq.${viewerId},id_doi_tuong.eq.${targetId}),and(id_nguoi_theo_doi.eq.${targetId},id_doi_tuong.eq.${viewerId})`,
-    );
   if (error) return { ok: false, error: error.message };
   return { ok: true };
 }
 
-export async function removeIncomingUserFollow(
-  viewerId: string,
+export async function isFollowing(
   followerId: string,
+  targetId: string,
+  loai: EntityFollowLoai,
+): Promise<boolean> {
+  return isFollowingEntity(followerId, targetId, loai);
+}
+
+export async function getFollowStatus(
+  viewerId: string | null,
+  targetId: string,
+  loai: EntityFollowLoai,
+): Promise<FollowStatus> {
+  if (!viewerId) return { dang_theo_doi: false };
+  const dang_theo_doi = await isFollowingEntity(viewerId, targetId, loai);
+  return { dang_theo_doi };
+}
+
+export async function followTarget(
+  followerId: string,
+  targetId: string,
+  loai: EntityFollowLoai,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const admin = createServiceRoleClient();
-  const { error } = await admin
-    .from("user_theo_doi")
-    .delete()
-    .eq("id_nguoi_theo_doi", followerId)
-    .eq("id_doi_tuong", viewerId)
-    .eq("loai_doi_tuong", FOLLOW_TARGET_DB_VALUE.user);
-  if (error) return { ok: false, error: error.message };
-  return { ok: true };
+  return followEntity(followerId, targetId, loai);
+}
+
+export async function unfollowTarget(
+  followerId: string,
+  targetId: string,
+  loai: EntityFollowLoai,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  return unfollowEntity(followerId, targetId, loai);
 }
 
 export async function notifyFollowAccepted(
@@ -379,91 +333,7 @@ export async function listCommentNotifications(
     .filter((item): item is NonNullable<typeof item> => item !== null);
 }
 
-/** Người đang follow viewer nhưng viewer chưa follow lại. */
-export async function listPendingFollowRequests(
-  viewerId: string,
-): Promise<PendingFollowRequest[]> {
-  const admin = createServiceRoleClient();
-  const { data: incoming } = await admin
-    .from("user_theo_doi")
-    .select("id_nguoi_theo_doi")
-    .eq("id_doi_tuong", viewerId)
-    .eq("loai_doi_tuong", FOLLOW_TARGET_DB_VALUE.user)
-    .returns<Array<{ id_nguoi_theo_doi: string }>>();
-
-  const incomingIds = [
-    ...new Set((incoming ?? []).map((r) => r.id_nguoi_theo_doi)),
-  ];
-  if (incomingIds.length === 0) return [];
-
-  const { data: outgoing } = await admin
-    .from("user_theo_doi")
-    .select("id_doi_tuong")
-    .eq("id_nguoi_theo_doi", viewerId)
-    .eq("loai_doi_tuong", FOLLOW_TARGET_DB_VALUE.user)
-    .in("id_doi_tuong", incomingIds)
-    .returns<Array<{ id_doi_tuong: string }>>();
-  const alreadyMutual = new Set((outgoing ?? []).map((r) => r.id_doi_tuong));
-  const pendingIds = incomingIds.filter((id) => !alreadyMutual.has(id));
-  if (pendingIds.length === 0) return [];
-
-  return loadFollowProfiles(admin, pendingIds);
-}
-
-export async function listMutualFriendProfiles(
-  viewerId: string,
-): Promise<MutualFriendProfile[]> {
-  const page = await listMutualFriendProfilesPage(viewerId, { offset: 0, limit: 60 });
-  return page.friends;
-}
-
-export const FRIENDS_SCROLL_PAGE_SIZE = 12;
-
-export async function countMutualFriends(userId: string): Promise<number> {
-  const ids = await listMutualFollowUserIds(userId);
-  return ids.length;
-}
-
-export async function listMutualFriendProfilesPage(
-  viewerId: string,
-  params: { offset?: number; limit?: number } = {},
-): Promise<{
-  friends: MutualFriendProfile[];
-  offset: number;
-  nextOffset: number;
-  hasMore: boolean;
-  totalCount: number;
-}> {
-  const mutualIds = await listMutualFollowUserIds(viewerId);
-  const offset = Math.max(0, params.offset ?? 0);
-  const limit = Math.min(
-    24,
-    Math.max(1, params.limit ?? FRIENDS_SCROLL_PAGE_SIZE),
-  );
-  const slice = mutualIds.slice(offset, offset + limit);
-  if (slice.length === 0) {
-    return {
-      friends: [],
-      offset,
-      nextOffset: offset,
-      hasMore: false,
-      totalCount: mutualIds.length,
-    };
-  }
-
-  const admin = createServiceRoleClient();
-  const friends = await loadFollowProfiles(admin, slice, slice.length);
-  const nextOffset = offset + friends.length;
-  return {
-    friends,
-    offset,
-    nextOffset,
-    hasMore: nextOffset < mutualIds.length,
-    totalCount: mutualIds.length,
-  };
-}
-
-async function loadFollowProfiles(
+export async function loadFollowProfiles(
   admin: ReturnType<typeof createServiceRoleClient>,
   userIds: string[],
   limit = 20,
@@ -507,10 +377,8 @@ async function loadUserSocialStats(
     { data: tacPhams },
     { data: featuredTacPhams },
     { data: orgRows },
-    { data: followsFrom },
-    { data: followsTo },
-  ] =
-    await Promise.all([
+    { data: friendRows },
+  ] = await Promise.all([
       admin
         .from("content_tac_pham")
         .select("id_nguoi_dung")
@@ -538,17 +406,13 @@ async function loadUserSocialStats(
         .in("id_nguoi_dung", userIds)
         .returns<Array<{ id_nguoi_dung: string }>>(),
       admin
-        .from("user_theo_doi")
-        .select("id_nguoi_theo_doi, id_doi_tuong")
-        .eq("loai_doi_tuong", FOLLOW_TARGET_DB_VALUE.user)
-        .in("id_nguoi_theo_doi", userIds)
-        .returns<Array<{ id_nguoi_theo_doi: string; id_doi_tuong: string }>>(),
-      admin
-        .from("user_theo_doi")
-        .select("id_nguoi_theo_doi, id_doi_tuong")
-        .eq("loai_doi_tuong", FOLLOW_TARGET_DB_VALUE.user)
-        .in("id_doi_tuong", userIds)
-        .returns<Array<{ id_nguoi_theo_doi: string; id_doi_tuong: string }>>(),
+        .from("user_ket_ban")
+        .select("id_nguoi_gui, id_nguoi_nhan")
+        .eq("trang_thai", "accepted")
+        .or(
+          `id_nguoi_gui.in.(${userIds.join(",")}),id_nguoi_nhan.in.(${userIds.join(",")})`,
+        )
+        .returns<Array<{ id_nguoi_gui: string; id_nguoi_nhan: string }>>(),
     ]);
 
   for (const row of tacPhams ?? []) {
@@ -571,54 +435,16 @@ async function loadUserSocialStats(
     const stat = out.get(row.id_nguoi_dung);
     if (stat) stat.toChucXacThuc += 1;
   }
-  const followingByUser = new Map<string, Set<string>>();
-  const followerByUser = new Map<string, Set<string>>();
-  for (const id of userIds) {
-    followingByUser.set(id, new Set());
-    followerByUser.set(id, new Set());
-  }
-  for (const row of followsFrom ?? []) {
-    followingByUser.get(row.id_nguoi_theo_doi)?.add(row.id_doi_tuong);
-  }
-  for (const row of followsTo ?? []) {
-    followerByUser.get(row.id_doi_tuong)?.add(row.id_nguoi_theo_doi);
-  }
-  for (const id of userIds) {
-    const following = followingByUser.get(id) ?? new Set<string>();
-    const followers = followerByUser.get(id) ?? new Set<string>();
-    const stat = out.get(id);
-    if (!stat) continue;
-    for (const target of following) {
-      if (followers.has(target)) stat.banBe += 1;
+  const userIdSet = new Set(userIds);
+  for (const row of friendRows ?? []) {
+    if (userIdSet.has(row.id_nguoi_gui)) {
+      out.get(row.id_nguoi_gui)!.banBe += 1;
+    }
+    if (userIdSet.has(row.id_nguoi_nhan)) {
+      out.get(row.id_nguoi_nhan)!.banBe += 1;
     }
   }
   return out;
-}
-
-/** User ids mà `viewerId` follow và được follow lại (mutual). */
-export async function listMutualFollowUserIds(
-  viewerId: string,
-): Promise<string[]> {
-  const admin = createServiceRoleClient();
-  const { data: following } = await admin
-    .from("user_theo_doi")
-    .select("id_doi_tuong")
-    .eq("id_nguoi_theo_doi", viewerId)
-    .eq("loai_doi_tuong", FOLLOW_TARGET_DB_VALUE.user)
-    .returns<Array<{ id_doi_tuong: string }>>();
-
-  const candidateIds = (following ?? []).map((r) => r.id_doi_tuong);
-  if (candidateIds.length === 0) return [];
-
-  const { data: reverse } = await admin
-    .from("user_theo_doi")
-    .select("id_nguoi_theo_doi")
-    .eq("id_doi_tuong", viewerId)
-    .eq("loai_doi_tuong", FOLLOW_TARGET_DB_VALUE.user)
-    .in("id_nguoi_theo_doi", candidateIds)
-    .returns<Array<{ id_nguoi_theo_doi: string }>>();
-
-  return (reverse ?? []).map((r) => r.id_nguoi_theo_doi);
 }
 
 /** Ghi lịch sử khi user chấp nhận/từ chối lời mời kết nối. */

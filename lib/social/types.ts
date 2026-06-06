@@ -40,7 +40,17 @@ export type PendingFollowRequest = {
     banBe: number;
     toChucXacThuc: number;
   };
+  /** Record `user_ket_ban` — dùng cho accept/decline API. */
+  ketBanId?: string;
 };
+
+/** Quan hệ kết bạn từ góc nhìn viewer → target. */
+export type QuanHe =
+  | "none"
+  | "pending_sent"
+  | "pending_received"
+  | "accepted"
+  | "blocked";
 
 export type MutualFriendProfile = PendingFollowRequest;
 

@@ -10,8 +10,8 @@ import {
   listCommentNotifications,
   listFollowAcceptedNotifications,
   listFollowHandledNotifications,
-  listPendingFollowRequests,
 } from "@/lib/social/follow";
+import { listPendingReceived } from "@/lib/social/ket-ban";
 import type { NotificationFeed, NotificationFilter } from "@/lib/social/types";
 import { listVideoReadyNotifications } from "@/lib/social/video-ready";
 
@@ -64,7 +64,7 @@ async function loadNotificationFeedUnsafe(
     handledFollows,
     processedCoAuthorReviews,
   ] = await Promise.all([
-    unreadOnly ? listPendingFollowRequests(viewerId) : Promise.resolve([]),
+    unreadOnly ? listPendingReceived(viewerId) : Promise.resolve([]),
     listFollowAcceptedNotifications(viewerId, { unreadOnly, historyOnly }),
     listCommentNotifications(viewerId, { unreadOnly, historyOnly }),
     unreadOnly ? listPendingCoAuthorReviews(viewerId) : Promise.resolve([]),

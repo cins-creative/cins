@@ -1,7 +1,7 @@
 import "server-only";
 
 import { getAvatarUrl } from "@/lib/journey/profile";
-import { isMutualFollow } from "@/lib/social/follow";
+import { isFriend } from "@/lib/social/ket-ban";
 import type {
   CoAuthorDraft,
   CoAuthorPersisted,
@@ -75,11 +75,11 @@ export async function assertMutualFollow(
   if (ownerId === targetUserId) {
     return { ok: false, error: "Không thể tag chính mình." };
   }
-  const mutual = await isMutualFollow(ownerId, targetUserId);
-  if (!mutual) {
+  const friends = await isFriend(ownerId, targetUserId);
+  if (!friends) {
     return {
       ok: false,
-      error: "Chỉ tag được người bạn theo dõi lẫn nhau.",
+      error: "Chỉ tag được người đã kết bạn.",
     };
   }
   return { ok: true };

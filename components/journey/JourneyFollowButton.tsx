@@ -3,15 +3,16 @@
 import { Check, Clock3, UserCheck, UserMinus, UserPlus, X } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 
-type FollowStatus = {
-  dang_theo_doi: boolean;
-  theo_doi_lai: boolean;
-  duoc_theo_doi: boolean;
+import { emitNotificationsChanged } from "@/lib/journey/notifications-client";
+import type { QuanHe } from "@/lib/social/types";
+
+type KetBanStatus = {
+  trang_thai: QuanHe;
+  ket_ban_id: string | null;
 };
 
 type Props = {
   targetUserId: string;
-  /** Viewer profile id — null khi guest (nút ẩn / disabled). */
   viewerProfileId: string | null;
 };
 
@@ -19,46 +20,46 @@ export function JourneyFollowButton({
   targetUserId,
   viewerProfileId,
 }: Props) {
-  const [status, setStatus] = useState<FollowStatus | null>(null);
+  const [status, setStatus] = useState<KetBanStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [unfriending, setUnfriending] = useState(false);
   const [pending, startTransition] = useTransition();
 
-  useEffect(() => {
+  const refreshStatus = () => {
     if (!viewerProfileId) return;
-    let cancelled = false;
-    const qs = new URLSearchParams({
-      id_doi_tuong: targetUserId,
-      loai_doi_tuong: "user",
-    });
-
-    void fetch(`/api/follow/status?${qs.toString()}`)
+    const qs = new URLSearchParams({ id_nguoi: targetUserId });
+    void fetch(`/api/ket-ban/status?${qs.toString()}`)
       .then((res) => (res.ok ? res.json() : null))
-      .then((json: FollowStatus | null) => {
-        if (!cancelled && json) setStatus(json);
+      .then((json: KetBanStatus | null) => {
+        if (json) setStatus(json);
       });
+  };
 
-    return () => {
-      cancelled = true;
-    };
+  useEffect(() => {
+    refreshStatus();
   }, [targetUserId, viewerProfileId]);
 
-  const following = status?.dang_theo_doi ?? false;
-  const incoming = status?.duoc_theo_doi ?? false;
-  const mutual = following && incoming;
-  const outgoingPending = following && !incoming;
-  const incomingPending = !following && incoming;
+  const quanHe = status?.trang_thai ?? "none";
+  const ketBanId = status?.ket_ban_id ?? null;
 
   useEffect(() => {
-    if (!incomingPending && !mutual) {
+    if (quanHe !== "pending_received" && quanHe !== "accepted") {
       queueMicrotask(() => setMenuOpen(false));
     }
-  }, [incomingPending, mutual]);
+  }, [quanHe]);
 
   if (!viewerProfileId || viewerProfileId === targetUserId) {
     return null;
+  }
+
+  if (quanHe === "blocked") {
+    return (
+      <span className="j-follow-blocked" aria-label="Đã chặn">
+        Đã chặn
+      </span>
+    );
   }
 
   const sendFriendRequest = () => {
@@ -66,13 +67,10 @@ export function JourneyFollowButton({
     setNotice(null);
     setMenuOpen(false);
     startTransition(async () => {
-      const res = await fetch("/api/follow", {
+      const res = await fetch("/api/ket-ban", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id_doi_tuong: targetUserId,
-          loai_doi_tuong: "user",
-        }),
+        body: JSON.stringify({ id_nguoi_nhan: targetUserId }),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -81,21 +79,20 @@ export function JourneyFollowButton({
         );
         return;
       }
-      setStatus(json as FollowStatus);
+      refreshStatus();
+      emitNotificationsChanged();
     });
   };
 
   const respondIncoming = (action: "accept" | "decline") => {
+    if (!ketBanId) return;
     setError(null);
     setNotice(null);
     startTransition(async () => {
-      const res = await fetch("/api/follow/requests", {
+      const res = await fetch(`/api/ket-ban/${ketBanId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id_nguoi_dung: targetUserId,
-          action,
-        }),
+        body: JSON.stringify({ action }),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -104,28 +101,18 @@ export function JourneyFollowButton({
         );
         return;
       }
-      setStatus(
-        action === "accept"
-          ? { dang_theo_doi: true, theo_doi_lai: true, duoc_theo_doi: true }
-          : { dang_theo_doi: false, theo_doi_lai: false, duoc_theo_doi: false },
-      );
+      refreshStatus();
+      emitNotificationsChanged();
     });
   };
 
-  const unfriend = () => {
+  const cancelOrUnfriend = () => {
+    if (!ketBanId) return;
     setError(null);
     setNotice(null);
     setUnfriending(true);
     startTransition(async () => {
-      const res = await fetch("/api/follow", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id_doi_tuong: targetUserId,
-          loai_doi_tuong: "user",
-          mutual: true,
-        }),
-      });
+      const res = await fetch(`/api/ket-ban/${ketBanId}`, { method: "DELETE" });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
         setUnfriending(false);
@@ -134,32 +121,37 @@ export function JourneyFollowButton({
         );
         return;
       }
-      const nextStatus = json as FollowStatus;
-      setStatus(nextStatus);
+      refreshStatus();
       setMenuOpen(false);
       setUnfriending(false);
-      setNotice("Đã hủy kết bạn");
+      setNotice(quanHe === "accepted" ? "Đã hủy kết bạn" : "Đã huỷ lời mời");
       window.setTimeout(() => setNotice(null), 1800);
+      emitNotificationsChanged();
     });
   };
 
-  const buttonState = mutual
-    ? "friends"
-    : outgoingPending || incomingPending
-      ? "pending"
-      : "idle";
-  const label = mutual
-    ? "Bạn bè"
-    : outgoingPending
-      ? "Chờ chấp nhận"
-      : incomingPending
-        ? "Chờ kết bạn"
-        : "Kết bạn";
-  const Icon = mutual
-    ? UserCheck
-    : outgoingPending || incomingPending
-      ? Clock3
-      : UserPlus;
+  const buttonState =
+    quanHe === "accepted"
+      ? "friends"
+      : quanHe === "pending_sent" || quanHe === "pending_received"
+        ? "pending"
+        : "idle";
+
+  const label =
+    quanHe === "accepted"
+      ? "Bạn bè"
+      : quanHe === "pending_sent"
+        ? "Đã gửi lời mời"
+        : quanHe === "pending_received"
+          ? "Chấp nhận lời mời"
+          : "Kết bạn";
+
+  const Icon =
+    quanHe === "accepted"
+      ? UserCheck
+      : quanHe === "pending_sent" || quanHe === "pending_received"
+        ? Clock3
+        : UserPlus;
 
   return (
     <div className="j-follow-wrap">
@@ -168,35 +160,60 @@ export function JourneyFollowButton({
         className={`j-friend-btn is-${buttonState}`}
         title={label}
         aria-label={label}
-        aria-haspopup={incomingPending || mutual ? "menu" : undefined}
-        aria-expanded={incomingPending || mutual ? menuOpen : undefined}
+        aria-haspopup={
+          quanHe === "pending_received" || quanHe === "accepted" || quanHe === "pending_sent"
+            ? "menu"
+            : undefined
+        }
+        aria-expanded={
+          quanHe === "pending_received" || quanHe === "accepted" || quanHe === "pending_sent"
+            ? menuOpen
+            : undefined
+        }
         disabled={(pending && !menuOpen) || status === null}
         onClick={
-          incomingPending || mutual
+          quanHe === "pending_received" || quanHe === "accepted" || quanHe === "pending_sent"
             ? () => setMenuOpen((open) => !open)
-            : outgoingPending
-              ? undefined
-              : sendFriendRequest
+            : sendFriendRequest
         }
       >
         <Icon size={15} strokeWidth={2} aria-hidden />
-        {mutual ? null : <span>{label}</span>}
+        {quanHe === "accepted" ? null : <span>{label}</span>}
       </button>
-      {(incomingPending || mutual) && menuOpen ? (
+      {(quanHe === "pending_received" ||
+        quanHe === "accepted" ||
+        quanHe === "pending_sent") &&
+      menuOpen ? (
         <div
           className="j-friend-request-actions"
           role="menu"
-          aria-label={mutual ? "Tuỳ chọn bạn bè" : "Phản hồi lời mời kết bạn"}
+          aria-label={
+            quanHe === "accepted"
+              ? "Tuỳ chọn bạn bè"
+              : quanHe === "pending_sent"
+                ? "Huỷ lời mời"
+                : "Phản hồi lời mời kết bạn"
+          }
         >
-          {mutual ? (
+          {quanHe === "accepted" ? (
             <button
               type="button"
               className="j-friend-action is-unfriend"
               disabled={unfriending}
-              onClick={unfriend}
+              onClick={cancelOrUnfriend}
             >
               <UserMinus size={13} strokeWidth={2} aria-hidden />
               {unfriending ? "Đang hủy..." : "Hủy kết bạn"}
+            </button>
+          ) : quanHe === "pending_sent" ? (
+            <button
+              type="button"
+              className="j-friend-action is-decline"
+              disabled={pending}
+              onClick={cancelOrUnfriend}
+            >
+              <X size={13} strokeWidth={2} aria-hidden />
+              Huỷ lời mời
             </button>
           ) : (
             <>

@@ -11,6 +11,7 @@ import type { EditProfileInitial } from "@/components/journey/JourneyEditProfile
 import { JourneyAvatarTrigger } from "@/components/journey/JourneyAvatarTrigger";
 import { JourneyCoverTrigger } from "@/components/journey/JourneyCoverTrigger";
 import { JourneyFollowButton } from "@/components/journey/JourneyFollowButton";
+import { JourneyMutualFriendsLine } from "@/components/journey/JourneyMutualFriendsLine";
 import { JourneySidebarOwnerActions } from "@/components/journey/JourneySidebarOwnerActions";
 import type { GiaiDoan } from "@/lib/auth/session";
 import {
@@ -135,6 +136,13 @@ export function JourneySidebar({
       </h1>
       <div className="j-profile-role">{roleLine}</div>
       <div className="j-profile-handle">cins.vn/{profile.slug}</div>
+
+      {!isOwner ? (
+        <JourneyMutualFriendsLine
+          targetUserId={profile.id}
+          viewerProfileId={viewerProfileId}
+        />
+      ) : null}
 
       {!isOwner ? (
         <div className="j-profile-actions">
