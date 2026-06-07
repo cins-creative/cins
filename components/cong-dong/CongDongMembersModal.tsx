@@ -219,8 +219,15 @@ export function CongDongMembersModal({ open, onClose, orgId }: Props) {
       >
         <header className="cd-v4-members-head">
           <div className="cd-v4-members-head-copy">
-            <UserCog size={18} strokeWidth={2} aria-hidden />
-            <h2 id={titleId}>Thành viên &amp; quyền</h2>
+            <span className="cd-v4-members-head-icon" aria-hidden>
+              <UserCog size={18} strokeWidth={2} />
+            </span>
+            <div className="cd-v4-members-head-text">
+              <h2 id={titleId}>Thành viên &amp; quyền</h2>
+              <p className="cd-v4-members-head-sub">
+                Thêm người vào nhóm, gán quyền đăng bài hoặc quản trị.
+              </p>
+            </div>
           </div>
           <button
             type="button"
@@ -233,10 +240,21 @@ export function CongDongMembersModal({ open, onClose, orgId }: Props) {
         </header>
 
         <div className="cd-v4-members-body">
-          <section className="cd-v4-members-section">
-            <h3>Thêm thành viên</h3>
+          {err ? (
+            <p className="cd-v4-members-err" role="alert">
+              {err}
+            </p>
+          ) : null}
+
+          <section className="cd-v4-members-panel cd-v4-members-panel--add">
+            <div className="cd-v4-members-panel-head">
+              <div className="cd-v4-members-panel-title">
+                <UserPlus size={15} strokeWidth={2} aria-hidden />
+                <h3>Thêm thành viên</h3>
+              </div>
+            </div>
             <p className="cd-v4-members-hint">
-              Gõ tên tài khoản, chọn quyền rồi thêm vào nhóm.
+              Tìm theo tên tài khoản, chọn quyền rồi thêm vào nhóm.
             </p>
             <div className="cd-v4-members-add-row">
               <label className="cd-v4-members-search">
@@ -258,7 +276,15 @@ export function CongDongMembersModal({ open, onClose, orgId }: Props) {
             </div>
 
             {searchLoading ? (
-              <p className="cd-v4-members-muted">Đang tìm…</p>
+              <p className="cd-v4-members-muted">
+                <Loader2
+                  size={14}
+                  strokeWidth={2}
+                  className="cd-v4-members-spin"
+                  aria-hidden
+                />
+                Đang tìm…
+              </p>
             ) : null}
 
             {results.length > 0 ? (
@@ -295,74 +321,76 @@ export function CongDongMembersModal({ open, onClose, orgId }: Props) {
             ) : null}
           </section>
 
-          <section className="cd-v4-members-section">
-            <h3>Danh sách ({members.length})</h3>
-            {loading ? (
-              <p className="cd-v4-members-muted">
-                <Loader2
-                  size={14}
-                  strokeWidth={2}
-                  className="cd-v4-members-spin"
-                  aria-hidden
-                />
-                Đang tải…
-              </p>
-            ) : members.length === 0 ? (
-              <p className="cd-v4-members-muted">Chưa có thành viên.</p>
-            ) : (
-              <ul className="cd-v4-members-list">
-                {members.map((member) => (
-                  <li key={member.id}>
-                    <div className="cd-v4-members-row-copy">
-                      <JourneyUserPopover
-                        slug={member.slug}
-                        fallbackName={member.tenHienThi}
-                        fallbackAvatarUrl={
-                          member.avatarId
-                            ? getAvatarUrl(member.avatarId)
-                            : null
-                        }
-                        backdropZIndex={MEMBERS_POPOVER_Z}
-                      >
-                        <span className="cd-v4-members-row-trigger">
-                          <MemberAvatar
-                            avatarId={member.avatarId}
-                            name={member.tenHienThi}
-                          />
-                          <div className="cd-v4-members-row-text">
-                            <strong>{member.tenHienThi}</strong>
-                            <CongDongAuthorMetaLine
-                              soBaiVietTrongNhom={member.soBaiVietTrongNhom}
-                              activityAt={member.baiVietGanNhatLuc}
-                            />
-                          </div>
-                        </span>
-                      </JourneyUserPopover>
-                    </div>
-                    {member.editable ? (
-                      <CongDongMemberRolePicker
-                        compact
-                        value={member.vaiTro}
-                        disabled={pending}
-                        ariaLabel={`Quyền của ${member.tenHienThi}`}
-                        onChange={(vaiTro) => onRoleChange(member, vaiTro)}
-                      />
-                    ) : (
-                      <span className="cd-v4-members-role-badge">
-                        Chủ sở hữu
-                      </span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+          <section className="cd-v4-members-panel cd-v4-members-panel--list">
+            <div className="cd-v4-members-panel-head">
+              <div className="cd-v4-members-panel-title">
+                <h3>Danh sách thành viên</h3>
+              </div>
+              <span className="cd-v4-members-count">{members.length}</span>
+            </div>
 
-          {err ? (
-            <p className="cd-v4-members-err" role="alert">
-              {err}
-            </p>
-          ) : null}
+            <div className="cd-v4-members-list-scroll">
+              {loading ? (
+                <p className="cd-v4-members-muted">
+                  <Loader2
+                    size={14}
+                    strokeWidth={2}
+                    className="cd-v4-members-spin"
+                    aria-hidden
+                  />
+                  Đang tải…
+                </p>
+              ) : members.length === 0 ? (
+                <p className="cd-v4-members-empty">Chưa có thành viên.</p>
+              ) : (
+                <ul className="cd-v4-members-list">
+                  {members.map((member) => (
+                    <li key={member.id}>
+                      <div className="cd-v4-members-row-copy">
+                        <JourneyUserPopover
+                          slug={member.slug}
+                          fallbackName={member.tenHienThi}
+                          fallbackAvatarUrl={
+                            member.avatarId
+                              ? getAvatarUrl(member.avatarId)
+                              : null
+                          }
+                          backdropZIndex={MEMBERS_POPOVER_Z}
+                        >
+                          <span className="cd-v4-members-row-trigger">
+                            <MemberAvatar
+                              avatarId={member.avatarId}
+                              name={member.tenHienThi}
+                            />
+                            <div className="cd-v4-members-row-text">
+                              <strong>{member.tenHienThi}</strong>
+                              <CongDongAuthorMetaLine
+                                soBaiVietTrongNhom={member.soBaiVietTrongNhom}
+                                activityAt={member.baiVietGanNhatLuc}
+                              />
+                            </div>
+                          </span>
+                        </JourneyUserPopover>
+                      </div>
+                      {member.editable ? (
+                        <CongDongMemberRolePicker
+                          compact
+                          value={member.vaiTro}
+                          disabled={pending}
+                          ariaLabel={`Quyền của ${member.tenHienThi}`}
+                          onChange={(vaiTro) => onRoleChange(member, vaiTro)}
+                        />
+                      ) : (
+                        <span className="cd-v4-members-role-badge">
+                          Chủ sở hữu
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </section>
         </div>
       </div>
     </div>,

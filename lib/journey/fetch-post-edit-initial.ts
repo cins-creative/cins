@@ -4,6 +4,7 @@ import type { EditorInitial } from "@/components/editor/EditorView";
 import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import type { Block, LoaiMoc, Visibility } from "@/lib/editor/types";
 import { loadCoAuthorsForTacPham } from "@/lib/social/co-author";
+import { loadPersonalFilterIdsForCotMoc } from "@/lib/filter/gan";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 type TacPhamRow = {
@@ -128,6 +129,7 @@ export async function fetchPostEditInitial(params: {
   }
 
   const tacGiaRows = await loadCoAuthorsForTacPham(tp.id);
+  const personalFilterIds = await loadPersonalFilterIdsForCotMoc(cm.id);
   const ownerRow = tacGiaRows.find((r) => r.laChuSoHuu);
   const coAuthors = tacGiaRows
     .filter((r) => !r.laChuSoHuu && r.trangThai !== "declined")
@@ -155,6 +157,7 @@ export async function fetchPostEditInitial(params: {
       blocks: sanitizeBlocks(tp.noi_dung_blocks),
       ownerVaiTro: ownerRow?.vaiTro ?? "",
       coAuthors,
+      personalFilterIds,
     },
   };
 }

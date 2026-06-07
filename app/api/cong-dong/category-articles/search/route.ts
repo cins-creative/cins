@@ -12,6 +12,9 @@ export async function GET(req: Request) {
 
   const url = new URL(req.url);
   const q = url.searchParams.get("q") ?? "";
-  const items = await searchCongDongCategoryArticles(q, 16);
+  const loaiRaw = url.searchParams.get("loai")?.trim();
+  const loai =
+    loaiRaw === "nghe" || loaiRaw === "nganh_dao_tao" ? loaiRaw : "all";
+  const items = await searchCongDongCategoryArticles(q, 16, loai);
   return NextResponse.json({ items });
 }

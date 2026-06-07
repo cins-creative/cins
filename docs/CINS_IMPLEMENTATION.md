@@ -2,7 +2,7 @@
 
 > **File trong repo:** `docs/CINS_IMPLEMENTATION.md`
 > **Tầng đổi nhanh nhất.** Map API route · lib · SQL migration · env/infra · ghi chú triển khai site. Dựng từ cây thư mục thật repo `cins-website` (2026-06-07).
-> Khi conflict về *cấu trúc DB*: `CINS_SCHEMA.md` / DB thắng. File này map *code*, không phải schema.
+> Khi conflict về *cấu trúc DB*: SCHEMA.md / DB thắng. File này map *code*, không phải schema.
 > Regenerate khi cấu trúc thư mục đổi đáng kể: `dir /b /s app\api\*.ts` + `dir /b /s lib\*.ts`.
 
 ---
@@ -32,6 +32,13 @@
 | `journey/[slug]/friends` | Bạn bè hiển thị trên Journey |
 | `journey/[slug]/p/[postSlug]` · `.../edit` | Trang post · sửa post |
 
+### Filter cá nhân (`filters`) — đề xuất, Cursor chỉnh tên nếu trùng
+| Route | Việc |
+|---|---|
+| `filters` | GET list nhãn current user (`?userId=` xem nhãn người khác, read-only) · POST tạo nhãn |
+| `filters/[id]` | PATCH sửa (`ten`/`mau`/`thu_tu`; slug bất biến) · DELETE xóa (chỉ chủ sở hữu) |
+| `milestone/[milestoneId]/filters` | PUT set danh sách nhãn 1 cột mốc (gửi mảng `id_filter`, server diff insert/delete `filter_gan`) |
+
 ### Tác phẩm & co-author
 | Route | Việc |
 |---|---|
@@ -51,7 +58,7 @@
 | Route | Việc |
 |---|---|
 | `cong-dong/preview` | Card preview cộng đồng |
-| `[id]/posts` · `[id]/posts/[postId]/comments` | Thảo luận (`content_thao_luan`) · bình luận |
+| `[id]/posts` · `[id]/posts/[postId]/comments` · `[id]/posts/[postId]/bookmark` | Feed cộng đồng (`content_cot_moc` che_do=`cong_dong`) · bình luận/reaction/lưu trên cột mốc |
 | `[id]/filters` · `[id]/filters/[filterId]` | Flair/filter (seed 4 nhãn mặc định) |
 | `[id]/tham-gia` · `[id]/theo-doi` · `[id]/sidebar-live` | Tham gia · theo dõi · sidebar realtime |
 | `[id]/categories` | PATCH gắn tối đa 4 bài nghề/ngành (`org_gan_bai_viet`) — admin org |
@@ -84,6 +91,7 @@
 | `journey/` | Milestone, timeline, gallery, video processing, co-author credit, cache | `timeline-merge.ts`, `milestone-verify.ts`, `foreign-milestone-visibility.ts`, `video-upload-session.ts`, `sync-tac-pham-tags.ts` |
 | `cong-dong/` | Tạo org, membership, thảo luận, filter, sidebar, mirror tác phẩm, **quản lý thành viên**, categories, event rail, **branding** | `org-create.ts`, `org-profile.ts`, `membership.ts`, `members.ts`, `vai-tro.ts`, `categories.ts`, `event-rail.ts`, `creator-milestone.ts`, `sync-from-publish.ts`, `tac-pham-mirror.ts` ⚠️§5 |
 | `tag/` | Tạo tag, dedup, gen tom-tat, normalize, slug, admin merge | `create.ts`, `gen-tom-tat.ts`, `dedup.ts`, `normalize.ts` |
+| `filter/` | **Filter cá nhân** (user & org): tạo/sửa/xóa nhãn, gắn lên cột mốc/bài đăng org, list theo chủ sở hữu | `create.ts`, `update.ts`, `delete.ts`, `gan.ts`, `list-cua-user.ts` |
 | `articles/` | Bài viết nghề/keyword/phần mềm, quan hệ liên quan, link keyword | `queries.ts`, `nghe-role-preview.ts`, `link-keywords-in-html.ts`, `partition-*` |
 | `bai-viet/` | Hub card, phân loại, pagination | `hub-card.ts`, `hub-loai.ts` |
 | `career/` | Hub nghề nghiệp: lĩnh vực → bộ phận → vị trí | `loadNgheNghiepHubListing.ts`, `groupCareers.ts` |
@@ -107,12 +115,32 @@
 | `migration_ket_ban.sql` | Bảng `user_ket_ban` (thay follow-user) |
 | `migration_content_thao_luan.sql` | Bảng `content_thao_luan` (+ liên quan) |
 | `migration_cong_dong.sql` | Cộng đồng (org loại `cong_dong`) |
-| `migration_cong_dong_filter.sql` | `content_thao_luan_filter` + `_gan` (flair) |
+| `migration_cong_dong_v2_cot_moc.sql` | **v2:** enum `cong_dong`, cột `ghim`, rename `cong_dong_filter`, `cong_dong_filter_gan`, drop `content_thao_luan*` |
+| `migration_cong_dong_filter.sql` | (legacy) `content_thao_luan_filter` — superseded bởi v2 rename |
 | `migration_cong_dong_tac_pham_link.sql` | Link tác phẩm ↔ cộng đồng — ⚠️§5 kiểm tra có sinh bảng/cột mới không |
 | `migration_da_verify_tag.sql` | Thêm `da_verify` vào tag |
 | `migration_journey_foreign_visibility.sql` | Visibility milestone của người được tag (quy tắc 21) |
 | `migration_social_thong_bao_read.sql` | Trạng thái đã đọc thông báo |
 | `migration_user_theo_doi_muc.sql` | Follow entity (tag/org) — tách khỏi follow-user |
+| `migration_filter_dong.sql` | **Filter cá nhân động**: `filter_nhan` + `filter_gan` + enum `filter_doi_tuong_enum` + cột `org_bai_dang.thoi_diem` (org journey). Chạy lại an toàn (IF NOT EXISTS). |
+
+**Cấu trúc 2 bảng mới** *(tham chiếu tạm cho Cursor — SCHEMA.md là sự thật sau khi chạy migration + regenerate)*:
+
+```
+filter_nhan
+  id uuid PK · id_nguoi_dung uuid NULL→user_nguoi_dung · id_to_chuc uuid NULL→org_to_chuc
+  ten text · slug text · mau text NULL · thu_tu int=0 · tao_luc timestamptz
+  CHECK: đúng 1 trong (id_nguoi_dung, id_to_chuc) NOT NULL
+  UNIQUE (chủ sở hữu, slug)  [2 partial unique index]
+
+filter_gan
+  id_filter uuid→filter_nhan ON DELETE CASCADE
+  loai_doi_tuong filter_doi_tuong_enum ('cot_moc'|'org_bai_dang')
+  id_doi_tuong uuid  (polymorphic, KHÔNG FK cứng — nếp social_reaction)
+  tao_luc timestamptz · PK (id_filter, loai_doi_tuong, id_doi_tuong)
+
+org_bai_dang  +  thoi_diem date NULL  (ngày mốc lịch sử, khác tao_luc)
+```
 
 ---
 
@@ -143,9 +171,10 @@ GOOGLE_CLIENT_ID / SECRET
 ## 5. ⚠️ Cần kiểm tra / nợ kỹ thuật
 
 - **`follow` vs `ket-ban` cùng tồn tại.** `lib/social/follow.ts` + `follow-entity.ts` + route `follow/requests`, `follow/status`. Theo L6, follow-user đã bỏ, chỉ giữ follow entity (tag/org). Cần xác nhận: `follow/requests` có phải tàn dư follow-user cần dọn không? (→ liên quan O1 trong DECISIONS)
-- **`tac-pham-mirror.ts` + `migration_cong_dong_tac_pham_link.sql`.** Có cơ chế mirror tác phẩm vào cộng đồng. Cần verify migration này có sinh **bảng/cột mới** ngoài 67 bảng đã đếm không → nếu có, cập nhật `CINS_SCHEMA.md`.
+- **`tac-pham-mirror.ts` + `migration_cong_dong_tac_pham_link.sql`.** Có cơ chế mirror tác phẩm vào cộng đồng. Cần verify migration này có sinh **bảng/cột mới** ngoài 67 bảng đã đếm không → nếu có, cập nhật SCHEMA.md.
 - **File mock/legacy trong `lib/truong/`**: `doan-project-mock.ts`, `message-inbox-mock.ts`, `milestone-tag-notify-mock.ts`, `timeline-steps-legacy.ts`. Là placeholder/cũ — đánh dấu để dọn hoặc thay bằng implement thật.
 - **`gallery-stubs.ts`** (lib/journey) — stub, chưa thật.
+- **`loai_bai_dang_org_enum` deprecate** (L13): filter động thay vai trò phân loại bài đăng org, nhưng enum GIỮ lại (còn code dùng). Dọn khi filter động đã thay xong toàn bộ điểm phân loại.
 
 ---
 
@@ -170,7 +199,7 @@ GOOGLE_CLIENT_ID / SECRET
 | Quy tắc | Ghi chú |
 |---|---|
 | Xem công khai | Journey, timeline, bài viết, Gallery tab — **không** redirect `/login` |
-| Tương tác | Like / bookmark / bình luận → modal đăng nhập nếu chưa session (`AuthGateProvider` trên `app/[slug]/layout`) |
+| Tương tác | Like / bookmark / bình luận → modal đăng nhập nếu chưa session (`AuthGateProvider` trên `app/[slug]/layout`; cộng đồng: `useCongDongAuthGate` + `AuthRequiredModal`) |
 | OAuth | Google PKCE — `app/auth/callback/route.ts`; cookie `cins-oauth-intent`, `cins-oauth-return` |
 | Protected | `/onboarding`, `/admin`, `/{slug}/p/new`, `/{slug}/p/.../edit` |
 | Dev OAuth | `NEXT_PUBLIC_SITE_URL=http://localhost:3001`; Supabase Redirect URLs `http://localhost:3001/auth/callback` (không lẫn `127.0.0.1`) |
@@ -180,7 +209,8 @@ GOOGLE_CLIENT_ID / SECRET
 
 ### Cộng đồng — chi tiết site
 
-- Feed scoped **trong 1 org** qua `content_thao_luan` — thành viên đăng bài + thảo luận (KHÔNG nhồi vào `org_bai_dang`).
+- Feed scoped **trong 1 org** qua `content_cot_moc` (`che_do_hien_thi='cong_dong'`, `id_to_chuc`=org) — thành viên đăng cột mốc + comment/reaction (KHÔNG nhồi vào `org_bai_dang`, KHÔNG `content_thao_luan`).
+- Helper loại trừ Journey public: `lib/journey/journey-visible-clause.ts`.
 - Mỗi post kèm badge **nghề + verified journey** người đăng.
 - `org_to_chuc.cau_hinh.che_do`: `cong_khai` (mặc định) / `rieng_tu`.
 - Tạo org: `POST /api/to-chuc` → 2 dòng `user_thanh_vien_to_chuc` (CINS `owner` + creator `admin`) + cột mốc Journey (`loai_moc=thanh_tuu`, `nguon_goc=sinh_tu_org_assign`) + `verify_xac_nhan` → filter **Verified**, vai trò **Người tạo cộng đồng**. Env: `CINS_SYSTEM_USER_ID`.

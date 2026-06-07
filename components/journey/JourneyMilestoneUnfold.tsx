@@ -1,6 +1,7 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
+import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 
 import type { MilestonePostDetail } from "@/lib/journey/milestone-post-types";
@@ -25,6 +26,8 @@ type Props = {
     tags?: boolean;
     contributors?: boolean;
   };
+  /** Like/bookmark/tag — đặt ngay trên khối bình luận khi mở comments inline. */
+  actionsBeforeComments?: ReactNode;
 };
 
 export function JourneyMilestoneUnfold({
@@ -36,6 +39,7 @@ export function JourneyMilestoneUnfold({
   showBlocks = true,
   showComments = true,
   inlineSkip,
+  actionsBeforeComments,
 }: Props) {
   const cacheKey = milestoneDetailCacheKey(
     postOwnerSlug,
@@ -164,6 +168,7 @@ export function JourneyMilestoneUnfold({
           variant="inline"
           inlineSkip={inlineSkip}
           inlineParts={{ blocks: showBlocks, comments: showComments }}
+          inlineActionsSlot={actionsBeforeComments}
           commentsSectionId={`post-comments-${milestoneId}`}
           onMilestoneUpdated={() => {
             invalidateMilestoneDetailCache(cacheKey);

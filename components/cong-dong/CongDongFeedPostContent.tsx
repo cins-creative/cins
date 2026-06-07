@@ -1,45 +1,53 @@
 "use client";
 
-import Link from "next/link";
-
-import { ImageGrid } from "@/components/journey/ImageGrid";
-import { JourneyCardVideo } from "@/components/journey/JourneyCardVideo";
-import { JourneyCoverImage } from "@/components/journey/JourneyCoverImage";
-import {
-  congDongMirrorIsPhotoAlbum,
-  congDongMirrorPhotoGrid,
-} from "@/lib/cong-dong/feed-post-media";
+import { ChevronUp } from "lucide-react";
+import type { ReactNode } from "react";
+import { classifyBunnyVideoUrl, buildBunnyVideoThumbnailUrl } from "@/lib/bunny/embed";
+import { JourneyMilestoneCardBodyContent } from "@/components/journey/JourneyMilestoneCardBodyContent";
+import type { MilestoneMediaItem } from "@/components/journey/milestone-types";
 import { congDongBannerImageUrl, congDongImageUrl } from "@/lib/cong-dong/images";
 import type { CongDongJourneyMirror, CongDongPostMedia } from "@/lib/cong-dong/types";
+import { gridThumbSrc } from "@/lib/journey/image-grid";
 import {
-  detectMediaPostKind,
-  extractVideoUrl,
-  milestoneCardCaptionPlain,
-  shouldShowMilestoneCardTitle,
-} from "@/lib/journey/post-media";
-import { extractVideoProcessingMeta } from "@/lib/journey/video-processing-meta";
+  milestoneCardContentKind,
+  milestoneCardPhotoGrid,
+} from "@/lib/journey/milestone-card-kind";
+import { extractVideoUrl } from "@/lib/journey/post-media";
+
+type ExpandTriggerProps = {
+  enabled: boolean;
+  expanded?: boolean;
+  ariaLabel?: string;
+  onClick?: (e: React.MouseEvent<HTMLElement>) => void;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLElement>) => void;
+};
 
 type Props = {
-  authorSlug: string;
   journeyMirror?: CongDongJourneyMirror | null;
   fallbackTitle?: string | null;
   fallbackBody: string;
   fallbackMedia?: CongDongPostMedia[];
+  expandTrigger?: ExpandTriggerProps;
+  unfold?: ReactNode;
+  onCollapse?: () => void;
 };
 
 export function CongDongFeedPostContent({
-  authorSlug,
   journeyMirror,
   fallbackTitle,
   fallbackBody,
   fallbackMedia = [],
+  expandTrigger,
+  unfold,
+  onCollapse,
 }: Props) {
   if (journeyMirror) {
     return (
       <JourneyMirrorBody
-        authorSlug={authorSlug}
         mirror={journeyMirror}
-        extraCloudflareIds={fallbackMedia.map((m) => m.cloudflareId)}
+        expandTrigger={expandTrigger}
+        unfold={unfold}
+        onCollapse={onCollapse}
       />
     );
   }
@@ -80,99 +88,96 @@ export function CongDongFeedPostContent({
   );
 }
 
+function buildMirrorPreview(mirror: CongDongJourneyMirror): MilestoneMediaItem | null {
+  const blocks = mirror.noiDungBlocks;
+  const kind = milestoneCardContentKind(blocks);
+  const label = mirror.tieuDe;
+
+  if (kind === "photo") {
+    const first = milestoneCardPhotoGrid(blocks)?.[0];
+    if (first) {
+      return {
+        src: gridThumbSrc(first),
+        width: first.width,
+        height: first.height,
+        label,
+      };
+    }
+  }
+
+  if (kind === "video") {
+    const videoUrl = extractVideoUrl(blocks ?? []);
+    const bunny = videoUrl ? classifyBunnyVideoUrl(videoUrl) : null;
+    const thumb = bunny ? buildBunnyVideoThumbnailUrl(bunny.videoId) : null;
+    if (thumb) {
+      return { src: thumb, width: 1280, height: 720, label };
+    }
+  }
+
+  const coverSrc = mirror.coverId ? congDongBannerImageUrl(mirror.coverId) : null;
+  if (coverSrc) {
+    return { src: coverSrc, width: 800, height: 450, label };
+  }
+
+  return null;
+}
+
 function JourneyMirrorBody({
-  authorSlug,
   mirror,
-  extraCloudflareIds,
+  expandTrigger,
+  unfold,
+  onCollapse,
 }: {
-  authorSlug: string;
   mirror: CongDongJourneyMirror;
-  extraCloudflareIds: string[];
+  expandTrigger?: ExpandTriggerProps;
+  unfold?: ReactNode;
+  onCollapse?: () => void;
 }) {
   const blocks = mirror.noiDungBlocks;
-  const isVideoPost = detectMediaPostKind(blocks) === "video";
-  const isPhotoAlbum = congDongMirrorIsPhotoAlbum(blocks, extraCloudflareIds);
-  const photoGridImages = isPhotoAlbum
-    ? congDongMirrorPhotoGrid(blocks, extraCloudflareIds)
-    : null;
-  const showTitle = shouldShowMilestoneCardTitle(mirror.tieuDe, blocks);
-  const caption = milestoneCardCaptionPlain(mirror.moTa, blocks);
-  const isArticle = !isPhotoAlbum && !isVideoPost;
-  const videoEmbedUrl = isVideoPost ? extractVideoUrl(blocks) : null;
-  const videoProcessingMeta = isVideoPost
-    ? extractVideoProcessingMeta(blocks)
-    : null;
-  const postHref = `/${authorSlug}/p/${mirror.postSlug}`;
-
-  const coverSrc =
-    mirror.coverId && !isPhotoAlbum
-      ? congDongBannerImageUrl(mirror.coverId)
-      : null;
+  const cardKind = milestoneCardContentKind(blocks);
+  const photoGridImages = milestoneCardPhotoGrid(blocks);
+  const preview = buildMirrorPreview(mirror);
+  const isExpanded = expandTrigger?.expanded ?? false;
+  const showUnfold = isExpanded && Boolean(unfold);
 
   return (
-    <div className={`cd-v4-jcard-mirror jcard${isPhotoAlbum ? " jcard--photo" : isVideoPost ? " jcard--video" : " jcard--article"}`}>
-      <div className="jcard-body">
-        <div className="jcard-content">
-          {showTitle ? (
-            <h2 className="jcard-title">
-              <Link href={postHref} prefetch={false}>
-                {mirror.tieuDe}
-              </Link>
-            </h2>
-          ) : null}
+    <div className="j-m-body-wrap">
+      <div
+        className={
+          `j-m-card jcard jcard--${cardKind} has-unfold` +
+          (isExpanded ? " is-expanded" : " is-collapsed")
+        }
+      >
+        <JourneyMilestoneCardBodyContent
+          title={mirror.tieuDe}
+          body={mirror.moTa}
+          noiDungBlocks={blocks}
+          preview={preview}
+          photoGridImages={photoGridImages}
+          articleTags={mirror.articleTags}
+          expandTrigger={expandTrigger}
+        />
 
-          {caption && !isArticle ? (
-            <div className="jcard-lead">
-              <p className="jcard-desc">{caption}</p>
-            </div>
-          ) : null}
-
-          {caption && isArticle ? (
-            <div className="jcard-lead">
-              <p className="jcard-desc">{caption}</p>
-            </div>
-          ) : null}
-
-          <div className="jcard-media-zone">
-            {isVideoPost && videoEmbedUrl ? (
-              <div className="preview preview--video">
-                <JourneyCardVideo
-                  url={videoEmbedUrl}
-                  title={showTitle ? mirror.tieuDe : caption || mirror.tieuDe}
-                  processing={videoProcessingMeta?.processing === true}
-                  preview={
-                    coverSrc
-                      ? {
-                          src: coverSrc,
-                          width: 1280,
-                          height: 720,
-                          label: mirror.tieuDe,
-                        }
-                      : null
-                  }
-                  noiDungBlocks={blocks}
-                />
-              </div>
-            ) : isPhotoAlbum && photoGridImages ? (
-              <div className="preview preview--photo-grid">
-                <ImageGrid
-                  images={photoGridImages}
-                  readOnly
-                  timelineLightbox
-                />
-              </div>
-            ) : coverSrc ? (
-              <Link href={postHref} className="preview" prefetch={false}>
-                <JourneyCoverImage
-                  src={coverSrc}
-                  width={800}
-                  height={450}
-                  alt={mirror.tieuDe}
-                />
-              </Link>
-            ) : null}
+        {showUnfold ? (
+          <div className="j-m-card-unfold" data-open="true" aria-hidden={false}>
+            {unfold}
           </div>
-        </div>
+        ) : null}
+
+        {showUnfold && onCollapse ? (
+          <div className="jcard-actions">
+            <span className="action-spacer" aria-hidden />
+            <button
+              type="button"
+              className="jcard-unfold-toggle"
+              onClick={onCollapse}
+              aria-label="Thu gọn"
+            >
+              <ChevronUp size={15} strokeWidth={2.2} aria-hidden />
+              <span>Thu gọn</span>
+            </button>
+          </div>
+        ) : null}
       </div>
     </div>
   );

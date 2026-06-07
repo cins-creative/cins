@@ -14,8 +14,10 @@ import {
   galleryMediaFilterLabel,
   type GalleryMediaFilter,
 } from "@/lib/journey/post-media";
+import { computeFixedMenuPosition } from "@/lib/ui/clamp-fixed-menu-position";
 
-const GALLERY_FILTER_MENU_MIN_WIDTH = 148;
+const GALLERY_FILTER_MENU_MIN_WIDTH = 168;
+const GALLERY_FILTER_MENU_EST_HEIGHT = 220;
 
 type Props = {
   filter: GalleryMediaFilter;
@@ -23,6 +25,8 @@ type Props = {
   className?: string;
   /** Số tác phẩm — hiển thị trong nút toolbar (`.j-tlb-dd-count`). */
   count?: number;
+  /** Count theo từng loại nội dung — hiển thị trong menu. */
+  optionCounts?: Partial<Record<GalleryMediaFilter, number>>;
   /** `toolbar` — nút `.j-tlb-dd-btn` trên context bar gallery chính. */
   variant?: "compact" | "toolbar";
 };
@@ -32,6 +36,7 @@ export function GalleryMediaFilterDropdown({
   onFilterChange,
   className,
   count,
+  optionCounts,
   variant = "compact",
 }: Props) {
   const [open, setOpen] = useState(false);
@@ -56,10 +61,14 @@ export function GalleryMediaFilterDropdown({
       return;
     }
     const rect = btn.getBoundingClientRect();
-    setMenuStyle({
-      top: rect.bottom + 6,
-      left: Math.max(8, rect.right - GALLERY_FILTER_MENU_MIN_WIDTH),
-    });
+    const menuEl = menuRef.current;
+    const menuWidth =
+      menuEl?.offsetWidth ||
+      Math.min(220, Math.max(GALLERY_FILTER_MENU_MIN_WIDTH, window.innerWidth - 16));
+    const menuHeight = menuEl?.offsetHeight || GALLERY_FILTER_MENU_EST_HEIGHT;
+    setMenuStyle(
+      computeFixedMenuPosition(rect, { width: menuWidth, height: menuHeight }),
+    );
   };
 
   useLayoutEffect(() => {
@@ -68,9 +77,11 @@ export function GalleryMediaFilterDropdown({
       return;
     }
     updateMenuPosition();
+    const rafId = window.requestAnimationFrame(updateMenuPosition);
     window.addEventListener("resize", updateMenuPosition);
     window.addEventListener("scroll", updateMenuPosition, true);
     return () => {
+      window.cancelAnimationFrame(rafId);
       window.removeEventListener("resize", updateMenuPosition);
       window.removeEventListener("scroll", updateMenuPosition, true);
     };
@@ -106,44 +117,51 @@ export function GalleryMediaFilterDropdown({
     open && menuStyle ? (
       <div
         ref={menuRef}
-        className="j-tlb-dd-menu is-portal j-gallery-dd-menu"
+        className="j-tlb-dd-menu is-portal j-gallery-dd-menu j-gallery-media-dd-menu"
         role="listbox"
-        aria-label="Lọc tác phẩm theo loại"
+        aria-label="Lọc theo loại nội dung"
         style={{
           position: "fixed",
           top: menuStyle.top,
           left: menuStyle.left,
           width: "max-content",
           minWidth: GALLERY_FILTER_MENU_MIN_WIDTH,
-          maxWidth: "min(200px, calc(100vw - 16px))",
+          maxWidth: "min(220px, calc(100vw - 16px))",
           display: "block",
         }}
       >
-        {GALLERY_MEDIA_FILTER_OPTIONS.map((opt) => (
-          <div
-            key={opt.id}
-            className={"j-dd-opt" + (filter === opt.id ? " is-active" : "")}
-          >
-            <button
-              type="button"
-              role="option"
-              aria-selected={filter === opt.id}
-              className="j-dd-opt-main j-gallery-dd-opt"
-              onClick={() => {
-                onFilterChange(opt.id);
-                setOpen(false);
-              }}
+        <div className="j-dd-section-label">Loại nội dung</div>
+        {GALLERY_MEDIA_FILTER_OPTIONS.map((opt) => {
+          const active = filter === opt.id;
+          const optCount = optionCounts?.[opt.id];
+          return (
+            <div
+              key={opt.id}
+              className={"j-dd-opt" + (active ? " is-active" : "")}
             >
-              <span className="j-dd-lbl">{opt.label}</span>
-            </button>
-          </div>
-        ))}
+              <button
+                type="button"
+                role="option"
+                aria-selected={active}
+                className="j-dd-opt-main j-gallery-dd-opt"
+                onClick={() => {
+                  onFilterChange(opt.id);
+                  setOpen(false);
+                }}
+              >
+                <span className="j-dd-lbl">{opt.label}</span>
+                {optCount != null ? (
+                  <span className="j-dd-n">{optCount}</span>
+                ) : null}
+              </button>
+            </div>
+          );
+        })}
       </div>
     ) : null;
 
   const label = galleryMediaFilterLabel(filter);
-  const countLabel =
-    count != null ? count.toLocaleString("vi-VN") : null;
+  const countLabel = count != null ? count.toLocaleString("vi-VN") : null;
   const isToolbar = variant === "toolbar";
 
   return (
@@ -151,7 +169,7 @@ export function GalleryMediaFilterDropdown({
       <div
         ref={wrapRef}
         className={
-          (isToolbar ? "j-tlb-filter" : "j-gallery-dd") +
+          (isToolbar ? "j-tlb-filter j-gallery-media-filter" : "j-gallery-dd") +
           (open ? " is-open" : "") +
           (className ? ` ${className}` : "")
         }
@@ -168,8 +186,8 @@ export function GalleryMediaFilterDropdown({
           aria-expanded={open}
           aria-label={
             countLabel != null
-              ? `Lọc tác phẩm: ${label}, ${countLabel} tác phẩm`
-              : `Lọc tác phẩm: ${label}`
+              ? `Loại nội dung: ${label}, ${countLabel} tác phẩm`
+              : `Loại nội dung: ${label}`
           }
         >
           <span>{label}</span>

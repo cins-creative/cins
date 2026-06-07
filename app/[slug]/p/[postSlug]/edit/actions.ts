@@ -14,6 +14,7 @@ import {
   type Visibility,
 } from "@/lib/editor/types";
 import { syncCoAuthorsFromEditor } from "@/lib/social/co-author";
+import { setMilestonePersonalFilters } from "@/lib/filter/gan";
 import { revalidateTaggedArticlePages } from "@/lib/tag/revalidate-tag-pages";
 import type { CoAuthorDraft } from "@/lib/social/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -46,6 +47,7 @@ export type UpdatePostInput = {
   blocks: Block[];
   ownerVaiTro?: string;
   coAuthors?: CoAuthorDraft[];
+  personalFilterIds?: string[];
 };
 
 export type UpdatePostResult =
@@ -252,6 +254,17 @@ export async function updatePost(
     }
     for (const c of input.coAuthors) {
       if (c.slug) revalidatePath(`/${c.slug}`);
+    }
+  }
+
+  if (input.personalFilterIds !== undefined) {
+    const filterSync = await setMilestonePersonalFilters({
+      milestoneId: input.cotMocId,
+      userId: session.profile.id,
+      filterIds: input.personalFilterIds,
+    });
+    if (!filterSync.ok) {
+      return { ok: false, error: filterSync.error };
     }
   }
 

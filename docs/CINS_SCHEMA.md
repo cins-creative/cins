@@ -182,7 +182,7 @@
 
 ---
 
-## content_ — Milestone, tác phẩm, thảo luận (9 bảng)
+## content_ — Milestone, tác phẩm, cộng đồng (7 bảng)
 
 ### content_cot_moc
 
@@ -203,8 +203,11 @@
 | `id_truong_nganh` | uuid | YES |  |
 | `id_lop_hoc` | uuid | YES |  |
 | `id_khoa_hoc` | uuid | YES |  |
+| `ghim` | boolean | NO | false |
 | `tao_luc` | timestamp with time zone | NO | now() |
 | `cap_nhat_luc` | timestamp with time zone | NO | now() |
+
+> `che_do_hien_thi_moc_enum`: `feature` · `public` · `theo_nhom` · `chi_minh` · **`cong_dong`** (post cộng đồng — ẩn Journey public, hiện feed org).
 
 ### content_media
 
@@ -261,24 +264,7 @@
 | `id_cot_moc` | uuid | NO |  |
 | `thu_tu` | integer | NO | 0 |
 
-### content_thao_luan
-
-| Cột | Kiểu | Null | Default |
-|---|---|---|---|
-| `id` | uuid | NO | gen_random_uuid() |
-| `nguoi_dang` | uuid | NO |  |
-| `loai_context` | text | NO | 'cong_dong'::text |
-| `id_context` | uuid | NO |  |
-| `tieu_de` | text | YES |  |
-| `noi_dung` | text | NO |  |
-| `loai_post` | text | NO | 'thao_luan'::text |
-| `ghim` | boolean | NO | false |
-| `da_xoa` | boolean | NO | false |
-| `tao_luc` | timestamp with time zone | NO | now() |
-| `cap_nhat_luc` | timestamp with time zone | NO | now() |
-| `id_tac_pham` | uuid | YES |  |
-
-### content_thao_luan_filter
+### cong_dong_filter
 
 | Cột | Kiểu | Null | Default |
 |---|---|---|---|
@@ -292,20 +278,14 @@
 | `thu_tu` | smallint | NO | 0 |
 | `tao_luc` | timestamp with time zone | NO | now() |
 
-### content_thao_luan_filter_gan
+### cong_dong_filter_gan
 
 | Cột | Kiểu | Null | Default |
 |---|---|---|---|
-| `id_thao_luan` | uuid | NO |  |
+| `id_cot_moc` | uuid | NO |  |
 | `id_filter` | uuid | NO |  |
 
-### content_thao_luan_media
-
-| Cột | Kiểu | Null | Default |
-|---|---|---|---|
-| `id_thao_luan` | uuid | NO |  |
-| `id_media` | uuid | NO |  |
-| `thu_tu` | smallint | NO | 0 |
+> PK `(id_cot_moc, id_filter)`. Bỏ: `content_thao_luan`, `content_thao_luan_media`, `content_thao_luan_filter_gan`.
 
 ---
 
@@ -1088,12 +1068,8 @@
 | `content_tac_pham_tac_gia` | `id_nguoi_dung` | → | `user_nguoi_dung` |
 | `content_tac_pham_thuoc_moc` | `id_tac_pham` | → | `content_tac_pham` |
 | `content_tac_pham_thuoc_moc` | `id_cot_moc` | → | `content_cot_moc` |
-| `content_thao_luan` | `id_tac_pham` | → | `content_tac_pham` |
-| `content_thao_luan` | `nguoi_dang` | → | `user_nguoi_dung` |
-| `content_thao_luan_filter_gan` | `id_thao_luan` | → | `content_thao_luan` |
-| `content_thao_luan_filter_gan` | `id_filter` | → | `content_thao_luan_filter` |
-| `content_thao_luan_media` | `id_media` | → | `content_media` |
-| `content_thao_luan_media` | `id_thao_luan` | → | `content_thao_luan` |
+| `cong_dong_filter_gan` | `id_cot_moc` | → | `content_cot_moc` |
+| `cong_dong_filter_gan` | `id_filter` | → | `cong_dong_filter` |
 | `edu_module_mon` | `id_module` | → | `edu_module_tinh_diem` |
 | `edu_module_mon` | `id_slot` | → | `edu_to_hop_mon_chi_tiet` |
 | `edu_mon_thi` | `id_bai_viet` | → | `article_bai_viet` |

@@ -5,7 +5,12 @@ import { Bookmark, CheckCircle2, Lock, Globe2, X } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 
-type BookmarkVisibility = "public" | "private";
+export type BookmarkVisibility = "public" | "private";
+
+export type BookmarkSaveEndpoint = (visibility: BookmarkVisibility) => {
+  url: string;
+  body?: Record<string, unknown>;
+};
 
 type Props = {
   milestoneId: string;
@@ -13,6 +18,13 @@ type Props = {
   initialSaved?: boolean;
   initialCount?: number;
   showCount?: boolean;
+  buttonClassName?: string;
+  iconSize?: number;
+  iconStrokeWidth?: number;
+  saveEndpoint?: BookmarkSaveEndpoint;
+  resolveOpenBlock?: () => string | null;
+  onRequireAuth?: (action: () => void) => void;
+  modalZIndex?: number;
 };
 
 export function JourneyBookmarkButton({
@@ -21,10 +33,19 @@ export function JourneyBookmarkButton({
   initialSaved = false,
   initialCount = 0,
   showCount = false,
+  buttonClassName = "action-btn",
+  iconSize = 16,
+  iconStrokeWidth = 1.8,
+  saveEndpoint,
+  resolveOpenBlock,
+  onRequireAuth,
+  modalZIndex = 1000,
 }: Props) {
-  const { requireAuth } = useAuthGate();
+  const { requireAuth: defaultRequireAuth } = useAuthGate();
+  const requireAuth = onRequireAuth ?? defaultRequireAuth;
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
+  const [blockedMessage, setBlockedMessage] = useState<string | null>(null);
   const [visibility, setVisibility] = useState<BookmarkVisibility>("public");
   const [saved, setSaved] = useState(initialSaved);
   const [count, setCount] = useState(initialCount);
@@ -44,6 +65,7 @@ export function JourneyBookmarkButton({
   }, [initialSaved, initialCount]);
 
   useEffect(() => {
+    if (!milestoneId) return;
     const onSocial = (event: Event) => {
       const detail = (
         event as CustomEvent<{
@@ -69,45 +91,53 @@ export function JourneyBookmarkButton({
     };
   }, [open]);
 
+  const dispatchSaved = (bookmarked: boolean, bookmarkCount?: number) => {
+    if (!milestoneId) return;
+    window.dispatchEvent(
+      new CustomEvent("cins:social-action", {
+        detail: {
+          milestoneId,
+          bookmarked,
+          ...(typeof bookmarkCount === "number" ? { bookmarkCount } : {}),
+        },
+      }),
+    );
+  };
+
   const saveBookmark = () => {
     setError(null);
     setSaved(true);
     const optimisticCount = saved ? count : count + 1;
     setCount(optimisticCount);
-    window.dispatchEvent(
-      new CustomEvent("cins:social-action", {
-        detail: {
-          milestoneId,
-          bookmarked: true,
-          bookmarkCount: optimisticCount,
-        },
-      }),
-    );
+    dispatchSaved(true, optimisticCount);
+
+    const endpoint = saveEndpoint?.(visibility) ?? {
+      url: "/api/bookmarks",
+      body: {
+        loai_doi_tuong: "cot_moc",
+        id_doi_tuong: milestoneId,
+        visibility,
+      },
+    };
+
     startTransition(async () => {
-      const res = await fetch("/api/bookmarks", {
+      const res = await fetch(endpoint.url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          loai_doi_tuong: "cot_moc",
-          id_doi_tuong: milestoneId,
-          visibility,
-        }),
+        body: JSON.stringify(endpoint.body ?? {}),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
         setSaved(false);
         setCount(count);
+        dispatchSaved(false, count);
         setError(typeof json.error === "string" ? json.error : "Không lưu được.");
         return;
       }
       const syncedCount = Number(json.count ?? optimisticCount);
       setSaved(true);
       setCount(syncedCount);
-      window.dispatchEvent(
-        new CustomEvent("cins:social-action", {
-          detail: { milestoneId, bookmarked: true, bookmarkCount: syncedCount },
-        }),
-      );
+      dispatchSaved(true, syncedCount);
       setSuccess(true);
       window.setTimeout(() => {
         setOpen(false);
@@ -116,10 +146,24 @@ export function JourneyBookmarkButton({
     });
   };
 
+  const openModal = () => {
+    const blockMsg = resolveOpenBlock?.() ?? null;
+    if (blockMsg) {
+      setBlockedMessage(blockMsg);
+      setError(null);
+      setOpen(true);
+      return;
+    }
+    setBlockedMessage(null);
+    setError(null);
+    setOpen(true);
+  };
+
   const modal = open ? (
     <div
       className="j-bookmark-confirm-backdrop"
       role="presentation"
+      style={{ zIndex: modalZIndex }}
       onClick={() => setOpen(false)}
     >
       <div
@@ -137,6 +181,23 @@ export function JourneyBookmarkButton({
             <h2>Đã lưu thành công</h2>
             <p>Bạn có thể kiểm tra bài này trên Journey của mình.</p>
           </div>
+        ) : blockedMessage ? (
+          <>
+            <button
+              type="button"
+              className="j-bookmark-confirm-close"
+              aria-label="Đóng"
+              onClick={() => setOpen(false)}
+            >
+              <X size={16} aria-hidden />
+            </button>
+            <p className="j-bookmark-confirm-error">{blockedMessage}</p>
+            <div className="j-bookmark-confirm-actions">
+              <button type="button" className="is-primary" onClick={() => setOpen(false)}>
+                Đã hiểu
+              </button>
+            </div>
+          </>
         ) : (
           <>
             <button
@@ -186,7 +247,12 @@ export function JourneyBookmarkButton({
               <button type="button" onClick={() => setOpen(false)}>
                 Huỷ
               </button>
-              <button type="button" className="is-primary" disabled={pending} onClick={saveBookmark}>
+              <button
+                type="button"
+                className="is-primary"
+                disabled={pending}
+                onClick={saveBookmark}
+              >
                 {pending ? "Đang lưu..." : "Xác nhận lưu"}
               </button>
             </div>
@@ -200,14 +266,17 @@ export function JourneyBookmarkButton({
     <>
       <button
         type="button"
-        className={`action-btn${saved ? " is-bookmarked" : ""}`}
+        className={`${buttonClassName}${saved ? " is-bookmarked" : ""}`}
         aria-label={saved ? "Đã lưu" : "Lưu"}
         aria-pressed={saved}
-        onClick={() =>
-          requireAuth(() => setOpen(true))
-        }
+        onClick={() => requireAuth(openModal)}
       >
-        <Bookmark size={16} strokeWidth={1.8} fill={saved ? "currentColor" : "none"} aria-hidden />
+        <Bookmark
+          size={iconSize}
+          strokeWidth={iconStrokeWidth}
+          fill={saved ? "currentColor" : "none"}
+          aria-hidden
+        />
         {showCount && count > 0 ? <span>{count}</span> : null}
       </button>
       {mounted && modal ? createPortal(modal, document.body) : null}

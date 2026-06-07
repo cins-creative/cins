@@ -2,7 +2,7 @@
 
 import { Tag, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useId, useState, useTransition } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { PostTagFields } from "@/components/tag/PostTagFields";
@@ -11,26 +11,42 @@ import type { ArticleTagRef } from "@/lib/editor/article-tag";
 type Props = {
   tacPhamId: string;
   initialTags: ReadonlyArray<ArticleTagRef>;
+  /** Cập nhật UI cục bộ sau lưu — tránh `router.refresh()` kẹt modal (feed cộng đồng). */
+  onTagsSaved?: (tags: ArticleTagRef[]) => void;
 };
 
-export function JourneyArticleTagManager({ tacPhamId, initialTags }: Props) {
+export function JourneyArticleTagManager({
+  tacPhamId,
+  initialTags,
+  onTagsSaved,
+}: Props) {
   const router = useRouter();
   const headingId = useId();
+  const abortRef = useRef<AbortController | null>(null);
   const [open, setOpen] = useState(false);
   const [tags, setTags] = useState<ArticleTagRef[]>(() => [...initialTags]);
+  const tagsRef = useRef(tags);
+  tagsRef.current = tags;
+  const [savedTags, setSavedTags] = useState<ArticleTagRef[]>(() => [
+    ...initialTags,
+  ]);
   const [message, setMessage] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!open) {
       setTags([...initialTags]);
+      setSavedTags([...initialTags]);
       setMessage(null);
     }
   }, [open, initialTags]);
 
   const close = useCallback(() => {
+    abortRef.current?.abort();
+    abortRef.current = null;
     setOpen(false);
     setMessage(null);
+    setSaving(false);
   }, []);
 
   useEffect(() => {
@@ -47,28 +63,55 @@ export function JourneyArticleTagManager({ tacPhamId, initialTags }: Props) {
     };
   }, [open, close]);
 
-  const persist = (next: ArticleTagRef[]) => {
-    setMessage(null);
-    startTransition(async () => {
-      const res = await fetch(`/api/tac-pham/${tacPhamId}/tags`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tags: next }),
-      });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setTags([...initialTags]);
-        setMessage(
-          typeof json.error === "string"
-            ? json.error
-            : "Không lưu được tag.",
-        );
-        return;
+  const persist = useCallback(
+    async (next: ArticleTagRef[], previous: ArticleTagRef[]) => {
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+      setMessage(null);
+      setSaving(true);
+      try {
+        const res = await fetch(`/api/tac-pham/${tacPhamId}/tags`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tags: next }),
+          signal: controller.signal,
+        });
+        const json = (await res.json().catch(() => ({}))) as {
+          error?: string;
+        };
+        if (abortRef.current !== controller) return;
+        if (!res.ok) {
+          setTags(previous);
+          tagsRef.current = previous;
+          setMessage(
+            typeof json.error === "string"
+              ? json.error
+              : "Không lưu được tag.",
+          );
+          return;
+        }
+        setTags(next);
+        tagsRef.current = next;
+        setSavedTags(next);
+        onTagsSaved?.(next);
+        if (!onTagsSaved) {
+          router.refresh();
+        }
+      } catch (err) {
+        if (abortRef.current !== controller) return;
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setTags(previous);
+        tagsRef.current = previous;
+        setMessage("Lỗi mạng khi lưu tag.");
+      } finally {
+        if (abortRef.current === controller) {
+          setSaving(false);
+        }
       }
-      setTags(next);
-      router.refresh();
-    });
-  };
+    },
+    [onTagsSaved, router, tacPhamId],
+  );
 
   const openModal = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
@@ -105,10 +148,11 @@ export function JourneyArticleTagManager({ tacPhamId, initialTags }: Props) {
           <PostTagFields
             tags={tags}
             onChange={(next) => {
+              const previous = tagsRef.current;
               setTags(next);
-              persist(next);
+              tagsRef.current = next;
+              void persist(next, previous);
             }}
-            disabled={pending}
           />
         </div>
         {message ? (
@@ -116,14 +160,13 @@ export function JourneyArticleTagManager({ tacPhamId, initialTags }: Props) {
         ) : null}
         <div className="ed-coauthor-modal-actions">
           <span>
-            {pending
+            {saving
               ? "Đang lưu…"
               : "Tag giúp bài viết xuất hiện trong gallery của bài được gắn."}
           </span>
           <button
             type="button"
             className="ed-coauthor-save"
-            disabled={pending}
             onClick={close}
           >
             Xong
@@ -149,8 +192,8 @@ export function JourneyArticleTagManager({ tacPhamId, initialTags }: Props) {
         title="Quản lý tag"
       >
         <Tag size={15} strokeWidth={2} aria-hidden />
-        {initialTags.length > 0 ? (
-          <span className="j-article-tag-count">{initialTags.length}</span>
+        {savedTags.length > 0 ? (
+          <span className="j-article-tag-count">{savedTags.length}</span>
         ) : null}
       </button>
 

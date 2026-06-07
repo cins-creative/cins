@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, type LucideIcon } from "lucide-react";
+import { Check, Users, type LucideIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import {
@@ -13,19 +13,21 @@ import {
 import { createPortal } from "react-dom";
 
 import {
+  graduateCongDongMilestoneAction,
   updateForeignMilestoneJourneyVisibility,
   updateMilestoneType,
   updateMilestoneVisibility,
 } from "@/app/[slug]/journey/actions";
+import { CongDongGraduateConfirmModal } from "@/components/journey/CongDongGraduateConfirmModal";
+import { MilestonePersonalFilterOptions } from "@/components/journey/MilestonePersonalFilterOptions";
 import type {
   MilestoneType,
   MilestoneVisibility,
 } from "@/components/journey/milestone-types";
+import { useMilestonePersonalFilterAttach } from "@/components/journey/useMilestonePersonalFilterAttach";
+import { CONG_DONG_PERSONAL_FILTER_SLUG } from "@/lib/filter/cong-dong-personal-filter.shared";
 import type { LoaiMoc, Visibility } from "@/lib/editor/types";
-import {
-  dispatchMilestoneInlinePatch,
-  type MilestoneInlinePatchDetail,
-} from "@/lib/journey/milestone-inline-patch";
+import { dispatchMilestoneInlinePatch } from "@/lib/journey/milestone-inline-patch";
 
 const MENU_MIN_WIDTH = 168;
 
@@ -49,12 +51,28 @@ type ForeignJourneyContext = {
   tacPhamId: string;
 };
 
+type CongDongContext = {
+  orgName?: string | null;
+  orgSlug?: string | null;
+  orgAvatarUrl?: string | null;
+  orgCoverUrl?: string | null;
+  orgInitial?: string | null;
+  postTitle?: string | null;
+};
+
+type GraduateIntent =
+  | { kind: "type"; loaiMoc: LoaiMoc; uiType: MilestoneType }
+  | { kind: "personalFilter"; slug: string }
+  | { kind: "visibility"; ui: MilestoneVisibility; db: Visibility };
+
 type Props =
   | {
       kind: "type";
       milestoneId: string;
       current: MilestoneType;
       options: ReadonlyArray<TypeOption>;
+      personalFilterSlugs?: string[];
+      congDongPost?: CongDongContext;
       children: ReactNode;
     }
   | {
@@ -63,6 +81,7 @@ type Props =
       current: MilestoneVisibility;
       options: ReadonlyArray<VisibilityOption>;
       foreignJourney?: ForeignJourneyContext;
+      congDongPost?: CongDongContext;
       children: ReactNode;
     };
 
@@ -74,7 +93,28 @@ function notifyTimelineChanged() {
 
 export function JourneyMilestoneInlineControls(props: Props) {
   const router = useRouter();
+  const isCongDongPost = Boolean(props.congDongPost);
+  const graduateOrgPreview = props.congDongPost
+    ? {
+        name: props.congDongPost.orgName ?? "Cộng đồng",
+        postTitle: props.congDongPost.postTitle,
+        slug: props.congDongPost.orgSlug,
+        avatarUrl: props.congDongPost.orgAvatarUrl,
+        coverUrl: props.congDongPost.orgCoverUrl,
+        initial: props.congDongPost.orgInitial,
+      }
+    : null;
+  const showPersonalFilters =
+    props.kind === "type" && props.personalFilterSlugs !== undefined;
+  const personalAttach = useMilestonePersonalFilterAttach(
+    props.milestoneId,
+    showPersonalFilters ? (props.personalFilterSlugs ?? []) : [],
+  );
   const [open, setOpen] = useState(false);
+  const [graduateIntent, setGraduateIntent] = useState<GraduateIntent | null>(
+    null,
+  );
+  const [graduateError, setGraduateError] = useState<string | null>(null);
   const [portalReady, setPortalReady] = useState(false);
   const [menuStyle, setMenuStyle] = useState<{
     top: number;
@@ -140,42 +180,180 @@ export function JourneyMilestoneInlineControls(props: Props) {
     };
   }, [open]);
 
-  const choose = (option: TypeOption | VisibilityOption) => {
-    if (pending || option.ui === props.current) return;
-
-    const previous = props.current;
-    const patch: MilestoneInlinePatchDetail = {
-      milestoneId: props.milestoneId,
-      kind: props.kind,
-      value: option.ui,
-    };
+  const chooseType = (option: TypeOption) => {
+    if (props.kind !== "type") return;
+    if (option.ui === props.current && !isCongDongPost) return;
+    if (pending || personalAttach.pending) return;
 
     setOpen(false);
-    dispatchMilestoneInlinePatch(patch);
+
+    if (isCongDongPost) {
+      setGraduateError(null);
+      setGraduateIntent({ kind: "type", loaiMoc: option.db, uiType: option.ui });
+      return;
+    }
+
+    const previousType = props.current;
+
+    dispatchMilestoneInlinePatch({
+      milestoneId: props.milestoneId,
+      kind: "type",
+      value: option.ui,
+    });
 
     startTransition(async () => {
-      const res =
-        props.kind === "type"
-          ? await updateMilestoneType(props.milestoneId, (option as TypeOption).db)
-          : props.foreignJourney
-            ? await updateForeignMilestoneJourneyVisibility({
-                variant: props.foreignJourney.variant,
-                cotMocId: props.foreignJourney.cotMocId,
-                tacPhamId: props.foreignJourney.tacPhamId,
-                visibility: (option as VisibilityOption).db,
-              })
-            : await updateMilestoneVisibility(
-                props.milestoneId,
-                (option as VisibilityOption).db,
-              );
+      const res = await updateMilestoneType(props.milestoneId, option.db);
       if (!res.ok) {
-        dispatchMilestoneInlinePatch({ ...patch, value: previous });
+        dispatchMilestoneInlinePatch({
+          milestoneId: props.milestoneId,
+          kind: "type",
+          value: previousType,
+        });
         return;
       }
       notifyTimelineChanged();
       router.refresh();
     });
   };
+
+  const choosePersonalFilter = (slug: string) => {
+    if (props.kind !== "type" || pending || personalAttach.pending) return;
+
+    if (isCongDongPost) {
+      if (slug === CONG_DONG_PERSONAL_FILTER_SLUG) return;
+      setOpen(false);
+      setGraduateError(null);
+      setGraduateIntent({ kind: "personalFilter", slug });
+      return;
+    }
+
+    const isActive = personalAttach.selectedSlug === slug;
+    setOpen(false);
+
+    if (isActive) {
+      void personalAttach.clear();
+      return;
+    }
+
+    void personalAttach.select(slug);
+  };
+
+  const chooseVisibility = (option: VisibilityOption) => {
+    if (props.kind !== "visibility") return;
+    if (pending || option.ui === props.current) return;
+
+    setOpen(false);
+
+    if (isCongDongPost) {
+      setGraduateError(null);
+      setGraduateIntent({
+        kind: "visibility",
+        ui: option.ui,
+        db: option.db,
+      });
+      return;
+    }
+
+    const previous = props.current;
+    dispatchMilestoneInlinePatch({
+      milestoneId: props.milestoneId,
+      kind: "visibility",
+      value: option.ui,
+    });
+
+    startTransition(async () => {
+      const res = props.foreignJourney
+        ? await updateForeignMilestoneJourneyVisibility({
+            variant: props.foreignJourney.variant,
+            cotMocId: props.foreignJourney.cotMocId,
+            tacPhamId: props.foreignJourney.tacPhamId,
+            visibility: option.db,
+          })
+        : await updateMilestoneVisibility(props.milestoneId, option.db);
+      if (!res.ok) {
+        dispatchMilestoneInlinePatch({
+          milestoneId: props.milestoneId,
+          kind: "visibility",
+          value: previous,
+        });
+        return;
+      }
+      notifyTimelineChanged();
+      router.refresh();
+    });
+  };
+
+  const confirmGraduate = () => {
+    if (!graduateIntent || pending) return;
+
+    startTransition(async () => {
+      setGraduateError(null);
+      const input: Parameters<typeof graduateCongDongMilestoneAction>[0] = {
+        milestoneId: props.milestoneId,
+      };
+
+      if (graduateIntent.kind === "type") {
+        input.loaiMoc = graduateIntent.loaiMoc;
+        input.visibility = "public";
+        dispatchMilestoneInlinePatch({
+          milestoneId: props.milestoneId,
+          kind: "type",
+          value: graduateIntent.uiType,
+        });
+        dispatchMilestoneInlinePatch({
+          milestoneId: props.milestoneId,
+          kind: "visibility",
+          value: "public",
+        });
+        dispatchMilestoneInlinePatch({
+          milestoneId: props.milestoneId,
+          kind: "personalFilters",
+          value: [],
+          personalFilters: [],
+        });
+      } else if (graduateIntent.kind === "personalFilter") {
+        input.personalFilterSlug = graduateIntent.slug;
+        input.visibility = "public";
+        dispatchMilestoneInlinePatch({
+          milestoneId: props.milestoneId,
+          kind: "visibility",
+          value: "public",
+        });
+        dispatchMilestoneInlinePatch({
+          milestoneId: props.milestoneId,
+          kind: "personalFilters",
+          value: [graduateIntent.slug],
+        });
+      } else {
+        input.visibility = graduateIntent.db;
+        dispatchMilestoneInlinePatch({
+          milestoneId: props.milestoneId,
+          kind: "visibility",
+          value: graduateIntent.ui,
+        });
+        dispatchMilestoneInlinePatch({
+          milestoneId: props.milestoneId,
+          kind: "personalFilters",
+          value: [],
+          personalFilters: [],
+        });
+      }
+
+      const res = await graduateCongDongMilestoneAction(input);
+      if (!res.ok) {
+        setGraduateError(res.error ?? "Không gỡ được khỏi cộng đồng.");
+        return;
+      }
+
+      setGraduateIntent(null);
+      notifyTimelineChanged();
+      router.refresh();
+    });
+  };
+
+  const attachFilters = personalAttach.filters.filter(
+    (f) => !isCongDongPost || f.slug !== CONG_DONG_PERSONAL_FILTER_SLUG,
+  );
 
   const menu =
     open && menuStyle ? (
@@ -193,25 +371,87 @@ export function JourneyMilestoneInlineControls(props: Props) {
         onMouseDown={(event) => event.stopPropagation()}
         onClick={(event) => event.stopPropagation()}
       >
-        {props.options.map((option) => {
-          const active = option.ui === props.current;
-          return (
-            <button
-              key={option.ui}
-              type="button"
-              className={`j-inline-control-option${active ? " is-active" : ""}`}
-              disabled={pending || active}
-              onClick={(event) => {
-                event.stopPropagation();
-                choose(option);
-              }}
-            >
-              <option.Icon size={14} strokeWidth={1.8} aria-hidden />
-              <span>{option.label}</span>
-              {active ? <Check size={13} strokeWidth={2.1} aria-hidden /> : null}
-            </button>
-          );
-        })}
+        {props.kind === "type" ? (
+          <>
+            {isCongDongPost ? (
+              <>
+                <button
+                  type="button"
+                  className="j-inline-control-option is-active"
+                  role="menuitemradio"
+                  aria-checked
+                  disabled
+                >
+                  <Users size={14} strokeWidth={1.8} aria-hidden />
+                  <span>Cộng đồng</span>
+                  <Check size={13} strokeWidth={2.1} aria-hidden />
+                </button>
+                <div className="j-inline-control-divider" aria-hidden />
+              </>
+            ) : null}
+            <div className="j-inline-control-section-label">Loại cột mốc</div>
+            {props.options.map((option) => {
+              const active = !isCongDongPost && option.ui === props.current;
+              return (
+                <button
+                  key={option.ui}
+                  type="button"
+                  className={`j-inline-control-option${active ? " is-active" : ""}`}
+                  role="menuitemradio"
+                  aria-checked={active}
+                  disabled={pending || personalAttach.pending}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    chooseType(option);
+                  }}
+                >
+                  <option.Icon size={14} strokeWidth={1.8} aria-hidden />
+                  <span>{option.label}</span>
+                  {active ? (
+                    <Check size={13} strokeWidth={2.1} aria-hidden />
+                  ) : null}
+                </button>
+              );
+            })}
+          </>
+        ) : (
+          props.options.map((option) => {
+              const active = option.ui === props.current;
+              return (
+                <button
+                  key={option.ui}
+                  type="button"
+                  className={`j-inline-control-option${active ? " is-active" : ""}`}
+                  disabled={pending || active}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    chooseVisibility(option);
+                  }}
+                >
+                  <option.Icon size={14} strokeWidth={1.8} aria-hidden />
+                  <span>{option.label}</span>
+                  {active ? (
+                    <Check size={13} strokeWidth={2.1} aria-hidden />
+                  ) : null}
+                </button>
+              );
+            })
+        )}
+        {showPersonalFilters && personalAttach.canAttach ? (
+          <>
+            <div className="j-inline-control-divider" aria-hidden />
+            <div className="j-inline-control-section-label">Nhãn riêng</div>
+            <MilestonePersonalFilterOptions
+              variant="inline"
+              filters={attachFilters}
+              selectedSlug={
+                isCongDongPost ? CONG_DONG_PERSONAL_FILTER_SLUG : personalAttach.selectedSlug
+              }
+              pending={personalAttach.pending}
+              onSelect={choosePersonalFilter}
+            />
+          </>
+        ) : null}
       </div>
     ) : null;
 
@@ -236,6 +476,18 @@ export function JourneyMilestoneInlineControls(props: Props) {
         {props.children}
       </button>
       {portalReady && menu ? createPortal(menu, document.body) : null}
+      <CongDongGraduateConfirmModal
+        open={Boolean(graduateIntent)}
+        org={graduateOrgPreview}
+        pending={pending}
+        error={graduateError}
+        onCancel={() => {
+          if (pending) return;
+          setGraduateIntent(null);
+          setGraduateError(null);
+        }}
+        onConfirm={confirmGraduate}
+      />
     </span>
   );
 }

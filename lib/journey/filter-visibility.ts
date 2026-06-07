@@ -1,13 +1,10 @@
 /* ╔══════════════════════════════════════════════════════════════════╗
-   ║ Journey filter visibility — per-loai_moc public/private flag.    ║
+   ║ Journey filter dropdown visibility — CHỈ ẩn/hiện dòng lọc loại   ║
+   ║ cột mốc trong dropdown timeline/gallery cho visitor.             ║
+   ║ KHÔNG ẩn nội dung cột mốc — quyền xem nội dung = badge          ║
+   ║ Công khai / Theo nhóm / Chỉ mình trên từng card.                 ║
    ║                                                                  ║
-   ║ Source of truth: `user_nguoi_dung.journey_loai_moc_visibility`   ║
-   ║ JSONB. Keys = `loai_moc_enum` (`hoc / lam_viec / du_an / ...`).  ║
-   ║ Missing key = public (default).                                  ║
-   ║                                                                  ║
-   ║ UI keys (FilterGroup) khác DB enum (`lam`, `du-an`, …) → cần map ║
-   ║ 2 chiều: lúc render dropdown đọc theo UI key, lúc lưu DB ghi     ║
-   ║ enum value.                                                      ║
+   ║ Source: `user_nguoi_dung.journey_loai_moc_visibility` JSONB.     ║
    ╚══════════════════════════════════════════════════════════════════╝ */
 
 import type { MilestoneType } from "@/components/journey/milestone-types";

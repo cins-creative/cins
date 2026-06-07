@@ -18,6 +18,7 @@ import {
   detectMediaPostKind,
 } from "@/lib/journey/post-media";
 import { loadCoAuthorsForTacPham } from "@/lib/social/co-author";
+import { loadPersonalFilterIdsForCotMoc } from "@/lib/filter/gan";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 import "../../new/editor.css";
@@ -172,6 +173,7 @@ export default async function EditPostPage({
 
   /* 6. Build EditorInitial. */
   const blocks = sanitizeBlocks(tp.noi_dung_blocks);
+  const personalFilterIds = await loadPersonalFilterIdsForCotMoc(cm.id);
 
   const initial: EditorInitial = {
     tacPhamId: tp.id,
@@ -186,6 +188,7 @@ export default async function EditPostPage({
     blocks,
     ownerVaiTro: ownerRow?.vaiTro ?? "",
     coAuthors,
+    personalFilterIds,
   };
 
   const mediaKind = detectMediaPostKind(blocks);
@@ -201,11 +204,13 @@ export default async function EditPostPage({
       thoiDiem: initial.thoiDiem,
       blocks,
       kind: mediaKind,
+      personalFilterIds,
     });
 
     return (
       <MediaComposeView
         mode={mediaKind as MediaComposeMode}
+        ownerId={owner.id}
         ownerSlug={owner.slug}
         ownerName={ownerName}
         ownerAvatarId={owner.avatar_id}

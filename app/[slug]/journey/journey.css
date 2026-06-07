@@ -488,16 +488,36 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   margin-bottom: 16px;
   overflow: visible;
 }
-.j-gallery-main .j-tlb > .j-tlb-filter {
+.j-gallery-main .j-tlb > .j-tlb-filter,
+.j-gallery-main .j-tlb > .j-tlb-filters {
   grid-column: 3;
   justify-self: end;
+}
+.j-gallery-main .j-tlb-filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.j-gallery-main .j-tlb-filters > .j-tlb-filter {
+  position: relative;
+}
+.j-gallery-media-dd-menu .j-gallery-dd-opt {
+  grid-template-columns: 1fr auto;
 }
 .j-gallery-main.j-skel-main-panel .j-tlb {
   margin-bottom: 16px;
 }
-.j-gallery-main.j-skel-main-panel .j-tlb .j-skel-tl-filter {
+.j-gallery-main.j-skel-main-panel .j-tlb .j-tlb-filters {
   grid-column: 3;
   justify-self: end;
+  display: flex;
+  gap: 8px;
+}
+.j-gallery-main.j-skel-main-panel .j-tlb .j-skel-tl-filter {
+  grid-column: auto;
+  justify-self: auto;
 }
 .j-main-panel-head {
   display: flex;
@@ -715,7 +735,6 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   color: #1d4ed8;
   font-size: 20px;
   font-weight: 900;
-  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.18);
 }
 .j-friend-avatar img {
   width: 100%;
@@ -1143,6 +1162,51 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   pointer-events: auto;
   width: max-content;
   max-width: min(240px, calc(100vw - 16px));
+  max-height: min(70vh, 480px);
+  overflow-y: auto;
+}
+.j-tlb-dd-menu .j-personal-filter-dd-manage {
+  margin-top: 6px;
+  padding: 8px 6px 4px;
+  border-top: 1px solid var(--border-subtle, #d5dbe6);
+}
+.j-tlb-dd-menu .j-personal-filter-create {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 4px;
+}
+.j-tlb-dd-menu .j-personal-filter-input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--border-subtle, #d5dbe6);
+  border-radius: 8px;
+  font-size: 12px;
+  font-family: inherit;
+}
+.j-tlb-dd-menu .j-personal-filter-create-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--cins-blue);
+  color: #fff;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.j-tlb-dd-menu .j-personal-filter-error {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: #b42318;
+}
+.j-tlb-dd-menu .j-personal-filter-hint {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--ink-muted, #5c677a);
+  line-height: 1.35;
 }
 .j-dd-section-label {
   font-size: 9px;
@@ -1151,6 +1215,12 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   text-transform: uppercase;
   color: var(--ink-muted);
   padding: 8px 10px 5px;
+}
+.j-dd-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 /* Row container — wrap main click target + visibility toggle. */
 .j-dd-opt {
@@ -1262,39 +1332,55 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
 .j-dd-opt.j-dd-opt--bookmark.is-active .j-dd-opt-main {
   color: var(--j-bookmark-ink, #8B4500);
 }
+.j-dd-opt.j-dd-opt--cong-dong.is-active {
+  background: var(--cins-violet-soft, #ede9fe);
+  color: #5a2fa8;
+}
+.j-dd-opt.j-dd-opt--cong-dong.is-active .j-dd-ico {
+  color: #7c3aed;
+}
+.j-dd-opt.j-dd-opt--cong-dong .j-dd-ico {
+  color: #7c3aed;
+}
+.j-dd-opt.j-dd-opt--cong-dong .j-dd-lbl,
+.j-dd-opt.j-dd-opt--cong-dong .j-dd-opt-main {
+  color: #5a2fa8;
+}
+.j-dd-opt.j-dd-opt--cong-dong:hover {
+  background: var(--cins-violet-soft, #ede9fe);
+}
+.j-dd-opt.j-dd-opt--cong-dong.is-active .j-dd-opt-main {
+  color: #5a2fa8;
+}
 
-/* Visibility toggle — chỉ render cho owner trên loai_moc rows. Mặc định
-   ẩn, hiện khi hover row HOẶC khi row đang ở chế độ private (luôn show
-   để owner biết row này không hiển thị cho khách). */
+/* Visibility toggle — owner trên loai_moc rows. Luôn hiện (mobile không
+   có hover); hover nút / row đổi nền để phân biệt. */
 .j-dd-vis {
   flex: 0 0 auto;
   width: 26px;
   height: 26px;
   margin-right: 4px;
   border-radius: 6px;
-  border: 1px solid transparent;
-  background: transparent;
+  border: 1px solid var(--border-soft, #e5e7eb);
+  background: var(--neutral-100, #f1f5f9);
   color: var(--ink-muted, #64748b);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  opacity: 0;
   transition:
-    opacity 0.14s ease,
     background 0.14s ease,
     color 0.14s ease,
     border-color 0.14s ease;
 }
-.j-dd-opt:hover .j-dd-vis,
-.j-dd-opt:focus-within .j-dd-vis,
-.j-dd-vis.is-private {
-  opacity: 1;
+.j-dd-opt:hover .j-dd-vis:not(.is-private):not(:hover) {
+  border-color: var(--border, #d5dbe6);
+  color: var(--ink-display, #1b2333);
 }
 .j-dd-vis:hover {
-  background: var(--neutral-100, #f1f5f9);
-  border-color: var(--border-soft, #e5e7eb);
-  color: var(--ink-strong, #0f172a);
+  background: var(--bg-surface, #fff);
+  border-color: var(--cins-blue, #1f74c9);
+  color: var(--cins-blue-dark, #1656a0);
 }
 .j-dd-vis.is-private {
   color: #b45309;
@@ -1304,11 +1390,55 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
 .j-dd-vis.is-private:hover {
   background: #fde68a;
   color: #92400e;
+  border-color: #f59e0b;
+}
+/* Delete nhãn cá nhân — luôn hiện trên mobile, hover đậm hơn. */
+.j-dd-del {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  margin-right: 4px;
+  border-radius: 6px;
+  border: 1px solid var(--border-soft, #e5e7eb);
+  background: var(--neutral-100, #f1f5f9);
+  color: var(--ink-muted, #64748b);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background 0.14s ease,
+    color 0.14s ease,
+    border-color 0.14s ease;
+}
+.j-dd-opt:hover .j-dd-del:not(:hover) {
+  border-color: var(--border, #d5dbe6);
+  color: var(--ink-display, #1b2333);
+}
+.j-dd-del:hover {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #b42318;
 }
 .j-dd-divider {
   height: 1px;
   background: var(--border);
   margin: 6px 4px;
+}
+.j-dd-divider--section {
+  margin-top: 8px;
+  margin-bottom: 4px;
+}
+.j-dd-section--personal-labels {
+  padding-bottom: 2px;
+}
+.j-dd-section--personal-labels .j-dd-section-label {
+  padding-top: 2px;
+}
+.j-tlb-dd-menu .j-dd-section--personal-labels .j-personal-filter-dd-manage {
+  margin-top: 4px;
+  border-top: none;
+  padding-top: 4px;
 }
 
 /* Vertical rail — chạy từ ngay dưới context bar (64px) xuống mép dưới
@@ -1494,7 +1624,7 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   outline-offset: 3px;
   border-radius: 12px;
 }
-/* Mô tả / caption — thu gọn cùng media khi xổ */
+/* Mô tả / caption — article giữ lead khi xổ; media preview thu gọn */
 .jcard-lead {
   display: grid;
   grid-template-rows: 1fr;
@@ -1769,6 +1899,26 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
 }
 .j-m-unfold-post .post-comments-form {
   margin-top: 8px;
+}
+.j-m-unfold-post .jcard-actions {
+  margin-top: 0;
+  border-top: 1px solid var(--jcard-border2, var(--border));
+  border-bottom: none;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.j-m-unfold-post .jcard-actions + .post-comments {
+  padding-top: 0;
+}
+.j-m-unfold-post--comments-only .jcard-actions {
+  border-top: none;
+}
+.j-m-card.jcard.is-expanded
+  .j-m-unfold-post
+  .post-comments:last-child {
+  border-bottom-left-radius: 22px;
+  border-bottom-right-radius: 22px;
+  overflow: hidden;
 }
 .j-m-unfold-post .post-art-tags,
 .j-m-unfold-post .post-contributors {
@@ -2218,6 +2368,7 @@ button.j-m-card-hit {
 .j-type-du-an     { background: var(--cins-orange-soft); color: #7E4A00; }
 .j-type-su-kien   { background: var(--cins-violet-soft); color: #5A2FA8; }
 .j-type-thanh-tuu { background: var(--cins-yellow-soft); color: var(--j-warn-ink); }
+.j-type-cong-dong { background: var(--cins-violet-soft); color: #5A2FA8; }
 .j-type-ca-nhan   { background: var(--neutral-100);      color: var(--ink-title); }
 .j-type-bookmark  { background: var(--j-bookmark-soft);  color: var(--j-bookmark-ink); }
 
@@ -4190,12 +4341,13 @@ select.j-edit-input {
   padding: 20px 16px 32px;
 }
 .j-compose-sheet {
+  --j-compose-radius: 20px;
   width: min(880px, calc(100% - 32px));
   max-width: 880px;
   margin: 0 auto;
-  border-radius: 16px;
-  /* `visible` — dropdown/picker (chèn block, vis, filter) không bị cắt mép sheet. */
-  overflow: visible;
+  border-radius: var(--j-compose-radius);
+  /* Clip nền + bo góc sheet; picker/portal render ra body nên không bị cắt. */
+  overflow: hidden;
   background: var(--bg-page);
   box-shadow: var(--shadow-lg, 0 24px 64px rgba(15, 23, 42, 0.28));
 }
@@ -4223,9 +4375,12 @@ select.j-edit-input {
   max-width: none;
   margin-top: 16px;
   margin-bottom: 24px;
-  padding: 28px 32px 40px;
+  padding: 28px 32px 40px 56px;
   border-radius: 0;
   box-shadow: none;
+}
+.j-compose-sheet .cins-editor-page.is-overlay .cover-add.has {
+  border-radius: var(--radius-lg);
 }
 .j-compose-error {
   padding: 32px 24px;
@@ -5549,6 +5704,102 @@ select.j-edit-input {
   margin-left: 0;
   flex: 0 0 auto;
 }
+.jcard-datebar--cong-dong {
+  position: relative;
+  padding-left: 18px;
+  background: linear-gradient(
+    90deg,
+    rgba(237, 233, 254, 0.45) 0%,
+    rgba(248, 250, 252, 0) 68%
+  );
+  border-bottom-color: #ede9fe;
+}
+.jcard-datebar--cong-dong::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 3px;
+  border-radius: 99px;
+  background: linear-gradient(180deg, var(--cins-violet, #7c3aed), var(--cins-blue, #2563eb));
+}
+.jcard-datebar--cong-dong .j-user-pop-wrap {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.jcard-datebar--cong-dong .j-user-pop-trigger {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+}
+.jcard-datebar--cong-dong .cd-source-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.jcard-datebar--cong-dong .cd-source-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  flex: 0 0 auto;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ede9fe;
+  color: #5b21b6;
+  font-size: 13px;
+  font-weight: 800;
+  box-shadow: inset 0 0 0 1px rgba(91, 33, 182, 0.1);
+}
+.jcard-datebar--cong-dong .cd-source-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.jcard-datebar--cong-dong .cd-source-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  line-height: 1.15;
+}
+.jcard-datebar--cong-dong .cd-source-copy strong {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ink-display);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.jcard-datebar--cong-dong .cd-source-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+.jcard-datebar--cong-dong .cd-source-meta svg {
+  color: #7c3aed;
+  flex-shrink: 0;
+}
+.jcard-datebar--cong-dong .cd-source-sep {
+  opacity: 0.55;
+}
+.jcard-datebar--cong-dong .j-user-pop-trigger:hover .cd-source-copy strong {
+  color: var(--cins-blue, #2563eb);
+}
+.jcard-datebar--cong-dong .badge-row {
+  flex: 0 0 auto;
+}
+.ctx-badge.j-vis-cong-dong--icon {
+  padding: 3px 7px;
+  gap: 0;
+}
 .j-m-card.is-expanded .jcard-datebar {
   border-bottom-color: transparent;
   padding-bottom: 8px;
@@ -5608,6 +5859,19 @@ select.j-edit-input {
 }
 .ctx-badge.j-vis-feature svg {
   color: #f59e0b;
+}
+.ctx-badge.j-vis-cong-dong {
+  color: #1e40af;
+  font-weight: 600;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-color: #93c5fd;
+  text-decoration: none;
+}
+.ctx-badge.j-vis-cong-dong:hover {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+}
+.ctx-badge.j-vis-cong-dong svg {
+  color: #2563eb;
 }
 .j-inline-control {
   position: relative;
@@ -5685,6 +5949,25 @@ select.j-edit-input {
   background: #eef6ff;
   color: #1d4ed8;
   cursor: default;
+}
+.j-inline-control-divider {
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--border, #e5e7eb);
+}
+.j-inline-control-section-label {
+  padding: 6px 9px 4px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted, #64748b);
+}
+.j-m-menu-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: block;
 }
 .verify-badge {
   border: 1px solid var(--jcard-green-border);
@@ -5944,7 +6227,7 @@ select.j-edit-input {
   z-index: 1;
   width: 64px;
   height: 64px;
-  margin: -32px 16px 0;
+  margin: -32px auto 0;
   border: 3px solid var(--bg-surface);
   border-radius: 14px;
   overflow: hidden;
@@ -5966,6 +6249,7 @@ select.j-edit-input {
   position: relative;
   z-index: 1;
   padding: 6px 16px 16px;
+  text-align: center;
 }
 .j-org-pop-kicker {
   margin: 0 0 4px;
@@ -5978,6 +6262,7 @@ select.j-edit-input {
 .j-org-pop-body h3 {
   margin: 0;
   font-size: 17px;
+  font-weight: 800;
   line-height: 1.2;
   letter-spacing: -0.02em;
   color: var(--ink-display);
@@ -6000,6 +6285,7 @@ select.j-edit-input {
 .j-org-pop-stats {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 10px 14px;
   margin-top: 12px;
   color: var(--ink-muted);
@@ -6014,6 +6300,8 @@ select.j-edit-input {
   color: var(--ink-display);
 }
 .j-org-pop-actions {
+  display: flex;
+  justify-content: center;
   margin-top: 14px;
 }
 .cins-journey-page a.j-org-pop-primary,
@@ -6274,6 +6562,11 @@ select.j-edit-input {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+.j-m-card.jcard--article.is-expanded .jcard-desc {
+  -webkit-line-clamp: unset;
+  display: block;
+  overflow: visible;
+}
 .jcard-tags {
   margin-bottom: 12px;
 }
@@ -6310,6 +6603,9 @@ select.j-edit-input {
   box-shadow: 0 12px 32px rgba(15, 23, 42, 0.14);
   pointer-events: auto;
   animation: j-tag-tip-in 120ms ease;
+}
+.j-tag-tip--follow-cursor {
+  animation: none;
 }
 @keyframes j-tag-tip-in {
   from {
@@ -7307,6 +7603,202 @@ a.action-btn {
   opacity: 0.65;
 }
 
+/* Modal xác nhận rời feed cộng đồng — cover + avatar org, cảnh báo đỏ. */
+.j-cd-graduate-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9600;
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.52);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.j-cd-graduate-modal {
+  position: relative;
+  width: min(440px, 100%);
+  max-height: min(90dvh, 640px);
+  margin: auto;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  background: var(--bg-surface);
+  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.28);
+  color: var(--ink-body);
+}
+.j-cd-graduate-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 3;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.35);
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.j-cd-graduate-close:hover:not(:disabled) {
+  background: rgba(15, 23, 42, 0.52);
+}
+.j-cd-graduate-hero {
+  position: relative;
+}
+.j-cd-graduate-cover {
+  position: relative;
+  height: 96px;
+  background:
+    radial-gradient(circle at 20% 24%, var(--cins-yellow, #fde859), transparent 28%),
+    linear-gradient(135deg, var(--cins-blue-dark), var(--cins-violet) 58%, #0f172a);
+}
+.j-cd-graduate-cover.has-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.j-cd-graduate-cover::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 20%, rgba(15, 23, 42, 0.45));
+  pointer-events: none;
+}
+.j-cd-graduate-avatar-wrap {
+  position: relative;
+  z-index: 1;
+  width: 64px;
+  height: 64px;
+  margin: -32px auto 0;
+}
+.j-cd-graduate-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 14px;
+  object-fit: cover;
+  display: block;
+  border: 3px solid var(--bg-surface);
+  box-shadow:
+    0 0 0 1px var(--border),
+    var(--shadow-md);
+}
+.j-cd-graduate-avatar--fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--cins-blue-soft), var(--cins-violet-soft));
+  color: #5b21b6;
+  font-size: 24px;
+  font-weight: 900;
+}
+.j-cd-graduate-body {
+  padding: 10px 20px 20px;
+  text-align: center;
+}
+.j-cd-graduate-org {
+  margin: 0 0 14px;
+  color: var(--ink-display);
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.j-cd-graduate-slug {
+  margin: 0 0 14px;
+  padding-left: 2px;
+  color: var(--ink-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+.j-cd-graduate-warn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+  padding: 12px 14px;
+  border: 1px solid #fecaca;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #fef2f2 0%, #fff1f2 100%);
+  text-align: center;
+}
+.j-cd-graduate-warn-icon {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #fee2e2;
+  color: #dc2626;
+}
+.j-cd-graduate-warn-copy h2 {
+  margin: 0 0 6px;
+  color: #991b1b;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+.j-cd-graduate-warn-copy p {
+  margin: 0;
+  color: #b91c1c;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.j-cd-graduate-warn-copy strong {
+  color: #991b1b;
+  font-weight: 800;
+}
+.j-cd-graduate-note {
+  margin: 0 0 16px;
+  color: var(--ink-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.j-cd-graduate-error {
+  margin: 0 0 12px;
+  color: #dc2626;
+  font-size: 12px;
+}
+.j-cd-graduate-actions {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.j-cd-graduate-actions button {
+  min-height: 38px;
+  padding: 0 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink-body);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.j-cd-graduate-actions button.is-danger {
+  border-color: #dc2626;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: #fff;
+  box-shadow: 0 1px 3px rgba(220, 38, 38, 0.35);
+}
+.j-cd-graduate-actions button.is-danger:hover:not(:disabled) {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+}
+.j-cd-graduate-actions button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .j-coauthor-propose {
   position: relative;
   display: inline-flex;
@@ -7745,5 +8237,77 @@ a.action-btn {
 }
 .post-comments-login-btn:hover {
   color: var(--cins-blue-dark);
+}
+
+/* ── Personal filter (filter_nhan) — shared form controls ── */
+.cins-journey-page .j-personal-filter-create {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.cins-journey-page .j-personal-filter-input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border-subtle, #d5dbe6);
+  border-radius: 8px;
+  font-size: 13px;
+}
+.cins-journey-page .j-personal-filter-create-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--cins-blue);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.cins-journey-page .j-personal-filter-error {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #b42318;
+}
+.cins-journey-page .j-personal-filter-manage-list {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.cins-journey-page .j-personal-filter-manage-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.cins-journey-page .j-personal-filter-manage-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.cins-journey-page .j-personal-filter-manage-name {
+  flex: 1;
+  min-width: 0;
+}
+.cins-journey-page .j-personal-filter-manage-meta {
+  font-size: 11px;
+  color: var(--ink-muted, #5c677a);
+}
+.cins-journey-page .j-personal-filter-manage-del {
+  border: 0;
+  background: none;
+  color: var(--ink-muted, #5c677a);
+  cursor: pointer;
+  padding: 4px;
+}
+.cins-journey-page .j-personal-filter-hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--ink-muted, #5c677a);
 }
 

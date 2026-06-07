@@ -1,6 +1,6 @@
 import "server-only";
 
-import { THAO_LUAN_LOAI_CONTEXT } from "@/lib/cong-dong/constants";
+import { CHE_DO_MOC_CONG_DONG } from "@/lib/journey/journey-visible-clause";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 export type CongDongOrgStats = {
@@ -8,7 +8,7 @@ export type CongDongOrgStats = {
   postCount: number;
 };
 
-/** Đếm thành viên + bài thảo luận theo org — batch 1 query mỗi loại. */
+/** Đếm thành viên + bài cộng đồng (content_cot_moc che_do_hien_thi=cong_dong). */
 export async function loadCongDongStatsByOrgIds(
   orgIds: string[],
 ): Promise<Map<string, CongDongOrgStats>> {
@@ -27,11 +27,10 @@ export async function loadCongDongStatsByOrgIds(
       .select("id_to_chuc")
       .in("id_to_chuc", unique),
     admin
-      .from("content_thao_luan")
-      .select("id_context")
-      .eq("loai_context", THAO_LUAN_LOAI_CONTEXT.CONG_DONG)
-      .in("id_context", unique)
-      .eq("da_xoa", false),
+      .from("content_cot_moc")
+      .select("id_to_chuc")
+      .eq("che_do_hien_thi", CHE_DO_MOC_CONG_DONG)
+      .in("id_to_chuc", unique),
   ]);
 
   for (const row of memberRows ?? []) {
@@ -40,7 +39,7 @@ export async function loadCongDongStatsByOrgIds(
     if (cur) cur.memberCount += 1;
   }
   for (const row of postRows ?? []) {
-    const id = row.id_context as string;
+    const id = row.id_to_chuc as string;
     const cur = out.get(id);
     if (cur) cur.postCount += 1;
   }
@@ -51,15 +50,13 @@ export async function loadCongDongStatsByOrgIds(
 export async function countCongDongPosts(orgId: string): Promise<number> {
   const admin = createServiceRoleClient();
   const { count } = await admin
-    .from("content_thao_luan")
+    .from("content_cot_moc")
     .select("id", { count: "exact", head: true })
-    .eq("loai_context", THAO_LUAN_LOAI_CONTEXT.CONG_DONG)
-    .eq("id_context", orgId)
-    .eq("da_xoa", false);
+    .eq("id_to_chuc", orgId)
+    .eq("che_do_hien_thi", CHE_DO_MOC_CONG_DONG);
   return count ?? 0;
 }
 
-/** Thống kê bài đăng của user trong một cộng đồng. */
 export type AuthorOrgPostMeta = {
   count: number;
   lastPostAt: string | null;
@@ -76,21 +73,20 @@ export async function loadAuthorOrgPostMetaInOrg(
 
   const admin = createServiceRoleClient();
   const { data: rows } = await admin
-    .from("content_thao_luan")
-    .select("nguoi_dang, tao_luc")
-    .eq("loai_context", THAO_LUAN_LOAI_CONTEXT.CONG_DONG)
-    .eq("id_context", orgId)
-    .eq("da_xoa", false)
-    .in("nguoi_dang", unique)
-    .returns<Array<{ nguoi_dang: string; tao_luc: string }>>();
+    .from("content_cot_moc")
+    .select("id_nguoi_dung, tao_luc")
+    .eq("id_to_chuc", orgId)
+    .eq("che_do_hien_thi", CHE_DO_MOC_CONG_DONG)
+    .in("id_nguoi_dung", unique)
+    .returns<Array<{ id_nguoi_dung: string; tao_luc: string }>>();
 
   for (const row of rows ?? []) {
-    const prev = out.get(row.nguoi_dang) ?? { count: 0, lastPostAt: null };
+    const prev = out.get(row.id_nguoi_dung) ?? { count: 0, lastPostAt: null };
     prev.count += 1;
     if (!prev.lastPostAt || row.tao_luc > prev.lastPostAt) {
       prev.lastPostAt = row.tao_luc;
     }
-    out.set(row.nguoi_dang, prev);
+    out.set(row.id_nguoi_dung, prev);
   }
   return out;
 }

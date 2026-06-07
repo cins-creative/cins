@@ -5,7 +5,6 @@ import type {
   MilestoneMediaItem,
   MilestoneType,
   MilestoneVariant,
-  MilestoneVisibility,
 } from "@/components/journey/milestone-types";
 import type { Block as ServerBlock } from "@/lib/editor/types";
 import { fetchArticleTagsForTacPham } from "@/lib/journey/article-tags-batch";
@@ -18,6 +17,13 @@ import {
   isHiddenOnForeignJourney,
   mapForeignJourneyVisibilityToUi,
 } from "@/lib/journey/foreign-milestone-visibility";
+import { loadPersonalFiltersForCotMocs } from "@/lib/filter/gan";
+import { loadCongDongOrgsForMilestones } from "@/lib/journey/cong-dong-milestone-org";
+import {
+  CHE_DO_MOC_CONG_DONG,
+  isMilestoneVisibleOnPublicJourney,
+  mapCheDoToMilestoneVisibility,
+} from "@/lib/journey/journey-visible-clause";
 import {
   compareTimelineOrder,
   resolveTaggedTimelineSortAt,
@@ -31,8 +37,8 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
    ║ qua `content_tac_pham_thuoc_moc → content_tac_pham`. Adapter map ║
    ║ về `MilestoneItem` (component-level type).                       ║
    ║                                                                  ║
-   ║ Visibility visitor: xem `milestone-viewer-access.ts` (chi_minh,   ║
-   ║ theo_nhom + bạn bè, journey_loai_moc_visibility).               ║
+   ║ Visibility visitor: xem `milestone-viewer-access.ts` (che_do_hien_thi   ║
+   ║ từng cột mốc). Dropdown loại: `journey_loai_moc_visibility`.          ║
    ╚══════════════════════════════════════════════════════════════════╝ */
 
 type CotMocRow = {
@@ -48,7 +54,7 @@ type CotMocRow = {
   tieu_de: string;
   mo_ta: string | null;
   thoi_diem: string; // YYYY-MM-DD
-  che_do_hien_thi: "public" | "theo_nhom" | "chi_minh" | "feature";
+  che_do_hien_thi: "public" | "theo_nhom" | "chi_minh" | "feature" | "cong_dong";
   /** Thời điểm tạo record (timestamptz) — tiebreak khi cùng `thoi_diem`. */
   tao_luc: string | null;
   id_nguoi_dung?: string;
@@ -142,6 +148,15 @@ export async function buildSelfMilestonesForCotMocs(
   const orgByCotMoc = new Map(cotMocs.map((m) => [m.id, m.id_to_chuc ?? null]));
   const verifiedMeta = await loadVerifiedMetaForCotMocs(ids, orgByCotMoc);
 
+  const congDongOrgIds = cotMocs
+    .filter((m) => m.che_do_hien_thi === CHE_DO_MOC_CONG_DONG && m.id_to_chuc)
+    .map((m) => m.id_to_chuc as string);
+
+  const [personalFiltersByMoc, congDongOrgs] = await Promise.all([
+    loadPersonalFiltersForCotMocs(ids),
+    loadCongDongOrgsForMilestones(congDongOrgIds),
+  ]);
+
   const sorted = [...cotMocs].sort((a, b) => {
     const aFeat = a.che_do_hien_thi === "feature" ? 1 : 0;
     const bFeat = b.che_do_hien_thi === "feature" ? 1 : 0;
@@ -166,12 +181,20 @@ export async function buildSelfMilestonesForCotMocs(
       verified?.attribution.orgKind === "cong_dong" &&
       verified.attribution.role === "Người tạo cộng đồng";
 
+    const personalFilters = personalFiltersByMoc.get(m.id) ?? [];
+
     return {
       id: m.id,
       cotMocId: m.id,
       variant: (verified ? "verified" : "self") as MilestoneVariant,
       type: LOAI_MOC_TO_TYPE[m.loai_moc],
-      visibility: mapVisibility(m.che_do_hien_thi),
+      visibility: mapCheDoToMilestoneVisibility(m.che_do_hien_thi),
+      congDongOrg:
+        m.che_do_hien_thi === CHE_DO_MOC_CONG_DONG && m.id_to_chuc
+          ? (congDongOrgs.get(m.id_to_chuc) ?? null)
+          : null,
+      personalFilterSlugs: personalFilters.map((f) => f.slug),
+      personalFilters,
       year,
       month,
       day,
@@ -263,10 +286,17 @@ export async function fetchMilestonesForUser(params: {
     };
   }
 
-  /* Lọc theo visibility. Owner thấy tất cả; guest bỏ `chi_minh`. */
+  /* Lọc theo visibility. Owner thấy tất cả; guest bỏ `chi_minh` + `cong_dong`. */
   const visible = isOwner
     ? cotMocs
-    : cotMocs.filter((m) => m.che_do_hien_thi !== "chi_minh");
+    : cotMocs.filter(
+        (m) =>
+          m.che_do_hien_thi !== "chi_minh" &&
+          isMilestoneVisibleOnPublicJourney({
+            cheDoHienThi: m.che_do_hien_thi,
+            isOwner: false,
+          }),
+      );
 
   const milestones = await buildSelfMilestonesForCotMocs(admin, visible);
 
@@ -489,7 +519,11 @@ export async function fetchBookmarkedMilestonesForUser(params: {
   const visibleCotMocs = (cotMocs ?? []).filter((cm) => {
     if (cm.id_nguoi_dung === userId) return false;
     if (isOwner) return true;
-    return cm.che_do_hien_thi !== "chi_minh";
+    if (cm.che_do_hien_thi === "chi_minh") return false;
+    return isMilestoneVisibleOnPublicJourney({
+      cheDoHienThi: cm.che_do_hien_thi,
+      isOwner: false,
+    });
   });
   if (visibleCotMocs.length === 0) return [];
 
@@ -675,15 +709,6 @@ function countByTarget(rows: Array<{ id_doi_tuong?: string | null }>): Map<strin
     out.set(row.id_doi_tuong, (out.get(row.id_doi_tuong) ?? 0) + 1);
   }
   return out;
-}
-
-function mapVisibility(
-  v: CotMocRow["che_do_hien_thi"],
-): MilestoneVisibility {
-  if (v === "feature") return "feature";
-  if (v === "chi_minh") return "private";
-  if (v === "theo_nhom") return "unlisted";
-  return "public";
 }
 
 /**

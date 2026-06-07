@@ -10,6 +10,7 @@ import { JourneyGalleryGridView } from "@/components/journey/JourneyGalleryGridV
 import { JourneyComposeProvider } from "@/components/journey/JourneyComposeContext";
 import { BunnyVideoProcessingPoller } from "@/components/journey/BunnyVideoProcessingPoller";
 import { JourneyTimeline } from "@/components/journey/JourneyTimeline";
+import { JourneyPersonalFilterProvider } from "@/components/journey/JourneyPersonalFilterContext";
 import { useJourneyView } from "@/components/journey/JourneyViewContext";
 import type { MilestoneItem } from "@/components/journey/milestone-types";
 import type { LoaiMocVisibilityMap } from "@/lib/journey/filter-visibility";
@@ -466,15 +467,16 @@ export function JourneyProfileContent({
   }, [ownerSlug, viewerProfileId, fetchTimeline, fetchGallery]);
 
   return (
-    <JourneyComposeProvider
-      ownerId={ownerId}
-      ownerSlug={ownerSlug}
-      ownerName={ownerName}
-      ownerAvatarId={ownerAvatarId}
-      isOwner={isOwner}
-      initialCompose={initialCompose}
-    >
-      {isOwner ? <BunnyVideoProcessingPoller ownerSlug={ownerSlug} /> : null}
+    <JourneyPersonalFilterProvider ownerId={ownerId} isOwner={isOwner}>
+      <JourneyComposeProvider
+        ownerId={ownerId}
+        ownerSlug={ownerSlug}
+        ownerName={ownerName}
+        ownerAvatarId={ownerAvatarId}
+        isOwner={isOwner}
+        initialCompose={initialCompose}
+      >
+        {isOwner ? <BunnyVideoProcessingPoller ownerSlug={ownerSlug} /> : null}
       {view === "gallery" ? (
         galleryCache === "loading" || galleryCache === null ? (
           <JourneyGalleryMainSectionSkeleton />
@@ -490,7 +492,10 @@ export function JourneyProfileContent({
               ownerSlug,
               hasMore: galleryCache.hasMore,
               nextOffset: galleryCache.nextOffset,
+              filterCounts: galleryCache.filterCounts,
             }}
+            isOwner={isOwner}
+            filterVisibility={filterVisibility}
           />
         )
       ) : view === "friends" ? (
@@ -538,6 +543,7 @@ export function JourneyProfileContent({
           }}
         />
       )}
-    </JourneyComposeProvider>
+      </JourneyComposeProvider>
+    </JourneyPersonalFilterProvider>
   );
 }

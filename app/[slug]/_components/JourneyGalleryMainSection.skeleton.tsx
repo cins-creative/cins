@@ -7,7 +7,10 @@ export function JourneyGalleryMainSectionSkeleton() {
     >
       <div className="j-tlb">
         <div className="j-skel j-skel-tl-year" />
-        <div className="j-skel j-skel-tl-filter" />
+        <div className="j-tlb-filters">
+          <div className="j-skel j-skel-tl-filter" />
+          <div className="j-skel j-skel-tl-filter" />
+        </div>
       </div>
       <div className="j-skel-main-gallery-grid">
         {[0, 1, 2, 3, 4, 5].map((i) => (

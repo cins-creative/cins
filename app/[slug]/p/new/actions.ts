@@ -14,7 +14,9 @@ import {
   type LoaiMoc,
   type Visibility,
 } from "@/lib/editor/types";
+import { attachCongDongPersonalFilter } from "@/lib/filter/cong-dong-personal-filter";
 import { syncCongDongPostFromPublish } from "@/lib/cong-dong/sync-from-publish";
+import { setMilestonePersonalFilters } from "@/lib/filter/gan";
 import { syncCoAuthorsFromEditor } from "@/lib/social/co-author";
 import type { CoAuthorDraft } from "@/lib/social/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -54,6 +56,8 @@ export type PublishPostInput = {
     orgId: string;
     filterSlugs: string[];
   };
+  /** Nhãn cá nhân gắn lên cột mốc mới tạo. */
+  personalFilterIds?: string[];
 };
 
 export type PublishPostResult =
@@ -153,11 +157,30 @@ export async function publishPost(
   const noiDungHtml = blocksToHtml(normalized);
   const moTaFinal = moTa || deriveMoTaFallback(normalized);
 
-  /* 5. Insert DB — cộng đồng: chỉ tac_pham (mirror), không cột mốc Journey. */
+  /* 5. Insert DB — cộng đồng: cột mốc che_do_hien_thi=cong_dong + tac_pham. */
   const admin = createServiceRoleClient();
   const isCongDongOnly = Boolean(input.congDong);
 
   if (isCongDongOnly) {
+    const { data: cotMoc, error: cotMocErr } = await admin
+      .from("content_cot_moc")
+      .insert({
+        id_nguoi_dung: session.profile.id,
+        id_to_chuc: input.congDong!.orgId,
+        loai_moc: input.loaiMoc,
+        nguon_goc: "tu_tao",
+        tieu_de: tieuDe,
+        mo_ta: moTaFinal || null,
+        thoi_diem: thoiDiem,
+        che_do_hien_thi: "cong_dong",
+      })
+      .select("id")
+      .single<{ id: string }>();
+
+    if (cotMocErr || !cotMoc) {
+      return { ok: false, error: dbErrorMessage(cotMocErr) };
+    }
+
     const { data: tacPham, error: tacPhamErr } = await admin
       .from("content_tac_pham")
       .insert({
@@ -166,7 +189,7 @@ export async function publishPost(
         tieu_de: tieuDe,
         mo_ta: moTaFinal || null,
         cover_id: input.coverSeed || null,
-        che_do_hien_thi: "chi_minh",
+        che_do_hien_thi: "cong_dong",
         slug,
         noi_dung_blocks: normalized,
         noi_dung_html: noiDungHtml,
@@ -177,28 +200,51 @@ export async function publishPost(
       .single<{ id: string }>();
 
     if (tacPhamErr || !tacPham) {
+      await admin.from("content_cot_moc").delete().eq("id", cotMoc.id);
       return { ok: false, error: dbErrorMessage(tacPhamErr) };
+    }
+
+    const { error: linkErr } = await admin
+      .from("content_tac_pham_thuoc_moc")
+      .insert({
+        id_tac_pham: tacPham.id,
+        id_cot_moc: cotMoc.id,
+        thu_tu: 0,
+      });
+
+    if (linkErr) {
+      await admin.from("content_tac_pham").delete().eq("id", tacPham.id);
+      await admin.from("content_cot_moc").delete().eq("id", cotMoc.id);
+      return { ok: false, error: dbErrorMessage(linkErr) };
     }
 
     const sync = await syncCongDongPostFromPublish({
       orgId: input.congDong!.orgId,
-      authorId: session.profile.id,
-      tacPhamId: tacPham.id,
+      cotMocId: cotMoc.id,
       filterSlugs: input.congDong!.filterSlugs,
-      tieuDe,
-      moTa: moTaFinal,
-      coverSeed: input.coverSeed,
-      blocks: normalized,
     });
     if (!sync.ok) {
+      await admin.from("content_tac_pham_thuoc_moc").delete().eq("id_cot_moc", cotMoc.id);
       await admin.from("content_tac_pham").delete().eq("id", tacPham.id);
+      await admin.from("content_cot_moc").delete().eq("id", cotMoc.id);
       return { ok: false, error: sync.error };
+    }
+
+    const labelAttach = await attachCongDongPersonalFilter({
+      milestoneId: cotMoc.id,
+      userId: session.profile.id,
+    });
+    if (!labelAttach.ok) {
+      await admin.from("content_tac_pham_thuoc_moc").delete().eq("id_cot_moc", cotMoc.id);
+      await admin.from("content_tac_pham").delete().eq("id", tacPham.id);
+      await admin.from("content_cot_moc").delete().eq("id", cotMoc.id);
+      return { ok: false, error: labelAttach.error };
     }
 
     return {
       ok: true,
       slug,
-      cotMocId: "",
+      cotMocId: cotMoc.id,
       tacPhamId: tacPham.id,
     };
   }
@@ -292,6 +338,17 @@ export async function publishPost(
     }
     for (const c of input.coAuthors) {
       if (c.slug) revalidatePath(`/${c.slug}`);
+    }
+  }
+
+  if (input.personalFilterIds && input.personalFilterIds.length > 0) {
+    const filterSync = await setMilestonePersonalFilters({
+      milestoneId: cotMoc.id,
+      userId: session.profile.id,
+      filterIds: input.personalFilterIds,
+    });
+    if (!filterSync.ok) {
+      console.error("[publishPost] personal filter sync failed", filterSync.error);
     }
   }
 

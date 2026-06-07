@@ -25,6 +25,7 @@ import {
   addMilestoneComment,
   deleteMilestoneComment,
   editMilestoneComment,
+  type MilestonePostAuthor,
   type MilestonePostComment,
   type MilestonePostContributor,
   type MilestonePostDetail,
@@ -119,6 +120,8 @@ type Props = {
     blocks?: boolean;
     comments?: boolean;
   };
+  /** Timeline — action bar (like/bookmark/…) ngay trên bình luận. */
+  inlineActionsSlot?: React.ReactNode;
 };
 
 export function JourneyPostBody({
@@ -134,6 +137,7 @@ export function JourneyPostBody({
   commentsSectionId = "post-comments",
   inlineSkip,
   inlineParts,
+  inlineActionsSlot,
 }: Props) {
   const [detail, setDetail] = useState<MilestonePostDetail>(initialDetail);
   const { milestone, owner, posts, comments, viewerCanComment, social } = detail;
@@ -428,7 +432,10 @@ export function JourneyPostBody({
       {blocksEl}
       {showCommentsPart ? (
         <>
-          {!commentsOnlyInline ? <hr className="post-divider" /> : null}
+          {inlineActionsSlot}
+          {!commentsOnlyInline && !inlineActionsSlot ? (
+            <hr className="post-divider" />
+          ) : null}
           {commentsEl}
         </>
       ) : null}
@@ -497,6 +504,18 @@ function PostContributors({
 
 /* ─── Comments ──────────────────────────────────────────────────── */
 
+type CommentSubmitResult =
+  | {
+      ok: true;
+      data: {
+        id: string;
+        noiDung: string;
+        taoLuc: string;
+        author: MilestonePostAuthor | null;
+      };
+    }
+  | { ok: false; error: string };
+
 type CommentSectionProps = {
   milestoneId: string;
   comments: ReadonlyArray<MilestonePostComment>;
@@ -505,6 +524,8 @@ type CommentSectionProps = {
   onCommentDeleted(id: string): void;
   onCommentEdited(id: string, noiDung: string): void;
   sectionId?: string;
+  /** Feed cộng đồng — API có check thành viên; mặc định `addMilestoneComment`. */
+  submitComment?: (text: string) => Promise<CommentSubmitResult>;
 };
 
 export function JourneyPostCommentsBlock({
@@ -515,6 +536,7 @@ export function JourneyPostCommentsBlock({
   onCommentDeleted,
   onCommentEdited,
   sectionId = "post-comments",
+  submitComment,
 }: CommentSectionProps) {
   const { openAuthModal } = useAuthGate();
   const [text, setText] = useState("");
@@ -527,7 +549,9 @@ export function JourneyPostCommentsBlock({
     if (!value) return;
     setErr(null);
     startTransition(async () => {
-      const res = await addMilestoneComment(milestoneId, value);
+      const res = submitComment
+        ? await submitComment(value)
+        : await addMilestoneComment(milestoneId, value);
       if (!res.ok) {
         setErr(res.error);
         return;
@@ -540,7 +564,9 @@ export function JourneyPostCommentsBlock({
         isOwn: true,
       });
       setText("");
-      emitNotificationsChanged();
+      if (!submitComment) {
+        emitNotificationsChanged();
+      }
     });
   }
 

@@ -3,13 +3,10 @@
 import Link from "next/link";
 import {
   BadgeCheck,
-  Bookmark,
   Heart,
   LayoutGrid,
   MessageCircle,
-  MoreHorizontal,
-  Pin,
-  ShieldCheck,
+  Users,
   Waypoints,
 } from "lucide-react";
 import {
@@ -21,6 +18,7 @@ import {
   useTransition,
 } from "react";
 
+import { CongDongPostBookmarkAct } from "@/components/cong-dong/CongDongPostBookmarkAct";
 import { useCongDongAuthGate } from "@/components/cong-dong/useCongDongAuthGate";
 import { BunnyVideoProcessingPoller } from "@/components/journey/BunnyVideoProcessingPoller";
 import { JourneyComposeProvider } from "@/components/journey/JourneyComposeContext";
@@ -39,8 +37,16 @@ import { CongDongFeedFilterDropdown } from "@/components/cong-dong/CongDongFeedF
 import { CongDongEventRail } from "@/components/cong-dong/CongDongEventRail";
 import { CongDongFeedPostContent } from "@/components/cong-dong/CongDongFeedPostContent";
 import { CongDongFilterChip } from "@/components/cong-dong/CongDongFilterChip";
+import { CongDongPostMenu } from "@/components/cong-dong/CongDongPostMenu";
+import { JourneyArticleTagManager } from "@/components/journey/JourneyArticleTagManager";
+import { JourneyMilestoneUnfold } from "@/components/journey/JourneyMilestoneUnfold";
+import { JourneyPostCommentsBlock } from "@/components/journey/JourneyPostBody";
 import { CongDongRoleButton } from "@/components/cong-dong/CongDongRoleButton";
-import { formatCongDongRelativeTime } from "@/lib/cong-dong/feed-display";
+import {
+  compareCongDongPostsByMilestoneDate,
+  congDongPostTimelineParts,
+  formatCongDongRelativeTime,
+} from "@/lib/cong-dong/feed-display";
 import { SOCIAL_LOAI_DOI_TUONG } from "@/lib/cong-dong/constants";
 import {
   canManageLabels,
@@ -58,6 +64,8 @@ import type {
   CongDongPost,
   CongDongPulseItem,
 } from "@/lib/cong-dong/types";
+import { isMilestoneArticleCard } from "@/lib/journey/milestone-card-kind";
+import type { MilestonePostComment } from "@/lib/journey/milestone-post-types";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import {
   computeScrollSpyFromMarkers,
@@ -93,6 +101,16 @@ function buildPostsUrl(
   return `/api/cong-dong/${orgId}/posts${qs ? `?${qs}` : ""}`;
 }
 
+function postsMatchingFilterSlugs(
+  list: CongDongPost[],
+  slugs: string[],
+): CongDongPost[] {
+  if (slugs.length === 0) return list;
+  return list.filter((post) =>
+    slugs.some((slug) => post.filters.some((filter) => filter.slug === slug)),
+  );
+}
+
 function sortPosts(posts: CongDongPost[], mode: SortMode): CongDongPost[] {
   const copy = [...posts];
   if (mode === "tuongtac") {
@@ -110,17 +128,11 @@ function sortPosts(posts: CongDongPost[], mode: SortMode): CongDongPost[] {
       return ta;
     });
   }
-  return copy.sort(
-    (a, b) => new Date(b.taoLuc).getTime() - new Date(a.taoLuc).getTime(),
-  );
+  return copy.sort(compareCongDongPostsByMilestoneDate);
 }
 
-function postTimelineParts(iso: string): { year: string; month: string } {
-  const d = new Date(iso);
-  return {
-    year: String(d.getUTCFullYear()),
-    month: String(d.getUTCMonth() + 1),
-  };
+function postTimelineParts(thoiDiem: string): { year: string; month: string } {
+  return congDongPostTimelineParts(thoiDiem);
 }
 
 export function CongDongPageClient({ initial }: Props) {
@@ -146,6 +158,11 @@ export function CongDongPageClient({ initial }: Props) {
   const [sortMode, setSortMode] = useState<SortMode>("moi");
   const [loadPending, startLoadMore] = useTransition();
   const [filterPending, startFilter] = useTransition();
+  const filterAbortRef = useRef<AbortController | null>(null);
+  const unfilteredFeedRef = useRef({
+    posts: initial.initialPosts,
+    nextCursor: initial.nextCursor,
+  });
   const [filterAdminOpen, setFilterAdminOpen] = useState(false);
   const [groupSettingsOpen, setGroupSettingsOpen] = useState(false);
   const [membersOpen, setMembersOpen] = useState(false);
@@ -154,7 +171,6 @@ export function CongDongPageClient({ initial }: Props) {
     initial.categories,
   );
 
-  const isVerifiedOfficial = org.trangThaiTinCay === "verified_official";
   const canCompose = Boolean(
     isThanhVien && initial.viewerId && initial.viewerSlug,
   );
@@ -189,6 +205,16 @@ export function CongDongPageClient({ initial }: Props) {
     };
   }, [org.id]);
 
+  const handlePostUpdated = useCallback((updated: CongDongPost) => {
+    setPosts((prev) =>
+      prev.map((p) => (p.id === updated.id ? updated : p)),
+    );
+  }, []);
+
+  const handlePostDeleted = useCallback((postId: string) => {
+    setPosts((prev) => prev.filter((p) => p.id !== postId));
+  }, []);
+
   const sortedPosts = useMemo(
     () => sortPosts(posts, sortMode),
     [posts, sortMode],
@@ -196,7 +222,7 @@ export function CongDongPageClient({ initial }: Props) {
   const feedBarRef = useRef<HTMLDivElement>(null);
   const yearNow = String(new Date().getFullYear());
   const firstPostParts = sortedPosts[0]
-    ? postTimelineParts(sortedPosts[0].taoLuc)
+    ? postTimelineParts(sortedPosts[0].thoiDiem)
     : null;
   const showFeedTimeline = view === "journey" && sortedPosts.length > 0;
   const [timelineSpy, setTimelineSpy] = useState<TimelineScrollSpy>(() =>
@@ -208,7 +234,9 @@ export function CongDongPageClient({ initial }: Props) {
   );
 
   useEffect(() => {
-    const parts = sortedPosts[0] ? postTimelineParts(sortedPosts[0].taoLuc) : null;
+    const parts = sortedPosts[0]
+      ? postTimelineParts(sortedPosts[0].thoiDiem)
+      : null;
     setTimelineSpy(
       timelineScrollSpyFromParts(parts?.year, parts?.month, yearNow),
     );
@@ -246,22 +274,58 @@ export function CongDongPageClient({ initial }: Props) {
         nextCursor?: string | null;
       } | null;
       if (!res.ok || !json?.posts) return;
-      setPosts((prev) => [...prev, ...json.posts!]);
+      setPosts((prev) => {
+        const merged = [...prev, ...json.posts!];
+        if (activeFilterSlugs.length === 0) {
+          unfilteredFeedRef.current = {
+            posts: merged,
+            nextCursor: json.nextCursor ?? null,
+          };
+        }
+        return merged;
+      });
       setNextCursor(json.nextCursor ?? null);
     });
   };
 
   const applyFeedFilter = (slugs: string[]) => {
     setActiveFilterSlugs(slugs);
+
+    if (slugs.length === 0) {
+      const cached = unfilteredFeedRef.current;
+      setPosts(cached.posts);
+      setNextCursor(cached.nextCursor);
+    } else {
+      setPosts(
+        postsMatchingFilterSlugs(unfilteredFeedRef.current.posts, slugs),
+      );
+    }
+
+    filterAbortRef.current?.abort();
+    const abort = new AbortController();
+    filterAbortRef.current = abort;
+
     startFilter(async () => {
-      const res = await fetch(buildPostsUrl(org.id, { filterSlugs: slugs }));
-      const json = (await res.json().catch(() => null)) as {
-        posts?: CongDongPost[];
-        nextCursor?: string | null;
-      } | null;
-      if (!res.ok || !json?.posts) return;
-      setPosts(json.posts);
-      setNextCursor(json.nextCursor ?? null);
+      try {
+        const res = await fetch(buildPostsUrl(org.id, { filterSlugs: slugs }), {
+          signal: abort.signal,
+        });
+        const json = (await res.json().catch(() => null)) as {
+          posts?: CongDongPost[];
+          nextCursor?: string | null;
+        } | null;
+        if (!res.ok || !json?.posts) return;
+        setPosts(json.posts);
+        setNextCursor(json.nextCursor ?? null);
+        if (slugs.length === 0) {
+          unfilteredFeedRef.current = {
+            posts: json.posts,
+            nextCursor: json.nextCursor ?? null,
+          };
+        }
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+      }
     });
   };
 
@@ -277,6 +341,12 @@ export function CongDongPageClient({ initial }: Props) {
       if (!res.ok || !json?.posts) return;
       setPosts(json.posts);
       setNextCursor(json.nextCursor ?? null);
+      if (activeFilterSlugs.length === 0) {
+        unfilteredFeedRef.current = {
+          posts: json.posts,
+          nextCursor: json.nextCursor ?? null,
+        };
+      }
     });
   }, [org.id, activeFilterSlugs]);
 
@@ -306,96 +376,62 @@ export function CongDongPageClient({ initial }: Props) {
       <div className="cd-v4-layout">
         <aside className="cd-v4-id">
           <div className="cd-v4-id-head">
-            <CongDongOrgBrandingCover
-              orgId={org.id}
-              coverId={org.coverId}
-              canEdit={initial.isAdmin}
-              onBrandingChange={onBrandingChange}
-            />
-            <div className="cd-v4-id-head-inset">
-              <CongDongOrgBrandingAvatar
+            <div className="cd-v4-id-cover-stage">
+              <CongDongOrgBrandingCover
                 orgId={org.id}
-                orgName={org.ten}
-                avatarId={org.avatarId}
+                coverId={org.coverId}
                 canEdit={initial.isAdmin}
                 onBrandingChange={onBrandingChange}
               />
-              <h1 className="cd-v4-title">{org.ten}</h1>
-              <div className="cd-v4-meta">
-                <span className="cd-v4-verified">
-                  <ShieldCheck size={14} strokeWidth={2} aria-hidden />
-                  Cộng đồng
-                </span>
-                {isVerifiedOfficial ? (
-                  <>
-                    <span className="cd-v4-dot" aria-hidden />
-                    <span className="cd-v4-verified">
-                      <BadgeCheck size={14} strokeWidth={2} aria-hidden />
-                      Đã xác minh
-                    </span>
-                  </>
-                ) : null}
+              <span className="cd-v4-cover-badge">
+                <Users size={13} strokeWidth={2} aria-hidden />
+                Cộng đồng
+              </span>
+              <div className="cd-v4-id-avatar-slot">
+                <CongDongOrgBrandingAvatar
+                  orgId={org.id}
+                  orgName={org.ten}
+                  avatarId={org.avatarId}
+                  canEdit={initial.isAdmin}
+                  onBrandingChange={onBrandingChange}
+                />
               </div>
-
-              <CongDongRoleButton
-                orgId={org.id}
-                isThanhVien={isThanhVien}
-                viewerVaiTro={viewerVaiTro}
-                hideForOwner={initial.hideMembershipForOwner}
-                initialNotifyLevel={notifyLevel}
-                onJoined={onJoined}
-                onLeft={onLeftCommunity}
-                onNotifyLevelChange={setNotifyLevel}
-                onManageLabels={
-                  canManageLabels(viewerVaiTro)
-                    ? () => setFilterAdminOpen(true)
-                    : undefined
-                }
-                onGroupSettings={
-                  initial.isAdmin
-                    ? () => setGroupSettingsOpen(true)
-                    : undefined
-                }
-                onManageMembers={
-                  canManageMembers(viewerVaiTro)
-                    ? () => setMembersOpen(true)
-                    : undefined
-                }
-                onShare={shareCommunity}
-              />
-
-              {org.moTa ? <p className="cd-v4-desc">{org.moTa}</p> : null}
+            </div>
+            <div className="cd-v4-id-head-inset">
+              <div className="cd-v4-id-head-main">
+                <h1 className="cd-v4-title">{org.ten}</h1>
+                {org.moTa ? <p className="cd-v4-desc">{org.moTa}</p> : null}
+                <CongDongRoleButton
+                  orgId={org.id}
+                  isThanhVien={isThanhVien}
+                  viewerVaiTro={viewerVaiTro}
+                  hideForOwner={initial.hideMembershipForOwner}
+                  initialNotifyLevel={notifyLevel}
+                  onJoined={onJoined}
+                  onLeft={onLeftCommunity}
+                  onNotifyLevelChange={setNotifyLevel}
+                  onManageLabels={
+                    canManageLabels(viewerVaiTro)
+                      ? () => setFilterAdminOpen(true)
+                      : undefined
+                  }
+                  onGroupSettings={
+                    initial.isAdmin
+                      ? () => setGroupSettingsOpen(true)
+                      : undefined
+                  }
+                  onManageMembers={
+                    canManageMembers(viewerVaiTro)
+                      ? () => setMembersOpen(true)
+                      : undefined
+                  }
+                  onShare={shareCommunity}
+                />
+              </div>
             </div>
           </div>
           <div className="cd-v4-id-body">
             <CongDongCategoryLinks categories={categories} />
-
-            {initial.viewerId && friendsInCommunity.total > 0 ? (
-              <div className="cd-v4-friends-row">
-                <div className="cd-v4-facepile" aria-hidden>
-                  {friendsInCommunity.friends.map((member, i) => (
-                    <FacepileAvatar
-                      key={member.id}
-                      member={member}
-                      color={FACEPILE_COLORS[i % FACEPILE_COLORS.length]}
-                    />
-                  ))}
-                  {friendsInCommunity.total > friendsInCommunity.friends.length ? (
-                    <span className="cd-v4-facepile-more">
-                      +{friendsInCommunity.total - friendsInCommunity.friends.length}
-                    </span>
-                  ) : null}
-                </div>
-                <p className="cd-v4-face-note">
-                  <strong>{friendsInCommunity.total} người bạn</strong> của bạn đang
-                  ở đây
-                </p>
-              </div>
-            ) : sidebarLiveLoading && initial.viewerId ? (
-              <p className="cd-v4-face-note cd-v4-face-note--solo cd-v4-muted">
-                Đang tải bạn bè…
-              </p>
-            ) : null}
 
             {careerMap.length > 0 ? (
               <>
@@ -407,6 +443,39 @@ export function CongDongPageClient({ initial }: Props) {
               <>
                 <div className="cd-v4-divider" />
                 <p className="cd-v4-muted">Đang tải bản đồ nghề…</p>
+              </>
+            ) : null}
+
+            {initial.viewerId && friendsInCommunity.total > 0 ? (
+              <>
+                <div className="cd-v4-divider" />
+                <div className="cd-v4-friends-row">
+                  <div className="cd-v4-facepile" aria-hidden>
+                    {friendsInCommunity.friends.map((member, i) => (
+                      <FacepileAvatar
+                        key={member.id}
+                        member={member}
+                        color={FACEPILE_COLORS[i % FACEPILE_COLORS.length]}
+                      />
+                    ))}
+                    {friendsInCommunity.total > friendsInCommunity.friends.length ? (
+                      <span className="cd-v4-facepile-more">
+                        +{friendsInCommunity.total - friendsInCommunity.friends.length}
+                      </span>
+                    ) : null}
+                  </div>
+                  <p className="cd-v4-face-note">
+                    <strong>{friendsInCommunity.total} người bạn</strong> của bạn đang
+                    ở đây
+                  </p>
+                </div>
+              </>
+            ) : sidebarLiveLoading && initial.viewerId ? (
+              <>
+                <div className="cd-v4-divider" />
+                <p className="cd-v4-face-note cd-v4-face-note--solo cd-v4-muted">
+                  Đang tải bạn bè…
+                </p>
               </>
             ) : null}
 
@@ -425,7 +494,6 @@ export function CongDongPageClient({ initial }: Props) {
             barRef={feedBarRef}
             showTimeline={showFeedTimeline}
             timelineSpy={timelineSpy}
-            filterPending={filterPending}
             filters={filters}
             activeFilterSlugs={activeFilterSlugs}
             onFilterChange={applyFeedFilter}
@@ -440,9 +508,11 @@ export function CongDongPageClient({ initial }: Props) {
           ) : null}
 
           <div
-            className={`cd-v4-feed${view === "grid" ? " is-grid" : " is-journey"}`}
+            className={`cd-v4-feed${view === "grid" ? " is-grid" : " is-journey"}${filterPending ? " is-loading" : ""}`}
           >
-            {sortedPosts.length === 0 ? (
+            {filterPending && sortedPosts.length === 0 ? (
+              <p className="cd-v4-empty">Đang lọc…</p>
+            ) : sortedPosts.length === 0 ? (
               activeFilterSlugs.length > 0 ? (
                 <p className="cd-v4-empty">
                   Chưa có bài đăng với nhãn này.
@@ -461,7 +531,12 @@ export function CongDongPageClient({ initial }: Props) {
               <JourneyFeed
                 posts={sortedPosts}
                 orgId={org.id}
+                filters={filters}
+                viewerId={initial.viewerId}
+                viewerVaiTro={viewerVaiTro}
                 canInteract={isThanhVien}
+                onPostUpdated={handlePostUpdated}
+                onPostDeleted={handlePostDeleted}
                 barRef={feedBarRef}
                 onSpyChange={handleTimelineSpyChange}
               />
@@ -665,7 +740,6 @@ type FeedStickyBarProps = {
   barRef: React.RefObject<HTMLDivElement | null>;
   showTimeline: boolean;
   timelineSpy: TimelineScrollSpy;
-  filterPending: boolean;
   filters: CongDongFilter[];
   activeFilterSlugs: string[];
   onFilterChange: (slugs: string[]) => void;
@@ -679,7 +753,6 @@ function CongDongFeedStickyBar({
   barRef,
   showTimeline,
   timelineSpy,
-  filterPending,
   filters,
   activeFilterSlugs,
   onFilterChange,
@@ -711,7 +784,7 @@ function CongDongFeedStickyBar({
         </>
       ) : null}
       <div
-        className={`cd-v4-feed-controls${filterPending ? " is-loading" : ""}`}
+        className="cd-v4-feed-controls"
         role="toolbar"
         aria-label="Lọc và sắp xếp bài đăng"
       >
@@ -719,7 +792,6 @@ function CongDongFeedStickyBar({
           filters={filters}
           activeFilterSlugs={activeFilterSlugs}
           onChange={onFilterChange}
-          disabled={filterPending}
           className="cd-v4-filter-dd--compact"
         />
         <select
@@ -760,13 +832,23 @@ function CongDongFeedStickyBar({
 function JourneyFeed({
   posts,
   orgId,
+  filters,
+  viewerId,
+  viewerVaiTro,
   canInteract,
+  onPostUpdated,
+  onPostDeleted,
   barRef,
   onSpyChange,
 }: {
   posts: CongDongPost[];
   orgId: string;
+  filters: CongDongFilter[];
+  viewerId: string | null;
+  viewerVaiTro: CongDongVaiTro | null;
   canInteract: boolean;
+  onPostUpdated: (post: CongDongPost) => void;
+  onPostDeleted: (postId: string) => void;
   barRef: React.RefObject<HTMLDivElement | null>;
   onSpyChange: (spy: TimelineScrollSpy) => void;
 }) {
@@ -810,7 +892,12 @@ function JourneyFeed({
           key={post.id}
           orgId={orgId}
           post={post}
+          filters={filters}
+          viewerId={viewerId}
+          viewerVaiTro={viewerVaiTro}
           canInteract={canInteract}
+          onPostUpdated={onPostUpdated}
+          onPostDeleted={onPostDeleted}
         />
       ))}
     </div>
@@ -846,7 +933,6 @@ function usePostSocial(orgId: string, post: CongDongPost, canInteract: boolean) 
   const [likeCount, setLikeCount] = useState(post.likeCount);
   const [comments, setComments] = useState<CongDongComment[]>([]);
   const [commentsOpen, setCommentsOpen] = useState(false);
-  const [commentText, setCommentText] = useState("");
   const [commentCount, setCommentCount] = useState(post.commentCount);
   const [pending, startTransition] = useTransition();
 
@@ -860,7 +946,7 @@ function usePostSocial(orgId: string, post: CongDongPost, canInteract: boolean) 
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            loai_doi_tuong: SOCIAL_LOAI_DOI_TUONG.THAO_LUAN,
+            loai_doi_tuong: SOCIAL_LOAI_DOI_TUONG.COT_MOC,
             id_doi_tuong: post.id,
             active: next,
           }),
@@ -887,70 +973,114 @@ function usePostSocial(orgId: string, post: CongDongPost, canInteract: boolean) 
     });
   };
 
-  const openSave = () => {
-    requireCongDongAuth(() => {
-      /* Bookmark thảo luận — sẽ bổ sung API sau */
-    });
-  };
-
-  const openPostMenu = () => {
-    requireCongDongAuth(() => {
-      /* Tuỳ chọn bài — sẽ bổ sung sau */
-    });
-  };
-
-  const submitComment = (e: React.FormEvent) => {
-    e.preventDefault();
-    requireCongDongAuth(() => {
-      if (!canInteract) return;
-      const text = commentText.trim();
-      if (!text) return;
-      startTransition(async () => {
-        const res = await fetch(
-          `/api/cong-dong/${orgId}/posts/${post.id}/comments`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ noi_dung: text }),
+  const submitCommentAsync = useCallback(
+    async (text: string) => {
+      const res = await fetch(
+        `/api/cong-dong/${orgId}/posts/${post.id}/comments`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ noi_dung: text }),
+        },
+      );
+      const json = (await res.json().catch(() => null)) as {
+        comment?: CongDongComment;
+        error?: string;
+      } | null;
+      if (!res.ok || !json?.comment) {
+        return {
+          ok: false as const,
+          error:
+            typeof json?.error === "string"
+              ? json.error
+              : "Không gửi được bình luận.",
+        };
+      }
+      const comment = json.comment;
+      return {
+        ok: true as const,
+        data: {
+          id: comment.id,
+          noiDung: comment.noiDung,
+          taoLuc: comment.taoLuc,
+          author: {
+            id: comment.author.id,
+            slug: comment.author.slug,
+            tenHienThi: comment.author.tenHienThi,
+            avatarId: comment.author.avatarId,
           },
-        );
-        const json = (await res.json().catch(() => null)) as {
-          comment?: CongDongComment;
-        } | null;
-        if (!res.ok || !json?.comment) return;
-        setComments((prev) => [...prev, json.comment!]);
-        setCommentCount((c) => c + 1);
-        setCommentText("");
-      });
-    });
-  };
+        },
+      };
+    },
+    [orgId, post.id],
+  );
+
+  const onCommentAdded = useCallback((comment: MilestonePostComment) => {
+    if (!comment.author) return;
+    setComments((prev) => [
+      ...prev,
+      {
+        id: comment.id,
+        noiDung: comment.noiDung,
+        taoLuc: comment.taoLuc,
+        author: {
+          id: comment.author.id,
+          slug: comment.author.slug,
+          tenHienThi: comment.author.tenHienThi,
+          avatarId: comment.author.avatarId,
+        },
+      },
+    ]);
+    setCommentCount((c) => c + 1);
+  }, []);
+
+  const onCommentDeleted = useCallback((commentId: string) => {
+    setComments((prev) => prev.filter((c) => c.id !== commentId));
+    setCommentCount((c) => Math.max(0, c - 1));
+  }, []);
+
+  const onCommentEdited = useCallback((commentId: string, noiDung: string) => {
+    setComments((prev) =>
+      prev.map((c) => (c.id === commentId ? { ...c, noiDung } : c)),
+    );
+  }, []);
 
   return {
     liked,
     likeCount,
     comments,
     commentsOpen,
-    commentText,
-    setCommentText,
     commentCount,
     pending,
     toggleLike,
     openComments,
-    openSave,
-    openPostMenu,
-    submitComment,
+    submitCommentAsync,
+    onCommentAdded,
+    onCommentDeleted,
+    onCommentEdited,
   };
 }
 
 function CongDongJourneyPostCard({
   orgId,
   post,
+  filters,
+  viewerId,
+  viewerVaiTro,
   canInteract,
+  onPostUpdated,
+  onPostDeleted,
 }: {
   orgId: string;
   post: CongDongPost;
+  filters: CongDongFilter[];
+  viewerId: string | null;
+  viewerVaiTro: CongDongVaiTro | null;
   canInteract: boolean;
+  onPostUpdated: (post: CongDongPost) => void;
+  onPostDeleted: (postId: string) => void;
 }) {
+  const [contentOpen, setContentOpen] = useState(false);
   const social = usePostSocial(orgId, post, canInteract);
   const avatarUrl = getAvatarUrl(post.author.avatarId);
   const initial = post.author.tenHienThi.charAt(0).toUpperCase();
@@ -958,14 +1088,60 @@ function CongDongJourneyPostCard({
     !post.journeyMirror &&
     !post.tieuDe &&
     post.media.length === 0;
-  const { year, month } = postTimelineParts(post.taoLuc);
+  const { year, month } = postTimelineParts(post.thoiDiem);
+  const mirror = post.journeyMirror;
+  const isArticleMirror =
+    Boolean(mirror) && isMilestoneArticleCard(mirror?.noiDungBlocks);
+  const postOwnerSlug = mirror?.ownerSlug || post.author.slug;
+  const postSlug = mirror?.postSlug || null;
+  const cardTitle =
+    mirror?.tieuDe || post.tieuDe || post.noiDung.slice(0, 80);
+  const canManageArticleTags =
+    Boolean(mirror) && viewerId === post.author.id;
+
+  function toggleContent() {
+    setContentOpen((open) => !open);
+  }
+
+  function handleExpandTrigger(e: React.MouseEvent<HTMLElement>) {
+    if (!isArticleMirror || contentOpen) return;
+    const target = e.target as Element;
+    if (
+      target?.closest(
+        "a, button, input, textarea, select, summary, .j-m-menu, .authors-details, .image-grid-cell, .jcard-video-trigger, .jcard-actions",
+      )
+    ) {
+      return;
+    }
+    toggleContent();
+  }
+
+  function handleExpandKeyDown(e: React.KeyboardEvent<HTMLElement>) {
+    if (!isArticleMirror || contentOpen) return;
+    if (e.key !== "Enter" && e.key !== " ") return;
+    const target = e.target as Element;
+    if (
+      target?.closest(
+        "a, button, input, textarea, select, summary, .j-m-menu, .authors-details, .image-grid-cell, .jcard-video-trigger, .jcard-actions",
+      )
+    ) {
+      return;
+    }
+    e.preventDefault();
+    toggleContent();
+  }
 
   return (
     <article
-      className={`cd-v4-jcard${post.ghim ? " is-pinned" : ""}${isStatusPost ? " is-status" : ""}`}
+      className={`cd-v4-jcard${post.ghim ? " is-pinned" : ""}${isStatusPost ? " is-status" : ""}${contentOpen ? " is-expanded" : ""}`}
       data-year={year}
       data-month={month}
     >
+      {post.ghim ? (
+        <span className="cd-v4-jcard-pin" aria-label="Đã ghim" title="Đã ghim">
+          📌
+        </span>
+      ) : null}
       <header className="cd-v4-jcard-top">
         <Link
           href={`/${post.author.slug}`}
@@ -984,7 +1160,7 @@ function CongDongJourneyPostCard({
             <strong>{post.author.tenHienThi}</strong>
             <CongDongAuthorMetaLine
               soBaiVietTrongNhom={post.author.soBaiVietTrongNhom}
-              activityAt={post.taoLuc}
+              thoiDiem={post.thoiDiem}
             />
           </span>
         </Link>
@@ -993,34 +1169,57 @@ function CongDongJourneyPostCard({
           {post.author.vaiTroLabel ? (
             <span className="cd-v4-jcard-badge">{post.author.vaiTroLabel}</span>
           ) : null}
-          {post.ghim ? (
-            <span className="cd-v4-jcard-badge is-pin">
-              <Pin size={11} aria-hidden />
-              Ghim
-            </span>
-          ) : null}
           {post.filters.map((filter) => (
             <CongDongFilterChip key={filter.id} filter={filter} size="sm" />
           ))}
         </div>
 
-        <button
-          type="button"
-          className="cd-v4-jcard-menu"
-          aria-label="Tuỳ chọn"
-          onClick={social.openPostMenu}
-        >
-          <MoreHorizontal size={18} strokeWidth={2} aria-hidden />
-        </button>
+        <CongDongPostMenu
+          orgId={orgId}
+          post={post}
+          filters={filters}
+          viewerId={viewerId}
+          viewerVaiTro={viewerVaiTro}
+          onUpdated={onPostUpdated}
+          onDeleted={onPostDeleted}
+        />
       </header>
 
       <div className="cd-v4-jcard-body">
         <CongDongFeedPostContent
-          authorSlug={post.author.slug}
           journeyMirror={post.journeyMirror}
           fallbackTitle={post.tieuDe}
           fallbackBody={post.noiDung}
           fallbackMedia={post.media}
+          expandTrigger={
+            isArticleMirror
+              ? contentOpen
+                ? { enabled: false, expanded: true }
+                : {
+                    enabled: true,
+                    expanded: false,
+                    ariaLabel: `Mở bài viết: ${cardTitle}`,
+                    onClick: handleExpandTrigger,
+                    onKeyDown: handleExpandKeyDown,
+                  }
+              : undefined
+          }
+          unfold={
+            contentOpen && mirror ? (
+              <JourneyMilestoneUnfold
+                active
+                showBlocks
+                showComments={false}
+                postOwnerSlug={postOwnerSlug}
+                postSlug={postSlug}
+                milestoneId={post.id}
+                inlineSkip={{ byline: true }}
+              />
+            ) : undefined
+          }
+          onCollapse={
+            isArticleMirror && contentOpen ? () => setContentOpen(false) : undefined
+          }
         />
       </div>
 
@@ -1053,19 +1252,40 @@ function CongDongJourneyPostCard({
               <span className="cd-v4-jcard-act-count">{social.commentCount}</span>
             ) : null}
           </button>
-          <button
-            type="button"
-            className="cd-v4-jcard-act"
-            aria-label="Lưu"
-            onClick={social.openSave}
-          >
-            <Bookmark size={18} strokeWidth={2} aria-hidden />
-          </button>
+          <CongDongPostBookmarkAct
+            orgId={orgId}
+            postId={post.id}
+            title={
+              post.journeyMirror?.tieuDe ||
+              post.tieuDe ||
+              post.noiDung.slice(0, 55)
+            }
+            canInteract={canInteract}
+            initialSaved={post.viewerBookmarked}
+            milestoneId={post.id}
+          />
         </div>
+        {canManageArticleTags && mirror ? (
+          <JourneyArticleTagManager
+            tacPhamId={mirror.tacPhamId}
+            initialTags={mirror.articleTags}
+            onTagsSaved={(articleTags) =>
+              onPostUpdated({
+                ...post,
+                journeyMirror: { ...mirror, articleTags },
+              })
+            }
+          />
+        ) : null}
       </footer>
 
       {social.commentsOpen ? (
-        <CommentsPanel social={social} canInteract={canInteract} />
+        <CommentsPanel
+          postId={post.id}
+          viewerId={viewerId}
+          social={social}
+          canInteract={canInteract}
+        />
       ) : null}
     </article>
   );
@@ -1148,46 +1368,43 @@ function CongDongGridPostCard({
 }
 
 function CommentsPanel({
+  postId,
+  viewerId,
   social,
   canInteract,
 }: {
+  postId: string;
+  viewerId: string | null;
   social: ReturnType<typeof usePostSocial>;
   canInteract: boolean;
 }) {
+  const comments: MilestonePostComment[] = social.comments.map((c) => ({
+    id: c.id,
+    noiDung: c.noiDung,
+    taoLuc: c.taoLuc,
+    author: {
+      id: c.author.id,
+      slug: c.author.slug,
+      tenHienThi: c.author.tenHienThi,
+      avatarId: c.author.avatarId,
+    },
+    isOwn: viewerId === c.author.id,
+  }));
+
   return (
     <div className="cd-v4-comments">
-      {social.comments.map((c) => {
-        const cAvatar = getAvatarUrl(c.author.avatarId);
-        return (
-          <div key={c.id} className="cd-v4-comment">
-            <div className="cd-v4-comment-av">
-              {cAvatar ? (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img src={cAvatar} alt="" />
-              ) : (
-                c.author.tenHienThi.charAt(0)
-              )}
-            </div>
-            <div className="cd-v4-comment-bubble">
-              <strong>{c.author.tenHienThi}</strong>
-              {c.noiDung}
-            </div>
-          </div>
-        );
-      })}
-      {canInteract ? (
-        <form className="cd-v4-comment-form" onSubmit={social.submitComment}>
-          <input
-            value={social.commentText}
-            onChange={(e) => social.setCommentText(e.target.value)}
-            placeholder="Viết bình luận…"
-            maxLength={2000}
-          />
-          <button type="submit" disabled={social.pending}>
-            Gửi
-          </button>
-        </form>
-      ) : null}
+      <div className="cins-editor-page cins-post-view j-m-unfold-post j-m-unfold-post--comments-only">
+        <JourneyPostCommentsBlock
+          milestoneId={postId}
+          comments={comments}
+          viewerCanComment={canInteract}
+          sectionId={`post-comments-${postId}`}
+          submitComment={social.submitCommentAsync}
+          onCommentAdded={social.onCommentAdded}
+          onCommentDeleted={social.onCommentDeleted}
+          onCommentEdited={social.onCommentEdited}
+        />
+      </div>
     </div>
   );
 }

@@ -13,6 +13,8 @@ import type {
 import { journeyImageFields } from "@/lib/journey/images";
 import { computeFilterCounts } from "@/lib/journey/milestone-filter-options";
 import type { MilestoneFilterCounts } from "@/lib/journey/milestones-page-fetch";
+import { attachPersonalFiltersToGalleryItems } from "@/lib/filter/attach-milestones";
+import type { PersonalFilterRef } from "@/lib/filter/types";
 import {
   collectGalleryStubs,
   resolveOwnerSlugs,
@@ -35,6 +37,9 @@ export type GalleryMainPageResult = {
 
 export type GalleryMainItem = {
   id: string;
+  cotMocId: string;
+  personalFilterSlugs?: string[];
+  personalFilters?: PersonalFilterRef[];
   src: string;
   srcSet?: string;
   width?: number;
@@ -102,6 +107,7 @@ function hydrateMainItems(
     const slug = ownerSlugById.get(entry.postOwnerId) ?? ownerSlug;
     out.push({
       id: `${featured ? "pin" : "grid"}-${entry.cotMocId}-${i}`,
+      cotMocId: entry.cotMocId,
       src: img?.src ?? "",
       srcSet: img?.srcSet,
       width: img?.width,
@@ -210,7 +216,9 @@ export async function fetchGalleryMainPage(params: {
   const admin = createServiceRoleClient();
   const ownerIds = [...new Set(slice.map((x) => x.postOwnerId))];
   const ownerSlugById = await resolveOwnerSlugs(admin, ownerIds);
-  const items = hydrateMainItems(slice, ownerSlug, ownerSlugById);
+  const items = await attachPersonalFiltersToGalleryItems(
+    hydrateMainItems(slice, ownerSlug, ownerSlugById),
+  );
 
   const nextOffset = offset + items.length;
   return {

@@ -68,3 +68,10 @@ export function isBunnyVideoUrl(url: string): boolean {
 export function bunnyIframeSrc(embed: BunnyVideoEmbed): string {
   return buildBunnyEmbedUrl(embed.libraryId, embed.videoId);
 }
+
+/** Thumbnail Bunny Stream — `{cdn}/{videoId}/thumbnail.jpg` (client-safe). */
+export function buildBunnyVideoThumbnailUrl(videoId: string): string | null {
+  const cdnHostname = process.env.NEXT_PUBLIC_BUNNY_CDN_HOSTNAME?.trim();
+  if (!cdnHostname || !videoId.trim()) return null;
+  return `https://${cdnHostname}/${videoId.trim()}/thumbnail.jpg`;
+}

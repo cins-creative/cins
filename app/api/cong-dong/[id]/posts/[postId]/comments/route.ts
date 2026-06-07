@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
-import { addThaoLuanComment, listThaoLuanComments } from "@/lib/cong-dong/posts";
+import { addCongDongPostComment, listCongDongPostComments } from "@/lib/cong-dong/posts";
 
 type RouteContext = { params: Promise<{ id: string; postId: string }> };
 
 /** GET — danh sách bình luận cấp 1. */
 export async function GET(_req: Request, ctx: RouteContext) {
   const { postId } = await ctx.params;
-  const comments = await listThaoLuanComments(postId);
+  const comments = await listCongDongPostComments(postId);
   return NextResponse.json({ comments });
 }
 
@@ -19,7 +19,7 @@ export async function POST(req: Request, ctx: RouteContext) {
     return NextResponse.json({ error: "Cần đăng nhập." }, { status: 401 });
   }
 
-  const { postId } = await ctx.params;
+  const { id: orgId, postId } = await ctx.params;
 
   let body: { noi_dung?: string };
   try {
@@ -28,8 +28,9 @@ export async function POST(req: Request, ctx: RouteContext) {
     return NextResponse.json({ error: "Body JSON không hợp lệ." }, { status: 400 });
   }
 
-  const result = await addThaoLuanComment({
+  const result = await addCongDongPostComment({
     postId,
+    orgId,
     authorId: session.profile.id,
     noiDung: body.noi_dung ?? "",
   });

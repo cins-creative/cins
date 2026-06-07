@@ -3,7 +3,7 @@ import "server-only";
 import {
   validateCategoryArticleIds,
 } from "@/lib/cong-dong/categories";
-import { CONG_DONG_CHE_DO, THAO_LUAN_LOAI_CONTEXT } from "@/lib/cong-dong/constants";
+import { CONG_DONG_CHE_DO, CONG_DONG_FILTER_CONTEXT } from "@/lib/cong-dong/constants";
 import { createCongDongCreatorMilestone } from "@/lib/cong-dong/creator-milestone";
 import { seedDefaultCongDongFilters } from "@/lib/cong-dong/default-filters";
 import { getCinsSystemUserId } from "@/lib/cong-dong/cins-system";
@@ -92,9 +92,9 @@ export async function createCongDongOrg(
 
   const rollbackAll = async () => {
     await admin
-      .from("content_thao_luan_filter")
+      .from("cong_dong_filter")
       .delete()
-      .eq("loai_context", THAO_LUAN_LOAI_CONTEXT.CONG_DONG)
+      .eq("loai_context", CONG_DONG_FILTER_CONTEXT.CONG_DONG)
       .eq("id_context", org.id);
     const { data: mocRows } = await admin
       .from("content_cot_moc")

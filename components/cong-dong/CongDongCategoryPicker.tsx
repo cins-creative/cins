@@ -86,12 +86,13 @@ export function CongDongCategoryPicker({
   const selectedIds = useMemo(() => new Set(value.map((v) => v.id)), [value]);
   const atMax = value.length >= max;
 
-  const search = useCallback(async (q: string) => {
+  const search = useCallback(async (q: string, loai: LoaiFilter) => {
     setLoading(true);
     setErr(null);
     try {
       const params = new URLSearchParams();
       if (q.trim()) params.set("q", q.trim());
+      if (loai !== "all") params.set("loai", loai);
       const res = await fetch(
         `/api/cong-dong/category-articles/search?${params.toString()}`,
       );
@@ -119,12 +120,12 @@ export function CongDongCategoryPicker({
     if (!open) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      void search(query);
+      void search(query, loaiFilter);
     }, 220);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [open, query, search]);
+  }, [open, query, loaiFilter, search]);
 
   const updateMenuPosition = useCallback(() => {
     const el = fieldRef.current;
@@ -218,7 +219,10 @@ export function CongDongCategoryPicker({
               className={`tag-input-filter${loaiFilter === opt.id ? " is-active" : ""}`}
               aria-pressed={loaiFilter === opt.id}
               onMouseDown={(e) => e.preventDefault()}
-              onClick={() => setLoaiFilter(opt.id)}
+              onClick={() => {
+                setLoaiFilter(opt.id);
+                setOpen(true);
+              }}
             >
               {opt.label}
             </button>
@@ -236,7 +240,11 @@ export function CongDongCategoryPicker({
           <div className="tag-input-empty">
             {query.trim()
               ? `Không thấy kết quả${loaiFilter !== "all" ? ` trong mục ${LOAI_FILTER_OPTIONS.find((o) => o.id === loaiFilter)?.label ?? ""}` : ""}.`
-              : "Gõ để tìm nghề hoặc ngành."}
+              : loaiFilter === "nganh_dao_tao"
+                ? "Gõ tên ngành để lọc thêm."
+                : loaiFilter === "nghe"
+                  ? "Gõ tên nghề để lọc thêm."
+                  : "Gõ để tìm nghề hoặc ngành."}
           </div>
         ) : (
           visibleHits.map((item) => (

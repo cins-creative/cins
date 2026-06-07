@@ -5,11 +5,13 @@ import { useRouter } from "next/navigation";
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
   useTransition,
   type ChangeEvent,
+  type DragEvent,
   type KeyboardEvent,
   type ReactNode,
 } from "react";
@@ -42,7 +44,14 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { LayoutThumbIcon } from "@/components/editor/LayoutThumbIcon";
 import {
+  collectScrollResizeTargets,
+  computeCenteredAnchoredMenuPosition,
+  computeFixedMenuPosition,
+} from "@/lib/ui/clamp-fixed-menu-position";
+import {
+  getImgLayoutMeta,
   IMG_LAYOUTS,
   imgLayoutPreviewSlots,
   type ImgLayout,
@@ -55,7 +64,6 @@ import {
   getCfAccountHash,
   rememberCfAccountHashFromDeliveryUrl,
 } from "@/lib/cloudflare/account-hash";
-import { PostTagFields } from "@/components/tag/PostTagFields";
 import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import type { CoAuthorDraft } from "@/lib/social/types";
 import type {
@@ -64,12 +72,6 @@ import type {
   LoaiMoc,
   Visibility as ServerVisibility,
 } from "@/lib/editor/types";
-import {
-  deriveMediaPostTitle,
-  detectMediaPostKind,
-  extractBodyCaption,
-  mediaPostHasContent,
-} from "@/lib/journey/post-media";
 import type { CongDongComposeConfig } from "@/lib/cong-dong/types";
 
 /* ╔══════════════════════════════════════════════════════════════════╗
@@ -87,6 +89,13 @@ import type { CongDongComposeConfig } from "@/lib/cong-dong/types";
    ╚══════════════════════════════════════════════════════════════════╝ */
 
 /* ─── Block model ────────────────────────────────────────────────── */
+
+type ImgPickerTarget = {
+  blockId: string;
+  slot: number;
+  /** True khi đang chọn ảnh cho 1 ô mosaic (ghi vào `cells[slot].seed`). */
+  mosaic?: boolean;
+};
 
 type BlockType =
   | "h2"
@@ -200,20 +209,175 @@ const VIS_OPTIONS: Array<{
   },
 ];
 
-const LIBRARY_SEEDS = [
-  "lib-1",
-  "lib-2",
-  "lib-3",
-  "lib-4",
-  "lib-5",
-  "lib-6",
-  "lib-7",
-  "lib-8",
-  "festival-1",
-  "festival-2",
-  "festival-3",
-  "festival-4",
-];
+const VIS_MENU_W = 264;
+const VIS_MENU_EST_H = 260;
+const VIS_MENU_Z = 9600;
+
+function EditorVisibilitySelect({
+  value,
+  onChange,
+}: {
+  value: Visibility;
+  onChange: (value: Visibility) => void;
+}) {
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false);
+  const [portalReady, setPortalReady] = useState(false);
+  const [menuStyle, setMenuStyle] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
+
+  const current = useMemo(
+    () => VIS_OPTIONS.find((o) => o.k === value) ?? VIS_OPTIONS[0],
+    [value],
+  );
+
+  useEffect(() => {
+    setPortalReady(true);
+  }, []);
+
+  const updateMenuPosition = useCallback(() => {
+    const btn = btnRef.current;
+    if (!btn) {
+      setMenuStyle(null);
+      return;
+    }
+    const rect = btn.getBoundingClientRect();
+    const menuHeight =
+      menuRef.current?.getBoundingClientRect().height || VIS_MENU_EST_H;
+    const { top, left } = computeFixedMenuPosition(
+      rect,
+      { width: VIS_MENU_W, height: menuHeight },
+      { gap: 6, margin: 8 },
+    );
+    setMenuStyle({ top, left });
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!open) {
+      setMenuStyle(null);
+      return;
+    }
+    updateMenuPosition();
+    const scrollTargets = collectScrollResizeTargets(btnRef.current);
+    const onReflow = () => updateMenuPosition();
+    for (const target of scrollTargets) {
+      target.addEventListener("scroll", onReflow, { passive: true });
+    }
+    window.addEventListener("resize", onReflow);
+    return () => {
+      for (const target of scrollTargets) {
+        target.removeEventListener("scroll", onReflow);
+      }
+      window.removeEventListener("resize", onReflow);
+    };
+  }, [open, updateMenuPosition]);
+
+  useEffect(() => {
+    if (!open || !menuRef.current) return;
+    const node = menuRef.current;
+    const ro = new ResizeObserver(() => updateMenuPosition());
+    ro.observe(node);
+    return () => ro.disconnect();
+  }, [open, updateMenuPosition, menuStyle?.top]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const onDoc = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (wrapRef.current?.contains(target)) return;
+      if (menuRef.current?.contains(target)) return;
+      setOpen(false);
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+
+    const timerId = window.setTimeout(() => {
+      document.addEventListener("mousedown", onDoc);
+    }, 0);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      window.clearTimeout(timerId);
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  const menu =
+    open && menuStyle && portalReady && typeof document !== "undefined"
+      ? createPortal(
+          <div className="cins-editor-page vis-portal-root">
+            <div
+              ref={menuRef}
+              className="vis-menu is-portal"
+              role="menu"
+              style={{
+                position: "fixed",
+                top: menuStyle.top,
+                left: menuStyle.left,
+                width: VIS_MENU_W,
+                zIndex: VIS_MENU_Z,
+                maxHeight: "min(70vh, 480px)",
+                overflowY: "auto",
+              }}
+              onMouseDown={(event) => event.stopPropagation()}
+              onClick={(event) => event.stopPropagation()}
+            >
+              {VIS_OPTIONS.map((o) => (
+                <button
+                  key={o.k}
+                  type="button"
+                  className={`vis-opt${o.k === value ? " active" : ""}`}
+                  onClick={() => {
+                    onChange(o.k);
+                    setOpen(false);
+                  }}
+                >
+                  <span className="ico" aria-hidden>
+                    <o.Icon size={14} strokeWidth={1.7} />
+                  </span>
+                  <span>
+                    <b>{o.label}</b>
+                    <em>{o.desc}</em>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>,
+          document.body,
+        )
+      : null;
+
+  return (
+    <div className={`vis-select${open ? " open" : ""}`} ref={wrapRef}>
+      <button
+        ref={btnRef}
+        type="button"
+        className="vis-btn"
+        aria-expanded={open}
+        aria-haspopup="menu"
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen((v) => !v);
+        }}
+      >
+        <span className="ico" aria-hidden>
+          <current.Icon size={14} strokeWidth={1.7} />
+        </span>
+        <span>{current.label}</span>
+        <span className="caret" aria-hidden>
+          ▾
+        </span>
+      </button>
+      {menu}
+    </div>
+  );
+}
 
 const DEMO_PALETTE = ["#1B2733", "#3A5468", "#8AA6B8", "#D6C9A8", "#E8E2D4"];
 
@@ -245,6 +409,8 @@ export type EditorInitial = {
   blocks: ServerBlock[];
   ownerVaiTro?: string;
   coAuthors?: CoAuthorDraft[];
+  /** Nhãn cá nhân gắn trên cột mốc (`filter_nhan`). */
+  personalFilterIds?: string[];
 };
 
 type Props = {
@@ -290,18 +456,11 @@ export function EditorView({
     initial?.blocks ? fromServerBlocks(initial.blocks) : [],
   );
 
-  const mediaKind = useMemo(
-    () => detectMediaPostKind(toServerBlocks(blocks)),
-    [blocks],
-  );
-  const isMediaCompose = mediaKind !== null;
-
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [openAddIdx, setOpenAddIdx] = useState<number | null>(null);
 
-  const [tags, setTags] = useState<ArticleTagRef[]>(() => initial?.tags ?? []);
+  const tags = initial?.tags ?? [];
   const [vis, setVis] = useState<Visibility>(initial?.visibility ?? "public");
-  const [visOpen, setVisOpen] = useState(false);
   const sortedCongDongFilters = useMemo(
     () =>
       [...(congDongCompose?.filters ?? [])].sort(
@@ -313,23 +472,19 @@ export function EditorView({
     const first = sortedCongDongFilters[0]?.slug;
     return first ? [first] : [];
   });
+  const personalFilterIds = initial?.personalFilterIds ?? [];
   const publishVisibility: Visibility = congDongCompose ? "public" : vis;
-  const [imgPickerTarget, setImgPickerTarget] = useState<{
-    blockId: string;
-    slot: number;
-    /** True khi đang chọn ảnh cho 1 ô mosaic (ghi vào `cells[slot].seed`). */
-    mosaic?: boolean;
-  } | null>(null);
-  /* Riêng cho cover: state độc lập (không trộn vào `imgPickerTarget` để
-     tránh nhầm với image-block picker). */
-  const [coverPickerOpen, setCoverPickerOpen] = useState(false);
+  const [imgPickerTarget, setImgPickerTarget] = useState<ImgPickerTarget | null>(
+    null,
+  );
+  const imgPickerTargetRef = useRef<ImgPickerTarget | null>(null);
+  const imageFileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [toast, setToast] = useState<string | null>(null);
   const [savedFlash, setSavedFlash] = useState(false);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
-  const visRef = useRef<HTMLDivElement | null>(null);
   const editorRef = useRef<HTMLDivElement | null>(null);
 
   /* ╔══ Undo stack (Ctrl/Cmd+Z) ══════════════════════════════════════
@@ -396,9 +551,6 @@ export function EditorView({
   /* Đóng dropdown khi click ra ngoài. */
   useEffect(() => {
     function onDocClick(e: globalThis.MouseEvent) {
-      if (visRef.current && !visRef.current.contains(e.target as Node)) {
-        setVisOpen(false);
-      }
       const root = editorRef.current;
       if (root && !root.contains(e.target as Node)) {
         setOpenAddIdx(null);
@@ -418,6 +570,93 @@ export function EditorView({
     const t = setTimeout(() => setToast(null), 2800);
     return () => clearTimeout(t);
   }, [toast]);
+
+  const replaceImageSeed = useCallback((from: string, to: string) => {
+    setBlocks((prev) =>
+      prev.map((b) => {
+        if (b.t !== "imgs") return b;
+        const imgs = b.imgs?.map((seed) => (seed === from ? to : seed));
+        const cells = b.cells?.map((cell) =>
+          cell.seed === from ? { ...cell, seed: to } : cell,
+        );
+        return { ...b, imgs, cells };
+      }),
+    );
+    setCoverSeed((current) => (current === from ? to : current));
+  }, []);
+
+  const applyImageToBlock = useCallback(
+    (target: ImgPickerTarget, seed: string) => {
+      const { blockId, slot, mosaic } = target;
+      pushHistory();
+      setBlocks((prev) =>
+        prev.map((b) => {
+          if (b.id !== blockId) return b;
+          if (mosaic && b.cells) {
+            const cells = b.cells.map((c, i) =>
+              i === slot ? { ...c, seed } : c,
+            );
+            return { ...b, cells };
+          }
+          const imgs = (b.imgs || []).slice();
+          imgs[slot] = seed;
+          return { ...b, imgs };
+        }),
+      );
+    },
+    [pushHistory],
+  );
+
+  const clearImagePick = useCallback(() => {
+    imgPickerTargetRef.current = null;
+    setImgPickerTarget(null);
+  }, []);
+
+  /** Mở native file picker — phải gọi sync trong user gesture (click). */
+  const openImageFilePick = useCallback((target: ImgPickerTarget) => {
+    imgPickerTargetRef.current = target;
+    setImgPickerTarget(target);
+    imageFileInputRef.current?.click();
+  }, []);
+
+  const onImageFileInputChange = useCallback(
+    (e: ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      e.target.value = "";
+      const target = imgPickerTargetRef.current;
+      if (!file || !target) {
+        clearImagePick();
+        return;
+      }
+      startEditorImageUpload(
+        file,
+        (seed) => applyImageToBlock(target, seed),
+        replaceImageSeed,
+      );
+      clearImagePick();
+    },
+    [applyImageToBlock, clearImagePick, replaceImageSeed],
+  );
+
+  useEffect(() => {
+    if (!imgPickerTarget) return;
+
+    function onPaste(e: globalThis.ClipboardEvent) {
+      const file = imageFileFromClipboard(e.clipboardData);
+      const target = imgPickerTargetRef.current;
+      if (!file || !target) return;
+      e.preventDefault();
+      startEditorImageUpload(
+        file,
+        (seed) => applyImageToBlock(target, seed),
+        replaceImageSeed,
+      );
+      clearImagePick();
+    }
+
+    document.addEventListener("paste", onPaste);
+    return () => document.removeEventListener("paste", onPaste);
+  }, [imgPickerTarget, applyImageToBlock, clearImagePick, replaceImageSeed]);
 
   const addBlock = useCallback(
     (type: BlockType, idx: number) => {
@@ -439,8 +678,11 @@ export function EditorView({
       });
       setOpenAddIdx(null);
       setSelectedId(b.id);
+      if (type === "imgs") {
+        openImageFilePick({ blockId: b.id, slot: 0 });
+      }
     },
-    [pushHistory],
+    [pushHistory, openImageFilePick],
   );
 
   const updateBlock = useCallback(
@@ -475,47 +717,12 @@ export function EditorView({
     [pushHistory],
   );
 
-  const openImgPicker = useCallback((blockId: string, slot: number) => {
-    setImgPickerTarget({ blockId, slot });
-  }, []);
-
-  const onPickImage = useCallback(
-    (seed: string) => {
-      if (!imgPickerTarget) return;
-      const { blockId, slot, mosaic } = imgPickerTarget;
-      pushHistory();
-      setBlocks((prev) =>
-        prev.map((b) => {
-          if (b.id !== blockId) return b;
-          if (mosaic && b.cells) {
-            const cells = b.cells.map((c, i) =>
-              i === slot ? { ...c, seed } : c,
-            );
-            return { ...b, cells };
-          }
-          const imgs = (b.imgs || []).slice();
-          imgs[slot] = seed;
-          return { ...b, imgs };
-        }),
-      );
-      setImgPickerTarget(null);
+  const openImgPicker = useCallback(
+    (blockId: string, slot: number) => {
+      openImageFilePick({ blockId, slot });
     },
-    [imgPickerTarget, pushHistory],
+    [openImageFilePick],
   );
-
-  const replaceImageSeed = useCallback((from: string, to: string) => {
-    setBlocks((prev) =>
-      prev.map((b) => {
-        if (b.t !== "imgs") return b;
-        const imgs = b.imgs?.map((seed) => (seed === from ? to : seed));
-        const cells = b.cells?.map((cell) =>
-          cell.seed === from ? { ...cell, seed: to } : cell,
-        );
-        return { ...b, imgs, cells };
-      }),
-    );
-    setCoverSeed((current) => (current === from ? to : current));
-  }, []);
 
   const setLayout = useCallback(
     (id: string, layout: ImgLayout) => {
@@ -551,7 +758,7 @@ export function EditorView({
               cells,
             };
           }
-          const meta = IMG_LAYOUTS.find((l) => l.k === layout);
+          const meta = getImgLayoutMeta(layout);
           const need = imgLayoutPreviewSlots(layout, (b.imgs || []).length);
           const imgs = (b.imgs || []).slice();
           if (!meta?.dynamic) {
@@ -711,10 +918,9 @@ export function EditorView({
 
   const mosaicPickImage = useCallback(
     (id: string, slot: number) => {
-      // Re-dùng image picker hiện có: target slot trong block mosaic.
-      setImgPickerTarget({ blockId: id, slot, mosaic: true });
+      openImageFilePick({ blockId: id, slot, mosaic: true });
     },
-    [],
+    [openImageFilePick],
   );
 
   const toggleRound = useCallback(
@@ -731,26 +937,14 @@ export function EditorView({
     if (isPending) return;
 
     const serverBlocks: ServerBlock[] = toServerBlocks(blocks);
-    const kind = detectMediaPostKind(serverBlocks);
 
-    if (kind) {
-      if (!mediaPostHasContent(serverBlocks, kind)) {
-        setToast(
-          kind === "photo"
-            ? "Cần ít nhất một ảnh."
-            : "Cần link video hợp lệ.",
-        );
-        return;
-      }
-    } else {
-      if (!title.trim()) {
-        setToast("Cần nhập tiêu đề trước khi đăng.");
-        return;
-      }
-      if (blocks.length === 0) {
-        setToast("Bài viết chưa có nội dung. Thêm ít nhất một block.");
-        return;
-      }
+    if (!title.trim()) {
+      setToast("Cần nhập tiêu đề trước khi đăng.");
+      return;
+    }
+    if (blocks.length === 0) {
+      setToast("Bài viết chưa có nội dung. Thêm ít nhất một block.");
+      return;
     }
 
     if (congDongCompose && composeFilterSlugs.length === 0) {
@@ -758,12 +952,9 @@ export function EditorView({
       return;
     }
 
-    const caption = extractBodyCaption(serverBlocks);
-    const tieuDeFinal = kind
-      ? deriveMediaPostTitle(caption, kind)
-      : title.trim();
-    const moTaFinal = kind ? caption.trim().slice(0, 280) : sub.trim();
-    const coverFinal = kind ? null : coverSeed;
+    const tieuDeFinal = title.trim();
+    const moTaFinal = sub.trim();
+    const coverFinal = coverSeed;
 
     startTransition(async () => {
       const result = isEdit && initial
@@ -779,6 +970,7 @@ export function EditorView({
             loaiMoc: initial.loaiMoc,
             thoiDiem: initial.thoiDiem,
             blocks: serverBlocks,
+            personalFilterIds,
           })
         : await publishPost({
             ownerSlug,
@@ -790,6 +982,7 @@ export function EditorView({
             loaiMoc: DEFAULT_LOAI_MOC,
             thoiDiem: isoToday(),
             blocks: serverBlocks,
+            personalFilterIds,
             congDong: congDongCompose
               ? {
                   orgId: congDongCompose.orgId,
@@ -829,17 +1022,13 @@ export function EditorView({
     publishVisibility,
     congDongCompose,
     composeFilterSlugs,
+    personalFilterIds,
     blocks,
     ownerSlug,
     router,
     isOverlay,
     onPublished,
   ]);
-
-  const visCurrent = useMemo(
-    () => VIS_OPTIONS.find((o) => o.k === vis) || VIS_OPTIONS[0],
-    [vis],
-  );
 
   return (
     <div
@@ -877,48 +1066,7 @@ export function EditorView({
               menuZIndex={9200}
             />
           ) : (
-            <div
-              className={`vis-select${visOpen ? " open" : ""}`}
-              ref={visRef}
-            >
-              <button
-                type="button"
-                className="vis-btn"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setVisOpen((v) => !v);
-                }}
-              >
-                <span className="ico" aria-hidden>
-                  <visCurrent.Icon size={14} strokeWidth={1.7} />
-                </span>
-                <span>{visCurrent.label}</span>
-                <span className="caret" aria-hidden>
-                  ▾
-                </span>
-              </button>
-              <div className="vis-menu" role="menu">
-                {VIS_OPTIONS.map((o) => (
-                  <button
-                    key={o.k}
-                    type="button"
-                    className={`vis-opt${o.k === vis ? " active" : ""}`}
-                    onClick={() => {
-                      setVis(o.k);
-                      setVisOpen(false);
-                    }}
-                  >
-                    <span className="ico" aria-hidden>
-                      <o.Icon size={14} strokeWidth={1.7} />
-                    </span>
-                    <span>
-                      <b>{o.label}</b>
-                      <em>{o.desc}</em>
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
+            <EditorVisibilitySelect value={vis} onChange={setVis} />
           )}
 
           {isOverlay && onClose ? (
@@ -962,40 +1110,30 @@ export function EditorView({
 
       {/* CANVAS */}
       <main
-        className={`editor-canvas${isMediaCompose ? " editor-canvas--media" : ""}`}
+        className="editor-canvas"
         aria-label={`Soạn bài cho ${ownerName}`}
       >
-        {!isMediaCompose ? (
-          <>
-            <CoverArea
-              seed={coverSeed}
-              onPick={() => setCoverPickerOpen(true)}
-              onRemove={() => setCoverSeed(null)}
-            />
+        <CoverArea
+          seed={coverSeed}
+          onSeedChange={setCoverSeed}
+          onUploadResolved={replaceImageSeed}
+          onRemove={() => setCoverSeed(null)}
+        />
 
-            <AutosizeTextarea
-              className="title-in"
-              placeholder="Tiêu đề bài viết…"
-              value={title}
-              onChange={setTitle}
-              maxRows={4}
-            />
-            <AutosizeTextarea
-              className="sub-in"
-              placeholder="Mô tả ngắn (tuỳ chọn)…"
-              value={sub}
-              onChange={setSub}
-              maxRows={3}
-            />
-            {!congDongCompose ? (
-              <PostTagFields tags={tags} onChange={setTags} disabled={isPending} />
-            ) : null}
-          </>
-        ) : null}
-
-        {isMediaCompose && !congDongCompose ? (
-          <PostTagFields tags={tags} onChange={setTags} disabled={isPending} />
-        ) : null}
+        <AutosizeTextarea
+          className="title-in"
+          placeholder="Tiêu đề bài viết…"
+          value={title}
+          onChange={setTitle}
+          maxRows={4}
+        />
+        <AutosizeTextarea
+          className="sub-in"
+          placeholder="Mô tả ngắn (tuỳ chọn)…"
+          value={sub}
+          onChange={setSub}
+          maxRows={3}
+        />
 
         <div className="blocks">
           <AddZone
@@ -1060,24 +1198,15 @@ export function EditorView({
         </div>
       </main>
 
-      {imgPickerTarget ? (
-        <ImagePickerModal
-          onClose={() => setImgPickerTarget(null)}
-          onPick={onPickImage}
-          onUploadResolved={replaceImageSeed}
-        />
-      ) : null}
-
-      {coverPickerOpen ? (
-        <ImagePickerModal
-          onClose={() => setCoverPickerOpen(false)}
-          onPick={(seed) => {
-            setCoverSeed(seed);
-            setCoverPickerOpen(false);
-          }}
-          onUploadResolved={replaceImageSeed}
-        />
-      ) : null}
+      <input
+        ref={imageFileInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        style={{ display: "none" }}
+        aria-hidden
+        tabIndex={-1}
+        onChange={onImageFileInputChange}
+      />
 
       {toast ? <div className="ed-toast">{toast}</div> : null}
     </div>
@@ -1086,53 +1215,269 @@ export function EditorView({
 
 /* ─── Cover ──────────────────────────────────────────────────────── */
 
+function imageFileFromClipboard(data: DataTransfer | null): File | null {
+  if (!data) return null;
+  for (const item of data.items) {
+    if (item.kind === "file" && item.type.startsWith("image/")) {
+      return item.getAsFile();
+    }
+  }
+  return null;
+}
+
+function isImageFileDrag(e: DragEvent): boolean {
+  return Array.from(e.dataTransfer.types).includes("Files");
+}
+
+function imageFileFromDataTransfer(data: DataTransfer | null): File | null {
+  const fromItems = imageFileFromClipboard(data);
+  if (fromItems) return fromItems;
+  if (!data) return null;
+  for (const file of data.files) {
+    if (file.type.startsWith("image/")) return file;
+  }
+  return null;
+}
+
+function startEditorImageUpload(
+  file: File,
+  onPick: (seed: string) => void,
+  onUploadResolved?: (from: string, to: string) => void,
+) {
+  if (!file.type?.startsWith("image/")) return;
+  const localSeed = URL.createObjectURL(file);
+  onPick(localSeed);
+  void (async () => {
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/post-image/upload", {
+        method: "POST",
+        body: form,
+      });
+      const json = (await res.json().catch(() => null)) as {
+        imageId?: string;
+        url?: string;
+      } | null;
+      if (!res.ok || !json?.imageId) return;
+      if (json.url) {
+        rememberCfAccountHashFromDeliveryUrl(json.url);
+      }
+      onUploadResolved?.(localSeed, json.imageId);
+    } catch {
+      /* Preview local vẫn hiện. */
+    } finally {
+      URL.revokeObjectURL(localSeed);
+    }
+  })();
+}
+
 function CoverArea({
   seed,
-  onPick,
+  onSeedChange,
+  onUploadResolved,
   onRemove,
 }: {
   seed: string | null;
-  onPick: () => void;
+  onSeedChange: (seed: string) => void;
+  onUploadResolved: (from: string, to: string) => void;
   onRemove: () => void;
 }) {
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const dragDepthRef = useRef(0);
+  const [picking, setPicking] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+
+  const applyFile = useCallback(
+    (file: File) => {
+      startEditorImageUpload(file, onSeedChange, onUploadResolved);
+      setPicking(false);
+      setDragOver(false);
+      dragDepthRef.current = 0;
+    },
+    [onSeedChange, onUploadResolved],
+  );
+
+  const coverDragProps = useMemo(
+    () => ({
+      onDragEnter: (e: DragEvent<HTMLElement>) => {
+        if (!isImageFileDrag(e)) return;
+        e.preventDefault();
+        dragDepthRef.current += 1;
+        setDragOver(true);
+      },
+      onDragLeave: (e: DragEvent<HTMLElement>) => {
+        if (!isImageFileDrag(e)) return;
+        dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+        if (dragDepthRef.current === 0) setDragOver(false);
+      },
+      onDragOver: (e: DragEvent<HTMLElement>) => {
+        if (!isImageFileDrag(e)) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "copy";
+      },
+      onDrop: (e: DragEvent<HTMLElement>) => {
+        e.preventDefault();
+        dragDepthRef.current = 0;
+        setDragOver(false);
+        const file = imageFileFromDataTransfer(e.dataTransfer);
+        if (file) applyFile(file);
+      },
+    }),
+    [applyFile],
+  );
+
+  const coverDragClass = dragOver ? " is-dragover" : "";
+
+  useEffect(() => {
+    if (!picking) return;
+
+    function onPaste(e: globalThis.ClipboardEvent) {
+      const file = imageFileFromClipboard(e.clipboardData);
+      if (!file) return;
+      e.preventDefault();
+      applyFile(file);
+    }
+
+    function onDocClick(e: MouseEvent) {
+      const target = e.target as Node;
+      if (rootRef.current?.contains(target)) return;
+      setPicking(false);
+    }
+
+    function onKey(e: globalThis.KeyboardEvent) {
+      if (e.key === "Escape") setPicking(false);
+    }
+
+    document.addEventListener("paste", onPaste);
+    document.addEventListener("mousedown", onDocClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("paste", onPaste);
+      document.removeEventListener("mousedown", onDocClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [picking, applyFile]);
+
+  const fileInput = (
+    <input
+      ref={fileInputRef}
+      type="file"
+      accept="image/jpeg,image/png,image/webp,image/gif"
+      style={{ display: "none" }}
+      aria-hidden
+      onChange={(e) => {
+        const f = e.target.files?.[0];
+        if (f) applyFile(f);
+        e.target.value = "";
+      }}
+    />
+  );
+
+  const pickPanel = (
+    <div className="cover-pick-panel">
+      <p className="cover-pick-hint">
+        Dán ảnh (<kbd>Ctrl+V</kbd>), kéo thả từ máy, hoặc chọn file.
+      </p>
+      <button
+        type="button"
+        className="cover-pick-btn"
+        onClick={(e) => {
+          e.stopPropagation();
+          fileInputRef.current?.click();
+        }}
+      >
+        <ImagePlus size={16} strokeWidth={1.8} aria-hidden />
+        Chọn ảnh
+      </button>
+      {fileInput}
+    </div>
+  );
+
   if (seed) {
     return (
-      <div className="cover-add has">
-        <img src={ph(seed, 1600, 640)} alt="Ảnh bìa" />
-        <div className="cover-actions">
-          <button
-            type="button"
-            className="cover-act"
-            onClick={onPick}
-            aria-label="Đổi ảnh bìa"
-          >
-            <Pencil size={13} strokeWidth={1.8} aria-hidden />
-            <span>Đổi ảnh bìa</span>
-          </button>
-          <button
-            type="button"
-            className="cover-act cover-act-del"
-            onClick={onRemove}
-            aria-label="Xoá ảnh bìa"
-          >
-            <Trash2 size={13} strokeWidth={1.8} aria-hidden />
-            <span>Xoá</span>
-          </button>
+      <div
+        className={`cover-add has${coverDragClass}`}
+        ref={rootRef}
+        {...coverDragProps}
+      >
+        <div className="cover-img-wrap">
+          <img src={ph(seed, 1600, 640)} alt="Ảnh bìa" />
         </div>
+        {picking ? (
+          <div className="cover-pick-overlay" role="dialog" aria-label="Đổi ảnh bìa">
+            {pickPanel}
+            <button
+              type="button"
+              className="cover-pick-cancel"
+              onClick={() => setPicking(false)}
+            >
+              Huỷ
+            </button>
+          </div>
+        ) : (
+          <div className="cover-actions">
+            <button
+              type="button"
+              className="cover-act"
+              onClick={() => setPicking(true)}
+              aria-label="Đổi ảnh bìa"
+            >
+              <Pencil size={13} strokeWidth={1.8} aria-hidden />
+              <span>Đổi ảnh bìa</span>
+            </button>
+            <button
+              type="button"
+              className="cover-act cover-act-del"
+              onClick={onRemove}
+              aria-label="Xoá ảnh bìa"
+            >
+              <Trash2 size={13} strokeWidth={1.8} aria-hidden />
+              <span>Xoá</span>
+            </button>
+          </div>
+        )}
       </div>
     );
   }
+
+  if (picking) {
+    return (
+      <div
+        ref={rootRef}
+        className={`cover-add is-picking${coverDragClass}`}
+        role="group"
+        aria-label="Thêm ảnh bìa"
+        {...coverDragProps}
+      >
+        <span className="ico" aria-hidden>
+          <ImagePlus size={22} strokeWidth={1.7} />
+        </span>
+        {pickPanel}
+        <button
+          type="button"
+          className="cover-pick-cancel-inline"
+          onClick={() => setPicking(false)}
+        >
+          Huỷ
+        </button>
+      </div>
+    );
+  }
+
   return (
     <button
       type="button"
-      className="cover-add"
-      onClick={onPick}
+      className={`cover-add${coverDragClass}`}
+      onClick={() => setPicking(true)}
       aria-label="Thêm ảnh bìa"
+      {...coverDragProps}
     >
       <span className="ico" aria-hidden>
         <ImagePlus size={22} strokeWidth={1.7} />
       </span>
-      <span>Thêm ảnh bìa</span>
+      <span>{dragOver ? "Thả ảnh vào đây" : "Thêm ảnh bìa"}</span>
     </button>
   );
 }
@@ -1140,17 +1485,20 @@ function CoverArea({
 /* ─── AddZone + Picker ───────────────────────────────────────────── */
 
 const PICKER_MAX_W = 420;
-const PICKER_EST_H = 300;
+const PICKER_EST_H = 280;
 
 function BlockInsertPicker({
   onPick,
   style,
+  pickerRef,
 }: {
   onPick: (t: BlockType) => void;
   style?: React.CSSProperties;
+  pickerRef?: React.RefObject<HTMLDivElement | null>;
 }) {
   return (
     <div
+      ref={pickerRef}
       className="picker"
       onClick={(e) => e.stopPropagation()}
       role="menu"
@@ -1194,43 +1542,60 @@ function AddZone({
   anchorPicker?: boolean;
 }) {
   const btnRef = useRef<HTMLButtonElement>(null);
+  const pickerRef = useRef<HTMLDivElement>(null);
   const [pickerPos, setPickerPos] = useState<{
     top: number;
     left: number;
     width: number;
+    maxHeight: number;
   } | null>(null);
 
   const updatePickerPos = useCallback(() => {
     const btn = btnRef.current;
     if (!btn) return;
     const rect = btn.getBoundingClientRect();
+    const measuredH = pickerRef.current?.getBoundingClientRect().height;
+    const menuHeight = measuredH && measuredH > 0 ? measuredH : PICKER_EST_H;
     const width = Math.min(PICKER_MAX_W, window.innerWidth - 24);
-    const left = Math.min(
-      Math.max(12, rect.left + rect.width / 2 - width / 2),
-      window.innerWidth - width - 12,
+    const { top, left, maxHeight } = computeCenteredAnchoredMenuPosition(
+      rect,
+      { width, height: menuHeight },
+      { maxHeightCap: 480, minVisibleHeight: 160 },
     );
-    const spaceBelow = window.innerHeight - rect.bottom;
-    const top =
-      spaceBelow >= PICKER_EST_H + 12
-        ? rect.bottom + 8
-        : Math.max(12, rect.top - PICKER_EST_H - 8);
-    setPickerPos({ top, left, width });
+    setPickerPos({ top, left, width, maxHeight });
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!open || !anchorPicker) {
       setPickerPos(null);
       return;
     }
     updatePickerPos();
+  }, [anchorPicker, open, updatePickerPos]);
+
+  useEffect(() => {
+    if (!open || !anchorPicker) return;
+    const scrollTargets = collectScrollResizeTargets(btnRef.current);
     const onReflow = () => updatePickerPos();
+    for (const target of scrollTargets) {
+      target.addEventListener("scroll", onReflow, { passive: true });
+    }
     window.addEventListener("resize", onReflow);
-    window.addEventListener("scroll", onReflow, true);
     return () => {
+      for (const target of scrollTargets) {
+        target.removeEventListener("scroll", onReflow);
+      }
       window.removeEventListener("resize", onReflow);
-      window.removeEventListener("scroll", onReflow, true);
     };
   }, [anchorPicker, open, updatePickerPos]);
+
+  useEffect(() => {
+    if (!open || !anchorPicker || !pickerRef.current) return;
+    const node = pickerRef.current;
+    const ro = new ResizeObserver(() => updatePickerPos());
+    ro.observe(node);
+    return () => ro.disconnect();
+  }, [anchorPicker, open, updatePickerPos, pickerPos?.top]);
 
   const pickerStyle: React.CSSProperties | undefined =
     anchorPicker && pickerPos
@@ -1240,13 +1605,17 @@ function AddZone({
           left: pickerPos.left,
           width: pickerPos.width,
           transform: "none",
-          maxHeight: "min(70vh, 480px)",
+          maxHeight: pickerPos.maxHeight,
           overflowY: "auto",
         }
       : undefined;
 
   const picker = open ? (
-    <BlockInsertPicker onPick={onPick} style={pickerStyle} />
+    <BlockInsertPicker
+      onPick={onPick}
+      style={pickerStyle}
+      pickerRef={pickerRef}
+    />
   ) : null;
 
   const portaledPicker =
@@ -1583,9 +1952,7 @@ function LayBar({
 }) {
   return (
     <div className="lay-bar">
-      {IMG_LAYOUTS.map((l) => {
-        const Icon = l.Ico;
-        return (
+      {IMG_LAYOUTS.map((l) => (
           <button
             key={l.k}
             type="button"
@@ -1597,10 +1964,9 @@ function LayBar({
               p.onChangeLayout(l.k);
             }}
           >
-            <Icon size={16} strokeWidth={1.8} aria-hidden />
+            <LayoutThumbIcon layout={l.k} />
           </button>
-        );
-      })}
+        ))}
       <span className="lay-sep" />
       <button
         type="button"
@@ -1711,9 +2077,7 @@ function MosaicBlock({ block, p }: { block: Block; p: BlockRowProps }) {
       {editing ? (
         <div className="ctrl-bar" onClick={(e) => e.stopPropagation()}>
           <div className="cb-group">
-            {IMG_LAYOUTS.map((l) => {
-              const Icon = l.Ico;
-              return (
+            {IMG_LAYOUTS.map((l) => (
                 <button
                   key={l.k}
                   type="button"
@@ -1725,10 +2089,9 @@ function MosaicBlock({ block, p }: { block: Block; p: BlockRowProps }) {
                     p.onChangeLayout(l.k);
                   }}
                 >
-                  <Icon size={15} strokeWidth={1.8} aria-hidden />
+                  <LayoutThumbIcon layout={l.k} />
                 </button>
-              );
-            })}
+              ))}
           </div>
           <span className="cb-sep" />
           <div className="cb-group mos-cols" role="group" aria-label="Số cột">
@@ -2072,196 +2435,7 @@ function MosaicBlock({ block, p }: { block: Block; p: BlockRowProps }) {
   );
 }
 
-/* ─── Image picker modal ─────────────────────────────────────────── */
-
-function ImagePickerModal({
-  onClose,
-  onPick,
-  onUploadResolved,
-}: {
-  onClose: () => void;
-  onPick: (seed: string) => void;
-  onUploadResolved?: (from: string, to: string) => void;
-}) {
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [uploadError, setUploadError] = useState<string | null>(null);
-  const [dragOver, setDragOver] = useState(false);
-
-  /* Đóng modal khi nhấn Escape. */
-  useEffect(() => {
-    function onKey(e: globalThis.KeyboardEvent) {
-      if (e.key === "Escape") onClose();
-    }
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
-  /* Insert preview local ngay bằng `blob:` URL, upload Cloudflare chạy nền.
-     Khi có `imageId` thật, parent sẽ replace seed tạm để publish dùng CF. */
-  const uploadFile = useCallback(
-    async (file: File) => {
-      if (!file || !file.type?.startsWith("image/")) {
-        setUploadError("Vui lòng chọn file ảnh hợp lệ.");
-        return;
-      }
-      setUploadError(null);
-      const localSeed = URL.createObjectURL(file);
-      onPick(localSeed);
-      onClose();
-      try {
-        const form = new FormData();
-        form.append("file", file);
-        const res = await fetch("/api/post-image/upload", {
-          method: "POST",
-          body: form,
-        });
-        const json = (await res.json().catch(() => null)) as {
-          imageId?: string;
-          url?: string;
-          error?: string;
-        } | null;
-        if (!res.ok || !json?.imageId) {
-          setUploadError(json?.error || "Upload thất bại.");
-          return;
-        }
-        if (json.url) {
-          // Lưu CF account hash vào sessionStorage để `ph()` resolve URL
-          // ngay cả khi env `NEXT_PUBLIC_CF_IMAGES_ACCOUNT_HASH` không có.
-          rememberCfAccountHashFromDeliveryUrl(json.url);
-        }
-        onUploadResolved?.(localSeed, json.imageId);
-      } catch (err) {
-        setUploadError(
-          err instanceof Error ? err.message : "Upload thất bại.",
-        );
-      } finally {
-        URL.revokeObjectURL(localSeed);
-      }
-    },
-    [onClose, onPick, onUploadResolved],
-  );
-
-  /* Paste ảnh từ clipboard khi modal đang mở. */
-  useEffect(() => {
-    function onPaste(e: globalThis.ClipboardEvent) {
-      const items = e.clipboardData?.items;
-      if (!items) return;
-      for (let i = 0; i < items.length; i++) {
-        const it = items[i];
-        if (it.kind === "file" && it.type.startsWith("image/")) {
-          const file = it.getAsFile();
-          if (file) {
-            e.preventDefault();
-            uploadFile(file);
-            return;
-          }
-        }
-      }
-    }
-    document.addEventListener("paste", onPaste);
-    return () => document.removeEventListener("paste", onPaste);
-  }, [uploadFile]);
-
-  const onFileChange = useCallback(
-    (e: ChangeEvent<HTMLInputElement>) => {
-      const f = e.target.files?.[0];
-      if (f) uploadFile(f);
-      // Reset value để có thể chọn lại cùng 1 file.
-      e.target.value = "";
-    },
-    [uploadFile],
-  );
-
-  const onDrop = useCallback(
-    (e: React.DragEvent<HTMLDivElement>) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setDragOver(false);
-      const f = e.dataTransfer.files?.[0];
-      if (f) uploadFile(f);
-    },
-    [uploadFile],
-  );
-
-  return (
-    <div
-      className="img-picker"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className="ip-sheet">
-        <div className="ip-head">
-          <strong>Chọn ảnh</strong>
-          <button
-            type="button"
-            className="ip-close"
-            onClick={onClose}
-            aria-label="Đóng"
-          >
-            ×
-          </button>
-        </div>
-        <div
-          className={`ip-upload${dragOver ? " is-drag" : ""}`}
-          role="button"
-          tabIndex={0}
-          onClick={() => fileInputRef.current?.click()}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              fileInputRef.current?.click();
-            }
-          }}
-          onDragOver={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setDragOver(true);
-          }}
-          onDragLeave={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setDragOver(false);
-          }}
-          onDrop={onDrop}
-        >
-          <ImagePlus size={26} strokeWidth={1.8} aria-hidden />
-          <div>
-            <b>Bấm để chọn</b>, kéo thả ảnh, hoặc dán (Ctrl+V) từ clipboard.
-          </div>
-          <div style={{ fontSize: 11, opacity: 0.7 }}>
-            Ảnh sẽ hiện ngay bằng cache cục bộ, rồi tự đồng bộ Cloudflare.
-          </div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp,image/gif"
-            style={{ display: "none" }}
-            onChange={onFileChange}
-          />
-        </div>
-        {uploadError ? (
-          <div className="ip-error" role="alert">
-            {uploadError}
-          </div>
-        ) : null}
-        <div className="ip-lbl">Thư viện demo</div>
-        <div className="ip-grid">
-          {LIBRARY_SEEDS.map((s) => (
-            <button
-              key={s}
-              type="button"
-              className="ip-item"
-              onClick={() => onPick(s)}
-            >
-              <img src={ph(s, 200, 200)} alt="" />
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
+/* ─── Image file picker (native dialog — không modal thư viện demo) ─ */
 
 /* ─── Autosize textarea ──────────────────────────────────────────── */
 

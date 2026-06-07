@@ -1,9 +1,7 @@
 import "server-only";
 
-import type { MilestoneType } from "@/components/journey/milestone-types";
 import type { Visibility } from "@/lib/editor/types";
 import {
-  getVisibility,
   normalizeLoaiMocVisibility,
   type LoaiMocVisibilityMap,
 } from "@/lib/journey/filter-visibility";
@@ -15,24 +13,20 @@ export type MilestoneViewerAccess = {
   viewerIsFriend: boolean;
 };
 
-type CheDoHienThi = Visibility | "public" | "theo_nhom" | "chi_minh" | "feature";
+type CheDoHienThi = Visibility | "public" | "theo_nhom" | "chi_minh" | "feature" | "cong_dong";
 
-/** Owner thấy mọi cột mốc; visitor bị lọc theo che_do_hien_thi + loai_moc filter. */
-export function isSelfMilestoneVisibleToViewer(
-  params: {
-    loaiMoc: MilestoneType;
-    cheDoHienThi: CheDoHienThi;
-    isOwner: boolean;
-    filterVisibility: LoaiMocVisibilityMap;
-    viewerIsFriend: boolean;
-  },
-): boolean {
-  const { loaiMoc, cheDoHienThi, isOwner, filterVisibility, viewerIsFriend } =
-    params;
+/** Owner thấy mọi cột mốc; visitor theo `che_do_hien_thi` từng cột mốc (badge Công khai / Theo nhóm / Chỉ mình). */
+export function isSelfMilestoneVisibleToViewer(params: {
+  cheDoHienThi: CheDoHienThi;
+  isOwner: boolean;
+  viewerIsFriend: boolean;
+}): boolean {
+  const { cheDoHienThi, isOwner, viewerIsFriend } = params;
   if (isOwner) return true;
+  if (cheDoHienThi === "cong_dong") return false;
   if (cheDoHienThi === "chi_minh") return false;
   if (cheDoHienThi === "theo_nhom" && !viewerIsFriend) return false;
-  if (getVisibility(filterVisibility, loaiMoc) !== "public") return false;
+  if (cheDoHienThi !== "public" && cheDoHienThi !== "feature") return false;
   return true;
 }
 

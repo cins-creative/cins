@@ -129,6 +129,7 @@ export function JourneyComposeOverlay({
               thoiDiem: data.initial.thoiDiem,
               blocks: data.initial.blocks,
               kind: mediaKind,
+              personalFilterIds: data.initial.personalFilterIds,
             }),
           );
           setMediaEditMode(mediaKind);
@@ -201,6 +202,7 @@ export function JourneyComposeOverlay({
         {compose.kind === "photo" ? (
           <MediaComposeViewLazy
             mode="photo"
+            ownerId={ownerId}
             ownerSlug={ownerSlug}
             ownerName={ownerName}
             ownerAvatarId={ownerAvatarId}
@@ -216,6 +218,7 @@ export function JourneyComposeOverlay({
         {compose.kind === "video" ? (
           <MediaComposeViewLazy
             mode="video"
+            ownerId={ownerId}
             ownerSlug={ownerSlug}
             ownerName={ownerName}
             ownerAvatarId={ownerAvatarId}
@@ -241,6 +244,7 @@ export function JourneyComposeOverlay({
           ) : mediaEditInitial && mediaEditMode ? (
             <MediaComposeViewLazy
               mode={mediaEditMode}
+              ownerId={ownerId}
               ownerSlug={ownerSlug}
               ownerName={ownerName}
               ownerAvatarId={ownerAvatarId}

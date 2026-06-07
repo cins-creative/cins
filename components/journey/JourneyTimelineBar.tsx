@@ -13,6 +13,7 @@ import {
   Lock,
   Trophy,
   UserCircle2,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -25,15 +26,20 @@ import {
 import { createPortal } from "react-dom";
 
 import { updateLoaiMocVisibility } from "@/app/[slug]/journey/visibility-actions";
+import { JourneyPersonalFilterMenuSection } from "@/components/journey/JourneyPersonalFilterMenuSection";
+import { useJourneyPersonalFilterOptional } from "@/components/journey/JourneyPersonalFilterContext";
 import type { MilestoneType } from "@/components/journey/milestone-types";
+import { DEFAULT_FILTER_MAU } from "@/lib/filter/constants";
+import { CONG_DONG_PERSONAL_FILTER_MAU } from "@/lib/filter/cong-dong-personal-filter.shared";
 import {
   getVisibility,
   type FilterVisibility,
   type LoaiMocFilterKey,
   type LoaiMocVisibilityMap,
 } from "@/lib/journey/filter-visibility";
+import { computeFixedMenuPosition } from "@/lib/ui/clamp-fixed-menu-position";
 
-export type FilterGroup = "all" | MilestoneType | "verified";
+export type FilterGroup = "all" | MilestoneType | "verified" | "cong-dong";
 
 type Option = {
   group: FilterGroup;
@@ -42,8 +48,8 @@ type Option = {
   count: number;
   /** Section: "type" hoặc "status". */
   section: "type" | "status";
-  /** CSS modifier riêng cho row (verified/bookmark…). */
-  modifier?: "verified" | "bookmark";
+  /** CSS modifier riêng cho row (verified/bookmark/cong-dong…). */
+  modifier?: "verified" | "bookmark" | "cong-dong";
   /** Legacy glyph ico — không dùng nữa (giữ optional cho call-site cũ). */
   ico?: string;
 };
@@ -59,13 +65,14 @@ const GROUP_ICON: Record<FilterGroup, LucideIcon> = {
   "ca-nhan": UserCircle2,
   bookmark: Bookmark,
   verified: BadgeCheck,
+  "cong-dong": Users,
 };
 
 type Props = {
-  /** Năm hiện tại — scroll-spy cập nhật khi user cuộn timeline. */
-  year: string;
+  /** Năm hiện tại — scroll-spy cập nhật khi user cuộn timeline. Bỏ khi `embed`. */
+  year?: string;
   /** Tháng hiển thị — VD "Tháng 5". Bỏ trống → ẩn cột. */
-  month: string;
+  month?: string;
   /** Filter group đang chọn. */
   filter: FilterGroup;
   /** Callback đổi filter. */
@@ -78,6 +85,10 @@ type Props = {
   isOwner?: boolean;
   /** Visibility map (DB → UI keys). Missing key = public. */
   filterVisibility?: LoaiMocVisibilityMap;
+  /** Chỉ dropdown filter — không bọc `.j-tlb` (gallery ghép nhiều filter). */
+  embed?: boolean;
+  /** Số cột mốc sau lọc nhãn riêng — hiển thị trên nút trigger. */
+  personalLabelMatchCount?: number;
 };
 
 const GROUP_LABELS: Record<FilterGroup, string> = {
@@ -90,6 +101,7 @@ const GROUP_LABELS: Record<FilterGroup, string> = {
   "ca-nhan": "Cá nhân",
   bookmark: "Lưu về",
   verified: "Verified",
+  "cong-dong": "Cộng đồng",
 };
 
 const DOT_COLOR: Record<FilterGroup, string> = {
@@ -102,9 +114,33 @@ const DOT_COLOR: Record<FilterGroup, string> = {
   "ca-nhan": "var(--cins-blue)",
   bookmark: "var(--j-bookmark)",
   verified: "var(--j-verified)",
+  "cong-dong": CONG_DONG_PERSONAL_FILTER_MAU,
 };
 
 const MENU_MIN_WIDTH = 212;
+const MENU_EST_HEIGHT = 320;
+
+function timelineFilterButtonLabel(
+  group: FilterGroup,
+  personalName: string | null,
+): string {
+  if (personalName) return personalName;
+  return GROUP_LABELS[group];
+}
+
+function selectTimelineFilter(
+  group: FilterGroup,
+  hasPersonalFilter: boolean,
+  personalFilter: ReturnType<typeof useJourneyPersonalFilterOptional>,
+  onFilterChange: (group: FilterGroup) => void,
+  close: () => void,
+) {
+  if (hasPersonalFilter) {
+    personalFilter?.setActiveSlug(null);
+  }
+  onFilterChange(group);
+  close();
+}
 
 /**
  * Context bar 3 cột: Năm | Tháng | Filter dropdown.
@@ -114,15 +150,23 @@ const MENU_MIN_WIDTH = 212;
  * - Scroll-spy cập nhật year/month theo cột mốc gần mép dưới context bar.
  */
 export function JourneyTimelineBar({
-  year,
-  month,
+  year = "",
+  month = "",
   filter,
   onFilterChange,
   options,
   enabled = true,
   isOwner = false,
   filterVisibility,
+  embed = false,
+  personalLabelMatchCount,
 }: Props) {
+  const personalFilter = useJourneyPersonalFilterOptional();
+  const activePersonalFilter = personalFilter?.activeSlug
+    ? personalFilter.filters.find((f) => f.slug === personalFilter.activeSlug)
+    : null;
+  const hasPersonalFilter = Boolean(activePersonalFilter);
+
   const [open, setOpen] = useState(false);
   const [portalReady, setPortalReady] = useState(false);
   const [menuStyle, setMenuStyle] = useState<{
@@ -168,10 +212,14 @@ export function JourneyTimelineBar({
       return;
     }
     const rect = btn.getBoundingClientRect();
-    setMenuStyle({
-      top: rect.bottom + 6,
-      left: Math.max(8, rect.right - MENU_MIN_WIDTH),
-    });
+    const menuEl = menuRef.current;
+    const menuWidth =
+      menuEl?.offsetWidth ||
+      Math.min(240, Math.max(MENU_MIN_WIDTH, window.innerWidth - 16));
+    const menuHeight = menuEl?.offsetHeight || MENU_EST_HEIGHT;
+    setMenuStyle(
+      computeFixedMenuPosition(rect, { width: menuWidth, height: menuHeight }),
+    );
   };
 
   useLayoutEffect(() => {
@@ -180,9 +228,11 @@ export function JourneyTimelineBar({
       return;
     }
     updateMenuPosition();
+    const rafId = window.requestAnimationFrame(updateMenuPosition);
     window.addEventListener("resize", updateMenuPosition);
     window.addEventListener("scroll", updateMenuPosition, true);
     return () => {
+      window.cancelAnimationFrame(rafId);
       window.removeEventListener("resize", updateMenuPosition);
       window.removeEventListener("scroll", updateMenuPosition, true);
     };
@@ -216,16 +266,22 @@ export function JourneyTimelineBar({
   }, [open]);
 
   const current = options.find((o) => o.group === filter);
-  const currentLabel = current?.label ?? GROUP_LABELS[filter];
-  const currentCount = current?.count ?? 0;
+  const currentLabel = timelineFilterButtonLabel(
+    filter,
+    activePersonalFilter?.ten ?? null,
+  );
+  const currentCount = hasPersonalFilter
+    ? (personalLabelMatchCount ?? activePersonalFilter?.count ?? 0)
+    : (current?.count ?? 0);
+  const dotColor = activePersonalFilter
+    ? (activePersonalFilter.mau ?? DEFAULT_FILTER_MAU)
+    : DOT_COLOR[filter];
 
-  /* Visitor: ẩn các row đã đánh dấu private. Owner: hiện tất cả + toggle. */
+  /* Visitor: ẩn dòng filter loại cột mốc trong dropdown (không ẩn nội dung). */
   const isToggleableLoaiMoc = (g: FilterGroup): g is LoaiMocFilterKey =>
     g === "hoc" ||
     g === "lam" ||
     g === "du-an" ||
-    g === "su-kien" ||
-    g === "thanh-tuu" ||
     g === "ca-nhan";
 
   const visibleOptions = options.filter((o) => {
@@ -253,16 +309,25 @@ export function JourneyTimelineBar({
           display: "block",
         }}
       >
-        <div className="j-dd-section-label">Theo loại</div>
+        <JourneyPersonalFilterMenuSection
+          onItemSelect={() => setOpen(false)}
+          onActivate={() => onFilterChange("all")}
+        />
+        <div className="j-dd-section-label">Loại cột mốc</div>
         {typeOptions.map((opt) => (
           <DropdownItem
             key={opt.group}
             opt={opt}
-            active={opt.group === filter}
-            onSelect={() => {
-              onFilterChange(opt.group);
-              setOpen(false);
-            }}
+            active={!hasPersonalFilter && opt.group === filter}
+            onSelect={() =>
+              selectTimelineFilter(
+                opt.group,
+                hasPersonalFilter,
+                personalFilter,
+                onFilterChange,
+                () => setOpen(false),
+              )
+            }
             isOwner={isOwner}
             visibility={
               isToggleableLoaiMoc(opt.group)
@@ -284,11 +349,16 @@ export function JourneyTimelineBar({
               <DropdownItem
                 key={opt.group}
                 opt={opt}
-                active={opt.group === filter}
-                onSelect={() => {
-                  onFilterChange(opt.group);
-                  setOpen(false);
-                }}
+                active={!hasPersonalFilter && opt.group === filter}
+                onSelect={() =>
+                  selectTimelineFilter(
+                    opt.group,
+                    hasPersonalFilter,
+                    personalFilter,
+                    onFilterChange,
+                    () => setOpen(false),
+                  )
+                }
                 isOwner={isOwner}
                 visibility={null}
               />
@@ -297,6 +367,47 @@ export function JourneyTimelineBar({
         ) : null}
       </div>
     ) : null;
+
+  const filterControl = (
+    <div
+      ref={wrapRef}
+      className={"j-tlb-filter" + (open ? " is-open" : "")}
+    >
+      <button
+        ref={btnRef}
+        type="button"
+        className="j-tlb-dd-btn"
+        onClick={(e) => {
+          e.stopPropagation();
+          if (!enabled) return;
+          ignoreOutsideClickRef.current = true;
+          setOpen((v) => !v);
+        }}
+        disabled={!enabled}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        <span
+          className="j-tlb-dd-dot"
+          style={{ background: dotColor }}
+        />
+        <span>{currentLabel}</span>
+        <span className="j-tlb-dd-count">{currentCount}</span>
+        <span className="j-tlb-dd-caret" aria-hidden>
+          <ChevronDown size={14} strokeWidth={1.8} />
+        </span>
+      </button>
+    </div>
+  );
+
+  if (embed) {
+    return (
+      <>
+        {filterControl}
+        {portalReady && menu ? createPortal(menu, document.body) : null}
+      </>
+    );
+  }
 
   return (
     <div className="j-tlb">
@@ -307,35 +418,7 @@ export function JourneyTimelineBar({
       >
         {month || "—"}
       </div>
-      <div
-        ref={wrapRef}
-        className={"j-tlb-filter" + (open ? " is-open" : "")}
-      >
-        <button
-          ref={btnRef}
-          type="button"
-          className="j-tlb-dd-btn"
-          onClick={(e) => {
-            e.stopPropagation();
-            if (!enabled) return;
-            ignoreOutsideClickRef.current = true;
-            setOpen((v) => !v);
-          }}
-          disabled={!enabled}
-          aria-haspopup="listbox"
-          aria-expanded={open}
-        >
-          <span
-            className="j-tlb-dd-dot"
-            style={{ background: DOT_COLOR[filter] }}
-          />
-          <span>{currentLabel}</span>
-          <span className="j-tlb-dd-count">{currentCount}</span>
-          <span className="j-tlb-dd-caret" aria-hidden>
-            <ChevronDown size={14} strokeWidth={1.8} />
-          </span>
-        </button>
-      </div>
+      {filterControl}
       {portalReady && menu ? createPortal(menu, document.body) : null}
     </div>
   );
@@ -362,6 +445,7 @@ function DropdownItem({
     "j-dd-opt",
     opt.modifier === "verified" && "j-dd-opt--verified",
     opt.modifier === "bookmark" && "j-dd-opt--bookmark",
+    opt.modifier === "cong-dong" && "j-dd-opt--cong-dong",
     active && "is-active",
     visibility === "private" && "is-private",
   ]
@@ -396,11 +480,13 @@ function DropdownItem({
           }}
           title={
             visibility === "private"
-              ? "Chỉ mình tôi thấy — bấm để công khai"
-              : "Công khai — bấm để chỉ mình tôi thấy"
+              ? "Ẩn dòng lọc này khỏi dropdown khách — bấm để hiện lại"
+              : "Hiện dòng lọc này trong dropdown khách — bấm để ẩn"
           }
           aria-label={
-            visibility === "private" ? "Chuyển sang công khai" : "Chuyển sang chỉ mình tôi"
+            visibility === "private"
+              ? "Hiện dòng lọc cho khách"
+              : "Ẩn dòng lọc khỏi khách"
           }
         >
           {visibility === "private" ? (

@@ -14,6 +14,8 @@ import {
   fetchBookmarkedMilestonesForUser,
   fetchTaggedMilestonesForUser,
 } from "@/lib/journey/milestones-fetch";
+import { attachPersonalFiltersToMilestones } from "@/lib/filter/attach-milestones";
+import { loadPersonalFilterSlugsForCotMocs } from "@/lib/filter/gan";
 import { loadVerifiedCotMocIdSet } from "@/lib/journey/milestone-verify";
 import {
   isForeignMilestoneVisibleToViewer,
@@ -21,6 +23,7 @@ import {
   loadMilestoneViewerAccess,
   type MilestoneViewerAccess,
 } from "@/lib/journey/milestone-viewer-access";
+import { mapCheDoToMilestoneVisibility } from "@/lib/journey/journey-visible-clause";
 import {
   isHiddenOnForeignJourney,
   mapForeignJourneyVisibilityToUi,
@@ -41,6 +44,7 @@ export type MilestoneFilterCounts = {
   "ca-nhan": number;
   bookmark: number;
   verified: number;
+  "cong-dong": number;
 };
 
 export type MilestoneTimelinePageResult = {
@@ -78,7 +82,7 @@ type CotMocStubRow = {
     | "ca_nhan";
   thoi_diem: string;
   tao_luc: string | null;
-  che_do_hien_thi: "public" | "theo_nhom" | "chi_minh" | "feature";
+  che_do_hien_thi: "public" | "theo_nhom" | "chi_minh" | "feature" | "cong_dong";
 };
 
 const LOAI_MOC_TO_TYPE: Record<CotMocStubRow["loai_moc"], MilestoneType> = {
@@ -89,15 +93,6 @@ const LOAI_MOC_TO_TYPE: Record<CotMocStubRow["loai_moc"], MilestoneType> = {
   thanh_tuu: "thanh-tuu",
   ca_nhan: "ca-nhan",
 };
-
-function mapVisibility(
-  v: CotMocStubRow["che_do_hien_thi"],
-): MilestoneVisibility {
-  if (v === "feature") return "feature";
-  if (v === "chi_minh") return "private";
-  if (v === "theo_nhom") return "unlisted";
-  return "public";
-}
 
 function parseUtcDateParts(iso: string): {
   year: number;
@@ -123,8 +118,10 @@ function computeFilterCounts(stubs: TimelineStub[]): MilestoneFilterCounts {
     "ca-nhan": 0,
     bookmark: 0,
     verified: 0,
+    "cong-dong": 0,
   };
   for (const stub of stubs) {
+    if (stub.visibility === "cong-dong") counts["cong-dong"] += 1;
     if (stub.type === "hoc") counts.hoc += 1;
     else if (stub.type === "lam") counts.lam += 1;
     else if (stub.type === "du-an") counts["du-an"] += 1;
@@ -153,10 +150,8 @@ async function collectSelfStubs(
 
   const visible = (cotMocs ?? []).filter((m) =>
     isSelfMilestoneVisibleToViewer({
-      loaiMoc: LOAI_MOC_TO_TYPE[m.loai_moc],
       cheDoHienThi: m.che_do_hien_thi,
       isOwner,
-      filterVisibility: access.filterVisibility,
       viewerIsFriend: access.viewerIsFriend,
     }),
   );
@@ -169,7 +164,7 @@ async function collectSelfStubs(
       id: m.id,
       source: "self" as const,
       cotMocId: m.id,
-      visibility: mapVisibility(m.che_do_hien_thi),
+      visibility: mapCheDoToMilestoneVisibility(m.che_do_hien_thi),
       variant: (verifiedIds.has(m.id) ? "verified" : "self") as MilestoneVariant,
       type: LOAI_MOC_TO_TYPE[m.loai_moc],
       thoiDiem: m.thoi_diem,
@@ -404,6 +399,29 @@ const getTimelineStubsCached = cache(
   },
 );
 
+/** Cot moc id visitor được xem — dùng đếm nhãn riêng theo quyền xem. */
+export async function listVisibleTimelineCotMocIds(
+  userId: string,
+  viewerId: string | null,
+): Promise<string[]> {
+  const stubs = await getTimelineStubsCached(userId, false, viewerId);
+  return stubs.map((stub) => stub.cotMocId);
+}
+
+async function filterStubsByPersonalLabel(
+  stubs: TimelineStub[],
+  personalFilterSlug: string | null | undefined,
+): Promise<TimelineStub[]> {
+  const slug = personalFilterSlug?.trim();
+  if (!slug) return stubs;
+
+  const cotMocIds = [...new Set(stubs.map((s) => s.cotMocId))];
+  if (cotMocIds.length === 0) return [];
+
+  const slugMap = await loadPersonalFilterSlugsForCotMocs(cotMocIds);
+  return stubs.filter((stub) => slugMap.get(stub.cotMocId)?.includes(slug));
+}
+
 type CotMocFullRow = {
   id: string;
   loai_moc: CotMocStubRow["loai_moc"];
@@ -477,8 +495,10 @@ export async function fetchMilestoneTimelinePage(params: {
   viewerId?: string | null;
   offset?: number;
   limit?: number;
+  /** Lọc stub theo slug nhãn riêng trước khi paginate. */
+  personalFilterSlug?: string | null;
 }): Promise<MilestoneTimelinePageResult> {
-  const { userId, isOwner, viewerId = null } = params;
+  const { userId, isOwner, viewerId = null, personalFilterSlug = null } = params;
   const offset = Math.max(0, params.offset ?? 0);
   const limit = Math.min(
     50,
@@ -486,15 +506,18 @@ export async function fetchMilestoneTimelinePage(params: {
   );
 
   const admin = createServiceRoleClient();
-  const stubs = await getTimelineStubsCached(userId, isOwner, viewerId);
-  const filterCounts = computeFilterCounts(stubs);
+  const allStubs = await getTimelineStubsCached(userId, isOwner, viewerId);
+  const filterCounts = computeFilterCounts(allStubs);
+  const stubs = await filterStubsByPersonalLabel(allStubs, personalFilterSlug);
   const slice = stubs.slice(offset, offset + limit);
 
   const hydrated = await hydrateTimelineStubs(admin, slice, {
     userId,
     isOwner,
   });
-  const milestones = await attachSocialState(admin, hydrated, viewerId);
+  const milestones = await attachPersonalFiltersToMilestones(
+    await attachSocialState(admin, hydrated, viewerId),
+  );
 
   const nextOffset = offset + milestones.length;
   return {
@@ -506,8 +529,6 @@ export async function fetchMilestoneTimelinePage(params: {
     filterCounts,
   };
 }
-
-/** Stats nhẹ cho sidebar nav — không hydrate toàn bộ timeline. */
 export async function fetchMilestoneNavStats(params: {
   userId: string;
   isOwner: boolean;

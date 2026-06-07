@@ -2,8 +2,8 @@
 
 > **File trong repo:** `docs/CINS_FOUNDATIONS.md`
 > **Luật nền — đổi chậm.** Triết lý sản phẩm, quy tắc kiến trúc, naming, quy ước làm việc.
-> Khi xung đột giữa các file: FOUNDATIONS thắng về *nguyên tắc*; `CINS_SCHEMA.md` thắng về *sự thật cấu trúc DB*.
-> File này KHÔNG chứa danh sách bảng/cột chi tiết — xem `CINS_SCHEMA.md` (sinh từ DB).
+> Khi xung đột giữa các file: FOUNDATIONS thắng về *nguyên tắc*; SCHEMA.md thắng về *sự thật cấu trúc DB*.
+> File này KHÔNG chứa danh sách bảng/cột chi tiết — xem SCHEMA.md (sinh từ DB).
 
 ---
 
@@ -32,6 +32,7 @@ Kết nối giữa người có chuyên môn là giá trị cốt lõi (không p
 - **Verified milestone bất tử**: khi org đóng cửa, milestone đã verify không mất giá trị.
 - **Quan hệ theo người = kết bạn (2 chiều)**: phục vụ danh bạ nghề + bạn chung + tag co-author. Không có "theo dõi người" 1 chiều.
 - **Tag là infrastructure, không phải content**: `keyword` và `phan_mem` không cần prose — giá trị nằm ở người và tác phẩm gom dưới tag. AI gen `tom_tat` đủ.
+- **Filter cá nhân ≠ tag toàn cục**: mỗi user/org tự tạo nhãn cục bộ ("Áo thun trơn", "BST hè") để *tự sắp xếp nội dung của chính mình*. Nhãn cá nhân KHÔNG kéo discovery xuyên người dùng (khác hẳn tag toàn cục) → không phá luật chống-viral. Là primitive cho phép user tự mở rộng cách dùng nền tảng (vd artist khoe dòng merch như Basakila) mà KHÔNG biến CINS thành sàn bán hàng. Xem quy tắc 28.
 - **Verify rẻ là tính năng**: gánh nặng xác thực phải nhẹ đến mức bên có thẩm quyền không thấy phiền — user đẩy yêu cầu, org chỉ bấm duyệt (org-veto, không org-pull). Xem §V.
 
 ---
@@ -57,9 +58,9 @@ Kết nối giữa người có chuyên môn là giá trị cốt lõi (không p
 
 ---
 
-## 5. Quy tắc kiến trúc cốt lõi (27 + verify)
+## 5. Quy tắc kiến trúc cốt lõi (28 + verify)
 
-1. Mọi thứ trên Journey = 1 dòng `content_cot_moc` — source of truth thống nhất.
+1. Mọi thứ trên **Journey user** = 1 dòng `content_cot_moc` — source of truth thống nhất. (Journey *org* đi qua `org_bai_dang` + `thoi_diem`, KHÔNG dùng `content_cot_moc`; xem §O và quy tắc 28.)
 2. Milestone không bao giờ tự sinh từ counter — phải có xác nhận chủ động.
 3. Verified milestone không xóa khi org đóng cửa — chỉ đổi UI badge.
 4. Engagement và level chuyên môn tính realtime từ activity, không lưu field cố định. Like count tính realtime từ `social_reaction`.
@@ -86,6 +87,7 @@ Kết nối giữa người có chuyên môn là giá trị cốt lõi (không p
 25. `keyword`/`phan_mem` không có trang prose. Trang detail chỉ render `tom_tat` (AI gen) + người + tác phẩm. Không vào navigation "Bài viết". `noi_dung=NULL` mãi mãi.
 26. `da_verify` không phải gatekeeping. Tag chưa verify vẫn tồn tại, vẫn dùng. `da_verify=true` chỉ ưu tiên top autocomplete.
 27. AI gen `tom_tat` tag mới từ tên tag — không đợi đủ data. Regen khi `so_data_point` tăng đáng kể (track qua `vector_dong`).
+28. **Filter cá nhân** = nhãn động do chủ sở hữu (user *hoặc* org) tự định nghĩa (`filter_nhan`), gắn polymorphic lên `content_cot_moc` (user) hoặc `org_bai_dang` (org) qua `filter_gan`. Cục bộ trong phạm vi 1 chủ sở hữu: KHÔNG tạo tag toàn cục (`article_*`), KHÔNG là kênh discovery xuyên người dùng, KHÔNG nghiệp vụ thương mại (giá/bán). Lọc áp cho **cả 2 view** Journey (timeline + grid) vì lọc trên *dữ liệu*. Verify quyền sở hữu trước mọi mutation (không gắn nhãn lên nội dung người khác).
 
 **Verify (V1–V6) — luồng xác thực thống nhất, xem §V:**
 - V1. Một luồng chung qua `verify_yeu_cau`: **user đẩy yêu cầu + bằng chứng, org bấm duyệt**. Không org-pull.
@@ -137,15 +139,16 @@ User gửi: "tác phẩm này tôi làm tại org X / khi học lớp Y" → org
 
 | Loại | Tạo bởi | Extension table | Tab đặc thù |
 |---|---|---|---|
-| `co_so_dao_tao` | User | `org_co_so_dao_tao` (1-1), `da_verify=false` | Khóa học · Lớp · Giáo trình · Học viên |
-| `studio` | User | — (JSONB trên `org_to_chuc`) | Dự án · Tác phẩm |
-| `cong_dong` | User | — | Thảo luận (xem dưới) · Sự kiện |
+| `co_so_dao_tao` | User | `org_co_so_dao_tao` (1-1), `da_verify=false` | **Journey** · Khóa học · Lớp · Giáo trình · Học viên |
+| `studio` | User | — (JSONB trên `org_to_chuc`) | **Journey** · Dự án · Tác phẩm |
+| `cong_dong` | User | — | Thảo luận (xem dưới) · Sự kiện *(KHÔNG có Journey)* |
 | `doanh_nghiep` | (ẩn UI) | — | dùng chung template `studio` |
-| `truong_dai_hoc` | CINS duyệt | `org_truong_dai_hoc` (1-1) | Tuyển sinh · Ngành · Cấu hình điểm |
+| `truong_dai_hoc` | CINS duyệt | `org_truong_dai_hoc` (1-1) | **Journey** · Tuyển sinh · Ngành · Cấu hình điểm |
 
 - **Tab chung mọi loại**: Tổng quan · Bài đăng (`org_bai_dang`) · Sự kiện (`org_su_kien`) · Thành viên (`user_thanh_vien_to_chuc`) · Hình ảnh (`org_hinh_anh`).
-- **Org không có Journey riêng**: org là *context* để verify milestone của member; tác phẩm/dự án quy về `content_cot_moc` từng user.
-- **`cong_dong` = cộng đồng kiểu nhóm có thảo luận** (đã pivot từ "event hub"): member đăng bài đầy đủ qua `content_thao_luan`; điểm khác Facebook là lớp verified journey. Filter kiểu flair (`content_thao_luan_filter`), seed 4 nhãn mặc định: Tác phẩm · Hỏi đáp · Tuyển người · Tài nguyên (admin sửa được). Thảo luận scoped cứng vào context (`loai_context`/`id_context`) → không feed toàn cục → không vi phạm luật chống-viral. Vẫn KHÔNG group chat tự do (chat phải có context).
+- **Journey org (3 loại tổ chức thật)**: `truong_dai_hoc`, `co_so_dao_tao`, `studio` có Journey riêng = các dòng `org_bai_dang` (+ cột `thoi_diem` = ngày mốc lịch sử, KHÁC `tao_luc` = ngày đăng), render timeline/grid + filter cá nhân động (quy tắc 28). **KHÔNG tạo bảng `org_cot_moc`** — gộp vào `org_bai_dang`. Org journey **KHÔNG qua verify**: org tự kể về mình, khác hẳn milestone danh tính nghề của *người* (cái đó mới là moat verify).
+- **Org vẫn là context verify cho member**: milestone *cá nhân* của member (verified "Vị trí @ Org") quy về `content_cot_moc` từng user — tách bạch với Journey-tự-kể của org.
+- **`cong_dong` KHÔNG có Journey org** = cộng đồng kiểu nhóm: member đăng bài = **`content_cot_moc`** với `che_do_hien_thi='cong_dong'` + `id_to_chuc`=org (ẩn khỏi Journey public, hiện feed cộng đồng). Quy tắc 1 (Journey là source of truth) áp cả cộng đồng — cộng đồng chỉ là view tổng hợp, không sở hữu nội dung. Filter flair (`cong_dong_filter` + `cong_dong_filter_gan`), seed 4 nhãn mặc định. Comment/reaction/lưu trỏ cột mốc → bền khi "tốt nghiệp" sang thẻ Journey public. Scoped cứng vào org → không feed toàn cục. Vẫn KHÔNG group chat tự do.
 
 ---
 
@@ -165,7 +168,7 @@ User gửi: "tác phẩm này tôi làm tại org X / khi học lớp Y" → org
 
 ---
 
-## 7. ENUM quan trọng (tham chiếu nhanh — sự thật ở `CINS_SCHEMA.md`)
+## 7. ENUM quan trọng (tham chiếu nhanh — sự thật ở SCHEMA.md)
 
 ```
 vai_tro_to_chuc_enum     : owner / admin / quan_ly_tuyen_sinh / quan_ly_noi_dung / giao_vien / nhan_vien / hoc_vien / thanh_vien
@@ -177,11 +180,12 @@ loai_to_chuc_enum        : truong_dai_hoc / co_so_dao_tao / studio / doanh_nghie
 giai_doan_enum           : moi_bat_dau / dang_hoc / dang_lam / tim_viec / freelance / dang_day
 loai_phong_chat_enum     : 1_1 / 1_1_an_danh / 1_org / du_an / lop_hoc / su_kien
 trang_thai_ket_ban       : pending / accepted / blocked   (TEXT, không enum cứng)
+filter_doi_tuong_enum    : cot_moc / org_bai_dang   (đối tượng được gắn filter cá nhân)
 ```
 
-Các enum khác (tuyển sinh, phương thức xét tuyển, trạng thái bài đăng…) — xem `CINS_SCHEMA.md`.
+Các enum khác (tuyển sinh, phương thức xét tuyển, trạng thái bài đăng…) — xem SCHEMA.md.
 
-**Lưu ý `tinh_thanh_vn_enum`:** value TP.HCM là `hcm` (KHÔNG phải `ho_chi_minh`). Legacy `tinh_thanh_vn_enum_old` (63 tỉnh cũ) — không dùng cho code mới.
+**`tinh_thanh`:** bảng riêng, không thuộc nhóm `article_`. Dùng cho địa lý (tỉnh/thành). Quan hệ: `org_to_chuc.id_tinh_thanh` FK → `tinh_thanh.id`.
 
 ---
 

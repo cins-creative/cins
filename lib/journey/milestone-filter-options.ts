@@ -1,13 +1,16 @@
 import type {
   MilestoneType,
   MilestoneVariant,
+  MilestoneVisibility,
 } from "@/components/journey/milestone-types";
 import type { FilterGroup } from "@/components/journey/JourneyTimelineBar";
 import type { MilestoneFilterCounts } from "@/lib/journey/milestones-page-fetch";
+import { JOURNEY_MILESTONE_TYPE_OPTIONS } from "@/lib/journey/milestone-type-options";
 
 export type FilterableMilestone = {
   type: MilestoneType;
   variant: MilestoneVariant;
+  visibility?: MilestoneVisibility;
 };
 
 export function computeFilterCounts(
@@ -23,8 +26,10 @@ export function computeFilterCounts(
     "ca-nhan": 0,
     bookmark: 0,
     verified: 0,
+    "cong-dong": 0,
   };
   for (const item of items) {
+    if (item.visibility === "cong-dong") c["cong-dong"] += 1;
     if (item.type === "hoc") c.hoc += 1;
     else if (item.type === "lam") c.lam += 1;
     else if (item.type === "du-an") c["du-an"] += 1;
@@ -38,19 +43,23 @@ export function computeFilterCounts(
 }
 
 export function buildFilterOptions(counts: MilestoneFilterCounts) {
+  const typeOptions = JOURNEY_MILESTONE_TYPE_OPTIONS.map((opt) => ({
+    group: opt.ui as FilterGroup,
+    label: opt.label,
+    count: counts[opt.ui as keyof MilestoneFilterCounts] as number,
+    section: "type" as const,
+  }));
+
   return [
     { group: "all" as const, label: "Tất cả", count: counts.all, section: "type" as const },
-    { group: "hoc" as const, label: "Học tập", count: counts.hoc, section: "type" as const },
-    { group: "lam" as const, label: "Công việc", count: counts.lam, section: "type" as const },
-    { group: "du-an" as const, label: "Dự án", count: counts["du-an"], section: "type" as const },
-    { group: "su-kien" as const, label: "Sự kiện", count: counts["su-kien"], section: "type" as const },
+    ...typeOptions,
     {
-      group: "thanh-tuu" as const,
-      label: "Thành tựu",
-      count: counts["thanh-tuu"],
+      group: "cong-dong" as const,
+      label: "Cộng đồng",
+      count: counts["cong-dong"],
       section: "type" as const,
+      modifier: "cong-dong" as const,
     },
-    { group: "ca-nhan" as const, label: "Cá nhân", count: counts["ca-nhan"], section: "type" as const },
     {
       group: "verified" as const,
       label: "Verified",
@@ -70,7 +79,7 @@ export function buildFilterOptions(counts: MilestoneFilterCounts) {
     label: string;
     count: number;
     section: "type" | "status";
-    modifier?: "verified" | "bookmark";
+    modifier?: "verified" | "bookmark" | "cong-dong";
   }>;
 }
 
@@ -79,6 +88,9 @@ export function filterByGroup<T extends FilterableMilestone>(
   filter: FilterGroup,
 ): T[] {
   if (filter === "all") return [...items];
+  if (filter === "cong-dong") {
+    return items.filter((m) => m.visibility === "cong-dong");
+  }
   if (filter === "verified") return items.filter((m) => m.variant === "verified");
   if (filter === "bookmark") return items.filter((m) => m.variant === "bookmark");
   return items.filter((m) => m.type === filter);

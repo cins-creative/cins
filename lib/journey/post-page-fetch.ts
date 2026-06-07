@@ -6,31 +6,16 @@ import type {
   MilestonePostContributor,
   MilestonePostDetail,
 } from "@/lib/journey/milestone-post-types";
-import type { MilestoneType } from "@/components/journey/milestone-types";
 import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import type { Block as ServerBlock } from "@/lib/editor/types";
 import { fetchArticleTagsForTacPham } from "@/lib/journey/article-tags-batch";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
-import {
-  getVisibility,
-  normalizeLoaiMocVisibility,
-} from "@/lib/journey/filter-visibility";
 import { isFriend } from "@/lib/social/ket-ban";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 export type PostFetchResult =
   | { ok: true; data: MilestonePostDetail }
   | { ok: false; error: string };
-
-function mapLoaiMocToUiKey(loaiMoc: string): MilestoneType | null {
-  if (loaiMoc === "hoc") return "hoc";
-  if (loaiMoc === "lam_viec") return "lam";
-  if (loaiMoc === "du_an") return "du-an";
-  if (loaiMoc === "su_kien") return "su-kien";
-  if (loaiMoc === "thanh_tuu") return "thanh-tuu";
-  if (loaiMoc === "ca_nhan") return "ca-nhan";
-  return null;
-}
 
 type CotMocDetailRow = {
   id: string;
@@ -39,7 +24,7 @@ type CotMocDetailRow = {
   mo_ta: string | null;
   thoi_diem: string;
   loai_moc: string;
-  che_do_hien_thi: "public" | "theo_nhom" | "chi_minh" | "feature";
+  che_do_hien_thi: "public" | "theo_nhom" | "chi_minh" | "feature" | "cong_dong";
 };
 
 type TacPhamRow = {
@@ -247,6 +232,22 @@ export async function fetchPostComments(
   });
 }
 
+async function findMilestoneIdForTacPham(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  tacPhamId: string,
+): Promise<string | null> {
+  const { data: link, error: linkErr } = await admin
+    .from("content_tac_pham_thuoc_moc")
+    .select("id_cot_moc")
+    .eq("id_tac_pham", tacPhamId)
+    .order("thu_tu", { ascending: true })
+    .limit(1)
+    .maybeSingle<{ id_cot_moc: string }>();
+
+  if (linkErr || !link) return null;
+  return link.id_cot_moc;
+}
+
 async function resolvePostMilestoneId(
   ownerSlug: string,
   postSlug: string,
@@ -255,41 +256,53 @@ async function resolvePostMilestoneId(
   | { ok: false; error: string }
 > {
   const admin = createServiceRoleClient();
+  const trimmedOwner = ownerSlug.trim();
+  const trimmedPost = postSlug.trim();
+  if (!trimmedOwner || !trimmedPost) {
+    return { ok: false, error: "Thiếu thông tin bài viết." };
+  }
 
   const { data: owner, error: ownerErr } = await admin
     .from("user_nguoi_dung")
     .select("id, slug")
-    .eq("slug", ownerSlug)
+    .eq("slug", trimmedOwner)
     .maybeSingle<{ id: string; slug: string }>();
 
-  if (ownerErr || !owner) {
+  if (ownerErr) {
     return { ok: false, error: "Người dùng không tồn tại." };
   }
 
-  const { data: tacPham, error: tpErr } = await admin
+  if (owner) {
+    const { data: tacPham, error: tpErr } = await admin
+      .from("content_tac_pham")
+      .select("id")
+      .eq("id_nguoi_dung", owner.id)
+      .eq("slug", trimmedPost)
+      .maybeSingle<{ id: string }>();
+
+    if (!tpErr && tacPham) {
+      const milestoneId = await findMilestoneIdForTacPham(admin, tacPham.id);
+      if (milestoneId) return { ok: true, milestoneId };
+    }
+  }
+
+  const { data: slugMatches, error: slugErr } = await admin
     .from("content_tac_pham")
     .select("id")
-    .eq("id_nguoi_dung", owner.id)
-    .eq("slug", postSlug)
-    .maybeSingle<{ id: string }>();
+    .eq("slug", trimmedPost)
+    .limit(2)
+    .returns<Array<{ id: string }>>();
 
-  if (tpErr || !tacPham) {
-    return { ok: false, error: "Bài viết không tồn tại." };
+  if (!slugErr && slugMatches?.length === 1) {
+    const milestoneId = await findMilestoneIdForTacPham(admin, slugMatches[0]!.id);
+    if (milestoneId) return { ok: true, milestoneId };
   }
 
-  const { data: link, error: linkErr } = await admin
-    .from("content_tac_pham_thuoc_moc")
-    .select("id_cot_moc, thu_tu")
-    .eq("id_tac_pham", tacPham.id)
-    .order("thu_tu", { ascending: true })
-    .limit(1)
-    .maybeSingle<{ id_cot_moc: string; thu_tu: number }>();
-
-  if (linkErr || !link) {
-    return { ok: false, error: "Bài viết chưa gắn vào cột mốc nào." };
+  if (!owner) {
+    return { ok: false, error: "Người dùng không tồn tại." };
   }
 
-  return { ok: true, milestoneId: link.id_cot_moc };
+  return { ok: false, error: "Bài viết không tồn tại." };
 }
 
 export async function fetchMilestonePostDetail(
@@ -326,23 +339,6 @@ export async function fetchMilestonePostDetail(
       : false;
     if (!viewerIsFriend) {
       return { ok: false, error: "Cột mốc này chỉ dành cho bạn bè." };
-    }
-  }
-  if (!isOwner) {
-    const { data: ownerRow } = await admin
-      .from("user_nguoi_dung")
-      .select("journey_loai_moc_visibility")
-      .eq("id", cotMoc.id_nguoi_dung)
-      .maybeSingle<{ journey_loai_moc_visibility: Record<string, unknown> | null }>();
-    const filterVisibility = normalizeLoaiMocVisibility(
-      ownerRow?.journey_loai_moc_visibility,
-    );
-    const loaiMocUi = mapLoaiMocToUiKey(cotMoc.loai_moc);
-    if (
-      loaiMocUi &&
-      getVisibility(filterVisibility, loaiMocUi) !== "public"
-    ) {
-      return { ok: false, error: "Cột mốc này không hiển thị với người xem." };
     }
   }
 

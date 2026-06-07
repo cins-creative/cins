@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useId, useRef, useState } from "react";
+import { useCallback, useId, useRef } from "react";
 import { createPortal } from "react-dom";
 
 import {
@@ -10,6 +10,7 @@ import {
   type ArticleTagRef,
 } from "@/lib/editor/article-tag";
 import { articlePublicHref } from "@/lib/articles/article-href";
+import { useCursorFollowTooltip } from "@/lib/ui/use-cursor-follow-tooltip";
 
 const TIP_MAX_W = 280;
 const TIP_EST_H = 120;
@@ -23,36 +24,20 @@ type Props = {
 export function JourneyArticleTagLink({ tag, className, onClick }: Props) {
   const tipId = useId();
   const anchorRef = useRef<HTMLAnchorElement>(null);
-  const [tipPos, setTipPos] = useState<{ top: number; left: number } | null>(
-    null,
-  );
+  const { tipPos, placeTip, onPointerMove, clearTip, cursorFollow } =
+    useCursorFollowTooltip({ width: TIP_MAX_W, estHeight: TIP_EST_H });
 
   const desc = tag.tom_tat?.trim() || null;
   const showTip = Boolean(desc);
 
-  const updateTipPos = useCallback(() => {
-    const node = anchorRef.current;
-    if (!node || !showTip) return;
-    const rect = node.getBoundingClientRect();
-    const left = Math.min(
-      Math.max(12, rect.left),
-      window.innerWidth - TIP_MAX_W - 12,
-    );
-    const spaceBelow = window.innerHeight - rect.bottom;
-    const top =
-      spaceBelow >= TIP_EST_H + 12
-        ? rect.bottom + 8
-        : Math.max(12, rect.top - TIP_EST_H - 8);
-    setTipPos({ top, left });
-  }, [showTip]);
-
-  const openTip = useCallback(() => {
-    updateTipPos();
-  }, [updateTipPos]);
-
-  const closeTip = useCallback(() => {
-    setTipPos(null);
-  }, []);
+  const openTip = useCallback(
+    (event: React.MouseEvent) => {
+      if (!showTip) return;
+      onPointerMove(event.clientX, event.clientY);
+      placeTip(anchorRef.current);
+    },
+    [onPointerMove, placeTip, showTip],
+  );
 
   const linkClass =
     className ?? `tag ${articleTagLoaiClass(tag.loai_bai_viet)}`;
@@ -66,9 +51,10 @@ export function JourneyArticleTagLink({ tag, className, onClick }: Props) {
         prefetch={false}
         onClick={onClick}
         onMouseEnter={openTip}
-        onMouseLeave={closeTip}
-        onFocus={openTip}
-        onBlur={closeTip}
+        onMouseMove={(event) => onPointerMove(event.clientX, event.clientY)}
+        onMouseLeave={clearTip}
+        onFocus={() => placeTip(anchorRef.current)}
+        onBlur={clearTip}
         aria-describedby={showTip && tipPos ? tipId : undefined}
       >
         #{tag.tieu_de}
@@ -77,11 +63,14 @@ export function JourneyArticleTagLink({ tag, className, onClick }: Props) {
         ? createPortal(
             <div
               id={tipId}
-              className="j-tag-tip"
+              className={
+                "j-tag-tip" +
+                (cursorFollow() ? " j-tag-tip--follow-cursor" : "")
+              }
               role="tooltip"
               style={{ top: tipPos.top, left: tipPos.left }}
-              onMouseEnter={openTip}
-              onMouseLeave={closeTip}
+              onMouseEnter={() => placeTip(anchorRef.current)}
+              onMouseLeave={clearTip}
             >
               <div className="j-tag-tip-kind">{articleTagLabel(tag.loai_bai_viet)}</div>
               <div className="j-tag-tip-title">{tag.tieu_de}</div>

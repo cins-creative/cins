@@ -15,8 +15,8 @@ import {
   MoreVertical,
   Pencil,
   Star,
+  Tag,
   Trash2,
-  Trophy,
   UserCircle2,
   Users,
   type LucideIcon,
@@ -36,6 +36,9 @@ import type {
   MilestoneVisibility,
 } from "@/components/journey/milestone-types";
 import type { LoaiMoc, Visibility } from "@/lib/editor/types";
+import { JOURNEY_MILESTONE_TYPE_OPTIONS } from "@/lib/journey/milestone-type-options";
+import { MilestonePersonalFilterOptions } from "@/components/journey/MilestonePersonalFilterOptions";
+import { useMilestonePersonalFilterAttach } from "@/components/journey/useMilestonePersonalFilterAttach";
 import { dispatchMilestoneInlinePatch } from "@/lib/journey/milestone-inline-patch";
 
 type Props = {
@@ -65,6 +68,8 @@ type Props = {
   };
   /** Class wrapper — vd. `post-byline-menu` trong JourneyPostBody. */
   className?: string;
+  /** Nhãn lọc đang gắn — để gán/bỏ trong menu. */
+  personalFilterSlugs?: string[];
 };
 
 /* ╔══════════════════════════════════════════════════════════════════╗
@@ -77,21 +82,9 @@ type Props = {
    ║ flicker bằng `setTimeout(0)` defer cho `onMouseLeave`.            ║
    ╚══════════════════════════════════════════════════════════════════╝ */
 
-type SubMenu = "none" | "type" | "visibility";
+type SubMenu = "none" | "type" | "visibility" | "personalFilter";
 
-const TYPE_OPTIONS: ReadonlyArray<{
-  ui: MilestoneType;
-  db: LoaiMoc;
-  label: string;
-  Icon: LucideIcon;
-}> = [
-  { ui: "hoc", db: "hoc", label: "Học tập", Icon: BookOpen },
-  { ui: "lam", db: "lam_viec", label: "Công việc", Icon: Briefcase },
-  { ui: "du-an", db: "du_an", label: "Dự án", Icon: FolderKanban },
-  { ui: "su-kien", db: "su_kien", label: "Sự kiện", Icon: Calendar },
-  { ui: "thanh-tuu", db: "thanh_tuu", label: "Thành tựu", Icon: Trophy },
-  { ui: "ca-nhan", db: "ca_nhan", label: "Cá nhân", Icon: UserCircle2 },
-];
+const TYPE_OPTIONS = JOURNEY_MILESTONE_TYPE_OPTIONS;
 
 const VIS_OPTIONS: ReadonlyArray<{
   ui: MilestoneVisibility;
@@ -143,8 +136,13 @@ export function JourneyMilestoneOwnerMenu({
   onAfterChange,
   foreignJourney,
   className,
+  personalFilterSlugs = [],
 }: Props) {
   const router = useRouter();
+  const personalAttach = useMilestonePersonalFilterAttach(
+    milestoneId,
+    foreignJourney ? [] : personalFilterSlugs,
+  );
   const { openCompose, canCompose } = useJourneyCompose();
   const [open, setOpen] = useState(false);
   const [sub, setSub] = useState<SubMenu>("none");
@@ -182,14 +180,18 @@ export function JourneyMilestoneOwnerMenu({
   function handleChangeType(db: LoaiMoc) {
     const option = TYPE_OPTIONS.find((o) => o.db === db);
     if (!option || option.ui === currentType) return;
+    if (pending || personalAttach.pending) return;
+
     const previous = currentType;
     setError(null);
     close();
+
     dispatchMilestoneInlinePatch({
       milestoneId,
       kind: "type",
       value: option.ui,
     });
+
     startTransition(async () => {
       const res = await updateMilestoneType(milestoneId, db);
       if (!res.ok) {
@@ -204,6 +206,17 @@ export function JourneyMilestoneOwnerMenu({
       router.refresh();
       onAfterChange?.();
     });
+  }
+
+  function handleSelectPersonalFilter(slug: string) {
+    if (pending || personalAttach.pending) return;
+    setError(null);
+    close();
+    if (personalAttach.selectedSlug === slug) {
+      void personalAttach.clear();
+      return;
+    }
+    void personalAttach.select(slug);
   }
 
   function handleChangeVisibility(db: Visibility) {
@@ -448,7 +461,7 @@ export function JourneyMilestoneOwnerMenu({
                         className={`j-m-submenu-item ${active ? "is-active" : ""}`}
                         role="menuitemradio"
                         aria-checked={active}
-                        disabled={pending || active}
+                        disabled={pending || personalAttach.pending}
                         onClick={() => handleChangeType(opt.db)}
                       >
                         <span className="j-m-menu-ico" aria-hidden>
@@ -515,6 +528,38 @@ export function JourneyMilestoneOwnerMenu({
                 );
               })}
             </div>
+          ) : null}
+
+          {!foreignJourney && personalAttach.canAttach ? (
+            <>
+              <button
+                type="button"
+                className={`j-m-menu-item ${sub === "personalFilter" ? "is-open" : ""}`}
+                role="menuitem"
+                onClick={() =>
+                  setSub(sub === "personalFilter" ? "none" : "personalFilter")
+                }
+              >
+                <span className="j-m-menu-ico" aria-hidden>
+                  <Tag size={14} strokeWidth={1.7} />
+                </span>
+                <span className="j-m-menu-lbl">Nhãn riêng</span>
+                <span className="j-m-menu-chev" aria-hidden>
+                  <ChevronRight size={14} strokeWidth={1.8} />
+                </span>
+              </button>
+              {sub === "personalFilter" ? (
+                <div className="j-m-submenu">
+                  <MilestonePersonalFilterOptions
+                    variant="submenu"
+                    filters={personalAttach.filters}
+                    selectedSlug={personalAttach.selectedSlug}
+                    pending={personalAttach.pending}
+                    onSelect={handleSelectPersonalFilter}
+                  />
+                </div>
+              ) : null}
+            </>
           ) : null}
 
           {hideDelete ? null : (

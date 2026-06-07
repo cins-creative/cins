@@ -24,6 +24,7 @@ export async function JourneyGalleryMainSection({
         ownerSlug,
         hasMore: page.hasMore,
         nextOffset: page.nextOffset,
+        filterCounts: page.filterCounts,
       }}
     />
   );

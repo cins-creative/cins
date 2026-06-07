@@ -26,7 +26,6 @@ import {
 } from "react";
 
 import { CongDongFeedFilterDropdown } from "@/components/cong-dong/CongDongFeedFilterDropdown";
-import { PostTagFields } from "@/components/tag/PostTagFields";
 import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import { publishPost } from "@/app/[slug]/p/new/actions";
 import { updatePost } from "@/app/[slug]/p/[postSlug]/edit/actions";
@@ -58,6 +57,7 @@ export type { MediaEditInitial };
 
 type Props = {
   mode: MediaComposeMode;
+  ownerId: string;
   ownerSlug: string;
   ownerName: string;
   ownerAvatarId?: string | null;
@@ -131,6 +131,7 @@ function photoItemsFromIds(imageIds: string[]): PhotoItem[] {
 
 export function MediaComposeView({
   mode,
+  ownerId,
   ownerSlug,
   ownerName,
   ownerAvatarId,
@@ -162,7 +163,8 @@ export function MediaComposeView({
       ? photoItemsFromIds(editInitial.photoImageIds)
       : [],
   );
-  const [tags, setTags] = useState<ArticleTagRef[]>([]);
+  const tags: ArticleTagRef[] = [];
+  const personalFilterIds = editInitial?.personalFilterIds ?? [];
   const [vis, setVis] = useState<Visibility>(
     editInitial?.visibility ?? "public",
   );
@@ -637,6 +639,7 @@ export function MediaComposeView({
               loaiMoc: editInitial.loaiMoc,
               thoiDiem: editInitial.thoiDiem,
               blocks,
+              personalFilterIds,
             })
           : await publishPost({
               ownerSlug,
@@ -648,6 +651,7 @@ export function MediaComposeView({
               loaiMoc: "ca_nhan",
               thoiDiem: new Date().toISOString().slice(0, 10),
               blocks,
+              personalFilterIds,
               congDong: congDongCompose
                 ? {
                     orgId: congDongCompose.orgId,
@@ -778,14 +782,6 @@ export function MediaComposeView({
             onChange={(e) => setCaption(e.target.value)}
             rows={3}
           />
-
-          {!congDongCompose ? (
-            <PostTagFields
-              tags={tags}
-              onChange={setTags}
-              disabled={isPending}
-            />
-          ) : null}
 
           {isPhoto ? (
             <>

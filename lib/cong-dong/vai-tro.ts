@@ -46,15 +46,15 @@ export function roleButtonLabel(
   if (!vaiTro) return "Tham gia cộng đồng";
   switch (vaiTro) {
     case "thanh_vien":
-      return "Đang là thành viên ▾";
+      return "Bạn là thành viên ▾";
     case "quan_ly_noi_dung":
-      return "Quản trị viên ▾";
+      return "Bạn là Quản trị viên ▾";
     case "admin":
-      return "Admin ▾";
+      return "Bạn là Admin ▾";
     case "owner":
-      return "Chủ sở hữu ▾";
+      return "Bạn là Chủ sở hữu ▾";
     default:
-      return "Đang là thành viên ▾";
+      return "Bạn là thành viên ▾";
   }
 }
 
@@ -142,7 +142,7 @@ export function assignableRolePermissions(
         "Mọi quyền thành viên (không rời nhóm)",
         "Quản lý nhãn bài đăng",
         "Chỉnh banner sự kiện",
-        "Cài đặt nhóm — chủ đề nghề/ngành",
+        "Chủ đề nhóm — nghề/ngành liên quan",
       ];
     case "admin":
       return [

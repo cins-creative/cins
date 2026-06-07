@@ -1,3 +1,5 @@
+"use client";
+
 type Props = {
   src: string;
   alt: string;
@@ -9,6 +11,14 @@ type Props = {
   priority?: boolean;
   className?: string;
 };
+
+/** CF variant tùy chỉnh có thể 403 — fallback sang `public`. */
+function imagedeliveryPublicUrl(url: string): string {
+  return url.replace(
+    /(https:\/\/imagedelivery\.net\/[^/]+\/[^/]+)\/(?:thumbnail|medium|cover|avatar)(?=\/|\?|$)/i,
+    "$1/public",
+  );
+}
 
 /**
  * `<img>` chuẩn Journey — lazy mặc định, dimensions chống CLS, srcset CF.
@@ -38,6 +48,15 @@ export function JourneyCoverImage({
       fetchPriority={priority ? "high" : undefined}
       decoding={priority ? "sync" : "async"}
       className={className}
+      onError={(event) => {
+        const img = event.currentTarget;
+        if (img.dataset.cfPublicFallback === "1") return;
+        const next = imagedeliveryPublicUrl(img.currentSrc || img.src);
+        if (next === img.src && next === img.currentSrc) return;
+        img.dataset.cfPublicFallback = "1";
+        img.removeAttribute("srcset");
+        img.src = next;
+      }}
     />
   );
 }

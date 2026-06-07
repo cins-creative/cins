@@ -299,6 +299,107 @@
   color: var(--cins-blue);
   background: var(--cins-blue-soft);
 }
+.cins-editor-page .cover-add.is-picking {
+  cursor: default;
+  border-color: var(--cins-blue);
+  color: var(--ink-body);
+  background: var(--cins-blue-soft);
+  gap: 12px;
+  padding: 20px 16px;
+  height: auto;
+  min-height: 200px;
+}
+.cins-editor-page .cover-add.is-dragover {
+  border-color: var(--cins-blue);
+  color: var(--cins-blue);
+  background: var(--cins-blue-soft);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.22);
+}
+.cins-editor-page .cover-add.has.is-dragover .cover-img-wrap img {
+  opacity: 0.55;
+}
+.cins-editor-page .cover-pick-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+.cins-editor-page .cover-pick-hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-muted);
+  line-height: 1.45;
+}
+.cins-editor-page .cover-pick-hint kbd {
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  font-size: 11px;
+  font-family: inherit;
+}
+.cins-editor-page .cover-pick-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid var(--cins-blue);
+  background: var(--bg-surface);
+  color: var(--cins-blue);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+.cins-editor-page .cover-pick-btn:hover {
+  background: var(--cins-blue-soft);
+}
+.cins-editor-page .cover-pick-cancel,
+.cins-editor-page .cover-pick-cancel-inline {
+  padding: 6px 10px;
+  border: none;
+  background: transparent;
+  color: var(--ink-muted);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.cins-editor-page .cover-pick-cancel-inline {
+  margin-top: 4px;
+}
+.cins-editor-page .cover-pick-cancel:hover,
+.cins-editor-page .cover-pick-cancel-inline:hover {
+  color: var(--ink-body);
+}
+.cins-editor-page .cover-pick-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.cins-editor-page .cover-pick-overlay .cover-pick-hint {
+  color: rgba(255, 255, 255, 0.88);
+}
+.cins-editor-page .cover-pick-overlay .cover-pick-hint kbd {
+  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+.cins-editor-page .cover-pick-overlay .cover-pick-cancel {
+  color: rgba(255, 255, 255, 0.75);
+}
+.cins-editor-page .cover-pick-overlay .cover-pick-cancel:hover {
+  color: #fff;
+}
 .cins-editor-page .cover-add .ico {
   display: inline-flex;
   align-items: center;
@@ -320,10 +421,16 @@
   border-radius: 24px 24px 0 0;
   cursor: default;
 }
+.cins-editor-page .cover-add.has .cover-img-wrap {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
 .cins-editor-page .cover-add.has img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center;
   display: block;
 }
 
@@ -1208,6 +1315,10 @@
 .cins-editor-page .lay-btn.active {
   background: #fff;
   color: var(--neutral-900);
+}
+.cins-editor-page .lay-thumb {
+  display: block;
+  flex-shrink: 0;
 }
 .cins-editor-page .lay-btn.round-toggle.active {
   background: var(--cins-yellow);
@@ -3335,12 +3446,47 @@
   z-index: 9200;
 }
 
-/* Compose overlay — canvas padding 28×32 (journey/cong-dong), không 36×56. */
+/* Visibility menu portal — neo theo nút topbar (compose overlay). */
+.cins-editor-page.vis-portal-root {
+  position: fixed;
+  inset: 0;
+  min-height: 0;
+  height: 0;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 9600;
+  background: transparent;
+  flex: none;
+}
+.cins-editor-page.vis-portal-root .vis-menu.is-portal {
+  pointer-events: auto;
+  display: block;
+  right: auto;
+}
+
+/* Compose overlay — left padding 56px cho `.block-side` (left: -46px). */
 .cins-editor-page.is-overlay .editor-canvas {
-  overflow: hidden;
+  overflow: visible;
+  padding-left: 56px;
 }
 .cins-editor-page.is-overlay .cover-add.has {
-  margin: -28px -32px 28px;
-  width: calc(100% + 64px);
-  border-radius: 0;
+  /* Overlay: nằm gọn trong canvas, không full-bleed ra mép sheet. */
+  margin: 0 0 24px;
+  width: 100%;
+  height: 220px;
+  max-height: min(320px, 36vh);
+  border-radius: var(--radius-lg);
+}
+@media (max-width: 991.98px) {
+  .cins-editor-page.is-overlay .cover-add.has {
+    margin: 0 0 20px;
+    width: 100%;
+    height: 200px;
+    border-radius: var(--radius-lg);
+  }
+}
+@media (max-width: 767.98px) {
+  .cins-editor-page.is-overlay .cover-add.has {
+    height: 180px;
+  }
 }

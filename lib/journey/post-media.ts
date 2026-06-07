@@ -97,9 +97,27 @@ export const GALLERY_MEDIA_FILTER_OPTIONS: ReadonlyArray<{
 }> = [
   { id: "all", label: "Tất cả" },
   { id: "article", label: "Bài viết" },
-  { id: "photo", label: "Ảnh" },
+  { id: "photo", label: "Album ảnh" },
   { id: "video", label: "Video" },
 ];
+
+export type GalleryMediaFilterCounts = Record<GalleryMediaFilter, number>;
+
+export function computeGalleryMediaFilterCounts(
+  items: ReadonlyArray<{ mediaKind?: GalleryMediaKind }>,
+): GalleryMediaFilterCounts {
+  const counts: GalleryMediaFilterCounts = {
+    all: items.length,
+    article: 0,
+    photo: 0,
+    video: 0,
+  };
+  for (const item of items) {
+    const kind = item.mediaKind ?? "article";
+    counts[kind] += 1;
+  }
+  return counts;
+}
 
 export function galleryMediaFilterLabel(filter: GalleryMediaFilter): string {
   return (
@@ -240,6 +258,7 @@ export type MediaEditInitial = {
   thoiDiem: string;
   photoImageIds?: string[];
   videoUrl?: string;
+  personalFilterIds?: string[];
 };
 
 export function buildMediaEditInitial(params: {
@@ -251,6 +270,7 @@ export function buildMediaEditInitial(params: {
   thoiDiem: string;
   blocks: ReadonlyArray<Block>;
   kind: MediaPostKind;
+  personalFilterIds?: string[];
 }): MediaEditInitial {
   const caption = extractBodyCaption(params.blocks);
   return {
@@ -269,5 +289,6 @@ export function buildMediaEditInitial(params: {
       params.kind === "video"
         ? (extractVideoUrl(params.blocks) ?? "")
         : undefined,
+    personalFilterIds: params.personalFilterIds,
   };
 }

@@ -24,11 +24,9 @@ import {
   MILESTONE_CREDITS_UPDATED_EVENT,
   type MilestoneCreditsUpdatedDetail,
 } from "@/lib/journey/coauthor-credits-events";
-import {
-  getVisibility,
-  type LoaiMocVisibilityMap,
-} from "@/lib/journey/filter-visibility";
+import type { LoaiMocVisibilityMap } from "@/lib/journey/filter-visibility";
 import type { MilestoneFilterCounts } from "@/lib/journey/milestones-page-fetch";
+import { buildFilterOptions, computeFilterCounts } from "@/lib/journey/milestone-filter-options";
 import {
   COAUTHOR_INVITE_ACCEPTED_EVENT,
   COAUTHOR_INVITE_FAILED_EVENT,
@@ -47,6 +45,9 @@ import {
   type TimelineScrollSpy,
 } from "@/lib/journey/timeline-scroll-spy";
 import type { PendingCoAuthorInvite } from "@/lib/social/types";
+import { matchesPersonalFilterSlug } from "@/lib/filter/client-utils";
+import { CONG_DONG_PERSONAL_FILTER_SLUG } from "@/lib/filter/cong-dong-personal-filter.shared";
+import { useJourneyPersonalFilterOptional } from "@/components/journey/JourneyPersonalFilterContext";
 
 type ScrollLoadConfig = {
   ownerSlug: string;
@@ -99,6 +100,7 @@ export function JourneyTimeline({
   coAuthorPendingInvites = [],
   scrollLoad,
 }: Props) {
+  const personalFilter = useJourneyPersonalFilterOptional();
   const [filter, setFilter] = useState<FilterGroup>("all");
   const [items, setItems] = useState<MilestoneItem[]>(() => [...initialMilestones]);
   const [hasMore, setHasMore] = useState(scrollLoad?.hasMore ?? false);
@@ -118,6 +120,63 @@ export function JourneyTimeline({
     setNextOffset(scrollLoad?.nextOffset ?? initialMilestones.length);
     setLoadError(false);
   }, [initialMilestones, scrollLoad?.hasMore, scrollLoad?.nextOffset]);
+
+  useEffect(() => {
+    if (personalFilter?.activeSlug === CONG_DONG_PERSONAL_FILTER_SLUG) {
+      personalFilter.setActiveSlug(null);
+      setFilter("cong-dong");
+      return;
+    }
+    if (personalFilter?.activeSlug) setFilter("all");
+  }, [personalFilter?.activeSlug, personalFilter]);
+
+  const personalFilterSlug = personalFilter?.activeSlug ?? null;
+  const labelFetchSlugRef = useRef<string | null | undefined>(undefined);
+
+  /** Nhãn riêng lọc server-side — visitor chỉ thấy cột mốc công khai. */
+  useEffect(() => {
+    if (!scrollLoad) return;
+
+    if (!personalFilterSlug) {
+      if (labelFetchSlugRef.current) {
+        setItems([...initialMilestones]);
+        setHasMore(scrollLoad.hasMore ?? false);
+        setNextOffset(scrollLoad.nextOffset ?? initialMilestones.length);
+        setLoadError(false);
+      }
+      labelFetchSlugRef.current = null;
+      return;
+    }
+
+    if (labelFetchSlugRef.current === personalFilterSlug) return;
+    labelFetchSlugRef.current = personalFilterSlug;
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch(
+          `/api/journey/${encodeURIComponent(scrollLoad.ownerSlug)}/milestones?offset=0&label=${encodeURIComponent(personalFilterSlug)}`,
+        );
+        if (!res.ok) throw new Error("load failed");
+        const data = (await res.json()) as {
+          milestones: MilestoneItem[];
+          hasMore: boolean;
+          nextOffset: number;
+        };
+        if (cancelled) return;
+        setItems(data.milestones ?? []);
+        setHasMore(data.hasMore ?? false);
+        setNextOffset(data.nextOffset ?? data.milestones?.length ?? 0);
+        setLoadError(false);
+      } catch {
+        if (!cancelled) setLoadError(true);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [personalFilterSlug, scrollLoad, initialMilestones]);
 
   useEffect(() => {
     const onAccepted = (event: Event) => {
@@ -184,8 +243,11 @@ export function JourneyTimeline({
     setLoadingMore(true);
     setLoadError(false);
     try {
+      const labelQ = personalFilter?.activeSlug
+        ? `&label=${encodeURIComponent(personalFilter.activeSlug)}`
+        : "";
       const res = await fetch(
-        `/api/journey/${encodeURIComponent(scrollLoad.ownerSlug)}/milestones?offset=${nextOffset}`,
+        `/api/journey/${encodeURIComponent(scrollLoad.ownerSlug)}/milestones?offset=${nextOffset}${labelQ}`,
       );
       if (!res.ok) throw new Error("load failed");
       const data = (await res.json()) as {
@@ -206,7 +268,7 @@ export function JourneyTimeline({
       loadingMoreRef.current = false;
       setLoadingMore(false);
     }
-  }, [scrollLoad, hasMore, nextOffset]);
+  }, [scrollLoad, hasMore, nextOffset, personalFilter?.activeSlug]);
 
   useEffect(() => {
     if (!scrollLoad || !hasMore) return;
@@ -307,30 +369,33 @@ export function JourneyTimeline({
     return () => el.removeEventListener("pointerover", onPointerOver);
   }, [ownerSlug]);
 
-  const visibleItems = useMemo(() => {
-    if (isOwner || !filterVisibility) return items;
-    return items.filter((m) => {
-      if (m.variant !== "self") return true;
-      return getVisibility(filterVisibility, m.type) === "public";
-    });
-  }, [items, isOwner, filterVisibility]);
+  const visibleItems = items;
 
   /* Tính counts cho từng group (dùng cho dropdown). */
-  const counts = useMemo((): Counts => {
+  const counts = useMemo((): MilestoneFilterCounts => {
     if (scrollLoad?.filterCounts) return scrollLoad.filterCounts;
-    return computeCounts(visibleItems);
+    return computeFilterCounts(visibleItems);
   }, [scrollLoad?.filterCounts, visibleItems]);
 
   const filtered = useMemo(() => {
-    if (filter === "all") return visibleItems;
+    let rows = visibleItems;
+    if (personalFilter?.activeSlug) {
+      rows = rows.filter((m) =>
+        matchesPersonalFilterSlug(m.personalFilterSlugs, personalFilter.activeSlug),
+      );
+    }
+    if (filter === "all") return rows;
+    if (filter === "cong-dong") {
+      return rows.filter((m) => m.visibility === "cong-dong");
+    }
     if (filter === "verified") {
-      return visibleItems.filter((m) => m.variant === "verified");
+      return rows.filter((m) => m.variant === "verified");
     }
     if (filter === "bookmark") {
-      return visibleItems.filter((m) => m.variant === "bookmark");
+      return rows.filter((m) => m.variant === "bookmark");
     }
-    return visibleItems.filter((m) => m.type === filter);
-  }, [visibleItems, filter]);
+    return rows.filter((m) => m.type === filter);
+  }, [visibleItems, filter, personalFilter?.activeSlug]);
 
   /* Group theo năm DESC. */
   const byYear = useMemo(() => groupByYearDesc(filtered), [filtered]);
@@ -380,7 +445,15 @@ export function JourneyTimeline({
   }, [filtered]);
 
   const totalVisible = filtered.length;
-  const options = buildOptions(counts);
+  const hasPersonalLabelFilter = Boolean(personalFilter?.activeSlug);
+  const activePersonalFilter = personalFilter?.activeSlug
+    ? personalFilter.filters.find((f) => f.slug === personalFilter.activeSlug)
+    : null;
+  const options = buildFilterOptions(counts).map((o) =>
+    hasPersonalLabelFilter || o.group !== filter
+      ? o
+      : { ...o, count: totalVisible },
+  );
   const hasData =
     visibleItems.length > 0 ||
     items.length > 0 ||
@@ -397,12 +470,11 @@ export function JourneyTimeline({
         month={spy.month}
         filter={filter}
         onFilterChange={setFilter}
-        options={options.map((o) =>
-          o.group === filter ? { ...o, count: totalVisible } : o,
-        )}
+        options={options}
         enabled={isOwner || hasData}
         isOwner={isOwner}
         filterVisibility={filterVisibility}
+        personalLabelMatchCount={totalVisible}
       />
 
       {isOwner && viewerProfileId && coAuthorPendingInvites.length > 0 ? (
@@ -446,7 +518,10 @@ export function JourneyTimeline({
             />
           ))
         ) : (
-          <FilteredEmptyState filter={filter} />
+          <FilteredEmptyState
+            filter={filter}
+            personalLabelName={activePersonalFilter?.ten ?? null}
+          />
         )
       ) : isOwner ? (
         <OwnerEmptyState
@@ -505,65 +580,6 @@ export function JourneyTimeline({
 /* ────────────────────────────────────────────────────────────────
  * Helpers — group + counts + filter options
  * ──────────────────────────────────────────────────────────────── */
-
-type Counts = {
-  all: number;
-  hoc: number;
-  lam: number;
-  "du-an": number;
-  "su-kien": number;
-  "thanh-tuu": number;
-  "ca-nhan": number;
-  bookmark: number;
-  verified: number;
-};
-
-function computeCounts(milestones: ReadonlyArray<MilestoneItem>): Counts {
-  const c: Counts = {
-    all: milestones.length,
-    hoc: 0,
-    lam: 0,
-    "du-an": 0,
-    "su-kien": 0,
-    "thanh-tuu": 0,
-    "ca-nhan": 0,
-    bookmark: 0,
-    verified: 0,
-  };
-  for (const m of milestones) {
-    if (m.type in c) c[m.type] = (c[m.type] as number) + 1;
-    if (m.variant === "verified") c.verified += 1;
-  }
-  return c;
-}
-
-function buildOptions(c: Counts) {
-  return [
-    { group: "all" as const, label: "Tất cả", count: c.all, section: "type" as const, ico: "●" },
-    { group: "hoc" as const, label: "Học tập", count: c.hoc, section: "type" as const, ico: "◆" },
-    { group: "lam" as const, label: "Công việc", count: c.lam, section: "type" as const, ico: "◆" },
-    { group: "du-an" as const, label: "Dự án", count: c["du-an"], section: "type" as const, ico: "◆" },
-    { group: "su-kien" as const, label: "Sự kiện", count: c["su-kien"], section: "type" as const, ico: "◆" },
-    { group: "thanh-tuu" as const, label: "Thành tựu", count: c["thanh-tuu"], section: "type" as const, ico: "◆" },
-    { group: "ca-nhan" as const, label: "Cá nhân", count: c["ca-nhan"], section: "type" as const, ico: "◆" },
-    {
-      group: "verified" as const,
-      label: "Verified",
-      count: c.verified,
-      section: "status" as const,
-      modifier: "verified" as const,
-      ico: "✓",
-    },
-    {
-      group: "bookmark" as const,
-      label: "Lưu về",
-      count: c.bookmark,
-      section: "status" as const,
-      modifier: "bookmark" as const,
-      ico: "⤓",
-    },
-  ];
-}
 
 function groupByYearDesc(
   milestones: ReadonlyArray<MilestoneItem>,
@@ -630,16 +646,46 @@ function GuestEmptyState({ ownerName }: { ownerName: string }) {
   );
 }
 
-function FilteredEmptyState({ filter }: { filter: FilterGroup }) {
+function FilteredEmptyState({
+  filter,
+  personalLabelName,
+}: {
+  filter: FilterGroup;
+  personalLabelName?: string | null;
+}) {
+  const FILTER_LABELS: Record<FilterGroup, string> = {
+    all: "Tất cả",
+    hoc: "Học tập",
+    lam: "Công việc",
+    "du-an": "Dự án",
+    "su-kien": "Sự kiện",
+    "thanh-tuu": "Thành tựu",
+    "ca-nhan": "Cá nhân",
+    bookmark: "Lưu về",
+    verified: "Verified",
+  };
+
   return (
     <section className="j-empty">
       <div className="j-empty-card">
         <p className="j-empty-eyebrow">Bộ lọc hiện tại</p>
         <h2 className="j-empty-title">
-          Không có cột mốc thuộc nhóm <em>{filter}</em>.
+          {personalLabelName ? (
+            <>
+              Không có cột mốc công khai nào gắn nhãn{" "}
+              <em>{personalLabelName}</em>.
+            </>
+          ) : (
+            <>
+              Không có cột mốc thuộc nhóm{" "}
+              <em>{FILTER_LABELS[filter] ?? filter}</em>.
+            </>
+          )}
         </h2>
         <p className="j-empty-body">
-          Đổi bộ lọc khác hoặc chọn “Tất cả” để xem toàn bộ Journey.
+          {personalLabelName
+            ? "Các bài gắn nhãn này có thể đang ở chế độ riêng tư trên từng cột mốc (badge trên card)."
+            : "Đổi bộ lọc khác hoặc chọn “Tất cả” để xem toàn bộ Journey."}
         </p>
       </div>
     </section>

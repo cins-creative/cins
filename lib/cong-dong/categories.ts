@@ -3,6 +3,7 @@ import "server-only";
 import { CONG_DONG_CATEGORY_MAX } from "@/lib/cong-dong/constants";
 import { isCongDongAdmin } from "@/lib/cong-dong/membership";
 import type { CongDongCategory } from "@/lib/cong-dong/types";
+import { resolveHubArticleThumbSync, resolveHubArticleImages } from "@/lib/bai-viet/thumbnail";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 export { CONG_DONG_CATEGORY_MAX };
@@ -12,22 +13,44 @@ const CATEGORY_KEY = "danh_muc";
 const ALLOWED_LOAI = new Set(["nghe", "nganh_dao_tao"]);
 
 const CATEGORY_ARTICLE_SELECT =
-  "id, slug, tieu_de, loai_bai_viet, linh_vuc:id_linh_vuc(slug, ten)";
+  "id, slug, tieu_de, loai_bai_viet, tom_tat, meta_description, cover_id, thumbnail, linh_vuc:id_linh_vuc(slug, ten)";
 
 type CategoryArticleRow = {
   id: string;
   slug: string;
   tieu_de: string;
   loai_bai_viet: string;
+  tom_tat: string | null;
+  meta_description: string | null;
+  cover_id: string | null;
+  thumbnail: string | null;
   linh_vuc: { slug: string; ten: string } | null;
 };
 
-function mapCategoryArticleRow(row: CategoryArticleRow): CongDongCategory {
+async function mapCategoryArticleRow(
+  row: CategoryArticleRow,
+): Promise<CongDongCategory> {
+  const { thumb_url } = await resolveHubArticleImages({
+    thumbnail: row.thumbnail,
+    cover_id: row.cover_id,
+  });
+  const thumbUrl =
+    thumb_url ??
+    resolveHubArticleThumbSync({
+      thumbnail: row.thumbnail,
+      cover_id: row.cover_id,
+    });
+
   return {
     id: row.id,
     slug: row.slug,
     tieuDe: row.tieu_de?.trim() || "Không tiêu đề",
     loaiBaiViet: row.loai_bai_viet as CongDongCategory["loaiBaiViet"],
+    tomTat: row.tom_tat?.trim() || null,
+    metaDescription: row.meta_description?.trim() || null,
+    thumbUrl,
+    coverId: row.cover_id?.trim() || null,
+    thumbnail: row.thumbnail?.trim() || null,
     linhVucTen: row.linh_vuc?.ten?.trim() || null,
     linhVucSlug: row.linh_vuc?.slug?.trim() || null,
   };
@@ -66,9 +89,11 @@ async function hydrateCategoryArticles(
     .eq("trang_thai_noi_dung", "published")
     .returns<CategoryArticleRow[]>();
 
-  const byId = new Map(
-    (data ?? []).map((row) => [row.id, mapCategoryArticleRow(row)]),
+  const rows = data ?? [];
+  const mapped = await Promise.all(
+    rows.map((row) => mapCategoryArticleRow(row)),
   );
+  const byId = new Map(mapped.map((item) => [item.id, item]));
 
   const out: CongDongCategory[] = [];
   for (const id of ids) {
@@ -182,26 +207,32 @@ export type CongDongCategoryArticleHit = CongDongCategory;
 export async function searchCongDongCategoryArticles(
   query: string,
   limit = 16,
+  loai?: CongDongCategory["loaiBaiViet"] | "all",
 ): Promise<CongDongCategoryArticleHit[]> {
   const q = query.trim();
   const admin = createServiceRoleClient();
 
+  const loaiFilter =
+    loai && loai !== "all" ? [loai] : (["nghe", "nganh_dao_tao"] as const);
+
   let req = admin
     .from("article_bai_viet")
     .select(CATEGORY_ARTICLE_SELECT)
-    .in("loai_bai_viet", ["nghe", "nganh_dao_tao"])
+    .in("loai_bai_viet", [...loaiFilter])
     .eq("trang_thai_noi_dung", "published")
     .order("tieu_de", { ascending: true })
     .limit(limit);
 
   if (q) {
     const safe = q.replace(/[%_,]/g, "\\$&");
-    req = req.ilike("tieu_de", `%${safe}%`);
+    req = req.or(
+      `tieu_de.ilike.%${safe}%,slug.ilike.%${safe}%,tom_tat.ilike.%${safe}%,meta_description.ilike.%${safe}%`,
+    );
   }
 
   const { data } = await req.returns<CategoryArticleRow[]>();
 
-  return (data ?? []).map(mapCategoryArticleRow);
+  return Promise.all((data ?? []).map((row) => mapCategoryArticleRow(row)));
 }
 
 export type CongDongOrgCategoryPreview = {

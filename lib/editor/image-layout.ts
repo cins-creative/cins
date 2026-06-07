@@ -1,19 +1,3 @@
-import {
-  Columns2,
-  Columns3,
-  GalleryHorizontal,
-  GalleryHorizontalEnd,
-  Grid2x2,
-  Grid3x3,
-  LayoutDashboard,
-  LayoutGrid,
-  Maximize2,
-  PanelRight,
-  RectangleHorizontal,
-  Rows3,
-  type LucideIcon,
-} from "lucide-react";
-
 import { getCfAccountHash } from "@/lib/cloudflare/account-hash";
 
 export type ImgLayout =
@@ -44,7 +28,6 @@ export type MosaicCell = {
 
 export type ImgLayoutMeta = {
   k: ImgLayout;
-  Ico: LucideIcon;
   /** Số ô tối đa trong preview (hoặc cap khi dynamic). */
   n: number;
   name: string;
@@ -52,21 +35,26 @@ export type ImgLayoutMeta = {
   dynamic?: boolean;
 };
 
-export const IMG_LAYOUTS: ImgLayoutMeta[] = [
-  { k: "full", Ico: Maximize2, n: 1, name: "Tràn viền" },
-  { k: "boxed", Ico: RectangleHorizontal, n: 1, name: "Trong khung" },
-  { k: "stack", Ico: Rows3, n: 10, name: "Xếp dọc", dynamic: true },
-  { k: "duo", Ico: Columns2, n: 2, name: "Đôi" },
-  { k: "duo-stack", Ico: Columns2, n: 10, name: "2 cột", dynamic: true },
-  { k: "row3", Ico: GalleryHorizontal, n: 3, name: "Hàng 3" },
-  { k: "trio", Ico: Columns3, n: 3, name: "Lớn trái" },
-  { k: "big-right", Ico: PanelRight, n: 3, name: "Lớn phải" },
-  { k: "grid4", Ico: LayoutGrid, n: 4, name: "Lưới 4" },
-  { k: "strip5", Ico: GalleryHorizontalEnd, n: 5, name: "Dải 5" },
-  { k: "grid6", Ico: Grid2x2, n: 6, name: "Lưới 6" },
-  { k: "grid9", Ico: Grid3x3, n: 9, name: "Lưới 9" },
-  { k: "mosaic", Ico: LayoutDashboard, n: 3, name: "Lưới tùy chỉnh" },
+const IMG_LAYOUT_META: ImgLayoutMeta[] = [
+  { k: "full", n: 1, name: "Tràn viền" },
+  { k: "boxed", n: 1, name: "Trong khung" },
+  { k: "stack", n: 10, name: "Xếp dọc", dynamic: true },
+  { k: "duo", n: 2, name: "Đôi" },
+  { k: "duo-stack", n: 10, name: "2 cột", dynamic: true },
+  { k: "row3", n: 3, name: "Hàng 3" },
+  { k: "trio", n: 3, name: "Lớn trái" },
+  { k: "big-right", n: 3, name: "Lớn phải" },
+  { k: "grid4", n: 4, name: "Lưới 4" },
+  { k: "strip5", n: 5, name: "Dải 5" },
+  { k: "grid6", n: 6, name: "Lưới 6" },
+  { k: "grid9", n: 9, name: "Lưới 9" },
+  { k: "mosaic", n: 3, name: "Lưới tùy chỉnh" },
 ];
+
+/** Layout hiển thị trên LayBar — không gồm legacy ẩn khỏi picker. */
+export const IMG_LAYOUTS: ImgLayoutMeta[] = IMG_LAYOUT_META.filter(
+  (l) => l.k !== "stack" && l.k !== "duo-stack",
+);
 
 const SEED_BASE = "https://picsum.photos/seed/";
 const CF_UUID_RE =
@@ -92,7 +80,7 @@ export function resolveEditorImageUrl(
 }
 
 export function getImgLayoutMeta(layout: ImgLayout): ImgLayoutMeta {
-  return IMG_LAYOUTS.find((l) => l.k === layout) ?? IMG_LAYOUTS[0];
+  return IMG_LAYOUT_META.find((l) => l.k === layout) ?? IMG_LAYOUT_META[0];
 }
 
 export function imgLayoutPreviewSlots(
@@ -118,8 +106,7 @@ export function suggestLayoutForPhotoCount(count: number): ImgLayout {
   if (count === 4) return "grid4";
   if (count === 5) return "strip5";
   if (count <= 6) return "grid6";
-  if (count <= 9) return "grid9";
-  return "stack";
+  return "grid9";
 }
 
 export function initMosaicCellsFromSeeds(seeds: string[]): MosaicCell[] {

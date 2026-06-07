@@ -5,14 +5,12 @@ import {
   BookOpen,
   Briefcase,
   Calendar,
-  ChevronDown,
   ChevronUp,
   CornerDownRight,
   FileText,
   FolderKanban,
   Globe,
   Eye,
-  Image as ImageIcon,
   Lock,
   MessageCircle,
   Star,
@@ -22,15 +20,12 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { AuthorRoleTooltip } from "@/components/journey/AuthorRoleTooltip";
-import { JourneyArticleTagLink } from "@/components/journey/JourneyArticleTagLink";
 import { JourneyAuthorRowFriendAction } from "@/components/journey/JourneyAuthorRowFriendAction";
-import { JourneyCardVideo } from "@/components/journey/JourneyCardVideo";
+import { JourneyMilestoneCardBodyContent } from "@/components/journey/JourneyMilestoneCardBodyContent";
 import { JourneyMilestoneUnfold } from "@/components/journey/JourneyMilestoneUnfold";
 import { JourneyCommentLink } from "@/components/journey/JourneyCommentLink";
 import { JourneyArticleTagManager } from "@/components/journey/JourneyArticleTagManager";
 import { JourneyCoAuthorProposal } from "@/components/journey/JourneyCoAuthorProposal";
-import { JourneyCoverImage } from "@/components/journey/JourneyCoverImage";
-import { ImageGrid } from "@/components/journey/ImageGrid";
 import { JourneyBookmarkButton } from "@/components/journey/JourneyBookmarkButton";
 import { JourneyMilestoneInlineControls } from "@/components/journey/JourneyMilestoneInlineControls";
 import { JourneyLikeButton } from "@/components/journey/JourneyLikeButton";
@@ -42,6 +37,7 @@ import type {
   CoAuthorCredit,
   MilestoneAttribution,
   MilestoneBookmarkSource,
+  MilestoneCongDongOrg,
   MilestoneItem,
   MilestoneType,
 } from "@/components/journey/milestone-types";
@@ -50,11 +46,10 @@ import type { LoaiMoc, Visibility } from "@/lib/editor/types";
 import { photoGridImagesFromBlocks } from "@/lib/journey/image-grid";
 import {
   detectMediaPostKind,
-  extractVideoUrl,
   milestoneCardCaptionPlain,
   shouldShowMilestoneCardTitle,
 } from "@/lib/journey/post-media";
-import { extractVideoProcessingMeta } from "@/lib/journey/video-processing-meta";
+import { JOURNEY_MILESTONE_TYPE_OPTIONS } from "@/lib/journey/milestone-type-options";
 import { getNameInitials } from "@/lib/journey/profile";
 
 type Props = {
@@ -116,19 +111,7 @@ const TYPE_ICON: Record<MilestoneType, LucideIcon> = {
   bookmark: Bookmark,
 };
 
-const EDITABLE_TYPE_OPTIONS: ReadonlyArray<{
-  ui: Exclude<MilestoneType, "bookmark">;
-  db: LoaiMoc;
-  label: string;
-  Icon: LucideIcon;
-}> = [
-  { ui: "hoc", db: "hoc", label: "Học tập", Icon: BookOpen },
-  { ui: "lam", db: "lam_viec", label: "Công việc", Icon: Briefcase },
-  { ui: "du-an", db: "du_an", label: "Dự án", Icon: FolderKanban },
-  { ui: "su-kien", db: "su_kien", label: "Sự kiện", Icon: Calendar },
-  { ui: "thanh-tuu", db: "thanh_tuu", label: "Thành tựu", Icon: Trophy },
-  { ui: "ca-nhan", db: "ca_nhan", label: "Cá nhân", Icon: UserCircle2 },
-];
+const EDITABLE_TYPE_OPTIONS = JOURNEY_MILESTONE_TYPE_OPTIONS;
 
 const EDITABLE_VIS_OPTIONS: ReadonlyArray<{
   ui: NonNullable<MilestoneItem["visibility"]>;
@@ -140,6 +123,19 @@ const EDITABLE_VIS_OPTIONS: ReadonlyArray<{
   { ui: "public", db: "public", label: "Công khai", Icon: Globe },
   { ui: "unlisted", db: "theo_nhom", label: "Theo nhóm", Icon: Users },
   { ui: "private", db: "chi_minh", label: "Chỉ mình tôi", Icon: Lock },
+];
+
+/** Đổi từ `cong_dong` sang thẻ Journey thường — rời feed cộng đồng. */
+const CONG_DONG_GRADUATE_VIS_OPTIONS: ReadonlyArray<{
+  ui: NonNullable<MilestoneItem["visibility"]>;
+  db: Visibility;
+  label: string;
+  Icon: LucideIcon;
+}> = [
+  { ui: "public", db: "public", label: "Công khai", Icon: Globe },
+  { ui: "unlisted", db: "theo_nhom", label: "Theo nhóm", Icon: Users },
+  { ui: "private", db: "chi_minh", label: "Chỉ mình tôi", Icon: Lock },
+  { ui: "feature", db: "feature", label: "Nổi bật", Icon: Star },
 ];
 
 /** Tagged / Lưu về — chỉ đổi hiển thị trên Journey của viewer. */
@@ -163,9 +159,52 @@ const AVATAR_TONE_CLASSES = [
   "av-coral",
 ];
 
+function MilestoneTypeBadgeContent({ type }: { type: MilestoneType }) {
+  const TypeIco = TYPE_ICON[type];
+  return (
+    <>
+      <TypeIco size={11} strokeWidth={1.8} aria-hidden />
+      {TYPE_LABEL[type]}
+    </>
+  );
+}
+
+function CongDongTypeBadge() {
+  return (
+    <span className="ctx-badge j-type-cong-dong">
+      <Users size={11} strokeWidth={1.8} aria-hidden />
+      Cộng đồng
+    </span>
+  );
+}
+
+function congDongInlineContext(
+  org?: MilestoneItem["congDongOrg"] | null,
+  postTitle?: string | null,
+) {
+  if (!org) return { orgName: null, postTitle: postTitle?.trim() || null };
+  return {
+    orgName: org.name,
+    orgSlug: org.slug,
+    orgAvatarUrl: org.avatarUrl,
+    orgCoverUrl: org.coverUrl,
+    orgInitial: org.initial,
+    postTitle: postTitle?.trim() || null,
+  };
+}
+
 function visibilityIcon(
   v: MilestoneItem["visibility"] | undefined,
+  congDongOrg?: MilestoneItem["congDongOrg"],
 ): { Icon: LucideIcon; label: string } | null {
+  if (v === "cong-dong") {
+    return {
+      Icon: Users,
+      label: congDongOrg?.name
+        ? `Cộng đồng · ${congDongOrg.name}`
+        : "Cộng đồng",
+    };
+  }
   if (v === "feature") return { Icon: Star, label: "Nổi bật" };
   if (!v || v === "public") return { Icon: Globe, label: "Công khai" };
   if (v === "unlisted") return { Icon: Users, label: "Theo nhóm" };
@@ -216,6 +255,8 @@ export function JourneyMilestoneCard({
     noiDungBlocks,
     cardLayout = "default",
     orgHref,
+    congDongOrg,
+    personalFilterSlugs = [],
   } = milestone;
 
   const displayDate = `${String(day).padStart(2, "0")}-${String(month).padStart(2, "0")}-${year}`;
@@ -232,7 +273,6 @@ export function JourneyMilestoneCard({
           .filter(Boolean)
           .join(" ")}
         displayDate={displayDate}
-        type={type}
         title={title}
         body={body}
         attribution={attribution}
@@ -255,8 +295,8 @@ export function JourneyMilestoneCard({
     .filter(Boolean)
     .join(" ");
 
-  const vis = visibilityIcon(visibility);
-  const TypeIco = TYPE_ICON[type];
+  const vis = visibilityIcon(visibility, congDongOrg);
+  const isCongDongPost = visibility === "cong-dong";
   const isBookmarkMilestone = variant === "bookmark";
   const canManageSelf =
     isOwner && (variant === "self" || isBookmarkMilestone) && Boolean(ownerSlug);
@@ -298,12 +338,6 @@ export function JourneyMilestoneCard({
   const mediaKind = detectMediaPostKind(noiDungBlocks);
   const isPhotoAlbum = mediaKind === "photo" && photoGridImages !== null;
   const isVideoPost = mediaKind === "video";
-  const videoEmbedUrl = isVideoPost
-    ? extractVideoUrl(noiDungBlocks ?? [])
-    : null;
-  const videoProcessingMeta = isVideoPost
-    ? extractVideoProcessingMeta(noiDungBlocks ?? [])
-    : null;
   const showCardTitle = shouldShowMilestoneCardTitle(title, noiDungBlocks);
   const cardCaption = milestoneCardCaptionPlain(body, noiDungBlocks);
   const cardContentKind = isPhotoAlbum
@@ -319,6 +353,9 @@ export function JourneyMilestoneCard({
   const showComments = inlineExpand?.showComments ?? false;
   const showUnfold = showContent || showComments;
   const isContentOpen = isArticle && showContent;
+  const pinActionsAboveComments = Boolean(
+    inlineExpand && showUnfold && showComments,
+  );
   const milestoneId = cotMocId ?? milestone.id;
 
   /* Hiển thị badge người đăng
@@ -334,7 +371,8 @@ export function JourneyMilestoneCard({
    * để giữ ngữ cảnh loại cột mốc. */
   const showAuthorBadge =
     (variant === "self" || isBookmarkMilestone) &&
-    Boolean(authorName || authorAvatarUrl);
+    Boolean(authorName || authorAvatarUrl) &&
+    !isCongDongPost;
 
   function shouldIgnoreExpandTrigger(target: Element | null): boolean {
     return Boolean(
@@ -358,6 +396,72 @@ export function JourneyMilestoneCard({
     e.preventDefault();
     inlineExpand.onToggleContent();
   }
+
+  const jcardActions = (
+    <div className="jcard-actions">
+      <JourneyLikeButton
+        milestoneId={cotMocId ?? milestone.id}
+        initialLiked={social?.viewerLiked}
+        initialCount={social?.likeCount}
+        showCount={social?.showCounts}
+      />
+      {inlineExpand ? (
+        <JourneyCommentLink
+          commentCount={comments}
+          onOpenComments={inlineExpand.onOpenComments}
+        />
+      ) : (
+        <button
+          type="button"
+          className="action-btn"
+          aria-label="Bình luận"
+          data-open-post="true"
+        >
+          <MessageCircle size={16} strokeWidth={1.8} aria-hidden />
+          {comments ? <span>{comments}</span> : null}
+        </button>
+      )}
+      {canBookmark ? (
+        <JourneyBookmarkButton
+          milestoneId={cotMocId ?? milestone.id}
+          title={title}
+          initialSaved={social?.viewerBookmarked}
+          initialCount={social?.bookmarkCount}
+          showCount={social?.showCounts}
+        />
+      ) : null}
+      <span className="action-spacer" />
+      {canManageArticleTags && tacPhamId ? (
+        <JourneyArticleTagManager
+          tacPhamId={tacPhamId}
+          initialTags={articleTags}
+        />
+      ) : null}
+      {canShowCoAuthorAction && tacPhamId && !isCongDongPost ? (
+        <JourneyCoAuthorProposal
+          tacPhamId={tacPhamId}
+          mode={canManageCoAuthors ? "owner" : "proposal"}
+          ownerId={coAuthorExcludeOwnerId}
+        />
+      ) : null}
+      {inlineExpand && showUnfold ? (
+        <button
+          type="button"
+          className="jcard-unfold-toggle"
+          onClick={inlineExpand.onClose}
+          aria-label="Thu gọn"
+        >
+          <ChevronUp size={15} strokeWidth={2.2} aria-hidden />
+          <span>Thu gọn</span>
+        </button>
+      ) : null}
+      {views ? (
+        <span className="jcard-view-count" aria-label={`${formatViews(views)} lượt xem`}>
+          {formatViews(views)}
+        </span>
+      ) : null}
+    </div>
+  );
 
   return (
     <article
@@ -392,13 +496,17 @@ export function JourneyMilestoneCard({
           {canManage && ownerSlug ? (
             <div
               className={
-                "jcard-datebar" + (canManageTagged ? " jcard-datebar--tagged" : "")
+                "jcard-datebar" +
+                (canManageTagged ? " jcard-datebar--tagged" : "") +
+                (isCongDongPost && congDongOrg ? " jcard-datebar--cong-dong" : "")
               }
             >
               {canManageTagged && attribution ? (
                 <TaggedByPanel attr={attribution} dateLabel={displayDate} />
               ) : null}
-              {showAuthorBadge ? (
+              {isCongDongPost && congDongOrg ? (
+                <CongDongSourceChip org={congDongOrg} dateLabel={displayDate} />
+              ) : showAuthorBadge ? (
                 <span className="org-chip">
                   <span className="org-logo" aria-hidden>
                     {authorAvatarUrl ? (
@@ -423,16 +531,35 @@ export function JourneyMilestoneCard({
                     <Bookmark size={11} strokeWidth={1.8} aria-hidden />
                     {TYPE_LABEL.bookmark}
                   </span>
+                ) : isCongDongPost ? (
+                  <JourneyMilestoneInlineControls
+                    kind="type"
+                    milestoneId={cotMocId ?? milestone.id}
+                    current={type}
+                    options={EDITABLE_TYPE_OPTIONS}
+                    personalFilterSlugs={
+                      canManageSelf && !foreignJourneyContext
+                        ? personalFilterSlugs
+                        : undefined
+                    }
+                    congDongPost={congDongInlineContext(congDongOrg, title)}
+                  >
+                    <CongDongTypeBadge />
+                  </JourneyMilestoneInlineControls>
                 ) : (
                   <JourneyMilestoneInlineControls
                     kind="type"
                     milestoneId={cotMocId ?? milestone.id}
                     current={type}
                     options={EDITABLE_TYPE_OPTIONS}
+                    personalFilterSlugs={
+                      canManageSelf && !foreignJourneyContext
+                        ? personalFilterSlugs
+                        : undefined
+                    }
                   >
                     <span className={`ctx-badge ${TYPE_CLASS[type]}`}>
-                      <TypeIco size={11} strokeWidth={1.8} aria-hidden />
-                      {TYPE_LABEL[type]}
+                      <MilestoneTypeBadgeContent type={type} />
                     </span>
                   </JourneyMilestoneInlineControls>
                 )}
@@ -444,23 +571,42 @@ export function JourneyMilestoneCard({
                     options={
                       foreignJourneyContext
                         ? FOREIGN_JOURNEY_VIS_OPTIONS
-                        : EDITABLE_VIS_OPTIONS
+                        : isCongDongPost
+                          ? CONG_DONG_GRADUATE_VIS_OPTIONS
+                          : EDITABLE_VIS_OPTIONS
                     }
                     foreignJourney={foreignJourneyContext}
+                    congDongPost={
+                      isCongDongPost
+                        ? congDongInlineContext(congDongOrg, title)
+                        : undefined
+                    }
                   >
-                    <span
-                      className={`ctx-badge j-vis-${visibility ?? "public"}`}
-                      title={vis.label}
-                      aria-label={vis.label}
-                    >
-                      <vis.Icon
-                        size={11}
-                        strokeWidth={1.8}
-                        aria-hidden
-                        {...(visibility === "feature" ? { fill: "currentColor" } : {})}
-                      />
-                      {visibility === "feature" ? "Nổi bật" : vis.label}
-                    </span>
+                    {isCongDongPost ? (
+                      <span
+                        className="ctx-badge j-vis-cong-dong j-vis-cong-dong--icon"
+                        title={vis.label}
+                        aria-label={vis.label}
+                      >
+                        <vis.Icon size={11} strokeWidth={1.8} aria-hidden />
+                      </span>
+                    ) : (
+                      <span
+                        className={`ctx-badge j-vis-${visibility ?? "public"}`}
+                        title={vis.label}
+                        aria-label={vis.label}
+                      >
+                        <vis.Icon
+                          size={11}
+                          strokeWidth={1.8}
+                          aria-hidden
+                          {...(visibility === "feature"
+                            ? { fill: "currentColor" }
+                            : {})}
+                        />
+                        {visibility === "feature" ? "Nổi bật" : vis.label}
+                      </span>
+                    )}
                   </JourneyMilestoneInlineControls>
                 ) : null}
               </span>
@@ -475,10 +621,11 @@ export function JourneyMilestoneCard({
                 currentType={type}
                 currentVisibility={visibility ?? "public"}
                 postSlug={postSlug ?? null}
-                hideTypeChange={isBookmarkMilestone}
+                hideTypeChange={isBookmarkMilestone || isCongDongPost}
                 hideEdit={isBookmarkMilestone || canManageTagged}
                 hideDelete={canManageTagged}
                 foreignJourney={foreignJourneyContext}
+                personalFilterSlugs={personalFilterSlugs}
                 className="jcard-date-menu"
               />
             </div>
@@ -495,8 +642,7 @@ export function JourneyMilestoneCard({
                   </span>
                 ) : (
                   <span className={`ctx-badge ${TYPE_CLASS[type]}`}>
-                    <TypeIco size={11} strokeWidth={1.8} aria-hidden />
-                    {TYPE_LABEL[type]}
+                    <MilestoneTypeBadgeContent type={type} />
                   </span>
                 )}
                 {isBookmarkMilestone && vis ? (
@@ -518,103 +664,27 @@ export function JourneyMilestoneCard({
             </div>
           ) : null}
 
-          <div
-            className={`jcard-body${isArticle && !isContentOpen ? " is-expand-trigger" : ""}`}
-            {...(isArticle && !isContentOpen
-              ? {
-                  role: "button" as const,
-                  tabIndex: 0,
-                  "aria-expanded": isContentOpen,
-                  "aria-label": `Mở bài viết: ${showCardTitle ? title : cardCaption || title}`,
-                  onClick: handleExpandTrigger,
-                  onKeyDown: handleExpandKeyDown,
-                }
-              : {})}
-          >
-            <div className="jcard-content">
-              {showCardTitle ? (
-                <h2 className="jcard-title">{title}</h2>
-              ) : null}
-
-              {cardCaption && cardContentKind !== "article" ? (
-                <div className="jcard-lead">
-                  <p className="jcard-desc">{cardCaption}</p>
-                </div>
-              ) : null}
-
-              {cardCaption && cardContentKind === "article" ? (
-                <div
-                  className="jcard-lead"
-                  data-collapsed={isContentOpen ? "true" : "false"}
-                  aria-hidden={isContentOpen}
-                >
-                  <p className="jcard-desc">{cardCaption}</p>
-                </div>
-              ) : null}
-
-              {articleTags.length > 0 ? (
-                <div className="tags jcard-tags" aria-label="Bài viết liên quan">
-                  {articleTags.map((t) => (
-                    <JourneyArticleTagLink
-                      key={t.id}
-                      tag={t}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                  ))}
-                </div>
-              ) : null}
-
-              <div
-                className="jcard-media-zone"
-                data-collapsed={isArticle && isContentOpen ? "true" : "false"}
-                aria-hidden={isArticle && isContentOpen}
-              >
-                {isVideoPost && videoEmbedUrl ? (
-                  <JourneyCardVideo
-                    url={videoEmbedUrl}
-                    title={showCardTitle ? title : cardCaption || title}
-                    processing={videoProcessingMeta?.processing === true}
-                    preview={preview}
-                    noiDungBlocks={noiDungBlocks ?? undefined}
-                  />
-                ) : isPhotoAlbum && photoGridImages ? (
-                  <div className="preview preview--photo-grid">
-                    <ImageGrid
-                      images={photoGridImages}
-                      readOnly
-                      timelineLightbox
-                    />
-                  </div>
-                ) : (
-                  <div className="preview">
-                    {preview ? (
-                      <JourneyCoverImage
-                        src={preview.src}
-                        srcSet={preview.srcSet}
-                        sizes={
-                          preview.srcSet ? "(max-width: 767px) 100vw, 680px" : undefined
-                        }
-                        width={preview.width}
-                        height={preview.height}
-                        alt={preview.label || title}
-                      />
-                    ) : (
-                      <div className="preview-inner">
-                        <ImageIcon size={28} strokeWidth={1.5} aria-hidden />
-                        <span className="preview-label">Ảnh bìa bài viết</span>
-                      </div>
-                    )}
-                    {isArticle && !isContentOpen ? (
-                      <span className="jcard-expand-cta" aria-hidden>
-                        <ChevronDown size={14} strokeWidth={2.4} />
-                        Đọc bài viết
-                      </span>
-                    ) : null}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+          <JourneyMilestoneCardBodyContent
+            title={title}
+            body={body}
+            noiDungBlocks={noiDungBlocks}
+            preview={preview}
+            articleTags={articleTags}
+            expandTrigger={
+              isArticle && inlineExpand && !isContentOpen
+                ? {
+                    enabled: true,
+                    expanded: isContentOpen,
+                    ariaLabel: `Mở bài viết: ${showCardTitle ? title : cardCaption || title}`,
+                    onClick: handleExpandTrigger,
+                    onKeyDown: handleExpandKeyDown,
+                  }
+                : isArticle && inlineExpand
+                  ? { enabled: false, expanded: isContentOpen }
+                  : undefined
+            }
+            onTagLinkClick={(e) => e.stopPropagation()}
+          />
 
           {inlineExpand && showUnfold ? (
             <div
@@ -630,8 +700,11 @@ export function JourneyMilestoneCard({
                 postOwnerSlug={inlineExpand.postOwnerSlug}
                 postSlug={postSlug}
                 milestoneId={milestoneId}
+                actionsBeforeComments={
+                  pinActionsAboveComments ? jcardActions : undefined
+                }
                 inlineSkip={{
-                  byline: canManage && showAuthorBadge,
+                  byline: true,
                   tags: articleTags.length > 0,
                   contributors: showAuthorsStrip,
                 }}
@@ -725,69 +798,7 @@ export function JourneyMilestoneCard({
             </div>
           ) : null}
 
-          <div className="jcard-actions">
-            <JourneyLikeButton
-              milestoneId={cotMocId ?? milestone.id}
-              initialLiked={social?.viewerLiked}
-              initialCount={social?.likeCount}
-              showCount={social?.showCounts}
-            />
-            {inlineExpand ? (
-              <JourneyCommentLink
-                commentCount={comments}
-                onOpenComments={inlineExpand.onOpenComments}
-              />
-            ) : (
-              <button
-                type="button"
-                className="action-btn"
-                aria-label="Bình luận"
-                data-open-post="true"
-              >
-                <MessageCircle size={16} strokeWidth={1.8} aria-hidden />
-                {comments ? <span>{comments}</span> : null}
-              </button>
-            )}
-            {canBookmark ? (
-              <JourneyBookmarkButton
-                milestoneId={cotMocId ?? milestone.id}
-                title={title}
-                initialSaved={social?.viewerBookmarked}
-                initialCount={social?.bookmarkCount}
-                showCount={social?.showCounts}
-              />
-            ) : null}
-            <span className="action-spacer" />
-            {canManageArticleTags && tacPhamId ? (
-              <JourneyArticleTagManager
-                tacPhamId={tacPhamId}
-                initialTags={articleTags}
-              />
-            ) : null}
-            {canShowCoAuthorAction && tacPhamId ? (
-              <JourneyCoAuthorProposal
-                tacPhamId={tacPhamId}
-                mode={canManageCoAuthors ? "owner" : "proposal"}
-                ownerId={coAuthorExcludeOwnerId}
-              />
-            ) : null}
-            {inlineExpand && showUnfold ? (
-              <button
-                type="button"
-                className="jcard-unfold-toggle"
-                onClick={inlineExpand.onClose}
-                aria-label="Thu gọn"
-              >
-                <ChevronUp size={15} strokeWidth={2.2} aria-hidden />
-                <span>Thu gọn</span>
-              </button>
-            ) : null}
-            {views ? (
-              <span className="jcard-view-count" aria-label={`${formatViews(views)} lượt xem`}>
-                {formatViews(views)}
-              </span>
-            ) : null}
-          </div>
+          {!pinActionsAboveComments ? jcardActions : null}
 
           {tags.length > 0 ? (
             <div className="j-m-tags">
@@ -823,6 +834,48 @@ function AuthorAvatar({
         credit.initial ?? credit.name.slice(0, 1)
       )}
     </span>
+  );
+}
+
+function CongDongSourceChip({
+  org,
+  dateLabel,
+}: {
+  org: MilestoneCongDongOrg;
+  dateLabel: string;
+}) {
+  const initial = (org.initial || org.name.charAt(0) || "?").toUpperCase();
+
+  return (
+    <JourneyOrgPopover
+      slug={org.slug}
+      orgKind="cong_dong"
+      href={org.href}
+      fallbackName={org.name}
+      fallbackAvatarUrl={org.avatarUrl}
+    >
+      <span className="cd-source-chip">
+        <span className="cd-source-avatar" aria-hidden>
+          {org.avatarUrl ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img src={org.avatarUrl} alt="" />
+          ) : (
+            initial
+          )}
+        </span>
+        <span className="cd-source-copy">
+          <strong>{org.name}</strong>
+          <small className="cd-source-meta">
+            <Users size={11} strokeWidth={2} aria-hidden />
+            <span>Cộng đồng</span>
+            <span className="cd-source-sep" aria-hidden>
+              ·
+            </span>
+            <time>{dateLabel}</time>
+          </small>
+        </span>
+      </span>
+    </JourneyOrgPopover>
   );
 }
 
@@ -876,7 +929,6 @@ function formatCongDongStatCount(count: number): string {
 function CongDongCreateMilestoneCard({
   milestoneCls,
   displayDate,
-  type,
   title,
   body,
   attribution,
@@ -888,7 +940,6 @@ function CongDongCreateMilestoneCard({
 }: {
   milestoneCls: string;
   displayDate: string;
-  type: MilestoneType;
   title: string;
   body?: string | null;
   attribution?: MilestoneAttribution | null;
@@ -898,7 +949,6 @@ function CongDongCreateMilestoneCard({
   month: number;
   day: number;
 }) {
-  const TypeIco = TYPE_ICON[type];
   const communityName = attribution?.name ?? title.replace(/^Tạo cộng đồng\s+/i, "");
   const avatarUrl = attribution?.avatarUrl ?? null;
   const coverUrl = attribution?.coverUrl ?? null;
@@ -916,7 +966,7 @@ function CongDongCreateMilestoneCard({
       data-content-kind="cong-dong"
       data-year={year}
       data-month={month}
-      data-group={type}
+      data-group="cong-dong"
     >
       <div className="j-m-body-wrap">
         <div className="j-m-card jcard jcard--cong-dong">
@@ -931,10 +981,7 @@ function CongDongCreateMilestoneCard({
               ) : null}
             </div>
             <div className="jcd-topbar">
-              <span className={`ctx-badge ${TYPE_CLASS[type]}`}>
-                <TypeIco size={11} strokeWidth={1.8} aria-hidden />
-                {TYPE_LABEL[type]}
-              </span>
+              <CongDongTypeBadge />
             </div>
           </div>
 

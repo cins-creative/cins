@@ -1,6 +1,6 @@
 import "server-only";
 
-import { THAO_LUAN_LOAI_CONTEXT } from "@/lib/cong-dong/constants";
+import { CONG_DONG_FILTER_CONTEXT } from "@/lib/cong-dong/constants";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 /** 4 nhãn mặc định — hardcode, không bảng template. Chỉ seed cho `cong_dong`. */
@@ -35,7 +35,6 @@ export const DEFAULT_CONG_DONG_FILTER_TEMPLATES = [
   },
 ] as const;
 
-/** Tên cũ — chỉ đổi sang template mới khi org chưa tự sửa nhãn. */
 const LEGACY_DEFAULT_FILTER_TEN: Partial<
   Record<(typeof DEFAULT_CONG_DONG_FILTER_TEMPLATES)[number]["slug"], string[]>
 > = {
@@ -48,16 +47,15 @@ async function syncRenamedDefaultFilters(orgId: string): Promise<void> {
     const legacyNames = LEGACY_DEFAULT_FILTER_TEN[template.slug];
     if (!legacyNames?.length) continue;
     await admin
-      .from("content_thao_luan_filter")
+      .from("cong_dong_filter")
       .update({ ten: template.ten })
-      .eq("loai_context", THAO_LUAN_LOAI_CONTEXT.CONG_DONG)
+      .eq("loai_context", CONG_DONG_FILTER_CONTEXT.CONG_DONG)
       .eq("id_context", orgId)
       .eq("slug", template.slug)
       .in("ten", legacyNames);
   }
 }
 
-/** Bổ sung nhãn mặc định còn thiếu (idempotent — không trùng slug). */
 export async function ensureDefaultCongDongFilters(
   orgId: string,
 ): Promise<
@@ -66,9 +64,9 @@ export async function ensureDefaultCongDongFilters(
 > {
   const admin = createServiceRoleClient();
   const { data: existing } = await admin
-    .from("content_thao_luan_filter")
+    .from("cong_dong_filter")
     .select("slug")
-    .eq("loai_context", THAO_LUAN_LOAI_CONTEXT.CONG_DONG)
+    .eq("loai_context", CONG_DONG_FILTER_CONTEXT.CONG_DONG)
     .eq("id_context", orgId)
     .returns<Array<{ slug: string }>>();
 
@@ -82,7 +80,7 @@ export async function ensureDefaultCongDongFilters(
   }
 
   const rows = missing.map((t) => ({
-    loai_context: THAO_LUAN_LOAI_CONTEXT.CONG_DONG,
+    loai_context: CONG_DONG_FILTER_CONTEXT.CONG_DONG,
     id_context: orgId,
     ten: t.ten,
     slug: t.slug,
@@ -91,14 +89,13 @@ export async function ensureDefaultCongDongFilters(
     thu_tu: t.thu_tu,
   }));
 
-  const { error } = await admin.from("content_thao_luan_filter").insert(rows);
+  const { error } = await admin.from("cong_dong_filter").insert(rows);
   if (error) return { ok: false, error: error.message };
 
   await syncRenamedDefaultFilters(orgId);
   return { ok: true, inserted: missing.length };
 }
 
-/** Seed đủ 4 nhãn khi tạo cộng đồng mới. */
 export async function seedDefaultCongDongFilters(
   orgId: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {

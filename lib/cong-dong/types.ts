@@ -3,6 +3,7 @@ import type { CongDongCheDo } from "@/lib/cong-dong/constants";
 import type { CongDongVaiTro } from "@/lib/cong-dong/vai-tro";
 import type { OrgNotifyLevel } from "@/lib/social/org-notify";
 import type { Block } from "@/lib/editor/types";
+import type { ArticleTagRef } from "@/lib/editor/article-tag";
 
 export type CongDongTrangThaiTinCay =
   | "binh_thuong"
@@ -145,6 +146,15 @@ export type CongDongCategory = {
   slug: string;
   tieuDe: string;
   loaiBaiViet: "nghe" | "nganh_dao_tao";
+  /** `article_bai_viet.tom_tat` — tooltip sidebar. */
+  tomTat?: string | null;
+  /** Fallback mô tả khi `tom_tat` trống. */
+  metaDescription?: string | null;
+  /** URL thumbnail đã resolve — tooltip sidebar. */
+  thumbUrl?: string | null;
+  /** Raw CF — fallback resolve trên client. */
+  coverId?: string | null;
+  thumbnail?: string | null;
   /** `article_bai_viet.id_linh_vuc` → `linh_vuc.ten` (nghề thường có; ngành có thể null). */
   linhVucTen?: string | null;
   linhVucSlug?: string | null;
@@ -159,11 +169,16 @@ export type CongDongComposeConfig = {
 /** Tác phẩm Journey gắn với post cộng đồng — render card giống timeline. */
 export type CongDongJourneyMirror = {
   tacPhamId: string;
+  /** `content_tac_pham_thuoc_moc.id_cot_moc` — dùng lưu về Journey. */
+  milestoneId: string | null;
   postSlug: string;
+  /** Slug chủ `content_tac_pham` — permalink `/owner/p/slug`. */
+  ownerSlug: string;
   tieuDe: string;
   moTa: string | null;
   coverId: string | null;
   noiDungBlocks: Block[];
+  articleTags: ArticleTagRef[];
 };
 
 export type CongDongPost = {
@@ -171,6 +186,9 @@ export type CongDongPost = {
   tieuDe: string | null;
   noiDung: string;
   ghim: boolean;
+  /** Ngày cột mốc (`content_cot_moc.thoi_diem`) — sort + hiển thị, khớp Journey. */
+  thoiDiem: string;
+  /** Thời điểm tạo record — tiebreak khi cùng `thoiDiem`. */
   taoLuc: string;
   author: CongDongAuthorBadge;
   media: CongDongPostMedia[];
@@ -179,6 +197,7 @@ export type CongDongPost = {
   likeCount: number;
   commentCount: number;
   viewerLiked: boolean;
+  viewerBookmarked: boolean;
 };
 
 export type CongDongComment = {

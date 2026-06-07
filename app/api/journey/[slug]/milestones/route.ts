@@ -16,6 +16,7 @@ export async function GET(
   const { slug } = await context.params;
   const { searchParams } = new URL(request.url);
   const offset = Math.max(0, Number(searchParams.get("offset") ?? 0) || 0);
+  const personalFilterSlug = searchParams.get("label")?.trim() || null;
 
   const admin = createServiceRoleClient();
   const { data: owner, error } = await admin
@@ -40,6 +41,7 @@ export async function GET(
     isOwner,
     viewerId: session?.profile?.id ?? null,
     offset,
+    personalFilterSlug,
   });
 
   const coAuthorPendingInvites =

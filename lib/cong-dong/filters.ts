@@ -1,6 +1,6 @@
 import "server-only";
 
-import { THAO_LUAN_LOAI_CONTEXT } from "@/lib/cong-dong/constants";
+import { CONG_DONG_FILTER_CONTEXT } from "@/lib/cong-dong/constants";
 import { ensureDefaultCongDongFilters } from "@/lib/cong-dong/default-filters";
 import { isCongDongAdmin } from "@/lib/cong-dong/membership";
 import { slugifyOrgName } from "@/lib/cong-dong/org-slug";
@@ -48,9 +48,9 @@ export async function listCongDongFilters(orgId: string): Promise<CongDongFilter
   await ensureDefaultCongDongFilters(orgId);
   const admin = createServiceRoleClient();
   const { data } = await admin
-    .from("content_thao_luan_filter")
+    .from("cong_dong_filter")
     .select("id, ten, slug, mau, icon, thu_tu")
-    .eq("loai_context", THAO_LUAN_LOAI_CONTEXT.CONG_DONG)
+    .eq("loai_context", CONG_DONG_FILTER_CONTEXT.CONG_DONG)
     .eq("id_context", orgId)
     .order("thu_tu", { ascending: true })
     .order("ten", { ascending: true })
@@ -66,9 +66,9 @@ export async function resolveFilterIdsBySlugs(
   if (slugs.length === 0) return [];
   const admin = createServiceRoleClient();
   const { data } = await admin
-    .from("content_thao_luan_filter")
+    .from("cong_dong_filter")
     .select("id, slug")
-    .eq("loai_context", THAO_LUAN_LOAI_CONTEXT.CONG_DONG)
+    .eq("loai_context", CONG_DONG_FILTER_CONTEXT.CONG_DONG)
     .eq("id_context", orgId)
     .in("slug", slugs)
     .returns<Array<{ id: string; slug: string }>>();
@@ -84,24 +84,24 @@ export async function loadFiltersForPosts(
 
   const admin = createServiceRoleClient();
   const { data } = await admin
-    .from("content_thao_luan_filter_gan")
+    .from("cong_dong_filter_gan")
     .select(
-      "id_thao_luan, content_thao_luan_filter(id, ten, slug, mau, icon, thu_tu)",
+      "id_cot_moc, cong_dong_filter(id, ten, slug, mau, icon, thu_tu)",
     )
-    .in("id_thao_luan", postIds)
+    .in("id_cot_moc", postIds)
     .returns<
       Array<{
-        id_thao_luan: string;
-        content_thao_luan_filter: FilterRow | null;
+        id_cot_moc: string;
+        cong_dong_filter: FilterRow | null;
       }>
     >();
 
   for (const row of data ?? []) {
-    const filter = row.content_thao_luan_filter;
+    const filter = row.cong_dong_filter;
     if (!filter) continue;
-    const list = out.get(row.id_thao_luan) ?? [];
+    const list = out.get(row.id_cot_moc) ?? [];
     list.push(mapFilter(filter));
-    out.set(row.id_thao_luan, list);
+    out.set(row.id_cot_moc, list);
   }
 
   for (const [, filters] of out) {
@@ -117,12 +117,12 @@ export async function getMatchingPostIdsForFilters(
   if (filterIds.length === 0) return [];
   const admin = createServiceRoleClient();
   const { data } = await admin
-    .from("content_thao_luan_filter_gan")
-    .select("id_thao_luan")
+    .from("cong_dong_filter_gan")
+    .select("id_cot_moc")
     .in("id_filter", filterIds)
-    .returns<Array<{ id_thao_luan: string }>>();
+    .returns<Array<{ id_cot_moc: string }>>();
 
-  return [...new Set((data ?? []).map((r) => r.id_thao_luan))];
+  return [...new Set((data ?? []).map((r) => r.id_cot_moc))];
 }
 
 export async function attachFiltersToPost(
@@ -136,15 +136,28 @@ export async function attachFiltersToPost(
   }
 
   const admin = createServiceRoleClient();
-  const { error } = await admin.from("content_thao_luan_filter_gan").insert(
+  const { error } = await admin.from("cong_dong_filter_gan").insert(
     unique.map((id_filter) => ({
-      id_thao_luan: postId,
+      id_cot_moc: postId,
       id_filter,
     })),
   );
 
   if (error) return { ok: false, error: error.message };
   return { ok: true };
+}
+
+export async function replaceFiltersOnPost(
+  postId: string,
+  filterIds: string[],
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const admin = createServiceRoleClient();
+  const { error: delError } = await admin
+    .from("cong_dong_filter_gan")
+    .delete()
+    .eq("id_cot_moc", postId);
+  if (delError) return { ok: false, error: delError.message };
+  return attachFiltersToPost(postId, filterIds);
 }
 
 export async function validateFilterIdsForOrg(
@@ -159,9 +172,9 @@ export async function validateFilterIdsForOrg(
 
   const admin = createServiceRoleClient();
   const { data } = await admin
-    .from("content_thao_luan_filter")
+    .from("cong_dong_filter")
     .select("id")
-    .eq("loai_context", THAO_LUAN_LOAI_CONTEXT.CONG_DONG)
+    .eq("loai_context", CONG_DONG_FILTER_CONTEXT.CONG_DONG)
     .eq("id_context", orgId)
     .in("id", unique)
     .returns<Array<{ id: string }>>();
@@ -200,9 +213,9 @@ export async function createCongDongFilter(params: {
 
   const admin = createServiceRoleClient();
   const { count } = await admin
-    .from("content_thao_luan_filter")
+    .from("cong_dong_filter")
     .select("id", { count: "exact", head: true })
-    .eq("loai_context", THAO_LUAN_LOAI_CONTEXT.CONG_DONG)
+    .eq("loai_context", CONG_DONG_FILTER_CONTEXT.CONG_DONG)
     .eq("id_context", params.orgId);
 
   if ((count ?? 0) >= MAX_FILTERS_PER_ORG) {
@@ -211,9 +224,9 @@ export async function createCongDongFilter(params: {
 
   let slug = normalizeSlug(params.slug, ten);
   const { data: slugConflict } = await admin
-    .from("content_thao_luan_filter")
+    .from("cong_dong_filter")
     .select("id")
-    .eq("loai_context", THAO_LUAN_LOAI_CONTEXT.CONG_DONG)
+    .eq("loai_context", CONG_DONG_FILTER_CONTEXT.CONG_DONG)
     .eq("id_context", params.orgId)
     .eq("slug", slug)
     .maybeSingle();
@@ -223,9 +236,9 @@ export async function createCongDongFilter(params: {
   }
 
   const { data: inserted, error } = await admin
-    .from("content_thao_luan_filter")
+    .from("cong_dong_filter")
     .insert({
-      loai_context: THAO_LUAN_LOAI_CONTEXT.CONG_DONG,
+      loai_context: CONG_DONG_FILTER_CONTEXT.CONG_DONG,
       id_context: params.orgId,
       ten,
       slug,
@@ -261,9 +274,9 @@ export async function updateCongDongFilter(params: {
 
   const admin = createServiceRoleClient();
   const { data: existing } = await admin
-    .from("content_thao_luan_filter")
+    .from("cong_dong_filter")
     .select("id, ten, slug, mau, icon, thu_tu")
-    .eq("loai_context", THAO_LUAN_LOAI_CONTEXT.CONG_DONG)
+    .eq("loai_context", CONG_DONG_FILTER_CONTEXT.CONG_DONG)
     .eq("id_context", params.orgId)
     .eq("id", params.filterId)
     .maybeSingle<FilterRow>();
@@ -289,9 +302,9 @@ export async function updateCongDongFilter(params: {
   if (params.slug !== undefined) {
     const slug = normalizeSlug(params.slug, patch.ten ?? existing.ten);
     const { data: conflict } = await admin
-      .from("content_thao_luan_filter")
+      .from("cong_dong_filter")
       .select("id")
-      .eq("loai_context", THAO_LUAN_LOAI_CONTEXT.CONG_DONG)
+      .eq("loai_context", CONG_DONG_FILTER_CONTEXT.CONG_DONG)
       .eq("id_context", params.orgId)
       .eq("slug", slug)
       .neq("id", params.filterId)
@@ -311,9 +324,9 @@ export async function updateCongDongFilter(params: {
   }
 
   const { data: updated, error } = await admin
-    .from("content_thao_luan_filter")
+    .from("cong_dong_filter")
     .update(patch)
-    .eq("loai_context", THAO_LUAN_LOAI_CONTEXT.CONG_DONG)
+    .eq("loai_context", CONG_DONG_FILTER_CONTEXT.CONG_DONG)
     .eq("id_context", params.orgId)
     .eq("id", params.filterId)
     .select("id, ten, slug, mau, icon, thu_tu")
@@ -337,9 +350,9 @@ export async function deleteCongDongFilter(params: {
 
   const admin = createServiceRoleClient();
   const { error } = await admin
-    .from("content_thao_luan_filter")
+    .from("cong_dong_filter")
     .delete()
-    .eq("loai_context", THAO_LUAN_LOAI_CONTEXT.CONG_DONG)
+    .eq("loai_context", CONG_DONG_FILTER_CONTEXT.CONG_DONG)
     .eq("id_context", params.orgId)
     .eq("id", params.filterId);
 

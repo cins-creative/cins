@@ -1,5 +1,38 @@
 /** Meta dòng phụ trên feed card / danh sách thành viên cộng đồng. */
 
+/** Ngày cột mốc — `DD-MM-YYYY`, khớp datebar Journey timeline. */
+export function formatCongDongMilestoneDate(thoiDiem: string): string {
+  const match = thoiDiem.trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) {
+    return `${match[3]}-${match[2]}-${match[1]}`;
+  }
+  return formatCongDongRelativeTime(thoiDiem);
+}
+
+export function compareCongDongPostsByMilestoneDate(
+  a: { thoiDiem: string; taoLuc: string },
+  b: { thoiDiem: string; taoLuc: string },
+): number {
+  const byDate = b.thoiDiem.localeCompare(a.thoiDiem);
+  if (byDate !== 0) return byDate;
+  return new Date(b.taoLuc).getTime() - new Date(a.taoLuc).getTime();
+}
+
+export function congDongPostTimelineParts(thoiDiem: string): {
+  year: string;
+  month: string;
+} {
+  const match = thoiDiem.trim().match(/^(\d{4})-(\d{2})/);
+  if (match) {
+    return { year: match[1], month: String(Number(match[2])) };
+  }
+  const d = new Date(thoiDiem);
+  return {
+    year: String(d.getUTCFullYear()),
+    month: String(d.getUTCMonth() + 1),
+  };
+}
+
 export function formatCongDongRelativeTime(iso: string): string {
   const date = new Date(iso);
   const diffMs = Date.now() - date.getTime();
@@ -27,10 +60,13 @@ export function formatAuthorPostsInGroup(count: number): string {
 
 export function formatCongDongAuthorMetaLine(params: {
   soBaiVietTrongNhom: number;
+  thoiDiem?: string | null;
   activityAt?: string | null;
 }): string {
   const parts = [formatAuthorPostsInGroup(params.soBaiVietTrongNhom)];
-  if (params.activityAt) {
+  if (params.thoiDiem) {
+    parts.push(formatCongDongMilestoneDate(params.thoiDiem));
+  } else if (params.activityAt) {
     parts.push(formatCongDongRelativeTime(params.activityAt));
   }
   return parts.join(" · ");

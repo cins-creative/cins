@@ -1,18 +1,14 @@
 import { congDongBannerImageUrl, congDongImageUrl } from "@/lib/cong-dong/images";
-import { congDongMirrorPhotoGrid } from "@/lib/cong-dong/feed-post-media";
+import { milestoneCardContentKind, milestoneCardPhotoGrid } from "@/lib/journey/milestone-card-kind";
 import type { CongDongPost } from "@/lib/cong-dong/types";
 import { gridThumbSrc } from "@/lib/journey/image-grid";
-import { detectMediaPostKind } from "@/lib/journey/post-media";
-
 /** Ảnh thumbnail cho grid view / OG — ưu tiên mirror Journey. */
 export function congDongFeedPostCoverUrl(post: CongDongPost): string | null {
   const mirror = post.journeyMirror;
   if (mirror) {
-    const kind = detectMediaPostKind(mirror.noiDungBlocks);
+    const kind = milestoneCardContentKind(mirror.noiDungBlocks);
     if (kind === "photo") {
-      const extraIds = post.media.map((m) => m.cloudflareId);
-      const imgs = congDongMirrorPhotoGrid(mirror.noiDungBlocks, extraIds);
-      const first = imgs?.[0];
+      const first = milestoneCardPhotoGrid(mirror.noiDungBlocks)?.[0];
       if (first) return gridThumbSrc(first);
     }
     if (mirror.coverId) {

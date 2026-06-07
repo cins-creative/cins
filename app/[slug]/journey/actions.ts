@@ -15,6 +15,7 @@ import {
   FOREIGN_JOURNEY_VISIBILITY_VALUES,
   type ForeignJourneyVisibility,
 } from "@/lib/journey/foreign-milestone-visibility";
+import { graduateCongDongMilestone } from "@/lib/journey/graduate-cong-dong-milestone";
 import type {
   MilestonePostAuthor,
   MilestonePostDetail,
@@ -703,6 +704,29 @@ export async function updateMilestoneVisibility(
       .update({ che_do_hien_thi: visibility })
       .in("id", tacPhamIds);
   }
+
+  revalidatePath(`/${owner.profileSlug}`);
+  return { ok: true, data: null };
+}
+
+/** Rời feed cộng đồng — đổi `che_do_hien_thi` khỏi `cong_dong`, gỡ nhãn org feed. */
+export async function graduateCongDongMilestoneAction(input: {
+  milestoneId: string;
+  visibility?: Visibility;
+  loaiMoc?: LoaiMoc;
+  personalFilterSlug?: string | null;
+}): Promise<ActionResult<null>> {
+  const owner = await requireMilestoneOwnership(input.milestoneId);
+  if (!owner.ok) return { ok: false, error: owner.error };
+
+  const result = await graduateCongDongMilestone({
+    milestoneId: input.milestoneId,
+    userId: owner.profileId,
+    visibility: input.visibility,
+    loaiMoc: input.loaiMoc,
+    personalFilterSlug: input.personalFilterSlug,
+  });
+  if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath(`/${owner.profileSlug}`);
   return { ok: true, data: null };

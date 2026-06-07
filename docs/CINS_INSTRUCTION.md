@@ -1,7 +1,7 @@
 # CINS — README (Project Instructions)
 
 > **File router — điểm vào cho agent & developer.** Bản đầy đủ sống trong `docs/` (5 file bên dưới).
-> **Phiên bản:** v7 + verify session 2026-06-07 · **67 bảng logic** (sinh từ DB).
+> **Phiên bản:** v7 + org-journey/filter session 2026-06-07 · **67 bảng logic hiện tại** (69 sau `migration_filter_dong.sql` — xem SCHEMA.md).
 
 CINS = creative hub cho ngành sáng tạo Việt Nam (Next.js + Supabase). Hai tầng core: **Journey** (blog cá nhân tích lũy, source of truth) + **Gallery** (feed khám phá visual). Verify là moat.
 
@@ -11,7 +11,7 @@ CINS = creative hub cho ngành sáng tạo Việt Nam (Next.js + Supabase). Hai 
 
 | Cần gì | File | Ghi chú |
 |---|---|---|
-| Triết lý, 27 quy tắc kiến trúc, luồng verify, loại org, naming, quy ước làm việc | [`CINS_FOUNDATIONS.md`](./CINS_FOUNDATIONS.md) | Luật nền, đổi chậm |
+| Triết lý, **28 quy tắc** kiến trúc, luồng verify, loại org, naming, quy ước làm việc | [`CINS_FOUNDATIONS.md`](./CINS_FOUNDATIONS.md) | Luật nền, đổi chậm |
 | Bảng / cột / enum / FK cụ thể | [`CINS_SCHEMA.md`](./CINS_SCHEMA.md) | **Sinh từ DB — là sự thật cấu trúc** |
 | API route, lib, file SQL, seed, env/infra, ghi chú site | [`CINS_IMPLEMENTATION.md`](./CINS_IMPLEMENTATION.md) | Đổi nhanh nhất |
 | Đã quyết gì & vì sao · câu hỏi còn treo | [`CINS_DECISIONS.md`](./CINS_DECISIONS.md) | File chống quên |
@@ -39,7 +39,7 @@ Thứ tự ưu tiên khi xung đột: **DB thật > CINS_SCHEMA.md > CINS_FOUNDA
 
 ## Số liệu neo (cập nhật khi đổi)
 
-- **DB hiện tại**: 67 bảng logic (66 thường + `social_luot_xem` partitioned; 2 partition con không tính). Xác nhận lại bằng `CINS_SCHEMA.md` mỗi lần regenerate.
+- **DB hiện tại**: 67 bảng logic (66 thường + `social_luot_xem` partitioned; 2 partition con không tính). Sau khi chạy `migration_filter_dong.sql` → **69 bảng** (`filter_nhan`, `filter_gan`). Xác nhận lại bằng `CINS_SCHEMA.md` mỗi lần regenerate.
 - **Org user tạo ngay**: `co_so_dao_tao` · `studio` · `cong_dong` (`doanh_nghiep` ẩn UI; `truong_dai_hoc` CINS duyệt).
 - **Seed partner đầu**: Sine Art (`co_so_dao_tao`, ~520 học viên).
 
@@ -51,4 +51,6 @@ Thứ tự ưu tiên khi xung đột: **DB thật > CINS_SCHEMA.md > CINS_FOUNDA
 
 **v6 — social graph:** Engagement có context (like công khai, không feed toàn cục). Bỏ follow-user → `user_ket_ban`. `user_theo_doi` thu hẹp follow tag/org. Gộp `studio` + `doanh_nghiep` (ẩn UI).
 
-**2026-06-07 — verify:** User-push + org-veto. Trạng thái trung gian "tự khai" (xám). Peer tag vị trí neo vào tác phẩm. `cong_dong` pivot thành cộng đồng có thảo luận (`content_thao_luan`).
+**2026-06-07 — org Journey + filter động:** Org (`truong_dai_hoc` / `co_so_dao_tao` / `studio`) có timeline qua `org_bai_dang` + `thoi_diem` (L12). Filter cá nhân động `filter_nhan` + `filter_gan` cho user & org (L13, quy tắc 28). Migration: `migration_filter_dong.sql` — chưa có file trong repo.
+
+**2026-06-07 — cộng đồng v2:** Post cộng đồng = `content_cot_moc` (`che_do_hien_thi='cong_dong'`), bỏ `content_thao_luan*`. Migration `migration_cong_dong_v2_cot_moc.sql`.

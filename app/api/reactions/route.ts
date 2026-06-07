@@ -4,10 +4,7 @@ import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { SOCIAL_LOAI_DOI_TUONG } from "@/lib/cong-dong/constants";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
-const ALLOWED_TARGETS = new Set<string>([
-  SOCIAL_LOAI_DOI_TUONG.COT_MOC,
-  SOCIAL_LOAI_DOI_TUONG.THAO_LUAN,
-]);
+const ALLOWED_TARGETS = new Set<string>([SOCIAL_LOAI_DOI_TUONG.COT_MOC]);
 
 type ReactionBody = {
   loai_doi_tuong?: string;

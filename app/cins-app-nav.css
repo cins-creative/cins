@@ -3,6 +3,9 @@
 .cins-shell {
   --cins-sidebar-collapsed: 64px;
   --site-nav-height: 64px;
+  /* Topbar trên sticky nội dung trang (~120); sidebar trên topbar khi expand/mobile. */
+  --cins-app-topbar-z: 200;
+  --cins-app-sidebar-z: 210;
   --app-nav-ease: cubic-bezier(0.2, 0.7, 0.3, 1);
   --app-nav-dur: 0.18s;
   --btn-grad-blue: linear-gradient(180deg, #2b8ae8 0%, #1f74c9 100%);
@@ -32,7 +35,7 @@
   width: var(--cins-sidebar-collapsed);
   background: var(--bg-surface);
   border-right: 1px solid var(--border);
-  z-index: 60;
+  z-index: var(--cins-app-sidebar-z, 210);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -417,7 +420,7 @@
 
 .sb-tooltip {
   position: fixed;
-  z-index: 200;
+  z-index: calc(var(--cins-app-sidebar-z, 210) + 10);
   pointer-events: none;
   background: var(--bg-surface);
   border: 1px solid var(--border);
@@ -474,8 +477,8 @@
 .cins-app-topbar.topbar {
   position: sticky;
   top: 0;
-  /* Cao hơn `.j-tlb` sticky (120) để nút chuông luôn bấm được. */
-  z-index: 200;
+  /* Cao hơn sticky nội dung trang (~120); thấp hơn sidebar expand (210). */
+  z-index: var(--cins-app-topbar-z, 200);
   height: var(--site-nav-height);
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border);

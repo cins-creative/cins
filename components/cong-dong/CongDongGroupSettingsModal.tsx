@@ -95,7 +95,7 @@ export function CongDongGroupSettingsModal({
         <header className="cd-v4-group-settings-head">
           <div className="cd-v4-group-settings-head-copy">
             <Settings2 size={18} strokeWidth={2} aria-hidden />
-            <h2 id={titleId}>Cài đặt nhóm</h2>
+            <h2 id={titleId}>Chủ đề nhóm</h2>
           </div>
           <button
             type="button"

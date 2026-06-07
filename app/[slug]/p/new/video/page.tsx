@@ -43,6 +43,7 @@ export default async function NewVideoPage({ params }: { params: Params }) {
   return (
     <MediaComposeView
       mode="video"
+      ownerId={owner.id}
       ownerSlug={owner.slug}
       ownerName={owner.ten_hien_thi || `@${owner.slug}`}
       ownerAvatarId={owner.avatar_id}

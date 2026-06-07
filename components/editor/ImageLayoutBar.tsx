@@ -2,6 +2,7 @@
 
 import { SquareRoundCorner } from "lucide-react";
 
+import { LayoutThumbIcon } from "@/components/editor/LayoutThumbIcon";
 import {
   IMG_LAYOUTS,
   type ImgLayout,
@@ -23,9 +24,7 @@ export function ImageLayoutBar({
 }: Props) {
   return (
     <div className="lay-bar">
-      {IMG_LAYOUTS.map((l) => {
-        const Icon = l.Ico;
-        return (
+      {IMG_LAYOUTS.map((l) => (
           <button
             key={l.k}
             type="button"
@@ -37,10 +36,9 @@ export function ImageLayoutBar({
               onChangeLayout(l.k);
             }}
           >
-            <Icon size={16} strokeWidth={1.8} aria-hidden />
+            <LayoutThumbIcon layout={l.k} />
           </button>
-        );
-      })}
+        ))}
       <span className="lay-sep" />
       <button
         type="button"

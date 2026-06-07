@@ -122,14 +122,18 @@ export function CongDongEventRail({
 
   return (
     <>
-      <aside className="cd-v4-event-rail" aria-label="Sự kiện cộng đồng">
-        <EventRailImage
-          display={eventRail.display}
-          canManage={canManage}
-          onEdit={openEditor}
-        />
-        <EventRailInfo display={eventRail.display} />
-      </aside>
+      <div className="cd-v4-event-rail-col">
+        <aside className="cd-v4-event-rail" aria-label="Sự kiện cộng đồng">
+          <div className="cd-v4-event-rail-frame">
+            <EventRailImage
+              display={eventRail.display}
+              canManage={canManage}
+              onEdit={openEditor}
+            />
+            <EventRailInfo display={eventRail.display} />
+          </div>
+        </aside>
+      </div>
 
       {canManage ? (
         <CongDongEventRailEditorModal

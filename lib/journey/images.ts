@@ -35,37 +35,29 @@ type RolePreset = {
  *   • Gallery grid item ~140px → 280×280
  *   • Milestone card preview ~680px → 800×450 (16:9)
  *
- * Variant names theo `docs/cursor_map_truong.md`: thumbnail, medium, cover, public.
+ * Variant URL: chỉ `public` được đảm bảo trên mọi tài khoản CF (upload post-image).
+ * Các variant tùy chỉnh (thumbnail/medium/cover) có thể 403 nếu chưa tạo trên dashboard.
  */
+const CF_DEFAULT_VARIANT = "public";
+
 const ROLE_PRESETS: Record<JourneyImageRole, RolePreset> = {
   "gallery-pinned": {
     width: 560,
     height: 315,
-    defaultVariant: "medium",
-    srcSetVariants: [
-      { name: "thumbnail", w: 300 },
-      { name: "medium", w: 800 },
-      { name: "cover", w: 1200 },
-    ],
+    defaultVariant: CF_DEFAULT_VARIANT,
+    srcSetVariants: [],
   },
   "gallery-grid": {
     width: 280,
     height: 280,
-    defaultVariant: "thumbnail",
-    srcSetVariants: [
-      { name: "thumbnail", w: 300 },
-      { name: "medium", w: 800 },
-    ],
+    defaultVariant: CF_DEFAULT_VARIANT,
+    srcSetVariants: [],
   },
   "milestone-preview": {
     width: 800,
     height: 450,
-    defaultVariant: "medium",
-    srcSetVariants: [
-      { name: "thumbnail", w: 300 },
-      { name: "medium", w: 800 },
-      { name: "public", w: 1366 },
-    ],
+    defaultVariant: CF_DEFAULT_VARIANT,
+    srcSetVariants: [],
   },
 };
 
@@ -102,7 +94,7 @@ export function resolveJourneyImage(
   if (CF_UUID_RE.test(trimmed)) {
     const src =
       cfDeliveryUrl(trimmed, preset.defaultVariant) ??
-      cfDeliveryUrl(trimmed, "public");
+      cfDeliveryUrl(trimmed, CF_DEFAULT_VARIANT);
     if (!src) return null;
 
     const srcSetParts: string[] = [];

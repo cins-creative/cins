@@ -92,7 +92,12 @@ export function JourneyView({
             }
           />
           {activeView === "gallery" ? (
-            <JourneyGalleryGridView pinned={galleryPinned} items={galleryItems} />
+            <JourneyGalleryGridView
+              pinned={galleryPinned}
+              items={galleryItems}
+              isOwner={isOwner}
+              filterVisibility={filterVisibility}
+            />
           ) : activeView === "friends" ? (
             <JourneyFriendsView friends={friends} />
           ) : (

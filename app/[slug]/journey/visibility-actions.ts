@@ -8,18 +8,12 @@ import {
   uiKeyToDbEnum,
   type LoaiMocFilterKey,
 } from "@/lib/journey/filter-visibility";
+import { JOURNEY_FILTERABLE_TYPE_UI_KEYS } from "@/lib/journey/milestone-type-options";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
-const ALLOWED_FILTER_KEYS = new Set<string>([
-  "hoc",
-  "lam",
-  "du-an",
-  "su-kien",
-  "thanh-tuu",
-  "ca-nhan",
-]);
+const ALLOWED_FILTER_KEYS = new Set<string>(JOURNEY_FILTERABLE_TYPE_UI_KEYS);
 
-/** Toggle Journey filter visibility (public ↔ private) per loai_moc group. */
+/** Toggle hiển thị dòng filter loại cột mốc trong dropdown (visitor). Không đổi quyền xem nội dung. */
 export async function updateLoaiMocVisibility(
   uiKey: string,
   visibility: "public" | "private",

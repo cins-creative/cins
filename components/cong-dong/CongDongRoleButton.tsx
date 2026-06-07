@@ -211,7 +211,7 @@ export function CongDongRoleButton({
           <button
             type="button"
             className="cd-v4-btn cd-v4-btn--ghost cd-v4-btn--icon cd-v4-btn--icon-only"
-            aria-label="Cài đặt nhóm"
+            aria-label="Chủ đề nhóm"
             onClick={onGroupSettings}
           >
             <Settings2 size={16} strokeWidth={2} aria-hidden />
@@ -312,7 +312,7 @@ export function CongDongRoleButton({
             }}
           >
             <Settings2 size={15} strokeWidth={2} aria-hidden />
-            <span>Cài đặt nhóm</span>
+            <span>Chủ đề nhóm</span>
           </button>
         ) : null}
 

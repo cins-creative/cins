@@ -1,5 +1,6 @@
 import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import type { Block as ServerBlock } from "@/lib/editor/types";
+import type { PersonalFilterRef } from "@/lib/filter/types";
 
 /**
  * Type chuẩn cho 1 cột mốc (milestone) trên Journey.
@@ -40,7 +41,9 @@ export type MilestoneVisibility =
   | "feature"
   | "public"
   | "unlisted"
-  | "private";
+  | "private"
+  /** Post trong feed cộng đồng — ẩn Journey public, chỉ owner thấy badge. */
+  | "cong-dong";
 
 /** Credit strip — tác giả accepted + pending trên tác phẩm. */
 export type CoAuthorCredit = {
@@ -78,6 +81,16 @@ export type MilestoneAttribution = {
   memberCount?: number;
   /** Số bài thảo luận trong cộng đồng. */
   postCount?: number;
+};
+
+export type MilestoneCongDongOrg = {
+  orgId: string;
+  name: string;
+  slug: string;
+  href: string;
+  avatarUrl?: string | null;
+  coverUrl?: string | null;
+  initial?: string | null;
 };
 
 /** Layout card đặc biệt — khác article/photo/video. */
@@ -151,6 +164,10 @@ export type MilestoneItem = {
   postOwnerId?: string | null;
   /** UUID tác phẩm chính, dùng cho các action cộng sự. */
   tacPhamId?: string | null;
+  /** Slug nhãn cá nhân (`filter_nhan`) gắn trên cột mốc — lọc cục bộ Journey. */
+  personalFilterSlugs?: string[];
+  /** Metadata nhãn (ten, mau) — hydrate server-side để badge hiển thị cho mọi viewer. */
+  personalFilters?: PersonalFilterRef[];
   /** Viewer là cộng sự đã được duyệt và có thể đề xuất thêm người. */
   canProposeCoAuthor?: boolean;
 
@@ -165,6 +182,9 @@ export type MilestoneItem = {
   cardLayout?: MilestoneCardLayout;
   /** Link cộng đồng/org khi `cardLayout === 'cong-dong-create'`. */
   orgHref?: string | null;
+
+  /** Cột mốc đăng vào feed cộng đồng (`che_do_hien_thi=cong_dong`). */
+  congDongOrg?: MilestoneCongDongOrg | null;
 
   /** Media tối đa 3 thumbnail trên grid (single/double/triple). */
   media?: MilestoneMediaItem[];

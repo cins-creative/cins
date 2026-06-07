@@ -5,23 +5,40 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FeaturedFlagBadge } from "@/components/journey/FeaturedFlagBadge";
 import { GalleryItemVisual, GalleryVideoPlayBadge } from "@/components/journey/GalleryItemVisual";
 import { GalleryMediaFilterDropdown } from "@/components/journey/GalleryMediaFilterDropdown";
-import type { GalleryMainItem } from "@/lib/journey/gallery-page-fetch";
 import {
+  JourneyTimelineBar,
+  type FilterGroup,
+} from "@/components/journey/JourneyTimelineBar";
+import type { GalleryMainItem } from "@/lib/journey/gallery-page-fetch";
+import type { LoaiMocVisibilityMap } from "@/lib/journey/filter-visibility";
+import {
+  buildFilterOptions,
+  computeFilterCounts,
+  filterByGroup,
+} from "@/lib/journey/milestone-filter-options";
+import type { MilestoneFilterCounts } from "@/lib/journey/milestones-page-fetch";
+import {
+  computeGalleryMediaFilterCounts,
   galleryMediaFilterLabel,
   matchesGalleryMediaFilter,
   type GalleryMediaFilter,
 } from "@/lib/journey/post-media";
+import { matchesPersonalFilterSlug } from "@/lib/filter/client-utils";
+import { useJourneyPersonalFilterOptional } from "@/components/journey/JourneyPersonalFilterContext";
 
 type ScrollLoadConfig = {
   ownerSlug: string;
   hasMore: boolean;
   nextOffset: number;
+  filterCounts?: MilestoneFilterCounts;
 };
 
 type Props = {
   initialItems?: ReadonlyArray<GalleryMainItem>;
   totalCount?: number;
   scrollLoad?: ScrollLoadConfig;
+  isOwner?: boolean;
+  filterVisibility?: LoaiMocVisibilityMap;
   /** Legacy — pinned + grid tách (aside / mock). Không dùng cùng scrollLoad. */
   pinned?: ReadonlyArray<{
     id: string;
@@ -50,14 +67,18 @@ export function JourneyGalleryGridView({
   initialItems,
   totalCount,
   scrollLoad,
+  isOwner = false,
+  filterVisibility,
   pinned = [],
   items = [],
 }: Props) {
+  const personalFilter = useJourneyPersonalFilterOptional();
   const legacyAll =
     pinned.length > 0 || items.length > 0
       ? [
           ...pinned.map((item) => ({
             id: item.id,
+            cotMocId: item.id.replace(/^pin-/, "").split("-")[0] ?? item.id,
             src: item.src,
             srcSet: item.srcSet,
             width: item.width,
@@ -72,6 +93,7 @@ export function JourneyGalleryGridView({
           })),
           ...items.map((item) => ({
             id: item.id,
+            cotMocId: item.id.replace(/^grid-/, "").split("-")[0] ?? item.id,
             src: item.src,
             srcSet: item.srcSet,
             width: item.width,
@@ -87,7 +109,8 @@ export function JourneyGalleryGridView({
         ]
       : null;
 
-  const [filter, setFilter] = useState<GalleryMediaFilter>("all");
+  const [typeFilter, setTypeFilter] = useState<FilterGroup>("all");
+  const [mediaFilter, setMediaFilter] = useState<GalleryMediaFilter>("all");
   const [galleryItems, setGalleryItems] = useState<GalleryMainItem[]>(() =>
     legacyAll ? [...legacyAll] : [...(initialItems ?? [])],
   );
@@ -107,6 +130,10 @@ export function JourneyGalleryGridView({
     setNextOffset(scrollLoad?.nextOffset ?? (initialItems?.length ?? 0));
     setLoadError(false);
   }, [initialItems, scrollLoad?.hasMore, scrollLoad?.nextOffset, legacyAll]);
+
+  useEffect(() => {
+    if (personalFilter?.activeSlug) setTypeFilter("all");
+  }, [personalFilter?.activeSlug]);
 
   const loadMore = useCallback(async () => {
     if (!scrollLoad || loadingRef.current || !hasMore) return;
@@ -155,31 +182,104 @@ export function JourneyGalleryGridView({
     return () => observer.disconnect();
   }, [scrollLoad, hasMore, loadMore, galleryItems.length, legacyAll]);
 
-  const filtered = useMemo(
-    () =>
-      galleryItems.filter((item) =>
-        matchesGalleryMediaFilter(item.mediaKind, filter),
-      ),
-    [galleryItems, filter],
+  const visibleItems = galleryItems;
+
+  const baseForTypeCounts = useMemo(() => {
+    return visibleItems.filter((item) => {
+      if (!matchesGalleryMediaFilter(item.mediaKind, mediaFilter)) return false;
+      if (
+        personalFilter?.activeSlug &&
+        !matchesPersonalFilterSlug(item.personalFilterSlugs, personalFilter.activeSlug)
+      ) {
+        return false;
+      }
+      return true;
+    });
+  }, [visibleItems, mediaFilter, personalFilter?.activeSlug]);
+
+  const baseForMediaCounts = useMemo(() => {
+    let rows = visibleItems;
+    if (personalFilter?.activeSlug) {
+      rows = rows.filter((item) =>
+        matchesPersonalFilterSlug(item.personalFilterSlugs, personalFilter.activeSlug),
+      );
+    }
+    return filterByGroup(rows, typeFilter);
+  }, [visibleItems, typeFilter, personalFilter?.activeSlug]);
+
+  const typeCounts = useMemo((): MilestoneFilterCounts => {
+    if (scrollLoad?.filterCounts && mediaFilter === "all" && !personalFilter?.activeSlug) {
+      return scrollLoad.filterCounts;
+    }
+    return computeFilterCounts(baseForTypeCounts);
+  }, [
+    scrollLoad?.filterCounts,
+    mediaFilter,
+    personalFilter?.activeSlug,
+    baseForTypeCounts,
+  ]);
+
+  const mediaCounts = useMemo(
+    () => computeGalleryMediaFilterCounts(baseForMediaCounts),
+    [baseForMediaCounts],
   );
 
-  const hasData = galleryItems.length > 0 || (totalCount ?? 0) > 0;
-  const filterCount =
-    filter === "all"
-      ? totalCount ?? galleryItems.length
-      : filtered.length;
+  const filtered = useMemo(() => {
+    let rows = visibleItems;
+    if (personalFilter?.activeSlug) {
+      rows = rows.filter((item) =>
+        matchesPersonalFilterSlug(item.personalFilterSlugs, personalFilter.activeSlug),
+      );
+    }
+    rows = filterByGroup(rows, typeFilter);
+    return rows.filter((item) => matchesGalleryMediaFilter(item.mediaKind, mediaFilter));
+  }, [visibleItems, typeFilter, mediaFilter, personalFilter?.activeSlug]);
+
+  const activePersonalFilter = personalFilter?.activeSlug
+    ? personalFilter.filters.find((f) => f.slug === personalFilter.activeSlug)
+    : null;
+
+  const hasData = visibleItems.length > 0 || (totalCount ?? 0) > 0;
+  const filterCount = filtered.length;
+
+  const typeOptions = buildFilterOptions(typeCounts).map((o) =>
+    o.group === typeFilter ? { ...o, count: filterCount } : o,
+  );
+
+  const emptyFilterLabel = activePersonalFilter?.ten
+    ? `${activePersonalFilter.ten}${mediaFilter !== "all" ? ` · ${galleryMediaFilterLabel(mediaFilter)}` : ""}`
+    : mediaFilter !== "all"
+      ? galleryMediaFilterLabel(mediaFilter)
+      : typeFilter === "all"
+        ? "Tất cả"
+        : typeOptions.find((o) => o.group === typeFilter)?.label ?? "đã chọn";
 
   return (
     <main className="j-main-panel j-gallery-main" aria-label="Gallery tác phẩm">
       <div className="j-tlb">
         <div className="j-tlb-year">Gallery</div>
+        <div className="j-tlb-month" aria-hidden style={{ visibility: "hidden" }}>
+          —
+        </div>
         {hasData ? (
-          <GalleryMediaFilterDropdown
-            filter={filter}
-            onFilterChange={setFilter}
-            variant="toolbar"
-            count={filterCount}
-          />
+          <div className="j-tlb-filters">
+            <JourneyTimelineBar
+              embed
+              filter={typeFilter}
+              onFilterChange={setTypeFilter}
+              options={typeOptions}
+              enabled={hasData}
+              isOwner={isOwner}
+              filterVisibility={filterVisibility}
+            />
+            <GalleryMediaFilterDropdown
+              filter={mediaFilter}
+              onFilterChange={setMediaFilter}
+              variant="toolbar"
+              count={filterCount}
+              optionCounts={mediaCounts}
+            />
+          </div>
         ) : null}
       </div>
 
@@ -190,7 +290,7 @@ export function JourneyGalleryGridView({
       ) : filtered.length === 0 ? (
         <div className="j-main-empty">
           Không có tác phẩm thuộc loại{" "}
-          <em>{galleryMediaFilterLabel(filter)}</em>. Đổi bộ lọc hoặc chọn “Tất cả”.
+          <em>{emptyFilterLabel}</em>. Đổi bộ lọc hoặc chọn “Tất cả”.
         </div>
       ) : (
         <div className="j-main-gallery-grid">

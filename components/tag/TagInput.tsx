@@ -115,6 +115,8 @@ export function TagInput({
   const [creating, setCreating] = useState(false);
   const [loaiFilter, setLoaiFilter] = useState<LoaiFilter>("all");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const valueRef = useRef(value);
+  valueRef.current = value;
 
   const selectedIds = useMemo(() => new Set(value.map((t) => t.id)), [value]);
 
@@ -273,18 +275,19 @@ export function TagInput({
 
   const addTag = useCallback(
     (tag: TagInputValue) => {
-      if (selectedIds.has(tag.id)) return;
+      const current = valueRef.current;
+      if (current.some((t) => t.id === tag.id)) return;
       const next =
         mode === "single"
           ? [tag]
-          : [...value, { ...tag, da_verify: tag.da_verify }];
+          : [...current, { ...tag, da_verify: tag.da_verify }];
       emitChange(next);
       setQuery("");
       setOpen(false);
       setExactMatch(null);
       setSuggestions([]);
     },
-    [emitChange, mode, selectedIds, value],
+    [emitChange, mode],
   );
 
   const createTag = useCallback(
@@ -327,8 +330,8 @@ export function TagInput({
   );
 
   const onKeyDown = async (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Backspace" && !query && value.length > 0) {
-      emitChange(value.slice(0, -1));
+    if (e.key === "Backspace" && !query && valueRef.current.length > 0) {
+      emitChange(valueRef.current.slice(0, -1));
       return;
     }
     if (e.key === "Escape") {
@@ -502,7 +505,7 @@ export function TagInput({
                 aria-label={`Bỏ tag ${tag.tieu_de}`}
                 onClick={(e) => {
                   e.stopPropagation();
-                  emitChange(value.filter((t) => t.id !== tag.id));
+                  emitChange(valueRef.current.filter((t) => t.id !== tag.id));
                 }}
               >
                 ×
