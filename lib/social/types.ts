@@ -22,6 +22,7 @@ export type PendingCoAuthorInvite = {
   postTitle: string;
   ownerSlug: string;
   ownerName: string;
+  ownerAvatarUrl: string | null;
   vaiTro: string;
 };
 

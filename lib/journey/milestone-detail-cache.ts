@@ -1,6 +1,6 @@
 "use client";
 
-import type { MilestonePostDetail } from "@/app/[slug]/journey/actions";
+import type { MilestonePostDetail } from "@/lib/journey/milestone-post-types";
 
 const cache = new Map<string, MilestonePostDetail>();
 const inflight = new Map<string, Promise<MilestonePostDetail>>();

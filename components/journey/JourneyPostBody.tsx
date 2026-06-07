@@ -1,7 +1,11 @@
 "use client";
 
 import {
+  BookOpen,
+  Briefcase,
+  Calendar,
   ExternalLink,
+  FolderKanban,
   Globe,
   Lock,
   MoreHorizontal,
@@ -9,6 +13,8 @@ import {
   Send,
   Star,
   Loader2,
+  Trophy,
+  UserCircle2,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -39,7 +45,7 @@ import {
 import { isMediaPost } from "@/lib/journey/post-media";
 import { getAvatarUrl } from "@/lib/journey/profile";
 
-import { PostActionsRail } from "./PostActionsRail";
+import { PostActionsRail, PostShareMenu } from "./PostActionsRail";
 
 /* ╔══════════════════════════════════════════════════════════════════╗
    ║ JourneyPostBody — view layout cho bài viết. ĐỒNG BỘ với editor   ║
@@ -73,6 +79,15 @@ const VIS_LABEL: Record<string, { Icon: LucideIcon; text: string }> = {
   public: { Icon: Globe, text: "Công khai" },
   theo_nhom: { Icon: Users, text: "Theo nhóm" },
   chi_minh: { Icon: Lock, text: "Chỉ mình tôi" },
+};
+
+const TYPE_ICON: Record<string, LucideIcon> = {
+  hoc: BookOpen,
+  lam_viec: Briefcase,
+  du_an: FolderKanban,
+  su_kien: Calendar,
+  thanh_tuu: Trophy,
+  ca_nhan: UserCircle2,
 };
 
 type Props = {
@@ -159,6 +174,7 @@ export function JourneyPostBody({
   const mediaPost = isMediaPost(blocks);
 
   const typeLabel = TYPE_LABEL[milestone.loaiMoc] ?? "Cột mốc";
+  const TypeIcon = TYPE_ICON[milestone.loaiMoc] ?? UserCircle2;
   const vis = VIS_LABEL[milestone.cheDoHienThi] ?? VIS_LABEL.public;
   const dateLabel = formatVnDate(milestone.thoiDiem);
   const ownerInitial = (owner.tenHienThi || owner.slug)
@@ -217,100 +233,105 @@ export function JourneyPostBody({
       </>
     ) : null;
 
+  const actionsRail = (
+    <PostActionsRail
+      milestoneId={milestone.id}
+      initialLiked={social.viewerLiked}
+      initialBookmarked={social.viewerBookmarked}
+      likeCount={social.likeCount}
+      bookmarkCount={social.bookmarkCount}
+      commentCount={displayCommentCount}
+      showCounts
+      canBookmark={!isOwner}
+      sharePath={sharePath}
+      shareTitle={heroTitle}
+      hideShare={isSplit}
+    />
+  );
+
   const bylineEl = showByline ? (
-        <div className="post-byline">
-          <Link
-            href={`/${owner.slug}`}
-            className="post-byline-author"
-            prefetch={false}
+    <div className={`post-byline${isSplit ? " post-byline--sidebar" : ""}`}>
+      <div className="post-byline-head">
+        <Link
+          href={`/${owner.slug}`}
+          className="post-byline-author"
+          prefetch={false}
+        >
+          <span className="post-byline-avatar" aria-hidden>
+            {ownerAvatarUrl ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src={ownerAvatarUrl} alt="" />
+            ) : (
+              ownerInitial
+            )}
+          </span>
+          <span className="post-byline-name">
+            <strong>{owner.tenHienThi}</strong>
+            <span className="post-byline-handle">@{owner.slug}</span>
+          </span>
+        </Link>
+        {isOwner ? (
+          <JourneyMilestoneOwnerMenu
+            className="post-byline-menu"
+            milestoneId={milestone.id}
+            ownerSlug={owner.slug}
+            currentType={mapLoaiMocToMilestoneType(milestone.loaiMoc)}
+            currentVisibility={mapCheDoToMilestoneVisibility(
+              milestone.cheDoHienThi,
+            )}
+            postSlug={postSlug ?? null}
+            onAfterChange={onMilestoneUpdated}
+          />
+        ) : null}
+      </div>
+
+      <div className="post-byline-meta">
+        <time className="post-byline-date" dateTime={milestone.thoiDiem}>
+          {dateLabel}
+        </time>
+        <div className="post-byline-badges" aria-label="Loại và chế độ hiển thị">
+          <span
+            className="post-byline-type"
+            aria-label={`Loại cột mốc: ${typeLabel}`}
           >
-            <span className="post-byline-avatar" aria-hidden>
-              {ownerAvatarUrl ? (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img src={ownerAvatarUrl} alt="" />
-              ) : (
-                ownerInitial
-              )}
-            </span>
-            <span className="post-byline-name">
-              <strong>{owner.tenHienThi}</strong>
-              <span className="post-byline-handle">{dateLabel}</span>
-            </span>
-          </Link>
-          {isOwner ? (
-            <div className="post-byline-toolbar">
-              <PostActionsRail
-                milestoneId={milestone.id}
-                initialLiked={social.viewerLiked}
-                initialBookmarked={social.viewerBookmarked}
-                likeCount={social.likeCount}
-                bookmarkCount={social.bookmarkCount}
-                commentCount={displayCommentCount}
-                showCounts={detail.viewerIsOwner}
-                canBookmark={!isOwner}
-                sharePath={sharePath}
-                shareTitle={heroTitle}
-              />
-              <JourneyMilestoneOwnerMenu
-                className="post-byline-menu"
-                milestoneId={milestone.id}
-                ownerSlug={owner.slug}
-                currentType={mapLoaiMocToMilestoneType(milestone.loaiMoc)}
-                currentVisibility={mapCheDoToMilestoneVisibility(
-                  milestone.cheDoHienThi,
-                )}
-                postSlug={postSlug ?? null}
-                onAfterChange={onMilestoneUpdated}
-              />
-            </div>
-          ) : (
-            <>
-              <span className="post-byline-dot" aria-hidden>
-                ·
-              </span>
-              <span
-                className="post-byline-type"
-                aria-label={`Loại cột mốc: ${typeLabel}`}
-              >
-                <span aria-hidden>▦</span>
-                <span>{typeLabel}</span>
-              </span>
-              <span
-                className={`post-byline-vis post-byline-vis--${milestone.cheDoHienThi}`}
-                aria-label={vis.text}
-              >
-                <vis.Icon
-                  size={13}
-                  strokeWidth={1.8}
-                  aria-hidden
-                  {...(milestone.cheDoHienThi === "feature"
-                    ? { fill: "currentColor" }
-                    : {})}
-                />
-                <span>{vis.text}</span>
-              </span>
-              <span className="post-byline-spacer" />
-              {permalinkHref ? (
-                <Link href={permalinkHref} className="post-byline-action">
-                  <ExternalLink size={13} strokeWidth={1.8} aria-hidden />
-                  <span>Mở bài viết</span>
-                </Link>
-              ) : null}
-              <PostActionsRail
-                milestoneId={milestone.id}
-                initialLiked={social.viewerLiked}
-                initialBookmarked={social.viewerBookmarked}
-                likeCount={social.likeCount}
-                bookmarkCount={social.bookmarkCount}
-                commentCount={displayCommentCount}
-                showCounts={detail.viewerIsOwner}
-                canBookmark={!isOwner}
-                sharePath={sharePath}
-                shareTitle={heroTitle}
-              />
-            </>
-          )}
+            <TypeIcon size={12} strokeWidth={1.9} aria-hidden />
+            <span>{typeLabel}</span>
+          </span>
+          <span
+            className={`post-byline-vis post-byline-vis--${milestone.cheDoHienThi}`}
+            aria-label={vis.text}
+          >
+            <vis.Icon
+              size={12}
+              strokeWidth={1.9}
+              aria-hidden
+              {...(milestone.cheDoHienThi === "feature"
+                ? { fill: "currentColor" }
+                : {})}
+            />
+            <span>{vis.text}</span>
+          </span>
         </div>
+      </div>
+
+      <div className="post-byline-foot">
+        {permalinkHref && !hideOpenLink ? (
+          <Link href={permalinkHref} className="post-byline-action">
+            <ExternalLink size={13} strokeWidth={1.8} aria-hidden />
+            <span>Mở bài viết</span>
+          </Link>
+        ) : null}
+        {actionsRail}
+        {isSplit ? (
+          <PostShareMenu
+            sharePath={sharePath}
+            shareTitle={heroTitle}
+            showLabel
+            className="post-byline-share-standalone"
+          />
+        ) : null}
+      </div>
+    </div>
   ) : null;
 
   const tagsEl =

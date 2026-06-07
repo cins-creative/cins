@@ -33,6 +33,15 @@ type Props = {
   /** Path permalink — VD `/slug/p/post-slug`. */
   sharePath?: string | null;
   shareTitle?: string;
+  /** Ẩn chia sẻ trong rail — render `PostShareMenu` riêng (sidebar). */
+  hideShare?: boolean;
+};
+
+type ShareMenuProps = {
+  sharePath?: string | null;
+  shareTitle?: string;
+  className?: string;
+  showLabel?: boolean;
 };
 
 type ShareItem = {
@@ -50,6 +59,214 @@ function scrollToComments() {
     ?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+export function PostShareMenu({
+  sharePath = null,
+  shareTitle = "",
+  className = "",
+  showLabel = false,
+}: ShareMenuProps) {
+  const [shareOpen, setShareOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [shareUrl, setShareUrl] = useState("");
+  const shareWrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const path = sharePath?.trim();
+    if (path) {
+      setShareUrl(`${window.location.origin}${path.startsWith("/") ? path : `/${path}`}`);
+      return;
+    }
+    setShareUrl(window.location.href);
+  }, [sharePath]);
+
+  useEffect(() => {
+    if (!shareOpen) return;
+    function onDocClick(e: MouseEvent) {
+      if (!shareWrapRef.current?.contains(e.target as Node)) setShareOpen(false);
+    }
+    function onEsc(e: KeyboardEvent) {
+      if (e.key === "Escape") setShareOpen(false);
+    }
+    const timerId = window.setTimeout(() => {
+      document.addEventListener("click", onDocClick);
+    }, 0);
+    document.addEventListener("keydown", onEsc);
+    return () => {
+      window.clearTimeout(timerId);
+      document.removeEventListener("click", onDocClick);
+      document.removeEventListener("keydown", onEsc);
+    };
+  }, [shareOpen]);
+
+  async function copyLink() {
+    if (!shareUrl) return;
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      const input = document.createElement("input");
+      input.value = shareUrl;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand("copy");
+      document.body.removeChild(input);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    }
+    setShareOpen(false);
+  }
+
+  async function nativeShare() {
+    if (!shareUrl || !navigator.share) return;
+    try {
+      await navigator.share({
+        title: shareTitle || "CINs",
+        url: shareUrl,
+      });
+      setShareOpen(false);
+    } catch {
+      /* User huỷ — giữ menu mở. */
+    }
+  }
+
+  const encodedUrl = encodeURIComponent(shareUrl);
+  const encodedTitle = encodeURIComponent(shareTitle || "CINs");
+
+  const shareItems: ShareItem[] = [
+    ...(typeof navigator !== "undefined" && "share" in navigator
+      ? [
+          {
+            id: "native",
+            label: "Chia sẻ…",
+            iconClass: "post-byline-share-ic--native",
+            iconLabel: "↗",
+            onClick: () => void nativeShare(),
+          },
+        ]
+      : []),
+    {
+      id: "copy",
+      label: copied ? "Đã sao chép!" : "Sao chép liên kết",
+      iconClass: "post-byline-share-ic--copy",
+      iconLabel: "⎘",
+      onClick: () => void copyLink(),
+    },
+    {
+      id: "facebook",
+      label: "Facebook",
+      iconClass: "post-byline-share-ic--fb",
+      iconLabel: "f",
+      href: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
+    },
+    {
+      id: "x",
+      label: "X (Twitter)",
+      iconClass: "post-byline-share-ic--x",
+      iconLabel: "𝕏",
+      href: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}`,
+    },
+    {
+      id: "linkedin",
+      label: "LinkedIn",
+      iconClass: "post-byline-share-ic--in",
+      iconLabel: "in",
+      href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`,
+    },
+    {
+      id: "zalo",
+      label: "Zalo",
+      iconClass: "post-byline-share-ic--zalo",
+      iconLabel: "Z",
+      href: `https://button-share.zalo.me/share_external?layout=1&color=blue&customize=false&width=24&height=24&isDesktop=true&href=${encodedUrl}`,
+    },
+    {
+      id: "whatsapp",
+      label: "WhatsApp",
+      iconClass: "post-byline-share-ic--wa",
+      iconLabel: "W",
+      href: `https://wa.me/?text=${encodeURIComponent(`${shareTitle ? `${shareTitle} — ` : ""}${shareUrl}`)}`,
+    },
+    {
+      id: "pinterest",
+      label: "Pinterest",
+      iconClass: "post-byline-share-ic--pin",
+      iconLabel: "P",
+      href: `https://pinterest.com/pin/create/button/?url=${encodedUrl}&description=${encodedTitle}`,
+    },
+  ];
+
+  return (
+    <div
+      ref={shareWrapRef}
+      className={
+        "post-byline-share-wrap" +
+        (shareOpen ? " is-open" : "") +
+        (className ? ` ${className}` : "")
+      }
+    >
+      <button
+        type="button"
+        className="post-byline-act is-share"
+        onClick={(e) => {
+          e.stopPropagation();
+          setShareOpen((v) => !v);
+        }}
+        aria-haspopup="menu"
+        aria-expanded={shareOpen}
+        aria-label="Chia sẻ bài viết"
+      >
+        <Share2 size={16} strokeWidth={1.8} aria-hidden />
+        {showLabel ? (
+          <span className="post-byline-share-label">Chia sẻ</span>
+        ) : null}
+      </button>
+
+      {shareOpen ? (
+        <div className="post-byline-share" role="menu">
+          {shareItems.map((item) =>
+            item.href ? (
+              <a
+                key={item.id}
+                href={item.href}
+                className="post-byline-share-item"
+                role="menuitem"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setShareOpen(false)}
+              >
+                <span
+                  className={`post-byline-share-ic ${item.iconClass}`}
+                  aria-hidden
+                >
+                  {item.iconLabel}
+                </span>
+                <span>{item.label}</span>
+              </a>
+            ) : (
+              <button
+                key={item.id}
+                type="button"
+                className="post-byline-share-item"
+                role="menuitem"
+                onClick={item.onClick}
+              >
+                <span
+                  className={`post-byline-share-ic ${item.iconClass}`}
+                  aria-hidden
+                >
+                  {item.iconLabel}
+                </span>
+                <span>{item.label}</span>
+              </button>
+            ),
+          )}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function PostActionsRail({
   milestoneId,
   initialLiked = false,
@@ -61,17 +278,14 @@ export function PostActionsRail({
   canBookmark = true,
   sharePath = null,
   shareTitle = "",
+  hideShare = false,
 }: Props) {
   const { requireAuth } = useAuthGate();
   const [liked, setLiked] = useState(initialLiked);
   const [bookmarked, setBookmarked] = useState(initialBookmarked);
   const [likes, setLikes] = useState(likeCount);
   const [bookmarks, setBookmarks] = useState(bookmarkCount);
-  const [shareOpen, setShareOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [shareUrl, setShareUrl] = useState("");
   const [pending, startTransition] = useTransition();
-  const shareWrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -81,15 +295,6 @@ export function PostActionsRail({
       setBookmarks(bookmarkCount);
     });
   }, [initialLiked, initialBookmarked, likeCount, bookmarkCount]);
-
-  useEffect(() => {
-    const path = sharePath?.trim();
-    if (path) {
-      setShareUrl(`${window.location.origin}${path.startsWith("/") ? path : `/${path}`}`);
-      return;
-    }
-    setShareUrl(window.location.href);
-  }, [sharePath]);
 
   useEffect(() => {
     const onSocial = (event: Event) => {
@@ -111,25 +316,6 @@ export function PostActionsRail({
     window.addEventListener("cins:social-action", onSocial);
     return () => window.removeEventListener("cins:social-action", onSocial);
   }, [milestoneId]);
-
-  useEffect(() => {
-    if (!shareOpen) return;
-    function onDocClick(e: MouseEvent) {
-      if (!shareWrapRef.current?.contains(e.target as Node)) setShareOpen(false);
-    }
-    function onEsc(e: KeyboardEvent) {
-      if (e.key === "Escape") setShareOpen(false);
-    }
-    const timerId = window.setTimeout(() => {
-      document.addEventListener("click", onDocClick);
-    }, 0);
-    document.addEventListener("keydown", onEsc);
-    return () => {
-      window.clearTimeout(timerId);
-      document.removeEventListener("click", onDocClick);
-      document.removeEventListener("keydown", onEsc);
-    };
-  }, [shareOpen]);
 
   function toggleLike() {
     requireAuth(() => {
@@ -212,105 +398,6 @@ export function PostActionsRail({
     });
   }
 
-  async function copyLink() {
-    if (!shareUrl) return;
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
-    } catch {
-      /* Fallback cho trình duyệt cũ. */
-      const input = document.createElement("input");
-      input.value = shareUrl;
-      document.body.appendChild(input);
-      input.select();
-      document.execCommand("copy");
-      document.body.removeChild(input);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
-    }
-    setShareOpen(false);
-  }
-
-  async function nativeShare() {
-    if (!shareUrl || !navigator.share) return;
-    try {
-      await navigator.share({
-        title: shareTitle || "CINs",
-        url: shareUrl,
-      });
-      setShareOpen(false);
-    } catch {
-      /* User huỷ hoặc trình duyệt từ chối — giữ menu mở. */
-    }
-  }
-
-  const encodedUrl = encodeURIComponent(shareUrl);
-  const encodedTitle = encodeURIComponent(shareTitle || "CINs");
-
-  const shareItems: ShareItem[] = [
-    ...(typeof navigator !== "undefined" && "share" in navigator
-      ? [
-          {
-            id: "native",
-            label: "Chia sẻ…",
-            iconClass: "post-byline-share-ic--native",
-            iconLabel: "↗",
-            onClick: () => void nativeShare(),
-          },
-        ]
-      : []),
-    {
-      id: "copy",
-      label: copied ? "Đã sao chép!" : "Sao chép liên kết",
-      iconClass: "post-byline-share-ic--copy",
-      iconLabel: "⎘",
-      onClick: () => void copyLink(),
-    },
-    {
-      id: "facebook",
-      label: "Facebook",
-      iconClass: "post-byline-share-ic--fb",
-      iconLabel: "f",
-      href: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
-    },
-    {
-      id: "x",
-      label: "X (Twitter)",
-      iconClass: "post-byline-share-ic--x",
-      iconLabel: "𝕏",
-      href: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}`,
-    },
-    {
-      id: "linkedin",
-      label: "LinkedIn",
-      iconClass: "post-byline-share-ic--in",
-      iconLabel: "in",
-      href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`,
-    },
-    {
-      id: "zalo",
-      label: "Zalo",
-      iconClass: "post-byline-share-ic--zalo",
-      iconLabel: "Z",
-      href: `https://button-share.zalo.me/share_external?layout=1&color=blue&customize=false&width=24&height=24&isDesktop=true&href=${encodedUrl}`,
-    },
-    {
-      id: "whatsapp",
-      label: "WhatsApp",
-      iconClass: "post-byline-share-ic--wa",
-      iconLabel: "W",
-      href: `https://wa.me/?text=${encodeURIComponent(`${shareTitle ? `${shareTitle} — ` : ""}${shareUrl}`)}`,
-    },
-    {
-      id: "pinterest",
-      label: "Pinterest",
-      iconClass: "post-byline-share-ic--pin",
-      iconLabel: "P",
-      href: `https://pinterest.com/pin/create/button/?url=${encodedUrl}&description=${encodedTitle}`,
-    },
-  ];
-
   return (
     <div className="post-byline-actions" aria-label="Hành động bài viết">
       <button
@@ -362,66 +449,9 @@ export function PostActionsRail({
         <span className="post-byline-act-count">{commentCount}</span>
       </button>
 
-      <div
-        ref={shareWrapRef}
-        className={"post-byline-share-wrap" + (shareOpen ? " is-open" : "")}
-      >
-        <button
-          type="button"
-          className="post-byline-act is-share"
-          onClick={(e) => {
-            e.stopPropagation();
-            setShareOpen((v) => !v);
-          }}
-          aria-haspopup="menu"
-          aria-expanded={shareOpen}
-          aria-label="Chia sẻ bài viết"
-        >
-          <Share2 size={16} strokeWidth={1.8} aria-hidden />
-        </button>
-
-        {shareOpen ? (
-          <div className="post-byline-share" role="menu">
-            {shareItems.map((item) =>
-              item.href ? (
-                <a
-                  key={item.id}
-                  href={item.href}
-                  className="post-byline-share-item"
-                  role="menuitem"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => setShareOpen(false)}
-                >
-                  <span
-                    className={`post-byline-share-ic ${item.iconClass}`}
-                    aria-hidden
-                  >
-                    {item.iconLabel}
-                  </span>
-                  <span>{item.label}</span>
-                </a>
-              ) : (
-                <button
-                  key={item.id}
-                  type="button"
-                  className="post-byline-share-item"
-                  role="menuitem"
-                  onClick={item.onClick}
-                >
-                  <span
-                    className={`post-byline-share-ic ${item.iconClass}`}
-                    aria-hidden
-                  >
-                    {item.iconLabel}
-                  </span>
-                  <span>{item.label}</span>
-                </button>
-              ),
-            )}
-          </div>
-        ) : null}
-      </div>
+      {hideShare ? null : (
+        <PostShareMenu sharePath={sharePath} shareTitle={shareTitle} />
+      )}
     </div>
   );
 }

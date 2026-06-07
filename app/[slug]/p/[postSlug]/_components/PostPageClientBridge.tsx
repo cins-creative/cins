@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import type { MilestonePostDetail } from "@/app/[slug]/journey/actions";
+import type { MilestonePostDetail } from "@/lib/journey/milestone-post-types";
 import { JourneyPostBody } from "@/components/journey/JourneyPostBody";
 import {
   isPostPageCacheStale,

@@ -71,6 +71,8 @@ export interface ArticleBaiViet {
   tieu_de_viet?: string | null;
   tieu_de_eng?: string | null;
   loai_bai_viet: LoaiBaiViet;
+  /** v7 — ưu tiên autocomplete; không chặn tag unverified. */
+  da_verify?: boolean | null;
   tom_tat?: string | null;
   cover_id?: string | null;
   thumbnail?: string | null;

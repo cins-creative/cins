@@ -281,54 +281,15 @@
   border-radius: 999px;
 }
 
-.cins-post-view.post-canvas--split .post-view-meta .post-byline,
-.cins-post-view .post-canvas--split .post-view-meta .post-byline {
-  flex-direction: column;
-  align-items: stretch;
+.cins-post-view.post-canvas--split .post-view-meta .post-byline--sidebar,
+.cins-post-view .post-canvas--split .post-view-meta .post-byline--sidebar {
   gap: 14px;
-  border-bottom: none;
   margin-bottom: 0;
-  padding-bottom: 0;
-}
-
-.cins-post-view.post-canvas--split .post-view-meta .post-byline-author {
-  align-items: center;
-}
-
-.cins-post-view.post-canvas--split .post-view-meta .post-byline-avatar,
-.cins-post-view .post-canvas--split .post-view-meta .post-byline-avatar {
-  width: 44px;
-  height: 44px;
-  font-size: 16px;
-}
-
-.cins-post-view.post-canvas--split .post-view-meta .post-byline-spacer,
-.cins-post-view .post-canvas--split .post-view-meta .post-byline-spacer {
-  display: none;
-}
-
-.cins-post-view.post-canvas--split .post-view-meta .post-byline-toolbar,
-.cins-post-view .post-canvas--split .post-view-meta .post-byline-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  width: 100%;
-}
-
-.cins-post-view.post-canvas--split .post-view-meta .post-byline-actions,
-.cins-post-view .post-canvas--split .post-view-meta .post-byline-actions {
-  flex: 1;
-  min-width: 0;
-  flex-wrap: wrap;
-  justify-content: flex-start;
-  gap: 6px;
-}
-
-.cins-post-view.post-canvas--split .post-view-meta .post-byline-menu,
-.cins-post-view .post-canvas--split .post-view-meta .post-byline-menu {
-  flex-shrink: 0;
-  margin-left: auto;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
 .cins-post-view.post-canvas--split .post-view-meta .post-art-tags,
@@ -584,11 +545,10 @@ body.post-page-focus-mode {
   line-height: 1.45;
 }
 
-.cins-post-view.post-canvas--media .post-byline,
-.cins-post-view .post-canvas--media .post-byline {
+.cins-post-view.post-canvas--media:not(.post-canvas--split) .post-byline,
+.cins-post-view .post-canvas--media:not(.post-canvas--split) .post-byline {
   margin-top: 0;
   margin-bottom: 24px;
-  padding-bottom: 20px;
 }
 
 .cins-post-view.post-canvas--media .post-blocks-fb,
@@ -616,31 +576,60 @@ body.post-page-focus-mode {
   padding: 0 4px;
 }
 
-/* Byline (author + ngày + chế độ + chip hành động). */
+/* Byline — author, meta chips, hành động. */
 .cins-post-view .post-byline {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 18px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface, #ffffff);
+  margin-bottom: 16px;
   font-size: 13px;
   color: var(--ink-muted);
+}
+.cins-post-view:not(.post-canvas--split) .post-byline:not(.post-byline--sidebar) {
+  padding-bottom: 16px;
+  border-radius: 0;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  padding-left: 0;
+  padding-right: 0;
+  padding-top: 0;
+}
+.cins-post-view:not(.post-canvas--split)
+  .post-byline:not(.post-byline--sidebar)
+  .post-byline-meta {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+}
+.cins-post-view .post-byline-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
 }
 .cins-post-view .post-byline-author {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
   text-decoration: none;
   color: inherit;
 }
 .cins-post-view .post-byline-author:hover .post-byline-name strong {
-  text-decoration: underline;
+  color: var(--cins-blue);
 }
 .cins-post-view .post-byline-avatar {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   background: var(--cins-blue-soft);
   color: var(--cins-blue-dark);
@@ -648,9 +637,11 @@ body.post-page-focus-mode {
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 13px;
+  font-size: 15px;
   overflow: hidden;
   flex-shrink: 0;
+  border: 2px solid #fff;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
 }
 .cins-post-view .post-byline-avatar img {
   width: 100%;
@@ -659,22 +650,121 @@ body.post-page-focus-mode {
   display: block;
 }
 .cins-post-view .post-byline-name {
-  display: inline-flex;
+  display: flex;
   flex-direction: column;
   gap: 2px;
-  line-height: 1.2;
+  min-width: 0;
+  line-height: 1.25;
 }
 .cins-post-view .post-byline-name strong {
   color: var(--ink-title);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .cins-post-view .post-byline-handle {
   color: var(--ink-muted);
   font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cins-post-view .post-byline-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+.cins-post-view .post-byline-date {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--ink-muted);
+}
+.cins-post-view .post-byline-badges {
+  display: inline-flex;
+  align-items: stretch;
+  max-width: 100%;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--neutral-50, #f5f6f8);
+  overflow: hidden;
+}
+.cins-post-view .post-byline-badges .post-byline-type,
+.cins-post-view .post-byline-badges .post-byline-vis {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.cins-post-view .post-byline-badges .post-byline-type {
+  border-right: 1px solid var(--border);
+  color: var(--ink-title);
+}
+.cins-post-view .post-byline-badges .post-byline-vis--feature {
+  box-shadow: none;
+}
+.cins-post-view .post-byline-foot {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.cins-post-view .post-byline-foot .post-byline-action {
+  align-self: flex-start;
+}
+.cins-post-view .post-byline--sidebar .post-byline-foot {
+  gap: 10px;
+  padding-top: 14px;
+}
+.cins-post-view .post-byline--sidebar .post-byline-actions {
+  padding: 3px;
+  border-radius: 14px;
+  background: var(--neutral-50, #f5f6f8);
+}
+.cins-post-view .post-byline--sidebar .post-byline-act {
+  height: 36px;
+  border-radius: 11px;
+}
+.cins-post-view .post-byline-share-standalone {
+  position: relative;
+  width: 100%;
+}
+.cins-post-view .post-byline-share-standalone .post-byline-act.is-share {
+  width: 100%;
+  flex: none;
+  gap: 8px;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--ink-body);
+  font-size: 12px;
+  font-weight: 700;
+}
+.cins-post-view .post-byline-share-standalone .post-byline-act.is-share:hover {
+  border-color: var(--border-strong, #d4d7de);
+  background: var(--neutral-50, #f5f6f8);
+  color: var(--ink-title);
+}
+.cins-post-view .post-byline-share-label {
+  line-height: 1;
+}
+.cins-post-view .post-byline-share-standalone .post-byline-share {
+  left: 0;
+  right: 0;
 }
 .cins-post-view .post-byline-dot {
-  color: var(--border-strong, #d4d7de);
+  display: none;
 }
 .cins-post-view .post-byline-vis {
   display: inline-flex;
@@ -714,8 +804,7 @@ body.post-page-focus-mode {
   color: #f59e0b;
 }
 .cins-post-view .post-byline-spacer {
-  flex: 1;
-  min-width: 8px;
+  display: none;
 }
 
 /* Kebab owner menu trong byline (cùng component `JourneyMilestoneOwnerMenu`). */
@@ -724,6 +813,7 @@ body.post-page-focus-mode {
   top: auto;
   right: auto;
   flex-shrink: 0;
+  margin: -4px -6px 0 0;
 }
 .cins-post-view .post-byline .j-m-menu.post-byline-menu .j-m-menu-pop {
   top: calc(100% + 6px);
@@ -755,22 +845,15 @@ body.post-page-focus-mode {
 
 /* Hành động gọn trong byline — Thích · Lưu · Bình luận · Chia sẻ. */
 .cins-post-view .post-byline-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  flex-shrink: 0;
-}
-
-.cins-post-view .post-byline-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  min-width: 0;
-}
-
-.cins-post-view:not(.post-canvas--split) .post-byline-toolbar {
-  margin-left: auto;
+  gap: 4px;
+  width: 100%;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--neutral-50, #f5f6f8);
+  border: 1px solid var(--border);
 }
 
 .cins-post-view .post-byline-act {
@@ -778,11 +861,12 @@ body.post-page-focus-mode {
   align-items: center;
   justify-content: center;
   gap: 4px;
-  min-width: 32px;
-  height: 32px;
-  padding: 0 8px;
+  flex: 1;
+  min-width: 0;
+  height: 34px;
+  padding: 0 6px;
   border: none;
-  border-radius: 999px;
+  border-radius: 9px;
   background: transparent;
   color: var(--ink-muted);
   font-family: inherit;
@@ -794,7 +878,7 @@ body.post-page-focus-mode {
     color 120ms ease;
 }
 .cins-post-view .post-byline-act:hover {
-  background: var(--neutral-100, #f1f2f5);
+  background: var(--bg-surface, #ffffff);
   color: var(--ink-body);
 }
 .cins-post-view .post-byline-act:disabled {

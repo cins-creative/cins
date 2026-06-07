@@ -13,6 +13,7 @@ import {
 import { createPortal } from "react-dom";
 
 import {
+  updateForeignMilestoneJourneyVisibility,
   updateMilestoneType,
   updateMilestoneVisibility,
 } from "@/app/[slug]/journey/actions";
@@ -42,6 +43,12 @@ type VisibilityOption = {
   Icon: LucideIcon;
 };
 
+type ForeignJourneyContext = {
+  variant: "tagged" | "bookmark";
+  cotMocId: string;
+  tacPhamId: string;
+};
+
 type Props =
   | {
       kind: "type";
@@ -55,6 +62,7 @@ type Props =
       milestoneId: string;
       current: MilestoneVisibility;
       options: ReadonlyArray<VisibilityOption>;
+      foreignJourney?: ForeignJourneyContext;
       children: ReactNode;
     };
 
@@ -149,10 +157,17 @@ export function JourneyMilestoneInlineControls(props: Props) {
       const res =
         props.kind === "type"
           ? await updateMilestoneType(props.milestoneId, (option as TypeOption).db)
-          : await updateMilestoneVisibility(
-              props.milestoneId,
-              (option as VisibilityOption).db,
-            );
+          : props.foreignJourney
+            ? await updateForeignMilestoneJourneyVisibility({
+                variant: props.foreignJourney.variant,
+                cotMocId: props.foreignJourney.cotMocId,
+                tacPhamId: props.foreignJourney.tacPhamId,
+                visibility: (option as VisibilityOption).db,
+              })
+            : await updateMilestoneVisibility(
+                props.milestoneId,
+                (option as VisibilityOption).db,
+              );
       if (!res.ok) {
         dispatchMilestoneInlinePatch({ ...patch, value: previous });
         return;

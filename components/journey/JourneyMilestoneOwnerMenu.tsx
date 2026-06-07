@@ -26,6 +26,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 
 import {
   deleteMilestone,
+  updateForeignMilestoneJourneyVisibility,
   updateMilestoneType,
   updateMilestoneVisibility,
 } from "@/app/[slug]/journey/actions";
@@ -56,6 +57,12 @@ type Props = {
   hideDelete?: boolean;
   /** Gọi sau khi đổi loại/hiển thị/xoá thành công (vd. refetch modal post). */
   onAfterChange?: () => void;
+  /** Tagged / Lưu về — đổi hiển thị trên Journey của viewer. */
+  foreignJourney?: {
+    variant: "tagged" | "bookmark";
+    cotMocId: string;
+    tacPhamId: string;
+  };
   /** Class wrapper — vd. `post-byline-menu` trong JourneyPostBody. */
   className?: string;
 };
@@ -134,6 +141,7 @@ export function JourneyMilestoneOwnerMenu({
   hideEdit = false,
   hideDelete = false,
   onAfterChange,
+  foreignJourney,
   className,
 }: Props) {
   const router = useRouter();
@@ -210,7 +218,14 @@ export function JourneyMilestoneOwnerMenu({
       value: option.ui,
     });
     startTransition(async () => {
-      const res = await updateMilestoneVisibility(milestoneId, db);
+      const res = foreignJourney
+        ? await updateForeignMilestoneJourneyVisibility({
+            variant: foreignJourney.variant,
+            cotMocId: foreignJourney.cotMocId,
+            tacPhamId: foreignJourney.tacPhamId,
+            visibility: db,
+          })
+        : await updateMilestoneVisibility(milestoneId, db);
       if (!res.ok) {
         setError(res.error);
         dispatchMilestoneInlinePatch({
@@ -224,6 +239,18 @@ export function JourneyMilestoneOwnerMenu({
       onAfterChange?.();
     });
   }
+
+  const visibilityOptions = foreignJourney
+    ? VIS_OPTIONS.filter((opt) => opt.ui !== "unlisted").map((opt) =>
+        opt.ui === "private"
+          ? {
+              ...opt,
+              label: "Ẩn khỏi Journey",
+              desc: "Chỉ ẩn trên Journey của bạn",
+            }
+          : opt,
+      )
+    : VIS_OPTIONS;
 
   function handleDelete() {
     setError(null);
@@ -460,7 +487,7 @@ export function JourneyMilestoneOwnerMenu({
           </button>
           {sub === "visibility" ? (
             <div className="j-m-submenu">
-              {VIS_OPTIONS.map((opt) => {
+              {visibilityOptions.map((opt) => {
                 const active = opt.ui === currentVisibility;
                 return (
                   <button

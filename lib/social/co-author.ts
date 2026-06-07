@@ -467,7 +467,7 @@ export async function loadPendingCoAuthorInvites(
   ];
   const { data: owners } = await admin
     .from("user_nguoi_dung")
-    .select("id, slug, ten_hien_thi")
+    .select("id, slug, ten_hien_thi, avatar_id")
     .in("id", ownerIds);
 
   const tpById = new Map((tacPhams ?? []).map((t) => [t.id as string, t]));
@@ -484,6 +484,8 @@ export async function loadPendingCoAuthorInvites(
         postTitle: (tp.tieu_de as string) || "Bài viết",
         ownerSlug: (owner?.slug as string) ?? "",
         ownerName: (owner?.ten_hien_thi as string) || "Ai đó",
+        ownerAvatarUrl:
+          getAvatarUrl((owner?.avatar_id as string | null) ?? null) ?? null,
         vaiTro: (row.vai_tro as string) || "",
       };
     })
@@ -543,7 +545,7 @@ export async function listPendingCoAuthorInviteNotifications(
   const { data: owners } = ownerIds.length
     ? await admin
         .from("user_nguoi_dung")
-        .select("id, slug, ten_hien_thi")
+        .select("id, slug, ten_hien_thi, avatar_id")
         .in("id", ownerIds)
     : { data: [] };
 
@@ -564,6 +566,8 @@ export async function listPendingCoAuthorInviteNotifications(
       postTitle: (tp.tieu_de as string) || "Bài viết",
       ownerSlug: (owner?.slug as string) ?? "",
       ownerName: (owner?.ten_hien_thi as string) || "Ai đó",
+      ownerAvatarUrl:
+        getAvatarUrl((owner?.avatar_id as string | null) ?? null) ?? null,
       vaiTro: pendingByTacPham.get(tacPhamId) ?? "",
     };
     const taoLuc = row.tao_luc as string | null;

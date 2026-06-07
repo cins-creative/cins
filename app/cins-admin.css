@@ -2864,3 +2864,274 @@
   color: var(--ink-muted);
   font-size: 14px;
 }
+
+/* ── Admin tag management ── */
+.cins-admin .admin-tag-page {
+  padding: var(--space-6, 24px);
+}
+
+.cins-admin .admin-tag-toolbar {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.cins-admin .admin-tag-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+}
+
+.cins-admin .admin-tag-filter-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cins-admin .admin-tag-pill {
+  border: 1px solid var(--border-soft, #e5e7eb);
+  background: #fff;
+  color: var(--fg-3);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.cins-admin .admin-tag-pill.is-active,
+.cins-admin .admin-tag-pill:hover {
+  border-color: rgba(31, 116, 201, 0.35);
+  background: var(--cins-blue-soft, #e7f0fb);
+  color: var(--cins-blue-dark, #1656a0);
+}
+
+.cins-admin .admin-tag-search {
+  min-width: 220px;
+}
+
+.cins-admin .admin-tag-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--fg-3);
+}
+
+.cins-admin .admin-tag-sort select {
+  font: inherit;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-soft, #e5e7eb);
+}
+
+.cins-admin .admin-tag-table th,
+.cins-admin .admin-tag-table td {
+  vertical-align: middle;
+}
+
+.cins-admin .admin-tag-name-cell {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+
+.cins-admin .admin-tag-verified-icon {
+  color: #1f74c9;
+  flex-shrink: 0;
+}
+
+.cins-admin .admin-tag-name {
+  font-weight: 700;
+  color: var(--ink-display, #0f172a);
+}
+
+.cins-admin .admin-tag-date {
+  width: 100%;
+  font-size: 11px;
+  color: var(--fg-3);
+}
+
+.cins-admin .admin-tag-tom-tat {
+  max-width: 280px;
+  font-size: 13px;
+  color: var(--fg-3);
+  line-height: 1.4;
+}
+
+.cins-admin .admin-tag-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.cins-admin .admin-tag-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--border-soft, #e5e7eb);
+  border-radius: 8px;
+  background: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cins-admin .admin-tag-btn--primary {
+  border-color: rgba(31, 116, 201, 0.35);
+  background: var(--cins-blue-soft, #e7f0fb);
+  color: #1656a0;
+}
+
+.cins-admin .admin-tag-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.cins-admin .admin-tag-menu-wrap {
+  position: relative;
+}
+
+.cins-admin .admin-tag-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 20;
+  min-width: 200px;
+  padding: 6px;
+  border: 1px solid var(--border-soft, #e5e7eb);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
+}
+
+.cins-admin .admin-tag-menu button,
+.cins-admin .admin-tag-menu-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink-display, #0f172a);
+  text-decoration: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.cins-admin .admin-tag-menu button:hover,
+.cins-admin .admin-tag-menu-link:hover {
+  background: var(--cins-blue-soft, #e7f0fb);
+}
+
+.cins-admin .admin-tag-error {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 13px;
+}
+
+.cins-admin .admin-tag-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--fg-3);
+}
+
+.cins-admin .admin-tag-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.cins-admin .admin-tag-modal {
+  width: min(420px, 100%);
+  padding: 18px;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 24px 64px rgba(15, 23, 42, 0.2);
+}
+
+.cins-admin .admin-tag-modal--wide {
+  width: min(520px, 100%);
+}
+
+.cins-admin .admin-tag-modal h2 {
+  margin: 0 0 12px;
+  font-size: 16px;
+}
+
+.cins-admin .admin-tag-textarea,
+.cins-admin .admin-tag-merge-search {
+  width: 100%;
+  font: inherit;
+  font-size: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-soft, #e5e7eb);
+  border-radius: 10px;
+  resize: vertical;
+}
+
+.cins-admin .admin-tag-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.cins-admin .admin-tag-merge-list {
+  max-height: 280px;
+  overflow-y: auto;
+  margin-top: 10px;
+}
+
+.cins-admin .admin-tag-merge-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cins-admin .admin-tag-merge-option:hover {
+  background: var(--cins-blue-soft, #e7f0fb);
+}
+
+.cins-admin .admin-tag-merge-option small {
+  color: var(--fg-3);
+  font-size: 11px;
+}
+
+.cins-admin .admin-tag-merge-empty {
+  padding: 16px 8px;
+  color: var(--fg-3);
+  font-size: 13px;
+}

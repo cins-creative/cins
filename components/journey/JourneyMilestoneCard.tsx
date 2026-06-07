@@ -141,6 +141,18 @@ const EDITABLE_VIS_OPTIONS: ReadonlyArray<{
   { ui: "private", db: "chi_minh", label: "Chỉ mình tôi", Icon: Lock },
 ];
 
+/** Tagged / Lưu về — chỉ đổi hiển thị trên Journey của viewer. */
+const FOREIGN_JOURNEY_VIS_OPTIONS: ReadonlyArray<{
+  ui: NonNullable<MilestoneItem["visibility"]>;
+  db: Visibility;
+  label: string;
+  Icon: LucideIcon;
+}> = [
+  { ui: "feature", db: "feature", label: "Nổi bật", Icon: Star },
+  { ui: "public", db: "public", label: "Công khai", Icon: Globe },
+  { ui: "private", db: "chi_minh", label: "Ẩn khỏi Journey", Icon: Lock },
+];
+
 const MAX_VISIBLE_COAUTHORS = 5;
 const AVATAR_TONE_CLASSES = [
   "av-blue",
@@ -249,7 +261,21 @@ export function JourneyMilestoneCard({
     isOwner && (variant === "self" || isBookmarkMilestone) && Boolean(ownerSlug);
   const canManageTagged =
     isOwner && variant === "tagged" && Boolean(ownerSlug) && Boolean(tacPhamId);
+  const canManageForeignJourney =
+    (canManageTagged || (isBookmarkMilestone && canManageSelf)) &&
+    Boolean(cotMocId) &&
+    Boolean(tacPhamId);
   const canManage = canManageSelf || canManageTagged;
+  const foreignJourneyContext =
+    canManageForeignJourney && cotMocId && tacPhamId
+      ? {
+          variant: (isBookmarkMilestone ? "bookmark" : "tagged") as
+            | "bookmark"
+            | "tagged",
+          cotMocId,
+          tacPhamId,
+        }
+      : undefined;
   const canBookmark = !(isOwner && (variant === "self" || isBookmarkMilestone));
   const canManageCoAuthors = isOwner && variant === "self" && Boolean(tacPhamId);
   const canManageArticleTags = canManageCoAuthors;
@@ -414,7 +440,12 @@ export function JourneyMilestoneCard({
                     kind="visibility"
                     milestoneId={cotMocId ?? milestone.id}
                     current={visibility ?? "public"}
-                    options={EDITABLE_VIS_OPTIONS}
+                    options={
+                      foreignJourneyContext
+                        ? FOREIGN_JOURNEY_VIS_OPTIONS
+                        : EDITABLE_VIS_OPTIONS
+                    }
+                    foreignJourney={foreignJourneyContext}
                   >
                     <span
                       className={`ctx-badge j-vis-${visibility ?? "public"}`}
@@ -446,6 +477,7 @@ export function JourneyMilestoneCard({
                 hideTypeChange={isBookmarkMilestone}
                 hideEdit={isBookmarkMilestone || canManageTagged}
                 hideDelete={canManageTagged}
+                foreignJourney={foreignJourneyContext}
                 className="jcard-date-menu"
               />
             </div>

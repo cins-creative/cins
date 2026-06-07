@@ -5,7 +5,7 @@ import type {
   MilestonePostContent,
   MilestonePostContributor,
   MilestonePostDetail,
-} from "@/app/[slug]/journey/actions";
+} from "@/lib/journey/milestone-post-types";
 import type { MilestoneType } from "@/components/journey/milestone-types";
 import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import type { Block as ServerBlock } from "@/lib/editor/types";

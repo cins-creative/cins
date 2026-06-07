@@ -26,6 +26,8 @@ import {
 } from "react";
 
 import { CongDongFeedFilterDropdown } from "@/components/cong-dong/CongDongFeedFilterDropdown";
+import { PostTagFields } from "@/components/tag/PostTagFields";
+import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import { publishPost } from "@/app/[slug]/p/new/actions";
 import { updatePost } from "@/app/[slug]/p/[postSlug]/edit/actions";
 import { rememberCfAccountHashFromDeliveryUrl } from "@/lib/cloudflare/account-hash";
@@ -154,6 +156,7 @@ export function MediaComposeView({
       ? photoItemsFromIds(editInitial.photoImageIds)
       : [],
   );
+  const [tags, setTags] = useState<ArticleTagRef[]>([]);
   const [vis, setVis] = useState<Visibility>(
     editInitial?.visibility ?? "public",
   );
@@ -580,7 +583,7 @@ export function MediaComposeView({
               tieuDe,
               moTa: trimmedCaption.slice(0, 280),
               coverSeed: null,
-              tags: [],
+              tags,
               visibility: publishVisibility,
               loaiMoc: editInitial.loaiMoc,
               thoiDiem: editInitial.thoiDiem,
@@ -591,7 +594,7 @@ export function MediaComposeView({
               tieuDe,
               moTa: trimmedCaption.slice(0, 280),
               coverSeed: null,
-              tags: [],
+              tags,
               visibility: publishVisibility,
               loaiMoc: "ca_nhan",
               thoiDiem: new Date().toISOString().slice(0, 10),
@@ -720,6 +723,14 @@ export function MediaComposeView({
             onChange={(e) => setCaption(e.target.value)}
             rows={3}
           />
+
+          {!congDongCompose ? (
+            <PostTagFields
+              tags={tags}
+              onChange={setTags}
+              disabled={isPending}
+            />
+          ) : null}
 
           {isPhoto ? (
             <>

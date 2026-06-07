@@ -54,6 +54,7 @@ import {
   getCfAccountHash,
   rememberCfAccountHashFromDeliveryUrl,
 } from "@/lib/cloudflare/account-hash";
+import { PostTagFields } from "@/components/tag/PostTagFields";
 import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import type { CoAuthorDraft } from "@/lib/social/types";
 import type {
@@ -297,6 +298,7 @@ export function EditorView({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [openAddIdx, setOpenAddIdx] = useState<number | null>(null);
 
+  const [tags, setTags] = useState<ArticleTagRef[]>(() => initial?.tags ?? []);
   const [vis, setVis] = useState<Visibility>(initial?.visibility ?? "public");
   const [visOpen, setVisOpen] = useState(false);
   const sortedCongDongFilters = useMemo(
@@ -771,6 +773,7 @@ export function EditorView({
             tieuDe: tieuDeFinal,
             moTa: moTaFinal,
             coverSeed: coverFinal,
+            tags,
             visibility: publishVisibility,
             loaiMoc: initial.loaiMoc,
             thoiDiem: initial.thoiDiem,
@@ -781,6 +784,7 @@ export function EditorView({
             tieuDe: tieuDeFinal,
             moTa: moTaFinal,
             coverSeed: coverFinal,
+            tags,
             visibility: publishVisibility,
             loaiMoc: DEFAULT_LOAI_MOC,
             thoiDiem: isoToday(),
@@ -813,6 +817,7 @@ export function EditorView({
     title,
     sub,
     coverSeed,
+    tags,
     vis,
     publishVisibility,
     congDongCompose,
@@ -975,7 +980,14 @@ export function EditorView({
               onChange={setSub}
               maxRows={3}
             />
+            {!congDongCompose ? (
+              <PostTagFields tags={tags} onChange={setTags} disabled={isPending} />
+            ) : null}
           </>
+        ) : null}
+
+        {isMediaCompose && !congDongCompose ? (
+          <PostTagFields tags={tags} onChange={setTags} disabled={isPending} />
         ) : null}
 
         <div className="blocks">

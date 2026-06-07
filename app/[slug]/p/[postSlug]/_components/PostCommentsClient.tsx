@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import type { MilestonePostComment } from "@/app/[slug]/journey/actions";
+import type { MilestonePostComment } from "@/lib/journey/milestone-post-types";
 import { JourneyPostCommentsBlock } from "@/components/journey/JourneyPostBody";
 
 type Props = {

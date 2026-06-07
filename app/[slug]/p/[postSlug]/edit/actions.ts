@@ -14,6 +14,7 @@ import {
   type Visibility,
 } from "@/lib/editor/types";
 import { syncCoAuthorsFromEditor } from "@/lib/social/co-author";
+import { revalidateTaggedArticlePages } from "@/lib/tag/revalidate-tag-pages";
 import type { CoAuthorDraft } from "@/lib/social/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -223,23 +224,19 @@ export async function updatePost(
       if (rmErr) console.error("[updatePost] tag remove failed", rmErr);
     }
 
-    const tagSlugs = sanitizeTagSlugs(input.tags);
-    for (const slugTag of tagSlugs) {
-      revalidatePath(`/bai-viet/${slugTag}`);
-      revalidatePath(`/nghe-nghiep/${slugTag}`);
-    }
+    revalidateTaggedArticlePages(input.tags);
     if (toRemove.length > 0) {
       const { data: removedRows } = await admin
         .from("article_bai_viet")
-        .select("slug")
+        .select("slug, loai_bai_viet")
         .in("id", toRemove);
-      for (const r of removedRows ?? []) {
-        const s = (r as { slug?: string | null }).slug;
-        if (s) {
-          revalidatePath(`/bai-viet/${s}`);
-          revalidatePath(`/nghe-nghiep/${s}`);
-        }
-      }
+      revalidateTaggedArticlePages(
+        (removedRows ?? []).map((r) => ({
+          slug: (r as { slug?: string | null }).slug ?? "",
+          loai_bai_viet:
+            (r as { loai_bai_viet?: string | null }).loai_bai_viet ?? "blog",
+        })),
+      );
     }
   }
 
@@ -314,19 +311,6 @@ function sanitizeTagIds(tags: unknown): string[] {
     seen.add(trimmed);
   }
   return Array.from(seen);
-}
-
-function sanitizeTagSlugs(tags: unknown): string[] {
-  if (!Array.isArray(tags)) return [];
-  const out: string[] = [];
-  for (const t of tags) {
-    if (!t || typeof t !== "object") continue;
-    const slug = (t as { slug?: unknown }).slug;
-    if (typeof slug !== "string") continue;
-    const trimmed = slug.trim();
-    if (trimmed) out.push(trimmed);
-  }
-  return out;
 }
 
 function dbErrorMessage(error: unknown): string {

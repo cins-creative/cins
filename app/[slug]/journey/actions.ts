@@ -7,15 +7,18 @@ import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import {
   VALID_LOAI_MOC,
   VALID_VIS,
-  type Block as ServerBlock,
   type LoaiMoc,
   type Visibility,
 } from "@/lib/editor/types";
+import type { ActionResult } from "@/lib/journey/action-result";
 import {
-  uiKeyToDbEnum,
-  type LoaiMocFilterKey,
-} from "@/lib/journey/filter-visibility";
-import type { ArticleTagRef } from "@/lib/editor/article-tag";
+  FOREIGN_JOURNEY_VISIBILITY_VALUES,
+  type ForeignJourneyVisibility,
+} from "@/lib/journey/foreign-milestone-visibility";
+import type {
+  MilestonePostAuthor,
+  MilestonePostDetail,
+} from "@/lib/journey/milestone-post-types";
 import {
   fetchMilestonePostDetail,
   fetchPostBySlug,
@@ -56,20 +59,14 @@ const RESERVED_SLUGS = new Set<string>([
   "verify",
 ]);
 
-export type ActionResult<T = unknown> =
-  | { ok: true; data: T }
-  | {
-      ok: false;
-      error: string;
-      field?:
-        | "slug"
-        | "ten_hien_thi"
-        | "giai_doan"
-        | "bio"
-        | "tinh_thanh"
-        | "email_lien_he"
-        | "mxh_links";
-    };
+export type { ActionResult } from "@/lib/journey/action-result";
+export type {
+  MilestonePostAuthor,
+  MilestonePostComment,
+  MilestonePostContent,
+  MilestonePostContributor,
+  MilestonePostDetail,
+} from "@/lib/journey/milestone-post-types";
 
 function normalizeSlug(raw: string): string {
   return raw
@@ -553,77 +550,6 @@ export async function updateCover(
 }
 
 /* ──────────────────────────────────────────────────────────────────────
- * Journey filter visibility — toggle 1 loai_moc giữa public ↔ private.
- *
- * Lưu JSONB `journey_loai_moc_visibility` trên `user_nguoi_dung`.
- * Missing entry = public (default). Server merge entry mới vào JSONB
- * thay vì overwrite cả map — giảm risk race.
- *
- * Client gọi với UI key (`hoc, lam, du-an, ...`). Server convert sang
- * DB enum (`hoc, lam_viec, du_an, ...`) qua `uiKeyToDbEnum`.
- * ────────────────────────────────────────────────────────────────────── */
-const ALLOWED_FILTER_KEYS = new Set<string>([
-  "hoc",
-  "lam",
-  "du-an",
-  "su-kien",
-  "thanh-tuu",
-  "ca-nhan",
-]);
-
-export async function updateLoaiMocVisibility(
-  uiKey: string,
-  visibility: "public" | "private",
-): Promise<ActionResult<null>> {
-  const session = await getCurrentSessionAndProfile();
-  if (!session?.profile) {
-    return { ok: false, error: "Phiên đăng nhập đã hết hạn." };
-  }
-  if (!ALLOWED_FILTER_KEYS.has(uiKey)) {
-    return { ok: false, error: "Filter key không hợp lệ." };
-  }
-  if (visibility !== "public" && visibility !== "private") {
-    return { ok: false, error: "Giá trị visibility không hợp lệ." };
-  }
-
-  const dbEnum = uiKeyToDbEnum(uiKey as LoaiMocFilterKey);
-  if (!dbEnum) {
-    return { ok: false, error: "Filter key không map sang loai_moc_enum." };
-  }
-
-  const admin = createServiceRoleClient();
-
-  /* Read-modify-write trong 1 query (Postgres jsonb_set lưu nhanh hơn
-     fetch toàn map về client). */
-  const { data: row, error: readErr } = await admin
-    .from("user_nguoi_dung")
-    .select("journey_loai_moc_visibility")
-    .eq("id", session.profile.id)
-    .maybeSingle<{ journey_loai_moc_visibility: Record<string, unknown> | null }>();
-  if (readErr) {
-    console.error("[updateLoaiMocVisibility] read err:", readErr);
-    return { ok: false, error: "Không đọc được hồ sơ." };
-  }
-  const current = (row?.journey_loai_moc_visibility ?? {}) as Record<
-    string,
-    unknown
-  >;
-  const next = { ...current, [dbEnum]: visibility };
-
-  const { error: writeErr } = await admin
-    .from("user_nguoi_dung")
-    .update({ journey_loai_moc_visibility: next })
-    .eq("id", session.profile.id);
-  if (writeErr) {
-    console.error("[updateLoaiMocVisibility] write err:", writeErr);
-    return { ok: false, error: "Không lưu được tuỳ chọn." };
-  }
-
-  revalidatePath(`/${session.profile.slug}`);
-  return { ok: true, data: null };
-}
-
-/* ──────────────────────────────────────────────────────────────────────
  * Milestone owner actions — kebab menu trên `JourneyMilestoneCard`:
  *
  *   • updateMilestoneType       — đổi `loai_moc` (nhóm filter)
@@ -782,6 +708,81 @@ export async function updateMilestoneVisibility(
   return { ok: true, data: null };
 }
 
+/** Tagged / Lưu về — đổi hiển thị trên Journey của viewer, không sửa `content_cot_moc` gốc. */
+export async function updateForeignMilestoneJourneyVisibility(input: {
+  variant: "tagged" | "bookmark";
+  cotMocId: string;
+  tacPhamId: string;
+  visibility: Visibility;
+}): Promise<ActionResult<null>> {
+  const session = await getCurrentSessionAndProfile();
+  if (!session?.profile) {
+    return { ok: false, error: "Phiên đăng nhập đã hết hạn." };
+  }
+
+  const { variant, cotMocId, tacPhamId, visibility } = input;
+  if (!cotMocId || !tacPhamId) {
+    return { ok: false, error: "Thiếu thông tin cột mốc." };
+  }
+
+  const journeyVis: ForeignJourneyVisibility =
+    visibility === "feature"
+      ? "feature"
+      : visibility === "chi_minh" || visibility === "theo_nhom"
+        ? "chi_minh"
+        : "public";
+
+  if (!FOREIGN_JOURNEY_VISIBILITY_VALUES.includes(journeyVis)) {
+    return { ok: false, error: "Chế độ hiển thị không hợp lệ." };
+  }
+
+  const admin = createServiceRoleClient();
+
+  if (variant === "tagged") {
+    const { data: row, error } = await admin
+      .from("content_tac_pham_tac_gia")
+      .update({ che_do_hien_thi_journey: journeyVis })
+      .eq("id_tac_pham", tacPhamId)
+      .eq("id_nguoi_dung", session.profile.id)
+      .eq("trang_thai", "accepted")
+      .eq("la_chu_so_huu", false)
+      .select("id_tac_pham")
+      .maybeSingle();
+
+    if (error) {
+      return {
+        ok: false,
+        error: "Không đổi được chế độ hiển thị: " + error.message,
+      };
+    }
+    if (!row) {
+      return { ok: false, error: "Bạn không có quyền chỉnh cột mốc này." };
+    }
+  } else {
+    const { data: row, error } = await admin
+      .from("social_luu")
+      .update({ che_do_hien_thi_journey: journeyVis })
+      .eq("id_nguoi_dung", session.profile.id)
+      .eq("loai_doi_tuong", "cot_moc")
+      .eq("id_doi_tuong", cotMocId)
+      .select("id_doi_tuong")
+      .maybeSingle();
+
+    if (error) {
+      return {
+        ok: false,
+        error: "Không đổi được chế độ hiển thị: " + error.message,
+      };
+    }
+    if (!row) {
+      return { ok: false, error: "Bạn không có quyền chỉnh mục Lưu về này." };
+    }
+  }
+
+  revalidatePath(`/${session.profile.slug}`);
+  return { ok: true, data: null };
+}
+
 export async function deleteMilestone(
   milestoneId: string,
 ): Promise<ActionResult<null>> {
@@ -844,77 +845,6 @@ export async function deleteMilestone(
  * Comments hiện chỉ render flat (id_cha = null) — replies/threading lượt
  * sau khi có UI tương ứng.
  * ────────────────────────────────────────────────────────────────────── */
-
-export type MilestonePostAuthor = {
-  id: string;
-  slug: string;
-  tenHienThi: string;
-  avatarId: string | null;
-};
-
-export type MilestonePostContent = {
-  id: string;
-  slug: string;
-  tieuDe: string;
-  moTa: string | null;
-  noiDungHtml: string | null;
-  /**
-   * Canonical block array (server schema `{id, loai, thu_tu, config}`) — dùng
-   * cho client-side renderer (`PostRenderer`) để render bài viết theo đúng
-   * layout của editor canvas. `null` khi bài chưa có blocks (legacy posts hoặc
-   * lỗi parse).
-   */
-  noiDungBlocks: ServerBlock[] | null;
-  coverId: string | null;
-  /**
-   * Article tags — bài viết (`article_bai_viet`) được tác giả gắn vào post
-   * này qua `article_gan_tac_pham`. Render dưới byline trong view, click vào
-   * sẽ điều hướng tới trang article tương ứng theo `loai_bai_viet`.
-   */
-  articleTags: ArticleTagRef[];
-  contributors: MilestonePostContributor[];
-};
-
-export type MilestonePostContributor = {
-  id: string;
-  slug: string;
-  tenHienThi: string;
-  avatarId: string | null;
-  vaiTro: string | null;
-  laChuSoHuu: boolean;
-};
-
-export type MilestonePostComment = {
-  id: string;
-  noiDung: string;
-  taoLuc: string;
-  author: MilestonePostAuthor | null;
-  isOwn: boolean;
-};
-
-export type MilestonePostDetail = {
-  milestone: {
-    id: string;
-    tieuDe: string;
-    moTa: string | null;
-    thoiDiem: string;
-    loaiMoc: string;
-    cheDoHienThi: "public" | "theo_nhom" | "chi_minh" | "feature";
-  };
-  owner: MilestonePostAuthor;
-  posts: MilestonePostContent[];
-  comments: MilestonePostComment[];
-  viewerCanComment: boolean;
-  /** True khi viewer chính là owner của cột mốc. Dùng để render nút "Sửa bài". */
-  viewerIsOwner: boolean;
-  social: {
-    viewerLiked: boolean;
-    viewerBookmarked: boolean;
-    likeCount: number;
-    bookmarkCount: number;
-    commentCount: number;
-  };
-};
 
 export async function loadMilestoneDetail(
   milestoneId: string,

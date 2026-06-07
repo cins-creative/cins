@@ -20,19 +20,22 @@ type Props = {
   ownerVaiTro: string;
   onCollaboratorsChange: (next: CoAuthorDraft[]) => void;
   onOwnerVaiTroChange: (v: string) => void;
+  /** Mở sẵn picker tìm người (modal quản lý cộng sự). */
+  initialPickerOpen?: boolean;
 };
 
 export function CoAuthorSection({
   ownerId,
   collaborators,
   onCollaboratorsChange,
+  initialPickerOpen = false,
 }: Props) {
   const roleListId = useId();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchUser[]>([]);
   const [hasMutual, setHasMutual] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
-  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(initialPickerOpen);
   const [roleSuggestions, setRoleSuggestions] = useState<string[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 

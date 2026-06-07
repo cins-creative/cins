@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 
-import { ArticleTagPicker } from "@/components/editor/ArticleTagPicker";
+import { PostTagFields } from "@/components/tag/PostTagFields";
 import type { ArticleTagRef } from "@/lib/editor/article-tag";
 
 type Props = {
@@ -70,19 +70,6 @@ export function JourneyArticleTagManager({ tacPhamId, initialTags }: Props) {
     });
   };
 
-  const handleAdd = (tag: ArticleTagRef) => {
-    if (tags.some((t) => t.id === tag.id)) return;
-    const next = [...tags, tag];
-    setTags(next);
-    persist(next);
-  };
-
-  const handleRemove = (id: string) => {
-    const next = tags.filter((t) => t.id !== id);
-    setTags(next);
-    persist(next);
-  };
-
   const openModal = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
     event.preventDefault();
@@ -115,11 +102,13 @@ export function JourneyArticleTagManager({ tacPhamId, initialTags }: Props) {
           Quản lý tag
         </h2>
         <div className="cins-editor-page is-tag-modal">
-          <ArticleTagPicker
+          <PostTagFields
             tags={tags}
-            onAdd={handleAdd}
-            onRemove={handleRemove}
-            layout="modal"
+            onChange={(next) => {
+              setTags(next);
+              persist(next);
+            }}
+            disabled={pending}
           />
         </div>
         {message ? (

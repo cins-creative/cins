@@ -5,6 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import { fetchArticleTagsForTacPham } from "@/lib/journey/article-tags-batch";
+import { revalidateTaggedArticlePages } from "@/lib/tag/revalidate-tag-pages";
 
 function sanitizeTagIds(tags: ReadonlyArray<ArticleTagRef>): string[] {
   const seen = new Set<string>();
@@ -13,15 +14,6 @@ function sanitizeTagIds(tags: ReadonlyArray<ArticleTagRef>): string[] {
     if (id) seen.add(id);
   }
   return Array.from(seen);
-}
-
-function sanitizeTagSlugs(tags: ReadonlyArray<ArticleTagRef>): string[] {
-  const out: string[] = [];
-  for (const t of tags) {
-    const slug = t.slug?.trim();
-    if (slug) out.push(slug);
-  }
-  return out;
 }
 
 export async function syncTacPhamArticleTags(
@@ -75,24 +67,20 @@ export async function syncTacPhamArticleTags(
     }
   }
 
-  const tagSlugs = sanitizeTagSlugs(newTags);
-  for (const slugTag of tagSlugs) {
-    revalidatePath(`/bai-viet/${slugTag}`);
-    revalidatePath(`/nghe-nghiep/${slugTag}`);
-  }
+  revalidateTaggedArticlePages(newTags);
 
   if (toRemove.length > 0) {
     const { data: removedRows } = await admin
       .from("article_bai_viet")
-      .select("slug")
+      .select("slug, loai_bai_viet")
       .in("id", toRemove);
-    for (const r of removedRows ?? []) {
-      const s = (r as { slug?: string | null }).slug;
-      if (s) {
-        revalidatePath(`/bai-viet/${s}`);
-        revalidatePath(`/nghe-nghiep/${s}`);
-      }
-    }
+    revalidateTaggedArticlePages(
+      (removedRows ?? []).map((r) => ({
+        slug: (r as { slug?: string | null }).slug ?? "",
+        loai_bai_viet:
+          (r as { loai_bai_viet?: string | null }).loai_bai_viet ?? "blog",
+      })),
+    );
   }
 
   if (ownerSlug) {

@@ -1,4 +1,4 @@
-import type { MilestonePostDetail } from "@/app/[slug]/journey/actions";
+import type { MilestonePostDetail } from "@/lib/journey/milestone-post-types";
 
 const PREFIX = "cins-journey-post:v1:";
 export const POST_PAGE_CACHE_TTL_MS = 15 * 60 * 1000;

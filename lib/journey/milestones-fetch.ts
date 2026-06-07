@@ -14,6 +14,10 @@ import { milestonePreviewMedia } from "@/lib/journey/milestone-preview-media";
 import { loadVerifiedMetaForCotMocs } from "@/lib/journey/milestone-verify";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import {
+  isHiddenOnForeignJourney,
+  mapForeignJourneyVisibilityToUi,
+} from "@/lib/journey/foreign-milestone-visibility";
+import {
   compareTimelineOrder,
   resolveTaggedTimelineSortAt,
 } from "@/lib/journey/timeline-sort";
@@ -68,6 +72,7 @@ type BookmarkRow = {
   id_doi_tuong: string;
   loai_doi_tuong: string;
   tao_luc: string | null;
+  che_do_hien_thi_journey?: string | null;
 };
 
 type BookmarkLinkRow = {
@@ -247,7 +252,7 @@ export async function fetchMilestonesForUser(params: {
     ]);
     const merged = mergeMilestoneLists(tagged, bookmarks);
     return {
-      milestones: await attachSocialState(admin, merged, viewerId, isOwner),
+      milestones: await attachSocialState(admin, merged, viewerId),
       stats: {
         cotMoc: 0,
         cotMocVerified: 0,
@@ -274,7 +279,7 @@ export async function fetchMilestonesForUser(params: {
   ]);
 
   const merged = mergeMilestoneLists(mergeMilestoneLists(milestones, tagged), bookmarks);
-  const withSocial = await attachSocialState(admin, merged, viewerId, isOwner);
+  const withSocial = await attachSocialState(admin, merged, viewerId);
   const cotMocVerified = withSocial.filter((m) => m.variant === "verified").length;
 
   return {
@@ -297,7 +302,9 @@ export async function fetchTaggedMilestonesForUser(params: {
 
   const { data: tagRows } = await admin
     .from("content_tac_pham_tac_gia")
-    .select("id_tac_pham, vai_tro, trang_thai, xu_ly_luc")
+    .select(
+      "id_tac_pham, vai_tro, trang_thai, xu_ly_luc, che_do_hien_thi_journey",
+    )
     .eq("id_nguoi_dung", userId)
     .eq("trang_thai", "accepted")
     .eq("la_chu_so_huu", false);
@@ -307,6 +314,12 @@ export async function fetchTaggedMilestonesForUser(params: {
   const tacPhamIds = tagRows.map((r) => r.id_tac_pham as string);
   const roleByTp = new Map(
     tagRows.map((r) => [r.id_tac_pham as string, r.vai_tro as string | null]),
+  );
+  const journeyVisByTp = new Map(
+    tagRows.map((r) => [
+      r.id_tac_pham as string,
+      (r.che_do_hien_thi_journey as string | null) ?? "public",
+    ]),
   );
   const acceptedAtByTp = new Map(
     tagRows.map((r) => [
@@ -355,7 +368,9 @@ export async function fetchTaggedMilestonesForUser(params: {
 
   for (const tp of tacPhams ?? []) {
     if (!tp.slug) continue;
-    const cmId = cotMocIdByTp.get(tp.id as string);
+    const tpId = tp.id as string;
+    if (isHiddenOnForeignJourney(journeyVisByTp.get(tpId))) continue;
+    const cmId = cotMocIdByTp.get(tpId);
     const cm = cmId ? cmById.get(cmId) : undefined;
     if (!cm) continue;
     if (!isOwner && cm.che_do_hien_thi === "chi_minh") continue;
@@ -369,8 +384,8 @@ export async function fetchTaggedMilestonesForUser(params: {
     items.push({
       cm,
       tp,
-      myRole: roleByTp.get(tp.id as string) ?? null,
-      tacPhamId: tp.id as string,
+      myRole: roleByTp.get(tpId) ?? null,
+      tacPhamId: tpId,
     });
   }
 
@@ -395,7 +410,9 @@ export async function fetchTaggedMilestonesForUser(params: {
       cotMocId: cm.id,
       variant: "tagged" as MilestoneVariant,
       type: LOAI_MOC_TO_TYPE[cm.loai_moc],
-      visibility: mapVisibility(cm.che_do_hien_thi),
+      visibility: mapForeignJourneyVisibilityToUi(
+        journeyVisByTp.get(tacPhamId),
+      ),
       year: dateObj.getUTCFullYear(),
       month: dateObj.getUTCMonth() + 1,
       day: dateObj.getUTCDate(),
@@ -442,13 +459,19 @@ export async function fetchBookmarkedMilestonesForUser(params: {
   const { userId, isOwner, admin } = params;
   const { data: savedRows } = await admin
     .from("social_luu")
-    .select("id_doi_tuong, loai_doi_tuong, tao_luc")
+    .select("id_doi_tuong, loai_doi_tuong, tao_luc, che_do_hien_thi_journey")
     .eq("id_nguoi_dung", userId)
     .eq("loai_doi_tuong", "cot_moc")
     .returns<BookmarkRow[]>();
 
   const savedAtByMoc = new Map(
     (savedRows ?? []).map((row) => [row.id_doi_tuong, row.tao_luc]),
+  );
+  const journeyVisByMoc = new Map(
+    (savedRows ?? []).map((row) => [
+      row.id_doi_tuong as string,
+      (row.che_do_hien_thi_journey as string | null) ?? "public",
+    ]),
   );
 
   const cotMocIds = [...new Set(savedAtByMoc.keys())];
@@ -513,6 +536,7 @@ export async function fetchBookmarkedMilestonesForUser(params: {
 
   return visibleCotMocs
     .map((cm): MilestoneItem | null => {
+      if (isHiddenOnForeignJourney(journeyVisByMoc.get(cm.id))) return null;
       const link = firstLinkByMoc.get(cm.id);
       const tp = link?.content_tac_pham;
       if (!tp?.id || !tp.slug) return null;
@@ -523,7 +547,7 @@ export async function fetchBookmarkedMilestonesForUser(params: {
         cotMocId: cm.id,
         variant: "bookmark" as MilestoneVariant,
         type: LOAI_MOC_TO_TYPE[cm.loai_moc],
-        visibility: mapVisibility(cm.che_do_hien_thi),
+        visibility: mapForeignJourneyVisibilityToUi(journeyVisByMoc.get(cm.id)),
         year: dateObj.getUTCFullYear(),
         month: dateObj.getUTCMonth() + 1,
         day: dateObj.getUTCDate(),
@@ -572,7 +596,6 @@ export async function attachSocialState(
   admin: ReturnType<typeof createServiceRoleClient>,
   milestones: MilestoneItem[],
   viewerId: string | null,
-  isProfileOwner: boolean,
 ): Promise<MilestoneItem[]> {
   const cotMocIds = [
     ...new Set(
@@ -601,21 +624,17 @@ export async function attachSocialState(
           .eq("loai_doi_tuong", "cot_moc")
           .in("id_doi_tuong", cotMocIds)
       : Promise.resolve({ data: [] }),
-    isProfileOwner
-      ? admin
-          .from("social_reaction")
-          .select("id_doi_tuong")
-          .eq("loai_doi_tuong", "cot_moc")
-          .eq("emoji", "heart")
-          .in("id_doi_tuong", cotMocIds)
-      : Promise.resolve({ data: [] }),
-    isProfileOwner
-      ? admin
-          .from("social_luu")
-          .select("id_doi_tuong")
-          .eq("loai_doi_tuong", "cot_moc")
-          .in("id_doi_tuong", cotMocIds)
-      : Promise.resolve({ data: [] }),
+    admin
+      .from("social_reaction")
+      .select("id_doi_tuong")
+      .eq("loai_doi_tuong", "cot_moc")
+      .eq("emoji", "heart")
+      .in("id_doi_tuong", cotMocIds),
+    admin
+      .from("social_luu")
+      .select("id_doi_tuong")
+      .eq("loai_doi_tuong", "cot_moc")
+      .in("id_doi_tuong", cotMocIds),
     admin
       .from("social_binh_luan")
       .select("id_doi_tuong")
@@ -634,7 +653,6 @@ export async function attachSocialState(
 
   return milestones.map((item) => {
     const id = item.cotMocId ?? item.id;
-    const showCounts = isProfileOwner && item.variant === "self";
     return {
       ...item,
       social: {
@@ -642,7 +660,7 @@ export async function attachSocialState(
         viewerBookmarked: bookmarkedIds.has(id),
         likeCount: likeCounts.get(id) ?? 0,
         bookmarkCount: bookmarkCounts.get(id) ?? 0,
-        showCounts,
+        showCounts: true,
       },
       comments: commentCounts.get(id) ?? item.comments ?? 0,
     };

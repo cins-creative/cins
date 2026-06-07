@@ -17,6 +17,7 @@ import {
 import { syncCoAuthorsFromEditor } from "@/lib/social/co-author";
 import type { CoAuthorDraft } from "@/lib/social/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { revalidateTaggedArticlePages } from "@/lib/tag/revalidate-tag-pages";
 
 /* ╔══════════════════════════════════════════════════════════════════╗
    ║ Server Action: publishPost                                       ║
@@ -221,15 +222,8 @@ export async function publishPost(
       .insert(rows);
     if (tagErr) {
       console.error("[publishPost] tag persist failed", tagErr);
-    } else {
-      /* Revalidate trang article được tag để gallery cộng đồng cập nhật
-         ngay (ví dụ /nghe-nghiep/{slug}). Có thể spam đôi chút khi user
-         tag nhiều bài; ổn vì revalidatePath là idempotent. */
-      const tagSlugs = sanitizeTagSlugs(input.tags);
-      for (const slugTag of tagSlugs) {
-        revalidatePath(`/bai-viet/${slugTag}`);
-        revalidatePath(`/nghe-nghiep/${slugTag}`);
-      }
+    } else if (input.tags) {
+      revalidateTaggedArticlePages(input.tags);
     }
   }
 
@@ -332,20 +326,6 @@ function sanitizeTagIds(tags: unknown): string[] {
     seen.add(trimmed);
   }
   return Array.from(seen);
-}
-
-/** Slug để revalidate route bài viết được tag. */
-function sanitizeTagSlugs(tags: unknown): string[] {
-  if (!Array.isArray(tags)) return [];
-  const out: string[] = [];
-  for (const t of tags) {
-    if (!t || typeof t !== "object") continue;
-    const slug = (t as { slug?: unknown }).slug;
-    if (typeof slug !== "string") continue;
-    const trimmed = slug.trim();
-    if (trimmed) out.push(trimmed);
-  }
-  return out;
 }
 
 function dbErrorMessage(error: unknown): string {

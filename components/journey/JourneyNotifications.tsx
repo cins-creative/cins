@@ -512,7 +512,9 @@ export function JourneyNotifications({
                       <li key={invite.notificationId}>
                         <div className="j-notify-item is-coauthor-invite">
                           <CoAuthorInviteMessage
+                            ownerSlug={invite.ownerSlug}
                             ownerName={invite.ownerName}
+                            ownerAvatarUrl={invite.ownerAvatarUrl}
                             postTitle={invite.postTitle}
                             vaiTro={invite.vaiTro}
                             className="j-coauthor-invite-message j-notify-coauthor-invite-text"

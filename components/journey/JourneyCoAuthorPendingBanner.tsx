@@ -197,7 +197,9 @@ export function JourneyCoAuthorPendingBanner({
           <div key={inv.tacPhamId} className="j-coauthor-pending">
             <div className="j-coauthor-pending-body">
               <CoAuthorInviteMessage
+                ownerSlug={inv.ownerSlug}
                 ownerName={inv.ownerName}
+                ownerAvatarUrl={inv.ownerAvatarUrl}
                 postTitle={inv.postTitle}
                 vaiTro={inv.vaiTro}
                 className="j-coauthor-pending-message"

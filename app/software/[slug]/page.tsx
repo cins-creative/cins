@@ -1,158 +1,82 @@
 import type { Metadata } from "next";
-
 import { notFound, permanentRedirect } from "next/navigation";
 
-
-
-import { SoftwareArticleView } from "@/components/article/software/SoftwareArticleView";
-
-import { SoftwareArticlePageShell } from "@/components/article/software/SoftwareArticlePageShell";
-
+import { TagAggregationView } from "@/components/tag/TagAggregationView";
 import { CinsShell } from "@/components/cins/CinsShell";
-
 import { SiteFooter } from "@/components/cins/SiteFooter";
-
 import {
-
-  fetchRelatedArticles,
-
   getArticleById,
-
   getPhanMemArticleBySlug,
-
 } from "@/lib/articles/queries";
-
-import { getSoftwareAdminStatus } from "@/lib/articles/software-admin";
-
+import { parseTagAggSort } from "@/lib/tag/aggregation-queries";
 import { hasSupabaseEnv } from "@/lib/supabase/server";
-
-import { hasServiceRoleEnv } from "@/lib/supabase/service-role";
-
-
 
 export const dynamic = "force-dynamic";
 
-
-
 type Props = {
-
   params: Promise<{ slug: string }>;
-
+  searchParams: Promise<{ sort?: string }>;
 };
 
-
-
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-
   const { slug } = await params;
-
   if (!hasSupabaseEnv()) {
-
     return { title: "Phần mềm | CINs" };
-
   }
-
   const article = await getPhanMemArticleBySlug(slug);
-
   if (!article) {
-
     return { title: "Không tìm thấy | CINs" };
-
   }
-
   const title =
-
     article.meta_title?.trim() ||
-
     `${article.tieu_de_viet?.trim() || article.tieu_de} | CINs`;
-
   const description =
-
     article.meta_description?.trim() || article.tom_tat?.trim() || undefined;
-
   return { title, description };
-
 }
 
-
-
-export default async function SoftwareDetailPage({ params }: Props) {
-
+export default async function SoftwareDetailPage({
+  params,
+  searchParams,
+}: Props) {
   const { slug } = await params;
-
-
+  const { sort: sortRaw } = await searchParams;
 
   if (!hasSupabaseEnv()) {
-
     notFound();
-
   }
-
-
 
   const article = await getPhanMemArticleBySlug(slug);
-
   if (!article) {
-
     notFound();
-
   }
-
-
 
   if (article.trang_thai_noi_dung === "merged" && article.merged_vao_id) {
-
     const target = await getArticleById(article.merged_vao_id);
-
     if (target?.slug) {
-
       permanentRedirect(`/software/${encodeURIComponent(target.slug)}`);
-
     }
-
     notFound();
-
   }
 
-
-
-  const lienQuan = await fetchRelatedArticles(article.id);
-
-
-
-  const canEdit = await getSoftwareAdminStatus(slug);
-
-  const persistEnabled = hasServiceRoleEnv();
-
-  const resetKey = `${article.id}-${article.cap_nhat_luc}`;
-
-
+  const sort = parseTagAggSort(sortRaw);
+  const daVerify =
+    (article as { da_verify?: boolean | null }).da_verify === true;
 
   return (
-
     <CinsShell data-screen-label={`Software-${slug}`}>
-
-      <SoftwareArticlePageShell
-
-        canEdit={canEdit}
-
-        persistEnabled={persistEnabled}
-
-        article={article}
-
-        resetKey={resetKey}
-
-      >
-
-        <SoftwareArticleView article={article} lienQuan={lienQuan} />
-
-      </SoftwareArticlePageShell>
-
+      <TagAggregationView
+        article={{
+          id: article.id,
+          slug: article.slug,
+          tieu_de: article.tieu_de,
+          tom_tat: article.tom_tat,
+          da_verify: daVerify,
+          loai_bai_viet: "phan_mem",
+        }}
+        sort={sort}
+      />
       <SiteFooter />
-
     </CinsShell>
-
   );
-
 }
-

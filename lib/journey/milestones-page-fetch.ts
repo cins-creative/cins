@@ -21,6 +21,10 @@ import {
   loadMilestoneViewerAccess,
   type MilestoneViewerAccess,
 } from "@/lib/journey/milestone-viewer-access";
+import {
+  isHiddenOnForeignJourney,
+  mapForeignJourneyVisibilityToUi,
+} from "@/lib/journey/foreign-milestone-visibility";
 import { compareTimelineOrder, resolveTaggedTimelineSortAt } from "@/lib/journey/timeline-sort";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -185,7 +189,7 @@ async function collectTaggedStubs(
 ): Promise<TimelineStub[]> {
   const { data: tagRows } = await admin
     .from("content_tac_pham_tac_gia")
-    .select("id_tac_pham, xu_ly_luc")
+    .select("id_tac_pham, xu_ly_luc, che_do_hien_thi_journey")
     .eq("id_nguoi_dung", userId)
     .eq("trang_thai", "accepted")
     .eq("la_chu_so_huu", false);
@@ -193,6 +197,12 @@ async function collectTaggedStubs(
   if (!tagRows?.length) return [];
 
   const tacPhamIds = tagRows.map((r) => r.id_tac_pham as string);
+  const journeyVisByTp = new Map(
+    tagRows.map((r) => [
+      r.id_tac_pham as string,
+      (r.che_do_hien_thi_journey as string | null) ?? "public",
+    ]),
+  );
   const acceptedAtByTp = new Map(
     tagRows.map((r) => [
       r.id_tac_pham as string,
@@ -232,7 +242,9 @@ async function collectTaggedStubs(
 
   for (const tp of tacPhams ?? []) {
     if (!tp.slug) continue;
-    const cmId = cotMocIdByTp.get(tp.id as string);
+    const tpId = tp.id as string;
+    if (isHiddenOnForeignJourney(journeyVisByTp.get(tpId))) continue;
+    const cmId = cotMocIdByTp.get(tpId);
     const cm = cmId ? cmById.get(cmId) : undefined;
     if (!cm) continue;
     if (
@@ -245,10 +257,10 @@ async function collectTaggedStubs(
     }
     const { year, month, day } = parseUtcDateParts(cm.thoi_diem);
     stubs.push({
-      id: `${cm.id}:${tp.id as string}`,
+      id: `${cm.id}:${tpId}`,
       source: "tagged",
       cotMocId: cm.id,
-      visibility: mapVisibility(cm.che_do_hien_thi),
+      visibility: mapForeignJourneyVisibilityToUi(journeyVisByTp.get(tpId)),
       variant: "tagged",
       type: LOAI_MOC_TO_TYPE[cm.loai_moc],
       thoiDiem: cm.thoi_diem,
@@ -273,7 +285,7 @@ async function collectBookmarkStubs(
 ): Promise<TimelineStub[]> {
   const { data: savedRows } = await admin
     .from("social_luu")
-    .select("id_doi_tuong, tao_luc")
+    .select("id_doi_tuong, tao_luc, che_do_hien_thi_journey")
     .eq("id_nguoi_dung", userId)
     .eq("loai_doi_tuong", "cot_moc");
 
@@ -281,6 +293,12 @@ async function collectBookmarkStubs(
     (savedRows ?? []).map((row) => [
       row.id_doi_tuong as string,
       (row.tao_luc as string | null) ?? null,
+    ]),
+  );
+  const journeyVisByMoc = new Map(
+    (savedRows ?? []).map((row) => [
+      row.id_doi_tuong as string,
+      (row.che_do_hien_thi_journey as string | null) ?? "public",
     ]),
   );
 
@@ -324,6 +342,7 @@ async function collectBookmarkStubs(
 
   const stubs: TimelineStub[] = [];
   for (const cm of visible) {
+    if (isHiddenOnForeignJourney(journeyVisByMoc.get(cm.id))) continue;
     const tpId = firstTpByMoc.get(cm.id);
     if (!tpId) continue;
     const { year, month, day } = parseUtcDateParts(cm.thoi_diem);
@@ -331,7 +350,7 @@ async function collectBookmarkStubs(
       id: `bookmark:${cm.id}:${tpId}`,
       source: "bookmark",
       cotMocId: cm.id,
-      visibility: mapVisibility(cm.che_do_hien_thi),
+      visibility: mapForeignJourneyVisibilityToUi(journeyVisByMoc.get(cm.id)),
       variant: "bookmark",
       type: LOAI_MOC_TO_TYPE[cm.loai_moc],
       thoiDiem: cm.thoi_diem,
@@ -475,12 +494,7 @@ export async function fetchMilestoneTimelinePage(params: {
     userId,
     isOwner,
   });
-  const milestones = await attachSocialState(
-    admin,
-    hydrated,
-    viewerId,
-    isOwner,
-  );
+  const milestones = await attachSocialState(admin, hydrated, viewerId);
 
   const nextOffset = offset + milestones.length;
   return {

@@ -24,7 +24,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
-import { updateLoaiMocVisibility } from "@/app/[slug]/journey/actions";
+import { updateLoaiMocVisibility } from "@/app/[slug]/journey/visibility-actions";
 import type { MilestoneType } from "@/components/journey/milestone-types";
 import {
   getVisibility,

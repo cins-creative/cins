@@ -2,10 +2,9 @@
  * Loại bài trên hub `/bai-viet`.
  * Không gồm `nghe` / `nganh_dao_tao` — đã có tại /nghe-nghiep và /nganh-hoc.
  */
+/** v7: keyword/phan_mem không nằm hub «Bài viết» — chỉ tới qua tag trên Journey. */
 export const BAI_VIET_HUB_LOAI = [
   { id: "mon_hoc", label: "Môn học", dotClass: "bv-hub-loai-dot--mon_hoc" },
-  { id: "keyword", label: "Keyword", dotClass: "bv-hub-loai-dot--keyword" },
-  { id: "phan_mem", label: "Phần mềm", dotClass: "bv-hub-loai-dot--phan_mem" },
 ] as const;
 
 /** URL `?loai=` cũ — bỏ qua lọc (nội dung không nằm trong hub bài viết). */

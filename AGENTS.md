@@ -2,7 +2,7 @@
 
 ## Ngữ cảnh dự án (đọc trước)
 
-**Nguồn chính:** [`docs/CINS_INSTRUCTION.md`](./docs/CINS_INSTRUCTION.md) — **Schema / instruction v6** (product, DB 62+ bảng, engagement có context, kết bạn, loại org, ghi chú triển khai site).
+**Nguồn chính:** [`docs/CINS_INSTRUCTION.md`](./docs/CINS_INSTRUCTION.md) — **Schema / instruction v7** (product, DB 62+ bảng, tag system mới, engagement có context, kết bạn, loại org, ghi chú triển khai site).
 
 - Repo này là **frontend Next.js** của CINs (trang chủ, ngành học, trường đại học, nghề nghiệp, bài viết, …), không phải toàn bộ backend.
 - Khi user gửi file instruction mới (**v6, v7, v8, …**): cập nhật `docs/CINS_INSTRUCTION.md` (đổi số version ở đầu file, merge nội dung mới; không bỏ phần implementation site trừ khi user yêu cầu thay thế).
