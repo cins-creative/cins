@@ -4583,6 +4583,7 @@ a.cd-v4-role-menu-btn {
 
 .cd-v4-category-tip--follow-cursor {
   animation: none;
+  pointer-events: none;
 }
 
 @keyframes cd-v4-category-tip-in {

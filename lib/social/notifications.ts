@@ -174,6 +174,7 @@ export async function countUnreadNotifications(viewerId: string): Promise<number
     { count: pendingFriends },
     { count: accepted },
     { count: comments },
+    { count: commentReplies },
     { count: coAuthorInvite },
     { count: coAuthorReview },
     { count: video },
@@ -194,6 +195,12 @@ export async function countUnreadNotifications(viewerId: string): Promise<number
       .select("id", { count: "exact", head: true })
       .eq("nguoi_nhan", viewerId)
       .eq("loai_doi_tuong", "cot_moc_comment")
+      .eq("da_doc", false),
+    admin
+      .from("social_thong_bao")
+      .select("id", { count: "exact", head: true })
+      .eq("nguoi_nhan", viewerId)
+      .eq("loai_doi_tuong", "binh_luan_tra_loi")
       .eq("da_doc", false),
     admin
       .from("social_thong_bao")
@@ -220,6 +227,7 @@ export async function countUnreadNotifications(viewerId: string): Promise<number
     (pendingFriends ?? 0) +
     (accepted ?? 0) +
     (comments ?? 0) +
+    (commentReplies ?? 0) +
     (coAuthorInvite ?? 0) +
     (coAuthorReview ?? 0) +
     (video ?? 0)
@@ -260,10 +268,29 @@ async function expandCommentNotificationReadIds(
     .in("id", notificationIds);
 
   for (const row of rows ?? []) {
-    if (row.loai_doi_tuong !== "cot_moc_comment") continue;
     const commenterId = row.noi_dung_ai as string | null;
     const objectId = row.id_doi_tuong as string | null;
     if (!commenterId || !objectId) continue;
+
+    if (row.loai_doi_tuong === "binh_luan_tra_loi") {
+      const milestoneId = await resolveMilestoneIdForCommentNotify(admin, objectId);
+      if (!milestoneId) continue;
+      const { data: related } = await admin
+        .from("social_thong_bao")
+        .select("id")
+        .eq("nguoi_nhan", viewerId)
+        .eq("loai_doi_tuong", "binh_luan_tra_loi")
+        .eq("noi_dung_ai", commenterId)
+        .eq("da_doc", false)
+        .eq("id_doi_tuong", milestoneId)
+        .returns<Array<{ id: string }>>();
+      for (const relatedRow of related ?? []) {
+        result.add(relatedRow.id);
+      }
+      continue;
+    }
+
+    if (row.loai_doi_tuong !== "cot_moc_comment") continue;
 
     const milestoneId = await resolveMilestoneIdForCommentNotify(admin, objectId);
     if (!milestoneId) continue;
@@ -331,6 +358,7 @@ export async function markAllInfoNotificationsRead(
     .in("loai_doi_tuong", [
       "follow_accepted",
       "cot_moc_comment",
+      "binh_luan_tra_loi",
       "video_ready",
     ]);
   if (error) return { ok: false, error: error.message };

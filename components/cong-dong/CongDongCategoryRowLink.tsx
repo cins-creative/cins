@@ -16,6 +16,7 @@ import { useCursorFollowTooltip } from "@/lib/ui/use-cursor-follow-tooltip";
 
 const TIP_MAX_W = 300;
 const TIP_EST_H = 340;
+const TIP_CLOSE_DELAY_MS = 180;
 
 function categoryLoaiShort(loai: string): string {
   if (loai === "nganh_dao_tao") return "Ngành";
@@ -52,63 +53,43 @@ export function CongDongCategoryRowLink({ item }: { item: CongDongCategory }) {
   const tipId = useId();
   const anchorRef = useRef<HTMLAnchorElement>(null);
   const tipRef = useRef<HTMLDivElement>(null);
-  const hoverRef = useRef(false);
-  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const meta = categoryRowMeta(item);
   const href = articlePublicHref(item.loaiBaiViet, item.slug);
   const desc = categoryTipDesc(item);
   const thumbUrl = categoryTipThumb(item);
 
-  const { tipPos, placeTip, pinTip, onPointerMove, clearTip, cursorFollow } =
-    useCursorFollowTooltip({ width: TIP_MAX_W, estHeight: TIP_EST_H });
+  const {
+    tipPos,
+    placeTip,
+    pinTip,
+    onPointerMove,
+    setAnchorHover,
+    setTipHover,
+    cursorFollow,
+  } = useCursorFollowTooltip({
+    width: TIP_MAX_W,
+    estHeight: TIP_EST_H,
+    closeDelayMs: TIP_CLOSE_DELAY_MS,
+  });
 
   const showTip = Boolean(tipPos);
 
-  const cancelCloseTimer = useCallback(() => {
-    if (closeTimerRef.current) {
-      clearTimeout(closeTimerRef.current);
-      closeTimerRef.current = null;
-    }
-  }, []);
-
-  const scheduleClose = useCallback(() => {
-    hoverRef.current = false;
-    cancelCloseTimer();
-    closeTimerRef.current = setTimeout(() => {
-      if (!hoverRef.current) clearTip();
-    }, 180);
-  }, [cancelCloseTimer, clearTip]);
-
   const lockTipForInteraction = useCallback(() => {
-    cancelCloseTimer();
-    hoverRef.current = true;
-    const height = tipRef.current?.offsetHeight;
-    pinTip(anchorRef.current, { height, mode: "interactive" });
-  }, [cancelCloseTimer, pinTip]);
+    setTipHover(true);
+    pinTip(anchorRef.current, {
+      height: tipRef.current?.offsetHeight,
+      mode: "interactive",
+    });
+  }, [pinTip, setTipHover]);
 
   const openTip = useCallback(
     (event: React.MouseEvent) => {
-      cancelCloseTimer();
-      hoverRef.current = true;
+      setAnchorHover(true);
       onPointerMove(event.clientX, event.clientY);
       placeTip(anchorRef.current, { follow: true });
     },
-    [cancelCloseTimer, onPointerMove, placeTip],
+    [onPointerMove, placeTip, setAnchorHover],
   );
-
-  const leaveRow = useCallback(() => {
-    cancelCloseTimer();
-    if (showTip) {
-      pinTip(anchorRef.current, {
-        height: tipRef.current?.offsetHeight,
-        mode: "interactive",
-      });
-    }
-    hoverRef.current = false;
-    closeTimerRef.current = setTimeout(() => {
-      if (!hoverRef.current) clearTip();
-    }, 180);
-  }, [cancelCloseTimer, clearTip, pinTip, showTip]);
 
   return (
     <>
@@ -120,12 +101,12 @@ export function CongDongCategoryRowLink({ item }: { item: CongDongCategory }) {
         aria-describedby={showTip ? tipId : undefined}
         onMouseEnter={openTip}
         onMouseMove={(event) => onPointerMove(event.clientX, event.clientY)}
-        onMouseLeave={leaveRow}
+        onMouseLeave={() => setAnchorHover(false)}
         onFocus={() => {
-          hoverRef.current = true;
+          setAnchorHover(true);
           placeTip(anchorRef.current);
         }}
-        onBlur={scheduleClose}
+        onBlur={() => setAnchorHover(false)}
       >
         <span
           className={`cd-v4-category-row-dot ${articleTagLoaiClass(item.loaiBaiViet)}`}
@@ -146,7 +127,7 @@ export function CongDongCategoryRowLink({ item }: { item: CongDongCategory }) {
               role="tooltip"
               style={{ top: tipPos!.top, left: tipPos!.left }}
               onMouseEnter={lockTipForInteraction}
-              onMouseLeave={scheduleClose}
+              onMouseLeave={() => setTipHover(false)}
             >
               {thumbUrl ? (
                 <div className="cd-v4-category-tip-media">

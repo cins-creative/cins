@@ -59,11 +59,21 @@ export function AuthorRoleTooltip({ role, className }: Props) {
   const tipRef = useRef<HTMLDivElement>(null);
   const hoverRef = useRef(false);
   const fetchGenRef = useRef(0);
-  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [preview, setPreview] = useState<NgheRolePreview | null>(null);
   const [hasMatch, setHasMatch] = useState<boolean | null>(null);
-  const { tipPos, placeTip, pinTip, onPointerMove, clearTip, cursorFollow } =
-    useCursorFollowTooltip({ width: TIP_MAX_W, estHeight: TIP_EST_H });
+  const {
+    tipPos,
+    placeTip,
+    pinTip,
+    onPointerMove,
+    setAnchorHover,
+    setTipHover,
+    cursorFollow,
+  } = useCursorFollowTooltip({
+    width: TIP_MAX_W,
+    estHeight: TIP_EST_H,
+    closeDelayMs: 180,
+  });
 
   const showTip = Boolean(preview && tipPos);
 
@@ -94,11 +104,8 @@ export function AuthorRoleTooltip({ role, className }: Props) {
   );
 
   const openTip = useCallback(async () => {
-    if (closeTimerRef.current) {
-      clearTimeout(closeTimerRef.current);
-      closeTimerRef.current = null;
-    }
     hoverRef.current = true;
+    setAnchorHover(true);
     const gen = ++fetchGenRef.current;
 
     const cached = previewCache.get(cacheKey(role));
@@ -122,42 +129,22 @@ export function AuthorRoleTooltip({ role, className }: Props) {
     }
 
     revealTip(loaded);
-  }, [preview, revealTip, role]);
-
-  const closeTip = useCallback(() => {
-    hoverRef.current = false;
-    fetchGenRef.current += 1;
-    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
-    closeTimerRef.current = setTimeout(() => {
-      if (!hoverRef.current) clearTip();
-    }, 180);
-  }, [clearTip]);
+  }, [preview, revealTip, role, setAnchorHover]);
 
   const lockTipForInteraction = useCallback(() => {
-    if (closeTimerRef.current) {
-      clearTimeout(closeTimerRef.current);
-      closeTimerRef.current = null;
-    }
     hoverRef.current = true;
+    setTipHover(true);
     pinTip(anchorRef.current, {
       height: tipRef.current?.offsetHeight,
       mode: "interactive",
     });
-  }, [pinTip]);
+  }, [pinTip, setTipHover]);
 
   const leaveTrigger = useCallback(() => {
-    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
-    if (preview && tipPos) {
-      pinTip(anchorRef.current, {
-        height: tipRef.current?.offsetHeight,
-        mode: "interactive",
-      });
-    }
     hoverRef.current = false;
-    closeTimerRef.current = setTimeout(() => {
-      if (!hoverRef.current) clearTip();
-    }, 180);
-  }, [clearTip, pinTip, preview, tipPos]);
+    fetchGenRef.current += 1;
+    setAnchorHover(false);
+  }, [setAnchorHover]);
 
   const desc = preview?.tomTat?.trim() || null;
   const displayRole = preview?.roleLabel ?? role;
@@ -195,7 +182,7 @@ export function AuthorRoleTooltip({ role, className }: Props) {
               role="tooltip"
               style={{ top: tipPos.top, left: tipPos.left }}
               onMouseEnter={lockTipForInteraction}
-              onMouseLeave={closeTip}
+              onMouseLeave={() => setTipHover(false)}
             >
               {preview.thumbUrl ? (
                 <div className="j-nghe-role-tip-media">

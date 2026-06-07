@@ -6,11 +6,15 @@ import { getCachedPostCommentsForViewer } from "@/lib/journey/post-page-cache";
 
 type Props = {
   milestoneId: string;
+  contentOwnerId: string;
+  viewerIsOwner: boolean;
   viewerCanComment: boolean;
 };
 
 export async function PostCommentsSection({
   milestoneId,
+  contentOwnerId,
+  viewerIsOwner,
   viewerCanComment,
 }: Props) {
   const comments = await getCachedPostCommentsForViewer(milestoneId);
@@ -18,6 +22,8 @@ export async function PostCommentsSection({
   return (
     <PostCommentsClient
       milestoneId={milestoneId}
+      contentOwnerId={contentOwnerId}
+      viewerIsOwner={viewerIsOwner}
       viewerCanComment={viewerCanComment}
       initialComments={comments}
     />

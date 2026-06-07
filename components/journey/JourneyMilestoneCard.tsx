@@ -356,6 +356,7 @@ export function JourneyMilestoneCard({
   const pinActionsAboveComments = Boolean(
     inlineExpand && showUnfold && showComments,
   );
+  const authorsInUnfold = pinActionsAboveComments && showAuthorsStrip;
   const milestoneId = cotMocId ?? milestone.id;
 
   /* Hiển thị badge người đăng
@@ -396,6 +397,90 @@ export function JourneyMilestoneCard({
     e.preventDefault();
     inlineExpand.onToggleContent();
   }
+
+  const jcardAuthors = showAuthorsStrip ? (
+    <div className="jcard-authors" aria-label="Đồng tác giả">
+      <details className="authors-details">
+        <summary className="authors-collapsed">
+          <span className="av-stack" aria-hidden>
+            {visibleCoAuthors.map((c, i) => (
+              <AuthorAvatar
+                key={`${c.slug ?? c.name}-${i}`}
+                credit={c}
+                tone={AVATAR_TONE_CLASSES[i % AVATAR_TONE_CLASSES.length] ?? "av-blue"}
+              />
+            ))}
+            {hiddenCoAuthorCount > 0 ? (
+              <span className="av-more">+{hiddenCoAuthorCount}</span>
+            ) : null}
+          </span>
+          <span className="authors-right">
+            <span className="authors-summary">
+              {otherContributorCount} người đóng góp khác
+            </span>
+            <span className="authors-toggle-slot">
+              <span className="expand-hint" aria-label="Xem tất cả">
+                <Eye size={15} strokeWidth={1.9} aria-hidden />
+              </span>
+              <span className="collapse-hint" aria-label="Thu gọn">
+                <ChevronUp size={15} strokeWidth={2} aria-hidden />
+              </span>
+            </span>
+          </span>
+        </summary>
+        <div className="authors-expanded">
+          <div className="expanded-header">
+            <span>{contributorCount} người đóng góp</span>
+          </div>
+          {coAuthorCredits.map((c, i) => (
+            <div
+              key={`${c.slug ?? c.name}-${i}`}
+              className={
+                "author-row-item" +
+                (c.trangThai === "pending" ? " is-pending-credit" : "")
+              }
+            >
+              <JourneyUserPopover
+                slug={c.slug}
+                fallbackName={c.name}
+                fallbackAvatarUrl={c.avatarUrl}
+              >
+                <span className="author-row-person">
+                  <AuthorAvatar
+                    credit={c}
+                    tone={AVATAR_TONE_CLASSES[i % AVATAR_TONE_CLASSES.length] ?? "av-blue"}
+                  />
+                  <span className="author-row-info author-row-inline">
+                    <span
+                      className={`author-row-name${
+                        variant === "tagged" && c.slug && c.slug === ownerSlug
+                          ? " is-you"
+                          : ""
+                      }`}
+                    >
+                      {c.name}
+                    </span>
+                    {c.role ? <AuthorRoleTooltip role={c.role} /> : null}
+                  </span>
+                </span>
+              </JourneyUserPopover>
+              {c.laChuSoHuu ? (
+                <span className="abadge abadge-owner">Chủ bài</span>
+              ) : variant === "tagged" && c.slug && c.slug === ownerSlug ? (
+                <span className="abadge abadge-you">Bạn</span>
+              ) : c.trangThai === "pending" ? (
+                <span className="abadge abadge-pending">Chờ xác nhận</span>
+              ) : null}
+              <JourneyAuthorRowFriendAction
+                targetUserId={c.idNguoiDung}
+                viewerProfileId={viewerProfileId}
+              />
+            </div>
+          ))}
+        </div>
+      </details>
+    </div>
+  ) : null;
 
   const jcardActions = (
     <div className="jcard-actions">
@@ -701,7 +786,12 @@ export function JourneyMilestoneCard({
                 postSlug={postSlug}
                 milestoneId={milestoneId}
                 actionsBeforeComments={
-                  pinActionsAboveComments ? jcardActions : undefined
+                  pinActionsAboveComments ? (
+                    <>
+                      {authorsInUnfold ? jcardAuthors : null}
+                      {jcardActions}
+                    </>
+                  ) : undefined
                 }
                 inlineSkip={{
                   byline: true,
@@ -712,91 +802,7 @@ export function JourneyMilestoneCard({
             </div>
           ) : null}
 
-          {showAuthorsStrip ? (
-            <div className="jcard-authors" aria-label="Đồng tác giả">
-              <details className="authors-details">
-                  <summary className="authors-collapsed">
-                    <span className="av-stack" aria-hidden>
-                      {visibleCoAuthors.map((c, i) => (
-                        <AuthorAvatar
-                          key={`${c.slug ?? c.name}-${i}`}
-                          credit={c}
-                          tone={AVATAR_TONE_CLASSES[i % AVATAR_TONE_CLASSES.length] ?? "av-blue"}
-                        />
-                      ))}
-                      {hiddenCoAuthorCount > 0 ? (
-                        <span className="av-more">+{hiddenCoAuthorCount}</span>
-                      ) : null}
-                    </span>
-                    <span className="authors-right">
-                      <span className="authors-summary">
-                        {otherContributorCount} người đóng góp khác
-                      </span>
-                      <span className="authors-toggle-slot">
-                        <span className="expand-hint" aria-label="Xem tất cả">
-                          <Eye size={15} strokeWidth={1.9} aria-hidden />
-                        </span>
-                        <span className="collapse-hint" aria-label="Thu gọn">
-                          <ChevronUp size={15} strokeWidth={2} aria-hidden />
-                        </span>
-                      </span>
-                    </span>
-                  </summary>
-                  <div className="authors-expanded">
-                    <div className="expanded-header">
-                      <span>{contributorCount} người đóng góp</span>
-                    </div>
-                    {coAuthorCredits.map((c, i) => (
-                      <div
-                        key={`${c.slug ?? c.name}-${i}`}
-                        className={
-                          "author-row-item" +
-                          (c.trangThai === "pending" ? " is-pending-credit" : "")
-                        }
-                      >
-                        <JourneyUserPopover
-                          slug={c.slug}
-                          fallbackName={c.name}
-                          fallbackAvatarUrl={c.avatarUrl}
-                        >
-                          <span className="author-row-person">
-                            <AuthorAvatar
-                              credit={c}
-                              tone={AVATAR_TONE_CLASSES[i % AVATAR_TONE_CLASSES.length] ?? "av-blue"}
-                            />
-                            <span className="author-row-info author-row-inline">
-                              <span
-                                className={`author-row-name${
-                                  variant === "tagged" && c.slug && c.slug === ownerSlug
-                                    ? " is-you"
-                                    : ""
-                                }`}
-                              >
-                                {c.name}
-                              </span>
-                              {c.role ? (
-                                <AuthorRoleTooltip role={c.role} />
-                              ) : null}
-                            </span>
-                          </span>
-                        </JourneyUserPopover>
-                        {c.laChuSoHuu ? (
-                          <span className="abadge abadge-owner">Chủ bài</span>
-                        ) : variant === "tagged" && c.slug && c.slug === ownerSlug ? (
-                          <span className="abadge abadge-you">Bạn</span>
-                        ) : c.trangThai === "pending" ? (
-                          <span className="abadge abadge-pending">Chờ xác nhận</span>
-                        ) : null}
-                        <JourneyAuthorRowFriendAction
-                          targetUserId={c.idNguoiDung}
-                          viewerProfileId={viewerProfileId}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </details>
-            </div>
-          ) : null}
+          {showAuthorsStrip && !authorsInUnfold ? jcardAuthors : null}
 
           {!pinActionsAboveComments ? jcardActions : null}
 

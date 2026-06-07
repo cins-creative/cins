@@ -4,15 +4,25 @@ import { useEffect, useState } from "react";
 
 import type { MilestonePostComment } from "@/lib/journey/milestone-post-types";
 import { JourneyPostCommentsBlock } from "@/components/journey/JourneyPostBody";
+import {
+  addCommentToThreads,
+  countCommentThreads,
+  removeCommentFromThreads,
+  updateCommentInThreads,
+} from "@/lib/social/comments/client-tree";
 
 type Props = {
   milestoneId: string;
+  contentOwnerId: string;
+  viewerIsOwner: boolean;
   viewerCanComment: boolean;
   initialComments: ReadonlyArray<MilestonePostComment>;
 };
 
 export function PostCommentsClient({
   milestoneId,
+  contentOwnerId,
+  viewerIsOwner,
   viewerCanComment,
   initialComments,
 }: Props) {
@@ -26,25 +36,26 @@ export function PostCommentsClient({
   useEffect(() => {
     window.dispatchEvent(
       new CustomEvent("cins:post-comments-sync", {
-        detail: { milestoneId, count: comments.length },
+        detail: { milestoneId, count: countCommentThreads(comments) },
       }),
     );
-  }, [milestoneId, comments.length]);
+  }, [milestoneId, comments]);
 
   return (
     <JourneyPostCommentsBlock
       milestoneId={milestoneId}
+      contentOwnerId={contentOwnerId}
+      viewerIsOwner={viewerIsOwner}
       comments={comments}
       viewerCanComment={viewerCanComment}
-      onCommentAdded={(c) => setComments((prev) => [...prev, c])}
-      onCommentDeleted={(id) =>
-        setComments((prev) => prev.filter((c) => c.id !== id))
+      onCommentAdded={(c) => setComments((prev) => addCommentToThreads(prev, c))}
+      onCommentUpdated={(id, patch) =>
+        setComments((prev) => updateCommentInThreads(prev, id, patch))
       }
-      onCommentEdited={(id, noiDung) =>
-        setComments((prev) =>
-          prev.map((c) => (c.id === id ? { ...c, noiDung } : c)),
-        )
+      onCommentRemoved={(id) =>
+        setComments((prev) => removeCommentFromThreads(prev, id))
       }
+      onThreadsReordered={setComments}
     />
   );
 }

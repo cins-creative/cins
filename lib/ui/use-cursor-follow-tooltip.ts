@@ -12,14 +12,23 @@ import {
 type Options = {
   width: number;
   estHeight: number;
+  /** Thời gian chờ trước khi đóng khi rời anchor (ms) — cho tooltip có CTA. */
+  closeDelayMs?: number;
 };
 
 type PinMode = "freeze" | "anchor" | "interactive";
 
-export function useCursorFollowTooltip({ width, estHeight }: Options) {
+export function useCursorFollowTooltip({
+  width,
+  estHeight,
+  closeDelayMs = 0,
+}: Options) {
   const cursorFollowRef = useRef(false);
   const pinnedRef = useRef(false);
+  const anchorHoverRef = useRef(false);
+  const tipHoverRef = useRef(false);
   const mouseRef = useRef<{ x: number; y: number } | null>(null);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [tipPos, setTipPos] = useState<{ top: number; left: number } | null>(
     null,
   );
@@ -33,6 +42,63 @@ export function useCursorFollowTooltip({ width, estHeight }: Options) {
   const resolveSize = useCallback(
     (height?: number) => ({ width, height: height ?? estHeight }),
     [width, estHeight],
+  );
+
+  const cancelScheduledClose = useCallback(() => {
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+  }, []);
+
+  const clearTip = useCallback(() => {
+    cancelScheduledClose();
+    anchorHoverRef.current = false;
+    tipHoverRef.current = false;
+    pinnedRef.current = false;
+    setTipPos(null);
+  }, [cancelScheduledClose]);
+
+  const scheduleClose = useCallback(
+    (delay = closeDelayMs) => {
+      cancelScheduledClose();
+      closeTimerRef.current = setTimeout(() => {
+        if (!anchorHoverRef.current && !tipHoverRef.current) {
+          clearTip();
+        }
+      }, delay);
+    },
+    [cancelScheduledClose, clearTip, closeDelayMs],
+  );
+
+  const setAnchorHover = useCallback(
+    (hovering: boolean) => {
+      anchorHoverRef.current = hovering;
+      if (hovering) {
+        cancelScheduledClose();
+        return;
+      }
+      if (tipHoverRef.current) return;
+      if (closeDelayMs > 0) {
+        scheduleClose(closeDelayMs);
+        return;
+      }
+      clearTip();
+    },
+    [cancelScheduledClose, clearTip, closeDelayMs, scheduleClose],
+  );
+
+  const setTipHover = useCallback(
+    (hovering: boolean) => {
+      tipHoverRef.current = hovering;
+      if (hovering) {
+        cancelScheduledClose();
+        return;
+      }
+      if (anchorHoverRef.current) return;
+      scheduleClose(closeDelayMs > 0 ? closeDelayMs : 0);
+    },
+    [cancelScheduledClose, closeDelayMs, scheduleClose],
   );
 
   const pinTip = useCallback(
@@ -74,6 +140,8 @@ export function useCursorFollowTooltip({ width, estHeight }: Options) {
       anchor: HTMLElement | null,
       opts?: { height?: number; follow?: boolean },
     ) => {
+      anchorHoverRef.current = true;
+      cancelScheduledClose();
       if (opts?.follow) {
         pinnedRef.current = false;
       }
@@ -98,13 +166,13 @@ export function useCursorFollowTooltip({ width, estHeight }: Options) {
         );
       }
     },
-    [pinTip, resolveSize],
+    [cancelScheduledClose, pinTip, resolveSize],
   );
 
   const onPointerMove = useCallback(
     (clientX: number, clientY: number) => {
       mouseRef.current = { x: clientX, y: clientY };
-      if (pinnedRef.current) return;
+      if (!anchorHoverRef.current || pinnedRef.current) return;
       if (cursorFollowRef.current && tipPos) {
         setTipPos(computeCursorTooltipPosition(clientX, clientY, tipSize));
       }
@@ -112,14 +180,13 @@ export function useCursorFollowTooltip({ width, estHeight }: Options) {
     [tipPos, tipSize],
   );
 
-  const clearTip = useCallback(() => {
-    pinnedRef.current = false;
-    setTipPos(null);
-  }, []);
-
   useEffect(() => {
     if (!tipPos || !cursorFollowRef.current || pinnedRef.current) return;
     const onMove = (event: MouseEvent) => {
+      if (!anchorHoverRef.current) {
+        if (!tipHoverRef.current) clearTip();
+        return;
+      }
       mouseRef.current = { x: event.clientX, y: event.clientY };
       setTipPos(
         computeCursorTooltipPosition(event.clientX, event.clientY, tipSize),
@@ -127,7 +194,16 @@ export function useCursorFollowTooltip({ width, estHeight }: Options) {
     };
     window.addEventListener("mousemove", onMove, { passive: true });
     return () => window.removeEventListener("mousemove", onMove);
-  }, [tipPos, tipSize]);
+  }, [clearTip, tipPos, tipSize]);
+
+  useEffect(() => {
+    if (!tipPos) return;
+    const dismiss = () => clearTip();
+    window.addEventListener("scroll", dismiss, true);
+    return () => window.removeEventListener("scroll", dismiss, true);
+  }, [clearTip, tipPos]);
+
+  useEffect(() => () => clearTip(), [clearTip]);
 
   return {
     tipPos,
@@ -135,6 +211,9 @@ export function useCursorFollowTooltip({ width, estHeight }: Options) {
     pinTip,
     onPointerMove,
     clearTip,
+    setAnchorHover,
+    setTipHover,
+    cancelScheduledClose,
     cursorFollow: () => cursorFollowRef.current && !pinnedRef.current,
   };
 }

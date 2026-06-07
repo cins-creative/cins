@@ -2,7 +2,7 @@ import "server-only";
 
 import type { createServiceRoleClient } from "@/lib/supabase/service-role";
 
-export type ThongBaoLoai = "thong_tin" | "hanh_dong";
+export type ThongBaoLoai = "thong_tin" | "hanh_dong" | "mention_binh_luan";
 
 type InsertRow = {
   nguoi_nhan: string;

@@ -1,5 +1,9 @@
 import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import type { Block as ServerBlock } from "@/lib/editor/types";
+import type {
+  CommentIdentityBadge,
+  CommentReactionSummary,
+} from "@/lib/social/comments/types";
 
 export type MilestonePostAuthor = {
   id: string;
@@ -44,8 +48,14 @@ export type MilestonePostComment = {
   id: string;
   noiDung: string;
   taoLuc: string;
-  author: MilestonePostAuthor | null;
+  author: (MilestonePostAuthor & { badge?: CommentIdentityBadge | null }) | null;
   isOwn: boolean;
+  /** Comment Block v1 */
+  idCha?: string | null;
+  daXoa?: boolean;
+  ghimLuc?: string | null;
+  reactions?: CommentReactionSummary[];
+  replies?: MilestonePostComment[];
 };
 
 export type MilestonePostDetail = {

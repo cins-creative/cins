@@ -50,6 +50,8 @@
   /* Render bên trong `.cins-main` (đã `flex: 1` trong shell). Vẫn ép tối thiểu
      full viewport trừ topbar để background lavender phủ kín khi content ngắn. */
   min-height: calc(100vh - var(--j-topbar-h));
+  max-width: 100%;
+  overflow-x: clip;
 }
 
 .cins-journey-page *,
@@ -68,16 +70,24 @@
  * SHELL — 3-col grid
  * ──────────────────────────────────────────────────────────────── */
 .j-shell {
+  width: 100%;
   max-width: 1360px;
+  min-width: 0;
   margin: 0 auto;
   padding: 0 var(--space-8);
   display: grid;
-  grid-template-columns: var(--j-sidebar-w) 1fr var(--j-gallery-w);
+  grid-template-columns: var(--j-sidebar-w) minmax(0, 1fr) var(--j-gallery-w);
   gap: var(--j-gutter);
   align-items: start;
 }
 .j-shell:not(:has(.j-gallery)) {
   grid-template-columns: var(--j-sidebar-w) minmax(0, 1fr);
+}
+.j-shell > .j-sidebar,
+.j-shell > .j-timeline,
+.j-shell > .j-gallery,
+.j-shell > .j-gallery-main {
+  min-width: 0;
 }
 
 /* ────────────────────────────────────────────────────────────────
@@ -88,6 +98,7 @@
   top: var(--j-topbar-h);
   padding: 28px 0 40px;
   max-height: calc(100vh - var(--j-topbar-h));
+  overflow-x: clip;
   overflow-y: auto;
   scrollbar-width: none;
 }
@@ -1038,6 +1049,8 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
  * ──────────────────────────────────────────────────────────────── */
 .j-timeline {
   position: relative;
+  width: 100%;
+  min-width: 0;
   padding: 0 0 80px;
   max-width: 760px;
   min-height: calc(100vh - var(--j-topbar-h));
@@ -1056,10 +1069,12 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   -webkit-backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--border);
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   column-gap: 18px;
   height: var(--j-ctx-h);
+  min-width: 0;
+  max-width: 100%;
   padding: 0 4px 0 calc(var(--j-rail-x) - 8px);
 }
 .j-tlb-year {
@@ -1584,6 +1599,8 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   border-radius: var(--radius-lg);
   padding: 20px 22px;
   position: relative;
+  min-width: 0;
+  max-width: 100%;
   box-shadow: var(--shadow-xs);
   transition:
     transform 0.18s var(--j-ease),
@@ -1898,7 +1915,61 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   border-radius: 10px;
 }
 .j-m-unfold-post .post-comments-form {
-  margin-top: 8px;
+  margin-top: 10px;
+}
+.j-m-unfold-post .jcard-authors {
+  margin-top: 0;
+  border-top: none;
+  border-bottom: 1px solid var(--jcard-border2, var(--border));
+  border-radius: 0;
+}
+.j-m-unfold-post .jcard-authors + .jcard-actions {
+  border-top: none;
+}
+.j-m-unfold-post--comments-only .jcard-authors {
+  border-top: none;
+}
+.j-m-unfold-post .post-comments-v1 .post-comments-compose {
+  border-radius: 12px;
+  background: var(--bg-surface, #fff);
+}
+.j-m-unfold-post .post-comments-v1 .post-comments-compose-row {
+  padding: 6px 6px 6px 12px;
+}
+.j-m-unfold-post .post-comments-v1 .post-comments-compose-row .post-comments-send {
+  width: 34px;
+  height: 34px;
+}
+.j-m-unfold-post .post-comments-v1 .post-comments-reaction-emoji {
+  width: 18px;
+  height: 18px;
+  font-size: 16px;
+  filter: saturate(1.12);
+}
+.j-m-unfold-post .post-comments-v1 .post-comments-reaction-pill {
+  min-height: 26px;
+  border: none;
+}
+.j-m-unfold-post .post-comments-v1 .post-comments-reaction-pill.is-active {
+  background: #fff;
+  border: none;
+}
+.j-m-unfold-post .post-comments-v1 .post-comments-reaction-opt-emoji {
+  font-size: 20px;
+  filter: saturate(1.2) contrast(1.04);
+}
+.j-m-unfold-post .post-comments-v1 .post-comments-reaction-opt {
+  background: #fff;
+  border: none;
+}
+.j-m-unfold-post .post-comments-v1 .post-comments-reaction-opt.is-active {
+  background: #fff;
+  border: none;
+  box-shadow: none;
+}
+.j-m-unfold-post .post-comments-v1 .post-comments-reactions,
+.j-m-unfold-post .post-comments-v1 .post-comments-reaction-picker {
+  -webkit-font-smoothing: auto;
 }
 .j-m-unfold-post .jcard-actions {
   margin-top: 0;
@@ -3103,8 +3174,10 @@ button.j-m-card-hit {
 .j-gallery {
   position: sticky;
   top: var(--j-topbar-h);
+  min-width: 0;
   padding: 28px 0 40px;
   max-height: calc(100vh - var(--j-topbar-h));
+  overflow-x: clip;
   overflow-y: auto;
   scrollbar-width: none;
 }
@@ -6606,6 +6679,7 @@ select.j-edit-input {
 }
 .j-tag-tip--follow-cursor {
   animation: none;
+  pointer-events: none;
 }
 @keyframes j-tag-tip-in {
   from {

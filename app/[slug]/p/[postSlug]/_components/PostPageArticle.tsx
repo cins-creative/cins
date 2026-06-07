@@ -37,6 +37,8 @@ export async function PostPageArticle({ slug, postSlug }: Props) {
       commentsSlot={
         <PostCommentsSuspense
           milestoneId={detail.milestone.id}
+          contentOwnerId={detail.owner.id}
+          viewerIsOwner={detail.viewerIsOwner}
           viewerCanComment={detail.viewerCanComment}
         />
       }

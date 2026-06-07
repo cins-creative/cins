@@ -11,6 +11,7 @@ import type { Block as ServerBlock } from "@/lib/editor/types";
 import { fetchArticleTagsForTacPham } from "@/lib/journey/article-tags-batch";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { isFriend } from "@/lib/social/ket-ban";
+import { fetchCommentsForSocialObject } from "@/lib/social/comments/fetch-for-object";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 export type PostFetchResult =
@@ -188,48 +189,7 @@ export async function fetchPostComments(
   milestoneId: string,
   viewerId: string | null,
 ): Promise<MilestonePostComment[]> {
-  const admin = createServiceRoleClient();
-
-  const { data: cmtRows } = await admin
-    .from("social_binh_luan")
-    .select("id, nguoi_binh_luan, noi_dung, tao_luc, da_xoa")
-    .eq("loai_doi_tuong", "cot_moc")
-    .eq("id_doi_tuong", milestoneId)
-    .is("id_cha", null)
-    .eq("da_xoa", false)
-    .order("tao_luc", { ascending: true })
-    .returns<CommentRow[]>();
-
-  const commenterIds = Array.from(
-    new Set((cmtRows ?? []).map((c) => c.nguoi_binh_luan)),
-  );
-  let commenters: Record<string, ProfileRow> = {};
-  if (commenterIds.length > 0) {
-    const { data: profiles } = await admin
-      .from("user_nguoi_dung")
-      .select("id, slug, ten_hien_thi, avatar_id")
-      .in("id", commenterIds)
-      .returns<ProfileRow[]>();
-    commenters = Object.fromEntries((profiles ?? []).map((p) => [p.id, p]));
-  }
-
-  return (cmtRows ?? []).map((c) => {
-    const p = commenters[c.nguoi_binh_luan];
-    return {
-      id: c.id,
-      noiDung: c.noi_dung,
-      taoLuc: c.tao_luc,
-      author: p
-        ? {
-            id: p.id,
-            slug: p.slug,
-            tenHienThi: p.ten_hien_thi || p.slug,
-            avatarId: p.avatar_id,
-          }
-        : null,
-      isOwn: viewerId === c.nguoi_binh_luan,
-    };
-  });
+  return fetchCommentsForSocialObject("cot_moc", milestoneId, viewerId);
 }
 
 async function findMilestoneIdForTacPham(

@@ -2,6 +2,7 @@ import "server-only";
 
 import type { CongDongJourneyMirror } from "@/lib/cong-dong/types";
 import { fetchArticleTagsForTacPham } from "@/lib/journey/article-tags-batch";
+import { milestonePreviewMedia } from "@/lib/journey/milestone-preview-media";
 import { parseServerBlocks } from "@/lib/journey/parse-server-blocks";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -43,6 +44,12 @@ export async function loadTacPhamMirrorsByMilestoneIds(
     if (out.has(link.id_cot_moc)) continue;
     const row = link.content_tac_pham;
     if (!row) continue;
+    const blocks = parseServerBlocks(row.noi_dung_blocks) ?? [];
+    const previewItems = milestonePreviewMedia(
+      row.cover_id,
+      blocks,
+      row.tieu_de,
+    );
     out.set(link.id_cot_moc, {
       tacPhamId: row.id,
       milestoneId: link.id_cot_moc,
@@ -51,7 +58,8 @@ export async function loadTacPhamMirrorsByMilestoneIds(
       tieuDe: row.tieu_de,
       moTa: row.mo_ta,
       coverId: row.cover_id,
-      noiDungBlocks: parseServerBlocks(row.noi_dung_blocks) ?? [],
+      noiDungBlocks: blocks,
+      previewMedia: previewItems[0] ?? null,
       articleTags: [],
     });
   }
@@ -85,6 +93,12 @@ export async function loadTacPhamMirrors(
     .returns<TacPhamRow[]>();
 
   for (const row of data ?? []) {
+    const blocks = parseServerBlocks(row.noi_dung_blocks) ?? [];
+    const previewItems = milestonePreviewMedia(
+      row.cover_id,
+      blocks,
+      row.tieu_de,
+    );
     out.set(row.id, {
       tacPhamId: row.id,
       milestoneId: null,
@@ -93,7 +107,8 @@ export async function loadTacPhamMirrors(
       tieuDe: row.tieu_de,
       moTa: row.mo_ta,
       coverId: row.cover_id,
-      noiDungBlocks: parseServerBlocks(row.noi_dung_blocks) ?? [],
+      noiDungBlocks: blocks,
+      previewMedia: previewItems[0] ?? null,
       articleTags: [],
     });
   }

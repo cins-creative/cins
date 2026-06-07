@@ -1,3 +1,4 @@
+import type { MilestoneMediaItem } from "@/components/journey/milestone-types";
 import type { GiaiDoan } from "@/lib/auth/session";
 import type { CongDongCheDo } from "@/lib/cong-dong/constants";
 import type { CongDongVaiTro } from "@/lib/cong-dong/vai-tro";
@@ -178,6 +179,8 @@ export type CongDongJourneyMirror = {
   moTa: string | null;
   coverId: string | null;
   noiDungBlocks: Block[];
+  /** Preview card — cùng logic `milestonePreviewMedia` trên timeline. */
+  previewMedia: MilestoneMediaItem | null;
   articleTags: ArticleTagRef[];
 };
 

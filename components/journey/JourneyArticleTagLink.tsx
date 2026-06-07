@@ -24,7 +24,7 @@ type Props = {
 export function JourneyArticleTagLink({ tag, className, onClick }: Props) {
   const tipId = useId();
   const anchorRef = useRef<HTMLAnchorElement>(null);
-  const { tipPos, placeTip, onPointerMove, clearTip, cursorFollow } =
+  const { tipPos, placeTip, onPointerMove, setAnchorHover, cursorFollow } =
     useCursorFollowTooltip({ width: TIP_MAX_W, estHeight: TIP_EST_H });
 
   const desc = tag.tom_tat?.trim() || null;
@@ -33,10 +33,11 @@ export function JourneyArticleTagLink({ tag, className, onClick }: Props) {
   const openTip = useCallback(
     (event: React.MouseEvent) => {
       if (!showTip) return;
+      setAnchorHover(true);
       onPointerMove(event.clientX, event.clientY);
       placeTip(anchorRef.current);
     },
-    [onPointerMove, placeTip, showTip],
+    [onPointerMove, placeTip, setAnchorHover, showTip],
   );
 
   const linkClass =
@@ -52,9 +53,12 @@ export function JourneyArticleTagLink({ tag, className, onClick }: Props) {
         onClick={onClick}
         onMouseEnter={openTip}
         onMouseMove={(event) => onPointerMove(event.clientX, event.clientY)}
-        onMouseLeave={clearTip}
-        onFocus={() => placeTip(anchorRef.current)}
-        onBlur={clearTip}
+        onMouseLeave={() => setAnchorHover(false)}
+        onFocus={() => {
+          setAnchorHover(true);
+          placeTip(anchorRef.current);
+        }}
+        onBlur={() => setAnchorHover(false)}
         aria-describedby={showTip && tipPos ? tipId : undefined}
       >
         #{tag.tieu_de}
@@ -69,8 +73,6 @@ export function JourneyArticleTagLink({ tag, className, onClick }: Props) {
               }
               role="tooltip"
               style={{ top: tipPos.top, left: tipPos.left }}
-              onMouseEnter={() => placeTip(anchorRef.current)}
-              onMouseLeave={clearTip}
             >
               <div className="j-tag-tip-kind">{articleTagLabel(tag.loai_bai_viet)}</div>
               <div className="j-tag-tip-title">{tag.tieu_de}</div>

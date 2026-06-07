@@ -77,6 +77,22 @@ function formatNotifyTime(iso?: string | null): string {
 
 function commentNotifyLabel(notice: CommentNotification): ReactNode {
   const count = notice.commentCount ?? 1;
+  if (notice.kind === "reply") {
+    if (count > 1) {
+      return (
+        <>
+          <strong>{notice.tenHienThi}</strong> đã trả lời bình luận của bạn {count} lần.
+          <small>{notice.postTitle}</small>
+        </>
+      );
+    }
+    return (
+      <>
+        <strong>{notice.tenHienThi}</strong> đã trả lời bình luận của bạn.
+        <small>{notice.postTitle}</small>
+      </>
+    );
+  }
   if (count > 1) {
     return (
       <>
@@ -199,6 +215,40 @@ export function JourneyNotifications({
     setUnreadLoaded(true);
   }, []);
 
+  /** Thông báo chỉ cần xem (không cần duyệt) → đánh dấu đọc, chuyển sang Lịch sử. */
+  const dismissInfoNotifications = useCallback(async () => {
+    setError(null);
+    try {
+      const res = await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mark_all: true }),
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok) {
+        setError(
+          json && typeof json.error === "string"
+            ? json.error
+            : "Không cập nhật được thông báo.",
+        );
+        const fallback = await fetch("/api/notifications?filter=unread", {
+          cache: "no-store",
+        });
+        const fallbackJson = await fallback.json().catch(() => null);
+        const next = parseFeedPayload(fallbackJson);
+        if (fallback.ok && next) applyFeed(next);
+        return;
+      }
+      const next = parseFeedPayload(json);
+      if (next) {
+        applyFeed(next);
+        setHistoryFeed(null);
+      }
+    } catch {
+      setError("Không cập nhật được thông báo.");
+    }
+  }, [applyFeed]);
+
   const unreadCount = feed.unreadCount;
   const activeFeed = tab === "history" && historyFeed ? historyFeed : feed;
 
@@ -211,26 +261,6 @@ export function JourneyNotifications({
     if (!historyFeed) return null;
     return countDisplayedItems(historyFeed);
   }, [historyFeed]);
-
-  const loadUnread = useCallback(async () => {
-    setLoadingUnread(true);
-    try {
-      const res = await fetch("/api/notifications?filter=unread", { cache: "no-store" });
-      const json = await res.json().catch(() => null);
-      if (!res.ok) {
-        setError(
-          json && typeof json.error === "string"
-            ? json.error
-            : "Không tải được thông báo.",
-        );
-        return;
-      }
-      const next = parseFeedPayload(json);
-      if (next) applyFeed(next);
-    } finally {
-      setLoadingUnread(false);
-    }
-  }, [applyFeed]);
 
   const loadHistory = useCallback(async () => {
     setLoadingHistory(true);
@@ -254,24 +284,21 @@ export function JourneyNotifications({
 
   useEffect(() => {
     if (!open) return;
-    if (tab === "unread" && !unreadLoaded && !loadingUnread) {
-      void loadUnread();
-    }
-    if (tab === "history" && !historyFeed && !loadingHistory) {
-      void loadHistory();
-    }
-  }, [
-    open,
-    tab,
-    unreadLoaded,
-    loadingUnread,
-    historyFeed,
-    loadingHistory,
-    loadUnread,
-    loadHistory,
-  ]);
+    setLoadingUnread(true);
+    void dismissInfoNotifications().finally(() => setLoadingUnread(false));
+  }, [open, dismissInfoNotifications]);
+
+  useEffect(() => {
+    if (!open || tab !== "history") return;
+    if (historyFeed || loadingHistory) return;
+    void loadHistory();
+  }, [open, tab, historyFeed, loadingHistory, loadHistory]);
 
   const refreshUnread = useCallback(() => {
+    if (open) {
+      void dismissInfoNotifications();
+      return;
+    }
     void fetch("/api/notifications?filter=unread", { cache: "no-store" })
       .then((res) => (res.ok ? res.json() : null))
       .then((json: NotificationFeed | null) => {
@@ -280,7 +307,7 @@ export function JourneyNotifications({
       .catch(() => {
         /* giữ state hiện tại */
       });
-  }, [applyFeed]);
+  }, [open, applyFeed, dismissInfoNotifications]);
 
   useEffect(() => {
     window.addEventListener("cins:video-ready", refreshUnread);
@@ -309,20 +336,10 @@ export function JourneyNotifications({
       });
       const json = await res.json().catch(() => null);
       const next = parseFeedPayload(json);
-      if (res.ok && next) applyFeed(next);
-    });
-  };
-
-  const markAllRead = () => {
-    startTransition(async () => {
-      const res = await fetch("/api/notifications", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mark_all: true }),
-      });
-      const json = await res.json().catch(() => null);
-      const next = parseFeedPayload(json);
-      if (res.ok && next) applyFeed(next);
+      if (res.ok && next) {
+        applyFeed(next);
+        setHistoryFeed(null);
+      }
     });
   };
 
@@ -463,20 +480,7 @@ export function JourneyNotifications({
             </button>
           </div>
 
-          {tab === "unread" && unreadCount > 0 ? (
-            <div className="j-notify-toolbar">
-              <button
-                type="button"
-                className="j-notify-mark-all"
-                disabled={pending}
-                onClick={markAllRead}
-              >
-                Đánh dấu đã đọc
-              </button>
-            </div>
-          ) : null}
-
-          {(tab === "unread" && loadingUnread && !unreadLoaded) ||
+          {(tab === "unread" && loadingUnread) ||
           (tab === "history" && loadingHistory) ? (
             <p className="j-notify-empty">Đang tải…</p>
           ) : listCount === 0 ? (

@@ -2,17 +2,13 @@
 
 import { ChevronUp } from "lucide-react";
 import type { ReactNode } from "react";
-import { classifyBunnyVideoUrl, buildBunnyVideoThumbnailUrl } from "@/lib/bunny/embed";
 import { JourneyMilestoneCardBodyContent } from "@/components/journey/JourneyMilestoneCardBodyContent";
-import type { MilestoneMediaItem } from "@/components/journey/milestone-types";
-import { congDongBannerImageUrl, congDongImageUrl } from "@/lib/cong-dong/images";
+import { congDongImageUrl } from "@/lib/cong-dong/images";
 import type { CongDongJourneyMirror, CongDongPostMedia } from "@/lib/cong-dong/types";
-import { gridThumbSrc } from "@/lib/journey/image-grid";
 import {
   milestoneCardContentKind,
   milestoneCardPhotoGrid,
 } from "@/lib/journey/milestone-card-kind";
-import { extractVideoUrl } from "@/lib/journey/post-media";
 
 type ExpandTriggerProps = {
   enabled: boolean;
@@ -88,40 +84,6 @@ export function CongDongFeedPostContent({
   );
 }
 
-function buildMirrorPreview(mirror: CongDongJourneyMirror): MilestoneMediaItem | null {
-  const blocks = mirror.noiDungBlocks;
-  const kind = milestoneCardContentKind(blocks);
-  const label = mirror.tieuDe;
-
-  if (kind === "photo") {
-    const first = milestoneCardPhotoGrid(blocks)?.[0];
-    if (first) {
-      return {
-        src: gridThumbSrc(first),
-        width: first.width,
-        height: first.height,
-        label,
-      };
-    }
-  }
-
-  if (kind === "video") {
-    const videoUrl = extractVideoUrl(blocks ?? []);
-    const bunny = videoUrl ? classifyBunnyVideoUrl(videoUrl) : null;
-    const thumb = bunny ? buildBunnyVideoThumbnailUrl(bunny.videoId) : null;
-    if (thumb) {
-      return { src: thumb, width: 1280, height: 720, label };
-    }
-  }
-
-  const coverSrc = mirror.coverId ? congDongBannerImageUrl(mirror.coverId) : null;
-  if (coverSrc) {
-    return { src: coverSrc, width: 800, height: 450, label };
-  }
-
-  return null;
-}
-
 function JourneyMirrorBody({
   mirror,
   expandTrigger,
@@ -135,8 +97,8 @@ function JourneyMirrorBody({
 }) {
   const blocks = mirror.noiDungBlocks;
   const cardKind = milestoneCardContentKind(blocks);
+  const isArticle = cardKind === "article";
   const photoGridImages = milestoneCardPhotoGrid(blocks);
-  const preview = buildMirrorPreview(mirror);
   const isExpanded = expandTrigger?.expanded ?? false;
   const showUnfold = isExpanded && Boolean(unfold);
 
@@ -144,15 +106,17 @@ function JourneyMirrorBody({
     <div className="j-m-body-wrap">
       <div
         className={
-          `j-m-card jcard jcard--${cardKind} has-unfold` +
-          (isExpanded ? " is-expanded" : " is-collapsed")
+          "j-m-card jcard jcard--" +
+          cardKind +
+          (isArticle ? " has-unfold" : "") +
+          (showUnfold ? " is-expanded" : isArticle ? " is-collapsed" : "")
         }
       >
         <JourneyMilestoneCardBodyContent
           title={mirror.tieuDe}
           body={mirror.moTa}
           noiDungBlocks={blocks}
-          preview={preview}
+          preview={mirror.previewMedia}
           photoGridImages={photoGridImages}
           articleTags={mirror.articleTags}
           expandTrigger={expandTrigger}

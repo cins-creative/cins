@@ -218,7 +218,7 @@ export async function listFollowAcceptedNotifications(
 
 function parseCommentNotifyCount(noiDung: string | null | undefined): number {
   if (!noiDung) return 1;
-  const match = noiDung.match(/^(\d+)\s+bình luận mới/);
+  const match = noiDung.match(/^(\d+)\s+/);
   if (match) return Math.max(1, Number.parseInt(match[1] ?? "1", 10));
   return 1;
 }
@@ -316,9 +316,9 @@ export async function listCommentNotifications(
   const admin = createServiceRoleClient();
   let query = admin
     .from("social_thong_bao")
-    .select("id, id_doi_tuong, noi_dung_ai, noi_dung, tao_luc, da_doc")
+    .select("id, id_doi_tuong, noi_dung_ai, noi_dung, tao_luc, da_doc, loai_doi_tuong")
     .eq("nguoi_nhan", viewerId)
-    .eq("loai_doi_tuong", "cot_moc_comment")
+    .in("loai_doi_tuong", ["cot_moc_comment", "binh_luan_tra_loi"])
     .order("tao_luc", { ascending: false })
     .limit(rowLimit);
 
@@ -451,6 +451,10 @@ export async function listCommentNotifications(
         postSlug: link?.content_tac_pham?.slug ?? null,
         ownerSlug: ownerSlugById.get(milestone.id_nguoi_dung) ?? null,
         commentCount: parseCommentNotifyCount(row.noi_dung as string | null),
+        kind:
+          row.loai_doi_tuong === "binh_luan_tra_loi"
+            ? ("reply" as const)
+            : ("milestone" as const),
         taoLuc: (row.tao_luc as string | null) ?? undefined,
         daDoc: Boolean(row.da_doc),
       };
@@ -459,7 +463,7 @@ export async function listCommentNotifications(
 
   const deduped = new Map<string, (typeof mapped)[number]>();
   for (const item of mapped) {
-    const key = `${item.idNguoiDung}:${item.milestoneId}`;
+    const key = `${item.kind ?? "milestone"}:${item.idNguoiDung}:${item.milestoneId}`;
     const prev = deduped.get(key);
     if (!prev) {
       deduped.set(key, item);

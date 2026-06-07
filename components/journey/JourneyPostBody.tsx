@@ -8,37 +8,35 @@ import {
   FolderKanban,
   Globe,
   Lock,
-  MoreHorizontal,
-  Pencil,
-  Send,
   Star,
-  Loader2,
   Trophy,
   UserCircle2,
   Users,
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
-  addMilestoneComment,
-  deleteMilestoneComment,
-  editMilestoneComment,
   type MilestonePostAuthor,
   type MilestonePostComment,
   type MilestonePostContributor,
   type MilestonePostDetail,
 } from "@/app/[slug]/journey/actions";
-import { useAuthGate } from "@/components/auth/AuthGateProvider";
 import { PostBlockRenderer } from "@/components/journey/PostBlockRenderer";
 import { PostBlocksRenderer, PostCover } from "@/components/editor/PostRenderer";
 import { JourneyArticleTagLink } from "@/components/journey/JourneyArticleTagLink";
 import { JourneyMilestoneOwnerMenu } from "@/components/journey/JourneyMilestoneOwnerMenu";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
 import { usePostFocusModeState } from "@/app/[slug]/p/[postSlug]/_components/PostPageShell";
-import { emitNotificationsChanged } from "@/lib/journey/notifications-client";
+import { CommentBlock } from "@/components/journey/CommentBlock";
 import { articleTagLoaiClass } from "@/lib/editor/article-tag";
+import {
+  addCommentToThreads,
+  countCommentThreads,
+  removeCommentFromThreads,
+  updateCommentInThreads,
+} from "@/lib/social/comments/client-tree";
 import {
   mapCheDoToMilestoneVisibility,
   mapLoaiMocToMilestoneType,
@@ -143,7 +141,9 @@ export function JourneyPostBody({
   const { milestone, owner, posts, comments, viewerCanComment, social } = detail;
   const displayCommentCount =
     commentCountOverride ??
-    (comments.length > 0 ? comments.length : (social.commentCount ?? 0));
+    (comments.length > 0
+      ? countCommentThreads(comments)
+      : (social.commentCount ?? 0));
 
   useEffect(() => {
     queueMicrotask(() => setDetail(initialDetail));
@@ -191,21 +191,25 @@ export function JourneyPostBody({
   const sharePath = postSlug ? `/${owner.slug}/p/${postSlug}` : null;
 
   function onCommentAdded(c: MilestonePostComment) {
-    setDetail((d) => ({ ...d, comments: [...d.comments, c] }));
-  }
-  function onCommentDeleted(id: string) {
     setDetail((d) => ({
       ...d,
-      comments: d.comments.filter((c) => c.id !== id),
+      comments: addCommentToThreads(d.comments, c),
     }));
   }
-  function onCommentEdited(id: string, noiDung: string) {
+  function onCommentRemoved(id: string) {
     setDetail((d) => ({
       ...d,
-      comments: d.comments.map((c) =>
-        c.id === id ? { ...c, noiDung } : c,
-      ),
+      comments: removeCommentFromThreads(d.comments, id),
     }));
+  }
+  function onCommentUpdated(id: string, patch: Partial<MilestonePostComment>) {
+    setDetail((d) => ({
+      ...d,
+      comments: updateCommentInThreads(d.comments, id, patch),
+    }));
+  }
+  function onThreadsReordered(threads: MilestonePostComment[]) {
+    setDetail((d) => ({ ...d, comments: threads }));
   }
 
   const isInline = variant === "inline";
@@ -376,11 +380,14 @@ export function JourneyPostBody({
     commentsSlot ?? (
       <JourneyPostCommentsBlock
         milestoneId={milestone.id}
+        contentOwnerId={owner.id}
+        viewerIsOwner={detail.viewerIsOwner}
         comments={comments}
         viewerCanComment={viewerCanComment}
         onCommentAdded={onCommentAdded}
-        onCommentDeleted={onCommentDeleted}
-        onCommentEdited={onCommentEdited}
+        onCommentUpdated={onCommentUpdated}
+        onCommentRemoved={onCommentRemoved}
+        onThreadsReordered={onThreadsReordered}
         sectionId={commentsSectionId}
       />
     )
@@ -502,7 +509,7 @@ function PostContributors({
   );
 }
 
-/* ─── Comments ──────────────────────────────────────────────────── */
+/* ─── Comments (Comment Block v1) ───────────────────────────────── */
 
 type CommentSubmitResult =
   | {
@@ -512,380 +519,30 @@ type CommentSubmitResult =
         noiDung: string;
         taoLuc: string;
         author: MilestonePostAuthor | null;
+        idCha?: string | null;
       };
     }
   | { ok: false; error: string };
 
 type CommentSectionProps = {
   milestoneId: string;
+  contentOwnerId: string;
+  viewerIsOwner: boolean;
   comments: ReadonlyArray<MilestonePostComment>;
   viewerCanComment: boolean;
   onCommentAdded(c: MilestonePostComment): void;
-  onCommentDeleted(id: string): void;
-  onCommentEdited(id: string, noiDung: string): void;
+  onCommentUpdated(id: string, patch: Partial<MilestonePostComment>): void;
+  onCommentRemoved(id: string): void;
+  onThreadsReordered(threads: MilestonePostComment[]): void;
   sectionId?: string;
-  /** Feed cộng đồng — API có check thành viên; mặc định `addMilestoneComment`. */
-  submitComment?: (text: string) => Promise<CommentSubmitResult>;
+  submitComment?: (
+    text: string,
+    replyToId?: string | null,
+  ) => Promise<CommentSubmitResult>;
 };
 
-export function JourneyPostCommentsBlock({
-  milestoneId,
-  comments,
-  viewerCanComment,
-  onCommentAdded,
-  onCommentDeleted,
-  onCommentEdited,
-  sectionId = "post-comments",
-  submitComment,
-}: CommentSectionProps) {
-  const { openAuthModal } = useAuthGate();
-  const [text, setText] = useState("");
-  const [pending, startTransition] = useTransition();
-  const [err, setErr] = useState<string | null>(null);
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const value = text.trim();
-    if (!value) return;
-    setErr(null);
-    startTransition(async () => {
-      const res = submitComment
-        ? await submitComment(value)
-        : await addMilestoneComment(milestoneId, value);
-      if (!res.ok) {
-        setErr(res.error);
-        return;
-      }
-      onCommentAdded({
-        id: res.data.id,
-        noiDung: res.data.noiDung,
-        taoLuc: res.data.taoLuc,
-        author: res.data.author,
-        isOwn: true,
-      });
-      setText("");
-      if (!submitComment) {
-        emitNotificationsChanged();
-      }
-    });
-  }
-
-  function handleDelete(id: string) {
-    if (!confirm("Xoá bình luận này?")) return;
-    startTransition(async () => {
-      const res = await deleteMilestoneComment(id);
-      if (!res.ok) {
-        setErr(res.error);
-        return;
-      }
-      onCommentDeleted(id);
-    });
-  }
-
-  /* `editMilestoneComment` async — không bọc startTransition vì
-     CommentItem giữ local pending state riêng (UI inline edit cần
-     disable input của chính nó, không phải toàn section). */
-  async function handleEdit(
-    id: string,
-    next: string,
-  ): Promise<{ ok: true } | { ok: false; error: string }> {
-    const res = await editMilestoneComment(id, next);
-    if (!res.ok) return { ok: false, error: res.error };
-    onCommentEdited(id, res.data.noiDung);
-    return { ok: true };
-  }
-
-  return (
-    <section className="post-comments" id={sectionId} aria-label="Bình luận">
-      <header className="post-comments-head">
-        <h2>Bình luận</h2>
-        <span className="post-comments-count">{comments.length}</span>
-      </header>
-
-      {comments.length === 0 ? (
-        <div className="post-comments-empty">
-          Chưa có bình luận nào. Bạn là người đầu tiên ✨
-        </div>
-      ) : (
-        <ol className="post-comments-list">
-          {comments.map((c) => (
-            <CommentItem
-              key={c.id}
-              comment={c}
-              onDelete={handleDelete}
-              onEdit={handleEdit}
-            />
-          ))}
-        </ol>
-      )}
-
-      {err ? <div className="post-comments-err">{err}</div> : null}
-
-      {viewerCanComment ? (
-        <form className="post-comments-form" onSubmit={handleSubmit}>
-          <input
-            className="post-comments-input"
-            placeholder="Viết bình luận…"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            maxLength={1000}
-            disabled={pending}
-          />
-          <button
-            type="submit"
-            className="post-comments-send"
-            disabled={pending || !text.trim()}
-            aria-label={pending ? "Đang gửi bình luận" : "Gửi bình luận"}
-          >
-            {pending ? (
-              <Loader2
-                size={18}
-                strokeWidth={2}
-                className="post-comments-send-spin"
-                aria-hidden
-              />
-            ) : (
-              <Send size={18} strokeWidth={2} aria-hidden />
-            )}
-          </button>
-        </form>
-      ) : (
-        <div className="post-comments-login">
-          <button
-            type="button"
-            className="post-comments-login-btn"
-            onClick={() =>
-              openAuthModal("Đăng nhập hoặc tạo tài khoản để bình luận bài viết này.")
-            }
-          >
-            Đăng nhập
-          </button>{" "}
-          hoặc{" "}
-          <button
-            type="button"
-            className="post-comments-login-btn"
-            onClick={() =>
-              openAuthModal("Tạo tài khoản CINs để tham gia thảo luận.")
-            }
-          >
-            tạo tài khoản
-          </button>{" "}
-          để bình luận.
-        </div>
-      )}
-    </section>
-  );
-}
-
-function CommentItem({
-  comment,
-  onDelete,
-  onEdit,
-}: {
-  comment: MilestonePostComment;
-  onDelete(id: string): void;
-  onEdit(
-    id: string,
-    next: string,
-  ): Promise<{ ok: true } | { ok: false; error: string }>;
-}) {
-  const initial = (
-    comment.author?.tenHienThi ||
-    comment.author?.slug ||
-    "?"
-  )
-    .charAt(0)
-    .toUpperCase();
-  const avatarUrl = getAvatarUrl(comment.author?.avatarId ?? null);
-
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(comment.noiDung);
-  const [saving, setSaving] = useState(false);
-  const [editErr, setEditErr] = useState<string | null>(null);
-  const wrapRef = useRef<HTMLDivElement | null>(null);
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-
-  /* Sync draft khi comment.noiDung đổi từ ngoài (sau save thành công
-     parent state cập nhật → comment prop mới flow vào đây). */
-  useEffect(() => {
-    if (!editing) queueMicrotask(() => setDraft(comment.noiDung));
-  }, [comment.noiDung, editing]);
-
-  /* Đóng kebab menu khi click outside / nhấn Esc — chỉ active khi mở
-     để tránh attach listener không cần thiết cho hàng loạt comment. */
-  useEffect(() => {
-    if (!menuOpen) return;
-    function onDoc(e: MouseEvent) {
-      if (!wrapRef.current) return;
-      if (!wrapRef.current.contains(e.target as Node)) setMenuOpen(false);
-    }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setMenuOpen(false);
-    }
-    document.addEventListener("mousedown", onDoc);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDoc);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [menuOpen]);
-
-  /* Auto-focus + đặt caret cuối khi enter edit mode. */
-  useEffect(() => {
-    if (!editing) return;
-    const el = textareaRef.current;
-    if (!el) return;
-    el.focus();
-    const len = el.value.length;
-    el.setSelectionRange(len, len);
-  }, [editing]);
-
-  function startEdit() {
-    setMenuOpen(false);
-    setEditErr(null);
-    setDraft(comment.noiDung);
-    setEditing(true);
-  }
-  function cancelEdit() {
-    setEditing(false);
-    setDraft(comment.noiDung);
-    setEditErr(null);
-  }
-  async function saveEdit() {
-    const next = draft.trim();
-    if (!next) {
-      setEditErr("Nội dung bình luận trống.");
-      return;
-    }
-    if (next === comment.noiDung) {
-      setEditing(false);
-      return;
-    }
-    setSaving(true);
-    setEditErr(null);
-    const res = await onEdit(comment.id, next);
-    setSaving(false);
-    if (!res.ok) {
-      setEditErr(res.error);
-      return;
-    }
-    setEditing(false);
-  }
-
-  return (
-    <li className="post-comments-item">
-      <div className="post-comments-bub">
-        <span className="post-comments-avatar" aria-hidden>
-          {avatarUrl ? (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img src={avatarUrl} alt="" />
-          ) : (
-            initial
-          )}
-        </span>
-        <div className="post-comments-body">
-          <div className="post-comments-meta">
-            <span className="post-comments-name">
-              {comment.author?.tenHienThi ?? "Người dùng"}
-            </span>
-            <span className="post-comments-time">
-              {formatRelative(comment.taoLuc)}
-            </span>
-            {comment.isOwn && !editing ? (
-              <div
-                className={`post-comments-menu${menuOpen ? " open" : ""}`}
-                ref={wrapRef}
-              >
-                <button
-                  type="button"
-                  className="post-comments-more"
-                  onClick={() => setMenuOpen((v) => !v)}
-                  aria-label="Hành động bình luận"
-                  aria-haspopup="menu"
-                  aria-expanded={menuOpen}
-                >
-                  <MoreHorizontal size={15} strokeWidth={1.8} aria-hidden />
-                </button>
-                {menuOpen ? (
-                  <div className="post-comments-menu-pop" role="menu">
-                    <button
-                      type="button"
-                      role="menuitem"
-                      className="post-comments-menu-item"
-                      onClick={startEdit}
-                    >
-                      <Pencil size={14} strokeWidth={1.7} aria-hidden />
-                      <span>Sửa</span>
-                    </button>
-                    <button
-                      type="button"
-                      role="menuitem"
-                      className="post-comments-menu-item post-comments-menu-item-danger"
-                      onClick={() => {
-                        setMenuOpen(false);
-                        onDelete(comment.id);
-                      }}
-                    >
-                      <span>Xoá</span>
-                    </button>
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
-        {editing ? (
-          <div className="post-comments-edit">
-            <textarea
-              ref={textareaRef}
-              className="post-comments-edit-input"
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              maxLength={1000}
-              rows={Math.min(6, Math.max(2, draft.split("\n").length))}
-              disabled={saving}
-              onKeyDown={(e) => {
-                if (e.key === "Escape") {
-                  e.preventDefault();
-                  cancelEdit();
-                } else if (
-                  e.key === "Enter" &&
-                  (e.metaKey || e.ctrlKey)
-                ) {
-                  e.preventDefault();
-                  void saveEdit();
-                }
-              }}
-            />
-            {editErr ? (
-              <div className="post-comments-edit-err">{editErr}</div>
-            ) : null}
-            <div className="post-comments-edit-actions">
-              <button
-                type="button"
-                className="post-comments-edit-cancel"
-                onClick={cancelEdit}
-                disabled={saving}
-              >
-                Huỷ
-              </button>
-              <button
-                type="button"
-                className="post-comments-edit-save"
-                onClick={() => void saveEdit()}
-                disabled={saving || !draft.trim()}
-              >
-                {saving ? "Đang lưu…" : "Lưu"}
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="post-comments-text">{comment.noiDung}</div>
-        )}
-        </div>
-      </div>
-    </li>
-  );
+export function JourneyPostCommentsBlock(props: CommentSectionProps) {
+  return <CommentBlock {...props} />;
 }
 
 /* ─── Helpers ───────────────────────────────────────────────────── */

@@ -68,6 +68,12 @@ import { isMilestoneArticleCard } from "@/lib/journey/milestone-card-kind";
 import type { MilestonePostComment } from "@/lib/journey/milestone-post-types";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import {
+  addCommentToThreads,
+  countCommentThreads,
+  removeCommentFromThreads,
+  updateCommentInThreads,
+} from "@/lib/social/comments/client-tree";
+import {
   computeScrollSpyFromMarkers,
   scrollSpyAnchorBelowBar,
   timelineScrollSpyFromParts,
@@ -931,7 +937,7 @@ function usePostSocial(orgId: string, post: CongDongPost, canInteract: boolean) 
   const { requireCongDongAuth } = useCongDongAuthGate();
   const [liked, setLiked] = useState(post.viewerLiked);
   const [likeCount, setLikeCount] = useState(post.likeCount);
-  const [comments, setComments] = useState<CongDongComment[]>([]);
+  const [comments, setComments] = useState<MilestonePostComment[]>([]);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [commentCount, setCommentCount] = useState(post.commentCount);
   const [pending, startTransition] = useTransition();
@@ -968,19 +974,38 @@ function usePostSocial(orgId: string, post: CongDongPost, canInteract: boolean) 
         const json = (await res.json().catch(() => null)) as {
           comments?: CongDongComment[];
         } | null;
-        if (res.ok && json?.comments) setComments(json.comments);
+        if (res.ok && json?.comments) {
+          setComments(
+            json.comments.map((c) => ({
+              id: c.id,
+              noiDung: c.noiDung,
+              taoLuc: c.taoLuc,
+              author: {
+                id: c.author.id,
+                slug: c.author.slug,
+                tenHienThi: c.author.tenHienThi,
+                avatarId: c.author.avatarId,
+              },
+              isOwn: false,
+              reactions: [],
+              replies: [],
+              daXoa: false,
+              ghimLuc: null,
+            })),
+          );
+        }
       });
     });
   };
 
   const submitCommentAsync = useCallback(
-    async (text: string) => {
+    async (text: string, replyToId?: string | null) => {
       const res = await fetch(
         `/api/cong-dong/${orgId}/posts/${post.id}/comments`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ noi_dung: text }),
+          body: JSON.stringify({ noi_dung: text, id_cha: replyToId ?? null }),
         },
       );
       const json = (await res.json().catch(() => null)) as {
@@ -1003,6 +1028,7 @@ function usePostSocial(orgId: string, post: CongDongPost, canInteract: boolean) 
           id: comment.id,
           noiDung: comment.noiDung,
           taoLuc: comment.taoLuc,
+          idCha: replyToId ?? null,
           author: {
             id: comment.author.id,
             slug: comment.author.slug,
@@ -1016,33 +1042,24 @@ function usePostSocial(orgId: string, post: CongDongPost, canInteract: boolean) 
   );
 
   const onCommentAdded = useCallback((comment: MilestonePostComment) => {
-    if (!comment.author) return;
-    setComments((prev) => [
-      ...prev,
-      {
-        id: comment.id,
-        noiDung: comment.noiDung,
-        taoLuc: comment.taoLuc,
-        author: {
-          id: comment.author.id,
-          slug: comment.author.slug,
-          tenHienThi: comment.author.tenHienThi,
-          avatarId: comment.author.avatarId,
-        },
-      },
-    ]);
+    setComments((prev) => addCommentToThreads(prev, comment));
     setCommentCount((c) => c + 1);
   }, []);
 
-  const onCommentDeleted = useCallback((commentId: string) => {
-    setComments((prev) => prev.filter((c) => c.id !== commentId));
+  const onCommentUpdated = useCallback(
+    (commentId: string, patch: Partial<MilestonePostComment>) => {
+      setComments((prev) => updateCommentInThreads(prev, commentId, patch));
+    },
+    [],
+  );
+
+  const onCommentRemoved = useCallback((commentId: string) => {
+    setComments((prev) => removeCommentFromThreads(prev, commentId));
     setCommentCount((c) => Math.max(0, c - 1));
   }, []);
 
-  const onCommentEdited = useCallback((commentId: string, noiDung: string) => {
-    setComments((prev) =>
-      prev.map((c) => (c.id === commentId ? { ...c, noiDung } : c)),
-    );
+  const onThreadsReordered = useCallback((threads: MilestonePostComment[]) => {
+    setComments(threads);
   }, []);
 
   return {
@@ -1056,8 +1073,9 @@ function usePostSocial(orgId: string, post: CongDongPost, canInteract: boolean) 
     openComments,
     submitCommentAsync,
     onCommentAdded,
-    onCommentDeleted,
-    onCommentEdited,
+    onCommentUpdated,
+    onCommentRemoved,
+    onThreadsReordered,
   };
 }
 
@@ -1213,7 +1231,7 @@ function CongDongJourneyPostCard({
                 postOwnerSlug={postOwnerSlug}
                 postSlug={postSlug}
                 milestoneId={post.id}
-                inlineSkip={{ byline: true }}
+                inlineSkip={{ byline: true, tags: true }}
               />
             ) : undefined
           }
@@ -1282,6 +1300,7 @@ function CongDongJourneyPostCard({
       {social.commentsOpen ? (
         <CommentsPanel
           postId={post.id}
+          contentOwnerId={post.author.id}
           viewerId={viewerId}
           social={social}
           canInteract={canInteract}
@@ -1369,26 +1388,20 @@ function CongDongGridPostCard({
 
 function CommentsPanel({
   postId,
+  contentOwnerId,
   viewerId,
   social,
   canInteract,
 }: {
   postId: string;
+  contentOwnerId: string;
   viewerId: string | null;
   social: ReturnType<typeof usePostSocial>;
   canInteract: boolean;
 }) {
-  const comments: MilestonePostComment[] = social.comments.map((c) => ({
-    id: c.id,
-    noiDung: c.noiDung,
-    taoLuc: c.taoLuc,
-    author: {
-      id: c.author.id,
-      slug: c.author.slug,
-      tenHienThi: c.author.tenHienThi,
-      avatarId: c.author.avatarId,
-    },
-    isOwn: viewerId === c.author.id,
+  const comments = social.comments.map((c) => ({
+    ...c,
+    isOwn: viewerId === c.author?.id,
   }));
 
   return (
@@ -1396,13 +1409,16 @@ function CommentsPanel({
       <div className="cins-editor-page cins-post-view j-m-unfold-post j-m-unfold-post--comments-only">
         <JourneyPostCommentsBlock
           milestoneId={postId}
+          contentOwnerId={contentOwnerId}
+          viewerIsOwner={viewerId === contentOwnerId}
           comments={comments}
           viewerCanComment={canInteract}
           sectionId={`post-comments-${postId}`}
           submitComment={social.submitCommentAsync}
           onCommentAdded={social.onCommentAdded}
-          onCommentDeleted={social.onCommentDeleted}
-          onCommentEdited={social.onCommentEdited}
+          onCommentUpdated={social.onCommentUpdated}
+          onCommentRemoved={social.onCommentRemoved}
+          onThreadsReordered={social.onThreadsReordered}
         />
       </div>
     </div>
