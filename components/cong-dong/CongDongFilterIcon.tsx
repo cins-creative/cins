@@ -13,6 +13,12 @@ const ICON_MAP: Record<string, LucideIcon> = {
   "book-open": BookOpen,
 };
 
+export function hasCongDongFilterLucideIcon(
+  name: string | null | undefined,
+): boolean {
+  return !!name && name in ICON_MAP;
+}
+
 type Props = {
   name: string | null | undefined;
   size?: number;

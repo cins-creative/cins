@@ -6,7 +6,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 /** 4 nhãn mặc định — hardcode, không bảng template. Chỉ seed cho `cong_dong`. */
 export const DEFAULT_CONG_DONG_FILTER_TEMPLATES = [
   {
-    ten: "🎨 Khoe tác phẩm",
+    ten: "🎨 Tác phẩm",
     slug: "khoe-tac-pham",
     icon: "palette",
     mau: "#BB89F8",
@@ -35,6 +35,28 @@ export const DEFAULT_CONG_DONG_FILTER_TEMPLATES = [
   },
 ] as const;
 
+/** Tên cũ — chỉ đổi sang template mới khi org chưa tự sửa nhãn. */
+const LEGACY_DEFAULT_FILTER_TEN: Partial<
+  Record<(typeof DEFAULT_CONG_DONG_FILTER_TEMPLATES)[number]["slug"], string[]>
+> = {
+  "khoe-tac-pham": ["🎨 Khoe tác phẩm", "Khoe tác phẩm"],
+};
+
+async function syncRenamedDefaultFilters(orgId: string): Promise<void> {
+  const admin = createServiceRoleClient();
+  for (const template of DEFAULT_CONG_DONG_FILTER_TEMPLATES) {
+    const legacyNames = LEGACY_DEFAULT_FILTER_TEN[template.slug];
+    if (!legacyNames?.length) continue;
+    await admin
+      .from("content_thao_luan_filter")
+      .update({ ten: template.ten })
+      .eq("loai_context", THAO_LUAN_LOAI_CONTEXT.CONG_DONG)
+      .eq("id_context", orgId)
+      .eq("slug", template.slug)
+      .in("ten", legacyNames);
+  }
+}
+
 /** Bổ sung nhãn mặc định còn thiếu (idempotent — không trùng slug). */
 export async function ensureDefaultCongDongFilters(
   orgId: string,
@@ -54,7 +76,10 @@ export async function ensureDefaultCongDongFilters(
   const missing = DEFAULT_CONG_DONG_FILTER_TEMPLATES.filter(
     (t) => !existingSlugs.has(t.slug),
   );
-  if (missing.length === 0) return { ok: true, inserted: 0 };
+  if (missing.length === 0) {
+    await syncRenamedDefaultFilters(orgId);
+    return { ok: true, inserted: 0 };
+  }
 
   const rows = missing.map((t) => ({
     loai_context: THAO_LUAN_LOAI_CONTEXT.CONG_DONG,
@@ -68,6 +93,8 @@ export async function ensureDefaultCongDongFilters(
 
   const { error } = await admin.from("content_thao_luan_filter").insert(rows);
   if (error) return { ok: false, error: error.message };
+
+  await syncRenamedDefaultFilters(orgId);
   return { ok: true, inserted: missing.length };
 }
 

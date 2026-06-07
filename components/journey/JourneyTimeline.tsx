@@ -40,6 +40,12 @@ import {
   removeMilestoneByTacPhamId,
 } from "@/lib/journey/timeline-merge";
 import { compareTimelineOrder } from "@/lib/journey/timeline-sort";
+import {
+  computeScrollSpyFromMarkers,
+  JOURNEY_TIMELINE_SPY_ANCHOR_PX,
+  timelineScrollSpyFromParts,
+  type TimelineScrollSpy,
+} from "@/lib/journey/timeline-scroll-spy";
 import type { PendingCoAuthorInvite } from "@/lib/social/types";
 
 type ScrollLoadConfig = {
@@ -331,13 +337,15 @@ export function JourneyTimeline({
 
   const yearNow = String(new Date().getFullYear());
 
-  const [spy, setSpy] = useState<TimelineSpy>(() =>
-    timelineSpyFromMilestone(filtered[0], yearNow),
+  const [spy, setSpy] = useState<TimelineScrollSpy>(() =>
+    timelineScrollSpyFromParts(filtered[0]?.year, filtered[0]?.month, yearNow),
   );
 
   useEffect(() => {
-    setSpy(timelineSpyFromMilestone(filtered[0], yearNow));
-  }, [filter, ownerSlug, yearNow]);
+    setSpy(
+      timelineScrollSpyFromParts(filtered[0]?.year, filtered[0]?.month, yearNow),
+    );
+  }, [filter, ownerSlug, yearNow, filtered[0]?.id, filtered[0]?.year, filtered[0]?.month]);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -346,7 +354,11 @@ export function JourneyTimeline({
     let raf = 0;
     const sync = () => {
       raf = 0;
-      const next = computeTimelineScrollSpy(root);
+      const next = computeScrollSpyFromMarkers(
+        root,
+        ".j-milestone[data-year][data-month]",
+        JOURNEY_TIMELINE_SPY_ANCHOR_PX,
+      );
       if (!next) return;
       setSpy((prev) =>
         prev.year === next.year && prev.month === next.month ? prev : next,
@@ -488,51 +500,6 @@ export function JourneyTimeline({
       </div>
     </main>
   );
-}
-
-/* ────────────────────────────────────────────────────────────────
- * Scroll-spy — context bar năm / tháng
- * ──────────────────────────────────────────────────────────────── */
-
-type TimelineSpy = { year: string; month: string };
-
-function timelineSpyFromMilestone(
-  milestone: MilestoneItem | undefined,
-  fallbackYear: string,
-): TimelineSpy {
-  if (!milestone) {
-    return { year: fallbackYear, month: "" };
-  }
-  return {
-    year: String(milestone.year),
-    month: milestone.month ? `Tháng ${milestone.month}` : "",
-  };
-}
-
-/** Mép dưới `.j-tlb` sticky (= topbar + context bar). */
-const TIMELINE_SPY_ANCHOR_PX = 120;
-
-function computeTimelineScrollSpy(root: HTMLElement): TimelineSpy | null {
-  const articles = root.querySelectorAll<HTMLElement>(
-    ".j-milestone[data-year][data-month]",
-  );
-  if (!articles.length) return null;
-
-  let active: HTMLElement | null = null;
-  for (const el of articles) {
-    if (el.getBoundingClientRect().top <= TIMELINE_SPY_ANCHOR_PX + 8) {
-      active = el;
-    }
-  }
-  const target = active ?? articles[0];
-  const year = target.getAttribute("data-year");
-  const monthRaw = target.getAttribute("data-month");
-  if (!year) return null;
-  const monthNum = monthRaw ? Number(monthRaw) : NaN;
-  return {
-    year,
-    month: Number.isFinite(monthNum) && monthNum > 0 ? `Tháng ${monthNum}` : "",
-  };
 }
 
 /* ────────────────────────────────────────────────────────────────

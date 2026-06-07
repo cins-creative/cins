@@ -6,7 +6,6 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -21,8 +20,6 @@ type JourneyComposeContextValue = {
   openCompose: (state: JourneyComposeState) => void;
   openComposeWithPhotos: (files: File[]) => void;
   openComposeWithVideo: (file: File) => void;
-  consumePendingPhotoFiles: () => File[] | undefined;
-  consumePendingVideoFile: () => File | undefined;
   closeCompose: () => void;
   canCompose: boolean;
 };
@@ -75,9 +72,6 @@ export function JourneyComposeProvider({
   const [compose, setCompose] = useState<JourneyComposeState | null>(
     isOwner ? initialCompose : null,
   );
-  const pendingPhotoFilesRef = useRef<File[] | null>(null);
-  const pendingVideoFileRef = useRef<File | null>(null);
-
   const openCompose = useCallback(
     (state: JourneyComposeState) => {
       if (!isOwner) return;
@@ -90,8 +84,7 @@ export function JourneyComposeProvider({
   const openComposeWithPhotos = useCallback(
     (files: File[]) => {
       if (!isOwner || files.length === 0) return;
-      pendingPhotoFilesRef.current = files;
-      openCompose({ kind: "photo" });
+      openCompose({ kind: "photo", pendingFiles: files });
     },
     [isOwner, openCompose],
   );
@@ -99,23 +92,10 @@ export function JourneyComposeProvider({
   const openComposeWithVideo = useCallback(
     (file: File) => {
       if (!isOwner) return;
-      pendingVideoFileRef.current = file;
-      openCompose({ kind: "video" });
+      openCompose({ kind: "video", pendingFile: file });
     },
     [isOwner, openCompose],
   );
-
-  const consumePendingPhotoFiles = useCallback(() => {
-    const files = pendingPhotoFilesRef.current;
-    pendingPhotoFilesRef.current = null;
-    return files ?? undefined;
-  }, []);
-
-  const consumePendingVideoFile = useCallback(() => {
-    const file = pendingVideoFileRef.current;
-    pendingVideoFileRef.current = null;
-    return file ?? undefined;
-  }, []);
 
   const closeCompose = useCallback(() => {
     setCompose(null);
@@ -141,7 +121,7 @@ export function JourneyComposeProvider({
 
   const onPublished = useCallback(() => {
     closeCompose();
-    if (typeof window !== "undefined") {
+    if (typeof window !== "undefined" && !congDongCompose) {
       window.dispatchEvent(
         new CustomEvent("cins:journey-timeline-changed", {
           detail: { ownerSlug },
@@ -150,7 +130,7 @@ export function JourneyComposeProvider({
     }
     onAfterPublished?.();
     router.refresh();
-  }, [closeCompose, onAfterPublished, router, ownerSlug]);
+  }, [closeCompose, congDongCompose, onAfterPublished, router, ownerSlug]);
 
   const value = useMemo(
     () => ({
@@ -158,8 +138,6 @@ export function JourneyComposeProvider({
       openCompose,
       openComposeWithPhotos,
       openComposeWithVideo,
-      consumePendingPhotoFiles,
-      consumePendingVideoFile,
       closeCompose,
       canCompose: isOwner,
     }),
@@ -168,8 +146,6 @@ export function JourneyComposeProvider({
       openCompose,
       openComposeWithPhotos,
       openComposeWithVideo,
-      consumePendingPhotoFiles,
-      consumePendingVideoFile,
       closeCompose,
       isOwner,
     ],
@@ -185,8 +161,6 @@ export function JourneyComposeProvider({
           ownerSlug={ownerSlug}
           ownerName={ownerName}
           ownerAvatarId={ownerAvatarId}
-          consumePendingPhotoFiles={consumePendingPhotoFiles}
-          consumePendingVideoFile={consumePendingVideoFile}
           congDongCompose={congDongCompose}
           onClose={closeCompose}
           onPublished={onPublished}
@@ -204,8 +178,6 @@ export function useJourneyCompose(): JourneyComposeContextValue {
       openCompose: () => {},
       openComposeWithPhotos: () => {},
       openComposeWithVideo: () => {},
-      consumePendingPhotoFiles: () => undefined,
-      consumePendingVideoFile: () => undefined,
       closeCompose: () => {},
       canCompose: false,
     };

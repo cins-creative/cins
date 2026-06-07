@@ -29,3 +29,6 @@ export type CongDongCheDo =
   (typeof CONG_DONG_CHE_DO)[keyof typeof CONG_DONG_CHE_DO];
 
 export const FEED_PAGE_SIZE = 15;
+
+/** Số bài nghề/ngành tối đa gắn với một cộng đồng (`cau_hinh.danh_muc`). */
+export const CONG_DONG_CATEGORY_MAX = 4;

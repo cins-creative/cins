@@ -42,8 +42,6 @@ type Props = {
   ownerSlug: string;
   ownerName: string;
   ownerAvatarId?: string | null;
-  consumePendingPhotoFiles: () => File[] | undefined;
-  consumePendingVideoFile: () => File | undefined;
   congDongCompose?: CongDongComposeConfig;
   onClose: () => void;
   onPublished: () => void;
@@ -55,8 +53,6 @@ export function JourneyComposeOverlay({
   ownerSlug,
   ownerName,
   ownerAvatarId,
-  consumePendingPhotoFiles,
-  consumePendingVideoFile,
   congDongCompose,
   onClose,
   onPublished,
@@ -70,12 +66,10 @@ export function JourneyComposeOverlay({
   const [editPostSlug, setEditPostSlug] = useState<string | null>(null);
   const [editError, setEditError] = useState<string | null>(null);
   const [editLoading, setEditLoading] = useState(compose.kind === "edit");
-  const [pendingPhotoFiles] = useState(() =>
-    compose.kind === "photo" ? consumePendingPhotoFiles() : undefined,
-  );
-  const [pendingVideoFile] = useState(() =>
-    compose.kind === "video" ? consumePendingVideoFile() : undefined,
-  );
+  const pendingPhotoFiles =
+    compose.kind === "photo" ? compose.pendingFiles : undefined;
+  const pendingVideoFile =
+    compose.kind === "video" ? compose.pendingFile : undefined;
 
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -211,6 +205,7 @@ export function JourneyComposeOverlay({
             ownerName={ownerName}
             ownerAvatarId={ownerAvatarId}
             initialPhotoFiles={pendingPhotoFiles}
+            autoOpenFilePicker={!pendingPhotoFiles?.length}
             presentation="overlay"
             congDongCompose={congDongCompose}
             onClose={onClose}
@@ -225,6 +220,7 @@ export function JourneyComposeOverlay({
             ownerName={ownerName}
             ownerAvatarId={ownerAvatarId}
             initialVideoFile={pendingVideoFile}
+            autoOpenFilePicker={!pendingVideoFile}
             presentation="overlay"
             congDongCompose={congDongCompose}
             onClose={onClose}

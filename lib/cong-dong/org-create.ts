@@ -1,5 +1,8 @@
 import "server-only";
 
+import {
+  validateCategoryArticleIds,
+} from "@/lib/cong-dong/categories";
 import { CONG_DONG_CHE_DO, THAO_LUAN_LOAI_CONTEXT } from "@/lib/cong-dong/constants";
 import { createCongDongCreatorMilestone } from "@/lib/cong-dong/creator-milestone";
 import { seedDefaultCongDongFilters } from "@/lib/cong-dong/default-filters";
@@ -16,6 +19,7 @@ export type CreateCongDongInput = {
   avatarId?: string;
   coverId?: string;
   cheDo?: string;
+  categoryArticleIds?: string[];
 };
 
 export async function createCongDongOrg(
@@ -40,6 +44,14 @@ export async function createCongDongOrg(
       ? CONG_DONG_CHE_DO.RIENG_TU
       : CONG_DONG_CHE_DO.CONG_KHAI;
 
+  const categoryValidation = await validateCategoryArticleIds(
+    input.categoryArticleIds ?? [],
+  );
+  if (!categoryValidation.ok) {
+    return { ok: false, error: categoryValidation.error };
+  }
+  const categoryIds = categoryValidation.categories.map((c) => c.id);
+
   let cinsOwnerId: string;
   try {
     cinsOwnerId = getCinsSystemUserId();
@@ -63,7 +75,10 @@ export async function createCongDongOrg(
       avatar_id: input.avatarId?.trim() || null,
       cover_id: input.coverId?.trim() || null,
       trang_thai_tin_cay: "binh_thuong",
-      cau_hinh: { che_do: cheDo },
+      cau_hinh: {
+        che_do: cheDo,
+        ...(categoryIds.length ? { danh_muc: categoryIds } : {}),
+      },
     })
     .select("id, slug")
     .single<{ id: string; slug: string }>();

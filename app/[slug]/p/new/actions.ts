@@ -14,6 +14,7 @@ import {
   type LoaiMoc,
   type Visibility,
 } from "@/lib/editor/types";
+import { syncCongDongPostFromPublish } from "@/lib/cong-dong/sync-from-publish";
 import { syncCoAuthorsFromEditor } from "@/lib/social/co-author";
 import type { CoAuthorDraft } from "@/lib/social/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -48,6 +49,11 @@ export type PublishPostInput = {
   blocks: Block[];
   ownerVaiTro?: string;
   coAuthors?: CoAuthorDraft[];
+  /** Đăng song song lên feed cộng đồng (compose từ `/cong-dong/[slug]`). */
+  congDong?: {
+    orgId: string;
+    filterSlugs: string[];
+  };
 };
 
 export type PublishPostResult =
@@ -147,8 +153,55 @@ export async function publishPost(
   const noiDungHtml = blocksToHtml(normalized);
   const moTaFinal = moTa || deriveMoTaFallback(normalized);
 
-  /* 5. Insert cot_moc + tac_pham + thuoc_moc. */
+  /* 5. Insert DB — cộng đồng: chỉ tac_pham (mirror), không cột mốc Journey. */
   const admin = createServiceRoleClient();
+  const isCongDongOnly = Boolean(input.congDong);
+
+  if (isCongDongOnly) {
+    const { data: tacPham, error: tacPhamErr } = await admin
+      .from("content_tac_pham")
+      .insert({
+        id_nguoi_dung: session.profile.id,
+        loai_tac_pham: "bai_viet",
+        tieu_de: tieuDe,
+        mo_ta: moTaFinal || null,
+        cover_id: input.coverSeed || null,
+        che_do_hien_thi: "chi_minh",
+        slug,
+        noi_dung_blocks: normalized,
+        noi_dung_html: noiDungHtml,
+        meta_title: tieuDe.slice(0, 120),
+        meta_description: moTaFinal ? moTaFinal.slice(0, 200) : null,
+      })
+      .select("id")
+      .single<{ id: string }>();
+
+    if (tacPhamErr || !tacPham) {
+      return { ok: false, error: dbErrorMessage(tacPhamErr) };
+    }
+
+    const sync = await syncCongDongPostFromPublish({
+      orgId: input.congDong!.orgId,
+      authorId: session.profile.id,
+      tacPhamId: tacPham.id,
+      filterSlugs: input.congDong!.filterSlugs,
+      tieuDe,
+      moTa: moTaFinal,
+      coverSeed: input.coverSeed,
+      blocks: normalized,
+    });
+    if (!sync.ok) {
+      await admin.from("content_tac_pham").delete().eq("id", tacPham.id);
+      return { ok: false, error: sync.error };
+    }
+
+    return {
+      ok: true,
+      slug,
+      cotMocId: "",
+      tacPhamId: tacPham.id,
+    };
+  }
 
   const { data: cotMoc, error: cotMocErr } = await admin
     .from("content_cot_moc")

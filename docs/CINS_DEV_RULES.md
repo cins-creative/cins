@@ -2,16 +2,17 @@
 
 > **File trong repo:** `docs/CINS_DEV_RULES.md`
 > **Mục đích:** Gom rule code/security/performance về **một chỗ**, đã chỉnh theo convention thực tế của CINS (không phải Basakila/Sine Art).
-> **Cặp đôi:** đọc cùng `docs/CINS_INSTRUCTION.md` (schema v6). File này nói **cách code**; file kia nói **cấu trúc dữ liệu & nghiệp vụ**.
-> **Khi xung đột:** `CINS_INSTRUCTION.md` thắng về schema/naming/nghiệp vụ; file này thắng về security/performance/style code.
+> **Cặp đôi:** đọc cùng `docs/CINS_INSTRUCTION.md` (router) → `CINS_FOUNDATIONS.md` + `CINS_SCHEMA.md`. File này nói **cách code**; các file kia nói **nghiệp vụ & cấu trúc DB**.
+> **Khi xung đột:** `CINS_SCHEMA.md` / DB thắng về cấu trúc; `CINS_FOUNDATIONS.md` thắng về nghiệp vụ/naming; file này thắng về security/performance/style code.
 
 ---
 
 ## 0. Thứ tự đọc (agent / dev)
 
-1. **`docs/CINS_DEV_RULES.md`** (file này) — đọc §1, §2 trước mọi task.
-2. **`docs/CINS_INSTRUCTION.md`** — schema v6, naming, nghiệp vụ, ENUM.
-3. Mở sâu §5 (Performance) / §6 (Security) / §7 (Conventions) **chỉ khi** task đụng vào mảng đó.
+1. **`docs/CINS_INSTRUCTION.md`** — router, biết tra file nào.
+2. **`docs/CINS_DEV_RULES.md`** (file này) — §1, §2 trước mọi task.
+3. **`docs/CINS_FOUNDATIONS.md`** — nghiệp vụ, quy tắc kiến trúc. **`docs/CINS_SCHEMA.md`** — bảng/cột/enum khi cần chi tiết DB.
+4. Mở sâu §5 (Performance) / §6 (Security) / §7 (Conventions) **chỉ khi** task đụng vào mảng đó.
 
 ---
 
@@ -52,13 +53,13 @@
 - [ ] List trả về có **giới hạn** + đếm tổng nếu cần phân trang.
 - [ ] Response lỗi không lộ stack / secret; status HTTP đúng (400/401/403/404/422/500).
 - [ ] Check quyền ở backend (RLS hoặc check `user_thanh_vien_to_chuc.vai_tro`), **không** chỉ ẩn UI.
-- [ ] Co-author / kết bạn / verify: validate điều kiện nghiệp vụ **trước** INSERT (vd. `user_ket_ban` accepted trước khi tag co-author — xem `CINS_INSTRUCTION.md` §6.19).
+- [ ] Co-author / kết bạn / verify: validate điều kiện nghiệp vụ **trước** INSERT (vd. `user_ket_ban` accepted trước khi tag co-author — xem `CINS_FOUNDATIONS.md` §5 quy tắc 19).
 
 ### Database / Supabase
 
 - [ ] Chỉ `select` **cột cần thiết**; tránh N+1 (embed quan hệ trong 1 query).
 - [ ] List: `.range(from, to)` + `count: 'exact'` khi cần phân trang. **Không** load cả bảng rồi slice client.
-- [ ] Tên bảng/cột: theo `CINS_INSTRUCTION.md` §4 — tiền tố tiếng Anh + tiếng Việt không dấu (`user_nguoi_dung`, `content_cot_moc`, `id_nguoi_dung`, `tao_luc`). **Không** tự đặt `created_at`, `user_id`, bảng số nhiều tiếng Anh.
+- [ ] Tên bảng/cột: theo `CINS_FOUNDATIONS.md` §4 — tiền tố tiếng Anh + tiếng Việt không dấu (`user_nguoi_dung`, `content_cot_moc`, `id_nguoi_dung`, `tao_luc`). **Không** tự đặt `created_at`, `user_id`, bảng số nhiều tiếng Anh.
 - [ ] Đổi schema → **migration SQL idempotent** (`ON CONFLICT DO NOTHING` / `ON CONFLICT (slug) DO UPDATE`), **không** sửa DB production bằng tay.
 
 ### UI / Next.js App Router
@@ -176,7 +177,7 @@ border mặc định: 1px solid var(--border)
 - Auth qua Supabase `auth.users` ↔ `user_nguoi_dung.auth_user_id` (trigger `handle_new_user()`).
 - Session/JWT ở httpOnly cookie, KHÔNG localStorage.
 - Check quyền ở **backend** — RLS + check `user_thanh_vien_to_chuc.vai_tro`. Không chỉ ẩn UI.
-- **RLS chưa apply trong schema cơ bản → phải làm trước khi public** (ưu tiên cao). Phân quyền org theo `CINS_INSTRUCTION.md` §13.
+- **RLS chưa apply trong schema cơ bản → phải làm trước khi public** (ưu tiên cao). Phân quyền org theo `CINS_IMPLEMENTATION.md` §7.
 - Rate limiting cho login/register/forgot-password/API public.
 - 2FA cho tài khoản admin CINS.
 
@@ -191,7 +192,7 @@ border mặc định: 1px solid var(--border)
 
 ### Dữ liệu nhạy cảm
 - Không trả data thừa trong API response (không lộ email/SĐT chưa public).
-- Open question (`CINS_INSTRUCTION.md`): phone/email có cần verify trước khi public không → quyết trước launch.
+- Open question (`CINS_DECISIONS.md`): phone/email có cần verify trước khi public không → quyết trước launch.
 
 ### Dependency
 - `npm audit` định kỳ. Cấm package có lỗ hổng chưa fix. Check star/last update/license trước khi thêm.
@@ -222,7 +223,7 @@ app/                # routes
 components/          # UI tái sử dụng
 lib/                 # helper (lib/truong/queries.ts, lib/social/follow.ts)
 supabase/sql/        # migration + seed SQL idempotent
-docs/                # CINS_INSTRUCTION.md, CINS_DEV_RULES.md, cursor_map_*
+docs/                # CINS_INSTRUCTION.md (router), CINS_FOUNDATIONS/SCHEMA/IMPLEMENTATION/DECISIONS, CINS_DEV_RULES.md, cursor_map_*
 ```
 
 ### Error handling

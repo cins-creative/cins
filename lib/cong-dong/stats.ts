@@ -58,3 +58,52 @@ export async function countCongDongPosts(orgId: string): Promise<number> {
     .eq("da_xoa", false);
   return count ?? 0;
 }
+
+/** Thống kê bài đăng của user trong một cộng đồng. */
+export type AuthorOrgPostMeta = {
+  count: number;
+  lastPostAt: string | null;
+};
+
+/** Số bài + thời điểm bài gần nhất mỗi user trong cộng đồng. */
+export async function loadAuthorOrgPostMetaInOrg(
+  orgId: string,
+  userIds: string[],
+): Promise<Map<string, AuthorOrgPostMeta>> {
+  const out = new Map<string, AuthorOrgPostMeta>();
+  const unique = [...new Set(userIds.filter(Boolean))];
+  if (unique.length === 0) return out;
+
+  const admin = createServiceRoleClient();
+  const { data: rows } = await admin
+    .from("content_thao_luan")
+    .select("nguoi_dang, tao_luc")
+    .eq("loai_context", THAO_LUAN_LOAI_CONTEXT.CONG_DONG)
+    .eq("id_context", orgId)
+    .eq("da_xoa", false)
+    .in("nguoi_dang", unique)
+    .returns<Array<{ nguoi_dang: string; tao_luc: string }>>();
+
+  for (const row of rows ?? []) {
+    const prev = out.get(row.nguoi_dang) ?? { count: 0, lastPostAt: null };
+    prev.count += 1;
+    if (!prev.lastPostAt || row.tao_luc > prev.lastPostAt) {
+      prev.lastPostAt = row.tao_luc;
+    }
+    out.set(row.nguoi_dang, prev);
+  }
+  return out;
+}
+
+/** @deprecated Dùng `loadAuthorOrgPostMetaInOrg` */
+export async function loadAuthorPostCountsInOrg(
+  orgId: string,
+  userIds: string[],
+): Promise<Map<string, number>> {
+  const meta = await loadAuthorOrgPostMetaInOrg(orgId, userIds);
+  const out = new Map<string, number>();
+  for (const [userId, value] of meta) {
+    out.set(userId, value.count);
+  }
+  return out;
+}

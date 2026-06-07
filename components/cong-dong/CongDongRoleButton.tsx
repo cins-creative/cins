@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, ChevronRight, LogOut, Share2, Tags } from "lucide-react";
+import { Bell, ChevronRight, LogOut, Settings2, Share2, Tags, UserCog } from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -12,7 +12,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
-import { useAuthGate } from "@/components/auth/AuthGateProvider";
+import { useCongDongAuthGate } from "@/components/cong-dong/useCongDongAuthGate";
 import {
   canLeaveCommunity,
   canManageLabels,
@@ -53,6 +53,8 @@ type Props = {
   onLeft: () => void;
   onNotifyLevelChange: (level: OrgNotifyLevel) => void;
   onManageLabels?: () => void;
+  onGroupSettings?: () => void;
+  onManageMembers?: () => void;
   onShare: () => void;
 };
 
@@ -66,9 +68,11 @@ export function CongDongRoleButton({
   onLeft,
   onNotifyLevelChange,
   onManageLabels,
+  onGroupSettings,
+  onManageMembers,
   onShare,
 }: Props) {
-  const { requireAuth } = useAuthGate();
+  const { requireCongDongAuth } = useCongDongAuthGate();
   const menuId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -149,7 +153,7 @@ export function CongDongRoleButton({
   }, [menuOpen]);
 
   const join = useCallback(() => {
-    requireAuth(() => {
+    requireCongDongAuth(() => {
       startJoin(async () => {
         const res = await fetch(`/api/cong-dong/${orgId}/tham-gia`, {
           method: "POST",
@@ -161,7 +165,7 @@ export function CongDongRoleButton({
         onJoined(json?.viewerVaiTro ?? "thanh_vien");
       });
     });
-  }, [orgId, onJoined, requireAuth]);
+  }, [orgId, onJoined, requireCongDongAuth]);
 
   const leave = useCallback(() => {
     if (!canLeaveCommunity(displayVaiTro)) return;
@@ -203,6 +207,16 @@ export function CongDongRoleButton({
   if (hideForOwner && viewerVaiTro === "owner") {
     return (
       <div className="cd-v4-id-actions">
+        {onGroupSettings ? (
+          <button
+            type="button"
+            className="cd-v4-btn cd-v4-btn--ghost cd-v4-btn--icon cd-v4-btn--icon-only"
+            aria-label="Cài đặt nhóm"
+            onClick={onGroupSettings}
+          >
+            <Settings2 size={16} strokeWidth={2} aria-hidden />
+          </button>
+        ) : null}
         <button
           type="button"
           className="cd-v4-btn cd-v4-btn--ghost cd-v4-btn--icon cd-v4-btn--icon-only"
@@ -286,6 +300,38 @@ export function CongDongRoleButton({
           </button>
         ) : null}
 
+        {onGroupSettings ? (
+          <button
+            type="button"
+            className="cd-v4-role-menu-btn"
+            role="menuitem"
+            onClick={() => {
+              setMenuOpen(false);
+              setNotifyOpen(false);
+              onGroupSettings();
+            }}
+          >
+            <Settings2 size={15} strokeWidth={2} aria-hidden />
+            <span>Cài đặt nhóm</span>
+          </button>
+        ) : null}
+
+        {onManageMembers ? (
+          <button
+            type="button"
+            className="cd-v4-role-menu-btn"
+            role="menuitem"
+            onClick={() => {
+              setMenuOpen(false);
+              setNotifyOpen(false);
+              onManageMembers();
+            }}
+          >
+            <UserCog size={15} strokeWidth={2} aria-hidden />
+            <span>Thành viên &amp; quyền</span>
+          </button>
+        ) : null}
+
         {canLeaveCommunity(displayVaiTro) ? (
           <button
             type="button"
@@ -322,8 +368,10 @@ export function CongDongRoleButton({
             aria-haspopup="menu"
             aria-controls={menuId}
             onClick={() => {
-              setMenuOpen((v) => !v);
-              setNotifyOpen(false);
+              requireCongDongAuth(() => {
+                setMenuOpen((v) => !v);
+                setNotifyOpen(false);
+              });
             }}
             disabled={leavePending}
           >

@@ -87,12 +87,11 @@ export function photoGridImagesFromBlocks(
   blocks: ReadonlyArray<Block> | null | undefined,
 ): GridImage[] | null {
   if (!blocks?.length || detectMediaPostKind(blocks) !== "photo") return null;
+  const all: GridImage[] = [];
   for (const group of groupBlocksForRender(blocks)) {
-    if (group.type === "image_grid" && group.images.length > 0) {
-      return group.images;
-    }
+    if (group.type === "image_grid") all.push(...group.images);
   }
-  return null;
+  return all.length > 0 ? all : null;
 }
 
 /** Số layout grid hiển thị (1–5). */
@@ -112,39 +111,49 @@ function cfUrl(imageId: string, variant: string): string | null {
   return `https://imagedelivery.net/${hash}/${imageId.trim()}/${variant}`;
 }
 
-/** Thumbnail grid — variant nhỏ; compose dùng previewSrc (blob). */
+function cfThumbUrl(imageId: string): string | null {
+  return (
+    cfUrl(imageId, "public") ??
+    cfUrl(imageId, "medium") ??
+    cfUrl(imageId, "thumbnail")
+  );
+}
+
+function cfLightboxUrl(imageId: string): string | null {
+  return (
+    cfUrl(imageId, "public") ??
+    cfUrl(imageId, "cover") ??
+    cfUrl(imageId, "medium")
+  );
+}
+
+/** Thumbnail grid — variant nhỏ; compose dùng previewSrc (blob) khi chưa có CF id. */
 export function gridThumbSrc(image: GridImage): string {
+  const id = image.id.trim();
+  if (CF_UUID_RE.test(id)) {
+    const fromCf = cfThumbUrl(id);
+    if (fromCf) return fromCf;
+  }
+
   const preview = image.previewSrc?.trim();
   if (preview) return preview;
 
-  const id = image.id.trim();
   if (id.startsWith("blob:") || id.startsWith("data:")) return id;
-  if (CF_UUID_RE.test(id)) {
-    return (
-      cfUrl(id, "public") ??
-      cfUrl(id, "medium") ??
-      cfUrl(id, "thumbnail") ??
-      picsum(id, image.width, image.height)
-    );
-  }
   return picsum(id, image.width, image.height);
 }
 
 /** Lightbox — variant lớn, giữ ratio gốc. */
 export function gridLightboxSrc(image: GridImage): string {
+  const id = image.id.trim();
+  if (CF_UUID_RE.test(id)) {
+    const fromCf = cfLightboxUrl(id);
+    if (fromCf) return fromCf;
+  }
+
   const preview = image.previewSrc?.trim();
   if (preview) return preview;
 
-  const id = image.id.trim();
   if (id.startsWith("blob:") || id.startsWith("data:")) return id;
-  if (CF_UUID_RE.test(id)) {
-    return (
-      cfUrl(id, "public") ??
-      cfUrl(id, "cover") ??
-      cfUrl(id, "medium") ??
-      picsum(id, image.width, image.height)
-    );
-  }
   return picsum(id, image.width, image.height);
 }
 

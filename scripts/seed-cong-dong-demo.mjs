@@ -37,7 +37,7 @@ const SLUG = process.env.CONG_DONG_SLUG || slugify(TEN);
 
 const DEFAULT_FILTERS = [
   {
-    ten: "🎨 Khoe tác phẩm",
+    ten: "🎨 Tác phẩm",
     slug: "khoe-tac-pham",
     icon: "palette",
     mau: "#BB89F8",

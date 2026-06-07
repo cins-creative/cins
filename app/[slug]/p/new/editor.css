@@ -2250,7 +2250,7 @@
      gây overflow ngang trên màn ≤ 400px, hoặc bị canvas/overflow chain cắt
      mất phần hai bên. `position: fixed` ngắt khỏi mọi stacking context và
      dán đáy gần ngón tay user. */
-  .cins-editor-page .picker {
+  .cins-editor-page:not(.picker-portal-root) .picker {
     position: fixed;
     /* `inset: auto 12 12 12` = top:auto + right/bottom/left:12. Override
        hết default `top: calc(100%+8px); left: 50%` ở rule mặc định. */
@@ -3314,4 +3314,33 @@
 .cins-editor-page.is-overlay .editor-canvas-wrap {
   max-height: calc(100vh - 140px);
   overflow-y: auto;
+  /* Picker dùng `position: fixed` — không cần clip để tránh cắt menu chèn block. */
+  overflow-x: visible;
+}
+
+/* Picker portal — compose overlay neo theo nút `+` (AddZone). */
+.cins-editor-page.picker-portal-root {
+  position: fixed;
+  inset: 0;
+  min-height: 0;
+  height: 0;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 9200;
+  background: transparent;
+  flex: none;
+}
+.cins-editor-page.picker-portal-root .picker {
+  pointer-events: auto;
+  z-index: 9200;
+}
+
+/* Compose overlay — canvas padding 28×32 (journey/cong-dong), không 36×56. */
+.cins-editor-page.is-overlay .editor-canvas {
+  overflow: hidden;
+}
+.cins-editor-page.is-overlay .cover-add.has {
+  margin: -28px -32px 28px;
+  width: calc(100% + 64px);
+  border-radius: 0;
 }

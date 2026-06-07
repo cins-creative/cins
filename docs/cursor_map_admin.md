@@ -95,7 +95,7 @@ export async function adminGuard(userId: string) {
 ### Môn thi đại học (`/admin/mon-thi`)
 
 - Sidebar: **Tổ chức → Môn thi đại học**
-- Bảng `edu_mon_thi` (service role): `SELECT id, ma, ten, loai, trang_thai, thumbnail_id, id_bai_viet` — **không** `cap_nhat_luc` / `tao_luc` (xem `docs/CINS_INSTRUCTION.md`)
+- Bảng `edu_mon_thi` (service role): `SELECT id, ma, ten, loai, trang_thai, thumbnail_id, id_bai_viet` — **không** `cap_nhat_luc` / `tao_luc` (xem `docs/CINS_SCHEMA.md` (`edu_mon_thi`))
 - Slide-over sửa các cột trên; code: `lib/admin/mon-thi-server.ts`, `components/admin/AdminMonThiScreen.tsx`
 
 ### Tab Trường — queries

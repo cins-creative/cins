@@ -1,7 +1,9 @@
 export type ComposeCreateKind = "article" | "photo" | "video";
 
 export type JourneyComposeState =
-  | { kind: ComposeCreateKind }
+  | { kind: "article" }
+  | { kind: "photo"; pendingFiles?: File[] }
+  | { kind: "video"; pendingFile?: File }
   | { kind: "edit"; postSlug: string };
 
 export function parseComposeSearchParams(

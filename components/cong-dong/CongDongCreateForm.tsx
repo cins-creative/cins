@@ -18,6 +18,8 @@ import {
   type SetStateAction,
 } from "react";
 
+import { CongDongCategoryPicker } from "@/components/cong-dong/CongDongCategoryPicker";
+import type { CongDongCategory } from "@/lib/cong-dong/types";
 import { TINH_THANH_OPTIONS } from "@/lib/truong/contact";
 
 function slugifyPreview(value: string): string {
@@ -56,6 +58,7 @@ export function CongDongCreateForm() {
     previewUrl: null,
     uploading: false,
   });
+  const [categories, setCategories] = useState<CongDongCategory[]>([]);
 
   const slugPreview = slugOverride.trim() || slugifyPreview(ten);
 
@@ -122,6 +125,7 @@ export function CongDongCreateForm() {
             avatar_id: avatar.imageId ?? undefined,
             cover_id: cover.imageId ?? undefined,
             che_do: cheDo,
+            danh_muc: categories.map((c) => c.id),
           }),
         });
         const json = (await res.json().catch(() => null)) as {
@@ -294,6 +298,18 @@ export function CongDongCreateForm() {
                 placeholder="Cộng đồng này dành cho ai? Chia sẻ gì?"
               />
             </div>
+          </section>
+
+          <section className="cd-create-section">
+            <h2 className="cd-create-section-title">Chủ đề nghề &amp; ngành</h2>
+            <p className="cd-create-section-hint">
+              Gắn tối đa 4 bài nghề hoặc ngành học — giúp người đọc tìm thấy
+              cộng đồng qua các trang đó. Có thể bỏ qua và thêm sau.
+            </p>
+            <CongDongCategoryPicker
+              value={categories}
+              onChange={setCategories}
+            />
           </section>
 
           <section className="cd-create-section">

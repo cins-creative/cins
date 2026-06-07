@@ -12,6 +12,8 @@ import {
 } from "@/lib/cong-dong/membership";
 import { listCongDongFilters } from "@/lib/cong-dong/filters";
 import { listCongDongPosts } from "@/lib/cong-dong/posts";
+import { loadCongDongCategories } from "@/lib/cong-dong/categories";
+import { loadCongDongEventRail } from "@/lib/cong-dong/event-rail";
 import { loadCommunityPulse } from "@/lib/cong-dong/sidebar-data";
 import { countCongDongPosts } from "@/lib/cong-dong/stats";
 import type {
@@ -178,6 +180,8 @@ export async function loadCongDongPageData(params: {
     filters,
     feed,
     communityPulse,
+    eventRail,
+    categories,
     notifySettings,
     viewerProfileResult,
     viewerVaiTro,
@@ -188,6 +192,8 @@ export async function loadCongDongPageData(params: {
     listCongDongFilters(orgRow.id),
     listCongDongPosts({ orgId: orgRow.id, viewerId }),
     loadCommunityPulse(orgRow.id),
+    loadCongDongEventRail(orgRow.id),
+    loadCongDongCategories(orgRow.id),
     viewerId
       ? getOrgFollowSettings(viewerId, orgRow.id)
       : Promise.resolve({ muc_thong_bao: "tat" as const }),
@@ -236,5 +242,7 @@ export async function loadCongDongPageData(params: {
     initialPosts: feed.posts,
     nextCursor: feed.nextCursor,
     communityPulse,
+    eventRail,
+    categories,
   };
 }

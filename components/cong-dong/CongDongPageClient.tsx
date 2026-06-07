@@ -9,28 +9,48 @@ import {
   MessageCircle,
   MoreHorizontal,
   Pin,
-  Rss,
   ShieldCheck,
+  Waypoints,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 
-import { useAuthGate } from "@/components/auth/AuthGateProvider";
+import { useCongDongAuthGate } from "@/components/cong-dong/useCongDongAuthGate";
 import { BunnyVideoProcessingPoller } from "@/components/journey/BunnyVideoProcessingPoller";
 import { JourneyComposeProvider } from "@/components/journey/JourneyComposeContext";
 import { JourneyCreateComposer } from "@/components/journey/JourneyCreateComposer";
+import { CongDongAuthorMetaLine } from "@/components/cong-dong/CongDongAuthorMetaLine";
+import { CongDongCategoryLinks } from "@/components/cong-dong/CongDongCategoryLinks";
+import { congDongFeedPostCoverUrl } from "@/lib/cong-dong/feed-post-cover";
 import { CongDongFilterAdminModal } from "@/components/cong-dong/CongDongFilterAdmin";
+import { CongDongGroupSettingsModal } from "@/components/cong-dong/CongDongGroupSettingsModal";
+import { CongDongMembersModal } from "@/components/cong-dong/CongDongMembersModal";
+import {
+  CongDongOrgBrandingAvatar,
+  CongDongOrgBrandingCover,
+} from "@/components/cong-dong/CongDongOrgBranding";
 import { CongDongFeedFilterDropdown } from "@/components/cong-dong/CongDongFeedFilterDropdown";
+import { CongDongEventRail } from "@/components/cong-dong/CongDongEventRail";
+import { CongDongFeedPostContent } from "@/components/cong-dong/CongDongFeedPostContent";
 import { CongDongFilterChip } from "@/components/cong-dong/CongDongFilterChip";
 import { CongDongRoleButton } from "@/components/cong-dong/CongDongRoleButton";
+import { formatCongDongRelativeTime } from "@/lib/cong-dong/feed-display";
 import { SOCIAL_LOAI_DOI_TUONG } from "@/lib/cong-dong/constants";
 import {
   canManageLabels,
+  canManageMembers,
   type CongDongVaiTro,
 } from "@/lib/cong-dong/vai-tro";
 import type { OrgNotifyLevel } from "@/lib/social/org-notify";
-import { congDongImageUrl } from "@/lib/cong-dong/images";
 import type {
   CongDongCareerSegment,
+  CongDongCategory,
   CongDongComment,
   CongDongFilter,
   CongDongMemberPreview,
@@ -39,7 +59,12 @@ import type {
   CongDongPulseItem,
 } from "@/lib/cong-dong/types";
 import { getAvatarUrl } from "@/lib/journey/profile";
-import { getCoverUrl } from "@/lib/articles/cover";
+import {
+  computeScrollSpyFromMarkers,
+  scrollSpyAnchorBelowBar,
+  timelineScrollSpyFromParts,
+  type TimelineScrollSpy,
+} from "@/lib/journey/timeline-scroll-spy";
 
 type Props = {
   initial: CongDongPageData;
@@ -68,32 +93,6 @@ function buildPostsUrl(
   return `/api/cong-dong/${orgId}/posts${qs ? `?${qs}` : ""}`;
 }
 
-function formatCount(count: number): string {
-  if (count < 1000) return String(count);
-  return `${(count / 1000).toFixed(1).replace(/\.0$/, "")}k`;
-}
-
-function formatRelativeTime(iso: string): string {
-  const date = new Date(iso);
-  const diffMs = Date.now() - date.getTime();
-  const mins = Math.floor(diffMs / 60_000);
-  if (mins < 1) return "Vừa xong";
-  if (mins < 60) return `${mins} phút trước`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours} giờ trước`;
-  const days = Math.floor(hours / 24);
-  if (days === 1) return "Hôm qua";
-  if (days < 7) return `${days} ngày trước`;
-  const d = date.getUTCDate();
-  const m = date.getUTCMonth() + 1;
-  const y = date.getUTCFullYear();
-  const now = new Date();
-  if (y === now.getUTCFullYear()) {
-    return `${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}`;
-  }
-  return `${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}/${y}`;
-}
-
 function sortPosts(posts: CongDongPost[], mode: SortMode): CongDongPost[] {
   const copy = [...posts];
   if (mode === "tuongtac") {
@@ -116,19 +115,16 @@ function sortPosts(posts: CongDongPost[], mode: SortMode): CongDongPost[] {
   );
 }
 
-function monthKey(iso: string): string {
+function postTimelineParts(iso: string): { year: string; month: string } {
   const d = new Date(iso);
-  return `${d.getUTCFullYear()}-${d.getUTCMonth() + 1}`;
-}
-
-function monthLabel(key: string): { year: string; month: string } {
-  const [y, m] = key.split("-");
-  return { year: y, month: `THÁNG ${Number(m)}` };
+  return {
+    year: String(d.getUTCFullYear()),
+    month: String(d.getUTCMonth() + 1),
+  };
 }
 
 export function CongDongPageClient({ initial }: Props) {
-  const { requireAuth } = useAuthGate();
-  const [org] = useState(initial.org);
+  const [org, setOrg] = useState(initial.org);
   const [isThanhVien, setIsThanhVien] = useState(initial.isThanhVien);
   const [viewerVaiTro, setViewerVaiTro] = useState<CongDongVaiTro | null>(
     initial.viewerVaiTro,
@@ -151,9 +147,13 @@ export function CongDongPageClient({ initial }: Props) {
   const [loadPending, startLoadMore] = useTransition();
   const [filterPending, startFilter] = useTransition();
   const [filterAdminOpen, setFilterAdminOpen] = useState(false);
+  const [groupSettingsOpen, setGroupSettingsOpen] = useState(false);
+  const [membersOpen, setMembersOpen] = useState(false);
+  const [eventRail, setEventRail] = useState(initial.eventRail);
+  const [categories, setCategories] = useState<CongDongCategory[]>(
+    initial.categories,
+  );
 
-  const coverUrl = getCoverUrl(org.coverId);
-  const avatarUrl = getAvatarUrl(org.avatarId);
   const isVerifiedOfficial = org.trangThaiTinCay === "verified_official";
   const canCompose = Boolean(
     isThanhVien && initial.viewerId && initial.viewerSlug,
@@ -193,6 +193,32 @@ export function CongDongPageClient({ initial }: Props) {
     () => sortPosts(posts, sortMode),
     [posts, sortMode],
   );
+  const feedBarRef = useRef<HTMLDivElement>(null);
+  const yearNow = String(new Date().getFullYear());
+  const firstPostParts = sortedPosts[0]
+    ? postTimelineParts(sortedPosts[0].taoLuc)
+    : null;
+  const showFeedTimeline = view === "journey" && sortedPosts.length > 0;
+  const [timelineSpy, setTimelineSpy] = useState<TimelineScrollSpy>(() =>
+    timelineScrollSpyFromParts(
+      firstPostParts?.year,
+      firstPostParts?.month,
+      yearNow,
+    ),
+  );
+
+  useEffect(() => {
+    const parts = sortedPosts[0] ? postTimelineParts(sortedPosts[0].taoLuc) : null;
+    setTimelineSpy(
+      timelineScrollSpyFromParts(parts?.year, parts?.month, yearNow),
+    );
+  }, [sortedPosts[0]?.id, sortedPosts.length, yearNow]);
+
+  const handleTimelineSpyChange = useCallback((next: TimelineScrollSpy) => {
+    setTimelineSpy((prev) =>
+      prev.year === next.year && prev.month === next.month ? prev : next,
+    );
+  }, []);
 
   const onJoined = useCallback((vaiTro: CongDongVaiTro) => {
     setIsThanhVien(true);
@@ -263,67 +289,89 @@ export function CongDongPageClient({ initial }: Props) {
     }
   };
 
+  const onBrandingChange = useCallback(
+    (patch: { avatarId?: string | null; coverId?: string | null }) => {
+      setOrg((prev) => ({
+        ...prev,
+        ...(patch.avatarId !== undefined ? { avatarId: patch.avatarId } : {}),
+        ...(patch.coverId !== undefined ? { coverId: patch.coverId } : {}),
+      }));
+    },
+    [],
+  );
+
   const page = (
     <>
     <div className="cd-v4-page">
       <div className="cd-v4-layout">
         <aside className="cd-v4-id">
-          <div
-            className={`cd-v4-id-cover${coverUrl ? " has-img" : ""}`}
-            aria-hidden
-          >
-            {coverUrl ? (
-              /* eslint-disable-next-line @next/next/no-img-element */
-              <img src={coverUrl} alt="" />
-            ) : null}
+          <div className="cd-v4-id-head">
+            <CongDongOrgBrandingCover
+              orgId={org.id}
+              coverId={org.coverId}
+              canEdit={initial.isAdmin}
+              onBrandingChange={onBrandingChange}
+            />
+            <div className="cd-v4-id-head-inset">
+              <CongDongOrgBrandingAvatar
+                orgId={org.id}
+                orgName={org.ten}
+                avatarId={org.avatarId}
+                canEdit={initial.isAdmin}
+                onBrandingChange={onBrandingChange}
+              />
+              <h1 className="cd-v4-title">{org.ten}</h1>
+              <div className="cd-v4-meta">
+                <span className="cd-v4-verified">
+                  <ShieldCheck size={14} strokeWidth={2} aria-hidden />
+                  Cộng đồng
+                </span>
+                {isVerifiedOfficial ? (
+                  <>
+                    <span className="cd-v4-dot" aria-hidden />
+                    <span className="cd-v4-verified">
+                      <BadgeCheck size={14} strokeWidth={2} aria-hidden />
+                      Đã xác minh
+                    </span>
+                  </>
+                ) : null}
+              </div>
+
+              <CongDongRoleButton
+                orgId={org.id}
+                isThanhVien={isThanhVien}
+                viewerVaiTro={viewerVaiTro}
+                hideForOwner={initial.hideMembershipForOwner}
+                initialNotifyLevel={notifyLevel}
+                onJoined={onJoined}
+                onLeft={onLeftCommunity}
+                onNotifyLevelChange={setNotifyLevel}
+                onManageLabels={
+                  canManageLabels(viewerVaiTro)
+                    ? () => setFilterAdminOpen(true)
+                    : undefined
+                }
+                onGroupSettings={
+                  initial.isAdmin
+                    ? () => setGroupSettingsOpen(true)
+                    : undefined
+                }
+                onManageMembers={
+                  canManageMembers(viewerVaiTro)
+                    ? () => setMembersOpen(true)
+                    : undefined
+                }
+                onShare={shareCommunity}
+              />
+
+              {org.moTa ? <p className="cd-v4-desc">{org.moTa}</p> : null}
+            </div>
           </div>
           <div className="cd-v4-id-body">
-            <div className="cd-v4-avatar" aria-hidden>
-              {avatarUrl ? (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img src={avatarUrl} alt="" />
-              ) : (
-                <span>{org.ten.charAt(0).toUpperCase()}</span>
-              )}
-            </div>
-            <h1 className="cd-v4-title">{org.ten}</h1>
-            <div className="cd-v4-meta">
-              <span className="cd-v4-verified">
-                <ShieldCheck size={14} strokeWidth={2} aria-hidden />
-                Cộng đồng
-              </span>
-              {isVerifiedOfficial ? (
-                <>
-                  <span className="cd-v4-dot" aria-hidden />
-                  <span className="cd-v4-verified">
-                    <BadgeCheck size={14} strokeWidth={2} aria-hidden />
-                    Đã xác minh
-                  </span>
-                </>
-              ) : null}
-            </div>
-
-            <CongDongRoleButton
-              orgId={org.id}
-              isThanhVien={isThanhVien}
-              viewerVaiTro={viewerVaiTro}
-              hideForOwner={initial.hideMembershipForOwner}
-              initialNotifyLevel={notifyLevel}
-              onJoined={onJoined}
-              onLeft={onLeftCommunity}
-              onNotifyLevelChange={setNotifyLevel}
-              onManageLabels={
-                canManageLabels(viewerVaiTro)
-                  ? () => setFilterAdminOpen(true)
-                  : undefined
-              }
-              onShare={shareCommunity}
-            />
-
-            {org.moTa ? <p className="cd-v4-desc">{org.moTa}</p> : null}
+            <CongDongCategoryLinks categories={categories} />
 
             {initial.viewerId && friendsInCommunity.total > 0 ? (
-              <>
+              <div className="cd-v4-friends-row">
                 <div className="cd-v4-facepile" aria-hidden>
                   {friendsInCommunity.friends.map((member, i) => (
                     <FacepileAvatar
@@ -342,9 +390,11 @@ export function CongDongPageClient({ initial }: Props) {
                   <strong>{friendsInCommunity.total} người bạn</strong> của bạn đang
                   ở đây
                 </p>
-              </>
+              </div>
             ) : sidebarLiveLoading && initial.viewerId ? (
-              <p className="cd-v4-face-note cd-v4-muted">Đang tải bạn bè…</p>
+              <p className="cd-v4-face-note cd-v4-face-note--solo cd-v4-muted">
+                Đang tải bạn bè…
+              </p>
             ) : null}
 
             {careerMap.length > 0 ? (
@@ -371,44 +421,19 @@ export function CongDongPageClient({ initial }: Props) {
         </aside>
 
         <div className="cd-v4-main">
-          <div className={`cd-v4-toolbar${filterPending ? " is-loading" : ""}`}>
-            <CongDongFeedFilterDropdown
-              filters={filters}
-              activeFilterSlugs={activeFilterSlugs}
-              onChange={applyFeedFilter}
-              disabled={filterPending}
-            />
-            <div className="cd-v4-tools">
-              <select
-                className="cd-v4-sort"
-                value={sortMode}
-                onChange={(e) => setSortMode(e.target.value as SortMode)}
-                aria-label="Sắp xếp bài đăng"
-              >
-                <option value="moi">Mới nhất</option>
-                <option value="tuongtac">Nhiều tương tác</option>
-                <option value="az">A → Z</option>
-              </select>
-              <div className="cd-v4-toggle" role="group" aria-label="Kiểu hiển thị">
-                <button
-                  type="button"
-                  className={view === "journey" ? "is-on" : undefined}
-                  onClick={() => setView("journey")}
-                >
-                  <Rss size={16} strokeWidth={2} aria-hidden />
-                  Journey
-                </button>
-                <button
-                  type="button"
-                  className={view === "grid" ? "is-on" : undefined}
-                  onClick={() => setView("grid")}
-                >
-                  <LayoutGrid size={16} strokeWidth={2} aria-hidden />
-                  Lưới
-                </button>
-              </div>
-            </div>
-          </div>
+          <CongDongFeedStickyBar
+            barRef={feedBarRef}
+            showTimeline={showFeedTimeline}
+            timelineSpy={timelineSpy}
+            filterPending={filterPending}
+            filters={filters}
+            activeFilterSlugs={activeFilterSlugs}
+            onFilterChange={applyFeedFilter}
+            sortMode={sortMode}
+            onSortModeChange={setSortMode}
+            view={view}
+            onViewChange={setView}
+          />
 
           {canCompose && sortedPosts.length > 0 ? (
             <JourneyCreateComposer ownerSlug={viewerSlug} />
@@ -437,6 +462,8 @@ export function CongDongPageClient({ initial }: Props) {
                 posts={sortedPosts}
                 orgId={org.id}
                 canInteract={isThanhVien}
+                barRef={feedBarRef}
+                onSpyChange={handleTimelineSpyChange}
               />
             ) : (
               <GridFeed
@@ -458,6 +485,13 @@ export function CongDongPageClient({ initial }: Props) {
             </button>
           ) : null}
         </div>
+
+        <CongDongEventRail
+          orgId={org.id}
+          eventRail={eventRail}
+          canManage={canManageLabels(viewerVaiTro)}
+          onEventRailChange={setEventRail}
+        />
       </div>
 
     </div>
@@ -469,6 +503,27 @@ export function CongDongPageClient({ initial }: Props) {
         orgId={org.id}
         filters={filters}
         onChange={setFilters}
+      />
+    ) : null}
+
+    {initial.isAdmin ? (
+      <CongDongGroupSettingsModal
+        open={groupSettingsOpen}
+        onClose={() => setGroupSettingsOpen(false)}
+        orgId={org.id}
+        categories={categories}
+        onSaved={(next) => {
+          setCategories(next);
+          setGroupSettingsOpen(false);
+        }}
+      />
+    ) : null}
+
+    {canManageMembers(viewerVaiTro) ? (
+      <CongDongMembersModal
+        open={membersOpen}
+        onClose={() => setMembersOpen(false)}
+        orgId={org.id}
       />
     ) : null}
     </>
@@ -506,12 +561,11 @@ function CongDongMemberEmptyState({
         Hãy là người đầu tiên chia sẻ với {orgName}.
       </h2>
       <p className="cd-v4-empty-body">
-        Đăng bài viết, album ảnh hoặc video — cùng luồng tạo nội dung trên
-        Journey của bạn.
+        Đăng bài viết, album ảnh hoặc video — hiển thị trong feed cộng đồng này.
       </p>
       <JourneyCreateComposer ownerSlug={ownerSlug} />
       <p className="cd-v4-empty-hint">
-        Bài viết, ảnh hoặc video sẽ xuất hiện trên Journey và feed cộng đồng.
+        Bài đăng từ đây chỉ xuất hiện trong nhóm, không thêm vào Journey cá nhân.
       </p>
     </section>
   );
@@ -563,14 +617,14 @@ function CommunityPulse({ items }: { items: CongDongPulseItem[] }) {
                   {item.milestoneTitle}
                 </span>{" "}
                 <span className="cd-v4-pulse-time">
-                  · {formatRelativeTime(item.taoLuc)}
+                  · {formatCongDongRelativeTime(item.taoLuc)}
                 </span>
               </>
             ) : (
               <>
                 <strong>{item.userName}</strong> vừa tham gia{" "}
                 <span className="cd-v4-pulse-time">
-                  · {formatRelativeTime(item.taoLuc)}
+                  · {formatCongDongRelativeTime(item.taoLuc)}
                 </span>
               </>
             )}
@@ -607,41 +661,159 @@ function FacepileAvatar({
   );
 }
 
+type FeedStickyBarProps = {
+  barRef: React.RefObject<HTMLDivElement | null>;
+  showTimeline: boolean;
+  timelineSpy: TimelineScrollSpy;
+  filterPending: boolean;
+  filters: CongDongFilter[];
+  activeFilterSlugs: string[];
+  onFilterChange: (slugs: string[]) => void;
+  sortMode: SortMode;
+  onSortModeChange: (mode: SortMode) => void;
+  view: FeedView;
+  onViewChange: (view: FeedView) => void;
+};
+
+function CongDongFeedStickyBar({
+  barRef,
+  showTimeline,
+  timelineSpy,
+  filterPending,
+  filters,
+  activeFilterSlugs,
+  onFilterChange,
+  sortMode,
+  onSortModeChange,
+  view,
+  onViewChange,
+}: FeedStickyBarProps) {
+  return (
+    <div
+      ref={barRef}
+      className={`cd-v4-moc-bar${showTimeline ? " has-timeline" : ""}`}
+      aria-live={showTimeline ? "polite" : undefined}
+      aria-label={
+        showTimeline
+          ? `Thời gian: ${timelineSpy.year}, ${timelineSpy.month || "—"}`
+          : "Bộ lọc và sắp xếp bài đăng"
+      }
+    >
+      {showTimeline ? (
+        <>
+          <span className="cd-v4-moc-yr">{timelineSpy.year}</span>
+          <span
+            className="cd-v4-moc-mo"
+            style={{ visibility: timelineSpy.month ? "visible" : "hidden" }}
+          >
+            {timelineSpy.month || "—"}
+          </span>
+        </>
+      ) : null}
+      <div
+        className={`cd-v4-feed-controls${filterPending ? " is-loading" : ""}`}
+        role="toolbar"
+        aria-label="Lọc và sắp xếp bài đăng"
+      >
+        <CongDongFeedFilterDropdown
+          filters={filters}
+          activeFilterSlugs={activeFilterSlugs}
+          onChange={onFilterChange}
+          disabled={filterPending}
+          className="cd-v4-filter-dd--compact"
+        />
+        <select
+          className="cd-v4-sort cd-v4-sort--compact"
+          value={sortMode}
+          onChange={(e) => onSortModeChange(e.target.value as SortMode)}
+          aria-label="Sắp xếp bài đăng"
+        >
+          <option value="moi">Mới nhất</option>
+          <option value="tuongtac">Tương tác</option>
+          <option value="az">A → Z</option>
+        </select>
+        <div className="cd-v4-toggle cd-v4-toggle--compact" role="group" aria-label="Kiểu hiển thị">
+          <button
+            type="button"
+            className={view === "journey" ? "is-on" : undefined}
+            onClick={() => onViewChange("journey")}
+            aria-label="Journey"
+            title="Journey"
+          >
+            <Waypoints size={15} strokeWidth={2} aria-hidden />
+          </button>
+          <button
+            type="button"
+            className={view === "grid" ? "is-on" : undefined}
+            onClick={() => onViewChange("grid")}
+            aria-label="Lưới"
+            title="Lưới"
+          >
+            <LayoutGrid size={15} strokeWidth={2} aria-hidden />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function JourneyFeed({
   posts,
   orgId,
   canInteract,
+  barRef,
+  onSpyChange,
 }: {
   posts: CongDongPost[];
   orgId: string;
   canInteract: boolean;
+  barRef: React.RefObject<HTMLDivElement | null>;
+  onSpyChange: (spy: TimelineScrollSpy) => void;
 }) {
-  let lastMoc: string | null = null;
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root || posts.length === 0) return;
+
+    let raf = 0;
+    const sync = () => {
+      raf = 0;
+      const anchor = scrollSpyAnchorBelowBar(barRef.current, 120);
+      const next = computeScrollSpyFromMarkers(
+        root,
+        ".cd-v4-jcard[data-year][data-month]",
+        anchor,
+      );
+      if (!next) return;
+      onSpyChange(next);
+    };
+    const schedule = () => {
+      if (raf) return;
+      raf = window.requestAnimationFrame(sync);
+    };
+
+    sync();
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
+    return () => {
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+      if (raf) window.cancelAnimationFrame(raf);
+    };
+  }, [posts, barRef, onSpyChange]);
+
   return (
-    <>
-      {posts.map((post) => {
-        const moc = monthKey(post.taoLuc);
-        const showMoc = moc !== lastMoc;
-        if (showMoc) lastMoc = moc;
-        const label = monthLabel(moc);
-        return (
-          <div key={post.id}>
-            {showMoc ? (
-              <div className="cd-v4-moc">
-                <span className="cd-v4-moc-yr">{label.year}</span>
-                <span className="cd-v4-moc-mo">{label.month}</span>
-                <span className="cd-v4-moc-ln" aria-hidden />
-              </div>
-            ) : null}
-            <CongDongJourneyPostCard
-              orgId={orgId}
-              post={post}
-              canInteract={canInteract}
-            />
-          </div>
-        );
-      })}
-    </>
+    <div ref={rootRef} className="cd-v4-journey-feed">
+      {posts.map((post) => (
+        <CongDongJourneyPostCard
+          key={post.id}
+          orgId={orgId}
+          post={post}
+          canInteract={canInteract}
+        />
+      ))}
+    </div>
   );
 }
 
@@ -669,7 +841,7 @@ function GridFeed({
 }
 
 function usePostSocial(orgId: string, post: CongDongPost, canInteract: boolean) {
-  const { requireAuth } = useAuthGate();
+  const { requireCongDongAuth } = useCongDongAuthGate();
   const [liked, setLiked] = useState(post.viewerLiked);
   const [likeCount, setLikeCount] = useState(post.likeCount);
   const [comments, setComments] = useState<CongDongComment[]>([]);
@@ -679,7 +851,7 @@ function usePostSocial(orgId: string, post: CongDongPost, canInteract: boolean) 
   const [pending, startTransition] = useTransition();
 
   const toggleLike = () => {
-    requireAuth(() => {
+    requireCongDongAuth(() => {
       const next = !liked;
       setLiked(next);
       setLikeCount((c) => Math.max(0, c + (next ? 1 : -1)));
@@ -700,23 +872,37 @@ function usePostSocial(orgId: string, post: CongDongPost, canInteract: boolean) 
   };
 
   const openComments = () => {
-    setCommentsOpen(true);
-    if (comments.length > 0) return;
-    startTransition(async () => {
-      const res = await fetch(
-        `/api/cong-dong/${orgId}/posts/${post.id}/comments`,
-      );
-      const json = (await res.json().catch(() => null)) as {
-        comments?: CongDongComment[];
-      } | null;
-      if (res.ok && json?.comments) setComments(json.comments);
+    requireCongDongAuth(() => {
+      setCommentsOpen(true);
+      if (comments.length > 0) return;
+      startTransition(async () => {
+        const res = await fetch(
+          `/api/cong-dong/${orgId}/posts/${post.id}/comments`,
+        );
+        const json = (await res.json().catch(() => null)) as {
+          comments?: CongDongComment[];
+        } | null;
+        if (res.ok && json?.comments) setComments(json.comments);
+      });
+    });
+  };
+
+  const openSave = () => {
+    requireCongDongAuth(() => {
+      /* Bookmark thảo luận — sẽ bổ sung API sau */
+    });
+  };
+
+  const openPostMenu = () => {
+    requireCongDongAuth(() => {
+      /* Tuỳ chọn bài — sẽ bổ sung sau */
     });
   };
 
   const submitComment = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canInteract) return;
-    requireAuth(() => {
+    requireCongDongAuth(() => {
+      if (!canInteract) return;
       const text = commentText.trim();
       if (!text) return;
       startTransition(async () => {
@@ -750,6 +936,8 @@ function usePostSocial(orgId: string, post: CongDongPost, canInteract: boolean) 
     pending,
     toggleLike,
     openComments,
+    openSave,
+    openPostMenu,
     submitComment,
   };
 }
@@ -765,109 +953,116 @@ function CongDongJourneyPostCard({
 }) {
   const social = usePostSocial(orgId, post, canInteract);
   const avatarUrl = getAvatarUrl(post.author.avatarId);
-  const coverMedia = post.media[0];
-  const coverSrc = coverMedia ? congDongImageUrl(coverMedia.cloudflareId) : null;
   const initial = post.author.tenHienThi.charAt(0).toUpperCase();
-  const isStatusPost = !post.tieuDe && post.media.length === 0;
+  const isStatusPost =
+    !post.journeyMirror &&
+    !post.tieuDe &&
+    post.media.length === 0;
+  const { year, month } = postTimelineParts(post.taoLuc);
 
   return (
     <article
       className={`cd-v4-jcard${post.ghim ? " is-pinned" : ""}${isStatusPost ? " is-status" : ""}`}
+      data-year={year}
+      data-month={month}
     >
-      <div className="cd-v4-p-head">
-        <Link href={`/${post.author.slug}`} className="cd-v4-p-av" prefetch={false}>
-          {avatarUrl ? (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img src={avatarUrl} alt="" />
-          ) : (
-            initial
-          )}
+      <header className="cd-v4-jcard-top">
+        <Link
+          href={`/${post.author.slug}`}
+          className="cd-v4-jcard-author"
+          prefetch={false}
+        >
+          <span className="cd-v4-jcard-av">
+            {avatarUrl ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src={avatarUrl} alt="" />
+            ) : (
+              initial
+            )}
+          </span>
+          <span className="cd-v4-jcard-meta">
+            <strong>{post.author.tenHienThi}</strong>
+            <CongDongAuthorMetaLine
+              soBaiVietTrongNhom={post.author.soBaiVietTrongNhom}
+              activityAt={post.taoLuc}
+            />
+          </span>
         </Link>
-        <div className="cd-v4-p-who">
-          <div className="cd-v4-p-name">
-            <Link href={`/${post.author.slug}`} prefetch={false}>
-              {post.author.tenHienThi}
-            </Link>
-            {post.author.vaiTroLabel ? (
-              <span className="cd-v4-p-role">{post.author.vaiTroLabel}</span>
-            ) : null}
-            {post.author.verifiedCount > 0 ? (
-              <span className="cd-v4-p-verif">
-                <BadgeCheck size={12} strokeWidth={2} aria-hidden />
-                Đã xác minh
-              </span>
-            ) : null}
-            {post.ghim ? (
-              <span className="cd-v4-p-verif is-pin">
-                <Pin size={12} aria-hidden />
-                Ghim
-              </span>
-            ) : null}
-          </div>
-          <div className="cd-v4-p-sub">
-            {post.author.ngheLabel ?? "Thành viên"}
-            <span className="cd-v4-dot" aria-hidden />
-            {formatRelativeTime(post.taoLuc)}
-          </div>
-        </div>
-        <span className="cd-v4-p-menu" aria-hidden>
-          <MoreHorizontal size={18} strokeWidth={2} />
-        </span>
-      </div>
 
-      {post.filters.length > 0 ? (
-        <div className="cd-v4-p-tags">
+        <div className="cd-v4-jcard-badges">
+          {post.author.vaiTroLabel ? (
+            <span className="cd-v4-jcard-badge">{post.author.vaiTroLabel}</span>
+          ) : null}
+          {post.ghim ? (
+            <span className="cd-v4-jcard-badge is-pin">
+              <Pin size={11} aria-hidden />
+              Ghim
+            </span>
+          ) : null}
           {post.filters.map((filter) => (
             <CongDongFilterChip key={filter.id} filter={filter} size="sm" />
           ))}
         </div>
-      ) : null}
 
-      {post.tieuDe ? <h3 className="cd-v4-p-title">{post.tieuDe}</h3> : null}
-      <p className="cd-v4-p-text">{post.noiDung}</p>
-
-      {coverSrc ? (
-        <div className="cd-v4-p-cover">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={coverSrc} alt="" loading="lazy" />
-        </div>
-      ) : null}
-
-      {post.media.length > 1 ? (
-        <div className="cd-v4-p-media-grid">
-          {post.media.slice(1).map((m) => {
-            const src = congDongImageUrl(m.cloudflareId);
-            if (!src) return null;
-            return (
-              /* eslint-disable-next-line @next/next/no-img-element */
-              <img key={m.id} src={src} alt="" loading="lazy" />
-            );
-          })}
-        </div>
-      ) : null}
-
-      <div className="cd-v4-p-foot">
         <button
           type="button"
-          className={`cd-v4-act${social.liked ? " is-liked" : ""}`}
-          onClick={social.toggleLike}
+          className="cd-v4-jcard-menu"
+          aria-label="Tuỳ chọn"
+          onClick={social.openPostMenu}
         >
-          <Heart
-            size={18}
-            strokeWidth={2}
-            fill={social.liked ? "currentColor" : "none"}
-            aria-hidden
-          />
-          {social.likeCount > 0 ? social.likeCount : null}
+          <MoreHorizontal size={18} strokeWidth={2} aria-hidden />
         </button>
-        <button type="button" className="cd-v4-act" onClick={social.openComments}>
-          <MessageCircle size={18} strokeWidth={2} aria-hidden />
-          {social.commentCount > 0 ? social.commentCount : null}
-        </button>
-        <button type="button" className="cd-v4-act" aria-label="Lưu">
-          <Bookmark size={18} strokeWidth={2} aria-hidden />
-        </button>
+      </header>
+
+      <div className="cd-v4-jcard-body">
+        <CongDongFeedPostContent
+          authorSlug={post.author.slug}
+          journeyMirror={post.journeyMirror}
+          fallbackTitle={post.tieuDe}
+          fallbackBody={post.noiDung}
+          fallbackMedia={post.media}
+        />
       </div>
+
+      <footer className="cd-v4-jcard-foot">
+        <div className="cd-v4-jcard-act-group">
+          <button
+            type="button"
+            className={`cd-v4-jcard-act${social.liked ? " is-liked" : ""}`}
+            aria-label="Thích"
+            onClick={social.toggleLike}
+          >
+            <Heart
+              size={18}
+              strokeWidth={2}
+              fill={social.liked ? "currentColor" : "none"}
+              aria-hidden
+            />
+            {social.likeCount > 0 ? (
+              <span className="cd-v4-jcard-act-count">{social.likeCount}</span>
+            ) : null}
+          </button>
+          <button
+            type="button"
+            className="cd-v4-jcard-act"
+            aria-label="Bình luận"
+            onClick={social.openComments}
+          >
+            <MessageCircle size={18} strokeWidth={2} aria-hidden />
+            {social.commentCount > 0 ? (
+              <span className="cd-v4-jcard-act-count">{social.commentCount}</span>
+            ) : null}
+          </button>
+          <button
+            type="button"
+            className="cd-v4-jcard-act"
+            aria-label="Lưu"
+            onClick={social.openSave}
+          >
+            <Bookmark size={18} strokeWidth={2} aria-hidden />
+          </button>
+        </div>
+      </footer>
 
       {social.commentsOpen ? (
         <CommentsPanel social={social} canInteract={canInteract} />
@@ -887,10 +1082,12 @@ function CongDongGridPostCard({
 }) {
   const social = usePostSocial(orgId, post, canInteract);
   const avatarUrl = getAvatarUrl(post.author.avatarId);
-  const coverMedia = post.media[0];
-  const coverSrc = coverMedia ? congDongImageUrl(coverMedia.cloudflareId) : null;
+  const coverSrc = congDongFeedPostCoverUrl(post);
   const initial = post.author.tenHienThi.charAt(0).toUpperCase();
-  const title = post.tieuDe || post.noiDung.slice(0, 55);
+  const title =
+    post.journeyMirror?.tieuDe ||
+    post.tieuDe ||
+    post.noiDung.slice(0, 55);
 
   return (
     <article className="cd-v4-gcard">

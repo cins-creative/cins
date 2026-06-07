@@ -6,6 +6,8 @@ import { createPortal } from "react-dom";
 
 import { LoginGoogleButton } from "@/app/login/LoginGoogleButton";
 
+import "./auth-required-modal.css";
+
 type Props = {
   open: boolean;
   message?: string;

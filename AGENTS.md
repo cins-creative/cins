@@ -2,12 +2,20 @@
 
 ## Ngữ cảnh dự án (đọc trước)
 
-**Nguồn chính:** [`docs/CINS_INSTRUCTION.md`](./docs/CINS_INSTRUCTION.md) — **Schema / instruction v7** (product, DB 62+ bảng, tag system mới, engagement có context, kết bạn, loại org, ghi chú triển khai site).
+**Nguồn chính:** [`docs/CINS_INSTRUCTION.md`](./docs/CINS_INSTRUCTION.md) — file router trỏ tới 5 tài liệu:
 
-- Repo này là **frontend Next.js** của CINs (trang chủ, ngành học, trường đại học, nghề nghiệp, bài viết, …), không phải toàn bộ backend.
-- Khi user gửi file instruction mới (**v6, v7, v8, …**): cập nhật `docs/CINS_INSTRUCTION.md` (đổi số version ở đầu file, merge nội dung mới; không bỏ phần implementation site trừ khi user yêu cầu thay thế).
+| File | Nội dung |
+|---|---|
+| [`CINS_FOUNDATIONS.md`](./docs/CINS_FOUNDATIONS.md) | Triết lý, quy tắc kiến trúc, verify, org |
+| [`CINS_SCHEMA.md`](./docs/CINS_SCHEMA.md) | 67 bảng / enum / FK — sinh từ DB |
+| [`CINS_IMPLEMENTATION.md`](./docs/CINS_IMPLEMENTATION.md) | API, lib, SQL, env, ghi chú site |
+| [`CINS_DECISIONS.md`](./docs/CINS_DECISIONS.md) | Quyết định đã chốt + câu hỏi treo |
+| [`CINS_DEV_RULES.md`](./docs/CINS_DEV_RULES.md) | Security, performance, UI conventions |
+
+- Repo này là **frontend Next.js** của CINs, không phải toàn bộ backend.
+- Khi user gửi instruction mới: merge vào **đúng file** (FOUNDATIONS / SCHEMA / IMPLEMENTATION / DECISIONS), cập nhật router `CINS_INSTRUCTION.md` nếu cần.
 - SQL grant / RLS mẫu: `supabase/sql/`. Query trường–ngành: `lib/truong/`, `lib/nganh/`.
-- Map trang trường (component tree, seed UUID, fetch patterns): [`docs/cursor_map_truong.md`](./docs/cursor_map_truong.md).
+- Map trang trường: [`docs/cursor_map_truong.md`](./docs/cursor_map_truong.md).
 
 ## Auth OAuth (Google / PKCE)
 

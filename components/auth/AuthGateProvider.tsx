@@ -11,6 +11,15 @@ import {
 } from "react";
 
 import { AuthRequiredModal } from "@/components/auth/AuthRequiredModal";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+
+function getBrowserSupabase() {
+  try {
+    return createSupabaseBrowserClient();
+  } catch {
+    return null;
+  }
+}
 
 type AuthGateContextValue = {
   isAuthenticated: boolean;
@@ -34,6 +43,42 @@ export function AuthGateRoot({ children, initialAuthenticated }: Props) {
   useEffect(() => {
     setIsAuthenticated(initialAuthenticated);
   }, [initialAuthenticated]);
+
+  useEffect(() => {
+    const supabase = getBrowserSupabase();
+    if (!supabase) return;
+
+    const syncFromSession = () => {
+      void supabase.auth.getSession().then(({ data: { session } }) => {
+        setIsAuthenticated(Boolean(session?.user));
+      });
+    };
+
+    syncFromSession();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(Boolean(session?.user));
+    });
+
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) syncFromSession();
+    };
+    const onVisible = () => {
+      if (document.visibilityState === "visible") syncFromSession();
+    };
+    window.addEventListener("pageshow", onPageShow);
+    window.addEventListener("focus", syncFromSession);
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener("pageshow", onPageShow);
+      window.removeEventListener("focus", syncFromSession);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, []);
 
   const openAuthModal = useCallback((nextMessage?: string) => {
     setMessage(nextMessage);

@@ -17,6 +17,8 @@ import {
 import { ensureContentMediaIds } from "@/lib/cong-dong/media";
 import { isThanhVien, loadAuthorOrgRoles } from "@/lib/cong-dong/membership";
 import { authorRoleBadgeLabel } from "@/lib/cong-dong/vai-tro";
+import { loadTacPhamMirrors } from "@/lib/cong-dong/tac-pham-mirror";
+import { loadAuthorOrgPostMetaInOrg } from "@/lib/cong-dong/stats";
 import type { CongDongComment, CongDongPost } from "@/lib/cong-dong/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -30,7 +32,11 @@ type ThaoLuanRow = {
   noi_dung: string;
   ghim: boolean;
   tao_luc: string;
+  id_tac_pham: string | null;
 };
+
+const THAO_LUAN_SELECT =
+  "id, nguoi_dang, tieu_de, noi_dung, ghim, tao_luc, id_tac_pham";
 
 async function loadPostMedia(
   postIds: string[],
@@ -125,15 +131,29 @@ async function mapPosts(
   const postIds = rows.map((r) => r.id);
   const authorIds = rows.map((r) => r.nguoi_dang);
 
-  const [badges, orgRoles, mediaByPost, reactions, commentCounts, filtersByPost] =
-    await Promise.all([
-      loadAuthorBadges(authorIds),
-      loadAuthorOrgRoles(orgId, authorIds),
-      loadPostMedia(postIds),
-      loadReactionMeta(postIds, viewerId),
-      loadCommentCounts(postIds),
-      loadFiltersForPosts(postIds),
-    ]);
+  const tacPhamIds = rows
+    .map((r) => r.id_tac_pham)
+    .filter((id): id is string => Boolean(id));
+
+  const [
+    badges,
+    orgRoles,
+    mediaByPost,
+    reactions,
+    commentCounts,
+    filtersByPost,
+    tacPhamMirrors,
+    authorPostCountsInOrg,
+  ] = await Promise.all([
+    loadAuthorBadges(authorIds),
+    loadAuthorOrgRoles(orgId, authorIds),
+    loadPostMedia(postIds),
+    loadReactionMeta(postIds, viewerId),
+    loadCommentCounts(postIds),
+    loadFiltersForPosts(postIds),
+    loadTacPhamMirrors(tacPhamIds),
+    loadAuthorOrgPostMetaInOrg(orgId, authorIds),
+  ]);
 
   return rows.map((row) => {
     const baseAuthor = badges.get(row.nguoi_dang) ?? {
@@ -144,10 +164,14 @@ async function mapPosts(
       ngheLabel: null,
       vaiTroLabel: null,
       verifiedCount: 0,
+      soBaiVietTrongNhom: 0,
     };
     const author = {
       ...baseAuthor,
       vaiTroLabel: authorRoleBadgeLabel(orgRoles.get(row.nguoi_dang) ?? null),
+      soBaiVietTrongNhom:
+        authorPostCountsInOrg.get(row.nguoi_dang)?.count ??
+        baseAuthor.soBaiVietTrongNhom,
     };
     const reaction = reactions.get(row.id) ?? { count: 0, liked: false };
     return {
@@ -159,6 +183,9 @@ async function mapPosts(
       author,
       media: mediaByPost.get(row.id) ?? [],
       filters: filtersByPost.get(row.id) ?? [],
+      journeyMirror: row.id_tac_pham
+        ? (tacPhamMirrors.get(row.id_tac_pham) ?? null)
+        : null,
       likeCount: reaction.count,
       commentCount: commentCounts.get(row.id) ?? 0,
       viewerLiked: reaction.liked,
@@ -199,7 +226,7 @@ export async function listCongDongPosts(params: {
   const { data: pinned } = await applyPostIdFilter(
     admin
       .from("content_thao_luan")
-      .select("id, nguoi_dang, tieu_de, noi_dung, ghim, tao_luc")
+      .select(THAO_LUAN_SELECT)
       .eq("loai_context", THAO_LUAN_LOAI_CONTEXT.CONG_DONG)
       .eq("id_context", params.orgId)
       .eq("da_xoa", false)
@@ -211,7 +238,7 @@ export async function listCongDongPosts(params: {
   let feedQuery = applyPostIdFilter(
     admin
       .from("content_thao_luan")
-      .select("id, nguoi_dang, tieu_de, noi_dung, ghim, tao_luc")
+      .select(THAO_LUAN_SELECT)
       .eq("loai_context", THAO_LUAN_LOAI_CONTEXT.CONG_DONG)
       .eq("id_context", params.orgId)
       .eq("da_xoa", false)
@@ -250,6 +277,7 @@ export async function createCongDongPost(params: {
   tieuDe?: string;
   mediaIds?: string[];
   filterIds?: string[];
+  idTacPham?: string | null;
 }): Promise<
   | { ok: true; data: CongDongPost }
   | { ok: false; error: string }
@@ -280,8 +308,9 @@ export async function createCongDongPost(params: {
       tieu_de: params.tieuDe?.trim() || null,
       noi_dung: text,
       loai_post: THAO_LUAN_LOAI_POST.THAO_LUAN,
+      ...(params.idTacPham ? { id_tac_pham: params.idTacPham } : {}),
     })
-    .select("id, nguoi_dang, tieu_de, noi_dung, ghim, tao_luc")
+    .select(THAO_LUAN_SELECT)
     .single<ThaoLuanRow>();
 
   if (error || !inserted) {

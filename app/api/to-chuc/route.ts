@@ -19,6 +19,8 @@ export async function POST(req: Request) {
     cover_id?: string;
     che_do?: string;
     loai_to_chuc?: string;
+    danh_muc?: string[];
+    category_ids?: string[];
   };
   try {
     body = await req.json();
@@ -41,6 +43,7 @@ export async function POST(req: Request) {
     avatarId: body.avatar_id,
     coverId: body.cover_id,
     cheDo: body.che_do,
+    categoryArticleIds: body.danh_muc ?? body.category_ids,
   });
 
   if (!result.ok) {

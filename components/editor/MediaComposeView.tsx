@@ -110,6 +110,12 @@ function newBlockId(): string {
   return `b-${crypto.randomUUID()}`;
 }
 
+/** Windows đôi khi trả `file.type` rỗng — fallback theo đuôi tên. */
+function isImageUploadFile(file: File): boolean {
+  if (file.type.startsWith("image/")) return true;
+  return /\.(jpe?g|png|gif|webp|avif|bmp|heic|heif)$/i.test(file.name);
+}
+
 function photoItemsFromIds(imageIds: string[]): PhotoItem[] {
   return imageIds.map((imageId) => ({
     localId: imageId,
@@ -187,6 +193,8 @@ export function MediaComposeView({
     null,
   );
   const initialVideoStartedRef = useRef(false);
+  const initialPhotosStartedRef = useRef(false);
+  const autoOpenPickerStartedRef = useRef(false);
   const avatarUrl = getAvatarUrl(ownerAvatarId ?? null);
   const bunnyPreview = useMemo(
     () => (videoUrl ? classifyBunnyVideoUrl(videoUrl) : null),
@@ -214,22 +222,26 @@ export function MediaComposeView({
     return () => document.removeEventListener("mousedown", onDoc);
   }, [visOpen]);
 
+  const photosRef = useRef(photos);
+  photosRef.current = photos;
+  const localVideoPreviewRef = useRef(localVideoPreviewUrl);
+  localVideoPreviewRef.current = localVideoPreviewUrl;
+
   useEffect(() => {
     return () => {
-      for (const p of photos) {
+      for (const p of photosRef.current) {
         if (p.previewUrl.startsWith("blob:")) URL.revokeObjectURL(p.previewUrl);
       }
-      if (localVideoPreviewUrl?.startsWith("blob:")) {
-        URL.revokeObjectURL(localVideoPreviewUrl);
-      }
+      const videoPreview = localVideoPreviewRef.current;
+      if (videoPreview?.startsWith("blob:")) URL.revokeObjectURL(videoPreview);
     };
-  }, [photos, localVideoPreviewUrl]);
+  }, []);
 
   const gridImages = useMemo<GridImage[]>(
     () =>
       photos.map((p) => ({
         id: p.imageId ?? p.localId,
-        previewSrc: p.previewUrl,
+        previewSrc: p.imageId ? undefined : p.previewUrl,
         width: GRID_IMAGE_DEFAULT_WIDTH,
         height: GRID_IMAGE_DEFAULT_HEIGHT,
       })),
@@ -245,7 +257,7 @@ export function MediaComposeView({
   }, [photos]);
 
   const uploadPhoto = useCallback(async (file: File, localId: string) => {
-    if (!file.type.startsWith("image/")) {
+    if (!isImageUploadFile(file)) {
       setPhotos((prev) =>
         prev.map((p) =>
           p.localId === localId
@@ -266,11 +278,17 @@ export function MediaComposeView({
       }
       if (data.url) rememberCfAccountHashFromDeliveryUrl(data.url);
       setPhotos((prev) =>
-        prev.map((p) =>
-          p.localId === localId
-            ? { ...p, imageId: data.imageId!, uploading: false, error: undefined }
-            : p,
-        ),
+        prev.map((p) => {
+          if (p.localId !== localId) return p;
+          if (p.previewUrl.startsWith("blob:")) URL.revokeObjectURL(p.previewUrl);
+          return {
+            ...p,
+            imageId: data.imageId!,
+            previewUrl: data.url?.trim() || p.previewUrl,
+            uploading: false,
+            error: undefined,
+          };
+        }),
       );
     } catch (e) {
       setPhotos((prev) =>
@@ -289,7 +307,7 @@ export function MediaComposeView({
 
   const addFiles = useCallback(
     (files: FileList | File[]) => {
-      const list = Array.from(files).filter((f) => f.type.startsWith("image/"));
+      const list = Array.from(files).filter(isImageUploadFile);
       if (list.length === 0) return;
 
       setPhotos((prev) => {
@@ -427,7 +445,14 @@ export function MediaComposeView({
   );
 
   useEffect(() => {
-    if (!initialPhotoFiles?.length || isEdit) return;
+    if (
+      !initialPhotoFiles?.length ||
+      isEdit ||
+      initialPhotosStartedRef.current
+    ) {
+      return;
+    }
+    initialPhotosStartedRef.current = true;
     addFiles(initialPhotoFiles);
   }, [initialPhotoFiles, isEdit, addFiles]);
 
@@ -442,17 +467,41 @@ export function MediaComposeView({
       !autoOpenFilePicker ||
       isEdit ||
       initialPhotoFiles?.length ||
-      initialVideoFile
+      initialVideoFile ||
+      autoOpenPickerStartedRef.current
     ) {
       return;
     }
-    if (isPhoto && photos.length === 0) {
-      fileInputRef.current?.click();
-      return;
-    }
-    if (!isPhoto && !videoUrl && !videoUploading) {
-      videoFileInputRef.current?.click();
-    }
+
+    const tryOpenPicker = (): boolean => {
+      if (isPhoto && photos.length === 0 && fileInputRef.current) {
+        autoOpenPickerStartedRef.current = true;
+        fileInputRef.current.click();
+        return true;
+      }
+      if (
+        !isPhoto &&
+        !videoUrl &&
+        !videoUploading &&
+        videoFileInputRef.current
+      ) {
+        autoOpenPickerStartedRef.current = true;
+        videoFileInputRef.current.click();
+        return true;
+      }
+      return false;
+    };
+
+    if (tryOpenPicker()) return;
+
+    const frame = requestAnimationFrame(() => {
+      if (tryOpenPicker()) return;
+      window.setTimeout(() => {
+        tryOpenPicker();
+      }, 80);
+    });
+
+    return () => cancelAnimationFrame(frame);
   }, [
     autoOpenFilePicker,
     isPhoto,
@@ -599,6 +648,12 @@ export function MediaComposeView({
               loaiMoc: "ca_nhan",
               thoiDiem: new Date().toISOString().slice(0, 10),
               blocks,
+              congDong: congDongCompose
+                ? {
+                    orgId: congDongCompose.orgId,
+                    filterSlugs: composeFilterSlugs,
+                  }
+                : undefined,
             });
 
       if (!res.ok) {

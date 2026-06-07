@@ -99,6 +99,65 @@ export function canManageLabels(
   return canManageCommunityContent(vaiTro) || canManageCommunity(vaiTro);
 }
 
+/** Admin cộng đồng — thêm thành viên & gán quyền. */
+export function canManageMembers(
+  vaiTro: CongDongVaiTro | null | undefined,
+): boolean {
+  return canManageCommunity(vaiTro);
+}
+
+export const CONG_DONG_ASSIGNABLE_ROLES: CongDongVaiTro[] = [
+  "thanh_vien",
+  "quan_ly_noi_dung",
+  "admin",
+];
+
+export function assignableRoleLabel(vaiTro: CongDongVaiTro): string {
+  switch (vaiTro) {
+    case "thanh_vien":
+      return "Thành viên";
+    case "quan_ly_noi_dung":
+      return "Quản trị nội dung";
+    case "admin":
+      return "Admin";
+    default:
+      return vaiTro;
+  }
+}
+
+/** Quyền trong nhóm — dùng UI gán vai trò. */
+export function assignableRolePermissions(
+  vaiTro: CongDongVaiTro,
+): readonly string[] {
+  switch (vaiTro) {
+    case "thanh_vien":
+      return [
+        "Đăng bài và tương tác trong feed nhóm",
+        "Chọn nhãn khi đăng bài",
+        "Tùy chỉnh thông báo",
+        "Rời nhóm",
+      ];
+    case "quan_ly_noi_dung":
+      return [
+        "Mọi quyền thành viên (không rời nhóm)",
+        "Quản lý nhãn bài đăng",
+        "Chỉnh banner sự kiện",
+        "Cài đặt nhóm — chủ đề nghề/ngành",
+      ];
+    case "admin":
+      return [
+        "Mọi quyền quản trị nội dung",
+        "Thêm thành viên và gán quyền",
+      ];
+    default:
+      return [];
+  }
+}
+
+export function assignableRolePermissionSummary(vaiTro: CongDongVaiTro): string {
+  return assignableRolePermissions(vaiTro).join(" · ");
+}
+
 /** @deprecated Dùng `roleButtonLabel`. */
 export function membershipButtonLabel(
   vaiTro: CongDongVaiTro | null | undefined,

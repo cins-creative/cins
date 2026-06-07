@@ -1,4 +1,7 @@
-import { CongDongFilterIcon } from "@/components/cong-dong/CongDongFilterIcon";
+import {
+  CongDongFilterIcon,
+  hasCongDongFilterLucideIcon,
+} from "@/components/cong-dong/CongDongFilterIcon";
 import type { CongDongFilter } from "@/lib/cong-dong/types";
 
 /** Toolbar: bỏ emoji đầu chuỗi — đã có lucide icon, tránh nhãn dài khó đọc. */
@@ -49,7 +52,9 @@ export function CongDongFilterChip({
         backgroundColor: active ? filter.mau : `${filter.mau}18`,
       };
 
-  const displayTen = isToolbar ? filterToolbarLabel(filter.ten) : filter.ten;
+  const hasLucideIcon = hasCongDongFilterLucideIcon(filter.icon);
+  const displayTen =
+    isToolbar || hasLucideIcon ? filterToolbarLabel(filter.ten) : filter.ten;
 
   const label = (
     <>

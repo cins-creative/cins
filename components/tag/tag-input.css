@@ -138,6 +138,11 @@
   color: #b45309;
 }
 
+.tag-input-item-loai.is-loai-nghe {
+  background: #fce7f3;
+  color: #be185d;
+}
+
 .tag-input-item-loai.is-loai-nganh-dao-tao {
   background: #f3e8ff;
   color: #7c3aed;

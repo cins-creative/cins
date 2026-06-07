@@ -13,6 +13,7 @@ import {
   type KeyboardEvent,
   type ReactNode,
 } from "react";
+import { createPortal } from "react-dom";
 
 import {
   AlignCenter,
@@ -789,6 +790,12 @@ export function EditorView({
             loaiMoc: DEFAULT_LOAI_MOC,
             thoiDiem: isoToday(),
             blocks: serverBlocks,
+            congDong: congDongCompose
+              ? {
+                  orgId: congDongCompose.orgId,
+                  filterSlugs: composeFilterSlugs,
+                }
+              : undefined,
           });
 
       if (!result.ok) {
@@ -997,6 +1004,7 @@ export function EditorView({
             onToggle={(open) => setOpenAddIdx(open ? 0 : null)}
             onPick={(type) => addBlock(type, 0)}
             starter={blocks.length === 0}
+            anchorPicker={isOverlay}
           />
           {blocks.map((b, i) => (
             <div key={b.id}>
@@ -1041,6 +1049,7 @@ export function EditorView({
                 open={openAddIdx === i + 1}
                 onToggle={(open) => setOpenAddIdx(open ? i + 1 : null)}
                 onPick={(type) => addBlock(type, i + 1)}
+                anchorPicker={isOverlay}
               />
             </div>
           ))}
@@ -1130,11 +1139,50 @@ function CoverArea({
 
 /* ─── AddZone + Picker ───────────────────────────────────────────── */
 
+const PICKER_MAX_W = 420;
+const PICKER_EST_H = 300;
+
+function BlockInsertPicker({
+  onPick,
+  style,
+}: {
+  onPick: (t: BlockType) => void;
+  style?: React.CSSProperties;
+}) {
+  return (
+    <div
+      className="picker"
+      onClick={(e) => e.stopPropagation()}
+      role="menu"
+      style={style}
+    >
+      <div className="picker-lbl">Chèn block</div>
+      <div className="picker-grid">
+        {BLOCK_TYPES.map((b) => (
+          <button
+            key={b.t}
+            type="button"
+            className="pick"
+            aria-label={b.desc ? `${b.name} — ${b.desc}` : b.name}
+            onClick={() => onPick(b.t)}
+          >
+            <span className="pic-ic" aria-hidden>
+              {b.ico}
+            </span>
+            <span className="pic-t">{b.name}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function AddZone({
   open,
   onToggle,
   onPick,
   starter,
+  anchorPicker = false,
 }: {
   idx: number;
   open: boolean;
@@ -1142,48 +1190,97 @@ function AddZone({
   onPick: (t: BlockType) => void;
   /** Khi `true` → AddZone hiển thị to + xanh nổi bật (state khởi đầu). */
   starter?: boolean;
+  /** Compose overlay — portal picker, neo theo nút `+` (tránh clip + lệch vị trí). */
+  anchorPicker?: boolean;
 }) {
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const [pickerPos, setPickerPos] = useState<{
+    top: number;
+    left: number;
+    width: number;
+  } | null>(null);
+
+  const updatePickerPos = useCallback(() => {
+    const btn = btnRef.current;
+    if (!btn) return;
+    const rect = btn.getBoundingClientRect();
+    const width = Math.min(PICKER_MAX_W, window.innerWidth - 24);
+    const left = Math.min(
+      Math.max(12, rect.left + rect.width / 2 - width / 2),
+      window.innerWidth - width - 12,
+    );
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const top =
+      spaceBelow >= PICKER_EST_H + 12
+        ? rect.bottom + 8
+        : Math.max(12, rect.top - PICKER_EST_H - 8);
+    setPickerPos({ top, left, width });
+  }, []);
+
+  useEffect(() => {
+    if (!open || !anchorPicker) {
+      setPickerPos(null);
+      return;
+    }
+    updatePickerPos();
+    const onReflow = () => updatePickerPos();
+    window.addEventListener("resize", onReflow);
+    window.addEventListener("scroll", onReflow, true);
+    return () => {
+      window.removeEventListener("resize", onReflow);
+      window.removeEventListener("scroll", onReflow, true);
+    };
+  }, [anchorPicker, open, updatePickerPos]);
+
+  const pickerStyle: React.CSSProperties | undefined =
+    anchorPicker && pickerPos
+      ? {
+          position: "fixed",
+          top: pickerPos.top,
+          left: pickerPos.left,
+          width: pickerPos.width,
+          transform: "none",
+          maxHeight: "min(70vh, 480px)",
+          overflowY: "auto",
+        }
+      : undefined;
+
+  const picker = open ? (
+    <BlockInsertPicker onPick={onPick} style={pickerStyle} />
+  ) : null;
+
+  const portaledPicker =
+    open && anchorPicker && pickerPos && typeof document !== "undefined"
+      ? createPortal(
+          <div className="cins-editor-page picker-portal-root">
+            {picker}
+          </div>,
+          document.body,
+        )
+      : null;
+
   return (
     <div
       className={`add-zone${open ? " open" : ""}${starter ? " starter" : ""}`}
     >
       <button
+        ref={btnRef}
         type="button"
         className="add-btn"
         onClick={(e) => {
           e.stopPropagation();
-          onToggle(!open);
+          const next = !open;
+          onToggle(next);
+          if (next && anchorPicker) {
+            requestAnimationFrame(() => updatePickerPos());
+          }
         }}
         aria-label="Chèn block"
         title="Chèn block"
       >
         +
       </button>
-      {open ? (
-        <div
-          className="picker"
-          onClick={(e) => e.stopPropagation()}
-          role="menu"
-        >
-          <div className="picker-lbl">Chèn block</div>
-          <div className="picker-grid">
-            {BLOCK_TYPES.map((b) => (
-              <button
-                key={b.t}
-                type="button"
-                className="pick"
-                aria-label={b.desc ? `${b.name} — ${b.desc}` : b.name}
-                onClick={() => onPick(b.t)}
-              >
-                <span className="pic-ic" aria-hidden>
-                  {b.ico}
-                </span>
-                <span className="pic-t">{b.name}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      ) : null}
+      {anchorPicker ? portaledPicker : picker}
     </div>
   );
 }

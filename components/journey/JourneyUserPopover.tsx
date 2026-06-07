@@ -5,6 +5,8 @@ import { X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
+import "./journey-user-popover.css";
+
 type UserPreview = {
   slug: string;
   tenHienThi: string;
@@ -25,6 +27,7 @@ type Props = {
   slug?: string | null;
   fallbackName?: string | null;
   fallbackAvatarUrl?: string | null;
+  backdropZIndex?: number;
   children: React.ReactNode;
 };
 
@@ -32,6 +35,7 @@ export function JourneyUserPopover({
   slug,
   fallbackName,
   fallbackAvatarUrl,
+  backdropZIndex = 9500,
   children,
 }: Props) {
   const [open, setOpen] = useState(false);
@@ -106,6 +110,7 @@ export function JourneyUserPopover({
         <div
           className="j-user-popover-backdrop"
           role="presentation"
+          style={{ zIndex: backdropZIndex }}
           onClick={() => setOpen(false)}
         >
           <div
