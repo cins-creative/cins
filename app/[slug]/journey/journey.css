@@ -6343,6 +6343,73 @@ select.j-edit-input {
   overflow: hidden;
 }
 
+/* Vai trò đồng tác giả — khớp bài nghề */
+.j-nghe-role-trigger {
+  cursor: help;
+  border-bottom: 1px dotted transparent;
+  transition: border-color 0.12s, color 0.12s;
+}
+.j-nghe-role-trigger:hover,
+.j-nghe-role-trigger:focus-visible {
+  color: var(--cins-blue);
+  border-bottom-color: rgba(31, 116, 201, 0.45);
+  outline: none;
+}
+.j-nghe-role-tip {
+  width: min(300px, calc(100vw - 24px));
+  padding: 10px 0 0;
+  overflow: hidden;
+}
+.j-nghe-role-tip-media {
+  background: #fff;
+  border: none;
+}
+.j-nghe-role-tip-thumb {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  background: #fff;
+}
+.j-nghe-role-tip-body {
+  padding: 10px 12px 12px;
+}
+.j-nghe-role-tip-title {
+  display: block;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink-display);
+  line-height: 1.35;
+  margin-bottom: 6px;
+}
+.j-nghe-role-tip-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 10px;
+  min-height: 32px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(31, 116, 201, 0.22);
+  background: var(--cins-blue-soft, #eff6ff);
+  color: var(--cins-blue, #1f74c9);
+  font-size: 12px;
+  font-weight: 800;
+  text-decoration: none;
+  transition:
+    background 0.12s,
+    border-color 0.12s,
+    color 0.12s;
+}
+.j-nghe-role-tip-cta:hover {
+  background: var(--cins-blue, #1f74c9);
+  border-color: var(--cins-blue, #1f74c9);
+  color: #fff;
+}
+
 .preview {
   position: relative;
   width: 100%;
@@ -6831,6 +6898,12 @@ select.j-edit-input {
 .author-row-sub {
   color: var(--jcard-ink3);
   font-size: 11px;
+}
+.author-row-role {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .collapse-hint {
   display: none;

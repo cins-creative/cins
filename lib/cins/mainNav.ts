@@ -33,7 +33,7 @@ export const MAIN_NAV_ITEMS: MainNavItem[] = [
   {
     id: "gallery",
     href: "/#gallery",
-    label: "Gallery Portfolio",
+    label: "World Journey",
     tip: "2,400+ tác phẩm sinh viên các trường — tìm cảm hứng, phong cách và kỹ thuật",
     icon: "gallery",
     isActive: () => false,

@@ -21,6 +21,7 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
+import { AuthorRoleTooltip } from "@/components/journey/AuthorRoleTooltip";
 import { JourneyArticleTagLink } from "@/components/journey/JourneyArticleTagLink";
 import { JourneyAuthorRowFriendAction } from "@/components/journey/JourneyAuthorRowFriendAction";
 import { JourneyCardVideo } from "@/components/journey/JourneyCardVideo";
@@ -700,7 +701,9 @@ export function JourneyMilestoneCard({
                               >
                                 {c.name}
                               </span>
-                              {c.role ? <span className="author-row-role">{c.role}</span> : null}
+                              {c.role ? (
+                                <AuthorRoleTooltip role={c.role} />
+                              ) : null}
                             </span>
                           </span>
                         </JourneyUserPopover>

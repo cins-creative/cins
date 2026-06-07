@@ -1,9 +1,11 @@
 "use client";
 
 import { Search, UserPlus, X } from "lucide-react";
-import { useCallback, useEffect, useId, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
-import { loadAllArticlesForTagPicker } from "@/lib/editor/search-articles-action";
+import { CoAuthorRoleInput } from "@/components/editor/CoAuthorRoleInput";
+import { loadCoAuthorNgheRoleOptions } from "@/lib/editor/coauthor-role-action";
+import type { CoAuthorNgheRoleOption } from "@/lib/editor/coauthor-role-types";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import type { CoAuthorDraft } from "@/lib/social/types";
 
@@ -30,13 +32,12 @@ export function CoAuthorSection({
   onCollaboratorsChange,
   initialPickerOpen = false,
 }: Props) {
-  const roleListId = useId();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchUser[]>([]);
   const [hasMutual, setHasMutual] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(initialPickerOpen);
-  const [roleSuggestions, setRoleSuggestions] = useState<string[]>([]);
+  const [roleOptions, setRoleOptions] = useState<CoAuthorNgheRoleOption[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const search = useCallback(async (q: string) => {
@@ -70,18 +71,12 @@ export function CoAuthorSection({
 
   useEffect(() => {
     let cancelled = false;
-    void loadAllArticlesForTagPicker()
+    void loadCoAuthorNgheRoleOptions()
       .then((rows) => {
-        if (cancelled) return;
-        const suggestions = rows
-          .filter((row) => row.loai_bai_viet === "nghe")
-          .map((row) => row.tieu_de)
-          .filter(Boolean)
-          .slice(0, 80);
-        setRoleSuggestions([...new Set(suggestions)]);
+        if (!cancelled) setRoleOptions(rows);
       })
       .catch(() => {
-        if (!cancelled) setRoleSuggestions([]);
+        if (!cancelled) setRoleOptions([]);
       });
     return () => {
       cancelled = true;
@@ -147,14 +142,11 @@ export function CoAuthorSection({
                   <small>@{c.slug}</small>
                 </span>
               </span>
-              <input
-                type="text"
-                className="ed-coauthor-chip-role"
+              <CoAuthorRoleInput
                 value={c.vaiTro}
-                onChange={(e) => updateRole(c.idNguoiDung, e.target.value)}
-                placeholder="Tìm vị trí công việc"
-                aria-label={`Vị trí công việc của ${c.tenHienThi || c.slug}`}
-                list={roleListId}
+                onChange={(next) => updateRole(c.idNguoiDung, next)}
+                options={roleOptions}
+                ariaLabel={`Vị trí công việc của ${c.tenHienThi || c.slug}`}
               />
               <button
                 type="button"
@@ -263,11 +255,6 @@ export function CoAuthorSection({
           )}
         </div>
       ) : null}
-      <datalist id={roleListId}>
-        {roleSuggestions.map((role) => (
-          <option key={role} value={role} />
-        ))}
-      </datalist>
     </section>
   );
 }
