@@ -13,6 +13,8 @@ export type TagAggWork = {
   slug: string;
   tieuDe: string | null;
   coverId: string | null;
+  /** Preview từ cover hoặc block ảnh/video — ưu tiên hơn coverId thuần. */
+  previewSrc: string | null;
   ownerSlug: string;
   ownerName: string | null;
   width: number;

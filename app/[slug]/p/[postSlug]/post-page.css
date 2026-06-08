@@ -2030,8 +2030,9 @@ body.post-page-focus-mode {
 .cins-post-view .post-comments-v1 .post-comments-compose-input-wrap {
   position: relative;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   gap: 6px;
+  min-height: 30px;
   padding: 4px 10px 4px 12px;
 }
 .cins-post-view .post-comments-v1 .post-comments-compose-input-wrap .post-comments-textarea {
@@ -2105,6 +2106,10 @@ body.post-page-focus-mode {
   align-items: center;
   justify-content: center;
 }
+.cins-post-view .post-comments-v1 {
+  /* ~2/3 khung preview milestone (.preview max-height 360px) */
+  --comment-attach-max-h: calc(360px * 2 / 3);
+}
 .cins-post-view .post-comments-v1 .post-comments-attachments {
   display: flex;
   flex-wrap: wrap;
@@ -2112,18 +2117,35 @@ body.post-page-focus-mode {
   margin-top: 6px;
 }
 .cins-post-view .post-comments-v1 .post-comments-attachment {
-  display: block;
-  width: 72px;
-  height: 72px;
+  display: inline-block;
+  max-width: 100%;
+  max-height: var(--comment-attach-max-h);
   border-radius: 8px;
   overflow: hidden;
   background: var(--neutral-100, #f1f2f5);
+  line-height: 0;
 }
 .cins-post-view .post-comments-v1 .post-comments-attachment img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
   display: block;
+  width: auto;
+  height: auto;
+  max-width: min(100%, 280px);
+  max-height: var(--comment-attach-max-h);
+  object-fit: contain;
+}
+.cins-post-view
+  .post-comments-v1
+  .post-comments-attachments:not(.post-comments-attachments--1)
+  .post-comments-attachment {
+  max-height: calc(var(--comment-attach-max-h) * 2 / 3);
+}
+.cins-post-view
+  .post-comments-v1
+  .post-comments-attachments:not(.post-comments-attachments--1)
+  .post-comments-attachment
+  img {
+  max-width: min(100%, 160px);
+  max-height: calc(var(--comment-attach-max-h) * 2 / 3);
 }
 .cins-post-view .post-comments-v1 .post-comments-text-row {
   display: flex;
@@ -2285,16 +2307,16 @@ body.post-page-focus-mode {
 .cins-post-view .post-comments-v1 .post-comments-textarea {
   width: 100%;
   box-sizing: border-box;
-  min-height: 1.45em;
+  min-height: 30px;
   max-height: 120px;
   height: auto;
-  padding: 0;
+  padding: 5px 0;
   border: none;
   border-radius: 0;
   background: transparent;
   resize: none;
   overflow-y: hidden;
-  line-height: 1.45;
+  line-height: 20px;
   font-family: inherit;
   font-size: 14px;
   color: var(--ink-body);
@@ -2552,8 +2574,8 @@ body.post-page-focus-mode {
   }
   .cins-post-view .post-comments-v1 .post-comments-textarea {
     height: auto;
-    min-height: 1.45em;
-    padding: 0;
+    min-height: 30px;
+    padding: 5px 0;
     overflow-y: hidden;
   }
   .cins-post-view .post-comments-send {

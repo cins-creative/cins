@@ -4,6 +4,7 @@ export const PICKABLE_TAG_LOAI = [
   "phan_mem",
   "mon_hoc",
   "nganh_dao_tao",
+  "nghe",
 ] as const;
 
 export type PickableTagLoai = (typeof PICKABLE_TAG_LOAI)[number];
@@ -23,6 +24,7 @@ export function parsePickableTagLoai(
   if (raw === "phan_mem") return "phan_mem";
   if (raw === "mon_hoc") return "mon_hoc";
   if (raw === "nganh_dao_tao") return "nganh_dao_tao";
+  if (raw === "nghe") return "nghe";
   return "keyword";
 }
 

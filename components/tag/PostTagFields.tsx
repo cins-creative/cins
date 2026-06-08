@@ -2,6 +2,7 @@
 
 import { TagInput, type TagInputValue } from "@/components/tag/TagInput";
 import type { ArticleTagRef } from "@/lib/editor/article-tag";
+import { MAX_TAC_PHAM_TAGS } from "@/lib/tag/limits";
 import {
   PICKABLE_TAG_LOAI,
   parsePickableTagLoai,
@@ -53,13 +54,14 @@ function mergeFromInput(
   return [...other, ...fromInputValue(next, all)];
 }
 
-/** Một ô tag: khái niệm, phần mềm, môn học, ngành đào tạo. */
+/** Một ô tag: khái niệm, phần mềm, môn học, ngành đào tạo, nghề nghiệp. */
 export function PostTagFields({ tags, onChange, disabled }: Props) {
   return (
     <div className="post-tag-fields">
       <TagInput
         value={toInputValue(tags)}
         onChange={(next) => onChange(mergeFromInput(tags, next))}
+        maxTags={MAX_TAC_PHAM_TAGS}
         disabled={disabled}
       />
     </div>

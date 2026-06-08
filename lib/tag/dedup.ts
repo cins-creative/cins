@@ -21,9 +21,63 @@ export type TagDedupMatch = {
 type TagRow = {
   id: string;
   tieu_de: string;
+  tieu_de_viet?: string | null;
+  tieu_de_eng?: string | null;
   da_verify: boolean | null;
   loai_bai_viet: PickableTagLoai | string | null;
 };
+
+const SUGGEST_MENU_MAX = 12;
+const SUGGEST_FETCH_MAX = 40;
+
+function scoreTagTitles(
+  normalized: string,
+  row: Pick<TagRow, "tieu_de" | "tieu_de_viet" | "tieu_de_eng" | "da_verify">,
+): number {
+  const titles = [row.tieu_de, row.tieu_de_viet, row.tieu_de_eng]
+    .map((t) => (typeof t === "string" ? t.trim() : ""))
+    .filter(Boolean);
+  let best = 0;
+  for (const title of titles) {
+    best = Math.max(best, scoreFallbackMatch(normalized, title));
+  }
+  return best + (row.da_verify === true ? 0.15 : 0);
+}
+
+/** Xen kẽ gợi ý theo loại — tránh keyword chiếm hết menu. */
+function pickDiverseSuggestions(
+  rows: TagDedupMatch[],
+  scores: Map<string, number>,
+  max = SUGGEST_MENU_MAX,
+): TagDedupMatch[] {
+  const byLoai = new Map<PickableTagLoai, TagDedupMatch[]>();
+  const sorted = [...rows].sort(
+    (a, b) => (scores.get(b.id) ?? 0) - (scores.get(a.id) ?? 0),
+  );
+  for (const row of sorted) {
+    const bucket = byLoai.get(row.loai_bai_viet) ?? [];
+    bucket.push(row);
+    byLoai.set(row.loai_bai_viet, bucket);
+  }
+
+  const out: TagDedupMatch[] = [];
+  const seen = new Set<string>();
+  let round = 0;
+  while (out.length < max) {
+    let added = false;
+    for (const loai of PICKABLE_TAG_LOAI) {
+      const item = byLoai.get(loai)?.[round];
+      if (!item || seen.has(item.id)) continue;
+      seen.add(item.id);
+      out.push(item);
+      added = true;
+      if (out.length >= max) break;
+    }
+    if (!added) break;
+    round++;
+  }
+  return out;
+}
 
 async function loadTagMatch(id: string): Promise<TagDedupMatch | null> {
   const admin = createServiceRoleClient();
@@ -103,7 +157,7 @@ async function findExactAliasViaPostgres(
     const tagRows = await sql<{ id: string }[]>`
       SELECT id
       FROM article_bai_viet
-      WHERE loai_bai_viet IN ('keyword', 'phan_mem', 'mon_hoc', 'nganh_dao_tao')
+      WHERE loai_bai_viet IN ('keyword', 'phan_mem', 'mon_hoc', 'nganh_dao_tao', 'nghe')
         AND trang_thai_noi_dung = 'published'
         AND (
           lower(trim(tieu_de)) = ${normalized}
@@ -154,7 +208,7 @@ async function suggestFuzzyViaTrigram(
             similarity(lower(trim(coalesce(tieu_de_eng, ''))), ${normalized})
           ) AS sim
         FROM article_bai_viet
-        WHERE loai_bai_viet IN ('keyword', 'phan_mem', 'mon_hoc', 'nganh_dao_tao')
+        WHERE loai_bai_viet IN ('keyword', 'phan_mem', 'mon_hoc', 'nganh_dao_tao', 'nghe')
           AND trang_thai_noi_dung = 'published'
           AND (
             similarity(lower(trim(tieu_de)), ${normalized}) > 0.25
@@ -162,14 +216,16 @@ async function suggestFuzzyViaTrigram(
             OR similarity(lower(trim(coalesce(tieu_de_eng, ''))), ${normalized}) > 0.25
           )
         ORDER BY da_verify DESC, sim DESC
-        LIMIT 8
+        LIMIT ${SUGGEST_FETCH_MAX}
       `;
-      return rows.map((r) => ({
+      const matches = rows.map((r) => ({
         id: r.id,
         tieu_de: r.tieu_de,
         da_verify: r.da_verify === true,
         loai_bai_viet: parsePickableTagLoai(r.loai_bai_viet),
       }));
+      const scores = new Map(matches.map((m, i) => [m.id, rows[i]?.sim ?? 0]));
+      return pickDiverseSuggestions(matches, scores);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (
@@ -192,36 +248,35 @@ async function suggestFuzzyViaIlike(
 
   const { data } = await admin
     .from("article_bai_viet")
-    .select("id, tieu_de, da_verify, loai_bai_viet")
+    .select("id, tieu_de, tieu_de_viet, tieu_de_eng, da_verify, loai_bai_viet")
     .in("loai_bai_viet", [...PICKABLE_TAG_LOAI])
     .eq("trang_thai_noi_dung", "published")
     .or(
       `tieu_de.ilike.${pattern},tieu_de_viet.ilike.${pattern},tieu_de_eng.ilike.${pattern}`,
     )
-    .limit(40);
+    .limit(SUGGEST_FETCH_MAX);
 
   const rows = (data ?? []) as TagRow[];
-  return rows
-    .map((row) => ({
-      id: row.id,
-      tieu_de: row.tieu_de,
-      da_verify: row.da_verify === true,
-      loai_bai_viet: parsePickableTagLoai(row.loai_bai_viet),
-      score:
-        scoreFallbackMatch(normalized, row.tieu_de) +
-        (row.da_verify ? 0.15 : 0),
-    }))
-    .filter((r) => r.score > 0)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 8)
-    .map(
-      ({ id, tieu_de, da_verify, loai_bai_viet }): TagDedupMatch => ({
-        id,
-        tieu_de,
-        da_verify,
-        loai_bai_viet,
-      }),
-    );
+  const scored = rows
+    .map((row) => {
+      const score = scoreTagTitles(normalized, row);
+      return {
+        match: {
+          id: row.id,
+          tieu_de: row.tieu_de,
+          da_verify: row.da_verify === true,
+          loai_bai_viet: parsePickableTagLoai(row.loai_bai_viet),
+        },
+        score,
+      };
+    })
+    .filter((r) => r.score > 0);
+
+  const scores = new Map(scored.map((r) => [r.match.id, r.score]));
+  return pickDiverseSuggestions(
+    scored.map((r) => r.match),
+    scores,
+  );
 }
 
 async function suggestFuzzyViaAi(
@@ -236,7 +291,7 @@ async function suggestFuzzyViaAi(
     .join("\n");
 
   const prompt = `Người dùng muốn tag "${ten}" trong ngành sáng tạo Việt Nam.
-Danh sách tag (keyword/phan_mem/môn học/ngành) đã có:
+Danh sách tag (keyword/phan_mem/môn học/ngành/nghề) đã có:
 ${list}
 
 Chọn tối đa 5 tag trong danh sách có thể trùng nghĩa với tên người nhập (không phải tag mới).
@@ -301,7 +356,9 @@ async function loadAiCandidatePool(
           .select("id, tieu_de, da_verify, loai_bai_viet")
           .in("loai_bai_viet", [...PICKABLE_TAG_LOAI])
           .eq("trang_thai_noi_dung", "published")
-          .or(`tieu_de.ilike.${pattern},tieu_de_viet.ilike.${pattern}`)
+          .or(
+            `tieu_de.ilike.${pattern},tieu_de_viet.ilike.${pattern},tieu_de_eng.ilike.${pattern}`,
+          )
           .limit(20)
       : Promise.resolve({ data: [] }),
   ]);

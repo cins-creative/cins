@@ -118,15 +118,23 @@ export async function TagAggregationView({ article, sort }: Props) {
         ) : (
           <div className="tag-agg-grid">
             {works.map((w) => {
-              const href =
-                w.ownerSlug && w.slug
-                  ? `/${encodeURIComponent(w.ownerSlug)}/p/${encodeURIComponent(w.slug)}`
+              const postSlug = w.slug?.trim();
+              const hasPostHref =
+                Boolean(w.ownerSlug?.trim()) &&
+                Boolean(postSlug) &&
+                postSlug !== w.id;
+              const href = hasPostHref
+                ? `/${encodeURIComponent(w.ownerSlug)}/p/${encodeURIComponent(postSlug!)}`
+                : w.ownerSlug?.trim()
+                  ? `/${encodeURIComponent(w.ownerSlug)}/journey`
                   : "#";
-              const cover = tagWorkCoverSrc(w.coverId);
+              const cover = w.previewSrc ?? tagWorkCoverSrc(w.coverId);
               return (
                 <Link key={w.id} href={href} className="tag-agg-work">
                   <div
-                    className="tag-agg-work-thumb"
+                    className={
+                      "tag-agg-work-thumb" + (cover ? "" : " is-empty")
+                    }
                     style={{ aspectRatio: `${w.width} / ${w.height}` }}
                   >
                     {cover ? (
@@ -139,7 +147,11 @@ export async function TagAggregationView({ article, sort }: Props) {
                         loading="lazy"
                         unoptimized
                       />
-                    ) : null}
+                    ) : (
+                      <span className="tag-agg-work-thumb-label" aria-hidden>
+                        Bài viết
+                      </span>
+                    )}
                   </div>
                   <div className="tag-agg-work-meta">
                     <p className="tag-agg-work-title">

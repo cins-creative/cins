@@ -5,7 +5,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import { fetchArticleTagsForTacPham } from "@/lib/journey/article-tags-batch";
+import { MAX_TAC_PHAM_TAGS } from "@/lib/tag/limits";
 import { revalidateTaggedArticlePages } from "@/lib/tag/revalidate-tag-pages";
+
+const TAG_SYNC_COT_MOC_CHE_DO = new Set(["public", "feature", "cong_dong"]);
 
 function sanitizeTagIds(tags: ReadonlyArray<ArticleTagRef>): string[] {
   const seen = new Set<string>();
@@ -16,6 +19,68 @@ function sanitizeTagIds(tags: ReadonlyArray<ArticleTagRef>): string[] {
   return Array.from(seen);
 }
 
+async function loadPublicCotMocIdsForTacPham(
+  admin: SupabaseClient,
+  tacPhamId: string,
+): Promise<string[]> {
+  const { data: rows } = await admin
+    .from("content_tac_pham_thuoc_moc")
+    .select("id_cot_moc, content_cot_moc:content_cot_moc!inner(che_do_hien_thi)")
+    .eq("id_tac_pham", tacPhamId);
+
+  return (rows ?? [])
+    .filter((row) =>
+      TAG_SYNC_COT_MOC_CHE_DO.has(
+        String(
+          (row.content_cot_moc as { che_do_hien_thi?: string } | null)
+            ?.che_do_hien_thi ?? "",
+        ),
+      ),
+    )
+    .map((row) => row.id_cot_moc as string)
+    .filter(Boolean);
+}
+
+/** Đồng bộ `article_gan_cot_moc` — trang aggregation đọc cả junction này. */
+async function syncCotMocArticleTags(
+  admin: SupabaseClient,
+  tacPhamId: string,
+  addedTagIds: string[],
+  removedTagIds: string[],
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (addedTagIds.length === 0 && removedTagIds.length === 0) {
+    return { ok: true };
+  }
+
+  const mocIds = await loadPublicCotMocIdsForTacPham(admin, tacPhamId);
+  if (mocIds.length === 0) return { ok: true };
+
+  if (addedTagIds.length > 0) {
+    const rows = addedTagIds.flatMap((id_bai_viet) =>
+      mocIds.map((id_cot_moc) => ({ id_bai_viet, id_cot_moc })),
+    );
+    const { error } = await admin
+      .from("article_gan_cot_moc")
+      .upsert(rows, { onConflict: "id_bai_viet,id_cot_moc" });
+    if (error) {
+      return { ok: false, error: "Không gắn tag lên cột mốc." };
+    }
+  }
+
+  if (removedTagIds.length > 0) {
+    const { error } = await admin
+      .from("article_gan_cot_moc")
+      .delete()
+      .in("id_bai_viet", removedTagIds)
+      .in("id_cot_moc", mocIds);
+    if (error) {
+      return { ok: false, error: "Không gỡ tag khỏi cột mốc." };
+    }
+  }
+
+  return { ok: true };
+}
+
 export async function syncTacPhamArticleTags(
   admin: SupabaseClient,
   tacPhamId: string,
@@ -23,6 +88,12 @@ export async function syncTacPhamArticleTags(
   ownerSlug: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const newTagIds = sanitizeTagIds(newTags);
+  if (newTagIds.length > MAX_TAC_PHAM_TAGS) {
+    return {
+      ok: false,
+      error: `Tối đa ${MAX_TAC_PHAM_TAGS} tag trên một bài viết.`,
+    };
+  }
   const newSet = new Set(newTagIds);
 
   const { data: existingLinks, error: readErr } = await admin
@@ -65,6 +136,16 @@ export async function syncTacPhamArticleTags(
     if (rmErr) {
       return { ok: false, error: "Không xoá được tag." };
     }
+  }
+
+  const cotMocSync = await syncCotMocArticleTags(
+    admin,
+    tacPhamId,
+    toAdd,
+    toRemove,
+  );
+  if (!cotMocSync.ok) {
+    return cotMocSync;
   }
 
   revalidateTaggedArticlePages(newTags);

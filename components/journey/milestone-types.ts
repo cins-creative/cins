@@ -186,6 +186,12 @@ export type MilestoneItem = {
   /** Cột mốc đăng vào feed cộng đồng (`che_do_hien_thi=cong_dong`). */
   congDongOrg?: MilestoneCongDongOrg | null;
 
+  /** Trang entity — chủ cột mốc khi aggregate nhiều Journey. */
+  lensOwnerId?: string | null;
+  lensOwnerSlug?: string | null;
+  lensOwnerName?: string | null;
+  lensOwnerAvatarUrl?: string | null;
+
   /** Media tối đa 3 thumbnail trên grid (single/double/triple). */
   media?: MilestoneMediaItem[];
 

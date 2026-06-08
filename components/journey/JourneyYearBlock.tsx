@@ -40,6 +40,8 @@ type Props = {
    * dưới milestone mới nhất, dễ thấy mà không đẩy nội dung cũ xuống.
    */
   afterFirstSlot?: ReactNode;
+  /** Trang entity — mỗi card dùng chủ cột mốc riêng (`lensOwner*`). */
+  entityLens?: boolean;
 };
 
 /**
@@ -64,6 +66,7 @@ export function JourneyYearBlock({
   onOpenComments,
   onCloseExpand,
   afterFirstSlot,
+  entityLens = false,
 }: Props) {
   /* Year header (label "2026 · Năm hiện tại · 1 mốc") đã bỏ theo brief mới
      — header bar phía trên timeline đã cover thông tin năm hiện tại, đỡ
@@ -75,24 +78,39 @@ export function JourneyYearBlock({
   return (
     <section className="j-year-block" data-year={year}>
       {milestones.map((m, idx) => {
-        const expandKey = timelineExpandKey(m, ownerSlug ?? "");
+        const cardCtx = resolveEntityCardContext({
+          milestone: m,
+          entityLens,
+          isOwner,
+          ownerSlug,
+          ownerProfileId,
+          authorAvatarUrl,
+          authorName,
+          viewerProfileId,
+        });
+        const expandKey = timelineExpandKey(m, cardCtx.keyOwnerSlug);
         const isActive = inlineExpand?.key === expandKey;
         return (
           <Fragment key={m.id}>
             <JourneyMilestoneCard
               milestone={m}
-              isOwner={isOwner}
-              ownerSlug={ownerSlug}
-              ownerProfileId={ownerProfileId}
+              isOwner={cardCtx.isOwner}
+              ownerSlug={cardCtx.ownerSlug}
+              ownerProfileId={cardCtx.ownerProfileId}
               viewerProfileId={viewerProfileId}
-              authorAvatarUrl={authorAvatarUrl}
-              authorName={authorName}
+              authorAvatarUrl={cardCtx.authorAvatarUrl}
+              authorName={cardCtx.authorName}
+              entityLens={entityLens}
               inlineExpand={
                 onTogglePost && onOpenComments && onCloseExpand
                   ? {
                       showContent: isActive && Boolean(inlineExpand?.showContent),
                       showComments: isActive && Boolean(inlineExpand?.showComments),
-                      postOwnerSlug: m.postOwnerSlug ?? ownerSlug ?? "",
+                      postOwnerSlug:
+                        m.postOwnerSlug ??
+                        m.lensOwnerSlug ??
+                        cardCtx.ownerSlug ??
+                        "",
                       onToggleContent: () => onTogglePost(m),
                       onOpenComments: () => onOpenComments(m),
                       onClose: onCloseExpand,
@@ -106,6 +124,52 @@ export function JourneyYearBlock({
       })}
     </section>
   );
+}
+
+function resolveEntityCardContext(params: {
+  milestone: MilestoneItem;
+  entityLens: boolean;
+  isOwner: boolean;
+  ownerSlug?: string;
+  ownerProfileId?: string;
+  authorAvatarUrl?: string | null;
+  authorName?: string | null;
+  viewerProfileId: string | null;
+}) {
+  const {
+    milestone: m,
+    entityLens,
+    isOwner,
+    ownerSlug,
+    ownerProfileId,
+    authorAvatarUrl,
+    authorName,
+    viewerProfileId,
+  } = params;
+
+  if (!entityLens) {
+    return {
+      isOwner,
+      ownerSlug,
+      ownerProfileId,
+      authorAvatarUrl,
+      authorName,
+      keyOwnerSlug: ownerSlug ?? "",
+    };
+  }
+
+  const slug = m.lensOwnerSlug ?? m.postOwnerSlug ?? "";
+  return {
+    isOwner:
+      viewerProfileId != null &&
+      m.lensOwnerId != null &&
+      viewerProfileId === m.lensOwnerId,
+    ownerSlug: slug,
+    ownerProfileId: m.lensOwnerId ?? undefined,
+    authorAvatarUrl: m.lensOwnerAvatarUrl ?? null,
+    authorName: m.lensOwnerName ?? null,
+    keyOwnerSlug: slug,
+  };
 }
 
 export function timelineExpandKey(

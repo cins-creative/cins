@@ -33,6 +33,8 @@ import { JourneyMilestoneOwnerMenu } from "@/components/journey/JourneyMilestone
 import { JourneyOrgPopover } from "@/components/journey/JourneyOrgPopover";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
 import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
+import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import type {
   CoAuthorCredit,
   MilestoneAttribution,
@@ -69,6 +71,8 @@ type Props = {
    */
   authorAvatarUrl?: string | null;
   authorName?: string | null;
+  /** Trang entity — mỗi card từ tác giả khác nhau, luôn hiện người đăng. */
+  entityLens?: boolean;
   /** Mở rộng inline — chỉ bài viết (nội dung / bình luận tách riêng). */
   inlineExpand?: {
     showContent: boolean;
@@ -225,6 +229,7 @@ export function JourneyMilestoneCard({
   viewerProfileId = null,
   authorAvatarUrl,
   authorName,
+  entityLens = false,
   inlineExpand,
 }: Props) {
   const {
@@ -258,6 +263,19 @@ export function JourneyMilestoneCard({
     congDongOrg,
     personalFilterSlugs = [],
   } = milestone;
+
+  const articleTagsKey = articleTags.map((t) => t.id).join("\0");
+  const [liveArticleTags, setLiveArticleTags] = useState<ArticleTagRef[]>(() => [
+    ...articleTags,
+  ]);
+
+  useEffect(() => {
+    setLiveArticleTags([...articleTags]);
+  }, [articleTagsKey]);
+
+  const handleArticleTagsSaved = useCallback((tags: ArticleTagRef[]) => {
+    setLiveArticleTags(tags);
+  }, []);
 
   const displayDate = `${String(day).padStart(2, "0")}-${String(month).padStart(2, "0")}-${year}`;
 
@@ -372,8 +390,12 @@ export function JourneyMilestoneCard({
    * để giữ ngữ cảnh loại cột mốc. */
   const showAuthorBadge =
     (variant === "self" || isBookmarkMilestone) &&
-    Boolean(authorName || authorAvatarUrl) &&
+    Boolean(authorName || authorAvatarUrl || ownerSlug) &&
     !isCongDongPost;
+  const showEntityPoster =
+    entityLens &&
+    !canManage &&
+    Boolean(authorName || authorAvatarUrl || ownerSlug);
 
   function shouldIgnoreExpandTrigger(target: Element | null): boolean {
     return Boolean(
@@ -519,7 +541,8 @@ export function JourneyMilestoneCard({
       {canManageArticleTags && tacPhamId ? (
         <JourneyArticleTagManager
           tacPhamId={tacPhamId}
-          initialTags={articleTags}
+          initialTags={liveArticleTags}
+          onTagsSaved={handleArticleTagsSaved}
         />
       ) : null}
       {canShowCoAuthorAction && tacPhamId && !isCongDongPost ? (
@@ -714,6 +737,76 @@ export function JourneyMilestoneCard({
                 className="jcard-date-menu"
               />
             </div>
+          ) : showEntityPoster ? (
+            <div
+              className={
+                "jcard-datebar jcard-datebar--entity-lens" +
+                (isCongDongPost && congDongOrg ? " jcard-datebar--cong-dong" : "")
+              }
+            >
+              {isCongDongPost && congDongOrg ? (
+                <CongDongSourceChip
+                  org={congDongOrg}
+                  dateLabel={displayDate}
+                  posterName={authorName}
+                />
+              ) : (
+                <JourneyUserPopover
+                  slug={ownerSlug ?? ""}
+                  fallbackName={authorName ?? ownerSlug ?? "Người dùng"}
+                  fallbackAvatarUrl={authorAvatarUrl}
+                >
+                  <span className="org-chip">
+                    <span className="org-logo" aria-hidden>
+                      {authorAvatarUrl ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img src={authorAvatarUrl} alt="" />
+                      ) : (
+                        getNameInitials(authorName ?? null, ownerSlug ?? "C")
+                      )}
+                    </span>
+                    <span className="org-copy">
+                      <strong>
+                        {authorName || (ownerSlug ? `@${ownerSlug}` : "Người dùng")}
+                      </strong>
+                      <small>{displayDate}</small>
+                    </span>
+                  </span>
+                </JourneyUserPopover>
+              )}
+              <span className="badge-row">
+                {isBookmarkMilestone ? (
+                  <span className="ctx-badge j-type-bookmark">
+                    <Bookmark size={11} strokeWidth={1.8} aria-hidden />
+                    {TYPE_LABEL.bookmark}
+                  </span>
+                ) : isCongDongPost ? (
+                  <span className="ctx-badge j-vis-cong-dong">
+                    <Users size={11} strokeWidth={1.8} aria-hidden />
+                    Cộng đồng
+                  </span>
+                ) : (
+                  <span className={`ctx-badge ${TYPE_CLASS[type]}`}>
+                    <MilestoneTypeBadgeContent type={type} />
+                  </span>
+                )}
+                {vis && !isCongDongPost ? (
+                  <span
+                    className={`ctx-badge j-vis-${visibility ?? "public"}`}
+                    title={vis.label}
+                    aria-label={vis.label}
+                  >
+                    <vis.Icon
+                      size={11}
+                      strokeWidth={1.8}
+                      aria-hidden
+                      {...(visibility === "feature" ? { fill: "currentColor" } : {})}
+                    />
+                    {visibility === "feature" ? "Nổi bật" : vis.label}
+                  </span>
+                ) : null}
+              </span>
+            </div>
           ) : variant === "self" || isBookmarkMilestone ? (
             <div className="jcard-datebar jcard-datebar--guest">
               <span className="org-copy">
@@ -754,7 +847,7 @@ export function JourneyMilestoneCard({
             body={body}
             noiDungBlocks={noiDungBlocks}
             preview={preview}
-            articleTags={articleTags}
+            articleTags={liveArticleTags}
             expandTrigger={
               isArticle && inlineExpand && !isContentOpen
                 ? {
@@ -795,7 +888,7 @@ export function JourneyMilestoneCard({
                 }
                 inlineSkip={{
                   byline: true,
-                  tags: articleTags.length > 0,
+                  tags: liveArticleTags.length > 0,
                   contributors: showAuthorsStrip,
                 }}
               />
@@ -846,9 +939,12 @@ function AuthorAvatar({
 function CongDongSourceChip({
   org,
   dateLabel,
+  posterName,
 }: {
   org: MilestoneCongDongOrg;
   dateLabel: string;
+  /** Trang entity — tên người đăng bài trong nhóm. */
+  posterName?: string | null;
 }) {
   const initial = (org.initial || org.name.charAt(0) || "?").toUpperCase();
 
@@ -871,13 +967,27 @@ function CongDongSourceChip({
         </span>
         <span className="cd-source-copy">
           <strong>{org.name}</strong>
+          {posterName?.trim() ? (
+            <small className="cd-source-poster">
+              đăng bởi {posterName.trim()}
+              <span className="cd-source-sep" aria-hidden>
+                {" "}
+                ·{" "}
+              </span>
+              <time>{dateLabel}</time>
+            </small>
+          ) : null}
           <small className="cd-source-meta">
             <Users size={11} strokeWidth={2} aria-hidden />
             <span>Cộng đồng</span>
-            <span className="cd-source-sep" aria-hidden>
-              ·
-            </span>
-            <time>{dateLabel}</time>
+            {!posterName?.trim() ? (
+              <>
+                <span className="cd-source-sep" aria-hidden>
+                  ·
+                </span>
+                <time>{dateLabel}</time>
+              </>
+            ) : null}
           </small>
         </span>
       </span>

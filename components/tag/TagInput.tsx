@@ -55,12 +55,15 @@ const LOAI_FILTER_OPTIONS: { id: LoaiFilter; label: string }[] = [
   { id: "phan_mem", label: "Phần mềm" },
   { id: "mon_hoc", label: "Môn học" },
   { id: "nganh_dao_tao", label: "Ngành" },
+  { id: "nghe", label: "Nghề nghiệp" },
 ];
 
 type Props = {
   value: TagInputValue[];
   onChange: (tags: { id: string; tieu_de: string; loai_bai_viet: TagLoai }[]) => void;
   mode?: "multi" | "single";
+  /** Giới hạn số tag (chỉ `mode="multi"`). */
+  maxTags?: number;
   placeholder?: string;
   disabled?: boolean;
   className?: string;
@@ -95,7 +98,8 @@ export function TagInput({
   value,
   onChange,
   mode = "multi",
-  placeholder = "Gõ khái niệm, phần mềm, môn học, ngành…",
+  maxTags,
+  placeholder = "Gõ khái niệm, phần mềm, môn học, ngành, nghề nghiệp…",
   disabled = false,
   className,
 }: Props) {
@@ -119,6 +123,8 @@ export function TagInput({
   valueRef.current = value;
 
   const selectedIds = useMemo(() => new Set(value.map((t) => t.id)), [value]);
+  const atMax =
+    mode === "multi" && maxTags != null && value.length >= maxTags;
 
   const trimmed = query.trim();
 
@@ -195,6 +201,12 @@ export function TagInput({
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (atMax) {
+      setExactMatch(null);
+      setSuggestions([]);
+      setOpen(false);
+      return;
+    }
     if (!trimmed) {
       setExactMatch(null);
       setSuggestions([]);
@@ -207,7 +219,7 @@ export function TagInput({
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [trimmed, runDedup]);
+  }, [atMax, trimmed, runDedup]);
 
   useEffect(() => {
     setMounted(true);
@@ -276,6 +288,13 @@ export function TagInput({
   const addTag = useCallback(
     (tag: TagInputValue) => {
       const current = valueRef.current;
+      if (
+        mode === "multi" &&
+        maxTags != null &&
+        current.length >= maxTags
+      ) {
+        return;
+      }
       if (current.some((t) => t.id === tag.id)) return;
       const next =
         mode === "single"
@@ -287,7 +306,7 @@ export function TagInput({
       setExactMatch(null);
       setSuggestions([]);
     },
-    [emitChange, mode],
+    [emitChange, maxTags, mode],
   );
 
   const createTag = useCallback(
@@ -513,7 +532,7 @@ export function TagInput({
             ) : null}
           </span>
         ))}
-        {!disabled && (mode === "multi" || value.length === 0) ? (
+        {!disabled && !atMax && (mode === "multi" || value.length === 0) ? (
           <input
             ref={inputRef}
             className="tag-input-text"
@@ -521,13 +540,27 @@ export function TagInput({
             value={query}
             placeholder={value.length === 0 ? placeholder : ""}
             onChange={(e) => setQuery(e.target.value)}
-            onFocus={() => trimmed && setOpen(true)}
+            onFocus={() => {
+              if (atMax) return;
+              if (trimmed) setOpen(true);
+            }}
             onKeyDown={onKeyDown}
             aria-autocomplete="list"
             aria-controls={listId}
           />
         ) : null}
       </div>
+
+      {maxTags != null && mode === "multi" ? (
+        <p
+          className={`tag-input-limit-hint${atMax ? " is-at-max" : ""}`}
+          aria-live="polite"
+        >
+          {atMax
+            ? `Đã đạt giới hạn tối đa ${maxTags} tag.`
+            : `Tối đa ${maxTags} tag.`}
+        </p>
+      ) : null}
 
       {mounted && menuPanel ? createPortal(menuPanel, document.body) : null}
     </div>

@@ -36,6 +36,22 @@ export async function resolveHubArticleImages(row: {
   return { thumb_url: hubSrc, cover_url: hubSrc };
 }
 
+/** Chỉ cột `thumbnail` — không fallback `cover_id`. */
+export function resolveArticleThumbnailOnlySync(
+  thumbnail: string | null | undefined,
+): string | null {
+  const thumb = normalizeArticleThumbnailValue(thumbnail);
+  if (!thumb) return null;
+  const sync =
+    clientUrlFromThumbnailValue(thumb) ??
+    getCoverUrl(thumb, "thumbnail") ??
+    getCoverUrl(thumb, "public");
+  if (!sync) return null;
+  return sync.includes("imagedelivery.net")
+    ? cfDeliveryUrlWithVariant(sync, "thumbnail")
+    : sync;
+}
+
 /** Sync URL cho list/card — tránh N async CF API trên hub/detail. */
 export function resolveHubArticleThumbSync(row: {
   thumbnail?: string | null;

@@ -6,7 +6,7 @@ import type { TagAggSort } from "@/lib/tag/aggregation-types";
 
 const OPTIONS: { value: TagAggSort; label: string }[] = [
   { value: "moi_nhat", label: "Mới nhất" },
-  { value: "nhieu_tuong_tac", label: "Nhiều tương tác" },
+  { value: "nhieu_tuong_tac", label: "Phổ biến" },
   { value: "a_z", label: "A → Z" },
 ];
 

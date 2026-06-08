@@ -367,6 +367,20 @@
   object-fit: cover;
 }
 
+.tag-agg-work-thumb.is-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(145deg, #f8fafc 0%, #e2e8f0 100%);
+}
+
+.tag-agg-work-thumb-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-muted, #64748b);
+  letter-spacing: 0.02em;
+}
+
 .tag-agg-work-meta {
   padding: 10px 10px 12px;
 }
@@ -395,4 +409,16 @@
 
 .post-tag-fields {
   margin-bottom: 18px;
+}
+
+.tag-input-limit-hint {
+  margin: 6px 0 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-muted, #64748b);
+  line-height: 1.35;
+}
+
+.tag-input-limit-hint.is-at-max {
+  color: var(--cins-orange-dark, #b45309);
 }
