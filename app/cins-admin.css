@@ -1402,6 +1402,34 @@
   pointer-events: none;
 }
 
+/* Tiptap trong slideover sửa bài — căn lề, toolbar không tràn */
+.cins-admin .admin-edit-form .article-draft-tiptap {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.cins-admin .article-draft-tiptap__toolbar {
+  position: static;
+  top: auto;
+  z-index: 1;
+  max-width: 100%;
+}
+
+.cins-admin .article-draft-tiptap__toolbar-row {
+  align-items: center;
+  width: 100%;
+}
+
+.cins-admin .article-draft-tiptap__btn {
+  flex-shrink: 0;
+}
+
+.cins-admin .article-draft-tiptap__editor-wrap,
+.cins-admin .article-draft-tiptap__html {
+  max-width: 100%;
+}
+
 .cins-admin .slideover {
   width: min(720px, 100vw);
 }

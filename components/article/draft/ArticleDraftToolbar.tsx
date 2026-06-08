@@ -841,7 +841,7 @@ function DefaultToolbar({
         >
           ↷
         </TbBtn>
-        <span className="article-draft-tiptap__toolbar-label" style={{ marginLeft: "auto" }}>
+        <span className="article-draft-tiptap__toolbar-label article-draft-tiptap__toolbar-label--end">
           Paste / kéo thả ảnh
         </span>
       </div>

@@ -493,35 +493,11 @@
   border-bottom: none;
   margin-bottom: 0;
   padding: 20px 22px 22px;
-  padding-right: 52px;
   grid-template-columns: unset;
 }
 
 .arv2-nghe .nghe-hero-panel > .l1-hero[data-nghe-draft-open="true"] {
-  padding-right: 96px;
-}
-
-/* Cụm nút draft — góc phải hero; khi mở: cột dọc (Lưu / Hủy / thu gọn) */
-.arv2-nghe .nghe-hero-panel .nghe-hero-draft-toolbar {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  z-index: 50;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  flex-wrap: nowrap;
-  gap: 8px;
-  max-width: calc(100% - 32px);
-}
-
-.arv2-nghe .nghe-hero-panel .nghe-hero-draft-toolbar[data-nghe-draft-toolbar="stack"] {
-  flex-direction: column;
-  align-items: stretch;
-  gap: 6px;
-  width: auto;
-  min-width: 76px;
-  max-width: 104px;
+  padding-top: 20px;
 }
 
 .arv2-nghe .nghe-hero-panel .nghe-hero-draft-edit {
@@ -673,6 +649,14 @@
 .arv2-nghe .nghe-lead-panel {
   margin: 0 0 28px;
   padding: 20px 22px 22px;
+}
+
+.arv2-nghe .nghe-lead-panel:has(.article-draft-tiptap--nghe-lead) {
+  padding: 16px 16px 18px;
+}
+
+.arv2-nghe .nghe-lead-panel .article-draft-tiptap--nghe-lead {
+  border-color: var(--border);
 }
 
 .arv2-nghe .nghe-lead-panel .nghe-lead-video {
@@ -1704,16 +1688,6 @@
   .arv2-nghe .nghe-hero-panel > .l1-hero {
     padding: 18px 16px 20px;
     align-items: start;
-  }
-
-  .arv2-nghe .nghe-hero-panel > .l1-hero[data-nghe-draft-open="true"] {
-    padding-right: 16px;
-    padding-top: 12px;
-  }
-
-  .arv2-nghe .nghe-hero-panel .nghe-hero-draft-toolbar[data-nghe-draft-toolbar="stack"] {
-    top: 12px;
-    right: 12px;
   }
 
   .arv2-nghe .nghe-lead-panel {

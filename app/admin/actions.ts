@@ -37,6 +37,7 @@ import { uploadToCloudflareImages } from "@/lib/cloudflare/upload-image";
 import { hasAdminDbUrl } from "@/lib/admin/db-url";
 import { runAdminSql, type AdminSqlMode, type AdminSqlResult } from "@/lib/admin/sql-runner";
 import { revalidatePath } from "next/cache";
+import { getCurrentUserIsCinsAdmin } from "@/lib/auth/cins-admin-server";
 import { createServiceRoleClient, hasServiceRoleEnv } from "@/lib/supabase/service-role";
 
 /* Admin server actions chỉ cần service-role key trên server. Trang
@@ -126,6 +127,9 @@ export async function adminSyncArticleOutgoingLienQuan(
 export async function adminSaveArticle(formData: FormData): Promise<{ ok: boolean; message?: string }> {
   const gate = await requireDraftTools();
   if (!gate.ok) return { ok: false, message: gate.message };
+  if (!(await getCurrentUserIsCinsAdmin())) {
+    return { ok: false, message: "Chỉ admin CINs được lưu bài." };
+  }
 
   const id = String(formData.get("id") ?? "").trim();
   const slug = String(formData.get("slug") ?? "").trim();

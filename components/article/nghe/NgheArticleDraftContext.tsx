@@ -41,6 +41,8 @@ export type NgheArticleDraftContextValue = {
   setTrangThai: (v: string) => void;
   leadPreview: string | null;
   persistEnabled: boolean;
+  /** Chỉ admin CINs — gate UI nút sửa / form. */
+  canEdit: boolean;
   saving: boolean;
   saveMsg: { type: "ok" | "err"; text: string } | null;
   save: () => Promise<void>;
@@ -61,6 +63,7 @@ type ProviderProps = {
   article: ArticleBaiViet;
   relatedJobsLienQuan: RelatedJobLienQuanRow[];
   persistEnabled?: boolean;
+  canEdit?: boolean;
   /** Đồng bộ sau `router.refresh()` — ví dụ `${article.id}-${article.cap_nhat_luc}` */
   resetKey: string;
 };
@@ -70,6 +73,7 @@ export function NgheArticleDraftProvider({
   article,
   relatedJobsLienQuan,
   persistEnabled = true,
+  canEdit = true,
   resetKey,
 }: ProviderProps) {
   const router = useRouter();
@@ -114,8 +118,11 @@ export function NgheArticleDraftProvider({
   }, [resetKey, resetDraftFromArticle]);
 
   const leadPreview = useMemo(
-    () => buildNgheLeadSourceFromNoiDung(noi_dung, relatedJobsLienQuan),
-    [noi_dung, relatedJobsLienQuan],
+    () =>
+      open
+        ? null
+        : buildNgheLeadSourceFromNoiDung(noi_dung, relatedJobsLienQuan),
+    [open, noi_dung, relatedJobsLienQuan],
   );
 
   const openPanel = useCallback(() => setOpen(true), []);
@@ -190,6 +197,7 @@ export function NgheArticleDraftProvider({
       setTrangThai,
       leadPreview,
       persistEnabled,
+      canEdit,
       saving,
       saveMsg,
       save,
@@ -210,6 +218,7 @@ export function NgheArticleDraftProvider({
       trang_thai,
       leadPreview,
       persistEnabled,
+      canEdit,
       saving,
       saveMsg,
       save,

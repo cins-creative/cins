@@ -17,7 +17,7 @@ type ArticleNgheViewProps = {
   lienQuan?: ArticleCard[];
   /** `LIEN_QUAN` → bài `nghe` — chèn vào `data-dynamic="related-jobs"` trong HTML `noi_dung`. */
   relatedJobsLienQuan?: RelatedJobLienQuanRow[];
-  /** Bật UI sửa thử (nút hero + form). */
+  /** Bật UI sửa inline (admin CINs — nút hero + form). */
   showDraftBar?: boolean;
   /** Cho phép ghi DB — thiếu key thì chỉ xem/chỉnh local, nút Lưu tắt. */
   draftPersistEnabled?: boolean;
@@ -54,6 +54,7 @@ export function ArticleNgheView({
           article={article}
           relatedJobsLienQuan={relatedJobsLienQuan}
           persistEnabled={draftPersistEnabled}
+          canEdit
           resetKey={`${article.id}-${article.cap_nhat_luc}`}
         >
           <NgheLayoutStatic

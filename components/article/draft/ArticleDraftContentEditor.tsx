@@ -28,9 +28,50 @@ type Props = {
   variant?: "default" | "nghe-lead-inline" | "truong-inline" | "nganh-admin";
   /** Ẩn gợi ý dài phía trên toolbar. */
   hideHint?: boolean;
+  /**
+   * Chỉ textarea HTML — không khởi tạo Tiptap.
+   * Dùng cho bài nghề (HTML lớn) để tránh đơ UI khi mở chế độ sửa.
+   */
+  htmlOnly?: boolean;
   /** Mock heading "01 — Ngành … là gì?" khi `variant="nganh-admin"`. */
   nganhTitleVi?: string;
 };
+
+/** Editor HTML thuần — không mount ProseMirror/Tiptap. */
+function ArticleDraftHtmlOnly({
+  value,
+  onChange,
+  variant = "default",
+  hideHint = false,
+}: Pick<Props, "value" | "onChange" | "variant" | "hideHint">) {
+  return (
+    <div
+      className={clsx(
+        "article-draft-tiptap",
+        variant === "nghe-lead-inline" && "article-draft-tiptap--nghe-lead",
+        variant === "truong-inline" && "article-draft-tiptap--truong-inline",
+        variant === "nganh-admin" && "article-draft-tiptap--nganh-admin",
+      )}
+    >
+      {!hideHint && variant !== "truong-inline" ? (
+        <p className="article-draft-tiptap__hint">
+          Chỉnh <code>noi_dung</code> dạng HTML — giữ nguyên class và cấu trúc site (
+          <code>article-rich-content</code>, <code>arc-*</code>, …).
+        </p>
+      ) : null}
+      <textarea
+        className="article-draft-tiptap__html"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        spellCheck={false}
+      />
+      <div className="article-draft-tiptap__html-foot">
+        Tab HTML đồng bộ trực tiếp với trường <code>noi_dung</code> lưu DB — giữ nguyên class và cấu trúc
+        site dùng (<code>article-rich-content</code>, <code>arc-*</code>, …).
+      </div>
+    </div>
+  );
+}
 
 function NganhEditorStage({
   titleVi,
@@ -56,13 +97,203 @@ function NganhEditorStage({
 }
 
 function proseMirrorClass(variant: Props["variant"]): string {
-  if (variant === "nghe-lead-inline") {
-    return "nghe-lead-rich article-rich-content article-content-html";
-  }
   if (variant === "nganh-admin") {
     return "nct-prose body article-rich-content article-content-html";
   }
   return "article-rich-content article-content-html";
+}
+
+type VisualPaneProps = {
+  value: string;
+  onChange: (html: string) => void;
+  variant: NonNullable<Props["variant"]>;
+  nganhTitleVi?: string;
+  reportImagePaste: ImagePasteReport;
+  onEditorReady: (editor: Editor | null) => void;
+};
+
+/** Mount Tiptap chỉ khi tab Soạn thảo — tránh parse HTML lớn khi mở edit nghề. */
+function ArticleDraftVisualPane({
+  value,
+  onChange,
+  variant,
+  nganhTitleVi,
+  reportImagePaste,
+  onEditorReady,
+}: VisualPaneProps) {
+  const editorRef = useRef<Editor | null>(null);
+  const lastEditorHtml = useRef<string | null>(null);
+  const valueRef = useRef(value);
+  valueRef.current = value;
+  const hydrateGenRef = useRef(0);
+  const deferHeavyHydration = variant === "nghe-lead-inline";
+  const [contentParsing, setContentParsing] = useState(false);
+
+  const scheduleHeavySetContent = useCallback((ed: Editor, html: string) => {
+    const gen = ++hydrateGenRef.current;
+    setContentParsing(true);
+    const run = () => {
+      if (gen !== hydrateGenRef.current || ed.isDestroyed) {
+        setContentParsing(false);
+        return;
+      }
+      try {
+        lastEditorHtml.current = html;
+        ed.commands.setContent(html, { emitUpdate: false });
+      } catch {
+        /* HTML lỗi — giữ editor trống, user sửa tab HTML */
+      } finally {
+        if (gen === hydrateGenRef.current) setContentParsing(false);
+      }
+    };
+    const win = window as Window & {
+      requestIdleCallback?: (
+        cb: () => void,
+        opts?: { timeout: number },
+      ) => number;
+    };
+    if (win.requestIdleCallback) {
+      win.requestIdleCallback(run, { timeout: 1200 });
+    } else {
+      window.setTimeout(run, 16);
+    }
+  }, []);
+
+  const editor = useEditor(
+    {
+      immediatelyRender: false,
+      extensions: [
+        StarterKit.configure({
+          heading: false,
+          link: false,
+        }),
+        ArcSiteHeading,
+        Link.configure({
+          openOnClick: false,
+          autolink: true,
+          defaultProtocol: "https",
+        }),
+        Placeholder.configure({
+          placeholder:
+            "Gõ thủ công – hoặc dán HTML ở tab HTML để giữ layout từ Claude / CMS.",
+        }),
+        Image.configure({
+          inline: true,
+          allowBase64: true,
+        }),
+        Table.configure({
+          resizable: false,
+          HTMLAttributes: { class: "arc-table" },
+        }),
+        TableRow,
+        TableHeader,
+        TableCell,
+        Youtube.configure({
+          controls: true,
+          nocookie: true,
+          modestBranding: true,
+        }),
+        ArcImagePlaceholder,
+      ],
+      content: deferHeavyHydration ? "" : value,
+      editorProps: {
+        attributes: {
+          class: proseMirrorClass(variant),
+        },
+        handleDrop: (_view, event) => {
+          const ed = editorRef.current;
+          if (!ed) return false;
+          const dt = event.dataTransfer;
+          if (!dt?.files?.length) return false;
+          const f = Array.from(dt.files).find((x) => x.type.startsWith("image/"));
+          if (!f) return false;
+          event.preventDefault();
+          void insertImageFromFile(ed, f, f.name, reportImagePaste);
+          return true;
+        },
+        handlePaste: (_view, event) => {
+          const ed = editorRef.current;
+          if (!ed) return false;
+          const items = event.clipboardData?.items;
+          if (!items) return false;
+          for (const it of Array.from(items)) {
+            if (it.type.startsWith("image/")) {
+              const f = it.getAsFile();
+              if (!f) continue;
+              event.preventDefault();
+              void insertImageFromFile(ed, f, "paste", reportImagePaste);
+              return true;
+            }
+          }
+          return false;
+        },
+      },
+      onUpdate: ({ editor: ed }) => {
+        const html = ed.getHTML();
+        lastEditorHtml.current = html;
+        onChange(html);
+      },
+      onCreate: ({ editor: ed }) => {
+        editorRef.current = ed;
+        onEditorReady(ed);
+        const html = valueRef.current.trim();
+        if (deferHeavyHydration && html) {
+          scheduleHeavySetContent(ed, valueRef.current);
+        } else {
+          lastEditorHtml.current = valueRef.current;
+        }
+      },
+      onDestroy: () => {
+        hydrateGenRef.current += 1;
+        setContentParsing(false);
+        editorRef.current = null;
+        onEditorReady(null);
+      },
+    },
+    [variant, reportImagePaste, onEditorReady, scheduleHeavySetContent],
+  );
+
+  useEffect(() => {
+    if (contentParsing) return;
+    const ed = editorRef.current;
+    if (!ed || ed.isDestroyed) return;
+    if (value === lastEditorHtml.current) return;
+    const cur = ed.getHTML();
+    if (value !== cur) {
+      if (deferHeavyHydration && value.trim().length > 4000) {
+        scheduleHeavySetContent(ed, value);
+      } else {
+        lastEditorHtml.current = value;
+        ed.commands.setContent(value, { emitUpdate: false });
+      }
+    }
+  }, [value, editor, contentParsing, deferHeavyHydration, scheduleHeavySetContent]);
+
+  const editorShell = (
+    <div
+      className="article-draft-tiptap__editor-wrap"
+      data-parsing={contentParsing ? "true" : undefined}
+    >
+      {contentParsing ? (
+        <div
+          className="article-draft-tiptap__editor-wrap--parsing"
+          role="status"
+          aria-live="polite"
+        >
+          Đang nạp nội dung…
+        </div>
+      ) : null}
+      {editor ? <EditorContent editor={editor} /> : null}
+    </div>
+  );
+
+  if (variant === "nganh-admin") {
+    return (
+      <NganhEditorStage titleVi={nganhTitleVi}>{editorShell}</NganhEditorStage>
+    );
+  }
+
+  return editorShell;
 }
 
 const MAX_ARTICLE_IMAGE_DATA_URL = 1_500_000;
@@ -230,7 +461,14 @@ async function insertImageFromFile(
   report({ phase: "base64_ok" });
 }
 
-export function ArticleDraftContentEditor({
+export function ArticleDraftContentEditor(props: Props) {
+  if (props.htmlOnly) {
+    return <ArticleDraftHtmlOnly {...props} />;
+  }
+  return <ArticleDraftContentEditorFull {...props} />;
+}
+
+function ArticleDraftContentEditorFull({
   value,
   onChange,
   variant = "default",
@@ -243,9 +481,10 @@ export function ArticleDraftContentEditor({
   const [previewOpen, setPreviewOpen] = useState(false);
   const [imagePasteStatus, setImagePasteStatus] =
     useState<ArticleImagePasteStatus>({ phase: "idle" });
+  const [editor, setEditor] = useState<Editor | null>(null);
   const htmlAreaRef = useRef<HTMLTextAreaElement>(null);
   const editorRef = useRef<Editor | null>(null);
-  const prevTab = useRef<Tab>(tab);
+  const showSharedToolbar = variant !== "truong-inline";
 
   useEffect(() => {
     if (
@@ -264,115 +503,16 @@ export function ArticleDraftContentEditor({
     setImagePasteStatus(s);
   }, []);
 
-  const editor = useEditor(
-    {
-      immediatelyRender: false,
-      extensions: [
-        StarterKit.configure({
-          heading: false,
-          link: false,
-        }),
-        ArcSiteHeading,
-        Link.configure({
-          openOnClick: false,
-          autolink: true,
-          defaultProtocol: "https",
-        }),
-        Placeholder.configure({
-          placeholder:
-            "Gõ thủ công – hoặc dán HTML ở tab HTML để giữ layout từ Claude / CMS.",
-        }),
-        Image.configure({
-          inline: true,
-          allowBase64: true,
-        }),
-        Table.configure({
-          resizable: false,
-          HTMLAttributes: { class: "arc-table" },
-        }),
-        TableRow,
-        TableHeader,
-        TableCell,
-        Youtube.configure({
-          controls: true,
-          nocookie: true,
-          modestBranding: true,
-        }),
-        ArcImagePlaceholder,
-      ],
-      content: value,
-      editorProps: {
-        attributes: {
-          class: proseMirrorClass(variant),
-        },
-        handleDrop: (_view, event) => {
-          const ed = editorRef.current;
-          if (!ed) return false;
-          const dt = event.dataTransfer;
-          if (!dt?.files?.length) return false;
-          const f = Array.from(dt.files).find((x) => x.type.startsWith("image/"));
-          if (!f) return false;
-          event.preventDefault();
-          void insertImageFromFile(ed, f, f.name, reportImagePaste);
-          return true;
-        },
-        handlePaste: (_view, event) => {
-          const ed = editorRef.current;
-          if (!ed) return false;
-          const items = event.clipboardData?.items;
-          if (!items) return false;
-          for (const it of Array.from(items)) {
-            if (it.type.startsWith("image/")) {
-              const f = it.getAsFile();
-              if (!f) continue;
-              event.preventDefault();
-              void insertImageFromFile(ed, f, "paste", reportImagePaste);
-              return true;
-            }
-          }
-          return false;
-        },
-      },
-      onUpdate: ({ editor: ed }) => {
-        onChange(ed.getHTML());
-      },
-      onCreate: ({ editor: ed }) => {
-        editorRef.current = ed;
-      },
-      onDestroy: () => {
-        editorRef.current = null;
-      },
-    },
-    [variant, reportImagePaste],
-  );
+  const onEditorReady = useCallback((ed: Editor | null) => {
+    editorRef.current = ed;
+    setEditor(ed);
+  }, []);
 
-  useEffect(() => {
+  const run = useCallback((fn: (ed: Editor) => boolean) => {
     const ed = editorRef.current;
-    if (!ed || ed.isDestroyed) return;
-    if (tab !== "visual") return;
-    const cur = ed.getHTML();
-    if (value !== cur) {
-      ed.commands.setContent(value, { emitUpdate: false });
-    }
-  }, [value, tab, editor]);
-
-  useEffect(() => {
-    const ed = editorRef.current;
-    if (!ed || ed.isDestroyed) return;
-    if (prevTab.current === "html" && tab === "visual") {
-      ed.commands.setContent(value, { emitUpdate: false });
-    }
-    prevTab.current = tab;
-  }, [tab, value]);
-
-  const run = useCallback(
-    (fn: (ed: Editor) => boolean) => {
-      const ed = editorRef.current;
-      if (!ed) return;
-      fn(ed);
-    },
-    [],
-  );
+    if (!ed) return;
+    fn(ed);
+  }, []);
 
   useEffect(() => {
     if (!editor || variant !== "truong-inline") return;
@@ -386,6 +526,22 @@ export function ArticleDraftContentEditor({
   }, [editor, variant]);
 
   const disabledVisual = tab !== "visual" || !editor;
+  const openHtmlTab = () => {
+    setTab("html");
+    requestAnimationFrame(() => htmlAreaRef.current?.focus());
+  };
+  const openVisualTab = () => setTab("visual");
+
+  const visualPane = (
+    <ArticleDraftVisualPane
+      value={value}
+      onChange={onChange}
+      variant={variant}
+      nganhTitleVi={nganhTitleVi}
+      reportImagePaste={reportImagePaste}
+      onEditorReady={onEditorReady}
+    />
+  );
 
   return (
     <div
@@ -466,7 +622,7 @@ export function ArticleDraftContentEditor({
           role="tab"
           data-active={tab === "visual" ? "true" : "false"}
           className="article-draft-tiptap__tab"
-          onClick={() => setTab("visual")}
+          onClick={openVisualTab}
         >
           Soạn thảo
         </button>
@@ -481,6 +637,17 @@ export function ArticleDraftContentEditor({
         </button>
       </div>
 
+      {showSharedToolbar ? (
+        <ArticleDraftToolbar
+          editor={editor}
+          disabledVisual={disabledVisual}
+          run={run}
+          layout="default"
+          onOpenHtmlTab={openHtmlTab}
+          onOpenPreview={() => setPreviewOpen(true)}
+        />
+      ) : null}
+
       {tab === "visual" ? (
         variant === "truong-inline" ? (
           <div className="article-draft-tiptap__truong-stack">
@@ -492,15 +659,16 @@ export function ArticleDraftContentEditor({
               truongToolTab={truongToolTab}
               onTruongToolTabChange={setTruongToolTab}
               truongTableDock="bottom"
-              onOpenHtmlTab={() => {
-                setTab("html");
-                requestAnimationFrame(() => htmlAreaRef.current?.focus());
-              }}
+              onOpenHtmlTab={openHtmlTab}
               onOpenPreview={() => setPreviewOpen(true)}
             />
-            <div className="article-draft-tiptap__editor-wrap">
-              {editor ? <EditorContent editor={editor} /> : null}
-            </div>
+            <ArticleDraftVisualPane
+              value={value}
+              onChange={onChange}
+              variant={variant}
+              reportImagePaste={reportImagePaste}
+              onEditorReady={onEditorReady}
+            />
             {truongToolTab === "table" ? (
               <div
                 className="article-draft-tiptap__table-dock"
@@ -516,30 +684,7 @@ export function ArticleDraftContentEditor({
             ) : null}
           </div>
         ) : (
-          <>
-            <ArticleDraftToolbar
-              editor={editor}
-              disabledVisual={disabledVisual}
-              run={run}
-              layout="default"
-              onOpenHtmlTab={() => {
-                setTab("html");
-                requestAnimationFrame(() => htmlAreaRef.current?.focus());
-              }}
-              onOpenPreview={() => setPreviewOpen(true)}
-            />
-            {variant === "nganh-admin" ? (
-              <NganhEditorStage titleVi={nganhTitleVi}>
-                <div className="article-draft-tiptap__editor-wrap">
-                  {editor ? <EditorContent editor={editor} /> : null}
-                </div>
-              </NganhEditorStage>
-            ) : (
-              <div className="article-draft-tiptap__editor-wrap">
-                {editor ? <EditorContent editor={editor} /> : null}
-              </div>
-            )}
-          </>
+          visualPane
         )
       ) : (
         <>

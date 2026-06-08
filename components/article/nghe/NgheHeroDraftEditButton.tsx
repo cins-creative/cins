@@ -24,7 +24,7 @@ function IconEdit() {
 /** Nút biểu tượng sửa trong hero nghề — bật/tắt sửa tại chỗ (cần `NgheArticleDraftProvider`). */
 export function NgheHeroDraftEditButton() {
   const ctx = useNgheArticleDraftOptional();
-  if (!ctx) return null;
+  if (!ctx?.canEdit) return null;
   const open = ctx.open;
   return (
     <button

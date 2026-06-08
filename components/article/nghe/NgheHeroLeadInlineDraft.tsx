@@ -41,67 +41,98 @@ export function NgheHeroLeadInlineDraft({
         id="nghe-sec-intro"
         data-rich-hero-slot="true"
       >
-        <div className="l1-hero" data-nghe-draft-open={d.open ? "true" : undefined}>
-          <div
-            className="nghe-hero-draft-toolbar"
-            data-nghe-draft-toolbar={d.open ? "stack" : undefined}
-          >
-            {d.open ? (
-              <>
-                <button
-                  type="button"
-                  className="nghe-hero-draft-btn nghe-hero-draft-btn--primary"
-                  disabled={d.saving || !d.persistEnabled}
-                  onClick={() => void d.save()}
-                  aria-label="Lưu vào Supabase"
-                >
-                  {d.saving ? "Đang lưu…" : "Lưu"}
-                </button>
+        <div
+          className="l1-hero"
+          data-nghe-draft-open={d.open ? "true" : undefined}
+        >
+          {d.canEdit && !d.open ? (
+            <div className="nghe-hero-draft-fab">
+              <NgheHeroDraftEditButton />
+            </div>
+          ) : null}
+
+          {d.canEdit && d.open ? (
+            <header className="nghe-hero-draft-bar" aria-label="Công cụ sửa hero">
+              <div className="nghe-hero-draft-bar__lead">
+                <span className="nghe-hero-draft-bar__badge">Sửa hero</span>
+                <label className="nghe-hero-draft-bar__uuid">
+                  <span className="nghe-hero-draft-bar__uuid-label">UUID</span>
+                  <input
+                    type="text"
+                    readOnly
+                    value={d.article.id}
+                    className="nghe-hero-draft-bar__uuid-input"
+                    aria-label="UUID bài viết"
+                    onFocus={(e) => e.currentTarget.select()}
+                  />
+                </label>
+              </div>
+              <div className="nghe-hero-draft-bar__actions">
                 <button
                   type="button"
                   className="nghe-hero-draft-btn nghe-hero-draft-btn--danger"
                   disabled={d.saving}
                   onClick={d.discardDraft}
-                  aria-label="Hủy thay đổi và khôi phục bản trên server"
                 >
                   Hủy
                 </button>
-              </>
-            ) : null}
-            <NgheHeroDraftEditButton />
-          </div>
+                <button
+                  type="button"
+                  className="nghe-hero-draft-btn nghe-hero-draft-btn--primary"
+                  disabled={d.saving || !d.persistEnabled}
+                  onClick={() => void d.save()}
+                >
+                  {d.saving ? "Đang lưu…" : "Lưu"}
+                </button>
+                <NgheHeroDraftEditButton />
+              </div>
+            </header>
+          ) : null}
+
           {d.open ? (
-            <h1 className="h-disp nghe-hero-title">
-              <input
-                type="text"
-                value={d.tieu_de}
-                onChange={(e) => d.setTieuDe(e.target.value)}
-                className="nghe-draft-field nghe-draft-field--title"
-                aria-label="Tiêu đề chính (H1)"
-                placeholder="Tiêu đề chính"
-              />
-              <br />
-              <em className="tieu_de_viet" data-hero-line="subtitle">
+            <div className="nghe-hero-draft-form">
+              <div className="nghe-hero-draft-form__title">
+                <label className="nghe-hero-draft-label" htmlFor="nghe-draft-tieu-de">
+                  Tiêu đề chính
+                </label>
                 <input
+                  id="nghe-draft-tieu-de"
+                  type="text"
+                  value={d.tieu_de}
+                  onChange={(e) => d.setTieuDe(e.target.value)}
+                  className="nghe-draft-field nghe-draft-field--title"
+                  placeholder="Tiêu đề chính (H1)"
+                />
+                <label
+                  className="nghe-hero-draft-label"
+                  htmlFor="nghe-draft-tieu-de-viet"
+                >
+                  Tiêu đề phụ (VI)
+                </label>
+                <input
+                  id="nghe-draft-tieu-de-viet"
                   type="text"
                   value={d.tieu_de_viet}
                   onChange={(e) => d.setTieuDeViet(e.target.value)}
                   className="nghe-draft-field nghe-draft-field--subtitle"
-                  aria-label="Dòng phụ tiếng Việt (tieu_de_viet)"
-                  placeholder="Dòng phụ (VI)"
+                  placeholder="Dòng phụ tiếng Việt"
                 />
-              </em>
-              <span className="nghe-draft-field-eng-wrap">
+                <label
+                  className="nghe-hero-draft-label"
+                  htmlFor="nghe-draft-tieu-de-eng"
+                >
+                  Tiêu đề phụ (EN)
+                </label>
                 <input
+                  id="nghe-draft-tieu-de-eng"
                   type="text"
                   value={d.tieu_de_eng}
                   onChange={(e) => d.setTieuDeEng(e.target.value)}
                   className="nghe-draft-field nghe-draft-field--eng"
-                  aria-label="Dòng phụ tiếng Anh (tieu_de_eng)"
-                  placeholder="Dòng phụ (EN, tùy chọn)"
+                  placeholder="Dòng phụ tiếng Anh (tùy chọn)"
                 />
-              </span>
-            </h1>
+              </div>
+            </div>
           ) : (
             <h1 className="h-disp nghe-hero-title">
               {displayTitle}
@@ -115,18 +146,24 @@ export function NgheHeroLeadInlineDraft({
               ) : null}
             </h1>
           )}
+
           <div className="nghe-hero-row">
             <div className="nghe-hero-copy">
               <span className="kicker k-nghe">Nghề nghiệp · Ngành Game · Phim</span>
               {d.open ? (
-                <textarea
-                  value={d.tom_tat}
-                  onChange={(e) => d.setTomTat(e.target.value)}
-                  className="h-summary nghe-draft-field nghe-draft-field--summary"
-                  rows={3}
-                  aria-label="Tóm tắt (tom_tat)"
-                  placeholder="Tóm tắt…"
-                />
+                <>
+                  <label className="nghe-hero-draft-label" htmlFor="nghe-draft-tom-tat">
+                    Tóm tắt
+                  </label>
+                  <textarea
+                    id="nghe-draft-tom-tat"
+                    value={d.tom_tat}
+                    onChange={(e) => d.setTomTat(e.target.value)}
+                    className="h-summary nghe-draft-field nghe-draft-field--summary"
+                    rows={3}
+                    placeholder="Tóm tắt ngắn (tom_tat)…"
+                  />
+                </>
               ) : displaySummary ? (
                 <p className="h-summary">{displaySummary}</p>
               ) : null}

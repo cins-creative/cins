@@ -7,7 +7,7 @@ import {
 } from "@/lib/articles/queries";
 import { getNgheArticleBySlugCached } from "@/lib/articles/nghe-page-queries";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
-import { isInlineArticleEditEnabled } from "@/lib/dev/inline-article-edit";
+import { getArticleInlineAdminStatus } from "@/lib/articles/article-inline-admin";
 import { parseTagAggSort } from "@/lib/tag/aggregation-queries";
 import {
   fetchEntityMilestones,
@@ -39,8 +39,10 @@ export async function NgheNghiepDetailLoader({ slug, sort }: Props) {
       fetchEntityMilestones(article.id, sort, viewerProfileId),
     ]);
 
-  const draftUiEnabled = isInlineArticleEditEnabled();
-  const draftPersistEnabled = hasServiceRoleEnv();
+  const [draftUiEnabled, draftPersistEnabled] = await Promise.all([
+    getArticleInlineAdminStatus(),
+    Promise.resolve(hasServiceRoleEnv()),
+  ]);
 
   return (
     <CinsShell data-screen-label={`Nghe-nghiep-${slug}`}>
