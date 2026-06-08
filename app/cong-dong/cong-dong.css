@@ -4383,6 +4383,10 @@ a.cd-v4-role-menu-btn {
   border-radius: 0;
 }
 
+.cd-v4-jcard .cd-v4-comments .post-comments-v1 {
+  padding-bottom: 20px;
+}
+
 .cd-v4-comments {
   margin-top: 14px;
   padding-top: 14px;

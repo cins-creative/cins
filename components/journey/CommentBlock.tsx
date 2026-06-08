@@ -3,6 +3,7 @@
 import {
   Check,
   Copy,
+  ImagePlus,
   Loader2,
   MessageCircle,
   MoreHorizontal,
@@ -25,7 +26,15 @@ import {
 } from "@/app/[slug]/journey/comment-actions";
 import { deleteMilestoneComment } from "@/app/[slug]/journey/actions";
 import { useAuthGate } from "@/components/auth/AuthGateProvider";
+import { CommentAttachments } from "@/components/journey/CommentAttachments";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
+import { rememberCfAccountHashFromDeliveryUrl } from "@/lib/cloudflare/account-hash";
+import { imageFilesFromClipboard } from "@/lib/files/clipboard-images";
+import { isAllowedUploadImageFile } from "@/lib/files/infer-image-mime";
+import {
+  MAX_COMMENT_ATTACHMENTS,
+  sanitizeCommentImageIds,
+} from "@/lib/social/comments/attachments";
 import type { CommentIdentityBadge } from "@/lib/social/comments/types";
 import {
   COMMENT_REACTION_EMOJIS,
@@ -45,9 +54,18 @@ type CommentSubmitResult =
         taoLuc: string;
         author: MilestonePostComment["author"];
         idCha?: string | null;
+        anhDinhKem?: string[];
       };
     }
   | { ok: false; error: string };
+
+type CommentAttachmentDraft = {
+  localId: string;
+  imageId: string | null;
+  previewUrl: string;
+  uploading: boolean;
+  error?: string;
+};
 
 export type CommentBlockProps = {
   milestoneId: string;
@@ -63,6 +81,7 @@ export type CommentBlockProps = {
   submitComment?: (
     text: string,
     replyToId?: string | null,
+    anhDinhKem?: string[],
   ) => Promise<CommentSubmitResult>;
 };
 
@@ -80,6 +99,7 @@ export function CommentBlock(props: CommentBlockProps) {
   const [replyTo, setReplyTo] = useState<MilestonePostComment | null>(null);
   const [pending, startTransition] = useTransition();
   const [err, setErr] = useState<string | null>(null);
+  const [composeResetKey, setComposeResetKey] = useState(0);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const threadCount = comments.reduce(
@@ -107,16 +127,17 @@ export function CommentBlock(props: CommentBlockProps) {
     if (comment) setText("");
   }
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const value = text.trim();
-    if (!value) return;
+  function handleSend(payload: { text: string; imageIds: string[] }) {
+    const value = payload.text.trim();
+    const imageIds = sanitizeCommentImageIds(payload.imageIds);
+    if (!value && imageIds.length === 0) return;
     setErr(null);
     startTransition(async () => {
       const res = submitComment
-        ? await submitComment(value, replyTo?.id ?? null)
+        ? await submitComment(value, replyTo?.id ?? null, imageIds)
         : await addMilestoneCommentV1(milestoneId, value, {
             replyToId: replyTo?.id ?? null,
+            anhDinhKem: imageIds,
           });
       if (!res.ok) {
         setErr(res.error);
@@ -127,6 +148,7 @@ export function CommentBlock(props: CommentBlockProps) {
         noiDung: res.data.noiDung,
         taoLuc: res.data.taoLuc,
         idCha: res.data.idCha ?? null,
+        anhDinhKem: res.data.anhDinhKem ?? imageIds,
         author: res.data.author ? { ...res.data.author, badge: null } : null,
         isOwn: true,
         reactions: [],
@@ -136,6 +158,7 @@ export function CommentBlock(props: CommentBlockProps) {
       });
       setText("");
       setReplyTo(null);
+      setComposeResetKey((k) => k + 1);
       if (!submitComment) emitNotificationsChanged();
     });
   }
@@ -145,9 +168,10 @@ export function CommentBlock(props: CommentBlockProps) {
     setText,
     replyTo,
     onCancelReply: cancelReply,
-    onSubmit: handleSubmit,
+    onSend: handleSend,
     pending,
     inputRef,
+    composeResetKey,
   };
 
   return (
@@ -180,7 +204,9 @@ export function CommentBlock(props: CommentBlockProps) {
       {err ? <div className="post-comments-err">{err}</div> : null}
 
       {viewerCanComment ? (
-        !replyTo ? <CommentComposeForm {...composeProps} /> : null
+        !replyTo ? (
+          <CommentComposeForm key={composeResetKey} {...composeProps} />
+        ) : null
       ) : (
         <div className="post-comments-login">
           <button
@@ -212,9 +238,10 @@ type ComposeProps = {
   setText: (value: string) => void;
   replyTo: MilestonePostComment | null;
   onCancelReply: () => void;
-  onSubmit: (e: React.FormEvent) => void;
+  onSend: (payload: { text: string; imageIds: string[] }) => void;
   pending: boolean;
   inputRef: React.RefObject<HTMLTextAreaElement | null>;
+  composeResetKey?: number;
   inline?: boolean;
 };
 
@@ -311,11 +338,126 @@ function CommentComposeForm({
   setText,
   replyTo,
   onCancelReply,
-  onSubmit,
+  onSend,
   pending,
   inputRef,
   inline = false,
 }: ComposeProps) {
+  const [attachments, setAttachments] = useState<CommentAttachmentDraft[]>([]);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const attachmentsRef = useRef(attachments);
+  attachmentsRef.current = attachments;
+
+  useEffect(() => {
+    return () => {
+      for (const item of attachmentsRef.current) {
+        if (item.previewUrl.startsWith("blob:")) {
+          URL.revokeObjectURL(item.previewUrl);
+        }
+      }
+    };
+  }, []);
+
+  const uploadAttachment = useCallback(async (file: File, localId: string) => {
+    if (!isAllowedUploadImageFile(file)) {
+      setAttachments((prev) =>
+        prev.map((item) =>
+          item.localId === localId
+            ? { ...item, uploading: false, error: "File không phải ảnh." }
+            : item,
+        ),
+      );
+      return;
+    }
+
+    const form = new FormData();
+    form.append("file", file);
+    try {
+      const res = await fetch("/api/post-image/upload", { method: "POST", body: form });
+      const data = (await res.json()) as {
+        imageId?: string;
+        url?: string;
+        error?: string;
+      };
+      if (!res.ok || !data.imageId) {
+        throw new Error(data.error || "Upload thất bại.");
+      }
+      if (data.url) rememberCfAccountHashFromDeliveryUrl(data.url);
+      setAttachments((prev) =>
+        prev.map((item) => {
+          if (item.localId !== localId) return item;
+          if (item.previewUrl.startsWith("blob:")) {
+            URL.revokeObjectURL(item.previewUrl);
+          }
+          return {
+            ...item,
+            imageId: data.imageId!,
+            previewUrl: data.url?.trim() || item.previewUrl,
+            uploading: false,
+            error: undefined,
+          };
+        }),
+      );
+    } catch (e) {
+      setAttachments((prev) =>
+        prev.map((item) =>
+          item.localId === localId
+            ? {
+                ...item,
+                uploading: false,
+                error: e instanceof Error ? e.message : "Upload thất bại.",
+              }
+            : item,
+        ),
+      );
+    }
+  }, []);
+
+  const addAttachmentFiles = useCallback(
+    (files: FileList | File[]) => {
+      const list = Array.from(files).filter(isAllowedUploadImageFile);
+      if (list.length === 0) return;
+
+      setAttachments((prev) => {
+        const room = MAX_COMMENT_ATTACHMENTS - prev.length;
+        const batch = list.slice(0, room);
+        const next = [...prev];
+        for (const file of batch) {
+          const localId = crypto.randomUUID();
+          const previewUrl = URL.createObjectURL(file);
+          next.push({
+            localId,
+            previewUrl,
+            imageId: null,
+            uploading: true,
+          });
+          void uploadAttachment(file, localId);
+        }
+        return next;
+      });
+    },
+    [uploadAttachment],
+  );
+
+  const removeAttachment = useCallback((localId: string) => {
+    setAttachments((prev) => {
+      const item = prev.find((a) => a.localId === localId);
+      if (item?.previewUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(item.previewUrl);
+      }
+      return prev.filter((a) => a.localId !== localId);
+    });
+  }, []);
+
+  const readyImageIds = attachments
+    .map((a) => a.imageId)
+    .filter((id): id is string => Boolean(id));
+  const attachmentsUploading = attachments.some((a) => a.uploading);
+  const canSend =
+    (text.trim().length > 0 || readyImageIds.length > 0) &&
+    !attachmentsUploading &&
+    !pending;
+
   const [mentionActive, setMentionActive] = useState<ActiveMention | null>(null);
   const [suggestions, setSuggestions] = useState<MentionSuggestUser[]>([]);
   const [mentionLoading, setMentionLoading] = useState(false);
@@ -437,7 +579,11 @@ function CommentComposeForm({
       className={
         "post-comments-form" + (inline ? " post-comments-form--inline" : "")
       }
-      onSubmit={onSubmit}
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (!canSend) return;
+        onSend({ text, imageIds: readyImageIds });
+      }}
     >
       <div className="post-comments-compose-row">
         <div
@@ -462,6 +608,35 @@ function CommentComposeForm({
               >
                 <X size={14} strokeWidth={2} aria-hidden />
               </button>
+            </div>
+          ) : null}
+          {attachments.length > 0 ? (
+            <div className="post-comments-compose-attachments">
+              {attachments.map((item) => (
+                <div
+                  key={item.localId}
+                  className={
+                    "post-comments-compose-attachment" +
+                    (item.error ? " has-error" : "")
+                  }
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={item.previewUrl} alt="" />
+                  {item.uploading ? (
+                    <span className="post-comments-compose-attachment-busy" aria-busy>
+                      <Loader2 size={16} strokeWidth={2} className="mc-spin" />
+                    </span>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="post-comments-compose-attachment-remove"
+                    aria-label="Xóa ảnh đính kèm"
+                    onClick={() => removeAttachment(item.localId)}
+                  >
+                    <X size={12} strokeWidth={2} aria-hidden />
+                  </button>
+                </div>
+              ))}
             </div>
           ) : null}
           <div className="post-comments-compose-input-wrap">
@@ -528,13 +703,50 @@ function CommentComposeForm({
                 el.style.height = "auto";
                 el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
               }}
+              onPaste={(e) => {
+                if (
+                  pending ||
+                  attachmentsUploading ||
+                  attachments.length >= MAX_COMMENT_ATTACHMENTS
+                ) {
+                  return;
+                }
+                const files = imageFilesFromClipboard(e.clipboardData);
+                if (!files.length) return;
+                e.preventDefault();
+                addAttachmentFiles(files);
+              }}
+            />
+            <button
+              type="button"
+              className="post-comments-attach-btn"
+              aria-label="Đính kèm ảnh"
+              disabled={
+                pending ||
+                attachmentsUploading ||
+                attachments.length >= MAX_COMMENT_ATTACHMENTS
+              }
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <ImagePlus size={18} strokeWidth={1.8} aria-hidden />
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              multiple
+              hidden
+              onChange={(e) => {
+                if (e.target.files?.length) addAttachmentFiles(e.target.files);
+                e.target.value = "";
+              }}
             />
           </div>
         </div>
         <button
           type="submit"
           className="post-comments-send"
-          disabled={pending || !text.trim()}
+          disabled={!canSend}
           aria-label={pending ? "Đang gửi bình luận" : "Gửi bình luận"}
         >
           {pending ? (
@@ -898,7 +1110,12 @@ function CommentRow({
             </div>
           </div>
           <div className="post-comments-text-row">
-            <p className="post-comments-text">{comment.noiDung}</p>
+            {comment.noiDung ? (
+              <p className="post-comments-text">{comment.noiDung}</p>
+            ) : null}
+            {!comment.daXoa && (comment.anhDinhKem?.length ?? 0) > 0 ? (
+              <CommentAttachments imageIds={comment.anhDinhKem ?? []} />
+            ) : null}
             {!comment.daXoa ? (
               <div className="post-comments-actions">
               <div className="post-comments-reactions">
@@ -987,7 +1204,11 @@ function CommentRow({
             ) : null}
           </div>
           {composeProps ? (
-            <CommentComposeForm {...composeProps} inline />
+            <CommentComposeForm
+              key={composeProps.composeResetKey}
+              {...composeProps}
+              inline
+            />
           ) : null}
         </div>
       </div>

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/lib/journey/action-result";
 import type { MilestonePostAuthor } from "@/lib/journey/milestone-post-types";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
+import { sanitizeCommentImageIds } from "@/lib/social/comments/attachments";
 import {
   groupReactionsByComment,
   resolveCommentRootId,
@@ -70,7 +71,7 @@ async function loadMilestoneOwner(
 export async function addMilestoneCommentV1(
   milestoneId: string,
   noiDung: string,
-  opts?: { replyToId?: string | null },
+  opts?: { replyToId?: string | null; anhDinhKem?: string[] },
 ): Promise<
   ActionResult<{
     id: string;
@@ -78,6 +79,7 @@ export async function addMilestoneCommentV1(
     taoLuc: string;
     author: MilestonePostAuthor;
     idCha: string | null;
+    anhDinhKem: string[];
   }>
 > {
   const session = await getCurrentSessionAndProfile();
@@ -86,7 +88,10 @@ export async function addMilestoneCommentV1(
   }
 
   let text = (noiDung || "").trim();
-  if (!text) return { ok: false, error: "Nội dung bình luận trống." };
+  const anhDinhKem = sanitizeCommentImageIds(opts?.anhDinhKem);
+  if (!text && anhDinhKem.length === 0) {
+    return { ok: false, error: "Nhập nội dung hoặc đính kèm ảnh." };
+  }
   if (text.length > MAX_COMMENT_LEN) {
     return { ok: false, error: `Bình luận tối đa ${MAX_COMMENT_LEN} ký tự.` };
   }
@@ -171,6 +176,7 @@ export async function addMilestoneCommentV1(
       id_doi_tuong: milestoneId,
       noi_dung: text,
       id_cha: idCha,
+      anh_dinh_kem: anhDinhKem.length > 0 ? anhDinhKem : null,
     })
     .select("id, tao_luc, noi_dung, id_cha")
     .single<{ id: string; tao_luc: string; noi_dung: string; id_cha: string | null }>();
@@ -214,6 +220,7 @@ export async function addMilestoneCommentV1(
       noiDung: inserted.noi_dung,
       taoLuc: inserted.tao_luc,
       idCha: inserted.id_cha,
+      anhDinhKem,
       author: {
         id: session.profile.id,
         slug: session.profile.slug,

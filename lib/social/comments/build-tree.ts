@@ -11,6 +11,7 @@ type RawRow = {
   tao_luc: string;
   da_xoa: boolean;
   ghim_luc: string | null;
+  anh_dinh_kem?: string[] | null;
 };
 
 /** Resolve root id — flatten reply-to-reply về root. */

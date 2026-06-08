@@ -5,6 +5,7 @@ import {
   buildCommentThreads,
   groupReactionsByComment,
 } from "@/lib/social/comments/build-tree";
+import { parseCommentImageIdsFromRow } from "@/lib/social/comments/attachments";
 import { loadCommentIdentityBadges } from "@/lib/social/comments/identity-badges";
 import type { CommentAuthor } from "@/lib/social/comments/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -19,6 +20,7 @@ type CommentRow = {
   tao_luc: string;
   da_xoa: boolean;
   ghim_luc: string | null;
+  anh_dinh_kem: string[] | null;
 };
 
 type ProfileRow = {
@@ -38,7 +40,7 @@ export async function fetchCommentsForSocialObject(
   const { data: cmtRows } = await admin
     .from("social_binh_luan")
     .select(
-      "id, nguoi_binh_luan, noi_dung, id_cha, tao_luc, da_xoa, ghim_luc",
+      "id, nguoi_binh_luan, noi_dung, id_cha, tao_luc, da_xoa, ghim_luc, anh_dinh_kem",
     )
     .eq("loai_doi_tuong", loaiDoiTuong)
     .eq("id_doi_tuong", idDoiTuong)
@@ -84,6 +86,10 @@ export async function fetchCommentsForSocialObject(
         }
       : null;
 
+    const anhDinhKem = row.da_xoa
+      ? []
+      : parseCommentImageIdsFromRow(row.anh_dinh_kem);
+
     return {
       id: row.id,
       noiDung: row.da_xoa ? "Bình luận đã xoá" : row.noi_dung,
@@ -91,6 +97,7 @@ export async function fetchCommentsForSocialObject(
       idCha: row.id_cha,
       daXoa: row.da_xoa,
       ghimLuc: row.ghim_luc,
+      anhDinhKem,
       author,
       isOwn: viewerId === row.nguoi_binh_luan,
       reactions: reactionsByComment.get(row.id) ?? [],

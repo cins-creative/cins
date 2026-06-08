@@ -30,6 +30,8 @@ export type MilestonePostCommentV1 = {
   idCha: string | null;
   daXoa: boolean;
   ghimLuc: string | null;
+  /** Cloudflare Images id — tối đa 4. */
+  anhDinhKem?: string[];
   author: CommentAuthor | null;
   isOwn: boolean;
   reactions: CommentReactionSummary[];

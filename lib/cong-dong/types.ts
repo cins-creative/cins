@@ -204,6 +204,7 @@ export type CongDongPost = {
 };
 
 export type CongDongComment = {
+  anhDinhKem?: string[];
   id: string;
   noiDung: string;
   taoLuc: string;

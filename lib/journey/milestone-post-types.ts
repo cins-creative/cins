@@ -54,6 +54,7 @@ export type MilestonePostComment = {
   idCha?: string | null;
   daXoa?: boolean;
   ghimLuc?: string | null;
+  anhDinhKem?: string[];
   reactions?: CommentReactionSummary[];
   replies?: MilestonePostComment[];
 };

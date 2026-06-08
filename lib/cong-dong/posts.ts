@@ -20,6 +20,10 @@ import { loadAuthorOrgPostMetaInOrg } from "@/lib/cong-dong/stats";
 import type { CongDongComment, CongDongPost } from "@/lib/cong-dong/types";
 import { attachCongDongPersonalFilter } from "@/lib/filter/cong-dong-personal-filter";
 import { CHE_DO_MOC_CONG_DONG } from "@/lib/journey/journey-visible-clause";
+import {
+  parseCommentImageIdsFromRow,
+  sanitizeCommentImageIds,
+} from "@/lib/social/comments/attachments";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 const MAX_POST_LEN = 8000;
@@ -491,7 +495,7 @@ export async function listCongDongPostComments(
   const admin = createServiceRoleClient();
   const { data: rows } = await admin
     .from("social_binh_luan")
-    .select("id, noi_dung, tao_luc, nguoi_binh_luan")
+    .select("id, noi_dung, tao_luc, nguoi_binh_luan, anh_dinh_kem")
     .eq("loai_doi_tuong", SOCIAL_LOAI_DOI_TUONG.COT_MOC)
     .eq("id_doi_tuong", postId)
     .eq("da_xoa", false)
@@ -504,6 +508,7 @@ export async function listCongDongPostComments(
         noi_dung: string;
         tao_luc: string;
         nguoi_binh_luan: string;
+        anh_dinh_kem: string[] | null;
       }>
     >();
 
@@ -516,6 +521,7 @@ export async function listCongDongPostComments(
       id: row.id,
       noiDung: row.noi_dung,
       taoLuc: row.tao_luc,
+      anhDinhKem: parseCommentImageIdsFromRow(row.anh_dinh_kem),
       author: {
         id: row.nguoi_binh_luan,
         slug: author?.slug ?? "user",
@@ -534,12 +540,17 @@ export async function addCongDongPostComment(params: {
   orgId: string;
   authorId: string;
   noiDung: string;
+  anhDinhKem?: string[];
+  idCha?: string | null;
 }): Promise<
   | { ok: true; data: CongDongComment }
   | { ok: false; error: string }
 > {
-  const text = params.noiDung?.trim();
-  if (!text) return { ok: false, error: "Nội dung bình luận trống." };
+  const text = params.noiDung?.trim() ?? "";
+  const anhDinhKem = sanitizeCommentImageIds(params.anhDinhKem);
+  if (!text && anhDinhKem.length === 0) {
+    return { ok: false, error: "Nhập nội dung hoặc đính kèm ảnh." };
+  }
   if (text.length > MAX_COMMENT_LEN) {
     return { ok: false, error: `Bình luận tối đa ${MAX_COMMENT_LEN} ký tự.` };
   }
@@ -575,6 +586,8 @@ export async function addCongDongPostComment(params: {
       loai_doi_tuong: SOCIAL_LOAI_DOI_TUONG.COT_MOC,
       id_doi_tuong: params.postId,
       noi_dung: text,
+      id_cha: params.idCha ?? null,
+      anh_dinh_kem: anhDinhKem.length > 0 ? anhDinhKem : null,
     })
     .select("id, noi_dung, tao_luc, nguoi_binh_luan")
     .single<{
@@ -597,6 +610,7 @@ export async function addCongDongPostComment(params: {
       id: inserted.id,
       noiDung: inserted.noi_dung,
       taoLuc: inserted.tao_luc,
+      anhDinhKem,
       author: {
         id: inserted.nguoi_binh_luan,
         slug: author?.slug ?? "user",

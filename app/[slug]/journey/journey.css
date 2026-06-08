@@ -1801,10 +1801,6 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
 .j-m-unfold-post--comments-only {
   padding-top: 0;
 }
-.j-m-unfold-post--comments-only .post-comments {
-  padding-top: 4px;
-  background: transparent;
-}
 .j-m-card.is-expanded .jcard-body {
   padding-bottom: 4px;
 }
@@ -1901,8 +1897,17 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   background: linear-gradient(180deg, var(--neutral-50, #f8fafc) 0%, transparent 100%);
   border-radius: 0;
 }
+.j-m-unfold-post.j-m-unfold-post--comments-only .post-comments {
+  padding: 4px 12px 20px;
+  background: transparent;
+}
 .j-m-card.is-expanded .j-m-unfold-post .post-comments {
   padding-bottom: 10px;
+}
+.j-m-card.is-expanded
+  .j-m-unfold-post.j-m-unfold-post--comments-only
+  .post-comments {
+  padding-bottom: 20px;
 }
 .j-m-unfold-post .post-comments-head {
   margin-bottom: 8px;

@@ -980,6 +980,7 @@ function usePostSocial(orgId: string, post: CongDongPost, canInteract: boolean) 
               id: c.id,
               noiDung: c.noiDung,
               taoLuc: c.taoLuc,
+              anhDinhKem: c.anhDinhKem ?? [],
               author: {
                 id: c.author.id,
                 slug: c.author.slug,
@@ -999,13 +1000,21 @@ function usePostSocial(orgId: string, post: CongDongPost, canInteract: boolean) 
   };
 
   const submitCommentAsync = useCallback(
-    async (text: string, replyToId?: string | null) => {
+    async (
+      text: string,
+      replyToId?: string | null,
+      anhDinhKem?: string[],
+    ) => {
       const res = await fetch(
         `/api/cong-dong/${orgId}/posts/${post.id}/comments`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ noi_dung: text, id_cha: replyToId ?? null }),
+          body: JSON.stringify({
+            noi_dung: text,
+            id_cha: replyToId ?? null,
+            anh_dinh_kem: anhDinhKem ?? [],
+          }),
         },
       );
       const json = (await res.json().catch(() => null)) as {
@@ -1029,6 +1038,7 @@ function usePostSocial(orgId: string, post: CongDongPost, canInteract: boolean) 
           noiDung: comment.noiDung,
           taoLuc: comment.taoLuc,
           idCha: replyToId ?? null,
+          anhDinhKem: comment.anhDinhKem ?? [],
           author: {
             id: comment.author.id,
             slug: comment.author.slug,

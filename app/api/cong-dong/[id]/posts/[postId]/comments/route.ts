@@ -21,7 +21,11 @@ export async function POST(req: Request, ctx: RouteContext) {
 
   const { id: orgId, postId } = await ctx.params;
 
-  let body: { noi_dung?: string };
+  let body: {
+    noi_dung?: string;
+    anh_dinh_kem?: string[];
+    id_cha?: string | null;
+  };
   try {
     body = await req.json();
   } catch {
@@ -33,6 +37,8 @@ export async function POST(req: Request, ctx: RouteContext) {
     orgId,
     authorId: session.profile.id,
     noiDung: body.noi_dung ?? "",
+    anhDinhKem: body.anh_dinh_kem,
+    idCha: body.id_cha ?? null,
   });
 
   if (!result.ok) {

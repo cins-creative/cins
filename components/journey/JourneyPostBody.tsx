@@ -538,6 +538,7 @@ type CommentSectionProps = {
   submitComment?: (
     text: string,
     replyToId?: string | null,
+    anhDinhKem?: string[],
   ) => Promise<CommentSubmitResult>;
 };
 
