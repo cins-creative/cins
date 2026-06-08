@@ -392,10 +392,23 @@ export function JourneyMilestoneCard({
     (variant === "self" || isBookmarkMilestone) &&
     Boolean(authorName || authorAvatarUrl || ownerSlug) &&
     !isCongDongPost;
-  const showEntityPoster =
+  const entityPosterLabel =
+    authorName?.trim() ||
+    milestone.lensOwnerName?.trim() ||
+    (ownerSlug?.trim() ? `@${ownerSlug.trim()}` : null) ||
+    (postOwnerSlug?.trim() ? `@${postOwnerSlug.trim()}` : null);
+  const entityPosterSlug =
+    ownerSlug?.trim() ||
+    postOwnerSlug?.trim() ||
+    milestone.lensOwnerSlug?.trim() ||
+    null;
+  const entityPosterAvatar =
+    authorAvatarUrl ?? milestone.lensOwnerAvatarUrl ?? null;
+  /** Trang entity — luôn hiện datebar đọc-only (kể cả khi viewer là chủ bài). */
+  const showEntityDatebar =
     entityLens &&
-    !canManage &&
-    Boolean(authorName || authorAvatarUrl || ownerSlug);
+    (Boolean(entityPosterLabel || authorAvatarUrl || milestone.lensOwnerAvatarUrl) ||
+      (isCongDongPost && Boolean(congDongOrg)));
 
   function shouldIgnoreExpandTrigger(target: Element | null): boolean {
     return Boolean(
@@ -601,7 +614,85 @@ export function JourneyMilestoneCard({
             <BookmarkSourcePanel src={bookmark} dateLabel={displayDate} />
           ) : null}
 
-          {canManage && ownerSlug ? (
+          {showEntityDatebar ? (
+            <div
+              className={
+                "jcard-datebar jcard-datebar--entity-lens" +
+                (isCongDongPost && congDongOrg ? " jcard-datebar--cong-dong" : "")
+              }
+            >
+              {isCongDongPost && congDongOrg ? (
+                <CongDongSourceChip
+                  org={congDongOrg}
+                  dateLabel={displayDate}
+                  posterName={entityPosterLabel}
+                  posterSlug={entityPosterSlug}
+                  posterAvatarUrl={entityPosterAvatar}
+                />
+              ) : (
+                <JourneyUserPopover
+                  slug={entityPosterSlug ?? ""}
+                  fallbackName={
+                    entityPosterLabel ?? entityPosterSlug ?? "Người dùng"
+                  }
+                  fallbackAvatarUrl={entityPosterAvatar}
+                >
+                  <span className="org-chip">
+                    <span className="org-logo" aria-hidden>
+                      {entityPosterAvatar ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img src={entityPosterAvatar} alt="" />
+                      ) : (
+                        getNameInitials(
+                          entityPosterLabel ?? null,
+                          entityPosterSlug ?? "C",
+                        )
+                      )}
+                    </span>
+                    <span className="org-copy">
+                      <strong>
+                        {entityPosterLabel ||
+                          (ownerSlug ? `@${ownerSlug}` : "Người dùng")}
+                      </strong>
+                      <small>{displayDate}</small>
+                    </span>
+                  </span>
+                </JourneyUserPopover>
+              )}
+              <span className="badge-row">
+                {isBookmarkMilestone ? (
+                  <span className="ctx-badge j-type-bookmark">
+                    <Bookmark size={11} strokeWidth={1.8} aria-hidden />
+                    {TYPE_LABEL.bookmark}
+                  </span>
+                ) : isCongDongPost ? (
+                  <span className="ctx-badge j-vis-cong-dong">
+                    <Users size={11} strokeWidth={1.8} aria-hidden />
+                    Cộng đồng
+                  </span>
+                ) : (
+                  <span className={`ctx-badge ${TYPE_CLASS[type]}`}>
+                    <MilestoneTypeBadgeContent type={type} />
+                  </span>
+                )}
+                {vis && !isCongDongPost ? (
+                  <span
+                    className={`ctx-badge j-vis-${visibility ?? "public"}`}
+                    title={vis.label}
+                    aria-label={vis.label}
+                  >
+                    <vis.Icon
+                      size={11}
+                      strokeWidth={1.8}
+                      aria-hidden
+                      {...(visibility === "feature" ? { fill: "currentColor" } : {})}
+                    />
+                    {visibility === "feature" ? "Nổi bật" : vis.label}
+                  </span>
+                ) : null}
+              </span>
+            </div>
+          ) : canManage && ownerSlug ? (
             <div
               className={
                 "jcard-datebar" +
@@ -613,7 +704,11 @@ export function JourneyMilestoneCard({
                 <TaggedByPanel attr={attribution} dateLabel={displayDate} />
               ) : null}
               {isCongDongPost && congDongOrg ? (
-                <CongDongSourceChip org={congDongOrg} dateLabel={displayDate} />
+                <CongDongSourceChip
+                  org={congDongOrg}
+                  dateLabel={displayDate}
+                  posterName={entityPosterLabel}
+                />
               ) : showAuthorBadge ? (
                 <span className="org-chip">
                   <span className="org-logo" aria-hidden>
@@ -736,76 +831,6 @@ export function JourneyMilestoneCard({
                 personalFilterSlugs={personalFilterSlugs}
                 className="jcard-date-menu"
               />
-            </div>
-          ) : showEntityPoster ? (
-            <div
-              className={
-                "jcard-datebar jcard-datebar--entity-lens" +
-                (isCongDongPost && congDongOrg ? " jcard-datebar--cong-dong" : "")
-              }
-            >
-              {isCongDongPost && congDongOrg ? (
-                <CongDongSourceChip
-                  org={congDongOrg}
-                  dateLabel={displayDate}
-                  posterName={authorName}
-                />
-              ) : (
-                <JourneyUserPopover
-                  slug={ownerSlug ?? ""}
-                  fallbackName={authorName ?? ownerSlug ?? "Người dùng"}
-                  fallbackAvatarUrl={authorAvatarUrl}
-                >
-                  <span className="org-chip">
-                    <span className="org-logo" aria-hidden>
-                      {authorAvatarUrl ? (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img src={authorAvatarUrl} alt="" />
-                      ) : (
-                        getNameInitials(authorName ?? null, ownerSlug ?? "C")
-                      )}
-                    </span>
-                    <span className="org-copy">
-                      <strong>
-                        {authorName || (ownerSlug ? `@${ownerSlug}` : "Người dùng")}
-                      </strong>
-                      <small>{displayDate}</small>
-                    </span>
-                  </span>
-                </JourneyUserPopover>
-              )}
-              <span className="badge-row">
-                {isBookmarkMilestone ? (
-                  <span className="ctx-badge j-type-bookmark">
-                    <Bookmark size={11} strokeWidth={1.8} aria-hidden />
-                    {TYPE_LABEL.bookmark}
-                  </span>
-                ) : isCongDongPost ? (
-                  <span className="ctx-badge j-vis-cong-dong">
-                    <Users size={11} strokeWidth={1.8} aria-hidden />
-                    Cộng đồng
-                  </span>
-                ) : (
-                  <span className={`ctx-badge ${TYPE_CLASS[type]}`}>
-                    <MilestoneTypeBadgeContent type={type} />
-                  </span>
-                )}
-                {vis && !isCongDongPost ? (
-                  <span
-                    className={`ctx-badge j-vis-${visibility ?? "public"}`}
-                    title={vis.label}
-                    aria-label={vis.label}
-                  >
-                    <vis.Icon
-                      size={11}
-                      strokeWidth={1.8}
-                      aria-hidden
-                      {...(visibility === "feature" ? { fill: "currentColor" } : {})}
-                    />
-                    {visibility === "feature" ? "Nổi bật" : vis.label}
-                  </span>
-                ) : null}
-              </span>
             </div>
           ) : variant === "self" || isBookmarkMilestone ? (
             <div className="jcard-datebar jcard-datebar--guest">
@@ -940,13 +965,105 @@ function CongDongSourceChip({
   org,
   dateLabel,
   posterName,
+  posterSlug,
+  posterAvatarUrl,
 }: {
   org: MilestoneCongDongOrg;
   dateLabel: string;
   /** Trang entity — tên người đăng bài trong nhóm. */
   posterName?: string | null;
+  posterSlug?: string | null;
+  posterAvatarUrl?: string | null;
 }) {
-  const initial = (org.initial || org.name.charAt(0) || "?").toUpperCase();
+  const orgInitial = (org.initial || org.name.charAt(0) || "?").toUpperCase();
+  const posterDisplay = posterName?.trim() || null;
+  const posterSlugTrim = posterSlug?.trim() || null;
+  const showPosterIdentity = Boolean(posterSlugTrim && posterDisplay);
+
+  const orgAvatar = (
+    <span className="cd-source-avatar" aria-hidden>
+      {org.avatarUrl ? (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img src={org.avatarUrl} alt="" />
+      ) : (
+        orgInitial
+      )}
+    </span>
+  );
+
+  const posterAvatar = posterDisplay ? (
+    <span className="cd-source-poster-avatar" aria-hidden>
+      {posterAvatarUrl ? (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img src={posterAvatarUrl} alt="" />
+      ) : (
+        getNameInitials(posterDisplay, posterSlugTrim ?? "C")
+      )}
+    </span>
+  ) : null;
+
+  const posterBlock = posterDisplay ? (
+    showPosterIdentity ? (
+      <JourneyUserPopover
+        slug={posterSlugTrim}
+        fallbackName={posterDisplay}
+        fallbackAvatarUrl={posterAvatarUrl ?? null}
+      >
+        <span className="cd-source-poster-row">
+          {posterAvatar}
+          <span className="cd-source-poster-text">
+            <span className="cd-source-poster-name">{posterDisplay}</span>
+            <span className="cd-source-poster-date">
+              <span className="cd-source-sep" aria-hidden>
+                {" "}
+                ·{" "}
+              </span>
+              <time>{dateLabel}</time>
+            </span>
+          </span>
+        </span>
+      </JourneyUserPopover>
+    ) : (
+      <small className="cd-source-poster">
+        đăng bởi {posterDisplay}
+        <span className="cd-source-sep" aria-hidden>
+          {" "}
+          ·{" "}
+        </span>
+        <time>{dateLabel}</time>
+      </small>
+    )
+  ) : null;
+
+  if (showPosterIdentity) {
+    return (
+      <span className="cd-source-chip cd-source-chip--split cd-source-chip--entity">
+        <JourneyOrgPopover
+          slug={org.slug}
+          orgKind="cong_dong"
+          href={org.href}
+          fallbackName={org.name}
+          fallbackAvatarUrl={org.avatarUrl}
+        >
+          <span className="cd-source-org-trigger cd-source-org-trigger--avatar">
+            {orgAvatar}
+          </span>
+        </JourneyOrgPopover>
+        <span className="cd-source-main">
+          <JourneyOrgPopover
+            slug={org.slug}
+            orgKind="cong_dong"
+            href={org.href}
+            fallbackName={org.name}
+            fallbackAvatarUrl={org.avatarUrl}
+          >
+            <span className="cd-source-org-name">{org.name}</span>
+          </JourneyOrgPopover>
+          {posterBlock}
+        </span>
+      </span>
+    );
+  }
 
   return (
     <JourneyOrgPopover
@@ -962,25 +1079,16 @@ function CongDongSourceChip({
             /* eslint-disable-next-line @next/next/no-img-element */
             <img src={org.avatarUrl} alt="" />
           ) : (
-            initial
+            orgInitial
           )}
         </span>
         <span className="cd-source-copy">
           <strong>{org.name}</strong>
-          {posterName?.trim() ? (
-            <small className="cd-source-poster">
-              đăng bởi {posterName.trim()}
-              <span className="cd-source-sep" aria-hidden>
-                {" "}
-                ·{" "}
-              </span>
-              <time>{dateLabel}</time>
-            </small>
-          ) : null}
+          {posterBlock}
           <small className="cd-source-meta">
             <Users size={11} strokeWidth={2} aria-hidden />
             <span>Cộng đồng</span>
-            {!posterName?.trim() ? (
+            {!posterDisplay ? (
               <>
                 <span className="cd-source-sep" aria-hidden>
                   ·

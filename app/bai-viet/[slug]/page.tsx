@@ -18,7 +18,6 @@ import {
   getArticleById,
   getArticleBySlug,
 } from "@/lib/articles/queries";
-
 import "@/app/cins-bai-viet-detail.css";
 import { isInlineArticleEditEnabled } from "@/lib/dev/inline-article-edit";
 import { hasSupabaseEnv } from "@/lib/supabase/server";
@@ -101,6 +100,10 @@ export default async function BaiVietSlugPage({ params }: Props) {
 
   if (article.loai_bai_viet === "phan_mem") {
     permanentRedirect(`/software/${encodeURIComponent(article.slug)}`);
+  }
+
+  if (article.loai_bai_viet === "nghe") {
+    permanentRedirect(`/nghe-nghiep/${encodeURIComponent(article.slug)}`);
   }
 
   const draftUiEnabled = isInlineArticleEditEnabled();

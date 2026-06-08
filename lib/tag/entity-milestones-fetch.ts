@@ -177,13 +177,44 @@ function sortCotMocs(
   return list;
 }
 
+/** Người đăng bài — ưu tiên chủ cột mốc, fallback tác phẩm đầu tiên. */
+async function loadPosterIdByMoc(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  mocIds: string[],
+): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  if (mocIds.length === 0) return out;
+
+  const { data } = await admin
+    .from("content_tac_pham_thuoc_moc")
+    .select(
+      "id_cot_moc, thu_tu, content_tac_pham:content_tac_pham!inner(id_nguoi_dung)",
+    )
+    .in("id_cot_moc", mocIds)
+    .order("thu_tu", { ascending: true });
+
+  for (const row of data ?? []) {
+    const mocId = String((row as { id_cot_moc: string }).id_cot_moc);
+    if (out.has(mocId)) continue;
+    const tp = unwrapJoinRow(
+      (row as { content_tac_pham?: unknown }).content_tac_pham,
+    ) as { id_nguoi_dung?: string } | null;
+    const posterId = tp?.id_nguoi_dung?.trim();
+    if (posterId) out.set(mocId, posterId);
+  }
+  return out;
+}
+
 function enrichMilestoneLensOwners(
   milestones: MilestoneItem[],
   ownerById: Map<string, OwnerRow>,
   mocOwnerById: Map<string, string>,
+  posterByMoc: Map<string, string>,
 ): MilestoneItem[] {
   return milestones.map((m) => {
-    const ownerId = mocOwnerById.get(m.cotMocId ?? m.id);
+    const mocId = m.cotMocId ?? m.id;
+    const ownerId =
+      mocOwnerById.get(mocId) ?? posterByMoc.get(mocId) ?? null;
     const owner = ownerId ? ownerById.get(ownerId) : null;
     return {
       ...m,
@@ -210,7 +241,16 @@ export async function fetchEntityMilestones(
   const reactionByMoc = await reactionCountsForMilestones(admin, mocIds);
   const sorted = sortCotMocs(cotMocs, sort, reactionByMoc);
 
-  const ownerIds = [...new Set(cotMocs.map((m) => m.id_nguoi_dung).filter(Boolean))];
+  const mocOwnerById = new Map(
+    cotMocs.map((m) => [m.id, m.id_nguoi_dung]),
+  );
+  const posterByMoc = await loadPosterIdByMoc(admin, mocIds);
+  const ownerIds = [
+    ...new Set([
+      ...cotMocs.map((m) => m.id_nguoi_dung).filter(Boolean),
+      ...posterByMoc.values(),
+    ]),
+  ];
   const { data: owners } = ownerIds.length
     ? await admin
         .from("user_nguoi_dung")
@@ -221,13 +261,15 @@ export async function fetchEntityMilestones(
   const ownerById = new Map(
     (owners ?? []).map((o) => [o.id as string, o as OwnerRow]),
   );
-  const mocOwnerById = new Map(
-    cotMocs.map((m) => [m.id, m.id_nguoi_dung]),
-  );
 
   const built = await buildSelfMilestonesForCotMocs(admin, sorted);
   const withSocial = await attachSocialState(admin, built, viewerId);
-  return enrichMilestoneLensOwners(withSocial, ownerById, mocOwnerById);
+  return enrichMilestoneLensOwners(
+    withSocial,
+    ownerById,
+    mocOwnerById,
+    posterByMoc,
+  );
 }
 
 export async function fetchEntityTaggedUsers(

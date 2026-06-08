@@ -147,6 +147,7 @@ type RawWork = {
   tagged_at: string;
   owner_slug: string;
   owner_name: string | null;
+  owner_avatar_id: string | null;
   cot_moc_ids: string[];
 };
 
@@ -158,7 +159,11 @@ type TacPhamRow = {
   noi_dung_blocks: unknown;
   tao_luc: string | null;
   che_do_hien_thi: string;
-  user_nguoi_dung?: { slug?: string; ten_hien_thi?: string | null } | null;
+  user_nguoi_dung?: {
+    slug?: string;
+    ten_hien_thi?: string | null;
+    avatar_id?: string | null;
+  } | null;
   content_tac_pham_thuoc_moc?: Array<{
     id_cot_moc?: string;
     content_cot_moc?: { id?: string; che_do_hien_thi?: string } | null;
@@ -204,6 +209,7 @@ function rawWorkFromTacPham(
     tagged_at: taggedAt,
     owner_slug: tp.user_nguoi_dung?.slug ?? "",
     owner_name: tp.user_nguoi_dung?.ten_hien_thi ?? null,
+    owner_avatar_id: tp.user_nguoi_dung?.avatar_id ?? null,
     cot_moc_ids: cotMocIds,
   };
 }
@@ -213,7 +219,7 @@ async function loadRawWorksFromTacPhamLinks(tagId: string): Promise<RawWork[]> {
   const { data: links } = await admin
     .from("article_gan_tac_pham")
     .select(
-      "tao_luc, content_tac_pham:content_tac_pham!inner(id, slug, tieu_de, cover_id, tao_luc, che_do_hien_thi, noi_dung_blocks, user_nguoi_dung: id_nguoi_dung ( slug, ten_hien_thi ), content_tac_pham_thuoc_moc ( id_cot_moc, content_cot_moc:content_cot_moc!inner ( id, che_do_hien_thi )))",
+      "tao_luc, content_tac_pham:content_tac_pham!inner(id, slug, tieu_de, cover_id, tao_luc, che_do_hien_thi, noi_dung_blocks, user_nguoi_dung: id_nguoi_dung ( slug, ten_hien_thi, avatar_id ), content_tac_pham_thuoc_moc ( id_cot_moc, content_cot_moc:content_cot_moc!inner ( id, che_do_hien_thi )))",
     )
     .eq("id_bai_viet", tagId);
 
@@ -238,7 +244,7 @@ async function loadRawWorksFromCotMocLinks(tagId: string): Promise<RawWork[]> {
   const { data: links } = await admin
     .from("article_gan_cot_moc")
     .select(
-      "tao_luc, content_cot_moc:content_cot_moc!inner(id, che_do_hien_thi, content_tac_pham_thuoc_moc ( thu_tu, content_tac_pham:content_tac_pham!inner ( id, slug, tieu_de, cover_id, tao_luc, che_do_hien_thi, noi_dung_blocks, user_nguoi_dung: id_nguoi_dung ( slug, ten_hien_thi ))))",
+      "tao_luc, content_cot_moc:content_cot_moc!inner(id, che_do_hien_thi, content_tac_pham_thuoc_moc ( thu_tu, content_tac_pham:content_tac_pham!inner ( id, slug, tieu_de, cover_id, tao_luc, che_do_hien_thi, noi_dung_blocks, user_nguoi_dung: id_nguoi_dung ( slug, ten_hien_thi, avatar_id ))))",
     )
     .eq("id_bai_viet", tagId)
     .in("content_cot_moc.che_do_hien_thi", ["public", "feature", "cong_dong"]);
@@ -326,6 +332,7 @@ export async function fetchTagTaggedWorks(
       previewSrc: preview.src,
       ownerSlug: w.owner_slug,
       ownerName: w.owner_name,
+      ownerAvatarId: w.owner_avatar_id,
       width: preview.width,
       height: preview.height,
       taggedAt: w.tagged_at,

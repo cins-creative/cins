@@ -17,6 +17,7 @@ export type TagAggWork = {
   previewSrc: string | null;
   ownerSlug: string;
   ownerName: string | null;
+  ownerAvatarId: string | null;
   width: number;
   height: number;
   taggedAt: string;

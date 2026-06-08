@@ -12,8 +12,9 @@ import {
 } from "@/lib/tag/entity-milestones-fetch";
 import type { TagAggSort } from "@/lib/tag/aggregation-types";
 
-import "@/app/[slug]/journey/journey.css";
 import "./entity-page.css";
+import "@/app/[slug]/p/new/editor.css";
+import "@/app/[slug]/p/[postSlug]/post-page.css";
 
 type EntityLoai = "keyword" | "phan_mem" | "mon_hoc";
 

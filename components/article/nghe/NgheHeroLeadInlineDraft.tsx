@@ -1,8 +1,7 @@
 "use client";
 
-import Image from "next/image";
-
 import { ArticleDraftContentEditor } from "@/components/article/draft/ArticleDraftContentEditor";
+import { NgheHeroMascot } from "@/components/article/nghe/NgheHeroMascot";
 import { useNgheArticleDraftOptional } from "@/components/article/nghe/NgheArticleDraftContext";
 import { NgheHeroDraftEditButton } from "@/components/article/nghe/NgheHeroDraftEditButton";
 import { KeywordInlineLeadPreview } from "@/components/article/keyword/KeywordInlineLeadPreview";
@@ -44,10 +43,14 @@ function IconComment() {
 
 type Props = {
   leadVideoUrl?: string | null;
+  heroThumbnailUrl?: string | null;
 };
 
 /** Hero + khối lead nghề — khi mở draft: form tại chỗ + Tiptap trong `.nghe-lead-panel`. */
-export function NgheHeroLeadInlineDraft({ leadVideoUrl }: Props) {
+export function NgheHeroLeadInlineDraft({
+  leadVideoUrl,
+  heroThumbnailUrl,
+}: Props) {
   const d = useNgheArticleDraftOptional();
   if (!d) return null;
 
@@ -59,7 +62,11 @@ export function NgheHeroLeadInlineDraft({ leadVideoUrl }: Props) {
 
   return (
     <>
-      <div className="nghe-hero-panel" data-rich-hero-slot="true">
+      <div
+        className="nghe-hero-panel"
+        id="nghe-sec-intro"
+        data-rich-hero-slot="true"
+      >
         <div className="l1-hero" data-nghe-draft-open={d.open ? "true" : undefined}>
           <div
             className="nghe-hero-draft-toolbar"
@@ -150,15 +157,10 @@ export function NgheHeroLeadInlineDraft({ leadVideoUrl }: Props) {
                 <p className="h-summary">{displaySummary}</p>
               ) : null}
             </div>
-            <div className="mascot">
-              <Image
-                src="/assets/mascot-technical-artist.png"
-                alt={displayTitle}
-                width={280}
-                height={280}
-                className="arv2-mascot-img"
-              />
-            </div>
+            <NgheHeroMascot
+              thumbnailUrl={heroThumbnailUrl}
+              title={displayTitle}
+            />
           </div>
           <div className="h-meta">
             <span>

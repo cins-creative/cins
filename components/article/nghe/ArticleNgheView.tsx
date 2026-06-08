@@ -1,7 +1,10 @@
 import type { ArticleBaiViet, ArticleCard } from "@/lib/articles/types";
 import { buildNgheLeadSourceFromNoiDung } from "@/lib/articles/nghe-lead-source-build";
 import type { RelatedJobLienQuanRow } from "@/lib/articles/related-jobs-dynamic";
+import type { MilestoneItem } from "@/components/journey/milestone-types";
+import type { TagAggSort, TagAggUser } from "@/lib/tag/aggregation-types";
 import { getVideoUrlFromArticleMeta } from "@/lib/articles/lead-video-url";
+import { resolveArticleThumbnailOnlySync } from "@/lib/bai-viet/thumbnail";
 import { ArticleJsonLd } from "@/components/article/ArticleJsonLd";
 import { InlineArticleDraftBar } from "@/components/article/InlineArticleDraftBar";
 import { NgheArticleDraftProvider } from "@/components/article/nghe/NgheArticleDraftContext";
@@ -18,6 +21,10 @@ type ArticleNgheViewProps = {
   showDraftBar?: boolean;
   /** Cho phép ghi DB — thiếu key thì chỉ xem/chỉnh local, nút Lưu tắt. */
   draftPersistEnabled?: boolean;
+  entityTaggedUsers?: TagAggUser[];
+  entityMilestones?: ReadonlyArray<MilestoneItem>;
+  entitySort?: TagAggSort;
+  viewerProfileId?: string | null;
 };
 
 export function ArticleNgheView({
@@ -26,13 +33,18 @@ export function ArticleNgheView({
   relatedJobsLienQuan = [],
   showDraftBar = false,
   draftPersistEnabled = false,
+  entityTaggedUsers = [],
+  entityMilestones = [],
+  entitySort = "moi_nhat",
+  viewerProfileId = null,
 }: ArticleNgheViewProps) {
-  const slugPath = `/bai-viet/${article.slug}`;
+  const slugPath = `/nghe-nghiep/${article.slug}`;
   const leadSource = buildNgheLeadSourceFromNoiDung(
     article.noi_dung ?? article.noi_dung_markdown,
     relatedJobsLienQuan,
   );
   const leadVideoUrl = getVideoUrlFromArticleMeta(article.meta);
+  const heroThumbnailUrl = resolveArticleThumbnailOnlySync(article.thumbnail);
 
   return (
     <div className="article-page arv2 arv2-nghe">
@@ -46,8 +58,16 @@ export function ArticleNgheView({
         >
           <NgheLayoutStatic
             lienQuan={lienQuan}
+            entityTaggedUsers={entityTaggedUsers}
+            entityMilestones={entityMilestones}
+            entitySort={entitySort}
+            viewerProfileId={viewerProfileId}
+            heroThumbnailUrl={heroThumbnailUrl}
             heroLeadBlock={
-              <NgheHeroLeadInlineDraft leadVideoUrl={leadVideoUrl} />
+              <NgheHeroLeadInlineDraft
+                leadVideoUrl={leadVideoUrl}
+                heroThumbnailUrl={heroThumbnailUrl}
+              />
             }
           />
           <InlineArticleDraftBar
@@ -61,6 +81,11 @@ export function ArticleNgheView({
           leadSource={leadSource}
           leadVideoUrl={leadVideoUrl}
           lienQuan={lienQuan}
+          entityTaggedUsers={entityTaggedUsers}
+          entityMilestones={entityMilestones}
+          entitySort={entitySort}
+          viewerProfileId={viewerProfileId}
+          heroThumbnailUrl={heroThumbnailUrl}
           heroTitle={article.tieu_de}
           heroEmLine={
             article.tieu_de_viet?.trim() ||

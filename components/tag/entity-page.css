@@ -1,3 +1,14 @@
+/* Che gradient ambient trên `body:not(.theme-flat)` — nền xám phẳng. */
+.cins-shell-column:has(.entity-light-page) {
+  background: var(--bg-page, #f4f5f8);
+}
+
+.cins-main:has(.entity-light-page) {
+  flex: 1;
+  min-height: calc(100dvh - var(--site-nav-height, 64px));
+  background: var(--bg-page, #f4f5f8);
+}
+
 .entity-light-page {
   max-width: 860px;
   margin: 0 auto;
@@ -167,8 +178,7 @@
   border-bottom: 1px solid var(--border, #e4e6eb);
   position: sticky;
   top: 0;
-  background: rgba(244, 245, 248, 0.82);
-  backdrop-filter: blur(8px);
+  background: var(--bg-page, #f4f5f8);
   z-index: 5;
 }
 
@@ -232,15 +242,44 @@
 
 .entity-light-journey {
   min-height: 0;
+  background: transparent;
+  /* Khớp độ rộng cột timeline Journey (sidebar + gallery + gutter). */
+  --entity-feed-max: min(
+    760px,
+    100%,
+    calc(
+      100vw - var(--cins-sidebar-collapsed, 64px) - var(--j-sidebar-w, 248px) -
+        var(--j-gallery-w, 280px) - 2 * var(--j-gutter, 40px) - 2 *
+        var(--space-8, 32px)
+    )
+  );
 }
 
-.entity-light-shell {
-  display: block;
-  max-width: 100%;
+.entity-light-journey.cins-journey-page {
+  background: transparent;
 }
 
-.entity-light-feed {
+.entity-light-shell.j-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  width: 100%;
+  max-width: var(--entity-feed-max);
+  margin: 0 auto;
   padding: 0;
+  gap: 0;
+}
+
+.entity-light-feed.j-timeline {
+  max-width: 100%;
+  width: 100%;
+  min-height: 0;
+  padding: 0;
+}
+
+@media (max-width: 991.98px) {
+  .entity-light-journey {
+    --entity-feed-max: min(760px, 100%);
+  }
 }
 
 .entity-light-feed .j-milestone {

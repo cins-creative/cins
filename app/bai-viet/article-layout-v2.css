@@ -1440,6 +1440,23 @@
   cursor: default;
 }
 
+.arv2 a.gal-item {
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+}
+
+.arv2 a.gal-item:hover .thumb img {
+  transform: scale(1.03);
+  transition: transform 0.2s ease;
+}
+
+.arv2 .section-link-note {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
 .arv2 .gal-item .thumb {
   aspect-ratio: 4 / 3;
   background: var(--neutral-100);
@@ -1474,6 +1491,13 @@
   border-radius: 50%;
   background: var(--cins-yellow);
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1;
 }
 
 .arv2 .gal-item .nm {

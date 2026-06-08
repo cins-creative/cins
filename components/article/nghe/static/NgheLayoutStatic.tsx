@@ -1,17 +1,19 @@
 import type { ReactNode } from "react";
-import Image from "next/image";
-import Link from "next/link";
 
 import type { ArticleCard } from "@/lib/articles/types";
+import { NgheHeroMascot } from "@/components/article/nghe/NgheHeroMascot";
 import { imagedeliveryPreferPublicInHtml } from "@/lib/cloudflare/imagedelivery-prefer-public";
+import { NgheArticleToc } from "@/components/article/nghe/NgheArticleToc";
+import { NgheTaggedWorksSection } from "@/components/article/nghe/NgheTaggedWorksSection";
+import type { MilestoneItem } from "@/components/journey/milestone-types";
 import {
   NGHE_COURSE_CARDS,
-  NGHE_GALLERY,
   NGHE_JOB_CARDS,
   NGHE_LEAD_BODY_HTML,
   NGHE_LEAD_HTML,
   NGHE_SW_TILES,
 } from "@/components/article/nghe/static/nghe-static-data";
+import type { TagAggSort, TagAggUser } from "@/lib/tag/aggregation-types";
 import {
   NgheRelCard,
   NgheRelItem,
@@ -82,6 +84,8 @@ type NgheLayoutStaticProps = {
   heroLinhVucLabel?: string | null;
   /** `article_bai_viet.meta.video_url` — video/embed đặt trước nội dung lead. */
   leadVideoUrl?: string | null;
+  /** `article_bai_viet.thumbnail` — ô mascot hero (4:3). */
+  heroThumbnailUrl?: string | null;
   /** Nút công cụ draft trong hero (chỉ khi bật chế độ thử). */
   heroDraftTools?: ReactNode;
   /**
@@ -89,6 +93,12 @@ type NgheLayoutStaticProps = {
    * (sửa tại chỗ). Các prop hero/lead phía trên bị bỏ qua cho khối này.
    */
   heroLeadBlock?: ReactNode;
+  /** Người dùng đã gắn tag bài nghề. */
+  entityTaggedUsers?: TagAggUser[];
+  /** Cột mốc/tác phẩm gắn tag — timeline hoặc lưới. */
+  entityMilestones?: ReadonlyArray<MilestoneItem>;
+  entitySort?: TagAggSort;
+  viewerProfileId?: string | null;
 };
 
 /** Khung tĩnh — bám sát OpenDesign `first-draft-layout-nghe.html`; khối lead map DB khi có `leadSource`. */
@@ -100,8 +110,13 @@ export function NgheLayoutStatic({
   heroSummary,
   heroLinhVucLabel,
   leadVideoUrl,
+  heroThumbnailUrl,
   heroDraftTools,
   heroLeadBlock,
+  entityTaggedUsers = [],
+  entityMilestones = [],
+  entitySort = "moi_nhat",
+  viewerProfileId = null,
 }: NgheLayoutStaticProps = {}) {
   const leadTrim = leadSource?.trim() ?? "";
   const leadVid = leadVideoUrl?.trim() ?? "";
@@ -138,11 +153,7 @@ export function NgheLayoutStatic({
       label: "Ngành học",
       header: (
         <div className="rel-header">
-          <h4>
-            Ngành học vào nghề{" "}
-            <em>{`${nganhLienQuan.length} ngành ĐT`}</em>
-          </h4>
-          <span className="hint">Hover để xem mã ngành &amp; thời gian</span>
+          <h4>Ngành học vào nghề</h4>
         </div>
       ),
       body: (
@@ -219,13 +230,21 @@ export function NgheLayoutStatic({
     <div className="article-wrap article-wrap--nghe-first-draft">
       <main className="article-main">
         <div className="article-grid">
+        <div className="nghe-article-body">
+        <div className="nghe-article-layout">
+        <NgheArticleToc />
+        <div className="nghe-article-main">
         <div className="nghe-main-sidebar-row">
         <div className="nghe-grid-primary">
           {heroLeadBlock ? (
             heroLeadBlock
           ) : (
             <>
-              <div className="nghe-hero-panel" data-rich-hero-slot="true">
+              <div
+                className="nghe-hero-panel"
+                id="nghe-sec-intro"
+                data-rich-hero-slot="true"
+              >
                 <div className="l1-hero">
                   {heroDraftTools}
                   <h1 className="h-disp nghe-hero-title">
@@ -250,15 +269,10 @@ export function NgheLayoutStatic({
                         <p className="h-summary">{displaySummary}</p>
                       ) : null}
                     </div>
-                    <div className="mascot">
-                      <Image
-                        src="/assets/mascot-technical-artist.png"
-                        alt={displayTitle}
-                        width={280}
-                        height={280}
-                        className="arv2-mascot-img"
-                      />
-                    </div>
+                    <NgheHeroMascot
+                      thumbnailUrl={heroThumbnailUrl}
+                      title={displayTitle}
+                    />
                   </div>
                   <div className="h-meta">
                     <span>
@@ -317,7 +331,7 @@ export function NgheLayoutStatic({
         </div>
 
         <section className="nghe-grid-span" aria-label="Tiếp theo trong bài viết">
-          <h2 className="section-h">
+          <h2 className="section-h" id="nghe-sec-jobs">
             <span className="num">03</span>
             Vị trí công việc liên quan
           </h2>
@@ -335,7 +349,7 @@ export function NgheLayoutStatic({
                 ))}
           </div>
 
-          <h2 className="section-h">
+          <h2 className="section-h" id="nghe-sec-software">
             <span className="num">04</span>
             Phần mềm sử dụng
           </h2>
@@ -353,7 +367,7 @@ export function NgheLayoutStatic({
                 ))}
           </div>
 
-          <h2 className="section-h">
+          <h2 className="section-h" id="nghe-sec-courses">
             <span className="num">05</span>
             Các khóa học liên quan
           </h2>
@@ -371,25 +385,17 @@ export function NgheLayoutStatic({
                 ))}
           </div>
 
-          <div className="section-link">
-            <h3>
-              Tác phẩm liên quan <em>— từ cộng đồng CINs</em>
-            </h3>
-            <Link href="#">Xem tất cả →</Link>
-          </div>
-          <div className="gallery">
-            {NGHE_GALLERY.map((g) => (
-              <div key={g.handle} className="gal-item">
-                <div className="thumb" />
-                <div className="info">
-                  <span className="av" style={{ background: g.av }} />
-                  <span className="nm">{g.handle}</span>
-                </div>
-              </div>
-            ))}
-          </div>
+          <NgheTaggedWorksSection
+            users={entityTaggedUsers}
+            milestones={entityMilestones}
+            sort={entitySort}
+            viewerProfileId={viewerProfileId}
+          />
         </section>
-      </div>
+        </div>
+        </div>
+        </div>
+        </div>
       </main>
     </div>
   );

@@ -7,6 +7,8 @@ import {
   getArticleSlugById,
   getNgheArticleMetaBySlug,
 } from "@/lib/articles/nghe-page-queries";
+import { parseTagAggSort } from "@/lib/tag/aggregation-queries";
+import type { TagAggSort } from "@/lib/tag/aggregation-types";
 import { hasSupabaseEnv } from "@/lib/supabase/server";
 
 import NgheNghiepDetailLoading from "./loading";
@@ -15,6 +17,7 @@ export const dynamic = "force-dynamic";
 
 type Props = {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ sort?: string }>;
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -36,7 +39,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return { title, description };
 }
 
-async function NgheNghiepDetailGate({ slug }: { slug: string }) {
+async function NgheNghiepDetailGate({
+  slug,
+  sort,
+}: {
+  slug: string;
+  sort: TagAggSort;
+}) {
   const meta = await getNgheArticleMetaBySlug(slug);
   if (!meta) {
     notFound();
@@ -50,11 +59,16 @@ async function NgheNghiepDetailGate({ slug }: { slug: string }) {
     notFound();
   }
 
-  return <NgheNghiepDetailLoader slug={slug} />;
+  return <NgheNghiepDetailLoader slug={slug} sort={sort} />;
 }
 
-export default async function NgheNghiepDetailPage({ params }: Props) {
+export default async function NgheNghiepDetailPage({
+  params,
+  searchParams,
+}: Props) {
   const { slug } = await params;
+  const { sort: sortRaw } = await searchParams;
+  const sort = parseTagAggSort(sortRaw);
 
   if (!hasSupabaseEnv()) {
     notFound();
@@ -62,7 +76,7 @@ export default async function NgheNghiepDetailPage({ params }: Props) {
 
   return (
     <Suspense fallback={<NgheNghiepDetailLoading />}>
-      <NgheNghiepDetailGate slug={slug} />
+      <NgheNghiepDetailGate slug={slug} sort={sort} />
     </Suspense>
   );
 }
