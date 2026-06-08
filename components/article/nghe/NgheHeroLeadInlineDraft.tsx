@@ -15,32 +15,6 @@ import "@/styles/nghe-inline-draft.css";
 
 const NGHE_HERO_TITLE_FALLBACK = "3D Modeller";
 
-function IconEye() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden>
-      <circle cx="12" cy="12" r="3" />
-      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
-    </svg>
-  );
-}
-
-function IconCal() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden>
-      <rect x="3" y="4" width="18" height="18" rx="2" />
-      <path d="M16 2v4M8 2v4M3 10h18" />
-    </svg>
-  );
-}
-
-function IconComment() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden>
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-    </svg>
-  );
-}
-
 type Props = {
   leadVideoUrl?: string | null;
   heroThumbnailUrl?: string | null;
@@ -161,20 +135,6 @@ export function NgheHeroLeadInlineDraft({
               thumbnailUrl={heroThumbnailUrl}
               title={displayTitle}
             />
-          </div>
-          <div className="h-meta">
-            <span>
-              <IconEye />
-              980 lượt xem
-            </span>
-            <span>
-              <IconCal />
-              Cập nhật 14/05/2026
-            </span>
-            <span>
-              <IconComment />
-              23 bình luận
-            </span>
           </div>
         </div>
       </div>

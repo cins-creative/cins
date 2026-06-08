@@ -12,7 +12,6 @@ import {
 } from "@/lib/bai-viet/queries";
 import {
   fetchRelatedArticles,
-  fetchRelatedJobsLienQuan,
   fetchTruongDaoTaoForNganh,
   fetchTacPhamGalleryForArticle,
   getArticleById,
@@ -131,17 +130,13 @@ export default async function BaiVietSlugPage({ params }: Props) {
     );
   }
 
-  const [lienQuan, tacPham, truongRows, relatedJobsLienQuan] =
-    await Promise.all([
-      fetchRelatedArticles(article.id),
-      fetchTacPhamGalleryForArticle(article.id),
-      article.loai_bai_viet === "nganh_dao_tao"
-        ? fetchTruongDaoTaoForNganh(article.id)
-        : Promise.resolve([]),
-      article.loai_bai_viet === "nghe"
-        ? fetchRelatedJobsLienQuan(article.id)
-        : Promise.resolve([]),
-    ]);
+  const [lienQuan, tacPham, truongRows] = await Promise.all([
+    fetchRelatedArticles(article.id),
+    fetchTacPhamGalleryForArticle(article.id),
+    article.loai_bai_viet === "nganh_dao_tao"
+      ? fetchTruongDaoTaoForNganh(article.id)
+      : Promise.resolve([]),
+  ]);
 
   return (
     <CinsShell data-screen-label={`Bai-viet-${slug}`}>
@@ -150,7 +145,6 @@ export default async function BaiVietSlugPage({ params }: Props) {
         lienQuan={lienQuan}
         tacPham={tacPham}
         truongRows={truongRows}
-        relatedJobsLienQuan={relatedJobsLienQuan}
         draftUiEnabled={draftUiEnabled}
         draftPersistEnabled={draftPersistEnabled}
       />
