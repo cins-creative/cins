@@ -39,6 +39,7 @@ import {
   gridThumbSrc,
   type GridImage,
 } from "@/lib/journey/image-grid";
+import { isAllowedUploadImageFile } from "@/lib/files/infer-image-mime";
 import {
   deriveMediaPostTitle,
   type MediaEditInitial,
@@ -81,6 +82,8 @@ type PhotoItem = {
   imageId: string | null;
   uploading: boolean;
   error?: string;
+  width: number;
+  height: number;
 };
 
 const VIS_OPTIONS: ReadonlyArray<{
@@ -110,10 +113,33 @@ function newBlockId(): string {
   return `b-${crypto.randomUUID()}`;
 }
 
-/** Windows đôi khi trả `file.type` rỗng — fallback theo đuôi tên. */
 function isImageUploadFile(file: File): boolean {
-  if (file.type.startsWith("image/")) return true;
-  return /\.(jpe?g|png|gif|webp|avif|bmp|heic|heif)$/i.test(file.name);
+  return isAllowedUploadImageFile(file);
+}
+
+function readImageDimensions(
+  file: File,
+): Promise<{ width: number; height: number }> {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const width =
+        img.naturalWidth > 0 ? img.naturalWidth : GRID_IMAGE_DEFAULT_WIDTH;
+      const height =
+        img.naturalHeight > 0 ? img.naturalHeight : GRID_IMAGE_DEFAULT_HEIGHT;
+      URL.revokeObjectURL(url);
+      resolve({ width, height });
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve({
+        width: GRID_IMAGE_DEFAULT_WIDTH,
+        height: GRID_IMAGE_DEFAULT_HEIGHT,
+      });
+    };
+    img.src = url;
+  });
 }
 
 function photoItemsFromIds(imageIds: string[]): PhotoItem[] {
@@ -126,6 +152,8 @@ function photoItemsFromIds(imageIds: string[]): PhotoItem[] {
       height: GRID_IMAGE_DEFAULT_HEIGHT,
     }),
     uploading: false,
+    width: GRID_IMAGE_DEFAULT_WIDTH,
+    height: GRID_IMAGE_DEFAULT_HEIGHT,
   }));
 }
 
@@ -243,9 +271,9 @@ export function MediaComposeView({
     () =>
       photos.map((p) => ({
         id: p.imageId ?? p.localId,
-        previewSrc: p.imageId ? undefined : p.previewUrl,
-        width: GRID_IMAGE_DEFAULT_WIDTH,
-        height: GRID_IMAGE_DEFAULT_HEIGHT,
+        previewSrc: p.previewUrl,
+        width: p.width,
+        height: p.height,
       })),
     [photos],
   );
@@ -320,8 +348,23 @@ export function MediaComposeView({
         for (const file of batch) {
           const localId = crypto.randomUUID();
           const previewUrl = URL.createObjectURL(file);
-          next.push({ localId, previewUrl, imageId: null, uploading: true });
-          void uploadPhoto(file, localId);
+          next.push({
+            localId,
+            previewUrl,
+            imageId: null,
+            uploading: true,
+            width: GRID_IMAGE_DEFAULT_WIDTH,
+            height: GRID_IMAGE_DEFAULT_HEIGHT,
+          });
+          void (async () => {
+            const dims = await readImageDimensions(file);
+            setPhotos((prev) =>
+              prev.map((p) =>
+                p.localId === localId ? { ...p, ...dims } : p,
+              ),
+            );
+            await uploadPhoto(file, localId);
+          })();
         }
         return next;
       });
@@ -554,8 +597,31 @@ export function MediaComposeView({
 
   const photosReady =
     photos.length > 0 && photos.every((p) => p.imageId && !p.uploading && !p.error);
+  const photoPublishHint = useMemo(() => {
+    if (!isPhoto || photosReady) return null;
+    if (photos.length === 0) return "Thêm ít nhất một ảnh để đăng.";
+    const uploadingCount = photos.filter((p) => p.uploading).length;
+    if (uploadingCount > 0) {
+      return `Đang tải ${uploadingCount} ảnh lên — chờ xong để đăng.`;
+    }
+    const failed = photos.filter((p) => p.error);
+    if (failed.length > 0) {
+      const first = failed[0]?.error?.trim();
+      return failed.length === 1 && first
+        ? `1 ảnh lỗi: ${first}`
+        : `${failed.length} ảnh upload thất bại — xóa hoặc chọn lại.`;
+    }
+    return "Ảnh chưa sẵn sàng — thử chọn lại file.";
+  }, [isPhoto, photos, photosReady]);
+  const photoSlotErrors = useMemo(() => {
+    const map = new Map<number, string>();
+    photos.forEach((p, i) => {
+      if (p.error) map.set(i, p.error);
+    });
+    return map;
+  }, [photos]);
   const canPublish = isPhoto
-    ? photosReady
+    ? photosReady && !isPending
     : isValidMediaVideoUrl(videoUrl) && !videoUploading && !isPending;
 
   const onPublish = () => {
@@ -578,16 +644,14 @@ export function MediaComposeView({
       }
 
       if (isPhoto) {
-        const imageIds = photos
-          .map((p) => p.imageId)
-          .filter((id): id is string => Boolean(id));
-        if (imageIds.length === 0) {
+        const readyPhotos = photos.filter((p) => p.imageId);
+        if (readyPhotos.length === 0) {
           setError("Cần ít nhất một ảnh.");
           return;
         }
 
-        /* Mỗi ảnh = 1 block — gom thành Facebook grid lúc render. */
-        for (const imageId of imageIds) {
+        /* Mỗi ảnh = 1 block — gom thành album grid lúc render. */
+        for (const photo of readyPhotos) {
           blocks.push({
             id: newBlockId(),
             loai: "imgs",
@@ -596,7 +660,9 @@ export function MediaComposeView({
               layout: "full",
               rounded: false,
               cap: "",
-              imgs: [imageId],
+              imgs: [photo.imageId!],
+              width: photo.width,
+              height: photo.height,
             },
           });
         }
@@ -743,6 +809,8 @@ export function MediaComposeView({
               type="button"
               className="ed-btn primary mc-compose-publish"
               disabled={!canPublish}
+              title={photoPublishHint ?? undefined}
+              aria-describedby={photoPublishHint ? "mc-compose-publish-hint" : undefined}
               onClick={onPublish}
             >
               {isPending ? (
@@ -786,11 +854,25 @@ export function MediaComposeView({
           {isPhoto ? (
             <>
               {photos.length > 0 ? (
-                <ImageGrid
-                  images={gridImages}
-                  isFirstGroup
-                  uploadingSlots={uploadingSlots}
-                />
+                <>
+                  <ImageGrid
+                    images={gridImages}
+                    isFirstGroup
+                    uploadingSlots={uploadingSlots}
+                    slotErrors={photoSlotErrors}
+                    showAllImages
+                    readOnly
+                  />
+                  {photoPublishHint ? (
+                    <p
+                      id="mc-compose-publish-hint"
+                      className="mc-compose-publish-hint"
+                      role="status"
+                    >
+                      {photoPublishHint}
+                    </p>
+                  ) : null}
+                </>
               ) : null}
 
               {photos.length < MAX_PHOTOS ? (

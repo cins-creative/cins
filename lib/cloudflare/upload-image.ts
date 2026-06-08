@@ -1,12 +1,10 @@
 import { pickImageDeliveryUrl } from "@/lib/cloudflare/pick-image-delivery-url";
+import {
+  inferImageMime,
+  UPLOAD_IMAGE_MIMES,
+} from "@/lib/files/infer-image-mime";
 
 const MAX_BYTES = 8 * 1024 * 1024;
-const ALLOWED_TYPES = new Set([
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-]);
 
 export type CloudflareUploadResult = {
   imageId: string;
@@ -26,13 +24,20 @@ export async function uploadToCloudflareImages(
     return { ok: false, error: "File too large" };
   }
 
-  const mime = file.type || "application/octet-stream";
-  if (!ALLOWED_TYPES.has(mime)) {
-    return { ok: false, error: "Invalid file type" };
+  const mime = inferImageMime(file);
+  if (!UPLOAD_IMAGE_MIMES.has(mime)) {
+    return {
+      ok: false,
+      error: "Chỉ chấp nhận JPEG, PNG, WebP hoặc GIF.",
+    };
   }
 
   const cfForm = new FormData();
-  cfForm.append("file", file, file.name || "upload");
+  const uploadFile =
+    file.type === mime
+      ? file
+      : new File([file], file.name || "upload", { type: mime });
+  cfForm.append("file", uploadFile, uploadFile.name || "upload");
 
   const cfRes = await fetch(
     `https://api.cloudflare.com/client/v4/accounts/${cfAccount}/images/v1`,

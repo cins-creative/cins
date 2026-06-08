@@ -1933,12 +1933,12 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   border-radius: 12px;
   background: var(--bg-surface, #fff);
 }
-.j-m-unfold-post .post-comments-v1 .post-comments-compose-row {
-  padding: 6px 6px 6px 12px;
+.j-m-unfold-post .post-comments-v1 .post-comments-compose-input-wrap {
+  padding: 4px 10px;
 }
 .j-m-unfold-post .post-comments-v1 .post-comments-compose-row .post-comments-send {
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
 }
 .j-m-unfold-post .post-comments-v1 .post-comments-reaction-emoji {
   width: 18px;

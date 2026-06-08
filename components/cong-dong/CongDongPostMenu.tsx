@@ -286,7 +286,7 @@ function CongDongPostMenuInner({
                 onClick={close}
               >
                 <Pencil size={15} strokeWidth={2} aria-hidden />
-                <span>Sửa trên Journey</span>
+                <span>Sửa bài viết</span>
               </Link>
             ) : null}
             {perms.canViewJourney && postPermalink ? (

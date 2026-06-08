@@ -287,13 +287,13 @@ function EditorVisibilitySelect({
   useEffect(() => {
     if (!open) return;
 
-    const onDoc = (event: MouseEvent) => {
+    const onDoc = (event: globalThis.MouseEvent) => {
       const target = event.target as Node;
       if (wrapRef.current?.contains(target)) return;
       if (menuRef.current?.contains(target)) return;
       setOpen(false);
     };
-    const onKey = (event: KeyboardEvent) => {
+    const onKey = (event: globalThis.KeyboardEvent) => {
       if (event.key === "Escape") setOpen(false);
     };
 

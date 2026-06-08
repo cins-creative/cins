@@ -663,6 +663,7 @@ function FilteredEmptyState({
     "ca-nhan": "Cá nhân",
     bookmark: "Lưu về",
     verified: "Verified",
+    "cong-dong": "Cộng đồng",
   };
 
   return (

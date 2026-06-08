@@ -439,31 +439,31 @@ function CommentComposeForm({
       }
       onSubmit={onSubmit}
     >
-      <div
-        className={
-          "post-comments-compose" +
-          (replyTo ? " is-replying" : "") +
-          (inline ? " is-inline" : "")
-        }
-      >
-        {replyTo ? (
-          <div className="post-comments-reply-context">
-            <Reply size={14} strokeWidth={2} aria-hidden />
-            <span className="post-comments-reply-context-text">
-              Trả lời{" "}
-              <strong>{replyTo.author?.tenHienThi ?? "người dùng"}</strong>
-            </span>
-            <button
-              type="button"
-              className="post-comments-reply-dismiss"
-              onClick={onCancelReply}
-              aria-label="Huỷ trả lời"
-            >
-              <X size={14} strokeWidth={2} aria-hidden />
-            </button>
-          </div>
-        ) : null}
-        <div className="post-comments-compose-row">
+      <div className="post-comments-compose-row">
+        <div
+          className={
+            "post-comments-compose" +
+            (replyTo ? " is-replying" : "") +
+            (inline ? " is-inline" : "")
+          }
+        >
+          {replyTo ? (
+            <div className="post-comments-reply-context">
+              <Reply size={14} strokeWidth={2} aria-hidden />
+              <span className="post-comments-reply-context-text">
+                Trả lời{" "}
+                <strong>{replyTo.author?.tenHienThi ?? "người dùng"}</strong>
+              </span>
+              <button
+                type="button"
+                className="post-comments-reply-dismiss"
+                onClick={onCancelReply}
+                aria-label="Huỷ trả lời"
+              >
+                <X size={14} strokeWidth={2} aria-hidden />
+              </button>
+            </div>
+          ) : null}
           <div className="post-comments-compose-input-wrap">
             <textarea
               ref={inputRef}
@@ -530,24 +530,24 @@ function CommentComposeForm({
               }}
             />
           </div>
-          <button
-            type="submit"
-            className="post-comments-send"
-            disabled={pending || !text.trim()}
-            aria-label={pending ? "Đang gửi bình luận" : "Gửi bình luận"}
-          >
-            {pending ? (
-              <Loader2
-                size={18}
-                strokeWidth={2}
-                className="post-comments-send-spin"
-                aria-hidden
-              />
-            ) : (
-              <Send size={18} strokeWidth={2} aria-hidden />
-            )}
-          </button>
         </div>
+        <button
+          type="submit"
+          className="post-comments-send"
+          disabled={pending || !text.trim()}
+          aria-label={pending ? "Đang gửi bình luận" : "Gửi bình luận"}
+        >
+          {pending ? (
+            <Loader2
+              size={18}
+              strokeWidth={2}
+              className="post-comments-send-spin"
+              aria-hidden
+            />
+          ) : (
+            <Send size={18} strokeWidth={2} aria-hidden />
+          )}
+        </button>
       </div>
       {mentionMenuPortal ? createPortal(mentionMenuPortal, document.body) : null}
     </form>
@@ -897,9 +897,10 @@ function CommentRow({
               ) : null}
             </div>
           </div>
-          <p className="post-comments-text">{comment.noiDung}</p>
-          {!comment.daXoa ? (
-            <div className="post-comments-actions">
+          <div className="post-comments-text-row">
+            <p className="post-comments-text">{comment.noiDung}</p>
+            {!comment.daXoa ? (
+              <div className="post-comments-actions">
               <div className="post-comments-reactions">
                 {(comment.reactions ?? []).map((r) => (
                   <button
@@ -982,8 +983,9 @@ function CommentRow({
                   Trả lời
                 </button>
               ) : null}
-            </div>
-          ) : null}
+              </div>
+            ) : null}
+          </div>
           {composeProps ? (
             <CommentComposeForm {...composeProps} inline />
           ) : null}

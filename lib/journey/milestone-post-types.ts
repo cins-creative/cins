@@ -65,7 +65,7 @@ export type MilestonePostDetail = {
     moTa: string | null;
     thoiDiem: string;
     loaiMoc: string;
-    cheDoHienThi: "public" | "theo_nhom" | "chi_minh" | "feature";
+    cheDoHienThi: "public" | "theo_nhom" | "chi_minh" | "feature" | "cong_dong";
   };
   owner: MilestonePostAuthor;
   posts: MilestonePostContent[];

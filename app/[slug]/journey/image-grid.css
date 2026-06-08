@@ -1,80 +1,102 @@
-/* Facebook-style image grid — Journey post render + compose preview */
+/* Album layout — theo album-layout-demo: 1 ảnh giữ tỉ lệ gốc, 2+ crop vuông */
 
 .image-grid {
-  display: grid;
-  gap: 4px;
+  display: flex;
+  gap: 3px;
   border-radius: var(--radius-sm, 10px);
   overflow: hidden;
   width: 100%;
   max-width: 100%;
   margin-left: auto;
   margin-right: auto;
+  background: var(--border, #e4e6eb);
 }
 
-.image-grid[data-count="1"] {
+.image-grid-col {
+  flex-direction: column;
+}
+
+.image-grid-row {
+  display: flex;
+  gap: 3px;
+  width: 100%;
+}
+
+/* ── 1 ảnh: giữ tỉ lệ gốc, không crop ── */
+.image-grid--single {
   display: block;
   background: var(--neutral-100, #f4f4f5);
 }
-.image-grid[data-count="1"] .image-grid-cell {
+.image-grid--single.is-portrait {
+  display: flex;
+  justify-content: center;
+  background: #111;
+}
+.image-grid--single.is-portrait .image-grid-cell {
+  flex: none;
+  max-width: 78%;
+  width: 100%;
+}
+.image-grid--single .image-grid-cell {
   display: block;
   width: 100%;
-  max-height: 500px;
   padding: 0;
   border: 0;
   background: transparent;
   cursor: pointer;
 }
-.image-grid[data-count="1"] img {
+.image-grid--single .image-grid-cell img {
   width: 100%;
-  max-height: 500px;
   height: auto;
+  max-height: min(70vh, 560px);
   object-fit: contain;
   display: block;
 }
 
+/* ── 2 ảnh: 2 cột vuông ── */
 .image-grid[data-count="2"] {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  aspect-ratio: 2 / 1;
+  flex-direction: row;
 }
-
-.image-grid[data-count="3"] {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  grid-template-rows: 1fr 1fr;
-  aspect-ratio: 3 / 2;
-}
-.image-grid[data-count="3"] .image-grid-cell:first-child {
-  grid-row: 1 / 3;
-}
-
-.image-grid[data-count="4"] {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr;
+.image-grid[data-count="2"] .image-grid-cell {
+  flex: 1;
   aspect-ratio: 1 / 1;
+  min-width: 0;
 }
 
-.image-grid[data-count="5"] {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  grid-template-rows: 1fr 1fr;
+/* ── 3 ảnh: ô lớn trái + 2 ô nhỏ phải (container 3:2) ── */
+.image-grid[data-count="3"] {
+  flex-direction: row;
   aspect-ratio: 3 / 2;
 }
-.image-grid[data-count="5"] .image-grid-cell:nth-child(1) {
-  grid-column: span 3;
+.image-grid[data-count="3"] .image-grid-main {
+  flex: 2;
+  min-width: 0;
+  position: relative;
 }
-.image-grid[data-count="5"] .image-grid-cell:nth-child(2) {
-  grid-column: span 3;
+.image-grid[data-count="3"] .image-grid-main .image-grid-cell {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
-.image-grid[data-count="5"] .image-grid-cell:nth-child(3) {
-  grid-column: span 2;
+.image-grid[data-count="3"] .image-grid-side {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
 }
-.image-grid[data-count="5"] .image-grid-cell:nth-child(4) {
-  grid-column: span 2;
+.image-grid[data-count="3"] .image-grid-side .image-grid-cell {
+  flex: 1;
+  min-height: 0;
+  position: relative;
 }
-.image-grid[data-count="5"] .image-grid-cell:nth-child(5) {
-  grid-column: span 2;
+
+/* ── 4–10: hàng flex, ô vuông (4–6 theo demo; 7–10 compose) ── */
+.image-grid-row .image-grid-cell {
+  flex: 1;
+  aspect-ratio: 1 / 1;
+  min-width: 0;
 }
 
 .image-grid-cell {
@@ -87,16 +109,10 @@
   background: var(--neutral-100, #f1f2f5);
   cursor: pointer;
   min-height: 0;
-  min-width: 0;
 }
-.image-grid[data-count="2"] .image-grid-cell,
-.image-grid[data-count="3"] .image-grid-cell,
-.image-grid[data-count="4"] .image-grid-cell,
-.image-grid[data-count="5"] .image-grid-cell {
-  aspect-ratio: auto;
-  height: 100%;
-}
-.image-grid-cell img {
+
+/* 2+ ảnh: crop vuông trong ô */
+.image-grid:not(.image-grid--single) .image-grid-cell img {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -106,14 +122,15 @@
 .grid-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
-  font-family: var(--font-sans);
-  font-size: 28px;
+  font-family: var(--font-display, var(--font-sans));
+  font-size: 26px;
   font-weight: 500;
+  letter-spacing: 1px;
   pointer-events: none;
 }
 
@@ -127,7 +144,23 @@
   color: #fff;
 }
 
-/* Lightbox — portal `<dialog>`, tránh fixed trong backdrop-filter */
+.image-grid-error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  background: rgba(185, 28, 28, 0.72);
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.3;
+}
+
+/* Lightbox — xem tỉ lệ thật (contain) */
 .image-lightbox {
   margin: 0;
   padding: 0;
@@ -154,7 +187,7 @@
 }
 .image-lightbox-figure {
   margin: 0;
-  max-width: min(1200px, 100%);
+  max-width: min(90vw, 1200px);
   max-height: calc(100vh - 96px);
   display: flex;
   align-items: center;

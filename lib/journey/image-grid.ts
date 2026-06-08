@@ -94,15 +94,58 @@ export function photoGridImagesFromBlocks(
   return all.length > 0 ? all : null;
 }
 
-/** Số layout grid hiển thị (1–5). */
-export function facebookGridDisplayCount(total: number): number {
+/** Số ô hiển thị — feed tối đa 6 (ô 6 phủ +N khi >6). */
+export function albumGridDisplayCount(
+  total: number,
+  showAll = false,
+): number {
   if (total <= 0) return 0;
-  return Math.min(total, 5);
+  if (showAll) return total;
+  return Math.min(total, 6);
 }
 
-/** Overlay +N khi nhóm có hơn 5 ảnh. */
+/** Overlay +N trên ô cuối khi album có hơn 6 ảnh (chế độ xem). */
+export function albumGridRemainingCount(
+  total: number,
+  showAll = false,
+): number {
+  if (showAll || total <= 6) return 0;
+  return total - 6;
+}
+
+/** `data-count` cho CSS — layout demo: 1–6; 7+ xem = 6; compose = số thật. */
+export function albumGridLayoutCount(
+  total: number,
+  showAll = false,
+): number {
+  if (total <= 0) return 0;
+  if (showAll) return total;
+  return total >= 7 ? 6 : total;
+}
+
+export function isPortraitGridImage(image: GridImage): boolean {
+  return image.height > image.width;
+}
+
+/** @deprecated Dùng `albumGridDisplayCount`. */
+export function facebookGridDisplayCount(total: number): number {
+  return albumGridDisplayCount(total);
+}
+
+/** @deprecated Dùng `albumGridRemainingCount`. */
 export function facebookGridRemainingCount(total: number): number {
-  return total > 5 ? total - 5 : 0;
+  return albumGridRemainingCount(total);
+}
+
+/** Chia slot theo hàng (compose 7–10: hàng 3 cột). */
+export function albumGridComposeRows(slotCount: number): number[][] {
+  const rows: number[][] = [];
+  for (let i = 0; i < slotCount; i += 3) {
+    const row: number[] = [];
+    for (let j = i; j < Math.min(i + 3, slotCount); j++) row.push(j);
+    rows.push(row);
+  }
+  return rows;
 }
 
 function cfUrl(imageId: string, variant: string): string | null {
@@ -127,16 +170,16 @@ function cfLightboxUrl(imageId: string): string | null {
   );
 }
 
-/** Thumbnail grid — variant nhỏ; compose dùng previewSrc (blob) khi chưa có CF id. */
+/** Thumbnail grid — variant nhỏ; compose dùng previewSrc (blob / URL upload) trước CF id. */
 export function gridThumbSrc(image: GridImage): string {
+  const preview = image.previewSrc?.trim();
+  if (preview) return preview;
+
   const id = image.id.trim();
   if (CF_UUID_RE.test(id)) {
     const fromCf = cfThumbUrl(id);
     if (fromCf) return fromCf;
   }
-
-  const preview = image.previewSrc?.trim();
-  if (preview) return preview;
 
   if (id.startsWith("blob:") || id.startsWith("data:")) return id;
   return picsum(id, image.width, image.height);

@@ -4,12 +4,17 @@ import type { MilestoneItem } from "@/components/journey/milestone-types";
 import { loadPersonalFiltersForCotMocs } from "@/lib/filter/gan";
 import type { PersonalFilterRef } from "@/lib/filter/types";
 
-function collectCotMocIds(items: ReadonlyArray<{ cotMocId?: string | null; id: string }>) {
+function collectCotMocIds(
+  items: ReadonlyArray<{ cotMocId?: string | null; id?: string | null }>,
+) {
   return [
     ...new Set(
       items
         .map((item) => item.cotMocId ?? item.id)
-        .filter((id) => /^[0-9a-f-]{36}$/i.test(id)),
+        .filter(
+          (id): id is string =>
+            typeof id === "string" && /^[0-9a-f-]{36}$/i.test(id),
+        ),
     ),
   ];
 }
