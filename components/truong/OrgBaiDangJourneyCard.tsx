@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { ChevronUp } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -25,6 +24,7 @@ import { baiDangCoverDisplayUrl } from "@/lib/truong/bai-dang-cover";
 import {
   baiDangHasExpandableBody,
   buildBaiDangThumbPreview,
+  buildLegacyPhotoGridImages,
   stripHtmlToPlainText,
 } from "@/lib/truong/bai-dang-content";
 import {
@@ -68,10 +68,27 @@ export function OrgBaiDangJourneyCard({ post }: Props) {
   const hasRichBody = Boolean(post.noi_dung?.trim());
   const blocksCardKind = usesBlocks ? milestoneCardContentKind(blocks) : null;
   const cardKind = blocksCardKind ?? baiDangCardKind(post);
+  const isMediaCard = cardKind === "photo" || cardKind === "video";
+  const useUnifiedMediaBody = usesBlocks || isMediaCard;
+
+  const legacyPhotoGrid = useMemo(
+    () =>
+      !usesBlocks && cardKind === "photo" ? buildLegacyPhotoGridImages(post) : null,
+    [usesBlocks, cardKind, post],
+  );
+
+  const photoGridImages = useMemo(() => {
+    if (usesBlocks) return milestoneCardPhotoGrid(blocks);
+    return legacyPhotoGrid;
+  }, [usesBlocks, blocks, legacyPhotoGrid]);
+
   const supportsInlineUnfold =
-    usesBlocks &&
-    (cardKind === "article" || cardKind === "photo" || cardKind === "video");
-  const legacyCardExpand = canExpand && !usesBlocks;
+    useUnifiedMediaBody &&
+    (cardKind === "photo" ||
+      cardKind === "video" ||
+      (usesBlocks && cardKind === "article"));
+
+  const legacyCardExpand = !useUnifiedMediaBody && canExpand && !usesBlocks;
   const year = baiDangYear(post.tao_luc);
   const month = post.tao_luc ? new Date(post.tao_luc).getMonth() + 1 : null;
   const showUnfold = supportsInlineUnfold && expanded;
@@ -92,10 +109,18 @@ export function OrgBaiDangJourneyCard({ post }: Props) {
     return null;
   }, [cardCaption, post.tom_tat, post.noi_dung]);
 
-  const previewMedia = useMemo(
-    () => (usesBlocks ? orgBaiDangPreviewMedia(post) : null),
-    [post, usesBlocks],
-  );
+  const previewMedia = useMemo(() => {
+    if (usesBlocks) return orgBaiDangPreviewMedia(post);
+    if (isMediaCard && coverUrl) {
+      return {
+        src: coverUrl,
+        width: 800,
+        height: 450,
+        label: post.tieu_de,
+      } satisfies MilestoneMediaItem;
+    }
+    return null;
+  }, [post, usesBlocks, isMediaCard, coverUrl]);
 
   function onCardClick(e: React.MouseEvent) {
     if (!legacyCardExpand) return;
@@ -143,11 +168,11 @@ export function OrgBaiDangJourneyCard({ post }: Props) {
       <div className="j-m-body-wrap">
         <div
           className={
-            usesBlocks
+            useUnifiedMediaBody
               ? blocksCardClassName
               : `j-m-card jcard jcard--${cardKind}${legacyCardExpand ? " is-expandable" : ""}${expanded ? " is-expanded" : legacyCardExpand ? " is-collapsed" : ""}`
           }
-          onClick={usesBlocks ? undefined : onCardClick}
+          onClick={useUnifiedMediaBody ? undefined : onCardClick}
           role={legacyCardExpand ? "button" : undefined}
           tabIndex={legacyCardExpand ? 0 : undefined}
           aria-expanded={legacyCardExpand ? expanded : undefined}
@@ -170,26 +195,14 @@ export function OrgBaiDangJourneyCard({ post }: Props) {
             <TruongBaiDangPostActions post={post} />
           </div>
 
-          {!usesBlocks && coverUrl && cardKind !== "article" ? (
-            <div className="jcard-media org-baidang-cover">
-              <Image
-                src={coverUrl}
-                alt=""
-                fill
-                className="org-baidang-cover-img"
-                sizes="(max-width: 820px) 100vw, 760px"
-              />
-            </div>
-          ) : null}
-
-          {usesBlocks ? (
+          {useUnifiedMediaBody ? (
             <>
               <JourneyMilestoneCardBodyContent
                 title={post.tieu_de}
                 body={post.tom_tat}
-                noiDungBlocks={blocks}
+                noiDungBlocks={usesBlocks ? blocks : null}
                 preview={previewMedia}
-                photoGridImages={milestoneCardPhotoGrid(blocks)}
+                photoGridImages={photoGridImages}
                 expandTrigger={
                   supportsInlineUnfold
                     ? expanded
@@ -205,12 +218,23 @@ export function OrgBaiDangJourneyCard({ post }: Props) {
                 }
               />
 
-              {showUnfold && blocks ? (
+              {showUnfold && usesBlocks && blocks ? (
                 <div className="j-m-card-unfold" data-open="true" aria-hidden={false}>
                   <div className="j-m-card-unfold-inner">
                     <div className="cins-editor-page cins-post-view j-m-unfold-post editor-canvas">
                       <PostBlockRenderer blocks={blocks} />
                     </div>
+                  </div>
+                </div>
+              ) : null}
+
+              {showUnfold && !usesBlocks && hasRichBody ? (
+                <div className="j-m-card-unfold" data-open="true" aria-hidden={false}>
+                  <div className="j-m-card-unfold-inner">
+                    <div
+                      className="jcard-content article-rich-content article-content-html"
+                      dangerouslySetInnerHTML={{ __html: post.noi_dung! }}
+                    />
                   </div>
                 </div>
               ) : null}

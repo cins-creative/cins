@@ -1,6 +1,13 @@
 import type { Block } from "@/lib/editor/types";
+import {
+  GRID_IMAGE_DEFAULT_HEIGHT,
+  GRID_IMAGE_DEFAULT_WIDTH,
+  type GridImage,
+} from "@/lib/journey/image-grid";
 import { isMilestoneArticleCard } from "@/lib/journey/milestone-card-kind";
+import { baiDangCoverDisplayUrl } from "@/lib/truong/bai-dang-cover";
 import { baiDangUsesBlocks } from "@/lib/truong/bai-dang-blocks";
+import type { TruongBaiDang } from "@/lib/truong/types";
 
 const IMG_SRC_RE = /<img\b[^>]*\bsrc\s*=\s*["']([^"']+)["'][^>]*>/gi;
 
@@ -79,6 +86,29 @@ export function stripHtmlToPlainText(html: string): string {
     .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)))
     .replace(/\s+/g, " ")
     .trim();
+}
+
+/** Grid ảnh cho bài legacy (HTML + cover) — timeline card photo. */
+export function buildLegacyPhotoGridImages(post: TruongBaiDang): GridImage[] | null {
+  const urls: string[] = [];
+  const seen = new Set<string>();
+  const cover = baiDangCoverDisplayUrl(post);
+  if (cover) {
+    seen.add(cover);
+    urls.push(cover);
+  }
+  for (const url of extractImagesFromBaiDangHtml(post.noi_dung, 32)) {
+    if (seen.has(url)) continue;
+    seen.add(url);
+    urls.push(url);
+  }
+  if (!urls.length) return null;
+  return urls.map((url, i) => ({
+    id: `legacy-img-${i}`,
+    previewSrc: url,
+    width: GRID_IMAGE_DEFAULT_WIDTH,
+    height: GRID_IMAGE_DEFAULT_HEIGHT,
+  }));
 }
 
 export function baiDangHasExpandableBody(post: {

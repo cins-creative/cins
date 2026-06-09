@@ -1332,12 +1332,24 @@
   align-self: center;
 }
 
-/* Change image button on each cell */
-.cins-editor-page .ph-change {
+/* Change / paste image buttons on each cell */
+.cins-editor-page .ph-actions {
   position: absolute;
   bottom: 8px;
   left: 50%;
   transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 3;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.cins-editor-page .ph:hover .ph-actions,
+.cins-editor-page .mz:hover .ph-actions {
+  opacity: 1;
+}
+.cins-editor-page .ph-change {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -1352,12 +1364,6 @@
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.15s;
-  z-index: 3;
-}
-.cins-editor-page .ph:hover .ph-change {
-  opacity: 1;
 }
 .cins-editor-page .ph-change:hover {
   background: var(--cins-blue);
@@ -1388,10 +1394,8 @@
   object-fit: cover;
   display: block;
 }
-.cins-editor-page .mz .ph-change {
+.cins-editor-page .mz .ph-actions {
   bottom: 8px;
-  left: 50%;
-  transform: translateX(-50%);
 }
 .cins-editor-page .mz.empty {
   background: var(--bg-surface);
@@ -1408,6 +1412,10 @@
   justify-content: center;
   gap: 8px;
   padding: 10px;
+}
+.cins-editor-page .mz-fill:has(.mz-fill-action:nth-child(3)) {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
 }
 .cins-editor-page .mz-fill-action {
   height: 100%;

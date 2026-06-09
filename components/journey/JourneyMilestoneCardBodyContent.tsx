@@ -65,7 +65,9 @@ export function JourneyMilestoneCardBodyContent({
   const photoGridImages =
     photoGridOverride ?? photoGridImagesFromBlocks(blocks);
   const mediaKind = detectMediaPostKind(blocks);
-  const isPhotoAlbum = mediaKind === "photo" && photoGridImages !== null;
+  const isPhotoAlbum =
+    photoGridImages !== null &&
+    (mediaKind === "photo" || photoGridOverride != null);
   const isVideoPost = mediaKind === "video";
   const isArticle = !isPhotoAlbum && !isVideoPost;
   const videoEmbedUrl = isVideoPost ? extractVideoUrl(blocks ?? []) : null;
@@ -121,7 +123,13 @@ export function JourneyMilestoneCardBodyContent({
 
   return (
     <div
-      className={`jcard-body${showExpandTrigger ? " is-expand-trigger" : ""}`}
+      className={[
+        "jcard-body",
+        showExpandTrigger ? " is-expand-trigger" : "",
+        isContentOpen ? " is-content-open" : "",
+      ]
+        .filter(Boolean)
+        .join("")}
       {...bodyShellProps}
     >
       <div className="jcard-content">
@@ -155,11 +163,7 @@ export function JourneyMilestoneCardBodyContent({
           </div>
         ) : null}
 
-        <div
-          className="jcard-media-zone"
-          data-collapsed={isArticle && isContentOpen ? "true" : "false"}
-          aria-hidden={isArticle && isContentOpen}
-        >
+        <div className="jcard-media-zone">
           {isVideoPost && videoEmbedUrl ? (
             <JourneyCardVideo
               url={videoEmbedUrl}

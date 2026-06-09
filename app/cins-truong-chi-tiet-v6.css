@@ -3058,7 +3058,11 @@
   gap: 16px;
 }
 
-/* Unfold bài viết dài — dùng `.j-m-card-unfold` / `.jcard-expand-cta` từ journey.css */
+/* Unfold bài viết — header giữ nguyên, divider từ journey.css */
+.tdh-page--v6 #tdh-panel-baidang .j-m-card-unfold[data-open="true"] {
+  border-top-color: var(--border2, #e4e6eb);
+}
+
 .tdh-page--v6 #tdh-panel-baidang .preview--photo-grid .grid-overlay {
   z-index: 2;
 }

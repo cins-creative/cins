@@ -22,6 +22,7 @@ import {
   AlignLeft,
   AlignRight,
   Check,
+  ClipboardPaste,
   Columns2,
   Columns3,
   Globe,
@@ -73,8 +74,10 @@ import type {
   Visibility as ServerVisibility,
 } from "@/lib/editor/types";
 import type { CongDongComposeConfig } from "@/lib/cong-dong/types";
+import { readImageFileFromClipboard } from "@/lib/files/clipboard-images";
 import {
   publishOrgBaiDangClient,
+  updateOrgBaiDangClient,
   type OrgBaiDangComposeConfig,
 } from "@/lib/truong/org-bai-dang-compose";
 
@@ -930,6 +933,36 @@ export function EditorView({
     [openImageFilePick],
   );
 
+  const pasteImageFromClipboard = useCallback(
+    async (target: ImgPickerTarget) => {
+      const file = await readImageFileFromClipboard();
+      if (!file) {
+        setToast("Không có ảnh trong bộ nhớ tạm. Sao chép ảnh rồi bấm lại.");
+        return;
+      }
+      startEditorImageUpload(
+        file,
+        (seed) => applyImageToBlock(target, seed),
+        replaceImageSeed,
+      );
+    },
+    [applyImageToBlock, replaceImageSeed],
+  );
+
+  const pasteImgPicker = useCallback(
+    (blockId: string, slot: number) => {
+      void pasteImageFromClipboard({ blockId, slot });
+    },
+    [pasteImageFromClipboard],
+  );
+
+  const mosaicPasteImage = useCallback(
+    (id: string, slot: number) => {
+      void pasteImageFromClipboard({ blockId: id, slot, mosaic: true });
+    },
+    [pasteImageFromClipboard],
+  );
+
   const toggleRound = useCallback(
     (id: string) => {
       pushHistory();
@@ -964,6 +997,28 @@ export function EditorView({
     const coverFinal = coverSeed;
 
     startTransition(async () => {
+      if (orgBaiDangCompose && isEdit && initial) {
+        const result = await updateOrgBaiDangClient({
+          orgId: orgBaiDangCompose.orgId,
+          baiDangId: initial.tacPhamId,
+          tieuDe: tieuDeFinal,
+          tomTat: moTaFinal || null,
+          coverId: coverFinal,
+          blocks: serverBlocks,
+        });
+        if (!result.ok) {
+          setToast(result.error || "Không lưu được bài đăng.");
+          return;
+        }
+        orgBaiDangCompose.onPostUpdated?.(result.post);
+        setSavedFlash(true);
+        setToast("✓ Đã cập nhật bài đăng.");
+        if (isOverlay && onPublished) {
+          setTimeout(() => onPublished(), 900);
+        }
+        return;
+      }
+
       if (orgBaiDangCompose && !isEdit) {
         const result = await publishOrgBaiDangClient({
           orgId: orgBaiDangCompose.orgId,
@@ -1188,6 +1243,7 @@ export function EditorView({
                 onChangeLayout={(layout) => setLayout(b.id, layout)}
                 onToggleRound={() => toggleRound(b.id)}
                 onPickImage={(slot) => openImgPicker(b.id, slot)}
+                onPasteImage={(slot) => pasteImgPicker(b.id, slot)}
                 onChangeCap={(cap) => updateBlock(b.id, { cap })}
                 onChangeEmbedUrl={(u) => updateBlock(b.id, { embedUrl: u })}
                 onChangeDividerLen={(dividerLen) =>
@@ -1214,6 +1270,7 @@ export function EditorView({
                   mosaicUpdateTextCell(b.id, slot, patch)
                 }
                 onMosaicPickImage={(slot) => mosaicPickImage(b.id, slot)}
+                onMosaicPasteImage={(slot) => mosaicPasteImage(b.id, slot)}
               />
               <AddZone
                 idx={i + 1}
@@ -1698,6 +1755,7 @@ type BlockRowProps = {
   onChangeLayout: (l: ImgLayout) => void;
   onToggleRound: () => void;
   onPickImage: (slot: number) => void;
+  onPasteImage: (slot: number) => void;
   onChangeCap: (c: string) => void;
   onChangeEmbedUrl: (u: string) => void;
   onChangeDividerLen: (len: number) => void;
@@ -1718,7 +1776,47 @@ type BlockRowProps = {
     patch: Pick<MosaicCell, "text" | "align" | "font" | "size">,
   ) => void;
   onMosaicPickImage: (slot: number) => void;
+  onMosaicPasteImage: (slot: number) => void;
 };
+
+function PhImageActions({
+  onPick,
+  onPaste,
+  pickLabel = "Đổi ảnh",
+  pasteLabel = "Dán ảnh",
+}: {
+  onPick: () => void;
+  onPaste: () => void;
+  pickLabel?: string;
+  pasteLabel?: string;
+}) {
+  return (
+    <div className="ph-actions">
+      <button
+        type="button"
+        className="ph-change"
+        onClick={(e) => {
+          e.stopPropagation();
+          onPick();
+        }}
+      >
+        <ImagePlus size={14} strokeWidth={1.8} aria-hidden />
+        {pickLabel}
+      </button>
+      <button
+        type="button"
+        className="ph-change ph-paste"
+        onClick={(e) => {
+          e.stopPropagation();
+          onPaste();
+        }}
+      >
+        <ClipboardPaste size={14} strokeWidth={1.8} aria-hidden />
+        {pasteLabel}
+      </button>
+    </div>
+  );
+}
 
 function BlockRow(p: BlockRowProps) {
   const { block: b, selected, onSelect } = p;
@@ -1952,16 +2050,10 @@ function ImageBlock({ block, p }: { block: Block; p: BlockRowProps }) {
         {imgs.map((seed, i) => (
           <div key={`${seed}-${i}`} className="ph">
             <img src={ph(seed, 900, 900)} alt="" />
-            <button
-              type="button"
-              className="ph-change"
-              onClick={(e) => {
-                e.stopPropagation();
-                p.onPickImage(i);
-              }}
-            >
-              <ImagePlus size={14} strokeWidth={1.8} aria-hidden /> Đổi ảnh
-            </button>
+            <PhImageActions
+              onPick={() => p.onPickImage(i)}
+              onPaste={() => p.onPasteImage(i)}
+            />
           </div>
         ))}
       </div>
@@ -2284,6 +2376,17 @@ function MosaicBlock({ block, p }: { block: Block; p: BlockRowProps }) {
                     className="mz-fill-action"
                     onClick={(e) => {
                       e.stopPropagation();
+                      p.onMosaicPasteImage(i);
+                    }}
+                  >
+                    <ClipboardPaste size={20} strokeWidth={1.8} aria-hidden />
+                    <span>Dán ảnh</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="mz-fill-action"
+                    onClick={(e) => {
+                      e.stopPropagation();
                       p.onMosaicSetTextCell(i);
                     }}
                   >
@@ -2394,16 +2497,12 @@ function MosaicBlock({ block, p }: { block: Block; p: BlockRowProps }) {
                     src={ph(cell.seed, 900, 900)}
                     alt=""
                   />
-                  <button
-                    type="button"
-                    className="ph-change"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      p.onMosaicPickImage(i);
-                    }}
-                  >
-                    <ImagePlus size={13} strokeWidth={1.8} aria-hidden /> Đổi
-                  </button>
+                  <PhImageActions
+                    onPick={() => p.onMosaicPickImage(i)}
+                    onPaste={() => p.onMosaicPasteImage(i)}
+                    pickLabel="Đổi"
+                    pasteLabel="Dán"
+                  />
                 </>
               )}
               {editing ? (

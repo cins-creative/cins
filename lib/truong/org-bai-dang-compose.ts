@@ -12,6 +12,7 @@ import type { TruongBaiDang } from "@/lib/truong/types";
 export type OrgBaiDangComposeConfig = {
   orgId: string;
   onPostPublished?: (post: TruongBaiDang) => void;
+  onPostUpdated?: (post: TruongBaiDang) => void;
 };
 
 export type PublishOrgBaiDangInput = {
@@ -30,6 +31,44 @@ function defaultLoaiFromBlocks(blocks: ReadonlyArray<Block>): string {
   const kind = milestoneCardContentKind(blocks);
   if (kind === "photo" || kind === "video") return "su_kien";
   return "thong_bao";
+}
+
+export async function updateOrgBaiDangClient(
+  input: PublishOrgBaiDangInput & { baiDangId: string },
+): Promise<PublishOrgBaiDangResult> {
+  const tieu_de = input.tieuDe.trim();
+  if (!tieu_de) {
+    return { ok: false, error: "Cần nhập tiêu đề." };
+  }
+  if (!input.blocks.length) {
+    return { ok: false, error: "Bài đăng chưa có nội dung." };
+  }
+
+  const res = await truongInlineFetch(
+    input.orgId,
+    `/bai-dang/${encodeURIComponent(input.baiDangId)}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({
+        tieu_de,
+        tom_tat: input.tomTat?.trim() || null,
+        noi_dung_blocks: input.blocks,
+        cover_id: input.coverId?.trim() || null,
+        loai_bai_dang: defaultLoaiFromBlocks(input.blocks),
+      }),
+    },
+  );
+
+  if (!res.ok) {
+    return { ok: false, error: await readTruongInlineError(res) };
+  }
+
+  const json = (await res.json()) as { post: Parameters<typeof mapOrgBaiDangApiRow>[0] };
+  const post = mapOrgBaiDangApiRow(json.post);
+  return {
+    ok: true,
+    post: { ...post, cover_src: baiDangCoverDisplayUrl(post) },
+  };
 }
 
 export async function publishOrgBaiDangClient(

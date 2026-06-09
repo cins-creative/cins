@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from "react";
 
+import { useJourneyCompose } from "@/components/journey/JourneyComposeContext";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
 import { normalizeLoaiBaiDang, type BaiDangLoai } from "@/lib/truong/bai-dang";
 import { mapOrgBaiDangApiRow } from "@/lib/truong/bai-dang-api-fields";
@@ -192,10 +193,22 @@ export function TruongBaiDangEditProvider({ children }: { children: ReactNode })
 
 export function TruongBaiDangPostActions({ post }: { post: TruongBaiDang }) {
   const actions = useBaiDangActions();
+  const compose = useJourneyCompose();
   if (!actions) return null;
 
   return (
     <div className="tdh-baidang-edit" onClick={(e) => e.stopPropagation()}>
+      {compose.canCompose ? (
+        <button
+          type="button"
+          className="tdh-inline-chip-btn"
+          onClick={() =>
+            compose.openCompose({ kind: "edit", postSlug: post.id })
+          }
+        >
+          Sửa bài
+        </button>
+      ) : null}
       <button
         type="button"
         className="tdh-inline-chip-btn danger"

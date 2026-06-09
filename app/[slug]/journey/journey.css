@@ -1641,7 +1641,7 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   outline-offset: 3px;
   border-radius: 12px;
 }
-/* Mô tả / caption — article giữ lead khi xổ; media preview thu gọn */
+/* Mô tả / caption — giữ nguyên khi xổ; phần mở rộng nằm dưới divider */
 .jcard-lead {
   display: grid;
   grid-template-rows: 1fr;
@@ -1665,21 +1665,10 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   margin-bottom: 8px;
   transition: font-size var(--j-unfold-dur, 0.48s) var(--j-unfold-ease, cubic-bezier(0.22, 1, 0.36, 1));
 }
-/* Media preview — thu gọn khi xổ nội dung */
+/* Media preview — giữ nguyên khi xổ nội dung bên dưới */
 .jcard-media-zone {
-  display: grid;
-  grid-template-rows: 1fr;
+  display: block;
   opacity: 1;
-  transition:
-    grid-template-rows var(--j-unfold-dur, 0.48s) var(--j-unfold-ease, cubic-bezier(0.22, 1, 0.36, 1)),
-    opacity 0.36s var(--j-unfold-ease, cubic-bezier(0.22, 1, 0.36, 1)),
-    margin 0.36s var(--j-unfold-ease, cubic-bezier(0.22, 1, 0.36, 1));
-}
-.jcard-media-zone[data-collapsed="true"] {
-  grid-template-rows: 0fr;
-  opacity: 0;
-  margin: 0 !important;
-  pointer-events: none;
 }
 .jcard-media-zone > .preview {
   min-height: 0;
@@ -1726,8 +1715,9 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   );
   color: var(--cins-blue, #1f74c9);
 }
-.jcard-media-zone[data-collapsed="true"] .jcard-expand-cta {
+.jcard-body.is-content-open .jcard-expand-cta {
   opacity: 0;
+  pointer-events: none;
 }
 /* Khối nội dung xổ — max-height tránh crop sau khi mở xong */
 .j-m-card-unfold {
@@ -1735,15 +1725,21 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   opacity: 0;
   overflow: hidden;
   border-top: 1px solid transparent;
+  margin-top: 0;
+  padding-top: 0;
   transition:
     max-height var(--j-unfold-dur, 0.48s) var(--j-unfold-ease, cubic-bezier(0.22, 1, 0.36, 1)),
     opacity 0.38s var(--j-unfold-ease, cubic-bezier(0.22, 1, 0.36, 1)),
-    border-color 0.32s ease;
+    border-color 0.32s ease,
+    margin-top 0.32s ease,
+    padding-top 0.32s ease;
 }
 .j-m-card-unfold[data-open="true"] {
   max-height: 12000px;
   opacity: 1;
-  border-top-color: var(--border);
+  margin-top: 12px;
+  padding-top: 16px;
+  border-top-color: var(--border2, #e4e6eb);
   overflow-x: hidden;
   overflow-y: visible;
 }

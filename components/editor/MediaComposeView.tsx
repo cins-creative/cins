@@ -53,6 +53,7 @@ import {
 import type { CongDongComposeConfig } from "@/lib/cong-dong/types";
 import {
   publishOrgBaiDangClient,
+  updateOrgBaiDangClient,
   type OrgBaiDangComposeConfig,
 } from "@/lib/truong/org-bai-dang-compose";
 
@@ -696,6 +697,26 @@ export function MediaComposeView({
         trimmedCaption,
         isPhoto ? "photo" : "video",
       );
+
+      if (orgBaiDangCompose && isEdit && editInitial) {
+        const res = await updateOrgBaiDangClient({
+          orgId: orgBaiDangCompose.orgId,
+          baiDangId: editInitial.tacPhamId,
+          tieuDe,
+          tomTat: trimmedCaption.slice(0, 280) || null,
+          coverId: null,
+          blocks,
+        });
+        if (!res.ok) {
+          setError(res.error);
+          return;
+        }
+        orgBaiDangCompose.onPostUpdated?.(res.post);
+        if (isOverlay && onPublished) {
+          onPublished();
+        }
+        return;
+      }
 
       if (orgBaiDangCompose && !isEdit) {
         const res = await publishOrgBaiDangClient({

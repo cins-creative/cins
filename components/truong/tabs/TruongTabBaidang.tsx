@@ -40,6 +40,27 @@ export function TruongTabBaidang({ posts: postsProp }: Props) {
     [ctx],
   );
 
+  const onPostUpdated = useCallback(
+    (post: TruongBaiDang) => {
+      if (!ctx) return;
+      ctx.setBaidang((list) =>
+        list.map((p) =>
+          p.id === post.id
+            ? {
+                ...p,
+                ...post,
+                noiDungBlocks: post.noiDungBlocks ?? p.noiDungBlocks,
+                personalFilters: p.personalFilters,
+                personalFilterSlugs: p.personalFilterSlugs,
+              }
+            : p,
+        ),
+      );
+      ctx.showToast("Đã cập nhật bài đăng");
+    },
+    [ctx],
+  );
+
   const orgId = ctx?.orgId ?? "";
 
   if (!ctx?.isEditing) {
@@ -65,6 +86,7 @@ export function TruongTabBaidang({ posts: postsProp }: Props) {
       orgBaiDangCompose={{
         orgId,
         onPostPublished,
+        onPostUpdated,
       }}
     >
       <TruongTabBaidangContent posts={posts} orgId={orgId} />

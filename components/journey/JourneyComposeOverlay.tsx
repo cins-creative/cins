@@ -8,6 +8,7 @@ import type { EditorInitial } from "@/components/editor/EditorView";
 import type { MediaComposeMode } from "@/components/editor/MediaComposeView";
 import type { CongDongComposeConfig } from "@/lib/cong-dong/types";
 import type { OrgBaiDangComposeConfig } from "@/lib/truong/org-bai-dang-compose";
+import { readTruongInlineError, truongInlineFetch } from "@/lib/truong/inline-api";
 import type { JourneyComposeState } from "@/lib/journey/compose-types";
 import {
   buildMediaEditInitial,
@@ -108,16 +109,30 @@ export function JourneyComposeOverlay({
     setMediaEditInitial(null);
     setMediaEditMode(null);
 
-    void fetch(
-      `/api/journey/${encodeURIComponent(ownerSlug)}/p/${encodeURIComponent(compose.postSlug)}/edit`,
-    )
-      .then(async (res) => {
-        if (!res.ok) throw new Error("load failed");
-        return res.json() as Promise<{
-          initial: EditorInitial;
-          postSlug: string;
-        }>;
-      })
+    const loadEdit = orgBaiDangCompose
+      ? truongInlineFetch(
+          orgBaiDangCompose.orgId,
+          `/bai-dang/${encodeURIComponent(compose.postSlug)}/edit`,
+        ).then(async (res) => {
+          if (!res.ok) {
+            throw new Error(await readTruongInlineError(res));
+          }
+          return res.json() as Promise<{
+            initial: EditorInitial;
+            postSlug: string;
+          }>;
+        })
+      : fetch(
+          `/api/journey/${encodeURIComponent(ownerSlug)}/p/${encodeURIComponent(compose.postSlug)}/edit`,
+        ).then(async (res) => {
+          if (!res.ok) throw new Error("load failed");
+          return res.json() as Promise<{
+            initial: EditorInitial;
+            postSlug: string;
+          }>;
+        });
+
+    void loadEdit
       .then((data) => {
         if (cancelled) return;
         const mediaKind = detectMediaPostKind(data.initial.blocks);
@@ -154,7 +169,7 @@ export function JourneyComposeOverlay({
     return () => {
       cancelled = true;
     };
-  }, [compose, ownerSlug]);
+  }, [compose, ownerSlug, orgBaiDangCompose]);
 
   const handleBackdrop = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
