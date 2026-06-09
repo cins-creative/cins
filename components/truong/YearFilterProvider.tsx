@@ -91,16 +91,31 @@ export function useYearFilter(): YearFilterContextValue {
   return ctx;
 }
 
-export function TruongYearSelect({ label = "Năm" }: { label?: string }) {
+export function TruongYearSelect({
+  label = "Năm",
+  /** Danh sách riêng (vd. năm lịch từ mốc timeline). */
+  years,
+}: {
+  label?: string;
+  years?: number[];
+}) {
   const { year, yearOptions, setYear } = useYearFilter();
+  const options =
+    years && years.length > 0 ? [...years].sort((a, b) => b - a) : yearOptions;
+
+  useEffect(() => {
+    if (!options.length) return;
+    if (!options.includes(year)) setYear(options[0]!);
+  }, [options, year, setYear]);
+
   return (
     <select
       className="sec-year-select"
-      value={year}
+      value={options.includes(year) ? year : options[0]!}
       onChange={(e) => setYear(Number(e.target.value))}
       aria-label={label}
     >
-      {yearOptions.map((y) => (
+      {options.map((y) => (
         <option key={y} value={y}>
           Năm {y}
         </option>

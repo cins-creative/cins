@@ -221,7 +221,7 @@ export function OrgBaiDangJourneyCard({ post }: Props) {
               {showUnfold && usesBlocks && blocks ? (
                 <div className="j-m-card-unfold" data-open="true" aria-hidden={false}>
                   <div className="j-m-card-unfold-inner">
-                    <div className="cins-editor-page cins-post-view j-m-unfold-post editor-canvas">
+                    <div className="cins-editor-page cins-post-view j-m-unfold-post">
                       <PostBlockRenderer blocks={blocks} />
                     </div>
                   </div>

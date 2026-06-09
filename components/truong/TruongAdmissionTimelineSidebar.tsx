@@ -14,6 +14,7 @@ import {
   aggregateTimelineForYear,
   buildTimelineStepsFromMocDraft,
   buildTuyenSinhTimelineSteps,
+  collectTimelineCalendarYears,
   emptyTimelineMoc,
   getAdmissionTimelineFocus,
   normalizeTimelineMoc,
@@ -23,6 +24,7 @@ import {
   TIMELINE_MOC_MAX_ITEMS,
   timelineLinkHref,
   timelineLinkLabel,
+  tuyenSinhRowMatchesCalendarYear,
   type TuyenSinhTimelineMoc,
   type TuyenSinhTimelineStep,
 } from "@/lib/truong/timeline-steps";
@@ -109,8 +111,13 @@ export function TruongAdmissionTimelineSidebar() {
   const [mocModal, setMocModal] = useState<MocModalMode | null>(null);
   const persistingMocRef = useRef(false);
 
+  const timelineYearOptions = useMemo(
+    () => collectTimelineCalendarYears(tuyenSinh),
+    [tuyenSinh],
+  );
+
   const yearRows = useMemo(
-    () => tuyenSinh.filter((r) => r.nam === year),
+    () => tuyenSinh.filter((r) => tuyenSinhRowMatchesCalendarYear(r, year)),
     [tuyenSinh, year],
   );
 
@@ -276,7 +283,10 @@ export function TruongAdmissionTimelineSidebar() {
         <div className="tdh-admission-side-head">
           <div className="tdh-admission-side-year-row">
             <p className="timeline-year-kicker">Tuyển sinh</p>
-            <TruongYearSelect label="Năm lịch" />
+            <TruongYearSelect
+              label="Năm lịch"
+              years={timelineYearOptions}
+            />
           </div>
         </div>
 

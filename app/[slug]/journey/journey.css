@@ -1747,6 +1747,7 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   min-height: 0;
   max-width: 100%;
   overflow-x: hidden;
+  background: var(--bg-surface, #fff);
   transform: translateY(10px);
   transition: transform var(--j-unfold-dur, 0.48s) var(--j-unfold-ease, cubic-bezier(0.22, 1, 0.36, 1));
 }
@@ -1785,11 +1786,19 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   max-width: 100%;
   margin: 0;
   padding: 0;
-  background: transparent;
+  background: var(--bg-surface, #fff);
   min-height: 0;
   box-shadow: none;
   border-radius: 0;
   overflow-x: hidden;
+}
+.cins-editor-page.cins-post-view.j-m-unfold-post {
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: var(--bg-surface, #fff);
 }
 .j-m-unfold-post--media {
   padding-top: 2px;
@@ -1825,6 +1834,17 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   margin-inline: 0;
   width: 100%;
   max-width: none;
+}
+.j-m-unfold-post .image-grid,
+.j-m-unfold-post .block-image-grid .image-grid {
+  border-radius: 0;
+  background: var(--bg-surface, #fff);
+}
+.j-m-unfold-post .image-grid--single {
+  background: var(--bg-surface, #fff);
+}
+.j-m-unfold-post .image-grid-cell {
+  background: var(--bg-surface, #fff);
 }
 .j-m-unfold-post .b-embed-ro.is-iframe,
 .j-m-unfold-post .block-image-grid {
@@ -7215,9 +7235,9 @@ select.j-edit-input {
   justify-content: center;
   transition: opacity 0.2s var(--j-unfold-ease, ease);
 }
-/* Article collapsed — phẳng đáy preview, gợi ý nội dung còn tiếp bên dưới */
-.j-m-card.jcard--article.has-unfold.is-collapsed .jcard-media-zone > .preview,
-.j-m-card.jcard--article.has-unfold.is-collapsed .jcard-media-zone > .preview img {
+/* Article unfold — cover full-bleed, không bo góc (collapsed + expanded). */
+.j-m-card.jcard--article.has-unfold .jcard-media-zone > .preview,
+.j-m-card.jcard--article.has-unfold .jcard-media-zone > .preview img {
   border-radius: 0;
 }
 .j-m-card.jcard--photo .jcard-media-zone > .preview--photo-grid,

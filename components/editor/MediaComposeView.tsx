@@ -26,6 +26,7 @@ import {
 } from "react";
 
 import { CongDongFeedFilterDropdown } from "@/components/cong-dong/CongDongFeedFilterDropdown";
+import { OrgBaiDangLoaiComposeDropdown } from "@/components/truong/OrgBaiDangLoaiComposeDropdown";
 import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import { publishPost } from "@/app/[slug]/p/new/actions";
 import { updatePost } from "@/app/[slug]/p/[postSlug]/edit/actions";
@@ -51,6 +52,10 @@ import {
   releaseVideoUpload,
 } from "@/lib/journey/video-upload-session";
 import type { CongDongComposeConfig } from "@/lib/cong-dong/types";
+import {
+  normalizeLoaiBaiDang,
+  type BaiDangLoai,
+} from "@/lib/truong/bai-dang";
 import {
   publishOrgBaiDangClient,
   updateOrgBaiDangClient,
@@ -215,6 +220,14 @@ export function MediaComposeView({
     const first = sortedCongDongFilters[0]?.slug;
     return first ? [first] : [];
   });
+  const [composeLoaiBaiDang, setComposeLoaiBaiDang] = useState<BaiDangLoai>(
+    () => {
+      if (editInitial?.orgBaiDangLoai) {
+        return normalizeLoaiBaiDang(editInitial.orgBaiDangLoai);
+      }
+      return mode === "photo" || mode === "video" ? "su_kien" : "thong_bao";
+    },
+  );
   const publishVisibility: Visibility = congDongCompose ? "public" : vis;
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -706,6 +719,7 @@ export function MediaComposeView({
           tomTat: trimmedCaption.slice(0, 280) || null,
           coverId: null,
           blocks,
+          loaiBaiDang: composeLoaiBaiDang,
         });
         if (!res.ok) {
           setError(res.error);
@@ -725,6 +739,7 @@ export function MediaComposeView({
           tomTat: trimmedCaption.slice(0, 280) || null,
           coverId: null,
           blocks,
+          loaiBaiDang: composeLoaiBaiDang,
         });
         if (!res.ok) {
           setError(res.error);
@@ -820,9 +835,12 @@ export function MediaComposeView({
                 menuZIndex={9200}
               />
             ) : orgBaiDangCompose ? (
-              <span className="mc-compose-vis-static" aria-label="Công khai">
-                Công khai
-              </span>
+              <OrgBaiDangLoaiComposeDropdown
+                value={composeLoaiBaiDang}
+                onChange={setComposeLoaiBaiDang}
+                className="cd-v4-filter-dd--editor"
+                menuZIndex={9200}
+              />
             ) : (
               <div className="mc-compose-vis" ref={visRef}>
                 <button

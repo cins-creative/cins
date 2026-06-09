@@ -1129,7 +1129,7 @@ export function JourneyMilestoneCard({
             >
               {orgBaiDangRef && showContent && noiDungBlocks?.length ? (
                 <div className="j-m-card-unfold-inner">
-                  <div className="cins-editor-page cins-post-view j-m-unfold-post editor-canvas">
+                  <div className="cins-editor-page cins-post-view j-m-unfold-post">
                     <PostBlockRenderer blocks={noiDungBlocks} />
                   </div>
                 </div>

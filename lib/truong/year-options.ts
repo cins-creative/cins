@@ -4,6 +4,7 @@ import {
   parseTruongNumericField,
   TRUONG_NGANH_YEAR_OPTIONS,
 } from "./diem-chuan";
+import { collectCalendarYearsFromRow } from "./timeline-moc";
 import type { TruongNganhProgram, TruongTuyenSinhNamRow } from "./types";
 
 function addProgramYearsWithData(
@@ -49,6 +50,9 @@ export function mergeTruongYearOptions(
   const years = new Set<number>();
   addProgramYearsWithData(years, programs);
   for (const row of tuyenSinh) {
+    for (const y of collectCalendarYearsFromRow(row)) {
+      years.add(y);
+    }
     if (row.nam > 0 && tuyenSinhRowHasYearData(row)) {
       years.add(row.nam);
     }

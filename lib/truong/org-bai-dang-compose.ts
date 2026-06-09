@@ -1,5 +1,6 @@
 import type { Block } from "@/lib/editor/types";
 import { milestoneCardContentKind } from "@/lib/journey/milestone-card-kind";
+import type { BaiDangLoai } from "@/lib/truong/bai-dang";
 import { mapOrgBaiDangApiRow } from "@/lib/truong/bai-dang-api-fields";
 import { baiDangCoverDisplayUrl } from "@/lib/truong/bai-dang-cover";
 import {
@@ -21,16 +22,23 @@ export type PublishOrgBaiDangInput = {
   tomTat?: string | null;
   coverId?: string | null;
   blocks: Block[];
+  loaiBaiDang?: BaiDangLoai;
 };
 
 export type PublishOrgBaiDangResult =
   | { ok: true; post: TruongBaiDang }
   | { ok: false; error: string };
 
-function defaultLoaiFromBlocks(blocks: ReadonlyArray<Block>): string {
+export function defaultLoaiBaiDangFromBlocks(
+  blocks: ReadonlyArray<Block>,
+): BaiDangLoai {
   const kind = milestoneCardContentKind(blocks);
   if (kind === "photo" || kind === "video") return "su_kien";
   return "thong_bao";
+}
+
+function resolveLoaiBaiDang(input: PublishOrgBaiDangInput): BaiDangLoai {
+  return input.loaiBaiDang ?? defaultLoaiBaiDangFromBlocks(input.blocks);
 }
 
 export async function updateOrgBaiDangClient(
@@ -54,7 +62,7 @@ export async function updateOrgBaiDangClient(
         tom_tat: input.tomTat?.trim() || null,
         noi_dung_blocks: input.blocks,
         cover_id: input.coverId?.trim() || null,
-        loai_bai_dang: defaultLoaiFromBlocks(input.blocks),
+        loai_bai_dang: resolveLoaiBaiDang(input),
       }),
     },
   );
@@ -89,7 +97,7 @@ export async function publishOrgBaiDangClient(
       tom_tat: input.tomTat?.trim() || null,
       noi_dung_blocks: input.blocks,
       cover_id: input.coverId?.trim() || null,
-      loai_bai_dang: defaultLoaiFromBlocks(input.blocks),
+      loai_bai_dang: resolveLoaiBaiDang(input),
       trang_thai: "da_dang",
     }),
   });

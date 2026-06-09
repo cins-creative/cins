@@ -2,6 +2,7 @@ import "server-only";
 
 import type { EditorInitial } from "@/components/editor/EditorView";
 import type { Block, LoaiMoc, Visibility } from "@/lib/editor/types";
+import { normalizeLoaiBaiDang } from "@/lib/truong/bai-dang";
 import { parseBaiDangBlocks } from "@/lib/truong/bai-dang-blocks";
 import { isTruongOrgAdmin } from "@/lib/truong/org-admin";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -39,6 +40,7 @@ export async function fetchOrgBaiDangEditInitial(params: {
       tieu_de: string;
       tom_tat: string | null;
       cover_id: string | null;
+      loai_bai_dang: string | null;
       noi_dung_blocks: unknown;
     }>();
 
@@ -59,6 +61,7 @@ export async function fetchOrgBaiDangEditInitial(params: {
     loaiMoc: "ca_nhan" as LoaiMoc,
     thoiDiem: isoToday(),
     blocks,
+    orgBaiDangLoai: normalizeLoaiBaiDang(data.loai_bai_dang),
   };
 
   return { ok: true, postSlug: params.baiDangId, initial };

@@ -75,11 +75,17 @@ import type {
 } from "@/lib/editor/types";
 import type { CongDongComposeConfig } from "@/lib/cong-dong/types";
 import { readImageFileFromClipboard } from "@/lib/files/clipboard-images";
+import { OrgBaiDangLoaiComposeDropdown } from "@/components/truong/OrgBaiDangLoaiComposeDropdown";
 import {
+  defaultLoaiBaiDangFromBlocks,
   publishOrgBaiDangClient,
   updateOrgBaiDangClient,
   type OrgBaiDangComposeConfig,
 } from "@/lib/truong/org-bai-dang-compose";
+import {
+  normalizeLoaiBaiDang,
+  type BaiDangLoai,
+} from "@/lib/truong/bai-dang";
 
 /* ╔══════════════════════════════════════════════════════════════════╗
    ║ CINs Editor — port từ mockup `cins-editor.html`, theo brief     ║
@@ -418,6 +424,8 @@ export type EditorInitial = {
   coAuthors?: CoAuthorDraft[];
   /** Nhãn cá nhân gắn trên cột mốc (`filter_nhan`). */
   personalFilterIds?: string[];
+  /** `org_bai_dang.loai_bai_dang` khi sửa bài trường. */
+  orgBaiDangLoai?: BaiDangLoai;
 };
 
 type Props = {
@@ -482,6 +490,17 @@ export function EditorView({
     const first = sortedCongDongFilters[0]?.slug;
     return first ? [first] : [];
   });
+  const [composeLoaiBaiDang, setComposeLoaiBaiDang] = useState<BaiDangLoai>(
+    () => {
+      if (initial?.orgBaiDangLoai) {
+        return normalizeLoaiBaiDang(initial.orgBaiDangLoai);
+      }
+      if (initial?.blocks?.length) {
+        return defaultLoaiBaiDangFromBlocks(initial.blocks);
+      }
+      return "thong_bao";
+    },
+  );
   const personalFilterIds = initial?.personalFilterIds ?? [];
   const publishVisibility: Visibility = congDongCompose ? "public" : vis;
   const [imgPickerTarget, setImgPickerTarget] = useState<ImgPickerTarget | null>(
@@ -1005,6 +1024,7 @@ export function EditorView({
           tomTat: moTaFinal || null,
           coverId: coverFinal,
           blocks: serverBlocks,
+          loaiBaiDang: composeLoaiBaiDang,
         });
         if (!result.ok) {
           setToast(result.error || "Không lưu được bài đăng.");
@@ -1026,6 +1046,7 @@ export function EditorView({
           tomTat: moTaFinal || null,
           coverId: coverFinal,
           blocks: serverBlocks,
+          loaiBaiDang: composeLoaiBaiDang,
         });
         if (!result.ok) {
           setToast(result.error || "Không lưu được bài đăng.");
@@ -1106,6 +1127,7 @@ export function EditorView({
     congDongCompose,
     orgBaiDangCompose,
     composeFilterSlugs,
+    composeLoaiBaiDang,
     personalFilterIds,
     blocks,
     ownerSlug,
@@ -1150,9 +1172,12 @@ export function EditorView({
               menuZIndex={9200}
             />
           ) : orgBaiDangCompose ? (
-            <span className="mc-compose-vis-static" aria-label="Công khai">
-              Công khai
-            </span>
+            <OrgBaiDangLoaiComposeDropdown
+              value={composeLoaiBaiDang}
+              onChange={setComposeLoaiBaiDang}
+              className="cd-v4-filter-dd--editor"
+              menuZIndex={9200}
+            />
           ) : (
             <EditorVisibilitySelect value={vis} onChange={setVis} />
           )}

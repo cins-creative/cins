@@ -1,4 +1,5 @@
 import type { Block, LoaiMoc, Visibility } from "@/lib/editor/types";
+import type { BaiDangLoai } from "@/lib/truong/bai-dang";
 
 export type MediaPostKind = "photo" | "video";
 
@@ -259,6 +260,7 @@ export type MediaEditInitial = {
   photoImageIds?: string[];
   videoUrl?: string;
   personalFilterIds?: string[];
+  orgBaiDangLoai?: BaiDangLoai;
 };
 
 export function buildMediaEditInitial(params: {
@@ -271,6 +273,7 @@ export function buildMediaEditInitial(params: {
   blocks: ReadonlyArray<Block>;
   kind: MediaPostKind;
   personalFilterIds?: string[];
+  orgBaiDangLoai?: BaiDangLoai;
 }): MediaEditInitial {
   const caption = extractBodyCaption(params.blocks);
   return {
@@ -290,5 +293,6 @@ export function buildMediaEditInitial(params: {
         ? (extractVideoUrl(params.blocks) ?? "")
         : undefined,
     personalFilterIds: params.personalFilterIds,
+    orgBaiDangLoai: params.orgBaiDangLoai,
   };
 }

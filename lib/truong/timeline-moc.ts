@@ -308,6 +308,73 @@ export function getAdmissionTimelineFocus(steps: TuyenSinhTimelineStep[]): {
   return { pastIds, currentId: null, nextId: firstUpcoming?.id ?? null };
 }
 
+/** Trích năm lịch từ chuỗi ngày ISO / datetime. */
+export function parseCalendarYearFromDate(
+  raw: string | null | undefined,
+): number | null {
+  const s = raw?.trim();
+  if (!s) return null;
+  const isoDay = s.slice(0, 10).match(/^(\d{4})-\d{2}-\d{2}$/);
+  if (isoDay) {
+    const y = Number(isoDay[1]);
+    return y >= 2000 && y <= 2100 ? y : null;
+  }
+  const d = new Date(s);
+  if (Number.isNaN(d.getTime())) return null;
+  const y = d.getFullYear();
+  return y >= 2000 && y <= 2100 ? y : null;
+}
+
+const TIMELINE_ROW_DATE_FIELDS: (keyof TruongTuyenSinhNamRow)[] = [
+  "ngay_mo_ho_so",
+  "ngay_dong_ho_so",
+  "ngay_thi_tu",
+  "ngay_thi_den",
+  "ngay_cong_bo_diem",
+  "ngay_xac_nhan_nhap_hoc_tu",
+  "ngay_xac_nhan_nhap_hoc_den",
+];
+
+/** Mọi năm lịch (calendar) xuất hiện trên mốc / cột ngày của một dòng tuyển sinh. */
+export function collectCalendarYearsFromRow(
+  row: TruongTuyenSinhNamRow,
+): number[] {
+  const years = new Set<number>();
+  if (row.nam > 0) years.add(row.nam);
+
+  for (const key of TIMELINE_ROW_DATE_FIELDS) {
+    const y = parseCalendarYearFromDate(row[key] as string | null);
+    if (y) years.add(y);
+  }
+
+  for (const moc of resolveTimelineMocForRow(row)) {
+    const yt = parseCalendarYearFromDate(moc.ngay_tu);
+    const yd = parseCalendarYearFromDate(moc.ngay_den);
+    if (yt) years.add(yt);
+    if (yd) years.add(yd);
+  }
+
+  return [...years];
+}
+
+/** Năm lịch cho dropdown sidebar — từ ngày mốc timeline (mới → cũ). */
+export function collectTimelineCalendarYears(
+  rows: TruongTuyenSinhNamRow[],
+): number[] {
+  const years = new Set<number>();
+  for (const row of rows) {
+    for (const y of collectCalendarYearsFromRow(row)) years.add(y);
+  }
+  return [...years].sort((a, b) => b - a);
+}
+
+export function tuyenSinhRowMatchesCalendarYear(
+  row: TruongTuyenSinhNamRow,
+  year: number,
+): boolean {
+  return collectCalendarYearsFromRow(row).includes(year);
+}
+
 export function buildTuyenSinhTimelineSteps(
   row: TruongTuyenSinhNamRow,
 ): TuyenSinhTimelineStep[] {
