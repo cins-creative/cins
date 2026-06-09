@@ -21,7 +21,7 @@ import { baiDangUsesBlocks } from "@/lib/truong/bai-dang-blocks";
 import { TruongBaiDangPostActions } from "@/components/truong/inline/TruongBaiDangEdit";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
 import { TruongOrgAvatar } from "@/components/truong/TruongOrgAvatar";
-import { baiDangCoverDisplayUrl } from "@/lib/truong/bai-dang-cover";
+import { baiDangCoverDisplayUrl, baiDangTimelinePreviewUrl } from "@/lib/truong/bai-dang-cover";
 import {
   baiDangHasExpandableBody,
   buildBaiDangThumbPreview,
@@ -48,12 +48,23 @@ function shouldIgnoreExpandTrigger(target: Element | null): boolean {
 }
 
 function orgBaiDangPreviewMedia(post: TruongBaiDang): MilestoneMediaItem | null {
-  const url = baiDangCoverDisplayUrl(post);
+  const url = baiDangTimelinePreviewUrl(post);
   if (!url) return null;
+
+  let width = 800;
+  let height = 450;
+  for (const block of post.noiDungBlocks ?? []) {
+    if (block.loai !== "imgs") continue;
+    const cfg = block.config ?? {};
+    if (typeof cfg.width === "number" && cfg.width > 0) width = Math.round(cfg.width);
+    if (typeof cfg.height === "number" && cfg.height > 0) height = Math.round(cfg.height);
+    break;
+  }
+
   return {
     src: url,
-    width: 800,
-    height: 450,
+    width,
+    height,
     label: post.tieu_de,
   };
 }

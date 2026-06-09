@@ -189,6 +189,15 @@ function CongDongTypeBadge() {
   );
 }
 
+function CoSoTypeBadge() {
+  return (
+    <span className="ctx-badge j-type-co-so">
+      <BookOpen size={11} strokeWidth={1.8} aria-hidden />
+      Cơ sở đào tạo
+    </span>
+  );
+}
+
 function congDongInlineContext(
   org?: MilestoneItem["congDongOrg"] | null,
   postTitle?: string | null,
@@ -307,6 +316,30 @@ export function JourneyMilestoneCard({
           "j-tagged",
           "j-verified",
           "j-cong-dong-create",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+        displayDate={displayDate}
+        title={title}
+        body={body}
+        attribution={attribution}
+        orgHref={orgHref}
+        milestoneId={cotMocId ?? milestone.id}
+        year={year}
+        month={month}
+        day={day}
+      />
+    );
+  }
+
+  if (cardLayout === "co-so-create") {
+    return (
+      <CoSoCreateMilestoneCard
+        milestoneCls={[
+          "j-milestone",
+          "j-tagged",
+          "j-verified",
+          "j-co-so-create",
         ]
           .filter(Boolean)
           .join(" ")}
@@ -1514,6 +1547,92 @@ function CongDongCreateMilestoneCard({
             {href ? (
               <Link href={href} className="jcd-cta" prefetch={false}>
                 Xem cộng đồng
+              </Link>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function CoSoCreateMilestoneCard({
+  milestoneCls,
+  displayDate,
+  title,
+  body,
+  attribution,
+  orgHref,
+  milestoneId,
+  year,
+  month,
+  day,
+}: {
+  milestoneCls: string;
+  displayDate: string;
+  title: string;
+  body?: string | null;
+  attribution?: MilestoneAttribution | null;
+  orgHref?: string | null;
+  milestoneId: string;
+  year: number;
+  month: number;
+  day: number;
+}) {
+  const orgName =
+    attribution?.name ?? title.replace(/^Tạo cơ sở đào tạo\s+/i, "");
+  const avatarUrl = attribution?.avatarUrl ?? null;
+  const coverUrl = attribution?.coverUrl ?? null;
+  const href = orgHref ?? attribution?.href ?? null;
+  const initial = (attribution?.initial || orgName.charAt(0) || "?").toUpperCase();
+
+  return (
+    <article
+      className={milestoneCls}
+      data-mid={milestoneId}
+      data-content-kind="co-so"
+      data-year={year}
+      data-month={month}
+      data-group="co-so"
+    >
+      <div className="j-m-body-wrap">
+        <div className="j-m-card jcard jcard--co-so">
+          <div className={`jcs-hero${coverUrl ? " has-cover-img" : ""}`}>
+            <div
+              className={`jcs-cover${coverUrl ? " has-img" : ""}`}
+              aria-hidden
+            >
+              {coverUrl ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img src={coverUrl} alt="" />
+              ) : null}
+            </div>
+            <div className="jcs-topbar">
+              <CoSoTypeBadge />
+            </div>
+          </div>
+
+          <div className="jcs-body">
+            <div className="jcs-logo-wrap" aria-hidden>
+              {avatarUrl ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img src={avatarUrl} alt="" className="jcs-logo" />
+              ) : (
+                <span className="jcs-logo jcs-logo--fallback">{initial}</span>
+              )}
+            </div>
+            <p className="jcs-kicker">Người tạo cơ sở đào tạo</p>
+            <time
+              className="jcs-date"
+              dateTime={`${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`}
+            >
+              {displayDate}
+            </time>
+            <h2 className="jcs-title">{orgName}</h2>
+            {body ? <p className="jcs-desc">{body}</p> : null}
+            {href ? (
+              <Link href={href} className="jcs-cta" prefetch={false}>
+                Xem cơ sở đào tạo
               </Link>
             ) : null}
           </div>

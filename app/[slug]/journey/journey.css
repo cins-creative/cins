@@ -6977,13 +6977,174 @@ select.j-edit-input {
   font-size: 13px;
   font-weight: 700;
   text-decoration: none;
-  box-shadow: var(--btn-grad-shadow, var(--shadow-sm));
+  box-shadow: none;
   transition: filter 0.15s ease, transform 0.15s ease;
 }
 .cins-journey-page a.jcd-cta:hover,
 .cins-journey-page a.jcd-cta:focus-visible,
 .jcd-cta:hover,
 .jcd-cta:focus-visible {
+  color: #fff;
+  filter: brightness(1.03);
+  transform: translateY(-1px);
+}
+
+/* ── Milestone: tạo cơ sở đào tạo — mint hero (giống cộng đồng) ───── */
+.j-milestone.j-co-so-create .j-m-card {
+  cursor: default;
+  border-left: none;
+}
+.j-milestone.j-co-so-create.j-verified .j-m-diamond {
+  box-shadow:
+    0 0 0 2px var(--bg-page),
+    0 0 0 3.5px #0e6b4d;
+}
+.jcard--co-so {
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, #0e6b4d 14%, var(--border));
+  border-radius: var(--radius-lg, 20px);
+  background:
+    linear-gradient(var(--bg-surface), var(--bg-surface)) padding-box,
+    linear-gradient(135deg, rgba(14, 107, 77, 0.32), rgba(110, 254, 192, 0.38)) border-box;
+  box-shadow: var(--shadow-sm);
+}
+.jcs-hero {
+  position: relative;
+}
+.jcs-cover {
+  position: relative;
+  height: 128px;
+  background:
+    radial-gradient(circle at 18% 22%, rgba(110, 254, 192, 0.35), transparent 30%),
+    linear-gradient(135deg, #0e6b4d 0%, #1a8f66 52%, #0f172a 100%);
+}
+.jcs-cover.has-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.jcs-cover::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(15, 23, 42, 0.06) 0%,
+    rgba(15, 23, 42, 0.38) 68%,
+    rgba(15, 23, 42, 0.58) 100%
+  );
+  pointer-events: none;
+}
+.jcs-topbar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 2;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 10px 12px;
+  pointer-events: none;
+}
+.jcs-topbar .ctx-badge {
+  pointer-events: auto;
+}
+.jcs-hero.has-cover-img .ctx-badge {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.j-type-co-so {
+  background: color-mix(in srgb, #0e6b4d 12%, #fff);
+  color: #0e6b4d;
+  border-color: color-mix(in srgb, #0e6b4d 22%, var(--border));
+}
+.jcs-date {
+  margin: 0 0 8px;
+  color: var(--ink-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+.jcs-body {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 0 20px 22px;
+}
+.jcs-logo-wrap {
+  margin: -40px 0 12px;
+}
+.jcs-logo {
+  width: 88px;
+  height: 88px;
+  border-radius: var(--radius-md, 14px);
+  object-fit: cover;
+  display: block;
+  border: 3px solid var(--bg-surface);
+  box-shadow:
+    0 0 0 1px var(--border),
+    var(--shadow-md);
+}
+.jcs-logo--fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--cins-mint-soft, #d9fbed), #ecfdf5);
+  color: #0e6b4d;
+  font-size: 34px;
+  font-weight: 900;
+}
+.jcs-kicker {
+  margin: 0 0 6px;
+  color: #0e6b4d;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.jcs-title {
+  margin: 0 0 10px;
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: -0.4px;
+  line-height: 1.15;
+  color: var(--ink-display);
+}
+.jcs-desc {
+  margin: 0 0 16px;
+  max-width: 36em;
+  color: var(--ink-body);
+  font-size: 14px;
+  line-height: 1.55;
+}
+.cins-journey-page a.jcs-cta,
+.jcs-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 18px;
+  border-radius: var(--radius-pill, 999px);
+  background: #f16c93;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  box-shadow: none;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+.cins-journey-page a.jcs-cta:hover,
+.cins-journey-page a.jcs-cta:focus-visible,
+.jcs-cta:hover,
+.jcs-cta:focus-visible {
   color: #fff;
   filter: brightness(1.03);
   transform: translateY(-1px);

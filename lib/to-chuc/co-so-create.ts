@@ -7,6 +7,7 @@ import {
   validateOrgSlug,
 } from "@/lib/cong-dong/org-slug";
 import { LOAI_CO_SO_SET, type LoaiCoSo } from "@/lib/to-chuc/constants";
+import { createCoSoCreatorMilestone } from "@/lib/to-chuc/co-so-creator-milestone";
 import { seedDefaultCoSoFilters } from "@/lib/to-chuc/default-filters";
 import { normalizeTinhThanhForDb } from "@/lib/truong/contact";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -205,6 +206,18 @@ export async function createCoSoDaoTaoOrg(
   if (!seed.ok) {
     await rollbackAll();
     return { ok: false, error: seed.error };
+  }
+
+  const milestone = await createCoSoCreatorMilestone({
+    creatorId,
+    orgId: org.id,
+    orgTen: ten,
+    orgSlug: org.slug,
+    orgMoTa: input.moTa,
+  });
+  if (!milestone.ok) {
+    await rollbackAll();
+    return { ok: false, error: milestone.error };
   }
 
   return { ok: true, data: { id: org.id, slug: org.slug } };

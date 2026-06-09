@@ -1,6 +1,7 @@
 import "server-only";
 
 import type {
+  MilestoneCardLayout,
   MilestoneItem,
   MilestoneMediaItem,
   MilestoneType,
@@ -11,7 +12,7 @@ import { fetchArticleTagsForTacPham } from "@/lib/journey/article-tags-batch";
 import { loadCoAuthorCredits } from "@/lib/journey/coauthor-credits";
 import { milestonePreviewMedia } from "@/lib/journey/milestone-preview-media";
 import { parseServerBlocks } from "@/lib/journey/parse-server-blocks";
-import { loadVerifiedMetaForCotMocs } from "@/lib/journey/milestone-verify";
+import { loadVerifiedMetaForCotMocs, type VerifiedMilestoneMeta } from "@/lib/journey/milestone-verify";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import {
   isHiddenOnForeignJourney,
@@ -111,6 +112,25 @@ const LOAI_MOC_TO_TYPE: Record<CotMocRow["loai_moc"], MilestoneType> = {
   ca_nhan: "ca-nhan",
 };
 
+function resolveOrgCreateCardLayout(
+  verified: VerifiedMilestoneMeta | undefined,
+): MilestoneCardLayout {
+  if (!verified?.attribution) return "default";
+  if (
+    verified.attribution.orgKind === "cong_dong" &&
+    verified.attribution.role === "Người tạo cộng đồng"
+  ) {
+    return "cong-dong-create";
+  }
+  if (
+    verified.attribution.orgKind === "co_so_dao_tao" &&
+    verified.attribution.role === "Người tạo cơ sở đào tạo"
+  ) {
+    return "co-so-create";
+  }
+  return "default";
+}
+
 function milestoneCoverMedia(
   coverId: string | null | undefined,
   blocks: unknown,
@@ -182,9 +202,8 @@ export async function buildSelfMilestonesForCotMocs(
       ? (tagsByTacPham.get(firstPost.id) ?? [])
       : [];
     const verified = verifiedMeta.get(m.id);
-    const isCongDongCreate =
-      verified?.attribution.orgKind === "cong_dong" &&
-      verified.attribution.role === "Người tạo cộng đồng";
+    const cardLayout = resolveOrgCreateCardLayout(verified);
+    const isOrgCreateCard = cardLayout !== "default";
 
     const personalFilters = personalFiltersByMoc.get(m.id) ?? [];
 
@@ -207,22 +226,22 @@ export async function buildSelfMilestonesForCotMocs(
       title: m.tieu_de,
       body: m.mo_ta || null,
       org: verified?.attribution.role ?? null,
-      postSlug: isCongDongCreate ? null : firstPostSlug,
-      tacPhamId: isCongDongCreate ? null : (firstPost?.id ?? null),
+      postSlug: isOrgCreateCard ? null : firstPostSlug,
+      tacPhamId: isOrgCreateCard ? null : (firstPost?.id ?? null),
       attribution: verified?.attribution ?? null,
       verifiedBy: verified?.verifiedBy ?? null,
-      cardLayout: isCongDongCreate ? "cong-dong-create" : "default",
-      orgHref: isCongDongCreate ? (verified?.orgHref ?? null) : null,
-      media: isCongDongCreate
+      cardLayout,
+      orgHref: isOrgCreateCard ? (verified?.orgHref ?? null) : null,
+      media: isOrgCreateCard
         ? []
         : milestoneCoverMedia(
             firstPost?.cover_id,
             firstPost?.noi_dung_blocks,
             firstPost?.tieu_de ?? m.tieu_de,
           ),
-      noiDungBlocks: isCongDongCreate ? null : noiDungBlocks,
-      articleTags: isCongDongCreate ? [] : articleTags,
-      coAuthorCredits: isCongDongCreate
+      noiDungBlocks: isOrgCreateCard ? null : noiDungBlocks,
+      articleTags: isOrgCreateCard ? [] : articleTags,
+      coAuthorCredits: isOrgCreateCard
         ? []
         : firstPost?.id
           ? (creditsByTacPham.get(firstPost.id) ?? [])

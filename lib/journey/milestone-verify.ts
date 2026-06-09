@@ -35,7 +35,8 @@ type OrgRow = {
 
 function orgPublicHref(org: OrgRow): string | null {
   if (org.loai_to_chuc === "cong_dong") return `/cong-dong/${org.slug}`;
-  if (org.loai_to_chuc === "truong_dai_hoc" || org.loai_to_chuc === "co_so_dao_tao") {
+  if (org.loai_to_chuc === "co_so_dao_tao") return `/co-so/${org.slug}`;
+  if (org.loai_to_chuc === "truong_dai_hoc") {
     return `/truong-dai-hoc/${org.slug}`;
   }
   return null;
@@ -119,6 +120,27 @@ export async function loadVerifiedMetaForCotMocs(
       continue;
     }
 
+    if (org?.loai_to_chuc === "co_so_dao_tao") {
+      const avatarUrl = getAvatarUrl(org.avatar_id);
+      const coverUrl = getCoverUrl(org.cover_id);
+      out.set(row.id_cot_moc, {
+        verifiedBy: `✓ ${org.ten}`,
+        attribution: {
+          name: org.ten,
+          role: "Người tạo cơ sở đào tạo",
+          avatarUrl,
+          coverUrl,
+          initial: org.ten.charAt(0).toUpperCase(),
+          slug: org.slug,
+          isOrg: true,
+          orgKind: "co_so_dao_tao",
+          href: orgPublicHref(org),
+        },
+        orgHref: orgPublicHref(org),
+      });
+      continue;
+    }
+
     if (org) {
       const avatarUrl = getAvatarUrl(org.avatar_id);
       out.set(row.id_cot_moc, {
@@ -130,11 +152,7 @@ export async function loadVerifiedMetaForCotMocs(
           initial: org.ten.charAt(0).toUpperCase(),
           slug: org.slug,
           isOrg: true,
-          orgKind:
-            org.loai_to_chuc === "truong_dai_hoc" ||
-            org.loai_to_chuc === "co_so_dao_tao"
-              ? "truong"
-              : null,
+          orgKind: org.loai_to_chuc === "truong_dai_hoc" ? "truong" : null,
           href: orgPublicHref(org),
         },
         orgHref: orgPublicHref(org),

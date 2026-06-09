@@ -72,25 +72,29 @@ export function CoSoSchoolSidebar({
         </div>
 
         <div className="ss-card-id cso-ss-card-id">
-          <div className="cso-ss-card-actions ss-cta">
-            {showAdminCta ? (
-              <>
-                <TruongMilestoneTagNotify />
-                <TruongMessageInbox />
-              </>
-            ) : canEditMedia && ctx ? (
-              <TruongUserChatLauncher />
-            ) : (
-              <button type="button" className="ss-btn primary" disabled>
-                <MessageIcon />
-                Nhắn tin
-              </button>
-            )}
+          <div className="cso-ss-id-top">
+            <div className="cso-ss-card-actions ss-cta">
+              {showAdminCta ? (
+                <>
+                  <TruongMilestoneTagNotify />
+                  <TruongMessageInbox />
+                </>
+              ) : canEditMedia && ctx ? (
+                <TruongUserChatLauncher />
+              ) : (
+                <button type="button" className="ss-btn primary" disabled>
+                  <MessageIcon />
+                  Nhắn tin
+                </button>
+              )}
+            </div>
           </div>
-          <h1 className="ss-name">{school.ten}</h1>
-          {school.ten_tieng_anh?.trim() ? (
-            <p className="ss-en">{school.ten_tieng_anh.trim()}</p>
-          ) : null}
+          <div className="cso-ss-id-main">
+            <h1 className="ss-name">{school.ten}</h1>
+            {school.ten_tieng_anh?.trim() ? (
+              <p className="ss-en">{school.ten_tieng_anh.trim()}</p>
+            ) : null}
+          </div>
         </div>
       </div>
 

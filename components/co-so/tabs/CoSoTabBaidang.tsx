@@ -1,10 +1,12 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 
 import { CoSoOrgBaiDangTimeline } from "@/components/co-so/CoSoOrgBaiDangTimeline";
 import { JourneyComposeProvider } from "@/components/journey/JourneyComposeContext";
 import { TruongBaiDangEditProvider } from "@/components/truong/inline/TruongBaiDangEdit";
+import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
+import { isTruongBaiDangScheduled } from "@/lib/truong/org-bai-dang-schedule";
 import type { TruongBaiDang, TruongDetail } from "@/lib/truong/types";
 import type { CoSoFilterChip } from "@/lib/to-chuc/co-so-page-queries";
 
@@ -40,19 +42,70 @@ function CoSoTabBaidangContent({
 }
 
 export function CoSoTabBaidang({
-  posts: initialPosts,
+  posts: postsProp,
   school,
   orgId,
   canEdit,
   filters,
 }: Props) {
-  const [posts, setPosts] = useState(initialPosts);
+  const ctx = useTruongInlineEdit();
+  const posts = ctx?.baidang ?? postsProp;
 
-  const onPostPublished = useCallback((post: TruongBaiDang) => {
-    setPosts((list) => [post, ...list]);
-  }, []);
+  const onPostPublished = useCallback(
+    (post: TruongBaiDang) => {
+      if (!ctx) return;
+      if (isTruongBaiDangScheduled(post)) {
+        ctx.setScheduledBaidang((list) => [
+          post,
+          ...list.filter((p) => p.id !== post.id),
+        ]);
+        ctx.setBaidang((list) => list.filter((p) => p.id !== post.id));
+        ctx.showToast("Đã hẹn đăng bài");
+        return;
+      }
+      ctx.setScheduledBaidang((list) => list.filter((p) => p.id !== post.id));
+      ctx.setBaidang((list) => [post, ...list.filter((p) => p.id !== post.id)]);
+      ctx.showToast("Đã đăng bài");
+    },
+    [ctx],
+  );
 
-  if (!canEdit) {
+  const onPostUpdated = useCallback(
+    (post: TruongBaiDang) => {
+      if (!ctx) return;
+      const merge = (prev: TruongBaiDang): TruongBaiDang => ({
+        ...prev,
+        ...post,
+        noiDungBlocks: post.noiDungBlocks ?? prev.noiDungBlocks,
+        personalFilters: prev.personalFilters,
+        personalFilterSlugs: prev.personalFilterSlugs,
+      });
+      if (isTruongBaiDangScheduled(post)) {
+        ctx.setScheduledBaidang((list) => {
+          const has = list.some((p) => p.id === post.id);
+          if (has) {
+            return list.map((p) => (p.id === post.id ? merge(p) : p));
+          }
+          return [post, ...list];
+        });
+        ctx.setBaidang((list) => list.filter((p) => p.id !== post.id));
+        ctx.showToast("Đã cập nhật lịch hẹn");
+        return;
+      }
+      ctx.setScheduledBaidang((list) => list.filter((p) => p.id !== post.id));
+      ctx.setBaidang((list) => {
+        const has = list.some((p) => p.id === post.id);
+        if (has) {
+          return list.map((p) => (p.id === post.id ? merge(p) : p));
+        }
+        return [post, ...list];
+      });
+      ctx.showToast("Đã cập nhật bài đăng");
+    },
+    [ctx],
+  );
+
+  if (!canEdit || !ctx?.isEditing) {
     return (
       <CoSoTabBaidangContent
         posts={posts}
@@ -72,6 +125,7 @@ export function CoSoTabBaidang({
       orgBaiDangCompose={{
         orgId,
         onPostPublished,
+        onPostUpdated,
       }}
     >
       <CoSoTabBaidangContent

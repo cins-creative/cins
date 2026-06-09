@@ -73,7 +73,7 @@ export type MilestoneAttribution = {
   /** Có phải là organization (vuông) hay person (tròn). */
   isOrg?: boolean;
   /** Loại org — quyết định popover + link. */
-  orgKind?: "cong_dong" | "truong" | null;
+  orgKind?: "cong_dong" | "truong" | "co_so_dao_tao" | null;
   /** URL trang công khai của org. */
   href?: string | null;
   /** Cover org (cộng đồng / trường) — Cloudflare delivery URL. */
@@ -95,7 +95,7 @@ export type MilestoneCongDongOrg = {
 };
 
 /** Layout card đặc biệt — khác article/photo/video. */
-export type MilestoneCardLayout = "default" | "cong-dong-create";
+export type MilestoneCardLayout = "default" | "cong-dong-create" | "co-so-create";
 
 export type MilestoneBookmarkSource = {
   /** Tên platform — "ArtStation", "Behance", "YouTube"… */

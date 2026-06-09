@@ -714,7 +714,8 @@
   opacity: 0.92;
 }
 
-.tdh-page--v6 #tdh-panel-baidang .jcard-datebar--org .badge-row {
+.tdh-page--v6 #tdh-panel-baidang .jcard-datebar--org .badge-row,
+.tdh-page--v6 #cso-panel-bai-dang .jcard-datebar--org .badge-row {
   flex-wrap: wrap;
   gap: 6px;
 }
