@@ -145,7 +145,7 @@ export async function backfillCoSoCreatorMilestone(params: {
     };
   }
 
-  const before = await admin
+  const { data: before } = await admin
     .from("content_cot_moc")
     .select("id")
     .eq("id_nguoi_dung", user.id)

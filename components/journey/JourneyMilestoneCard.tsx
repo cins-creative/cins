@@ -1405,6 +1405,13 @@ function CongDongSourceChip({
   );
 }
 
+function orgKindForOrgPopover(
+  kind: MilestoneAttribution["orgKind"],
+): "cong_dong" | "truong" | undefined {
+  if (kind === "cong_dong" || kind === "truong") return kind;
+  return undefined;
+}
+
 function TaggedByPanel({
   attr,
   dateLabel,
@@ -1423,7 +1430,7 @@ function TaggedByPanel({
       <span>{isCongDong ? "Cộng đồng" : "Được gắn bởi"}</span>
       <Popover
         slug={attr.slug}
-        orgKind={attr.orgKind ?? undefined}
+        orgKind={orgKindForOrgPopover(attr.orgKind)}
         href={attr.href}
         fallbackName={attr.name}
         fallbackAvatarUrl={attr.avatarUrl}
@@ -1761,7 +1768,7 @@ function TaggedOriginalAuthorChip({
   return (
     <Popover
       slug={attr.slug}
-      orgKind={attr.orgKind ?? undefined}
+      orgKind={orgKindForOrgPopover(attr.orgKind)}
       href={attr.href ?? undefined}
       fallbackName={attr.name}
       fallbackAvatarUrl={attr.avatarUrl}
