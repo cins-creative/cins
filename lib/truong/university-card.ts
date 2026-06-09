@@ -8,6 +8,7 @@ export type TruongUniversityCardSchool = Pick<
   | "ten"
   | "ma_truong"
   | "loai_truong"
+  | "org_loai"
   | "logo_id"
   | "avatar_id"
   | "cover_id"

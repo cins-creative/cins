@@ -263,10 +263,6 @@
   object-fit: cover;
   display: block;
 }
-.cins-app-sidebar .sb-user-ava-fallback {
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-}
 
 /* Tên/handle/3-chấm — ẩn khi sidebar collapsed (giống .sb-label).
    Khi expanded (hover/focus-within sidebar), fade-in. */
@@ -351,10 +347,11 @@
   width: 220px;
 }
 
-.cins-app-sidebar .sb-user-menu-form {
+.app-user-menu-form {
   margin: 0;
 }
-.cins-app-sidebar .sb-user-menu-item {
+
+.app-user-menu-item {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -371,35 +368,38 @@
   width: 100%;
   text-align: left;
 }
-.cins-app-sidebar .sb-user-menu-item:hover {
+
+.app-user-menu-item:hover {
   background: var(--cins-blue-soft);
   color: var(--cins-blue);
 }
 
-.cins-app-sidebar .sb-user-menu-item-primary {
+.app-user-menu-item-primary {
   background: var(--cins-blue-soft);
   color: var(--cins-blue);
   font-weight: 700;
   margin-bottom: 4px;
 }
 
-.cins-app-sidebar .sb-user-menu-item-primary:hover {
+.app-user-menu-item-primary:hover {
   background: rgba(31, 116, 201, 0.16);
   color: var(--cins-blue-dark, #1656a0);
 }
 
-.cins-app-sidebar .sb-user-menu-item-danger {
+.app-user-menu-item-danger {
   color: var(--ink-body);
   border-top: 1px solid var(--border);
   margin-top: 2px;
   padding-top: 11px;
   border-radius: 0 0 var(--radius-md) var(--radius-md);
 }
-.cins-app-sidebar .sb-user-menu-item-danger:hover {
+
+.app-user-menu-item-danger:hover {
   background: rgba(220, 38, 38, 0.08);
   color: rgb(185, 28, 28);
 }
-.cins-app-sidebar .sb-user-menu-ico {
+
+.app-user-menu-ico {
   width: 22px;
   height: 22px;
   display: inline-flex;
@@ -408,7 +408,8 @@
   flex: 0 0 auto;
   color: inherit;
 }
-.cins-app-sidebar .sb-user-menu-ico svg {
+
+.app-user-menu-ico svg {
   width: 18px;
   height: 18px;
   stroke: currentColor;
@@ -416,6 +417,11 @@
   stroke-width: 1.7;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+.app-user-ava-fallback {
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
 }
 
 .sb-tooltip {
@@ -608,6 +614,113 @@
   stroke-linecap: round;
   stroke-linejoin: round;
   flex-shrink: 0;
+}
+
+/* Topbar — menu tài khoản (clone sidebar user card) */
+.cins-app-topbar .tb-user {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.cins-app-topbar .tb-user-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(240px, 34vw);
+  padding: 4px 8px 4px 4px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--ink-body);
+  font-family: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background 160ms var(--app-nav-ease),
+    border-color 160ms var(--app-nav-ease);
+}
+
+.cins-app-topbar .tb-user-pill:hover,
+.cins-app-topbar .tb-user.open .tb-user-pill {
+  background: var(--cins-blue-soft);
+  border-color: rgba(31, 116, 201, 0.28);
+}
+
+.cins-app-topbar .tb-user-ava {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--cins-blue-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  color: var(--cins-blue);
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.cins-app-topbar .tb-user-ava img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.cins-app-topbar .tb-user-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+
+.cins-app-topbar .tb-user-name {
+  font-weight: 700;
+  color: var(--ink-strong, var(--ink-body));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.cins-app-topbar .tb-user-handle {
+  font-size: 11.5px;
+  color: var(--ink-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+.cins-app-topbar .tb-user-more {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-muted);
+  flex: 0 0 auto;
+}
+
+.cins-app-topbar .tb-user-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 240px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: var(--shadow-lg, 0 14px 32px rgba(15, 23, 42, 0.12));
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 220;
 }
 
 .cins-app-topbar .j-notify {
@@ -1701,6 +1814,18 @@ a.j-notify-mini-action.is-link:hover {
 
   .cins-app-topbar .tb-ask {
     padding: 9px;
+  }
+
+  .cins-app-topbar .tb-user-meta,
+  .cins-app-topbar .tb-user-more {
+    display: none;
+  }
+
+  .cins-app-topbar .tb-user-pill {
+    padding: 2px;
+    max-width: none;
+    border: none;
+    background: transparent;
   }
 
   .cins-app-topbar .tb-search {

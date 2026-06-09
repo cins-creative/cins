@@ -3,16 +3,17 @@ import { MessageCircleQuestion, Menu as MenuIcon } from "lucide-react";
 import Link from "next/link";
 
 import { CinsTopbarSearch } from "@/components/cins/CinsTopbarSearch";
+import { UserAccountMenu } from "@/components/cins/UserAccountMenu";
 import { JourneyNotifications } from "@/components/journey/JourneyNotifications";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
+import { getAvatarUrl } from "@/lib/journey/profile";
 import { countUnreadNotifications } from "@/lib/social/notifications";
 
 /**
  * Topbar chính của site — render khác nhau theo trạng thái phiên:
  *
  * - **Chưa đăng nhập** → 2 link "Đăng nhập" (ghost) + "Đăng ký →" (gradient blue).
- * - **Đã đăng nhập**   → KHÔNG hiển thị nút auth nào ở topbar; user đăng
- *   xuất qua kebab menu trên sidebar account card (`CinsAppSidebar`).
+ * - **Đã đăng nhập**   → menu tài khoản (avatar + tên) bên phải topbar.
  *
  * Là async server component → đặt ở file riêng (sidebar `CinsAppSidebar` cần
  * `"use client"` vì dùng `usePathname`, không thể chung file).
@@ -23,6 +24,14 @@ export async function CinsAppTopbar() {
   const unreadNotificationCount = session?.profile
     ? await countUnreadNotifications(session.profile.id).catch(() => 0)
     : 0;
+  const accountProfile =
+    session?.profile?.slug
+      ? {
+          slug: session.profile.slug,
+          tenHienThi: session.profile.ten_hien_thi,
+          avatarUrl: getAvatarUrl(session.profile.avatar_id),
+        }
+      : null;
 
   return (
     <nav className="topbar cins-app-topbar" id="app-topbar">
@@ -62,6 +71,9 @@ export async function CinsAppTopbar() {
               initialUnreadCount={unreadNotificationCount}
               viewerProfileId={session.profile.id}
             />
+          ) : null}
+          {accountProfile ? (
+            <UserAccountMenu profile={accountProfile} placement="topbar" />
           ) : null}
           {isAuthed ? null : (
             <>

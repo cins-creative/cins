@@ -385,7 +385,7 @@ async function fetchStats(
   };
 }
 
-async function fetchBaiDang(
+export async function fetchBaiDang(
   supabase: ReturnType<typeof createPublicSupabaseClient>,
   orgId: string,
   limit = 10,
@@ -470,7 +470,7 @@ async function fetchBaiDang(
   return out;
 }
 
-async function fetchHinhAnh(
+export async function fetchHinhAnh(
   supabase: ReturnType<typeof createPublicSupabaseClient>,
   orgId: string,
 ): Promise<TruongHinhAnh[]> {

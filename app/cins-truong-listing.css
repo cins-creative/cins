@@ -615,6 +615,212 @@
   transform: translateX(2px);
 }
 
+/* ── Cơ sở đào tạo card (hub listing) ── */
+.tdh-page .tdh-coso-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.tdh-page .tdh-coso-card:hover {
+  border-color: color-mix(in srgb, var(--cins-blue) 45%, var(--border));
+}
+
+.tdh-page .tdh-coso-cover {
+  position: relative;
+  height: 96px;
+  overflow: hidden;
+  background: var(--cins-blue-soft);
+}
+
+.tdh-page .tdh-coso-cover-bg {
+  position: absolute;
+  inset: 0;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.tdh-page .tdh-coso-cover-bg--photo {
+  background: var(--surface-2);
+}
+
+.tdh-page .tdh-coso-cover-pattern {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 18% 22%, rgba(255, 255, 255, 0.45) 0%, transparent 42%),
+    linear-gradient(135deg, #0f3a6e 0%, #1f74c9 52%, #6efec0 160%);
+}
+
+.tdh-page .tdh-coso-cover-shade {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    color-mix(in srgb, var(--text) 12%, transparent) 100%
+  );
+  pointer-events: none;
+}
+
+.tdh-page .tdh-coso-kicker {
+  position: absolute;
+  z-index: 2;
+  top: 12px;
+  left: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px 5px 8px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #fff;
+  background: color-mix(in srgb, var(--text) 28%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.tdh-page .tdh-coso-card:hover .tdh-coso-cover-bg {
+  transform: scale(1.04);
+}
+
+.tdh-page .tdh-coso-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 10px 16px 16px;
+  background: var(--bg-surface);
+}
+
+.tdh-page .tdh-coso-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.tdh-page .tdh-coso-avatar {
+  margin-top: -36px;
+  width: 60px;
+  height: 60px;
+  border-radius: 14px;
+}
+
+.tdh-page .tdh-coso-head-text {
+  flex: 1;
+  min-width: 0;
+  padding-top: 4px;
+}
+
+.tdh-page .tdh-coso-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.tdh-page .tdh-coso-name {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+  color: var(--ink-display);
+}
+
+.tdh-page .tdh-coso-subtitle {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--ink-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.tdh-page .tdh-coso-type {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #0c7a4f;
+  background: var(--cins-mint-soft, #d9fbed);
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+}
+
+.tdh-page .tdh-coso-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.tdh-page .tdh-coso-loc {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-muted);
+}
+
+.tdh-page .tdh-coso-desc {
+  margin: 0 0 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-body);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.tdh-page .tdh-coso-foot {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.tdh-page .tdh-coso-foot-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cins-blue);
+}
+
+.tdh-page .tdh-coso-foot-arrow {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--neutral-50);
+  color: var(--ink-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.tdh-page .tdh-coso-card:hover .tdh-coso-foot-arrow {
+  background: var(--cins-blue);
+  border-color: var(--cins-blue);
+  color: #fff;
+  transform: translateX(2px);
+}
+
 @media (max-width: 786px) {
   .tdh-page .tdh-list-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));

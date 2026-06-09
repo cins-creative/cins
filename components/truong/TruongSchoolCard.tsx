@@ -1,5 +1,6 @@
-import { truongDetailHref } from "@/lib/nganh/truong-shared";
+import { CoSoListingCard } from "@/components/co-so/CoSoListingCard";
 import type { TruongListItem } from "@/lib/truong/types";
+import { truongListingHref } from "@/lib/truong/listing-href";
 import {
   buildTruongUniversityCardFoot,
   buildTruongUniversityCardTags,
@@ -13,11 +14,15 @@ type Props = {
 };
 
 export function TruongSchoolCard({ school, index }: Props) {
+  if (school.org_loai === "co_so_dao_tao") {
+    return <CoSoListingCard school={school} index={index} />;
+  }
+
   return (
     <TruongUniversityCard
       school={school}
       index={index}
-      href={truongDetailHref(school.slug)}
+      href={truongListingHref(school)}
       tags={buildTruongUniversityCardTags(school.nganhTags, school.nganhCount)}
       foot={buildTruongUniversityCardFoot(school.nganhCount)}
       dataType={school.loai_truong ?? ""}

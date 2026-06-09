@@ -1,3 +1,5 @@
+import type { TruongListItem } from "@/lib/truong/types";
+
 const COVER_CLASSES = [
   "cov-violet",
   "cov-blue",
@@ -66,6 +68,11 @@ export function formatHocPhiLabel(
   }
   const v = tu ?? den;
   return v != null ? `${fmt(v)} đ` : null;
+}
+
+export function truongListingFilterType(school: TruongListItem): "dh" | "csdt" {
+  if (school.org_loai === "co_so_dao_tao") return "csdt";
+  return truongFilterType(school.loai_truong);
 }
 
 export function truongFilterType(loai: string | null): "dh" | "csdt" {

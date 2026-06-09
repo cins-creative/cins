@@ -1,8 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef } from "react";
 
-import { TruongCoverCropModal } from "@/components/truong/TruongCoverCropModal";
 import { TruongDetailCoverBanner } from "@/components/truong/TruongDetailCoverBanner";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
 import { resolveSchoolCoverSrc } from "@/lib/truong/school-cover";
@@ -20,8 +19,6 @@ type Props = {
 export function TruongOrgCover({ school, editable = false, layout = "legacy" }: Props) {
   const ctx = useTruongInlineEdit();
   const inputRef = useRef<HTMLInputElement>(null);
-  const [cropSrc, setCropSrc] = useState<string | null>(null);
-  const [cropOpen, setCropOpen] = useState(false);
 
   const previewUrl = ctx?.coverDraft?.previewUrl ?? null;
   const avatarPreviewUrl = ctx?.avatarDraft?.previewUrl ?? null;
@@ -34,29 +31,12 @@ export function TruongOrgCover({ school, editable = false, layout = "legacy" }: 
   }
 
   function onFilePicked(file: File | undefined) {
-    if (!file) return;
-    const url = URL.createObjectURL(file);
-    setCropSrc((prev) => {
-      if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
-      return url;
-    });
-    setCropOpen(true);
-  }
-
-  function closeCrop() {
-    setCropOpen(false);
-    setCropSrc((prev) => {
-      if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
-      return null;
-    });
-  }
-
-  function onApplyPreview(file: File, nextPreview: string) {
-    ctx?.setCoverDraft({ file, previewUrl: nextPreview });
-    ctx?.showToast(
+    if (!file || !ctx) return;
+    const previewUrl = URL.createObjectURL(file);
+    ctx.setCoverDraft({ file, previewUrl });
+    ctx.showToast(
       "Đã cập nhật xem trước ảnh bìa — bấm «Lưu ảnh bìa» trên thanh công cụ",
     );
-    closeCrop();
   }
 
   const overlay =
@@ -86,25 +66,13 @@ export function TruongOrgCover({ school, editable = false, layout = "legacy" }: 
     ) : null;
 
   return (
-    <>
-      <TruongDetailCoverBanner
-        coverUrl={coverUrl}
-        coverPending={hasPending}
-        overlay={overlay}
-        school={school}
-        avatarPreviewUrl={avatarPreviewUrl}
-        layout={layout}
-      />
-      <TruongCoverCropModal
-        open={cropOpen}
-        imageSrc={cropSrc}
-        onClose={closeCrop}
-        onApplyPreview={onApplyPreview}
-        onPickAnother={() => {
-          closeCrop();
-          openPicker();
-        }}
-      />
-    </>
+    <TruongDetailCoverBanner
+      coverUrl={coverUrl}
+      coverPending={hasPending}
+      overlay={overlay}
+      school={school}
+      avatarPreviewUrl={avatarPreviewUrl}
+      layout={layout}
+    />
   );
 }

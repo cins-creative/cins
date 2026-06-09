@@ -1,18 +1,18 @@
 import { notFound } from "next/navigation";
 
-import { TruongDetailView } from "@/components/truong/TruongDetailView";
+import { CoSoDetailView } from "@/components/co-so/CoSoDetailView";
 import { CinsShell } from "@/components/cins/CinsShell";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { loadOrgBaiDangBookmarkSocial } from "@/lib/truong/org-bai-dang-bookmark";
 import { getOrgAdminStatus } from "@/lib/truong/org-admin";
-import { getTruongPagePayload } from "@/lib/truong/queries";
+import { getCoSoDetailPayloadCached } from "@/lib/to-chuc/co-so-page-queries";
 
 type Props = {
   slug: string;
 };
 
-export async function TruongDetailLoader({ slug }: Props) {
-  const payload = await getTruongPagePayload(slug);
+export async function CoSoDetailLoader({ slug }: Props) {
+  const payload = await getCoSoDetailPayloadCached(slug);
   if (!payload) notFound();
 
   const session = await getCurrentSessionAndProfile();
@@ -38,9 +38,11 @@ export async function TruongDetailLoader({ slug }: Props) {
   };
 
   return (
-    <CinsShell data-screen-label="Truong-chi-tiet">
-      <div className={`tdh-page tdh-page--v6${canEdit ? " tdh-page--can-edit" : ""}`}>
-        <TruongDetailView payload={payloadWithSocial} canEdit={canEdit} />
+    <CinsShell data-screen-label="Co-so-chi-tiet">
+      <div
+        className={`tdh-page tdh-page--v6 tdh-page--cso${canEdit ? " tdh-page--can-edit" : ""}`}
+      >
+        <CoSoDetailView payload={payloadWithSocial} canEdit={canEdit} />
       </div>
     </CinsShell>
   );

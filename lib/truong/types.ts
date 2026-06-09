@@ -1,9 +1,13 @@
 import type { Block } from "@/lib/editor/types";
 
+export type TruongOrgLoai = "truong_dai_hoc" | "co_so_dao_tao";
+
 export type TruongListItem = {
   id: string;
   slug: string;
   ten: string;
+  /** Phân loại listing — mặc định trường ĐH. */
+  org_loai?: TruongOrgLoai;
   logo_id: string | null;
   avatar_id: string | null;
   /** URL imagedelivery đã resolve (server/API), không lưu DB */
@@ -23,6 +27,8 @@ export type TruongListItem = {
   ten_chinh_thuc: string | null;
   ten_tieng_anh: string | null;
   nam_thanh_lap: number | null;
+  /** Cơ sở đào tạo — `org_co_so_dao_tao.giay_phep_dao_tao`. */
+  giay_phep_dao_tao?: string | null;
   hoc_phi_nam_tu: number | null;
   hoc_phi_nam_den: number | null;
   co_ktx: boolean | null;

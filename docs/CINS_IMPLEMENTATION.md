@@ -120,6 +120,7 @@
 | `migration_cong_dong_tac_pham_link.sql` | Link tác phẩm ↔ cộng đồng — ⚠️§5 kiểm tra có sinh bảng/cột mới không |
 | `migration_da_verify_tag.sql` | Thêm `da_verify` vào tag |
 | `migration_journey_foreign_visibility.sql` | Visibility milestone của người được tag (quy tắc 21) |
+| `migration_co_so_dao_tao_rls.sql` | RLS đọc công khai `org_to_chuc` + `org_co_so_dao_tao` (listing hub + `/co-so/[slug]`); admin UPDATE; `filter_nhan` org nếu bảng đã có |
 | `migration_social_thong_bao_read.sql` | Trạng thái đã đọc thông báo |
 | `migration_user_theo_doi_muc.sql` | Follow entity (tag/org) — tách khỏi follow-user |
 | `migration_filter_dong.sql` | **Filter cá nhân động**: `filter_nhan` + `filter_gan` + enum `filter_doi_tuong_enum` + cột `org_bai_dang.thoi_diem` (org journey). Chạy lại an toàn (IF NOT EXISTS). |

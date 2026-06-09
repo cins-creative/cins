@@ -5,6 +5,7 @@ import { TruongOrgAvatar } from "@/components/truong/TruongOrgAvatar";
 import { TruongOrgBrandMark } from "@/components/truong/TruongOrgBrandMark";
 import { TruongCardCoverGeo } from "@/components/truong/TruongCardCoverGeo";
 import { labelLoaiTruong } from "@/lib/nganh/truong-shared";
+import { labelLoaiCoSo } from "@/lib/to-chuc/constants";
 import { labelTinhThanh } from "@/lib/truong/contact";
 import { truongCoverClass } from "@/lib/truong/display";
 import { resolveSchoolCoverSrc } from "@/lib/truong/school-cover";
@@ -75,7 +76,10 @@ export function TruongUniversityCard({
   dataType,
 }: TruongUniversityCardProps) {
   const coverUrl = resolveSchoolCoverSrc(school);
-  const loai = labelLoaiTruong(school.loai_truong);
+  const loai =
+    school.org_loai === "co_so_dao_tao"
+      ? labelLoaiCoSo(school.loai_truong)
+      : labelLoaiTruong(school.loai_truong);
   const locationLabel = labelTinhThanh(school.tinh_thanh);
   const cardClass = ["tdh-card", className].filter(Boolean).join(" ");
 

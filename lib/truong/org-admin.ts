@@ -30,15 +30,18 @@ export function canUseTruongInlineEdit(): boolean {
  *
  * Mọi trường hợp khác (anon, user bình thường) → `false`.
  */
+/**
+ * @param profileId — `user_nguoi_dung.id` (KHÔNG phải `auth.users.id`).
+ */
 export async function getOrgAdminStatus(
   slug: string,
-  userId?: string | null,
+  profileId?: string | null,
 ): Promise<boolean> {
   if (!hasServiceRoleEnv()) return false;
 
   if (await getCurrentUserIsCinsAdmin()) return true;
 
-  if (!userId) return false;
+  if (!profileId) return false;
 
   try {
     const supabase = createServiceRoleClient();
@@ -54,7 +57,7 @@ export async function getOrgAdminStatus(
       .from("user_thanh_vien_to_chuc")
       .select("vai_tro")
       .eq("id_to_chuc", org.id)
-      .eq("id_nguoi_dung", userId)
+      .eq("id_nguoi_dung", profileId)
       .in("vai_tro", [...ORG_ADMIN_ROLES])
       .limit(1)
       .maybeSingle();

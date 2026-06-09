@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 
 import { TruongSchoolCard } from "@/components/truong/TruongSchoolCard";
-import { truongFilterType } from "@/lib/truong/display";
+import { truongListingFilterType } from "@/lib/truong/display";
 import { truongMatchesNameSearch } from "@/lib/truong/listing-search";
 import type { TruongListItem } from "@/lib/truong/types";
 
@@ -35,12 +35,11 @@ export function TruongListingClient({ schools }: Props) {
   const [query, setQuery] = useState("");
 
   const dhCount = useMemo(
-    () => schools.filter((s) => truongFilterType(s.loai_truong) === "dh").length,
+    () => schools.filter((s) => truongListingFilterType(s) === "dh").length,
     [schools],
   );
   const csdtCount = useMemo(
-    () =>
-      schools.filter((s) => truongFilterType(s.loai_truong) === "csdt").length,
+    () => schools.filter((s) => truongListingFilterType(s) === "csdt").length,
     [schools],
   );
   const programCount = useMemo(
@@ -50,7 +49,7 @@ export function TruongListingClient({ schools }: Props) {
 
   const visible = useMemo(() => {
     return schools.filter((s) => {
-      if (filter !== "all" && truongFilterType(s.loai_truong) !== filter) {
+      if (filter !== "all" && truongListingFilterType(s) !== filter) {
         return false;
       }
       return truongMatchesNameSearch(s, query);

@@ -203,41 +203,6 @@
   outline-offset: -2px;
 }
 
-.tdh-cover-crop-modal {
-  max-width: min(640px, calc(100vw - 32px));
-}
-
-.tdh-cover-crop-stage {
-  position: relative;
-  margin: 0 auto 14px;
-  overflow: hidden;
-  border-radius: 10px;
-  background: #1a1a1a;
-  touch-action: none;
-  cursor: grab;
-  user-select: none;
-}
-
-.tdh-cover-crop-stage:active {
-  cursor: grabbing;
-}
-
-.tdh-cover-crop-img {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  max-width: none;
-  pointer-events: none;
-}
-
-.tdh-cover-crop-frame {
-  position: absolute;
-  inset: 0;
-  border: 2px solid rgba(255, 255, 255, 0.9);
-  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
-  pointer-events: none;
-}
-
 .tdh-avatar-wrap {
   position: relative;
 }
