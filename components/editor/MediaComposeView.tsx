@@ -27,6 +27,7 @@ import {
 
 import { CongDongFeedFilterDropdown } from "@/components/cong-dong/CongDongFeedFilterDropdown";
 import { OrgBaiDangLoaiComposeDropdown } from "@/components/truong/OrgBaiDangLoaiComposeDropdown";
+import { OrgBaiDangScheduleComposeButton } from "@/components/truong/OrgBaiDangScheduleComposeButton";
 import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import { publishPost } from "@/app/[slug]/p/new/actions";
 import { updatePost } from "@/app/[slug]/p/[postSlug]/edit/actions";
@@ -56,6 +57,7 @@ import {
   normalizeLoaiBaiDang,
   type BaiDangLoai,
 } from "@/lib/truong/bai-dang";
+import { isFutureOrgBaiDangSchedule } from "@/lib/truong/org-bai-dang-schedule";
 import {
   publishOrgBaiDangClient,
   updateOrgBaiDangClient,
@@ -228,6 +230,12 @@ export function MediaComposeView({
       return mode === "photo" || mode === "video" ? "su_kien" : "thong_bao";
     },
   );
+  const [composeSchedulePublishAt, setComposeSchedulePublishAt] = useState<
+    string | null
+  >(() => editInitial?.orgBaiDangSchedulePublishAt ?? null);
+  const composeScheduleActive = isFutureOrgBaiDangSchedule(
+    composeSchedulePublishAt,
+  );
   const publishVisibility: Visibility = congDongCompose ? "public" : vis;
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -259,7 +267,12 @@ export function MediaComposeView({
     : isPhoto
       ? "Thêm ảnh"
       : "Thêm video";
-  const publishLabel = isEdit ? "Lưu" : "Đăng";
+  const publishLabel =
+    orgBaiDangCompose && composeScheduleActive
+      ? "Hẹn đăng"
+      : isEdit
+        ? "Lưu"
+        : "Đăng";
   /* Huỷ → journey (không link `/p/slug` — intercept modal sẽ mở popup thay vì thoát edit). */
   const cancelHref = `/${ownerSlug}`;
 
@@ -720,6 +733,7 @@ export function MediaComposeView({
           coverId: null,
           blocks,
           loaiBaiDang: composeLoaiBaiDang,
+          schedulePublishAt: composeSchedulePublishAt,
         });
         if (!res.ok) {
           setError(res.error);
@@ -740,6 +754,7 @@ export function MediaComposeView({
           coverId: null,
           blocks,
           loaiBaiDang: composeLoaiBaiDang,
+          schedulePublishAt: composeSchedulePublishAt,
         });
         if (!res.ok) {
           setError(res.error);
@@ -835,12 +850,18 @@ export function MediaComposeView({
                 menuZIndex={9200}
               />
             ) : orgBaiDangCompose ? (
-              <OrgBaiDangLoaiComposeDropdown
-                value={composeLoaiBaiDang}
-                onChange={setComposeLoaiBaiDang}
-                className="cd-v4-filter-dd--editor"
-                menuZIndex={9200}
-              />
+              <div className="ed-topbar-actions-cluster">
+                <OrgBaiDangLoaiComposeDropdown
+                  value={composeLoaiBaiDang}
+                  onChange={setComposeLoaiBaiDang}
+                  menuZIndex={9200}
+                />
+                <OrgBaiDangScheduleComposeButton
+                  value={composeSchedulePublishAt}
+                  onChange={setComposeSchedulePublishAt}
+                  menuZIndex={9210}
+                />
+              </div>
             ) : (
               <div className="mc-compose-vis" ref={visRef}>
                 <button

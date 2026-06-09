@@ -8,6 +8,7 @@ import {
   truongInlineFetch,
 } from "@/lib/truong/inline-api";
 import type { TruongBaiDang } from "@/lib/truong/types";
+import { isFutureOrgBaiDangSchedule } from "@/lib/truong/org-bai-dang-schedule";
 
 /** Compose bài đăng trường — dùng overlay Journey, publish vào `org_bai_dang`. */
 export type OrgBaiDangComposeConfig = {
@@ -23,6 +24,8 @@ export type PublishOrgBaiDangInput = {
   coverId?: string | null;
   blocks: Block[];
   loaiBaiDang?: BaiDangLoai;
+  /** ISO — nếu trong tương lai: lưu `nhap` + `tao_luc`, chỉ hiện feed khi đến giờ. */
+  schedulePublishAt?: string | null;
 };
 
 export type PublishOrgBaiDangResult =
@@ -39,6 +42,20 @@ export function defaultLoaiBaiDangFromBlocks(
 
 function resolveLoaiBaiDang(input: PublishOrgBaiDangInput): BaiDangLoai {
   return input.loaiBaiDang ?? defaultLoaiBaiDangFromBlocks(input.blocks);
+}
+
+function resolveTrangThaiPayload(input: PublishOrgBaiDangInput): {
+  trang_thai: "da_dang" | "nhap";
+  tao_luc?: string;
+} {
+  const at = input.schedulePublishAt?.trim();
+  if (at && isFutureOrgBaiDangSchedule(at)) {
+    return {
+      trang_thai: "nhap",
+      tao_luc: new Date(at).toISOString(),
+    };
+  }
+  return { trang_thai: "da_dang" };
 }
 
 export async function updateOrgBaiDangClient(
@@ -63,6 +80,7 @@ export async function updateOrgBaiDangClient(
         noi_dung_blocks: input.blocks,
         cover_id: input.coverId?.trim() || null,
         loai_bai_dang: resolveLoaiBaiDang(input),
+        ...resolveTrangThaiPayload(input),
       }),
     },
   );
@@ -90,6 +108,7 @@ export async function publishOrgBaiDangClient(
     return { ok: false, error: "Bài đăng chưa có nội dung." };
   }
 
+  const statusPayload = resolveTrangThaiPayload(input);
   const res = await truongInlineFetch(input.orgId, "/bai-dang", {
     method: "POST",
     body: JSON.stringify({
@@ -98,7 +117,8 @@ export async function publishOrgBaiDangClient(
       noi_dung_blocks: input.blocks,
       cover_id: input.coverId?.trim() || null,
       loai_bai_dang: resolveLoaiBaiDang(input),
-      trang_thai: "da_dang",
+      trang_thai: statusPayload.trang_thai,
+      ...(statusPayload.tao_luc ? { tao_luc: statusPayload.tao_luc } : {}),
     }),
   });
 

@@ -21,6 +21,7 @@ import {
   AlignCenter,
   AlignLeft,
   AlignRight,
+  CalendarClock,
   Check,
   ClipboardPaste,
   Columns2,
@@ -76,6 +77,7 @@ import type {
 import type { CongDongComposeConfig } from "@/lib/cong-dong/types";
 import { readImageFileFromClipboard } from "@/lib/files/clipboard-images";
 import { OrgBaiDangLoaiComposeDropdown } from "@/components/truong/OrgBaiDangLoaiComposeDropdown";
+import { OrgBaiDangScheduleComposeButton } from "@/components/truong/OrgBaiDangScheduleComposeButton";
 import {
   defaultLoaiBaiDangFromBlocks,
   publishOrgBaiDangClient,
@@ -86,6 +88,10 @@ import {
   normalizeLoaiBaiDang,
   type BaiDangLoai,
 } from "@/lib/truong/bai-dang";
+import {
+  formatOrgBaiDangScheduleLabel,
+  isFutureOrgBaiDangSchedule,
+} from "@/lib/truong/org-bai-dang-schedule";
 
 /* ╔══════════════════════════════════════════════════════════════════╗
    ║ CINs Editor — port từ mockup `cins-editor.html`, theo brief     ║
@@ -426,6 +432,8 @@ export type EditorInitial = {
   personalFilterIds?: string[];
   /** `org_bai_dang.loai_bai_dang` khi sửa bài trường. */
   orgBaiDangLoai?: BaiDangLoai;
+  /** Giờ hẹn đăng (`nhap` + `tao_luc` tương lai). */
+  orgBaiDangSchedulePublishAt?: string | null;
 };
 
 type Props = {
@@ -500,6 +508,12 @@ export function EditorView({
       }
       return "thong_bao";
     },
+  );
+  const [composeSchedulePublishAt, setComposeSchedulePublishAt] = useState<
+    string | null
+  >(() => initial?.orgBaiDangSchedulePublishAt ?? null);
+  const composeScheduleActive = isFutureOrgBaiDangSchedule(
+    composeSchedulePublishAt,
   );
   const personalFilterIds = initial?.personalFilterIds ?? [];
   const publishVisibility: Visibility = congDongCompose ? "public" : vis;
@@ -1025,6 +1039,7 @@ export function EditorView({
           coverId: coverFinal,
           blocks: serverBlocks,
           loaiBaiDang: composeLoaiBaiDang,
+          schedulePublishAt: composeSchedulePublishAt,
         });
         if (!result.ok) {
           setToast(result.error || "Không lưu được bài đăng.");
@@ -1032,7 +1047,11 @@ export function EditorView({
         }
         orgBaiDangCompose.onPostUpdated?.(result.post);
         setSavedFlash(true);
-        setToast("✓ Đã cập nhật bài đăng.");
+        setToast(
+          composeScheduleActive
+            ? `✓ Đã hẹn đăng ${formatOrgBaiDangScheduleLabel(composeSchedulePublishAt)}.`
+            : "✓ Đã cập nhật bài đăng.",
+        );
         if (isOverlay && onPublished) {
           setTimeout(() => onPublished(), 900);
         }
@@ -1047,6 +1066,7 @@ export function EditorView({
           coverId: coverFinal,
           blocks: serverBlocks,
           loaiBaiDang: composeLoaiBaiDang,
+          schedulePublishAt: composeSchedulePublishAt,
         });
         if (!result.ok) {
           setToast(result.error || "Không lưu được bài đăng.");
@@ -1054,7 +1074,11 @@ export function EditorView({
         }
         orgBaiDangCompose.onPostPublished?.(result.post);
         setSavedFlash(true);
-        setToast("✓ Đã đăng bài.");
+        setToast(
+          composeScheduleActive
+            ? `✓ Đã hẹn đăng ${formatOrgBaiDangScheduleLabel(composeSchedulePublishAt)}.`
+            : "✓ Đã đăng bài.",
+        );
         if (isOverlay && onPublished) {
           setTimeout(() => onPublished(), 900);
         }
@@ -1128,6 +1152,8 @@ export function EditorView({
     orgBaiDangCompose,
     composeFilterSlugs,
     composeLoaiBaiDang,
+    composeSchedulePublishAt,
+    composeScheduleActive,
     personalFilterIds,
     blocks,
     ownerSlug,
@@ -1172,12 +1198,18 @@ export function EditorView({
               menuZIndex={9200}
             />
           ) : orgBaiDangCompose ? (
-            <OrgBaiDangLoaiComposeDropdown
-              value={composeLoaiBaiDang}
-              onChange={setComposeLoaiBaiDang}
-              className="cd-v4-filter-dd--editor"
-              menuZIndex={9200}
-            />
+            <div className="ed-topbar-actions-cluster">
+              <OrgBaiDangLoaiComposeDropdown
+                value={composeLoaiBaiDang}
+                onChange={setComposeLoaiBaiDang}
+                menuZIndex={9200}
+              />
+              <OrgBaiDangScheduleComposeButton
+                value={composeSchedulePublishAt}
+                onChange={setComposeSchedulePublishAt}
+                menuZIndex={9210}
+              />
+            </div>
           ) : (
             <EditorVisibilitySelect value={vis} onChange={setVis} />
           )}
@@ -1211,6 +1243,10 @@ export function EditorView({
                   aria-hidden
                 />{" "}
                 Đang lưu
+              </>
+            ) : orgBaiDangCompose && composeScheduleActive ? (
+              <>
+                <CalendarClock size={14} strokeWidth={2} aria-hidden /> Hẹn đăng
               </>
             ) : (
               <>

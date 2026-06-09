@@ -193,6 +193,15 @@ export async function fetchBookmarkedOrgBaiDangMilestones(params: {
   const postIds = [...savedAtByPost.keys()];
   if (postIds.length === 0) return [];
 
+  try {
+    const { publishDueOrgBaiDang } = await import(
+      "@/lib/truong/publish-due-org-bai-dang"
+    );
+    await publishDueOrgBaiDang();
+  } catch {
+    /* bookmark feed vẫn load nếu lazy publish lỗi */
+  }
+
   const { data: posts } = await admin
     .from("org_bai_dang")
     .select(

@@ -335,12 +335,11 @@ const TIMELINE_ROW_DATE_FIELDS: (keyof TruongTuyenSinhNamRow)[] = [
   "ngay_xac_nhan_nhap_hoc_den",
 ];
 
-/** Mọi năm lịch (calendar) xuất hiện trên mốc / cột ngày của một dòng tuyển sinh. */
-export function collectCalendarYearsFromRow(
+/** Năm lịch trích từ ngày mốc / cột ngày (không gộp `nam` tuyển sinh). */
+export function collectTimelineDateYearsFromRow(
   row: TruongTuyenSinhNamRow,
 ): number[] {
   const years = new Set<number>();
-  if (row.nam > 0) years.add(row.nam);
 
   for (const key of TIMELINE_ROW_DATE_FIELDS) {
     const y = parseCalendarYearFromDate(row[key] as string | null);
@@ -357,13 +356,22 @@ export function collectCalendarYearsFromRow(
   return [...years];
 }
 
-/** Năm lịch cho dropdown sidebar — từ ngày mốc timeline (mới → cũ). */
+/** Mọi năm lịch (calendar + `nam`) — dùng merge year filter tab Ngành / TS. */
+export function collectCalendarYearsFromRow(
+  row: TruongTuyenSinhNamRow,
+): number[] {
+  const years = new Set<number>(collectTimelineDateYearsFromRow(row));
+  if (row.nam > 0) years.add(row.nam);
+  return [...years];
+}
+
+/** Năm lịch cho dropdown sidebar — chỉ từ ngày mốc (mới → cũ). */
 export function collectTimelineCalendarYears(
   rows: TruongTuyenSinhNamRow[],
 ): number[] {
   const years = new Set<number>();
   for (const row of rows) {
-    for (const y of collectCalendarYearsFromRow(row)) years.add(y);
+    for (const y of collectTimelineDateYearsFromRow(row)) years.add(y);
   }
   return [...years].sort((a, b) => b - a);
 }
@@ -372,7 +380,61 @@ export function tuyenSinhRowMatchesCalendarYear(
   row: TruongTuyenSinhNamRow,
   year: number,
 ): boolean {
-  return collectCalendarYearsFromRow(row).includes(year);
+  return collectTimelineDateYearsFromRow(row).includes(year);
+}
+
+export function mocMatchesCalendarYear(
+  moc: TuyenSinhTimelineMoc,
+  year: number,
+): boolean {
+  const yt = parseCalendarYearFromDate(moc.ngay_tu);
+  const yd = parseCalendarYearFromDate(moc.ngay_den);
+  return yt === year || yd === year;
+}
+
+function legacyStepMatchesCalendarYear(
+  row: TruongTuyenSinhNamRow,
+  stepId: string,
+  year: number,
+): boolean {
+  const match = (raw: string | null | undefined) =>
+    parseCalendarYearFromDate(raw) === year;
+
+  switch (stepId) {
+    case "mo-ho-so":
+      return match(row.ngay_mo_ho_so) || match(row.ngay_dong_ho_so);
+    case "dong-ho-so":
+      return match(row.ngay_dong_ho_so);
+    case "thi":
+      return match(row.ngay_thi_tu) || match(row.ngay_thi_den);
+    case "cong-bo":
+      return match(row.ngay_cong_bo_diem);
+    case "nhap-hoc":
+      return (
+        match(row.ngay_xac_nhan_nhap_hoc_tu) ||
+        match(row.ngay_xac_nhan_nhap_hoc_den)
+      );
+    default:
+      return false;
+  }
+}
+
+/** Timeline sidebar — chỉ mốc có ngày rơi vào năm lịch chọn. */
+export function buildTuyenSinhTimelineStepsForCalendarYear(
+  row: TruongTuyenSinhNamRow,
+  year: number,
+): TuyenSinhTimelineStep[] {
+  const raw = row.ghi_chu_timeline?.trim();
+  if (raw?.startsWith("{")) {
+    const custom = parseTimelineMocStore(raw);
+    if (!custom?.length) return [];
+    const filtered = custom.filter((m) => mocMatchesCalendarYear(m, year));
+    return buildTimelineStepsFromMoc(filtered);
+  }
+  const legacy = buildTuyenSinhTimelineStepsLegacy(row);
+  return legacy.filter((step) =>
+    legacyStepMatchesCalendarYear(row, step.id, year),
+  );
 }
 
 export function buildTuyenSinhTimelineSteps(

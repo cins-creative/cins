@@ -574,6 +574,151 @@
   flex-shrink: 0;
 }
 
+/* Thẻ hẹn đăng — admin, mở popup danh sách */
+.org-baidang-scheduled-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  height: 34px;
+  padding: 0 12px 0 10px;
+  border: 1px solid #fcd34d;
+  border-radius: 999px;
+  background: #fffbeb;
+  color: #92400e;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.org-baidang-scheduled-chip:hover {
+  background: #fef3c7;
+  border-color: #f59e0b;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.18);
+}
+
+.org-baidang-scheduled-chip-label {
+  line-height: 1.2;
+}
+
+.org-baidang-scheduled-chip-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #f59e0b;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.tdh-inline-modal.org-baidang-scheduled-modal {
+  max-height: min(88vh, 900px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.org-baidang-scheduled-modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.org-baidang-scheduled-modal-head .tdh-inline-modal-title {
+  margin-bottom: 0;
+}
+
+.org-baidang-scheduled-modal-hint {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-muted, #64748b);
+}
+
+.org-baidang-scheduled-modal-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink-muted, #64748b);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.org-baidang-scheduled-modal-close:hover {
+  background: rgba(15, 23, 42, 0.06);
+  color: var(--ink-display, #0f172a);
+}
+
+.org-baidang-scheduled-modal-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-right: 2px;
+  margin-bottom: 12px;
+}
+
+/* Bài hẹn đăng — chỉ hiện khi admin bật Quản trị */
+.org-baidang-milestone.is-scheduled .j-m-card {
+  border-color: #fcd34d;
+  box-shadow:
+    0 0 0 1px rgba(252, 211, 77, 0.45),
+    0 8px 24px rgba(245, 158, 11, 0.1);
+}
+
+.org-baidang-scheduled-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  height: 28px;
+  padding: 0 10px 0 8px;
+  border-radius: 999px;
+  border: 1px solid #fcd34d;
+  background: #fffbeb;
+  color: #92400e;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.org-baidang-scheduled-badge-label {
+  flex-shrink: 0;
+}
+
+.org-baidang-scheduled-badge-time {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 600;
+  opacity: 0.92;
+}
+
+.tdh-page--v6 #tdh-panel-baidang .jcard-datebar--org .badge-row {
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 /* Loại bài đăng — datebar Journey (không dùng mono uppercase cũ) */
 .org-baidang-loai-badge {
   display: inline-flex;

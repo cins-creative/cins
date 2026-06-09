@@ -41,6 +41,17 @@ export async function POST(request: Request, context: RouteContext) {
     cover_id: body.cover_id ?? null,
     trang_thai: body.trang_thai ?? "da_dang",
   };
+  if ("tao_luc" in body) {
+    const raw = String(body.tao_luc ?? "").trim();
+    if (!raw) {
+      return NextResponse.json({ error: "Invalid tao_luc" }, { status: 400 });
+    }
+    const parsed = new Date(raw);
+    if (Number.isNaN(parsed.getTime())) {
+      return NextResponse.json({ error: "Invalid tao_luc" }, { status: 400 });
+    }
+    insertRow.tao_luc = parsed.toISOString();
+  }
   if ("noi_dung_blocks" in body) {
     insertRow.noi_dung_blocks = sanitizeBaiDangBlocksInput(body.noi_dung_blocks);
   }

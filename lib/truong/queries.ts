@@ -398,6 +398,16 @@ export async function fetchBaiDang(
   orgId: string,
   limit = 10,
 ): Promise<TruongBaiDang[]> {
+  try {
+    const { publishDueOrgBaiDang } = await import(
+      "@/lib/truong/publish-due-org-bai-dang"
+    );
+    await publishDueOrgBaiDang(orgId);
+  } catch {
+    /* không chặn load trang nếu lazy publish lỗi */
+  }
+
+  const nowIso = new Date().toISOString();
   const { data } = await supabase
     .from("org_bai_dang")
     .select(
@@ -417,6 +427,7 @@ export async function fetchBaiDang(
     )
     .eq("id_to_chuc", orgId)
     .eq("trang_thai", "da_dang")
+    .lte("tao_luc", nowIso)
     .order("tao_luc", { ascending: false })
     .limit(limit);
 
@@ -460,6 +471,7 @@ export async function fetchBaiDang(
       cover_id,
       cover_src: null,
       tao_luc: r.tao_luc ?? null,
+      trang_thai: "da_dang",
       tags,
     });
   }

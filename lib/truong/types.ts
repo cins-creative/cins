@@ -95,6 +95,8 @@ export type TruongBaiDang = {
   /** URL imagedelivery — resolve server khi fetch. */
   cover_src?: string | null;
   tao_luc: string | null;
+  /** `nhap` + `tao_luc` tương lai = hẹn đăng (chỉ admin thấy trên timeline). */
+  trang_thai?: string | null;
   tags: { label: string; slug: string }[];
   /** Nhãn tùy chỉnh (`filter_nhan` + `filter_gan`). */
   personalFilters?: PersonalFilterRef[];

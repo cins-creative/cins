@@ -149,6 +149,8 @@ export function JourneyComposeOverlay({
               kind: mediaKind,
               personalFilterIds: data.initial.personalFilterIds,
               orgBaiDangLoai: data.initial.orgBaiDangLoai,
+              orgBaiDangSchedulePublishAt:
+                data.initial.orgBaiDangSchedulePublishAt,
             }),
           );
           setMediaEditMode(mediaKind);

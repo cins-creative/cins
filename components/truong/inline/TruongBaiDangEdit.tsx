@@ -39,12 +39,15 @@ export function TruongBaiDangEditProvider({ children }: { children: ReactNode })
     async (id: string) => {
       if (!ctx || !confirm("Ẩn bài đăng này?")) return;
       const prev = ctx.baidang;
+      const prevScheduled = ctx.scheduledBaidang;
       ctx.setBaidang((list) => list.filter((p) => p.id !== id));
+      ctx.setScheduledBaidang((list) => list.filter((p) => p.id !== id));
       const res = await truongInlineFetch(ctx.orgId, `/bai-dang/${id}`, {
         method: "DELETE",
       });
       if (!res.ok) {
         ctx.setBaidang(prev);
+        ctx.setScheduledBaidang(prevScheduled);
         ctx.showToast("Ẩn bài thất bại");
       } else {
         ctx.showToast("Đã ẩn bài đăng");

@@ -4,7 +4,6 @@ import {
   Award,
   CalendarDays,
   Check,
-  ChevronDown,
   GraduationCap,
   Megaphone,
   type LucideIcon,
@@ -12,16 +11,21 @@ import {
 import {
   useCallback,
   useEffect,
-  useId,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
 import { createPortal } from "react-dom";
 
 import {
+  collectScrollResizeTargets,
+  computeFixedMenuPosition,
+} from "@/lib/ui/clamp-fixed-menu-position";
+import {
   BAI_DANG_LOAI_LABELS,
   BAI_DANG_LOAI_VALUES,
+  loaiBaiDangCssClass,
   type BaiDangLoai,
 } from "@/lib/truong/bai-dang";
 
@@ -33,11 +37,14 @@ const LOAI_ICON: Record<BaiDangLoai, LucideIcon> = {
   khac: Megaphone,
 };
 
+const LOAI_MENU_W = 232;
+const LOAI_MENU_EST_H = 220;
+const LOAI_MENU_Z = 9600;
+
 type Props = {
   value: BaiDangLoai;
   onChange: (loai: BaiDangLoai) => void;
   disabled?: boolean;
-  className?: string;
   menuZIndex?: number;
 };
 
@@ -45,22 +52,29 @@ export function OrgBaiDangLoaiComposeDropdown({
   value,
   onChange,
   disabled = false,
-  className,
-  menuZIndex = 9150,
+  menuZIndex = LOAI_MENU_Z,
 }: Props) {
-  const menuId = useId();
   const wrapRef = useRef<HTMLDivElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
+  const [portalReady, setPortalReady] = useState(false);
   const [menuStyle, setMenuStyle] = useState<{
     top: number;
     left: number;
-    minWidth: number;
   } | null>(null);
 
   const ActiveIcon = LOAI_ICON[value];
-  const triggerLabel = BAI_DANG_LOAI_LABELS[value];
+  const lc = loaiBaiDangCssClass(value);
+
+  const currentLabel = useMemo(
+    () => BAI_DANG_LOAI_LABELS[value],
+    [value],
+  );
+
+  useEffect(() => {
+    setPortalReady(true);
+  }, []);
 
   const updateMenuPosition = useCallback(() => {
     const btn = btnRef.current;
@@ -69,11 +83,14 @@ export function OrgBaiDangLoaiComposeDropdown({
       return;
     }
     const rect = btn.getBoundingClientRect();
-    setMenuStyle({
-      top: rect.bottom + 6,
-      left: rect.left,
-      minWidth: rect.width,
-    });
+    const menuHeight =
+      menuRef.current?.getBoundingClientRect().height || LOAI_MENU_EST_H;
+    const { top, left } = computeFixedMenuPosition(
+      rect,
+      { width: LOAI_MENU_W, height: menuHeight },
+      { gap: 6, margin: 8 },
+    );
+    setMenuStyle({ top, left });
   }, []);
 
   useLayoutEffect(() => {
@@ -82,11 +99,17 @@ export function OrgBaiDangLoaiComposeDropdown({
       return;
     }
     updateMenuPosition();
-    window.addEventListener("resize", updateMenuPosition);
-    window.addEventListener("scroll", updateMenuPosition, true);
+    const scrollTargets = collectScrollResizeTargets(btnRef.current);
+    const onReflow = () => updateMenuPosition();
+    for (const target of scrollTargets) {
+      target.addEventListener("scroll", onReflow, { passive: true });
+    }
+    window.addEventListener("resize", onReflow);
     return () => {
-      window.removeEventListener("resize", updateMenuPosition);
-      window.removeEventListener("scroll", updateMenuPosition, true);
+      for (const target of scrollTargets) {
+        target.removeEventListener("scroll", onReflow);
+      }
+      window.removeEventListener("resize", onReflow);
     };
   }, [open, updateMenuPosition]);
 
@@ -116,44 +139,49 @@ export function OrgBaiDangLoaiComposeDropdown({
   };
 
   const menu =
-    open && menuStyle && typeof document !== "undefined"
+    open && menuStyle && portalReady && typeof document !== "undefined"
       ? createPortal(
-          <div
-            id={menuId}
-            ref={menuRef}
-            className="cd-v4-filter-dd-menu cd-v4-filter-dd-menu--portal"
-            role="listbox"
-            aria-label="Chọn loại bài đăng"
-            style={{
-              position: "fixed",
-              top: menuStyle.top,
-              left: menuStyle.left,
-              minWidth: menuStyle.minWidth,
-              zIndex: menuZIndex,
-            }}
-          >
-            {BAI_DANG_LOAI_VALUES.map((loai) => {
-              const active = value === loai;
-              const Icon = LOAI_ICON[loai];
-              return (
-                <button
-                  key={loai}
-                  type="button"
-                  role="option"
-                  aria-selected={active}
-                  className={`cd-v4-filter-dd-item${active ? " is-active" : ""}`}
-                  onClick={() => pick(loai)}
-                >
-                  <span className="cd-v4-filter-dd-item-main">
-                    <Icon size={15} strokeWidth={2} aria-hidden />
-                    <span>{BAI_DANG_LOAI_LABELS[loai]}</span>
-                  </span>
-                  {active ? (
-                    <Check size={15} strokeWidth={2.2} aria-hidden />
-                  ) : null}
-                </button>
-              );
-            })}
+          <div className="cins-editor-page vis-portal-root">
+            <div
+              ref={menuRef}
+              className="org-compose-loai-menu is-portal"
+              role="listbox"
+              aria-label="Chọn loại bài đăng"
+              style={{
+                position: "fixed",
+                top: menuStyle.top,
+                left: menuStyle.left,
+                width: LOAI_MENU_W,
+                zIndex: menuZIndex,
+              }}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              {BAI_DANG_LOAI_VALUES.map((loai) => {
+                const active = value === loai;
+                const Icon = LOAI_ICON[loai];
+                const itemLc = loaiBaiDangCssClass(loai);
+                return (
+                  <button
+                    key={loai}
+                    type="button"
+                    role="option"
+                    aria-selected={active}
+                    className={`org-compose-loai-opt org-compose-loai-opt--${itemLc}${active ? " is-active" : ""}`}
+                    onClick={() => pick(loai)}
+                  >
+                    <span className="org-compose-loai-opt-ico" aria-hidden>
+                      <Icon size={15} strokeWidth={2} />
+                    </span>
+                    <span className="org-compose-loai-opt-label">
+                      {BAI_DANG_LOAI_LABELS[loai]}
+                    </span>
+                    {active ? (
+                      <Check size={15} strokeWidth={2.2} aria-hidden />
+                    ) : null}
+                  </button>
+                );
+              })}
+            </div>
           </div>,
           document.body,
         )
@@ -161,22 +189,26 @@ export function OrgBaiDangLoaiComposeDropdown({
 
   return (
     <div
-      className={`cd-v4-filter-dd${className ? ` ${className}` : ""}`}
+      className={`org-compose-loai-select vis-select${open ? " open" : ""}`}
       ref={wrapRef}
     >
       <button
         ref={btnRef}
         type="button"
-        className={`cd-v4-filter-dd-trigger has-filter${open ? " is-open" : ""}`}
+        className={`org-compose-loai-btn org-compose-loai-btn--${lc}`}
         aria-haspopup="listbox"
         aria-expanded={open}
-        aria-controls={menuId}
         disabled={disabled}
-        onClick={() => setOpen((v) => !v)}
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen((v) => !v);
+        }}
       >
-        <ActiveIcon size={15} strokeWidth={2} aria-hidden />
-        <span className="cd-v4-filter-dd-label">{triggerLabel}</span>
-        <ChevronDown size={14} strokeWidth={2} aria-hidden />
+        <span className="ico" aria-hidden>
+          <ActiveIcon size={14} strokeWidth={1.9} />
+        </span>
+        <span>{currentLabel}</span>
+        <span className="caret" aria-hidden>▾</span>
       </button>
       {menu}
     </div>

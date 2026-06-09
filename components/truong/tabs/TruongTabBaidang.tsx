@@ -7,6 +7,7 @@ import { OrgBaiDangFilterProvider } from "@/components/truong/OrgBaiDangFilterCo
 import { OrgBaiDangJourneyTimeline } from "@/components/truong/OrgBaiDangJourneyTimeline";
 import { TruongBaiDangEditProvider } from "@/components/truong/inline/TruongBaiDangEdit";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
+import { isTruongBaiDangScheduled } from "@/lib/truong/org-bai-dang-schedule";
 import type { TruongBaiDang } from "@/lib/truong/types";
 
 type Props = { posts: TruongBaiDang[] };
@@ -34,7 +35,17 @@ export function TruongTabBaidang({ posts: postsProp }: Props) {
   const onPostPublished = useCallback(
     (post: TruongBaiDang) => {
       if (!ctx) return;
-      ctx.setBaidang((list) => [post, ...list]);
+      if (isTruongBaiDangScheduled(post)) {
+        ctx.setScheduledBaidang((list) => [
+          post,
+          ...list.filter((p) => p.id !== post.id),
+        ]);
+        ctx.setBaidang((list) => list.filter((p) => p.id !== post.id));
+        ctx.showToast("Đã hẹn đăng bài");
+        return;
+      }
+      ctx.setScheduledBaidang((list) => list.filter((p) => p.id !== post.id));
+      ctx.setBaidang((list) => [post, ...list.filter((p) => p.id !== post.id)]);
       ctx.showToast("Đã đăng bài");
     },
     [ctx],
@@ -43,19 +54,35 @@ export function TruongTabBaidang({ posts: postsProp }: Props) {
   const onPostUpdated = useCallback(
     (post: TruongBaiDang) => {
       if (!ctx) return;
-      ctx.setBaidang((list) =>
-        list.map((p) =>
-          p.id === post.id
-            ? {
-                ...p,
-                ...post,
-                noiDungBlocks: post.noiDungBlocks ?? p.noiDungBlocks,
-                personalFilters: p.personalFilters,
-                personalFilterSlugs: p.personalFilterSlugs,
-              }
-            : p,
-        ),
-      );
+      const merge = (
+        prev: TruongBaiDang,
+      ): TruongBaiDang => ({
+        ...prev,
+        ...post,
+        noiDungBlocks: post.noiDungBlocks ?? prev.noiDungBlocks,
+        personalFilters: prev.personalFilters,
+        personalFilterSlugs: prev.personalFilterSlugs,
+      });
+      if (isTruongBaiDangScheduled(post)) {
+        ctx.setScheduledBaidang((list) => {
+          const has = list.some((p) => p.id === post.id);
+          if (has) {
+            return list.map((p) => (p.id === post.id ? merge(p) : p));
+          }
+          return [post, ...list];
+        });
+        ctx.setBaidang((list) => list.filter((p) => p.id !== post.id));
+        ctx.showToast("Đã cập nhật lịch hẹn");
+        return;
+      }
+      ctx.setScheduledBaidang((list) => list.filter((p) => p.id !== post.id));
+      ctx.setBaidang((list) => {
+        const has = list.some((p) => p.id === post.id);
+        if (has) {
+          return list.map((p) => (p.id === post.id ? merge(p) : p));
+        }
+        return [post, ...list];
+      });
       ctx.showToast("Đã cập nhật bài đăng");
     },
     [ctx],

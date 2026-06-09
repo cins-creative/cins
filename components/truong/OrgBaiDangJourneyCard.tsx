@@ -16,6 +16,7 @@ import { OrgBaiDangBookmarkButton } from "@/components/truong/OrgBaiDangBookmark
 import { OrgBaiDangLikeButton } from "@/components/truong/OrgBaiDangLikeButton";
 import { OrgBaiDangLoaiBadge } from "@/components/truong/OrgBaiDangLoaiBadge";
 import { OrgBaiDangPublishedDate } from "@/components/truong/OrgBaiDangPublishedDate";
+import { OrgBaiDangScheduledBadge } from "@/components/truong/OrgBaiDangScheduledBadge";
 import { baiDangUsesBlocks } from "@/lib/truong/bai-dang-blocks";
 import { TruongBaiDangPostActions } from "@/components/truong/inline/TruongBaiDangEdit";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
@@ -31,6 +32,7 @@ import {
   baiDangCardKind,
   baiDangYear,
 } from "@/lib/truong/bai-dang-timeline";
+import { isTruongBaiDangScheduled } from "@/lib/truong/org-bai-dang-schedule";
 import type { TruongBaiDang } from "@/lib/truong/types";
 
 type Props = {
@@ -59,6 +61,8 @@ function orgBaiDangPreviewMedia(post: TruongBaiDang): MilestoneMediaItem | null 
 export function OrgBaiDangJourneyCard({ post }: Props) {
   const ctx = useTruongInlineEdit();
   const school = ctx?.school;
+  const isScheduled = isTruongBaiDangScheduled(post);
+  const showScheduledUi = ctx?.isEditing && isScheduled;
   const [expanded, setExpanded] = useState(false);
 
   const usesBlocks = baiDangUsesBlocks(post);
@@ -160,10 +164,11 @@ export function OrgBaiDangJourneyCard({ post }: Props) {
 
   return (
     <article
-      className={`j-milestone j-self org-baidang-milestone${expanded ? " is-card-expanded" : ""}`}
+      className={`j-milestone j-self org-baidang-milestone${expanded ? " is-card-expanded" : ""}${showScheduledUi ? " is-scheduled" : ""}`}
       data-year={year ?? undefined}
       data-month={month ?? undefined}
       data-content-kind={cardKind}
+      data-scheduled={showScheduledUi ? "true" : undefined}
     >
       <div className="j-m-body-wrap">
         <div
@@ -190,6 +195,7 @@ export function OrgBaiDangJourneyCard({ post }: Props) {
               </span>
             </span>
             <span className="badge-row">
+              {showScheduledUi ? <OrgBaiDangScheduledBadge post={post} /> : null}
               <OrgBaiDangLoaiBadge post={post} />
             </span>
             <TruongBaiDangPostActions post={post} />

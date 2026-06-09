@@ -251,6 +251,453 @@
   line-height: 1.4;
 }
 
+/* ──── ORG BÀI ĐĂNG COMPOSE (loại + hẹn lịch) ──── */
+.cins-editor-page .org-compose-loai-select {
+  flex: none;
+}
+.cins-editor-page .org-compose-loai-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 38px;
+  padding: 0 13px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-display);
+  cursor: pointer;
+  transition:
+    border-color 0.15s var(--ed-ease),
+    background 0.15s var(--ed-ease);
+}
+.cins-editor-page .org-compose-loai-btn:hover {
+  border-color: var(--cins-blue);
+}
+.cins-editor-page .org-compose-loai-btn .ico {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+}
+.cins-editor-page .org-compose-loai-btn .caret {
+  font-size: 10px;
+  color: var(--ink-muted);
+  transition: transform 0.15s var(--ed-ease);
+}
+.cins-editor-page .org-compose-loai-select.open .org-compose-loai-btn .caret {
+  transform: rotate(180deg);
+}
+.cins-editor-page .org-compose-loai-btn--thongbao {
+  background: #f0f4ff;
+  border-color: #c5d4f5;
+  color: #1e3a8a;
+}
+.cins-editor-page .org-compose-loai-btn--tuyensinh {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #065f46;
+}
+.cins-editor-page .org-compose-loai-btn--hocbong {
+  background: #fff7ed;
+  border-color: #fed7aa;
+  color: #9a3412;
+}
+.cins-editor-page .org-compose-loai-btn--sukien {
+  background: #f5f3ff;
+  border-color: #ddd6fe;
+  color: #5b21b6;
+}
+.cins-editor-page .org-compose-loai-menu {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: 6px;
+}
+.cins-editor-page .org-compose-loai-opt {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 10px;
+  border: none;
+  background: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-display);
+}
+.cins-editor-page .org-compose-loai-opt:hover {
+  background: var(--neutral-100);
+}
+.cins-editor-page .org-compose-loai-opt.is-active {
+  background: var(--cins-blue-soft);
+}
+.cins-editor-page .org-compose-loai-opt-ico {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+.cins-editor-page .org-compose-loai-opt--thongbao .org-compose-loai-opt-ico {
+  background: #e8efff;
+  color: #1d4ed8;
+}
+.cins-editor-page .org-compose-loai-opt--tuyensinh .org-compose-loai-opt-ico {
+  background: #d1fae5;
+  color: #047857;
+}
+.cins-editor-page .org-compose-loai-opt--hocbong .org-compose-loai-opt-ico {
+  background: #ffedd5;
+  color: #c2410c;
+}
+.cins-editor-page .org-compose-loai-opt--sukien .org-compose-loai-opt-ico {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+.cins-editor-page .org-compose-loai-opt-label {
+  flex: 1;
+  min-width: 0;
+}
+.cins-editor-page .org-compose-schedule-wrap {
+  flex: none;
+}
+.cins-editor-page .org-compose-schedule-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 38px;
+  padding: 0 13px;
+  max-width: 200px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-body);
+  cursor: pointer;
+  transition:
+    border-color 0.15s var(--ed-ease),
+    background 0.15s var(--ed-ease);
+}
+.cins-editor-page .org-compose-schedule-btn:hover {
+  border-color: var(--cins-blue);
+  color: var(--ink-display);
+}
+.cins-editor-page .org-compose-schedule-wrap.is-scheduled .org-compose-schedule-btn {
+  background: #fffbeb;
+  border-color: #fcd34d;
+  color: #92400e;
+}
+.cins-editor-page .org-compose-schedule-btn-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cins-editor-page .org-compose-schedule-panel {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow:
+    0 4px 6px rgba(15, 23, 42, 0.04),
+    0 18px 40px rgba(15, 23, 42, 0.12);
+  padding: 0;
+  overflow: hidden;
+}
+.cins-editor-page .org-compose-schedule-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 14px 12px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, #fffbeb 0%, var(--bg-surface) 100%);
+}
+.cins-editor-page .org-compose-schedule-header-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+.cins-editor-page .org-compose-schedule-header-ico {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(145deg, #fde68a, #f59e0b);
+  color: #78350f;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.35);
+}
+.cins-editor-page .org-compose-schedule-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.cins-editor-page .org-compose-schedule-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink-display);
+  line-height: 1.3;
+}
+.cins-editor-page .org-compose-schedule-subtitle {
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--ink-muted);
+}
+.cins-editor-page .org-compose-schedule-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    background 0.15s var(--ed-ease),
+    color 0.15s var(--ed-ease);
+}
+.cins-editor-page .org-compose-schedule-close:hover {
+  background: rgba(15, 23, 42, 0.06);
+  color: var(--ink-display);
+}
+.cins-editor-page .org-compose-schedule-preview {
+  margin: 12px 14px 0;
+  padding: 14px 14px 12px;
+  border-radius: 12px;
+  background: var(--neutral-100);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: center;
+  transition:
+    background 0.2s var(--ed-ease),
+    border-color 0.2s var(--ed-ease);
+}
+.cins-editor-page .org-compose-schedule-preview.is-valid {
+  background: linear-gradient(160deg, #fffbeb 0%, #fef3c7 100%);
+  border-color: #fcd34d;
+}
+.cins-editor-page .org-compose-schedule-preview.is-muted {
+  background: var(--neutral-100);
+}
+.cins-editor-page .org-compose-schedule-preview-weekday {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: capitalize;
+  color: #b45309;
+  letter-spacing: 0.02em;
+}
+.cins-editor-page .org-compose-schedule-preview.is-muted .org-compose-schedule-preview-weekday {
+  color: var(--ink-muted);
+}
+.cins-editor-page .org-compose-schedule-preview-date {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink-display);
+  line-height: 1.35;
+}
+.cins-editor-page .org-compose-schedule-preview-time {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #92400e;
+}
+.cins-editor-page .org-compose-schedule-preview.is-muted .org-compose-schedule-preview-time {
+  color: var(--ink-muted);
+}
+.cins-editor-page .org-compose-schedule-preview-empty {
+  font-size: 12px;
+  color: var(--ink-muted);
+  padding: 4px 0;
+}
+.cins-editor-page .org-compose-schedule-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 12px 14px 0;
+}
+.cins-editor-page .org-compose-schedule-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.cins-editor-page .org-compose-schedule-field-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-muted);
+}
+.cins-editor-page .org-compose-schedule-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: var(--bg-surface);
+  transition: border-color 0.15s var(--ed-ease), box-shadow 0.15s var(--ed-ease);
+}
+.cins-editor-page .org-compose-schedule-input-wrap:focus-within {
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18);
+}
+.cins-editor-page .org-compose-schedule-input-ico {
+  flex-shrink: 0;
+  color: var(--ink-muted);
+}
+.cins-editor-page .org-compose-schedule-input-wrap:focus-within .org-compose-schedule-input-ico {
+  color: #d97706;
+}
+.cins-editor-page .org-compose-schedule-input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-display);
+  padding: 0 4px;
+}
+.cins-editor-page .org-compose-schedule-input:focus {
+  outline: none;
+}
+.cins-editor-page .org-compose-schedule-input::-webkit-calendar-picker-indicator {
+  opacity: 0.55;
+  cursor: pointer;
+}
+.cins-editor-page .org-compose-schedule-error {
+  margin: 8px 14px 0;
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #b91c1c;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+}
+.cins-editor-page .org-compose-schedule-footer {
+  margin: 0;
+  margin-top: 14px;
+  padding: 0;
+  border: none;
+  background: #fff;
+  color: var(--ink-display);
+}
+.cins-editor-page .org-compose-schedule-footer-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px 14px;
+  border-top: 1px solid var(--border);
+  background: #fff;
+}
+.cins-editor-page .org-compose-schedule-footer-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  padding: 0 8px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #b45309;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s var(--ed-ease);
+}
+.cins-editor-page .org-compose-schedule-footer-link:hover {
+  background: rgba(245, 158, 11, 0.1);
+  color: #92400e;
+}
+.cins-editor-page .org-compose-schedule-footer-actions {
+  display: grid;
+  grid-template-columns: 1fr 1.35fr;
+  gap: 8px;
+  width: 100%;
+}
+.cins-editor-page .org-compose-schedule-btn-ghost {
+  height: 38px;
+  padding: 0 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  background: #fff;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cins-blue);
+  cursor: pointer;
+  transition:
+    background 0.15s var(--ed-ease),
+    border-color 0.15s var(--ed-ease);
+}
+.cins-editor-page .org-compose-schedule-btn-ghost:hover {
+  background: var(--cins-blue-soft);
+  border-color: var(--cins-blue);
+}
+.cins-editor-page .org-compose-schedule-btn-primary {
+  height: 38px;
+  padding: 0 16px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(145deg, #fbbf24, #f59e0b);
+  color: #78350f;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.28);
+  transition:
+    filter 0.15s var(--ed-ease),
+    transform 0.1s var(--ed-ease),
+    box-shadow 0.15s var(--ed-ease);
+}
+.cins-editor-page .org-compose-schedule-btn-primary:hover {
+  filter: brightness(1.03);
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);
+}
+.cins-editor-page .org-compose-schedule-btn-primary:active {
+  transform: translateY(1px);
+}
+.cins-editor-page .org-compose-schedule-wrap.is-open .org-compose-schedule-btn {
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+}
+.cins-editor-page .ed-topbar-actions-cluster {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
 /* ──── EDITOR CANVAS ────
    Card styling matching `.cins-post-view .editor-canvas.post-canvas` để
    trang edit/new trông cùng "vóc dáng" với trang xem bài (white card,
@@ -3482,6 +3929,10 @@
   pointer-events: auto;
   display: block;
   right: auto;
+}
+.cins-editor-page.vis-portal-root .org-compose-schedule-panel.is-portal,
+.cins-editor-page.vis-portal-root .org-compose-loai-menu.is-portal {
+  pointer-events: auto;
 }
 
 /* Compose overlay — left padding 56px cho `.block-side` (left: -46px). */

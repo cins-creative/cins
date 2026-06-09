@@ -13,8 +13,9 @@ import { truongInlineFetch } from "@/lib/truong/inline-api";
 import {
   aggregateTimelineForYear,
   buildTimelineStepsFromMocDraft,
-  buildTuyenSinhTimelineSteps,
+  buildTuyenSinhTimelineStepsForCalendarYear,
   collectTimelineCalendarYears,
+  mocMatchesCalendarYear,
   emptyTimelineMoc,
   getAdmissionTimelineFocus,
   normalizeTimelineMoc,
@@ -139,12 +140,16 @@ export function TruongAdmissionTimelineSidebar() {
 
   const timelineSteps = useMemo(() => {
     if (isEditing) {
-      const draft = buildTimelineStepsFromMocDraft(timelineMoc);
+      const draft = buildTimelineStepsFromMocDraft(
+        timelineMoc.filter((m) => mocMatchesCalendarYear(m, year)),
+      );
       if (draft.length) return draft;
     }
-    if (timelineRow) return buildTuyenSinhTimelineSteps(timelineRow);
+    if (timelineRow) {
+      return buildTuyenSinhTimelineStepsForCalendarYear(timelineRow, year);
+    }
     return [];
-  }, [timelineRow, isEditing, timelineMoc]);
+  }, [timelineRow, isEditing, timelineMoc, year]);
 
   const focus = useMemo(
     () => getAdmissionTimelineFocus(timelineSteps),

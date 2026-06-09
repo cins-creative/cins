@@ -7,6 +7,7 @@ import { parseBaiDangBlocks } from "@/lib/truong/bai-dang-blocks";
 import { isTruongOrgAdmin } from "@/lib/truong/org-admin";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { ORG_BAI_DANG_API_SELECT } from "@/lib/truong/bai-dang-api-fields";
+import { isOrgBaiDangScheduledDraft } from "@/lib/truong/org-bai-dang-schedule";
 
 export type OrgBaiDangEditInitialResult =
   | { ok: true; postSlug: string; initial: EditorInitial }
@@ -42,6 +43,8 @@ export async function fetchOrgBaiDangEditInitial(params: {
       cover_id: string | null;
       loai_bai_dang: string | null;
       noi_dung_blocks: unknown;
+      tao_luc: string | null;
+      trang_thai: string | null;
     }>();
 
   if (error || !data?.id) {
@@ -62,6 +65,12 @@ export async function fetchOrgBaiDangEditInitial(params: {
     thoiDiem: isoToday(),
     blocks,
     orgBaiDangLoai: normalizeLoaiBaiDang(data.loai_bai_dang),
+    orgBaiDangSchedulePublishAt: isOrgBaiDangScheduledDraft(
+      data.trang_thai,
+      data.tao_luc,
+    )
+      ? data.tao_luc
+      : null,
   };
 
   return { ok: true, postSlug: params.baiDangId, initial };

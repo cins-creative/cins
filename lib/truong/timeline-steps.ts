@@ -22,8 +22,11 @@ export {
   TIMELINE_MOC_DESC_MAX,
   TIMELINE_MOC_LINK_MAX,
   TIMELINE_MOC_MAX_ITEMS,
+  buildTuyenSinhTimelineStepsForCalendarYear,
   collectCalendarYearsFromRow,
   collectTimelineCalendarYears,
+  collectTimelineDateYearsFromRow,
+  mocMatchesCalendarYear,
   parseCalendarYearFromDate,
   tuyenSinhRowMatchesCalendarYear,
 } from "@/lib/truong/timeline-moc";

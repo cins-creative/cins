@@ -261,6 +261,7 @@ export type MediaEditInitial = {
   videoUrl?: string;
   personalFilterIds?: string[];
   orgBaiDangLoai?: BaiDangLoai;
+  orgBaiDangSchedulePublishAt?: string | null;
 };
 
 export function buildMediaEditInitial(params: {
@@ -274,6 +275,7 @@ export function buildMediaEditInitial(params: {
   kind: MediaPostKind;
   personalFilterIds?: string[];
   orgBaiDangLoai?: BaiDangLoai;
+  orgBaiDangSchedulePublishAt?: string | null;
 }): MediaEditInitial {
   const caption = extractBodyCaption(params.blocks);
   return {
@@ -294,5 +296,6 @@ export function buildMediaEditInitial(params: {
         : undefined,
     personalFilterIds: params.personalFilterIds,
     orgBaiDangLoai: params.orgBaiDangLoai,
+    orgBaiDangSchedulePublishAt: params.orgBaiDangSchedulePublishAt,
   };
 }

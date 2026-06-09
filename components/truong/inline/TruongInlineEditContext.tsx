@@ -46,6 +46,9 @@ type Ctx = {
   school: TruongDetail;
   stats: TruongStats;
   baidang: TruongBaiDang[];
+  /** Bài hẹn đăng — chỉ admin thấy, không lẫn timeline đã đăng. */
+  scheduledBaidang: TruongBaiDang[];
+  setScheduledBaidang: React.Dispatch<React.SetStateAction<TruongBaiDang[]>>;
   hinhanh: TruongHinhAnh[];
   tuyenSinh: TruongTuyenSinhNamRow[];
   cauHinhYears: number[];
@@ -126,6 +129,7 @@ export function TruongInlineEditProvider({
   const [school, setSchool] = useState(initial.school);
   const [stats, setStats] = useState(initial.stats);
   const [baidang, setBaidang] = useState(initial.baidang);
+  const [scheduledBaidang, setScheduledBaidang] = useState<TruongBaiDang[]>([]);
   const [hinhanh, setHinhanh] = useState(initial.hinhanh);
   const [tuyenSinh, setTuyenSinh] = useState(initial.tuyenSinh);
   const [programs, setProgramsState] = useState(initial.school.programs);
@@ -138,25 +142,15 @@ export function TruongInlineEditProvider({
   const [calcConfigModalYear, setCalcConfigModalYear] = useState<number | null>(
     null,
   );
-  const [editMode, setEditModeState] = useState(false);
-  const [editHydrated, setEditHydrated] = useState(false);
-
   const storageKey = editModeStorageKey(initial.school.slug);
-
-  useEffect(() => {
-    if (!canEdit) {
-      setEditHydrated(true);
-      return;
-    }
+  const [editMode, setEditModeState] = useState(() => {
+    if (!canEdit) return false;
     try {
-      if (sessionStorage.getItem(storageKey) === "1") {
-        setEditModeState(true);
-      }
+      return sessionStorage.getItem(storageKey) === "1";
     } catch {
-      /* ignore */
+      return false;
     }
-    setEditHydrated(true);
-  }, [canEdit, storageKey]);
+  });
 
   const setEditMode = useCallback(
     (on: boolean) => {
@@ -180,6 +174,39 @@ export function TruongInlineEditProvider({
       root.classList.remove("tdh-page--editing");
     };
   }, [isEditing]);
+
+  useEffect(() => {
+    if (!isEditing || !canEdit) return;
+    const orgId = school.id?.trim();
+    if (!orgId) return;
+
+    let cancelled = false;
+    void truongInlineFetch(orgId, "/bai-dang/scheduled")
+      .then(async (res) => {
+        if (!res.ok || cancelled) return;
+        const json = (await res.json()) as { posts?: TruongBaiDang[] };
+        const scheduled = (json.posts ?? []).filter(
+          (p) => p?.id?.trim() && p.tieu_de?.trim(),
+        );
+        const sorted = [...scheduled].sort((a, b) => {
+          const ta = a.tao_luc ? new Date(a.tao_luc).getTime() : 0;
+          const tb = b.tao_luc ? new Date(b.tao_luc).getTime() : 0;
+          return tb - ta;
+        });
+        const scheduledIds = new Set(sorted.map((p) => p.id));
+        setScheduledBaidang(sorted);
+        setBaidang((list) =>
+          list.filter((p) => !scheduledIds.has(p.id)),
+        );
+      })
+      .catch(() => {
+        /* ignore — badge chỉ khi fetch ok */
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isEditing, canEdit, school.id]);
 
   const setPrograms = useCallback(
     (action: SetStateAction<TruongNganhProgram[]>) => {
@@ -542,6 +569,8 @@ export function TruongInlineEditProvider({
       school,
       stats,
       baidang,
+      scheduledBaidang,
+      setScheduledBaidang,
       hinhanh,
       tuyenSinh,
       cauHinhYears: initial.cauHinhYears ?? EMPTY_CAU_HINH_YEARS,
@@ -583,6 +612,7 @@ export function TruongInlineEditProvider({
       school,
       stats,
       baidang,
+      scheduledBaidang,
       hinhanh,
       tuyenSinh,
       initial.cauHinhYears,
@@ -625,7 +655,7 @@ export function TruongInlineEditProvider({
 
   return (
     <TruongInlineEditContext.Provider value={value}>
-      {editHydrated ? children : null}
+      {children}
       <TruongCalcConfigModalHost />
       {toastNode}
     </TruongInlineEditContext.Provider>

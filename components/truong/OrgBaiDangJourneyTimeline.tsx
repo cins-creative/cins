@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 
 import { OrgBaiDangCreateComposer } from "@/components/truong/OrgBaiDangCreateComposer";
 import { OrgBaiDangJourneyCard } from "@/components/truong/OrgBaiDangJourneyCard";
+import { OrgBaiDangScheduledQueue } from "@/components/truong/OrgBaiDangScheduledQueue";
 import { OrgBaiDangTimelineBar } from "@/components/truong/OrgBaiDangTimelineBar";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
 import {
@@ -16,6 +17,7 @@ import {
   type OrgBaiDangTimelineFilterKey,
 } from "@/lib/truong/bai-dang-timeline";
 import { useOrgBaiDangFilterOptional } from "@/components/truong/OrgBaiDangFilterContext";
+import { isTruongBaiDangVisibleOnTimeline } from "@/lib/truong/org-bai-dang-schedule";
 import type { TruongBaiDang } from "@/lib/truong/types";
 
 type Props = {
@@ -25,7 +27,12 @@ type Props = {
 export function OrgBaiDangJourneyTimeline({ posts: postsProp }: Props) {
   const ctx = useTruongInlineEdit();
   const filterCtx = useOrgBaiDangFilterOptional();
-  const posts = ctx?.baidang ?? postsProp;
+  const allPosts = ctx?.baidang ?? postsProp;
+  const scheduledPosts = ctx?.scheduledBaidang ?? [];
+  const posts = useMemo(
+    () => allPosts.filter((p) => isTruongBaiDangVisibleOnTimeline(p)),
+    [allPosts],
+  );
   const canEdit = Boolean(ctx?.isEditing);
   const [filterKey, setFilterKey] = useState<OrgBaiDangTimelineFilterKey>("all");
 
@@ -48,7 +55,7 @@ export function OrgBaiDangJourneyTimeline({ posts: postsProp }: Props) {
   const topYear = yearGroups[0]?.year ?? baiDangYear(filtered[0]?.tao_luc);
   const topMonth = baiDangMonthLabel(filtered[0]?.tao_luc);
 
-  if (posts.length === 0) {
+  if (posts.length === 0 && scheduledPosts.length === 0) {
     return (
       <div className="tdh-org-baidang-empty">
         {canEdit ? (
@@ -70,6 +77,9 @@ export function OrgBaiDangJourneyTimeline({ posts: postsProp }: Props) {
 
   return (
     <main className="j-timeline tdh-org-baidang-timeline" aria-label="Timeline bài đăng">
+      {canEdit && scheduledPosts.length > 0 ? (
+        <OrgBaiDangScheduledQueue posts={scheduledPosts} />
+      ) : null}
       <OrgBaiDangTimelineBar
         year={topYear}
         monthLabel={topMonth}

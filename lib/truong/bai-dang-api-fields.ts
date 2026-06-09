@@ -31,6 +31,7 @@ export function mapOrgBaiDangApiRow(
     noiDungBlocks: parseBaiDangBlocks(row.noi_dung_blocks),
     cover_id: row.cover_id?.trim() || null,
     tao_luc: row.tao_luc ?? null,
+    trang_thai: row.trang_thai ?? null,
     tags: extras?.tags ?? [],
     cover_src: extras?.cover_src ?? null,
   };
