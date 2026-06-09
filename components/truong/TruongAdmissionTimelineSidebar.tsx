@@ -4,10 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { TruongInlineModal } from "@/components/truong/inline/TruongInlineModal";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
-import {
-  TruongYearSelect,
-  useYearFilter,
-} from "@/components/truong/YearFilterProvider";
+import { TruongYearSelect } from "@/components/truong/YearFilterProvider";
+import { defaultTruongNganhYear } from "@/lib/truong/diem-chuan";
 import { TruongTimelineMocSingleForm } from "@/components/truong/tuyensinh/TruongTimelineMocSingleForm";
 import { truongInlineFetch } from "@/lib/truong/inline-api";
 import {
@@ -102,7 +100,6 @@ function TimelineStepItem({
 
 export function TruongAdmissionTimelineSidebar() {
   const ctx = useTruongInlineEdit();
-  const { year } = useYearFilter();
   const tuyenSinh = ctx?.tuyenSinh ?? [];
   const isEditing = ctx?.isEditing ?? false;
 
@@ -111,15 +108,24 @@ export function TruongAdmissionTimelineSidebar() {
   const [showPastSteps, setShowPastSteps] = useState(false);
   const [mocModal, setMocModal] = useState<MocModalMode | null>(null);
   const persistingMocRef = useRef(false);
+  const [timelineYear, setTimelineYear] = useState(defaultTruongNganhYear());
 
   const timelineYearOptions = useMemo(
     () => collectTimelineCalendarYears(tuyenSinh),
     [tuyenSinh],
   );
 
+  useEffect(() => {
+    if (!timelineYearOptions.length) return;
+    if (!timelineYearOptions.includes(timelineYear)) {
+      setTimelineYear(timelineYearOptions[0]!);
+    }
+  }, [timelineYearOptions, timelineYear]);
+
   const yearRows = useMemo(
-    () => tuyenSinh.filter((r) => tuyenSinhRowMatchesCalendarYear(r, year)),
-    [tuyenSinh, year],
+    () =>
+      tuyenSinh.filter((r) => tuyenSinhRowMatchesCalendarYear(r, timelineYear)),
+    [tuyenSinh, timelineYear],
   );
 
   const timelineRow = useMemo(
@@ -136,20 +142,23 @@ export function TruongAdmissionTimelineSidebar() {
     const loaded = timelineRow ? resolveTimelineMocForRow(timelineRow) : [];
     setTimelineMoc(loaded);
     setTlLink(timelineRow?.link_thong_tin ?? "");
-  }, [isEditing, year, timelineRow, mocModal]);
+  }, [isEditing, timelineYear, timelineRow, mocModal]);
 
   const timelineSteps = useMemo(() => {
     if (isEditing) {
       const draft = buildTimelineStepsFromMocDraft(
-        timelineMoc.filter((m) => mocMatchesCalendarYear(m, year)),
+        timelineMoc.filter((m) => mocMatchesCalendarYear(m, timelineYear)),
       );
       if (draft.length) return draft;
     }
     if (timelineRow) {
-      return buildTuyenSinhTimelineStepsForCalendarYear(timelineRow, year);
+      return buildTuyenSinhTimelineStepsForCalendarYear(
+        timelineRow,
+        timelineYear,
+      );
     }
     return [];
-  }, [timelineRow, isEditing, timelineMoc, year]);
+  }, [timelineRow, isEditing, timelineMoc, timelineYear]);
 
   const focus = useMemo(
     () => getAdmissionTimelineFocus(timelineSteps),
@@ -184,13 +193,13 @@ export function TruongAdmissionTimelineSidebar() {
 
   useEffect(() => {
     setShowPastSteps(false);
-  }, [year, timelineSteps.length]);
+  }, [timelineYear, timelineSteps.length]);
 
   async function persistTimeline(nextMoc: TuyenSinhTimelineMoc[]) {
     if (!ctx) return false;
     if (!yearRows.length) {
       ctx.showToast(
-        `Chưa có dữ liệu tuyển sinh năm ${year}. Thêm dữ liệu năm trên tab Tuyển sinh trước.`,
+        `Chưa có dữ liệu tuyển sinh năm ${timelineYear}. Thêm dữ liệu năm trên tab Tuyển sinh trước.`,
       );
       return false;
     }
@@ -206,7 +215,7 @@ export function TruongAdmissionTimelineSidebar() {
     };
     const prev = ctx.tuyenSinh;
     ctx.setTuyenSinh((list) =>
-      list.map((r) => (r.nam === year ? { ...r, ...patch } : r)),
+      list.map((r) => (r.nam === timelineYear ? { ...r, ...patch } : r)),
     );
     const results = await Promise.all(
       yearRows.map((row) =>
@@ -291,6 +300,8 @@ export function TruongAdmissionTimelineSidebar() {
             <TruongYearSelect
               label="Năm lịch"
               years={timelineYearOptions}
+              value={timelineYear}
+              onChange={setTimelineYear}
             />
           </div>
         </div>
@@ -298,7 +309,7 @@ export function TruongAdmissionTimelineSidebar() {
         <section className="timeline-section timeline-section--rail">
           {timelineSteps.length === 0 && !isEditing ? (
             <p className="ptxt-empty-text tdh-admission-side-empty">
-              Chưa có lịch cho năm {year}.
+              Chưa có lịch cho năm {timelineYear}.
             </p>
           ) : (
             <div className="timeline">
@@ -348,7 +359,7 @@ export function TruongAdmissionTimelineSidebar() {
               ) : null}
               {isEditing && !yearRows.length ? (
                 <p className="tdh-admission-side-empty tdh-admission-side-empty--inline">
-                  Thêm dữ liệu tuyển sinh năm {year} trước khi tạo mốc lịch.
+                  Thêm dữ liệu tuyển sinh năm {timelineYear} trước khi tạo mốc lịch.
                 </p>
               ) : null}
             </div>
@@ -366,7 +377,7 @@ export function TruongAdmissionTimelineSidebar() {
           {mocModal?.kind === "new" ? "Thêm mốc lịch" : "Sửa mốc lịch"}
         </h3>
         <p className="tdh-calc-config-lead">
-          Áp dụng cho tất cả ngành trong năm {year}.
+          Áp dụng cho tất cả ngành trong năm {timelineYear}.
         </p>
         {modalMoc ? (
           <TruongTimelineMocSingleForm

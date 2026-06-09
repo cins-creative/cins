@@ -93,15 +93,43 @@ export function useYearFilter(): YearFilterContextValue {
 
 export function TruongYearSelect({
   label = "Năm",
-  /** Danh sách riêng (vd. năm lịch từ mốc timeline). */
   years,
+  /** State riêng — không đồng bộ với YearFilterProvider (vd. năm lịch sidebar). */
+  value,
+  onChange,
 }: {
   label?: string;
   years?: number[];
+  value?: number;
+  onChange?: (year: number) => void;
 }) {
+  const isStandalone = value != null && onChange != null;
+
+  if (isStandalone) {
+    const options =
+      years && years.length > 0
+        ? [...years].sort((a, b) => b - a)
+        : [value];
+    const selected = options.includes(value) ? value : options[0]!;
+
+    return (
+      <select
+        className="sec-year-select"
+        value={selected}
+        onChange={(e) => onChange(Number(e.target.value))}
+        aria-label={label}
+      >
+        {options.map((y) => (
+          <option key={y} value={y}>
+            Năm {y}
+          </option>
+        ))}
+      </select>
+    );
+  }
+
   const { year, yearOptions, setYear } = useYearFilter();
-  const options =
-    years && years.length > 0 ? [...years].sort((a, b) => b - a) : yearOptions;
+  const options = yearOptions;
 
   useEffect(() => {
     if (!options.length) return;
