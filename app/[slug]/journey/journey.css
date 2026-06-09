@@ -1799,6 +1799,10 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   border-radius: 0;
   box-shadow: none;
   background: var(--bg-surface, #fff);
+  /* Trang trường load editor.css nhưng không post-page.css → gỡ 100vh page shell. */
+  min-height: 0;
+  height: auto;
+  flex: none;
 }
 .j-m-unfold-post--media {
   padding-top: 2px;

@@ -3,6 +3,8 @@
 **Version 2** — sau migration thêm `id_truong_nganh` vào `org_cau_hinh_khoi`  
 Synced với DB thực tế. Dùng làm context cho Cursor khi implement feature trường.
 
+**Bulk SQL (field → UI, không tab Bài đăng):** [`cursor_brief_truong_trang_data_map.md`](./cursor_brief_truong_trang_data_map.md)
+
 ---
 
 ## Route & Component Tree (repo này)
