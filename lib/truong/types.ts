@@ -1,4 +1,5 @@
 import type { Block } from "@/lib/editor/types";
+import type { PersonalFilterRef } from "@/lib/filter/types";
 
 export type TruongOrgLoai = "truong_dai_hoc" | "co_so_dao_tao";
 
@@ -8,6 +9,9 @@ export type TruongChiNhanh = {
   dia_chi: string;
   tinh_thanh: string | null;
   dien_thoai?: string | null;
+  email?: string | null;
+  website?: string | null;
+  facebook?: string | null;
 };
 
 export type TruongListItem = {
@@ -92,6 +96,9 @@ export type TruongBaiDang = {
   cover_src?: string | null;
   tao_luc: string | null;
   tags: { label: string; slug: string }[];
+  /** Nhãn tùy chỉnh (`filter_nhan` + `filter_gan`). */
+  personalFilters?: PersonalFilterRef[];
+  personalFilterSlugs?: string[];
   /** Hydrate per viewer — không cache trong `getTruongPagePayload`. */
   viewerBookmarked?: boolean;
   bookmarkCount?: number;

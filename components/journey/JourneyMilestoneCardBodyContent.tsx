@@ -76,8 +76,14 @@ export function JourneyMilestoneCardBodyContent({
   const cardCaption = milestoneCardCaptionPlain(body, blocks);
   const isContentOpen = expandTrigger?.expanded ?? false;
   const showExpandTrigger =
-    Boolean(expandTrigger?.enabled && isArticle && !isContentOpen) ||
+    Boolean(
+      expandTrigger?.enabled &&
+        (isArticle || isPhotoAlbum || isVideoPost) &&
+        !isContentOpen,
+    ) ||
     Boolean(readMoreHref && isArticle);
+
+  const expandCtaLabel = isPhotoAlbum || isVideoPost ? "Xem thêm" : "Đọc bài viết";
 
   function handleBodyClick(e: React.MouseEvent<HTMLElement>) {
     if (readMoreHref) {
@@ -178,6 +184,12 @@ export function JourneyMilestoneCardBodyContent({
                 readOnly
                 timelineLightbox
               />
+              {showExpandTrigger ? (
+                <span className="jcard-expand-cta" aria-hidden>
+                  <ChevronDown size={14} strokeWidth={2.4} />
+                  {expandCtaLabel}
+                </span>
+              ) : null}
             </div>
           ) : readMoreHref ? (
             <Link href={readMoreHref} className="preview" prefetch={false}>
@@ -198,10 +210,10 @@ export function JourneyMilestoneCardBodyContent({
                   <span className="preview-label">Ảnh bìa bài viết</span>
                 </div>
               )}
-              {isArticle ? (
+              {showExpandTrigger ? (
                 <span className="jcard-expand-cta" aria-hidden>
                   <ChevronDown size={14} strokeWidth={2.4} />
-                  Đọc bài viết
+                  {expandCtaLabel}
                 </span>
               ) : null}
             </Link>
@@ -224,10 +236,10 @@ export function JourneyMilestoneCardBodyContent({
                   <span className="preview-label">Ảnh bìa bài viết</span>
                 </div>
               )}
-              {isArticle && showExpandTrigger ? (
+              {showExpandTrigger ? (
                 <span className="jcard-expand-cta" aria-hidden>
                   <ChevronDown size={14} strokeWidth={2.4} />
-                  Đọc bài viết
+                  {expandCtaLabel}
                 </span>
               ) : null}
             </div>

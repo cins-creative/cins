@@ -12,7 +12,6 @@ import { TruongSchoolContact } from "@/components/truong/TruongSchoolContact";
 import { TruongUserChatLauncher } from "@/components/truong/TruongUserChatLauncher";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
 import { labelLoaiTruong } from "@/lib/nganh/truong-shared";
-import { formatHocPhiLabel } from "@/lib/truong/display";
 
 export function TruongSchoolSidebar() {
   const ctx = useTruongInlineEdit();
@@ -22,10 +21,8 @@ export function TruongSchoolSidebar() {
   const showAdminCta = canEdit && isEditing;
   const loai = labelLoaiTruong(school.loai_truong);
 
-  const hocPhiLabel = formatHocPhiLabel(
-    school.hoc_phi_nam_tu,
-    school.hoc_phi_nam_den,
-  );
+  const showTuyenSinStats =
+    isEditing || school.co_ktx != null;
 
   return (
     <aside className="school-side fade f1" aria-label="Thông tin trường">
@@ -96,35 +93,29 @@ export function TruongSchoolSidebar() {
         <TruongSchoolContact school={school} isEditing={isEditing} variant="sidebar" />
       </div>
 
-      <div className="ss-section">
-        <div className="ss-section-label">Số liệu tuyển sinh</div>
-        <div className="ss-stat-grid">
-          {isEditing ? (
-            <div className="ss-stat span-2 ss-stat--editable">
-              <TruongEditableHocPhi variant="sidebar" />
-            </div>
-          ) : (
-            <>
-              <div className="ss-stat span-2">
-                <div className="lbl">Học phí</div>
-                <div className="val text">{hocPhiLabel ?? "—"}</div>
+      {showTuyenSinStats ? (
+        <div className="ss-section">
+          <div className="ss-section-label">Số liệu tuyển sinh</div>
+          <div className="ss-stat-grid">
+            {isEditing ? (
+              <div className="ss-stat span-2 ss-stat--editable">
+                <TruongEditableHocPhi variant="sidebar" />
               </div>
-              {school.co_ktx != null ? (
-                <div className="ss-stat span-2">
-                  <div className="lbl">Ký túc xá</div>
-                  <div className="val text">
-                    {school.co_ktx
-                      ? school.ktx_gia_thang
-                        ? `Có · ~${school.ktx_gia_thang.toLocaleString("vi-VN")} đ/tháng`
-                        : "Có"
-                      : "Không"}
-                  </div>
+            ) : (
+              <div className="ss-stat span-2">
+                <div className="lbl">Ký túc xá</div>
+                <div className="val text">
+                  {school.co_ktx
+                    ? school.ktx_gia_thang
+                      ? `Có · ~${school.ktx_gia_thang.toLocaleString("vi-VN")} đ/tháng`
+                      : "Có"
+                    : "Không"}
                 </div>
-              ) : null}
-            </>
-          )}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      ) : null}
     </aside>
   );
 }

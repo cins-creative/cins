@@ -2,30 +2,26 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronUp, Megaphone, GraduationCap, CalendarDays } from "lucide-react";
+import { ChevronUp } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { JourneyMilestoneCardBodyContent } from "@/components/journey/JourneyMilestoneCardBodyContent";
 import type { MilestoneMediaItem } from "@/components/journey/milestone-types";
 import { PostBlockRenderer } from "@/components/journey/PostBlockRenderer";
 import {
-  isMilestoneArticleCard,
   milestoneCardContentKind,
   milestoneCardPhotoGrid,
 } from "@/lib/journey/milestone-card-kind";
 import { milestoneCardCaptionPlain } from "@/lib/journey/post-media";
 import { OrgBaiDangBookmarkButton } from "@/components/truong/OrgBaiDangBookmarkButton";
 import { OrgBaiDangLikeButton } from "@/components/truong/OrgBaiDangLikeButton";
+import { OrgBaiDangLoaiBadge } from "@/components/truong/OrgBaiDangLoaiBadge";
+import { OrgBaiDangPublishedDate } from "@/components/truong/OrgBaiDangPublishedDate";
 import { baiDangUsesBlocks } from "@/lib/truong/bai-dang-blocks";
 import { TruongBaiDangPostActions } from "@/components/truong/inline/TruongBaiDangEdit";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
 import { TruongOrgAvatar } from "@/components/truong/TruongOrgAvatar";
 import { baiDangCoverDisplayUrl } from "@/lib/truong/bai-dang-cover";
-import {
-  loaiBaiDangCssClass,
-  loaiBaiDangLabel,
-  normalizeLoaiBaiDang,
-} from "@/lib/truong/bai-dang";
 import {
   baiDangHasExpandableBody,
   buildBaiDangThumbPreview,
@@ -34,7 +30,6 @@ import {
 import {
   baiDangCardKind,
   baiDangYear,
-  formatBaiDangDate,
 } from "@/lib/truong/bai-dang-timeline";
 import type { TruongBaiDang } from "@/lib/truong/types";
 
@@ -42,17 +37,10 @@ type Props = {
   post: TruongBaiDang;
 };
 
-const LOAI_ICON = {
-  thong_bao: Megaphone,
-  tuyen_sinh: GraduationCap,
-  su_kien: CalendarDays,
-  khac: Megaphone,
-} as const;
-
 function shouldIgnoreExpandTrigger(target: Element | null): boolean {
   return Boolean(
     target?.closest(
-      "a, button, input, textarea, select, summary, .j-m-menu, .authors-details, .image-grid-cell, .jcard-video-trigger, .jcard-actions, .tdh-baidang-edit",
+      "a, button, input, textarea, select, summary, .j-m-menu, .authors-details, .image-grid-cell, .jcard-video-trigger, .jcard-actions, .tdh-baidang-edit, .org-baidang-date-edit, .org-baidang-loai-picker",
     ),
   );
 }
@@ -73,9 +61,6 @@ export function OrgBaiDangJourneyCard({ post }: Props) {
   const school = ctx?.school;
   const [expanded, setExpanded] = useState(false);
 
-  const lc = loaiBaiDangCssClass(post.loai_bai_dang);
-  const loai = normalizeLoaiBaiDang(post.loai_bai_dang);
-  const LoaiIcon = LOAI_ICON[loai];
   const usesBlocks = baiDangUsesBlocks(post);
   const blocks = post.noiDungBlocks ?? null;
   const coverUrl = baiDangCoverDisplayUrl(post);
@@ -83,12 +68,13 @@ export function OrgBaiDangJourneyCard({ post }: Props) {
   const hasRichBody = Boolean(post.noi_dung?.trim());
   const blocksCardKind = usesBlocks ? milestoneCardContentKind(blocks) : null;
   const cardKind = blocksCardKind ?? baiDangCardKind(post);
-  const isArticleBlocks = usesBlocks && isMilestoneArticleCard(blocks);
+  const supportsInlineUnfold =
+    usesBlocks &&
+    (cardKind === "article" || cardKind === "photo" || cardKind === "video");
   const legacyCardExpand = canExpand && !usesBlocks;
   const year = baiDangYear(post.tao_luc);
   const month = post.tao_luc ? new Date(post.tao_luc).getMonth() + 1 : null;
-  const dateLabel = formatBaiDangDate(post.tao_luc);
-  const showUnfold = isArticleBlocks && expanded;
+  const showUnfold = supportsInlineUnfold && expanded;
   const cardCaption = milestoneCardCaptionPlain(post.tom_tat, blocks);
 
   const thumbPreview = useMemo(
@@ -119,14 +105,18 @@ export function OrgBaiDangJourneyCard({ post }: Props) {
   }
 
   function onBlocksExpandTrigger(e: React.MouseEvent<HTMLElement>) {
-    if (!isArticleBlocks || expanded || shouldIgnoreExpandTrigger(e.target as Element)) {
+    if (
+      !supportsInlineUnfold ||
+      expanded ||
+      shouldIgnoreExpandTrigger(e.target as Element)
+    ) {
       return;
     }
     setExpanded(true);
   }
 
   function onBlocksExpandKeyDown(e: React.KeyboardEvent<HTMLElement>) {
-    if (!isArticleBlocks || expanded) return;
+    if (!supportsInlineUnfold || expanded) return;
     if (e.key !== "Enter" && e.key !== " ") return;
     if (shouldIgnoreExpandTrigger(e.target as Element)) return;
     e.preventDefault();
@@ -137,8 +127,8 @@ export function OrgBaiDangJourneyCard({ post }: Props) {
     "j-m-card",
     "jcard",
     `jcard--${cardKind}`,
-    isArticleBlocks ? "has-unfold" : "",
-    showUnfold ? "is-expanded" : isArticleBlocks ? "is-collapsed" : "",
+    supportsInlineUnfold ? "has-unfold" : "",
+    showUnfold ? "is-expanded" : supportsInlineUnfold ? "is-collapsed" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -171,14 +161,11 @@ export function OrgBaiDangJourneyCard({ post }: Props) {
               )}
               <span className="org-copy">
                 <strong>{school?.ten ?? "Trường"}</strong>
-                {dateLabel ? <small>{dateLabel}</small> : null}
+                <OrgBaiDangPublishedDate post={post} />
               </span>
             </span>
             <span className="badge-row">
-              <span className={`ctx-badge org-tl-type ${lc}`}>
-                <LoaiIcon size={11} strokeWidth={1.8} aria-hidden />
-                {loaiBaiDangLabel(post.loai_bai_dang)}
-              </span>
+              <OrgBaiDangLoaiBadge post={post} />
             </span>
             <TruongBaiDangPostActions post={post} />
           </div>
@@ -204,13 +191,13 @@ export function OrgBaiDangJourneyCard({ post }: Props) {
                 preview={previewMedia}
                 photoGridImages={milestoneCardPhotoGrid(blocks)}
                 expandTrigger={
-                  isArticleBlocks
+                  supportsInlineUnfold
                     ? expanded
                       ? { enabled: false, expanded: true }
                       : {
                           enabled: true,
                           expanded: false,
-                          ariaLabel: `Mở bài viết: ${post.tieu_de}`,
+                          ariaLabel: `Mở bài: ${post.tieu_de}`,
                           onClick: onBlocksExpandTrigger,
                           onKeyDown: onBlocksExpandKeyDown,
                         }

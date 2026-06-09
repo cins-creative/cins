@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { unstable_cache } from "next/cache";
 
+import { loadPersonalFiltersForOrgBaiDang } from "@/lib/filter/org-bai-dang-gan";
 import { createPublicSupabaseClient } from "@/lib/supabase/public";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { parseBaiDangBlocks } from "@/lib/truong/bai-dang-blocks";
@@ -473,6 +474,13 @@ export async function fetchBaiDang(
       ]);
     }),
   );
+
+  const filterMap = await loadPersonalFiltersForOrgBaiDang(out.map((p) => p.id));
+  for (const post of out) {
+    const filters = filterMap.get(post.id) ?? [];
+    post.personalFilters = filters;
+    post.personalFilterSlugs = filters.map((f) => f.slug);
+  }
 
   return out;
 }

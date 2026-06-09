@@ -97,9 +97,10 @@ export function CoSoOrgBaiDangTimeline({
     <OrgBaiDangTimelineBar
       year={topYear}
       monthLabel={topMonth}
-      filter={loaiFilter}
-      onFilterChange={setLoaiFilter}
-      counts={loaiCounts}
+      filterKey={loaiFilter}
+      onFilterKeyChange={(key) => setLoaiFilter(key as typeof loaiFilter)}
+      loaiCounts={loaiCounts}
+      nhanCounts={{}}
       enabled={barEnabled}
     />
   );

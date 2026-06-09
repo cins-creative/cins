@@ -5,6 +5,8 @@ export const CHI_NHANH_MAX = 40;
 export const CHI_NHANH_SIDEBAR_PREVIEW = 3;
 export const CHI_NHANH_TEN_MAX = 80;
 export const CHI_NHANH_DIA_CHI_MAX = 240;
+export const CHI_NHANH_EMAIL_MAX = 120;
+export const CHI_NHANH_WEBSITE_MAX = 500;
 
 export function newChiNhanhId(): string {
   return `cn-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -17,6 +19,9 @@ export function emptyChiNhanh(): TruongChiNhanh {
     dia_chi: "",
     tinh_thanh: null,
     dien_thoai: null,
+    email: null,
+    website: null,
+    facebook: null,
   };
 }
 
@@ -38,12 +43,18 @@ export function normalizeChiNhanh(raw: TruongChiNhanh): TruongChiNhanh | null {
   if (!ten || !dia_chi) return null;
   const tinh_thanh = normalizeTinhThanhForDb(raw.tinh_thanh);
   const dien_thoai = raw.dien_thoai?.trim() || null;
+  const email = raw.email?.trim().slice(0, CHI_NHANH_EMAIL_MAX) || null;
+  const website = raw.website?.trim().slice(0, CHI_NHANH_WEBSITE_MAX) || null;
+  const facebook = normalizeFacebookUrl(raw.facebook);
   return {
     id: raw.id?.trim() || newChiNhanhId(),
     ten,
     dia_chi,
     tinh_thanh,
     dien_thoai,
+    email,
+    website,
+    facebook,
   };
 }
 
@@ -67,6 +78,9 @@ export function legacyChiNhanhFromContact(
       dia_chi,
       tinh_thanh: normalizeTinhThanhForDb(school.tinh_thanh),
       dien_thoai: null,
+      email: null,
+      website: null,
+      facebook: null,
     },
   ];
 }
@@ -108,6 +122,85 @@ export function primaryContactFromChiNhanh(
     dia_chi: primary.dia_chi,
     tinh_thanh: primary.tinh_thanh,
   };
+}
+
+/** Đồng bộ cột org từ chi nhánh chính (index 0). */
+export function orgContactFromPrimaryChiNhanh(
+  chi_nhanh: TruongChiNhanh[],
+): {
+  dia_chi: string | null;
+  tinh_thanh: string | null;
+  dien_thoai: string | null;
+  email_lien_he: string | null;
+  website: string | null;
+  facebook: string | null;
+} {
+  const primary = normalizeChiNhanhList(chi_nhanh)[0];
+  if (!primary) {
+    return {
+      dia_chi: null,
+      tinh_thanh: null,
+      dien_thoai: null,
+      email_lien_he: null,
+      website: null,
+      facebook: null,
+    };
+  }
+  return {
+    dia_chi: primary.dia_chi,
+    tinh_thanh: primary.tinh_thanh,
+    dien_thoai: primary.dien_thoai?.trim() || null,
+    email_lien_he: primary.email?.trim() || null,
+    website: primary.website?.trim() || null,
+    facebook: primary.facebook ?? null,
+  };
+}
+
+type SchoolChiNhanhSource = Pick<
+  TruongListItem,
+  | "chi_nhanh"
+  | "dia_chi"
+  | "tinh_thanh"
+  | "dien_thoai"
+  | "email_lien_he"
+  | "website"
+  | "facebook"
+>;
+
+/** Chi nhánh chính hiển thị sidebar — gộp legacy cột org khi JSON chưa có field. */
+export function resolvePrimaryChiNhanhDisplay(
+  school: SchoolChiNhanhSource,
+): TruongChiNhanh | null {
+  const branches = resolveTruongChiNhanh(school);
+  const primary = branches[0];
+  if (!primary) return null;
+  return {
+    ...primary,
+    dien_thoai: primary.dien_thoai?.trim() || school.dien_thoai?.trim() || null,
+    email: primary.email?.trim() || school.email_lien_he?.trim() || null,
+    website: primary.website?.trim() || school.website?.trim() || null,
+    facebook: primary.facebook?.trim() || school.facebook?.trim() || null,
+  };
+}
+
+/** Form admin: gắn liên hệ org vào chi nhánh chính nếu JSON thiếu. */
+export function hydrateChiNhanhFromSchool(
+  school: SchoolChiNhanhSource,
+): TruongChiNhanh[] {
+  const branches = resolveTruongChiNhanh(school);
+  if (!branches.length) return [emptyChiNhanh()];
+  const [first, ...rest] = branches;
+  return [
+    {
+      ...first,
+      ten: first.ten?.trim() || "Cơ sở chính",
+      dien_thoai: first.dien_thoai?.trim() || school.dien_thoai?.trim() || null,
+      email: first.email?.trim() || school.email_lien_he?.trim() || null,
+      website: first.website?.trim() || school.website?.trim() || null,
+      facebook: first.facebook?.trim() || school.facebook?.trim() || null,
+    },
+    ...rest,
+  ];
 }
 
 const FACEBOOK_URL_MAX = 500;

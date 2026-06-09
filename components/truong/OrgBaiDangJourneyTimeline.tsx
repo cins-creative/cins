@@ -10,10 +10,12 @@ import {
   baiDangMonthLabel,
   baiDangYear,
   countBaiDangByFilter,
-  filterBaiDangPosts,
+  countBaiDangNhanFilters,
+  filterBaiDangByTimelineKey,
   groupBaiDangByYear,
-  type BaiDangTimelineFilter,
+  type OrgBaiDangTimelineFilterKey,
 } from "@/lib/truong/bai-dang-timeline";
+import { useOrgBaiDangFilterOptional } from "@/components/truong/OrgBaiDangFilterContext";
 import type { TruongBaiDang } from "@/lib/truong/types";
 
 type Props = {
@@ -22,16 +24,26 @@ type Props = {
 
 export function OrgBaiDangJourneyTimeline({ posts: postsProp }: Props) {
   const ctx = useTruongInlineEdit();
+  const filterCtx = useOrgBaiDangFilterOptional();
   const posts = ctx?.baidang ?? postsProp;
   const canEdit = Boolean(ctx?.isEditing);
-  const [filter, setFilter] = useState<BaiDangTimelineFilter>("all");
+  const [filterKey, setFilterKey] = useState<OrgBaiDangTimelineFilterKey>("all");
+
+  const customSlugs = useMemo(
+    () => filterCtx?.filters.map((f) => f.slug) ?? [],
+    [filterCtx?.filters],
+  );
 
   const filtered = useMemo(
-    () => filterBaiDangPosts(posts, filter),
-    [posts, filter],
+    () => filterBaiDangByTimelineKey(posts, filterKey),
+    [posts, filterKey],
   );
   const yearGroups = useMemo(() => groupBaiDangByYear(filtered), [filtered]);
-  const counts = useMemo(() => countBaiDangByFilter(posts), [posts]);
+  const loaiCounts = useMemo(() => countBaiDangByFilter(posts), [posts]);
+  const nhanCounts = useMemo(
+    () => countBaiDangNhanFilters(posts, customSlugs),
+    [posts, customSlugs],
+  );
 
   const topYear = yearGroups[0]?.year ?? baiDangYear(filtered[0]?.tao_luc);
   const topMonth = baiDangMonthLabel(filtered[0]?.tao_luc);
@@ -61,9 +73,10 @@ export function OrgBaiDangJourneyTimeline({ posts: postsProp }: Props) {
       <OrgBaiDangTimelineBar
         year={topYear}
         monthLabel={topMonth}
-        filter={filter}
-        onFilterChange={setFilter}
-        counts={counts}
+        filterKey={filterKey}
+        onFilterKeyChange={setFilterKey}
+        loaiCounts={loaiCounts}
+        nhanCounts={nhanCounts}
         enabled={posts.length > 0}
       />
       {canEdit ? <OrgBaiDangCreateComposer /> : null}

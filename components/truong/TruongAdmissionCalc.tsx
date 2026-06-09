@@ -2,7 +2,10 @@
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 
-import { applyCalcDraftMonList } from "@/lib/truong/calc-draft";
+import {
+  applyCalcDraftMonList,
+  type MonThiCatalogItem,
+} from "@/lib/truong/calc-draft";
 import { cauHinhMonThiCacheKey } from "@/lib/truong/cau-hinh-tinh-diem";
 
 import { MonThiThumb } from "@/components/truong/MonThiThumb";
@@ -12,8 +15,10 @@ import { formatDiemChuan } from "@/lib/truong/diem-chuan";
 import {
   computeAdmissionScore,
   effectiveThangDiemForCalc,
+  maxWeightedAdmissionScore,
 } from "@/lib/truong/calc";
 import { monThiDauVaoFromConfig } from "@/lib/truong/mon-thi-dau-vao";
+import { enrichMonThiFromCatalog } from "@/lib/truong/mon-thi-catalog";
 import type { CalcPhuongThucOption } from "@/lib/truong/phuong-thuc";
 import type { TruongCauHinhMon, TruongCauHinhTinhDiem } from "@/lib/truong/types";
 
@@ -56,6 +61,7 @@ export function TruongAdmissionCalc({
   const options = nganhOptions?.length ? nganhOptions : DEFAULT_OPTIONS;
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [config, setConfig] = useState<TruongCauHinhTinhDiem | null>(null);
+  const [monCatalog, setMonCatalog] = useState<MonThiCatalogItem[]>([]);
   const [inputs, setInputs] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
@@ -140,9 +146,43 @@ export function TruongAdmissionCalc({
     void loadConfig();
   }, [loadConfig]);
 
+  useEffect(() => {
+    if (!orgId?.trim()) {
+      setMonCatalog([]);
+      return;
+    }
+    let cancelled = false;
+    void fetch(`/api/truong/${encodeURIComponent(orgId)}/mon-thi-catalog`)
+      .then(async (res) => {
+        if (!res.ok) return [];
+        const json = (await res.json()) as { items?: MonThiCatalogItem[] };
+        return json.items ?? [];
+      })
+      .then((items) => {
+        if (!cancelled) setMonCatalog(items);
+      })
+      .catch(() => {
+        if (!cancelled) setMonCatalog([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [orgId]);
+
   const monList = useMemo(
     () => applyCalcDraftMonList(activeConfig, draft),
     [activeConfig, draft],
+  );
+
+  const displayMonList = useMemo(
+    () => enrichMonThiFromCatalog(monList, monCatalog),
+    [monList, monCatalog],
+  );
+
+  const maxScoreHint = useMemo(
+    () =>
+      displayMonList.length ? maxWeightedAdmissionScore(displayMonList) : null,
+    [displayMonList],
   );
 
   const khoiLabel = useMemo(
@@ -194,7 +234,7 @@ export function TruongAdmissionCalc({
           <p className="tdh-placeholder" style={{ margin: "12px 0" }}>
             Đang tải cấu hình khối…
           </p>
-        ) : monList.length > 0 ? (
+        ) : displayMonList.length > 0 ? (
           <div className="calc-mon-thi-block">
             {khoiLabel ? (
               <p className="nganh-mon-thi-khoi">
@@ -202,7 +242,7 @@ export function TruongAdmissionCalc({
               </p>
             ) : null}
             <ul className="nganh-mon-thi-list" aria-label="Nhập điểm từng môn">
-              {monList.map((m) => {
+              {displayMonList.map((m) => {
                 const thang = effectiveThangDiemForCalc(m);
                 return (
                 <li key={m.id_mon_thi} className="nganh-mon-thi-chip">
@@ -271,11 +311,11 @@ export function TruongAdmissionCalc({
           </button>
         )}
 
-        {activeConfig?.quy_ve_thang != null ? (
+        {maxScoreHint != null ? (
           <p className="calc-note">
-            Điểm tối đa: {activeConfig.quy_ve_thang}
-            {monList.length > 0
-              ? " — nhập từng môn thang 10; hệ số (×2, ×1…) nhân vào tổng rồi quy về thang này."
+            Điểm tối đa: {maxScoreHint}
+            {displayMonList.length > 0
+              ? " — tổng (điểm × hệ số); ví dụ môn ×2: điểm 8 được tính 16 điểm."
               : null}
           </p>
         ) : null}

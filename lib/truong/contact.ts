@@ -1,5 +1,8 @@
-import { facebookDisplayLabel } from "@/lib/truong/chi-nhanh";
-import type { TruongListItem } from "@/lib/truong/types";
+import {
+  facebookDisplayLabel,
+  formatChiNhanhAddress,
+} from "@/lib/truong/chi-nhanh";
+import type { TruongChiNhanh, TruongListItem } from "@/lib/truong/types";
 
 /** Mã enum `tinh_thanh_vn_enum` trên Supabase (không trùng slug UI cũ). */
 const TINH_THANH_ALLOWED = [
@@ -78,6 +81,65 @@ export type TruongContactLine = {
   value: string;
   href?: string;
 };
+
+/** Liên hệ một chi nhánh (sidebar chi nhánh chính). */
+export function buildChiNhanhContactLines(
+  branch: TruongChiNhanh,
+): TruongContactLine[] {
+  const lines: TruongContactLine[] = [];
+  const address = formatChiNhanhAddress(branch);
+  if (address) {
+    lines.push({
+      kind: "address",
+      label: branch.ten?.trim() || "Địa chỉ",
+      value: address,
+    });
+  }
+
+  const phone = branch.dien_thoai?.trim();
+  if (phone) {
+    lines.push({
+      kind: "phone",
+      label: "Điện thoại",
+      value: phone,
+      href: `tel:${phone.replace(/\s+/g, "")}`,
+    });
+  }
+
+  const email = branch.email?.trim();
+  if (email) {
+    lines.push({
+      kind: "email",
+      label: "Email",
+      value: email,
+      href: `mailto:${email}`,
+    });
+  }
+
+  const web = branch.website?.trim();
+  if (web) {
+    const href = web.startsWith("http") ? web : `https://${web}`;
+    const display = web.replace(/^https?:\/\//, "").replace(/\/$/, "");
+    lines.push({
+      kind: "web",
+      label: "Website",
+      value: display,
+      href,
+    });
+  }
+
+  const facebook = branch.facebook?.trim();
+  if (facebook) {
+    lines.push({
+      kind: "facebook",
+      label: "Facebook",
+      value: facebookDisplayLabel(facebook),
+      href: facebook.startsWith("http") ? facebook : `https://${facebook}`,
+    });
+  }
+
+  return lines;
+}
 
 export function buildTruongContactLines(
   school: Pick<

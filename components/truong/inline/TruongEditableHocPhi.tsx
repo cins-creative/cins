@@ -41,51 +41,57 @@ export function TruongEditableHocPhi({ variant = "default" }: Props) {
 
   async function save() {
     if (!ctx) return;
-    const hoc_phi_nam_tu = tu ? Number(tu) : null;
-    const hoc_phi_nam_den = den ? Number(den) : null;
     const ktx_gia_thang = ktxGia ? Number(ktxGia) : null;
-    const ok = await ctx.patchSchool({
-      hoc_phi_nam_tu,
-      hoc_phi_nam_den,
-      co_ktx: coKtx,
-      ktx_gia_thang,
-    });
+    const patch =
+      variant === "sidebar"
+        ? { co_ktx: coKtx, ktx_gia_thang }
+        : {
+            hoc_phi_nam_tu: tu ? Number(tu) : null,
+            hoc_phi_nam_den: den ? Number(den) : null,
+            co_ktx: coKtx,
+            ktx_gia_thang,
+          };
+    const ok = await ctx.patchSchool(patch);
     if (ok) {
-      ctx.setStats((s) => ({
-        ...s,
-        hocPhiLabel: formatHocPhiLabel(hoc_phi_nam_tu, hoc_phi_nam_den),
-      }));
+      if (variant !== "sidebar") {
+        ctx.setStats((s) => ({
+          ...s,
+          hocPhiLabel: formatHocPhiLabel(
+            patch.hoc_phi_nam_tu ?? null,
+            patch.hoc_phi_nam_den ?? null,
+          ),
+        }));
+      }
       setOpen(false);
     }
   }
+
+  const editBtnLabel =
+    variant === "sidebar" ? "Sửa KTX" : "Sửa";
+  const editBtnAria =
+    variant === "sidebar" ? "Sửa ký túc xá" : "Sửa học phí và KTX";
 
   const editBtn = (
     <button
       type="button"
       className="tdh-inline-chip-btn"
       onClick={start}
-      aria-label="Sửa học phí và KTX"
+      aria-label={editBtnAria}
     >
-      Sửa
+      {editBtnLabel}
     </button>
   );
 
   return (
     <>
       {variant === "sidebar" ? (
-        <>
-          <div className="ss-stat-editable-row">
-            <div className="lbl">
-              Học phí
-              {editBtn}
-            </div>
-            <div className="val text">{label ?? "—"}</div>
+        <div className="ss-stat-editable-row">
+          <div className="lbl">
+            Ký túc xá
+            {editBtn}
           </div>
-          <div className="ss-stat-editable-row">
-            <div className="lbl">Ký túc xá</div>
-            <div className="val text">{ktxLabel}</div>
-          </div>
-        </>
+          <div className="val text">{ktxLabel}</div>
+        </div>
       ) : (
         <div className="tdh-list-stat tdh-list-stat-editable">
           <div className="tdh-list-stat-label">
@@ -104,15 +110,21 @@ export function TruongEditableHocPhi({ variant = "default" }: Props) {
         onClose={() => setOpen(false)}
         className="tdh-inline-modal-sm"
       >
-        <h3 className="tdh-inline-modal-title">Học phí & KTX</h3>
-        <label className="tdh-inline-field">
-          <span>Học phí từ (triệu/năm)</span>
-          <input value={tu} onChange={(e) => setTu(e.target.value)} />
-        </label>
-        <label className="tdh-inline-field">
-          <span>Học phí đến</span>
-          <input value={den} onChange={(e) => setDen(e.target.value)} />
-        </label>
+        <h3 className="tdh-inline-modal-title">
+          {variant === "sidebar" ? "Ký túc xá" : "Học phí & KTX"}
+        </h3>
+        {variant !== "sidebar" ? (
+          <>
+            <label className="tdh-inline-field">
+              <span>Học phí từ (triệu/năm)</span>
+              <input value={tu} onChange={(e) => setTu(e.target.value)} />
+            </label>
+            <label className="tdh-inline-field">
+              <span>Học phí đến</span>
+              <input value={den} onChange={(e) => setDen(e.target.value)} />
+            </label>
+          </>
+        ) : null}
         <label className="tdh-inline-check">
           <input
             type="checkbox"

@@ -23,7 +23,7 @@ export function orgLoaiToMilestoneType(
   loai: string | null | undefined,
 ): MilestoneType {
   if (loai === "su_kien") return "su-kien";
-  if (loai === "tuyen_sinh") return "hoc";
+  if (loai === "tuyen_sinh" || loai === "hoc_bong") return "hoc";
   return "ca-nhan";
 }
 

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo } from "react";
 
-import { TruongNganhRemoveButton } from "@/components/truong/inline/TruongNganhRemoveButton";
+import { TruongNganhEditButton } from "@/components/truong/inline/TruongNganhEditButton";
 import { TruongNganhMonThiDauVao } from "@/components/truong/TruongNganhMonThiDauVao";
 import { formatThoiGianThang } from "@/lib/nganh/truong-shared";
 import type { TruongCauHinhTinhDiem } from "@/lib/truong/types";
@@ -164,9 +164,10 @@ export function TruongNganhProgramItem({
           </div>
         </button>
         {onRemoved ? (
-          <TruongNganhRemoveButton
-            programId={prog.id}
-            nganhTitle={prog.nganhTitle}
+          <TruongNganhEditButton
+            prog={prog}
+            year={year}
+            orgId={orgId}
             onRemoved={onRemoved}
           />
         ) : null}

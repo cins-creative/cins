@@ -6,9 +6,9 @@ import {
   mergeFacebookIntoCauHinh,
   normalizeChiNhanhList,
   normalizeFacebookUrl,
+  orgContactFromPrimaryChiNhanh,
   parseChiNhanhFromCauHinh,
   parseFacebookFromCauHinh,
-  primaryContactFromChiNhanh,
 } from "@/lib/truong/chi-nhanh";
 import { normalizeTinhThanhForDb } from "@/lib/truong/contact";
 import type { TruongChiNhanh } from "@/lib/truong/types";
@@ -205,9 +205,17 @@ export async function PATCH(request: Request, context: RouteContext) {
     const normalized = normalizeChiNhanhList(body.chi_nhanh as TruongChiNhanh[]);
     orgPatch.cau_hinh = mergeChiNhanhIntoCauHinh(currentCauHinh, normalized);
     currentCauHinh = orgPatch.cau_hinh;
-    const primary = primaryContactFromChiNhanh(normalized);
-    orgPatch.dia_chi = primary.dia_chi;
-    orgPatch.tinh_thanh = primary.tinh_thanh;
+    const orgContact = orgContactFromPrimaryChiNhanh(normalized);
+    orgPatch.dia_chi = orgContact.dia_chi;
+    orgPatch.tinh_thanh = orgContact.tinh_thanh;
+    orgPatch.dien_thoai = orgContact.dien_thoai;
+    orgPatch.email_lien_he = orgContact.email_lien_he;
+    otdPatch.website = orgContact.website;
+    orgPatch.cau_hinh = mergeFacebookIntoCauHinh(
+      orgPatch.cau_hinh,
+      orgContact.facebook,
+    );
+    currentCauHinh = orgPatch.cau_hinh;
   }
 
   if ("facebook" in body) {

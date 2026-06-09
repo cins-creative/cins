@@ -1,0 +1,193 @@
+"use client";
+
+import { Plus, Trash2 } from "lucide-react";
+import { useCallback, useState, useTransition } from "react";
+
+import {
+  createOrgBaiDangFilterClient,
+  deleteOrgBaiDangFilterClient,
+  useOrgBaiDangFilterOptional,
+} from "@/components/truong/OrgBaiDangFilterContext";
+import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
+import { DEFAULT_FILTER_MAU } from "@/lib/filter/constants";
+import type { PersonalFilter } from "@/lib/filter/types";
+import {
+  MAX_TRUONG_ORG_BAI_DANG_FILTERS,
+  orgBaiDangNhanFilterKey,
+} from "@/lib/truong/org-bai-dang-filters.shared";
+import type { OrgBaiDangTimelineFilterKey } from "@/lib/truong/bai-dang-timeline";
+
+type Props = {
+  filterKey: OrgBaiDangTimelineFilterKey;
+  onFilterKeyChange: (key: OrgBaiDangTimelineFilterKey) => void;
+  nhanCounts: Record<string, number>;
+  onItemSelect?: () => void;
+};
+
+function PersonalFilterRow({
+  filter,
+  active,
+  count,
+  onSelect,
+  showDelete,
+  onDelete,
+}: {
+  filter: PersonalFilter;
+  active: boolean;
+  count?: number;
+  onSelect: () => void;
+  showDelete?: boolean;
+  onDelete?: () => void;
+}) {
+  const mau = filter.mau ?? DEFAULT_FILTER_MAU;
+
+  return (
+    <div className={"j-dd-opt j-dd-row" + (active ? " is-active" : "")}>
+      <button
+        type="button"
+        role="menuitem"
+        aria-selected={active}
+        className="j-dd-opt-main"
+        onClick={onSelect}
+      >
+        <span className="j-dd-dot" style={{ background: mau }} aria-hidden />
+        <span className="j-dd-lbl">{filter.ten}</span>
+        {typeof count === "number" ? <span className="j-dd-n">{count}</span> : null}
+      </button>
+      {showDelete && onDelete ? (
+        <button
+          type="button"
+          className="j-dd-del"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          title={`Xóa nhãn "${filter.ten}"`}
+          aria-label={`Xóa ${filter.ten}`}
+        >
+          <Trash2 size={12} strokeWidth={1.8} aria-hidden />
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+export function OrgBaiDangCustomFilterMenuSection({
+  filterKey,
+  onFilterKeyChange,
+  nhanCounts,
+  onItemSelect,
+}: Props) {
+  const ctx = useOrgBaiDangFilterOptional();
+  const inline = useTruongInlineEdit();
+  const [newName, setNewName] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
+
+  const onCreate = useCallback(() => {
+    if (!ctx || !inline) return;
+    if (ctx.filters.length >= MAX_TRUONG_ORG_BAI_DANG_FILTERS) {
+      setError(`Tối đa ${MAX_TRUONG_ORG_BAI_DANG_FILTERS} nhãn tùy chỉnh.`);
+      return;
+    }
+    const ten = newName.trim();
+    if (!ten) return;
+    setError(null);
+    startTransition(async () => {
+      const result = await createOrgBaiDangFilterClient(inline.orgId, ten);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setNewName("");
+      await ctx.refreshFilters();
+    });
+  }, [ctx, inline, newName]);
+
+  const onDelete = useCallback(
+    (filter: PersonalFilter) => {
+      if (!ctx || !inline) return;
+      if (!window.confirm(`Xóa nhãn "${filter.ten}"?`)) return;
+      startTransition(async () => {
+        const ok = await deleteOrgBaiDangFilterClient(inline.orgId, filter.id);
+        if (!ok) return;
+        if (filterKey === orgBaiDangNhanFilterKey(filter.slug)) {
+          onFilterKeyChange("all");
+        }
+        await ctx.refreshFilters();
+      });
+    },
+    [ctx, inline, filterKey, onFilterKeyChange],
+  );
+
+  if (!ctx) return null;
+
+  const { filters, loading, canManage } = ctx;
+
+  if (loading && filters.length === 0) return null;
+  if (!loading && filters.length === 0 && !canManage) return null;
+
+  const selectSlug = (slug: string) => {
+    const key = orgBaiDangNhanFilterKey(slug);
+    onFilterKeyChange(filterKey === key ? "all" : key);
+    onItemSelect?.();
+  };
+
+  const atLimit = filters.length >= MAX_TRUONG_ORG_BAI_DANG_FILTERS;
+
+  return (
+    <div className="j-dd-section j-dd-section--personal-labels">
+      <div className="j-dd-divider j-dd-divider--section" aria-hidden />
+      <div className="j-dd-section-label">Nhãn riêng</div>
+      {filters.map((filter) => (
+        <PersonalFilterRow
+          key={filter.id}
+          filter={filter}
+          active={filterKey === orgBaiDangNhanFilterKey(filter.slug)}
+          count={nhanCounts[filter.slug] ?? filter.count ?? 0}
+          onSelect={() => selectSlug(filter.slug)}
+          showDelete={canManage}
+          onDelete={() => onDelete(filter)}
+        />
+      ))}
+      {canManage ? (
+        <div className="j-personal-filter-dd-manage">
+          {atLimit ? (
+            <p className="j-personal-filter-hint">
+              Đã đủ {MAX_TRUONG_ORG_BAI_DANG_FILTERS} nhãn — xóa một nhãn để thêm mới.
+            </p>
+          ) : (
+            <div className="j-personal-filter-create">
+              <input
+                type="text"
+                className="j-personal-filter-input"
+                placeholder="Tên nhãn mới…"
+                maxLength={40}
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") onCreate();
+                }}
+              />
+              <button
+                type="button"
+                className="j-personal-filter-create-btn"
+                onClick={onCreate}
+                aria-label="Tạo nhãn"
+              >
+                <Plus size={14} />
+              </button>
+            </div>
+          )}
+          {error ? <p className="j-personal-filter-error">{error}</p> : null}
+          {filters.length === 0 && !atLimit ? (
+            <p className="j-personal-filter-hint">
+              Gắn nhãn trên bài đăng để lọc — khác loại bài đăng mặc định. Tối đa{" "}
+              {MAX_TRUONG_ORG_BAI_DANG_FILTERS} nhãn.
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}

@@ -4,11 +4,13 @@ import { useState } from "react";
 
 import { TruongChiNhanhTableModal } from "@/components/truong/TruongChiNhanhTableModal";
 import {
-  CHI_NHANH_SIDEBAR_PREVIEW,
-  formatChiNhanhAddress,
+  resolvePrimaryChiNhanhDisplay,
   resolveTruongChiNhanh,
 } from "@/lib/truong/chi-nhanh";
-import { buildTruongContactLines } from "@/lib/truong/contact";
+import {
+  buildChiNhanhContactLines,
+  buildTruongContactLines,
+} from "@/lib/truong/contact";
 import type { TruongListItem } from "@/lib/truong/types";
 
 type Props = {
@@ -85,11 +87,15 @@ export function TruongSchoolContact({
 }: Props) {
   const [branchesOpen, setBranchesOpen] = useState(false);
   const branches = resolveTruongChiNhanh(school);
-  const otherLines = buildTruongContactLines(school, { includeAddress: false });
-  const hasBranches = branches.length > 0;
-  const hasInfo = hasBranches || otherLines.length > 0;
-  const previewBranches = branches.slice(0, CHI_NHANH_SIDEBAR_PREVIEW);
-  const hiddenBranchCount = branches.length - previewBranches.length;
+  const primaryBranch = resolvePrimaryChiNhanhDisplay(school);
+  const primaryLines = primaryBranch
+    ? buildChiNhanhContactLines(primaryBranch)
+    : [];
+  const otherBranchCount = Math.max(0, branches.length - 1);
+  const branchesForModal = branches.map((branch, index) =>
+    index === 0 && primaryBranch ? primaryBranch : branch,
+  );
+  const hasInfo = primaryLines.length > 0 || otherBranchCount > 0;
 
   if (!hasInfo && !isEditing) return null;
 
@@ -111,41 +117,9 @@ export function TruongSchoolContact({
     return (
       <>
         <div className="ss-contact" aria-label="Liên hệ trường">
-          {previewBranches.map((branch) => (
+          {primaryLines.map((line) => (
             <div
-              key={branch.id}
-              className="ss-contact-row"
-              aria-label={branch.ten}
-            >
-              <span className="ss-contact-icon" aria-hidden>
-                <ContactIcon kind="address" />
-              </span>
-              <div className="ss-contact-body">
-                <div className="ss-contact-branch-name">{branch.ten}</div>
-                <div className="ss-contact-val">{formatChiNhanhAddress(branch)}</div>
-                {branch.dien_thoai?.trim() ? (
-                  <a
-                    href={`tel:${branch.dien_thoai.replace(/\s+/g, "")}`}
-                    className="ss-contact-branch-phone"
-                  >
-                    {branch.dien_thoai}
-                  </a>
-                ) : null}
-              </div>
-            </div>
-          ))}
-          {hiddenBranchCount > 0 ? (
-            <button
-              type="button"
-              className="ss-contact-more-branches"
-              onClick={() => setBranchesOpen(true)}
-            >
-              Xem thêm {hiddenBranchCount} chi nhánh
-            </button>
-          ) : null}
-          {otherLines.map((line) => (
-            <div
-              key={`${line.kind}-${line.value}`}
+              key={`${line.kind}-${line.label}-${line.value}`}
               className="ss-contact-row"
               aria-label={line.label}
             >
@@ -153,6 +127,9 @@ export function TruongSchoolContact({
                 <ContactIcon kind={line.kind} />
               </span>
               <div className="ss-contact-body">
+                {line.kind === "address" && primaryBranch ? (
+                  <div className="ss-contact-branch-name">{primaryBranch.ten}</div>
+                ) : null}
                 {line.href ? (
                   <a
                     href={line.href}
@@ -176,35 +153,33 @@ export function TruongSchoolContact({
               </div>
             </div>
           ))}
+          {otherBranchCount > 0 ? (
+            <button
+              type="button"
+              className="ss-contact-more-branches"
+              onClick={() => setBranchesOpen(true)}
+            >
+              Xem thêm {otherBranchCount} chi nhánh khác
+            </button>
+          ) : null}
         </div>
         <TruongChiNhanhTableModal
           open={branchesOpen}
           onClose={() => setBranchesOpen(false)}
-          branches={branches}
+          branches={branchesForModal}
         />
       </>
     );
   }
+
+  const listingLines = buildTruongContactLines(school);
 
   return (
     <ul
       className="tdh-identity-contact tdh-identity-contact--listing tdh-identity-contact--grid"
       aria-label="Liên hệ trường"
     >
-      {branches.map((branch) => (
-        <li key={branch.id} className="tdh-identity-contact-item--wide">
-          <span className="tdh-identity-contact-icon" aria-hidden>
-            <ContactIcon kind="address" />
-          </span>
-          <div className="tdh-identity-contact-body">
-            <span className="tdh-identity-contact-label">{branch.ten}</span>
-            <span className="tdh-identity-contact-value">
-              {formatChiNhanhAddress(branch)}
-            </span>
-          </div>
-        </li>
-      ))}
-      {otherLines.map((line) => (
+      {listingLines.map((line) => (
         <li
           key={`${line.kind}-${line.value}`}
           className={

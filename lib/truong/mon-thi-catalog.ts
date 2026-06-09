@@ -1,4 +1,5 @@
 import type { MonThiCatalogItem } from "@/lib/truong/calc-draft";
+import type { TruongCauHinhMon } from "@/lib/truong/types";
 
 /** `edu_mon_thi.loai` — nhóm hiển thị trong dropdown. */
 export const MON_THI_LOAI_LABELS: Record<string, string> = {
@@ -69,6 +70,28 @@ export function groupMonThiCatalog(
   for (const k of [...byLoai.keys()].sort()) push(k);
 
   return groups;
+}
+
+/** Gắn thumbnail/loai từ catalog khi cấu hình cache thiếu URL ảnh. */
+export function enrichMonThiFromCatalog(
+  mon: TruongCauHinhMon[],
+  catalog: MonThiCatalogItem[],
+): TruongCauHinhMon[] {
+  if (!catalog.length) return mon;
+  const byId = new Map(catalog.map((c) => [c.id, c]));
+  return mon.map((m) => {
+    const cat = byId.get(m.id_mon_thi);
+    if (!cat) return m;
+    const thumbnail_url =
+      m.thumbnail_url?.trim() || cat.thumbnail_url?.trim() || null;
+    return {
+      ...m,
+      loai: m.loai ?? cat.loai,
+      ma: m.ma ?? cat.ma ?? null,
+      thumbnail_id: cat.thumbnail_id ?? m.thumbnail_id ?? null,
+      thumbnail_url,
+    };
+  });
 }
 
 export function filterMonThiCatalog(

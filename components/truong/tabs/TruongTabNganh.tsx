@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 
 import { TruongAdmissionCalcLauncherSlot } from "@/components/truong/TruongAdmissionCalcLauncher";
-import { TruongAddYearDataButton } from "@/components/truong/inline/TruongAddYearDataButton";
 import { TruongNganhManageBar } from "@/components/truong/inline/TruongNganhManageBar";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
 import { TruongNganhProgramItem } from "@/components/truong/TruongNganhProgramItem";
@@ -61,7 +60,6 @@ export function TruongTabNganh({ school }: Props) {
     <>
       <div className="tdh-v6-filter-row">
         <TruongYearSelect label="Năm điểm chuẩn" />
-        <TruongAddYearDataButton />
         <TruongNganhManageBar onAdded={handleProgramAdded} />
       </div>
       <div className="nganh-stream nganh-accord">

@@ -35,6 +35,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     "noi_dung_blocks",
     "cover_id",
     "trang_thai",
+    "tao_luc",
   ] as const;
   const patch: Record<string, unknown> = {};
   for (const key of allowed) {
@@ -45,6 +46,18 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
     if (key === "noi_dung_blocks") {
       patch[key] = sanitizeBaiDangBlocksInput(body[key]);
+      continue;
+    }
+    if (key === "tao_luc") {
+      const raw = String(body[key] ?? "").trim();
+      if (!raw) {
+        return NextResponse.json({ error: "Invalid tao_luc" }, { status: 400 });
+      }
+      const parsed = new Date(raw);
+      if (Number.isNaN(parsed.getTime())) {
+        return NextResponse.json({ error: "Invalid tao_luc" }, { status: 400 });
+      }
+      patch[key] = parsed.toISOString();
       continue;
     }
     patch[key] = body[key];

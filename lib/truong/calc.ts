@@ -29,7 +29,22 @@ export function applyHeSoOverrides(
   }));
 }
 
-/** Tính điểm xét tuyển theo công thức brief. */
+/** Tổng điểm tối đa theo cấu hình: Σ(thang × hệ số). */
+export function maxWeightedAdmissionScore(
+  mon: TruongCauHinhMon[],
+): number {
+  let tongMax = 0;
+  for (const m of mon) {
+    const thang = effectiveThangDiemForCalc(m);
+    tongMax += thang * m.he_so;
+  }
+  return tongMax;
+}
+
+/**
+ * Tính điểm xét tuyển: Σ(điểm nhập × hệ số).
+ * Ví dụ: Tượng tròn 8 (×2) + Bố cục 9 → 25; tối đa 30 khi thang 10 và ×2 + ×1.
+ */
 export function computeAdmissionScore(
   config: TruongCauHinhTinhDiem,
   inputs: Record<string, number>,
@@ -37,16 +52,19 @@ export function computeAdmissionScore(
 ): { score: number; maxScale: number } | null {
   const mon = applyHeSoOverrides(config.mon, heSoOverrides ?? {});
   if (!mon.length) return null;
+
+  const maxScale = maxWeightedAdmissionScore(mon);
+  if (maxScale <= 0) return null;
+
   let weighted = 0;
-  let tongMax = 0;
+  let hasInput = false;
   for (const m of mon) {
     const raw = inputs[m.id_mon_thi];
     if (raw == null || Number.isNaN(raw)) continue;
-    const thang = effectiveThangDiemForCalc(m);
+    hasInput = true;
     weighted += raw * m.he_so;
-    tongMax += thang * m.he_so;
   }
-  if (tongMax <= 0) return null;
-  const score = (weighted / tongMax) * config.quy_ve_thang;
-  return { score, maxScale: config.quy_ve_thang };
+  if (!hasInput) return null;
+
+  return { score: weighted, maxScale };
 }

@@ -2,6 +2,7 @@
 export const BAI_DANG_LOAI_VALUES = [
   "thong_bao",
   "tuyen_sinh",
+  "hoc_bong",
   "su_kien",
   "khac",
 ] as const;
@@ -11,6 +12,7 @@ export type BaiDangLoai = (typeof BAI_DANG_LOAI_VALUES)[number];
 export const BAI_DANG_LOAI_LABELS: Record<BaiDangLoai, string> = {
   thong_bao: "Thông báo",
   tuyen_sinh: "Tuyển sinh",
+  hoc_bong: "Học bổng",
   su_kien: "Sự kiện",
   khac: "Khác",
 };
@@ -19,6 +21,7 @@ export const BAI_DANG_LOAI_LABELS: Record<BaiDangLoai, string> = {
 export const BAI_DANG_LOAI_CSS: Record<BaiDangLoai, string> = {
   thong_bao: "thongbao",
   tuyen_sinh: "tuyensinh",
+  hoc_bong: "hocbong",
   su_kien: "sukien",
   khac: "thongbao",
 };
@@ -26,6 +29,7 @@ export const BAI_DANG_LOAI_CSS: Record<BaiDangLoai, string> = {
 const LOAI_ALIASES: Record<string, BaiDangLoai> = {
   thong_bao: "thong_bao",
   tuyen_sinh: "tuyen_sinh",
+  hoc_bong: "hoc_bong",
   su_kien: "su_kien",
   khac: "khac",
   trien_lam: "su_kien",

@@ -3,6 +3,7 @@
 import { useCallback } from "react";
 
 import { JourneyComposeProvider } from "@/components/journey/JourneyComposeContext";
+import { OrgBaiDangFilterProvider } from "@/components/truong/OrgBaiDangFilterContext";
 import { OrgBaiDangJourneyTimeline } from "@/components/truong/OrgBaiDangJourneyTimeline";
 import { TruongBaiDangEditProvider } from "@/components/truong/inline/TruongBaiDangEdit";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
@@ -10,11 +11,19 @@ import type { TruongBaiDang } from "@/lib/truong/types";
 
 type Props = { posts: TruongBaiDang[] };
 
-function TruongTabBaidangContent({ posts }: { posts: TruongBaiDang[] }) {
+function TruongTabBaidangContent({
+  posts,
+  orgId,
+}: {
+  posts: TruongBaiDang[];
+  orgId: string;
+}) {
   return (
-    <TruongBaiDangEditProvider>
-      <OrgBaiDangJourneyTimeline posts={posts} />
-    </TruongBaiDangEditProvider>
+    <OrgBaiDangFilterProvider orgId={orgId}>
+      <TruongBaiDangEditProvider>
+        <OrgBaiDangJourneyTimeline posts={posts} />
+      </TruongBaiDangEditProvider>
+    </OrgBaiDangFilterProvider>
   );
 }
 
@@ -31,11 +40,20 @@ export function TruongTabBaidang({ posts: postsProp }: Props) {
     [ctx],
   );
 
+  const orgId = ctx?.orgId ?? "";
+
   if (!ctx?.isEditing) {
-    return <TruongTabBaidangContent posts={posts} />;
+    if (!orgId) {
+      return (
+        <TruongBaiDangEditProvider>
+          <OrgBaiDangJourneyTimeline posts={posts} />
+        </TruongBaiDangEditProvider>
+      );
+    }
+    return <TruongTabBaidangContent posts={posts} orgId={orgId} />;
   }
 
-  const { school, orgId } = ctx;
+  const { school } = ctx;
 
   return (
     <JourneyComposeProvider
@@ -49,7 +67,7 @@ export function TruongTabBaidang({ posts: postsProp }: Props) {
         onPostPublished,
       }}
     >
-      <TruongTabBaidangContent posts={posts} />
+      <TruongTabBaidangContent posts={posts} orgId={orgId} />
     </JourneyComposeProvider>
   );
 }

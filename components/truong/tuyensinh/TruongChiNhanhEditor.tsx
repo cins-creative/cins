@@ -91,7 +91,8 @@ export function TruongChiNhanhEditor({ branches, onChange }: Props) {
   return (
     <div className="tdh-chi-nhanh-editor">
       <p className="tdh-chi-nhanh-editor-hint">
-        Bấm chi nhánh để sửa. Chi nhánh đầu tiên đồng bộ địa chỉ chính trên hub.
+        Bấm chi nhánh để sửa. Chi nhánh <strong>Chính</strong> hiển thị ở sidebar;
+        các chi nhánh phụ có liên hệ riêng — xem bảng «Xem thêm chi nhánh».
       </p>
       <ul className="tdh-chi-nhanh-editor-list">
         {branches.map((branch, index) => {
@@ -208,7 +209,7 @@ export function TruongChiNhanhEditor({ branches, onChange }: Props) {
                     </select>
                   </label>
                   <label className="tdh-inline-field">
-                    <span>Điện thoại (tùy chọn)</span>
+                    <span>Điện thoại</span>
                     <input
                       value={branch.dien_thoai ?? ""}
                       onChange={(e) =>
@@ -216,6 +217,37 @@ export function TruongChiNhanhEditor({ branches, onChange }: Props) {
                       }
                       placeholder="028…"
                       inputMode="tel"
+                    />
+                  </label>
+                  <label className="tdh-inline-field">
+                    <span>Email</span>
+                    <input
+                      type="email"
+                      value={branch.email ?? ""}
+                      onChange={(e) =>
+                        updateAt(index, { email: e.target.value })
+                      }
+                      placeholder="tuyensinh@…"
+                    />
+                  </label>
+                  <label className="tdh-inline-field">
+                    <span>Website</span>
+                    <input
+                      value={branch.website ?? ""}
+                      onChange={(e) =>
+                        updateAt(index, { website: e.target.value })
+                      }
+                      placeholder="https://"
+                    />
+                  </label>
+                  <label className="tdh-inline-field">
+                    <span>Facebook / fanpage</span>
+                    <input
+                      value={branch.facebook ?? ""}
+                      onChange={(e) =>
+                        updateAt(index, { facebook: e.target.value })
+                      }
+                      placeholder="facebook.com/…"
                     />
                   </label>
                 </div>

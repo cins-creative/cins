@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 
-import { TruongAddYearDataButton } from "@/components/truong/inline/TruongAddYearDataButton";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
 import { TruongAdmissionCalcLauncherSlot } from "@/components/truong/TruongAdmissionCalcLauncher";
 import { PhuongThucHelpTip } from "@/components/truong/tuyensinh/PhuongThucHelpTip";
@@ -150,12 +149,6 @@ export function TruongTabTuyensinh({ school: schoolProp, tuyenSinh: tuyenProp }:
               Phương thức <em>xét tuyển</em>
             </h2>
           </header>
-
-          {isEditing ? (
-            <div className="ts-year-tools">
-              <TruongAddYearDataButton />
-            </div>
-          ) : null}
 
           {phuongThuc.length === 0 ? (
             <div className="ptxt-empty">

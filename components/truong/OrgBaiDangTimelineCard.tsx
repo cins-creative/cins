@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import { OrgBaiDangPublishedDate } from "@/components/truong/OrgBaiDangPublishedDate";
 import { TruongBaiDangPostActions } from "@/components/truong/inline/TruongBaiDangEdit";
 import { baiDangCoverDisplayUrl } from "@/lib/truong/bai-dang-cover";
 import { loaiBaiDangCssClass, loaiBaiDangLabel } from "@/lib/truong/bai-dang";
@@ -16,10 +17,9 @@ import type { TruongBaiDang } from "@/lib/truong/types";
 
 type Props = {
   post: TruongBaiDang;
-  dateLabel: string | null;
 };
 
-export function OrgBaiDangTimelineCard({ post, dateLabel }: Props) {
+export function OrgBaiDangTimelineCard({ post }: Props) {
   const [expanded, setExpanded] = useState(false);
 
   const lc = loaiBaiDangCssClass(post.loai_bai_dang);
@@ -89,7 +89,9 @@ export function OrgBaiDangTimelineCard({ post, dateLabel }: Props) {
             <span className={`org-tl-type ${lc}`}>
               {loaiBaiDangLabel(post.loai_bai_dang)}
             </span>
-            {dateLabel ? <span className="org-tl-date">{dateLabel}</span> : null}
+            <span className="org-tl-date">
+              <OrgBaiDangPublishedDate post={post} />
+            </span>
           </div>
 
           <div className="org-tl-title-row">
