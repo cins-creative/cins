@@ -1,65 +1,75 @@
 "use client";
 
+import { Pencil } from "lucide-react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
+
+const TOPBAR_SLOT_ID = "app-topbar-page-slot";
 
 export function TruongAdminToolbar() {
   const ctx = useTruongInlineEdit();
-  if (!ctx?.canEdit) return null;
+  const [slot, setSlot] = useState<HTMLElement | null>(null);
 
-  return (
-    <div className="tdh-admin-toolbar fade f1" role="banner">
-      {ctx.isEditing ? (
-        <>
-          <span className="tdh-admin-toolbar-badge">Chế độ quản trị</span>
-          {ctx.saving ? (
-            <span className="tdh-admin-toolbar-saving">Đang lưu…</span>
-          ) : null}
-          {ctx.avatarDraft ? (
-            <button
-              type="button"
-              className="tdh-mode-btn tdh-mode-btn-save-logo"
-              disabled={ctx.saving}
-              onClick={() => void ctx.commitAvatarDraft()}
-            >
-              Lưu logo
-            </button>
-          ) : null}
-          {ctx.coverDraft ? (
-            <button
-              type="button"
-              className="tdh-mode-btn tdh-mode-btn-save-logo"
-              disabled={ctx.saving}
-              onClick={() => void ctx.commitCoverDraft()}
-            >
-              Lưu ảnh bìa
-            </button>
-          ) : null}
-          <div className="tdh-admin-toolbar-actions">
-            <button
-              type="button"
-              className="tdh-mode-btn tdh-mode-btn-viewer"
-              onClick={() => ctx.setEditMode(false)}
-            >
-              Xem như người dùng
-            </button>
-            </div>
-        </>
-      ) : (
-        <>
-          <span className="tdh-admin-toolbar-hint">
-            Bạn có quyền quản trị trang trường này
-          </span>
-          <div className="tdh-admin-toolbar-actions">
-            <button
-              type="button"
-              className="tdh-mode-btn tdh-mode-btn-admin"
-              onClick={() => ctx.setEditMode(true)}
-            >
-              Chế độ quản trị
-            </button>
-          </div>
-        </>
-      )}
-    </div>
+  useEffect(() => {
+    setSlot(document.getElementById(TOPBAR_SLOT_ID));
+  }, []);
+
+  if (!ctx?.canEdit || !slot) return null;
+
+  const {
+    isEditing,
+    saving,
+    avatarDraft,
+    coverDraft,
+    setEditMode,
+    commitAvatarDraft,
+    commitCoverDraft,
+  } = ctx;
+
+  return createPortal(
+    <div className="tb-truong-admin" role="group" aria-label="Quản trị trang trường">
+      {isEditing && saving ? (
+        <span className="tb-truong-admin-saving" aria-live="polite">
+          Đang lưu…
+        </span>
+      ) : null}
+      {isEditing && avatarDraft ? (
+        <button
+          type="button"
+          className="tb-truong-admin-save"
+          disabled={saving}
+          onClick={() => void commitAvatarDraft()}
+        >
+          Lưu logo
+        </button>
+      ) : null}
+      {isEditing && coverDraft ? (
+        <button
+          type="button"
+          className="tb-truong-admin-save"
+          disabled={saving}
+          onClick={() => void commitCoverDraft()}
+        >
+          Lưu bìa
+        </button>
+      ) : null}
+      <button
+        type="button"
+        className={`tb-truong-admin-btn${isEditing ? " is-active" : ""}`}
+        aria-pressed={isEditing}
+        title={
+          isEditing
+            ? "Xem như người dùng"
+            : "Bật chế độ quản trị trang trường"
+        }
+        onClick={() => setEditMode(!isEditing)}
+      >
+        <Pencil size={14} strokeWidth={2} aria-hidden />
+        <span>{isEditing ? "Đang sửa" : "Quản trị"}</span>
+      </button>
+    </div>,
+    slot,
   );
 }

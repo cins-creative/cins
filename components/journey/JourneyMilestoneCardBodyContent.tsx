@@ -119,29 +119,33 @@ export function JourneyMilestoneCardBodyContent({
       {...bodyShellProps}
     >
       <div className="jcard-content">
-        {showCardTitle ? <h2 className="jcard-title">{title}</h2> : null}
+        {showCardTitle || cardCaption || articleTags.length > 0 ? (
+          <div className="jcard-text">
+            {showCardTitle ? <h2 className="jcard-title">{title}</h2> : null}
 
-        {cardCaption && !isArticle ? (
-          <div className="jcard-lead">
-            <p className="jcard-desc">{cardCaption}</p>
-          </div>
-        ) : null}
+            {cardCaption && !isArticle ? (
+              <div className="jcard-lead">
+                <p className="jcard-desc">{cardCaption}</p>
+              </div>
+            ) : null}
 
-        {cardCaption && isArticle ? (
-          <div className="jcard-lead">
-            <p className="jcard-desc">{cardCaption}</p>
-          </div>
-        ) : null}
+            {cardCaption && isArticle ? (
+              <div className="jcard-lead">
+                <p className="jcard-desc">{cardCaption}</p>
+              </div>
+            ) : null}
 
-        {articleTags.length > 0 ? (
-          <div className="tags jcard-tags" aria-label="Bài viết liên quan">
-            {articleTags.map((t) => (
-              <JourneyArticleTagLink
-                key={t.id}
-                tag={t}
-                onClick={onTagLinkClick}
-              />
-            ))}
+            {articleTags.length > 0 ? (
+              <div className="tags jcard-tags" aria-label="Bài viết liên quan">
+                {articleTags.map((t) => (
+                  <JourneyArticleTagLink
+                    key={t.id}
+                    tag={t}
+                    onClick={onTagLinkClick}
+                  />
+                ))}
+              </div>
+            ) : null}
           </div>
         ) : null}
 

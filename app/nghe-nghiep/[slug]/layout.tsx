@@ -16,6 +16,7 @@ import "@/components/tag/entity-page.css";
 import "@/components/tag/tag-input.css";
 import "@/styles/article-content.css";
 import "@/styles/article-rich-content.css";
+import "@/styles/article-draft-tiptap.css";
 
 export default async function NgheNghiepDetailLayout({
   children,

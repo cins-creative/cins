@@ -85,12 +85,15 @@ export function TruongSchoolContact({
     return (
       <div className="ss-contact" aria-label="Liên hệ trường">
         {lines.map((line) => (
-          <div key={`${line.kind}-${line.value}`} className="ss-contact-row">
+          <div
+            key={`${line.kind}-${line.value}`}
+            className="ss-contact-row"
+            aria-label={line.label}
+          >
             <span className="ss-contact-icon" aria-hidden>
               <ContactIcon kind={line.kind} />
             </span>
             <div className="ss-contact-body">
-              <div className="ss-contact-key">{line.label}</div>
               {line.href ? (
                 <a
                   href={line.href}

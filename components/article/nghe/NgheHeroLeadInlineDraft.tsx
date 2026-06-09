@@ -1,9 +1,11 @@
 "use client";
 
-import { ArticleDraftContentEditor } from "@/components/article/draft/ArticleDraftContentEditor";
+import { useEffect, useState } from "react";
+
 import { NgheHeroMascot } from "@/components/article/nghe/NgheHeroMascot";
 import { useNgheArticleDraftOptional } from "@/components/article/nghe/NgheArticleDraftContext";
 import { NgheHeroDraftEditButton } from "@/components/article/nghe/NgheHeroDraftEditButton";
+import { NgheLeadContentEditorModal } from "@/components/article/nghe/NgheLeadContentEditorModal";
 import { KeywordInlineLeadPreview } from "@/components/article/keyword/KeywordInlineLeadPreview";
 import { NgheLeadVideo } from "@/components/article/nghe/NgheLeadVideo";
 import {
@@ -20,12 +22,18 @@ type Props = {
   heroThumbnailUrl?: string | null;
 };
 
-/** Hero + khối lead nghề — khi mở draft: form tại chỗ + Tiptap trong `.nghe-lead-panel`. */
+/** Hero inline + lead preview; soạn `noi_dung` trong popup (portal). */
 export function NgheHeroLeadInlineDraft({
   leadVideoUrl,
   heroThumbnailUrl,
 }: Props) {
   const d = useNgheArticleDraftOptional();
+  const [contentModalOpen, setContentModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (!d?.open) setContentModalOpen(false);
+  }, [d?.open]);
+
   if (!d) return null;
 
   const leadVid = (leadVideoUrl ?? "").trim();
@@ -68,6 +76,14 @@ export function NgheHeroLeadInlineDraft({
                 </label>
               </div>
               <div className="nghe-hero-draft-bar__actions">
+                <button
+                  type="button"
+                  className="nghe-hero-draft-btn nghe-hero-draft-btn--ghost"
+                  disabled={d.saving}
+                  onClick={() => setContentModalOpen(true)}
+                >
+                  Soạn thảo nội dung
+                </button>
                 <button
                   type="button"
                   className="nghe-hero-draft-btn nghe-hero-draft-btn--danger"
@@ -179,11 +195,37 @@ export function NgheHeroLeadInlineDraft({
       <div className="nghe-lead-panel" data-rich-lead-slot="true">
         {leadVid ? <NgheLeadVideo url={leadVid} /> : null}
         {d.open ? (
-          <ArticleDraftContentEditor
-            variant="nghe-lead-inline"
-            value={d.noi_dung}
-            onChange={d.setNoiDung}
-          />
+          <div className="nghe-lead-draft-shell">
+            {leadTrim ? (
+              <div className="article-content-html">
+                <KeywordInlineLeadPreview
+                  html={d.leadPreview ?? ""}
+                  className="nghe-lead-rich article-rich-content article-content-html"
+                />
+              </div>
+            ) : (
+              <div
+                className="nghe-lead-rich article-rich-content article-content-html"
+                dangerouslySetInnerHTML={{
+                  __html: imagedeliveryPreferPublicInHtml(
+                    leadVid ? NGHE_LEAD_BODY_HTML : NGHE_LEAD_HTML,
+                  ),
+                }}
+              />
+            )}
+            <div className="nghe-lead-draft-shell__cta">
+              <button
+                type="button"
+                className="nghe-hero-draft-btn nghe-hero-draft-btn--primary"
+                onClick={() => setContentModalOpen(true)}
+              >
+                Soạn thảo nội dung
+              </button>
+              <p className="nghe-lead-draft-shell__cta-hint">
+                Mở trình soạn thảo trực quan — không cần chỉnh HTML thủ công.
+              </p>
+            </div>
+          </div>
         ) : leadTrim ? (
           <div className="article-content-html">
             <KeywordInlineLeadPreview
@@ -202,6 +244,14 @@ export function NgheHeroLeadInlineDraft({
           />
         )}
       </div>
+
+      <NgheLeadContentEditorModal
+        open={contentModalOpen}
+        onClose={() => setContentModalOpen(false)}
+        value={d.noi_dung}
+        onChange={d.setNoiDung}
+        articleTitle={displayTitle}
+      />
     </>
   );
 }

@@ -1,3 +1,5 @@
+import type { Block } from "@/lib/editor/types";
+
 export type TruongListItem = {
   id: string;
   slug: string;
@@ -65,11 +67,16 @@ export type TruongBaiDang = {
   tieu_de: string;
   tom_tat: string | null;
   noi_dung: string | null;
+  /** Block editor — cùng format Journey (`content_tac_pham.noi_dung_blocks`). */
+  noiDungBlocks?: Block[] | null;
   cover_id: string | null;
   /** URL imagedelivery — resolve server khi fetch. */
   cover_src?: string | null;
   tao_luc: string | null;
   tags: { label: string; slug: string }[];
+  /** Hydrate per viewer — không cache trong `getTruongPagePayload`. */
+  viewerBookmarked?: boolean;
+  bookmarkCount?: number;
 };
 
 export type TruongHinhAnh = {

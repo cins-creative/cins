@@ -1,6 +1,6 @@
 "use client";
 
-import { Building2, MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, PlusCircle } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
@@ -113,13 +113,24 @@ function SidebarUserCard({ profile }: { profile: SidebarProfile }) {
             <span>Trang cá nhân</span>
           </Link>
           <Link
+            href="/tao-to-chuc"
+            className="sb-user-menu-item"
+            role="menuitem"
+            onClick={() => setOpen(false)}
+          >
+            <span className="sb-user-menu-ico" aria-hidden>
+              <PlusCircle size={18} strokeWidth={1.7} />
+            </span>
+            <span>Tạo tổ chức</span>
+          </Link>
+          <Link
             href="/cong-dong/tao"
             className="sb-user-menu-item"
             role="menuitem"
             onClick={() => setOpen(false)}
           >
             <span className="sb-user-menu-ico" aria-hidden>
-              <Building2 size={18} strokeWidth={1.7} />
+              <SidebarNavIcon name="community" />
             </span>
             <span>Tạo cộng đồng</span>
           </Link>

@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 import { createClient } from "@/lib/supabase/server";
 
 export type GiaiDoan =
@@ -35,7 +37,7 @@ export type SessionAndProfile = {
  * nhưng vẫn có race nhỏ ngay sau OAuth callback đầu tiên — caller cần xử lý
  * trường hợp `profile === null` (thường = redirect về /onboarding bridge).
  */
-export async function getCurrentSessionAndProfile(): Promise<SessionAndProfile | null> {
+async function getCurrentSessionAndProfileUncached(): Promise<SessionAndProfile | null> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -64,6 +66,9 @@ export async function getCurrentSessionAndProfile(): Promise<SessionAndProfile |
       : null,
   };
 }
+
+/** Dedupe auth + profile trong cùng một request RSC (layout / shell / topbar). */
+export const getCurrentSessionAndProfile = cache(getCurrentSessionAndProfileUncached);
 
 /** Convenience — chỉ lấy auth user, bỏ qua profile. Dùng cho middleware-level check. */
 export async function getCurrentAuthUserId(): Promise<string | null> {

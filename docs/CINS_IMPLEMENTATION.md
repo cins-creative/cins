@@ -123,6 +123,12 @@
 | `migration_social_thong_bao_read.sql` | Trạng thái đã đọc thông báo |
 | `migration_user_theo_doi_muc.sql` | Follow entity (tag/org) — tách khỏi follow-user |
 | `migration_filter_dong.sql` | **Filter cá nhân động**: `filter_nhan` + `filter_gan` + enum `filter_doi_tuong_enum` + cột `org_bai_dang.thoi_diem` (org journey). Chạy lại an toàn (IF NOT EXISTS). |
+| `migration_org_bai_dang_reaction.sql` | Enum `loai_doi_tuong_social_enum` + value `org_bai_dang` (like/lưu polymorphic). |
+| `migration_org_bai_dang_noi_dung_blocks.sql` | Cột `org_bai_dang.noi_dung_blocks` jsonb — nội dung Block kiểu Journey; `noi_dung` HTML legacy giữ tạm. |
+
+**Org bài đăng — blocks (app, sau migration):** `lib/truong/bai-dang-blocks.ts` · API `bai-dang` POST/PATCH nhận `noi_dung_blocks` · fetch `queries.ts` · card có blocks → `JourneyMilestoneCardBodyContent` + `PostBlockRenderer`; không blocks → HTML legacy. Compose org vẫn Tiptap/HTML — chưa ghi blocks từ UI.
+
+| `script_delete_org_bai_dang_legacy.sql` | Xóa bài `org_bai_dang` legacy (`noi_dung_blocks` rỗng) + reaction/lưu/tag liên quan. Có block comment xóa toàn bộ nếu cần reset. |
 
 **Cấu trúc 2 bảng mới** *(tham chiếu tạm cho Cursor — SCHEMA.md là sự thật sau khi chạy migration + regenerate)*:
 

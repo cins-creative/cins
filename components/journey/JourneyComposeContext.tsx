@@ -14,6 +14,7 @@ import { useRouter } from "next/navigation";
 import { JourneyComposeOverlay } from "@/components/journey/JourneyComposeOverlay";
 import type { CongDongComposeConfig } from "@/lib/cong-dong/types";
 import type { JourneyComposeState } from "@/lib/journey/compose-types";
+import type { OrgBaiDangComposeConfig } from "@/lib/truong/org-bai-dang-compose";
 
 type JourneyComposeContextValue = {
   compose: JourneyComposeState | null;
@@ -40,6 +41,8 @@ type ProviderProps = {
   onAfterPublished?: () => void;
   /** Trang cộng đồng — topbar compose dùng chọn nhãn thay visibility. */
   congDongCompose?: CongDongComposeConfig;
+  /** Tab bài đăng trường — publish vào `org_bai_dang`. */
+  orgBaiDangCompose?: OrgBaiDangComposeConfig;
 };
 
 function syncComposeUrl(state: JourneyComposeState | null, mode: "push" | "replace") {
@@ -67,6 +70,7 @@ export function JourneyComposeProvider({
   initialCompose = null,
   onAfterPublished,
   congDongCompose,
+  orgBaiDangCompose,
 }: ProviderProps) {
   const router = useRouter();
   const [compose, setCompose] = useState<JourneyComposeState | null>(
@@ -121,7 +125,11 @@ export function JourneyComposeProvider({
 
   const onPublished = useCallback(() => {
     closeCompose();
-    if (typeof window !== "undefined" && !congDongCompose) {
+    if (
+      typeof window !== "undefined" &&
+      !congDongCompose &&
+      !orgBaiDangCompose
+    ) {
       window.dispatchEvent(
         new CustomEvent("cins:journey-timeline-changed", {
           detail: { ownerSlug },
@@ -129,8 +137,17 @@ export function JourneyComposeProvider({
       );
     }
     onAfterPublished?.();
-    router.refresh();
-  }, [closeCompose, congDongCompose, onAfterPublished, router, ownerSlug]);
+    if (!orgBaiDangCompose) {
+      router.refresh();
+    }
+  }, [
+    closeCompose,
+    congDongCompose,
+    orgBaiDangCompose,
+    onAfterPublished,
+    router,
+    ownerSlug,
+  ]);
 
   const value = useMemo(
     () => ({
@@ -162,6 +179,7 @@ export function JourneyComposeProvider({
           ownerName={ownerName}
           ownerAvatarId={ownerAvatarId}
           congDongCompose={congDongCompose}
+          orgBaiDangCompose={orgBaiDangCompose}
           onClose={closeCompose}
           onPublished={onPublished}
         />

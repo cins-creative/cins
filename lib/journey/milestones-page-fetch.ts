@@ -25,10 +25,18 @@ import {
 } from "@/lib/journey/milestone-viewer-access";
 import { mapCheDoToMilestoneVisibility } from "@/lib/journey/journey-visible-clause";
 import {
+  isBookmarkHiddenOnViewerJourney,
+  mapCheDoLuuToForeignJourney,
+} from "@/lib/journey/bookmark-visibility";
+import {
   isHiddenOnForeignJourney,
   mapForeignJourneyVisibilityToUi,
 } from "@/lib/journey/foreign-milestone-visibility";
 import { compareTimelineOrder, resolveTaggedTimelineSortAt } from "@/lib/journey/timeline-sort";
+import {
+  orgLoaiToMilestoneType,
+} from "@/lib/truong/org-bai-dang-bookmark";
+import { SOCIAL_LOAI_ORG_BAI_DANG } from "@/lib/truong/social-constants";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 /** Số cột mốc hydrate mỗi lần user cuộn tới cuối timeline. */
@@ -184,7 +192,7 @@ async function collectTaggedStubs(
 ): Promise<TimelineStub[]> {
   const { data: tagRows } = await admin
     .from("content_tac_pham_tac_gia")
-    .select("id_tac_pham, xu_ly_luc, che_do_hien_thi_journey")
+    .select("id_tac_pham, xu_ly_luc")
     .eq("id_nguoi_dung", userId)
     .eq("trang_thai", "accepted")
     .eq("la_chu_so_huu", false);
@@ -193,10 +201,7 @@ async function collectTaggedStubs(
 
   const tacPhamIds = tagRows.map((r) => r.id_tac_pham as string);
   const journeyVisByTp = new Map(
-    tagRows.map((r) => [
-      r.id_tac_pham as string,
-      (r.che_do_hien_thi_journey as string | null) ?? "public",
-    ]),
+    tagRows.map((r) => [r.id_tac_pham as string, "public" as const]),
   );
   const acceptedAtByTp = new Map(
     tagRows.map((r) => [
@@ -280,7 +285,7 @@ async function collectBookmarkStubs(
 ): Promise<TimelineStub[]> {
   const { data: savedRows } = await admin
     .from("social_luu")
-    .select("id_doi_tuong, tao_luc, che_do_hien_thi_journey")
+    .select("id_doi_tuong, tao_luc, che_do_hien_thi")
     .eq("id_nguoi_dung", userId)
     .eq("loai_doi_tuong", "cot_moc");
 
@@ -293,7 +298,7 @@ async function collectBookmarkStubs(
   const journeyVisByMoc = new Map(
     (savedRows ?? []).map((row) => [
       row.id_doi_tuong as string,
-      (row.che_do_hien_thi_journey as string | null) ?? "public",
+      mapCheDoLuuToForeignJourney(row.che_do_hien_thi as string | null),
     ]),
   );
 
@@ -337,7 +342,9 @@ async function collectBookmarkStubs(
 
   const stubs: TimelineStub[] = [];
   for (const cm of visible) {
-    if (isHiddenOnForeignJourney(journeyVisByMoc.get(cm.id))) continue;
+    if (isBookmarkHiddenOnViewerJourney(journeyVisByMoc.get(cm.id), isOwner)) {
+      continue;
+    }
     const tpId = firstTpByMoc.get(cm.id);
     if (!tpId) continue;
     const { year, month, day } = parseUtcDateParts(cm.thoi_diem);
@@ -359,6 +366,58 @@ async function collectBookmarkStubs(
   return stubs;
 }
 
+async function collectOrgBaiDangBookmarkStubs(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  userId: string,
+): Promise<TimelineStub[]> {
+  const { data: savedRows } = await admin
+    .from("social_luu")
+    .select("id_doi_tuong, tao_luc")
+    .eq("id_nguoi_dung", userId)
+    .eq("loai_doi_tuong", SOCIAL_LOAI_ORG_BAI_DANG);
+
+  const savedAtByPost = new Map(
+    (savedRows ?? []).map((row) => [
+      row.id_doi_tuong as string,
+      (row.tao_luc as string | null) ?? null,
+    ]),
+  );
+  const postIds = [...savedAtByPost.keys()];
+  if (postIds.length === 0) return [];
+
+  const { data: posts } = await admin
+    .from("org_bai_dang")
+    .select("id, loai_bai_dang, tao_luc")
+    .in("id", postIds)
+    .eq("trang_thai", "da_dang")
+    .returns<
+      Array<{
+        id: string;
+        loai_bai_dang: string | null;
+        tao_luc: string;
+      }>
+    >();
+
+  const stubs: TimelineStub[] = [];
+  for (const post of posts ?? []) {
+    const { year, month, day } = parseUtcDateParts(post.tao_luc);
+    stubs.push({
+      id: `bookmark:org:${post.id}`,
+      source: "bookmark",
+      cotMocId: post.id,
+      visibility: "public",
+      variant: "bookmark",
+      type: orgLoaiToMilestoneType(post.loai_bai_dang),
+      thoiDiem: post.tao_luc,
+      taoLuc: savedAtByPost.get(post.id) ?? post.tao_luc,
+      year,
+      month,
+      day,
+    });
+  }
+  return stubs;
+}
+
 async function collectTimelineStubs(
   admin: ReturnType<typeof createServiceRoleClient>,
   userId: string,
@@ -377,7 +436,11 @@ async function collectTimelineStubs(
     ...selfCotMocIds,
     ...taggedExtra.map((s) => s.cotMocId),
   ]);
-  const bookmarkExtra = bookmarks.filter((s) => !seenCotMocIds.has(s.cotMocId));
+  const orgBookmarkStubs = await collectOrgBaiDangBookmarkStubs(admin, userId);
+  const bookmarkExtra = [
+    ...bookmarks.filter((s) => !seenCotMocIds.has(s.cotMocId)),
+    ...orgBookmarkStubs.filter((s) => !seenCotMocIds.has(s.cotMocId)),
+  ];
 
   const merged = [...self, ...taggedExtra, ...bookmarkExtra];
   merged.sort(compareTimelineOrder);

@@ -1,23 +1,22 @@
 "use client";
 
-import { EditorContent, useEditor, type Editor } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import Image from "@tiptap/extension-image";
-import Link from "@tiptap/extension-link";
-import Placeholder from "@tiptap/extension-placeholder";
-import { Table, TableCell, TableHeader, TableRow } from "@tiptap/extension-table";
-import Youtube from "@tiptap/extension-youtube";
+import type { Editor } from "@tiptap/react";
 import { clsx } from "clsx";
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+import { KeywordInlineLeadPreview } from "@/components/article/keyword/KeywordInlineLeadPreview";
+import { remainderHtmlAfterNgheIntro } from "@/lib/articles/nghe-noi-dung-sections";
 
 import {
   ArticleDraftToolbar,
   TruongTabTable,
   type TruongToolTab,
 } from "@/components/article/draft/ArticleDraftToolbar";
-import { ArcImagePlaceholder } from "@/components/article/draft/arcImagePlaceholderExtension";
-import { ArcSiteHeading } from "@/components/article/draft/arcSiteHeadingExtension";
+import type { ArticleImagePasteStatus } from "@/components/article/draft/article-draft-editor-types";
+import { ArticleDraftVisualPane } from "@/components/article/draft/ArticleDraftVisualPane";
 import "@/styles/article-draft-tiptap.css";
+
+export type { ArticleImagePasteStatus } from "@/components/article/draft/article-draft-editor-types";
 
 type Tab = "visual" | "html";
 
@@ -28,11 +27,12 @@ type Props = {
   variant?: "default" | "nghe-lead-inline" | "truong-inline" | "nganh-admin";
   /** Ẩn gợi ý dài phía trên toolbar. */
   hideHint?: boolean;
-  /**
-   * Chỉ textarea HTML — không khởi tạo Tiptap.
-   * Dùng cho bài nghề (HTML lớn) để tránh đơ UI khi mở chế độ sửa.
-   */
+  /** Chỉ textarea HTML — không khởi tạo Tiptap. */
   htmlOnly?: boolean;
+  /** Tab khởi tạo — trang nghề inline dùng `html` để không parse Tiptap khi mở sửa. */
+  defaultTab?: Tab;
+  /** Parse `noi_dung` sau paint khi chuyển tab Soạn thảo — inline nghề. */
+  deferHeavyContent?: boolean;
   /** Mock heading "01 — Ngành … là gì?" khi `variant="nganh-admin"`. */
   nganhTitleVi?: string;
 };
@@ -73,394 +73,6 @@ function ArticleDraftHtmlOnly({
   );
 }
 
-function NganhEditorStage({
-  titleVi,
-  children,
-}: {
-  titleVi?: string;
-  children: ReactNode;
-}) {
-  const label = titleVi?.trim();
-  return (
-    <div className="article-draft-tiptap__nganh-stage nct-page">
-      {label ? (
-        <div className="nct-sec-title">
-          <div className="nct-sec-num">01</div>
-          <div>
-            <h2 className="nct-sec-h">Ngành {label} là gì?</h2>
-          </div>
-        </div>
-      ) : null}
-      <div className="nct-inline-editor-wrap">{children}</div>
-    </div>
-  );
-}
-
-function proseMirrorClass(variant: Props["variant"]): string {
-  if (variant === "nganh-admin") {
-    return "nct-prose body article-rich-content article-content-html";
-  }
-  return "article-rich-content article-content-html";
-}
-
-type VisualPaneProps = {
-  value: string;
-  onChange: (html: string) => void;
-  variant: NonNullable<Props["variant"]>;
-  nganhTitleVi?: string;
-  reportImagePaste: ImagePasteReport;
-  onEditorReady: (editor: Editor | null) => void;
-};
-
-/** Mount Tiptap chỉ khi tab Soạn thảo — tránh parse HTML lớn khi mở edit nghề. */
-function ArticleDraftVisualPane({
-  value,
-  onChange,
-  variant,
-  nganhTitleVi,
-  reportImagePaste,
-  onEditorReady,
-}: VisualPaneProps) {
-  const editorRef = useRef<Editor | null>(null);
-  const lastEditorHtml = useRef<string | null>(null);
-  const valueRef = useRef(value);
-  valueRef.current = value;
-  const hydrateGenRef = useRef(0);
-  const deferHeavyHydration = variant === "nghe-lead-inline";
-  const [contentParsing, setContentParsing] = useState(false);
-
-  const scheduleHeavySetContent = useCallback((ed: Editor, html: string) => {
-    const gen = ++hydrateGenRef.current;
-    setContentParsing(true);
-    const run = () => {
-      if (gen !== hydrateGenRef.current || ed.isDestroyed) {
-        setContentParsing(false);
-        return;
-      }
-      try {
-        lastEditorHtml.current = html;
-        ed.commands.setContent(html, { emitUpdate: false });
-      } catch {
-        /* HTML lỗi — giữ editor trống, user sửa tab HTML */
-      } finally {
-        if (gen === hydrateGenRef.current) setContentParsing(false);
-      }
-    };
-    const win = window as Window & {
-      requestIdleCallback?: (
-        cb: () => void,
-        opts?: { timeout: number },
-      ) => number;
-    };
-    if (win.requestIdleCallback) {
-      win.requestIdleCallback(run, { timeout: 1200 });
-    } else {
-      window.setTimeout(run, 16);
-    }
-  }, []);
-
-  const editor = useEditor(
-    {
-      immediatelyRender: false,
-      extensions: [
-        StarterKit.configure({
-          heading: false,
-          link: false,
-        }),
-        ArcSiteHeading,
-        Link.configure({
-          openOnClick: false,
-          autolink: true,
-          defaultProtocol: "https",
-        }),
-        Placeholder.configure({
-          placeholder:
-            "Gõ thủ công – hoặc dán HTML ở tab HTML để giữ layout từ Claude / CMS.",
-        }),
-        Image.configure({
-          inline: true,
-          allowBase64: true,
-        }),
-        Table.configure({
-          resizable: false,
-          HTMLAttributes: { class: "arc-table" },
-        }),
-        TableRow,
-        TableHeader,
-        TableCell,
-        Youtube.configure({
-          controls: true,
-          nocookie: true,
-          modestBranding: true,
-        }),
-        ArcImagePlaceholder,
-      ],
-      content: deferHeavyHydration ? "" : value,
-      editorProps: {
-        attributes: {
-          class: proseMirrorClass(variant),
-        },
-        handleDrop: (_view, event) => {
-          const ed = editorRef.current;
-          if (!ed) return false;
-          const dt = event.dataTransfer;
-          if (!dt?.files?.length) return false;
-          const f = Array.from(dt.files).find((x) => x.type.startsWith("image/"));
-          if (!f) return false;
-          event.preventDefault();
-          void insertImageFromFile(ed, f, f.name, reportImagePaste);
-          return true;
-        },
-        handlePaste: (_view, event) => {
-          const ed = editorRef.current;
-          if (!ed) return false;
-          const items = event.clipboardData?.items;
-          if (!items) return false;
-          for (const it of Array.from(items)) {
-            if (it.type.startsWith("image/")) {
-              const f = it.getAsFile();
-              if (!f) continue;
-              event.preventDefault();
-              void insertImageFromFile(ed, f, "paste", reportImagePaste);
-              return true;
-            }
-          }
-          return false;
-        },
-      },
-      onUpdate: ({ editor: ed }) => {
-        const html = ed.getHTML();
-        lastEditorHtml.current = html;
-        onChange(html);
-      },
-      onCreate: ({ editor: ed }) => {
-        editorRef.current = ed;
-        onEditorReady(ed);
-        const html = valueRef.current.trim();
-        if (deferHeavyHydration && html) {
-          scheduleHeavySetContent(ed, valueRef.current);
-        } else {
-          lastEditorHtml.current = valueRef.current;
-        }
-      },
-      onDestroy: () => {
-        hydrateGenRef.current += 1;
-        setContentParsing(false);
-        editorRef.current = null;
-        onEditorReady(null);
-      },
-    },
-    [variant, reportImagePaste, onEditorReady, scheduleHeavySetContent],
-  );
-
-  useEffect(() => {
-    if (contentParsing) return;
-    const ed = editorRef.current;
-    if (!ed || ed.isDestroyed) return;
-    if (value === lastEditorHtml.current) return;
-    const cur = ed.getHTML();
-    if (value !== cur) {
-      if (deferHeavyHydration && value.trim().length > 4000) {
-        scheduleHeavySetContent(ed, value);
-      } else {
-        lastEditorHtml.current = value;
-        ed.commands.setContent(value, { emitUpdate: false });
-      }
-    }
-  }, [value, editor, contentParsing, deferHeavyHydration, scheduleHeavySetContent]);
-
-  const editorShell = (
-    <div
-      className="article-draft-tiptap__editor-wrap"
-      data-parsing={contentParsing ? "true" : undefined}
-    >
-      {contentParsing ? (
-        <div
-          className="article-draft-tiptap__editor-wrap--parsing"
-          role="status"
-          aria-live="polite"
-        >
-          Đang nạp nội dung…
-        </div>
-      ) : null}
-      {editor ? <EditorContent editor={editor} /> : null}
-    </div>
-  );
-
-  if (variant === "nganh-admin") {
-    return (
-      <NganhEditorStage titleVi={nganhTitleVi}>{editorShell}</NganhEditorStage>
-    );
-  }
-
-  return editorShell;
-}
-
-const MAX_ARTICLE_IMAGE_DATA_URL = 1_500_000;
-const MAX_ARTICLE_IMAGE_UPLOAD = 8 * 1024 * 1024;
-
-export type ArticleImagePasteStatus =
-  | { phase: "idle" }
-  | { phase: "uploading_cf" }
-  | { phase: "cf_ok"; url: string }
-  | { phase: "cf_fail"; message: string }
-  | { phase: "base64_ok" }
-  | { phase: "base64_fail"; message: string };
-
-type ImagePasteReport = (s: ArticleImagePasteStatus) => void;
-
-function replaceImageSrcIfMatch(
-  ed: Editor,
-  matchSrc: string,
-  next: { src: string; title?: string | null },
-): boolean {
-  let foundPos: number | null = null;
-  ed.state.doc.descendants((node, pos) => {
-    if (node.type.name !== "image") return true;
-    if (node.attrs.src === matchSrc) {
-      foundPos = pos;
-      return false;
-    }
-    return true;
-  });
-  if (foundPos == null) return false;
-  const node = ed.state.doc.nodeAt(foundPos);
-  if (!node) return false;
-  return ed
-    .chain()
-    .focus()
-    .command(({ tr }) => {
-      tr.setNodeMarkup(foundPos!, undefined, {
-        ...node.attrs,
-        src: next.src,
-        title: next.title ?? node.attrs.title,
-      });
-      return true;
-    })
-    .run();
-}
-
-function deleteImageIfSrc(ed: Editor, matchSrc: string): boolean {
-  let foundPos: number | null = null;
-  let size = 0;
-  ed.state.doc.descendants((node, pos) => {
-    if (node.type.name !== "image") return true;
-    if (node.attrs.src === matchSrc) {
-      foundPos = pos;
-      size = node.nodeSize;
-      return false;
-    }
-    return true;
-  });
-  if (foundPos == null) return false;
-  return ed.chain().focus().deleteRange({ from: foundPos, to: foundPos + size }).run();
-}
-
-function fileToDataUrl(file: File, maxBytes: number): Promise<string | null> {
-  if (file.size > maxBytes) return Promise.resolve(null);
-  return new Promise((resolve) => {
-    const r = new FileReader();
-    r.onload = () => resolve(typeof r.result === "string" ? r.result : null);
-    r.onerror = () => resolve(null);
-    r.readAsDataURL(file);
-  });
-}
-
-/**
- * Có `NEXT_PUBLIC_ARTICLE_INLINE_IMAGE_UPLOAD_TOKEN` → POST `/api/article-inline-image` (Cloudflare).
- * `report` cập nhật UI (đang upload / thành công / lỗi / base64).
- */
-async function insertImageFromFile(
-  ed: Editor,
-  file: File,
-  alt: string,
-  report: ImagePasteReport,
-) {
-  const token = process.env.NEXT_PUBLIC_ARTICLE_INLINE_IMAGE_UPLOAD_TOKEN;
-  if (typeof token === "string" && token.trim()) {
-    if (file.size > MAX_ARTICLE_IMAGE_UPLOAD) {
-      report({
-        phase: "cf_fail",
-        message: `Ảnh quá lớn (tối đa ${MAX_ARTICLE_IMAGE_UPLOAD / (1024 * 1024)} MB khi tải lên Cloudflare).`,
-      });
-      return;
-    }
-    report({ phase: "uploading_cf" });
-    const previewUrl = URL.createObjectURL(file);
-    ed.chain()
-      .focus()
-      .setImage({
-        src: previewUrl,
-        alt,
-        title: "Đang tải lên Cloudflare…",
-      })
-      .run();
-    try {
-      const fd = new FormData();
-      fd.append("file", file, file.name || alt);
-      const res = await fetch("/api/article-inline-image", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token.trim()}` },
-        body: fd,
-      });
-      const data = (await res.json().catch(() => ({}))) as {
-        url?: string;
-        error?: string;
-      };
-      if (res.ok && data.url) {
-        const patched = replaceImageSrcIfMatch(ed, previewUrl, {
-          src: data.url,
-          title: "Đã upload — Cloudflare Images",
-        });
-        URL.revokeObjectURL(previewUrl);
-        if (!patched) {
-          report({
-            phase: "cf_fail",
-            message: "Không cập nhật được ảnh sau upload (thử dán lại).",
-          });
-          return;
-        }
-        report({ phase: "cf_ok", url: data.url });
-        return;
-      }
-      deleteImageIfSrc(ed, previewUrl);
-      URL.revokeObjectURL(previewUrl);
-      report({
-        phase: "cf_fail",
-        message: data.error ?? `Upload ảnh thất bại (${res.status}).`,
-      });
-      return;
-    } catch {
-      deleteImageIfSrc(ed, previewUrl);
-      URL.revokeObjectURL(previewUrl);
-      report({
-        phase: "cf_fail",
-        message: "Không kết nối được máy chủ upload ảnh.",
-      });
-      return;
-    }
-  }
-
-  const url = await fileToDataUrl(file, MAX_ARTICLE_IMAGE_DATA_URL);
-  if (!url) {
-    report({
-      phase: "base64_fail",
-      message:
-        "Ảnh quá lớn hoặc không đọc được. Thêm NEXT_PUBLIC_ARTICLE_INLINE_IMAGE_UPLOAD_TOKEN (trùng ARTICLE_INLINE_IMAGE_UPLOAD_TOKEN) + CLOUDFLARE_* để upload Cloudflare thay vì base64.",
-    });
-    return;
-  }
-  ed.chain()
-    .focus()
-    .setImage({
-      src: url,
-      alt,
-      title: "Base64 — chưa upload Cloudflare (dễ lỗi khi Lưu nếu ảnh lớn)",
-    })
-    .run();
-  report({ phase: "base64_ok" });
-}
-
 export function ArticleDraftContentEditor(props: Props) {
   if (props.htmlOnly) {
     return <ArticleDraftHtmlOnly {...props} />;
@@ -473,18 +85,46 @@ function ArticleDraftContentEditorFull({
   onChange,
   variant = "default",
   hideHint = false,
+  defaultTab = "visual",
+  deferHeavyContent = false,
   nganhTitleVi,
 }: Props) {
-  const [tab, setTab] = useState<Tab>("visual");
+  const [tab, setTab] = useState<Tab>(defaultTab);
   const [truongToolTab, setTruongToolTab] = useState<TruongToolTab>("block");
   const [, setToolbarRev] = useState(0);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [imagePasteStatus, setImagePasteStatus] =
     useState<ArticleImagePasteStatus>({ phase: "idle" });
   const [editor, setEditor] = useState<Editor | null>(null);
+  const [visualMountReady, setVisualMountReady] = useState(
+    () => defaultTab === "visual" && !deferHeavyContent,
+  );
   const htmlAreaRef = useRef<HTMLTextAreaElement>(null);
   const editorRef = useRef<Editor | null>(null);
   const showSharedToolbar = variant !== "truong-inline";
+
+  useEffect(() => {
+    if (tab !== "visual") {
+      setVisualMountReady(false);
+      return;
+    }
+    if (!deferHeavyContent) {
+      setVisualMountReady(true);
+      return;
+    }
+    let cancelled = false;
+    let frame2 = 0;
+    const frame1 = window.requestAnimationFrame(() => {
+      frame2 = window.requestAnimationFrame(() => {
+        if (!cancelled) setVisualMountReady(true);
+      });
+    });
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(frame1);
+      if (frame2) window.cancelAnimationFrame(frame2);
+    };
+  }, [tab, deferHeavyContent]);
 
   useEffect(() => {
     if (
@@ -530,17 +170,48 @@ function ArticleDraftContentEditorFull({
     setTab("html");
     requestAnimationFrame(() => htmlAreaRef.current?.focus());
   };
-  const openVisualTab = () => setTab("visual");
+  const openVisualTab = () => {
+    if (deferHeavyContent) {
+      startTransition(() => setTab("visual"));
+    } else {
+      setTab("visual");
+    }
+  };
+
+  const ngheRemainderHtml = useMemo(
+    () =>
+      variant === "nghe-lead-inline"
+        ? remainderHtmlAfterNgheIntro(value)
+        : null,
+    [variant, value],
+  );
 
   const visualPane = (
-    <ArticleDraftVisualPane
-      value={value}
-      onChange={onChange}
-      variant={variant}
-      nganhTitleVi={nganhTitleVi}
-      reportImagePaste={reportImagePaste}
-      onEditorReady={onEditorReady}
-    />
+    <>
+      <ArticleDraftVisualPane
+        value={value}
+        onChange={onChange}
+        variant={variant}
+        nganhTitleVi={nganhTitleVi}
+        deferHeavyContent={deferHeavyContent}
+        reportImagePaste={reportImagePaste}
+        onEditorReady={onEditorReady}
+      />
+      {ngheRemainderHtml ? (
+        <div className="article-draft-tiptap__nghe-remainder">
+          <p className="article-draft-tiptap__nghe-remainder-label">
+            Phần còn lại (<code>arc-section</code> 01, 02, …) — chỉ xem tại đây;
+            chỉnh sửa ở tab <button type="button" className="article-draft-tiptap__nghe-remainder-link" onClick={openHtmlTab}>HTML</button>.
+          </p>
+          <div className="article-draft-tiptap__nghe-remainder-body article-content-html">
+            <KeywordInlineLeadPreview
+              html={ngheRemainderHtml}
+              className="nghe-lead-rich article-rich-content article-content-html"
+            />
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 
   return (
@@ -554,11 +225,21 @@ function ArticleDraftContentEditorFull({
     >
       {!hideHint && variant !== "truong-inline" ? (
         <p className="article-draft-tiptap__hint">
-          Tiptap có thể làm sạch / chuẩn hoá HTML soạn trực quan — dùng tab{" "}
-          <strong>HTML</strong> để dán nguyên khối từ Claude hoặc CMS khi cần giữ
-          class <code>arc-*</code> / layout đặc biệt (ví dụ số mục{" "}
-          <code>arc-num</code> trong tiêu đề). Khối{" "}
-          <code>arc-image-placeholder</code> hiển thị ở Soạn thảo.
+          {variant === "nghe-lead-inline" ? (
+            <>
+              Ô soạn phía trên chỉ chứa <code>arc-intro</code> (đoạn dẫn). Phần{" "}
+              <code>arc-section</code> hiển thị read-only bên dưới — sửa các mục 01,
+              02, … ở tab <strong>HTML</strong> (tránh đơ trình duyệt).
+            </>
+          ) : (
+            <>
+              Tiptap có thể làm sạch / chuẩn hoá HTML soạn trực quan — dùng tab{" "}
+              <strong>HTML</strong> để dán nguyên khối từ Claude hoặc CMS khi cần giữ
+              class <code>arc-*</code> / layout đặc biệt (ví dụ số mục{" "}
+              <code>arc-num</code> trong tiêu đề). Khối{" "}
+              <code>arc-image-placeholder</code> hiển thị ở Soạn thảo.
+            </>
+          )}
         </p>
       ) : null}
 
@@ -637,7 +318,8 @@ function ArticleDraftContentEditorFull({
         </button>
       </div>
 
-      {showSharedToolbar ? (
+      {showSharedToolbar &&
+      (tab !== "visual" || visualMountReady || !deferHeavyContent) ? (
         <ArticleDraftToolbar
           editor={editor}
           disabledVisual={disabledVisual}
@@ -648,7 +330,13 @@ function ArticleDraftContentEditorFull({
         />
       ) : null}
 
-      {tab === "visual" ? (
+      {tab === "visual" && deferHeavyContent && !visualMountReady ? (
+        <p className="article-draft-tiptap__hint" role="status" aria-live="polite">
+          Đang mở editor soạn thảo…
+        </p>
+      ) : null}
+
+      {tab === "visual" && visualMountReady ? (
         variant === "truong-inline" ? (
           <div className="article-draft-tiptap__truong-stack">
             <ArticleDraftToolbar
@@ -666,6 +354,7 @@ function ArticleDraftContentEditorFull({
               value={value}
               onChange={onChange}
               variant={variant}
+              deferHeavyContent={deferHeavyContent}
               reportImagePaste={reportImagePaste}
               onEditorReady={onEditorReady}
             />
@@ -686,7 +375,9 @@ function ArticleDraftContentEditorFull({
         ) : (
           visualPane
         )
-      ) : (
+      ) : null}
+
+      {tab === "html" ? (
         <>
           <textarea
             ref={htmlAreaRef}
@@ -700,7 +391,7 @@ function ArticleDraftContentEditorFull({
             site dùng (<code>article-rich-content</code>, <code>arc-*</code>, …).
           </div>
         </>
-      )}
+      ) : null}
 
       {previewOpen ? (
         <div

@@ -412,33 +412,6 @@
   /* reuse site rich styles when class present */
 }
 
-/* Bản Tiptap nhúng trong `.nghe-lead-panel` — full editor giống admin */
-.article-draft-tiptap--nghe-lead {
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  margin: 0;
-  border-radius: var(--radius-md, 10px);
-  overflow: hidden;
-}
-
-.article-draft-tiptap--nghe-lead .article-draft-tiptap__toolbar {
-  position: static;
-  top: auto;
-  z-index: 1;
-  max-width: 100%;
-}
-
-.article-draft-tiptap--nghe-lead .article-draft-tiptap__editor-wrap {
-  max-height: min(55vh, 520px);
-  min-height: 280px;
-}
-
-.article-draft-tiptap--nghe-lead .article-draft-tiptap__html {
-  min-height: 280px;
-  max-height: min(55vh, 520px);
-}
-
 .article-draft-tiptap__editor-wrap--parsing {
   position: absolute;
   top: 8px;
@@ -454,9 +427,37 @@
   pointer-events: none;
 }
 
-.article-draft-tiptap__editor-wrap[data-parsing="true"] .ProseMirror {
-  opacity: 0.45;
-  pointer-events: none;
+.article-draft-tiptap--nghe-lead .article-draft-tiptap__nghe-remainder {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed #cbd5e1;
+}
+
+.article-draft-tiptap__nghe-remainder-label {
+  margin: 0 0 10px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.article-draft-tiptap__nghe-remainder-link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: #2563eb;
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.article-draft-tiptap__nghe-remainder-body {
+  max-height: min(48vh, 420px);
+  overflow: auto;
+  padding: 12px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
 }
 
 /* Modal bài đăng trường — inline edit */

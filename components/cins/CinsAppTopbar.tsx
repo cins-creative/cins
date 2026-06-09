@@ -48,6 +48,11 @@ export async function CinsAppTopbar() {
           </Suspense>
         </div>
         <div className="tb-right">
+          <div
+            id="app-topbar-page-slot"
+            className="tb-page-slot"
+            aria-live="polite"
+          />
           <Link href="#" className="tb-ask">
             <MessageCircleQuestion size={16} strokeWidth={1.6} aria-hidden />
             <span>Tư vấn nghề</span>

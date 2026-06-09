@@ -651,12 +651,32 @@
   padding: 20px 22px 22px;
 }
 
-.arv2-nghe .nghe-lead-panel:has(.article-draft-tiptap--nghe-lead) {
-  padding: 16px 16px 18px;
+/* Editor noi_dung — clone token admin slideover (admin-edit-form__field) */
+.arv2-nghe .nghe-lead-panel .admin-edit-form__field .article-draft-tiptap {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 
-.arv2-nghe .nghe-lead-panel .article-draft-tiptap--nghe-lead {
-  border-color: var(--border);
+.arv2-nghe .nghe-lead-panel .admin-edit-form__field .article-draft-tiptap__toolbar {
+  position: static;
+  top: auto;
+  z-index: 1;
+  max-width: 100%;
+}
+
+.arv2-nghe .nghe-lead-panel .admin-edit-form__field .article-draft-tiptap__toolbar-row {
+  align-items: center;
+  width: 100%;
+}
+
+.arv2-nghe .nghe-lead-panel .admin-edit-form__field .article-draft-tiptap__btn {
+  flex-shrink: 0;
+}
+
+.arv2-nghe .nghe-lead-panel .admin-edit-form__field .article-draft-tiptap__editor-wrap,
+.arv2-nghe .nghe-lead-panel .admin-edit-form__field .article-draft-tiptap__html {
+  max-width: 100%;
 }
 
 .arv2-nghe .nghe-lead-panel .nghe-lead-video {

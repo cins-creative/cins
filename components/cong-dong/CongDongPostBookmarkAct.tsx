@@ -2,6 +2,7 @@
 
 import { useCongDongAuthGate } from "@/components/cong-dong/useCongDongAuthGate";
 import { JourneyBookmarkButton } from "@/components/journey/JourneyBookmarkButton";
+import { normalizeBookmarkPrivateNote } from "@/lib/journey/bookmark-private-note";
 
 type Props = {
   orgId: string;
@@ -41,9 +42,9 @@ export function CongDongPostBookmarkAct({
         }
         return null;
       }}
-      saveEndpoint={(visibility) => ({
+      saveEndpoint={({ visibility, privateNote }) => ({
         url: `/api/cong-dong/${orgId}/posts/${postId}/bookmark`,
-        body: { visibility },
+        body: { visibility, ghi_chu_rieng: normalizeBookmarkPrivateNote(privateNote) },
       })}
     />
   );

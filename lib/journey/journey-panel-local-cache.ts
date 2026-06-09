@@ -211,3 +211,18 @@ export function isJourneyPanelCacheStale(
   if (!entry) return true;
   return !isFresh(entry);
 }
+
+/** Buộc refetch timeline sau bookmark / social — cache cũ thiếu `social.viewerBookmarked`. */
+export function markJourneyTimelinePanelStale(
+  ownerSlug: string,
+  viewerProfileId: string | null,
+): void {
+  if (typeof window === "undefined") return;
+  const snapshot = readSnapshot(ownerSlug, viewerProfileId);
+  const entry = snapshot?.timeline;
+  if (!entry) return;
+  writeSnapshot(ownerSlug, viewerProfileId, {
+    ...snapshot,
+    timeline: { ...entry, savedAt: 0 },
+  });
+}

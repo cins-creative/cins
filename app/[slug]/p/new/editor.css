@@ -3361,7 +3361,9 @@
 .cins-editor-page.mc-compose-page .mc-compose-vis {
   position: relative;
 }
-.cins-editor-page.mc-compose-page .mc-compose-vis-btn {
+.cins-editor-page.mc-compose-page .mc-compose-vis-btn,
+.cins-editor-page .mc-compose-vis-static,
+.cins-editor-page.mc-compose-page .mc-compose-vis-static {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -3375,6 +3377,10 @@
   font-weight: 600;
   color: var(--ink-body);
   cursor: pointer;
+}
+.cins-editor-page .mc-compose-vis-static,
+.cins-editor-page.mc-compose-page .mc-compose-vis-static {
+  cursor: default;
 }
 .cins-editor-page.mc-compose-page .mc-compose-vis-menu {
   position: absolute;

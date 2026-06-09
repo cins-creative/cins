@@ -7,6 +7,7 @@ import { createPortal } from "react-dom";
 import type { EditorInitial } from "@/components/editor/EditorView";
 import type { MediaComposeMode } from "@/components/editor/MediaComposeView";
 import type { CongDongComposeConfig } from "@/lib/cong-dong/types";
+import type { OrgBaiDangComposeConfig } from "@/lib/truong/org-bai-dang-compose";
 import type { JourneyComposeState } from "@/lib/journey/compose-types";
 import {
   buildMediaEditInitial,
@@ -43,6 +44,7 @@ type Props = {
   ownerName: string;
   ownerAvatarId?: string | null;
   congDongCompose?: CongDongComposeConfig;
+  orgBaiDangCompose?: OrgBaiDangComposeConfig;
   onClose: () => void;
   onPublished: () => void;
 };
@@ -54,6 +56,7 @@ export function JourneyComposeOverlay({
   ownerName,
   ownerAvatarId,
   congDongCompose,
+  orgBaiDangCompose,
   onClose,
   onPublished,
 }: Props) {
@@ -194,6 +197,7 @@ export function JourneyComposeOverlay({
             ownerName={ownerName}
             presentation="overlay"
             congDongCompose={congDongCompose}
+            orgBaiDangCompose={orgBaiDangCompose}
             onClose={onClose}
             onPublished={onPublished}
           />
@@ -210,6 +214,7 @@ export function JourneyComposeOverlay({
             autoOpenFilePicker={!pendingPhotoFiles?.length}
             presentation="overlay"
             congDongCompose={congDongCompose}
+            orgBaiDangCompose={orgBaiDangCompose}
             onClose={onClose}
             onPublished={onPublished}
           />
@@ -226,6 +231,7 @@ export function JourneyComposeOverlay({
             autoOpenFilePicker={!pendingVideoFile}
             presentation="overlay"
             congDongCompose={congDongCompose}
+            orgBaiDangCompose={orgBaiDangCompose}
             onClose={onClose}
             onPublished={onPublished}
           />
@@ -251,6 +257,7 @@ export function JourneyComposeOverlay({
               editInitial={mediaEditInitial}
               presentation="overlay"
               congDongCompose={congDongCompose}
+              orgBaiDangCompose={orgBaiDangCompose}
               onClose={onClose}
               onPublished={onPublished}
             />
@@ -264,6 +271,7 @@ export function JourneyComposeOverlay({
               postSlug={editPostSlug}
               presentation="overlay"
               congDongCompose={congDongCompose}
+              orgBaiDangCompose={orgBaiDangCompose}
               onClose={onClose}
               onPublished={onPublished}
             />

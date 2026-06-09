@@ -1,5 +1,84 @@
 /* Inline edit — trang chi tiết trường (chế độ quản trị) */
 
+/* Nút quản trị gọn trên app topbar (portal từ TruongAdminToolbar) */
+.cins-app-topbar .tb-page-slot:empty {
+  display: none;
+}
+
+.cins-app-topbar .tb-truong-admin {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.cins-app-topbar .tb-truong-admin-saving {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.55));
+  white-space: nowrap;
+}
+
+.cins-app-topbar .tb-truong-admin-save {
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--border2, rgba(0, 0, 0, 0.12));
+  background: #fff;
+  color: var(--blue, #1f74c9);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.cins-app-topbar .tb-truong-admin-save:hover:not(:disabled) {
+  background: var(--neutral-100, #f1f2f5);
+}
+
+.cins-app-topbar .tb-truong-admin-save:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.cins-app-topbar .tb-truong-admin-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border2, rgba(0, 0, 0, 0.12));
+  background: var(--bg-surface, #fff);
+  color: var(--ink-body, rgba(0, 0, 0, 0.72));
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s,
+    box-shadow 0.15s;
+}
+
+.cins-app-topbar .tb-truong-admin-btn:hover {
+  background: var(--neutral-100, #f1f2f5);
+  color: var(--ink-display, #111);
+}
+
+.cins-app-topbar .tb-truong-admin-btn.is-active {
+  border-color: transparent;
+  background: var(--blue, #1f74c9);
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(31, 116, 201, 0.32);
+}
+
+.cins-app-topbar .tb-truong-admin-btn.is-active:hover {
+  filter: brightness(1.06);
+  color: #fff;
+}
+
 .tdh-page,
 .tdh-page--v6,
 .tdh-inline-modal-backdrop {
@@ -16,10 +95,6 @@
   min-height: 59px;
   background: linear-gradient(90deg, rgba(31, 116, 201, 0.12), rgba(187, 137, 248, 0.1));
   border-bottom: 1px solid var(--border2, rgba(0, 0, 0, 0.08));
-}
-
-.tdh-page--v6 .tdh-v6-center > .tdh-admin-toolbar + .center-head {
-  border-top: 1px solid var(--border2, rgba(0, 0, 0, 0.08));
 }
 
 .tdh-admin-toolbar-badge {

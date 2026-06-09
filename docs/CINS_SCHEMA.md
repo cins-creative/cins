@@ -389,6 +389,7 @@
 | `cap_nhat_luc` | timestamp with time zone | NO | now() |
 | `tom_tat` | text | YES |  |
 | `cover_id` | text | YES |  |
+| `noi_dung_blocks` | jsonb | NO | '[]'::jsonb |
 
 ### org_bai_dang_tag
 

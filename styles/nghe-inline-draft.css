@@ -224,6 +224,154 @@ button.nghe-hero-draft-edit[data-nghe-draft-active="true"] {
   background: #fef2f2;
 }
 
+.nghe-hero-draft-btn--ghost {
+  background: #fff;
+  color: var(--cins-blue, #1f74c9);
+  border-color: rgb(31 116 201 / 0.35);
+}
+
+.nghe-hero-draft-btn--ghost:hover:not(:disabled) {
+  background: var(--cins-blue-soft, #e7f0fb);
+}
+
+.nghe-lead-draft-shell__cta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 14px 16px;
+  border: 1px dashed rgb(31 116 201 / 0.35);
+  border-radius: 12px;
+  background: rgb(231 240 251 / 0.45);
+}
+
+.nghe-lead-draft-shell__cta-hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-muted, #64748b);
+}
+
+/* Popup soạn noi_dung — portal document.body */
+.nghe-content-editor-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10060;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgb(15 23 42 / 0.52);
+}
+
+.nghe-content-editor-modal__dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(1080px, 100%);
+  max-height: min(92vh, 920px);
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.28);
+  overflow: hidden;
+}
+
+.nghe-content-editor-modal__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border, #e2e8f0);
+  background: linear-gradient(180deg, #f8fafc 0%, #fff 100%);
+}
+
+.nghe-content-editor-modal__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--ink-display, #0f172a);
+}
+
+.nghe-content-editor-modal__subtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--ink-muted, #64748b);
+}
+
+.nghe-content-editor-modal__close {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 10px;
+  background: #fff;
+  color: #64748b;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.nghe-content-editor-modal__close:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.nghe-content-editor-modal__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 16px 20px;
+}
+
+.nghe-content-editor-modal__loading {
+  margin: 24px 0;
+  color: var(--ink-muted, #64748b);
+  font-size: 14px;
+}
+
+.nghe-content-editor-modal__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 20px;
+  border-top: 1px solid var(--border, #e2e8f0);
+  background: #f8fafc;
+}
+
+.nghe-content-editor-modal__foot-hint {
+  margin: 0;
+  flex: 1 1 200px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-muted, #64748b);
+}
+
+.nghe-content-editor-modal .admin-edit-form__field .article-draft-tiptap {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.nghe-content-editor-modal .admin-edit-form__field .article-draft-tiptap__toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #fff;
+}
+
+.nghe-content-editor-modal .admin-edit-form__field .article-draft-tiptap__editor-wrap {
+  min-height: 320px;
+  max-height: min(58vh, 560px);
+}
+
+.nghe-content-editor-modal .admin-edit-form__field .article-draft-tiptap__html {
+  min-height: 320px;
+  max-height: min(58vh, 560px);
+}
+
 @media (max-width: 720px) {
   .nghe-hero-draft-bar {
     margin: -18px -16px 8px;
@@ -253,5 +401,16 @@ button.nghe-hero-draft-edit[data-nghe-draft-active="true"] {
   .nghe-hero-draft-fab {
     top: 12px;
     right: 12px;
+  }
+
+  .nghe-content-editor-modal {
+    padding: 0;
+    align-items: stretch;
+  }
+
+  .nghe-content-editor-modal__dialog {
+    width: 100%;
+    max-height: 100vh;
+    border-radius: 0;
   }
 }

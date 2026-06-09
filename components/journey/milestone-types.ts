@@ -1,6 +1,7 @@
 import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import type { Block as ServerBlock } from "@/lib/editor/types";
 import type { PersonalFilterRef } from "@/lib/filter/types";
+import type { BookmarkFrameKind } from "@/lib/journey/bookmark-source-theme";
 
 /**
  * Type chuẩn cho 1 cột mốc (milestone) trên Journey.
@@ -106,6 +107,15 @@ export type MilestoneBookmarkSource = {
   /** 1 chữ icon. */
   initial?: string | null;
   avatarUrl?: string | null;
+  /** Màu khung ngoài — `loai_to_chuc` org hoặc `user` / `cong_dong`. */
+  sourceKind?: BookmarkFrameKind | null;
+};
+
+/** Bookmark từ `org_bai_dang` — unfold blocks local, không gọi Journey post API. */
+export type MilestoneOrgBaiDangRef = {
+  postId: string;
+  orgSlug: string;
+  orgName: string;
 };
 
 export type MilestoneMediaItem = {
@@ -142,8 +152,11 @@ export type MilestoneItem = {
   /**
    * Thời điểm tạo record (`content_cot_moc.tao_luc`, ISO string) — dùng để
    * tiebreak khi 2 milestone cùng `thoi_diem` (cùng ngày). Mới hơn lên trên.
+   * Bookmark: thời điểm lưu (`social_luu.tao_luc`) — sort trong cùng ngày lịch.
    */
   createdAt?: string | null;
+  /** Bookmark — `social_luu.tao_luc`; hiển thị trên via-bar «Lưu về». */
+  bookmarkSavedAt?: string | null;
 
   /** Tiêu đề chính (Fraunces, lớn). */
   title: string;
@@ -175,6 +188,8 @@ export type MilestoneItem = {
   attribution?: MilestoneAttribution | null;
   /** Khi `variant === 'bookmark'` — bookmark từ đâu. */
   bookmark?: MilestoneBookmarkSource | null;
+  /** Bài đăng trường/org đã lưu — render unfold từ `noiDungBlocks`. */
+  orgBaiDangRef?: MilestoneOrgBaiDangRef | null;
   /** Badge "✓ Sine Art" — chỉ khi đã được verified. */
   verifiedBy?: string | null;
 

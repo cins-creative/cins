@@ -51,6 +51,10 @@ import {
   releaseVideoUpload,
 } from "@/lib/journey/video-upload-session";
 import type { CongDongComposeConfig } from "@/lib/cong-dong/types";
+import {
+  publishOrgBaiDangClient,
+  type OrgBaiDangComposeConfig,
+} from "@/lib/truong/org-bai-dang-compose";
 
 export type MediaComposeMode = "photo" | "video";
 
@@ -72,6 +76,7 @@ type Props = {
   /** Mở hộp chọn file ngay khi mount (trang /p/new/photo hoặc /p/new/video). */
   autoOpenFilePicker?: boolean;
   congDongCompose?: CongDongComposeConfig;
+  orgBaiDangCompose?: OrgBaiDangComposeConfig;
   onClose?: () => void;
   onPublished?: () => void;
 };
@@ -169,6 +174,7 @@ export function MediaComposeView({
   initialVideoFile,
   autoOpenFilePicker = false,
   congDongCompose,
+  orgBaiDangCompose,
   onClose,
   onPublished,
 }: Props) {
@@ -691,6 +697,25 @@ export function MediaComposeView({
         isPhoto ? "photo" : "video",
       );
 
+      if (orgBaiDangCompose && !isEdit) {
+        const res = await publishOrgBaiDangClient({
+          orgId: orgBaiDangCompose.orgId,
+          tieuDe,
+          tomTat: trimmedCaption.slice(0, 280) || null,
+          coverId: null,
+          blocks,
+        });
+        if (!res.ok) {
+          setError(res.error);
+          return;
+        }
+        orgBaiDangCompose.onPostPublished?.(res.post);
+        if (isOverlay && onPublished) {
+          onPublished();
+        }
+        return;
+      }
+
       const res =
         isEdit && editInitial
           ? await updatePost({
@@ -773,6 +798,10 @@ export function MediaComposeView({
                 className="cd-v4-filter-dd--editor"
                 menuZIndex={9200}
               />
+            ) : orgBaiDangCompose ? (
+              <span className="mc-compose-vis-static" aria-label="Công khai">
+                Công khai
+              </span>
             ) : (
               <div className="mc-compose-vis" ref={visRef}>
                 <button

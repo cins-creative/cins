@@ -73,6 +73,10 @@ import type {
   Visibility as ServerVisibility,
 } from "@/lib/editor/types";
 import type { CongDongComposeConfig } from "@/lib/cong-dong/types";
+import {
+  publishOrgBaiDangClient,
+  type OrgBaiDangComposeConfig,
+} from "@/lib/truong/org-bai-dang-compose";
 
 /* ╔══════════════════════════════════════════════════════════════════╗
    ║ CINs Editor — port từ mockup `cins-editor.html`, theo brief     ║
@@ -426,6 +430,8 @@ type Props = {
   presentation?: "page" | "overlay";
   /** Trang cộng đồng — ẩn visibility, hiện chọn loại bài (mặc định công khai). */
   congDongCompose?: CongDongComposeConfig;
+  /** Tab bài đăng trường — publish `org_bai_dang` thay Journey. */
+  orgBaiDangCompose?: OrgBaiDangComposeConfig;
   onClose?: () => void;
   onPublished?: () => void;
 };
@@ -439,6 +445,7 @@ export function EditorView({
   postSlug,
   presentation = "page",
   congDongCompose,
+  orgBaiDangCompose,
   onClose,
   onPublished,
 }: Props) {
@@ -957,6 +964,27 @@ export function EditorView({
     const coverFinal = coverSeed;
 
     startTransition(async () => {
+      if (orgBaiDangCompose && !isEdit) {
+        const result = await publishOrgBaiDangClient({
+          orgId: orgBaiDangCompose.orgId,
+          tieuDe: tieuDeFinal,
+          tomTat: moTaFinal || null,
+          coverId: coverFinal,
+          blocks: serverBlocks,
+        });
+        if (!result.ok) {
+          setToast(result.error || "Không lưu được bài đăng.");
+          return;
+        }
+        orgBaiDangCompose.onPostPublished?.(result.post);
+        setSavedFlash(true);
+        setToast("✓ Đã đăng bài.");
+        if (isOverlay && onPublished) {
+          setTimeout(() => onPublished(), 900);
+        }
+        return;
+      }
+
       const result = isEdit && initial
         ? await updatePost({
             ownerSlug,
@@ -1021,6 +1049,7 @@ export function EditorView({
     vis,
     publishVisibility,
     congDongCompose,
+    orgBaiDangCompose,
     composeFilterSlugs,
     personalFilterIds,
     blocks,
@@ -1065,6 +1094,10 @@ export function EditorView({
               className="cd-v4-filter-dd--editor"
               menuZIndex={9200}
             />
+          ) : orgBaiDangCompose ? (
+            <span className="mc-compose-vis-static" aria-label="Công khai">
+              Công khai
+            </span>
           ) : (
             <EditorVisibilitySelect value={vis} onChange={setVis} />
           )}

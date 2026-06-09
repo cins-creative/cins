@@ -1,3 +1,7 @@
+import type { Block } from "@/lib/editor/types";
+import { isMilestoneArticleCard } from "@/lib/journey/milestone-card-kind";
+import { baiDangUsesBlocks } from "@/lib/truong/bai-dang-blocks";
+
 const IMG_SRC_RE = /<img\b[^>]*\bsrc\s*=\s*["']([^"']+)["'][^>]*>/gi;
 
 /** Số thumbnail hiển thị trước ô «+N» trên card timeline. */
@@ -80,7 +84,11 @@ export function stripHtmlToPlainText(html: string): string {
 export function baiDangHasExpandableBody(post: {
   noi_dung?: string | null;
   tom_tat?: string | null;
+  noiDungBlocks?: Block[] | null;
 }): boolean {
+  if (baiDangUsesBlocks(post)) {
+    return isMilestoneArticleCard(post.noiDungBlocks);
+  }
   if (post.noi_dung?.trim()) return true;
   const plain = post.tom_tat?.trim() ?? "";
   return plain.length > 160;

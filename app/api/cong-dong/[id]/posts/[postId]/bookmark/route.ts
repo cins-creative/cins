@@ -7,6 +7,7 @@ type RouteContext = { params: Promise<{ id: string; postId: string }> };
 
 type BookmarkBody = {
   visibility?: string;
+  ghi_chu_rieng?: string | null;
 };
 
 /** POST — lưu bài cộng đồng về Journey (cot_moc); chỉ thành viên nhóm. */
@@ -30,6 +31,7 @@ export async function POST(req: Request, ctx: RouteContext) {
     postId,
     viewerId: session.profile.id,
     visibility: body.visibility,
+    ghiChuRieng: body.ghi_chu_rieng,
   });
 
   if (!result.ok) {

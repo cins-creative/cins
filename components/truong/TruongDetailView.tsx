@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 
-import { TruongDetailBreadcrumb } from "@/components/truong/TruongDetailBreadcrumb";
 import { TruongOrgCover } from "@/components/truong/TruongOrgCover";
 import { TruongAdmissionTimelineSidebar } from "@/components/truong/TruongAdmissionTimelineSidebar";
 import { TruongSchoolSidebar } from "@/components/truong/TruongSchoolSidebar";
@@ -42,6 +41,7 @@ type Props = {
 export function TruongDetailView({ payload, canEdit = false }: Props) {
   return (
     <TruongInlineEditProvider canEdit={canEdit} initial={payload}>
+      <TruongAdminToolbar />
       <TruongDetailViewInner />
     </TruongInlineEditProvider>
   );
@@ -82,12 +82,9 @@ function TruongDetailViewInner() {
         <TruongSchoolSidebar />
 
         <div className="tdh-v6-center">
-          <TruongAdminToolbar />
-          <header className="center-head">
-            <TruongDetailBreadcrumb schoolName={school.ten} />
-          </header>
-
-          <TruongOrgCover school={school} editable layout="v6" />
+          <div className="tdh-v6-cover-mobile">
+            <TruongOrgCover school={school} editable layout="v6" />
+          </div>
 
           <div className="tdh-v6-tabs-bar">
             <div

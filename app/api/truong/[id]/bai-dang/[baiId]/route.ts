@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 
+import { sanitizeBaiDangBlocksInput } from "@/lib/truong/bai-dang-blocks";
+import {
+  mapOrgBaiDangApiRow,
+  ORG_BAI_DANG_API_SELECT,
+} from "@/lib/truong/bai-dang-api-fields";
 import { normalizeLoaiBaiDang } from "@/lib/truong/bai-dang";
 import { assertTruongInlineApi } from "@/lib/truong/inline-api";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -27,17 +32,22 @@ export async function PATCH(request: Request, context: RouteContext) {
     "loai_bai_dang",
     "tom_tat",
     "noi_dung",
+    "noi_dung_blocks",
     "cover_id",
     "trang_thai",
   ] as const;
   const patch: Record<string, unknown> = {};
   for (const key of allowed) {
-    if (key in body) {
-      patch[key] =
-        key === "loai_bai_dang"
-          ? normalizeLoaiBaiDang(body[key])
-          : body[key];
+    if (!(key in body)) continue;
+    if (key === "loai_bai_dang") {
+      patch[key] = normalizeLoaiBaiDang(body[key]);
+      continue;
     }
+    if (key === "noi_dung_blocks") {
+      patch[key] = sanitizeBaiDangBlocksInput(body[key]);
+      continue;
+    }
+    patch[key] = body[key];
   }
 
   if (Object.keys(patch).length === 0) {
@@ -50,9 +60,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     .update(patch)
     .eq("id", baiId)
     .eq("id_to_chuc", orgId)
-    .select(
-      "id, loai_bai_dang, tieu_de, tom_tat, noi_dung, cover_id, tao_luc, trang_thai",
-    )
+    .select(ORG_BAI_DANG_API_SELECT)
     .maybeSingle();
 
   if (error) {
@@ -62,7 +70,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  return NextResponse.json({ post: data });
+  return NextResponse.json({ post: mapOrgBaiDangApiRow(data) });
 }
 
 export async function DELETE(request: Request, context: RouteContext) {

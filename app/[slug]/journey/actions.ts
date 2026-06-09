@@ -783,9 +783,10 @@ export async function updateForeignMilestoneJourneyVisibility(input: {
       return { ok: false, error: "Bạn không có quyền chỉnh cột mốc này." };
     }
   } else {
+    const cheDoLuu = journeyVis === "chi_minh" ? "private" : "public";
     const { data: row, error } = await admin
       .from("social_luu")
-      .update({ che_do_hien_thi_journey: journeyVis })
+      .update({ che_do_hien_thi: cheDoLuu })
       .eq("id_nguoi_dung", session.profile.id)
       .eq("loai_doi_tuong", "cot_moc")
       .eq("id_doi_tuong", cotMocId)

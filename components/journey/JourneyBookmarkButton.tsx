@@ -2,12 +2,21 @@
 
 import { useAuthGate } from "@/components/auth/AuthGateProvider";
 import { Bookmark, CheckCircle2, Lock, Globe2, X } from "lucide-react";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import {
+  BOOKMARK_PRIVATE_NOTE_MAX_LENGTH,
+  normalizeBookmarkPrivateNote,
+} from "@/lib/journey/bookmark-private-note";
 
 export type BookmarkVisibility = "public" | "private";
 
-export type BookmarkSaveEndpoint = (visibility: BookmarkVisibility) => {
+export type BookmarkSaveParams = {
+  visibility: BookmarkVisibility;
+  privateNote: string;
+};
+
+export type BookmarkSaveEndpoint = (params: BookmarkSaveParams) => {
   url: string;
   body?: Record<string, unknown>;
 };
@@ -47,11 +56,13 @@ export function JourneyBookmarkButton({
   const [open, setOpen] = useState(false);
   const [blockedMessage, setBlockedMessage] = useState<string | null>(null);
   const [visibility, setVisibility] = useState<BookmarkVisibility>("public");
+  const [privateNote, setPrivateNote] = useState("");
   const [saved, setSaved] = useState(initialSaved);
   const [count, setCount] = useState(initialCount);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const [isSaving, setIsSaving] = useState(false);
+  const saveSnapshotRef = useRef({ saved: initialSaved, count: initialCount });
 
   useEffect(() => {
     queueMicrotask(() => setMounted(true));
@@ -104,23 +115,23 @@ export function JourneyBookmarkButton({
     );
   };
 
-  const saveBookmark = () => {
+  const saveBookmark = async () => {
+    if (isSaving) return;
     setError(null);
-    setSaved(true);
-    const optimisticCount = saved ? count : count + 1;
-    setCount(optimisticCount);
-    dispatchSaved(true, optimisticCount);
+    setIsSaving(true);
+    saveSnapshotRef.current = { saved, count };
 
-    const endpoint = saveEndpoint?.(visibility) ?? {
+    const endpoint = saveEndpoint?.({ visibility, privateNote }) ?? {
       url: "/api/bookmarks",
       body: {
         loai_doi_tuong: "cot_moc",
         id_doi_tuong: milestoneId,
         visibility,
+        ghi_chu_rieng: normalizeBookmarkPrivateNote(privateNote),
       },
     };
 
-    startTransition(async () => {
+    try {
       const res = await fetch(endpoint.url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -128,12 +139,15 @@ export function JourneyBookmarkButton({
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setSaved(false);
-        setCount(count);
-        dispatchSaved(false, count);
+        const rollback = saveSnapshotRef.current;
+        setSaved(rollback.saved);
+        setCount(rollback.count);
         setError(typeof json.error === "string" ? json.error : "Không lưu được.");
         return;
       }
+      const optimisticCount = saveSnapshotRef.current.saved
+        ? saveSnapshotRef.current.count
+        : saveSnapshotRef.current.count + 1;
       const syncedCount = Number(json.count ?? optimisticCount);
       setSaved(true);
       setCount(syncedCount);
@@ -143,7 +157,14 @@ export function JourneyBookmarkButton({
         setOpen(false);
         setSuccess(false);
       }, 1800);
-    });
+    } catch {
+      const rollback = saveSnapshotRef.current;
+      setSaved(rollback.saved);
+      setCount(rollback.count);
+      setError("Không kết nối được máy chủ. Thử lại sau.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const openModal = () => {
@@ -156,6 +177,7 @@ export function JourneyBookmarkButton({
     }
     setBlockedMessage(null);
     setError(null);
+    setPrivateNote("");
     setOpen(true);
   };
 
@@ -242,6 +264,20 @@ export function JourneyBookmarkButton({
                 </span>
               </button>
             </div>
+            <label className="j-bookmark-private-note">
+              <span className="j-bookmark-private-note-label">
+                Ghi chú riêng
+                <small>Tuỳ chọn — chỉ bạn thấy, không đổi bài gốc</small>
+              </span>
+              <textarea
+                value={privateNote}
+                onChange={(e) => setPrivateNote(e.target.value)}
+                maxLength={BOOKMARK_PRIVATE_NOTE_MAX_LENGTH}
+                rows={3}
+                placeholder="Vì sao bạn lưu bài này? Ghi chú cho Journey của bạn…"
+                disabled={isSaving}
+              />
+            </label>
             {error ? <p className="j-bookmark-confirm-error">{error}</p> : null}
             <div className="j-bookmark-confirm-actions">
               <button type="button" onClick={() => setOpen(false)}>
@@ -250,10 +286,10 @@ export function JourneyBookmarkButton({
               <button
                 type="button"
                 className="is-primary"
-                disabled={pending}
-                onClick={saveBookmark}
+                disabled={isSaving}
+                onClick={() => void saveBookmark()}
               >
-                {pending ? "Đang lưu..." : "Xác nhận lưu"}
+                {isSaving ? "Đang lưu..." : "Xác nhận lưu"}
               </button>
             </div>
           </>

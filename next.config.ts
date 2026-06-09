@@ -6,6 +6,17 @@ import type { NextConfig } from "next";
 const projectRoot = path.dirname(fileURLToPath(import.meta.url));
 
 const nextConfig: NextConfig = {
+  /** Một bản ProseMirror/Tiptap — tránh RangeError gapcursor khi split chunk. */
+  transpilePackages: [
+    "@tiptap/react",
+    "@tiptap/starter-kit",
+    "@tiptap/pm",
+    "@tiptap/extension-image",
+    "@tiptap/extension-link",
+    "@tiptap/extension-placeholder",
+    "@tiptap/extension-table",
+    "@tiptap/extension-youtube",
+  ],
   turbopack: {
     root: projectRoot,
   },

@@ -1,6 +1,7 @@
 "use client";
 
 import { TruongEditableHocPhi } from "@/components/truong/inline/TruongEditableHocPhi";
+import { TruongOrgCover } from "@/components/truong/TruongOrgCover";
 import { TruongMessageInbox } from "@/components/truong/TruongMessageInbox";
 import { TruongMilestoneTagNotify } from "@/components/truong/TruongMilestoneTagNotify";
 import { TruongOrgAvatar } from "@/components/truong/TruongOrgAvatar";
@@ -25,6 +26,10 @@ export function TruongSchoolSidebar() {
 
   return (
     <aside className="school-side fade f1" aria-label="Thông tin trường">
+      <div className="ss-cover">
+        <TruongOrgCover school={school} editable layout="v6" />
+      </div>
+
       <div className="ss-card-id">
         <div className="ss-id-top">
           <TruongOrgAvatar school={school} size="lg" className="ss-avatar" editable />

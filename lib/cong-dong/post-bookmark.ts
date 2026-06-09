@@ -1,6 +1,8 @@
 import "server-only";
 
 import { SOCIAL_LOAI_DOI_TUONG } from "@/lib/cong-dong/constants";
+import { normalizeBookmarkPrivateNote } from "@/lib/journey/bookmark-private-note";
+import { mapBookmarkUiToCheDoLuu } from "@/lib/journey/bookmark-visibility";
 import { isThanhVien } from "@/lib/cong-dong/membership";
 import { CHE_DO_MOC_CONG_DONG } from "@/lib/journey/journey-visible-clause";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -40,6 +42,7 @@ export async function saveCongDongPostBookmark(params: {
   postId: string;
   viewerId: string;
   visibility?: string;
+  ghiChuRieng?: string | null;
 }): Promise<
   | { ok: true; bookmarked: true; count: number; visibility: "public" | "private" }
   | { ok: false; error: string; status: number }
@@ -66,7 +69,8 @@ export async function saveCongDongPostBookmark(params: {
     };
   }
 
-  const visibility = params.visibility === "private" ? "private" : "public";
+  const visibility = mapBookmarkUiToCheDoLuu(params.visibility);
+  const ghiChuRieng = normalizeBookmarkPrivateNote(params.ghiChuRieng);
   const admin = createServiceRoleClient();
 
   await admin
@@ -81,6 +85,8 @@ export async function saveCongDongPostBookmark(params: {
       id_nguoi_dung: params.viewerId,
       loai_doi_tuong: SOCIAL_LOAI_DOI_TUONG.COT_MOC,
       id_doi_tuong: resolved.milestoneId,
+      che_do_hien_thi: visibility,
+      ghi_chu_rieng: ghiChuRieng,
     },
     { onConflict: "id_nguoi_dung,loai_doi_tuong,id_doi_tuong" },
   );

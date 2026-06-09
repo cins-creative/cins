@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import {
   createContext,
+  startTransition,
   useCallback,
   useContext,
   useEffect,
@@ -118,14 +119,13 @@ export function NgheArticleDraftProvider({
   }, [resetKey, resetDraftFromArticle]);
 
   const leadPreview = useMemo(
-    () =>
-      open
-        ? null
-        : buildNgheLeadSourceFromNoiDung(noi_dung, relatedJobsLienQuan),
-    [open, noi_dung, relatedJobsLienQuan],
+    () => buildNgheLeadSourceFromNoiDung(noi_dung, relatedJobsLienQuan),
+    [noi_dung, relatedJobsLienQuan],
   );
 
-  const openPanel = useCallback(() => setOpen(true), []);
+  const openPanel = useCallback(() => {
+    startTransition(() => setOpen(true));
+  }, []);
   const closePanel = useCallback(() => setOpen(false), []);
 
   const discardDraft = useCallback(() => {

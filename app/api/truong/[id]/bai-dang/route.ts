@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 
+import { sanitizeBaiDangBlocksInput } from "@/lib/truong/bai-dang-blocks";
+import {
+  mapOrgBaiDangApiRow,
+  ORG_BAI_DANG_API_SELECT,
+} from "@/lib/truong/bai-dang-api-fields";
 import { normalizeLoaiBaiDang } from "@/lib/truong/bai-dang";
 import { assertTruongInlineApi } from "@/lib/truong/inline-api";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -27,26 +32,29 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "tieu_de required" }, { status: 400 });
   }
 
+  const insertRow: Record<string, unknown> = {
+    id_to_chuc: orgId,
+    tieu_de,
+    loai_bai_dang: normalizeLoaiBaiDang(body.loai_bai_dang),
+    tom_tat: body.tom_tat ?? null,
+    noi_dung: body.noi_dung ?? null,
+    cover_id: body.cover_id ?? null,
+    trang_thai: body.trang_thai ?? "da_dang",
+  };
+  if ("noi_dung_blocks" in body) {
+    insertRow.noi_dung_blocks = sanitizeBaiDangBlocksInput(body.noi_dung_blocks);
+  }
+
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
     .from("org_bai_dang")
-    .insert({
-      id_to_chuc: orgId,
-      tieu_de,
-      loai_bai_dang: normalizeLoaiBaiDang(body.loai_bai_dang),
-      tom_tat: body.tom_tat ?? null,
-      noi_dung: body.noi_dung ?? null,
-      cover_id: body.cover_id ?? null,
-      trang_thai: body.trang_thai ?? "da_dang",
-    })
-    .select(
-      "id, loai_bai_dang, tieu_de, tom_tat, noi_dung, cover_id, tao_luc, trang_thai",
-    )
+    .insert(insertRow)
+    .select(ORG_BAI_DANG_API_SELECT)
     .single();
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ post: data });
+  return NextResponse.json({ post: mapOrgBaiDangApiRow(data) });
 }

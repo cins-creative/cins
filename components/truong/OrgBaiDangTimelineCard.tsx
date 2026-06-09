@@ -5,8 +5,6 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { TruongBaiDangPostActions } from "@/components/truong/inline/TruongBaiDangEdit";
-import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
-import { TruongOrgAvatar } from "@/components/truong/TruongOrgAvatar";
 import { baiDangCoverDisplayUrl } from "@/lib/truong/bai-dang-cover";
 import { loaiBaiDangCssClass, loaiBaiDangLabel } from "@/lib/truong/bai-dang";
 import {
@@ -22,11 +20,9 @@ type Props = {
 };
 
 export function OrgBaiDangTimelineCard({ post, dateLabel }: Props) {
-  const ctx = useTruongInlineEdit();
   const [expanded, setExpanded] = useState(false);
 
   const lc = loaiBaiDangCssClass(post.loai_bai_dang);
-  const school = ctx?.school;
   const coverUrl = baiDangCoverDisplayUrl(post);
   const canExpand = baiDangHasExpandableBody(post);
   const hasRichBody = Boolean(post.noi_dung?.trim());
@@ -62,15 +58,6 @@ export function OrgBaiDangTimelineCard({ post, dateLabel }: Props) {
 
   return (
     <article className="org-tl-item">
-      <div className={`org-tl-dot ${lc}`}>
-        {school ? (
-          <TruongOrgAvatar
-            school={school}
-            size="sm"
-            className="org-tl-dot-avatar"
-          />
-        ) : null}
-      </div>
       <div className="org-tl-card-stack">
         {coverUrl ? (
           <div className="org-tl-banner">

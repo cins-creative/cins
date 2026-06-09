@@ -1,12 +1,17 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
+import { normalizeBookmarkPrivateNote } from "@/lib/journey/bookmark-private-note";
+import { mapBookmarkUiToCheDoLuu } from "@/lib/journey/bookmark-visibility";
+import { saveOrgBaiDangBookmark } from "@/lib/truong/org-bai-dang-bookmark";
+import { SOCIAL_LOAI_ORG_BAI_DANG } from "@/lib/truong/social-constants";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 type BookmarkBody = {
   loai_doi_tuong?: string;
   id_doi_tuong?: string;
   visibility?: string;
+  ghi_chu_rieng?: string | null;
 };
 
 export async function POST(req: Request) {
@@ -24,8 +29,31 @@ export async function POST(req: Request) {
 
   const loaiDoiTuong = body.loai_doi_tuong?.trim();
   const idDoiTuong = body.id_doi_tuong?.trim();
-  const visibility = body.visibility === "private" ? "private" : "public";
-  if (loaiDoiTuong !== "cot_moc" || !idDoiTuong) {
+  const visibility = mapBookmarkUiToCheDoLuu(body.visibility);
+  const ghiChuRieng = normalizeBookmarkPrivateNote(body.ghi_chu_rieng);
+  if (!loaiDoiTuong || !idDoiTuong) {
+    return NextResponse.json({ error: "Thiếu thông tin bookmark." }, { status: 400 });
+  }
+
+  if (loaiDoiTuong === SOCIAL_LOAI_ORG_BAI_DANG) {
+    const result = await saveOrgBaiDangBookmark({
+      postId: idDoiTuong,
+      viewerId: session.profile.id,
+      visibility,
+      ghiChuRieng,
+    });
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: result.status });
+    }
+    return NextResponse.json({
+      ok: true,
+      visibility: result.visibility,
+      bookmarked: result.bookmarked,
+      count: result.count,
+    });
+  }
+
+  if (loaiDoiTuong !== "cot_moc") {
     return NextResponse.json({ error: "Thiếu thông tin bookmark." }, { status: 400 });
   }
 
@@ -60,6 +88,8 @@ export async function POST(req: Request) {
       id_nguoi_dung: session.profile.id,
       loai_doi_tuong: "cot_moc",
       id_doi_tuong: idDoiTuong,
+      che_do_hien_thi: visibility,
+      ghi_chu_rieng: ghiChuRieng,
     },
     { onConflict: "id_nguoi_dung,loai_doi_tuong,id_doi_tuong" },
   );

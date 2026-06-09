@@ -137,10 +137,12 @@ export function JourneyProfileContent({
       friends: initialData.friends,
     });
 
-    const stored = hydrateJourneyPanelsFromLocalStorage(ownerSlug, viewerProfileId);
-    setTimelineCache((prev) => prev ?? stored.timeline ?? null);
-    setGalleryCache((prev) => prev ?? stored.gallery ?? null);
-    setFriendsCache((prev) => prev ?? stored.friends ?? null);
+    if (!initialData.timeline) {
+      const stored = hydrateJourneyPanelsFromLocalStorage(ownerSlug, viewerProfileId);
+      setTimelineCache((prev) => prev ?? stored.timeline ?? null);
+      setGalleryCache((prev) => prev ?? stored.gallery ?? null);
+      setFriendsCache((prev) => prev ?? stored.friends ?? null);
+    }
   }, [ownerSlug, viewerProfileId, initialData]);
 
   const fetchTimeline = useCallback(
@@ -414,6 +416,47 @@ export function JourneyProfileContent({
       });
     };
 
+    const onSocialAction = (event: Event) => {
+      const detail = (
+        event as CustomEvent<{
+          milestoneId?: string;
+          bookmarked?: boolean;
+          bookmarkCount?: number;
+        }>
+      ).detail;
+      if (!detail?.milestoneId || typeof detail.bookmarked !== "boolean") return;
+
+      setTimelineCache((prev) => {
+        if (!prev || prev === "loading" || prev === "error") return prev;
+        let changed = false;
+        const milestones = prev.page.milestones.map((m) => {
+          const key = m.cotMocId ?? m.id;
+          if (key !== detail.milestoneId) return m;
+          changed = true;
+          return {
+            ...m,
+            social: {
+              viewerLiked: m.social?.viewerLiked ?? false,
+              viewerBookmarked: detail.bookmarked!,
+              likeCount: m.social?.likeCount ?? 0,
+              bookmarkCount:
+                typeof detail.bookmarkCount === "number"
+                  ? detail.bookmarkCount
+                  : (m.social?.bookmarkCount ?? 0),
+              showCounts: m.social?.showCounts ?? true,
+            },
+          };
+        });
+        if (!changed) return prev;
+        const next: TimelineCacheData = {
+          ...prev,
+          page: { ...prev.page, milestones },
+        };
+        writeJourneyTimelinePanelCache(ownerSlug, viewerProfileId, next);
+        return next;
+      });
+    };
+
     const onCoAuthorFailed = (event: Event) => {
       const detail = (event as CustomEvent<CoAuthorInviteFailedDetail>).detail;
       if (!detail || detail.ownerSlug !== ownerSlug) return;
@@ -436,6 +479,7 @@ export function JourneyProfileContent({
       void fetchTimeline({ background: true, force: true });
     };
 
+    window.addEventListener("cins:social-action", onSocialAction);
     window.addEventListener("cins:milestone-deleted", onMilestoneDeleted);
     window.addEventListener("cins:milestone-delete-failed", onMilestoneDeleteFailed);
     window.addEventListener("cins:journey-timeline-changed", onTimelineChanged);
@@ -447,6 +491,7 @@ export function JourneyProfileContent({
     window.addEventListener(COAUTHOR_INVITE_DECLINED_EVENT, onCoAuthorDeclined);
     window.addEventListener(COAUTHOR_INVITE_FAILED_EVENT, onCoAuthorFailed);
     return () => {
+      window.removeEventListener("cins:social-action", onSocialAction);
       window.removeEventListener("cins:milestone-deleted", onMilestoneDeleted);
       window.removeEventListener(
         "cins:milestone-delete-failed",

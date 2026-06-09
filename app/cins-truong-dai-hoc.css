@@ -823,18 +823,10 @@ a.tdh-identity-contact-value:hover { color: var(--cins-blue); text-decoration: u
   max-width: none;
 }
 .org-timeline::before {
-  content: "";
-  position: absolute;
-  left: 19px;
-  top: 4px;
-  bottom: 4px;
-  width: 1px;
-  background: var(--border);
+  display: none;
 }
 .org-tl-item {
-  display: flex;
-  gap: 22px;
-  align-items: flex-start;
+  display: block;
   width: 100%;
   min-width: 0;
   padding-bottom: 32px;
@@ -1260,7 +1252,6 @@ footer:not(.footer):not(.tdh-inline-modal-actions):not(.tdh-message-inbox-compos
   .gallery-grid { grid-template-columns: 1fr; }
   .gallery-cell-wide { grid-column: span 1; aspect-ratio: 16/10; }
   .journey-grid { grid-template-columns: 1fr; }
-  .org-tl-item { gap: 14px; }
   footer:not(.footer):not(.tdh-inline-modal-actions):not(.tdh-message-inbox-compose) {
     padding: 36px 20px 24px;
   }

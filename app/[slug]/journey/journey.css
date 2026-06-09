@@ -2356,6 +2356,152 @@ button.j-m-card-hit {
   color: #fff;
 }
 
+/* BOOKMARK — khung bọc nội dung lưu từ ngoài */
+.j-bookmark-frame {
+  --j-bf-bg: var(--neutral-50, #f8f9fb);
+  --j-bf-border: var(--neutral-200, #e5e7eb);
+  --j-bf-accent: var(--neutral-500, #8b93a7);
+  --j-bf-ink: var(--ink-title, #1a1d26);
+  --j-bf-sub: var(--ink-muted, #6b7280);
+  border: 1px solid var(--j-bf-border);
+  border-radius: 16px;
+  background: var(--j-bf-bg);
+  padding: 8px;
+  min-width: 0;
+}
+.j-bookmark-frame--truong-dai-hoc {
+  --j-bf-bg: color-mix(in srgb, var(--cins-blue-soft, #e7f0fb) 36%, #fff);
+  --j-bf-border: color-mix(in srgb, var(--cins-blue, #1f74c9) 18%, var(--neutral-200, #e5e7eb));
+  --j-bf-accent: var(--cins-blue, #1f74c9);
+  --j-bf-ink: #0c4a8a;
+  --j-bf-sub: #3b6ea8;
+}
+.j-bookmark-frame--co-so-dao-tao {
+  --j-bf-bg: color-mix(in srgb, var(--cins-mint-soft, #d9fbed) 34%, #fff);
+  --j-bf-border: color-mix(in srgb, #0e6b4d 14%, var(--neutral-200, #e5e7eb));
+  --j-bf-accent: #0e6b4d;
+  --j-bf-ink: #0e6b4d;
+  --j-bf-sub: #2d8a6a;
+}
+.j-bookmark-frame--studio {
+  --j-bf-bg: color-mix(in srgb, var(--cins-orange-soft, #ffe6c9) 38%, #fff);
+  --j-bf-border: color-mix(in srgb, var(--cins-orange, #ffb85c) 22%, var(--neutral-200, #e5e7eb));
+  --j-bf-accent: var(--cins-orange, #ffb85c);
+  --j-bf-ink: #8b4500;
+  --j-bf-sub: #a16207;
+}
+.j-bookmark-frame--cong-dong {
+  --j-bf-bg: #fff;
+  --j-bf-border: var(--neutral-200, #e5e7eb);
+  --j-bf-accent: var(--neutral-500, #8b93a7);
+  --j-bf-ink: var(--ink-display, #111827);
+  --j-bf-sub: var(--ink-muted, #6b7280);
+}
+.j-bookmark-frame--user {
+  --j-bf-bg: color-mix(in srgb, var(--neutral-100, #f1f2f5) 28%, #fff);
+  --j-bf-border: var(--neutral-200, #e5e7eb);
+  --j-bf-accent: var(--neutral-500, #8b93a7);
+  --j-bf-ink: var(--ink-display, #111827);
+  --j-bf-sub: var(--ink-muted, #6b7280);
+}
+.j-bookmark-frame-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px 10px;
+  min-width: 0;
+}
+.j-bookmark-frame-head .j-user-pop-wrap {
+  min-width: 0;
+  flex: 1;
+}
+.j-bookmark-frame-head .org-chip {
+  min-width: 0;
+}
+.j-bookmark-frame-head .j-bf-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  line-height: 1;
+}
+.j-bookmark-frame-head .j-bf-date-tag {
+  color: #f59e0b;
+  flex-shrink: 0;
+}
+.j-bookmark-frame-head .j-bf-date-cong-dong {
+  color: var(--ink-muted, #6b7280);
+  flex-shrink: 0;
+}
+.j-bookmark-frame-head .j-bf-date-prefix {
+  font-weight: 600;
+}
+.j-bookmark-frame-head .j-bf-date-sep {
+  opacity: 0.72;
+}
+.j-bf-toolbar {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-shrink: 1;
+  min-width: 0;
+  max-width: 100%;
+}
+.j-bf-toolbar .badge-row {
+  margin: 0;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+.j-bf-toolbar .j-m-menu,
+.j-bf-toolbar .jcard-date-menu {
+  position: relative;
+  top: auto;
+  right: auto;
+  z-index: 10;
+  flex: 0 0 auto;
+}
+.j-bf-toolbar .jcard-date-menu .j-m-menu-btn {
+  width: 28px;
+  height: 28px;
+  box-shadow: none;
+}
+.j-bookmark-frame-head .j-bf-toolbar .ctx-badge {
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--neutral-200, #e5e7eb);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+}
+.j-bookmark-frame-head .j-bf-toolbar .ctx-badge.j-vis-feature {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border-color: #f59e0b;
+  box-shadow: 0 1px 3px rgba(245, 158, 11, 0.2);
+}
+.jcard-datebar--bookmark-source {
+  padding: 10px 12px 8px;
+}
+.j-m-card.j-bookmark-frame-card {
+  margin: 0;
+  padding: 0;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+}
+.j-bookmark-frame .jcard-datebar,
+.j-bookmark-frame .jcard-datebar--guest,
+.j-bookmark-frame .jcard-datebar--bookmark {
+  padding: 10px 12px 8px;
+  gap: 8px;
+}
+.j-bookmark-frame .j-m-card.j-bookmark-frame-card .jcard-text {
+  padding: 12px 14px 10px;
+}
+.j-bookmark-frame .jcard-actions {
+  padding-inline: 12px;
+}
+.j-bookmark-frame .j-m-card.j-bookmark-frame-card.has-unfold.is-expanded {
+  border-color: rgba(31, 116, 201, 0.28);
+}
+
 /* BOOKMARK SOURCE STRIP */
 .j-bookmark-src {
   display: flex;
@@ -5802,6 +5948,14 @@ select.j-edit-input {
   border-radius: 99px;
   background: linear-gradient(180deg, var(--cins-violet, #7c3aed), var(--cins-blue, #2563eb));
 }
+.jcard-datebar--cong-dong.jcard-datebar--bookmark-source {
+  padding-left: 12px;
+  background: transparent;
+  border-bottom-color: var(--neutral-200, #e5e7eb);
+}
+.jcard-datebar--cong-dong.jcard-datebar--bookmark-source::before {
+  display: none;
+}
 .jcard-datebar--cong-dong .j-user-pop-wrap {
   flex: 1 1 auto;
   min-width: 0;
@@ -6328,6 +6482,34 @@ select.j-edit-input {
 .via-bar.is-bookmark-source .via-copy small {
   color: #b45309;
 }
+.via-bar.is-cong-dong-source {
+  border-color: var(--neutral-200, #e5e7eb);
+  background: #fff;
+  color: var(--ink-muted, #6b7280);
+}
+.via-bar.is-cong-dong-source > span:first-of-type {
+  color: var(--ink-muted, #6b7280);
+  font-weight: 600;
+}
+.via-bar.is-cong-dong-source strong {
+  color: var(--ink-display, #111827);
+}
+.via-bar.is-cong-dong-source .via-avatar.is-org {
+  background: var(--neutral-100, #f1f2f5);
+  color: var(--ink-display, #111827);
+}
+.via-bar.is-cong-dong-source .via-copy small {
+  color: var(--ink-muted, #6b7280);
+}
+.jcard-datebar--bookmark-source .via-bar.is-cong-dong-source {
+  margin: 0;
+  width: 100%;
+  min-width: 0;
+}
+.jcard-datebar--bookmark .org-chip {
+  min-width: 0;
+  flex: 1;
+}
 .via-bar strong {
   color: var(--ink-display);
   font-weight: 800;
@@ -6790,6 +6972,36 @@ select.j-edit-input {
 .jcard-body {
   padding: 14px 16px 12px;
 }
+/* Timeline card — media full-bleed; chữ/tags gom trong .jcard-text */
+.j-m-card.jcard--article.has-unfold .jcard-body,
+.j-m-card.jcard--photo .jcard-body,
+.j-m-card.jcard--video .jcard-body {
+  padding-inline: 0;
+  padding-block: 0;
+}
+.j-m-card.jcard--article.has-unfold .jcard-text,
+.j-m-card.jcard--photo .jcard-text,
+.j-m-card.jcard--video .jcard-text {
+  padding: 14px 16px 12px;
+}
+.j-m-card.jcard--article.has-unfold .jcard-text .jcard-title,
+.j-m-card.jcard--photo .jcard-text .jcard-title,
+.j-m-card.jcard--video .jcard-text .jcard-title {
+  margin-bottom: 8px;
+}
+.j-m-card.jcard--article.has-unfold .jcard-text .jcard-desc,
+.j-m-card.jcard--photo .jcard-text .jcard-desc,
+.j-m-card.jcard--video .jcard-text .jcard-desc {
+  margin-bottom: 0;
+}
+.j-m-card.jcard--article.has-unfold .jcard-text .jcard-tags,
+.j-m-card.jcard--photo .jcard-text .jcard-tags,
+.j-m-card.jcard--video .jcard-text .jcard-tags {
+  margin-bottom: 0;
+}
+.j-m-card.jcard--article.has-unfold.is-expanded .jcard-body {
+  padding-bottom: 4px;
+}
 .jcard-content {
   display: flex;
   flex-direction: column;
@@ -7008,9 +7220,22 @@ select.j-edit-input {
   transition: opacity 0.2s var(--j-unfold-ease, ease);
 }
 /* Article collapsed — phẳng đáy preview, gợi ý nội dung còn tiếp bên dưới */
-.jcard--article.is-collapsed .jcard-media-zone > .preview,
-.jcard--article.is-collapsed .jcard-media-zone > .preview img {
-  border-radius: 14px 14px 0 0;
+.j-m-card.jcard--article.has-unfold.is-collapsed .jcard-media-zone > .preview,
+.j-m-card.jcard--article.has-unfold.is-collapsed .jcard-media-zone > .preview img {
+  border-radius: 0;
+}
+.j-m-card.jcard--photo .jcard-media-zone > .preview--photo-grid,
+.j-m-card.jcard--photo .jcard-media-zone > .preview--photo-grid .image-grid {
+  border-radius: 0;
+}
+.j-m-card.jcard--video .jcard-media-zone > .jcard-video-player,
+.j-m-card.jcard--video .jcard-media-zone .jcard-video-player.preview--video,
+.j-m-card.jcard--video .jcard-media-zone > .jcard-video-trigger,
+.j-m-card.jcard--video .jcard-media-zone > .preview.preview--video {
+  border-radius: 0;
+}
+.j-m-card.jcard--video .jcard-media-zone .jcard-video-trigger img {
+  border-radius: 0;
 }
 .jcard--photo .preview--photo-grid {
   aspect-ratio: auto;
@@ -7855,6 +8080,47 @@ a.action-btn {
 .j-bookmark-visibility small {
   color: var(--ink-muted);
   font-size: 12px;
+}
+.j-bookmark-private-note {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 14px;
+}
+.j-bookmark-private-note-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--ink-display);
+  font-size: 13px;
+  font-weight: 600;
+}
+.j-bookmark-private-note-label small {
+  font-weight: 400;
+  color: var(--ink-muted);
+  font-size: 12px;
+}
+.j-bookmark-private-note textarea {
+  width: 100%;
+  min-height: 72px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--ink-display);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.45;
+  resize: vertical;
+}
+.j-bookmark-private-note textarea:focus {
+  outline: none;
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 3px rgb(147 197 253 / 0.25);
+}
+.j-bookmark-private-note textarea:disabled {
+  opacity: 0.65;
+  cursor: wait;
 }
 .j-bookmark-confirm-error {
   margin-top: 10px !important;

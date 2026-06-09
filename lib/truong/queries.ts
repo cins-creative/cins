@@ -3,6 +3,7 @@ import { unstable_cache } from "next/cache";
 
 import { createPublicSupabaseClient } from "@/lib/supabase/public";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
+import { parseBaiDangBlocks } from "@/lib/truong/bai-dang-blocks";
 import { formatHocPhiLabel } from "@/lib/truong/display";
 import { enrichProgramsWithCoverSrcSync } from "@/lib/truong/program-cover";
 import { resolveTruongImageSrc, resolveTruongImageSrcSync } from "@/lib/truong/media-url";
@@ -398,6 +399,7 @@ async function fetchBaiDang(
       tieu_de,
       tom_tat,
       noi_dung,
+      noi_dung_blocks,
       cover_id,
       tao_luc,
       org_bai_dang_tag (
@@ -418,6 +420,7 @@ async function fetchBaiDang(
       tieu_de?: string;
       tom_tat?: string | null;
       noi_dung?: string | null;
+      noi_dung_blocks?: unknown;
       cover_id?: string | null;
       tao_luc?: string | null;
       org_bai_dang_tag?: {
@@ -445,6 +448,7 @@ async function fetchBaiDang(
       tieu_de: r.tieu_de.trim(),
       tom_tat: r.tom_tat?.trim() || null,
       noi_dung: r.noi_dung?.trim() || null,
+      noiDungBlocks: parseBaiDangBlocks(r.noi_dung_blocks),
       cover_id,
       cover_src: null,
       tao_luc: r.tao_luc ?? null,
