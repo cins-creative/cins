@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { assertTruongInlineApi } from "@/lib/truong/inline-api";
+import { assertTruongOrgWriteApi } from "@/lib/truong/inline-api-auth";
 import { hideNganhProgramFromOrg } from "@/lib/truong/nganh-program-crud";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -17,13 +17,13 @@ const FIELDS = [
 ] as const;
 
 export async function PATCH(request: Request, context: RouteContext) {
-  const denied = assertTruongInlineApi(request);
-  if (denied) return denied;
-
-  const { programId } = await context.params;
-  if (!programId?.trim()) {
+  const { id: orgId, programId } = await context.params;
+  if (!orgId?.trim() || !programId?.trim()) {
     return NextResponse.json({ error: "Missing id" }, { status: 400 });
   }
+
+  const denied = await assertTruongOrgWriteApi(request, orgId);
+  if (denied) return denied;
 
   let body: Record<string, unknown>;
   try {
@@ -61,13 +61,13 @@ export async function PATCH(request: Request, context: RouteContext) {
 
 /** Ẩn ngành khỏi trang trường (`trang_thai_chuong_trinh = tam_dung`), không xóa dữ liệu liên quan. */
 export async function DELETE(_request: Request, context: RouteContext) {
-  const denied = assertTruongInlineApi(_request);
-  if (denied) return denied;
-
   const { id: orgId, programId } = await context.params;
   if (!orgId?.trim() || !programId?.trim()) {
     return NextResponse.json({ error: "Missing id" }, { status: 400 });
   }
+
+  const denied = await assertTruongOrgWriteApi(_request, orgId);
+  if (denied) return denied;
 
   const supabase = createServiceRoleClient();
   const result = await hideNganhProgramFromOrg(

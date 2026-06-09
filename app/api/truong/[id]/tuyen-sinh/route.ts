@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { assertTruongInlineApi } from "@/lib/truong/inline-api";
+import { assertTruongOrgWriteApi } from "@/lib/truong/inline-api-auth";
 import type { TuyenSinhInsertPayload } from "@/lib/truong/tuyen-sinh-client";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -13,13 +13,13 @@ function parseOptionalNum(v: unknown): number | null {
 }
 
 export async function POST(request: Request, context: RouteContext) {
-  const denied = assertTruongInlineApi(request);
-  if (denied) return denied;
-
   const { id: orgId } = await context.params;
   if (!orgId?.trim()) {
     return NextResponse.json({ error: "Invalid id" }, { status: 400 });
   }
+
+  const denied = await assertTruongOrgWriteApi(request, orgId);
+  if (denied) return denied;
 
   let body: { nam?: unknown; entries?: unknown };
   try {

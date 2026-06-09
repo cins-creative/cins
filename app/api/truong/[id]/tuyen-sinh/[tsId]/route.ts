@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { assertTruongInlineApi } from "@/lib/truong/inline-api";
+import { assertTruongOrgWriteApi } from "@/lib/truong/inline-api-auth";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 type RouteContext = { params: Promise<{ id: string; tsId: string }> };
@@ -21,13 +21,13 @@ const FIELDS = [
 ] as const;
 
 export async function PATCH(request: Request, context: RouteContext) {
-  const denied = assertTruongInlineApi(request);
-  if (denied) return denied;
-
-  const { tsId } = await context.params;
-  if (!tsId?.trim()) {
+  const { id: orgId, tsId } = await context.params;
+  if (!orgId?.trim() || !tsId?.trim()) {
     return NextResponse.json({ error: "Missing id" }, { status: 400 });
   }
+
+  const denied = await assertTruongOrgWriteApi(request, orgId);
+  if (denied) return denied;
 
   let body: Record<string, unknown>;
   try {

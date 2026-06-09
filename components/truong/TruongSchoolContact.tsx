@@ -1,5 +1,13 @@
 "use client";
 
+import { useState } from "react";
+
+import { TruongChiNhanhTableModal } from "@/components/truong/TruongChiNhanhTableModal";
+import {
+  CHI_NHANH_SIDEBAR_PREVIEW,
+  formatChiNhanhAddress,
+  resolveTruongChiNhanh,
+} from "@/lib/truong/chi-nhanh";
 import { buildTruongContactLines } from "@/lib/truong/contact";
 import type { TruongListItem } from "@/lib/truong/types";
 
@@ -7,7 +15,9 @@ type Props = {
   school: Pick<
     TruongListItem,
     | "website"
+    | "facebook"
     | "dia_chi"
+    | "chi_nhanh"
     | "dien_thoai"
     | "email_lien_he"
     | "tinh_thanh"
@@ -16,7 +26,11 @@ type Props = {
   variant?: "default" | "sidebar";
 };
 
-function ContactIcon({ kind }: { kind: "address" | "phone" | "email" | "web" }) {
+function ContactIcon({
+  kind,
+}: {
+  kind: "address" | "phone" | "email" | "web" | "facebook";
+}) {
   if (kind === "phone") {
     return (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden>
@@ -44,6 +58,13 @@ function ContactIcon({ kind }: { kind: "address" | "phone" | "email" | "web" }) 
       </svg>
     );
   }
+  if (kind === "facebook") {
+    return (
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+        <path d="M13.5 22v-8h2.7l.4-3.2h-3.1V11c0-.9.3-1.6 1.7-1.6H16.8V7.2c-.3 0-1.4-.1-2.7-.1-2.7 0-4.5 1.6-4.5 4.6V12H7.2v3.2h3.2V22h3.5z" />
+      </svg>
+    );
+  }
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden>
       <path
@@ -62,8 +83,13 @@ export function TruongSchoolContact({
   isEditing,
   variant = "default",
 }: Props) {
-  const lines = buildTruongContactLines(school);
-  const hasInfo = lines.length > 0;
+  const [branchesOpen, setBranchesOpen] = useState(false);
+  const branches = resolveTruongChiNhanh(school);
+  const otherLines = buildTruongContactLines(school, { includeAddress: false });
+  const hasBranches = branches.length > 0;
+  const hasInfo = hasBranches || otherLines.length > 0;
+  const previewBranches = branches.slice(0, CHI_NHANH_SIDEBAR_PREVIEW);
+  const hiddenBranchCount = branches.length - previewBranches.length;
 
   if (!hasInfo && !isEditing) return null;
 
@@ -76,40 +102,87 @@ export function TruongSchoolContact({
             : "tdh-identity-contact tdh-identity-contact--empty"
         }
       >
-        Chưa có địa chỉ hoặc liên hệ — bấm Sửa giới thiệu để thêm.
+        Chưa có địa chỉ hoặc liên hệ — bấm «Sửa liên hệ & giới thiệu» phía trên để thêm.
       </p>
     );
   }
 
   if (variant === "sidebar") {
     return (
-      <div className="ss-contact" aria-label="Liên hệ trường">
-        {lines.map((line) => (
-          <div
-            key={`${line.kind}-${line.value}`}
-            className="ss-contact-row"
-            aria-label={line.label}
-          >
-            <span className="ss-contact-icon" aria-hidden>
-              <ContactIcon kind={line.kind} />
-            </span>
-            <div className="ss-contact-body">
-              {line.href ? (
-                <a
-                  href={line.href}
-                  className="ss-contact-val"
-                  target={line.kind === "web" ? "_blank" : undefined}
-                  rel={line.kind === "web" ? "noopener noreferrer" : undefined}
-                >
-                  {line.value}
-                </a>
-              ) : (
-                <div className="ss-contact-val">{line.value}</div>
-              )}
+      <>
+        <div className="ss-contact" aria-label="Liên hệ trường">
+          {previewBranches.map((branch) => (
+            <div
+              key={branch.id}
+              className="ss-contact-row"
+              aria-label={branch.ten}
+            >
+              <span className="ss-contact-icon" aria-hidden>
+                <ContactIcon kind="address" />
+              </span>
+              <div className="ss-contact-body">
+                <div className="ss-contact-branch-name">{branch.ten}</div>
+                <div className="ss-contact-val">{formatChiNhanhAddress(branch)}</div>
+                {branch.dien_thoai?.trim() ? (
+                  <a
+                    href={`tel:${branch.dien_thoai.replace(/\s+/g, "")}`}
+                    className="ss-contact-branch-phone"
+                  >
+                    {branch.dien_thoai}
+                  </a>
+                ) : null}
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+          {hiddenBranchCount > 0 ? (
+            <button
+              type="button"
+              className="ss-contact-more-branches"
+              onClick={() => setBranchesOpen(true)}
+            >
+              Xem thêm {hiddenBranchCount} chi nhánh
+            </button>
+          ) : null}
+          {otherLines.map((line) => (
+            <div
+              key={`${line.kind}-${line.value}`}
+              className="ss-contact-row"
+              aria-label={line.label}
+            >
+              <span className="ss-contact-icon" aria-hidden>
+                <ContactIcon kind={line.kind} />
+              </span>
+              <div className="ss-contact-body">
+                {line.href ? (
+                  <a
+                    href={line.href}
+                    className="ss-contact-val"
+                    target={
+                      line.kind === "web" || line.kind === "facebook"
+                        ? "_blank"
+                        : undefined
+                    }
+                    rel={
+                      line.kind === "web" || line.kind === "facebook"
+                        ? "noopener noreferrer"
+                        : undefined
+                    }
+                  >
+                    {line.value}
+                  </a>
+                ) : (
+                  <div className="ss-contact-val">{line.value}</div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+        <TruongChiNhanhTableModal
+          open={branchesOpen}
+          onClose={() => setBranchesOpen(false)}
+          branches={branches}
+        />
+      </>
     );
   }
 
@@ -118,11 +191,26 @@ export function TruongSchoolContact({
       className="tdh-identity-contact tdh-identity-contact--listing tdh-identity-contact--grid"
       aria-label="Liên hệ trường"
     >
-      {lines.map((line) => (
+      {branches.map((branch) => (
+        <li key={branch.id} className="tdh-identity-contact-item--wide">
+          <span className="tdh-identity-contact-icon" aria-hidden>
+            <ContactIcon kind="address" />
+          </span>
+          <div className="tdh-identity-contact-body">
+            <span className="tdh-identity-contact-label">{branch.ten}</span>
+            <span className="tdh-identity-contact-value">
+              {formatChiNhanhAddress(branch)}
+            </span>
+          </div>
+        </li>
+      ))}
+      {otherLines.map((line) => (
         <li
           key={`${line.kind}-${line.value}`}
           className={
-            line.kind === "address" || line.kind === "web"
+            line.kind === "address" ||
+            line.kind === "web" ||
+            line.kind === "facebook"
               ? "tdh-identity-contact-item--wide"
               : undefined
           }
@@ -136,8 +224,16 @@ export function TruongSchoolContact({
               <a
                 href={line.href}
                 className="tdh-identity-contact-value"
-                target={line.kind === "web" ? "_blank" : undefined}
-                rel={line.kind === "web" ? "noopener noreferrer" : undefined}
+                target={
+                  line.kind === "web" || line.kind === "facebook"
+                    ? "_blank"
+                    : undefined
+                }
+                rel={
+                  line.kind === "web" || line.kind === "facebook"
+                    ? "noopener noreferrer"
+                    : undefined
+                }
               >
                 {line.value}
               </a>

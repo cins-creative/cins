@@ -6,7 +6,11 @@ import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEdit
 import { TruongInlineModal } from "@/components/truong/inline/TruongInlineModal";
 import { formatHocPhiLabel } from "@/lib/truong/display";
 
-export function TruongEditableHocPhi() {
+type Props = {
+  variant?: "default" | "sidebar";
+};
+
+export function TruongEditableHocPhi({ variant = "default" }: Props) {
   const ctx = useTruongInlineEdit();
   const [open, setOpen] = useState(false);
   const [tu, setTu] = useState("");
@@ -19,6 +23,12 @@ export function TruongEditableHocPhi() {
   const label =
     ctx.stats.hocPhiLabel ??
     formatHocPhiLabel(ctx.school.hoc_phi_nam_tu, ctx.school.hoc_phi_nam_den);
+
+  const ktxLabel = ctx.school.co_ktx
+    ? ctx.school.ktx_gia_thang
+      ? `Có · ~${ctx.school.ktx_gia_thang.toLocaleString("vi-VN")} đ/tháng`
+      : "Có"
+    : "Không";
 
   function start() {
     if (!ctx) return;
@@ -49,26 +59,46 @@ export function TruongEditableHocPhi() {
     }
   }
 
+  const editBtn = (
+    <button
+      type="button"
+      className="tdh-inline-chip-btn"
+      onClick={start}
+      aria-label="Sửa học phí và KTX"
+    >
+      Sửa
+    </button>
+  );
+
   return (
     <>
-      <div className="tdh-list-stat tdh-list-stat-editable">
-        <div className="tdh-list-stat-label">
-          Học phí
-          <button
-            type="button"
-            className="tdh-inline-chip-btn"
-            onClick={start}
-            aria-label="Sửa học phí"
+      {variant === "sidebar" ? (
+        <>
+          <div className="ss-stat-editable-row">
+            <div className="lbl">
+              Học phí
+              {editBtn}
+            </div>
+            <div className="val text">{label ?? "—"}</div>
+          </div>
+          <div className="ss-stat-editable-row">
+            <div className="lbl">Ký túc xá</div>
+            <div className="val text">{ktxLabel}</div>
+          </div>
+        </>
+      ) : (
+        <div className="tdh-list-stat tdh-list-stat-editable">
+          <div className="tdh-list-stat-label">
+            Học phí
+            {editBtn}
+          </div>
+          <div
+            className={`tdh-list-stat-value is-text${(label?.length ?? 0) > 18 ? " is-text-long" : ""}`}
           >
-            Sửa
-          </button>
+            {label ?? "—"}
+          </div>
         </div>
-        <div
-          className={`tdh-list-stat-value is-text${(label?.length ?? 0) > 18 ? " is-text-long" : ""}`}
-        >
-          {label ?? "—"}
-        </div>
-      </div>
+      )}
       <TruongInlineModal
         open={open}
         onClose={() => setOpen(false)}

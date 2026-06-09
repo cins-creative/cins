@@ -6,19 +6,19 @@ import {
   ORG_BAI_DANG_API_SELECT,
 } from "@/lib/truong/bai-dang-api-fields";
 import { normalizeLoaiBaiDang } from "@/lib/truong/bai-dang";
-import { assertTruongInlineApi } from "@/lib/truong/inline-api";
+import { assertTruongOrgWriteApi } from "@/lib/truong/inline-api-auth";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 type RouteContext = { params: Promise<{ id: string; baiId: string }> };
 
 export async function PATCH(request: Request, context: RouteContext) {
-  const denied = assertTruongInlineApi(request);
-  if (denied) return denied;
-
   const { id: orgId, baiId } = await context.params;
   if (!orgId?.trim() || !baiId?.trim()) {
     return NextResponse.json({ error: "Missing id" }, { status: 400 });
   }
+
+  const denied = await assertTruongOrgWriteApi(request, orgId);
+  if (denied) return denied;
 
   let body: Record<string, unknown>;
   try {
@@ -74,10 +74,13 @@ export async function PATCH(request: Request, context: RouteContext) {
 }
 
 export async function DELETE(request: Request, context: RouteContext) {
-  const denied = assertTruongInlineApi(request);
-  if (denied) return denied;
-
   const { id: orgId, baiId } = await context.params;
+  if (!orgId?.trim() || !baiId?.trim()) {
+    return NextResponse.json({ error: "Missing id" }, { status: 400 });
+  }
+
+  const denied = await assertTruongOrgWriteApi(request, orgId);
+  if (denied) return denied;
 
   const supabase = createServiceRoleClient();
   const { error } = await supabase

@@ -1,5 +1,4 @@
 import { getCurrentUserIsCinsAdmin } from "@/lib/auth/cins-admin-server";
-import { isInlineArticleEditEnabled } from "@/lib/dev/inline-article-edit";
 import { createServiceRoleClient, hasServiceRoleEnv } from "@/lib/supabase/service-role";
 
 const ORG_ADMIN_ROLES = [
@@ -10,12 +9,46 @@ const ORG_ADMIN_ROLES = [
 ] as const;
 
 /**
+ * Quyền ghi API inline trường theo `org_to_chuc.id` + `user_nguoi_dung.id`.
+ */
+export async function isTruongOrgAdmin(
+  orgId: string,
+  profileId: string,
+): Promise<boolean> {
+  if (!hasServiceRoleEnv()) return false;
+  if (await getCurrentUserIsCinsAdmin()) return true;
+
+  try {
+    const supabase = createServiceRoleClient();
+    const { data: org } = await supabase
+      .from("org_to_chuc")
+      .select("id")
+      .eq("id", orgId.trim())
+      .maybeSingle();
+
+    if (!org?.id) return false;
+
+    const { data } = await supabase
+      .from("user_thanh_vien_to_chuc")
+      .select("vai_tro")
+      .eq("id_to_chuc", org.id)
+      .eq("id_nguoi_dung", profileId)
+      .in("vai_tro", [...ORG_ADMIN_ROLES])
+      .limit(1)
+      .maybeSingle();
+
+    return !!data;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Precondition kỹ thuật cho server actions / API ghi DB:
- * Yêu cầu cả flag `CINS_INLINE_ARTICLE_EDIT` (hoặc dev) lẫn service role key.
- * KHÔNG còn dùng làm gate hiển thị toolbar.
+ * Yêu cầu service role key. KHÔNG còn dùng làm gate hiển thị toolbar.
  */
 export function canUseTruongInlineEdit(): boolean {
-  return isInlineArticleEditEnabled() && hasServiceRoleEnv();
+  return hasServiceRoleEnv();
 }
 
 /**
@@ -53,16 +86,7 @@ export async function getOrgAdminStatus(
 
     if (!org?.id) return false;
 
-    const { data } = await supabase
-      .from("user_thanh_vien_to_chuc")
-      .select("vai_tro")
-      .eq("id_to_chuc", org.id)
-      .eq("id_nguoi_dung", profileId)
-      .in("vai_tro", [...ORG_ADMIN_ROLES])
-      .limit(1)
-      .maybeSingle();
-
-    return !!data;
+    return isTruongOrgAdmin(org.id, profileId);
   } catch {
     return false;
   }

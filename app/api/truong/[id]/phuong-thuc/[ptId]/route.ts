@@ -1,18 +1,18 @@
 import { NextResponse } from "next/server";
 
-import { assertTruongInlineApi } from "@/lib/truong/inline-api";
+import { assertTruongOrgWriteApi } from "@/lib/truong/inline-api-auth";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 type RouteContext = { params: Promise<{ id: string; ptId: string }> };
 
 export async function PATCH(request: Request, context: RouteContext) {
-  const denied = assertTruongInlineApi(request);
-  if (denied) return denied;
-
-  const { ptId } = await context.params;
-  if (!ptId?.trim()) {
+  const { id: orgId, ptId } = await context.params;
+  if (!orgId?.trim() || !ptId?.trim()) {
     return NextResponse.json({ error: "Missing id" }, { status: 400 });
   }
+
+  const denied = await assertTruongOrgWriteApi(request, orgId);
+  if (denied) return denied;
 
   let body: Record<string, unknown>;
   try {
@@ -73,13 +73,13 @@ export async function PATCH(request: Request, context: RouteContext) {
 }
 
 export async function DELETE(_request: Request, context: RouteContext) {
-  const denied = assertTruongInlineApi(_request);
-  if (denied) return denied;
-
-  const { ptId } = await context.params;
-  if (!ptId?.trim()) {
+  const { id: orgId, ptId } = await context.params;
+  if (!orgId?.trim() || !ptId?.trim()) {
     return NextResponse.json({ error: "Missing id" }, { status: 400 });
   }
+
+  const denied = await assertTruongOrgWriteApi(_request, orgId);
+  if (denied) return denied;
 
   const supabase = createServiceRoleClient();
   const { error } = await supabase

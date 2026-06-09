@@ -1,3 +1,4 @@
+import { facebookDisplayLabel } from "@/lib/truong/chi-nhanh";
 import type { TruongListItem } from "@/lib/truong/types";
 
 /** Mã enum `tinh_thanh_vn_enum` trên Supabase (không trùng slug UI cũ). */
@@ -72,7 +73,7 @@ export function normalizeTinhThanhForDb(value: unknown): string | null {
 }
 
 export type TruongContactLine = {
-  kind: "address" | "phone" | "email" | "web";
+  kind: "address" | "phone" | "email" | "web" | "facebook";
   label: string;
   value: string;
   href?: string;
@@ -82,24 +83,30 @@ export function buildTruongContactLines(
   school: Pick<
     TruongListItem,
     | "website"
+    | "facebook"
     | "dia_chi"
+    | "chi_nhanh"
     | "dien_thoai"
     | "email_lien_he"
     | "tinh_thanh"
   >,
+  options?: { includeAddress?: boolean },
 ): TruongContactLine[] {
   const lines: TruongContactLine[] = [];
+  const includeAddress = options?.includeAddress ?? true;
 
-  const addressParts: string[] = [];
-  if (school.dia_chi?.trim()) addressParts.push(school.dia_chi.trim());
-  const city = labelTinhThanh(school.tinh_thanh);
-  if (city) addressParts.push(city);
-  if (addressParts.length > 0) {
-    lines.push({
-      kind: "address",
-      label: "Địa chỉ",
-      value: addressParts.join(", "),
-    });
+  if (includeAddress) {
+    const addressParts: string[] = [];
+    if (school.dia_chi?.trim()) addressParts.push(school.dia_chi.trim());
+    const city = labelTinhThanh(school.tinh_thanh);
+    if (city) addressParts.push(city);
+    if (addressParts.length > 0) {
+      lines.push({
+        kind: "address",
+        label: "Địa chỉ",
+        value: addressParts.join(", "),
+      });
+    }
   }
 
   const phone = school.dien_thoai?.trim();
@@ -132,6 +139,16 @@ export function buildTruongContactLines(
       label: "Website",
       value: display,
       href,
+    });
+  }
+
+  const facebook = school.facebook?.trim();
+  if (facebook) {
+    lines.push({
+      kind: "facebook",
+      label: "Facebook",
+      value: facebookDisplayLabel(facebook),
+      href: facebook.startsWith("http") ? facebook : `https://${facebook}`,
     });
   }
 

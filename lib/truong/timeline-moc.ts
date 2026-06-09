@@ -286,6 +286,28 @@ export function timelineLinkLabel(link: string): string {
   return link.replace(/^https?:\/\//i, "").replace(/\/$/, "");
 }
 
+/** Mốc đã qua vs mốc hiện tại / tiếp theo (gần nhất) cho sidebar lịch tuyển sinh. */
+export function getAdmissionTimelineFocus(steps: TuyenSinhTimelineStep[]): {
+  pastIds: Set<string>;
+  currentId: string | null;
+  nextId: string | null;
+} {
+  const pastIds = new Set<string>();
+  for (const step of steps) {
+    if (step.status === "done") pastIds.add(step.id);
+  }
+
+  const active = steps.find((s) => s.status === "active");
+  if (active) {
+    const activeIdx = steps.findIndex((s) => s.id === active.id);
+    const next = steps.slice(activeIdx + 1).find((s) => s.status === "upcoming");
+    return { pastIds, currentId: active.id, nextId: next?.id ?? null };
+  }
+
+  const firstUpcoming = steps.find((s) => s.status === "upcoming");
+  return { pastIds, currentId: null, nextId: firstUpcoming?.id ?? null };
+}
+
 export function buildTuyenSinhTimelineSteps(
   row: TruongTuyenSinhNamRow,
 ): TuyenSinhTimelineStep[] {

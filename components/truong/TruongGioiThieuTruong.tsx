@@ -8,12 +8,15 @@ import { hasTruongGioiThieuContent } from "@/lib/truong/gioi-thieu";
 import type { TruongListItem } from "@/lib/truong/types";
 
 type Props = {
-  school: Pick<TruongListItem, "ten" | "gioi_thieu_truong">;
+  school?: Pick<TruongListItem, "ten" | "gioi_thieu_truong">;
 };
 
-export function TruongGioiThieuTruong({ school }: Props) {
+export function TruongGioiThieuTruong({ school: schoolProp }: Props) {
   const ctx = useTruongInlineEdit();
+  const school = ctx?.school ?? schoolProp;
   const [open, setOpen] = useState(false);
+  if (!school) return null;
+
   const html = school.gioi_thieu_truong;
   const hasContent = hasTruongGioiThieuContent(html);
   const canEdit = Boolean(ctx?.canEdit);
@@ -33,7 +36,7 @@ export function TruongGioiThieuTruong({ school }: Props) {
         onClick={() => setOpen(true)}
         aria-haspopup="dialog"
       >
-        Xem giới thiệu trường
+        {hasContent ? "Lịch sử trường" : "Thêm giới thiệu trường"}
       </button>
       <TruongInlineModal
         open={open}

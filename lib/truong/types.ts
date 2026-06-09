@@ -2,6 +2,14 @@ import type { Block } from "@/lib/editor/types";
 
 export type TruongOrgLoai = "truong_dai_hoc" | "co_so_dao_tao";
 
+export type TruongChiNhanh = {
+  id: string;
+  ten: string;
+  dia_chi: string;
+  tinh_thanh: string | null;
+  dien_thoai?: string | null;
+};
+
 export type TruongListItem = {
   id: string;
   slug: string;
@@ -19,11 +27,15 @@ export type TruongListItem = {
   gioi_thieu_truong: string | null;
   tinh_thanh: string | null;
   dia_chi: string | null;
+  /** Chi nhánh / cơ sở — lưu trong `org_to_chuc.cau_hinh.chi_nhanh`. */
+  chi_nhanh?: TruongChiNhanh[];
   dien_thoai: string | null;
   email_lien_he: string | null;
   ma_truong: string | null;
   loai_truong: string | null;
   website: string | null;
+  /** Fanpage Facebook — `org_to_chuc.cau_hinh.facebook`. */
+  facebook?: string | null;
   ten_chinh_thuc: string | null;
   ten_tieng_anh: string | null;
   nam_thanh_lap: number | null;

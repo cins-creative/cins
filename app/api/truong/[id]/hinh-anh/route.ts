@@ -1,19 +1,19 @@
 import { NextResponse } from "next/server";
 
 import { normalizeHinhAnhLoai } from "@/lib/truong/hinh-anh";
-import { assertTruongInlineApi } from "@/lib/truong/inline-api";
+import { assertTruongOrgWriteApi } from "@/lib/truong/inline-api-auth";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
 export async function POST(request: Request, context: RouteContext) {
-  const denied = assertTruongInlineApi(request);
-  if (denied) return denied;
-
   const { id: orgId } = await context.params;
   if (!orgId?.trim()) {
     return NextResponse.json({ error: "Missing id" }, { status: 400 });
   }
+
+  const denied = await assertTruongOrgWriteApi(request, orgId);
+  if (denied) return denied;
 
   let body: Record<string, unknown>;
   try {
@@ -55,15 +55,15 @@ export async function POST(request: Request, context: RouteContext) {
 }
 
 export async function DELETE(request: Request, context: RouteContext) {
-  const denied = assertTruongInlineApi(request);
-  if (denied) return denied;
-
   const { id: orgId } = await context.params;
   const { searchParams } = new URL(request.url);
   const photoId = searchParams.get("photoId")?.trim();
   if (!orgId?.trim() || !photoId) {
     return NextResponse.json({ error: "Missing ids" }, { status: 400 });
   }
+
+  const denied = await assertTruongOrgWriteApi(request, orgId);
+  if (denied) return denied;
 
   const supabase = createServiceRoleClient();
   const { error } = await supabase

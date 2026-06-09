@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { TruongInlineModal } from "@/components/truong/inline/TruongInlineModal";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
@@ -8,21 +8,94 @@ import {
   TruongYearSelect,
   useYearFilter,
 } from "@/components/truong/YearFilterProvider";
-import { TruongYearTabsPicker } from "@/components/truong/TruongYearTabsPicker";
-import { TruongTimelineMocEditor } from "@/components/truong/tuyensinh/TruongTimelineMocEditor";
+import { TruongTimelineMocSingleForm } from "@/components/truong/tuyensinh/TruongTimelineMocSingleForm";
 import { truongInlineFetch } from "@/lib/truong/inline-api";
 import {
   aggregateTimelineForYear,
   buildTimelineStepsFromMocDraft,
   buildTuyenSinhTimelineSteps,
   emptyTimelineMoc,
+  getAdmissionTimelineFocus,
+  normalizeTimelineMoc,
   parseTimelineMocStore,
   resolveTimelineMocForRow,
   serializeTimelineMocStore,
+  TIMELINE_MOC_MAX_ITEMS,
   timelineLinkHref,
   timelineLinkLabel,
   type TuyenSinhTimelineMoc,
+  type TuyenSinhTimelineStep,
 } from "@/lib/truong/timeline-steps";
+
+type StepRole = "past" | "current" | "next" | "default";
+type MocModalMode = { kind: "new" } | { kind: "edit"; mocId: string };
+
+function TimelineStepItem({
+  step,
+  role,
+  isEditing,
+  onEdit,
+}: {
+  step: TuyenSinhTimelineStep;
+  role: StepRole;
+  isEditing?: boolean;
+  onEdit?: () => void;
+}) {
+  const className = [
+    "timeline-item",
+    step.status,
+    role === "past" ? "timeline-item--past" : "",
+    role === "current" ? "timeline-item--focus timeline-item--current" : "",
+    role === "next" ? "timeline-item--focus timeline-item--next" : "",
+    isEditing ? "timeline-item--editable" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const content = (
+    <>
+      <div className="timeline-dot">{step.dot}</div>
+      <div className="timeline-content">
+        {role === "next" ? (
+          <span className="timeline-focus-kicker">Tiếp theo</span>
+        ) : null}
+        {role === "current" ? (
+          <span className="timeline-focus-kicker timeline-focus-kicker--now">
+            Hiện tại
+          </span>
+        ) : null}
+        <div className="timeline-date">{step.dateLabel}</div>
+        {step.link && !isEditing ? (
+          <a
+            href={timelineLinkHref(step.link)}
+            className="timeline-label timeline-label--link"
+            target="_blank"
+            rel="noopener noreferrer"
+            title={timelineLinkLabel(step.link)}
+          >
+            {step.label}
+          </a>
+        ) : (
+          <div className="timeline-label">{step.label}</div>
+        )}
+        {step.desc ? <p className="timeline-desc">{step.desc}</p> : null}
+        {isEditing ? (
+          <span className="timeline-edit-hint">Bấm để sửa hoặc xóa</span>
+        ) : null}
+      </div>
+    </>
+  );
+
+  if (isEditing && onEdit) {
+    return (
+      <button type="button" className={className} onClick={onEdit}>
+        {content}
+      </button>
+    );
+  }
+
+  return <div className={className}>{content}</div>;
+}
 
 export function TruongAdmissionTimelineSidebar() {
   const ctx = useTruongInlineEdit();
@@ -32,7 +105,9 @@ export function TruongAdmissionTimelineSidebar() {
 
   const [timelineMoc, setTimelineMoc] = useState<TuyenSinhTimelineMoc[]>([]);
   const [tlLink, setTlLink] = useState("");
-  const [editOpen, setEditOpen] = useState(false);
+  const [showPastSteps, setShowPastSteps] = useState(false);
+  const [mocModal, setMocModal] = useState<MocModalMode | null>(null);
+  const persistingMocRef = useRef(false);
 
   const yearRows = useMemo(
     () => tuyenSinh.filter((r) => r.nam === year),
@@ -44,41 +119,74 @@ export function TruongAdmissionTimelineSidebar() {
     [yearRows],
   );
 
+  useEffect(() => {
+    if (!isEditing) {
+      setMocModal(null);
+      return;
+    }
+    if (mocModal || persistingMocRef.current) return;
+    const loaded = timelineRow ? resolveTimelineMocForRow(timelineRow) : [];
+    setTimelineMoc(loaded);
+    setTlLink(timelineRow?.link_thong_tin ?? "");
+  }, [isEditing, year, timelineRow, mocModal]);
+
   const timelineSteps = useMemo(() => {
-    if (isEditing && editOpen) {
+    if (isEditing) {
       const draft = buildTimelineStepsFromMocDraft(timelineMoc);
       if (draft.length) return draft;
     }
     if (timelineRow) return buildTuyenSinhTimelineSteps(timelineRow);
     return [];
-  }, [timelineRow, isEditing, editOpen, timelineMoc]);
+  }, [timelineRow, isEditing, timelineMoc]);
 
-  function openEdit() {
-    setEditOpen(true);
+  const focus = useMemo(
+    () => getAdmissionTimelineFocus(timelineSteps),
+    [timelineSteps],
+  );
+
+  const pastSteps = useMemo(
+    () => timelineSteps.filter((s) => focus.pastIds.has(s.id)),
+    [timelineSteps, focus.pastIds],
+  );
+
+  const visibleSteps = useMemo(
+    () =>
+      showPastSteps
+        ? timelineSteps
+        : timelineSteps.filter((s) => !focus.pastIds.has(s.id)),
+    [timelineSteps, focus.pastIds, showPastSteps],
+  );
+
+  const modalMoc = useMemo(() => {
+    if (!mocModal) return null;
+    if (mocModal.kind === "new") return emptyTimelineMoc();
+    return timelineMoc.find((m) => m.id === mocModal.mocId) ?? null;
+  }, [mocModal, timelineMoc]);
+
+  function stepRole(step: TuyenSinhTimelineStep): StepRole {
+    if (focus.pastIds.has(step.id)) return "past";
+    if (step.id === focus.currentId) return "current";
+    if (step.id === focus.nextId) return "next";
+    return "default";
   }
 
   useEffect(() => {
-    if (!editOpen) return;
-    const loaded = timelineRow ? resolveTimelineMocForRow(timelineRow) : [];
-    setTimelineMoc(loaded.length ? loaded : [emptyTimelineMoc()]);
-    setTlLink(timelineRow?.link_thong_tin ?? "");
-  }, [editOpen, timelineRow]);
+    setShowPastSteps(false);
+  }, [year, timelineSteps.length]);
 
-  async function saveTimeline() {
-    if (!ctx) return;
+  async function persistTimeline(nextMoc: TuyenSinhTimelineMoc[]) {
+    if (!ctx) return false;
     if (!yearRows.length) {
       ctx.showToast(
         `Chưa có dữ liệu tuyển sinh năm ${year}. Thêm dữ liệu năm trên tab Tuyển sinh trước.`,
       );
-      return;
+      return false;
     }
-    const serialized = serializeTimelineMocStore(timelineMoc);
+    const serialized = serializeTimelineMocStore(nextMoc);
     const savedMoc = parseTimelineMocStore(serialized);
     if (!savedMoc?.length) {
-      ctx.showToast(
-        "Cần ít nhất một mốc có tên và ngày (từ hoặc đến).",
-      );
-      return;
+      ctx.showToast("Cần ít nhất một mốc có tên và ngày (từ hoặc đến).");
+      return false;
     }
     const patch = {
       ghi_chu_timeline: serialized,
@@ -98,12 +206,69 @@ export function TruongAdmissionTimelineSidebar() {
     );
     if (results.some((r) => !r.ok)) {
       ctx.setTuyenSinh(prev);
-      ctx.showToast("Lưu lịch thi thất bại");
+      ctx.showToast("Lưu lịch thất bại");
+      return false;
+    }
+    setTimelineMoc(savedMoc);
+    ctx.showToast("Đã cập nhật lịch tuyển sinh");
+    return true;
+  }
+
+  async function handleSaveMoc(moc: TuyenSinhTimelineMoc) {
+    const normalized = normalizeTimelineMoc(moc);
+    if (!normalized) {
+      ctx?.showToast("Cần tên mốc và ít nhất một ngày (từ hoặc đến).");
       return;
     }
-    ctx.showToast("Đã cập nhật lịch tuyển sinh");
-    setEditOpen(false);
+
+    const prevModal = mocModal;
+    const prevTimelineMoc = timelineMoc;
+    let next: TuyenSinhTimelineMoc[];
+    if (mocModal?.kind === "new") {
+      if (timelineMoc.length >= TIMELINE_MOC_MAX_ITEMS) {
+        ctx?.showToast(`Tối đa ${TIMELINE_MOC_MAX_ITEMS} mốc.`);
+        return;
+      }
+      next = [...timelineMoc, normalized];
+    } else {
+      next = timelineMoc.map((item) =>
+        item.id === normalized.id ? normalized : item,
+      );
+    }
+
+    persistingMocRef.current = true;
+    setTimelineMoc(next);
+    setMocModal(null);
+    const ok = await persistTimeline(next);
+    persistingMocRef.current = false;
+    if (!ok) {
+      setMocModal(prevModal);
+      setTimelineMoc(prevTimelineMoc);
+    }
   }
+
+  async function handleDeleteMoc() {
+    if (!mocModal || mocModal.kind !== "edit") return;
+    const next = timelineMoc.filter((m) => m.id !== mocModal.mocId);
+    if (!next.length) {
+      ctx?.showToast("Cần ít nhất một mốc trên lịch.");
+      return;
+    }
+    const prevModal = mocModal;
+    const prevTimelineMoc = timelineMoc;
+    persistingMocRef.current = true;
+    setTimelineMoc(next);
+    setMocModal(null);
+    const ok = await persistTimeline(next);
+    persistingMocRef.current = false;
+    if (!ok) {
+      setMocModal(prevModal);
+      setTimelineMoc(prevTimelineMoc);
+    }
+  }
+
+  const canAddMoc =
+    isEditing && timelineMoc.length < TIMELINE_MOC_MAX_ITEMS && yearRows.length > 0;
 
   return (
     <>
@@ -113,105 +278,91 @@ export function TruongAdmissionTimelineSidebar() {
             <p className="timeline-year-kicker">Tuyển sinh</p>
             <TruongYearSelect label="Năm lịch" />
           </div>
-          {isEditing ? (
-            <button
-              type="button"
-              className="tdh-admission-side-edit"
-              onClick={() => (editOpen ? setEditOpen(false) : openEdit())}
-            >
-              {editOpen ? "Đóng sửa lịch" : "Sửa lịch mốc"}
-            </button>
-          ) : null}
         </div>
 
         <section className="timeline-section timeline-section--rail">
-          {timelineSteps.length === 0 ? (
+          {timelineSteps.length === 0 && !isEditing ? (
             <p className="ptxt-empty-text tdh-admission-side-empty">
               Chưa có lịch cho năm {year}.
-              {isEditing ? " Bấm «Sửa lịch mốc» để thêm." : null}
             </p>
           ) : (
             <div className="timeline">
-              {timelineSteps.map((step) => (
-                <div
-                  key={step.id}
-                  className={`timeline-item ${step.status}`}
+              {!showPastSteps && pastSteps.length > 0 ? (
+                <button
+                  type="button"
+                  className="timeline-past-toggle"
+                  onClick={() => setShowPastSteps(true)}
                 >
-                  <div className="timeline-dot">{step.dot}</div>
-                  <div className="timeline-content">
-                    <div className="timeline-date">{step.dateLabel}</div>
-                    {step.link ? (
-                      <a
-                        href={timelineLinkHref(step.link)}
-                        className="timeline-label timeline-label--link"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title={timelineLinkLabel(step.link)}
-                      >
-                        {step.label}
-                      </a>
-                    ) : (
-                      <div className="timeline-label">{step.label}</div>
-                    )}
-                    {step.desc ? (
-                      <p className="timeline-desc">{step.desc}</p>
-                    ) : null}
-                  </div>
-                </div>
+                  Xem thêm {pastSteps.length} mốc đã qua
+                </button>
+              ) : null}
+              {showPastSteps && pastSteps.length > 0 ? (
+                <button
+                  type="button"
+                  className="timeline-past-toggle timeline-past-toggle--collapse"
+                  onClick={() => setShowPastSteps(false)}
+                >
+                  Ẩn mốc đã qua
+                </button>
+              ) : null}
+              {visibleSteps.map((step) => (
+                <TimelineStepItem
+                  key={step.id}
+                  step={step}
+                  role={stepRole(step)}
+                  isEditing={isEditing}
+                  onEdit={
+                    isEditing
+                      ? () => setMocModal({ kind: "edit", mocId: step.id })
+                      : undefined
+                  }
+                />
               ))}
+              {canAddMoc ? (
+                <button
+                  type="button"
+                  className="timeline-item timeline-add-moc"
+                  onClick={() => setMocModal({ kind: "new" })}
+                >
+                  <div className="timeline-dot timeline-dot--add">+</div>
+                  <div className="timeline-content">
+                    <div className="timeline-label">Thêm mốc</div>
+                    <p className="timeline-desc">Nhập tên, ngày và mô tả mốc mới</p>
+                  </div>
+                </button>
+              ) : null}
+              {isEditing && !yearRows.length ? (
+                <p className="tdh-admission-side-empty tdh-admission-side-empty--inline">
+                  Thêm dữ liệu tuyển sinh năm {year} trước khi tạo mốc lịch.
+                </p>
+              ) : null}
             </div>
           )}
         </section>
       </aside>
 
       <TruongInlineModal
-        open={editOpen}
-        onClose={() => setEditOpen(false)}
-        className="tdh-inline-modal--wide tdh-timeline-moc-modal"
-        labelledBy="tdh-timeline-moc-title"
+        open={mocModal !== null && modalMoc !== null}
+        onClose={() => setMocModal(null)}
+        className="tdh-inline-modal--wide tdh-timeline-moc-single-modal"
+        labelledBy="tdh-timeline-moc-single-title"
       >
-        <div className="tdh-timeline-moc-modal-inner">
-          <header className="tdh-timeline-moc-modal-head">
-            <h3 id="tdh-timeline-moc-title" className="tdh-inline-modal-title">
-              Lịch tuyển sinh
-            </h3>
-            <div className="tdh-timeline-moc-modal-year">
-              <span className="tdh-timeline-moc-year-label">Năm</span>
-              <TruongYearTabsPicker className="tdh-timeline-moc-year-tabs" />
-            </div>
-            <p className="tdh-calc-config-lead">
-              Áp dụng cho tất cả ngành trong năm {year}.
-              {yearRows.length === 0
-                ? " Chưa có bản ghi tuyển sinh — thêm dữ liệu năm trước khi lưu lịch."
-                : null}
-            </p>
-          </header>
-          <div className="tdh-timeline-moc-modal-body">
-            <TruongTimelineMocEditor
-              moc={timelineMoc}
-              onChange={setTimelineMoc}
-              linkThongTin={tlLink}
-              onLinkThongTinChange={setTlLink}
-            />
-          </div>
-          <div className="tdh-inline-modal-actions tdh-timeline-moc-modal-foot">
-            <button
-              type="button"
-              className="tdh-inline-btn ghost"
-              onClick={() => setEditOpen(false)}
-            >
-              Hủy
-            </button>
-            <button
-              type="button"
-              className="tdh-inline-btn primary"
-              disabled={yearRows.length === 0}
-              onClick={() => void saveTimeline()}
-            >
-              Lưu lịch {year}
-            </button>
-          </div>
-        </div>
+        <h3 id="tdh-timeline-moc-single-title" className="tdh-inline-modal-title">
+          {mocModal?.kind === "new" ? "Thêm mốc lịch" : "Sửa mốc lịch"}
+        </h3>
+        <p className="tdh-calc-config-lead">
+          Áp dụng cho tất cả ngành trong năm {year}.
+        </p>
+        {modalMoc ? (
+          <TruongTimelineMocSingleForm
+            initial={modalMoc}
+            onSubmit={(moc) => void handleSaveMoc(moc)}
+            onDelete={
+              mocModal?.kind === "edit" ? () => void handleDeleteMoc() : undefined
+            }
+            submitLabel={mocModal?.kind === "new" ? "Thêm mốc" : "Lưu mốc"}
+          />
+        ) : null}
       </TruongInlineModal>
     </>
   );

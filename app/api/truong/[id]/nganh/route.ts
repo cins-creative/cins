@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { assertTruongInlineApi } from "@/lib/truong/inline-api";
+import { assertTruongOrgWriteApi } from "@/lib/truong/inline-api-auth";
 import {
   linkNganhToOrg,
   listNganhCandidatesForOrg,
@@ -10,13 +10,13 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 type RouteContext = { params: Promise<{ id: string }> };
 
 export async function GET(request: Request, context: RouteContext) {
-  const denied = assertTruongInlineApi(request);
-  if (denied) return denied;
-
   const { id: orgId } = await context.params;
   if (!orgId?.trim()) {
     return NextResponse.json({ error: "Invalid id" }, { status: 400 });
   }
+
+  const denied = await assertTruongOrgWriteApi(request, orgId);
+  if (denied) return denied;
 
   const supabase = createServiceRoleClient();
   const items = await listNganhCandidatesForOrg(supabase, orgId.trim());
@@ -25,13 +25,13 @@ export async function GET(request: Request, context: RouteContext) {
 }
 
 export async function POST(request: Request, context: RouteContext) {
-  const denied = assertTruongInlineApi(request);
-  if (denied) return denied;
-
   const { id: orgId } = await context.params;
   if (!orgId?.trim()) {
     return NextResponse.json({ error: "Invalid id" }, { status: 400 });
   }
+
+  const denied = await assertTruongOrgWriteApi(request, orgId);
+  if (denied) return denied;
 
   let body: { idNganh?: unknown; orgSlug?: unknown };
   try {

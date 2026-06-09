@@ -21,11 +21,22 @@ export function TruongNganhMonThiDauVao({
   open,
   cached,
 }: Props) {
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [fetched, setFetched] = useState<TruongCauHinhTinhDiem | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!open || cached?.mon.length || !orgId.trim() || !programId.trim()) {
+    if (!open) setDetailsOpen(false);
+  }, [open]);
+
+  useEffect(() => {
+    if (
+      !open ||
+      !detailsOpen ||
+      cached?.mon.length ||
+      !orgId.trim() ||
+      !programId.trim()
+    ) {
       setFetched(null);
       setLoading(false);
       return;
@@ -60,7 +71,7 @@ export function TruongNganhMonThiDauVao({
     return () => {
       cancelled = true;
     };
-  }, [open, cached?.mon.length, orgId, programId, year]);
+  }, [open, detailsOpen, cached?.mon.length, orgId, programId, year]);
 
   const config = cached?.mon.length ? cached : fetched;
   const { khoiLabel, monItems } = useMemo(
@@ -70,36 +81,59 @@ export function TruongNganhMonThiDauVao({
 
   return (
     <div className="nganh-mon-thi">
-      <div className="nib-cell-label">Môn thi đầu vào {year}</div>
-      {loading ? (
-        <p className="nganh-mon-thi-placeholder">Đang tải…</p>
-      ) : monItems.length > 0 ? (
-        <>
-          {khoiLabel ? (
-            <p className="nganh-mon-thi-khoi">
-              <span className="cins-meta">Khối</span> {khoiLabel}
-            </p>
-          ) : null}
-          <ul className="nganh-mon-thi-list" aria-label="Danh sách môn thi">
-            {monItems.map((item) => (
-              <li key={item.key} className="nganh-mon-thi-chip">
-                <MonThiThumb
-                  className="nganh-mon-thi-chip-thumb"
-                  ten={item.ten}
-                  loai={item.loai}
-                  ma={item.ma}
-                  thumbnail_id={item.thumbnail_id}
-                  thumbnail_url={item.thumbnail_url}
-                />
-                <span className="nganh-mon-thi-chip-label">{item.label}</span>
-              </li>
-            ))}
-          </ul>
-        </>
+      {!detailsOpen ? (
+        <button
+          type="button"
+          className="nganh-mon-thi-toggle"
+          onClick={() => setDetailsOpen(true)}
+          aria-expanded={false}
+        >
+          Xem môn thi đầu vào
+        </button>
       ) : (
-        <p className="nganh-mon-thi-placeholder">
-          Chưa có cấu hình môn thi cho năm {year}.
-        </p>
+        <>
+          <div className="nganh-mon-thi-hdr">
+            <div className="nib-cell-label">Môn thi đầu vào {year}</div>
+            <button
+              type="button"
+              className="nganh-mon-thi-collapse"
+              onClick={() => setDetailsOpen(false)}
+              aria-expanded={true}
+            >
+              Thu gọn
+            </button>
+          </div>
+          {loading ? (
+            <p className="nganh-mon-thi-placeholder">Đang tải…</p>
+          ) : monItems.length > 0 ? (
+            <>
+              {khoiLabel ? (
+                <p className="nganh-mon-thi-khoi">
+                  <span className="cins-meta">Khối</span> {khoiLabel}
+                </p>
+              ) : null}
+              <ul className="nganh-mon-thi-list" aria-label="Danh sách môn thi">
+                {monItems.map((item) => (
+                  <li key={item.key} className="nganh-mon-thi-chip">
+                    <MonThiThumb
+                      className="nganh-mon-thi-chip-thumb"
+                      ten={item.ten}
+                      loai={item.loai}
+                      ma={item.ma}
+                      thumbnail_id={item.thumbnail_id}
+                      thumbnail_url={item.thumbnail_url}
+                    />
+                    <span className="nganh-mon-thi-chip-label">{item.label}</span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            <p className="nganh-mon-thi-placeholder">
+              Chưa có cấu hình môn thi cho năm {year}.
+            </p>
+          )}
+        </>
       )}
     </div>
   );

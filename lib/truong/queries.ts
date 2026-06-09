@@ -6,6 +6,10 @@ import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { parseBaiDangBlocks } from "@/lib/truong/bai-dang-blocks";
 import { formatHocPhiLabel } from "@/lib/truong/display";
 import { enrichProgramsWithCoverSrcSync } from "@/lib/truong/program-cover";
+import {
+  parseChiNhanhFromCauHinh,
+  parseFacebookFromCauHinh,
+} from "@/lib/truong/chi-nhanh";
 import { resolveTruongImageSrc, resolveTruongImageSrcSync } from "@/lib/truong/media-url";
 
 import {
@@ -56,6 +60,7 @@ type OrgEmbed = {
   dia_chi?: string | null;
   dien_thoai?: string | null;
   email_lien_he?: string | null;
+  cau_hinh?: unknown;
 };
 
 type OrgDaiHocEmbed = {
@@ -140,11 +145,13 @@ function mapListFields(
     gioi_thieu_truong: org.gioi_thieu_truong?.trim() || null,
     tinh_thanh: org.tinh_thanh?.trim() || null,
     dia_chi: org.dia_chi?.trim() || null,
+    chi_nhanh: parseChiNhanhFromCauHinh(org.cau_hinh) ?? undefined,
     dien_thoai: org.dien_thoai?.trim() || null,
     email_lien_he: org.email_lien_he?.trim() || null,
     ma_truong: otd?.ma_truong?.trim() || null,
     loai_truong: otd?.loai_truong?.trim() || null,
     website: otd?.website?.trim() || null,
+    facebook: parseFacebookFromCauHinh(org.cau_hinh),
     ten_chinh_thuc: otd?.ten_chinh_thuc?.trim() || null,
     ten_tieng_anh: otd?.ten_tieng_anh?.trim() || null,
     nam_thanh_lap:
@@ -505,9 +512,9 @@ export async function fetchHinhAnh(
   await Promise.all(
     rows.map(async (photo) => {
       photo.src = await resolveTruongImageSrc(photo.cloudflare_id, [
-        "medium",
         "public",
         "cover",
+        "medium",
       ]);
     }),
   );
@@ -733,6 +740,7 @@ const ORG_DETAIL_SELECT_WITH_CONTACT = `
   dia_chi,
   dien_thoai,
   email_lien_he,
+  cau_hinh,
   logo_id,
   avatar_id,
   cover_id,

@@ -1,18 +1,18 @@
 import { NextResponse } from "next/server";
 
 import { uploadToCloudflareImages } from "@/lib/cloudflare/upload-image";
-import { assertTruongInlineApi } from "@/lib/truong/inline-api";
+import { assertTruongOrgWriteApi } from "@/lib/truong/inline-api-auth";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
 export async function POST(request: Request, context: RouteContext) {
-  const denied = assertTruongInlineApi(request);
-  if (denied) return denied;
-
   const { id } = await context.params;
   if (!id?.trim()) {
     return NextResponse.json({ error: "Missing id" }, { status: 400 });
   }
+
+  const denied = await assertTruongOrgWriteApi(request, id);
+  if (denied) return denied;
 
   let form: FormData;
   try {

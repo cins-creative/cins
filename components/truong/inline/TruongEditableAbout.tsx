@@ -3,24 +3,34 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { ArticleDraftContentEditor } from "@/components/article/draft/ArticleDraftContentEditor";
+import { TruongChiNhanhEditor } from "@/components/truong/tuyensinh/TruongChiNhanhEditor";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
 import { TruongInlineModal } from "@/components/truong/inline/TruongInlineModal";
 import {
-  normalizeTinhThanhForDb,
-  TINH_THANH_OPTIONS,
-} from "@/lib/truong/contact";
+  emptyChiNhanh,
+  normalizeChiNhanhList,
+  normalizeFacebookUrl,
+  primaryContactFromChiNhanh,
+  resolveTruongChiNhanh,
+} from "@/lib/truong/chi-nhanh";
 import { normalizeTruongGioiThieuHtml } from "@/lib/truong/gioi-thieu";
+import type { TruongChiNhanh } from "@/lib/truong/types";
 
 import "@/styles/article-draft-tiptap.css";
 
-export function TruongEditableAbout() {
+type Props = {
+  /** Ẩn nút mặc định — dùng `openSchoolAboutEditor` hoặc nút tùy chỉnh. */
+  hideTrigger?: boolean;
+};
+
+export function TruongEditableAbout({ hideTrigger = false }: Props) {
   const ctx = useTruongInlineEdit();
   const [open, setOpen] = useState(false);
   const [gioiThieu, setGioiThieu] = useState("<p></p>");
   const [website, setWebsite] = useState("");
+  const [facebook, setFacebook] = useState("");
   const [tenEn, setTenEn] = useState("");
-  const [diaChi, setDiaChi] = useState("");
-  const [tinhThanh, setTinhThanh] = useState("");
+  const [chiNhanh, setChiNhanh] = useState<TruongChiNhanh[]>([]);
   const [dienThoai, setDienThoai] = useState("");
   const [email, setEmail] = useState("");
 
@@ -29,9 +39,10 @@ export function TruongEditableAbout() {
     if (!ctx.editMode) ctx.setEditMode(true);
     setGioiThieu(ctx.school.gioi_thieu_truong?.trim() || "<p></p>");
     setWebsite(ctx.school.website ?? "");
+    setFacebook(ctx.school.facebook ?? "");
     setTenEn(ctx.school.ten_tieng_anh ?? "");
-    setDiaChi(ctx.school.dia_chi ?? "");
-    setTinhThanh(normalizeTinhThanhForDb(ctx.school.tinh_thanh) ?? "");
+    const branches = resolveTruongChiNhanh(ctx.school);
+    setChiNhanh(branches.length ? branches : [emptyChiNhanh()]);
     setDienThoai(ctx.school.dien_thoai ?? "");
     setEmail(ctx.school.email_lien_he ?? "");
     setOpen(true);
@@ -47,12 +58,20 @@ export function TruongEditableAbout() {
 
   async function save() {
     if (!ctx) return;
+    const normalizedBranches = normalizeChiNhanhList(chiNhanh);
+    if (!normalizedBranches.length) {
+      ctx.showToast("Cần ít nhất một chi nhánh có tên và địa chỉ.");
+      return;
+    }
+    const primary = primaryContactFromChiNhanh(normalizedBranches);
     const ok = await ctx.patchSchool({
       gioi_thieu_truong: normalizeTruongGioiThieuHtml(gioiThieu),
       website: website.trim() || null,
+      facebook: normalizeFacebookUrl(facebook),
       ten_tieng_anh: tenEn.trim() || null,
-      dia_chi: diaChi.trim() || null,
-      tinh_thanh: normalizeTinhThanhForDb(tinhThanh),
+      chi_nhanh: normalizedBranches,
+      dia_chi: primary.dia_chi,
+      tinh_thanh: primary.tinh_thanh,
       dien_thoai: dienThoai.trim() || null,
       email_lien_he: email.trim() || null,
     });
@@ -61,13 +80,15 @@ export function TruongEditableAbout() {
 
   return (
     <>
-      <button
-        type="button"
-        className="tdh-inline-text-btn"
-        onClick={startEdit}
-      >
-        Sửa giới thiệu
-      </button>
+      {hideTrigger ? null : (
+        <button
+          type="button"
+          className="tdh-inline-text-btn"
+          onClick={startEdit}
+        >
+          Sửa giới thiệu
+        </button>
+      )}
       <TruongInlineModal
         open={open}
         onClose={() => setOpen(false)}
@@ -90,28 +111,19 @@ export function TruongEditableAbout() {
           />
         </label>
         <label className="tdh-inline-field">
-          <span>Địa chỉ</span>
+          <span>Facebook</span>
           <input
-            value={diaChi}
-            onChange={(e) => setDiaChi(e.target.value)}
-            placeholder="Số nhà, đường, quận…"
+            value={facebook}
+            onChange={(e) => setFacebook(e.target.value)}
+            placeholder="facebook.com/truong hoặc URL fanpage"
           />
         </label>
+        <div className="tdh-inline-field">
+          <span>Chi nhánh / cơ sở</span>
+          <TruongChiNhanhEditor branches={chiNhanh} onChange={setChiNhanh} />
+        </div>
         <label className="tdh-inline-field">
-          <span>Tỉnh / thành phố</span>
-          <select
-            value={tinhThanh}
-            onChange={(e) => setTinhThanh(e.target.value)}
-          >
-            {TINH_THANH_OPTIONS.map((opt) => (
-              <option key={opt.value || "none"} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="tdh-inline-field">
-          <span>Điện thoại</span>
+          <span>Điện thoại tổng đài</span>
           <input
             value={dienThoai}
             onChange={(e) => setDienThoai(e.target.value)}

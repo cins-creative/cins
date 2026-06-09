@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { assertTruongInlineApi } from "@/lib/truong/inline-api";
+import { assertTruongOrgWriteApi } from "@/lib/truong/inline-api-auth";
 import { resolveCauHinhTinhDiemApi } from "@/lib/truong/cau-hinh-tinh-diem";
 import { saveCauHinhMonThi } from "@/lib/truong/save-cau-hinh-mon-thi";
 import type { TruongCauHinhMon } from "@/lib/truong/types";
@@ -42,13 +42,13 @@ export async function GET(request: Request, context: RouteContext) {
 }
 
 export async function PUT(request: Request, context: RouteContext) {
-  const denied = assertTruongInlineApi(request);
-  if (denied) return denied;
-
   const { id: orgId } = await context.params;
   if (!orgId?.trim()) {
     return NextResponse.json({ error: "Invalid id" }, { status: 400 });
   }
+
+  const denied = await assertTruongOrgWriteApi(request, orgId);
+  if (denied) return denied;
 
   let body: { nam?: unknown; nganh?: unknown; mon?: unknown };
   try {

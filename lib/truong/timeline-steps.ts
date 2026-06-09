@@ -4,6 +4,7 @@ export type {
 } from "@/lib/truong/timeline-moc";
 export {
   aggregateTimelineForYear,
+  getAdmissionTimelineFocus,
   buildTuyenSinhTimelineSteps,
   buildTimelineStepsFromMoc,
   buildTimelineStepsFromMocDraft,
@@ -15,6 +16,7 @@ export {
   resolveTimelineMocForRow,
   legacyTimelineToMoc,
   emptyTimelineMoc,
+  normalizeTimelineMoc,
   newTimelineMocId,
   TIMELINE_MOC_LABEL_MAX,
   TIMELINE_MOC_DESC_MAX,

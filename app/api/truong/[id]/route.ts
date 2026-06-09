@@ -1,7 +1,17 @@
 import { NextResponse } from "next/server";
 
-import { assertTruongInlineApi } from "@/lib/truong/inline-api";
+import { assertTruongOrgWriteApi } from "@/lib/truong/inline-api-auth";
+import {
+  mergeChiNhanhIntoCauHinh,
+  mergeFacebookIntoCauHinh,
+  normalizeChiNhanhList,
+  normalizeFacebookUrl,
+  parseChiNhanhFromCauHinh,
+  parseFacebookFromCauHinh,
+  primaryContactFromChiNhanh,
+} from "@/lib/truong/chi-nhanh";
 import { normalizeTinhThanhForDb } from "@/lib/truong/contact";
+import type { TruongChiNhanh } from "@/lib/truong/types";
 import {
   emptyOrgContactFields,
   isMissingOrgContactColumnError,
@@ -27,6 +37,7 @@ const ORG_TO_CHUC_FIELDS = [
 const ORG_TRUONG_DAI_HOC_FIELDS = [
   "ten_tieng_anh",
   "website",
+  "nam_thanh_lap",
   "hoc_phi_nam_tu",
   "hoc_phi_nam_den",
   "co_ktx",
@@ -37,6 +48,7 @@ const ORG_TRUONG_DAI_HOC_EMBED = `
   org_truong_dai_hoc (
     ten_tieng_anh,
     website,
+    nam_thanh_lap,
     hoc_phi_nam_tu,
     hoc_phi_nam_den,
     co_ktx,
@@ -54,6 +66,7 @@ const ORG_SELECT_WITH_CONTACT = `
   dia_chi,
   dien_thoai,
   email_lien_he,
+  cau_hinh,
   cover_id,
   avatar_id,
   ${ORG_TRUONG_DAI_HOC_EMBED}
@@ -151,13 +164,13 @@ async function fetchOrgAfterPatch(
 }
 
 export async function PATCH(request: Request, context: RouteContext) {
-  const denied = assertTruongInlineApi(request);
-  if (denied) return denied;
-
   const { id } = await context.params;
   if (!id?.trim()) {
     return NextResponse.json({ error: "Missing id" }, { status: 400 });
   }
+
+  const denied = await assertTruongOrgWriteApi(request, id);
+  if (denied) return denied;
 
   let body: Record<string, unknown>;
   try {
@@ -176,11 +189,38 @@ export async function PATCH(request: Request, context: RouteContext) {
     if (key in body) otdPatch[key] = body[key];
   }
 
+  const supabase = createServiceRoleClient();
+
+  let currentCauHinh: unknown = undefined;
+  if ("chi_nhanh" in body || "facebook" in body) {
+    const { data: currentOrg } = await supabase
+      .from("org_to_chuc")
+      .select("cau_hinh")
+      .eq("id", id)
+      .maybeSingle();
+    currentCauHinh = currentOrg?.cau_hinh;
+  }
+
+  if ("chi_nhanh" in body && Array.isArray(body.chi_nhanh)) {
+    const normalized = normalizeChiNhanhList(body.chi_nhanh as TruongChiNhanh[]);
+    orgPatch.cau_hinh = mergeChiNhanhIntoCauHinh(currentCauHinh, normalized);
+    currentCauHinh = orgPatch.cau_hinh;
+    const primary = primaryContactFromChiNhanh(normalized);
+    orgPatch.dia_chi = primary.dia_chi;
+    orgPatch.tinh_thanh = primary.tinh_thanh;
+  }
+
+  if ("facebook" in body) {
+    const fb = normalizeFacebookUrl(body.facebook);
+    orgPatch.cau_hinh = mergeFacebookIntoCauHinh(
+      orgPatch.cau_hinh ?? currentCauHinh,
+      fb,
+    );
+  }
+
   if (Object.keys(orgPatch).length === 0 && Object.keys(otdPatch).length === 0) {
     return NextResponse.json({ error: "No fields to update" }, { status: 400 });
   }
-
-  const supabase = createServiceRoleClient();
 
   let contactFieldsSkipped = false;
 
@@ -222,12 +262,20 @@ export async function PATCH(request: Request, context: RouteContext) {
       gioi_thieu_truong: orgRow.gioi_thieu_truong ?? null,
       tinh_thanh: orgRow.tinh_thanh ?? null,
       dia_chi: orgRow.dia_chi ?? null,
+      chi_nhanh:
+        parseChiNhanhFromCauHinh(
+          (orgRow as { cau_hinh?: unknown }).cau_hinh,
+        ) ?? [],
       dien_thoai: orgRow.dien_thoai ?? null,
       email_lien_he: orgRow.email_lien_he ?? null,
       cover_id: orgRow.cover_id,
       avatar_id: orgRow.avatar_id,
       ten_tieng_anh: otd?.ten_tieng_anh ?? null,
       website: otd?.website ?? null,
+      facebook: parseFacebookFromCauHinh(
+        (orgRow as { cau_hinh?: unknown }).cau_hinh,
+      ),
+      nam_thanh_lap: otd?.nam_thanh_lap ?? null,
       hoc_phi_nam_tu: otd?.hoc_phi_nam_tu ?? null,
       hoc_phi_nam_den: otd?.hoc_phi_nam_den ?? null,
       co_ktx: otd?.co_ktx ?? null,

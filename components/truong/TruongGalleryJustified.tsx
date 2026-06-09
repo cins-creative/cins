@@ -3,7 +3,7 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { computeJustifiedRows } from "@/lib/truong/gallery-justified";
-import { hinhAnhDisplayUrl } from "@/lib/truong/hinh-anh-display";
+import { hinhAnhDisplayUrlCandidates } from "@/lib/truong/hinh-anh-display";
 import type { TruongHinhAnh } from "@/lib/truong/types";
 
 type Props = {
@@ -20,6 +20,7 @@ export function TruongGalleryJustified({
   const rootRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
   const [aspects, setAspects] = useState<Record<string, number>>({});
+  const [srcIndex, setSrcIndex] = useState<Record<string, number>>({});
 
   const onImgLoad = useCallback((id: string, el: HTMLImageElement) => {
     const w = el.naturalWidth;
@@ -28,6 +29,13 @@ export function TruongGalleryJustified({
     const ar = w / h;
     setAspects((prev) => (prev[id] === ar ? prev : { ...prev, [id]: ar }));
   }, []);
+
+  const onImgError = useCallback((id: string, candidates: string[]) => {
+    const idx = srcIndex[id] ?? 0;
+    if (idx + 1 < candidates.length) {
+      setSrcIndex((prev) => ({ ...prev, [id]: idx + 1 }));
+    }
+  }, [srcIndex]);
 
   useLayoutEffect(() => {
     const el = rootRef.current;
@@ -45,17 +53,20 @@ export function TruongGalleryJustified({
     () =>
       images
         .map((img) => {
-          const src = hinhAnhDisplayUrl(img);
-          if (!src) return null;
+          const candidates = hinhAnhDisplayUrlCandidates(img);
+          if (!candidates.length) return null;
+          const idx = srcIndex[img.id] ?? 0;
+          const src = candidates[Math.min(idx, candidates.length - 1)];
           return {
             id: img.id,
             src,
+            candidates,
             aspectRatio: aspects[img.id] ?? defaultAspect,
             img,
           };
         })
         .filter((x): x is NonNullable<typeof x> => x !== null),
-    [images, aspects, defaultAspect],
+    [images, aspects, defaultAspect, srcIndex],
   );
 
   const rows = useMemo(
@@ -98,6 +109,7 @@ export function TruongGalleryJustified({
                       loading="lazy"
                       decoding="async"
                       onLoad={(e) => onImgLoad(cell.id, e.currentTarget)}
+                      onError={() => onImgError(cell.id, entry.candidates)}
                     />
                     {renderOverlay ? renderOverlay(entry.img) : null}
                   </div>

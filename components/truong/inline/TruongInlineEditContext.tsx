@@ -322,7 +322,7 @@ export function TruongInlineEditProvider({
       if (token) headers.Authorization = `Bearer ${token}`;
       const res = await fetch(
         `/api/truong/${encodeURIComponent(school.id)}/upload`,
-        { method: "POST", body: form, headers },
+        { method: "POST", body: form, headers, credentials: "same-origin" },
       );
       if (!res.ok) return null;
       const json = (await res.json()) as { imageId: string; url: string };
