@@ -10,7 +10,9 @@ export function defaultThangDiemForHeSo(heSo: number): number {
  * Thang dùng cho ô nhập & mẫu số chuẩn hóa.
  * DB có thể ghi thang 20 cho môn hệ số 2 (chuẩn thi); máy tính thống nhất thang 10.
  */
-export function effectiveThangDiemForCalc(m: TruongCauHinhMon): number {
+export function effectiveThangDiemForCalc(
+  m: Pick<TruongCauHinhMon, "he_so" | "thang_diem">,
+): number {
   if (m.he_so >= 2 && m.thang_diem === 20) return 10;
   return m.thang_diem > 0 ? m.thang_diem : 10;
 }

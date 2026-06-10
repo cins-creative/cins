@@ -231,7 +231,8 @@ function TruongHinhAnhManageDialog({
 
   if (!ctx) return null;
 
-  const count = ctx.hinhanh.length;
+  const editCtx = ctx;
+  const count = editCtx.hinhanh.length;
   const dirty = !draftMapsEqual(draft, snapshot);
 
   function updateDraft(photoId: string, patch: Partial<DraftRow>) {
@@ -257,7 +258,7 @@ function TruongHinhAnhManageDialog({
   }
 
   function handleCancel() {
-    ctx.setHinhanh((list) =>
+    editCtx.setHinhanh((list) =>
       list.map((photo) => {
         const snap = snapshot.get(photo.id);
         if (!snap) return photo;
@@ -282,7 +283,7 @@ function TruongHinhAnhManageDialog({
       patch: { loai?: HinhAnhLoai; caption?: string | null };
     }> = [];
 
-    for (const photo of ctx.hinhanh) {
+    for (const photo of editCtx.hinhanh) {
       if (photo.id.startsWith("tmp-")) continue;
       const row = draft.get(photo.id);
       const snap = snapshot.get(photo.id);
@@ -303,26 +304,26 @@ function TruongHinhAnhManageDialog({
     }
 
     setSaving(true);
-    const prev = ctx.hinhanh;
-    ctx.setHinhanh(applyDraftToList(prev));
+    const prev = editCtx.hinhanh;
+    editCtx.setHinhanh(applyDraftToList(prev));
 
     for (const { photoId, patch } of patches) {
-      const res = await truongInlineFetch(ctx.orgId, "/hinh-anh", {
+      const res = await truongInlineFetch(editCtx.orgId, "/hinh-anh", {
         method: "PATCH",
         body: JSON.stringify({ photoId, ...patch }),
       });
       if (!res.ok) {
-        ctx.setHinhanh(prev);
+        editCtx.setHinhanh(prev);
         setSaving(false);
         const msg = await readTruongInlineError(res);
-        ctx.showToast(`Lưu thay đổi gallery thất bại: ${msg}`);
+        editCtx.showToast(`Lưu thay đổi gallery thất bại: ${msg}`);
         return;
       }
     }
 
     setSnapshot(new Map(draft));
     setSaving(false);
-    ctx.showToast("Đã lưu gallery ảnh");
+    editCtx.showToast("Đã lưu gallery ảnh");
     onClose();
   }
 
@@ -354,7 +355,7 @@ function TruongHinhAnhManageDialog({
         </button>
       </div>
 
-      <TruongHinhAnhUploadPanel onNotify={(msg) => ctx.showToast(msg)} />
+      <TruongHinhAnhUploadPanel onNotify={(msg) => editCtx.showToast(msg)} />
 
       <div className="tdh-hinhanh-manage-section">
         <h4 className="tdh-hinhanh-manage-section-title">
@@ -363,7 +364,7 @@ function TruongHinhAnhManageDialog({
         <TruongHinhAnhManageTable
           draft={draft}
           onDraftChange={updateDraft}
-          onNotify={(msg) => ctx.showToast(msg)}
+          onNotify={(msg) => editCtx.showToast(msg)}
         />
       </div>
 
