@@ -3,12 +3,35 @@ import "server-only";
 import { getCurrentUserIsCinsAdmin } from "@/lib/auth/cins-admin-server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
+import {
+  canChangeCoSoSlug,
+  canManageCoSoMembers,
+  coSoVaiTroLabel,
+  pickCoSoStaffVaiTro,
+  type CoSoStaffVaiTro,
+} from "./co-so-vai-tro";
+
 const CO_SO_ADMIN_ROLES = [
   "owner",
   "admin",
   "quan_ly_noi_dung",
   "quan_ly_tuyen_sinh",
 ] as const;
+
+export async function getViewerCoSoVaiTro(
+  profileId: string,
+  orgId: string,
+): Promise<CoSoStaffVaiTro | null> {
+  const admin = createServiceRoleClient();
+  const { data: rows } = await admin
+    .from("user_thanh_vien_to_chuc")
+    .select("vai_tro")
+    .eq("id_to_chuc", orgId)
+    .eq("id_nguoi_dung", profileId);
+
+  if (!rows?.length) return null;
+  return pickCoSoStaffVaiTro(rows.map((row) => row.vai_tro as string));
+}
 
 export async function isCoSoOrgAdmin(
   orgId: string,

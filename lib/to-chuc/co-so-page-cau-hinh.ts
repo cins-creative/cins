@@ -19,7 +19,7 @@ export const CO_SO_TAB_LABELS: Record<CoSoTabId, string> = {
   "bai-dang": "Bài đăng",
   "khoa-hoc": "Khóa học",
   "san-pham": "Sản phẩm học viên",
-  "hinh-anh": "Hình ảnh",
+  "hinh-anh": "Hình ảnh cơ sở",
 };
 
 export function parseCoSoPageCauHinh(raw: unknown): CoSoPageCauHinh {
@@ -52,13 +52,12 @@ export function mergeCoSoPageCauHinh(
   };
 }
 
-/** Tab tùy chọn mặc định hiển thị; chỉ ẩn khi `false`. */
+/** Tab luôn hiển thị — cấu hình ẩn/hiện đã bỏ khỏi UI cài đặt. */
 export function isCoSoTabVisible(
-  tabId: CoSoTabId,
-  config: CoSoPageCauHinh,
+  _tabId: CoSoTabId,
+  _config?: CoSoPageCauHinh,
 ): boolean {
-  if (tabId === "bai-dang") return true;
-  return config.tabs?.[tabId] !== false;
+  return true;
 }
 
 export function listVisibleCoSoTabs(config: CoSoPageCauHinh): CoSoTabId[] {

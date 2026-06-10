@@ -79,6 +79,13 @@
   color: #fff;
 }
 
+.cins-app-topbar .tb-truong-admin-btn--icon {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  justify-content: center;
+}
+
 .tdh-page,
 .tdh-page--v6,
 .tdh-inline-modal-backdrop {

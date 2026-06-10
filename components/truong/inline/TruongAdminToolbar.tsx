@@ -1,20 +1,14 @@
 "use client";
 
 import { Pencil } from "lucide-react";
-import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { useTopbarPageSlot } from "@/components/cins/useTopbarPageSlot";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
-
-const TOPBAR_SLOT_ID = "app-topbar-page-slot";
 
 export function TruongAdminToolbar() {
   const ctx = useTruongInlineEdit();
-  const [slot, setSlot] = useState<HTMLElement | null>(null);
-
-  useEffect(() => {
-    setSlot(document.getElementById(TOPBAR_SLOT_ID));
-  }, []);
+  const slot = useTopbarPageSlot();
 
   if (!ctx?.canEdit || !slot) return null;
 

@@ -1,7 +1,7 @@
 # CINS — README (Project Instructions)
 
 > **File router — điểm vào cho agent & developer.** Bản đầy đủ sống trong `docs/` (5 file bên dưới).
-> **Phiên bản:** v7 + org-journey/filter session 2026-06-07 · **67 bảng logic hiện tại** (69 sau `migration_filter_dong.sql` — xem SCHEMA.md).
+> **Phiên bản:** v9 khóa học + entity lens 2026-06-10 · org-journey/filter 2026-06-07 · **67 bảng logic hiện tại** (69 sau `migration_filter_dong.sql` — xem SCHEMA.md).
 
 CINS = creative hub cho ngành sáng tạo Việt Nam (Next.js + Supabase). Hai tầng core: **Journey** (blog cá nhân tích lũy, source of truth) + **Gallery** (feed khám phá visual). Verify là moat.
 
@@ -47,10 +47,12 @@ Thứ tự ưu tiên khi xung đột: **DB thật > CINS_SCHEMA.md > CINS_FOUNDA
 
 ## Thay đổi lớn gần đây (tóm tắt — chi tiết ở DECISIONS)
 
+**v9 — trang khóa học (2026-06-10):** Tác phẩm gán **cấp khóa** (`id_khoa_hoc`), lớp tự suy từ ghi danh. "Sản phẩm học viên" = lens verified trên Journey. Trang khóa ưu tiên mô hình liên tục (Sine Art). Migration: `migration_khoa_hoc_v2.sql`.
+
+**v8 — trang entity = lens (2026-06-08):** Mọi trang tag/nghề/trường… là aggregation view trên Journey — Lưới + Dòng thời gian, sort mới nhất / A–Z / engagement (scoped, không feed toàn cục).
+
 **v7 — tag system:** `keyword`/`phan_mem` = infrastructure (aggregation + `tom_tat` AI, không prose). Tag tự do, `da_verify` không gatekeeping, alias dedup tự động.
 
-**v6 — social graph:** Engagement có context (like công khai, không feed toàn cục). Bỏ follow-user → `user_ket_ban`. `user_theo_doi` thu hẹp follow tag/org. Gộp `studio` + `doanh_nghiep` (ẩn UI).
+**v6 — social graph:** Engagement có context (like công khai, không feed toàn cục). Bỏ follow-user → `user_ket_ban`. `user_theo_doi` thu hẹp follow tag/org. Gộp `studio` + `doanh_nghiep` (ẩn UI). Cộng đồng v2: post = `content_cot_moc` (`che_do_hien_thi='cong_dong'`).
 
-**2026-06-07 — org Journey + filter động:** Org (`truong_dai_hoc` / `co_so_dao_tao` / `studio`) có timeline qua `org_bai_dang` + `thoi_diem` (L12). Filter cá nhân động `filter_nhan` + `filter_gan` cho user & org (L13, quy tắc 28). Migration: `migration_filter_dong.sql` — chưa có file trong repo.
-
-**2026-06-07 — cộng đồng v2:** Post cộng đồng = `content_cot_moc` (`che_do_hien_thi='cong_dong'`), bỏ `content_thao_luan*`. Migration `migration_cong_dong_v2_cot_moc.sql`.
+**2026-06-07 — org Journey + filter động:** Org (`truong_dai_hoc` / `co_so_dao_tao` / `studio`) timeline qua `org_bai_dang` + `thoi_diem`. Filter cá nhân `filter_nhan` + `filter_gan` (quy tắc 29). Migration: `migration_filter_dong.sql`.

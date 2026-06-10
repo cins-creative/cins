@@ -1,32 +1,25 @@
 "use client";
 
-import { Pencil } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Pencil, Settings2 } from "lucide-react";
 import { createPortal } from "react-dom";
 
+import { useTopbarPageSlot } from "@/components/cins/useTopbarPageSlot";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
 
-const TOPBAR_SLOT_ID = "app-topbar-page-slot";
+type Props = {
+  onOpenSettings: () => void;
+};
 
-export function CoSoAdminToolbar() {
+export function CoSoAdminToolbar({ onOpenSettings }: Props) {
   const ctx = useTruongInlineEdit();
-  const [slot, setSlot] = useState<HTMLElement | null>(null);
+  const slot = useTopbarPageSlot();
 
-  useEffect(() => {
-    setSlot(document.getElementById(TOPBAR_SLOT_ID));
-  }, []);
+  if (!slot) return null;
 
-  if (!ctx?.canEdit || !slot) return null;
-
-  const {
-    isEditing,
-    saving,
-    avatarDraft,
-    coverDraft,
-    setEditMode,
-    commitAvatarDraft,
-    commitCoverDraft,
-  } = ctx;
+  const isEditing = ctx?.isEditing ?? false;
+  const saving = ctx?.saving ?? false;
+  const avatarDraft = ctx?.avatarDraft ?? null;
+  const coverDraft = ctx?.coverDraft ?? null;
 
   return createPortal(
     <div className="tb-truong-admin" role="group" aria-label="Quản trị cơ sở đào tạo">
@@ -35,40 +28,51 @@ export function CoSoAdminToolbar() {
           Đang lưu…
         </span>
       ) : null}
-      {isEditing && avatarDraft ? (
+      {ctx?.canEdit && isEditing && avatarDraft ? (
         <button
           type="button"
           className="tb-truong-admin-save"
           disabled={saving}
-          onClick={() => void commitAvatarDraft()}
+          onClick={() => void ctx.commitAvatarDraft()}
         >
           Lưu logo
         </button>
       ) : null}
-      {isEditing && coverDraft ? (
+      {ctx?.canEdit && isEditing && coverDraft ? (
         <button
           type="button"
           className="tb-truong-admin-save"
           disabled={saving}
-          onClick={() => void commitCoverDraft()}
+          onClick={() => void ctx.commitCoverDraft()}
         >
           Lưu bìa
         </button>
       ) : null}
       <button
         type="button"
-        className={`tb-truong-admin-btn${isEditing ? " is-active" : ""}`}
-        aria-pressed={isEditing}
-        title={
-          isEditing
-            ? "Xem như người dùng"
-            : "Bật chế độ quản trị cơ sở"
-        }
-        onClick={() => setEditMode(!isEditing)}
+        className="tb-truong-admin-btn tb-truong-admin-btn--icon"
+        aria-label="Quản lý cơ sở"
+        title="Quản lý cơ sở"
+        onClick={onOpenSettings}
       >
-        <Pencil size={14} strokeWidth={2} aria-hidden />
-        <span>{isEditing ? "Đang sửa" : "Quản trị"}</span>
+        <Settings2 size={16} strokeWidth={2} aria-hidden />
       </button>
+      {ctx?.canEdit ? (
+        <button
+          type="button"
+          className={`tb-truong-admin-btn${isEditing ? " is-active" : ""}`}
+          aria-pressed={isEditing}
+          title={
+            isEditing
+              ? "Xem như người dùng"
+              : "Bật chế độ quản trị cơ sở"
+          }
+          onClick={() => ctx.setEditMode(!isEditing)}
+        >
+          <Pencil size={14} strokeWidth={2} aria-hidden />
+          <span>{isEditing ? "Đang sửa" : "Quản trị"}</span>
+        </button>
+      ) : null}
     </div>,
     slot,
   );

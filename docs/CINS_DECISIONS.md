@@ -17,7 +17,13 @@
 | O4 | Cap file video | 300MB (đang cân nhắc 500MB) | Khi đo được chi phí Bunny + hành vi upload thật của cohort đầu. Chốt 1 con số trước launch. |
 | O5 | `verify_yeu_cau` Loại 2 — có cần vai trò `quan_ly_nhan_su` riêng để duyệt membership? | Không — admin duyệt tất (xem L9) | Khi có công ty lớn (>50 member) yêu cầu tách quyền duyệt nhân sự khỏi duyệt nội dung. |
 | O6 | Phân nhóm tag `keyword`/`phan_mem` theo ngành nghề | Defer | Khi có đủ data tagging thật từ user (gợi ý ngưỡng: ≥200 tag active). |
-| O7 | `content_thao_luan` — có cần lớp "uy tín/hữu ích" (accepted answer / endorse) ngoài badge danh tính? | ✅ **ĐÓNG** — bảng `content_thao_luan` đã bỏ (L14); thảo luận = comment trên `content_cot_moc` | — |
+| O8 | Bản đồ nghề cộng đồng — có cần thêm cấp bậc/chức danh (Junior/Senior/Lead) ngoài `giai_doan`? | ❌ Không — chỉ dùng `giai_doan` | Chức danh thay đổi liên tục + khó verify + mau cũ → bản đồ sẽ luôn sai. Chỉ làm khi có hệ chức danh chuẩn hoá gắn vào milestone công việc *đã verify*. Hiện không cần. |
+| O9 | Reviews / đánh giá khóa học | **Defer** | Khi nhu cầu social proof vượt "tác phẩm verified + số học viên hoàn thành". Cân nhắc *pull external* (Google reviews) thay vì tự xây hệ sao. Phản vanity → thận trọng. |
+| O10 | Gom nhiều khóa → "Chương trình học" (lộ trình 6–12 tháng, kiểu Keyframe CTH) | **Defer cứng** | Khi có org thật cần track dài hạn nhiều khóa nối tiếp. Sine Art không cần (dạy theo môn rời). |
+| O11 | `org_giao_trinh.loai` (phân loại bài: bắt buộc / tùy chọn / project) | **Defer** | Khi org thật yêu cầu phân loại bài trong lộ trình; hiện `mo_ta_chi_tiet` + `thu_tu` + `so_buoi` đủ. |
+| O12 | Học phí theo gói tháng (1/2/3/6) cho mô hình liên tục | **Defer** | `org_khoa_hoc.hoc_phi` đọc là giá/tháng ở MVP. Thêm bảng giá bundle khi có nhu cầu thật. |
+
+> O7 (lớp "uy tín/hữu ích" cho `content_thao_luan`) → **đã đóng / không còn áp dụng** (xem L12): `content_thao_luan` đã bỏ, thảo luận giờ là comment trên cột mốc.
 
 ---
 
@@ -27,25 +33,69 @@
 
 > Schema áp dụng sau khi chạy `migration_filter_dong.sql` → regenerate SCHEMA.md (67 → 69 bảng).
 
-- **L12 — Org có Journey riêng, gộp vào `org_bai_dang` (KHÔNG tạo `org_cot_moc`).**
-  Áp cho **3 loại tổ chức thật** (`truong_dai_hoc`, `co_so_dao_tao`, `studio`); `cong_dong` KHÔNG (đã có thảo luận). Thêm cột `org_bai_dang.thoi_diem` (ngày mốc lịch sử, khác `tao_luc`). Org journey **KHÔNG verify** — org tự kể về mình, khác hẳn milestone danh tính nghề của *người* (cái đó mới là moat verify).
-  *Vì sao loại 2 phương án khác*: `org_cot_moc` riêng → trùng việc với `org_bai_dang`. Tái dùng `content_cot_moc` → phải bỏ NOT NULL `id_nguoi_dung` + audit mọi query milestone hiện có → đắt hơn lợi DRY. Gộp `org_bai_dang` + 1 cột là sạch nhất, đúng nếp `org_su_kien`/`org_hinh_anh` (1 bảng dùng chung mọi loại org).
+- **Org Journey — gộp vào `org_bai_dang` (KHÔNG tạo `org_cot_moc`).**
+  Áp cho **3 loại tổ chức thật** (`truong_dai_hoc`, `co_so_dao_tao`, `studio`); `cong_dong` KHÔNG (đã có feed cột mốc riêng). Thêm cột `org_bai_dang.thoi_diem` (ngày mốc lịch sử, khác `tao_luc`). Org journey **KHÔNG verify** — org tự kể về mình, khác milestone danh tính nghề của *người*.
+  *Vì sao*: tái dùng `content_cot_moc` đắt (NOT NULL `id_nguoi_dung` + audit query); gộp `org_bai_dang` + 1 cột sạch nhất, đúng nếp `org_su_kien`/`org_hinh_anh`.
 
-- **L13 — Filter cá nhân động (`filter_nhan` + `filter_gan`) — primitive nền tảng cho user & org.**
-  Nhãn do chủ sở hữu tự tạo/sửa/xóa, gắn polymorphic lên `content_cot_moc` (user) / `org_bai_dang` (org). **Phân biệt cứng với tag toàn cục**: nhãn cá nhân cục bộ, KHÔNG kéo discovery xuyên người dùng → không phá luật chống-viral. Cho phép user tự mở rộng cách dùng (vd dòng merch của artist) mà KHÔNG thêm nghiệp vụ thương mại. Lọc áp cho **cả 2 view** (timeline + grid). Seed nhãn mặc định theo `loai_to_chuc` ở **app layer** (không seed trong migration).
-  *Mở rộng tương lai*: `user_nhom_boi_canh.id_nguoi_dung` đã nullable → nếu org cần "nhóm bối cảnh" thật, tái dùng được, không bảng mới.
-  *Quyết định phụ*: slug nhãn bất biến sau khi tạo (đổi `ten` không đổi slug) để không vỡ URL `?filter=` đã share. `loai_bai_dang_org_enum` deprecate nhưng GIỮ (còn code dùng), dọn sau.
+- **Filter cá nhân động (`filter_nhan` + `filter_gan`) — primitive nền tảng cho user & org.**
+  Nhãn do chủ sở hữu tự tạo/sửa/xóa, gắn polymorphic lên `content_cot_moc` (user) / `org_bai_dang` (org). **Phân biệt cứng với tag toàn cục** — cục bộ, KHÔNG discovery xuyên người (quy tắc 29 FOUNDATIONS). Lọc áp **cả 2 view** (timeline + grid). Slug nhãn bất biến sau khi tạo. `loai_bai_dang_org_enum` deprecate nhưng GIỮ (còn code dùng).
+
+### v9 — Trang khóa học + gán tác phẩm cấp khóa (2026-06-10)
+
+- **L14 — Tác phẩm gán CẤP KHÓA, không cấp lớp.**
+  Học viên **tự đăng** tác phẩm (quy tắc 1), tự gắn "làm khi học [khóa] @ [org]" → org xác nhận (Verify Loại 2). `content_cot_moc.id_khoa_hoc` = trường khai báo bắt buộc khi khai "học ở đây"; `id_lop_hoc` **tự suy ra** từ `user_hoc_vien_lop` của học viên (để định tuyến yêu cầu verify tới đúng GV lớp), **KHÔNG bắt học viên chọn lớp**. Không có ghi danh → `id_lop_hoc` NULL, admin org duyệt.
+  *Vì sao*: giá trị nghề = "học khóa X @ org" (mã lớp là chi tiết nội bộ, ra ngoài không ai tra); hợp mô hình liên tục (ranh giới lớp mờ); đơn giản cho học viên. **0 schema mới** — cả `id_khoa_hoc` và `id_lop_hoc` đã có sẵn trên `content_cot_moc`.
+
+- **L15 — Mục "Sản phẩm học viên" trên trang khóa = lens** (theo L13).
+  Lọc `content_cot_moc WHERE id_khoa_hoc = X AND verified AND public`. Org không sở hữu nội dung; tác phẩm sống ở Journey học viên. Mạnh hơn site tham chiếu (Keyframe/Sine Art): tác phẩm **đã verify** + link hồ sơ nghề thật, không phải link YouTube rời hay gallery phẳng.
+
+- **L16 — Trang khóa ưu tiên mô hình LIÊN TỤC** (`lien_tuc_theo_thang`).
+  Seed partner Sine Art chạy liên tục (khai giảng hàng tuần, học phí theo tháng, "khung lớp" thường trực). Cohort (`cohort_co_dinh`, kiểu Keyframe) = **biến thể render**: thay khung lớp thường trực bằng đợt có `ngay_khai_giang` cố định + một giá. Cùng một bộ section.
+
+- **Cột mới** (migration `migration_khoa_hoc_v2.sql`, thay file `migration_giao_trinh_thu_tu.sql` đứng riêng):
+  `org_giao_trinh.thu_tu` (thứ tự bài, backfill theo `cap_nhat_luc`), `org_giao_trinh.so_buoi` (số buổi/bài), `org_lop_hoc.lich_hoc` (lịch lặp + giờ, text), `org_lop_hoc.giao_vien_text` (GV chưa có tài khoản CINS), `org_khoa_hoc.noi_dung_blocks` (landing content dạng block, né đẻ N bảng marketing — `mo_ta` text giữ làm tóm tắt ngắn).
+
+- **Cấu trúc trang khóa** (`/co-so/[slug]/khoa-hoc/[khoa-slug]`): Hero + facts · Giới thiệu (`noi_dung_blocks`) · Lộ trình bài (`org_giao_trinh` ORDER BY `thu_tu`, gating theo `visibility`: `public` xem thử / `chi_hoc_vien` khóa / `private` ẩn) · Khung lớp & lịch học (`org_lop_hoc`) · Giảng viên · Sản phẩm học viên (lens, L15). **Giữ tối giản, KHÔNG bê từ site tham chiếu**: bỏ reviews (O9), khối marketing dày + FAQ, chương-trình-nhiều-khóa (O10).
+
+### v8 — Trang entity = lens (2026-06-08)
+
+- **L13 — Mỗi trang entity (`keyword`/`phan_mem`/`nghe`/`mon_hoc`/`truong`...) là aggregation view, KHÔNG kho mới, KHÔNG có chủ.**
+  Là *lens* chạy trên Journey cá nhân: filter mọi tác phẩm public mà cộng đồng đã gắn entity đó (`*_gan → content` ORDER BY ngày). Tác phẩm vẫn sống ở Journey người tạo (source of truth, quy tắc 1) — 0 schema mới, không clone nội dung.
+  2 chế độ render cùng tập content: **Lưới** (visual, đang có) + **Dòng thời gian** (post-card, tái dùng card feed cộng đồng + album layout). Sort: mặc định **mới nhất**, thêm **A–Z** + **engagement** (user chọn).
+  *Vì sao engagement-sort không phá luật chống-viral*: đây là tùy chọn thủ công, scoped trong context một entity — không có feed thuật toán toàn cục, không trending xuyên mạng (giữ nguyên L5 + quy tắc 22). Mỗi entity là một "bảng xếp hạng mini" chỉ khi user chủ động bật, mặc định vẫn chronological.
+  **Lộ nguồn + tác giả là tính năng, không phải rò rỉ**: trang entity là phễu giúp user connect — bài public distribute hết, hiện rõ ai gắn tag; bài private (`che_do_hien_thi` không-public, gồm `cong_dong`/`chi_minh`) KHÔNG lộ. Lens chỉ kéo content public — gom vào helper visibility chung với query Journey public.
+  **Naming**: hiển thị "Dòng thời gian" / "Hoạt động", KHÔNG gọi "Journey" — Journey = timeline cá nhân có chủ; trang entity là aggregation không chủ, tránh loãng khái niệm.
+  *Chi phí*: route trang tag đã có; chỉ thêm tab + sort. Cần index `(entity_id, created_at)` cho tag/nghề phổ biến; engagement-sort dựa like count realtime (quy tắc 4) — cân nhắc cache nếu chậm.
+
+### v6 — Cộng đồng v2: post = cột mốc (2026-06-08)
+
+- **L12 — Bỏ `content_thao_luan` / `_media` / `_filter_gan`. Post cộng đồng = `content_cot_moc`.**
+  Đăng bài vào cộng đồng = tạo cột mốc Journey với `id_to_chuc`=cộng đồng + `che_do_hien_thi='cong_dong'` (giá trị enum mới: ẩn khỏi Journey public của user, chỉ chính chủ thấy + hiện trong feed cộng đồng). Cộng đồng là **view tổng hợp cột mốc của thành viên** (như Gallery), KHÔNG sở hữu nội dung. Comment/reaction/lưu trỏ thẳng `content_cot_moc` → bền. Đổi thẻ từ `cong_dong` sang `public`/`theo_nhom` = "tốt nghiệp" bài thành milestone Journey, giữ nguyên comment.
+  Nhãn cộng đồng: bảng `cong_dong_filter` (rename từ `content_thao_luan_filter`) + junction `cong_dong_filter_gan` nối `content_cot_moc` (hướng B — junction riêng, không nhồi vào `article_gan_cot_moc` vì nhãn thuộc về từng cộng đồng, khác tag toàn hệ).
+  *Vì sao đảo L7b*: một source of truth duy nhất (`content_cot_moc`, quy tắc 1); cộng đồng làm cầu nối thay vì kho riêng; lưu = lưu cột mốc gốc của tác giả; bỏ được 3 bảng. Đây là bản trung thành nhất với "Journey là gốc, mọi nơi khác là view".
+  *Rủi ro phải canh*: (1) `content_cot_moc` phình volume → bắt buộc index `(id_to_chuc, che_do_hien_thi)`; (2) `che_do_hien_thi='cong_dong'` là trường hợp đặc biệt — mọi query Journey public phải loại trừ, gom vào 1 helper, không rải rác.
+
+### v6 — Layout & cấu trúc cộng đồng (2026-06-08)
+
+- **L7b (đã đảo) — `cong_dong` = cộng đồng có thảo luận, theo model FB Group + lớp verified.**
+  Member đăng bài tự do; mỗi post hiển thị kèm nghề + verified journey của người đăng (điểm khác FB). Post lưu dưới dạng `content_cot_moc` (xem L12), KHÔNG dùng `content_thao_luan`. *Vì sao*: connection/đóng góp là nhu cầu thật; FB tối ưu cho cộng đồng nhưng thiếu xác thực — CINS bù đúng chỗ đó. Discussion scoped vào context → không feed toàn cục → vẫn giữ luật chống-viral.
+- **Loại org user tạo ngay = 3:** `co_so_dao_tao` · `studio` · `cong_dong`. Chỉ `truong_dai_hoc` cần CINS duyệt (đề xuất → review → seed); `doanh_nghiep` ẩn UI (gộp vào studio, L7).
+- **Nhãn cộng đồng mặc định = 4** (seed sẵn + admin sửa/xoá/thêm, tutorial sau khi tạo): Khoe tác phẩm (violet) · Hỏi đáp (blue) · Tuyển người (orange) · Tài nguyên (mint). Hardcode template trong code, không bảng template.
+- **Vai trò hợp lệ trong cộng đồng = 4** (trong 8 giá trị `vai_tro_to_chuc_enum`): `owner` (CINS) · `admin` · `quan_ly_noi_dung` (mod) · `thanh_vien`. Ẩn các vai trò của trường/đào tạo/doanh nghiệp khi gán trong cộng đồng.
+- **Layout cộng đồng đồng bộ trang profile**: cột trái = group identity card (cover + avatar **vuông bo** để phân biệt user tròn + face pile "bạn ở đây" + bản đồ nghề theo `giai_doan` + nhịp cộng đồng), cột phải = toolbar (chips nhãn + sort + toggle) + feed. Mặc định view **Journey** (mốc tháng, không rail chấm), switch **Lưới** (Gallery). KHÔNG layout kiểu FB (composer khối to + sidebar gợi ý).
+- **Nút vai trò**: một nút đổi nhãn theo `vai_tro` (Tham gia cộng đồng / Đang là thành viên / Quản trị viên / Admin), gộp menu Thông báo (Tất cả/Nổi bật/Tắt) + Rời. Bỏ nút Thông báo riêng.
+- **Nhịp cộng đồng** chỉ hiển thị milestone nghề *đã verify* + member mới, cập nhật chậm — KHÔNG realtime mọi tương tác (tránh engagement-bait).
 
 ### Session verify (2026-06-07)
 
 - **L8 — Uy tín nghề = badge danh tính verified, KHÔNG có lớp "verified hữu ích" riêng ở MVP.**
-  *Vì sao*: badge "Vị trí @ Org" cạnh tên đã cho biết thẩm quyền người nói; thêm lớp endorse/accepted-answer là over-engineer khi forum chưa có traffic. Gỡ ý "ghi nhận bằng verified hữu ích" khỏi mô tả §12 cũ.
+  *Vì sao*: badge "Vị trí @ Org" cạnh tên đã cho biết thẩm quyền người nói; thêm lớp endorse/accepted-answer là over-engineer khi forum chưa có traffic.
 - **L9 — Luồng verify thống nhất: user-push + org-veto.**
-  *Vì sao*: org-pull (org chủ động xác nhận từng người) chết vì org không có động lực. Đảo chiều: user đẩy yêu cầu + bằng chứng, org chỉ bấm duyệt một cú. Im lặng = trạng thái trung gian (tự khai, xám), org chỉ can thiệp để bác cái sai. 2 loại yêu cầu: (1) membership → `user_thanh_vien_to_chuc` → duyệt → sinh `content_cot_moc` `sinh_tu_org_assign`; (2) tác phẩm → org accept/reject, tách khỏi co-author. Người duyệt = admin (duyệt tất, MVP). Fallback ngoài nền tảng: `external_email`/`system_url`. Chi tiết: FOUNDATIONS §V.
+  *Vì sao*: org-pull chết vì org không có động lực. Đảo chiều: user đẩy yêu cầu + bằng chứng, org chỉ bấm duyệt. Im lặng = trạng thái trung gian (tự khai, xám). 2 loại yêu cầu: (1) membership → `user_thanh_vien_to_chuc` → duyệt → sinh `content_cot_moc` `sinh_tu_org_assign`; (2) tác phẩm → org accept/reject. Người duyệt = admin (MVP). Fallback: `external_email`/`system_url`. Chi tiết: FOUNDATIONS §V.
 - **L10 — Trạng thái trung gian hiển thị "tự khai" (xám, không badge), sáng lên khi verified.**
-  *Vì sao*: user thấy ngay (đỡ nản) + tạo áp lực mềm để org duyệt. Đổi lại chấp nhận title tự khai trôi nổi — không phá moat vì luôn phân biệt rõ xám/sáng, không bao giờ hiển thị tự khai như verified fact.
+  *Vì sao*: user thấy ngay (đỡ nản) + áp lực mềm để org duyệt. Luôn phân biệt rõ xám/sáng, không bao giờ hiển thị tự khai như verified fact.
 - **L11 — Peer tag vị trí (luồng 2) phải neo vào tác phẩm cụ thể**, không cho tag title chung chung trôi nổi.
-  *Vì sao*: title-endorse kiểu LinkedIn dễ thổi phồng, làm loãng moat. Co-author đã neo vào tác phẩm cụ thể — title cũng phải vậy.
+  *Vì sao*: title-endorse kiểu LinkedIn dễ thổi phồng, làm loãng moat.
 
 ### v7 (tag system)
 
@@ -59,22 +109,20 @@
 - **L5 — "Anti-engagement" → "Engagement có context".** Like/reaction công khai mặc định (social proof thẩm mỹ). Viral triệt tiêu bằng *kiến trúc* (không feed toàn cục) chứ không bằng cấm like.
 - **L6 — Bỏ follow-user → kết bạn 2 chiều (`user_ket_ban`).** Follow-user vô nghĩa khi không feed. Kết bạn phục vụ: danh bạ nghề + bạn chung + điều kiện tag co-author. `user_theo_doi` thu hẹp còn follow tag/org (xem O1).
 - **L7 — Gộp `studio` + `doanh_nghiep`.** Giữ enum value, ẩn `doanh_nghiep` khỏi UI. Org user tạo ngay còn 3 loại. *Vì sao*: hai loại gần như giống hệt (cùng `project_du_an`, cùng tab) — không đáng 2 nhãn riêng.
-- **L7b — `cong_dong` = cộng đồng có thảo luận, post = `content_cot_moc` (KHÔNG dùng `content_thao_luan`).**
-  Đăng bài vào cộng đồng = tạo cột mốc Journey với `id_to_chuc`=cộng đồng + `che_do_hien_thi='cong_dong'` (ẩn Journey public, hiện feed cộng đồng). Cộng đồng là **view tổng hợp cột mốc của thành viên** (như Gallery), không sở hữu nội dung. Comment/reaction trỏ cột mốc → bền. Đổi thẻ sang public = "tốt nghiệp" thành milestone Journey, giữ nguyên comment.
-  *Vì sao đảo*: một source of truth duy nhất (`content_cot_moc`, quy tắc 1); cộng đồng làm cầu nối thay vì kho riêng; lưu = lưu cột mốc gốc của tác giả; bỏ được 3 bảng. Bản chất trung thành nhất với "Journey là gốc".
-
-### Session cộng đồng v2 — post = cột mốc (2026-06-07)
-
-- **L14 — Bỏ `content_thao_luan` / `_media` / `_filter_gan`.** Nhãn cộng đồng: bảng `cong_dong_filter` (rename) + junction `cong_dong_filter_gan` nối `content_cot_moc`. Thêm enum `che_do_hien_thi_moc_enum` giá trị `cong_dong`. Migration: `migration_cong_dong_v2_cot_moc.sql`.
-  *Rủi ro canh*: index `(id_to_chuc, che_do_hien_thi)`; mọi query Journey public phải loại `cong_dong` qua helper `journey-visible-clause.ts`.
 
 ---
 
-## Drift đã phát hiện & sửa (2026-06-07)
+## Drift đã phát hiện & sửa
 
-Đối chiếu DB thật vs instruction cũ — ghi lại để không lặp:
+### 2026-06-10
+- **Migration `migration_giao_trinh_thu_tu.sql` đứng riêng đã được gộp** vào `migration_khoa_hoc_v2.sql` (thêm `so_buoi`, `lich_hoc`, `giao_vien_text`, `noi_dung_blocks`). Dùng file v2, bỏ file lẻ.
+- **FOUNDATIONS §V Loại 2 ví dụ "khi học lớp Y"** đổi thành "khi học khóa Y" cho khớp L14 (gán cấp khóa).
 
-- **4 bảng `content_thao_luan*` đã thay bằng mô hình cột mốc (L14).** Code + migration v2.
-- **Instruction §17 cũ ghi "cong_dong KHÔNG phải FB Group, không feed thảo luận"** — mâu thuẫn trực tiếp với L7b đã chốt ở chat v6. → đã sửa.
-- **Header instruction nói "62 bảng", memory nói "~53"; DB thật = 67 bảng logic** (66 thường + 1 partitioned `social_luot_xem`; 2 partition con không tính logic). → SCHEMA.md sinh từ DB để khỏi lệch lần nữa.
+### 2026-06-08
+- **L7b cũ + 4 bảng `content_thao_luan*` đã bị đảo** (L12): post cộng đồng chuyển sang `content_cot_moc`. Drop `content_thao_luan` / `_media` / `_filter_gan`; rename `content_thao_luan_filter` → `cong_dong_filter`; thêm `cong_dong_filter_gan` + enum value `cong_dong`. Migration: `migration_cong_dong_v2_cot_moc.sql`.
+- **Demo bản đồ nghề từng ghi "Art Director / Lead"** — không có field nguồn trong schema. Sửa: bản đồ nghề chỉ dùng `giai_doan` (đang học/đang làm/freelance/đang dạy/tìm việc). Xem O8.
+
+### 2026-06-07
+- **4 bảng `content_thao_luan*` có trong DB nhưng instruction cũ ghi "TBD".** → đã chính thức hoá rồi sau đó đảo (xem trên).
+- **Header instruction nói "62 bảng", memory nói "~53"; DB thật = 67 bảng logic.** Sau v6 cộng đồng v2: ~65 bảng (bỏ 3 thao_luan*, thêm cong_dong_filter_gan, rename 1). → SCHEMA.md sinh từ DB để khỏi lệch.
 - *Bài học*: prose schema chép tay luôn drift. SCHEMA.md phải generate từ `information_schema`, không sửa tay.

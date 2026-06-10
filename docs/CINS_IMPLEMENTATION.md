@@ -1,7 +1,7 @@
 # CINS — IMPLEMENTATION
 
 > **File trong repo:** `docs/CINS_IMPLEMENTATION.md`
-> **Tầng đổi nhanh nhất.** Map API route · lib · SQL migration · env/infra · ghi chú triển khai site. Dựng từ cây thư mục thật repo `cins-website` (2026-06-07).
+> **Tầng đổi nhanh nhất.** Map API route · lib · SQL migration · env/infra · ghi chú triển khai site. Dựng từ cây thư mục thật repo `cins-website` (2026-06-10).
 > Khi conflict về *cấu trúc DB*: SCHEMA.md / DB thắng. File này map *code*, không phải schema.
 > Regenerate khi cấu trúc thư mục đổi đáng kể: `dir /b /s app\api\*.ts` + `dir /b /s lib\*.ts`.
 
@@ -73,6 +73,27 @@
 | `to-chuc` | Tạo org (transaction 2 dòng: CINS owner + user admin, quy tắc 13) |
 | `truong/[id]` + `bai-dang` · `hinh-anh` · `nganh` · `phuong-thuc` · `tuyen-sinh` · `cau-hinh-tinh-diem` · `mon-thi-catalog` · `upload` | Module trường ĐH đầy đủ |
 
+### Cơ sở đào tạo — trang & quản trị (`co-so`) — đã có trong repo
+| Route | Việc |
+|---|---|
+| `co-so/[id]/settings` | GET/PATCH cài đặt trang cơ sở (danh tính, liên hệ, xác thực, quyền) — admin org |
+| `co-so/[id]/members` · `.../[membershipId]` | CRUD thành viên & vai trò (`user_thanh_vien_to_chuc`) |
+| `co-so/[id]/filters` · `.../[filterId]` | CRUD nhãn timeline (`filter_nhan` org) |
+
+**Site:** `/co-so` (listing) · `/co-so/[slug]` (chi tiết v6, tab Bài đăng / Khóa học / Sản phẩm / Hình ảnh cơ sở) · topbar ⚙ cài đặt + «Quản trị» inline edit.
+
+**Lib:** `lib/to-chuc/co-so-*.ts` — create, page queries, settings, members, membership, vai-tro, inline payload.
+
+### Cơ sở đào tạo — khóa học (`co-so`) — đề xuất, Cursor chỉnh tên nếu trùng
+| Route | Việc |
+|---|---|
+| `co-so/[id]/khoa-hoc` | GET list khóa của cơ sở · POST tạo khóa (`org_khoa_hoc`) — admin org |
+| `co-so/[id]/khoa-hoc/[khoaId]` | GET chi tiết khóa · PATCH sửa (gồm `noi_dung_blocks`) |
+| `co-so/[id]/khoa-hoc/[khoaId]/giao-trinh` · `.../[baiId]` | CRUD bài lộ trình (`org_giao_trinh`): `thu_tu`, `so_buoi`, `visibility`; PUT reorder (gửi mảng id theo thứ tự) |
+| `co-so/[id]/khoa-hoc/[khoaId]/lop` · `.../[lopId]` | CRUD lớp (`org_lop_hoc`): `lich_hoc`, `giao_vien_phu_trach`\|`giao_vien_text`, `ngay_khai_giang`, `slot_toi_da`, `trang_thai` |
+| `co-so/[id]/khoa-hoc/[khoaId]/dang-ky` | POST ghi danh → `user_hoc_vien_lop` (gắn `id_lop_hoc` khi cohort; chỉ `id_khoa_hoc` khi liên tục) → gửi org duyệt |
+| `co-so/[id]/khoa-hoc/[khoaId]/san-pham` | GET lens tác phẩm verified gắn khóa (L15): `content_cot_moc WHERE id_khoa_hoc=khoaId AND verified AND public` |
+
 ### Media upload
 | Route | Việc |
 |---|---|
@@ -90,6 +111,8 @@
 | `social/` | Kết bạn, follow entity, notification, co-author, video-ready | `ket-ban.ts`, `follow.ts`, `follow-entity.ts` ⚠️§5, `thong-bao-insert.ts` |
 | `journey/` | Milestone, timeline, gallery, video processing, co-author credit, cache | `timeline-merge.ts`, `milestone-verify.ts`, `foreign-milestone-visibility.ts`, `video-upload-session.ts`, `sync-tac-pham-tags.ts` |
 | `cong-dong/` | Tạo org, membership, thảo luận, filter, sidebar, mirror tác phẩm, **quản lý thành viên**, categories, event rail, **branding** | `org-create.ts`, `org-profile.ts`, `membership.ts`, `members.ts`, `vai-tro.ts`, `categories.ts`, `event-rail.ts`, `creator-milestone.ts`, `sync-from-publish.ts`, `tac-pham-mirror.ts` ⚠️§5 |
+| `to-chuc/` | **Cơ sở đào tạo** — trang chi tiết, settings, members, filters, create | `co-so-page-queries.ts`, `co-so-settings.ts`, `co-so-members.ts`, `co-so-create.ts`, `co-so-vai-tro.ts`, `co-so-inline-payload.ts` |
+| `co-so/` | **Khóa/lớp/giáo trình/ghi danh** (đề xuất) | `khoa-hoc.ts`, `giao-trinh.ts`, `lop.ts`, `ghi-danh.ts`, `san-pham-lens.ts` |
 | `tag/` | Tạo tag, dedup, gen tom-tat, normalize, slug, admin merge | `create.ts`, `gen-tom-tat.ts`, `dedup.ts`, `normalize.ts` |
 | `filter/` | **Filter cá nhân** (user & org): tạo/sửa/xóa nhãn, gắn lên cột mốc/bài đăng org, list theo chủ sở hữu | `create.ts`, `update.ts`, `delete.ts`, `gan.ts`, `list-cua-user.ts` |
 | `articles/` | Bài viết nghề/keyword/phần mềm, quan hệ liên quan, link keyword | `queries.ts`, `nghe-role-preview.ts`, `link-keywords-in-html.ts`, `partition-*` |
@@ -126,6 +149,7 @@
 | `migration_filter_dong.sql` | **Filter cá nhân động**: `filter_nhan` + `filter_gan` + enum `filter_doi_tuong_enum` + cột `org_bai_dang.thoi_diem` (org journey). Chạy lại an toàn (IF NOT EXISTS). |
 | `migration_org_bai_dang_reaction.sql` | Enum `loai_doi_tuong_social_enum` + value `org_bai_dang` (like/lưu polymorphic). |
 | `migration_org_bai_dang_noi_dung_blocks.sql` | Cột `org_bai_dang.noi_dung_blocks` jsonb — nội dung Block kiểu Journey; `noi_dung` HTML legacy giữ tạm. |
+| `migration_khoa_hoc_v2.sql` | **Trang khóa học v2** (gộp, thay `migration_giao_trinh_thu_tu.sql` lẻ): `org_giao_trinh.thu_tu` + `so_buoi`; `org_lop_hoc.lich_hoc` + `giao_vien_text`; `org_khoa_hoc.noi_dung_blocks`. Idempotent + backfill `thu_tu`. Chạy xong → regenerate SCHEMA.md. |
 | `migration_org_hinh_anh_loai_expand.sql` | Mở rộng CHECK `org_hinh_anh.loai`: thêm `ngoai_khoa`, `su_kien`, `hop_tac` (UI gallery tab Hình ảnh). Chạy: `node scripts/run-org-hinh-anh-loai-migration.mjs`. |
 
 **Org bài đăng — blocks (app, sau migration):** `lib/truong/bai-dang-blocks.ts` · API `bai-dang` POST/PATCH nhận `noi_dung_blocks` · fetch `queries.ts` · card có blocks → `JourneyMilestoneCardBodyContent` + `PostBlockRenderer`; không blocks → HTML legacy. Compose org vẫn Tiptap/HTML — chưa ghi blocks từ UI.
@@ -182,7 +206,8 @@ GOOGLE_CLIENT_ID / SECRET
 - **`tac-pham-mirror.ts` + `migration_cong_dong_tac_pham_link.sql`.** Có cơ chế mirror tác phẩm vào cộng đồng. Cần verify migration này có sinh **bảng/cột mới** ngoài 67 bảng đã đếm không → nếu có, cập nhật SCHEMA.md.
 - **File mock/legacy trong `lib/truong/`**: `doan-project-mock.ts`, `message-inbox-mock.ts`, `milestone-tag-notify-mock.ts`, `timeline-steps-legacy.ts`. Là placeholder/cũ — đánh dấu để dọn hoặc thay bằng implement thật.
 - **`gallery-stubs.ts`** (lib/journey) — stub, chưa thật.
-- **`loai_bai_dang_org_enum` deprecate** (L13): filter động thay vai trò phân loại bài đăng org, nhưng enum GIỮ lại (còn code dùng). Dọn khi filter động đã thay xong toàn bộ điểm phân loại.
+- **`loai_bai_dang_org_enum` deprecate** (filter động, session 2026-06-07): filter động thay vai trò phân loại bài đăng org, nhưng enum GIỮ lại (còn code dùng). Dọn khi filter động đã thay xong toàn bộ điểm phân loại.
+- **`migration_khoa_hoc_v2.sql` chưa chạy trên DB** → SCHEMA.md chưa có 5 cột mới. Chạy migration rồi regenerate trước khi Cursor code trang khóa.
 
 ---
 
@@ -195,7 +220,9 @@ GOOGLE_CLIENT_ID / SECRET
 | Route trường | `/truong-dai-hoc/[slug]` — layout v6 (`tdh-page--v6`) |
 | Route Journey | `/{slug}` timeline · `/{slug}/p/{postSlug}` bài viết · `/{slug}/p/new` tạo (cần login) |
 | Hub công khai | `/`, `/nganh-hoc`, `/nghe-nghiep`, `/truong-dai-hoc`, `/bai-viet`, … |
-| **Cộng đồng** | `/cong-dong` (listing) · `/cong-dong/tao` · `/cong-dong/[slug]` (feed v4) · `POST /api/to-chuc` · `POST/DELETE /api/cong-dong/:id/tham-gia` · `GET/POST /api/cong-dong/:id/posts` · filters · categories · event-rail · **members** · comment/reaction — xem §6 *Cộng đồng — chi tiết site* |
+| **Cộng đồng** | `/cong-dong` (listing) · `/cong-dong/tao` · `/cong-dong/[slug]` (feed v4) · … |
+| **Cơ sở đào tạo** | `/co-so` (listing) · `/co-so/[slug]` (chi tiết v6) · `/co-so/[slug]/khoa-hoc/[khoa-slug]` (trang khóa — đề xuất) |
+| **Khóa học (cơ sở đào tạo)** | Xem §6 *Khóa học — chi tiết site* |
 | API tính điểm | `GET /api/truong/{org_to_chuc.id}/cau-hinh-tinh-diem?nam=&nganh=` — `nganh` = `org_truong_nganh.id`; `PUT` lưu `org_cau_hinh_mon` |
 | API catalog môn | `GET /api/truong/{id}/mon-thi-catalog` — `id, ten, loai, ma, thumbnail_id` |
 | API ngành CRUD | `POST/GET …/nganh`, `DELETE …/nganh/{programId}` → ẩn (`tam_dung`) |
@@ -279,12 +306,23 @@ Chi tiết bullet: `assignableRolePermissions()` trong `lib/cong-dong/vai-tro.ts
 - **Cài đặt nhóm** (`CongDongGroupSettingsModal`): tối đa 4 bài nghề/ngành (`PATCH …/categories`, picker `CongDongCategoryPicker` + `category-articles/search`).
 - **Avatar & cover sidebar** (`CongDongOrgBrandingCover` / `CongDongOrgBrandingAvatar`): admin hover → đổi ảnh; upload `/api/avatar/upload` hoặc `/api/cover/upload` rồi `PATCH …/profile`.
 
-### `edu_mon_thi` thumbnail
+### Khóa học — chi tiết site
 
-- Placeholder UI: `plh_nang_khieu` (9 môn), `plh_van_hoa` (8), `plh_ngoai_ngu` (6) — gradient + chữ viết tắt; thay bằng UUID ảnh CF khi có asset.
-- SQL: `supabase/sql/edu-mon-thi-thumbnail.sql`. Admin: `lib/admin/mon-thi-server.ts`, `/admin/mon-thi`.
-- Helper: `lib/truong/mon-thi-thumbnail.ts`, component `MonThiThumb`.
-- Sau khi chạy SQL: bật `.select("id, ten, loai, ma, thumbnail_id")` trong `lib/truong/cau-hinh-tinh-diem.ts` và `app/api/truong/[id]/mon-thi-catalog/route.ts`.
+Trang khóa standalone `/co-so/[slug]/khoa-hoc/[khoa-slug]`. Ưu tiên render mô hình **liên tục** (Sine Art); cohort là biến thể (xem DECISIONS L16). Sections, theo thứ tự cuộn:
+
+| Section | Nguồn | Ghi chú |
+|---|---|---|
+| Hero + facts | `org_khoa_hoc` | tên, mô hình (`loai_mo_hinh`), thời lượng (`thoi_luong_buoi`/`thoi_luong_phut_moi_buoi`), học phí, `trinh_do_dau_vao`, `trang_thai_khoa_hoc` |
+| Giới thiệu | `org_khoa_hoc.noi_dung_blocks` | landing dạng block (mục tiêu / dành cho ai…); `mo_ta` = tóm tắt ngắn |
+| Lộ trình bài | `org_giao_trinh` | ORDER BY `thu_tu`; mỗi bài: `tieu_de`, `so_buoi`, video/ảnh, **gating theo `visibility`**: `public`=xem thử · `chi_hoc_vien`=khóa (hiện tiêu đề + "Đăng ký để mở") · `private`=ẩn (chỉ admin) |
+| Khung lớp & lịch | `org_lop_hoc` | per-lớp: `lich_hoc`, giáo viên (`giao_vien_phu_trach` user → verified + link Journey; else `giao_vien_text` → tên chữ không badge; else "Đang cập nhật"), `slot_toi_da`, `trang_thai_lop`, `ngay_khai_giang` (cohort) / "khai giảng hàng tuần" (liên tục). Nút **Đăng ký khung** |
+| Giảng viên | `org_lop_hoc.giao_vien_phu_trach` distinct | gom GV qua các lớp; verified → card link hồ sơ; chưa có CINS → tên chữ |
+| Sản phẩm học viên | lens `content_cot_moc` | `WHERE id_khoa_hoc=khoaId AND verified AND public` (L15). Ghi chú UI: học viên tự đăng, gắn khóa, org xác nhận — không phải kho org |
+
+- **Ghi danh** (`POST …/dang-ky`): tạo `user_hoc_vien_lop`. Cohort → gắn `id_lop_hoc`; liên tục → chỉ `id_khoa_hoc` (`id_lop_hoc` NULL). Gửi org duyệt (`trang_thai='da_dang_ky'`).
+- **Đăng tác phẩm gắn khóa** (L14): form học viên chọn **khóa** → tự suy `id_lop_hoc` từ `user_hoc_vien_lop` → tạo `content_cot_moc` (`id_khoa_hoc`, `id_lop_hoc` tự điền) + `verify_yeu_cau` Loại 2 → org duyệt → nổi ở lens Sản phẩm học viên + Journey học viên.
+- **CRUD admin** inline trên trang (org admin): thêm/sửa khóa, kéo sắp xếp bài (`thu_tu`), đổi `visibility`, thêm/sửa lớp. Quyền: `vai_tro IN ('admin','quan_ly_noi_dung')` của org.
+- **Vẫn KHÔNG phải LMS**: không nộp bài / chấm điểm / lớp học online trong CINS. Chứng chỉ hoàn thành = milestone verified `sinh_tu_hoc_vien_lop` trên Journey.
 
 ---
 
@@ -305,6 +343,13 @@ Chi tiết bullet: `assignableRolePermissions()` trong `lib/cong-dong/vai-tro.ts
 - `content_tac_pham_tac_gia`: owner row INSERT cùng transaction; tagged row → `social_thong_bao`.
 - `social_binh_luan` / `chat_tin_nhan`: reply qua `id_cha` / `id_tin_tra_loi`; soft delete `da_xoa`.
 - Viewer hint notification: batch cuối ngày, filter `da_xu_ly_hint = false` SQL trước rồi mới gọi AI.
+
+### Khóa học (v9)
+
+- Giáo viên hiển thị (app-layer, không ràng buộc DB): `giao_vien_phu_trach` (FK user) → hồ sơ verified + link Journey; else `giao_vien_text` → tên chữ, không badge; else "Đang cập nhật".
+- Lộ trình bài: query `org_giao_trinh ... ORDER BY thu_tu`. Reorder = client gửi mảng id theo thứ tự, server cập nhật `thu_tu` theo index. Gating `visibility`: khách/non-học-viên chỉ thấy `public` (full) + `chi_hoc_vien` (tiêu đề + khóa); `private` chỉ admin.
+- Lens sản phẩm: `content_cot_moc WHERE id_khoa_hoc=X AND verified AND public` — dùng chung helper visibility với Journey public (loại `cong_dong`). Org không sở hữu.
+- Ghi danh liên tục: `user_hoc_vien_lop.id_lop_hoc` NULL hợp lệ (chỉ gắn `id_khoa_hoc`). Cohort thì bắt buộc `id_lop_hoc`.
 
 ### Engagement (v6)
 
@@ -371,6 +416,7 @@ Pre-launch checklist:
 | `migration_ket_ban.sql` | CREATE `user_ket_ban` |
 | `migration_da_verify_tag.sql` | ADD `da_verify BOOLEAN` |
 | `migration_journey_foreign_visibility.sql` | ADD `che_do_hien_thi_journey` |
+| `migration_khoa_hoc_v2.sql` | Cột khóa học v2 (giáo trình/lớp/khóa) — chạy trước khi seed khóa Sine Art |
 
 **Kiểm tra seed thumbnail:**
 ```sql

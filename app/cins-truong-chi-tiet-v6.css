@@ -3214,6 +3214,8 @@
 .tdh-page--v6 #tdh-panel-baidang .jcard-datebar--org .org-chip-avatar,
 .tdh-page--v6 #cso-panel-bai-dang .jcard-datebar--org .org-chip-avatar {
   flex-shrink: 0;
+  border: 1px solid var(--border2, #e4e6eb);
+  box-sizing: border-box;
 }
 
 .tdh-page--v6 #tdh-panel-baidang .jcard-datebar--org .tdh-baidang-edit,

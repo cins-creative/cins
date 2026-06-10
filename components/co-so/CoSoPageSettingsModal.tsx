@@ -11,15 +11,21 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
+import { CoSoSettingsMembersPanel } from "@/components/co-so/CoSoSettingsMembersPanel";
 import { LOAI_CO_SO_OPTIONS } from "@/lib/to-chuc/constants";
-import {
-  CO_SO_TAB_LABELS,
-  type CoSoOptionalTabId,
-  type CoSoPageCauHinh,
-} from "@/lib/to-chuc/co-so-page-cau-hinh";
+import type { CoSoPageCauHinh } from "@/lib/to-chuc/co-so-page-cau-hinh";
 import type { CoSoFilterChip } from "@/lib/to-chuc/co-so-page-queries";
+import type {
+  CoSoMemberAdmin,
+  CoSoSettingsViewer,
+} from "@/lib/to-chuc/co-so-settings-types";
 
-type SettingsSection = "identity" | "display" | "filters";
+export type CoSoSettingsSection =
+  | "identity"
+  | "contact"
+  | "verify"
+  | "access"
+  | "filters";
 
 type SettingsData = {
   orgId: string;
@@ -34,6 +40,10 @@ type SettingsData = {
   giayPhepDaoTao: string | null;
   maCoSo: string;
   daVerify: boolean;
+  diaChi: string | null;
+  dienThoai: string | null;
+  emailLienHe: string | null;
+  tinhThanh: string | null;
   pageConfig: CoSoPageCauHinh;
   filters: Array<{
     id: string;
@@ -42,24 +52,38 @@ type SettingsData = {
     mau: string | null;
     thuTu: number;
   }>;
+  members: CoSoMemberAdmin[];
+  viewer: CoSoSettingsViewer;
 };
 
 type Props = {
   open: boolean;
   orgId: string;
+  initialSection?: CoSoSettingsSection;
   onClose: () => void;
   onSaved: (patch: {
     slug?: string;
     ten?: string;
-    pageConfig: CoSoPageCauHinh;
-    filters: CoSoFilterChip[];
+    filters?: CoSoFilterChip[];
     loaiCoSo?: string;
     namThanhLap?: number | null;
     giayPhepDaoTao?: string | null;
+    moTa?: string | null;
+    diaChi?: string | null;
+    dienThoai?: string | null;
+    emailLienHe?: string | null;
+    tinhThanh?: string | null;
+    website?: string | null;
   }) => void;
 };
 
-const OPTIONAL_TABS: CoSoOptionalTabId[] = ["khoa-hoc", "san-pham", "hinh-anh"];
+const NAV: ReadonlyArray<{ id: CoSoSettingsSection; label: string }> = [
+  { id: "identity", label: "Danh tính" },
+  { id: "contact", label: "Liên hệ" },
+  { id: "verify", label: "Xác thực" },
+  { id: "access", label: "Quyền quản trị" },
+  { id: "filters", label: "Nhãn timeline" },
+];
 
 function mapFiltersToChips(
   filters: SettingsData["filters"],
@@ -73,10 +97,48 @@ function mapFiltersToChips(
   }));
 }
 
-export function CoSoPageSettingsModal({ open, orgId, onClose, onSaved }: Props) {
+function savePayloadForSection(
+  section: CoSoSettingsSection,
+  draft: SettingsData,
+): Record<string, unknown> {
+  switch (section) {
+    case "identity":
+      return {
+        ten: draft.ten,
+        slug: draft.slug,
+        moTa: draft.moTa,
+        gioiThieuTruong: draft.gioiThieuTruong,
+        loaiCoSo: draft.loaiCoSo,
+        namThanhLap: draft.namThanhLap,
+      };
+    case "contact":
+      return {
+        diaChi: draft.diaChi,
+        dienThoai: draft.dienThoai,
+        emailLienHe: draft.emailLienHe,
+        tinhThanh: draft.tinhThanh,
+        website: draft.website,
+      };
+    case "verify":
+      return {
+        tenChinhThuc: draft.tenChinhThuc,
+        giayPhepDaoTao: draft.giayPhepDaoTao,
+      };
+    default:
+      return {};
+  }
+}
+
+export function CoSoPageSettingsModal({
+  open,
+  orgId,
+  initialSection = "identity",
+  onClose,
+  onSaved,
+}: Props) {
   const router = useRouter();
   const titleId = useId();
-  const [section, setSection] = useState<SettingsSection>("identity");
+  const [section, setSection] = useState<CoSoSettingsSection>(initialSection);
   const [loading, setLoading] = useState(false);
   const [draft, setDraft] = useState<SettingsData | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -107,10 +169,10 @@ export function CoSoPageSettingsModal({ open, orgId, onClose, onSaved }: Props) 
 
   useEffect(() => {
     if (!open) return;
-    setSection("identity");
+    setSection(initialSection);
     setNewFilterName("");
     void loadSettings();
-  }, [open, loadSettings]);
+  }, [open, initialSection, loadSettings]);
 
   useEffect(() => {
     if (!open) return;
@@ -134,41 +196,33 @@ export function CoSoPageSettingsModal({ open, orgId, onClose, onSaved }: Props) 
     setDraft((prev) => (prev ? { ...prev, ...patch } : prev));
   }
 
-  function toggleTab(tabId: CoSoOptionalTabId, visible: boolean) {
-    setDraft((prev) => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        pageConfig: {
-          tabs: {
-            ...prev.pageConfig.tabs,
-            [tabId]: visible,
-          },
-        },
-      };
+  function emitSaved(settings: SettingsData) {
+    onSaved({
+      slug: settings.slug,
+      ten: settings.ten,
+      filters: mapFiltersToChips(settings.filters),
+      loaiCoSo: settings.loaiCoSo,
+      namThanhLap: settings.namThanhLap,
+      giayPhepDaoTao: settings.giayPhepDaoTao,
+      moTa: settings.moTa,
+      diaChi: settings.diaChi,
+      dienThoai: settings.dienThoai,
+      emailLienHe: settings.emailLienHe,
+      tinhThanh: settings.tinhThanh,
+      website: settings.website,
     });
   }
 
-  function onSaveIdentity(e: React.FormEvent) {
+  function onSaveSection(e: React.FormEvent) {
     e.preventDefault();
-    if (!draft) return;
+    if (!draft || section === "access" || section === "filters") return;
     setErr(null);
+    const prevSlug = draft.slug;
     startTransition(async () => {
       const res = await fetch(`/api/co-so/${encodeURIComponent(orgId)}/settings`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ten: draft.ten,
-          slug: draft.slug,
-          moTa: draft.moTa,
-          gioiThieuTruong: draft.gioiThieuTruong,
-          tenChinhThuc: draft.tenChinhThuc,
-          loaiCoSo: draft.loaiCoSo,
-          namThanhLap: draft.namThanhLap,
-          website: draft.website,
-          giayPhepDaoTao: draft.giayPhepDaoTao,
-          pageConfig: draft.pageConfig,
-        }),
+        body: JSON.stringify(savePayloadForSection(section, draft)),
       });
       const json = (await res.json().catch(() => null)) as {
         settings?: SettingsData;
@@ -179,16 +233,8 @@ export function CoSoPageSettingsModal({ open, orgId, onClose, onSaved }: Props) 
         return;
       }
       setDraft(json.settings);
-      onSaved({
-        slug: json.settings.slug,
-        ten: json.settings.ten,
-        pageConfig: json.settings.pageConfig,
-        filters: mapFiltersToChips(json.settings.filters),
-        loaiCoSo: json.settings.loaiCoSo,
-        namThanhLap: json.settings.namThanhLap,
-        giayPhepDaoTao: json.settings.giayPhepDaoTao,
-      });
-      if (json.settings.slug !== draft.slug) {
+      emitSaved(json.settings);
+      if (json.settings.slug !== prevSlug) {
         router.replace(`/co-so/${json.settings.slug}`);
       }
       onClose();
@@ -217,10 +263,7 @@ export function CoSoPageSettingsModal({ open, orgId, onClose, onSaved }: Props) 
         (a, b) => a.thuTu - b.thuTu,
       );
       patchDraft({ filters: nextFilters });
-      onSaved({
-        pageConfig: draft.pageConfig,
-        filters: mapFiltersToChips(nextFilters),
-      });
+      onSaved({ filters: mapFiltersToChips(nextFilters) });
       setNewFilterName("");
     } finally {
       setFilterPending(false);
@@ -255,10 +298,7 @@ export function CoSoPageSettingsModal({ open, orgId, onClose, onSaved }: Props) 
         .map((f) => (f.id === filterId ? json.filter! : f))
         .sort((a, b) => a.thuTu - b.thuTu);
       patchDraft({ filters: nextFilters });
-      onSaved({
-        pageConfig: draft.pageConfig,
-        filters: mapFiltersToChips(nextFilters),
-      });
+      onSaved({ filters: mapFiltersToChips(nextFilters) });
     } finally {
       setFilterPending(false);
     }
@@ -280,14 +320,13 @@ export function CoSoPageSettingsModal({ open, orgId, onClose, onSaved }: Props) 
       }
       const nextFilters = draft.filters.filter((f) => f.id !== filterId);
       patchDraft({ filters: nextFilters });
-      onSaved({
-        pageConfig: draft.pageConfig,
-        filters: mapFiltersToChips(nextFilters),
-      });
+      onSaved({ filters: mapFiltersToChips(nextFilters) });
     } finally {
       setFilterPending(false);
     }
   }
+
+  const showSaveFooter = section !== "filters" && section !== "access";
 
   if (!open || typeof document === "undefined") return null;
 
@@ -307,9 +346,18 @@ export function CoSoPageSettingsModal({ open, orgId, onClose, onSaved }: Props) 
         <header className="cso-settings-head">
           <div className="cso-settings-head-copy">
             <Settings2 size={18} strokeWidth={2} aria-hidden />
-            <h2 id={titleId} className="tdh-inline-modal-title cso-settings-title">
-              Cài đặt trang cơ sở
-            </h2>
+            <div className="cso-settings-head-text">
+              <h2 id={titleId} className="tdh-inline-modal-title cso-settings-title">
+                Quản lý cơ sở
+              </h2>
+              {draft?.viewer ? (
+                <p className="cso-settings-role-banner">
+                  Bạn đang đăng nhập với quyền{" "}
+                  <strong>{draft.viewer.vaiTroLabel}</strong>
+                  {draft.viewer.isCinsAdmin ? " · CINs internal" : null}
+                </p>
+              ) : null}
+            </div>
           </div>
           <button
             type="button"
@@ -322,13 +370,7 @@ export function CoSoPageSettingsModal({ open, orgId, onClose, onSaved }: Props) 
         </header>
 
         <nav className="cso-settings-nav" aria-label="Mục cài đặt">
-          {(
-            [
-              ["identity", "Danh tính"],
-              ["display", "Hiển thị"],
-              ["filters", "Nhãn timeline"],
-            ] as const
-          ).map(([id, label]) => (
+          {NAV.map(({ id, label }) => (
             <button
               key={id}
               type="button"
@@ -349,11 +391,12 @@ export function CoSoPageSettingsModal({ open, orgId, onClose, onSaved }: Props) 
         ) : null}
 
         {!loading && draft ? (
-          <form className="cso-settings-body" onSubmit={onSaveIdentity}>
+          <form className="cso-settings-body" onSubmit={onSaveSection}>
             {section === "identity" ? (
               <section className="cso-settings-section">
                 <p className="cso-settings-hint">
-                  Thông tin công khai trên trang và hub cơ sở đào tạo.
+                  Tên thương hiệu và nội dung giới thiệu hiển thị trên trang cơ
+                  sở.
                 </p>
                 <label className="tdh-inline-field">
                   <span>Tên hiển thị</span>
@@ -366,24 +409,19 @@ export function CoSoPageSettingsModal({ open, orgId, onClose, onSaved }: Props) 
                   />
                 </label>
                 <label className="tdh-inline-field">
-                  <span>Tên pháp lý</span>
-                  <input
-                    type="text"
-                    value={draft.tenChinhThuc}
-                    required
-                    onChange={(e) => patchDraft({ tenChinhThuc: e.target.value })}
-                  />
-                </label>
-                <label className="tdh-inline-field">
                   <span>Đường dẫn (slug)</span>
                   <input
                     type="text"
                     value={draft.slug}
                     required
+                    disabled={!draft.viewer.canChangeSlug}
                     onChange={(e) => patchDraft({ slug: e.target.value })}
                   />
                   <span className="cso-settings-field-note">
-                    Đổi slug sẽ đổi URL trang — cins.vn/co-so/{draft.slug}
+                    cins.vn/co-so/{draft.slug}
+                    {!draft.viewer.canChangeSlug
+                      ? " — chỉ quản trị viên mới đổi slug"
+                      : null}
                   </span>
                 </label>
                 <label className="tdh-inline-field">
@@ -404,60 +442,118 @@ export function CoSoPageSettingsModal({ open, orgId, onClose, onSaved }: Props) 
                   <textarea
                     rows={2}
                     value={draft.moTa ?? ""}
-                    placeholder="VD: Trung tâm đào tạo Mỹ thuật — hội họa, đồ họa, thiết kế"
                     onChange={(e) =>
                       patchDraft({ moTa: e.target.value || null })
                     }
                   />
-                  <span className="cso-settings-field-note">
-                    Một câu tagline ngắn — hiện trên thẻ cơ sở ở hub và mô tả
-                    khi chia sẻ link (SEO).
-                  </span>
                 </label>
                 <label className="tdh-inline-field">
                   <span>Giới thiệu</span>
                   <textarea
                     rows={3}
                     value={draft.gioiThieuTruong ?? ""}
-                    placeholder="Lịch sử, phương pháp đào tạo, thế mạnh, đội ngũ…"
                     onChange={(e) =>
                       patchDraft({ gioiThieuTruong: e.target.value || null })
                     }
                   />
-                  <span className="cso-settings-field-note">
-                    Nội dung «Về chúng tôi» chi tiết trên trang cơ sở — dài hơn
-                    mô tả ngắn, dùng khi khách muốn tìm hiểu sâu.
-                  </span>
+                </label>
+                <label className="tdh-inline-field">
+                  <span>Năm thành lập</span>
+                  <input
+                    type="number"
+                    min={1800}
+                    max={2100}
+                    value={draft.namThanhLap ?? ""}
+                    onChange={(e) =>
+                      patchDraft({
+                        namThanhLap: e.target.value
+                          ? Number(e.target.value)
+                          : null,
+                      })
+                    }
+                  />
+                </label>
+              </section>
+            ) : null}
+
+            {section === "contact" ? (
+              <section className="cso-settings-section">
+                <p className="cso-settings-hint">
+                  Thông tin liên hệ công khai trên sidebar trang cơ sở.
+                </p>
+                <label className="tdh-inline-field">
+                  <span>Địa chỉ</span>
+                  <textarea
+                    rows={2}
+                    value={draft.diaChi ?? ""}
+                    onChange={(e) =>
+                      patchDraft({ diaChi: e.target.value || null })
+                    }
+                  />
+                </label>
+                <label className="tdh-inline-field">
+                  <span>Tỉnh / Thành phố</span>
+                  <input
+                    type="text"
+                    value={draft.tinhThanh ?? ""}
+                    onChange={(e) =>
+                      patchDraft({ tinhThanh: e.target.value || null })
+                    }
+                  />
                 </label>
                 <div className="cso-settings-row">
                   <label className="tdh-inline-field">
-                    <span>Năm thành lập</span>
+                    <span>Điện thoại</span>
                     <input
-                      type="number"
-                      min={1800}
-                      max={2100}
-                      value={draft.namThanhLap ?? ""}
+                      type="tel"
+                      value={draft.dienThoai ?? ""}
                       onChange={(e) =>
-                        patchDraft({
-                          namThanhLap: e.target.value
-                            ? Number(e.target.value)
-                            : null,
-                        })
+                        patchDraft({ dienThoai: e.target.value || null })
                       }
                     />
                   </label>
                   <label className="tdh-inline-field">
-                    <span>Website</span>
+                    <span>Email</span>
                     <input
-                      type="url"
-                      value={draft.website ?? ""}
-                      placeholder="https://"
+                      type="email"
+                      value={draft.emailLienHe ?? ""}
                       onChange={(e) =>
-                        patchDraft({ website: e.target.value || null })
+                        patchDraft({ emailLienHe: e.target.value || null })
                       }
                     />
                   </label>
                 </div>
+                <label className="tdh-inline-field">
+                  <span>Website</span>
+                  <input
+                    type="url"
+                    value={draft.website ?? ""}
+                    placeholder="https://"
+                    onChange={(e) =>
+                      patchDraft({ website: e.target.value || null })
+                    }
+                  />
+                </label>
+              </section>
+            ) : null}
+
+            {section === "verify" ? (
+              <section className="cso-settings-section">
+                <p className="cso-settings-hint">
+                  Thông tin pháp lý và trạng thái xác thực CINs. Huy hiệu verify
+                  do CINs duyệt sau khi kiểm tra giấy phép.
+                </p>
+                <label className="tdh-inline-field">
+                  <span>Tên pháp lý</span>
+                  <input
+                    type="text"
+                    value={draft.tenChinhThuc}
+                    required
+                    onChange={(e) =>
+                      patchDraft({ tenChinhThuc: e.target.value })
+                    }
+                  />
+                </label>
                 <label className="tdh-inline-field">
                   <span>Giấy phép đào tạo</span>
                   <input
@@ -468,50 +564,31 @@ export function CoSoPageSettingsModal({ open, orgId, onClose, onSaved }: Props) 
                       patchDraft({ giayPhepDaoTao: e.target.value || null })
                     }
                   />
-                  <span className="cso-settings-field-note">
-                    Hiển thị công khai trong sidebar — mục «Số liệu đào tạo».
-                  </span>
                 </label>
                 <div className="cso-settings-readonly">
                   <span>Mã cơ sở: {draft.maCoSo}</span>
                   <span>
-                    Xác thực CINs: {draft.daVerify ? "Đã xác thực" : "Chưa"}
+                    Xác thực CINs:{" "}
+                    {draft.daVerify ? "Đã xác thực" : "Chưa xác thực"}
                   </span>
                 </div>
               </section>
             ) : null}
 
-            {section === "display" ? (
-              <section className="cso-settings-section">
-                <p className="cso-settings-hint">
-                  Tab «Bài đăng» luôn hiển thị. Các tab khác có thể ẩn khi chưa
-                  có nội dung.
-                </p>
-                <ul className="cso-settings-checks">
-                  {OPTIONAL_TABS.map((tabId) => {
-                    const visible = draft.pageConfig.tabs?.[tabId] !== false;
-                    return (
-                      <li key={tabId}>
-                        <label className="cso-settings-check">
-                          <input
-                            type="checkbox"
-                            checked={visible}
-                            onChange={(e) => toggleTab(tabId, e.target.checked)}
-                          />
-                          <span>{CO_SO_TAB_LABELS[tabId]}</span>
-                        </label>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </section>
+            {section === "access" && draft ? (
+              <CoSoSettingsMembersPanel
+                orgId={orgId}
+                members={draft.members}
+                canManage={draft.viewer.canManageMembers}
+                onMembersChange={(members) => patchDraft({ members })}
+                onError={setErr}
+              />
             ) : null}
 
             {section === "filters" ? (
               <section className="cso-settings-section">
                 <p className="cso-settings-hint">
-                  Nhãn lọc cục bộ trên timeline bài đăng — không dùng cho giá
-                  hay bán hàng.
+                  Nhãn lọc cục bộ trên timeline bài đăng.
                 </p>
                 <ul className="cso-settings-filter-list">
                   {draft.filters.map((filter) => (
@@ -597,7 +674,7 @@ export function CoSoPageSettingsModal({ open, orgId, onClose, onSaved }: Props) 
               </p>
             ) : null}
 
-            {section !== "filters" ? (
+            {showSaveFooter ? (
               <footer className="cso-settings-foot">
                 <button
                   type="button"

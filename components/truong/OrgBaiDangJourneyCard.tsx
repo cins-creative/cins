@@ -83,6 +83,7 @@ export function OrgBaiDangJourneyCard({ post }: Props) {
   const hasRichBody = Boolean(post.noi_dung?.trim());
   const blocksCardKind = usesBlocks ? milestoneCardContentKind(blocks) : null;
   const cardKind = blocksCardKind ?? baiDangCardKind(post);
+  const isArticleCard = cardKind === "article";
   const isMediaCard = cardKind === "photo" || cardKind === "video";
   const useUnifiedMediaBody = usesBlocks || isMediaCard;
 
@@ -97,11 +98,7 @@ export function OrgBaiDangJourneyCard({ post }: Props) {
     return legacyPhotoGrid;
   }, [usesBlocks, blocks, legacyPhotoGrid]);
 
-  const supportsInlineUnfold =
-    useUnifiedMediaBody &&
-    (cardKind === "photo" ||
-      cardKind === "video" ||
-      (usesBlocks && cardKind === "article"));
+  const supportsInlineUnfold = useUnifiedMediaBody && isArticleCard;
 
   const legacyCardExpand = !useUnifiedMediaBody && canExpand && !usesBlocks;
   const year = baiDangYear(post.tao_luc);
@@ -167,8 +164,8 @@ export function OrgBaiDangJourneyCard({ post }: Props) {
     "j-m-card",
     "jcard",
     `jcard--${cardKind}`,
-    supportsInlineUnfold ? "has-unfold" : "",
-    showUnfold ? "is-expanded" : supportsInlineUnfold ? "is-collapsed" : "",
+    isArticleCard ? "has-unfold" : "",
+    showUnfold ? "is-expanded" : isArticleCard ? "is-collapsed" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -227,7 +224,7 @@ export function OrgBaiDangJourneyCard({ post }: Props) {
                       : {
                           enabled: true,
                           expanded: false,
-                          ariaLabel: `Mở bài: ${post.tieu_de}`,
+                          ariaLabel: `Mở bài viết: ${post.tieu_de}`,
                           onClick: onBlocksExpandTrigger,
                           onKeyDown: onBlocksExpandKeyDown,
                         }
