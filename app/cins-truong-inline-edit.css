@@ -2874,6 +2874,9 @@
 }
 
 .tdh-add-year-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font: inherit;
   font-size: 13px;
   font-weight: 700;
@@ -2898,6 +2901,19 @@
   border-color: var(--cins-blue, #1f74c9);
   background: color-mix(in srgb, var(--cins-blue, #1f74c9) 10%, #fff);
   color: var(--cins-blue, #1f74c9);
+}
+
+.tdh-add-year-tab.is-dirty::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--cins-blue, #1f74c9);
+  flex-shrink: 0;
+}
+
+.tdh-add-year-tab.is-active.is-dirty::after {
+  background: currentColor;
 }
 
 .tdh-add-year-tab--add {

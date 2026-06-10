@@ -34,6 +34,19 @@ type Props = {
   onRemoved?: () => void;
 };
 
+type YearDraft = {
+  chiTieu: string;
+  diemChuan: string;
+};
+
+type ProgramDraft = {
+  tenChuongTrinh: string;
+  heDaoTao: string;
+  thoiGianThang: string;
+};
+
+type YearDraftMap = Record<number, YearDraft>;
+
 function formatDraftNum(v: number | null | undefined): string {
   if (v == null || Number.isNaN(v)) return "";
   return String(v);
@@ -57,6 +70,53 @@ function findTuyenSinhForYear(
   );
 }
 
+function buildYearDraftFromRow(
+  row: TruongTuyenSinhNamRow | undefined,
+): YearDraft {
+  return {
+    chiTieu: formatDraftNum(row?.chi_tieu),
+    diemChuan: formatDraftNum(row?.diem_chuan),
+  };
+}
+
+function buildProgramDraft(prog: TruongNganhProgram): ProgramDraft {
+  return {
+    thoiGianThang: formatDraftNum(prog.thoi_gian_thang),
+    heDaoTao: prog.he_dao_tao?.trim() ?? "",
+    tenChuongTrinh: prog.ten_chuong_trinh?.trim() ?? "",
+  };
+}
+
+function cloneYearDraftMap(map: YearDraftMap): YearDraftMap {
+  return Object.fromEntries(
+    Object.entries(map).map(([y, draft]) => [Number(y), { ...draft }]),
+  );
+}
+
+function yearDraftsEqual(a: YearDraft, b: YearDraft): boolean {
+  return a.chiTieu === b.chiTieu && a.diemChuan === b.diemChuan;
+}
+
+function programDraftsEqual(a: ProgramDraft, b: ProgramDraft): boolean {
+  return (
+    a.heDaoTao === b.heDaoTao &&
+    a.tenChuongTrinh === b.tenChuongTrinh &&
+    a.thoiGianThang === b.thoiGianThang
+  );
+}
+
+function buildInitialYearDrafts(
+  tuyenSinh: TruongTuyenSinhNamRow[],
+  progId: string,
+  yearTabs: number[],
+): YearDraftMap {
+  const map: YearDraftMap = {};
+  for (const y of yearTabs) {
+    map[y] = buildYearDraftFromRow(findTuyenSinhForYear(tuyenSinh, progId, y));
+  }
+  return map;
+}
+
 export function TruongNganhProgramEditModal({
   open,
   onClose,
@@ -68,11 +128,14 @@ export function TruongNganhProgramEditModal({
   const ctx = useTruongInlineEdit();
   const { yearOptions, setYear: setPageYear } = useYearFilter();
   const [year, setYear] = useState(initialYear);
-  const [chiTieu, setChiTieu] = useState("");
-  const [diemChuan, setDiemChuan] = useState("");
-  const [thoiGianThang, setThoiGianThang] = useState("");
-  const [heDaoTao, setHeDaoTao] = useState("");
-  const [tenChuongTrinh, setTenChuongTrinh] = useState("");
+  const [yearDrafts, setYearDrafts] = useState<YearDraftMap>({});
+  const [yearSnapshot, setYearSnapshot] = useState<YearDraftMap>({});
+  const [programDraft, setProgramDraft] = useState<ProgramDraft>(() =>
+    buildProgramDraft(prog),
+  );
+  const [programSnapshot, setProgramSnapshot] = useState<ProgramDraft>(() =>
+    buildProgramDraft(prog),
+  );
   const [saving, setSaving] = useState(false);
   const [removing, setRemoving] = useState(false);
   const [removeConfirm, setRemoveConfirm] = useState(false);
@@ -87,14 +150,25 @@ export function TruongNganhProgramEditModal({
     [tuyenSinh, yearOptions, initialYear],
   );
 
-  const tuyenRow = useMemo(
-    () => findTuyenSinhForYear(tuyenSinh, prog.id, year),
-    [tuyenSinh, prog.id, year],
-  );
+  const activeYearDraft = yearDrafts[year] ?? { chiTieu: "", diemChuan: "" };
 
   const monThiConfig =
     cauHinhCache[cauHinhMonThiCacheKey(prog.id, year)] ??
     pickPriorYearCauHinhFromCache(cauHinhCache, prog.id, year);
+
+  const dirtyYears = useMemo(
+    () =>
+      yearTabs.filter((y) => {
+        const draft = yearDrafts[y];
+        const snap = yearSnapshot[y];
+        if (!draft || !snap) return false;
+        return !yearDraftsEqual(draft, snap);
+      }),
+    [yearDrafts, yearSnapshot, yearTabs],
+  );
+
+  const programDirty = !programDraftsEqual(programDraft, programSnapshot);
+  const hasUnsavedChanges = programDirty || dirtyYears.length > 0;
 
   useEffect(() => {
     if (!open) {
@@ -103,122 +177,175 @@ export function TruongNganhProgramEditModal({
       return;
     }
     setYear(initialYear);
-  }, [open, initialYear]);
-
-  useEffect(() => {
-    if (!open) return;
-    setChiTieu(formatDraftNum(tuyenRow?.chi_tieu));
-    setDiemChuan(formatDraftNum(tuyenRow?.diem_chuan));
-    setThoiGianThang(formatDraftNum(prog.thoi_gian_thang));
-    setHeDaoTao(prog.he_dao_tao?.trim() ?? "");
-    setTenChuongTrinh(prog.ten_chuong_trinh?.trim() ?? "");
+    const initialYearDrafts = buildInitialYearDrafts(
+      tuyenSinh,
+      prog.id,
+      yearTabs,
+    );
+    setYearDrafts(initialYearDrafts);
+    setYearSnapshot(cloneYearDraftMap(initialYearDrafts));
+    const initialProgram = buildProgramDraft(prog);
+    setProgramDraft(initialProgram);
+    setProgramSnapshot({ ...initialProgram });
     setError(null);
-  }, [open, year, tuyenRow, prog]);
+  }, [open, initialYear, prog, tuyenSinh, yearTabs]);
+
+  function patchYearDraft(y: number, patch: Partial<YearDraft>) {
+    setYearDrafts((prev) => {
+      const current = prev[y] ?? { chiTieu: "", diemChuan: "" };
+      return { ...prev, [y]: { ...current, ...patch } };
+    });
+  }
+
+  function selectYear(nextYear: number) {
+    setYearDrafts((prev) => {
+      if (prev[nextYear]) return prev;
+      return {
+        ...prev,
+        [nextYear]: buildYearDraftFromRow(
+          findTuyenSinhForYear(tuyenSinh, prog.id, nextYear),
+        ),
+      };
+    });
+    setYearSnapshot((prev) => {
+      if (prev[nextYear]) return prev;
+      return {
+        ...prev,
+        [nextYear]: buildYearDraftFromRow(
+          findTuyenSinhForYear(tuyenSinh, prog.id, nextYear),
+        ),
+      };
+    });
+    setYear(nextYear);
+  }
 
   async function save() {
     if (!ctx || saving) return;
+    if (!hasUnsavedChanges) {
+      onClose();
+      return;
+    }
+
     setSaving(true);
     setError(null);
 
-    const chi_tieu = parseDraftNum(chiTieu);
-    const diem_chuan = parseDraftNum(diemChuan);
-    const thoi_gian_thang = parseDraftNum(thoiGianThang);
-
+    const thoi_gian_thang = parseDraftNum(programDraft.thoiGianThang);
     const prevTuyen = ctx.tuyenSinh;
     const prevPrograms = ctx.programs;
 
     try {
       let nextTuyen = [...prevTuyen];
 
-      if (tuyenRow?.id) {
-        const res = await truongInlineFetch(
-          ctx.orgId,
-          `/tuyen-sinh/${tuyenRow.id}`,
-          {
-            method: "PATCH",
-            body: JSON.stringify({ chi_tieu, diem_chuan }),
-          },
-        );
-        if (!res.ok) {
-          setError(await readTruongInlineError(res));
-          return;
+      for (const y of dirtyYears) {
+        const draft = yearDrafts[y];
+        if (!draft) continue;
+
+        const chi_tieu = parseDraftNum(draft.chiTieu);
+        const diem_chuan = parseDraftNum(draft.diemChuan);
+        const tuyenRow = findTuyenSinhForYear(nextTuyen, prog.id, y);
+
+        if (tuyenRow?.id) {
+          const res = await truongInlineFetch(
+            ctx.orgId,
+            `/tuyen-sinh/${tuyenRow.id}`,
+            {
+              method: "PATCH",
+              body: JSON.stringify({ chi_tieu, diem_chuan }),
+            },
+          );
+          if (!res.ok) {
+            setError(await readTruongInlineError(res));
+            return;
+          }
+          nextTuyen = nextTuyen.map((row) =>
+            row.id === tuyenRow.id ? { ...row, chi_tieu, diem_chuan } : row,
+          );
+        } else {
+          const entry: TuyenSinhInsertPayload = {
+            truongNganhId: prog.id,
+            chi_tieu,
+            diem_chuan,
+            thoi_gian_thang:
+              thoi_gian_thang != null && thoi_gian_thang > 0
+                ? thoi_gian_thang
+                : null,
+          };
+          const res = await truongInlineFetch(ctx.orgId, "/tuyen-sinh", {
+            method: "POST",
+            body: JSON.stringify({ nam: y, entries: [entry] }),
+          });
+          if (!res.ok) {
+            setError(await readTruongInlineError(res));
+            return;
+          }
+          const json = (await res.json()) as { rows?: TuyenSinhInsertRawRow[] };
+          const enriched = enrichTuyenSinhRows(json.rows ?? [], ctx.programs);
+          nextTuyen = [...nextTuyen, ...enriched];
         }
-        nextTuyen = nextTuyen.map((row) =>
-          row.id === tuyenRow.id
-            ? { ...row, chi_tieu, diem_chuan }
-            : row,
-        );
-      } else {
-        const entry: TuyenSinhInsertPayload = {
-          truongNganhId: prog.id,
-          chi_tieu,
-          diem_chuan,
-          thoi_gian_thang:
-            thoi_gian_thang != null && thoi_gian_thang > 0
-              ? thoi_gian_thang
-              : null,
-        };
-        const res = await truongInlineFetch(ctx.orgId, "/tuyen-sinh", {
-          method: "POST",
-          body: JSON.stringify({ nam: year, entries: [entry] }),
-        });
-        if (!res.ok) {
-          setError(await readTruongInlineError(res));
-          return;
-        }
-        const json = (await res.json()) as { rows?: TuyenSinhInsertRawRow[] };
-        const enriched = enrichTuyenSinhRows(json.rows ?? [], ctx.programs);
-        nextTuyen = [...nextTuyen, ...enriched];
       }
 
       let nextPrograms = mergeTuyenSinhIntoPrograms(
         prevPrograms,
-        nextTuyen.filter(
-          (row) =>
-            row.truongNganhId === prog.id && Number(row.nam) === year,
-        ),
+        nextTuyen.filter((row) => row.truongNganhId === prog.id),
       );
 
-      const programPatch: Record<string, unknown> = {};
-      if (thoi_gian_thang != null && thoi_gian_thang > 0) {
-        programPatch.thoi_gian_thang = thoi_gian_thang;
-      }
-      const ten = tenChuongTrinh.trim();
-      if (ten) programPatch.ten_chuong_trinh = ten;
-      const he = heDaoTao.trim();
-      if (he) programPatch.he_dao_tao = he;
-
-      if (Object.keys(programPatch).length) {
-        const res = await truongInlineFetch(ctx.orgId, `/nganh/${prog.id}`, {
-          method: "PATCH",
-          body: JSON.stringify(programPatch),
-        });
-        if (!res.ok) {
-          setError(await readTruongInlineError(res));
-          return;
+      if (programDirty) {
+        const programPatch: Record<string, unknown> = {};
+        if (thoi_gian_thang != null && thoi_gian_thang > 0) {
+          programPatch.thoi_gian_thang = thoi_gian_thang;
         }
-        nextPrograms = nextPrograms.map((p) =>
-          p.id === prog.id
-            ? {
-                ...p,
-                thoi_gian_thang:
-                  (programPatch.thoi_gian_thang as number | undefined) ??
-                  p.thoi_gian_thang,
-                ten_chuong_trinh:
-                  (programPatch.ten_chuong_trinh as string | undefined) ??
-                  p.ten_chuong_trinh,
-                he_dao_tao:
-                  (programPatch.he_dao_tao as string | undefined) ??
-                  p.he_dao_tao,
-              }
-            : p,
-        );
+        const ten = programDraft.tenChuongTrinh.trim();
+        if (ten) programPatch.ten_chuong_trinh = ten;
+        const he = programDraft.heDaoTao.trim();
+        if (he) programPatch.he_dao_tao = he;
+
+        if (Object.keys(programPatch).length) {
+          const res = await truongInlineFetch(ctx.orgId, `/nganh/${prog.id}`, {
+            method: "PATCH",
+            body: JSON.stringify(programPatch),
+          });
+          if (!res.ok) {
+            setError(await readTruongInlineError(res));
+            return;
+          }
+          nextPrograms = nextPrograms.map((p) =>
+            p.id === prog.id
+              ? {
+                  ...p,
+                  thoi_gian_thang:
+                    (programPatch.thoi_gian_thang as number | undefined) ??
+                    p.thoi_gian_thang,
+                  ten_chuong_trinh:
+                    (programPatch.ten_chuong_trinh as string | undefined) ??
+                    p.ten_chuong_trinh,
+                  he_dao_tao:
+                    (programPatch.he_dao_tao as string | undefined) ??
+                    p.he_dao_tao,
+                }
+              : p,
+          );
+        }
       }
 
       ctx.setTuyenSinh(nextTuyen);
       ctx.setPrograms(nextPrograms);
+      setYearSnapshot(cloneYearDraftMap(yearDrafts));
+      setProgramSnapshot({ ...programDraft });
       setPageYear(year);
-      ctx.showToast(`Đã lưu dữ liệu «${prog.nganhTitle}» (${year})`);
+
+      const parts: string[] = [];
+      if (dirtyYears.length) {
+        parts.push(
+          dirtyYears.length === 1
+            ? `năm ${dirtyYears[0]}`
+            : `${dirtyYears.length} năm`,
+        );
+      }
+      if (programDirty) parts.push("thông tin chương trình");
+      ctx.showToast(
+        `Đã lưu «${prog.nganhTitle}»${parts.length ? ` (${parts.join(", ")})` : ""}`,
+      );
+      onClose();
     } catch {
       setError("Lỗi kết nối khi lưu ngành.");
     } finally {
@@ -273,7 +400,8 @@ export function TruongNganhProgramEditModal({
               Sửa ngành — {prog.nganhTitle}
             </h3>
             <p className="tdh-nganh-program-edit-lead">
-              Cập nhật điểm chuẩn, chỉ tiêu và môn thi theo năm.
+              Chuyển tab năm để sửa nhiều năm — bấm{" "}
+              <strong>Lưu thay đổi</strong> một lần khi xong.
             </p>
           </div>
           <button
@@ -292,19 +420,32 @@ export function TruongNganhProgramEditModal({
         <div className="tdh-nganh-program-edit-years">
           <span className="tdh-nganh-program-edit-years-label">Năm</span>
           <div className="tdh-add-year-tabs" role="tablist" aria-label="Năm dữ liệu">
-            {yearTabs.map((y) => (
-              <button
-                key={y}
-                type="button"
-                role="tab"
-                aria-selected={year === y}
-                className={`tdh-add-year-tab${year === y ? " is-active" : ""}`}
-                disabled={busy}
-                onClick={() => setYear(y)}
-              >
-                {y}
-              </button>
-            ))}
+            {yearTabs.map((y) => {
+              const yearDirty =
+                yearDrafts[y] &&
+                yearSnapshot[y] &&
+                !yearDraftsEqual(yearDrafts[y], yearSnapshot[y]);
+              return (
+                <button
+                  key={y}
+                  type="button"
+                  role="tab"
+                  aria-selected={year === y}
+                  className={[
+                    "tdh-add-year-tab",
+                    year === y ? "is-active" : "",
+                    yearDirty ? "is-dirty" : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                  disabled={busy}
+                  title={yearDirty ? "Có thay đổi chưa lưu" : undefined}
+                  onClick={() => selectYear(y)}
+                >
+                  {y}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -321,9 +462,14 @@ export function TruongNganhProgramEditModal({
                   <input
                     type="text"
                     className="tdh-nganh-program-edit-input"
-                    value={tenChuongTrinh}
+                    value={programDraft.tenChuongTrinh}
                     disabled={busy}
-                    onChange={(e) => setTenChuongTrinh(e.target.value)}
+                    onChange={(e) =>
+                      setProgramDraft((prev) => ({
+                        ...prev,
+                        tenChuongTrinh: e.target.value,
+                      }))
+                    }
                     placeholder="Tên hiển thị tại trường"
                   />
                 </td>
@@ -334,9 +480,14 @@ export function TruongNganhProgramEditModal({
                   <input
                     type="text"
                     className="tdh-nganh-program-edit-input"
-                    value={heDaoTao}
+                    value={programDraft.heDaoTao}
                     disabled={busy}
-                    onChange={(e) => setHeDaoTao(e.target.value)}
+                    onChange={(e) =>
+                      setProgramDraft((prev) => ({
+                        ...prev,
+                        heDaoTao: e.target.value,
+                      }))
+                    }
                     placeholder="VD: Chính quy"
                   />
                 </td>
@@ -348,9 +499,14 @@ export function TruongNganhProgramEditModal({
                     type="number"
                     min={0}
                     className="tdh-nganh-program-edit-input tdh-nganh-program-edit-input--num"
-                    value={thoiGianThang}
+                    value={programDraft.thoiGianThang}
                     disabled={busy}
-                    onChange={(e) => setThoiGianThang(e.target.value)}
+                    onChange={(e) =>
+                      setProgramDraft((prev) => ({
+                        ...prev,
+                        thoiGianThang: e.target.value,
+                      }))
+                    }
                     placeholder="—"
                   />
                 </td>
@@ -363,9 +519,11 @@ export function TruongNganhProgramEditModal({
                     min={0}
                     step={0.25}
                     className="tdh-nganh-program-edit-input tdh-nganh-program-edit-input--num"
-                    value={diemChuan}
+                    value={activeYearDraft.diemChuan}
                     disabled={busy}
-                    onChange={(e) => setDiemChuan(e.target.value)}
+                    onChange={(e) =>
+                      patchYearDraft(year, { diemChuan: e.target.value })
+                    }
                     placeholder="—"
                   />
                 </td>
@@ -377,9 +535,11 @@ export function TruongNganhProgramEditModal({
                     type="number"
                     min={0}
                     className="tdh-nganh-program-edit-input tdh-nganh-program-edit-input--num"
-                    value={chiTieu}
+                    value={activeYearDraft.chiTieu}
                     disabled={busy}
-                    onChange={(e) => setChiTieu(e.target.value)}
+                    onChange={(e) =>
+                      patchYearDraft(year, { chiTieu: e.target.value })
+                    }
                     placeholder="—"
                   />
                 </td>
@@ -460,7 +620,7 @@ export function TruongNganhProgramEditModal({
             <button
               type="button"
               className="tdh-inline-btn primary"
-              disabled={busy}
+              disabled={busy || !hasUnsavedChanges}
               onClick={() => void save()}
             >
               {saving ? "Đang lưu…" : "Lưu thay đổi"}
