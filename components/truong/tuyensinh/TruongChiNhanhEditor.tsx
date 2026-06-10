@@ -1,14 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import Image from "next/image";
 
+import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
 import {
   CHI_NHANH_MAX,
   emptyChiNhanh,
   formatChiNhanhAddress,
 } from "@/lib/truong/chi-nhanh";
+import { truongCoverClass } from "@/lib/truong/display";
+import { resolveTruongImageSrcSync } from "@/lib/truong/media-url";
 import { TINH_THANH_OPTIONS } from "@/lib/truong/contact";
 import type { TruongChiNhanh } from "@/lib/truong/types";
+
+import { TruongCardCoverGeo } from "@/components/truong/TruongCardCoverGeo";
 
 type Props = {
   branches: TruongChiNhanh[];
@@ -24,6 +30,92 @@ function branchSummary(branch: TruongChiNhanh): string {
   const diaChi = branch.dia_chi?.trim();
   if (!diaChi) return "Chưa có địa chỉ";
   return formatChiNhanhAddress(branch);
+}
+
+function BranchCoverField({
+  branch,
+  index,
+  onChange,
+}: {
+  branch: TruongChiNhanh;
+  index: number;
+  onChange: (coverId: string | null) => void;
+}) {
+  const ctx = useTruongInlineEdit();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const coverUrl = branch.cover_id
+    ? resolveTruongImageSrcSync(branch.cover_id, ["public", "cover", "medium"])
+    : null;
+
+  async function onFilePicked(file: File | undefined) {
+    if (!file || !ctx) return;
+    setUploading(true);
+    const uploaded = await ctx.uploadImage(file);
+    setUploading(false);
+    if (!uploaded) {
+      ctx.showToast("Tải ảnh bìa thất bại");
+      return;
+    }
+    onChange(uploaded.imageId);
+    ctx.showToast("Đã thêm ảnh bìa — bấm Lưu để giữ");
+  }
+
+  return (
+    <div className="tdh-inline-field tdh-chi-nhanh-editor-cover">
+      <span>Ảnh bìa cơ sở</span>
+      <div className="tdh-chi-nhanh-editor-cover-row">
+        <div className="tdh-chi-nhanh-editor-cover-preview" aria-hidden>
+          {coverUrl ? (
+            <Image
+              src={coverUrl}
+              alt=""
+              fill
+              className="tdh-chi-nhanh-editor-cover-photo"
+              sizes="160px"
+              unoptimized={coverUrl.includes("imagedelivery.net")}
+            />
+          ) : (
+            <div
+              className={`tdh-chi-nhanh-editor-cover-ph ${truongCoverClass(index)}`}
+            >
+              <TruongCardCoverGeo variant={index} />
+            </div>
+          )}
+        </div>
+        <div className="tdh-chi-nhanh-editor-cover-actions">
+          <button
+            type="button"
+            className="tdh-inline-chip-btn"
+            disabled={uploading}
+            onClick={() => inputRef.current?.click()}
+          >
+            {uploading ? "Đang tải…" : coverUrl ? "Đổi ảnh" : "Thêm ảnh bìa"}
+          </button>
+          {branch.cover_id ? (
+            <button
+              type="button"
+              className="tdh-inline-text-btn"
+              disabled={uploading}
+              onClick={() => onChange(null)}
+            >
+              Xóa ảnh
+            </button>
+          ) : null}
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            className="tdh-inline-file"
+            onChange={(e) => {
+              void onFilePicked(e.target.files?.[0]);
+              e.target.value = "";
+            }}
+          />
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function ChevronIcon({ expanded }: { expanded: boolean }) {
@@ -173,6 +265,11 @@ export function TruongChiNhanhEditor({ branches, onChange }: Props) {
               ) : null}
               {expanded && !confirmingDelete ? (
                 <div className="tdh-chi-nhanh-editor-fields">
+                  <BranchCoverField
+                    branch={branch}
+                    index={index}
+                    onChange={(cover_id) => updateAt(index, { cover_id })}
+                  />
                   <label className="tdh-inline-field">
                     <span>Tên chi nhánh</span>
                     <input

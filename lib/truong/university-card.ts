@@ -15,7 +15,9 @@ export type TruongUniversityCardSchool = Pick<
   | "cover_src"
   | "avatar_src"
   | "tinh_thanh"
->;
+> & {
+  ten_tieng_anh?: string | null;
+};
 
 export type TruongUniversityCardFoot = {
   value: string | number;

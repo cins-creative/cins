@@ -121,6 +121,9 @@ export function TruongUniversityCard({
           <TruongOrgAvatar school={school} size="md" className="tdh-card-avatar" />
           <div className="tdh-card-head-text">
             <h2 className="tdh-card-name">{school.ten}</h2>
+            {school.ten_tieng_anh?.trim() ? (
+              <p className="tdh-card-en">{school.ten_tieng_anh.trim()}</p>
+            ) : null}
             {school.ma_truong ? (
               <span className="tdh-card-code">{school.ma_truong}</span>
             ) : null}

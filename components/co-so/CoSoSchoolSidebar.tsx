@@ -73,6 +73,13 @@ export function CoSoSchoolSidebar({
 
         <div className="ss-card-id cso-ss-card-id">
           <div className="cso-ss-id-top">
+            <div className="cso-ss-avatar-gutter" aria-hidden="true" />
+            <div className="cso-ss-id-body">
+              <h1 className="ss-name">{school.ten}</h1>
+              {school.ten_tieng_anh?.trim() ? (
+                <p className="ss-en">{school.ten_tieng_anh.trim()}</p>
+              ) : null}
+            </div>
             <div className="cso-ss-card-actions ss-cta">
               {showAdminCta ? (
                 <>
@@ -88,12 +95,6 @@ export function CoSoSchoolSidebar({
                 </button>
               )}
             </div>
-          </div>
-          <div className="cso-ss-id-main">
-            <h1 className="ss-name">{school.ten}</h1>
-            {school.ten_tieng_anh?.trim() ? (
-              <p className="ss-en">{school.ten_tieng_anh.trim()}</p>
-            ) : null}
           </div>
         </div>
       </div>

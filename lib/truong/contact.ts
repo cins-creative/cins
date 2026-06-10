@@ -1,6 +1,9 @@
 import {
   facebookDisplayLabel,
   formatChiNhanhAddress,
+  normalizeFacebookUrl,
+  resolvePrimaryChiNhanhDisplay,
+  resolveTruongChiNhanh,
 } from "@/lib/truong/chi-nhanh";
 import type { TruongChiNhanh, TruongListItem } from "@/lib/truong/types";
 
@@ -128,13 +131,13 @@ export function buildChiNhanhContactLines(
     });
   }
 
-  const facebook = branch.facebook?.trim();
+  const facebook = normalizeFacebookUrl(branch.facebook);
   if (facebook) {
     lines.push({
       kind: "facebook",
       label: "Facebook",
       value: facebookDisplayLabel(facebook),
-      href: facebook.startsWith("http") ? facebook : `https://${facebook}`,
+      href: facebook,
     });
   }
 
@@ -204,14 +207,77 @@ export function buildTruongContactLines(
     });
   }
 
-  const facebook = school.facebook?.trim();
+  const facebook = normalizeFacebookUrl(school.facebook);
   if (facebook) {
     lines.push({
       kind: "facebook",
       label: "Facebook",
       value: facebookDisplayLabel(facebook),
-      href: facebook.startsWith("http") ? facebook : `https://${facebook}`,
+      href: facebook,
     });
+  } else {
+    const fromBranches = resolveSchoolFacebook(school);
+    if (fromBranches) {
+      lines.push({
+        kind: "facebook",
+        label: "Facebook",
+        value: facebookDisplayLabel(fromBranches),
+        href: fromBranches,
+      });
+    }
+  }
+
+  return lines;
+}
+
+/** Fanpage — ưu tiên chi nhánh chính, rồi `cau_hinh.facebook`, rồi chi nhánh khác. */
+export function resolveSchoolFacebook(
+  school: Pick<
+    TruongListItem,
+    "facebook" | "chi_nhanh" | "dia_chi" | "tinh_thanh" | "dien_thoai" | "email_lien_he" | "website"
+  >,
+): string | null {
+  const primary = resolvePrimaryChiNhanhDisplay(school);
+  const fromPrimary = normalizeFacebookUrl(primary?.facebook);
+  if (fromPrimary) return fromPrimary;
+
+  const fromOrg = normalizeFacebookUrl(school.facebook);
+  if (fromOrg) return fromOrg;
+
+  for (const branch of resolveTruongChiNhanh(school)) {
+    const fromBranch = normalizeFacebookUrl(branch.facebook);
+    if (fromBranch) return fromBranch;
+  }
+
+  return null;
+}
+
+/** Liên hệ sidebar trường — chi nhánh chính + fanpage nếu chưa có trong dòng. */
+export function buildSchoolSidebarContactLines(
+  school: Pick<
+    TruongListItem,
+    | "website"
+    | "facebook"
+    | "dia_chi"
+    | "chi_nhanh"
+    | "dien_thoai"
+    | "email_lien_he"
+    | "tinh_thanh"
+  >,
+): TruongContactLine[] {
+  const primary = resolvePrimaryChiNhanhDisplay(school);
+  const lines = primary ? buildChiNhanhContactLines(primary) : [];
+
+  if (!lines.some((line) => line.kind === "facebook")) {
+    const facebook = resolveSchoolFacebook(school);
+    if (facebook) {
+      lines.push({
+        kind: "facebook",
+        label: "Facebook",
+        value: facebookDisplayLabel(facebook),
+        href: facebook,
+      });
+    }
   }
 
   return lines;

@@ -1,4 +1,9 @@
 import { labelTinhThanh, normalizeTinhThanhForDb } from "@/lib/truong/contact";
+import { resolveTruongImageSrcSync } from "@/lib/truong/media-url";
+import {
+  resolveSchoolCoverSrc,
+  type SchoolCoverFields,
+} from "@/lib/truong/school-cover";
 import type { TruongChiNhanh, TruongListItem } from "@/lib/truong/types";
 
 export const CHI_NHANH_MAX = 40;
@@ -46,6 +51,7 @@ export function normalizeChiNhanh(raw: TruongChiNhanh): TruongChiNhanh | null {
   const email = raw.email?.trim().slice(0, CHI_NHANH_EMAIL_MAX) || null;
   const website = raw.website?.trim().slice(0, CHI_NHANH_WEBSITE_MAX) || null;
   const facebook = normalizeFacebookUrl(raw.facebook);
+  const cover_id = raw.cover_id?.trim() || null;
   return {
     id: raw.id?.trim() || newChiNhanhId(),
     ten,
@@ -55,6 +61,7 @@ export function normalizeChiNhanh(raw: TruongChiNhanh): TruongChiNhanh | null {
     email,
     website,
     facebook,
+    cover_id,
   };
 }
 
@@ -90,6 +97,31 @@ export function resolveTruongChiNhanh(
 ): TruongChiNhanh[] {
   if (school.chi_nhanh?.length) return school.chi_nhanh;
   return legacyChiNhanhFromContact(school);
+}
+
+export function patchChiNhanhById(
+  school: SchoolChiNhanhSource,
+  branchId: string,
+  patch: Partial<TruongChiNhanh>,
+): TruongChiNhanh[] {
+  return hydrateChiNhanhFromSchool(school).map((branch) =>
+    branch.id === branchId ? { ...branch, ...patch } : branch,
+  );
+}
+
+export function resolveChiNhanhCoverSrc(
+  branch: TruongChiNhanh,
+  index: number,
+  schoolFallback?: SchoolCoverFields | null,
+): string | null {
+  const branchCover = branch.cover_id?.trim();
+  if (branchCover) {
+    return resolveTruongImageSrcSync(branchCover, ["public", "cover", "medium"]);
+  }
+  if (index === 0 && schoolFallback) {
+    return resolveSchoolCoverSrc(schoolFallback);
+  }
+  return null;
 }
 
 export function formatChiNhanhAddress(branch: TruongChiNhanh): string {

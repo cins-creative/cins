@@ -54,6 +54,61 @@ export async function POST(request: Request, context: RouteContext) {
   return NextResponse.json({ photo: data });
 }
 
+export async function PATCH(request: Request, context: RouteContext) {
+  const { id: orgId } = await context.params;
+  if (!orgId?.trim()) {
+    return NextResponse.json({ error: "Missing id" }, { status: 400 });
+  }
+
+  const denied = await assertTruongOrgWriteApi(request, orgId);
+  if (denied) return denied;
+
+  let body: Record<string, unknown>;
+  try {
+    body = (await request.json()) as Record<string, unknown>;
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  const photoId = String(body.photoId ?? "").trim();
+  if (!photoId) {
+    return NextResponse.json({ error: "photoId required" }, { status: 400 });
+  }
+
+  const patch: Record<string, unknown> = {};
+  if ("loai" in body) patch.loai = normalizeHinhAnhLoai(body.loai);
+  if ("caption" in body) {
+    patch.caption =
+      typeof body.caption === "string" ? body.caption.trim() || null : null;
+  }
+  if ("thu_tu" in body) {
+    const thu_tu = Number(body.thu_tu);
+    if (!Number.isNaN(thu_tu)) patch.thu_tu = thu_tu;
+  }
+
+  if (!Object.keys(patch).length) {
+    return NextResponse.json({ error: "No fields to update" }, { status: 400 });
+  }
+
+  const supabase = createServiceRoleClient();
+  const { data, error } = await supabase
+    .from("org_hinh_anh")
+    .update(patch)
+    .eq("id", photoId)
+    .eq("id_to_chuc", orgId)
+    .select("id, cloudflare_id, caption, loai, thu_tu")
+    .maybeSingle();
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+  if (!data) {
+    return NextResponse.json({ error: "Không tìm thấy ảnh" }, { status: 404 });
+  }
+
+  return NextResponse.json({ photo: data });
+}
+
 export async function DELETE(request: Request, context: RouteContext) {
   const { id: orgId } = await context.params;
   const { searchParams } = new URL(request.url);

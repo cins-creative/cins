@@ -8,7 +8,7 @@ import {
   resolveTruongChiNhanh,
 } from "@/lib/truong/chi-nhanh";
 import {
-  buildChiNhanhContactLines,
+  buildSchoolSidebarContactLines,
   buildTruongContactLines,
 } from "@/lib/truong/contact";
 import type { TruongListItem } from "@/lib/truong/types";
@@ -16,6 +16,7 @@ import type { TruongListItem } from "@/lib/truong/types";
 type Props = {
   school: Pick<
     TruongListItem,
+    | "ten"
     | "website"
     | "facebook"
     | "dia_chi"
@@ -23,6 +24,8 @@ type Props = {
     | "dien_thoai"
     | "email_lien_he"
     | "tinh_thanh"
+    | "cover_id"
+    | "cover_src"
   >;
   isEditing?: boolean;
   variant?: "default" | "sidebar";
@@ -63,7 +66,7 @@ function ContactIcon({
   if (kind === "facebook") {
     return (
       <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-        <path d="M13.5 22v-8h2.7l.4-3.2h-3.1V11c0-.9.3-1.6 1.7-1.6H16.8V7.2c-.3 0-1.4-.1-2.7-.1-2.7 0-4.5 1.6-4.5 4.6V12H7.2v3.2h3.2V22h3.5z" />
+        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
       </svg>
     );
   }
@@ -88,9 +91,7 @@ export function TruongSchoolContact({
   const [branchesOpen, setBranchesOpen] = useState(false);
   const branches = resolveTruongChiNhanh(school);
   const primaryBranch = resolvePrimaryChiNhanhDisplay(school);
-  const primaryLines = primaryBranch
-    ? buildChiNhanhContactLines(primaryBranch)
-    : [];
+  const primaryLines = buildSchoolSidebarContactLines(school);
   const otherBranchCount = Math.max(0, branches.length - 1);
   const branchesForModal = branches.map((branch, index) =>
     index === 0 && primaryBranch ? primaryBranch : branch,
@@ -123,7 +124,12 @@ export function TruongSchoolContact({
               className="ss-contact-row"
               aria-label={line.label}
             >
-              <span className="ss-contact-icon" aria-hidden>
+              <span
+                className={`ss-contact-icon${
+                  line.kind === "facebook" ? " ss-contact-icon--facebook" : ""
+                }`}
+                aria-hidden
+              >
                 <ContactIcon kind={line.kind} />
               </span>
               <div className="ss-contact-body">
@@ -167,6 +173,12 @@ export function TruongSchoolContact({
           open={branchesOpen}
           onClose={() => setBranchesOpen(false)}
           branches={branchesForModal}
+          schoolTen={school.ten}
+          schoolCover={{
+            cover_id: school.cover_id,
+            cover_src: school.cover_src,
+          }}
+          editable={Boolean(isEditing)}
         />
       </>
     );
@@ -190,7 +202,14 @@ export function TruongSchoolContact({
               : undefined
           }
         >
-          <span className="tdh-identity-contact-icon" aria-hidden>
+          <span
+            className={`tdh-identity-contact-icon${
+              line.kind === "facebook"
+                ? " tdh-identity-contact-icon--facebook"
+                : ""
+            }`}
+            aria-hidden
+          >
             <ContactIcon kind={line.kind} />
           </span>
           <div className="tdh-identity-contact-body">

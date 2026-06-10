@@ -1,4 +1,5 @@
-import type { TruongCauHinhTinhDiem } from "@/lib/truong/types";
+import { effectiveThangDiemForCalc } from "@/lib/truong/calc";
+import type { TruongCauHinhTinhDiem, TruongCauHinhMon } from "@/lib/truong/types";
 
 export type MonThiDauVaoItem = {
   key: string;
@@ -16,13 +17,10 @@ export type MonThiDauVaoDisplay = {
   monItems: MonThiDauVaoItem[];
 };
 
-function formatMonLabel(m: {
-  ten: string;
-  he_so: number;
-  thang_diem: number;
-}): string {
+function formatMonLabel(m: Pick<TruongCauHinhMon, "ten" | "he_so" | "thang_diem">): string {
   const hs = m.he_so !== 1 ? ` ×${m.he_so}` : "";
-  const scale = m.thang_diem === 10 ? "" : ` /${m.thang_diem}`;
+  const thang = effectiveThangDiemForCalc(m);
+  const scale = thang === 10 ? "" : ` /${thang}`;
   return `${m.ten}${hs}${scale}`;
 }
 

@@ -137,10 +137,10 @@ export function TruongListingClient({ schools }: Props) {
             <SearchIcon />
             <input
               type="search"
-              placeholder="Tìm theo tên trường…"
+              placeholder="Tìm tên, tên tiếng Anh, mã trường…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              aria-label="Tìm theo tên trường"
+              aria-label="Tìm theo tên, tên tiếng Anh hoặc mã trường"
               autoComplete="off"
             />
           </label>

@@ -1,11 +1,9 @@
 "use client";
 
-import {
-  TruongHinhAnhDeleteBtn,
-  TruongHinhAnhUploadZone,
-} from "@/components/truong/inline/TruongHinhAnhEdit";
+import { TruongHinhAnhManageZone } from "@/components/truong/inline/TruongHinhAnhManageModal";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
-import { TruongGalleryJustified } from "@/components/truong/TruongGalleryJustified";
+import { TruongHinhAnhGallery } from "@/components/truong/TruongHinhAnhGallery";
+import { labelHinhAnhLoai } from "@/lib/truong/hinh-anh";
 import type { TruongHinhAnh } from "@/lib/truong/types";
 
 type Props = { images: TruongHinhAnh[] };
@@ -17,24 +15,28 @@ export function TruongTabHinhanh({ images: imagesProp }: Props) {
   return (
     <>
       <div className="sec-hdr">
-        <span className="sec-num">03</span>
+        <span className="sec-num">04</span>
         <h2 className="sec-title">Hình ảnh trường</h2>
       </div>
-      <TruongHinhAnhUploadZone />
+      <TruongHinhAnhManageZone />
       {images.length === 0 ? (
         <p className="tdh-placeholder">
           Gallery sẽ hiển thị khi ảnh được đăng từ tổ chức.
         </p>
       ) : (
-        <TruongGalleryJustified
+        <TruongHinhAnhGallery
           images={images}
           renderOverlay={(img) => (
             <>
               <div className="gallery-cell-overlay" aria-hidden />
-              {img.caption ? (
-                <p className="gallery-cell-caption">{img.caption}</p>
-              ) : null}
-              <TruongHinhAnhDeleteBtn photoId={img.id} />
+              <div className="tdh-hinhanh-cell-meta">
+                <span className="tdh-hinhanh-loai-badge">
+                  {labelHinhAnhLoai(img.loai)}
+                </span>
+                {img.caption ? (
+                  <p className="gallery-cell-caption">{img.caption}</p>
+                ) : null}
+              </div>
             </>
           )}
         />

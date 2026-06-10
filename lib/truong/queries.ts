@@ -232,6 +232,8 @@ export async function listTruongDaiHoc(): Promise<TruongListItem[]> {
         ma_truong,
         loai_truong,
         website,
+        ten_chinh_thuc,
+        ten_tieng_anh,
         org_to_chuc!inner (
           id,
           slug,

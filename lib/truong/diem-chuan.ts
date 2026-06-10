@@ -16,7 +16,7 @@ export function defaultTruongNganhYear(): number {
 
 export function formatDiemChuan(diem: number | null | undefined): string {
   if (diem == null || Number.isNaN(diem)) return "—";
-  return Number.isInteger(diem) ? String(diem) : diem.toFixed(1);
+  return (Math.round(diem * 100) / 100).toFixed(2);
 }
 
 export function diemChuanForYear(

@@ -337,6 +337,15 @@ img { max-width: 100%; display: block; }
   flex-shrink: 0;
 }
 .tdh-identity-contact-icon svg { width: 17px; height: 17px; }
+.tdh-identity-contact-icon--facebook {
+  background: #1877f2;
+  color: #fff;
+  border-color: rgba(24, 119, 242, 0.35);
+}
+.tdh-identity-contact-icon--facebook svg {
+  width: 16px;
+  height: 16px;
+}
 .tdh-identity-contact-label {
   font-weight: 700;
   color: var(--ink-muted, #64748b);

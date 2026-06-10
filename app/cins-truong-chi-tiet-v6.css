@@ -8,7 +8,7 @@
 }
 
 .tdh-page.tdh-page--v6 {
-  --tdh-bp-v6: 900px;
+  --tdh-bp-v6: 991.98px;
   --tdh-v6-tabs-h: 50px;
   --font-mono: var(--font-sans);
   flex: 1 1 auto;
@@ -534,6 +534,16 @@
   stroke-width: 2;
 }
 
+.tdh-page--v6 .ss-contact-icon--facebook {
+  background: #1877f2;
+  color: #fff;
+}
+
+.tdh-page--v6 .ss-contact-icon--facebook svg {
+  width: 14px;
+  height: 14px;
+}
+
 .tdh-page--v6 .ss-contact-val {
   font-family: var(--font-sans);
   font-size: 12.5px;
@@ -572,7 +582,8 @@
 }
 
 .tdh-page--v6 .ss-contact-more-branches {
-  margin: 4px 0 8px 40px;
+  align-self: center;
+  margin: 10px 0 0;
   padding: 0;
   border: none;
   background: none;
@@ -1378,13 +1389,13 @@
   list-style: none;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 767.98px) {
   .tdh-page--v6 .nganh-mon-thi-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-@media (max-width: 420px) {
+@media (max-width: 575.98px) {
   .tdh-page--v6 .nganh-mon-thi-list {
     grid-template-columns: 1fr;
   }
@@ -1680,7 +1691,7 @@
   }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 991.98px) {
   .tdh-page--v6 #tdh-panel-tuyensinh .tdh-admission-calc-launcher,
   .tdh-page--v6 #tdh-panel-nganh .tdh-admission-calc-launcher {
     right: 20px;
@@ -2079,7 +2090,19 @@
   border-color: var(--cins-blue);
 }
 
-@media (max-width: 1100px) {
+/* ╔══════════════════════════════════════════════════════════════════╗
+ * ║ RESPONSIVE — Bootstrap 5 breakpoints (desktop-first cascade)     ║
+ * ║                                                                  ║
+ * ║   • xxl ≥ 1400px → default (3-col shell, max-width 1400px)       ║
+ * ║   • xl  ≥ 1200px → default (3-col)                               ║
+ * ║   • lg  ≥ 992px  → max-width:1199.98px → cột sidebar hẹp hơn     ║
+ * ║   • md  ≥ 768px  → max-width:991.98px  → 1-col, sidebar static   ║
+ * ║   • sm  ≥ 576px  → max-width:767.98px  → padding/tabs gọn        ║
+ * ║   • xs  < 576px  → max-width:575.98px  → phone full-bleed        ║
+ * ╚══════════════════════════════════════════════════════════════════╝ */
+
+/* ── xl (≤1199.98px / under xxl): thu hẹp cột phụ ── */
+@media (max-width: 1199.98px) {
   .tdh-page--v6 > .tdh-v6-shell {
     grid-template-columns: 280px minmax(0, 1fr) 260px;
   }
@@ -2099,36 +2122,72 @@
   }
 }
 
-@media (max-width: 900px) {
+/* ── md (≤991.98px / under lg): 1-col — sidebar trên, feed giữa, lịch dưới ── */
+@media (max-width: 991.98px) {
   .tdh-page--v6 > .tdh-v6-shell {
     grid-template-columns: minmax(0, 1fr);
+    max-width: 760px;
   }
 
   .tdh-page--v6 .school-side {
-    display: none;
+    position: static;
+    max-height: none;
+    overflow: visible;
+    overscroll-behavior: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--border, #e4e6eb);
+    padding: 0 0 20px;
+    z-index: auto;
   }
 
   .tdh-page--v6 .tdh-v6-cover-mobile {
-    display: block;
+    display: none;
   }
 
   .tdh-page--v6 .tdh-admission-side {
     position: static;
+    min-height: 0;
+    height: auto;
     max-height: none;
     overflow: visible;
     border-left: none;
     border-top: 1px solid var(--border, #e4e6eb);
     padding: 20px 18px 32px;
   }
+
+  .tdh-page--v6 .tdh-admission-side .timeline-section--rail {
+    max-height: none;
+    overflow: visible;
+  }
 }
 
-@media (max-width: 720px) {
+/* ── sm (≤767.98px / under md): tabs + panel gọn, card full-width ── */
+@media (max-width: 767.98px) {
+  .tdh-page--v6 > .tdh-v6-shell {
+    max-width: none;
+  }
+
+  .tdh-page--v6 .school-side .ss-card-id,
+  .tdh-page--v6 .school-side .ss-section {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .tdh-page--v6 .school-side .ss-cover .cover-frame {
+    height: clamp(148px, 34vw, 200px);
+  }
+
   .tdh-page--v6 .center-head {
-    padding: 14px 18px;
+    padding: 14px 16px;
   }
 
   .tdh-page--v6 .tdh-v6-tabs {
-    padding: 0 16px 0 0;
+    padding: 0 12px 0 0;
+  }
+
+  .tdh-page--v6 .tdh-v6-tab {
+    padding: 12px 16px;
+    font-size: 12.5px;
   }
 
   .tdh-page--v6 .cover-frame {
@@ -2136,12 +2195,12 @@
   }
 
   .tdh-page--v6 .tdh-v6-panel {
-    padding: 20px 18px 100px;
+    padding: 16px 16px 100px;
   }
 
   .tdh-page--v6 #tdh-panel-baidang,
   .tdh-page--v6 #cso-panel-bai-dang {
-    padding: 14px 16px 40px;
+    padding: 12px 0 40px;
     --tdh-baidang-stack-gap: 12px;
     --tdh-baidang-card-gap: 14px;
   }
@@ -2149,6 +2208,8 @@
   .tdh-page--v6 .editorial-head {
     grid-template-columns: 1fr;
     gap: 6px;
+    padding-left: 16px;
+    padding-right: 16px;
   }
 
   .tdh-page--v6 .eh-num {
@@ -2173,6 +2234,147 @@
   .tdh-page--v6 .nganh-head .nganh-item-thumb {
     width: 80px;
     height: 56px;
+  }
+
+  .tdh-page--v6 .tdh-admission-side {
+    padding: 18px 16px 28px;
+  }
+
+  .tdh-page--v6 .ptxt-item {
+    padding: 16px 16px 14px;
+  }
+
+  .tdh-page--v6 .ptxt-item-head {
+    padding-right: 56px;
+  }
+
+  .tdh-page--v6 .tdh-doan-filter-row {
+    padding: 10px 12px;
+  }
+}
+
+/* ── xs (≤575.98px / phone): font nhỏ, grid 1 cột, edge-to-edge feed ── */
+@media (max-width: 575.98px) {
+  .tdh-page--v6 .school-side .ss-card-id,
+  .tdh-page--v6 .school-side .ss-section {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .tdh-page--v6 .school-side .ss-cover .cover-frame {
+    height: 132px;
+  }
+
+  .tdh-page--v6 .ss-name {
+    font-size: 20px;
+    letter-spacing: -0.4px;
+  }
+
+  .tdh-page--v6 .ss-avatar.tdh-org-avatar,
+  .tdh-page--v6 .ss-avatar .tdh-org-avatar-img {
+    width: 72px;
+    height: 72px;
+    border-radius: 16px;
+  }
+
+  .tdh-page--v6 .ss-id-top {
+    gap: 10px;
+  }
+
+  .tdh-page--v6 .ss-id-top .ss-btn {
+    padding: 9px 10px;
+    font-size: 11.5px;
+  }
+
+  .tdh-page--v6 .tdh-v6-tab {
+    padding: 11px 12px;
+    font-size: 12px;
+  }
+
+  .tdh-page--v6 .tdh-v6-panel {
+    padding: 12px 12px 96px;
+  }
+
+  .tdh-page--v6 #tdh-panel-baidang,
+  .tdh-page--v6 #cso-panel-bai-dang {
+    padding: 8px 0 32px;
+  }
+
+  .tdh-page--v6 .nganh-item .nib-grid,
+  .tdh-page--v6 .nganh-item .nib-grid--4 {
+    grid-template-columns: 1fr;
+  }
+
+  .tdh-page--v6 .nganh-head:has(.tdh-nganh-edit-btn),
+  .tdh-page--v6 .nganh-head {
+    grid-template-columns: 64px minmax(0, 1fr) auto;
+    gap: 6px 8px;
+    padding: 8px;
+  }
+
+  .tdh-page--v6 .nganh-head .nganh-item-thumb {
+    width: 64px;
+    height: 48px;
+  }
+
+  .tdh-page--v6 .nganh-head .nganh-name {
+    font-size: 14px;
+  }
+
+  .tdh-page--v6 .nganh-head .nganh-score {
+    font-size: 18px;
+  }
+
+  .tdh-page--v6 .ts-admin-field-row {
+    grid-template-columns: 1fr;
+  }
+
+  .tdh-page--v6 .tdh-admission-side {
+    padding: 16px 12px 24px;
+  }
+
+  .tdh-page--v6 .tdh-admission-side-year-row .sec-year-select {
+    min-width: 84px;
+    max-width: 52%;
+    font-size: 11px;
+  }
+}
+
+/* Trường ĐH — tinh chỉnh sidebar mobile (không áp cơ sở đào tạo) */
+@media (max-width: 991.98px) {
+  .tdh-page--v6:not(.tdh-page--cso) .school-side .ss-cover {
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .tdh-page--v6:not(.tdh-page--cso) .ss-name {
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  .tdh-page--v6:not(.tdh-page--cso) .ss-id-top {
+    flex-wrap: wrap;
+  }
+
+  .tdh-page--v6:not(.tdh-page--cso) .ss-id-top .ss-cta {
+    flex: 1 1 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .tdh-page--v6:not(.tdh-page--cso) .ss-id-top .ss-btn,
+  .tdh-page--v6:not(.tdh-page--cso) .ss-id-top .ss-btn-notify,
+  .tdh-page--v6:not(.tdh-page--cso) .ss-id-top .ss-btn.ss-btn-user-chat {
+    flex: 1 1 calc(50% - 4px);
+    min-width: 0;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .tdh-page--v6:not(.tdh-page--cso) .ss-id-top .ss-btn,
+  .tdh-page--v6:not(.tdh-page--cso) .ss-id-top .ss-btn-notify,
+  .tdh-page--v6:not(.tdh-page--cso) .ss-id-top .ss-btn.ss-btn-user-chat {
+    flex: 1 1 100%;
   }
 }
 
@@ -2290,7 +2492,7 @@
   transform: translateY(0);
 }
 
-@media (max-width: 640px) {
+@media (max-width: 767.98px) {
   .tdh-page--v6 .ptxt-help-pop {
     left: auto;
     right: 0;
@@ -2729,7 +2931,7 @@
   padding-bottom: 8px;
 }
 
-@media (max-width: 520px) {
+@media (max-width: 575.98px) {
   .tdh-page--v6 .tdh-doan-filter-count {
     margin-left: 0;
     width: 100%;
@@ -2890,13 +3092,13 @@
   color: var(--ink3, #6b7280);
 }
 
-@media (max-width: 900px) {
+@media (max-width: 991.98px) {
   .tdh-page--v6 .tdh-doan-masonry {
     column-count: 2;
   }
 }
 
-@media (max-width: 520px) {
+@media (max-width: 575.98px) {
   .tdh-page--v6 .tdh-doan-masonry {
     column-count: 1;
   }

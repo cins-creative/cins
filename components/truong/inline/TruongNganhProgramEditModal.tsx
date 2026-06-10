@@ -1,5 +1,6 @@
 "use client";
 
+import { X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { TruongInlineModal } from "@/components/truong/inline/TruongInlineModal";
@@ -218,7 +219,6 @@ export function TruongNganhProgramEditModal({
       ctx.setPrograms(nextPrograms);
       setPageYear(year);
       ctx.showToast(`Đã lưu dữ liệu «${prog.nganhTitle}» (${year})`);
-      onClose();
     } catch {
       setError("Lỗi kết nối khi lưu ngành.");
     } finally {
@@ -264,12 +264,30 @@ export function TruongNganhProgramEditModal({
         className="tdh-inline-modal--wide tdh-nganh-program-edit-modal"
         labelledBy="tdh-nganh-program-edit-title"
       >
-        <h3 id="tdh-nganh-program-edit-title" className="tdh-inline-modal-title">
-          Sửa ngành — {prog.nganhTitle}
-        </h3>
-        <p className="tdh-nganh-program-edit-lead">
-          Cập nhật điểm chuẩn, chỉ tiêu và môn thi theo năm.
-        </p>
+        <div className="tdh-nganh-program-edit-head">
+          <div className="tdh-nganh-program-edit-head-copy">
+            <h3
+              id="tdh-nganh-program-edit-title"
+              className="tdh-inline-modal-title"
+            >
+              Sửa ngành — {prog.nganhTitle}
+            </h3>
+            <p className="tdh-nganh-program-edit-lead">
+              Cập nhật điểm chuẩn, chỉ tiêu và môn thi theo năm.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="tdh-nganh-program-edit-close"
+            aria-label="Đóng"
+            disabled={busy}
+            onClick={() => {
+              if (!busy) onClose();
+            }}
+          >
+            <X size={18} strokeWidth={2} aria-hidden />
+          </button>
+        </div>
 
         <div className="tdh-nganh-program-edit-years">
           <span className="tdh-nganh-program-edit-years-label">Năm</span>

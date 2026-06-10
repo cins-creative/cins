@@ -12,6 +12,8 @@ export type TruongChiNhanh = {
   email?: string | null;
   website?: string | null;
   facebook?: string | null;
+  /** Cloudflare Images id — lưu trong `cau_hinh.chi_nhanh[].cover_id`. */
+  cover_id?: string | null;
 };
 
 export type TruongListItem = {

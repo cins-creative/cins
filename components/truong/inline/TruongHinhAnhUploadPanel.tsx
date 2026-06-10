@@ -3,6 +3,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
+import {
+  HINH_ANH_LOAI_OPTIONS,
+  normalizeHinhAnhLoai,
+  type HinhAnhLoai,
+} from "@/lib/truong/hinh-anh";
 import { readTruongInlineError, truongInlineFetch } from "@/lib/truong/inline-api";
 import type { TruongHinhAnh } from "@/lib/truong/types";
 
@@ -21,12 +26,17 @@ function imageFilesFromDataTransfer(dt: DataTransfer | null): File[] {
 
 type Props = {
   onNotify: (msg: string) => void;
+  defaultLoai?: HinhAnhLoai;
 };
 
-export function TruongHinhAnhUploadPanel({ onNotify }: Props) {
+export function TruongHinhAnhUploadPanel({
+  onNotify,
+  defaultLoai = "khuon_vien",
+}: Props) {
   const ctx = useTruongInlineEdit();
   const fileRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [uploadLoai, setUploadLoai] = useState<HinhAnhLoai>(defaultLoai);
   const [tasks, setTasks] = useState<UploadTask[]>([]);
   const nextThuTuRef = useRef(0);
   const tasksRef = useRef(tasks);
@@ -85,7 +95,7 @@ export function TruongHinhAnhUploadPanel({ onNotify }: Props) {
           id: tmpId,
           cloudflare_id: up.imageId,
           caption: null,
-          loai: "khuon_vien",
+          loai: uploadLoai,
           thu_tu,
           src: up.url,
         };
@@ -98,7 +108,7 @@ export function TruongHinhAnhUploadPanel({ onNotify }: Props) {
           method: "POST",
           body: JSON.stringify({
             cloudflare_id: up.imageId,
-            loai: "khuon_vien",
+            loai: uploadLoai,
             thu_tu,
           }),
         });
@@ -143,7 +153,7 @@ export function TruongHinhAnhUploadPanel({ onNotify }: Props) {
         );
       }
     },
-    [ctx, onNotify, setProgress],
+    [ctx, onNotify, setProgress, uploadLoai],
   );
 
   const enqueueFiles = useCallback(
@@ -194,6 +204,23 @@ export function TruongHinhAnhUploadPanel({ onNotify }: Props) {
 
   return (
     <div className="cins-multi-image tdh-hinhanh-upload-panel">
+      <label className="tdh-hinhanh-upload-loai-field">
+        <span>Loại hình ảnh</span>
+        <select
+          className="tdh-hinhanh-upload-loai-select"
+          value={uploadLoai}
+          disabled={busy}
+          onChange={(e) =>
+            setUploadLoai(normalizeHinhAnhLoai(e.target.value))
+          }
+        >
+          {HINH_ANH_LOAI_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      </label>
       {tasks.length > 0 ? (
         <ul className="tdh-hinhanh-upload-queue" aria-live="polite">
           {tasks.map((task) => (

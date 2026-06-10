@@ -10,12 +10,14 @@ type Props = {
   images: TruongHinhAnh[];
   renderOverlay?: (img: TruongHinhAnh) => React.ReactNode;
   defaultAspect?: number;
+  onImageClick?: (img: TruongHinhAnh) => void;
 };
 
 export function TruongGalleryJustified({
   images,
   renderOverlay,
   defaultAspect = 4 / 3,
+  onImageClick,
 }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
@@ -100,6 +102,28 @@ export function TruongGalleryJustified({
                     key={cell.id}
                     className="tdh-gallery-justified-cell gallery-cell"
                     style={{ width: cell.width, height: cell.height }}
+                    role={onImageClick ? "button" : undefined}
+                    tabIndex={onImageClick ? 0 : undefined}
+                    aria-label={
+                      onImageClick
+                        ? entry.img.caption?.trim() || "Xem ảnh lớn"
+                        : undefined
+                    }
+                    onClick={
+                      onImageClick
+                        ? () => onImageClick(entry.img)
+                        : undefined
+                    }
+                    onKeyDown={
+                      onImageClick
+                        ? (e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              onImageClick(entry.img);
+                            }
+                          }
+                        : undefined
+                    }
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
