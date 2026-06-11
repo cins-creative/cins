@@ -32,6 +32,7 @@ import {
 } from "@/lib/admin/mon-thi-server";
 import type { ArticleMeta } from "@/lib/articles/types";
 import { getCoverUrl } from "@/lib/articles/cover";
+import { persistMonThiCloudflareThumbnail } from "@/lib/admin/mon-thi-thumbnail-persist";
 import { rememberCfAccountHashFromDeliveryUrl } from "@/lib/cloudflare/account-hash";
 import { uploadToCloudflareImages } from "@/lib/cloudflare/upload-image";
 import { hasAdminDbUrl } from "@/lib/admin/db-url";
@@ -362,6 +363,9 @@ export async function updateAdminMonThiThumbnail(
 > {
   const gate = await requireDraftTools();
   if (!gate.ok) return gate;
+  if (!(await getCurrentUserIsCinsAdmin())) {
+    return { ok: false, message: "Chỉ admin CINs được upload ảnh môn thi." };
+  }
 
   const id = monThiId.trim();
   if (!id) return { ok: false, message: "Thiếu id môn thi." };
@@ -376,32 +380,11 @@ export async function updateAdminMonThiThumbnail(
     return { ok: false, message: uploaded.error };
   }
 
-  try {
-    const supabase = createServiceRoleClient();
-    const { error } = await supabase
-      .from("edu_mon_thi")
-      .update({ thumbnail_id: uploaded.data.imageId })
-      .eq("id", id);
+  const saved = await persistMonThiCloudflareThumbnail(id, uploaded.data);
+  if (!saved.ok) return saved;
 
-    if (error) return { ok: false, message: error.message };
-
-    revalidatePath("/admin/mon-thi");
-
-    rememberCfAccountHashFromDeliveryUrl(uploaded.data.url);
-    const thumbnail_url =
-      uploaded.data.url ||
-      getCoverUrl(uploaded.data.imageId, "public") ||
-      "";
-
-    return {
-      ok: true,
-      thumbnail_id: uploaded.data.imageId,
-      thumbnail_url,
-    };
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : "Lỗi không xác định.";
-    return { ok: false, message: msg };
-  }
+  revalidatePath("/admin/mon-thi");
+  return saved;
 }
 
 export async function adminSaveMonThi(

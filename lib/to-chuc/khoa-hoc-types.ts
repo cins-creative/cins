@@ -66,3 +66,46 @@ export type TaoKhoaHocInput = {
 export type CapNhatKhoaHocInput = TaoKhoaHocInput & {
   trangThaiKhoaHoc?: TrangThaiKhoaHoc;
 };
+
+export type VisibilityGiaoTrinh = "public" | "chi_hoc_vien" | "private";
+
+export type GiaoTrinhBaiData = {
+  id: string;
+  thuTu: number;
+  tieuDe: string;
+  moTaNgan: string | null;
+  soBuoi: number | null;
+  visibility: VisibilityGiaoTrinh;
+  hasVideo: boolean;
+};
+
+export type GiaoVienKhoaData = {
+  key: string;
+  ten: string;
+  slug: string | null;
+  verified: boolean;
+  initials: string;
+  vaiTro: string | null;
+  pendingProfile: boolean;
+};
+
+export type LopHocDetailData = {
+  id: string;
+  tenLop: string;
+  hinhThuc: HinhThucLop;
+  lichHoc: string | null;
+  ngayKhaiGiang: string;
+  slotToiDa: number | null;
+  trangThaiLop: string;
+  conCho: boolean;
+  giaoVien: GiaoVienKhoaData;
+  diaChiHoc: string | null;
+};
+
+export type KhoaHocDetailPayload = {
+  khoa: KhoaHocCardData;
+  orgTen: string;
+  giaoTrinh: GiaoTrinhBaiData[];
+  lopHoc: LopHocDetailData[];
+  giaoVien: GiaoVienKhoaData[];
+};

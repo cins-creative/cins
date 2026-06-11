@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
-import { updateAdminMonThiThumbnail } from "@/app/admin/actions";
 import {
   getAdminMonThiThumbDisplayUrl,
   isAdminMonThiPlaceholderThumb,
@@ -17,7 +16,10 @@ type Props = {
   row: AdminMonThiRow;
   /** Tắt khi chưa có id DB (form tạo mới). */
   uploadEnabled?: boolean;
-  onThumbnailChange?: (thumbnail_id: string) => void;
+  onThumbnailChange?: (payload: {
+    thumbnail_id: string;
+    thumbnail_url: string;
+  }) => void;
 };
 
 function imageFileFromClipboard(data: DataTransfer | null): File | null {
@@ -87,33 +89,62 @@ export function AdminMonThiThumb({
     const objectUrl = URL.createObjectURL(file);
     blobRef.current = objectUrl;
     setPreviewUrl(objectUrl);
+    setImgFailed(false);
 
     const fd = new FormData();
     fd.append("file", file);
 
-    const res = await updateAdminMonThiThumbnail(row.id, fd);
+    try {
+      const resp = await fetch(
+        `/api/admin/mon-thi/${encodeURIComponent(row.id)}/thumbnail`,
+        { method: "POST", body: fd },
+      );
 
-    if (!res.ok) {
+      const json = (await resp.json().catch(() => null)) as {
+        ok?: boolean;
+        thumbnail_id?: string;
+        thumbnail_url?: string;
+        error?: string;
+      } | null;
+
+      if (!resp.ok || !json?.ok || !json.thumbnail_id || !json.thumbnail_url) {
+        if (blobRef.current) {
+          URL.revokeObjectURL(blobRef.current);
+          blobRef.current = null;
+        }
+        setPreviewUrl(getAdminMonThiThumbDisplayUrl(row));
+        setImgFailed(false);
+        setError(
+          json?.error ??
+            (resp.status === 413
+              ? "Ảnh quá lớn (giới hạn 8MB)."
+              : `Upload thất bại (${resp.status}).`),
+        );
+        return;
+      }
+
+      rememberCfAccountHashFromDeliveryUrl(json.thumbnail_url);
+      if (blobRef.current) {
+        URL.revokeObjectURL(blobRef.current);
+        blobRef.current = null;
+      }
+      setPreviewUrl(json.thumbnail_url);
+      onThumbnailChange?.({
+        thumbnail_id: json.thumbnail_id,
+        thumbnail_url: json.thumbnail_url,
+      });
+      router.refresh();
+    } catch (e) {
       if (blobRef.current) {
         URL.revokeObjectURL(blobRef.current);
         blobRef.current = null;
       }
       setPreviewUrl(getAdminMonThiThumbDisplayUrl(row));
       setImgFailed(false);
-      setError(res.message);
+      setError(e instanceof Error ? e.message : "Lỗi mạng khi upload.");
+    } finally {
       setBusy(false);
-      return;
     }
-
-    rememberCfAccountHashFromDeliveryUrl(res.thumbnail_url);
-    if (blobRef.current) {
-      URL.revokeObjectURL(blobRef.current);
-      blobRef.current = null;
-    }
-    setPreviewUrl(res.thumbnail_url);
-    onThumbnailChange?.(res.thumbnail_id);
-    router.refresh();
-    setBusy(false);
   };
 
   const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {

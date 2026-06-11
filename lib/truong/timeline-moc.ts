@@ -114,6 +114,63 @@ function formatMocDateRange(
   return a ?? b;
 }
 
+/** Khóa sắp xếp theo ngày bắt đầu (ưu tiên `ngay_tu`, fallback `ngay_den`). */
+export function mocDateSortKey(
+  ngay_tu: string | null | undefined,
+  ngay_den: string | null | undefined,
+): number {
+  const iso = ngay_tu?.trim() || ngay_den?.trim();
+  if (!iso) return Number.MAX_SAFE_INTEGER;
+  const t = new Date(iso).getTime();
+  return Number.isNaN(t) ? Number.MAX_SAFE_INTEGER : t;
+}
+
+function sortMocByDate(moc: TuyenSinhTimelineMoc[]): TuyenSinhTimelineMoc[] {
+  return [...moc].sort((a, b) => {
+    const diff =
+      mocDateSortKey(a.ngay_tu, a.ngay_den) -
+      mocDateSortKey(b.ngay_tu, b.ngay_den);
+    if (diff !== 0) return diff;
+    return a.label.localeCompare(b.label, "vi");
+  });
+}
+
+function refreshTimelineStepDots(
+  steps: TuyenSinhTimelineStep[],
+): TuyenSinhTimelineStep[] {
+  let upcoming = 1;
+  return steps.map((step) => {
+    const dot =
+      step.status === "done"
+        ? "✓"
+        : step.status === "active"
+          ? "→"
+          : String(upcoming++);
+    return { ...step, dot };
+  });
+}
+
+function legacyStepSortKey(
+  row: TruongTuyenSinhNamRow,
+  stepId: string,
+): number {
+  return mocDateSortKey(
+    dateFromLegacyStep(row, stepId, "tu"),
+    dateFromLegacyStep(row, stepId, "den"),
+  );
+}
+
+export function sortTimelineStepsByDate(
+  steps: TuyenSinhTimelineStep[],
+  row?: TruongTuyenSinhNamRow | null,
+): TuyenSinhTimelineStep[] {
+  if (!row) return refreshTimelineStepDots(steps);
+  const sorted = [...steps].sort(
+    (a, b) => legacyStepSortKey(row, a.id) - legacyStepSortKey(row, b.id),
+  );
+  return refreshTimelineStepDots(sorted);
+}
+
 /** Preview trong editor — cho phép mốc chưa đủ ngày, vẫn khớp form. */
 export function buildTimelineStepsFromMocDraft(
   moc: TuyenSinhTimelineMoc[],
@@ -127,7 +184,10 @@ export function buildTimelineStepsFromMocDraft(
       Boolean(m.link?.trim()),
   );
 
-  return items.map((m, i) => {
+  const sorted = sortMocByDate(items);
+
+  return refreshTimelineStepDots(
+    sorted.map((m, i) => {
     const label =
       trimToMax(m.label ?? "", TIMELINE_MOC_LABEL_MAX) || `Mốc ${i + 1}`;
     const ngay_tu = m.ngay_tu?.trim() || null;
@@ -140,8 +200,6 @@ export function buildTimelineStepsFromMocDraft(
       : null;
     const status: TimelineStepStatus =
       ngay_tu || ngay_den ? getStepStatus(ngay_tu, ngay_den) : "upcoming";
-    const dot =
-      status === "done" ? "✓" : status === "active" ? "→" : String(i + 1);
     let dateLabel =
       formatMocDateRange(ngay_tu, ngay_den) ?? "Chưa nhập ngày";
     if (status === "active" && dateLabel !== "Chưa nhập ngày") {
@@ -154,22 +212,24 @@ export function buildTimelineStepsFromMocDraft(
       desc: mo_ta,
       link,
       status,
-      dot,
+      dot: "",
     };
-  });
+  }),
+  );
 }
 
 export function buildTimelineStepsFromMoc(
   moc: TuyenSinhTimelineMoc[],
 ): TuyenSinhTimelineStep[] {
-  const items = moc
-    .map((m) => normalizeTimelineMoc(m))
-    .filter((m): m is TuyenSinhTimelineMoc => m != null);
+  const items = sortMocByDate(
+    moc
+      .map((m) => normalizeTimelineMoc(m))
+      .filter((m): m is TuyenSinhTimelineMoc => m != null),
+  );
 
-  return items.map((m, i) => {
+  return refreshTimelineStepDots(
+    items.map((m) => {
     const status: TimelineStepStatus = getStepStatus(m.ngay_tu, m.ngay_den);
-    const dot =
-      status === "done" ? "✓" : status === "active" ? "→" : String(i + 1);
     let dateLabel = formatMocDateRange(m.ngay_tu, m.ngay_den) ?? "—";
     if (status === "active") {
       dateLabel = `${dateLabel} · Đang diễn ra`;
@@ -181,9 +241,10 @@ export function buildTimelineStepsFromMoc(
       desc: m.mo_ta,
       link: m.link,
       status,
-      dot,
+      dot: "",
     };
-  });
+  }),
+  );
 }
 
 /** Chuyển lịch cột ngày cũ → mốc tùy chỉnh (lần đầu mở editor). */
@@ -432,8 +493,11 @@ export function buildTuyenSinhTimelineStepsForCalendarYear(
     return buildTimelineStepsFromMoc(filtered);
   }
   const legacy = buildTuyenSinhTimelineStepsLegacy(row);
-  return legacy.filter((step) =>
-    legacyStepMatchesCalendarYear(row, step.id, year),
+  return sortTimelineStepsByDate(
+    legacy.filter((step) =>
+      legacyStepMatchesCalendarYear(row, step.id, year),
+    ),
+    row,
   );
 }
 
@@ -445,5 +509,5 @@ export function buildTuyenSinhTimelineSteps(
     const custom = parseTimelineMocStore(raw);
     return custom?.length ? buildTimelineStepsFromMoc(custom) : [];
   }
-  return buildTuyenSinhTimelineStepsLegacy(row);
+  return sortTimelineStepsByDate(buildTuyenSinhTimelineStepsLegacy(row), row);
 }

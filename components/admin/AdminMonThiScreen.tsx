@@ -83,14 +83,23 @@ export function AdminMonThiScreen({ initialRows }: Props) {
 
 
 
-  function patchRowThumbnail(id: string, thumbnail_id: string) {
-
+  function patchRowThumbnail(
+    id: string,
+    thumbnail_id: string,
+    thumbnail_url: string,
+  ) {
     setRows((prev) =>
-
-      prev.map((r) => (r.id === id ? { ...r, thumbnail_id } : r)),
-
+      prev.map((r) =>
+        r.id === id
+          ? {
+              ...r,
+              thumbnail_id,
+              thumbnail_src: thumbnail_url,
+              thumbnail_from_cover: false,
+            }
+          : r,
+      ),
     );
-
   }
 
 
@@ -485,10 +494,8 @@ export function AdminMonThiScreen({ initialRows }: Props) {
 
                         row={r}
 
-                        onThumbnailChange={(thumbnail_id) =>
-
-                          patchRowThumbnail(r.id, thumbnail_id)
-
+                        onThumbnailChange={({ thumbnail_id, thumbnail_url }) =>
+                          patchRowThumbnail(r.id, thumbnail_id, thumbnail_url)
                         }
 
                       />

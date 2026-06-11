@@ -4,13 +4,15 @@ import {
   resolveMonThiThumbnailUrl,
 } from "@/lib/truong/mon-thi-thumbnail";
 
-/** URL hiển thị admin (ưu tiên `thumbnail_src` resolve trên server). */
+/** URL hiển thị admin — ưu tiên ảnh CF trên `thumbnail_id`, rồi fallback cover bài. */
 export function getAdminMonThiThumbDisplayUrl(row: {
   thumbnail_id?: string | null;
   thumbnail_src?: string | null;
 }): string | null {
+  const fromCatalog = resolveMonThiThumbnailUrl(row.thumbnail_id);
+  if (fromCatalog) return fromCatalog;
   if (row.thumbnail_src?.trim()) return row.thumbnail_src.trim();
-  return resolveMonThiThumbnailUrl(row.thumbnail_id);
+  return null;
 }
 
 /** Ảnh lấy từ cover bài `id_bai_viet`, chưa upload CF riêng cho môn. */

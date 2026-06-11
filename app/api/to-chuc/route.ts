@@ -74,7 +74,7 @@ export async function POST(req: Request) {
       ok: true,
       id: result.data.id,
       slug: result.data.slug,
-      redirect: `/co-so/${result.data.slug}`,
+      redirect: `/co-so/${result.data.slug}/bai-dang`,
     });
   }
 

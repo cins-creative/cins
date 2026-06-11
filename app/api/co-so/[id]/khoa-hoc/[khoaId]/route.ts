@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
+import { fetchKhoaHocDetail } from "@/lib/to-chuc/khoa-hoc-detail";
 import {
   capNhatKhoaHoc,
   xoaKhoaHoc,
@@ -14,6 +15,17 @@ import type {
 } from "@/lib/to-chuc/khoa-hoc-types";
 
 type RouteContext = { params: Promise<{ id: string; khoaId: string }> };
+
+/** GET /api/co-so/:id/khoa-hoc/:khoaId — chi tiết khóa (public). */
+export async function GET(_req: Request, ctx: RouteContext) {
+  const { id: orgId, khoaId } = await ctx.params;
+  const result = await fetchKhoaHocDetail(orgId, khoaId);
+  if (!result.ok) {
+    const status = result.error.includes("Không tìm thấy") ? 404 : 400;
+    return NextResponse.json({ error: result.error }, { status });
+  }
+  return NextResponse.json({ ok: true, detail: result.detail });
+}
 
 /** PATCH /api/co-so/:id/khoa-hoc/:khoaId */
 export async function PATCH(req: Request, ctx: RouteContext) {

@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 
 import { CoSoAdminToolbar } from "@/components/co-so/CoSoAdminToolbar";
 import { CoSoPageSettingsModal } from "@/components/co-so/CoSoPageSettingsModal";
@@ -20,8 +22,12 @@ import {
   type CoSoTabId,
 } from "@/lib/to-chuc/co-so-page-cau-hinh";
 import type { CoSoDetailPayload, CoSoFilterChip } from "@/lib/to-chuc/co-so-page-queries";
+import {
+  CO_SO_DEFAULT_TAB,
+  coSoTabPath,
+  parseCoSoRouteFromPathname,
+} from "@/lib/to-chuc/co-so-routes";
 import { coSoToInlinePayload } from "@/lib/to-chuc/co-so-inline-payload";
-import type { KhoaHocCardData } from "@/lib/to-chuc/khoa-hoc-types";
 
 const TABS = [
   { id: "bai-dang", label: CO_SO_TAB_LABELS["bai-dang"], num: "01" },
@@ -30,13 +36,10 @@ const TABS = [
   { id: "hinh-anh", label: CO_SO_TAB_LABELS["hinh-anh"], num: "04" },
 ] as const satisfies ReadonlyArray<{ id: CoSoTabId; label: string; num: string }>;
 
-type TabId = CoSoTabId;
-
 type Props = {
   payload: CoSoDetailPayload;
   canEdit?: boolean;
   canManageKhoaHoc?: boolean;
-  initialKhoaHoc?: KhoaHocCardData[];
 };
 
 type SettingsSavedPatch = {
@@ -54,11 +57,18 @@ type SettingsSavedPatch = {
   website?: string | null;
 };
 
+function useCoSoRouteState() {
+  const pathname = usePathname();
+  return useMemo(() => {
+    const parsed = parseCoSoRouteFromPathname(pathname ?? "");
+    return parsed ?? { tab: CO_SO_DEFAULT_TAB, khoaSlug: null };
+  }, [pathname]);
+}
+
 function CoSoDetailViewInner({
   payload,
   canEdit = false,
   canManageKhoaHoc = false,
-  initialKhoaHoc = [],
   settingsOpen = false,
   onSettingsOpenChange,
 }: Props & {
@@ -66,14 +76,26 @@ function CoSoDetailViewInner({
   onSettingsOpenChange?: (open: boolean) => void;
 }) {
   const ctx = useTruongInlineEdit();
-  const [tab, setTab] = useState<TabId>("bai-dang");
-  const [khoaHocMounted, setKhoaHocMounted] = useState(false);
   const [filters, setFilters] = useState(payload.filters);
   const [schoolExtra, setSchoolExtra] = useState<Partial<typeof payload.school>>({});
   const { baidang, hinhanh } = payload;
   const baseSchool = ctx?.school ?? payload.school;
   const school = { ...baseSchool, ...schoolExtra };
+  const orgSlug = school.slug;
+  const { tab, khoaSlug } = useCoSoRouteState();
+  const [mountedTabs, setMountedTabs] = useState<Set<CoSoTabId>>(
+    () => new Set([tab]),
+  );
   const editableMedia = canEdit && Boolean(ctx?.canEdit);
+
+  useEffect(() => {
+    setMountedTabs((prev) => {
+      if (prev.has(tab)) return prev;
+      const next = new Set(prev);
+      next.add(tab);
+      return next;
+    });
+  }, [tab]);
 
   const shellClass = `tdh-v6-shell${ctx?.isEditing ? " tdh-v6-shell--editing" : ""}`;
 
@@ -126,61 +148,68 @@ function CoSoDetailViewInner({
             aria-label="Nội dung cơ sở đào tạo"
           >
             {TABS.map((t) => (
-              <button
+              <Link
                 key={t.id}
-                type="button"
+                href={coSoTabPath(orgSlug, t.id)}
+                scroll={false}
                 role="tab"
                 aria-selected={tab === t.id}
                 id={`cso-tab-${t.id}`}
                 aria-controls={`cso-panel-${t.id}`}
                 className={`tdh-v6-tab${tab === t.id ? " on" : ""}`}
-                onClick={() => {
-                  if (t.id === "khoa-hoc") setKhoaHocMounted(true);
-                  setTab(t.id);
-                }}
               >
                 {t.label}
-              </button>
+              </Link>
             ))}
           </div>
         </div>
 
-        {TABS.map((t) => (
-          <div
-            key={t.id}
-            id={`cso-panel-${t.id}`}
-            role="tabpanel"
-            aria-labelledby={`cso-tab-${t.id}`}
-            hidden={tab !== t.id}
-            className={`tdh-v6-panel${tab === t.id ? " on" : ""}`}
-          >
-            {t.id === "bai-dang" ? (
-              <CoSoTabBaidang
-                posts={baidang}
-                school={school}
-                orgId={school.id}
-                canEdit={canEdit}
-                filters={filters}
-              />
-            ) : null}
-            {t.id === "khoa-hoc" && khoaHocMounted ? (
-              <CoSoTabKhoaHoc
-                orgId={school.id}
-                orgDiaChi={school.dia_chi}
-                canManageKhoaHoc={canManageKhoaHoc}
-                initialKhoaHoc={initialKhoaHoc}
-              />
-            ) : null}
-            {t.id === "san-pham" ? (
-              <CoSoTabPlaceholder
-                num={t.num}
-                title="Sản phẩm học viên"
-                hint="Sản phẩm học viên sẽ hiện khi học viên đăng tác phẩm gắn với cơ sở."
-              />
-            ) : null}
-            {t.id === "hinh-anh" ? <CoSoTabHinhanh images={hinhanh} /> : null}
-          </div>
-        ))}
+        {TABS.map((t) => {
+          const isActive = tab === t.id;
+          const isMounted = mountedTabs.has(t.id);
+          if (!isMounted) return null;
+
+          return (
+            <div
+              key={t.id}
+              id={`cso-panel-${t.id}`}
+              role="tabpanel"
+              aria-labelledby={`cso-tab-${t.id}`}
+              hidden={!isActive}
+              className={`tdh-v6-panel${isActive ? " on" : ""}`}
+            >
+              {t.id === "bai-dang" ? (
+                <CoSoTabBaidang
+                  posts={baidang}
+                  school={school}
+                  orgId={school.id}
+                  canEdit={canEdit}
+                  filters={filters}
+                />
+              ) : null}
+              {t.id === "khoa-hoc" ? (
+                <CoSoTabKhoaHoc
+                  orgId={school.id}
+                  orgSlug={orgSlug}
+                  orgTen={school.ten}
+                  orgDiaChi={school.dia_chi}
+                  canManageKhoaHoc={canManageKhoaHoc}
+                  khoaSlug={khoaSlug}
+                />
+              ) : null}
+              {t.id === "san-pham" ? (
+                <CoSoTabPlaceholder
+                  num={t.num}
+                  title="Sản phẩm học viên"
+                  hint="Sản phẩm học viên sẽ hiện khi học viên đăng tác phẩm gắn với cơ sở."
+                />
+              ) : null}
+              {t.id === "hinh-anh" ? (
+                <CoSoTabHinhanh images={hinhanh} />
+              ) : null}
+            </div>
+          );
+        })}
       </div>
 
       <CoSoUpcomingSidebar />
@@ -204,11 +233,9 @@ function CoSoDetailViewInner({
 function CoSoEditableShell({
   payload,
   canManageKhoaHoc,
-  initialKhoaHoc,
 }: {
   payload: CoSoDetailPayload;
   canManageKhoaHoc: boolean;
-  initialKhoaHoc: KhoaHocCardData[];
 }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -219,7 +246,6 @@ function CoSoEditableShell({
         payload={payload}
         canEdit
         canManageKhoaHoc={canManageKhoaHoc}
-        initialKhoaHoc={initialKhoaHoc}
         settingsOpen={settingsOpen}
         onSettingsOpenChange={setSettingsOpen}
       />
@@ -231,7 +257,6 @@ export function CoSoDetailView({
   payload,
   canEdit = false,
   canManageKhoaHoc = false,
-  initialKhoaHoc = [],
 }: Props) {
   if (!canEdit) {
     return (
@@ -239,7 +264,6 @@ export function CoSoDetailView({
         payload={payload}
         canEdit={false}
         canManageKhoaHoc={canManageKhoaHoc}
-        initialKhoaHoc={initialKhoaHoc}
       />
     );
   }
@@ -252,7 +276,6 @@ export function CoSoDetailView({
       <CoSoEditableShell
         payload={payload}
         canManageKhoaHoc={canManageKhoaHoc}
-        initialKhoaHoc={initialKhoaHoc}
       />
     </TruongInlineEditProvider>
   );

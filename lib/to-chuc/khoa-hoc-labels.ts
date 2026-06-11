@@ -152,6 +152,42 @@ export function labelHinhThucLop(hinhThuc: HinhThucLop): string {
   }
 }
 
+/** Nhãn hiển thị trên trang chi tiết khóa (theo demo v2). */
+export function labelHinhThucLopChiTiet(hinhThuc: HinhThucLop): string {
+  switch (hinhThuc) {
+    case "truc_tiep":
+      return "Trực tiếp";
+    case "truc_tuyen":
+      return "Trực tuyến";
+    case "ket_hop":
+      return "Kết hợp";
+    default:
+      return hinhThuc;
+  }
+}
+
+/** Badge trạng thái trên hero trang chi tiết. */
+export function labelTrangThaiKhoaHero(trangThai: TrangThaiKhoaHoc): string | null {
+  switch (trangThai) {
+    case "dang_mo_don":
+      return "Đang nhận học viên";
+    case "dang_hoc":
+      return "Đang học";
+    case "sap_khai_giang":
+      return "Sắp khai giảng";
+    case "tam_dung":
+      return "Tạm dừng";
+    case "da_ket_thuc":
+      return "Đã kết thúc";
+    default:
+      return null;
+  }
+}
+
+export function showTrangThaiKhoaHero(trangThai: TrangThaiKhoaHoc): boolean {
+  return trangThai === "dang_mo_don" || trangThai === "dang_hoc";
+}
+
 export const HINH_THUC_LOP_OPTIONS: ReadonlyArray<{
   value: HinhThucLop;
   label: string;

@@ -65,7 +65,16 @@ function TimelineStepItem({
             Hiện tại
           </span>
         ) : null}
-        <div className="timeline-date">{step.dateLabel}</div>
+        <div
+          className={[
+            "timeline-date",
+            step.status === "active" ? "timeline-date--live" : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+        >
+          {step.dateLabel}
+        </div>
         {step.link && !isEditing ? (
           <a
             href={timelineLinkHref(step.link)}

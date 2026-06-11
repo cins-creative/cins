@@ -34,6 +34,10 @@ export function AdminMonThiEditPanel({ row, onCancel, onSaved }: Props) {
   const [loai, setLoai] = useState(row?.loai ?? "nang_khieu");
   const [trang_thai, setTrangThai] = useState(row?.trang_thai ?? "active");
   const [thumbnail_id, setThumbnailId] = useState(row?.thumbnail_id ?? "");
+  const [thumbnail_src, setThumbnailSrc] = useState(row?.thumbnail_src ?? null);
+  const [thumbnail_from_cover, setThumbnailFromCover] = useState(
+    row?.thumbnail_from_cover ?? false,
+  );
   const [id_bai_viet, setIdBaiViet] = useState(row?.id_bai_viet ?? "");
 
   useEffect(() => {
@@ -43,6 +47,8 @@ export function AdminMonThiEditPanel({ row, onCancel, onSaved }: Props) {
       setLoai("nang_khieu");
       setTrangThai("active");
       setThumbnailId("");
+      setThumbnailSrc(null);
+      setThumbnailFromCover(false);
       setIdBaiViet("");
       setSaveMsg(null);
       return;
@@ -52,9 +58,21 @@ export function AdminMonThiEditPanel({ row, onCancel, onSaved }: Props) {
     setLoai(row.loai ?? "nang_khieu");
     setTrangThai(row.trang_thai ?? "active");
     setThumbnailId(row.thumbnail_id ?? "");
+    setThumbnailSrc(row.thumbnail_src ?? null);
+    setThumbnailFromCover(row.thumbnail_from_cover ?? false);
     setIdBaiViet(row.id_bai_viet ?? "");
     setSaveMsg(null);
-  }, [row?.id, row?.ten, row?.ma, row?.loai, row?.trang_thai, row?.thumbnail_id, row?.id_bai_viet]);
+  }, [
+    row?.id,
+    row?.ten,
+    row?.ma,
+    row?.loai,
+    row?.trang_thai,
+    row?.thumbnail_id,
+    row?.thumbnail_src,
+    row?.thumbnail_from_cover,
+    row?.id_bai_viet,
+  ]);
 
   const previewRow = useMemo((): AdminMonThiRow => {
     const loaiVal = loai.trim() || null;
@@ -69,10 +87,21 @@ export function AdminMonThiEditPanel({ row, onCancel, onSaved }: Props) {
       trang_thai: trang_thai.trim() || null,
       thumbnail_id: thumb,
       id_bai_viet: id_bai_viet.trim() || null,
-      thumbnail_src: row?.thumbnail_src ?? null,
-      thumbnail_from_cover: row?.thumbnail_from_cover ?? false,
+      thumbnail_src,
+      thumbnail_from_cover,
     };
-  }, [row, isCreate, ten, ma, loai, trang_thai, thumbnail_id, id_bai_viet]);
+  }, [
+    row,
+    isCreate,
+    ten,
+    ma,
+    loai,
+    trang_thai,
+    thumbnail_id,
+    id_bai_viet,
+    thumbnail_src,
+    thumbnail_from_cover,
+  ]);
 
   async function onSave(e: FormEvent) {
     e.preventDefault();
@@ -120,7 +149,11 @@ export function AdminMonThiEditPanel({ row, onCancel, onSaved }: Props) {
           <AdminMonThiThumb
             row={previewRow}
             uploadEnabled={!isCreate}
-            onThumbnailChange={(id) => setThumbnailId(id)}
+            onThumbnailChange={({ thumbnail_id: nextId, thumbnail_url }) => {
+              setThumbnailId(nextId);
+              setThumbnailSrc(thumbnail_url);
+              setThumbnailFromCover(false);
+            }}
           />
           <div>
             {row ? (

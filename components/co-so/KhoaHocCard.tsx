@@ -1,20 +1,20 @@
 "use client";
 
 import {
+  ArrowRight,
   CalendarDays,
   CircleDot,
   Image as ImageIcon,
   Pause,
   Plus,
-  Rocket,
   Users,
 } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 
 import { KhoaHocCardMenu } from "@/components/co-so/KhoaHocCardMenu";
 
 import {
-  formatKhaiGiangCard,
   formatKhoaHocPhi,
   formatThoiLuongKhoa,
   isKhoaHocMuted,
@@ -26,6 +26,7 @@ import type { KhoaHocCardData } from "@/lib/to-chuc/khoa-hoc-types";
 
 type Props = {
   khoa: KhoaHocCardData;
+  href?: string;
   canManage?: boolean;
   onClick?: () => void;
   onManage?: () => void;
@@ -35,6 +36,7 @@ type Props = {
 
 export function KhoaHocCard({
   khoa,
+  href,
   canManage = false,
   onClick,
   onManage,
@@ -44,24 +46,12 @@ export function KhoaHocCard({
   const muted = isKhoaHocMuted(khoa.trangThaiKhoaHoc);
   const status = labelTrangThaiKhoaHoc(khoa.trangThaiKhoaHoc);
   const covClass = `cso-kh-card-cov c${(khoa.coverVariant % 3) + 1}`;
-  const khaiGiangLabel = formatKhaiGiangCard(
-    khoa.loaiMoHinh,
-    khoa.ngayKhaiGiangGanNhat,
-  );
+  const cardClass = `cso-kh-card${muted ? " muted" : ""}`;
+  const lopLabel =
+    khoa.loaiMoHinh === "lien_tuc_theo_thang" ? "khung" : "lớp mở";
 
-  return (
-    <article
-      className={`cso-kh-card${muted ? " muted" : ""}`}
-      role="button"
-      tabIndex={0}
-      onClick={onClick}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onClick?.();
-        }
-      }}
-    >
+  const body = (
+    <>
       <div className={covClass}>
         {khoa.coverUrl ? (
           <Image
@@ -94,18 +84,16 @@ export function KhoaHocCard({
         />
       ) : null}
       <div className="cso-kh-card-body">
-        <div className="cso-kh-card-name">{khoa.tenKhoaHoc}</div>
-        {khoa.moTa ? (
-          <p className="cso-kh-card-desc">{khoa.moTa}</p>
-        ) : null}
+        <div className="cso-kh-card-top">
+          <div className="cso-kh-card-name">{khoa.tenKhoaHoc}</div>
+          {href ? (
+            <ArrowRight size={16} className="cso-kh-card-go" aria-hidden />
+          ) : null}
+        </div>
         <div className="cso-kh-card-model">
           {labelLoaiMoHinhKhoa(khoa.loaiMoHinh)}
           <span className="cso-kh-dot" aria-hidden />
           {labelTrinhDoDauVao(khoa.trinhDoDauVao)}
-        </div>
-        <div className="cso-kh-card-khai-giang">
-          <Rocket size={13} aria-hidden />
-          <span>{khaiGiangLabel}</span>
         </div>
         <div className="cso-kh-card-facts">
           <div className="cso-kh-cf">
@@ -127,7 +115,7 @@ export function KhoaHocCard({
         <div className="cso-kh-card-foot">
           <span className="cso-kh-foot-m">
             <CalendarDays size={13} aria-hidden />
-            <b>{khoa.soLopMo}</b> lớp mở
+            <b>{khoa.soLopMo}</b> {lopLabel}
           </span>
           <span className="cso-kh-foot-m">
             <Users size={13} aria-hidden />
@@ -135,6 +123,31 @@ export function KhoaHocCard({
           </span>
         </div>
       </div>
+    </>
+  );
+
+  if (href) {
+    return (
+      <Link href={href} scroll={false} className={cardClass}>
+        {body}
+      </Link>
+    );
+  }
+
+  return (
+    <article
+      className={cardClass}
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick?.();
+        }
+      }}
+    >
+      {body}
     </article>
   );
 }
