@@ -10,6 +10,7 @@ import {
 } from "@/lib/truong/inline-api";
 import { labelPhuongThuc } from "@/lib/truong/phuong-thuc";
 import { PhuongThucEnumSelect } from "@/components/truong/PhuongThucEnumSelect";
+import { TruongNganhMultiSelect } from "@/components/truong/tuyensinh/TruongNganhMultiSelect";
 import { parseTieuChiRows } from "@/lib/truong/tieu-chi";
 import type { TruongNganhProgram, TruongPhuongThuc } from "@/lib/truong/types";
 
@@ -36,7 +37,10 @@ export function TruongPhuongThucModal({
 }: Props) {
   const ctx = useTruongInlineEdit();
   const [ten, setTen] = useState("nang_khieu");
-  const [nganhScope, setNganhScope] = useState("all");
+  const [applyAllNganh, setApplyAllNganh] = useState(true);
+  const [selectedNganhIds, setSelectedNganhIds] = useState<Set<string>>(
+    () => new Set(),
+  );
   const [chiTieu, setChiTieu] = useState("");
   const [dieuKien, setDieuKien] = useState("");
   const [saving, setSaving] = useState(false);
@@ -45,19 +49,19 @@ export function TruongPhuongThucModal({
     if (!open) return;
     if (editing) {
       setTen(editing.ten_phuong_thuc ?? "nang_khieu");
-      const ids = editing.id_nganh_ap_dung ?? [];
-      setNganhScope(
-        editing.ap_dung_tat_ca_nganh
-          ? "all"
-          : ids[0]
-            ? ids[0]
-            : "all",
-      );
+      if (editing.ap_dung_tat_ca_nganh) {
+        setApplyAllNganh(true);
+        setSelectedNganhIds(new Set());
+      } else {
+        setApplyAllNganh(false);
+        setSelectedNganhIds(new Set(editing.id_nganh_ap_dung ?? []));
+      }
       setChiTieu(editing.chi_tieu_phuong_thuc?.toString() ?? "");
       setDieuKien(tieuChiToText(editing.tieu_chi));
     } else {
       setTen("nang_khieu");
-      setNganhScope("all");
+      setApplyAllNganh(true);
+      setSelectedNganhIds(new Set());
       setChiTieu("");
       setDieuKien("");
     }
@@ -65,12 +69,19 @@ export function TruongPhuongThucModal({
 
   async function save() {
     if (!ctx || !tuyenSinhNamId) return;
+    const ap_dung_tat_ca_nganh = applyAllNganh;
+    const id_nganh_ap_dung = ap_dung_tat_ca_nganh
+      ? null
+      : [...selectedNganhIds];
+    if (!ap_dung_tat_ca_nganh && (!id_nganh_ap_dung || id_nganh_ap_dung.length === 0)) {
+      ctx.showToast("Chọn ít nhất một ngành hoặc «Tất cả ngành».");
+      return;
+    }
     setSaving(true);
-    const ap_dung_tat_ca_nganh = nganhScope === "all";
     const body = {
       ten_phuong_thuc: ten,
       ap_dung_tat_ca_nganh,
-      id_nganh_ap_dung: ap_dung_tat_ca_nganh ? null : [nganhScope],
+      id_nganh_ap_dung,
       chi_tieu_phuong_thuc: chiTieu.trim() ? Number(chiTieu) : null,
       dieu_kien: dieuKien.trim() || null,
     };
@@ -155,17 +166,14 @@ export function TruongPhuongThucModal({
         </p>
       </section>
 
-      <label className="tdh-inline-field">
-        <span>Áp dụng cho ngành</span>
-        <select value={nganhScope} onChange={(e) => setNganhScope(e.target.value)}>
-          <option value="all">Tất cả ngành</option>
-          {programs.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.nganhTitle}
-            </option>
-          ))}
-        </select>
-      </label>
+      <TruongNganhMultiSelect
+        id={`${titleId}-nganh`}
+        programs={programs}
+        applyAll={applyAllNganh}
+        selectedIds={selectedNganhIds}
+        onApplyAllChange={setApplyAllNganh}
+        onSelectedChange={setSelectedNganhIds}
+      />
 
       <label className="tdh-inline-field">
         <span>Chỉ tiêu (SV)</span>

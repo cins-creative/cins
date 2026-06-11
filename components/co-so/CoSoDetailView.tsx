@@ -193,6 +193,7 @@ function CoSoDetailViewInner({
                   orgSlug={orgSlug}
                   orgTen={school.ten}
                   orgDiaChi={school.dia_chi}
+                  orgVerified={payload.daVerify}
                   canManageKhoaHoc={canManageKhoaHoc}
                   khoaSlug={khoaSlug}
                 />

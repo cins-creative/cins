@@ -43,30 +43,23 @@ export function AdminMonThiThumb({
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const blobRef = useRef<string | null>(null);
+  const noticeTimerRef = useRef<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(() =>
-    getAdminMonThiThumbDisplayUrl(row),
-  );
-  const [imgFailed, setImgFailed] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [previewOverride, setPreviewOverride] = useState<{
+    rowId: string;
+    url: string;
+  } | null>(null);
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
 
   const title = row.ten;
-  const thumbSrc = previewUrl;
-  const hasThumb = Boolean(thumbSrc) && !imgFailed;
+  const rowPreviewUrl = getAdminMonThiThumbDisplayUrl(row);
+  const thumbSrc =
+    previewOverride?.rowId === row.id ? previewOverride.url : rowPreviewUrl;
+  const hasThumb = Boolean(thumbSrc) && failedSrc !== thumbSrc;
   const isPlaceholder = isAdminMonThiPlaceholderThumb(row);
   const fromArticleCover = isAdminMonThiThumbFromArticleCover(row);
-
-  useEffect(() => {
-    setPreviewUrl(getAdminMonThiThumbDisplayUrl(row));
-    setImgFailed(false);
-    setError(null);
-  }, [
-    row.id,
-    row.thumbnail_id,
-    row.thumbnail_src,
-    row.thumbnail_from_cover,
-    row.id_bai_viet,
-  ]);
 
   useEffect(() => {
     return () => {
@@ -74,12 +67,26 @@ export function AdminMonThiThumb({
         URL.revokeObjectURL(blobRef.current);
         blobRef.current = null;
       }
+      if (noticeTimerRef.current) {
+        window.clearTimeout(noticeTimerRef.current);
+        noticeTimerRef.current = null;
+      }
     };
   }, []);
+
+  const showNotice = (message: string) => {
+    setNotice(message);
+    if (noticeTimerRef.current) window.clearTimeout(noticeTimerRef.current);
+    noticeTimerRef.current = window.setTimeout(() => {
+      setNotice(null);
+      noticeTimerRef.current = null;
+    }, 2600);
+  };
 
   const uploadFile = async (file: File) => {
     if (!uploadEnabled || busy || row.id === "__new__") return;
     setError(null);
+    setNotice("Đang upload…");
     setBusy(true);
 
     if (blobRef.current) {
@@ -88,8 +95,8 @@ export function AdminMonThiThumb({
     }
     const objectUrl = URL.createObjectURL(file);
     blobRef.current = objectUrl;
-    setPreviewUrl(objectUrl);
-    setImgFailed(false);
+    setFailedSrc(null);
+    setPreviewOverride({ rowId: row.id, url: objectUrl });
 
     const fd = new FormData();
     fd.append("file", file);
@@ -97,7 +104,11 @@ export function AdminMonThiThumb({
     try {
       const resp = await fetch(
         `/api/admin/mon-thi/${encodeURIComponent(row.id)}/thumbnail`,
-        { method: "POST", body: fd },
+        {
+          method: "POST",
+          body: fd,
+          credentials: "include",
+        },
       );
 
       const json = (await resp.json().catch(() => null)) as {
@@ -112,14 +123,15 @@ export function AdminMonThiThumb({
           URL.revokeObjectURL(blobRef.current);
           blobRef.current = null;
         }
-        setPreviewUrl(getAdminMonThiThumbDisplayUrl(row));
-        setImgFailed(false);
+        setPreviewOverride(null);
+        setFailedSrc(null);
         setError(
           json?.error ??
             (resp.status === 413
               ? "Ảnh quá lớn (giới hạn 8MB)."
               : `Upload thất bại (${resp.status}).`),
         );
+        setNotice(null);
         return;
       }
 
@@ -128,20 +140,23 @@ export function AdminMonThiThumb({
         URL.revokeObjectURL(blobRef.current);
         blobRef.current = null;
       }
-      setPreviewUrl(json.thumbnail_url);
+      setFailedSrc(null);
+      setPreviewOverride({ rowId: row.id, url: json.thumbnail_url });
       onThumbnailChange?.({
         thumbnail_id: json.thumbnail_id,
         thumbnail_url: json.thumbnail_url,
       });
+      showNotice("Upload hoàn tất");
       router.refresh();
     } catch (e) {
       if (blobRef.current) {
         URL.revokeObjectURL(blobRef.current);
         blobRef.current = null;
       }
-      setPreviewUrl(getAdminMonThiThumbDisplayUrl(row));
-      setImgFailed(false);
+      setPreviewOverride(null);
+      setFailedSrc(null);
       setError(e instanceof Error ? e.message : "Lỗi mạng khi upload.");
+      setNotice(null);
     } finally {
       setBusy(false);
     }
@@ -193,7 +208,7 @@ export function AdminMonThiThumb({
         uploadEnabled
           ? (e) => {
               stopRow(e);
-              openPicker(e);
+              if (hasThumb) openPicker(e);
             }
           : stopRow
       }
@@ -216,15 +231,19 @@ export function AdminMonThiThumb({
           : `Ảnh môn ${title}`
       }
     >
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/jpeg,image/png,image/webp,image/gif"
-        className="admin-sr-only"
-        tabIndex={-1}
-        aria-hidden
-        onChange={onPick}
-      />
+      {uploadEnabled ? (
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          className="admin-article-thumb__file"
+          tabIndex={-1}
+          aria-label={hasThumb ? "Đổi ảnh môn thi" : "Chọn ảnh môn thi"}
+          disabled={busy}
+          onClick={(e) => e.stopPropagation()}
+          onChange={onPick}
+        />
+      ) : null}
 
       {hasThumb ? (
         // eslint-disable-next-line @next/next/no-img-element
@@ -234,7 +253,9 @@ export function AdminMonThiThumb({
           className="admin-article-thumb__img"
           loading="lazy"
           decoding="async"
-          onError={() => setImgFailed(true)}
+          width={96}
+          height={72}
+          onError={() => setFailedSrc(thumbSrc ?? null)}
         />
       ) : (
         <span
@@ -260,14 +281,13 @@ export function AdminMonThiThumb({
               : "admin-article-thumb__actions"
           }
         >
-          <button
-            type="button"
+          <span
             className="admin-article-thumb__pick"
-            disabled={busy}
-            onClick={openPicker}
+            aria-disabled={busy}
+            aria-hidden
           >
             {busy ? "Đang tải…" : hasThumb ? "Đổi ảnh" : "Chọn ảnh"}
-          </button>
+          </span>
         </span>
       ) : null}
 
@@ -293,7 +313,13 @@ export function AdminMonThiThumb({
         </span>
       ) : null}
 
-      {imgFailed ? (
+      {notice ? (
+        <span className="admin-article-thumb__ok" role="status" aria-live="polite">
+          {notice}
+        </span>
+      ) : null}
+
+      {failedSrc === thumbSrc && previewOverride?.rowId === row.id ? (
         <span className="admin-article-thumb__err" role="alert">
           Không tải được ảnh
         </span>

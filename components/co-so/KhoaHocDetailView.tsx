@@ -3,29 +3,28 @@
 import {
   ArrowUpRight,
   BadgeCheck,
-  Calendar,
+  Bookmark,
   CalendarClock,
-  Check,
+  CheckCircle,
+  ChevronDown,
   ChevronRight,
-  CircleDot,
+  Clock,
   GraduationCap,
   Image as ImageIcon,
   Info,
   ListOrdered,
   Lock,
   MapPin,
-  PencilRuler,
   Play,
   PlayCircle,
-  Repeat,
   Rocket,
+  Sparkles,
   UserPlus,
-  Users,
   UsersRound,
-  Wallet,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import type {
@@ -36,21 +35,34 @@ import type {
   LopHocDetailData,
 } from "@/lib/to-chuc/khoa-hoc-types";
 import {
+  buildKhoaHocDetailMock,
+  isKhoaHocDetailMockSlug,
+} from "@/lib/to-chuc/khoa-hoc-detail-mock";
+import {
   formatKhaiGiangCard,
   formatKhoaHocPhi,
   formatThoiLuongKhoa,
   labelHinhThucLopChiTiet,
   labelLoaiMoHinhKhoa,
-  labelTrangThaiKhoaHero,
   labelTrinhDoDauVao,
-  showTrangThaiKhoaHero,
 } from "@/lib/to-chuc/khoa-hoc-labels";
 
 type Props = {
   orgId: string;
   orgTen: string;
   khoa: KhoaHocCardData;
+  orgVerified?: boolean;
+  /** Bỏ qua API, render mockup demo đầy đủ. */
+  useMockup?: boolean;
 };
+
+function lessonBullets(moTa: string | null): string[] {
+  if (!moTa?.trim()) return [];
+  return moTa
+    .split(/\n|·|;/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
 
 function GiaoVienAvatar({
   gv,
@@ -81,43 +93,87 @@ function GiaoVienName({ gv }: { gv: GiaoVienKhoaData }) {
 function GiaoTrinhRow({
   bai,
   index,
+  initiallyOpen = false,
 }: {
   bai: GiaoTrinhBaiData;
   index: number;
+  initiallyOpen?: boolean;
 }) {
   const locked = bai.visibility === "chi_hoc_vien";
-  const desc =
-    bai.moTaNgan?.trim() || (locked ? "Mở khi đăng ký." : "");
+  const [open, setOpen] = useState(initiallyOpen);
+  const bullets = lessonBullets(bai.moTaNgan);
 
   return (
-    <div className={`cso-khd-les${locked ? " locked" : ""}`}>
-      <span className="cso-khd-les-num">{index + 1}</span>
-      <div className="cso-khd-les-body">
-        <div className="cso-khd-les-t">
-          {bai.tieuDe}
-          {bai.soBuoi != null && bai.soBuoi > 0 ? (
-            <span className="cso-khd-buoi">{bai.soBuoi} buổi</span>
+    <div
+      className={[
+        "cso-khd-les",
+        locked ? "locked" : "",
+        open ? "open" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
+      <div
+        className="cso-khd-les-head"
+        role={locked ? undefined : "button"}
+        tabIndex={locked ? undefined : 0}
+        aria-expanded={locked ? undefined : open}
+        onClick={() => {
+          if (!locked) setOpen((v) => !v);
+        }}
+        onKeyDown={(e) => {
+          if (locked) return;
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setOpen((v) => !v);
+          }
+        }}
+      >
+        <span className="cso-khd-les-num">{index + 1}</span>
+        <div className="cso-khd-les-info">
+          <div className="cso-khd-les-t">
+            {bai.tieuDe}
+            {bai.soBuoi != null && bai.soBuoi > 0 ? (
+              <span className="cso-khd-buoi">{bai.soBuoi} buổi</span>
+            ) : null}
+            {bai.hasVideo ? (
+              <span className="cso-khd-les-media">
+                <PlayCircle size={11} aria-hidden />
+                video
+              </span>
+            ) : null}
+          </div>
+        </div>
+        <div className="cso-khd-les-state">
+          {locked ? (
+            <span className="cso-khd-les-lock">
+              <Lock size={13} aria-hidden />
+              Đăng ký để mở
+            </span>
+          ) : (
+            <>
+              <span className="cso-khd-les-try">Xem thử</span>
+              <ChevronDown size={18} className="cso-khd-les-chev" aria-hidden />
+            </>
+          )}
+        </div>
+      </div>
+      {!locked && open ? (
+        <div className="cso-khd-les-expand">
+          {bullets.length > 0 ? (
+            <ul>
+              {bullets.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
           ) : null}
           {bai.hasVideo ? (
-            <span className="cso-khd-les-media">
-              <PlayCircle size={11} aria-hidden />
-              video
-            </span>
+            <div className="cso-khd-les-vid" aria-hidden>
+              <Play size={38} strokeWidth={1.5} />
+            </div>
           ) : null}
         </div>
-        {desc ? <div className="cso-khd-les-d">{desc}</div> : null}
-      </div>
-      {locked ? (
-        <span className="cso-khd-pill-lock">
-          <Lock size={12} aria-hidden />
-          Đăng ký để mở
-        </span>
-      ) : (
-        <span className="cso-khd-pill-try">
-          <Play size={12} aria-hidden />
-          Xem thử
-        </span>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -138,7 +194,7 @@ function KhungLopCard({
       : lop.ngayKhaiGiang);
 
   return (
-    <div className={`cso-khd-khung${highlighted ? " open" : ""}`}>
+    <div className={`cso-khd-khung${highlighted ? " hl" : ""}`}>
       <div className="cso-khd-khung-top">
         <span className="cso-khd-khung-name">{lop.tenLop}</span>
         {lop.conCho ? (
@@ -147,8 +203,8 @@ function KhungLopCard({
       </div>
       <div className="cso-khd-khung-meta">
         <span className="cso-khd-km">
-          <Calendar size={14} aria-hidden />
-          Lịch <b>{lichLabel}</b>
+          <Clock size={14} aria-hidden />
+          <b>{lichLabel}</b>
         </span>
         <span className="cso-khd-km">
           <MapPin size={14} aria-hidden />
@@ -163,13 +219,18 @@ function KhungLopCard({
             <GiaoVienName gv={lop.giaoVien} />
             <div className="cso-khd-gv-role">
               {lop.giaoVien.vaiTro ??
-                (lop.giaoVien.pendingProfile
-                  ? "GV chưa có hồ sơ CINS"
-                  : "Giảng viên")}
+                (lop.giaoVien.verified
+                  ? "GV có hồ sơ CINS"
+                  : lop.giaoVien.pendingProfile
+                    ? "GV chưa có hồ sơ CINS"
+                    : "Giảng viên")}
             </div>
           </div>
         </div>
-        <button type="button" className="cso-khd-btn">
+        <button
+          type="button"
+          className={`cso-khd-btn cso-khd-btn--sm${highlighted ? "" : " cso-khd-btn--ghost"}`}
+        >
           <UserPlus size={13} aria-hidden />
           Đăng ký khung này
         </button>
@@ -178,73 +239,91 @@ function KhungLopCard({
   );
 }
 
-function GiaoVienCard({ gv }: { gv: GiaoVienKhoaData }) {
+function GiaoVienRow({ gv }: { gv: GiaoVienKhoaData }) {
   return (
-    <div className="cso-khd-gv-card">
+    <div className="cso-khd-tea">
       <GiaoVienAvatar gv={gv} />
-      <div>
-        <GiaoVienName gv={gv} />
-        <div className="cso-khd-gv-card-rl">
+      <div className="cso-khd-tea-body">
+        <div className="cso-khd-tea-nm">
+          <GiaoVienName gv={gv} />
+        </div>
+        <div className="cso-khd-tea-rl">
           {gv.vaiTro ?? (gv.pendingProfile ? "Giảng viên" : "Giảng viên khóa")}
         </div>
-        {gv.slug && gv.verified ? (
-          <Link href={`/${gv.slug}`} className="cso-khd-gv-lk">
-            <ArrowUpRight size={11} aria-hidden />
-            Xem hồ sơ
-          </Link>
-        ) : gv.pendingProfile ? (
-          <div className="cso-khd-gv-pend">Chưa có hồ sơ CINS</div>
-        ) : null}
       </div>
+      {gv.slug && gv.verified ? (
+        <Link href={`/${gv.slug}`} className="cso-khd-tea-lk">
+          <ArrowUpRight size={13} aria-hidden />
+          Xem hồ sơ
+        </Link>
+      ) : gv.pendingProfile ? (
+        <span className="cso-khd-tea-pend">Chưa có hồ sơ CINS</span>
+      ) : null}
     </div>
   );
 }
 
-function DetailContent({ detail }: { detail: KhoaHocDetailPayload }) {
+function DetailContent({
+  detail,
+  orgVerified = false,
+  isMockup = false,
+}: {
+  detail: KhoaHocDetailPayload;
+  orgVerified?: boolean;
+  isMockup?: boolean;
+}) {
   const { khoa, orgTen, giaoTrinh, lopHoc, giaoVien } = detail;
-  const covClass = `cso-khd-cover c${(khoa.coverVariant % 3) + 1}`;
-  const heroBadge = labelTrangThaiKhoaHero(khoa.trangThaiKhoaHoc);
-  const showBadge = showTrangThaiKhoaHero(khoa.trangThaiKhoaHoc) && heroBadge;
+  const hasCover = Boolean(khoa.coverUrl);
+  const covClass = [
+    "cso-khd-cover",
+    hasCover ? `c${(khoa.coverVariant % 3) + 1}` : "cso-khd-cover--placeholder",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   const tryCount = giaoTrinh.filter((b) => b.visibility === "public").length;
-  const giaoTrinhNote = useMemo(() => {
+  const firstPublicIdx = giaoTrinh.findIndex((b) => b.visibility === "public");
+
+  const giaoTrinhSummary = useMemo(() => {
     if (!giaoTrinh.length) return null;
     const totalBuoi = giaoTrinh.reduce((s, b) => s + (b.soBuoi ?? 0), 0);
-    const buoiPart =
-      totalBuoi > 0
-        ? `${totalBuoi} buổi`
-        : formatThoiLuongKhoa(khoa.thoiLuongBuoi, khoa.thoiLuongPhutMoiBuoi);
-    const tryPart =
-      tryCount > 0 ? `${tryCount} bài xem thử` : "chưa có bài xem thử";
-    return `${buoiPart} · ${tryPart} · phần còn lại mở cho học viên`;
-  }, [giaoTrinh, tryCount, khoa.thoiLuongBuoi, khoa.thoiLuongPhutMoiBuoi]);
+    const parts: string[] = [];
+    if (totalBuoi > 0) parts.push(`${totalBuoi} buổi`);
+    parts.push(`${giaoTrinh.length} bài`);
+    if (tryCount > 0) parts.push(`${tryCount} xem thử`);
+    return parts.join(" · ");
+  }, [giaoTrinh, tryCount]);
 
-  const railBig = formatKhaiGiangCard(
-    khoa.loaiMoHinh,
-    khoa.ngayKhaiGiangGanNhat,
-  );
-  const railSub =
-    khoa.loaiMoHinh === "lien_tuc_theo_thang"
-      ? "Vào học bất cứ lúc nào"
-      : khoa.ngayKhaiGiangGanNhat
-        ? "Cohort có ngày khai giảng cố định"
-        : "Liên hệ cơ sở để biết lịch";
+  const ctaNote = useMemo(() => {
+    const big = formatKhaiGiangCard(khoa.loaiMoHinh, khoa.ngayKhaiGiangGanNhat);
+    const sub =
+      khoa.loaiMoHinh === "lien_tuc_theo_thang"
+        ? "vào học bất cứ lúc nào"
+        : khoa.ngayKhaiGiangGanNhat
+          ? "cohort có ngày khai giảng cố định"
+          : "liên hệ cơ sở để biết lịch";
+    return `${big} · ${sub}`;
+  }, [khoa.loaiMoHinh, khoa.ngayKhaiGiangGanNhat]);
 
-  const slotMax = lopHoc.find((l) => l.slotToiDa != null)?.slotToiDa ?? null;
-  const hinhThucRail = lopHoc[0]?.hinhThuc ?? khoa.hinhThuc;
-  const diaChiRail = lopHoc[0]?.diaChiHoc ?? khoa.diaChiHoc;
+  const hocPhiLabel = formatKhoaHocPhi(khoa.hocPhi, khoa.loaiMoHinh);
+  const finalCtaTitle = isMockup ? "SẴN SÀNG CẦM CHÌ?" : "Sẵn sàng bắt đầu?";
 
   return (
-    <div className="cso-khd">
-      <nav className="cso-khd-crumb" aria-label="Breadcrumb">
-        <span>{orgTen || "Cơ sở"}</span>
-        <ChevronRight size={13} aria-hidden />
-        <span>Khóa học</span>
-        <ChevronRight size={13} aria-hidden />
-        <span>{khoa.tenKhoaHoc}</span>
-      </nav>
+    <div className="cso-khd cso-khd--landing">
+      {isMockup ? (
+        <p className="cso-khd-mock-banner" role="status">
+          Mockup thiết kế · dữ liệu demo
+        </p>
+      ) : null}
+      <article className="cso-khd-sheet">
+        <nav className="cso-khd-crumb" aria-label="Breadcrumb">
+          <span>{orgTen || "Cơ sở"}</span>
+          <ChevronRight size={13} aria-hidden />
+          <span>Khóa học</span>
+          <ChevronRight size={13} aria-hidden />
+          <span>{khoa.tenKhoaHoc}</span>
+        </nav>
 
-      <div className="cso-khd-hero">
         <div className={covClass}>
           {khoa.coverUrl ? (
             <Image
@@ -255,192 +334,155 @@ function DetailContent({ detail }: { detail: KhoaHocDetailPayload }) {
               sizes="(max-width: 720px) 100vw, 552px"
             />
           ) : (
-            <>
-              <span className="cso-khd-cover-dot b1" aria-hidden />
-              <span className="cso-khd-cover-dot b2" aria-hidden />
-            </>
+            <ImageIcon size={46} strokeWidth={1.25} aria-hidden />
           )}
+          <button
+            type="button"
+            className="cso-khd-cover-save"
+            aria-label="Lưu khóa học"
+          >
+            <Bookmark size={16} aria-hidden />
+          </button>
         </div>
-        <div className="cso-khd-hero-body">
-          <div className="cso-khd-thumb">
-            <PencilRuler size={36} aria-hidden />
-          </div>
-          <div className="cso-khd-hero-main">
-            <h2 className="cso-khd-name">
-              {khoa.tenKhoaHoc}
-              {showBadge && heroBadge ? (
-                <span className="cso-khd-badge-st">
-                  <CircleDot size={11} aria-hidden />
-                  {heroBadge}
-                </span>
-              ) : null}
-            </h2>
-            <p className="cso-khd-org">
-              <GraduationCap size={14} aria-hidden />
-              {orgTen}
-            </p>
-            <div className="cso-khd-facts">
-              <div className="cso-khd-fact">
-                <div className="v">{labelLoaiMoHinhKhoa(khoa.loaiMoHinh)}</div>
-                <div className="k">Mô hình</div>
-              </div>
-              <div className="cso-khd-fact">
-                <div className="v">
-                  {formatThoiLuongKhoa(
-                    khoa.thoiLuongBuoi,
-                    khoa.thoiLuongPhutMoiBuoi,
-                  )}
-                </div>
-                <div className="k">Thời lượng</div>
-              </div>
-              <div className="cso-khd-fact">
-                <div className="v">
-                  {formatKhoaHocPhi(khoa.hocPhi, khoa.loaiMoHinh)}
-                </div>
-                <div className="k">Học phí</div>
-              </div>
-              <div className="cso-khd-fact">
-                <div className="v">{labelTrinhDoDauVao(khoa.trinhDoDauVao)}</div>
-                <div className="k">Đầu vào</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
 
-      <div className="cso-khd-cols">
-        <aside className="cso-khd-rail" aria-label="Đăng ký học">
-          <div className="cso-khd-rail-card">
-            <div className="cso-khd-rail-top">
-              <Rocket size={14} aria-hidden />
-              Đăng ký học
+        <header className="cso-khd-head">
+          <p className="cso-khd-h-org">
+            <GraduationCap size={14} aria-hidden />
+            {orgTen}
+            {orgVerified || isMockup ? (
+              <BadgeCheck size={14} className="cso-khd-h-org-v" aria-hidden />
+            ) : null}
+          </p>
+          <h1 className="cso-khd-h-title">{khoa.tenKhoaHoc}</h1>
+          <div className="cso-khd-facts">
+            <div className="cso-khd-fact">
+              <div className="v">{labelLoaiMoHinhKhoa(khoa.loaiMoHinh)}</div>
+              <div className="k">Mô hình</div>
             </div>
-            <div className="cso-khd-rail-in">
-              <div className="cso-khd-rail-big">{railBig}</div>
-              <div className="cso-khd-rail-sub">{railSub}</div>
-              <div className="cso-khd-rail-li">
-                <Wallet size={15} aria-hidden />
-                Học phí{" "}
-                <b>{formatKhoaHocPhi(khoa.hocPhi, khoa.loaiMoHinh)}</b>
-              </div>
-              {slotMax != null ? (
-                <div className="cso-khd-rail-li">
-                  <Users size={15} aria-hidden />
-                  Sỉ số <b>≤ {slotMax}</b> HV/lớp
-                </div>
-              ) : null}
-              {hinhThucRail ? (
-                <div className="cso-khd-rail-li">
-                  <MapPin size={15} aria-hidden />
-                  {labelHinhThucLopChiTiet(hinhThucRail)}
-                  {diaChiRail ? <> · {diaChiRail}</> : null}
-                </div>
-              ) : null}
-              <div className="cso-khd-rail-li">
-                <Repeat size={15} aria-hidden />
+            <div className="cso-khd-fact">
+              <div className="v">
                 {formatThoiLuongKhoa(
                   khoa.thoiLuongBuoi,
                   khoa.thoiLuongPhutMoiBuoi,
                 )}
               </div>
-              <div className="cso-khd-rail-cta">
-                <button type="button" className="cso-khd-btn cso-khd-btn--wide">
-                  <UserPlus size={13} aria-hidden />
-                  Chọn khung &amp; đăng ký
-                </button>
-              </div>
-              <p className="cso-khd-rail-fine">
-                Đăng ký gửi tới {orgTen || "cơ sở"} duyệt
-              </p>
+              <div className="k">Thời lượng</div>
+            </div>
+            <div className="cso-khd-fact">
+              <div className="v">{hocPhiLabel}</div>
+              <div className="k">Học phí</div>
+            </div>
+            <div className="cso-khd-fact">
+              <div className="v">{labelTrinhDoDauVao(khoa.trinhDoDauVao)}</div>
+              <div className="k">Đầu vào</div>
             </div>
           </div>
-        </aside>
+          <div className="cso-khd-hero-cta">
+            <button type="button" className="cso-khd-btn">
+              <UserPlus size={15} aria-hidden />
+              Chọn khung &amp; đăng ký
+            </button>
+            <span className="cso-khd-cta-note">
+              <Rocket size={14} aria-hidden />
+              {ctaNote}
+            </span>
+          </div>
+        </header>
 
-        <div className="cso-khd-main">
-        {(khoa.moTa || khoa.yeuCauChuanBi) && (
-          <section className="cso-khd-sec">
-            <span className="cso-khd-blk-tag">Nội dung khóa</span>
-            <h3 className="cso-khd-sec-h">
-              <Info size={16} aria-hidden />
-              Giới thiệu
-            </h3>
-            {khoa.moTa ? <p className="cso-khd-intro">{khoa.moTa}</p> : null}
-            {khoa.yeuCauChuanBi ? (
-              <div className="cso-khd-outcomes">
-                <div className="cso-khd-oc">
-                  <Check size={15} aria-hidden />
-                  {khoa.yeuCauChuanBi}
-                </div>
+        <div className="cso-khd-body">
+          {(khoa.moTa || khoa.yeuCauChuanBi) && (
+            <>
+              <div className="cso-khd-rule" aria-hidden />
+              <div className="cso-khd-s-label">
+                <Info size={15} aria-hidden />
+                Giới thiệu
               </div>
-            ) : null}
-          </section>
-        )}
+              {khoa.moTa ? <p className="cso-khd-lead">{khoa.moTa}</p> : null}
+              {khoa.yeuCauChuanBi ? (
+                <p className="cso-khd-req">
+                  <CheckCircle size={16} aria-hidden />
+                  Cần chuẩn bị: {khoa.yeuCauChuanBi}
+                </p>
+              ) : null}
+            </>
+          )}
 
-        {giaoTrinh.length > 0 ? (
-          <section className="cso-khd-sec">
-            <h3 className="cso-khd-sec-h">
-              <ListOrdered size={16} aria-hidden />
-              Lộ trình bài
-            </h3>
-            <p className="cso-khd-sec-hint">
-              Vài bài đầu mở xem thử; phần sau mở khi đăng ký.
-            </p>
-            {giaoTrinh.map((bai, i) => (
-              <GiaoTrinhRow key={bai.id} bai={bai} index={i} />
-            ))}
-            {giaoTrinhNote ? (
-              <p className="cso-khd-note-it">{giaoTrinhNote}</p>
-            ) : null}
-          </section>
-        ) : null}
+          {giaoTrinh.length > 0 ? (
+            <>
+              <div className="cso-khd-rule" aria-hidden />
+              <div className="cso-khd-s-label">
+                <ListOrdered size={15} aria-hidden />
+                Lộ trình bài
+                {giaoTrinhSummary ? (
+                  <span className="cso-khd-s-sum">{giaoTrinhSummary}</span>
+                ) : null}
+              </div>
+              <div className="cso-khd-les-list">
+                {giaoTrinh.map((bai, i) => (
+                  <GiaoTrinhRow
+                    key={bai.id}
+                    bai={bai}
+                    index={i}
+                    initiallyOpen={i === firstPublicIdx}
+                  />
+                ))}
+              </div>
+              <div className="cso-khd-proj">
+                <Sparkles size={16} aria-hidden />
+                <span>
+                  <b>Bài cuối ra tác phẩm:</b> học viên nộp bài thi thử →{" "}
+                  {orgTen || "cơ sở"} xác nhận → tác phẩm lên thẳng hồ sơ nghề
+                  và hiện ở mục Sản phẩm học viên bên dưới.
+                </span>
+              </div>
+            </>
+          ) : null}
 
-        {lopHoc.length > 0 ? (
-          <section className="cso-khd-sec">
-            <h3 className="cso-khd-sec-h">
-              <CalendarClock size={16} aria-hidden />
-              Khung lớp &amp; lịch học
-            </h3>
-            <p className="cso-khd-sec-hint">
-              {khoa.loaiMoHinh === "lien_tuc_theo_thang"
-                ? "Khai giảng hàng tuần — vào học bất cứ lúc nào. Cùng giáo trình; giáo viên có thể khác giữa các khung."
-                : "Chọn khung lớp phù hợp với lịch và giáo viên."}
-            </p>
-            {lopHoc.map((lop, i) => (
-              <KhungLopCard
-                key={lop.id}
-                lop={lop}
-                highlighted={i === 0}
-                loaiMoHinh={khoa.loaiMoHinh}
-              />
-            ))}
-          </section>
-        ) : null}
-
-        {giaoVien.length > 0 ? (
-          <section className="cso-khd-sec">
-            <h3 className="cso-khd-sec-h">
-              <UsersRound size={16} aria-hidden />
-              Giảng viên
-            </h3>
-            <p className="cso-khd-sec-hint">
-              Có hồ sơ CINS → xem được Journey nghề thật; chưa có → hiện tên,
-              không badge.
-            </p>
-            <div className="cso-khd-gv-grid">
-              {giaoVien.map((gv) => (
-                <GiaoVienCard key={gv.key} gv={gv} />
+          {lopHoc.length > 0 ? (
+            <>
+              <div className="cso-khd-rule" aria-hidden />
+              <div className="cso-khd-s-label">
+                <CalendarClock size={15} aria-hidden />
+                Khung lớp &amp; lịch học
+              </div>
+              <p className="cso-khd-s-sub">
+                {khoa.loaiMoHinh === "lien_tuc_theo_thang"
+                  ? "Khai giảng hàng tuần — vào học bất cứ lúc nào. Cùng giáo trình; giáo viên có thể khác giữa các khung."
+                  : "Chọn khung lớp phù hợp với lịch và giáo viên."}
+              </p>
+              {lopHoc.map((lop, i) => (
+                <KhungLopCard
+                  key={lop.id}
+                  lop={lop}
+                  highlighted={i === 0}
+                  loaiMoHinh={khoa.loaiMoHinh}
+                />
               ))}
-            </div>
-          </section>
-        ) : null}
+            </>
+          ) : null}
 
-        <section className="cso-khd-sec">
-          <h3 className="cso-khd-sec-h">
-            <ImageIcon size={16} aria-hidden />
+          {giaoVien.length > 0 ? (
+            <>
+              <div className="cso-khd-rule" aria-hidden />
+              <div className="cso-khd-s-label">
+                <UsersRound size={15} aria-hidden />
+                Giảng viên
+              </div>
+              <div className="cso-khd-tea-list">
+                {giaoVien.map((gv) => (
+                  <GiaoVienRow key={gv.key} gv={gv} />
+                ))}
+              </div>
+            </>
+          ) : null}
+
+          <div className="cso-khd-rule" aria-hidden />
+          <div className="cso-khd-s-label">
+            <ImageIcon size={15} aria-hidden />
             Sản phẩm học viên từ khóa
-          </h3>
+          </div>
           <div className="cso-khd-works-note">
-            <BadgeCheck size={15} aria-hidden />
+            <BadgeCheck size={16} aria-hidden />
             <span>
               <b>Học viên tự đăng</b> rồi gắn &quot;làm khi học khóa này&quot;,{" "}
               {orgTen || "cơ sở"} bấm xác nhận. Mỗi tác phẩm gắn thẳng hồ sơ nghề
@@ -450,19 +492,53 @@ function DetailContent({ detail }: { detail: KhoaHocDetailPayload }) {
           <p className="cso-khd-works-empty">
             Chưa có tác phẩm được xác nhận cho khóa này.
           </p>
-        </section>
         </div>
-      </div>
+
+        <footer className="cso-khd-final">
+          <h3>{finalCtaTitle}</h3>
+          <p>
+            {formatKhaiGiangCard(khoa.loaiMoHinh, khoa.ngayKhaiGiangGanNhat)} ·
+            học phí <span className="cso-khd-final-price">{hocPhiLabel}</span> ·
+            gửi đăng ký tới {orgTen || "cơ sở"} duyệt
+          </p>
+          <button type="button" className="cso-khd-btn">
+            <UserPlus size={15} aria-hidden />
+            Chọn khung &amp; đăng ký
+          </button>
+        </footer>
+      </article>
     </div>
   );
 }
 
-export function KhoaHocDetailView({ orgId, orgTen, khoa }: Props) {
-  const [detail, setDetail] = useState<KhoaHocDetailPayload | null>(null);
-  const [loading, setLoading] = useState(true);
+export function KhoaHocDetailView({
+  orgId,
+  orgTen,
+  khoa,
+  orgVerified = false,
+  useMockup = false,
+}: Props) {
+  const searchParams = useSearchParams();
+  const mockupFromQuery = searchParams.get("mockup") === "1";
+  const isMockup =
+    useMockup ||
+    mockupFromQuery ||
+    isKhoaHocDetailMockSlug(khoa.slug);
+
+  const [detail, setDetail] = useState<KhoaHocDetailPayload | null>(
+    isMockup ? buildKhoaHocDetailMock(orgTen) : null,
+  );
+  const [loading, setLoading] = useState(!isMockup);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (isMockup) {
+      setDetail(buildKhoaHocDetailMock(orgTen));
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -499,11 +575,11 @@ export function KhoaHocDetailView({ orgId, orgTen, khoa }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [orgId, khoa.id, orgTen]);
+  }, [orgId, khoa.id, orgTen, isMockup]);
 
   if (loading) {
     return (
-      <div className="cso-khd cso-khd--loading">
+      <div className="cso-khd cso-khd--landing cso-khd--loading">
         <div className="cso-kh-skeleton cso-khd-skeleton" aria-hidden />
       </div>
     );
@@ -511,11 +587,17 @@ export function KhoaHocDetailView({ orgId, orgTen, khoa }: Props) {
 
   if (error || !detail) {
     return (
-      <div className="cso-khd">
+      <div className="cso-khd cso-khd--landing">
         <p className="cso-kh-err">{error ?? "Không tải được chi tiết khóa."}</p>
       </div>
     );
   }
 
-  return <DetailContent detail={detail} />;
+  return (
+    <DetailContent
+      detail={detail}
+      orgVerified={orgVerified}
+      isMockup={isMockup}
+    />
+  );
 }

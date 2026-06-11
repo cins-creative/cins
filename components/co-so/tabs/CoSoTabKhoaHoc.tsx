@@ -1,6 +1,7 @@
 "use client";
 
-import { GraduationCap, Plus } from "lucide-react";
+import { GraduationCap, LayoutTemplate, Plus } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
@@ -8,6 +9,11 @@ import { KhoaHocAddTile, KhoaHocCard } from "@/components/co-so/KhoaHocCard";
 import { KhoaHocCreateModal } from "@/components/co-so/KhoaHocCreateModal";
 import { KhoaHocDeleteConfirm } from "@/components/co-so/KhoaHocDeleteConfirm";
 import { KhoaHocDetailView } from "@/components/co-so/KhoaHocDetailView";
+import {
+  KHOA_HOC_DETAIL_MOCK_SLUG,
+  buildKhoaHocDetailMock,
+  isKhoaHocDetailMockSlug,
+} from "@/lib/to-chuc/khoa-hoc-detail-mock";
 import type { KhoaHocCardData } from "@/lib/to-chuc/khoa-hoc-types";
 import {
   coSoKhoaHocDetailPath,
@@ -19,6 +25,7 @@ type Props = {
   orgSlug: string;
   orgTen: string;
   orgDiaChi?: string | null;
+  orgVerified?: boolean;
   canManageKhoaHoc: boolean;
   khoaSlug?: string | null;
 };
@@ -28,6 +35,7 @@ export function CoSoTabKhoaHoc({
   orgSlug,
   orgTen,
   orgDiaChi = null,
+  orgVerified = false,
   canManageKhoaHoc,
   khoaSlug = null,
 }: Props) {
@@ -81,13 +89,15 @@ export function CoSoTabKhoaHoc({
     return items.find((k) => k.slug === khoaSlug) ?? null;
   }, [items, khoaSlug]);
 
+  const isMockupRoute = isKhoaHocDetailMockSlug(khoaSlug);
+
   useEffect(() => {
-    if (!khoaSlug || items.length === 0) return;
+    if (!khoaSlug || items.length === 0 || isMockupRoute) return;
     const exists = items.some((k) => k.slug === khoaSlug);
     if (!exists) {
       router.replace(coSoTabPath(orgSlug, "khoa-hoc"), { scroll: false });
     }
-  }, [items, khoaSlug, orgSlug, router]);
+  }, [items, khoaSlug, orgSlug, router, isMockupRoute]);
 
   const totals = useMemo(() => {
     const hocVien = items.reduce((sum, k) => sum + k.soHocVien, 0);
@@ -128,12 +138,15 @@ export function CoSoTabKhoaHoc({
     }
   }
 
-  if (selected) {
+  if (isMockupRoute || selected) {
+    const mockKhoa = buildKhoaHocDetailMock(orgTen).khoa;
     return (
       <KhoaHocDetailView
         orgId={orgId}
         orgTen={orgTen}
-        khoa={selected}
+        khoa={selected ?? mockKhoa}
+        orgVerified={orgVerified}
+        useMockup={isMockupRoute}
       />
     );
   }
@@ -200,6 +213,20 @@ export function CoSoTabKhoaHoc({
             <p className="cso-kh-empty-hint">
               Tạo khóa học đầu tiên để học viên có thể đăng ký.
             </p>
+            <Link
+              href={coSoKhoaHocDetailPath(orgSlug, KHOA_HOC_DETAIL_MOCK_SLUG)}
+              scroll={false}
+              className="cso-kh-mockup-tile cso-kh-mockup-tile--empty"
+            >
+              <span className="cso-kh-mockup-tag">
+                <LayoutTemplate size={14} aria-hidden />
+                Mockup
+              </span>
+              <span className="cso-kh-mockup-title">Xem mockup chi tiết khóa</span>
+              <span className="cso-kh-mockup-sub">
+                Landing đầy đủ theo thiết kế demo
+              </span>
+            </Link>
             {canManageKhoaHoc ? (
               <button
                 type="button"
@@ -213,6 +240,20 @@ export function CoSoTabKhoaHoc({
           </div>
         ) : (
           <div className="cso-kh-grid">
+            <Link
+              href={coSoKhoaHocDetailPath(orgSlug, KHOA_HOC_DETAIL_MOCK_SLUG)}
+              scroll={false}
+              className="cso-kh-mockup-tile"
+            >
+              <span className="cso-kh-mockup-tag">
+                <LayoutTemplate size={14} aria-hidden />
+                Mockup
+              </span>
+              <span className="cso-kh-mockup-title">Chi tiết khóa · landing</span>
+              <span className="cso-kh-mockup-sub">
+                Xem đầy đủ thiết kế demo (5 bài, 2 khung lớp, GV…)
+              </span>
+            </Link>
             {items.map((khoa) => (
               <KhoaHocCard
                 key={khoa.id}

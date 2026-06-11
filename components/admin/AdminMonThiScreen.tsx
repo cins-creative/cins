@@ -13,29 +13,34 @@ import {
   adminDeleteMonThi,
 } from "@/app/admin/actions";
 
+import { AdminKhoiThiTab } from "@/components/admin/AdminKhoiThiTab";
+
 import { AdminMonThiEditPanel } from "@/components/admin/AdminMonThiEditPanel";
 
 import { AdminMonThiThumb } from "@/components/admin/AdminMonThiThumb";
 
 import { AdminSlideOver } from "@/components/admin/AdminSlideOver";
 
-import {
-
-  distinctMonThiLoai,
-
-  labelMonThiLoai,
-
-} from "@/lib/truong/mon-thi-catalog";
-
-import { hasAdminMonThiRealThumb } from "@/lib/admin/mon-thi-display";
+import { AdminMonThiQuickFilter, matchesAdminMonThiQuickFilter } from "@/components/admin/AdminMonThiQuickFilter";
 
 import type { AdminMonThiRow } from "@/lib/admin/mon-thi-server";
+
+import type { AdminToHopMonRow } from "@/lib/admin/to-hop-mon-server";
+
+import { khoiThiContainingMonId } from "@/lib/admin/to-hop-mon-display";
+import { labelMonThiLoai } from "@/lib/truong/mon-thi-catalog";
+
+
+
+type AdminMonThiTabId = "mon" | "khoi";
 
 
 
 type Props = {
 
   initialRows: AdminMonThiRow[];
+
+  initialKhoiRows: AdminToHopMonRow[];
 
 };
 
@@ -51,17 +56,16 @@ type PanelState =
 
 
 
-export function AdminMonThiScreen({ initialRows }: Props) {
+export function AdminMonThiScreen({ initialRows, initialKhoiRows }: Props) {
 
   const router = useRouter();
+
+  const [tab, setTab] = useState<AdminMonThiTabId>("mon");
 
   const [rows, setRows] = useState(initialRows);
 
   const [q, setQ] = useState("");
-
-  const [loaiFilter, setLoaiFilter] = useState("");
-
-  const [statusFilter, setStatusFilter] = useState("");
+  const [quickFilter, setQuickFilter] = useState("");
 
   const [panel, setPanel] = useState<PanelState>({ mode: "closed" });
 
@@ -77,11 +81,50 @@ export function AdminMonThiScreen({ initialRows }: Props) {
 
   }, [initialRows]);
 
+  useEffect(() => {
+
+    if (tab === "khoi" && panel.mode !== "closed") {
+
+      setPanel({ mode: "closed" });
+
+    }
+
+  }, [tab, panel.mode]);
 
 
-  const loaiOptions = useMemo(() => distinctMonThiLoai(rows), [rows]);
+
+  function goToKhoiTab() {
+
+    setPanel({ mode: "closed" });
+
+    setTab("khoi");
+
+  }
 
 
+
+  const khoiForEditingMon = useMemo(() => {
+
+    if (panel.mode !== "edit") return [];
+
+    return khoiThiContainingMonId(initialKhoiRows, panel.row.id);
+
+  }, [panel, initialKhoiRows]);
+
+
+
+  const filtered = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    return rows.filter((r) => {
+      if (!matchesAdminMonThiQuickFilter(r, quickFilter)) return false;
+      if (!needle) return true;
+      const hay = [r.ten, r.ma, r.id, r.thumbnail_id, r.id_bai_viet]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return hay.includes(needle);
+    });
+  }, [rows, q, quickFilter]);
 
   function patchRowThumbnail(
     id: string,
@@ -101,82 +144,6 @@ export function AdminMonThiScreen({ initialRows }: Props) {
       ),
     );
   }
-
-
-
-  const filtered = useMemo(() => {
-
-    const needle = q.trim().toLowerCase();
-
-    return rows.filter((r) => {
-
-      if (loaiFilter === "__khac__") {
-
-        if (r.loai?.trim()) return false;
-
-      } else if (loaiFilter && (r.loai ?? "") !== loaiFilter) return false;
-
-      if (statusFilter && (r.trang_thai ?? "") !== statusFilter) return false;
-
-      if (!needle) return true;
-
-      const hay = [r.ten, r.ma, r.id, r.thumbnail_id, r.id_bai_viet]
-
-        .filter(Boolean)
-
-        .join(" ")
-
-        .toLowerCase();
-
-      return hay.includes(needle);
-
-    });
-
-  }, [rows, q, loaiFilter, statusFilter]);
-
-
-
-  const stats = useMemo(() => {
-
-    const byLoai = new Map<string, number>();
-
-    let active = 0;
-
-    let realThumb = 0;
-
-    for (const r of rows) {
-
-      const k = r.loai?.trim() || "__khac__";
-
-      byLoai.set(k, (byLoai.get(k) ?? 0) + 1);
-
-      if (r.trang_thai === "active") active += 1;
-
-      if (hasAdminMonThiRealThumb(r)) realThumb += 1;
-
-    }
-
-    return { total: rows.length, byLoai, active, realThumb };
-
-  }, [rows]);
-
-
-
-  const statusOptions = useMemo(() => {
-
-    const set = new Set<string>();
-
-    for (const r of rows) {
-
-      if (r.trang_thai?.trim()) set.add(r.trang_thai.trim());
-
-    }
-
-    return [...set].sort();
-
-  }, [rows]);
-
-
 
   async function onDeleteRow(r: AdminMonThiRow) {
     setDeleteErr(null);
@@ -250,7 +217,7 @@ export function AdminMonThiScreen({ initialRows }: Props) {
 
       <header className="page-header">
 
-        <h1 className="page-title">Môn thi đại học</h1>
+        <h1 className="page-title">Môn thi &amp; khối thi đại học</h1>
 
         <div className="page-header-actions">
 
@@ -268,19 +235,23 @@ export function AdminMonThiScreen({ initialRows }: Props) {
 
           </button>
 
-          <button
+          {tab === "mon" ? (
 
-            type="button"
+            <button
 
-            className="btn btn-primary"
+              type="button"
 
-            onClick={() => setPanel({ mode: "create" })}
+              className="btn btn-primary"
 
-          >
+              onClick={() => setPanel({ mode: "create" })}
 
-            + Thêm môn
+            >
 
-          </button>
+              + Thêm môn
+
+            </button>
+
+          ) : null}
 
         </div>
 
@@ -290,7 +261,63 @@ export function AdminMonThiScreen({ initialRows }: Props) {
 
       <div className="page-body">
 
-        {deleteErr ? (
+        <div className="tab-nav admin-mon-thi-tabs" role="tablist" aria-label="Quản lý môn và khối thi">
+
+          <button
+
+            type="button"
+
+            role="tab"
+
+            aria-selected={tab === "mon"}
+
+            className={`tab-btn${tab === "mon" ? " active" : ""}`}
+
+            onClick={() => setTab("mon")}
+
+          >
+
+            Môn thi ({rows.length})
+
+          </button>
+
+          <button
+
+            type="button"
+
+            role="tab"
+
+            aria-selected={tab === "khoi"}
+
+            className={`tab-btn${tab === "khoi" ? " active" : ""}`}
+
+            onClick={() => setTab("khoi")}
+
+          >
+
+            Khối thi ({initialKhoiRows.length})
+
+          </button>
+
+        </div>
+
+
+
+        {tab === "khoi" ? (
+
+          <AdminKhoiThiTab
+
+            initialRows={initialKhoiRows}
+
+            monCatalog={rows}
+
+          />
+
+        ) : null}
+
+
+
+        {tab === "mon" && deleteErr ? (
 
           <p className="admin-edit-form__msg admin-edit-form__msg--err" role="alert">
 
@@ -302,134 +329,33 @@ export function AdminMonThiScreen({ initialRows }: Props) {
 
 
 
-        <div className="stats-grid admin-mon-thi-stats">
+        {tab === "mon" ? (
 
-          <div className="stat-card">
-
-            <div className="stat-label">Tổng môn</div>
-
-            <div className="stat-value">{stats.total}</div>
-
-          </div>
-
-          <div className="stat-card">
-
-            <div className="stat-label">Đang active</div>
-
-            <div className="stat-value">{stats.active}</div>
-
-          </div>
-
-          <div className="stat-card">
-
-            <div className="stat-label">Ảnh thật (CF)</div>
-
-            <div className="stat-value">{stats.realThumb}</div>
-
-          </div>
-
-          {[...stats.byLoai.entries()].map(([k, n]) => (
-
-            <div key={k} className="stat-card">
-
-              <div className="stat-label">
-
-                {k === "__khac__" ? "Khác" : labelMonThiLoai(k)}
-
-              </div>
-
-              <div className="stat-value">{n}</div>
-
-            </div>
-
-          ))}
-
-        </div>
-
-
+        <>
 
         <div className="admin-toolbar">
-
           <div className="filter-bar">
-
             <div className="filter-search">
-
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-
                 <circle cx="11" cy="11" r="8" />
-
                 <line x1="21" y1="21" x2="16.65" y2="16.65" />
-
               </svg>
-
               <input
-
                 type="search"
-
                 placeholder="Tìm tên, mã, id…"
-
                 value={q}
-
                 onChange={(e) => setQ(e.target.value)}
-
               />
-
             </div>
-
-            <select
-
-              className="filter-select"
-
-              value={loaiFilter}
-
-              onChange={(e) => setLoaiFilter(e.target.value)}
-
-              aria-label="Lọc loại môn"
-
-            >
-
-              <option value="">Tất cả loại</option>
-
-              {loaiOptions.map((k) => (
-
-                <option key={k} value={k}>
-
-                  {k === "__khac__" ? "Khác / chưa gán loại" : labelMonThiLoai(k)}
-
-                </option>
-
-              ))}
-
-            </select>
-
-            <select
-
-              className="filter-select"
-
-              value={statusFilter}
-
-              onChange={(e) => setStatusFilter(e.target.value)}
-
-              aria-label="Lọc trạng thái"
-
-            >
-
-              <option value="">Tất cả trạng thái</option>
-
-              {statusOptions.map((s) => (
-
-                <option key={s} value={s}>
-
-                  {s}
-
-                </option>
-
-              ))}
-
-            </select>
-
+            <AdminMonThiQuickFilter
+              rows={rows}
+              value={quickFilter}
+              onChange={setQuickFilter}
+            />
+            <span className="filter-count">
+              {filtered.length} / {rows.length}
+            </span>
           </div>
-
         </div>
 
 
@@ -578,11 +504,9 @@ export function AdminMonThiScreen({ initialRows }: Props) {
 
         </div>
 
-        <p className="form-hint" style={{ marginTop: 12 }}>
+        </>
 
-          Hiển thị {filtered.length} / {rows.length} môn
-
-        </p>
+        ) : null}
 
       </div>
 
@@ -603,6 +527,10 @@ export function AdminMonThiScreen({ initialRows }: Props) {
           <AdminMonThiEditPanel
 
             row={panel.mode === "edit" ? panel.row : undefined}
+
+            khoiForMon={panel.mode === "edit" ? khoiForEditingMon : []}
+
+            onGoToKhoiTab={goToKhoiTab}
 
             onCancel={() => setPanel({ mode: "closed" })}
 

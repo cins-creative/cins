@@ -21,6 +21,14 @@ import {
   type AdminArticlePatch,
 } from "@/lib/admin/articles-server";
 import { parseAdminMonThiForm } from "@/lib/admin/mon-thi-validate";
+import { parseAdminToHopMonForm } from "@/lib/admin/to-hop-mon-validate";
+import {
+  createToHopMonForAdmin,
+  deleteToHopMonForAdmin,
+  listToHopMonForAdmin,
+  updateToHopMonForAdmin,
+  type AdminToHopMonPatch,
+} from "@/lib/admin/to-hop-mon-server";
 import {
   countOrgCauHinhMonForMonThi,
   createMonThiForAdmin,
@@ -519,6 +527,93 @@ export async function adminDeleteMonThi(
   if (!res.ok) return res;
 
   revalidatePath("/admin/mon-thi");
+  return res;
+}
+
+export async function adminSaveToHopMon(
+  formData: FormData,
+): Promise<{ ok: boolean; message?: string }> {
+  const gate = await requireDraftTools();
+  if (!gate.ok) return { ok: false, message: gate.message };
+
+  const id = String(formData.get("id") ?? "").trim();
+  if (!id) return { ok: false, message: "Thiếu id khối thi." };
+
+  const parsed = parseAdminToHopMonForm({
+    ma_to_hop: formData.get("ma_to_hop"),
+    ten_to_hop: formData.get("ten_to_hop"),
+    mo_ta: formData.get("mo_ta"),
+    mon_ids: formData.get("mon_ids"),
+  });
+  if (!parsed.ok) return { ok: false, message: parsed.message };
+
+  const f = parsed.fields;
+  const patch: AdminToHopMonPatch = {
+    ma_to_hop: f.ma_to_hop,
+    ten_to_hop: f.ten_to_hop,
+    mo_ta: f.mo_ta,
+    mon_ids: f.mon_ids,
+  };
+
+  const res = await updateToHopMonForAdmin(id, patch);
+  if (!res.ok) return { ok: false, message: res.message };
+
+  revalidatePath("/admin/mon-thi");
+  return { ok: true };
+}
+
+export async function adminCreateToHopMon(
+  formData: FormData,
+): Promise<
+  { ok: true; id: string } | { ok: false; message: string }
+> {
+  const gate = await requireDraftTools();
+  if (!gate.ok) return { ok: false, message: gate.message };
+
+  const parsed = parseAdminToHopMonForm({
+    ma_to_hop: formData.get("ma_to_hop"),
+    ten_to_hop: formData.get("ten_to_hop"),
+    mo_ta: formData.get("mo_ta"),
+    mon_ids: formData.get("mon_ids"),
+  });
+  if (!parsed.ok) return { ok: false, message: parsed.message };
+
+  const f = parsed.fields;
+  const res = await createToHopMonForAdmin({
+    ma_to_hop: f.ma_to_hop,
+    ten_to_hop: f.ten_to_hop,
+    mo_ta: f.mo_ta,
+    mon_ids: f.mon_ids,
+  });
+  if (!res.ok) return res;
+
+  revalidatePath("/admin/mon-thi");
+  return { ok: true, id: res.row.id };
+}
+
+export async function adminDeleteToHopMon(
+  id: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const gate = await requireDraftTools();
+  if (!gate.ok) return { ok: false, message: gate.message };
+
+  const hopId = id.trim();
+  if (!hopId) return { ok: false, message: "Thiếu id khối thi." };
+
+  const res = await deleteToHopMonForAdmin(hopId);
+  if (!res.ok) return res;
+
+  revalidatePath("/admin/mon-thi");
+  return res;
+}
+
+export async function adminFetchToHopMon(): Promise<
+  ReturnType<typeof listToHopMonForAdmin>
+> {
+  const gate = await requireDraftTools();
+  if (!gate.ok) return { ok: false, message: gate.message };
+  const res = await listToHopMonForAdmin();
+  if (res.ok) revalidatePath("/admin/mon-thi");
   return res;
 }
 

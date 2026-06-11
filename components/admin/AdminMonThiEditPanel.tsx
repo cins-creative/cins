@@ -6,12 +6,13 @@ import { adminCreateMonThi, adminSaveMonThi } from "@/app/admin/actions";
 import { AdminMonThiThumb } from "@/components/admin/AdminMonThiThumb";
 import { labelMonThiLoai, MON_THI_LOAI_LABELS } from "@/lib/truong/mon-thi-catalog";
 import type { AdminMonThiRow } from "@/lib/admin/mon-thi-server";
+import type { AdminToHopMonRow } from "@/lib/admin/to-hop-mon-server";
 import { defaultPlaceholderThumbnailId } from "@/lib/truong/mon-thi-thumbnail";
 
 const STATUS_OPTIONS = [
-  { value: "active", label: "active" },
-  { value: "inactive", label: "inactive" },
-  { value: "archived", label: "archived" },
+  { value: "active", label: "Hoạt động" },
+  { value: "inactive", label: "Tắt" },
+  { value: "archived", label: "Lưu trữ" },
 ] as const;
 
 const LOAI_OPTIONS = Object.keys(MON_THI_LOAI_LABELS);
@@ -19,11 +20,24 @@ const LOAI_OPTIONS = Object.keys(MON_THI_LOAI_LABELS);
 type Props = {
   /** Không truyền = tạo mới */
   row?: AdminMonThiRow;
+  /** Khối thi đang chứa môn này (khi sửa). */
+  khoiForMon?: AdminToHopMonRow[];
+  onGoToKhoiTab?: () => void;
   onCancel: () => void;
   onSaved: () => void;
 };
 
-export function AdminMonThiEditPanel({ row, onCancel, onSaved }: Props) {
+function statusLabel(value: string): string {
+  return STATUS_OPTIONS.find((o) => o.value === value)?.label ?? value;
+}
+
+export function AdminMonThiEditPanel({
+  row,
+  khoiForMon = [],
+  onGoToKhoiTab,
+  onCancel,
+  onSaved,
+}: Props) {
   const isCreate = row == null;
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<{ type: "ok" | "err"; text: string } | null>(
@@ -38,7 +52,6 @@ export function AdminMonThiEditPanel({ row, onCancel, onSaved }: Props) {
   const [thumbnail_from_cover, setThumbnailFromCover] = useState(
     row?.thumbnail_from_cover ?? false,
   );
-  const [id_bai_viet, setIdBaiViet] = useState(row?.id_bai_viet ?? "");
 
   useEffect(() => {
     if (!row) {
@@ -49,7 +62,6 @@ export function AdminMonThiEditPanel({ row, onCancel, onSaved }: Props) {
       setThumbnailId("");
       setThumbnailSrc(null);
       setThumbnailFromCover(false);
-      setIdBaiViet("");
       setSaveMsg(null);
       return;
     }
@@ -60,7 +72,6 @@ export function AdminMonThiEditPanel({ row, onCancel, onSaved }: Props) {
     setThumbnailId(row.thumbnail_id ?? "");
     setThumbnailSrc(row.thumbnail_src ?? null);
     setThumbnailFromCover(row.thumbnail_from_cover ?? false);
-    setIdBaiViet(row.id_bai_viet ?? "");
     setSaveMsg(null);
   }, [
     row?.id,
@@ -71,7 +82,6 @@ export function AdminMonThiEditPanel({ row, onCancel, onSaved }: Props) {
     row?.thumbnail_id,
     row?.thumbnail_src,
     row?.thumbnail_from_cover,
-    row?.id_bai_viet,
   ]);
 
   const previewRow = useMemo((): AdminMonThiRow => {
@@ -86,7 +96,7 @@ export function AdminMonThiEditPanel({ row, onCancel, onSaved }: Props) {
       loai: loaiVal,
       trang_thai: trang_thai.trim() || null,
       thumbnail_id: thumb,
-      id_bai_viet: id_bai_viet.trim() || null,
+      id_bai_viet: row?.id_bai_viet ?? null,
       thumbnail_src,
       thumbnail_from_cover,
     };
@@ -98,7 +108,6 @@ export function AdminMonThiEditPanel({ row, onCancel, onSaved }: Props) {
     loai,
     trang_thai,
     thumbnail_id,
-    id_bai_viet,
     thumbnail_src,
     thumbnail_from_cover,
   ]);
@@ -107,13 +116,17 @@ export function AdminMonThiEditPanel({ row, onCancel, onSaved }: Props) {
     e.preventDefault();
     setSaveMsg(null);
     setSaving(true);
+    const loaiVal = loai.trim() || "nang_khieu";
     const fd = new FormData();
     fd.set("ten", ten);
     fd.set("ma", ma);
-    fd.set("loai", loai);
+    fd.set("loai", loaiVal);
     fd.set("trang_thai", trang_thai);
-    fd.set("thumbnail_id", thumbnail_id);
-    fd.set("id_bai_viet", id_bai_viet);
+    fd.set(
+      "thumbnail_id",
+      thumbnail_id.trim() || defaultPlaceholderThumbnailId(loaiVal),
+    );
+    fd.set("id_bai_viet", row?.id_bai_viet ?? "");
 
     let r: { ok: boolean; message?: string };
     if (isCreate) {
@@ -134,7 +147,10 @@ export function AdminMonThiEditPanel({ row, onCancel, onSaved }: Props) {
   }
 
   return (
-    <form className="admin-edit-form" onSubmit={(e) => void onSave(e)}>
+    <form
+      className="admin-edit-form admin-mon-thi-edit"
+      onSubmit={(e) => void onSave(e)}
+    >
       {saveMsg ? (
         <p
           className={`admin-edit-form__msg admin-edit-form__msg--${saveMsg.type}`}
@@ -144,8 +160,8 @@ export function AdminMonThiEditPanel({ row, onCancel, onSaved }: Props) {
         </p>
       ) : null}
 
-      <div className="admin-edit-form__fields">
-        <div className="admin-mon-thi-edit-preview">
+      <div className="admin-mon-thi-edit-hero">
+        <div className="admin-mon-thi-edit-hero-thumb">
           <AdminMonThiThumb
             row={previewRow}
             uploadEnabled={!isCreate}
@@ -155,103 +171,147 @@ export function AdminMonThiEditPanel({ row, onCancel, onSaved }: Props) {
               setThumbnailFromCover(false);
             }}
           />
-          <div>
-            {row ? (
-              <p className="admin-mon-thi-edit-preview__id">
-                <code>{row.id}</code>
-              </p>
-            ) : (
-              <p className="form-hint">Lưu để tạo bản ghi — sau đó có thể tải ảnh thumbnail.</p>
-            )}
-            {previewRow.loai ? (
-              <p className="form-hint">{labelMonThiLoai(previewRow.loai)}</p>
-            ) : null}
+        </div>
+        <div className="admin-mon-thi-edit-hero-main">
+          <p className="admin-mon-thi-edit-hero-name">
+            {ten.trim() || (isCreate ? "Môn mới" : "—")}
+          </p>
+          <div className="admin-mon-thi-edit-hero-badges">
+            <span className="admin-pill admin-pill--loai">
+              {labelMonThiLoai(loai)}
+            </span>
+            <span
+              className={`admin-pill admin-pill--status admin-pill--status-${trang_thai}`}
+            >
+              {statusLabel(trang_thai)}
+            </span>
           </div>
+          {ma.trim() ? (
+            <p className="admin-mon-thi-edit-hero-ma">
+              <code>{ma.trim()}</code>
+            </p>
+          ) : null}
+          {row ? (
+            <p className="admin-mon-thi-edit-hero-id">
+              <code>{row.id}</code>
+            </p>
+          ) : (
+            <p className="admin-mon-thi-edit-hero-hint">
+              Lưu để tạo bản ghi — sau đó có thể tải ảnh thumbnail.
+            </p>
+          )}
         </div>
+      </div>
 
-        <div className="form-group">
-          <label className="form-label">Tên môn thi *</label>
-          <input
-            className="form-input"
-            type="text"
-            value={ten}
-            onChange={(e) => setTen(e.target.value)}
-            required
-          />
-        </div>
-
-        <div className="form-group">
-          <label className="form-label">Mã (ma)</label>
-          <input
-            className="form-input"
-            type="text"
-            value={ma}
-            onChange={(e) => setMa(e.target.value)}
-            placeholder="hinh_hoa_chan_dung"
-          />
-        </div>
-
-        <div className="form-row">
+      <div className="admin-edit-form__fields">
+        <section className="admin-mon-thi-edit-sec">
+          <h3 className="admin-mon-thi-edit-sec-title">Thông tin môn</h3>
           <div className="form-group">
-            <label className="form-label">Loại *</label>
-            <select
-              className="form-select"
-              value={loai}
-              onChange={(e) => setLoai(e.target.value)}
+            <label className="form-label" htmlFor="mon-thi-ten">
+              Tên môn thi *
+            </label>
+            <input
+              id="mon-thi-ten"
+              className="form-input"
+              type="text"
+              value={ten}
+              onChange={(e) => setTen(e.target.value)}
+              placeholder="VD: Hình họa Chân dung"
               required
-            >
-              {LOAI_OPTIONS.map((k) => (
-                <option key={k} value={k}>
-                  {MON_THI_LOAI_LABELS[k]}
-                </option>
-              ))}
-            </select>
+            />
           </div>
           <div className="form-group">
-            <label className="form-label">Trạng thái</label>
-            <select
-              className="form-select"
-              value={trang_thai}
-              onChange={(e) => setTrangThai(e.target.value)}
-            >
+            <label className="form-label" htmlFor="mon-thi-ma">
+              Mã (ma)
+            </label>
+            <input
+              id="mon-thi-ma"
+              className="form-input admin-mon-thi-edit-ma-input"
+              type="text"
+              value={ma}
+              onChange={(e) => setMa(e.target.value)}
+              placeholder="hinh_hoa_chan_dung"
+              spellCheck={false}
+            />
+          </div>
+        </section>
+
+        <section className="admin-mon-thi-edit-sec">
+          <h3 className="admin-mon-thi-edit-sec-title">Phân loại</h3>
+          <div className="form-group">
+            <span className="form-label">Loại *</span>
+            <div className="admin-mon-loai-chips" role="group" aria-label="Loại môn">
+              {LOAI_OPTIONS.map((k) => (
+                <button
+                  key={k}
+                  type="button"
+                  className={`admin-mon-loai-chip${loai === k ? " is-active" : ""}`}
+                  aria-pressed={loai === k}
+                  onClick={() => setLoai(k)}
+                >
+                  {MON_THI_LOAI_LABELS[k]}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="form-group">
+            <span className="form-label">Trạng thái</span>
+            <div className="admin-mon-status-chips" role="group" aria-label="Trạng thái">
               {STATUS_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
+                <button
+                  key={o.value}
+                  type="button"
+                  className={`admin-mon-status-chip admin-mon-status-chip--${o.value}${trang_thai === o.value ? " is-active" : ""}`}
+                  aria-pressed={trang_thai === o.value}
+                  onClick={() => setTrangThai(o.value)}
+                >
                   {o.label}
-                </option>
+                </button>
               ))}
               {trang_thai &&
               !STATUS_OPTIONS.some((o) => o.value === trang_thai) ? (
-                <option value={trang_thai}>{trang_thai}</option>
+                <button
+                  type="button"
+                  className="admin-mon-status-chip is-active"
+                  aria-pressed
+                >
+                  {trang_thai}
+                </button>
               ) : null}
-            </select>
+            </div>
           </div>
-        </div>
+        </section>
 
-        <div className="form-group">
-          <label className="form-label">Thumbnail ID</label>
-          <input
-            className="form-input"
-            type="text"
-            value={thumbnail_id}
-            onChange={(e) => setThumbnailId(e.target.value)}
-            placeholder="Để trống = plh_* theo loại"
-          />
-        </div>
-
-        <div className="form-group">
-          <label className="form-label">ID bài viết (hub)</label>
-          <input
-            className="form-input"
-            type="text"
-            value={id_bai_viet}
-            onChange={(e) => setIdBaiViet(e.target.value)}
-            placeholder="UUID article_bai_viet — để trống nếu chưa có"
-            spellCheck={false}
-          />
-          <p className="form-hint">
-            Phải là UUID hợp lệ và tồn tại trong article_bai_viet. Để trống nếu chưa liên kết bài.
-          </p>
-        </div>
+        <section className="admin-mon-thi-edit-sec admin-mon-khoi-ref">
+          <div className="admin-mon-khoi-ref-head">
+            <h3 className="admin-mon-thi-edit-sec-title">Khối thi</h3>
+            {onGoToKhoiTab ? (
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={onGoToKhoiTab}
+              >
+                Tab Khối thi →
+              </button>
+            ) : null}
+          </div>
+          {!isCreate && khoiForMon.length > 0 ? (
+            <ul className="admin-mon-khoi-ref-list">
+              {khoiForMon.map((k) => (
+                <li key={k.id}>
+                  <span className="admin-khoi-chip">{k.ma_to_hop}</span>
+                  <span className="admin-mon-khoi-ref-ten">{k.ten_to_hop}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="form-hint admin-mon-khoi-ref-hint">
+              {isCreate
+                ? "Sau khi tạo môn, gán vào khối ở tab Khối thi (A00, A01…)."
+                : "Môn chưa nằm trong khối nào — mở tab Khối thi để thêm vào A00, A01…"}
+            </p>
+          )}
+        </section>
       </div>
 
       <div className="admin-edit-form__footer">
