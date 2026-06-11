@@ -3088,6 +3088,23 @@
   color: var(--ink2);
 }
 
+.tdh-nganh-program-edit-add-year {
+  flex-basis: 100%;
+  margin-top: 2px;
+}
+
+.tdh-nganh-program-edit-add-year-err {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 12px;
+  color: var(--danger, #dc2626);
+}
+
+.tdh-nganh-program-edit-input--select {
+  cursor: pointer;
+  background: var(--bg-surface, #fff);
+}
+
 .tdh-nganh-program-edit-table-wrap {
   border: 1px solid var(--border2, #e4e6eb);
   border-radius: 10px;

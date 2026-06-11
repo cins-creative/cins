@@ -128,17 +128,12 @@ export function CoSoTabKhoaHoc({
     }
   }
 
-  function handleBack() {
-    router.push(coSoTabPath(orgSlug, "khoa-hoc"), { scroll: false });
-  }
-
   if (selected) {
     return (
       <KhoaHocDetailView
         orgId={orgId}
         orgTen={orgTen}
         khoa={selected}
-        onBack={handleBack}
       />
     );
   }

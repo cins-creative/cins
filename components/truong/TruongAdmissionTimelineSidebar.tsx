@@ -7,7 +7,7 @@ import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEdit
 import { TruongYearSelect } from "@/components/truong/YearFilterProvider";
 import { defaultTruongNganhYear } from "@/lib/truong/diem-chuan";
 import { TruongTimelineMocSingleForm } from "@/components/truong/tuyensinh/TruongTimelineMocSingleForm";
-import { truongInlineFetch } from "@/lib/truong/inline-api";
+import { readTruongInlineError, truongInlineFetch } from "@/lib/truong/inline-api";
 import {
   aggregateTimelineForYear,
   buildTimelineStepsFromMocDraft,
@@ -27,6 +27,12 @@ import {
   type TuyenSinhTimelineMoc,
   type TuyenSinhTimelineStep,
 } from "@/lib/truong/timeline-steps";
+import {
+  enrichTuyenSinhRows,
+  type TuyenSinhInsertPayload,
+} from "@/lib/truong/tuyen-sinh-client";
+import { isValidTruongYear } from "@/lib/truong/year-tabs";
+import type { TruongTuyenSinhNamRow } from "@/lib/truong/types";
 
 type StepRole = "past" | "current" | "next" | "default";
 type MocModalMode = { kind: "new" } | { kind: "edit"; mocId: string };
@@ -119,10 +125,17 @@ export function TruongAdmissionTimelineSidebar() {
   const persistingMocRef = useRef(false);
   const [timelineYear, setTimelineYear] = useState(defaultTruongNganhYear());
 
-  const timelineYearOptions = useMemo(
-    () => collectTimelineCalendarYears(tuyenSinh),
-    [tuyenSinh],
-  );
+  const timelineYearOptions = useMemo(() => {
+    const years = collectTimelineCalendarYears(tuyenSinh);
+    if (
+      isEditing &&
+      isValidTruongYear(timelineYear) &&
+      !years.includes(timelineYear)
+    ) {
+      return [timelineYear, ...years].sort((a, b) => b - a);
+    }
+    return years.length ? years : isValidTruongYear(timelineYear) ? [timelineYear] : years;
+  }, [tuyenSinh, isEditing, timelineYear]);
 
   useEffect(() => {
     if (!timelineYearOptions.length) return;
@@ -137,9 +150,18 @@ export function TruongAdmissionTimelineSidebar() {
     [tuyenSinh, timelineYear],
   );
 
+  const timelineSourceRows = useMemo(() => {
+    if (yearRows.length) return yearRows;
+    return tuyenSinh.filter((row) => {
+      const custom = parseTimelineMocStore(row.ghi_chu_timeline);
+      if (!custom?.length) return false;
+      return custom.some((m) => mocMatchesCalendarYear(m, timelineYear));
+    });
+  }, [yearRows, tuyenSinh, timelineYear]);
+
   const timelineRow = useMemo(
-    () => aggregateTimelineForYear(yearRows),
-    [yearRows],
+    () => aggregateTimelineForYear(timelineSourceRows),
+    [timelineSourceRows],
   );
 
   useEffect(() => {
@@ -204,14 +226,54 @@ export function TruongAdmissionTimelineSidebar() {
     setShowPastSteps(false);
   }, [timelineYear, timelineSteps.length]);
 
+  async function resolvePersistTargets(): Promise<TruongTuyenSinhNamRow[]> {
+    if (!ctx) return [];
+    if (yearRows.length) return yearRows;
+    if (timelineSourceRows.length) return timelineSourceRows;
+
+    const byNam = tuyenSinh.filter((r) => r.nam === timelineYear);
+    if (byNam.length) return byNam;
+
+    const programs = ctx.programs;
+    if (!programs.length) {
+      ctx.showToast("Chưa có ngành trên trang trường — thêm ngành trước.");
+      return [];
+    }
+
+    const entries: TuyenSinhInsertPayload[] = programs.map((p) => ({
+      truongNganhId: p.id,
+      chi_tieu: null,
+      diem_chuan: null,
+    }));
+
+    const res = await truongInlineFetch(ctx.orgId, "/tuyen-sinh", {
+      method: "POST",
+      body: JSON.stringify({ nam: timelineYear, entries }),
+    });
+
+    if (!res.ok) {
+      ctx.showToast(await readTruongInlineError(res));
+      return [];
+    }
+
+    const json = (await res.json()) as {
+      rows?: { id: string; nam: number; id_truong_nganh: string }[];
+    };
+    const enriched = enrichTuyenSinhRows(json.rows ?? [], ctx.programs);
+    if (!enriched.length) {
+      ctx.showToast("Không tạo được bản ghi lưu mốc — thử lại.");
+      return [];
+    }
+
+    ctx.setTuyenSinh((list) => [...list, ...enriched]);
+    return enriched;
+  }
+
   async function persistTimeline(nextMoc: TuyenSinhTimelineMoc[]) {
     if (!ctx) return false;
-    if (!yearRows.length) {
-      ctx.showToast(
-        `Chưa có dữ liệu tuyển sinh năm ${timelineYear}. Thêm dữ liệu năm trên tab Tuyển sinh trước.`,
-      );
-      return false;
-    }
+    const targets = await resolvePersistTargets();
+    if (!targets.length) return false;
+
     const serialized = serializeTimelineMocStore(nextMoc);
     const savedMoc = parseTimelineMocStore(serialized);
     if (!savedMoc?.length) {
@@ -223,11 +285,12 @@ export function TruongAdmissionTimelineSidebar() {
       link_thong_tin: tlLink.trim() || null,
     };
     const prev = ctx.tuyenSinh;
+    const targetIds = new Set(targets.map((r) => r.id));
     ctx.setTuyenSinh((list) =>
-      list.map((r) => (r.nam === timelineYear ? { ...r, ...patch } : r)),
+      list.map((r) => (targetIds.has(r.id) ? { ...r, ...patch } : r)),
     );
     const results = await Promise.all(
-      yearRows.map((row) =>
+      targets.map((row) =>
         truongInlineFetch(ctx.orgId, `/tuyen-sinh/${row.id}`, {
           method: "PATCH",
           body: JSON.stringify(patch),
@@ -236,11 +299,11 @@ export function TruongAdmissionTimelineSidebar() {
     );
     if (results.some((r) => !r.ok)) {
       ctx.setTuyenSinh(prev);
-      ctx.showToast("Lưu lịch thất bại");
+      ctx.showToast("Lưu mốc thông báo thất bại");
       return false;
     }
     setTimelineMoc(savedMoc);
-    ctx.showToast("Đã cập nhật lịch tuyển sinh");
+    ctx.showToast("Đã cập nhật mốc thông báo");
     return true;
   }
 
@@ -298,14 +361,14 @@ export function TruongAdmissionTimelineSidebar() {
   }
 
   const canAddMoc =
-    isEditing && timelineMoc.length < TIMELINE_MOC_MAX_ITEMS && yearRows.length > 0;
+    isEditing && timelineMoc.length < TIMELINE_MOC_MAX_ITEMS;
 
   return (
     <>
-      <aside className="tdh-admission-side" aria-label="Lịch tuyển sinh">
+      <aside className="tdh-admission-side" aria-label="Mốc thông báo">
         <div className="tdh-admission-side-head">
           <div className="tdh-admission-side-year-row">
-            <p className="timeline-year-kicker">Tuyển sinh</p>
+            <p className="timeline-year-kicker">Thông báo</p>
             <TruongYearSelect
               label="Năm lịch"
               years={timelineYearOptions}
@@ -318,7 +381,7 @@ export function TruongAdmissionTimelineSidebar() {
         <section className="timeline-section timeline-section--rail">
           {timelineSteps.length === 0 && !isEditing ? (
             <p className="ptxt-empty-text tdh-admission-side-empty">
-              Chưa có lịch cho năm {timelineYear}.
+              Chưa có mốc thông báo cho năm {timelineYear}.
             </p>
           ) : (
             <div className="timeline">
@@ -366,11 +429,6 @@ export function TruongAdmissionTimelineSidebar() {
                   </div>
                 </button>
               ) : null}
-              {isEditing && !yearRows.length ? (
-                <p className="tdh-admission-side-empty tdh-admission-side-empty--inline">
-                  Thêm dữ liệu tuyển sinh năm {timelineYear} trước khi tạo mốc lịch.
-                </p>
-              ) : null}
             </div>
           )}
         </section>
@@ -383,10 +441,10 @@ export function TruongAdmissionTimelineSidebar() {
         labelledBy="tdh-timeline-moc-single-title"
       >
         <h3 id="tdh-timeline-moc-single-title" className="tdh-inline-modal-title">
-          {mocModal?.kind === "new" ? "Thêm mốc lịch" : "Sửa mốc lịch"}
+          {mocModal?.kind === "new" ? "Thêm mốc thông báo" : "Sửa mốc thông báo"}
         </h3>
         <p className="tdh-calc-config-lead">
-          Áp dụng cho tất cả ngành trong năm {timelineYear}.
+          Hiển thị trên sidebar năm {timelineYear} — áp dụng cho mọi ngành của trường.
         </p>
         {modalMoc ? (
           <TruongTimelineMocSingleForm

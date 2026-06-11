@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  ArrowLeft,
   ArrowUpRight,
   BadgeCheck,
   Calendar,
@@ -51,7 +50,6 @@ type Props = {
   orgId: string;
   orgTen: string;
   khoa: KhoaHocCardData;
-  onBack: () => void;
 };
 
 function GiaoVienAvatar({
@@ -202,13 +200,7 @@ function GiaoVienCard({ gv }: { gv: GiaoVienKhoaData }) {
   );
 }
 
-function DetailContent({
-  detail,
-  onBack,
-}: {
-  detail: KhoaHocDetailPayload;
-  onBack: () => void;
-}) {
+function DetailContent({ detail }: { detail: KhoaHocDetailPayload }) {
   const { khoa, orgTen, giaoTrinh, lopHoc, giaoVien } = detail;
   const covClass = `cso-khd-cover c${(khoa.coverVariant % 3) + 1}`;
   const heroBadge = labelTrangThaiKhoaHero(khoa.trangThaiKhoaHoc);
@@ -244,11 +236,6 @@ function DetailContent({
 
   return (
     <div className="cso-khd">
-      <button type="button" className="cso-khd-back" onClick={onBack}>
-        <ArrowLeft size={16} aria-hidden />
-        Danh sách khóa học
-      </button>
-
       <nav className="cso-khd-crumb" aria-label="Breadcrumb">
         <span>{orgTen || "Cơ sở"}</span>
         <ChevronRight size={13} aria-hidden />
@@ -470,7 +457,7 @@ function DetailContent({
   );
 }
 
-export function KhoaHocDetailView({ orgId, orgTen, khoa, onBack }: Props) {
+export function KhoaHocDetailView({ orgId, orgTen, khoa }: Props) {
   const [detail, setDetail] = useState<KhoaHocDetailPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -517,10 +504,6 @@ export function KhoaHocDetailView({ orgId, orgTen, khoa, onBack }: Props) {
   if (loading) {
     return (
       <div className="cso-khd cso-khd--loading">
-        <button type="button" className="cso-khd-back" onClick={onBack}>
-          <ArrowLeft size={16} aria-hidden />
-          Danh sách khóa học
-        </button>
         <div className="cso-kh-skeleton cso-khd-skeleton" aria-hidden />
       </div>
     );
@@ -529,14 +512,10 @@ export function KhoaHocDetailView({ orgId, orgTen, khoa, onBack }: Props) {
   if (error || !detail) {
     return (
       <div className="cso-khd">
-        <button type="button" className="cso-khd-back" onClick={onBack}>
-          <ArrowLeft size={16} aria-hidden />
-          Danh sách khóa học
-        </button>
         <p className="cso-kh-err">{error ?? "Không tải được chi tiết khóa."}</p>
       </div>
     );
   }
 
-  return <DetailContent detail={detail} onBack={onBack} />;
+  return <DetailContent detail={detail} />;
 }

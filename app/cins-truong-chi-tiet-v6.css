@@ -3331,7 +3331,55 @@
   flex-direction: column;
   flex: 1 1 auto;
   min-height: 0;
-  gap: 16px;
+  gap: 18px;
+}
+
+.tdh-page--v6 #tdh-panel-baidang .tdh-org-baidang-empty .j-create-composer,
+.tdh-page--v6 #cso-panel-bai-dang .tdh-org-baidang-empty .j-create-composer {
+  margin: 0;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+}
+
+.tdh-page--v6 #tdh-panel-baidang .tdh-org-baidang-empty-intro,
+.tdh-page--v6 #cso-panel-bai-dang .tdh-org-baidang-empty-intro {
+  padding: 0;
+  opacity: 0.72;
+}
+
+.tdh-page--v6 #tdh-panel-baidang .tdh-org-baidang-empty-card,
+.tdh-page--v6 #cso-panel-bai-dang .tdh-org-baidang-empty-card {
+  padding: 22px 22px 20px;
+  border-radius: 16px;
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--border-strong, #d1d5db) 55%, transparent);
+  background: color-mix(in srgb, var(--neutral-50, #fafbfc) 65%, transparent);
+}
+
+.tdh-page--v6 #tdh-panel-baidang .tdh-org-baidang-empty-card .j-empty-title,
+.tdh-page--v6 #cso-panel-bai-dang .tdh-org-baidang-empty-card .j-empty-title {
+  font-size: 22px;
+  max-width: 36ch;
+}
+
+.tdh-page--v6 #tdh-panel-baidang .tdh-org-baidang-empty-card .j-empty-body,
+.tdh-page--v6 #cso-panel-bai-dang .tdh-org-baidang-empty-card .j-empty-body {
+  margin-bottom: 0;
+  max-width: 46ch;
+}
+
+.tdh-page--v6 #tdh-panel-baidang .tdh-org-baidang-empty-hint,
+.tdh-page--v6 #cso-panel-bai-dang .tdh-org-baidang-empty-hint {
+  margin: 14px 0 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink3, #64748b);
+}
+
+.tdh-page--v6 #tdh-panel-baidang .tdh-org-baidang-empty-hint strong,
+.tdh-page--v6 #cso-panel-bai-dang .tdh-org-baidang-empty-hint strong {
+  font-weight: 700;
+  color: var(--ink2, #475569);
 }
 
 /* Unfold bài viết — header giữ nguyên, divider từ journey.css */

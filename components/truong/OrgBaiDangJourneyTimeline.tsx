@@ -60,16 +60,41 @@ export function OrgBaiDangJourneyTimeline({ posts: postsProp }: Props) {
       <div className="tdh-org-baidang-empty">
         {canEdit ? (
           <>
-            <p className="tdh-placeholder">
-              Chưa có bài đăng — thêm bài viết, ảnh hoặc video đầu tiên.
-            </p>
             <OrgBaiDangCreateComposer />
+            <section
+              className="j-empty tdh-org-baidang-empty-intro"
+              aria-label="Chưa có bài đăng"
+            >
+              <div className="j-empty-card tdh-org-baidang-empty-card">
+                <p className="j-empty-eyebrow">Bài đăng · timeline trống</p>
+                <h2 className="j-empty-title">
+                  Chia sẻ tin tuyển sinh, sự kiện và hoạt động của trường.
+                </h2>
+                <p className="j-empty-body">
+                  Đăng bài viết, album ảnh hoặc video — nội dung hiển thị ngay
+                  trên trang trường, giúp học sinh và phụ huynh theo dõi dễ
+                  hơn.
+                </p>
+                <p className="j-empty-hint tdh-org-baidang-empty-hint">
+                  Chọn <strong>Thêm bài viết</strong>, <strong>Thêm ảnh</strong>{" "}
+                  hoặc <strong>Thêm video</strong> ở trên để bắt đầu.
+                </p>
+              </div>
+            </section>
           </>
         ) : (
-          <p className="tdh-placeholder">
-            Chưa có bài đăng công khai. Tin tuyển sinh và sự kiện sẽ hiển thị tại
-            đây khi trường đăng trên CINs.
-          </p>
+          <section className="j-empty tdh-org-baidang-empty-intro" aria-label="Chưa có bài đăng">
+            <div className="j-empty-card tdh-org-baidang-empty-card">
+              <p className="j-empty-eyebrow">Bài đăng</p>
+              <h2 className="j-empty-title">
+                Trường chưa đăng tin công khai.
+              </h2>
+              <p className="j-empty-body">
+                Tin tuyển sinh, sự kiện và hoạt động sẽ hiển thị tại đây khi
+                trường chia sẻ trên CINs.
+              </p>
+            </div>
+          </section>
         )}
       </div>
     );

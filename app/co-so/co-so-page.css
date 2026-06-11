@@ -1809,21 +1809,6 @@
   max-width: 100%;
 }
 
-.tdh-page--cso .cso-khd-back {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  align-self: flex-start;
-  border: none;
-  background: transparent;
-  font-family: inherit;
-  font-size: 12.5px;
-  font-weight: 700;
-  color: var(--cins-blue, #1f74c9);
-  cursor: pointer;
-  padding: 0;
-}
-
 .tdh-page--cso .cso-khd-crumb {
   display: flex;
   align-items: center;
@@ -1902,6 +1887,8 @@
 }
 
 .tdh-page--cso .cso-khd-thumb {
+  position: relative;
+  z-index: 3;
   width: 72px;
   height: 72px;
   border-radius: 14px;

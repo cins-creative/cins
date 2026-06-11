@@ -13,13 +13,22 @@ import {
 } from "@/lib/truong/cau-hinh-tinh-diem";
 import { formatMonThiShort } from "@/lib/truong/mon-thi-dau-vao";
 import { mergeTuyenSinhIntoPrograms } from "@/lib/truong/merge-programs-tuyen-sinh";
+import {
+  HE_DAO_TAO_LABELS,
+  HE_DAO_TAO_VALUES,
+  normalizeHeDaoTao,
+} from "@/lib/truong/he-dao-tao";
 import { readTruongInlineError, truongInlineFetch } from "@/lib/truong/inline-api";
 import {
   enrichTuyenSinhRows,
   type TuyenSinhInsertPayload,
   type TuyenSinhInsertRawRow,
 } from "@/lib/truong/tuyen-sinh-client";
-import { collectTruongYearTabs } from "@/lib/truong/year-tabs";
+import {
+  collectTruongYearTabs,
+  isValidTruongYear,
+  nextSuggestedTruongYear,
+} from "@/lib/truong/year-tabs";
 import type {
   TruongNganhProgram,
   TruongTuyenSinhNamRow,
@@ -82,7 +91,7 @@ function buildYearDraftFromRow(
 function buildProgramDraft(prog: TruongNganhProgram): ProgramDraft {
   return {
     thoiGianThang: formatDraftNum(prog.thoi_gian_thang),
-    heDaoTao: prog.he_dao_tao?.trim() ?? "",
+    heDaoTao: normalizeHeDaoTao(prog.he_dao_tao),
     tenChuongTrinh: prog.ten_chuong_trinh?.trim() ?? "",
   };
 }
@@ -141,14 +150,13 @@ export function TruongNganhProgramEditModal({
   const [removeConfirm, setRemoveConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [monThiOpen, setMonThiOpen] = useState(false);
+  const [modalYearTabs, setModalYearTabs] = useState<number[]>([]);
+  const [showAddYear, setShowAddYear] = useState(false);
+  const [newYearDraft, setNewYearDraft] = useState("");
+  const [addYearError, setAddYearError] = useState<string | null>(null);
 
   const tuyenSinh = ctx?.tuyenSinh ?? [];
   const cauHinhCache = ctx?.cauHinhMonThiByKey ?? {};
-
-  const yearTabs = useMemo(
-    () => collectTruongYearTabs(tuyenSinh, yearOptions, initialYear),
-    [tuyenSinh, yearOptions, initialYear],
-  );
 
   const activeYearDraft = yearDrafts[year] ?? { chiTieu: "", diemChuan: "" };
 
@@ -158,13 +166,13 @@ export function TruongNganhProgramEditModal({
 
   const dirtyYears = useMemo(
     () =>
-      yearTabs.filter((y) => {
+      modalYearTabs.filter((y) => {
         const draft = yearDrafts[y];
         const snap = yearSnapshot[y];
         if (!draft || !snap) return false;
         return !yearDraftsEqual(draft, snap);
       }),
-    [yearDrafts, yearSnapshot, yearTabs],
+    [yearDrafts, yearSnapshot, modalYearTabs],
   );
 
   const programDirty = !programDraftsEqual(programDraft, programSnapshot);
@@ -177,10 +185,18 @@ export function TruongNganhProgramEditModal({
       return;
     }
     setYear(initialYear);
+    const initialTabs = collectTruongYearTabs(
+      tuyenSinh,
+      yearOptions,
+      initialYear,
+    );
+    setModalYearTabs(initialTabs);
+    setShowAddYear(false);
+    setAddYearError(null);
     const initialYearDrafts = buildInitialYearDrafts(
       tuyenSinh,
       prog.id,
-      yearTabs,
+      initialTabs,
     );
     setYearDrafts(initialYearDrafts);
     setYearSnapshot(cloneYearDraftMap(initialYearDrafts));
@@ -188,7 +204,7 @@ export function TruongNganhProgramEditModal({
     setProgramDraft(initialProgram);
     setProgramSnapshot({ ...initialProgram });
     setError(null);
-  }, [open, initialYear, prog, tuyenSinh, yearTabs]);
+  }, [open, initialYear, prog, tuyenSinh, yearOptions]);
 
   function patchYearDraft(y: number, patch: Partial<YearDraft>) {
     setYearDrafts((prev) => {
@@ -217,6 +233,33 @@ export function TruongNganhProgramEditModal({
       };
     });
     setYear(nextYear);
+  }
+
+  function openAddYear() {
+    setNewYearDraft(
+      String(nextSuggestedTruongYear(modalYearTabs, yearOptions)),
+    );
+    setShowAddYear(true);
+    setAddYearError(null);
+  }
+
+  function confirmAddYear() {
+    const y = Number(newYearDraft.trim());
+    if (!isValidTruongYear(y)) {
+      setAddYearError("Năm phải từ 2000 đến 2100.");
+      return;
+    }
+    if (modalYearTabs.includes(y)) {
+      setAddYearError("Năm này đã có trên tab.");
+      selectYear(y);
+      setShowAddYear(false);
+      setAddYearError(null);
+      return;
+    }
+    setModalYearTabs((prev) => [...prev, y].sort((a, b) => b - a));
+    selectYear(y);
+    setShowAddYear(false);
+    setAddYearError(null);
   }
 
   async function save() {
@@ -420,7 +463,19 @@ export function TruongNganhProgramEditModal({
         <div className="tdh-nganh-program-edit-years">
           <span className="tdh-nganh-program-edit-years-label">Năm</span>
           <div className="tdh-add-year-tabs" role="tablist" aria-label="Năm dữ liệu">
-            {yearTabs.map((y) => {
+            <button
+              type="button"
+              className="tdh-add-year-tab tdh-add-year-tab--add"
+              aria-label="Thêm năm khác"
+              aria-expanded={showAddYear}
+              disabled={busy}
+              onClick={() =>
+                showAddYear ? setShowAddYear(false) : openAddYear()
+              }
+            >
+              +
+            </button>
+            {modalYearTabs.map((y) => {
               const yearDirty =
                 yearDrafts[y] &&
                 yearSnapshot[y] &&
@@ -447,6 +502,40 @@ export function TruongNganhProgramEditModal({
               );
             })}
           </div>
+          {showAddYear ? (
+            <div className="tdh-add-year-new tdh-nganh-program-edit-add-year">
+              <input
+                type="number"
+                min={2000}
+                max={2100}
+                value={newYearDraft}
+                disabled={busy}
+                onChange={(e) => setNewYearDraft(e.target.value)}
+                aria-label="Năm mới"
+              />
+              <button
+                type="button"
+                className="tdh-inline-btn primary"
+                disabled={busy}
+                onClick={confirmAddYear}
+              >
+                Thêm
+              </button>
+              <button
+                type="button"
+                className="tdh-inline-btn ghost"
+                disabled={busy}
+                onClick={() => setShowAddYear(false)}
+              >
+                Hủy
+              </button>
+            </div>
+          ) : null}
+          {addYearError ? (
+            <p className="tdh-nganh-program-edit-add-year-err" role="alert">
+              {addYearError}
+            </p>
+          ) : null}
         </div>
 
         <div className="tdh-nganh-program-edit-table-wrap">
@@ -477,9 +566,8 @@ export function TruongNganhProgramEditModal({
               <tr>
                 <th scope="row">Hệ đào tạo</th>
                 <td>
-                  <input
-                    type="text"
-                    className="tdh-nganh-program-edit-input"
+                  <select
+                    className="tdh-nganh-program-edit-input tdh-nganh-program-edit-input--select"
                     value={programDraft.heDaoTao}
                     disabled={busy}
                     onChange={(e) =>
@@ -488,8 +576,14 @@ export function TruongNganhProgramEditModal({
                         heDaoTao: e.target.value,
                       }))
                     }
-                    placeholder="VD: Chính quy"
-                  />
+                    aria-label="Hệ đào tạo"
+                  >
+                    {HE_DAO_TAO_VALUES.map((value) => (
+                      <option key={value} value={value}>
+                        {HE_DAO_TAO_LABELS[value]}
+                      </option>
+                    ))}
+                  </select>
                 </td>
               </tr>
               <tr>
