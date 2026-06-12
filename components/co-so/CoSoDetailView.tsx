@@ -5,7 +5,12 @@ import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { CoSoAdminToolbar } from "@/components/co-so/CoSoAdminToolbar";
-import { CoSoPageSettingsModal } from "@/components/co-so/CoSoPageSettingsModal";
+import { CoSoMobileShellNav } from "@/components/co-so/CoSoMobileShellNav";
+import { useCoSoMobileShell } from "@/components/co-so/useCoSoMobileShell";
+import {
+  CoSoPageSettingsModal,
+  type CoSoSettingsSection,
+} from "@/components/co-so/CoSoPageSettingsModal";
 import { CoSoTabBaidang } from "@/components/co-so/tabs/CoSoTabBaidang";
 import { TruongOrgCover } from "@/components/truong/TruongOrgCover";
 import {
@@ -51,11 +56,14 @@ type SettingsSavedPatch = {
   namThanhLap?: number | null;
   giayPhepDaoTao?: string | null;
   moTa?: string | null;
+  gioiThieuTruong?: string | null;
   diaChi?: string | null;
   dienThoai?: string | null;
   emailLienHe?: string | null;
   tinhThanh?: string | null;
   website?: string | null;
+  chiNhanh?: TruongChiNhanh[];
+  facebook?: string | null;
 };
 
 function useCoSoRouteState() {
@@ -71,13 +79,18 @@ function CoSoDetailViewInner({
   canEdit = false,
   canManageKhoaHoc = false,
   settingsOpen = false,
+  settingsSection = "identity",
   onSettingsOpenChange,
+  onOpenSettings,
 }: Props & {
   settingsOpen?: boolean;
+  settingsSection?: CoSoSettingsSection;
   onSettingsOpenChange?: (open: boolean) => void;
+  onOpenSettings?: (section: CoSoSettingsSection) => void;
 }) {
   const ctx = useTruongInlineEdit();
   const [filters, setFilters] = useState(payload.filters);
+  const [daVerify, setDaVerify] = useState(payload.daVerify);
   const [schoolExtra, setSchoolExtra] = useState<Partial<typeof payload.school>>({});
   const { baidang, hinhanh } = payload;
   const baseSchool = ctx?.school ?? payload.school;
@@ -88,6 +101,7 @@ function CoSoDetailViewInner({
     () => new Set([tab]),
   );
   const editableMedia = canEdit && Boolean(ctx?.canEdit);
+  const { isMobileShell, mobileTab, setMobileTab } = useCoSoMobileShell("content");
 
   useEffect(() => {
     setMountedTabs((prev) => {
@@ -98,7 +112,13 @@ function CoSoDetailViewInner({
     });
   }, [tab]);
 
-  const shellClass = `tdh-v6-shell${ctx?.isEditing ? " tdh-v6-shell--editing" : ""}`;
+  const shellClass = [
+    "tdh-v6-shell",
+    ctx?.isEditing ? "tdh-v6-shell--editing" : "",
+    isMobileShell ? "tdh-v6-shell--mobile-tabs" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   function handleSettingsSaved(patch: SettingsSavedPatch) {
     if (patch.filters) setFilters(patch.filters);
@@ -106,6 +126,9 @@ function CoSoDetailViewInner({
       ...prev,
       ...(patch.ten ? { ten: patch.ten } : {}),
       ...(patch.moTa !== undefined ? { mo_ta: patch.moTa } : {}),
+      ...(patch.gioiThieuTruong !== undefined
+        ? { gioi_thieu_truong: patch.gioiThieuTruong }
+        : {}),
       ...(patch.loaiCoSo ? { loai_truong: patch.loaiCoSo } : {}),
       ...(patch.namThanhLap !== undefined
         ? { nam_thanh_lap: patch.namThanhLap }
@@ -120,27 +143,69 @@ function CoSoDetailViewInner({
         : {}),
       ...(patch.tinhThanh !== undefined ? { tinh_thanh: patch.tinhThanh } : {}),
       ...(patch.website !== undefined ? { website: patch.website } : {}),
+      ...(patch.chiNhanh ? { chi_nhanh: patch.chiNhanh } : {}),
+      ...(patch.facebook !== undefined ? { facebook: patch.facebook } : {}),
     }));
+    ctx?.applySchoolPatch({
+      ...(patch.ten ? { ten: patch.ten } : {}),
+      ...(patch.moTa !== undefined ? { mo_ta: patch.moTa } : {}),
+      ...(patch.gioiThieuTruong !== undefined
+        ? { gioi_thieu_truong: patch.gioiThieuTruong }
+        : {}),
+      ...(patch.loaiCoSo ? { loai_truong: patch.loaiCoSo } : {}),
+      ...(patch.namThanhLap !== undefined
+        ? { nam_thanh_lap: patch.namThanhLap }
+        : {}),
+      ...(patch.giayPhepDaoTao !== undefined
+        ? { giay_phep_dao_tao: patch.giayPhepDaoTao }
+        : {}),
+      ...(patch.diaChi !== undefined ? { dia_chi: patch.diaChi } : {}),
+      ...(patch.dienThoai !== undefined ? { dien_thoai: patch.dienThoai } : {}),
+      ...(patch.emailLienHe !== undefined
+        ? { email_lien_he: patch.emailLienHe }
+        : {}),
+      ...(patch.tinhThanh !== undefined ? { tinh_thanh: patch.tinhThanh } : {}),
+      ...(patch.website !== undefined ? { website: patch.website } : {}),
+      ...(patch.chiNhanh ? { chi_nhanh: patch.chiNhanh } : {}),
+      ...(patch.facebook !== undefined ? { facebook: patch.facebook } : {}),
+    });
   }
 
   return (
     <>
-      <div className={shellClass}>
+      <div
+        className={shellClass}
+        data-mobile-tab={isMobileShell ? mobileTab : undefined}
+      >
+      {isMobileShell ? (
+        <CoSoMobileShellNav value={mobileTab} onChange={setMobileTab} />
+      ) : null}
       <CoSoSchoolSidebar
         school={school}
-        loaiCoSoLabel={payload.loaiCoSoLabel}
-        daVerify={payload.daVerify}
+        daVerify={daVerify}
         canEditMedia={canEdit}
+        onOpenSettings={onOpenSettings}
+        isMobileShell={isMobileShell}
+        isMobileShellActive={mobileTab === "info"}
       />
 
-      <div className="tdh-v6-center">
-        <div className="tdh-v6-cover-mobile">
-          <TruongOrgCover
-            school={school}
-            layout="v6"
-            editable={editableMedia}
-          />
-        </div>
+      <div
+        className="tdh-v6-center"
+        id="cso-shell-panel-content"
+        role={isMobileShell ? "tabpanel" : undefined}
+        aria-labelledby={isMobileShell ? "cso-shell-tab-content" : undefined}
+        hidden={isMobileShell ? mobileTab !== "content" : undefined}
+        aria-hidden={isMobileShell ? mobileTab !== "content" : undefined}
+      >
+        {!isMobileShell ? (
+          <div className="tdh-v6-cover-mobile">
+            <TruongOrgCover
+              school={school}
+              layout="v6"
+              editable={editableMedia}
+            />
+          </div>
+        ) : null}
 
         <div className="tdh-v6-tabs-bar">
           <div
@@ -194,7 +259,7 @@ function CoSoDetailViewInner({
                   orgSlug={orgSlug}
                   orgTen={school.ten}
                   orgDiaChi={school.dia_chi}
-                  orgVerified={payload.daVerify}
+                  orgVerified={daVerify}
                   canManageKhoaHoc={canManageKhoaHoc}
                   khoaSlug={khoaSlug}
                 />
@@ -226,6 +291,8 @@ function CoSoDetailViewInner({
         orgSlug={orgSlug}
         orgDiaChi={school.dia_chi}
         canManageKhoaHoc={canManageKhoaHoc}
+        isMobileShell={isMobileShell}
+        isMobileShellActive={mobileTab === "notify"}
       />
       </div>
 
@@ -233,6 +300,7 @@ function CoSoDetailViewInner({
         <CoSoPageSettingsModal
           open={settingsOpen}
           orgId={school.id}
+          initialSection={settingsSection}
           onClose={() => onSettingsOpenChange(false)}
           onSaved={(patch) => {
             handleSettingsSaved(patch);
@@ -250,18 +318,27 @@ function CoSoDetailViewBody({
   canManageKhoaHoc,
 }: Props) {
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsSection, setSettingsSection] =
+    useState<CoSoSettingsSection>("identity");
+
+  function openSettings(section: CoSoSettingsSection = "identity") {
+    setSettingsSection(section);
+    setSettingsOpen(true);
+  }
 
   return (
     <>
       {canEdit ? (
-        <CoSoAdminToolbar onOpenSettings={() => setSettingsOpen(true)} />
+        <CoSoAdminToolbar onOpenSettings={() => openSettings("identity")} />
       ) : null}
       <CoSoDetailViewInner
         payload={payload}
         canEdit={canEdit}
         canManageKhoaHoc={canManageKhoaHoc}
         settingsOpen={settingsOpen}
+        settingsSection={settingsSection}
         onSettingsOpenChange={canEdit ? setSettingsOpen : undefined}
+        onOpenSettings={canEdit ? openSettings : undefined}
       />
     </>
   );

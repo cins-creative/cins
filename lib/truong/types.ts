@@ -51,6 +51,8 @@ export type TruongListItem = {
   hoc_phi_nam_den: number | null;
   co_ktx: boolean | null;
   ktx_gia_thang: number | null;
+  /** Địa chỉ KTX — `org_to_chuc.cau_hinh.ktx_dia_chi`. */
+  ktx_dia_chi?: string | null;
   nganhCount: number;
   nganhTags: string[];
 };

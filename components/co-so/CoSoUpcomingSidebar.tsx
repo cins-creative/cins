@@ -43,6 +43,8 @@ type Props = {
   orgSlug: string;
   orgDiaChi?: string | null;
   canManageKhoaHoc?: boolean;
+  isMobileShell?: boolean;
+  isMobileShellActive?: boolean;
 };
 
 type StepRole = "past" | "current" | "next" | "pinned" | "default";
@@ -153,6 +155,8 @@ export function CoSoUpcomingSidebar({
   orgSlug,
   orgDiaChi = null,
   canManageKhoaHoc = false,
+  isMobileShell = false,
+  isMobileShellActive = false,
 }: Props) {
   const ctx = useTruongInlineEdit();
   const pathname = usePathname();
@@ -338,7 +342,14 @@ export function CoSoUpcomingSidebar({
 
   return (
     <>
-      <aside className="tdh-admission-side" aria-label="Khai giảng và thông báo">
+      <aside
+        className="tdh-admission-side"
+        aria-label="Khai giảng và thông báo"
+        id={isMobileShell ? "cso-shell-panel-notify" : undefined}
+        role={isMobileShell ? "tabpanel" : undefined}
+        aria-labelledby={isMobileShell ? "cso-shell-tab-notify" : undefined}
+        hidden={isMobileShell ? !isMobileShellActive : undefined}
+      >
         <div className="tdh-admission-side-head">
           <div className="tdh-admission-side-year-row">
             <p className="timeline-year-kicker">Thông báo</p>

@@ -24,6 +24,7 @@ type Props = {
   images: TruongHinhAnh[];
   renderOverlay?: (img: TruongHinhAnh) => ReactNode;
   emptyMessage?: string;
+  toolbarLeading?: ReactNode;
 };
 
 function hinhAnhToGridImage(img: TruongHinhAnh): GridImage {
@@ -39,6 +40,7 @@ export function TruongHinhAnhGallery({
   images,
   renderOverlay,
   emptyMessage = "Chưa có ảnh trong mục này.",
+  toolbarLeading = null,
 }: Props) {
   const [filter, setFilter] = useState<HinhAnhGalleryFilter>("all");
   const [filterOpen, setFilterOpen] = useState(false);
@@ -54,8 +56,6 @@ export function TruongHinhAnhGallery({
       ),
     [loaiCounts],
   );
-
-  const showFilters = images.length > 0 && filterOptions.length > 0;
 
   const activeLabel =
     filter === "all"
@@ -86,67 +86,77 @@ export function TruongHinhAnhGallery({
     [filteredImages],
   );
 
-  if (!images.length) return null;
+  const showFilters = images.length > 0 && filterOptions.length > 0;
+  const showToolbar = Boolean(toolbarLeading) || showFilters;
+
+  if (!images.length && !showToolbar) return null;
 
   return (
     <>
-      {showFilters ? (
-        <div className="tdh-hinhanh-filter-row">
-          <div
-            className={`j-tlb-filter${filterOpen ? " is-open" : ""}`}
-            ref={filterRef}
-          >
-            <button
-              type="button"
-              className="j-tlb-dd-btn"
-              aria-expanded={filterOpen}
-              aria-haspopup="menu"
-              onClick={() => setFilterOpen((v) => !v)}
-            >
-              {activeLabel}
-              <span className="j-tlb-dd-count">{activeCount}</span>
-              <ChevronDown size={14} className="j-tlb-dd-caret" aria-hidden />
-            </button>
-            <div className="j-tlb-dd-menu" role="menu">
-              <div className="j-dd-section-label">Loại hình ảnh</div>
-              <button
-                type="button"
-                role="menuitem"
-                className={
-                  "j-dd-opt j-dd-opt-main" + (filter === "all" ? " is-active" : "")
-                }
-                onClick={() => {
-                  setFilter("all");
-                  setFilterOpen(false);
-                }}
+      {showToolbar ? (
+        <div className="tdh-hinhanh-toolbar-row">
+          {toolbarLeading ? (
+            <div className="tdh-hinhanh-toolbar-start">{toolbarLeading}</div>
+          ) : null}
+          {showFilters ? (
+            <div className="tdh-hinhanh-filter-row">
+              <div
+                className={`j-tlb-filter${filterOpen ? " is-open" : ""}`}
+                ref={filterRef}
               >
-                <span className="j-dd-lbl">Tất cả</span>
-                <span className="j-dd-n">{images.length}</span>
-              </button>
-              {filterOptions.map((opt) => (
                 <button
-                  key={opt.value}
                   type="button"
-                  role="menuitem"
-                  className={
-                    "j-dd-opt j-dd-opt-main" +
-                    (filter === opt.value ? " is-active" : "")
-                  }
-                  onClick={() => {
-                    setFilter(opt.value);
-                    setFilterOpen(false);
-                  }}
+                  className="j-tlb-dd-btn"
+                  aria-expanded={filterOpen}
+                  aria-haspopup="menu"
+                  onClick={() => setFilterOpen((v) => !v)}
                 >
-                  <span className="j-dd-lbl">{opt.label}</span>
-                  <span className="j-dd-n">{loaiCounts.get(opt.value) ?? 0}</span>
+                  {activeLabel}
+                  <span className="j-tlb-dd-count">{activeCount}</span>
+                  <ChevronDown size={14} className="j-tlb-dd-caret" aria-hidden />
                 </button>
-              ))}
+                <div className="j-tlb-dd-menu" role="menu">
+                  <div className="j-dd-section-label">Loại hình ảnh</div>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className={
+                      "j-dd-opt j-dd-opt-main" + (filter === "all" ? " is-active" : "")
+                    }
+                    onClick={() => {
+                      setFilter("all");
+                      setFilterOpen(false);
+                    }}
+                  >
+                    <span className="j-dd-lbl">Tất cả</span>
+                    <span className="j-dd-n">{images.length}</span>
+                  </button>
+                  {filterOptions.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      role="menuitem"
+                      className={
+                        "j-dd-opt j-dd-opt-main" +
+                        (filter === opt.value ? " is-active" : "")
+                      }
+                      onClick={() => {
+                        setFilter(opt.value);
+                        setFilterOpen(false);
+                      }}
+                    >
+                      <span className="j-dd-lbl">{opt.label}</span>
+                      <span className="j-dd-n">{loaiCounts.get(opt.value) ?? 0}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
+          ) : null}
         </div>
       ) : null}
 
-      {filteredImages.length === 0 ? (
+      {!images.length ? null : filteredImages.length === 0 ? (
         <p className="tdh-placeholder tdh-hinhanh-filter-empty">{emptyMessage}</p>
       ) : (
         <TruongGalleryJustified

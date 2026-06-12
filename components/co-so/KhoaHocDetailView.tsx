@@ -65,8 +65,10 @@ import {
 import { getYoutubeId } from "@/lib/youtube";
 import {
   formatKhaiGiangCard,
+  formatKhoaFooterDangKyLine,
   formatKhoaHocPhi,
   formatThoiLuongKhoa,
+  isScaffoldLopHoc,
   labelBaiTapSectionDisplay,
   labelHinhThucLopChiTiet,
   labelLoaiMoHinhKhoa,
@@ -550,13 +552,15 @@ function LopHocCard({
             </div>
           </div>
         </div>
-        <button
-          type="button"
-          className={`cso-khd-btn cso-khd-btn--sm${highlighted ? "" : " cso-khd-btn--ghost"}`}
-        >
-          <UserPlus size={13} aria-hidden />
-          Đăng ký lớp này
-        </button>
+        {!canManage ? (
+          <button
+            type="button"
+            className={`cso-khd-btn cso-khd-btn--sm${highlighted ? "" : " cso-khd-btn--ghost"}`}
+          >
+            <UserPlus size={13} aria-hidden />
+            Đăng ký lớp này
+          </button>
+        ) : null}
       </div>
     </div>
   );
@@ -633,6 +637,14 @@ function DetailContent({
     [detail],
   );
   const { khoa, orgTen, giaoTrinh, lopHoc, giaoVien } = display;
+  const visibleLopHoc = useMemo(() => {
+    if (isMockup) return lopHoc;
+    return lopHoc.filter((lop) => !isScaffoldLopHoc(lop));
+  }, [lopHoc, isMockup]);
+  const hasScaffoldLop = useMemo(
+    () => !isMockup && lopHoc.some(isScaffoldLopHoc),
+    [lopHoc, isMockup],
+  );
   const hasCover = Boolean(khoa.coverUrl);
   const covClass = [
     "cso-khd-cover",
@@ -920,7 +932,7 @@ function DetailContent({
             </>
           ) : null}
 
-          {lopHoc.length > 0 || isManagingLop ? (
+          {visibleLopHoc.length > 0 || isManagingLop ? (
             <>
               <div className="cso-khd-rule" aria-hidden />
               <div className="cso-khd-s-label">
@@ -932,12 +944,12 @@ function DetailContent({
                   ? "Một khóa có thể mở nhiều lớp — mỗi lớp có mã, lịch và giảng viên riêng. Vào học linh hoạt; cùng giáo trình."
                   : "Một khóa có thể mở nhiều lớp — mỗi lớp có mã (VD: HHK30), lịch khai giảng và giảng viên riêng."}
               </p>
-              {lopHoc.map((lop, i) => (
+              {visibleLopHoc.map((lop, i) => (
                 <LopHocCard
                   key={lop.id}
                   lop={lop}
                   lopIndex={i}
-                  highlighted={i === 0}
+                  highlighted={!isManagingLop && i === 0}
                   loaiMoHinh={khoa.loaiMoHinh}
                   canManage={isManagingLop}
                   onEdit={onEditLop}
@@ -948,17 +960,25 @@ function DetailContent({
                   type="button"
                   className={[
                     "cso-khd-bt-empty-card",
-                    lopHoc.length > 0 ? "cso-khd-bt-empty-card--compact" : "",
+                    visibleLopHoc.length > 0
+                      ? "cso-khd-bt-empty-card--compact"
+                      : "",
                   ]
                     .filter(Boolean)
                     .join(" ")}
                   onClick={onOpenAddLop}
                 >
                   <Plus size={22} aria-hidden />
-                  <span className="cso-khd-bt-empty-title">Thêm lớp</span>
-                  {lopHoc.length === 0 ? (
+                  <span className="cso-khd-bt-empty-title">
+                    {visibleLopHoc.length === 0 && hasScaffoldLop
+                      ? "Cấu hình lớp"
+                      : "Thêm lớp"}
+                  </span>
+                  {visibleLopHoc.length === 0 ? (
                     <span className="cso-khd-bt-empty-hint">
-                      Chưa có lớp học trong khóa này.
+                      {hasScaffoldLop
+                        ? "Hoàn thiện mã lớp, lịch học và giảng viên."
+                        : "Chưa có lớp học trong khóa này."}
                     </span>
                   ) : null}
                 </button>
@@ -1004,7 +1024,11 @@ function DetailContent({
         <footer className="cso-khd-final">
           <h3>{finalCtaTitle}</h3>
           <p>
-            {formatKhaiGiangCard(khoa.loaiMoHinh, khoa.ngayKhaiGiangGanNhat)} ·
+            {formatKhoaFooterDangKyLine(
+              khoa.loaiMoHinh,
+              khoa.ngayKhaiGiangGanNhat,
+            )}{" "}
+            ·
             học phí <span className="cso-khd-final-price">{hocPhiFormatted}</span> ·
             gửi đăng ký tới {orgTen || "cơ sở"} duyệt
           </p>
@@ -1128,7 +1152,11 @@ export function KhoaHocDetailView({
   }
 
   function handleOpenAddLop() {
-    setEditingLop(null);
+    const scaffold =
+      !isMockup && detail
+        ? (detail.lopHoc.find(isScaffoldLopHoc) ?? null)
+        : null;
+    setEditingLop(scaffold);
     setLopOpen(true);
   }
 

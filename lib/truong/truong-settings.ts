@@ -5,7 +5,12 @@ import {
   validateOrgSlug,
 } from "@/lib/cong-dong/org-slug";
 import { getCurrentUserIsCinsAdmin } from "@/lib/auth/cins-admin-server";
-import { LOAI_CO_SO_SET } from "@/lib/to-chuc/constants";
+import { getViewerCoSoVaiTro } from "@/lib/to-chuc/co-so-membership";
+import {
+  canChangeCoSoSlug,
+  coSoVaiTroLabel,
+} from "@/lib/to-chuc/co-so-vai-tro";
+import type { CoSoSettingsViewer } from "@/lib/to-chuc/co-so-settings-types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import {
   hydrateChiNhanhFromSchool,
@@ -17,26 +22,15 @@ import {
   parseFacebookFromCauHinh,
 } from "@/lib/truong/chi-nhanh";
 import { normalizeTinhThanhForDb } from "@/lib/truong/contact";
+import { isTruongOrgAdmin } from "@/lib/truong/org-admin";
+import { MO_TA_SHORT_MAX } from "@/lib/truong/mo-ta-short";
+import {
+  mergeKtxDiaChiIntoCauHinh,
+  parseKtxDiaChiFromCauHinh,
+} from "@/lib/truong/ktx-cau-hinh";
 import type { TruongChiNhanh } from "@/lib/truong/types";
 
-import { listCoSoStaffMembers } from "./co-so-members";
-import { listCoSoOrgFilters, type CoSoOrgFilter } from "./co-so-filters";
-import { getViewerCoSoVaiTro, isCoSoOrgAdmin } from "./co-so-membership";
-import {
-  parseCoSoPageCauHinh,
-  type CoSoPageCauHinh,
-} from "./co-so-page-cau-hinh";
-import type {
-  CoSoMemberAdmin,
-  CoSoSettingsViewer,
-} from "./co-so-settings-types";
-import {
-  canChangeCoSoSlug,
-  canManageCoSoMembers,
-  coSoVaiTroLabel,
-} from "./co-so-vai-tro";
-
-export type { CoSoMemberAdmin, CoSoSettingsViewer } from "./co-so-settings-types";
+export type { CoSoSettingsViewer as TruongSettingsViewer } from "@/lib/to-chuc/co-so-settings-types";
 
 type OrgRow = {
   id: string;
@@ -49,40 +43,40 @@ type OrgRow = {
   email_lien_he: string | null;
   tinh_thanh: string | null;
   cau_hinh: unknown;
-  org_co_so_dao_tao: {
-    ma_co_so: string;
-    ten_chinh_thuc: string;
-    loai_co_so: string;
-    nam_thanh_lap: number | null;
+  org_truong_dai_hoc: {
+    ma_truong: string | null;
+    loai_truong: string | null;
+    ten_tieng_anh: string | null;
     website: string | null;
-    giay_phep_dao_tao: string | null;
-    da_verify: boolean;
+    nam_thanh_lap: number | null;
+    hoc_phi_nam_tu: number | null;
+    hoc_phi_nam_den: number | null;
+    co_ktx: boolean | null;
+    ktx_gia_thang: number | null;
   } | null;
 };
 
-export type CoSoSettingsPayload = {
+export type TruongSettingsPayload = {
   orgId: string;
   slug: string;
   ten: string;
   moTa: string | null;
   gioiThieuTruong: string | null;
-  tenChinhThuc: string;
-  loaiCoSo: string;
+  tenTiengAnh: string | null;
+  maTruong: string | null;
+  loaiTruong: string | null;
   namThanhLap: number | null;
   website: string | null;
-  giayPhepDaoTao: string | null;
-  maCoSo: string;
-  daVerify: boolean;
-  diaChi: string | null;
-  dienThoai: string | null;
-  emailLienHe: string | null;
-  tinhThanh: string | null;
+  hocPhiNamTu: number | null;
+  hocPhiNamDen: number | null;
+  coKtx: boolean;
+  ktxGiaThang: number | null;
+  ktxDiaChi: string | null;
   chiNhanh: TruongChiNhanh[];
-  pageConfig: CoSoPageCauHinh;
-  filters: CoSoOrgFilter[];
-  members: CoSoMemberAdmin[];
   viewer: CoSoSettingsViewer;
 };
+
+const LOAI_TRUONG_SET = new Set(["cong_lap", "dan_lap", "quoc_te"]);
 
 function parseNamThanhLap(value: unknown): number | null | "invalid" {
   if (value === undefined || value === null || value === "") return null;
@@ -91,18 +85,18 @@ function parseNamThanhLap(value: unknown): number | null | "invalid" {
   return n;
 }
 
-async function loadCoSoOrg(orgId: string): Promise<OrgRow | null> {
+async function loadTruongOrg(orgId: string): Promise<OrgRow | null> {
   const admin = createServiceRoleClient();
   const { data } = await admin
     .from("org_to_chuc")
     .select(
-      "id, slug, ten, mo_ta, gioi_thieu_truong, dia_chi, dien_thoai, email_lien_he, tinh_thanh, cau_hinh, org_co_so_dao_tao(ma_co_so, ten_chinh_thuc, loai_co_so, nam_thanh_lap, website, giay_phep_dao_tao, da_verify)",
+      "id, slug, ten, mo_ta, gioi_thieu_truong, dia_chi, dien_thoai, email_lien_he, tinh_thanh, cau_hinh, org_truong_dai_hoc(ma_truong, loai_truong, ten_tieng_anh, website, nam_thanh_lap, hoc_phi_nam_tu, hoc_phi_nam_den, co_ktx, ktx_gia_thang)",
     )
     .eq("id", orgId)
-    .eq("loai_to_chuc", "co_so_dao_tao")
+    .eq("loai_to_chuc", "truong_dai_hoc")
     .maybeSingle<OrgRow>();
 
-  if (!data?.org_co_so_dao_tao) return null;
+  if (!data?.org_truong_dai_hoc) return null;
   return data;
 }
 
@@ -115,23 +109,24 @@ async function buildViewer(
     getViewerCoSoVaiTro(profileId, orgId),
   ]);
 
-  const vaiTroLabel = isCinsAdmin && !vaiTro
-    ? "Quản trị CINs"
-    : vaiTro
-      ? coSoVaiTroLabel(vaiTro)
-      : "Quản trị viên";
+  const vaiTroLabel =
+    isCinsAdmin && !vaiTro
+      ? "Quản trị CINs"
+      : vaiTro
+        ? coSoVaiTroLabel(vaiTro)
+        : "Quản trị viên";
 
   return {
     vaiTro,
     vaiTroLabel,
     isCinsAdmin,
-    canManageMembers: isCinsAdmin || canManageCoSoMembers(vaiTro),
+    canManageMembers: false,
     canChangeSlug: isCinsAdmin || canChangeCoSoSlug(vaiTro),
   };
 }
 
 function buildChiNhanhForSettings(org: OrgRow): TruongChiNhanh[] {
-  const ext = org.org_co_so_dao_tao!;
+  const ext = org.org_truong_dai_hoc!;
   return hydrateChiNhanhFromSchool({
     chi_nhanh: parseChiNhanhFromCauHinh(org.cau_hinh) ?? undefined,
     dia_chi: org.dia_chi,
@@ -143,92 +138,76 @@ function buildChiNhanhForSettings(org: OrgRow): TruongChiNhanh[] {
   });
 }
 
-function mapSettings(
-  org: OrgRow,
-  filters: CoSoOrgFilter[],
-  members: CoSoMemberAdmin[],
-  viewer: CoSoSettingsViewer,
-): CoSoSettingsPayload {
-  const ext = org.org_co_so_dao_tao!;
+function mapSettings(org: OrgRow, viewer: CoSoSettingsViewer): TruongSettingsPayload {
+  const ext = org.org_truong_dai_hoc!;
   return {
     orgId: org.id,
     slug: org.slug,
     ten: org.ten,
     moTa: org.mo_ta,
     gioiThieuTruong: org.gioi_thieu_truong,
-    tenChinhThuc: ext.ten_chinh_thuc,
-    loaiCoSo: ext.loai_co_so,
+    tenTiengAnh: ext.ten_tieng_anh,
+    maTruong: ext.ma_truong,
+    loaiTruong: ext.loai_truong,
     namThanhLap: ext.nam_thanh_lap,
     website: ext.website,
-    giayPhepDaoTao: ext.giay_phep_dao_tao,
-    maCoSo: ext.ma_co_so,
-    daVerify: ext.da_verify,
-    diaChi: org.dia_chi,
-    dienThoai: org.dien_thoai,
-    emailLienHe: org.email_lien_he,
-    tinhThanh: org.tinh_thanh,
+    hocPhiNamTu: ext.hoc_phi_nam_tu,
+    hocPhiNamDen: ext.hoc_phi_nam_den,
+    coKtx: Boolean(ext.co_ktx),
+    ktxGiaThang: ext.ktx_gia_thang,
+    ktxDiaChi: parseKtxDiaChiFromCauHinh(org.cau_hinh),
     chiNhanh: buildChiNhanhForSettings(org),
-    pageConfig: parseCoSoPageCauHinh(org.cau_hinh),
-    filters,
-    members,
     viewer,
   };
 }
 
-export async function getCoSoSettings(
+export async function getTruongSettings(
   orgId: string,
   profileId: string,
 ): Promise<
-  { ok: true; settings: CoSoSettingsPayload } | { ok: false; error: string }
+  { ok: true; settings: TruongSettingsPayload } | { ok: false; error: string }
 > {
-  if (!(await isCoSoOrgAdmin(orgId, profileId))) {
-    return { ok: false, error: "Bạn không có quyền quản trị cơ sở này." };
+  if (!(await isTruongOrgAdmin(orgId, profileId))) {
+    return { ok: false, error: "Bạn không có quyền quản trị trường này." };
   }
 
-  const org = await loadCoSoOrg(orgId);
-  if (!org) return { ok: false, error: "Không tìm thấy cơ sở." };
+  const org = await loadTruongOrg(orgId);
+  if (!org) return { ok: false, error: "Không tìm thấy trường." };
 
-  const [filters, membersResult, viewer] = await Promise.all([
-    listCoSoOrgFilters(orgId),
-    listCoSoStaffMembers({ orgId, actorId: profileId }),
-    buildViewer(orgId, profileId),
-  ]);
-
-  const members = membersResult.ok ? membersResult.members : [];
-
-  return { ok: true, settings: mapSettings(org, filters, members, viewer) };
+  const viewer = await buildViewer(orgId, profileId);
+  return { ok: true, settings: mapSettings(org, viewer) };
 }
 
-export type UpdateCoSoSettingsInput = {
+export type UpdateTruongSettingsInput = {
   ten?: string;
   slug?: string;
   moTa?: string | null;
   gioiThieuTruong?: string | null;
-  tenChinhThuc?: string;
-  loaiCoSo?: string;
+  tenTiengAnh?: string | null;
+  maTruong?: string | null;
+  loaiTruong?: string | null;
   namThanhLap?: number | null;
-  website?: string | null;
-  giayPhepDaoTao?: string | null;
-  diaChi?: string | null;
-  dienThoai?: string | null;
-  emailLienHe?: string | null;
-  tinhThanh?: string | null;
+  hocPhiNamTu?: number | null;
+  hocPhiNamDen?: number | null;
+  coKtx?: boolean;
+  ktxGiaThang?: number | null;
+  ktxDiaChi?: string | null;
   chiNhanh?: TruongChiNhanh[];
 };
 
-export async function updateCoSoSettings(
+export async function updateTruongSettings(
   orgId: string,
   profileId: string,
-  input: UpdateCoSoSettingsInput,
+  input: UpdateTruongSettingsInput,
 ): Promise<
-  { ok: true; settings: CoSoSettingsPayload } | { ok: false; error: string }
+  { ok: true; settings: TruongSettingsPayload } | { ok: false; error: string }
 > {
-  if (!(await isCoSoOrgAdmin(orgId, profileId))) {
-    return { ok: false, error: "Bạn không có quyền quản trị cơ sở này." };
+  if (!(await isTruongOrgAdmin(orgId, profileId))) {
+    return { ok: false, error: "Bạn không có quyền quản trị trường này." };
   }
 
-  const org = await loadCoSoOrg(orgId);
-  if (!org) return { ok: false, error: "Không tìm thấy cơ sở." };
+  const org = await loadTruongOrg(orgId);
+  if (!org) return { ok: false, error: "Không tìm thấy trường." };
 
   const viewer = await buildViewer(orgId, profileId);
 
@@ -281,42 +260,34 @@ export async function updateCoSoSettings(
   }
 
   if (input.moTa !== undefined) {
-    orgPatch.mo_ta = input.moTa?.trim() || null;
+    const moTa = input.moTa?.trim() || null;
+    if (moTa && moTa.length > MO_TA_SHORT_MAX) {
+      return {
+        ok: false,
+        error: `Mô tả ngắn tối đa ${MO_TA_SHORT_MAX} ký tự.`,
+      };
+    }
+    orgPatch.mo_ta = moTa;
   }
 
   if (input.gioiThieuTruong !== undefined) {
     orgPatch.gioi_thieu_truong = input.gioiThieuTruong?.trim() || null;
   }
 
-  if (input.diaChi !== undefined) {
-    orgPatch.dia_chi = input.diaChi?.trim() || null;
+  if (input.tenTiengAnh !== undefined) {
+    extPatch.ten_tieng_anh = input.tenTiengAnh?.trim() || null;
   }
 
-  if (input.dienThoai !== undefined) {
-    orgPatch.dien_thoai = input.dienThoai?.trim() || null;
+  if (input.maTruong !== undefined) {
+    extPatch.ma_truong = input.maTruong?.trim() || null;
   }
 
-  if (input.emailLienHe !== undefined) {
-    orgPatch.email_lien_he = input.emailLienHe?.trim() || null;
-  }
-
-  if (input.tinhThanh !== undefined) {
-    orgPatch.tinh_thanh = normalizeTinhThanhForDb(input.tinhThanh);
-  }
-
-  if (input.tenChinhThuc !== undefined) {
-    const tenChinhThuc = input.tenChinhThuc.trim();
-    if (!tenChinhThuc) {
-      return { ok: false, error: "Tên pháp lý không được trống." };
+  if (input.loaiTruong !== undefined) {
+    const loai = input.loaiTruong?.trim() || null;
+    if (loai && !LOAI_TRUONG_SET.has(loai)) {
+      return { ok: false, error: "Loại trường không hợp lệ." };
     }
-    extPatch.ten_chinh_thuc = tenChinhThuc;
-  }
-
-  if (input.loaiCoSo !== undefined) {
-    if (!LOAI_CO_SO_SET.has(input.loaiCoSo)) {
-      return { ok: false, error: "Loại cơ sở không hợp lệ." };
-    }
-    extPatch.loai_co_so = input.loaiCoSo;
+    extPatch.loai_truong = loai;
   }
 
   if (input.namThanhLap !== undefined) {
@@ -331,12 +302,35 @@ export async function updateCoSoSettings(
     }
   }
 
-  if (input.website !== undefined) {
-    extPatch.website = input.website?.trim() || null;
+  if (input.hocPhiNamTu !== undefined) {
+    extPatch.hoc_phi_nam_tu =
+      input.hocPhiNamTu === null ? null : Number(input.hocPhiNamTu);
   }
 
-  if (input.giayPhepDaoTao !== undefined) {
-    extPatch.giay_phep_dao_tao = input.giayPhepDaoTao?.trim() || null;
+  if (input.hocPhiNamDen !== undefined) {
+    extPatch.hoc_phi_nam_den =
+      input.hocPhiNamDen === null ? null : Number(input.hocPhiNamDen);
+  }
+
+  if (input.coKtx !== undefined) {
+    extPatch.co_ktx = input.coKtx;
+    if (!input.coKtx) {
+      extPatch.ktx_gia_thang = null;
+      if (input.ktxDiaChi === undefined) {
+        orgPatch.cau_hinh = mergeKtxDiaChiIntoCauHinh(cauHinhBase, null);
+        cauHinhBase = orgPatch.cau_hinh;
+      }
+    }
+  }
+
+  if (input.ktxGiaThang !== undefined) {
+    extPatch.ktx_gia_thang =
+      input.ktxGiaThang === null ? null : Number(input.ktxGiaThang);
+  }
+
+  if (input.ktxDiaChi !== undefined) {
+    orgPatch.cau_hinh = mergeKtxDiaChiIntoCauHinh(cauHinhBase, input.ktxDiaChi);
+    cauHinhBase = orgPatch.cau_hinh;
   }
 
   if (Object.keys(orgPatch).length === 0 && Object.keys(extPatch).length === 0) {
@@ -352,25 +346,17 @@ export async function updateCoSoSettings(
 
   if (Object.keys(extPatch).length > 0) {
     const { error } = await admin
-      .from("org_co_so_dao_tao")
+      .from("org_truong_dai_hoc")
       .update(extPatch)
       .eq("id_to_chuc", orgId);
     if (error) return { ok: false, error: error.message };
   }
 
-  const refreshed = await loadCoSoOrg(orgId);
-  if (!refreshed) return { ok: false, error: "Không tải lại được cơ sở." };
-
-  const [filters, membersResult] = await Promise.all([
-    listCoSoOrgFilters(orgId),
-    listCoSoStaffMembers({ orgId, actorId: profileId }),
-  ]);
-
-  const members = membersResult.ok ? membersResult.members : [];
+  const refreshed = await loadTruongOrg(orgId);
+  if (!refreshed) return { ok: false, error: "Không tải lại được trường." };
 
   return {
     ok: true,
-    settings: mapSettings(refreshed, filters, members, viewer),
+    settings: mapSettings(refreshed, viewer),
   };
 }
-

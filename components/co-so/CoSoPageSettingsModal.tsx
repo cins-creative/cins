@@ -12,16 +12,27 @@ import {
 import { createPortal } from "react-dom";
 
 import { CoSoSettingsMembersPanel } from "@/components/co-so/CoSoSettingsMembersPanel";
+import { GioiThieuContentEditor } from "@/components/truong/GioiThieuContentEditor";
+import { TruongChiNhanhEditor } from "@/components/truong/tuyensinh/TruongChiNhanhEditor";
 import { LOAI_CO_SO_OPTIONS } from "@/lib/to-chuc/constants";
 import type { CoSoPageCauHinh } from "@/lib/to-chuc/co-so-page-cau-hinh";
 import type { CoSoFilterChip } from "@/lib/to-chuc/co-so-page-queries";
+import {
+  normalizeChiNhanhList,
+  orgContactFromPrimaryChiNhanh,
+} from "@/lib/truong/chi-nhanh";
+import { normalizeTruongGioiThieuHtml } from "@/lib/truong/gioi-thieu";
+import type { TruongChiNhanh } from "@/lib/truong/types";
 import type {
   CoSoMemberAdmin,
   CoSoSettingsViewer,
 } from "@/lib/to-chuc/co-so-settings-types";
 
+import "@/styles/article-draft-tiptap.css";
+
 export type CoSoSettingsSection =
   | "identity"
+  | "about"
   | "contact"
   | "verify"
   | "access"
@@ -44,6 +55,7 @@ type SettingsData = {
   dienThoai: string | null;
   emailLienHe: string | null;
   tinhThanh: string | null;
+  chiNhanh: TruongChiNhanh[];
   pageConfig: CoSoPageCauHinh;
   filters: Array<{
     id: string;
@@ -69,16 +81,20 @@ type Props = {
     namThanhLap?: number | null;
     giayPhepDaoTao?: string | null;
     moTa?: string | null;
+    gioiThieuTruong?: string | null;
     diaChi?: string | null;
     dienThoai?: string | null;
     emailLienHe?: string | null;
     tinhThanh?: string | null;
     website?: string | null;
+    chiNhanh?: TruongChiNhanh[];
+    facebook?: string | null;
   }) => void;
 };
 
 const NAV: ReadonlyArray<{ id: CoSoSettingsSection; label: string }> = [
   { id: "identity", label: "Danh tính" },
+  { id: "about", label: "Giới thiệu" },
   { id: "contact", label: "Liên hệ" },
   { id: "verify", label: "Xác thực" },
   { id: "access", label: "Quyền quản trị" },
@@ -107,17 +123,16 @@ function savePayloadForSection(
         ten: draft.ten,
         slug: draft.slug,
         moTa: draft.moTa,
-        gioiThieuTruong: draft.gioiThieuTruong,
         loaiCoSo: draft.loaiCoSo,
         namThanhLap: draft.namThanhLap,
       };
+    case "about":
+      return {
+        gioiThieuTruong: normalizeTruongGioiThieuHtml(draft.gioiThieuTruong),
+      };
     case "contact":
       return {
-        diaChi: draft.diaChi,
-        dienThoai: draft.dienThoai,
-        emailLienHe: draft.emailLienHe,
-        tinhThanh: draft.tinhThanh,
-        website: draft.website,
+        chiNhanh: normalizeChiNhanhList(draft.chiNhanh),
       };
     case "verify":
       return {
@@ -167,6 +182,23 @@ export function CoSoPageSettingsModal({
     }
   }, [orgId]);
 
+  const uploadBranchCover = useCallback(async (file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    const token =
+      process.env.NEXT_PUBLIC_ARTICLE_INLINE_IMAGE_UPLOAD_TOKEN?.trim();
+    const headers: HeadersInit = {};
+    if (token) headers.Authorization = `Bearer ${token}`;
+    const res = await fetch(`/api/truong/${encodeURIComponent(orgId)}/upload`, {
+      method: "POST",
+      body: form,
+      headers,
+      credentials: "same-origin",
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as { imageId: string; url: string };
+  }, [orgId]);
+
   useEffect(() => {
     if (!open) return;
     setSection(initialSection);
@@ -197,6 +229,7 @@ export function CoSoPageSettingsModal({
   }
 
   function emitSaved(settings: SettingsData) {
+    const orgContact = orgContactFromPrimaryChiNhanh(settings.chiNhanh);
     onSaved({
       slug: settings.slug,
       ten: settings.ten,
@@ -205,17 +238,27 @@ export function CoSoPageSettingsModal({
       namThanhLap: settings.namThanhLap,
       giayPhepDaoTao: settings.giayPhepDaoTao,
       moTa: settings.moTa,
+      gioiThieuTruong: settings.gioiThieuTruong,
       diaChi: settings.diaChi,
       dienThoai: settings.dienThoai,
       emailLienHe: settings.emailLienHe,
       tinhThanh: settings.tinhThanh,
       website: settings.website,
+      chiNhanh: settings.chiNhanh,
+      facebook: orgContact.facebook,
     });
   }
 
   function onSaveSection(e: React.FormEvent) {
     e.preventDefault();
     if (!draft || section === "access" || section === "filters") return;
+    if (section === "contact") {
+      const normalized = normalizeChiNhanhList(draft.chiNhanh);
+      if (!normalized.length) {
+        setErr("Cần ít nhất một chi nhánh có tên và địa chỉ.");
+        return;
+      }
+    }
     setErr(null);
     const prevSlug = draft.slug;
     startTransition(async () => {
@@ -395,7 +438,7 @@ export function CoSoPageSettingsModal({
             {section === "identity" ? (
               <section className="cso-settings-section">
                 <p className="cso-settings-hint">
-                  Tên thương hiệu và nội dung giới thiệu hiển thị trên trang cơ
+                  Tên thương hiệu và mô tả ngắn hiển thị trên sidebar trang cơ
                   sở.
                 </p>
                 <label className="tdh-inline-field">
@@ -409,7 +452,7 @@ export function CoSoPageSettingsModal({
                   />
                 </label>
                 <label className="tdh-inline-field">
-                  <span>Đường dẫn (slug)</span>
+                  <span>Đường dẫn</span>
                   <input
                     type="text"
                     value={draft.slug}
@@ -442,18 +485,9 @@ export function CoSoPageSettingsModal({
                   <textarea
                     rows={2}
                     value={draft.moTa ?? ""}
+                    placeholder="1–2 câu tóm tắt hiển thị dưới tên cơ sở trên sidebar — VD: Trung tâm hội họa · lớp nhỏ, mentor chuyên môn"
                     onChange={(e) =>
                       patchDraft({ moTa: e.target.value || null })
-                    }
-                  />
-                </label>
-                <label className="tdh-inline-field">
-                  <span>Giới thiệu</span>
-                  <textarea
-                    rows={3}
-                    value={draft.gioiThieuTruong ?? ""}
-                    onChange={(e) =>
-                      patchDraft({ gioiThieuTruong: e.target.value || null })
                     }
                   />
                 </label>
@@ -476,64 +510,37 @@ export function CoSoPageSettingsModal({
               </section>
             ) : null}
 
+            {section === "about" ? (
+              <section className="cso-settings-section cso-settings-section--about">
+                <p className="cso-settings-hint">
+                  Nội dung giới thiệu chi tiết về cơ sở — hiển thị trong popup
+                  khi người xem bấm xem thêm.
+                </p>
+                <div className="tdh-inline-field tdh-inline-field--richtext">
+                  <span>Giới thiệu cơ sở</span>
+                  <GioiThieuContentEditor
+                    value={draft.gioiThieuTruong?.trim() || "<p></p>"}
+                    onChange={(html) => patchDraft({ gioiThieuTruong: html })}
+                  />
+                </div>
+              </section>
+            ) : null}
+
             {section === "contact" ? (
               <section className="cso-settings-section">
                 <p className="cso-settings-hint">
-                  Thông tin liên hệ công khai trên sidebar trang cơ sở.
+                  Quản lý chi nhánh và thông tin liên hệ hiển thị trên sidebar
+                  trang cơ sở.
                 </p>
-                <label className="tdh-inline-field">
-                  <span>Địa chỉ</span>
-                  <textarea
-                    rows={2}
-                    value={draft.diaChi ?? ""}
-                    onChange={(e) =>
-                      patchDraft({ diaChi: e.target.value || null })
-                    }
+                <div className="tdh-inline-field">
+                  <span>Chi nhánh / cơ sở</span>
+                  <TruongChiNhanhEditor
+                    branches={draft.chiNhanh}
+                    onChange={(chiNhanh) => patchDraft({ chiNhanh })}
+                    uploadImage={uploadBranchCover}
+                    persistHint="Lưu cài đặt"
                   />
-                </label>
-                <label className="tdh-inline-field">
-                  <span>Tỉnh / Thành phố</span>
-                  <input
-                    type="text"
-                    value={draft.tinhThanh ?? ""}
-                    onChange={(e) =>
-                      patchDraft({ tinhThanh: e.target.value || null })
-                    }
-                  />
-                </label>
-                <div className="cso-settings-row">
-                  <label className="tdh-inline-field">
-                    <span>Điện thoại</span>
-                    <input
-                      type="tel"
-                      value={draft.dienThoai ?? ""}
-                      onChange={(e) =>
-                        patchDraft({ dienThoai: e.target.value || null })
-                      }
-                    />
-                  </label>
-                  <label className="tdh-inline-field">
-                    <span>Email</span>
-                    <input
-                      type="email"
-                      value={draft.emailLienHe ?? ""}
-                      onChange={(e) =>
-                        patchDraft({ emailLienHe: e.target.value || null })
-                      }
-                    />
-                  </label>
                 </div>
-                <label className="tdh-inline-field">
-                  <span>Website</span>
-                  <input
-                    type="url"
-                    value={draft.website ?? ""}
-                    placeholder="https://"
-                    onChange={(e) =>
-                      patchDraft({ website: e.target.value || null })
-                    }
-                  />
-                </label>
               </section>
             ) : null}
 

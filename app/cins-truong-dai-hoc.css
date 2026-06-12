@@ -1667,6 +1667,19 @@ footer:not(.footer):not(.tdh-inline-modal-actions):not(.tdh-message-inbox-compos
   overflow: auto;
   padding-right: 4px;
 }
+
+.tdh-gioi-thieu-body.article-draft-tiptap__preview-body {
+  border: none;
+  border-radius: 12px;
+  padding: 16px 18px;
+  background: var(--bg-surface, #fff);
+}
+
+.tdh-gioi-thieu-body .arc-image-placeholder,
+.tdh-gioi-thieu-body .arc-card,
+.tdh-gioi-thieu-body table {
+  max-width: 100%;
+}
 .tdh-gioi-thieu-empty {
   margin: 0;
   padding: 20px 16px;

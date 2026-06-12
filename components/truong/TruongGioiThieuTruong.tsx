@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { GioiThieuRichBody } from "@/components/truong/GioiThieuRichBody";
 import { TruongInlineModal } from "@/components/truong/inline/TruongInlineModal";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
 import { hasTruongGioiThieuContent } from "@/lib/truong/gioi-thieu";
@@ -9,9 +10,13 @@ import type { TruongListItem } from "@/lib/truong/types";
 
 type Props = {
   school?: Pick<TruongListItem, "ten" | "gioi_thieu_truong">;
+  onOpenAbout?: () => void;
 };
 
-export function TruongGioiThieuTruong({ school: schoolProp }: Props) {
+export function TruongGioiThieuTruong({
+  school: schoolProp,
+  onOpenAbout,
+}: Props) {
   const ctx = useTruongInlineEdit();
   const school = ctx?.school ?? schoolProp;
   const [open, setOpen] = useState(false);
@@ -25,6 +30,10 @@ export function TruongGioiThieuTruong({ school: schoolProp }: Props) {
 
   function openEditor() {
     setOpen(false);
+    if (onOpenAbout) {
+      onOpenAbout();
+      return;
+    }
     ctx?.openSchoolAboutEditor();
   }
 
@@ -68,10 +77,7 @@ export function TruongGioiThieuTruong({ school: schoolProp }: Props) {
           </div>
         </header>
         {hasContent ? (
-          <div
-            className="tdh-gioi-thieu-body article-rich-content article-content-html"
-            dangerouslySetInnerHTML={{ __html: html! }}
-          />
+          <GioiThieuRichBody html={html!} />
         ) : (
           <div className="tdh-gioi-thieu-empty-wrap">
             <p className="tdh-gioi-thieu-empty">

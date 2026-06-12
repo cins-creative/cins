@@ -390,7 +390,7 @@ function TruongHinhAnhManageDialog({
   );
 }
 
-export function TruongHinhAnhManageZone() {
+export function TruongHinhAnhManageZone({ compact = false }: { compact?: boolean }) {
   const ctx = useTruongInlineEdit();
   const [open, setOpen] = useState(false);
 
@@ -400,7 +400,15 @@ export function TruongHinhAnhManageZone() {
 
   return (
     <>
-      <div className="tdh-inline-upload-zone tdh-hinhanh-manage-zone">
+      <div
+        className={[
+          "tdh-inline-upload-zone",
+          "tdh-hinhanh-manage-zone",
+          compact ? "tdh-hinhanh-manage-zone--toolbar" : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+      >
         <button
           type="button"
           className="tdh-inline-btn primary"

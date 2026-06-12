@@ -15,6 +15,7 @@ type Props = {
   > | null;
   avatarPreviewUrl?: string | null;
   layout?: "legacy" | "v6";
+  editable?: boolean;
 };
 
 export function TruongDetailCoverBanner({
@@ -24,14 +25,15 @@ export function TruongDetailCoverBanner({
   school,
   avatarPreviewUrl,
   layout = "legacy",
+  editable = false,
 }: Props) {
   const isRemote =
     coverUrl?.includes("imagedelivery.net") || coverUrl?.startsWith("blob:");
 
   const wrapClass =
     layout === "v6"
-      ? `cover-frame fade f1${coverPending ? " cover-banner--pending" : ""}`
-      : `cover-banner${coverPending ? " cover-banner--pending" : ""}`;
+      ? `cover-frame fade f1${coverPending ? " cover-banner--pending" : ""}${editable ? " cover-frame--editable" : ""}`
+      : `cover-banner${coverPending ? " cover-banner--pending" : ""}${editable ? " cover-banner--editable" : ""}`;
 
   return (
     <section

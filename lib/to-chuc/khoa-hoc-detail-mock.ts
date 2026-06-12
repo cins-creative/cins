@@ -17,8 +17,8 @@ export function resolveKhoaHocDetailDisplay(
         detail.khoa.yeuCauChuanBi?.trim() || mock.khoa.yeuCauChuanBi,
     },
     giaoTrinh: detail.giaoTrinh,
-    lopHoc: detail.lopHoc.length ? detail.lopHoc : mock.lopHoc,
-    giaoVien: detail.giaoVien.length ? detail.giaoVien : mock.giaoVien,
+    lopHoc: detail.lopHoc,
+    giaoVien: detail.giaoVien,
   };
 }
 

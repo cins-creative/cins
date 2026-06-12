@@ -5,10 +5,15 @@ import {
   Calendar,
   MessageSquare,
   Monitor,
+  Pencil,
   Shield,
   Users,
 } from "lucide-react";
 
+import { CoSoOrgFollowButton } from "@/components/co-so/CoSoOrgFollowButton";
+import type { CoSoSettingsSection } from "@/components/co-so/CoSoPageSettingsModal";
+import { TruongMessageInbox } from "@/components/truong/TruongMessageInbox";
+import { TruongMilestoneTagNotify } from "@/components/truong/TruongMilestoneTagNotify";
 import { TruongOrgCover } from "@/components/truong/TruongOrgCover";
 import { TruongOrgAvatar } from "@/components/truong/TruongOrgAvatar";
 import { TruongSchoolContact } from "@/components/truong/TruongSchoolContact";
@@ -18,9 +23,11 @@ import type { TruongDetail } from "@/lib/truong/types";
 
 type Props = {
   school: TruongDetail;
-  loaiCoSoLabel: string;
   daVerify: boolean;
   canEditMedia?: boolean;
+  onOpenSettings?: (section: CoSoSettingsSection) => void;
+  isMobileShell?: boolean;
+  isMobileShellActive?: boolean;
 };
 
 function csoSidebarSubtitle(school: TruongDetail): string | null {
@@ -35,20 +42,31 @@ function csoSidebarSubtitle(school: TruongDetail): string | null {
 
 export function CoSoSchoolSidebar({
   school: schoolProp,
-  loaiCoSoLabel,
   daVerify,
   canEditMedia = false,
+  onOpenSettings,
+  isMobileShell = false,
+  isMobileShellActive = false,
 }: Props) {
   const ctx = useTruongInlineEdit();
   const school = ctx?.school ?? schoolProp;
-  const editable = canEditMedia && Boolean(ctx?.canEdit);
-  const isOwner = canEditMedia && Boolean(ctx?.canEdit);
+  const isEditing = Boolean(canEditMedia && ctx?.isEditing);
+  const isOwner = Boolean(canEditMedia && ctx?.canEdit);
+  const showAdminCta = isOwner && isEditing;
+  const editable = canEditMedia;
   const subtitle = csoSidebarSubtitle(school);
 
   const hasStudents = false;
 
   return (
-    <aside className="school-side fade f1 cso-ss-side" aria-label="Thông tin cơ sở đào tạo">
+    <aside
+      className="school-side fade f1 cso-ss-side"
+      aria-label="Thông tin cơ sở đào tạo"
+      id={isMobileShell ? "cso-shell-panel-info" : undefined}
+      role={isMobileShell ? "tabpanel" : undefined}
+      aria-labelledby={isMobileShell ? "cso-shell-tab-info" : undefined}
+      hidden={isMobileShell ? !isMobileShellActive : undefined}
+    >
       <div className="cso-ss-card">
         <div className="cso-ss-pad">
           <div className="cso-ss-cover">
@@ -57,36 +75,60 @@ export function CoSoSchoolSidebar({
             </div>
           </div>
 
-          <div className="cso-ss-ava-row">
-            <TruongOrgAvatar
-              school={school}
-              size="lg"
-              className="cso-ss-ava"
-              editable={editable}
-            />
-          </div>
+          <div className="cso-ss-stack">
+            <div className="cso-ss-ava-row">
+              <TruongOrgAvatar
+                school={school}
+                size="lg"
+                className="cso-ss-ava"
+                editable={editable}
+              />
+            </div>
 
-          <h1 className="cso-ss-name">{school.ten}</h1>
-          {subtitle ? <p className="cso-ss-sub">{subtitle}</p> : null}
+            <div className="cso-ss-identity">
+              <h1 className="cso-ss-name">{school.ten}</h1>
+              {subtitle ? <p className="cso-ss-sub">{subtitle}</p> : null}
+              {isEditing && onOpenSettings ? (
+                <button
+                  type="button"
+                  className="cso-ss-edit-info-btn"
+                  onClick={() => onOpenSettings("identity")}
+                >
+                  <Pencil size={14} strokeWidth={2.2} aria-hidden />
+                  Sửa thông tin cơ sở
+                </button>
+              ) : null}
+            </div>
 
-          <div className="cso-ss-badges">
-            <span className="cso-ss-badge">{loaiCoSoLabel}</span>
-          </div>
-
-          {!isOwner ? (
-            <div className="cso-ss-primary-action">
-              {ctx ? (
-                <div className="cso-ss-btn-msg-wrap">
-                  <TruongUserChatLauncher />
-                </div>
-              ) : (
+            <div
+              className={`cso-ss-primary-action${
+                showAdminCta
+                  ? " cso-ss-primary-action--admin"
+                  : " cso-ss-primary-action--dual"
+              }`}
+            >
+            {showAdminCta ? (
+              <>
+                <TruongMessageInbox />
+                <TruongMilestoneTagNotify />
+              </>
+            ) : ctx ? (
+              <>
+                <TruongUserChatLauncher />
+                <CoSoOrgFollowButton orgId={school.id} disabled={isOwner} />
+              </>
+            ) : (
+              <>
                 <button type="button" className="cso-ss-btn-msg" disabled>
                   <MessageSquare size={17} strokeWidth={2} aria-hidden />
                   Nhắn tin
                 </button>
-              )}
-            </div>
-          ) : null}
+                <button type="button" className="cso-ss-btn-follow" disabled>
+                  Theo dõi
+                </button>
+              </>
+            )}
+          </div>
 
           <section className="cso-ss-sec" aria-labelledby="cso-ss-contact-title">
             <div className="cso-ss-sec-head">
@@ -96,7 +138,7 @@ export function CoSoSchoolSidebar({
             </div>
             <TruongSchoolContact
               school={school}
-              isEditing={ctx?.isEditing ?? false}
+              isEditing={isEditing}
               variant="sidebar"
             />
           </section>
@@ -118,7 +160,7 @@ export function CoSoSchoolSidebar({
                   <div className="cso-ss-stat-card-val">—</div>
                 ) : (
                   <p className="cso-ss-stat-empty">
-                    {isOwner
+                    {isOwner && isEditing
                       ? "Chưa có học viên được xác nhận"
                       : "Đang cập nhật"}
                   </p>
@@ -166,13 +208,14 @@ export function CoSoSchoolSidebar({
                   {daVerify
                     ? school.giay_phep_dao_tao?.trim() ||
                       "CINS đã xác minh giấy phép đào tạo"
-                    : isOwner
+                    : isOwner && isEditing
                       ? "Tải GPKD / GP đào tạo để nhận huy hiệu"
                       : "Cơ sở chưa cung cấp giấy phép"}
                 </div>
               </div>
             </div>
           </section>
+          </div>
         </div>
       </div>
     </aside>

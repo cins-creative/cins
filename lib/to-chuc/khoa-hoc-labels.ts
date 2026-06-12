@@ -1,11 +1,21 @@
 import type {
   BaiTapSectionDisplayMode,
   HinhThucLop,
+  LopHocDetailData,
   LoaiMoHinhKhoa,
   TrinhDoDauVao,
   TrangThaiKhoaHoc,
   TrangThaiLop,
 } from "@/lib/to-chuc/khoa-hoc-types";
+
+/** Lớp tự sinh khi tạo khóa — chưa có mã / GV, không hiển thị trên landing. */
+export function isScaffoldLopHoc(lop: LopHocDetailData): boolean {
+  if (lop.id.startsWith("mock-")) return false;
+  if (lop.maLop?.trim()) return false;
+  if (lop.giaoVienText?.trim()) return false;
+  if (lop.giaoVien.verified || lop.giaoVien.pendingProfile) return false;
+  return lop.giaoVien.ten === "Đang cập nhật";
+}
 
 export function labelLoaiMoHinhKhoa(loai: LoaiMoHinhKhoa): string {
   switch (loai) {
@@ -87,12 +97,21 @@ export function formatKhaiGiangCard(
   loaiMoHinh: LoaiMoHinhKhoa,
   ngayIso: string | null,
 ): string {
+  if (loaiMoHinh === "lien_tuc_theo_thang") return "Khai giảng hàng tuần";
   if (ngayIso) {
     const [y, m, d] = ngayIso.split("-");
     if (y && m && d) return `Khai giảng ${d.padStart(2, "0")}.${m.padStart(2, "0")}`;
   }
-  if (loaiMoHinh === "lien_tuc_theo_thang") return "Khai giảng hàng tuần";
   return "Chưa có lịch khai giảng";
+}
+
+/** Dòng lịch / đăng ký ở footer chi tiết khóa. */
+export function formatKhoaFooterDangKyLine(
+  loaiMoHinh: LoaiMoHinhKhoa,
+  ngayIso: string | null,
+): string {
+  if (loaiMoHinh === "lien_tuc_theo_thang") return "Đăng ký ngay hôm nay";
+  return formatKhaiGiangCard(loaiMoHinh, ngayIso);
 }
 
 export function formatKhoaHocPhi(

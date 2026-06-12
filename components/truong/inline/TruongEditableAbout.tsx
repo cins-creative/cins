@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { ArticleDraftContentEditor } from "@/components/article/draft/ArticleDraftContentEditor";
+import { GioiThieuContentEditor } from "@/components/truong/GioiThieuContentEditor";
 import { TruongChiNhanhEditor } from "@/components/truong/tuyensinh/TruongChiNhanhEditor";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
 import { TruongInlineModal } from "@/components/truong/inline/TruongInlineModal";
@@ -13,8 +13,6 @@ import {
 } from "@/lib/truong/chi-nhanh";
 import { normalizeTruongGioiThieuHtml } from "@/lib/truong/gioi-thieu";
 import type { TruongChiNhanh } from "@/lib/truong/types";
-
-import "@/styles/article-draft-tiptap.css";
 
 type Props = {
   /** Ẩn nút mặc định — dùng `openSchoolAboutEditor` hoặc nút tùy chỉnh. */
@@ -97,14 +95,7 @@ export function TruongEditableAbout({ hideTrigger = false }: Props) {
         </div>
         <div className="tdh-inline-field tdh-inline-field--richtext">
           <span>Giới thiệu trường (hiển thị trong popup)</span>
-          <div className="tdh-bai-dang-editor">
-            <ArticleDraftContentEditor
-              variant="truong-inline"
-              hideHint
-              value={gioiThieu}
-              onChange={setGioiThieu}
-            />
-          </div>
+          <GioiThieuContentEditor value={gioiThieu} onChange={setGioiThieu} />
         </div>
         <div className="tdh-inline-modal-actions">
           <button

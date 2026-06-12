@@ -4,9 +4,15 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
+import { CoSoMobileShellNav } from "@/components/co-so/CoSoMobileShellNav";
+import { useCoSoMobileShell } from "@/components/co-so/useCoSoMobileShell";
 import { TruongOrgCover } from "@/components/truong/TruongOrgCover";
 import { TruongAdmissionTimelineSidebar } from "@/components/truong/TruongAdmissionTimelineSidebar";
 import { TruongSchoolSidebar } from "@/components/truong/TruongSchoolSidebar";
+import {
+  TruongPageSettingsModal,
+  type TruongSettingsSection,
+} from "@/components/truong/TruongPageSettingsModal";
 import { TruongAdminToolbar } from "@/components/truong/inline/TruongAdminToolbar";
 import {
   TruongInlineEditProvider,
@@ -18,6 +24,7 @@ import { TruongTabHinhanh } from "@/components/truong/tabs/TruongTabHinhanh";
 import { TruongTabNganh } from "@/components/truong/tabs/TruongTabNganh";
 import { TruongTabTuyensinh } from "@/components/truong/tabs/TruongTabTuyensinh";
 import { YearFilterProvider } from "@/components/truong/YearFilterProvider";
+import { formatHocPhiLabel } from "@/lib/truong/display";
 import { resolveInitialDisplayYear } from "@/lib/truong/pin-display-year";
 import {
   parseTruongRouteFromPathname,
@@ -30,7 +37,7 @@ import {
   mergeTruongYearOptions,
   pickMaxTruongYear,
 } from "@/lib/truong/year-options";
-import type { TruongPagePayload } from "@/lib/truong/types";
+import type { TruongChiNhanh, TruongPagePayload } from "@/lib/truong/types";
 
 const TABS = [
   { id: "bai-dang" as const, label: TRUONG_TAB_LABELS["bai-dang"], num: "01" },
@@ -49,6 +56,29 @@ type Props = {
   canEdit?: boolean;
 };
 
+type SettingsSavedPatch = Partial<{
+  slug: string;
+  ten: string;
+  moTa: string | null;
+  gioiThieuTruong: string | null;
+  ten_tieng_anh: string | null;
+  ma_truong: string | null;
+  loai_truong: string | null;
+  nam_thanh_lap: number | null;
+  hoc_phi_nam_tu: number | null;
+  hoc_phi_nam_den: number | null;
+  co_ktx: boolean | null;
+  ktx_gia_thang: number | null;
+  ktx_dia_chi: string | null;
+  chi_nhanh: TruongChiNhanh[];
+  dia_chi: string | null;
+  dien_thoai: string | null;
+  email_lien_he: string | null;
+  tinh_thanh: string | null;
+  website: string | null;
+  facebook: string | null;
+}>;
+
 function useTruongRouteTab(): TruongTabId {
   const pathname = usePathname();
   return useMemo(() => {
@@ -56,21 +86,23 @@ function useTruongRouteTab(): TruongTabId {
   }, [pathname]);
 }
 
-export function TruongDetailView({ payload, canEdit = false }: Props) {
-  return (
-    <TruongInlineEditProvider canEdit={canEdit} initial={payload}>
-      <TruongAdminToolbar />
-      <TruongDetailViewInner />
-    </TruongInlineEditProvider>
-  );
-}
-
-function TruongDetailViewInner() {
+function TruongDetailViewInner({
+  settingsOpen = false,
+  settingsSection = "identity",
+  onSettingsOpenChange,
+  onOpenSettings,
+}: {
+  settingsOpen?: boolean;
+  settingsSection?: TruongSettingsSection;
+  onSettingsOpenChange?: (open: boolean) => void;
+  onOpenSettings?: (section: TruongSettingsSection) => void;
+}) {
   const ctx = useTruongInlineEdit();
   const tab = useTruongRouteTab();
   const [mountedTabs, setMountedTabs] = useState<Set<TruongTabId>>(
     () => new Set([tab]),
   );
+  const { isMobileShell, mobileTab, setMobileTab } = useCoSoMobileShell("content");
 
   useEffect(() => {
     setMountedTabs((prev) => {
@@ -103,19 +135,107 @@ function TruongDetailViewInner() {
     [school.slug, yearOptions, cauHinhYears, canEdit],
   );
 
+  const shellClass = [
+    "tdh-v6-shell",
+    isEditing ? "tdh-v6-shell--editing" : "",
+    isMobileShell ? "tdh-v6-shell--mobile-tabs" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  function handleSettingsSaved(patch: SettingsSavedPatch) {
+    ctx.applySchoolPatch({
+      ...(patch.ten ? { ten: patch.ten } : {}),
+      ...(patch.moTa !== undefined ? { mo_ta: patch.moTa } : {}),
+      ...(patch.gioiThieuTruong !== undefined
+        ? { gioi_thieu_truong: patch.gioiThieuTruong }
+        : {}),
+      ...(patch.ten_tieng_anh !== undefined
+        ? { ten_tieng_anh: patch.ten_tieng_anh }
+        : {}),
+      ...(patch.ma_truong !== undefined ? { ma_truong: patch.ma_truong } : {}),
+      ...(patch.loai_truong !== undefined
+        ? { loai_truong: patch.loai_truong }
+        : {}),
+      ...(patch.nam_thanh_lap !== undefined
+        ? { nam_thanh_lap: patch.nam_thanh_lap }
+        : {}),
+      ...(patch.hoc_phi_nam_tu !== undefined
+        ? { hoc_phi_nam_tu: patch.hoc_phi_nam_tu }
+        : {}),
+      ...(patch.hoc_phi_nam_den !== undefined
+        ? { hoc_phi_nam_den: patch.hoc_phi_nam_den }
+        : {}),
+      ...(patch.co_ktx !== undefined ? { co_ktx: patch.co_ktx } : {}),
+      ...(patch.ktx_gia_thang !== undefined
+        ? { ktx_gia_thang: patch.ktx_gia_thang }
+        : {}),
+      ...(patch.ktx_dia_chi !== undefined
+        ? { ktx_dia_chi: patch.ktx_dia_chi }
+        : {}),
+      ...(patch.chi_nhanh ? { chi_nhanh: patch.chi_nhanh } : {}),
+      ...(patch.dia_chi !== undefined ? { dia_chi: patch.dia_chi } : {}),
+      ...(patch.dien_thoai !== undefined ? { dien_thoai: patch.dien_thoai } : {}),
+      ...(patch.email_lien_he !== undefined
+        ? { email_lien_he: patch.email_lien_he }
+        : {}),
+      ...(patch.tinh_thanh !== undefined ? { tinh_thanh: patch.tinh_thanh } : {}),
+      ...(patch.website !== undefined ? { website: patch.website } : {}),
+      ...(patch.facebook !== undefined ? { facebook: patch.facebook } : {}),
+    });
+
+    if (
+      patch.hoc_phi_nam_tu !== undefined ||
+      patch.hoc_phi_nam_den !== undefined
+    ) {
+      const tu =
+        patch.hoc_phi_nam_tu !== undefined
+          ? patch.hoc_phi_nam_tu
+          : ctx.school.hoc_phi_nam_tu;
+      const den =
+        patch.hoc_phi_nam_den !== undefined
+          ? patch.hoc_phi_nam_den
+          : ctx.school.hoc_phi_nam_den;
+      ctx.setStats((s) => ({
+        ...s,
+        hocPhiLabel: formatHocPhiLabel(tu, den),
+      }));
+    }
+  }
+
   return (
     <YearFilterProvider
       yearOptions={yearOptions}
       initialYear={initialYear}
       persistPinYearSlug={canEdit ? school.slug : null}
     >
-      <div className={`tdh-v6-shell${isEditing ? " tdh-v6-shell--editing" : ""}`}>
-        <TruongSchoolSidebar />
+      <div
+        className={shellClass}
+        data-mobile-tab={isMobileShell ? mobileTab : undefined}
+      >
+        {isMobileShell ? (
+          <CoSoMobileShellNav value={mobileTab} onChange={setMobileTab} />
+        ) : null}
 
-        <div className="tdh-v6-center">
-          <div className="tdh-v6-cover-mobile">
-            <TruongOrgCover school={school} editable layout="v6" />
-          </div>
+        <TruongSchoolSidebar
+          onOpenSettings={onOpenSettings}
+          isMobileShell={isMobileShell}
+          isMobileShellActive={mobileTab === "info"}
+        />
+
+        <div
+          className="tdh-v6-center"
+          id="tdh-shell-panel-content"
+          role={isMobileShell ? "tabpanel" : undefined}
+          aria-labelledby={isMobileShell ? "cso-shell-tab-content" : undefined}
+          hidden={isMobileShell ? mobileTab !== "content" : undefined}
+          aria-hidden={isMobileShell ? mobileTab !== "content" : undefined}
+        >
+          {!isMobileShell ? (
+            <div className="tdh-v6-cover-mobile">
+              <TruongOrgCover school={school} editable layout="v6" />
+            </div>
+          ) : null}
 
           <div className="tdh-v6-tabs-bar">
             <div
@@ -170,8 +290,55 @@ function TruongDetailViewInner() {
           })}
         </div>
 
-        <TruongAdmissionTimelineSidebar />
+        <TruongAdmissionTimelineSidebar
+          isMobileShell={isMobileShell}
+          isMobileShellActive={mobileTab === "notify"}
+        />
       </div>
+
+      {canEdit && onSettingsOpenChange ? (
+        <TruongPageSettingsModal
+          open={settingsOpen}
+          orgId={school.id}
+          initialSection={settingsSection}
+          onClose={() => onSettingsOpenChange(false)}
+          onSaved={(patch) => {
+            handleSettingsSaved(patch);
+            ctx.showToast("Đã cập nhật cài đặt trang.");
+          }}
+        />
+      ) : null}
     </YearFilterProvider>
+  );
+}
+
+function TruongDetailViewBody({ payload, canEdit }: Props) {
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsSection, setSettingsSection] =
+    useState<TruongSettingsSection>("identity");
+
+  function openSettings(section: TruongSettingsSection = "identity") {
+    setSettingsSection(section);
+    setSettingsOpen(true);
+  }
+
+  return (
+    <>
+      <TruongAdminToolbar />
+      <TruongDetailViewInner
+        settingsOpen={settingsOpen}
+        settingsSection={settingsSection}
+        onSettingsOpenChange={canEdit ? setSettingsOpen : undefined}
+        onOpenSettings={canEdit ? openSettings : undefined}
+      />
+    </>
+  );
+}
+
+export function TruongDetailView({ payload, canEdit = false }: Props) {
+  return (
+    <TruongInlineEditProvider canEdit={canEdit} initial={payload}>
+      <TruongDetailViewBody payload={payload} canEdit={canEdit} />
+    </TruongInlineEditProvider>
   );
 }

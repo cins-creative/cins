@@ -61,13 +61,6 @@
   height: 168px;
 }
 
-.tdh-page--v6 .school-side .ss-cover .tdh-cover-overlay-slot .tdh-inline-media-btn {
-  right: 12px;
-  bottom: 12px;
-  font-size: 11px;
-  padding: 7px 10px;
-}
-
 .tdh-page--v6 .school-side .ss-cover .tdh-cover-pending-badge {
   left: 12px;
   bottom: 12px;
@@ -1790,7 +1783,7 @@
 .tdh-page--v6 .tdh-admission-side .timeline-date--recurring {
   display: inline-block;
   max-width: 100%;
-  padding: 2px 8px;
+  padding: 2px 12px;
   margin: 0 0 4px;
   border-radius: 999px;
   background: var(--cins-mint-soft, #d9fbed);
@@ -2205,14 +2198,351 @@
   }
 }
 
-/* ── md (≤991.98px / under lg): 1-col — sidebar trên, feed giữa, lịch dưới ── */
+/* Mobile shell — 3 tab: Thông tin · Nội dung · Thông báo (trang trường, không áp cơ sở) */
+.tdh-page--v6:not(.tdh-page--cso) .cso-mobile-shell-nav {
+  display: none;
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .cso-mobile-shell-nav-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  padding: 12px 8px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.45));
+  cursor: pointer;
+  position: relative;
+  transition: color 0.15s;
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .cso-mobile-shell-nav-btn.is-on {
+  color: var(--cins-blue, #1f74c9);
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .cso-mobile-shell-nav-btn.is-on::after {
+  content: "";
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 0;
+  height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: var(--cins-blue, #1f74c9);
+}
+
+/* Trường — mobile shell sidebar stack (cùng pattern cso-ss-* với cơ sở) */
+.tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs .school-side.cso-ss-side {
+  padding: 0;
+  gap: 0;
+  background: var(--bg-surface, #fff);
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs .school-side.cso-ss-side .ss-card-id,
+.tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs .school-side.cso-ss-side .ss-section {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs .cso-ss-card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+  background: var(--bg-surface, #fff);
+  overflow: hidden;
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs .cso-ss-pad {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  padding: 0 16px 24px;
+  scrollbar-width: none;
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs .cso-ss-pad::-webkit-scrollbar {
+  display: none;
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs .cso-ss-cover {
+  width: calc(100% + 32px);
+  margin: 0 -16px;
+  height: clamp(140px, 34vw, 200px);
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs .cso-ss-cover .ss-cover .cover-frame {
+  height: clamp(140px, 34vw, 200px);
+  border-radius: 0;
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs .cso-ss-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs .cso-ss-ava-row {
+  display: flex;
+  justify-content: center;
+  margin-top: clamp(-36px, -8vw, -28px);
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs .cso-ss-ava.tdh-org-avatar {
+  width: 92px;
+  height: 92px;
+  border-radius: var(--radius-lg, 20px);
+  border: 1px solid var(--border, #e4e6eb);
+  background: #fff;
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs .cso-ss-ava .tdh-org-avatar-img {
+  border-radius: calc(var(--radius-lg, 20px) - 2px);
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs .cso-ss-identity {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs .cso-ss-name {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-weight: 800;
+  font-size: 20px;
+  line-height: 1.15;
+  letter-spacing: -0.4px;
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+  text-align: center;
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs .cso-ss-sub {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ink-body, rgba(0, 0, 0, 0.55));
+  text-align: center;
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs .cso-ss-edit-info-btn {
+  align-self: center;
+  margin-top: 4px;
+  border: 1.5px solid rgba(31, 116, 201, 0.28);
+  background: var(--cins-blue-soft, #e7f0fb);
+  color: var(--cins-blue, #1f74c9);
+  border-radius: var(--radius-pill, 999px);
+  padding: 8px 14px;
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs .cso-ss-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin: 0;
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs .cso-ss-badge {
+  font-size: 11.5px;
+  font-weight: 500;
+  padding: 5px 11px;
+  border-radius: var(--radius-pill, 999px);
+  background: var(--neutral-100, #f1f2f5);
+  color: var(--ink-title, rgba(0, 0, 0, 0.6));
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs .cso-ss-primary-action--admin {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs .cso-ss-primary-action--admin .ss-btn {
+  width: 100%;
+  min-height: 44px;
+  height: auto;
+  padding: 11px 10px;
+  border-radius: var(--radius-md, 14px);
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: none;
+  transform: none;
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs .cso-ss-primary-action--single .ss-btn-user-chat {
+  width: 100%;
+  height: 44px;
+  border: none;
+  border-radius: var(--radius-md, 14px);
+  font-size: 14.5px;
+  font-weight: 600;
+  box-shadow: none;
+  transform: none;
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs .cso-ss-sec {
+  margin: 0;
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs .cso-ss-sec-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  gap: 10px;
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs .cso-ss-sec-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs .cso-ss-sec-edit {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--cins-blue, #1f74c9);
+  cursor: pointer;
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs .cso-ss-card .ss-contact-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 11px 0;
+  border-top: none;
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs .cso-ss-card .ss-contact-row + .ss-contact-row {
+  border-top: 1px solid var(--neutral-100, #f1f2f5);
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs .cso-ss-card .ss-contact-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm, 10px);
+  background: var(--neutral-50, #f8f9fb);
+  border: 1px solid var(--border, #e4e6eb);
+  flex-shrink: 0;
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs .cso-ss-card .ss-stat-grid {
+  gap: 8px;
+}
+
+/* ── md (≤991.98px / under lg): mobile tabs hoặc stack 1 cột ── */
 @media (max-width: 991.98px) {
-  .tdh-page--v6 > .tdh-v6-shell {
+  .tdh-page--v6:not(.tdh-page--cso) > .tdh-v6-shell {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100dvh - var(--site-nav-height, 64px));
     grid-template-columns: minmax(0, 1fr);
     max-width: 760px;
   }
 
-  .tdh-page--v6 .school-side {
+  .tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs {
+    --cso-mobile-shell-nav-h: 46px;
+  }
+
+  .tdh-page--v6 .tdh-v6-shell--mobile-tabs .tdh-v6-tabs-bar {
+    top: calc(var(--site-nav-height, 64px) + var(--cso-mobile-shell-nav-h, 46px));
+    z-index: 40;
+  }
+
+  .tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs .cso-mobile-shell-nav {
+    display: flex;
+    flex-shrink: 0;
+    order: 0;
+    position: sticky;
+    top: var(--site-nav-height, 64px);
+    z-index: 45;
+    background: var(--bg-surface, #fff);
+    border-bottom: 1px solid var(--border, #e4e6eb);
+    box-sizing: border-box;
+  }
+
+  .tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs > .school-side,
+  .tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs > .tdh-v6-center,
+  .tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs > .tdh-admission-side {
+    order: 1;
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    max-width: none;
+  }
+
+  .tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs > .school-side[hidden],
+  .tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs > .tdh-v6-center[hidden],
+  .tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs > .tdh-admission-side[hidden] {
+    display: none !important;
+  }
+
+  .tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs > .school-side:not([hidden]) {
+    display: flex;
+    flex-direction: column;
+    position: static;
+    max-height: none;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border-right: none;
+    border-bottom: none;
+    padding: 0 0 24px;
+    z-index: auto;
+  }
+
+  .tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs > .tdh-v6-center:not([hidden]) {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs > .tdh-admission-side:not([hidden]) {
+    display: block;
+    position: static;
+    min-height: 0;
+    height: auto;
+    max-height: none;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border-left: none;
+    border-top: none;
+    padding: 20px 18px 32px;
+  }
+
+  .tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs .tdh-admission-side .timeline-section--rail {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .tdh-page--v6:not(.tdh-page--cso):not(:has(.tdh-v6-shell--mobile-tabs)) > .tdh-v6-shell {
+    display: grid;
+  }
+
+  .tdh-page--v6:not(.tdh-page--cso):not(:has(.tdh-v6-shell--mobile-tabs)) .tdh-v6-center {
+    order: 1;
+  }
+
+  .tdh-page--v6:not(.tdh-page--cso):not(:has(.tdh-v6-shell--mobile-tabs)) .school-side {
+    order: 2;
     position: static;
     max-height: none;
     overflow: visible;
@@ -2223,11 +2553,8 @@
     z-index: auto;
   }
 
-  .tdh-page--v6 .tdh-v6-cover-mobile {
-    display: none;
-  }
-
-  .tdh-page--v6 .tdh-admission-side {
+  .tdh-page--v6:not(.tdh-page--cso):not(:has(.tdh-v6-shell--mobile-tabs)) .tdh-admission-side {
+    order: 3;
     position: static;
     min-height: 0;
     height: auto;
@@ -2238,7 +2565,48 @@
     padding: 20px 18px 32px;
   }
 
-  .tdh-page--v6 .tdh-admission-side .timeline-section--rail {
+  .tdh-page--v6:not(.tdh-page--cso):not(:has(.tdh-v6-shell--mobile-tabs)) .tdh-admission-side .timeline-section--rail {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .tdh-page--v6:not(.tdh-page--cso) .tdh-v6-cover-mobile {
+    display: none;
+  }
+
+  /* Co-so giữ stack cũ qua co-so-page.css */
+  .tdh-page--cso > .tdh-v6-shell {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 760px;
+  }
+
+  .tdh-page--cso .school-side {
+    position: static;
+    max-height: none;
+    overflow: visible;
+    overscroll-behavior: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--border, #e4e6eb);
+    padding: 0 0 20px;
+    z-index: auto;
+  }
+
+  .tdh-page--cso .tdh-v6-cover-mobile {
+    display: none;
+  }
+
+  .tdh-page--cso .tdh-admission-side {
+    position: static;
+    min-height: 0;
+    height: auto;
+    max-height: none;
+    overflow: visible;
+    border-left: none;
+    border-top: 1px solid var(--border, #e4e6eb);
+    padding: 20px 18px 32px;
+  }
+
+  .tdh-page--cso .tdh-admission-side .timeline-section--rail {
     max-height: none;
     overflow: visible;
   }
@@ -2283,9 +2651,9 @@
 
   .tdh-page--v6 #tdh-panel-baidang,
   .tdh-page--v6 #cso-panel-bai-dang {
-    padding: 12px 0 40px;
-    --tdh-baidang-stack-gap: 12px;
-    --tdh-baidang-card-gap: 14px;
+    padding: 0;
+    --tdh-baidang-stack-gap: 0;
+    --tdh-baidang-card-gap: 0;
   }
 
   .tdh-page--v6 .editorial-head {
@@ -2380,7 +2748,7 @@
 
   .tdh-page--v6 #tdh-panel-baidang,
   .tdh-page--v6 #cso-panel-bai-dang {
-    padding: 8px 0 32px;
+    padding: 0;
   }
 
   .tdh-page--v6 .nganh-item .nib-grid,
@@ -3190,7 +3558,10 @@
 /* ── Tab Bài đăng — timeline kiểu Journey ── */
 .tdh-page--v6 #tdh-panel-baidang,
 .tdh-page--v6 #cso-panel-bai-dang {
-  --j-topbar-h: calc(var(--site-nav-height, 64px) + var(--tdh-v6-tabs-h, 50px));
+  --j-topbar-h: calc(
+    var(--site-nav-height, 64px) + var(--cso-mobile-shell-nav-h, 0px) +
+      var(--tdh-v6-tabs-h, 50px)
+  );
   --j-ctx-h: 52px;
   --j-rail-x: 0px;
   --j-content-pad-l: 0px;
@@ -3437,3 +3808,59 @@
   z-index: 4;
 }
 
+/* Mobile — bài đăng full-bleed, không bo góc */
+@media (max-width: 991.98px) {
+  .tdh-page--v6 #tdh-panel-baidang,
+  .tdh-page--v6 #cso-panel-bai-dang {
+    padding: 0;
+    --tdh-baidang-stack-gap: 0;
+    --tdh-baidang-card-gap: 0;
+  }
+
+  .tdh-page--v6 #tdh-panel-baidang .tdh-org-baidang-timeline,
+  .tdh-page--v6 #cso-panel-bai-dang .tdh-org-baidang-timeline,
+  .tdh-page--v6 #tdh-panel-baidang .tdh-org-baidang-timeline .j-year-block,
+  .tdh-page--v6 #cso-panel-bai-dang .tdh-org-baidang-timeline .j-year-block {
+    gap: 0;
+  }
+
+  .tdh-page--v6 #tdh-panel-baidang .tdh-org-baidang-timeline .j-milestone,
+  .tdh-page--v6 #cso-panel-bai-dang .tdh-org-baidang-timeline .j-milestone {
+    margin-bottom: 0;
+  }
+
+  .tdh-page--v6 #tdh-panel-baidang .org-baidang-tlb,
+  .tdh-page--v6 #cso-panel-bai-dang .org-baidang-tlb {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .tdh-page--v6 #tdh-panel-baidang .j-m-card,
+  .tdh-page--v6 #cso-panel-bai-dang .j-m-card {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    box-shadow: none;
+  }
+
+  .tdh-page--v6 #tdh-panel-baidang .j-m-card.is-expanded,
+  .tdh-page--v6 #cso-panel-bai-dang .j-m-card.is-expanded,
+  .tdh-page--v6 #tdh-panel-baidang .j-m-card.jcard.is-expanded,
+  .tdh-page--v6 #cso-panel-bai-dang .j-m-card.jcard.is-expanded {
+    border-radius: 0;
+    transform: none;
+    box-shadow: none;
+  }
+
+  .tdh-page--v6 #tdh-panel-baidang .j-create-composer,
+  .tdh-page--v6 #cso-panel-bai-dang .j-create-composer,
+  .tdh-page--v6 #tdh-panel-baidang .tdh-org-baidang-empty .j-create-composer,
+  .tdh-page--v6 #cso-panel-bai-dang .tdh-org-baidang-empty .j-create-composer,
+  .tdh-page--v6 #tdh-panel-baidang .tdh-org-baidang-empty-card,
+  .tdh-page--v6 #cso-panel-bai-dang .tdh-org-baidang-empty-card {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    box-shadow: none;
+  }
+}

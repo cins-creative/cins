@@ -7,6 +7,10 @@ import {
   parseCoSoPageCauHinh,
   type CoSoPageCauHinh,
 } from "@/lib/to-chuc/co-so-page-cau-hinh";
+import {
+  parseChiNhanhFromCauHinh,
+  parseFacebookFromCauHinh,
+} from "@/lib/truong/chi-nhanh";
 import { resolveTruongImageSrcSync } from "@/lib/truong/media-url";
 import { fetchBaiDang, fetchHinhAnh } from "@/lib/truong/queries";
 import type {
@@ -66,6 +70,8 @@ function mapCoSoToTruongDetail(
   avatar_src: string | null,
   cover_src: string | null,
 ): TruongDetail {
+  const chi_nhanh = parseChiNhanhFromCauHinh(org.cau_hinh) ?? undefined;
+  const facebook = parseFacebookFromCauHinh(org.cau_hinh);
   return {
     id: org.id,
     slug: org.slug,
@@ -82,6 +88,8 @@ function mapCoSoToTruongDetail(
     dia_chi: org.dia_chi,
     dien_thoai: org.dien_thoai,
     email_lien_he: org.email_lien_he,
+    chi_nhanh,
+    facebook,
     ma_truong: null,
     loai_truong: ext.loai_co_so,
     website: ext.website,

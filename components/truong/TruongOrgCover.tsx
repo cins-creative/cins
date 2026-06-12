@@ -47,8 +47,9 @@ export function TruongOrgCover({ school, editable = false, layout = "legacy" }: 
         ) : null}
         <button
           type="button"
-          className="tdh-inline-media-btn tdh-cover-edit"
+          className="tdh-cover-edit-btn"
           onClick={openPicker}
+          aria-label="Đổi ảnh bìa"
         >
           Đổi ảnh bìa
         </button>
@@ -73,6 +74,7 @@ export function TruongOrgCover({ school, editable = false, layout = "legacy" }: 
       school={school}
       avatarPreviewUrl={avatarPreviewUrl}
       layout={layout}
+      editable={canEdit}
     />
   );
 }

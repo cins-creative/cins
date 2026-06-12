@@ -11,6 +11,7 @@ import {
   parseChiNhanhFromCauHinh,
   parseFacebookFromCauHinh,
 } from "@/lib/truong/chi-nhanh";
+import { parseKtxDiaChiFromCauHinh } from "@/lib/truong/ktx-cau-hinh";
 import { resolveTruongImageSrc, resolveTruongImageSrcSync } from "@/lib/truong/media-url";
 
 import {
@@ -164,6 +165,7 @@ function mapListFields(
     co_ktx: otd?.co_ktx ?? null,
     ktx_gia_thang:
       typeof otd?.ktx_gia_thang === "number" ? otd.ktx_gia_thang : null,
+    ktx_dia_chi: parseKtxDiaChiFromCauHinh(org.cau_hinh),
     nganhCount: tagSet.size,
     nganhTags: [...tagSet].slice(0, 3),
   };

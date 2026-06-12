@@ -19,6 +19,8 @@ import { TruongCardCoverGeo } from "@/components/truong/TruongCardCoverGeo";
 type Props = {
   branches: TruongChiNhanh[];
   onChange: (next: TruongChiNhanh[]) => void;
+  uploadImage?: (file: File) => Promise<{ imageId: string; url: string } | null>;
+  persistHint?: string;
 };
 
 function branchTitle(branch: TruongChiNhanh, index: number): string {
@@ -36,29 +38,32 @@ function BranchCoverField({
   branch,
   index,
   onChange,
+  uploadImage,
 }: {
   branch: TruongChiNhanh;
   index: number;
   onChange: (coverId: string | null) => void;
+  uploadImage?: (file: File) => Promise<{ imageId: string; url: string } | null>;
 }) {
   const ctx = useTruongInlineEdit();
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const upload = uploadImage ?? ctx?.uploadImage;
   const coverUrl = branch.cover_id
     ? resolveTruongImageSrcSync(branch.cover_id, ["public", "cover", "medium"])
     : null;
 
   async function onFilePicked(file: File | undefined) {
-    if (!file || !ctx) return;
+    if (!file || !upload) return;
     setUploading(true);
-    const uploaded = await ctx.uploadImage(file);
+    const uploaded = await upload(file);
     setUploading(false);
     if (!uploaded) {
-      ctx.showToast("Tải ảnh bìa thất bại");
+      ctx?.showToast("Tải ảnh bìa thất bại");
       return;
     }
     onChange(uploaded.imageId);
-    ctx.showToast("Đã thêm ảnh bìa — bấm Lưu để giữ");
+    ctx?.showToast("Đã thêm ảnh bìa — bấm Lưu để giữ");
   }
 
   return (
@@ -137,7 +142,12 @@ function ChevronIcon({ expanded }: { expanded: boolean }) {
   );
 }
 
-export function TruongChiNhanhEditor({ branches, onChange }: Props) {
+export function TruongChiNhanhEditor({
+  branches,
+  onChange,
+  uploadImage,
+  persistHint = "Lưu thông tin trường",
+}: Props) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
@@ -236,7 +246,7 @@ export function TruongChiNhanhEditor({ branches, onChange }: Props) {
                   <div className="tdh-inline-modal-warning tdh-chi-nhanh-editor-delete-warning">
                     <p>
                       Xóa <strong>«{title}»</strong>? Chi nhánh sẽ bị gỡ khỏi
-                      danh sách sau khi bạn bấm <strong>Lưu thông tin trường</strong>.
+                      danh sách sau khi bạn bấm <strong>{persistHint}</strong>.
                     </p>
                     {index === 0 ? (
                       <p>
@@ -269,6 +279,7 @@ export function TruongChiNhanhEditor({ branches, onChange }: Props) {
                     branch={branch}
                     index={index}
                     onChange={(cover_id) => updateAt(index, { cover_id })}
+                    uploadImage={uploadImage}
                   />
                   <label className="tdh-inline-field">
                     <span>Tên chi nhánh</span>

@@ -113,7 +113,13 @@ function TimelineStepItem({
   return <div className={className}>{content}</div>;
 }
 
-export function TruongAdmissionTimelineSidebar() {
+export function TruongAdmissionTimelineSidebar({
+  isMobileShell = false,
+  isMobileShellActive = false,
+}: {
+  isMobileShell?: boolean;
+  isMobileShellActive?: boolean;
+} = {}) {
   const ctx = useTruongInlineEdit();
   const tuyenSinh = ctx?.tuyenSinh ?? [];
   const isEditing = ctx?.isEditing ?? false;
@@ -365,7 +371,14 @@ export function TruongAdmissionTimelineSidebar() {
 
   return (
     <>
-      <aside className="tdh-admission-side" aria-label="Mốc thông báo">
+      <aside
+        className="tdh-admission-side"
+        aria-label="Mốc thông báo"
+        id={isMobileShell ? "cso-shell-panel-notify" : undefined}
+        role={isMobileShell ? "tabpanel" : undefined}
+        aria-labelledby={isMobileShell ? "cso-shell-tab-notify" : undefined}
+        hidden={isMobileShell ? !isMobileShellActive : undefined}
+      >
         <div className="tdh-admission-side-head">
           <div className="tdh-admission-side-year-row">
             <p className="timeline-year-kicker">Thông báo</p>

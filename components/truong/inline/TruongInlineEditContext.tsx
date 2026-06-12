@@ -86,6 +86,8 @@ type Ctx = {
   saving: boolean;
   toast: string | null;
   patchSchool: (patch: Partial<TruongDetail>) => Promise<boolean>;
+  /** Cập nhật state `school` cục bộ (không gọi API) — dùng sau lưu cài đặt cơ sở. */
+  applySchoolPatch: (patch: Partial<TruongDetail>) => void;
   avatarDraft: { file: File; previewUrl: string } | null;
   setAvatarDraft: (draft: { file: File; previewUrl: string } | null) => void;
   commitAvatarDraft: () => Promise<boolean>;
@@ -288,6 +290,10 @@ export function TruongInlineEditProvider({
   );
   const openSchoolAboutEditor = useCallback(() => {
     openSchoolAboutEditorRef.current?.();
+  }, []);
+
+  const applySchoolPatch = useCallback((patch: Partial<TruongDetail>) => {
+    setSchool((s) => ({ ...s, ...patch }));
   }, []);
 
   const patchSchool = useCallback(
@@ -591,6 +597,7 @@ export function TruongInlineEditProvider({
       saving,
       toast,
       patchSchool,
+      applySchoolPatch,
       avatarDraft,
       setAvatarDraft,
       commitAvatarDraft,
@@ -635,6 +642,7 @@ export function TruongInlineEditProvider({
       saving,
       toast,
       patchSchool,
+      applySchoolPatch,
       avatarDraft,
       setAvatarDraft,
       commitAvatarDraft,
