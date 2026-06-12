@@ -60,6 +60,7 @@ import {
 } from "@/lib/journey/post-media";
 import { JOURNEY_MILESTONE_TYPE_OPTIONS } from "@/lib/journey/milestone-type-options";
 import { getNameInitials } from "@/lib/journey/profile";
+import { truongRootPath } from "@/lib/truong/truong-routes";
 
 type Props = {
   milestone: MilestoneItem;
@@ -1808,8 +1809,7 @@ function BookmarkOriginalPosterChip({
 
   if (orgBaiDangRef) {
     const href =
-      bookmark.url ??
-      `/truong-dai-hoc/${encodeURIComponent(orgBaiDangRef.orgSlug)}`;
+      bookmark.url ?? truongRootPath(orgBaiDangRef.orgSlug);
     return (
       <JourneyOrgPopover
         slug={orgBaiDangRef.orgSlug}

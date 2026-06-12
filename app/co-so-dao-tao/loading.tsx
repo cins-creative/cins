@@ -1,6 +1,6 @@
 import { CinsShell } from "@/components/cins/CinsShell";
 
-import { TruongListingSkeleton } from "@/app/truong-dai-hoc/_components/TruongListing.skeleton";
+import { TruongListingSkeleton } from "@/app/co-so-dao-tao/_components/TruongListing.skeleton";
 
 export default function TruongDaiHocLoading() {
   return (

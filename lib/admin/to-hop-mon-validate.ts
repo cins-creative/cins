@@ -45,19 +45,17 @@ export function parseAdminToHopMonForm(input: {
   const mo_ta = mo_taRaw || null;
 
   const rawMon = String(input.mon_ids ?? "").trim();
-  const mon_ids = rawMon
-    ? rawMon
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean)
+  const mon_ids = rawMon.length
+    ? rawMon.split(",").map((s) => s.trim())
     : [];
 
-  if (mon_ids.length === 0) {
+  const linkedIds = mon_ids.filter(Boolean);
+  if (linkedIds.length === 0 && mon_ids.length === 0) {
     return { ok: false, message: "Chọn ít nhất một môn thi trong khối." };
   }
 
   const seen = new Set<string>();
-  for (const id of mon_ids) {
+  for (const id of linkedIds) {
     if (seen.has(id)) {
       return { ok: false, message: "Mỗi môn chỉ được chọn một lần trong khối." };
     }

@@ -33,10 +33,17 @@ import {
   baiDangYear,
 } from "@/lib/truong/bai-dang-timeline";
 import { isTruongBaiDangScheduled } from "@/lib/truong/org-bai-dang-schedule";
-import type { TruongBaiDang } from "@/lib/truong/types";
+import type { TruongBaiDang, TruongListItem } from "@/lib/truong/types";
+
+type OrgOwner = Pick<
+  TruongListItem,
+  "avatar_id" | "logo_id" | "avatar_src" | "ten"
+>;
 
 type Props = {
   post: TruongBaiDang;
+  /** Fallback khi không có `TruongInlineEditProvider` (vd. trang cơ sở khách). */
+  owner?: OrgOwner | null;
 };
 
 function shouldIgnoreExpandTrigger(target: Element | null): boolean {
@@ -69,9 +76,9 @@ function orgBaiDangPreviewMedia(post: TruongBaiDang): MilestoneMediaItem | null 
   };
 }
 
-export function OrgBaiDangJourneyCard({ post }: Props) {
+export function OrgBaiDangJourneyCard({ post, owner = null }: Props) {
   const ctx = useTruongInlineEdit();
-  const school = ctx?.school;
+  const school = ctx?.school ?? owner;
   const isScheduled = isTruongBaiDangScheduled(post);
   const showScheduledUi = ctx?.isEditing && isScheduled;
   const [expanded, setExpanded] = useState(false);

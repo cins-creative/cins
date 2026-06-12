@@ -52,6 +52,33 @@ async function fetchMonCatalog(
   return map;
 }
 
+function normalizeTenKey(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function resolveMonIdForSlot(
+  monMa: string | null,
+  tenSlot: string,
+  catalog: Map<string, MonCatalogRow>,
+  maToId: Map<string, string>,
+): string | null {
+  if (monMa) {
+    const byMa = maToId.get(monMa);
+    if (byMa) return byMa;
+    if (catalog.has(monMa)) return monMa;
+  }
+  const tenKey = normalizeTenKey(tenSlot);
+  if (!tenKey || tenKey === "nang khieu") return null;
+  for (const [id, mon] of catalog) {
+    if (normalizeTenKey(mon.ten) === tenKey) return id;
+  }
+  return null;
+}
+
 function maById(catalog: Map<string, MonCatalogRow>, id: string): string {
   const row = catalog.get(id);
   if (row?.ma) return row.ma;
@@ -100,12 +127,18 @@ function enrichRow(
       if (!slotId) return null;
       const so_thu_tu = Number(s.so_thu_tu ?? 0);
       const idx = Math.max(0, so_thu_tu - 1);
-      const monMa = cac_mon[idx] ?? null;
-      const id_mon_thi = monMa ? (maToId.get(monMa) ?? null) : null;
+      const monMa = cac_mon[idx]?.trim() || null;
+      const ten_slot = String(s.ten_slot ?? "").trim() || "Môn";
+      const id_mon_thi = resolveMonIdForSlot(
+        monMa,
+        ten_slot,
+        catalog,
+        maToId,
+      );
       return {
         id: slotId,
         so_thu_tu,
-        ten_slot: String(s.ten_slot ?? "").trim() || "Môn",
+        ten_slot,
         loai: String(s.loai ?? "").trim() || "van_hoa",
         co_dinh: Boolean(s.co_dinh),
         id_mon_thi,
@@ -179,6 +212,7 @@ async function syncChiTietForHop(
   hopId: string,
   monIds: string[],
   catalog: Map<string, MonCatalogRow>,
+  existingSlots: AdminToHopMonChiTiet[] = [],
 ): Promise<{ ok: true; cac_mon: string[] } | { ok: false; message: string }> {
   const cac_mon: string[] = [];
   const slots: {
@@ -190,20 +224,39 @@ async function syncChiTietForHop(
   }[] = [];
 
   for (let i = 0; i < monIds.length; i++) {
-    const monId = monIds[i]!.trim();
-    const mon = catalog.get(monId);
-    if (!mon) {
-      return { ok: false, message: `Môn thi không tồn tại: ${monId}` };
+    const monId = monIds[i]?.trim() ?? "";
+    if (monId) {
+      const mon = catalog.get(monId);
+      if (!mon) {
+        return { ok: false, message: `Môn thi không tồn tại: ${monId}` };
+      }
+      const ma = maById(catalog, monId);
+      cac_mon.push(ma);
+      slots.push({
+        id_to_hop_mon: hopId,
+        so_thu_tu: i + 1,
+        ten_slot: mon.ten,
+        loai: mon.loai ?? "van_hoa",
+        co_dinh: true,
+      });
+      continue;
     }
-    const ma = maById(catalog, monId);
-    cac_mon.push(ma);
+
+    const prev = existingSlots.find((s) => s.so_thu_tu === i + 1);
+    const ten_slot = prev?.ten_slot?.trim() || "Môn";
+    const loai = prev?.loai?.trim() || "van_hoa";
+    cac_mon.push("");
     slots.push({
       id_to_hop_mon: hopId,
       so_thu_tu: i + 1,
-      ten_slot: mon.ten,
-      loai: mon.loai ?? "van_hoa",
-      co_dinh: true,
+      ten_slot,
+      loai,
+      co_dinh: false,
     });
+  }
+
+  if (!slots.length) {
+    return { ok: false, message: "Khối phải có ít nhất một slot môn." };
   }
 
   const { error: delErr } = await supabase
@@ -336,11 +389,36 @@ export async function updateToHopMonForAdmin(
     }
 
     if (patch.mon_ids) {
+      const { data: existingChi } = await supabase
+        .from("edu_to_hop_mon_chi_tiet")
+        .select("so_thu_tu, ten_slot, loai, co_dinh")
+        .eq("id_to_hop_mon", hopId);
+
+      const existingSlots: AdminToHopMonChiTiet[] = (existingChi ?? [])
+        .map((row) => {
+          const r = row as {
+            so_thu_tu?: number;
+            ten_slot?: string;
+            loai?: string;
+            co_dinh?: boolean;
+          };
+          return {
+            id: "",
+            so_thu_tu: Number(r.so_thu_tu ?? 0),
+            ten_slot: String(r.ten_slot ?? "").trim() || "Môn",
+            loai: String(r.loai ?? "").trim() || "van_hoa",
+            co_dinh: Boolean(r.co_dinh),
+            id_mon_thi: null,
+          };
+        })
+        .filter((s) => s.so_thu_tu > 0);
+
       const synced = await syncChiTietForHop(
         supabase,
         hopId,
         patch.mon_ids,
         catalog,
+        existingSlots,
       );
       if (!synced.ok) return synced;
     }

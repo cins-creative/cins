@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import type { RelatedCareerCard } from "@/lib/career/types";
+import { ngheNghiepDetailHref } from "@/lib/cins/hubPaths";
 
 const TABS = [
   { id: "vi-tri" as const, label: "Vị trí" },
@@ -44,7 +45,7 @@ export function KeywordPanel({ related }: Props) {
             ) : (
               related.map((r) => (
                 <li key={r.id}>
-                  <Link href={`/nghe-nghiep/${r.slug}`}>
+                  <Link href={ngheNghiepDetailHref(r.slug)}>
                     {r.title_eng ?? r.title_vietnam ?? r.slug}
                   </Link>
                 </li>

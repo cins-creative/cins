@@ -17,11 +17,17 @@ import {
   groupBaiDangByYear,
   type BaiDangTimelineFilter,
 } from "@/lib/truong/bai-dang-timeline";
-import type { TruongBaiDang } from "@/lib/truong/types";
+import type { TruongBaiDang, TruongListItem } from "@/lib/truong/types";
 import type { CoSoFilterChip } from "@/lib/to-chuc/co-so-page-queries";
+
+type OrgOwner = Pick<
+  TruongListItem,
+  "avatar_id" | "logo_id" | "avatar_src" | "ten"
+>;
 
 type Props = {
   posts: TruongBaiDang[];
+  owner?: OrgOwner | null;
   composeEnabled?: boolean;
   ownerSlug?: string;
   orgFilters?: CoSoFilterChip[];
@@ -49,6 +55,7 @@ function countNhanFilters(
 
 export function CoSoOrgBaiDangTimeline({
   posts,
+  owner = null,
   composeEnabled = false,
   ownerSlug,
   orgFilters = [],
@@ -142,7 +149,7 @@ export function CoSoOrgBaiDangTimeline({
         yearGroups.map(({ year, posts: yearPosts }) => (
           <section key={year} className="j-year-block" data-year={year}>
             {yearPosts.map((post) => (
-              <OrgBaiDangJourneyCard key={post.id} post={post} />
+              <OrgBaiDangJourneyCard key={post.id} post={post} owner={owner} />
             ))}
           </section>
         ))

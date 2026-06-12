@@ -22,6 +22,7 @@ import { isInlineArticleEditEnabled } from "@/lib/dev/inline-article-edit";
 import { hasSupabaseEnv } from "@/lib/supabase/server";
 import { hasServiceRoleEnv } from "@/lib/supabase/service-role";
 import type { ArticleBaiViet, LoaiBaiViet } from "@/lib/articles/types";
+import { ngheNghiepDetailHref } from "@/lib/cins/hubPaths";
 
 export const dynamic = "force-dynamic";
 
@@ -102,7 +103,7 @@ export default async function BaiVietSlugPage({ params }: Props) {
   }
 
   if (article.loai_bai_viet === "nghe") {
-    permanentRedirect(`/nghe-nghiep/${encodeURIComponent(article.slug)}`);
+    permanentRedirect(ngheNghiepDetailHref(article.slug));
   }
 
   const draftUiEnabled = isInlineArticleEditEnabled();

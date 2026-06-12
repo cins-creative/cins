@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { NGHE_NGHIEP_HUB_PATH } from "@/lib/cins/hubPaths";
+
 import { BaiVietArticleCard } from "@/components/bai-viet/BaiVietArticleCard";
 import { BaiVietHubPageHead } from "@/components/bai-viet/BaiVietHubPageHead";
 import { BaiVietHubPagination } from "@/components/bai-viet/BaiVietHubPagination";
@@ -77,7 +79,7 @@ export function BaiVietHubScreen({
               <p className="hn-ad-hero-desc">
                 Môn học, keyword và phần mềm — tra cứu nhanh theo loại bài trên CINs. Nghề
                 nghiệp và ngành học xem tại{" "}
-                <Link href="/nghe-nghiep">Hướng nghiệp</Link>.
+                <Link href={NGHE_NGHIEP_HUB_PATH}>Hướng nghiệp</Link>.
               </p>
             </div>
           </section>

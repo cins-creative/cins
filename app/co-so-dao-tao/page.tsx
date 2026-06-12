@@ -1,8 +1,8 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 
-import { TruongListingLoader } from "@/app/truong-dai-hoc/_components/TruongListingLoader";
-import { TruongListingSkeleton } from "@/app/truong-dai-hoc/_components/TruongListing.skeleton";
+import { TruongListingLoader } from "@/app/co-so-dao-tao/_components/TruongListingLoader";
+import { TruongListingSkeleton } from "@/app/co-so-dao-tao/_components/TruongListing.skeleton";
 import { CinsShell } from "@/components/cins/CinsShell";
 
 export const metadata: Metadata = {

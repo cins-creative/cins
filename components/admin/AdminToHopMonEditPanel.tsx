@@ -9,7 +9,7 @@ import {
 } from "@/app/admin/actions";
 import { AdminMonThiSlotPicker } from "@/components/admin/AdminMonThiSlotPicker";
 import type { AdminMonThiRow } from "@/lib/admin/mon-thi-server";
-import type { AdminToHopMonRow } from "@/lib/admin/to-hop-mon-server";
+import type { AdminToHopMonChiTiet, AdminToHopMonRow } from "@/lib/admin/to-hop-mon-server";
 
 type Props = {
   row?: AdminToHopMonRow;
@@ -17,6 +17,11 @@ type Props = {
   onCancel: () => void;
   onSaved: () => void;
 };
+
+function chiTietToMonIds(chi_tiet: AdminToHopMonChiTiet[]): string[] {
+  if (!chi_tiet.length) return ["", "", ""];
+  return chi_tiet.map((s) => s.id_mon_thi ?? "");
+}
 
 export function AdminToHopMonEditPanel({
   row,
@@ -33,9 +38,7 @@ export function AdminToHopMonEditPanel({
   const [ten_to_hop, setTenToHop] = useState(row?.ten_to_hop ?? "");
   const [mo_ta, setMoTa] = useState(row?.mo_ta ?? "");
   const [monIds, setMonIds] = useState<string[]>(() =>
-    row?.chi_tiet
-      .map((s) => s.id_mon_thi)
-      .filter((x): x is string => Boolean(x)) ?? ["", "", ""],
+    row ? chiTietToMonIds(row.chi_tiet) : ["", "", ""],
   );
 
   useEffect(() => {
@@ -50,11 +53,7 @@ export function AdminToHopMonEditPanel({
     setMaToHop(row.ma_to_hop);
     setTenToHop(row.ten_to_hop);
     setMoTa(row.mo_ta ?? "");
-    setMonIds(
-      row.chi_tiet
-        .map((s) => s.id_mon_thi)
-        .filter((x): x is string => Boolean(x)),
-    );
+    setMonIds(chiTietToMonIds(row.chi_tiet));
     setSaveMsg(null);
   }, [row?.id, row?.ma_to_hop, row?.ten_to_hop, row?.mo_ta, row?.chi_tiet]);
 
@@ -79,10 +78,15 @@ export function AdminToHopMonEditPanel({
 
   const liveFormula = useMemo(() => {
     const names = monIds
-      .map((id) => (id ? monById.get(id)?.ten : null))
+      .map((id, i) => {
+        if (id) return monById.get(id)?.ten ?? null;
+        return row?.chi_tiet[i]?.ten_slot ?? null;
+      })
       .filter(Boolean) as string[];
     return names.length ? names.join(" · ") : "Chưa chọn môn";
-  }, [monIds, monById]);
+  }, [monIds, monById, row?.chi_tiet]);
+
+  const linkedMonCount = monIds.filter(Boolean).length;
 
   function setMonAt(index: number, monId: string) {
     setMonIds((prev) => {
@@ -121,7 +125,7 @@ export function AdminToHopMonEditPanel({
     fd.set("ma_to_hop", ma_to_hop);
     fd.set("ten_to_hop", ten_to_hop);
     fd.set("mo_ta", mo_ta);
-    fd.set("mon_ids", monIds.filter(Boolean).join(","));
+    fd.set("mon_ids", monIds.join(","));
 
     if (isCreate) {
       const res = await adminCreateToHopMon(fd);
@@ -168,7 +172,7 @@ export function AdminToHopMonEditPanel({
               {liveFormula}
             </p>
             <p className="admin-khoi-edit-meta">
-              {monIds.filter(Boolean).length} môn · thứ tự = slot tính điểm
+              {monIds.length} slot · {linkedMonCount} môn đã gắn danh mục
             </p>
           </div>
         </div>
@@ -260,10 +264,20 @@ export function AdminToHopMonEditPanel({
             </div>
           ) : (
             <ul className="admin-khoi-slots">
-              {monIds.map((monId, index) => (
+              {monIds.map((monId, index) => {
+                const slotLabel = row?.chi_tiet[index]?.ten_slot;
+                return (
                   <li key={`slot-${index}`} className="admin-khoi-slot-card">
                     <span className="admin-khoi-slot-num">{index + 1}</span>
                     <div className="admin-khoi-slot-body">
+                      {slotLabel && !monId ? (
+                        <p className="admin-khoi-slot-label">
+                          Slot: <strong>{slotLabel}</strong>
+                          <span className="admin-khoi-slot-label-hint">
+                            — chọn môn trong danh mục
+                          </span>
+                        </p>
+                      ) : null}
                       <AdminMonThiSlotPicker
                         id={`khoi-mon-${index}`}
                         value={monId}
@@ -272,7 +286,7 @@ export function AdminToHopMonEditPanel({
                         excludeIds={monIds.filter(
                           (id, i) => i !== index && Boolean(id),
                         )}
-                        required
+                        required={Boolean(monId) || !slotLabel}
                       />
                     </div>
                     <div className="admin-khoi-slot-actions">
@@ -304,7 +318,8 @@ export function AdminToHopMonEditPanel({
                       </button>
                     </div>
                   </li>
-              ))}
+                );
+              })}
             </ul>
           )}
 

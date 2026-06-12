@@ -3,14 +3,14 @@
 import { Search } from "lucide-react";
 import { usePathname, useSearchParams } from "next/navigation";
 
-import { NGANH_HOC_HUB_PATH, NGHE_NGHIEP_HUB_PATH } from "@/lib/cins/hubPaths";
+import { isNgheNghiepHubPath, NGANH_HOC_HUB_PATH, NGHE_NGHIEP_HUB_PATH } from "@/lib/cins/hubPaths";
 
 export function CinsTopbarSearch() {
   const pathname = usePathname() ?? "";
   const sp = useSearchParams();
 
   const isNganhHub = pathname.startsWith(NGANH_HOC_HUB_PATH);
-  const isNgheHub = pathname.startsWith(NGHE_NGHIEP_HUB_PATH);
+  const isNgheHub = isNgheNghiepHubPath(pathname);
 
   const action = isNganhHub ? NGANH_HOC_HUB_PATH : NGHE_NGHIEP_HUB_PATH;
   const q = sp.get("q") ?? "";

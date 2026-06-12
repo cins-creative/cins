@@ -1,3 +1,10 @@
+import {
+  CO_SO_DAO_TAO_HUB_PATH,
+  isCoSoDaoTaoHubPath,
+  isNgheNghiepHubPath,
+  NGHE_NGHIEP_HUB_PATH,
+} from "@/lib/cins/hubPaths";
+
 export type MainNavIcon =
   | "home"
   | "gallery"
@@ -40,20 +47,19 @@ export const MAIN_NAV_ITEMS: MainNavItem[] = [
   },
   {
     id: "career",
-    href: "/nghe-nghiep",
+    href: NGHE_NGHIEP_HUB_PATH,
     label: "Khám phá nghề",
     tip: "120+ vị trí nghề: mô tả công việc, kỹ năng cần học, lương trung bình và lộ trình",
     icon: "career",
-    isActive: (p) => p === "/nghe-nghiep" || p.startsWith("/nghe-nghiep/"),
+    isActive: isNgheNghiepHubPath,
   },
   {
     id: "education",
-    href: "/truong-dai-hoc",
+    href: CO_SO_DAO_TAO_HUB_PATH,
     label: "Tổ chức giáo dục",
     tip: "Trường đại học và cơ sở đào tạo ngành sáng tạo — học phí, chương trình, học bổng và open day",
     icon: "education",
-    isActive: (p) =>
-      p === "/truong-dai-hoc" || p.startsWith("/truong-dai-hoc/"),
+    isActive: isCoSoDaoTaoHubPath,
   },
   {
     id: "courses",

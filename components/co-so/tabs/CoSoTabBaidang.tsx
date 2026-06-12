@@ -20,11 +20,13 @@ type Props = {
 
 function CoSoTabBaidangContent({
   posts,
+  school,
   composeEnabled,
   ownerSlug,
   filters,
 }: {
   posts: TruongBaiDang[];
+  school: TruongDetail;
   composeEnabled: boolean;
   ownerSlug?: string;
   filters: CoSoFilterChip[];
@@ -33,6 +35,7 @@ function CoSoTabBaidangContent({
     <TruongBaiDangEditProvider>
       <CoSoOrgBaiDangTimeline
         posts={posts}
+        owner={school}
         composeEnabled={composeEnabled}
         ownerSlug={ownerSlug}
         orgFilters={filters}
@@ -109,6 +112,7 @@ export function CoSoTabBaidang({
     return (
       <CoSoTabBaidangContent
         posts={posts}
+        school={school}
         composeEnabled={false}
         filters={filters}
       />
@@ -130,6 +134,7 @@ export function CoSoTabBaidang({
     >
       <CoSoTabBaidangContent
         posts={posts}
+        school={school}
         composeEnabled
         ownerSlug={school.slug}
         filters={filters}

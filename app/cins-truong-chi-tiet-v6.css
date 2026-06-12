@@ -123,6 +123,9 @@
   overscroll-behavior: contain;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  /* Chừa chỗ cho pulse dot/badge — tránh crop mốc đầu timeline */
+  padding: 10px 8px 20px;
+  box-sizing: border-box;
 }
 
 .tdh-page--v6 .tdh-admission-side .timeline-section--rail::-webkit-scrollbar {
@@ -856,6 +859,11 @@
   white-space: nowrap;
   letter-spacing: -0.1px;
   margin-bottom: -1px;
+}
+
+.tdh-page--v6 a.tdh-v6-tab {
+  text-decoration: none;
+  display: inline-block;
 }
 
 .tdh-page--v6 .tdh-v6-tab:hover {
@@ -1733,10 +1741,25 @@
   margin-bottom: 10px;
 }
 
+.tdh-page--v6 .tdh-admission-side .timeline-divider {
+  height: 1px;
+  margin: 4px 0 16px 28px;
+  background: var(--line, rgba(0, 0, 0, 0.08));
+}
+
+.tdh-page--v6 .tdh-admission-side .timeline-content {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .tdh-page--v6 .tdh-admission-side .timeline-item {
   gap: 14px;
   padding-bottom: 20px;
   transition: opacity 0.2s ease;
+}
+
+.tdh-page--v6 .tdh-admission-side .timeline-item:last-child {
+  padding-bottom: 8px;
 }
 
 .tdh-page--v6 .tdh-admission-side .timeline-item--past {
@@ -1763,14 +1786,24 @@
   color: var(--cins-mint-deep, #0d7a52);
 }
 
-.tdh-page--v6 .tdh-admission-side .timeline-date--live {
+.tdh-page--v6 .tdh-admission-side .timeline-date--live,
+.tdh-page--v6 .tdh-admission-side .timeline-date--recurring {
   display: inline-block;
+  max-width: 100%;
   padding: 2px 8px;
   margin: 0 0 4px;
   border-radius: 999px;
   background: var(--cins-mint-soft, #d9fbed);
   color: var(--cins-mint-deep, #0d7a52);
   font-weight: 800;
+  white-space: normal;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  box-sizing: border-box;
+}
+
+.tdh-page--v6 .tdh-admission-side .timeline-date--live {
   animation: tdh-timeline-live-pulse 2.4s ease-in-out infinite;
 }
 
@@ -1910,6 +1943,12 @@
   width: 30px;
   height: 30px;
   font-size: 11px;
+}
+
+.tdh-page--v6 .tdh-admission-side .timeline-label,
+.tdh-page--v6 .tdh-admission-side .timeline-label--link {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .tdh-page--v6 .tdh-admission-side .timeline-label {

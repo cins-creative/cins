@@ -2,7 +2,6 @@
 
 import {
   BadgeCheck,
-  BookOpen,
   Calendar,
   MessageSquare,
   Monitor,
@@ -46,8 +45,6 @@ export function CoSoSchoolSidebar({
   const isOwner = canEditMedia && Boolean(ctx?.canEdit);
   const subtitle = csoSidebarSubtitle(school);
 
-  const khoaCount = 0;
-  const hasKhoa = khoaCount > 0;
   const hasStudents = false;
 
   return (
@@ -111,13 +108,6 @@ export function CoSoSchoolSidebar({
               </h2>
             </div>
 
-            <div className="cso-ss-stat-fee">
-              <div className="cso-ss-stat-fee-label">Học phí mỗi khóa</div>
-              <div className={`cso-ss-stat-fee-val${hasKhoa ? "" : " is-empty"}`}>
-                {hasKhoa ? "—" : "Chưa có khóa học"}
-              </div>
-            </div>
-
             <div className="cso-ss-stat-grid">
               <div className="cso-ss-stat-card">
                 <div className="cso-ss-stat-card-label">
@@ -131,20 +121,6 @@ export function CoSoSchoolSidebar({
                     {isOwner
                       ? "Chưa có học viên được xác nhận"
                       : "Đang cập nhật"}
-                  </p>
-                )}
-              </div>
-
-              <div className="cso-ss-stat-card">
-                <div className="cso-ss-stat-card-label">
-                  <BookOpen size={12} strokeWidth={2.2} aria-hidden />
-                  Khóa đang mở
-                </div>
-                {hasKhoa ? (
-                  <div className="cso-ss-stat-card-val">{khoaCount}</div>
-                ) : (
-                  <p className="cso-ss-stat-empty">
-                    {isOwner ? "Chưa có khóa" : "Sắp có"}
                   </p>
                 )}
               </div>

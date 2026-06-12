@@ -68,12 +68,30 @@ function isProtectedPath(pathname: string): boolean {
 /** URL cũ `?tab=nganh-hoc` → `/nganh-hoc` (giữ `q`, `nhom`) trước khi render trang. */
 function redirectLegacyNganhHubTab(request: NextRequest): NextResponse | null {
   const { pathname, searchParams } = request.nextUrl;
-  if (pathname !== "/nghe-nghiep") return null;
+  if (pathname !== "/nghe-nghiep") {
+    return null;
+  }
   if (searchParams.get("tab") !== "nganh-hoc") return null;
 
   const url = request.nextUrl.clone();
   url.pathname = "/nganh-hoc";
   url.searchParams.delete("tab");
+  return NextResponse.redirect(url, 308);
+}
+
+/** `/truong-dai-hoc` → `/co-so-dao-tao` (308). */
+function redirectLegacyTruongDaiHocPath(
+  request: NextRequest,
+): NextResponse | null {
+  const { pathname } = request.nextUrl;
+  if (
+    pathname !== "/truong-dai-hoc" &&
+    !pathname.startsWith("/truong-dai-hoc/")
+  ) {
+    return null;
+  }
+  const url = request.nextUrl.clone();
+  url.pathname = pathname.replace(/^\/truong-dai-hoc/, "/co-so-dao-tao");
   return NextResponse.redirect(url, 308);
 }
 
@@ -152,6 +170,8 @@ function redirectToLogin(
 export async function middleware(request: NextRequest) {
   const legacyNganh = redirectLegacyNganhHubTab(request);
   if (legacyNganh) return legacyNganh;
+  const legacyTruong = redirectLegacyTruongDaiHocPath(request);
+  if (legacyTruong) return legacyTruong;
   const legacyJourney = redirectLegacyJourneyPath(request);
   if (legacyJourney) return legacyJourney;
 

@@ -143,14 +143,17 @@ export function TruongInlineEditProvider({
     null,
   );
   const storageKey = editModeStorageKey(initial.school.slug);
-  const [editMode, setEditModeState] = useState(() => {
-    if (!canEdit) return false;
+  // Luôn false lúc SSR + render đầu — khôi phục từ sessionStorage sau mount (tránh hydration mismatch).
+  const [editMode, setEditModeState] = useState(false);
+
+  useEffect(() => {
+    if (!canEdit) return;
     try {
-      return sessionStorage.getItem(storageKey) === "1";
+      setEditModeState(sessionStorage.getItem(storageKey) === "1");
     } catch {
-      return false;
+      /* private mode */
     }
-  });
+  }, [canEdit, storageKey]);
 
   const setEditMode = useCallback(
     (on: boolean) => {

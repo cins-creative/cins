@@ -49,6 +49,7 @@ const RESERVED_SLUGS = new Set<string>([
   "chat",
   "bai-viet",
   "nghe-nghiep",
+  "co-so-dao-tao",
   "nganh-hoc",
   "truong-dai-hoc",
   "software",

@@ -11,6 +11,7 @@ import { NganhHubEditProvider } from "@/components/nganh/hub/NganhHubEditContext
 import { NganhHubCard } from "@/components/nganh/NganhHubCard";
 import { MissingSupabaseEnvNotice } from "@/components/cins/MissingSupabaseEnvNotice";
 import type { CareerHubSection } from "@/lib/career/hubSections";
+import { NGHE_NGHIEP_HUB_PATH } from "@/lib/cins/hubPaths";
 import { deptCardThemeByIndex } from "@/lib/career/hubRailTheme";
 import type { LinhVucSidebarGroup } from "@/lib/career/groupLinhVuc";
 import type { LinhVucRow, NgheNghiepHubItem } from "@/lib/career/types";
@@ -54,7 +55,7 @@ type Props = {
 
 export function CareerHub({
   tab,
-  hubBase = "/nghe-nghiep",
+  hubBase = NGHE_NGHIEP_HUB_PATH,
   linhVucSidebarGroups,
   activeLinhVuc,
   searchQuery,
@@ -63,7 +64,7 @@ export function CareerHub({
   sampleCareers,
   showLinhVucOnCards = false,
   showFallbackNote,
-  detailPathPrefix = "/nghe-nghiep",
+  detailPathPrefix = NGHE_NGHIEP_HUB_PATH,
   listError,
   nganhSidebarGroups = [],
   activeNhomId = "",

@@ -452,7 +452,7 @@ function validateTaoInput(
     return { ok: false, error: "Hình thức học không hợp lệ." };
   }
   if (input.loaiMoHinh === "cohort_co_dinh" && !input.ngayKhaiGiang?.trim()) {
-    return { ok: false, error: "Cohort cố định cần ngày khai giảng." };
+    return { ok: false, error: "Theo khóa cần ngày khai giảng." };
   }
   if (needsDiaChi(hinhThuc) && !input.diaChiHoc?.trim()) {
     return {

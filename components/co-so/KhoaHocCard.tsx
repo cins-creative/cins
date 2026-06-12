@@ -59,7 +59,7 @@ export function KhoaHocCard({
             alt=""
             fill
             className="cso-kh-card-cov-img"
-            sizes="(max-width: 520px) 100vw, 33vw"
+            sizes="(max-width: 640px) 50vw, 280px"
           />
         ) : (
           <span className="cso-kh-card-cov-ph" aria-hidden>

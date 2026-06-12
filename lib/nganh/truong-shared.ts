@@ -60,8 +60,10 @@ export function formatThoiGianThang(months: number | null | undefined): string {
   return `${m} tháng`;
 }
 
+import { truongRootPath } from "@/lib/truong/truong-routes";
+
 export function truongDetailHref(slug: string): string {
-  return `/truong-dai-hoc/${encodeURIComponent(slug)}`;
+  return truongRootPath(slug);
 }
 
 export function countUniqueTruong(rows: NganhTruongRow[]): number {

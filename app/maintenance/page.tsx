@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { CO_SO_DAO_TAO_HUB_PATH } from "@/lib/cins/hubPaths";
+
 const MASCOTS = [
   { src: "/assets/mascot-artist.png", name: "Artist" },
   { src: "/assets/mascot-technical-artist.png", name: "Tech Artist" },
@@ -83,7 +85,7 @@ export default function MaintenancePage() {
         </Link>
         <div className="cins-maint-nav-links">
           <Link href="/">Trang chủ</Link>
-          <Link href="/truong-dai-hoc">Trường đại học</Link>
+          <Link href={CO_SO_DAO_TAO_HUB_PATH}>Trường đại học</Link>
           <Link href="/huong-nghiep">Hướng nghiệp</Link>
           <Link href="/bai-viet">Bài viết</Link>
         </div>

@@ -33,7 +33,8 @@ const TABS = [
   { id: "bai-dang", label: CO_SO_TAB_LABELS["bai-dang"], num: "01" },
   { id: "khoa-hoc", label: CO_SO_TAB_LABELS["khoa-hoc"], num: "02" },
   { id: "san-pham", label: CO_SO_TAB_LABELS["san-pham"], num: "03" },
-  { id: "hinh-anh", label: CO_SO_TAB_LABELS["hinh-anh"], num: "04" },
+  { id: "giao-vien", label: CO_SO_TAB_LABELS["giao-vien"], num: "04" },
+  { id: "hinh-anh", label: CO_SO_TAB_LABELS["hinh-anh"], num: "05" },
 ] as const satisfies ReadonlyArray<{ id: CoSoTabId; label: string; num: string }>;
 
 type Props = {
@@ -208,12 +209,24 @@ function CoSoDetailViewInner({
               {t.id === "hinh-anh" ? (
                 <CoSoTabHinhanh images={hinhanh} />
               ) : null}
+              {t.id === "giao-vien" ? (
+                <CoSoTabPlaceholder
+                  num={t.num}
+                  title="Giáo viên"
+                  hint="Danh sách giáo viên sẽ hiện khi cơ sở gắn giảng viên vào các lớp học."
+                />
+              ) : null}
             </div>
           );
         })}
       </div>
 
-      <CoSoUpcomingSidebar />
+      <CoSoUpcomingSidebar
+        orgId={school.id}
+        orgSlug={orgSlug}
+        orgDiaChi={school.dia_chi}
+        canManageKhoaHoc={canManageKhoaHoc}
+      />
       </div>
 
       {canEdit && onSettingsOpenChange ? (
@@ -231,24 +244,24 @@ function CoSoDetailViewInner({
   );
 }
 
-function CoSoEditableShell({
+function CoSoDetailViewBody({
   payload,
+  canEdit,
   canManageKhoaHoc,
-}: {
-  payload: CoSoDetailPayload;
-  canManageKhoaHoc: boolean;
-}) {
+}: Props) {
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
     <>
-      <CoSoAdminToolbar onOpenSettings={() => setSettingsOpen(true)} />
+      {canEdit ? (
+        <CoSoAdminToolbar onOpenSettings={() => setSettingsOpen(true)} />
+      ) : null}
       <CoSoDetailViewInner
         payload={payload}
-        canEdit
+        canEdit={canEdit}
         canManageKhoaHoc={canManageKhoaHoc}
         settingsOpen={settingsOpen}
-        onSettingsOpenChange={setSettingsOpen}
+        onSettingsOpenChange={canEdit ? setSettingsOpen : undefined}
       />
     </>
   );
@@ -259,23 +272,14 @@ export function CoSoDetailView({
   canEdit = false,
   canManageKhoaHoc = false,
 }: Props) {
-  if (!canEdit) {
-    return (
-      <CoSoDetailViewInner
-        payload={payload}
-        canEdit={false}
-        canManageKhoaHoc={canManageKhoaHoc}
-      />
-    );
-  }
-
   return (
     <TruongInlineEditProvider
-      canEdit
+      canEdit={canEdit}
       initial={coSoToInlinePayload(payload)}
     >
-      <CoSoEditableShell
+      <CoSoDetailViewBody
         payload={payload}
+        canEdit={canEdit}
         canManageKhoaHoc={canManageKhoaHoc}
       />
     </TruongInlineEditProvider>

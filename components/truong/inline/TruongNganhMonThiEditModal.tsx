@@ -1,29 +1,33 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { MonThiThumb } from "@/components/truong/MonThiThumb";
 import { TruongInlineModal } from "@/components/truong/inline/TruongInlineModal";
 import type { MonThiCatalogItem } from "@/lib/truong/calc-draft";
 import {
-  distinctMonThiLoai,
-  filterMonThiCatalog,
+  filterCatalogForKhoi,
   groupMonThiCatalog,
-  labelMonThiLoai,
+  type KhoiThiCatalogItem,
 } from "@/lib/truong/mon-thi-catalog";
 import { defaultThangDiemForHeSo } from "@/lib/truong/calc";
 import {
-  cauHinhMonThiCacheKey,
+  candidateCauHinhYears,
   cloneCauHinhForYear,
   createEmptyCauHinhDraft,
-  pickCauHinhFromCache,
-  pickPriorYearCauHinhFromCache,
+  resolveCauHinhFromClientCache,
 } from "@/lib/truong/cau-hinh-tinh-diem";
 import {
   readTruongInlineError,
   truongInlineFetch,
 } from "@/lib/truong/inline-api";
 import { monThiDauVaoFromConfig } from "@/lib/truong/mon-thi-dau-vao";
+import { fetchTruongCatalogBundle } from "@/lib/truong/truong-catalog-fetch";
+import {
+  inferSlotLoai,
+  isArtsKhoiMa,
+  monThiItemsForKhoiPreset,
+} from "@/lib/truong/to-hop-mon-catalog";
 import type { TruongCauHinhMon, TruongCauHinhTinhDiem } from "@/lib/truong/types";
 
 type Props = {
@@ -81,6 +85,7 @@ function MonThiCatalogOptions({
   catalog,
   filtered,
   loaiFilter,
+  groupByLoai,
   usedMonIds,
   currentId,
   currentLabel,
@@ -88,6 +93,7 @@ function MonThiCatalogOptions({
   catalog: MonThiCatalogItem[];
   filtered: MonThiCatalogItem[];
   loaiFilter: string;
+  groupByLoai: boolean;
   usedMonIds: Set<string>;
   currentId: string;
   currentLabel: string;
@@ -95,7 +101,7 @@ function MonThiCatalogOptions({
   const showOrphan =
     Boolean(currentId) && !filtered.some((c) => c.id === currentId);
 
-  if (loaiFilter === "all") {
+  if (groupByLoai && loaiFilter === "all") {
     const groups = groupMonThiCatalog(filtered);
     return (
       <>
@@ -149,11 +155,13 @@ export function TruongNganhMonThiEditModal({
   const [rows, setRows] = useState<RowDraft[]>([]);
   const [heSo, setHeSo] = useState<Record<string, string>>({});
   const [catalog, setCatalog] = useState<MonThiCatalogItem[]>([]);
+  const [khoiCatalog, setKhoiCatalog] = useState<KhoiThiCatalogItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [loaiFilter, setLoaiFilter] = useState<string>("all");
+  const [khoiFilter, setKhoiFilter] = useState<string>("all");
+  const pendingKhoiApplyRef = useRef<string | null>(null);
 
   const syncFromConfig = useCallback((cfg: TruongCauHinhTinhDiem | null) => {
     if (!cfg) {
@@ -177,20 +185,35 @@ export function TruongNganhMonThiEditModal({
   }, []);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      pendingKhoiApplyRef.current = null;
+      return;
+    }
     setError(null);
-    setLoaiFilter("all");
+    setKhoiFilter("all");
     setCatalogLoading(true);
-    void fetch(`/api/truong/${encodeURIComponent(orgId)}/mon-thi-catalog`)
-      .then(async (res) => {
-        if (!res.ok) return [];
-        const json = (await res.json()) as { items?: MonThiCatalogItem[] };
-        return json.items ?? [];
+    void fetchTruongCatalogBundle(orgId)
+      .then(({ mon, khoi }) => {
+        setCatalog(mon);
+        setKhoiCatalog(khoi);
       })
-      .then((items) => setCatalog(items))
-      .catch(() => setCatalog([]))
+      .catch(() => {
+        setCatalog([]);
+        setKhoiCatalog([]);
+      })
       .finally(() => setCatalogLoading(false));
   }, [open, orgId]);
+
+  useEffect(() => {
+    if (!open || !baseConfig || !khoiCatalog.length) return;
+    const kid = baseConfig.khoiThi?.id?.trim();
+    const ma = baseConfig.khoiThi?.ma?.trim();
+    const match =
+      (kid && khoiCatalog.find((k) => k.id === kid)) ||
+      (ma && khoiCatalog.find((k) => k.ma_to_hop === ma)) ||
+      null;
+    if (match) setKhoiFilter(match.id);
+  }, [open, baseConfig?.khoiThi?.id, baseConfig?.khoiThi?.ma, khoiCatalog]);
 
   useEffect(() => {
     if (!open) return;
@@ -212,57 +235,32 @@ export function TruongNganhMonThiEditModal({
     }
 
     async function load() {
-      setLoading(true);
       setError(null);
 
-      const exactCached = cauHinhCache[cauHinhMonThiCacheKey(programId, year)];
-      if (exactCached?.mon.length) {
-        if (!cancelled) {
-          syncFromConfig(cloneCauHinhForYear(exactCached, programId, year));
-        }
-        return;
-      }
-
-      const priorCached = pickPriorYearCauHinhFromCache(
+      const cached = resolveCauHinhFromClientCache(
         cauHinhCache,
         programId,
         year,
       );
-      if (priorCached) {
-        if (!cancelled) {
-          syncFromConfig(cloneCauHinhForYear(priorCached, programId, year));
-        }
+      if (cached) {
+        if (!cancelled) syncFromConfig(cached);
         return;
       }
 
-      let cfg = await fetchYearConfig(year);
+      setLoading(true);
+
+      const years = candidateCauHinhYears(year);
+      const results = await Promise.all(
+        years.map(async (y) => ({ y, cfg: await fetchYearConfig(y) })),
+      );
       if (cancelled) return;
 
-      if (cfg) {
-        syncFromConfig(cloneCauHinhForYear(cfg, programId, year));
-        return;
-      }
-
-      for (const y of [year - 1, year - 2, year - 3, year + 1]) {
-        if (y < 2000 || y > 2100) continue;
-        cfg = await fetchYearConfig(y);
-        if (cancelled) return;
-        if (cfg) {
-          syncFromConfig(cloneCauHinhForYear(cfg, programId, year));
+      for (const y of years) {
+        const hit = results.find((r) => r.y === y && r.cfg);
+        if (hit?.cfg) {
+          syncFromConfig(cloneCauHinhForYear(hit.cfg, programId, year));
           return;
         }
-      }
-
-      const nearestCached = pickCauHinhFromCache(
-        cauHinhCache,
-        programId,
-        year,
-      );
-      if (nearestCached) {
-        syncFromConfig(
-          cloneCauHinhForYear(nearestCached.config, programId, year),
-        );
-        return;
       }
 
       syncFromConfig(createEmptyCauHinhDraft(programId, year));
@@ -285,14 +283,137 @@ export function TruongNganhMonThiEditModal({
   }, [open, cauHinhCache, orgId, programId, year, syncFromConfig]);
 
   const usedMonIds = new Set(rows.map((r) => r.mon.id_mon_thi));
-  const loaiKeys = useMemo(() => distinctMonThiLoai(catalog), [catalog]);
-  const filteredCatalog = useMemo(
-    () => filterMonThiCatalog(catalog, loaiFilter),
-    [catalog, loaiFilter],
+  const selectedKhoi = useMemo(
+    () => khoiCatalog.find((k) => k.id === khoiFilter) ?? null,
+    [khoiCatalog, khoiFilter],
   );
+  const filteredCatalog = useMemo(() => {
+    if (khoiFilter === "all") return catalog;
+    if (!selectedKhoi) return catalog;
+
+    const ids = new Set(selectedKhoi.mon_ids);
+    const flexLoais = new Set(
+      selectedKhoi.slots
+        .filter((s) => !s.id_mon_thi)
+        .map((s) => inferSlotLoai(s.ten_slot, s.loai))
+        .filter((loai): loai is string => Boolean(loai)),
+    );
+
+    if (!ids.size && !flexLoais.size) {
+      return filterCatalogForKhoi(catalog, selectedKhoi.mon_ids);
+    }
+
+    return catalog.filter((c) => {
+      if (ids.has(c.id)) return true;
+      const loai = c.loai?.trim().toLowerCase();
+      return loai ? flexLoais.has(loai) : false;
+    });
+  }, [catalog, khoiFilter, selectedKhoi]);
   const addCandidates = filteredCatalog.filter((c) => !usedMonIds.has(c.id));
+  const groupPickByLoai = khoiFilter === "all";
+
+  const thptKhoi = useMemo(
+    () => khoiCatalog.filter((k) => !isArtsKhoiMa(k.ma_to_hop)),
+    [khoiCatalog],
+  );
+  const artsKhoi = useMemo(
+    () => khoiCatalog.filter((k) => isArtsKhoiMa(k.ma_to_hop)),
+    [khoiCatalog],
+  );
+
+  function khoiOptionLabel(k: KhoiThiCatalogItem): string {
+    const tail = k.formula || k.ten_to_hop;
+    return tail ? `${k.ma_to_hop} · ${tail}` : k.ma_to_hop;
+  }
+
+  function catalogForRow(row: RowDraft, index: number): MonThiCatalogItem[] {
+    if (khoiFilter === "all") return catalog;
+    const slot = selectedKhoi?.slots[index];
+    const slotLoai = slot
+      ? inferSlotLoai(slot.ten_slot, slot.loai)
+      : row.mon.loai?.trim().toLowerCase() ?? null;
+
+    if (slotLoai) {
+      return catalog.filter(
+        (c) => (c.loai?.trim().toLowerCase() ?? "") === slotLoai,
+      );
+    }
+    return filteredCatalog;
+  }
 
   const { khoiLabel } = monThiDauVaoFromConfig(baseConfig);
+
+  function applyKhoiPresetFor(khoi: KhoiThiCatalogItem) {
+    if (!baseConfig) return;
+    let items = monThiItemsForKhoiPreset(khoi, catalog);
+    if (!items.length) return;
+
+    if (isArtsKhoiMa(khoi.ma_to_hop)) {
+      const presetIds = new Set(items.map((i) => i.id));
+      const keptNk = rows
+        .map((r) => catalog.find((c) => c.id === r.mon.id_mon_thi))
+        .filter((c): c is MonThiCatalogItem => {
+          if (!c) return false;
+          return (
+            (c.loai?.trim().toLowerCase() ?? "") === "nang_khieu" &&
+            !presetIds.has(c.id)
+          );
+        });
+      if (keptNk.length) {
+        items = [
+          ...items.filter(
+            (i) => (i.loai?.trim().toLowerCase() ?? "") !== "nang_khieu",
+          ),
+          ...keptNk,
+        ];
+      }
+    }
+    const newRows: RowDraft[] = items.map((item, idx) => ({
+      rowKey: newRowKey(),
+      mon: {
+        id_mon_thi: item.id,
+        ten: item.ten,
+        loai: item.loai,
+        ma: item.ma ?? null,
+        thumbnail_id: item.thumbnail_id ?? null,
+        thumbnail_url: item.thumbnail_url ?? null,
+        he_so: 1,
+        thang_diem: defaultThangDiemForHeSo(1),
+        thoi_gian_phut: null,
+        so_thu_tu: idx,
+        ghi_chu: null,
+      },
+    }));
+    setRows(newRows);
+    const hs: Record<string, string> = {};
+    for (const item of items) hs[item.id] = "1";
+    setHeSo(hs);
+  }
+
+  function handleKhoiChange(nextId: string) {
+    setKhoiFilter(nextId);
+    if (nextId === "all") {
+      pendingKhoiApplyRef.current = null;
+      return;
+    }
+    pendingKhoiApplyRef.current = nextId;
+    const khoi = khoiCatalog.find((k) => k.id === nextId);
+    if (khoi && catalog.length) {
+      applyKhoiPresetFor(khoi);
+      pendingKhoiApplyRef.current = null;
+    }
+  }
+
+  useEffect(() => {
+    if (!open || catalogLoading || !catalog.length) return;
+    const pending = pendingKhoiApplyRef.current;
+    if (!pending || pending === "all") return;
+    const khoi = khoiCatalog.find((k) => k.id === pending);
+    if (khoi) {
+      applyKhoiPresetFor(khoi);
+      pendingKhoiApplyRef.current = null;
+    }
+  }, [open, catalogLoading, catalog, khoiCatalog]);
 
   function migrateMonDraftKeys(
     prevId: string,
@@ -463,9 +584,9 @@ export function TruongNganhMonThiEditModal({
       <h3 id="tdh-add-year-mon-title" className="tdh-inline-modal-title">
         Môn thi — {nganhTitle} ({year})
       </h3>
-      {khoiLabel ? (
+      {khoiLabel && khoiFilter === "all" ? (
         <p className="tdh-add-year-mon-khoi">
-          <span className="cins-meta">Khối</span> {khoiLabel}
+          <span className="cins-meta">Khối cấu hình</span> {khoiLabel}
         </p>
       ) : null}
 
@@ -473,33 +594,43 @@ export function TruongNganhMonThiEditModal({
         <p className="tdh-placeholder">Đang tải môn thi…</p>
       ) : baseConfig ? (
         <>
-          {loaiKeys.length > 0 ? (
-            <div
-              className="tdh-calc-mon-loai-filter"
-              role="tablist"
-              aria-label="Lọc loại môn"
-            >
-              <button
-                type="button"
-                role="tab"
-                aria-selected={loaiFilter === "all"}
-                className={`tdh-calc-mon-loai-chip${loaiFilter === "all" ? " is-active" : ""}`}
-                onClick={() => setLoaiFilter("all")}
+          {khoiCatalog.length > 0 ? (
+            <div className="tdh-calc-mon-khoi-filter">
+              <label className="tdh-calc-mon-khoi-label" htmlFor="tdh-khoi-select">
+                Khối thi
+              </label>
+              <select
+                id="tdh-khoi-select"
+                className="tdh-calc-mon-select tdh-calc-mon-khoi-select"
+                value={khoiFilter}
+                onChange={(e) => handleKhoiChange(e.target.value)}
+                aria-label="Chọn khối thi"
               >
-                Tất cả
-              </button>
-              {loaiKeys.map((key) => (
-                <button
-                  key={key}
-                  type="button"
-                  role="tab"
-                  aria-selected={loaiFilter === key}
-                  className={`tdh-calc-mon-loai-chip${loaiFilter === key ? " is-active" : ""}`}
-                  onClick={() => setLoaiFilter(key)}
-                >
-                  {labelMonThiLoai(key === "__khac__" ? null : key)}
-                </button>
-              ))}
+                <option value="all">— Tất cả môn —</option>
+                {artsKhoi.length > 0 ? (
+                  <optgroup label="Khối năng khiếu (H · V · N)">
+                    {artsKhoi.map((k) => (
+                      <option key={k.id} value={k.id}>
+                        {khoiOptionLabel(k)}
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : null}
+                {thptKhoi.length > 0 ? (
+                  <optgroup label="Khối THPT (A · C · D · …)">
+                    {thptKhoi.map((k) => (
+                      <option key={k.id} value={k.id}>
+                        {khoiOptionLabel(k)}
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : null}
+              </select>
+              {selectedKhoi ? (
+                <p className="tdh-calc-mon-khoi-hint">
+                  {selectedKhoi.formula || selectedKhoi.ten_to_hop}
+                </p>
+              ) : null}
             </div>
           ) : null}
           <div className="tdh-calc-mon-table tdh-calc-mon-table--edit">
@@ -533,8 +664,9 @@ export function TruongNganhMonThiEditModal({
                 >
                   <MonThiCatalogOptions
                     catalog={catalog}
-                    filtered={filteredCatalog}
-                    loaiFilter={loaiFilter}
+                    filtered={catalogForRow(row, index)}
+                    loaiFilter="all"
+                    groupByLoai={groupPickByLoai}
                     usedMonIds={usedMonIds}
                     currentId={row.mon.id_mon_thi}
                     currentLabel={row.mon.ten}
@@ -580,7 +712,7 @@ export function TruongNganhMonThiEditModal({
                 disabled={catalogLoading}
               >
                 <option value="">— Thêm môn —</option>
-                {loaiFilter === "all" ? (
+                {groupPickByLoai ? (
                   groupMonThiCatalog(addCandidates).map((g) => (
                     <optgroup key={g.loaiKey} label={g.label}>
                       {g.items.map((c) => (

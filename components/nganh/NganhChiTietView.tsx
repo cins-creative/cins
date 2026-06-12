@@ -3,6 +3,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { NGHE_NGHIEP_HUB_PATH } from "@/lib/cins/hubPaths";
+
 import { NganhArticleMedia } from "@/components/nganh/NganhArticleMedia";
 import { NganhEditableIntro } from "@/components/nganh/NganhEditableIntro";
 import { NctJobsGrid } from "@/components/nganh/NctJobsGrid";
@@ -132,7 +134,7 @@ export function NganhChiTietView({
             <nav className="nct-breadcrumb" aria-label="Breadcrumb">
               <Link href="/">Trang chủ</Link>
               <span>/</span>
-              <Link href="/nghe-nghiep">Hướng nghiệp</Link>
+              <Link href={NGHE_NGHIEP_HUB_PATH}>Hướng nghiệp</Link>
               <span>/</span>
               <Link href="/nganh-hoc">Ngành đào tạo</Link>
               <span>/</span>

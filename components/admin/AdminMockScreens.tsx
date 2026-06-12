@@ -1,6 +1,7 @@
 "use client";
 
 import { BadgeLoai, BadgeTinCay, BadgeTrangThai } from "@/components/admin/badges";
+import { truongRootPath } from "@/lib/truong/truong-routes";
 
 export function AdminDeXuatScreen() {
   return (
@@ -132,7 +133,7 @@ export function AdminToChucScreen() {
                       ✏ Sửa
                     </button>
                     <a
-                      href="/truong-dai-hoc/dai-hoc-my-thuat-tp-hcm"
+                      href={truongRootPath("dai-hoc-my-thuat-tp-hcm")}
                       className="action-btn view"
                       target="_blank"
                       rel="noopener noreferrer"

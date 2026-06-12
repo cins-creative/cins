@@ -10,6 +10,7 @@ import { InlineArticleDraftBar } from "@/components/article/InlineArticleDraftBa
 import { NgheArticleDraftProvider } from "@/components/article/nghe/NgheArticleDraftContext";
 import { NgheHeroLeadInlineDraft } from "@/components/article/nghe/NgheHeroLeadInlineDraft";
 import { NgheLayoutStatic } from "@/components/article/nghe/static/NgheLayoutStatic";
+import { ngheNghiepDetailHref } from "@/lib/cins/hubPaths";
 
 type ArticleNgheViewProps = {
   article: ArticleBaiViet;
@@ -38,7 +39,7 @@ export function ArticleNgheView({
   entitySort = "moi_nhat",
   viewerProfileId = null,
 }: ArticleNgheViewProps) {
-  const slugPath = `/nghe-nghiep/${article.slug}`;
+  const slugPath = ngheNghiepDetailHref(article.slug);
   const leadSource = buildNgheLeadSourceFromNoiDung(
     article.noi_dung ?? article.noi_dung_markdown,
     relatedJobsLienQuan,

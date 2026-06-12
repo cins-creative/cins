@@ -3495,6 +3495,71 @@
   color: var(--ink-muted);
 }
 
+.tdh-calc-mon-khoi-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.tdh-calc-mon-khoi-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-muted);
+}
+
+.tdh-calc-mon-khoi-select {
+  width: 100%;
+  font-family: inherit;
+}
+
+.tdh-calc-mon-khoi-hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ink-muted);
+}
+
+.tdh-calc-mon-khoi-chip {
+  font-family: ui-monospace, monospace;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.tdh-add-year-mon-khoi-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 8%, #fff);
+  border: 1px solid color-mix(in srgb, var(--cins-blue, #1f74c9) 22%, #e4e6eb);
+}
+
+.tdh-add-year-mon-khoi-formula {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ink2, #3d4450);
+  min-width: 0;
+}
+
+.tdh-add-year-mon-khoi-formula .cins-meta {
+  display: inline-block;
+  margin-right: 8px;
+  font-family: ui-monospace, monospace;
+  font-weight: 800;
+  color: var(--cins-blue, #1f74c9);
+}
+
+.tdh-add-year-mon-khoi-fill {
+  flex-shrink: 0;
+  font-size: 12px;
+  padding: 5px 10px;
+}
+
 /* Sidebar — chuông thông báo tag milestone (admin) */
 .ss-btn-notify {
   position: relative;

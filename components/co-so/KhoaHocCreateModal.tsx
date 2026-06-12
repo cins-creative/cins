@@ -206,7 +206,7 @@ export function KhoaHocCreateModal({
 
   function validateClient(): string | null {
     if (loaiMoHinh === "cohort_co_dinh" && !ngayKhaiGiang.trim()) {
-      return "Cohort cố định cần chọn ngày khai giảng.";
+      return "Theo khóa cần chọn ngày khai giảng.";
     }
     if (needsDiaChi(hinhThuc) && !diaChiHoc.trim()) {
       return "Học offline / kết hợp cần địa chỉ phòng học.";

@@ -41,7 +41,7 @@ type Props = {
 
 export function CareerHubRail({
   tab,
-  hubBase = "/nghe-nghiep",
+  hubBase = NGHE_NGHIEP_HUB_PATH,
   sidebarGroups,
   activeSlug,
   nganhSidebarGroups = [],

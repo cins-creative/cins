@@ -3,6 +3,25 @@ import type { KhoaHocDetailPayload } from "@/lib/to-chuc/khoa-hoc-types";
 /** Slug cố định — mở `/co-so/{org}/khoa-hoc/_mockup-chi-tiet-khoa` để xem mockup đầy đủ. */
 export const KHOA_HOC_DETAIL_MOCK_SLUG = "_mockup-chi-tiet-khoa";
 
+/** Gộp dữ liệu API với mock khi section chưa có — giữ landing đầy đủ trên khóa thật. */
+export function resolveKhoaHocDetailDisplay(
+  detail: KhoaHocDetailPayload,
+): KhoaHocDetailPayload {
+  const mock = buildKhoaHocDetailMock(detail.orgTen);
+  return {
+    ...detail,
+    khoa: {
+      ...detail.khoa,
+      moTa: detail.khoa.moTa?.trim() || mock.khoa.moTa,
+      yeuCauChuanBi:
+        detail.khoa.yeuCauChuanBi?.trim() || mock.khoa.yeuCauChuanBi,
+    },
+    giaoTrinh: detail.giaoTrinh,
+    lopHoc: detail.lopHoc.length ? detail.lopHoc : mock.lopHoc,
+    giaoVien: detail.giaoVien.length ? detail.giaoVien : mock.giaoVien,
+  };
+}
+
 export function isKhoaHocDetailMockSlug(
   slug: string | null | undefined,
 ): boolean {
@@ -96,13 +115,15 @@ export function buildKhoaHocDetailMock(
     lopHoc: [
       {
         id: "mock-lop-1",
-        tenLop: "Khung tối · T2-4-6",
+        maLop: "HHK30",
+        tenLop: "Ca tối · T2-4-6",
         hinhThuc: "truc_tiep",
         lichHoc: "18:00–21:00",
         ngayKhaiGiang: "2026-01-06",
         slotToiDa: 12,
-        trangThaiLop: "dang_mo_don",
+        trangThaiLop: "dang_hoc",
         conCho: true,
+        giaoVienText: null,
         diaChiHoc: "67 Tân Sơn Nhì",
         giaoVien: {
           key: "mock-gv-lh",
@@ -116,13 +137,15 @@ export function buildKhoaHocDetailMock(
       },
       {
         id: "mock-lop-2",
-        tenLop: "Khung sáng · T3-5-7",
+        maLop: "HHK31",
+        tenLop: "Ca sáng · T3-5-7",
         hinhThuc: "truc_tiep",
         lichHoc: "08:30–11:30",
         ngayKhaiGiang: "2026-01-07",
         slotToiDa: 12,
-        trangThaiLop: "dang_mo_don",
+        trangThaiLop: "sap_khai_giang",
         conCho: true,
+        giaoVienText: "Đỗ Ngọc",
         diaChiHoc: "67 Tân Sơn Nhì",
         giaoVien: {
           key: "mock-gv-dn",

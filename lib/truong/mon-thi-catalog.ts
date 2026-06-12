@@ -106,3 +106,48 @@ export function filterMonThiCatalog(
     (c) => (c.loai?.trim().toLowerCase() ?? "") === loaiFilter,
   );
 }
+
+export type KhoiThiCatalogSlot = {
+  so_thu_tu: number;
+  ten_slot: string;
+  loai: string | null;
+  id_mon_thi: string | null;
+};
+
+export type KhoiThiCatalogItem = {
+  id: string;
+  ma_to_hop: string;
+  ten_to_hop: string;
+  mo_ta: string | null;
+  /** `edu_mon_thi.id` cố định theo thứ tự slot. */
+  mon_ids: string[];
+  /** Slot chi tiết — gồm slot linh hoạt (Năng khiếu). */
+  slots: KhoiThiCatalogSlot[];
+  /** Tên môn/slot nối · — hiển thị chip. */
+  formula: string;
+};
+
+export function filterCatalogForKhoi(
+  catalog: MonThiCatalogItem[],
+  monIds: string[] | null | undefined,
+): MonThiCatalogItem[] {
+  if (!monIds?.length) return catalog;
+  const byId = new Map(catalog.map((c) => [c.id, c]));
+  const out: MonThiCatalogItem[] = [];
+  for (const id of monIds) {
+    const item = byId.get(id);
+    if (item) out.push(item);
+  }
+  return out;
+}
+
+export function khoiFormulaFromCatalog(
+  catalog: MonThiCatalogItem[],
+  monIds: string[],
+): string {
+  const byId = new Map(catalog.map((c) => [c.id, c]));
+  return monIds
+    .map((id) => byId.get(id)?.ten)
+    .filter(Boolean)
+    .join(" · ");
+}

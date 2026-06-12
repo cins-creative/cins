@@ -12,6 +12,7 @@ import { compareTimelineOrder } from "@/lib/journey/timeline-sort";
 import { parseBaiDangBlocks } from "@/lib/truong/bai-dang-blocks";
 import { SOCIAL_LOAI_ORG_BAI_DANG } from "@/lib/truong/social-constants";
 import { resolveTruongImageSrcSync } from "@/lib/truong/media-url";
+import { truongRootPath } from "@/lib/truong/truong-routes";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 export type OrgBaiDangBookmarkSocial = {
@@ -264,7 +265,7 @@ export async function fetchBookmarkedOrgBaiDangMilestones(params: {
       bookmark: {
         name: org.ten.trim(),
         domain: org.slug.trim(),
-        url: `/truong-dai-hoc/${encodeURIComponent(org.slug.trim())}`,
+        url: truongRootPath(org.slug.trim()),
         initial: org.ten.trim().slice(0, 1).toUpperCase(),
         avatarUrl,
         sourceKind: mapOrgLoaiToBookmarkFrameKind(org.loai_to_chuc),

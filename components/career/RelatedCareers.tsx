@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import type { RelatedCareerCard } from "@/lib/career/types";
+import { ngheNghiepDetailHref } from "@/lib/cins/hubPaths";
 
 type Props = {
   related: RelatedCareerCard[];
@@ -24,7 +25,7 @@ export function RelatedCareers({ related, lienQuanHtml }: Props) {
             const label = r.title_eng ?? r.title_vietnam ?? r.slug;
             return (
               <li key={r.id}>
-                <Link href={`/nghe-nghiep/${r.slug}`} className="career-related-card">
+                <Link href={ngheNghiepDetailHref(r.slug)} className="career-related-card">
                   <div className="career-related-thumb">
                     {r.thumbnail_mascot ? (
                       // eslint-disable-next-line @next/next/no-img-element

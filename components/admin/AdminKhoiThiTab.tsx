@@ -155,7 +155,7 @@ export function AdminKhoiThiTab({ initialRows, monCatalog }: Props) {
             <tr>
               <th>Mã khối</th>
               <th>Tên khối</th>
-              <th>Môn trong khối</th>
+              <th>Môn / slot</th>
               <th>Slot</th>
               <th>Trường dùng</th>
               <th />
@@ -183,11 +183,19 @@ export function AdminKhoiThiTab({ initialRows, monCatalog }: Props) {
                     {r.mo_ta ? <small>{r.mo_ta}</small> : null}
                   </td>
                   <td className="admin-khoi-mon-list">
-                    {r.mon_ten_list.length > 0 ? (
+                    {r.chi_tiet.length > 0 ? (
                       <div className="admin-khoi-mon-chips">
-                        {r.mon_ten_list.map((ten) => (
-                          <span key={ten} className="admin-khoi-mon-chip">
-                            {ten}
+                        {r.chi_tiet.map((slot, i) => (
+                          <span
+                            key={slot.id}
+                            className={`admin-khoi-mon-chip${slot.id_mon_thi ? "" : " is-slot-label"}`}
+                            title={
+                              slot.id_mon_thi
+                                ? undefined
+                                : "Nhãn slot — chưa gắn môn trong danh mục edu_mon_thi"
+                            }
+                          >
+                            {r.mon_ten_list[i] ?? slot.ten_slot}
                           </span>
                         ))}
                       </div>

@@ -810,6 +810,35 @@ export function pickPriorYearCauHinhFromCache(
   return best;
 }
 
+/** Các năm thử khi chưa có cấu hình đúng năm (client modal). */
+export function candidateCauHinhYears(year: number): number[] {
+  return [year, year - 1, year - 2, year - 3, year + 1].filter(
+    (y) => y >= 2000 && y <= 2100,
+  );
+}
+
+/** Resolve từ cache SSR/context — không cần API. */
+export function resolveCauHinhFromClientCache(
+  cache: Record<string, TruongCauHinhTinhDiem>,
+  programId: string,
+  year: number,
+): TruongCauHinhTinhDiem | null {
+  const exact = cache[cauHinhMonThiCacheKey(programId, year)];
+  if (exact?.mon.length) {
+    return cloneCauHinhForYear(exact, programId, year);
+  }
+
+  const prior = pickPriorYearCauHinhFromCache(cache, programId, year);
+  if (prior) return cloneCauHinhForYear(prior, programId, year);
+
+  const nearest = pickCauHinhFromCache(cache, programId, year);
+  if (nearest) {
+    return cloneCauHinhForYear(nearest.config, programId, year);
+  }
+
+  return null;
+}
+
 /** Bản nháp khi chưa có org_cau_hinh_khoi — chỉnh trên phiên, gắn đúng năm/ngành. */
 export function cloneCauHinhForYear(
   base: TruongCauHinhTinhDiem,

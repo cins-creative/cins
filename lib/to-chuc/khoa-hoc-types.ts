@@ -16,6 +16,13 @@ export type TrangThaiKhoaHoc =
   | "da_ket_thuc"
   | "tam_dung";
 
+/** `trang_thai_lop_enum` — per-lớp (`org_lop_hoc.trang_thai`). */
+export type TrangThaiLop =
+  | "sap_khai_giang"
+  | "dang_hoc"
+  | "da_ket_thuc"
+  | "huy";
+
 export type KhoaHocCardData = {
   id: string;
   slug: string;
@@ -69,6 +76,28 @@ export type CapNhatKhoaHocInput = TaoKhoaHocInput & {
 
 export type VisibilityGiaoTrinh = "public" | "chi_hoc_vien" | "private";
 
+/** Bài tập khóa học — UI local / sau này map `org_bai_tap`. */
+export type BaiTapKhoaData = {
+  id: string;
+  tenBaiTap: string;
+  moTa: string | null;
+  videoYoutubeUrl: string | null;
+  thumbnailUrl: string | null;
+  giaoTrinhBaiId: string | null;
+  /** Hiển thị công khai trên trang khóa (toggle Eye). */
+  visible: boolean;
+};
+
+export type BaiTapKhoaDraft = Omit<BaiTapKhoaData, "id">;
+
+/** Cách hiển thị mục bài tập cho khách — UI local / sau này map DB khóa học. */
+export type BaiTapSectionDisplayMode = "an" | "mot_phan" | "day_du";
+
+export const BAI_TAP_SECTION_DISPLAY_DEFAULT: BaiTapSectionDisplayMode = "day_du";
+
+/** Số card hiển thị trước overlay khi `mot_phan`. */
+export const BAI_TAP_PARTIAL_VISIBLE_COUNT = 2;
+
 export type GiaoTrinhBaiData = {
   id: string;
   thuTu: number;
@@ -91,15 +120,30 @@ export type GiaoVienKhoaData = {
 
 export type LopHocDetailData = {
   id: string;
-  tenLop: string;
+  /** Mã lớp hiển thị (VD: HHK30) — null khi `ma_lop` nội bộ tự sinh. */
+  maLop: string | null;
+  /** Nhãn phụ: ca/lịch học (VD: Ca tối · T2-4-6). */
+  tenLop: string | null;
   hinhThuc: HinhThucLop;
   lichHoc: string | null;
   ngayKhaiGiang: string;
   slotToiDa: number | null;
-  trangThaiLop: string;
+  trangThaiLop: TrangThaiLop;
   conCho: boolean;
+  /** Tên giảng viên tự nhập khi chưa gắn user CINS. */
+  giaoVienText: string | null;
   giaoVien: GiaoVienKhoaData;
   diaChiHoc: string | null;
+};
+
+export type LopHocFormInput = {
+  maLop?: string | null;
+  hinhThuc?: HinhThucLop;
+  lichHoc?: string | null;
+  ngayKhaiGiang?: string | null;
+  giaoVienText?: string | null;
+  slotToiDa?: number | null;
+  trangThaiLop?: TrangThaiLop;
 };
 
 export type KhoaHocDetailPayload = {

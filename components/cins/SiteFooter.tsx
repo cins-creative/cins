@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { NGHE_NGHIEP_HUB_PATH } from "@/lib/cins/hubPaths";
+
 export function SiteFooter() {
   return (
     <footer className="footer">
@@ -17,7 +19,7 @@ export function SiteFooter() {
           <div className="footer-col-title">Khám phá</div>
           <ul>
             <li>
-              <Link href="/nghe-nghiep">Hướng nghiệp</Link>
+              <Link href={NGHE_NGHIEP_HUB_PATH}>Hướng nghiệp</Link>
             </li>
             <li>
               <Link href="#">Trường ĐH</Link>

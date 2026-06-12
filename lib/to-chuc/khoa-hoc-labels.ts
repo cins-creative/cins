@@ -1,14 +1,16 @@
 import type {
+  BaiTapSectionDisplayMode,
   HinhThucLop,
   LoaiMoHinhKhoa,
   TrinhDoDauVao,
   TrangThaiKhoaHoc,
+  TrangThaiLop,
 } from "@/lib/to-chuc/khoa-hoc-types";
 
 export function labelLoaiMoHinhKhoa(loai: LoaiMoHinhKhoa): string {
   switch (loai) {
     case "cohort_co_dinh":
-      return "Cohort cố định";
+      return "Theo khóa";
     case "lien_tuc_theo_thang":
       return "Liên tục / tháng";
     default:
@@ -28,6 +30,19 @@ export function labelTrinhDoDauVao(trinhDo: TrinhDoDauVao): string {
       return "Không yêu cầu";
     default:
       return trinhDo;
+  }
+}
+
+export function labelBaiTapSectionDisplay(mode: BaiTapSectionDisplayMode): string {
+  switch (mode) {
+    case "an":
+      return "Ẩn giáo trình";
+    case "mot_phan":
+      return "Hiển thị một phần";
+    case "day_du":
+      return "Hiển thị đầy đủ";
+    default:
+      return mode;
   }
 }
 
@@ -134,7 +149,7 @@ export const LOAI_MO_HINH_OPTIONS: ReadonlyArray<{
   },
   {
     value: "cohort_co_dinh",
-    label: "Cohort cố định",
+    label: "Theo khóa",
     hint: "Một lớp khai giảng, học xong khóa theo nhóm.",
   },
 ];
@@ -187,6 +202,31 @@ export function labelTrangThaiKhoaHero(trangThai: TrangThaiKhoaHoc): string | nu
 export function showTrangThaiKhoaHero(trangThai: TrangThaiKhoaHoc): boolean {
   return trangThai === "dang_mo_don" || trangThai === "dang_hoc";
 }
+
+export function labelTrangThaiLop(trangThai: TrangThaiLop): string {
+  switch (trangThai) {
+    case "sap_khai_giang":
+      return "Sắp khai giảng";
+    case "dang_hoc":
+      return "Đang học";
+    case "da_ket_thuc":
+      return "Đã kết thúc";
+    case "huy":
+      return "Đã hủy";
+    default:
+      return trangThai;
+  }
+}
+
+export const TRANG_THAI_LOP_OPTIONS: ReadonlyArray<{
+  value: TrangThaiLop;
+  label: string;
+}> = [
+  { value: "sap_khai_giang", label: "Sắp khai giảng" },
+  { value: "dang_hoc", label: "Đang học" },
+  { value: "da_ket_thuc", label: "Đã kết thúc" },
+  { value: "huy", label: "Đã hủy" },
+];
 
 export const HINH_THUC_LOP_OPTIONS: ReadonlyArray<{
   value: HinhThucLop;
