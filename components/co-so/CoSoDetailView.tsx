@@ -33,6 +33,7 @@ import {
   parseCoSoRouteFromPathname,
 } from "@/lib/to-chuc/co-so-routes";
 import { coSoToInlinePayload } from "@/lib/to-chuc/co-so-inline-payload";
+import type { TruongChiNhanh } from "@/lib/truong/types";
 
 const TABS = [
   { id: "bai-dang", label: CO_SO_TAB_LABELS["bai-dang"], num: "01" },

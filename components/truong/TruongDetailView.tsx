@@ -144,6 +144,7 @@ function TruongDetailViewInner({
     .join(" ");
 
   function handleSettingsSaved(patch: SettingsSavedPatch) {
+    if (!ctx) return;
     ctx.applySchoolPatch({
       ...(patch.ten ? { ten: patch.ten } : {}),
       ...(patch.moTa !== undefined ? { mo_ta: patch.moTa } : {}),
