@@ -4,10 +4,12 @@ import { Loader2, X } from "lucide-react";
 import { useCallback, useEffect, useId, useState } from "react";
 
 import { TruongInlineModal } from "@/components/truong/inline/TruongInlineModal";
+import { LichCaHocFields } from "@/components/co-so/LichCaHocFields";
 import {
   HINH_THUC_LOP_OPTIONS,
   TRANG_THAI_LOP_OPTIONS,
 } from "@/lib/to-chuc/khoa-hoc-labels";
+import { isDefaultLichHoc, composeLichCaHocFromParts } from "@/lib/to-chuc/lich-ca-hoc-form";
 import type {
   HinhThucLop,
   LopHocDetailData,
@@ -77,7 +79,8 @@ export function LopHocEditModal({
       return;
     }
     setMaLop(editing.maLop ?? "");
-    setLichHoc(editing.lichHoc ?? editing.tenLop ?? "");
+    const rawLich = composeLichCaHocFromParts(editing.tenLop, editing.lichHoc);
+    setLichHoc(isDefaultLichHoc(rawLich) ? "" : rawLich);
     setNgayKhaiGiang(editing.ngayKhaiGiang ?? "");
     setHinhThuc(editing.hinhThuc);
     setGiaoVienText(
@@ -216,21 +219,22 @@ export function LopHocEditModal({
               required
             />
           </label>
-        ) : (
-          <label className="cso-kh-field">
-            <span className="cso-kh-label">Lịch / ca học</span>
-            <input
-              type="text"
-              className="cso-kh-input"
-              value={lichHoc}
-              onChange={(e) => setLichHoc(e.target.value)}
-              placeholder="VD: Ca tối · T2-4-6 — 18:00–21:00"
-            />
+        ) : null}
+
+        <div className="cso-kh-field">
+          <span className="cso-kh-label">Lịch / ca học</span>
+          <LichCaHocFields value={lichHoc} onChange={setLichHoc} />
+          {loaiMoHinh === "cohort_co_dinh" ? (
             <p className="cso-kh-field-hint">
-              Hiển thị dưới mã lớp và trong dòng lịch học.
+              Tuỳ chọn — bổ sung ca và khung giờ cố định của lớp cohort.
             </p>
-          </label>
-        )}
+          ) : (
+            <p className="cso-kh-field-hint">
+              Khóa liên tục: mô tả ca cụ thể (VD ca tối T2-4-6). Để trống sẽ
+              hiển thị «Khai giảng hàng tuần».
+            </p>
+          )}
+        </div>
 
         <fieldset className="cso-kh-field">
           <legend className="cso-kh-label">Hình thức</legend>

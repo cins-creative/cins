@@ -76,7 +76,7 @@ export type CapNhatKhoaHocInput = TaoKhoaHocInput & {
 
 export type VisibilityGiaoTrinh = "public" | "chi_hoc_vien" | "private";
 
-/** Bài tập khóa học — UI local / sau này map `org_bai_tap`. */
+/** Bài tập khóa học — map `org_bai_tap`. */
 export type BaiTapKhoaData = {
   id: string;
   tenBaiTap: string;
@@ -90,7 +90,7 @@ export type BaiTapKhoaData = {
 
 export type BaiTapKhoaDraft = Omit<BaiTapKhoaData, "id">;
 
-/** Cách hiển thị mục bài tập cho khách — UI local / sau này map DB khóa học. */
+/** Cách hiển thị mục bài tập cho khách — `org_khoa_hoc.bai_tap_hien_thi`. */
 export type BaiTapSectionDisplayMode = "an" | "mot_phan" | "day_du";
 
 export const BAI_TAP_SECTION_DISPLAY_DEFAULT: BaiTapSectionDisplayMode = "day_du";
@@ -152,4 +152,6 @@ export type KhoaHocDetailPayload = {
   giaoTrinh: GiaoTrinhBaiData[];
   lopHoc: LopHocDetailData[];
   giaoVien: GiaoVienKhoaData[];
+  baiTap: BaiTapKhoaData[];
+  baiTapDisplayMode: BaiTapSectionDisplayMode;
 };

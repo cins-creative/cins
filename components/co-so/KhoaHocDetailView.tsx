@@ -25,7 +25,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
 
@@ -41,7 +41,11 @@ import type {
   LopHocFormInput,
   TrangThaiLop,
 } from "@/lib/to-chuc/khoa-hoc-types";
-import { BAI_TAP_PARTIAL_VISIBLE_COUNT } from "@/lib/to-chuc/khoa-hoc-types";
+import {
+  BAI_TAP_PARTIAL_VISIBLE_COUNT,
+  BAI_TAP_SECTION_DISPLAY_DEFAULT,
+} from "@/lib/to-chuc/khoa-hoc-types";
+import { splitLichCaHocDisplay } from "@/lib/to-chuc/lich-ca-hoc-form";
 import {
   buildKhoaHocDetailMock,
   isKhoaHocDetailMockSlug,
@@ -445,12 +449,13 @@ function applyMockLopSave(
   payload: LopHocFormInput,
 ): KhoaHocDetailPayload {
   const trangThai = payload.trangThaiLop ?? "sap_khai_giang";
-  const lich = payload.lichHoc?.trim() || null;
+  const composed = payload.lichHoc?.trim() || null;
+  const { tenLop, lichHoc } = splitLichCaHocDisplay(composed);
   const patch = {
     maLop: payload.maLop?.trim() || null,
-    tenLop: lich,
+    tenLop,
     hinhThuc: payload.hinhThuc ?? "truc_tiep",
-    lichHoc: lich,
+    lichHoc,
     ngayKhaiGiang:
       payload.ngayKhaiGiang?.trim() ||
       detail.khoa.ngayKhaiGiangGanNhat ||
@@ -494,11 +499,18 @@ function LopHocCard({
   onEdit?: (lop: LopHocDetailData) => void;
 }) {
   const maLabel = lop.maLop ?? `Lớp ${lopIndex + 1}`;
-  const lichLabel =
-    lop.lichHoc ??
-    (loaiMoHinh === "lien_tuc_theo_thang"
-      ? "Khai giảng hàng tuần"
-      : formatKhaiGiangCard("cohort_co_dinh", lop.ngayKhaiGiang));
+  const lichLabel = (() => {
+    if (lop.tenLop && lop.lichHoc && lop.lichHoc !== lop.tenLop) {
+      return `${lop.tenLop} — ${lop.lichHoc}`;
+    }
+    return (
+      lop.lichHoc ??
+      lop.tenLop ??
+      (loaiMoHinh === "lien_tuc_theo_thang"
+        ? "Khai giảng hàng tuần"
+        : formatKhaiGiangCard("cohort_co_dinh", lop.ngayKhaiGiang))
+    );
+  })();
 
   return (
     <div className={`cso-khd-khung cso-khd-lop${highlighted ? " hl" : ""}`}>
@@ -1074,12 +1086,10 @@ export function KhoaHocDetailView({
   const [editingBaiTap, setEditingBaiTap] = useState<BaiTapKhoaData | null>(
     null,
   );
-  const [baiTapList, setBaiTapList] = useState(() =>
-    loadBaiTapDrafts(orgId, khoa.id),
-  );
-  const [baiTapDisplayMode, setBaiTapDisplayMode] = useState(() =>
-    loadBaiTapSectionDisplay(orgId, khoa.id),
-  );
+  const [baiTapList, setBaiTapList] = useState<BaiTapKhoaData[]>([]);
+  const [baiTapDisplayMode, setBaiTapDisplayMode] =
+    useState<BaiTapSectionDisplayMode>(BAI_TAP_SECTION_DISPLAY_DEFAULT);
+  const baiTapMigratedRef = useRef(false);
   const [khoaEditOpen, setKhoaEditOpen] = useState(false);
   const [lopOpen, setLopOpen] = useState(false);
   const [editingLop, setEditingLop] = useState<LopHocDetailData | null>(null);
@@ -1087,9 +1097,88 @@ export function KhoaHocDetailView({
   useEffect(() => {
     setBaiTapOpen(false);
     setEditingBaiTap(null);
-    setBaiTapList(loadBaiTapDrafts(orgId, khoa.id));
-    setBaiTapDisplayMode(loadBaiTapSectionDisplay(orgId, khoa.id));
+    baiTapMigratedRef.current = false;
   }, [orgId, khoa.id]);
+
+  const baiTapApiUrl = `/api/co-so/${encodeURIComponent(orgId)}/khoa-hoc/${encodeURIComponent(khoa.id)}/bai-tap`;
+
+  async function persistBaiTapList(list: BaiTapKhoaData[]) {
+    const res = await fetch(baiTapApiUrl, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ baiTap: list }),
+    });
+    const body = (await res.json().catch(() => null)) as {
+      baiTap?: BaiTapKhoaData[];
+      error?: string;
+    } | null;
+    if (!res.ok) {
+      throw new Error(body?.error ?? "Không lưu được bài tập.");
+    }
+    saveBaiTapDrafts(orgId, khoa.id, []);
+    return body?.baiTap ?? list;
+  }
+
+  async function persistBaiTapDisplayMode(mode: BaiTapSectionDisplayMode) {
+    const res = await fetch(baiTapApiUrl, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ displayMode: mode }),
+    });
+    const body = (await res.json().catch(() => null)) as { error?: string } | null;
+    if (!res.ok) {
+      throw new Error(body?.error ?? "Không lưu được chế độ hiển thị.");
+    }
+    saveBaiTapSectionDisplay(orgId, khoa.id, mode);
+  }
+
+  useEffect(() => {
+    if (!detail || isMockup) return;
+
+    const fromApi = detail.baiTap ?? [];
+    const mode = detail.baiTapDisplayMode ?? BAI_TAP_SECTION_DISPLAY_DEFAULT;
+    setBaiTapDisplayMode(mode);
+
+    if (fromApi.length > 0) {
+      setBaiTapList(fromApi);
+      saveBaiTapDrafts(orgId, khoa.id, []);
+      return;
+    }
+
+    const sessionDrafts = loadBaiTapDrafts(orgId, khoa.id);
+    if (
+      isManagingKhoa &&
+      sessionDrafts.length > 0 &&
+      !baiTapMigratedRef.current
+    ) {
+      baiTapMigratedRef.current = true;
+      void (async () => {
+        try {
+          const saved = await persistBaiTapList(sessionDrafts);
+          const sessionMode = loadBaiTapSectionDisplay(orgId, khoa.id);
+          if (sessionMode !== BAI_TAP_SECTION_DISPLAY_DEFAULT) {
+            await persistBaiTapDisplayMode(sessionMode);
+          }
+          setBaiTapList(saved);
+          setBaiTapDisplayMode(sessionMode);
+          setDetail((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  baiTap: saved,
+                  baiTapDisplayMode: sessionMode,
+                }
+              : prev,
+          );
+        } catch {
+          setBaiTapList(sessionDrafts);
+        }
+      })();
+      return;
+    }
+
+    setBaiTapList(fromApi);
+  }, [detail, isMockup, isManagingKhoa, orgId, khoa.id]);
 
   useEffect(() => {
     if (!isManagingKhoa) {
@@ -1135,20 +1224,44 @@ export function KhoaHocDetailView({
 
   function handleBaiTapDisplayModeChange(mode: BaiTapSectionDisplayMode) {
     setBaiTapDisplayMode(mode);
-    saveBaiTapSectionDisplay(orgId, khoa.id, mode);
+    if (isMockup) {
+      saveBaiTapSectionDisplay(orgId, khoa.id, mode);
+      return;
+    }
+    void persistBaiTapDisplayMode(mode)
+      .then(() => {
+        setDetail((prev) =>
+          prev ? { ...prev, baiTapDisplayMode: mode } : prev,
+        );
+      })
+      .catch(() => {
+        saveBaiTapSectionDisplay(orgId, khoa.id, mode);
+      });
   }
 
   function handleSaveBaiTap(draft: BaiTapKhoaDraft) {
-    setBaiTapList((prev) => {
-      const next = editingBaiTap
-        ? prev.map((bt) =>
-            bt.id === editingBaiTap.id ? { ...bt, ...draft } : bt,
-          )
-        : [...prev, { id: crypto.randomUUID(), ...draft }];
-      saveBaiTapDrafts(orgId, khoa.id, next);
-      return next;
-    });
+    const next = editingBaiTap
+      ? baiTapList.map((bt) =>
+          bt.id === editingBaiTap.id ? { ...bt, ...draft } : bt,
+        )
+      : [...baiTapList, { id: crypto.randomUUID(), ...draft }];
+
+    setBaiTapList(next);
     setEditingBaiTap(null);
+
+    if (isMockup) {
+      saveBaiTapDrafts(orgId, khoa.id, next);
+      return;
+    }
+
+    void persistBaiTapList(next)
+      .then((saved) => {
+        setBaiTapList(saved);
+        setDetail((prev) => (prev ? { ...prev, baiTap: saved } : prev));
+      })
+      .catch(() => {
+        saveBaiTapDrafts(orgId, khoa.id, next);
+      });
   }
 
   function handleOpenAddLop() {

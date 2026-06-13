@@ -19,6 +19,8 @@ export function resolveKhoaHocDetailDisplay(
     giaoTrinh: detail.giaoTrinh,
     lopHoc: detail.lopHoc,
     giaoVien: detail.giaoVien,
+    baiTap: detail.baiTap,
+    baiTapDisplayMode: detail.baiTapDisplayMode,
   };
 }
 
@@ -178,5 +180,7 @@ export function buildKhoaHocDetailMock(
         pendingProfile: true,
       },
     ],
+    baiTap: [],
+    baiTapDisplayMode: "day_du",
   };
 }
