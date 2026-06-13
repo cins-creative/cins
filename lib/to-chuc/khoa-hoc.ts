@@ -15,6 +15,7 @@ import type {
   CapNhatKhoaHocInput,
   HinhThucLop,
   KhoaHocCardData,
+  KhoaHocCheDoHienThi,
   LoaiMoHinhKhoa,
   TaoKhoaHocInput,
   TrinhDoDauVao,
@@ -32,9 +33,16 @@ type KhoaHocRow = {
   thoi_luong_buoi: number | null;
   thoi_luong_phut_moi_buoi: number | null;
   hoc_phi: number | null;
+  avatar_id: string | null;
   cover_id: string | null;
   noi_dung_blocks?: unknown;
 };
+
+const KHOA_HOC_CARD_SELECT =
+  "id, slug, ten_khoa_hoc, mo_ta, loai_mo_hinh, trinh_do_dau_vao, trang_thai_khoa_hoc, thoi_luong_buoi, thoi_luong_phut_moi_buoi, hoc_phi, avatar_id, cover_id, noi_dung_blocks";
+
+const KHOA_HOC_CARD_SELECT_NO_BLOCKS =
+  "id, slug, ten_khoa_hoc, mo_ta, loai_mo_hinh, trinh_do_dau_vao, trang_thai_khoa_hoc, thoi_luong_buoi, thoi_luong_phut_moi_buoi, hoc_phi, avatar_id, cover_id";
 
 type LopMetaRow = {
   id: string;
@@ -66,6 +74,7 @@ const TRANG_THAI_SET = new Set<string>([
   "da_ket_thuc",
   "tam_dung",
 ]);
+const CHE_DO_HIEN_THI_SET = new Set<string>(["cong_khai", "an"]);
 
 export async function canViewerManageKhoaHoc(
   profileId: string | null | undefined,
@@ -326,6 +335,12 @@ function mapRowToCard(
   index: number,
 ): KhoaHocCardData {
   const parsed = parseKhoaHocNoiDungBlocks(row.noi_dung_blocks);
+  const thumbnailUrl =
+    resolveTruongImageSrcSync(row.avatar_id, ["public", "avatar", "medium"]) ??
+    null;
+  const coverUrl =
+    resolveTruongImageSrcSync(row.cover_id, ["public", "cover", "medium"]) ??
+    null;
   return {
     id: row.id,
     slug: row.slug,
@@ -334,15 +349,14 @@ function mapRowToCard(
     loaiMoHinh: row.loai_mo_hinh,
     trinhDoDauVao: row.trinh_do_dau_vao,
     trangThaiKhoaHoc: row.trang_thai_khoa_hoc,
+    cheDoHienThi: parsed.cheDoHienThi,
     thoiLuongBuoi: row.thoi_luong_buoi,
     thoiLuongPhutMoiBuoi: row.thoi_luong_phut_moi_buoi,
     hocPhi: row.hoc_phi != null ? Number(row.hoc_phi) : null,
+    thumbnailId: row.avatar_id,
+    thumbnailUrl,
     coverId: row.cover_id,
-    coverUrl: resolveTruongImageSrcSync(row.cover_id, [
-      "public",
-      "cover",
-      "medium",
-    ]),
+    coverUrl,
     soLopMo: stats.soLopMo,
     soHocVien: stats.soHocVien,
     ngayKhaiGiangGanNhat: stats.ngayKhaiGiangGanNhat,
@@ -357,6 +371,7 @@ function mapRowToCard(
 
 export async function listKhoaHocCuaOrg(
   orgId: string,
+  opts?: { includeHidden?: boolean },
 ): Promise<
   { ok: true; khoaHoc: KhoaHocCardData[] } | { ok: false; error: string }
 > {
@@ -367,9 +382,7 @@ export async function listKhoaHocCuaOrg(
   const admin = createServiceRoleClient();
   const { data: rows, error } = await admin
     .from("org_khoa_hoc")
-    .select(
-      "id, slug, ten_khoa_hoc, mo_ta, loai_mo_hinh, trinh_do_dau_vao, trang_thai_khoa_hoc, thoi_luong_buoi, thoi_luong_phut_moi_buoi, hoc_phi, cover_id, noi_dung_blocks",
-    )
+    .select(KHOA_HOC_CARD_SELECT)
     .eq("id_to_chuc", orgId)
     .order("ten_khoa_hoc", { ascending: true });
 
@@ -377,9 +390,7 @@ export async function listKhoaHocCuaOrg(
     if (error.message.includes("noi_dung_blocks")) {
       const fallback = await admin
         .from("org_khoa_hoc")
-        .select(
-          "id, slug, ten_khoa_hoc, mo_ta, loai_mo_hinh, trinh_do_dau_vao, trang_thai_khoa_hoc, thoi_luong_buoi, thoi_luong_phut_moi_buoi, hoc_phi, cover_id",
-        )
+        .select(KHOA_HOC_CARD_SELECT_NO_BLOCKS)
         .eq("id_to_chuc", orgId)
         .order("ten_khoa_hoc", { ascending: true });
       if (fallback.error) {
@@ -388,18 +399,24 @@ export async function listKhoaHocCuaOrg(
       const listFallback = (fallback.data ?? []) as KhoaHocRow[];
       const statsMap = await demDanXuatKhoa(listFallback.map((r) => r.id));
       const lopMap = await fetchLopMetaForKhoa(listFallback.map((r) => r.id));
-      const khoaHoc = listFallback.map((row, index) =>
-        mapRowToCard(
-          row,
-          statsMap.get(row.id) ?? {
-            soLopMo: 0,
-            soHocVien: 0,
-            ngayKhaiGiangGanNhat: null,
-          },
-          lopMap.get(row.id) ?? { lopId: null, hinhThuc: null, lichHoc: null },
-          index,
-        ),
-      );
+      const khoaHoc = listFallback
+        .map((row, index) =>
+          mapRowToCard(
+            row,
+            statsMap.get(row.id) ?? {
+              soLopMo: 0,
+              soHocVien: 0,
+              ngayKhaiGiangGanNhat: null,
+            },
+            lopMap.get(row.id) ?? {
+              lopId: null,
+              hinhThuc: null,
+              lichHoc: null,
+            },
+            index,
+          ),
+        )
+        .filter((k) => opts?.includeHidden || k.cheDoHienThi !== "an");
       return { ok: true, khoaHoc };
     }
     return { ok: false, error: error.message };
@@ -408,18 +425,20 @@ export async function listKhoaHocCuaOrg(
   const list = (rows ?? []) as KhoaHocRow[];
   const statsMap = await demDanXuatKhoa(list.map((r) => r.id));
   const lopMap = await fetchLopMetaForKhoa(list.map((r) => r.id));
-  const khoaHoc = list.map((row, index) =>
-    mapRowToCard(
-      row,
-      statsMap.get(row.id) ?? {
-        soLopMo: 0,
-        soHocVien: 0,
-        ngayKhaiGiangGanNhat: null,
-      },
-      lopMap.get(row.id) ?? { lopId: null, hinhThuc: null, lichHoc: null },
-      index,
-    ),
-  );
+  const khoaHoc = list
+    .map((row, index) =>
+      mapRowToCard(
+        row,
+        statsMap.get(row.id) ?? {
+          soLopMo: 0,
+          soHocVien: 0,
+          ngayKhaiGiangGanNhat: null,
+        },
+        lopMap.get(row.id) ?? { lopId: null, hinhThuc: null, lichHoc: null },
+        index,
+      ),
+    )
+    .filter((k) => opts?.includeHidden || k.cheDoHienThi !== "an");
 
   return { ok: true, khoaHoc };
 }
@@ -460,6 +479,8 @@ function validateTaoInput(
       error: "Học offline / kết hợp cần địa chỉ phòng học.",
     };
   }
+  const cheDoHienThi: KhoaHocCheDoHienThi =
+    input.cheDoHienThi === "an" ? "an" : "cong_khai";
   return {
     ok: true,
     data: {
@@ -472,6 +493,7 @@ function validateTaoInput(
       diaChiHoc: input.diaChiHoc?.trim() || null,
       lichHoc: input.lichHoc?.trim() || null,
       yeuCauChuanBi: input.yeuCauChuanBi?.trim() || null,
+      cheDoHienThi,
     },
   };
 }
@@ -501,6 +523,7 @@ export async function taoKhoaHoc(
     yeuCauChuanBi: data.yeuCauChuanBi,
     diaChiHoc: data.diaChiHoc,
     includeDiaDiem: needsDiaChi(hinhThuc),
+    cheDoHienThi: data.cheDoHienThi,
   });
 
   const admin = createServiceRoleClient();
@@ -515,6 +538,7 @@ export async function taoKhoaHoc(
     hoc_phi: data.hocPhi ?? null,
     trinh_do_dau_vao: data.trinhDoDauVao ?? "khong_yeu_cau",
     trang_thai_khoa_hoc: "sap_khai_giang",
+    avatar_id: data.thumbnailId?.trim() || null,
     cover_id: data.coverId?.trim() || null,
     noi_dung_blocks: noiDungBlocks,
   };
@@ -523,9 +547,7 @@ export async function taoKhoaHoc(
   const { data: inserted, error } = await admin
     .from("org_khoa_hoc")
     .insert(insertRow)
-    .select(
-      "id, slug, ten_khoa_hoc, mo_ta, loai_mo_hinh, trinh_do_dau_vao, trang_thai_khoa_hoc, thoi_luong_buoi, thoi_luong_phut_moi_buoi, hoc_phi, cover_id, noi_dung_blocks",
-    )
+    .select(KHOA_HOC_CARD_SELECT)
     .single();
 
   if (error || !inserted) {
@@ -535,9 +557,7 @@ export async function taoKhoaHoc(
       const { data: row2, error: err2 } = await admin
         .from("org_khoa_hoc")
         .insert(insertRow)
-        .select(
-          "id, slug, ten_khoa_hoc, mo_ta, loai_mo_hinh, trinh_do_dau_vao, trang_thai_khoa_hoc, thoi_luong_buoi, thoi_luong_phut_moi_buoi, hoc_phi, cover_id",
-        )
+        .select(KHOA_HOC_CARD_SELECT_NO_BLOCKS)
         .single();
       if (err2 || !row2) {
         return { ok: false, error: err2?.message ?? msg };
@@ -576,18 +596,14 @@ async function fetchKhoaHocCard(
   let row: KhoaHocRow | null = null;
   const { data, error } = await admin
     .from("org_khoa_hoc")
-    .select(
-      "id, slug, ten_khoa_hoc, mo_ta, loai_mo_hinh, trinh_do_dau_vao, trang_thai_khoa_hoc, thoi_luong_buoi, thoi_luong_phut_moi_buoi, hoc_phi, cover_id, noi_dung_blocks",
-    )
+    .select(KHOA_HOC_CARD_SELECT)
     .eq("id_to_chuc", orgId)
     .eq("id", khoaId)
     .maybeSingle();
   if (error?.message?.includes("noi_dung_blocks")) {
     const fallback = await admin
       .from("org_khoa_hoc")
-      .select(
-        "id, slug, ten_khoa_hoc, mo_ta, loai_mo_hinh, trinh_do_dau_vao, trang_thai_khoa_hoc, thoi_luong_buoi, thoi_luong_phut_moi_buoi, hoc_phi, cover_id",
-      )
+      .select(KHOA_HOC_CARD_SELECT_NO_BLOCKS)
       .eq("id_to_chuc", orgId)
       .eq("id", khoaId)
       .maybeSingle();
@@ -621,7 +637,20 @@ function validateCapNhatInput(
   ) {
     return { ok: false, error: "Trạng thái khóa học không hợp lệ." };
   }
-  return { ok: true, data: { ...base.data, trangThaiKhoaHoc: input.trangThaiKhoaHoc } };
+  if (
+    input.cheDoHienThi != null &&
+    !CHE_DO_HIEN_THI_SET.has(input.cheDoHienThi)
+  ) {
+    return { ok: false, error: "Chế độ hiển thị không hợp lệ." };
+  }
+  return {
+    ok: true,
+    data: {
+      ...base.data,
+      trangThaiKhoaHoc: input.trangThaiKhoaHoc,
+      cheDoHienThi: base.data.cheDoHienThi,
+    },
+  };
 }
 
 export async function capNhatKhoaHoc(
@@ -654,11 +683,13 @@ export async function capNhatKhoaHoc(
     thoi_luong_phut_moi_buoi: data.thoiLuongPhutMoiBuoi ?? null,
     hoc_phi: data.hocPhi ?? null,
     trinh_do_dau_vao: data.trinhDoDauVao ?? "khong_yeu_cau",
+    avatar_id: data.thumbnailId?.trim() || null,
     cover_id: data.coverId?.trim() || null,
     noi_dung_blocks: buildKhoaHocNoiDungBlocks({
       yeuCauChuanBi: data.yeuCauChuanBi,
       diaChiHoc: data.diaChiHoc,
       includeDiaDiem: needsDiaChi(hinhThuc),
+      cheDoHienThi: data.cheDoHienThi,
     }),
   };
   if (data.trangThaiKhoaHoc) {

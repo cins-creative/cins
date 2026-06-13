@@ -16,6 +16,9 @@ export type TrangThaiKhoaHoc =
   | "da_ket_thuc"
   | "tam_dung";
 
+/** Hiển thị trang khóa trên cơ sở — lưu trong `noi_dung_blocks` meta. */
+export type KhoaHocCheDoHienThi = "cong_khai" | "an";
+
 /** `trang_thai_lop_enum` — per-lớp (`org_lop_hoc.trang_thai`). */
 export type TrangThaiLop =
   | "sap_khai_giang"
@@ -31,9 +34,14 @@ export type KhoaHocCardData = {
   loaiMoHinh: LoaiMoHinhKhoa;
   trinhDoDauVao: TrinhDoDauVao;
   trangThaiKhoaHoc: TrangThaiKhoaHoc;
+  cheDoHienThi: KhoaHocCheDoHienThi;
   thoiLuongBuoi: number | null;
   thoiLuongPhutMoiBuoi: number | null;
   hocPhi: number | null;
+  /** Thumbnail danh sách khóa (`org_khoa_hoc.avatar_id`). */
+  thumbnailId: string | null;
+  thumbnailUrl: string | null;
+  /** Banner trang chi tiết khóa (`org_khoa_hoc.cover_id`). */
   coverId: string | null;
   coverUrl: string | null;
   soLopMo: number;
@@ -59,6 +67,7 @@ export type TaoKhoaHocInput = {
   thoiLuongPhutMoiBuoi?: number | null;
   hocPhi?: number | null;
   trinhDoDauVao?: TrinhDoDauVao;
+  thumbnailId?: string | null;
   coverId?: string | null;
   /** Bắt buộc khi `loaiMoHinh === cohort_co_dinh`. ISO `YYYY-MM-DD`. */
   ngayKhaiGiang?: string | null;
@@ -68,6 +77,7 @@ export type TaoKhoaHocInput = {
   /** Mô tả lịch khai giảng khi mô hình liên tục. */
   lichHoc?: string | null;
   yeuCauChuanBi?: string | null;
+  cheDoHienThi?: KhoaHocCheDoHienThi;
 };
 
 export type CapNhatKhoaHocInput = TaoKhoaHocInput & {
@@ -116,6 +126,8 @@ export type GiaoVienKhoaData = {
   initials: string;
   vaiTro: string | null;
   pendingProfile: boolean;
+  avatarUrl: string | null;
+  avatarId: string | null;
 };
 
 export type LopHocDetailData = {
@@ -141,6 +153,8 @@ export type LopHocFormInput = {
   hinhThuc?: HinhThucLop;
   lichHoc?: string | null;
   ngayKhaiGiang?: string | null;
+  /** User CINS phụ trách lớp (`org_lop_hoc.giao_vien_phu_trach`). */
+  giaoVienPhuTrach?: string | null;
   giaoVienText?: string | null;
   slotToiDa?: number | null;
   trangThaiLop?: TrangThaiLop;

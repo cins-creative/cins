@@ -6,6 +6,7 @@ import {
   fetchMilestoneNavStats,
   fetchMilestoneTimelinePage,
 } from "@/lib/journey/milestones-page-fetch";
+import { loadPendingCoSoStaffInvites } from "@/lib/to-chuc/co-so-staff-invite";
 import { loadPendingCoAuthorInvites } from "@/lib/social/co-author";
 import { listMutualFriendProfilesPage } from "@/lib/social/ket-ban";
 
@@ -20,3 +21,4 @@ export const getCachedGalleryMainPage = cache(fetchGalleryMainPage);
 export const getCachedMutualFriendsPage = cache(listMutualFriendProfilesPage);
 export const getCachedJourneySwitchNavCounts = cache(fetchJourneySwitchNavCounts);
 export const getCachedPendingCoAuthorInvites = cache(loadPendingCoAuthorInvites);
+export const getCachedPendingCoSoStaffInvites = cache(loadPendingCoSoStaffInvites);

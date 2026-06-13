@@ -4129,3 +4129,419 @@
   color: var(--fg-3);
   font-size: 13px;
 }
+
+/* ── Admin tổ chức ── */
+.cins-admin .admin-to-chuc-page {
+  min-width: 0;
+}
+
+.cins-admin .admin-to-chuc-head {
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.cins-admin .admin-to-chuc-head-copy {
+  min-width: 0;
+}
+
+.cins-admin .admin-to-chuc-sub {
+  margin: 6px 0 0;
+  max-width: 52ch;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--fg-3);
+}
+
+.cins-admin .admin-to-chuc-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cins-admin .admin-to-chuc-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cins-admin .admin-to-chuc-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.cins-admin .admin-to-chuc-stat {
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-xs);
+}
+
+.cins-admin .admin-to-chuc-stat-k {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--fg-4);
+}
+
+.cins-admin .admin-to-chuc-stat-v {
+  display: block;
+  margin-top: 4px;
+  font-size: 20px;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  color: var(--fg-1);
+  line-height: 1.2;
+}
+
+.cins-admin .admin-to-chuc-stat--warn {
+  border-color: #fde68a;
+  background: linear-gradient(180deg, #fffbeb 0%, #fff 100%);
+}
+
+.cins-admin .admin-to-chuc-stat--warn .admin-to-chuc-stat-v {
+  color: #b45309;
+}
+
+.cins-admin .admin-to-chuc-stat--ok {
+  border-color: #bbf7d0;
+  background: linear-gradient(180deg, #f0fdf4 0%, #fff 100%);
+}
+
+.cins-admin .admin-to-chuc-stat--ok .admin-to-chuc-stat-v {
+  color: #15803d;
+}
+
+.cins-admin .admin-to-chuc-panel {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-xs);
+  overflow: hidden;
+}
+
+.cins-admin .admin-to-chuc-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, #fafbfc 0%, var(--bg-surface) 100%);
+}
+
+.cins-admin .admin-to-chuc-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--fg-4);
+  transition:
+    border-color 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+.cins-admin .admin-to-chuc-search:focus-within {
+  border-color: var(--cins-blue);
+  box-shadow: 0 0 0 3px var(--cins-blue-soft);
+  color: var(--cins-blue);
+}
+
+.cins-admin .admin-to-chuc-search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  padding: 10px 0;
+  font: inherit;
+  font-size: 13px;
+  color: var(--fg-1);
+  outline: none;
+}
+
+.cins-admin .admin-to-chuc-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cins-admin .admin-to-chuc-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--fg-3);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition:
+    border-color 0.12s ease,
+    background 0.12s ease,
+    color 0.12s ease;
+}
+
+.cins-admin .admin-to-chuc-filter-count {
+  min-width: 18px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--neutral-100);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--fg-4);
+}
+
+.cins-admin .admin-to-chuc-filter.is-active,
+.cins-admin .admin-to-chuc-filter:hover {
+  border-color: rgba(31, 116, 201, 0.35);
+  background: var(--cins-blue-soft);
+  color: var(--cins-blue-dark);
+}
+
+.cins-admin .admin-to-chuc-filter.is-active .admin-to-chuc-filter-count {
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--cins-blue-dark);
+}
+
+.cins-admin .admin-to-chuc-result {
+  margin: 0;
+  font-size: 12px;
+  color: var(--fg-4);
+}
+
+.cins-admin .admin-to-chuc-result strong {
+  color: var(--fg-2);
+  font-family: var(--font-mono);
+}
+
+.cins-admin .admin-to-chuc-table-wrap {
+  overflow-x: auto;
+}
+
+.cins-admin .admin-to-chuc-table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+}
+
+.cins-admin .admin-to-chuc-table th {
+  padding: 10px 14px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-align: left;
+  color: var(--fg-4);
+  background: var(--neutral-50);
+  border-bottom: 1px solid var(--border);
+}
+
+.cins-admin .admin-to-chuc-th-actions {
+  text-align: right;
+}
+
+.cins-admin .admin-to-chuc-table td {
+  padding: 12px 14px;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.cins-admin .admin-to-chuc-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.cins-admin .admin-to-chuc-table tbody tr:hover {
+  background: rgba(31, 116, 201, 0.03);
+}
+
+.cins-admin .admin-to-chuc-org {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.cins-admin .admin-to-chuc-org-ava {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.cins-admin .admin-to-chuc-org-ava--truong_dai_hoc {
+  background: #e7f0fb;
+  color: #1656a0;
+}
+
+.cins-admin .admin-to-chuc-org-ava--co_so_dao_tao {
+  background: #d9fbed;
+  color: #0e6b4d;
+}
+
+.cins-admin .admin-to-chuc-org-ava--cong_dong {
+  background: #ecddfe;
+  color: #7c3aed;
+}
+
+.cins-admin .admin-to-chuc-org-ava--studio {
+  background: #ffedd5;
+  color: #c2410c;
+}
+
+.cins-admin .admin-to-chuc-org-copy {
+  min-width: 0;
+}
+
+.cins-admin .admin-to-chuc-org-name {
+  display: block;
+  font-weight: 700;
+  color: var(--fg-1);
+  overflow-wrap: anywhere;
+}
+
+.cins-admin .admin-to-chuc-org-slug {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--fg-4);
+}
+
+.cins-admin .admin-to-chuc-loai {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.cins-admin .admin-to-chuc-loai--truong_dai_hoc {
+  background: #e7f0fb;
+  color: #1656a0;
+}
+
+.cins-admin .admin-to-chuc-loai--co_so_dao_tao {
+  background: #d9fbed;
+  color: #0e6b4d;
+}
+
+.cins-admin .admin-to-chuc-loai--cong_dong {
+  background: #ecddfe;
+  color: #7c3aed;
+}
+
+.cins-admin .admin-to-chuc-loai--studio {
+  background: #ffedd5;
+  color: #c2410c;
+}
+
+.cins-admin .admin-to-chuc-muted {
+  color: var(--fg-3);
+  font-size: 12px;
+}
+
+.cins-admin .admin-to-chuc-journey {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--fg-2);
+}
+
+.cins-admin .admin-to-chuc-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cins-admin .admin-to-chuc-act {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--fg-2);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    border-color 0.12s ease,
+    background 0.12s ease,
+    color 0.12s ease;
+}
+
+.cins-admin .admin-to-chuc-act:hover:not(:disabled) {
+  border-color: rgba(31, 116, 201, 0.35);
+  background: var(--cins-blue-soft);
+  color: var(--cins-blue-dark);
+}
+
+.cins-admin .admin-to-chuc-act:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.cins-admin .admin-to-chuc-act--verify {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  color: #15803d;
+}
+
+.cins-admin .admin-to-chuc-act--verify:hover {
+  border-color: #86efac;
+  background: #dcfce7;
+  color: #166534;
+}
+
+.cins-admin .admin-to-chuc-act--view {
+  border-color: rgba(31, 116, 201, 0.25);
+  color: var(--cins-blue-dark);
+}
+
+.cins-admin .admin-to-chuc-footnote {
+  margin: 0;
+  font-size: 11px;
+  color: var(--fg-4);
+}
+
+.cins-admin .admin-to-chuc-footnote code {
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+@media (max-width: 960px) {
+  .cins-admin .admin-to-chuc-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .cins-admin .admin-to-chuc-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .cins-admin .admin-to-chuc-head {
+    flex-direction: column;
+  }
+}

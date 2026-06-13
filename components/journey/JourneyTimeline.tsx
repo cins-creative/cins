@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { JourneyCoAuthorPendingBanner } from "@/components/journey/JourneyCoAuthorPendingBanner";
+import { JourneyPendingConfirmationsStack } from "@/components/journey/JourneyPendingConfirmationsStack";
 import { JourneyCreateComposer } from "@/components/journey/JourneyCreateComposer";
 import { JourneyTimelineBar } from "@/components/journey/JourneyTimelineBar";
 import type { FilterGroup } from "@/components/journey/JourneyTimelineBar";
@@ -45,6 +45,7 @@ import {
   type TimelineScrollSpy,
 } from "@/lib/journey/timeline-scroll-spy";
 import type { PendingCoAuthorInvite } from "@/lib/social/types";
+import type { PendingCoSoStaffInviteNotification } from "@/lib/to-chuc/co-so-staff-invite";
 import { matchesPersonalFilterSlug } from "@/lib/filter/client-utils";
 import { CONG_DONG_PERSONAL_FILTER_SLUG } from "@/lib/filter/cong-dong-personal-filter.shared";
 import { useJourneyPersonalFilterOptional } from "@/components/journey/JourneyPersonalFilterContext";
@@ -72,6 +73,7 @@ type Props = {
   filterVisibility?: LoaiMocVisibilityMap;
   viewerProfileId?: string | null;
   coAuthorPendingInvites?: ReadonlyArray<PendingCoAuthorInvite>;
+  coSoStaffPendingInvites?: ReadonlyArray<PendingCoSoStaffInviteNotification>;
   /** Infinite scroll — load trang kế qua API khi sentinel vào viewport. */
   scrollLoad?: ScrollLoadConfig;
 };
@@ -98,6 +100,7 @@ export function JourneyTimeline({
   filterVisibility,
   viewerProfileId = null,
   coAuthorPendingInvites = [],
+  coSoStaffPendingInvites = [],
   scrollLoad,
 }: Props) {
   const personalFilter = useJourneyPersonalFilterOptional();
@@ -477,11 +480,13 @@ export function JourneyTimeline({
         personalLabelMatchCount={totalVisible}
       />
 
-      {isOwner && viewerProfileId && coAuthorPendingInvites.length > 0 ? (
-        <JourneyCoAuthorPendingBanner
-          invites={coAuthorPendingInvites}
+      {isOwner && viewerProfileId ? (
+        <JourneyPendingConfirmationsStack
+          isOwner={isOwner}
           viewerProfileId={viewerProfileId}
           ownerSlug={ownerSlug}
+          initialCoAuthorInvites={coAuthorPendingInvites}
+          initialCoSoStaffInvites={coSoStaffPendingInvites}
         />
       ) : null}
 

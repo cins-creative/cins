@@ -93,11 +93,21 @@ export function formatThoiLuongKhoa(
 }
 
 /** Nhãn khai giảng trên card (dẫn xuất từ lớp hoặc mô hình khóa). */
+export const LICH_KHAI_GIANG_LIEN_TUC_DEFAULT = "Khai giảng hàng tuần";
+
+/** Lịch khai giảng khóa liên tục — từ modal khóa hoặc mặc định. */
+export function resolveLichKhaiGiangLienTuc(
+  lichHoc?: string | null,
+): string {
+  const trimmed = lichHoc?.trim();
+  return trimmed || LICH_KHAI_GIANG_LIEN_TUC_DEFAULT;
+}
+
 export function formatKhaiGiangCard(
   loaiMoHinh: LoaiMoHinhKhoa,
   ngayIso: string | null,
 ): string {
-  if (loaiMoHinh === "lien_tuc_theo_thang") return "Khai giảng hàng tuần";
+  if (loaiMoHinh === "lien_tuc_theo_thang") return LICH_KHAI_GIANG_LIEN_TUC_DEFAULT;
   if (ngayIso) {
     const [y, m, d] = ngayIso.split("-");
     if (y && m && d) return `Khai giảng ${d.padStart(2, "0")}.${m.padStart(2, "0")}`;
@@ -234,6 +244,22 @@ export function labelTrangThaiLop(trangThai: TrangThaiLop): string {
       return "Đã hủy";
     default:
       return trangThai;
+  }
+}
+
+export function labelTrangThaiLopBadge(
+  trangThai: TrangThaiLop,
+): { text: string; tone: "open" | "soon" | "pause" } {
+  switch (trangThai) {
+    case "sap_khai_giang":
+      return { text: labelTrangThaiLop(trangThai), tone: "soon" };
+    case "dang_hoc":
+      return { text: labelTrangThaiLop(trangThai), tone: "open" };
+    case "da_ket_thuc":
+    case "huy":
+      return { text: labelTrangThaiLop(trangThai), tone: "pause" };
+    default:
+      return { text: labelTrangThaiLop(trangThai), tone: "soon" };
   }
 }
 

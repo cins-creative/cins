@@ -121,6 +121,20 @@ export type ProcessedCoAuthorReview = PendingCoAuthorReview & {
   xuLyLuc: string;
 };
 
+export type PendingCoSoStaffInviteNotification = {
+  notificationId: string;
+  membershipId: string;
+  orgId: string;
+  orgSlug: string;
+  orgTen: string;
+  vaiTro: string;
+  vaiTroLabel: string;
+  inviterName: string;
+  inviterSlug?: string | null;
+  inviterAvatarUrl?: string | null;
+  taoLuc?: string;
+};
+
 export type NotificationFilter = "unread" | "history";
 
 export type NotificationFeed = {
@@ -130,6 +144,7 @@ export type NotificationFeed = {
   comments: CommentNotification[];
   coAuthorInvites: PendingCoAuthorInviteNotification[];
   coAuthorReviews: PendingCoAuthorReview[];
+  coSoStaffInvites: PendingCoSoStaffInviteNotification[];
   videoReady: VideoReadyNotification[];
   handledFollows: FollowHandledNotification[];
   processedCoAuthorReviews: ProcessedCoAuthorReview[];

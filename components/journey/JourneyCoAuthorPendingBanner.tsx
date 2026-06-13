@@ -115,7 +115,10 @@ export function JourneyCoAuthorPendingBanner({
             body: JSON.stringify({ trang_thai: trangThai }),
           },
         );
-        if (res.ok) return;
+        if (res.ok) {
+          window.dispatchEvent(new Event("cins:notifications-changed"));
+          return;
+        }
         const json = await res.json().catch(() => ({}));
         const message =
           typeof json.error === "string"

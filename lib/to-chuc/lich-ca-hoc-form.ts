@@ -113,22 +113,62 @@ export function formatThuGroup(thu: number[]): string {
   return groups.join(" & ");
 }
 
-const FULL_PATTERN =
-  /^(.+?)\s·\s(.+?)\s[—–-]\s*(\d{1,2}:\d{2})\s*[–-]\s*(\d{1,2}:\d{2})$/u;
 const CA_DAYS_PATTERN = /^(.+?)\s·\s(.+)$/u;
 const TIME_ONLY_PATTERN = /^(\d{1,2}:\d{2})\s*[–-]\s*(\d{1,2}:\d{2})$/u;
+const TIME_START_PARTIAL_PATTERN = /^(\d{1,2}:\d{2})–$/u;
+const TIME_END_PARTIAL_PATTERN = /^–(\d{1,2}:\d{2})$/u;
+const CA_PREFIX_TIME_FULL_PATTERN =
+  /^(.+?)\s[—–-]\s*(\d{1,2}:\d{2})\s*[–-]\s*(\d{1,2}:\d{2})$/u;
+const CA_PREFIX_TIME_START_PATTERN =
+  /^(.+?)\s[—–-]\s*(\d{1,2}:\d{2})–$/u;
+const CA_PREFIX_TIME_END_PATTERN =
+  /^(.+?)\s[—–-]\s*–(\d{1,2}:\d{2})$/u;
+
+function splitCaDays(combined: string): { caLabel: string; thu: number[] } {
+  const dot = combined.indexOf(" · ");
+  if (dot === -1) {
+    return { caLabel: combined.trim(), thu: [] };
+  }
+  return {
+    caLabel: combined.slice(0, dot).trim(),
+    thu: parseThuGroup(combined.slice(dot + 3)),
+  };
+}
 
 export function parseLichCaHoc(raw: string | null | undefined): LichCaHocDraft {
   const trimmed = raw?.trim();
   if (!trimmed || isDefaultLichHoc(trimmed)) return emptyLichCaHocDraft();
 
-  const full = FULL_PATTERN.exec(trimmed);
-  if (full) {
+  const caPrefixFull = CA_PREFIX_TIME_FULL_PATTERN.exec(trimmed);
+  if (caPrefixFull) {
+    const { caLabel, thu } = splitCaDays(caPrefixFull[1]);
     return {
-      caLabel: full[1].trim(),
-      thu: parseThuGroup(full[2]),
-      gioBatDau: normalizeTime(full[3]),
-      gioKetThuc: normalizeTime(full[4]),
+      caLabel,
+      thu,
+      gioBatDau: normalizeTime(caPrefixFull[2]),
+      gioKetThuc: normalizeTime(caPrefixFull[3]),
+    };
+  }
+
+  const caPrefixStart = CA_PREFIX_TIME_START_PATTERN.exec(trimmed);
+  if (caPrefixStart) {
+    const { caLabel, thu } = splitCaDays(caPrefixStart[1]);
+    return {
+      caLabel,
+      thu,
+      gioBatDau: normalizeTime(caPrefixStart[2]),
+      gioKetThuc: "",
+    };
+  }
+
+  const caPrefixEnd = CA_PREFIX_TIME_END_PATTERN.exec(trimmed);
+  if (caPrefixEnd) {
+    const { caLabel, thu } = splitCaDays(caPrefixEnd[1]);
+    return {
+      caLabel,
+      thu,
+      gioBatDau: "",
+      gioKetThuc: normalizeTime(caPrefixEnd[2]),
     };
   }
 
@@ -139,6 +179,26 @@ export function parseLichCaHoc(raw: string | null | undefined): LichCaHocDraft {
       thu: [],
       gioBatDau: normalizeTime(timeOnly[1]),
       gioKetThuc: normalizeTime(timeOnly[2]),
+    };
+  }
+
+  const timeStartOnly = TIME_START_PARTIAL_PATTERN.exec(trimmed);
+  if (timeStartOnly) {
+    return {
+      caLabel: "",
+      thu: [],
+      gioBatDau: normalizeTime(timeStartOnly[1]),
+      gioKetThuc: "",
+    };
+  }
+
+  const timeEndOnly = TIME_END_PARTIAL_PATTERN.exec(trimmed);
+  if (timeEndOnly) {
+    return {
+      caLabel: "",
+      thu: [],
+      gioBatDau: "",
+      gioKetThuc: normalizeTime(timeEndOnly[1]),
     };
   }
 
@@ -160,13 +220,20 @@ export function formatLichCaHoc(draft: LichCaHocDraft): string | null {
   const days = formatThuGroup(draft.thu);
   const start = normalizeTime(draft.gioBatDau);
   const end = normalizeTime(draft.gioKetThuc);
-  const hasTime = Boolean(start && end);
-
-  if (!ca && !days && !hasTime) return null;
 
   const caDays = [ca, days].filter(Boolean).join(" · ");
-  if (hasTime) {
-    return caDays ? `${caDays} — ${start}–${end}` : `${start}–${end}`;
+  const timePart =
+    start && end
+      ? `${start}–${end}`
+      : start
+        ? `${start}–`
+        : end
+          ? `–${end}`
+          : "";
+
+  if (!caDays && !timePart) return null;
+  if (timePart) {
+    return caDays ? `${caDays} — ${timePart}` : timePart;
   }
   return caDays || null;
 }

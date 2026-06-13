@@ -25,6 +25,12 @@ function emitChange(draft: LichCaHocDraft, onChange: (value: string) => void) {
 export function LichCaHocFields({ value, onChange, idPrefix = "lich-ca" }: Props) {
   const draft = draftFromValue(value);
   const preview = formatLichCaHoc(draft);
+  const partialTime =
+    draft.gioBatDau && !draft.gioKetThuc
+      ? `${draft.gioBatDau} — (chọn giờ kết thúc)`
+      : !draft.gioBatDau && draft.gioKetThuc
+        ? `(chọn giờ bắt đầu) — ${draft.gioKetThuc}`
+        : null;
 
   function patch(next: Partial<LichCaHocDraft>) {
     emitChange({ ...draft, ...next }, onChange);
@@ -117,10 +123,14 @@ export function LichCaHocFields({ value, onChange, idPrefix = "lich-ca" }: Props
         <p className="cso-kh-lich-ca-preview" role="status">
           Hiển thị: <b>{preview}</b>
         </p>
+      ) : partialTime ? (
+        <p className="cso-kh-lich-ca-preview cso-kh-lich-ca-preview--partial" role="status">
+          Đang chọn giờ: <b>{partialTime}</b>
+        </p>
       ) : (
         <p className="cso-kh-field-hint">
-          Chọn ca, thứ và khung giờ — hệ thống tự ghép chuỗi hiển thị dưới mã
-          lớp.
+          Chọn ca, thứ và khung giờ. Nhấn <b>Lưu lớp</b> / <b>Thêm lớp</b> ở
+          cuối modal để lưu.
         </p>
       )}
     </div>

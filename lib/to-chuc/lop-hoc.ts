@@ -19,10 +19,6 @@ const TRANG_THAI_LOP_SET = new Set<string>([
   "huy",
 ]);
 
-function defaultNgayKhaiGiang(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
 function buildMaLop(tenKhoa: string, ngayIso: string): string {
   const slugPart = slugifyOrgName(tenKhoa).slice(0, 24) || "lop";
   const datePart = ngayIso.replace(/-/g, "");
@@ -30,13 +26,10 @@ function buildMaLop(tenKhoa: string, ngayIso: string): string {
 }
 
 function resolveNgayKhaiGiang(
-  loaiMoHinh: LoaiMoHinhKhoa,
+  _loaiMoHinh: LoaiMoHinhKhoa,
   ngayKhaiGiang: string | null | undefined,
 ): string {
-  if (loaiMoHinh === "cohort_co_dinh") {
-    return ngayKhaiGiang?.trim() ?? "";
-  }
-  return ngayKhaiGiang?.trim() || defaultNgayKhaiGiang();
+  return ngayKhaiGiang?.trim() ?? "";
 }
 
 function resolveLichHoc(
@@ -100,7 +93,7 @@ function validateLopInput(
 
   const ngay = resolveNgayKhaiGiang(khoa.loaiMoHinh, input.ngayKhaiGiang);
   if (!ngay) {
-    return { ok: false, error: "Ngày khai giảng không được trống (theo khóa)." };
+    return { ok: false, error: "Vui lòng chọn ngày khai giảng cho lớp học." };
   }
 
   if (
@@ -118,6 +111,7 @@ function validateLopInput(
       trangThaiLop,
       ngayKhaiGiang: ngay,
       lichHoc: resolveLichHoc(khoa.loaiMoHinh, input.lichHoc),
+      giaoVienPhuTrach: input.giaoVienPhuTrach?.trim() || null,
       giaoVienText: input.giaoVienText?.trim() || null,
       maLop: input.maLop?.trim() || null,
     },
@@ -131,6 +125,7 @@ function buildLopRow(
     trangThaiLop: TrangThaiLop;
     ngayKhaiGiang: string;
     lichHoc: string | null;
+    giaoVienPhuTrach: string | null;
     giaoVienText: string | null;
     maLop: string | null;
   },
@@ -150,7 +145,10 @@ function buildLopRow(
     : existingMaLop ?? buildMaLop(khoa.tenKhoaHoc, data.ngayKhaiGiang);
   row.ma_lop = maLop;
 
-  if (data.giaoVienText) {
+  if (data.giaoVienPhuTrach) {
+    row.giao_vien_phu_trach = data.giaoVienPhuTrach;
+    row.giao_vien_text = null;
+  } else if (data.giaoVienText) {
     row.giao_vien_text = data.giaoVienText;
     row.giao_vien_phu_trach = null;
   }
@@ -215,6 +213,22 @@ async function writeLopRow(
   return { ok: true };
 }
 
+async function assertGiaoVienUser(
+  userId: string | null | undefined,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!userId) return { ok: true };
+  const admin = createServiceRoleClient();
+  const { data } = await admin
+    .from("user_nguoi_dung")
+    .select("id")
+    .eq("id", userId)
+    .maybeSingle<{ id: string }>();
+  if (!data?.id) {
+    return { ok: false, error: "Không tìm thấy tài khoản giảng viên." };
+  }
+  return { ok: true };
+}
+
 export async function taoLopHoc(
   orgId: string,
   khoaId: string,
@@ -234,11 +248,15 @@ export async function taoLopHoc(
   if (!validated.ok) return validated;
 
   const { data } = validated;
+  const gvCheck = await assertGiaoVienUser(data.giaoVienPhuTrach);
+  if (!gvCheck.ok) return gvCheck;
+
   const row = buildLopRow(khoa, {
     hinhThuc: data.hinhThuc,
     trangThaiLop: data.trangThaiLop,
     ngayKhaiGiang: data.ngayKhaiGiang!,
     lichHoc: data.lichHoc ?? null,
+    giaoVienPhuTrach: data.giaoVienPhuTrach ?? null,
     giaoVienText: data.giaoVienText ?? null,
     slotToiDa: data.slotToiDa,
     maLop: resolveMaLop(
@@ -282,6 +300,9 @@ export async function capNhatLopHoc(
   if (!validated.ok) return validated;
 
   const { data } = validated;
+  const gvCheck = await assertGiaoVienUser(data.giaoVienPhuTrach);
+  if (!gvCheck.ok) return gvCheck;
+
   const row = buildLopRow(
     khoa,
     {
@@ -289,6 +310,7 @@ export async function capNhatLopHoc(
       trangThaiLop: data.trangThaiLop,
       ngayKhaiGiang: data.ngayKhaiGiang!,
       lichHoc: data.lichHoc ?? null,
+      giaoVienPhuTrach: data.giaoVienPhuTrach ?? null,
       giaoVienText: data.giaoVienText ?? null,
       slotToiDa: data.slotToiDa,
       maLop: data.maLop

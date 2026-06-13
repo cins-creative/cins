@@ -10,6 +10,7 @@ type PanelEntry<T> = {
 export type JourneyTimelinePanelData = {
   page: import("@/lib/journey/milestones-page-fetch").MilestoneTimelinePageResult;
   coAuthorPendingInvites: import("@/lib/social/types").PendingCoAuthorInvite[];
+  coSoStaffPendingInvites?: import("@/lib/to-chuc/co-so-staff-invite").PendingCoSoStaffInviteNotification[];
 };
 
 export type JourneyGalleryPanelData =

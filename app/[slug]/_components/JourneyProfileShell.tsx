@@ -14,6 +14,7 @@ import {
   getCachedMilestoneTimelinePage,
   getCachedMutualFriendsPage,
   getCachedPendingCoAuthorInvites,
+  getCachedPendingCoSoStaffInvites,
 } from "@/lib/journey/journey-page-cache";
 import { Suspense } from "react";
 
@@ -75,7 +76,7 @@ async function loadInitialData(
     return { friends };
   }
 
-  const [page, coAuthorPendingInvites] = await Promise.all([
+  const [page, coAuthorPendingInvites, coSoStaffPendingInvites] = await Promise.all([
     getCachedMilestoneTimelinePage({
       userId: ownerId,
       isOwner,
@@ -85,10 +86,13 @@ async function loadInitialData(
     isOwner && viewerProfileId
       ? getCachedPendingCoAuthorInvites(viewerProfileId)
       : Promise.resolve([]),
+    isOwner && viewerProfileId
+      ? getCachedPendingCoSoStaffInvites(viewerProfileId)
+      : Promise.resolve([]),
   ]);
 
   return {
-    timeline: { page, coAuthorPendingInvites },
+    timeline: { page, coAuthorPendingInvites, coSoStaffPendingInvites },
   };
 }
 

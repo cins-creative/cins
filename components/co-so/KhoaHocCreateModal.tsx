@@ -1,6 +1,6 @@
 "use client";
 
-import { ImagePlus, Loader2, X } from "lucide-react";
+import { EyeOff, Globe, ImagePlus, Loader2, X } from "lucide-react";
 import Image from "next/image";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 
@@ -15,6 +15,7 @@ import type {
   CapNhatKhoaHocInput,
   HinhThucLop,
   KhoaHocCardData,
+  KhoaHocCheDoHienThi,
   LoaiMoHinhKhoa,
   TaoKhoaHocInput,
   TrinhDoDauVao,
@@ -66,13 +67,13 @@ export function KhoaHocCreateModal({
 }: Props) {
   const isEdit = Boolean(editing);
   const titleId = useId();
-  const coverInputRef = useRef<HTMLInputElement>(null);
+  const thumbnailInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
   const [tenKhoaHoc, setTenKhoaHoc] = useState("");
   const [loaiMoHinh, setLoaiMoHinh] =
     useState<LoaiMoHinhKhoa>("lien_tuc_theo_thang");
   const [moTa, setMoTa] = useState("");
   const [ngayKhaiGiang, setNgayKhaiGiang] = useState("");
-  const [lichHoc, setLichHoc] = useState("");
   const [hinhThuc, setHinhThuc] = useState<HinhThucLop>("truc_tiep");
   const [diaChiHoc, setDiaChiHoc] = useState("");
   const [yeuCauChuanBi, setYeuCauChuanBi] = useState("");
@@ -83,11 +84,19 @@ export function KhoaHocCreateModal({
     useState<TrinhDoDauVao>("khong_yeu_cau");
   const [trangThaiKhoaHoc, setTrangThaiKhoaHoc] =
     useState<TrangThaiKhoaHoc>("sap_khai_giang");
-  const [cover, setCover] = useState<CoverDraft>({
+  const [cheDoHienThi, setCheDoHienThi] =
+    useState<KhoaHocCheDoHienThi>("cong_khai");
+  const [thumbnail, setThumbnail] = useState<CoverDraft>({
     imageId: null,
     previewUrl: null,
     uploading: false,
   });
+  const [bannerCover, setBannerCover] = useState<CoverDraft>({
+    imageId: null,
+    previewUrl: null,
+    uploading: false,
+  });
+  const [coverVariant, setCoverVariant] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -96,7 +105,6 @@ export function KhoaHocCreateModal({
     setLoaiMoHinh("lien_tuc_theo_thang");
     setMoTa("");
     setNgayKhaiGiang("");
-    setLichHoc("");
     setHinhThuc("truc_tiep");
     setDiaChiHoc("");
     setYeuCauChuanBi("");
@@ -105,7 +113,10 @@ export function KhoaHocCreateModal({
     setHocPhi("");
     setTrinhDoDauVao("khong_yeu_cau");
     setTrangThaiKhoaHoc("sap_khai_giang");
-    setCover({ imageId: null, previewUrl: null, uploading: false });
+    setCheDoHienThi("cong_khai");
+    setThumbnail({ imageId: null, previewUrl: null, uploading: false });
+    setBannerCover({ imageId: null, previewUrl: null, uploading: false });
+    setCoverVariant(Math.floor(Math.random() * 3));
     setError(null);
   }, []);
 
@@ -122,7 +133,6 @@ export function KhoaHocCreateModal({
     setLoaiMoHinh(editing.loaiMoHinh);
     setMoTa(editing.moTa ?? "");
     setNgayKhaiGiang(editing.ngayKhaiGiangGanNhat ?? "");
-    setLichHoc(editing.lichHoc ?? "");
     setHinhThuc(editing.hinhThuc ?? "truc_tiep");
     setDiaChiHoc(editing.diaChiHoc ?? orgDiaChi?.trim() ?? "");
     setYeuCauChuanBi(editing.yeuCauChuanBi ?? "");
@@ -137,7 +147,14 @@ export function KhoaHocCreateModal({
     setHocPhi(editing.hocPhi != null ? String(editing.hocPhi) : "");
     setTrinhDoDauVao(editing.trinhDoDauVao);
     setTrangThaiKhoaHoc(editing.trangThaiKhoaHoc);
-    setCover({
+    setCheDoHienThi(editing.cheDoHienThi);
+    setCoverVariant(editing.coverVariant);
+    setThumbnail({
+      imageId: editing.thumbnailId,
+      previewUrl: editing.thumbnailUrl,
+      uploading: false,
+    });
+    setBannerCover({
       imageId: editing.coverId,
       previewUrl: editing.coverUrl,
       uploading: false,
@@ -145,9 +162,13 @@ export function KhoaHocCreateModal({
     setError(null);
   }, [open, editing, reset, orgDiaChi]);
 
-  async function handleCoverPick(file: File) {
+  async function handleImagePick(
+    file: File,
+    setDraft: (value: CoverDraft) => void,
+    errorLabel: string,
+  ) {
     const localPreview = URL.createObjectURL(file);
-    setCover({ imageId: null, previewUrl: localPreview, uploading: true });
+    setDraft({ imageId: null, previewUrl: localPreview, uploading: true });
     setError(null);
     const form = new FormData();
     form.append("file", file);
@@ -159,21 +180,17 @@ export function KhoaHocCreateModal({
         error?: string;
       } | null;
       if (!res.ok || !json?.imageId) {
-        throw new Error(json?.error ?? "Upload ảnh bìa thất bại.");
+        throw new Error(json?.error ?? errorLabel);
       }
-      setCover({
+      setDraft({
         imageId: json.imageId,
         previewUrl: json.url ?? localPreview,
         uploading: false,
       });
     } catch (uploadErr) {
       URL.revokeObjectURL(localPreview);
-      setCover({ imageId: null, previewUrl: null, uploading: false });
-      setError(
-        uploadErr instanceof Error
-          ? uploadErr.message
-          : "Upload ảnh bìa thất bại.",
-      );
+      setDraft({ imageId: null, previewUrl: null, uploading: false });
+      setError(uploadErr instanceof Error ? uploadErr.message : errorLabel);
     }
   }
 
@@ -192,14 +209,14 @@ export function KhoaHocCreateModal({
       thoiLuongPhutMoiBuoi: parseOptionalInt(thoiLuongPhut),
       hocPhi: parseOptionalMoney(hocPhi),
       trinhDoDauVao,
-      coverId: cover.imageId,
+      thumbnailId: thumbnail.imageId,
+      coverId: bannerCover.imageId,
       trangThaiKhoaHoc,
+      cheDoHienThi,
       ngayKhaiGiang:
         loaiMoHinh === "cohort_co_dinh" ? ngayKhaiGiang.trim() || null : null,
       hinhThuc,
       diaChiHoc: needsDiaChi(hinhThuc) ? diaChiHoc.trim() || null : null,
-      lichHoc:
-        loaiMoHinh === "lien_tuc_theo_thang" ? lichHoc.trim() || null : null,
       yeuCauChuanBi: yeuCauChuanBi.trim() || null,
     };
   }
@@ -303,6 +320,7 @@ export function KhoaHocCreateModal({
       </div>
 
       <form className="cso-kh-create-form" onSubmit={handleSubmit}>
+        <div className="cso-kh-create-body">
         <label className="cso-kh-field">
           <span className="cso-kh-label">
             Tên khóa học <span className="cso-kh-req">*</span>
@@ -318,20 +336,62 @@ export function KhoaHocCreateModal({
           />
         </label>
 
+        <fieldset className="cso-kh-field">
+          <legend className="cso-kh-label">Hiển thị</legend>
+          <div className="cso-kh-hien-thi-grid">
+            <label
+              className={`cso-kh-hien-thi-opt${cheDoHienThi === "cong_khai" ? " on" : ""}`}
+            >
+              <input
+                type="radio"
+                name="cheDoHienThi"
+                value="cong_khai"
+                checked={cheDoHienThi === "cong_khai"}
+                onChange={() => setCheDoHienThi("cong_khai")}
+              />
+              <Globe size={18} strokeWidth={1.6} aria-hidden />
+              <span className="cso-kh-hien-thi-copy">
+                <span className="cso-kh-hien-thi-title">Công khai</span>
+                <span className="cso-kh-hien-thi-hint">
+                  Hiện trên trang cơ sở và có thể tìm thấy
+                </span>
+              </span>
+            </label>
+            <label
+              className={`cso-kh-hien-thi-opt${cheDoHienThi === "an" ? " on" : ""}`}
+            >
+              <input
+                type="radio"
+                name="cheDoHienThi"
+                value="an"
+                checked={cheDoHienThi === "an"}
+                onChange={() => setCheDoHienThi("an")}
+              />
+              <EyeOff size={18} strokeWidth={1.6} aria-hidden />
+              <span className="cso-kh-hien-thi-copy">
+                <span className="cso-kh-hien-thi-title">Ẩn</span>
+                <span className="cso-kh-hien-thi-hint">
+                  Chỉ quản lý thấy — khách không xem được
+                </span>
+              </span>
+            </label>
+          </div>
+        </fieldset>
+
         <div className="cso-kh-field">
-          <span className="cso-kh-label">Ảnh bìa</span>
+          <span className="cso-kh-label">Thumbnail khóa học</span>
           <div className="cso-kh-cover-pick">
             <div
-              className={`cso-kh-cover-preview c${(tenKhoaHoc.length % 3) + 1}`}
+              className={`cso-kh-cover-preview c${(coverVariant % 3) + 1}`}
             >
-              {cover.previewUrl ? (
+              {thumbnail.previewUrl ? (
                 <Image
-                  src={cover.previewUrl}
+                  src={thumbnail.previewUrl}
                   alt=""
                   fill
                   className="cso-kh-cover-preview-img"
                   sizes="320px"
-                  unoptimized={cover.previewUrl.startsWith("blob:")}
+                  unoptimized={thumbnail.previewUrl.startsWith("blob:")}
                 />
               ) : (
                 <span className="cso-kh-cover-preview-ph" aria-hidden>
@@ -341,23 +401,29 @@ export function KhoaHocCreateModal({
             </div>
             <div className="cso-kh-cover-actions">
               <input
-                ref={coverInputRef}
+                ref={thumbnailInputRef}
                 type="file"
                 accept="image/jpeg,image/png,image/webp,image/gif"
                 className="cso-kh-cover-input"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
-                  if (file) void handleCoverPick(file);
+                  if (file) {
+                    void handleImagePick(
+                      file,
+                      setThumbnail,
+                      "Upload thumbnail thất bại.",
+                    );
+                  }
                   e.target.value = "";
                 }}
               />
               <button
                 type="button"
                 className="cso-kh-cover-btn"
-                disabled={cover.uploading || submitting}
-                onClick={() => coverInputRef.current?.click()}
+                disabled={thumbnail.uploading || submitting}
+                onClick={() => thumbnailInputRef.current?.click()}
               >
-                {cover.uploading ? (
+                {thumbnail.uploading ? (
                   <>
                     <Loader2 size={14} className="tdh-spin" aria-hidden />
                     Đang tải…
@@ -365,12 +431,77 @@ export function KhoaHocCreateModal({
                 ) : (
                   <>
                     <ImagePlus size={14} aria-hidden />
-                    {cover.previewUrl ? "Đổi ảnh bìa" : "Chọn ảnh bìa"}
+                    {thumbnail.previewUrl ? "Đổi thumbnail" : "Chọn thumbnail"}
                   </>
                 )}
               </button>
               <p className="cso-kh-cover-hint">
-                Tuỳ chọn. Không chọn sẽ dùng nền gradient trên card.
+                Hiển thị trên card trong danh sách khóa học.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="cso-kh-field">
+          <span className="cso-kh-label">Banner trang khóa</span>
+          <div className="cso-kh-cover-pick">
+            <div
+              className={`cso-kh-cover-preview cso-kh-cover-preview--banner c${((coverVariant + 1) % 3) + 1}`}
+            >
+              {bannerCover.previewUrl ? (
+                <Image
+                  src={bannerCover.previewUrl}
+                  alt=""
+                  fill
+                  className="cso-kh-cover-preview-img"
+                  sizes="360px"
+                  unoptimized={bannerCover.previewUrl.startsWith("blob:")}
+                />
+              ) : (
+                <span className="cso-kh-cover-preview-ph" aria-hidden>
+                  <ImagePlus size={24} strokeWidth={1.5} />
+                </span>
+              )}
+            </div>
+            <div className="cso-kh-cover-actions">
+              <input
+                ref={bannerInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                className="cso-kh-cover-input"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    void handleImagePick(
+                      file,
+                      setBannerCover,
+                      "Upload banner thất bại.",
+                    );
+                  }
+                  e.target.value = "";
+                }}
+              />
+              <button
+                type="button"
+                className="cso-kh-cover-btn"
+                disabled={bannerCover.uploading || submitting}
+                onClick={() => bannerInputRef.current?.click()}
+              >
+                {bannerCover.uploading ? (
+                  <>
+                    <Loader2 size={14} className="tdh-spin" aria-hidden />
+                    Đang tải…
+                  </>
+                ) : (
+                  <>
+                    <ImagePlus size={14} aria-hidden />
+                    {bannerCover.previewUrl ? "Đổi banner" : "Chọn banner"}
+                  </>
+                )}
+              </button>
+              <p className="cso-kh-cover-hint">
+                Banner quảng cáo đầu trang chi tiết khóa — tỷ lệ ngang, khác
+                thumbnail.
               </p>
             </div>
           </div>
@@ -416,21 +547,7 @@ export function KhoaHocCreateModal({
               Lớp cohort sẽ mở đúng ngày này — hiển thị trên card khóa học.
             </p>
           </label>
-        ) : (
-          <label className="cso-kh-field">
-            <span className="cso-kh-label">Lịch khai giảng</span>
-            <input
-              type="text"
-              className="cso-kh-input"
-              value={lichHoc}
-              onChange={(e) => setLichHoc(e.target.value)}
-              placeholder="VD: Khai giảng hàng tuần — thứ 2 & thứ 5, 19:00"
-            />
-            <p className="cso-kh-field-hint">
-              Mô tả khung thời gian nhận học viên mới (mô hình liên tục).
-            </p>
-          </label>
-        )}
+        ) : null}
 
         <fieldset className="cso-kh-field">
           <legend className="cso-kh-label">
@@ -593,11 +710,12 @@ export function KhoaHocCreateModal({
         ) : null}
 
         {error ? <p className="cso-kh-form-err">{error}</p> : null}
+        </div>
 
-        <div className="tdh-inline-modal-actions cso-kh-create-actions">
+        <div className="cso-kh-create-foot">
           <button
             type="button"
-            className="tdh-inline-btn tdh-inline-btn--ghost"
+            className="cso-kh-foot-btn cso-kh-foot-btn--ghost"
             onClick={handleClose}
             disabled={submitting}
           >
@@ -605,12 +723,17 @@ export function KhoaHocCreateModal({
           </button>
           <button
             type="submit"
-            className="tdh-inline-btn tdh-inline-btn--primary"
-            disabled={submitting || !tenKhoaHoc.trim() || cover.uploading}
+            className="cso-kh-foot-btn cso-kh-foot-btn--primary"
+            disabled={
+              submitting ||
+              !tenKhoaHoc.trim() ||
+              thumbnail.uploading ||
+              bannerCover.uploading
+            }
           >
             {submitting ? (
               <>
-                <Loader2 size={16} className="tdh-spin" aria-hidden />
+                <Loader2 size={15} className="tdh-spin" aria-hidden />
                 {isEdit ? "Đang lưu…" : "Đang tạo…"}
               </>
             ) : isEdit ? (

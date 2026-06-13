@@ -4,6 +4,10 @@ import { Loader2, X } from "lucide-react";
 import { useCallback, useEffect, useId, useState } from "react";
 
 import { TruongInlineModal } from "@/components/truong/inline/TruongInlineModal";
+import {
+  CoSoGiaoVienPicker,
+  type CoSoGiaoVienPick,
+} from "@/components/co-so/CoSoGiaoVienPicker";
 import { LichCaHocFields } from "@/components/co-so/LichCaHocFields";
 import {
   HINH_THUC_LOP_OPTIONS,
@@ -54,6 +58,7 @@ export function LopHocEditModal({
   const [lichHoc, setLichHoc] = useState("");
   const [ngayKhaiGiang, setNgayKhaiGiang] = useState("");
   const [hinhThuc, setHinhThuc] = useState<HinhThucLop>("truc_tiep");
+  const [giaoVienUser, setGiaoVienUser] = useState<CoSoGiaoVienPick | null>(null);
   const [giaoVienText, setGiaoVienText] = useState("");
   const [slotToiDa, setSlotToiDa] = useState("");
   const [trangThaiLop, setTrangThaiLop] =
@@ -66,6 +71,7 @@ export function LopHocEditModal({
     setLichHoc("");
     setNgayKhaiGiang("");
     setHinhThuc("truc_tiep");
+    setGiaoVienUser(null);
     setGiaoVienText("");
     setSlotToiDa("");
     setTrangThaiLop("sap_khai_giang");
@@ -83,12 +89,28 @@ export function LopHocEditModal({
     setLichHoc(isDefaultLichHoc(rawLich) ? "" : rawLich);
     setNgayKhaiGiang(editing.ngayKhaiGiang ?? "");
     setHinhThuc(editing.hinhThuc);
-    setGiaoVienText(
-      editing.giaoVienText ??
-        (editing.giaoVien.pendingProfile && !editing.giaoVien.verified
-          ? editing.giaoVien.ten
-          : ""),
-    );
+    const gvKey = editing.giaoVien.key;
+    const isUserKey =
+      gvKey &&
+      !gvKey.startsWith("text:") &&
+      !gvKey.startsWith("lop:");
+    if (isUserKey) {
+      setGiaoVienUser({
+        userId: gvKey,
+        tenHienThi: editing.giaoVien.ten,
+        slug: editing.giaoVien.slug ?? gvKey,
+        avatarId: editing.giaoVien.avatarId,
+      });
+      setGiaoVienText("");
+    } else {
+      setGiaoVienUser(null);
+      setGiaoVienText(
+        editing.giaoVienText ??
+          (editing.giaoVien.pendingProfile && !editing.giaoVien.verified
+            ? editing.giaoVien.ten
+            : ""),
+      );
+    }
     setSlotToiDa(
       editing.slotToiDa != null ? String(editing.slotToiDa) : "",
     );
@@ -107,11 +129,9 @@ export function LopHocEditModal({
       maLop: maLop.trim() || null,
       hinhThuc,
       lichHoc: lichHoc.trim() || null,
-      ngayKhaiGiang:
-        loaiMoHinh === "cohort_co_dinh"
-          ? ngayKhaiGiang.trim() || null
-          : ngayKhaiGiang.trim() || null,
-      giaoVienText: giaoVienText.trim() || null,
+      ngayKhaiGiang: ngayKhaiGiang.trim() || null,
+      giaoVienPhuTrach: giaoVienUser?.userId ?? null,
+      giaoVienText: giaoVienUser ? null : giaoVienText.trim() || null,
       slotToiDa: parseOptionalInt(slotToiDa),
       trangThaiLop,
     };
@@ -121,8 +141,8 @@ export function LopHocEditModal({
     e.preventDefault();
     if (submitting) return;
 
-    if (loaiMoHinh === "cohort_co_dinh" && !ngayKhaiGiang.trim()) {
-      setError("Vui lòng chọn ngày khai giảng.");
+    if (!ngayKhaiGiang.trim()) {
+      setError("Vui lòng chọn ngày khai giảng — mốc sẽ hiện trên timeline thông báo.");
       return;
     }
 
@@ -187,6 +207,7 @@ export function LopHocEditModal({
       </div>
 
       <form className="cso-kh-create-form" onSubmit={handleSubmit}>
+        <div className="cso-kh-create-body">
         <p className="cso-kh-field-hint" style={{ marginTop: 0 }}>
           Khóa: <b>{tenKhoaHoc}</b>
         </p>
@@ -206,20 +227,21 @@ export function LopHocEditModal({
           </p>
         </label>
 
-        {loaiMoHinh === "cohort_co_dinh" ? (
-          <label className="cso-kh-field">
-            <span className="cso-kh-label">
-              Ngày khai giảng <span className="cso-kh-req">*</span>
-            </span>
-            <input
-              type="date"
-              className="cso-kh-input"
-              value={ngayKhaiGiang}
-              onChange={(e) => setNgayKhaiGiang(e.target.value)}
-              required
-            />
-          </label>
-        ) : null}
+        <label className="cso-kh-field">
+          <span className="cso-kh-label">
+            Ngày khai giảng <span className="cso-kh-req">*</span>
+          </span>
+          <input
+            type="date"
+            className="cso-kh-input"
+            value={ngayKhaiGiang}
+            onChange={(e) => setNgayKhaiGiang(e.target.value)}
+            required
+          />
+          <p className="cso-kh-field-hint">
+            Mỗi lớp có ngày riêng — tự động hiện trên mốc thông báo bên phải.
+          </p>
+        </label>
 
         <div className="cso-kh-field">
           <span className="cso-kh-label">Lịch / ca học</span>
@@ -258,16 +280,17 @@ export function LopHocEditModal({
           </div>
         </fieldset>
 
-        <label className="cso-kh-field">
+        <div className="cso-kh-field">
           <span className="cso-kh-label">Giảng viên</span>
-          <input
-            type="text"
-            className="cso-kh-input"
-            value={giaoVienText}
-            onChange={(e) => setGiaoVienText(e.target.value)}
-            placeholder="Tên giảng viên phụ trách lớp"
+          <CoSoGiaoVienPicker
+            orgId={orgId}
+            value={giaoVienUser}
+            onChange={setGiaoVienUser}
+            manualText={giaoVienText}
+            onManualTextChange={setGiaoVienText}
+            disabled={submitting}
           />
-        </label>
+        </div>
 
         <label className="cso-kh-field">
           <span className="cso-kh-label">Sĩ số tối đa</span>
@@ -299,11 +322,12 @@ export function LopHocEditModal({
         </label>
 
         {error ? <p className="cso-kh-err">{error}</p> : null}
+        </div>
 
-        <div className="cso-kh-create-actions">
+        <div className="cso-kh-create-foot">
           <button
             type="button"
-            className="cso-kh-btn cso-kh-btn--ghost"
+            className="cso-kh-foot-btn cso-kh-foot-btn--ghost"
             onClick={handleClose}
             disabled={submitting}
           >
@@ -311,12 +335,12 @@ export function LopHocEditModal({
           </button>
           <button
             type="submit"
-            className="cso-kh-btn cso-kh-btn--primary"
+            className="cso-kh-foot-btn cso-kh-foot-btn--primary"
             disabled={submitting}
           >
             {submitting ? (
               <>
-                <Loader2 size={14} className="tdh-spin" aria-hidden />
+                <Loader2 size={15} className="tdh-spin" aria-hidden />
                 Đang lưu…
               </>
             ) : isEdit ? (

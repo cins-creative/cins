@@ -3,12 +3,14 @@ import { NextResponse } from "next/server";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { fetchKhoaHocDetail } from "@/lib/to-chuc/khoa-hoc-detail";
 import {
+  canViewerManageKhoaHoc,
   capNhatKhoaHoc,
   xoaKhoaHoc,
 } from "@/lib/to-chuc/khoa-hoc";
 import type {
   CapNhatKhoaHocInput,
   HinhThucLop,
+  KhoaHocCheDoHienThi,
   LoaiMoHinhKhoa,
   TrinhDoDauVao,
   TrangThaiKhoaHoc,
@@ -19,7 +21,11 @@ type RouteContext = { params: Promise<{ id: string; khoaId: string }> };
 /** GET /api/co-so/:id/khoa-hoc/:khoaId — chi tiết khóa (public). */
 export async function GET(_req: Request, ctx: RouteContext) {
   const { id: orgId, khoaId } = await ctx.params;
-  const result = await fetchKhoaHocDetail(orgId, khoaId);
+  const session = await getCurrentSessionAndProfile();
+  const includeHidden = session?.profile
+    ? await canViewerManageKhoaHoc(session.profile.id, orgId)
+    : false;
+  const result = await fetchKhoaHocDetail(orgId, khoaId, { includeHidden });
   if (!result.ok) {
     const status = result.error.includes("Không tìm thấy") ? 404 : 400;
     return NextResponse.json({ error: result.error }, { status });
@@ -44,6 +50,7 @@ export async function PATCH(req: Request, ctx: RouteContext) {
     hocPhi?: number | null;
     trinhDoDauVao?: TrinhDoDauVao;
     coverId?: string | null;
+    thumbnailId?: string | null;
     trangThaiKhoaHoc?: TrangThaiKhoaHoc;
     coverVariant?: number;
     ngayKhaiGiang?: string | null;
@@ -51,6 +58,7 @@ export async function PATCH(req: Request, ctx: RouteContext) {
     diaChiHoc?: string | null;
     lichHoc?: string | null;
     yeuCauChuanBi?: string | null;
+    cheDoHienThi?: KhoaHocCheDoHienThi;
   };
   try {
     body = await req.json();
@@ -67,12 +75,14 @@ export async function PATCH(req: Request, ctx: RouteContext) {
     hocPhi: body.hocPhi,
     trinhDoDauVao: body.trinhDoDauVao,
     coverId: body.coverId,
+    thumbnailId: body.thumbnailId,
     trangThaiKhoaHoc: body.trangThaiKhoaHoc,
     ngayKhaiGiang: body.ngayKhaiGiang,
     hinhThuc: body.hinhThuc,
     diaChiHoc: body.diaChiHoc,
     lichHoc: body.lichHoc,
     yeuCauChuanBi: body.yeuCauChuanBi,
+    cheDoHienThi: body.cheDoHienThi,
   };
 
   const result = await capNhatKhoaHoc(

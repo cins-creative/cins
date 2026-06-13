@@ -2,20 +2,46 @@ import type { TruongTuyenSinhNamRow } from "./types";
 
 export type TimelineStepStatus = "done" | "active" | "upcoming";
 
+export const TIMELINE_LIVE_LABEL = "Đang diễn ra";
+
+/** Parse `YYYY-MM-DD` (hoặc chuỗi ISO) thành 00:00 theo giờ local. */
+function parseCalendarDay(iso: string | null | undefined): Date | null {
+  const raw = iso?.trim();
+  if (!raw) return null;
+  const dayMatch = raw.slice(0, 10).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (dayMatch) {
+    const d = new Date(
+      Number(dayMatch[1]),
+      Number(dayMatch[2]) - 1,
+      Number(dayMatch[3]),
+    );
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return null;
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+function calendarDayKey(d: Date): number {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+}
+
 /** Trạng thái một mốc theo khoảng ngày (brief tab tuyển sinh). */
 export function getStepStatus(
   from?: string | null,
   to?: string | null,
 ): TimelineStepStatus {
-  const now = new Date();
-  const start = from?.trim() ? new Date(from) : null;
-  const end = to?.trim() ? new Date(to) : null;
-  if (!start || Number.isNaN(start.getTime())) return "upcoming";
-  if (end && !Number.isNaN(end.getTime()) && end < now) return "done";
-  if (start <= now && (!end || Number.isNaN(end.getTime()) || end >= now)) {
-    return "active";
-  }
-  if (start > now) return "upcoming";
+  const startDay = parseCalendarDay(from);
+  if (!startDay) return "upcoming";
+
+  const endDay = parseCalendarDay(to) ?? startDay;
+  const todayKey = calendarDayKey(new Date());
+  const startKey = calendarDayKey(startDay);
+  const endKey = calendarDayKey(endDay);
+
+  if (endKey < todayKey) return "done";
+  if (startKey <= todayKey && todayKey <= endKey) return "active";
+  if (startKey > todayKey) return "upcoming";
   return "done";
 }
 

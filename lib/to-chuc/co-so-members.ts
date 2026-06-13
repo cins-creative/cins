@@ -1,5 +1,6 @@
 import "server-only";
 
+import { getAvatarUrl } from "@/lib/journey/profile";
 import { getCurrentUserIsCinsAdmin } from "@/lib/auth/cins-admin-server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -11,11 +12,13 @@ import {
 } from "./co-so-vai-tro";
 import type { CoSoMemberAdmin } from "./co-so-settings-types";
 import { getViewerCoSoVaiTro, isCoSoOrgAdmin } from "./co-so-membership";
+import { notifyCoSoStaffInvite } from "./co-so-staff-invite";
 
 type MemberRow = {
   id: string;
   id_nguoi_dung: string;
   vai_tro: string;
+  trang_thai: string;
   user_nguoi_dung:
     | {
         slug: string;
@@ -41,6 +44,8 @@ function mapMember(row: MemberRow, actorId: string): CoSoMemberAdmin | null {
   const profile = memberProfile(row);
   if (!profile?.slug) return null;
   const isSelf = row.id_nguoi_dung === actorId;
+  const trangThai =
+    row.trang_thai === "pending" ? "pending" : ("active" as const);
   return {
     id: row.id,
     userId: row.id_nguoi_dung,
@@ -48,6 +53,7 @@ function mapMember(row: MemberRow, actorId: string): CoSoMemberAdmin | null {
     tenHienThi: profile.ten_hien_thi?.trim() || profile.slug,
     avatarId: profile.avatar_id,
     vaiTro: row.vai_tro,
+    trangThai,
     editable: row.vai_tro !== "owner",
     isSelf,
   };
@@ -98,7 +104,7 @@ export async function listCoSoStaffMembers(params: {
   const { data, error } = await admin
     .from("user_thanh_vien_to_chuc")
     .select(
-      "id, id_nguoi_dung, vai_tro, user_nguoi_dung: id_nguoi_dung ( slug, ten_hien_thi, avatar_id )",
+      "id, id_nguoi_dung, vai_tro, trang_thai, user_nguoi_dung: id_nguoi_dung ( slug, ten_hien_thi, avatar_id )",
     )
     .eq("id_to_chuc", params.orgId)
     .in("vai_tro", [
@@ -109,7 +115,7 @@ export async function listCoSoStaffMembers(params: {
       "giao_vien",
       "nhan_vien",
     ])
-    .eq("trang_thai", "active");
+    .in("trang_thai", ["active", "pending"]);
 
   if (error) return { ok: false, error: error.message };
 
@@ -119,6 +125,13 @@ export async function listCoSoStaffMembers(params: {
     if (!mapped) continue;
     const existing = byUser.get(mapped.userId);
     if (!existing) {
+      byUser.set(mapped.userId, mapped);
+      continue;
+    }
+    if (existing.trangThai === "active" && mapped.trangThai === "pending") {
+      continue;
+    }
+    if (mapped.trangThai === "active" && existing.trangThai === "pending") {
       byUser.set(mapped.userId, mapped);
       continue;
     }
@@ -139,6 +152,9 @@ export async function listCoSoStaffMembers(params: {
   }
 
   const members = [...byUser.values()].sort((a, b) => {
+    if (a.trangThai !== b.trangThai) {
+      return a.trangThai === "active" ? -1 : 1;
+    }
     if (a.vaiTro === "owner") return -1;
     if (b.vaiTro === "owner") return 1;
     const roleDiff =
@@ -159,6 +175,68 @@ function normalizeAssignableRole(value: string | undefined): CoSoStaffVaiTro | n
   return role as CoSoStaffVaiTro;
 }
 
+function buildMemberAdmin(
+  row: {
+    id: string;
+    userId: string;
+    slug: string;
+    tenHienThi: string;
+    avatarId: string | null;
+    vaiTro: CoSoStaffVaiTro;
+    trangThai: CoSoMemberAdmin["trangThai"];
+  },
+  actorId: string,
+): CoSoMemberAdmin {
+  return {
+    id: row.id,
+    userId: row.userId,
+    slug: row.slug,
+    tenHienThi: row.tenHienThi,
+    avatarId: row.avatarId,
+    vaiTro: row.vaiTro,
+    trangThai: row.trangThai,
+    editable: row.vaiTro !== "owner",
+    isSelf: row.userId === actorId,
+  };
+}
+
+async function loadCoSoOrgMeta(orgId: string) {
+  const admin = createServiceRoleClient();
+  const { data } = await admin
+    .from("org_to_chuc")
+    .select("id, slug, ten")
+    .eq("id", orgId)
+    .eq("loai_to_chuc", "co_so_dao_tao")
+    .maybeSingle<{ id: string; slug: string; ten: string }>();
+  return data;
+}
+
+async function loadInviterMeta(actorId: string): Promise<{
+  id: string;
+  name: string;
+  slug: string;
+  avatarUrl: string | null;
+}> {
+  const admin = createServiceRoleClient();
+  const { data } = await admin
+    .from("user_nguoi_dung")
+    .select("id, slug, ten_hien_thi, avatar_id")
+    .eq("id", actorId)
+    .maybeSingle<{
+      id: string;
+      slug: string;
+      ten_hien_thi: string | null;
+      avatar_id: string | null;
+    }>();
+  const name = data?.ten_hien_thi?.trim() || data?.slug || "Quản trị viên";
+  return {
+    id: data?.id ?? actorId,
+    name,
+    slug: data?.slug ?? "",
+    avatarUrl: getAvatarUrl(data?.avatar_id ?? null) ?? null,
+  };
+}
+
 export async function addCoSoStaffMember(params: {
   orgId: string;
   actorId: string;
@@ -167,7 +245,8 @@ export async function addCoSoStaffMember(params: {
 }): Promise<
   { ok: true; member: CoSoMemberAdmin } | { ok: false; error: string }
 > {
-  if (!(await loadCoSoOrgId(params.orgId))) {
+  const org = await loadCoSoOrgMeta(params.orgId);
+  if (!org?.id) {
     return { ok: false, error: "Không tìm thấy cơ sở." };
   }
 
@@ -176,6 +255,7 @@ export async function addCoSoStaffMember(params: {
 
   const nextRole = normalizeAssignableRole(params.vaiTro) ?? "nhan_vien";
   const admin = createServiceRoleClient();
+  const autoActivate = params.userId === params.actorId;
 
   const { data: profile } = await admin
     .from("user_nguoi_dung")
@@ -194,7 +274,7 @@ export async function addCoSoStaffMember(params: {
 
   const { data: existingRows } = await admin
     .from("user_thanh_vien_to_chuc")
-    .select("id, vai_tro")
+    .select("id, vai_tro, trang_thai")
     .eq("id_to_chuc", params.orgId)
     .eq("id_nguoi_dung", params.userId)
     .in("vai_tro", [
@@ -212,34 +292,67 @@ export async function addCoSoStaffMember(params: {
   }
 
   const staffRow = rows.find((row) => isCoSoStaffRole(row.vai_tro as string));
+  const profileBase = {
+    userId: profile.id,
+    slug: profile.slug,
+    tenHienThi: profile.ten_hien_thi?.trim() || profile.slug,
+    avatarId: profile.avatar_id,
+    vaiTro: nextRole,
+  };
 
   if (staffRow) {
+    const keepActive =
+      autoActivate || staffRow.trang_thai === "active";
+    const nextTrangThai = keepActive ? "active" : "pending";
     const { error } = await admin
       .from("user_thanh_vien_to_chuc")
-      .update({ vai_tro: nextRole })
+      .update({
+        vai_tro: nextRole,
+        trang_thai: nextTrangThai,
+      })
       .eq("id", staffRow.id);
     if (error) return { ok: false, error: error.message };
+
+    if (nextTrangThai === "pending") {
+      const inviter = await loadInviterMeta(params.actorId);
+      const notified = await notifyCoSoStaffInvite({
+        membershipId: staffRow.id,
+        inviteeId: profile.id,
+        orgId: org.id,
+        orgSlug: org.slug,
+        orgTen: org.ten,
+        vaiTro: nextRole,
+        inviterId: inviter.id,
+        inviterName: inviter.name,
+        inviterSlug: inviter.slug,
+        inviterAvatarUrl: inviter.avatarUrl,
+      });
+      if (!notified.ok) {
+        return { ok: false, error: notified.error };
+      }
+    }
+
     return {
       ok: true,
-      member: {
-        id: staffRow.id,
-        userId: profile.id,
-        slug: profile.slug,
-        tenHienThi: profile.ten_hien_thi?.trim() || profile.slug,
-        avatarId: profile.avatar_id,
-        vaiTro: nextRole,
-        editable: true,
-        isSelf: profile.id === params.actorId,
-      },
+      member: buildMemberAdmin(
+        {
+          id: staffRow.id,
+          ...profileBase,
+          trangThai: nextTrangThai,
+        },
+        params.actorId,
+      ),
     };
   }
 
+  const nextTrangThai = autoActivate ? "active" : "pending";
   const { data: inserted, error } = await admin
     .from("user_thanh_vien_to_chuc")
     .insert({
       id_to_chuc: params.orgId,
       id_nguoi_dung: params.userId,
       vai_tro: nextRole,
+      trang_thai: nextTrangThai,
     })
     .select("id")
     .single<{ id: string }>();
@@ -248,18 +361,35 @@ export async function addCoSoStaffMember(params: {
     return { ok: false, error: error?.message ?? "Không thêm được thành viên." };
   }
 
+  if (nextTrangThai === "pending") {
+    const inviter = await loadInviterMeta(params.actorId);
+    const notified = await notifyCoSoStaffInvite({
+      membershipId: inserted.id,
+      inviteeId: profile.id,
+      orgId: org.id,
+      orgSlug: org.slug,
+      orgTen: org.ten,
+      vaiTro: nextRole,
+      inviterId: inviter.id,
+      inviterName: inviter.name,
+      inviterSlug: inviter.slug,
+      inviterAvatarUrl: inviter.avatarUrl,
+    });
+    if (!notified.ok) {
+      return { ok: false, error: notified.error };
+    }
+  }
+
   return {
     ok: true,
-    member: {
-      id: inserted.id,
-      userId: profile.id,
-      slug: profile.slug,
-      tenHienThi: profile.ten_hien_thi?.trim() || profile.slug,
-      avatarId: profile.avatar_id,
-      vaiTro: nextRole,
-      editable: true,
-      isSelf: profile.id === params.actorId,
-    },
+    member: buildMemberAdmin(
+      {
+        id: inserted.id,
+        ...profileBase,
+        trangThai: nextTrangThai,
+      },
+      params.actorId,
+    ),
   };
 }
 
@@ -317,7 +447,7 @@ export async function updateCoSoStaffMemberRole(params: {
   const { data: row } = await admin
     .from("user_thanh_vien_to_chuc")
     .select(
-      "id, id_nguoi_dung, vai_tro, user_nguoi_dung: id_nguoi_dung ( slug, ten_hien_thi, avatar_id )",
+      "id, id_nguoi_dung, vai_tro, trang_thai, user_nguoi_dung: id_nguoi_dung ( slug, ten_hien_thi, avatar_id )",
     )
     .eq("id", params.membershipId)
     .eq("id_to_chuc", params.orgId)
@@ -351,6 +481,7 @@ export async function updateCoSoStaffMemberRole(params: {
       tenHienThi: profile.ten_hien_thi?.trim() || profile.slug,
       avatarId: profile.avatar_id,
       vaiTro: nextRole,
+      trangThai: row.trang_thai === "pending" ? "pending" : "active",
       editable: true,
       isSelf: row.id_nguoi_dung === params.actorId,
     },

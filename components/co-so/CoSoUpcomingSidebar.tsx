@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { TruongInlineModal } from "@/components/truong/inline/TruongInlineModal";
@@ -22,7 +22,18 @@ import {
   collectCoSoTimelineYears,
   filterCoSoTimelineMocForYear,
   parseCoSoAutoPinKhoaId,
+  parseCoSoAutoPinLopId,
+  isCoSoAutoPinLopStepId,
+  isCoSoAutoPinKhoaStepId,
+  isCoSoAutoPinStepId,
 } from "@/lib/to-chuc/co-so-timeline";
+import {
+  buildCoSoLopAutoPinSteps,
+  collectCoSoLopTimelineYears,
+  type CoSoLopTimelinePin,
+} from "@/lib/to-chuc/co-so-timeline-lop";
+import { mocDateSortKey } from "@/lib/truong/timeline-moc";
+import { coSoKhoaHocDetailPath } from "@/lib/to-chuc/co-so-routes";
 import type { KhoaHocCardData } from "@/lib/to-chuc/khoa-hoc-types";
 import { defaultTruongNganhYear } from "@/lib/truong/diem-chuan";
 import {
@@ -37,6 +48,7 @@ import {
   type TuyenSinhTimelineStep,
 } from "@/lib/truong/timeline-steps";
 import { isValidTruongYear } from "@/lib/truong/year-tabs";
+import { LICH_KHAI_GIANG_LIEN_TUC_DEFAULT } from "@/lib/to-chuc/khoa-hoc-labels";
 
 type Props = {
   orgId: string;
@@ -47,19 +59,32 @@ type Props = {
   isMobileShellActive?: boolean;
 };
 
-type StepRole = "past" | "current" | "next" | "pinned" | "default";
+type StepRole = "past" | "current" | "next" | "default";
 type MocModalMode = { kind: "new" } | { kind: "edit"; mocId: string };
 
-const WEEKLY_KHAI_GIANG_LABEL = "Khai giảng hàng tuần";
+const WEEKLY_KHAI_GIANG_LABEL = LICH_KHAI_GIANG_LIEN_TUC_DEFAULT;
 
-function timelineDateClass(step: TuyenSinhTimelineStep): string {
-  if (step.dateLabel === WEEKLY_KHAI_GIANG_LABEL) {
-    return "timeline-date timeline-date--recurring";
+function coSoStepSortKey(
+  step: TuyenSinhTimelineStep,
+  lopPins: CoSoLopTimelinePin[],
+  khoaList: KhoaHocCardData[],
+  yearMoc: TuyenSinhTimelineMoc[],
+): number {
+  const lopParsed = parseCoSoAutoPinLopId(step.id);
+  if (lopParsed) {
+    const pin = lopPins.find((p) => p.lopId === lopParsed.lopId);
+    return pin ? mocDateSortKey(pin.ngayKhaiGiang, null) : Number.MAX_SAFE_INTEGER;
   }
-  if (step.status === "active") {
-    return "timeline-date timeline-date--live";
+  const khoaId = parseCoSoAutoPinKhoaId(step.id);
+  if (khoaId) {
+    const khoa = khoaList.find((k) => k.id === khoaId);
+    if (khoa?.loaiMoHinh === "lien_tuc_theo_thang") {
+      return Number.MAX_SAFE_INTEGER;
+    }
+    return mocDateSortKey(khoa?.ngayKhaiGiangGanNhat ?? null, null);
   }
-  return "timeline-date";
+  const moc = yearMoc.find((m) => m.id === step.id);
+  return mocDateSortKey(moc?.ngay_tu ?? null, moc?.ngay_den ?? null);
 }
 
 function TimelineStepItem({
@@ -81,7 +106,6 @@ function TimelineStepItem({
     role === "past" ? "timeline-item--past" : "",
     role === "current" ? "timeline-item--focus timeline-item--current" : "",
     role === "next" ? "timeline-item--focus timeline-item--next" : "",
-    role === "pinned" ? "timeline-item--focus timeline-item--current" : "",
     isEditing ? "timeline-item--editable" : "",
   ]
     .filter(Boolean)
@@ -116,11 +140,6 @@ function TimelineStepItem({
     <>
       <div className="timeline-dot">{step.dot}</div>
       <div className="timeline-content">
-        {role === "pinned" ? (
-          <span className="timeline-focus-kicker timeline-focus-kicker--now">
-            Khai giảng
-          </span>
-        ) : null}
         {role === "next" ? (
           <span className="timeline-focus-kicker">Tiếp theo</span>
         ) : null}
@@ -129,10 +148,22 @@ function TimelineStepItem({
             Hiện tại
           </span>
         ) : null}
-        <div className={timelineDateClass(step)}>{step.dateLabel}</div>
+        <div
+          className={[
+            "timeline-date",
+            step.dateLabel === WEEKLY_KHAI_GIANG_LABEL
+              ? "timeline-date--recurring"
+              : "",
+            step.status === "active" ? "timeline-date--live" : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+        >
+          {step.dateLabel}
+        </div>
         {labelNode}
         {step.desc ? <p className="timeline-desc">{step.desc}</p> : null}
-        {isEditing ? (
+        {isEditing && editHint ? (
           <span className="timeline-edit-hint">{editHint}</span>
         ) : null}
       </div>
@@ -160,14 +191,31 @@ export function CoSoUpcomingSidebar({
 }: Props) {
   const ctx = useTruongInlineEdit();
   const pathname = usePathname();
+  const router = useRouter();
   const isManaging = canManageKhoaHoc && (ctx?.isEditing ?? false);
 
   const [khoaList, setKhoaList] = useState<KhoaHocCardData[]>([]);
+  const [lopPins, setLopPins] = useState<CoSoLopTimelinePin[]>([]);
   const [timelineMoc, setTimelineMoc] = useState<TuyenSinhTimelineMoc[]>([]);
   const [showPastSteps, setShowPastSteps] = useState(false);
   const [mocModal, setMocModal] = useState<MocModalMode | null>(null);
   const [editingKhoa, setEditingKhoa] = useState<KhoaHocCardData | null>(null);
   const [timelineYear, setTimelineYear] = useState(defaultTruongNganhYear());
+
+  const loadLopPins = useCallback(async () => {
+    try {
+      const res = await fetch(
+        `/api/co-so/${encodeURIComponent(orgId)}/timeline-lop-pins`,
+        { credentials: "include" },
+      );
+      const data = (await res.json()) as { pins?: CoSoLopTimelinePin[] };
+      if (res.ok) {
+        setLopPins(data.pins ?? []);
+      }
+    } catch {
+      /* giữ danh sách cũ */
+    }
+  }, [orgId]);
 
   const loadKhoa = useCallback(async () => {
     try {
@@ -186,19 +234,23 @@ export function CoSoUpcomingSidebar({
     }
   }, [orgId]);
 
+  const refreshTimelineSources = useCallback(async () => {
+    await Promise.all([loadKhoa(), loadLopPins()]);
+  }, [loadKhoa, loadLopPins]);
+
   useEffect(() => {
-    void loadKhoa();
-  }, [loadKhoa, pathname]);
+    void refreshTimelineSources();
+  }, [refreshTimelineSources, pathname]);
 
   useEffect(() => {
     function onKhoaUpdated(ev: Event) {
       const detail = (ev as CustomEvent<{ orgId?: string }>).detail;
-      if (detail?.orgId === orgId) void loadKhoa();
+      if (detail?.orgId === orgId) void refreshTimelineSources();
     }
     window.addEventListener(CO_SO_KHOA_UPDATED_EVENT, onKhoaUpdated);
     return () =>
       window.removeEventListener(CO_SO_KHOA_UPDATED_EVENT, onKhoaUpdated);
-  }, [orgId, loadKhoa]);
+  }, [orgId, refreshTimelineSources]);
 
   useEffect(() => {
     setTimelineMoc(loadCoSoTimelineMoc(orgId));
@@ -211,22 +263,31 @@ export function CoSoUpcomingSidebar({
     }
   }, [isManaging]);
 
-  const autoPinSteps = useMemo(
-    () => buildCoSoAutoPinSteps(khoaList, orgSlug),
-    [khoaList, orgSlug],
-  );
+  const autoPinSteps = useMemo(() => {
+    const lopSteps = buildCoSoLopAutoPinSteps(lopPins, orgSlug, timelineYear);
+    const khoaIdsWithLop = new Set(lopPins.map((p) => p.khoaId));
+    const khoaFallback = buildCoSoAutoPinSteps(
+      khoaList.filter((k) => !khoaIdsWithLop.has(k.id)),
+      orgSlug,
+    );
+    return [...lopSteps, ...khoaFallback];
+  }, [lopPins, khoaList, orgSlug, timelineYear]);
 
   const timelineYearOptions = useMemo(() => {
-    const years = collectCoSoTimelineYears(timelineMoc);
+    const years = [
+      ...collectCoSoTimelineYears(timelineMoc),
+      ...collectCoSoLopTimelineYears(lopPins),
+    ];
+    const unique = [...new Set(years)].sort((a, b) => b - a);
     if (
       isManaging &&
       isValidTruongYear(timelineYear) &&
-      !years.includes(timelineYear)
+      !unique.includes(timelineYear)
     ) {
-      return [timelineYear, ...years].sort((a, b) => b - a);
+      return [timelineYear, ...unique].sort((a, b) => b - a);
     }
-    return years;
-  }, [timelineMoc, isManaging, timelineYear]);
+    return unique;
+  }, [timelineMoc, lopPins, isManaging, timelineYear]);
 
   useEffect(() => {
     if (!timelineYearOptions.length) return;
@@ -245,23 +306,58 @@ export function CoSoUpcomingSidebar({
     [yearMoc],
   );
 
+  const timelineSteps = useMemo(() => {
+    const merged = [...autoPinSteps, ...customSteps];
+    return merged.sort(
+      (a, b) =>
+        coSoStepSortKey(a, lopPins, khoaList, yearMoc) -
+        coSoStepSortKey(b, lopPins, khoaList, yearMoc),
+    );
+  }, [autoPinSteps, customSteps, lopPins, khoaList, yearMoc]);
+
   const focus = useMemo(
-    () => getAdmissionTimelineFocus(customSteps),
-    [customSteps],
+    () => getAdmissionTimelineFocus(timelineSteps),
+    [timelineSteps],
   );
 
   const pastSteps = useMemo(
-    () => customSteps.filter((s) => focus.pastIds.has(s.id)),
-    [customSteps, focus.pastIds],
+    () => timelineSteps.filter((s) => focus.pastIds.has(s.id)),
+    [timelineSteps, focus.pastIds],
   );
 
-  const visibleCustomSteps = useMemo(
+  const visibleSteps = useMemo(
     () =>
       showPastSteps
-        ? customSteps
-        : customSteps.filter((s) => !focus.pastIds.has(s.id)),
-    [customSteps, focus.pastIds, showPastSteps],
+        ? timelineSteps
+        : timelineSteps.filter((s) => !focus.pastIds.has(s.id)),
+    [timelineSteps, focus.pastIds, showPastSteps],
   );
+
+  function stepRole(step: TuyenSinhTimelineStep): StepRole {
+    if (focus.pastIds.has(step.id)) return "past";
+    if (step.id === focus.currentId) return "current";
+    if (step.id === focus.nextId) return "next";
+    return "default";
+  }
+
+  function stepEditHint(step: TuyenSinhTimelineStep): string {
+    if (isCoSoAutoPinLopStepId(step.id)) return "";
+    if (isCoSoAutoPinKhoaStepId(step.id)) return "Bấm để sửa khóa học";
+    return "Bấm để sửa hoặc xóa";
+  }
+
+  function isStepTimelineEditable(step: TuyenSinhTimelineStep): boolean {
+    return !isCoSoAutoPinLopStepId(step.id);
+  }
+
+  function handleEditStep(step: TuyenSinhTimelineStep) {
+    if (isCoSoAutoPinStepId(step.id)) {
+      handleEditAutoPin(step);
+      return;
+    }
+    setEditingKhoa(null);
+    setMocModal({ kind: "edit", mocId: step.id });
+  }
 
   const modalMoc = useMemo(() => {
     if (!mocModal) return null;
@@ -269,16 +365,9 @@ export function CoSoUpcomingSidebar({
     return timelineMoc.find((m) => m.id === mocModal.mocId) ?? null;
   }, [mocModal, timelineMoc]);
 
-  function customStepRole(step: TuyenSinhTimelineStep): StepRole {
-    if (focus.pastIds.has(step.id)) return "past";
-    if (step.id === focus.currentId) return "current";
-    if (step.id === focus.nextId) return "next";
-    return "default";
-  }
-
   useEffect(() => {
     setShowPastSteps(false);
-  }, [timelineYear, customSteps.length]);
+  }, [timelineYear, timelineSteps.length]);
 
   function handleSaveMoc(moc: TuyenSinhTimelineMoc) {
     const normalized = normalizeTimelineMoc(moc);
@@ -307,12 +396,27 @@ export function CoSoUpcomingSidebar({
   }
 
   function handleEditAutoPin(step: TuyenSinhTimelineStep) {
+    if (isCoSoAutoPinLopStepId(step.id)) {
+      const parsed = parseCoSoAutoPinLopId(step.id);
+      if (!parsed) return;
+      const pin = lopPins.find((p) => p.lopId === parsed.lopId);
+      if (!pin) {
+        ctx?.showToast("Không tìm thấy lớp học — thử tải lại trang.");
+        void refreshTimelineSources();
+        return;
+      }
+      setMocModal(null);
+      setEditingKhoa(null);
+      router.push(coSoKhoaHocDetailPath(orgSlug, pin.khoaSlug));
+      return;
+    }
+
     const khoaId = parseCoSoAutoPinKhoaId(step.id);
     if (!khoaId) return;
     const khoa = khoaList.find((k) => k.id === khoaId);
     if (!khoa) {
       ctx?.showToast("Không tìm thấy khóa học — thử tải lại trang.");
-      void loadKhoa();
+      void refreshTimelineSources();
       return;
     }
     setMocModal(null);
@@ -338,7 +442,7 @@ export function CoSoUpcomingSidebar({
   }
 
   const canAddMoc = isManaging && timelineMoc.length < TIMELINE_MOC_MAX_ITEMS;
-  const hasContent = autoPinSteps.length > 0 || customSteps.length > 0;
+  const hasContent = timelineSteps.length > 0;
 
   return (
     <>
@@ -370,27 +474,6 @@ export function CoSoUpcomingSidebar({
             </p>
           ) : (
             <div className="timeline">
-              {autoPinSteps.map((step, idx) => (
-                <TimelineStepItem
-                  key={step.id}
-                  step={step}
-                  role={idx === 0 ? "pinned" : "default"}
-                  isEditing={isManaging}
-                  editHint="Bấm để sửa khóa học"
-                  onEdit={
-                    isManaging ? () => handleEditAutoPin(step) : undefined
-                  }
-                />
-              ))}
-
-              {autoPinSteps.length > 0 && visibleCustomSteps.length > 0 ? (
-                <div
-                  className="timeline-divider"
-                  role="separator"
-                  aria-hidden
-                />
-              ) : null}
-
               {!showPastSteps && pastSteps.length > 0 ? (
                 <button
                   type="button"
@@ -410,26 +493,22 @@ export function CoSoUpcomingSidebar({
                 </button>
               ) : null}
 
-              {visibleCustomSteps.map((step) => (
+              {visibleSteps.map((step) => (
                 <TimelineStepItem
                   key={step.id}
                   step={step}
-                  role={customStepRole(step)}
-                  isEditing={isManaging}
+                  role={stepRole(step)}
+                  isEditing={isManaging && isStepTimelineEditable(step)}
+                  editHint={stepEditHint(step)}
                   onEdit={
-                    isManaging
-                      ? () => {
-                          setEditingKhoa(null);
-                          setMocModal({ kind: "edit", mocId: step.id });
-                        }
+                    isManaging && isStepTimelineEditable(step)
+                      ? () => handleEditStep(step)
                       : undefined
                   }
                 />
               ))}
 
-              {isManaging &&
-              customSteps.length === 0 &&
-              autoPinSteps.length === 0 ? (
+              {isManaging && timelineSteps.length === 0 ? (
                 <p className="ptxt-empty-text tdh-admission-side-empty">
                   Chưa có mốc thông báo cho năm {timelineYear}. Thêm mốc hoặc
                   tạo khóa học để hiện lịch khai giảng.

@@ -24,6 +24,7 @@ export async function POST(req: Request, ctx: RouteContext) {
     lichHoc?: string | null;
     ngayKhaiGiang?: string | null;
     giaoVienText?: string | null;
+    giaoVienPhuTrach?: string | null;
     slotToiDa?: number | null;
     trangThaiLop?: TrangThaiLop;
   };
@@ -39,6 +40,7 @@ export async function POST(req: Request, ctx: RouteContext) {
     lichHoc: body.lichHoc,
     ngayKhaiGiang: body.ngayKhaiGiang,
     giaoVienText: body.giaoVienText,
+    giaoVienPhuTrach: body.giaoVienPhuTrach,
     slotToiDa: body.slotToiDa,
     trangThaiLop: body.trangThaiLop,
   };

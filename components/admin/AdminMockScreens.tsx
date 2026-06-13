@@ -1,7 +1,8 @@
 "use client";
 
 import { BadgeLoai, BadgeTinCay, BadgeTrangThai } from "@/components/admin/badges";
-import { truongRootPath } from "@/lib/truong/truong-routes";
+
+export { AdminToChucScreen } from "@/components/admin/AdminToChucScreen";
 
 export function AdminDeXuatScreen() {
   return (
@@ -68,99 +69,6 @@ export function AdminDeXuatScreen() {
                     </button>
                     <button type="button" className="action-btn danger">
                       ✕ Từ chối
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </>
-  );
-}
-
-export function AdminToChucScreen() {
-  return (
-    <>
-      <header className="page-header">
-        <h1 className="page-title">Tổ chức</h1>
-        <div className="page-header-actions">
-          <button type="button" className="btn btn-primary" disabled>
-            + Thêm tổ chức
-          </button>
-        </div>
-      </header>
-      <div className="page-body">
-        <div className="admin-toolbar">
-          <div className="filter-bar">
-            <div className="filter-search">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
-              <input type="search" placeholder="Tìm tổ chức..." disabled />
-            </div>
-          </div>
-        </div>
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Tên</th>
-                <th>Loại</th>
-                <th>Tỉnh/thành</th>
-                <th>Tin cậy</th>
-                <th>Journey</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td className="cell-title">
-                  Trường ĐH Mỹ thuật TP.HCM
-                  <small>dai-hoc-my-thuat-tp-hcm</small>
-                </td>
-                <td style={{ fontSize: 12, color: "var(--ink2)" }}>Trường ĐH</td>
-                <td style={{ fontSize: 12, color: "var(--ink2)" }}>TP.HCM</td>
-                <td>
-                  <BadgeTinCay status="verified_official" />
-                </td>
-                <td className="cell-num">—</td>
-                <td>
-                  <div className="row-actions">
-                    <button type="button" className="action-btn edit">
-                      ✏ Sửa
-                    </button>
-                    <a
-                      href={truongRootPath("dai-hoc-my-thuat-tp-hcm")}
-                      className="action-btn view"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      ↗ Xem
-                    </a>
-                  </div>
-                </td>
-              </tr>
-              <tr>
-                <td className="cell-title">
-                  Sine Art
-                  <small>sine-art</small>
-                </td>
-                <td style={{ fontSize: 12, color: "var(--ink2)" }}>Cơ sở đào tạo</td>
-                <td style={{ fontSize: 12, color: "var(--ink2)" }}>TP.HCM</td>
-                <td>
-                  <BadgeTinCay status="binh_thuong" />
-                </td>
-                <td className="cell-num">520</td>
-                <td>
-                  <div className="row-actions">
-                    <button type="button" className="action-btn approve">
-                      ✓ Cấp Verified
-                    </button>
-                    <button type="button" className="action-btn edit">
-                      ✏ Sửa
                     </button>
                   </div>
                 </td>

@@ -27,7 +27,8 @@ export async function getViewerCoSoVaiTro(
     .from("user_thanh_vien_to_chuc")
     .select("vai_tro")
     .eq("id_to_chuc", orgId)
-    .eq("id_nguoi_dung", profileId);
+    .eq("id_nguoi_dung", profileId)
+    .eq("trang_thai", "active");
 
   if (!rows?.length) return null;
   return pickCoSoStaffVaiTro(rows.map((row) => row.vai_tro as string));
@@ -54,6 +55,7 @@ export async function isCoSoOrgAdmin(
     .select("vai_tro")
     .eq("id_to_chuc", orgId)
     .eq("id_nguoi_dung", profileId)
+    .eq("trang_thai", "active")
     .in("vai_tro", [...CO_SO_ADMIN_ROLES])
     .limit(1)
     .maybeSingle();

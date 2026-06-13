@@ -15,6 +15,7 @@ import {
 import { createPortal } from "react-dom";
 
 import { CoAuthorInviteMessage } from "@/components/journey/CoAuthorInviteMessage";
+import { CoSoStaffInviteMessage } from "@/components/journey/CoSoStaffInviteMessage";
 import type { CoAuthorCredit } from "@/components/journey/milestone-types";
 import {
   dispatchMilestoneCreditsUpdated,
@@ -27,6 +28,7 @@ import type {
   NotificationFilter,
   PendingCoAuthorInviteNotification,
   PendingCoAuthorReview,
+  PendingCoSoStaffInviteNotification,
   PendingFollowRequest,
   ProcessedCoAuthorReview,
   VideoReadyNotification,
@@ -58,6 +60,7 @@ const EMPTY_HISTORY_FEED: NotificationFeed = {
   comments: [],
   coAuthorInvites: [],
   coAuthorReviews: [],
+  coSoStaffInvites: [],
   videoReady: [],
   handledFollows: [],
   processedCoAuthorReviews: [],
@@ -118,6 +121,9 @@ function parseFeedPayload(json: unknown): NotificationFeed | null {
     ...data,
     coAuthorInvites: Array.isArray(data.coAuthorInvites) ? data.coAuthorInvites : [],
     coAuthorReviews: Array.isArray(data.coAuthorReviews) ? data.coAuthorReviews : [],
+    coSoStaffInvites: Array.isArray(data.coSoStaffInvites)
+      ? data.coSoStaffInvites
+      : [],
   };
 }
 
@@ -128,6 +134,7 @@ function countDisplayedItems(feed: NotificationFeed): number {
     feed.comments.length +
     feed.coAuthorInvites.length +
     feed.coAuthorReviews.length +
+    feed.coSoStaffInvites.length +
     feed.videoReady.length +
     feed.handledFollows.length +
     feed.processedCoAuthorReviews.length
@@ -429,6 +436,33 @@ export function JourneyNotifications({
     });
   };
 
+  const respondCoSoStaffInvite = (
+    invite: PendingCoSoStaffInviteNotification,
+    action: "accept" | "decline",
+  ) => {
+    setError(null);
+    startTransition(async () => {
+      const res = await fetch(
+        `/api/co-so/${encodeURIComponent(invite.orgId)}/members/${encodeURIComponent(invite.membershipId)}/respond`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action }),
+        },
+      );
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(typeof json.error === "string" ? json.error : "Không xử lý được.");
+        return;
+      }
+      const feedRes = await fetch("/api/notifications?filter=unread");
+      const feedJson = await feedRes.json().catch(() => null);
+      const next = parseFeedPayload(feedJson);
+      if (next) applyFeed(next);
+      window.dispatchEvent(new Event("cins:notifications-changed"));
+    });
+  };
+
   const selectedStillPending = useMemo(
     () => selected && feed.followRequests.some((r) => r.idNguoiDung === selected.idNguoiDung),
     [feed.followRequests, selected],
@@ -493,6 +527,45 @@ export function JourneyNotifications({
             <ul className="j-notify-list">
               {tab === "unread" ? (
                 <>
+                  {activeFeed.coSoStaffInvites.map((invite) => (
+                    <li key={invite.notificationId}>
+                      <div className="j-notify-item is-coauthor-invite j-notify-item--cso-staff">
+                        <CoSoStaffInviteMessage
+                          inviterName={invite.inviterName}
+                          inviterSlug={invite.inviterSlug}
+                          inviterAvatarUrl={invite.inviterAvatarUrl}
+                          orgTen={invite.orgTen}
+                          orgSlug={invite.orgSlug}
+                          vaiTroLabel={invite.vaiTroLabel}
+                          className="j-coauthor-invite-message j-notify-coauthor-invite-text"
+                        />
+                        <div className="j-notify-inline-actions">
+                          <Link
+                            href={`/co-so/${invite.orgSlug}`}
+                            className="j-notify-mini-action is-link"
+                          >
+                            Xem cơ sở
+                          </Link>
+                          <button
+                            type="button"
+                            className="j-notify-mini-action is-accept"
+                            disabled={pending}
+                            onClick={() => respondCoSoStaffInvite(invite, "accept")}
+                          >
+                            Chấp nhận
+                          </button>
+                          <button
+                            type="button"
+                            className="j-notify-mini-action"
+                            disabled={pending}
+                            onClick={() => respondCoSoStaffInvite(invite, "decline")}
+                          >
+                            Từ chối
+                          </button>
+                        </div>
+                      </div>
+                    </li>
+                  ))}
                   {activeFeed.videoReady.map((notice) => (
                     <UnreadVideoItem
                       key={notice.notificationId}

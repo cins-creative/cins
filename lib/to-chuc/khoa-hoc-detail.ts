@@ -1,5 +1,6 @@
 import "server-only";
 
+import { getAvatarUrl } from "@/lib/journey/profile";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 import type {
@@ -45,6 +46,7 @@ type UserRow = {
   id: string;
   slug: string;
   ten_hien_thi: string;
+  avatar_id: string | null;
 };
 
 const VISIBILITY_SET = new Set<string>(["public", "chi_hoc_vien", "private"]);
@@ -64,6 +66,7 @@ function mapGiaoVienText(
   verified: boolean,
   pendingProfile: boolean,
   vaiTro: string | null = null,
+  avatarId: string | null = null,
 ): GiaoVienKhoaData {
   return {
     key,
@@ -73,6 +76,8 @@ function mapGiaoVienText(
     initials: initialsFromName(ten),
     vaiTro,
     pendingProfile,
+    avatarId,
+    avatarUrl: avatarId ? getAvatarUrl(avatarId) : null,
   };
 }
 
@@ -85,13 +90,15 @@ function giaoVienFromLop(
   if (userId) {
     const user = users.get(userId);
     const ten = user?.ten_hien_thi ?? "Giảng viên";
+    const verified = verifiedIds.has(userId);
     return mapGiaoVienText(
       userId,
       ten,
       user?.slug ?? null,
-      verifiedIds.has(userId),
+      verified,
       false,
-      verifiedIds.has(userId) ? "hồ sơ CINS" : null,
+      null,
+      user?.avatar_id ?? null,
     );
   }
   const text = row.giao_vien_text?.trim();
@@ -231,7 +238,7 @@ async function fetchLopHocDetail(
   if (userIds.length) {
     const { data: userRows } = await admin
       .from("user_nguoi_dung")
-      .select("id, slug, ten_hien_thi")
+      .select("id, slug, ten_hien_thi, avatar_id")
       .in("id", userIds);
     for (const u of userRows ?? []) {
       users.set(u.id as string, u as UserRow);
@@ -275,10 +282,13 @@ function distinctGiaoVien(lopHoc: LopHocDetailData[]): GiaoVienKhoaData[] {
 export async function fetchKhoaHocDetail(
   orgId: string,
   khoaId: string,
+  opts?: { includeHidden?: boolean },
 ): Promise<
   { ok: true; detail: KhoaHocDetailPayload } | { ok: false; error: string }
 > {
-  const listResult = await listKhoaHocCuaOrg(orgId);
+  const listResult = await listKhoaHocCuaOrg(orgId, {
+    includeHidden: opts?.includeHidden,
+  });
   if (!listResult.ok) {
     return { ok: false, error: listResult.error };
   }

@@ -13,6 +13,7 @@ import {
   listFollowHandledNotifications,
 } from "@/lib/social/follow";
 import { listPendingReceived } from "@/lib/social/ket-ban";
+import { listPendingCoSoStaffInviteNotifications } from "@/lib/to-chuc/co-so-staff-invite";
 import type { NotificationFeed, NotificationFilter } from "@/lib/social/types";
 import { listVideoReadyNotifications } from "@/lib/social/video-ready";
 
@@ -28,6 +29,7 @@ export const EMPTY_NOTIFICATION_FEED: NotificationFeed = {
   comments: [],
   coAuthorInvites: [],
   coAuthorReviews: [],
+  coSoStaffInvites: [],
   videoReady: [],
   handledFollows: [],
   processedCoAuthorReviews: [],
@@ -46,6 +48,7 @@ function capUnreadLists(payload: FeedPayload, limit: number): FeedPayload {
     return slice;
   };
   return {
+    coSoStaffInvites: take(payload.coSoStaffInvites),
     followRequests: take(payload.followRequests),
     coAuthorInvites: take(payload.coAuthorInvites),
     coAuthorReviews: take(payload.coAuthorReviews),
@@ -69,6 +72,7 @@ function capHistoryLists(payload: FeedPayload, limit: number): FeedPayload {
     followRequests: [],
     coAuthorInvites: [],
     coAuthorReviews: [],
+    coSoStaffInvites: [],
     handledFollows: take(payload.handledFollows),
     processedCoAuthorReviews: take(payload.processedCoAuthorReviews),
     accepted: take(payload.accepted),
@@ -107,6 +111,7 @@ async function loadNotificationFeedUnsafe(
     comments,
     coAuthorInvites,
     coAuthorReviews,
+    coSoStaffInvites,
     videoReady,
     handledFollows,
     processedCoAuthorReviews,
@@ -131,6 +136,9 @@ async function loadNotificationFeedUnsafe(
     unreadOnly
       ? listPendingCoAuthorReviews(viewerId, { limit: rowLimit })
       : Promise.resolve([]),
+    unreadOnly
+      ? listPendingCoSoStaffInviteNotifications(viewerId, { limit: rowLimit })
+      : Promise.resolve([]),
     listVideoReadyNotifications(viewerId, {
       unreadOnly,
       historyOnly,
@@ -150,6 +158,7 @@ async function loadNotificationFeedUnsafe(
     comments,
     coAuthorInvites: unreadOnly ? coAuthorInvites : [],
     coAuthorReviews: unreadOnly ? coAuthorReviews : [],
+    coSoStaffInvites: unreadOnly ? coSoStaffInvites : [],
     videoReady,
     handledFollows,
     processedCoAuthorReviews: historyOnly ? processedCoAuthorReviews : [],
@@ -177,6 +186,8 @@ export async function countUnreadNotifications(viewerId: string): Promise<number
     { count: commentReplies },
     { count: coAuthorInvite },
     { count: coAuthorReview },
+    { count: coSoStaffInvite },
+    { count: coSoStaffMembershipPending },
     { count: video },
   ] = await Promise.all([
     admin
@@ -219,6 +230,24 @@ export async function countUnreadNotifications(viewerId: string): Promise<number
       .from("social_thong_bao")
       .select("id", { count: "exact", head: true })
       .eq("nguoi_nhan", viewerId)
+      .eq("loai_doi_tuong", "co_so_staff_invite")
+      .is("xu_ly_luc", null),
+    admin
+      .from("user_thanh_vien_to_chuc")
+      .select("id", { count: "exact", head: true })
+      .eq("id_nguoi_dung", viewerId)
+      .eq("trang_thai", "pending")
+      .in("vai_tro", [
+        "admin",
+        "quan_ly_noi_dung",
+        "quan_ly_tuyen_sinh",
+        "giao_vien",
+        "nhan_vien",
+      ]),
+    admin
+      .from("social_thong_bao")
+      .select("id", { count: "exact", head: true })
+      .eq("nguoi_nhan", viewerId)
       .eq("loai_doi_tuong", "video_ready")
       .eq("da_doc", false),
   ]);
@@ -230,6 +259,7 @@ export async function countUnreadNotifications(viewerId: string): Promise<number
     (commentReplies ?? 0) +
     (coAuthorInvite ?? 0) +
     (coAuthorReview ?? 0) +
+    Math.max(coSoStaffInvite ?? 0, coSoStaffMembershipPending ?? 0) +
     (video ?? 0)
   );
 }

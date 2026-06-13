@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
-import { listKhoaHocCuaOrg, taoKhoaHoc } from "@/lib/to-chuc/khoa-hoc";
+import {
+  canViewerManageKhoaHoc,
+  listKhoaHocCuaOrg,
+  taoKhoaHoc,
+} from "@/lib/to-chuc/khoa-hoc";
 import type {
   HinhThucLop,
+  KhoaHocCheDoHienThi,
   LoaiMoHinhKhoa,
   TaoKhoaHocInput,
   TrinhDoDauVao,
@@ -15,7 +20,11 @@ type RouteContext = { params: Promise<{ id: string }> };
 export async function GET(_req: Request, ctx: RouteContext) {
   try {
     const { id: orgId } = await ctx.params;
-    const result = await listKhoaHocCuaOrg(orgId);
+    const session = await getCurrentSessionAndProfile();
+    const includeHidden = session?.profile
+      ? await canViewerManageKhoaHoc(session.profile.id, orgId)
+      : false;
+    const result = await listKhoaHocCuaOrg(orgId, { includeHidden });
     if (!result.ok) {
       return NextResponse.json({ error: result.error }, { status: 404 });
     }
@@ -44,11 +53,13 @@ export async function POST(req: Request, ctx: RouteContext) {
     hocPhi?: number | null;
     trinhDoDauVao?: TrinhDoDauVao;
     coverId?: string | null;
+    thumbnailId?: string | null;
     ngayKhaiGiang?: string | null;
     hinhThuc?: HinhThucLop;
     diaChiHoc?: string | null;
     lichHoc?: string | null;
     yeuCauChuanBi?: string | null;
+    cheDoHienThi?: KhoaHocCheDoHienThi;
   };
   try {
     body = await req.json();
@@ -65,11 +76,13 @@ export async function POST(req: Request, ctx: RouteContext) {
     hocPhi: body.hocPhi,
     trinhDoDauVao: body.trinhDoDauVao,
     coverId: body.coverId,
+    thumbnailId: body.thumbnailId,
     ngayKhaiGiang: body.ngayKhaiGiang,
     hinhThuc: body.hinhThuc,
     diaChiHoc: body.diaChiHoc,
     lichHoc: body.lichHoc,
     yeuCauChuanBi: body.yeuCauChuanBi,
+    cheDoHienThi: body.cheDoHienThi,
   };
 
   const result = await taoKhoaHoc(orgId, session.profile.id, input);

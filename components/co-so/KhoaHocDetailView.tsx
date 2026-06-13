@@ -14,6 +14,8 @@ import {
   Info,
   ListOrdered,
   Lock,
+  Layers,
+  Monitor,
   MapPin,
   Eye,
   Pause,
@@ -35,6 +37,7 @@ import type {
   BaiTapSectionDisplayMode,
   GiaoTrinhBaiData,
   GiaoVienKhoaData,
+  HinhThucLop,
   KhoaHocCardData,
   KhoaHocDetailPayload,
   LopHocDetailData,
@@ -77,12 +80,14 @@ import {
   labelHinhThucLopChiTiet,
   labelLoaiMoHinhKhoa,
   labelTrangThaiKhoaHoc,
+  labelTrangThaiLopBadge,
   labelTrinhDoDauVao,
 } from "@/lib/to-chuc/khoa-hoc-labels";
 
 import { GiaoTrinhBaiTapPanel } from "./GiaoTrinhBaiTapPanel";
 import { KhoaHocCreateModal } from "./KhoaHocCreateModal";
 import { LopHocEditModal } from "./LopHocEditModal";
+import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
 
 type Props = {
   orgId: string;
@@ -393,10 +398,16 @@ function GiaoVienAvatar({
 }) {
   const cls =
     size === "sm" ? "cso-khd-gv-av cso-khd-gv-av--sm" : "cso-khd-gv-av";
-  const muted = gv.pendingProfile || !gv.verified;
+  const muted =
+    !gv.avatarUrl && (gv.pendingProfile || !gv.verified);
   return (
     <div className={`${cls}${muted ? " txt" : ""}`} aria-hidden>
-      {gv.initials}
+      {gv.avatarUrl ? (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img src={gv.avatarUrl} alt="" />
+      ) : (
+        gv.initials
+      )}
     </div>
   );
 }
@@ -430,6 +441,8 @@ function giaoVienFromLopText(text: string | null): GiaoVienKhoaData {
       initials,
       vaiTro: null,
       pendingProfile: true,
+      avatarUrl: null,
+      avatarId: null,
     };
   }
   return {
@@ -440,6 +453,8 @@ function giaoVienFromLopText(text: string | null): GiaoVienKhoaData {
     initials: "—",
     vaiTro: null,
     pendingProfile: false,
+    avatarUrl: null,
+    avatarId: null,
   };
 }
 
@@ -483,47 +498,102 @@ function applyMockLopSave(
   };
 }
 
+function GiaoVienProfileLink({
+  gv,
+  className,
+  showIcon = false,
+  wrapClassName,
+}: {
+  gv: GiaoVienKhoaData;
+  className: string;
+  showIcon?: boolean;
+  wrapClassName?: string;
+}) {
+  if (!gv.slug) return null;
+  const popover = (
+    <JourneyUserPopover
+      slug={gv.slug}
+      fallbackName={gv.ten}
+      fallbackAvatarUrl={gv.avatarUrl}
+      backdropZIndex={10100}
+    >
+      <span className={className}>
+        {showIcon ? <ArrowUpRight size={13} aria-hidden /> : null}
+        Xem hồ sơ
+      </span>
+    </JourneyUserPopover>
+  );
+  if (wrapClassName) {
+    return <span className={wrapClassName}>{popover}</span>;
+  }
+  return popover;
+}
+
+function LopHocModeChip({ hinhThuc }: { hinhThuc: HinhThucLop }) {
+  const label = labelHinhThucLopChiTiet(hinhThuc);
+  const Icon =
+    hinhThuc === "truc_tuyen"
+      ? Monitor
+      : hinhThuc === "ket_hop"
+        ? Layers
+        : MapPin;
+  return (
+    <span className={`cso-khd-lop-card-mode cso-khd-lop-card-mode--${hinhThuc}`}>
+      <Icon size={13} strokeWidth={2.25} aria-hidden />
+      {label}
+    </span>
+  );
+}
+
 function LopHocCard({
   lop,
   lopIndex,
-  highlighted,
   loaiMoHinh,
   canManage = false,
   onEdit,
 }: {
   lop: LopHocDetailData;
   lopIndex: number;
-  highlighted: boolean;
   loaiMoHinh: KhoaHocCardData["loaiMoHinh"];
   canManage?: boolean;
   onEdit?: (lop: LopHocDetailData) => void;
 }) {
   const maLabel = lop.maLop ?? `Lớp ${lopIndex + 1}`;
-  const lichLabel = (() => {
-    if (lop.tenLop && lop.lichHoc && lop.lichHoc !== lop.tenLop) {
-      return `${lop.tenLop} — ${lop.lichHoc}`;
-    }
-    return (
-      lop.lichHoc ??
-      lop.tenLop ??
-      (loaiMoHinh === "lien_tuc_theo_thang"
+  const lopStatus = labelTrangThaiLopBadge(lop.trangThaiLop);
+  const caLine =
+    lop.tenLop?.trim() ||
+    (loaiMoHinh === "lien_tuc_theo_thang" && !lop.lichHoc?.trim()
+      ? "Khai giảng hàng tuần"
+      : null);
+  const timeLine = lop.lichHoc?.trim() || null;
+  const ngayLine = lop.ngayKhaiGiang?.trim()
+    ? formatKhaiGiangCard("cohort_co_dinh", lop.ngayKhaiGiang)
+    : null;
+  const fallbackSchedule =
+    !caLine && !timeLine
+      ? loaiMoHinh === "lien_tuc_theo_thang"
         ? "Khai giảng hàng tuần"
-        : formatKhaiGiangCard("cohort_co_dinh", lop.ngayKhaiGiang))
-    );
-  })();
+        : formatKhaiGiangCard("cohort_co_dinh", lop.ngayKhaiGiang)
+      : null;
+  const scheduleMain = timeLine || fallbackSchedule;
 
   return (
-    <div className={`cso-khd-khung cso-khd-lop${highlighted ? " hl" : ""}`}>
-      <div className="cso-khd-khung-top">
-        <div className="cso-khd-lop-head">
-          <span className="cso-khd-lop-code">{maLabel}</span>
-          {lop.tenLop ? (
-            <span className="cso-khd-lop-sub">{lop.tenLop}</span>
-          ) : null}
-        </div>
-        <div className="cso-khd-lop-top-actions">
+    <article className="cso-khd-lop-card">
+      <div className="cso-khd-lop-card-head">
+        <span className="cso-khd-lop-card-code">{maLabel}</span>
+        <div className="cso-khd-lop-card-badges">
+          <span
+            className={`cso-khd-status cso-khd-status--${lopStatus.tone} cso-khd-lop-status`}
+          >
+            {lopStatus.tone === "pause" ? (
+              <Pause size={11} aria-hidden />
+            ) : (
+              <CircleDot size={11} aria-hidden />
+            )}
+            {lopStatus.text}
+          </span>
           {lop.conCho ? (
-            <span className="cso-khd-khung-st">Còn chỗ</span>
+            <span className="cso-khd-lop-card-slot">Còn chỗ</span>
           ) : null}
           {canManage ? (
             <button
@@ -538,43 +608,51 @@ function LopHocCard({
           ) : null}
         </div>
       </div>
-      <div className="cso-khd-khung-meta">
-        <span className="cso-khd-km">
-          <Clock size={14} aria-hidden />
-          <b>{lichLabel}</b>
-        </span>
-        <span className="cso-khd-km">
-          <MapPin size={14} aria-hidden />
-          <b>{labelHinhThucLopChiTiet(lop.hinhThuc)}</b>
-          {lop.diaChiHoc ? <> · {lop.diaChiHoc}</> : null}
-        </span>
+
+      <div className="cso-khd-lop-card-sched">
+        <div className="cso-khd-lop-card-sched-main">
+          {caLine ? <p className="cso-khd-lop-card-ca">{caLine}</p> : null}
+          {ngayLine && (caLine || timeLine) ? (
+            <p className="cso-khd-lop-card-ngay">{ngayLine}</p>
+          ) : null}
+          {scheduleMain ? (
+            <p className="cso-khd-lop-card-time-row">
+              <Clock size={15} aria-hidden className="cso-khd-lop-card-time-ic" />
+              <strong className="cso-khd-lop-card-time">{scheduleMain}</strong>
+            </p>
+          ) : null}
+        </div>
+        <LopHocModeChip hinhThuc={lop.hinhThuc} />
       </div>
-      <div className="cso-khd-khung-foot">
-        <div className="cso-khd-gv-mini">
+
+      <div className="cso-khd-lop-card-foot">
+        <div className="cso-khd-lop-card-gv">
           <GiaoVienAvatar gv={lop.giaoVien} size="sm" />
-          <div>
+          <div className="cso-khd-lop-card-gv-meta">
             <GiaoVienName gv={lop.giaoVien} />
             <div className="cso-khd-gv-role">
-              {lop.giaoVien.vaiTro ??
-                (lop.giaoVien.verified
-                  ? "GV có hồ sơ CINS"
-                  : lop.giaoVien.pendingProfile
-                    ? "GV chưa có hồ sơ CINS"
-                    : "Giảng viên")}
+              {lop.giaoVien.slug ? (
+                <GiaoVienProfileLink
+                  gv={lop.giaoVien}
+                  className="cso-khd-gv-profile-lk"
+                />
+              ) : lop.giaoVien.pendingProfile ? (
+                "GV chưa có hồ sơ CINS"
+              ) : (
+                (lop.giaoVien.vaiTro ?? "Giảng viên")
+              )}
             </div>
           </div>
         </div>
         {!canManage ? (
-          <button
-            type="button"
-            className={`cso-khd-btn cso-khd-btn--sm${highlighted ? "" : " cso-khd-btn--ghost"}`}
-          >
-            <UserPlus size={13} aria-hidden />
+          <button type="button" className="cso-khd-lop-card-cta">
+            <UserPlus size={15} aria-hidden />
             Đăng ký lớp này
+            <ChevronRight size={15} aria-hidden />
           </button>
         ) : null}
       </div>
-    </div>
+    </article>
   );
 }
 
@@ -587,14 +665,16 @@ function GiaoVienRow({ gv }: { gv: GiaoVienKhoaData }) {
           <GiaoVienName gv={gv} />
         </div>
         <div className="cso-khd-tea-rl">
-          {gv.vaiTro ?? (gv.pendingProfile ? "Giảng viên" : "Giảng viên khóa")}
+          {gv.vaiTro ?? (gv.pendingProfile ? "Giảng viên" : "Giảng viên lớp")}
         </div>
       </div>
-      {gv.slug && gv.verified ? (
-        <Link href={`/${gv.slug}`} className="cso-khd-tea-lk">
-          <ArrowUpRight size={13} aria-hidden />
-          Xem hồ sơ
-        </Link>
+      {gv.slug ? (
+        <GiaoVienProfileLink
+          gv={gv}
+          className="cso-khd-tea-lk"
+          showIcon
+          wrapClassName="cso-khd-tea-pop"
+        />
       ) : gv.pendingProfile ? (
         <span className="cso-khd-tea-pend">Chưa có hồ sơ CINS</span>
       ) : null}
@@ -657,7 +737,8 @@ function DetailContent({
     () => !isMockup && lopHoc.some(isScaffoldLopHoc),
     [lopHoc, isMockup],
   );
-  const hasCover = Boolean(khoa.coverUrl);
+  const bannerUrl = khoa.coverUrl ?? khoa.thumbnailUrl;
+  const hasCover = Boolean(bannerUrl);
   const covClass = [
     "cso-khd-cover",
     hasCover ? `c${(khoa.coverVariant % 3) + 1}` : "cso-khd-cover--placeholder",
@@ -738,9 +819,9 @@ function DetailContent({
         </nav>
 
         <div className={covClass}>
-          {khoa.coverUrl ? (
+          {bannerUrl ? (
             <Image
-              src={khoa.coverUrl}
+              src={bannerUrl}
               alt=""
               fill
               className="cso-khd-cover-img"
@@ -961,7 +1042,6 @@ function DetailContent({
                   key={lop.id}
                   lop={lop}
                   lopIndex={i}
-                  highlighted={!isManagingLop && i === 0}
                   loaiMoHinh={khoa.loaiMoHinh}
                   canManage={isManagingLop}
                   onEdit={onEditLop}

@@ -1,5 +1,7 @@
 import type { CoSoStaffVaiTro } from "./co-so-vai-tro";
 
+export type CoSoMemberTrangThai = "active" | "pending";
+
 export type CoSoMemberAdmin = {
   id: string;
   userId: string;
@@ -7,6 +9,7 @@ export type CoSoMemberAdmin = {
   tenHienThi: string;
   avatarId: string | null;
   vaiTro: CoSoStaffVaiTro;
+  trangThai: CoSoMemberTrangThai;
   editable: boolean;
   isSelf: boolean;
 };

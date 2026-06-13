@@ -3,6 +3,7 @@ import type { LoaiMocVisibilityMap } from "@/lib/journey/filter-visibility";
 import {
   getCachedMilestoneTimelinePage,
   getCachedPendingCoAuthorInvites,
+  getCachedPendingCoSoStaffInvites,
 } from "@/lib/journey/journey-page-cache";
 
 type Props = {
@@ -24,7 +25,7 @@ export async function JourneyTimelineSection({
   viewerProfileId,
   filterVisibility,
 }: Props) {
-  const [page, coAuthorPendingInvites] = await Promise.all([
+  const [page, coAuthorPendingInvites, coSoStaffPendingInvites] = await Promise.all([
     getCachedMilestoneTimelinePage({
       userId: ownerId,
       isOwner,
@@ -33,6 +34,9 @@ export async function JourneyTimelineSection({
     }),
     isOwner && viewerProfileId
       ? getCachedPendingCoAuthorInvites(viewerProfileId)
+      : Promise.resolve([]),
+    isOwner && viewerProfileId
+      ? getCachedPendingCoSoStaffInvites(viewerProfileId)
       : Promise.resolve([]),
   ]);
 
@@ -46,6 +50,7 @@ export async function JourneyTimelineSection({
       filterVisibility={filterVisibility}
       viewerProfileId={viewerProfileId}
       coAuthorPendingInvites={coAuthorPendingInvites}
+      coSoStaffPendingInvites={coSoStaffPendingInvites}
       scrollLoad={{
         ownerSlug,
         hasMore: page.hasMore,

@@ -264,6 +264,7 @@ export function GiaoTrinhBaiTapPanel({
       </div>
 
       <form className="cso-kh-create-form" onSubmit={handleSubmit}>
+        <div className="cso-kh-create-body">
         <div className="cso-kh-field">
           <div className="cso-kh-label-row">
             <label className="cso-kh-label" htmlFor={tenBaiTapId}>
@@ -400,22 +401,19 @@ export function GiaoTrinhBaiTapPanel({
             autoComplete="off"
           />
         </label>
+        </div>
 
-        <p className="cso-khd-bt-panel-note" role="status">
-          Bài tập lưu tạm trên trình duyệt — sẽ đồng bộ khi kết nối API.
-        </p>
-
-        <div className="tdh-inline-modal-actions cso-kh-create-actions">
+        <div className="cso-kh-create-foot">
           <button
             type="button"
-            className="tdh-inline-btn tdh-inline-btn--ghost"
+            className="cso-kh-foot-btn cso-kh-foot-btn--ghost"
             onClick={handleClose}
           >
             Huỷ
           </button>
           <button
             type="submit"
-            className="tdh-inline-btn tdh-inline-btn--primary"
+            className="cso-kh-foot-btn cso-kh-foot-btn--primary"
             disabled={!tenBaiTap.trim() || saving || thumbStatus === "loading"}
           >
             {isEditing ? "Lưu thay đổi" : "Thêm bài tập"}

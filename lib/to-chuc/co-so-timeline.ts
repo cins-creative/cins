@@ -1,6 +1,8 @@
 import {
   formatKhaiGiangCard,
   isKhoaHocMuted,
+  LICH_KHAI_GIANG_LIEN_TUC_DEFAULT,
+  resolveLichKhaiGiangLienTuc,
 } from "@/lib/to-chuc/khoa-hoc-labels";
 import type { KhoaHocCardData } from "@/lib/to-chuc/khoa-hoc-types";
 import { coSoKhoaHocDetailPath } from "@/lib/to-chuc/co-so-routes";
@@ -15,15 +17,32 @@ import {
 import { defaultTruongNganhYear } from "@/lib/truong/diem-chuan";
 
 const AUTO_PIN_PREFIX = "auto-pin:";
+export const AUTO_PIN_LOP_PREFIX = "auto-pin-lop:";
 
 export function isCoSoAutoPinStepId(id: string): boolean {
   return id.startsWith(AUTO_PIN_PREFIX);
 }
 
+export function isCoSoAutoPinLopStepId(id: string): boolean {
+  return id.startsWith(AUTO_PIN_LOP_PREFIX);
+}
+
+export function isCoSoAutoPinKhoaStepId(id: string): boolean {
+  return isCoSoAutoPinStepId(id) && !isCoSoAutoPinLopStepId(id);
+}
+
 export function parseCoSoAutoPinKhoaId(stepId: string): string | null {
-  if (!isCoSoAutoPinStepId(stepId)) return null;
+  if (!isCoSoAutoPinStepId(stepId) || isCoSoAutoPinLopStepId(stepId)) return null;
   const khoaId = stepId.slice(AUTO_PIN_PREFIX.length).trim();
   return khoaId || null;
+}
+
+export function parseCoSoAutoPinLopId(
+  stepId: string,
+): { lopId: string } | null {
+  if (!isCoSoAutoPinLopStepId(stepId)) return null;
+  const lopId = stepId.slice(AUTO_PIN_LOP_PREFIX.length).trim();
+  return lopId ? { lopId } : null;
 }
 
 function isAutoPinKhoa(k: KhoaHocCardData): boolean {
@@ -38,17 +57,12 @@ function buildAutoPinStep(
 ): TuyenSinhTimelineStep {
   const href = coSoKhoaHocDetailPath(orgSlug, k.slug);
   if (k.loaiMoHinh === "lien_tuc_theo_thang") {
-    const weeklyLabel = "Khai giảng hàng tuần";
-    const lich = k.lichHoc?.trim();
-    const desc =
-      lich && lich.toLocaleLowerCase("vi") !== weeklyLabel.toLocaleLowerCase("vi")
-        ? lich
-        : "Vào học bất cứ lúc nào";
+    const schedule = resolveLichKhaiGiangLienTuc(k.lichHoc);
     return {
       id: `${AUTO_PIN_PREFIX}${k.id}`,
       label: k.tenKhoaHoc,
-      dateLabel: weeklyLabel,
-      desc,
+      dateLabel: LICH_KHAI_GIANG_LIEN_TUC_DEFAULT,
+      desc: schedule,
       link: href,
       status: "active",
       dot: "→",
@@ -57,10 +71,12 @@ function buildAutoPinStep(
 
   const ngay = k.ngayKhaiGiangGanNhat!;
   const status = getStepStatus(ngay, ngay);
+  const formatted = formatTimelineDate(ngay);
   let dateLabel = formatKhaiGiangCard(k.loaiMoHinh, ngay);
-  if (status === "active") {
-    const formatted = formatTimelineDate(ngay);
-    if (formatted) dateLabel = `${formatted} · Đang diễn ra`;
+  if (status === "active" && formatted) {
+    dateLabel = `${formatted} · Đang diễn ra`;
+  } else if (formatted) {
+    dateLabel = formatted;
   }
   return {
     id: `${AUTO_PIN_PREFIX}${k.id}`,
