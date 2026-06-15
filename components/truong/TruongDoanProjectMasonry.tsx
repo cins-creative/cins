@@ -1,8 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 
+import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
+import { useJourneyPostOverlay } from "@/components/journey/useJourneyPostOverlay";
 import type { OrgDoanProjectItem } from "@/lib/journey/org-milestone-tag-types";
 
 const AVATAR_COLORS = [
@@ -22,21 +23,78 @@ function studentInitials(name: string): string {
   return name.trim().slice(0, 2).toUpperCase() || "?";
 }
 
-function DoanProjectCard({
+function DoanStudentMeta({
   item,
   colorIndex,
 }: {
   item: OrgDoanProjectItem;
   colorIndex: number;
 }) {
-  const hasImage = Boolean(item.coverSrc);
   const avatarBg = AVATAR_COLORS[colorIndex % AVATAR_COLORS.length];
+  const metaEl = (
+    <span className="tdh-doan-gallery-student">
+      <span
+        className="tdh-doan-gallery-student-avatar"
+        style={item.studentAvatarUrl ? undefined : { background: avatarBg }}
+        aria-hidden
+      >
+        {item.studentAvatarUrl ? (
+          <Image
+            src={item.studentAvatarUrl}
+            alt=""
+            width={22}
+            height={22}
+            className="tdh-doan-gallery-student-avatar-img"
+          />
+        ) : (
+          studentInitials(item.studentName)
+        )}
+      </span>
+      <span className="tdh-doan-gallery-student-text">
+        <span className="tdh-doan-gallery-student-name">{item.studentName}</span>
+        {item.nganhLabel ? (
+          <span className="tdh-doan-gallery-student-nganh">{item.nganhLabel}</span>
+        ) : null}
+      </span>
+    </span>
+  );
+
+  if (item.studentSlug) {
+    return (
+      <JourneyUserPopover
+        slug={item.studentSlug}
+        fallbackName={item.studentName}
+        fallbackAvatarUrl={item.studentAvatarUrl}
+      >
+        {metaEl}
+      </JourneyUserPopover>
+    );
+  }
+
+  return metaEl;
+}
+
+function DoanProjectCard({
+  item,
+  colorIndex,
+  onOpen,
+}: {
+  item: OrgDoanProjectItem;
+  colorIndex: number;
+  onOpen: (cotMocId: string) => void;
+}) {
+  const hasImage = Boolean(item.coverSrc);
 
   return (
-    <article className={`tdh-doan-card tdh-doan-card--${item.tile}`}>
-      <Link href={item.href} className="tdh-doan-card__link">
+    <div className="j-main-gallery-item">
+      <button
+        type="button"
+        className="tdh-doan-gallery-hit"
+        onClick={() => onOpen(item.cotMocId)}
+        aria-label={`Xem đồ án ${item.projectTitle}`}
+      >
         <div
-          className={`tdh-doan-card__cover tdh-doan-card__cover--${item.tile}`}
+          className="j-main-gallery-thumb"
           style={
             !hasImage && item.coverGradient
               ? { background: item.coverGradient }
@@ -48,49 +106,23 @@ function DoanProjectCard({
               src={item.coverSrc!}
               alt={item.coverAlt ?? item.projectTitle}
               fill
-              sizes="(max-width: 576px) 100vw, 50vw"
-              className="tdh-doan-card__img"
+              sizes="(max-width: 575px) 100vw, (max-width: 991px) 50vw, 33vw"
+              className="tdh-doan-gallery-img"
             />
           ) : (
-            <span className="tdh-doan-card__initials" aria-hidden>
+            <span className="tdh-doan-gallery-initials" aria-hidden>
               {studentInitials(item.studentName)}
             </span>
           )}
-          {item.photoCount != null && item.photoCount > 0 ? (
-            <span className="tdh-doan-card__count">{item.photoCount} ảnh</span>
-          ) : null}
         </div>
-        <div className="tdh-doan-card__body">
-          <p className="tdh-doan-card__title">{item.projectTitle}</p>
-          <div className="tdh-doan-card__meta">
-            <span
-              className="tdh-doan-card__avatar"
-              style={item.studentAvatarUrl ? undefined : { background: avatarBg }}
-              aria-hidden
-            >
-              {item.studentAvatarUrl ? (
-                <Image
-                  src={item.studentAvatarUrl}
-                  alt=""
-                  width={28}
-                  height={28}
-                  className="tdh-doan-card__avatar-img"
-                />
-              ) : (
-                studentInitials(item.studentName)
-              )}
-            </span>
-            <span className="tdh-doan-card__who">
-              <span className="tdh-doan-card__name">{item.studentName}</span>
-              {item.nganhLabel ? (
-                <span className="tdh-doan-card__nganh">{item.nganhLabel}</span>
-              ) : null}
-            </span>
-          </div>
-          <p className="tdh-doan-card__milestone">{item.milestoneTitle}</p>
-        </div>
-      </Link>
-    </article>
+        <span className="j-main-gallery-info">
+          <strong>{item.projectTitle}</strong>
+        </span>
+      </button>
+      <div className="tdh-doan-gallery-meta">
+        <DoanStudentMeta item={item} colorIndex={colorIndex} />
+      </div>
+    </div>
   );
 }
 
@@ -99,13 +131,23 @@ type Props = {
 };
 
 export function TruongDoanProjectMasonry({ projects }: Props) {
+  const { openPost, overlay } = useJourneyPostOverlay();
+
   if (!projects.length) return null;
 
   return (
-    <div className="tdh-doan-masonry" role="list">
-      {projects.map((item, i) => (
-        <DoanProjectCard key={item.id} item={item} colorIndex={i} />
-      ))}
-    </div>
+    <>
+      <div className="j-main-gallery-grid tdh-doan-gallery-grid" role="list">
+        {projects.map((item, i) => (
+          <DoanProjectCard
+            key={item.id}
+            item={item}
+            colorIndex={i}
+            onOpen={openPost}
+          />
+        ))}
+      </div>
+      {overlay}
+    </>
   );
 }

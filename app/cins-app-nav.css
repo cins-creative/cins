@@ -617,13 +617,15 @@
 }
 
 /* Topbar — menu tài khoản (clone sidebar user card) */
-.cins-app-topbar .tb-user {
+.cins-app-topbar .tb-user,
+.cins-home-v2-page #topbar .tb-user {
   position: relative;
   flex-shrink: 0;
   padding-right: 12px;
 }
 
-.cins-app-topbar .tb-user-pill {
+.cins-app-topbar .tb-user-pill,
+.cins-home-v2-page #topbar .tb-user-pill {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -643,12 +645,15 @@
 }
 
 .cins-app-topbar .tb-user-pill:hover,
-.cins-app-topbar .tb-user.open .tb-user-pill {
+.cins-app-topbar .tb-user.open .tb-user-pill,
+.cins-home-v2-page #topbar .tb-user-pill:hover,
+.cins-home-v2-page #topbar .tb-user.open .tb-user-pill {
   background: var(--cins-blue-soft);
   border-color: rgba(31, 116, 201, 0.28);
 }
 
-.cins-app-topbar .tb-user-ava {
+.cins-app-topbar .tb-user-ava,
+.cins-home-v2-page #topbar .tb-user-ava {
   width: 36px;
   height: 36px;
   border-radius: 50%;
@@ -663,14 +668,16 @@
   font-size: 14px;
 }
 
-.cins-app-topbar .tb-user-ava img {
+.cins-app-topbar .tb-user-ava img,
+.cins-home-v2-page #topbar .tb-user-ava img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
 }
 
-.cins-app-topbar .tb-user-meta {
+.cins-app-topbar .tb-user-meta,
+.cins-home-v2-page #topbar .tb-user-meta {
   display: flex;
   flex-direction: column;
   gap: 1px;
@@ -678,7 +685,8 @@
   min-width: 0;
 }
 
-.cins-app-topbar .tb-user-name {
+.cins-app-topbar .tb-user-name,
+.cins-home-v2-page #topbar .tb-user-name {
   font-weight: 700;
   color: var(--ink-strong, var(--ink-body));
   white-space: nowrap;
@@ -688,7 +696,8 @@
   line-height: 1.2;
 }
 
-.cins-app-topbar .tb-user-handle {
+.cins-app-topbar .tb-user-handle,
+.cins-home-v2-page #topbar .tb-user-handle {
   font-size: 11.5px;
   color: var(--ink-muted);
   white-space: nowrap;
@@ -697,7 +706,8 @@
   line-height: 1.2;
 }
 
-.cins-app-topbar .tb-user-more {
+.cins-app-topbar .tb-user-more,
+.cins-home-v2-page #topbar .tb-user-more {
   width: 26px;
   height: 26px;
   border-radius: 50%;
@@ -708,7 +718,8 @@
   flex: 0 0 auto;
 }
 
-.cins-app-topbar .tb-user-menu {
+.cins-app-topbar .tb-user-menu,
+.cins-home-v2-page #topbar .tb-user-menu {
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
@@ -1821,11 +1832,14 @@ a.j-notify-mini-action.is-link:hover {
   }
 
   .cins-app-topbar .tb-user-meta,
-  .cins-app-topbar .tb-user-more {
+  .cins-app-topbar .tb-user-more,
+  .cins-home-v2-page #topbar .tb-user-meta,
+  .cins-home-v2-page #topbar .tb-user-more {
     display: none;
   }
 
-  .cins-app-topbar .tb-user-pill {
+  .cins-app-topbar .tb-user-pill,
+  .cins-home-v2-page #topbar .tb-user-pill {
     padding: 2px;
     max-width: none;
     border: none;

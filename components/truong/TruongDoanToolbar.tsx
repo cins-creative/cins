@@ -9,60 +9,106 @@ import {
 import type { TagAggSort } from "@/lib/tag/aggregation-types";
 
 type Props = {
-  workCount: number;
   sort: TagAggSort;
   view: DoanViewMode;
+  yearFilter: string;
+  yearOptions: number[];
+  nganhFilter: string;
+  nganhOptions: string[];
   onViewChange: (view: DoanViewMode) => void;
   onSortChange: (sort: TagAggSort) => void;
+  onYearChange: (year: string) => void;
+  onNganhChange: (nganh: string) => void;
 };
 
 export function TruongDoanToolbar({
-  workCount,
   sort,
   view,
+  yearFilter,
+  yearOptions,
+  nganhFilter,
+  nganhOptions,
   onViewChange,
   onSortChange,
+  onYearChange,
+  onNganhChange,
 }: Props) {
-  const countLabel =
-    workCount === 0
-      ? "Không có dự án"
-      : workCount === 1
-        ? "1 dự án"
-        : `${workCount} dự án`;
-
   return (
-    <div className="tdh-doan-bar">
-      <div className="tdh-doan-seg" role="group" aria-label="Chế độ xem">
-        <button
-          type="button"
-          className={view === "timeline" ? "is-on" : ""}
-          aria-pressed={view === "timeline"}
-          onClick={() => onViewChange("timeline")}
-        >
-          <Waypoints size={15} strokeWidth={2} aria-hidden />
-          Dòng thời gian
-        </button>
-        <button
-          type="button"
-          className={view === "grid" ? "is-on" : ""}
-          aria-pressed={view === "grid"}
-          onClick={() => onViewChange("grid")}
-        >
-          <Grid3X3 size={15} strokeWidth={2} aria-hidden />
-          Lưới
-        </button>
-      </div>
-      <div className="tdh-doan-bar-right">
-        <span className="tdh-doan-bar-count">{countLabel}</span>
-        <label className="tdh-doan-sort">
-          <span className="sr-only">Sắp xếp đồ án</span>
-          <select
-            value={sort}
-            onChange={(e) => onSortChange(e.target.value as TagAggSort)}
+    <div
+      className="tdh-doan-bar"
+      role="group"
+      aria-label="Lọc và sắp xếp đồ án"
+    >
+      <div className="tdh-doan-bar-actions">
+        <div className="tdh-doan-seg" role="group" aria-label="Chế độ xem">
+          <button
+            type="button"
+            className={view === "timeline" ? "is-on" : ""}
+            aria-pressed={view === "timeline"}
+            aria-label="Dòng thời gian"
+            title="Dòng thời gian"
+            onClick={() => onViewChange("timeline")}
           >
-            {DOAN_SORT_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
+            <Waypoints size={15} strokeWidth={2} aria-hidden />
+          </button>
+          <button
+            type="button"
+            className={view === "grid" ? "is-on" : ""}
+            aria-pressed={view === "grid"}
+            aria-label="Lưới"
+            title="Lưới"
+            onClick={() => onViewChange("grid")}
+          >
+            <Grid3X3 size={15} strokeWidth={2} aria-hidden />
+          </button>
+        </div>
+
+        <div className="tdh-doan-bar-meta">
+          <label className="tdh-doan-ctl-wrap tdh-doan-ctl-wrap--sort">
+            <span className="sr-only">Sắp xếp đồ án</span>
+            <select
+              className="tdh-doan-ctl tdh-doan-ctl--sort"
+              value={sort}
+              onChange={(e) => onSortChange(e.target.value as TagAggSort)}
+            >
+              {DOAN_SORT_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <div className="tdh-doan-bar-filters">
+        <label className="tdh-doan-ctl-wrap tdh-doan-ctl-wrap--year">
+          <span className="sr-only">Năm đồ án</span>
+          <select
+            className="tdh-doan-ctl tdh-doan-ctl--year"
+            value={yearFilter}
+            onChange={(e) => onYearChange(e.target.value)}
+          >
+            <option value="">Tất cả các năm</option>
+            {yearOptions.map((y) => (
+              <option key={y} value={String(y)}>
+                Năm {y}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="tdh-doan-ctl-wrap tdh-doan-ctl-wrap--grow">
+          <span className="sr-only">Ngành đồ án</span>
+          <select
+            className="tdh-doan-ctl tdh-doan-ctl--nganh"
+            value={nganhFilter}
+            onChange={(e) => onNganhChange(e.target.value)}
+          >
+            <option value="">Tất cả ngành</option>
+            {nganhOptions.map((label) => (
+              <option key={label} value={label}>
+                {label}
               </option>
             ))}
           </select>

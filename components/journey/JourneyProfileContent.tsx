@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { JourneyFriendsSectionSkeleton } from "@/app/[slug]/_components/JourneyFriendsSection.skeleton";
 import { JourneyGalleryMainSectionSkeleton } from "@/app/[slug]/_components/JourneyGalleryMainSection.skeleton";
 import { JourneyTimelineSectionSkeleton } from "@/app/[slug]/_components/JourneyTimelineSection.skeleton";
+import { JourneyOrganizationsView } from "@/components/journey/JourneyOrganizationsView";
 import { JourneyFriendsView } from "@/components/journey/JourneyFriendsView";
 import { JourneyGalleryGridView } from "@/components/journey/JourneyGalleryGridView";
 import { JourneyComposeProvider } from "@/components/journey/JourneyComposeContext";
@@ -30,6 +31,7 @@ import {
   writeJourneyTimelinePanelCache,
 } from "@/lib/journey/journey-panel-local-cache";
 import type { MilestoneTimelinePageResult } from "@/lib/journey/milestones-page-fetch";
+import type { UserOrganizationsPageResult } from "@/lib/journey/user-orgs-fetch";
 import {
   COAUTHOR_INVITE_ACCEPTED_EVENT,
   COAUTHOR_INVITE_DECLINED_EVENT,
@@ -57,6 +59,7 @@ export type JourneyProfileInitialData = {
   timeline?: JourneyTimelinePanelData;
   gallery?: JourneyGalleryPanelData;
   friends?: JourneyFriendsPanelData;
+  organizations?: UserOrganizationsPageResult;
 };
 
 type TimelineCacheData = JourneyTimelinePanelData;
@@ -564,6 +567,11 @@ export function JourneyProfileContent({
             }}
           />
         )
+      ) : view === "organizations" ? (
+        <JourneyOrganizationsView
+          initialData={initialData.organizations}
+          ownerSlug={ownerSlug}
+        />
       ) : timelineCache === "loading" || timelineCache === null ? (
         <JourneyTimelineSectionSkeleton />
       ) : timelineCache === "error" ? (

@@ -13,7 +13,7 @@ import type { JourneyProfileView } from "@/components/journey/JourneySidebar";
 
 function viewFromSearch(search: string): JourneyProfileView {
   const v = new URLSearchParams(search).get("view");
-  if (v === "gallery" || v === "friends") return v;
+  if (v === "gallery" || v === "friends" || v === "organizations") return v;
   return "journey";
 }
 

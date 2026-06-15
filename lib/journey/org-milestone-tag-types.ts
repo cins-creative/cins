@@ -103,14 +103,13 @@ export type OrgDoanProjectItem = {
   nam: number;
   projectTitle: string;
   studentName: string;
+  studentSlug: string;
   studentAvatarUrl: string | null;
   nganhLabel: string | null;
   milestoneTitle: string;
   href: string;
   submittedAt: string;
   reactionCount: number;
-  milestoneTitle: string;
-  href: string;
   coverSrc?: string | null;
   coverAlt?: string | null;
   coverGradient?: string | null;

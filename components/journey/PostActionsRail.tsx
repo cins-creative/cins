@@ -35,6 +35,9 @@ type Props = {
   shareTitle?: string;
   /** Ẩn chia sẻ trong rail — render `PostShareMenu` riêng (sidebar). */
   hideShare?: boolean;
+  /** Permalink sidebar — danh sách dọc có nhãn. */
+  orientation?: "horizontal" | "vertical";
+  showLabels?: boolean;
 };
 
 type ShareMenuProps = {
@@ -279,7 +282,10 @@ export function PostActionsRail({
   sharePath = null,
   shareTitle = "",
   hideShare = false,
+  orientation = "horizontal",
+  showLabels = false,
 }: Props) {
+  const isVertical = orientation === "vertical";
   const { requireAuth } = useAuthGate();
   const [liked, setLiked] = useState(initialLiked);
   const [bookmarked, setBookmarked] = useState(initialBookmarked);
@@ -399,7 +405,13 @@ export function PostActionsRail({
   }
 
   return (
-    <div className="post-byline-actions" aria-label="Hành động bài viết">
+    <div
+      className={
+        "post-byline-actions" +
+        (isVertical ? " post-byline-actions--vertical" : "")
+      }
+      aria-label="Hành động bài viết"
+    >
       <button
         type="button"
         className={`post-byline-act ${liked ? "is-active is-like" : ""}`}
@@ -409,12 +421,21 @@ export function PostActionsRail({
         disabled={pending}
       >
         <Heart
-          size={16}
+          size={isVertical ? 18 : 16}
           strokeWidth={1.8}
           fill={liked ? "currentColor" : "none"}
           aria-hidden
         />
-        {showCounts ? <span className="post-byline-act-count">{likes}</span> : null}
+        {showLabels ? <span className="post-byline-act-label">Thích</span> : null}
+        {showCounts ? (
+          <span
+            className={
+              "post-byline-act-count" + (isVertical ? " post-byline-act-n" : "")
+            }
+          >
+            {likes}
+          </span>
+        ) : null}
       </button>
 
       {canBookmark ? (
@@ -427,12 +448,23 @@ export function PostActionsRail({
           disabled={pending}
         >
           {bookmarked ? (
-            <BookmarkCheck size={16} strokeWidth={1.8} aria-hidden />
+            <BookmarkCheck
+              size={isVertical ? 18 : 16}
+              strokeWidth={1.8}
+              aria-hidden
+            />
           ) : (
-            <Bookmark size={16} strokeWidth={1.8} aria-hidden />
+            <Bookmark size={isVertical ? 18 : 16} strokeWidth={1.8} aria-hidden />
           )}
+          {showLabels ? <span className="post-byline-act-label">Lưu</span> : null}
           {showCounts ? (
-            <span className="post-byline-act-count">{bookmarks}</span>
+            <span
+              className={
+                "post-byline-act-count" + (isVertical ? " post-byline-act-n" : "")
+              }
+            >
+              {bookmarks}
+            </span>
           ) : null}
         </button>
       ) : null}
@@ -440,17 +472,29 @@ export function PostActionsRail({
       <button
         type="button"
         className="post-byline-act is-comment"
-        onClick={() =>
-          requireAuth(scrollToComments)
-        }
+        onClick={() => requireAuth(scrollToComments)}
         aria-label={`${commentCount} bình luận — cuộn tới phần bình luận`}
       >
-        <MessageCircle size={16} strokeWidth={1.8} aria-hidden />
-        <span className="post-byline-act-count">{commentCount}</span>
+        <MessageCircle size={isVertical ? 18 : 16} strokeWidth={1.8} aria-hidden />
+        {showLabels ? (
+          <span className="post-byline-act-label">Bình luận</span>
+        ) : null}
+        <span
+          className={
+            "post-byline-act-count" + (isVertical ? " post-byline-act-n" : "")
+          }
+        >
+          {commentCount}
+        </span>
       </button>
 
       {hideShare ? null : (
-        <PostShareMenu sharePath={sharePath} shareTitle={shareTitle} />
+        <PostShareMenu
+          sharePath={sharePath}
+          shareTitle={shareTitle}
+          showLabel={showLabels}
+          className={isVertical ? "post-byline-share-vertical" : ""}
+        />
       )}
     </div>
   );

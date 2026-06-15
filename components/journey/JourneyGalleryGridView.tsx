@@ -9,6 +9,7 @@ import {
   JourneyTimelineBar,
   type FilterGroup,
 } from "@/components/journey/JourneyTimelineBar";
+import { useJourneyPostOverlay } from "@/components/journey/useJourneyPostOverlay";
 import type { GalleryMainItem } from "@/lib/journey/gallery-page-fetch";
 import type { LoaiMocVisibilityMap } from "@/lib/journey/filter-visibility";
 import {
@@ -73,6 +74,7 @@ export function JourneyGalleryGridView({
   items = [],
 }: Props) {
   const personalFilter = useJourneyPersonalFilterOptional();
+  const { openPost, overlay } = useJourneyPostOverlay();
   const legacyAll =
     pinned.length > 0 || items.length > 0
       ? [
@@ -295,12 +297,14 @@ export function JourneyGalleryGridView({
       ) : (
         <div className="j-main-gallery-grid">
           {filtered.map((item) => (
-            <a
+            <button
               key={item.id}
-              href={item.href ?? "#"}
+              type="button"
               className={
                 item.featured ? "j-main-gallery-item is-featured" : "j-main-gallery-item"
               }
+              onClick={() => openPost(item.cotMocId)}
+              aria-label={`Xem ${item.label}`}
             >
               <div className="j-main-gallery-thumb">
                 {item.featured ? (
@@ -331,10 +335,12 @@ export function JourneyGalleryGridView({
                   <small className="j-main-gallery-date">{item.meta}</small>
                 ) : null}
               </span>
-            </a>
+            </button>
           ))}
         </div>
       )}
+
+      {overlay}
 
       {scrollLoad && hasMore && !legacyAll ? (
         <div ref={sentinelRef} className="j-timeline-scroll-sentinel" aria-hidden />

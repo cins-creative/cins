@@ -16,6 +16,7 @@ import {
   getCachedPendingCoAuthorInvites,
   getCachedPendingCoSoStaffInvites,
 } from "@/lib/journey/journey-page-cache";
+import { fetchUserOrganizationsPage } from "@/lib/journey/user-orgs-fetch";
 import { Suspense } from "react";
 
 import { JourneyMainPanelSkeleton } from "@/components/journey/JourneyMainPanelSkeleton";
@@ -74,6 +75,11 @@ async function loadInitialData(
   if (activeView === "friends") {
     const friends = await getCachedMutualFriendsPage(ownerId, { offset: 0 });
     return { friends };
+  }
+
+  if (activeView === "organizations") {
+    const organizations = await fetchUserOrganizationsPage(ownerId);
+    return { organizations };
   }
 
   const [page, coAuthorPendingInvites, coSoStaffPendingInvites] = await Promise.all([

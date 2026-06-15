@@ -44,7 +44,11 @@ export type SidebarStats = {
   toChuc: number;
 };
 
-export type JourneyProfileView = "journey" | "gallery" | "friends";
+export type JourneyProfileView =
+  | "journey"
+  | "gallery"
+  | "friends"
+  | "organizations";
 
 type Props = {
   profile: SidebarProfile;

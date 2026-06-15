@@ -580,6 +580,224 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   color: var(--cins-blue);
 }
 
+.j-profile-feed-toggle {
+  display: flex;
+  min-width: 0;
+  min-height: 54px;
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  background: transparent;
+  gap: 2px;
+}
+
+.j-profile-feed-toggle-seg {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 4px;
+  border-radius: 9px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ink-body);
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    border-color 0.18s var(--j-ease),
+    background 0.18s var(--j-ease),
+    color 0.18s var(--j-ease);
+}
+
+.j-profile-feed-toggle-seg:hover,
+.j-profile-feed-toggle-seg.is-active {
+  border-color: var(--cins-blue);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-xs);
+  color: var(--ink-display);
+}
+
+.j-profile-feed-toggle-ico {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--neutral-50);
+  color: var(--cins-blue);
+}
+
+.j-profile-feed-toggle-label {
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.j-skel-feed-toggle {
+  pointer-events: none;
+}
+
+.j-skel-feed-toggle .j-profile-feed-toggle-seg {
+  color: var(--ink-muted);
+}
+
+/* Organizations panel */
+.j-orgs {
+  min-height: calc(100vh - var(--j-topbar-h));
+  padding: 28px 0 80px;
+}
+
+.j-orgs-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.j-orgs-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--ink-display);
+  margin: 0;
+}
+
+.j-orgs-count {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.j-orgs-empty {
+  padding: 40px 20px;
+  border: 1px dashed var(--border);
+  border-radius: 16px;
+  text-align: center;
+  color: var(--ink-muted);
+  font-size: 14px;
+}
+
+.j-orgs-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.j-org-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--bg-surface);
+  text-decoration: none;
+  color: inherit;
+  transition:
+    border-color 0.18s var(--j-ease),
+    box-shadow 0.18s var(--j-ease),
+    transform 0.18s var(--j-ease);
+}
+
+.j-org-card:hover {
+  border-color: rgba(31, 116, 201, 0.35);
+  box-shadow: var(--shadow-sm);
+}
+
+.j-org-card--static {
+  cursor: default;
+}
+
+.j-org-card--static:hover {
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.j-org-card-avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  background: var(--cins-blue-soft);
+  color: var(--cins-blue-dark);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 16px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.j-org-card-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.j-org-card-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+
+.j-org-card-copy strong {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink-display);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.j-org-card-meta {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-body);
+}
+
+.j-org-card-dot {
+  margin: 0 4px;
+  color: var(--ink-muted);
+}
+
+.j-org-card-date {
+  font-size: 11px;
+  color: var(--ink-muted);
+}
+
+.j-org-card-link-ic {
+  flex-shrink: 0;
+  color: var(--ink-muted);
+}
+
+.j-org-card:hover .j-org-card-link-ic {
+  color: var(--cins-blue);
+}
+
+.j-org-card--skel {
+  min-height: 74px;
+  background: linear-gradient(
+    90deg,
+    rgba(15, 23, 42, 0.04) 0%,
+    rgba(15, 23, 42, 0.08) 50%,
+    rgba(15, 23, 42, 0.04) 100%
+  );
+  background-size: 200% 100%;
+  animation: j-post-skel-shimmer 1.4s ease-in-out infinite;
+  border-color: transparent;
+}
+
 /* Main alternate panels (Gallery / Friends) */
 .j-main-panel {
   min-height: calc(100vh - var(--j-topbar-h));
@@ -663,6 +881,21 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   background: var(--bg-surface);
   border: 1px solid var(--border);
   transition: transform 0.18s var(--j-ease);
+}
+button.j-main-gallery-item {
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+button.j-main-gallery-item:focus-visible {
+  outline: 2px solid rgba(31, 116, 201, 0.45);
+  outline-offset: 2px;
 }
 .j-main-gallery-item:hover {
   transform: translateY(-3px);
@@ -1895,7 +2128,7 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   border-radius: 0;
   box-shadow: none;
   background: var(--bg-surface, #fff);
-  /* Trang trường load editor.css nhưng không post-page.css → gỡ 100vh page shell. */
+  /* Timeline unfold — gỡ 100vh page shell editor (modal dùng `.j-post-sheet`). */
   min-height: 0;
   height: auto;
   flex: none;
@@ -4629,12 +4862,14 @@ select.j-edit-input {
 .j-post-overlay {
   position: fixed;
   inset: 0;
-  /* Cao hơn sidebar (60), topbar (50), sb-tooltip (200) — đè được mọi
-     overlay nav khác. Modal render qua React Portal vào body nên không
-     bị stacking context của `.j-timeline` / `.j-shell` giam giữ. */
   z-index: 9000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: max(16px, env(safe-area-inset-top, 0px)) 16px
+    max(24px, env(safe-area-inset-bottom, 0px));
+  overflow: hidden;
   background: rgba(14, 17, 23, 0.78);
-  overflow-y: auto;
   -webkit-backdrop-filter: blur(7px);
   backdrop-filter: blur(7px);
   animation: j-overlay-in 160ms var(--j-ease, ease);
@@ -4674,23 +4909,34 @@ select.j-edit-input {
 }
 
 .j-post-sheet {
-  width: min(880px, calc(100% - 32px));
+  width: min(880px, 100%);
   max-width: 880px;
-  margin: 32px auto;
+  max-height: min(calc(100dvh - 48px), 920px);
+  margin: 0;
   position: relative;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: 24px;
+  background: var(--bg-surface, #fff);
+  box-shadow: var(--shadow-lg, 0 24px 64px rgba(15, 23, 42, 0.28));
   animation: j-sheet-in 240ms var(--j-ease, ease) both;
-  padding-bottom: 60px;
+  -webkit-overflow-scrolling: touch;
 }
 /* JourneyPostBody = một `main` — sheet khớp canvas 880px, không wrapper thừa. */
 .j-post-sheet .cins-editor-page.cins-post-view.editor-canvas.post-canvas {
   width: 100%;
-  max-width: 880px;
-  margin: 0 auto;
+  max-width: none;
+  margin: 0;
   min-height: 0;
   border-radius: 24px;
   overflow: hidden;
-  background: var(--bg-surface, #ffffff);
-  /* Cover full-bleed mép trên sheet — nội dung dưới giữ padding ngang. */
+  background: transparent;
+  box-shadow: none;
+  padding: 36px 56px 48px;
+}
+.j-post-sheet
+  .cins-editor-page.cins-post-view.editor-canvas.post-canvas.post-canvas--media {
   padding-top: 0;
 }
 .j-post-sheet .cins-post-view .cover-add.cover-readonly {
@@ -5237,8 +5483,12 @@ select.j-edit-input {
 /* RESPONSIVE — Bootstrap 5 breakpoints */
 /* md (≤991.98px): sheet width co theo viewport */
 @media (max-width: 991.98px) {
+  .j-post-overlay {
+    padding: 12px;
+  }
   .j-post-sheet {
-    margin: 24px 16px;
+    max-height: calc(100dvh - 24px);
+    border-radius: 20px;
   }
   .j-ps-hero {
     padding: 28px 32px 20px;
@@ -5255,9 +5505,12 @@ select.j-edit-input {
 }
 /* sm (≤767.98px): padding hẹp lại, close button gần mép */
 @media (max-width: 767.98px) {
+  .j-post-overlay {
+    padding: 8px;
+  }
   .j-post-sheet {
-    margin: 16px 12px;
-    padding-bottom: 40px;
+    max-height: calc(100dvh - 16px);
+    border-radius: 18px;
   }
   .j-ps-hero {
     padding: 24px 20px 18px;
@@ -5281,8 +5534,14 @@ select.j-edit-input {
 }
 /* xs (≤575.98px): sheet edge-to-edge, font block nhỏ hơn */
 @media (max-width: 575.98px) {
+  .j-post-overlay {
+    padding: 0;
+    align-items: stretch;
+  }
   .j-post-sheet {
-    margin: 8px 0;
+    width: 100%;
+    max-width: none;
+    max-height: 100dvh;
     border-radius: 0;
   }
   .j-ps-main {

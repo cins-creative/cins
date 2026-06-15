@@ -315,7 +315,18 @@ export async function submitOrgMilestoneTagRequest(params: {
     studentName: profile?.ten_hien_thi?.trim() || profile?.slug || "User",
     studentSlug: profile?.slug ?? "",
     studentAvatarUrl: getAvatarUrl(profile?.avatar_id ?? null),
-    album: params.album,
+    album: {
+      ...params.album,
+      href: (
+        await resolveDoanProjectHrefs(admin, [
+          {
+            cotMocId: params.cotMocId,
+            tacPhamId: params.tacPhamId,
+            studentSlug: profile?.slug ?? "",
+          },
+        ])
+      ).get(params.cotMocId) ?? params.album.href,
+    },
     evidence: params.evidence,
   };
 
@@ -584,6 +595,118 @@ export async function respondOrgMilestoneTagRequest(params: {
   return { ok: true };
 }
 
+function postPublicHref(
+  ownerSlug: string,
+  postSlug: string | null | undefined,
+): string {
+  const owner = ownerSlug.trim();
+  if (!owner) return "/";
+  const post = postSlug?.trim();
+  if (!post) return `/${owner}`;
+  return `/${owner}/p/${post}`;
+}
+
+type DoanHrefEntry = {
+  cotMocId: string;
+  tacPhamId: string;
+  studentSlug: string;
+};
+
+async function resolveDoanProjectHrefs(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  entries: DoanHrefEntry[],
+): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  if (entries.length === 0) return out;
+
+  const tacPhamIds = [...new Set(entries.map((e) => e.tacPhamId).filter(Boolean))];
+  const cotMocIds = [...new Set(entries.map((e) => e.cotMocId).filter(Boolean))];
+
+  const tpById = new Map<
+    string,
+    { slug: string | null; id_nguoi_dung: string }
+  >();
+  if (tacPhamIds.length > 0) {
+    const { data: tacPhams } = await admin
+      .from("content_tac_pham")
+      .select("id, slug, id_nguoi_dung")
+      .in("id", tacPhamIds)
+      .returns<Array<{ id: string; slug: string | null; id_nguoi_dung: string }>>();
+    for (const tp of tacPhams ?? []) {
+      tpById.set(tp.id, tp);
+    }
+  }
+
+  const firstTpByMoc = new Map<
+    string,
+    { slug: string | null; id_nguoi_dung: string }
+  >();
+  if (cotMocIds.length > 0) {
+    const { data: links } = await admin
+      .from("content_tac_pham_thuoc_moc")
+      .select(
+        "id_cot_moc, content_tac_pham:content_tac_pham!inner(id, slug, id_nguoi_dung)",
+      )
+      .in("id_cot_moc", cotMocIds)
+      .order("thu_tu", { ascending: true })
+      .returns<
+        Array<{
+          id_cot_moc: string;
+          content_tac_pham: {
+            id: string;
+            slug: string | null;
+            id_nguoi_dung: string;
+          } | null;
+        }>
+      >();
+
+    for (const link of links ?? []) {
+      if (firstTpByMoc.has(link.id_cot_moc)) continue;
+      const tp = link.content_tac_pham;
+      if (!tp) continue;
+      firstTpByMoc.set(link.id_cot_moc, tp);
+    }
+  }
+
+  const ownerIds = new Set<string>();
+  for (const tp of tpById.values()) ownerIds.add(tp.id_nguoi_dung);
+  for (const tp of firstTpByMoc.values()) ownerIds.add(tp.id_nguoi_dung);
+
+  const ownerSlugById = new Map<string, string>();
+  if (ownerIds.size > 0) {
+    const { data: owners } = await admin
+      .from("user_nguoi_dung")
+      .select("id, slug")
+      .in("id", [...ownerIds])
+      .returns<Array<{ id: string; slug: string }>>();
+    for (const owner of owners ?? []) {
+      ownerSlugById.set(owner.id, owner.slug);
+    }
+  }
+
+  for (const entry of entries) {
+    const fromMoc = firstTpByMoc.get(entry.cotMocId);
+    const fromPayload = entry.tacPhamId ? tpById.get(entry.tacPhamId) : undefined;
+    const tp =
+      fromMoc?.slug?.trim()
+        ? fromMoc
+        : fromPayload?.slug?.trim()
+          ? fromPayload
+          : fromMoc ?? fromPayload;
+
+    if (tp?.slug?.trim()) {
+      const ownerSlug =
+        ownerSlugById.get(tp.id_nguoi_dung) ?? entry.studentSlug.trim();
+      out.set(entry.cotMocId, postPublicHref(ownerSlug, tp.slug));
+      continue;
+    }
+
+    out.set(entry.cotMocId, postPublicHref(entry.studentSlug, null));
+  }
+
+  return out;
+}
+
 function pickTile(index: number): OrgDoanProjectItem["tile"] {
   const tiles: OrgDoanProjectItem["tile"][] = ["tall", "square", "short"];
   return tiles[index % tiles.length]!;
@@ -645,6 +768,18 @@ export async function listApprovedOrgDoanProjects(
   }
 
   const items: OrgDoanProjectItem[] = [];
+  const hrefEntries: DoanHrefEntry[] = [];
+  for (const row of rows ?? []) {
+    const payload = parseOrgMilestoneTagPayload(row.noi_dung);
+    if (!payload) continue;
+    hrefEntries.push({
+      cotMocId: row.id_cot_moc,
+      tacPhamId: payload.tacPhamId,
+      studentSlug: payload.studentSlug,
+    });
+  }
+  const hrefByMoc = await resolveDoanProjectHrefs(admin, hrefEntries);
+
   for (const [index, row] of (rows ?? []).entries()) {
     const payload = parseOrgMilestoneTagPayload(row.noi_dung);
     if (!payload) continue;
@@ -654,13 +789,16 @@ export async function listApprovedOrgDoanProjects(
       nam: payload.nam,
       projectTitle: payload.projectTitle,
       studentName: payload.studentName,
+      studentSlug: payload.studentSlug,
       studentAvatarUrl:
         payload.studentAvatarUrl ??
         avatarByUserId.get(row.nguoi_yeu_cau) ??
         null,
       nganhLabel: payload.nganhLabel ?? payload.khoaHocTen ?? null,
       milestoneTitle: payload.milestoneTitle,
-      href: payload.album.href,
+      href:
+        hrefByMoc.get(row.id_cot_moc) ??
+        postPublicHref(payload.studentSlug, null),
       submittedAt: row.tao_luc,
       reactionCount: reactionByMoc.get(row.id_cot_moc) ?? 0,
       coverSrc: payload.album.coverSrc ?? null,

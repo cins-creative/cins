@@ -1,8 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
+import { HomeV2TopbarUserMenu } from "@/components/cins/home-v2/HomeV2TopbarUserMenu";
+import type { UserAccountProfile } from "@/components/cins/UserAccountMenu";
 import "@/app/cins-home-v2-page.css";
 
 type Props = {
@@ -15,6 +17,11 @@ type Props = {
  */
 export function CinsHomeV2Page({ markup }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
+  const [topbarUserMount, setTopbarUserMount] = useState<HTMLElement | null>(
+    null,
+  );
+  const [topbarProfile, setTopbarProfile] =
+    useState<UserAccountProfile | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -23,21 +30,32 @@ export function CinsHomeV2Page({ markup }: Props) {
 
     void fetch("/api/auth/session-profile", { cache: "no-store" })
       .then((res) => (res.ok ? res.json() : null))
-      .then((json: { profile?: { slug: string; tenHienThi: string | null } | null } | null) => {
-        if (!json?.profile?.slug) return;
-        const auth = root.querySelector(".tb-auth");
-        auth?.remove();
-        const divider = root.querySelector(".tb-divider");
-        divider?.remove();
-        const tbRight = root.querySelector(".tb-right");
-        if (!tbRight || tbRight.querySelector(".tb-journey-link")) return;
-        const link = document.createElement("a");
-        link.href = `/${encodeURIComponent(json.profile.slug)}`;
-        link.className = "tb-journey-link";
-        link.textContent =
-          json.profile.tenHienThi?.trim() || `@${json.profile.slug}`;
-        tbRight.appendChild(link);
-      })
+      .then(
+        (
+          json: {
+            profile?: (UserAccountProfile & { avatarId?: string | null }) | null;
+          } | null,
+        ) => {
+          if (!json?.profile?.slug) return;
+          root.querySelector(".tb-auth")?.remove();
+          root.querySelector(".tb-divider")?.remove();
+          root.querySelector(".tb-journey-link")?.remove();
+          const tbRight = root.querySelector(".tb-right");
+          if (!tbRight) return;
+          let mount = tbRight.querySelector("#tb-user-mount");
+          if (!mount) {
+            mount = document.createElement("div");
+            mount.id = "tb-user-mount";
+            tbRight.appendChild(mount);
+          }
+          setTopbarUserMount(mount as HTMLElement);
+          setTopbarProfile({
+            slug: json.profile.slug,
+            tenHienThi: json.profile.tenHienThi,
+            avatarUrl: json.profile.avatarUrl ?? null,
+          });
+        },
+      )
       .catch(() => {
         /* ignore */
       });
@@ -188,10 +206,13 @@ export function CinsHomeV2Page({ markup }: Props) {
   }, [markup, router]);
 
   return (
-    <div
-      ref={rootRef}
-      className="cins-home-v2-page"
-      dangerouslySetInnerHTML={{ __html: markup }}
-    />
+    <>
+      <div
+        ref={rootRef}
+        className="cins-home-v2-page"
+        dangerouslySetInnerHTML={{ __html: markup }}
+      />
+      <HomeV2TopbarUserMenu mountEl={topbarUserMount} profile={topbarProfile} />
+    </>
   );
 }

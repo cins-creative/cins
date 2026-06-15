@@ -152,51 +152,17 @@ export function TruongTabDoanSinhVien() {
       </div>
 
       <TruongDoanToolbar
-        workCount={filteredProjects.length}
         sort={sort}
         view={view}
+        yearFilter={yearFilter}
+        yearOptions={yearOptions}
+        nganhFilter={nganhFilter}
+        nganhOptions={nganhOptions}
         onViewChange={setView}
         onSortChange={setSort}
+        onYearChange={setYearFilter}
+        onNganhChange={setNganhFilter}
       />
-
-      <div
-        className="tdh-v6-filter-row tdh-doan-filter-row"
-        role="group"
-        aria-label="Lọc đồ án"
-      >
-        <label className="tdh-doan-filter-field">
-          <span className="tdh-doan-filter-label">Năm</span>
-          <select
-            className="sec-year-select tdh-doan-year-select"
-            value={yearFilter}
-            onChange={(e) => setYearFilter(e.target.value)}
-            aria-label="Năm đồ án"
-          >
-            <option value={ALL_YEAR}>Tất cả các năm</option>
-            {yearOptions.map((y) => (
-              <option key={y} value={String(y)}>
-                Năm {y}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="tdh-doan-filter-field">
-          <span className="tdh-doan-filter-label">Ngành</span>
-          <select
-            className="sec-year-select tdh-doan-nganh-select"
-            value={nganhFilter}
-            onChange={(e) => setNganhFilter(e.target.value)}
-            aria-label="Ngành đồ án"
-          >
-            <option value={ALL_NGANH}>Tất cả ngành</option>
-            {nganhOptions.map((label) => (
-              <option key={label} value={label}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
 
       {waitingForProjects || waitingForTimeline ? (
         <p className="tdh-placeholder">Đang tải đồ án…</p>

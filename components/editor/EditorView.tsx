@@ -721,11 +721,8 @@ export function EditorView({
       });
       setOpenAddIdx(null);
       setSelectedId(b.id);
-      if (type === "imgs") {
-        openImageFilePick({ blockId: b.id, slot: 0 });
-      }
     },
-    [pushHistory, openImageFilePick],
+    [pushHistory],
   );
 
   const updateBlock = useCallback(

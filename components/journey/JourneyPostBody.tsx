@@ -5,6 +5,7 @@ import {
   Briefcase,
   Calendar,
   ExternalLink,
+  FileText,
   FolderKanban,
   Globe,
   Lock,
@@ -45,6 +46,7 @@ import { isMediaPost } from "@/lib/journey/post-media";
 import { getAvatarUrl } from "@/lib/journey/profile";
 
 import { PostActionsRail, PostShareMenu } from "./PostActionsRail";
+import { PostMetaRail } from "./PostMetaRail";
 
 /* ╔══════════════════════════════════════════════════════════════════╗
    ║ JourneyPostBody — view layout cho bài viết. ĐỒNG BỘ với editor   ║
@@ -103,7 +105,7 @@ type Props = {
   onMilestoneUpdated?: () => void;
   /** `inline` — mở trong timeline, bỏ cover/title trùng với card. */
   variant?: "full" | "inline";
-  /** Permalink — trái meta/đóng góp, giữa nội dung, phải bình luận. Modal/timeline giữ `stack`. */
+  /** Permalink — cột trái nội dung + BL, cột phải meta rail. Modal/timeline giữ `stack`. */
   layout?: "stack" | "split";
   /** Id section bình luận — tránh trùng khi nhiều bài mở trên timeline. */
   commentsSectionId?: string;
@@ -154,7 +156,7 @@ export function JourneyPostBody({
       if (window.location.hash !== "#post-comments") return;
       const section = document.getElementById("post-comments");
       if (!section) return;
-      section.scrollIntoView({ behavior: "smooth", block: "start" });
+      section.scrollIntoView({ behavior: "smooth", block: "nearest" });
       window.setTimeout(() => {
         section
           .querySelector<HTMLInputElement>(".post-comments-input")
@@ -256,6 +258,46 @@ export function JourneyPostBody({
       hideShare={isSplit}
     />
   );
+
+  const actionsRailVertical = (
+    <PostActionsRail
+      milestoneId={milestone.id}
+      initialLiked={social.viewerLiked}
+      initialBookmarked={social.viewerBookmarked}
+      likeCount={social.likeCount}
+      bookmarkCount={social.bookmarkCount}
+      commentCount={displayCommentCount}
+      showCounts
+      canBookmark={!isOwner}
+      sharePath={sharePath}
+      shareTitle={heroTitle}
+      orientation="vertical"
+      showLabels
+    />
+  );
+
+  const kickerLabel =
+    mainPost?.articleTags[0]?.tieu_de ?? typeLabel;
+  const KickerIcon = mainPost?.articleTags[0] ? FileText : TypeIcon;
+
+  const kickerEl =
+    isSplit && variant === "full" && !mediaPost ? (
+      <span className="post-view-kicker">
+        <KickerIcon size={13} strokeWidth={2} aria-hidden />
+        {kickerLabel}
+      </span>
+    ) : null;
+
+  const splitHeroEl =
+    isSplit && variant === "full" && !mediaPost ? (
+      <>
+        {kickerEl}
+        <h1 className="title-in title-ro">{heroTitle}</h1>
+        {heroSub ? (
+          <p className="sub-in sub-ro post-view-dek">{heroSub}</p>
+        ) : null}
+      </>
+    ) : null;
 
   const bylineEl = showByline ? (
     <div className={`post-byline${isSplit ? " post-byline--sidebar" : ""}`}>
@@ -360,6 +402,22 @@ export function JourneyPostBody({
       <PostContributors contributors={mainPost.contributors} />
     ) : null;
 
+  const metaRailEl =
+    isSplit && showByline ? (
+      <PostMetaRail
+        owner={owner}
+        milestone={milestone}
+        mainPost={mainPost}
+        postSlug={postSlug}
+        isOwner={isOwner}
+        social={social}
+        commentCount={displayCommentCount}
+        actionsRail={actionsRailVertical}
+        onMilestoneUpdated={onMilestoneUpdated}
+        hidden={focusMode}
+      />
+    ) : null;
+
   const blocksEl =
     showBlocks && blocks && blocks.length > 0 ? (
       mediaPost ? (
@@ -396,36 +454,22 @@ export function JourneyPostBody({
   if (isSplit) {
     return (
       <Wrapper className={wrapperClass} aria-label="Bài viết">
-          <div className="post-view-layout">
-            <aside
-              className="post-view-meta"
-              aria-label="Thông tin bài viết"
-              aria-hidden={focusMode ? true : undefined}
-              hidden={focusMode}
-            >
-              {bylineEl}
-              {tagsEl}
-              {contributorsEl}
-            </aside>
-            <div
-              className={`post-view-main${mediaPost ? " post-view-main--media" : ""}`}
-            >
-              <div className="post-view-main-inner">
-                {coverEl}
-                {heroEl}
-                {blocksEl}
-              </div>
+        <div className="post-view-layout post-view-layout--2col">
+          <div
+            className={`post-view-content${mediaPost ? " post-view-content--media" : ""}`}
+          >
+            {coverEl}
+            <div className="post-view-content-inner">
+              {splitHeroEl ?? heroEl}
+              {blocksEl}
             </div>
-            <aside
-              className="post-view-comments"
-              aria-label="Bình luận"
-              aria-hidden={focusMode ? true : undefined}
-              hidden={focusMode}
-            >
-              {commentsEl}
-            </aside>
           </div>
-        </Wrapper>
+          {metaRailEl}
+          {!focusMode && showCommentsPart ? (
+            <div className="post-view-comments-inline">{commentsEl}</div>
+          ) : null}
+        </div>
+      </Wrapper>
     );
   }
 
@@ -460,10 +504,67 @@ function shouldShowPostContributors(
 
 function PostContributors({
   contributors,
+  variant = "default",
 }: {
   contributors: ReadonlyArray<MilestonePostContributor>;
+  variant?: "default" | "rail";
 }) {
   if (!shouldShowPostContributors(contributors)) return null;
+
+  if (variant === "rail") {
+    return (
+      <>
+        <div className="post-rail-div" role="presentation" />
+        <div className="post-rail-blk">
+          <div className="post-rail-lbl">
+            Người đóng góp · {contributors.length}
+          </div>
+          <div className="post-rail-people">
+            {contributors.map((c) => {
+              const avatarUrl = getAvatarUrl(c.avatarId);
+              const initial = (c.tenHienThi || c.slug || "?")
+                .charAt(0)
+                .toUpperCase();
+              const body = (
+                <>
+                  <span
+                    className={`post-rail-person-avatar${c.laChuSoHuu ? "" : " post-rail-person-avatar--sq"}`}
+                    aria-hidden
+                  >
+                    {avatarUrl ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img src={avatarUrl} alt="" />
+                    ) : (
+                      initial
+                    )}
+                  </span>
+                  <span className="post-rail-person-copy">
+                    <strong>
+                      {c.tenHienThi}
+                      {c.laChuSoHuu ? (
+                        <span className="post-rail-owner-tag">Chủ</span>
+                      ) : null}
+                    </strong>
+                    <span>{c.vaiTro || "Cộng sự"}</span>
+                  </span>
+                </>
+              );
+              return (
+                <JourneyUserPopover
+                  key={c.id}
+                  slug={c.slug}
+                  fallbackName={c.tenHienThi}
+                  fallbackAvatarUrl={avatarUrl}
+                >
+                  <span className="post-rail-person">{body}</span>
+                </JourneyUserPopover>
+              );
+            })}
+          </div>
+        </div>
+      </>
+    );
+  }
 
   return (
     <section className="post-contributors" aria-label="Người đóng góp dự án">

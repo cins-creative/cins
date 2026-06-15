@@ -690,6 +690,15 @@ function CommentComposeForm({
                     e.preventDefault();
                     onCancelReply();
                   }
+                  return;
+                }
+                if (e.key === "Enter") {
+                  if (e.shiftKey || e.ctrlKey || e.metaKey) {
+                    return;
+                  }
+                  e.preventDefault();
+                  if (!canSend) return;
+                  onSend({ text, imageIds: readyImageIds });
                 }
               }}
               onClick={(e) => {

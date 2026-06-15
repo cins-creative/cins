@@ -4,15 +4,9 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
-/* ╔══════════════════════════════════════════════════════════════════╗
-   ║ PostModalShell — overlay client wrapper cho intercepted route.   ║
-   ║                                                                  ║
-   ║ Đóng modal: click vùng overlay tối / phím Escape → router.back  ║
-   ╚══════════════════════════════════════════════════════════════════╝ */
-
 export function PostModalShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const sheetRef = useRef<HTMLDivElement>(null);
+  const sheetRef = useRef<HTMLElement | null>(null);
   const [portalReady, setPortalReady] = useState(false);
 
   useEffect(() => {
@@ -23,16 +17,25 @@ export function PostModalShell({ children }: { children: React.ReactNode }) {
     router.back();
   }, [router]);
 
-  /* Lock body scroll khi modal mở. */
   useEffect(() => {
-    const prev = document.body.style.overflow;
+    const scrollY = window.scrollY;
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.left = "0";
+    document.body.style.right = "0";
+    document.body.style.width = "100%";
     document.body.style.overflow = "hidden";
     return () => {
-      document.body.style.overflow = prev;
+      document.body.style.position = "";
+      document.body.style.top = "";
+      document.body.style.left = "";
+      document.body.style.right = "";
+      document.body.style.width = "";
+      document.body.style.overflow = "";
+      window.scrollTo(0, scrollY);
     };
   }, []);
 
-  /* Escape đóng modal. */
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") handleClose();
@@ -40,6 +43,10 @@ export function PostModalShell({ children }: { children: React.ReactNode }) {
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [handleClose]);
+
+  useEffect(() => {
+    sheetRef.current?.scrollTo({ top: 0, left: 0 });
+  }, [children]);
 
   const handleBackdropClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
@@ -57,9 +64,22 @@ export function PostModalShell({ children }: { children: React.ReactNode }) {
       aria-modal="true"
       aria-label="Chi tiết bài viết"
       onClick={handleBackdropClick}
-      ref={sheetRef}
     >
-      <article className="j-post-sheet">{children}</article>
+      <button
+        type="button"
+        className="j-post-close"
+        aria-label="Đóng"
+        onClick={handleClose}
+      >
+        ×
+      </button>
+      <article
+        className="j-post-sheet"
+        ref={sheetRef}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {children}
+      </article>
     </div>,
     document.body,
   );

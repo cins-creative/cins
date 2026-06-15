@@ -101,7 +101,11 @@ export async function renderJourneyPage({
   const emailForView = isOwner || emailPublic ? owner.email_lien_he : null;
 
   const activeView: JourneyProfileView =
-    view === "gallery" || view === "friends" ? view : "journey";
+    view === "gallery" ||
+    view === "friends" ||
+    view === "organizations"
+      ? view
+      : "journey";
 
   const filterVisibility: LoaiMocVisibilityMap = normalizeLoaiMocVisibility(
     owner.journey_loai_moc_visibility,

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Building2,
   Grid3X3,
   UserRound,
   Waypoints,
@@ -15,28 +16,18 @@ import {
 type Props = {
   slug: string;
   friendCount?: number;
+  orgCount?: number;
 };
 
-export function JourneySidebarSwitchNav({ slug, friendCount }: Props) {
+export function JourneySidebarSwitchNav({ slug, friendCount, orgCount }: Props) {
   const { view: activeView, setView } = useJourneyView();
 
   return (
     <nav className="j-profile-switch" aria-label="Chuyển giao diện hồ sơ">
-      <ProfileSwitchButton
+      <ProfileFeedToggle
         slug={slug}
-        view="journey"
         activeView={activeView}
         onSelect={setView}
-        icon={<Waypoints size={15} aria-hidden />}
-        label="Journey"
-      />
-      <ProfileSwitchButton
-        slug={slug}
-        view="gallery"
-        activeView={activeView}
-        onSelect={setView}
-        icon={<Grid3X3 size={15} aria-hidden />}
-        label="Gallery"
       />
       <ProfileSwitchButton
         slug={slug}
@@ -47,7 +38,85 @@ export function JourneySidebarSwitchNav({ slug, friendCount }: Props) {
         label="Friends"
         count={friendCount}
       />
+      <ProfileSwitchButton
+        slug={slug}
+        view="organizations"
+        activeView={activeView}
+        onSelect={setView}
+        icon={<Building2 size={15} aria-hidden />}
+        label="Tổ chức"
+        count={orgCount}
+      />
     </nav>
+  );
+}
+
+function ProfileFeedToggle({
+  slug,
+  activeView,
+  onSelect,
+}: {
+  slug: string;
+  activeView: JourneyProfileView;
+  onSelect: (view: JourneyProfileView) => void;
+}) {
+  const isJourney = activeView === "journey";
+  const isGallery = activeView === "gallery";
+
+  return (
+    <div className="j-profile-feed-toggle" role="group" aria-label="Journey hoặc Gallery">
+      <FeedToggleSegment
+        slug={slug}
+        view="journey"
+        active={isJourney}
+        icon={<Waypoints size={14} aria-hidden />}
+        label="Journey"
+        onSelect={onSelect}
+      />
+      <FeedToggleSegment
+        slug={slug}
+        view="gallery"
+        active={isGallery}
+        icon={<Grid3X3 size={14} aria-hidden />}
+        label="Gallery"
+        onSelect={onSelect}
+      />
+    </div>
+  );
+}
+
+function FeedToggleSegment({
+  slug,
+  view,
+  active,
+  icon,
+  label,
+  onSelect,
+}: {
+  slug: string;
+  view: "journey" | "gallery";
+  active: boolean;
+  icon: React.ReactNode;
+  label: string;
+  onSelect: (view: JourneyProfileView) => void;
+}) {
+  const href = journeyHrefForView(slug, view);
+
+  return (
+    <a
+      href={href}
+      className={`j-profile-feed-toggle-seg${active ? " is-active" : ""}`}
+      aria-current={active ? "page" : undefined}
+      aria-pressed={active}
+      aria-label={label}
+      onClick={(event) => {
+        event.preventDefault();
+        if (!active) onSelect(view);
+      }}
+    >
+      <span className="j-profile-feed-toggle-ico">{icon}</span>
+      <span className="j-profile-feed-toggle-label">{label}</span>
+    </a>
   );
 }
 
@@ -79,7 +148,7 @@ function ProfileSwitchButton({
       className={`j-profile-switch-btn${active ? " is-active" : ""}`}
       aria-current={active ? "page" : undefined}
       aria-label={
-        countLabel != null ? `${label}, ${countLabel} bạn bè` : label
+        countLabel != null ? `${label}, ${countLabel}` : label
       }
       onClick={(event) => {
         event.preventDefault();

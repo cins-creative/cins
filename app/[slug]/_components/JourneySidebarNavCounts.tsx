@@ -10,9 +10,13 @@ export async function JourneySidebarNavCounts({
   ownerId,
   ownerSlug,
 }: Props) {
-  const { friendCount } = await fetchJourneySwitchNavCounts({ ownerId });
+  const { friendCount, orgCount } = await fetchJourneySwitchNavCounts({ ownerId });
 
   return (
-    <JourneySidebarSwitchNav slug={ownerSlug} friendCount={friendCount} />
+    <JourneySidebarSwitchNav
+      slug={ownerSlug}
+      friendCount={friendCount}
+      orgCount={orgCount}
+    />
   );
 }

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { getAvatarUrl } from "@/lib/journey/profile";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 
 /* GET /api/auth/session-profile — profile tối thiểu cho ghi nhớ tài khoản client. */
@@ -18,6 +19,7 @@ export async function GET() {
       tenHienThi: ten_hien_thi,
       email: email ?? session.email,
       avatarId: avatar_id,
+      avatarUrl: getAvatarUrl(avatar_id),
     },
   });
 }
