@@ -3937,106 +3937,193 @@
 
 .tdh-milestone-tag-card {
   border: 1px solid var(--border2, #e4e6eb);
-  border-radius: 14px;
+  border-radius: 16px;
   background: #fff;
   overflow: clip;
   flex-shrink: 0;
   width: 100%;
   box-sizing: border-box;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
 .tdh-milestone-tag-card--pending {
-  border-color: color-mix(in srgb, #f59e0b 35%, #e4e6eb);
-  box-shadow: 0 0 0 1px color-mix(in srgb, #f59e0b 12%, transparent);
+  border-color: color-mix(in srgb, #f59e0b 28%, #e4e6eb);
+}
+
+.tdh-milestone-tag-card--approved {
+  border-color: color-mix(in srgb, #22c55e 28%, #e4e6eb);
+}
+
+.tdh-milestone-tag-card--rejected {
+  border-color: color-mix(in srgb, #ef4444 24%, #e4e6eb);
 }
 
 .tdh-milestone-tag-card-hdr {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px 16px;
-  background: var(--bg-soft, #f8fafc);
+  position: relative;
+  padding: 14px 16px 14px 18px;
+  background:
+    linear-gradient(180deg, rgba(248, 250, 252, 0.95) 0%, #fff 100%);
   border-bottom: 1px solid var(--border2, #e4e6eb);
 }
 
-.tdh-milestone-tag-card-who {
+.tdh-milestone-tag-card-hdr::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 3px;
+  border-radius: 0 4px 4px 0;
+  background: var(--cins-blue, #1f74c9);
+}
+
+.tdh-milestone-tag-card-hdr--pending::before {
+  background: #f59e0b;
+}
+
+.tdh-milestone-tag-card-hdr--approved::before {
+  background: #22c55e;
+}
+
+.tdh-milestone-tag-card-hdr--rejected::before {
+  background: #ef4444;
+}
+
+.tdh-milestone-tag-card-hdr-main {
   display: flex;
-  gap: 12px;
+  align-items: flex-start;
+  gap: 14px;
   min-width: 0;
 }
 
 .tdh-milestone-tag-avatar {
   flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
   background: linear-gradient(135deg, var(--cins-blue, #1f74c9), #5c2bb6);
   color: #fff;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 800;
   display: flex;
   align-items: center;
   justify-content: center;
   letter-spacing: 0.02em;
+  overflow: hidden;
+  border: none;
+  box-shadow: none;
 }
 
-.tdh-milestone-tag-card-meta {
+.tdh-milestone-tag-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border: none;
+  outline: none;
+  border-radius: 50%;
+}
+
+.tdh-milestone-tag-card-identity {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
+}
+
+.tdh-milestone-tag-card-topline {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.tdh-milestone-tag-student-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 8px;
   min-width: 0;
 }
 
 .tdh-milestone-tag-student {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 800;
   color: var(--ink, #0f172a);
   letter-spacing: -0.2px;
+  text-decoration: none;
+  line-height: 1.25;
+}
+
+a.tdh-milestone-tag-student:hover {
+  color: var(--cins-blue, #1f74c9);
+  text-decoration: underline;
+}
+
+.tdh-milestone-tag-slug {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-muted, #94a3b8);
+  line-height: 1.25;
 }
 
 .tdh-milestone-tag-milestone {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ink, #334155);
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--ink, #0f172a);
+  letter-spacing: -0.25px;
 }
 
 .tdh-milestone-tag-project {
+  margin: 0;
   font-size: 12px;
+  line-height: 1.45;
   color: var(--ink-muted, #64748b);
-  line-height: 1.4;
 }
 
-.tdh-milestone-tag-chip-row {
+.tdh-milestone-tag-meta-list {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 6px;
-}
-
-.tdh-milestone-tag-chip {
+  align-items: center;
+  gap: 4px 0;
   font-size: 11px;
   font-weight: 600;
-  padding: 3px 8px;
-  border-radius: 6px;
-  background: #fff;
-  border: 1px solid var(--border2, #e4e6eb);
   color: var(--ink-muted, #64748b);
 }
 
-.tdh-milestone-tag-chip--muted {
-  border-color: transparent;
-  background: transparent;
-  padding-left: 0;
+.tdh-milestone-tag-meta-list li {
+  display: inline-flex;
+  align-items: center;
+}
+
+.tdh-milestone-tag-meta-list li + li::before {
+  content: "·";
+  margin: 0 8px;
+  color: #cbd5e1;
+  font-weight: 700;
+}
+
+.tdh-milestone-tag-meta-list time {
+  font-variant-numeric: tabular-nums;
 }
 
 .tdh-milestone-tag-status {
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   font-size: 11px;
   font-weight: 700;
   padding: 5px 10px;
-  border-radius: 8px;
+  border-radius: 999px;
   white-space: nowrap;
+  line-height: 1;
 }
 
 .tdh-milestone-tag-status--pending {
@@ -4052,6 +4139,17 @@
 .tdh-milestone-tag-status--rejected {
   background: #fee2e2;
   color: #b91c1c;
+}
+
+@media (max-width: 560px) {
+  .tdh-milestone-tag-card-topline {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .tdh-milestone-tag-status {
+    align-self: flex-start;
+  }
 }
 
 .tdh-milestone-tag-card-body {
@@ -4271,6 +4369,27 @@
   font-size: 11px;
   color: var(--ink-muted, #94a3b8);
   word-break: break-all;
+}
+
+.tdh-milestone-tag-evidence-item--image {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tdh-milestone-tag-evidence-image-link {
+  display: block;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border2, #e4e6eb);
+  background: #fff;
+}
+
+.tdh-milestone-tag-evidence-image-link img {
+  display: block;
+  width: 100%;
+  max-height: 140px;
+  object-fit: contain;
 }
 
 .tdh-milestone-tag-card-foot {

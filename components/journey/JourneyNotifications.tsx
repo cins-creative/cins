@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Bell, Check, Video, X } from "lucide-react";
+import { ArrowRight, Bell, Check, CheckCircle2, Video, X } from "lucide-react";
 import type { ReactNode } from "react";
 import {
   useCallback,
@@ -26,6 +26,7 @@ import type {
   FollowAcceptedNotification,
   NotificationFeed,
   NotificationFilter,
+  OrgMilestoneTagApprovedNotification,
   PendingCoAuthorInviteNotification,
   PendingCoAuthorReview,
   PendingCoSoStaffInviteNotification,
@@ -61,6 +62,7 @@ const EMPTY_HISTORY_FEED: NotificationFeed = {
   coAuthorInvites: [],
   coAuthorReviews: [],
   coSoStaffInvites: [],
+  orgMilestoneTagApproved: [],
   videoReady: [],
   handledFollows: [],
   processedCoAuthorReviews: [],
@@ -112,6 +114,16 @@ function commentNotifyLabel(notice: CommentNotification): ReactNode {
   );
 }
 
+function orgMilestoneTagNotifyLabel(
+  notice: OrgMilestoneTagApprovedNotification,
+): ReactNode {
+  return (
+    <>
+      <strong>{notice.orgTen}</strong> đã xác nhận gán tổ chức cho bài viết của bạn
+    </>
+  );
+}
+
 function parseFeedPayload(json: unknown): NotificationFeed | null {
   if (!json || typeof json !== "object") return null;
   const data = json as NotificationFeed;
@@ -124,6 +136,9 @@ function parseFeedPayload(json: unknown): NotificationFeed | null {
     coSoStaffInvites: Array.isArray(data.coSoStaffInvites)
       ? data.coSoStaffInvites
       : [],
+    orgMilestoneTagApproved: Array.isArray(data.orgMilestoneTagApproved)
+      ? data.orgMilestoneTagApproved
+      : [],
   };
 }
 
@@ -135,6 +150,7 @@ function countDisplayedItems(feed: NotificationFeed): number {
     feed.coAuthorInvites.length +
     feed.coAuthorReviews.length +
     feed.coSoStaffInvites.length +
+    feed.orgMilestoneTagApproved.length +
     feed.videoReady.length +
     feed.handledFollows.length +
     feed.processedCoAuthorReviews.length
@@ -566,6 +582,16 @@ export function JourneyNotifications({
                       </div>
                     </li>
                   ))}
+                  {activeFeed.orgMilestoneTagApproved.map((notice) => (
+                    <UnreadOrgMilestoneTagItem
+                      key={notice.notificationId}
+                      notice={notice}
+                      onOpen={() => {
+                        markRead([notice.notificationId]);
+                        setOpen(false);
+                      }}
+                    />
+                  ))}
                   {activeFeed.videoReady.map((notice) => (
                     <UnreadVideoItem
                       key={notice.notificationId}
@@ -704,6 +730,19 @@ export function JourneyNotifications({
                       avatar={<Avatar request={notice} />}
                     />
                   ))}
+                  {activeFeed.orgMilestoneTagApproved.map((notice) => (
+                    <HistoryInfoItem
+                      key={notice.notificationId}
+                      href={notice.albumHref || "#"}
+                      label={orgMilestoneTagNotifyLabel(notice)}
+                      time={formatNotifyTime(notice.taoLuc)}
+                      avatar={
+                        <span className="j-notify-avatar is-verified" aria-hidden>
+                          <CheckCircle2 size={16} strokeWidth={2} />
+                        </span>
+                      }
+                    />
+                  ))}
                   {activeFeed.videoReady.map((notice) => (
                     <HistoryInfoItem
                       key={notice.notificationId}
@@ -802,6 +841,29 @@ function UnreadVideoItem({
           <strong>Video đã sẵn sàng</strong>
           <small>{notice.postTitle}</small>
         </span>
+      </Link>
+    </li>
+  );
+}
+
+function UnreadOrgMilestoneTagItem({
+  notice,
+  onOpen,
+}: {
+  notice: OrgMilestoneTagApprovedNotification;
+  onOpen: () => void;
+}) {
+  return (
+    <li>
+      <Link
+        href={notice.albumHref || "#"}
+        className="j-notify-item is-org-milestone-tag"
+        onClick={onOpen}
+      >
+        <span className="j-notify-avatar is-verified" aria-hidden>
+          <CheckCircle2 size={16} strokeWidth={2} />
+        </span>
+        <span>{orgMilestoneTagNotifyLabel(notice)}</span>
       </Link>
     </li>
   );

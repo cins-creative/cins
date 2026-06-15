@@ -2,19 +2,21 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { CheckCircle2, Clock3, XCircle } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { TruongInlineModal } from "@/components/truong/inline/TruongInlineModal";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
+import type {
+  OrgMilestoneTagRequestItem,
+  OrgMilestoneTagStatus,
+} from "@/lib/journey/org-milestone-tag-types";
 import {
   formatTaggedAt,
   milestoneKindLabel,
-  MOCK_MILESTONE_TAG_NOTIFY,
   notifyStatusLabel,
   type MilestoneTagAlbum,
   type MilestoneTagEvidence,
-  type MilestoneTagNotifyItem,
-  type MilestoneTagNotifyStatus,
 } from "@/lib/truong/milestone-tag-notify-mock";
 
 function BellIcon() {
@@ -69,13 +71,75 @@ function studentInitials(name: string): string {
   return name.trim().slice(0, 2).toUpperCase() || "?";
 }
 
-type FilterKey = "all" | MilestoneTagNotifyStatus;
+function StudentAvatar({
+  name,
+  avatarUrl,
+}: {
+  name: string;
+  avatarUrl: string | null;
+}) {
+  return (
+    <span className="tdh-milestone-tag-avatar" aria-hidden>
+      {avatarUrl ? (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img src={avatarUrl} alt="" />
+      ) : (
+        studentInitials(name)
+      )}
+    </span>
+  );
+}
+
+function TagStatusBadge({ status }: { status: OrgMilestoneTagStatus }) {
+  const Icon =
+    status === "approved" ? CheckCircle2 : status === "rejected" ? XCircle : Clock3;
+  return (
+    <span className={`tdh-milestone-tag-status tdh-milestone-tag-status--${status}`}>
+      <Icon size={13} strokeWidth={2.4} aria-hidden />
+      {notifyStatusLabel(status)}
+    </span>
+  );
+}
+
+type FilterKey = "all" | OrgMilestoneTagStatus;
 
 export function TruongMilestoneTagNotify() {
   const ctx = useTruongInlineEdit();
   const [open, setOpen] = useState(false);
-  const [items, setItems] = useState(MOCK_MILESTONE_TAG_NOTIFY);
+  const [items, setItems] = useState<OrgMilestoneTagRequestItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterKey>("all");
+
+  const loadItems = useCallback(async () => {
+    if (!ctx?.orgId) return;
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const res = await fetch(`/api/org/${ctx.orgId}/milestone-tag-requests`, {
+        cache: "no-store",
+      });
+      const json = (await res.json()) as {
+        items?: OrgMilestoneTagRequestItem[];
+        error?: string;
+      };
+      if (!res.ok) {
+        setLoadError(json.error ?? "Không tải được yêu cầu.");
+        setItems([]);
+        return;
+      }
+      setItems(Array.isArray(json.items) ? json.items : []);
+    } catch {
+      setLoadError("Lỗi mạng.");
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [ctx?.orgId]);
+
+  useEffect(() => {
+    if (open) void loadItems();
+  }, [open, loadItems]);
 
   const pendingCount = useMemo(
     () => items.filter((i) => i.status === "pending").length,
@@ -89,17 +153,36 @@ export function TruongMilestoneTagNotify() {
 
   if (!ctx?.canEdit || !ctx.isEditing) return null;
 
-  function setStatus(id: string, status: MilestoneTagNotifyStatus) {
-    setItems((list) =>
-      list.map((row) => (row.id === id ? { ...row, status } : row)),
-    );
-    ctx?.showToast(
-      status === "approved"
-        ? "Đã gắn milestone lên trang trường (mock)"
-        : status === "rejected"
-          ? "Đã từ chối tag (mock)"
-          : "Đã cập nhật",
-    );
+  async function setStatus(id: string, status: OrgMilestoneTagStatus) {
+    if (!ctx?.orgId) return;
+    const action = status === "approved" ? "approve" : "reject";
+    try {
+      const res = await fetch(
+        `/api/org/${ctx.orgId}/milestone-tag-requests/${id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action }),
+        },
+      );
+      const json = (await res.json()) as { error?: string };
+      if (!res.ok) {
+        ctx.showToast(json.error ?? "Không cập nhật được.");
+        return;
+      }
+      setItems((list) =>
+        list.map((row) => (row.id === id ? { ...row, status } : row)),
+      );
+      ctx.showToast(
+        status === "approved"
+          ? "Đã gắn milestone lên trang tổ chức"
+          : status === "rejected"
+            ? "Đã từ chối tag"
+            : "Đã cập nhật",
+      );
+    } catch {
+      ctx.showToast("Lỗi mạng.");
+    }
   }
 
   return (
@@ -138,7 +221,7 @@ export function TruongMilestoneTagNotify() {
             <p className="tdh-milestone-tag-lead">
               Sinh viên gắn cột mốc vào <strong>{ctx.school.ten}</strong>. Mỗi yêu
               cầu gồm <strong>Album</strong> (trang nội dung trên Journey) và{" "}
-              <strong>Bằng chứng</strong> học tại trường. (Mock)
+              <strong>Bằng chứng</strong> học tại tổ chức.
             </p>
           </div>
           <button
@@ -186,7 +269,11 @@ export function TruongMilestoneTagNotify() {
         </div>
 
         <ul className="tdh-milestone-tag-list">
-          {filtered.length === 0 ? (
+          {loading ? (
+            <li className="tdh-milestone-tag-empty">Đang tải…</li>
+          ) : loadError ? (
+            <li className="tdh-milestone-tag-empty">{loadError}</li>
+          ) : filtered.length === 0 ? (
             <li className="tdh-milestone-tag-empty">
               Không có mục trong bộ lọc này.
             </li>
@@ -195,8 +282,8 @@ export function TruongMilestoneTagNotify() {
               <MilestoneTagCard
                 key={row.id}
                 row={row}
-                onApprove={() => setStatus(row.id, "approved")}
-                onReject={() => setStatus(row.id, "rejected")}
+                onApprove={() => void setStatus(row.id, "approved")}
+                onReject={() => void setStatus(row.id, "rejected")}
               />
             ))
           )}
@@ -211,41 +298,67 @@ function MilestoneTagCard({
   onApprove,
   onReject,
 }: {
-  row: MilestoneTagNotifyItem;
+  row: OrgMilestoneTagRequestItem;
   onApprove: () => void;
   onReject: () => void;
 }) {
+  const nganhOrKhoa = row.nganhLabel ?? row.khoaHocTen;
+  const kindLabel = milestoneKindLabel(
+    row.milestoneKind as "du_an" | "hoc" | "lam_viec" | "thanh_tuu",
+  );
+  const milestoneTitle = row.milestoneTitle.trim() || "Cột mốc";
+  const projectTitle = row.projectTitle.trim();
+  const showProjectSubtitle =
+    projectTitle.length > 0 &&
+    projectTitle.toLowerCase() !== milestoneTitle.toLowerCase();
+  const profileHref = row.studentSlug.trim()
+    ? `/${encodeURIComponent(row.studentSlug.trim())}`
+    : null;
+
   return (
     <li
       className={`tdh-milestone-tag-card tdh-milestone-tag-card--${row.status}`}
     >
-      <header className="tdh-milestone-tag-card-hdr">
-        <div className="tdh-milestone-tag-card-who">
-          <span className="tdh-milestone-tag-avatar" aria-hidden>
-            {studentInitials(row.studentName)}
-          </span>
-          <div className="tdh-milestone-tag-card-meta">
-            <span className="tdh-milestone-tag-student">{row.studentName}</span>
-            <span className="tdh-milestone-tag-milestone">{row.milestoneTitle}</span>
-            <span className="tdh-milestone-tag-project">{row.projectTitle}</span>
-            <div className="tdh-milestone-tag-chip-row">
-              <span className="tdh-milestone-tag-chip">
-                {milestoneKindLabel(row.milestoneKind)}
-              </span>
-              {row.nganhLabel ? (
-                <span className="tdh-milestone-tag-chip">{row.nganhLabel}</span>
-              ) : null}
-              <time className="tdh-milestone-tag-chip tdh-milestone-tag-chip--muted">
-                {formatTaggedAt(row.taggedAt)}
-              </time>
+      <header
+        className={`tdh-milestone-tag-card-hdr tdh-milestone-tag-card-hdr--${row.status}`}
+      >
+        <div className="tdh-milestone-tag-card-hdr-main">
+          <StudentAvatar name={row.studentName} avatarUrl={row.studentAvatarUrl} />
+          <div className="tdh-milestone-tag-card-identity">
+            <div className="tdh-milestone-tag-card-topline">
+              <div className="tdh-milestone-tag-student-wrap">
+                {profileHref ? (
+                  <Link
+                    href={profileHref}
+                    className="tdh-milestone-tag-student"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {row.studentName}
+                  </Link>
+                ) : (
+                  <span className="tdh-milestone-tag-student">{row.studentName}</span>
+                )}
+                {row.studentSlug.trim() ? (
+                  <span className="tdh-milestone-tag-slug">@{row.studentSlug.trim()}</span>
+                ) : null}
+              </div>
+              <TagStatusBadge status={row.status} />
             </div>
+            <h4 className="tdh-milestone-tag-milestone">{milestoneTitle}</h4>
+            {showProjectSubtitle ? (
+              <p className="tdh-milestone-tag-project">{projectTitle}</p>
+            ) : null}
+            <ul className="tdh-milestone-tag-meta-list" aria-label="Thông tin yêu cầu">
+              <li>{kindLabel}</li>
+              {nganhOrKhoa ? <li>{nganhOrKhoa}</li> : null}
+              <li>{row.nam}</li>
+              <li>
+                <time dateTime={row.taggedAt}>{formatTaggedAt(row.taggedAt)}</time>
+              </li>
+            </ul>
           </div>
         </div>
-        <span
-          className={`tdh-milestone-tag-status tdh-milestone-tag-status--${row.status}`}
-        >
-          {notifyStatusLabel(row.status)}
-        </span>
       </header>
 
       <div className="tdh-milestone-tag-card-body">
@@ -341,6 +454,26 @@ function MilestoneTagAlbumPreview({ album }: { album: MilestoneTagAlbum }) {
 }
 
 function EvidenceItem({ item }: { item: MilestoneTagEvidence }) {
+  const isImageFile =
+    item.kind === "file" && Boolean(item.href?.trim());
+
+  if (isImageFile && item.href) {
+    return (
+      <li className="tdh-milestone-tag-evidence-item tdh-milestone-tag-evidence-item--image">
+        <span className="tdh-milestone-tag-evidence-label">{item.label}</span>
+        <a
+          href={item.href}
+          className="tdh-milestone-tag-evidence-image-link"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={item.href} alt={item.label} />
+        </a>
+      </li>
+    );
+  }
+
   const icon =
     item.kind === "file" ? "📎" : item.kind === "link" ? "🔗" : "ℹ️";
 

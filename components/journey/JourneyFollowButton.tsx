@@ -178,7 +178,7 @@ export function JourneyFollowButton({
         }
       >
         <Icon size={15} strokeWidth={2} aria-hidden />
-        {quanHe === "accepted" ? null : <span>{label}</span>}
+        <span className="j-friend-btn-label">{label}</span>
       </button>
       {(quanHe === "pending_received" ||
         quanHe === "accepted" ||

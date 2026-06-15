@@ -171,6 +171,7 @@
 .j-user-popover .j-friend-body h3 {
   margin: 0;
   font-size: 15px;
+  font-weight: 700;
   line-height: 1.15;
   letter-spacing: -0.02em;
   color: var(--ink-display);
@@ -219,7 +220,8 @@
 }
 
 .j-user-popover .j-friend-stats strong {
-  font-family: var(--font-j-anton, "Anton"), var(--font-sans);
+  font-family: var(--font-sans, "Be Vietnam Pro", system-ui, sans-serif);
+  font-weight: 700;
   color: var(--ink-display);
   font-size: 17px;
   line-height: 1;

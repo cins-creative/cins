@@ -2,7 +2,6 @@ export const CO_SO_TAB_IDS = [
   "bai-dang",
   "khoa-hoc",
   "san-pham",
-  "giao-vien",
   "hinh-anh",
 ] as const;
 
@@ -21,7 +20,6 @@ export const CO_SO_TAB_LABELS: Record<CoSoTabId, string> = {
   "khoa-hoc": "Khóa học",
   "san-pham": "Sản phẩm học viên",
   "hinh-anh": "Hình ảnh cơ sở",
-  "giao-vien": "Giáo viên",
 };
 
 export function parseCoSoPageCauHinh(raw: unknown): CoSoPageCauHinh {
@@ -31,7 +29,7 @@ export function parseCoSoPageCauHinh(raw: unknown): CoSoPageCauHinh {
     return {};
   }
   const tabs: CoSoPageTabsConfig = {};
-  for (const id of ["khoa-hoc", "san-pham", "hinh-anh", "giao-vien"] as const) {
+  for (const id of ["khoa-hoc", "san-pham", "hinh-anh"] as const) {
     const val = (tabsRaw as Record<string, unknown>)[id];
     if (typeof val === "boolean") tabs[id] = val;
   }

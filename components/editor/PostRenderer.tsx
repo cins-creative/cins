@@ -97,36 +97,21 @@ type ImgLayout = "full" | "boxed" | "duo" | "trio" | "grid4" | "mosaic";
 
 export function PostCover({ seed }: { seed: string | null | undefined }) {
   if (!seed) return null;
-  const trimmed = seed.trim();
-  const isCf = CF_UUID_RE.test(trimmed);
-  const hash = getCfAccountHash();
-  const src =
-    isCf && hash
-      ? `https://imagedelivery.net/${hash}/${trimmed}/cover`
-      : ph(seed, 1400, 560);
-  const srcSet =
-    isCf && hash
-      ? [
-          `https://imagedelivery.net/${hash}/${trimmed}/medium 800w`,
-          `https://imagedelivery.net/${hash}/${trimmed}/cover 1200w`,
-          `https://imagedelivery.net/${hash}/${trimmed}/public 1600w`,
-        ].join(", ")
-      : undefined;
 
   return (
     <div className="cover-add has cover-readonly">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={src}
-        srcSet={srcSet}
-        sizes="(max-width: 900px) 100vw, 860px"
-        alt="Ảnh bìa"
-        width={1400}
-        height={560}
-        loading="eager"
-        fetchPriority="high"
-        decoding="async"
-      />
+      <div className="cover-img-wrap">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={ph(seed, 1400, 560)}
+          alt="Ảnh bìa"
+          width={1400}
+          height={560}
+          loading="eager"
+          fetchPriority="high"
+          decoding="async"
+        />
+      </div>
     </div>
   );
 }

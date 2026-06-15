@@ -1627,6 +1627,9 @@
 }
 .cins-editor-page .imgwrap.trio .ph:first-child {
   grid-row: span 2;
+  aspect-ratio: 1 / 1;
+  min-height: 0;
+  min-width: 0;
 }
 .cins-editor-page .imgwrap.grid4 {
   grid-template-columns: 1fr 1fr;
@@ -1679,16 +1682,14 @@
   aspect-ratio: 16/10;
 }
 .cins-editor-page .imgwrap.big-right .ph {
-  aspect-ratio: auto;
+  aspect-ratio: 1 / 1;
+  min-height: 0;
+  min-width: 0;
 }
-.cins-editor-page .imgwrap.big-right .ph:nth-child(3) {
-  aspect-ratio: 1/1;
-}
-.cins-editor-page .imgwrap.trio .ph {
-  aspect-ratio: auto;
-}
-.cins-editor-page .imgwrap.trio .ph:first-child {
-  aspect-ratio: 1/1;
+.cins-editor-page .imgwrap.trio .ph:not(:first-child) {
+  aspect-ratio: 1 / 1;
+  min-height: 0;
+  min-width: 0;
 }
 .cins-editor-page .ph img {
   width: 100%;

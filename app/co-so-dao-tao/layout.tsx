@@ -12,6 +12,7 @@ import "@/app/cins-truong-chi-tiet-v6.css";
 import "@/app/cins-truong-inline-edit.css";
 import "@/app/org-page-settings-modal.css";
 import "@/app/cins-truong-listing.css";
+import "@/components/tag/entity-page.css";
 import "@/styles/article-rich-content.css";
 
 export default async function TruongDaiHocLayout({

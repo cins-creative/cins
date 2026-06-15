@@ -28,6 +28,7 @@ import { PostBlockRenderer } from "@/components/journey/PostBlockRenderer";
 import { JourneyCommentLink } from "@/components/journey/JourneyCommentLink";
 import { JourneyArticleTagManager } from "@/components/journey/JourneyArticleTagManager";
 import { JourneyCoAuthorProposal } from "@/components/journey/JourneyCoAuthorProposal";
+import { JourneyOrgAttachTrigger } from "@/components/journey/JourneyOrgAttachTrigger";
 import { JourneyBookmarkButton } from "@/components/journey/JourneyBookmarkButton";
 import { JourneyMilestoneInlineControls } from "@/components/journey/JourneyMilestoneInlineControls";
 import { JourneyLikeButton } from "@/components/journey/JourneyLikeButton";
@@ -124,6 +125,18 @@ const TYPE_ICON: Record<MilestoneType, LucideIcon> = {
 };
 
 const EDITABLE_TYPE_OPTIONS = JOURNEY_MILESTONE_TYPE_OPTIONS;
+
+function usesOrgVerifyTypeBadge(
+  type: MilestoneType,
+  verifiedBy: string | null | undefined,
+  isCongDongPost: boolean,
+): boolean {
+  return Boolean(verifiedBy?.trim()) && type === "ca-nhan" && !isCongDongPost;
+}
+
+function MilestoneVerifyBadge() {
+  return <span className="verify-badge">Verify</span>;
+}
 
 const EDITABLE_VIS_OPTIONS: ReadonlyArray<{
   ui: NonNullable<MilestoneItem["visibility"]>;
@@ -401,7 +414,9 @@ export function JourneyMilestoneCard({
       ? "Ngày đăng"
       : "Ngày gắn thẻ";
   const canManageSelf =
-    isOwner && (variant === "self" || isBookmarkMilestone) && Boolean(ownerSlug);
+    isOwner &&
+    (variant === "self" || variant === "verified" || isBookmarkMilestone) &&
+    Boolean(ownerSlug);
   const canManageTagged =
     isOwner && variant === "tagged" && Boolean(ownerSlug) && Boolean(tacPhamId);
   const canManageForeignJourney =
@@ -420,7 +435,9 @@ export function JourneyMilestoneCard({
         }
       : undefined;
   const canBookmark = !(isOwner && (variant === "self" || isBookmarkMilestone));
-  const canManageCoAuthors = isOwner && variant === "self" && Boolean(tacPhamId);
+  const canManageCoAuthors =
+    isOwner && (variant === "self" || variant === "verified") && Boolean(tacPhamId);
+  const showOrgVerifyBadge = usesOrgVerifyTypeBadge(type, verifiedBy, isCongDongPost);
   const canManageArticleTags = canManageCoAuthors;
   const coAuthorExcludeOwnerId =
     variant === "tagged" && postOwnerId
@@ -460,6 +477,7 @@ export function JourneyMilestoneCard({
   );
   const authorsInUnfold = pinActionsAboveComments && showAuthorsStrip;
   const milestoneId = cotMocId ?? milestone.id;
+  const orgAttachCotMocId = cotMocId ?? milestone.id;
 
   /* Hiển thị badge người đăng
    *   - variant === "self" (chính chủ đăng — `authorName` là tác giả thật)
@@ -473,7 +491,7 @@ export function JourneyMilestoneCard({
    * Với các type khác (hoc/lam/du-an/...): render CẢ user-badge VÀ type-badge
    * để giữ ngữ cảnh loại cột mốc. */
   const showAuthorBadge =
-    variant === "self" &&
+    (variant === "self" || variant === "verified") &&
     Boolean(authorName || authorAvatarUrl || ownerSlug) &&
     !isCongDongPost;
   const entityPosterLabel =
@@ -650,6 +668,20 @@ export function JourneyMilestoneCard({
           ownerId={coAuthorExcludeOwnerId}
         />
       ) : null}
+      {canManageCoAuthors && tacPhamId && !isCongDongPost && ownerSlug && orgAttachCotMocId ? (
+        <JourneyOrgAttachTrigger
+          tacPhamId={tacPhamId}
+          cotMocId={orgAttachCotMocId}
+          milestoneTitle={title}
+          milestoneKind={type}
+          ownerSlug={ownerSlug}
+          postSlug={postSlug}
+          coverSrc={media[0]?.src ?? null}
+          coverAlt={media[0]?.label ?? title}
+          photoCount={media.length > 0 ? media.length : null}
+          bodyExcerpt={body ?? null}
+        />
+      ) : null}
       {inlineExpand && showUnfold ? (
         <button
           type="button"
@@ -745,6 +777,8 @@ export function JourneyMilestoneCard({
                 >
                   <CongDongTypeBadge />
                 </JourneyMilestoneInlineControls>
+              ) : showOrgVerifyBadge ? (
+                <MilestoneVerifyBadge />
               ) : (
                 <JourneyMilestoneInlineControls
                   kind="type"
@@ -811,6 +845,8 @@ export function JourneyMilestoneCard({
             <>
               {isCongDongSelfPost ? (
                 <CongDongTypeBadge />
+              ) : showOrgVerifyBadge ? (
+                <MilestoneVerifyBadge />
               ) : (
                 <span className={`ctx-badge ${TYPE_CLASS[type]}`}>
                   <MilestoneTypeBadgeContent type={type} />
@@ -925,6 +961,8 @@ export function JourneyMilestoneCard({
                     <Users size={11} strokeWidth={1.8} aria-hidden />
                     Cộng đồng
                   </span>
+                ) : showOrgVerifyBadge ? (
+                  <MilestoneVerifyBadge />
                 ) : (
                   <span className={`ctx-badge ${TYPE_CLASS[type]}`}>
                     <MilestoneTypeBadgeContent type={type} />
@@ -996,10 +1034,9 @@ export function JourneyMilestoneCard({
               {!useForeignFrame ? (
                 <>
                   <span className="badge-row">
-                    {verifiedBy ? (
-                      <span className="verify-badge">{verifiedBy}</span>
-                    ) : null}
-                    {isCongDongPost ? (
+                    {showOrgVerifyBadge ? (
+                      <MilestoneVerifyBadge />
+                    ) : isCongDongPost ? (
                       <JourneyMilestoneInlineControls
                         kind="type"
                         milestoneId={cotMocId ?? milestone.id}
@@ -1031,6 +1068,9 @@ export function JourneyMilestoneCard({
                         </span>
                       </JourneyMilestoneInlineControls>
                     )}
+                    {verifiedBy && !showOrgVerifyBadge ? (
+                      <MilestoneVerifyBadge />
+                    ) : null}
                     {vis ? (
                       <JourneyMilestoneInlineControls
                         kind="visibility"
@@ -1130,6 +1170,58 @@ export function JourneyMilestoneCard({
                 orgBaiDangRef={orgBaiDangRef}
                 dateLabel={displayDate}
               />
+            </div>
+          ) : variant === "verified" &&
+            Boolean(authorName || authorAvatarUrl || ownerSlug) &&
+            !isCongDongPost ? (
+            <div className="jcard-datebar jcard-datebar--guest">
+              <JourneyUserPopover
+                slug={ownerSlug ?? ""}
+                fallbackName={authorName || (ownerSlug ? `@${ownerSlug}` : "Người dùng")}
+                fallbackAvatarUrl={authorAvatarUrl}
+              >
+                <span className="org-chip">
+                  <span className="org-logo" aria-hidden>
+                    {authorAvatarUrl ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img src={authorAvatarUrl} alt="" />
+                    ) : (
+                      getNameInitials(authorName ?? null, ownerSlug ?? "C")
+                    )}
+                  </span>
+                  <span className="org-copy">
+                    <strong>{authorName || `@${ownerSlug ?? ""}`}</strong>
+                    <small>{displayDate}</small>
+                  </span>
+                </span>
+              </JourneyUserPopover>
+              <span className="badge-row">
+                {showOrgVerifyBadge ? (
+                  <MilestoneVerifyBadge />
+                ) : (
+                  <span className={`ctx-badge ${TYPE_CLASS[type]}`}>
+                    <MilestoneTypeBadgeContent type={type} />
+                  </span>
+                )}
+                {verifiedBy && !showOrgVerifyBadge ? (
+                  <MilestoneVerifyBadge />
+                ) : null}
+                {vis ? (
+                  <span
+                    className={`ctx-badge j-vis-${visibility ?? "public"}`}
+                    title={vis.label}
+                    aria-label={vis.label}
+                  >
+                    <vis.Icon
+                      size={11}
+                      strokeWidth={1.8}
+                      aria-hidden
+                      {...(visibility === "feature" ? { fill: "currentColor" } : {})}
+                    />
+                    {visibility === "feature" ? "Nổi bật" : vis.label}
+                  </span>
+                ) : null}
+              </span>
             </div>
           ) : null}
 
@@ -1408,9 +1500,23 @@ function CongDongSourceChip({
 
 function orgKindForOrgPopover(
   kind: MilestoneAttribution["orgKind"],
-): "cong_dong" | "truong" | undefined {
-  if (kind === "cong_dong" || kind === "truong") return kind;
+): "cong_dong" | "truong" | "co_so_dao_tao" | undefined {
+  if (
+    kind === "cong_dong" ||
+    kind === "truong" ||
+    kind === "co_so_dao_tao"
+  ) {
+    return kind;
+  }
   return undefined;
+}
+
+function viaBarPrefixLabel(attr: MilestoneAttribution): string {
+  if (attr.isOrg && attr.orgKind === "cong_dong") return "Cộng đồng";
+  if (attr.isOrg && attr.orgKind === "truong") {
+    return "Xác thực từ trường đại học";
+  }
+  return "Được gắn bởi";
 }
 
 function TaggedByPanel({
@@ -1421,14 +1527,21 @@ function TaggedByPanel({
   dateLabel: string;
 }) {
   const initial = (attr.initial || attr.name.charAt(0) || "?").toUpperCase();
-  const isCongDong = attr.isOrg && attr.orgKind === "cong_dong";
-  const Popover = isCongDong ? JourneyOrgPopover : JourneyUserPopover;
-  const avatarClass = isCongDong ? "via-avatar is-org" : "via-avatar";
+  const isOrgSource = Boolean(
+    attr.isOrg &&
+      (attr.orgKind === "cong_dong" ||
+        attr.orgKind === "truong" ||
+        attr.orgKind === "co_so_dao_tao"),
+  );
+  const Popover = isOrgSource ? JourneyOrgPopover : JourneyUserPopover;
+  const avatarClass = isOrgSource ? "via-avatar is-org" : "via-avatar";
 
   return (
-    <div className={`via-bar${isCongDong ? " is-org-source" : " is-bookmark-source"}`}>
+    <div
+      className={`via-bar${isOrgSource ? " is-org-source" : " is-bookmark-source"}`}
+    >
       <CornerDownRight size={13} strokeWidth={1.8} aria-hidden />
-      <span>{isCongDong ? "Cộng đồng" : "Được gắn bởi"}</span>
+      <span>{viaBarPrefixLabel(attr)}</span>
       <Popover
         slug={attr.slug}
         orgKind={orgKindForOrgPopover(attr.orgKind)}

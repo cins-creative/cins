@@ -243,16 +243,8 @@
 .entity-light-journey {
   min-height: 0;
   background: transparent;
-  /* Khớp độ rộng cột timeline Journey (sidebar + gallery + gutter). */
-  --entity-feed-max: min(
-    760px,
-    100%,
-    calc(
-      100vw - var(--cins-sidebar-collapsed, 64px) - var(--j-sidebar-w, 248px) -
-        var(--j-gallery-w, 280px) - 2 * var(--j-gutter, 40px) - 2 *
-        var(--space-8, 32px)
-    )
-  );
+  /* Entity light: một cột feed — không trừ sidebar/gallery Journey. */
+  --entity-feed-max: min(820px, 100%);
 }
 
 .entity-light-journey.cins-journey-page {
@@ -278,7 +270,7 @@
 
 @media (max-width: 991.98px) {
   .entity-light-journey {
-    --entity-feed-max: min(760px, 100%);
+    --entity-feed-max: min(820px, 100%);
   }
 }
 

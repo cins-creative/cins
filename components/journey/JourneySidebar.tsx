@@ -1,7 +1,6 @@
 import {
   AtSign,
   Link2,
-  Mail,
   MapPin,
   Pencil,
   Share2,
@@ -10,7 +9,7 @@ import {
 import type { EditProfileInitial } from "@/components/journey/JourneyEditProfileModal";
 import { JourneyAvatarTrigger } from "@/components/journey/JourneyAvatarTrigger";
 import { JourneyCoverTrigger } from "@/components/journey/JourneyCoverTrigger";
-import { JourneyFollowButton } from "@/components/journey/JourneyFollowButton";
+import { JourneyProfileGuestActions } from "@/components/journey/JourneyProfileGuestActions";
 import { JourneyMutualFriendsLine } from "@/components/journey/JourneyMutualFriendsLine";
 import { JourneySidebarOwnerActions } from "@/components/journey/JourneySidebarOwnerActions";
 import type { GiaiDoan } from "@/lib/auth/session";
@@ -69,7 +68,7 @@ type Props = {
  *   1. Profile cover (gradient blue→violet + blob vàng)
  *   2. Avatar tròn 68px chồng lên cover, badge `#NNN` (Journey index)
  *   3. Tên · vai trò · handle `cins.vn/{slug}`
- *   4. Action row: "Nhắn tin" (primary) + 2 icon buttons
+ *   4. Action stack: Nhắn tin (primary) + hàng Theo dõi · Kết bạn · Chia sẻ
  *   5. Info rows (📍 · 💼 · 🔗 · ✉) — bỏ row nào nếu dữ liệu thiếu
  *   6. AI Summary card (blue-soft bg)
  *   7. Stats card (Cột mốc / Tác phẩm / Tổ chức)
@@ -145,24 +144,10 @@ export function JourneySidebar({
       ) : null}
 
       {!isOwner ? (
-        <div className="j-profile-actions">
-          <button type="button" className="j-btn-msg" disabled>
-            <Mail size={14} strokeWidth={1.8} aria-hidden /> Nhắn tin
-          </button>
-          <JourneyFollowButton
-            targetUserId={profile.id}
-            viewerProfileId={viewerProfileId}
-          />
-          <button
-            type="button"
-            className="j-btn-icon"
-            title="Chia sẻ"
-            disabled
-            aria-label="Chia sẻ"
-          >
-            <Share2 size={14} strokeWidth={1.8} aria-hidden />
-          </button>
-        </div>
+        <JourneyProfileGuestActions
+          targetUserId={profile.id}
+          viewerProfileId={viewerProfileId}
+        />
       ) : editProfileInitial ? (
         <JourneySidebarOwnerActions
           ownerSlug={profile.slug}

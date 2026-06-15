@@ -39,8 +39,7 @@ const TABS = [
   { id: "bai-dang", label: CO_SO_TAB_LABELS["bai-dang"], num: "01" },
   { id: "khoa-hoc", label: CO_SO_TAB_LABELS["khoa-hoc"], num: "02" },
   { id: "san-pham", label: CO_SO_TAB_LABELS["san-pham"], num: "03" },
-  { id: "giao-vien", label: CO_SO_TAB_LABELS["giao-vien"], num: "04" },
-  { id: "hinh-anh", label: CO_SO_TAB_LABELS["hinh-anh"], num: "05" },
+  { id: "hinh-anh", label: CO_SO_TAB_LABELS["hinh-anh"], num: "04" },
 ] as const satisfies ReadonlyArray<{ id: CoSoTabId; label: string; num: string }>;
 
 type Props = {
@@ -274,13 +273,6 @@ function CoSoDetailViewInner({
               ) : null}
               {t.id === "hinh-anh" ? (
                 <CoSoTabHinhanh images={hinhanh} />
-              ) : null}
-              {t.id === "giao-vien" ? (
-                <CoSoTabPlaceholder
-                  num={t.num}
-                  title="Giáo viên"
-                  hint="Danh sách giáo viên sẽ hiện khi cơ sở gắn giảng viên vào các lớp học."
-                />
               ) : null}
             </div>
           );

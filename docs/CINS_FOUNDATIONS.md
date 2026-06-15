@@ -17,20 +17,20 @@ Hai tầng core:
 
 **Journey là nơi tích lũy. Gallery là nơi khám phá.**
 
-Kết nối giữa người có chuyên môn là giá trị cốt lõi (không phải thứ phải kìm hãm) — nhưng kết nối đi qua **entity và quan hệ thật** (tag / nghề / trường / kết bạn), không qua social graph kiểu follower hay feed thuật toán.
+Kết nối giữa người có chuyên môn là giá trị cốt lõi, và **phân bổ nội dung là động cơ tăng trưởng**. Kết nối đi qua **entity và quan hệ thật** (tag / nghề / trường / kết bạn / **theo dõi**). Gallery vừa là cửa khám phá tác phẩm public, vừa phân bổ nội dung từ người & org mà user **theo dõi** (1 chiều) — kênh reach chính, sắp theo thời gian thực ở MVP (mô hình rank để mở, xem DECISIONS).
 
 ---
 
 ## 2. Triết lý sản phẩm
 
-- **Engagement có context**: like/reaction tồn tại và hiển thị công khai (mặc định). Nhưng **KHÔNG feed thuật toán toàn cục, KHÔNG trending xuyên mạng, KHÔNG follower-user**. Discovery đi qua entity (tag/nghề/trường/Gallery) → ranking bị giới hạn trong context → viral tự triệt tiêu mà không cần cấm engagement.
+- **Engagement + phân bổ nội dung**: like/reaction công khai mặc định. **Theo dõi 1 chiều** (người & org) là kênh tăng trưởng — Gallery phân bổ nội dung public từ đối tượng user theo dõi. Discovery đi qua **cả** entity (tag/nghề/trường) **và** follow-feed (Gallery). Mảnh duy nhất giữ từ tư duy phản-vanity: **số follower không hiển thị công khai** (theo dõi là kênh nhận nội dung, không phải bảng điểm). Mô hình rank feed: thời gian thực ở MVP, để mở khả năng rank theo engagement — xem DECISIONS O13.
 - **Like là social proof thẩm mỹ**: "X người cũng thấy đẹp" = xác nhận sự đồng cảm, không phải vanity đua số. Hiển thị mặc định.
 - **Open model**: interaction (tuyển dụng, kết nối) xảy ra ở nơi khác. CINS verify và lưu kết quả.
 - **Verify là moat**: mọi quyết định thiết kế phải bảo vệ tính xác thực của timeline. Moat tồn tại *vì* có bên thứ hai phải đồng ý — bỏ bước đó để giảm tải là mất moat.
 - **Chat phải có context**: mọi chat đều gắn với dự án / lớp / sự kiện / 1-1. Không có group chat tự do.
 - **Milestone không bao giờ tự sinh từ counter**: phải có xác nhận chủ động từ người có thẩm quyền.
 - **Verified milestone bất tử**: khi org đóng cửa, milestone đã verify không mất giá trị.
-- **Quan hệ theo người = kết bạn (2 chiều)**: phục vụ danh bạ nghề + bạn chung + tag co-author. Không có "theo dõi người" 1 chiều.
+- **Hai loại quan hệ theo người**: **kết bạn** (2 chiều — cả hai thành bạn của nhau; phục vụ danh bạ nghề + bạn chung + điều kiện tag co-author) và **theo dõi** (1 chiều — không cần đồng ý; nội dung public của người được theo dõi phân bổ lên Gallery của người theo dõi). Org chỉ được **theo dõi**, không kết bạn.
 - **Tag là infrastructure, không phải content**: `keyword` và `phan_mem` không cần prose — giá trị nằm ở người và tác phẩm gom dưới tag. AI gen `tom_tat` đủ.
 - **Filter cá nhân ≠ tag toàn cục**: mỗi user/org tự tạo nhãn cục bộ ("Áo thun trơn", "BST hè") để *tự sắp xếp nội dung của chính mình*. Nhãn cá nhân KHÔNG kéo discovery xuyên người dùng (khác hẳn tag toàn cục) → không phá luật chống-viral. Xem quy tắc 29.
 - **Verify rẻ là tính năng**: gánh nặng xác thực phải nhẹ đến mức bên có thẩm quyền không thấy phiền — user đẩy yêu cầu, org chỉ bấm duyệt (org-veto, không org-pull). Xem §V.
@@ -81,8 +81,8 @@ Kết nối giữa người có chuyên môn là giá trị cốt lõi (không p
 19. Tag co-author chỉ cho phép giữa người đã kết bạn (`user_ket_ban.trang_thai='accepted'`). Check app layer trước khi INSERT `content_tac_pham_tac_gia`.
 20. Tag co-author cần consent: row `trang_thai=pending` → B nhận `social_thong_bao` → accept mới hiện trên Journey B. Owner row (`la_chu_so_huu=TRUE`) luôn `accepted`.
 21. Journey người được tag: query `content_cot_moc` gốc (của A) qua join `tac_pham_thuoc_moc → tac_pham_tac_gia WHERE id_nguoi_dung=B AND trang_thai=accepted`. Không clone. `che_do_hien_thi=chi_minh` không đẩy sang Journey B dù đã accepted.
-22. **Engagement có context**: KHÔNG feed thuật toán toàn cục / trending xuyên mạng. Discovery qua entity. Like hiển thị trong context entity, không phải nhiên liệu ranking toàn mạng.
-23. **Quan hệ theo người = kết bạn 2 chiều** (`user_ket_ban`). Không follow-user. Bạn chung tính realtime (`bạn(A) ∩ bạn(B)`), không lưu field.
+22. **Engagement + phân bổ**: like công khai. Gallery phân bổ nội dung qua **theo dõi** (follow-feed) cộng discovery qua entity. Feed sắp theo **thời gian thực** ở MVP (rank theo engagement để mở — xem DECISIONS O13). Số follower **không** hiển thị công khai.
+23. **Quan hệ người = kết bạn (2 chiều, `user_ket_ban`) + theo dõi (1 chiều, `user_theo_doi` với `loai_doi_tuong='nguoi_dung'`)**. *Kết bạn*: cả hai thành bạn; phục vụ danh bạ nghề + bạn chung (realtime `bạn(A) ∩ bạn(B)`, không lưu field) + điều kiện tag co-author. *Theo dõi*: 1 chiều, **không cần đồng ý**, không có trạng thái pending; đẩy nội dung public của người/org được theo dõi lên Gallery của người theo dõi. Org chỉ theo dõi được (`loai_doi_tuong='to_chuc'`), không kết bạn. Schema sẵn có — enum `loai_theo_doi_enum` đã gồm `nguoi_dung`/`the`/`to_chuc`, **không cần migration**.
 24. **Tạo org**: chỉ `truong_dai_hoc` cần CINS duyệt; 3 loại user tạo ngay (`co_so_dao_tao`, `studio`, `cong_dong`). Xem §O.
 25. `keyword`/`phan_mem` không có trang prose. Trang detail chỉ render `tom_tat` (AI gen) + người + tác phẩm. Không vào navigation "Bài viết". `noi_dung=NULL` mãi mãi. **Trang detail mọi entity (`keyword`/`phan_mem`/`nghe`/`mon_hoc`/`truong`...) có 2 chế độ render trên cùng tập tagged-content: Lưới (visual) + Dòng thời gian (post-card).** Là *lens* (query) trên Journey cá nhân, KHÔNG kho mới, KHÔNG có chủ — Journey vẫn là source of truth (xem DECISIONS L13). Sort: mặc định mới nhất, thêm A–Z + engagement (user chọn — engagement-sort là tùy chọn thủ công trong context, không phải feed thuật toán, không vi phạm quy tắc 22). Chỉ kéo content public; hiện rõ tác giả (phễu connect); private không lộ. Tên hiển thị "Dòng thời gian", KHÔNG gọi "Journey" để tránh loãng khái niệm.
 26. **Post cộng đồng = `content_cot_moc`** (không có bảng post riêng). Đăng bài vào cộng đồng = tạo cột mốc với `id_to_chuc`=cộng đồng + `che_do_hien_thi='cong_dong'`. Cộng đồng là **view tổng hợp cột mốc của thành viên** (như Gallery), không sở hữu nội dung. Comment/reaction/lưu trỏ cột mốc → bền. Đổi thẻ sang `public`/`theo_nhom` = "tốt nghiệp" thành milestone Journey, giữ comment, rời feed cộng đồng. Nhãn flair: `cong_dong_filter` + junction `cong_dong_filter_gan` (nối cột mốc). Mọi query Journey public PHẢI loại trừ `che_do_hien_thi='cong_dong'` — gom vào 1 helper.

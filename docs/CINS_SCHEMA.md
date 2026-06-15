@@ -833,7 +833,7 @@
 | `nam_bat_dau` | integer | YES |  |
 | `id_nganh` | uuid | YES |  |
 
-### user_theo_doi  *(follow entity: tag/org — KHÔNG follow-user, L6)*
+### user_theo_doi  *(follow 1 chiều: người/tag/org — `loai_theo_doi_enum`: nguoi_dung/the/to_chuc; L17)*
 
 | Cột | Kiểu | Null | Default |
 |---|---|---|---|

@@ -11,7 +11,7 @@
 
 | # | Câu hỏi | Trạng thái tạm | Điều kiện đóng |
 |---|---|---|---|
-| O1 | Giữ `user_theo_doi` (follow tag/org) hay bỏ hẳn? | Tạm giữ — follow `bai_viet`/`org` để nhận `social_thong_bao` | Khi có ≥1 tính năng thật cần subscribe nội dung mới (vd. notification tag). Nếu sau 1 mùa launch không dùng → DROP. |
+| O13 | Mô hình rank Gallery follow-feed: thời gian thực (MVP) hay engagement-weighted? | **Thời gian thực** ở MVP | Khi feed quá loãng hoặc có đủ data tương tác thật để rank mà không thành clickbait. Chốt trước khi scale ngoài cohort Sine Art. |
 | O2 | Chat 1-1 có gate sau kết bạn không? | Chưa gate — giữ logic chat cũ | Khi có báo cáo spam/quấy rối từ user thật, hoặc trước khi mở chat cho user ngoài cohort Sine Art. |
 | O3 | `studio` vs `doanh_nghiep` | ✅ **ĐÃ CHỐT — gộp** (xem L7). Còn lại: bao giờ `doanh_nghiep` cần tab/field riêng tách lại? | Khi có org doanh_nghiep yêu cầu tính năng studio không có. Hiện không. |
 | O4 | Cap file video | 300MB (đang cân nhắc 500MB) | Khi đo được chi phí Bunny + hành vi upload thật của cohort đầu. Chốt 1 con số trước launch. |
@@ -25,9 +25,23 @@
 
 > O7 (lớp "uy tín/hữu ích" cho `content_thao_luan`) → **đã đóng / không còn áp dụng** (xem L12): `content_thao_luan` đã bỏ, thảo luận giờ là comment trên cột mốc.
 
+> O1 (giữ `user_theo_doi` hay bỏ?) → **đã đóng / chốt GIỮ + MỞ RỘNG** (xem L17): theo dõi gồm cả `nguoi_dung` (không chỉ tag/org), nội dung được theo dõi phân bổ lên Gallery.
+
 ---
 
 ## LOG — quyết định đã chốt
+
+### Session theo dõi + phân bổ nội dung (2026-06-15)
+
+> Đảo 2 quyết định nền v6 (L5, L6). **Không có thay đổi DB** — enum `loai_theo_doi_enum` đã sẵn `nguoi_dung`/`the`/`to_chuc`.
+
+- **L17 — Mở theo dõi người (follow-user) + phân bổ nội dung lên Gallery. ĐẢO L6.**
+  Theo dõi 1 chiều, không cần đồng ý, không pending — áp cho **người** (`loai_doi_tuong='nguoi_dung'`) và **org** (`'to_chuc'`); kết bạn 2 chiều vẫn giữ song song (danh bạ nghề + bạn chung + điều kiện co-author). Nội dung public của đối tượng được theo dõi đẩy lên Gallery của người theo dõi (follow-feed). Org chỉ theo dõi được, không kết bạn.
+  *Vì sao*: L6 bỏ follow-user vì "vô nghĩa khi không feed" — nay thêm feed nên follow có nghĩa. Muốn tăng trưởng cần kênh **phân bổ nội dung**; entity-discovery một mình không đủ reach. Schema sẵn sàng (0 migration).
+
+- **L18 — Bỏ khung "anti-engagement". ĐẢO/làm rõ L5.**
+  Gỡ các cấm tuyệt đối trong triết lý: bỏ "KHÔNG follower-user" và "KHÔNG feed (toàn cục)". Phân bổ nội dung = động cơ tăng trưởng, không phải thứ phải kìm hãm. **Giữ lại đúng 1 mảnh phản-vanity: số follower không hiển thị công khai** (theo dõi là kênh nhận nội dung, không phải bảng điểm đua số). Verify vẫn là moat — phân bổ không thay thế nó.
+  *Hệ quả file*: FOUNDATIONS §1, §2 (2 bullet), quy tắc 22 + 23. IMPLEMENTATION mục Engagement + Follow. O1 đóng, mở O13 (mô hình rank feed).
 
 ### Session org-journey + filter động (2026-06-07)
 

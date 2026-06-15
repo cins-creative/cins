@@ -5,7 +5,9 @@ import { BookOpen, FileText, ShieldCheck, Users, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
-type OrgKind = "cong_dong" | "co_so_dao_tao";
+import { truongRootPath } from "@/lib/truong/truong-routes";
+
+type OrgPopoverKind = "cong_dong" | "co_so_dao_tao" | "truong";
 
 type OrgPreview = {
   slug: string;
@@ -18,6 +20,8 @@ type OrgPreview = {
   soHocVien?: number;
   soBaiViet?: number;
   soKhoaHoc?: number;
+  soNganh?: number;
+  namThanhLap?: number | null;
   daVerify?: boolean;
   loaiCoSo?: string | null;
   href: string;
@@ -25,37 +29,77 @@ type OrgPreview = {
 
 type Props = {
   slug?: string | null;
-  orgKind?: OrgKind | "truong" | null;
+  orgKind?: OrgPopoverKind | null;
   fallbackName?: string | null;
   fallbackAvatarUrl?: string | null;
   href?: string | null;
   children: React.ReactNode;
 };
 
-function previewApi(orgKind: OrgKind, slug: string): string {
-  return orgKind === "co_so_dao_tao"
-    ? `/api/co-so/preview?slug=${encodeURIComponent(slug)}`
-    : `/api/cong-dong/preview?slug=${encodeURIComponent(slug)}`;
+function previewApi(orgKind: OrgPopoverKind, slug: string): string {
+  if (orgKind === "co_so_dao_tao") {
+    return `/api/co-so/preview?slug=${encodeURIComponent(slug)}`;
+  }
+  if (orgKind === "truong") {
+    return `/api/truong/preview?slug=${encodeURIComponent(slug)}`;
+  }
+  return `/api/cong-dong/preview?slug=${encodeURIComponent(slug)}`;
 }
 
-function defaultHref(orgKind: OrgKind, slug: string): string {
-  return orgKind === "co_so_dao_tao" ? `/co-so/${slug}` : `/cong-dong/${slug}`;
+function defaultHref(orgKind: OrgPopoverKind, slug: string): string {
+  if (orgKind === "co_so_dao_tao") return `/co-so/${slug}`;
+  if (orgKind === "truong") return truongRootPath(slug);
+  return `/cong-dong/${slug}`;
 }
 
-function slugPath(orgKind: OrgKind, slug: string): string {
-  return orgKind === "co_so_dao_tao" ? `/co-so/${slug}` : `/cong-dong/${slug}`;
+function slugPath(orgKind: OrgPopoverKind, slug: string): string {
+  if (orgKind === "co_so_dao_tao") return `/co-so/${slug}`;
+  if (orgKind === "truong") return truongRootPath(slug);
+  return `/cong-dong/${slug}`;
 }
 
-function orgKicker(orgKind: OrgKind): string {
-  return orgKind === "co_so_dao_tao" ? "Cơ sở đào tạo" : "Cộng đồng";
+function orgKicker(orgKind: OrgPopoverKind): string {
+  if (orgKind === "co_so_dao_tao") return "Cơ sở đào tạo";
+  if (orgKind === "truong") return "Trường đại học";
+  return "Cộng đồng";
 }
 
-function orgPrimaryCta(orgKind: OrgKind): string {
-  return orgKind === "co_so_dao_tao" ? "Xem cơ sở" : "Xem cộng đồng";
+function orgPrimaryCta(orgKind: OrgPopoverKind): string {
+  if (orgKind === "co_so_dao_tao") return "Xem cơ sở";
+  if (orgKind === "truong") return "Xem trường";
+  return "Xem cộng đồng";
 }
 
-function isPopoverKind(orgKind: OrgKind | "truong" | null | undefined): orgKind is OrgKind {
-  return orgKind === "cong_dong" || orgKind === "co_so_dao_tao";
+function orgLoadError(orgKind: OrgPopoverKind): string {
+  if (orgKind === "co_so_dao_tao") return "Không tải được cơ sở.";
+  if (orgKind === "truong") return "Không tải được trường.";
+  return "Không tải được cộng đồng.";
+}
+
+function orgDialogLabel(orgKind: OrgPopoverKind): string {
+  if (orgKind === "co_so_dao_tao") return "Thông tin cơ sở đào tạo";
+  if (orgKind === "truong") return "Thông tin trường đại học";
+  return "Thông tin cộng đồng";
+}
+
+function isPopoverKind(
+  orgKind: OrgPopoverKind | null | undefined,
+): orgKind is OrgPopoverKind {
+  return (
+    orgKind === "cong_dong" ||
+    orgKind === "co_so_dao_tao" ||
+    orgKind === "truong"
+  );
+}
+
+function orgCardClass(orgKind: OrgPopoverKind): string {
+  if (orgKind === "co_so_dao_tao") return " is-coso";
+  if (orgKind === "truong") return " is-truong";
+  return "";
+}
+
+function orgCoverClass(orgKind: OrgPopoverKind, hasCover: boolean): string {
+  return `j-org-pop-cover${hasCover ? " has-img" : ""}${orgCardClass(orgKind)}`;
 }
 
 export function JourneyOrgPopover({
@@ -123,10 +167,7 @@ export function JourneyOrgPopover({
         }
       : null);
 
-  const dialogLabel =
-    popoverKind === "co_so_dao_tao"
-      ? "Thông tin cơ sở đào tạo"
-      : "Thông tin cộng đồng";
+  const dialogLabel = orgDialogLabel(popoverKind);
 
   return (
     <span className="j-user-pop-wrap j-org-pop-wrap" ref={wrapRef}>
@@ -165,11 +206,9 @@ export function JourneyOrgPopover({
                   <X size={16} aria-hidden />
                 </button>
                 {visible ? (
-                  <article
-                    className={`j-org-pop-card${popoverKind === "co_so_dao_tao" ? " is-coso" : ""}`}
-                  >
+                  <article className={`j-org-pop-card${orgCardClass(popoverKind)}`}>
                     <div
-                      className={`j-org-pop-cover${visible.coverUrl ? " has-img" : ""}${popoverKind === "co_so_dao_tao" ? " is-coso" : ""}`}
+                      className={orgCoverClass(popoverKind, Boolean(visible.coverUrl))}
                       aria-hidden
                     >
                       {visible.coverUrl ? (
@@ -214,6 +253,16 @@ export function JourneyOrgPopover({
                               </span>
                             ) : null}
                           </>
+                        ) : popoverKind === "truong" ? (
+                          <>
+                            <span>
+                              <BookOpen size={14} aria-hidden />
+                              <strong>{visible.soNganh ?? 0}</strong> ngành
+                            </span>
+                            {visible.namThanhLap ? (
+                              <span>Thành lập {visible.namThanhLap}</span>
+                            ) : null}
+                          </>
                         ) : (
                           <>
                             <span>
@@ -241,9 +290,7 @@ export function JourneyOrgPopover({
                   <span className="j-user-pop-loading">Đang tải…</span>
                 ) : (
                   <span className="j-user-pop-loading">
-                    {popoverKind === "co_so_dao_tao"
-                      ? "Không tải được cơ sở."
-                      : "Không tải được cộng đồng."}
+                    {orgLoadError(popoverKind)}
                   </span>
                 )}
               </div>

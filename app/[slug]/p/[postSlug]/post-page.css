@@ -518,10 +518,17 @@ body.post-page-focus-mode {
   background: transparent;
   color: inherit;
 }
+.cins-post-view .cover-add.cover-readonly .cover-img-wrap {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
 .cins-post-view .cover-add.cover-readonly img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center;
+  display: block;
 }
 
 /* Title / sub read-only — render bằng <h1>/<p> thay vì textarea. */

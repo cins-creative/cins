@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
-import type { TruongDoanProjectItem } from "@/lib/truong/doan-project-mock";
+import type { OrgDoanProjectItem } from "@/lib/journey/org-milestone-tag-types";
 
 const AVATAR_COLORS = [
   "#1F74C9",
@@ -26,7 +26,7 @@ function DoanProjectCard({
   item,
   colorIndex,
 }: {
-  item: TruongDoanProjectItem;
+  item: OrgDoanProjectItem;
   colorIndex: number;
 }) {
   const hasImage = Boolean(item.coverSrc);
@@ -48,7 +48,7 @@ function DoanProjectCard({
               src={item.coverSrc!}
               alt={item.coverAlt ?? item.projectTitle}
               fill
-              sizes="(max-width: 720px) 100vw, (max-width: 1100px) 50vw, 33vw"
+              sizes="(max-width: 576px) 100vw, 50vw"
               className="tdh-doan-card__img"
             />
           ) : (
@@ -65,10 +65,20 @@ function DoanProjectCard({
           <div className="tdh-doan-card__meta">
             <span
               className="tdh-doan-card__avatar"
-              style={{ background: avatarBg }}
+              style={item.studentAvatarUrl ? undefined : { background: avatarBg }}
               aria-hidden
             >
-              {studentInitials(item.studentName)}
+              {item.studentAvatarUrl ? (
+                <Image
+                  src={item.studentAvatarUrl}
+                  alt=""
+                  width={28}
+                  height={28}
+                  className="tdh-doan-card__avatar-img"
+                />
+              ) : (
+                studentInitials(item.studentName)
+              )}
             </span>
             <span className="tdh-doan-card__who">
               <span className="tdh-doan-card__name">{item.studentName}</span>
@@ -85,7 +95,7 @@ function DoanProjectCard({
 }
 
 type Props = {
-  projects: TruongDoanProjectItem[];
+  projects: OrgDoanProjectItem[];
 };
 
 export function TruongDoanProjectMasonry({ projects }: Props) {
