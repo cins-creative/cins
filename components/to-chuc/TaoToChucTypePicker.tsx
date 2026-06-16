@@ -4,74 +4,84 @@ import {
   ArrowRight,
   Briefcase,
   GraduationCap,
-  Info,
-  User,
-  ChevronRight,
 } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 
-import { TaoToChucPageChrome } from "@/components/to-chuc/TaoToChucPageChrome";
+import { TaoToChucDevNoticeModal } from "@/components/to-chuc/TaoToChucDevNoticeModal";
+import { TaoToChucPageShell } from "@/components/to-chuc/TaoToChucPageShell";
 
 export function TaoToChucTypePicker({ userSlug }: { userSlug: string }) {
+  const [studioNoticeOpen, setStudioNoticeOpen] = useState(false);
+
   return (
     <>
-      <TaoToChucPageChrome />
-      <div className="ttc-shell">
-      <div className="ttc-ctx">
-        <User size={15} aria-hidden />
-        <span>@{userSlug}</span>
-        <ChevronRight size={15} aria-hidden />
-        <b>Tạo tổ chức</b>
-      </div>
+      <TaoToChucDevNoticeModal
+        open={studioNoticeOpen}
+        onClose={() => setStudioNoticeOpen(false)}
+      />
+      <TaoToChucPageShell>
+        <p className="cins-login-eyebrow">@{userSlug} · tạo tổ chức</p>
+        <h1 className="cins-login-title">Tạo tổ chức</h1>
+        <p className="cins-login-sub">
+          Chọn loại tổ chức bạn muốn tạo. Bạn sẽ là quản trị viên của tổ chức
+          này.
+        </p>
 
-      <div className="ttc-card">
-        <div className="ttc-card-head">
-          <h1 className="ttc-card-title">Tạo tổ chức</h1>
-          <p className="ttc-card-sub">
-            Chọn loại tổ chức bạn muốn tạo. Bạn sẽ là quản trị viên của tổ chức
-            này.
-          </p>
-        </div>
-        <div className="ttc-card-body">
-          <div className="ttc-type-grid">
-            <Link href="/tao-to-chuc/studio" className="ttc-type-card" prefetch={false}>
-              <div className="ttc-type-ico studio">
-                <Briefcase size={26} aria-hidden />
-              </div>
-              <div className="ttc-type-name">Studio / Doanh nghiệp</div>
-              <div className="ttc-type-desc">
-                Studio sáng tạo, công ty, đội nhóm làm dự án &amp; tác phẩm.
-              </div>
-              <span className="ttc-type-arrow" aria-hidden>
-                <ArrowRight size={18} />
-              </span>
-            </Link>
-
-            <Link href="/tao-to-chuc/co-so" className="ttc-type-card" prefetch={false}>
-              <div className="ttc-type-ico edu">
-                <GraduationCap size={26} aria-hidden />
-              </div>
-              <div className="ttc-type-name">Cơ sở đào tạo</div>
-              <div className="ttc-type-desc">
-                Trung tâm, trường nghề đào tạo sáng tạo có khóa học &amp; học
-                viên.
-              </div>
-              <span className="ttc-type-arrow" aria-hidden>
-                <ArrowRight size={18} />
-              </span>
-            </Link>
-          </div>
-
-          <div className="ttc-note">
-            <Info size={15} aria-hidden />
-            <span>
-              Tạo được ngay, không cần CINS duyệt. Trường Đại học là loại riêng
-              do CINS xác minh — không nằm ở đây.
+        <div className="ttc-type-grid">
+          <button
+            type="button"
+            className="ttc-type-card"
+            onClick={() => setStudioNoticeOpen(true)}
+          >
+            <div className="ttc-type-ico studio">
+              <Briefcase size={26} aria-hidden />
+            </div>
+            <div className="ttc-type-name">Studio / Doanh nghiệp</div>
+            <div className="ttc-type-desc">
+              Studio sáng tạo, công ty, đội nhóm làm dự án &amp; tác phẩm.
+            </div>
+            <span className="ttc-type-arrow" aria-hidden>
+              <ArrowRight size={18} />
             </span>
-          </div>
+          </button>
+
+          <Link href="/tao-to-chuc/co-so" className="ttc-type-card" prefetch={false}>
+            <div className="ttc-type-ico edu">
+              <GraduationCap size={26} aria-hidden />
+            </div>
+            <div className="ttc-type-name">Cơ sở đào tạo</div>
+            <div className="ttc-type-desc">
+              Trung tâm, trường nghề đào tạo sáng tạo có khóa học &amp; học
+              viên.
+            </div>
+            <span className="ttc-type-arrow" aria-hidden>
+              <ArrowRight size={18} />
+            </span>
+          </Link>
         </div>
-      </div>
-    </div>
+
+        <ul className="cins-login-bullets ttc-bullets" aria-label="Lưu ý khi tạo tổ chức">
+          <li>
+            <span className="cins-login-bullet-ico" aria-hidden>
+              ✦
+            </span>
+            <span>
+              <strong>Tạo được ngay</strong> — không cần CINs duyệt trước khi
+              bắt đầu quản lý.
+            </span>
+          </li>
+          <li>
+            <span className="cins-login-bullet-ico" aria-hidden>
+              ✦
+            </span>
+            <span>
+              <strong>Trường đại học</strong> là loại riêng do CINs xác minh —
+              không nằm ở đây.
+            </span>
+          </li>
+        </ul>
+      </TaoToChucPageShell>
     </>
   );
 }

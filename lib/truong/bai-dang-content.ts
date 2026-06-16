@@ -111,6 +111,75 @@ export function buildLegacyPhotoGridImages(post: TruongBaiDang): GridImage[] | n
   }));
 }
 
+/** Import cũ / excerpt card hay cắt `tom_tat` đúng 200 ký tự. */
+export const BAI_DANG_TOM_TAT_LEGACY_TRUNC_LEN = 200;
+
+function htmlBlockToFirstPlainLine(html: string): string {
+  const plain = html
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/gi, " ")
+    .trim();
+  return plain.split("\n").map((l) => l.trim()).find(Boolean) ?? "";
+}
+
+function firstTextLineFromBlocks(
+  blocks: ReadonlyArray<Block> | null | undefined,
+): string {
+  if (!blocks?.length) return "";
+  for (const block of blocks) {
+    if (
+      block.loai !== "body" &&
+      block.loai !== "h2" &&
+      block.loai !== "h3" &&
+      block.loai !== "quote"
+    ) {
+      continue;
+    }
+    const html = block.config?.html;
+    if (typeof html !== "string") continue;
+    const line = htmlBlockToFirstPlainLine(html);
+    if (line) return line;
+  }
+  return "";
+}
+
+/**
+ * Mô tả ngắn đầy đủ cho unfold — khôi phục khi `tom_tat` bị cắt 200 ký tự
+ * nhưng `noi_dung` / block text còn bản dài hơn.
+ */
+export function resolveBaiDangUnfoldTomTat(post: {
+  tom_tat?: string | null;
+  noi_dung?: string | null;
+  noiDungBlocks?: Block[] | null;
+}): string | null {
+  const stored = post.tom_tat?.trim() ?? "";
+  const fromBlocks = firstTextLineFromBlocks(post.noiDungBlocks);
+  const fromLegacy = post.noi_dung?.trim()
+    ? stripHtmlToPlainText(post.noi_dung)
+    : "";
+
+  if (stored) {
+    const looksTruncated =
+      stored.length === BAI_DANG_TOM_TAT_LEGACY_TRUNC_LEN &&
+      !stored.endsWith(".") &&
+      !stored.endsWith("…");
+    if (looksTruncated) {
+      for (const full of [fromBlocks, fromLegacy]) {
+        if (full.length > stored.length && full.startsWith(stored)) {
+          return full;
+        }
+      }
+    }
+    return stored;
+  }
+
+  if (fromBlocks) return fromBlocks;
+  if (fromLegacy) return fromLegacy;
+  return null;
+}
+
 export function baiDangHasExpandableBody(post: {
   noi_dung?: string | null;
   tom_tat?: string | null;

@@ -35,7 +35,12 @@ export function PostBlockRenderer({ blocks }: Props) {
               data-block-type="imgs"
             >
               <div className="block-inner">
-                <ImageGrid images={group.images} isFirstGroup={isFirstGroup} />
+                <ImageGrid
+                  images={group.images}
+                  isFirstGroup={isFirstGroup}
+                  readOnly
+                  albumCarousel
+                />
               </div>
             </div>
           );

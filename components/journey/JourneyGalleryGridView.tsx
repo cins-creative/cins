@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { FeaturedFlagBadge } from "@/components/journey/FeaturedFlagBadge";
@@ -63,6 +64,10 @@ type Props = {
     mediaKind?: GalleryMainItem["mediaKind"];
   }>;
 };
+
+function isGalleryPostPermalink(href: string | undefined): href is string {
+  return Boolean(href && /\/p\/[^/?#]+/.test(href));
+}
 
 export function JourneyGalleryGridView({
   initialItems,
@@ -296,47 +301,71 @@ export function JourneyGalleryGridView({
         </div>
       ) : (
         <div className="j-main-gallery-grid">
-          {filtered.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              className={
-                item.featured ? "j-main-gallery-item is-featured" : "j-main-gallery-item"
-              }
-              onClick={() => openPost(item.cotMocId)}
-              aria-label={`Xem ${item.label}`}
-            >
-              <div className="j-main-gallery-thumb">
-                {item.featured ? (
-                  <FeaturedFlagBadge className="j-main-gallery-pin" />
-                ) : null}
-                <GalleryItemVisual
-                  src={item.src}
-                  srcSet={item.srcSet}
-                  sizes={
-                    item.srcSet
-                      ? "(max-width: 575px) 33vw, (max-width: 991px) 50vw, 33vw"
-                      : undefined
-                  }
-                  width={item.width}
-                  height={item.height}
-                  alt={item.label}
-                  priority={item.featured}
-                  isVideo={item.isVideo || item.mediaKind === "video"}
-                  videoProcessing={item.videoProcessing}
-                />
-                {item.isVideo || item.mediaKind === "video" ? (
-                  <GalleryVideoPlayBadge />
-                ) : null}
-              </div>
-              <span className="j-main-gallery-info">
-                <strong>{item.label}</strong>
-                {item.meta ? (
-                  <small className="j-main-gallery-date">{item.meta}</small>
-                ) : null}
-              </span>
-            </button>
-          ))}
+          {filtered.map((item) => {
+            const className = item.featured
+              ? "j-main-gallery-item is-featured"
+              : "j-main-gallery-item";
+            const body = (
+              <>
+                <div className="j-main-gallery-thumb">
+                  {item.featured ? (
+                    <FeaturedFlagBadge className="j-main-gallery-pin" />
+                  ) : null}
+                  <GalleryItemVisual
+                    src={item.src}
+                    srcSet={item.srcSet}
+                    sizes={
+                      item.srcSet
+                        ? "(max-width: 575px) 33vw, (max-width: 991px) 50vw, 33vw"
+                        : undefined
+                    }
+                    width={item.width}
+                    height={item.height}
+                    alt={item.label}
+                    priority={item.featured}
+                    isVideo={item.isVideo || item.mediaKind === "video"}
+                    videoProcessing={item.videoProcessing}
+                  />
+                  {item.isVideo || item.mediaKind === "video" ? (
+                    <GalleryVideoPlayBadge />
+                  ) : null}
+                </div>
+                <span className="j-main-gallery-info">
+                  <strong>{item.label}</strong>
+                  {item.meta ? (
+                    <small className="j-main-gallery-excerpt">{item.meta}</small>
+                  ) : null}
+                </span>
+              </>
+            );
+
+            if (isGalleryPostPermalink(item.href)) {
+              return (
+                <Link
+                  key={item.id}
+                  href={item.href}
+                  className={className}
+                  prefetch={false}
+                  scroll={false}
+                  aria-label={`Xem ${item.label}`}
+                >
+                  {body}
+                </Link>
+              );
+            }
+
+            return (
+              <button
+                key={item.id}
+                type="button"
+                className={className}
+                onClick={() => openPost(item.cotMocId)}
+                aria-label={`Xem ${item.label}`}
+              >
+                {body}
+              </button>
+            );
+          })}
         </div>
       )}
 

@@ -21,6 +21,7 @@ import { syncCoAuthorsFromEditor } from "@/lib/social/co-author";
 import type { CoAuthorDraft } from "@/lib/social/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { revalidateTaggedArticlePages } from "@/lib/tag/revalidate-tag-pages";
+import { DEFAULT_ARTICLE_POST_TITLE } from "@/lib/journey/post-media";
 
 /* ╔══════════════════════════════════════════════════════════════════╗
    ║ Server Action: publishPost                                       ║
@@ -92,10 +93,7 @@ export async function publishPost(
   }
 
   /* 2. Validate. */
-  const tieuDe = (input.tieuDe || "").trim();
-  if (!tieuDe) {
-    return { ok: false, error: "Cần nhập tiêu đề.", field: "tieuDe" };
-  }
+  const tieuDe = (input.tieuDe || "").trim() || DEFAULT_ARTICLE_POST_TITLE;
   if (tieuDe.length > MAX_TITLE) {
     return {
       ok: false,

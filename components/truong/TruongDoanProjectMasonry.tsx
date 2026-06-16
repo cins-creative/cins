@@ -1,10 +1,16 @@
 "use client";
 
 import Image from "next/image";
+import { usePathname, useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
 
+import { JourneyPostModal } from "@/components/journey/JourneyPostModal";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
-import { useJourneyPostOverlay } from "@/components/journey/useJourneyPostOverlay";
 import type { OrgDoanProjectItem } from "@/lib/journey/org-milestone-tag-types";
+import {
+  displayMediaPostTitle,
+  isPostPermalinkHref,
+} from "@/lib/journey/post-media";
 
 const AVATAR_COLORS = [
   "#1F74C9",
@@ -21,6 +27,48 @@ function studentInitials(name: string): string {
     return `${parts[0]![0] ?? ""}${parts[parts.length - 1]![0] ?? ""}`.toUpperCase();
   }
   return name.trim().slice(0, 2).toUpperCase() || "?";
+}
+
+function useTruongDoanPostOverlay(returnPath: string) {
+  const router = useRouter();
+  const [milestoneId, setMilestoneId] = useState<string | null>(null);
+  const urlSyncedRef = useRef(false);
+
+  const close = useCallback(() => {
+    setMilestoneId(null);
+    if (urlSyncedRef.current) {
+      urlSyncedRef.current = false;
+      router.replace(returnPath, { scroll: false });
+    }
+  }, [router, returnPath]);
+
+  const openItem = useCallback((item: OrgDoanProjectItem) => {
+    const id = item.cotMocId?.trim();
+    if (!id) return;
+
+    if (isPostPermalinkHref(item.href)) {
+      window.history.pushState({ cinsDoanPost: id }, "", item.href);
+      urlSyncedRef.current = true;
+    }
+
+    setMilestoneId(id);
+  }, []);
+
+  useEffect(() => {
+    const onPop = () => {
+      if (!milestoneId) return;
+      urlSyncedRef.current = false;
+      setMilestoneId(null);
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [milestoneId]);
+
+  const overlay = (
+    <JourneyPostModal milestoneId={milestoneId} onClose={close} />
+  );
+
+  return { openItem, overlay };
 }
 
 function DoanStudentMeta({
@@ -52,8 +100,12 @@ function DoanStudentMeta({
       </span>
       <span className="tdh-doan-gallery-student-text">
         <span className="tdh-doan-gallery-student-name">{item.studentName}</span>
-        {item.nganhLabel ? (
-          <span className="tdh-doan-gallery-student-nganh">{item.nganhLabel}</span>
+        {item.nganhLabel || item.nam ? (
+          <span className="tdh-doan-gallery-student-nganh">
+            {[item.nganhLabel, item.nam ? `Năm ${item.nam}` : null]
+              .filter(Boolean)
+              .join(" · ")}
+          </span>
         ) : null}
       </span>
     </span>
@@ -74,6 +126,46 @@ function DoanStudentMeta({
   return metaEl;
 }
 
+function DoanProjectCardHit({
+  item,
+  displayTitle,
+}: {
+  item: OrgDoanProjectItem;
+  displayTitle: string;
+}) {
+  const hasImage = Boolean(item.coverSrc);
+
+  return (
+    <>
+      <div
+        className="j-main-gallery-thumb"
+        style={
+          !hasImage && item.coverGradient
+            ? { background: item.coverGradient }
+            : undefined
+        }
+      >
+        {hasImage ? (
+          <Image
+            src={item.coverSrc!}
+            alt={item.coverAlt ?? item.projectTitle}
+            fill
+            sizes="(max-width: 575px) 100vw, (max-width: 991px) 50vw, 33vw"
+            className="tdh-doan-gallery-img"
+          />
+        ) : (
+          <span className="tdh-doan-gallery-initials" aria-hidden>
+            {studentInitials(item.studentName)}
+          </span>
+        )}
+      </div>
+      <span className="j-main-gallery-info">
+        <strong>{displayTitle}</strong>
+      </span>
+    </>
+  );
+}
+
 function DoanProjectCard({
   item,
   colorIndex,
@@ -81,43 +173,19 @@ function DoanProjectCard({
 }: {
   item: OrgDoanProjectItem;
   colorIndex: number;
-  onOpen: (cotMocId: string) => void;
+  onOpen: (item: OrgDoanProjectItem) => void;
 }) {
-  const hasImage = Boolean(item.coverSrc);
+  const displayTitle = displayMediaPostTitle(item.projectTitle);
 
   return (
     <div className="j-main-gallery-item">
       <button
         type="button"
         className="tdh-doan-gallery-hit"
-        onClick={() => onOpen(item.cotMocId)}
-        aria-label={`Xem đồ án ${item.projectTitle}`}
+        aria-label={`Xem đồ án ${displayTitle}`}
+        onClick={() => onOpen(item)}
       >
-        <div
-          className="j-main-gallery-thumb"
-          style={
-            !hasImage && item.coverGradient
-              ? { background: item.coverGradient }
-              : undefined
-          }
-        >
-          {hasImage ? (
-            <Image
-              src={item.coverSrc!}
-              alt={item.coverAlt ?? item.projectTitle}
-              fill
-              sizes="(max-width: 575px) 100vw, (max-width: 991px) 50vw, 33vw"
-              className="tdh-doan-gallery-img"
-            />
-          ) : (
-            <span className="tdh-doan-gallery-initials" aria-hidden>
-              {studentInitials(item.studentName)}
-            </span>
-          )}
-        </div>
-        <span className="j-main-gallery-info">
-          <strong>{item.projectTitle}</strong>
-        </span>
+        <DoanProjectCardHit item={item} displayTitle={displayTitle} />
       </button>
       <div className="tdh-doan-gallery-meta">
         <DoanStudentMeta item={item} colorIndex={colorIndex} />
@@ -131,7 +199,9 @@ type Props = {
 };
 
 export function TruongDoanProjectMasonry({ projects }: Props) {
-  const { openPost, overlay } = useJourneyPostOverlay();
+  const pathname = usePathname();
+  const returnPath = pathname.split("?")[0]?.split("#")[0] || pathname;
+  const { openItem, overlay } = useTruongDoanPostOverlay(returnPath);
 
   if (!projects.length) return null;
 
@@ -143,7 +213,7 @@ export function TruongDoanProjectMasonry({ projects }: Props) {
             key={item.id}
             item={item}
             colorIndex={i}
-            onOpen={openPost}
+            onOpen={openItem}
           />
         ))}
       </div>

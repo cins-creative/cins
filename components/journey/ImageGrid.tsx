@@ -4,6 +4,7 @@ import { Loader2 } from "lucide-react";
 import { useCallback, useState, type ReactNode } from "react";
 
 import { ImageGridOverlay } from "@/components/journey/ImageGridOverlay";
+import { ImageAlbumCarousel } from "@/components/journey/ImageAlbumCarousel";
 import { ImageLightbox } from "@/components/journey/ImageLightbox";
 import {
   albumGridComposeRows,
@@ -29,6 +30,8 @@ type Props = {
   showAllImages?: boolean;
   /** Timeline card — chạm ảnh mở lightbox (kết hợp readOnly). */
   timelineLightbox?: boolean;
+  /** Trang xem bài / popup — album ảnh: 1 ảnh + mũi tên trái/phải. */
+  albumCarousel?: boolean;
 };
 
 type CellProps = {
@@ -147,10 +150,15 @@ export function ImageGrid({
   readOnly = false,
   showAllImages = false,
   timelineLightbox = false,
+  albumCarousel = false,
 }: Props) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const total = images.length;
   if (total === 0) return null;
+
+  if (albumCarousel && total > 1) {
+    return <ImageAlbumCarousel images={images} isFirstGroup={isFirstGroup} />;
+  }
 
   const lightboxEnabled = !readOnly || timelineLightbox;
   const useButtonCells = lightboxEnabled;

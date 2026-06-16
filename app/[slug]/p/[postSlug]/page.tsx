@@ -57,7 +57,7 @@ export default async function PostPage({ params }: { params: Params }) {
     <CinsShell data-screen-label="Bài viết">
       <div className="j-post-page">
         <div className="j-post-page-inner">
-          <PostPageShell fallbackHref={`/${slug}`}>
+          <PostPageShell>
             <Suspense
               fallback={
                 <PostPageInstantFallback ownerSlug={slug} postSlug={postSlug} />

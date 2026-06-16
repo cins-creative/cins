@@ -1,12 +1,10 @@
 import { AuthGateRoot } from "@/components/auth/AuthGateProvider";
+import { CinsShell } from "@/components/cins/CinsShell";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 
+import "@/app/login/login.css";
 import "./tao-to-chuc.css";
 
-/**
- * Luồng tạo tổ chức — không bọc `CinsShell` (giống `cong-dong/tao`).
- * Tránh topbar + 7+ query đếm thông báo mỗi lần mở form đơn giản.
- */
 export default async function TaoToChucLayout({
   children,
 }: Readonly<{
@@ -17,7 +15,7 @@ export default async function TaoToChucLayout({
 
   return (
     <AuthGateRoot initialAuthenticated={initialAuthenticated}>
-      {children}
+      <CinsShell data-screen-label="Tao-to-chuc">{children}</CinsShell>
     </AuthGateRoot>
   );
 }

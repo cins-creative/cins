@@ -22,7 +22,7 @@
 | `ket-ban` · `ket-ban/[id]` · `ket-ban/[id]/block` | Gửi/hủy lời mời · thao tác 1 quan hệ · chặn |
 | `ket-ban/loi-moi` · `ket-ban/danh-sach` · `ket-ban/chung` · `ket-ban/status` | Lời mời · danh bạ · bạn chung · trạng thái cặp |
 | `follow` · `follow/status` · `follow/requests` | Follow **người + tag + org** (1 chiều, không pending) — `follow/requests` là tàn dư follow cũ, xem ⚠️ §5 |
-| `reactions` · `bookmarks` · `notifications` · `notifications/video-ready` | Like/reaction · lưu · thông báo · báo video xong |
+| `reactions` · `luu-bai` (`bookmarks` alias) · `notifications` · `notifications/video-ready` | Like/reaction · lưu về Journey (`/api/luu-bai` — tránh adblock chặn path `bookmark`) · thông báo · báo video xong |
 
 ### Journey
 | Route | Việc |
@@ -58,7 +58,7 @@
 | Route | Việc |
 |---|---|
 | `cong-dong/preview` | Card preview cộng đồng |
-| `[id]/posts` · `[id]/posts/[postId]/comments` · `[id]/posts/[postId]/bookmark` | Feed cộng đồng (`content_cot_moc` che_do=`cong_dong`) · bình luận/reaction/lưu trên cột mốc |
+| `[id]/posts` · `[id]/posts/[postId]/comments` · `[id]/posts/[postId]/luu` (`bookmark` alias) | Feed cộng đồng (`content_cot_moc` che_do=`cong_dong`) · bình luận/reaction/lưu trên cột mốc |
 | `[id]/filters` · `[id]/filters/[filterId]` | Flair/filter (seed 4 nhãn mặc định) |
 | `[id]/tham-gia` · `[id]/theo-doi` · `[id]/sidebar-live` | Tham gia · theo dõi · sidebar realtime |
 | `[id]/categories` | PATCH gắn tối đa 4 bài nghề/ngành (`org_gan_bai_viet`) — admin org |
@@ -149,6 +149,8 @@
 | `migration_journey_foreign_visibility.sql` | Visibility milestone của người được tag (quy tắc 21) |
 | `migration_co_so_dao_tao_rls.sql` | RLS đọc công khai `org_to_chuc` + `org_co_so_dao_tao` (listing hub + `/co-so/[slug]`); admin UPDATE; `filter_nhan` org nếu bảng đã có |
 | `migration_social_thong_bao_read.sql` | Trạng thái đã đọc thông báo |
+| `migration_social_luu_private_note.sql` | Cột `social_luu.ghi_chu_rieng` — ghi chú riêng khi lưu về Journey |
+| `migration_org_bai_dang_archived.sql` | Enum `trang_thai_bai_dang_enum` + value `archived` — ẩn bài đăng org (soft delete) |
 | `migration_user_theo_doi_muc.sql` | Follow entity (tag/org) — tách khỏi follow-user |
 | `migration_filter_dong.sql` | **Filter cá nhân động**: `filter_nhan` + `filter_gan` + enum `filter_doi_tuong_enum` + cột `org_bai_dang.thoi_diem` (org journey). Chạy lại an toàn (IF NOT EXISTS). |
 | `migration_org_bai_dang_reaction.sql` | Enum `loai_doi_tuong_social_enum` + value `org_bai_dang` (like/lưu polymorphic). |

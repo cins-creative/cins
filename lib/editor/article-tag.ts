@@ -12,6 +12,8 @@ export type ArticleTagRef = {
   loai_bai_viet: string;
   /** Mô tả ngắn — tooltip hover trên Journey / post modal. */
   tom_tat?: string | null;
+  /** Bài keyword/entity đã được CINs xác thực — khác thẻ gán thường. */
+  da_verify?: boolean;
 };
 
 /* ─── Shared label + color class helpers ─────────────────────────────

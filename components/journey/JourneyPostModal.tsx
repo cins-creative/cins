@@ -104,14 +104,6 @@ export function JourneyPostModal({ milestoneId, onClose }: Props) {
       aria-label="Chi tiết bài viết"
       onClick={handleBackdropClick}
     >
-      <button
-        type="button"
-        className="j-post-close"
-        aria-label="Đóng"
-        onClick={onClose}
-      >
-        ×
-      </button>
       <article
         className="j-post-sheet"
         ref={sheetRef}
@@ -131,7 +123,8 @@ export function JourneyPostModal({ milestoneId, onClose }: Props) {
             initialDetail={detail}
             postSlug={postSlug}
             isOwner={detail.viewerIsOwner}
-            hideOpenLink={false}
+            hideOpenLink
+            layout="split"
             onMilestoneUpdated={() => {
               if (!milestoneId) return;
               void loadMilestoneDetail(milestoneId).then((res) => {

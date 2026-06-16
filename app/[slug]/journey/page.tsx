@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
 import { JourneyProfileShell } from "@/app/[slug]/_components/JourneyProfileShell";
-import { JourneySidebarNavCounts } from "@/app/[slug]/_components/JourneySidebarNavCounts";
-import { JourneySidebarNavCountsSkeleton } from "@/app/[slug]/_components/JourneySidebarNavCounts.skeleton";
 import { CinsShell } from "@/components/cins/CinsShell";
 import type { EditProfileInitial } from "@/components/journey/JourneyEditProfileModal";
 import type { JourneyProfileView } from "@/components/journey/JourneySidebar";
@@ -22,7 +20,6 @@ import {
   normalizeSocialLinks,
 } from "@/lib/journey/profile";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import { Suspense } from "react";
 
 export const dynamic = "force-dynamic";
 
@@ -132,12 +129,6 @@ export async function renderJourneyPage({
   const ownerAvatarUrl = getAvatarUrl(owner.avatar_id);
   const viewerProfileId = session?.profile?.id ?? null;
 
-  const switchNav = (
-    <Suspense fallback={<JourneySidebarNavCountsSkeleton />}>
-      <JourneySidebarNavCounts ownerId={owner.id} ownerSlug={owner.slug} />
-    </Suspense>
-  );
-
   const initialCompose = isOwner
     ? parseComposeSearchParams(
         (() => {
@@ -163,7 +154,6 @@ export async function renderJourneyPage({
           viewerProfileId={viewerProfileId}
           filterVisibility={filterVisibility}
           editProfileInitial={editProfileInitial}
-          switchNav={switchNav}
           initialCompose={initialCompose}
         />
       </div>

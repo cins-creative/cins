@@ -61,10 +61,8 @@ function resolveTrangThaiPayload(input: PublishOrgBaiDangInput): {
 export async function updateOrgBaiDangClient(
   input: PublishOrgBaiDangInput & { baiDangId: string },
 ): Promise<PublishOrgBaiDangResult> {
-  const tieu_de = input.tieuDe.trim();
-  if (!tieu_de) {
-    return { ok: false, error: "Cần nhập tiêu đề." };
-  }
+  const tieu_de =
+    input.tieuDe.trim() || deriveTieuDeFallback(input.blocks);
   if (!input.blocks.length) {
     return { ok: false, error: "Bài đăng chưa có nội dung." };
   }
@@ -100,10 +98,8 @@ export async function updateOrgBaiDangClient(
 export async function publishOrgBaiDangClient(
   input: PublishOrgBaiDangInput,
 ): Promise<PublishOrgBaiDangResult> {
-  const tieu_de = input.tieuDe.trim();
-  if (!tieu_de) {
-    return { ok: false, error: "Cần nhập tiêu đề." };
-  }
+  const tieu_de =
+    input.tieuDe.trim() || deriveTieuDeFallback(input.blocks);
   if (!input.blocks.length) {
     return { ok: false, error: "Bài đăng chưa có nội dung." };
   }

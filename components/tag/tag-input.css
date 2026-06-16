@@ -199,6 +199,15 @@
   color: var(--ink-muted, #64748b);
 }
 
+.tag-input-loading--inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  border-bottom: 1px solid var(--border, #e2e8f0);
+}
+
 .tag-agg-page {
   max-width: 960px;
   margin: 0 auto;

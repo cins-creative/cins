@@ -142,11 +142,13 @@ export function JourneyComposeOverlay({
               tacPhamId: data.initial.tacPhamId,
               cotMocId: data.initial.cotMocId,
               postSlug: data.postSlug,
+              tieuDe: data.initial.tieuDe,
               visibility: data.initial.visibility,
               loaiMoc: data.initial.loaiMoc,
               thoiDiem: data.initial.thoiDiem,
               blocks: data.initial.blocks,
               kind: mediaKind,
+              articleTags: data.initial.tags,
               personalFilterIds: data.initial.personalFilterIds,
               orgBaiDangLoai: data.initial.orgBaiDangLoai,
               orgBaiDangSchedulePublishAt:

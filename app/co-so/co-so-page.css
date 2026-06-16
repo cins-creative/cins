@@ -671,22 +671,19 @@
   color: var(--ink-muted, rgba(0, 0, 0, 0.45));
   cursor: pointer;
   position: relative;
-  transition: color 0.15s;
+  transition:
+    color 0.15s,
+    background 0.15s;
 }
 
 .tdh-page--cso .cso-mobile-shell-nav-btn.is-on {
-  color: var(--cins-blue, #1f74c9);
+  color: #fff;
+  background: var(--cins-blue, #1f74c9);
+  font-weight: 700;
 }
 
 .tdh-page--cso .cso-mobile-shell-nav-btn.is-on::after {
-  content: "";
-  position: absolute;
-  left: 12px;
-  right: 12px;
-  bottom: 0;
-  height: 2px;
-  border-radius: 2px 2px 0 0;
-  background: var(--cins-blue, #1f74c9);
+  display: none;
 }
 
 /* md (≤991.98): feed trước sidebar — tab/khóa không bị che */
@@ -698,24 +695,33 @@
   }
 
   .tdh-page--cso .tdh-v6-shell--mobile-tabs {
-    --cso-mobile-shell-nav-h: 46px;
+    --cso-mobile-shell-nav-h: 44px;
   }
 
   .tdh-page--cso .tdh-v6-shell--mobile-tabs .tdh-v6-tabs-bar {
-    top: calc(var(--site-nav-height, 64px) + var(--cso-mobile-shell-nav-h, 46px));
+    top: calc(var(--site-nav-height, 64px) + var(--cso-mobile-shell-nav-h, 44px));
     z-index: 40;
+    margin-top: 0;
   }
 
   .tdh-page--cso .cso-mobile-shell-nav {
     display: flex;
     flex-shrink: 0;
     order: 0;
+    width: 100%;
+    height: var(--cso-mobile-shell-nav-h, 44px);
+    min-height: var(--cso-mobile-shell-nav-h, 44px);
+    max-height: var(--cso-mobile-shell-nav-h, 44px);
     position: sticky;
     top: var(--site-nav-height, 64px);
     z-index: 45;
     background: var(--bg-surface, #fff);
-    border-bottom: 1px solid var(--border, #e4e6eb);
+    border-bottom: none;
     box-sizing: border-box;
+  }
+
+  .tdh-page--cso .tdh-v6-shell--mobile-tabs .tdh-v6-center > .tdh-v6-tabs-bar {
+    border-top: 1px solid var(--border, #e4e6eb);
   }
 
   .tdh-page--cso .tdh-v6-shell--mobile-tabs > .cso-ss-side,
@@ -936,7 +942,7 @@
 
 /* Tab bài đăng — override timeline bar (layout chung: cins-truong-chi-tiet-v6.css) */
 .tdh-page--cso #cso-panel-bai-dang .org-baidang-tlb {
-  padding: 14px 20px;
+  padding: 14px 20px 22px;
   height: auto;
   min-height: 52px;
   box-sizing: border-box;

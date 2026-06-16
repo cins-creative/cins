@@ -4,19 +4,29 @@ import {
   extractImagesFromImgsBlock,
   gridThumbSrc,
 } from "@/lib/journey/image-grid";
+import {
+  isBrokenCfDeliveryUrl,
+  isTemporaryImageRef,
+  sanitizePersistableCoverId,
+} from "@/lib/truong/image-ref";
 import { getCfImageUrlWithFallbacks } from "@/lib/truong/images";
 import type { TruongBaiDang } from "@/lib/truong/types";
+
+export { sanitizePersistableCoverId as sanitizeBaiDangCoverIdInput };
 
 /** URL hiển thị banner bài đăng — ưu tiên `cover_src` từ server. */
 export function baiDangCoverDisplayUrl(
   post: Pick<TruongBaiDang, "cover_id" | "cover_src">,
 ): string | null {
   const src = post.cover_src?.trim();
-  if (src) return src;
+  if (src && !isBrokenCfDeliveryUrl(src)) return src;
 
   const id = post.cover_id?.trim();
   if (!id) return null;
-  if (/^https?:\/\//i.test(id)) return id;
+  if (isTemporaryImageRef(id)) return null;
+  if (/^https?:\/\//i.test(id)) {
+    return isBrokenCfDeliveryUrl(id) ? null : id;
+  }
 
   return (
     getCfImageUrlWithFallbacks(id, ["public", "cover", "medium"]) ??

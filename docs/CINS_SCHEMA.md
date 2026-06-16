@@ -699,6 +699,7 @@
 | `loai_doi_tuong` | loai_doi_tuong_social_enum | NO |  |
 | `id_doi_tuong` | uuid | NO |  |
 | `che_do_hien_thi` | che_do_luu_enum | NO | 'private'::che_do_luu_enum |
+| `ghi_chu_rieng` | text | YES |  |
 | `tao_luc` | timestamp with time zone | NO | now() |
 
 ### social_reaction
@@ -995,7 +996,7 @@
 - `tinh_thanh_vn_enum` : ha_noi / hue / hai_phong / da_nang / hcm / can_tho / cao_bang / lang_son / quang_ninh / dien_bien / lai_chau / son_la / nghe_an / ha_tinh / thanh_hoa / tuyen_quang / lao_cai / thai_nguyen / phu_tho / bac_ninh / hung_yen / ninh_binh / quang_tri / quang_ngai / gia_lai / khanh_hoa / dak_lak / lam_dong / dong_nai / tay_ninh / vinh_long / dong_thap / an_giang / ca_mau  *(34 tỉnh — quy hoạch mới)*
 - `tinh_thanh_vn_enum_old` : *(63 tỉnh cũ — legacy, KHÔNG dùng)*
 - `tinh_trang_tuyen_sinh_enum` : sap_mo / dang_mo / da_dong / co_ket_qua
-- `trang_thai_bai_dang_enum` : nhap / da_dang
+- `trang_thai_bai_dang_enum` : nhap / da_dang / archived
 - `trang_thai_chuong_trinh_enum` : dang_tuyen / tam_dung / ngung_dao_tao
 - `trang_thai_dang_ky_su_kien_enum` : cho_duyet / da_duyet / tu_choi / huy
 - `trang_thai_de_xuat_enum` : cho_review / da_duyet / tu_choi

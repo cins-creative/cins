@@ -688,11 +688,11 @@ async function resolveDoanProjectHrefs(
     const fromMoc = firstTpByMoc.get(entry.cotMocId);
     const fromPayload = entry.tacPhamId ? tpById.get(entry.tacPhamId) : undefined;
     const tp =
-      fromMoc?.slug?.trim()
-        ? fromMoc
-        : fromPayload?.slug?.trim()
-          ? fromPayload
-          : fromMoc ?? fromPayload;
+      fromPayload?.slug?.trim()
+        ? fromPayload
+        : fromMoc?.slug?.trim()
+          ? fromMoc
+          : fromPayload ?? fromMoc;
 
     if (tp?.slug?.trim()) {
       const ownerSlug =
@@ -798,7 +798,9 @@ export async function listApprovedOrgDoanProjects(
       milestoneTitle: payload.milestoneTitle,
       href:
         hrefByMoc.get(row.id_cot_moc) ??
-        postPublicHref(payload.studentSlug, null),
+        (payload.album.href?.trim() && /\/p\/[^/?#]+/.test(payload.album.href)
+          ? payload.album.href.trim()
+          : postPublicHref(payload.studentSlug, null)),
       submittedAt: row.tao_luc,
       reactionCount: reactionByMoc.get(row.id_cot_moc) ?? 0,
       coverSrc: payload.album.coverSrc ?? null,

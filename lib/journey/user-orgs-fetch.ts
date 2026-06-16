@@ -1,6 +1,7 @@
 import "server-only";
 
-import { getAvatarUrl } from "@/lib/journey/profile";
+import { loadCongDongStatsByOrgIds } from "@/lib/cong-dong/stats";
+import { getAvatarUrl, getProfileCoverUrl } from "@/lib/journey/profile";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { commentVaiTroLabel } from "@/lib/social/comments/vai-tro-label";
 import { truongRootPath } from "@/lib/truong/truong-routes";
@@ -17,6 +18,10 @@ export type UserOrgMembershipItem = {
     loaiToChuc: string;
     loaiLabel: string;
     avatarUrl: string | null;
+    coverUrl: string | null;
+    moTa: string | null;
+    memberCount?: number;
+    postCount?: number;
     href: string | null;
   };
 };
@@ -45,6 +50,8 @@ type MembershipRow = {
         ten: string;
         loai_to_chuc: string;
         avatar_id: string | null;
+        cover_id: string | null;
+        mo_ta: string | null;
         trang_thai_hoat_dong: string;
       }
     | {
@@ -53,6 +60,8 @@ type MembershipRow = {
         ten: string;
         loai_to_chuc: string;
         avatar_id: string | null;
+        cover_id: string | null;
+        mo_ta: string | null;
         trang_thai_hoat_dong: string;
       }[]
     | null;
@@ -95,9 +104,30 @@ function mapMembershipRow(row: MembershipRow): UserOrgMembershipItem | null {
       loaiToChuc: org.loai_to_chuc,
       loaiLabel: loaiToChucLabel(org.loai_to_chuc),
       avatarUrl: getAvatarUrl(org.avatar_id),
+      coverUrl: getProfileCoverUrl(org.cover_id) ?? null,
+      moTa: org.mo_ta?.trim() || null,
       href: orgPublicHref(org),
     },
   };
+}
+
+function attachCongDongStats(
+  memberships: UserOrgMembershipItem[],
+  stats: Map<string, { memberCount: number; postCount: number }>,
+): UserOrgMembershipItem[] {
+  return memberships.map((item) => {
+    if (item.org.loaiToChuc !== "cong_dong") return item;
+    const orgStats = stats.get(item.org.id);
+    if (!orgStats) return item;
+    return {
+      ...item,
+      org: {
+        ...item.org,
+        memberCount: orgStats.memberCount,
+        postCount: orgStats.postCount,
+      },
+    };
+  });
 }
 
 export async function countUserOrganizations(userId: string): Promise<number> {
@@ -112,7 +142,7 @@ export async function fetchUserOrganizationsPage(
   const { data, error } = await admin
     .from("user_thanh_vien_to_chuc")
     .select(
-      "id, vai_tro, tu_ngay, org_to_chuc: id_to_chuc ( id, slug, ten, loai_to_chuc, avatar_id, trang_thai_hoat_dong )",
+      "id, vai_tro, tu_ngay, org_to_chuc: id_to_chuc ( id, slug, ten, loai_to_chuc, avatar_id, cover_id, mo_ta, trang_thai_hoat_dong )",
     )
     .eq("id_nguoi_dung", userId)
     .eq("trang_thai", "active")
@@ -127,8 +157,14 @@ export async function fetchUserOrganizationsPage(
     .map(mapMembershipRow)
     .filter((item): item is UserOrgMembershipItem => item !== null);
 
+  const congDongOrgIds = memberships
+    .filter((item) => item.org.loaiToChuc === "cong_dong")
+    .map((item) => item.org.id);
+  const congDongStats = await loadCongDongStatsByOrgIds(congDongOrgIds);
+  const enriched = attachCongDongStats(memberships, congDongStats);
+
   return {
-    memberships,
-    totalCount: memberships.length,
+    memberships: enriched,
+    totalCount: enriched.length,
   };
 }

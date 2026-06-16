@@ -1,11 +1,10 @@
+import { JourneyProfileShellClient } from "@/app/[slug]/_components/JourneyProfileShellClient";
 import type { EditProfileInitial } from "@/components/journey/JourneyEditProfileModal";
 import {
   JourneyProfileContent,
   type JourneyProfileInitialData,
 } from "@/components/journey/JourneyProfileContent";
 import type { JourneyProfileView } from "@/components/journey/JourneySidebar";
-import { JourneySidebar } from "@/components/journey/JourneySidebar";
-import { JourneyViewProvider } from "@/components/journey/JourneyViewContext";
 import type { GiaiDoan } from "@/lib/auth/session";
 import type { LoaiMocVisibilityMap } from "@/lib/journey/filter-visibility";
 import type { JourneyComposeState } from "@/lib/journey/compose-types";
@@ -16,6 +15,7 @@ import {
   getCachedPendingCoAuthorInvites,
   getCachedPendingCoSoStaffInvites,
 } from "@/lib/journey/journey-page-cache";
+import { fetchJourneySwitchNavCounts } from "@/lib/journey/journey-nav-counts";
 import { fetchUserOrganizationsPage } from "@/lib/journey/user-orgs-fetch";
 import { Suspense } from "react";
 
@@ -48,7 +48,6 @@ type Props = {
   viewerProfileId: string | null;
   filterVisibility: LoaiMocVisibilityMap;
   editProfileInitial?: EditProfileInitial;
-  switchNav: React.ReactNode;
   initialCompose?: JourneyComposeState | null;
 };
 
@@ -159,32 +158,33 @@ export function JourneyProfileShell({
   viewerProfileId,
   filterVisibility,
   editProfileInitial,
-  switchNav,
   initialCompose = null,
 }: Props) {
-  return (
-    <JourneyViewProvider initialView={activeView} slug={owner.slug}>
-      <div className="j-shell">
-        <JourneySidebar
-          profile={{
-            id: owner.id,
-            slug: owner.slug,
-            tenHienThi: owner.ten_hien_thi,
-            avatarUrl: ownerAvatarUrl,
-            coverUrl: ownerCoverUrl,
-            bio: owner.bio,
-            tinhThanh: owner.tinh_thanh,
-            emailLienHe: emailForView,
-            mxhLinks: owner.mxh_links,
-            aiSummaryJourney: owner.ai_summary_journey,
-            giaiDoan: owner.giai_doan,
-          }}
-          isOwner={isOwner}
-          editProfileInitial={editProfileInitial}
-          viewerProfileId={viewerProfileId}
-          switchNav={switchNav}
-        />
+  const countsPromise = fetchJourneySwitchNavCounts({ ownerId: owner.id }).then(
+    ({ friendCount, orgCount }) => ({ friendCount, orgCount }),
+  );
 
+  return (
+    <JourneyProfileShellClient
+      activeView={activeView}
+      profile={{
+        id: owner.id,
+        slug: owner.slug,
+        tenHienThi: owner.ten_hien_thi,
+        avatarUrl: ownerAvatarUrl,
+        coverUrl: ownerCoverUrl,
+        bio: owner.bio,
+        tinhThanh: owner.tinh_thanh,
+        emailLienHe: emailForView,
+        mxhLinks: owner.mxh_links,
+        aiSummaryJourney: owner.ai_summary_journey,
+        giaiDoan: owner.giai_doan,
+      }}
+      isOwner={isOwner}
+      editProfileInitial={editProfileInitial}
+      viewerProfileId={viewerProfileId}
+      countsPromise={countsPromise}
+      mainPanel={
         <Suspense fallback={<JourneyMainPanelSkeleton />}>
           <JourneyProfileInitialLoader
             activeView={activeView}
@@ -199,14 +199,15 @@ export function JourneyProfileShell({
             initialCompose={initialCompose}
           />
         </Suspense>
-
+      }
+      featuredAside={
         <Suspense fallback={<JourneyFeaturedAsideSectionSkeleton />}>
           <JourneyFeaturedAsideSection
             ownerId={owner.id}
             ownerSlug={owner.slug}
           />
         </Suspense>
-      </div>
-    </JourneyViewProvider>
+      }
+    />
   );
 }

@@ -711,8 +711,7 @@
   border-radius: 24px;
   box-shadow: var(--shadow-lg, 0 14px 32px rgba(15, 23, 42, 0.10));
   /* `overflow: visible` để picker (`.add-zone .picker`) bung ra ngoài card
-     không bị crop. Cover full-bleed tự bo top corners qua
-     `.cover-add.has { border-radius: 24px 24px 0 0 }`. */
+     không bị crop. Cover nằm sau mô tả ngắn, bo góc trong canvas. */
   overflow: visible;
 }
 
@@ -735,7 +734,7 @@
   color: var(--ink-muted);
   cursor: pointer;
   transition: all 0.18s var(--ed-ease);
-  margin-bottom: 28px;
+  margin: 0 0 28px;
   background: var(--bg-surface);
   font-family: inherit;
   font-size: 14px;
@@ -858,14 +857,10 @@
   overflow: hidden;
   height: 320px;
   position: relative;
-  /* Full-bleed bên trong canvas card — chạm 4 mép card. Negative margin chỉ
-     dời vị trí, cần `width: calc(100% + 112px)` (= 56px padding × 2) để cover
-     thực sự rộng bằng border-box của canvas. Canvas đã chuyển sang
-     `overflow: visible` (để picker bung ra) nên cover phải tự bo góc trên
-     khớp `border-radius: 24px` của canvas. */
-  margin: -36px -56px 28px;
-  width: calc(100% + 112px);
-  border-radius: 24px 24px 0 0;
+  /* Sau mô tả ngắn — nằm gọn trong canvas, không full-bleed. */
+  margin: 0 0 28px;
+  width: 100%;
+  border-radius: var(--radius-lg);
   cursor: default;
 }
 .cins-editor-page .cover-add.has .cover-img-wrap {
@@ -927,7 +922,10 @@
   font-weight: 800;
   font-size: 38px;
   letter-spacing: -0.8px;
-  line-height: 1.1;
+  /* 1.1 cắt dấu tiếng Việt (Ý, Ế, Ể…) — cần leading rộng hơn cho textarea. */
+  line-height: 1.28;
+  padding: 0.08em 0 0.04em;
+  box-sizing: border-box;
   color: var(--ink-display);
   resize: none;
   outline: none;
@@ -1667,7 +1665,19 @@
   aspect-ratio: 16/10;
 }
 .cins-editor-page .imgwrap.boxed .ph {
-  aspect-ratio: 4/3;
+  aspect-ratio: auto;
+  height: auto;
+  background: transparent;
+  overflow: visible;
+  display: block;
+  line-height: 0;
+}
+.cins-editor-page .imgwrap.boxed .ph img {
+  width: 100%;
+  height: auto;
+  max-height: min(70vh, 560px);
+  object-fit: contain;
+  display: block;
 }
 .cins-editor-page .imgwrap.duo .ph,
 .cins-editor-page .imgwrap.grid4 .ph,
@@ -2729,9 +2739,9 @@
     border-radius: 18px;
   }
   .cins-editor-page .cover-add.has {
-    margin: -32px -40px 24px;
-    width: calc(100% + 80px);
-    border-radius: 18px 18px 0 0;
+    margin: 0 0 24px;
+    width: 100%;
+    border-radius: var(--radius-lg);
     height: 280px;
   }
   .cins-editor-page .title-in {
@@ -2758,9 +2768,9 @@
     height: 160px;
   }
   .cins-editor-page .cover-add.has {
-    margin: -24px -24px 20px;
-    width: calc(100% + 48px);
-    border-radius: 14px 14px 0 0;
+    margin: 0 0 20px;
+    width: 100%;
+    border-radius: var(--radius-lg);
     height: 220px;
   }
   .cins-editor-page .cover-actions {
@@ -2854,9 +2864,9 @@
     height: 140px;
   }
   .cins-editor-page .cover-add.has {
-    margin: -20px -16px 18px;
-    width: calc(100% + 32px);
-    border-radius: 0;
+    margin: 0 0 18px;
+    width: 100%;
+    border-radius: var(--radius-lg);
     height: 180px;
   }
   .cins-editor-page .title-in {
@@ -2940,7 +2950,7 @@
 .ed-coauthor-modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 9000;
+  z-index: 10100;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3481,11 +3491,33 @@
   font-size: 12px;
   color: var(--ink-muted);
 }
+.cins-editor-page.mc-compose-page .mc-compose-title {
+  display: block;
+  width: 100%;
+  border: 0;
+  padding: 0;
+  margin: 0 0 10px;
+  font-family: var(--font-display, inherit);
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.3px;
+  color: var(--ink-title);
+  background: transparent;
+}
+.cins-editor-page.mc-compose-page .mc-compose-title::placeholder {
+  color: var(--ink-muted);
+  font-weight: 600;
+}
+.cins-editor-page.mc-compose-page .mc-compose-title:focus {
+  outline: none;
+}
 .cins-editor-page.mc-compose-page .mc-compose-caption {
   width: 100%;
   border: 0;
-  resize: vertical;
-  min-height: 72px;
+  resize: none;
+  overflow: hidden;
+  min-height: 24px;
   font: inherit;
   font-size: 16px;
   line-height: 1.45;
@@ -3498,6 +3530,28 @@
 }
 .cins-editor-page.mc-compose-page .mc-compose-caption::placeholder {
   color: var(--ink-muted);
+}
+.cins-editor-page.mc-compose-page .mc-compose-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin: 0 0 12px;
+  line-height: 1.3;
+}
+.cins-editor-page.mc-compose-page .mc-compose-tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  color: var(--ink-muted);
+  transition: color 120ms ease;
+}
+.cins-editor-page.mc-compose-page .mc-compose-tag:hover {
+  color: var(--ink-body);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
 }
 .cins-editor-page.mc-compose-page .mc-photo-drop {
   display: flex;
@@ -3790,8 +3844,27 @@
 }
 .cins-editor-page.mc-compose-page .mc-compose-toolbar {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 8px;
+  flex-wrap: wrap;
   margin-top: 12px;
+}
+.cins-editor-page.mc-compose-page .mc-compose-toolbar-main {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.cins-editor-page.mc-compose-page .mc-compose-toolbar-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+.cins-editor-page.mc-compose-page .mc-compose-toolbar-meta .j-article-tag-manage,
+.cins-editor-page.mc-compose-page .mc-compose-toolbar-meta .j-coauthor-propose,
+.cins-editor-page.mc-compose-page .mc-compose-toolbar-meta .j-org-attach {
+  display: inline-flex;
 }
 .cins-editor-page.mc-compose-page .mc-compose-toolbar-btn {
   display: inline-flex;
@@ -3942,7 +4015,7 @@
   padding-left: 56px;
 }
 .cins-editor-page.is-overlay .cover-add.has {
-  /* Overlay: nằm gọn trong canvas, không full-bleed ra mép sheet. */
+  /* Overlay: ngay sau mô tả ngắn. */
   margin: 0 0 24px;
   width: 100%;
   height: 220px;

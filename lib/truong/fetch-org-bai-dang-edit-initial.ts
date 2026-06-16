@@ -4,6 +4,7 @@ import type { EditorInitial } from "@/components/editor/EditorView";
 import type { Block, LoaiMoc, Visibility } from "@/lib/editor/types";
 import { normalizeLoaiBaiDang } from "@/lib/truong/bai-dang";
 import { parseBaiDangBlocks } from "@/lib/truong/bai-dang-blocks";
+import { sanitizePersistableCoverId } from "@/lib/truong/image-ref";
 import { isTruongOrgAdmin } from "@/lib/truong/org-admin";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { ORG_BAI_DANG_API_SELECT } from "@/lib/truong/bai-dang-api-fields";
@@ -58,7 +59,7 @@ export async function fetchOrgBaiDangEditInitial(params: {
     cotMocId: params.orgId,
     tieuDe: data.tieu_de?.trim() ?? "",
     moTa: data.tom_tat?.trim() || null,
-    coverSeed: data.cover_id?.trim() || null,
+    coverSeed: sanitizePersistableCoverId(data.cover_id, blocks),
     tags: [],
     visibility: "public" as Visibility,
     loaiMoc: "ca_nhan" as LoaiMoc,

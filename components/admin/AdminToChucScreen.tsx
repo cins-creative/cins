@@ -5,36 +5,24 @@ import {
   Building2,
   ExternalLink,
   GraduationCap,
+  Loader2,
   Pencil,
   Plus,
   Search,
   Users,
 } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { BadgeTinCay } from "@/components/admin/badges";
+import type {
+  AdminToChucListResponse,
+  AdminToChucListRow,
+  AdminToChucLoaiFilter,
+} from "@/lib/admin/to-chuc-types";
 import { truongRootPath } from "@/lib/truong/truong-routes";
 
-type LoaiToChuc =
-  | "all"
-  | "truong_dai_hoc"
-  | "co_so_dao_tao"
-  | "cong_dong"
-  | "studio";
-
-type MockOrgRow = {
-  ten: string;
-  slug: string;
-  loai: Exclude<LoaiToChuc, "all">;
-  loaiLabel: string;
-  tinhThanh: string;
-  tinCay: "verified_official" | "binh_thuong";
-  journey: string;
-  showVerify?: boolean;
-};
-
-const LOAI_FILTERS: { id: LoaiToChuc; label: string }[] = [
+const LOAI_FILTERS: { id: AdminToChucLoaiFilter; label: string }[] = [
   { id: "all", label: "Tất cả" },
   { id: "truong_dai_hoc", label: "Trường ĐH" },
   { id: "co_so_dao_tao", label: "Cơ sở đào tạo" },
@@ -42,38 +30,17 @@ const LOAI_FILTERS: { id: LoaiToChuc; label: string }[] = [
   { id: "studio", label: "Studio" },
 ];
 
-const ROWS: MockOrgRow[] = [
-  {
-    ten: "Trường ĐH Mỹ thuật TP.HCM",
-    slug: "dai-hoc-my-thuat-tp-hcm",
-    loai: "truong_dai_hoc",
-    loaiLabel: "Trường ĐH",
-    tinhThanh: "TP.HCM",
-    tinCay: "verified_official",
-    journey: "—",
-  },
-  {
-    ten: "Sine Art",
-    slug: "sine-art",
-    loai: "co_so_dao_tao",
-    loaiLabel: "Cơ sở đào tạo",
-    tinhThanh: "TP.HCM",
-    tinCay: "binh_thuong",
-    journey: "520",
-    showVerify: true,
-  },
-  {
-    ten: "Cộng đồng Game Art VN",
-    slug: "game-art-vn",
-    loai: "cong_dong",
-    loaiLabel: "Cộng đồng",
-    tinhThanh: "—",
-    tinCay: "binh_thuong",
-    journey: "1.2k",
-  },
-];
+const EMPTY_STATS: AdminToChucListResponse["stats"] = {
+  total: 0,
+  pendingVerify: 0,
+  verified: 0,
+  truong: 0,
+  coSo: 0,
+  congDong: 0,
+  studio: 0,
+};
 
-function orgViewHref(row: MockOrgRow): string | null {
+function orgViewHref(row: AdminToChucListRow): string | null {
   switch (row.loai) {
     case "truong_dai_hoc":
       return truongRootPath(row.slug);
@@ -86,7 +53,7 @@ function orgViewHref(row: MockOrgRow): string | null {
   }
 }
 
-function LoaiIcon({ loai }: { loai: MockOrgRow["loai"] }) {
+function LoaiIcon({ loai }: { loai: AdminToChucListRow["loai"] }) {
   const props = { size: 16, strokeWidth: 2, "aria-hidden": true as const };
   switch (loai) {
     case "truong_dai_hoc":
@@ -105,49 +72,71 @@ function orgInitial(ten: string): string {
   return (word?.charAt(0) ?? "?").toUpperCase();
 }
 
-export function AdminToChucScreen() {
-  const [loaiFilter, setLoaiFilter] = useState<LoaiToChuc>("all");
-  const [query, setQuery] = useState("");
+function AdminOrgLogo({ row }: { row: AdminToChucListRow }) {
+  const hasImg = Boolean(row.avatarUrl);
+  return (
+    <span
+      className={`admin-to-chuc-org-ava admin-to-chuc-org-ava--${row.loai}${hasImg ? " admin-to-chuc-org-ava--has-img" : ""}`}
+      aria-hidden
+    >
+      {hasImg ? (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img src={row.avatarUrl!} alt="" />
+      ) : (
+        orgInitial(row.ten)
+      )}
+    </span>
+  );
+}
 
-  const filteredRows = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return ROWS.filter((row) => {
-      if (loaiFilter !== "all" && row.loai !== loaiFilter) return false;
-      if (!q) return true;
-      return (
-        row.ten.toLowerCase().includes(q) ||
-        row.slug.toLowerCase().includes(q) ||
-        row.loaiLabel.toLowerCase().includes(q) ||
-        row.tinhThanh.toLowerCase().includes(q)
-      );
-    });
+export function AdminToChucScreen() {
+  const [loaiFilter, setLoaiFilter] = useState<AdminToChucLoaiFilter>("all");
+  const [query, setQuery] = useState("");
+  const [rows, setRows] = useState<AdminToChucListRow[]>([]);
+  const [stats, setStats] = useState(EMPTY_STATS);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const qs = new URLSearchParams();
+      if (loaiFilter !== "all") qs.set("loai", loaiFilter);
+      if (query.trim()) qs.set("q", query.trim());
+      const res = await fetch(`/api/admin/to-chuc/list?${qs.toString()}`);
+      if (!res.ok) {
+        throw new Error("Không tải được danh sách tổ chức.");
+      }
+      const data = (await res.json()) as AdminToChucListResponse;
+      setRows(data.rows ?? []);
+      setStats(data.stats ?? EMPTY_STATS);
+    } catch (e) {
+      setRows([]);
+      setStats(EMPTY_STATS);
+      setError(e instanceof Error ? e.message : "Lỗi không xác định.");
+    } finally {
+      setLoading(false);
+    }
   }, [loaiFilter, query]);
 
-  const stats = useMemo(() => {
-    const pendingVerify = ROWS.filter((row) => row.showVerify).length;
-    const verified = ROWS.filter((row) => row.tinCay === "verified_official").length;
-    const byLoai = (loai: MockOrgRow["loai"]) =>
-      ROWS.filter((row) => row.loai === loai).length;
-    return {
-      total: ROWS.length,
-      pendingVerify,
-      verified,
-      truong: byLoai("truong_dai_hoc"),
-      coSo: byLoai("co_so_dao_tao"),
-      congDong: byLoai("cong_dong"),
-    };
-  }, []);
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void load();
+    }, query.trim() ? 220 : 0);
+    return () => window.clearTimeout(timer);
+  }, [load, query]);
 
-  const filterCounts = useMemo(() => {
-    const counts: Record<LoaiToChuc, number> = {
-      all: ROWS.length,
+  const filterCounts = useMemo(
+    () => ({
+      all: stats.total,
       truong_dai_hoc: stats.truong,
       co_so_dao_tao: stats.coSo,
       cong_dong: stats.congDong,
-      studio: ROWS.filter((row) => row.loai === "studio").length,
-    };
-    return counts;
-  }, [stats]);
+      studio: stats.studio,
+    }),
+    [stats],
+  );
 
   return (
     <div className="admin-to-chuc-page">
@@ -222,9 +211,29 @@ export function AdminToChucScreen() {
             </div>
 
             <p className="admin-to-chuc-result">
-              Hiển thị <strong>{filteredRows.length}</strong> / {ROWS.length}
+              {loading ? (
+                <>
+                  <Loader2
+                    size={14}
+                    strokeWidth={2}
+                    className="admin-to-chuc-spin"
+                    aria-hidden
+                  />{" "}
+                  Đang tải…
+                </>
+              ) : (
+                <>
+                  Hiển thị <strong>{rows.length}</strong> / {stats.total}
+                </>
+              )}
             </p>
           </div>
+
+          {error ? (
+            <p className="admin-to-chuc-error" role="alert">
+              {error}
+            </p>
+          ) : null}
 
           <div className="admin-to-chuc-table-wrap">
             <table className="admin-to-chuc-table">
@@ -239,25 +248,20 @@ export function AdminToChucScreen() {
                 </tr>
               </thead>
               <tbody>
-                {filteredRows.length === 0 ? (
+                {!loading && rows.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="admin-table-empty">
                       Không có tổ chức phù hợp bộ lọc.
                     </td>
                   </tr>
                 ) : (
-                  filteredRows.map((row) => {
+                  rows.map((row) => {
                     const viewHref = orgViewHref(row);
                     return (
-                      <tr key={row.slug}>
+                      <tr key={row.id}>
                         <td>
                           <div className="admin-to-chuc-org">
-                            <span
-                              className={`admin-to-chuc-org-ava admin-to-chuc-org-ava--${row.loai}`}
-                              aria-hidden
-                            >
-                              {orgInitial(row.ten)}
-                            </span>
+                            <AdminOrgLogo row={row} />
                             <span className="admin-to-chuc-org-copy">
                               <span className="admin-to-chuc-org-name">{row.ten}</span>
                               <span className="admin-to-chuc-org-slug">@{row.slug}</span>
@@ -325,10 +329,6 @@ export function AdminToChucScreen() {
             </table>
           </div>
         </section>
-
-        <p className="admin-to-chuc-footnote">
-          Mock UI — chưa nối API <code>org_to_chuc</code>.
-        </p>
       </div>
     </div>
   );

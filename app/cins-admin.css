@@ -4381,6 +4381,19 @@
   justify-content: center;
   font-size: 14px;
   font-weight: 800;
+  overflow: hidden;
+}
+
+.cins-admin .admin-to-chuc-org-ava img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.cins-admin .admin-to-chuc-org-ava--has-img {
+  background: var(--surface-2, #f8f9fb);
+  color: inherit;
 }
 
 .cins-admin .admin-to-chuc-org-ava--truong_dai_hoc {
@@ -4517,6 +4530,28 @@
 .cins-admin .admin-to-chuc-act--view {
   border-color: rgba(31, 116, 201, 0.25);
   color: var(--cins-blue-dark);
+}
+
+.cins-admin .admin-to-chuc-error {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fff0f1;
+  border: 1px solid #f5c8ca;
+  color: #991b1b;
+  font-size: 13px;
+}
+
+.cins-admin .admin-to-chuc-spin {
+  display: inline-block;
+  vertical-align: -2px;
+  animation: admin-to-chuc-spin 0.8s linear infinite;
+}
+
+@keyframes admin-to-chuc-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .cins-admin .admin-to-chuc-footnote {

@@ -4,6 +4,7 @@ import { Check, Clock3, UserCheck, UserMinus, UserPlus, X } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 
 import { emitNotificationsChanged } from "@/lib/journey/notifications-client";
+import type { MutualFriendsState } from "@/lib/social/use-mutual-friends";
 import type { QuanHe } from "@/lib/social/types";
 
 type KetBanStatus = {
@@ -14,11 +15,13 @@ type KetBanStatus = {
 type Props = {
   targetUserId: string;
   viewerProfileId: string | null;
+  mutual?: MutualFriendsState;
 };
 
 export function JourneyFollowButton({
   targetUserId,
   viewerProfileId,
+  mutual,
 }: Props) {
   const [status, setStatus] = useState<KetBanStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -137,9 +140,15 @@ export function JourneyFollowButton({
         ? "pending"
         : "idle";
 
+  const mutualLabel = mutual?.loading
+    ? "…"
+    : `${mutual?.count ?? 0} bạn chung`;
+
   const label =
     quanHe === "accepted"
-      ? "Bạn bè"
+      ? mutual?.visible
+        ? mutualLabel
+        : "Bạn bè"
       : quanHe === "pending_sent"
         ? "Đã gửi lời mời"
         : quanHe === "pending_received"

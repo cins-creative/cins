@@ -75,6 +75,7 @@ import type {
   Visibility as ServerVisibility,
 } from "@/lib/editor/types";
 import type { CongDongComposeConfig } from "@/lib/cong-dong/types";
+import { DEFAULT_ARTICLE_POST_TITLE } from "@/lib/journey/post-media";
 import { readImageFileFromClipboard } from "@/lib/files/clipboard-images";
 import { OrgBaiDangLoaiComposeDropdown } from "@/components/truong/OrgBaiDangLoaiComposeDropdown";
 import { OrgBaiDangScheduleComposeButton } from "@/components/truong/OrgBaiDangScheduleComposeButton";
@@ -92,6 +93,8 @@ import {
   formatOrgBaiDangScheduleLabel,
   isFutureOrgBaiDangSchedule,
 } from "@/lib/truong/org-bai-dang-schedule";
+import { sanitizeBaiDangCoverIdInput } from "@/lib/truong/bai-dang-cover";
+import { isTemporaryImageRef } from "@/lib/truong/image-ref";
 
 /* ╔══════════════════════════════════════════════════════════════════╗
    ║ CINs Editor — port từ mockup `cins-editor.html`, theo brief     ║
@@ -473,8 +476,8 @@ export function EditorView({
   /* Huỷ → journey (không link `/p/slug` — intercept modal sẽ mở popup thay vì thoát edit). */
   const cancelHref = `/${ownerSlug}`;
 
-  const [coverSeed, setCoverSeed] = useState<string | null>(
-    initial?.coverSeed ?? null,
+  const [coverSeed, setCoverSeed] = useState<string | null>(() =>
+    sanitizeBaiDangCoverIdInput(initial?.coverSeed ?? null, initial?.blocks),
   );
   const [title, setTitle] = useState(initial?.tieuDe ?? "");
   const [sub, setSub] = useState(initial?.moTa ?? "");
@@ -1008,10 +1011,6 @@ export function EditorView({
 
     const serverBlocks: ServerBlock[] = toServerBlocks(blocks);
 
-    if (!title.trim()) {
-      setToast("Cần nhập tiêu đề trước khi đăng.");
-      return;
-    }
     if (blocks.length === 0) {
       setToast("Bài viết chưa có nội dung. Thêm ít nhất một block.");
       return;
@@ -1022,9 +1021,9 @@ export function EditorView({
       return;
     }
 
-    const tieuDeFinal = title.trim();
+    const tieuDeFinal = title.trim() || DEFAULT_ARTICLE_POST_TITLE;
     const moTaFinal = sub.trim();
-    const coverFinal = coverSeed;
+    const coverFinal = sanitizeBaiDangCoverIdInput(coverSeed, serverBlocks);
 
     startTransition(async () => {
       if (orgBaiDangCompose && isEdit && initial) {
@@ -1259,13 +1258,6 @@ export function EditorView({
         className="editor-canvas"
         aria-label={`Soạn bài cho ${ownerName}`}
       >
-        <CoverArea
-          seed={coverSeed}
-          onSeedChange={setCoverSeed}
-          onUploadResolved={replaceImageSeed}
-          onRemove={() => setCoverSeed(null)}
-        />
-
         <AutosizeTextarea
           className="title-in"
           placeholder="Tiêu đề bài viết…"
@@ -1279,6 +1271,13 @@ export function EditorView({
           value={sub}
           onChange={setSub}
           maxRows={3}
+        />
+
+        <CoverArea
+          seed={coverSeed}
+          onSeedChange={setCoverSeed}
+          onUploadResolved={replaceImageSeed}
+          onRemove={() => setCoverSeed(null)}
         />
 
         <div className="blocks">
@@ -1412,10 +1411,9 @@ function startEditorImageUpload(
         rememberCfAccountHashFromDeliveryUrl(json.url);
       }
       onUploadResolved?.(localSeed, json.imageId);
+      URL.revokeObjectURL(localSeed);
     } catch {
       /* Preview local vẫn hiện. */
-    } finally {
-      URL.revokeObjectURL(localSeed);
     }
   })();
 }
@@ -1551,7 +1549,13 @@ function CoverArea({
         {...coverDragProps}
       >
         <div className="cover-img-wrap">
-          <img src={ph(seed, 1600, 640)} alt="Ảnh bìa" />
+          <img
+            src={ph(seed, 1600, 640)}
+            alt="Ảnh bìa"
+            onError={() => {
+              if (isTemporaryImageRef(seed)) onRemove();
+            }}
+          />
         </div>
         {picking ? (
           <div className="cover-pick-overlay" role="dialog" aria-label="Đổi ảnh bìa">
@@ -2648,7 +2652,7 @@ function AutosizeTextarea({
     const ta = ref.current;
     if (!ta) return;
     ta.style.height = "auto";
-    ta.style.height = `${ta.scrollHeight}px`;
+    ta.style.height = `${ta.scrollHeight + 2}px`;
   }, []);
 
   useEffect(() => {

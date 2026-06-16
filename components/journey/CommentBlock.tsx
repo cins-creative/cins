@@ -81,6 +81,8 @@ export type CommentBlockProps = {
     replyToId?: string | null,
     anhDinhKem?: string[],
   ) => Promise<CommentSubmitResult>;
+  /** Split rail — ô nhập luôn dính đáy, danh sách BL scroll phía trên. */
+  pinCompose?: boolean;
 };
 
 export function CommentBlock(props: CommentBlockProps) {
@@ -91,6 +93,7 @@ export function CommentBlock(props: CommentBlockProps) {
     onCommentAdded,
     sectionId = "post-comments",
     submitComment,
+    pinCompose = false,
   } = props;
   const authGate = useOptionalAuthGate();
   const openAuthModal = useCallback(
@@ -182,13 +185,15 @@ export function CommentBlock(props: CommentBlockProps) {
     composeResetKey,
   };
 
-  return (
-    <section className="post-comments post-comments-v1" id={sectionId} aria-label="Bình luận">
-      <header className="post-comments-head">
-        <h2>Bình luận</h2>
-        <span className="post-comments-count">{threadCount}</span>
-      </header>
+  const commentsHead = (
+    <header className="post-comments-head">
+      <h2>Bình luận</h2>
+      <span className="post-comments-count">{threadCount}</span>
+    </header>
+  );
 
+  const commentsBody = (
+    <>
       {comments.length === 0 ? (
         <div className="post-comments-empty">
           Chưa có bình luận nào. Bạn là người đầu tiên ✨
@@ -208,34 +213,60 @@ export function CommentBlock(props: CommentBlockProps) {
           ))}
         </ol>
       )}
-
       {err ? <div className="post-comments-err">{err}</div> : null}
+    </>
+  );
 
-      {viewerCanComment ? (
-        !replyTo ? (
-          <CommentComposeForm key={composeResetKey} {...composeProps} />
-        ) : null
+  const composeFooter = viewerCanComment ? (
+    !replyTo ? (
+      <CommentComposeForm key={composeResetKey} {...composeProps} />
+    ) : null
+  ) : (
+    <div className="post-comments-login">
+      <button
+        type="button"
+        className="post-comments-login-btn"
+        onClick={() =>
+          openAuthModal("Đăng nhập hoặc tạo tài khoản để bình luận bài viết này.")
+        }
+      >
+        Đăng nhập
+      </button>{" "}
+      hoặc{" "}
+      <button
+        type="button"
+        className="post-comments-login-btn"
+        onClick={() => openAuthModal("Tạo tài khoản CINs để tham gia thảo luận.")}
+      >
+        tạo tài khoản
+      </button>{" "}
+      để bình luận.
+    </div>
+  );
+
+  return (
+    <section
+      className={
+        "post-comments post-comments-v1" +
+        (pinCompose ? " post-comments--pin-compose" : "")
+      }
+      id={sectionId}
+      aria-label="Bình luận"
+    >
+      {pinCompose ? (
+        <>
+          <div className="post-comments-scroll">
+            {commentsHead}
+            {commentsBody}
+          </div>
+          {composeFooter}
+        </>
       ) : (
-        <div className="post-comments-login">
-          <button
-            type="button"
-            className="post-comments-login-btn"
-            onClick={() =>
-              openAuthModal("Đăng nhập hoặc tạo tài khoản để bình luận bài viết này.")
-            }
-          >
-            Đăng nhập
-          </button>{" "}
-          hoặc{" "}
-          <button
-            type="button"
-            className="post-comments-login-btn"
-            onClick={() => openAuthModal("Tạo tài khoản CINs để tham gia thảo luận.")}
-          >
-            tạo tài khoản
-          </button>{" "}
-          để bình luận.
-        </div>
+        <>
+          {commentsHead}
+          {commentsBody}
+          {composeFooter}
+        </>
       )}
     </section>
   );

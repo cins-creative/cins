@@ -6,6 +6,7 @@ import {
   ORG_BAI_DANG_API_SELECT,
 } from "@/lib/truong/bai-dang-api-fields";
 import { normalizeLoaiBaiDang } from "@/lib/truong/bai-dang";
+import { sanitizeBaiDangCoverIdInput } from "@/lib/truong/bai-dang-cover";
 import { assertTruongOrgWriteApi } from "@/lib/truong/inline-api-auth";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -38,7 +39,6 @@ export async function POST(request: Request, context: RouteContext) {
     loai_bai_dang: normalizeLoaiBaiDang(body.loai_bai_dang),
     tom_tat: body.tom_tat ?? null,
     noi_dung: body.noi_dung ?? null,
-    cover_id: body.cover_id ?? null,
     trang_thai: body.trang_thai ?? "da_dang",
   };
   if ("tao_luc" in body) {
@@ -55,6 +55,10 @@ export async function POST(request: Request, context: RouteContext) {
   if ("noi_dung_blocks" in body) {
     insertRow.noi_dung_blocks = sanitizeBaiDangBlocksInput(body.noi_dung_blocks);
   }
+  insertRow.cover_id = sanitizeBaiDangCoverIdInput(
+    body.cover_id,
+    insertRow.noi_dung_blocks as ReturnType<typeof sanitizeBaiDangBlocksInput> | undefined,
+  );
 
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase

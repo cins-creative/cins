@@ -1,13 +1,16 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
-import { CheckCircle2, Clock3, XCircle } from "lucide-react";
+import { CheckCircle2, ChevronLeft, Clock3, XCircle } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { JourneyPostBody } from "@/components/journey/JourneyPostBody";
 import { TruongInlineModal } from "@/components/truong/inline/TruongInlineModal";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
+import type { MilestonePostDetail } from "@/lib/journey/milestone-post-types";
+import { milestoneContentKind } from "@/lib/journey/post-media";
 import type {
+  OrgAttachEvidence,
   OrgMilestoneTagRequestItem,
   OrgMilestoneTagStatus,
 } from "@/lib/journey/org-milestone-tag-types";
@@ -15,9 +18,10 @@ import {
   formatTaggedAt,
   milestoneKindLabel,
   notifyStatusLabel,
-  type MilestoneTagAlbum,
-  type MilestoneTagEvidence,
 } from "@/lib/truong/milestone-tag-notify-mock";
+/* CSS block bài viết — trang trường không load qua layout parent. */
+import "@/app/[slug]/p/new/editor.css";
+import "@/app/[slug]/p/[postSlug]/post-page.css";
 
 function BellIcon() {
   return (
@@ -36,33 +40,6 @@ function BellIcon() {
   );
 }
 
-function AlbumIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <rect x="3" y="3" width="18" height="18" rx="2" />
-      <circle cx="8.5" cy="8.5" r="1.5" />
-      <path d="m21 15-5-5L5 21" />
-    </svg>
-  );
-}
-
-function EvidenceIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <path d="M9 12l2 2 4-4" />
-      <path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
-    </svg>
-  );
-}
-
-function ExternalIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <path d="M7 17 17 7M9 7h8v8" />
-    </svg>
-  );
-}
-
 function studentInitials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length >= 2) {
@@ -74,12 +51,17 @@ function studentInitials(name: string): string {
 function StudentAvatar({
   name,
   avatarUrl,
+  compact = false,
 }: {
   name: string;
   avatarUrl: string | null;
+  compact?: boolean;
 }) {
   return (
-    <span className="tdh-milestone-tag-avatar" aria-hidden>
+    <span
+      className={`tdh-milestone-tag-avatar${compact ? " tdh-milestone-tag-avatar--sm" : ""}`}
+      aria-hidden
+    >
       {avatarUrl ? (
         /* eslint-disable-next-line @next/next/no-img-element */
         <img src={avatarUrl} alt="" />
@@ -101,6 +83,30 @@ function TagStatusBadge({ status }: { status: OrgMilestoneTagStatus }) {
   );
 }
 
+function parsePostHref(
+  href: string,
+): { ownerSlug: string; postSlug: string } | null {
+  const trimmed = href.trim();
+  if (!trimmed) return null;
+  try {
+    const path = trimmed.startsWith("http")
+      ? new URL(trimmed).pathname
+      : trimmed.split("?")[0]!;
+    const parts = path.split("/").filter(Boolean);
+    const pIdx = parts.indexOf("p");
+    if (pIdx >= 0 && parts[pIdx + 1]) {
+      const ownerSlug = parts[pIdx - 1] ?? parts[0];
+      const postSlug = parts[pIdx + 1];
+      if (ownerSlug && postSlug) {
+        return { ownerSlug, postSlug };
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
 type FilterKey = "all" | OrgMilestoneTagStatus;
 
 export function TruongMilestoneTagNotify() {
@@ -110,6 +116,8 @@ export function TruongMilestoneTagNotify() {
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterKey>("all");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [mobileShowDetail, setMobileShowDetail] = useState(false);
 
   const loadItems = useCallback(async () => {
     if (!ctx?.orgId) return;
@@ -139,6 +147,10 @@ export function TruongMilestoneTagNotify() {
 
   useEffect(() => {
     if (open) void loadItems();
+    else {
+      setSelectedId(null);
+      setMobileShowDetail(false);
+    }
   }, [open, loadItems]);
 
   const pendingCount = useMemo(
@@ -150,6 +162,19 @@ export function TruongMilestoneTagNotify() {
     if (filter === "all") return items;
     return items.filter((i) => i.status === filter);
   }, [items, filter]);
+
+  useEffect(() => {
+    if (filtered.length === 0) {
+      setSelectedId(null);
+      return;
+    }
+    if (!selectedId || !filtered.some((r) => r.id === selectedId)) {
+      setSelectedId(filtered[0]!.id);
+    }
+  }, [filtered, selectedId]);
+
+  const selectedRow =
+    filtered.find((r) => r.id === selectedId) ?? filtered[0] ?? null;
 
   if (!ctx?.canEdit || !ctx.isEditing) return null;
 
@@ -185,6 +210,11 @@ export function TruongMilestoneTagNotify() {
     }
   }
 
+  function selectRow(id: string) {
+    setSelectedId(id);
+    setMobileShowDetail(true);
+  }
+
   return (
     <>
       <button
@@ -216,13 +246,8 @@ export function TruongMilestoneTagNotify() {
         <div className="tdh-milestone-tag-hdr">
           <div>
             <h3 id="tdh-milestone-tag-title" className="tdh-inline-modal-title">
-              Tag milestone &amp; đồ án
+              Quản lý đồ án sinh viên
             </h3>
-            <p className="tdh-milestone-tag-lead">
-              Sinh viên gắn cột mốc vào <strong>{ctx.school.ten}</strong>. Mỗi yêu
-              cầu gồm <strong>Album</strong> (trang nội dung trên Journey) và{" "}
-              <strong>Bằng chứng</strong> học tại tổ chức.
-            </p>
           </div>
           <button
             type="button"
@@ -268,37 +293,106 @@ export function TruongMilestoneTagNotify() {
           ))}
         </div>
 
-        <ul className="tdh-milestone-tag-list">
-          {loading ? (
-            <li className="tdh-milestone-tag-empty">Đang tải…</li>
-          ) : loadError ? (
-            <li className="tdh-milestone-tag-empty">{loadError}</li>
-          ) : filtered.length === 0 ? (
-            <li className="tdh-milestone-tag-empty">
-              Không có mục trong bộ lọc này.
-            </li>
-          ) : (
-            filtered.map((row) => (
-              <MilestoneTagCard
-                key={row.id}
-                row={row}
-                onApprove={() => void setStatus(row.id, "approved")}
-                onReject={() => void setStatus(row.id, "rejected")}
+        <div
+          className={`tdh-milestone-tag-split${mobileShowDetail ? " tdh-milestone-tag-split--detail" : ""}`}
+        >
+          <aside className="tdh-milestone-tag-list-pane" aria-label="Danh sách yêu cầu">
+            <ul className="tdh-milestone-tag-rows">
+              {loading ? (
+                <li className="tdh-milestone-tag-empty">Đang tải…</li>
+              ) : loadError ? (
+                <li className="tdh-milestone-tag-empty">{loadError}</li>
+              ) : filtered.length === 0 ? (
+                <li className="tdh-milestone-tag-empty">
+                  Không có mục trong bộ lọc này.
+                </li>
+              ) : (
+                filtered.map((row) => (
+                  <MilestoneTagListRow
+                    key={row.id}
+                    row={row}
+                    selected={row.id === selectedId}
+                    onSelect={() => selectRow(row.id)}
+                  />
+                ))
+              )}
+            </ul>
+          </aside>
+
+          <div className="tdh-milestone-tag-detail-pane">
+            {selectedRow ? (
+              <MilestoneTagDetail
+                row={selectedRow}
+                showBack={mobileShowDetail}
+                onBack={() => setMobileShowDetail(false)}
+                onApprove={() => void setStatus(selectedRow.id, "approved")}
+                onReject={() => void setStatus(selectedRow.id, "rejected")}
               />
-            ))
-          )}
-        </ul>
+            ) : (
+              <p className="tdh-milestone-tag-detail-empty">
+                Chọn một yêu cầu để xem chi tiết.
+              </p>
+            )}
+          </div>
+        </div>
       </TruongInlineModal>
     </>
   );
 }
 
-function MilestoneTagCard({
+function MilestoneTagListRow({
   row,
+  selected,
+  onSelect,
+}: {
+  row: OrgMilestoneTagRequestItem;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  const milestoneTitle = row.milestoneTitle.trim() || "Cột mốc";
+  const kindLabel = milestoneKindLabel(
+    row.milestoneKind as "du_an" | "hoc" | "lam_viec" | "thanh_tuu",
+  );
+
+  return (
+    <li
+      className={`tdh-milestone-tag-row tdh-milestone-tag-row--${row.status}${selected ? " is-selected" : ""}`}
+    >
+      <button type="button" className="tdh-milestone-tag-row-btn" onClick={onSelect}>
+        <StudentAvatar
+          name={row.studentName}
+          avatarUrl={row.studentAvatarUrl}
+          compact
+        />
+        <span className="tdh-milestone-tag-row-main">
+          <span className="tdh-milestone-tag-row-top">
+            <span className="tdh-milestone-tag-row-student">{row.studentName}</span>
+            <TagStatusBadge status={row.status} />
+          </span>
+          <span className="tdh-milestone-tag-row-milestone">{milestoneTitle}</span>
+          <span className="tdh-milestone-tag-row-sub">
+            {kindLabel}
+            <span className="tdh-milestone-tag-row-dot" aria-hidden>
+              ·
+            </span>
+            <time dateTime={row.taggedAt}>{formatTaggedAt(row.taggedAt)}</time>
+          </span>
+        </span>
+      </button>
+    </li>
+  );
+}
+
+function MilestoneTagDetail({
+  row,
+  showBack,
+  onBack,
   onApprove,
   onReject,
 }: {
   row: OrgMilestoneTagRequestItem;
+  showBack: boolean;
+  onBack: () => void;
   onApprove: () => void;
   onReject: () => void;
 }) {
@@ -314,79 +408,88 @@ function MilestoneTagCard({
   const profileHref = row.studentSlug.trim()
     ? `/${encodeURIComponent(row.studentSlug.trim())}`
     : null;
+  const postPath = parsePostHref(row.album.href);
 
   return (
-    <li
-      className={`tdh-milestone-tag-card tdh-milestone-tag-card--${row.status}`}
-    >
+    <article className="tdh-milestone-tag-detail">
+      {showBack ? (
+        <button
+          type="button"
+          className="tdh-milestone-tag-detail-back"
+          onClick={onBack}
+        >
+          <ChevronLeft size={18} strokeWidth={2.2} aria-hidden />
+          Danh sách
+        </button>
+      ) : null}
+
       <header
-        className={`tdh-milestone-tag-card-hdr tdh-milestone-tag-card-hdr--${row.status}`}
+        className={`tdh-milestone-tag-detail-hdr tdh-milestone-tag-detail-hdr--${row.status}`}
       >
-        <div className="tdh-milestone-tag-card-hdr-main">
-          <StudentAvatar name={row.studentName} avatarUrl={row.studentAvatarUrl} />
-          <div className="tdh-milestone-tag-card-identity">
-            <div className="tdh-milestone-tag-card-topline">
-              <div className="tdh-milestone-tag-student-wrap">
-                {profileHref ? (
-                  <Link
-                    href={profileHref}
-                    className="tdh-milestone-tag-student"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {row.studentName}
-                  </Link>
-                ) : (
-                  <span className="tdh-milestone-tag-student">{row.studentName}</span>
-                )}
-                {row.studentSlug.trim() ? (
-                  <span className="tdh-milestone-tag-slug">@{row.studentSlug.trim()}</span>
-                ) : null}
-              </div>
-              <TagStatusBadge status={row.status} />
+        <StudentAvatar name={row.studentName} avatarUrl={row.studentAvatarUrl} />
+        <div className="tdh-milestone-tag-detail-hdr-main">
+          <div className="tdh-milestone-tag-card-topline">
+            <div className="tdh-milestone-tag-student-wrap">
+              {profileHref ? (
+                <Link
+                  href={profileHref}
+                  className="tdh-milestone-tag-student"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {row.studentName}
+                </Link>
+              ) : (
+                <span className="tdh-milestone-tag-student">{row.studentName}</span>
+              )}
+              {row.studentSlug.trim() ? (
+                <span className="tdh-milestone-tag-slug">@{row.studentSlug.trim()}</span>
+              ) : null}
             </div>
-            <h4 className="tdh-milestone-tag-milestone">{milestoneTitle}</h4>
-            {showProjectSubtitle ? (
-              <p className="tdh-milestone-tag-project">{projectTitle}</p>
-            ) : null}
-            <ul className="tdh-milestone-tag-meta-list" aria-label="Thông tin yêu cầu">
-              <li>{kindLabel}</li>
-              {nganhOrKhoa ? <li>{nganhOrKhoa}</li> : null}
-              <li>{row.nam}</li>
-              <li>
-                <time dateTime={row.taggedAt}>{formatTaggedAt(row.taggedAt)}</time>
-              </li>
-            </ul>
+            <TagStatusBadge status={row.status} />
           </div>
+          <h4 className="tdh-milestone-tag-milestone">{milestoneTitle}</h4>
+          {showProjectSubtitle ? (
+            <p className="tdh-milestone-tag-project">{projectTitle}</p>
+          ) : null}
+          <ul className="tdh-milestone-tag-meta-list" aria-label="Thông tin yêu cầu">
+            <li>{kindLabel}</li>
+            {nganhOrKhoa ? <li>{nganhOrKhoa}</li> : null}
+            <li>{row.nam}</li>
+            <li>
+              <time dateTime={row.taggedAt}>{formatTaggedAt(row.taggedAt)}</time>
+            </li>
+          </ul>
         </div>
       </header>
 
-      <div className="tdh-milestone-tag-card-body">
-        <section className="tdh-milestone-tag-panel tdh-milestone-tag-panel--album">
-          <div className="tdh-milestone-tag-panel-hdr">
-            <AlbumIcon />
-            <h4 className="tdh-milestone-tag-panel-title">Album</h4>
-            <span className="tdh-milestone-tag-panel-sub">Trang nội dung</span>
+      <div className="tdh-milestone-tag-detail-scroll">
+        {row.evidence.length > 0 ? (
+          <div className="tdh-milestone-tag-evidence-compact">
+            <p className="tdh-milestone-tag-evidence-compact-label">Bằng chứng</p>
+            <ul className="tdh-milestone-tag-evidence-list">
+              {row.evidence.map((ev, i) => (
+                <EvidenceItem key={`${row.id}-ev-${i}`} item={ev} />
+              ))}
+            </ul>
           </div>
-          <MilestoneTagAlbumPreview album={row.album} />
-        </section>
+        ) : null}
 
-        <section className="tdh-milestone-tag-panel tdh-milestone-tag-panel--evidence">
-          <div className="tdh-milestone-tag-panel-hdr">
-            <EvidenceIcon />
-            <h4 className="tdh-milestone-tag-panel-title">Bằng chứng</h4>
-            <span className="tdh-milestone-tag-panel-sub">Học tại trường</span>
-          </div>
-          <ul className="tdh-milestone-tag-evidence-list">
-            {row.evidence.map((ev, i) => (
-              <EvidenceItem key={`${row.id}-ev-${i}`} item={ev} />
-            ))}
-          </ul>
-        </section>
+        {postPath ? (
+          <MilestoneTagPostPreview
+            key={`${postPath.ownerSlug}/${postPath.postSlug}`}
+            ownerSlug={postPath.ownerSlug}
+            postSlug={postPath.postSlug}
+          />
+        ) : (
+          <p className="tdh-milestone-tag-post-err">
+            Không đọc được liên kết bài viết.
+          </p>
+        )}
       </div>
 
       {row.status === "pending" ? (
-        <div className="tdh-milestone-tag-card-foot">
+        <div className="tdh-milestone-tag-detail-foot">
           <button
             type="button"
             className="tdh-inline-btn primary"
@@ -403,57 +506,87 @@ function MilestoneTagCard({
           </button>
         </div>
       ) : null}
-    </li>
+    </article>
   );
 }
 
-function MilestoneTagAlbumPreview({ album }: { album: MilestoneTagAlbum }) {
-  const fallbackBg =
-    album.coverGradient ??
-    "linear-gradient(135deg, #1e3a5f 0%, #5c2bb6 55%, #c2410c 100%)";
+function MilestoneTagPostPreview({
+  ownerSlug,
+  postSlug,
+}: {
+  ownerSlug: string;
+  postSlug: string;
+}) {
+  const [detail, setDetail] = useState<MilestonePostDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    setDetail(null);
+
+    const url = `/api/journey/${encodeURIComponent(ownerSlug)}/p/${encodeURIComponent(postSlug)}`;
+    void fetch(url, { cache: "no-store" })
+      .then(async (res) => {
+        const json = (await res.json()) as MilestonePostDetail & { error?: string };
+        if (!res.ok) {
+          throw new Error(json.error ?? "Không tải được bài viết.");
+        }
+        return json;
+      })
+      .then((data) => {
+        if (!cancelled) {
+          setDetail(data);
+          setLoading(false);
+        }
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Lỗi tải bài viết.");
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [ownerSlug, postSlug]);
+
+  if (loading) {
+    return <p className="tdh-milestone-tag-post-loading">Đang tải bài viết…</p>;
+  }
+  if (error) {
+    return <p className="tdh-milestone-tag-post-err">{error}</p>;
+  }
+  if (!detail) return null;
+
+  const contentKind = milestoneContentKind(detail.posts[0]?.noiDungBlocks ?? null);
 
   return (
-    <Link
-      href={album.href}
-      className="tdh-milestone-tag-album-preview"
-      target="_blank"
-      rel="noopener noreferrer"
+    <div
+      className="tdh-milestone-tag-post-view j-post-page"
+      data-post-content-kind={contentKind}
     >
-      <div
-        className="tdh-milestone-tag-album-preview-cover"
-        style={!album.coverSrc ? { background: fallbackBg } : undefined}
-      >
-        {album.coverSrc ? (
-          <Image
-            src={album.coverSrc}
-            alt={album.coverAlt ?? album.title}
-            fill
-            className="tdh-milestone-tag-album-preview-img"
-            sizes="(max-width: 560px) 100vw, 360px"
+      <div className="j-post-page-inner">
+        <div className="j-post-page-body">
+          <JourneyPostBody
+            initialDetail={detail}
+            postSlug={postSlug}
+            isOwner={detail.viewerIsOwner}
+            hideOpenLink
+            layout="split"
+            splitSkip={{ kicker: true }}
+            commentsSlot={<></>}
           />
-        ) : null}
-        <div className="tdh-milestone-tag-album-preview-scrim" aria-hidden />
-        {album.photoCount != null && album.photoCount > 0 ? (
-          <span className="tdh-milestone-tag-album-preview-badge">
-            {album.photoCount} ảnh
-          </span>
-        ) : null}
+        </div>
       </div>
-      <div className="tdh-milestone-tag-album-preview-body">
-        <p className="tdh-milestone-tag-album-preview-title">{album.title}</p>
-        {album.excerpt ? (
-          <p className="tdh-milestone-tag-album-preview-excerpt">{album.excerpt}</p>
-        ) : null}
-        <span className="tdh-milestone-tag-album-preview-cta">
-          Xem trang của sinh viên
-          <ExternalIcon />
-        </span>
-      </div>
-    </Link>
+    </div>
   );
 }
 
-function EvidenceItem({ item }: { item: MilestoneTagEvidence }) {
+function EvidenceItem({ item }: { item: OrgAttachEvidence }) {
   const isImageFile =
     item.kind === "file" && Boolean(item.href?.trim());
 

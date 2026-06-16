@@ -31,7 +31,7 @@ export function CongDongPostBookmarkAct({
       buttonClassName="cd-v4-jcard-act"
       iconSize={18}
       iconStrokeWidth={2}
-      modalZIndex={10400}
+      modalZIndex={10800}
       onRequireAuth={requireCongDongAuth}
       resolveOpenBlock={() => {
         if (!canInteract) {
@@ -43,7 +43,7 @@ export function CongDongPostBookmarkAct({
         return null;
       }}
       saveEndpoint={({ visibility, privateNote }) => ({
-        url: `/api/cong-dong/${orgId}/posts/${postId}/bookmark`,
+        url: `/api/cong-dong/${orgId}/posts/${postId}/luu`,
         body: { visibility, ghi_chu_rieng: normalizeBookmarkPrivateNote(privateNote) },
       })}
     />

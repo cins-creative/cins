@@ -1,109 +1,60 @@
-.ttc-page-top {
-  max-width: 680px;
-  margin: 0 auto;
-  padding: 20px 20px 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
+/* Tạo tổ chức — card trong CinsShell (sidebar + topbar). */
 
-.ttc-page-logo {
-  display: flex;
-  align-items: center;
-  text-decoration: none;
-}
-
-.ttc-page-logo-mark {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background: var(--cins-blue, #1f74c9);
-  color: #fff;
-  font-weight: 800;
-  font-size: 18px;
-  display: grid;
-  place-items: center;
-}
-
-.ttc-page-back {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--ink-body, rgba(0, 0, 0, 0.55));
-  text-decoration: none;
-}
-
-.ttc-page-back:hover {
-  color: var(--cins-blue, #1f74c9);
-}
-
-.ttc-shell {
-  max-width: 680px;
-  margin: 0 auto;
-  padding: 24px 20px 64px;
-}
-
-.ttc-ctx {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: var(--ink-muted, rgba(0, 0, 0, 0.4));
-  margin-bottom: 18px;
-}
-
-.ttc-ctx b {
-  color: var(--ink-title, rgba(0, 0, 0, 0.6));
-  font-weight: 600;
-}
-
-.ttc-card {
-  background: var(--bg-surface, #fff);
-  border: 1px solid var(--border, #e4e6eb);
-  border-radius: var(--radius-xl, 28px);
-  box-shadow: var(--shadow-sm, 0 2px 6px rgba(15, 23, 42, 0.06));
+.ttc-page {
+  position: relative;
+  flex: 1;
+  min-height: calc(100vh - var(--site-nav-height, 64px));
+  background: var(--bg-page);
   overflow: hidden;
 }
 
-.ttc-card-head {
-  padding: 28px 32px 22px;
-  border-bottom: 1px solid var(--border, #e4e6eb);
+.ttc-page-bg-deco {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
 }
 
-.ttc-card-title {
-  font-weight: 800;
-  font-size: 24px;
-  letter-spacing: -0.5px;
-  color: var(--ink-display, rgba(0, 0, 0, 0.85));
-  margin: 0 0 6px;
+.ttc-page-main {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  min-height: inherit;
+  padding: var(--space-6, 24px) var(--space-5, 20px) var(--space-10, 40px);
 }
 
-.ttc-card-sub {
-  font-size: 14px;
-  color: var(--ink-body, rgba(0, 0, 0, 0.55));
-  margin: 0;
-  line-height: 1.5;
+.ttc-page .cins-login-title,
+.ttc-page .cins-login-title em {
+  font-family: var(--font-sans, "Be Vietnam Pro", system-ui, sans-serif);
+  font-style: normal;
+  font-weight: var(--weight-extrabold, 800);
 }
 
-.ttc-card-body {
-  padding: 26px 32px 30px;
+.ttc-login-card--wide {
+  width: min(640px, 100%);
+}
+
+.ttc-form {
+  margin-top: 4px;
+}
+
+.ttc-bullets {
+  margin-top: 20px;
+  margin-bottom: 0;
 }
 
 .ttc-type-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 14px;
+  margin-bottom: 4px;
 }
 
 @media (max-width: 560px) {
   .ttc-type-grid {
     grid-template-columns: 1fr;
-  }
-
-  .ttc-card-head,
-  .ttc-card-body {
-    padding-left: 20px;
-    padding-right: 20px;
   }
 }
 
@@ -117,6 +68,14 @@
   text-decoration: none;
   color: inherit;
   display: block;
+}
+
+button.ttc-type-card {
+  width: 100%;
+  font: inherit;
+  text-align: left;
+  background: var(--bg-surface, #fff);
+  appearance: none;
 }
 
 .ttc-type-card:hover {
@@ -170,26 +129,6 @@
 .ttc-type-card:hover .ttc-type-arrow {
   opacity: 1;
   transform: translateX(3px);
-}
-
-.ttc-note {
-  margin-top: 18px;
-  font-size: 12.5px;
-  color: var(--ink-muted, rgba(0, 0, 0, 0.4));
-  display: flex;
-  gap: 8px;
-  align-items: flex-start;
-  background: var(--neutral-50, #f8f9fb);
-  border: 1px solid var(--border, #e4e6eb);
-  border-radius: var(--radius-md, 14px);
-  padding: 12px 14px;
-  line-height: 1.5;
-}
-
-.ttc-note svg {
-  flex-shrink: 0;
-  margin-top: 1px;
-  color: var(--cins-blue, #1f74c9);
 }
 
 .ttc-field {
@@ -380,6 +319,12 @@
   border-top: 1px solid var(--border, #e4e6eb);
 }
 
+.ttc-actions--plain {
+  margin-top: 8px;
+  padding-top: 4px;
+  border-top: none;
+}
+
 .ttc-btn {
   height: 46px;
   padding: 0 22px;
@@ -502,6 +447,85 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+.ttc-notice-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.42);
+}
+
+.ttc-notice-modal {
+  position: relative;
+  width: min(420px, 100%);
+  padding: 24px 22px 22px;
+  border: 1px solid var(--border, #e4e6eb);
+  border-radius: 24px;
+  background: var(--bg-surface, #fff);
+  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.24);
+  color: var(--ink-body, rgba(0, 0, 0, 0.55));
+}
+
+.ttc-notice-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  margin: 0;
+  border: 1px solid var(--border, #e4e6eb);
+  border-radius: 50%;
+  background: #fff;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.4));
+  cursor: pointer;
+  line-height: 0;
+}
+
+.ttc-notice-close:hover {
+  background: var(--bg-page, #f4f5f7);
+  color: var(--ink-body, rgba(0, 0, 0, 0.55));
+}
+
+.ttc-notice-close:focus-visible {
+  outline: 2px solid var(--cins-blue, #1f74c9);
+  outline-offset: 2px;
+}
+
+.ttc-notice-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--cins-violet-soft, #ecddfe);
+  color: #7b3fc4;
+}
+
+.ttc-notice-modal h2 {
+  margin: 14px 0 8px;
+  font-size: 1.25rem;
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+}
+
+.ttc-notice-modal p {
+  margin: 0 0 18px;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.4));
+}
+
+.ttc-notice-back {
+  width: fit-content;
 }
 
 .ttc-logo-upload {

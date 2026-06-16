@@ -1,24 +1,18 @@
 "use client";
 
-import { ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import {
+  JourneyOrgMembershipCard,
+  JourneyOrgMembershipCardSkeleton,
+} from "@/components/journey/JourneyOrgMembershipCard";
 import type { UserOrganizationsPageResult } from "@/lib/journey/user-orgs-fetch";
 
 type Props = {
   initialData?: UserOrganizationsPageResult;
   ownerSlug: string;
 };
-
-function formatVnDate(iso: string): string {
-  if (!iso) return "";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  const dd = String(d.getDate()).padStart(2, "0");
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  return `${dd}/${mm}/${d.getFullYear()}`;
-}
 
 export function JourneyOrganizationsView({ initialData, ownerSlug }: Props) {
   const [data, setData] = useState<UserOrganizationsPageResult | "loading" | "error">(
@@ -55,11 +49,13 @@ export function JourneyOrganizationsView({ initialData, ownerSlug }: Props) {
         <div className="j-orgs-head">
           <h2 className="j-orgs-title">Tổ chức</h2>
         </div>
-        <div className="j-orgs-list">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="j-org-card j-org-card--skel" aria-hidden />
+        <ul className="j-orgs-list">
+          {[0, 1, 2, 3].map((i) => (
+            <li key={i}>
+              <JourneyOrgMembershipCardSkeleton />
+            </li>
           ))}
-        </div>
+        </ul>
       </section>
     );
   }
@@ -85,49 +81,19 @@ export function JourneyOrganizationsView({ initialData, ownerSlug }: Props) {
         </div>
       ) : (
         <ul className="j-orgs-list">
-          {data.memberships.map((item) => {
-            const initial = item.org.ten.charAt(0).toUpperCase();
-            const body = (
-              <>
-                <span className="j-org-card-avatar" aria-hidden>
-                  {item.org.avatarUrl ? (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img src={item.org.avatarUrl} alt="" />
-                  ) : (
-                    initial
-                  )}
-                </span>
-                <span className="j-org-card-copy">
-                  <strong>{item.org.ten}</strong>
-                  <span className="j-org-card-meta">
-                    {item.org.loaiLabel}
-                    <span className="j-org-card-dot" aria-hidden>
-                      ·
-                    </span>
-                    {item.vaiTroLabel}
-                  </span>
-                  <span className="j-org-card-date">
-                    Tham gia từ {formatVnDate(item.tuNgay)}
-                  </span>
-                </span>
-                {item.org.href ? (
-                  <ExternalLink size={14} strokeWidth={2} className="j-org-card-link-ic" aria-hidden />
-                ) : null}
-              </>
-            );
-
-            return (
-              <li key={item.id}>
-                {item.org.href ? (
-                  <Link href={item.org.href} className="j-org-card">
-                    {body}
-                  </Link>
-                ) : (
-                  <div className="j-org-card j-org-card--static">{body}</div>
-                )}
-              </li>
-            );
-          })}
+          {data.memberships.map((item) => (
+            <li key={item.id}>
+              {item.org.href ? (
+                <Link href={item.org.href} className="j-org-membership-link">
+                  <JourneyOrgMembershipCard item={item} />
+                </Link>
+              ) : (
+                <div className="j-org-membership-link j-org-membership-link--static">
+                  <JourneyOrgMembershipCard item={item} />
+                </div>
+              )}
+            </li>
+          ))}
         </ul>
       )}
     </section>

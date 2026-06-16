@@ -146,13 +146,13 @@ function ReadOnlyBlock({ block }: { block: Block }) {
   const text = typeof cfg.html === "string" ? cfg.html : "";
 
   if (block.loai === "h2") {
-    return <div className="b-text h2 b-text-ro">{renderMultiline(text)}</div>;
+    return <h2 className="b-text h2 b-text-ro">{renderMultiline(text)}</h2>;
   }
   if (block.loai === "h3") {
-    return <div className="b-text h3 b-text-ro">{renderMultiline(text)}</div>;
+    return <h3 className="b-text h3 b-text-ro">{renderMultiline(text)}</h3>;
   }
   if (block.loai === "body") {
-    return <div className="b-text b-text-ro">{renderMultiline(text)}</div>;
+    return <p className="b-text b-text-ro">{renderMultiline(text)}</p>;
   }
   if (block.loai === "quote") {
     return (

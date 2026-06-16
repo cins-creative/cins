@@ -6,10 +6,8 @@ import {
   Check,
   CheckCircle2,
   ChevronDown,
-  ChevronRight,
   Link2,
   SlidersHorizontal,
-  User,
   XCircle,
 } from "lucide-react";
 import Link from "next/link";
@@ -23,7 +21,7 @@ import {
   useTransition,
 } from "react";
 
-import { TaoToChucPageChrome } from "@/components/to-chuc/TaoToChucPageChrome";
+import { TaoToChucPageShell } from "@/components/to-chuc/TaoToChucPageShell";
 import { LOAI_CO_SO_OPTIONS } from "@/lib/to-chuc/constants";
 import { TINH_THANH_OPTIONS } from "@/lib/truong/contact";
 
@@ -251,57 +249,39 @@ export function CoSoDaoTaoCreateForm({ userSlug }: { userSlug: string }) {
 
   if (step === "success") {
     return (
-      <>
-        <TaoToChucPageChrome />
-        <div className="ttc-shell">
-        <div className="ttc-card">
-          <div className="ttc-card-body">
-            <div className="ttc-success">
-              <div className="ttc-success-ico">
-                <Check size={34} aria-hidden />
-              </div>
-              <h3>Đã tạo cơ sở đào tạo</h3>
-              <p>
-                Trang của bạn đã sẵn sàng nhưng còn trống. Hãy thêm khóa học,
-                hình ảnh và bài đăng để hoàn thiện.
-              </p>
-              <span className="ttc-slug-show">
-                <Link2 size={15} aria-hidden />
-                cins.vn/co-so/<b>{createdSlugRef.current}</b>
-              </span>
-              <div className="ttc-redirect">
-                <span className="ttc-spin" aria-hidden />
-                Đang chuyển tới trang quản lý…
-              </div>
-            </div>
+      <TaoToChucPageShell wide cardLabel="Đã tạo cơ sở đào tạo">
+        <div className="ttc-success">
+          <div className="ttc-success-ico">
+            <Check size={34} aria-hidden />
+          </div>
+          <h3>Đã tạo cơ sở đào tạo</h3>
+          <p>
+            Trang của bạn đã sẵn sàng nhưng còn trống. Hãy thêm khóa học,
+            hình ảnh và bài đăng để hoàn thiện.
+          </p>
+          <span className="ttc-slug-show">
+            <Link2 size={15} aria-hidden />
+            cins.vn/co-so/<b>{createdSlugRef.current}</b>
+          </span>
+          <div className="ttc-redirect">
+            <span className="ttc-spin" aria-hidden />
+            Đang chuyển tới trang quản lý…
           </div>
         </div>
-      </div>
-      </>
+      </TaoToChucPageShell>
     );
   }
 
   return (
-    <>
-      <TaoToChucPageChrome />
-      <div className="ttc-shell">
-      <div className="ttc-ctx">
-        <User size={15} aria-hidden />
-        <span>@{userSlug}</span>
-        <ChevronRight size={15} aria-hidden />
-        <b>Tạo cơ sở đào tạo</b>
-      </div>
+    <TaoToChucPageShell wide cardLabel="Tạo cơ sở đào tạo">
+      <p className="cins-login-eyebrow">@{userSlug} · tạo tổ chức</p>
+      <h1 className="cins-login-title">Tạo cơ sở đào tạo</h1>
+      <p className="cins-login-sub">
+        Chỉ cần vài thông tin để bắt đầu. Phần còn lại bổ sung sau trong
+        trang quản lý.
+      </p>
 
-      <div className="ttc-card">
-        <div className="ttc-card-head">
-          <h1 className="ttc-card-title">Tạo cơ sở đào tạo</h1>
-          <p className="ttc-card-sub">
-            Chỉ cần vài thông tin để bắt đầu. Phần còn lại bổ sung sau trong
-            trang quản lý.
-          </p>
-        </div>
-
-        <form className="ttc-card-body" onSubmit={onSubmit}>
+      <form className="ttc-form" onSubmit={onSubmit}>
           {globalErr ? (
             <div className="ttc-alert" role="alert">{globalErr}</div>
           ) : null}
@@ -582,8 +562,6 @@ export function CoSoDaoTaoCreateForm({ userSlug }: { userSlug: string }) {
             </button>
           </div>
         </form>
-      </div>
-    </div>
-    </>
+    </TaoToChucPageShell>
   );
 }

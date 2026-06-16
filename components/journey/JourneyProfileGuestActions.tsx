@@ -4,15 +4,18 @@ import { Mail, Share2 } from "lucide-react";
 
 import { JourneyFollowButton } from "@/components/journey/JourneyFollowButton";
 import { JourneyUserFollowButton } from "@/components/journey/JourneyUserFollowButton";
+import type { MutualFriendsState } from "@/lib/social/use-mutual-friends";
 
 type Props = {
   targetUserId: string;
   viewerProfileId: string | null;
+  mutual: MutualFriendsState;
 };
 
 export function JourneyProfileGuestActions({
   targetUserId,
   viewerProfileId,
+  mutual,
 }: Props) {
   return (
     <div className="j-profile-action-stack">
@@ -29,6 +32,7 @@ export function JourneyProfileGuestActions({
         <JourneyFollowButton
           targetUserId={targetUserId}
           viewerProfileId={viewerProfileId}
+          mutual={mutual}
         />
         <button
           type="button"

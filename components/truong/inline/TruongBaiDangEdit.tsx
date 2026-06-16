@@ -48,7 +48,7 @@ export function TruongBaiDangEditProvider({ children }: { children: ReactNode })
       if (!res.ok) {
         ctx.setBaidang(prev);
         ctx.setScheduledBaidang(prevScheduled);
-        ctx.showToast("Ẩn bài thất bại");
+        ctx.showToast(await readTruongInlineError(res));
       } else {
         ctx.showToast("Đã ẩn bài đăng");
       }

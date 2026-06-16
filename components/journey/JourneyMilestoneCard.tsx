@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  BadgeCheck,
   Bookmark,
   BookOpen,
   Briefcase,
@@ -24,7 +25,9 @@ import { AuthorRoleTooltip } from "@/components/journey/AuthorRoleTooltip";
 import { JourneyAuthorRowFriendAction } from "@/components/journey/JourneyAuthorRowFriendAction";
 import { JourneyMilestoneCardBodyContent } from "@/components/journey/JourneyMilestoneCardBodyContent";
 import { JourneyMilestoneUnfold } from "@/components/journey/JourneyMilestoneUnfold";
+import { JourneyUnfoldArticleContent } from "@/components/journey/JourneyUnfoldArticleContent";
 import { PostBlockRenderer } from "@/components/journey/PostBlockRenderer";
+import { isMilestoneArticleCard } from "@/lib/journey/milestone-card-kind";
 import { JourneyCommentLink } from "@/components/journey/JourneyCommentLink";
 import { JourneyArticleTagManager } from "@/components/journey/JourneyArticleTagManager";
 import { JourneyCoAuthorProposal } from "@/components/journey/JourneyCoAuthorProposal";
@@ -438,6 +441,17 @@ export function JourneyMilestoneCard({
   const canManageCoAuthors =
     isOwner && (variant === "self" || variant === "verified") && Boolean(tacPhamId);
   const showOrgVerifyBadge = usesOrgVerifyTypeBadge(type, verifiedBy, isCongDongPost);
+  const showsTruongVerifyBar =
+    Boolean(
+      attribution?.isOrg &&
+        attribution.orgKind === "truong" &&
+        (variant === "tagged" || variant === "verified") &&
+        !useForeignFrame &&
+        (canManageTagged || !entityLens),
+    );
+  const showMilestoneVerifyBadge =
+    !showsTruongVerifyBar &&
+    (showOrgVerifyBadge || Boolean(verifiedBy?.trim()));
   const canManageArticleTags = canManageCoAuthors;
   const coAuthorExcludeOwnerId =
     variant === "tagged" && postOwnerId
@@ -777,7 +791,7 @@ export function JourneyMilestoneCard({
                 >
                   <CongDongTypeBadge />
                 </JourneyMilestoneInlineControls>
-              ) : showOrgVerifyBadge ? (
+              ) : showMilestoneVerifyBadge && showOrgVerifyBadge ? (
                 <MilestoneVerifyBadge />
               ) : (
                 <JourneyMilestoneInlineControls
@@ -845,7 +859,7 @@ export function JourneyMilestoneCard({
             <>
               {isCongDongSelfPost ? (
                 <CongDongTypeBadge />
-              ) : showOrgVerifyBadge ? (
+              ) : showMilestoneVerifyBadge && showOrgVerifyBadge ? (
                 <MilestoneVerifyBadge />
               ) : (
                 <span className={`ctx-badge ${TYPE_CLASS[type]}`}>
@@ -900,7 +914,7 @@ export function JourneyMilestoneCard({
     return (
       <>
           {variant === "tagged" || variant === "verified" ? (
-            attribution && !canManageTagged && !useForeignFrame ? (
+            attribution && !canManageTagged && !useForeignFrame && !entityLens ? (
               <TaggedByPanel attr={attribution} dateLabel={displayDate} />
             ) : null
           ) : null}
@@ -961,7 +975,7 @@ export function JourneyMilestoneCard({
                     <Users size={11} strokeWidth={1.8} aria-hidden />
                     Cộng đồng
                   </span>
-                ) : showOrgVerifyBadge ? (
+                ) : showMilestoneVerifyBadge && showOrgVerifyBadge ? (
                   <MilestoneVerifyBadge />
                 ) : (
                   <span className={`ctx-badge ${TYPE_CLASS[type]}`}>
@@ -1034,7 +1048,7 @@ export function JourneyMilestoneCard({
               {!useForeignFrame ? (
                 <>
                   <span className="badge-row">
-                    {showOrgVerifyBadge ? (
+                    {showMilestoneVerifyBadge && showOrgVerifyBadge ? (
                       <MilestoneVerifyBadge />
                     ) : isCongDongPost ? (
                       <JourneyMilestoneInlineControls
@@ -1068,7 +1082,7 @@ export function JourneyMilestoneCard({
                         </span>
                       </JourneyMilestoneInlineControls>
                     )}
-                    {verifiedBy && !showOrgVerifyBadge ? (
+                    {showMilestoneVerifyBadge && !showOrgVerifyBadge ? (
                       <MilestoneVerifyBadge />
                     ) : null}
                     {vis ? (
@@ -1196,14 +1210,14 @@ export function JourneyMilestoneCard({
                 </span>
               </JourneyUserPopover>
               <span className="badge-row">
-                {showOrgVerifyBadge ? (
+                {showMilestoneVerifyBadge && showOrgVerifyBadge ? (
                   <MilestoneVerifyBadge />
                 ) : (
                   <span className={`ctx-badge ${TYPE_CLASS[type]}`}>
                     <MilestoneTypeBadgeContent type={type} />
                   </span>
                 )}
-                {verifiedBy && !showOrgVerifyBadge ? (
+                {showMilestoneVerifyBadge && !showOrgVerifyBadge ? (
                   <MilestoneVerifyBadge />
                 ) : null}
                 {vis ? (
@@ -1256,7 +1270,15 @@ export function JourneyMilestoneCard({
               {orgBaiDangRef && showContent && noiDungBlocks?.length ? (
                 <div className="j-m-card-unfold-inner">
                   <div className="cins-editor-page cins-post-view j-m-unfold-post">
-                    <PostBlockRenderer blocks={noiDungBlocks} />
+                    {isMilestoneArticleCard(noiDungBlocks) ? (
+                      <JourneyUnfoldArticleContent
+                        title={title}
+                        tomTat={body}
+                        blocks={noiDungBlocks}
+                      />
+                    ) : (
+                      <PostBlockRenderer blocks={noiDungBlocks} />
+                    )}
                   </div>
                 </div>
               ) : (
@@ -1514,9 +1536,99 @@ function orgKindForOrgPopover(
 function viaBarPrefixLabel(attr: MilestoneAttribution): string {
   if (attr.isOrg && attr.orgKind === "cong_dong") return "Cộng đồng";
   if (attr.isOrg && attr.orgKind === "truong") {
-    return "Xác thực từ trường đại học";
+    return "Đã xác thực bởi";
   }
   return "Được gắn bởi";
+}
+
+const TRUONG_VERIFY_SKIP_WORDS = new Set([
+  "dai",
+  "đại",
+  "hoc",
+  "học",
+  "truong",
+  "trường",
+  "va",
+  "và",
+  "cua",
+  "của",
+  "university",
+  "college",
+]);
+
+function orgMarkInitials(name: string, initial?: string | null): string {
+  const trimmedInitial = initial?.trim();
+  if (trimmedInitial && trimmedInitial.length >= 2) {
+    return trimmedInitial.slice(0, 2).toUpperCase();
+  }
+
+  const parts = name
+    .replace(/[^\p{L}\p{N}\s.]/gu, " ")
+    .split(/\s+/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  const significant = parts.filter(
+    (part) => !TRUONG_VERIFY_SKIP_WORDS.has(part.toLowerCase()),
+  );
+
+  if (significant.length >= 2) {
+    const first = significant[0].charAt(0);
+    const lastToken = significant[significant.length - 1];
+    const dottedPart = lastToken.split(".").find((part) => part.trim());
+    const last = dottedPart?.charAt(0) ?? lastToken.charAt(0);
+    return (first + last).toUpperCase();
+  }
+
+  if (significant.length === 1 && significant[0].length >= 2) {
+    return significant[0].slice(0, 2).toUpperCase();
+  }
+
+  return name.slice(0, 2).toUpperCase() || "?";
+}
+
+function TruongVerifyBar({ attr }: { attr: MilestoneAttribution }) {
+  const mark = orgMarkInitials(attr.name, attr.initial);
+
+  const orgCluster = (
+    <span className="j-truong-verify-org">
+      <span className="j-truong-verify-mark" aria-hidden>
+        {attr.avatarUrl ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img src={attr.avatarUrl} alt="" />
+        ) : (
+          mark
+        )}
+      </span>
+      <strong className="j-truong-verify-org-name">{attr.name}</strong>
+    </span>
+  );
+
+  const orgLink = attr.slug?.trim() ? (
+    <JourneyOrgPopover
+      slug={attr.slug}
+      orgKind="truong"
+      href={attr.href ?? undefined}
+      fallbackName={attr.name}
+      fallbackAvatarUrl={attr.avatarUrl}
+    >
+      {orgCluster}
+    </JourneyOrgPopover>
+  ) : (
+    orgCluster
+  );
+
+  return (
+    <div className="j-truong-verify-bar" role="status" aria-live="polite">
+      <span className="j-truong-verify-icon" aria-hidden>
+        <BadgeCheck size={14} strokeWidth={2.4} />
+      </span>
+      <p className="j-truong-verify-copy">
+        <span className="j-truong-verify-lead">Đã xác thực bởi</span>
+        {orgLink}
+      </p>
+    </div>
+  );
 }
 
 function TaggedByPanel({
@@ -1526,11 +1638,14 @@ function TaggedByPanel({
   attr: MilestoneAttribution;
   dateLabel: string;
 }) {
+  if (attr.isOrg && attr.orgKind === "truong") {
+    return <TruongVerifyBar attr={attr} />;
+  }
+
   const initial = (attr.initial || attr.name.charAt(0) || "?").toUpperCase();
   const isOrgSource = Boolean(
     attr.isOrg &&
       (attr.orgKind === "cong_dong" ||
-        attr.orgKind === "truong" ||
         attr.orgKind === "co_so_dao_tao"),
   );
   const Popover = isOrgSource ? JourneyOrgPopover : JourneyUserPopover;

@@ -20,6 +20,7 @@ import {
 import { loadCoAuthorsForTacPham } from "@/lib/social/co-author";
 import { loadPersonalFilterIdsForCotMoc } from "@/lib/filter/gan";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { sanitizePersistableCoverId } from "@/lib/truong/image-ref";
 
 import "../../new/editor.css";
 
@@ -180,7 +181,7 @@ export default async function EditPostPage({
     cotMocId: cm.id,
     tieuDe: tp.tieu_de ?? "",
     moTa: tp.mo_ta,
-    coverSeed: tp.cover_id,
+    coverSeed: sanitizePersistableCoverId(tp.cover_id, blocks),
     tags,
     visibility: (tp.che_do_hien_thi ?? cm.che_do_hien_thi ?? "public") as Visibility,
     loaiMoc: cm.loai_moc,
@@ -199,11 +200,13 @@ export default async function EditPostPage({
       tacPhamId: tp.id,
       cotMocId: cm.id,
       postSlug,
+      tieuDe: tp.tieu_de ?? "",
       visibility: initial.visibility,
       loaiMoc: initial.loaiMoc,
       thoiDiem: initial.thoiDiem,
       blocks,
       kind: mediaKind,
+      articleTags: tags,
       personalFilterIds,
     });
 

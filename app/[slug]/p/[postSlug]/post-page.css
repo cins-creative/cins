@@ -44,6 +44,165 @@
   margin-bottom: 0;
 }
 
+/* Permalink album/video split — full viewport, không toolbar Quay lại */
+.j-post-page:has(.post-canvas--media.post-canvas--split) {
+  padding: 0;
+  min-height: calc(100dvh - var(--cins-topbar-h, 56px));
+  height: calc(100dvh - var(--cins-topbar-h, 56px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #000;
+}
+
+.j-post-page:has(.post-canvas--media.post-canvas--split) .j-post-page-inner {
+  flex: 1;
+  min-height: 0;
+  max-width: none;
+  width: 100%;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.j-post-page:has(.post-canvas--media.post-canvas--split) .j-post-page-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .cins-post-view.post-canvas--media.post-canvas--split {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.j-post-page:has(.post-canvas--media.post-canvas--split) .post-view-layout--2col {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  align-items: stretch;
+}
+
+.j-post-page:has(.post-canvas--media.post-canvas--split) .post-view-content--media {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: #000;
+}
+
+/* Cột media — toàn bộ chain flex, ảnh scale contain trong khung 556×730 */
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media
+  .post-view-content-inner,
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media
+  .post-blocks-fb,
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media
+  .post-blocks-fb
+  .block.block-image-grid,
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media
+  .post-blocks-fb
+  .block-image-grid,
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media
+  .post-blocks-fb
+  .block-image-grid
+  .block-inner,
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media
+  .image-album-carousel,
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media
+  .image-album-carousel.is-portrait,
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media
+  .image-album-carousel-stage,
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media
+  .image-album-carousel-figure {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #000;
+}
+
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media
+  .image-album-carousel-stage {
+  position: relative;
+  line-height: normal;
+}
+
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media
+  .image-album-carousel-figure {
+  flex: 1 1 auto;
+  margin: 0;
+  align-items: center;
+  justify-content: center;
+}
+
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media
+  .image-album-carousel-figure
+  img,
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media
+  .image-album-carousel.is-portrait
+  .image-album-carousel-figure
+  img,
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media
+  .image-album-carousel:not(.is-portrait)
+  .image-album-carousel-figure
+  img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  object-position: center;
+}
+
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media
+  .b-embed-ro.is-iframe {
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  aspect-ratio: auto;
+  max-height: 100%;
+}
+
+.j-post-page:has(.post-canvas--media.post-canvas--split) .post-view-rail {
+  max-height: 100%;
+  min-height: 0;
+  --post-rail-sticky-top: 0;
+  --post-rail-min-h: 0;
+  --post-rail-max-h: none;
+}
+
 .j-post-page-toolbar {
   display: flex;
   align-items: center;
@@ -208,7 +367,10 @@
 
 .cins-post-view.post-canvas--split .post-view-content--media,
 .cins-post-view .post-canvas--split .post-view-content--media {
-  padding: 24px 28px 28px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 0;
 }
 
 .cins-post-view .post-view-content-inner {
@@ -254,7 +416,7 @@
 
 .cins-post-view.post-canvas--split .cover-add.cover-readonly,
 .cins-post-view .post-canvas--split .cover-add.cover-readonly {
-  margin: 0 0 28px;
+  margin: 28px 0 0;
   width: 100%;
   border-radius: 14px;
   height: auto;
@@ -268,7 +430,7 @@
 }
 
 .cins-post-view .post-rail-blk--comments {
-  padding: 12px 14px 14px;
+  padding: 12px 24px 14px 14px;
 }
 
 .cins-post-view .post-rail-blk--comments .post-comments {
@@ -315,16 +477,119 @@
   font-size: 13px;
 }
 
+/* Split rail — aside cố định chiều cao, .post-rail-scroll chứa toàn bộ nội dung con */
+.cins-post-view.post-canvas--split .post-view-rail,
+.cins-post-view .post-canvas--split .post-view-rail {
+  position: relative;
+  top: auto;
+  align-self: stretch;
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.cins-post-view.post-canvas--split .post-rail-scroll,
+.cins-post-view .post-canvas--split .post-rail-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  padding-bottom: var(--post-rail-compose-h, 72px);
+}
+
+/* Ô nhập BL — absolute đáy rail, luôn hiển thị khi scroll nội dung */
+.cins-post-view.post-canvas--split .post-view-rail,
+.cins-post-view .post-canvas--split .post-view-rail {
+  position: relative;
+}
+
+.cins-post-view.post-canvas--split .post-view-rail .post-comments-form,
+.cins-post-view .post-canvas--split .post-view-rail .post-comments-login {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 3;
+  margin: 0;
+  padding: 10px 24px 14px 14px;
+  background: var(--bg-surface, #ffffff);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -8px 20px rgba(15, 23, 42, 0.06);
+}
+
+.cins-post-view.post-canvas--split .post-comments--pin-compose,
+.cins-post-view .post-canvas--split .post-comments--pin-compose {
+  display: block;
+  overflow: visible;
+  flex: none;
+}
+
+.cins-post-view.post-canvas--split
+  .post-comments--pin-compose
+  .post-comments-scroll,
+.cins-post-view
+  .post-canvas--split
+  .post-comments--pin-compose
+  .post-comments-scroll {
+  flex: none;
+  overflow: visible;
+}
+
+.cins-post-view .post-comments--pin-compose {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.cins-post-view .post-comments--pin-compose .post-comments-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.cins-post-view .post-comments--pin-compose .post-comments-form,
+.cins-post-view .post-comments--pin-compose .post-comments-login {
+  flex-shrink: 0;
+  margin-top: 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-surface, #ffffff);
+}
+
+.cins-post-view.post-canvas--split .post-comments--pin-compose .post-comments-form,
+.cins-post-view .post-canvas--split .post-comments--pin-compose .post-comments-form,
+.cins-post-view.post-canvas--split .post-comments--pin-compose .post-comments-login,
+.cins-post-view .post-canvas--split .post-comments--pin-compose .post-comments-login {
+  border-top: none;
+  box-shadow: none;
+  padding-top: 0;
+}
+
+.cins-post-view.post-canvas--split .post-rail-blk--comments .post-comments-form,
+.cins-post-view .post-canvas--split .post-rail-blk--comments .post-comments-form {
+  margin-top: 0;
+}
+
 /* Meta rail */
 .cins-post-view .post-view-rail {
   grid-column: 2;
   grid-row: 1;
   position: sticky;
-  top: calc(var(--cins-topbar-h, 56px) + 16px);
+  top: var(--post-rail-sticky-top, calc(var(--cins-topbar-h, 56px) + 16px));
   align-self: start;
   justify-content: flex-start;
-  min-height: calc(100vh - var(--cins-topbar-h, 56px) - 16px);
-  max-height: calc(100vh - var(--cins-topbar-h, 56px) - 32px);
+  min-height: var(--post-rail-min-h, calc(100vh - var(--cins-topbar-h, 56px) - 16px));
+  max-height: var(--post-rail-max-h, calc(100vh - var(--cins-topbar-h, 56px) - 32px));
   display: flex;
   flex-direction: column;
   border: none;
@@ -334,11 +599,16 @@
   box-shadow: none;
   overflow-x: hidden;
   overflow-y: auto;
+  scrollbar-width: none;
   z-index: 1;
 }
 
+.cins-post-view .post-view-rail::-webkit-scrollbar {
+  display: none;
+}
+
 .cins-post-view .post-rail-blk {
-  padding: 12px 14px;
+  padding: 12px 24px 12px 14px;
 }
 
 .cins-post-view .post-rail-blk--author {
@@ -424,6 +694,95 @@
 
 .cins-post-view .post-rail-blk--author .post-rail-meta-chips {
   margin-top: 10px;
+}
+
+.cins-post-view .post-rail-hero {
+  margin-top: 14px;
+}
+
+.cins-post-view .post-rail-cover {
+  margin-top: 12px;
+}
+
+.cins-post-view .post-rail-cover .cover-add.cover-readonly {
+  margin: 0;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 21 / 9;
+  max-height: 180px;
+  min-height: 0;
+  border-radius: 12px;
+}
+
+.cins-post-view .post-rail-hero .post-view-kicker {
+  margin-bottom: 8px;
+}
+
+.cins-post-view.post-canvas--split .post-rail-hero .title-in.title-ro,
+.cins-post-view .post-canvas--split .post-rail-hero .title-in.title-ro {
+  font-size: clamp(20px, 2.4vw, 26px);
+  line-height: 1.2;
+  letter-spacing: -0.4px;
+  margin-bottom: 10px;
+}
+
+.cins-post-view.post-canvas--split .post-rail-hero .sub-in.sub-ro.post-view-dek,
+.cins-post-view .post-canvas--split .post-rail-hero .sub-in.sub-ro.post-view-dek {
+  margin: 0;
+  padding: 0;
+  border: none;
+  font-family: inherit;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--ink-display);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.cins-post-view .post-rail-body {
+  margin-top: 14px;
+}
+
+.cins-post-view .post-rail-body .post-blocks-fb,
+.cins-post-view .post-rail-body .blocks {
+  padding: 0;
+}
+
+.cins-post-view .post-rail-body .block {
+  margin: 0;
+  padding: 0;
+}
+
+.cins-post-view .post-rail-body .block-inner {
+  padding: 0;
+}
+
+.cins-post-view .post-rail-body .b-text-ro {
+  margin-top: 0;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.4;
+  letter-spacing: normal;
+  color: var(--ink-display);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.cins-post-view .post-rail-body .b-text-ro.h2 {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--ink-display);
+}
+
+.cins-post-view .post-rail-body .b-text-ro.h3 {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--ink-display);
 }
 
 .cins-post-view .post-rail-meta-chips {
@@ -622,10 +981,6 @@
   flex-shrink: 0;
 }
 
-.cins-post-view .post-rail-person-avatar--sq {
-  border-radius: 7px;
-}
-
 .cins-post-view .post-rail-person-avatar img {
   width: 100%;
   height: 100%;
@@ -763,8 +1118,8 @@
   text-align: left;
 }
 
-.cins-post-view.post-canvas--split .b-text-ro,
-.cins-post-view .post-canvas--split .b-text-ro {
+.cins-post-view.post-canvas--split .post-view-content .b-text-ro,
+.cins-post-view .post-canvas--split .post-view-content .b-text-ro {
   font-size: 17px;
   line-height: 1.75;
   color: var(--ink-title);
@@ -777,20 +1132,170 @@
   margin-top: 10px;
 }
 
-.cins-post-view.post-canvas--split .post-view-content--media .post-blocks-fb {
-  min-height: 120px;
+.cins-post-view.post-canvas--split .post-view-content--media,
+.cins-post-view .post-canvas--split .post-view-content--media {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 0;
 }
 
-/* Cover read-only: 320px như editor (`.cover-add.has`), full-bleed để chạm
-   mép canvas. Negative margin chỉ dời vị trí — phải set width để thực sự
-   rộng bằng border-box của canvas (content width + padding hai bên). */
+.cins-post-view.post-canvas--split .post-view-content--media .post-view-content-inner,
+.cins-post-view .post-canvas--split .post-view-content--media .post-view-content-inner {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.cins-post-view.post-canvas--split .post-view-content--media .post-blocks-fb,
+.cins-post-view .post-canvas--split .post-view-content--media .post-blocks-fb {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 0;
+}
+
+.cins-post-view.post-canvas--split .post-view-content--media .post-blocks-fb .block-image-grid,
+.cins-post-view .post-canvas--split .post-view-content--media .post-blocks-fb .block-image-grid {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  margin: 0;
+}
+
+.cins-post-view.post-canvas--split
+  .post-view-content--media
+  .post-blocks-fb
+  .block-image-grid
+  .block-inner,
+.cins-post-view
+  .post-canvas--split
+  .post-view-content--media
+  .post-blocks-fb
+  .block-image-grid
+  .block-inner {
+  flex: 0 0 auto;
+  display: block;
+  min-height: 0;
+  padding: 0;
+}
+
+.cins-post-view.post-canvas--split
+  .post-view-content--media
+  .post-blocks-fb
+  .block[data-block-type="body"],
+.cins-post-view
+  .post-canvas--split
+  .post-view-content--media
+  .post-blocks-fb
+  .block[data-block-type="body"] {
+  flex: 0 0 auto;
+  padding: 20px 28px 28px;
+}
+
+.cins-post-view.post-canvas--split .post-view-content--media .image-album-carousel,
+.cins-post-view .post-canvas--split .post-view-content--media .image-album-carousel {
+  flex: 0 0 auto;
+  border-radius: 0;
+  background: #000;
+}
+
+.cins-post-view.post-canvas--media.post-canvas--split .post-view-content--media,
+.cins-post-view .post-canvas--media.post-canvas--split .post-view-content--media {
+  background: #000;
+}
+
+.cins-post-view.post-canvas--media.post-canvas--split
+  .post-view-content--media
+  .image-album-carousel-stage,
+.cins-post-view .post-canvas--media.post-canvas--split
+  .post-view-content--media
+  .image-album-carousel-stage,
+.cins-post-view.post-canvas--media.post-canvas--split
+  .post-view-content--media
+  .image-album-carousel-figure,
+.cins-post-view .post-canvas--media.post-canvas--split
+  .post-view-content--media
+  .image-album-carousel-figure {
+  background: #000;
+}
+
+.cins-post-view.post-canvas--split
+  .post-view-content--media
+  .image-album-carousel:not(.is-portrait),
+.cins-post-view
+  .post-canvas--split
+  .post-view-content--media
+  .image-album-carousel:not(.is-portrait) {
+  width: 100%;
+}
+
+.cins-post-view.post-canvas--split
+  .post-view-content--media
+  .image-album-carousel.is-portrait,
+.cins-post-view
+  .post-canvas--split
+  .post-view-content--media
+  .image-album-carousel.is-portrait {
+  width: fit-content;
+  max-width: 100%;
+  margin-inline: auto;
+}
+
+.cins-post-view.post-canvas--split
+  .post-view-content--media
+  .image-album-carousel-figure
+  img,
+.cins-post-view
+  .post-canvas--split
+  .post-view-content--media
+  .image-album-carousel-figure
+  img {
+  max-height: min(72dvh, 900px);
+}
+
+.cins-post-view.post-canvas--split
+  .post-view-content--media
+  .image-album-carousel.is-portrait
+  .image-album-carousel-figure
+  img,
+.cins-post-view
+  .post-canvas--split
+  .post-view-content--media
+  .image-album-carousel.is-portrait
+  .image-album-carousel-figure
+  img {
+  width: auto;
+  max-width: 100%;
+  max-height: min(78dvh, 900px);
+}
+
+.cins-post-view.post-canvas--split .post-view-content--media .post-blocks-fb {
+  min-height: 0;
+}
+
+.cins-post-view.post-canvas--media.post-canvas--split .post-view-layout--2col,
+.cins-post-view .post-canvas--media.post-canvas--split .post-view-layout--2col {
+  min-height: 0;
+  align-items: start;
+}
+
+.cins-post-view.post-canvas--split .post-view-content--media,
+.cins-post-view .post-canvas--split .post-view-content--media {
+  height: auto;
+}
+
+/* Cover read-only: sau mô tả ngắn, nằm gọn trong canvas. */
 .cins-post-view .cover-add.cover-readonly {
   cursor: default;
-  margin: -36px -56px 28px;
-  width: calc(100% + 112px); /* 56px padding × 2 */
-  border-radius: 0;
+  margin: 0 0 28px;
+  width: 100%;
+  border-radius: 16px;
   border: none;
-  height: 320px;
+  height: 280px;
   position: relative;
   overflow: hidden;
 }
@@ -815,7 +1320,7 @@
 /* Split permalink — cover đầu cột trái, không full-bleed stack layout */
 .cins-post-view.post-canvas--split .post-view-content > .cover-add.cover-readonly,
 .cins-post-view .post-canvas--split .post-view-content > .cover-add.cover-readonly {
-  margin: 0 0 24px;
+  margin: 24px 0 0;
   width: 100%;
   border-radius: 14px;
   height: auto;
@@ -836,10 +1341,10 @@
   font-weight: 800;
   font-size: 38px;
   letter-spacing: -0.8px;
-  line-height: 1.1;
+  line-height: 1.28;
   color: var(--ink-display);
   margin: 0 0 8px;
-  padding: 0;
+  padding: 0.08em 0 0.04em;
 }
 .cins-post-view .sub-in.sub-ro {
   font-family: var(--font-serif);
@@ -2722,13 +3227,14 @@
     grid-template-columns: minmax(0, 1fr) var(--post-rail-w, 340px);
   }
   .cins-post-view .cover-add.cover-readonly {
-    margin: -32px -40px 24px;
-    width: calc(100% + 80px);
-    height: 280px;
+    margin: 0 0 24px;
+    width: 100%;
+    height: 240px;
+    border-radius: 14px;
   }
   .cins-post-view.post-canvas--split .cover-add.cover-readonly,
   .cins-post-view .post-canvas--split .cover-add.cover-readonly {
-    margin: 0 0 24px;
+    margin: 24px 0 0;
     width: 100%;
     height: auto;
     aspect-ratio: 21 / 9;
@@ -2750,34 +3256,155 @@
     grid-template-columns: 1fr;
   }
 
-  /* Flatten rail — reorder blocks: author/actions → content → meta → comments */
+  /* Flatten rail — media trước, meta/caption sau */
   .cins-post-view .post-view-rail {
     display: contents;
   }
 
-  .cins-post-view .post-rail-blk--author,
-  .cins-post-view .post-rail-blk--actions {
+  .cins-post-view .post-view-content {
     order: 1;
+    padding: 24px 20px 28px;
+    border-top: none;
   }
 
-  .cins-post-view .post-view-content {
+  .cins-post-view .post-rail-blk--author {
     order: 2;
-    padding: 24px 20px 28px;
     border-top: 1px solid var(--border);
+  }
+
+  .cins-post-view .post-rail-blk--actions {
+    order: 3;
   }
 
   .cins-post-view .post-rail-blk--tags,
   .cins-post-view .post-rail-blk--people {
-    order: 3;
+    order: 4;
   }
 
   .cins-post-view .post-rail-blk--comments {
-    order: 4;
+    order: 5;
     border-top: 1px solid var(--border);
   }
 
-  .cins-post-view .post-rail-blk--author {
+  /* Album / video — ưu tiên vùng ảnh full-width, cao */
+  .cins-post-view.post-canvas--media.post-canvas--split .post-view-layout--2col,
+  .cins-post-view .post-canvas--media.post-canvas--split .post-view-layout--2col {
+    min-height: 0;
+  }
+
+  .cins-post-view.post-canvas--split .post-view-content--media,
+  .cins-post-view .post-canvas--split .post-view-content--media {
+    order: 1;
+    padding: 0;
+    min-height: 0;
+    height: auto;
+    max-height: none;
     border-top: none;
+  }
+
+  .cins-post-view.post-canvas--split .post-view-content--media .post-view-content-inner,
+  .cins-post-view .post-canvas--split .post-view-content--media .post-view-content-inner {
+    flex: 0 0 auto;
+    min-height: 0;
+  }
+
+  .cins-post-view.post-canvas--split .post-view-content--media .post-blocks-fb,
+  .cins-post-view .post-canvas--split .post-view-content--media .post-blocks-fb {
+    flex: 0 0 auto;
+    min-height: 0;
+  }
+
+  .cins-post-view.post-canvas--split .post-view-content--media .image-album-carousel,
+  .cins-post-view .post-canvas--split .post-view-content--media .image-album-carousel {
+    min-height: 0;
+    max-height: none;
+  }
+
+  .cins-post-view.post-canvas--split
+    .post-view-content--media
+    .image-album-carousel-stage,
+  .cins-post-view
+    .post-canvas--split
+    .post-view-content--media
+    .image-album-carousel-stage {
+    min-height: 0;
+    max-height: min(68dvh, 720px);
+  }
+
+  .cins-post-view.post-canvas--split
+    .post-view-content--media
+    .image-album-carousel-figure
+    img,
+  .cins-post-view
+    .post-canvas--split
+    .post-view-content--media
+    .image-album-carousel-figure
+    img {
+    max-height: min(68dvh, 720px);
+  }
+
+  .cins-post-view .post-rail-blk--author .post-rail-body {
+    margin-top: 10px;
+  }
+
+  .j-post-page:has(.post-canvas--media.post-canvas--split) {
+    height: auto;
+    min-height: calc(100dvh - var(--cins-topbar-h, 56px));
+    overflow: visible;
+  }
+
+  .j-post-page:has(.post-canvas--media.post-canvas--split) .post-view-layout--2col {
+    height: auto;
+    min-height: calc(100dvh - var(--cins-topbar-h, 56px));
+  }
+
+  .j-post-page:has(.post-canvas--media.post-canvas--split) .post-view-content--media {
+    flex: 0 0 auto;
+    min-height: min(62dvh, 560px);
+    height: min(62dvh, 560px);
+    max-height: min(62dvh, 560px);
+  }
+
+  .j-post-page:has(.post-canvas--media.post-canvas--split)
+    .post-view-content--media
+    .post-view-content-inner,
+  .j-post-page:has(.post-canvas--media.post-canvas--split)
+    .post-view-content--media
+    .post-blocks-fb,
+  .j-post-page:has(.post-canvas--media.post-canvas--split)
+    .post-view-content--media
+    .post-blocks-fb
+    .block.block-image-grid,
+  .j-post-page:has(.post-canvas--media.post-canvas--split)
+    .post-view-content--media
+    .post-blocks-fb
+    .block-image-grid,
+  .j-post-page:has(.post-canvas--media.post-canvas--split)
+    .post-view-content--media
+    .post-blocks-fb
+    .block-image-grid
+    .block-inner,
+  .j-post-page:has(.post-canvas--media.post-canvas--split)
+    .post-view-content--media
+    .image-album-carousel,
+  .j-post-page:has(.post-canvas--media.post-canvas--split)
+    .post-view-content--media
+    .image-album-carousel-stage,
+  .j-post-page:has(.post-canvas--media.post-canvas--split)
+    .post-view-content--media
+    .image-album-carousel-figure {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: 100%;
+    max-height: 100%;
+  }
+
+  .j-post-page:has(.post-canvas--media.post-canvas--split)
+    .post-view-content--media
+    .image-album-carousel-figure
+    img {
+    max-width: 100%;
+    max-height: 100%;
   }
 }
 
@@ -2796,13 +3423,14 @@
     margin: 0 auto;
   }
   .cins-post-view .cover-add.cover-readonly {
-    margin: -24px -24px 20px;
-    width: calc(100% + 48px);
-    height: 220px;
+    margin: 0 0 20px;
+    width: 100%;
+    height: 200px;
+    border-radius: 12px;
   }
   .cins-post-view.post-canvas--split .cover-add.cover-readonly,
   .cins-post-view .post-canvas--split .cover-add.cover-readonly {
-    margin: 0 0 20px;
+    margin: 20px 0 0;
     width: 100%;
     height: auto;
     aspect-ratio: 21 / 9;
@@ -2838,6 +3466,19 @@
     padding: 0 0 24px;
     background: var(--neutral-50, #f5f6f8);
   }
+  .j-post-page:has(.post-canvas--media.post-canvas--split) {
+    padding: 0 0 20px;
+  }
+  .j-post-page:has(.post-canvas--media.post-canvas--split) .j-post-page-toolbar {
+    margin-bottom: 0;
+    padding: 0 12px;
+  }
+  .j-post-page:has(.post-canvas--media.post-canvas--split) .j-post-page-crumb {
+    margin: 10px 0 6px;
+  }
+  .j-post-page:has(.post-canvas--media.post-canvas--split) .j-post-page-inner {
+    max-width: none;
+  }
   .j-post-page-inner {
     padding: 0;
   }
@@ -2859,9 +3500,39 @@
     border: none;
     box-shadow: none;
   }
+  .cins-post-view.post-canvas--media.post-canvas--split .post-view-layout--2col,
+  .cins-post-view .post-canvas--media.post-canvas--split .post-view-layout--2col {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+  .cins-post-view.post-canvas--media.post-canvas--split .post-view-content--media,
+  .cins-post-view .post-canvas--media.post-canvas--split .post-view-content--media {
+    min-height: 0;
+    max-height: none;
+  }
+  .cins-post-view.post-canvas--media.post-canvas--split
+    .post-view-content--media
+    .image-album-carousel-stage,
+  .cins-post-view .post-canvas--media.post-canvas--split
+    .post-view-content--media
+    .image-album-carousel-stage {
+    max-height: min(62dvh, 640px);
+    border-radius: 0;
+  }
+  .cins-post-view.post-canvas--media.post-canvas--split
+    .post-view-content--media
+    .image-album-carousel-figure
+    img,
+  .cins-post-view .post-canvas--media.post-canvas--split
+    .post-view-content--media
+    .image-album-carousel-figure
+    img {
+    max-height: min(62dvh, 640px);
+  }
   .cins-post-view.post-canvas--split .cover-add.cover-readonly,
   .cins-post-view .post-canvas--split .cover-add.cover-readonly {
-    margin: 0 0 18px;
+    margin: 18px 0 0;
     width: 100%;
     height: auto;
     aspect-ratio: 21 / 9;
@@ -2877,7 +3548,7 @@
     font-size: 14px;
   }
   .cins-post-view .post-rail-blk {
-    padding: 11px 12px;
+    padding: 11px 20px 11px 12px;
   }
   .cins-post-view .post-byline {
     font-size: 12px;

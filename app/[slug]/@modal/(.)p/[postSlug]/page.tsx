@@ -34,7 +34,8 @@ export default async function InterceptedPostModal({
       initialDetail={detail}
       postSlug={postSlugFromDb}
       isOwner={detail.viewerIsOwner}
-      hideOpenLink={false}
+      hideOpenLink
+      layout="split"
     />
   );
 }

@@ -1,3 +1,5 @@
+"use client";
+
 import {
   AtSign,
   Link2,
@@ -9,8 +11,7 @@ import {
 import type { EditProfileInitial } from "@/components/journey/JourneyEditProfileModal";
 import { JourneyAvatarTrigger } from "@/components/journey/JourneyAvatarTrigger";
 import { JourneyCoverTrigger } from "@/components/journey/JourneyCoverTrigger";
-import { JourneyProfileGuestActions } from "@/components/journey/JourneyProfileGuestActions";
-import { JourneyMutualFriendsLine } from "@/components/journey/JourneyMutualFriendsLine";
+import { JourneyProfileGuestSection } from "@/components/journey/JourneyProfileGuestSection";
 import { JourneySidebarOwnerActions } from "@/components/journey/JourneySidebarOwnerActions";
 import type { GiaiDoan } from "@/lib/auth/session";
 import {
@@ -141,14 +142,7 @@ export function JourneySidebar({
       <div className="j-profile-handle">cins.vn/{profile.slug}</div>
 
       {!isOwner ? (
-        <JourneyMutualFriendsLine
-          targetUserId={profile.id}
-          viewerProfileId={viewerProfileId}
-        />
-      ) : null}
-
-      {!isOwner ? (
-        <JourneyProfileGuestActions
+        <JourneyProfileGuestSection
           targetUserId={profile.id}
           viewerProfileId={viewerProfileId}
         />

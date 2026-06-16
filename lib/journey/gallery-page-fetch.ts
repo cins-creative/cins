@@ -20,7 +20,11 @@ import {
   resolveOwnerSlugs,
   type GalleryStub,
 } from "@/lib/journey/gallery-stubs";
-import type { GalleryMediaKind } from "@/lib/journey/post-media";
+import {
+  galleryItemLabel,
+  type GalleryMediaKind,
+} from "@/lib/journey/post-media";
+import { loadVerifiedCotMocIdSet } from "@/lib/journey/milestone-verify";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 export const GALLERY_SCROLL_PAGE_SIZE = 24;
@@ -56,6 +60,21 @@ export type GalleryMainItem = {
 };
 
 const getGalleryStubsCached = cache(collectGalleryStubs);
+
+async function withVerifiedGalleryVariants(
+  stubs: GalleryStub[],
+): Promise<GalleryStub[]> {
+  if (stubs.length === 0) return stubs;
+  const verifiedIds = await loadVerifiedCotMocIdSet(
+    stubs.map((stub) => stub.cotMocId),
+  );
+  if (verifiedIds.size === 0) return stubs;
+  return stubs.map((stub) =>
+    verifiedIds.has(stub.cotMocId)
+      ? { ...stub, variant: "verified" as const }
+      : stub,
+  );
+}
 
 type JourneyImageRole = Parameters<typeof journeyImageFields>[1];
 
@@ -112,9 +131,9 @@ function hydrateMainItems(
       srcSet: img?.srcSet,
       width: img?.width,
       height: img?.height,
-      label: entry.tieuDe || "Tác phẩm",
+      label: galleryItemLabel(entry.tieuDe, entry.mediaKind),
       href: postHref(slug, entry.tacPhamSlug),
-      meta: formatVnDate(entry.thoiDiem),
+      meta: entry.excerpt,
       featured,
       type: entry.type,
       variant: entry.variant,
@@ -154,7 +173,7 @@ function hydrateAsideItems(
       width: img?.width,
       height: img?.height,
       pin: "Nổi bật",
-      title: entry.tieuDe || "Tác phẩm",
+      title: galleryItemLabel(entry.tieuDe, entry.mediaKind),
       meta: formatVnDate(entry.thoiDiem),
       href: postHref(
         ownerSlugById.get(entry.postOwnerId) ?? ownerSlug,
@@ -177,7 +196,7 @@ function hydrateAsideItems(
       srcSet: img?.srcSet,
       width: img?.width,
       height: img?.height,
-      label: entry.tieuDe || "Tác phẩm",
+      label: galleryItemLabel(entry.tieuDe, entry.mediaKind),
       href: postHref(
         ownerSlugById.get(entry.postOwnerId) ?? ownerSlug,
         entry.tacPhamSlug,
@@ -209,7 +228,9 @@ export async function fetchGalleryMainPage(params: {
     Math.max(1, params.limit ?? GALLERY_SCROLL_PAGE_SIZE),
   );
 
-  const stubs = await getGalleryStubsCached(userId);
+  const stubs = await withVerifiedGalleryVariants(
+    await getGalleryStubsCached(userId),
+  );
   const filterCounts = computeFilterCounts(stubs);
   const slice = stubs.slice(offset, offset + limit);
 

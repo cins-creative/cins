@@ -119,6 +119,7 @@ export function TagInput({
   const [creating, setCreating] = useState(false);
   const [loaiFilter, setLoaiFilter] = useState<LoaiFilter>("all");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dedupAbortRef = useRef<AbortController | null>(null);
   const valueRef = useRef(value);
   valueRef.current = value;
 
@@ -161,11 +162,17 @@ export function TagInput({
   const runDedup = useCallback(async (ten: string) => {
     const q = ten.trim();
     if (!q) {
+      dedupAbortRef.current?.abort();
+      dedupAbortRef.current = null;
       setExactMatch(null);
       setSuggestions([]);
       setOpen(false);
+      setLoading(false);
       return;
     }
+    dedupAbortRef.current?.abort();
+    const controller = new AbortController();
+    dedupAbortRef.current = controller;
     setLoading(true);
     setOpen(true);
     try {
@@ -173,7 +180,9 @@ export function TagInput({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ten: q }),
+        signal: controller.signal,
       });
+      if (controller.signal.aborted) return;
       const json = (await res.json().catch(() => null)) as
         | DedupExact
         | DedupFuzzy
@@ -191,11 +200,14 @@ export function TagInput({
         setExactMatch(null);
         setSuggestions(json.suggestions ?? []);
       }
-    } catch {
+    } catch (err) {
+      if (controller.signal.aborted) return;
       setExactMatch(null);
       setSuggestions([]);
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -215,11 +227,18 @@ export function TagInput({
     }
     debounceRef.current = setTimeout(() => {
       void runDedup(trimmed);
-    }, 250);
+    }, 180);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, [atMax, trimmed, runDedup]);
+
+  useEffect(
+    () => () => {
+      dedupAbortRef.current?.abort();
+    },
+    [],
+  );
 
   useEffect(() => {
     setMounted(true);
@@ -383,6 +402,8 @@ export function TagInput({
     }
   };
 
+  const hasResultPreview = Boolean(exactVisible || menuItems.length > 0);
+
   const menuPanel =
     showMenu && menuStyle ? (
       <div
@@ -414,78 +435,87 @@ export function TagInput({
             </button>
           ))}
         </div>
-        {loading ? (
+        {loading && !hasResultPreview ? (
           <div className="tag-input-loading">
             <Loader2 size={14} className="ed-spin" aria-hidden /> Đang tìm…
           </div>
-        ) : exactVisible && exactMatch ? (
-          <button
-            type="button"
-            className="tag-input-item is-active"
-            role="option"
-            aria-selected
-            disabled={selectedIds.has(exactMatch.id)}
-            onClick={() => addTag(exactMatch)}
-          >
-            {exactMatch.da_verify ? (
-              <BadgeCheck
-                className="tag-input-item-verified"
-                size={16}
-                strokeWidth={2}
-                aria-hidden
-              />
-            ) : null}
-            <span className="tag-input-item-label">{exactMatch.tieu_de}</span>
-            <SuggestionLoaiBadge loai={exactMatch.loai_bai_viet} />
-          </button>
         ) : (
           <>
-            {menuItems.length === 0 ? (
-              <div className="tag-input-empty">
-                Không thấy kết quả
-                {loaiFilter !== "all"
-                  ? ` trong mục ${LOAI_FILTER_OPTIONS.find((o) => o.id === loaiFilter)?.label ?? ""}`
-                  : ""}
-                .
+            {loading ? (
+              <div className="tag-input-loading tag-input-loading--inline" aria-live="polite">
+                <Loader2 size={14} className="ed-spin" aria-hidden /> Đang tìm…
               </div>
             ) : null}
-            {menuItems.map((item, idx) =>
-              item.kind === "suggestion" ? (
-                <button
-                  key={item.tag.id}
-                  type="button"
-                  className={`tag-input-item${idx === activeIdx ? " is-active" : ""}`}
-                  role="option"
-                  aria-selected={idx === activeIdx}
-                  onClick={() => void pickMenuItem(item)}
-                >
-                  {item.tag.da_verify ? (
-                    <BadgeCheck
-                      className="tag-input-item-verified"
-                      size={16}
-                      strokeWidth={2}
-                      aria-hidden
-                    />
-                  ) : null}
-                  <span className="tag-input-item-label">{item.tag.tieu_de}</span>
-                  <SuggestionLoaiBadge loai={item.tag.loai_bai_viet} />
-                </button>
-              ) : (
-                <button
-                  key={`create-${item.loai}`}
-                  type="button"
-                  className={`tag-input-item tag-input-create${idx === activeIdx ? " is-active" : ""}`}
-                  role="option"
-                  aria-selected={idx === activeIdx}
-                  disabled={creating}
-                  onClick={() => void pickMenuItem(item)}
-                >
-                  <Plus size={16} strokeWidth={2} aria-hidden />
-                  <span className="tag-input-item-label">
-                    Tạo {CREATE_LOAI_LABEL[item.loai]} &ldquo;{item.label}&rdquo;
-                  </span>
-                </button>
-              ),
+            {exactVisible && exactMatch ? (
+              <button
+                type="button"
+                className="tag-input-item is-active"
+                role="option"
+                aria-selected
+                disabled={selectedIds.has(exactMatch.id)}
+                onClick={() => addTag(exactMatch)}
+              >
+                {exactMatch.da_verify ? (
+                  <BadgeCheck
+                    className="tag-input-item-verified"
+                    size={16}
+                    strokeWidth={2}
+                    aria-hidden
+                  />
+                ) : null}
+                <span className="tag-input-item-label">{exactMatch.tieu_de}</span>
+                <SuggestionLoaiBadge loai={exactMatch.loai_bai_viet} />
+              </button>
+            ) : (
+              <>
+                {!loading && menuItems.length === 0 ? (
+                  <div className="tag-input-empty">
+                    Không thấy kết quả
+                    {loaiFilter !== "all"
+                      ? ` trong mục ${LOAI_FILTER_OPTIONS.find((o) => o.id === loaiFilter)?.label ?? ""}`
+                      : ""}
+                    .
+                  </div>
+                ) : null}
+                {menuItems.map((item, idx) =>
+                  item.kind === "suggestion" ? (
+                    <button
+                      key={item.tag.id}
+                      type="button"
+                      className={`tag-input-item${idx === activeIdx ? " is-active" : ""}`}
+                      role="option"
+                      aria-selected={idx === activeIdx}
+                      onClick={() => void pickMenuItem(item)}
+                    >
+                      {item.tag.da_verify ? (
+                        <BadgeCheck
+                          className="tag-input-item-verified"
+                          size={16}
+                          strokeWidth={2}
+                          aria-hidden
+                        />
+                      ) : null}
+                      <span className="tag-input-item-label">{item.tag.tieu_de}</span>
+                      <SuggestionLoaiBadge loai={item.tag.loai_bai_viet} />
+                    </button>
+                  ) : (
+                    <button
+                      key={`create-${item.loai}`}
+                      type="button"
+                      className={`tag-input-item tag-input-create${idx === activeIdx ? " is-active" : ""}`}
+                      role="option"
+                      aria-selected={idx === activeIdx}
+                      disabled={creating}
+                      onClick={() => void pickMenuItem(item)}
+                    >
+                      <Plus size={16} strokeWidth={2} aria-hidden />
+                      <span className="tag-input-item-label">
+                        Tạo {CREATE_LOAI_LABEL[item.loai]} &ldquo;{item.label}&rdquo;
+                      </span>
+                    </button>
+                  ),
+                )}
+              </>
             )}
           </>
         )}

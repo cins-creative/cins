@@ -24,7 +24,7 @@
 .ed-coauthor-modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 9000;
+  z-index: 10100;
   display: flex;
   align-items: center;
   justify-content: center;

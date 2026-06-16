@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 
 import { JourneyMilestoneCardBodyContent } from "@/components/journey/JourneyMilestoneCardBodyContent";
 import type { MilestoneMediaItem } from "@/components/journey/milestone-types";
+import { JourneyUnfoldArticleContent } from "@/components/journey/JourneyUnfoldArticleContent";
 import { PostBlockRenderer } from "@/components/journey/PostBlockRenderer";
 import {
   milestoneCardContentKind,
@@ -243,7 +244,17 @@ export function OrgBaiDangJourneyCard({ post, owner = null }: Props) {
                 <div className="j-m-card-unfold" data-open="true" aria-hidden={false}>
                   <div className="j-m-card-unfold-inner">
                     <div className="cins-editor-page cins-post-view j-m-unfold-post">
-                      <PostBlockRenderer blocks={blocks} />
+                      {isArticleCard ? (
+                        <JourneyUnfoldArticleContent
+                          title={post.tieu_de}
+                          tomTat={post.tom_tat}
+                          noiDungHtml={post.noi_dung}
+                          coverId={post.cover_id}
+                          blocks={blocks}
+                        />
+                      ) : (
+                        <PostBlockRenderer blocks={blocks} />
+                      )}
                     </div>
                   </div>
                 </div>

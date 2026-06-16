@@ -18,6 +18,11 @@ import {
   TruongInlineEditProvider,
   useTruongInlineEdit,
 } from "@/components/truong/inline/TruongInlineEditContext";
+import { TruongDoanToolbar } from "@/components/truong/TruongDoanToolbar";
+import {
+  TruongDoanToolbarProvider,
+  useTruongDoanToolbarSlot,
+} from "@/components/truong/TruongDoanToolbarContext";
 import { TruongTabBaidang } from "@/components/truong/tabs/TruongTabBaidang";
 import { TruongTabDoanSinhVien } from "@/components/truong/tabs/TruongTabDoanSinhVien";
 import { TruongTabHinhanh } from "@/components/truong/tabs/TruongTabHinhanh";
@@ -84,6 +89,12 @@ function useTruongRouteTab(): TruongTabId {
   return useMemo(() => {
     return parseTruongRouteFromPathname(pathname ?? "") ?? TRUONG_DEFAULT_TAB;
   }, [pathname]);
+}
+
+function TruongDoanToolbarSlot({ active }: { active: boolean }) {
+  const { toolbar } = useTruongDoanToolbarSlot();
+  if (!active || !toolbar) return null;
+  return <TruongDoanToolbar {...toolbar} embedded />;
 }
 
 function TruongDetailViewInner({
@@ -210,10 +221,11 @@ function TruongDetailViewInner({
       initialYear={initialYear}
       persistPinYearSlug={canEdit ? school.slug : null}
     >
-      <div
-        className={shellClass}
-        data-mobile-tab={isMobileShell ? mobileTab : undefined}
-      >
+      <TruongDoanToolbarProvider>
+        <div
+          className={shellClass}
+          data-mobile-tab={isMobileShell ? mobileTab : undefined}
+        >
         {isMobileShell ? (
           <CoSoMobileShellNav value={mobileTab} onChange={setMobileTab} />
         ) : null}
@@ -238,7 +250,11 @@ function TruongDetailViewInner({
             </div>
           ) : null}
 
-          <div className="tdh-v6-tabs-bar">
+          <div
+            className={`tdh-v6-tabs-bar${
+              tab === "do-an-sinh-vien" ? " tdh-v6-tabs-bar--doan" : ""
+            }`}
+          >
             <div
               className="tdh-v6-tabs"
               role="tablist"
@@ -259,6 +275,7 @@ function TruongDetailViewInner({
                 </Link>
               ))}
             </div>
+            <TruongDoanToolbarSlot active={tab === "do-an-sinh-vien"} />
           </div>
 
           {TABS.map((t) => {
@@ -309,6 +326,7 @@ function TruongDetailViewInner({
           }}
         />
       ) : null}
+      </TruongDoanToolbarProvider>
     </YearFilterProvider>
   );
 }

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { EntityLightJourneyFeed } from "@/components/tag/EntityLightJourneyFeed";
 import { TruongDoanProjectMasonry } from "@/components/truong/TruongDoanProjectMasonry";
-import { TruongDoanToolbar } from "@/components/truong/TruongDoanToolbar";
+import { useTruongDoanToolbarSlot } from "@/components/truong/TruongDoanToolbarContext";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
 import type { MilestoneItem } from "@/components/journey/milestone-types";
 import type { OrgDoanProjectItem } from "@/lib/journey/org-milestone-tag-types";
@@ -29,6 +29,7 @@ async function fetchJson<T>(
 
 export function TruongTabDoanSinhVien() {
   const inline = useTruongInlineEdit();
+  const { setToolbar } = useTruongDoanToolbarSlot();
   const orgId = inline?.orgId;
   const [projects, setProjects] = useState<OrgDoanProjectItem[]>([]);
   const [milestones, setMilestones] = useState<MilestoneItem[]>([]);
@@ -142,6 +143,30 @@ export function TruongTabDoanSinhVien() {
       ? sortedProjects.length === 0
       : filteredMilestones.length === 0);
 
+  useEffect(() => {
+    setToolbar({
+      sort,
+      view,
+      yearFilter,
+      yearOptions,
+      nganhFilter,
+      nganhOptions,
+      onViewChange: setView,
+      onSortChange: setSort,
+      onYearChange: setYearFilter,
+      onNganhChange: setNganhFilter,
+    });
+    return () => setToolbar(null);
+  }, [
+    sort,
+    view,
+    yearFilter,
+    yearOptions,
+    nganhFilter,
+    nganhOptions,
+    setToolbar,
+  ]);
+
   return (
     <>
       <div className="sec-hdr">
@@ -150,19 +175,6 @@ export function TruongTabDoanSinhVien() {
           Đồ án <em>sinh viên</em>
         </h2>
       </div>
-
-      <TruongDoanToolbar
-        sort={sort}
-        view={view}
-        yearFilter={yearFilter}
-        yearOptions={yearOptions}
-        nganhFilter={nganhFilter}
-        nganhOptions={nganhOptions}
-        onViewChange={setView}
-        onSortChange={setSort}
-        onYearChange={setYearFilter}
-        onNganhChange={setNganhFilter}
-      />
 
       {waitingForProjects || waitingForTimeline ? (
         <p className="tdh-placeholder">Đang tải đồ án…</p>

@@ -117,8 +117,8 @@ const DOT_COLOR: Record<FilterGroup, string> = {
   "cong-dong": CONG_DONG_PERSONAL_FILTER_MAU,
 };
 
-const MENU_MIN_WIDTH = 212;
-const MENU_EST_HEIGHT = 320;
+const MENU_MIN_WIDTH = 240;
+const MENU_EST_HEIGHT = 400;
 
 function timelineFilterButtonLabel(
   group: FilterGroup,
@@ -305,7 +305,7 @@ export function JourneyTimelineBar({
           left: menuStyle.left,
           width: "max-content",
           minWidth: MENU_MIN_WIDTH,
-          maxWidth: "min(240px, calc(100vw - 16px))",
+          maxWidth: "min(280px, calc(100vw - 16px))",
           display: "block",
         }}
       >

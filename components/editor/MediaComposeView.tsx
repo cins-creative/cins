@@ -17,6 +17,7 @@ import {
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -28,11 +29,19 @@ import {
 import { CongDongFeedFilterDropdown } from "@/components/cong-dong/CongDongFeedFilterDropdown";
 import { OrgBaiDangLoaiComposeDropdown } from "@/components/truong/OrgBaiDangLoaiComposeDropdown";
 import { OrgBaiDangScheduleComposeButton } from "@/components/truong/OrgBaiDangScheduleComposeButton";
-import type { ArticleTagRef } from "@/lib/editor/article-tag";
+import {
+  articleTagLoaiClass,
+  type ArticleTagRef,
+} from "@/lib/editor/article-tag";
 import { publishPost } from "@/app/[slug]/p/new/actions";
 import { updatePost } from "@/app/[slug]/p/[postSlug]/edit/actions";
 import { rememberCfAccountHashFromDeliveryUrl } from "@/lib/cloudflare/account-hash";
 import { ImageGrid } from "@/components/journey/ImageGrid";
+import { JourneyArticleTagLink } from "@/components/journey/JourneyArticleTagLink";
+import { JourneyArticleTagManager } from "@/components/journey/JourneyArticleTagManager";
+import { JourneyCoAuthorProposal } from "@/components/journey/JourneyCoAuthorProposal";
+import { JourneyOrgAttachTrigger } from "@/components/journey/JourneyOrgAttachTrigger";
+import { mapLoaiMocToMilestoneType } from "@/lib/journey/milestone-ui-map";
 import { bunnyIframeSrc, classifyBunnyVideoUrl } from "@/lib/bunny/embed";
 import type { Block, Visibility } from "@/lib/editor/types";
 import {
@@ -43,7 +52,8 @@ import {
 } from "@/lib/journey/image-grid";
 import { isAllowedUploadImageFile } from "@/lib/files/infer-image-mime";
 import {
-  deriveMediaPostTitle,
+  DEFAULT_ARTICLE_POST_TITLE,
+  resolveMediaPostTitle,
   type MediaEditInitial,
 } from "@/lib/journey/post-media";
 import { getAvatarUrl } from "@/lib/journey/profile";
@@ -189,6 +199,7 @@ export function MediaComposeView({
   const router = useRouter();
   const isEdit = !!editInitial;
   const isOverlay = presentation === "overlay";
+  const [title, setTitle] = useState(editInitial?.title ?? "");
   const [caption, setCaption] = useState(editInitial?.caption ?? "");
   const [videoUrl, setVideoUrl] = useState(editInitial?.videoUrl ?? "");
   const [bunnyVideoId, setBunnyVideoId] = useState<string | null>(() => {
@@ -205,7 +216,9 @@ export function MediaComposeView({
       ? photoItemsFromIds(editInitial.photoImageIds)
       : [],
   );
-  const tags: ArticleTagRef[] = [];
+  const [articleTags, setArticleTags] = useState<ArticleTagRef[]>(() => [
+    ...(editInitial?.articleTags ?? []),
+  ]);
   const personalFilterIds = editInitial?.personalFilterIds ?? [];
   const [vis, setVis] = useState<Visibility>(
     editInitial?.visibility ?? "public",
@@ -240,6 +253,7 @@ export function MediaComposeView({
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const captionRef = useRef<HTMLTextAreaElement | null>(null);
   const videoFileInputRef = useRef<HTMLInputElement | null>(null);
   const visRef = useRef<HTMLDivElement | null>(null);
   const uploadLockRef = useRef(false);
@@ -275,6 +289,58 @@ export function MediaComposeView({
         : "Đăng";
   /* Huỷ → journey (không link `/p/slug` — intercept modal sẽ mở popup thay vì thoát edit). */
   const cancelHref = `/${ownerSlug}`;
+
+  const syncCaptionHeight = useCallback(() => {
+    const el = captionRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, []);
+
+  useLayoutEffect(() => {
+    syncCaptionHeight();
+  }, [caption, syncCaptionHeight]);
+
+  useEffect(() => {
+    if (!editInitial?.articleTags) return;
+    setArticleTags([...editInitial.articleTags]);
+  }, [editInitial?.articleTags]);
+
+  const composeMediaActions =
+    isEdit && editInitial && !congDongCompose && !orgBaiDangCompose ? (
+      <div className="mc-compose-toolbar-meta">
+        <JourneyArticleTagManager
+          tacPhamId={editInitial.tacPhamId}
+          initialTags={articleTags}
+          onTagsSaved={setArticleTags}
+        />
+        <JourneyCoAuthorProposal
+          tacPhamId={editInitial.tacPhamId}
+          mode="owner"
+          ownerId={ownerId}
+        />
+        <JourneyOrgAttachTrigger
+          tacPhamId={editInitial.tacPhamId}
+          cotMocId={editInitial.cotMocId}
+          milestoneTitle={resolveMediaPostTitle(
+            title,
+            caption.trim() || (isPhoto ? "Album ảnh" : "Video"),
+            isPhoto ? "photo" : "video",
+          )}
+          milestoneKind={mapLoaiMocToMilestoneType(editInitial.loaiMoc)}
+          ownerSlug={ownerSlug}
+          postSlug={editInitial.postSlug}
+          coverSrc={
+            isPhoto && photos[0]
+              ? photos[0].previewUrl
+              : null
+          }
+          coverAlt={caption.trim() || "Album ảnh"}
+          photoCount={isPhoto && photos.length > 0 ? photos.length : null}
+          bodyExcerpt={caption.trim() || null}
+        />
+      </div>
+    ) : null;
 
   useEffect(() => {
     if (!visOpen) return;
@@ -719,7 +785,8 @@ export function MediaComposeView({
         });
       }
 
-      const tieuDe = deriveMediaPostTitle(
+      const tieuDe = resolveMediaPostTitle(
+        title,
         trimmedCaption,
         isPhoto ? "photo" : "video",
       );
@@ -776,7 +843,7 @@ export function MediaComposeView({
               tieuDe,
               moTa: trimmedCaption.slice(0, 280),
               coverSeed: null,
-              tags,
+              tags: articleTags,
               visibility: publishVisibility,
               loaiMoc: editInitial.loaiMoc,
               thoiDiem: editInitial.thoiDiem,
@@ -788,7 +855,7 @@ export function MediaComposeView({
               tieuDe,
               moTa: trimmedCaption.slice(0, 280),
               coverSeed: null,
-              tags,
+              tags: articleTags,
               visibility: publishVisibility,
               loaiMoc: "ca_nhan",
               thoiDiem: new Date().toISOString().slice(0, 10),
@@ -928,7 +995,18 @@ export function MediaComposeView({
             </div>
           </div>
 
+          <input
+            type="text"
+            className="mc-compose-title"
+            placeholder="Tiêu đề bài viết…"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            maxLength={120}
+            aria-label="Tiêu đề bài viết"
+          />
+
           <textarea
+            ref={captionRef}
             className="mc-compose-caption"
             placeholder={
               isPhoto
@@ -937,8 +1015,26 @@ export function MediaComposeView({
             }
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
-            rows={3}
+            rows={1}
           />
+
+          {articleTags.length > 0 ? (
+            <div
+              className="mc-compose-tags"
+              aria-label="Bài viết liên quan"
+            >
+              {articleTags.map((t) => (
+                <JourneyArticleTagLink
+                  key={t.id}
+                  tag={t}
+                  className={`mc-compose-tag ${articleTagLoaiClass(t.loai_bai_viet)}`}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                  }}
+                />
+              ))}
+            </div>
+          ) : null}
 
           {isPhoto ? (
             <>
@@ -1059,51 +1155,57 @@ export function MediaComposeView({
 
         {isPhoto && photos.length > 0 ? (
           <div className="mc-compose-toolbar">
-            <button
-              type="button"
-              className="mc-compose-toolbar-btn"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={photos.length >= MAX_PHOTOS}
-            >
-              <ImagePlus size={16} strokeWidth={1.8} aria-hidden />
-              Thêm ảnh
-            </button>
-            <button
-              type="button"
-              className="mc-compose-toolbar-btn mc-compose-toolbar-btn--danger"
-              onClick={() => {
-                setPhotos((prev) => {
-                  for (const p of prev) {
-                    if (p.previewUrl.startsWith("blob:")) URL.revokeObjectURL(p.previewUrl);
-                  }
-                  return [];
-                });
-              }}
-            >
-              <Trash2 size={16} strokeWidth={1.8} aria-hidden />
-              Xóa tất cả
-            </button>
+            <div className="mc-compose-toolbar-main">
+              <button
+                type="button"
+                className="mc-compose-toolbar-btn"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={photos.length >= MAX_PHOTOS}
+              >
+                <ImagePlus size={16} strokeWidth={1.8} aria-hidden />
+                Thêm ảnh
+              </button>
+              <button
+                type="button"
+                className="mc-compose-toolbar-btn mc-compose-toolbar-btn--danger"
+                onClick={() => {
+                  setPhotos((prev) => {
+                    for (const p of prev) {
+                      if (p.previewUrl.startsWith("blob:")) URL.revokeObjectURL(p.previewUrl);
+                    }
+                    return [];
+                  });
+                }}
+              >
+                <Trash2 size={16} strokeWidth={1.8} aria-hidden />
+                Xóa tất cả
+              </button>
+            </div>
+            {composeMediaActions}
           </div>
         ) : null}
 
         {!isPhoto && (videoUrl || localVideoPreviewUrl) ? (
           <div className="mc-compose-toolbar">
-            <button
-              type="button"
-              className="mc-compose-toolbar-btn"
-              onClick={() => videoFileInputRef.current?.click()}
-            >
-              <Video size={16} strokeWidth={1.8} aria-hidden />
-              Đổi video
-            </button>
-            <button
-              type="button"
-              className="mc-compose-toolbar-btn mc-compose-toolbar-btn--danger"
-              onClick={clearVideo}
-            >
-              <Trash2 size={16} strokeWidth={1.8} aria-hidden />
-              Xóa video
-            </button>
+            <div className="mc-compose-toolbar-main">
+              <button
+                type="button"
+                className="mc-compose-toolbar-btn"
+                onClick={() => videoFileInputRef.current?.click()}
+              >
+                <Video size={16} strokeWidth={1.8} aria-hidden />
+                Đổi video
+              </button>
+              <button
+                type="button"
+                className="mc-compose-toolbar-btn mc-compose-toolbar-btn--danger"
+                onClick={clearVideo}
+              >
+                <Trash2 size={16} strokeWidth={1.8} aria-hidden />
+                Xóa video
+              </button>
+            </div>
+            {composeMediaActions}
           </div>
         ) : null}
       </main>

@@ -16,7 +16,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   type MilestonePostAuthor,
@@ -41,7 +41,12 @@ import {
   mapCheDoToMilestoneVisibility,
   mapLoaiMocToMilestoneType,
 } from "@/lib/journey/milestone-ui-map";
-import { isMediaPost } from "@/lib/journey/post-media";
+import type { Block } from "@/lib/editor/types";
+import {
+  isMediaPost,
+  partitionBlocksForSplitRail,
+  shouldMovePostTextToSplitRail,
+} from "@/lib/journey/post-media";
 import { getAvatarUrl } from "@/lib/journey/profile";
 
 import { PostActionsRail, PostShareMenu } from "./PostActionsRail";
@@ -51,7 +56,7 @@ import { PostMetaRail } from "./PostMetaRail";
    ║ JourneyPostBody — view layout cho bài viết. ĐỒNG BỘ với editor   ║
    ║ canvas (`EditorView`):                                           ║
    ║                                                                  ║
-   ║   • Cover full-width 200px (giống editor cover-add.has)          ║
+   ║   • Cover sau nội dung (giống editor cover-add.has)            ║
    ║   • Title (38px, font-sans, weight 800)                          ║
    ║   • Sub (19px, font-serif italic)                                ║
    ║   • Tag chips (meta-chips row)                                   ║
@@ -119,6 +124,10 @@ type Props = {
     blocks?: boolean;
     comments?: boolean;
   };
+  /** Permalink split — ẩn phần hero rail (vd. kicker trùng thẻ). */
+  splitSkip?: {
+    kicker?: boolean;
+  };
   /** Timeline — action bar (like/bookmark/…) ngay trên bình luận. */
   inlineActionsSlot?: React.ReactNode;
 };
@@ -136,6 +145,7 @@ export function JourneyPostBody({
   commentsSectionId = "post-comments",
   inlineSkip,
   inlineParts,
+  splitSkip,
   inlineActionsSlot,
 }: Props) {
   const [detail, setDetail] = useState<MilestonePostDetail>(initialDetail);
@@ -278,7 +288,7 @@ export function JourneyPostBody({
   const KickerIcon = mainPost?.articleTags[0] ? FileText : TypeIcon;
 
   const kickerEl =
-    isSplit && variant === "full" && !mediaPost ? (
+    isSplit && variant === "full" && !mediaPost && !splitSkip?.kicker ? (
       <span className="post-view-kicker">
         <KickerIcon size={13} strokeWidth={2} aria-hidden />
         {kickerLabel}
@@ -412,9 +422,38 @@ export function JourneyPostBody({
         onCommentRemoved={onCommentRemoved}
         onThreadsReordered={onThreadsReordered}
         sectionId={commentsSectionId}
+        pinCompose={isSplit}
       />
     )
   ) : null;
+
+  const moveTextToRail = isSplit && shouldMovePostTextToSplitRail(blocks);
+  const splitBlockParts = useMemo(() => {
+    if (!blocks?.length || !moveTextToRail) {
+      return { railBlocks: [] as Block[], mediaBlocks: blocks ?? [] };
+    }
+    return partitionBlocksForSplitRail(blocks);
+  }, [blocks, moveTextToRail]);
+
+  function renderPostBlocks(
+    blockList: ReadonlyArray<Block> | null | undefined,
+    useMediaRenderer: boolean,
+  ) {
+    if (!showBlocks || !blockList || blockList.length === 0) return null;
+    return useMediaRenderer || isMediaPost(blockList) ? (
+      <PostBlockRenderer blocks={blockList} />
+    ) : (
+      <PostBlocksRenderer blocks={blockList} />
+    );
+  }
+
+  const railContentEl =
+    moveTextToRail && showBlocks && mediaPost
+      ? renderPostBlocks(splitBlockParts.railBlocks, mediaPost)
+      : null;
+
+  const railHeroEl =
+    isSplit && variant === "full" && !mediaPost ? splitHeroEl : null;
 
   const metaRailEl =
     isSplit && showByline ? (
@@ -425,6 +464,11 @@ export function JourneyPostBody({
         postSlug={postSlug}
         isOwner={isOwner}
         actionsRail={actionsRailCompact}
+        heroRail={railHeroEl}
+        coverRail={
+          isSplit && variant === "full" && !mediaPost ? coverEl : null
+        }
+        contentRail={railContentEl}
         commentsRail={showCommentsPart ? commentsEl : undefined}
         onMilestoneUpdated={onMilestoneUpdated}
       />
@@ -446,6 +490,17 @@ export function JourneyPostBody({
       <div className="post-empty">Cột mốc này chưa có nội dung chi tiết.</div>
     ) : null;
 
+  const splitContentBlocksEl =
+    moveTextToRail && showBlocks
+      ? (renderPostBlocks(splitBlockParts.mediaBlocks, mediaPost) ??
+        (mainPost?.noiDungHtml ? (
+          <div
+            className="post-html-fallback article-rich-content"
+            dangerouslySetInnerHTML={{ __html: mainPost.noiDungHtml }}
+          />
+        ) : null))
+      : blocksEl;
+
   if (isSplit) {
     return (
       <Wrapper className={wrapperClass} aria-label="Bài viết">
@@ -453,10 +508,8 @@ export function JourneyPostBody({
           <div
             className={`post-view-content${mediaPost ? " post-view-content--media" : ""}`}
           >
-            {coverEl}
             <div className="post-view-content-inner">
-              {splitHeroEl ?? heroEl}
-              {blocksEl}
+              {splitContentBlocksEl}
             </div>
           </div>
           {metaRailEl}
@@ -467,8 +520,8 @@ export function JourneyPostBody({
 
   return (
     <Wrapper className={wrapperClass} aria-label="Bài viết">
-      {coverEl}
       {heroEl}
+      {coverEl}
       {bylineEl}
       {tagsEl}
       {contributorsEl}
@@ -518,7 +571,7 @@ function PostContributors({
               const body = (
                 <>
                   <span
-                    className={`post-rail-person-avatar${c.laChuSoHuu ? "" : " post-rail-person-avatar--sq"}`}
+                    className="post-rail-person-avatar"
                     aria-hidden
                   >
                     {avatarUrl ? (
@@ -630,6 +683,7 @@ type CommentSectionProps = {
     replyToId?: string | null,
     anhDinhKem?: string[],
   ) => Promise<CommentSubmitResult>;
+  pinCompose?: boolean;
 };
 
 export function JourneyPostCommentsBlock(props: CommentSectionProps) {

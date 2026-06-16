@@ -6,6 +6,7 @@ import type { Block, LoaiMoc, Visibility } from "@/lib/editor/types";
 import { loadCoAuthorsForTacPham } from "@/lib/social/co-author";
 import { loadPersonalFilterIdsForCotMoc } from "@/lib/filter/gan";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { sanitizePersistableCoverId } from "@/lib/truong/image-ref";
 
 type TacPhamRow = {
   id: string;
@@ -141,6 +142,8 @@ export async function fetchPostEditInitial(params: {
       vaiTro: r.vaiTro,
     }));
 
+  const blocks = sanitizeBlocks(tp.noi_dung_blocks);
+
   return {
     ok: true,
     postSlug,
@@ -149,12 +152,12 @@ export async function fetchPostEditInitial(params: {
       cotMocId: cm.id,
       tieuDe: tp.tieu_de ?? "",
       moTa: tp.mo_ta,
-      coverSeed: tp.cover_id,
+      coverSeed: sanitizePersistableCoverId(tp.cover_id, blocks),
       tags,
       visibility: (tp.che_do_hien_thi ?? cm.che_do_hien_thi ?? "public") as Visibility,
       loaiMoc: cm.loai_moc,
       thoiDiem: cm.thoi_diem ?? isoToday(),
-      blocks: sanitizeBlocks(tp.noi_dung_blocks),
+      blocks,
       ownerVaiTro: ownerRow?.vaiTro ?? "",
       coAuthors,
       personalFilterIds,

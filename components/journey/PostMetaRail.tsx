@@ -71,6 +71,12 @@ type Props = {
   postSlug?: string | null;
   isOwner: boolean;
   actionsRail: ReactNode;
+  /** Caption album/video — dưới meta author trên rail. */
+  contentRail?: ReactNode;
+  /** Tiêu đề + mô tả ngắn — split bài viết, trong block author. */
+  heroRail?: ReactNode;
+  /** Ảnh bìa — ngay sau mô tả ngắn trên rail split. */
+  coverRail?: ReactNode;
   commentsRail?: ReactNode;
   onMilestoneUpdated?: () => void;
 };
@@ -82,6 +88,9 @@ export function PostMetaRail({
   postSlug,
   isOwner,
   actionsRail,
+  contentRail,
+  heroRail,
+  coverRail,
   commentsRail,
   onMilestoneUpdated,
 }: Props) {
@@ -93,7 +102,8 @@ export function PostMetaRail({
   const ownerAvatarUrl = getAvatarUrl(owner.avatarId);
   const people = buildRailPeople(mainPost?.contributors ?? []);
   const articleTags = mainPost?.articleTags ?? [];
-  const hasKeywordTag = articleTags.some((t) => t.loai_bai_viet === "keyword");
+  const verifyTags = articleTags.filter((t) => t.da_verify === true);
+  const attachTags = articleTags.filter((t) => t.da_verify !== true);
 
   const authorBody = (
     <>
@@ -121,7 +131,8 @@ export function PostMetaRail({
       className="post-view-rail"
       aria-label="Thông tin bài viết"
     >
-      <div className="post-rail-blk post-rail-blk--author">
+      <div className="post-rail-scroll">
+        <div className="post-rail-blk post-rail-blk--author">
         <div className="post-rail-author">
           <JourneyUserPopover
             slug={owner.slug}
@@ -160,30 +171,43 @@ export function PostMetaRail({
             {vis.text}
           </span>
         </div>
+        {heroRail ? <div className="post-rail-hero">{heroRail}</div> : null}
+        {coverRail ? <div className="post-rail-cover">{coverRail}</div> : null}
+        {contentRail ? (
+          <div className="post-rail-body">{contentRail}</div>
+        ) : null}
       </div>
 
       <div className="post-rail-blk post-rail-blk--actions">{actionsRail}</div>
 
-      {articleTags.length > 0 ? (
-        <div className="post-rail-blk post-rail-blk--tags">
-          <div className="post-rail-lbl">{hasKeywordTag ? "Xác thực" : "Thẻ"}</div>
+      {verifyTags.length > 0 ? (
+        <div className="post-rail-blk post-rail-blk--tags post-rail-blk--verify">
+          <div className="post-rail-lbl">Xác thực</div>
           <div className="post-rail-tags">
-            {articleTags.map((t) => {
-              const isKeyword = t.loai_bai_viet === "keyword";
-              return (
-                <JourneyArticleTagLink
-                  key={t.id}
-                  tag={t}
-                  className={`post-rail-tag ${articleTagLoaiClass(t.loai_bai_viet)}`}
-                  label={
-                    isKeyword
-                      ? `Được xác thực bởi ${t.tieu_de}`
-                      : undefined
-                  }
-                  verified={isKeyword}
-                />
-              );
-            })}
+            {verifyTags.map((t) => (
+              <JourneyArticleTagLink
+                key={t.id}
+                tag={t}
+                className={`post-rail-tag ${articleTagLoaiClass(t.loai_bai_viet)}`}
+                label={`Được xác thực bởi ${t.tieu_de}`}
+                verified
+              />
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {attachTags.length > 0 ? (
+        <div className="post-rail-blk post-rail-blk--tags">
+          <div className="post-rail-lbl">Thẻ</div>
+          <div className="post-rail-tags">
+            {attachTags.map((t) => (
+              <JourneyArticleTagLink
+                key={t.id}
+                tag={t}
+                className={`post-rail-tag ${articleTagLoaiClass(t.loai_bai_viet)}`}
+              />
+            ))}
           </div>
         </div>
       ) : null}
@@ -202,7 +226,7 @@ export function PostMetaRail({
               const body = (
                 <>
                   <span
-                    className={`post-rail-person-avatar${c.laChuSoHuu ? "" : " post-rail-person-avatar--sq"}`}
+                    className="post-rail-person-avatar"
                     aria-hidden
                   >
                     {avatarUrl ? (
@@ -241,6 +265,7 @@ export function PostMetaRail({
       {commentsRail ? (
         <div className="post-rail-blk post-rail-blk--comments">{commentsRail}</div>
       ) : null}
+      </div>
     </aside>
   );
 }

@@ -1,4 +1,5 @@
 import { getCfAccountHash } from "@/lib/cloudflare/account-hash";
+import { isTemporaryImageRef } from "@/lib/truong/image-ref";
 
 /** Cloudflare Images — variants theo brief trường đại học. */
 export type CfImageVariant = "public" | "avatar" | "cover" | "medium";
@@ -15,6 +16,7 @@ export function getCfImageUrl(
   variant: CfImageVariant = "public",
 ): string | null {
   if (!imageId?.trim()) return null;
+  if (isTemporaryImageRef(imageId.trim())) return null;
   const hash = getCfAccountHash();
   if (!hash) return null;
   return `https://imagedelivery.net/${hash}/${imageId.trim()}/${variant}`;

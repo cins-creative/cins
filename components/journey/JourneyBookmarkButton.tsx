@@ -2,7 +2,7 @@
 
 import { useAuthGate } from "@/components/auth/AuthGateProvider";
 import { Bookmark, CheckCircle2, Lock, Globe2, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   BOOKMARK_PRIVATE_NOTE_MAX_LENGTH,
@@ -48,7 +48,7 @@ export function JourneyBookmarkButton({
   saveEndpoint,
   resolveOpenBlock,
   onRequireAuth,
-  modalZIndex = 1000,
+  modalZIndex = 10800,
 }: Props) {
   const { requireAuth: defaultRequireAuth } = useAuthGate();
   const requireAuth = onRequireAuth ?? defaultRequireAuth;
@@ -63,6 +63,21 @@ export function JourneyBookmarkButton({
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const saveSnapshotRef = useRef({ saved: initialSaved, count: initialCount });
+  const saveAbortRef = useRef<AbortController | null>(null);
+  const closeTimerRef = useRef<number | null>(null);
+
+  const closeModal = useCallback(() => {
+    saveAbortRef.current?.abort();
+    saveAbortRef.current = null;
+    if (closeTimerRef.current != null) {
+      window.clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+    setOpen(false);
+    setIsSaving(false);
+    setError(null);
+    setSuccess(false);
+  }, []);
 
   useEffect(() => {
     queueMicrotask(() => setMounted(true));
@@ -102,6 +117,15 @@ export function JourneyBookmarkButton({
     };
   }, [open]);
 
+  useEffect(() => {
+    return () => {
+      saveAbortRef.current?.abort();
+      if (closeTimerRef.current != null) {
+        window.clearTimeout(closeTimerRef.current);
+      }
+    };
+  }, []);
+
   const dispatchSaved = (bookmarked: boolean, bookmarkCount?: number) => {
     if (!milestoneId) return;
     window.dispatchEvent(
@@ -121,8 +145,12 @@ export function JourneyBookmarkButton({
     setIsSaving(true);
     saveSnapshotRef.current = { saved, count };
 
+    saveAbortRef.current?.abort();
+    const controller = new AbortController();
+    saveAbortRef.current = controller;
+
     const endpoint = saveEndpoint?.({ visibility, privateNote }) ?? {
-      url: "/api/bookmarks",
+      url: "/api/luu-bai",
       body: {
         loai_doi_tuong: "cot_moc",
         id_doi_tuong: milestoneId,
@@ -135,6 +163,8 @@ export function JourneyBookmarkButton({
       const res = await fetch(endpoint.url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        signal: controller.signal,
         body: JSON.stringify(endpoint.body ?? {}),
       });
       const json = await res.json().catch(() => ({}));
@@ -153,16 +183,22 @@ export function JourneyBookmarkButton({
       setCount(syncedCount);
       dispatchSaved(true, syncedCount);
       setSuccess(true);
-      window.setTimeout(() => {
-        setOpen(false);
-        setSuccess(false);
+      closeTimerRef.current = window.setTimeout(() => {
+        closeModal();
       }, 1800);
-    } catch {
+    } catch (err) {
+      if (controller.signal.aborted) {
+        return;
+      }
       const rollback = saveSnapshotRef.current;
       setSaved(rollback.saved);
       setCount(rollback.count);
       setError("Không kết nối được máy chủ. Thử lại sau.");
+      console.error("[JourneyBookmarkButton] save failed:", err);
     } finally {
+      if (saveAbortRef.current === controller) {
+        saveAbortRef.current = null;
+      }
       setIsSaving(false);
     }
   };
@@ -172,11 +208,15 @@ export function JourneyBookmarkButton({
     if (blockMsg) {
       setBlockedMessage(blockMsg);
       setError(null);
+      setIsSaving(false);
+      setSuccess(false);
       setOpen(true);
       return;
     }
     setBlockedMessage(null);
     setError(null);
+    setIsSaving(false);
+    setSuccess(false);
     setPrivateNote("");
     setOpen(true);
   };
@@ -186,7 +226,7 @@ export function JourneyBookmarkButton({
       className="j-bookmark-confirm-backdrop"
       role="presentation"
       style={{ zIndex: modalZIndex }}
-      onClick={() => setOpen(false)}
+      onClick={closeModal}
     >
       <div
         className="j-bookmark-confirm"
@@ -209,13 +249,13 @@ export function JourneyBookmarkButton({
               type="button"
               className="j-bookmark-confirm-close"
               aria-label="Đóng"
-              onClick={() => setOpen(false)}
+              onClick={closeModal}
             >
               <X size={16} aria-hidden />
             </button>
             <p className="j-bookmark-confirm-error">{blockedMessage}</p>
             <div className="j-bookmark-confirm-actions">
-              <button type="button" className="is-primary" onClick={() => setOpen(false)}>
+              <button type="button" className="is-primary" onClick={closeModal}>
                 Đã hiểu
               </button>
             </div>
@@ -226,7 +266,7 @@ export function JourneyBookmarkButton({
               type="button"
               className="j-bookmark-confirm-close"
               aria-label="Đóng"
-              onClick={() => setOpen(false)}
+              onClick={closeModal}
             >
               <X size={16} aria-hidden />
             </button>
@@ -280,7 +320,7 @@ export function JourneyBookmarkButton({
             </label>
             {error ? <p className="j-bookmark-confirm-error">{error}</p> : null}
             <div className="j-bookmark-confirm-actions">
-              <button type="button" onClick={() => setOpen(false)}>
+              <button type="button" onClick={closeModal}>
                 Huỷ
               </button>
               <button

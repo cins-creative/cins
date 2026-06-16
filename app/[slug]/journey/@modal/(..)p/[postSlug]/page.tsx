@@ -54,8 +54,8 @@ export default async function InterceptedPostModal({
       initialDetail={detail}
       postSlug={postSlugFromDb}
       isOwner={detail.viewerIsOwner}
-      /* Trong modal: vẫn show link permalink để user mở tab riêng / share. */
-      hideOpenLink={false}
+      hideOpenLink
+      layout="split"
     />
   );
 }

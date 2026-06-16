@@ -387,7 +387,7 @@ export function PostActionsRail({
         }),
       );
       startTransition(async () => {
-        const res = await fetch("/api/bookmarks", {
+        const res = await fetch("/api/luu-bai", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

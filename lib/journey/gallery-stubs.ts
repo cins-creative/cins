@@ -8,6 +8,7 @@ import type { Block } from "@/lib/editor/types";
 import {
   extractPhotoImageIds,
   extractVideoUrl,
+  galleryItemExcerptLine,
   galleryMediaKindFromBlocks,
   type GalleryMediaKind,
 } from "@/lib/journey/post-media";
@@ -40,11 +41,13 @@ type GalleryRow = {
     thoi_diem: string;
     loai_moc: LoaiMocDb;
     che_do_hien_thi: "public" | "theo_nhom" | "chi_minh" | "feature";
+    mo_ta: string | null;
   } | null;
   content_tac_pham: {
     id: string;
     slug: string | null;
     tieu_de: string;
+    mo_ta: string | null;
     cover_id: string | null;
     id_nguoi_dung: string;
     noi_dung_blocks: unknown;
@@ -62,6 +65,7 @@ export type GalleryStub = {
   visibility: "feature" | "public";
   tacPhamSlug: string | null;
   tieuDe: string;
+  excerpt: string;
   /** Cloudflare image id — ảnh / cover bài viết. */
   coverId: string | null;
   /** URL thumbnail trực tiếp (Bunny video). */
@@ -166,6 +170,7 @@ function rowToStub(
     visibility: cm.che_do_hien_thi as "feature" | "public",
     tacPhamSlug: tp.slug,
     tieuDe: tp.tieu_de,
+    excerpt: galleryItemExcerptLine(cm.mo_ta, tp.mo_ta, blocks),
     coverId: visual.coverId,
     coverSrc: visual.coverSrc,
     videoProcessing: visual.videoProcessing,
@@ -224,7 +229,7 @@ async function fetchTaggedGalleryRows(
   const { data } = await admin
     .from("content_tac_pham_thuoc_moc")
     .select(
-      "id_cot_moc, content_cot_moc:content_cot_moc!inner(id, thoi_diem, loai_moc, che_do_hien_thi, id_nguoi_dung), content_tac_pham:content_tac_pham!inner(id, slug, tieu_de, cover_id, id_nguoi_dung, noi_dung_blocks)",
+      "id_cot_moc, content_cot_moc:content_cot_moc!inner(id, thoi_diem, loai_moc, che_do_hien_thi, mo_ta, id_nguoi_dung), content_tac_pham:content_tac_pham!inner(id, slug, tieu_de, mo_ta, cover_id, id_nguoi_dung, noi_dung_blocks)",
     )
     .in("id_tac_pham", tacPhamIds)
     .in("content_cot_moc.che_do_hien_thi", ["feature", "public"])
@@ -240,7 +245,7 @@ export async function collectGalleryStubs(userId: string): Promise<GalleryStub[]
   const { data: rows } = await admin
     .from("content_tac_pham_thuoc_moc")
     .select(
-      "id_cot_moc, content_cot_moc:content_cot_moc!inner(id, thoi_diem, loai_moc, che_do_hien_thi, id_nguoi_dung), content_tac_pham:content_tac_pham!inner(id, slug, tieu_de, cover_id, id_nguoi_dung, noi_dung_blocks)",
+      "id_cot_moc, content_cot_moc:content_cot_moc!inner(id, thoi_diem, loai_moc, che_do_hien_thi, mo_ta, id_nguoi_dung), content_tac_pham:content_tac_pham!inner(id, slug, tieu_de, mo_ta, cover_id, id_nguoi_dung, noi_dung_blocks)",
     )
     .eq("content_cot_moc.id_nguoi_dung", userId)
     .in("content_cot_moc.che_do_hien_thi", ["feature", "public"])

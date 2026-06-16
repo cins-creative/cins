@@ -1,3 +1,4 @@
+import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import type { Block, LoaiMoc, Visibility } from "@/lib/editor/types";
 import type { BaiDangLoai } from "@/lib/truong/bai-dang";
 
@@ -48,6 +49,28 @@ export function isMediaPost(
   return detectMediaPostKind(blocks) !== null;
 }
 
+/** Split layout: caption/blocks sang rail — album ảnh, video, bài viết dài. */
+export function shouldMovePostTextToSplitRail(
+  blocks: ReadonlyArray<Block> | null | undefined,
+): boolean {
+  return Boolean(blocks?.length);
+}
+
+/** Tách blocks cho layout 2 cột: rail (caption media) vs cột trái (media / nội dung bài). */
+export function partitionBlocksForSplitRail(blocks: ReadonlyArray<Block>): {
+  railBlocks: Block[];
+  mediaBlocks: Block[];
+} {
+  const kind = detectMediaPostKind(blocks);
+  if (kind === "photo" || kind === "video") {
+    return {
+      railBlocks: blocks.filter((b) => b.loai === "body"),
+      mediaBlocks: blocks.filter((b) => b.loai !== "body"),
+    };
+  }
+  return { railBlocks: [], mediaBlocks: [...blocks] };
+}
+
 export function extractBodyCaption(
   blocks: ReadonlyArray<Block> | null | undefined,
 ): string {
@@ -57,16 +80,47 @@ export function extractBodyCaption(
   return typeof html === "string" ? html : "";
 }
 
+export const DEFAULT_ARTICLE_POST_TITLE = "Bài viết";
+
+export function defaultMediaPostTitle(kind: MediaPostKind): string {
+  return kind === "video" ? "Đoạn phim" : "Ảnh";
+}
+
 export function deriveMediaPostTitle(
   caption: string,
   kind: MediaPostKind,
 ): string {
   const line = caption.trim().split("\n")[0]?.trim();
   if (line) return line.slice(0, 120);
-  return kind === "video" ? "Video mới" : "Ảnh mới";
+  return defaultMediaPostTitle(kind);
+}
+
+/** Tiêu đề trong form compose — ẩn fallback DB auto. */
+export function initialMediaComposeTitle(
+  tieuDe: string | null | undefined,
+  kind: MediaPostKind,
+): string {
+  const trimmed = (tieuDe ?? "").trim();
+  if (!trimmed || isMediaFallbackTitle(trimmed, kind)) return "";
+  return trimmed;
+}
+
+export function resolveMediaPostTitle(
+  titleInput: string,
+  _caption: string,
+  kind: MediaPostKind,
+): string {
+  const trimmedTitle = titleInput.trim();
+  if (trimmedTitle) return trimmedTitle.slice(0, 120);
+  return defaultMediaPostTitle(kind);
 }
 
 const MEDIA_FALLBACK_TITLES: Record<MediaPostKind, string> = {
+  photo: "Ảnh",
+  video: "Đoạn phim",
+};
+
+const LEGACY_MEDIA_FALLBACK_TITLES: Record<MediaPostKind, string> = {
   photo: "Ảnh mới",
   video: "Video mới",
 };
@@ -76,7 +130,27 @@ export function isMediaFallbackTitle(
   title: string,
   kind: MediaPostKind,
 ): boolean {
-  return title.trim() === MEDIA_FALLBACK_TITLES[kind];
+  const trimmed = title.trim();
+  return (
+    trimmed === MEDIA_FALLBACK_TITLES[kind] ||
+    trimmed === LEGACY_MEDIA_FALLBACK_TITLES[kind]
+  );
+}
+
+/** Nhãn hiển thị UI khi tiêu đề là fallback media (vd. gallery đồ án). */
+export function displayMediaPostTitle(title: string): string {
+  const trimmed = title.trim();
+  if (
+    trimmed === MEDIA_FALLBACK_TITLES.photo ||
+    trimmed === LEGACY_MEDIA_FALLBACK_TITLES.photo
+  ) {
+    return "Ảnh";
+  }
+  return title;
+}
+
+export function isPostPermalinkHref(href: string | undefined): href is string {
+  return Boolean(href && /\/p\/[^/?#]+/.test(href));
 }
 
 export type GalleryMediaKind = "article" | "photo" | "video";
@@ -134,17 +208,47 @@ export function matchesGalleryMediaFilter(
   return (mediaKind ?? "article") === filter;
 }
 
-/** Card timeline: bài media không có H1 riêng → ẩn title fallback. */
+/** Tiêu đề DB auto bài viết — không phải H1 do user nhập. */
+export function isArticleFallbackTitle(title: string): boolean {
+  const trimmed = title.trim();
+  return !trimmed || trimmed === DEFAULT_ARTICLE_POST_TITLE;
+}
+
+/** Card timeline: chỉ hiện tiêu đề khi user thật sự nhập (không fallback). */
 export function shouldShowMilestoneCardTitle(
   title: string,
   blocks: ReadonlyArray<Block> | null | undefined,
 ): boolean {
   const kind = detectMediaPostKind(blocks);
-  if (!kind) return Boolean(title.trim());
+  if (!kind) return !isArticleFallbackTitle(title);
   if (isMediaFallbackTitle(title, kind)) return false;
   const captionLine = extractBodyCaption(blocks).trim().split("\n")[0]?.trim() ?? "";
   if (captionLine && title.trim() === captionLine.slice(0, 120)) return false;
   return Boolean(title.trim());
+}
+
+/** Nhãn gallery grid — luôn có default theo loại nội dung. */
+export function galleryItemLabel(
+  tieuDe: string,
+  mediaKind: GalleryMediaKind,
+): string {
+  const trimmed = tieuDe.trim();
+  if (mediaKind === "photo") {
+    if (!trimmed || isMediaFallbackTitle(trimmed, "photo")) {
+      return MEDIA_FALLBACK_TITLES.photo;
+    }
+    return trimmed;
+  }
+  if (mediaKind === "video") {
+    if (!trimmed || isMediaFallbackTitle(trimmed, "video")) {
+      return MEDIA_FALLBACK_TITLES.video;
+    }
+    return trimmed;
+  }
+  if (isArticleFallbackTitle(trimmed)) {
+    return DEFAULT_ARTICLE_POST_TITLE;
+  }
+  return trimmed;
 }
 
 export function milestoneCardCaption(
@@ -155,6 +259,48 @@ export function milestoneCardCaption(
   if (fromBody) return fromBody;
   const fromBlocks = extractBodyCaption(blocks).trim();
   return fromBlocks || null;
+}
+
+/** Dòng phụ gallery card — mô tả cột mốc / tác phẩm hoặc dòng đầu block text. */
+export function galleryItemExcerptLine(
+  milestoneMoTa: string | null | undefined,
+  tacPhamMoTa: string | null | undefined,
+  blocks: ReadonlyArray<Block> | null | undefined,
+): string {
+  const fromMilestone = milestoneMoTa?.trim();
+  if (fromMilestone) {
+    return fromMilestone.split("\n").map((l) => l.trim()).find(Boolean) ?? "";
+  }
+
+  const fromTacPham = tacPhamMoTa?.trim();
+  if (fromTacPham) {
+    return fromTacPham.split("\n").map((l) => l.trim()).find(Boolean) ?? "";
+  }
+
+  if (!blocks) return "";
+
+  for (const block of blocks) {
+    if (
+      block.loai !== "body" &&
+      block.loai !== "h2" &&
+      block.loai !== "h3" &&
+      block.loai !== "quote"
+    ) {
+      continue;
+    }
+    const html = block.config?.html;
+    if (typeof html !== "string") continue;
+    const plain = html
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<\/p>/gi, "\n")
+      .replace(/<[^>]+>/g, "")
+      .replace(/&nbsp;/gi, " ")
+      .trim();
+    const line = plain.split("\n").map((l) => l.trim()).find(Boolean);
+    if (line) return line.slice(0, 200);
+  }
+
+  return "";
 }
 
 /** Caption hiển thị trên card timeline — bỏ HTML editor. */
@@ -253,10 +399,12 @@ export type MediaEditInitial = {
   tacPhamId: string;
   cotMocId: string;
   postSlug: string;
+  title: string;
   caption: string;
   visibility: Visibility;
   loaiMoc: LoaiMoc;
   thoiDiem: string;
+  articleTags?: ArticleTagRef[];
   photoImageIds?: string[];
   videoUrl?: string;
   personalFilterIds?: string[];
@@ -268,11 +416,13 @@ export function buildMediaEditInitial(params: {
   tacPhamId: string;
   cotMocId: string;
   postSlug: string;
+  tieuDe: string;
   visibility: Visibility;
   loaiMoc: LoaiMoc;
   thoiDiem: string;
   blocks: ReadonlyArray<Block>;
   kind: MediaPostKind;
+  articleTags?: ArticleTagRef[];
   personalFilterIds?: string[];
   orgBaiDangLoai?: BaiDangLoai;
   orgBaiDangSchedulePublishAt?: string | null;
@@ -282,10 +432,12 @@ export function buildMediaEditInitial(params: {
     tacPhamId: params.tacPhamId,
     cotMocId: params.cotMocId,
     postSlug: params.postSlug,
+    title: initialMediaComposeTitle(params.tieuDe, params.kind),
     caption,
     visibility: params.visibility,
     loaiMoc: params.loaiMoc,
     thoiDiem: params.thoiDiem,
+    articleTags: params.articleTags ?? [],
     photoImageIds:
       params.kind === "photo"
         ? extractPhotoImageIds(params.blocks)

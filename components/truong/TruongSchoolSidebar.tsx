@@ -11,7 +11,6 @@ import { TruongOrgAvatar } from "@/components/truong/TruongOrgAvatar";
 import { TruongSchoolContact } from "@/components/truong/TruongSchoolContact";
 import { TruongUserChatLauncher } from "@/components/truong/TruongUserChatLauncher";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
-import { formatHocPhiLabel } from "@/lib/truong/display";
 import { labelLoaiTruong } from "@/lib/nganh/truong-shared";
 import type { TruongDetail } from "@/lib/truong/types";
 
@@ -42,13 +41,7 @@ export function TruongSchoolSidebar({
   const loai = labelLoaiTruong(school.loai_truong);
   const subtitle = truongSidebarSubtitle(school);
 
-  const showTuyenSinStats =
-    isEditing || school.co_ktx != null || school.hoc_phi_nam_tu != null;
-
-  const hocPhiLabel = formatHocPhiLabel(
-    school.hoc_phi_nam_tu,
-    school.hoc_phi_nam_den,
-  );
+  const showTuyenSinStats = isEditing || school.co_ktx != null;
 
   const ktxPriceLabel =
     typeof school.ktx_gia_thang === "number"
@@ -164,12 +157,6 @@ export function TruongSchoolSidebar({
                     ) : null}
                   </div>
                   <div className="ss-stat-grid">
-                    {hocPhiLabel ? (
-                      <div className="ss-stat span-2">
-                        <div className="lbl">Học phí</div>
-                        <div className="val text">{hocPhiLabel}</div>
-                      </div>
-                    ) : null}
                     {showKtxStat ? (
                       <div className="ss-stat span-2">
                         <div className="lbl">Ký túc xá</div>
@@ -275,12 +262,6 @@ export function TruongSchoolSidebar({
             ) : null}
           </div>
           <div className="ss-stat-grid">
-            {hocPhiLabel ? (
-              <div className="ss-stat span-2">
-                <div className="lbl">Học phí</div>
-                <div className="val text">{hocPhiLabel}</div>
-              </div>
-            ) : null}
             {showKtxStat ? (
               <div className="ss-stat span-2">
                 <div className="lbl">Ký túc xá</div>

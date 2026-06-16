@@ -135,7 +135,9 @@ export function JourneyMilestoneCardBodyContent({
       <div className="jcard-content">
         {showCardTitle || cardCaption || articleTags.length > 0 ? (
           <div className="jcard-text">
-            {showCardTitle ? <h2 className="jcard-title">{title}</h2> : null}
+            {showCardTitle && !(isContentOpen && isArticle) ? (
+          <h2 className="jcard-title">{title}</h2>
+        ) : null}
 
             {cardCaption && !isArticle ? (
               <div className="jcard-lead">
@@ -143,7 +145,7 @@ export function JourneyMilestoneCardBodyContent({
               </div>
             ) : null}
 
-            {cardCaption && isArticle ? (
+            {cardCaption && isArticle && !isContentOpen ? (
               <div className="jcard-lead">
                 <p className="jcard-desc">{cardCaption}</p>
               </div>

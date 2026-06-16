@@ -51,13 +51,6 @@ export async function saveOrgBaiDangBookmark(params: {
   const visibility = params.visibility === "private" ? "private" : "public";
   const ghiChuRieng = normalizeBookmarkPrivateNote(params.ghiChuRieng);
 
-  await admin
-    .from("social_luu")
-    .delete()
-    .eq("id_nguoi_dung", params.viewerId)
-    .eq("loai_doi_tuong", SOCIAL_LOAI_ORG_BAI_DANG)
-    .eq("id_doi_tuong", params.postId);
-
   const { error } = await admin.from("social_luu").upsert(
     {
       id_nguoi_dung: params.viewerId,
