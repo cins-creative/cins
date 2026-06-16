@@ -60,62 +60,31 @@ function ProfileFeedToggle({
   activeView: JourneyProfileView;
   onSelect: (view: JourneyProfileView) => void;
 }) {
-  const isJourney = activeView === "journey";
-  const isGallery = activeView === "gallery";
-
-  return (
-    <div className="j-profile-feed-toggle" role="group" aria-label="Journey hoặc Gallery">
-      <FeedToggleSegment
-        slug={slug}
-        view="journey"
-        active={isJourney}
-        icon={<Waypoints size={14} aria-hidden />}
-        label="Journey"
-        onSelect={onSelect}
-      />
-      <FeedToggleSegment
-        slug={slug}
-        view="gallery"
-        active={isGallery}
-        icon={<Grid3X3 size={14} aria-hidden />}
-        label="Gallery"
-        onSelect={onSelect}
-      />
-    </div>
-  );
-}
-
-function FeedToggleSegment({
-  slug,
-  view,
-  active,
-  icon,
-  label,
-  onSelect,
-}: {
-  slug: string;
-  view: "journey" | "gallery";
-  active: boolean;
-  icon: React.ReactNode;
-  label: string;
-  onSelect: (view: JourneyProfileView) => void;
-}) {
-  const href = journeyHrefForView(slug, view);
+  const targetView: "journey" | "gallery" =
+    activeView === "journey" ? "gallery" : "journey";
+  const label = targetView === "gallery" ? "Gallery" : "Journey";
+  const icon =
+    targetView === "gallery" ? (
+      <Grid3X3 size={15} aria-hidden />
+    ) : (
+      <Waypoints size={15} aria-hidden />
+    );
+  const href = journeyHrefForView(slug, targetView);
 
   return (
     <a
       href={href}
-      className={`j-profile-feed-toggle-seg${active ? " is-active" : ""}`}
-      aria-current={active ? "page" : undefined}
-      aria-pressed={active}
-      aria-label={label}
+      className="j-profile-switch-btn"
+      aria-label={`Chuyển sang ${label}`}
       onClick={(event) => {
         event.preventDefault();
-        if (!active) onSelect(view);
+        if (activeView !== targetView) onSelect(targetView);
       }}
     >
-      <span className="j-profile-feed-toggle-ico">{icon}</span>
-      <span className="j-profile-feed-toggle-label">{label}</span>
+      <span className="j-profile-switch-ico">{icon}</span>
+      <span className="j-profile-switch-label" aria-hidden>
+        <span className="j-profile-switch-label-text">{label}</span>
+      </span>
     </a>
   );
 }

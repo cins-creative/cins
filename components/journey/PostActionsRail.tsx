@@ -1,6 +1,6 @@
 "use client";
 
-import { useAuthGate } from "@/components/auth/AuthGateProvider";
+import { useOptionalAuthGate } from "@/components/auth/AuthGateProvider";
 import {
   Bookmark,
   BookmarkCheck,
@@ -13,6 +13,7 @@ import {
   useRef,
   useState,
   useTransition,
+  useCallback,
 } from "react";
 
 /* ╔══════════════════════════════════════════════════════════════════╗
@@ -286,7 +287,17 @@ export function PostActionsRail({
   showLabels = false,
 }: Props) {
   const isVertical = orientation === "vertical";
-  const { requireAuth } = useAuthGate();
+  const authGate = useOptionalAuthGate();
+  const requireAuth = useCallback(
+    (action: () => void) => {
+      if (authGate) {
+        authGate.requireAuth(action);
+        return;
+      }
+      action();
+    },
+    [authGate],
+  );
   const [liked, setLiked] = useState(initialLiked);
   const [bookmarked, setBookmarked] = useState(initialBookmarked);
   const [likes, setLikes] = useState(likeCount);

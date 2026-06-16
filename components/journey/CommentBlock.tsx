@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  Check,
   Copy,
   ImagePlus,
   Loader2,
@@ -25,7 +24,7 @@ import {
   toggleCommentReaction,
 } from "@/app/[slug]/journey/comment-actions";
 import { deleteMilestoneComment } from "@/app/[slug]/journey/actions";
-import { useAuthGate } from "@/components/auth/AuthGateProvider";
+import { useOptionalAuthGate } from "@/components/auth/AuthGateProvider";
 import { CommentAttachments } from "@/components/journey/CommentAttachments";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
 import { rememberCfAccountHashFromDeliveryUrl } from "@/lib/cloudflare/account-hash";
@@ -35,7 +34,6 @@ import {
   MAX_COMMENT_ATTACHMENTS,
   sanitizeCommentImageIds,
 } from "@/lib/social/comments/attachments";
-import type { CommentIdentityBadge } from "@/lib/social/comments/types";
 import {
   COMMENT_REACTION_EMOJIS,
   commentReactionLabel,
@@ -94,7 +92,17 @@ export function CommentBlock(props: CommentBlockProps) {
     sectionId = "post-comments",
     submitComment,
   } = props;
-  const { openAuthModal } = useAuthGate();
+  const authGate = useOptionalAuthGate();
+  const openAuthModal = useCallback(
+    (message?: string) => {
+      if (authGate) {
+        authGate.openAuthModal(message);
+        return;
+      }
+      window.location.href = "/login";
+    },
+    [authGate],
+  );
   const [text, setText] = useState("");
   const [replyTo, setReplyTo] = useState<MilestonePostComment | null>(null);
   const [pending, startTransition] = useTransition();
@@ -991,7 +999,6 @@ function CommentRow({
             ) : (
               <span className="post-comments-name la-name">Người dùng</span>
             )}
-            <CommentIdentityBadgeView badge={comment.author?.badge ?? null} />
             <span className="post-comments-time">{formatRelative(comment.taoLuc)}</span>
             {comment.ghimLuc ? (
               <span className="post-comments-pin-badge" title="Đã ghim">
@@ -1222,23 +1229,6 @@ function CommentRow({
         </div>
       </div>
     </ItemTag>
-  );
-}
-
-function CommentIdentityBadgeView({ badge }: { badge: CommentIdentityBadge | null }) {
-  if (!badge) return null;
-  if (badge.kind === "org") {
-    return (
-      <span className="post-comments-badge post-comments-badge--verified">
-        <Check size={10} strokeWidth={3} className="badge-check" aria-hidden />
-        <span>
-          {badge.vaiTroLabel} @ {badge.orgTen}
-        </span>
-      </span>
-    );
-  }
-  return (
-    <span className="post-comments-badge post-comments-badge--stage">{badge.label}</span>
   );
 }
 

@@ -75,8 +75,8 @@ export type CommentNotification = PendingFollowRequest & {
   ownerSlug: string | null;
   /** Số bình luận gộp từ cùng người trên cùng bài (chưa đọc). */
   commentCount?: number;
-  /** `milestone` = chủ bài; `reply` = được trả lời trực tiếp. */
-  kind?: "milestone" | "reply";
+  /** `milestone` = chủ bài; `reply` = được trả lời; `mention` = được @gắn thẻ. */
+  kind?: "milestone" | "reply" | "mention";
   taoLuc?: string;
   daDoc?: boolean;
 };

@@ -82,6 +82,22 @@ function formatNotifyTime(iso?: string | null): string {
 
 function commentNotifyLabel(notice: CommentNotification): ReactNode {
   const count = notice.commentCount ?? 1;
+  if (notice.kind === "mention") {
+    if (count > 1) {
+      return (
+        <>
+          <strong>{notice.tenHienThi}</strong> đã gắn thẻ bạn {count} lần trong bình luận.
+          <small>{notice.postTitle}</small>
+        </>
+      );
+    }
+    return (
+      <>
+        <strong>{notice.tenHienThi}</strong> đã gắn thẻ bạn trong bình luận.
+        <small>{notice.postTitle}</small>
+      </>
+    );
+  }
   if (notice.kind === "reply") {
     if (count > 1) {
       return (
@@ -140,6 +156,15 @@ function parseFeedPayload(json: unknown): NotificationFeed | null {
       ? data.orgMilestoneTagApproved
       : [],
   };
+}
+
+function countPendingActionItems(feed: NotificationFeed): number {
+  return (
+    feed.followRequests.length +
+    feed.coAuthorInvites.length +
+    feed.coAuthorReviews.length +
+    feed.coSoStaffInvites.length
+  );
 }
 
 function countDisplayedItems(feed: NotificationFeed): number {
@@ -238,7 +263,17 @@ export function JourneyNotifications({
     setUnreadLoaded(true);
   }, []);
 
-  /** Thông báo chỉ cần xem (không cần duyệt) → đánh dấu đọc, chuyển sang Lịch sử. */
+  const fetchUnreadFeed = useCallback(async () => {
+    const res = await fetch("/api/notifications?filter=unread", {
+      cache: "no-store",
+    });
+    const json = await res.json().catch(() => null);
+    const next = parseFeedPayload(json);
+    if (res.ok && next) applyFeed(next);
+    return next;
+  }, [applyFeed]);
+
+  /** Chỉ cần xem (bình luận, follow accepted, video, …) → đánh dấu đọc khi mở menu. */
   const dismissInfoNotifications = useCallback(async () => {
     setError(null);
     try {
@@ -266,6 +301,18 @@ export function JourneyNotifications({
       if (next) {
         applyFeed(next);
         setHistoryFeed(null);
+        void fetch("/api/notifications?filter=history", { cache: "no-store" })
+          .then((historyRes) =>
+            historyRes.ok ? historyRes.json() : null,
+          )
+          .then((historyJson) => {
+            if (historyJson) {
+              setHistoryFeed(parseFeedPayload(historyJson) ?? EMPTY_HISTORY_FEED);
+            }
+          })
+          .catch(() => {
+            /* lịch sử load lazy khi chuyển tab */
+          });
       }
     } catch {
       setError("Không cập nhật được thông báo.");
@@ -273,10 +320,14 @@ export function JourneyNotifications({
   }, [applyFeed]);
 
   const unreadCount = feed.unreadCount;
+  const pendingActionCount = useMemo(
+    () => countPendingActionItems(feed),
+    [feed],
+  );
   const activeFeed = tab === "history" && historyFeed ? historyFeed : feed;
 
-  const displayedCount = useMemo(
-    () => countDisplayedItems(activeFeed),
+  const displayedPendingCount = useMemo(
+    () => countPendingActionItems(activeFeed),
     [activeFeed],
   );
 
@@ -306,10 +357,21 @@ export function JourneyNotifications({
   }, []);
 
   useEffect(() => {
+    if (unreadLoaded || feed.unreadCount <= 0) return;
+    void fetchUnreadFeed().catch(() => {
+      /* giữ badge hiện tại, thử lại khi mở menu */
+    });
+  }, [feed.unreadCount, unreadLoaded, fetchUnreadFeed]);
+
+  useEffect(() => {
     if (!open) return;
+    if (unreadLoaded) {
+      void dismissInfoNotifications();
+      return;
+    }
     setLoadingUnread(true);
     void dismissInfoNotifications().finally(() => setLoadingUnread(false));
-  }, [open, dismissInfoNotifications]);
+  }, [open, dismissInfoNotifications, unreadLoaded]);
 
   useEffect(() => {
     if (!open || tab !== "history") return;
@@ -322,15 +384,10 @@ export function JourneyNotifications({
       void dismissInfoNotifications();
       return;
     }
-    void fetch("/api/notifications?filter=unread", { cache: "no-store" })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((json: NotificationFeed | null) => {
-        if (json) applyFeed(json);
-      })
-      .catch(() => {
-        /* giữ state hiện tại */
-      });
-  }, [open, applyFeed, dismissInfoNotifications]);
+    void fetchUnreadFeed().catch(() => {
+      /* giữ state hiện tại */
+    });
+  }, [open, dismissInfoNotifications, fetchUnreadFeed]);
 
   useEffect(() => {
     window.addEventListener("cins:video-ready", refreshUnread);
@@ -348,23 +405,6 @@ export function JourneyNotifications({
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);
   }, [refreshUnread]);
-
-  const markRead = (notificationIds: string[]) => {
-    if (notificationIds.length === 0) return;
-    startTransition(async () => {
-      const res = await fetch("/api/notifications", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ notification_ids: notificationIds }),
-      });
-      const json = await res.json().catch(() => null);
-      const next = parseFeedPayload(json);
-      if (res.ok && next) {
-        applyFeed(next);
-        setHistoryFeed(null);
-      }
-    });
-  };
 
   const respond = (request: PendingFollowRequest, action: "accept" | "decline") => {
     setError(null);
@@ -487,12 +527,12 @@ export function JourneyNotifications({
   const listCount =
     tab === "unread"
       ? unreadLoaded
-        ? displayedCount
-        : unreadCount
+        ? displayedPendingCount
+        : pendingActionCount
       : historyCount ?? 0;
 
   const showMoreHint =
-    tab === "unread" && unreadLoaded && unreadCount > displayedCount;
+    tab === "unread" && unreadLoaded && pendingActionCount > displayedPendingCount;
 
   const title =
     unreadCount > 0 ? `${unreadCount} thông báo chưa đọc` : "Không có thông báo mới";
@@ -505,7 +545,11 @@ export function JourneyNotifications({
         >
           <div className="j-notify-head">
             <strong>Thông báo</strong>
-            <span>{tab === "unread" ? `${unreadCount} chưa xử lý` : `${listCount} đã xử lý`}</span>
+            <span>
+              {tab === "unread"
+                ? `${pendingActionCount} chưa xử lý`
+                : `${listCount} đã xử lý`}
+            </span>
           </div>
 
           <div className="j-notify-tabs" role="tablist" aria-label="Lọc thông báo">
@@ -517,7 +561,7 @@ export function JourneyNotifications({
               onClick={() => setTab("unread")}
             >
               Chưa xử lý
-              {unreadCount > 0 ? <em>{unreadCount}</em> : null}
+              {pendingActionCount > 0 ? <em>{pendingActionCount}</em> : null}
             </button>
             <button
               type="button"
@@ -582,33 +626,6 @@ export function JourneyNotifications({
                       </div>
                     </li>
                   ))}
-                  {activeFeed.orgMilestoneTagApproved.map((notice) => (
-                    <UnreadOrgMilestoneTagItem
-                      key={notice.notificationId}
-                      notice={notice}
-                      onOpen={() => {
-                        markRead([notice.notificationId]);
-                        setOpen(false);
-                      }}
-                    />
-                  ))}
-                  {activeFeed.videoReady.map((notice) => (
-                    <UnreadVideoItem
-                      key={notice.notificationId}
-                      notice={notice}
-                      onOpen={() => {
-                        markRead([notice.notificationId]);
-                        setOpen(false);
-                      }}
-                    />
-                  ))}
-                  {activeFeed.comments.map((notice) => (
-                    <UnreadCommentItem
-                      key={notice.notificationId}
-                      notice={notice}
-                      onOpen={() => markRead([notice.notificationId])}
-                    />
-                  ))}
                   {activeFeed.coAuthorInvites.map((invite) => {
                     const postHref = coAuthorPostHref(invite);
                     return (
@@ -663,13 +680,6 @@ export function JourneyNotifications({
                         onDecline={() => respondCoAuthorReview(review, "decline")}
                       />
                     </li>
-                  ))}
-                  {activeFeed.accepted.map((notice) => (
-                    <UnreadAcceptedItem
-                      key={notice.notificationId}
-                      notice={notice}
-                      onOpen={() => markRead([notice.notificationId])}
-                    />
                   ))}
                   {activeFeed.followRequests.map((request) => (
                     <li key={request.idNguoiDung}>
@@ -771,7 +781,7 @@ export function JourneyNotifications({
           )}
           {showMoreHint ? (
             <p className="j-notify-more-hint">
-              Hiển thị {displayedCount} / {unreadCount} thông báo chưa xử lý.
+              Hiển thị {displayedPendingCount} / {pendingActionCount} thông báo cần xử lý.
             </p>
           ) : null}
           {error ? (
@@ -813,108 +823,6 @@ export function JourneyNotifications({
         />
       ) : null}
     </div>
-  );
-}
-
-function UnreadVideoItem({
-  notice,
-  onOpen,
-}: {
-  notice: VideoReadyNotification;
-  onOpen: () => void;
-}) {
-  return (
-    <li>
-      <Link
-        href={
-          notice.ownerSlug && notice.postSlug
-            ? `/${notice.ownerSlug}/p/${notice.postSlug}`
-            : "#"
-        }
-        className="j-notify-item is-video-ready"
-        onClick={onOpen}
-      >
-        <span className="j-notify-avatar is-video" aria-hidden>
-          <Video size={16} strokeWidth={1.8} />
-        </span>
-        <span>
-          <strong>Video đã sẵn sàng</strong>
-          <small>{notice.postTitle}</small>
-        </span>
-      </Link>
-    </li>
-  );
-}
-
-function UnreadOrgMilestoneTagItem({
-  notice,
-  onOpen,
-}: {
-  notice: OrgMilestoneTagApprovedNotification;
-  onOpen: () => void;
-}) {
-  return (
-    <li>
-      <Link
-        href={notice.albumHref || "#"}
-        className="j-notify-item is-org-milestone-tag"
-        onClick={onOpen}
-      >
-        <span className="j-notify-avatar is-verified" aria-hidden>
-          <CheckCircle2 size={16} strokeWidth={2} />
-        </span>
-        <span>{orgMilestoneTagNotifyLabel(notice)}</span>
-      </Link>
-    </li>
-  );
-}
-
-function UnreadCommentItem({
-  notice,
-  onOpen,
-}: {
-  notice: CommentNotification;
-  onOpen: () => void;
-}) {
-  return (
-    <li>
-      <Link
-        href={
-          notice.ownerSlug && notice.postSlug
-            ? `/${notice.ownerSlug}/p/${notice.postSlug}`
-            : `/${notice.slug}`
-        }
-        className="j-notify-item is-comment"
-        onClick={onOpen}
-      >
-        <Avatar request={notice} />
-        <span>{commentNotifyLabel(notice)}</span>
-      </Link>
-    </li>
-  );
-}
-
-function UnreadAcceptedItem({
-  notice,
-  onOpen,
-}: {
-  notice: FollowAcceptedNotification;
-  onOpen: () => void;
-}) {
-  return (
-    <li>
-      <Link
-        href={`/${notice.slug}`}
-        className="j-notify-item is-accepted"
-        onClick={onOpen}
-      >
-        <Avatar request={notice} />
-        <span>
-          <strong>{notice.tenHienThi}</strong> đã chấp nhận kết bạn.
-          <small>@{notice.slug}</small>
-        </span>
-      </Link>
-    </li>
   );
 }
 

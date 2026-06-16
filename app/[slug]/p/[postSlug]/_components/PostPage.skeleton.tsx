@@ -18,7 +18,7 @@ export function PostArticleSkeleton() {
           </div>
         </div>
         <aside className="post-view-rail" aria-hidden>
-          <div className="post-rail-blk">
+          <div className="post-rail-blk post-rail-blk--author">
             <div className="j-post-skel-byline">
               <div className="j-post-skel-ava" />
               <div className="j-post-skel-meta">
@@ -26,11 +26,7 @@ export function PostArticleSkeleton() {
                 <div className="j-post-skel-line j-post-skel-line--sm" />
               </div>
             </div>
-          </div>
-          <div className="post-rail-div" />
-          <div className="post-rail-blk">
-            <div className="j-post-skel-line j-post-skel-line--md" />
-            <div className="j-post-skel-line j-post-skel-line--md" />
+            <div className="j-post-skel-line j-post-skel-line--sm" />
           </div>
         </aside>
       </div>

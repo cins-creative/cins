@@ -318,7 +318,7 @@ export async function listCommentNotifications(
     .from("social_thong_bao")
     .select("id, id_doi_tuong, noi_dung_ai, noi_dung, tao_luc, da_doc, loai_doi_tuong")
     .eq("nguoi_nhan", viewerId)
-    .in("loai_doi_tuong", ["cot_moc_comment", "binh_luan_tra_loi"])
+    .in("loai_doi_tuong", ["cot_moc_comment", "binh_luan_tra_loi", "mention_binh_luan"])
     .order("tao_luc", { ascending: false })
     .limit(rowLimit);
 
@@ -454,7 +454,9 @@ export async function listCommentNotifications(
         kind:
           row.loai_doi_tuong === "binh_luan_tra_loi"
             ? ("reply" as const)
-            : ("milestone" as const),
+            : row.loai_doi_tuong === "mention_binh_luan"
+              ? ("mention" as const)
+              : ("milestone" as const),
         taoLuc: (row.tao_luc as string | null) ?? undefined,
         daDoc: Boolean(row.da_doc),
       };

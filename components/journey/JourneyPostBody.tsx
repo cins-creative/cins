@@ -29,7 +29,6 @@ import { PostBlocksRenderer, PostCover } from "@/components/editor/PostRenderer"
 import { JourneyArticleTagLink } from "@/components/journey/JourneyArticleTagLink";
 import { JourneyMilestoneOwnerMenu } from "@/components/journey/JourneyMilestoneOwnerMenu";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
-import { usePostFocusModeState } from "@/app/[slug]/p/[postSlug]/_components/PostPageShell";
 import { CommentBlock } from "@/components/journey/CommentBlock";
 import { articleTagLoaiClass } from "@/lib/editor/article-tag";
 import {
@@ -224,7 +223,6 @@ export function JourneyPostBody({
   const showContributors =
     showBlocks && (!isInline || !inlineSkip?.contributors);
   const isSplit = variant === "full" && layout === "split";
-  const focusMode = usePostFocusModeState();
   const Wrapper = isInline ? "div" : "main";
   const wrapperClass = isInline
     ? `cins-editor-page cins-post-view j-m-unfold-post${mediaPost ? " j-m-unfold-post--media" : ""}${commentsOnlyInline ? " j-m-unfold-post--comments-only" : ""}`
@@ -259,7 +257,7 @@ export function JourneyPostBody({
     />
   );
 
-  const actionsRailVertical = (
+  const actionsRailCompact = (
     <PostActionsRail
       milestoneId={milestone.id}
       initialLiked={social.viewerLiked}
@@ -271,8 +269,7 @@ export function JourneyPostBody({
       canBookmark={!isOwner}
       sharePath={sharePath}
       shareTitle={heroTitle}
-      orientation="vertical"
-      showLabels
+      orientation="horizontal"
     />
   );
 
@@ -402,6 +399,23 @@ export function JourneyPostBody({
       <PostContributors contributors={mainPost.contributors} />
     ) : null;
 
+  const commentsEl = showCommentsPart ? (
+    commentsSlot ?? (
+      <JourneyPostCommentsBlock
+        milestoneId={milestone.id}
+        contentOwnerId={owner.id}
+        viewerIsOwner={detail.viewerIsOwner}
+        comments={comments}
+        viewerCanComment={viewerCanComment}
+        onCommentAdded={onCommentAdded}
+        onCommentUpdated={onCommentUpdated}
+        onCommentRemoved={onCommentRemoved}
+        onThreadsReordered={onThreadsReordered}
+        sectionId={commentsSectionId}
+      />
+    )
+  ) : null;
+
   const metaRailEl =
     isSplit && showByline ? (
       <PostMetaRail
@@ -410,11 +424,9 @@ export function JourneyPostBody({
         mainPost={mainPost}
         postSlug={postSlug}
         isOwner={isOwner}
-        social={social}
-        commentCount={displayCommentCount}
-        actionsRail={actionsRailVertical}
+        actionsRail={actionsRailCompact}
+        commentsRail={showCommentsPart ? commentsEl : undefined}
         onMilestoneUpdated={onMilestoneUpdated}
-        hidden={focusMode}
       />
     ) : null;
 
@@ -434,23 +446,6 @@ export function JourneyPostBody({
       <div className="post-empty">Cột mốc này chưa có nội dung chi tiết.</div>
     ) : null;
 
-  const commentsEl = showCommentsPart ? (
-    commentsSlot ?? (
-      <JourneyPostCommentsBlock
-        milestoneId={milestone.id}
-        contentOwnerId={owner.id}
-        viewerIsOwner={detail.viewerIsOwner}
-        comments={comments}
-        viewerCanComment={viewerCanComment}
-        onCommentAdded={onCommentAdded}
-        onCommentUpdated={onCommentUpdated}
-        onCommentRemoved={onCommentRemoved}
-        onThreadsReordered={onThreadsReordered}
-        sectionId={commentsSectionId}
-      />
-    )
-  ) : null;
-
   if (isSplit) {
     return (
       <Wrapper className={wrapperClass} aria-label="Bài viết">
@@ -465,9 +460,6 @@ export function JourneyPostBody({
             </div>
           </div>
           {metaRailEl}
-          {!focusMode && showCommentsPart ? (
-            <div className="post-view-comments-inline">{commentsEl}</div>
-          ) : null}
         </div>
       </Wrapper>
     );
@@ -513,12 +505,10 @@ function PostContributors({
 
   if (variant === "rail") {
     return (
-      <>
-        <div className="post-rail-div" role="presentation" />
-        <div className="post-rail-blk">
-          <div className="post-rail-lbl">
-            Người đóng góp · {contributors.length}
-          </div>
+      <div className="post-rail-blk post-rail-blk--people">
+        <div className="post-rail-lbl">
+          Đóng góp · {contributors.length.toLocaleString("vi-VN")}
+        </div>
           <div className="post-rail-people">
             {contributors.map((c) => {
               const avatarUrl = getAvatarUrl(c.avatarId);
@@ -562,7 +552,6 @@ function PostContributors({
             })}
           </div>
         </div>
-      </>
     );
   }
 

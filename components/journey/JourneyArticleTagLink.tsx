@@ -1,5 +1,6 @@
 "use client";
 
+import { Star } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useId, useRef } from "react";
 import { createPortal } from "react-dom";
@@ -19,9 +20,19 @@ type Props = {
   tag: ArticleTagRef;
   className?: string;
   onClick?: (event: React.MouseEvent<HTMLAnchorElement>) => void;
+  /** Override nhãn chip (mặc định `#${tag.tieu_de}`). */
+  label?: string;
+  /** Pill xanh xác thực (post rail). */
+  verified?: boolean;
 };
 
-export function JourneyArticleTagLink({ tag, className, onClick }: Props) {
+export function JourneyArticleTagLink({
+  tag,
+  className,
+  onClick,
+  label,
+  verified = false,
+}: Props) {
   const tipId = useId();
   const anchorRef = useRef<HTMLAnchorElement>(null);
   const { tipPos, placeTip, onPointerMove, setAnchorHover, cursorFollow } =
@@ -41,7 +52,9 @@ export function JourneyArticleTagLink({ tag, className, onClick }: Props) {
   );
 
   const linkClass =
-    className ?? `tag ${articleTagLoaiClass(tag.loai_bai_viet)}`;
+    (className ?? `tag ${articleTagLoaiClass(tag.loai_bai_viet)}`) +
+    (verified ? " is-verified-tag" : "");
+  const chipLabel = label ?? `#${tag.tieu_de}`;
 
   return (
     <>
@@ -61,7 +74,16 @@ export function JourneyArticleTagLink({ tag, className, onClick }: Props) {
         onBlur={() => setAnchorHover(false)}
         aria-describedby={showTip && tipPos ? tipId : undefined}
       >
-        #{tag.tieu_de}
+        {verified ? (
+          <Star
+            size={12}
+            strokeWidth={2}
+            fill="currentColor"
+            className="post-rail-tag-star"
+            aria-hidden
+          />
+        ) : null}
+        {chipLabel}
       </Link>
       {showTip && tipPos && typeof document !== "undefined"
         ? createPortal(

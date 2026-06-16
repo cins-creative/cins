@@ -1,18 +1,12 @@
 "use client";
 
 import {
-  ArrowRight,
   BookOpen,
-  Bookmark,
   Briefcase,
   Calendar,
-  FileText,
   FolderKanban,
   Globe,
-  Heart,
-  Link2,
   Lock,
-  MessageCircle,
   Star,
   Trophy,
   UserCircle2,
@@ -76,14 +70,9 @@ type Props = {
   mainPost?: MilestonePostContent;
   postSlug?: string | null;
   isOwner: boolean;
-  social: {
-    likeCount: number;
-    bookmarkCount: number;
-  };
-  commentCount: number;
   actionsRail: ReactNode;
+  commentsRail?: ReactNode;
   onMilestoneUpdated?: () => void;
-  hidden?: boolean;
 };
 
 export function PostMetaRail({
@@ -92,11 +81,9 @@ export function PostMetaRail({
   mainPost,
   postSlug,
   isOwner,
-  social,
-  commentCount,
   actionsRail,
+  commentsRail,
   onMilestoneUpdated,
-  hidden,
 }: Props) {
   const typeLabel = TYPE_LABEL[milestone.loaiMoc] ?? "Cột mốc";
   const TypeIcon = TYPE_ICON[milestone.loaiMoc] ?? UserCircle2;
@@ -104,13 +91,9 @@ export function PostMetaRail({
   const dateLabel = formatVnDate(milestone.thoiDiem);
   const ownerInitial = (owner.tenHienThi || owner.slug).charAt(0).toUpperCase();
   const ownerAvatarUrl = getAvatarUrl(owner.avatarId);
-  const firstTag = mainPost?.articleTags[0] ?? null;
-  const roleLabel = firstTag?.tieu_de ?? typeLabel;
-  const RoleIcon = firstTag ? FileText : TypeIcon;
-  const permalinkPath =
-    postSlug && owner.slug ? `/${owner.slug}/p/${postSlug}` : null;
-  const people = buildRailPeople(owner, mainPost?.contributors ?? []);
+  const people = buildRailPeople(mainPost?.contributors ?? []);
   const articleTags = mainPost?.articleTags ?? [];
+  const hasKeywordTag = articleTags.some((t) => t.loai_bai_viet === "keyword");
 
   const authorBody = (
     <>
@@ -123,11 +106,11 @@ export function PostMetaRail({
         )}
       </span>
       <span className="post-rail-author-copy">
-        <strong>{owner.tenHienThi}</strong>
-        <span className="post-rail-handle">@{owner.slug}</span>
-        <span className="post-rail-role-chip">
-          <RoleIcon size={12} strokeWidth={2} aria-hidden />
-          {roleLabel}
+        <span className="post-rail-author-top">
+          <strong>{owner.tenHienThi}</strong>
+          <time className="post-rail-date" dateTime={milestone.thoiDiem}>
+            {dateLabel}
+          </time>
         </span>
       </span>
     </>
@@ -137,8 +120,6 @@ export function PostMetaRail({
     <aside
       className="post-view-rail"
       aria-label="Thông tin bài viết"
-      aria-hidden={hidden ? true : undefined}
-      hidden={hidden}
     >
       <div className="post-rail-blk post-rail-blk--author">
         <div className="post-rail-author">
@@ -169,158 +150,106 @@ export function PostMetaRail({
             />
           ) : null}
         </div>
-        <Link href={`/${owner.slug}`} className="post-rail-profile-link" prefetch={false}>
-          Xem hồ sơ Journey
-          <ArrowRight size={14} strokeWidth={2} aria-hidden />
-        </Link>
-      </div>
-
-      <div className="post-rail-div" role="presentation" />
-
-      <div className="post-rail-blk">
-        <div className="post-rail-lbl">Bài viết</div>
-        <div className="post-rail-fact">
-          <TypeIcon size={15} strokeWidth={1.9} aria-hidden />
-          <span>
-            Loại cột mốc · <strong>{typeLabel}</strong>
+        <div className="post-rail-meta-chips" aria-label="Thông tin bài viết">
+          <span className="post-rail-chip">
+            <TypeIcon size={12} strokeWidth={2} aria-hidden />
+            {typeLabel}
+          </span>
+          <span className="post-rail-chip">
+            <vis.Icon size={12} strokeWidth={2} aria-hidden />
+            {vis.text}
           </span>
         </div>
-        <div className="post-rail-fact">
-          <vis.Icon size={15} strokeWidth={1.9} aria-hidden />
-          <span>{vis.text}</span>
-        </div>
-        <div className="post-rail-fact">
-          <Calendar size={15} strokeWidth={1.9} aria-hidden />
-          <time className="post-rail-date" dateTime={milestone.thoiDiem}>
-            {dateLabel}
-          </time>
-        </div>
-        {permalinkPath ? (
-          <div className="post-rail-fact post-rail-fact--permalink">
-            <Link2 size={15} strokeWidth={1.9} aria-hidden />
-            <Link href={permalinkPath} className="post-rail-permalink" prefetch={false}>
-              {permalinkPath}
-            </Link>
-          </div>
-        ) : null}
       </div>
-
-      <div className="post-rail-div" role="presentation" />
-
-      <div className="post-rail-blk">
-        <div className="post-rail-lbl">Thống kê</div>
-        <div className="post-rail-stats" aria-label="Thống kê tương tác">
-          <div className="post-rail-stat">
-            <Heart size={15} strokeWidth={1.9} aria-hidden />
-            <span className="post-rail-stat-num">{social.likeCount}</span>
-            <span className="post-rail-stat-lbl">Thích</span>
-          </div>
-          <div className="post-rail-stat">
-            <Bookmark size={15} strokeWidth={1.9} aria-hidden />
-            <span className="post-rail-stat-num">{social.bookmarkCount}</span>
-            <span className="post-rail-stat-lbl">Lưu</span>
-          </div>
-          <div className="post-rail-stat">
-            <MessageCircle size={15} strokeWidth={1.9} aria-hidden />
-            <span className="post-rail-stat-num">{commentCount}</span>
-            <span className="post-rail-stat-lbl">Bình luận</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="post-rail-div" role="presentation" />
 
       <div className="post-rail-blk post-rail-blk--actions">{actionsRail}</div>
 
-      <div className="post-rail-div" role="presentation" />
-
-      <div className="post-rail-blk">
-        <div className="post-rail-lbl">Thẻ bài viết</div>
-        {articleTags.length > 0 ? (
+      {articleTags.length > 0 ? (
+        <div className="post-rail-blk post-rail-blk--tags">
+          <div className="post-rail-lbl">{hasKeywordTag ? "Xác thực" : "Thẻ"}</div>
           <div className="post-rail-tags">
-            {articleTags.map((t) => (
-              <JourneyArticleTagLink
-                key={t.id}
-                tag={t}
-                className={`post-rail-tag ${articleTagLoaiClass(t.loai_bai_viet)}`}
-              />
-            ))}
+            {articleTags.map((t) => {
+              const isKeyword = t.loai_bai_viet === "keyword";
+              return (
+                <JourneyArticleTagLink
+                  key={t.id}
+                  tag={t}
+                  className={`post-rail-tag ${articleTagLoaiClass(t.loai_bai_viet)}`}
+                  label={
+                    isKeyword
+                      ? `Được xác thực bởi ${t.tieu_de}`
+                      : undefined
+                  }
+                  verified={isKeyword}
+                />
+              );
+            })}
           </div>
-        ) : (
-          <p className="post-rail-empty">Chưa gắn thẻ bài viết</p>
-        )}
-      </div>
-
-      <div className="post-rail-div" role="presentation" />
-
-      <div className="post-rail-blk">
-        <div className="post-rail-lbl">Người đóng góp · {people.length}</div>
-        <div className="post-rail-people">
-          {people.map((c) => {
-            const avatarUrl = getAvatarUrl(c.avatarId);
-            const initial = (c.tenHienThi || c.slug || "?")
-              .charAt(0)
-              .toUpperCase();
-            const body = (
-              <>
-                <span
-                  className={`post-rail-person-avatar${c.laChuSoHuu ? "" : " post-rail-person-avatar--sq"}`}
-                  aria-hidden
-                >
-                  {avatarUrl ? (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img src={avatarUrl} alt="" />
-                  ) : (
-                    initial
-                  )}
-                </span>
-                <span className="post-rail-person-copy">
-                  <strong>
-                    {c.tenHienThi}
-                    {c.laChuSoHuu ? (
-                      <span className="post-rail-owner-tag">Chủ</span>
-                    ) : null}
-                  </strong>
-                  <span>{c.vaiTro || (c.laChuSoHuu ? "Chủ bài viết" : "Cộng sự")}</span>
-                </span>
-              </>
-            );
-            return (
-              <JourneyUserPopover
-                key={c.id}
-                slug={c.slug}
-                fallbackName={c.tenHienThi}
-                fallbackAvatarUrl={avatarUrl}
-              >
-                <span className="post-rail-person">{body}</span>
-              </JourneyUserPopover>
-            );
-          })}
         </div>
-      </div>
+      ) : null}
+
+      {people.length > 0 ? (
+        <div className="post-rail-blk post-rail-blk--people">
+          <div className="post-rail-lbl">
+            Đóng góp · {people.length.toLocaleString("vi-VN")}
+          </div>
+          <div className="post-rail-people">
+            {people.map((c) => {
+              const avatarUrl = getAvatarUrl(c.avatarId);
+              const initial = (c.tenHienThi || c.slug || "?")
+                .charAt(0)
+                .toUpperCase();
+              const body = (
+                <>
+                  <span
+                    className={`post-rail-person-avatar${c.laChuSoHuu ? "" : " post-rail-person-avatar--sq"}`}
+                    aria-hidden
+                  >
+                    {avatarUrl ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img src={avatarUrl} alt="" />
+                    ) : (
+                      initial
+                    )}
+                  </span>
+                  <span className="post-rail-person-copy">
+                    <strong>
+                      {c.tenHienThi}
+                      {c.laChuSoHuu ? (
+                        <span className="post-rail-owner-tag">Chủ</span>
+                      ) : null}
+                    </strong>
+                    <span>{c.vaiTro || (c.laChuSoHuu ? "Chủ bài viết" : "Cộng sự")}</span>
+                  </span>
+                </>
+              );
+              return (
+                <JourneyUserPopover
+                  key={c.id}
+                  slug={c.slug}
+                  fallbackName={c.tenHienThi}
+                  fallbackAvatarUrl={avatarUrl}
+                >
+                  <span className="post-rail-person">{body}</span>
+                </JourneyUserPopover>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+
+      {commentsRail ? (
+        <div className="post-rail-blk post-rail-blk--comments">{commentsRail}</div>
+      ) : null}
     </aside>
   );
 }
 
 function buildRailPeople(
-  owner: MilestonePostAuthor,
   contributors: ReadonlyArray<MilestonePostContributor>,
 ): MilestonePostContributor[] {
-  if (contributors.length === 0) {
-    return [
-      {
-        id: owner.id,
-        slug: owner.slug,
-        tenHienThi: owner.tenHienThi,
-        avatarId: owner.avatarId,
-        vaiTro: null,
-        laChuSoHuu: true,
-      },
-    ];
-  }
-  if (contributors.length === 1 && contributors[0]?.laChuSoHuu) {
-    return [...contributors];
-  }
+  if (contributors.length === 0) return [];
+  if (contributors.length === 1 && contributors[0]?.laChuSoHuu) return [];
   return [...contributors];
 }
 

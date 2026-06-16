@@ -190,6 +190,10 @@ export async function addMilestoneCommentV1(
 
   if (milestone.ownerSlug) revalidatePath(`/${milestone.ownerSlug}`);
 
+  const replyTarget = opts?.replyToId
+    ? await loadCommentRow(admin, opts.replyToId)
+    : null;
+
   await notifyMilestoneComment({
     ownerId: milestone.ownerId,
     commenterId: session.profile.id,
@@ -197,20 +201,20 @@ export async function addMilestoneCommentV1(
     milestoneId,
   });
   await notifyCommentMentions({
-    commentId: inserted.id,
     authorId: session.profile.id,
     noiDung: inserted.noi_dung,
+    milestoneId,
+    excludeUserIds: replyTarget
+      ? [replyTarget.nguoi_binh_luan]
+      : undefined,
   });
 
-  if (opts?.replyToId) {
-    const replyTarget = await loadCommentRow(admin, opts.replyToId);
-    if (replyTarget) {
-      await notifyCommentReply({
-        recipientId: replyTarget.nguoi_binh_luan,
-        replierId: session.profile.id,
-        milestoneId,
-      });
-    }
+  if (replyTarget) {
+    await notifyCommentReply({
+      recipientId: replyTarget.nguoi_binh_luan,
+      replierId: session.profile.id,
+      milestoneId,
+    });
   }
 
   return {

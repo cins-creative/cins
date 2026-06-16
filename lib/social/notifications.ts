@@ -51,13 +51,13 @@ function capUnreadLists(payload: FeedPayload, limit: number): FeedPayload {
   };
   return {
     coSoStaffInvites: take(payload.coSoStaffInvites),
-    orgMilestoneTagApproved: take(payload.orgMilestoneTagApproved),
+    orgMilestoneTagApproved: [],
     followRequests: take(payload.followRequests),
     coAuthorInvites: take(payload.coAuthorInvites),
     coAuthorReviews: take(payload.coAuthorReviews),
-    videoReady: take(payload.videoReady),
-    comments: take(payload.comments),
-    accepted: take(payload.accepted),
+    videoReady: [],
+    comments: [],
+    accepted: [],
     handledFollows: [],
     processedCoAuthorReviews: [],
   };
@@ -195,6 +195,7 @@ export async function countUnreadNotifications(viewerId: string): Promise<number
     { count: accepted },
     { count: comments },
     { count: commentReplies },
+    { count: commentMentions },
     { count: coAuthorInvite },
     { count: coAuthorReview },
     { count: coSoStaffInvite },
@@ -224,6 +225,12 @@ export async function countUnreadNotifications(viewerId: string): Promise<number
       .select("id", { count: "exact", head: true })
       .eq("nguoi_nhan", viewerId)
       .eq("loai_doi_tuong", "binh_luan_tra_loi")
+      .eq("da_doc", false),
+    admin
+      .from("social_thong_bao")
+      .select("id", { count: "exact", head: true })
+      .eq("nguoi_nhan", viewerId)
+      .eq("loai_doi_tuong", "mention_binh_luan")
       .eq("da_doc", false),
     admin
       .from("social_thong_bao")
@@ -275,6 +282,7 @@ export async function countUnreadNotifications(viewerId: string): Promise<number
     (accepted ?? 0) +
     (comments ?? 0) +
     (commentReplies ?? 0) +
+    (commentMentions ?? 0) +
     (coAuthorInvite ?? 0) +
     (coAuthorReview ?? 0) +
     Math.max(coSoStaffInvite ?? 0, coSoStaffMembershipPending ?? 0) +
@@ -329,6 +337,24 @@ async function expandCommentNotificationReadIds(
         .select("id")
         .eq("nguoi_nhan", viewerId)
         .eq("loai_doi_tuong", "binh_luan_tra_loi")
+        .eq("noi_dung_ai", commenterId)
+        .eq("da_doc", false)
+        .eq("id_doi_tuong", milestoneId)
+        .returns<Array<{ id: string }>>();
+      for (const relatedRow of related ?? []) {
+        result.add(relatedRow.id);
+      }
+      continue;
+    }
+
+    if (row.loai_doi_tuong === "mention_binh_luan") {
+      const milestoneId = await resolveMilestoneIdForCommentNotify(admin, objectId);
+      if (!milestoneId) continue;
+      const { data: related } = await admin
+        .from("social_thong_bao")
+        .select("id")
+        .eq("nguoi_nhan", viewerId)
+        .eq("loai_doi_tuong", "mention_binh_luan")
         .eq("noi_dung_ai", commenterId)
         .eq("da_doc", false)
         .eq("id_doi_tuong", milestoneId)
@@ -408,6 +434,8 @@ export async function markAllInfoNotificationsRead(
       "follow_accepted",
       "cot_moc_comment",
       "binh_luan_tra_loi",
+      "mention_binh_luan",
+      "org_milestone_tag_approved",
       "video_ready",
     ]);
   if (error) return { ok: false, error: error.message };
