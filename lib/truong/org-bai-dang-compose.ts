@@ -1,5 +1,11 @@
 import type { Block } from "@/lib/editor/types";
 import { milestoneCardContentKind } from "@/lib/journey/milestone-card-kind";
+import {
+  DEFAULT_ARTICLE_POST_TITLE,
+  deriveMediaPostTitle,
+  detectMediaPostKind,
+  extractBodyCaption,
+} from "@/lib/journey/post-media";
 import type { BaiDangLoai } from "@/lib/truong/bai-dang";
 import { mapOrgBaiDangApiRow } from "@/lib/truong/bai-dang-api-fields";
 import { baiDangCoverDisplayUrl } from "@/lib/truong/bai-dang-cover";
@@ -56,6 +62,14 @@ function resolveTrangThaiPayload(input: PublishOrgBaiDangInput): {
     };
   }
   return { trang_thai: "da_dang" };
+}
+
+function deriveTieuDeFallback(blocks: ReadonlyArray<Block>): string {
+  const kind = detectMediaPostKind(blocks);
+  if (kind === "photo" || kind === "video") {
+    return deriveMediaPostTitle(extractBodyCaption(blocks), kind);
+  }
+  return DEFAULT_ARTICLE_POST_TITLE;
 }
 
 export async function updateOrgBaiDangClient(

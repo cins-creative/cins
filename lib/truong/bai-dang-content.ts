@@ -152,7 +152,7 @@ function firstTextLineFromBlocks(
 export function resolveBaiDangUnfoldTomTat(post: {
   tom_tat?: string | null;
   noi_dung?: string | null;
-  noiDungBlocks?: Block[] | null;
+  noiDungBlocks?: ReadonlyArray<Block> | null;
 }): string | null {
   const stored = post.tom_tat?.trim() ?? "";
   const fromBlocks = firstTextLineFromBlocks(post.noiDungBlocks);
