@@ -35,7 +35,9 @@ import {
 } from "@/lib/editor/article-tag";
 import { publishPost } from "@/app/[slug]/p/new/actions";
 import { updatePost } from "@/app/[slug]/p/[postSlug]/edit/actions";
+import { uploadPostImageWithProgress } from "@/lib/files/upload-post-image";
 import { rememberCfAccountHashFromDeliveryUrl } from "@/lib/cloudflare/account-hash";
+import type { ComposePublishedDetail } from "@/lib/journey/compose-published-sync";
 import { ImageGrid } from "@/components/journey/ImageGrid";
 import { JourneyArticleTagLink } from "@/components/journey/JourneyArticleTagLink";
 import { JourneyArticleTagManager } from "@/components/journey/JourneyArticleTagManager";
@@ -96,7 +98,7 @@ type Props = {
   congDongCompose?: CongDongComposeConfig;
   orgBaiDangCompose?: OrgBaiDangComposeConfig;
   onClose?: () => void;
-  onPublished?: () => void;
+  onPublished?: (detail?: ComposePublishedDetail) => void;
 };
 
 type PhotoItem = {
@@ -104,6 +106,7 @@ type PhotoItem = {
   previewUrl: string;
   imageId: string | null;
   uploading: boolean;
+  uploadProgress: number;
   error?: string;
   width: number;
   height: number;
@@ -175,6 +178,7 @@ function photoItemsFromIds(imageIds: string[]): PhotoItem[] {
       height: GRID_IMAGE_DEFAULT_HEIGHT,
     }),
     uploading: false,
+    uploadProgress: 0,
     width: GRID_IMAGE_DEFAULT_WIDTH,
     height: GRID_IMAGE_DEFAULT_HEIGHT,
   }));
@@ -385,26 +389,41 @@ export function MediaComposeView({
     return set;
   }, [photos]);
 
+  const uploadProgressBySlot = useMemo(() => {
+    const map = new Map<number, number>();
+    photos.forEach((p, i) => {
+      if (p.uploading) map.set(i, p.uploadProgress);
+    });
+    return map;
+  }, [photos]);
+
   const uploadPhoto = useCallback(async (file: File, localId: string) => {
     if (!isImageUploadFile(file)) {
       setPhotos((prev) =>
         prev.map((p) =>
           p.localId === localId
-            ? { ...p, uploading: false, error: "File không phải ảnh." }
+            ? {
+                ...p,
+                uploading: false,
+                uploadProgress: 0,
+                error: "File không phải ảnh.",
+              }
             : p,
         ),
       );
       return;
     }
 
-    const form = new FormData();
-    form.append("file", file);
     try {
-      const res = await fetch("/api/post-image/upload", { method: "POST", body: form });
-      const data = (await res.json()) as { imageId?: string; url?: string; error?: string };
-      if (!res.ok || !data.imageId) {
-        throw new Error(data.error || "Upload thất bại.");
-      }
+      const data = await uploadPostImageWithProgress(file, (pct) => {
+        setPhotos((prev) =>
+          prev.map((p) =>
+            p.localId === localId
+              ? { ...p, uploadProgress: pct, uploading: true }
+              : p,
+          ),
+        );
+      });
       if (data.url) rememberCfAccountHashFromDeliveryUrl(data.url);
       setPhotos((prev) =>
         prev.map((p) => {
@@ -412,9 +431,10 @@ export function MediaComposeView({
           if (p.previewUrl.startsWith("blob:")) URL.revokeObjectURL(p.previewUrl);
           return {
             ...p,
-            imageId: data.imageId!,
+            imageId: data.imageId,
             previewUrl: data.url?.trim() || p.previewUrl,
             uploading: false,
+            uploadProgress: 100,
             error: undefined,
           };
         }),
@@ -426,6 +446,7 @@ export function MediaComposeView({
             ? {
                 ...p,
                 uploading: false,
+                uploadProgress: 0,
                 error: e instanceof Error ? e.message : "Upload thất bại.",
               }
             : p,
@@ -452,6 +473,7 @@ export function MediaComposeView({
             previewUrl,
             imageId: null,
             uploading: true,
+            uploadProgress: 0,
             width: GRID_IMAGE_DEFAULT_WIDTH,
             height: GRID_IMAGE_DEFAULT_HEIGHT,
           });
@@ -834,52 +856,74 @@ export function MediaComposeView({
         return;
       }
 
-      const res =
-        isEdit && editInitial
-          ? await updatePost({
-              ownerSlug,
-              tacPhamId: editInitial.tacPhamId,
-              cotMocId: editInitial.cotMocId,
-              tieuDe,
-              moTa: trimmedCaption.slice(0, 280),
-              coverSeed: null,
-              tags: articleTags,
-              visibility: publishVisibility,
-              loaiMoc: editInitial.loaiMoc,
-              thoiDiem: editInitial.thoiDiem,
-              blocks,
-              personalFilterIds,
-            })
-          : await publishPost({
-              ownerSlug,
-              tieuDe,
-              moTa: trimmedCaption.slice(0, 280),
-              coverSeed: null,
-              tags: articleTags,
-              visibility: publishVisibility,
-              loaiMoc: "ca_nhan",
-              thoiDiem: new Date().toISOString().slice(0, 10),
-              blocks,
-              personalFilterIds,
-              congDong: congDongCompose
-                ? {
-                    orgId: congDongCompose.orgId,
-                    filterSlugs: composeFilterSlugs,
-                  }
-                : undefined,
-            });
+      if (isEdit && editInitial) {
+        const res = await updatePost({
+          ownerSlug,
+          tacPhamId: editInitial.tacPhamId,
+          cotMocId: editInitial.cotMocId,
+          tieuDe,
+          moTa: trimmedCaption.slice(0, 280),
+          coverSeed: null,
+          tags: articleTags,
+          visibility: publishVisibility,
+          loaiMoc: editInitial.loaiMoc,
+          thoiDiem: editInitial.thoiDiem,
+          blocks,
+          personalFilterIds,
+        });
+        if (!res.ok) {
+          setError(res.error);
+          return;
+        }
+        if (isOverlay && onPublished) {
+          onPublished({
+            ownerSlug,
+            postSlug: res.postSlug ?? editInitial.postSlug,
+            tacPhamId: res.tacPhamId,
+            cotMocId: res.cotMocId,
+            milestone: res.milestone,
+          });
+          return;
+        }
+        router.push(`/${ownerSlug}/p/${editInitial.postSlug}`);
+        router.refresh();
+        return;
+      }
+
+      const res = await publishPost({
+        ownerSlug,
+        tieuDe,
+        moTa: trimmedCaption.slice(0, 280),
+        coverSeed: null,
+        tags: articleTags,
+        visibility: publishVisibility,
+        loaiMoc: "ca_nhan",
+        thoiDiem: new Date().toISOString().slice(0, 10),
+        blocks,
+        personalFilterIds,
+        congDong: congDongCompose
+          ? {
+              orgId: congDongCompose.orgId,
+              filterSlugs: composeFilterSlugs,
+            }
+          : undefined,
+      });
 
       if (!res.ok) {
         setError(res.error);
         return;
       }
       if (isOverlay && onPublished) {
-        onPublished();
+        onPublished({
+          ownerSlug,
+          postSlug: res.slug,
+          tacPhamId: res.tacPhamId,
+          cotMocId: res.cotMocId,
+          milestone: res.milestone,
+        });
         return;
       }
-      if (isEdit && editInitial) {
-        router.push(`/${ownerSlug}/p/${editInitial.postSlug}`);
-      } else if (!isEdit && "slug" in res && res.slug) {
+      if (res.slug) {
         router.push(`/${ownerSlug}/p/${res.slug}`);
       } else {
         router.push(`/${ownerSlug}`);
@@ -1044,6 +1088,7 @@ export function MediaComposeView({
                     images={gridImages}
                     isFirstGroup
                     uploadingSlots={uploadingSlots}
+                    uploadProgressBySlot={uploadProgressBySlot}
                     slotErrors={photoSlotErrors}
                     showAllImages
                     readOnly

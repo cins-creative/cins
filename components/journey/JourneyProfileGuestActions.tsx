@@ -1,28 +1,55 @@
 "use client";
 
 import { Mail, Share2 } from "lucide-react";
+import { useState } from "react";
 
+import { useCinsChat } from "@/components/cins/CinsChatProvider";
 import { JourneyFollowButton } from "@/components/journey/JourneyFollowButton";
 import { JourneyUserFollowButton } from "@/components/journey/JourneyUserFollowButton";
-import type { MutualFriendsState } from "@/lib/social/use-mutual-friends";
+import type { ChatPeerPreview } from "@/lib/chat/types";
+import type { useKetBanStatus } from "@/lib/social/use-ket-ban-status";
+
+type KetBanState = ReturnType<typeof useKetBanStatus>;
 
 type Props = {
   targetUserId: string;
   viewerProfileId: string | null;
-  mutual: MutualFriendsState;
+  ketBan: KetBanState;
+  chatPeerPreview: Omit<ChatPeerPreview, "userId">;
 };
 
 export function JourneyProfileGuestActions({
   targetUserId,
   viewerProfileId,
-  mutual,
+  ketBan,
+  chatPeerPreview,
 }: Props) {
+  const { openChat } = useCinsChat();
+  const [error, setError] = useState<string | null>(null);
+  const isSelf = viewerProfileId === targetUserId;
+
   return (
     <div className="j-profile-action-stack">
-      <button type="button" className="j-act-btn j-act-btn--primary" disabled>
+      <button
+        type="button"
+        className="j-act-btn j-act-btn--primary"
+        disabled={isSelf}
+        onClick={() => {
+          setError(null);
+          void openChat({
+            targetUserId,
+            peerPreview: chatPeerPreview,
+          }).catch((err: unknown) => {
+            setError(
+              err instanceof Error ? err.message : "Không mở được hội thoại.",
+            );
+          });
+        }}
+      >
         <Mail size={15} strokeWidth={2} aria-hidden />
         Nhắn tin
       </button>
+      {error ? <p className="j-profile-action-error">{error}</p> : null}
 
       <div className="j-profile-action-row">
         <JourneyUserFollowButton
@@ -32,7 +59,9 @@ export function JourneyProfileGuestActions({
         <JourneyFollowButton
           targetUserId={targetUserId}
           viewerProfileId={viewerProfileId}
-          mutual={mutual}
+          status={ketBan.status}
+          ready={ketBan.ready}
+          refreshStatus={ketBan.refresh}
         />
         <button
           type="button"

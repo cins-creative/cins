@@ -2,6 +2,7 @@
 
 import { Suspense, use, type ReactNode } from "react";
 
+import type { KetBanStatusSummary } from "@/lib/social/types";
 import { JourneySidebarNavCountsSkeleton } from "@/app/[slug]/_components/JourneySidebarNavCounts.skeleton";
 import type { EditProfileInitial } from "@/components/journey/JourneyEditProfileModal";
 import {
@@ -23,6 +24,7 @@ type Props = {
   isOwner: boolean;
   editProfileInitial?: EditProfileInitial;
   viewerProfileId: string | null;
+  initialKetBanStatus?: KetBanStatusSummary | null;
   countsPromise: Promise<SwitchNavCounts>;
   mainPanel: ReactNode;
   featuredAside: ReactNode;
@@ -52,6 +54,7 @@ export function JourneyProfileShellClient({
   isOwner,
   editProfileInitial,
   viewerProfileId,
+  initialKetBanStatus = null,
   countsPromise,
   mainPanel,
   featuredAside,
@@ -64,6 +67,7 @@ export function JourneyProfileShellClient({
           isOwner={isOwner}
           editProfileInitial={editProfileInitial}
           viewerProfileId={viewerProfileId}
+          initialKetBanStatus={initialKetBanStatus}
           switchNav={
             <Suspense fallback={<JourneySidebarNavCountsSkeleton />}>
               <JourneySidebarSwitchNavWithCounts

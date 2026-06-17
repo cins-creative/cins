@@ -95,3 +95,18 @@ export function isPostPageCacheStale(
     return true;
   }
 }
+
+/** Xoá cache trang/modal bài viết sau compose publish hoặc edit. */
+export function invalidatePostPageCache(
+  ownerSlug: string,
+  postSlug: string,
+): void {
+  if (typeof window === "undefined") return;
+  const key = storageKey(ownerSlug, postSlug);
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    /* ignore */
+  }
+  snapshotByKey.set(key, { raw: null, savedAt: null, value: null });
+}

@@ -54,7 +54,7 @@ function normalizeLoai(loai: string): Exclude<AdminToChucLoaiFilter, "all"> {
   return "studio";
 }
 
-function mapRow(row: DbRow): AdminToChucListRow {
+export function mapRow(row: DbRow): AdminToChucListRow {
   const loai = normalizeLoai(row.loai_to_chuc);
   const coSo = firstRelation(row.org_co_so_dao_tao);
   const truong = firstRelation(row.org_truong_dai_hoc);
@@ -116,6 +116,7 @@ export async function fetchAdminToChucList(
       org_co_so_dao_tao ( da_verify ),
       org_truong_dai_hoc ( da_verify )`,
     )
+    .neq("trang_thai_hoat_dong", "da_dong_cua")
     .order("ten", { ascending: true })
     .returns<DbRow[]>();
 

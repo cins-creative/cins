@@ -4,47 +4,30 @@ import { Check, Clock3, UserCheck, UserMinus, UserPlus, X } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 
 import { emitNotificationsChanged } from "@/lib/journey/notifications-client";
-import type { MutualFriendsState } from "@/lib/social/use-mutual-friends";
-import type { QuanHe } from "@/lib/social/types";
-
-type KetBanStatus = {
-  trang_thai: QuanHe;
-  ket_ban_id: string | null;
-};
+import type { KetBanStatusSummary, QuanHe } from "@/lib/social/types";
 
 type Props = {
   targetUserId: string;
   viewerProfileId: string | null;
-  mutual?: MutualFriendsState;
+  status: KetBanStatusSummary | null;
+  ready: boolean;
+  refreshStatus: () => Promise<void>;
 };
 
 export function JourneyFollowButton({
   targetUserId,
   viewerProfileId,
-  mutual,
+  status,
+  ready,
+  refreshStatus,
 }: Props) {
-  const [status, setStatus] = useState<KetBanStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [unfriending, setUnfriending] = useState(false);
   const [pending, startTransition] = useTransition();
 
-  const refreshStatus = () => {
-    if (!viewerProfileId) return;
-    const qs = new URLSearchParams({ id_nguoi: targetUserId });
-    void fetch(`/api/ket-ban/status?${qs.toString()}`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((json: KetBanStatus | null) => {
-        if (json) setStatus(json);
-      });
-  };
-
-  useEffect(() => {
-    refreshStatus();
-  }, [targetUserId, viewerProfileId]);
-
-  const quanHe = status?.trang_thai ?? "none";
+  const quanHe: QuanHe = status?.trang_thai ?? "none";
   const ketBanId = status?.ket_ban_id ?? null;
 
   useEffect(() => {
@@ -82,7 +65,7 @@ export function JourneyFollowButton({
         );
         return;
       }
-      refreshStatus();
+      await refreshStatus();
       emitNotificationsChanged();
     });
   };
@@ -104,7 +87,7 @@ export function JourneyFollowButton({
         );
         return;
       }
-      refreshStatus();
+      await refreshStatus();
       emitNotificationsChanged();
     });
   };
@@ -124,7 +107,7 @@ export function JourneyFollowButton({
         );
         return;
       }
-      refreshStatus();
+      await refreshStatus();
       setMenuOpen(false);
       setUnfriending(false);
       setNotice(quanHe === "accepted" ? "Đã hủy kết bạn" : "Đã huỷ lời mời");
@@ -140,15 +123,9 @@ export function JourneyFollowButton({
         ? "pending"
         : "idle";
 
-  const mutualLabel = mutual?.loading
-    ? "…"
-    : `${mutual?.count ?? 0} bạn chung`;
-
   const label =
     quanHe === "accepted"
-      ? mutual?.visible
-        ? mutualLabel
-        : "Bạn bè"
+      ? "Bạn bè"
       : quanHe === "pending_sent"
         ? "Đã gửi lời mời"
         : quanHe === "pending_received"
@@ -179,7 +156,7 @@ export function JourneyFollowButton({
             ? menuOpen
             : undefined
         }
-        disabled={(pending && !menuOpen) || status === null}
+        disabled={(pending && !menuOpen) || !ready}
         onClick={
           quanHe === "pending_received" || quanHe === "accepted" || quanHe === "pending_sent"
             ? () => setMenuOpen((open) => !open)

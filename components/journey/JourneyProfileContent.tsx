@@ -51,6 +51,10 @@ import {
   type MilestoneCreditsUpdatedDetail,
 } from "@/lib/journey/coauthor-credits-events";
 import {
+  COMPOSE_PUBLISHED_EVENT,
+  type ComposePublishedDetail,
+} from "@/lib/journey/compose-published-sync";
+import {
   mergeMilestoneIntoTimeline,
   removeMilestoneByTacPhamId,
 } from "@/lib/journey/timeline-merge";
@@ -333,6 +337,38 @@ export function JourneyProfileContent({
       syncGalleryPanel();
     };
 
+    const onComposePublished = (event: Event) => {
+      const detail = (event as CustomEvent<ComposePublishedDetail>).detail;
+      if (!detail?.ownerSlug || detail.ownerSlug !== ownerSlug) return;
+      if (detail.milestone) {
+        setTimelineCache((prev) => {
+          if (!prev || prev === "loading" || prev === "error") return prev;
+          const hadMilestone = prev.page.milestones.some(
+            (m) =>
+              m.id === detail.milestone!.id ||
+              m.cotMocId === detail.milestone!.cotMocId,
+          );
+          const next: TimelineCacheData = {
+            ...prev,
+            page: {
+              ...prev.page,
+              milestones: mergeMilestoneIntoTimeline(
+                prev.page.milestones,
+                detail.milestone!,
+              ),
+              totalCount: hadMilestone
+                ? prev.page.totalCount
+                : prev.page.totalCount + 1,
+            },
+          };
+          writeJourneyTimelinePanelCache(ownerSlug, viewerProfileId, next);
+          return next;
+        });
+      }
+      void fetchTimeline({ background: true, force: true });
+      syncGalleryPanel();
+    };
+
     const onGallerySync = (event: Event) => {
       const detail = (event as CustomEvent<{ ownerSlug?: string }>).detail;
       if (detail?.ownerSlug && detail.ownerSlug !== ownerSlug) return;
@@ -488,6 +524,7 @@ export function JourneyProfileContent({
     window.addEventListener("cins:milestone-deleted", onMilestoneDeleted);
     window.addEventListener("cins:milestone-delete-failed", onMilestoneDeleteFailed);
     window.addEventListener("cins:journey-timeline-changed", onTimelineChanged);
+    window.addEventListener(COMPOSE_PUBLISHED_EVENT, onComposePublished);
     window.addEventListener("cins:video-ready", onTimelineChanged);
     window.addEventListener("cins:journey-gallery-sync", onGallerySync);
     window.addEventListener(MILESTONE_INLINE_PATCH_EVENT, onMilestonePatch);
@@ -506,6 +543,7 @@ export function JourneyProfileContent({
         "cins:journey-timeline-changed",
         onTimelineChanged,
       );
+      window.removeEventListener(COMPOSE_PUBLISHED_EVENT, onComposePublished);
       window.removeEventListener("cins:video-ready", onTimelineChanged);
       window.removeEventListener("cins:journey-gallery-sync", onGallerySync);
       window.removeEventListener(MILESTONE_INLINE_PATCH_EVENT, onMilestonePatch);

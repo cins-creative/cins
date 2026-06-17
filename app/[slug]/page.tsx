@@ -5,6 +5,4 @@ import {
 
 export { generateMetadata };
 
-export const dynamic = "force-dynamic";
-
 export default renderJourneyPage;

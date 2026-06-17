@@ -37,7 +37,7 @@ export function TruongBaiDangEditProvider({ children }: { children: ReactNode })
 
   const remove = useCallback(
     async (id: string) => {
-      if (!ctx || !confirm("Ẩn bài đăng này?")) return;
+      if (!ctx || !confirm("Xóa bài đăng này?")) return;
       const prev = ctx.baidang;
       const prevScheduled = ctx.scheduledBaidang;
       ctx.setBaidang((list) => list.filter((p) => p.id !== id));
@@ -50,7 +50,7 @@ export function TruongBaiDangEditProvider({ children }: { children: ReactNode })
         ctx.setScheduledBaidang(prevScheduled);
         ctx.showToast(await readTruongInlineError(res));
       } else {
-        ctx.showToast("Đã ẩn bài đăng");
+        ctx.showToast("Đã xóa bài đăng");
       }
     },
     [ctx],
@@ -217,7 +217,7 @@ export function TruongBaiDangPostActions({ post }: { post: TruongBaiDang }) {
         className="tdh-inline-chip-btn danger"
         onClick={() => void actions.remove(post.id)}
       >
-        Ẩn
+        Xóa bài
       </button>
     </div>
   );

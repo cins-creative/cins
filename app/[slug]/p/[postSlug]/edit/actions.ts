@@ -19,6 +19,8 @@ import { revalidateTaggedArticlePages } from "@/lib/tag/revalidate-tag-pages";
 import { DEFAULT_ARTICLE_POST_TITLE } from "@/lib/journey/post-media";
 import type { CoAuthorDraft } from "@/lib/social/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { buildMilestoneItemForCotMoc } from "@/lib/journey/milestones-fetch";
+import type { MilestoneItem } from "@/components/journey/milestone-types";
 
 /* ╔══════════════════════════════════════════════════════════════════╗
    ║ Server Action: updatePost                                        ║
@@ -52,7 +54,13 @@ export type UpdatePostInput = {
 };
 
 export type UpdatePostResult =
-  | { ok: true; tacPhamId: string; cotMocId: string }
+  | {
+      ok: true;
+      tacPhamId: string;
+      cotMocId: string;
+      postSlug?: string;
+      milestone?: MilestoneItem;
+    }
   | { ok: false; error: string; field?: string };
 
 const MAX_TITLE = 200;
@@ -126,9 +134,9 @@ export async function updatePost(
 
   const { data: tpRow, error: tpFetchErr } = await admin
     .from("content_tac_pham")
-    .select("id, id_nguoi_dung")
+    .select("id, id_nguoi_dung, slug")
     .eq("id", input.tacPhamId)
-    .maybeSingle<{ id: string; id_nguoi_dung: string }>();
+    .maybeSingle<{ id: string; id_nguoi_dung: string; slug: string | null }>();
 
   if (tpFetchErr || !tpRow) {
     return { ok: false, error: "Không tìm thấy bài viết." };
@@ -269,7 +277,15 @@ export async function updatePost(
   /* 7. Revalidate profile. */
   revalidatePath(`/${session.profile.slug}`);
 
-  return { ok: true, tacPhamId: input.tacPhamId, cotMocId: input.cotMocId };
+  const milestone = await buildMilestoneItemForCotMoc(admin, input.cotMocId);
+
+  return {
+    ok: true,
+    tacPhamId: input.tacPhamId,
+    cotMocId: input.cotMocId,
+    postSlug: tpRow.slug ?? undefined,
+    milestone: milestone ?? undefined,
+  };
 }
 
 /* ─── Helpers (clone từ /new/actions.ts, giữ chung schema) ──────── */

@@ -34,6 +34,10 @@ import {
   type CoAuthorInviteFailedDetail,
 } from "@/lib/journey/coauthor-invite-events";
 import {
+  COMPOSE_PUBLISHED_EVENT,
+  type ComposePublishedDetail,
+} from "@/lib/journey/compose-published-sync";
+import {
   mergeMilestoneIntoTimeline,
   removeMilestoneByTacPhamId,
 } from "@/lib/journey/timeline-merge";
@@ -230,13 +234,22 @@ export function JourneyTimeline({
       if (!detail?.tacPhamId) return;
       setItems((prev) => applyMilestoneCreditsUpdate(prev, detail));
     };
+    const onComposePublished = (event: Event) => {
+      const detail = (event as CustomEvent<ComposePublishedDetail>).detail;
+      if (!detail?.ownerSlug || detail.ownerSlug !== ownerSlug) return;
+      if (detail.milestone) {
+        setItems((prev) => mergeMilestoneIntoTimeline(prev, detail.milestone!));
+      }
+    };
     window.addEventListener("cins:milestone-deleted", onMilestoneDeleted);
     window.addEventListener(MILESTONE_INLINE_PATCH_EVENT, onMilestonePatch);
     window.addEventListener(MILESTONE_CREDITS_UPDATED_EVENT, onCreditsUpdated);
+    window.addEventListener(COMPOSE_PUBLISHED_EVENT, onComposePublished);
     return () => {
       window.removeEventListener("cins:milestone-deleted", onMilestoneDeleted);
       window.removeEventListener(MILESTONE_INLINE_PATCH_EVENT, onMilestonePatch);
       window.removeEventListener(MILESTONE_CREDITS_UPDATED_EVENT, onCreditsUpdated);
+      window.removeEventListener(COMPOSE_PUBLISHED_EVENT, onComposePublished);
     };
   }, [ownerSlug]);
 

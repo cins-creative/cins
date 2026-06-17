@@ -1,7 +1,8 @@
 import { Suspense } from "react";
-import { MessageCircleQuestion, Menu as MenuIcon } from "lucide-react";
+import { Menu as MenuIcon } from "lucide-react";
 import Link from "next/link";
 
+import { CinsChatLauncher } from "@/components/cins/CinsChatLauncher";
 import { CinsTopbarSearch } from "@/components/cins/CinsTopbarSearch";
 import { UserAccountMenu } from "@/components/cins/UserAccountMenu";
 import { JourneyNotifications } from "@/components/journey/JourneyNotifications";
@@ -62,10 +63,7 @@ export async function CinsAppTopbar() {
             className="tb-page-slot"
             aria-live="polite"
           />
-          <Link href="#" className="tb-ask">
-            <MessageCircleQuestion size={16} strokeWidth={1.6} aria-hidden />
-            <span>Tư vấn nghề</span>
-          </Link>
+          <CinsChatLauncher />
           {session?.profile ? (
             <JourneyNotifications
               initialUnreadCount={unreadNotificationCount}

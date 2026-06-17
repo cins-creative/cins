@@ -9,6 +9,7 @@ import type {
 import type {
   MilestoneType,
   MilestoneVariant,
+  MilestoneCardLayout,
 } from "@/components/journey/milestone-types";
 import { journeyImageFields } from "@/lib/journey/images";
 import { computeFilterCounts } from "@/lib/journey/milestone-filter-options";
@@ -57,6 +58,9 @@ export type GalleryMainItem = {
   mediaKind?: GalleryMediaKind;
   isVideo?: boolean;
   videoProcessing?: boolean;
+  cardLayout?: MilestoneCardLayout;
+  orgAvatarUrl?: string | null;
+  orgKicker?: string | null;
 };
 
 const getGalleryStubsCached = cache(collectGalleryStubs);
@@ -112,6 +116,13 @@ function formatVnDate(iso: string | null | undefined): string {
   return `${dd}/${mm}/${d.getFullYear()}`;
 }
 
+function isOrgCreateGalleryStub(entry: GalleryStub): boolean {
+  return (
+    entry.cardLayout === "cong-dong-create" ||
+    entry.cardLayout === "co-so-create"
+  );
+}
+
 function hydrateMainItems(
   stubs: GalleryStub[],
   ownerSlug: string,
@@ -120,9 +131,10 @@ function hydrateMainItems(
   const out: GalleryMainItem[] = [];
   stubs.forEach((entry, i) => {
     const featured = entry.visibility === "feature";
+    const isOrgCreate = isOrgCreateGalleryStub(entry);
     const img = stubImageFields(entry, "milestone-preview");
     const isVideo = entry.mediaKind === "video";
-    if (!img?.src && !isVideo) return;
+    if (!isOrgCreate && !img?.src && !isVideo) return;
     const slug = ownerSlugById.get(entry.postOwnerId) ?? ownerSlug;
     out.push({
       id: `${featured ? "pin" : "grid"}-${entry.cotMocId}-${i}`,
@@ -131,8 +143,12 @@ function hydrateMainItems(
       srcSet: img?.srcSet,
       width: img?.width,
       height: img?.height,
-      label: galleryItemLabel(entry.tieuDe, entry.mediaKind),
-      href: postHref(slug, entry.tacPhamSlug),
+      label: isOrgCreate
+        ? entry.tieuDe
+        : galleryItemLabel(entry.tieuDe, entry.mediaKind),
+      href: isOrgCreate
+        ? (entry.orgHref ?? undefined)
+        : postHref(slug, entry.tacPhamSlug),
       meta: entry.excerpt,
       featured,
       type: entry.type,
@@ -140,6 +156,9 @@ function hydrateMainItems(
       mediaKind: entry.mediaKind,
       isVideo,
       videoProcessing: entry.videoProcessing,
+      cardLayout: entry.cardLayout,
+      orgAvatarUrl: entry.orgAvatarUrl,
+      orgKicker: entry.orgKicker,
     });
   });
   return out;

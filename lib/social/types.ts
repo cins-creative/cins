@@ -59,6 +59,12 @@ export type QuanHe =
   | "accepted"
   | "blocked";
 
+/** Trạng thái kết bạn nhẹ — dùng hydrate nút Kết bạn / mutual line. */
+export type KetBanStatusSummary = {
+  trang_thai: QuanHe;
+  ket_ban_id: string | null;
+};
+
 export type MutualFriendProfile = PendingFollowRequest;
 
 export type FollowAcceptedNotification = PendingFollowRequest & {

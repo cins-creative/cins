@@ -2849,8 +2849,8 @@
   .tdh-page--v6 #tdh-panel-bai-dang,
   .tdh-page--v6 #cso-panel-bai-dang {
     padding: 0;
-    --tdh-baidang-stack-gap: 0;
-    --tdh-baidang-card-gap: 0;
+    --tdh-baidang-stack-gap: 8px;
+    --tdh-baidang-card-gap: 12px;
   }
 
   .tdh-page--v6 .editorial-head {
@@ -3944,9 +3944,9 @@
   margin-bottom: 0;
   flex-shrink: 0;
   width: 100%;
-  padding: 14px 20px 22px;
+  padding: 8px 20px 10px;
   height: auto;
-  min-height: 52px;
+  min-height: 44px;
   box-sizing: border-box;
 }
 
@@ -4115,15 +4115,20 @@
   .tdh-page--v6 #tdh-panel-bai-dang,
   .tdh-page--v6 #cso-panel-bai-dang {
     padding: 0;
-    --tdh-baidang-stack-gap: 0;
-    --tdh-baidang-card-gap: 0;
+    --tdh-baidang-stack-gap: 8px;
+    --tdh-baidang-card-gap: 12px;
   }
 
   .tdh-page--v6 #tdh-panel-bai-dang .tdh-org-baidang-timeline,
   .tdh-page--v6 #cso-panel-bai-dang .tdh-org-baidang-timeline,
   .tdh-page--v6 #tdh-panel-bai-dang .tdh-org-baidang-timeline .j-year-block,
   .tdh-page--v6 #cso-panel-bai-dang .tdh-org-baidang-timeline .j-year-block {
-    gap: 0;
+    gap: var(--tdh-baidang-card-gap);
+  }
+
+  .tdh-page--v6 #tdh-panel-bai-dang .tdh-org-baidang-timeline,
+  .tdh-page--v6 #cso-panel-bai-dang .tdh-org-baidang-timeline {
+    gap: var(--tdh-baidang-stack-gap);
   }
 
   .tdh-page--v6 #tdh-panel-bai-dang .tdh-org-baidang-timeline .j-milestone,
@@ -4133,7 +4138,7 @@
 
   .tdh-page--v6 #tdh-panel-bai-dang .org-baidang-tlb,
   .tdh-page--v6 #cso-panel-bai-dang .org-baidang-tlb {
-    padding: 12px 12px 18px;
+    padding: 8px 12px 10px;
   }
 
   .tdh-page--v6 #tdh-panel-bai-dang .j-m-card,

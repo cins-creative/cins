@@ -9,11 +9,14 @@ import {
   Pencil,
   Plus,
   Search,
+  Trash2,
   Users,
 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { AdminToChucDeleteDialog } from "@/components/admin/AdminToChucDeleteDialog";
+import { AdminToChucEditModal } from "@/components/admin/AdminToChucEditModal";
 import { BadgeTinCay } from "@/components/admin/badges";
 import type {
   AdminToChucListResponse,
@@ -96,6 +99,10 @@ export function AdminToChucScreen() {
   const [stats, setStats] = useState(EMPTY_STATS);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [deletingRow, setDeletingRow] = useState<AdminToChucListRow | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -137,6 +144,34 @@ export function AdminToChucScreen() {
     }),
     [stats],
   );
+
+  function handleSaved(row: AdminToChucListRow) {
+    setRows((prev) => prev.map((r) => (r.id === row.id ? row : r)));
+    void load();
+  }
+
+  async function confirmDelete() {
+    if (!deletingRow) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      const res = await fetch(
+        `/api/admin/to-chuc/${encodeURIComponent(deletingRow.id)}`,
+        { method: "DELETE" },
+      );
+      const json = (await res.json()) as { error?: string };
+      if (!res.ok) {
+        throw new Error(json.error ?? "Không xóa được tổ chức.");
+      }
+      setRows((prev) => prev.filter((r) => r.id !== deletingRow.id));
+      setDeletingRow(null);
+      void load();
+    } catch (e) {
+      setDeleteError(e instanceof Error ? e.message : "Không xóa được tổ chức.");
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   return (
     <div className="admin-to-chuc-page">
@@ -286,37 +321,54 @@ export function AdminToChucScreen() {
                             {row.showVerify ? (
                               <button
                                 type="button"
-                                className="admin-to-chuc-act admin-to-chuc-act--verify"
+                                className="admin-to-chuc-act admin-to-chuc-act--icon admin-to-chuc-act--verify"
+                                aria-label="Cấp Verified"
+                                title="Cấp Verified"
                               >
-                                <BadgeCheck size={14} strokeWidth={2.2} aria-hidden />
-                                Cấp Verified
+                                <BadgeCheck size={15} strokeWidth={2.2} aria-hidden />
                               </button>
                             ) : null}
                             <button
                               type="button"
-                              className="admin-to-chuc-act admin-to-chuc-act--edit"
+                              className="admin-to-chuc-act admin-to-chuc-act--icon admin-to-chuc-act--edit"
+                              aria-label="Sửa"
+                              title="Sửa"
+                              onClick={() => setEditingId(row.id)}
                             >
-                              <Pencil size={14} strokeWidth={2.2} aria-hidden />
-                              Sửa
+                              <Pencil size={15} strokeWidth={2.2} aria-hidden />
+                            </button>
+                            <button
+                              type="button"
+                              className="admin-to-chuc-act admin-to-chuc-act--icon admin-to-chuc-act--delete"
+                              aria-label="Xóa"
+                              title="Xóa"
+                              onClick={() => {
+                                setDeleteError(null);
+                                setDeletingRow(row);
+                              }}
+                            >
+                              <Trash2 size={15} strokeWidth={2.2} aria-hidden />
                             </button>
                             {viewHref ? (
                               <Link
                                 href={viewHref}
-                                className="admin-to-chuc-act admin-to-chuc-act--view"
+                                className="admin-to-chuc-act admin-to-chuc-act--icon admin-to-chuc-act--view"
+                                aria-label="Xem trang công khai"
+                                title="Xem trang công khai"
                                 target="_blank"
                                 rel="noopener noreferrer"
                               >
-                                <ExternalLink size={14} strokeWidth={2.2} aria-hidden />
-                                Xem
+                                <ExternalLink size={15} strokeWidth={2.2} aria-hidden />
                               </Link>
                             ) : (
                               <button
                                 type="button"
-                                className="admin-to-chuc-act"
+                                className="admin-to-chuc-act admin-to-chuc-act--icon"
+                                aria-label="Xem trang công khai"
+                                title="Không có trang công khai"
                                 disabled
                               >
-                                <ExternalLink size={14} strokeWidth={2.2} aria-hidden />
-                                Xem
+                                <ExternalLink size={15} strokeWidth={2.2} aria-hidden />
                               </button>
                             )}
                           </div>
@@ -330,6 +382,28 @@ export function AdminToChucScreen() {
           </div>
         </section>
       </div>
+
+      {editingId ? (
+        <AdminToChucEditModal
+          orgId={editingId}
+          open
+          onClose={() => setEditingId(null)}
+          onSaved={handleSaved}
+        />
+      ) : null}
+
+      <AdminToChucDeleteDialog
+        open={Boolean(deletingRow)}
+        orgName={deletingRow?.ten ?? ""}
+        confirming={deleting}
+        error={deleteError}
+        onClose={() => {
+          if (deleting) return;
+          setDeletingRow(null);
+          setDeleteError(null);
+        }}
+        onConfirm={() => void confirmDelete()}
+      />
     </div>
   );
 }

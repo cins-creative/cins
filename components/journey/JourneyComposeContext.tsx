@@ -14,6 +14,8 @@ import { useRouter } from "next/navigation";
 import { JourneyComposeOverlay } from "@/components/journey/JourneyComposeOverlay";
 import type { CongDongComposeConfig } from "@/lib/cong-dong/types";
 import type { JourneyComposeState } from "@/lib/journey/compose-types";
+import type { ComposePublishedDetail } from "@/lib/journey/compose-published-sync";
+import { dispatchComposePublished } from "@/lib/journey/compose-published-sync";
 import type { OrgBaiDangComposeConfig } from "@/lib/truong/org-bai-dang-compose";
 
 type JourneyComposeContextValue = {
@@ -123,31 +125,38 @@ export function JourneyComposeProvider({
     return () => window.removeEventListener("popstate", onPop);
   }, [isOwner]);
 
-  const onPublished = useCallback(() => {
-    closeCompose();
-    if (
-      typeof window !== "undefined" &&
-      !congDongCompose &&
-      !orgBaiDangCompose
-    ) {
-      window.dispatchEvent(
-        new CustomEvent("cins:journey-timeline-changed", {
-          detail: { ownerSlug },
-        }),
-      );
-    }
-    onAfterPublished?.();
-    if (!orgBaiDangCompose) {
-      router.refresh();
-    }
-  }, [
-    closeCompose,
-    congDongCompose,
-    orgBaiDangCompose,
-    onAfterPublished,
-    router,
-    ownerSlug,
-  ]);
+  const onPublished = useCallback(
+    (detail?: ComposePublishedDetail) => {
+      closeCompose();
+      if (
+        typeof window !== "undefined" &&
+        !congDongCompose &&
+        !orgBaiDangCompose
+      ) {
+        if (detail?.ownerSlug) {
+          dispatchComposePublished(detail);
+        } else {
+          window.dispatchEvent(
+            new CustomEvent("cins:journey-timeline-changed", {
+              detail: { ownerSlug },
+            }),
+          );
+        }
+      }
+      onAfterPublished?.();
+      if (!orgBaiDangCompose) {
+        router.refresh();
+      }
+    },
+    [
+      closeCompose,
+      congDongCompose,
+      orgBaiDangCompose,
+      onAfterPublished,
+      router,
+      ownerSlug,
+    ],
+  );
 
   const value = useMemo(
     () => ({

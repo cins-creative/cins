@@ -867,13 +867,84 @@
   position: absolute;
   inset: 0;
   overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .cins-editor-page .cover-add.has img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
   object-position: center;
   display: block;
+}
+
+.cins-editor-page .img-upload-progress {
+  position: absolute;
+  inset: auto 10px 10px 10px;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.72);
+  color: #fff;
+  pointer-events: none;
+}
+.cins-editor-page .img-upload-progress-track {
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.25);
+  overflow: hidden;
+}
+.cins-editor-page .img-upload-progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #fde859, #93c5fd);
+  transition: width 120ms linear;
+}
+.cins-editor-page .img-upload-progress-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+.cins-editor-page .img-upload-progress.is-error {
+  background: rgba(185, 28, 28, 0.88);
+}
+.cins-editor-page .img-upload-progress.is-done {
+  background: rgba(22, 101, 52, 0.88);
+}
+.cins-editor-page .img-upload-progress.is-done .img-upload-progress-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+.cins-editor-page .ph {
+  position: relative;
+}
+.cins-editor-page .cover-add.has.is-uploading .cover-img-wrap::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.28);
+  pointer-events: none;
+}
+.cins-editor-page .cover-add.has .img-upload-progress {
+  inset: 0;
+  margin: auto;
+  width: min(220px, calc(100% - 32px));
+  height: fit-content;
+  align-self: center;
+  justify-content: center;
 }
 
 /* Action group ở góc phải-trên (Đổi · Xoá). Translucent + blur — visible

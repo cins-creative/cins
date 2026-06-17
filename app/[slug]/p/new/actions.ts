@@ -20,6 +20,8 @@ import { setMilestonePersonalFilters } from "@/lib/filter/gan";
 import { syncCoAuthorsFromEditor } from "@/lib/social/co-author";
 import type { CoAuthorDraft } from "@/lib/social/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { buildMilestoneItemForCotMoc } from "@/lib/journey/milestones-fetch";
+import type { MilestoneItem } from "@/components/journey/milestone-types";
 import { revalidateTaggedArticlePages } from "@/lib/tag/revalidate-tag-pages";
 import { DEFAULT_ARTICLE_POST_TITLE } from "@/lib/journey/post-media";
 
@@ -67,6 +69,7 @@ export type PublishPostResult =
       slug: string;
       cotMocId: string;
       tacPhamId: string;
+      milestone?: MilestoneItem;
     }
   | {
       ok: false;
@@ -353,11 +356,14 @@ export async function publishPost(
   /* 6. Revalidate profile để CTA / timeline thấy bài mới. */
   revalidatePath(`/${session.profile.slug}`);
 
+  const milestone = await buildMilestoneItemForCotMoc(admin, cotMoc.id);
+
   return {
     ok: true,
     slug,
     cotMocId: cotMoc.id,
     tacPhamId: tacPham.id,
+    milestone: milestone ?? undefined,
   };
 }
 

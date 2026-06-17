@@ -77,6 +77,12 @@ export function JourneyMilestoneCardBodyContent({
   const showCardTitle = shouldShowMilestoneCardTitle(title, blocks);
   const cardCaption = milestoneCardCaptionPlain(body, blocks);
   const isContentOpen = expandTrigger?.expanded ?? false;
+  const showCardTitleInBody = showCardTitle && !(isContentOpen && isArticle);
+  const showCardCaptionInBody = Boolean(
+    cardCaption && (!isArticle || !isContentOpen),
+  );
+  const hasJcardText =
+    showCardTitleInBody || showCardCaptionInBody || articleTags.length > 0;
   const showExpandTrigger =
     Boolean(
       expandTrigger?.enabled &&
@@ -121,6 +127,10 @@ export function JourneyMilestoneCardBodyContent({
         }
       : {};
 
+  if (isContentOpen && isArticle && !hasJcardText) {
+    return null;
+  }
+
   return (
     <div
       className={[
@@ -133,19 +143,13 @@ export function JourneyMilestoneCardBodyContent({
       {...bodyShellProps}
     >
       <div className="jcard-content">
-        {showCardTitle || cardCaption || articleTags.length > 0 ? (
+        {hasJcardText ? (
           <div className="jcard-text">
-            {showCardTitle && !(isContentOpen && isArticle) ? (
-          <h2 className="jcard-title">{title}</h2>
-        ) : null}
-
-            {cardCaption && !isArticle ? (
-              <div className="jcard-lead">
-                <p className="jcard-desc">{cardCaption}</p>
-              </div>
+            {showCardTitleInBody ? (
+              <h2 className="jcard-title">{title}</h2>
             ) : null}
 
-            {cardCaption && isArticle && !isContentOpen ? (
+            {showCardCaptionInBody ? (
               <div className="jcard-lead">
                 <p className="jcard-desc">{cardCaption}</p>
               </div>
@@ -223,7 +227,7 @@ export function JourneyMilestoneCardBodyContent({
                 </span>
               ) : null}
             </Link>
-          ) : (
+          ) : isArticle && isContentOpen ? null : (
             <div className="preview">
               {preview ? (
                 <JourneyCoverImage

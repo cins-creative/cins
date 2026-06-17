@@ -250,6 +250,24 @@ export async function buildSelfMilestonesForCotMocs(
   });
 }
 
+const COT_MOC_CARD_SELECT =
+  "id, loai_moc, nguon_goc, tieu_de, mo_ta, thoi_diem, che_do_hien_thi, tao_luc, id_nguoi_dung, id_to_chuc";
+
+/** Build một `MilestoneItem` sau publish/edit — dùng optimistic merge timeline. */
+export async function buildMilestoneItemForCotMoc(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  cotMocId: string,
+): Promise<MilestoneItem | null> {
+  const { data, error } = await admin
+    .from("content_cot_moc")
+    .select(COT_MOC_CARD_SELECT)
+    .eq("id", cotMocId)
+    .maybeSingle<CotMocRow>();
+  if (error || !data) return null;
+  const items = await buildSelfMilestonesForCotMocs(admin, [data]);
+  return items[0] ?? null;
+}
+
 export async function fetchMilestonesForUser(params: {
   userId: string;
   isOwner: boolean;

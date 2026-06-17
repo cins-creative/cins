@@ -6,6 +6,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FeaturedFlagBadge } from "@/components/journey/FeaturedFlagBadge";
 import { GalleryItemVisual, GalleryVideoPlayBadge } from "@/components/journey/GalleryItemVisual";
 import { GalleryMediaFilterDropdown } from "@/components/journey/GalleryMediaFilterDropdown";
+import { GalleryOrgCreateCardBody } from "@/components/journey/GalleryOrgCreateCardBody";
+import { GalleryVerifiedBadge } from "@/components/journey/GalleryVerifiedBadge";
 import {
   JourneyTimelineBar,
   type FilterGroup,
@@ -67,6 +69,29 @@ type Props = {
 
 function isGalleryPostPermalink(href: string | undefined): href is string {
   return Boolean(href && /\/p\/[^/?#]+/.test(href));
+}
+
+function isOrgCreateGalleryItem(item: GalleryMainItem): boolean {
+  return (
+    item.cardLayout === "cong-dong-create" ||
+    item.cardLayout === "co-so-create"
+  );
+}
+
+function galleryItemClassName(item: {
+  featured: boolean;
+  variant: GalleryMainItem["variant"];
+  cardLayout?: GalleryMainItem["cardLayout"];
+}): string {
+  return [
+    "j-main-gallery-item",
+    item.featured ? "is-featured" : "",
+    item.cardLayout === "cong-dong-create" ? "is-org-create is-cong-dong" : "",
+    item.cardLayout === "co-so-create" ? "is-org-create is-co-so" : "",
+    item.variant === "verified" && !item.cardLayout ? "is-verified" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 }
 
 export function JourneyGalleryGridView({
@@ -302,10 +327,23 @@ export function JourneyGalleryGridView({
       ) : (
         <div className="j-main-gallery-grid">
           {filtered.map((item) => {
-            const className = item.featured
-              ? "j-main-gallery-item is-featured"
-              : "j-main-gallery-item";
-            const body = (
+            const className = galleryItemClassName(item);
+            const isOrgCreate = isOrgCreateGalleryItem(item);
+            const viewLabel =
+              item.variant === "verified"
+                ? `Xem ${item.label} (đã xác thực)`
+                : `Xem ${item.label}`;
+            const body = isOrgCreate ? (
+              <GalleryOrgCreateCardBody
+                layout={item.cardLayout as "cong-dong-create" | "co-so-create"}
+                label={item.label}
+                kicker={item.orgKicker}
+                description={item.meta}
+                coverSrc={item.src || undefined}
+                orgAvatarUrl={item.orgAvatarUrl}
+                featured={item.featured}
+              />
+            ) : (
               <>
                 <div className="j-main-gallery-thumb">
                   {item.featured ? (
@@ -329,6 +367,7 @@ export function JourneyGalleryGridView({
                   {item.isVideo || item.mediaKind === "video" ? (
                     <GalleryVideoPlayBadge />
                   ) : null}
+                  {item.variant === "verified" ? <GalleryVerifiedBadge /> : null}
                 </div>
                 <span className="j-main-gallery-info">
                   <strong>{item.label}</strong>
@@ -339,6 +378,20 @@ export function JourneyGalleryGridView({
               </>
             );
 
+            if (isOrgCreate && item.href) {
+              return (
+                <Link
+                  key={item.id}
+                  href={item.href}
+                  className={className}
+                  prefetch={false}
+                  aria-label={viewLabel}
+                >
+                  {body}
+                </Link>
+              );
+            }
+
             if (isGalleryPostPermalink(item.href)) {
               return (
                 <Link
@@ -347,7 +400,7 @@ export function JourneyGalleryGridView({
                   className={className}
                   prefetch={false}
                   scroll={false}
-                  aria-label={`Xem ${item.label}`}
+                  aria-label={viewLabel}
                 >
                   {body}
                 </Link>
@@ -360,7 +413,7 @@ export function JourneyGalleryGridView({
                 type="button"
                 className={className}
                 onClick={() => openPost(item.cotMocId)}
-                aria-label={`Xem ${item.label}`}
+                aria-label={viewLabel}
               >
                 {body}
               </button>

@@ -10,6 +10,7 @@ import "./cins-cmm.css";
 import "./cins-material-symbols.css";
 import "./cins-gradients.css";
 import "./cins-app-nav.css";
+import "./cins-chat-overlay.css";
 
 const beVietnam = Be_Vietnam_Pro({
   variable: "--font-be-vietnam",

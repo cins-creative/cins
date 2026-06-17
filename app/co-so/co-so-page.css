@@ -942,9 +942,9 @@
 
 /* Tab bài đăng — override timeline bar (layout chung: cins-truong-chi-tiet-v6.css) */
 .tdh-page--cso #cso-panel-bai-dang .org-baidang-tlb {
-  padding: 14px 20px 22px;
+  padding: 8px 20px 10px;
   height: auto;
-  min-height: 52px;
+  min-height: 44px;
   box-sizing: border-box;
 }
 

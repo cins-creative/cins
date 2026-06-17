@@ -22,6 +22,8 @@ type Props = {
   isFirstGroup?: boolean;
   /** Ô đang upload (compose preview). */
   uploadingSlots?: ReadonlySet<number>;
+  /** % upload theo index (compose preview). */
+  uploadProgressBySlot?: ReadonlyMap<number, number>;
   /** Lỗi upload theo index (compose preview). */
   slotErrors?: ReadonlyMap<number, string>;
   /** Compose — không mở lightbox. */
@@ -40,6 +42,7 @@ type CellProps = {
   isFirstGroup: boolean;
   useButtonCells: boolean;
   isUploading: boolean;
+  uploadProgress?: number;
   slotError?: string;
   showOverlay: boolean;
   remaining: number;
@@ -52,6 +55,7 @@ function ImageGridCell({
   isFirstGroup,
   useButtonCells,
   isUploading,
+  uploadProgress,
   slotError,
   showOverlay,
   remaining,
@@ -88,6 +92,9 @@ function ImageGridCell({
       {isUploading ? (
         <span className="image-grid-uploading" aria-busy="true">
           <Loader2 size={22} strokeWidth={2} className="mc-spin" />
+          {typeof uploadProgress === "number" ? (
+            <span className="image-grid-uploading-pct">{uploadProgress}%</span>
+          ) : null}
         </span>
       ) : null}
       {slotError ? (
@@ -105,6 +112,8 @@ type RowRenderCtx = {
   isFirstGroup: boolean;
   useButtonCells: boolean;
   uploadingSlots?: ReadonlySet<number>;
+  /** % upload theo slot — hiện trên overlay spinner. */
+  uploadProgressBySlot?: ReadonlyMap<number, number>;
   slotErrors?: ReadonlyMap<number, string>;
   overlaySlotIndex: number | null;
   remaining: number;
@@ -131,6 +140,7 @@ function renderRow(
             isFirstGroup={ctx.isFirstGroup}
             useButtonCells={ctx.useButtonCells}
             isUploading={ctx.uploadingSlots?.has(slotIndex) ?? false}
+            uploadProgress={ctx.uploadProgressBySlot?.get(slotIndex)}
             slotError={ctx.slotErrors?.get(slotIndex)}
             showOverlay={ctx.overlaySlotIndex === slotIndex}
             remaining={ctx.remaining}
@@ -146,6 +156,7 @@ export function ImageGrid({
   images,
   isFirstGroup = false,
   uploadingSlots,
+  uploadProgressBySlot,
   slotErrors,
   readOnly = false,
   showAllImages = false,
@@ -187,6 +198,7 @@ export function ImageGrid({
     isFirstGroup,
     useButtonCells,
     uploadingSlots,
+    uploadProgressBySlot,
     slotErrors,
     overlaySlotIndex,
     remaining,
@@ -204,6 +216,7 @@ export function ImageGrid({
         isFirstGroup={isFirstGroup}
         useButtonCells={useButtonCells}
         isUploading={uploadingSlots?.has(slotIndex) ?? false}
+        uploadProgress={uploadProgressBySlot?.get(slotIndex)}
         slotError={slotErrors?.get(slotIndex)}
         showOverlay={overlaySlotIndex === slotIndex}
         remaining={remaining}

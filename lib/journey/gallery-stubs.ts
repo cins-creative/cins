@@ -3,6 +3,7 @@ import "server-only";
 import type {
   MilestoneType,
   MilestoneVariant,
+  MilestoneCardLayout,
 } from "@/components/journey/milestone-types";
 import type { Block } from "@/lib/editor/types";
 import {
@@ -15,6 +16,10 @@ import {
 import { extractVideoProcessingMeta } from "@/lib/journey/video-processing-meta";
 import { classifyBunnyVideoUrl } from "@/lib/bunny/embed";
 import { buildBunnyVideoThumbnailUrl } from "@/lib/bunny/thumbnail";
+import {
+  loadVerifiedMetaForCotMocs,
+  type VerifiedMilestoneMeta,
+} from "@/lib/journey/milestone-verify";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 type LoaiMocDb =
@@ -68,13 +73,17 @@ export type GalleryStub = {
   excerpt: string;
   /** Cloudflare image id — ảnh / cover bài viết. */
   coverId: string | null;
-  /** URL thumbnail trực tiếp (Bunny video). */
+  /** URL thumbnail trực tiếp (Bunny video / org cover). */
   coverSrc: string | null;
   videoProcessing: boolean;
   postOwnerId: string;
   type: MilestoneType;
   variant: MilestoneVariant;
   mediaKind: GalleryMediaKind;
+  cardLayout?: MilestoneCardLayout;
+  orgHref?: string | null;
+  orgAvatarUrl?: string | null;
+  orgKicker?: string | null;
 };
 
 function parseBlocks(raw: unknown): Block[] {
@@ -211,6 +220,108 @@ function mergeGalleryRows(
   });
 }
 
+type OrgAssignCotMocRow = {
+  id: string;
+  thoi_diem: string;
+  loai_moc: LoaiMocDb;
+  che_do_hien_thi: "public" | "theo_nhom" | "chi_minh" | "feature";
+  mo_ta: string | null;
+  tieu_de: string | null;
+  id_to_chuc: string | null;
+};
+
+function resolveOrgCreateCardLayout(
+  verified: VerifiedMilestoneMeta | undefined,
+): MilestoneCardLayout {
+  if (!verified?.attribution) return "default";
+  if (
+    verified.attribution.orgKind === "cong_dong" &&
+    verified.attribution.role === "Người tạo cộng đồng"
+  ) {
+    return "cong-dong-create";
+  }
+  if (
+    verified.attribution.orgKind === "co_so_dao_tao" &&
+    verified.attribution.role === "Người tạo cơ sở đào tạo"
+  ) {
+    return "co-so-create";
+  }
+  return "default";
+}
+
+async function fetchOrgCreateGalleryStubs(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  userId: string,
+  skipCotMocIds: Set<string>,
+): Promise<GalleryStub[]> {
+  const { data: rows } = await admin
+    .from("content_cot_moc")
+    .select(
+      "id, thoi_diem, loai_moc, che_do_hien_thi, mo_ta, tieu_de, id_to_chuc",
+    )
+    .eq("id_nguoi_dung", userId)
+    .eq("nguon_goc", "sinh_tu_org_assign")
+    .in("che_do_hien_thi", ["feature", "public"])
+    .returns<OrgAssignCotMocRow[]>();
+
+  const candidates = (rows ?? []).filter((row) => !skipCotMocIds.has(row.id));
+  if (candidates.length === 0) return [];
+
+  const orgByCotMoc = new Map(
+    candidates.map((row) => [row.id, row.id_to_chuc ?? null]),
+  );
+  const verifiedMeta = await loadVerifiedMetaForCotMocs(
+    candidates.map((row) => row.id),
+    orgByCotMoc,
+  );
+
+  const stubs: GalleryStub[] = [];
+  for (const row of candidates) {
+    const verified = verifiedMeta.get(row.id);
+    const cardLayout = resolveOrgCreateCardLayout(verified);
+    if (cardLayout === "default") continue;
+
+    const attr = verified?.attribution;
+    const orgName =
+      attr?.name?.trim() ||
+      row.tieu_de?.replace(/^Tạo (cộng đồng|cơ sở đào tạo)\s+/i, "").trim() ||
+      row.tieu_de?.trim() ||
+      "Tổ chức";
+
+    stubs.push({
+      tacPhamId: row.id,
+      cotMocId: row.id,
+      thoiDiem: row.thoi_diem,
+      visibility: row.che_do_hien_thi as "feature" | "public",
+      tacPhamSlug: null,
+      tieuDe: orgName,
+      excerpt: row.mo_ta?.trim() || "",
+      coverId: null,
+      coverSrc: attr?.coverUrl ?? null,
+      videoProcessing: false,
+      postOwnerId: userId,
+      type: LOAI_MOC_TO_TYPE[row.loai_moc],
+      variant: "verified",
+      mediaKind: "article",
+      cardLayout,
+      orgHref: verified?.orgHref ?? attr?.href ?? null,
+      orgAvatarUrl: attr?.avatarUrl ?? null,
+      orgKicker: attr?.role ?? null,
+    });
+  }
+
+  return stubs;
+}
+
+function sortGalleryStubs(stubs: GalleryStub[]): GalleryStub[] {
+  return [...stubs].sort((a, b) => {
+    const aFeat = a.visibility === "feature" ? 1 : 0;
+    const bFeat = b.visibility === "feature" ? 1 : 0;
+    if (aFeat !== bFeat) return bFeat - aFeat;
+    return a.thoiDiem > b.thoiDiem ? -1 : a.thoiDiem < b.thoiDiem ? 1 : 0;
+  });
+}
+
 async function fetchTaggedGalleryRows(
   admin: ReturnType<typeof createServiceRoleClient>,
   userId: string,
@@ -253,7 +364,14 @@ export async function collectGalleryStubs(userId: string): Promise<GalleryStub[]
     .returns<GalleryRow[]>();
 
   const taggedRows = await fetchTaggedGalleryRows(admin, userId);
-  return mergeGalleryRows(rows ?? [], taggedRows);
+  const merged = mergeGalleryRows(rows ?? [], taggedRows);
+  const existingCotMocIds = new Set(merged.map((stub) => stub.cotMocId));
+  const orgCreateStubs = await fetchOrgCreateGalleryStubs(
+    admin,
+    userId,
+    existingCotMocIds,
+  );
+  return sortGalleryStubs([...merged, ...orgCreateStubs]);
 }
 
 export async function resolveOwnerSlugs(

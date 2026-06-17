@@ -38,6 +38,47 @@ export type AdminToChucListParams = {
   q: string;
 };
 
+export type AdminToChucDetail = {
+  id: string;
+  ten: string;
+  slug: string;
+  loai: Exclude<AdminToChucLoaiFilter, "all">;
+  loaiLabel: string;
+  moTa: string | null;
+  tinhThanh: string | null;
+  diaChi: string | null;
+  dienThoai: string | null;
+  emailLienHe: string | null;
+  trangThaiTinCay: string;
+  trangThaiHoatDong: string;
+};
+
+export type AdminToChucUpdateInput = {
+  ten?: string;
+  slug?: string;
+  moTa?: string | null;
+  tinhThanh?: string | null;
+  diaChi?: string | null;
+  dienThoai?: string | null;
+  emailLienHe?: string | null;
+  trangThaiTinCay?: string;
+  trangThaiHoatDong?: string;
+};
+
+export const ADMIN_TO_CHUC_TIN_CAY_OPTIONS = [
+  { value: "binh_thuong", label: "Bình thường" },
+  { value: "dang_review", label: "Đang review" },
+  { value: "bi_canh_bao", label: "Cảnh báo" },
+  { value: "bi_cam", label: "Bị cấm" },
+  { value: "verified_official", label: "✓ Verified" },
+] as const;
+
+export const ADMIN_TO_CHUC_HOAT_DONG_OPTIONS = [
+  { value: "dang_hoat_dong", label: "Đang hoạt động" },
+  { value: "tam_ngung", label: "Tạm ngưng" },
+  { value: "da_dong_cua", label: "Đã đóng cửa" },
+] as const;
+
 export function parseAdminToChucListParams(
   searchParams: URLSearchParams,
 ): AdminToChucListParams {

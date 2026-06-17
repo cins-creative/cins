@@ -47,6 +47,20 @@ export async function isOrgSlugTaken(slug: string): Promise<boolean> {
   return Boolean(data);
 }
 
+export async function isOrgSlugTakenByOther(
+  slug: string,
+  excludeOrgId: string,
+): Promise<boolean> {
+  const admin = createServiceRoleClient();
+  const { data } = await admin
+    .from("org_to_chuc")
+    .select("id")
+    .eq("slug", slug)
+    .neq("id", excludeOrgId)
+    .maybeSingle();
+  return Boolean(data);
+}
+
 export async function uniqueOrgSlug(baseSlug: string): Promise<string> {
   const admin = createServiceRoleClient();
   let candidate = baseSlug.slice(0, MAX_TOTAL_LEN);

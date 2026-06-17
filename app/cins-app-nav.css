@@ -587,22 +587,26 @@
 }
 
 .cins-app-topbar .tb-ask {
+  position: relative;
+  z-index: 2;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--bg-surface);
+  color: var(--ink-body);
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 9px 16px;
-  border-radius: var(--radius-pill);
-  color: var(--ink-body);
-  font-size: 13px;
-  font-weight: 600;
+  justify-content: center;
+  flex-shrink: 0;
   text-decoration: none;
   transition: all var(--app-nav-dur) var(--app-nav-ease);
 }
 
 .cins-app-topbar .tb-ask:hover {
-  background: var(--bg-surface);
-  color: var(--ink-display);
-  box-shadow: var(--shadow-xs);
+  border-color: var(--cins-blue);
+  color: var(--cins-blue);
+  background: var(--cins-blue-soft);
 }
 
 .cins-app-topbar .tb-ask svg {
@@ -1822,13 +1826,8 @@ a.j-notify-mini-action.is-link:hover {
     gap: 6px;
   }
 
-  .cins-app-topbar .tb-ask span,
   .cins-app-topbar .tb-divider {
     display: none;
-  }
-
-  .cins-app-topbar .tb-ask {
-    padding: 9px;
   }
 
   .cins-app-topbar .tb-user-meta,

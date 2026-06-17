@@ -4167,7 +4167,11 @@
   min-height: 0;
 }
 
-.tdh-milestone-tag-post-view .post-view-content {
+.tdh-milestone-tag-post-view .post-view-content:not(.post-view-content--media) {
+  padding: 20px 16px 24px;
+}
+
+.tdh-milestone-tag-post-view .post-view-content--media {
   padding: 0;
 }
 

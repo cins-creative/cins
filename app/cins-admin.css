@@ -4334,7 +4334,7 @@
 }
 
 .cins-admin .admin-to-chuc-table th {
-  padding: 10px 14px;
+  padding: 8px 12px;
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.05em;
@@ -4347,13 +4347,16 @@
 
 .cins-admin .admin-to-chuc-th-actions {
   text-align: right;
+  width: 1%;
+  white-space: nowrap;
 }
 
 .cins-admin .admin-to-chuc-table td {
-  padding: 12px 14px;
+  padding: 8px 12px;
   vertical-align: middle;
   border-bottom: 1px solid var(--border);
   font-size: 13px;
+  line-height: 1.35;
 }
 
 .cins-admin .admin-to-chuc-table tbody tr:last-child td {
@@ -4367,15 +4370,15 @@
 .cins-admin .admin-to-chuc-org {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
 }
 
 .cins-admin .admin-to-chuc-org-ava {
   flex-shrink: 0;
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4423,27 +4426,31 @@
 .cins-admin .admin-to-chuc-org-name {
   display: block;
   font-weight: 700;
+  font-size: 13px;
   color: var(--fg-1);
   overflow-wrap: anywhere;
+  line-height: 1.3;
 }
 
 .cins-admin .admin-to-chuc-org-slug {
   display: block;
-  margin-top: 2px;
+  margin-top: 1px;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 10px;
   color: var(--fg-4);
+  line-height: 1.25;
 }
 
 .cins-admin .admin-to-chuc-loai {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 9px;
+  gap: 5px;
+  padding: 3px 8px;
   border-radius: 999px;
   font-size: 11px;
   font-weight: 700;
   white-space: nowrap;
+  line-height: 1.2;
 }
 
 .cins-admin .admin-to-chuc-loai--truong_dai_hoc {
@@ -4469,24 +4476,29 @@
 .cins-admin .admin-to-chuc-muted {
   color: var(--fg-3);
   font-size: 12px;
+  white-space: nowrap;
 }
 
 .cins-admin .admin-to-chuc-journey {
   font-family: var(--font-mono);
+  font-size: 12px;
   font-weight: 700;
   color: var(--fg-2);
+  white-space: nowrap;
 }
 
 .cins-admin .admin-to-chuc-actions {
-  display: flex;
+  display: inline-flex;
   justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 6px;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 4px;
 }
 
 .cins-admin .admin-to-chuc-act {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 5px;
   padding: 6px 10px;
   border: 1px solid var(--border);
@@ -4502,6 +4514,14 @@
     border-color 0.12s ease,
     background 0.12s ease,
     color 0.12s ease;
+}
+
+.cins-admin .admin-to-chuc-act--icon {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  flex-shrink: 0;
+  border-radius: 8px;
 }
 
 .cins-admin .admin-to-chuc-act:hover:not(:disabled) {
@@ -4530,6 +4550,76 @@
 .cins-admin .admin-to-chuc-act--view {
   border-color: rgba(31, 116, 201, 0.25);
   color: var(--cins-blue-dark);
+}
+
+.cins-admin .admin-to-chuc-act--delete {
+  color: #b91c1c;
+  border-color: rgba(220, 38, 38, 0.28);
+  background: #fef2f2;
+}
+
+.cins-admin .admin-to-chuc-act--delete:hover {
+  color: #991b1b;
+  border-color: rgba(220, 38, 38, 0.45);
+  background: #fee2e2;
+}
+
+.cins-admin .admin-to-chuc-edit-dialog {
+  width: min(640px, 100%);
+}
+
+.cins-admin .admin-to-chuc-edit-dialog__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-surface);
+}
+
+.cins-admin .admin-to-chuc-edit-dialog__title {
+  flex: 1;
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-extrabold);
+  color: var(--fg-1);
+}
+
+.cins-admin .admin-to-chuc-edit-dialog__body {
+  padding: var(--space-4) var(--space-5);
+  overflow: auto;
+  max-height: min(60vh, 560px);
+}
+
+.cins-admin .admin-to-chuc-edit-form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.cins-admin .admin-to-chuc-edit-dialog__footer {
+  margin-top: 0;
+  border-top: 1px solid var(--border);
+}
+
+.cins-admin .admin-to-chuc-edit-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-muted, #64748b);
+}
+
+.cins-admin .admin-to-chuc-edit-readonly {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg-2);
 }
 
 .cins-admin .admin-to-chuc-error {

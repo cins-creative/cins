@@ -10,14 +10,16 @@ import type { LoaiMocVisibilityMap } from "@/lib/journey/filter-visibility";
 import type { JourneyComposeState } from "@/lib/journey/compose-types";
 import {
   getCachedGalleryMainPage,
+  getCachedJourneySwitchNavCounts,
   getCachedMilestoneTimelinePage,
   getCachedMutualFriendsPage,
   getCachedPendingCoAuthorInvites,
   getCachedPendingCoSoStaffInvites,
 } from "@/lib/journey/journey-page-cache";
-import { fetchJourneySwitchNavCounts } from "@/lib/journey/journey-nav-counts";
 import { fetchUserOrganizationsPage } from "@/lib/journey/user-orgs-fetch";
 import { Suspense } from "react";
+
+import type { KetBanStatusSummary } from "@/lib/social/types";
 
 import { JourneyMainPanelSkeleton } from "@/components/journey/JourneyMainPanelSkeleton";
 import { JourneyFeaturedAsideSection } from "@/app/[slug]/_components/JourneyFeaturedAsideSection";
@@ -46,6 +48,7 @@ type Props = {
   ownerName: string;
   isOwner: boolean;
   viewerProfileId: string | null;
+  initialKetBanStatus?: KetBanStatusSummary | null;
   filterVisibility: LoaiMocVisibilityMap;
   editProfileInitial?: EditProfileInitial;
   initialCompose?: JourneyComposeState | null;
@@ -156,11 +159,12 @@ export function JourneyProfileShell({
   ownerName,
   isOwner,
   viewerProfileId,
+  initialKetBanStatus = null,
   filterVisibility,
   editProfileInitial,
   initialCompose = null,
 }: Props) {
-  const countsPromise = fetchJourneySwitchNavCounts({ ownerId: owner.id }).then(
+  const countsPromise = getCachedJourneySwitchNavCounts({ ownerId: owner.id }).then(
     ({ friendCount, orgCount }) => ({ friendCount, orgCount }),
   );
 
@@ -183,6 +187,7 @@ export function JourneyProfileShell({
       isOwner={isOwner}
       editProfileInitial={editProfileInitial}
       viewerProfileId={viewerProfileId}
+      initialKetBanStatus={initialKetBanStatus}
       countsPromise={countsPromise}
       mainPanel={
         <Suspense fallback={<JourneyMainPanelSkeleton />}>

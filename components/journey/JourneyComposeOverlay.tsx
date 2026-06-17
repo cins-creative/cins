@@ -9,6 +9,7 @@ import type { MediaComposeMode } from "@/components/editor/MediaComposeView";
 import type { CongDongComposeConfig } from "@/lib/cong-dong/types";
 import type { OrgBaiDangComposeConfig } from "@/lib/truong/org-bai-dang-compose";
 import { readTruongInlineError, truongInlineFetch } from "@/lib/truong/inline-api";
+import type { ComposePublishedDetail } from "@/lib/journey/compose-published-sync";
 import type { JourneyComposeState } from "@/lib/journey/compose-types";
 import {
   buildMediaEditInitial,
@@ -47,7 +48,7 @@ type Props = {
   congDongCompose?: CongDongComposeConfig;
   orgBaiDangCompose?: OrgBaiDangComposeConfig;
   onClose: () => void;
-  onPublished: () => void;
+  onPublished: (detail?: ComposePublishedDetail) => void;
 };
 
 export function JourneyComposeOverlay({

@@ -12,6 +12,10 @@ import {
   milestoneDetailCacheKey,
   readCachedMilestoneDetail,
 } from "@/lib/journey/milestone-detail-cache";
+import {
+  COMPOSE_PUBLISHED_EVENT,
+  type ComposePublishedDetail,
+} from "@/lib/journey/compose-published-sync";
 
 type Props = {
   postOwnerSlug: string;
@@ -102,6 +106,51 @@ export function JourneyMilestoneUnfold({
         setLoading(false);
       });
   }, [active, cacheKey, milestoneId, postOwnerSlug, postSlug]);
+
+  useEffect(() => {
+    const onComposePublished = (event: Event) => {
+      const detail = (event as CustomEvent<ComposePublishedDetail>).detail;
+      if (!detail) return;
+      const matchesPost =
+        detail.postSlug &&
+        postSlug &&
+        detail.postSlug === postSlug &&
+        detail.ownerSlug === postOwnerSlug;
+      const matchesMilestone =
+        detail.cotMocId != null && detail.cotMocId === milestoneId;
+      if (!matchesPost && !matchesMilestone) return;
+      invalidateMilestoneDetailCache(cacheKey);
+      if (!active) return;
+      const gen = ++loadGenRef.current;
+      setLoading(true);
+      setError(null);
+      void loadMilestoneDetailCached({ postOwnerSlug, postSlug, milestoneId })
+        .then((data) => {
+          if (!mountedRef.current || gen !== loadGenRef.current) return;
+          setDetail(data);
+          setError(null);
+        })
+        .catch((e) => {
+          if (!mountedRef.current || gen !== loadGenRef.current) return;
+          setError(
+            e instanceof Error ? e.message : "Không tải được nội dung.",
+          );
+        })
+        .finally(() => {
+          if (!mountedRef.current || gen !== loadGenRef.current) return;
+          setLoading(false);
+        });
+    };
+    window.addEventListener(COMPOSE_PUBLISHED_EVENT, onComposePublished);
+    return () =>
+      window.removeEventListener(COMPOSE_PUBLISHED_EVENT, onComposePublished);
+  }, [
+    active,
+    cacheKey,
+    milestoneId,
+    postOwnerSlug,
+    postSlug,
+  ]);
 
   useEffect(() => {
     if (!active || !commentsFocus || loading || !detail) return;

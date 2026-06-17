@@ -1,0 +1,131 @@
+import { notFound, redirect } from "next/navigation";
+
+import { JourneyProfileShell } from "@/app/[slug]/_components/JourneyProfileShell";
+import type { EditProfileInitial } from "@/components/journey/JourneyEditProfileModal";
+import type { JourneyProfileView } from "@/components/journey/JourneySidebar";
+import { getCurrentSessionAndProfile } from "@/lib/auth/session";
+import {
+  normalizeLoaiMocVisibility,
+  type LoaiMocVisibilityMap,
+} from "@/lib/journey/filter-visibility";
+import { parseComposeSearchParams } from "@/lib/journey/compose-types";
+import {
+  getAvatarUrl,
+  getProfileCoverUrl,
+  normalizeSocialLinks,
+} from "@/lib/journey/profile";
+import { fetchOwnerBySlug } from "@/lib/journey/profile-page-fetch";
+import { getQuanHeDetail } from "@/lib/social/ket-ban";
+import type { KetBanStatusSummary } from "@/lib/social/types";
+
+type Params = Promise<{ slug: string }>;
+type SearchParams = Promise<{
+  welcome?: string;
+  view?: string;
+  compose?: string;
+  edit?: string;
+}>;
+
+export async function JourneyProfilePageLoader({
+  params,
+  searchParams,
+}: {
+  params: Params;
+  searchParams: SearchParams;
+}) {
+  const { slug } = await params;
+  const { welcome, view, compose, edit } = await searchParams;
+
+  const [{ owner, error }, session] = await Promise.all([
+    fetchOwnerBySlug(slug),
+    getCurrentSessionAndProfile(),
+  ]);
+
+  if (error || !owner) {
+    notFound();
+  }
+
+  const isOwner = session ? owner.auth_user_id === session.authUserId : false;
+
+  if (isOwner && owner.giai_doan === null) {
+    redirect("/onboarding");
+  }
+
+  if (!isOwner && owner.giai_doan === null) {
+    notFound();
+  }
+
+  const viewerProfileId = session?.profile?.id ?? null;
+
+  const initialKetBanStatusPromise: Promise<KetBanStatusSummary | null> =
+    viewerProfileId && !isOwner
+      ? getQuanHeDetail(viewerProfileId, owner.id).then((detail) => ({
+          trang_thai: detail.trangThai,
+          ket_ban_id: detail.ketBanId,
+        }))
+      : Promise.resolve(null);
+
+  const emailPublic = owner.visibility_email === "public";
+  const emailForView = isOwner || emailPublic ? owner.email_lien_he : null;
+
+  const activeView: JourneyProfileView =
+    view === "gallery" || view === "friends" || view === "organizations"
+      ? view
+      : "journey";
+
+  const filterVisibility: LoaiMocVisibilityMap = normalizeLoaiMocVisibility(
+    owner.journey_loai_moc_visibility,
+  );
+
+  const editProfileInitial: EditProfileInitial | undefined = isOwner
+    ? {
+        tenHienThi: owner.ten_hien_thi ?? "",
+        bio: owner.bio ?? "",
+        tinhThanh: owner.tinh_thanh ?? "",
+        emailLienHe: owner.email_lien_he ?? session?.email ?? "",
+        visibilityEmail: emailPublic ? "public" : "private",
+        mxhLinks: normalizeSocialLinks(owner.mxh_links).map((l) => ({
+          label: l.label,
+          url: l.url,
+        })),
+        giaiDoan: owner.giai_doan ?? "moi_bat_dau",
+      }
+    : undefined;
+
+  void welcome;
+
+  const ownerName = owner.ten_hien_thi || `@${slug}`;
+  const ownerAvatarUrl = getAvatarUrl(owner.avatar_id);
+
+  const initialCompose = isOwner
+    ? parseComposeSearchParams(
+        (() => {
+          const params = new URLSearchParams();
+          if (compose) params.set("compose", compose);
+          if (edit) params.set("edit", edit);
+          return params;
+        })(),
+      )
+    : null;
+
+  const initialKetBanStatus = await initialKetBanStatusPromise;
+
+  return (
+    <div className="cins-journey-page">
+      <JourneyProfileShell
+        activeView={activeView}
+        owner={owner}
+        ownerAvatarUrl={ownerAvatarUrl}
+        ownerCoverUrl={getProfileCoverUrl(owner.cover_id)}
+        emailForView={emailForView}
+        ownerName={ownerName}
+        isOwner={isOwner}
+        viewerProfileId={viewerProfileId}
+        initialKetBanStatus={initialKetBanStatus}
+        filterVisibility={filterVisibility}
+        editProfileInitial={editProfileInitial}
+        initialCompose={initialCompose}
+      />
+    </div>
+  );
+}

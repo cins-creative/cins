@@ -93,8 +93,17 @@ import {
   formatOrgBaiDangScheduleLabel,
   isFutureOrgBaiDangSchedule,
 } from "@/lib/truong/org-bai-dang-schedule";
+import { ImageUploadProgressOverlay } from "@/components/ui/ImageUploadProgressOverlay";
+import { uploadPostImageWithProgress } from "@/lib/files/upload-post-image";
+import type { ComposePublishedDetail } from "@/lib/journey/compose-published-sync";
 import { sanitizeBaiDangCoverIdInput } from "@/lib/truong/bai-dang-cover";
 import { isTemporaryImageRef } from "@/lib/truong/image-ref";
+
+type ImageUploadTrack = {
+  progress: number;
+  status: "uploading" | "done" | "error";
+  error?: string;
+};
 
 /* ╔══════════════════════════════════════════════════════════════════╗
    ║ CINs Editor — port từ mockup `cins-editor.html`, theo brief     ║
@@ -455,7 +464,7 @@ type Props = {
   /** Tab bài đăng trường — publish `org_bai_dang` thay Journey. */
   orgBaiDangCompose?: OrgBaiDangComposeConfig;
   onClose?: () => void;
-  onPublished?: () => void;
+  onPublished?: (detail?: ComposePublishedDetail) => void;
 };
 
 export function EditorView({
@@ -527,6 +536,9 @@ export function EditorView({
   const imageFileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [toast, setToast] = useState<string | null>(null);
+  const [imageUploads, setImageUploads] = useState<
+    Record<string, ImageUploadTrack>
+  >({});
   const [savedFlash, setSavedFlash] = useState(false);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
@@ -618,6 +630,13 @@ export function EditorView({
   }, [toast]);
 
   const replaceImageSeed = useCallback((from: string, to: string) => {
+    setImageUploads((prev) => {
+      if (!prev[from]) return prev;
+      const next = { ...prev };
+      next[to] = next[from];
+      delete next[from];
+      return next;
+    });
     setBlocks((prev) =>
       prev.map((b) => {
         if (b.t !== "imgs") return b;
@@ -630,6 +649,70 @@ export function EditorView({
     );
     setCoverSeed((current) => (current === from ? to : current));
   }, []);
+
+  const setImageUploadTrack = useCallback(
+    (key: string, track: ImageUploadTrack | null) => {
+      setImageUploads((prev) => {
+        if (!track) {
+          if (!prev[key]) return prev;
+          const next = { ...prev };
+          delete next[key];
+          return next;
+        }
+        return { ...prev, [key]: track };
+      });
+    },
+    [],
+  );
+
+  const beginImageUpload = useCallback(
+    (
+      file: File,
+      onPick: (seed: string) => void,
+      onUploadResolved?: (from: string, to: string) => void,
+    ) => {
+      if (!file.type?.startsWith("image/")) return;
+      const localSeed = URL.createObjectURL(file);
+      onPick(localSeed);
+      setImageUploadTrack(localSeed, { progress: 0, status: "uploading" });
+
+      const finishTrack = (key: string, track: ImageUploadTrack | null) => {
+        setImageUploadTrack(key, track);
+      };
+
+      void (async () => {
+        let activeKey = localSeed;
+        try {
+          const result = await uploadPostImageWithProgress(file, (pct) => {
+            finishTrack(activeKey, { progress: pct, status: "uploading" });
+          });
+          if (result.url) {
+            rememberCfAccountHashFromDeliveryUrl(result.url);
+          }
+          const resolvedId = result.imageId;
+          onUploadResolved?.(localSeed, resolvedId);
+          activeKey = resolvedId;
+          finishTrack(localSeed, null);
+          finishTrack(resolvedId, { progress: 100, status: "done" });
+          URL.revokeObjectURL(localSeed);
+          window.setTimeout(() => finishTrack(resolvedId, null), 900);
+        } catch (e) {
+          finishTrack(activeKey, {
+            progress: 0,
+            status: "error",
+            error: e instanceof Error ? e.message : "Upload thất bại.",
+          });
+        }
+      })();
+    },
+    [setImageUploadTrack],
+  );
+
+  const hasPendingUploads = useMemo(
+    () =>
+      Object.values(imageUploads).some((track) => track.status === "uploading"),
+    [imageUploads],
+  );
 
   const applyImageToBlock = useCallback(
     (target: ImgPickerTarget, seed: string) => {
@@ -674,14 +757,14 @@ export function EditorView({
         clearImagePick();
         return;
       }
-      startEditorImageUpload(
+      beginImageUpload(
         file,
         (seed) => applyImageToBlock(target, seed),
         replaceImageSeed,
       );
       clearImagePick();
     },
-    [applyImageToBlock, clearImagePick, replaceImageSeed],
+    [applyImageToBlock, beginImageUpload, clearImagePick, replaceImageSeed],
   );
 
   useEffect(() => {
@@ -692,7 +775,7 @@ export function EditorView({
       const target = imgPickerTargetRef.current;
       if (!file || !target) return;
       e.preventDefault();
-      startEditorImageUpload(
+      beginImageUpload(
         file,
         (seed) => applyImageToBlock(target, seed),
         replaceImageSeed,
@@ -702,7 +785,7 @@ export function EditorView({
 
     document.addEventListener("paste", onPaste);
     return () => document.removeEventListener("paste", onPaste);
-  }, [imgPickerTarget, applyImageToBlock, clearImagePick, replaceImageSeed]);
+  }, [imgPickerTarget, applyImageToBlock, beginImageUpload, clearImagePick, replaceImageSeed]);
 
   const addBlock = useCallback(
     (type: BlockType, idx: number) => {
@@ -973,13 +1056,13 @@ export function EditorView({
         setToast("Không có ảnh trong bộ nhớ tạm. Sao chép ảnh rồi bấm lại.");
         return;
       }
-      startEditorImageUpload(
+      beginImageUpload(
         file,
         (seed) => applyImageToBlock(target, seed),
         replaceImageSeed,
       );
     },
-    [applyImageToBlock, replaceImageSeed],
+    [applyImageToBlock, beginImageUpload, replaceImageSeed],
   );
 
   const pasteImgPicker = useCallback(
@@ -1008,6 +1091,11 @@ export function EditorView({
 
   const handlePublish = useCallback(() => {
     if (isPending) return;
+
+    if (hasPendingUploads) {
+      setToast("Đang tải ảnh lên — vui lòng đợi hoàn tất.");
+      return;
+    }
 
     const serverBlocks: ServerBlock[] = toServerBlocks(blocks);
 
@@ -1049,7 +1137,7 @@ export function EditorView({
             : "✓ Đã cập nhật bài đăng.",
         );
         if (isOverlay && onPublished) {
-          setTimeout(() => onPublished(), 900);
+          onPublished();
         }
         return;
       }
@@ -1076,44 +1164,65 @@ export function EditorView({
             : "✓ Đã đăng bài.",
         );
         if (isOverlay && onPublished) {
-          setTimeout(() => onPublished(), 900);
+          onPublished();
         }
         return;
       }
 
-      const result = isEdit && initial
-        ? await updatePost({
-            ownerSlug,
-            tacPhamId: initial.tacPhamId,
-            cotMocId: initial.cotMocId,
-            tieuDe: tieuDeFinal,
-            moTa: moTaFinal,
-            coverSeed: coverFinal,
-            tags,
-            visibility: publishVisibility,
-            loaiMoc: initial.loaiMoc,
-            thoiDiem: initial.thoiDiem,
-            blocks: serverBlocks,
-            personalFilterIds,
-          })
-        : await publishPost({
-            ownerSlug,
-            tieuDe: tieuDeFinal,
-            moTa: moTaFinal,
-            coverSeed: coverFinal,
-            tags,
-            visibility: publishVisibility,
-            loaiMoc: DEFAULT_LOAI_MOC,
-            thoiDiem: isoToday(),
-            blocks: serverBlocks,
-            personalFilterIds,
-            congDong: congDongCompose
-              ? {
-                  orgId: congDongCompose.orgId,
-                  filterSlugs: composeFilterSlugs,
-                }
-              : undefined,
-          });
+      if (isEdit && initial) {
+        const result = await updatePost({
+          ownerSlug,
+          tacPhamId: initial.tacPhamId,
+          cotMocId: initial.cotMocId,
+          tieuDe: tieuDeFinal,
+          moTa: moTaFinal,
+          coverSeed: coverFinal,
+          tags,
+          visibility: publishVisibility,
+          loaiMoc: initial.loaiMoc,
+          thoiDiem: initial.thoiDiem,
+          blocks: serverBlocks,
+          personalFilterIds,
+        });
+        if (!result.ok) {
+          setToast(result.error || "Không lưu được bài viết.");
+          return;
+        }
+        setSavedFlash(true);
+        setToast("✓ Đã lưu thay đổi.");
+        const publishDetail: ComposePublishedDetail = {
+          ownerSlug,
+          postSlug: result.postSlug ?? postSlug,
+          tacPhamId: result.tacPhamId,
+          cotMocId: result.cotMocId,
+          milestone: result.milestone,
+        };
+        if (isOverlay && onPublished) {
+          onPublished(publishDetail);
+        } else {
+          router.push(`/${ownerSlug}`);
+        }
+        return;
+      }
+
+      const result = await publishPost({
+        ownerSlug,
+        tieuDe: tieuDeFinal,
+        moTa: moTaFinal,
+        coverSeed: coverFinal,
+        tags,
+        visibility: publishVisibility,
+        loaiMoc: DEFAULT_LOAI_MOC,
+        thoiDiem: isoToday(),
+        blocks: serverBlocks,
+        personalFilterIds,
+        congDong: congDongCompose
+          ? {
+              orgId: congDongCompose.orgId,
+              filterSlugs: composeFilterSlugs,
+            }
+          : undefined,
+      });
 
       if (!result.ok) {
         setToast(result.error || "Không lưu được bài viết.");
@@ -1121,23 +1230,25 @@ export function EditorView({
       }
 
       setSavedFlash(true);
-      setToast(
-        isEdit
-          ? "✓ Đã lưu thay đổi."
-          : "✓ Đã đăng bài.",
-      );
+      setToast("✓ Đã đăng bài.");
+      const publishDetail: ComposePublishedDetail = {
+        ownerSlug,
+        postSlug: result.slug,
+        tacPhamId: result.tacPhamId,
+        cotMocId: result.cotMocId,
+        milestone: result.milestone,
+      };
       if (isOverlay && onPublished) {
-        setTimeout(() => onPublished(), 900);
+        onPublished(publishDetail);
       } else {
-        setTimeout(() => {
-          router.push(`/${ownerSlug}`);
-        }, 1200);
+        router.push(`/${ownerSlug}`);
       }
     });
   }, [
     isEdit,
     initial,
     isPending,
+    hasPendingUploads,
     title,
     sub,
     coverSeed,
@@ -1153,6 +1264,7 @@ export function EditorView({
     personalFilterIds,
     blocks,
     ownerSlug,
+    postSlug,
     router,
     isOverlay,
     onPublished,
@@ -1223,8 +1335,8 @@ export function EditorView({
             type="button"
             className="ed-btn primary"
             onClick={handlePublish}
-            disabled={isPending || savedFlash}
-            aria-busy={isPending}
+            disabled={isPending || savedFlash || hasPendingUploads}
+            aria-busy={isPending || hasPendingUploads}
           >
             {savedFlash ? (
               <>
@@ -1275,9 +1387,11 @@ export function EditorView({
 
         <CoverArea
           seed={coverSeed}
+          uploadTrack={coverSeed ? imageUploads[coverSeed] : undefined}
           onSeedChange={setCoverSeed}
           onUploadResolved={replaceImageSeed}
           onRemove={() => setCoverSeed(null)}
+          onUploadFile={beginImageUpload}
         />
 
         <div className="blocks">
@@ -1293,6 +1407,7 @@ export function EditorView({
             <div key={b.id}>
               <BlockRow
                 block={b}
+                imageUploads={imageUploads}
                 selected={selectedId === b.id}
                 onSelect={() => setSelectedId(b.id)}
                 onChangeText={(text) => updateBlock(b.id, { text })}
@@ -1386,48 +1501,24 @@ function imageFileFromDataTransfer(data: DataTransfer | null): File | null {
   return null;
 }
 
-function startEditorImageUpload(
-  file: File,
-  onPick: (seed: string) => void,
-  onUploadResolved?: (from: string, to: string) => void,
-) {
-  if (!file.type?.startsWith("image/")) return;
-  const localSeed = URL.createObjectURL(file);
-  onPick(localSeed);
-  void (async () => {
-    try {
-      const form = new FormData();
-      form.append("file", file);
-      const res = await fetch("/api/post-image/upload", {
-        method: "POST",
-        body: form,
-      });
-      const json = (await res.json().catch(() => null)) as {
-        imageId?: string;
-        url?: string;
-      } | null;
-      if (!res.ok || !json?.imageId) return;
-      if (json.url) {
-        rememberCfAccountHashFromDeliveryUrl(json.url);
-      }
-      onUploadResolved?.(localSeed, json.imageId);
-      URL.revokeObjectURL(localSeed);
-    } catch {
-      /* Preview local vẫn hiện. */
-    }
-  })();
-}
-
 function CoverArea({
   seed,
+  uploadTrack,
   onSeedChange,
   onUploadResolved,
   onRemove,
+  onUploadFile,
 }: {
   seed: string | null;
+  uploadTrack?: ImageUploadTrack;
   onSeedChange: (seed: string) => void;
   onUploadResolved: (from: string, to: string) => void;
   onRemove: () => void;
+  onUploadFile: (
+    file: File,
+    onPick: (seed: string) => void,
+    onResolved?: (from: string, to: string) => void,
+  ) => void;
 }) {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -1437,12 +1528,12 @@ function CoverArea({
 
   const applyFile = useCallback(
     (file: File) => {
-      startEditorImageUpload(file, onSeedChange, onUploadResolved);
+      onUploadFile(file, onSeedChange, onUploadResolved);
       setPicking(false);
       setDragOver(false);
       dragDepthRef.current = 0;
     },
-    [onSeedChange, onUploadResolved],
+    [onSeedChange, onUploadFile, onUploadResolved],
   );
 
   const coverDragProps = useMemo(
@@ -1542,9 +1633,10 @@ function CoverArea({
   );
 
   if (seed) {
+    const isUploading = uploadTrack?.status === "uploading";
     return (
       <div
-        className={`cover-add has${coverDragClass}`}
+        className={`cover-add has${isUploading ? " is-uploading" : ""}${coverDragClass}`}
         ref={rootRef}
         {...coverDragProps}
       >
@@ -1556,6 +1648,13 @@ function CoverArea({
               if (isTemporaryImageRef(seed)) onRemove();
             }}
           />
+          {uploadTrack ? (
+            <ImageUploadProgressOverlay
+              progress={uploadTrack.progress}
+              status={uploadTrack.status}
+              error={uploadTrack.error}
+            />
+          ) : null}
         </div>
         {picking ? (
           <div className="cover-pick-overlay" role="dialog" aria-label="Đổi ảnh bìa">
@@ -1810,6 +1909,7 @@ function AddZone({
 
 type BlockRowProps = {
   block: Block;
+  imageUploads: Record<string, ImageUploadTrack>;
   selected: boolean;
   onSelect: () => void;
   onChangeText: (s: string) => void;
@@ -2112,6 +2212,13 @@ function ImageBlock({ block, p }: { block: Block; p: BlockRowProps }) {
         {imgs.map((seed, i) => (
           <div key={`${seed}-${i}`} className="ph">
             <img src={ph(seed, 900, 900)} alt="" />
+            {p.imageUploads[seed] ? (
+              <ImageUploadProgressOverlay
+                progress={p.imageUploads[seed].progress}
+                status={p.imageUploads[seed].status}
+                error={p.imageUploads[seed].error}
+              />
+            ) : null}
             <PhImageActions
               onPick={() => p.onPickImage(i)}
               onPaste={() => p.onPasteImage(i)}
@@ -2559,6 +2666,13 @@ function MosaicBlock({ block, p }: { block: Block; p: BlockRowProps }) {
                     src={ph(cell.seed, 900, 900)}
                     alt=""
                   />
+                  {p.imageUploads[cell.seed] ? (
+                    <ImageUploadProgressOverlay
+                      progress={p.imageUploads[cell.seed].progress}
+                      status={p.imageUploads[cell.seed].status}
+                      error={p.imageUploads[cell.seed].error}
+                    />
+                  ) : null}
                   <PhImageActions
                     onPick={() => p.onMosaicPickImage(i)}
                     onPaste={() => p.onMosaicPasteImage(i)}

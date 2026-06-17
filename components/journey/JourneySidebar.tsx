@@ -20,6 +20,7 @@ import {
   getNameInitials,
   normalizeSocialLinks,
 } from "@/lib/journey/profile";
+import type { KetBanStatusSummary } from "@/lib/social/types";
 
 export type SidebarProfile = {
   /** UUID `user_nguoi_dung.id` — dùng cho follow API. */
@@ -64,6 +65,8 @@ type Props = {
   editProfileInitial?: EditProfileInitial;
   /** Viewer profile id — null nếu không đăng nhập (hiếm trên Journey). */
   viewerProfileId?: string | null;
+  /** Trạng thái kết bạn hydrate từ server — tránh fetch client khi mở profile khách. */
+  initialKetBanStatus?: KetBanStatusSummary | null;
 };
 
 /**
@@ -84,6 +87,7 @@ export function JourneySidebar({
   switchNav,
   editProfileInitial,
   viewerProfileId = null,
+  initialKetBanStatus = null,
 }: Props) {
   const { avatarUrl, coverUrl } = profile;
   const initials = getNameInitials(profile.tenHienThi, profile.slug);
@@ -145,6 +149,13 @@ export function JourneySidebar({
         <JourneyProfileGuestSection
           targetUserId={profile.id}
           viewerProfileId={viewerProfileId}
+          initialKetBanStatus={initialKetBanStatus}
+          chatPeerPreview={{
+            name: profile.tenHienThi || profile.slug,
+            role: roleLine,
+            avatarUrl,
+            avatarInitial: initials,
+          }}
         />
       ) : editProfileInitial ? (
         <JourneySidebarOwnerActions

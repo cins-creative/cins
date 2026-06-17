@@ -58,12 +58,15 @@ async function findPairRecord(
 ): Promise<KetBanRecord | null> {
   if (!a || !b || a === b) return null;
   const admin = createServiceRoleClient();
-  const { data } = await admin
+  const { data, error } = await admin
     .from("user_ket_ban")
     .select("id, id_nguoi_gui, id_nguoi_nhan, trang_thai, tao_luc, xu_ly_luc")
     .or(pairOrFilter(a, b))
-    .maybeSingle<KetBanRow>();
-  return data ? mapRow(data) : null;
+    .order("tao_luc", { ascending: false })
+    .limit(1);
+
+  if (error || !data?.length) return null;
+  return mapRow(data[0] as KetBanRow);
 }
 
 export async function isFriend(a: string, b: string): Promise<boolean> {
