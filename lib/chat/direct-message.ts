@@ -17,7 +17,18 @@ import {
 import type { ChatMessage, ChatMessageKind, ChatThread, ChatThreadGroup } from "@/lib/chat/types";
 
 const DM_ROOM = "1_1";
-const MESSAGE_PAGE_SIZE = 80;
+const MESSAGE_PAGE_SIZE = 30;
+
+export type ListRoomMessagesOptions = {
+  limit?: number;
+  before?: string;
+  markRead?: boolean;
+};
+
+export type ListRoomMessagesResult = {
+  messages: ChatMessage[];
+  hasMore: boolean;
+};
 
 type ProfileRow = {
   id: string;
@@ -484,30 +495,58 @@ export async function listDirectThreads(viewerId: string): Promise<ChatThread[]>
 export async function listRoomMessages(
   roomId: string,
   viewerId: string,
-): Promise<ChatMessage[]> {
+  options: ListRoomMessagesOptions = {},
+): Promise<ListRoomMessagesResult> {
   await assertRoomMember(roomId, viewerId);
   const admin = createServiceRoleClient();
+  const limit = Math.min(Math.max(options.limit ?? MESSAGE_PAGE_SIZE, 1), 80);
 
-  const { data, error } = await admin
+  let beforeAt: string | null = null;
+  if (options.before) {
+    const { data: cursor } = await admin
+      .from("chat_tin_nhan")
+      .select("tao_luc")
+      .eq("id", options.before)
+      .eq("id_phong", roomId)
+      .maybeSingle<{ tao_luc: string }>();
+    beforeAt = cursor?.tao_luc ?? null;
+  }
+
+  let query = admin
     .from("chat_tin_nhan")
     .select(MESSAGE_SELECT)
     .eq("id_phong", roomId)
     .eq("da_xoa", false)
-    .order("tao_luc", { ascending: true })
-    .limit(MESSAGE_PAGE_SIZE)
-    .returns<MessageRow[]>();
+    .order("tao_luc", { ascending: false })
+    .limit(limit + 1);
+
+  if (beforeAt) {
+    query = query.lt("tao_luc", beforeAt);
+  }
+
+  const { data, error } = await query.returns<MessageRow[]>();
 
   if (error) {
     throw new Error(error.message);
   }
 
-  const messages = (data ?? []).map((row) => mapMessage(row, viewerId));
-  const last = messages.at(-1);
-  if (last) {
-    await markRoomRead(roomId, viewerId, last.id);
+  const rows = data ?? [];
+  const hasMore = rows.length > limit;
+  const pageRows = hasMore ? rows.slice(0, limit) : rows;
+  const messages = pageRows
+    .slice()
+    .reverse()
+    .map((row) => mapMessage(row, viewerId));
+
+  const shouldMarkRead = options.markRead ?? !options.before;
+  if (shouldMarkRead) {
+    const last = messages.at(-1);
+    if (last) {
+      await markRoomRead(roomId, viewerId, last.id);
+    }
   }
 
-  return messages;
+  return { messages, hasMore };
 }
 
 export async function sendRoomMessage(

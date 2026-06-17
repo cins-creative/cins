@@ -27,19 +27,7 @@ export async function fetchChatThreadsSnapshot(): Promise<ChatThreadsSnapshot | 
   }
 }
 
-export async function fetchRoomMessages(roomId: string): Promise<ChatMessage[] | null> {
-  if (isPendingRoomId(roomId)) return [];
-  try {
-    const res = await fetch(`/api/chat/rooms/${roomId}/messages`, {
-      cache: "no-store",
-    });
-    if (!res.ok) return null;
-    const json = (await res.json()) as { messages?: ChatMessage[] };
-    return json.messages ?? [];
-  } catch {
-    return null;
-  }
-}
+import { fetchRoomMessagesPage } from "@/lib/chat/messages-client";
 
 export async function prefetchChatThreads(
   viewerProfileId: string,
@@ -66,9 +54,10 @@ export async function prefetchRoomMessages(
 ): Promise<ChatMessage[] | null> {
   if (isPendingRoomId(roomId)) return [];
 
-  const messages = await fetchRoomMessages(roomId);
-  if (messages) {
-    writeRoomMessagesCache(viewerProfileId, roomId, messages);
+  const page = await fetchRoomMessagesPage(roomId);
+  if (page) {
+    writeRoomMessagesCache(viewerProfileId, roomId, page.messages);
+    return page.messages;
   }
-  return messages ?? readRoomMessagesCache(viewerProfileId, roomId);
+  return readRoomMessagesCache(viewerProfileId, roomId);
 }

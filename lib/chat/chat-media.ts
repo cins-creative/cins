@@ -28,6 +28,7 @@ export async function ensureChatMediaId(
       loai_tac_pham: "image",
       tieu_de: "Tin nhắn ảnh",
       che_do_hien_thi: "chi_minh",
+      noi_dung_blocks: [],
     })
     .select("id")
     .single<{ id: string }>();

@@ -740,13 +740,54 @@
 
 .cins-chat-compose {
   display: flex;
-  align-items: flex-end;
-  gap: 10px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
   padding: 10px 18px 14px;
   margin-top: 0;
   border-top: 1px solid var(--border, #e4e6eb);
   background: var(--bg-surface, #ffffff);
   color: var(--ink-body, rgba(0, 0, 0, 0.85));
+}
+
+.cins-chat-compose-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.cins-chat-compose-attach-list {
+  width: 100%;
+}
+
+.cins-chat-bubble.has-image p:empty {
+  display: none;
+}
+
+.j-chat-mini-msg-image-link,
+.cins-chat-msg-image-link {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.j-chat-mini-msg-image,
+.cins-chat-msg-image {
+  display: block;
+  max-width: min(220px, 100%);
+  max-height: 180px;
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+.j-chat-mini-compose-attach-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.j-chat-mini-load-more {
+  padding: 4px 0 8px;
+  font-size: 11px;
 }
 
 .cins-chat-input-wrap {

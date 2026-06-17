@@ -11,13 +11,20 @@ import {
 } from "react";
 
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
+import { ChatMessageBody } from "@/components/cins/ChatMessageBody";
 import { avatarBg, formatChatTime } from "@/lib/chat/avatar";
 import { writeChatThreadsCache, writeRoomMessagesCache } from "@/lib/chat/chat-session-cache";
-import { chatImageDeliveryUrl } from "@/lib/chat/image-url";
+import {
+  createPendingImageDraft,
+  revokeDraftImageUrls,
+  type PendingImageDraft,
+  type RoomComposeDraft,
+} from "@/lib/chat/compose-draft";
 import {
   createOptimisticChatMessage,
   messagePreviewText,
 } from "@/lib/chat/optimistic-message";
+import { fetchRoomMessagesPage } from "@/lib/chat/messages-client";
 import { reconcileChatMessage, appendChatMessageIfNew, type ChatRealtimeMessageEvent } from "@/lib/chat/realtime";
 import { rememberCfAccountHashFromDeliveryUrl } from "@/lib/cloudflare/account-hash";
 import { imageFilesFromClipboard } from "@/lib/files/clipboard-images";
@@ -26,39 +33,11 @@ import type { ChatMessage, ChatThread } from "@/lib/chat/types";
 
 const RECONCILE_MS = 120_000;
 
-type MiniImageDraft = {
-  previewUrl: string;
-  imageId: string | null;
-  uploading: boolean;
-  error?: string;
+type RoomChatState = {
+  messages: ChatMessage[];
+  hasMore: boolean;
+  hydrated: boolean;
 };
-
-function MiniChatMessageBody({ msg }: { msg: ChatMessage }) {
-  const imageSrc =
-    msg.imageUrl ??
-    (msg.imageId ? chatImageDeliveryUrl(msg.imageId) : null);
-
-  return (
-    <>
-      {imageSrc ? (
-        <a
-          className="j-chat-mini-msg-image-link"
-          href={imageSrc}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            className="j-chat-mini-msg-image"
-            src={imageSrc}
-            alt={msg.body || "Ảnh đính kèm"}
-          />
-        </a>
-      ) : null}
-      {msg.body ? <p>{msg.body}</p> : null}
-    </>
-  );
-}
 
 function peekKey(thread: ChatThread): string {
   return `${thread.roomId}:${thread.lastAt}`;
@@ -139,7 +118,6 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
     getCachedThreads,
     getCachedRoomMessages,
     prefetchChatData,
-    prefetchRoomMessages,
   } = useCinsChat();
   const [peekThreads, setPeekThreads] = useState<ChatThread[]>([]);
   const [dismissableRooms, setDismissableRooms] = useState<Set<string>>(
@@ -147,61 +125,114 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
   );
   const [miniThread, setMiniThread] = useState<ChatThread | null>(null);
   const [miniOpen, setMiniOpen] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [roomStates, setRoomStates] = useState<Record<string, RoomChatState>>({});
   const [draft, setDraft] = useState("");
+  const [pendingImages, setPendingImages] = useState<PendingImageDraft[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [pendingImage, setPendingImage] = useState<MiniImageDraft | null>(null);
   const dismissedPeekRef = useRef<Set<string>>(new Set());
   const viewedRoomsRef = useRef<Set<string>>(new Set());
+  const hydratedRoomsRef = useRef<Set<string>>(new Set());
+  const composeByRoomRef = useRef<Map<string, RoomComposeDraft>>(new Map());
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const pendingImageRef = useRef<MiniImageDraft | null>(null);
+  const pendingImagesRef = useRef<PendingImageDraft[]>([]);
   const miniOpenRef = useRef(false);
   const miniRoomIdRef = useRef<string | null>(null);
 
-  pendingImageRef.current = pendingImage;
+  pendingImagesRef.current = pendingImages;
+
+  const activeRoomId = miniThread?.roomId ?? null;
+  const activeRoomState = activeRoomId ? roomStates[activeRoomId] : null;
+  const messages = activeRoomState?.messages ?? [];
+  const hasMoreOlder = activeRoomState?.hasMore ?? false;
 
   miniOpenRef.current = miniOpen;
   miniRoomIdRef.current = miniThread?.roomId ?? null;
 
   useEffect(() => {
     return () => {
-      const pending = pendingImageRef.current;
-      if (pending?.previewUrl.startsWith("blob:")) {
-        URL.revokeObjectURL(pending.previewUrl);
-      }
+      revokeDraftImageUrls(pendingImagesRef.current);
     };
   }, []);
 
-  const clearPendingImage = useCallback(() => {
-    setPendingImage((prev) => {
-      if (prev?.previewUrl.startsWith("blob:")) {
-        URL.revokeObjectURL(prev.previewUrl);
-      }
-      return null;
+  const patchRoomState = useCallback(
+    (roomId: string, patch: Partial<RoomChatState>) => {
+      setRoomStates((prev) => {
+        const current = prev[roomId] ?? {
+          messages: [],
+          hasMore: false,
+          hydrated: false,
+        };
+        return {
+          ...prev,
+          [roomId]: { ...current, ...patch },
+        };
+      });
+    },
+    [],
+  );
+
+  const saveComposeForRoom = useCallback(
+    (roomId: string) => {
+      composeByRoomRef.current.set(roomId, {
+        text: draft,
+        images: pendingImages,
+      });
+    },
+    [draft, pendingImages],
+  );
+
+  const restoreComposeForRoom = useCallback((roomId: string) => {
+    const saved = composeByRoomRef.current.get(roomId);
+    setDraft(saved?.text ?? "");
+    setPendingImages(saved?.images ?? []);
+  }, []);
+
+  const clearPendingImages = useCallback(() => {
+    setPendingImages((prev) => {
+      revokeDraftImageUrls(prev);
+      return [];
     });
   }, []);
 
-  const uploadPendingImage = useCallback(async (file: File) => {
+  const removePendingImage = useCallback((localId: string) => {
+    setPendingImages((prev) => {
+      const target = prev.find((item) => item.localId === localId);
+      if (target?.previewUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(target.previewUrl);
+      }
+      return prev.filter((item) => item.localId !== localId);
+    });
+  }, []);
+
+  const uploadPendingImage = useCallback(async (file: File, localId: string) => {
     if (!isAllowedUploadImageFile(file)) {
-      setPendingImage({
-        previewUrl: URL.createObjectURL(file),
-        imageId: null,
-        uploading: false,
-        error: "File không phải ảnh.",
-      });
+      setPendingImages((prev) =>
+        prev.map((item) =>
+          item.localId === localId
+            ? {
+                ...item,
+                uploading: false,
+                error: "File không phải ảnh.",
+              }
+            : item,
+        ),
+      );
       return;
     }
 
     const previewUrl = URL.createObjectURL(file);
-    setPendingImage({
-      previewUrl,
-      imageId: null,
-      uploading: true,
-      error: undefined,
-    });
+    setPendingImages((prev) =>
+      prev.map((item) =>
+        item.localId === localId
+          ? { ...item, previewUrl, uploading: true, error: undefined }
+          : item,
+      ),
+    );
 
     const form = new FormData();
     form.append("file", file);
@@ -220,33 +251,51 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
       }
       if (data.url) rememberCfAccountHashFromDeliveryUrl(data.url);
 
-      setPendingImage((prev) => {
-        if (prev?.previewUrl.startsWith("blob:")) {
-          URL.revokeObjectURL(prev.previewUrl);
-        }
-        return {
-          previewUrl: data.url?.trim() || previewUrl,
-          imageId: data.imageId!,
-          uploading: false,
-        };
-      });
+      setPendingImages((prev) =>
+        prev.map((item) => {
+          if (item.localId !== localId) return item;
+          if (item.previewUrl.startsWith("blob:")) {
+            URL.revokeObjectURL(item.previewUrl);
+          }
+          return {
+            ...item,
+            previewUrl: data.url?.trim() || previewUrl,
+            imageId: data.imageId!,
+            uploading: false,
+          };
+        }),
+      );
     } catch (error) {
-      setPendingImage((prev) =>
-        prev
-          ? {
-              ...prev,
-              uploading: false,
-              error:
-                error instanceof Error ? error.message : "Upload thất bại.",
-            }
-          : prev,
+      setPendingImages((prev) =>
+        prev.map((item) =>
+          item.localId === localId
+            ? {
+                ...item,
+                uploading: false,
+                error:
+                  error instanceof Error ? error.message : "Upload thất bại.",
+              }
+            : item,
+        ),
       );
     }
   }, []);
 
-  const addImageFile = useCallback(
-    (file: File) => {
-      void uploadPendingImage(file);
+  const addImageFiles = useCallback(
+    (files: File[]) => {
+      for (const file of files) {
+        const localId = crypto.randomUUID();
+        setPendingImages((prev) => [
+          ...prev,
+          createPendingImageDraft({
+            localId,
+            previewUrl: URL.createObjectURL(file),
+            imageId: null,
+            uploading: true,
+          }),
+        ]);
+        void uploadPendingImage(file, localId);
+      }
     },
     [uploadPendingImage],
   );
@@ -256,9 +305,9 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
       const files = imageFilesFromClipboard(event.clipboardData);
       if (files.length === 0) return;
       event.preventDefault();
-      addImageFile(files[0]!);
+      addImageFiles(files);
     },
-    [addImageFile],
+    [addImageFiles],
   );
 
   const syncThreads = useCallback(async () => {
@@ -348,7 +397,20 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
       if (open) return;
 
       if (miniOpenRef.current && miniRoomIdRef.current === event.roomId) {
-        setMessages((prev) => appendChatMessageIfNew(prev, event.message));
+        setRoomStates((prev) => {
+          const current = prev[event.roomId] ?? {
+            messages: [],
+            hasMore: false,
+            hydrated: true,
+          };
+          return {
+            ...prev,
+            [event.roomId]: {
+              ...current,
+              messages: appendChatMessageIfNew(current.messages, event.message),
+            },
+          };
+        });
         setMiniThread((prev) =>
           prev
             ? {
@@ -413,64 +475,121 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
     }
   }, [open]);
 
-  const loadMiniMessages = useCallback(async (thread: ChatThread) => {
-    const cached = getCachedRoomMessages(thread.roomId);
-    if (cached) {
-      setMessages(cached);
-      setLoadingMessages(false);
-    } else {
-      setLoadingMessages(true);
-    }
-    setLoadError(null);
+  const loadRecentMessages = useCallback(
+    async (thread: ChatThread) => {
+      const { roomId } = thread;
+      if (hydratedRoomsRef.current.has(roomId)) return;
 
-    try {
-      const loaded =
-        (await prefetchRoomMessages(thread.roomId)) ??
-        cached ??
-        [];
-
-      setMessages(loaded);
-      if (viewerProfileId) {
-        writeRoomMessagesCache(viewerProfileId, thread.roomId, loaded);
-      }
-      viewedRoomsRef.current.add(thread.roomId);
-
-      const lastId = loaded.at(-1)?.id;
-      if (lastId) {
-        void fetch(`/api/chat/rooms/${thread.roomId}/read`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id_tin_nhan_cuoi: lastId }),
+      const cached = getCachedRoomMessages(roomId);
+      if (cached?.length) {
+        patchRoomState(roomId, {
+          messages: cached,
+          hasMore: true,
+          hydrated: true,
         });
+        hydratedRoomsRef.current.add(roomId);
+        setLoadingMessages(false);
+      } else {
+        setLoadingMessages(true);
       }
+      setLoadError(null);
 
-      const snapshot = await prefetchChatData();
-      if (snapshot) {
-        setPeekThreads((prev) =>
-          mergePeekThreads(
-            prev,
-            snapshot.threads,
-            dismissedPeekRef.current,
-          ).map((t) =>
-            t.roomId === thread.roomId ? { ...t, unread: 0 } : t,
-          ),
-        );
+      try {
+        const page = await fetchRoomMessagesPage(roomId);
+        if (!page) {
+          if (!cached?.length) {
+            throw new Error("Không tải được tin nhắn.");
+          }
+          return;
+        }
+
+        hydratedRoomsRef.current.add(roomId);
+        patchRoomState(roomId, {
+          messages: page.messages,
+          hasMore: page.hasMore,
+          hydrated: true,
+        });
+        if (viewerProfileId) {
+          writeRoomMessagesCache(viewerProfileId, roomId, page.messages);
+        }
+        viewedRoomsRef.current.add(roomId);
+
+        const lastId = page.messages.at(-1)?.id;
+        if (lastId) {
+          void fetch(`/api/chat/rooms/${roomId}/read`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id_tin_nhan_cuoi: lastId }),
+          });
+        }
+
+        const snapshot = await prefetchChatData();
+        if (snapshot) {
+          setPeekThreads((prev) =>
+            mergePeekThreads(
+              prev,
+              snapshot.threads,
+              dismissedPeekRef.current,
+            ).map((t) => (t.roomId === roomId ? { ...t, unread: 0 } : t)),
+          );
+        }
+      } catch (error) {
+        if (!cached?.length) {
+          setLoadError(
+            error instanceof Error ? error.message : "Không tải được tin nhắn.",
+          );
+        }
+      } finally {
+        setLoadingMessages(false);
       }
-    } catch (error) {
-      if (!cached) {
-        setLoadError(
-          error instanceof Error ? error.message : "Không tải được tin nhắn.",
-        );
+    },
+    [
+      getCachedRoomMessages,
+      patchRoomState,
+      prefetchChatData,
+      viewerProfileId,
+    ],
+  );
+
+  const loadOlderMessages = useCallback(
+    async (roomId: string) => {
+      const state = roomStates[roomId];
+      if (!state?.hasMore || loadingOlder) return;
+
+      const before = state.messages[0]?.id;
+      if (!before) return;
+
+      const container = messagesContainerRef.current;
+      const prevHeight = container?.scrollHeight ?? 0;
+
+      setLoadingOlder(true);
+      try {
+        const page = await fetchRoomMessagesPage(roomId, { before });
+        if (!page) return;
+
+        patchRoomState(roomId, {
+          messages: [...page.messages, ...state.messages],
+          hasMore: page.hasMore,
+        });
+
+        requestAnimationFrame(() => {
+          const el = messagesContainerRef.current;
+          if (!el) return;
+          el.scrollTop = el.scrollHeight - prevHeight;
+        });
+      } finally {
+        setLoadingOlder(false);
       }
-    } finally {
-      setLoadingMessages(false);
-    }
-  }, [
-    getCachedRoomMessages,
-    prefetchChatData,
-    prefetchRoomMessages,
-    viewerProfileId,
-  ]);
+    },
+    [loadingOlder, patchRoomState, roomStates],
+  );
+
+  const handleMessagesScroll = useCallback(() => {
+    const el = messagesContainerRef.current;
+    if (!el || !activeRoomId || loadingOlder || !hasMoreOlder) return;
+    if (el.scrollTop > 72) return;
+    void loadOlderMessages(activeRoomId);
+  }, [activeRoomId, hasMoreOlder, loadOlderMessages, loadingOlder]);
 
   const markRoomDismissable = useCallback((roomId: string) => {
     if (!viewedRoomsRef.current.has(roomId)) return;
@@ -486,32 +605,28 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
     (thread: ChatThread) => {
       const switching =
         miniOpen && miniThread && miniThread.roomId !== thread.roomId;
-      const cached = getCachedRoomMessages(thread.roomId);
 
       if (switching && miniThread) {
+        saveComposeForRoom(miniThread.roomId);
         markRoomDismissable(miniThread.roomId);
       }
 
       setMiniThread(thread);
       setMiniOpen(true);
-      if (switching) {
-        setMessages(cached ?? []);
-        setDraft("");
-        setLoadError(null);
-        clearPendingImage();
-      } else if (!miniOpen) {
-        setMessages(cached ?? []);
-        setDraft("");
+      restoreComposeForRoom(thread.roomId);
+      setLoadError(null);
+
+      if (!hydratedRoomsRef.current.has(thread.roomId)) {
+        void loadRecentMessages(thread);
       }
-      void loadMiniMessages(thread);
     },
     [
-      clearPendingImage,
-      getCachedRoomMessages,
-      loadMiniMessages,
+      loadRecentMessages,
       markRoomDismissable,
       miniOpen,
       miniThread,
+      restoreComposeForRoom,
+      saveComposeForRoom,
     ],
   );
 
@@ -529,112 +644,191 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
       });
       setPeekThreads((prev) => prev.filter((t) => t.roomId !== thread.roomId));
       if (miniThread?.roomId === thread.roomId) {
+        saveComposeForRoom(thread.roomId);
         setMiniOpen(false);
         setMiniThread(null);
-        setMessages([]);
-        setDraft("");
         setLoadError(null);
-        clearPendingImage();
       }
     },
-    [clearPendingImage, miniThread?.roomId],
+    [miniThread?.roomId, saveComposeForRoom],
   );
 
   const closeMini = useCallback(() => {
     const roomId = miniThread?.roomId;
     if (roomId) {
+      saveComposeForRoom(roomId);
       markRoomDismissable(roomId);
     }
     setMiniOpen(false);
     setMiniThread(null);
-    setMessages([]);
-    setDraft("");
     setLoadError(null);
-    clearPendingImage();
     void syncThreads();
-  }, [clearPendingImage, markRoomDismissable, miniThread?.roomId, syncThreads]);
+  }, [markRoomDismissable, miniThread?.roomId, saveComposeForRoom, syncThreads]);
+
+  const readyImages = pendingImages.filter(
+    (image) => image.imageId && !image.uploading,
+  );
+  const isUploadingImages = pendingImages.some((image) => image.uploading);
 
   const canSend =
     Boolean(miniThread) &&
-    !pendingImage?.uploading &&
-    (draft.trim().length > 0 || Boolean(pendingImage?.imageId));
+    !isUploadingImages &&
+    (draft.trim().length > 0 || readyImages.length > 0);
 
-  const sendMessage = useCallback(async () => {
-    const text = draft.trim();
-    const imageId = pendingImage?.imageId;
-    if ((!text && !imageId) || !miniThread || pendingImage?.uploading) {
-      return;
-    }
+  const postRoomMessage = useCallback(
+    async (
+      roomId: string,
+      payload: { noi_dung?: string; cloudflare_image_id?: string },
+      optimistic: ChatMessage,
+    ) => {
+      setRoomStates((prev) => {
+        const current = prev[roomId] ?? {
+          messages: [],
+          hasMore: false,
+          hydrated: true,
+        };
+        return {
+          ...prev,
+          [roomId]: {
+            ...current,
+            messages: [...current.messages, optimistic],
+          },
+        };
+      });
 
-    const optimistic = createOptimisticChatMessage({
-      body: text,
-      imageId,
-      imageUrl: pendingImage?.previewUrl.startsWith("blob:")
-        ? pendingImage.previewUrl
-        : null,
-    });
-    const snapshotText = text;
-    const snapshotImage = pendingImage;
-
-    setMessages((prev) => [...prev, optimistic]);
-    setDraft("");
-    clearPendingImage();
-    inputRef.current?.focus();
-
-    try {
-      const payload: { noi_dung?: string; cloudflare_image_id?: string } = {};
-      if (snapshotText) payload.noi_dung = snapshotText;
-      if (imageId) payload.cloudflare_image_id = imageId;
-
-      const res = await fetch(
-        `/api/chat/rooms/${miniThread.roomId}/messages`,
-        {
+      try {
+        const res = await fetch(`/api/chat/rooms/${roomId}/messages`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
-        },
-      );
-      const json = (await res.json()) as {
-        message?: ChatMessage;
-        error?: string;
-      };
-      if (!res.ok || !json.message) {
-        throw new Error(json.error ?? "Không gửi được tin nhắn.");
-      }
-
-      setMessages((prev) => {
-        const next = reconcileChatMessage(prev, json.message!);
-        if (viewerProfileId) {
-          writeRoomMessagesCache(viewerProfileId, miniThread.roomId, next);
+        });
+        const json = (await res.json()) as {
+          message?: ChatMessage;
+          error?: string;
+        };
+        if (!res.ok || !json.message) {
+          throw new Error(json.error ?? "Không gửi được tin nhắn.");
         }
-        return next;
-      });
 
-      setMiniThread((prev) =>
-        prev
-          ? {
-              ...prev,
-              preview: messagePreviewText(json.message!),
-              lastAt: json.message!.sentAt,
-            }
-          : prev,
-      );
-    } catch (error) {
-      setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
-      setDraft(snapshotText);
-      if (snapshotImage) {
-        setPendingImage(snapshotImage);
+        setRoomStates((prev) => {
+          const current = prev[roomId] ?? {
+            messages: [],
+            hasMore: false,
+            hydrated: true,
+          };
+          const nextMessages = reconcileChatMessage(
+            current.messages,
+            json.message!,
+          );
+          if (viewerProfileId) {
+            writeRoomMessagesCache(viewerProfileId, roomId, nextMessages);
+          }
+          return {
+            ...prev,
+            [roomId]: { ...current, messages: nextMessages },
+          };
+        });
+
+        setMiniThread((prev) =>
+          prev && prev.roomId === roomId
+            ? {
+                ...prev,
+                preview: messagePreviewText(json.message!),
+                lastAt: json.message!.sentAt,
+              }
+            : prev,
+        );
+
+        return true;
+      } catch (error) {
+        setRoomStates((prev) => {
+          const current = prev[roomId];
+          if (!current) return prev;
+          return {
+            ...prev,
+            [roomId]: {
+              ...current,
+              messages: current.messages.filter((m) => m.id !== optimistic.id),
+            },
+          };
+        });
+        setLoadError(
+          error instanceof Error ? error.message : "Không gửi được tin nhắn.",
+        );
+        return false;
       }
-      setLoadError(
-        error instanceof Error ? error.message : "Không gửi được tin nhắn.",
-      );
+    },
+    [viewerProfileId],
+  );
+
+  const sendMessage = useCallback(async () => {
+    if (!miniThread || !canSend) return;
+
+    const text = draft.trim();
+    const images = readyImages;
+    const snapshotText = draft;
+    const snapshotImages = pendingImages;
+
+    setDraft("");
+    clearPendingImages();
+    composeByRoomRef.current.set(miniThread.roomId, { text: "", images: [] });
+    inputRef.current?.focus();
+
+    const sends: Array<{
+      payload: { noi_dung?: string; cloudflare_image_id?: string };
+      optimistic: ChatMessage;
+    }> = [];
+
+    if (images.length > 0) {
+      const [first, ...rest] = images;
+      sends.push({
+        payload: {
+          ...(text ? { noi_dung: text } : {}),
+          cloudflare_image_id: first.imageId!,
+        },
+        optimistic: createOptimisticChatMessage({
+          body: text,
+          imageId: first.imageId,
+          imageUrl: first.previewUrl,
+        }),
+      });
+      for (const image of rest) {
+        sends.push({
+          payload: { cloudflare_image_id: image.imageId! },
+          optimistic: createOptimisticChatMessage({
+            body: "",
+            imageId: image.imageId,
+            imageUrl: image.previewUrl,
+          }),
+        });
+      }
+    } else if (text) {
+      sends.push({
+        payload: { noi_dung: text },
+        optimistic: createOptimisticChatMessage({ body: text }),
+      });
+    }
+
+    for (const item of sends) {
+      const ok = await postRoomMessage(miniThread.roomId, item.payload, item.optimistic);
+      if (!ok) {
+        setDraft(snapshotText);
+        setPendingImages(snapshotImages);
+        composeByRoomRef.current.set(miniThread.roomId, {
+          text: snapshotText,
+          images: snapshotImages,
+        });
+        break;
+      }
     }
   }, [
-    clearPendingImage,
+    canSend,
+    clearPendingImages,
     draft,
     miniThread,
-    pendingImage,
-    viewerProfileId,
+    pendingImages,
+    postRoomMessage,
+    readyImages,
   ]);
 
   useEffect(() => {
@@ -693,8 +887,17 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
             </div>
           </header>
 
-          <div className="j-chat-mini-messages">
-            {loadingMessages ? (
+          <div
+            className="j-chat-mini-messages"
+            ref={messagesContainerRef}
+            onScroll={handleMessagesScroll}
+          >
+            {loadingOlder ? (
+              <p className="j-chat-mini-empty j-chat-mini-load-more">
+                Đang tải tin cũ hơn…
+              </p>
+            ) : null}
+            {loadingMessages && messages.length === 0 ? (
               <p className="j-chat-mini-empty">Đang tải tin nhắn…</p>
             ) : loadError && messages.length === 0 ? (
               <p className="j-chat-mini-empty">{loadError}</p>
@@ -714,7 +917,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
                 <div
                   className={`cins-chat-bubble${msg.from === "me" ? " is-me" : " is-them"}${msg.imageUrl || msg.imageId ? " has-image" : ""}`}
                 >
-                  <MiniChatMessageBody msg={msg} />
+                  <ChatMessageBody msg={msg} />
                   <time dateTime={msg.sentAt}>{formatChatTime(msg.sentAt)}</time>
                 </div>
               </div>
@@ -723,29 +926,33 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
           </div>
 
           <footer className="j-chat-mini-compose">
-            {pendingImage ? (
-              <div className="j-chat-mini-compose-attach">
-                <div className="j-chat-mini-compose-preview">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={pendingImage.previewUrl} alt="" />
-                  {pendingImage.uploading ? (
-                    <span className="j-chat-mini-compose-preview-status">
-                      Đang tải…
-                    </span>
-                  ) : null}
-                </div>
-                <button
-                  type="button"
-                  className="j-chat-mini-compose-remove"
-                  aria-label="Bỏ ảnh đính kèm"
-                  disabled={pendingImage.uploading}
-                  onClick={clearPendingImage}
-                >
-                  <X size={12} strokeWidth={2.5} aria-hidden />
-                </button>
-                {pendingImage.error ? (
-                  <p className="j-chat-mini-compose-error">{pendingImage.error}</p>
-                ) : null}
+            {pendingImages.length > 0 ? (
+              <div className="j-chat-mini-compose-attach-list">
+                {pendingImages.map((image) => (
+                  <div key={image.localId} className="j-chat-mini-compose-attach">
+                    <div className="j-chat-mini-compose-preview">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={image.previewUrl} alt="" />
+                      {image.uploading ? (
+                        <span className="j-chat-mini-compose-preview-status">
+                          Đang tải…
+                        </span>
+                      ) : null}
+                    </div>
+                    <button
+                      type="button"
+                      className="j-chat-mini-compose-remove"
+                      aria-label="Bỏ ảnh đính kèm"
+                      disabled={image.uploading}
+                      onClick={() => removePendingImage(image.localId)}
+                    >
+                      <X size={12} strokeWidth={2.5} aria-hidden />
+                    </button>
+                    {image.error ? (
+                      <p className="j-chat-mini-compose-error">{image.error}</p>
+                    ) : null}
+                  </div>
+                ))}
               </div>
             ) : null}
             <div className="j-chat-mini-compose-row">
@@ -753,12 +960,13 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
                 ref={fileInputRef}
                 type="file"
                 accept="image/jpeg,image/png,image/webp,image/gif"
+                multiple
                 className="j-chat-mini-compose-file"
                 tabIndex={-1}
                 aria-hidden
                 onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) addImageFile(file);
+                  const files = [...(e.target.files ?? [])];
+                  if (files.length > 0) addImageFiles(files);
                   e.target.value = "";
                 }}
               />
@@ -766,7 +974,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
                 type="button"
                 className="j-chat-mini-attach"
                 aria-label="Đính kèm ảnh"
-                disabled={loadingMessages || pendingImage?.uploading}
+                disabled={isUploadingImages}
                 onClick={() => fileInputRef.current?.click()}
               >
                 <Paperclip size={17} strokeWidth={1.9} aria-hidden />
@@ -775,7 +983,6 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
                 ref={inputRef}
                 rows={1}
                 value={draft}
-                disabled={loadingMessages}
                 onChange={(e) => setDraft(e.target.value)}
                 placeholder="Viết tin nhắn…"
                 onPaste={handleComposePaste}
