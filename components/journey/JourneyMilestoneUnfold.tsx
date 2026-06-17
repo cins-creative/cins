@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 
 import type { MilestonePostDetail } from "@/lib/journey/milestone-post-types";
 import { JourneyPostBody } from "@/components/journey/JourneyPostBody";
+import { POST_COMMENTS_SYNC_EVENT } from "@/lib/journey/comments-sync-client";
 import {
   invalidateMilestoneDetailCache,
   loadMilestoneDetailCached,
@@ -151,6 +152,34 @@ export function JourneyMilestoneUnfold({
     postOwnerSlug,
     postSlug,
   ]);
+
+  useEffect(() => {
+    function onCommentsSync(event: Event) {
+      const sync = (
+        event as CustomEvent<{ milestoneId?: string; count?: number }>
+      ).detail;
+      if (sync?.milestoneId !== milestoneId || typeof sync.count !== "number") {
+        return;
+      }
+      const cached = readCachedMilestoneDetail(cacheKey);
+      if (cached?.milestone.id === milestoneId) {
+        setDetail(cached);
+        return;
+      }
+      setDetail((prev) =>
+        prev
+          ? {
+              ...prev,
+              social: { ...prev.social, commentCount: sync.count },
+            }
+          : prev,
+      );
+    }
+
+    window.addEventListener(POST_COMMENTS_SYNC_EVENT, onCommentsSync);
+    return () =>
+      window.removeEventListener(POST_COMMENTS_SYNC_EVENT, onCommentsSync);
+  }, [cacheKey, milestoneId]);
 
   useEffect(() => {
     if (!active || !commentsFocus || loading || !detail) return;

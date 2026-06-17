@@ -1,6 +1,8 @@
 const PREFIX = "cins-journey-panels:v1:";
 /** Cache tạm trang đầu mỗi tab — đủ để chuyển tab nhanh, không thay server truth lâu dài. */
 export const JOURNEY_PANEL_CACHE_TTL_MS = 15 * 60 * 1000;
+/** Số item tối đa ghi localStorage — đủ hiển thị ngay, giữ payload nhỏ. */
+export const JOURNEY_PANEL_CACHE_ITEM_LIMIT = 8;
 
 type PanelEntry<T> = {
   savedAt: number;
@@ -23,16 +25,22 @@ export type JourneyFriendsPanelData = {
   nextOffset: number;
 };
 
+export type JourneyOrganizationsPanelData =
+  import("@/lib/journey/user-orgs-fetch").UserOrganizationsPageResult;
+
 export type JourneyAsidePanelData = {
   pinned: import("@/components/journey/JourneyGalleryAside").GalleryPinnedBanner[];
   items: import("@/components/journey/JourneyGalleryAside").GalleryGridItem[];
   totalTacPham: number;
 };
 
+export type JourneyPanelView = "journey" | "gallery" | "friends" | "organizations";
+
 type JourneyPanelSnapshot = {
   timeline?: PanelEntry<JourneyTimelinePanelData>;
   gallery?: PanelEntry<JourneyGalleryPanelData>;
   friends?: PanelEntry<JourneyFriendsPanelData>;
+  organizations?: PanelEntry<JourneyOrganizationsPanelData>;
   aside?: PanelEntry<JourneyAsidePanelData | null>;
 };
 
@@ -76,14 +84,57 @@ function isFresh(entry: PanelEntry<unknown> | undefined): boolean {
   return Date.now() - entry.savedAt < JOURNEY_PANEL_CACHE_TTL_MS;
 }
 
+function trimPanelDataForCache<T>(
+  panel: keyof JourneyPanelSnapshot,
+  data: T,
+): T {
+  const limit = JOURNEY_PANEL_CACHE_ITEM_LIMIT;
+  switch (panel) {
+    case "timeline": {
+      const d = data as JourneyTimelinePanelData;
+      return {
+        ...d,
+        page: {
+          ...d.page,
+          milestones: d.page.milestones.slice(0, limit),
+        },
+      } as T;
+    }
+    case "gallery": {
+      const d = data as JourneyGalleryPanelData;
+      return { ...d, items: d.items.slice(0, limit) } as T;
+    }
+    case "friends": {
+      const d = data as JourneyFriendsPanelData;
+      return { ...d, friends: d.friends.slice(0, limit) } as T;
+    }
+    case "organizations": {
+      const d = data as JourneyOrganizationsPanelData;
+      return {
+        ...d,
+        memberships: d.memberships.slice(0, limit),
+      } as T;
+    }
+    case "aside": {
+      const d = data as JourneyAsidePanelData | null;
+      if (!d) return data;
+      return { ...d, items: d.items.slice(0, limit) } as T;
+    }
+    default:
+      return data;
+  }
+}
+
 function readPanel<T>(
   ownerSlug: string,
   viewerProfileId: string | null,
   panel: keyof JourneyPanelSnapshot,
+  opts?: { allowStale?: boolean },
 ): T | null {
   const snapshot = readSnapshot(ownerSlug, viewerProfileId);
   const entry = snapshot?.[panel];
-  if (!entry || !isFresh(entry)) return null;
+  if (!entry) return null;
+  if (!opts?.allowStale && !isFresh(entry)) return null;
   return entry.data as T;
 }
 
@@ -96,15 +147,19 @@ function writePanel<T>(
   const existing = readSnapshot(ownerSlug, viewerProfileId) ?? {};
   writeSnapshot(ownerSlug, viewerProfileId, {
     ...existing,
-    [panel]: { savedAt: Date.now(), data },
+    [panel]: {
+      savedAt: Date.now(),
+      data: trimPanelDataForCache(panel, data),
+    },
   });
 }
 
 export function readJourneyTimelinePanelCache(
   ownerSlug: string,
   viewerProfileId: string | null,
+  opts?: { allowStale?: boolean },
 ): JourneyTimelinePanelData | null {
-  return readPanel(ownerSlug, viewerProfileId, "timeline");
+  return readPanel(ownerSlug, viewerProfileId, "timeline", opts);
 }
 
 export function writeJourneyTimelinePanelCache(
@@ -118,8 +173,9 @@ export function writeJourneyTimelinePanelCache(
 export function readJourneyGalleryPanelCache(
   ownerSlug: string,
   viewerProfileId: string | null,
+  opts?: { allowStale?: boolean },
 ): JourneyGalleryPanelData | null {
-  return readPanel(ownerSlug, viewerProfileId, "gallery");
+  return readPanel(ownerSlug, viewerProfileId, "gallery", opts);
 }
 
 export function writeJourneyGalleryPanelCache(
@@ -133,8 +189,9 @@ export function writeJourneyGalleryPanelCache(
 export function readJourneyFriendsPanelCache(
   ownerSlug: string,
   viewerProfileId: string | null,
+  opts?: { allowStale?: boolean },
 ): JourneyFriendsPanelData | null {
-  return readPanel(ownerSlug, viewerProfileId, "friends");
+  return readPanel(ownerSlug, viewerProfileId, "friends", opts);
 }
 
 export function writeJourneyFriendsPanelCache(
@@ -145,11 +202,28 @@ export function writeJourneyFriendsPanelCache(
   writePanel(ownerSlug, viewerProfileId, "friends", data);
 }
 
+export function readJourneyOrganizationsPanelCache(
+  ownerSlug: string,
+  viewerProfileId: string | null,
+  opts?: { allowStale?: boolean },
+): JourneyOrganizationsPanelData | null {
+  return readPanel(ownerSlug, viewerProfileId, "organizations", opts);
+}
+
+export function writeJourneyOrganizationsPanelCache(
+  ownerSlug: string,
+  viewerProfileId: string | null,
+  data: JourneyOrganizationsPanelData,
+): void {
+  writePanel(ownerSlug, viewerProfileId, "organizations", data);
+}
+
 export function readJourneyAsidePanelCache(
   ownerSlug: string,
   viewerProfileId: string | null,
+  opts?: { allowStale?: boolean },
 ): JourneyAsidePanelData | null {
-  return readPanel(ownerSlug, viewerProfileId, "aside");
+  return readPanel(ownerSlug, viewerProfileId, "aside", opts);
 }
 
 export function writeJourneyAsidePanelCache(
@@ -160,6 +234,27 @@ export function writeJourneyAsidePanelCache(
   writePanel(ownerSlug, viewerProfileId, "aside", data);
 }
 
+/** Đọc cache tab hiện tại — dùng cho Suspense fallback (cho phép stale). */
+export function readJourneyPanelCacheForView(
+  ownerSlug: string,
+  viewerProfileId: string | null,
+  view: JourneyPanelView,
+): JourneyTimelinePanelData | JourneyGalleryPanelData | JourneyFriendsPanelData | JourneyOrganizationsPanelData | null {
+  const opts = { allowStale: true };
+  switch (view) {
+    case "journey":
+      return readJourneyTimelinePanelCache(ownerSlug, viewerProfileId, opts);
+    case "gallery":
+      return readJourneyGalleryPanelCache(ownerSlug, viewerProfileId, opts);
+    case "friends":
+      return readJourneyFriendsPanelCache(ownerSlug, viewerProfileId, opts);
+    case "organizations":
+      return readJourneyOrganizationsPanelCache(ownerSlug, viewerProfileId, opts);
+    default:
+      return null;
+  }
+}
+
 /** Hydrate state từ localStorage sau mount — tránh hydration mismatch với SSR. */
 export function hydrateJourneyPanelsFromLocalStorage(
   ownerSlug: string,
@@ -168,12 +263,14 @@ export function hydrateJourneyPanelsFromLocalStorage(
   timeline: JourneyTimelinePanelData | null;
   gallery: JourneyGalleryPanelData | null;
   friends: JourneyFriendsPanelData | null;
+  organizations: JourneyOrganizationsPanelData | null;
   aside: JourneyAsidePanelData | null | undefined;
 } {
   return {
     timeline: readJourneyTimelinePanelCache(ownerSlug, viewerProfileId),
     gallery: readJourneyGalleryPanelCache(ownerSlug, viewerProfileId),
     friends: readJourneyFriendsPanelCache(ownerSlug, viewerProfileId),
+    organizations: readJourneyOrganizationsPanelCache(ownerSlug, viewerProfileId),
     aside: readJourneyAsidePanelCache(ownerSlug, viewerProfileId),
   };
 }
@@ -185,6 +282,7 @@ export function persistJourneyPanelsFromInitialData(
     timeline?: JourneyTimelinePanelData;
     gallery?: JourneyGalleryPanelData;
     friends?: JourneyFriendsPanelData;
+    organizations?: JourneyOrganizationsPanelData;
     aside?: JourneyAsidePanelData | null;
   },
 ): void {
@@ -196,6 +294,13 @@ export function persistJourneyPanelsFromInitialData(
   }
   if (initial.friends) {
     writeJourneyFriendsPanelCache(ownerSlug, viewerProfileId, initial.friends);
+  }
+  if (initial.organizations) {
+    writeJourneyOrganizationsPanelCache(
+      ownerSlug,
+      viewerProfileId,
+      initial.organizations,
+    );
   }
   if (initial.aside !== undefined) {
     writeJourneyAsidePanelCache(ownerSlug, viewerProfileId, initial.aside);

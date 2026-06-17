@@ -4265,6 +4265,155 @@
   color: var(--ink-muted, #64748b);
 }
 
+.tdh-milestone-tag-org-msg {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+
+.tdh-milestone-tag-org-msg-head {
+  flex-shrink: 0;
+}
+
+.tdh-milestone-tag-org-msg-hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-muted, #64748b);
+}
+
+.tdh-milestone-tag-org-msg-hint strong {
+  color: var(--ink-display, #0f172a);
+  font-weight: 700;
+}
+
+.tdh-milestone-tag-org-msg-list {
+  max-height: 200px;
+  overflow: auto;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border2, #e4e6eb);
+  background: #f8fafc;
+}
+
+.tdh-milestone-tag-org-msg-empty {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink-muted, #64748b);
+}
+
+.tdh-milestone-tag-org-msg-thread {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tdh-milestone-tag-org-msg-item {
+  max-width: 88%;
+  padding: 8px 11px;
+  border-radius: 14px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.tdh-milestone-tag-org-msg-item p {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.tdh-milestone-tag-org-msg-item time {
+  display: block;
+  margin-top: 4px;
+  font-size: 10px;
+  opacity: 0.72;
+  font-variant-numeric: tabular-nums;
+}
+
+.tdh-milestone-tag-org-msg-item.is-out {
+  align-self: flex-end;
+  background: var(--cins-blue, #2563eb);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.tdh-milestone-tag-org-msg-item.is-in {
+  align-self: flex-start;
+  background: #fff;
+  border: 1px solid var(--border2, #e4e6eb);
+  color: var(--ink-display, #0f172a);
+  border-bottom-left-radius: 4px;
+}
+
+.tdh-milestone-tag-org-msg-compose {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.tdh-milestone-tag-org-msg-compose textarea {
+  flex: 1;
+  min-height: 44px;
+  resize: vertical;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border2, #e4e6eb);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.45;
+  background: #fff;
+}
+
+.tdh-milestone-tag-org-msg-compose textarea:focus {
+  outline: 2px solid rgba(37, 99, 235, 0.35);
+  outline-offset: 1px;
+}
+
+.tdh-milestone-tag-org-msg-send {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 0;
+  background: var(--cins-blue, #2563eb);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tdh-milestone-tag-org-msg-send:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.tdh-milestone-tag-org-msg-err {
+  margin: 0;
+  font-size: 12px;
+  color: #b42318;
+}
+
+.tdh-milestone-tag-org-msg-spin {
+  animation: tdh-milestone-tag-spin 0.8s linear infinite;
+}
+
+@keyframes tdh-milestone-tag-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .tdh-milestone-tag-detail-foot {
   display: flex;
   flex-wrap: wrap;

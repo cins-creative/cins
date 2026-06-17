@@ -5,7 +5,7 @@ import {
 } from "@/lib/chat/image-url";
 import { isOptimisticMessageId } from "@/lib/chat/optimistic-message";
 
-/** Row INSERT từ Supabase Realtime — `chat_tin_nhan`. */
+/** Row từ Supabase Realtime — `chat_tin_nhan`. */
 export type ChatRealtimeRow = {
   id: string;
   id_phong: string;
@@ -14,6 +14,9 @@ export type ChatRealtimeRow = {
   loai_tin?: string | null;
   tao_luc: string;
   da_xoa: boolean;
+  da_sua?: boolean;
+  sua_luc?: string | null;
+  id_tin_tra_loi?: string | null;
 };
 
 export type ChatRealtimeMessageEvent = {
@@ -22,6 +25,7 @@ export type ChatRealtimeMessageEvent = {
   senderId: string;
   preview: string;
   lastAt: string;
+  event: "insert" | "update";
 };
 
 export function mapRealtimeRow(row: ChatRealtimeRow, viewerId: string): ChatMessage {
@@ -47,10 +51,14 @@ export function mapRealtimeRow(row: ChatRealtimeRow, viewerId: string): ChatMess
     kind,
     imageId,
     imageUrl: imageId ? chatImageDeliveryUrl(imageId) : null,
+    deleted: Boolean(row.da_xoa),
+    edited: Boolean(row.da_sua),
+    editedAt: row.sua_luc ?? null,
   };
 }
 
 function realtimePreview(row: ChatRealtimeRow): string {
+  if (row.da_xoa) return "Đã thu hồi tin nhắn";
   if (row.loai_tin === "media") {
     const caption = row.noi_dung?.trim() || "";
     if (caption && !isCloudflareImageId(caption)) return caption;
@@ -62,6 +70,7 @@ function realtimePreview(row: ChatRealtimeRow): string {
 export function toRealtimeMessageEvent(
   row: ChatRealtimeRow,
   viewerId: string,
+  event: "insert" | "update" = "insert",
 ): ChatRealtimeMessageEvent {
   return {
     roomId: row.id_phong,
@@ -69,6 +78,7 @@ export function toRealtimeMessageEvent(
     senderId: row.id_nguoi_gui,
     preview: realtimePreview(row),
     lastAt: row.tao_luc,
+    event,
   };
 }
 
@@ -99,6 +109,25 @@ export function reconcileChatMessage(
   }
 
   return [...messages, message];
+}
+
+export function mergeChatMessageUpdate(
+  messages: ChatMessage[],
+  message: ChatMessage,
+): ChatMessage[] {
+  const idx = messages.findIndex((m) => m.id === message.id);
+  if (idx < 0) return messages;
+  const prev = messages[idx];
+  const next = [...messages];
+  next[idx] = {
+    ...prev,
+    ...message,
+    replyTo: message.replyTo ?? prev.replyTo,
+    reactions: message.reactions ?? prev.reactions,
+    pinned: message.pinned ?? prev.pinned,
+    readByPeer: message.readByPeer ?? prev.readByPeer,
+  };
+  return next;
 }
 
 export function appendChatMessageIfNew(

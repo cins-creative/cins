@@ -2,11 +2,12 @@
 
 import {
   Image as ImageIcon,
+  PanelRightOpen,
   Paperclip,
   Pin,
   Search,
   Send,
-  StickyNote,
+  PinOff,
   X,
 } from "lucide-react";
 import {
@@ -19,7 +20,10 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
+import { ChatImageLightbox } from "@/components/cins/ChatImageLightbox";
 import { ChatMessageThreadItems } from "@/components/cins/ChatMessageThreadItems";
+import { ChatReplyComposeBar } from "@/components/cins/ChatReplyComposeBar";
+import type { ChatMessageActionHandlers } from "@/components/cins/ChatMessageActions";
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
 import {
   avatarBg,
@@ -37,16 +41,23 @@ import {
   patchPendingImageUploadResult,
   planPendingImageAdditions,
 } from "@/lib/chat/compose-image-upload";
+import {
+  fetchPinnedMessages,
+  patchChatMessage,
+  toggleChatReaction,
+} from "@/lib/chat/message-actions-client";
 import { fetchRoomMessagesPage } from "@/lib/chat/messages-client";
+import {
+  patchThreadMessages,
+  updateMessageInList,
+} from "@/lib/chat/patch-thread-messages";
+import { chatMessageMediaEntries } from "@/lib/chat/message-albums";
 import {
   preserveThreadMessages,
   threadLikelyHasMessages,
 } from "@/lib/chat/thread-merge";
-import {
-  createOptimisticChatMessage,
-  messagePreviewText,
-} from "@/lib/chat/optimistic-message";
-import { appendChatMessageIfNew, reconcileChatMessage } from "@/lib/chat/realtime";
+import { applyOptimisticReaction } from "@/lib/chat/optimistic-reactions";
+import { appendChatMessageIfNew, mergeChatMessageUpdate, reconcileChatMessage } from "@/lib/chat/realtime";
 import {
   isPendingRoomId,
   pendingDirectRoomId,
@@ -57,6 +68,8 @@ import {
   CHAT_PARTICIPANT_KIND_LABEL,
   CHAT_THREAD_GROUP_LABEL,
   CHAT_THREAD_GROUP_ORDER,
+  type ChatMessage,
+  type ChatMessageReplyPreview,
   type ChatLaunchState,
   type ChatParticipantKind,
   type ChatThread,
@@ -96,13 +109,14 @@ function mergeLaunchThread(
   return [merged, ...rest];
 }
 
-type ChatSidePanel = "pin" | "media" | "notes";
+type ChatSidePanel = "pin" | "media";
 
 const SIDE_PANEL_LABEL: Record<ChatSidePanel, string> = {
   pin: "Tin đã ghim",
-  media: "Ảnh & file",
-  notes: "Ghi chú",
+  media: "Ảnh",
 };
+
+const SIDE_PANEL_ORDER: ChatSidePanel[] = ["pin", "media"];
 
 function threadKindLabel(thread: ChatThread): string {
   if (thread.kind === "org" && thread.orgKind) {
@@ -162,6 +176,7 @@ function ChatAvatar({
 }
 
 function ChatKindPill({ thread }: { thread: ChatThread }) {
+  if (thread.kind === "user") return null;
   return (
     <span className={`cins-chat-kind-pill${threadKindClass(thread)}`}>
       {threadKindLabel(thread)}
@@ -203,12 +218,7 @@ function ChatThreadRow({
             <time dateTime={thread.lastAt}>{formatChatTime(thread.lastAt)}</time>
           </span>
           <span className="cins-chat-thread-bottom">
-            <span className="cins-chat-thread-preview">
-              {thread.kind === "user" && !thread.typing ? (
-                <span className="cins-chat-thread-role">{thread.role}</span>
-              ) : null}
-              {preview}
-            </span>
+            <span className="cins-chat-thread-preview">{preview}</span>
             {thread.unread > 0 ? (
               <span className="cins-chat-unread">{thread.unread}</span>
             ) : null}
@@ -217,6 +227,17 @@ function ChatThreadRow({
       </button>
     </li>
   );
+}
+
+function messageToReplyPreview(msg: ChatMessage): ChatMessageReplyPreview {
+  return {
+    id: msg.id,
+    from: msg.from,
+    body: msg.body,
+    kind: msg.kind,
+    imageUrl: msg.imageUrl,
+    deleted: msg.deleted,
+  };
 }
 
 export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
@@ -237,6 +258,13 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   const [pendingImages, setPendingImages] = useState<PendingImageDraft[]>([]);
   const [mobileShowThread, setMobileShowThread] = useState(() => Boolean(launch?.thread));
   const [sidePanel, setSidePanel] = useState<ChatSidePanel | null>(null);
+  const [sideMediaLightboxIndex, setSideMediaLightboxIndex] = useState<number | null>(
+    null,
+  );
+  const [replyTarget, setReplyTarget] = useState<ChatMessage | null>(null);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editingDraft, setEditingDraft] = useState("");
+  const [pinnedByRoom, setPinnedByRoom] = useState<Record<string, ChatMessage[]>>({});
   const [activeTab, setActiveTab] = useState<ChatThreadGroup>(
     () => launch?.tab ?? launch?.thread?.group ?? "ban_be",
   );
@@ -273,6 +301,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   const scrollMessagesToBottomRef = useRef(scrollMessagesToBottom);
   scrollMessagesToBottomRef.current = scrollMessagesToBottom;
   const forcedEmptyReloadRef = useRef<Set<string>>(new Set());
+  const highlightTimerRef = useRef<number | null>(null);
 
   pendingImagesRef.current = pendingImages;
 
@@ -280,6 +309,23 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     () => threads.find((t) => t.id === activeId) ?? null,
     [threads, activeId],
   );
+
+  const sharedMedia = useMemo(() => {
+    if (!active) return [];
+    return chatMessageMediaEntries(active.messages).reverse();
+  }, [active]);
+
+  const sharedMediaUrls = useMemo(
+    () => sharedMedia.map((entry) => entry.src),
+    [sharedMedia],
+  );
+
+  useEffect(() => {
+    setSideMediaLightboxIndex(null);
+    setReplyTarget(null);
+    setEditingMessageId(null);
+    setEditingDraft("");
+  }, [active?.roomId]);
 
   activeRoomIdRef.current = active?.roomId ?? null;
 
@@ -456,9 +502,15 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
             preview: event.preview,
             lastAt: event.lastAt,
             messages: isActive
-              ? appendChatMessageIfNew(t.messages, event.message)
+              ? event.event === "update"
+                ? mergeChatMessageUpdate(t.messages, event.message)
+                : appendChatMessageIfNew(t.messages, event.message)
               : t.messages,
-            unread: isActive ? 0 : t.unread + (event.message.from === "them" ? 1 : 0),
+            unread: isActive
+              ? 0
+              : event.event === "insert" && event.message.from === "them"
+                ? t.unread + 1
+                : t.unread,
           };
         });
 
@@ -599,12 +651,25 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   }, []);
 
   useEffect(() => {
+    return () => {
+      if (highlightTimerRef.current) {
+        window.clearTimeout(highlightTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key !== "Escape") return;
+      if (sidePanel) {
+        setSidePanel(null);
+        return;
+      }
+      onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [onClose, sidePanel]);
 
   const loadMessages = useCallback(
     async (roomId: string, options?: { force?: boolean }) => {
@@ -653,6 +718,10 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
           onUnreadChange(next.reduce((sum, t) => sum + t.unread, 0));
           return next;
         });
+        setPinnedByRoom((prev) => ({
+          ...prev,
+          [roomId]: page.pinnedMessages ?? [],
+        }));
         patchRoomStatus(roomId, "ready");
       } catch (error) {
         if (cached?.length) {
@@ -799,8 +868,12 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     [draft, loadMessages, pendingImages, restoreComposeForRoom, scrollMessagesToBottom],
   );
 
-  const toggleSidePanel = useCallback((panel: ChatSidePanel) => {
-    setSidePanel((cur) => (cur === panel ? null : panel));
+  const toggleExpandPanel = useCallback(() => {
+    setSidePanel((cur) => (cur ? null : "pin"));
+  }, []);
+
+  const selectSidePanelTab = useCallback((panel: ChatSidePanel) => {
+    setSidePanel(panel);
   }, []);
 
   const readyImages = pendingImages.filter(
@@ -814,10 +887,224 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     !isUploadingImages &&
     (draft.trim().length > 0 || readyImages.length > 0);
 
+  const activePinnedMessages = useMemo(
+    () => (active?.roomId ? pinnedByRoom[active.roomId] ?? [] : []),
+    [active?.roomId, pinnedByRoom],
+  );
+
+  const patchActiveThreadMessages = useCallback(
+    (updater: (messages: ChatMessage[]) => ChatMessage[]) => {
+      if (!active) return;
+      setThreads((prev) => patchThreadMessages(prev, active.id, updater));
+    },
+    [active],
+  );
+
+  const refreshPinnedForRoom = useCallback(async (roomId: string) => {
+    const pinned = await fetchPinnedMessages(roomId);
+    setPinnedByRoom((prev) => ({ ...prev, [roomId]: pinned }));
+  }, []);
+
+  const highlightMessage = useCallback((messageId: string) => {
+    const el = document.getElementById(`cins-chat-msg-${messageId}`);
+    if (!el) return false;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.classList.add("is-msg-highlight");
+    if (highlightTimerRef.current) {
+      window.clearTimeout(highlightTimerRef.current);
+    }
+    highlightTimerRef.current = window.setTimeout(() => {
+      el.classList.remove("is-msg-highlight");
+      highlightTimerRef.current = null;
+    }, 1800);
+    return true;
+  }, []);
+
+  const scrollToMessage = useCallback(
+    async (messageId: string) => {
+      if (!active) return;
+      shouldScrollToBottomRef.current = false;
+
+      const roomId = active.roomId;
+      if (isPendingRoomId(roomId)) return;
+
+      if (active.messages.some((m) => m.id === messageId)) {
+        requestAnimationFrame(() => highlightMessage(messageId));
+        return;
+      }
+
+      let msgs = active.messages;
+      let hasMore = hasMoreByRoomRef.current.get(roomId) ?? false;
+
+      while (hasMore) {
+        const before = msgs[0]?.id;
+        if (!before) break;
+
+        const page = await fetchRoomMessagesPage(roomId, { before });
+        if (!page?.messages.length) break;
+
+        msgs = [...page.messages, ...msgs];
+        hasMore = page.hasMore;
+        hasMoreByRoomRef.current.set(roomId, hasMore);
+        setHasMoreByRoom((prev) => ({ ...prev, [roomId]: hasMore }));
+        setThreads((prev) =>
+          prev.map((t) => (t.roomId === roomId ? { ...t, messages: msgs } : t)),
+        );
+
+        if (msgs.some((m) => m.id === messageId)) {
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => highlightMessage(messageId));
+          });
+          return;
+        }
+      }
+
+      setLoadError("Không tìm thấy tin nhắn trong hội thoại.");
+    },
+    [active, highlightMessage],
+  );
+
+  const messageActionHandlers = useMemo<ChatMessageActionHandlers>(
+    () => ({
+      onReply: (msg) => {
+        setReplyTarget(msg);
+        setEditingMessageId(null);
+        inputRef.current?.focus();
+      },
+      onRecall: (msg) => {
+        if (!active) return;
+        const snapshot = { ...msg };
+        patchActiveThreadMessages((msgs) =>
+          updateMessageInList(msgs, msg.id, { deleted: true, body: "" }),
+        );
+        void patchChatMessage(active.roomId, msg.id, { action: "recall" }).then(
+          (res) => {
+            if (res.error) {
+              patchActiveThreadMessages((msgs) =>
+                updateMessageInList(msgs, msg.id, snapshot),
+              );
+              setLoadError(res.error);
+              return;
+            }
+            if (res.message) {
+              patchActiveThreadMessages((msgs) =>
+                msgs.map((m) => (m.id === msg.id ? { ...m, ...res.message! } : m)),
+              );
+            }
+          },
+        );
+      },
+      onEdit: (msg) => {
+        setEditingMessageId(msg.id);
+        setEditingDraft(msg.body);
+        setReplyTarget(null);
+      },
+      onPin: (msg, pinned) => {
+        if (!active) return;
+        const roomId = active.roomId;
+        const prevPinned = pinnedByRoom[roomId] ?? [];
+        patchActiveThreadMessages((msgs) =>
+          updateMessageInList(msgs, msg.id, { pinned }),
+        );
+        setPinnedByRoom((prev) => {
+          const roomPins = prev[roomId] ?? [];
+          if (pinned) {
+            return {
+              ...prev,
+              [roomId]: [{ ...msg, pinned: true }, ...roomPins.filter((p) => p.id !== msg.id)],
+            };
+          }
+          return {
+            ...prev,
+            [roomId]: roomPins.filter((p) => p.id !== msg.id),
+          };
+        });
+        void patchChatMessage(roomId, msg.id, { action: "pin", pinned }).then((res) => {
+          if (res.error) {
+            patchActiveThreadMessages((msgs) =>
+              updateMessageInList(msgs, msg.id, { pinned: !pinned }),
+            );
+            setPinnedByRoom((prev) => ({ ...prev, [roomId]: prevPinned }));
+            setLoadError(res.error);
+            return;
+          }
+          void refreshPinnedForRoom(roomId);
+        });
+      },
+      onReaction: (msg, emoji, activeReaction) => {
+        if (!active) return;
+        const prevReactions = msg.reactions;
+        const nextReactions = applyOptimisticReaction(msg.reactions, emoji, activeReaction);
+        patchActiveThreadMessages((msgs) =>
+          updateMessageInList(msgs, msg.id, { reactions: nextReactions }),
+        );
+        void toggleChatReaction(active.roomId, msg.id, emoji, activeReaction).then((res) => {
+          if (res.error) {
+            patchActiveThreadMessages((msgs) =>
+              updateMessageInList(msgs, msg.id, { reactions: prevReactions }),
+            );
+            setLoadError(res.error);
+            return;
+          }
+          if (res.reactions) {
+            patchActiveThreadMessages((msgs) =>
+              updateMessageInList(msgs, msg.id, { reactions: res.reactions }),
+            );
+          }
+        });
+      },
+    }),
+    [active, patchActiveThreadMessages, pinnedByRoom, refreshPinnedForRoom],
+  );
+
+  const handleSaveEdit = useCallback(
+    (msg: ChatMessage) => {
+      if (!active) return;
+      const body = editingDraft.trim();
+      if (!body || body === msg.body) {
+        setEditingMessageId(null);
+        return;
+      }
+      const snapshot = { body: msg.body, edited: msg.edited, editedAt: msg.editedAt };
+      const now = new Date().toISOString();
+      patchActiveThreadMessages((msgs) =>
+        updateMessageInList(msgs, msg.id, {
+          body,
+          edited: true,
+          editedAt: now,
+        }),
+      );
+      setEditingMessageId(null);
+      setEditingDraft("");
+      void patchChatMessage(active.roomId, msg.id, {
+        action: "edit",
+        noi_dung: body,
+      }).then((res) => {
+        if (res.error) {
+          patchActiveThreadMessages((msgs) =>
+            updateMessageInList(msgs, msg.id, snapshot),
+          );
+          setLoadError(res.error);
+          return;
+        }
+        if (res.message) {
+          patchActiveThreadMessages((msgs) =>
+            msgs.map((m) => (m.id === msg.id ? { ...m, ...res.message! } : m)),
+          );
+        }
+      });
+    },
+    [active, editingDraft, patchActiveThreadMessages],
+  );
+
   const postRoomMessage = useCallback(
     async (
       thread: ChatThread,
-      payload: { noi_dung?: string; cloudflare_image_id?: string },
+      payload: {
+        noi_dung?: string;
+        cloudflare_image_id?: string;
+        id_tin_tra_loi?: string;
+      },
       optimistic: ReturnType<typeof createOptimisticChatMessage>,
     ) => {
       setThreads((prev) =>
@@ -894,14 +1181,24 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     const images = readyImages;
     const snapshotText = draft;
     const snapshotImages = pendingImages;
+    const snapshotReply = replyTarget;
 
     setDraft("");
     clearPendingImages();
+    setReplyTarget(null);
     composeByRoomRef.current.set(active.roomId, { text: "", images: [] });
     inputRef.current?.focus();
 
+    const replyPreview = snapshotReply
+      ? messageToReplyPreview(snapshotReply)
+      : null;
+
     const sends: Array<{
-      payload: { noi_dung?: string; cloudflare_image_id?: string };
+      payload: {
+        noi_dung?: string;
+        cloudflare_image_id?: string;
+        id_tin_tra_loi?: string;
+      };
       optimistic: ReturnType<typeof createOptimisticChatMessage>;
     }> = [];
 
@@ -911,11 +1208,13 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
         payload: {
           ...(text ? { noi_dung: text } : {}),
           cloudflare_image_id: first.imageId!,
+          ...(snapshotReply ? { id_tin_tra_loi: snapshotReply.id } : {}),
         },
         optimistic: createOptimisticChatMessage({
           body: text,
           imageId: first.imageId,
           imageUrl: first.previewUrl,
+          replyTo: replyPreview,
         }),
       });
       for (const image of rest) {
@@ -930,8 +1229,14 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
       }
     } else if (text) {
       sends.push({
-        payload: { noi_dung: text },
-        optimistic: createOptimisticChatMessage({ body: text }),
+        payload: {
+          noi_dung: text,
+          ...(snapshotReply ? { id_tin_tra_loi: snapshotReply.id } : {}),
+        },
+        optimistic: createOptimisticChatMessage({
+          body: text,
+          replyTo: replyPreview,
+        }),
       });
     }
 
@@ -940,6 +1245,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
       if (!ok) {
         setDraft(snapshotText);
         setPendingImages(snapshotImages);
+        setReplyTarget(snapshotReply);
         composeByRoomRef.current.set(active.roomId, {
           text: snapshotText,
           images: snapshotImages,
@@ -955,6 +1261,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     pendingImages,
     postRoomMessage,
     readyImages,
+    replyTarget,
   ]);
 
   if (!portalReady) return null;
@@ -1084,50 +1391,40 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
             <div className="cins-chat-convo-meta">
               <span className="cins-chat-convo-title">
                 <strong>{active.name}</strong>
-                <ChatKindPill thread={active} />
+                {active.kind === "org" ? <ChatKindPill thread={active} /> : null}
               </span>
-              <span>
-                {active.online ? (
-                  <>
-                    <span className="cins-chat-online-dot" aria-hidden />
-                    Đang hoạt động
-                  </>
-                ) : (
-                  active.role
-                )}
-              </span>
+              {active.online ? (
+                <span>
+                  <span className="cins-chat-online-dot" aria-hidden />
+                  Đang hoạt động
+                </span>
+              ) : active.kind === "org" && active.role ? (
+                <span>{active.role}</span>
+              ) : null}
             </div>
             <div className="cins-chat-convo-actions">
               <button
                 type="button"
-                className={`cins-chat-icon-btn${sidePanel === "pin" ? " is-active" : ""}`}
-                aria-label="Ghim"
-                aria-pressed={sidePanel === "pin"}
-                title="Tin đã ghim"
-                onClick={() => toggleSidePanel("pin")}
+                className={`cins-chat-icon-btn${sidePanel ? " is-active" : ""}`}
+                aria-label="Mở rộng"
+                aria-pressed={Boolean(sidePanel)}
+                aria-expanded={Boolean(sidePanel)}
+                title="Mở rộng"
+                onClick={toggleExpandPanel}
               >
-                <Pin size={16} strokeWidth={1.8} aria-hidden />
+                <PanelRightOpen size={16} strokeWidth={1.8} aria-hidden />
               </button>
-              <button
-                type="button"
-                className={`cins-chat-icon-btn${sidePanel === "media" ? " is-active" : ""}`}
-                aria-label="Ảnh và file"
-                aria-pressed={sidePanel === "media"}
-                title="Ảnh & file"
-                onClick={() => toggleSidePanel("media")}
-              >
-                <ImageIcon size={16} strokeWidth={1.8} aria-hidden />
-              </button>
-              <button
-                type="button"
-                className={`cins-chat-icon-btn${sidePanel === "notes" ? " is-active" : ""}`}
-                aria-label="Ghi chú"
-                aria-pressed={sidePanel === "notes"}
-                title="Ghi chú"
-                onClick={() => toggleSidePanel("notes")}
-              >
-                <StickyNote size={16} strokeWidth={1.8} aria-hidden />
-              </button>
+              {!sidePanel ? (
+                <button
+                  type="button"
+                  className="cins-chat-icon-btn"
+                  aria-label="Đóng"
+                  title="Đóng"
+                  onClick={onClose}
+                >
+                  <X size={18} strokeWidth={1.8} aria-hidden />
+                </button>
+              ) : null}
             </div>
           </header>
 
@@ -1156,6 +1453,15 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
             {active.messages.length > 0 ? (
               <ChatMessageThreadItems
                 messages={active.messages}
+                actionHandlers={messageActionHandlers}
+                editingMessageId={editingMessageId}
+                editingDraft={editingDraft}
+                onEditingDraftChange={setEditingDraft}
+                onSaveEdit={handleSaveEdit}
+                onCancelEdit={() => {
+                  setEditingMessageId(null);
+                  setEditingDraft("");
+                }}
                 renderTheirAvatar={() => (
                   <ChatAvatar
                     initial={active.avatarInitial}
@@ -1172,6 +1478,12 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
           </div>
 
           <footer className="cins-chat-compose">
+            {replyTarget ? (
+              <ChatReplyComposeBar
+                target={replyTarget}
+                onCancel={() => setReplyTarget(null)}
+              />
+            ) : null}
             {pendingImages.length > 0 ? (
               <div className="j-chat-mini-compose-attach-list cins-chat-compose-attach-list">
                 {pendingImages.map((image) => (
@@ -1270,7 +1582,31 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
               aria-label={SIDE_PANEL_LABEL[sidePanel]}
             >
               <header className="cins-chat-side-head">
-                <h3 className="cins-chat-side-title">{SIDE_PANEL_LABEL[sidePanel]}</h3>
+                <div
+                  className="cins-chat-side-tabs"
+                  role="tablist"
+                  aria-label="Panel mở rộng"
+                >
+                  {SIDE_PANEL_ORDER.map((panel) => {
+                    const TabIcon = panel === "pin" ? Pin : ImageIcon;
+                    return (
+                      <button
+                        key={panel}
+                        type="button"
+                        role="tab"
+                        className={`cins-chat-side-tab${sidePanel === panel ? " is-active" : ""}`}
+                        aria-selected={sidePanel === panel}
+                        aria-controls={`cins-chat-side-panel-${panel}`}
+                        id={`cins-chat-side-tab-${panel}`}
+                        title={SIDE_PANEL_LABEL[panel]}
+                        onClick={() => selectSidePanelTab(panel)}
+                      >
+                        <TabIcon size={14} strokeWidth={1.9} aria-hidden />
+                        <span>{SIDE_PANEL_LABEL[panel]}</span>
+                      </button>
+                    );
+                  })}
+                </div>
                 <button
                   type="button"
                   className="cins-chat-icon-btn"
@@ -1281,48 +1617,83 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                 </button>
               </header>
 
-              <div className="cins-chat-side-body">
+              <div
+                className="cins-chat-side-body"
+                role="tabpanel"
+                id={`cins-chat-side-panel-${sidePanel}`}
+                aria-labelledby={`cins-chat-side-tab-${sidePanel}`}
+              >
                 {sidePanel === "pin" ? (
                   <ul className="cins-chat-side-list" role="list">
-                    {active.messages.slice(0, 2).map((msg) => (
+                    {activePinnedMessages.map((msg) => (
                       <li key={msg.id} className="cins-chat-side-pin">
-                        <p>{msg.body}</p>
-                        <time dateTime={msg.sentAt}>{formatChatTime(msg.sentAt)}</time>
+                        <button
+                          type="button"
+                          className="cins-chat-side-pin-body"
+                          onClick={() => void scrollToMessage(msg.id)}
+                        >
+                          <div className="cins-chat-side-pin-meta">
+                            <span className="cins-chat-side-pin-sender">
+                              {msg.from === "me" ? "Bạn" : active.name}
+                            </span>
+                            <time dateTime={msg.sentAt}>
+                              {formatChatTime(msg.sentAt)}
+                            </time>
+                          </div>
+                          <p>
+                            {msg.deleted
+                              ? "Tin đã thu hồi"
+                              : msg.body.trim() ||
+                                (msg.imageUrl ? "Ảnh đính kèm" : "Tin nhắn")}
+                          </p>
+                        </button>
+                        <button
+                          type="button"
+                          className="cins-chat-side-pin-unpin"
+                          aria-label="Bỏ ghim tin nhắn"
+                          onClick={() => messageActionHandlers.onPin(msg, false)}
+                        >
+                          <PinOff size={15} strokeWidth={2} aria-hidden />
+                        </button>
                       </li>
                     ))}
-                    {active.messages.length === 0 ? (
+                    {activePinnedMessages.length === 0 ? (
                       <p className="cins-chat-side-empty">Chưa có tin ghim.</p>
                     ) : null}
                   </ul>
                 ) : null}
 
                 {sidePanel === "media" ? (
-                  <div className="cins-chat-side-media">
-                    {Array.from({ length: 6 }, (_, i) => (
-                      <div
-                        key={i}
-                        className="cins-chat-side-media-cell"
-                        style={{ background: avatarBg(active.avatarHue + i * 18) }}
-                        aria-hidden
+                  <>
+                    <div className="cins-chat-side-media">
+                      {sharedMedia.length === 0 ? (
+                        <p className="cins-chat-side-empty">
+                          Chưa có ảnh trong hội thoại.
+                        </p>
+                      ) : (
+                        sharedMedia.map((entry, index) => (
+                          <button
+                            key={entry.id}
+                            type="button"
+                            className="cins-chat-side-media-cell"
+                            aria-label={`Xem ảnh ${index + 1}`}
+                            onClick={() => setSideMediaLightboxIndex(index)}
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={entry.src} alt="Ảnh đính kèm" />
+                          </button>
+                        ))
+                      )}
+                    </div>
+                    {sideMediaLightboxIndex != null && sharedMediaUrls.length > 0 ? (
+                      <ChatImageLightbox
+                        images={sharedMediaUrls}
+                        index={sideMediaLightboxIndex}
+                        onClose={() => setSideMediaLightboxIndex(null)}
+                        onIndexChange={setSideMediaLightboxIndex}
                       />
-                    ))}
-                    <p className="cins-chat-side-hint">Ảnh và file chia sẻ trong hội thoại.</p>
-                  </div>
-                ) : null}
-
-                {sidePanel === "notes" ? (
-                  <div className="cins-chat-side-notes">
-                    <p className="cins-chat-side-hint">
-                      Ghi chú riêng — chỉ bạn thấy trong cuộc trò chuyện với{" "}
-                      <strong>{active.name}</strong>.
-                    </p>
-                    <textarea
-                      className="cins-chat-side-note-input"
-                      rows={8}
-                      placeholder="Ghi chú về đối tác, brief, deadline…"
-                      defaultValue=""
-                    />
-                  </div>
+                    ) : null}
+                  </>
                 ) : null}
               </div>
             </aside>

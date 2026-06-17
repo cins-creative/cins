@@ -37,6 +37,7 @@ import {
   COMPOSE_PUBLISHED_EVENT,
   type ComposePublishedDetail,
 } from "@/lib/journey/compose-published-sync";
+import { POST_COMMENTS_SYNC_EVENT } from "@/lib/journey/comments-sync-client";
 import {
   mergeMilestoneIntoTimeline,
   removeMilestoneByTacPhamId,
@@ -127,6 +128,29 @@ export function JourneyTimeline({
     setNextOffset(scrollLoad?.nextOffset ?? initialMilestones.length);
     setLoadError(false);
   }, [initialMilestones, scrollLoad?.hasMore, scrollLoad?.nextOffset]);
+
+  useEffect(() => {
+    function onCommentsSync(event: Event) {
+      const detail = (
+        event as CustomEvent<{ milestoneId?: string; count?: number }>
+      ).detail;
+      const milestoneId = detail?.milestoneId;
+      const count = detail?.count;
+      if (!milestoneId || typeof count !== "number") return;
+
+      setItems((prev) =>
+        prev.map((item) =>
+          milestoneItemMatchesId(item, milestoneId)
+            ? { ...item, comments: count }
+            : item,
+        ),
+      );
+    }
+
+    window.addEventListener(POST_COMMENTS_SYNC_EVENT, onCommentsSync);
+    return () =>
+      window.removeEventListener(POST_COMMENTS_SYNC_EVENT, onCommentsSync);
+  }, []);
 
   useEffect(() => {
     if (personalFilter?.activeSlug === CONG_DONG_PERSONAL_FILTER_SLUG) {
@@ -709,4 +733,10 @@ function FilteredEmptyState({
       </div>
     </section>
   );
+}
+
+function milestoneItemMatchesId(item: MilestoneItem, milestoneId: string): boolean {
+  if (item.cotMocId === milestoneId) return true;
+  if (item.id === milestoneId) return true;
+  return item.id.endsWith(`:${milestoneId}`);
 }

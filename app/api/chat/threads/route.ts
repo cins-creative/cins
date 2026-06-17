@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
-import {
-  listDirectThreads,
-} from "@/lib/chat/direct-message";
+import { listAllChatThreads } from "@/lib/chat/org-message";
 
 export async function GET() {
   const session = await getCurrentSessionAndProfile();
@@ -12,7 +10,7 @@ export async function GET() {
   }
 
   try {
-    const threads = await listDirectThreads(session.profile.id);
+    const threads = await listAllChatThreads(session.profile.id);
     const totalUnread = threads.reduce((sum, thread) => sum + thread.unread, 0);
     return NextResponse.json({ threads, totalUnread });
   } catch {

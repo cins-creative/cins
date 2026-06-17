@@ -1,5 +1,5 @@
 import { chatImageDeliveryUrl } from "@/lib/chat/image-url";
-import type { ChatMessage, ChatMessageKind } from "@/lib/chat/types";
+import type { ChatMessage, ChatMessageKind, ChatMessageReplyPreview } from "@/lib/chat/types";
 
 const OPTIMISTIC_PREFIX = "optimistic-";
 
@@ -12,6 +12,7 @@ export function createOptimisticChatMessage(input: {
   kind?: ChatMessageKind;
   imageId?: string | null;
   imageUrl?: string | null;
+  replyTo?: ChatMessageReplyPreview | null;
 }): ChatMessage {
   const kind = input.kind ?? (input.imageId ? "media" : "text");
   const imageId = input.imageId ?? null;
@@ -27,10 +28,12 @@ export function createOptimisticChatMessage(input: {
     kind,
     imageId,
     imageUrl,
+    replyTo: input.replyTo ?? null,
   };
 }
 
 export function messagePreviewText(message: ChatMessage): string {
+  if (message.deleted) return "Đã thu hồi tin nhắn";
   if (message.kind === "media" || message.imageId) {
     return message.body.trim() || "Ảnh";
   }

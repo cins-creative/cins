@@ -189,7 +189,7 @@ export function CinsChatProvider({
     (row: Parameters<typeof toRealtimeMessageEvent>[0]) => {
       if (!viewerProfileId) return;
 
-      const event = toRealtimeMessageEvent(row, viewerProfileId);
+      const event = toRealtimeMessageEvent(row, viewerProfileId, "insert");
       for (const listener of listenersRef.current) {
         listener(event);
       }
@@ -208,7 +208,19 @@ export function CinsChatProvider({
     [viewerProfileId],
   );
 
-  useChatRealtime(viewerProfileId, handleRealtimeInsert);
+  const handleRealtimeUpdate = useCallback(
+    (row: Parameters<typeof toRealtimeMessageEvent>[0]) => {
+      if (!viewerProfileId) return;
+
+      const event = toRealtimeMessageEvent(row, viewerProfileId, "update");
+      for (const listener of listenersRef.current) {
+        listener(event);
+      }
+    },
+    [viewerProfileId],
+  );
+
+  useChatRealtime(viewerProfileId, handleRealtimeInsert, handleRealtimeUpdate);
 
   const closeChat = useCallback(() => {
     setOpen(false);

@@ -158,3 +158,19 @@ export function invalidateMilestoneDetailCache(key: string): void {
   cache.delete(key);
   inflight.delete(key);
 }
+
+/** Giữ cache unfold đồng bộ sau thêm/xoá BL — tránh mở lại vẫn thiếu tin. */
+export function patchMilestoneDetailComments(
+  milestoneId: string,
+  comments: MilestonePostDetail["comments"],
+  commentCount: number,
+): void {
+  for (const [key, value] of cache.entries()) {
+    if (value.milestone.id !== milestoneId) continue;
+    cache.set(key, {
+      ...value,
+      comments: [...comments],
+      social: { ...value.social, commentCount },
+    });
+  }
+}

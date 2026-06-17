@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { ChatImageLightbox } from "@/components/cins/ChatImageLightbox";
 import {
   albumGridColumnClass,
-  chatMessageImageSrc,
+  chatMessageMediaEntries,
 } from "@/lib/chat/message-albums";
 import type { ChatMessage } from "@/lib/chat/types";
 
@@ -18,13 +18,7 @@ export function ChatMessageAlbum({ messages }: ChatMessageAlbumProps) {
   const columnClass = albumGridColumnClass(messages.length);
 
   const imageEntries = useMemo(
-    () =>
-      messages
-        .map((message) => {
-          const src = chatMessageImageSrc(message);
-          return src ? { id: message.id, src } : null;
-        })
-        .filter((entry): entry is { id: string; src: string } => entry != null),
+    () => chatMessageMediaEntries(messages),
     [messages],
   );
 

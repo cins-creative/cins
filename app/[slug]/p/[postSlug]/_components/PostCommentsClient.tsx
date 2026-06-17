@@ -6,10 +6,12 @@ import type { MilestonePostComment } from "@/lib/journey/milestone-post-types";
 import { JourneyPostCommentsBlock } from "@/components/journey/JourneyPostBody";
 import {
   addCommentToThreads,
-  countCommentThreads,
   removeCommentFromThreads,
   updateCommentInThreads,
 } from "@/lib/social/comments/client-tree";
+import {
+  emitPostCommentsSync,
+} from "@/lib/journey/comments-sync-client";
 
 type Props = {
   milestoneId: string;
@@ -34,11 +36,7 @@ export function PostCommentsClient({
   }, [initialComments]);
 
   useEffect(() => {
-    window.dispatchEvent(
-      new CustomEvent("cins:post-comments-sync", {
-        detail: { milestoneId, count: countCommentThreads(comments) },
-      }),
-    );
+    emitPostCommentsSync(milestoneId, comments);
   }, [milestoneId, comments]);
 
   return (

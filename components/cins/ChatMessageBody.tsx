@@ -3,13 +3,16 @@
 import { useState } from "react";
 
 import { ChatImageLightbox } from "@/components/cins/ChatImageLightbox";
+import { InlineExternalVideoEmbed } from "@/components/shared/InlineExternalVideoEmbed";
 import { chatImageDeliveryUrl } from "@/lib/chat/image-url";
 import type { ChatMessage } from "@/lib/chat/types";
+import { parseTextWithExternalVideoEmbed } from "@/lib/link/external-video-embed";
 
 export function ChatMessageBody({ msg }: { msg: ChatMessage }) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const imageSrc =
     msg.imageUrl ?? (msg.imageId ? chatImageDeliveryUrl(msg.imageId) : null);
+  const { displayText, iframeSrc } = parseTextWithExternalVideoEmbed(msg.body);
 
   return (
     <>
@@ -28,7 +31,8 @@ export function ChatMessageBody({ msg }: { msg: ChatMessage }) {
           />
         </button>
       ) : null}
-      {msg.body ? <p>{msg.body}</p> : null}
+      {displayText ? <p>{displayText}</p> : null}
+      {iframeSrc ? <InlineExternalVideoEmbed src={iframeSrc} /> : null}
 
       {lightboxOpen && imageSrc ? (
         <ChatImageLightbox

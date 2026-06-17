@@ -1,5 +1,20 @@
 export type ChatMessageKind = "text" | "media";
 
+export type ChatReactionSummary = {
+  emoji: string;
+  count: number;
+  viewerReacted: boolean;
+};
+
+export type ChatMessageReplyPreview = {
+  id: string;
+  from: "me" | "them";
+  body: string;
+  kind?: ChatMessageKind;
+  imageUrl?: string | null;
+  deleted?: boolean;
+};
+
 export type ChatMessage = {
   id: string;
   from: "me" | "them";
@@ -8,6 +23,13 @@ export type ChatMessage = {
   kind?: ChatMessageKind;
   imageId?: string | null;
   imageUrl?: string | null;
+  deleted?: boolean;
+  edited?: boolean;
+  editedAt?: string | null;
+  replyTo?: ChatMessageReplyPreview | null;
+  reactions?: ChatReactionSummary[];
+  pinned?: boolean;
+  readByPeer?: boolean;
 };
 
 export type ChatParticipantKind = "user" | "org";

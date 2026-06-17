@@ -14,7 +14,19 @@ import {
   chatImageDeliveryUrl,
   isCloudflareImageId,
 } from "@/lib/chat/image-url";
-import type { ChatMessage, ChatMessageKind, ChatThread, ChatThreadGroup } from "@/lib/chat/types";
+import {
+  getPeerReadMessageId,
+  loadPinnedMessageIds,
+  loadReactionsForMessages,
+} from "@/lib/chat/message-enrich";
+import type {
+  ChatMessage,
+  ChatMessageKind,
+  ChatMessageReplyPreview,
+  ChatReactionSummary,
+  ChatThread,
+  ChatThreadGroup,
+} from "@/lib/chat/types";
 
 const DM_ROOM = "1_1";
 const MESSAGE_PAGE_SIZE = 30;
@@ -28,6 +40,8 @@ export type ListRoomMessagesOptions = {
 export type ListRoomMessagesResult = {
   messages: ChatMessage[];
   hasMore: boolean;
+  peerReadUpToId?: string | null;
+  pinnedMessages?: ChatMessage[];
 };
 
 type ProfileRow = {
@@ -38,14 +52,18 @@ type ProfileRow = {
   giai_doan: GiaiDoan | null;
 };
 
-type MessageRow = {
+export type MessageRow = {
   id: string;
   id_phong: string;
   id_nguoi_gui: string;
   noi_dung: string | null;
   loai_tin?: string | null;
   id_dinh_kem?: string | null;
+  id_tin_tra_loi?: string | null;
   tao_luc: string;
+  da_xoa?: boolean;
+  da_sua?: boolean;
+  sua_luc?: string | null;
   content_media?: { cloudflare_id: string | null } | { cloudflare_id: string | null }[] | null;
 };
 
@@ -61,15 +79,16 @@ function normalizeMessageRow(row: MessageRow): NormalizedMessageRow {
   return { ...row, content_media: media ?? null };
 }
 
-const MESSAGE_SELECT =
-  "id, id_phong, id_nguoi_gui, noi_dung, loai_tin, id_dinh_kem, tao_luc, content_media(cloudflare_id)";
+export const MESSAGE_SELECT =
+  "id, id_phong, id_nguoi_gui, noi_dung, loai_tin, id_dinh_kem, id_tin_tra_loi, tao_luc, da_xoa, da_sua, sua_luc, content_media(cloudflare_id)";
 
 type ReadRow = {
   id_phong: string;
   id_tin_nhan_cuoi_doc: string;
 };
 
-function messagePreview(row: MessageRow): string {
+export function messagePreview(row: MessageRow): string {
+  if (row.da_xoa) return "Đã thu hồi tin nhắn";
   const normalized = normalizeMessageRow(row);
   if (normalized.loai_tin === "media") {
     const caption = normalized.noi_dung?.trim() || "";
@@ -89,7 +108,18 @@ function resolveImageId(row: NormalizedMessageRow): string | null {
   return null;
 }
 
-function mapMessage(row: MessageRow, viewerId: string): ChatMessage {
+type MapMessageExtras = {
+  reactions?: ChatReactionSummary[];
+  pinned?: boolean;
+  replyTo?: ChatMessageReplyPreview | null;
+  readByPeer?: boolean;
+};
+
+export function mapMessageFromRow(
+  row: MessageRow,
+  viewerId: string,
+  extras: MapMessageExtras = {},
+): ChatMessage {
   const normalized = normalizeMessageRow(row);
   const kind: ChatMessageKind = normalized.loai_tin === "media" ? "media" : "text";
   const imageId = kind === "media" ? resolveImageId(normalized) : null;
@@ -107,7 +137,133 @@ function mapMessage(row: MessageRow, viewerId: string): ChatMessage {
     kind,
     imageId,
     imageUrl: imageId ? chatImageDeliveryUrl(imageId) : null,
+    deleted: Boolean(normalized.da_xoa),
+    edited: Boolean(normalized.da_sua),
+    editedAt: normalized.sua_luc ?? null,
+    replyTo: extras.replyTo ?? null,
+    reactions: extras.reactions,
+    pinned: extras.pinned,
+    readByPeer: extras.readByPeer,
   };
+}
+
+function mapMessage(row: MessageRow, viewerId: string): ChatMessage {
+  return mapMessageFromRow(row, viewerId);
+}
+
+function buildReplyPreview(
+  row: MessageRow,
+  viewerId: string,
+): ChatMessageReplyPreview {
+  const msg = mapMessageFromRow(row, viewerId);
+  return {
+    id: msg.id,
+    from: msg.from,
+    body: msg.deleted ? "" : msg.body,
+    kind: msg.kind,
+    imageUrl: msg.deleted ? null : msg.imageUrl,
+    deleted: msg.deleted,
+  };
+}
+
+export async function enrichMessages(
+  rows: MessageRow[],
+  viewerId: string,
+  roomId: string,
+  peerReadUpToId: string | null,
+): Promise<ChatMessage[]> {
+  const rowById = new Map(rows.map((row) => [row.id, row]));
+  const messageIds = rows.map((row) => row.id);
+  const [reactionsByMessage, pinnedIds] = await Promise.all([
+    loadReactionsForMessages(messageIds, viewerId),
+    loadPinnedMessageIds(roomId),
+  ]);
+
+  const missingReplyIds = [
+    ...new Set(
+      rows
+        .map((row) => row.id_tin_tra_loi)
+        .filter((id): id is string => Boolean(id && !rowById.has(id))),
+    ),
+  ];
+
+  const admin = createServiceRoleClient();
+  if (missingReplyIds.length > 0) {
+    const { data: replyRows } = await admin
+      .from("chat_tin_nhan")
+      .select(MESSAGE_SELECT)
+      .in("id", missingReplyIds);
+    for (const replyRow of replyRows ?? []) {
+      rowById.set(replyRow.id, replyRow as MessageRow);
+    }
+  }
+
+  let readApplied = false;
+
+  return rows.map((row) => {
+    const replyId = row.id_tin_tra_loi;
+    const replyRow = replyId ? rowById.get(replyId) : undefined;
+    const peerReadIdx = peerReadUpToId
+      ? rows.findIndex((r) => r.id === peerReadUpToId)
+      : -1;
+    const thisIdx = rows.findIndex((r) => r.id === row.id);
+    const readByPeer =
+      Boolean(peerReadUpToId) &&
+      row.id_nguoi_gui === viewerId &&
+      peerReadIdx >= 0 &&
+      thisIdx >= 0 &&
+      thisIdx <= peerReadIdx;
+
+    return mapMessageFromRow(row, viewerId, {
+      reactions: reactionsByMessage.get(row.id),
+      pinned: pinnedIds.has(row.id),
+      replyTo: replyId
+        ? replyRow
+          ? buildReplyPreview(replyRow, viewerId)
+          : { id: replyId, from: "them", body: "", deleted: true }
+        : null,
+      readByPeer,
+    });
+  });
+}
+
+export async function fetchMessageById(
+  messageId: string,
+  viewerId: string,
+): Promise<ChatMessage | null> {
+  const admin = createServiceRoleClient();
+  const { data: row } = await admin
+    .from("chat_tin_nhan")
+    .select(MESSAGE_SELECT)
+    .eq("id", messageId)
+    .maybeSingle<MessageRow>();
+
+  if (!row) return null;
+
+  const [reactions, pinnedIds, peerReadUpToId] = await Promise.all([
+    loadReactionsForMessages([messageId], viewerId),
+    loadPinnedMessageIds(row.id_phong),
+    getPeerReadMessageId(row.id_phong, viewerId),
+  ]);
+
+  let replyTo: ChatMessageReplyPreview | null = null;
+  if (row.id_tin_tra_loi) {
+    const { data: replyRow } = await admin
+      .from("chat_tin_nhan")
+      .select(MESSAGE_SELECT)
+      .eq("id", row.id_tin_tra_loi)
+      .maybeSingle<MessageRow>();
+    if (replyRow) {
+      replyTo = buildReplyPreview(replyRow, viewerId);
+    }
+  }
+
+  return mapMessageFromRow(row, viewerId, {
+    reactions: reactions.get(messageId),
+    pinned: pinnedIds.has(messageId),
+    replyTo,
+    readByPeer: row.id_nguoi_gui === viewerId && peerReadUpToId === messageId,
+  });
 }
 
 function buildUserThread(
@@ -155,7 +311,7 @@ async function loadAcceptedFriendIds(viewerId: string): Promise<Set<string>> {
   return ids;
 }
 
-async function assertRoomMember(roomId: string, viewerId: string): Promise<void> {
+export async function assertRoomMember(roomId: string, viewerId: string): Promise<void> {
   const admin = createServiceRoleClient();
   const { data } = await admin
     .from("chat_thanh_vien")
@@ -516,7 +672,6 @@ export async function listRoomMessages(
     .from("chat_tin_nhan")
     .select(MESSAGE_SELECT)
     .eq("id_phong", roomId)
-    .eq("da_xoa", false)
     .order("tao_luc", { ascending: false })
     .limit(limit + 1);
 
@@ -533,10 +688,19 @@ export async function listRoomMessages(
   const rows = data ?? [];
   const hasMore = rows.length > limit;
   const pageRows = hasMore ? rows.slice(0, limit) : rows;
-  const messages = pageRows
-    .slice()
-    .reverse()
-    .map((row) => mapMessage(row, viewerId));
+  const chronological = pageRows.slice().reverse();
+
+  const [peerReadUpToId, pinnedMessages] = await Promise.all([
+    getPeerReadMessageId(roomId, viewerId),
+    listPinnedMessagesForRoom(roomId, viewerId, admin),
+  ]);
+
+  const messages = await enrichMessages(
+    chronological,
+    viewerId,
+    roomId,
+    peerReadUpToId,
+  );
 
   const shouldMarkRead = options.markRead ?? !options.before;
   if (shouldMarkRead) {
@@ -546,13 +710,42 @@ export async function listRoomMessages(
     }
   }
 
-  return { messages, hasMore };
+  return { messages, hasMore, peerReadUpToId, pinnedMessages };
+}
+
+async function listPinnedMessagesForRoom(
+  roomId: string,
+  viewerId: string,
+  admin: ReturnType<typeof createServiceRoleClient>,
+): Promise<ChatMessage[]> {
+  const { data: pins } = await admin
+    .from("chat_ghim")
+    .select("id_tin_nhan")
+    .eq("id_phong", roomId)
+    .order("ghim_luc", { ascending: false });
+
+  const ids = (pins ?? []).map((p) => p.id_tin_nhan as string);
+  if (ids.length === 0) return [];
+
+  const { data: rows } = await admin
+    .from("chat_tin_nhan")
+    .select(MESSAGE_SELECT)
+    .in("id", ids)
+    .eq("da_xoa", false);
+
+  if (!rows?.length) return [];
+
+  const enriched = await enrichMessages(rows as MessageRow[], viewerId, roomId, null);
+  const byId = new Map(enriched.map((m) => [m.id, m]));
+  return ids.map((id) => byId.get(id)).filter(Boolean) as ChatMessage[];
 }
 
 export async function sendRoomMessage(
   roomId: string,
   viewerId: string,
-  input: string | { body?: string; cloudflareImageId?: string },
+  input:
+    | string
+    | { body?: string; cloudflareImageId?: string; replyToId?: string },
 ): Promise<{ ok: true; message: ChatMessage } | { ok: false; error: string }> {
   const body =
     typeof input === "string" ? input.trim() : (input.body?.trim() ?? "");
@@ -560,6 +753,8 @@ export async function sendRoomMessage(
     typeof input === "string"
       ? undefined
       : input.cloudflareImageId?.trim();
+  const replyToId =
+    typeof input === "string" ? undefined : input.replyToId?.trim();
 
   if (!body && !cloudflareImageId) {
     return { ok: false, error: "Tin nhắn trống." };
@@ -578,6 +773,18 @@ export async function sendRoomMessage(
   const admin = createServiceRoleClient();
   const now = new Date().toISOString();
 
+  if (replyToId) {
+    const { data: replyRow } = await admin
+      .from("chat_tin_nhan")
+      .select("id, id_phong, da_xoa")
+      .eq("id", replyToId)
+      .maybeSingle<{ id: string; id_phong: string; da_xoa: boolean }>();
+
+    if (!replyRow || replyRow.id_phong !== roomId || replyRow.da_xoa) {
+      return { ok: false, error: "Tin trả lời không hợp lệ." };
+    }
+  }
+
   let mediaId: string | null = null;
   if (cloudflareImageId) {
     mediaId = await ensureChatMediaId(cloudflareImageId, viewerId);
@@ -593,12 +800,14 @@ export async function sendRoomMessage(
         loai_tin: "media" as const,
         id_dinh_kem: mediaId,
         noi_dung: body || cloudflareImageId,
+        ...(replyToId ? { id_tin_tra_loi: replyToId } : {}),
       }
     : {
         id_phong: roomId,
         id_nguoi_gui: viewerId,
         noi_dung: body,
         loai_tin: "text" as const,
+        ...(replyToId ? { id_tin_tra_loi: replyToId } : {}),
       };
 
   const { data, error } = await admin
@@ -614,7 +823,12 @@ export async function sendRoomMessage(
   await admin.from("chat_phong").update({ cap_nhat_luc: now }).eq("id", roomId);
   await markRoomRead(roomId, viewerId, data.id);
 
-  return { ok: true, message: mapMessage(data, viewerId) };
+  const message = await fetchMessageById(data.id, viewerId);
+  if (!message) {
+    return { ok: false, error: "Không tải lại được tin nhắn." };
+  }
+
+  return { ok: true, message };
 }
 
 export async function markRoomRead(
@@ -652,6 +866,7 @@ export async function markRoomRead(
 }
 
 export async function countTotalUnread(viewerId: string): Promise<number> {
-  const threads = await listDirectThreads(viewerId);
+  const { listAllChatThreads } = await import("@/lib/chat/org-message");
+  const threads = await listAllChatThreads(viewerId);
   return threads.reduce((sum, thread) => sum + thread.unread, 0);
 }

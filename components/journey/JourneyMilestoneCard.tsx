@@ -27,6 +27,7 @@ import { JourneyMilestoneCardBodyContent } from "@/components/journey/JourneyMil
 import { JourneyMilestoneUnfold } from "@/components/journey/JourneyMilestoneUnfold";
 import { JourneyUnfoldArticleContent } from "@/components/journey/JourneyUnfoldArticleContent";
 import { PostBlockRenderer } from "@/components/journey/PostBlockRenderer";
+import { POST_COMMENTS_SYNC_EVENT } from "@/lib/journey/comments-sync-client";
 import { isMilestoneArticleCard } from "@/lib/journey/milestone-card-kind";
 import { JourneyCommentLink } from "@/components/journey/JourneyCommentLink";
 import { JourneyArticleTagManager } from "@/components/journey/JourneyArticleTagManager";
@@ -492,6 +493,27 @@ export function JourneyMilestoneCard({
   const authorsInUnfold = pinActionsAboveComments && showAuthorsStrip;
   const milestoneId = cotMocId ?? milestone.id;
   const orgAttachCotMocId = cotMocId ?? milestone.id;
+  const [liveCommentCount, setLiveCommentCount] = useState(comments ?? 0);
+
+  useEffect(() => {
+    setLiveCommentCount(comments ?? 0);
+  }, [comments]);
+
+  useEffect(() => {
+    function onCommentsSync(event: Event) {
+      const detail = (
+        event as CustomEvent<{ milestoneId?: string; count?: number }>
+      ).detail;
+      if (detail?.milestoneId !== milestoneId || typeof detail.count !== "number") {
+        return;
+      }
+      setLiveCommentCount(detail.count);
+    }
+
+    window.addEventListener(POST_COMMENTS_SYNC_EVENT, onCommentsSync);
+    return () =>
+      window.removeEventListener(POST_COMMENTS_SYNC_EVENT, onCommentsSync);
+  }, [milestoneId]);
 
   /* Hiển thị badge người đăng
    *   - variant === "self" (chính chủ đăng — `authorName` là tác giả thật)
@@ -644,7 +666,7 @@ export function JourneyMilestoneCard({
       />
       {inlineExpand ? (
         <JourneyCommentLink
-          commentCount={comments}
+          commentCount={liveCommentCount}
           onOpenComments={inlineExpand.onOpenComments}
         />
       ) : (
@@ -655,7 +677,7 @@ export function JourneyMilestoneCard({
           data-open-post="true"
         >
           <MessageCircle size={16} strokeWidth={1.8} aria-hidden />
-          {comments ? <span>{comments}</span> : null}
+          {liveCommentCount ? <span>{liveCommentCount}</span> : null}
         </button>
       )}
       {canBookmark ? (

@@ -59,7 +59,7 @@ function serializePayload(payload: OrgMilestoneTagPayload): string {
   return JSON.stringify(payload);
 }
 
-async function canReviewOrgMilestoneTags(
+export async function canReviewOrgMilestoneTags(
   orgId: string,
   profileId: string,
 ): Promise<boolean> {
@@ -366,6 +366,7 @@ function rowToRequestItem(
     id: row.id,
     status: mapDbStatus(row.trang_thai),
     taggedAt: row.tao_luc,
+    studentUserId: row.nguoi_yeu_cau,
     studentName: payload.studentName,
     studentSlug: payload.studentSlug,
     studentAvatarUrl,

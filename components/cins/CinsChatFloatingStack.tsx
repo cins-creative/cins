@@ -30,7 +30,7 @@ import {
   messagePreviewText,
 } from "@/lib/chat/optimistic-message";
 import { fetchRoomMessagesPage } from "@/lib/chat/messages-client";
-import { reconcileChatMessage, appendChatMessageIfNew, type ChatRealtimeMessageEvent } from "@/lib/chat/realtime";
+import { reconcileChatMessage, appendChatMessageIfNew, mergeChatMessageUpdate, type ChatRealtimeMessageEvent } from "@/lib/chat/realtime";
 import { imageFilesFromClipboard } from "@/lib/files/clipboard-images";
 import type { ChatMessage, ChatThread } from "@/lib/chat/types";
 
@@ -377,7 +377,10 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
             ...prev,
             [event.roomId]: {
               ...current,
-              messages: appendChatMessageIfNew(current.messages, event.message),
+              messages:
+                event.event === "update"
+                  ? mergeChatMessageUpdate(current.messages, event.message)
+                  : appendChatMessageIfNew(current.messages, event.message),
             },
           };
         });

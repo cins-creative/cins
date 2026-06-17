@@ -62,6 +62,7 @@ export type OrgMilestoneTagRequestItem = {
   id: string;
   status: OrgMilestoneTagStatus;
   taggedAt: string;
+  studentUserId: string;
   studentName: string;
   studentSlug: string;
   studentAvatarUrl: string | null;

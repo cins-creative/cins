@@ -27,9 +27,11 @@ import { deleteMilestoneComment } from "@/app/[slug]/journey/actions";
 import { useOptionalAuthGate } from "@/components/auth/AuthGateProvider";
 import { CommentAttachments } from "@/components/journey/CommentAttachments";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
+import { InlineExternalVideoEmbed } from "@/components/shared/InlineExternalVideoEmbed";
 import { rememberCfAccountHashFromDeliveryUrl } from "@/lib/cloudflare/account-hash";
 import { imageFilesFromClipboard } from "@/lib/files/clipboard-images";
 import { isAllowedUploadImageFile } from "@/lib/files/infer-image-mime";
+import { parseTextWithExternalVideoEmbed } from "@/lib/link/external-video-embed";
 import {
   MAX_COMMENT_ATTACHMENTS,
   sanitizeCommentImageIds,
@@ -39,6 +41,7 @@ import {
   commentReactionLabel,
 } from "@/lib/social/comments/types";
 import { applyViewerReactionToggle } from "@/lib/social/comments/reactions";
+import { countCommentThreads } from "@/lib/social/comments/client-tree";
 import type { MilestonePostComment } from "@/lib/journey/milestone-post-types";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import { emitNotificationsChanged } from "@/lib/journey/notifications-client";
@@ -113,10 +116,7 @@ export function CommentBlock(props: CommentBlockProps) {
   const [composeResetKey, setComposeResetKey] = useState(0);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  const threadCount = comments.reduce(
-    (n, c) => n + 1 + (c.replies?.length ?? 0),
-    0,
-  );
+  const threadCount = countCommentThreads(comments);
 
   useEffect(() => {
     if (!replyTo) return;
@@ -907,6 +907,18 @@ function CommentThread({
   );
 }
 
+function CommentTextBody({ text }: { text: string }) {
+  const { displayText, iframeSrc } = parseTextWithExternalVideoEmbed(text);
+  if (!displayText && !iframeSrc) return null;
+
+  return (
+    <>
+      {displayText ? <p className="post-comments-text">{displayText}</p> : null}
+      {iframeSrc ? <InlineExternalVideoEmbed src={iframeSrc} /> : null}
+    </>
+  );
+}
+
 function CommentRow({
   comment,
   viewerIsOwner,
@@ -1157,9 +1169,7 @@ function CommentRow({
             </div>
           </div>
           <div className="post-comments-text-row">
-            {comment.noiDung ? (
-              <p className="post-comments-text">{comment.noiDung}</p>
-            ) : null}
+            {comment.noiDung ? <CommentTextBody text={comment.noiDung} /> : null}
             {!comment.daXoa && (comment.anhDinhKem?.length ?? 0) > 0 ? (
               <CommentAttachments imageIds={comment.anhDinhKem ?? []} />
             ) : null}

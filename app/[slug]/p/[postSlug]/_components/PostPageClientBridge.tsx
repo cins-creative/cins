@@ -8,6 +8,7 @@ import {
   isPostPageCacheStale,
   writePostPageCache,
 } from "@/lib/journey/post-local-cache";
+import { POST_COMMENTS_SYNC_EVENT } from "@/lib/journey/comments-sync-client";
 import { milestoneContentKind } from "@/lib/journey/post-media";
 
 type Props = {
@@ -47,9 +48,9 @@ export function PostPageClientBridge({
       if (custom.detail?.milestoneId !== detail.milestone.id) return;
       setCommentCountOverride(custom.detail.count);
     }
-    window.addEventListener("cins:post-comments-sync", onCommentsSync);
+    window.addEventListener(POST_COMMENTS_SYNC_EVENT, onCommentsSync);
     return () =>
-      window.removeEventListener("cins:post-comments-sync", onCommentsSync);
+      window.removeEventListener(POST_COMMENTS_SYNC_EVENT, onCommentsSync);
   }, [detail.milestone.id]);
 
   useEffect(() => {

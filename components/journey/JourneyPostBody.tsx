@@ -37,6 +37,8 @@ import {
   removeCommentFromThreads,
   updateCommentInThreads,
 } from "@/lib/social/comments/client-tree";
+import { emitPostCommentsSync } from "@/lib/journey/comments-sync-client";
+import { patchMilestoneDetailComments } from "@/lib/journey/milestone-detail-cache";
 import {
   mapCheDoToMilestoneVisibility,
   mapLoaiMocToMilestoneType,
@@ -156,9 +158,38 @@ export function JourneyPostBody({
       ? countCommentThreads(comments)
       : (social.commentCount ?? 0));
 
+  const initialDetailRef = useRef(initialDetail);
+  initialDetailRef.current = initialDetail;
+
   useEffect(() => {
-    queueMicrotask(() => setDetail(initialDetail));
-  }, [initialDetail]);
+    const next = initialDetailRef.current;
+    setDetail((prev) => {
+      if (prev.milestone.id !== next.milestone.id) return next;
+      const prevTotal = countCommentThreads(prev.comments);
+      const nextTotal = countCommentThreads(next.comments);
+      if (prevTotal > nextTotal) return prev;
+      if (
+        prevTotal === nextTotal &&
+        (prev.social.commentCount ?? 0) >= (next.social.commentCount ?? 0)
+      ) {
+        return prev;
+      }
+      return next;
+    });
+  }, [
+    initialDetail.milestone.id,
+    initialDetail.comments.length,
+    initialDetail.social.commentCount,
+  ]);
+
+  useEffect(() => {
+    emitPostCommentsSync(milestone.id, comments);
+    patchMilestoneDetailComments(
+      milestone.id,
+      comments,
+      countCommentThreads(comments),
+    );
+  }, [milestone.id, comments]);
 
   useEffect(() => {
     function focusCommentsSection() {
@@ -201,26 +232,31 @@ export function JourneyPostBody({
     !hideOpenLink && postSlug ? `/${owner.slug}/p/${postSlug}` : null;
   const sharePath = postSlug ? `/${owner.slug}/p/${postSlug}` : null;
 
+  function applyCommentsUpdate(
+    updater: (list: MilestonePostComment[]) => MilestonePostComment[],
+  ) {
+    setDetail((d) => {
+      const nextComments = updater(d.comments);
+      const commentCount = countCommentThreads(nextComments);
+      return {
+        ...d,
+        comments: nextComments,
+        social: { ...d.social, commentCount },
+      };
+    });
+  }
+
   function onCommentAdded(c: MilestonePostComment) {
-    setDetail((d) => ({
-      ...d,
-      comments: addCommentToThreads(d.comments, c),
-    }));
+    applyCommentsUpdate((list) => addCommentToThreads(list, c));
   }
   function onCommentRemoved(id: string) {
-    setDetail((d) => ({
-      ...d,
-      comments: removeCommentFromThreads(d.comments, id),
-    }));
+    applyCommentsUpdate((list) => removeCommentFromThreads(list, id));
   }
   function onCommentUpdated(id: string, patch: Partial<MilestonePostComment>) {
-    setDetail((d) => ({
-      ...d,
-      comments: updateCommentInThreads(d.comments, id, patch),
-    }));
+    applyCommentsUpdate((list) => updateCommentInThreads(list, id, patch));
   }
   function onThreadsReordered(threads: MilestonePostComment[]) {
-    setDetail((d) => ({ ...d, comments: threads }));
+    applyCommentsUpdate(() => threads);
   }
 
   const isInline = variant === "inline";

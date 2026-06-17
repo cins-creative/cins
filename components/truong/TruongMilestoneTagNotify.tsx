@@ -5,6 +5,7 @@ import { CheckCircle2, ChevronLeft, Clock3, XCircle } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { JourneyPostBody } from "@/components/journey/JourneyPostBody";
+import { MilestoneTagOrgMessagePanel } from "@/components/truong/MilestoneTagOrgMessagePanel";
 import { TruongInlineModal } from "@/components/truong/inline/TruongInlineModal";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
 import type { MilestonePostDetail } from "@/lib/journey/milestone-post-types";
@@ -323,6 +324,7 @@ export function TruongMilestoneTagNotify() {
             {selectedRow ? (
               <MilestoneTagDetail
                 row={selectedRow}
+                orgId={ctx.orgId}
                 showBack={mobileShowDetail}
                 onBack={() => setMobileShowDetail(false)}
                 onApprove={() => void setStatus(selectedRow.id, "approved")}
@@ -385,12 +387,14 @@ function MilestoneTagListRow({
 
 function MilestoneTagDetail({
   row,
+  orgId,
   showBack,
   onBack,
   onApprove,
   onReject,
 }: {
   row: OrgMilestoneTagRequestItem;
+  orgId: string;
   showBack: boolean;
   onBack: () => void;
   onApprove: () => void;
@@ -486,6 +490,13 @@ function MilestoneTagDetail({
             Không đọc được liên kết bài viết.
           </p>
         )}
+
+        {row.studentUserId ? (
+          <MilestoneTagOrgMessagePanel
+            orgId={orgId}
+            studentUserId={row.studentUserId}
+          />
+        ) : null}
       </div>
 
       {row.status === "pending" ? (

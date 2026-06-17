@@ -19,7 +19,20 @@ export function chatMessageImageSrc(message: ChatMessage): string | null {
   );
 }
 
+export type ChatMediaEntry = { id: string; src: string };
+
+/** Ảnh đính kèm trong danh sách tin (mới nhất cuối mảng). */
+export function chatMessageMediaEntries(messages: ChatMessage[]): ChatMediaEntry[] {
+  return messages
+    .map((message) => {
+      const src = chatMessageImageSrc(message);
+      return src ? { id: message.id, src } : null;
+    })
+    .filter((entry): entry is ChatMediaEntry => entry != null);
+}
+
 function isImageMessage(message: ChatMessage): boolean {
+  if (message.deleted) return false;
   return Boolean(chatMessageImageSrc(message));
 }
 

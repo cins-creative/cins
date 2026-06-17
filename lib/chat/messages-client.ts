@@ -5,6 +5,8 @@ export const CHAT_MESSAGES_PAGE_SIZE = 30;
 export type RoomMessagesPage = {
   messages: ChatMessage[];
   hasMore: boolean;
+  pinnedMessages?: ChatMessage[];
+  peerReadUpToId?: string | null;
 };
 
 export async function fetchRoomMessagesPage(
@@ -27,6 +29,8 @@ export async function fetchRoomMessagesPage(
     return {
       messages: json.messages ?? [],
       hasMore: Boolean(json.hasMore),
+      pinnedMessages: json.pinnedMessages,
+      peerReadUpToId: json.peerReadUpToId,
     };
   } catch {
     return null;

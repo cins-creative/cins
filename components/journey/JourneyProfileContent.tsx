@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { JourneyOrganizationsSectionSkeleton } from "@/app/[slug]/_components/JourneyOrganizationsSection.skeleton";
 import { JourneyFriendsSectionSkeleton } from "@/app/[slug]/_components/JourneyFriendsSection.skeleton";
 import { JourneyGalleryMainSectionSkeleton } from "@/app/[slug]/_components/JourneyGalleryMainSection.skeleton";
 import { JourneyTimelineSectionSkeleton } from "@/app/[slug]/_components/JourneyTimelineSection.skeleton";
@@ -22,12 +23,15 @@ import {
   persistJourneyPanelsFromInitialData,
   readJourneyFriendsPanelCache,
   readJourneyGalleryPanelCache,
+  readJourneyOrganizationsPanelCache,
   readJourneyTimelinePanelCache,
   type JourneyFriendsPanelData,
   type JourneyGalleryPanelData,
+  type JourneyOrganizationsPanelData,
   type JourneyTimelinePanelData,
   writeJourneyFriendsPanelCache,
   writeJourneyGalleryPanelCache,
+  writeJourneyOrganizationsPanelCache,
   writeJourneyTimelinePanelCache,
 } from "@/lib/journey/journey-panel-local-cache";
 import type { MilestoneTimelinePageResult } from "@/lib/journey/milestones-page-fetch";
@@ -119,20 +123,38 @@ export function JourneyProfileContent({
 }: Props) {
   const { view } = useJourneyView();
 
-  const [galleryCache, setGalleryCache] = useState<PanelState<JourneyGalleryPanelData>>(
-    initialData.gallery ?? null,
+  const [galleryCache, setGalleryCache] = useState<PanelState<JourneyGalleryPanelData>>(() =>
+    initialData.gallery ??
+    (typeof window !== "undefined"
+      ? readJourneyGalleryPanelCache(ownerSlug, viewerProfileId)
+      : null),
   );
-  const [friendsCache, setFriendsCache] = useState<PanelState<JourneyFriendsPanelData>>(
-    initialData.friends ?? null,
+  const [friendsCache, setFriendsCache] = useState<PanelState<JourneyFriendsPanelData>>(() =>
+    initialData.friends ??
+    (typeof window !== "undefined"
+      ? readJourneyFriendsPanelCache(ownerSlug, viewerProfileId)
+      : null),
   );
-  const [timelineCache, setTimelineCache] = useState<PanelState<TimelineCacheData>>(
-    initialData.timeline ?? null,
+  const [timelineCache, setTimelineCache] = useState<PanelState<TimelineCacheData>>(() =>
+    initialData.timeline ??
+    (typeof window !== "undefined"
+      ? readJourneyTimelinePanelCache(ownerSlug, viewerProfileId)
+      : null),
+  );
+  const [organizationsCache, setOrganizationsCache] = useState<
+    PanelState<JourneyOrganizationsPanelData>
+  >(() =>
+    initialData.organizations ??
+    (typeof window !== "undefined"
+      ? readJourneyOrganizationsPanelCache(ownerSlug, viewerProfileId)
+      : null),
   );
 
   const localHydratedRef = useRef(false);
   const timelineInflightRef = useRef(false);
   const galleryInflightRef = useRef(false);
   const friendsInflightRef = useRef(false);
+  const organizationsInflightRef = useRef(false);
 
   useEffect(() => {
     if (localHydratedRef.current) return;
@@ -142,6 +164,7 @@ export function JourneyProfileContent({
       timeline: initialData.timeline,
       gallery: initialData.gallery,
       friends: initialData.friends,
+      organizations: initialData.organizations,
     });
 
     if (!initialData.timeline) {
@@ -149,6 +172,7 @@ export function JourneyProfileContent({
       setTimelineCache((prev) => prev ?? stored.timeline ?? null);
       setGalleryCache((prev) => prev ?? stored.gallery ?? null);
       setFriendsCache((prev) => prev ?? stored.friends ?? null);
+      setOrganizationsCache((prev) => prev ?? stored.organizations ?? null);
     }
   }, [ownerSlug, viewerProfileId, initialData]);
 
@@ -228,9 +252,34 @@ export function JourneyProfileContent({
     [ownerSlug, viewerProfileId],
   );
 
+  const fetchOrganizations = useCallback(
+    async (opts?: { background?: boolean }) => {
+      if (organizationsInflightRef.current) return;
+      organizationsInflightRef.current = true;
+      if (!opts?.background) {
+        setOrganizationsCache((prev) => (prev ? prev : "loading"));
+      }
+      try {
+        const res = await fetch(
+          `/api/journey/${encodeURIComponent(ownerSlug)}/organizations`,
+          { cache: "no-store" },
+        );
+        if (!res.ok) throw new Error("organizations fetch failed");
+        const page = (await res.json()) as JourneyOrganizationsPanelData;
+        setOrganizationsCache(page);
+        writeJourneyOrganizationsPanelCache(ownerSlug, viewerProfileId, page);
+      } catch {
+        if (!opts?.background) setOrganizationsCache("error");
+      } finally {
+        organizationsInflightRef.current = false;
+      }
+    },
+    [ownerSlug, viewerProfileId],
+  );
+
   const ensurePanel = useCallback(
     (
-      panel: "timeline" | "gallery" | "friends",
+      panel: "timeline" | "gallery" | "friends" | "organizations",
       cache: PanelState<unknown>,
       readCache: () => unknown,
       fetch: (opts?: { background?: boolean }) => Promise<void>,
@@ -251,6 +300,9 @@ export function JourneyProfileContent({
         if (panel === "timeline") setTimelineCache(stored as TimelineCacheData);
         if (panel === "gallery") setGalleryCache(stored as JourneyGalleryPanelData);
         if (panel === "friends") setFriendsCache(stored as JourneyFriendsPanelData);
+        if (panel === "organizations") {
+          setOrganizationsCache(stored as JourneyOrganizationsPanelData);
+        }
         if (isJourneyPanelCacheStale(ownerSlug, viewerProfileId, panel)) {
           void fetch({ background: true });
         }
@@ -287,15 +339,25 @@ export function JourneyProfileContent({
         fetchFriends,
       );
     }
+    if (view === "organizations") {
+      ensurePanel(
+        "organizations",
+        organizationsCache,
+        () => readJourneyOrganizationsPanelCache(ownerSlug, viewerProfileId),
+        fetchOrganizations,
+      );
+    }
   }, [
     view,
     timelineCache,
     galleryCache,
     friendsCache,
+    organizationsCache,
     ensurePanel,
     fetchTimeline,
     fetchGallery,
     fetchFriends,
+    fetchOrganizations,
     ownerSlug,
     viewerProfileId,
   ]);
@@ -607,10 +669,15 @@ export function JourneyProfileContent({
           />
         )
       ) : view === "organizations" ? (
-        <JourneyOrganizationsView
-          initialData={initialData.organizations}
-          ownerSlug={ownerSlug}
-        />
+        organizationsCache === "loading" || organizationsCache === null ? (
+          <JourneyOrganizationsSectionSkeleton />
+        ) : organizationsCache === "error" ? (
+          <section className="j-orgs" aria-live="polite">
+            <p className="j-load-error">Không tải được danh sách tổ chức.</p>
+          </section>
+        ) : (
+          <JourneyOrganizationsView data={organizationsCache} />
+        )
       ) : timelineCache === "loading" || timelineCache === null ? (
         <JourneyTimelineSectionSkeleton />
       ) : timelineCache === "error" ? (

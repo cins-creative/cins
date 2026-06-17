@@ -1,3 +1,4 @@
+import { JourneyProfileInstantFallback } from "@/app/[slug]/_components/JourneyProfileInstantFallback";
 import { JourneyProfileShellClient } from "@/app/[slug]/_components/JourneyProfileShellClient";
 import type { EditProfileInitial } from "@/components/journey/JourneyEditProfileModal";
 import {
@@ -21,7 +22,6 @@ import { Suspense } from "react";
 
 import type { KetBanStatusSummary } from "@/lib/social/types";
 
-import { JourneyMainPanelSkeleton } from "@/components/journey/JourneyMainPanelSkeleton";
 import { JourneyFeaturedAsideSection } from "@/app/[slug]/_components/JourneyFeaturedAsideSection";
 import { JourneyFeaturedAsideSectionSkeleton } from "@/app/[slug]/_components/JourneyFeaturedAsideSection.skeleton";
 
@@ -190,7 +190,19 @@ export function JourneyProfileShell({
       initialKetBanStatus={initialKetBanStatus}
       countsPromise={countsPromise}
       mainPanel={
-        <Suspense fallback={<JourneyMainPanelSkeleton />}>
+        <Suspense
+          fallback={
+            <JourneyProfileInstantFallback
+              ownerSlug={owner.slug}
+              ownerId={owner.id}
+              ownerName={ownerName}
+              ownerAvatarUrl={ownerAvatarUrl}
+              isOwner={isOwner}
+              viewerProfileId={viewerProfileId}
+              filterVisibility={filterVisibility}
+            />
+          }
+        >
           <JourneyProfileInitialLoader
             activeView={activeView}
             ownerId={owner.id}
