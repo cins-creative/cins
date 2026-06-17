@@ -222,20 +222,24 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   );
   const [portalReady, setPortalReady] = useState(false);
   const [loadingThreads, setLoadingThreads] = useState(() => !launch?.thread);
-  const [loadingRoomId, setLoadingRoomId] = useState<string | null>(null);
   const [loadingOlderRoomId, setLoadingOlderRoomId] = useState<string | null>(null);
-  const [hydratedRoomIds, setHydratedRoomIds] = useState<Set<string>>(() => new Set());
+  const [roomStatus, setRoomStatus] = useState<
+    Record<string, "idle" | "loading" | "ready" | "error">
+  >({});
   const [loadError, setLoadError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const fetchedRoomIdsRef = useRef<Set<string>>(new Set());
+  const roomStatusRef = useRef<Record<string, "idle" | "loading" | "ready" | "error">>(
+    {},
+  );
   const hasMoreByRoomRef = useRef<Map<string, boolean>>(new Map());
   const [hasMoreByRoom, setHasMoreByRoom] = useState<Record<string, boolean>>({});
   const composeByRoomRef = useRef<Map<string, RoomComposeDraft>>(new Map());
   const pendingImagesRef = useRef<PendingImageDraft[]>([]);
   const activeRoomIdRef = useRef<string | null>(null);
+  const shouldScrollToBottomRef = useRef(true);
 
   pendingImagesRef.current = pendingImages;
 
@@ -246,22 +250,23 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
 
   activeRoomIdRef.current = active?.roomId ?? null;
 
-  const loadingMessages = active?.roomId != null && loadingRoomId === active.roomId;
+  const activeRoomStatus = active?.roomId ? roomStatus[active.roomId] : undefined;
   const isPendingRoom = active?.roomId != null && isPendingRoomId(active.roomId);
-  const messagesLoaded =
+  const loadingMessages =
     active?.roomId != null &&
-    (hydratedRoomIds.has(active.roomId) || isPendingRoom);
+    !isPendingRoom &&
+    (activeRoomStatus === "idle" || activeRoomStatus === "loading");
+  const messagesLoaded = activeRoomStatus === "ready";
+  const messagesLoadError = activeRoomStatus === "error";
   const connecting = Boolean(launch?.resolving && isPendingRoom);
 
-  const markRoomHydrated = useCallback((roomId: string) => {
-    fetchedRoomIdsRef.current.add(roomId);
-    setHydratedRoomIds((prev) => {
-      if (prev.has(roomId)) return prev;
-      const next = new Set(prev);
-      next.add(roomId);
-      return next;
-    });
-  }, []);
+  const patchRoomStatus = useCallback(
+    (roomId: string, status: "idle" | "loading" | "ready" | "error") => {
+      roomStatusRef.current = { ...roomStatusRef.current, [roomId]: status };
+      setRoomStatus((prev) => ({ ...prev, [roomId]: status }));
+    },
+    [],
+  );
 
   useEffect(() => {
     return () => {
@@ -509,15 +514,14 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
 
     if (incoming.peerUserId) {
       const pendingId = pendingDirectRoomId(incoming.peerUserId);
-      if (
-        fetchedRoomIdsRef.current.has(pendingId) &&
-        !isPendingRoomId(incoming.roomId)
-      ) {
-        fetchedRoomIdsRef.current.delete(pendingId);
-        markRoomHydrated(incoming.roomId);
+      if (roomStatusRef.current[pendingId]) {
+        const next = { ...roomStatusRef.current };
+        delete next[pendingId];
+        roomStatusRef.current = next;
+        setRoomStatus(next);
       }
     }
-  }, [launch?.thread, launch?.tab, markRoomHydrated]);
+  }, [launch?.thread, launch?.tab]);
 
   useEffect(() => {
     void (async () => {
@@ -599,41 +603,40 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   }, [onClose]);
 
   useEffect(() => {
+    if (!shouldScrollToBottomRef.current) return;
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [active?.id, active?.messages.length]);
 
   const loadMessages = useCallback(
-    async (roomId: string) => {
-      if (fetchedRoomIdsRef.current.has(roomId) || isPendingRoomId(roomId)) return;
+    async (roomId: string, options?: { force?: boolean }) => {
+      if (isPendingRoomId(roomId)) return;
+
+      const status = roomStatusRef.current[roomId] ?? "idle";
+      if (!options?.force && (status === "loading" || status === "ready")) {
+        return;
+      }
+
+      patchRoomStatus(roomId, "loading");
+      setLoadError(null);
+      shouldScrollToBottomRef.current = true;
 
       const cached = getCachedRoomMessages(roomId);
       if (cached?.length) {
-        markRoomHydrated(roomId);
-        hasMoreByRoomRef.current.set(roomId, true);
-        setHasMoreByRoom((prev) => ({ ...prev, [roomId]: true }));
         setThreads((prev) => {
           const next = prev.map((t) =>
-            t.roomId === roomId
-              ? { ...t, messages: cached, unread: 0 }
-              : t,
+            t.roomId === roomId ? { ...t, messages: cached, unread: 0 } : t,
           );
           onUnreadChange(next.reduce((sum, t) => sum + t.unread, 0));
           return next;
         });
       }
 
-      setLoadingRoomId(roomId);
-      setLoadError(null);
       try {
         const page = await fetchRoomMessagesPage(roomId);
         if (!page) {
-          if (!cached?.length) {
-            throw new Error("Không tải được tin nhắn.");
-          }
-          return;
+          throw new Error("Không tải được tin nhắn.");
         }
 
-        markRoomHydrated(roomId);
         hasMoreByRoomRef.current.set(roomId, page.hasMore);
         setHasMoreByRoom((prev) => ({ ...prev, [roomId]: page.hasMore }));
         if (viewerProfileId) {
@@ -648,21 +651,20 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
           onUnreadChange(next.reduce((sum, t) => sum + t.unread, 0));
           return next;
         });
+        patchRoomStatus(roomId, "ready");
       } catch (error) {
+        patchRoomStatus(roomId, "error");
         if (!cached?.length) {
-          markRoomHydrated(roomId);
           setLoadError(
             error instanceof Error ? error.message : "Không tải được tin nhắn.",
           );
         }
-      } finally {
-        setLoadingRoomId((current) => (current === roomId ? null : current));
       }
     },
     [
       getCachedRoomMessages,
-      markRoomHydrated,
       onUnreadChange,
+      patchRoomStatus,
       viewerProfileId,
     ],
   );
@@ -679,6 +681,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
       const prevHeight = container?.scrollHeight ?? 0;
 
       setLoadingOlderRoomId(roomId);
+      shouldScrollToBottomRef.current = false;
       try {
         const page = await fetchRoomMessagesPage(roomId, { before });
         if (!page) return;
@@ -717,13 +720,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
 
   useEffect(() => {
     const roomId = active?.roomId;
-    if (
-      !roomId ||
-      isPendingRoomId(roomId) ||
-      fetchedRoomIdsRef.current.has(roomId)
-    ) {
-      return;
-    }
+    if (!roomId || isPendingRoomId(roomId)) return;
     void loadMessages(roomId);
   }, [active?.roomId, loadMessages]);
 
@@ -737,6 +734,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
         });
       }
 
+      shouldScrollToBottomRef.current = true;
       setActiveId(thread.id);
       setMobileShowThread(true);
       setSidePanel(null);
@@ -745,9 +743,13 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
       setThreads((prev) =>
         prev.map((t) => (t.id === thread.id ? { ...t, unread: 0 } : t)),
       );
-      if (!fetchedRoomIdsRef.current.has(thread.roomId)) {
-        void loadMessages(thread.roomId);
-      } else if (thread.messages.length > 0) {
+      void loadMessages(thread.roomId, {
+        force:
+          thread.messages.length === 0 ||
+          roomStatusRef.current[thread.roomId] === "error",
+      });
+
+      if (thread.messages.length > 0) {
         void fetch(`/api/chat/rooms/${thread.roomId}/read`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -1100,13 +1102,15 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
               <p className="cins-chat-messages-empty">Đang kết nối hội thoại…</p>
             ) : loadingMessages ? (
               <p className="cins-chat-messages-empty">Đang tải tin nhắn…</p>
+            ) : messagesLoadError ? (
+              <p className="cins-chat-messages-empty">
+                {loadError ?? "Không tải được tin nhắn."}
+              </p>
             ) : messagesLoaded && active.messages.length === 0 ? (
               <p className="cins-chat-messages-empty">
                 Chưa có tin nhắn nào. Hãy bắt đầu cuộc trò chuyện với{" "}
                 <strong>{active.name}</strong>…
               </p>
-            ) : loadError ? (
-              <p className="cins-chat-messages-empty">{loadError}</p>
             ) : null}
             {active.messages.map((msg) => (
               <div
