@@ -1,18 +1,24 @@
+"use client";
+
+import { useState } from "react";
+
+import { ChatImageLightbox } from "@/components/cins/ChatImageLightbox";
 import { chatImageDeliveryUrl } from "@/lib/chat/image-url";
 import type { ChatMessage } from "@/lib/chat/types";
 
 export function ChatMessageBody({ msg }: { msg: ChatMessage }) {
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const imageSrc =
     msg.imageUrl ?? (msg.imageId ? chatImageDeliveryUrl(msg.imageId) : null);
 
   return (
     <>
       {imageSrc ? (
-        <a
+        <button
+          type="button"
           className="j-chat-mini-msg-image-link cins-chat-msg-image-link"
-          href={imageSrc}
-          target="_blank"
-          rel="noopener noreferrer"
+          aria-label="Xem ảnh đính kèm"
+          onClick={() => setLightboxOpen(true)}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -20,9 +26,18 @@ export function ChatMessageBody({ msg }: { msg: ChatMessage }) {
             src={imageSrc}
             alt={msg.body || "Ảnh đính kèm"}
           />
-        </a>
+        </button>
       ) : null}
       {msg.body ? <p>{msg.body}</p> : null}
+
+      {lightboxOpen && imageSrc ? (
+        <ChatImageLightbox
+          images={[imageSrc]}
+          index={0}
+          onClose={() => setLightboxOpen(false)}
+          onIndexChange={() => {}}
+        />
+      ) : null}
     </>
   );
 }
