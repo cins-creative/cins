@@ -2,7 +2,6 @@ import { Suspense } from "react";
 import { Menu as MenuIcon } from "lucide-react";
 import Link from "next/link";
 
-import { CinsChatLauncher } from "@/components/cins/CinsChatLauncher";
 import { CinsTopbarSearch } from "@/components/cins/CinsTopbarSearch";
 import { UserAccountMenu } from "@/components/cins/UserAccountMenu";
 import { JourneyNotifications } from "@/components/journey/JourneyNotifications";
@@ -63,7 +62,6 @@ export async function CinsAppTopbar() {
             className="tb-page-slot"
             aria-live="polite"
           />
-          <CinsChatLauncher />
           {session?.profile ? (
             <JourneyNotifications
               initialUnreadCount={unreadNotificationCount}

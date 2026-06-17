@@ -4318,8 +4318,19 @@ button.j-m-card-hit {
   .cins-journey-page {
     --j-rail-x: 0px;
     --j-content-pad-l: 0px;
-    background: var(--bg-surface, #fff);
+    --j-timeline-stack-gap: 8px;
+    --j-timeline-card-gap: 12px;
+    background: var(--bg-page);
     min-height: calc(100dvh - var(--j-topbar-h));
+  }
+
+  .cins-journey-page .j-sidebar {
+    background: var(--bg-surface, #fff);
+  }
+
+  .cins-journey-page .j-timeline {
+    background: var(--bg-page);
+    gap: var(--j-timeline-stack-gap);
   }
 
   .cins-journey-page .j-shell {
@@ -4386,7 +4397,9 @@ button.j-m-card-hit {
 
   .cins-journey-page .j-year-block {
     margin-top: 0;
-    gap: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--j-timeline-card-gap);
   }
 
   .cins-journey-page .j-year-block:first-of-type {
@@ -4401,6 +4414,7 @@ button.j-m-card-hit {
   .cins-journey-page .j-tlb {
     padding-left: 12px;
     padding-right: 12px;
+    background: var(--bg-surface, #fff);
   }
 
   .cins-journey-page .j-milestone {
@@ -4424,10 +4438,32 @@ button.j-m-card-hit {
     border-right: none;
     box-shadow: none;
     transform: none;
+    background: var(--bg-surface, #fff);
   }
 
   .cins-journey-page .j-m-card {
     padding: 16px;
+  }
+
+  .cins-journey-page .j-milestone.j-tagged .j-m-card > .j-truong-verify-bar,
+  .cins-journey-page .j-milestone.j-verified .j-m-card > .j-truong-verify-bar {
+    border-radius: 0;
+  }
+
+  .cins-journey-page .j-bookmark-frame {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    box-shadow: none;
+  }
+
+  .cins-journey-page .j-bookmark-frame .j-m-card.j-bookmark-frame-card,
+  .cins-journey-page .j-bookmark-frame .j-m-card.j-bookmark-frame-card.is-expanded,
+  .cins-journey-page .j-bookmark-frame .j-m-card.j-bookmark-frame-card.jcard.is-expanded {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    box-shadow: none;
   }
 
   .cins-journey-page .j-create-composer,
@@ -4438,6 +4474,7 @@ button.j-m-card-hit {
     border-left: none;
     border-right: none;
     box-shadow: none;
+    background: var(--bg-surface, #fff);
   }
 
   .cins-journey-page .j-create-cta {

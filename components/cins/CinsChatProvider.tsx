@@ -4,14 +4,22 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
 
+import { CinsChatDock } from "@/components/cins/CinsChatDock";
 import { CinsChatOverlay } from "@/components/cins/CinsChatOverlay";
 import { buildOptimisticDirectThread } from "@/lib/chat/optimistic-thread";
+import {
+  toRealtimeMessageEvent,
+  type ChatRealtimeMessageEvent,
+} from "@/lib/chat/realtime";
+import { useChatRealtime } from "@/lib/chat/use-chat-realtime";
 import type {
   ChatLaunchState,
   ChatPeerPreview,
@@ -26,13 +34,20 @@ type OpenChatOptions = {
   tab?: ChatThreadGroup;
 };
 
+type ChatFocusSurface = "full" | "mini" | null;
+
+type ChatMessageListener = (event: ChatRealtimeMessageEvent) => void;
+
 type CinsChatContextValue = {
   open: boolean;
+  viewerProfileId: string | null;
   totalUnread: number;
   openChat: (options?: OpenChatOptions) => Promise<void>;
   closeChat: () => void;
   refreshUnread: () => Promise<void>;
   setTotalUnread: (count: number) => void;
+  subscribeChatMessages: (listener: ChatMessageListener) => () => void;
+  setChatFocus: (roomId: string | null, surface: ChatFocusSurface) => void;
 };
 
 const CinsChatContext = createContext<CinsChatContextValue | null>(null);
@@ -56,6 +71,11 @@ export function CinsChatProvider({
   const [open, setOpen] = useState(false);
   const [totalUnread, setTotalUnread] = useState(0);
   const [launch, setLaunch] = useState<ChatLaunchState | null>(null);
+  const listenersRef = useRef(new Set<ChatMessageListener>());
+  const focusRef = useRef<{ roomId: string | null; surface: ChatFocusSurface }>({
+    roomId: null,
+    surface: null,
+  });
 
   const refreshUnread = useCallback(async () => {
     if (!viewerProfileId) {
@@ -72,6 +92,49 @@ export function CinsChatProvider({
     }
   }, [viewerProfileId]);
 
+  useEffect(() => {
+    void refreshUnread();
+  }, [refreshUnread]);
+
+  const subscribeChatMessages = useCallback((listener: ChatMessageListener) => {
+    listenersRef.current.add(listener);
+    return () => {
+      listenersRef.current.delete(listener);
+    };
+  }, []);
+
+  const setChatFocus = useCallback(
+    (roomId: string | null, surface: ChatFocusSurface) => {
+      focusRef.current = { roomId, surface };
+    },
+    [],
+  );
+
+  const handleRealtimeInsert = useCallback(
+    (row: Parameters<typeof toRealtimeMessageEvent>[0]) => {
+      if (!viewerProfileId) return;
+
+      const event = toRealtimeMessageEvent(row, viewerProfileId);
+      for (const listener of listenersRef.current) {
+        listener(event);
+      }
+
+      const fromPeer = event.senderId !== viewerProfileId;
+      if (!fromPeer) return;
+
+      const focus = focusRef.current;
+      const isViewing =
+        focus.surface !== null && focus.roomId === event.roomId;
+
+      if (!isViewing) {
+        setTotalUnread((count) => count + 1);
+      }
+    },
+    [viewerProfileId],
+  );
+
+  useChatRealtime(viewerProfileId, handleRealtimeInsert);
+
   const closeChat = useCallback(() => {
     setOpen(false);
     setLaunch(null);
@@ -79,24 +142,23 @@ export function CinsChatProvider({
   }, [refreshUnread]);
 
   const resolveDirectRoom = useCallback(async (targetUserId: string) => {
-      const res = await fetch("/api/chat/rooms/open", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id_nguoi: targetUserId }),
-      });
-      const json = (await res.json()) as { thread?: ChatThread; error?: string };
-      if (!res.ok || !json.thread) {
-        throw new Error(json.error ?? "Không mở được hội thoại.");
-      }
+    const res = await fetch("/api/chat/rooms/open", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id_nguoi: targetUserId }),
+    });
+    const json = (await res.json()) as { thread?: ChatThread; error?: string };
+    if (!res.ok || !json.thread) {
+      throw new Error(json.error ?? "Không mở được hội thoại.");
+    }
 
-      setLaunch({
-        thread: json.thread,
-        tab: json.thread.group,
-        resolving: false,
-      });
-      return json.thread;
-    },
-  []);
+    setLaunch({
+      thread: json.thread,
+      tab: json.thread.group,
+      resolving: false,
+    });
+    return json.thread;
+  }, []);
 
   const openChat = useCallback(
     async (options?: OpenChatOptions) => {
@@ -162,18 +224,31 @@ export function CinsChatProvider({
   const value = useMemo(
     () => ({
       open,
+      viewerProfileId,
       totalUnread,
       openChat,
       closeChat,
       refreshUnread,
       setTotalUnread,
+      subscribeChatMessages,
+      setChatFocus,
     }),
-    [open, totalUnread, openChat, closeChat, refreshUnread],
+    [
+      open,
+      viewerProfileId,
+      totalUnread,
+      openChat,
+      closeChat,
+      refreshUnread,
+      subscribeChatMessages,
+      setChatFocus,
+    ],
   );
 
   return (
     <CinsChatContext.Provider value={value}>
       {children}
+      {viewerProfileId ? <CinsChatDock /> : null}
       {open ? (
         <CinsChatOverlay
           launch={launch}

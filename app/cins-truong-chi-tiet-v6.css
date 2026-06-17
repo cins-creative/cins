@@ -2650,12 +2650,16 @@
 
   .tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs {
     --cso-mobile-shell-nav-h: 44px;
+    --tdh-v6-tabs-bar-h: 44px;
+    --tdh-v6-tabs-h: var(--tdh-v6-tabs-bar-h);
   }
 
   .tdh-page--v6 .tdh-v6-shell--mobile-tabs .tdh-v6-tabs-bar {
     top: calc(var(--site-nav-height, 64px) + var(--cso-mobile-shell-nav-h, 44px));
     z-index: 40;
     margin-top: 0;
+    margin-bottom: 0;
+    min-height: var(--tdh-v6-tabs-bar-h, 44px);
   }
 
   .tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs .cso-mobile-shell-nav {
@@ -2838,6 +2842,11 @@
     font-size: 12.5px;
   }
 
+  .tdh-page--v6 .tdh-v6-shell--mobile-tabs {
+    --tdh-v6-tabs-bar-h: 42px;
+    --tdh-v6-tabs-h: var(--tdh-v6-tabs-bar-h);
+  }
+
   .tdh-page--v6 .cover-frame {
     height: 180px;
   }
@@ -2937,6 +2946,11 @@
   .tdh-page--v6 .tdh-v6-tab {
     padding: 11px 12px;
     font-size: 12px;
+  }
+
+  .tdh-page--v6 .tdh-v6-shell--mobile-tabs {
+    --tdh-v6-tabs-bar-h: 40px;
+    --tdh-v6-tabs-h: var(--tdh-v6-tabs-bar-h);
   }
 
   .tdh-page--v6 .tdh-v6-panel {
@@ -4115,8 +4129,22 @@
   .tdh-page--v6 #tdh-panel-bai-dang,
   .tdh-page--v6 #cso-panel-bai-dang {
     padding: 0;
+    margin-top: 0;
+    background: var(--bg-surface, #fff);
     --tdh-baidang-stack-gap: 8px;
     --tdh-baidang-card-gap: 12px;
+    --tdh-v6-tabs-h: var(--tdh-v6-tabs-bar-h, 44px);
+  }
+
+  .tdh-page--v6 .tdh-v6-shell--mobile-tabs .tdh-v6-center > .tdh-v6-tabs-bar + #tdh-panel-bai-dang.tdh-v6-panel.on,
+  .tdh-page--v6 .tdh-v6-shell--mobile-tabs .tdh-v6-center > .tdh-v6-tabs-bar + #cso-panel-bai-dang.tdh-v6-panel.on {
+    margin-top: 0;
+  }
+
+  .tdh-page--v6 #tdh-panel-bai-dang .tdh-org-baidang-timeline,
+  .tdh-page--v6 #cso-panel-bai-dang .tdh-org-baidang-timeline {
+    margin-top: 0;
+    padding-top: 0;
   }
 
   .tdh-page--v6 #tdh-panel-bai-dang .tdh-org-baidang-timeline,
@@ -4139,6 +4167,11 @@
   .tdh-page--v6 #tdh-panel-bai-dang .org-baidang-tlb,
   .tdh-page--v6 #cso-panel-bai-dang .org-baidang-tlb {
     padding: 8px 12px 10px;
+    margin-top: 0;
+    background: var(--bg-surface, #fff);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-top: none;
   }
 
   .tdh-page--v6 #tdh-panel-bai-dang .j-m-card,

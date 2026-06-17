@@ -22,6 +22,7 @@ import {
   avatarBg,
   formatChatTime,
 } from "@/lib/chat/avatar";
+import { appendChatMessageIfNew } from "@/lib/chat/realtime";
 import {
   isPendingRoomId,
   pendingDirectRoomId,
@@ -36,6 +37,8 @@ import {
   type ChatThread,
   type ChatThreadGroup,
 } from "@/lib/chat/types";
+
+import { useCinsChat } from "@/components/cins/CinsChatProvider";
 
 type Props = {
   launch: ChatLaunchState | null;
@@ -181,6 +184,10 @@ function ChatThreadRow({
 }
 
 export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
+  const {
+    subscribeChatMessages,
+    setChatFocus,
+  } = useCinsChat();
   const [threads, setThreads] = useState<ChatThread[]>(() =>
     launch?.thread ? [launch.thread] : [],
   );
@@ -201,11 +208,14 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fetchedRoomIdsRef = useRef<Set<string>>(new Set());
+  const activeRoomIdRef = useRef<string | null>(null);
 
   const active = useMemo(
     () => threads.find((t) => t.id === activeId) ?? null,
     [threads, activeId],
   );
+
+  activeRoomIdRef.current = active?.roomId ?? null;
 
   const loadingMessages = active?.roomId != null && loadingRoomId === active.roomId;
   const isPendingRoom = active?.roomId != null && isPendingRoomId(active.roomId);
@@ -258,6 +268,64 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   useEffect(() => {
     setPortalReady(true);
   }, []);
+
+  useEffect(() => {
+    setChatFocus(active?.roomId ?? null, "full");
+    return () => setChatFocus(null, null);
+  }, [active?.roomId, setChatFocus]);
+
+  useEffect(() => {
+    return subscribeChatMessages((event) => {
+      let missingThread = false;
+
+      setThreads((prev) => {
+        let found = false;
+        const next = prev.map((t) => {
+          if (t.roomId !== event.roomId) return t;
+          found = true;
+          const isActive = t.roomId === activeRoomIdRef.current;
+          return {
+            ...t,
+            preview: event.preview,
+            lastAt: event.lastAt,
+            messages: isActive
+              ? appendChatMessageIfNew(t.messages, event.message)
+              : t.messages,
+            unread: isActive ? 0 : t.unread + (event.message.from === "them" ? 1 : 0),
+          };
+        });
+
+        if (!found) missingThread = true;
+        return next;
+      });
+
+      if (missingThread) {
+        void (async () => {
+          try {
+            const res = await fetch("/api/chat/threads", { cache: "no-store" });
+            if (!res.ok) return;
+            const json = (await res.json()) as { threads?: ChatThread[] };
+            const incoming = json.threads?.find((t) => t.roomId === event.roomId);
+            if (!incoming) return;
+            setThreads((prev) => mergeLaunchThread(prev, incoming));
+          } catch {
+            /* ignore */
+          }
+        })();
+      }
+
+      if (
+        event.roomId === activeRoomIdRef.current &&
+        event.message.from === "them"
+      ) {
+        void fetch(`/api/chat/rooms/${event.roomId}/read`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id_tin_nhan_cuoi: event.message.id }),
+        });
+      }
+    });
+  }, [subscribeChatMessages]);
 
   useEffect(() => {
     if (!launch?.thread) return;
@@ -452,7 +520,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
           t.id === active.id
             ? {
                 ...t,
-                messages: [...t.messages, json.message!],
+                messages: appendChatMessageIfNew(t.messages, json.message!),
                 preview: text,
                 lastAt: json.message!.sentAt,
               }
