@@ -12,6 +12,7 @@ type Props = {
   status: KetBanStatusSummary | null;
   ready: boolean;
   refreshStatus: () => Promise<void>;
+  compact?: boolean;
 };
 
 export function JourneyFollowButton({
@@ -20,6 +21,7 @@ export function JourneyFollowButton({
   status,
   ready,
   refreshStatus,
+  compact = false,
 }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -143,7 +145,7 @@ export function JourneyFollowButton({
     <div className="j-follow-wrap">
       <button
         type="button"
-        className={`j-friend-btn is-${buttonState}`}
+        className={`j-friend-btn is-${buttonState}${compact ? " is-compact" : ""}`}
         title={label}
         aria-label={label}
         aria-haspopup={
@@ -164,7 +166,7 @@ export function JourneyFollowButton({
         }
       >
         <Icon size={15} strokeWidth={2} aria-hidden />
-        <span className="j-friend-btn-label">{label}</span>
+        {compact ? null : <span className="j-friend-btn-label">{label}</span>}
       </button>
       {(quanHe === "pending_received" ||
         quanHe === "accepted" ||

@@ -99,7 +99,11 @@ export function JourneyView({
               filterVisibility={filterVisibility}
             />
           ) : activeView === "friends" ? (
-            <JourneyFriendsView friends={friends} />
+            <JourneyFriendsView
+              friends={friends}
+              isOwner={isOwner}
+              viewerProfileId={viewerProfileId}
+            />
           ) : (
             <JourneyTimeline
               isOwner={isOwner}

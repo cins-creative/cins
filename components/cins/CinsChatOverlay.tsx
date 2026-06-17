@@ -22,11 +22,16 @@ import {
   avatarBg,
   formatChatTime,
 } from "@/lib/chat/avatar";
-import { appendChatMessageIfNew } from "@/lib/chat/realtime";
+import { appendChatMessageIfNew, reconcileChatMessage } from "@/lib/chat/realtime";
 import {
   isPendingRoomId,
   pendingDirectRoomId,
 } from "@/lib/chat/optimistic-thread";
+import { writeChatThreadsCache, writeRoomMessagesCache } from "@/lib/chat/chat-session-cache";
+import {
+  createOptimisticChatMessage,
+  messagePreviewText,
+} from "@/lib/chat/optimistic-message";
 import {
   CHAT_ORG_KIND_LABEL,
   CHAT_PARTICIPANT_KIND_LABEL,
@@ -187,6 +192,11 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   const {
     subscribeChatMessages,
     setChatFocus,
+    viewerProfileId,
+    getCachedThreads,
+    getCachedRoomMessages,
+    prefetchChatData,
+    prefetchRoomMessages,
   } = useCinsChat();
   const [threads, setThreads] = useState<ChatThread[]>(() =>
     launch?.thread ? [launch.thread] : [],
@@ -203,7 +213,6 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   const [loadingThreads, setLoadingThreads] = useState(() => !launch?.thread);
   const [loadingRoomId, setLoadingRoomId] = useState<string | null>(null);
   const [hydratedRoomIds, setHydratedRoomIds] = useState<Set<string>>(() => new Set());
-  const [sending, setSending] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -351,37 +360,56 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   useEffect(() => {
     void (async () => {
       setLoadError(null);
-      if (!launch?.thread) {
-        setLoadingThreads(true);
-      }
 
-      try {
-        const res = await fetch("/api/chat/threads", { cache: "no-store" });
-        const json = (await res.json()) as {
-          threads?: ChatThread[];
-          totalUnread?: number;
-          error?: string;
-        };
-        if (!res.ok) {
-          throw new Error(json.error ?? "Không tải được hội thoại.");
-        }
-
+      const cached = getCachedThreads();
+      if (cached?.threads.length) {
         setThreads((prev) => {
-          let next = json.threads ?? [];
+          let next = cached.threads;
           if (launch?.thread) {
             next = mergeLaunchThread(next, launch.thread);
           }
           return next;
         });
-        onUnreadChange(json.totalUnread ?? 0);
+        onUnreadChange(cached.totalUnread);
+        setLoadingThreads(false);
+        setActiveId((current) => {
+          if (launch?.thread) return launch.thread.id;
+          if (current) return current;
+          return cached.threads[0]?.id ?? "";
+        });
+      } else if (!launch?.thread) {
+        setLoadingThreads(true);
+      }
+
+      try {
+        const snapshot = await prefetchChatData();
+        if (!snapshot) {
+          if (!cached?.threads.length && !launch?.thread) {
+            throw new Error("Không tải được hội thoại.");
+          }
+          return;
+        }
+
+        if (viewerProfileId) {
+          writeChatThreadsCache(viewerProfileId, snapshot);
+        }
+
+        setThreads((prev) => {
+          let next = snapshot.threads;
+          if (launch?.thread) {
+            next = mergeLaunchThread(next, launch.thread);
+          }
+          return next;
+        });
+        onUnreadChange(snapshot.totalUnread);
 
         setActiveId((current) => {
           if (launch?.thread) return launch.thread.id;
           if (current) return current;
-          return json.threads?.[0]?.id ?? "";
+          return snapshot.threads[0]?.id ?? "";
         });
       } catch (error) {
-        if (!launch?.thread) {
+        if (!launch?.thread && !cached?.threads.length) {
           setLoadError(
             error instanceof Error ? error.message : "Không tải được hội thoại.",
           );
@@ -416,27 +444,42 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     async (roomId: string) => {
       if (fetchedRoomIdsRef.current.has(roomId) || isPendingRoomId(roomId)) return;
 
-      setLoadingRoomId(roomId);
-      setLoadError(null);
-      try {
-        const res = await fetch(`/api/chat/rooms/${roomId}/messages`, {
-          cache: "no-store",
-        });
-        const json = (await res.json()) as {
-          messages?: ChatThread["messages"];
-          error?: string;
-        };
-        if (!res.ok) {
-          throw new Error(json.error ?? "Không tải được tin nhắn.");
-        }
-
+      const cached = getCachedRoomMessages(roomId);
+      if (cached) {
         markRoomHydrated(roomId);
         setThreads((prev) => {
           const next = prev.map((t) =>
-            t.id === roomId
+            t.roomId === roomId
               ? {
                   ...t,
-                  messages: json.messages ?? [],
+                  messages: cached,
+                  unread: 0,
+                }
+              : t,
+          );
+          onUnreadChange(next.reduce((sum, t) => sum + t.unread, 0));
+          return next;
+        });
+      }
+
+      setLoadingRoomId(roomId);
+      setLoadError(null);
+      try {
+        const loaded =
+          (await prefetchRoomMessages(roomId)) ??
+          cached ??
+          [];
+
+        markRoomHydrated(roomId);
+        if (viewerProfileId) {
+          writeRoomMessagesCache(viewerProfileId, roomId, loaded);
+        }
+        setThreads((prev) => {
+          const next = prev.map((t) =>
+            t.roomId === roomId
+              ? {
+                  ...t,
+                  messages: loaded,
                   unread: 0,
                 }
               : t,
@@ -445,15 +488,23 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
           return next;
         });
       } catch (error) {
-        markRoomHydrated(roomId);
-        setLoadError(
-          error instanceof Error ? error.message : "Không tải được tin nhắn.",
-        );
+        if (!cached) {
+          markRoomHydrated(roomId);
+          setLoadError(
+            error instanceof Error ? error.message : "Không tải được tin nhắn.",
+          );
+        }
       } finally {
         setLoadingRoomId((current) => (current === roomId ? null : current));
       }
     },
-    [markRoomHydrated, onUnreadChange],
+    [
+      getCachedRoomMessages,
+      markRoomHydrated,
+      onUnreadChange,
+      prefetchRoomMessages,
+      viewerProfileId,
+    ],
   );
 
   useEffect(() => {
@@ -498,14 +549,31 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
 
   const sendMessage = useCallback(async () => {
     const text = draft.trim();
-    if (!text || !active || sending || isPendingRoomId(active.roomId)) return;
+    if (!text || !active || isPendingRoomId(active.roomId)) return;
 
-    setSending(true);
+    const optimistic = createOptimisticChatMessage({ body: text });
+    const snapshotText = text;
+
+    setThreads((prev) =>
+      prev.map((t) =>
+        t.id === active.id
+          ? {
+              ...t,
+              messages: [...t.messages, optimistic],
+              preview: messagePreviewText(optimistic),
+              lastAt: optimistic.sentAt,
+            }
+          : t,
+      ),
+    );
+    setDraft("");
+    inputRef.current?.focus();
+
     try {
       const res = await fetch(`/api/chat/rooms/${active.roomId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ noi_dung: text }),
+        body: JSON.stringify({ noi_dung: snapshotText }),
       });
       const json = (await res.json()) as {
         message?: ChatThread["messages"][number];
@@ -516,27 +584,37 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
       }
 
       setThreads((prev) =>
+        prev.map((t) => {
+          if (t.id !== active.id) return t;
+          const messages = reconcileChatMessage(t.messages, json.message!);
+          if (viewerProfileId) {
+            writeRoomMessagesCache(viewerProfileId, t.roomId, messages);
+          }
+          return {
+            ...t,
+            messages,
+            preview: messagePreviewText(json.message!),
+            lastAt: json.message!.sentAt,
+          };
+        }),
+      );
+    } catch (error) {
+      setThreads((prev) =>
         prev.map((t) =>
           t.id === active.id
             ? {
                 ...t,
-                messages: appendChatMessageIfNew(t.messages, json.message!),
-                preview: text,
-                lastAt: json.message!.sentAt,
+                messages: t.messages.filter((m) => m.id !== optimistic.id),
               }
             : t,
         ),
       );
-      setDraft("");
-      inputRef.current?.focus();
-    } catch (error) {
+      setDraft(snapshotText);
       setLoadError(
         error instanceof Error ? error.message : "Không gửi được tin nhắn.",
       );
-    } finally {
-      setSending(false);
     }
-  }, [active, draft, sending]);
+  }, [active, draft, viewerProfileId]);
 
   if (!portalReady) return null;
 
@@ -784,7 +862,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
               type="button"
               className="cins-chat-send"
               aria-label="Gửi"
-              disabled={!draft.trim() || sending || connecting || isPendingRoom}
+              disabled={!draft.trim() || connecting || isPendingRoom}
               onClick={() => void sendMessage()}
             >
               <Send size={16} strokeWidth={2} aria-hidden />

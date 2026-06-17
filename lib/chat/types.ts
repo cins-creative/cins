@@ -1,8 +1,13 @@
+export type ChatMessageKind = "text" | "media";
+
 export type ChatMessage = {
   id: string;
   from: "me" | "them";
   body: string;
   sentAt: string;
+  kind?: ChatMessageKind;
+  imageId?: string | null;
+  imageUrl?: string | null;
 };
 
 export type ChatParticipantKind = "user" | "org";

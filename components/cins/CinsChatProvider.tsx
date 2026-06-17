@@ -14,6 +14,16 @@ import { useRouter } from "next/navigation";
 
 import { CinsChatDock } from "@/components/cins/CinsChatDock";
 import { CinsChatOverlay } from "@/components/cins/CinsChatOverlay";
+import { scheduleWhenIdle } from "@/lib/client/schedule-when-idle";
+import {
+  readChatThreadsCache,
+  readRoomMessagesCache,
+  type ChatThreadsSnapshot,
+} from "@/lib/chat/chat-session-cache";
+import {
+  prefetchChatThreads,
+  prefetchRoomMessages,
+} from "@/lib/chat/chat-prefetch";
 import { buildOptimisticDirectThread } from "@/lib/chat/optimistic-thread";
 import {
   toRealtimeMessageEvent,
@@ -22,6 +32,7 @@ import {
 import { useChatRealtime } from "@/lib/chat/use-chat-realtime";
 import type {
   ChatLaunchState,
+  ChatMessage,
   ChatPeerPreview,
   ChatThread,
   ChatThreadGroup,
@@ -48,6 +59,10 @@ type CinsChatContextValue = {
   setTotalUnread: (count: number) => void;
   subscribeChatMessages: (listener: ChatMessageListener) => () => void;
   setChatFocus: (roomId: string | null, surface: ChatFocusSurface) => void;
+  getCachedThreads: () => ChatThreadsSnapshot | null;
+  getCachedRoomMessages: (roomId: string) => ChatMessage[] | null;
+  prefetchChatData: () => Promise<ChatThreadsSnapshot | null>;
+  prefetchRoomMessages: (roomId: string) => Promise<ChatMessage[] | null>;
 };
 
 const CinsChatContext = createContext<CinsChatContextValue | null>(null);
@@ -85,16 +100,76 @@ export function CinsChatProvider({
     try {
       const res = await fetch("/api/chat/threads", { cache: "no-store" });
       if (!res.ok) return;
-      const json = (await res.json()) as { totalUnread?: number };
+      const json = (await res.json()) as {
+        threads?: ChatThread[];
+        totalUnread?: number;
+      };
       setTotalUnread(json.totalUnread ?? 0);
     } catch {
       /* ignore */
     }
   }, [viewerProfileId]);
 
+  const getCachedThreads = useCallback((): ChatThreadsSnapshot | null => {
+    return readChatThreadsCache(viewerProfileId);
+  }, [viewerProfileId]);
+
+  const getCachedRoomMessages = useCallback(
+    (roomId: string): ChatMessage[] | null => {
+      return readRoomMessagesCache(viewerProfileId, roomId);
+    },
+    [viewerProfileId],
+  );
+
+  const prefetchChatData = useCallback(async (): Promise<ChatThreadsSnapshot | null> => {
+    if (!viewerProfileId) return null;
+    const snapshot = await prefetchChatThreads(viewerProfileId);
+    if (snapshot) {
+      setTotalUnread(snapshot.totalUnread);
+    }
+    return snapshot;
+  }, [viewerProfileId]);
+
+  const prefetchRoomMessagesForViewer = useCallback(
+    async (roomId: string): Promise<ChatMessage[] | null> => {
+      if (!viewerProfileId) return null;
+      return prefetchRoomMessages(viewerProfileId, roomId);
+    },
+    [viewerProfileId],
+  );
+
   useEffect(() => {
-    void refreshUnread();
-  }, [refreshUnread]);
+    if (!viewerProfileId) {
+      setTotalUnread(0);
+      return;
+    }
+
+    const cached = readChatThreadsCache(viewerProfileId);
+    if (cached) {
+      setTotalUnread(cached.totalUnread);
+    }
+
+    const cancelIdle = scheduleWhenIdle(() => {
+      void prefetchChatData();
+    });
+
+    const id = window.setInterval(() => {
+      void prefetchChatData();
+    }, 120_000);
+
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        void prefetchChatData();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      cancelIdle();
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [prefetchChatData, viewerProfileId]);
 
   const subscribeChatMessages = useCallback((listener: ChatMessageListener) => {
     listenersRef.current.add(listener);
@@ -232,6 +307,10 @@ export function CinsChatProvider({
       setTotalUnread,
       subscribeChatMessages,
       setChatFocus,
+      getCachedThreads,
+      getCachedRoomMessages,
+      prefetchChatData,
+      prefetchRoomMessages: prefetchRoomMessagesForViewer,
     }),
     [
       open,
@@ -242,6 +321,10 @@ export function CinsChatProvider({
       refreshUnread,
       subscribeChatMessages,
       setChatFocus,
+      getCachedThreads,
+      getCachedRoomMessages,
+      prefetchChatData,
+      prefetchRoomMessagesForViewer,
     ],
   );
 

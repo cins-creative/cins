@@ -9,7 +9,12 @@ import {
   avatarHueFromSeed,
   avatarInitialFromName,
 } from "@/lib/chat/avatar";
-import type { ChatMessage, ChatThread, ChatThreadGroup } from "@/lib/chat/types";
+import { ensureChatMediaId } from "@/lib/chat/chat-media";
+import {
+  chatImageDeliveryUrl,
+  isCloudflareImageId,
+} from "@/lib/chat/image-url";
+import type { ChatMessage, ChatMessageKind, ChatThread, ChatThreadGroup } from "@/lib/chat/types";
 
 const DM_ROOM = "1_1";
 const MESSAGE_PAGE_SIZE = 80;
@@ -27,20 +32,70 @@ type MessageRow = {
   id_phong: string;
   id_nguoi_gui: string;
   noi_dung: string | null;
+  loai_tin?: string | null;
+  id_dinh_kem?: string | null;
   tao_luc: string;
+  content_media?: { cloudflare_id: string | null } | { cloudflare_id: string | null }[] | null;
 };
+
+type NormalizedMessageRow = Omit<MessageRow, "content_media"> & {
+  content_media?: { cloudflare_id: string | null } | null;
+};
+
+function normalizeMessageRow(row: MessageRow): NormalizedMessageRow {
+  const media = row.content_media;
+  if (Array.isArray(media)) {
+    return { ...row, content_media: media[0] ?? null };
+  }
+  return { ...row, content_media: media ?? null };
+}
+
+const MESSAGE_SELECT =
+  "id, id_phong, id_nguoi_gui, noi_dung, loai_tin, id_dinh_kem, tao_luc, content_media(cloudflare_id)";
 
 type ReadRow = {
   id_phong: string;
   id_tin_nhan_cuoi_doc: string;
 };
 
+function messagePreview(row: MessageRow): string {
+  const normalized = normalizeMessageRow(row);
+  if (normalized.loai_tin === "media") {
+    const caption = normalized.noi_dung?.trim() || "";
+    if (caption && !isCloudflareImageId(caption)) return caption;
+    return "Ảnh";
+  }
+  return normalized.noi_dung?.trim() || "";
+}
+
+function resolveImageId(row: NormalizedMessageRow): string | null {
+  const fromMedia = row.content_media?.cloudflare_id?.trim();
+  if (fromMedia && isCloudflareImageId(fromMedia)) return fromMedia;
+
+  const fromBody = row.noi_dung?.trim() || "";
+  if (isCloudflareImageId(fromBody)) return fromBody;
+
+  return null;
+}
+
 function mapMessage(row: MessageRow, viewerId: string): ChatMessage {
+  const normalized = normalizeMessageRow(row);
+  const kind: ChatMessageKind = normalized.loai_tin === "media" ? "media" : "text";
+  const imageId = kind === "media" ? resolveImageId(normalized) : null;
+  let body = normalized.noi_dung?.trim() || "";
+
+  if (kind === "media" && imageId && body === imageId) {
+    body = "";
+  }
+
   return {
-    id: row.id,
-    from: row.id_nguoi_gui === viewerId ? "me" : "them",
-    body: row.noi_dung?.trim() || "",
-    sentAt: row.tao_luc,
+    id: normalized.id,
+    from: normalized.id_nguoi_gui === viewerId ? "me" : "them",
+    body,
+    sentAt: normalized.tao_luc,
+    kind,
+    imageId,
+    imageUrl: imageId ? chatImageDeliveryUrl(imageId) : null,
   };
 }
 
@@ -247,7 +302,7 @@ async function getDirectThread(
 
   const { data: lastMessage } = await admin
     .from("chat_tin_nhan")
-    .select("id, id_phong, id_nguoi_gui, noi_dung, tao_luc")
+    .select(MESSAGE_SELECT)
     .eq("id_phong", roomId)
     .eq("da_xoa", false)
     .order("tao_luc", { ascending: false })
@@ -260,7 +315,7 @@ async function getDirectThread(
     roomId,
     peer,
     group,
-    lastMessage?.noi_dung?.trim() || "Bắt đầu trò chuyện",
+    lastMessage ? messagePreview(lastMessage) : "Bắt đầu trò chuyện",
     lastMessage?.tao_luc ?? room.cap_nhat_luc,
     unread,
   );
@@ -352,7 +407,7 @@ export async function listDirectThreads(viewerId: string): Promise<ChatThread[]>
 
   const { data: messages } = await admin
     .from("chat_tin_nhan")
-    .select("id, id_phong, id_nguoi_gui, noi_dung, tao_luc")
+    .select(MESSAGE_SELECT)
     .in("id_phong", roomIds)
     .eq("da_xoa", false)
     .order("tao_luc", { ascending: false });
@@ -412,7 +467,7 @@ export async function listDirectThreads(viewerId: string): Promise<ChatThread[]>
         roomId,
         peer,
         group,
-        last?.noi_dung?.trim() || "Bắt đầu trò chuyện",
+        last ? messagePreview(last) : "Bắt đầu trò chuyện",
         last?.tao_luc ?? roomUpdatedAt.get(roomId) ?? new Date().toISOString(),
         countUnreadForRoom(roomId, viewerId, messages ?? [], readAt),
       ),
@@ -435,7 +490,7 @@ export async function listRoomMessages(
 
   const { data, error } = await admin
     .from("chat_tin_nhan")
-    .select("id, id_phong, id_nguoi_gui, noi_dung, tao_luc")
+    .select(MESSAGE_SELECT)
     .eq("id_phong", roomId)
     .eq("da_xoa", false)
     .order("tao_luc", { ascending: true })
@@ -458,11 +513,21 @@ export async function listRoomMessages(
 export async function sendRoomMessage(
   roomId: string,
   viewerId: string,
-  body: string,
+  input: string | { body?: string; cloudflareImageId?: string },
 ): Promise<{ ok: true; message: ChatMessage } | { ok: false; error: string }> {
-  const text = body.trim();
-  if (!text) {
+  const body =
+    typeof input === "string" ? input.trim() : (input.body?.trim() ?? "");
+  const cloudflareImageId =
+    typeof input === "string"
+      ? undefined
+      : input.cloudflareImageId?.trim();
+
+  if (!body && !cloudflareImageId) {
     return { ok: false, error: "Tin nhắn trống." };
+  }
+
+  if (cloudflareImageId && !isCloudflareImageId(cloudflareImageId)) {
+    return { ok: false, error: "Ảnh đính kèm không hợp lệ." };
   }
 
   try {
@@ -474,15 +539,33 @@ export async function sendRoomMessage(
   const admin = createServiceRoleClient();
   const now = new Date().toISOString();
 
+  let mediaId: string | null = null;
+  if (cloudflareImageId) {
+    mediaId = await ensureChatMediaId(cloudflareImageId, viewerId);
+    if (!mediaId) {
+      return { ok: false, error: "Không lưu được ảnh đính kèm." };
+    }
+  }
+
+  const insertRow = cloudflareImageId
+    ? {
+        id_phong: roomId,
+        id_nguoi_gui: viewerId,
+        loai_tin: "media" as const,
+        id_dinh_kem: mediaId,
+        noi_dung: body || cloudflareImageId,
+      }
+    : {
+        id_phong: roomId,
+        id_nguoi_gui: viewerId,
+        noi_dung: body,
+        loai_tin: "text" as const,
+      };
+
   const { data, error } = await admin
     .from("chat_tin_nhan")
-    .insert({
-      id_phong: roomId,
-      id_nguoi_gui: viewerId,
-      noi_dung: text,
-      loai_tin: "text",
-    })
-    .select("id, id_phong, id_nguoi_gui, noi_dung, tao_luc")
+    .insert(insertRow)
+    .select(MESSAGE_SELECT)
     .single<MessageRow>();
 
   if (error || !data) {

@@ -20,6 +20,17 @@ import type { CoAuthorCredit } from "@/components/journey/milestone-types";
 import {
   dispatchMilestoneCreditsUpdated,
 } from "@/lib/journey/coauthor-credits-events";
+import { scheduleWhenIdle } from "@/lib/client/schedule-when-idle";
+import {
+  EMPTY_NOTIFICATION_HISTORY_FEED,
+  parseNotificationFeedPayload,
+} from "@/lib/social/notification-feed-client";
+import {
+  readHistoryNotificationsCache,
+  readUnreadNotificationsCache,
+  writeHistoryNotificationsCache,
+  writeUnreadNotificationsCache,
+} from "@/lib/social/notifications-session-cache";
 import type {
   CommentNotification,
   CoAuthorReviewProfile,
@@ -54,19 +65,7 @@ function coAuthorReviewPostHref(review: {
   return `/${encodeURIComponent(review.ownerSlug)}/p/${encodeURIComponent(review.postSlug)}`;
 }
 
-const EMPTY_HISTORY_FEED: NotificationFeed = {
-  unreadCount: 0,
-  followRequests: [],
-  accepted: [],
-  comments: [],
-  coAuthorInvites: [],
-  coAuthorReviews: [],
-  coSoStaffInvites: [],
-  orgMilestoneTagApproved: [],
-  videoReady: [],
-  handledFollows: [],
-  processedCoAuthorReviews: [],
-};
+const EMPTY_HISTORY_FEED = EMPTY_NOTIFICATION_HISTORY_FEED;
 
 function formatNotifyTime(iso?: string | null): string {
   if (!iso) return "";
@@ -141,21 +140,7 @@ function orgMilestoneTagNotifyLabel(
 }
 
 function parseFeedPayload(json: unknown): NotificationFeed | null {
-  if (!json || typeof json !== "object") return null;
-  const data = json as NotificationFeed;
-  if (!Array.isArray(data.followRequests)) return null;
-  return {
-    ...EMPTY_HISTORY_FEED,
-    ...data,
-    coAuthorInvites: Array.isArray(data.coAuthorInvites) ? data.coAuthorInvites : [],
-    coAuthorReviews: Array.isArray(data.coAuthorReviews) ? data.coAuthorReviews : [],
-    coSoStaffInvites: Array.isArray(data.coSoStaffInvites)
-      ? data.coSoStaffInvites
-      : [],
-    orgMilestoneTagApproved: Array.isArray(data.orgMilestoneTagApproved)
-      ? data.orgMilestoneTagApproved
-      : [],
-  };
+  return parseNotificationFeedPayload(json);
 }
 
 function countPendingActionItems(feed: NotificationFeed): number {
@@ -186,17 +171,25 @@ export function JourneyNotifications({
   initialUnreadCount,
   viewerProfileId,
 }: Props) {
+  const cachedUnread = readUnreadNotificationsCache(viewerProfileId);
+  const cachedHistory = readHistoryNotificationsCache(viewerProfileId);
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<NotificationFilter>("unread");
   const [selected, setSelected] = useState<PendingFollowRequest | null>(null);
-  const [feed, setFeed] = useState<NotificationFeed>({
-    ...EMPTY_HISTORY_FEED,
-    unreadCount: initialUnreadCount,
-  });
-  const [historyFeed, setHistoryFeed] = useState<NotificationFeed | null>(null);
+  const [feed, setFeed] = useState<NotificationFeed>(() =>
+    cachedUnread
+      ? cachedUnread
+      : {
+          ...EMPTY_HISTORY_FEED,
+          unreadCount: initialUnreadCount,
+        },
+  );
+  const [historyFeed, setHistoryFeed] = useState<NotificationFeed | null>(
+    () => cachedHistory,
+  );
   const [loadingUnread, setLoadingUnread] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
-  const [unreadLoaded, setUnreadLoaded] = useState(false);
+  const [unreadLoaded, setUnreadLoaded] = useState(() => Boolean(cachedUnread));
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [portalReady, setPortalReady] = useState(false);
@@ -258,10 +251,38 @@ export function JourneyNotifications({
     };
   }, [open]);
 
-  const applyFeed = useCallback((next: NotificationFeed) => {
-    setFeed(next);
-    setUnreadLoaded(true);
-  }, []);
+  const applyFeed = useCallback(
+    (next: NotificationFeed) => {
+      setFeed(next);
+      setUnreadLoaded(true);
+      writeUnreadNotificationsCache(viewerProfileId, next);
+    },
+    [viewerProfileId],
+  );
+
+  const prefetchUnreadFeed = useCallback(async () => {
+    const res = await fetch("/api/notifications?filter=unread", {
+      cache: "no-store",
+    });
+    const json = await res.json().catch(() => null);
+    const next = parseFeedPayload(json);
+    if (res.ok && next) {
+      applyFeed(next);
+      return next;
+    }
+    return null;
+  }, [applyFeed]);
+
+  const prefetchHistoryFeed = useCallback(async () => {
+    const res = await fetch("/api/notifications?filter=history", {
+      cache: "no-store",
+    });
+    const json = await res.json().catch(() => null);
+    if (!res.ok) return null;
+    const next = parseFeedPayload(json) ?? EMPTY_HISTORY_FEED;
+    writeHistoryNotificationsCache(viewerProfileId, next);
+    return next;
+  }, [viewerProfileId]);
 
   const fetchUnreadFeed = useCallback(async () => {
     const res = await fetch("/api/notifications?filter=unread", {
@@ -307,7 +328,9 @@ export function JourneyNotifications({
           )
           .then((historyJson) => {
             if (historyJson) {
-              setHistoryFeed(parseFeedPayload(historyJson) ?? EMPTY_HISTORY_FEED);
+              const history = parseFeedPayload(historyJson) ?? EMPTY_HISTORY_FEED;
+              setHistoryFeed(history);
+              writeHistoryNotificationsCache(viewerProfileId, history);
             }
           })
           .catch(() => {
@@ -317,7 +340,7 @@ export function JourneyNotifications({
     } catch {
       setError("Không cập nhật được thông báo.");
     }
-  }, [applyFeed]);
+  }, [applyFeed, viewerProfileId]);
 
   const unreadCount = feed.unreadCount;
   const pendingActionCount = useMemo(
@@ -350,14 +373,32 @@ export function JourneyNotifications({
         );
         return;
       }
-      setHistoryFeed(parseFeedPayload(json) ?? EMPTY_HISTORY_FEED);
+      const next = parseFeedPayload(json) ?? EMPTY_HISTORY_FEED;
+      setHistoryFeed(next);
+      writeHistoryNotificationsCache(viewerProfileId, next);
     } finally {
       setLoadingHistory(false);
     }
-  }, []);
+  }, [viewerProfileId]);
 
   useEffect(() => {
-    if (unreadLoaded || feed.unreadCount <= 0) return;
+    const cancelIdle = scheduleWhenIdle(() => {
+      void prefetchUnreadFeed().catch(() => {
+        /* giữ cache/badge hiện tại */
+      });
+      void prefetchHistoryFeed()
+        .then((next) => {
+          if (next) setHistoryFeed(next);
+        })
+        .catch(() => {
+          /* lịch sử load khi chuyển tab */
+        });
+    });
+    return cancelIdle;
+  }, [prefetchHistoryFeed, prefetchUnreadFeed]);
+
+  useEffect(() => {
+    if (unreadLoaded) return;
     void fetchUnreadFeed().catch(() => {
       /* giữ badge hiện tại, thử lại khi mở menu */
     });

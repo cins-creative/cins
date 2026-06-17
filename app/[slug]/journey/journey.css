@@ -1357,10 +1357,38 @@ a.j-main-gallery-item:focus-visible {
   font-weight: 700;
 }
 .j-friend-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 6px;
   margin-top: 10px;
+}
+.j-friend-actions-row {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+}
+.j-friend-actions-row .j-friend-message {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.j-friend-card-follow {
+  position: relative;
+  flex-shrink: 0;
+}
+.j-friend-card-follow .j-follow-wrap {
+  height: 100%;
+}
+.j-friend-card-follow .j-friend-btn.is-compact {
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  padding: 0;
+}
+.j-friend-action-error {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.35;
+  color: #dc2626;
 }
 .j-friend-message,
 .j-friend-link {
@@ -1376,6 +1404,16 @@ a.j-main-gallery-item:focus-visible {
   border: 1px solid rgba(148, 163, 184, 0.28);
   background: #fff;
   color: var(--ink-muted);
+  cursor: pointer;
+  transition:
+    border-color 0.16s var(--j-ease),
+    color 0.16s var(--j-ease),
+    background 0.16s var(--j-ease);
+}
+.j-friend-message:hover:not(:disabled) {
+  border-color: rgba(37, 99, 235, 0.35);
+  color: var(--cins-blue);
+  background: var(--cins-blue-soft, rgba(37, 99, 235, 0.08));
 }
 .j-friend-message:disabled {
   cursor: not-allowed;
@@ -1390,6 +1428,181 @@ a.j-main-gallery-item:focus-visible {
 .j-friend-link:hover {
   background: var(--cins-blue);
   color: #fff;
+}
+
+.j-friend-card.is-invite {
+  border-color: rgba(37, 99, 235, 0.35);
+  background:
+    linear-gradient(var(--bg-surface), var(--bg-surface)) padding-box,
+    linear-gradient(135deg, rgba(37, 99, 235, 0.55), rgba(253, 232, 89, 0.5)) border-box;
+}
+
+.j-friends-invites {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.j-friends-invites-status {
+  margin: 0;
+  padding: 12px 0;
+}
+
+.j-friend-invite-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: stretch;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 20px;
+  background:
+    linear-gradient(var(--bg-surface), var(--bg-surface)) padding-box,
+    linear-gradient(135deg, rgba(37, 99, 235, 0.55), rgba(253, 232, 89, 0.5)) border-box;
+  box-shadow: none;
+  transition: transform 0.18s var(--j-ease);
+}
+
+.j-friend-invite-card:hover {
+  transform: translateY(-2px);
+}
+
+.j-friend-invite-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.42), transparent 48%);
+  opacity: 0.75;
+}
+
+.j-friend-invite-avatar {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 14px 0 14px 16px;
+}
+
+.j-friend-invite-avatar .j-friend-avatar {
+  width: 56px;
+  height: 56px;
+  margin: 0;
+}
+
+.j-friend-invite-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 0;
+  padding: 14px 16px 14px 12px;
+}
+
+.j-friend-invite-copy {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.j-friend-invite-copy h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--ink-display);
+}
+
+.j-friend-invite-copy .j-friend-stats {
+  max-width: 280px;
+}
+
+.j-friend-invite-actions {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: min(188px, 100%);
+}
+
+.j-friend-invite-actions .j-friend-action {
+  min-height: 32px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.j-friend-invite-journey {
+  margin-top: 0;
+}
+
+.j-friends-head-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.j-friends-invite-pill {
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #fdba74;
+}
+
+.j-friends-grid-status {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+@media (max-width: 991.98px) {
+  .j-friend-invite-avatar {
+    padding: 12px 0 12px 14px;
+  }
+
+  .j-friend-invite-avatar .j-friend-avatar {
+    width: 50px;
+    height: 50px;
+    font-size: 18px;
+  }
+
+  .j-friend-invite-content {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 12px 14px 14px;
+  }
+
+  .j-friend-invite-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "accept decline"
+      "journey journey";
+  }
+
+  .j-friend-invite-actions .j-friend-action.is-accept {
+    grid-area: accept;
+  }
+
+  .j-friend-invite-actions .j-friend-action.is-decline {
+    grid-area: decline;
+  }
+
+  .j-friend-invite-actions .j-friend-invite-journey {
+    grid-area: journey;
+  }
 }
 
 @media (max-width: 1199.98px) {

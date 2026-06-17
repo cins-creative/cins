@@ -598,6 +598,7 @@ export function JourneyProfileContent({
             initialFriends={friendsCache.friends}
             totalCount={friendsCache.totalCount}
             isOwner={isOwner}
+            viewerProfileId={viewerProfileId}
             scrollLoad={{
               ownerSlug,
               hasMore: friendsCache.hasMore,
