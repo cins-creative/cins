@@ -3,6 +3,7 @@ export type PendingImageDraft = {
   previewUrl: string;
   imageId: string | null;
   uploading: boolean;
+  fingerprint?: string;
   error?: string;
 };
 
@@ -19,6 +20,7 @@ export function createPendingImageDraft(
     previewUrl: input.previewUrl,
     imageId: input.imageId,
     uploading: input.uploading,
+    fingerprint: input.fingerprint,
     error: input.error,
   };
 }
@@ -29,4 +31,8 @@ export function revokeDraftImageUrls(images: PendingImageDraft[]): void {
       URL.revokeObjectURL(image.previewUrl);
     }
   }
+}
+
+export function imageFileFingerprint(file: File): string {
+  return `${file.name}:${file.size}:${file.lastModified}:${file.type}`;
 }

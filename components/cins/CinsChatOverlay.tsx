@@ -19,7 +19,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
-import { ChatMessageBody } from "@/components/cins/ChatMessageBody";
+import { ChatMessageThreadItems } from "@/components/cins/ChatMessageThreadItems";
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
 import {
   avatarBg,
@@ -27,12 +27,21 @@ import {
 } from "@/lib/chat/avatar";
 import { writeChatThreadsCache, writeRoomMessagesCache } from "@/lib/chat/chat-session-cache";
 import {
-  createPendingImageDraft,
   revokeDraftImageUrls,
   type PendingImageDraft,
   type RoomComposeDraft,
 } from "@/lib/chat/compose-draft";
+import {
+  fetchChatComposeImageUpload,
+  normalizeRestoredComposeImages,
+  patchPendingImageUploadResult,
+  planPendingImageAdditions,
+} from "@/lib/chat/compose-image-upload";
 import { fetchRoomMessagesPage } from "@/lib/chat/messages-client";
+import {
+  preserveThreadMessages,
+  threadLikelyHasMessages,
+} from "@/lib/chat/thread-merge";
 import {
   createOptimisticChatMessage,
   messagePreviewText,
@@ -42,9 +51,7 @@ import {
   isPendingRoomId,
   pendingDirectRoomId,
 } from "@/lib/chat/optimistic-thread";
-import { rememberCfAccountHashFromDeliveryUrl } from "@/lib/cloudflare/account-hash";
 import { imageFilesFromClipboard } from "@/lib/files/clipboard-images";
-import { isAllowedUploadImageFile } from "@/lib/files/infer-image-mime";
 import {
   CHAT_ORG_KIND_LABEL,
   CHAT_PARTICIPANT_KIND_LABEL,
@@ -66,14 +73,27 @@ function mergeLaunchThread(
   prev: ChatThread[],
   incoming: ChatThread,
 ): ChatThread[] {
+  const existing = prev.find(
+    (thread) =>
+      thread.roomId === incoming.roomId ||
+      thread.id === incoming.id ||
+      (incoming.peerUserId != null && thread.peerUserId === incoming.peerUserId),
+  );
+  const merged: ChatThread = {
+    ...incoming,
+    messages:
+      existing && existing.messages.length > 0
+        ? existing.messages
+        : incoming.messages,
+  };
   const rest = prev.filter(
     (thread) =>
-      thread.id !== incoming.id &&
-      thread.roomId !== incoming.roomId &&
-      thread.peerUserId !== incoming.peerUserId &&
-      !(incoming.peerUserId && thread.roomId === pendingDirectRoomId(incoming.peerUserId)),
+      thread.id !== merged.id &&
+      thread.roomId !== merged.roomId &&
+      thread.peerUserId !== merged.peerUserId &&
+      !(merged.peerUserId && thread.roomId === pendingDirectRoomId(merged.peerUserId)),
   );
-  return [incoming, ...rest];
+  return [merged, ...rest];
 }
 
 type ChatSidePanel = "pin" | "media" | "notes";
@@ -241,6 +261,19 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   const activeRoomIdRef = useRef<string | null>(null);
   const shouldScrollToBottomRef = useRef(true);
 
+  const scrollMessagesToBottom = useCallback((behavior: ScrollBehavior = "auto") => {
+    const el = messagesContainerRef.current;
+    if (!el) return;
+    if (behavior === "auto") {
+      el.scrollTop = el.scrollHeight;
+      return;
+    }
+    messagesEndRef.current?.scrollIntoView({ behavior });
+  }, []);
+  const scrollMessagesToBottomRef = useRef(scrollMessagesToBottom);
+  scrollMessagesToBottomRef.current = scrollMessagesToBottom;
+  const forcedEmptyReloadRef = useRef<Set<string>>(new Set());
+
   pendingImagesRef.current = pendingImages;
 
   const active = useMemo(
@@ -287,8 +320,30 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   const restoreComposeForRoom = useCallback((roomId: string) => {
     const saved = composeByRoomRef.current.get(roomId);
     setDraft(saved?.text ?? "");
-    setPendingImages(saved?.images ?? []);
+    setPendingImages(normalizeRestoredComposeImages(saved?.images ?? []));
   }, []);
+
+  const applyUploadResultToRoom = useCallback(
+    (roomId: string | null, localId: string, result: Awaited<ReturnType<typeof fetchChatComposeImageUpload>>) => {
+      if (roomId) {
+        const saved = composeByRoomRef.current.get(roomId);
+        if (saved?.images.some((item) => item.localId === localId)) {
+          composeByRoomRef.current.set(roomId, {
+            ...saved,
+            images: patchPendingImageUploadResult(saved.images, localId, result),
+          });
+        }
+      }
+
+      if (activeRoomIdRef.current !== roomId) return;
+
+      setPendingImages((prev) => {
+        if (!prev.some((item) => item.localId === localId)) return prev;
+        return patchPendingImageUploadResult(prev, localId, result);
+      });
+    },
+    [],
+  );
 
   const clearPendingImages = useCallback(() => {
     setPendingImages((prev) => {
@@ -307,88 +362,24 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     });
   }, []);
 
-  const uploadPendingImage = useCallback(async (file: File, localId: string) => {
-    if (!isAllowedUploadImageFile(file)) {
-      setPendingImages((prev) =>
-        prev.map((item) =>
-          item.localId === localId
-            ? { ...item, uploading: false, error: "File không phải ảnh." }
-            : item,
-        ),
-      );
-      return;
-    }
-
-    const previewUrl = URL.createObjectURL(file);
-    setPendingImages((prev) =>
-      prev.map((item) =>
-        item.localId === localId
-          ? { ...item, previewUrl, uploading: true, error: undefined }
-          : item,
-      ),
-    );
-
-    const form = new FormData();
-    form.append("file", file);
-    try {
-      const res = await fetch("/api/post-image/upload", {
-        method: "POST",
-        body: form,
-      });
-      const data = (await res.json()) as {
-        imageId?: string;
-        url?: string;
-        error?: string;
-      };
-      if (!res.ok || !data.imageId) {
-        throw new Error(data.error || "Upload thất bại.");
-      }
-      if (data.url) rememberCfAccountHashFromDeliveryUrl(data.url);
-
-      setPendingImages((prev) =>
-        prev.map((item) => {
-          if (item.localId !== localId) return item;
-          if (item.previewUrl.startsWith("blob:")) {
-            URL.revokeObjectURL(item.previewUrl);
-          }
-          return {
-            ...item,
-            previewUrl: data.url?.trim() || previewUrl,
-            imageId: data.imageId!,
-            uploading: false,
-          };
-        }),
-      );
-    } catch (error) {
-      setPendingImages((prev) =>
-        prev.map((item) =>
-          item.localId === localId
-            ? {
-                ...item,
-                uploading: false,
-                error:
-                  error instanceof Error ? error.message : "Upload thất bại.",
-              }
-            : item,
-        ),
-      );
-    }
-  }, []);
+  const uploadPendingImage = useCallback(
+    async (file: File, localId: string, roomId: string | null) => {
+      const result = await fetchChatComposeImageUpload(file);
+      applyUploadResultToRoom(roomId, localId, result);
+    },
+    [applyUploadResultToRoom],
+  );
 
   const addImageFiles = useCallback(
     (files: File[]) => {
-      for (const file of files) {
-        const localId = crypto.randomUUID();
-        setPendingImages((prev) => [
-          ...prev,
-          createPendingImageDraft({
-            localId,
-            previewUrl: URL.createObjectURL(file),
-            imageId: null,
-            uploading: true,
-          }),
-        ]);
-        void uploadPendingImage(file, localId);
+      const roomId = activeRoomIdRef.current;
+      const planned = planPendingImageAdditions(files, pendingImagesRef.current);
+      if (planned.length === 0) return;
+
+      setPendingImages((prev) => [...prev, ...planned.map((item) => item.draft)]);
+
+      for (const { file, draft } of planned) {
+        void uploadPendingImage(file, draft.localId, roomId);
       }
     },
     [uploadPendingImage],
@@ -500,6 +491,19 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
           body: JSON.stringify({ id_tin_nhan_cuoi: event.message.id }),
         });
       }
+
+      if (event.roomId === activeRoomIdRef.current) {
+        const container = messagesContainerRef.current;
+        const nearBottom = container
+          ? container.scrollHeight - container.scrollTop - container.clientHeight < 80
+          : true;
+        if (nearBottom) {
+          shouldScrollToBottomRef.current = true;
+          requestAnimationFrame(() =>
+            scrollMessagesToBottomRef.current("smooth"),
+          );
+        }
+      }
     });
   }, [subscribeChatMessages]);
 
@@ -530,7 +534,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
       const cached = getCachedThreads();
       if (cached?.threads.length) {
         setThreads((prev) => {
-          let next = cached.threads;
+          let next = preserveThreadMessages(prev, cached.threads);
           if (launch?.thread) {
             next = mergeLaunchThread(next, launch.thread);
           }
@@ -561,7 +565,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
         }
 
         setThreads((prev) => {
-          let next = snapshot.threads;
+          let next = preserveThreadMessages(prev, snapshot.threads);
           if (launch?.thread) {
             next = mergeLaunchThread(next, launch.thread);
           }
@@ -602,11 +606,6 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  useEffect(() => {
-    if (!shouldScrollToBottomRef.current) return;
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [active?.id, active?.messages.length]);
-
   const loadMessages = useCallback(
     async (roomId: string, options?: { force?: boolean }) => {
       if (isPendingRoomId(roomId)) return;
@@ -629,6 +628,9 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
           onUnreadChange(next.reduce((sum, t) => sum + t.unread, 0));
           return next;
         });
+        if (activeRoomIdRef.current === roomId && shouldScrollToBottomRef.current) {
+          requestAnimationFrame(() => scrollMessagesToBottom("auto"));
+        }
       }
 
       try {
@@ -653,11 +655,20 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
         });
         patchRoomStatus(roomId, "ready");
       } catch (error) {
-        patchRoomStatus(roomId, "error");
-        if (!cached?.length) {
+        if (cached?.length) {
+          patchRoomStatus(roomId, "ready");
+        } else {
+          patchRoomStatus(roomId, "error");
           setLoadError(
             error instanceof Error ? error.message : "Không tải được tin nhắn.",
           );
+        }
+      } finally {
+        if (
+          activeRoomIdRef.current === roomId &&
+          shouldScrollToBottomRef.current
+        ) {
+          requestAnimationFrame(() => scrollMessagesToBottom("auto"));
         }
       }
     },
@@ -665,6 +676,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
       getCachedRoomMessages,
       onUnreadChange,
       patchRoomStatus,
+      scrollMessagesToBottom,
       viewerProfileId,
     ],
   );
@@ -721,8 +733,27 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   useEffect(() => {
     const roomId = active?.roomId;
     if (!roomId || isPendingRoomId(roomId)) return;
+
+    const status = roomStatusRef.current[roomId] ?? "idle";
+    const staleEmpty =
+      status === "ready" &&
+      active.messages.length === 0 &&
+      threadLikelyHasMessages(active) &&
+      !forcedEmptyReloadRef.current.has(roomId);
+
+    if (staleEmpty) {
+      forcedEmptyReloadRef.current.add(roomId);
+      void loadMessages(roomId, { force: true });
+      return;
+    }
+
     void loadMessages(roomId);
-  }, [active?.roomId, loadMessages]);
+  }, [
+    active?.messages.length,
+    active?.preview,
+    active?.roomId,
+    loadMessages,
+  ]);
 
   const selectThread = useCallback(
     (thread: ChatThread) => {
@@ -743,11 +774,17 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
       setThreads((prev) =>
         prev.map((t) => (t.id === thread.id ? { ...t, unread: 0 } : t)),
       );
-      void loadMessages(thread.roomId, {
-        force:
-          thread.messages.length === 0 ||
-          roomStatusRef.current[thread.roomId] === "error",
-      });
+      const forceReload =
+        thread.messages.length === 0 ||
+        roomStatusRef.current[thread.roomId] === "error";
+      void loadMessages(thread.roomId, { force: forceReload });
+      if (
+        !forceReload &&
+        thread.messages.length > 0 &&
+        roomStatusRef.current[thread.roomId] === "ready"
+      ) {
+        requestAnimationFrame(() => scrollMessagesToBottom("auto"));
+      }
 
       if (thread.messages.length > 0) {
         void fetch(`/api/chat/rooms/${thread.roomId}/read`, {
@@ -759,7 +796,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
         });
       }
     },
-    [draft, loadMessages, pendingImages, restoreComposeForRoom],
+    [draft, loadMessages, pendingImages, restoreComposeForRoom, scrollMessagesToBottom],
   );
 
   const toggleSidePanel = useCallback((panel: ChatSidePanel) => {
@@ -795,6 +832,10 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
             : t,
         ),
       );
+
+      if (shouldScrollToBottomRef.current) {
+        requestAnimationFrame(() => scrollMessagesToBottom("smooth"));
+      }
 
       try {
         const res = await fetch(`/api/chat/rooms/${thread.roomId}/messages`, {
@@ -843,7 +884,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
         return false;
       }
     },
-    [viewerProfileId],
+    [scrollMessagesToBottom, viewerProfileId],
   );
 
   const sendMessage = useCallback(async () => {
@@ -1112,12 +1153,10 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                 <strong>{active.name}</strong>…
               </p>
             ) : null}
-            {active.messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`cins-chat-bubble-row${msg.from === "me" ? " is-me" : ""}`}
-              >
-                {msg.from === "them" ? (
+            {active.messages.length > 0 ? (
+              <ChatMessageThreadItems
+                messages={active.messages}
+                renderTheirAvatar={() => (
                   <ChatAvatar
                     initial={active.avatarInitial}
                     hue={active.avatarHue}
@@ -1126,15 +1165,9 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                     verified={active.verified}
                     avatarUrl={active.avatarUrl}
                   />
-                ) : null}
-                <div
-                  className={`cins-chat-bubble${msg.from === "me" ? " is-me" : " is-them"}${msg.imageUrl || msg.imageId ? " has-image" : ""}`}
-                >
-                  <ChatMessageBody msg={msg} />
-                  <time dateTime={msg.sentAt}>{formatChatTime(msg.sentAt)}</time>
-                </div>
-              </div>
-            ))}
+                )}
+              />
+            ) : null}
             <div ref={messagesEndRef} />
           </div>
 
@@ -1151,19 +1184,19 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                           Đang tải…
                         </span>
                       ) : null}
+                      <button
+                        type="button"
+                        className="j-chat-mini-compose-remove"
+                        aria-label="Bỏ ảnh đính kèm"
+                        disabled={image.uploading}
+                        onClick={() => removePendingImage(image.localId)}
+                      >
+                        <X size={12} strokeWidth={2.5} aria-hidden />
+                      </button>
+                      {image.error ? (
+                        <p className="j-chat-mini-compose-error">{image.error}</p>
+                      ) : null}
                     </div>
-                    <button
-                      type="button"
-                      className="j-chat-mini-compose-remove"
-                      aria-label="Bỏ ảnh đính kèm"
-                      disabled={image.uploading}
-                      onClick={() => removePendingImage(image.localId)}
-                    >
-                      <X size={12} strokeWidth={2.5} aria-hidden />
-                    </button>
-                    {image.error ? (
-                      <p className="j-chat-mini-compose-error">{image.error}</p>
-                    ) : null}
                   </div>
                 ))}
               </div>

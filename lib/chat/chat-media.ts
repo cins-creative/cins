@@ -40,7 +40,7 @@ export async function ensureChatMediaId(
     .insert({
       id_tac_pham: tacPham.id,
       cloudflare_id: cfId,
-      loai_media: "anh",
+      loai_media: "image",
       thu_tu: 0,
     })
     .select("id")

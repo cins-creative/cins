@@ -1,27 +1,37 @@
 import { isAllowedUploadImageFile } from "@/lib/files/infer-image-mime";
 
+function imageFileKey(file: File): string {
+  return `${file.name}:${file.size}:${file.lastModified}:${file.type}`;
+}
+
 /** Lấy file ảnh từ clipboard (Ctrl+V / bộ nhớ tạm). */
 export function imageFilesFromClipboard(data: DataTransfer | null): File[] {
   if (!data) return [];
 
   const out: File[] = [];
-  const seen = new Set<File>();
+  const seen = new Set<string>();
 
   for (const item of data.items) {
     if (item.kind !== "file") continue;
     const file = item.getAsFile();
-    if (!file || seen.has(file)) continue;
-    seen.add(file);
+    if (!file || !isAllowedUploadImageFile(file)) continue;
+    const key = imageFileKey(file);
+    if (seen.has(key)) continue;
+    seen.add(key);
     out.push(file);
   }
+
+  if (out.length > 0) return out;
 
   for (const file of data.files) {
-    if (seen.has(file)) continue;
-    seen.add(file);
+    if (!isAllowedUploadImageFile(file)) continue;
+    const key = imageFileKey(file);
+    if (seen.has(key)) continue;
+    seen.add(key);
     out.push(file);
   }
 
-  return out.filter(isAllowedUploadImageFile);
+  return out;
 }
 
 /** Đọc một file ảnh từ clipboard sau user gesture (click nút Dán). */

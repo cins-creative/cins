@@ -11,24 +11,27 @@ import {
 } from "react";
 
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
-import { ChatMessageBody } from "@/components/cins/ChatMessageBody";
-import { avatarBg, formatChatTime } from "@/lib/chat/avatar";
+import { ChatMessageThreadItems } from "@/components/cins/ChatMessageThreadItems";
+import { avatarBg } from "@/lib/chat/avatar";
 import { writeChatThreadsCache, writeRoomMessagesCache } from "@/lib/chat/chat-session-cache";
 import {
-  createPendingImageDraft,
   revokeDraftImageUrls,
   type PendingImageDraft,
   type RoomComposeDraft,
 } from "@/lib/chat/compose-draft";
+import {
+  fetchChatComposeImageUpload,
+  normalizeRestoredComposeImages,
+  patchPendingImageUploadResult,
+  planPendingImageAdditions,
+} from "@/lib/chat/compose-image-upload";
 import {
   createOptimisticChatMessage,
   messagePreviewText,
 } from "@/lib/chat/optimistic-message";
 import { fetchRoomMessagesPage } from "@/lib/chat/messages-client";
 import { reconcileChatMessage, appendChatMessageIfNew, type ChatRealtimeMessageEvent } from "@/lib/chat/realtime";
-import { rememberCfAccountHashFromDeliveryUrl } from "@/lib/cloudflare/account-hash";
 import { imageFilesFromClipboard } from "@/lib/files/clipboard-images";
-import { isAllowedUploadImageFile } from "@/lib/files/infer-image-mime";
 import type { ChatMessage, ChatThread } from "@/lib/chat/types";
 
 const RECONCILE_MS = 120_000;
@@ -137,6 +140,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
   const composeByRoomRef = useRef<Map<string, RoomComposeDraft>>(new Map());
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const shouldScrollToBottomRef = useRef(true);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingImagesRef = useRef<PendingImageDraft[]>([]);
@@ -189,8 +193,30 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
   const restoreComposeForRoom = useCallback((roomId: string) => {
     const saved = composeByRoomRef.current.get(roomId);
     setDraft(saved?.text ?? "");
-    setPendingImages(saved?.images ?? []);
+    setPendingImages(normalizeRestoredComposeImages(saved?.images ?? []));
   }, []);
+
+  const applyUploadResultToRoom = useCallback(
+    (roomId: string | null, localId: string, result: Awaited<ReturnType<typeof fetchChatComposeImageUpload>>) => {
+      if (roomId) {
+        const saved = composeByRoomRef.current.get(roomId);
+        if (saved?.images.some((item) => item.localId === localId)) {
+          composeByRoomRef.current.set(roomId, {
+            ...saved,
+            images: patchPendingImageUploadResult(saved.images, localId, result),
+          });
+        }
+      }
+
+      if (miniRoomIdRef.current !== roomId) return;
+
+      setPendingImages((prev) => {
+        if (!prev.some((item) => item.localId === localId)) return prev;
+        return patchPendingImageUploadResult(prev, localId, result);
+      });
+    },
+    [],
+  );
 
   const clearPendingImages = useCallback(() => {
     setPendingImages((prev) => {
@@ -198,6 +224,18 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
       return [];
     });
   }, []);
+
+  const scrollMessagesToBottom = useCallback((behavior: ScrollBehavior = "auto") => {
+    const el = messagesContainerRef.current;
+    if (!el) return;
+    if (behavior === "auto") {
+      el.scrollTop = el.scrollHeight;
+      return;
+    }
+    messagesEndRef.current?.scrollIntoView({ behavior });
+  }, []);
+  const scrollMessagesToBottomRef = useRef(scrollMessagesToBottom);
+  scrollMessagesToBottomRef.current = scrollMessagesToBottom;
 
   const removePendingImage = useCallback((localId: string) => {
     setPendingImages((prev) => {
@@ -209,92 +247,24 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
     });
   }, []);
 
-  const uploadPendingImage = useCallback(async (file: File, localId: string) => {
-    if (!isAllowedUploadImageFile(file)) {
-      setPendingImages((prev) =>
-        prev.map((item) =>
-          item.localId === localId
-            ? {
-                ...item,
-                uploading: false,
-                error: "File không phải ảnh.",
-              }
-            : item,
-        ),
-      );
-      return;
-    }
-
-    const previewUrl = URL.createObjectURL(file);
-    setPendingImages((prev) =>
-      prev.map((item) =>
-        item.localId === localId
-          ? { ...item, previewUrl, uploading: true, error: undefined }
-          : item,
-      ),
-    );
-
-    const form = new FormData();
-    form.append("file", file);
-    try {
-      const res = await fetch("/api/post-image/upload", {
-        method: "POST",
-        body: form,
-      });
-      const data = (await res.json()) as {
-        imageId?: string;
-        url?: string;
-        error?: string;
-      };
-      if (!res.ok || !data.imageId) {
-        throw new Error(data.error || "Upload thất bại.");
-      }
-      if (data.url) rememberCfAccountHashFromDeliveryUrl(data.url);
-
-      setPendingImages((prev) =>
-        prev.map((item) => {
-          if (item.localId !== localId) return item;
-          if (item.previewUrl.startsWith("blob:")) {
-            URL.revokeObjectURL(item.previewUrl);
-          }
-          return {
-            ...item,
-            previewUrl: data.url?.trim() || previewUrl,
-            imageId: data.imageId!,
-            uploading: false,
-          };
-        }),
-      );
-    } catch (error) {
-      setPendingImages((prev) =>
-        prev.map((item) =>
-          item.localId === localId
-            ? {
-                ...item,
-                uploading: false,
-                error:
-                  error instanceof Error ? error.message : "Upload thất bại.",
-              }
-            : item,
-        ),
-      );
-    }
-  }, []);
+  const uploadPendingImage = useCallback(
+    async (file: File, localId: string, roomId: string | null) => {
+      const result = await fetchChatComposeImageUpload(file);
+      applyUploadResultToRoom(roomId, localId, result);
+    },
+    [applyUploadResultToRoom],
+  );
 
   const addImageFiles = useCallback(
     (files: File[]) => {
-      for (const file of files) {
-        const localId = crypto.randomUUID();
-        setPendingImages((prev) => [
-          ...prev,
-          createPendingImageDraft({
-            localId,
-            previewUrl: URL.createObjectURL(file),
-            imageId: null,
-            uploading: true,
-          }),
-        ]);
-        void uploadPendingImage(file, localId);
+      const roomId = miniRoomIdRef.current;
+      const planned = planPendingImageAdditions(files, pendingImagesRef.current);
+      if (planned.length === 0) return;
+
+      setPendingImages((prev) => [...prev, ...planned.map((item) => item.draft)]);
+
+      for (const { file, draft } of planned) {
+        void uploadPendingImage(file, draft.localId, roomId);
       }
     },
     [uploadPendingImage],
@@ -428,6 +398,17 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
             body: JSON.stringify({ id_tin_nhan_cuoi: event.message.id }),
           });
         }
+
+        const container = messagesContainerRef.current;
+        const nearBottom = container
+          ? container.scrollHeight - container.scrollTop - container.clientHeight < 80
+          : true;
+        if (nearBottom) {
+          shouldScrollToBottomRef.current = true;
+          requestAnimationFrame(() =>
+            scrollMessagesToBottomRef.current("smooth"),
+          );
+        }
         return;
       }
 
@@ -541,12 +522,16 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
         }
       } finally {
         setLoadingMessages(false);
+        if (miniRoomIdRef.current === roomId && shouldScrollToBottomRef.current) {
+          requestAnimationFrame(() => scrollMessagesToBottom("auto"));
+        }
       }
     },
     [
       getCachedRoomMessages,
       patchRoomState,
       prefetchChatData,
+      scrollMessagesToBottom,
       viewerProfileId,
     ],
   );
@@ -563,6 +548,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
       const prevHeight = container?.scrollHeight ?? 0;
 
       setLoadingOlder(true);
+      shouldScrollToBottomRef.current = false;
       try {
         const page = await fetchRoomMessagesPage(roomId, { before });
         if (!page) return;
@@ -615,9 +601,12 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
       setMiniOpen(true);
       restoreComposeForRoom(thread.roomId);
       setLoadError(null);
+      shouldScrollToBottomRef.current = true;
 
       if (!hydratedRoomsRef.current.has(thread.roomId)) {
         void loadRecentMessages(thread);
+      } else {
+        requestAnimationFrame(() => scrollMessagesToBottom("auto"));
       }
     },
     [
@@ -627,6 +616,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
       miniThread,
       restoreComposeForRoom,
       saveComposeForRoom,
+      scrollMessagesToBottom,
     ],
   );
 
@@ -696,6 +686,10 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
         };
       });
 
+      if (shouldScrollToBottomRef.current) {
+        requestAnimationFrame(() => scrollMessagesToBottom("smooth"));
+      }
+
       try {
         const res = await fetch(`/api/chat/rooms/${roomId}/messages`, {
           method: "POST",
@@ -758,7 +752,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
         return false;
       }
     },
-    [viewerProfileId],
+    [scrollMessagesToBottom, viewerProfileId],
   );
 
   const sendMessage = useCallback(async () => {
@@ -766,13 +760,6 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
 
     const text = draft.trim();
     const images = readyImages;
-    const snapshotText = draft;
-    const snapshotImages = pendingImages;
-
-    setDraft("");
-    clearPendingImages();
-    composeByRoomRef.current.set(miniThread.roomId, { text: "", images: [] });
-    inputRef.current?.focus();
 
     const sends: Array<{
       payload: { noi_dung?: string; cloudflare_image_id?: string };
@@ -809,31 +796,26 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
       });
     }
 
+    setLoadError(null);
+    shouldScrollToBottomRef.current = true;
+
     for (const item of sends) {
       const ok = await postRoomMessage(miniThread.roomId, item.payload, item.optimistic);
-      if (!ok) {
-        setDraft(snapshotText);
-        setPendingImages(snapshotImages);
-        composeByRoomRef.current.set(miniThread.roomId, {
-          text: snapshotText,
-          images: snapshotImages,
-        });
-        break;
-      }
+      if (!ok) return;
     }
+
+    setDraft("");
+    clearPendingImages();
+    composeByRoomRef.current.set(miniThread.roomId, { text: "", images: [] });
+    inputRef.current?.focus();
   }, [
     canSend,
     clearPendingImages,
     draft,
     miniThread,
-    pendingImages,
     postRoomMessage,
     readyImages,
   ]);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length, miniOpen]);
 
   useEffect(() => {
     if (miniOpen) {
@@ -906,22 +888,14 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
                 Bắt đầu trò chuyện với <strong>{miniThread.name}</strong>
               </p>
             ) : null}
-            {messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`cins-chat-bubble-row${msg.from === "me" ? " is-me" : ""}`}
-              >
-                {msg.from === "them" ? (
+            {messages.length > 0 ? (
+              <ChatMessageThreadItems
+                messages={messages}
+                renderTheirAvatar={() => (
                   <MiniAvatar thread={miniThread} size={26} />
-                ) : null}
-                <div
-                  className={`cins-chat-bubble${msg.from === "me" ? " is-me" : " is-them"}${msg.imageUrl || msg.imageId ? " has-image" : ""}`}
-                >
-                  <ChatMessageBody msg={msg} />
-                  <time dateTime={msg.sentAt}>{formatChatTime(msg.sentAt)}</time>
-                </div>
-              </div>
-            ))}
+                )}
+              />
+            ) : null}
             <div ref={messagesEndRef} />
           </div>
 
@@ -938,22 +912,27 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
                           Đang tải…
                         </span>
                       ) : null}
+                      <button
+                        type="button"
+                        className="j-chat-mini-compose-remove"
+                        aria-label="Bỏ ảnh đính kèm"
+                        disabled={image.uploading}
+                        onClick={() => removePendingImage(image.localId)}
+                      >
+                        <X size={12} strokeWidth={2.5} aria-hidden />
+                      </button>
+                      {image.error ? (
+                        <p className="j-chat-mini-compose-error">{image.error}</p>
+                      ) : null}
                     </div>
-                    <button
-                      type="button"
-                      className="j-chat-mini-compose-remove"
-                      aria-label="Bỏ ảnh đính kèm"
-                      disabled={image.uploading}
-                      onClick={() => removePendingImage(image.localId)}
-                    >
-                      <X size={12} strokeWidth={2.5} aria-hidden />
-                    </button>
-                    {image.error ? (
-                      <p className="j-chat-mini-compose-error">{image.error}</p>
-                    ) : null}
                   </div>
                 ))}
               </div>
+            ) : null}
+            {loadError && messages.length > 0 ? (
+              <p className="j-chat-mini-compose-send-error" role="alert">
+                {loadError}
+              </p>
             ) : null}
             <div className="j-chat-mini-compose-row">
               <input
