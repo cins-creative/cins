@@ -3843,6 +3843,68 @@
   box-shadow: 0 0 0 2px var(--cins-blue, #1f74c9);
 }
 
+.ss-btn-notify--verify {
+  background: #0e6b4d;
+}
+
+.ss-btn-notify--verify:hover {
+  filter: brightness(1.06);
+}
+
+.ss-btn-notify--verify .ss-btn-notify-badge {
+  box-shadow: 0 0 0 2px #0e6b4d;
+}
+
+.tdh-membership-milestone-subtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.4));
+}
+
+.tdh-membership-milestone-body {
+  margin: 6px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink-body, rgba(0, 0, 0, 0.55));
+}
+
+.tdh-membership-milestone-slots {
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--border2, #e4e6eb);
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.tdh-membership-milestone-slots-label {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.4));
+}
+
+.tdh-membership-milestone-slots-list {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ink-body, rgba(0, 0, 0, 0.55));
+}
+
+.tdh-milestone-tag-status--approved {
+  color: #0e6b4d;
+}
+
+.tdh-milestone-tag-detail-hdr--approved {
+  border-left: 3px solid #0e6b4d;
+}
+
 .tdh-milestone-tag-hdr {
   display: flex;
   align-items: flex-start;
@@ -5129,6 +5191,13 @@ a.tdh-milestone-tag-student:hover {
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
+}
+
+.tdh-message-inbox-thread-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .tdh-message-inbox-thread-body {
@@ -5146,10 +5215,35 @@ a.tdh-milestone-tag-student:hover {
   align-items: baseline;
 }
 
+.tdh-message-inbox-thread-id {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
 .tdh-message-inbox-thread-name {
   font-size: 13px;
   font-weight: 600;
   color: var(--ink, #0f172a);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tdh-message-inbox-thread-role {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--ink-muted, #64748b);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.tdh-message-inbox-thread-role::before {
+  content: "·";
+  margin-right: 4px;
+  color: var(--ink-muted, #cbd5e1);
 }
 
 .tdh-message-inbox-thread-time {
@@ -5252,45 +5346,28 @@ a.tdh-milestone-tag-student:hover {
 }
 
 .tdh-message-inbox-messages {
-  list-style: none;
   margin: 0;
   padding: 14px 16px;
   flex: 1;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
+  background: var(--bg-soft, #f8fafc);
 }
 
-.tdh-message-inbox-bubble {
-  max-width: 88%;
-  padding: 10px 14px;
-  border-radius: 12px;
+.tdh-message-inbox-messages.cins-chat-messages .cins-chat-bubble-row.is-me {
+  justify-content: flex-end;
 }
 
-.tdh-message-inbox-bubble--user {
-  align-self: flex-start;
-  background: var(--bg-soft, #f1f5f9);
-  border: 1px solid var(--border2, #e4e6eb);
+.tdh-message-inbox-messages.cins-chat-messages .cins-chat-bubble-row.is-them {
+  justify-content: flex-start;
 }
 
-.tdh-message-inbox-bubble--school {
-  align-self: flex-end;
-  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 12%, #fff);
-  border: 1px solid color-mix(in srgb, var(--cins-blue, #1f74c9) 25%, #e4e6eb);
-}
-
-.tdh-message-inbox-bubble-text {
-  margin: 0 0 6px;
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--ink, #0f172a);
-  white-space: pre-wrap;
-}
-
-.tdh-message-inbox-bubble-time {
-  font-size: 10px;
-  color: var(--ink-muted, #94a3b8);
+.tdh-message-inbox-messages .tdh-message-inbox-thread-empty {
+  margin: 0;
+  padding: 24px 8px;
+  text-align: center;
 }
 
 .tdh-message-inbox-compose {

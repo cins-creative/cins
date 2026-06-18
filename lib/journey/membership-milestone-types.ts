@@ -81,3 +81,26 @@ export type OutboundMembershipPending = {
   orgHref: string | null;
   submittedAt: string;
 };
+
+export type OrgMembershipMilestoneStatus = "pending" | "approved" | "rejected";
+
+/** Yêu cầu xác thực cột mốc danh tính — góc nhìn org admin. */
+export type OrgMembershipMilestoneRequestItem = {
+  id: string;
+  status: OrgMembershipMilestoneStatus;
+  submittedAt: string;
+  reviewedAt: string | null;
+  cotMocId: string;
+  studentUserId: string;
+  studentName: string;
+  studentSlug: string;
+  studentAvatarUrl: string | null;
+  recipeId: PhraseRecipeId;
+  loaiMoc: LoaiMoc;
+  title: string;
+  body: string | null;
+  contextLabel: string | null;
+  visibilityAfterVerify: MembershipMilestonePayload["visibilityAfterVerify"];
+  slotSummary: string[];
+  evidence: OrgAttachEvidence[];
+};

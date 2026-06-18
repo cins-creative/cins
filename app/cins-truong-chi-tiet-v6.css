@@ -2582,8 +2582,8 @@
 }
 
 .tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs .cso-ss-primary-action--admin {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 10px;
 }
 

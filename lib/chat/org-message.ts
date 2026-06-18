@@ -7,15 +7,19 @@ import {
 import {
   enrichMessages,
   listDirectThreads,
+  markRoomRead,
   MESSAGE_SELECT,
   mapMessageFromRow,
   messagePreview,
   type MessageRow,
 } from "@/lib/chat/direct-message";
+import type { OrgInboxThread } from "@/lib/chat/org-inbox-types";
 import { canReviewOrgMilestoneTags } from "@/lib/journey/org-milestone-tag";
-import { getAvatarUrl } from "@/lib/journey/profile";
+import { getAvatarUrl, getGiaiDoanLabel } from "@/lib/journey/profile";
+import { commentVaiTroLabel } from "@/lib/social/comments/vai-tro-label";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
+import type { GiaiDoan } from "@/lib/auth/session";
 import type {
   ChatMessage,
   ChatOrgKind,
@@ -171,10 +175,314 @@ export async function findOrCreateOrgStudentRoom(
   return room.id;
 }
 
+async function ensureStaffOrgRoomMember(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  roomId: string,
+  staffUserId: string,
+): Promise<void> {
+  const { data: existing } = await admin
+    .from("chat_thanh_vien")
+    .select("id")
+    .eq("id_phong", roomId)
+    .eq("id_nguoi_dung", staffUserId)
+    .is("roi_luc", null)
+    .maybeSingle<{ id: string }>();
+
+  if (existing?.id) return;
+
+  const { error } = await admin.from("chat_thanh_vien").insert({
+    id_phong: roomId,
+    id_nguoi_dung: staffUserId,
+    vai_tro: "admin",
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
+function inboxSubjectFromMessage(row: MessageRow | undefined): string {
+  if (!row) return "Tin nhắn mới";
+  const text = messagePreview(row).replace(/\s+/g, " ").trim();
+  if (!text) return "Tin nhắn mới";
+  const firstLine = text.split("\n")[0]?.trim() ?? text;
+  if (firstLine.length <= 72) return firstLine;
+  return `${firstLine.slice(0, 69)}…`;
+}
+
+type OrgRoomMember = { id_nguoi_dung: string; vai_tro: string };
+
+/** User đối thoại với org trong phòng 1_org (không lọc theo staff org — admin có thể tự nhắn thử). */
+function resolveStudentUserIdForOrgRoom(
+  roomMembers: OrgRoomMember[],
+  roomMessages: MessageRow[],
+): string | null {
+  const studentMember = roomMembers.find((member) => member.vai_tro === "thanh_vien");
+  if (studentMember) return studentMember.id_nguoi_dung;
+
+  const nonAdminMember = roomMembers.find((member) => member.vai_tro !== "admin");
+  if (nonAdminMember) return nonAdminMember.id_nguoi_dung;
+
+  if (roomMessages.length === 0) return null;
+
+  const sorted = [...roomMessages].sort(
+    (a, b) => new Date(a.tao_luc).getTime() - new Date(b.tao_luc).getTime(),
+  );
+  return sorted[0]!.id_nguoi_gui;
+}
+
+/** Nhãn quan hệ user ↔ org trong inbox tuyển sinh. */
+function resolveOrgInboxContactLabel(
+  orgVaiTro: string | null,
+  giaiDoan: GiaiDoan | null,
+): string {
+  if (orgVaiTro) {
+    return commentVaiTroLabel(orgVaiTro);
+  }
+  if (giaiDoan === "dang_day") {
+    return "Giảng viên";
+  }
+  return "Người lạ";
+}
+
+function buildInboxThread(params: {
+  roomId: string;
+  studentUserId: string;
+  studentName: string;
+  studentSlug: string;
+  studentAvatarUrl: string | null;
+  studentContactLabel: string;
+  studentRole: string;
+  roomMessages: MessageRow[];
+  staffUserId: string;
+  readAt: string | null;
+}): OrgInboxThread | null {
+  if (params.roomMessages.length === 0) return null;
+
+  const sorted = [...params.roomMessages].sort(
+    (a, b) => new Date(a.tao_luc).getTime() - new Date(b.tao_luc).getTime(),
+  );
+  const first = sorted[0]!;
+  const last = sorted[sorted.length - 1]!;
+  const unreadMessages = sorted.filter(
+    (msg) =>
+      msg.id_nguoi_gui === params.studentUserId &&
+      (!params.readAt || msg.tao_luc > params.readAt),
+  );
+  const unreadCount = unreadMessages.length;
+  const status: OrgInboxThread["status"] =
+    last.id_nguoi_gui === params.studentUserId ? "open" : "replied";
+
+  return {
+    roomId: params.roomId,
+    studentUserId: params.studentUserId,
+    studentName: params.studentName,
+    studentSlug: params.studentSlug,
+    studentAvatarUrl: params.studentAvatarUrl,
+    studentContactLabel: params.studentContactLabel,
+    studentRole: params.studentRole,
+    subject: inboxSubjectFromMessage(first),
+    preview: messagePreview(last),
+    lastAt: last.tao_luc,
+    unread: unreadCount > 0,
+    unreadCount,
+    status,
+  };
+}
+
+export async function listOrgInboxThreadsForStaff(
+  orgId: string,
+  staffUserId: string,
+): Promise<
+  | { ok: true; threads: OrgInboxThread[] }
+  | { ok: false; error: string }
+> {
+  if (!(await canReviewOrgMilestoneTags(orgId, staffUserId))) {
+    return { ok: false, error: "Không có quyền xem hộp thư." };
+  }
+
+  const admin = createServiceRoleClient();
+  const { data: rooms, error: roomError } = await admin
+    .from("chat_phong")
+    .select("id, cap_nhat_luc")
+    .eq("loai_phong", ORG_ROOM)
+    .eq("id_org_dai_dien", orgId)
+    .returns<Array<{ id: string; cap_nhat_luc: string }>>();
+
+  if (roomError) return { ok: false, error: roomError.message };
+  if (!rooms?.length) return { ok: true, threads: [] };
+
+  const roomIds = rooms.map((room) => room.id);
+
+  const { data: members } = await admin
+    .from("chat_thanh_vien")
+    .select("id_phong, id_nguoi_dung, vai_tro")
+    .in("id_phong", roomIds)
+    .is("roi_luc", null)
+    .returns<Array<{ id_phong: string; id_nguoi_dung: string; vai_tro: string }>>();
+
+  const membersByRoom = new Map<string, OrgRoomMember[]>();
+  for (const member of members ?? []) {
+    const list = membersByRoom.get(member.id_phong) ?? [];
+    list.push({
+      id_nguoi_dung: member.id_nguoi_dung,
+      vai_tro: member.vai_tro,
+    });
+    membersByRoom.set(member.id_phong, list);
+  }
+
+  const { data: messageRows } = await admin
+    .from("chat_tin_nhan")
+    .select(MESSAGE_SELECT)
+    .in("id_phong", roomIds)
+    .eq("da_xoa", false)
+    .order("tao_luc", { ascending: true })
+    .returns<MessageRow[]>();
+
+  const messagesByRoom = new Map<string, MessageRow[]>();
+  for (const row of messageRows ?? []) {
+    const list = messagesByRoom.get(row.id_phong) ?? [];
+    list.push(row);
+    messagesByRoom.set(row.id_phong, list);
+  }
+
+  const studentByRoom = new Map<string, string>();
+  for (const room of rooms) {
+    const studentUserId = resolveStudentUserIdForOrgRoom(
+      membersByRoom.get(room.id) ?? [],
+      messagesByRoom.get(room.id) ?? [],
+    );
+    if (studentUserId) {
+      studentByRoom.set(room.id, studentUserId);
+    }
+  }
+
+  const studentIds = [...new Set(studentByRoom.values())];
+  const profileById = new Map<
+    string,
+    {
+      slug: string;
+      ten_hien_thi: string | null;
+      avatar_id: string | null;
+      giai_doan: string | null;
+    }
+  >();
+
+  if (studentIds.length > 0) {
+    const { data: profiles } = await admin
+      .from("user_nguoi_dung")
+      .select("id, slug, ten_hien_thi, avatar_id, giai_doan")
+      .in("id", studentIds)
+      .returns<
+        Array<{
+          id: string;
+          slug: string;
+          ten_hien_thi: string | null;
+          avatar_id: string | null;
+          giai_doan: string | null;
+        }>
+      >();
+    for (const profile of profiles ?? []) {
+      profileById.set(profile.id, profile);
+    }
+  }
+
+  const orgVaiTroByUserId = new Map<string, string>();
+  if (studentIds.length > 0) {
+    const { data: orgMembers } = await admin
+      .from("user_thanh_vien_to_chuc")
+      .select("id_nguoi_dung, vai_tro")
+      .eq("id_to_chuc", orgId)
+      .eq("trang_thai", "active")
+      .in("id_nguoi_dung", studentIds)
+      .returns<Array<{ id_nguoi_dung: string; vai_tro: string }>>();
+
+    for (const row of orgMembers ?? []) {
+      if (!orgVaiTroByUserId.has(row.id_nguoi_dung)) {
+        orgVaiTroByUserId.set(row.id_nguoi_dung, row.vai_tro);
+      }
+    }
+  }
+
+  await Promise.all(
+    roomIds.map((roomId) => ensureStaffOrgRoomMember(admin, roomId, staffUserId)),
+  );
+
+  const { data: reads } = await admin
+    .from("chat_da_doc")
+    .select("id_phong, id_tin_nhan_cuoi_doc")
+    .eq("id_nguoi_dung", staffUserId)
+    .in("id_phong", roomIds)
+    .returns<Array<{ id_phong: string; id_tin_nhan_cuoi_doc: string }>>();
+
+  const readAtByRoom = new Map<string, string>();
+  const readMessageIds = [
+    ...new Set((reads ?? []).map((row) => row.id_tin_nhan_cuoi_doc)),
+  ];
+  if (readMessageIds.length > 0) {
+    const { data: readMessages } = await admin
+      .from("chat_tin_nhan")
+      .select("id, tao_luc")
+      .in("id", readMessageIds)
+      .returns<Array<{ id: string; tao_luc: string }>>();
+    const readAtByMessageId = new Map(
+      (readMessages ?? []).map((row) => [row.id, row.tao_luc]),
+    );
+    for (const read of reads ?? []) {
+      const readAt = readAtByMessageId.get(read.id_tin_nhan_cuoi_doc);
+      if (readAt) readAtByRoom.set(read.id_phong, readAt);
+    }
+  }
+
+  const byStudent = new Map<string, OrgInboxThread>();
+  for (const room of rooms) {
+    const studentUserId = studentByRoom.get(room.id);
+    if (!studentUserId) continue;
+
+    const profile = profileById.get(studentUserId);
+    const studentName =
+      profile?.ten_hien_thi?.trim() || profile?.slug?.trim() || "User";
+    const giaiDoan = (profile?.giai_doan as GiaiDoan | null) ?? null;
+    const thread = buildInboxThread({
+      roomId: room.id,
+      studentUserId,
+      studentName,
+      studentSlug: profile?.slug ?? "",
+      studentAvatarUrl: getAvatarUrl(profile?.avatar_id ?? null),
+      studentContactLabel: resolveOrgInboxContactLabel(
+        orgVaiTroByUserId.get(studentUserId) ?? null,
+        giaiDoan,
+      ),
+      studentRole: giaiDoan
+        ? getGiaiDoanLabel(giaiDoan)
+        : "Thành viên CINs",
+      roomMessages: messagesByRoom.get(room.id) ?? [],
+      staffUserId,
+      readAt: readAtByRoom.get(room.id) ?? null,
+    });
+    if (!thread) continue;
+
+    const existing = byStudent.get(studentUserId);
+    if (
+      !existing ||
+      new Date(thread.lastAt).getTime() >= new Date(existing.lastAt).getTime()
+    ) {
+      byStudent.set(studentUserId, thread);
+    }
+  }
+
+  const threads = [...byStudent.values()].sort(
+    (a, b) => new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime(),
+  );
+
+  return { ok: true, threads };
+}
+
 export async function listOrgStudentMessagesForStaff(params: {
   orgId: string;
   studentUserId: string;
   staffUserId: string;
+  markRead?: boolean;
 }): Promise<
   | { ok: true; roomId: string; messages: ChatMessage[] }
   | { ok: false; error: string }
@@ -208,6 +516,15 @@ export async function listOrgStudentMessagesForStaff(params: {
       roomId,
       null,
     );
+
+    if (params.markRead !== false && chronological.length > 0) {
+      await ensureStaffOrgRoomMember(admin, roomId, params.staffUserId);
+      await markRoomRead(
+        roomId,
+        params.staffUserId,
+        chronological[chronological.length - 1]!.id,
+      );
+    }
 
     return { ok: true, roomId, messages };
   } catch (e) {
@@ -256,6 +573,7 @@ export async function sendOrgMessageToStudent(params: {
       params.orgId,
       params.studentUserId,
     );
+    await ensureStaffOrgRoomMember(admin, roomId, params.staffUserId);
     const now = new Date().toISOString();
 
     const { data, error } = await admin

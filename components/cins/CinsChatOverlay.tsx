@@ -41,6 +41,7 @@ import {
   patchPendingImageUploadResult,
   planPendingImageAdditions,
 } from "@/lib/chat/compose-image-upload";
+import { buildChatSendPlan, type ChatSendPayload } from "@/lib/chat/compose-send-plan";
 import {
   fetchPinnedMessages,
   patchChatMessage,
@@ -58,7 +59,6 @@ import {
 } from "@/lib/chat/thread-merge";
 import { applyOptimisticReaction } from "@/lib/chat/optimistic-reactions";
 import {
-  createOptimisticChatMessage,
   messagePreviewText,
 } from "@/lib/chat/optimistic-message";
 import { appendChatMessageIfNew, mergeChatMessageUpdate, reconcileChatMessage } from "@/lib/chat/realtime";
@@ -1111,24 +1111,18 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     [active, editingDraft, patchActiveThreadMessages],
   );
 
-  const postRoomMessage = useCallback(
-    async (
-      thread: ChatThread,
-      payload: {
-        noi_dung?: string;
-        cloudflare_image_id?: string;
-        id_tin_tra_loi?: string;
-      },
-      optimistic: ReturnType<typeof createOptimisticChatMessage>,
-    ) => {
+  const appendOptimisticMessages = useCallback(
+    (thread: ChatThread, optimistics: ChatMessage[]) => {
+      if (optimistics.length === 0) return;
+      const last = optimistics[optimistics.length - 1]!;
       setThreads((prev) =>
         prev.map((t) =>
           t.id === thread.id
             ? {
                 ...t,
-                messages: [...t.messages, optimistic],
-                preview: messagePreviewText(optimistic),
-                lastAt: optimistic.sentAt,
+                messages: [...t.messages, ...optimistics],
+                preview: messagePreviewText(last),
+                lastAt: last.sentAt,
               }
             : t,
         ),
@@ -1137,7 +1131,16 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
       if (shouldScrollToBottomRef.current) {
         requestAnimationFrame(() => scrollMessagesToBottom("smooth"));
       }
+    },
+    [scrollMessagesToBottom],
+  );
 
+  const submitRoomMessage = useCallback(
+    async (
+      thread: ChatThread,
+      payload: ChatSendPayload,
+      optimisticId: string,
+    ) => {
       try {
         const res = await fetch(`/api/chat/rooms/${thread.roomId}/messages`, {
           method: "POST",
@@ -1174,7 +1177,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
             t.id === thread.id
               ? {
                   ...t,
-                  messages: t.messages.filter((m) => m.id !== optimistic.id),
+                  messages: t.messages.filter((m) => m.id !== optimisticId),
                 }
               : t,
           ),
@@ -1185,7 +1188,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
         return false;
       }
     },
-    [scrollMessagesToBottom, viewerProfileId],
+    [viewerProfileId],
   );
 
   const sendMessage = useCallback(async () => {
@@ -1207,56 +1210,38 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
       ? messageToReplyPreview(snapshotReply)
       : null;
 
-    const sends: Array<{
-      payload: {
-        noi_dung?: string;
-        cloudflare_image_id?: string;
-        id_tin_tra_loi?: string;
-      };
-      optimistic: ReturnType<typeof createOptimisticChatMessage>;
-    }> = [];
+    const sends = buildChatSendPlan({
+      text,
+      images: images.map((image) => ({
+        imageId: image.imageId!,
+        previewUrl: image.previewUrl,
+      })),
+      replyTo: replyPreview,
+    });
+    if (sends.length === 0) return;
 
-    if (images.length > 0) {
-      const [first, ...rest] = images;
-      sends.push({
-        payload: {
-          ...(text ? { noi_dung: text } : {}),
-          cloudflare_image_id: first.imageId!,
-          ...(snapshotReply ? { id_tin_tra_loi: snapshotReply.id } : {}),
-        },
-        optimistic: createOptimisticChatMessage({
-          body: text,
-          imageId: first.imageId,
-          imageUrl: first.previewUrl,
-          replyTo: replyPreview,
-        }),
-      });
-      for (const image of rest) {
-        sends.push({
-          payload: { cloudflare_image_id: image.imageId! },
-          optimistic: createOptimisticChatMessage({
-            body: "",
-            imageId: image.imageId,
-            imageUrl: image.previewUrl,
-          }),
-        });
-      }
-    } else if (text) {
-      sends.push({
-        payload: {
-          noi_dung: text,
-          ...(snapshotReply ? { id_tin_tra_loi: snapshotReply.id } : {}),
-        },
-        optimistic: createOptimisticChatMessage({
-          body: text,
-          replyTo: replyPreview,
-        }),
-      });
-    }
+    appendOptimisticMessages(
+      active,
+      sends.map((item) => item.optimistic),
+    );
 
-    for (const item of sends) {
-      const ok = await postRoomMessage(active, item.payload, item.optimistic);
+    for (let index = 0; index < sends.length; index += 1) {
+      const item = sends[index]!;
+      const ok = await submitRoomMessage(active, item.payload, item.optimistic.id);
       if (!ok) {
+        const unsentIds = new Set(
+          sends.slice(index).map((entry) => entry.optimistic.id),
+        );
+        setThreads((prev) =>
+          prev.map((t) =>
+            t.id === active.id
+              ? {
+                  ...t,
+                  messages: t.messages.filter((m) => !unsentIds.has(m.id)),
+                }
+              : t,
+          ),
+        );
         setDraft(snapshotText);
         setPendingImages(snapshotImages);
         setReplyTarget(snapshotReply);
@@ -1269,13 +1254,14 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     }
   }, [
     active,
+    appendOptimisticMessages,
     canSend,
     clearPendingImages,
     draft,
     pendingImages,
-    postRoomMessage,
     readyImages,
     replyTarget,
+    submitRoomMessage,
   ]);
 
   if (!portalReady) return null;

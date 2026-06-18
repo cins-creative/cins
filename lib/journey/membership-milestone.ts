@@ -22,6 +22,7 @@ import {
   type MembershipMilestoneSearchHit,
   type MembershipMilestoneSlotValues,
   type OutboundMembershipPending,
+  type OrgMembershipMilestoneRequestItem,
   type SubmitMembershipMilestoneInput,
 } from "@/lib/journey/membership-milestone-types";
 import type { OrgAttachEvidence } from "@/lib/journey/org-milestone-tag-types";
@@ -555,4 +556,345 @@ export async function updateMembershipMilestone(
   revalidatePath(`/${ownerSlug}`);
   const milestone = await buildMilestoneItemForCotMoc(admin, cotMocId);
   return { ok: true, cotMocId, milestone: milestone ?? undefined };
+}
+
+type DbMembershipYeuCauRow = {
+  id: string;
+  nguoi_yeu_cau: string;
+  id_cot_moc: string;
+  id_to_chuc: string;
+  noi_dung: string | null;
+  trang_thai: string;
+  tao_luc: string;
+  xu_ly_luc?: string | null;
+};
+
+function mapMembershipRequestStatus(raw: string): OrgMembershipMilestoneRequestItem["status"] {
+  if (raw === "da_duyet") return "approved";
+  if (raw === "tu_choi") return "rejected";
+  return "pending";
+}
+
+function visibilityLabel(
+  value: MembershipMilestonePayload["visibilityAfterVerify"],
+): string {
+  if (value === "public") return "Công khai";
+  if (value === "theo_nhom") return "Theo nhóm";
+  return "Chỉ mình tôi";
+}
+
+export function summarizeMembershipPayload(
+  payload: MembershipMilestonePayload,
+): string[] {
+  const lines: string[] = [];
+  const slots = payload.slots;
+  if (slots.hanh_dong?.label) lines.push(`Hành động: ${slots.hanh_dong.label}`);
+  if (slots.vai_tro?.label) lines.push(`Vai trò: ${slots.vai_tro.label}`);
+  if (slots.vi_tri?.value?.trim()) lines.push(`Vị trí: ${slots.vi_tri.value.trim()}`);
+  if (slots.context?.label) lines.push(`Ngành / khóa: ${slots.context.label}`);
+  if (slots.thoi_diem) {
+    lines.push(`Thời điểm: ${slots.thoi_diem.month}/${slots.thoi_diem.year}`);
+  }
+  lines.push(`Hiển thị sau duyệt: ${visibilityLabel(payload.visibilityAfterVerify)}`);
+  return lines;
+}
+
+function membershipRowToRequestItem(
+  row: DbMembershipYeuCauRow,
+  profileByUserId: Map<
+    string,
+    { slug: string; ten_hien_thi: string | null; avatar_id: string | null }
+  >,
+): OrgMembershipMilestoneRequestItem | null {
+  const payload = parseMembershipMilestonePayload(row.noi_dung);
+  if (!payload) return null;
+
+  const profile = profileByUserId.get(row.nguoi_yeu_cau);
+  const studentName =
+    profile?.ten_hien_thi?.trim() || profile?.slug?.trim() || "User";
+
+  return {
+    id: row.id,
+    status: mapMembershipRequestStatus(row.trang_thai),
+    submittedAt: row.tao_luc,
+    reviewedAt: row.xu_ly_luc ?? null,
+    cotMocId: row.id_cot_moc,
+    studentUserId: row.nguoi_yeu_cau,
+    studentName,
+    studentSlug: profile?.slug ?? "",
+    studentAvatarUrl: getAvatarUrl(profile?.avatar_id ?? null),
+    recipeId: payload.recipeId,
+    loaiMoc: payload.loaiMoc,
+    title: payload.tieuDe,
+    body: payload.moTa || null,
+    contextLabel: payload.slots.context?.label ?? null,
+    visibilityAfterVerify: payload.visibilityAfterVerify ?? "public",
+    slotSummary: summarizeMembershipPayload(payload),
+    evidence: payload.evidence,
+  };
+}
+
+function mapSlotToOrgVaiTro(payload: MembershipMilestonePayload): string {
+  const slotRole = payload.slots.vai_tro?.value;
+  if (slotRole === "hoc_vien" || slotRole === "sinh_vien" || slotRole === "hoc_bong") {
+    return "hoc_vien";
+  }
+  if (payload.recipeId === "bat_dau_lam") return "nhan_vien";
+  return "thanh_vien";
+}
+
+function shouldUpsertOrgMembership(payload: MembershipMilestonePayload): boolean {
+  if (payload.recipeId === "bat_dau_lam") return true;
+  if (payload.recipeId === "bat_dau_hoc" && isHocStartAction(payload.slots.hanh_dong?.value)) {
+    return true;
+  }
+  return false;
+}
+
+async function upsertVerifiedOrgMembership(params: {
+  admin: ReturnType<typeof createServiceRoleClient>;
+  orgId: string;
+  userId: string;
+  payload: MembershipMilestonePayload;
+  cotMocId: string;
+}): Promise<void> {
+  if (!shouldUpsertOrgMembership(params.payload)) return;
+
+  const { data: cotMoc } = await params.admin
+    .from("content_cot_moc")
+    .select("id_truong_nganh, thoi_diem")
+    .eq("id", params.cotMocId)
+    .maybeSingle<{ id_truong_nganh: string | null; thoi_diem: string | null }>();
+
+  const thoiDiem = params.payload.slots.thoi_diem;
+  const tuNgay = thoiDiem
+    ? `${thoiDiem.year}-${String(thoiDiem.month).padStart(2, "0")}-01`
+    : cotMoc?.thoi_diem?.slice(0, 10) ?? new Date().toISOString().slice(0, 10);
+
+  const { data: existing } = await params.admin
+    .from("user_thanh_vien_to_chuc")
+    .select("id")
+    .eq("id_nguoi_dung", params.userId)
+    .eq("id_to_chuc", params.orgId)
+    .eq("trang_thai", "active")
+    .is("den_ngay", null)
+    .limit(1)
+    .maybeSingle<{ id: string }>();
+
+  if (existing?.id) return;
+
+  await params.admin.from("user_thanh_vien_to_chuc").insert({
+    id_nguoi_dung: params.userId,
+    id_to_chuc: params.orgId,
+    vai_tro: mapSlotToOrgVaiTro(params.payload),
+    trang_thai: "active",
+    tu_ngay: tuNgay,
+    nam_bat_dau: thoiDiem?.year ?? null,
+    id_nganh: cotMoc?.id_truong_nganh ?? null,
+  });
+}
+
+export async function listOrgMembershipMilestoneRequests(
+  orgId: string,
+  viewerId: string,
+): Promise<
+  | { ok: true; items: OrgMembershipMilestoneRequestItem[] }
+  | { ok: false; error: string }
+> {
+  const { canReviewOrgMilestoneTags } = await import("@/lib/journey/org-milestone-tag");
+  if (!(await canReviewOrgMilestoneTags(orgId, viewerId))) {
+    return { ok: false, error: "Không có quyền xem yêu cầu." };
+  }
+
+  const admin = createServiceRoleClient();
+  const { data: rows, error } = await admin
+    .from("verify_yeu_cau")
+    .select(
+      "id, nguoi_yeu_cau, id_cot_moc, id_to_chuc, noi_dung, trang_thai, tao_luc, xu_ly_luc",
+    )
+    .eq("id_to_chuc", orgId)
+    .order("tao_luc", { ascending: false })
+    .returns<DbMembershipYeuCauRow[]>();
+
+  if (error) return { ok: false, error: error.message };
+
+  const membershipRows = (rows ?? []).filter((row) =>
+    Boolean(parseMembershipMilestonePayload(row.noi_dung)),
+  );
+
+  const userIds = [...new Set(membershipRows.map((row) => row.nguoi_yeu_cau))];
+  const profileByUserId = new Map<
+    string,
+    { slug: string; ten_hien_thi: string | null; avatar_id: string | null }
+  >();
+
+  if (userIds.length > 0) {
+    const { data: profiles } = await admin
+      .from("user_nguoi_dung")
+      .select("id, slug, ten_hien_thi, avatar_id")
+      .in("id", userIds)
+      .returns<
+        Array<{
+          id: string;
+          slug: string;
+          ten_hien_thi: string | null;
+          avatar_id: string | null;
+        }>
+      >();
+    for (const profile of profiles ?? []) {
+      profileByUserId.set(profile.id, profile);
+    }
+  }
+
+  const items = membershipRows
+    .map((row) => membershipRowToRequestItem(row, profileByUserId))
+    .filter((item): item is OrgMembershipMilestoneRequestItem => item !== null);
+
+  return { ok: true, items };
+}
+
+export async function respondOrgMembershipMilestoneRequest(params: {
+  orgId: string;
+  requestId: string;
+  viewerId: string;
+  action: "approve" | "reject";
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { canReviewOrgMilestoneTags, orgPublicPath } = await import(
+    "@/lib/journey/org-milestone-tag"
+  );
+  if (!(await canReviewOrgMilestoneTags(params.orgId, params.viewerId))) {
+    return { ok: false, error: "Không có quyền duyệt." };
+  }
+
+  const admin = createServiceRoleClient();
+  const { data: row } = await admin
+    .from("verify_yeu_cau")
+    .select(
+      "id, trang_thai, id_to_chuc, id_cot_moc, nguoi_yeu_cau, noi_dung",
+    )
+    .eq("id", params.requestId)
+    .eq("id_to_chuc", params.orgId)
+    .maybeSingle<{
+      id: string;
+      trang_thai: string;
+      id_to_chuc: string;
+      id_cot_moc: string;
+      nguoi_yeu_cau: string;
+      noi_dung: string | null;
+    }>();
+
+  if (!row?.id) return { ok: false, error: "Không tìm thấy yêu cầu." };
+
+  const payload = parseMembershipMilestonePayload(row.noi_dung);
+  if (!payload) {
+    return { ok: false, error: "Yêu cầu không phải cột mốc danh tính." };
+  }
+
+  if (row.trang_thai !== "cho_xu_ly") {
+    return { ok: false, error: "Yêu cầu đã được xử lý." };
+  }
+
+  const now = new Date().toISOString();
+
+  if (params.action === "reject") {
+    const { error } = await admin
+      .from("verify_yeu_cau")
+      .update({
+        trang_thai: "tu_choi",
+        nguoi_xu_ly: params.viewerId,
+        xu_ly_luc: now,
+      })
+      .eq("id", params.requestId);
+
+    if (error) return { ok: false, error: error.message };
+
+    const { data: profile } = await admin
+      .from("user_nguoi_dung")
+      .select("slug")
+      .eq("id", row.nguoi_yeu_cau)
+      .maybeSingle<{ slug: string }>();
+    if (profile?.slug) revalidatePath(`/${profile.slug}`);
+
+    return { ok: true };
+  }
+
+  const { data: org } = await admin
+    .from("org_to_chuc")
+    .select("slug, loai_to_chuc")
+    .eq("id", params.orgId)
+    .maybeSingle<{ slug: string; loai_to_chuc: string }>();
+
+  const orgLoai = org?.loai_to_chuc;
+  const orgPath =
+    orgLoai === "co_so_dao_tao" || orgLoai === "truong_dai_hoc"
+      ? orgPublicPath(orgLoai, org?.slug ?? "")
+      : orgLoai === "studio" && org?.slug
+        ? `/studio/${encodeURIComponent(org.slug)}`
+        : null;
+
+  const { error: mocErr } = await admin
+    .from("content_cot_moc")
+    .update({
+      che_do_hien_thi: payload.visibilityAfterVerify ?? "public",
+    })
+    .eq("id", row.id_cot_moc)
+    .eq("id_nguoi_dung", row.nguoi_yeu_cau);
+
+  if (mocErr) return { ok: false, error: mocErr.message };
+
+  const { data: existingVerify } = await admin
+    .from("verify_xac_nhan")
+    .select("id")
+    .eq("id_cot_moc", row.id_cot_moc)
+    .eq("trang_thai", "da_xac_nhan")
+    .maybeSingle<{ id: string }>();
+
+  if (!existingVerify?.id) {
+    const { error: verifyErr } = await admin.from("verify_xac_nhan").insert({
+      id_cot_moc: row.id_cot_moc,
+      loai_nguoi_xac_nhan: "to_chuc",
+      id_nguoi_xac_nhan: params.viewerId,
+      trang_thai: "da_xac_nhan",
+      url_proof: orgPath,
+      bang_chung: row.id,
+      xu_ly_luc: now,
+    });
+    if (verifyErr) return { ok: false, error: verifyErr.message };
+  }
+
+  await upsertVerifiedOrgMembership({
+    admin,
+    orgId: params.orgId,
+    userId: row.nguoi_yeu_cau,
+    payload,
+    cotMocId: row.id_cot_moc,
+  });
+
+  const { error } = await admin
+    .from("verify_yeu_cau")
+    .update({
+      trang_thai: "da_duyet",
+      nguoi_xu_ly: params.viewerId,
+      xu_ly_luc: now,
+    })
+    .eq("id", params.requestId);
+
+  if (error) return { ok: false, error: error.message };
+
+  const { data: profile } = await admin
+    .from("user_nguoi_dung")
+    .select("slug")
+    .eq("id", row.nguoi_yeu_cau)
+    .maybeSingle<{ slug: string }>();
+
+  if (profile?.slug) revalidatePath(`/${profile.slug}`);
+  if (org?.slug) {
+    if (orgLoai === "co_so_dao_tao") {
+      revalidatePath(`/co-so/${org.slug}`);
+    } else if (orgLoai === "truong_dai_hoc") {
+      revalidatePath(truongRootPath(org.slug));
+    }
+  }
+
+  return { ok: true };
 }

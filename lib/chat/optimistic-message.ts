@@ -13,6 +13,7 @@ export function createOptimisticChatMessage(input: {
   imageId?: string | null;
   imageUrl?: string | null;
   replyTo?: ChatMessageReplyPreview | null;
+  sentAt?: string;
 }): ChatMessage {
   const kind = input.kind ?? (input.imageId ? "media" : "text");
   const imageId = input.imageId ?? null;
@@ -24,7 +25,7 @@ export function createOptimisticChatMessage(input: {
     id: `${OPTIMISTIC_PREFIX}${crypto.randomUUID()}`,
     from: "me",
     body: input.body,
-    sentAt: new Date().toISOString(),
+    sentAt: input.sentAt ?? new Date().toISOString(),
     kind,
     imageId,
     imageUrl,

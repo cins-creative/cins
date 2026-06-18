@@ -1,16 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Loader2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 
 import { TruongInlineModal } from "@/components/truong/inline/TruongInlineModal";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
-import {
-  formatInboxTime,
-  inboxStatusLabel,
-  MOCK_INBOX_THREADS,
-  type InboxThread,
-  type InboxThreadStatus,
-} from "@/lib/truong/message-inbox-mock";
+import { ChatMessageThreadItems } from "@/components/cins/ChatMessageThreadItems";
+import type { OrgInboxThread, OrgInboxThreadStatus } from "@/lib/chat/org-inbox-types";
+import type { ChatMessage } from "@/lib/chat/types";
+import { formatInboxTime } from "@/lib/truong/message-inbox-mock";
 
 function ChatIcon() {
   return (
@@ -36,17 +34,25 @@ function studentInitials(name: string): string {
   return name.trim().slice(0, 2).toUpperCase() || "?";
 }
 
-type FilterKey = "all" | InboxThreadStatus | "unread";
+function inboxStatusLabel(status: OrgInboxThreadStatus): string {
+  return status === "open" ? "Chưa trả lời" : "Đã trả lời";
+}
+
+type FilterKey = "all" | OrgInboxThreadStatus | "unread";
 
 export function TruongMessageInbox() {
   const ctx = useTruongInlineEdit();
   const [open, setOpen] = useState(false);
-  const [threads, setThreads] = useState(MOCK_INBOX_THREADS);
-  const [selectedId, setSelectedId] = useState<string | null>(
-    MOCK_INBOX_THREADS[0]?.id ?? null,
-  );
-  const [filter, setFilter] = useState<FilterKey>("unread");
+  const [threads, setThreads] = useState<OrgInboxThread[]>([]);
+  const [loadingThreads, setLoadingThreads] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [messageError, setMessageError] = useState<string | null>(null);
+  const [filter, setFilter] = useState<FilterKey>("open");
   const [reply, setReply] = useState("");
+  const [pending, startTransition] = useTransition();
 
   const unreadCount = useMemo(
     () => threads.filter((t) => t.unread).length,
@@ -60,56 +66,148 @@ export function TruongMessageInbox() {
   }, [threads, filter]);
 
   const selected = useMemo(
-    () => threads.find((t) => t.id === selectedId) ?? null,
-    [threads, selectedId],
+    () => threads.find((t) => t.studentUserId === selectedStudentId) ?? null,
+    [threads, selectedStudentId],
   );
+
+  const loadThreads = useCallback(async () => {
+    if (!ctx?.orgId) return;
+    setLoadingThreads(true);
+    setLoadError(null);
+    try {
+      const res = await fetch(`/api/org/${ctx.orgId}/inbox/threads`, {
+        cache: "no-store",
+      });
+      const json = (await res.json()) as {
+        threads?: OrgInboxThread[];
+        error?: string;
+      };
+      if (!res.ok) {
+        setLoadError(json.error ?? "Không tải được hộp thư.");
+        setThreads([]);
+        return;
+      }
+      const next = Array.isArray(json.threads) ? json.threads : [];
+      setThreads(next);
+      setSelectedStudentId((current) => {
+        if (current && next.some((t) => t.studentUserId === current)) return current;
+        return (
+          next.find((t) => t.status === "open")?.studentUserId ??
+          next[0]?.studentUserId ??
+          null
+        );
+      });
+    } catch {
+      setLoadError("Lỗi mạng.");
+      setThreads([]);
+    } finally {
+      setLoadingThreads(false);
+    }
+  }, [ctx?.orgId]);
+
+  const loadMessages = useCallback(
+    async (studentUserId: string) => {
+      if (!ctx?.orgId) return;
+      setLoadingMessages(true);
+      setMessageError(null);
+      try {
+        const res = await fetch(
+          `/api/org/${ctx.orgId}/student-chat/${encodeURIComponent(studentUserId)}/messages`,
+          { cache: "no-store" },
+        );
+        const json = (await res.json()) as {
+          messages?: ChatMessage[];
+          error?: string;
+        };
+        if (!res.ok) {
+          setMessageError(json.error ?? "Không tải được tin nhắn.");
+          setMessages([]);
+          return;
+        }
+        setMessages(Array.isArray(json.messages) ? json.messages : []);
+        setThreads((list) =>
+          list.map((thread) =>
+            thread.studentUserId === studentUserId
+              ? { ...thread, unread: false, unreadCount: 0 }
+              : thread,
+          ),
+        );
+      } catch {
+        setMessageError("Lỗi mạng.");
+        setMessages([]);
+      } finally {
+        setLoadingMessages(false);
+      }
+    },
+    [ctx?.orgId],
+  );
+
+  useEffect(() => {
+    if (open) {
+      setFilter("open");
+      void loadThreads();
+    } else {
+      setSelectedStudentId(null);
+      setMessages([]);
+      setReply("");
+    }
+  }, [open, loadThreads]);
+
+  useEffect(() => {
+    if (!open || !selectedStudentId) return;
+    void loadMessages(selectedStudentId);
+  }, [open, selectedStudentId, loadMessages]);
 
   if (!ctx?.canEdit || !ctx.isEditing) return null;
 
-  function openInbox() {
-    setOpen(true);
-    if (!selectedId && threads[0]) setSelectedId(threads[0].id);
+  function selectThread(studentUserId: string) {
+    setSelectedStudentId(studentUserId);
+    setReply("");
   }
 
   function sendReply() {
     const text = reply.trim();
-    if (!text || !selected) return;
+    if (!text || !selected || !ctx?.orgId || pending) return;
 
-    const now = new Date().toISOString();
-    const newMsg = {
-      id: `reply-${Date.now()}`,
-      from: "school" as const,
-      body: text,
-      sentAt: now,
-    };
-
-    setThreads((list) =>
-      list.map((t) =>
-        t.id === selected.id
-          ? {
-              ...t,
-              unread: false,
-              status: "replied" as const,
-              messages: [...t.messages, newMsg],
-              preview: text.slice(0, 80),
-            }
-          : t,
-      ),
-    );
-    setReply("");
-    ctx?.showToast("Đã gửi trả lời (mock)");
-  }
-
-  function markArchived() {
-    if (!selected) return;
-    setThreads((list) =>
-      list.map((t) =>
-        t.id === selected.id
-          ? { ...t, status: "archived" as const, unread: false }
-          : t,
-      ),
-    );
-    ctx?.showToast("Đã lưu trữ hội thoại (mock)");
+    startTransition(async () => {
+      try {
+        const res = await fetch(
+          `/api/org/${ctx.orgId}/student-chat/${encodeURIComponent(selected.studentUserId)}/messages`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ noi_dung: text }),
+          },
+        );
+        const json = (await res.json()) as {
+          message?: ChatMessage;
+          error?: string;
+        };
+        if (!res.ok || !json.message) {
+          ctx.showToast(json.error ?? "Không gửi được tin nhắn.");
+          return;
+        }
+        setReply("");
+        setMessages((prev) => [...prev, json.message!]);
+        setThreads((list) =>
+          list.map((thread) =>
+            thread.studentUserId === selected.studentUserId
+              ? {
+                  ...thread,
+                  unread: false,
+                  unreadCount: 0,
+                  status: "replied" as const,
+                  preview: text.slice(0, 80),
+                  lastAt: json.message!.sentAt,
+                }
+              : thread,
+          ),
+        );
+        ctx.showToast("Đã gửi tin nhắn");
+      } catch {
+        ctx.showToast("Lỗi mạng.");
+      }
+    });
   }
 
   return (
@@ -117,7 +215,7 @@ export function TruongMessageInbox() {
       <button
         type="button"
         className="ss-btn ghost ss-btn-messages"
-        onClick={openInbox}
+        onClick={() => setOpen(true)}
         aria-label={
           unreadCount > 0
             ? `Tin nhắn — ${unreadCount} chưa đọc`
@@ -145,8 +243,8 @@ export function TruongMessageInbox() {
               Tin nhắn tuyển sinh
             </h3>
             <p className="tdh-message-inbox-lead">
-              Hội thoại từ user hỏi <strong>{ctx.school.ten}</strong> — chọn hội
-              thoại để xem và trả lời. (Mock)
+              Hội thoại user nhắn <strong>{ctx.school.ten}</strong> — đồng bộ với
+              tab <strong>Tổ chức</strong> trên CINs Chat.
             </p>
           </div>
           <button
@@ -168,7 +266,11 @@ export function TruongMessageInbox() {
               {(
                 [
                   ["unread", "Chưa đọc", unreadCount],
-                  ["open", "Chưa trả lời", threads.filter((t) => t.status === "open").length],
+                  [
+                    "open",
+                    "Chưa trả lời",
+                    threads.filter((t) => t.status === "open").length,
+                  ],
                   ["all", "Tất cả", threads.length],
                 ] as const
               ).map(([key, label, count]) => (
@@ -187,24 +289,21 @@ export function TruongMessageInbox() {
             </div>
 
             <ul className="tdh-message-inbox-thread-list">
-              {filtered.length === 0 ? (
+              {loadingThreads ? (
+                <li className="tdh-message-inbox-thread-empty">Đang tải…</li>
+              ) : loadError ? (
+                <li className="tdh-message-inbox-thread-empty">{loadError}</li>
+              ) : filtered.length === 0 ? (
                 <li className="tdh-message-inbox-thread-empty">
                   Không có hội thoại.
                 </li>
               ) : (
                 filtered.map((thread) => (
                   <ThreadListItem
-                    key={thread.id}
+                    key={thread.studentUserId}
                     thread={thread}
-                    active={thread.id === selectedId}
-                    onSelect={() => {
-                      setSelectedId(thread.id);
-                      setThreads((list) =>
-                        list.map((t) =>
-                          t.id === thread.id ? { ...t, unread: false } : t,
-                        ),
-                      );
-                    }}
+                    active={thread.studentUserId === selectedStudentId}
+                    onSelect={() => selectThread(thread.studentUserId)}
                   />
                 ))
               )}
@@ -218,10 +317,13 @@ export function TruongMessageInbox() {
             {selected ? (
               <ThreadDetail
                 thread={selected}
+                messages={messages}
+                loading={loadingMessages}
+                error={messageError}
                 reply={reply}
+                sending={pending}
                 onReplyChange={setReply}
                 onSend={() => void sendReply()}
-                onArchive={markArchived}
               />
             ) : (
               <p className="tdh-message-inbox-pick">
@@ -240,7 +342,7 @@ function ThreadListItem({
   active,
   onSelect,
 }: {
-  thread: InboxThread;
+  thread: OrgInboxThread;
   active: boolean;
   onSelect: () => void;
 }) {
@@ -252,13 +354,23 @@ function ThreadListItem({
         onClick={onSelect}
       >
         <span className="tdh-message-inbox-thread-avatar" aria-hidden>
-          {studentInitials(thread.userName)}
+          {thread.studentAvatarUrl ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img src={thread.studentAvatarUrl} alt="" />
+          ) : (
+            studentInitials(thread.studentName)
+          )}
         </span>
         <span className="tdh-message-inbox-thread-body">
           <span className="tdh-message-inbox-thread-top">
-            <span className="tdh-message-inbox-thread-name">{thread.userName}</span>
-            <time className="tdh-message-inbox-thread-time">
-              {formatInboxTime(thread.taggedAt)}
+            <span className="tdh-message-inbox-thread-id">
+              <span className="tdh-message-inbox-thread-name">{thread.studentName}</span>
+              <span className="tdh-message-inbox-thread-role">
+                {thread.studentContactLabel}
+              </span>
+            </span>
+            <time className="tdh-message-inbox-thread-time" dateTime={thread.lastAt}>
+              {formatInboxTime(thread.lastAt)}
             </time>
           </span>
           <span className="tdh-message-inbox-thread-subject">{thread.subject}</span>
@@ -274,16 +386,22 @@ function ThreadListItem({
 
 function ThreadDetail({
   thread,
+  messages,
+  loading,
+  error,
   reply,
+  sending,
   onReplyChange,
   onSend,
-  onArchive,
 }: {
-  thread: InboxThread;
+  thread: OrgInboxThread;
+  messages: ChatMessage[];
+  loading: boolean;
+  error: string | null;
   reply: string;
+  sending: boolean;
   onReplyChange: (v: string) => void;
   onSend: () => void;
-  onArchive: () => void;
 }) {
   return (
     <>
@@ -291,7 +409,12 @@ function ThreadDetail({
         <div>
           <h4 className="tdh-message-inbox-detail-title">{thread.subject}</h4>
           <p className="tdh-message-inbox-detail-meta">
-            {thread.userName} · {thread.userRole} ·{" "}
+            {thread.studentName} · {thread.studentContactLabel}
+            {thread.studentRole &&
+            thread.studentRole !== thread.studentContactLabel ? (
+              <> · {thread.studentRole}</>
+            ) : null}{" "}
+            ·{" "}
             <span
               className={`tdh-message-inbox-status tdh-message-inbox-status--${thread.status}`}
             >
@@ -299,29 +422,24 @@ function ThreadDetail({
             </span>
           </p>
         </div>
-        <button
-          type="button"
-          className="tdh-inline-btn ghost tdh-message-inbox-archive-btn"
-          onClick={onArchive}
-        >
-          Lưu trữ
-        </button>
       </header>
 
-      <ul className="tdh-message-inbox-messages">
-        {thread.messages.map((msg) => (
-          <li
-            key={msg.id}
-            className={`tdh-message-inbox-bubble tdh-message-inbox-bubble--${msg.from}`}
-          >
-            <p className="tdh-message-inbox-bubble-text">{msg.body}</p>
-            <time className="tdh-message-inbox-bubble-time">
-              {formatInboxTime(msg.sentAt)}
-              {msg.from === "school" ? " · Trường" : " · User"}
-            </time>
-          </li>
-        ))}
-      </ul>
+      {loading ? (
+        <p className="tdh-message-inbox-pick">
+          <Loader2 size={16} className="tdh-milestone-tag-org-msg-spin" aria-hidden />
+          Đang tải tin nhắn…
+        </p>
+      ) : error ? (
+        <p className="tdh-message-inbox-pick">{error}</p>
+      ) : (
+        <div className="tdh-message-inbox-messages cins-chat-messages">
+          {messages.length === 0 ? (
+            <p className="tdh-message-inbox-thread-empty">Chưa có tin nhắn.</p>
+          ) : (
+            <ChatMessageThreadItems messages={messages} />
+          )}
+        </div>
+      )}
 
       <div className="tdh-message-inbox-compose">
         <textarea
@@ -330,16 +448,23 @@ function ThreadDetail({
           rows={2}
           placeholder="Trả lời sinh viên / phụ huynh…"
           value={reply}
+          disabled={sending}
           onChange={(e) => onReplyChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              onSend();
+            }
+          }}
           aria-label="Trả lời"
         />
         <button
           type="button"
           className="tdh-inline-btn primary tdh-message-inbox-send"
-          disabled={!reply.trim()}
+          disabled={!reply.trim() || sending}
           onClick={onSend}
         >
-          Gửi
+          {sending ? "Đang gửi…" : "Gửi"}
         </button>
       </div>
     </>

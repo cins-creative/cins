@@ -25,10 +25,8 @@ import {
   patchPendingImageUploadResult,
   planPendingImageAdditions,
 } from "@/lib/chat/compose-image-upload";
-import {
-  createOptimisticChatMessage,
-  messagePreviewText,
-} from "@/lib/chat/optimistic-message";
+import { buildChatSendPlan, type ChatSendPayload } from "@/lib/chat/compose-send-plan";
+import { messagePreviewText } from "@/lib/chat/optimistic-message";
 import { fetchRoomMessagesPage } from "@/lib/chat/messages-client";
 import { reconcileChatMessage, appendChatMessageIfNew, mergeChatMessageUpdate, type ChatRealtimeMessageEvent } from "@/lib/chat/realtime";
 import { imageFilesFromClipboard } from "@/lib/files/clipboard-images";
@@ -668,12 +666,9 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
     !isUploadingImages &&
     (draft.trim().length > 0 || readyImages.length > 0);
 
-  const postRoomMessage = useCallback(
-    async (
-      roomId: string,
-      payload: { noi_dung?: string; cloudflare_image_id?: string },
-      optimistic: ChatMessage,
-    ) => {
+  const appendOptimisticMessages = useCallback(
+    (roomId: string, optimistics: ChatMessage[]) => {
+      if (optimistics.length === 0) return;
       setRoomStates((prev) => {
         const current = prev[roomId] ?? {
           messages: [],
@@ -684,7 +679,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
           ...prev,
           [roomId]: {
             ...current,
-            messages: [...current.messages, optimistic],
+            messages: [...current.messages, ...optimistics],
           },
         };
       });
@@ -692,7 +687,12 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
       if (shouldScrollToBottomRef.current) {
         requestAnimationFrame(() => scrollMessagesToBottom("smooth"));
       }
+    },
+    [scrollMessagesToBottom],
+  );
 
+  const submitRoomMessage = useCallback(
+    async (roomId: string, payload: ChatSendPayload, optimisticId: string) => {
       try {
         const res = await fetch(`/api/chat/rooms/${roomId}/messages`, {
           method: "POST",
@@ -745,7 +745,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
             ...prev,
             [roomId]: {
               ...current,
-              messages: current.messages.filter((m) => m.id !== optimistic.id),
+              messages: current.messages.filter((m) => m.id !== optimisticId),
             },
           };
         });
@@ -755,7 +755,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
         return false;
       }
     },
-    [scrollMessagesToBottom, viewerProfileId],
+    [viewerProfileId],
   );
 
   const sendMessage = useCallback(async () => {
@@ -763,48 +763,56 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
 
     const text = draft.trim();
     const images = readyImages;
+    const snapshotText = draft;
+    const snapshotImages = pendingImages;
 
-    const sends: Array<{
-      payload: { noi_dung?: string; cloudflare_image_id?: string };
-      optimistic: ChatMessage;
-    }> = [];
-
-    if (images.length > 0) {
-      const [first, ...rest] = images;
-      sends.push({
-        payload: {
-          ...(text ? { noi_dung: text } : {}),
-          cloudflare_image_id: first.imageId!,
-        },
-        optimistic: createOptimisticChatMessage({
-          body: text,
-          imageId: first.imageId,
-          imageUrl: first.previewUrl,
-        }),
-      });
-      for (const image of rest) {
-        sends.push({
-          payload: { cloudflare_image_id: image.imageId! },
-          optimistic: createOptimisticChatMessage({
-            body: "",
-            imageId: image.imageId,
-            imageUrl: image.previewUrl,
-          }),
-        });
-      }
-    } else if (text) {
-      sends.push({
-        payload: { noi_dung: text },
-        optimistic: createOptimisticChatMessage({ body: text }),
-      });
-    }
+    const sends = buildChatSendPlan({
+      text,
+      images: images.map((image) => ({
+        imageId: image.imageId!,
+        previewUrl: image.previewUrl,
+      })),
+    });
+    if (sends.length === 0) return;
 
     setLoadError(null);
     shouldScrollToBottomRef.current = true;
 
-    for (const item of sends) {
-      const ok = await postRoomMessage(miniThread.roomId, item.payload, item.optimistic);
-      if (!ok) return;
+    appendOptimisticMessages(
+      miniThread.roomId,
+      sends.map((item) => item.optimistic),
+    );
+
+    for (let index = 0; index < sends.length; index += 1) {
+      const item = sends[index]!;
+      const ok = await submitRoomMessage(
+        miniThread.roomId,
+        item.payload,
+        item.optimistic.id,
+      );
+      if (!ok) {
+        const unsentIds = new Set(
+          sends.slice(index).map((entry) => entry.optimistic.id),
+        );
+        setRoomStates((prev) => {
+          const current = prev[miniThread.roomId];
+          if (!current) return prev;
+          return {
+            ...prev,
+            [miniThread.roomId]: {
+              ...current,
+              messages: current.messages.filter((m) => !unsentIds.has(m.id)),
+            },
+          };
+        });
+        setDraft(snapshotText);
+        setPendingImages(snapshotImages);
+        composeByRoomRef.current.set(miniThread.roomId, {
+          text: snapshotText,
+          images: snapshotImages,
+        });
+        return;
+      }
     }
 
     setDraft("");
@@ -812,12 +820,14 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
     composeByRoomRef.current.set(miniThread.roomId, { text: "", images: [] });
     inputRef.current?.focus();
   }, [
+    appendOptimisticMessages,
     canSend,
     clearPendingImages,
     draft,
     miniThread,
-    postRoomMessage,
+    pendingImages,
     readyImages,
+    submitRoomMessage,
   ]);
 
   useEffect(() => {
