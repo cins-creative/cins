@@ -99,7 +99,8 @@ export type MilestoneCardLayout =
   | "default"
   | "cong-dong-create"
   | "co-so-create"
-  | "identity-pending";
+  | "identity-pending"
+  | "identity-verified";
 
 /** Cột mốc danh tính chờ org duyệt (`membership_milestone_v1`). */
 export type MembershipPendingMeta = {

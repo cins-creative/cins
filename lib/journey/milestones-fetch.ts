@@ -206,9 +206,23 @@ export async function buildSelfMilestonesForCotMocs(
     const verified = verifiedMeta.get(m.id);
     const membershipPending = membershipPendingByMoc.get(m.id) ?? null;
     let cardLayout = resolveOrgCreateCardLayout(verified);
-    if (membershipPending) cardLayout = "identity-pending";
-    const isOrgCreateCard = cardLayout !== "default" && cardLayout !== "identity-pending";
+    if (membershipPending) {
+      cardLayout = "identity-pending";
+    } else if (
+      verified &&
+      !firstPost?.id &&
+      verified.attribution?.isOrg &&
+      verified.attribution.role === "Xác nhận bởi tổ chức"
+    ) {
+      cardLayout = "identity-verified";
+    }
+    const isOrgCreateCard =
+      cardLayout !== "default" &&
+      cardLayout !== "identity-pending" &&
+      cardLayout !== "identity-verified";
     const isIdentityPending = cardLayout === "identity-pending";
+    const isIdentityVerified = cardLayout === "identity-verified";
+    const isIdentityCard = isIdentityPending || isIdentityVerified;
 
     const personalFilters = personalFiltersByMoc.get(m.id) ?? [];
     const pendingAttribution = membershipPending
@@ -243,11 +257,11 @@ export async function buildSelfMilestonesForCotMocs(
       month,
       day,
       createdAt: m.tao_luc,
-      title: isIdentityPending ? m.tieu_de : (firstPost?.tieu_de ?? m.tieu_de),
+      title: isIdentityCard ? m.tieu_de : (firstPost?.tieu_de ?? m.tieu_de),
       body: isIdentityPending ? m.mo_ta || "Chờ xác thực" : m.mo_ta || null,
       org: verified?.attribution.role ?? pendingAttribution?.name ?? null,
-      postSlug: isOrgCreateCard || isIdentityPending ? null : firstPostSlug,
-      tacPhamId: isOrgCreateCard || isIdentityPending ? null : (firstPost?.id ?? null),
+      postSlug: isOrgCreateCard || isIdentityCard ? null : firstPostSlug,
+      tacPhamId: isOrgCreateCard || isIdentityCard ? null : (firstPost?.id ?? null),
       attribution: verified?.attribution ?? pendingAttribution,
       verifiedBy: verified?.verifiedBy ?? null,
       cardLayout,
@@ -256,17 +270,19 @@ export async function buildSelfMilestonesForCotMocs(
         ? (verified?.orgHref ?? null)
         : isIdentityPending
           ? (membershipPending?.orgHref ?? null)
-          : null,
-      media: isOrgCreateCard || isIdentityPending
+          : isIdentityVerified
+            ? (verified?.orgHref ?? null)
+            : null,
+      media: isOrgCreateCard || isIdentityCard
         ? []
         : milestoneCoverMedia(
             firstPost?.cover_id,
             firstPost?.noi_dung_blocks,
             firstPost?.tieu_de ?? m.tieu_de,
           ),
-      noiDungBlocks: isOrgCreateCard || isIdentityPending ? null : noiDungBlocks,
-      articleTags: isOrgCreateCard || isIdentityPending ? [] : articleTags,
-      coAuthorCredits: isOrgCreateCard || isIdentityPending
+      noiDungBlocks: isOrgCreateCard || isIdentityCard ? null : noiDungBlocks,
+      articleTags: isOrgCreateCard || isIdentityCard ? [] : articleTags,
+      coAuthorCredits: isOrgCreateCard || isIdentityCard
         ? []
         : firstPost?.id
           ? (creditsByTacPham.get(firstPost.id) ?? [])

@@ -38,6 +38,7 @@ import { JourneyMilestoneInlineControls } from "@/components/journey/JourneyMile
 import { JourneyLikeButton } from "@/components/journey/JourneyLikeButton";
 import { JourneyMilestoneOwnerMenu } from "@/components/journey/JourneyMilestoneOwnerMenu";
 import { IdentityPendingMilestoneCard } from "@/components/journey/IdentityPendingMilestoneCard";
+import { IdentityVerifiedMilestoneCard } from "@/components/journey/IdentityVerifiedMilestoneCard";
 import { JourneyOrgPopover } from "@/components/journey/JourneyOrgPopover";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
 import Link from "next/link";
@@ -395,6 +396,31 @@ export function JourneyMilestoneCard({
         visibility={visibility}
         attribution={attribution}
         membershipPending={membershipPending}
+        isOwner={isOwner}
+      />
+    );
+  }
+
+  if (cardLayout === "identity-verified") {
+    return (
+      <IdentityVerifiedMilestoneCard
+        milestoneCls={["j-milestone", "j-self", "j-verified", "j-identity-verified"]
+          .filter(Boolean)
+          .join(" ")}
+        milestoneId={cotMocId ?? milestone.id}
+        cotMocId={cotMocId ?? milestone.id}
+        ownerSlug={ownerSlug ?? ""}
+        displayDate={displayDate}
+        year={year}
+        month={month}
+        day={day}
+        title={title}
+        body={body}
+        type={type}
+        visibility={visibility}
+        attribution={attribution}
+        verifiedBy={verifiedBy}
+        orgHref={orgHref}
         isOwner={isOwner}
       />
     );

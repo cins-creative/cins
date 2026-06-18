@@ -16,6 +16,7 @@ import { listPendingReceived } from "@/lib/social/ket-ban";
 import { listPendingCoSoStaffInviteNotifications } from "@/lib/to-chuc/co-so-staff-invite";
 import type { NotificationFeed, NotificationFilter } from "@/lib/social/types";
 import { listOrgMilestoneTagApprovedNotifications } from "@/lib/social/org-milestone-tag-notify";
+import { listMembershipMilestoneResolvedNotifications } from "@/lib/social/membership-milestone-notify";
 import { listVideoReadyNotifications } from "@/lib/social/video-ready";
 
 /** Số dòng tối đa hiển thị trong dropdown thông báo. */
@@ -33,6 +34,7 @@ export const EMPTY_NOTIFICATION_FEED: NotificationFeed = {
   coSoStaffInvites: [],
   videoReady: [],
   orgMilestoneTagApproved: [],
+  membershipMilestoneResolved: [],
   handledFollows: [],
   processedCoAuthorReviews: [],
 };
@@ -51,13 +53,14 @@ function capUnreadLists(payload: FeedPayload, limit: number): FeedPayload {
   };
   return {
     coSoStaffInvites: take(payload.coSoStaffInvites),
-    orgMilestoneTagApproved: [],
+    orgMilestoneTagApproved: payload.orgMilestoneTagApproved.slice(0, 5),
+    membershipMilestoneResolved: payload.membershipMilestoneResolved.slice(0, 5),
     followRequests: take(payload.followRequests),
     coAuthorInvites: take(payload.coAuthorInvites),
     coAuthorReviews: take(payload.coAuthorReviews),
-    videoReady: [],
-    comments: [],
-    accepted: [],
+    videoReady: payload.videoReady.slice(0, 5),
+    comments: payload.comments.slice(0, 5),
+    accepted: payload.accepted.slice(0, 5),
     handledFollows: [],
     processedCoAuthorReviews: [],
   };
@@ -80,6 +83,7 @@ function capHistoryLists(payload: FeedPayload, limit: number): FeedPayload {
     processedCoAuthorReviews: take(payload.processedCoAuthorReviews),
     accepted: take(payload.accepted),
     orgMilestoneTagApproved: take(payload.orgMilestoneTagApproved),
+    membershipMilestoneResolved: take(payload.membershipMilestoneResolved),
     comments: take(payload.comments),
     videoReady: take(payload.videoReady),
   };
@@ -117,6 +121,7 @@ async function loadNotificationFeedUnsafe(
     coAuthorReviews,
     coSoStaffInvites,
     orgMilestoneTagApproved,
+    membershipMilestoneResolved,
     videoReady,
     handledFollows,
     processedCoAuthorReviews,
@@ -149,6 +154,11 @@ async function loadNotificationFeedUnsafe(
       historyOnly,
       limit: rowLimit,
     }),
+    listMembershipMilestoneResolvedNotifications(viewerId, {
+      unreadOnly,
+      historyOnly,
+      limit: rowLimit,
+    }),
     listVideoReadyNotifications(viewerId, {
       unreadOnly,
       historyOnly,
@@ -170,6 +180,7 @@ async function loadNotificationFeedUnsafe(
     coAuthorReviews: unreadOnly ? coAuthorReviews : [],
     coSoStaffInvites: unreadOnly ? coSoStaffInvites : [],
     orgMilestoneTagApproved,
+    membershipMilestoneResolved,
     videoReady,
     handledFollows,
     processedCoAuthorReviews: historyOnly ? processedCoAuthorReviews : [],
@@ -201,6 +212,8 @@ export async function countUnreadNotifications(viewerId: string): Promise<number
     { count: coSoStaffInvite },
     { count: coSoStaffMembershipPending },
     { count: orgMilestoneTag },
+    { count: membershipMilestoneApproved },
+    { count: membershipMilestoneRejected },
     { count: video },
   ] = await Promise.all([
     admin
@@ -273,6 +286,18 @@ export async function countUnreadNotifications(viewerId: string): Promise<number
       .from("social_thong_bao")
       .select("id", { count: "exact", head: true })
       .eq("nguoi_nhan", viewerId)
+      .eq("loai_doi_tuong", "membership_milestone_approved")
+      .eq("da_doc", false),
+    admin
+      .from("social_thong_bao")
+      .select("id", { count: "exact", head: true })
+      .eq("nguoi_nhan", viewerId)
+      .eq("loai_doi_tuong", "membership_milestone_rejected")
+      .eq("da_doc", false),
+    admin
+      .from("social_thong_bao")
+      .select("id", { count: "exact", head: true })
+      .eq("nguoi_nhan", viewerId)
       .eq("loai_doi_tuong", "video_ready")
       .eq("da_doc", false),
   ]);
@@ -287,6 +312,8 @@ export async function countUnreadNotifications(viewerId: string): Promise<number
     (coAuthorReview ?? 0) +
     Math.max(coSoStaffInvite ?? 0, coSoStaffMembershipPending ?? 0) +
     (orgMilestoneTag ?? 0) +
+    (membershipMilestoneApproved ?? 0) +
+    (membershipMilestoneRejected ?? 0) +
     (video ?? 0)
   );
 }
@@ -436,6 +463,8 @@ export async function markAllInfoNotificationsRead(
       "binh_luan_tra_loi",
       "mention_binh_luan",
       "org_milestone_tag_approved",
+      "membership_milestone_approved",
+      "membership_milestone_rejected",
       "video_ready",
     ]);
   if (error) return { ok: false, error: error.message };

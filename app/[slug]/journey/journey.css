@@ -9514,6 +9514,37 @@ select.j-edit-input {
   margin: 0;
 }
 
+/* ── Milestone: cột mốc danh tính đã xác thực (timeline) ──────────── */
+.j-milestone.j-identity-verified .j-m-card {
+  cursor: default;
+  border-left: none;
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+.j-milestone.j-identity-verified .j-m-diamond {
+  box-shadow:
+    0 0 0 2px var(--bg-page),
+    0 0 0 3.5px #0e6b4d;
+}
+.jcard--identity-verified {
+  overflow: visible;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+.jcard--identity-verified .j-verify-card {
+  margin: 0;
+}
+.j-verify-card--approved {
+  border-color: rgba(14, 107, 77, 0.22);
+}
+.j-verify-card-status.is-approved {
+  color: #0e6b4d;
+  background: rgba(14, 107, 77, 0.1);
+}
+
 .jcard-body {
   padding: 14px 16px 12px;
 }
@@ -10075,6 +10106,10 @@ select.j-edit-input {
 .j-notify-avatar.is-verified {
   background: var(--j-verified-soft, #dcfce7);
   color: var(--j-verified-ink, #15803d);
+}
+.j-notify-avatar.is-rejected {
+  background: #fee2e2;
+  color: #b91c1c;
 }
 .j-notify-item.is-org-milestone-tag strong {
   color: var(--j-text, #0f172a);

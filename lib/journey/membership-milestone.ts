@@ -29,6 +29,7 @@ import {
 import type { OrgAttachEvidence } from "@/lib/journey/org-milestone-tag-types";
 import { loadOrgAttachOptions } from "@/lib/journey/org-milestone-tag";
 import { getAvatarUrl } from "@/lib/journey/profile";
+import { notifyMembershipMilestoneResolved } from "@/lib/social/membership-milestone-notify";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { truongRootPath } from "@/lib/truong/truong-routes";
 
@@ -111,6 +112,28 @@ export async function loadMembershipPendingMetaForCotMocs(
   }
 
   return out;
+}
+
+/** Cot mốc membership đang chờ org duyệt — luôn hiện trên timeline owner (kể cả khi lọc nhãn). */
+export async function loadPendingMembershipCotMocIdsForUser(
+  profileId: string,
+): Promise<Set<string>> {
+  const admin = createServiceRoleClient();
+  const { data: rows } = await admin
+    .from("verify_yeu_cau")
+    .select("id_cot_moc, noi_dung")
+    .eq("nguoi_yeu_cau", profileId)
+    .eq("trang_thai", "cho_xu_ly")
+    .returns<Array<{ id_cot_moc: string | null; noi_dung: string | null }>>();
+
+  const ids = new Set<string>();
+  for (const row of rows ?? []) {
+    if (!row.id_cot_moc) continue;
+    if (parseMembershipMilestonePayload(row.noi_dung)) {
+      ids.add(row.id_cot_moc);
+    }
+  }
+  return ids;
 }
 
 /** Yêu cầu membership user gửi đi — hiển thị banner «Việc cần xác nhận» trên Journey. */
@@ -828,6 +851,22 @@ export async function respondOrgMembershipMilestoneRequest(params: {
       .select("slug")
       .eq("id", row.nguoi_yeu_cau)
       .maybeSingle<{ slug: string }>();
+
+    const orgSlot = payload.slots.to_chuc;
+    if (profile?.slug && orgSlot) {
+      await notifyMembershipMilestoneResolved({
+        studentId: row.nguoi_yeu_cau,
+        studentSlug: profile.slug,
+        cotMocId: row.id_cot_moc,
+        requestId: params.requestId,
+        action: "rejected",
+        orgTen: orgSlot.ten,
+        orgSlug: orgSlot.slug,
+        orgLoai: orgSlot.loaiToChuc,
+        milestoneTitle: payload.tieuDe,
+      });
+    }
+
     if (profile?.slug) revalidatePath(`/${profile.slug}`);
 
     return { ok: true };
@@ -901,6 +940,21 @@ export async function respondOrgMembershipMilestoneRequest(params: {
     .select("slug")
     .eq("id", row.nguoi_yeu_cau)
     .maybeSingle<{ slug: string }>();
+
+  const orgSlot = payload.slots.to_chuc;
+  if (profile?.slug && orgSlot) {
+    await notifyMembershipMilestoneResolved({
+      studentId: row.nguoi_yeu_cau,
+      studentSlug: profile.slug,
+      cotMocId: row.id_cot_moc,
+      requestId: params.requestId,
+      action: "approved",
+      orgTen: orgSlot.ten,
+      orgSlug: orgSlot.slug,
+      orgLoai: orgSlot.loaiToChuc,
+      milestoneTitle: payload.tieuDe,
+    });
+  }
 
   if (profile?.slug) revalidatePath(`/${profile.slug}`);
   if (org?.slug) {

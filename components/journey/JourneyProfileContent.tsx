@@ -364,6 +364,32 @@ export function JourneyProfileContent({
     viewerProfileId,
   ]);
 
+  const pendingMembershipCount =
+    timelineCache &&
+    timelineCache !== "loading" &&
+    timelineCache !== "error"
+      ? (timelineCache.membershipPendingOutbound?.length ?? 0)
+      : 0;
+
+  useEffect(() => {
+    if (!isOwner || view !== "journey" || pendingMembershipCount === 0) return;
+
+    const refresh = () => void fetchTimeline({ background: true, force: true });
+    const onVisible = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", refresh);
+    const interval = window.setInterval(refresh, 45_000);
+
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", refresh);
+      window.clearInterval(interval);
+    };
+  }, [isOwner, view, pendingMembershipCount, fetchTimeline]);
+
   useEffect(() => {
     const syncGalleryPanel = () => {
       void fetchGallery({ background: true, force: true });

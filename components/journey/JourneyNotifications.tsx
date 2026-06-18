@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Bell, Check, CheckCircle2, Video, X } from "lucide-react";
+import { ArrowRight, Bell, Check, CheckCircle2, Video, X, XCircle } from "lucide-react";
 import type { ReactNode } from "react";
 import {
   useCallback,
@@ -45,6 +45,7 @@ import type {
   NotificationFeed,
   NotificationFilter,
   OrgMilestoneTagApprovedNotification,
+  MembershipMilestoneResolvedNotification,
   PendingCoAuthorInviteNotification,
   PendingCoAuthorReview,
   PendingCoSoStaffInviteNotification,
@@ -146,6 +147,25 @@ function orgMilestoneTagNotifyLabel(
   );
 }
 
+function membershipMilestoneNotifyLabel(
+  notice: MembershipMilestoneResolvedNotification,
+): ReactNode {
+  if (notice.action === "approved") {
+    return (
+      <>
+        <strong>{notice.orgTen}</strong> đã xác thực cột mốc danh tính của bạn
+        <small>{notice.milestoneTitle}</small>
+      </>
+    );
+  }
+  return (
+    <>
+      <strong>{notice.orgTen}</strong> đã từ chối yêu cầu xác thực cột mốc
+      <small>{notice.milestoneTitle}</small>
+    </>
+  );
+}
+
 function parseFeedPayload(json: unknown): NotificationFeed | null {
   return parseNotificationFeedPayload(json);
 }
@@ -168,6 +188,7 @@ function countDisplayedItems(feed: NotificationFeed): number {
     feed.coAuthorReviews.length +
     feed.coSoStaffInvites.length +
     feed.orgMilestoneTagApproved.length +
+    feed.membershipMilestoneResolved.length +
     feed.videoReady.length +
     feed.handledFollows.length +
     feed.processedCoAuthorReviews.length
@@ -387,6 +408,17 @@ export function JourneyNotifications({
     () => countPendingActionItems(activeFeed),
     [activeFeed],
   );
+
+  const displayedInfoCount = useMemo(() => {
+    if (tab !== "unread") return 0;
+    return (
+      activeFeed.orgMilestoneTagApproved.length +
+      activeFeed.membershipMilestoneResolved.length +
+      activeFeed.comments.length +
+      activeFeed.videoReady.length +
+      activeFeed.accepted.length
+    );
+  }, [tab, activeFeed]);
 
   const historyCount = useMemo(() => {
     if (!historyFeed) return null;
@@ -628,7 +660,7 @@ export function JourneyNotifications({
   const listCount =
     tab === "unread"
       ? unreadLoaded
-        ? displayedPendingCount
+        ? displayedPendingCount + displayedInfoCount
         : pendingActionCount
       : historyCount ?? 0;
 
@@ -797,6 +829,43 @@ export function JourneyNotifications({
                       </button>
                     </li>
                   ))}
+                  {activeFeed.membershipMilestoneResolved.map((notice) => (
+                    <li key={notice.notificationId}>
+                      <HistoryInfoItem
+                        href={notice.journeyHref}
+                        label={membershipMilestoneNotifyLabel(notice)}
+                        time={formatNotifyTime(notice.taoLuc)}
+                        avatar={
+                          <span
+                            className={`j-notify-avatar${
+                              notice.action === "approved" ? " is-verified" : " is-rejected"
+                            }`}
+                            aria-hidden
+                          >
+                            {notice.action === "approved" ? (
+                              <CheckCircle2 size={16} strokeWidth={2} />
+                            ) : (
+                              <XCircle size={16} strokeWidth={2} />
+                            )}
+                          </span>
+                        }
+                      />
+                    </li>
+                  ))}
+                  {activeFeed.orgMilestoneTagApproved.map((notice) => (
+                    <li key={notice.notificationId}>
+                      <HistoryInfoItem
+                        href={notice.albumHref || "#"}
+                        label={orgMilestoneTagNotifyLabel(notice)}
+                        time={formatNotifyTime(notice.taoLuc)}
+                        avatar={
+                          <span className="j-notify-avatar is-verified" aria-hidden>
+                            <CheckCircle2 size={16} strokeWidth={2} />
+                          </span>
+                        }
+                      />
+                    </li>
+                  ))}
                 </>
               ) : (
                 <>
@@ -839,6 +908,28 @@ export function JourneyNotifications({
                       label={commentNotifyLabel(notice)}
                       time={formatNotifyTime(notice.taoLuc)}
                       avatar={<Avatar request={notice} />}
+                    />
+                  ))}
+                  {activeFeed.membershipMilestoneResolved.map((notice) => (
+                    <HistoryInfoItem
+                      key={notice.notificationId}
+                      href={notice.journeyHref}
+                      label={membershipMilestoneNotifyLabel(notice)}
+                      time={formatNotifyTime(notice.taoLuc)}
+                      avatar={
+                        <span
+                          className={`j-notify-avatar${
+                            notice.action === "approved" ? " is-verified" : " is-rejected"
+                          }`}
+                          aria-hidden
+                        >
+                          {notice.action === "approved" ? (
+                            <CheckCircle2 size={16} strokeWidth={2} />
+                          ) : (
+                            <XCircle size={16} strokeWidth={2} />
+                          )}
+                        </span>
+                      }
                     />
                   ))}
                   {activeFeed.orgMilestoneTagApproved.map((notice) => (

@@ -9,6 +9,7 @@ export const EMPTY_NOTIFICATION_HISTORY_FEED: NotificationFeed = {
   coAuthorReviews: [],
   coSoStaffInvites: [],
   orgMilestoneTagApproved: [],
+  membershipMilestoneResolved: [],
   videoReady: [],
   handledFollows: [],
   processedCoAuthorReviews: [],
@@ -34,6 +35,9 @@ export function parseNotificationFeedPayload(
       : [],
     orgMilestoneTagApproved: Array.isArray(data.orgMilestoneTagApproved)
       ? data.orgMilestoneTagApproved
+      : [],
+    membershipMilestoneResolved: Array.isArray(data.membershipMilestoneResolved)
+      ? data.membershipMilestoneResolved
       : [],
   };
 }

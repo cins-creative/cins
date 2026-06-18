@@ -4,6 +4,7 @@ import { Building2, Clock3, Lock, Pencil, ShieldCheck } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 import { useJourneyCompose } from "@/components/journey/JourneyComposeContext";
+import { useJourneyPersonalFilterOptional } from "@/components/journey/JourneyPersonalFilterContext";
 import type { MilestoneItem } from "@/components/journey/milestone-types";
 import {
   COMPOSE_PUBLISHED_EVENT,
@@ -33,6 +34,7 @@ function fromMilestone(m: MilestoneItem): OutboundMembershipPending | null {
 
 export function JourneyMembershipPendingBanner({ items: initialItems, ownerSlug }: Props) {
   const { openCompose, canCompose } = useJourneyCompose();
+  const personalFilter = useJourneyPersonalFilterOptional();
   const [items, setItems] = useState<OutboundMembershipPending[]>(() => [
     ...initialItems,
   ]);
@@ -60,12 +62,22 @@ export function JourneyMembershipPendingBanner({ items: initialItems, ownerSlug 
     return () => window.removeEventListener(COMPOSE_PUBLISHED_EVENT, onPublished);
   }, [ownerSlug]);
 
-  const scrollToCard = useCallback((cotMocId: string) => {
-    const el = document.querySelector<HTMLElement>(
-      `.j-milestone[data-mid="${cotMocId}"], .j-milestone[data-mid="${CSS.escape(cotMocId)}"]`,
-    );
-    el?.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, []);
+  const scrollToCard = useCallback(
+    (cotMocId: string) => {
+      const selector = `.j-milestone[data-mid="${cotMocId}"], .j-milestone[data-mid="${CSS.escape(cotMocId)}"]`;
+      let el = document.querySelector<HTMLElement>(selector);
+      if (!el && personalFilter?.activeSlug) {
+        personalFilter.setActiveSlug(null);
+        window.setTimeout(() => {
+          el = document.querySelector<HTMLElement>(selector);
+          el?.scrollIntoView({ behavior: "smooth", block: "center" });
+        }, 120);
+        return;
+      }
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    },
+    [personalFilter],
+  );
 
   if (items.length === 0) return null;
 

@@ -16,6 +16,7 @@ import {
 } from "@/lib/journey/milestones-fetch";
 import { attachPersonalFiltersToMilestones } from "@/lib/filter/attach-milestones";
 import { loadPersonalFilterSlugsForCotMocs } from "@/lib/filter/gan";
+import { loadPendingMembershipCotMocIdsForUser } from "@/lib/journey/membership-milestone";
 import { loadVerifiedCotMocIdSet } from "@/lib/journey/milestone-verify";
 import {
   isForeignMilestoneVisibleToViewer,
@@ -474,6 +475,7 @@ export async function listVisibleTimelineCotMocIds(
 async function filterStubsByPersonalLabel(
   stubs: TimelineStub[],
   personalFilterSlug: string | null | undefined,
+  options?: { isOwner?: boolean; ownerProfileId?: string | null },
 ): Promise<TimelineStub[]> {
   const slug = personalFilterSlug?.trim();
   if (!slug) return stubs;
@@ -481,8 +483,18 @@ async function filterStubsByPersonalLabel(
   const cotMocIds = [...new Set(stubs.map((s) => s.cotMocId))];
   if (cotMocIds.length === 0) return [];
 
-  const slugMap = await loadPersonalFilterSlugsForCotMocs(cotMocIds);
-  return stubs.filter((stub) => slugMap.get(stub.cotMocId)?.includes(slug));
+  const [slugMap, pendingMembershipIds] = await Promise.all([
+    loadPersonalFilterSlugsForCotMocs(cotMocIds),
+    options?.isOwner && options.ownerProfileId
+      ? loadPendingMembershipCotMocIdsForUser(options.ownerProfileId)
+      : Promise.resolve(new Set<string>()),
+  ]);
+
+  return stubs.filter(
+    (stub) =>
+      pendingMembershipIds.has(stub.cotMocId) ||
+      slugMap.get(stub.cotMocId)?.includes(slug),
+  );
 }
 
 type CotMocFullRow = {
@@ -571,7 +583,10 @@ export async function fetchMilestoneTimelinePage(params: {
   const admin = createServiceRoleClient();
   const allStubs = await getTimelineStubsCached(userId, isOwner, viewerId);
   const filterCounts = computeFilterCounts(allStubs);
-  const stubs = await filterStubsByPersonalLabel(allStubs, personalFilterSlug);
+  const stubs = await filterStubsByPersonalLabel(allStubs, personalFilterSlug, {
+    isOwner,
+    ownerProfileId: isOwner ? viewerId : null,
+  });
   const slice = stubs.slice(offset, offset + limit);
 
   const hydrated = await hydrateTimelineStubs(admin, slice, {

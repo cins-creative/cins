@@ -56,6 +56,13 @@ import { matchesPersonalFilterSlug } from "@/lib/filter/client-utils";
 import { CONG_DONG_PERSONAL_FILTER_SLUG } from "@/lib/filter/cong-dong-personal-filter.shared";
 import { useJourneyPersonalFilterOptional } from "@/components/journey/JourneyPersonalFilterContext";
 
+function isIdentityMembershipMilestone(m: MilestoneItem): boolean {
+  return (
+    m.cardLayout === "identity-pending" ||
+    m.cardLayout === "identity-verified"
+  );
+}
+
 type ScrollLoadConfig = {
   ownerSlug: string;
   hasMore: boolean;
@@ -423,8 +430,10 @@ export function JourneyTimeline({
   const filtered = useMemo(() => {
     let rows = visibleItems;
     if (personalFilter?.activeSlug) {
-      rows = rows.filter((m) =>
-        matchesPersonalFilterSlug(m.personalFilterSlugs, personalFilter.activeSlug),
+      rows = rows.filter(
+        (m) =>
+          (isOwner && isIdentityMembershipMilestone(m)) ||
+          matchesPersonalFilterSlug(m.personalFilterSlugs, personalFilter.activeSlug),
       );
     }
     if (filter === "all") return rows;
@@ -438,7 +447,7 @@ export function JourneyTimeline({
       return rows.filter((m) => m.variant === "bookmark");
     }
     return rows.filter((m) => m.type === filter);
-  }, [visibleItems, filter, personalFilter?.activeSlug]);
+  }, [visibleItems, filter, personalFilter?.activeSlug, isOwner]);
 
   /* Group theo năm DESC. */
   const byYear = useMemo(() => groupByYearDesc(filtered), [filtered]);

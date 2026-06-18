@@ -129,6 +129,20 @@ export type OrgMilestoneTagApprovedNotification = {
   daDoc?: boolean;
 };
 
+export type MembershipMilestoneResolvedNotification = {
+  notificationId: string;
+  cotMocId: string;
+  orgTen: string;
+  orgSlug: string;
+  orgLoai: "truong_dai_hoc" | "co_so_dao_tao" | "studio";
+  orgHref: string | null;
+  milestoneTitle: string;
+  journeyHref: string;
+  action: "approved" | "rejected";
+  taoLuc?: string;
+  daDoc?: boolean;
+};
+
 export type FollowHandledNotification = PendingFollowRequest & {
   notificationId: string;
   action: "accept" | "decline";
@@ -166,6 +180,7 @@ export type NotificationFeed = {
   coSoStaffInvites: PendingCoSoStaffInviteNotification[];
   videoReady: VideoReadyNotification[];
   orgMilestoneTagApproved: OrgMilestoneTagApprovedNotification[];
+  membershipMilestoneResolved: MembershipMilestoneResolvedNotification[];
   handledFollows: FollowHandledNotification[];
   processedCoAuthorReviews: ProcessedCoAuthorReview[];
 };
