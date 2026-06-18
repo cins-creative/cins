@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { fetchMilestoneTimelinePage } from "@/lib/journey/milestones-page-fetch";
+import { loadOutboundMembershipPendingForUser } from "@/lib/journey/membership-milestone";
 import { loadPendingCoAuthorInvites } from "@/lib/social/co-author";
 import { loadPendingCoSoStaffInvites } from "@/lib/to-chuc/co-so-staff-invite";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -45,17 +46,19 @@ export async function GET(
     personalFilterSlug,
   });
 
-  const [coAuthorPendingInvites, coSoStaffPendingInvites] =
+  const [coAuthorPendingInvites, coSoStaffPendingInvites, membershipPendingOutbound] =
     isOwner && offset === 0 && session?.profile?.id
       ? await Promise.all([
           loadPendingCoAuthorInvites(session.profile.id),
           loadPendingCoSoStaffInvites(session.profile.id),
+          loadOutboundMembershipPendingForUser(session.profile.id),
         ])
-      : [[], []];
+      : [[], [], []];
 
   return NextResponse.json({
     ...page,
     coAuthorPendingInvites,
     coSoStaffPendingInvites,
+    membershipPendingOutbound,
   });
 }

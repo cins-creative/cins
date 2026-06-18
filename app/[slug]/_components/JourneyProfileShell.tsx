@@ -16,6 +16,7 @@ import {
   getCachedMutualFriendsPage,
   getCachedPendingCoAuthorInvites,
   getCachedPendingCoSoStaffInvites,
+  getCachedOutboundMembershipPending,
 } from "@/lib/journey/journey-page-cache";
 import { fetchUserOrganizationsPage } from "@/lib/journey/user-orgs-fetch";
 import { Suspense } from "react";
@@ -84,7 +85,8 @@ async function loadInitialData(
     return { organizations };
   }
 
-  const [page, coAuthorPendingInvites, coSoStaffPendingInvites] = await Promise.all([
+  const [page, coAuthorPendingInvites, coSoStaffPendingInvites, membershipPendingOutbound] =
+    await Promise.all([
     getCachedMilestoneTimelinePage({
       userId: ownerId,
       isOwner,
@@ -97,10 +99,18 @@ async function loadInitialData(
     isOwner && viewerProfileId
       ? getCachedPendingCoSoStaffInvites(viewerProfileId)
       : Promise.resolve([]),
+    isOwner && viewerProfileId
+      ? getCachedOutboundMembershipPending(viewerProfileId)
+      : Promise.resolve([]),
   ]);
 
   return {
-    timeline: { page, coAuthorPendingInvites, coSoStaffPendingInvites },
+    timeline: {
+      page,
+      coAuthorPendingInvites,
+      coSoStaffPendingInvites,
+      membershipPendingOutbound,
+    },
   };
 }
 

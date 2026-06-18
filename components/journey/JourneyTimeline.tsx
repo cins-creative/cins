@@ -51,6 +51,7 @@ import {
 } from "@/lib/journey/timeline-scroll-spy";
 import type { PendingCoAuthorInvite } from "@/lib/social/types";
 import type { PendingCoSoStaffInviteNotification } from "@/lib/to-chuc/co-so-staff-invite";
+import type { OutboundMembershipPending } from "@/lib/journey/membership-milestone-types";
 import { matchesPersonalFilterSlug } from "@/lib/filter/client-utils";
 import { CONG_DONG_PERSONAL_FILTER_SLUG } from "@/lib/filter/cong-dong-personal-filter.shared";
 import { useJourneyPersonalFilterOptional } from "@/components/journey/JourneyPersonalFilterContext";
@@ -79,6 +80,7 @@ type Props = {
   viewerProfileId?: string | null;
   coAuthorPendingInvites?: ReadonlyArray<PendingCoAuthorInvite>;
   coSoStaffPendingInvites?: ReadonlyArray<PendingCoSoStaffInviteNotification>;
+  membershipPendingOutbound?: ReadonlyArray<OutboundMembershipPending>;
   /** Infinite scroll — load trang kế qua API khi sentinel vào viewport. */
   scrollLoad?: ScrollLoadConfig;
 };
@@ -106,6 +108,7 @@ export function JourneyTimeline({
   viewerProfileId = null,
   coAuthorPendingInvites = [],
   coSoStaffPendingInvites = [],
+  membershipPendingOutbound = [],
   scrollLoad,
 }: Props) {
   const personalFilter = useJourneyPersonalFilterOptional();
@@ -524,6 +527,7 @@ export function JourneyTimeline({
           ownerSlug={ownerSlug}
           initialCoAuthorInvites={coAuthorPendingInvites}
           initialCoSoStaffInvites={coSoStaffPendingInvites}
+          initialMembershipPending={membershipPendingOutbound}
         />
       ) : null}
 

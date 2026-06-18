@@ -37,6 +37,7 @@ import { JourneyBookmarkButton } from "@/components/journey/JourneyBookmarkButto
 import { JourneyMilestoneInlineControls } from "@/components/journey/JourneyMilestoneInlineControls";
 import { JourneyLikeButton } from "@/components/journey/JourneyLikeButton";
 import { JourneyMilestoneOwnerMenu } from "@/components/journey/JourneyMilestoneOwnerMenu";
+import { IdentityPendingMilestoneCard } from "@/components/journey/IdentityPendingMilestoneCard";
 import { JourneyOrgPopover } from "@/components/journey/JourneyOrgPopover";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
 import Link from "next/link";
@@ -297,6 +298,7 @@ export function JourneyMilestoneCard({
     orgHref,
     congDongOrg,
     personalFilterSlugs = [],
+    membershipPending,
   } = milestone;
 
   const articleTagsKey = articleTags.map((t) => t.id).join("\0");
@@ -370,6 +372,30 @@ export function JourneyMilestoneCard({
         year={year}
         month={month}
         day={day}
+      />
+    );
+  }
+
+  if (cardLayout === "identity-pending" && membershipPending) {
+    return (
+      <IdentityPendingMilestoneCard
+        milestoneCls={["j-milestone", "j-self", "j-identity-pending"]
+          .filter(Boolean)
+          .join(" ")}
+        milestoneId={cotMocId ?? milestone.id}
+        cotMocId={cotMocId ?? milestone.id}
+        ownerSlug={ownerSlug ?? ""}
+        displayDate={displayDate}
+        year={year}
+        month={month}
+        day={day}
+        title={title}
+        body={body}
+        type={type}
+        visibility={visibility}
+        attribution={attribution}
+        membershipPending={membershipPending}
+        isOwner={isOwner}
       />
     );
   }

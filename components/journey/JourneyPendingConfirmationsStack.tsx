@@ -4,7 +4,9 @@ import { JourneyCoAuthorPendingBanner } from "@/components/journey/JourneyCoAuth
 import { JourneyCoAuthorReviewBanner } from "@/components/journey/JourneyCoAuthorReviewBanner";
 import { JourneyCoSoStaffInviteBanner } from "@/components/journey/JourneyCoSoStaffInviteBanner";
 import { JourneyFollowRequestBanner } from "@/components/journey/JourneyFollowRequestBanner";
+import { JourneyMembershipPendingBanner } from "@/components/journey/JourneyMembershipPendingBanner";
 import { useJourneyPendingConfirmations } from "@/lib/journey/use-journey-pending-confirmations";
+import type { OutboundMembershipPending } from "@/lib/journey/membership-milestone-types";
 import type { PendingCoAuthorInvite } from "@/lib/social/types";
 import type { PendingCoSoStaffInviteNotification } from "@/lib/to-chuc/co-so-staff-invite";
 
@@ -14,6 +16,7 @@ type Props = {
   ownerSlug: string;
   initialCoAuthorInvites: ReadonlyArray<PendingCoAuthorInvite>;
   initialCoSoStaffInvites: ReadonlyArray<PendingCoSoStaffInviteNotification>;
+  initialMembershipPending?: ReadonlyArray<OutboundMembershipPending>;
 };
 
 /** Banner xác nhận trên timeline — đồng bộ với menu thông báo. */
@@ -23,6 +26,7 @@ export function JourneyPendingConfirmationsStack({
   ownerSlug,
   initialCoAuthorInvites,
   initialCoSoStaffInvites,
+  initialMembershipPending = [],
 }: Props) {
   const pending = useJourneyPendingConfirmations({
     isOwner,
@@ -33,16 +37,12 @@ export function JourneyPendingConfirmationsStack({
 
   if (!isOwner) return null;
 
-  const hasAny =
-    pending.coSoStaffInvites.length > 0 ||
-    pending.coAuthorInvites.length > 0 ||
-    pending.followRequests.length > 0 ||
-    pending.coAuthorReviews.length > 0;
-
-  if (!hasAny) return null;
-
   return (
     <div className="j-pending-confirmations" aria-label="Việc cần xác nhận">
+      <JourneyMembershipPendingBanner
+        items={initialMembershipPending}
+        ownerSlug={ownerSlug}
+      />
       {pending.coSoStaffInvites.length > 0 ? (
         <JourneyCoSoStaffInviteBanner invites={pending.coSoStaffInvites} />
       ) : null}

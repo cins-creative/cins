@@ -1,6 +1,6 @@
 "use client";
 
-import { FileText, ImagePlus, Video } from "lucide-react";
+import { FileText, Flag, ImagePlus, Video } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { useJourneyCompose } from "@/components/journey/JourneyComposeContext";
@@ -13,6 +13,7 @@ type Props = {
 function composeFallbackHref(ownerSlug: string, kind: ComposeCreateKind): string {
   if (kind === "photo") return `/${ownerSlug}/p/new/photo`;
   if (kind === "video") return `/${ownerSlug}/p/new/video`;
+  if (kind === "milestone") return `/${ownerSlug}/journey?compose=milestone`;
   return `/${ownerSlug}/p/new`;
 }
 
@@ -59,6 +60,14 @@ export function JourneyCreateComposer({ ownerSlug }: Props) {
         >
           <Video size={20} strokeWidth={1.8} aria-hidden />
           <span>Thêm video</span>
+        </button>
+        <button
+          type="button"
+          className="j-create-composer-action j-create-composer-action--milestone"
+          onClick={() => open("milestone")}
+        >
+          <Flag size={20} strokeWidth={1.8} aria-hidden />
+          <span>Thêm cột mốc</span>
         </button>
       </div>
     </div>

@@ -95,7 +95,23 @@ export type MilestoneCongDongOrg = {
 };
 
 /** Layout card đặc biệt — khác article/photo/video. */
-export type MilestoneCardLayout = "default" | "cong-dong-create" | "co-so-create";
+export type MilestoneCardLayout =
+  | "default"
+  | "cong-dong-create"
+  | "co-so-create"
+  | "identity-pending";
+
+/** Cột mốc danh tính chờ org duyệt (`membership_milestone_v1`). */
+export type MembershipPendingMeta = {
+  requestId: string;
+  submittedAt: string;
+  orgTen: string;
+  orgSlug: string;
+  orgLoai: "truong_dai_hoc" | "co_so_dao_tao" | "studio";
+  orgAvatarUrl: string | null;
+  orgHref: string | null;
+  visibilityAfterVerify: "public" | "theo_nhom" | "chi_minh";
+};
 
 export type MilestoneBookmarkSource = {
   /** Tên platform — "ArtStation", "Behance", "YouTube"… */
@@ -195,6 +211,8 @@ export type MilestoneItem = {
 
   /** Card layout — `cong-dong-create` = milestone tạo cộng đồng (logo org). */
   cardLayout?: MilestoneCardLayout;
+  /** Cột mốc danh tính chờ org duyệt — chỉ owner thấy (`chi_minh`). */
+  membershipPending?: MembershipPendingMeta | null;
   /** Link cộng đồng/org khi `cardLayout === 'cong-dong-create'`. */
   orgHref?: string | null;
 

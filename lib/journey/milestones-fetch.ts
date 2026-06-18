@@ -20,6 +20,7 @@ import {
 } from "@/lib/journey/foreign-milestone-visibility";
 import { loadPersonalFiltersForCotMocs } from "@/lib/filter/gan";
 import { loadCongDongOrgsForMilestones } from "@/lib/journey/cong-dong-milestone-org";
+import { loadMembershipPendingMetaForCotMocs } from "@/lib/journey/membership-milestone";
 import {
   CHE_DO_MOC_CONG_DONG,
   isMilestoneVisibleOnPublicJourney,
@@ -177,9 +178,10 @@ export async function buildSelfMilestonesForCotMocs(
     .filter((m) => m.che_do_hien_thi === CHE_DO_MOC_CONG_DONG && m.id_to_chuc)
     .map((m) => m.id_to_chuc as string);
 
-  const [personalFiltersByMoc, congDongOrgs] = await Promise.all([
+  const [personalFiltersByMoc, congDongOrgs, membershipPendingByMoc] = await Promise.all([
     loadPersonalFiltersForCotMocs(ids),
     loadCongDongOrgsForMilestones(congDongOrgIds),
+    loadMembershipPendingMetaForCotMocs(admin, ids),
   ]);
 
   const sorted = [...cotMocs].sort((a, b) => {
@@ -202,10 +204,28 @@ export async function buildSelfMilestonesForCotMocs(
       ? (tagsByTacPham.get(firstPost.id) ?? [])
       : [];
     const verified = verifiedMeta.get(m.id);
-    const cardLayout = resolveOrgCreateCardLayout(verified);
-    const isOrgCreateCard = cardLayout !== "default";
+    const membershipPending = membershipPendingByMoc.get(m.id) ?? null;
+    let cardLayout = resolveOrgCreateCardLayout(verified);
+    if (membershipPending) cardLayout = "identity-pending";
+    const isOrgCreateCard = cardLayout !== "default" && cardLayout !== "identity-pending";
+    const isIdentityPending = cardLayout === "identity-pending";
 
     const personalFilters = personalFiltersByMoc.get(m.id) ?? [];
+    const pendingAttribution = membershipPending
+      ? {
+          name: membershipPending.orgTen,
+          avatarUrl: membershipPending.orgAvatarUrl,
+          initial: membershipPending.orgTen.charAt(0) || "?",
+          isOrg: true,
+          orgKind:
+            membershipPending.orgLoai === "co_so_dao_tao"
+              ? ("co_so_dao_tao" as const)
+              : membershipPending.orgLoai === "truong_dai_hoc"
+                ? ("truong" as const)
+                : null,
+          href: membershipPending.orgHref,
+        }
+      : null;
 
     return {
       id: m.id,
@@ -223,25 +243,30 @@ export async function buildSelfMilestonesForCotMocs(
       month,
       day,
       createdAt: m.tao_luc,
-      title: firstPost?.tieu_de ?? m.tieu_de,
-      body: m.mo_ta || null,
-      org: verified?.attribution.role ?? null,
-      postSlug: isOrgCreateCard ? null : firstPostSlug,
-      tacPhamId: isOrgCreateCard ? null : (firstPost?.id ?? null),
-      attribution: verified?.attribution ?? null,
+      title: isIdentityPending ? m.tieu_de : (firstPost?.tieu_de ?? m.tieu_de),
+      body: isIdentityPending ? m.mo_ta || "Chờ xác thực" : m.mo_ta || null,
+      org: verified?.attribution.role ?? pendingAttribution?.name ?? null,
+      postSlug: isOrgCreateCard || isIdentityPending ? null : firstPostSlug,
+      tacPhamId: isOrgCreateCard || isIdentityPending ? null : (firstPost?.id ?? null),
+      attribution: verified?.attribution ?? pendingAttribution,
       verifiedBy: verified?.verifiedBy ?? null,
       cardLayout,
-      orgHref: isOrgCreateCard ? (verified?.orgHref ?? null) : null,
-      media: isOrgCreateCard
+      membershipPending,
+      orgHref: isOrgCreateCard
+        ? (verified?.orgHref ?? null)
+        : isIdentityPending
+          ? (membershipPending?.orgHref ?? null)
+          : null,
+      media: isOrgCreateCard || isIdentityPending
         ? []
         : milestoneCoverMedia(
             firstPost?.cover_id,
             firstPost?.noi_dung_blocks,
             firstPost?.tieu_de ?? m.tieu_de,
           ),
-      noiDungBlocks: isOrgCreateCard ? null : noiDungBlocks,
-      articleTags: isOrgCreateCard ? [] : articleTags,
-      coAuthorCredits: isOrgCreateCard
+      noiDungBlocks: isOrgCreateCard || isIdentityPending ? null : noiDungBlocks,
+      articleTags: isOrgCreateCard || isIdentityPending ? [] : articleTags,
+      coAuthorCredits: isOrgCreateCard || isIdentityPending
         ? []
         : firstPost?.id
           ? (creditsByTacPham.get(firstPost.id) ?? [])

@@ -39,6 +39,17 @@ const MediaComposeViewLazy = dynamic(
   },
 );
 
+const MilestonePhraseComposerLazy = dynamic(
+  () =>
+    import("@/components/journey/MilestonePhraseComposer").then((mod) => ({
+      default: mod.MilestonePhraseComposer,
+    })),
+  {
+    loading: () => <ComposeOverlaySkeleton label="Đang mở trình cột mốc…" />,
+    ssr: false,
+  },
+);
+
 type Props = {
   compose: JourneyComposeState;
   ownerId: string;
@@ -193,12 +204,19 @@ export function JourneyComposeOverlay({
         ? "Thêm ảnh"
         : compose.kind === "video"
           ? "Thêm video"
-          : "Tạo bài viết";
+          : compose.kind === "milestone"
+            ? "Thêm cột mốc"
+            : compose.kind === "milestone-edit"
+              ? "Chỉnh sửa yêu cầu cột mốc"
+              : "Tạo bài viết";
 
   const isMediaSheet =
     compose.kind === "photo" ||
     compose.kind === "video" ||
     mediaEditMode !== null;
+
+  const isMilestoneSheet =
+    compose.kind === "milestone" || compose.kind === "milestone-edit";
 
   return createPortal(
     <div
@@ -209,7 +227,7 @@ export function JourneyComposeOverlay({
       onClick={handleBackdrop}
     >
       <div
-        className={`j-compose-sheet${isMediaSheet ? " j-compose-sheet--media" : ""}`}
+        className={`j-compose-sheet${isMediaSheet ? " j-compose-sheet--media" : ""}${isMilestoneSheet ? " j-compose-sheet--milestone" : ""}`}
       >
         {compose.kind === "article" ? (
           <EditorViewLazy
@@ -253,6 +271,17 @@ export function JourneyComposeOverlay({
             presentation="overlay"
             congDongCompose={congDongCompose}
             orgBaiDangCompose={orgBaiDangCompose}
+            onClose={onClose}
+            onPublished={onPublished}
+          />
+        ) : null}
+
+        {compose.kind === "milestone" || compose.kind === "milestone-edit" ? (
+          <MilestonePhraseComposerLazy
+            ownerSlug={ownerSlug}
+            editCotMocId={
+              compose.kind === "milestone-edit" ? compose.cotMocId : undefined
+            }
             onClose={onClose}
             onPublished={onPublished}
           />

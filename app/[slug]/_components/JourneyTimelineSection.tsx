@@ -4,6 +4,7 @@ import {
   getCachedMilestoneTimelinePage,
   getCachedPendingCoAuthorInvites,
   getCachedPendingCoSoStaffInvites,
+  getCachedOutboundMembershipPending,
 } from "@/lib/journey/journey-page-cache";
 
 type Props = {
@@ -25,7 +26,8 @@ export async function JourneyTimelineSection({
   viewerProfileId,
   filterVisibility,
 }: Props) {
-  const [page, coAuthorPendingInvites, coSoStaffPendingInvites] = await Promise.all([
+  const [page, coAuthorPendingInvites, coSoStaffPendingInvites, membershipPendingOutbound] =
+    await Promise.all([
     getCachedMilestoneTimelinePage({
       userId: ownerId,
       isOwner,
@@ -37,6 +39,9 @@ export async function JourneyTimelineSection({
       : Promise.resolve([]),
     isOwner && viewerProfileId
       ? getCachedPendingCoSoStaffInvites(viewerProfileId)
+      : Promise.resolve([]),
+    isOwner && viewerProfileId
+      ? getCachedOutboundMembershipPending(viewerProfileId)
       : Promise.resolve([]),
   ]);
 
@@ -51,6 +56,7 @@ export async function JourneyTimelineSection({
       viewerProfileId={viewerProfileId}
       coAuthorPendingInvites={coAuthorPendingInvites}
       coSoStaffPendingInvites={coSoStaffPendingInvites}
+      membershipPendingOutbound={membershipPendingOutbound}
       scrollLoad={{
         ownerSlug,
         hasMore: page.hasMore,

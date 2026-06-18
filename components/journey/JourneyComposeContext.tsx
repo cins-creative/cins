@@ -52,9 +52,13 @@ function syncComposeUrl(state: JourneyComposeState | null, mode: "push" | "repla
   const params = new URLSearchParams(window.location.search);
   params.delete("compose");
   params.delete("edit");
+  params.delete("cotMoc");
   if (state) {
     if (state.kind === "edit") params.set("edit", state.postSlug);
-    else params.set("compose", state.kind);
+    else if (state.kind === "milestone-edit") {
+      params.set("compose", "milestone-edit");
+      params.set("cotMoc", state.cotMocId);
+    } else params.set("compose", state.kind);
   }
   const qs = params.toString();
   const href = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
@@ -114,8 +118,16 @@ export function JourneyComposeProvider({
       const params = new URLSearchParams(window.location.search);
       const edit = params.get("edit")?.trim();
       const kind = params.get("compose")?.trim();
+      const cotMoc = params.get("cotMoc")?.trim();
       if (edit) setCompose({ kind: "edit", postSlug: edit });
-      else if (kind === "article" || kind === "photo" || kind === "video") {
+      else if (kind === "milestone-edit" && cotMoc) {
+        setCompose({ kind: "milestone-edit", cotMocId: cotMoc });
+      } else if (
+        kind === "article" ||
+        kind === "photo" ||
+        kind === "video" ||
+        kind === "milestone"
+      ) {
         setCompose({ kind });
       } else {
         setCompose(null);

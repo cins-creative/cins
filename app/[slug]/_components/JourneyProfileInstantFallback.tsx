@@ -105,6 +105,7 @@ export function JourneyProfileInstantFallback({
       viewerProfileId={viewerProfileId}
       coAuthorPendingInvites={data.coAuthorPendingInvites}
       coSoStaffPendingInvites={data.coSoStaffPendingInvites ?? []}
+      membershipPendingOutbound={data.membershipPendingOutbound ?? []}
       scrollLoad={{
         ownerSlug,
         hasMore: data.page.hasMore,

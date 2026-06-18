@@ -190,11 +190,13 @@ export function JourneyProfileContent({
         const page = (await res.json()) as MilestoneTimelinePageResult & {
           coAuthorPendingInvites?: JourneyTimelinePanelData["coAuthorPendingInvites"];
           coSoStaffPendingInvites?: JourneyTimelinePanelData["coSoStaffPendingInvites"];
+          membershipPendingOutbound?: JourneyTimelinePanelData["membershipPendingOutbound"];
         };
         const data: TimelineCacheData = {
           page,
           coAuthorPendingInvites: page.coAuthorPendingInvites ?? [],
           coSoStaffPendingInvites: page.coSoStaffPendingInvites ?? [],
+          membershipPendingOutbound: page.membershipPendingOutbound ?? [],
         };
         setTimelineCache(data);
         writeJourneyTimelinePanelCache(ownerSlug, viewerProfileId, data);
@@ -696,6 +698,7 @@ export function JourneyProfileContent({
           viewerProfileId={viewerProfileId}
           coAuthorPendingInvites={timelineCache.coAuthorPendingInvites}
           coSoStaffPendingInvites={timelineCache.coSoStaffPendingInvites ?? []}
+          membershipPendingOutbound={timelineCache.membershipPendingOutbound ?? []}
           scrollLoad={{
             ownerSlug,
             hasMore: timelineCache.page.hasMore,

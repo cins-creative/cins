@@ -18,6 +18,13 @@ import { CoAuthorInviteMessage } from "@/components/journey/CoAuthorInviteMessag
 import { CoSoStaffInviteMessage } from "@/components/journey/CoSoStaffInviteMessage";
 import type { CoAuthorCredit } from "@/components/journey/milestone-types";
 import {
+  COAUTHOR_INVITE_ACCEPTED_EVENT,
+  COAUTHOR_INVITE_DECLINED_EVENT,
+  COAUTHOR_INVITE_FAILED_EVENT,
+  type CoAuthorInviteAcceptedDetail,
+  type CoAuthorInviteDeclinedDetail,
+} from "@/lib/journey/coauthor-invite-events";
+import {
   dispatchMilestoneCreditsUpdated,
 } from "@/lib/journey/coauthor-credits-events";
 import { scheduleWhenIdle } from "@/lib/client/schedule-when-idle";
@@ -167,6 +174,21 @@ function countDisplayedItems(feed: NotificationFeed): number {
   );
 }
 
+function removeCoAuthorInviteFromFeed(
+  feed: NotificationFeed,
+  tacPhamId: string,
+): NotificationFeed {
+  const coAuthorInvites = feed.coAuthorInvites.filter(
+    (invite) => invite.tacPhamId !== tacPhamId,
+  );
+  if (coAuthorInvites.length === feed.coAuthorInvites.length) return feed;
+  return {
+    ...feed,
+    coAuthorInvites,
+    unreadCount: Math.max(0, feed.unreadCount - 1),
+  };
+}
+
 export function JourneyNotifications({
   initialUnreadCount,
   viewerProfileId,
@@ -256,6 +278,18 @@ export function JourneyNotifications({
       setFeed(next);
       setUnreadLoaded(true);
       writeUnreadNotificationsCache(viewerProfileId, next);
+    },
+    [viewerProfileId],
+  );
+
+  const removeCoAuthorInviteOptimistic = useCallback(
+    (tacPhamId: string) => {
+      setFeed((prev) => {
+        const next = removeCoAuthorInviteFromFeed(prev, tacPhamId);
+        if (next === prev) return prev;
+        writeUnreadNotificationsCache(viewerProfileId, next);
+        return next;
+      });
     },
     [viewerProfileId],
   );
@@ -421,14 +455,39 @@ export function JourneyNotifications({
   }, [open, tab, historyFeed, loadingHistory, loadHistory]);
 
   const refreshUnread = useCallback(() => {
-    if (open) {
-      void dismissInfoNotifications();
-      return;
-    }
     void fetchUnreadFeed().catch(() => {
       /* giữ state hiện tại */
     });
-  }, [open, dismissInfoNotifications, fetchUnreadFeed]);
+  }, [fetchUnreadFeed]);
+
+  useEffect(() => {
+    const onCoAuthorAccepted = (event: Event) => {
+      const tacPhamId = (event as CustomEvent<CoAuthorInviteAcceptedDetail>).detail
+        ?.tacPhamId;
+      if (tacPhamId) removeCoAuthorInviteOptimistic(tacPhamId);
+    };
+    const onCoAuthorDeclined = (event: Event) => {
+      const tacPhamId = (event as CustomEvent<CoAuthorInviteDeclinedDetail>).detail
+        ?.tacPhamId;
+      if (tacPhamId) removeCoAuthorInviteOptimistic(tacPhamId);
+    };
+    const onCoAuthorFailed = () => {
+      void fetchUnreadFeed().catch(() => {
+        /* khôi phục từ server */
+      });
+    };
+    window.addEventListener(COAUTHOR_INVITE_ACCEPTED_EVENT, onCoAuthorAccepted);
+    window.addEventListener(COAUTHOR_INVITE_DECLINED_EVENT, onCoAuthorDeclined);
+    window.addEventListener(COAUTHOR_INVITE_FAILED_EVENT, onCoAuthorFailed);
+    return () => {
+      window.removeEventListener(COAUTHOR_INVITE_ACCEPTED_EVENT, onCoAuthorAccepted);
+      window.removeEventListener(
+        COAUTHOR_INVITE_DECLINED_EVENT,
+        onCoAuthorDeclined,
+      );
+      window.removeEventListener(COAUTHOR_INVITE_FAILED_EVENT, onCoAuthorFailed);
+    };
+  }, [fetchUnreadFeed, removeCoAuthorInviteOptimistic]);
 
   useEffect(() => {
     window.addEventListener("cins:video-ready", refreshUnread);
@@ -477,6 +536,7 @@ export function JourneyNotifications({
     action: "accepted" | "declined",
   ) => {
     setError(null);
+    removeCoAuthorInviteOptimistic(invite.tacPhamId);
     startTransition(async () => {
       const res = await fetch(
         `/api/tac-pham/${invite.tacPhamId}/tac-gia/${viewerProfileId}`,
@@ -489,12 +549,12 @@ export function JourneyNotifications({
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
         setError(typeof json.error === "string" ? json.error : "Không xử lý được.");
+        void fetchUnreadFeed().catch(() => {
+          /* khôi phục từ server */
+        });
         return;
       }
-      const feedRes = await fetch("/api/notifications?filter=unread");
-      const feedJson = await feedRes.json().catch(() => null);
-      const next = parseFeedPayload(feedJson);
-      if (next) applyFeed(next);
+      window.dispatchEvent(new Event("cins:notifications-changed"));
     });
   };
 
