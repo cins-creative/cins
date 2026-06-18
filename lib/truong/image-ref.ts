@@ -9,10 +9,17 @@ export function isTemporaryImageRef(value: string): boolean {
   return value.startsWith("blob:") || value.startsWith("data:");
 }
 
-/** URL imagedelivery bị sai khi `cover_id` là blob:/data: bị ghép vào path. */
+/** URL http(s) đầy đủ — ảnh gốc từ web trường / bên thứ ba. */
+export function isExternalHttpImageRef(value: string): boolean {
+  return /^https?:\/\//i.test(value.trim());
+}
+
+/** URL imagedelivery bị sai khi `cover_id` là blob:/data: hoặc URL ngoài bị ghép vào path. */
 export function isBrokenCfDeliveryUrl(url: string): boolean {
   if (isTemporaryImageRef(url)) return true;
-  return /\/blob:|\/data:/.test(url);
+  if (/\/blob:|\/data:/.test(url)) return true;
+  if (/imagedelivery\.net\/[^/]+\/https?:\/\//i.test(url)) return true;
+  return false;
 }
 
 export function isCfImageUuid(value: string): boolean {

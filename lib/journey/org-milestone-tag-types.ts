@@ -2,7 +2,7 @@
 
 export const ORG_MILESTONE_TAG_KIND = "org_milestone_tag_v1" as const;
 
-export type OrgMilestoneTagStatus = "pending" | "approved" | "rejected";
+export type OrgMilestoneTagStatus = "pending" | "approved" | "rejected" | "detached";
 
 export type OrgAttachEvidence = {
   label: string;
@@ -41,6 +41,8 @@ export type OrgMilestoneTagPayload = {
   studentAvatarUrl?: string | null;
   album: OrgMilestoneTagAlbum;
   evidence: OrgAttachEvidence[];
+  /** ISO — org gỡ sau khi đã duyệt (`verify_yeu_cau.trang_thai` = tu_choi). */
+  unlinkedAt?: string | null;
 };
 
 export type OrgSearchHit = {

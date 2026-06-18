@@ -6,6 +6,7 @@ import { useCallback, useState, type ReactNode } from "react";
 import { ImageGridOverlay } from "@/components/journey/ImageGridOverlay";
 import { ImageAlbumCarousel } from "@/components/journey/ImageAlbumCarousel";
 import { ImageLightbox } from "@/components/journey/ImageLightbox";
+import { handleBlockImageError } from "@/lib/editor/resolve-image-seed-url";
 import {
   albumGridComposeRows,
   albumGridDisplayCount,
@@ -88,6 +89,7 @@ function ImageGridCell({
         height={image.height}
         loading={isFirstGroup && slotIndex === 0 ? "eager" : "lazy"}
         decoding="async"
+        onError={handleBlockImageError}
       />
       {isUploading ? (
         <span className="image-grid-uploading" aria-busy="true">

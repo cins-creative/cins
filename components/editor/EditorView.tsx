@@ -62,6 +62,7 @@ import {
 import { CongDongFeedFilterDropdown } from "@/components/cong-dong/CongDongFeedFilterDropdown";
 import { updatePost } from "@/app/[slug]/p/[postSlug]/edit/actions";
 import { publishPost } from "@/app/[slug]/p/new/actions";
+import { resolveImageSeedUrl } from "@/lib/editor/resolve-image-seed-url";
 import {
   getCfAccountHash,
   rememberCfAccountHashFromDeliveryUrl,
@@ -168,28 +169,7 @@ type Block = {
 
 type Visibility = "feature" | "public" | "theo_nhom" | "chi_minh";
 
-const SEED_BASE = "https://picsum.photos/seed/";
-const CF_UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-/**
- * Build URL từ seed.
- * - Seed UUID (Cloudflare imageId) → `imagedelivery.net/{hash}/{id}/public`.
- *   Account hash đọc qua `getCfAccountHash` (env public hoặc sessionStorage).
- * - Seed khác (`m-`, `extra-`, demo): rơi về `picsum.photos/seed/{seed}`.
- */
-const ph = (s: string, w = 900, h = 600) => {
-  const trimmed = (s || "").trim();
-  if (trimmed.startsWith("blob:") || trimmed.startsWith("data:")) {
-    return trimmed;
-  }
-  if (CF_UUID_RE.test(trimmed)) {
-    const hash = getCfAccountHash();
-    if (hash) {
-      return `https://imagedelivery.net/${hash}/${trimmed}/public`;
-    }
-  }
-  return `${SEED_BASE}${trimmed}/${w}/${h}`;
-};
+const ph = (s: string, w = 900, h = 600) => resolveImageSeedUrl(s, w, h);
 
 const BLOCK_TYPES: Array<{
   t: BlockType;

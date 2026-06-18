@@ -1,4 +1,4 @@
-import { getCfAccountHash } from "@/lib/cloudflare/account-hash";
+import { resolveImageSeedUrl } from "@/lib/editor/resolve-image-seed-url";
 
 export type ImgLayout =
   | "full"
@@ -56,27 +56,13 @@ export const IMG_LAYOUTS: ImgLayoutMeta[] = IMG_LAYOUT_META.filter(
   (l) => l.k !== "stack" && l.k !== "duo-stack",
 );
 
-const SEED_BASE = "https://picsum.photos/seed/";
-const CF_UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-/** URL hiển thị ảnh trong editor — hỗ trợ blob preview, Cloudflare UUID, picsum seed. */
+/** URL hiển thị ảnh trong editor — hỗ trợ blob preview, Cloudflare UUID, URL ngoài, picsum seed. */
 export function resolveEditorImageUrl(
   seed: string,
   w = 900,
   h = 600,
 ): string {
-  const trimmed = (seed || "").trim();
-  if (trimmed.startsWith("blob:") || trimmed.startsWith("data:")) {
-    return trimmed;
-  }
-  if (CF_UUID_RE.test(trimmed)) {
-    const hash = getCfAccountHash();
-    if (hash) {
-      return `https://imagedelivery.net/${hash}/${trimmed}/public`;
-    }
-  }
-  return `${SEED_BASE}${trimmed}/${w}/${h}`;
+  return resolveImageSeedUrl(seed, w, h);
 }
 
 export function getImgLayoutMeta(layout: ImgLayout): ImgLayoutMeta {

@@ -1,5 +1,7 @@
 import "server-only";
 
+import { resolveImageSeedUrl } from "@/lib/editor/resolve-image-seed-url";
+
 /* ╔══════════════════════════════════════════════════════════════════╗
    ║ Editor sanitize + serialize.                                     ║
    ║                                                                  ║
@@ -324,32 +326,8 @@ function renderImgsBlock(b: Block): string {
   return `<figure class="rich-imgs rich-imgs--${escapeHtml(layout)}${rounded ? " is-rounded" : ""}">${cellsHtml}${capHtml}</figure>`;
 }
 
-const CF_UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-/**
- * Build src từ seed.
- *
- * - Seed UUID (Cloudflare imageId) → `imagedelivery.net/{ACCOUNT_HASH}/{seed}/public`.
- *   Hash lấy từ `NEXT_PUBLIC_CF_IMAGES_ACCOUNT_HASH` hoặc `CLOUDFLARE_IMAGES_HASH`.
- * - Seed khác (`m-*`, demo, picsum seed): rơi về
- *   `https://picsum.photos/seed/{seed}/1200/800`.
- *
- * Toàn bộ link đi qua hàm này → đổi 1 chỗ là cả site sync.
- */
 function imgSrcForSeed(seed: string): string {
-  const trimmed = String(seed || "").trim();
-  if (!trimmed) return "";
-  if (CF_UUID_RE.test(trimmed)) {
-    const hash =
-      process.env.NEXT_PUBLIC_CF_IMAGES_ACCOUNT_HASH?.trim() ||
-      process.env.CLOUDFLARE_IMAGES_HASH?.trim() ||
-      "";
-    if (hash) {
-      return `https://imagedelivery.net/${hash}/${trimmed}/public`;
-    }
-  }
-  return `https://picsum.photos/seed/${encodeURIComponent(trimmed)}/1200/800`;
+  return resolveImageSeedUrl(seed, 1200, 800);
 }
 
 /** Cắt mo_ta (description) tự động từ block đầu nếu user không nhập. */

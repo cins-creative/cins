@@ -1,5 +1,8 @@
-import { getCfAccountHash } from "@/lib/cloudflare/account-hash";
 import type { Block } from "@/lib/editor/types";
+import {
+  resolveImageSeedLightboxUrl,
+  resolveImageSeedThumbUrl,
+} from "@/lib/editor/resolve-image-seed-url";
 import { detectMediaPostKind } from "@/lib/journey/post-media";
 
 export type GridImage = {
@@ -13,10 +16,6 @@ export type GridImage = {
 export type BlockRenderGroup =
   | { type: "image_grid"; images: GridImage[] }
   | { type: "block"; block: Block };
-
-const CF_UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const PICSUM = "https://picsum.photos/seed/";
 
 export const GRID_IMAGE_DEFAULT_WIDTH = 1200;
 export const GRID_IMAGE_DEFAULT_HEIGHT = 800;
@@ -148,58 +147,16 @@ export function albumGridComposeRows(slotCount: number): number[][] {
   return rows;
 }
 
-function cfUrl(imageId: string, variant: string): string | null {
-  const hash = getCfAccountHash();
-  if (!hash) return null;
-  return `https://imagedelivery.net/${hash}/${imageId.trim()}/${variant}`;
-}
-
-function cfThumbUrl(imageId: string): string | null {
-  return (
-    cfUrl(imageId, "public") ??
-    cfUrl(imageId, "medium") ??
-    cfUrl(imageId, "thumbnail")
-  );
-}
-
-function cfLightboxUrl(imageId: string): string | null {
-  return (
-    cfUrl(imageId, "public") ??
-    cfUrl(imageId, "cover") ??
-    cfUrl(imageId, "medium")
-  );
-}
-
 /** Thumbnail grid — variant nhỏ; compose dùng previewSrc (blob / URL upload) trước CF id. */
 export function gridThumbSrc(image: GridImage): string {
   const preview = image.previewSrc?.trim();
   if (preview) return preview;
-
-  const id = image.id.trim();
-  if (CF_UUID_RE.test(id)) {
-    const fromCf = cfThumbUrl(id);
-    if (fromCf) return fromCf;
-  }
-
-  if (id.startsWith("blob:") || id.startsWith("data:")) return id;
-  return picsum(id, image.width, image.height);
+  return resolveImageSeedThumbUrl(image.id, image.width, image.height);
 }
 
 /** Lightbox — variant lớn, giữ ratio gốc. */
 export function gridLightboxSrc(image: GridImage): string {
-  const id = image.id.trim();
-  if (CF_UUID_RE.test(id)) {
-    const fromCf = cfLightboxUrl(id);
-    if (fromCf) return fromCf;
-  }
-
   const preview = image.previewSrc?.trim();
   if (preview) return preview;
-
-  if (id.startsWith("blob:") || id.startsWith("data:")) return id;
-  return picsum(id, image.width, image.height);
-}
-
-function picsum(seed: string, w: number, h: number): string {
-  return `${PICSUM}${encodeURIComponent(seed)}/${w}/${h}`;
+  return resolveImageSeedLightboxUrl(image.id, image.width, image.height);
 }

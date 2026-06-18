@@ -1,5 +1,7 @@
 "use client";
 
+import { handleBlockImageError } from "@/lib/editor/resolve-image-seed-url";
+
 type Props = {
   src: string;
   alt: string;
@@ -50,12 +52,20 @@ export function JourneyCoverImage({
       className={className}
       onError={(event) => {
         const img = event.currentTarget;
-        if (img.dataset.cfPublicFallback === "1") return;
-        const next = imagedeliveryPublicUrl(img.currentSrc || img.src);
-        if (next === img.src && next === img.currentSrc) return;
-        img.dataset.cfPublicFallback = "1";
-        img.removeAttribute("srcset");
-        img.src = next;
+        const current = img.currentSrc || img.src;
+        if (
+          /imagedelivery\.net/i.test(current) &&
+          img.dataset.cfPublicFallback !== "1"
+        ) {
+          const next = imagedeliveryPublicUrl(current);
+          if (next !== current) {
+            img.dataset.cfPublicFallback = "1";
+            img.removeAttribute("srcset");
+            img.src = next;
+            return;
+          }
+        }
+        handleBlockImageError(event);
       }}
     />
   );

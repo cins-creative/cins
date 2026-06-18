@@ -12,34 +12,24 @@
    ║ client. Nhận `blocks` đã sort theo `thu_tu`.                     ║
    ╚══════════════════════════════════════════════════════════════════╝ */
 
-import { getCfAccountHash } from "@/lib/cloudflare/account-hash";
 import {
   bunnyIframeSrc,
   classifyBunnyVideoUrl,
 } from "@/lib/bunny/embed";
 import { VideoProcessingPlaceholder } from "@/components/journey/VideoProcessingPlaceholder";
+import {
+  handleBlockImageError,
+  resolveImageSeedUrl,
+} from "@/lib/editor/resolve-image-seed-url";
 import type { Block } from "@/lib/editor/types";
 import { getYoutubeId } from "@/lib/youtube";
 
-const PICSUM = "https://picsum.photos/seed/";
-const CF_UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 /**
  * Build URL từ seed (giống `EditorView.ph`).
- * - UUID Cloudflare → `imagedelivery.net/{hash}/{id}/public`.
- * - Khác → picsum (placeholder).
+ * - URL http(s) / UUID Cloudflare / blob — xem `resolveImageSeedUrl`.
  */
 function ph(seed: string, w = 900, h = 600): string {
-  if (!seed) return "";
-  const trimmed = seed.trim();
-  if (CF_UUID_RE.test(trimmed)) {
-    const hash = getCfAccountHash();
-    if (hash) {
-      return `https://imagedelivery.net/${hash}/${trimmed}/public`;
-    }
-  }
-  return `${PICSUM}${encodeURIComponent(trimmed)}/${w}/${h}`;
+  return resolveImageSeedUrl(seed, w, h);
 }
 
 /* Embed URL classifier (client-safe; duplicate of `sanitize.ts` vì file đó
@@ -110,6 +100,7 @@ export function PostCover({ seed }: { seed: string | null | undefined }) {
           loading="eager"
           fetchPriority="high"
           decoding="async"
+          onError={handleBlockImageError}
         />
       </div>
     </div>
@@ -399,7 +390,7 @@ function ReadOnlyBlock({ block }: { block: Block }) {
                     <p>{cell.text}</p>
                   </div>
                 ) : (
-                  <img src={ph(cell.seed, 900, 900)} alt="" loading="lazy" />
+                  <img src={ph(cell.seed, 900, 900)} alt="" loading="lazy" onError={handleBlockImageError} />
                 )}
               </div>
             ))}
@@ -421,7 +412,7 @@ function ReadOnlyBlock({ block }: { block: Block }) {
         <div className={`imgwrap ${layout}${rounded ? " rounded" : ""}`}>
           {imgs.map((seed, i) => (
             <div key={`${seed}-${i}`} className="ph">
-              <img src={ph(seed, 900, 900)} alt="" loading="lazy" />
+              <img src={ph(seed, 900, 900)} alt="" loading="lazy" onError={handleBlockImageError} />
             </div>
           ))}
         </div>

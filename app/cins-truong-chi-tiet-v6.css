@@ -76,6 +76,32 @@
   padding-top: 0;
 }
 
+/* Avatar trường — căn giữa viền dưới cover (nửa trên cover, nửa dưới card) */
+.tdh-page--v6 .school-side:not(.cso-ss-side) {
+  --ss-sidebar-avatar-size: 88px;
+}
+
+.tdh-page--v6 .school-side:not(.cso-ss-side) .ss-cover {
+  position: relative;
+  z-index: 1;
+}
+
+.tdh-page--v6 .school-side:not(.cso-ss-side) .ss-card-id {
+  margin-top: calc(-1 * (14px + var(--ss-sidebar-avatar-size) / 2));
+  position: relative;
+  z-index: 2;
+}
+
+.tdh-page--v6 .school-side:not(.cso-ss-side) .ss-id-top .ss-avatar {
+  position: relative;
+  z-index: 3;
+  margin-top: 0;
+}
+
+.tdh-page--v6 .school-side:not(.cso-ss-side) .ss-avatar.school-avatar-lg {
+  margin-top: 0;
+}
+
 .tdh-page--v6 .school-side::-webkit-scrollbar {
   display: none;
   width: 0;
@@ -2920,6 +2946,10 @@
 
   .tdh-page--v6 .school-side .ss-cover .cover-frame {
     height: 132px;
+  }
+
+  .tdh-page--v6 .school-side:not(.cso-ss-side) {
+    --ss-sidebar-avatar-size: 72px;
   }
 
   .tdh-page--v6 .ss-name {

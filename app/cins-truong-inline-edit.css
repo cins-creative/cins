@@ -4121,6 +4121,10 @@
   background: #ef4444;
 }
 
+.tdh-milestone-tag-detail-hdr--detached::before {
+  background: #94a3b8;
+}
+
 .tdh-milestone-tag-detail-hdr-main {
   flex: 1;
   min-width: 0;
@@ -4674,6 +4678,11 @@ a.tdh-milestone-tag-student:hover {
 .tdh-milestone-tag-status--rejected {
   background: #fee2e2;
   color: #b91c1c;
+}
+
+.tdh-milestone-tag-status--detached {
+  background: #f1f5f9;
+  color: #475569;
 }
 
 @media (max-width: 560px) {

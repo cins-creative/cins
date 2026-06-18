@@ -55,6 +55,8 @@ export type ChatThread = {
   avatarInitial: string;
   avatarHue: number;
   avatarUrl?: string | null;
+  /** Org đại diện — dùng dedupe thread tab Tổ chức. */
+  orgId?: string;
   preview: string;
   lastAt: string;
   unread: number;

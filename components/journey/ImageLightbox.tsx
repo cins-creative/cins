@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { useCallback, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 
+import { handleBlockImageError } from "@/lib/editor/resolve-image-seed-url";
 import {
   gridLightboxSrc,
   type GridImage,
@@ -121,6 +122,7 @@ export function ImageLightbox({
             width={current.width}
             height={current.height}
             decoding="async"
+            onError={handleBlockImageError}
           />
         </figure>
       </div>

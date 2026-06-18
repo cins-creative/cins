@@ -7,7 +7,7 @@ type RouteContext = {
   params: Promise<{ orgId: string; requestId: string }>;
 };
 
-/** PATCH /api/org/:orgId/milestone-tag-requests/:requestId — approve | reject */
+/** PATCH /api/org/:orgId/milestone-tag-requests/:requestId — approve | reject | detach */
 export async function PATCH(req: Request, ctx: RouteContext) {
   const session = await getCurrentSessionAndProfile();
   if (!session?.profile) {
@@ -22,7 +22,12 @@ export async function PATCH(req: Request, ctx: RouteContext) {
     return NextResponse.json({ error: "Body JSON không hợp lệ." }, { status: 400 });
   }
 
-  const action = body.action === "reject" ? "reject" : "approve";
+  const action =
+    body.action === "reject"
+      ? "reject"
+      : body.action === "detach"
+        ? "detach"
+        : "approve";
   const result = await respondOrgMilestoneTagRequest({
     orgId,
     requestId,

@@ -8,6 +8,7 @@ import {
   Clock3,
   ExternalLink,
   ImagePlus,
+  Link2Off,
   Plus,
   Search,
   Trash2,
@@ -250,6 +251,8 @@ function statusIcon(status: OrgMilestoneTagStatus) {
       return <CheckCircle2 size={14} strokeWidth={2.4} aria-hidden />;
     case "rejected":
       return <XCircle size={14} strokeWidth={2.4} aria-hidden />;
+    case "detached":
+      return <Link2Off size={14} strokeWidth={2.4} aria-hidden />;
     default:
       return <Clock3 size={14} strokeWidth={2.4} aria-hidden />;
   }

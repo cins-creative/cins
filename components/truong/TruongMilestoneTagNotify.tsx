@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { CheckCircle2, ChevronLeft, Clock3, XCircle } from "lucide-react";
+import { CheckCircle2, ChevronLeft, Clock3, Link2Off, XCircle } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { JourneyPostBody } from "@/components/journey/JourneyPostBody";
@@ -75,7 +75,13 @@ function StudentAvatar({
 
 function TagStatusBadge({ status }: { status: OrgMilestoneTagStatus }) {
   const Icon =
-    status === "approved" ? CheckCircle2 : status === "rejected" ? XCircle : Clock3;
+    status === "approved"
+      ? CheckCircle2
+      : status === "rejected"
+        ? XCircle
+        : status === "detached"
+          ? Link2Off
+          : Clock3;
   return (
     <span className={`tdh-milestone-tag-status tdh-milestone-tag-status--${status}`}>
       <Icon size={13} strokeWidth={2.4} aria-hidden />
@@ -116,7 +122,7 @@ export function TruongMilestoneTagNotify() {
   const [items, setItems] = useState<OrgMilestoneTagRequestItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<FilterKey>("all");
+  const [filter, setFilter] = useState<FilterKey>("pending");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mobileShowDetail, setMobileShowDetail] = useState(false);
 
@@ -147,8 +153,10 @@ export function TruongMilestoneTagNotify() {
   }, [ctx?.orgId]);
 
   useEffect(() => {
-    if (open) void loadItems();
-    else {
+    if (open) {
+      setFilter("pending");
+      void loadItems();
+    } else {
       setSelectedId(null);
       setMobileShowDetail(false);
     }
@@ -161,6 +169,11 @@ export function TruongMilestoneTagNotify() {
 
   const filtered = useMemo(() => {
     if (filter === "all") return items;
+    if (filter === "rejected") {
+      return items.filter(
+        (i) => i.status === "rejected" || i.status === "detached",
+      );
+    }
     return items.filter((i) => i.status === filter);
   }, [items, filter]);
 
@@ -179,9 +192,19 @@ export function TruongMilestoneTagNotify() {
 
   if (!ctx?.canEdit || !ctx.isEditing) return null;
 
-  async function setStatus(id: string, status: OrgMilestoneTagStatus) {
+  async function respondRequest(
+    id: string,
+    action: "approve" | "reject" | "detach",
+  ) {
     if (!ctx?.orgId) return;
-    const action = status === "approved" ? "approve" : "reject";
+    if (
+      action === "detach" &&
+      !window.confirm(
+        "Gỡ milestone này khỏi trang trường? Đồ án sẽ không còn hiển thị trên trang tổ chức.",
+      )
+    ) {
+      return;
+    }
     try {
       const res = await fetch(
         `/api/org/${ctx.orgId}/milestone-tag-requests/${id}`,
@@ -196,15 +219,21 @@ export function TruongMilestoneTagNotify() {
         ctx.showToast(json.error ?? "Không cập nhật được.");
         return;
       }
+      const nextStatus: OrgMilestoneTagStatus =
+        action === "approve"
+          ? "approved"
+          : action === "detach"
+            ? "detached"
+            : "rejected";
       setItems((list) =>
-        list.map((row) => (row.id === id ? { ...row, status } : row)),
+        list.map((row) => (row.id === id ? { ...row, status: nextStatus } : row)),
       );
       ctx.showToast(
-        status === "approved"
+        action === "approve"
           ? "Đã gắn milestone lên trang tổ chức"
-          : status === "rejected"
-            ? "Đã từ chối tag"
-            : "Đã cập nhật",
+          : action === "detach"
+            ? "Đã gỡ khỏi trang trường"
+            : "Đã từ chối tag",
       );
     } catch {
       ctx.showToast("Lỗi mạng.");
@@ -276,7 +305,9 @@ export function TruongMilestoneTagNotify() {
               [
                 "rejected",
                 "Từ chối",
-                items.filter((i) => i.status === "rejected").length,
+                items.filter(
+                  (i) => i.status === "rejected" || i.status === "detached",
+                ).length,
               ],
             ] as const
           ).map(([key, label, count]) => (
@@ -327,8 +358,9 @@ export function TruongMilestoneTagNotify() {
                 orgId={ctx.orgId}
                 showBack={mobileShowDetail}
                 onBack={() => setMobileShowDetail(false)}
-                onApprove={() => void setStatus(selectedRow.id, "approved")}
-                onReject={() => void setStatus(selectedRow.id, "rejected")}
+                onApprove={() => void respondRequest(selectedRow.id, "approve")}
+                onReject={() => void respondRequest(selectedRow.id, "reject")}
+                onDetach={() => void respondRequest(selectedRow.id, "detach")}
               />
             ) : (
               <p className="tdh-milestone-tag-detail-empty">
@@ -392,6 +424,7 @@ function MilestoneTagDetail({
   onBack,
   onApprove,
   onReject,
+  onDetach,
 }: {
   row: OrgMilestoneTagRequestItem;
   orgId: string;
@@ -399,6 +432,7 @@ function MilestoneTagDetail({
   onBack: () => void;
   onApprove: () => void;
   onReject: () => void;
+  onDetach: () => void;
 }) {
   const nganhOrKhoa = row.nganhLabel ?? row.khoaHocTen;
   const kindLabel = milestoneKindLabel(
@@ -514,6 +548,16 @@ function MilestoneTagDetail({
             onClick={onReject}
           >
             Từ chối
+          </button>
+        </div>
+      ) : row.status === "approved" ? (
+        <div className="tdh-milestone-tag-detail-foot">
+          <button
+            type="button"
+            className="tdh-inline-btn danger"
+            onClick={onDetach}
+          >
+            Gỡ khỏi trang trường
           </button>
         </div>
       ) : null}

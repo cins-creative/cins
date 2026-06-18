@@ -1,6 +1,10 @@
 import "server-only";
 
 import { getCfAccountHash } from "@/lib/cloudflare/account-hash";
+import {
+  isExternalHttpImageRef,
+  isTemporaryImageRef,
+} from "@/lib/truong/image-ref";
 
 /** Vai trò hiển thị — map sang kích thước layout + variant Cloudflare. */
 export type JourneyImageRole =
@@ -90,6 +94,14 @@ export function resolveJourneyImage(
   if (!trimmed) return null;
 
   const preset = ROLE_PRESETS[role];
+
+  if (isExternalHttpImageRef(trimmed) && !isTemporaryImageRef(trimmed)) {
+    return {
+      src: trimmed,
+      width: preset.width,
+      height: preset.height,
+    };
+  }
 
   if (CF_UUID_RE.test(trimmed)) {
     const src =

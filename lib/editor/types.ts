@@ -24,6 +24,7 @@ export type Block = {
    * Cấu hình theo type:
    *   - h2/h3/body/quote: { html: string }  — plain text từ textarea, server tự escape khi render.
    *   - imgs: { layout, rounded, cap, imgs: string[], cols?, cells?, gap?, pad? }
+   *     Mỗi phần tử `imgs[]` / mosaic `seed`: Cloudflare UUID hoặc URL http(s) đầy đủ.
    *   - embed: { url, provider?, embed_html? }
    *   - palette: { colors: string[] }
    *   - divider: {}

@@ -26,6 +26,59 @@ import { CHAT_ORG_KIND_LABEL } from "@/lib/chat/types";
 const ORG_ROOM = "1_org";
 const STAFF_MESSAGE_LIMIT = 80;
 
+async function pickCanonicalOrgStudentRoom(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  roomIds: string[],
+): Promise<string> {
+  if (roomIds.length === 1) return roomIds[0]!;
+  const { data: rooms } = await admin
+    .from("chat_phong")
+    .select("id, cap_nhat_luc")
+    .in("id", roomIds)
+    .returns<Array<{ id: string; cap_nhat_luc: string | null }>>();
+
+  let bestId = roomIds[0]!;
+  let bestTime = -1;
+  for (const room of rooms ?? []) {
+    const t = new Date(room.cap_nhat_luc ?? 0).getTime();
+    if (t >= bestTime) {
+      bestTime = t;
+      bestId = room.id;
+    }
+  }
+  return bestId;
+}
+
+function mergeOrgThreadPair(primary: ChatThread, secondary: ChatThread): ChatThread {
+  return {
+    ...primary,
+    unread: primary.unread + secondary.unread,
+  };
+}
+
+function dedupeOrgThreadsByOrg(threads: ChatThread[]): ChatThread[] {
+  const byOrg = new Map<string, ChatThread>();
+  for (const thread of threads) {
+    const orgId = thread.orgId;
+    if (!orgId) {
+      byOrg.set(thread.roomId, thread);
+      continue;
+    }
+    const existing = byOrg.get(orgId);
+    if (!existing) {
+      byOrg.set(orgId, thread);
+      continue;
+    }
+    const keepIncoming =
+      new Date(thread.lastAt).getTime() >= new Date(existing.lastAt).getTime();
+    byOrg.set(
+      orgId,
+      mergeOrgThreadPair(keepIncoming ? thread : existing, keepIncoming ? existing : thread),
+    );
+  }
+  return [...byOrg.values()];
+}
+
 type OrgRow = {
   id: string;
   ten: string;
@@ -53,6 +106,7 @@ function buildOrgThread(
   return {
     id: roomId,
     roomId,
+    orgId: org.id,
     name,
     group: "to_chuc",
     kind: "org",
@@ -83,8 +137,12 @@ export async function findOrCreateOrgStudentRoom(
     .eq("chat_phong.loai_phong", ORG_ROOM)
     .eq("chat_phong.id_org_dai_dien", orgId);
 
-  const existing = memberships?.[0]?.id_phong;
-  if (existing) return existing;
+  const roomIds = [
+    ...new Set((memberships ?? []).map((row) => row.id_phong).filter(Boolean)),
+  ];
+  if (roomIds.length > 0) {
+    return pickCanonicalOrgStudentRoom(admin, roomIds);
+  }
 
   const { data: room, error: roomError } = await admin
     .from("chat_phong")
@@ -304,9 +362,13 @@ export async function listOrgThreadsForUser(viewerId: string): Promise<ChatThrea
   }
 
   const threads: ChatThread[] = [];
+  const seenRoomIds = new Set<string>();
 
   for (const row of memberships ?? []) {
     const roomId = row.id_phong;
+    if (seenRoomIds.has(roomId)) continue;
+    seenRoomIds.add(roomId);
+
     const room = row.chat_phong as {
       id_org_dai_dien?: string | null;
       cap_nhat_luc?: string;
@@ -337,11 +399,12 @@ export async function listOrgThreadsForUser(viewerId: string): Promise<ChatThrea
     );
   }
 
-  threads.sort(
+  const deduped = dedupeOrgThreadsByOrg(threads);
+  deduped.sort(
     (a, b) => new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime(),
   );
 
-  return threads;
+  return deduped;
 }
 
 export async function listAllChatThreads(viewerId: string): Promise<ChatThread[]> {

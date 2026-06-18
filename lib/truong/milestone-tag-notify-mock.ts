@@ -1,6 +1,10 @@
 /** Mock — thông báo SV tag milestone / đồ án vào trường (chưa nối DB). */
 
-export type MilestoneTagNotifyStatus = "pending" | "approved" | "rejected";
+export type MilestoneTagNotifyStatus =
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "detached";
 
 export type MilestoneTagAlbum = {
   /** Tiêu đề trang nội dung / album user trình bày */
@@ -218,6 +222,8 @@ export function notifyStatusLabel(status: MilestoneTagNotifyStatus): string {
       return "Đã gắn";
     case "rejected":
       return "Từ chối";
+    case "detached":
+      return "Đã gỡ";
     default:
       return status;
   }

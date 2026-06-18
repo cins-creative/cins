@@ -2634,11 +2634,14 @@ a.j-main-gallery-item:focus-visible {
   word-break: break-word;
 }
 .j-m-unfold-post:not(.j-m-unfold-post--media) .sub-in.sub-ro {
-  font-family: var(--font-serif, "Lora", Georgia, serif);
-  font-style: italic;
-  font-size: 16px;
-  line-height: 1.45;
-  color: var(--ink-title);
+  /* Khớp `.jcard--article .jcard-desc` trên card timeline (org bài đăng). */
+  font-family: var(--font-sans);
+  font-style: normal;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.58;
+  color: var(--jcard-ink2, var(--ink-body));
+  letter-spacing: normal;
   margin: 0 16px 12px;
   padding: 0;
   width: auto;
@@ -2646,12 +2649,21 @@ a.j-main-gallery-item:focus-visible {
   overflow: visible;
   overflow-wrap: anywhere;
   word-break: break-word;
+  white-space: pre-wrap;
 }
 .cins-editor-page.cins-post-view.j-m-unfold-post .sub-in.sub-ro {
   overflow: visible;
 }
 .j-m-unfold-post:not(.j-m-unfold-post--media) .cover-add {
   margin-inline: 16px;
+}
+/* Cover unfold org bài đăng — không bo góc (khớp preview card phẳng). */
+.cins-editor-page.cins-post-view.j-m-unfold-post .cover-add.has.cover-readonly {
+  border-radius: 0;
+}
+.cins-editor-page.cins-post-view.j-m-unfold-post .cover-add.has.cover-readonly .cover-img-wrap,
+.cins-editor-page.cins-post-view.j-m-unfold-post .cover-add.has.cover-readonly img {
+  border-radius: 0;
 }
 /* Article unfold — typography gọn trong card timeline (khớp excerpt / j-m-blocks). */
 .j-m-unfold-post:not(.j-m-unfold-post--media) .blocks-readonly .b-text-ro {
@@ -5794,6 +5806,19 @@ select.j-edit-input {
   margin: 0 0 20px;
   width: 100%;
   border-radius: 12px;
+}
+
+/* Ảnh block/cover URL ngoài lỗi — placeholder xám, không icon vỡ */
+.is-image-load-failed {
+  background: var(--bg-muted, #ececec);
+  min-height: 120px;
+  border-radius: 8px;
+}
+.is-image-load-failed img[hidden] {
+  display: none !important;
+}
+.j-m-unfold-post .cover-img-wrap.is-image-load-failed {
+  min-height: 200px;
 }
 
 /* Compose overlay — tạo/sửa bài viết, ảnh, video trên Journey */

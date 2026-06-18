@@ -48,17 +48,33 @@ function storageKey(ownerSlug: string, viewerProfileId: string | null): string {
   return `${PREFIX}${ownerSlug.trim()}:${viewerProfileId ?? "anon"}`;
 }
 
+/** Stable snapshot refs for useSyncExternalStore (raw string equality). */
+const snapshotByKey = new Map<
+  string,
+  { raw: string | null; snapshot: JourneyPanelSnapshot | null }
+>();
+
 function readSnapshot(
   ownerSlug: string,
   viewerProfileId: string | null,
 ): JourneyPanelSnapshot | null {
   if (typeof window === "undefined") return null;
+  const key = storageKey(ownerSlug, viewerProfileId);
   try {
-    const raw = localStorage.getItem(storageKey(ownerSlug, viewerProfileId));
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as JourneyPanelSnapshot;
-    return parsed && typeof parsed === "object" ? parsed : null;
+    const raw = localStorage.getItem(key);
+    const cached = snapshotByKey.get(key);
+    if (cached && cached.raw === raw) {
+      return cached.snapshot;
+    }
+    let snapshot: JourneyPanelSnapshot | null = null;
+    if (raw) {
+      const parsed = JSON.parse(raw) as JourneyPanelSnapshot;
+      snapshot = parsed && typeof parsed === "object" ? parsed : null;
+    }
+    snapshotByKey.set(key, { raw, snapshot });
+    return snapshot;
   } catch {
+    snapshotByKey.set(key, { raw: null, snapshot: null });
     return null;
   }
 }
@@ -69,11 +85,11 @@ function writeSnapshot(
   snapshot: JourneyPanelSnapshot,
 ): void {
   if (typeof window === "undefined") return;
+  const key = storageKey(ownerSlug, viewerProfileId);
   try {
-    localStorage.setItem(
-      storageKey(ownerSlug, viewerProfileId),
-      JSON.stringify(snapshot),
-    );
+    const raw = JSON.stringify(snapshot);
+    localStorage.setItem(key, raw);
+    snapshotByKey.set(key, { raw, snapshot });
   } catch {
     /* quota / disabled — bỏ qua */
   }

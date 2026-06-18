@@ -32,14 +32,20 @@ type DbYeuCauRow = {
 
 const ALLOWED_ORG_LOAI = new Set(["truong_dai_hoc", "co_so_dao_tao"]);
 
-function mapDbStatus(raw: string): OrgMilestoneTagStatus {
+function mapDbStatus(
+  raw: string,
+  payload?: OrgMilestoneTagPayload | null,
+): OrgMilestoneTagStatus {
   if (raw === "da_duyet") return "approved";
-  if (raw === "tu_choi") return "rejected";
+  if (raw === "tu_choi") {
+    return payload?.unlinkedAt ? "detached" : "rejected";
+  }
   return "pending";
 }
 
-function dbStatusFromAction(action: "approve" | "reject"): string {
-  return action === "approve" ? "da_duyet" : "tu_choi";
+function dbStatusFromAction(action: "approve" | "reject" | "detach"): string {
+  if (action === "approve") return "da_duyet";
+  return "tu_choi";
 }
 
 export function parseOrgMilestoneTagPayload(
@@ -364,7 +370,7 @@ function rowToRequestItem(
     null;
   return {
     id: row.id,
-    status: mapDbStatus(row.trang_thai),
+    status: mapDbStatus(row.trang_thai, payload),
     taggedAt: row.tao_luc,
     studentUserId: row.nguoi_yeu_cau,
     studentName: payload.studentName,
@@ -386,7 +392,7 @@ function rowToOwnerItem(row: DbYeuCauRow): OrgMilestoneTagOwnerItem | null {
   if (!payload) return null;
   return {
     id: row.id,
-    status: mapDbStatus(row.trang_thai),
+    status: mapDbStatus(row.trang_thai, payload),
     submittedAt: row.tao_luc,
     reviewedAt: row.xu_ly_luc ?? null,
     orgId: row.id_to_chuc,
@@ -510,7 +516,7 @@ export async function respondOrgMilestoneTagRequest(params: {
   orgId: string;
   requestId: string;
   viewerId: string;
-  action: "approve" | "reject";
+  action: "approve" | "reject" | "detach";
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   if (!(await canReviewOrgMilestoneTags(params.orgId, params.viewerId))) {
     return { ok: false, error: "Không có quyền duyệt." };
@@ -534,6 +540,49 @@ export async function respondOrgMilestoneTagRequest(params: {
     }>();
 
   if (!row?.id) return { ok: false, error: "Không tìm thấy yêu cầu." };
+
+  if (params.action === "detach") {
+    if (row.trang_thai !== "da_duyet") {
+      return { ok: false, error: "Chỉ có thể gỡ tag đã gắn." };
+    }
+
+    const payload = parseOrgMilestoneTagPayload(row.noi_dung);
+    if (!payload) {
+      return { ok: false, error: "Payload yêu cầu không hợp lệ." };
+    }
+
+    const now = new Date().toISOString();
+    const updatedPayload: OrgMilestoneTagPayload = { ...payload, unlinkedAt: now };
+
+    const { error: mocErr } = await admin
+      .from("content_cot_moc")
+      .update({ id_to_chuc: null })
+      .eq("id", row.id_cot_moc)
+      .eq("id_nguoi_dung", row.nguoi_yeu_cau)
+      .eq("id_to_chuc", params.orgId);
+
+    if (mocErr) return { ok: false, error: mocErr.message };
+
+    await admin
+      .from("verify_xac_nhan")
+      .delete()
+      .eq("id_cot_moc", row.id_cot_moc)
+      .eq("bang_chung", row.id);
+
+    const { error } = await admin
+      .from("verify_yeu_cau")
+      .update({
+        trang_thai: "tu_choi",
+        noi_dung: JSON.stringify(updatedPayload),
+        nguoi_xu_ly: params.viewerId,
+        xu_ly_luc: now,
+      })
+      .eq("id", params.requestId);
+
+    if (error) return { ok: false, error: error.message };
+    return { ok: true };
+  }
+
   if (row.trang_thai !== "cho_xu_ly") {
     return { ok: false, error: "Yêu cầu đã được xử lý." };
   }

@@ -90,7 +90,11 @@ function mergeLaunchThread(
     (thread) =>
       thread.roomId === incoming.roomId ||
       thread.id === incoming.id ||
-      (incoming.peerUserId != null && thread.peerUserId === incoming.peerUserId),
+      (incoming.peerUserId != null && thread.peerUserId === incoming.peerUserId) ||
+      (incoming.kind === "org" &&
+        thread.kind === "org" &&
+        incoming.orgId != null &&
+        thread.orgId === incoming.orgId),
   );
   const merged: ChatThread = {
     ...incoming,
@@ -104,7 +108,13 @@ function mergeLaunchThread(
       thread.id !== merged.id &&
       thread.roomId !== merged.roomId &&
       thread.peerUserId !== merged.peerUserId &&
-      !(merged.peerUserId && thread.roomId === pendingDirectRoomId(merged.peerUserId)),
+      !(merged.peerUserId && thread.roomId === pendingDirectRoomId(merged.peerUserId)) &&
+      !(
+        merged.kind === "org" &&
+        thread.kind === "org" &&
+        merged.orgId != null &&
+        thread.orgId === merged.orgId
+      ),
   );
   return [merged, ...rest];
 }
