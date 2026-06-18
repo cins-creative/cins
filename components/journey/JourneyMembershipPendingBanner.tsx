@@ -1,10 +1,11 @@
 "use client";
 
-import { Building2, Clock3, Lock, Pencil, ShieldCheck } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 import { useJourneyCompose } from "@/components/journey/JourneyComposeContext";
 import { useJourneyPersonalFilterOptional } from "@/components/journey/JourneyPersonalFilterContext";
+import { MembershipVerifyCard } from "@/components/journey/MembershipVerifyCard";
 import type { MilestoneItem } from "@/components/journey/milestone-types";
 import {
   COMPOSE_PUBLISHED_EVENT,
@@ -83,53 +84,16 @@ export function JourneyMembershipPendingBanner({ items: initialItems, ownerSlug 
 
   return (
     <div className="j-membership-pending-stack" aria-live="polite">
-      {items.map((item) => {
-        const initial = (item.orgTen.charAt(0) || "?").toUpperCase();
-        return (
-          <article
-            key={item.cotMocId}
-            className="j-verify-card j-membership-pending"
-            data-cot-moc-id={item.cotMocId}
-          >
-            <div className="j-verify-card-body">
-              {item.orgAvatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={item.orgAvatarUrl}
-                  alt=""
-                  className="j-verify-card-avatar"
-                />
-              ) : (
-                <span className="j-verify-card-avatar j-verify-card-avatar--empty">
-                  {initial}
-                </span>
-              )}
-              <div className="j-verify-card-copy">
-                <p className="j-verify-card-kicker">
-                  <ShieldCheck size={14} strokeWidth={2.2} aria-hidden />
-                  Cột mốc chờ xác thực
-                </p>
-                <p className="j-verify-card-lead">
-                  <Building2 size={14} strokeWidth={2} aria-hidden />
-                  Đã gửi tới <strong>{item.orgTen}</strong>
-                </p>
-                <p className="j-verify-card-title">{item.title}</p>
-                <p className="j-verify-card-note">
-                  <Clock3 size={13} strokeWidth={2.2} aria-hidden />
-                  Chờ tổ chức duyệt
-                  <span className="j-verify-card-note-sep" aria-hidden>
-                    ·
-                  </span>
-                  <Lock size={13} strokeWidth={2.2} aria-hidden />
-                  Chỉ bạn thấy
-                </p>
-              </div>
-              <span className="j-verify-card-status">
-                <Clock3 size={13} strokeWidth={2.2} aria-hidden />
-                Chờ
-              </span>
-            </div>
-            <div className="j-verify-card-actions">
+      {items.map((item) => (
+        <MembershipVerifyCard
+          key={item.cotMocId}
+          variant="pending"
+          cotMocId={item.cotMocId}
+          orgName={item.orgTen}
+          orgAvatarUrl={item.orgAvatarUrl}
+          title={item.title}
+          actions={
+            <>
               <button
                 type="button"
                 className="j-verify-card-btn is-view"
@@ -149,10 +113,10 @@ export function JourneyMembershipPendingBanner({ items: initialItems, ownerSlug 
                   Chỉnh sửa
                 </button>
               ) : null}
-            </div>
-          </article>
-        );
-      })}
+            </>
+          }
+        />
+      ))}
     </div>
   );
 }

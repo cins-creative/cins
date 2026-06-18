@@ -7,6 +7,7 @@ import { buildMilestoneItemForCotMoc } from "@/lib/journey/milestones-fetch";
 import {
   assembleMilestoneMoTa,
   assembleMilestoneTitle,
+  assembleVerifiedMembershipMoTa,
   getEffectivePhraseRecipe,
   isHocStartAction,
   isLamViecStartAction,
@@ -74,32 +75,29 @@ export function parseMembershipMilestonePayload(
   }
 }
 
-export async function loadMembershipPendingMetaForCotMocs(
-  admin: ReturnType<typeof createServiceRoleClient>,
-  cotMocIds: string[],
-): Promise<Map<string, MembershipPendingMeta>> {
-  const out = new Map<string, MembershipPendingMeta>();
-  if (cotMocIds.length === 0) return out;
+export type MembershipMilestoneCotMocContext = {
+  pending: MembershipPendingMeta | null;
+  /** Org đã duyệt qua `verify_yeu_cau` membership — không phải cột mốc tạo org. */
+  approved: boolean;
+  recipeId?: PhraseRecipeId;
+  orgId?: string;
+};
 
-  const { data: rows } = await admin
-    .from("verify_yeu_cau")
-    .select("id, id_cot_moc, noi_dung, tao_luc")
-    .in("id_cot_moc", cotMocIds)
-    .eq("trang_thai", "cho_xu_ly")
-    .returns<
-      Array<{
-        id: string;
-        id_cot_moc: string;
-        noi_dung: string | null;
-        tao_luc: string;
-      }>
-    >();
-
-  for (const row of rows ?? []) {
-    const payload = parseMembershipMilestonePayload(row.noi_dung);
-    const org = payload?.slots.to_chuc;
-    if (!payload || !org) continue;
-    out.set(row.id_cot_moc, {
+function membershipMetaFromVerifyRow(row: {
+  id: string;
+  id_cot_moc: string;
+  noi_dung: string | null;
+  tao_luc: string;
+}): {
+  meta: MembershipPendingMeta;
+  recipeId: PhraseRecipeId;
+  orgId: string;
+} | null {
+  const payload = parseMembershipMilestonePayload(row.noi_dung);
+  const org = payload?.slots.to_chuc;
+  if (!payload || !org) return null;
+  return {
+    meta: {
       requestId: row.id,
       submittedAt: row.tao_luc,
       orgTen: org.ten,
@@ -108,9 +106,91 @@ export async function loadMembershipPendingMetaForCotMocs(
       orgAvatarUrl: org.avatarUrl,
       orgHref: orgPublicHref(org.loaiToChuc, org.slug),
       visibilityAfterVerify: payload.visibilityAfterVerify ?? "public",
-    });
+    },
+    recipeId: payload.recipeId,
+    orgId: org.id,
+  };
+}
+
+/** Trạng thái membership theo cot_moc — pending + đã duyệt (mọi trạng thái verify_yeu_cau). */
+export async function loadMembershipMilestoneContextForCotMocs(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  cotMocIds: string[],
+): Promise<Map<string, MembershipMilestoneCotMocContext>> {
+  const out = new Map<string, MembershipMilestoneCotMocContext>();
+  if (cotMocIds.length === 0) return out;
+
+  const { data: rows } = await admin
+    .from("verify_yeu_cau")
+    .select("id, id_cot_moc, noi_dung, tao_luc, trang_thai")
+    .in("id_cot_moc", cotMocIds)
+    .returns<
+      Array<{
+        id: string;
+        id_cot_moc: string;
+        noi_dung: string | null;
+        tao_luc: string;
+        trang_thai: string;
+      }>
+    >();
+
+  for (const row of rows ?? []) {
+    const parsed = membershipMetaFromVerifyRow(row);
+    if (!parsed) continue;
+    const prev = out.get(row.id_cot_moc) ?? { pending: null, approved: false };
+    prev.recipeId = parsed.recipeId;
+    prev.orgId = parsed.orgId;
+    if (row.trang_thai === "cho_xu_ly") {
+      prev.pending = parsed.meta;
+    } else if (row.trang_thai === "da_duyet") {
+      prev.approved = true;
+    }
+    out.set(row.id_cot_moc, prev);
   }
 
+  return out;
+}
+
+/** Giữ bản mới nhất khi user gửi trùng recipe + org (dữ liệu cũ). */
+export function dedupeMembershipCotMocs<T extends { id: string; tao_luc: string | null }>(
+  cotMocs: T[],
+  membershipContextByMoc: Map<string, MembershipMilestoneCotMocContext>,
+): T[] {
+  const latestIdByKey = new Map<string, string>();
+  const cotById = new Map(cotMocs.map((m) => [m.id, m]));
+
+  for (const m of cotMocs) {
+    const ctx = membershipContextByMoc.get(m.id);
+    if (!ctx?.recipeId || !ctx.orgId) continue;
+    const key = `${ctx.recipeId}:${ctx.orgId}`;
+    const prevId = latestIdByKey.get(key);
+    if (!prevId) {
+      latestIdByKey.set(key, m.id);
+      continue;
+    }
+    const prev = cotById.get(prevId);
+    const prevTime = new Date(prev?.tao_luc ?? 0).getTime();
+    const curTime = new Date(m.tao_luc ?? 0).getTime();
+    if (curTime >= prevTime) latestIdByKey.set(key, m.id);
+  }
+
+  const keepIds = new Set(latestIdByKey.values());
+  return cotMocs.filter((m) => {
+    const ctx = membershipContextByMoc.get(m.id);
+    if (!ctx?.recipeId || !ctx.orgId) return true;
+    return keepIds.has(m.id);
+  });
+}
+
+export async function loadMembershipPendingMetaForCotMocs(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  cotMocIds: string[],
+): Promise<Map<string, MembershipPendingMeta>> {
+  const ctx = await loadMembershipMilestoneContextForCotMocs(admin, cotMocIds);
+  const out = new Map<string, MembershipPendingMeta>();
+  for (const [id, row] of ctx) {
+    if (row.pending) out.set(id, row.pending);
+  }
   return out;
 }
 
@@ -156,11 +236,12 @@ export async function loadOutboundMembershipPendingForUser(
     >();
 
   const out: OutboundMembershipPending[] = [];
+  const latestByKey = new Map<string, OutboundMembershipPending>();
   for (const row of rows ?? []) {
     const payload = parseMembershipMilestonePayload(row.noi_dung);
     const org = payload?.slots.to_chuc;
     if (!payload || !org || !row.id_cot_moc) continue;
-    out.push({
+    const item: OutboundMembershipPending = {
       cotMocId: row.id_cot_moc,
       requestId: row.id,
       title: payload.tieuDe,
@@ -169,8 +250,18 @@ export async function loadOutboundMembershipPendingForUser(
       orgAvatarUrl: org.avatarUrl,
       orgHref: orgPublicHref(org.loaiToChuc, org.slug),
       submittedAt: row.tao_luc,
-    });
+    };
+    const key = `${payload.recipeId}:${org.id}`;
+    const prev = latestByKey.get(key);
+    if (
+      !prev ||
+      new Date(item.submittedAt).getTime() > new Date(prev.submittedAt).getTime()
+    ) {
+      latestByKey.set(key, item);
+    }
   }
+
+  out.push(...latestByKey.values());
 
   out.sort(
     (a, b) =>
@@ -366,25 +457,30 @@ export async function submitMembershipMilestone(
 
   const { data: pendingRows } = await admin
     .from("verify_yeu_cau")
-    .select("id, noi_dung")
+    .select("id, noi_dung, trang_thai")
     .eq("nguoi_yeu_cau", session.profile.id)
     .eq("id_to_chuc", org.id)
-    .eq("trang_thai", "cho_xu_ly");
+    .in("trang_thai", ["cho_xu_ly", "da_duyet"]);
 
-  const hasMembershipPending = (pendingRows ?? []).some((row) => {
-    try {
-      const parsed = JSON.parse(row.noi_dung ?? "") as { kind?: string };
-      return parsed.kind === MEMBERSHIP_MILESTONE_KIND;
-    } catch {
-      return false;
+  for (const row of pendingRows ?? []) {
+    const parsed = parseMembershipMilestonePayload(row.noi_dung);
+    if (!parsed) continue;
+    if (parsed.recipeId === input.recipeId) {
+      const label =
+        row.trang_thai === "cho_xu_ly"
+          ? "đang chờ duyệt"
+          : "đã được xác thực";
+      return {
+        ok: false,
+        error: `Bạn đã có cột mốc loại này với ${org.ten} (${label}).`,
+      };
     }
-  });
-
-  if (hasMembershipPending) {
-    return {
-      ok: false,
-      error: "Bạn đã có yêu cầu cột mốc chờ duyệt với tổ chức này.",
-    };
+    if (row.trang_thai === "cho_xu_ly") {
+      return {
+        ok: false,
+        error: "Bạn đã có yêu cầu cột mốc chờ duyệt với tổ chức này.",
+      };
+    }
   }
 
   const { data: cotMoc, error: cotErr } = await admin
@@ -886,10 +982,14 @@ export async function respondOrgMembershipMilestoneRequest(params: {
         ? `/studio/${encodeURIComponent(org.slug)}`
         : null;
 
+  const recipe = getEffectivePhraseRecipe(payload.recipeId, payload.slots);
+  const verifiedMoTa = assembleVerifiedMembershipMoTa(recipe, payload.slots);
+
   const { error: mocErr } = await admin
     .from("content_cot_moc")
     .update({
       che_do_hien_thi: payload.visibilityAfterVerify ?? "public",
+      mo_ta: verifiedMoTa,
     })
     .eq("id", row.id_cot_moc)
     .eq("id_nguoi_dung", row.nguoi_yeu_cau);

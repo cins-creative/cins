@@ -4,6 +4,7 @@ import type { MilestoneAttribution } from "@/components/journey/milestone-types"
 import { getCoverUrl } from "@/lib/articles/cover";
 import { loadCongDongStatsByOrgIds } from "@/lib/cong-dong/stats";
 import { getAvatarUrl } from "@/lib/journey/profile";
+import { parseMembershipMilestonePayload } from "@/lib/journey/membership-milestone";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { truongRootPath } from "@/lib/truong/truong-routes";
 
@@ -59,6 +60,20 @@ export async function loadVerifiedMetaForCotMocs(
     .returns<VerifyRow[]>();
 
   if (!verifyRows?.length) return out;
+
+  const membershipApprovedIds = new Set<string>();
+  const { data: membershipRows } = await admin
+    .from("verify_yeu_cau")
+    .select("id_cot_moc, noi_dung, trang_thai")
+    .in("id_cot_moc", cotMocIds)
+    .eq("trang_thai", "da_duyet")
+    .returns<Array<{ id_cot_moc: string; noi_dung: string | null }>>();
+
+  for (const row of membershipRows ?? []) {
+    if (parseMembershipMilestonePayload(row.noi_dung)) {
+      membershipApprovedIds.add(row.id_cot_moc);
+    }
+  }
 
   let orgByCotMoc = cotMocOrgById;
   if (!orgByCotMoc) {
@@ -124,13 +139,14 @@ export async function loadVerifiedMetaForCotMocs(
     if (org?.loai_to_chuc === "co_so_dao_tao") {
       const avatarUrl = getAvatarUrl(org.avatar_id);
       const coverUrl = getCoverUrl(org.cover_id);
+      const isMembership = membershipApprovedIds.has(row.id_cot_moc);
       out.set(row.id_cot_moc, {
         verifiedBy: `✓ ${org.ten}`,
         attribution: {
           name: org.ten,
-          role: "Người tạo cơ sở đào tạo",
+          role: isMembership ? "Xác nhận bởi tổ chức" : "Người tạo cơ sở đào tạo",
           avatarUrl,
-          coverUrl,
+          coverUrl: isMembership ? null : coverUrl,
           initial: org.ten.charAt(0).toUpperCase(),
           slug: org.slug,
           isOrg: true,

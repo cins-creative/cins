@@ -20,7 +20,10 @@ import {
 } from "@/lib/journey/foreign-milestone-visibility";
 import { loadPersonalFiltersForCotMocs } from "@/lib/filter/gan";
 import { loadCongDongOrgsForMilestones } from "@/lib/journey/cong-dong-milestone-org";
-import { loadMembershipPendingMetaForCotMocs } from "@/lib/journey/membership-milestone";
+import {
+  dedupeMembershipCotMocs,
+  loadMembershipMilestoneContextForCotMocs,
+} from "@/lib/journey/membership-milestone";
 import {
   CHE_DO_MOC_CONG_DONG,
   isMilestoneVisibleOnPublicJourney,
@@ -115,8 +118,9 @@ const LOAI_MOC_TO_TYPE: Record<CotMocRow["loai_moc"], MilestoneType> = {
 
 function resolveOrgCreateCardLayout(
   verified: VerifiedMilestoneMeta | undefined,
+  nguonGoc: string | null | undefined,
 ): MilestoneCardLayout {
-  if (!verified?.attribution) return "default";
+  if (!verified?.attribution || nguonGoc !== "sinh_tu_org_assign") return "default";
   if (
     verified.attribution.orgKind === "cong_dong" &&
     verified.attribution.role === "Người tạo cộng đồng"
@@ -178,13 +182,15 @@ export async function buildSelfMilestonesForCotMocs(
     .filter((m) => m.che_do_hien_thi === CHE_DO_MOC_CONG_DONG && m.id_to_chuc)
     .map((m) => m.id_to_chuc as string);
 
-  const [personalFiltersByMoc, congDongOrgs, membershipPendingByMoc] = await Promise.all([
+  const [personalFiltersByMoc, congDongOrgs, membershipContextByMoc] = await Promise.all([
     loadPersonalFiltersForCotMocs(ids),
     loadCongDongOrgsForMilestones(congDongOrgIds),
-    loadMembershipPendingMetaForCotMocs(admin, ids),
+    loadMembershipMilestoneContextForCotMocs(admin, ids),
   ]);
 
-  const sorted = [...cotMocs].sort((a, b) => {
+  const cotMocsForCards = dedupeMembershipCotMocs(cotMocs, membershipContextByMoc);
+
+  const sorted = [...cotMocsForCards].sort((a, b) => {
     const aFeat = a.che_do_hien_thi === "feature" ? 1 : 0;
     const bFeat = b.che_do_hien_thi === "feature" ? 1 : 0;
     if (aFeat !== bFeat) return bFeat - aFeat;
@@ -204,10 +210,19 @@ export async function buildSelfMilestonesForCotMocs(
       ? (tagsByTacPham.get(firstPost.id) ?? [])
       : [];
     const verified = verifiedMeta.get(m.id);
-    const membershipPending = membershipPendingByMoc.get(m.id) ?? null;
-    let cardLayout = resolveOrgCreateCardLayout(verified);
+    const membershipCtx = membershipContextByMoc.get(m.id);
+    const membershipPending = membershipCtx?.pending ?? null;
+    const isApprovedMembership = membershipCtx?.approved ?? false;
+    let cardLayout = resolveOrgCreateCardLayout(verified, m.nguon_goc);
     if (membershipPending) {
       cardLayout = "identity-pending";
+    } else if (
+      isApprovedMembership &&
+      verified &&
+      !firstPost?.id &&
+      verified.attribution?.isOrg
+    ) {
+      cardLayout = "identity-verified";
     } else if (
       verified &&
       !firstPost?.id &&

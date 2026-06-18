@@ -483,6 +483,17 @@ export function assembleMilestoneMoTa(
   return parts.join(" · ");
 }
 
+/** Mô tả sau org duyệt — bỏ trạng thái chờ. */
+export function assembleVerifiedMembershipMoTa(
+  recipe: PhraseRecipe,
+  values: MembershipMilestoneSlotValues,
+): string {
+  const org = values.to_chuc?.ten;
+  const parts = [recipe.categoryLabel];
+  if (org) parts.push(org);
+  return parts.join(" · ");
+}
+
 export function defaultMonthYear(): MembershipMilestoneSlotMonthYear {
   const now = new Date();
   return { month: now.getMonth() + 1, year: now.getFullYear() };
