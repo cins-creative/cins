@@ -81,6 +81,8 @@ export type MembershipMilestoneCotMocContext = {
   approved: boolean;
   recipeId?: PhraseRecipeId;
   orgId?: string;
+  /** Thời điểm user gửi yêu cầu xác thực (`verify_yeu_cau.tao_luc`). */
+  submittedAt?: string;
 };
 
 function membershipMetaFromVerifyRow(row: {
@@ -140,6 +142,7 @@ export async function loadMembershipMilestoneContextForCotMocs(
     const prev = out.get(row.id_cot_moc) ?? { pending: null, approved: false };
     prev.recipeId = parsed.recipeId;
     prev.orgId = parsed.orgId;
+    prev.submittedAt = parsed.meta.submittedAt;
     if (row.trang_thai === "cho_xu_ly") {
       prev.pending = parsed.meta;
     } else if (row.trang_thai === "da_duyet") {

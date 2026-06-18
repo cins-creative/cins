@@ -16,7 +16,11 @@ import {
 } from "@/lib/journey/milestones-fetch";
 import { attachPersonalFiltersToMilestones } from "@/lib/filter/attach-milestones";
 import { loadPersonalFilterSlugsForCotMocs } from "@/lib/filter/gan";
-import { loadPendingMembershipCotMocIdsForUser } from "@/lib/journey/membership-milestone";
+import {
+  dedupeMembershipCotMocs,
+  loadMembershipMilestoneContextForCotMocs,
+  loadPendingMembershipCotMocIdsForUser,
+} from "@/lib/journey/membership-milestone";
 import { loadVerifiedCotMocIdSet } from "@/lib/journey/milestone-verify";
 import {
   isForeignMilestoneVisibleToViewer,
@@ -143,6 +147,19 @@ function computeFilterCounts(stubs: TimelineStub[]): MilestoneFilterCounts {
   return counts;
 }
 
+function parseUtcDatePartsFromIso(iso: string): {
+  year: number;
+  month: number;
+  day: number;
+} {
+  const dateObj = new Date(iso);
+  return {
+    year: dateObj.getUTCFullYear(),
+    month: dateObj.getUTCMonth() + 1,
+    day: dateObj.getUTCDate(),
+  };
+}
+
 async function collectSelfStubs(
   admin: ReturnType<typeof createServiceRoleClient>,
   userId: string,
@@ -166,9 +183,18 @@ async function collectSelfStubs(
   );
 
   const verifiedIds = await loadVerifiedCotMocIdSet(visible.map((m) => m.id));
+  const membershipContextByMoc = await loadMembershipMilestoneContextForCotMocs(
+    admin,
+    visible.map((m) => m.id),
+  );
+  const dedupedVisible = dedupeMembershipCotMocs(visible, membershipContextByMoc);
 
-  return visible.map((m) => {
-    const { year, month, day } = parseUtcDateParts(m.thoi_diem);
+  return dedupedVisible.map((m) => {
+    const membershipCtx = membershipContextByMoc.get(m.id);
+    const sortIso = membershipCtx?.submittedAt ?? m.thoi_diem;
+    const { year, month, day } = membershipCtx?.submittedAt
+      ? parseUtcDatePartsFromIso(membershipCtx.submittedAt)
+      : parseUtcDateParts(m.thoi_diem);
     return {
       id: m.id,
       source: "self" as const,
@@ -176,8 +202,8 @@ async function collectSelfStubs(
       visibility: mapCheDoToMilestoneVisibility(m.che_do_hien_thi),
       variant: (verifiedIds.has(m.id) ? "verified" : "self") as MilestoneVariant,
       type: LOAI_MOC_TO_TYPE[m.loai_moc],
-      thoiDiem: m.thoi_diem,
-      taoLuc: m.tao_luc,
+      thoiDiem: sortIso,
+      taoLuc: membershipCtx?.submittedAt ?? m.tao_luc,
       year,
       month,
       day,

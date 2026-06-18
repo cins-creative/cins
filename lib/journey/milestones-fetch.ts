@@ -200,9 +200,10 @@ export async function buildSelfMilestonesForCotMocs(
   return sorted.map((m) => {
     const tps = tpByMoc.get(m.id) || [];
     const dateObj = new Date(m.thoi_diem);
-    const year = dateObj.getUTCFullYear();
-    const month = dateObj.getUTCMonth() + 1;
-    const day = dateObj.getUTCDate();
+    let year = dateObj.getUTCFullYear();
+    let month = dateObj.getUTCMonth() + 1;
+    let day = dateObj.getUTCDate();
+    let createdAt: string | null = m.tao_luc;
     const firstPost = tps[0]?.content_tac_pham ?? null;
     const firstPostSlug = firstPost?.slug ?? null;
     const noiDungBlocks = parseServerBlocks(firstPost?.noi_dung_blocks);
@@ -239,6 +240,14 @@ export async function buildSelfMilestonesForCotMocs(
     const isIdentityVerified = cardLayout === "identity-verified";
     const isIdentityCard = isIdentityPending || isIdentityVerified;
 
+    if (isIdentityCard && membershipCtx?.submittedAt) {
+      const submitted = new Date(membershipCtx.submittedAt);
+      year = submitted.getUTCFullYear();
+      month = submitted.getUTCMonth() + 1;
+      day = submitted.getUTCDate();
+      createdAt = membershipCtx.submittedAt;
+    }
+
     const personalFilters = personalFiltersByMoc.get(m.id) ?? [];
     const pendingAttribution = membershipPending
       ? {
@@ -271,7 +280,7 @@ export async function buildSelfMilestonesForCotMocs(
       year,
       month,
       day,
-      createdAt: m.tao_luc,
+      createdAt,
       title: isIdentityCard ? m.tieu_de : (firstPost?.tieu_de ?? m.tieu_de),
       body: isIdentityPending ? m.mo_ta || "Chờ xác thực" : m.mo_ta || null,
       org: verified?.attribution.role ?? pendingAttribution?.name ?? null,

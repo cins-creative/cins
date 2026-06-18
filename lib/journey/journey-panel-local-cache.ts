@@ -1,4 +1,4 @@
-const PREFIX = "cins-journey-panels:v2:";
+const PREFIX = "cins-journey-panels:v3:";
 /** Cache tạm trang đầu mỗi tab — đủ để chuyển tab nhanh, không thay server truth lâu dài. */
 export const JOURNEY_PANEL_CACHE_TTL_MS = 15 * 60 * 1000;
 /** Số item tối đa ghi localStorage — đủ hiển thị ngay, giữ payload nhỏ. */
