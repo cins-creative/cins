@@ -161,6 +161,7 @@ export function JourneyMilestoneUnfold({
       if (sync?.milestoneId !== milestoneId || typeof sync.count !== "number") {
         return;
       }
+      const nextCount = sync.count;
       const cached = readCachedMilestoneDetail(cacheKey);
       if (cached?.milestone.id === milestoneId) {
         setDetail(cached);
@@ -170,7 +171,7 @@ export function JourneyMilestoneUnfold({
         prev
           ? {
               ...prev,
-              social: { ...prev.social, commentCount: sync.count },
+              social: { ...prev.social, commentCount: nextCount },
             }
           : prev,
       );

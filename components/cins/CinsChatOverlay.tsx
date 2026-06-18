@@ -57,6 +57,10 @@ import {
   threadLikelyHasMessages,
 } from "@/lib/chat/thread-merge";
 import { applyOptimisticReaction } from "@/lib/chat/optimistic-reactions";
+import {
+  createOptimisticChatMessage,
+  messagePreviewText,
+} from "@/lib/chat/optimistic-message";
 import { appendChatMessageIfNew, mergeChatMessageUpdate, reconcileChatMessage } from "@/lib/chat/realtime";
 import {
   isPendingRoomId,
