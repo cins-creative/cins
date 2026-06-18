@@ -5,11 +5,13 @@ import { CheckCircle2, ChevronLeft, Clock3, Link2Off, XCircle } from "lucide-rea
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { JourneyPostBody } from "@/components/journey/JourneyPostBody";
+import { MembershipMilestoneNotifyPanel } from "@/components/truong/MembershipMilestoneNotifyPanel";
 import { MilestoneTagOrgMessagePanel } from "@/components/truong/MilestoneTagOrgMessagePanel";
 import { TruongInlineModal } from "@/components/truong/inline/TruongInlineModal";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
 import type { MilestonePostDetail } from "@/lib/journey/milestone-post-types";
 import { milestoneContentKind } from "@/lib/journey/post-media";
+import type { OrgMembershipMilestoneRequestItem } from "@/lib/journey/membership-milestone-types";
 import type {
   OrgAttachEvidence,
   OrgMilestoneTagRequestItem,
@@ -115,10 +117,13 @@ function parsePostHref(
 }
 
 type FilterKey = "all" | OrgMilestoneTagStatus;
+type NotifySection = "verify" | "tag";
 
 export function TruongMilestoneTagNotify() {
   const ctx = useTruongInlineEdit();
   const [open, setOpen] = useState(false);
+  const [section, setSection] = useState<NotifySection>("verify");
+  const [verifyPendingCount, setVerifyPendingCount] = useState(0);
   const [items, setItems] = useState<OrgMilestoneTagRequestItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -126,10 +131,13 @@ export function TruongMilestoneTagNotify() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mobileShowDetail, setMobileShowDetail] = useState(false);
 
-  const loadItems = useCallback(async () => {
+  const loadItems = useCallback(async (options?: { silent?: boolean }) => {
     if (!ctx?.orgId) return;
-    setLoading(true);
-    setLoadError(null);
+    const silent = options?.silent ?? false;
+    if (!silent) {
+      setLoading(true);
+      setLoadError(null);
+    }
     try {
       const res = await fetch(`/api/org/${ctx.orgId}/milestone-tag-requests`, {
         cache: "no-store",
@@ -139,16 +147,22 @@ export function TruongMilestoneTagNotify() {
         error?: string;
       };
       if (!res.ok) {
-        setLoadError(json.error ?? "Không tải được yêu cầu.");
-        setItems([]);
+        if (!silent) {
+          setLoadError(json.error ?? "Không tải được yêu cầu.");
+          setItems([]);
+        }
         return;
       }
       setItems(Array.isArray(json.items) ? json.items : []);
     } catch {
-      setLoadError("Lỗi mạng.");
-      setItems([]);
+      if (!silent) {
+        setLoadError("Lỗi mạng.");
+        setItems([]);
+      }
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   }, [ctx?.orgId]);
 
@@ -162,10 +176,47 @@ export function TruongMilestoneTagNotify() {
     }
   }, [open, loadItems]);
 
-  const pendingCount = useMemo(
+  const syncVerifyPendingCount = useCallback(async () => {
+    if (!ctx?.orgId) return;
+    try {
+      const res = await fetch(
+        `/api/org/${ctx.orgId}/membership-milestone-requests`,
+        { cache: "no-store" },
+      );
+      const json = (await res.json()) as {
+        items?: OrgMembershipMilestoneRequestItem[];
+      };
+      if (res.ok && Array.isArray(json.items)) {
+        setVerifyPendingCount(
+          json.items.filter((item) => item.status === "pending").length,
+        );
+      }
+    } catch {
+      /* badge — bỏ qua lỗi mạng */
+    }
+  }, [ctx?.orgId]);
+
+  useEffect(() => {
+    if (!ctx?.canEdit || !ctx.isEditing || !ctx.orgId) return;
+    void syncVerifyPendingCount();
+    const refresh = () => {
+      void loadItems({ silent: true });
+      void syncVerifyPendingCount();
+    };
+    const intervalId = window.setInterval(refresh, 60_000);
+    window.addEventListener("focus", refresh);
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", refresh);
+    };
+  }, [ctx?.canEdit, ctx?.isEditing, ctx?.orgId, loadItems, syncVerifyPendingCount]);
+
+  const tagPendingCount = useMemo(
     () => items.filter((i) => i.status === "pending").length,
     [items],
   );
+
+  const totalPendingCount = verifyPendingCount + tagPendingCount;
 
   const filtered = useMemo(() => {
     if (filter === "all") return items;
@@ -250,19 +301,28 @@ export function TruongMilestoneTagNotify() {
       <button
         type="button"
         className="ss-btn ss-btn-notify"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setSection(
+            verifyPendingCount > 0
+              ? "verify"
+              : tagPendingCount > 0
+                ? "tag"
+                : "verify",
+          );
+          setOpen(true);
+        }}
         aria-label={
-          pendingCount > 0
-            ? `Thông báo tag đồ án — ${pendingCount} chờ duyệt`
-            : "Thông báo tag đồ án"
+          totalPendingCount > 0
+            ? `Thông báo — ${totalPendingCount} chờ duyệt`
+            : "Thông báo"
         }
-        title="Tag milestone / đồ án từ sinh viên"
+        title="Xác thực cột mốc và tag đồ án từ học viên"
       >
         <BellIcon />
         <span className="ss-btn-notify-label">Thông báo</span>
-        {pendingCount > 0 ? (
+        {totalPendingCount > 0 ? (
           <span className="ss-btn-notify-badge" aria-hidden>
-            {pendingCount > 9 ? "9+" : pendingCount}
+            {totalPendingCount > 9 ? "9+" : totalPendingCount}
           </span>
         ) : null}
       </button>
@@ -270,13 +330,13 @@ export function TruongMilestoneTagNotify() {
       <TruongInlineModal
         open={open}
         onClose={() => setOpen(false)}
-        className="tdh-inline-modal--wide tdh-milestone-tag-modal"
-        labelledBy="tdh-milestone-tag-title"
+        className="tdh-inline-modal--wide tdh-milestone-tag-modal tdh-org-notify-modal"
+        labelledBy="tdh-org-notify-title"
       >
         <div className="tdh-milestone-tag-hdr">
           <div>
-            <h3 id="tdh-milestone-tag-title" className="tdh-inline-modal-title">
-              Quản lý đồ án sinh viên
+            <h3 id="tdh-org-notify-title" className="tdh-inline-modal-title">
+              Thông báo
             </h3>
           </div>
           <button
@@ -289,14 +349,54 @@ export function TruongMilestoneTagNotify() {
         </div>
 
         <div
+          className="tdh-org-notify-sections"
+          role="tablist"
+          aria-label="Loại thông báo"
+        >
+          <button
+            type="button"
+            role="tab"
+            aria-selected={section === "verify"}
+            className={`tdh-org-notify-section${section === "verify" ? " on" : ""}`}
+            onClick={() => setSection("verify")}
+          >
+            Xác thực
+            {verifyPendingCount > 0 ? (
+              <span className="tdh-org-notify-section-count">{verifyPendingCount}</span>
+            ) : null}
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={section === "tag"}
+            className={`tdh-org-notify-section${section === "tag" ? " on" : ""}`}
+            onClick={() => setSection("tag")}
+          >
+            Tag đồ án
+            {tagPendingCount > 0 ? (
+              <span className="tdh-org-notify-section-count">{tagPendingCount}</span>
+            ) : null}
+          </button>
+        </div>
+
+        {section === "verify" ? (
+          <MembershipMilestoneNotifyPanel
+            orgId={ctx.orgId}
+            active={open && section === "verify"}
+            onPendingCountChange={setVerifyPendingCount}
+            onToast={(message) => ctx.showToast(message)}
+          />
+        ) : (
+          <>
+        <div
           className="tdh-milestone-tag-filters"
           role="tablist"
-          aria-label="Lọc trạng thái"
+          aria-label="Lọc trạng thái tag đồ án"
         >
           {(
             [
               ["all", "Tất cả", items.length],
-              ["pending", "Chờ duyệt", pendingCount],
+              ["pending", "Chờ duyệt", tagPendingCount],
               [
                 "approved",
                 "Đã gắn",
@@ -369,6 +469,8 @@ export function TruongMilestoneTagNotify() {
             )}
           </div>
         </div>
+          </>
+        )}
       </TruongInlineModal>
     </>
   );

@@ -3847,6 +3847,58 @@
   background: #0e6b4d;
 }
 
+/* Modal thông báo org — tab Xác thực / Tag đồ án */
+.tdh-org-notify-modal .tdh-org-notify-sections {
+  display: flex;
+  gap: 8px;
+  padding: 0 20px 12px;
+  border-bottom: 1px solid var(--border2, #e4e6eb);
+  flex-shrink: 0;
+}
+
+.tdh-org-notify-section {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border2, #e4e6eb);
+  background: #fff;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-muted, #64748b);
+  cursor: pointer;
+}
+
+.tdh-org-notify-section.on {
+  border-color: var(--cins-blue, #1f74c9);
+  background: rgba(31, 116, 201, 0.08);
+  color: var(--cins-blue, #1f74c9);
+}
+
+.tdh-org-notify-section-count {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #e11d48;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 18px;
+  text-align: center;
+}
+
+.tdh-org-notify-modal .tdh-membership-milestone-subtitle {
+  padding: 12px 20px 0;
+  margin: 0;
+}
+
+.tdh-org-notify-modal .tdh-milestone-tag-filters {
+  padding-top: 12px;
+}
+
 .ss-btn-notify--verify:hover {
   filter: brightness(1.06);
 }
@@ -5357,11 +5409,13 @@ a.tdh-milestone-tag-student:hover {
 }
 
 .tdh-message-inbox-messages.cins-chat-messages .cins-chat-bubble-row.is-me {
-  justify-content: flex-end;
+  align-self: flex-end;
+  margin-left: auto;
 }
 
 .tdh-message-inbox-messages.cins-chat-messages .cins-chat-bubble-row.is-them {
-  justify-content: flex-start;
+  align-self: flex-start;
+  margin-right: auto;
 }
 
 .tdh-message-inbox-messages .tdh-message-inbox-thread-empty {

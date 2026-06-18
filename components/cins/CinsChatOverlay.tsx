@@ -41,7 +41,8 @@ import {
   patchPendingImageUploadResult,
   planPendingImageAdditions,
 } from "@/lib/chat/compose-image-upload";
-import { buildChatSendPlan, type ChatSendPayload } from "@/lib/chat/compose-send-plan";
+import { buildChatSendPlan, optimisticMessagesFromPlan, type ChatSendPayload } from "@/lib/chat/compose-send-plan";
+import { executeComposeSendPlanInBackground } from "@/lib/chat/execute-compose-send-plan";
 import {
   fetchPinnedMessages,
   patchChatMessage,
@@ -62,6 +63,7 @@ import {
   messagePreviewText,
 } from "@/lib/chat/optimistic-message";
 import { appendChatMessageIfNew, mergeChatMessageUpdate, reconcileChatMessage } from "@/lib/chat/realtime";
+import { replaceOptimisticAlbumWithRealMessages } from "@/lib/chat/replace-album-batch";
 import {
   isPendingRoomId,
   pendingDirectRoomId,
@@ -300,6 +302,12 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   const [hasMoreByRoom, setHasMoreByRoom] = useState<Record<string, boolean>>({});
   const composeByRoomRef = useRef<Map<string, RoomComposeDraft>>(new Map());
   const pendingImagesRef = useRef<PendingImageDraft[]>([]);
+  const pendingFilesByLocalIdRef = useRef<Map<string, File>>(new Map());
+  const inFlightUploadsRef = useRef<
+    Map<string, Promise<import("@/lib/chat/compose-image-upload").ComposeImageUploadResult>>
+  >(new Map());
+  /** roomId → optimistic album id — set đồng bộ khi gửi, trước khi React render optimistic. */
+  const pendingAlbumByRoomRef = useRef(new Map<string, string>());
   const activeRoomIdRef = useRef<string | null>(null);
   const shouldScrollToBottomRef = useRef(true);
 
@@ -413,6 +421,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   }, []);
 
   const removePendingImage = useCallback((localId: string) => {
+    pendingFilesByLocalIdRef.current.delete(localId);
     setPendingImages((prev) => {
       const target = prev.find((item) => item.localId === localId);
       if (target?.previewUrl.startsWith("blob:")) {
@@ -424,8 +433,14 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
 
   const uploadPendingImage = useCallback(
     async (file: File, localId: string, roomId: string | null) => {
-      const result = await fetchChatComposeImageUpload(file);
-      applyUploadResultToRoom(roomId, localId, result);
+      const promise = fetchChatComposeImageUpload(file);
+      inFlightUploadsRef.current.set(localId, promise);
+      try {
+        const result = await promise;
+        applyUploadResultToRoom(roomId, localId, result);
+      } finally {
+        inFlightUploadsRef.current.delete(localId);
+      }
     },
     [applyUploadResultToRoom],
   );
@@ -439,6 +454,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
       setPendingImages((prev) => [...prev, ...planned.map((item) => item.draft)]);
 
       for (const { file, draft } of planned) {
+        pendingFilesByLocalIdRef.current.set(draft.localId, file);
         void uploadPendingImage(file, draft.localId, roomId);
       }
     },
@@ -511,6 +527,8 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
           if (t.roomId !== event.roomId) return t;
           found = true;
           const isActive = t.roomId === activeRoomIdRef.current;
+          const pendingAlbumId =
+            pendingAlbumByRoomRef.current.get(event.roomId) ?? null;
           return {
             ...t,
             preview: event.preview,
@@ -518,7 +536,9 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
             messages: isActive
               ? event.event === "update"
                 ? mergeChatMessageUpdate(t.messages, event.message)
-                : appendChatMessageIfNew(t.messages, event.message)
+                : appendChatMessageIfNew(t.messages, event.message, {
+                    pendingAlbumOptimisticId: pendingAlbumId,
+                  })
               : t.messages,
             unread: isActive
               ? 0
@@ -890,16 +910,12 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     setSidePanel(panel);
   }, []);
 
-  const readyImages = pendingImages.filter(
-    (image) => image.imageId && !image.uploading,
-  );
-  const isUploadingImages = pendingImages.some((image) => image.uploading);
+  const sendableImages = pendingImages.filter((image) => !image.error);
   const canSend =
     Boolean(active) &&
     !isPendingRoom &&
     !connecting &&
-    !isUploadingImages &&
-    (draft.trim().length > 0 || readyImages.length > 0);
+    (draft.trim().length > 0 || sendableImages.length > 0);
 
   const activePinnedMessages = useMemo(
     () => (active?.roomId ? pinnedByRoom[active.roomId] ?? [] : []),
@@ -1191,76 +1207,166 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     [viewerProfileId],
   );
 
-  const sendMessage = useCallback(async () => {
+  const submitAlbumBatch = useCallback(
+    async (
+      thread: ChatThread,
+      albumOptimisticId: string,
+      payloads: ChatSendPayload[],
+    ) => {
+      const realMessages: ChatMessage[] = [];
+      try {
+        for (const payload of payloads) {
+          const res = await fetch(`/api/chat/rooms/${thread.roomId}/messages`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          const json = (await res.json()) as {
+            message?: ChatMessage;
+            error?: string;
+          };
+          if (!res.ok || !json.message) {
+            throw new Error(json.error ?? "Không gửi được ảnh.");
+          }
+          realMessages.push(json.message);
+        }
+
+        setThreads((prev) =>
+          prev.map((t) => {
+            if (t.id !== thread.id) return t;
+            const messages = replaceOptimisticAlbumWithRealMessages(
+              t.messages,
+              albumOptimisticId,
+              realMessages,
+            );
+            if (viewerProfileId) {
+              writeRoomMessagesCache(viewerProfileId, t.roomId, messages);
+            }
+            const last = realMessages[realMessages.length - 1]!;
+            return {
+              ...t,
+              messages,
+              preview: messagePreviewText(last),
+              lastAt: last.sentAt,
+            };
+          }),
+        );
+        pendingAlbumByRoomRef.current.delete(thread.roomId);
+        return true;
+      } catch (error) {
+        pendingAlbumByRoomRef.current.delete(thread.roomId);
+        setThreads((prev) =>
+          prev.map((t) =>
+            t.id === thread.id
+              ? {
+                  ...t,
+                  messages: t.messages.filter((m) => m.id !== albumOptimisticId),
+                }
+              : t,
+          ),
+        );
+        setLoadError(
+          error instanceof Error ? error.message : "Không gửi được ảnh.",
+        );
+        return false;
+      }
+    },
+    [viewerProfileId],
+  );
+
+  const sendMessage = useCallback(() => {
     if (!active || !canSend) return;
 
     const text = draft.trim();
-    const images = readyImages;
     const snapshotText = draft;
-    const snapshotImages = pendingImages;
+    const snapshotImages = sendableImages;
     const snapshotReply = replyTarget;
-
-    setDraft("");
-    clearPendingImages();
-    setReplyTarget(null);
-    composeByRoomRef.current.set(active.roomId, { text: "", images: [] });
-    inputRef.current?.focus();
+    const thread = active;
 
     const replyPreview = snapshotReply
       ? messageToReplyPreview(snapshotReply)
       : null;
 
-    const sends = buildChatSendPlan({
+    const plan = buildChatSendPlan({
       text,
-      images: images.map((image) => ({
-        imageId: image.imageId!,
+      images: snapshotImages.map((image) => ({
+        localId: image.localId,
+        imageId: image.imageId,
         previewUrl: image.previewUrl,
       })),
       replyTo: replyPreview,
     });
-    if (sends.length === 0) return;
+    const optimistics = optimisticMessagesFromPlan(plan);
+    if (optimistics.length === 0) return;
 
-    appendOptimisticMessages(
-      active,
-      sends.map((item) => item.optimistic),
-    );
+    appendOptimisticMessages(thread, optimistics);
 
-    for (let index = 0; index < sends.length; index += 1) {
-      const item = sends[index]!;
-      const ok = await submitRoomMessage(active, item.payload, item.optimistic.id);
-      if (!ok) {
-        const unsentIds = new Set(
-          sends.slice(index).map((entry) => entry.optimistic.id),
-        );
+    setDraft("");
+    setPendingImages([]);
+    pendingImagesRef.current = [];
+    setReplyTarget(null);
+    composeByRoomRef.current.set(thread.roomId, { text: "", images: [] });
+    inputRef.current?.focus();
+
+    const optimisticIds = new Set(optimistics.map((item) => item.id));
+
+    if (plan.album) {
+      pendingAlbumByRoomRef.current.set(thread.roomId, plan.album.optimistic.id);
+    }
+
+    void executeComposeSendPlanInBackground({
+      plan,
+      imageSnapshots: snapshotImages,
+      filesByLocalId: pendingFilesByLocalIdRef.current,
+      inFlightUploads: inFlightUploadsRef.current,
+      hasText: Boolean(text),
+      replyToId: snapshotReply?.id ?? null,
+      sendText: plan.text
+        ? () =>
+            submitRoomMessage(thread, plan.text!.payload, plan.text!.optimistic.id)
+        : undefined,
+      sendAlbum: plan.album
+        ? (payloads) =>
+            submitAlbumBatch(thread, plan.album!.optimistic.id, payloads)
+        : undefined,
+      onFailure: () => {
+        pendingAlbumByRoomRef.current.delete(thread.roomId);
+        setLoadError("Không gửi được tin nhắn. Hãy thử lại.");
         setThreads((prev) =>
           prev.map((t) =>
-            t.id === active.id
+            t.id === thread.id
               ? {
                   ...t,
-                  messages: t.messages.filter((m) => !unsentIds.has(m.id)),
+                  messages: t.messages.filter((m) => !optimisticIds.has(m.id)),
                 }
               : t,
           ),
         );
         setDraft(snapshotText);
         setPendingImages(snapshotImages);
+        pendingImagesRef.current = snapshotImages;
         setReplyTarget(snapshotReply);
-        composeByRoomRef.current.set(active.roomId, {
+        composeByRoomRef.current.set(thread.roomId, {
           text: snapshotText,
           images: snapshotImages,
         });
-        break;
-      }
-    }
+      },
+      onFinally: () => {
+        for (const image of snapshotImages) {
+          pendingFilesByLocalIdRef.current.delete(image.localId);
+        }
+      },
+    }).then((ok) => {
+      if (ok) revokeDraftImageUrls(snapshotImages);
+    });
   }, [
     active,
     appendOptimisticMessages,
     canSend,
-    clearPendingImages,
     draft,
-    pendingImages,
-    readyImages,
     replyTarget,
+    sendableImages,
+    submitAlbumBatch,
     submitRoomMessage,
   ]);
 
@@ -1491,16 +1597,10 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                     <div className="j-chat-mini-compose-preview">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={image.previewUrl} alt="" />
-                      {image.uploading ? (
-                        <span className="j-chat-mini-compose-preview-status">
-                          Đang tải…
-                        </span>
-                      ) : null}
                       <button
                         type="button"
                         className="j-chat-mini-compose-remove"
                         aria-label="Bỏ ảnh đính kèm"
-                        disabled={image.uploading}
                         onClick={() => removePendingImage(image.localId)}
                       >
                         <X size={12} strokeWidth={2.5} aria-hidden />
@@ -1533,7 +1633,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                 type="button"
                 className="cins-chat-attach"
                 aria-label="Đính kèm ảnh"
-                disabled={connecting || isPendingRoom || isUploadingImages}
+                disabled={connecting || isPendingRoom}
                 onClick={() => fileInputRef.current?.click()}
               >
                 <Paperclip size={18} strokeWidth={1.8} aria-hidden />

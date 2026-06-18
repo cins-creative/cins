@@ -13,7 +13,6 @@ import {
 import { CoSoOrgFollowButton } from "@/components/co-so/CoSoOrgFollowButton";
 import type { CoSoSettingsSection } from "@/components/co-so/CoSoPageSettingsModal";
 import { TruongMessageInbox } from "@/components/truong/TruongMessageInbox";
-import { TruongMembershipMilestoneNotify } from "@/components/truong/TruongMembershipMilestoneNotify";
 import { TruongMilestoneTagNotify } from "@/components/truong/TruongMilestoneTagNotify";
 import { TruongOrgCover } from "@/components/truong/TruongOrgCover";
 import { TruongOrgAvatar } from "@/components/truong/TruongOrgAvatar";
@@ -111,7 +110,6 @@ export function CoSoSchoolSidebar({
             {showAdminCta ? (
               <>
                 <TruongMessageInbox />
-                <TruongMembershipMilestoneNotify />
                 <TruongMilestoneTagNotify />
               </>
             ) : ctx ? (

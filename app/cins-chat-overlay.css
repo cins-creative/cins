@@ -761,11 +761,13 @@
 
 .cins-chat-bubble-row.is-me {
   align-self: flex-end;
+  margin-left: auto;
   flex-direction: row-reverse;
 }
 
 .cins-chat-bubble-row.is-them {
   align-self: flex-start;
+  margin-right: auto;
 }
 
 .cins-chat-bubble {
@@ -912,6 +914,14 @@
   padding: 0;
   background: transparent;
   border: 0;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.cins-chat-bubble-row.is-me:has(.has-album),
+.cins-chat-bubble-row.is-them:has(.has-album) {
+  width: fit-content;
+  max-width: min(300px, 82%);
 }
 
 .cins-chat-msg-actions {
@@ -1039,6 +1049,14 @@
   font-size: 10px;
   opacity: 0.72;
   font-variant-numeric: tabular-nums;
+}
+
+.cins-chat-bubble.is-them .cins-chat-bubble-meta {
+  justify-content: flex-start;
+}
+
+.cins-chat-bubble.is-me .cins-chat-bubble-meta {
+  justify-content: flex-end;
 }
 
 .cins-chat-bubble-meta time {
@@ -1311,6 +1329,7 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  width: fit-content;
   max-width: min(280px, 100%);
 }
 
@@ -1338,7 +1357,8 @@
 .cins-chat-album-grid {
   display: grid;
   gap: 2px;
-  width: 100%;
+  width: min(280px, 100%);
+  max-width: 100%;
   border-radius: 12px;
   overflow: hidden;
 }

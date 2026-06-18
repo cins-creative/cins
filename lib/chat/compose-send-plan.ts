@@ -1,4 +1,7 @@
-import { createOptimisticChatMessage } from "@/lib/chat/optimistic-message";
+import {
+  createOptimisticAlbumMessage,
+  createOptimisticChatMessage,
+} from "@/lib/chat/optimistic-message";
 import type { ChatMessage, ChatMessageReplyPreview } from "@/lib/chat/types";
 
 export type ChatSendPayload = {
@@ -12,18 +15,34 @@ export type ChatSendPlanItem = {
   optimistic: ChatMessage;
 };
 
-/** Tin nhắn chữ và ảnh tách riêng; nhiều ảnh cùng timestamp để render album grid ngay. */
+export type ChatSendPlan = {
+  text?: ChatSendPlanItem;
+  album?: {
+    snapshots: Array<{
+      localId: string;
+      imageId: string | null;
+      previewUrl: string;
+    }>;
+    optimistic: ChatMessage;
+  };
+};
+
+/** Tối đa 2 bubble UI: 1 tin chữ + 1 album ảnh (dù backend lưu từng ảnh). */
 export function buildChatSendPlan(input: {
   text: string;
-  images: Array<{ imageId: string; previewUrl: string }>;
+  images: Array<{
+    localId: string;
+    imageId: string | null;
+    previewUrl: string;
+  }>;
   replyTo?: ChatMessageReplyPreview | null;
-}): ChatSendPlanItem[] {
-  const sends: ChatSendPlanItem[] = [];
+}): ChatSendPlan {
+  const plan: ChatSendPlan = {};
   const text = input.text.trim();
   const replyTo = input.replyTo ?? null;
 
   if (text) {
-    sends.push({
+    plan.text = {
       payload: {
         noi_dung: text,
         ...(replyTo ? { id_tin_tra_loi: replyTo.id } : {}),
@@ -32,28 +51,31 @@ export function buildChatSendPlan(input: {
         body: text,
         replyTo,
       }),
-    });
+    };
   }
 
   if (input.images.length > 0) {
     const albumSentAt = new Date().toISOString();
-    input.images.forEach((image, index) => {
-      const attachReply = index === 0 && !text && replyTo;
-      sends.push({
-        payload: {
-          cloudflare_image_id: image.imageId,
-          ...(attachReply ? { id_tin_tra_loi: replyTo.id } : {}),
-        },
-        optimistic: createOptimisticChatMessage({
-          body: "",
-          imageId: image.imageId,
-          imageUrl: image.previewUrl,
-          sentAt: albumSentAt,
-          replyTo: attachReply ? replyTo : null,
-        }),
-      });
-    });
+    const attachReply = !text && replyTo;
+    plan.album = {
+      snapshots: input.images,
+      optimistic: createOptimisticAlbumMessage({
+        images: input.images.map((image) => ({
+          imageId: image.imageId ?? image.localId,
+          previewUrl: image.previewUrl,
+        })),
+        sentAt: albumSentAt,
+        replyTo: attachReply ? replyTo : null,
+      }),
+    };
   }
 
-  return sends;
+  return plan;
+}
+
+export function optimisticMessagesFromPlan(plan: ChatSendPlan): ChatMessage[] {
+  const out: ChatMessage[] = [];
+  if (plan.text) out.push(plan.text.optimistic);
+  if (plan.album) out.push(plan.album.optimistic);
+  return out;
 }

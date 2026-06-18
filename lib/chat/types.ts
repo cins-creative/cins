@@ -23,6 +23,8 @@ export type ChatMessage = {
   kind?: ChatMessageKind;
   imageId?: string | null;
   imageUrl?: string | null;
+  /** Optimistic: nhiều ảnh trong một bubble album khi đang gửi. */
+  albumImages?: Array<{ imageId: string; imageUrl: string }>;
   deleted?: boolean;
   edited?: boolean;
   editedAt?: string | null;

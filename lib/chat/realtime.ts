@@ -3,7 +3,7 @@ import {
   chatImageDeliveryUrl,
   isCloudflareImageId,
 } from "@/lib/chat/image-url";
-import { isOptimisticMessageId } from "@/lib/chat/optimistic-message";
+import { isOptimisticAlbumMessage, isOptimisticMessageId } from "@/lib/chat/optimistic-message";
 
 /** Row từ Supabase Realtime — `chat_tin_nhan`. */
 export type ChatRealtimeRow = {
@@ -90,14 +90,35 @@ function sameOutgoingPayload(a: ChatMessage, b: ChatMessage): boolean {
   return a.body.trim() === b.body.trim();
 }
 
+export type ReconcileChatMessageOptions = {
+  /** Album optimistic đang gửi (ref đồng bộ) — bỏ qua ảnh self từ realtime trước khi React kịp render optimistic. */
+  pendingAlbumOptimisticId?: string | null;
+};
+
+function isSelfMediaMessage(message: ChatMessage): boolean {
+  return (
+    message.from === "me" &&
+    (message.kind === "media" || Boolean(message.imageId || message.imageUrl))
+  );
+}
+
 /** Gộp tin realtime/API với bản optimistic đang chờ — tránh trùng bubble. */
 export function reconcileChatMessage(
   messages: ChatMessage[],
   message: ChatMessage,
+  options?: ReconcileChatMessageOptions,
 ): ChatMessage[] {
   if (messages.some((m) => m.id === message.id)) return messages;
 
+  if (isSelfMediaMessage(message)) {
+    const hasOptimisticAlbum = messages.some((m) => isOptimisticAlbumMessage(m));
+    if (options?.pendingAlbumOptimisticId || hasOptimisticAlbum) {
+      return messages;
+    }
+  }
+
   if (message.from === "me") {
+
     const optimisticIdx = messages.findIndex(
       (m) => isOptimisticMessageId(m.id) && sameOutgoingPayload(m, message),
     );
@@ -133,6 +154,7 @@ export function mergeChatMessageUpdate(
 export function appendChatMessageIfNew(
   messages: ChatMessage[],
   message: ChatMessage,
+  options?: ReconcileChatMessageOptions,
 ): ChatMessage[] {
-  return reconcileChatMessage(messages, message);
+  return reconcileChatMessage(messages, message, options);
 }

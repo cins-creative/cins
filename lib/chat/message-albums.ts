@@ -33,10 +33,25 @@ export function chatMessageMediaEntries(messages: ChatMessage[]): ChatMediaEntry
 
 function isImageMessage(message: ChatMessage): boolean {
   if (message.deleted) return false;
+  if (message.albumImages?.length) return true;
   return Boolean(chatMessageImageSrc(message));
 }
 
+function albumPartsFromMessage(message: ChatMessage): ChatMessage[] {
+  if (message.albumImages?.length) {
+    return message.albumImages.map((image, index) => ({
+      ...message,
+      id: `${message.id}-part-${index}`,
+      imageId: image.imageId,
+      imageUrl: image.imageUrl,
+      albumImages: undefined,
+    }));
+  }
+  return [message];
+}
+
 function canExtendAlbum(album: ChatMessage[], next: ChatMessage): boolean {
+  if (next.albumImages?.length) return false;
   if (next.from !== album[0].from || !isImageMessage(next)) return false;
   if (next.body.trim()) return false;
 
@@ -53,6 +68,23 @@ export function groupChatMessages(messages: ChatMessage[]): ChatMessageListItem[
 
   while (index < messages.length) {
     const message = messages[index];
+
+    if (message.albumImages?.length) {
+      const album = albumPartsFromMessage(message);
+      if (album.length >= 2) {
+        items.push({
+          type: "album",
+          messages: album,
+          sentAt: message.sentAt,
+          from: message.from,
+        });
+      } else {
+        items.push({ type: "single", message: album[0]! });
+      }
+      index += 1;
+      continue;
+    }
+
     if (!isImageMessage(message)) {
       items.push({ type: "single", message });
       index += 1;

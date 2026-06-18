@@ -54,8 +54,14 @@ export function TruongMessageInbox() {
   const [reply, setReply] = useState("");
   const [pending, startTransition] = useTransition();
 
-  const unreadCount = useMemo(
+  const unreadThreadCount = useMemo(
     () => threads.filter((t) => t.unread).length,
+    [threads],
+  );
+
+  /** Tổng tin chưa đọc (hiển thị badge nút sidebar). */
+  const unreadBadgeCount = useMemo(
+    () => threads.reduce((sum, t) => sum + (t.unread ? t.unreadCount : 0), 0),
     [threads],
   );
 
@@ -70,10 +76,13 @@ export function TruongMessageInbox() {
     [threads, selectedStudentId],
   );
 
-  const loadThreads = useCallback(async () => {
+  const loadThreads = useCallback(async (options?: { silent?: boolean }) => {
     if (!ctx?.orgId) return;
-    setLoadingThreads(true);
-    setLoadError(null);
+    const silent = options?.silent ?? false;
+    if (!silent) {
+      setLoadingThreads(true);
+      setLoadError(null);
+    }
     try {
       const res = await fetch(`/api/org/${ctx.orgId}/inbox/threads`, {
         cache: "no-store",
@@ -83,25 +92,33 @@ export function TruongMessageInbox() {
         error?: string;
       };
       if (!res.ok) {
-        setLoadError(json.error ?? "Không tải được hộp thư.");
-        setThreads([]);
+        if (!silent) {
+          setLoadError(json.error ?? "Không tải được hộp thư.");
+          setThreads([]);
+        }
         return;
       }
       const next = Array.isArray(json.threads) ? json.threads : [];
       setThreads(next);
-      setSelectedStudentId((current) => {
-        if (current && next.some((t) => t.studentUserId === current)) return current;
-        return (
-          next.find((t) => t.status === "open")?.studentUserId ??
-          next[0]?.studentUserId ??
-          null
-        );
-      });
+      if (!silent) {
+        setSelectedStudentId((current) => {
+          if (current && next.some((t) => t.studentUserId === current)) return current;
+          return (
+            next.find((t) => t.status === "open")?.studentUserId ??
+            next[0]?.studentUserId ??
+            null
+          );
+        });
+      }
     } catch {
-      setLoadError("Lỗi mạng.");
-      setThreads([]);
+      if (!silent) {
+        setLoadError("Lỗi mạng.");
+        setThreads([]);
+      }
     } finally {
-      setLoadingThreads(false);
+      if (!silent) {
+        setLoadingThreads(false);
+      }
     }
   }, [ctx?.orgId]);
 
@@ -143,6 +160,28 @@ export function TruongMessageInbox() {
   );
 
   useEffect(() => {
+    if (!ctx?.canEdit || !ctx.isEditing || !ctx.orgId) return;
+
+    void loadThreads({ silent: true });
+
+    const refreshBadge = () => void loadThreads({ silent: true });
+    const onFocus = () => refreshBadge();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") refreshBadge();
+    };
+
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisible);
+    const intervalId = window.setInterval(refreshBadge, 60_000);
+
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.clearInterval(intervalId);
+    };
+  }, [ctx?.canEdit, ctx?.isEditing, ctx?.orgId, loadThreads]);
+
+  useEffect(() => {
     if (open) {
       setFilter("open");
       void loadThreads();
@@ -150,6 +189,7 @@ export function TruongMessageInbox() {
       setSelectedStudentId(null);
       setMessages([]);
       setReply("");
+      void loadThreads({ silent: true });
     }
   }, [open, loadThreads]);
 
@@ -217,16 +257,16 @@ export function TruongMessageInbox() {
         className="ss-btn ghost ss-btn-messages"
         onClick={() => setOpen(true)}
         aria-label={
-          unreadCount > 0
-            ? `Tin nhắn — ${unreadCount} chưa đọc`
+          unreadBadgeCount > 0
+            ? `Tin nhắn — ${unreadBadgeCount} chưa đọc`
             : "Tin nhắn"
         }
       >
         <ChatIcon />
         <span className="ss-btn-messages-label">Tin nhắn</span>
-        {unreadCount > 0 ? (
+        {unreadBadgeCount > 0 ? (
           <span className="ss-btn-messages-badge" aria-hidden>
-            {unreadCount > 9 ? "9+" : unreadCount}
+            {unreadBadgeCount > 9 ? "9+" : unreadBadgeCount}
           </span>
         ) : null}
       </button>
@@ -265,7 +305,7 @@ export function TruongMessageInbox() {
             >
               {(
                 [
-                  ["unread", "Chưa đọc", unreadCount],
+                  ["unread", "Chưa đọc", unreadThreadCount],
                   [
                     "open",
                     "Chưa trả lời",

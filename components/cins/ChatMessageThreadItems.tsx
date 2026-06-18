@@ -84,7 +84,7 @@ function SingleMessageBubble({
     return (
       <div
         id={messageRowId(msg.id)}
-        className={`cins-chat-bubble-row${isMe ? " is-me" : ""}${msg.pinned ? " is-pinned-row" : ""}`}
+        className={`cins-chat-bubble-row ${isMe ? "is-me" : "is-them"}${msg.pinned ? " is-pinned-row" : ""}`}
       >
         {msg.from === "them" ? renderTheirAvatar?.() : null}
         <div className={`cins-chat-bubble is-recalled${isMe ? " is-me" : " is-them"}`}>
@@ -98,7 +98,7 @@ function SingleMessageBubble({
   return (
     <div
       id={messageRowId(msg.id)}
-      className={`cins-chat-bubble-row${isMe ? " is-me" : ""}${msg.pinned ? " is-pinned-row" : ""}`}
+      className={`cins-chat-bubble-row ${isMe ? "is-me" : "is-them"}${msg.pinned ? " is-pinned-row" : ""}`}
     >
       {msg.from === "them" ? renderTheirAvatar?.() : null}
       <div className="cins-chat-bubble-wrap">
@@ -212,7 +212,7 @@ export function ChatMessageThreadItems({
             {caption ? (
               <div
                 id={captionMsg ? messageRowId(captionMsg.id) : undefined}
-                className={`cins-chat-bubble-row${isMe ? " is-me" : ""}${captionMsg?.pinned ? " is-pinned-row" : ""}`}
+                className={`cins-chat-bubble-row ${isMe ? "is-me" : "is-them"}${captionMsg?.pinned ? " is-pinned-row" : ""}`}
               >
                 {item.from === "them" ? renderTheirAvatar?.() : null}
                 <div className="cins-chat-bubble-wrap">
@@ -238,7 +238,7 @@ export function ChatMessageThreadItems({
                   ? messageRowId(albumActionMsg.id)
                   : undefined
               }
-              className={`cins-chat-bubble-row${isMe ? " is-me" : ""}${!isMe && caption ? " is-album-follow" : ""}${!caption && albumActionMsg?.pinned ? " is-pinned-row" : ""}`}
+              className={`cins-chat-bubble-row ${isMe ? "is-me" : "is-them"}${!isMe && caption ? " is-album-follow" : ""}${!caption && albumActionMsg?.pinned ? " is-pinned-row" : ""}`}
             >
               {item.from === "them" && !caption ? renderTheirAvatar?.() : null}
               <div className="cins-chat-bubble-wrap">

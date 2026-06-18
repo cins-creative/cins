@@ -6,7 +6,6 @@ import { TruongGioiThieuTruong } from "@/components/truong/TruongGioiThieuTruong
 import type { TruongSettingsSection } from "@/components/truong/TruongPageSettingsModal";
 import { TruongOrgCover } from "@/components/truong/TruongOrgCover";
 import { TruongMessageInbox } from "@/components/truong/TruongMessageInbox";
-import { TruongMembershipMilestoneNotify } from "@/components/truong/TruongMembershipMilestoneNotify";
 import { TruongMilestoneTagNotify } from "@/components/truong/TruongMilestoneTagNotify";
 import { TruongOrgAvatar } from "@/components/truong/TruongOrgAvatar";
 import { TruongSchoolContact } from "@/components/truong/TruongSchoolContact";
@@ -119,7 +118,6 @@ export function TruongSchoolSidebar({
                 {showAdminCta ? (
                   <>
                     <TruongMessageInbox />
-                    <TruongMembershipMilestoneNotify />
                     <TruongMilestoneTagNotify />
                   </>
                 ) : (
@@ -192,7 +190,6 @@ export function TruongSchoolSidebar({
           <div className="ss-cta">
             {showAdminCta ? (
               <>
-                <TruongMembershipMilestoneNotify />
                 <TruongMilestoneTagNotify />
                 <TruongMessageInbox />
               </>

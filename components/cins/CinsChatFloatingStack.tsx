@@ -25,10 +25,12 @@ import {
   patchPendingImageUploadResult,
   planPendingImageAdditions,
 } from "@/lib/chat/compose-image-upload";
-import { buildChatSendPlan, type ChatSendPayload } from "@/lib/chat/compose-send-plan";
+import { buildChatSendPlan, optimisticMessagesFromPlan, type ChatSendPayload } from "@/lib/chat/compose-send-plan";
+import { executeComposeSendPlanInBackground } from "@/lib/chat/execute-compose-send-plan";
 import { messagePreviewText } from "@/lib/chat/optimistic-message";
 import { fetchRoomMessagesPage } from "@/lib/chat/messages-client";
 import { reconcileChatMessage, appendChatMessageIfNew, mergeChatMessageUpdate, type ChatRealtimeMessageEvent } from "@/lib/chat/realtime";
+import { replaceOptimisticAlbumWithRealMessages } from "@/lib/chat/replace-album-batch";
 import { imageFilesFromClipboard } from "@/lib/files/clipboard-images";
 import type { ChatMessage, ChatThread } from "@/lib/chat/types";
 
@@ -142,6 +144,12 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingImagesRef = useRef<PendingImageDraft[]>([]);
+  const pendingFilesByLocalIdRef = useRef<Map<string, File>>(new Map());
+  const inFlightUploadsRef = useRef<
+    Map<string, Promise<import("@/lib/chat/compose-image-upload").ComposeImageUploadResult>>
+  >(new Map());
+  /** roomId → optimistic album id — set đồng bộ khi gửi. */
+  const pendingAlbumByRoomRef = useRef(new Map<string, string>());
   const miniOpenRef = useRef(false);
   const miniRoomIdRef = useRef<string | null>(null);
 
@@ -236,6 +244,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
   scrollMessagesToBottomRef.current = scrollMessagesToBottom;
 
   const removePendingImage = useCallback((localId: string) => {
+    pendingFilesByLocalIdRef.current.delete(localId);
     setPendingImages((prev) => {
       const target = prev.find((item) => item.localId === localId);
       if (target?.previewUrl.startsWith("blob:")) {
@@ -247,8 +256,14 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
 
   const uploadPendingImage = useCallback(
     async (file: File, localId: string, roomId: string | null) => {
-      const result = await fetchChatComposeImageUpload(file);
-      applyUploadResultToRoom(roomId, localId, result);
+      const promise = fetchChatComposeImageUpload(file);
+      inFlightUploadsRef.current.set(localId, promise);
+      try {
+        const result = await promise;
+        applyUploadResultToRoom(roomId, localId, result);
+      } finally {
+        inFlightUploadsRef.current.delete(localId);
+      }
     },
     [applyUploadResultToRoom],
   );
@@ -262,6 +277,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
       setPendingImages((prev) => [...prev, ...planned.map((item) => item.draft)]);
 
       for (const { file, draft } of planned) {
+        pendingFilesByLocalIdRef.current.set(draft.localId, file);
         void uploadPendingImage(file, draft.localId, roomId);
       }
     },
@@ -378,7 +394,10 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
               messages:
                 event.event === "update"
                   ? mergeChatMessageUpdate(current.messages, event.message)
-                  : appendChatMessageIfNew(current.messages, event.message),
+                  : appendChatMessageIfNew(current.messages, event.message, {
+                      pendingAlbumOptimisticId:
+                        pendingAlbumByRoomRef.current.get(event.roomId) ?? null,
+                    }),
             },
           };
         });
@@ -656,19 +675,16 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
     void syncThreads();
   }, [markRoomDismissable, miniThread?.roomId, saveComposeForRoom, syncThreads]);
 
-  const readyImages = pendingImages.filter(
-    (image) => image.imageId && !image.uploading,
-  );
-  const isUploadingImages = pendingImages.some((image) => image.uploading);
+  const sendableImages = pendingImages.filter((image) => !image.error);
 
   const canSend =
     Boolean(miniThread) &&
-    !isUploadingImages &&
-    (draft.trim().length > 0 || readyImages.length > 0);
+    (draft.trim().length > 0 || sendableImages.length > 0);
 
   const appendOptimisticMessages = useCallback(
     (roomId: string, optimistics: ChatMessage[]) => {
       if (optimistics.length === 0) return;
+      const last = optimistics[optimistics.length - 1]!;
       setRoomStates((prev) => {
         const current = prev[roomId] ?? {
           messages: [],
@@ -683,6 +699,16 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
           },
         };
       });
+
+      setMiniThread((prev) =>
+        prev && prev.roomId === roomId
+          ? {
+              ...prev,
+              preview: messagePreviewText(last),
+              lastAt: last.sentAt,
+            }
+          : prev,
+      );
 
       if (shouldScrollToBottomRef.current) {
         requestAnimationFrame(() => scrollMessagesToBottom("smooth"));
@@ -758,75 +784,170 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
     [viewerProfileId],
   );
 
-  const sendMessage = useCallback(async () => {
+  const submitAlbumBatch = useCallback(
+    async (
+      roomId: string,
+      albumOptimisticId: string,
+      payloads: ChatSendPayload[],
+    ) => {
+      const realMessages: ChatMessage[] = [];
+      try {
+        for (const payload of payloads) {
+          const res = await fetch(`/api/chat/rooms/${roomId}/messages`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          const json = (await res.json()) as {
+            message?: ChatMessage;
+            error?: string;
+          };
+          if (!res.ok || !json.message) {
+            throw new Error(json.error ?? "Không gửi được ảnh.");
+          }
+          realMessages.push(json.message);
+        }
+
+        setRoomStates((prev) => {
+          const current = prev[roomId] ?? {
+            messages: [],
+            hasMore: false,
+            hydrated: true,
+          };
+          const messages = replaceOptimisticAlbumWithRealMessages(
+            current.messages,
+            albumOptimisticId,
+            realMessages,
+          );
+          if (viewerProfileId) {
+            writeRoomMessagesCache(viewerProfileId, roomId, messages);
+          }
+          return {
+            ...prev,
+            [roomId]: { ...current, messages },
+          };
+        });
+
+        const last = realMessages[realMessages.length - 1]!;
+        setMiniThread((prev) =>
+          prev && prev.roomId === roomId
+            ? {
+                ...prev,
+                preview: messagePreviewText(last),
+                lastAt: last.sentAt,
+              }
+            : prev,
+        );
+        pendingAlbumByRoomRef.current.delete(roomId);
+        return true;
+      } catch (error) {
+        pendingAlbumByRoomRef.current.delete(roomId);
+        setRoomStates((prev) => {
+          const current = prev[roomId];
+          if (!current) return prev;
+          return {
+            ...prev,
+            [roomId]: {
+              ...current,
+              messages: current.messages.filter((m) => m.id !== albumOptimisticId),
+            },
+          };
+        });
+        setLoadError(
+          error instanceof Error ? error.message : "Không gửi được ảnh.",
+        );
+        return false;
+      }
+    },
+    [viewerProfileId],
+  );
+
+  const sendMessage = useCallback(() => {
     if (!miniThread || !canSend) return;
 
     const text = draft.trim();
-    const images = readyImages;
     const snapshotText = draft;
-    const snapshotImages = pendingImages;
+    const snapshotImages = sendableImages;
+    const roomId = miniThread.roomId;
 
-    const sends = buildChatSendPlan({
+    const plan = buildChatSendPlan({
       text,
-      images: images.map((image) => ({
-        imageId: image.imageId!,
+      images: snapshotImages.map((image) => ({
+        localId: image.localId,
+        imageId: image.imageId,
         previewUrl: image.previewUrl,
       })),
     });
-    if (sends.length === 0) return;
+    const optimistics = optimisticMessagesFromPlan(plan);
+    if (optimistics.length === 0) return;
 
     setLoadError(null);
     shouldScrollToBottomRef.current = true;
 
-    appendOptimisticMessages(
-      miniThread.roomId,
-      sends.map((item) => item.optimistic),
-    );
+    appendOptimisticMessages(roomId, optimistics);
 
-    for (let index = 0; index < sends.length; index += 1) {
-      const item = sends[index]!;
-      const ok = await submitRoomMessage(
-        miniThread.roomId,
-        item.payload,
-        item.optimistic.id,
-      );
-      if (!ok) {
-        const unsentIds = new Set(
-          sends.slice(index).map((entry) => entry.optimistic.id),
-        );
+    setDraft("");
+    setPendingImages([]);
+    pendingImagesRef.current = [];
+    composeByRoomRef.current.set(roomId, { text: "", images: [] });
+    inputRef.current?.focus();
+
+    const optimisticIds = new Set(optimistics.map((item) => item.id));
+
+    if (plan.album) {
+      pendingAlbumByRoomRef.current.set(roomId, plan.album.optimistic.id);
+    }
+
+    void executeComposeSendPlanInBackground({
+      plan,
+      imageSnapshots: snapshotImages,
+      filesByLocalId: pendingFilesByLocalIdRef.current,
+      inFlightUploads: inFlightUploadsRef.current,
+      hasText: Boolean(text),
+      replyToId: null,
+      sendText: plan.text
+        ? () => submitRoomMessage(roomId, plan.text!.payload, plan.text!.optimistic.id)
+        : undefined,
+      sendAlbum: plan.album
+        ? (payloads) => submitAlbumBatch(roomId, plan.album!.optimistic.id, payloads)
+        : undefined,
+      onFailure: () => {
+        pendingAlbumByRoomRef.current.delete(roomId);
+        setLoadError("Không gửi được tin nhắn. Hãy thử lại.");
         setRoomStates((prev) => {
-          const current = prev[miniThread.roomId];
+          const current = prev[roomId];
           if (!current) return prev;
           return {
             ...prev,
-            [miniThread.roomId]: {
+            [roomId]: {
               ...current,
-              messages: current.messages.filter((m) => !unsentIds.has(m.id)),
+              messages: current.messages.filter((m) => !optimisticIds.has(m.id)),
             },
           };
         });
         setDraft(snapshotText);
         setPendingImages(snapshotImages);
-        composeByRoomRef.current.set(miniThread.roomId, {
+        pendingImagesRef.current = snapshotImages;
+        composeByRoomRef.current.set(roomId, {
           text: snapshotText,
           images: snapshotImages,
         });
-        return;
-      }
-    }
-
-    setDraft("");
-    clearPendingImages();
-    composeByRoomRef.current.set(miniThread.roomId, { text: "", images: [] });
-    inputRef.current?.focus();
+      },
+      onFinally: () => {
+        for (const image of snapshotImages) {
+          pendingFilesByLocalIdRef.current.delete(image.localId);
+        }
+      },
+    }).then((ok) => {
+      if (ok) revokeDraftImageUrls(snapshotImages);
+    });
   }, [
     appendOptimisticMessages,
     canSend,
-    clearPendingImages,
     draft,
     miniThread,
-    pendingImages,
-    readyImages,
+    sendableImages,
+    submitAlbumBatch,
     submitRoomMessage,
   ]);
 
@@ -920,16 +1041,10 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
                     <div className="j-chat-mini-compose-preview">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={image.previewUrl} alt="" />
-                      {image.uploading ? (
-                        <span className="j-chat-mini-compose-preview-status">
-                          Đang tải…
-                        </span>
-                      ) : null}
                       <button
                         type="button"
                         className="j-chat-mini-compose-remove"
                         aria-label="Bỏ ảnh đính kèm"
-                        disabled={image.uploading}
                         onClick={() => removePendingImage(image.localId)}
                       >
                         <X size={12} strokeWidth={2.5} aria-hidden />
@@ -966,7 +1081,6 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
                 type="button"
                 className="j-chat-mini-attach"
                 aria-label="Đính kèm ảnh"
-                disabled={isUploadingImages}
                 onClick={() => fileInputRef.current?.click()}
               >
                 <Paperclip size={17} strokeWidth={1.9} aria-hidden />
