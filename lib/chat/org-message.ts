@@ -15,6 +15,8 @@ import {
 } from "@/lib/chat/direct-message";
 import type { OrgInboxThread } from "@/lib/chat/org-inbox-types";
 import { canReviewOrgMilestoneTags } from "@/lib/journey/org-milestone-tag";
+import { listOrgMembershipMilestoneRequests } from "@/lib/journey/membership-milestone";
+import type { OrgMembershipMilestoneRequestItem } from "@/lib/journey/membership-milestone-types";
 import { getAvatarUrl, getGiaiDoanLabel } from "@/lib/journey/profile";
 import { commentVaiTroLabel } from "@/lib/social/comments/vai-tro-label";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -231,18 +233,18 @@ function resolveStudentUserIdForOrgRoom(
   return sorted[0]!.id_nguoi_gui;
 }
 
-/** Nhãn quan hệ user ↔ org trong inbox tuyển sinh. */
-function resolveOrgInboxContactLabel(
+/** Nhãn + mã vai trò user ↔ org trong inbox tuyển sinh. */
+function resolveOrgInboxContact(
   orgVaiTro: string | null,
   giaiDoan: GiaiDoan | null,
-): string {
+): { label: string; roleKey: string } {
   if (orgVaiTro) {
-    return commentVaiTroLabel(orgVaiTro);
+    return { label: commentVaiTroLabel(orgVaiTro), roleKey: orgVaiTro };
   }
   if (giaiDoan === "dang_day") {
-    return "Giảng viên";
+    return { label: "Giảng viên", roleKey: "giao_vien" };
   }
-  return "Người lạ";
+  return { label: "Người lạ", roleKey: "nguoi_la" };
 }
 
 function buildInboxThread(params: {
@@ -252,6 +254,7 @@ function buildInboxThread(params: {
   studentSlug: string;
   studentAvatarUrl: string | null;
   studentContactLabel: string;
+  studentContactRole: string;
   studentRole: string;
   roomMessages: MessageRow[];
   staffUserId: string;
@@ -280,6 +283,7 @@ function buildInboxThread(params: {
     studentSlug: params.studentSlug,
     studentAvatarUrl: params.studentAvatarUrl,
     studentContactLabel: params.studentContactLabel,
+    studentContactRole: params.studentContactRole,
     studentRole: params.studentRole,
     subject: inboxSubjectFromMessage(first),
     preview: messagePreview(last),
@@ -287,6 +291,83 @@ function buildInboxThread(params: {
     unread: unreadCount > 0,
     unreadCount,
     status,
+    pendingVerification: null,
+  };
+}
+
+function buildInboxThreadFromVerification(params: {
+  roomId: string;
+  request: OrgMembershipMilestoneRequestItem;
+  studentContactLabel: string;
+  studentContactRole: string;
+  studentRole: string;
+}): OrgInboxThread {
+  return {
+    roomId: params.roomId,
+    studentUserId: params.request.studentUserId,
+    studentName: params.request.studentName,
+    studentSlug: params.request.studentSlug,
+    studentAvatarUrl: params.request.studentAvatarUrl,
+    studentContactLabel: params.studentContactLabel,
+    studentContactRole: params.studentContactRole,
+    studentRole: params.studentRole,
+    subject: params.request.title,
+    preview: "Chờ xác thực cột mốc",
+    lastAt: params.request.submittedAt,
+    unread: false,
+    unreadCount: 0,
+    status: "open",
+    pendingVerification: params.request,
+  };
+}
+
+async function resolveStudentContactMeta(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  orgId: string,
+  studentUserId: string,
+): Promise<{
+  studentName: string;
+  studentSlug: string;
+  studentAvatarUrl: string | null;
+  studentContactLabel: string;
+  studentContactRole: string;
+  studentRole: string;
+}> {
+  const { data: profile } = await admin
+    .from("user_nguoi_dung")
+    .select("slug, ten_hien_thi, avatar_id, giai_doan")
+    .eq("id", studentUserId)
+    .maybeSingle<{
+      slug: string;
+      ten_hien_thi: string | null;
+      avatar_id: string | null;
+      giai_doan: string | null;
+    }>();
+
+  const { data: orgMember } = await admin
+    .from("user_thanh_vien_to_chuc")
+    .select("vai_tro")
+    .eq("id_to_chuc", orgId)
+    .eq("id_nguoi_dung", studentUserId)
+    .eq("trang_thai", "active")
+    .maybeSingle<{ vai_tro: string }>();
+
+  const giaiDoan = (profile?.giai_doan as GiaiDoan | null) ?? null;
+  const studentName =
+    profile?.ten_hien_thi?.trim() || profile?.slug?.trim() || "User";
+
+  const contact = resolveOrgInboxContact(
+    orgMember?.vai_tro ?? null,
+    giaiDoan,
+  );
+
+  return {
+    studentName,
+    studentSlug: profile?.slug ?? "",
+    studentAvatarUrl: getAvatarUrl(profile?.avatar_id ?? null),
+    studentContactLabel: contact.label,
+    studentContactRole: contact.roleKey,
+    studentRole: giaiDoan ? getGiaiDoanLabel(giaiDoan) : "Thành viên CINs",
   };
 }
 
@@ -310,16 +391,20 @@ export async function listOrgInboxThreadsForStaff(
     .returns<Array<{ id: string; cap_nhat_luc: string }>>();
 
   if (roomError) return { ok: false, error: roomError.message };
-  if (!rooms?.length) return { ok: true, threads: [] };
 
-  const roomIds = rooms.map((room) => room.id);
+  const roomList = rooms ?? [];
+  const roomIds = roomList.map((room) => room.id);
 
-  const { data: members } = await admin
-    .from("chat_thanh_vien")
-    .select("id_phong, id_nguoi_dung, vai_tro")
-    .in("id_phong", roomIds)
-    .is("roi_luc", null)
-    .returns<Array<{ id_phong: string; id_nguoi_dung: string; vai_tro: string }>>();
+  const { data: members } = roomIds.length
+    ? await admin
+        .from("chat_thanh_vien")
+        .select("id_phong, id_nguoi_dung, vai_tro")
+        .in("id_phong", roomIds)
+        .is("roi_luc", null)
+        .returns<
+          Array<{ id_phong: string; id_nguoi_dung: string; vai_tro: string }>
+        >()
+    : { data: [] as Array<{ id_phong: string; id_nguoi_dung: string; vai_tro: string }> };
 
   const membersByRoom = new Map<string, OrgRoomMember[]>();
   for (const member of members ?? []) {
@@ -331,13 +416,15 @@ export async function listOrgInboxThreadsForStaff(
     membersByRoom.set(member.id_phong, list);
   }
 
-  const { data: messageRows } = await admin
-    .from("chat_tin_nhan")
-    .select(MESSAGE_SELECT)
-    .in("id_phong", roomIds)
-    .eq("da_xoa", false)
-    .order("tao_luc", { ascending: true })
-    .returns<MessageRow[]>();
+  const { data: messageRows } = roomIds.length
+    ? await admin
+        .from("chat_tin_nhan")
+        .select(MESSAGE_SELECT)
+        .in("id_phong", roomIds)
+        .eq("da_xoa", false)
+        .order("tao_luc", { ascending: true })
+        .returns<MessageRow[]>()
+    : { data: [] as MessageRow[] };
 
   const messagesByRoom = new Map<string, MessageRow[]>();
   for (const row of messageRows ?? []) {
@@ -347,7 +434,7 @@ export async function listOrgInboxThreadsForStaff(
   }
 
   const studentByRoom = new Map<string, string>();
-  for (const room of rooms) {
+  for (const room of roomList) {
     const studentUserId = resolveStudentUserIdForOrgRoom(
       membersByRoom.get(room.id) ?? [],
       messagesByRoom.get(room.id) ?? [],
@@ -408,12 +495,14 @@ export async function listOrgInboxThreadsForStaff(
     roomIds.map((roomId) => ensureStaffOrgRoomMember(admin, roomId, staffUserId)),
   );
 
-  const { data: reads } = await admin
-    .from("chat_da_doc")
-    .select("id_phong, id_tin_nhan_cuoi_doc")
-    .eq("id_nguoi_dung", staffUserId)
-    .in("id_phong", roomIds)
-    .returns<Array<{ id_phong: string; id_tin_nhan_cuoi_doc: string }>>();
+  const { data: reads } = roomIds.length
+    ? await admin
+        .from("chat_da_doc")
+        .select("id_phong, id_tin_nhan_cuoi_doc")
+        .eq("id_nguoi_dung", staffUserId)
+        .in("id_phong", roomIds)
+        .returns<Array<{ id_phong: string; id_tin_nhan_cuoi_doc: string }>>()
+    : { data: [] as Array<{ id_phong: string; id_tin_nhan_cuoi_doc: string }> };
 
   const readAtByRoom = new Map<string, string>();
   const readMessageIds = [
@@ -435,7 +524,7 @@ export async function listOrgInboxThreadsForStaff(
   }
 
   const byStudent = new Map<string, OrgInboxThread>();
-  for (const room of rooms) {
+  for (const room of roomList) {
     const studentUserId = studentByRoom.get(room.id);
     if (!studentUserId) continue;
 
@@ -443,16 +532,18 @@ export async function listOrgInboxThreadsForStaff(
     const studentName =
       profile?.ten_hien_thi?.trim() || profile?.slug?.trim() || "User";
     const giaiDoan = (profile?.giai_doan as GiaiDoan | null) ?? null;
+    const contact = resolveOrgInboxContact(
+      orgVaiTroByUserId.get(studentUserId) ?? null,
+      giaiDoan,
+    );
     const thread = buildInboxThread({
       roomId: room.id,
       studentUserId,
       studentName,
       studentSlug: profile?.slug ?? "",
       studentAvatarUrl: getAvatarUrl(profile?.avatar_id ?? null),
-      studentContactLabel: resolveOrgInboxContactLabel(
-        orgVaiTroByUserId.get(studentUserId) ?? null,
-        giaiDoan,
-      ),
+      studentContactLabel: contact.label,
+      studentContactRole: contact.roleKey,
       studentRole: giaiDoan
         ? getGiaiDoanLabel(giaiDoan)
         : "Thành viên CINs",
@@ -468,6 +559,52 @@ export async function listOrgInboxThreadsForStaff(
       new Date(thread.lastAt).getTime() >= new Date(existing.lastAt).getTime()
     ) {
       byStudent.set(studentUserId, thread);
+    }
+  }
+
+  const verifyResult = await listOrgMembershipMilestoneRequests(orgId, staffUserId);
+  if (verifyResult.ok) {
+    const pendingItems = verifyResult.items.filter(
+      (item) => item.status === "pending",
+    );
+
+    for (const request of pendingItems) {
+      const existing = byStudent.get(request.studentUserId);
+      if (existing) {
+        existing.pendingVerification = request;
+        if (
+          new Date(request.submittedAt).getTime() >
+          new Date(existing.lastAt).getTime()
+        ) {
+          existing.lastAt = request.submittedAt;
+        }
+        continue;
+      }
+
+      const roomId = await findOrCreateOrgStudentRoom(orgId, request.studentUserId);
+      await ensureStaffOrgRoomMember(admin, roomId, staffUserId);
+      const contactMeta = await resolveStudentContactMeta(
+        admin,
+        orgId,
+        request.studentUserId,
+      );
+
+      byStudent.set(
+        request.studentUserId,
+        buildInboxThreadFromVerification({
+          roomId,
+          request: {
+            ...request,
+            studentName: request.studentName || contactMeta.studentName,
+            studentSlug: request.studentSlug || contactMeta.studentSlug,
+            studentAvatarUrl:
+              request.studentAvatarUrl ?? contactMeta.studentAvatarUrl,
+          },
+          studentContactLabel: contactMeta.studentContactLabel,
+          studentContactRole: contactMeta.studentContactRole,
+          studentRole: contactMeta.studentRole,
+        }),
+      );
     }
   }
 

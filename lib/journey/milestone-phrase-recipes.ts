@@ -56,6 +56,8 @@ export const PHRASE_CATEGORIES: ReadonlyArray<{
 const HANH_DONG_HOC: SlotDef["enumOptions"] = [
   { value: "bat_dau_hoc", label: "Bắt đầu học" },
   { value: "quay_lai_hoc", label: "Quay lại học" },
+  { value: "bat_dau_lam_viec", label: "Bắt đầu làm việc" },
+  { value: "quay_lai_lam_viec", label: "Quay lại làm việc" },
   { value: "hoan_thanh_khoa_hoc", label: "Hoàn thành khóa học" },
   { value: "tot_nghiep", label: "Tốt nghiệp" },
 ];
@@ -75,6 +77,45 @@ const VAI_TRO_HOC: SlotDef["enumOptions"] = [
   { value: "hoc_vien", label: "Học viên" },
   { value: "sinh_vien", label: "Sinh viên" },
   { value: "hoc_bong", label: "Học bổng" },
+];
+
+const VAI_TRO_LAM_VIEC: SlotDef["enumOptions"] = [
+  { value: "giao_vien", label: "Giáo viên" },
+  { value: "nhan_vien", label: "Nhân viên" },
+  { value: "quan_ly_noi_dung", label: "Quản lý nội dung" },
+  { value: "quan_ly_tuyen_sinh", label: "Quản lý tuyển sinh" },
+];
+
+const BAT_DAU_LAM_VIEC_SLOTS: PhraseRecipe["slots"] = [
+  {
+    key: "hanh_dong",
+    label: "Hành động",
+    input: "enum",
+    required: true,
+    enumOptions: HANH_DONG_HOC,
+  },
+  {
+    key: "to_chuc",
+    label: "Tổ chức",
+    input: "org_search",
+    required: true,
+    dependsOn: ["hanh_dong"],
+  },
+  {
+    key: "vai_tro",
+    label: "Vai trò",
+    input: "enum",
+    required: true,
+    dependsOn: ["to_chuc"],
+    enumOptions: VAI_TRO_LAM_VIEC,
+  },
+  {
+    key: "thoi_diem",
+    label: "Thời điểm",
+    input: "month_year",
+    required: true,
+    dependsOn: ["vai_tro"],
+  },
 ];
 
 export const VITRI_SUGGESTIONS: ReadonlyArray<string> = [
@@ -293,9 +334,15 @@ export const MILESTONE_PHRASE_RECIPES: Record<PhraseRecipeId, PhraseRecipe> = {
 
 export function isHocStartAction(hanhDongValue: string | undefined): boolean {
   return (
-    !hanhDongValue ||
     hanhDongValue === "bat_dau_hoc" ||
     hanhDongValue === "quay_lai_hoc"
+  );
+}
+
+export function isLamViecStartAction(hanhDongValue: string | undefined): boolean {
+  return (
+    hanhDongValue === "bat_dau_lam_viec" ||
+    hanhDongValue === "quay_lai_lam_viec"
   );
 }
 
@@ -308,6 +355,27 @@ export function getEffectivePhraseRecipe(
   if (recipeId !== "bat_dau_hoc") return base;
 
   const hd = values.hanh_dong?.value;
+  if (isLamViecStartAction(hd)) {
+    return {
+      ...base,
+      categoryLabel: "Việc làm",
+      loaiMoc: "lam_viec",
+      evidenceHint:
+        "Email xác nhận, hợp đồng (che thông tin nhạy cảm) hoặc thư mời từ tổ chức.",
+      fragments: [
+        { kind: "slot", key: "hanh_dong" },
+        { kind: "text", text: " tại " },
+        { kind: "slot", key: "to_chuc" },
+        { kind: "text", text: " với vai trò " },
+        { kind: "slot", key: "vai_tro" },
+        { kind: "text", text: " · từ " },
+        { kind: "slot", key: "thoi_diem" },
+      ],
+      slotOrder: ["hanh_dong", "to_chuc", "vai_tro", "thoi_diem"],
+      slots: BAT_DAU_LAM_VIEC_SLOTS,
+    };
+  }
+
   if (isHocStartAction(hd)) return base;
 
   if (hd === "hoan_thanh_khoa_hoc") {

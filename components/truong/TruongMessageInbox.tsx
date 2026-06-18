@@ -1,12 +1,15 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 import { TruongInlineModal } from "@/components/truong/inline/TruongInlineModal";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
 import { ChatMessageThreadItems } from "@/components/cins/ChatMessageThreadItems";
-import type { OrgInboxThread, OrgInboxThreadStatus } from "@/lib/chat/org-inbox-types";
+import { InboxContactRoleBadge } from "@/components/truong/InboxContactRoleBadge";
+import { InboxVerificationCard } from "@/components/truong/InboxVerificationCard";
+import { avatarBg, avatarHueFromSeed } from "@/lib/chat/avatar";
+import { inboxThreadNeedsAction, type OrgInboxThread, type OrgInboxThreadStatus } from "@/lib/chat/org-inbox-types";
 import type { ChatMessage } from "@/lib/chat/types";
 import { formatInboxTime } from "@/lib/truong/message-inbox-mock";
 
@@ -38,7 +41,34 @@ function inboxStatusLabel(status: OrgInboxThreadStatus): string {
   return status === "open" ? "Chưa trả lời" : "Đã trả lời";
 }
 
-type FilterKey = "all" | OrgInboxThreadStatus | "unread";
+function InboxStudentAvatar({ thread }: { thread: OrgInboxThread }) {
+  const size = 28;
+  return (
+    <span className="cins-chat-avatar-wrap">
+      <span
+        className={`cins-chat-avatar${thread.studentAvatarUrl ? " has-image" : ""}`}
+        style={{
+          width: size,
+          height: size,
+          fontSize: size * 0.38,
+          background: thread.studentAvatarUrl
+            ? "transparent"
+            : avatarBg(avatarHueFromSeed(thread.studentUserId)),
+        }}
+        aria-hidden
+      >
+        {thread.studentAvatarUrl ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img src={thread.studentAvatarUrl} alt="" />
+        ) : (
+          studentInitials(thread.studentName)
+        )}
+      </span>
+    </span>
+  );
+}
+
+type FilterKey = "all" | OrgInboxThreadStatus | "unread" | "verify";
 
 export function TruongMessageInbox() {
   const ctx = useTruongInlineEdit();
@@ -53,21 +83,30 @@ export function TruongMessageInbox() {
   const [filter, setFilter] = useState<FilterKey>("open");
   const [reply, setReply] = useState("");
   const [pending, startTransition] = useTransition();
+  const [verifyPending, startVerifyTransition] = useTransition();
+
+  const pendingVerifyCount = useMemo(
+    () => threads.filter((t) => t.pendingVerification).length,
+    [threads],
+  );
 
   const unreadThreadCount = useMemo(
     () => threads.filter((t) => t.unread).length,
     [threads],
   );
 
-  /** Tổng tin chưa đọc (hiển thị badge nút sidebar). */
-  const unreadBadgeCount = useMemo(
-    () => threads.reduce((sum, t) => sum + (t.unread ? t.unreadCount : 0), 0),
-    [threads],
+  /** Badge: tin chưa đọc + yêu cầu xác thực chờ duyệt. */
+  const inboxBadgeCount = useMemo(
+    () =>
+      threads.reduce((sum, t) => sum + (t.unread ? t.unreadCount : 0), 0) +
+      pendingVerifyCount,
+    [threads, pendingVerifyCount],
   );
 
   const filtered = useMemo(() => {
     if (filter === "all") return threads;
     if (filter === "unread") return threads.filter((t) => t.unread);
+    if (filter === "verify") return threads.filter((t) => t.pendingVerification);
     return threads.filter((t) => t.status === filter);
   }, [threads, filter]);
 
@@ -101,8 +140,16 @@ export function TruongMessageInbox() {
       const next = Array.isArray(json.threads) ? json.threads : [];
       setThreads(next);
       if (!silent) {
+        setFilter((current) => {
+          const hasPendingVerify = next.some((t) => t.pendingVerification);
+          if (hasPendingVerify) return "verify";
+          if (current === "verify") return "open";
+          return current;
+        });
         setSelectedStudentId((current) => {
           if (current && next.some((t) => t.studentUserId === current)) return current;
+          const verifyFirst = next.find((t) => t.pendingVerification)?.studentUserId;
+          if (verifyFirst) return verifyFirst;
           return (
             next.find((t) => t.status === "open")?.studentUserId ??
             next[0]?.studentUserId ??
@@ -183,7 +230,6 @@ export function TruongMessageInbox() {
 
   useEffect(() => {
     if (open) {
-      setFilter("open");
       void loadThreads();
     } else {
       setSelectedStudentId(null);
@@ -250,6 +296,41 @@ export function TruongMessageInbox() {
     });
   }
 
+  function respondVerification(action: "approve" | "reject") {
+    if (!selected?.pendingVerification || !ctx?.orgId || verifyPending) return;
+
+    startVerifyTransition(async () => {
+      try {
+        const res = await fetch(
+          `/api/org/${ctx.orgId}/membership-milestone-requests/${selected.pendingVerification!.id}`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action }),
+          },
+        );
+        const json = (await res.json()) as { error?: string };
+        if (!res.ok) {
+          ctx.showToast(json.error ?? "Không cập nhật được.");
+          return;
+        }
+        ctx.showToast(
+          action === "approve" ? "Đã xác thực cột mốc" : "Đã từ chối yêu cầu",
+        );
+        setThreads((list) =>
+          list.map((thread) =>
+            thread.studentUserId === selected.studentUserId
+              ? { ...thread, pendingVerification: null }
+              : thread,
+          ),
+        );
+        void loadThreads({ silent: true });
+      } catch {
+        ctx.showToast("Lỗi mạng.");
+      }
+    });
+  }
+
   return (
     <>
       <button
@@ -257,16 +338,16 @@ export function TruongMessageInbox() {
         className="ss-btn ghost ss-btn-messages"
         onClick={() => setOpen(true)}
         aria-label={
-          unreadBadgeCount > 0
-            ? `Tin nhắn — ${unreadBadgeCount} chưa đọc`
+          inboxBadgeCount > 0
+            ? `Tin nhắn — ${inboxBadgeCount} cần xử lý`
             : "Tin nhắn"
         }
       >
         <ChatIcon />
         <span className="ss-btn-messages-label">Tin nhắn</span>
-        {unreadBadgeCount > 0 ? (
+        {inboxBadgeCount > 0 ? (
           <span className="ss-btn-messages-badge" aria-hidden>
-            {unreadBadgeCount > 9 ? "9+" : unreadBadgeCount}
+            {inboxBadgeCount > 9 ? "9+" : inboxBadgeCount}
           </span>
         ) : null}
       </button>
@@ -282,10 +363,6 @@ export function TruongMessageInbox() {
             <h3 id="tdh-message-inbox-title" className="tdh-inline-modal-title">
               Tin nhắn tuyển sinh
             </h3>
-            <p className="tdh-message-inbox-lead">
-              Hội thoại user nhắn <strong>{ctx.school.ten}</strong> — đồng bộ với
-              tab <strong>Tổ chức</strong> trên CINs Chat.
-            </p>
           </div>
           <button
             type="button"
@@ -305,6 +382,7 @@ export function TruongMessageInbox() {
             >
               {(
                 [
+                  ["verify", "Chờ xác thực", pendingVerifyCount],
                   ["unread", "Chưa đọc", unreadThreadCount],
                   [
                     "open",
@@ -362,8 +440,11 @@ export function TruongMessageInbox() {
                 error={messageError}
                 reply={reply}
                 sending={pending}
+                verifyResponding={verifyPending}
                 onReplyChange={setReply}
                 onSend={() => void sendReply()}
+                onApproveVerification={() => respondVerification("approve")}
+                onRejectVerification={() => respondVerification("reject")}
               />
             ) : (
               <p className="tdh-message-inbox-pick">
@@ -390,7 +471,7 @@ function ThreadListItem({
     <li>
       <button
         type="button"
-        className={`tdh-message-inbox-thread${active ? " is-active" : ""}${thread.unread ? " is-unread" : ""}`}
+        className={`tdh-message-inbox-thread${active ? " is-active" : ""}${thread.unread ? " is-unread" : ""}${thread.pendingVerification ? " has-verify" : ""}`}
         onClick={onSelect}
       >
         <span className="tdh-message-inbox-thread-avatar" aria-hidden>
@@ -405,19 +486,29 @@ function ThreadListItem({
           <span className="tdh-message-inbox-thread-top">
             <span className="tdh-message-inbox-thread-id">
               <span className="tdh-message-inbox-thread-name">{thread.studentName}</span>
-              <span className="tdh-message-inbox-thread-role">
-                {thread.studentContactLabel}
-              </span>
+              <InboxContactRoleBadge
+                label={thread.studentContactLabel}
+                roleKey={thread.studentContactRole}
+                className="tdh-message-inbox-thread-role-badge"
+              />
             </span>
             <time className="tdh-message-inbox-thread-time" dateTime={thread.lastAt}>
               {formatInboxTime(thread.lastAt)}
             </time>
           </span>
-          <span className="tdh-message-inbox-thread-subject">{thread.subject}</span>
+          <span className="tdh-message-inbox-thread-subject">
+            {thread.pendingVerification ? (
+              <span className="tdh-message-inbox-thread-verify-pill">Xác thực</span>
+            ) : null}
+            {thread.subject}
+          </span>
           <span className="tdh-message-inbox-thread-preview">{thread.preview}</span>
         </span>
-        {thread.unread ? (
-          <span className="tdh-message-inbox-thread-dot" aria-hidden />
+        {inboxThreadNeedsAction(thread) ? (
+          <span
+            className={`tdh-message-inbox-thread-dot${thread.pendingVerification && !thread.unread ? " is-verify" : ""}`}
+            aria-hidden
+          />
         ) : null}
       </button>
     </li>
@@ -431,8 +522,11 @@ function ThreadDetail({
   error,
   reply,
   sending,
+  verifyResponding,
   onReplyChange,
   onSend,
+  onApproveVerification,
+  onRejectVerification,
 }: {
   thread: OrgInboxThread;
   messages: ChatMessage[];
@@ -440,29 +534,55 @@ function ThreadDetail({
   error: string | null;
   reply: string;
   sending: boolean;
+  verifyResponding: boolean;
   onReplyChange: (v: string) => void;
   onSend: () => void;
+  onApproveVerification: () => void;
+  onRejectVerification: () => void;
 }) {
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (loading || messages.length === 0) return;
+    messagesEndRef.current?.scrollIntoView({ block: "end" });
+  }, [loading, messages]);
+
+  const verification = thread.pendingVerification;
+
   return (
     <>
-      <header className="tdh-message-inbox-detail-hdr">
-        <div>
-          <h4 className="tdh-message-inbox-detail-title">{thread.subject}</h4>
-          <p className="tdh-message-inbox-detail-meta">
-            {thread.studentName} · {thread.studentContactLabel}
-            {thread.studentRole &&
-            thread.studentRole !== thread.studentContactLabel ? (
-              <> · {thread.studentRole}</>
-            ) : null}{" "}
-            ·{" "}
-            <span
-              className={`tdh-message-inbox-status tdh-message-inbox-status--${thread.status}`}
-            >
-              {inboxStatusLabel(thread.status)}
-            </span>
-          </p>
-        </div>
-      </header>
+      {verification ? (
+        <InboxVerificationCard
+          request={verification}
+          studentContactLabel={thread.studentContactLabel}
+          studentContactRole={thread.studentContactRole}
+          responding={verifyResponding}
+          onApprove={onApproveVerification}
+          onReject={onRejectVerification}
+        />
+      ) : (
+        <header className="tdh-message-inbox-detail-hdr">
+          <div>
+            <h4 className="tdh-message-inbox-detail-title">{thread.studentName}</h4>
+            <p className="tdh-message-inbox-detail-meta">
+              <InboxContactRoleBadge
+                label={thread.studentContactLabel}
+                roleKey={thread.studentContactRole}
+              />
+              {thread.studentRole &&
+              thread.studentRole !== thread.studentContactLabel ? (
+                <> · {thread.studentRole}</>
+              ) : null}{" "}
+              ·{" "}
+              <span
+                className={`tdh-message-inbox-status tdh-message-inbox-status--${thread.status}`}
+              >
+                {inboxStatusLabel(thread.status)}
+              </span>
+            </p>
+          </div>
+        </header>
+      )}
 
       {loading ? (
         <p className="tdh-message-inbox-pick">
@@ -476,8 +596,12 @@ function ThreadDetail({
           {messages.length === 0 ? (
             <p className="tdh-message-inbox-thread-empty">Chưa có tin nhắn.</p>
           ) : (
-            <ChatMessageThreadItems messages={messages} />
+            <ChatMessageThreadItems
+              messages={messages}
+              renderTheirAvatar={() => <InboxStudentAvatar thread={thread} />}
+            />
           )}
+          <div ref={messagesEndRef} />
         </div>
       )}
 

@@ -240,8 +240,8 @@
 }
 
 .tdh-page--cso .cso-ss-primary-action--admin {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 10px;
 }
 
@@ -308,14 +308,15 @@
 
 .tdh-page--cso .cso-ss-primary-action--admin .ss-btn {
   width: 100%;
+  height: 44px;
   min-height: 44px;
-  height: auto;
-  padding: 11px 10px;
+  padding: 0 10px;
   border-radius: var(--radius-md, 14px);
   font-size: 13px;
   font-weight: 700;
   box-shadow: none;
   transform: none;
+  justify-content: center;
 }
 
 .tdh-page--cso .cso-ss-primary-action--admin .ss-btn:hover:not(:disabled) {
@@ -324,6 +325,8 @@
 
 .tdh-page--cso .cso-ss-primary-action--admin .ss-btn-messages-label,
 .tdh-page--cso .cso-ss-primary-action--admin .ss-btn-notify-label {
+  flex: 0 1 auto;
+  text-align: center;
   font-size: 13px;
 }
 

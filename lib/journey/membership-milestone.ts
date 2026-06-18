@@ -9,6 +9,7 @@ import {
   assembleMilestoneTitle,
   getEffectivePhraseRecipe,
   isHocStartAction,
+  isLamViecStartAction,
   MILESTONE_PHRASE_RECIPES,
   thoiDiemIsoFromSlot,
   type PhraseRecipe,
@@ -177,9 +178,14 @@ async function resolveMembershipContextIds(
   }
 
   if (recipeId === "bat_dau_hoc" || recipeId === "hoan_thanh_khoa") {
-    const startHoc = recipeId === "bat_dau_hoc" && isHocStartAction(slots.hanh_dong?.value);
-    if (startHoc && !slots.vai_tro?.value) {
+    const hd = slots.hanh_dong?.value;
+    const startHoc = recipeId === "bat_dau_hoc" && isHocStartAction(hd);
+    const startLam = recipeId === "bat_dau_hoc" && isLamViecStartAction(hd);
+    if ((startHoc || startLam) && !slots.vai_tro?.value) {
       return { ok: false, error: "Chọn vai trò.", field: "vai_tro" };
+    }
+    if (startLam) {
+      return { ok: true, idKhoaHoc, idTruongNganh };
     }
     if (!slots.context?.id) {
       const msg =
@@ -639,14 +645,23 @@ function mapSlotToOrgVaiTro(payload: MembershipMilestonePayload): string {
   if (slotRole === "hoc_vien" || slotRole === "sinh_vien" || slotRole === "hoc_bong") {
     return "hoc_vien";
   }
+  if (
+    slotRole === "giao_vien" ||
+    slotRole === "nhan_vien" ||
+    slotRole === "quan_ly_noi_dung" ||
+    slotRole === "quan_ly_tuyen_sinh"
+  ) {
+    return slotRole;
+  }
   if (payload.recipeId === "bat_dau_lam") return "nhan_vien";
   return "thanh_vien";
 }
 
 function shouldUpsertOrgMembership(payload: MembershipMilestonePayload): boolean {
   if (payload.recipeId === "bat_dau_lam") return true;
-  if (payload.recipeId === "bat_dau_hoc" && isHocStartAction(payload.slots.hanh_dong?.value)) {
-    return true;
+  if (payload.recipeId === "bat_dau_hoc") {
+    const hd = payload.slots.hanh_dong?.value;
+    return isHocStartAction(hd) || isLamViecStartAction(hd);
   }
   return false;
 }

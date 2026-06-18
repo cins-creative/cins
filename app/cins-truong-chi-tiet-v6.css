@@ -2582,21 +2582,22 @@
 }
 
 .tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs .cso-ss-primary-action--admin {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 10px;
 }
 
 .tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs .cso-ss-primary-action--admin .ss-btn {
   width: 100%;
+  height: 44px;
   min-height: 44px;
-  height: auto;
-  padding: 11px 10px;
+  padding: 0 10px;
   border-radius: var(--radius-md, 14px);
   font-size: 13px;
   font-weight: 700;
   box-shadow: none;
   transform: none;
+  justify-content: center;
 }
 
 .tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs .cso-ss-primary-action--single .ss-btn-user-chat {

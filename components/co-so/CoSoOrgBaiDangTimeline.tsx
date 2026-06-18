@@ -6,7 +6,7 @@ import {
   CoSoOrgNhanTimelineBar,
   type CoSoNhanFilter,
 } from "@/components/co-so/CoSoOrgNhanTimelineBar";
-import { JourneyCreateComposer } from "@/components/journey/JourneyCreateComposer";
+import { OrgBaiDangCreateComposer } from "@/components/truong/OrgBaiDangCreateComposer";
 import { OrgBaiDangJourneyCard } from "@/components/truong/OrgBaiDangJourneyCard";
 import { OrgBaiDangTimelineBar } from "@/components/truong/OrgBaiDangTimelineBar";
 import {
@@ -29,7 +29,6 @@ type Props = {
   posts: TruongBaiDang[];
   owner?: OrgOwner | null;
   composeEnabled?: boolean;
-  ownerSlug?: string;
   orgFilters?: CoSoFilterChip[];
   guestEmptyMessage?: string;
 };
@@ -57,7 +56,6 @@ export function CoSoOrgBaiDangTimeline({
   posts,
   owner = null,
   composeEnabled = false,
-  ownerSlug,
   orgFilters = [],
   guestEmptyMessage =
     "Chưa có bài đăng công khai. Tin tức và sự kiện sẽ hiển thị tại đây khi cơ sở đăng trên CINs.",
@@ -116,9 +114,9 @@ export function CoSoOrgBaiDangTimeline({
     return (
       <main className="j-timeline tdh-org-baidang-timeline" aria-label="Timeline bài đăng">
         {timelineBar}
-        {composeEnabled && ownerSlug ? (
+        {composeEnabled ? (
           <>
-            <JourneyCreateComposer ownerSlug={ownerSlug} />
+            <OrgBaiDangCreateComposer />
             <section className="j-empty" aria-label="Chưa có bài đăng">
               <div className="j-empty-card">
                 <p className="j-empty-eyebrow">Bài đăng · chưa có nội dung</p>
@@ -140,9 +138,7 @@ export function CoSoOrgBaiDangTimeline({
   return (
     <main className="j-timeline tdh-org-baidang-timeline" aria-label="Timeline bài đăng">
       {timelineBar}
-      {composeEnabled && ownerSlug ? (
-        <JourneyCreateComposer ownerSlug={ownerSlug} />
-      ) : null}
+      {composeEnabled ? <OrgBaiDangCreateComposer /> : null}
       {filtered.length === 0 ? (
         <p className="tdh-placeholder">Không có bài đăng thuộc nhóm lọc này.</p>
       ) : (

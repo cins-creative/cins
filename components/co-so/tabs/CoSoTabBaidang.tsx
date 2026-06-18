@@ -22,13 +22,11 @@ function CoSoTabBaidangContent({
   posts,
   school,
   composeEnabled,
-  ownerSlug,
   filters,
 }: {
   posts: TruongBaiDang[];
   school: TruongDetail;
   composeEnabled: boolean;
-  ownerSlug?: string;
   filters: CoSoFilterChip[];
 }) {
   return (
@@ -37,7 +35,6 @@ function CoSoTabBaidangContent({
         posts={posts}
         owner={school}
         composeEnabled={composeEnabled}
-        ownerSlug={ownerSlug}
         orgFilters={filters}
       />
     </TruongBaiDangEditProvider>
@@ -136,7 +133,6 @@ export function CoSoTabBaidang({
         posts={posts}
         school={school}
         composeEnabled
-        ownerSlug={school.slug}
         filters={filters}
       />
     </JourneyComposeProvider>
