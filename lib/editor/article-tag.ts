@@ -14,6 +14,8 @@ export type ArticleTagRef = {
   tom_tat?: string | null;
   /** Bài keyword/entity đã được CINs xác thực — khác thẻ gán thường. */
   da_verify?: boolean;
+  /** Slug lĩnh vực (`article_bai_viet.id_linh_vuc`) — dùng filter feed theo lĩnh vực. */
+  linh_vuc_slug?: string | null;
 };
 
 /* ─── Shared label + color class helpers ─────────────────────────────

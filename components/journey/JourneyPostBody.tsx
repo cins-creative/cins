@@ -59,9 +59,8 @@ import { PostMetaRail } from "./PostMetaRail";
    ║ JourneyPostBody — view layout cho bài viết. ĐỒNG BỘ với editor   ║
    ║ canvas (`EditorView`):                                           ║
    ║                                                                  ║
-   ║   • Cover sau nội dung (giống editor cover-add.has)            ║
-   ║   • Title (38px, font-sans, weight 800)                          ║
-   ║   • Sub (19px, font-serif italic)                                ║
+   ║   • Title → Sub → Cover → Blocks (khớp editor canvas)            ║
+   ║   • Split: hero + cover trong `post-view-content`, rail = meta   ║
    ║   • Tag chips (meta-chips row)                                   ║
    ║   • Blocks (cùng class `.block` `.b-text` `.b-imgs` …)           ║
    ║   • Byline (author chip + ngày + chế độ hiển thị)                ║
@@ -85,7 +84,7 @@ const TYPE_LABEL: Record<string, string> = {
 const VIS_LABEL: Record<string, { Icon: LucideIcon; text: string }> = {
   feature: { Icon: Star, text: "Nổi bật" },
   public: { Icon: Globe, text: "Công khai" },
-  theo_nhom: { Icon: Users, text: "Theo nhóm" },
+  theo_nhom: { Icon: Users, text: "Bạn bè" },
   chi_minh: { Icon: Lock, text: "Chỉ mình tôi" },
 };
 
@@ -493,8 +492,13 @@ export function JourneyPostBody({
       ? renderPostBlocks(splitBlockParts.railBlocks, mediaPost)
       : null;
 
-  const railHeroEl =
-    isSplit && variant === "full" && !mediaPost ? splitHeroEl : null;
+  const splitContentLeadEl =
+    isSplit && variant === "full" && !mediaPost ? (
+      <>
+        {splitHeroEl}
+        {coverEl}
+      </>
+    ) : null;
 
   const metaRailEl =
     isSplit && showByline ? (
@@ -505,10 +509,6 @@ export function JourneyPostBody({
         postSlug={postSlug}
         isOwner={isOwner}
         actionsRail={actionsRailCompact}
-        heroRail={railHeroEl}
-        coverRail={
-          isSplit && variant === "full" && !mediaPost ? coverEl : null
-        }
         contentRail={railContentEl}
         commentsRail={showCommentsPart ? commentsEl : undefined}
         onMilestoneUpdated={onMilestoneUpdated}
@@ -552,6 +552,7 @@ export function JourneyPostBody({
           <div
             className={`post-view-content${mediaPost ? " post-view-content--media" : ""}`}
           >
+            {splitContentLeadEl}
             <div className="post-view-content-inner">
               {splitContentBlocksEl}
             </div>

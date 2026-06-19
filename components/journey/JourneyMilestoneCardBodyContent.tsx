@@ -91,14 +91,22 @@ export function JourneyMilestoneCardBodyContent({
   const photoGridImages =
     photoGridOverride ?? photoGridImagesFromBlocks(blocks);
   const mediaKind = detectMediaPostKind(blocks);
-  const isPhotoAlbum =
-    photoGridImages !== null &&
-    (mediaKind === "photo" || photoGridOverride != null);
-  const isVideoPost = mediaKind === "video";
   const isTextCard = contentKind === "text";
   const isPhotoCard = contentKind === "photo";
+  const isVideoPost =
+    contentKind === "video" ||
+    (contentKind == null && mediaKind === "video");
+  const isPhotoAlbum =
+    isPhotoCard ||
+    (contentKind == null &&
+      photoGridImages !== null &&
+      (mediaKind === "photo" || photoGridOverride != null));
   const isArticle =
-    !isPhotoAlbum && !isVideoPost && !isTextCard && !isPhotoCard;
+    contentKind === "article" ||
+    (contentKind == null &&
+      !isPhotoAlbum &&
+      !isVideoPost &&
+      !isTextCard);
   const textPanelSeed =
     title.trim() ||
     milestoneArticleTextPanelPlain(body, blocks) ||

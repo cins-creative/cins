@@ -110,7 +110,7 @@ const VIS_OPTIONS: ReadonlyArray<{
   {
     ui: "unlisted",
     db: "theo_nhom",
-    label: "Theo nhóm",
+    label: "Bạn bè",
     desc: "Chỉ nhóm bối cảnh được chọn",
     Icon: Users,
   },

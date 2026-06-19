@@ -2491,6 +2491,10 @@ a.j-main-gallery-item:focus-visible {
   letter-spacing: 0.02em;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
   pointer-events: none;
+  transform: translateY(0);
+  transition:
+    opacity 0.34s var(--j-unfold-ease, cubic-bezier(0.22, 1, 0.36, 1)),
+    transform 0.34s var(--j-unfold-ease, cubic-bezier(0.22, 1, 0.36, 1));
 }
 .jcard--photo .jcard-expand-cta,
 .jcard--video .jcard-expand-cta {
@@ -2501,44 +2505,51 @@ a.j-main-gallery-item:focus-visible {
   );
   color: var(--cins-blue, #1f74c9);
 }
-.jcard-body.is-content-open .jcard-expand-cta {
+.jcard-body.is-content-open .jcard-expand-cta,
+.j-m-card.jcard--article.is-expanded .jcard-expand-cta {
   opacity: 0;
+  transform: translateY(8px);
   pointer-events: none;
 }
-/* Khối nội dung xổ — max-height tránh crop sau khi mở xong */
+/* Khối nội dung xổ — grid 0fr→1fr mượt hơn max-height cố định */
 .j-m-card-unfold {
-  max-height: 0;
+  display: grid;
+  grid-template-rows: 0fr;
   opacity: 0;
   overflow: hidden;
   border-top: 1px solid transparent;
   margin-top: 0;
   padding-top: 0;
   transition:
-    max-height var(--j-unfold-dur, 0.48s) var(--j-unfold-ease, cubic-bezier(0.22, 1, 0.36, 1)),
+    grid-template-rows var(--j-unfold-dur, 0.48s) var(--j-unfold-ease, cubic-bezier(0.22, 1, 0.36, 1)),
     opacity 0.38s var(--j-unfold-ease, cubic-bezier(0.22, 1, 0.36, 1)),
     border-color 0.32s ease,
-    margin-top 0.32s ease,
-    padding-top 0.32s ease;
+    margin-top 0.32s var(--j-unfold-ease, cubic-bezier(0.22, 1, 0.36, 1)),
+    padding-top 0.32s var(--j-unfold-ease, cubic-bezier(0.22, 1, 0.36, 1));
 }
 .j-m-card-unfold[data-open="true"] {
-  max-height: 12000px;
+  grid-template-rows: 1fr;
   opacity: 1;
   margin-top: 12px;
   padding-top: 16px;
   border-top-color: var(--border2, #e4e6eb);
-  overflow-x: hidden;
-  overflow-y: visible;
 }
-.j-m-card-unfold-inner {
+.j-m-card-unfold > .j-m-card-unfold-inner {
   min-height: 0;
   max-width: 100%;
-  overflow-x: hidden;
+  overflow: hidden;
   background: var(--bg-surface, #fff);
-  transform: translateY(10px);
-  transition: transform var(--j-unfold-dur, 0.48s) var(--j-unfold-ease, cubic-bezier(0.22, 1, 0.36, 1));
+  transform: translateY(12px);
+  opacity: 0.92;
+  transition:
+    transform var(--j-unfold-dur, 0.48s) var(--j-unfold-ease, cubic-bezier(0.22, 1, 0.36, 1)),
+    opacity 0.36s var(--j-unfold-ease, cubic-bezier(0.22, 1, 0.36, 1));
 }
-.j-m-card-unfold[data-open="true"] .j-m-card-unfold-inner {
+.j-m-card-unfold[data-open="true"] > .j-m-card-unfold-inner {
   transform: translateY(0);
+  opacity: 1;
+  overflow-x: hidden;
+  overflow-y: visible;
 }
 .j-m-unfold-loading {
   display: flex;
@@ -2931,6 +2942,17 @@ a.j-main-gallery-item:focus-visible {
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
+  animation: j-unfold-toggle-in 0.36s var(--j-unfold-ease, cubic-bezier(0.22, 1, 0.36, 1)) both;
+}
+@keyframes j-unfold-toggle-in {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 .jcard-unfold-toggle:hover {
   background: rgba(31, 116, 201, 0.16);
@@ -2974,12 +2996,15 @@ button.j-m-card-hit {
   .jcard-lead,
   .jcard-media-zone,
   .j-m-card-unfold,
-  .j-m-card-unfold-inner,
-  .jcard-expand-cta {
+  .j-m-card-unfold > .j-m-card-unfold-inner,
+  .jcard-expand-cta,
+  .jcard-unfold-toggle {
     transition-duration: 0.01ms !important;
+    animation: none !important;
   }
-  .j-m-card-unfold-inner {
+  .j-m-card-unfold > .j-m-card-unfold-inner {
     transform: none !important;
+    opacity: 1 !important;
   }
 }
 /* Tất cả variants giữ nền trắng; phân biệt bằng badge/panel attribution. */
@@ -5009,31 +5034,11 @@ button.j-m-card-hit {
   object-fit: cover;
   display: block;
 }
-.j-g-banner-info {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.72), transparent 60%);
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  padding: 11px 13px;
-}
 .j-g-banner-pin {
   position: absolute;
   top: 0;
   left: 10px;
   z-index: 2;
-}
-.j-g-banner-title {
-  font-size: 13px;
-  font-weight: var(--weight-bold);
-  color: #fff;
-  line-height: 1.25;
-}
-.j-g-banner-meta {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.82);
-  margin-top: 1px;
 }
 
 /* Square album grid */
@@ -6347,7 +6352,7 @@ select.j-edit-input {
 
 .j-post-sheet:has(.post-canvas--media.post-canvas--split) .post-rail-scroll,
 .j-post-sheet:has(.post-canvas--split:not(.post-canvas--media)) .post-rail-scroll {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
@@ -8672,6 +8677,34 @@ select.j-edit-input {
   top: auto;
   right: auto;
 }
+.j-inline-control-option-wrap {
+  display: block;
+  width: 100%;
+}
+.j-inline-control-hint {
+  position: fixed;
+  padding: 9px 11px;
+  border-radius: 10px;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  background: var(--bg-surface, #fff);
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.12);
+  color: var(--ink-body, #334155);
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 1.5;
+  pointer-events: none;
+  animation: j-inline-control-hint-in 120ms ease;
+}
+@keyframes j-inline-control-hint-in {
+  from {
+    opacity: 0;
+    transform: translateX(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
 .j-inline-control-option {
   display: grid;
   grid-template-columns: 16px 1fr 14px;
@@ -9686,11 +9719,16 @@ select.j-edit-input {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  max-height: calc(1.58em * 4.2);
+  transition:
+    max-height var(--j-unfold-dur, 0.48s) var(--j-unfold-ease, cubic-bezier(0.22, 1, 0.36, 1)),
+    color 0.28s ease;
 }
 .j-m-card.jcard--article.is-expanded .jcard-desc {
   -webkit-line-clamp: unset;
   display: block;
   overflow: visible;
+  max-height: 2400px;
 }
 
 /* Card chỉ chữ — panel nền màu kiểu Facebook, không ảnh bìa / không unfold */
@@ -10085,8 +10123,8 @@ select.j-edit-input {
   transition: opacity 0.2s var(--j-unfold-ease, ease);
 }
 /* Article unfold — cover full-bleed, không bo góc (collapsed + expanded). */
-.j-m-card.jcard--article.has-unfold .jcard-media-zone > .preview,
-.j-m-card.jcard--article.has-unfold .jcard-media-zone > .preview img {
+.j-m-card.jcard--article .jcard-media-zone > :is(.preview, a.preview),
+.j-m-card.jcard--article .jcard-media-zone > :is(.preview, a.preview) img {
   border-radius: 0;
 }
 .j-m-card.jcard--photo .jcard-media-zone > .preview--photo-grid,

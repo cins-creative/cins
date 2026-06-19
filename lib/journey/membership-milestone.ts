@@ -707,7 +707,7 @@ function visibilityLabel(
   value: MembershipMilestonePayload["visibilityAfterVerify"],
 ): string {
   if (value === "public") return "Công khai";
-  if (value === "theo_nhom") return "Theo nhóm";
+  if (value === "theo_nhom") return "Bạn bè";
   return "Chỉ mình tôi";
 }
 

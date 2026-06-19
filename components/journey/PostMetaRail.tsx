@@ -45,7 +45,7 @@ const TYPE_LABEL: Record<string, string> = {
 const VIS_LABEL: Record<string, { Icon: LucideIcon; text: string }> = {
   feature: { Icon: Star, text: "Nổi bật" },
   public: { Icon: Globe, text: "Công khai" },
-  theo_nhom: { Icon: Users, text: "Theo nhóm" },
+  theo_nhom: { Icon: Users, text: "Bạn bè" },
   chi_minh: { Icon: Lock, text: "Chỉ mình tôi" },
   cong_dong: { Icon: Users, text: "Cộng đồng" },
 };
@@ -261,11 +261,11 @@ export function PostMetaRail({
           </div>
         </div>
       ) : null}
+      </div>
 
       {commentsRail ? (
         <div className="post-rail-blk post-rail-blk--comments">{commentsRail}</div>
       ) : null}
-      </div>
     </aside>
   );
 }

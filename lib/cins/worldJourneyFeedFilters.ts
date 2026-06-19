@@ -1,5 +1,5 @@
-import type { LinhVucRow } from "@/lib/career/types";
-import { NGHE_NGHIEP_HUB_PATH } from "@/lib/cins/hubPaths";
+import type { MilestoneItem } from "@/components/journey/milestone-types";
+import { milestoneContentKind } from "@/lib/journey/post-media";
 
 export type WjFeedMediaKind = "photo" | "video" | "article";
 
@@ -43,34 +43,6 @@ type ChipSpec =
       media: "video";
     }
   | {
-      id: "comic";
-      label: "Comic";
-      icon: "book-open";
-      kind: "linh_vuc";
-      slugCandidates: string[];
-    }
-  | {
-      id: "ui";
-      label: "UI";
-      icon: "smartphone";
-      kind: "linh_vuc";
-      slugCandidates: string[];
-    }
-  | {
-      id: "3d";
-      label: "3D";
-      icon: "boxes";
-      kind: "linh_vuc";
-      slugCandidates: string[];
-    }
-  | {
-      id: "audio";
-      label: "Audio";
-      icon: "audio-lines";
-      kind: "linh_vuc";
-      slugCandidates: string[];
-    }
-  | {
       id: "article";
       label: "Bài viết";
       icon: "file-text";
@@ -78,39 +50,11 @@ type ChipSpec =
       media: "article";
     };
 
-/** Thứ tự chip filter bar — domain chip map sang `linh_vuc.slug` như career hub. */
+/** Chip filter bar — loại media; lĩnh vực/nghề nằm ở sidebar trái. */
 const WORLD_JOURNEY_FILTER_CHIP_SPECS: ChipSpec[] = [
   { id: "all", label: "Tất cả", icon: "sparkles", kind: "all" },
   { id: "image", label: "Ảnh", icon: "image", kind: "media", media: "photo" },
   { id: "video", label: "Video", icon: "video", kind: "media", media: "video" },
-  {
-    id: "comic",
-    label: "Comic",
-    icon: "book-open",
-    kind: "linh_vuc",
-    slugCandidates: ["hoat-hinh", "phim-hoat-hinh", "lv-phim-hoat-hinh"],
-  },
-  {
-    id: "ui",
-    label: "UI",
-    icon: "smartphone",
-    kind: "linh_vuc",
-    slugCandidates: ["ui-ux", "lv-ui-ux", "thiet-ke-do-hoa", "lv-thiet-ke-do-hoa"],
-  },
-  {
-    id: "3d",
-    label: "3D",
-    icon: "boxes",
-    kind: "linh_vuc",
-    slugCandidates: ["game", "lv-game"],
-  },
-  {
-    id: "audio",
-    label: "Audio",
-    icon: "audio-lines",
-    kind: "linh_vuc",
-    slugCandidates: ["am-thanh", "lv-am-thanh", "audio"],
-  },
   {
     id: "article",
     label: "Bài viết",
@@ -120,31 +64,7 @@ const WORLD_JOURNEY_FILTER_CHIP_SPECS: ChipSpec[] = [
   },
 ];
 
-function linhVucLabel(row: LinhVucRow): string {
-  return (row.ten_vi ?? row.ten ?? row.ten_en ?? row.slug ?? "").trim();
-}
-
-function slugMatches(row: LinhVucRow, candidate: string): boolean {
-  const slug = (row.slug ?? "").trim().toLowerCase();
-  const c = candidate.trim().toLowerCase();
-  if (!slug || !c) return false;
-  return slug === c || slug.endsWith(c) || slug.includes(c);
-}
-
-export function resolveLinhVucForFilter(
-  linhVucs: ReadonlyArray<LinhVucRow>,
-  slugCandidates: string[],
-): LinhVucRow | null {
-  for (const candidate of slugCandidates) {
-    const hit = linhVucs.find((row) => slugMatches(row, candidate));
-    if (hit?.slug) return hit;
-  }
-  return null;
-}
-
-export function buildWorldJourneyFilterChips(
-  linhVucs: ReadonlyArray<LinhVucRow> = [],
-): WjFilterChip[] {
+export function buildWorldJourneyFilterChips(): WjFilterChip[] {
   return WORLD_JOURNEY_FILTER_CHIP_SPECS.map((spec) => {
     if (spec.kind === "all") {
       return {
@@ -154,26 +74,11 @@ export function buildWorldJourneyFilterChips(
         icon: spec.icon,
       };
     }
-    if (spec.kind === "media") {
-      return {
-        id: spec.id,
-        label: spec.label,
-        kind: "media",
-        media: spec.media,
-        icon: spec.icon,
-      };
-    }
-
-    const lv = resolveLinhVucForFilter(linhVucs, spec.slugCandidates);
-    const slug = lv?.slug?.trim() ?? spec.slugCandidates[0] ?? spec.id;
-    const label = lv ? linhVucLabel(lv) : spec.label;
-
     return {
-      id: `linh_vuc:${slug}`,
-      label,
-      kind: "linh_vuc",
-      linhVucSlug: slug,
-      careerHubHref: `${NGHE_NGHIEP_HUB_PATH}?linh_vuc=${encodeURIComponent(slug)}`,
+      id: spec.id,
+      label: spec.label,
+      kind: "media",
+      media: spec.media,
       icon: spec.icon,
     };
   });
@@ -186,10 +91,59 @@ export function findWorldJourneyFilterChip(
   return chips.find((chip) => chip.id === activeFilter);
 }
 
+function slugMatchesLinhVuc(candidate: string, target: string): boolean {
+  const c = candidate.toLowerCase();
+  const t = target.toLowerCase();
+  return c === t || c.includes(t) || t.includes(c);
+}
+
+/** Lọc theo lĩnh vực sidebar — tag `linh_vuc` hoặc tag nghề có `id_linh_vuc`. */
+export function worldJourneyMilestoneMatchesLinhVuc(
+  milestone: MilestoneItem,
+  linhVucSlug: string | null | undefined,
+): boolean {
+  if (!linhVucSlug?.trim()) return true;
+
+  const target = linhVucSlug.trim();
+
+  for (const tag of milestone.articleTags ?? []) {
+    if (
+      tag.loai_bai_viet === "linh_vuc" &&
+      tag.slug &&
+      slugMatchesLinhVuc(tag.slug, target)
+    ) {
+      return true;
+    }
+
+    const lvSlug = tag.linh_vuc_slug?.trim();
+    if (lvSlug && slugMatchesLinhVuc(lvSlug, target)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 export type WjPostFilterMeta = {
   feedMediaKind?: WjFeedMediaKind;
   linhVucSlugs?: string[];
 };
+
+export function worldJourneyMilestoneMatchesFilter(
+  milestone: MilestoneItem,
+  chip: WjFilterChip | undefined,
+): boolean {
+  if (!chip || chip.kind === "all") return true;
+
+  if (chip.kind === "media") {
+    const kind = milestoneContentKind(milestone.noiDungBlocks);
+    if (chip.media === "photo") return kind === "photo";
+    if (chip.media === "video") return kind === "video";
+    return kind === "article";
+  }
+
+  return worldJourneyMilestoneMatchesLinhVuc(milestone, chip.linhVucSlug);
+}
 
 function postMediaKind(post: WjPostFilterMeta): WjFeedMediaKind | null {
   if (post.feedMediaKind) return post.feedMediaKind;
@@ -212,3 +166,10 @@ export function worldJourneyPostMatchesFilter(
     (s) => s === target || s.includes(target) || target.includes(s),
   );
 }
+
+export const WORLD_JOURNEY_SORT_OPTIONS = [
+  "Mới nhất",
+  "Đang sôi nổi",
+  "Theo dõi",
+  "Verified",
+] as const;

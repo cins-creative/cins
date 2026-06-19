@@ -35,7 +35,7 @@ export type MilestoneType =
  * Chế độ hiển thị (UI value) — map 1-1 sang enum DB `che_do_hien_thi_moc_enum`:
  *   • `feature`   ↔ `feature`    — Nổi bật (ghim đầu Journey)
  *   • `public`    ↔ `public`     — Công khai
- *   • `unlisted`  ↔ `theo_nhom`  — Theo nhóm (chỉ ai có link/nhóm mới xem)
+ *   • `unlisted`  ↔ `theo_nhom`  — Bạn bè (chỉ bạn bè mới xem)
  *   • `private`   ↔ `chi_minh`   — Chỉ mình tôi
  */
 export type MilestoneVisibility =

@@ -4081,6 +4081,29 @@ a.cd-v4-role-menu-btn {
   background: transparent;
 }
 
+.cd-v4-jcard-body .j-m-body-wrap .j-m-card.jcard--article .jcard-body,
+.cd-v4-jcard-body .j-m-body-wrap .j-m-card.jcard--photo .jcard-body,
+.cd-v4-jcard-body .j-m-body-wrap .j-m-card.jcard--video .jcard-body {
+  padding-inline: 0;
+  padding-block: 0;
+}
+
+.cd-v4-jcard-body .j-m-body-wrap .j-m-card.jcard--article .jcard-text,
+.cd-v4-jcard-body .j-m-body-wrap .j-m-card.jcard--photo .jcard-text,
+.cd-v4-jcard-body .j-m-body-wrap .j-m-card.jcard--video .jcard-text {
+  padding: 14px 16px 12px;
+}
+
+.cd-v4-jcard-body .j-m-body-wrap .j-m-card:not(.jcard--article):not(.jcard--photo):not(.jcard--video)
+  .jcard-body {
+  padding: 14px 16px 12px;
+}
+
+.cd-v4-jcard-body .j-m-body-wrap .jcard-media-zone > :is(.preview, a.preview),
+.cd-v4-jcard-body .j-m-body-wrap .jcard-media-zone > :is(.preview, a.preview) img {
+  border-radius: 0;
+}
+
 .cd-v4-jcard-body .j-m-body-wrap .jcard-body {
   padding: 14px 16px 12px;
 }

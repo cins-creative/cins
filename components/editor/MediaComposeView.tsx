@@ -119,7 +119,7 @@ const VIS_OPTIONS: ReadonlyArray<{
 }> = [
   { value: "feature", label: "Nổi bật", Icon: Star },
   { value: "public", label: "Công khai", Icon: Globe },
-  { value: "theo_nhom", label: "Theo nhóm", Icon: Users },
+  { value: "theo_nhom", label: "Bạn bè", Icon: Users },
   { value: "chi_minh", label: "Chỉ mình tôi", Icon: Lock },
 ];
 

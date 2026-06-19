@@ -416,7 +416,7 @@
 
 .cins-post-view.post-canvas--split .cover-add.cover-readonly,
 .cins-post-view .post-canvas--split .cover-add.cover-readonly {
-  margin: 28px 0 0;
+  margin: 28px 0 28px;
   width: 100%;
   border-radius: 14px;
   height: auto;
@@ -477,15 +477,16 @@
   font-size: 13px;
 }
 
-/* Split rail — aside cố định chiều cao, .post-rail-scroll chứa toàn bộ nội dung con */
+/* Split rail — sticky viewport: meta scroll, BL ghim form ở đáy rail */
 .cins-post-view.post-canvas--split .post-view-rail,
 .cins-post-view .post-canvas--split .post-view-rail {
-  position: relative;
-  top: auto;
-  align-self: stretch;
-  height: 100%;
-  max-height: 100%;
-  min-height: 0;
+  align-self: start;
+  height: auto;
+  max-height: var(--post-rail-max-h, calc(100dvh - var(--cins-topbar-h, 56px) - 32px));
+  min-height: var(
+    --post-rail-min-h,
+    calc(100dvh - var(--cins-topbar-h, 56px) - 32px)
+  );
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -493,51 +494,23 @@
 
 .cins-post-view.post-canvas--split .post-rail-scroll,
 .cins-post-view .post-canvas--split .post-rail-scroll {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
-  padding-bottom: var(--post-rail-compose-h, 72px);
 }
 
-/* Ô nhập BL — absolute đáy rail, luôn hiển thị khi scroll nội dung */
-.cins-post-view.post-canvas--split .post-view-rail,
-.cins-post-view .post-canvas--split .post-view-rail {
-  position: relative;
-}
-
-.cins-post-view.post-canvas--split .post-view-rail .post-comments-form,
-.cins-post-view .post-canvas--split .post-view-rail .post-comments-login {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 3;
-  margin: 0;
-  padding: 10px 24px 14px 14px;
-  background: var(--bg-surface, #ffffff);
+.cins-post-view.post-canvas--split .post-rail-blk--comments,
+.cins-post-view .post-canvas--split .post-rail-blk--comments {
+  flex: 1 1 auto;
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 20px 24px 14px 14px;
   border-top: 1px solid var(--border);
-  box-shadow: 0 -8px 20px rgba(15, 23, 42, 0.06);
-}
-
-.cins-post-view.post-canvas--split .post-comments--pin-compose,
-.cins-post-view .post-canvas--split .post-comments--pin-compose {
-  display: block;
-  overflow: visible;
-  flex: none;
-}
-
-.cins-post-view.post-canvas--split
-  .post-comments--pin-compose
-  .post-comments-scroll,
-.cins-post-view
-  .post-canvas--split
-  .post-comments--pin-compose
-  .post-comments-scroll {
-  flex: none;
-  overflow: visible;
 }
 
 .cins-post-view .post-comments--pin-compose {
@@ -560,19 +533,12 @@
 .cins-post-view .post-comments--pin-compose .post-comments-form,
 .cins-post-view .post-comments--pin-compose .post-comments-login {
   flex-shrink: 0;
-  margin-top: 0;
-  padding-top: 10px;
+  position: static;
+  margin: 0;
+  padding: 10px 10px 12px 0;
   border-top: 1px solid var(--border);
   background: var(--bg-surface, #ffffff);
-}
-
-.cins-post-view.post-canvas--split .post-comments--pin-compose .post-comments-form,
-.cins-post-view .post-canvas--split .post-comments--pin-compose .post-comments-form,
-.cins-post-view.post-canvas--split .post-comments--pin-compose .post-comments-login,
-.cins-post-view .post-canvas--split .post-comments--pin-compose .post-comments-login {
-  border-top: none;
   box-shadow: none;
-  padding-top: 0;
 }
 
 .cins-post-view.post-canvas--split .post-rail-blk--comments .post-comments-form,
@@ -1320,7 +1286,7 @@
 /* Split permalink — cover đầu cột trái, không full-bleed stack layout */
 .cins-post-view.post-canvas--split .post-view-content > .cover-add.cover-readonly,
 .cins-post-view .post-canvas--split .post-view-content > .cover-add.cover-readonly {
-  margin: 24px 0 0;
+  margin: 24px 0 28px;
   width: 100%;
   border-radius: 14px;
   height: auto;
@@ -3284,6 +3250,31 @@
   .cins-post-view .post-rail-blk--comments {
     order: 5;
     border-top: 1px solid var(--border);
+  }
+
+  .cins-post-view.post-canvas--split .post-rail-blk--comments,
+  .cins-post-view .post-canvas--split .post-rail-blk--comments {
+    flex: none;
+    min-height: 0;
+    display: block;
+    overflow: visible;
+  }
+
+  .cins-post-view .post-comments--pin-compose {
+    display: block;
+    overflow: visible;
+    flex: none;
+  }
+
+  .cins-post-view .post-comments--pin-compose .post-comments-scroll {
+    flex: none;
+    overflow: visible;
+    min-height: 0;
+  }
+
+  .cins-post-view .post-comments--pin-compose .post-comments-form,
+  .cins-post-view .post-comments--pin-compose .post-comments-login {
+    position: static;
   }
 
   /* Album / video — ưu tiên vùng ảnh full-width, cao */

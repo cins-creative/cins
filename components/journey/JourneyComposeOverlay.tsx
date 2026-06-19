@@ -4,6 +4,9 @@ import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
+import "@/app/[slug]/journey/journey.css";
+import "@/app/[slug]/p/new/editor.css";
+
 import type { EditorInitial } from "@/components/editor/EditorView";
 import type { MediaComposeMode } from "@/components/editor/MediaComposeView";
 import type { CongDongComposeConfig } from "@/lib/cong-dong/types";

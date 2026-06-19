@@ -5,8 +5,11 @@ import path from "node:path";
 import { CinsShell } from "@/components/cins/CinsShell";
 import { CinsHomeV2Page } from "@/components/cins/home-v2/CinsHomeV2Page";
 import { HomeWorldJourneyMain } from "@/components/cins/home-v2/HomeWorldJourneyMain";
+import { AuthGateRoot } from "@/components/auth/AuthGateProvider";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { injectHomeSidebarNav } from "@/lib/cins/homeSidebarNav";
+
+import "@/app/login/login.css";
 
 export const metadata: Metadata = {
   title: "CINs — Khám phá ngành sáng tạo thị giác tại Việt Nam",
@@ -28,7 +31,9 @@ export default async function Home() {
   if (session?.profile?.slug) {
     return (
       <CinsShell data-screen-label="Trang-chu">
-        <HomeWorldJourneyMain />
+        <AuthGateRoot initialAuthenticated>
+          <HomeWorldJourneyMain />
+        </AuthGateRoot>
       </CinsShell>
     );
   }

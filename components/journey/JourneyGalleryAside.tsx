@@ -98,11 +98,11 @@ export function JourneyGalleryAside({
   return (
     <aside
       className="j-gallery"
-      aria-label={featuredOnly ? "Bài viết nổi bật" : "Tác phẩm gần đây"}
+      aria-label={featuredOnly ? "Nội dung nổi bật" : "Tác phẩm gần đây"}
     >
       <div className="j-gallery-head">
         <div className="j-gallery-title">
-          {featuredOnly ? "Nổi bật" : "Tác phẩm"}
+          {featuredOnly ? "Nội dung nổi bật" : "Tác phẩm"}
           <span className="j-gallery-count">{titleCount}</span>
         </div>
 
@@ -136,6 +136,7 @@ export function JourneyGalleryAside({
                   href={b.href ?? "#"}
                   className="j-g-banner"
                   data-pinned-id={b.id}
+                  aria-label={[b.title, b.meta].filter(Boolean).join(" · ") || "Bài nổi bật"}
                 >
                   <span className="j-g-banner-bg">
                     <GalleryItemVisual
@@ -154,10 +155,6 @@ export function JourneyGalleryAside({
                     <GalleryVideoPlayBadge />
                   ) : null}
                   <FeaturedFlagBadge className="j-g-banner-pin" />
-                  <span className="j-g-banner-info">
-                    <span className="j-g-banner-title">{b.title}</span>
-                    <span className="j-g-banner-meta">{b.meta}</span>
-                  </span>
                 </a>
               ))}
             </div>

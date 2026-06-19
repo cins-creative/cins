@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import {
   useEffect,
+  useId,
   useLayoutEffect,
   useRef,
   useState,
@@ -28,8 +29,121 @@ import { useMilestonePersonalFilterAttach } from "@/components/journey/useMilest
 import { CONG_DONG_PERSONAL_FILTER_SLUG } from "@/lib/filter/cong-dong-personal-filter.shared";
 import type { LoaiMoc, Visibility } from "@/lib/editor/types";
 import { dispatchMilestoneInlinePatch } from "@/lib/journey/milestone-inline-patch";
+import { milestoneVisibilityHint } from "@/lib/journey/milestone-visibility-hints";
 
 const MENU_MIN_WIDTH = 168;
+const VIS_HINT_TIP_W = 248;
+const VIS_HINT_TIP_EST_H = 72;
+const VIS_HINT_TIP_Z = 9700;
+
+function computeVisHintPosition(
+  rect: DOMRect,
+  size: { width: number; height: number },
+): { top: number; left: number } {
+  const margin = 8;
+  const gap = 10;
+  const { width, height } = size;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+
+  let left = rect.left - width - gap;
+  if (left < margin) {
+    left = rect.right + gap;
+  }
+  left = Math.max(margin, Math.min(left, vw - width - margin));
+
+  let top = rect.top + (rect.height - height) / 2;
+  top = Math.max(margin, Math.min(top, vh - height - margin));
+
+  return { top, left };
+}
+
+function InlineControlVisibilityOption({
+  option,
+  active,
+  pending,
+  portalReady,
+  hint,
+  onChoose,
+}: {
+  option: VisibilityOption;
+  active: boolean;
+  pending: boolean;
+  portalReady: boolean;
+  hint: string;
+  onChoose: () => void;
+}) {
+  const wrapRef = useRef<HTMLSpanElement>(null);
+  const [hintPos, setHintPos] = useState<{ top: number; left: number } | null>(
+    null,
+  );
+  const hintId = useId();
+
+  const showHint = Boolean(hint && hintPos && portalReady);
+
+  const revealHint = () => {
+    const wrap = wrapRef.current;
+    if (!wrap || !hint) return;
+    const rect = wrap.getBoundingClientRect();
+    setHintPos(
+      computeVisHintPosition(rect, {
+        width: VIS_HINT_TIP_W,
+        height: VIS_HINT_TIP_EST_H,
+      }),
+    );
+  };
+
+  return (
+    <>
+      <span
+        ref={wrapRef}
+        className="j-inline-control-option-wrap"
+        onMouseEnter={revealHint}
+        onMouseLeave={() => setHintPos(null)}
+        onFocus={revealHint}
+        onBlur={() => setHintPos(null)}
+      >
+        <button
+          type="button"
+          className={`j-inline-control-option${active ? " is-active" : ""}`}
+          role="menuitemradio"
+          aria-checked={active}
+          aria-describedby={showHint ? hintId : undefined}
+          disabled={pending || active}
+          onClick={(event) => {
+            event.stopPropagation();
+            onChoose();
+          }}
+        >
+          <option.Icon size={14} strokeWidth={1.8} aria-hidden />
+          <span>{option.label}</span>
+          {active ? (
+            <Check size={13} strokeWidth={2.1} aria-hidden />
+          ) : null}
+        </button>
+      </span>
+      {showHint
+        ? createPortal(
+            <div
+              id={hintId}
+              className="j-inline-control-hint"
+              role="tooltip"
+              style={{
+                position: "fixed",
+                top: hintPos!.top,
+                left: hintPos!.left,
+                width: VIS_HINT_TIP_W,
+                zIndex: VIS_HINT_TIP_Z,
+              }}
+            >
+              {hint}
+            </div>,
+            document.body,
+          )
+        : null}
+    </>
+  );
+}
 
 type TypeOption = {
   ui: MilestoneType;
@@ -416,26 +530,20 @@ export function JourneyMilestoneInlineControls(props: Props) {
           </>
         ) : (
           props.options.map((option) => {
-              const active = option.ui === props.current;
-              return (
-                <button
-                  key={option.ui}
-                  type="button"
-                  className={`j-inline-control-option${active ? " is-active" : ""}`}
-                  disabled={pending || active}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    chooseVisibility(option);
-                  }}
-                >
-                  <option.Icon size={14} strokeWidth={1.8} aria-hidden />
-                  <span>{option.label}</span>
-                  {active ? (
-                    <Check size={13} strokeWidth={2.1} aria-hidden />
-                  ) : null}
-                </button>
-              );
-            })
+            const active = option.ui === props.current;
+            const hintContext = props.foreignJourney ? "foreign" : "self";
+            return (
+              <InlineControlVisibilityOption
+                key={option.ui}
+                option={option}
+                active={active}
+                pending={pending}
+                portalReady={portalReady}
+                hint={milestoneVisibilityHint(option.db, hintContext)}
+                onChoose={() => chooseVisibility(option)}
+              />
+            );
+          })
         )}
         {showPersonalFilters && personalAttach.canAttach ? (
           <>

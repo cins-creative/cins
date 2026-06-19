@@ -215,7 +215,7 @@ const VIS_OPTIONS: Array<{
   {
     k: "theo_nhom",
     Icon: Users,
-    label: "Theo nhóm",
+    label: "Bạn bè",
     desc: "Chỉ nhóm bối cảnh được chọn",
   },
   {

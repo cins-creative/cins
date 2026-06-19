@@ -43,6 +43,8 @@ type Props = {
   scrollLoad?: ScrollLoadConfig;
   isOwner?: boolean;
   filterVisibility?: LoaiMocVisibilityMap;
+  /** Ẩn toolbar filter — dùng khi filter nằm ngoài (World Journey home). */
+  hideToolbar?: boolean;
   /** Legacy — pinned + grid tách (aside / mock). Không dùng cùng scrollLoad. */
   pinned?: ReadonlyArray<{
     id: string;
@@ -100,6 +102,7 @@ export function JourneyGalleryGridView({
   scrollLoad,
   isOwner = false,
   filterVisibility,
+  hideToolbar = false,
   pinned = [],
   items = [],
 }: Props) {
@@ -287,33 +290,40 @@ export function JourneyGalleryGridView({
         : typeOptions.find((o) => o.group === typeFilter)?.label ?? "đã chọn";
 
   return (
-    <main className="j-main-panel j-gallery-main" aria-label="Gallery tác phẩm">
-      <div className="j-tlb">
-        <div className="j-tlb-year">Gallery</div>
-        <div className="j-tlb-month" aria-hidden style={{ visibility: "hidden" }}>
-          —
-        </div>
-        {hasData ? (
-          <div className="j-tlb-filters">
-            <JourneyTimelineBar
-              embed
-              filter={typeFilter}
-              onFilterChange={setTypeFilter}
-              options={typeOptions}
-              enabled={hasData}
-              isOwner={isOwner}
-              filterVisibility={filterVisibility}
-            />
-            <GalleryMediaFilterDropdown
-              filter={mediaFilter}
-              onFilterChange={setMediaFilter}
-              variant="toolbar"
-              count={filterCount}
-              optionCounts={mediaCounts}
-            />
+    <div
+      className={
+        hideToolbar ? "wj-feed-grid-panel" : "j-main-panel j-gallery-main"
+      }
+      aria-label="Gallery tác phẩm"
+    >
+      {!hideToolbar ? (
+        <div className="j-tlb">
+          <div className="j-tlb-year">Gallery</div>
+          <div className="j-tlb-month" aria-hidden style={{ visibility: "hidden" }}>
+            —
           </div>
-        ) : null}
-      </div>
+          {hasData ? (
+            <div className="j-tlb-filters">
+              <JourneyTimelineBar
+                embed
+                filter={typeFilter}
+                onFilterChange={setTypeFilter}
+                options={typeOptions}
+                enabled={hasData}
+                isOwner={isOwner}
+                filterVisibility={filterVisibility}
+              />
+              <GalleryMediaFilterDropdown
+                filter={mediaFilter}
+                onFilterChange={setMediaFilter}
+                variant="toolbar"
+                count={filterCount}
+                optionCounts={mediaCounts}
+              />
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       {!hasData ? (
         <div className="j-main-empty">
@@ -447,6 +457,6 @@ export function JourneyGalleryGridView({
           </button>
         </div>
       ) : null}
-    </main>
+    </div>
   );
 }

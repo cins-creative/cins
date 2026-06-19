@@ -18,7 +18,13 @@ export function milestoneCardContentKind(
 ): MilestoneCardContentKind {
   const mediaKind = detectMediaPostKind(blocks);
   const photoGridImages = photoGridImagesFromBlocks(blocks);
-  if (mediaKind === "photo" && photoGridImages) return "photo";
+  if (mediaKind === "photo" && photoGridImages) {
+    // Bài viết có ảnh bìa + block phong phú (body + imgs…) — card bài viết, không album full grid.
+    if (hasCoverPreview && blocks && !blocksAreCaptionOnly(blocks)) {
+      return "article";
+    }
+    return "photo";
+  }
   if (mediaKind === "video") return "video";
   if (hasCoverPreview && blocksAreCaptionOnly(blocks)) return "photo";
   if (

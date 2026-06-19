@@ -157,7 +157,7 @@ const EDITABLE_VIS_OPTIONS: ReadonlyArray<{
 }> = [
   { ui: "feature", db: "feature", label: "Nổi bật", Icon: Star },
   { ui: "public", db: "public", label: "Công khai", Icon: Globe },
-  { ui: "unlisted", db: "theo_nhom", label: "Theo nhóm", Icon: Users },
+  { ui: "unlisted", db: "theo_nhom", label: "Bạn bè", Icon: Users },
   { ui: "private", db: "chi_minh", label: "Chỉ mình tôi", Icon: Lock },
 ];
 
@@ -169,7 +169,7 @@ const CONG_DONG_GRADUATE_VIS_OPTIONS: ReadonlyArray<{
   Icon: LucideIcon;
 }> = [
   { ui: "public", db: "public", label: "Công khai", Icon: Globe },
-  { ui: "unlisted", db: "theo_nhom", label: "Theo nhóm", Icon: Users },
+  { ui: "unlisted", db: "theo_nhom", label: "Bạn bè", Icon: Users },
   { ui: "private", db: "chi_minh", label: "Chỉ mình tôi", Icon: Lock },
   { ui: "feature", db: "feature", label: "Nổi bật", Icon: Star },
 ];
@@ -252,7 +252,7 @@ function visibilityIcon(
   }
   if (v === "feature") return { Icon: Star, label: "Nổi bật" };
   if (!v || v === "public") return { Icon: Globe, label: "Công khai" };
-  if (v === "unlisted") return { Icon: Users, label: "Theo nhóm" };
+  if (v === "unlisted") return { Icon: Users, label: "Bạn bè" };
   if (v === "private") return { Icon: Lock, label: "Chỉ mình tôi" };
   return null;
 }
@@ -551,9 +551,12 @@ export function JourneyMilestoneCard({
       textPanelNeedsCollapse(textCardPanelText, textPanelParagraphs.length),
   );
   const [textPanelExpanded, setTextPanelExpanded] = useState(false);
+  const [unfoldMounted, setUnfoldMounted] = useState(false);
+  const [unfoldReady, setUnfoldReady] = useState(false);
   const showContent = inlineExpand?.showContent ?? false;
   const showComments = inlineExpand?.showComments ?? false;
   const showUnfold = showContent || showComments;
+  const unfoldOpen = showUnfold && unfoldReady;
   const showTextPanelUnfold =
     isTextCard && textPanelCollapsible && textPanelExpanded;
   const showUnfoldToggle = Boolean(
@@ -575,6 +578,24 @@ export function JourneyMilestoneCard({
   useEffect(() => {
     setTextPanelExpanded(false);
   }, [textCardPanelText, title]);
+
+  useEffect(() => {
+    if (!showUnfold) {
+      setUnfoldReady(false);
+      return;
+    }
+    setUnfoldMounted(true);
+    let cancelled = false;
+    const id = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (!cancelled) setUnfoldReady(true);
+      });
+    });
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(id);
+    };
+  }, [showUnfold]);
 
   useEffect(() => {
     function onCommentsSync(event: Event) {
@@ -1380,51 +1401,53 @@ export function JourneyMilestoneCard({
             onTagLinkClick={(e) => e.stopPropagation()}
           />
 
-          {inlineExpand && showUnfold ? (
+          {inlineExpand && isArticle ? (
             <div
               className="j-m-card-unfold"
-              data-open="true"
-              aria-hidden={false}
+              data-open={unfoldOpen ? "true" : "false"}
+              aria-hidden={!showUnfold}
             >
-              {orgBaiDangRef && showContent && noiDungBlocks?.length ? (
-                <div className="j-m-card-unfold-inner">
-                  <div className="cins-editor-page cins-post-view j-m-unfold-post">
-                    {isMilestoneArticleCard(noiDungBlocks, hasCoverPreview) ? (
-                      <JourneyUnfoldArticleContent
-                        blocksOnly
-                        title={title}
-                        tomTat={body}
-                        blocks={noiDungBlocks}
-                      />
-                    ) : (
-                      <PostBlockRenderer blocks={noiDungBlocks} />
-                    )}
+              {unfoldMounted ? (
+                orgBaiDangRef && showContent && noiDungBlocks?.length ? (
+                  <div className="j-m-card-unfold-inner">
+                    <div className="cins-editor-page cins-post-view j-m-unfold-post">
+                      {isMilestoneArticleCard(noiDungBlocks, hasCoverPreview) ? (
+                        <JourneyUnfoldArticleContent
+                          blocksOnly
+                          title={title}
+                          tomTat={body}
+                          blocks={noiDungBlocks}
+                        />
+                      ) : (
+                        <PostBlockRenderer blocks={noiDungBlocks} />
+                      )}
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <JourneyMilestoneUnfold
-                  active
-                  showBlocks={showContent}
-                  showComments={showComments}
-                  commentsFocus={showComments}
-                  postOwnerSlug={inlineExpand.postOwnerSlug}
-                  postSlug={postSlug}
-                  milestoneId={milestoneId}
-                  actionsBeforeComments={
-                    pinActionsAboveComments ? (
-                      <>
-                        {authorsInUnfold ? jcardAuthors : null}
-                        {jcardActions}
-                      </>
-                    ) : undefined
-                  }
-                  inlineSkip={{
-                    byline: true,
-                    tags: liveArticleTags.length > 0,
-                    contributors: showAuthorsStrip,
-                  }}
-                />
-              )}
+                ) : (
+                  <JourneyMilestoneUnfold
+                    active={showUnfold}
+                    showBlocks={showContent}
+                    showComments={showComments}
+                    commentsFocus={showComments}
+                    postOwnerSlug={inlineExpand.postOwnerSlug}
+                    postSlug={postSlug}
+                    milestoneId={milestoneId}
+                    actionsBeforeComments={
+                      pinActionsAboveComments ? (
+                        <>
+                          {authorsInUnfold ? jcardAuthors : null}
+                          {jcardActions}
+                        </>
+                      ) : undefined
+                    }
+                    inlineSkip={{
+                      byline: true,
+                      tags: liveArticleTags.length > 0,
+                      contributors: showAuthorsStrip,
+                    }}
+                  />
+                )
+              ) : null}
             </div>
           ) : null}
 

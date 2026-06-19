@@ -81,7 +81,7 @@ async function uploadEvidenceImage(file: File): Promise<string | null> {
 
 const VISIBILITY_LABELS: Record<"public" | "theo_nhom" | "chi_minh", string> = {
   public: "Công khai",
-  theo_nhom: "Theo nhóm",
+  theo_nhom: "Bạn bè",
   chi_minh: "Chỉ mình tôi",
 };
 

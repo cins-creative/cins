@@ -1,29 +1,30 @@
 "use client";
 
 import { JourneyComposeProvider } from "@/components/journey/JourneyComposeContext";
-import type { EditProfileInitial } from "@/components/journey/JourneyEditProfileModal";
 import type { SidebarProfile } from "@/components/journey/JourneySidebar";
 import { WorldJourneyFeed } from "@/components/cins/world-journey/WorldJourneyFeed";
 
+import type { WjLinhVucAsideItem } from "@/lib/cins/worldJourneyGuestAside";
 import type { WjFilterChip } from "@/lib/cins/worldJourneyFeedFilters";
+import type { MilestoneItem } from "@/components/journey/milestone-types";
 
 type Props = {
   sidebarProfile: SidebarProfile;
-  editProfileInitial: EditProfileInitial;
-  countsPromise: Promise<{ friendCount: number; orgCount: number }>;
   viewerProfileId: string;
   ownerAvatarId?: string | null;
   filterChips: WjFilterChip[];
+  linhVucs: WjLinhVucAsideItem[];
+  milestones: MilestoneItem[];
 };
 
 /** Bọc feed trang chủ logged-in — overlay compose hoạt động trên wj-composer. */
 export function HomeWorldJourneyClient({
   sidebarProfile,
-  editProfileInitial,
-  countsPromise,
   viewerProfileId,
   ownerAvatarId,
   filterChips,
+  linhVucs,
+  milestones,
 }: Props) {
   return (
     <JourneyComposeProvider
@@ -35,10 +36,10 @@ export function HomeWorldJourneyClient({
     >
       <WorldJourneyFeed
         sidebarProfile={sidebarProfile}
-        editProfileInitial={editProfileInitial}
-        countsPromise={countsPromise}
         viewerProfileId={viewerProfileId}
         filterChips={filterChips}
+        linhVucs={linhVucs}
+        milestones={milestones}
       />
     </JourneyComposeProvider>
   );

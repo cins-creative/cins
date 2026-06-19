@@ -31,6 +31,17 @@
 
 ## LOG — quyết định đã chốt
 
+### World Journey feed — lọc theo `che_do_hien_thi` (2026-06-19)
+
+- **L18 — Trang chủ World Journey feed phân tầng 3 lớp (+ chỉ mình).**
+  • `feature` (Nổi bật): portfolio/khoe — **mọi viewer** thấy, kể cả không bạn bè, không theo dõi.
+  • `public` (Công khai): chỉ **bạn bè** hoặc **người đang theo dõi** tác giả.
+  • `theo_nhom` (Bạn bè): chỉ **bạn bè** (2 chiều).
+  • `chi_minh`: chỉ chủ bài — không lên feed người khác.
+  • `cong_dong`: không thuộc World Journey feed.
+  Helper: `lib/cins/worldJourneyFeedVisibility.ts` · feed UI `WorldJourneyFeed.tsx` (posts từ API, không mock).
+  *Khác* timeline Journey profile visitor (`milestone-viewer-access.ts`): ở profile, `public` vẫn mở cho visitor; feed trang chủ siết `public` hơn để tránh viral/loãng.
+
 ### Session theo dõi + phân bổ nội dung (2026-06-15)
 
 > Đảo 2 quyết định nền v6 (L5, L6). **Không có thay đổi DB** — enum `loai_theo_doi_enum` đã sẵn `nguoi_dung`/`the`/`to_chuc`.
