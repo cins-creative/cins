@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
+import { CinsShell } from "@/components/cins/CinsShell";
 import { CinsHomeV2Page } from "@/components/cins/home-v2/CinsHomeV2Page";
+import { HomeWorldJourneyMain } from "@/components/cins/home-v2/HomeWorldJourneyMain";
+import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { injectHomeSidebarNav } from "@/lib/cins/homeSidebarNav";
 
 export const metadata: Metadata = {
@@ -12,6 +15,7 @@ export const metadata: Metadata = {
 };
 
 export default async function Home() {
+  const session = await getCurrentSessionAndProfile();
   const raw = await readFile(
     path.join(
       process.cwd(),
@@ -19,7 +23,15 @@ export default async function Home() {
     ),
     "utf8",
   );
-  const markup = injectHomeSidebarNav(raw);
+  const guestMarkup = injectHomeSidebarNav(raw);
 
-  return <CinsHomeV2Page markup={markup} />;
+  if (session?.profile?.slug) {
+    return (
+      <CinsShell data-screen-label="Trang-chu">
+        <HomeWorldJourneyMain />
+      </CinsShell>
+    );
+  }
+
+  return <CinsHomeV2Page guestMarkup={guestMarkup} />;
 }

@@ -6,7 +6,8 @@ import { gridThumbSrc } from "@/lib/journey/image-grid";
 export function congDongFeedPostCoverUrl(post: CongDongPost): string | null {
   const mirror = post.journeyMirror;
   if (mirror) {
-    const kind = milestoneCardContentKind(mirror.noiDungBlocks);
+    const hasCover = Boolean(mirror.previewMedia?.src || mirror.coverId);
+    const kind = milestoneCardContentKind(mirror.noiDungBlocks, hasCover);
     if (kind === "photo") {
       const first = milestoneCardPhotoGrid(mirror.noiDungBlocks)?.[0];
       if (first) return gridThumbSrc(first);

@@ -43,6 +43,14 @@ export function detectMediaPostKind(
   return null;
 }
 
+/** Chỉ caption trong blocks — không có album / heading / embed / … */
+export function blocksAreCaptionOnly(
+  blocks: ReadonlyArray<Block> | null | undefined,
+): boolean {
+  if (!blocks?.length) return true;
+  return blocks.every((b) => b.loai === "body" || b.loai === "spacer");
+}
+
 export function isMediaPost(
   blocks: ReadonlyArray<Block> | null | undefined,
 ): boolean {
@@ -214,17 +222,76 @@ export function isArticleFallbackTitle(title: string): boolean {
   return !trimmed || trimmed === DEFAULT_ARTICLE_POST_TITLE;
 }
 
-/** Card timeline: chỉ hiện tiêu đề khi user thật sự nhập (không fallback). */
+function htmlFragmentToPlainText(html: string): string {
+  return html
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+/** Tiêu đề DB copy từ dòng đầu nội dung (compose không nhập title). */
+function titleMatchesAutoDerivedContent(
+  title: string,
+  body: string | null | undefined,
+  blocks: ReadonlyArray<Block> | null | undefined,
+): boolean {
+  const trimmedTitle = title.trim();
+  if (!trimmedTitle) return true;
+
+  const fromMoTa = body?.trim();
+  if (fromMoTa) {
+    const moTaPlain = htmlFragmentToPlainText(fromMoTa);
+    const firstMoTa = moTaPlain.split("\n\n")[0]?.trim() ?? moTaPlain.trim();
+    if (
+      trimmedTitle === firstMoTa.slice(0, 120) ||
+      trimmedTitle === moTaPlain.slice(0, 120)
+    ) {
+      return true;
+    }
+  }
+
+  if (blocks?.length) {
+    const parts: string[] = [];
+    for (const block of blocks) {
+      if (block.loai !== "body") continue;
+      const html = block.config?.html;
+      if (typeof html !== "string") continue;
+      const plain = htmlFragmentToPlainText(html);
+      if (plain) parts.push(plain);
+    }
+    if (parts.length) {
+      const panelPlain = parts.join("\n\n").trim();
+      const firstLine = panelPlain.split("\n\n")[0]?.trim() ?? panelPlain;
+      if (
+        trimmedTitle === firstLine.slice(0, 120) ||
+        trimmedTitle === panelPlain.slice(0, 120)
+      ) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+/** Card timeline: chỉ hiện tiêu đề khi user thật sự nhập (không fallback / không copy body). */
 export function shouldShowMilestoneCardTitle(
   title: string,
   blocks: ReadonlyArray<Block> | null | undefined,
+  body?: string | null,
 ): boolean {
+  const trimmedTitle = title.trim();
+  if (!trimmedTitle || isArticleFallbackTitle(trimmedTitle)) return false;
+
   const kind = detectMediaPostKind(blocks);
-  if (!kind) return !isArticleFallbackTitle(title);
-  if (isMediaFallbackTitle(title, kind)) return false;
-  const captionLine = extractBodyCaption(blocks).trim().split("\n")[0]?.trim() ?? "";
-  if (captionLine && title.trim() === captionLine.slice(0, 120)) return false;
-  return Boolean(title.trim());
+  if (kind && isMediaFallbackTitle(trimmedTitle, kind)) return false;
+
+  if (titleMatchesAutoDerivedContent(trimmedTitle, body, blocks)) return false;
+
+  return true;
 }
 
 /** Nhãn gallery grid — luôn có default theo loại nội dung. */
@@ -310,14 +377,58 @@ export function milestoneCardCaptionPlain(
 ): string | null {
   const raw = milestoneCardCaption(body, blocks);
   if (!raw) return null;
-  const text = raw
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/p>/gi, "\n")
-    .replace(/<[^>]+>/g, "")
-    .replace(/&nbsp;/gi, " ")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
+  const text = htmlFragmentToPlainText(raw);
   return text || null;
+}
+
+/** Nội dung đầy đủ trên card chữ (chỉ body blocks) — không cắt dòng. */
+export function milestoneArticleTextPanelPlain(
+  body: string | null | undefined,
+  blocks: ReadonlyArray<Block> | null | undefined,
+): string | null {
+  if (blocks?.length) {
+    const parts: string[] = [];
+    for (const block of blocks) {
+      if (block.loai !== "body") continue;
+      const html = block.config?.html;
+      if (typeof html !== "string") continue;
+      const plain = htmlFragmentToPlainText(html);
+      if (plain) parts.push(plain);
+    }
+    if (parts.length) return parts.join("\n\n");
+  }
+  return milestoneCardCaptionPlain(body, blocks);
+}
+
+/** Blocks unfold timeline — bỏ nội dung đã hiện ở `.jcard-desc` trên card. */
+export function blocksForArticleCardUnfold(
+  body: string | null | undefined,
+  blocks: ReadonlyArray<Block> | null | undefined,
+): Block[] {
+  if (!blocks?.length) return [];
+
+  const captionPlain = milestoneCardCaptionPlain(body, blocks)?.trim();
+  if (!captionPlain) return [...blocks];
+
+  const result: Block[] = [];
+  let leadHandled = false;
+
+  for (const block of blocks) {
+    if (!leadHandled && block.loai === "body") {
+      const html = block.config?.html;
+      if (typeof html === "string") {
+        const blockPlain = htmlFragmentToPlainText(html);
+        if (blockPlain === captionPlain) {
+          leadHandled = true;
+          continue;
+        }
+      }
+      leadHandled = true;
+    }
+    result.push(block);
+  }
+
+  return result;
 }
 
 export function mediaPostHasContent(

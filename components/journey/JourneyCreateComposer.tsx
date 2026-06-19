@@ -1,75 +1,29 @@
 "use client";
 
-import { FileText, Flag, ImagePlus, Video } from "lucide-react";
-import { useRouter } from "next/navigation";
-
-import { useJourneyCompose } from "@/components/journey/JourneyComposeContext";
-import type { ComposeCreateKind } from "@/lib/journey/compose-types";
+import { CinsFeedComposer } from "@/components/cins/CinsFeedComposer";
 
 type Props = {
   ownerSlug: string;
+  ownerName?: string | null;
+  avatarUrl?: string | null;
 };
 
-function composeFallbackHref(ownerSlug: string, kind: ComposeCreateKind): string {
-  if (kind === "photo") return `/${ownerSlug}/p/new/photo`;
-  if (kind === "video") return `/${ownerSlug}/p/new/video`;
-  if (kind === "milestone") return `/${ownerSlug}/journey?compose=milestone`;
-  return `/${ownerSlug}/p/new`;
-}
-
 /**
- * Composer tạo nội dung trên Journey — layout kiểu Facebook.
- * Mở overlay lazy-load trên trang Journey (không chuyển route).
- * Route `/p/new*` vẫn tồn tại làm deep-link fallback.
+ * Composer tạo nội dung trên Journey — thanh wj-composer + cột mốc riêng.
+ * Mở overlay lazy-load (không chuyển route). Route `/p/new*` vẫn là deep-link fallback.
  */
-export function JourneyCreateComposer({ ownerSlug }: Props) {
-  const router = useRouter();
-  const { openCompose, canCompose } = useJourneyCompose();
-
-  const open = (kind: ComposeCreateKind) => {
-    if (canCompose) {
-      openCompose({ kind });
-      return;
-    }
-    router.push(composeFallbackHref(ownerSlug, kind));
-  };
-
+export function JourneyCreateComposer({
+  ownerSlug,
+  ownerName,
+  avatarUrl,
+}: Props) {
   return (
-    <div className="j-create-composer">
-      <div className="j-create-composer-actions" role="group" aria-label="Loại nội dung">
-        <button
-          type="button"
-          className="j-create-composer-action j-create-composer-action--article"
-          onClick={() => open("article")}
-        >
-          <FileText size={20} strokeWidth={1.8} aria-hidden />
-          <span>Thêm bài viết</span>
-        </button>
-        <button
-          type="button"
-          className="j-create-composer-action j-create-composer-action--photo"
-          onClick={() => open("photo")}
-        >
-          <ImagePlus size={20} strokeWidth={1.8} aria-hidden />
-          <span>Thêm ảnh</span>
-        </button>
-        <button
-          type="button"
-          className="j-create-composer-action j-create-composer-action--video"
-          onClick={() => open("video")}
-        >
-          <Video size={20} strokeWidth={1.8} aria-hidden />
-          <span>Thêm video</span>
-        </button>
-        <button
-          type="button"
-          className="j-create-composer-action j-create-composer-action--milestone"
-          onClick={() => open("milestone")}
-        >
-          <Flag size={20} strokeWidth={1.8} aria-hidden />
-          <span>Thêm cột mốc</span>
-        </button>
-      </div>
-    </div>
+    <CinsFeedComposer
+      ownerSlug={ownerSlug}
+      ownerName={ownerName}
+      avatarUrl={avatarUrl}
+      layout="journey"
+      showMilestone
+    />
   );
 }

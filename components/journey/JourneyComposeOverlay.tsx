@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
 import type { EditorInitial } from "@/components/editor/EditorView";
@@ -10,7 +10,10 @@ import type { CongDongComposeConfig } from "@/lib/cong-dong/types";
 import type { OrgBaiDangComposeConfig } from "@/lib/truong/org-bai-dang-compose";
 import { readTruongInlineError, truongInlineFetch } from "@/lib/truong/inline-api";
 import type { ComposePublishedDetail } from "@/lib/journey/compose-published-sync";
-import type { JourneyComposeState } from "@/lib/journey/compose-types";
+import type {
+  ComposeIntent,
+  JourneyComposeState,
+} from "@/lib/journey/compose-types";
 import {
   buildMediaEditInitial,
   detectMediaPostKind,
@@ -86,6 +89,20 @@ export function JourneyComposeOverlay({
     compose.kind === "photo" ? compose.pendingFiles : undefined;
   const pendingVideoFile =
     compose.kind === "video" ? compose.pendingFile : undefined;
+
+  const createEditorIntent = useMemo((): ComposeIntent | undefined => {
+    if (compose.kind === "article") {
+      return compose.intent ?? "full";
+    }
+    if (compose.kind === "photo") return "photo";
+    if (compose.kind === "video") return "video";
+    return undefined;
+  }, [compose]);
+
+  const isCreateEditor =
+    compose.kind === "article" ||
+    compose.kind === "photo" ||
+    compose.kind === "video";
 
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -208,12 +225,11 @@ export function JourneyComposeOverlay({
             ? "Thêm cột mốc"
             : compose.kind === "milestone-edit"
               ? "Chỉnh sửa yêu cầu cột mốc"
-              : "Tạo bài viết";
+              : compose.intent === "minimal"
+                ? "Đăng bài mới"
+                : "Tạo bài viết";
 
-  const isMediaSheet =
-    compose.kind === "photo" ||
-    compose.kind === "video" ||
-    mediaEditMode !== null;
+  const isMediaSheet = mediaEditMode !== null;
 
   const isMilestoneSheet =
     compose.kind === "milestone" || compose.kind === "milestone-edit";
@@ -229,46 +245,15 @@ export function JourneyComposeOverlay({
       <div
         className={`j-compose-sheet${isMediaSheet ? " j-compose-sheet--media" : ""}${isMilestoneSheet ? " j-compose-sheet--milestone" : ""}`}
       >
-        {compose.kind === "article" ? (
+        {isCreateEditor ? (
           <EditorViewLazy
             ownerId={ownerId}
             ownerSlug={ownerSlug}
             ownerName={ownerName}
             presentation="overlay"
-            congDongCompose={congDongCompose}
-            orgBaiDangCompose={orgBaiDangCompose}
-            onClose={onClose}
-            onPublished={onPublished}
-          />
-        ) : null}
-
-        {compose.kind === "photo" ? (
-          <MediaComposeViewLazy
-            mode="photo"
-            ownerId={ownerId}
-            ownerSlug={ownerSlug}
-            ownerName={ownerName}
-            ownerAvatarId={ownerAvatarId}
+            composeIntent={createEditorIntent}
             initialPhotoFiles={pendingPhotoFiles}
-            autoOpenFilePicker={!pendingPhotoFiles?.length}
-            presentation="overlay"
-            congDongCompose={congDongCompose}
-            orgBaiDangCompose={orgBaiDangCompose}
-            onClose={onClose}
-            onPublished={onPublished}
-          />
-        ) : null}
-
-        {compose.kind === "video" ? (
-          <MediaComposeViewLazy
-            mode="video"
-            ownerId={ownerId}
-            ownerSlug={ownerSlug}
-            ownerName={ownerName}
-            ownerAvatarId={ownerAvatarId}
             initialVideoFile={pendingVideoFile}
-            autoOpenFilePicker={!pendingVideoFile}
-            presentation="overlay"
             congDongCompose={congDongCompose}
             orgBaiDangCompose={orgBaiDangCompose}
             onClose={onClose}

@@ -1119,7 +1119,11 @@ function CongDongJourneyPostCard({
   const { year, month } = postTimelineParts(post.thoiDiem);
   const mirror = post.journeyMirror;
   const isArticleMirror =
-    Boolean(mirror) && isMilestoneArticleCard(mirror?.noiDungBlocks);
+    Boolean(mirror) &&
+    isMilestoneArticleCard(
+      mirror?.noiDungBlocks,
+      Boolean(mirror?.previewMedia?.src),
+    );
   const postOwnerSlug = mirror?.ownerSlug || post.author.slug;
   const postSlug = mirror?.postSlug || null;
   const cardTitle =

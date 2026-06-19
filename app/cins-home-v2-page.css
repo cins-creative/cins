@@ -29,7 +29,23 @@
 /* =====================================================
    Reset & global
    ===================================================== */
-.cins-home-v2-page,.cins-home-v2-page *,.cins-home-v2-page *::before,.cins-home-v2-page *::after{box-sizing:border-box;margin:0;padding:0}
+.cins-home-v2-page,
+.cins-home-v2-page *,
+.cins-home-v2-page *::before,
+.cins-home-v2-page *::after{
+  box-sizing:border-box;
+}
+.cins-home-v2-page h1,
+.cins-home-v2-page h2,
+.cins-home-v2-page h3,
+.cins-home-v2-page h4,
+.cins-home-v2-page p,
+.cins-home-v2-page ul,
+.cins-home-v2-page ol,
+.cins-home-v2-page figure,
+.cins-home-v2-page blockquote{
+  margin:0;
+}
 html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
 .cins-home-v2-page{
   font-family:var(--sans);background:var(--bg);color:var(--ink3);
@@ -99,7 +115,7 @@ html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
 .sb-ico svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 .sb-label{opacity:0;transform:translateX(-4px);transition:opacity .18s var(--ease) .04s,transform .18s var(--ease) .04s}
 .sidebar:hover .sb-label,.sidebar:focus-within .sb-label{opacity:1;transform:none}
-.sb-foot{padding:12px 12px 18px;border-top:1px solid var(--border);flex-shrink:0;display:flex;flex-direction:column;gap:6px}
+.sb-foot{padding:10px 8px 14px;border-top:1px solid var(--border);flex-shrink:0;display:flex;flex-direction:column;gap:6px}
 .sb-foot .sb-item{font-size:12.5px;color:var(--ink3)}
 
 /* sidebar cursor-following tooltip */
@@ -166,6 +182,48 @@ html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
   box-shadow:var(--btn-grad-shadow),0 8px 0 rgba(31,116,201,.22);
 }
 
+/* Nav spacing — khớp cins-app-nav, specificity rõ ràng */
+.cins-home-v2-page .sidebar .sb-brand{
+  height:64px;gap:12px;padding:0 18px;
+}
+.cins-home-v2-page .sidebar .sb-list{
+  list-style:none;margin:0;padding:14px 12px 4px;gap:2px;
+}
+.cins-home-v2-page .sidebar .sb-item{
+  gap:14px;padding:11px 8px;
+}
+.cins-home-v2-page .sidebar .sb-foot{
+  padding:10px 8px 14px;gap:6px;
+}
+.cins-home-v2-page #topbar .topbar-inner{
+  padding:0 16px;gap:10px;
+}
+.cins-home-v2-page #topbar .tb-left,
+.cins-home-v2-page #topbar .tb-right{
+  gap:10px;
+}
+.cins-home-v2-page #topbar .tb-right{
+  flex-shrink:0;
+}
+.cins-home-v2-page #topbar .tb-quiz{
+  gap:8px;padding:9px 16px;
+}
+.cins-home-v2-page #topbar .tb-ask{
+  gap:8px;padding:9px 16px;
+}
+.cins-home-v2-page #topbar .tb-login{
+  padding:9px 14px;
+}
+.cins-home-v2-page #topbar .tb-signup{
+  gap:6px;padding:10px 18px;
+}
+.cins-home-v2-page #topbar .tb-burger{
+  padding:0;
+}
+.cins-home-v2-page #topbar .tb-auth{
+  gap:6px;
+}
+
 /* footer brand (legacy classes still in use below) */
 .footer .brand{display:inline-flex;align-items:center;gap:10px}
 .footer .brand-mark{width:34px;height:34px;background:var(--blue);border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--display);font-size:18px;letter-spacing:.5px}
@@ -173,6 +231,7 @@ html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
 
 /* body offset for fixed sidebar */
 @media (min-width:961px){.cins-home-v2-page{padding-left:64px}}
+
 @media (max-width:960px){
   .sidebar{transform:translateX(-100%);width:240px;box-shadow:var(--sh-lg)}
   .sidebar.open{transform:none}

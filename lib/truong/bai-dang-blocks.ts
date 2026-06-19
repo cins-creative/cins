@@ -4,6 +4,7 @@ import { parseServerBlocks } from "@/lib/journey/parse-server-blocks";
 
 import type { TruongBaiDang } from "@/lib/truong/types";
 import type { BaiDangCardKind } from "@/lib/truong/bai-dang-timeline";
+import { baiDangCoverDisplayUrl } from "@/lib/truong/bai-dang-cover";
 
 /** Parse `org_bai_dang.noi_dung_blocks` JSONB từ DB. */
 export function parseBaiDangBlocks(raw: unknown): Block[] | null {
@@ -42,7 +43,10 @@ export function resolveBaiDangCardKind(
   legacyKind: (p: TruongBaiDang) => BaiDangCardKind,
 ): BaiDangCardKind {
   if (baiDangUsesBlocks(post)) {
-    return milestoneCardContentKind(post.noiDungBlocks);
+    return milestoneCardContentKind(
+      post.noiDungBlocks,
+      Boolean(baiDangCoverDisplayUrl(post)),
+    );
   }
   return legacyKind(post);
 }

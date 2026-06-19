@@ -28,7 +28,7 @@ import { JourneyMilestoneUnfold } from "@/components/journey/JourneyMilestoneUnf
 import { JourneyUnfoldArticleContent } from "@/components/journey/JourneyUnfoldArticleContent";
 import { PostBlockRenderer } from "@/components/journey/PostBlockRenderer";
 import { POST_COMMENTS_SYNC_EVENT } from "@/lib/journey/comments-sync-client";
-import { isMilestoneArticleCard } from "@/lib/journey/milestone-card-kind";
+import { isMilestoneArticleCard, milestoneCardContentKind } from "@/lib/journey/milestone-card-kind";
 import { JourneyCommentLink } from "@/components/journey/JourneyCommentLink";
 import { JourneyArticleTagManager } from "@/components/journey/JourneyArticleTagManager";
 import { JourneyCoAuthorProposal } from "@/components/journey/JourneyCoAuthorProposal";
@@ -42,7 +42,7 @@ import { IdentityVerifiedMilestoneCard } from "@/components/journey/IdentityVeri
 import { JourneyOrgPopover } from "@/components/journey/JourneyOrgPopover";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
 import Link from "next/link";
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import type {
   CoAuthorCredit,
@@ -62,9 +62,14 @@ import {
 import { photoGridImagesFromBlocks } from "@/lib/journey/image-grid";
 import {
   detectMediaPostKind,
+  milestoneArticleTextPanelPlain,
   milestoneCardCaptionPlain,
   shouldShowMilestoneCardTitle,
 } from "@/lib/journey/post-media";
+import {
+  splitTextPanelParagraphs,
+  textPanelNeedsCollapse,
+} from "@/lib/journey/text-panel-tone";
 import { JOURNEY_MILESTONE_TYPE_OPTIONS } from "@/lib/journey/milestone-type-options";
 import { getNameInitials } from "@/lib/journey/profile";
 import { truongRootPath } from "@/lib/truong/truong-routes";
@@ -520,24 +525,40 @@ export function JourneyMilestoneCard({
   const coAuthorsOnly = coAuthorCredits.filter((c) => !c.laChuSoHuu);
   const showAuthorsStrip = coAuthorsOnly.length > 0;
   const preview = media[0] ?? null;
+  const hasCoverPreview = Boolean(preview?.src);
   const photoGridImages = photoGridImagesFromBlocks(noiDungBlocks);
   const mediaKind = detectMediaPostKind(noiDungBlocks);
   const isPhotoAlbum = mediaKind === "photo" && photoGridImages !== null;
   const isVideoPost = mediaKind === "video";
-  const showCardTitle = shouldShowMilestoneCardTitle(title, noiDungBlocks);
+  const showCardTitle = shouldShowMilestoneCardTitle(title, noiDungBlocks, body);
   const cardCaption = milestoneCardCaptionPlain(body, noiDungBlocks);
-  const cardContentKind = isPhotoAlbum
-    ? "photo"
-    : isVideoPost
-      ? "video"
-      : "article";
+  const cardContentKind = milestoneCardContentKind(noiDungBlocks, hasCoverPreview);
   const contributorCount = coAuthorCredits.length;
   const otherContributorCount = coAuthorsOnly.length;
   const resolvedPostOwner = postOwnerSlug || ownerSlug || null;
   const isArticle = cardContentKind === "article";
+  const isTextCard = cardContentKind === "text";
+  const textCardPanelText = useMemo(() => {
+    if (!isTextCard) return null;
+    return milestoneArticleTextPanelPlain(body, noiDungBlocks);
+  }, [isTextCard, body, noiDungBlocks]);
+  const textPanelParagraphs = useMemo(
+    () => (textCardPanelText ? splitTextPanelParagraphs(textCardPanelText) : []),
+    [textCardPanelText],
+  );
+  const textPanelCollapsible = Boolean(
+    textCardPanelText &&
+      textPanelNeedsCollapse(textCardPanelText, textPanelParagraphs.length),
+  );
+  const [textPanelExpanded, setTextPanelExpanded] = useState(false);
   const showContent = inlineExpand?.showContent ?? false;
   const showComments = inlineExpand?.showComments ?? false;
   const showUnfold = showContent || showComments;
+  const showTextPanelUnfold =
+    isTextCard && textPanelCollapsible && textPanelExpanded;
+  const showUnfoldToggle = Boolean(
+    (inlineExpand && showUnfold) || showTextPanelUnfold,
+  );
   const isContentOpen = isArticle && showContent;
   const pinActionsAboveComments = Boolean(
     inlineExpand && showUnfold && showComments,
@@ -550,6 +571,10 @@ export function JourneyMilestoneCard({
   useEffect(() => {
     setLiveCommentCount(comments ?? 0);
   }, [comments]);
+
+  useEffect(() => {
+    setTextPanelExpanded(false);
+  }, [textCardPanelText, title]);
 
   useEffect(() => {
     function onCommentsSync(event: Event) {
@@ -770,11 +795,17 @@ export function JourneyMilestoneCard({
           bodyExcerpt={body ?? null}
         />
       ) : null}
-      {inlineExpand && showUnfold ? (
+      {showUnfoldToggle ? (
         <button
           type="button"
           className="jcard-unfold-toggle"
-          onClick={inlineExpand.onClose}
+          onClick={() => {
+            if (showTextPanelUnfold) {
+              setTextPanelExpanded(false);
+              return;
+            }
+            inlineExpand?.onClose();
+          }}
           aria-label="Thu gọn"
         >
           <ChevronUp size={15} strokeWidth={2.2} aria-hidden />
@@ -791,7 +822,7 @@ export function JourneyMilestoneCard({
 
   return (
     <article
-      className={milestoneCls + (showUnfold ? " is-card-expanded" : "")}
+      className={milestoneCls + ((showUnfold || showTextPanelUnfold) ? " is-card-expanded" : "")}
       data-mid={cotMocId ?? milestone.id}
       data-content-kind={cardContentKind}
       data-year={year}
@@ -1318,6 +1349,20 @@ export function JourneyMilestoneCard({
             body={body}
             noiDungBlocks={noiDungBlocks}
             preview={preview}
+            contentKind={cardContentKind}
+            canEditTextPanelTone={
+              canManageSelf &&
+              variant === "self" &&
+              cardContentKind === "text" &&
+              Boolean(tacPhamId)
+            }
+            tacPhamId={tacPhamId}
+            textPanelExpanded={
+              textPanelCollapsible ? textPanelExpanded : undefined
+            }
+            onTextPanelExpandedChange={
+              textPanelCollapsible ? setTextPanelExpanded : undefined
+            }
             articleTags={liveArticleTags}
             expandTrigger={
               isArticle && inlineExpand && !isContentOpen
@@ -1344,8 +1389,9 @@ export function JourneyMilestoneCard({
               {orgBaiDangRef && showContent && noiDungBlocks?.length ? (
                 <div className="j-m-card-unfold-inner">
                   <div className="cins-editor-page cins-post-view j-m-unfold-post">
-                    {isMilestoneArticleCard(noiDungBlocks) ? (
+                    {isMilestoneArticleCard(noiDungBlocks, hasCoverPreview) ? (
                       <JourneyUnfoldArticleContent
+                        blocksOnly
                         title={title}
                         tomTat={body}
                         blocks={noiDungBlocks}

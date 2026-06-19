@@ -1,7 +1,10 @@
 export type ComposeCreateKind = "article" | "photo" | "video" | "milestone";
 
+/** Luồng mở trình soạn — create luôn qua EditorView (một sheet). */
+export type ComposeIntent = "minimal" | "photo" | "video" | "full";
+
 export type JourneyComposeState =
-  | { kind: "article" }
+  | { kind: "article"; intent?: ComposeIntent }
   | { kind: "photo"; pendingFiles?: File[] }
   | { kind: "video"; pendingFile?: File }
   | { kind: "milestone" }

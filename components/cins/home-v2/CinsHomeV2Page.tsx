@@ -8,14 +8,11 @@ import type { UserAccountProfile } from "@/components/cins/UserAccountMenu";
 import "@/app/cins-home-v2-page.css";
 
 type Props = {
-  markup: string;
+  guestMarkup: string;
 };
 
-/**
- * Trang home v2: markup HTML từ thiết kế (1 file) + CSS trích từ cùng nguồn.
- * Hành vi (FAQ, filter, topbar, burger, tooltip) gắn sau mount — tương đương script gốc.
- */
-export function CinsHomeV2Page({ markup }: Props) {
+/** Landing marketing home v2 — guest (đã đăng nhập dùng CinsShell ở page.tsx). */
+export function CinsHomeV2Page({ guestMarkup }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [topbarUserMount, setTopbarUserMount] = useState<HTMLElement | null>(
     null,
@@ -203,15 +200,16 @@ export function CinsHomeV2Page({ markup }: Props) {
       });
       tip?.remove();
     };
-  }, [markup, router]);
+  }, [guestMarkup, router]);
 
   return (
     <>
-      <div
-        ref={rootRef}
-        className="cins-home-v2-page"
-        dangerouslySetInnerHTML={{ __html: markup }}
-      />
+      <div className="cins-home-v2-page">
+        <div
+          ref={rootRef}
+          dangerouslySetInnerHTML={{ __html: guestMarkup }}
+        />
+      </div>
       <HomeV2TopbarUserMenu mountEl={topbarUserMount} profile={topbarProfile} />
     </>
   );

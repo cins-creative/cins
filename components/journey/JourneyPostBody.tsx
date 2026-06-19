@@ -45,6 +45,7 @@ import {
 } from "@/lib/journey/milestone-ui-map";
 import type { Block } from "@/lib/editor/types";
 import {
+  blocksForArticleCardUnfold,
   isMediaPost,
   partitionBlocksForSplitRail,
   shouldMovePostTextToSplitRail,
@@ -218,6 +219,10 @@ export function JourneyPostBody({
   const heroSub = milestone.moTa || mainPost?.moTa || null;
   const blocks = mainPost?.noiDungBlocks ?? null;
   const mediaPost = isMediaPost(blocks);
+  const inlineUnfoldBlocks =
+    variant === "inline" && blocks && !mediaPost
+      ? blocksForArticleCardUnfold(heroSub, blocks)
+      : blocks;
 
   const typeLabel = TYPE_LABEL[milestone.loaiMoc] ?? "Cột mốc";
   const TypeIcon = TYPE_ICON[milestone.loaiMoc] ?? UserCircle2;
@@ -510,12 +515,15 @@ export function JourneyPostBody({
       />
     ) : null;
 
+  const renderBlocks =
+    variant === "inline" && !mediaPost ? inlineUnfoldBlocks : blocks;
+
   const blocksEl =
-    showBlocks && blocks && blocks.length > 0 ? (
+    showBlocks && renderBlocks && renderBlocks.length > 0 ? (
       mediaPost ? (
-        <PostBlockRenderer blocks={blocks} />
+        <PostBlockRenderer blocks={renderBlocks} />
       ) : (
-        <PostBlocksRenderer blocks={blocks} />
+        <PostBlocksRenderer blocks={renderBlocks} />
       )
     ) : showBlocks && mainPost?.noiDungHtml ? (
       <div

@@ -544,7 +544,11 @@ export function JourneyTimeline({
           owner luôn có lối tạo bài viết ngay khi mở Journey. Càng kéo
           xuống, milestones sẽ cũ dần (year DESC + thoi_diem DESC). */}
       {hasData && isOwner ? (
-        <JourneyCreateComposer ownerSlug={ownerSlug} />
+        <JourneyCreateComposer
+          ownerSlug={ownerSlug}
+          ownerName={ownerName}
+          avatarUrl={ownerAvatarUrl ?? undefined}
+        />
       ) : null}
 
       {hasData ? (
@@ -676,7 +680,11 @@ function OwnerEmptyState({
           hoàn thành, dự án bạn đang làm, sự kiện bạn tham dự, hay đơn giản là
           một suy nghĩ về định hướng. Bắt đầu từ một cột mốc nhỏ nhất cũng được.
         </p>
-        <JourneyCreateComposer ownerSlug={ownerSlug} />
+        <JourneyCreateComposer
+          ownerSlug={ownerSlug}
+          ownerName={ownerName}
+          avatarUrl={ownerAvatarUrl ?? undefined}
+        />
         <p className="j-empty-hint">
           Bài viết, ảnh hoặc video sẽ xuất hiện trên timeline Journey của bạn.
         </p>

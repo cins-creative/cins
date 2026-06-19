@@ -76,8 +76,8 @@ export function OrgBaiDangJourneyTimeline({ posts: postsProp }: Props) {
                   hơn.
                 </p>
                 <p className="j-empty-hint tdh-org-baidang-empty-hint">
-                  Chọn <strong>Thêm bài viết</strong>, <strong>Thêm ảnh</strong>{" "}
-                  hoặc <strong>Thêm video</strong> ở trên để bắt đầu.
+                  Chạm ô soạn thảo ở trên — thêm chữ, ảnh hoặc video để bắt
+                  đầu.
                 </p>
               </div>
             </section>

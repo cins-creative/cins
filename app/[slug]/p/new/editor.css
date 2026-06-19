@@ -721,6 +721,22 @@
   padding-top: 8px;
 }
 
+.cins-editor-page .cover-add-slot {
+  position: relative;
+  width: 100%;
+  margin: 0 0 28px;
+}
+.cins-editor-page .cover-add-slot .cover-add {
+  margin: 0;
+}
+.cins-editor-page .cover-add-hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.45;
+  color: var(--ink-muted, #64748b);
+  text-align: center;
+}
 .cins-editor-page .cover-add {
   display: flex;
   flex-direction: column;
@@ -955,6 +971,10 @@
   right: 12px;
   display: flex;
   gap: 6px;
+  z-index: 5;
+}
+.cins-editor-page .cover-add-slot > .cover-actions {
+  pointer-events: auto;
 }
 .cins-editor-page .cover-act {
   display: inline-flex;
@@ -4084,6 +4104,9 @@
 .cins-editor-page.is-overlay .editor-canvas {
   overflow: visible;
   padding-left: 56px;
+}
+.cins-editor-page.is-overlay .cover-add-slot {
+  margin: 0 0 24px;
 }
 .cins-editor-page.is-overlay .cover-add.has {
   /* Overlay: ngay sau mô tả ngắn. */

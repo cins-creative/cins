@@ -3,6 +3,7 @@
 import { ChevronDown, Image as ImageIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 
 import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import type { Block } from "@/lib/editor/types";
@@ -10,14 +11,26 @@ import { ImageGrid } from "@/components/journey/ImageGrid";
 import { JourneyArticleTagLink } from "@/components/journey/JourneyArticleTagLink";
 import { JourneyCardVideo } from "@/components/journey/JourneyCardVideo";
 import { JourneyCoverImage } from "@/components/journey/JourneyCoverImage";
+import { JourneyTextPanelTonePicker } from "@/components/journey/JourneyTextPanelTonePicker";
 import type { MilestoneMediaItem } from "@/components/journey/milestone-types";
 import { photoGridImagesFromBlocks } from "@/lib/journey/image-grid";
+import type { MilestoneCardContentKind } from "@/lib/journey/milestone-card-kind";
 import {
   detectMediaPostKind,
   extractVideoUrl,
+  milestoneArticleTextPanelPlain,
   milestoneCardCaptionPlain,
   shouldShowMilestoneCardTitle,
 } from "@/lib/journey/post-media";
+import {
+  resolveTextPanelTone,
+  splitTextPanelParagraphs,
+  textPanelNeedsCollapse,
+  textPanelToneClass,
+  textPanelUsesCenterAlign,
+  textPanelUsesLightInk,
+  type TextPanelToneId,
+} from "@/lib/journey/text-panel-tone";
 import { extractVideoProcessingMeta } from "@/lib/journey/video-processing-meta";
 
 type ExpandTriggerProps = {
@@ -35,7 +48,15 @@ type Props = {
   preview?: MilestoneMediaItem | null;
   photoGridImages?: ReturnType<typeof photoGridImagesFromBlocks>;
   articleTags?: readonly ArticleTagRef[];
+  /** Timeline card kind — `text` = panel chữ, không unfold / không ảnh bìa. */
+  contentKind?: MilestoneCardContentKind;
+  /** Chủ Journey — hiện nút chọn màu nền card chữ. */
+  canEditTextPanelTone?: boolean;
+  tacPhamId?: string | null;
   expandTrigger?: ExpandTriggerProps;
+  /** Card chữ — trạng thái mở rộng (controlled từ `JourneyMilestoneCard` / actions). */
+  textPanelExpanded?: boolean;
+  onTextPanelExpandedChange?: (expanded: boolean) => void;
   /** Feed cộng đồng — mở permalink thay vì unfold inline. */
   readMoreHref?: string | null;
   onTagLinkClick?: (e: React.MouseEvent) => void;
@@ -56,7 +77,12 @@ export function JourneyMilestoneCardBodyContent({
   preview = null,
   photoGridImages: photoGridOverride,
   articleTags = [],
+  contentKind,
+  canEditTextPanelTone = false,
+  tacPhamId = null,
   expandTrigger,
+  textPanelExpanded: textPanelExpandedProp,
+  onTextPanelExpandedChange,
   readMoreHref = null,
   onTagLinkClick,
 }: Props) {
@@ -69,18 +95,48 @@ export function JourneyMilestoneCardBodyContent({
     photoGridImages !== null &&
     (mediaKind === "photo" || photoGridOverride != null);
   const isVideoPost = mediaKind === "video";
-  const isArticle = !isPhotoAlbum && !isVideoPost;
+  const isTextCard = contentKind === "text";
+  const isPhotoCard = contentKind === "photo";
+  const isArticle =
+    !isPhotoAlbum && !isVideoPost && !isTextCard && !isPhotoCard;
+  const textPanelSeed =
+    title.trim() ||
+    milestoneArticleTextPanelPlain(body, blocks) ||
+    "cins-text";
+  const [panelTone, setPanelTone] = useState<TextPanelToneId>(() =>
+    resolveTextPanelTone(blocks, textPanelSeed),
+  );
+  const [internalTextPanelExpanded, setInternalTextPanelExpanded] = useState(false);
+  const textPanelExpandedControlled = onTextPanelExpandedChange !== undefined;
+  const textPanelExpanded = textPanelExpandedControlled
+    ? (textPanelExpandedProp ?? false)
+    : internalTextPanelExpanded;
+  const setTextPanelExpanded = textPanelExpandedControlled
+    ? onTextPanelExpandedChange
+    : setInternalTextPanelExpanded;
+
+  useEffect(() => {
+    setPanelTone(resolveTextPanelTone(blocks, textPanelSeed));
+  }, [blocks, textPanelSeed]);
+
+  const textCardPanelText = useMemo(() => {
+    if (!isTextCard) return null;
+    return milestoneArticleTextPanelPlain(body, blocks);
+  }, [isTextCard, body, blocks]);
+
+  useEffect(() => {
+    if (!isTextCard) return;
+    setTextPanelExpanded(false);
+  }, [isTextCard, textCardPanelText, title, setTextPanelExpanded]);
   const videoEmbedUrl = isVideoPost ? extractVideoUrl(blocks ?? []) : null;
   const videoProcessingMeta = isVideoPost
     ? extractVideoProcessingMeta(blocks ?? [])
     : null;
-  const showCardTitle = shouldShowMilestoneCardTitle(title, blocks);
+  const showCardTitle = shouldShowMilestoneCardTitle(title, blocks, body);
   const cardCaption = milestoneCardCaptionPlain(body, blocks);
   const isContentOpen = expandTrigger?.expanded ?? false;
-  const showCardTitleInBody = showCardTitle && !(isContentOpen && isArticle);
-  const showCardCaptionInBody = Boolean(
-    cardCaption && (!isArticle || !isContentOpen),
-  );
+  const showCardTitleInBody = showCardTitle;
+  const showCardCaptionInBody = Boolean(cardCaption);
   const hasJcardText =
     showCardTitleInBody || showCardCaptionInBody || articleTags.length > 0;
   const showExpandTrigger =
@@ -127,8 +183,99 @@ export function JourneyMilestoneCardBodyContent({
         }
       : {};
 
-  if (isContentOpen && isArticle && !hasJcardText) {
+  if (isContentOpen && isArticle && !hasJcardText && !preview?.src) {
     return null;
+  }
+
+  if (isTextCard) {
+    const panelText = textCardPanelText;
+    const showTitle = shouldShowMilestoneCardTitle(title, blocks, body);
+    const toneClass = textPanelToneClass(panelTone);
+    const lightInk = textPanelUsesLightInk(panelTone);
+    const paragraphs = panelText ? splitTextPanelParagraphs(panelText) : [];
+    const centerAlign = textPanelUsesCenterAlign(paragraphs.length);
+    const needsTextPanelCollapse = panelText
+      ? textPanelNeedsCollapse(panelText, paragraphs.length)
+      : false;
+    const isTextPanelCollapsed = needsTextPanelCollapse && !textPanelExpanded;
+
+    return (
+      <div className="jcard-body">
+        <div
+          className={[
+            "jcard-text-panel",
+            toneClass,
+            lightInk ? " is-light-ink" : "",
+            centerAlign ? " is-align-center" : " is-align-left",
+            isTextPanelCollapsed ? " is-collapsed is-expand-trigger" : "",
+            textPanelExpanded ? " is-content-open" : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+          role={isTextPanelCollapsed ? "button" : undefined}
+          tabIndex={isTextPanelCollapsed ? 0 : undefined}
+          aria-expanded={
+            needsTextPanelCollapse ? textPanelExpanded : undefined
+          }
+          aria-label={
+            isTextPanelCollapsed
+              ? `Xem thêm: ${showTitle ? title : panelText?.slice(0, 80) ?? "bài viết"}`
+              : undefined
+          }
+          onClick={
+            isTextPanelCollapsed
+              ? () => setTextPanelExpanded(true)
+              : undefined
+          }
+          onKeyDown={
+            isTextPanelCollapsed
+              ? (e) => {
+                  if (e.key !== "Enter" && e.key !== " ") return;
+                  e.preventDefault();
+                  setTextPanelExpanded(true);
+                }
+              : undefined
+          }
+        >
+          {showTitle ? (
+            <h2 className="jcard-text-panel-title">{title}</h2>
+          ) : null}
+          {paragraphs.length > 0 ? (
+            <div className="jcard-text-panel-body">
+              {paragraphs.map((para, idx) => (
+                <p key={`${idx}-${para.slice(0, 48)}`}>{para}</p>
+              ))}
+            </div>
+          ) : null}
+          {isTextPanelCollapsed ? (
+            <span className="jcard-expand-cta" aria-hidden>
+              <ChevronDown size={14} strokeWidth={2.4} />
+              Xem thêm
+            </span>
+          ) : null}
+        </div>
+
+        {canEditTextPanelTone && tacPhamId ? (
+          <JourneyTextPanelTonePicker
+            tacPhamId={tacPhamId}
+            tone={panelTone}
+            onToneChange={setPanelTone}
+          />
+        ) : null}
+
+        {articleTags.length > 0 ? (
+          <div className="tags jcard-tags" aria-label="Bài viết liên quan">
+            {articleTags.map((t) => (
+              <JourneyArticleTagLink
+                key={t.id}
+                tag={t}
+                onClick={onTagLinkClick}
+              />
+            ))}
+          </div>
+        ) : null}
+      </div>
+    );
   }
 
   return (
@@ -227,7 +374,7 @@ export function JourneyMilestoneCardBodyContent({
                 </span>
               ) : null}
             </Link>
-          ) : isArticle && isContentOpen ? null : (
+          ) : (
             <div className="preview">
               {preview ? (
                 <JourneyCoverImage

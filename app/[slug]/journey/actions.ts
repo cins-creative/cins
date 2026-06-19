@@ -24,6 +24,11 @@ import {
   fetchMilestonePostDetail,
   fetchPostBySlug,
 } from "@/lib/journey/post-page-fetch";
+import { parseServerBlocks } from "@/lib/journey/parse-server-blocks";
+import {
+  applyTextPanelToneToBlocks,
+  isTextPanelToneId,
+} from "@/lib/journey/text-panel-tone";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { notifyMilestoneComment } from "@/lib/social/follow";
 
@@ -1079,4 +1084,61 @@ export async function editMilestoneComment(
   }
 
   return { ok: true, data: { id: commentId, noiDung: text } };
+}
+
+export async function updateTextPanelTone(
+  tacPhamId: string,
+  tone: number,
+): Promise<ActionResult<{ tone: number }>> {
+  if (!tacPhamId?.trim()) {
+    return { ok: false, error: "Thiếu tác phẩm." };
+  }
+
+  if (!isTextPanelToneId(tone)) {
+    return { ok: false, error: "Màu nền không hợp lệ." };
+  }
+
+  const session = await getCurrentSessionAndProfile();
+  if (!session?.profile) {
+    return { ok: false, error: "Phiên đăng nhập đã hết hạn." };
+  }
+
+  const admin = createServiceRoleClient();
+  const { data: tpRow, error: fetchErr } = await admin
+    .from("content_tac_pham")
+    .select("id, id_nguoi_dung, noi_dung_blocks")
+    .eq("id", tacPhamId)
+    .maybeSingle<{
+      id: string;
+      id_nguoi_dung: string;
+      noi_dung_blocks: unknown;
+    }>();
+
+  if (fetchErr || !tpRow) {
+    return { ok: false, error: "Không tìm thấy bài viết." };
+  }
+  if (tpRow.id_nguoi_dung !== session.profile.id) {
+    return { ok: false, error: "Bạn không có quyền sửa bài viết này." };
+  }
+
+  const blocks = parseServerBlocks(tpRow.noi_dung_blocks) ?? [];
+  const nextBlocks = applyTextPanelToneToBlocks(blocks, tone);
+  if (!nextBlocks) {
+    return { ok: false, error: "Bài chữ cần ít nhất một block nội dung." };
+  }
+
+  const { error: updErr } = await admin
+    .from("content_tac_pham")
+    .update({ noi_dung_blocks: nextBlocks })
+    .eq("id", tacPhamId);
+
+  if (updErr) {
+    return { ok: false, error: "Không lưu được màu nền: " + updErr.message };
+  }
+
+  if (session.profile.slug) {
+    revalidatePath(`/${session.profile.slug}`);
+  }
+
+  return { ok: true, data: { tone } };
 }

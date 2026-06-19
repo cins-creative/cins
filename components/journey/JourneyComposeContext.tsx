@@ -16,6 +16,7 @@ import type { CongDongComposeConfig } from "@/lib/cong-dong/types";
 import type { JourneyComposeState } from "@/lib/journey/compose-types";
 import type { ComposePublishedDetail } from "@/lib/journey/compose-published-sync";
 import { dispatchComposePublished } from "@/lib/journey/compose-published-sync";
+import { getAvatarUrl } from "@/lib/journey/profile";
 import type { OrgBaiDangComposeConfig } from "@/lib/truong/org-bai-dang-compose";
 
 type JourneyComposeContextValue = {
@@ -25,6 +26,9 @@ type JourneyComposeContextValue = {
   openComposeWithVideo: (file: File) => void;
   closeCompose: () => void;
   canCompose: boolean;
+  ownerSlug: string;
+  ownerName: string;
+  ownerAvatarUrl: string | null;
 };
 
 const JourneyComposeContext = createContext<JourneyComposeContextValue | null>(
@@ -170,6 +174,11 @@ export function JourneyComposeProvider({
     ],
   );
 
+  const ownerAvatarUrl = useMemo(
+    () => getAvatarUrl(ownerAvatarId ?? null),
+    [ownerAvatarId],
+  );
+
   const value = useMemo(
     () => ({
       compose,
@@ -178,6 +187,9 @@ export function JourneyComposeProvider({
       openComposeWithVideo,
       closeCompose,
       canCompose: isOwner,
+      ownerSlug,
+      ownerName,
+      ownerAvatarUrl,
     }),
     [
       compose,
@@ -186,6 +198,9 @@ export function JourneyComposeProvider({
       openComposeWithVideo,
       closeCompose,
       isOwner,
+      ownerSlug,
+      ownerName,
+      ownerAvatarUrl,
     ],
   );
 
@@ -219,6 +234,9 @@ export function useJourneyCompose(): JourneyComposeContextValue {
       openComposeWithVideo: () => {},
       closeCompose: () => {},
       canCompose: false,
+      ownerSlug: "",
+      ownerName: "",
+      ownerAvatarUrl: null,
     };
   }
   return ctx;

@@ -13,7 +13,7 @@ export type BaiDangTimelineFilter = "all" | BaiDangLoai;
 /** `all` / loại bài đăng hoặc `nhan:<slug>` nhãn tùy chỉnh. */
 export type OrgBaiDangTimelineFilterKey = BaiDangTimelineFilter | string;
 
-export type BaiDangCardKind = "article" | "photo" | "video";
+export type BaiDangCardKind = "article" | "photo" | "video" | "text";
 
 const VIDEO_HTML_RE =
   /<video\b|youtube\.com|youtu\.be|data-youtube|iframe[^>]+youtube/i;

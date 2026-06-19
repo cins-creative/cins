@@ -184,9 +184,14 @@ export function baiDangHasExpandableBody(post: {
   noi_dung?: string | null;
   tom_tat?: string | null;
   noiDungBlocks?: Block[] | null;
+  cover_id?: string | null;
+  cover_src?: string | null;
 }): boolean {
   if (baiDangUsesBlocks(post)) {
-    return isMilestoneArticleCard(post.noiDungBlocks);
+    return isMilestoneArticleCard(
+      post.noiDungBlocks,
+      Boolean(post.cover_id?.trim() || post.cover_src?.trim()),
+    );
   }
   if (post.noi_dung?.trim()) return true;
   const plain = post.tom_tat?.trim() ?? "";

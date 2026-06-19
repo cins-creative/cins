@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ChevronUp } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 
 import { JourneyMilestoneCardBodyContent } from "@/components/journey/JourneyMilestoneCardBodyContent";
 import type { MilestoneMediaItem } from "@/components/journey/milestone-types";
@@ -12,7 +12,11 @@ import {
   milestoneCardContentKind,
   milestoneCardPhotoGrid,
 } from "@/lib/journey/milestone-card-kind";
-import { milestoneCardCaptionPlain } from "@/lib/journey/post-media";
+import { milestoneCardCaptionPlain, milestoneArticleTextPanelPlain } from "@/lib/journey/post-media";
+import {
+  splitTextPanelParagraphs,
+  textPanelNeedsCollapse,
+} from "@/lib/journey/text-panel-tone";
 import { OrgBaiDangBookmarkButton } from "@/components/truong/OrgBaiDangBookmarkButton";
 import { OrgBaiDangLikeButton } from "@/components/truong/OrgBaiDangLikeButton";
 import { OrgBaiDangLoaiBadge } from "@/components/truong/OrgBaiDangLoaiBadge";
@@ -89,10 +93,42 @@ export function OrgBaiDangJourneyCard({ post, owner = null }: Props) {
   const coverUrl = baiDangCoverDisplayUrl(post);
   const canExpand = baiDangHasExpandableBody(post);
   const hasRichBody = Boolean(post.noi_dung?.trim());
-  const blocksCardKind = usesBlocks ? milestoneCardContentKind(blocks) : null;
+
+  const previewMedia = useMemo(() => {
+    if (usesBlocks) return orgBaiDangPreviewMedia(post);
+    if (coverUrl) {
+      return {
+        src: coverUrl,
+        width: 800,
+        height: 450,
+        label: post.tieu_de,
+      } satisfies MilestoneMediaItem;
+    }
+    return null;
+  }, [post, usesBlocks, coverUrl]);
+
+  const blocksCardKind = usesBlocks
+    ? milestoneCardContentKind(blocks, Boolean(previewMedia?.src))
+    : null;
   const cardKind = blocksCardKind ?? baiDangCardKind(post);
   const isArticleCard = cardKind === "article";
+  const isTextCard = cardKind === "text";
   const isMediaCard = cardKind === "photo" || cardKind === "video";
+  const textCardPanelText = useMemo(() => {
+    if (!isTextCard || !usesBlocks) return null;
+    return milestoneArticleTextPanelPlain(post.tom_tat, blocks);
+  }, [isTextCard, usesBlocks, post.tom_tat, blocks]);
+  const textPanelParagraphs = useMemo(
+    () => (textCardPanelText ? splitTextPanelParagraphs(textCardPanelText) : []),
+    [textCardPanelText],
+  );
+  const textPanelCollapsible = Boolean(
+    textCardPanelText &&
+      textPanelNeedsCollapse(textCardPanelText, textPanelParagraphs.length),
+  );
+  const [textPanelExpanded, setTextPanelExpanded] = useState(false);
+  const showTextPanelUnfold =
+    isTextCard && textPanelCollapsible && textPanelExpanded;
   const useUnifiedMediaBody = usesBlocks || isMediaCard;
 
   const legacyPhotoGrid = useMemo(
@@ -114,6 +150,10 @@ export function OrgBaiDangJourneyCard({ post, owner = null }: Props) {
   const showUnfold = supportsInlineUnfold && expanded;
   const cardCaption = milestoneCardCaptionPlain(post.tom_tat, blocks);
 
+  useEffect(() => {
+    setTextPanelExpanded(false);
+  }, [textCardPanelText, post.tieu_de]);
+
   const thumbPreview = useMemo(
     () => buildBaiDangThumbPreview(post.noi_dung),
     [post.noi_dung],
@@ -128,19 +168,6 @@ export function OrgBaiDangJourneyCard({ post, owner = null }: Props) {
     }
     return null;
   }, [cardCaption, post.tom_tat, post.noi_dung]);
-
-  const previewMedia = useMemo(() => {
-    if (usesBlocks) return orgBaiDangPreviewMedia(post);
-    if (isMediaCard && coverUrl) {
-      return {
-        src: coverUrl,
-        width: 800,
-        height: 450,
-        label: post.tieu_de,
-      } satisfies MilestoneMediaItem;
-    }
-    return null;
-  }, [post, usesBlocks, isMediaCard, coverUrl]);
 
   function onCardClick(e: React.MouseEvent) {
     if (!legacyCardExpand) return;
@@ -180,7 +207,7 @@ export function OrgBaiDangJourneyCard({ post, owner = null }: Props) {
 
   return (
     <article
-      className={`j-milestone j-self org-baidang-milestone${expanded ? " is-card-expanded" : ""}${showScheduledUi ? " is-scheduled" : ""}`}
+      className={`j-milestone j-self org-baidang-milestone${expanded || showTextPanelUnfold ? " is-card-expanded" : ""}${showScheduledUi ? " is-scheduled" : ""}`}
       data-year={year ?? undefined}
       data-month={month ?? undefined}
       data-content-kind={cardKind}
@@ -225,6 +252,13 @@ export function OrgBaiDangJourneyCard({ post, owner = null }: Props) {
                 noiDungBlocks={usesBlocks ? blocks : null}
                 preview={previewMedia}
                 photoGridImages={photoGridImages}
+                contentKind={usesBlocks ? cardKind : undefined}
+                textPanelExpanded={
+                  textPanelCollapsible ? textPanelExpanded : undefined
+                }
+                onTextPanelExpandedChange={
+                  textPanelCollapsible ? setTextPanelExpanded : undefined
+                }
                 expandTrigger={
                   supportsInlineUnfold
                     ? expanded
@@ -246,6 +280,7 @@ export function OrgBaiDangJourneyCard({ post, owner = null }: Props) {
                     <div className="cins-editor-page cins-post-view j-m-unfold-post">
                       {isArticleCard ? (
                         <JourneyUnfoldArticleContent
+                          blocksOnly
                           title={post.tieu_de}
                           tomTat={post.tom_tat}
                           noiDungHtml={post.noi_dung}
@@ -356,6 +391,17 @@ export function OrgBaiDangJourneyCard({ post, owner = null }: Props) {
               initialCount={post.bookmarkCount}
             />
             <span className="action-spacer" />
+            {showTextPanelUnfold ? (
+              <button
+                type="button"
+                className="jcard-unfold-toggle"
+                onClick={() => setTextPanelExpanded(false)}
+                aria-label="Thu gọn"
+              >
+                <ChevronUp size={15} strokeWidth={2.2} aria-hidden />
+                <span>Thu gọn</span>
+              </button>
+            ) : null}
           </div>
         </div>
       </div>

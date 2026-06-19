@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronUp } from "lucide-react";
-import type { ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { JourneyMilestoneCardBodyContent } from "@/components/journey/JourneyMilestoneCardBodyContent";
 import { congDongImageUrl } from "@/lib/cong-dong/images";
 import type { CongDongJourneyMirror, CongDongPostMedia } from "@/lib/cong-dong/types";
@@ -9,6 +9,11 @@ import {
   milestoneCardContentKind,
   milestoneCardPhotoGrid,
 } from "@/lib/journey/milestone-card-kind";
+import { milestoneArticleTextPanelPlain } from "@/lib/journey/post-media";
+import {
+  splitTextPanelParagraphs,
+  textPanelNeedsCollapse,
+} from "@/lib/journey/text-panel-tone";
 
 type ExpandTriggerProps = {
   enabled: boolean;
@@ -96,11 +101,33 @@ function JourneyMirrorBody({
   onCollapse?: () => void;
 }) {
   const blocks = mirror.noiDungBlocks;
-  const cardKind = milestoneCardContentKind(blocks);
+  const hasCoverPreview = Boolean(mirror.previewMedia?.src);
+  const cardKind = milestoneCardContentKind(blocks, hasCoverPreview);
   const isArticle = cardKind === "article";
+  const isTextCard = cardKind === "text";
   const photoGridImages = milestoneCardPhotoGrid(blocks);
+  const textCardPanelText = useMemo(() => {
+    if (!isTextCard) return null;
+    return milestoneArticleTextPanelPlain(mirror.moTa, blocks);
+  }, [isTextCard, mirror.moTa, blocks]);
+  const textPanelParagraphs = useMemo(
+    () => (textCardPanelText ? splitTextPanelParagraphs(textCardPanelText) : []),
+    [textCardPanelText],
+  );
+  const textPanelCollapsible = Boolean(
+    textCardPanelText &&
+      textPanelNeedsCollapse(textCardPanelText, textPanelParagraphs.length),
+  );
+  const [textPanelExpanded, setTextPanelExpanded] = useState(false);
   const isExpanded = expandTrigger?.expanded ?? false;
   const showUnfold = isExpanded && Boolean(unfold);
+  const showTextPanelUnfold =
+    isTextCard && textPanelCollapsible && textPanelExpanded;
+  const showUnfoldToggle = Boolean((showUnfold && onCollapse) || showTextPanelUnfold);
+
+  useEffect(() => {
+    setTextPanelExpanded(false);
+  }, [textCardPanelText, mirror.tieuDe]);
 
   return (
     <div className="j-m-body-wrap">
@@ -119,7 +146,14 @@ function JourneyMirrorBody({
           preview={mirror.previewMedia}
           photoGridImages={photoGridImages}
           articleTags={mirror.articleTags}
-          expandTrigger={expandTrigger}
+          contentKind={cardKind}
+          textPanelExpanded={
+            textPanelCollapsible ? textPanelExpanded : undefined
+          }
+          onTextPanelExpandedChange={
+            textPanelCollapsible ? setTextPanelExpanded : undefined
+          }
+          expandTrigger={isArticle ? expandTrigger : undefined}
         />
 
         {showUnfold ? (
@@ -128,13 +162,19 @@ function JourneyMirrorBody({
           </div>
         ) : null}
 
-        {showUnfold && onCollapse ? (
+        {showUnfoldToggle ? (
           <div className="jcard-actions">
             <span className="action-spacer" aria-hidden />
             <button
               type="button"
               className="jcard-unfold-toggle"
-              onClick={onCollapse}
+              onClick={() => {
+                if (showTextPanelUnfold) {
+                  setTextPanelExpanded(false);
+                  return;
+                }
+                onCollapse?.();
+              }}
               aria-label="Thu gọn"
             >
               <ChevronUp size={15} strokeWidth={2.2} aria-hidden />

@@ -99,6 +99,12 @@ import { uploadPostImageWithProgress } from "@/lib/files/upload-post-image";
 import type { ComposePublishedDetail } from "@/lib/journey/compose-published-sync";
 import { sanitizeBaiDangCoverIdInput } from "@/lib/truong/bai-dang-cover";
 import { isTemporaryImageRef } from "@/lib/truong/image-ref";
+import type { ComposeIntent } from "@/lib/journey/compose-types";
+import {
+  COMPOSE_PREVIEW_LABELS,
+  inferComposePreviewKind,
+} from "@/lib/journey/compose-preview-kind";
+import { useEditorVideoUpload } from "@/lib/journey/use-editor-video-upload";
 
 type ImageUploadTrack = {
   progress: number;
@@ -443,9 +449,42 @@ type Props = {
   congDongCompose?: CongDongComposeConfig;
   /** Tab bài đăng trường — publish `org_bai_dang` thay Journey. */
   orgBaiDangCompose?: OrgBaiDangComposeConfig;
+  /** Luồng compose mới — một sheet cho mọi loại nội dung. */
+  composeIntent?: ComposeIntent;
+  initialPhotoFiles?: File[];
+  initialVideoFile?: File;
   onClose?: () => void;
   onPublished?: (detail?: ComposePublishedDetail) => void;
 };
+
+function isTextOnlyEditorInitial(initial: EditorInitial | undefined): boolean {
+  if (!initial) return false;
+  const cover = sanitizeBaiDangCoverIdInput(
+    initial.coverSeed ?? null,
+    initial.blocks,
+  );
+  return inferComposePreviewKind(initial.blocks ?? [], cover) === "text";
+}
+
+function bodyPlainFromServerBlocks(
+  blocks: EditorInitial["blocks"] | undefined,
+): string {
+  if (!blocks?.length) return "";
+  return blocks
+    .filter((b) => b.loai === "body")
+    .map((b) => {
+      const html = b.config?.html;
+      if (typeof html !== "string") return "";
+      return html
+        .replace(/<br\s*\/?>/gi, "\n")
+        .replace(/<\/p>/gi, "\n")
+        .replace(/<[^>]+>/g, "")
+        .replace(/&nbsp;/gi, " ")
+        .trim();
+    })
+    .filter(Boolean)
+    .join("\n\n");
+}
 
 export function EditorView({
   ownerId,
@@ -457,22 +496,66 @@ export function EditorView({
   presentation = "page",
   congDongCompose,
   orgBaiDangCompose,
+  composeIntent = "full",
+  initialPhotoFiles,
+  initialVideoFile,
   onClose,
   onPublished,
 }: Props) {
   const isOverlay = presentation === "overlay";
   const isEdit = mode === "edit" && !!initial;
+  const isCreateCompose = !isEdit && isOverlay;
+  const isTextOnlyEdit = isEdit && isTextOnlyEditorInitial(initial);
+  const usesMinimalFlow =
+    (isCreateCompose && composeIntent === "minimal") || isTextOnlyEdit;
+  const [editorExpanded, setEditorExpanded] = useState(() => {
+    if (composeIntent === "photo" || composeIntent === "video") return true;
+    if (isEdit) return !isTextOnlyEditorInitial(initial);
+    return composeIntent !== "minimal";
+  });
+  const [minimalCoverVisible, setMinimalCoverVisible] = useState(false);
+  const isMinimalUI = isOverlay && usesMinimalFlow && !editorExpanded;
+  const showFullEditor = !isMinimalUI;
   /* Huỷ → journey (không link `/p/slug` — intercept modal sẽ mở popup thay vì thoát edit). */
   const cancelHref = `/${ownerSlug}`;
 
   const [coverSeed, setCoverSeed] = useState<string | null>(() =>
     sanitizeBaiDangCoverIdInput(initial?.coverSeed ?? null, initial?.blocks),
   );
-  const [title, setTitle] = useState(initial?.tieuDe ?? "");
-  const [sub, setSub] = useState(initial?.moTa ?? "");
-  const [blocks, setBlocks] = useState<Block[]>(() =>
-    initial?.blocks ? fromServerBlocks(initial.blocks) : [],
+  const showCoverArea = useMemo(
+    () =>
+      Boolean(coverSeed) ||
+      minimalCoverVisible ||
+      (showFullEditor && !usesMinimalFlow),
+    [coverSeed, minimalCoverVisible, showFullEditor, usesMinimalFlow],
   );
+  const showMinimalToolbar = useMemo(
+    () =>
+      usesMinimalFlow &&
+      (isMinimalUI || (showFullEditor && !(coverSeed || minimalCoverVisible))),
+    [
+      usesMinimalFlow,
+      isMinimalUI,
+      showFullEditor,
+      coverSeed,
+      minimalCoverVisible,
+    ],
+  );
+  const [title, setTitle] = useState(initial?.tieuDe ?? "");
+  const [sub, setSub] = useState(() => {
+    if (initial?.moTa?.trim()) return initial.moTa ?? "";
+    if (initial && isTextOnlyEditorInitial(initial)) {
+      return bodyPlainFromServerBlocks(initial.blocks);
+    }
+    return "";
+  });
+  const [blocks, setBlocks] = useState<Block[]>(() => {
+    const parsed = initial?.blocks ? fromServerBlocks(initial.blocks) : [];
+    if (initial && isTextOnlyEditorInitial(initial) && !initial.moTa?.trim()) {
+      return parsed.filter((b) => b.t !== "body");
+    }
+    return parsed;
+  });
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [openAddIdx, setOpenAddIdx] = useState<number | null>(null);
@@ -514,6 +597,17 @@ export function EditorView({
   );
   const imgPickerTargetRef = useRef<ImgPickerTarget | null>(null);
   const imageFileInputRef = useRef<HTMLInputElement | null>(null);
+  const initialPhotosStartedRef = useRef(false);
+  const initialVideoStartedRef = useRef(false);
+  const videoBlockIdRef = useRef<string | null>(null);
+
+  const {
+    videoUrl,
+    videoUploading,
+    videoUploadError,
+    localVideoPreviewUrl,
+    uploadVideoFile,
+  } = useEditorVideoUpload();
 
   const [toast, setToast] = useState<string | null>(null);
   const [imageUploads, setImageUploads] = useState<
@@ -690,9 +784,16 @@ export function EditorView({
 
   const hasPendingUploads = useMemo(
     () =>
+      videoUploading ||
       Object.values(imageUploads).some((track) => track.status === "uploading"),
-    [imageUploads],
+    [imageUploads, videoUploading],
   );
+
+  const previewKind = useMemo(
+    () => inferComposePreviewKind(toServerBlocks(blocks), coverSeed),
+    [blocks, coverSeed],
+  );
+  const previewMeta = COMPOSE_PREVIEW_LABELS[previewKind];
 
   const applyImageToBlock = useCallback(
     (target: ImgPickerTarget, seed: string) => {
@@ -779,6 +880,7 @@ export function EditorView({
       if (type === "spacer") b.size = "m";
       if (type === "palette") b.colors = DEMO_PALETTE.slice();
       if (["h2", "h3", "body", "quote"].includes(type)) b.text = "";
+      if (type === "embed") b.embedUrl = "";
       pushHistory();
       setBlocks((prev) => {
         const next = prev.slice();
@@ -787,9 +889,92 @@ export function EditorView({
       });
       setOpenAddIdx(null);
       setSelectedId(b.id);
+      return b.id;
     },
     [pushHistory],
   );
+
+  const seedPhotoFiles = useCallback(
+    (files: File[]) => {
+      if (files.length === 0) return;
+      pushHistory();
+      const created: Array<{ id: string; placeholder: string }> = [];
+      setBlocks((prev) => {
+        const next = prev.slice();
+        for (const _file of files) {
+          const id = newId();
+          const placeholder = `new-${id}`;
+          next.push({
+            id,
+            t: "imgs",
+            layout: "full",
+            imgs: [placeholder],
+            cap: "",
+            rounded: false,
+          });
+          created.push({ id, placeholder });
+        }
+        return next;
+      });
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const meta = created[i];
+        if (!meta) continue;
+        beginImageUpload(
+          file,
+          (seed) => {
+            setBlocks((prev) =>
+              prev.map((b) =>
+                b.id === meta.id ? { ...b, imgs: [seed] } : b,
+              ),
+            );
+          },
+          replaceImageSeed,
+        );
+      }
+    },
+    [beginImageUpload, pushHistory, replaceImageSeed],
+  );
+
+  const expandMinimalToFullEditor = useCallback(() => {
+    setBlocks((prev) => {
+      if (prev.some((b) => b.t !== "body" && b.t !== "spacer")) return prev;
+      return prev.filter((b) => b.t !== "body");
+    });
+    setEditorExpanded(true);
+  }, []);
+
+  useEffect(() => {
+    if (
+      !initialPhotoFiles?.length ||
+      isEdit ||
+      initialPhotosStartedRef.current
+    ) {
+      return;
+    }
+    initialPhotosStartedRef.current = true;
+    seedPhotoFiles(initialPhotoFiles);
+  }, [initialPhotoFiles, isEdit, seedPhotoFiles]);
+
+  useEffect(() => {
+    if (!initialVideoFile || isEdit || initialVideoStartedRef.current) return;
+    initialVideoStartedRef.current = true;
+    const blockId = newId();
+    videoBlockIdRef.current = blockId;
+    pushHistory();
+    setBlocks((prev) => [...prev, { id: blockId, t: "embed", embedUrl: "" }]);
+    void uploadVideoFile(initialVideoFile);
+  }, [initialVideoFile, isEdit, pushHistory, uploadVideoFile]);
+
+  useEffect(() => {
+    const blockId = videoBlockIdRef.current;
+    if (!videoUrl || !blockId) return;
+    setBlocks((prev) =>
+      prev.map((b) =>
+        b.id === blockId ? { ...b, embedUrl: videoUrl } : b,
+      ),
+    );
+  }, [videoUrl]);
 
   const updateBlock = useCallback(
     (id: string, patch: Partial<Block>) => {
@@ -1073,14 +1258,28 @@ export function EditorView({
     if (isPending) return;
 
     if (hasPendingUploads) {
-      setToast("Đang tải ảnh lên — vui lòng đợi hoàn tất.");
+      setToast(
+        videoUploading
+          ? "Đang tải video lên — vui lòng đợi hoàn tất."
+          : "Đang tải ảnh lên — vui lòng đợi hoàn tất.",
+      );
+      return;
+    }
+
+    if (videoUploadError) {
+      setToast(videoUploadError);
       return;
     }
 
     const serverBlocks: ServerBlock[] = toServerBlocks(blocks);
 
-    if (blocks.length === 0) {
-      setToast("Bài viết chưa có nội dung. Thêm ít nhất một block.");
+    const hasBodyText = blocks.some(
+      (b) => b.t === "body" && Boolean(b.text?.trim()),
+    );
+    const hasMediaBlock = blocks.some((b) => b.t === "imgs" || b.t === "embed");
+    const hasCaption = Boolean(sub.trim());
+    if (!hasBodyText && !hasMediaBlock && !coverSeed && !hasCaption) {
+      setToast("Thêm nội dung trước khi đăng.");
       return;
     }
 
@@ -1089,7 +1288,19 @@ export function EditorView({
       return;
     }
 
-    const tieuDeFinal = title.trim() || DEFAULT_ARTICLE_POST_TITLE;
+    let tieuDeFinal = title.trim();
+    if (!tieuDeFinal) {
+      const captionLine = sub.trim().split("\n")[0]?.trim();
+      const bodyLine = blocks
+        .find((b) => b.t === "body")
+        ?.text?.trim()
+        .split("\n")[0]
+        ?.trim();
+      tieuDeFinal =
+        captionLine?.slice(0, 120) ||
+        bodyLine?.slice(0, 120) ||
+        DEFAULT_ARTICLE_POST_TITLE;
+    }
     const moTaFinal = sub.trim();
     const coverFinal = sanitizeBaiDangCoverIdInput(coverSeed, serverBlocks);
 
@@ -1237,6 +1448,7 @@ export function EditorView({
     publishVisibility,
     congDongCompose,
     orgBaiDangCompose,
+    videoUploadError,
     composeFilterSlugs,
     composeLoaiBaiDang,
     composeSchedulePublishAt,
@@ -1252,7 +1464,7 @@ export function EditorView({
 
   return (
     <div
-      className={`cins-editor-page${isOverlay ? " is-overlay" : ""}`}
+      className={`cins-editor-page${isOverlay ? " is-overlay" : ""}${usesMinimalFlow && isOverlay ? " is-minimal-compose" : ""}${usesMinimalFlow && editorExpanded ? " is-minimal-compose-expanded" : ""}`}
       ref={editorRef}
     >
       {/* TOPBAR */}
@@ -1260,7 +1472,11 @@ export function EditorView({
         <div className="ed-topbar-inner">
           {isOverlay ? (
             <span className="ed-title">
-              {isEdit ? "Chỉnh sửa bài viết" : "Trình tạo bài viết"}
+              {isEdit
+                ? "Chỉnh sửa bài viết"
+                : isMinimalUI
+                  ? "Đăng bài mới"
+                  : "Trình tạo bài viết"}
             </span>
           ) : (
             <Link href={`/${ownerSlug}`} className="ed-brand" title="Về Journey">
@@ -1268,6 +1484,14 @@ export function EditorView({
               <span className="ed-title">Trình tạo bài viết</span>
             </Link>
           )}
+          {isOverlay ? (
+            <span
+              className={`ed-compose-badge ed-compose-badge--${previewKind}`}
+              title={previewMeta.hint}
+            >
+              {previewMeta.label}
+            </span>
+          ) : null}
           <span className="ed-status">
             <span className="ico" aria-hidden>
               ✓
@@ -1352,28 +1576,75 @@ export function EditorView({
       >
         <AutosizeTextarea
           className="title-in"
-          placeholder="Tiêu đề bài viết…"
+          placeholder={
+            isMinimalUI ? "Tiêu đề (tuỳ chọn)…" : "Tiêu đề bài viết…"
+          }
           value={title}
           onChange={setTitle}
           maxRows={4}
         />
-        <AutosizeTextarea
-          className="sub-in"
-          placeholder="Mô tả ngắn (tuỳ chọn)…"
-          value={sub}
-          onChange={setSub}
-          maxRows={3}
-        />
+        {usesMinimalFlow ? (
+          <AutosizeTextarea
+            className="ed-minimal-body"
+            placeholder={
+              isMinimalUI ? "Bạn đang nghĩ gì?" : "Mô tả bài viết"
+            }
+            value={sub}
+            onChange={setSub}
+            maxRows={12}
+          />
+        ) : showFullEditor ? (
+          <AutosizeTextarea
+            className="sub-in"
+            placeholder="Mô tả ngắn (tuỳ chọn)…"
+            value={sub}
+            onChange={setSub}
+            maxRows={3}
+          />
+        ) : null}
 
-        <CoverArea
-          seed={coverSeed}
-          uploadTrack={coverSeed ? imageUploads[coverSeed] : undefined}
-          onSeedChange={setCoverSeed}
-          onUploadResolved={replaceImageSeed}
-          onRemove={() => setCoverSeed(null)}
-          onUploadFile={beginImageUpload}
-        />
+        {showCoverArea ? (
+          <CoverArea
+            seed={coverSeed}
+            uploadTrack={coverSeed ? imageUploads[coverSeed] : undefined}
+            dismissible={usesMinimalFlow && minimalCoverVisible && !coverSeed}
+            showEmptyHint={usesMinimalFlow && !coverSeed}
+            onSeedChange={setCoverSeed}
+            onUploadResolved={replaceImageSeed}
+            onRemove={() => {
+              setCoverSeed(null);
+              setMinimalCoverVisible(false);
+            }}
+            onUploadFile={beginImageUpload}
+          />
+        ) : null}
 
+        {showMinimalToolbar ? (
+          <div className="ed-minimal-toolbar">
+            {!(minimalCoverVisible || coverSeed) ? (
+              <button
+                type="button"
+                className="ed-btn ghost ed-minimal-tool"
+                onClick={() => setMinimalCoverVisible(true)}
+              >
+                <ImagePlus size={15} strokeWidth={2} aria-hidden />
+                Thêm ảnh bìa
+              </button>
+            ) : null}
+            {isMinimalUI ? (
+              <button
+                type="button"
+                className="ed-btn ghost ed-minimal-tool"
+                onClick={expandMinimalToFullEditor}
+              >
+                <Plus size={15} strokeWidth={2} aria-hidden />
+                Thêm nội dung
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+
+        {showFullEditor ? (
         <div className="blocks">
           <AddZone
             idx={0}
@@ -1434,10 +1705,20 @@ export function EditorView({
             </div>
           ))}
         </div>
+        ) : null}
 
+        {localVideoPreviewUrl && videoUploading ? (
+          <p className="ed-video-upload-hint" aria-live="polite">
+            <Loader2 size={14} className="ed-spin" aria-hidden /> Đang tải
+            video…
+          </p>
+        ) : null}
+
+        {showFullEditor ? (
         <div className="hint-foot">
           Bấm nút <b>+</b> ở khe giữa các block để chèn nội dung mới.
         </div>
+        ) : null}
       </main>
 
       <input
@@ -1481,16 +1762,45 @@ function imageFileFromDataTransfer(data: DataTransfer | null): File | null {
   return null;
 }
 
+function CoverDismissButton({
+  onDismiss,
+  label = "Xoá ảnh bìa",
+}: {
+  onDismiss: () => void;
+  label?: string;
+}) {
+  return (
+    <div className="cover-actions">
+      <button
+        type="button"
+        className="cover-act cover-act-del"
+        onClick={(e) => {
+          e.stopPropagation();
+          onDismiss();
+        }}
+        aria-label={label}
+      >
+        <Trash2 size={13} strokeWidth={1.8} aria-hidden />
+        <span>Xoá</span>
+      </button>
+    </div>
+  );
+}
+
 function CoverArea({
   seed,
   uploadTrack,
+  dismissible = false,
   onSeedChange,
   onUploadResolved,
   onRemove,
   onUploadFile,
+  showEmptyHint = false,
 }: {
   seed: string | null;
   uploadTrack?: ImageUploadTrack;
+  dismissible?: boolean;
+  showEmptyHint?: boolean;
   onSeedChange: (seed: string) => void;
   onUploadResolved: (from: string, to: string) => void;
   onRemove: () => void;
@@ -1673,43 +1983,66 @@ function CoverArea({
     );
   }
 
+  const cancelPick = () => {
+    if (dismissible) onRemove();
+    else setPicking(false);
+  };
+
+  const emptyCoverHint = showEmptyHint ? (
+    <p className="cover-add-hint">
+      Ảnh bìa giúp hiển thị thẻ nội dung của bạn đẹp hơn, tỉ lệ gợi ý: 5:3
+    </p>
+  ) : null;
+
   if (picking) {
     return (
-      <div
-        ref={rootRef}
-        className={`cover-add is-picking${coverDragClass}`}
-        role="group"
+      <div className="cover-add-slot">
+        <div
+          ref={rootRef}
+          className={`cover-add is-picking${coverDragClass}`}
+          role="group"
+          aria-label="Thêm ảnh bìa"
+          {...coverDragProps}
+        >
+          <span className="ico" aria-hidden>
+            <ImagePlus size={22} strokeWidth={1.7} />
+          </span>
+          {pickPanel}
+          <button
+            type="button"
+            className="cover-pick-cancel-inline"
+            onClick={cancelPick}
+          >
+            Huỷ
+          </button>
+        </div>
+        {dismissible ? (
+          <CoverDismissButton onDismiss={onRemove} label="Bỏ ảnh bìa" />
+        ) : null}
+        {emptyCoverHint}
+      </div>
+    );
+  }
+
+  return (
+    <div className="cover-add-slot">
+      <button
+        type="button"
+        className={`cover-add${coverDragClass}`}
+        onClick={() => setPicking(true)}
         aria-label="Thêm ảnh bìa"
         {...coverDragProps}
       >
         <span className="ico" aria-hidden>
           <ImagePlus size={22} strokeWidth={1.7} />
         </span>
-        {pickPanel}
-        <button
-          type="button"
-          className="cover-pick-cancel-inline"
-          onClick={() => setPicking(false)}
-        >
-          Huỷ
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <button
-      type="button"
-      className={`cover-add${coverDragClass}`}
-      onClick={() => setPicking(true)}
-      aria-label="Thêm ảnh bìa"
-      {...coverDragProps}
-    >
-      <span className="ico" aria-hidden>
-        <ImagePlus size={22} strokeWidth={1.7} />
-      </span>
-      <span>{dragOver ? "Thả ảnh vào đây" : "Thêm ảnh bìa"}</span>
-    </button>
+        <span>{dragOver ? "Thả ảnh vào đây" : "Thêm ảnh bìa"}</span>
+      </button>
+      {dismissible ? (
+        <CoverDismissButton onDismiss={onRemove} label="Bỏ ảnh bìa" />
+      ) : null}
+      {emptyCoverHint}
+    </div>
   );
 }
 

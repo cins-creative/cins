@@ -6499,6 +6499,90 @@ select.j-edit-input {
 .j-compose-sheet .cins-editor-page.is-overlay .cover-add.has {
   border-radius: var(--radius-lg);
 }
+
+.cins-editor-page.is-minimal-compose .editor-canvas {
+  padding-top: 20px;
+}
+
+.ed-compose-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill, 999px);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  border: 1px solid var(--border);
+  background: var(--neutral-100, #f4f4f5);
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+
+.ed-compose-badge--text {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  color: #4338ca;
+}
+
+.ed-compose-badge--photo {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #047857;
+}
+
+.ed-compose-badge--video {
+  background: #fef3c7;
+  border-color: #fcd34d;
+  color: #b45309;
+}
+
+.ed-compose-badge--article {
+  background: #f3e8ff;
+  border-color: #d8b4fe;
+  color: #7e22ce;
+}
+
+.ed-minimal-body {
+  width: 100%;
+  min-height: 120px;
+  margin-top: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 16px;
+  line-height: 1.5;
+  resize: none;
+  background: #fff;
+}
+
+.ed-minimal-body:focus {
+  outline: 2px solid var(--cins-blue, #2563eb);
+  outline-offset: 1px;
+}
+
+.ed-minimal-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.ed-minimal-tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.ed-video-upload-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
 .j-compose-error {
   padding: 32px 24px;
   text-align: center;
@@ -9549,11 +9633,6 @@ select.j-edit-input {
 .j-m-card.jcard--article.has-unfold.is-expanded .jcard-body {
   padding-bottom: 4px;
 }
-/* Article đã xổ — ẩn cover preview trên card (chỉ giữ PostCover trong unfold). */
-.j-m-card.jcard--article.has-unfold.is-expanded .jcard-body.is-content-open .jcard-media-zone,
-.j-m-card.jcard--article.has-unfold.is-expanded .jcard-body.is-content-open .jcard-media-zone > .preview {
-  display: none;
-}
 .jcard-content {
   display: flex;
   flex-direction: column;
@@ -9613,6 +9692,240 @@ select.j-edit-input {
   display: block;
   overflow: visible;
 }
+
+/* Card chỉ chữ — panel nền màu kiểu Facebook, không ảnh bìa / không unfold */
+.j-m-card.jcard--text .jcard-body {
+  padding: 0;
+}
+.j-m-card.jcard--text .jcard-tags {
+  padding: 12px 16px 14px;
+  margin-bottom: 0;
+}
+.jcard-text-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 220px;
+  padding: 36px 28px;
+  text-align: center;
+  color: #fff;
+}
+.jcard-text-panel-title {
+  margin: 0;
+  max-width: 36em;
+  font-family: var(--font-sans);
+  font-size: clamp(20px, 4.2vw, 28px);
+  font-weight: 800;
+  line-height: 1.35;
+  letter-spacing: -0.02em;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.22);
+}
+.jcard-text-panel-body {
+  max-width: 36em;
+  font-family: var(--font-sans);
+  font-size: clamp(15px, 2.8vw, 18px);
+  font-weight: 400;
+  line-height: 1.55;
+  letter-spacing: 0;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.14);
+}
+.jcard-text-panel-body p {
+  margin: 0 0 10px;
+}
+.jcard-text-panel-body p:last-child {
+  margin-bottom: 0;
+}
+.jcard-text-panel.is-align-left {
+  align-items: stretch;
+  text-align: left;
+}
+.jcard-text-panel.is-align-left .jcard-text-panel-title,
+.jcard-text-panel.is-align-left .jcard-text-panel-body {
+  max-width: none;
+  width: 100%;
+}
+.jcard-text-panel.is-collapsed .jcard-text-panel-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+  overflow: hidden;
+  width: 100%;
+}
+.jcard-text-panel.is-collapsed {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  justify-content: flex-start;
+  align-items: stretch;
+  height: auto;
+  min-height: 240px;
+  aspect-ratio: 5 / 3;
+  padding: 24px 28px 0;
+  gap: 10px;
+}
+@media (min-width: 768px) {
+  .jcard-text-panel.is-collapsed {
+    min-height: 280px;
+    padding: 28px 32px 0;
+  }
+}
+.jcard-text-panel.is-collapsed .jcard-expand-cta {
+  padding-top: 72px;
+}
+.jcard-text-panel.is-content-open {
+  height: auto;
+  min-height: 220px;
+  padding: 36px 28px;
+  justify-content: center;
+  align-items: center;
+}
+.jcard-text-panel.is-expand-trigger:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.72);
+  outline-offset: -4px;
+}
+.jcard-text-panel.is-light-ink.is-expand-trigger:focus-visible {
+  outline-color: rgba(31, 116, 201, 0.55);
+}
+.jcard-text-panel.is-content-open .jcard-expand-cta {
+  opacity: 0;
+  pointer-events: none;
+}
+.jcard-text-panel.is-light-ink.is-collapsed .jcard-expand-cta {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0) 35%,
+    rgba(255, 255, 255, 0.96) 100%
+  );
+  color: var(--cins-blue, #1f74c9);
+  text-shadow: none;
+}
+.jcard-text-panel.is-light-ink {
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+}
+.jcard-text-panel.is-light-ink .jcard-text-panel-title,
+.jcard-text-panel.is-light-ink .jcard-text-panel-body {
+  text-shadow: none;
+}
+.jcard-text-panel--tone-0 {
+  background: radial-gradient(
+    ellipse at 50% 32%,
+    var(--cins-blue, #1f74c9) 0%,
+    var(--cins-blue-dark, #1656a0) 58%,
+    #0f3d73 100%
+  );
+}
+.jcard-text-panel--tone-1 {
+  background: radial-gradient(
+    ellipse at 50% 32%,
+    var(--cins-mint, #6efec0) 0%,
+    #3dd9a0 52%,
+    #15803d 100%
+  );
+}
+.jcard-text-panel--tone-2 {
+  background: radial-gradient(
+    ellipse at 50% 32%,
+    var(--cins-violet, #bb89f8) 0%,
+    #9b5de5 52%,
+    #5b21b6 100%
+  );
+}
+.jcard-text-panel--tone-3 {
+  background: radial-gradient(
+    ellipse at 50% 32%,
+    var(--cins-orange, #ffb85c) 0%,
+    #f59e0b 52%,
+    #b45309 100%
+  );
+}
+.jcard-text-panel--tone-4 {
+  background: radial-gradient(
+    ellipse at 50% 32%,
+    var(--cins-yellow, #fde859) 0%,
+    #facc15 48%,
+    #eab308 100%
+  );
+}
+.jcard-text-panel--tone-5 {
+  background: radial-gradient(
+    ellipse at 50% 32%,
+    #334155 0%,
+    #1e293b 55%,
+    #0f172a 100%
+  );
+}
+.jcard-text-panel-tones-wrap {
+  padding: 10px 16px 12px;
+  border-top: 1px solid var(--border, #e4e6eb);
+  background: var(--bg-surface, #fff);
+}
+.jcard-text-panel-tones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.jcard-text-panel-tone-btn {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  box-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.12),
+    inset 0 1px 2px rgba(255, 255, 255, 0.35);
+  cursor: pointer;
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease;
+}
+.jcard-text-panel-tone-btn:hover {
+  transform: scale(1.08);
+}
+.jcard-text-panel-tone-btn.is-active {
+  box-shadow:
+    0 0 0 2px var(--cins-blue, #1f74c9),
+    0 0 0 4px rgba(31, 116, 201, 0.22);
+}
+.jcard-text-panel-tone-btn--0 {
+  background: linear-gradient(135deg, var(--cins-blue, #1f74c9), #0f3d73);
+}
+.jcard-text-panel-tone-btn--1 {
+  background: linear-gradient(135deg, var(--cins-mint, #6efec0), #15803d);
+}
+.jcard-text-panel-tone-btn--2 {
+  background: linear-gradient(135deg, var(--cins-violet, #bb89f8), #5b21b6);
+}
+.jcard-text-panel-tone-btn--3 {
+  background: linear-gradient(135deg, var(--cins-orange, #ffb85c), #b45309);
+}
+.jcard-text-panel-tone-btn--4 {
+  background: linear-gradient(135deg, var(--cins-yellow, #fde859), #eab308);
+}
+.jcard-text-panel-tone-btn--5 {
+  background: linear-gradient(135deg, #475569, #0f172a);
+}
+.jcard-text-panel-tones-err {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #dc2626;
+}
+@media (max-width: 767.98px) {
+  .jcard-text-panel {
+    min-height: 180px;
+    padding: 28px 20px;
+  }
+  .jcard-text-panel.is-collapsed {
+    min-height: 220px;
+    padding: 20px 20px 0;
+  }
+  .jcard-text-panel.is-content-open {
+    padding: 28px 20px;
+  }
+}
+
 .jcard-tags {
   margin-bottom: 12px;
 }
@@ -9778,6 +10091,10 @@ select.j-edit-input {
 }
 .j-m-card.jcard--photo .jcard-media-zone > .preview--photo-grid,
 .j-m-card.jcard--photo .jcard-media-zone > .preview--photo-grid .image-grid {
+  border-radius: 0;
+}
+.j-m-card.jcard--photo .jcard-media-zone > .preview:not(.preview--photo-grid),
+.j-m-card.jcard--photo .jcard-media-zone > .preview:not(.preview--photo-grid) img {
   border-radius: 0;
 }
 .j-m-card.jcard--video .jcard-media-zone > .jcard-video-player,

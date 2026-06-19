@@ -33,17 +33,9 @@ export const MAIN_NAV_ITEMS: MainNavItem[] = [
     id: "home",
     href: "/",
     label: "Trang chủ",
-    tip: "Tin nóng, sự kiện, khoá học và trường nổi bật cập nhật hằng ngày",
+    tip: "Tin nóng, sự kiện và World Journey — trang chủ CINs của bạn",
     icon: "home",
     isActive: (p) => p === "/",
-  },
-  {
-    id: "gallery",
-    href: "/#gallery",
-    label: "World Journey",
-    tip: "2,400+ tác phẩm sinh viên các trường — tìm cảm hứng, phong cách và kỹ thuật",
-    icon: "gallery",
-    isActive: () => false,
   },
   {
     id: "career",
