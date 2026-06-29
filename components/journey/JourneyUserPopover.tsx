@@ -7,7 +7,11 @@ import { createPortal } from "react-dom";
 
 import "./journey-user-popover.css";
 
+import { JourneyUserPopoverActions } from "@/components/journey/JourneyUserPopoverActions";
+import { useCinsChat } from "@/components/cins/CinsChatProvider";
+
 type UserPreview = {
+  idNguoiDung: string;
   slug: string;
   tenHienThi: string;
   avatarUrl: string | null;
@@ -38,6 +42,7 @@ export function JourneyUserPopover({
   backdropZIndex = 9500,
   children,
 }: Props) {
+  const { viewerProfileId } = useCinsChat();
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [profile, setProfile] = useState<UserPreview | null>(null);
@@ -81,6 +86,7 @@ export function JourneyUserPopover({
     profile ??
     (fallbackName
       ? {
+          idNguoiDung: "",
           slug,
           tenHienThi: fallbackName,
           avatarUrl: fallbackAvatarUrl ?? null,
@@ -175,14 +181,25 @@ export function JourneyUserPopover({
                   {visibleProfile.giaiDoan ? <span>{visibleProfile.giaiDoan}</span> : null}
                   {visibleProfile.tinhThanh ? <span>{visibleProfile.tinhThanh}</span> : null}
                 </div>
-                <div className="j-friend-actions">
-                  <button type="button" className="j-friend-message" disabled>
-                    Nhắn tin
-                  </button>
-                  <Link href={`/${visibleProfile.slug}`} className="j-friend-link">
-                    Xem Journey
-                  </Link>
-                </div>
+                {visibleProfile.idNguoiDung ? (
+                  <JourneyUserPopoverActions
+                    user={{
+                      idNguoiDung: visibleProfile.idNguoiDung,
+                      slug: visibleProfile.slug,
+                      tenHienThi: visibleProfile.tenHienThi,
+                      avatarUrl: visibleProfile.avatarUrl,
+                      giaiDoan: visibleProfile.giaiDoan,
+                    }}
+                    viewerProfileId={viewerProfileId}
+                    onClose={() => setOpen(false)}
+                  />
+                ) : (
+                  <div className="j-friend-actions">
+                    <Link href={`/${visibleProfile.slug}`} className="j-friend-link">
+                      Xem Journey
+                    </Link>
+                  </div>
+                )}
               </div>
             </article>
           ) : loading ? (

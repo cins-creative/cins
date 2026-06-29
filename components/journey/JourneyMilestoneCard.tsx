@@ -28,7 +28,11 @@ import { JourneyMilestoneUnfold } from "@/components/journey/JourneyMilestoneUnf
 import { JourneyUnfoldArticleContent } from "@/components/journey/JourneyUnfoldArticleContent";
 import { PostBlockRenderer } from "@/components/journey/PostBlockRenderer";
 import { POST_COMMENTS_SYNC_EVENT } from "@/lib/journey/comments-sync-client";
-import { isMilestoneArticleCard, milestoneCardContentKind } from "@/lib/journey/milestone-card-kind";
+import {
+  isMilestoneArticleCard,
+  milestoneCardContentKind,
+  milestoneCardPhotoGrid,
+} from "@/lib/journey/milestone-card-kind";
 import { JourneyCommentLink } from "@/components/journey/JourneyCommentLink";
 import { JourneyArticleTagManager } from "@/components/journey/JourneyArticleTagManager";
 import { JourneyCoAuthorProposal } from "@/components/journey/JourneyCoAuthorProposal";
@@ -59,9 +63,7 @@ import {
   bookmarkFrameCssKind,
   resolveBookmarkFrameKind,
 } from "@/lib/journey/bookmark-source-theme";
-import { photoGridImagesFromBlocks } from "@/lib/journey/image-grid";
 import {
-  detectMediaPostKind,
   milestoneArticleTextPanelPlain,
   milestoneCardCaptionPlain,
   shouldShowMilestoneCardTitle,
@@ -102,6 +104,10 @@ type Props = {
     onOpenComments(): void;
     onClose(): void;
   };
+  /** Feed tổng hợp — ảnh/video không full grid/album trên card. */
+  feedCompactMedia?: boolean;
+  /** Permalink — dùng cho ảnh/video trên feed (không unfold inline). */
+  readMoreHref?: string | null;
 };
 
 const TYPE_LABEL: Record<MilestoneType, string> = {
@@ -272,6 +278,8 @@ export function JourneyMilestoneCard({
   authorName,
   entityLens = false,
   inlineExpand,
+  feedCompactMedia = false,
+  readMoreHref = null,
 }: Props) {
   const {
     variant,
@@ -526,18 +534,27 @@ export function JourneyMilestoneCard({
   const showAuthorsStrip = coAuthorsOnly.length > 0;
   const preview = media[0] ?? null;
   const hasCoverPreview = Boolean(preview?.src);
-  const photoGridImages = photoGridImagesFromBlocks(noiDungBlocks);
-  const mediaKind = detectMediaPostKind(noiDungBlocks);
-  const isPhotoAlbum = mediaKind === "photo" && photoGridImages !== null;
-  const isVideoPost = mediaKind === "video";
+  const photoGridImages = milestoneCardPhotoGrid(
+    noiDungBlocks,
+    hasCoverPreview,
+    body,
+  );
   const showCardTitle = shouldShowMilestoneCardTitle(title, noiDungBlocks, body);
   const cardCaption = milestoneCardCaptionPlain(body, noiDungBlocks);
-  const cardContentKind = milestoneCardContentKind(noiDungBlocks, hasCoverPreview);
+  const cardContentKind = milestoneCardContentKind(
+    noiDungBlocks,
+    hasCoverPreview,
+    body,
+  );
   const contributorCount = coAuthorCredits.length;
   const otherContributorCount = coAuthorsOnly.length;
   const resolvedPostOwner = postOwnerSlug || ownerSlug || null;
   const isArticle = cardContentKind === "article";
   const isTextCard = cardContentKind === "text";
+  const supportsInlineUnfold = isArticle;
+  const useFeedCompactMedia = feedCompactMedia && cardContentKind === "photo";
+  const cardReadMoreHref =
+    useFeedCompactMedia && readMoreHref ? readMoreHref : null;
   const textCardPanelText = useMemo(() => {
     if (!isTextCard) return null;
     return milestoneArticleTextPanelPlain(body, noiDungBlocks);
@@ -562,7 +579,7 @@ export function JourneyMilestoneCard({
   const showUnfoldToggle = Boolean(
     (inlineExpand && showUnfold) || showTextPanelUnfold,
   );
-  const isContentOpen = isArticle && showContent;
+  const isContentOpen = supportsInlineUnfold && showContent;
   const pinActionsAboveComments = Boolean(
     inlineExpand && showUnfold && showComments,
   );
@@ -656,14 +673,19 @@ export function JourneyMilestoneCard({
   }
 
   function handleExpandTrigger(e: React.MouseEvent<HTMLElement>) {
-    if (!isArticle || !inlineExpand || isContentOpen || shouldIgnoreExpandTrigger(e.target as Element)) {
+    if (
+      !supportsInlineUnfold ||
+      !inlineExpand ||
+      isContentOpen ||
+      shouldIgnoreExpandTrigger(e.target as Element)
+    ) {
       return;
     }
     inlineExpand.onToggleContent();
   }
 
   function handleExpandKeyDown(e: React.KeyboardEvent<HTMLElement>) {
-    if (!isArticle || !inlineExpand || isContentOpen) return;
+    if (!supportsInlineUnfold || !inlineExpand || isContentOpen) return;
     if (e.key !== "Enter" && e.key !== " ") return;
     if (shouldIgnoreExpandTrigger(e.target as Element)) return;
     e.preventDefault();
@@ -873,8 +895,12 @@ export function JourneyMilestoneCard({
               className={
                 "j-m-card jcard j-bookmark-frame-card jcard--" +
                 cardContentKind +
-                (isArticle ? " has-unfold" : "") +
-                (showUnfold ? " is-expanded" : isArticle ? " is-collapsed" : "")
+                (supportsInlineUnfold ? " has-unfold" : "") +
+                (showUnfold
+                  ? " is-expanded"
+                  : supportsInlineUnfold
+                    ? " is-collapsed"
+                    : "")
               }
             >
               {renderMilestoneCardInterior()}
@@ -885,8 +911,12 @@ export function JourneyMilestoneCard({
             className={
               "j-m-card jcard jcard--" +
               cardContentKind +
-              (isArticle ? " has-unfold" : "") +
-              (showUnfold ? " is-expanded" : isArticle ? " is-collapsed" : "")
+              (supportsInlineUnfold ? " has-unfold" : "") +
+              (showUnfold
+                ? " is-expanded"
+                : supportsInlineUnfold
+                  ? " is-collapsed"
+                  : "")
             }
           >
             {renderMilestoneCardInterior()}
@@ -1370,7 +1400,10 @@ export function JourneyMilestoneCard({
             body={body}
             noiDungBlocks={noiDungBlocks}
             preview={preview}
+            photoGridImages={photoGridImages}
             contentKind={cardContentKind}
+            compactMediaPreview={useFeedCompactMedia}
+            readMoreHref={cardReadMoreHref}
             canEditTextPanelTone={
               canManageSelf &&
               variant === "self" &&
@@ -1386,22 +1419,22 @@ export function JourneyMilestoneCard({
             }
             articleTags={liveArticleTags}
             expandTrigger={
-              isArticle && inlineExpand && !isContentOpen
+              supportsInlineUnfold && inlineExpand && !isContentOpen
                 ? {
                     enabled: true,
                     expanded: isContentOpen,
-                    ariaLabel: `Mở bài viết: ${showCardTitle ? title : cardCaption || title}`,
+                    ariaLabel: `Xem đầy đủ: ${showCardTitle ? title : cardCaption || title}`,
                     onClick: handleExpandTrigger,
                     onKeyDown: handleExpandKeyDown,
                   }
-                : isArticle && inlineExpand
+                : supportsInlineUnfold && inlineExpand
                   ? { enabled: false, expanded: isContentOpen }
                   : undefined
             }
             onTagLinkClick={(e) => e.stopPropagation()}
           />
 
-          {inlineExpand && isArticle ? (
+          {inlineExpand && supportsInlineUnfold ? (
             <div
               className="j-m-card-unfold"
               data-open={unfoldOpen ? "true" : "false"}
@@ -1411,7 +1444,11 @@ export function JourneyMilestoneCard({
                 orgBaiDangRef && showContent && noiDungBlocks?.length ? (
                   <div className="j-m-card-unfold-inner">
                     <div className="cins-editor-page cins-post-view j-m-unfold-post">
-                      {isMilestoneArticleCard(noiDungBlocks, hasCoverPreview) ? (
+                      {isMilestoneArticleCard(
+                        noiDungBlocks,
+                        hasCoverPreview,
+                        body,
+                      ) ? (
                         <JourneyUnfoldArticleContent
                           blocksOnly
                           title={title}

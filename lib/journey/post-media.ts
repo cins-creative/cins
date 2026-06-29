@@ -294,6 +294,42 @@ export function shouldShowMilestoneCardTitle(
   return true;
 }
 
+/** Tiêu đề trên card chữ — gồm cả tieu_de auto từ dòng đầu nội dung. */
+export function shouldShowTextPanelTitle(
+  title: string,
+  blocks: ReadonlyArray<Block> | null | undefined,
+): boolean {
+  const trimmedTitle = title.trim();
+  if (!trimmedTitle || isArticleFallbackTitle(trimmedTitle)) return false;
+
+  const kind = detectMediaPostKind(blocks);
+  if (kind && isMediaFallbackTitle(trimmedTitle, kind)) return false;
+
+  return true;
+}
+
+/** Nội dung panel chữ — bỏ đoạn trùng tiêu đề khi hiện tiêu đề riêng. */
+export function textPanelBodyPlain(
+  title: string,
+  body: string | null | undefined,
+  blocks: ReadonlyArray<Block> | null | undefined,
+): string | null {
+  const plain = milestoneArticleTextPanelPlain(body, blocks);
+  if (!plain) return null;
+  if (!shouldShowTextPanelTitle(title, blocks)) return plain;
+
+  const trimmedTitle = title.trim();
+  const parts = plain
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+  if (parts.length > 0 && parts[0] === trimmedTitle) {
+    const rest = parts.slice(1).join("\n\n");
+    return rest || null;
+  }
+  return plain;
+}
+
 /** Nhãn gallery grid — luôn có default theo loại nội dung. */
 export function galleryItemLabel(
   tieuDe: string,
@@ -381,7 +417,7 @@ export function milestoneCardCaptionPlain(
   return text || null;
 }
 
-/** Nội dung đầy đủ trên card chữ (chỉ body blocks) — không cắt dòng. */
+/** Nội dung đầy đủ trên card chữ (body / heading / quote) — không cắt dòng. */
 export function milestoneArticleTextPanelPlain(
   body: string | null | undefined,
   blocks: ReadonlyArray<Block> | null | undefined,
@@ -389,7 +425,14 @@ export function milestoneArticleTextPanelPlain(
   if (blocks?.length) {
     const parts: string[] = [];
     for (const block of blocks) {
-      if (block.loai !== "body") continue;
+      if (
+        block.loai !== "body" &&
+        block.loai !== "h2" &&
+        block.loai !== "h3" &&
+        block.loai !== "quote"
+      ) {
+        continue;
+      }
       const html = block.config?.html;
       if (typeof html !== "string") continue;
       const plain = htmlFragmentToPlainText(html);
@@ -466,6 +509,69 @@ export function extractPhotoImageIds(
     }
   }
   return ids;
+}
+
+/** Mọi ảnh trong blocks (album hoặc ảnh inline trong bài viết). */
+export function extractAllImageIds(
+  blocks: ReadonlyArray<Block> | null | undefined,
+): string[] {
+  if (!blocks?.length) return [];
+  return extractPhotoImageIds(blocks);
+}
+
+/** Chỉ caption + album — không heading/quote/… */
+export function blocksAreMediaCaptionOnly(
+  blocks: ReadonlyArray<Block> | null | undefined,
+): boolean {
+  if (!blocks?.length) return true;
+  return blocks.every(
+    (b) => b.loai === "body" || b.loai === "spacer" || b.loai === "imgs",
+  );
+}
+
+/** Chỉ block chữ trên card text panel — không album/embed/ảnh inline. */
+export function blocksAreTextPanelOnly(
+  blocks: ReadonlyArray<Block> | null | undefined,
+): boolean {
+  if (!blocks?.length) return true;
+  return blocks.every(
+    (b) =>
+      b.loai === "body" ||
+      b.loai === "spacer" ||
+      b.loai === "h2" ||
+      b.loai === "h3" ||
+      b.loai === "quote",
+  );
+}
+
+/** Block layout bài viết dài (palette, mosaic, divider) — không dùng text panel. */
+export function hasArticleLayoutBlocks(
+  blocks: ReadonlyArray<Block> | null | undefined,
+): boolean {
+  if (!blocks?.length) return false;
+  return blocks.some(
+    (b) =>
+      b.loai === "palette" ||
+      b.loai === "divider" ||
+      (b.loai === "imgs" && b.config?.layout === "mosaic"),
+  );
+}
+
+/** @deprecated — heading/quote vẫn là card chữ; dùng `hasArticleLayoutBlocks`. */
+export function hasRichArticleBlocks(
+  blocks: ReadonlyArray<Block> | null | undefined,
+): boolean {
+  return hasArticleLayoutBlocks(blocks);
+}
+
+/** Một block body dài — vẫn là bài viết, không phải ảnh đơn. */
+export function isSubstantialArticleBody(
+  body: string | null | undefined,
+  blocks: ReadonlyArray<Block> | null | undefined,
+): boolean {
+  const plain = (milestoneArticleTextPanelPlain(body, blocks) ?? "").trim();
+  if (plain.length > 360) return true;
+  return plain.split(/\n\s*\n/).filter((p) => p.trim()).length > 2;
 }
 
 export function extractVideoUrl(

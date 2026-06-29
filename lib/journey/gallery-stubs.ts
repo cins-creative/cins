@@ -21,6 +21,7 @@ import {
   type VerifiedMilestoneMeta,
 } from "@/lib/journey/milestone-verify";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { getAvatarUrl } from "@/lib/journey/profile";
 
 type LoaiMocDb =
   | "hoc"
@@ -391,4 +392,41 @@ export async function resolveOwnerSlugs(
     ownerSlugById.set(owner.id, owner.slug);
   }
   return ownerSlugById;
+}
+
+export type OwnerProfile = {
+  slug: string;
+  name: string | null;
+  avatarUrl: string | null;
+};
+
+/** Như `resolveOwnerSlugs` nhưng kèm tên hiển thị + avatar — cho overlay tác giả. */
+export async function resolveOwnerProfiles(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  ownerIds: string[],
+): Promise<Map<string, OwnerProfile>> {
+  const byId = new Map<string, OwnerProfile>();
+  if (ownerIds.length === 0) return byId;
+
+  const { data: owners } = await admin
+    .from("user_nguoi_dung")
+    .select("id, slug, ten_hien_thi, avatar_id")
+    .in("id", ownerIds)
+    .returns<
+      Array<{
+        id: string;
+        slug: string;
+        ten_hien_thi: string | null;
+        avatar_id: string | null;
+      }>
+    >();
+
+  for (const owner of owners ?? []) {
+    byId.set(owner.id, {
+      slug: owner.slug,
+      name: owner.ten_hien_thi?.trim() || owner.slug,
+      avatarUrl: getAvatarUrl(owner.avatar_id ?? null),
+    });
+  }
+  return byId;
 }

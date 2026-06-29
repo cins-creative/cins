@@ -4,15 +4,17 @@ import {
   ArrowDownNarrowWide,
   Check,
   ChevronDown,
+  Compass,
   FileText,
   History,
   Image as ImageIcon,
   LayoutGrid,
   Rows3,
   Sparkles,
+  UserRoundCheck,
   Video,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { CinsFeedComposer } from "@/components/cins/CinsFeedComposer";
 import { WorldJourneyFeedTimeline } from "@/components/cins/world-journey/WorldJourneyFeedTimeline";
@@ -32,9 +34,45 @@ import { worldJourneyMilestonesToGalleryItems } from "@/lib/cins/worldJourneyMil
 import type { WjLinhVucAsideItem } from "@/lib/cins/worldJourneyGuestAside";
 import type { MilestoneItem } from "@/components/journey/milestone-types";
 
+import "@/app/[slug]/journey/image-grid.css";
+import "@/app/[slug]/journey/journey.css";
 import "@/app/world-journey-feed.css";
 
 type FeedView = "feed" | "grid";
+type FeedTab = "following" | "explore";
+
+function WorldJourneyFeedTabs({
+  tab,
+  onTab,
+}: {
+  tab: FeedTab;
+  onTab: (t: FeedTab) => void;
+}) {
+  return (
+    <div className="wj-feed-tabs" role="tablist" aria-label="Nguồn feed">
+      <button
+        type="button"
+        role="tab"
+        aria-selected={tab === "following"}
+        className={tab === "following" ? "on" : undefined}
+        onClick={() => onTab("following")}
+      >
+        <UserRoundCheck size={15} strokeWidth={2} aria-hidden />
+        Đang theo dõi
+      </button>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={tab === "explore"}
+        className={tab === "explore" ? "on" : undefined}
+        onClick={() => onTab("explore")}
+      >
+        <Compass size={15} strokeWidth={2} aria-hidden />
+        Khám phá
+      </button>
+    </div>
+  );
+}
 
 function WorldJourneyFilterBar({
   chips,
@@ -160,13 +198,24 @@ export function WorldJourneyFeed({
   filterChips,
   linhVucs,
   milestones,
+  exploreMilestones,
+  leftAside,
+  rightAside,
 }: {
   sidebarProfile: SidebarProfile;
   viewerProfileId: string;
   filterChips: WjFilterChip[];
   linhVucs: WjLinhVucAsideItem[];
   milestones: MilestoneItem[];
+  /** Tab Khám phá — bài Nổi bật toàn cục (brief §3 empty-state). */
+  exploreMilestones?: MilestoneItem[];
+  leftAside?: ReactNode;
+  rightAside?: ReactNode;
 }) {
+  const hasExploreTab = exploreMilestones !== undefined;
+  const [feedTab, setFeedTab] = useState<FeedTab>(() =>
+    hasExploreTab && milestones.length === 0 ? "explore" : "following",
+  );
   const [activeFilter, setActiveFilter] = useState("all");
   const [activeLinhVucSlug, setActiveLinhVucSlug] = useState<string | null>(
     null,
@@ -178,14 +227,18 @@ export function WorldJourneyFeed({
   const [sortOpen, setSortOpen] = useState(false);
 
   const activeChip = findWorldJourneyFilterChip(filterChips, activeFilter);
+  const sourceMilestones =
+    hasExploreTab && feedTab === "explore"
+      ? (exploreMilestones ?? [])
+      : milestones;
   const visibleMilestones = useMemo(
     () =>
-      milestones.filter(
+      sourceMilestones.filter(
         (milestone) =>
           worldJourneyMilestoneMatchesFilter(milestone, activeChip) &&
           worldJourneyMilestoneMatchesLinhVuc(milestone, activeLinhVucSlug),
       ),
-    [milestones, activeChip, activeLinhVucSlug],
+    [sourceMilestones, activeChip, activeLinhVucSlug],
   );
 
   const galleryItems = useMemo(
@@ -200,6 +253,9 @@ export function WorldJourneyFeed({
         aria-label="World Journey"
       >
         <header className="wj-feed-header">
+          {hasExploreTab ? (
+            <WorldJourneyFeedTabs tab={feedTab} onTab={setFeedTab} />
+          ) : null}
           <WorldJourneyFilterBar
             chips={filterChips}
             activeFilter={activeFilter}
@@ -214,11 +270,13 @@ export function WorldJourneyFeed({
         </header>
 
         <div className={`wj-shell${view === "grid" ? " view-grid" : ""}`}>
-          <WorldJourneyGuestLeftAside
-            linhVucs={linhVucs}
-            activeLinhVucSlug={activeLinhVucSlug}
-            onLinhVucFilter={setActiveLinhVucSlug}
-          />
+          {leftAside ?? (
+            <WorldJourneyGuestLeftAside
+              linhVucs={linhVucs}
+              activeLinhVucSlug={activeLinhVucSlug}
+              onLinhVucFilter={setActiveLinhVucSlug}
+            />
+          )}
 
           <div className={`wj-feed${view === "grid" ? " view-grid" : ""}`}>
             <CinsFeedComposer
@@ -232,11 +290,22 @@ export function WorldJourneyFeed({
             visibleMilestones.length === 0 ? (
               <div className="wj-feed-empty">
                 <Sparkles size={22} strokeWidth={1.8} aria-hidden />
-                <b>Feed đang trống</b>
+                <b>
+                  {feedTab === "explore" ? "Khám phá đang trống" : "Feed đang trống"}
+                </b>
                 <p>
-                  Bài <strong>Nổi bật</strong> từ mọi người, bài{" "}
-                  <strong>Công khai</strong> / <strong>Bạn bè</strong> từ bạn bè
-                  và người bạn theo dõi sẽ hiện ở đây khi có dữ liệu.
+                  {feedTab === "explore" ? (
+                    <>
+                      Bài <strong>Nổi bật</strong> từ cộng đồng sẽ hiện ở đây khi có
+                      dữ liệu.
+                    </>
+                  ) : (
+                    <>
+                      Theo dõi vài người hoặc tổ chức — bài{" "}
+                      <strong>Công khai</strong> / <strong>Nổi bật</strong> sẽ hiện
+                      ở đây. Hoặc chuyển sang tab <strong>Khám phá</strong>.
+                    </>
+                  )}
                 </p>
               </div>
             ) : (
@@ -272,7 +341,7 @@ export function WorldJourneyFeed({
           ) : null}
         </div>
 
-        {view === "feed" ? <WorldJourneyGuestRightAside /> : null}
+        {rightAside ?? (view === "feed" ? <WorldJourneyGuestRightAside /> : null)}
       </div>
     </div>
     </JourneyViewProvider>

@@ -1,7 +1,7 @@
 # CINS — README (Project Instructions)
 
 > **File router — điểm vào cho agent & developer.** Bản đầy đủ sống trong `docs/` (5 file bên dưới).
-> **Phiên bản:** v10 theo dõi/phân bổ 2026-06-15 · v9 khóa học + entity lens 2026-06-10 · org-journey/filter 2026-06-07 · **67 bảng logic hiện tại** (69 sau `migration_filter_dong.sql` — xem SCHEMA.md).
+> **Phiên bản:** v10 theo dõi/phân bổ 2026-06-15 · v9 khóa học + entity lens 2026-06-10 · org-journey/filter 2026-06-07 · **70 bảng logic hiện tại** (sau `migration_org_tuyen_dung.sql` — xem SCHEMA.md).
 
 CINS = creative hub cho ngành sáng tạo Việt Nam (Next.js + Supabase). Hai tầng core: **Journey** (blog cá nhân tích lũy, source of truth) + **Gallery** (feed khám phá visual). Verify là moat.
 

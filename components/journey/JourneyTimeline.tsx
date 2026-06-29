@@ -12,8 +12,8 @@ import {
   type TimelineInlineExpandState,
 } from "@/components/journey/JourneyYearBlock";
 import type { MilestoneItem } from "@/components/journey/milestone-types";
+import { isMilestoneArticleCard } from "@/lib/journey/milestone-card-kind";
 import { prefetchMilestoneDetail } from "@/lib/journey/milestone-detail-cache";
-import { milestoneContentKind } from "@/lib/journey/post-media";
 import {
   applyMilestoneInlinePatch,
   MILESTONE_INLINE_PATCH_EVENT,
@@ -339,7 +339,8 @@ export function JourneyTimeline({
 
   const handleToggleContent = useCallback(
     (milestone: MilestoneItem) => {
-      if (milestoneContentKind(milestone.noiDungBlocks) !== "article") return;
+      const hasCoverPreview = Boolean(milestone.media?.[0]?.src);
+      if (!isMilestoneArticleCard(milestone.noiDungBlocks, hasCoverPreview, milestone.body)) return;
 
       const key = timelineExpandKey(milestone, ownerSlug);
       const postOwnerSlug = milestone.postOwnerSlug ?? ownerSlug;

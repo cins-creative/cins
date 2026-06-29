@@ -35,6 +35,13 @@ type Props = {
   timelineLightbox?: boolean;
   /** Trang xem bài / popup — album ảnh: 1 ảnh + mũi tên trái/phải. */
   albumCarousel?: boolean;
+  /** Lightbox controlled từ ngoài (vd. hero album + grid dùng chung overlay). */
+  lightboxIndex?: number | null;
+  onLightboxIndexChange?: (index: number | null) => void;
+  /** Ảnh đầy đủ cho lightbox khi grid chỉ hiện subset (vd. album hero). */
+  lightboxImages?: GridImage[];
+  /** Cộng thêm vào index ô grid khi mở lightbox. */
+  lightboxIndexOffset?: number;
 };
 
 type CellProps = {
@@ -164,8 +171,21 @@ export function ImageGrid({
   showAllImages = false,
   timelineLightbox = false,
   albumCarousel = false,
+  lightboxIndex: controlledLightboxIndex,
+  onLightboxIndexChange,
+  lightboxImages: lightboxImagesProp,
+  lightboxIndexOffset = 0,
 }: Props) {
-  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [internalLightboxIndex, setInternalLightboxIndex] = useState<number | null>(
+    null,
+  );
+  const lightboxControlled = onLightboxIndexChange !== undefined;
+  const lightboxIndex = lightboxControlled
+    ? (controlledLightboxIndex ?? null)
+    : internalLightboxIndex;
+  const setLightboxIndex = lightboxControlled
+    ? onLightboxIndexChange
+    : setInternalLightboxIndex;
   const total = images.length;
   if (total === 0) return null;
 
@@ -183,12 +203,14 @@ export function ImageGrid({
   const overlaySlotIndex =
     remaining > 0 ? displayCount - 1 : null;
 
+  const lightboxPool = lightboxImagesProp ?? images;
+
   const openLightbox = useCallback(
     (index: number) => {
       if (!lightboxEnabled) return;
-      setLightboxIndex(index);
+      setLightboxIndex(index + lightboxIndexOffset);
     },
-    [lightboxEnabled],
+    [lightboxEnabled, lightboxIndexOffset, setLightboxIndex],
   );
 
   const closeLightbox = useCallback(() => {
@@ -302,7 +324,7 @@ export function ImageGrid({
 
       {lightboxEnabled && lightboxIndex !== null ? (
         <ImageLightbox
-          images={images}
+          images={lightboxPool}
           index={lightboxIndex}
           onClose={closeLightbox}
           onIndexChange={setLightboxIndex}

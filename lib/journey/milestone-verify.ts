@@ -180,6 +180,53 @@ export async function loadVerifiedMetaForCotMocs(
   return out;
 }
 
+export type VerifySummary = {
+  cotMocId: string;
+  count: number;
+  verifier: {
+    name: string;
+    avatarUrl: string | null;
+    role: string | null;
+    href: string | null;
+    isOrg: boolean;
+  } | null;
+};
+
+/** Tóm tắt xác thực cho 1 cột mốc — tooltip badge gallery (ai + avatar + tổng số). */
+export async function loadVerifySummaryForCotMoc(
+  cotMocId: string,
+): Promise<VerifySummary | null> {
+  if (!cotMocId) return null;
+  const admin = createServiceRoleClient();
+
+  const { count } = await admin
+    .from("verify_xac_nhan")
+    .select("id", { count: "exact", head: true })
+    .eq("id_cot_moc", cotMocId)
+    .eq("trang_thai", "da_xac_nhan");
+
+  const total = count ?? 0;
+  if (total === 0) return { cotMocId, count: 0, verifier: null };
+
+  const metaMap = await loadVerifiedMetaForCotMocs([cotMocId]);
+  const meta = metaMap.get(cotMocId);
+  if (!meta) {
+    return { cotMocId, count: total, verifier: null };
+  }
+
+  return {
+    cotMocId,
+    count: total,
+    verifier: {
+      name: meta.attribution.name,
+      avatarUrl: meta.attribution.avatarUrl ?? null,
+      role: meta.attribution.role ?? null,
+      href: meta.orgHref,
+      isOrg: meta.attribution.isOrg ?? false,
+    },
+  };
+}
+
 export async function loadVerifiedCotMocIdSet(
   cotMocIds: string[],
 ): Promise<Set<string>> {

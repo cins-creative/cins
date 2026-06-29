@@ -2,7 +2,6 @@
 
 import {
   Building2,
-  CheckCircle2,
   Clock3,
   Lock,
   ShieldCheck,
@@ -87,21 +86,12 @@ export function MembershipVerifyCard({
           ) : null}
         </div>
 
-        <span
-          className={`j-verify-card-status${isPending ? "" : " is-approved"}`}
-        >
-          {isPending ? (
-            <>
-              <Clock3 size={13} strokeWidth={2.2} aria-hidden />
-              Chờ
-            </>
-          ) : (
-            <>
-              <CheckCircle2 size={13} strokeWidth={2.4} aria-hidden />
-              Đã xác thực
-            </>
-          )}
-        </span>
+        {isPending ? (
+          <span className="j-verify-card-status">
+            <Clock3 size={13} strokeWidth={2.2} aria-hidden />
+            Chờ
+          </span>
+        ) : null}
       </div>
 
       {actions ? <div className="j-verify-card-actions">{actions}</div> : null}

@@ -1,6 +1,7 @@
 import { Anton } from "next/font/google";
 
 import { AuthGateRoot } from "@/components/auth/AuthGateProvider";
+import { CinsChatShellBridge } from "@/components/cins/CinsChatShellBridge";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 
 import "@/app/login/login.css";
@@ -30,8 +31,10 @@ export default async function UserProfileLayout({
   return (
     <div className={anton.variable}>
       <AuthGateRoot initialAuthenticated={initialAuthenticated}>
-        {children}
-        {modal}
+        <CinsChatShellBridge viewerProfileId={session?.profile?.id ?? null}>
+          {children}
+          {modal}
+        </CinsChatShellBridge>
       </AuthGateRoot>
     </div>
   );

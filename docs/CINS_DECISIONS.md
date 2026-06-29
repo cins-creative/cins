@@ -31,6 +31,15 @@
 
 ## LOG — quyết định đã chốt
 
+### Trang chủ adaptive theo `giai_doan` (2026-06-28)
+
+- **L19 — Trang chủ 3 cột: feed giữa chung, module hai bên theo persona.**
+  • **Feed trung tâm** (`WorldJourneyFeed`) **không đổi theo `giai_doan`** — sort `tao_luc` desc; tab **Đang theo dõi** (milestone user + tag follow + `org_bai_dang` org follow) và **Khám phá** (bài `feature` từ tác giả chưa follow). Không inject tin tuyển dụng vào feed.
+  • **Hai cột module** map từ `user_nguoi_dung.giai_doan` → persona `hoc` | `lam` | `day` (`lib/cins/home-adaptive/persona.ts`). `su_kien` + `goi_y_theo_doi` luôn có mọi persona.
+  • **`tim_viec`** = modifier `seeking` trên cụm LÀM (banner Open-to-work + đẩy `co_hoi` lên đầu cột phải) — **không** dùng boolean `dang_tim_viec` riêng.
+  • Module `co_hoi` + `scout_tai_nang` cần DB mới: `org_tuyen_dung`, `org_tuyen_dung_ung_tuyen`, `org_scout_luu` + 3 enum (`migration_org_tuyen_dung.sql`, runner `scripts/run-org-tuyen-dung-migration.mjs`).
+  • Không hiển thị số follower công khai (giữ L18).
+
 ### World Journey feed — lọc theo `che_do_hien_thi` (2026-06-19)
 
 - **L18 — Trang chủ World Journey feed phân tầng 3 lớp (+ chỉ mình).**

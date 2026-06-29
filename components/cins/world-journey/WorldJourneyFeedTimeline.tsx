@@ -8,7 +8,9 @@ import {
   type TimelineInlineExpandState,
 } from "@/components/journey/JourneyYearBlock";
 import type { MilestoneItem } from "@/components/journey/milestone-types";
-import { milestoneCardContentKind } from "@/lib/journey/milestone-card-kind";
+import {
+  canWorldJourneyInlineExpandOnFeed,
+} from "@/lib/cins/worldJourneyMilestoneFeed";
 import { compareTimelineOrder } from "@/lib/journey/timeline-sort";
 
 type Props = {
@@ -37,12 +39,8 @@ function milestoneOwnerSlug(milestone: MilestoneItem): string {
   return milestone.lensOwnerSlug ?? milestone.postOwnerSlug ?? "";
 }
 
-function canInlineExpandArticle(milestone: MilestoneItem): boolean {
-  const hasCoverPreview = Boolean(milestone.media?.[0]?.src);
-  return (
-    milestoneCardContentKind(milestone.noiDungBlocks, hasCoverPreview) ===
-    "article"
-  );
+function canInlineExpand(milestone: MilestoneItem): boolean {
+  return canWorldJourneyInlineExpandOnFeed(milestone);
 }
 
 export function WorldJourneyFeedTimeline({
@@ -55,7 +53,7 @@ export function WorldJourneyFeedTimeline({
   const byYear = useMemo(() => groupByYearDesc(milestones), [milestones]);
 
   const handleToggleContent = useCallback((milestone: MilestoneItem) => {
-    if (!canInlineExpandArticle(milestone)) return;
+    if (!canInlineExpand(milestone)) return;
 
     const ownerSlug = milestoneOwnerSlug(milestone);
     const key = timelineExpandKey(milestone, ownerSlug);

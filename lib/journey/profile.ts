@@ -138,11 +138,11 @@ export function normalizeSocialLinks(
   return out;
 }
 
-/** Avatar Cloudflare → URL. Variant `avatar` ưu tiên nếu config, fallback `public`. */
+/** Avatar Cloudflare → URL. Dùng variant `avatar` (64×64) cho ảnh đại diện. */
 export function getAvatarUrl(
   avatarId: string | null | undefined,
 ): string | null {
-  return getCoverUrl(avatarId, "public");
+  return getCoverUrl(avatarId, "avatar");
 }
 
 /** Cover Cloudflare → URL. Variant `cover` hoặc `public`. */

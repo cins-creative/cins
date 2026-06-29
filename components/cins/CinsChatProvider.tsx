@@ -67,8 +67,12 @@ type CinsChatContextValue = {
 
 const CinsChatContext = createContext<CinsChatContextValue | null>(null);
 
+export function useCinsChatContext() {
+  return useContext(CinsChatContext);
+}
+
 export function useCinsChat() {
-  const ctx = useContext(CinsChatContext);
+  const ctx = useCinsChatContext();
   if (!ctx) {
     throw new Error("useCinsChat must be used within CinsChatProvider");
   }

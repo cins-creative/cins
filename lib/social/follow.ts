@@ -25,12 +25,19 @@ const ENTITY_FOLLOW_DB_VALUE: Record<Exclude<FollowTargetType, "user">, string> 
   org: "to_chuc",
 };
 
-/** Follow tag/org — không dùng cho user (dùng `user_ket_ban`). */
+const USER_FOLLOW_DB_LOAI = "nguoi_dung";
+
+/** Follow tag/org — legacy alias. */
 export type EntityFollowLoai = Exclude<FollowTargetType, "user">;
 
 export type FollowStatus = {
   dang_theo_doi: boolean;
 };
+
+function followDbLoai(loai: FollowTargetType): string {
+  if (loai === "user") return USER_FOLLOW_DB_LOAI;
+  return ENTITY_FOLLOW_DB_VALUE[loai];
+}
 
 export function parseEntityFollowLoai(raw: string | null): EntityFollowLoai | null {
   if (raw === "tag" || raw === "bai_viet") return "tag";
@@ -38,13 +45,19 @@ export function parseEntityFollowLoai(raw: string | null): EntityFollowLoai | nu
   return null;
 }
 
-async function isFollowingEntity(
+export function parseFollowTargetLoai(raw: string | null): FollowTargetType | null {
+  if (raw === "user" || raw === "nguoi_dung") return "user";
+  return parseEntityFollowLoai(raw);
+}
+
+async function isFollowingTarget(
   followerId: string,
   targetId: string,
-  loai: EntityFollowLoai,
+  loai: FollowTargetType,
 ): Promise<boolean> {
+  if (loai === "user" && followerId === targetId) return false;
   const admin = createServiceRoleClient();
-  const dbLoai = ENTITY_FOLLOW_DB_VALUE[loai];
+  const dbLoai = followDbLoai(loai);
   const { data } = await admin
     .from("user_theo_doi")
     .select("id_nguoi_theo_doi")
@@ -55,13 +68,26 @@ async function isFollowingEntity(
   return Boolean(data);
 }
 
-async function followEntity(
+async function followTargetRow(
   followerId: string,
   targetId: string,
-  loai: EntityFollowLoai,
+  loai: FollowTargetType,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (loai === "user") {
+    if (followerId === targetId) {
+      return { ok: false, error: "Không thể theo dõi chính mình." };
+    }
+    const admin = createServiceRoleClient();
+    const { data: target } = await admin
+      .from("user_nguoi_dung")
+      .select("id")
+      .eq("id", targetId)
+      .maybeSingle();
+    if (!target) return { ok: false, error: "Không tìm thấy người dùng." };
+  }
+
   const admin = createServiceRoleClient();
-  const dbLoai = ENTITY_FOLLOW_DB_VALUE[loai];
+  const dbLoai = followDbLoai(loai);
   const { error } = await admin.from("user_theo_doi").insert({
     id_nguoi_theo_doi: followerId,
     id_doi_tuong: targetId,
@@ -74,13 +100,13 @@ async function followEntity(
   return { ok: true };
 }
 
-async function unfollowEntity(
+async function unfollowTargetRow(
   followerId: string,
   targetId: string,
-  loai: EntityFollowLoai,
+  loai: FollowTargetType,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const admin = createServiceRoleClient();
-  const dbLoai = ENTITY_FOLLOW_DB_VALUE[loai];
+  const dbLoai = followDbLoai(loai);
   const { error } = await admin
     .from("user_theo_doi")
     .delete()
@@ -94,35 +120,35 @@ async function unfollowEntity(
 export async function isFollowing(
   followerId: string,
   targetId: string,
-  loai: EntityFollowLoai,
+  loai: FollowTargetType,
 ): Promise<boolean> {
-  return isFollowingEntity(followerId, targetId, loai);
+  return isFollowingTarget(followerId, targetId, loai);
 }
 
 export async function getFollowStatus(
   viewerId: string | null,
   targetId: string,
-  loai: EntityFollowLoai,
+  loai: FollowTargetType,
 ): Promise<FollowStatus> {
   if (!viewerId) return { dang_theo_doi: false };
-  const dang_theo_doi = await isFollowingEntity(viewerId, targetId, loai);
+  const dang_theo_doi = await isFollowingTarget(viewerId, targetId, loai);
   return { dang_theo_doi };
 }
 
 export async function followTarget(
   followerId: string,
   targetId: string,
-  loai: EntityFollowLoai,
+  loai: FollowTargetType,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  return followEntity(followerId, targetId, loai);
+  return followTargetRow(followerId, targetId, loai);
 }
 
 export async function unfollowTarget(
   followerId: string,
   targetId: string,
-  loai: EntityFollowLoai,
+  loai: FollowTargetType,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  return unfollowEntity(followerId, targetId, loai);
+  return unfollowTargetRow(followerId, targetId, loai);
 }
 
 export async function notifyFollowAccepted(

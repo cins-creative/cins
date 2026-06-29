@@ -3,7 +3,7 @@
 > **File trong repo:** `docs/CINS_SCHEMA.md`
 > **SINH TỪ DB — là sự thật cấu trúc.** Không sửa tay. Regenerate bằng query `information_schema` / `dump_schema.sql` mỗi khi schema đổi.
 > Snapshot: **2026-06-07** · Supabase `ospzzzxcomrmhqrnkoiw`.
-> **67 bảng logic** · **63 enum** · **118 FK**. (66 bảng thường + `social_luot_xem` partitioned; 2 partition con `social_luot_xem_2026_05/06` không tính logic.)
+> **70 bảng logic** · **66 enum** · **118+ FK**. (69 bảng thường + `social_luot_xem` partitioned; 2 partition con `social_luot_xem_2026_05/06` không tính logic.)
 > Khi conflict với mọi file khác → file này (và DB) thắng.
 
 **Lưu ý field/enum legacy** (giữ backward-compat, KHÔNG dùng cho code mới):
@@ -372,7 +372,7 @@
 
 ---
 
-## org_ — Tổ chức, trường, khóa học (16 bảng)
+## org_ — Tổ chức, trường, khóa học (19 bảng)
 
 ### org_bai_dang
 
@@ -621,6 +621,51 @@
 | `ngay_xac_nhan_nhap_hoc_den` | date | YES |  |
 | `ghi_chu_timeline` | text | YES |  |
 | `so_thi_sinh` | integer | YES |  |
+
+### org_tuyen_dung
+
+| Cột | Kiểu | Null | Default |
+|---|---|---|---|
+| `id` | uuid | NO | gen_random_uuid() |
+| `id_to_chuc` | uuid | NO |  |
+| `tieu_de` | text | NO |  |
+| `mo_ta` | text | YES |  |
+| `loai_hinh` | loai_hinh_lam_viec_enum | NO | 'toan_thoi_gian'::loai_hinh_lam_viec_enum |
+| `cap_do` | text | YES |  |
+| `tinh_thanh` | tinh_thanh_vn_enum | YES |  |
+| `lam_tu_xa` | boolean | NO | false |
+| `id_linh_vuc` | uuid | YES |  |
+| `muc_luong_tu` | integer | YES |  |
+| `muc_luong_den` | integer | YES |  |
+| `hien_thi_luong` | boolean | NO | false |
+| `han_nop` | date | YES |  |
+| `trang_thai` | trang_thai_tuyen_dung_enum | NO | 'dang_mo'::trang_thai_tuyen_dung_enum |
+| `da_xoa` | boolean | NO | false |
+| `tao_luc` | timestamptz | NO | now() |
+| `cap_nhat_luc` | timestamptz | NO | now() |
+
+### org_tuyen_dung_ung_tuyen
+
+| Cột | Kiểu | Null | Default |
+|---|---|---|---|
+| `id_tuyen_dung` | uuid | NO |  |
+| `id_nguoi_dung` | uuid | NO |  |
+| `thu_ngo` | text | YES |  |
+| `trang_thai` | trang_thai_ung_tuyen_enum | NO | 'moi'::trang_thai_ung_tuyen_enum |
+| `tao_luc` | timestamptz | NO | now() |
+
+PK: (`id_tuyen_dung`, `id_nguoi_dung`)
+
+### org_scout_luu
+
+| Cột | Kiểu | Null | Default |
+|---|---|---|---|
+| `id_to_chuc` | uuid | NO |  |
+| `id_nguoi_dung` | uuid | NO |  |
+| `ghi_chu` | text | YES |  |
+| `tao_luc` | timestamptz | NO | now() |
+
+PK: (`id_to_chuc`, `id_nguoi_dung`) — shortlist tài năng org/giảng viên quan tâm (module `scout_tai_nang`).
 
 ---
 
@@ -970,7 +1015,7 @@
 - `loai_co_so_enum` : trung_tam / truong_nghe / co_so_tu_nhan / chi_nhanh
 - `loai_doi_tuong_social_enum` : cot_moc / tac_pham / du_an / thao_luan
 - `loai_doi_tuong_vector_enum` : user / org / bai_viet / khoa_hoc / linh_vuc
-- `loai_du_an_enum` : commercial / personal / open_source / school
+- `loai_hinh_lam_viec_enum` : toan_thoi_gian / ban_thoi_gian / remote / freelance / thuc_tap
 - `loai_media_enum` : image / video / audio / pdf / embed
 - `loai_mo_hinh_khoa_enum` : cohort_co_dinh / lien_tuc_theo_thang
 - `loai_moc_enum` : hoc / lam_viec / du_an / su_kien / thanh_tuu / ca_nhan
@@ -1012,6 +1057,8 @@
 - `trang_thai_tham_du_enum` : cho_xac_nhan / da_xac_nhan / tu_choi
 - `trang_thai_thanh_vien_enum` : active / left / pending / rejected
 - `trang_thai_tin_cay_enum` : binh_thuong / dang_review / bi_canh_bao / bi_cam / verified_official
+- `trang_thai_tuyen_dung_enum` : nhap / dang_mo / da_dong
+- `trang_thai_ung_tuyen_enum` : moi / dang_xem / phu_hop / tu_choi / da_nhan
 - `trang_thai_xac_nhan_enum` : cho_duyet / da_xac_nhan / tu_choi
 - `trang_thai_yeu_cau_enum` : cho_xu_ly / da_duyet / tu_choi
 - `trinh_do_dau_vao_enum` : co_ban / trung_cap / nang_cao / khong_yeu_cau

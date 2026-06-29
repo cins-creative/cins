@@ -1,9 +1,6 @@
 import type { Block as ServerBlock } from "@/lib/editor/types";
 
-import {
-  blocksAreCaptionOnly,
-  detectMediaPostKind,
-} from "@/lib/journey/post-media";
+import { milestoneCardContentKind } from "@/lib/journey/milestone-card-kind";
 
 /** Dạng card khi render — badge trong trình soạn. */
 export type ComposePreviewKind = "text" | "photo" | "video" | "article";
@@ -34,17 +31,6 @@ export function inferComposePreviewKind(
   blocks: ServerBlock[],
   coverSeed: string | null,
 ): ComposePreviewKind {
-  const media = detectMediaPostKind(blocks);
-  if (media === "photo") return "photo";
-  if (media === "video") return "video";
-
   const hasCover = Boolean(coverSeed?.trim());
-  if (hasCover && blocksAreCaptionOnly(blocks)) return "photo";
-
-  const hasRichBlock = blocks.some(
-    (b) => b.loai !== "body" && b.loai !== "spacer",
-  );
-  if (hasRichBlock || hasCover) return "article";
-
-  return "text";
+  return milestoneCardContentKind(blocks, hasCover, null);
 }

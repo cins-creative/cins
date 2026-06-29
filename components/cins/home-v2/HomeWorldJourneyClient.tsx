@@ -1,5 +1,7 @@
 "use client";
 
+import type { ReactNode } from "react";
+
 import { JourneyComposeProvider } from "@/components/journey/JourneyComposeContext";
 import type { SidebarProfile } from "@/components/journey/JourneySidebar";
 import { WorldJourneyFeed } from "@/components/cins/world-journey/WorldJourneyFeed";
@@ -15,6 +17,11 @@ type Props = {
   filterChips: WjFilterChip[];
   linhVucs: WjLinhVucAsideItem[];
   milestones: MilestoneItem[];
+  /** Tab Khám phá — bài Nổi bật toàn cục. */
+  exploreMilestones?: MilestoneItem[];
+  /** Cột module adaptive (server components) truyền xuống feed. */
+  leftAside?: ReactNode;
+  rightAside?: ReactNode;
 };
 
 /** Bọc feed trang chủ logged-in — overlay compose hoạt động trên wj-composer. */
@@ -25,6 +32,9 @@ export function HomeWorldJourneyClient({
   filterChips,
   linhVucs,
   milestones,
+  exploreMilestones,
+  leftAside,
+  rightAside,
 }: Props) {
   return (
     <JourneyComposeProvider
@@ -40,6 +50,9 @@ export function HomeWorldJourneyClient({
         filterChips={filterChips}
         linhVucs={linhVucs}
         milestones={milestones}
+        exploreMilestones={exploreMilestones}
+        leftAside={leftAside}
+        rightAside={rightAside}
       />
     </JourneyComposeProvider>
   );

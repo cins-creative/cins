@@ -244,10 +244,41 @@
 }
 
 .j-user-popover .j-friend-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 6px;
   margin-top: 10px;
+}
+
+.j-user-popover .j-friend-actions-row {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.j-user-popover .j-friend-actions-row .j-friend-message {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.j-user-popover .j-friend-card-follow {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.j-user-popover .j-friend-card-follow .j-follow-wrap {
+  height: 100%;
+}
+
+.j-user-popover .j-friend-card-follow .j-friend-btn.is-compact {
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  padding: 0;
+}
+
+.j-user-popover .j-friend-link {
+  width: 100%;
 }
 
 .j-user-popover .j-friend-message,
@@ -265,6 +296,17 @@
   border: 1px solid rgba(148, 163, 184, 0.28);
   background: #fff;
   color: var(--ink-muted);
+  cursor: pointer;
+  transition:
+    border-color 0.16s ease,
+    color 0.16s ease,
+    background 0.16s ease;
+}
+
+.j-user-popover .j-friend-message:hover:not(:disabled) {
+  border-color: rgba(37, 99, 235, 0.35);
+  color: var(--cins-blue);
+  background: var(--cins-blue-soft, rgba(37, 99, 235, 0.08));
 }
 
 .j-user-popover .j-friend-message:disabled {

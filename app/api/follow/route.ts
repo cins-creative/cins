@@ -4,7 +4,7 @@ import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import {
   followTarget,
   getFollowStatus,
-  parseEntityFollowLoai,
+  parseFollowTargetLoai,
   unfollowTarget,
 } from "@/lib/social/follow";
 
@@ -12,11 +12,11 @@ export async function GET(req: Request) {
   const session = await getCurrentSessionAndProfile();
   const { searchParams } = new URL(req.url);
   const id_doi_tuong = searchParams.get("id_doi_tuong")?.trim();
-  const loai = parseEntityFollowLoai(searchParams.get("loai_doi_tuong"));
+  const loai = parseFollowTargetLoai(searchParams.get("loai_doi_tuong"));
 
   if (!id_doi_tuong || !loai) {
     return NextResponse.json(
-      { error: "Thiếu id_doi_tuong hoặc loai_doi_tuong (tag/org)." },
+      { error: "Thiếu id_doi_tuong hoặc loai_doi_tuong (user/tag/org)." },
       { status: 400 },
     );
   }
@@ -43,10 +43,10 @@ export async function POST(req: Request) {
   }
 
   const id_doi_tuong = body.id_doi_tuong?.trim();
-  const loai = parseEntityFollowLoai(body.loai_doi_tuong ?? null);
+  const loai = parseFollowTargetLoai(body.loai_doi_tuong ?? null);
   if (!id_doi_tuong || !loai) {
     return NextResponse.json(
-      { error: "Chỉ theo dõi tag hoặc tổ chức — loai_doi_tuong phải là tag hoặc org." },
+      { error: "Thiếu id_doi_tuong hoặc loai_doi_tuong (user/tag/org)." },
       { status: 400 },
     );
   }
@@ -73,10 +73,10 @@ export async function DELETE(req: Request) {
   }
 
   const id_doi_tuong = body.id_doi_tuong?.trim();
-  const loai = parseEntityFollowLoai(body.loai_doi_tuong ?? null);
+  const loai = parseFollowTargetLoai(body.loai_doi_tuong ?? null);
   if (!id_doi_tuong || !loai) {
     return NextResponse.json(
-      { error: "Thiếu id_doi_tuong hoặc loai_doi_tuong (tag/org)." },
+      { error: "Thiếu id_doi_tuong hoặc loai_doi_tuong (user/tag/org)." },
       { status: 400 },
     );
   }

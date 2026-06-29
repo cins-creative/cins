@@ -422,20 +422,20 @@ export async function syncCoAuthorsFromEditor(
     if (existing) {
       await admin
         .from("content_tac_pham_tac_gia")
-        .update({ vai_tro: c.vaiTro.trim() || null, thu_tu: thuTu })
+        .update({ thu_tu: thuTu })
         .eq("id_tac_pham", tacPhamId)
         .eq("id_nguoi_dung", c.idNguoiDung);
     } else {
       const { error } = await admin.from("content_tac_pham_tac_gia").insert({
         id_tac_pham: tacPhamId,
         id_nguoi_dung: c.idNguoiDung,
-        vai_tro: c.vaiTro.trim() || null,
+        vai_tro: null,
         trang_thai: "pending",
         la_chu_so_huu: false,
         thu_tu: thuTu,
       });
       if (error) return { ok: false, error: error.message };
-      await notifyCoAuthorInvite(c.idNguoiDung, ownerId, tacPhamId, c.vaiTro);
+      await notifyCoAuthorInvite(c.idNguoiDung, ownerId, tacPhamId, "");
     }
     thuTu += 1;
   }

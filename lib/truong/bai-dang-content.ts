@@ -191,6 +191,7 @@ export function baiDangHasExpandableBody(post: {
     return isMilestoneArticleCard(
       post.noiDungBlocks,
       Boolean(post.cover_id?.trim() || post.cover_src?.trim()),
+      post.tom_tat ?? post.noi_dung,
     );
   }
   if (post.noi_dung?.trim()) return true;

@@ -2,6 +2,7 @@ import { Fragment, type ReactNode } from "react";
 
 import { JourneyMilestoneCard } from "@/components/journey/JourneyMilestoneCard";
 import type { MilestoneItem } from "@/components/journey/milestone-types";
+import { worldJourneyMilestoneCardKind } from "@/lib/cins/worldJourneyMilestoneFeed";
 
 export type TimelineInlineExpandState = {
   key: string;
@@ -42,6 +43,10 @@ type Props = {
   afterFirstSlot?: ReactNode;
   /** Trang entity — mỗi card dùng chủ cột mốc riêng (`lensOwner*`). */
   entityLens?: boolean;
+  /** Feed tổng hợp — ảnh/video preview gọn, bấm → permalink (không full grid). */
+  feedCompactMedia?: boolean;
+  /** Permalink bài — dùng khi `feedCompactMedia`. */
+  milestonePermalink?(milestone: MilestoneItem): string | null;
 };
 
 /**
@@ -67,6 +72,8 @@ export function JourneyYearBlock({
   onCloseExpand,
   afterFirstSlot,
   entityLens = false,
+  feedCompactMedia = false,
+  milestonePermalink,
 }: Props) {
   /* Year header (label "2026 · Năm hiện tại · 1 mốc") đã bỏ theo brief mới
      — header bar phía trên timeline đã cover thông tin năm hiện tại, đỡ
@@ -101,6 +108,14 @@ export function JourneyYearBlock({
               authorAvatarUrl={cardCtx.authorAvatarUrl}
               authorName={cardCtx.authorName}
               entityLens={entityLens}
+              feedCompactMedia={feedCompactMedia}
+              readMoreHref={
+                feedCompactMedia && milestonePermalink
+                  ? worldJourneyMilestoneCardKind(m) === "photo"
+                    ? milestonePermalink(m)
+                    : null
+                  : null
+              }
               inlineExpand={
                 onTogglePost && onOpenComments && onCloseExpand
                   ? {

@@ -24,7 +24,7 @@ type Props = {
   noiDungBlocks?: Block[] | null;
 };
 
-function resolveVideoPoster(
+export function resolveVideoPoster(
   url: string,
   preview?: PreviewMedia | null,
 ): string | null {

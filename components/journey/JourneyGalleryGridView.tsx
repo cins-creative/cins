@@ -1,10 +1,19 @@
 "use client";
 
+import { Image as ImageIcon, Plus, Video } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+} from "react";
 
-import { FeaturedFlagBadge } from "@/components/journey/FeaturedFlagBadge";
 import { GalleryItemVisual, GalleryVideoPlayBadge } from "@/components/journey/GalleryItemVisual";
+import { useJourneyCompose } from "@/components/journey/JourneyComposeContext";
 import { GalleryMediaFilterDropdown } from "@/components/journey/GalleryMediaFilterDropdown";
 import { GalleryOrgCreateCardBody } from "@/components/journey/GalleryOrgCreateCardBody";
 import { GalleryVerifiedBadge } from "@/components/journey/GalleryVerifiedBadge";
@@ -108,6 +117,47 @@ export function JourneyGalleryGridView({
 }: Props) {
   const personalFilter = useJourneyPersonalFilterOptional();
   const { openPost, overlay } = useJourneyPostOverlay();
+  const router = useRouter();
+  const compose = useJourneyCompose();
+  const composeOwnerSlug = compose.ownerSlug || scrollLoad?.ownerSlug || "";
+  const createPhotoInputRef = useRef<HTMLInputElement>(null);
+  const createVideoInputRef = useRef<HTMLInputElement>(null);
+
+  const openComposeMinimal = useCallback(() => {
+    if (compose.canCompose) {
+      compose.openCompose({ kind: "article", intent: "minimal" });
+      return;
+    }
+    if (composeOwnerSlug) router.push(`/${composeOwnerSlug}/p/new`);
+  }, [compose, composeOwnerSlug, router]);
+
+  const onCreatePhotoPick = useCallback(
+    (e: ChangeEvent<HTMLInputElement>) => {
+      const files = e.target.files ? Array.from(e.target.files) : [];
+      e.target.value = "";
+      if (files.length === 0) return;
+      if (compose.canCompose) {
+        compose.openComposeWithPhotos(files);
+        return;
+      }
+      if (composeOwnerSlug) router.push(`/${composeOwnerSlug}/p/new/photo`);
+    },
+    [compose, composeOwnerSlug, router],
+  );
+
+  const onCreateVideoPick = useCallback(
+    (e: ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      e.target.value = "";
+      if (!file) return;
+      if (compose.canCompose) {
+        compose.openComposeWithVideo(file);
+        return;
+      }
+      if (composeOwnerSlug) router.push(`/${composeOwnerSlug}/p/new/video`);
+    },
+    [compose, composeOwnerSlug, router],
+  );
   const legacyAll =
     pinned.length > 0 || items.length > 0
       ? [
@@ -281,6 +331,60 @@ export function JourneyGalleryGridView({
     o.group === typeFilter ? { ...o, count: filterCount } : o,
   );
 
+  const showCreateTile = isOwner && Boolean(composeOwnerSlug);
+  const createTile = showCreateTile ? (
+    <div
+      className="j-main-gallery-item j-main-gallery-create"
+      data-cursor-element-id="gallery-create-tile"
+    >
+      <button
+        type="button"
+        className="j-main-gallery-create-main"
+        onClick={openComposeMinimal}
+      >
+        <span className="j-main-gallery-create-plus" aria-hidden>
+          <Plus size={20} strokeWidth={2.4} />
+        </span>
+        <span className="j-main-gallery-create-label">Thêm bài viết</span>
+      </button>
+      <div className="j-main-gallery-create-actions">
+        <button
+          type="button"
+          aria-label="Thêm ảnh"
+          onClick={() => createPhotoInputRef.current?.click()}
+        >
+          <ImageIcon size={16} />
+        </button>
+        <button
+          type="button"
+          aria-label="Thêm video"
+          onClick={() => createVideoInputRef.current?.click()}
+        >
+          <Video size={16} />
+        </button>
+      </div>
+      <input
+        ref={createPhotoInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        multiple
+        hidden
+        aria-hidden
+        tabIndex={-1}
+        onChange={onCreatePhotoPick}
+      />
+      <input
+        ref={createVideoInputRef}
+        type="file"
+        accept="video/*"
+        hidden
+        aria-hidden
+        tabIndex={-1}
+        onChange={onCreateVideoPick}
+      />
+    </div>
+  ) : null;
+
   const emptyFilterLabel = activePersonalFilter?.ten
     ? `${activePersonalFilter.ten}${mediaFilter !== "all" ? ` · ${galleryMediaFilterLabel(mediaFilter)}` : ""}`
     : mediaFilter !== "all"
@@ -325,17 +429,18 @@ export function JourneyGalleryGridView({
         </div>
       ) : null}
 
-      {!hasData ? (
+      {!hasData && !showCreateTile ? (
         <div className="j-main-empty">
           Chưa có tác phẩm công khai. Ảnh, video và bài có cover sẽ hiện ở đây.
         </div>
-      ) : filtered.length === 0 ? (
+      ) : filtered.length === 0 && !showCreateTile ? (
         <div className="j-main-empty">
           Không có tác phẩm thuộc loại{" "}
           <em>{emptyFilterLabel}</em>. Đổi bộ lọc hoặc chọn “Tất cả”.
         </div>
       ) : (
         <div className="j-main-gallery-grid">
+          {createTile}
           {filtered.map((item) => {
             const className = galleryItemClassName(item);
             const isOrgCreate = isOrgCreateGalleryItem(item);
@@ -356,9 +461,6 @@ export function JourneyGalleryGridView({
             ) : (
               <>
                 <div className="j-main-gallery-thumb">
-                  {item.featured ? (
-                    <FeaturedFlagBadge className="j-main-gallery-pin" />
-                  ) : null}
                   <GalleryItemVisual
                     src={item.src}
                     srcSet={item.srcSet}
@@ -377,13 +479,41 @@ export function JourneyGalleryGridView({
                   {item.isVideo || item.mediaKind === "video" ? (
                     <GalleryVideoPlayBadge />
                   ) : null}
-                  {item.variant === "verified" ? <GalleryVerifiedBadge /> : null}
-                </div>
-                <span className="j-main-gallery-info">
-                  <strong>{item.label}</strong>
-                  {item.meta ? (
-                    <small className="j-main-gallery-excerpt">{item.meta}</small>
+                  {item.variant === "verified" ? (
+                    <GalleryVerifiedBadge cotMocId={item.cotMocId} />
                   ) : null}
+                </div>
+                <span className="j-main-gallery-overlay" aria-hidden>
+                  <span className="j-main-gallery-overlay-body">
+                    {item.authorName ? (
+                      <span className="j-main-gallery-author">
+                        {item.authorAvatarUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            className="j-main-gallery-author-avatar"
+                            src={item.authorAvatarUrl}
+                            alt=""
+                            loading="lazy"
+                          />
+                        ) : (
+                          <span className="j-main-gallery-author-avatar j-main-gallery-author-avatar--fallback">
+                            {item.authorName.trim().charAt(0).toUpperCase()}
+                          </span>
+                        )}
+                        <span className="j-main-gallery-author-name">
+                          {item.authorName}
+                        </span>
+                      </span>
+                    ) : null}
+                    <strong className="j-main-gallery-overlay-title">
+                      {item.label}
+                    </strong>
+                    {item.meta ? (
+                      <small className="j-main-gallery-overlay-excerpt">
+                        {item.meta}
+                      </small>
+                    ) : null}
+                  </span>
                 </span>
               </>
             );

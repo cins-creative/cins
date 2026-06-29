@@ -2,7 +2,10 @@
 
 import type { ReactNode } from "react";
 
-import { CinsChatProvider } from "@/components/cins/CinsChatProvider";
+import {
+  CinsChatProvider,
+  useCinsChatContext,
+} from "@/components/cins/CinsChatProvider";
 
 export function CinsChatShellBridge({
   viewerProfileId,
@@ -11,6 +14,11 @@ export function CinsChatShellBridge({
   viewerProfileId: string | null;
   children: ReactNode;
 }) {
+  const existing = useCinsChatContext();
+  if (existing) {
+    return <>{children}</>;
+  }
+
   return (
     <CinsChatProvider viewerProfileId={viewerProfileId}>{children}</CinsChatProvider>
   );

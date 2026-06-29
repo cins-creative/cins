@@ -19,7 +19,9 @@ import type { PersonalFilterRef } from "@/lib/filter/types";
 import {
   collectGalleryStubs,
   resolveOwnerSlugs,
+  resolveOwnerProfiles,
   type GalleryStub,
+  type OwnerProfile,
 } from "@/lib/journey/gallery-stubs";
 import {
   galleryItemLabel,
@@ -61,9 +63,33 @@ export type GalleryMainItem = {
   cardLayout?: MilestoneCardLayout;
   orgAvatarUrl?: string | null;
   orgKicker?: string | null;
+  /** Tác giả hiển thị trên overlay hover của card gallery. */
+  authorName?: string | null;
+  authorAvatarUrl?: string | null;
 };
 
 const getGalleryStubsCached = cache(collectGalleryStubs);
+
+/** Thứ tự ưu tiên gallery: Nổi bật & Xác thực → Nổi bật → Xác thực → còn lại. */
+function galleryPriorityRank(stub: GalleryStub): number {
+  const featured = stub.visibility === "feature";
+  const verified = stub.variant === "verified";
+  if (featured && verified) return 0;
+  if (featured) return 1;
+  if (verified) return 2;
+  return 3;
+}
+
+/** Sort ổn định theo ưu tiên (giữ nguyên thứ tự gốc trong cùng nhóm). */
+function sortGalleryByPriority(stubs: GalleryStub[]): GalleryStub[] {
+  return stubs
+    .map((stub, index) => ({ stub, index }))
+    .sort((a, b) => {
+      const rank = galleryPriorityRank(a.stub) - galleryPriorityRank(b.stub);
+      return rank !== 0 ? rank : a.index - b.index;
+    })
+    .map((entry) => entry.stub);
+}
 
 async function withVerifiedGalleryVariants(
   stubs: GalleryStub[],
@@ -127,6 +153,7 @@ function hydrateMainItems(
   stubs: GalleryStub[],
   ownerSlug: string,
   ownerSlugById: Map<string, string>,
+  ownerProfileById?: Map<string, OwnerProfile>,
 ): GalleryMainItem[] {
   const out: GalleryMainItem[] = [];
   stubs.forEach((entry, i) => {
@@ -136,6 +163,7 @@ function hydrateMainItems(
     const isVideo = entry.mediaKind === "video";
     if (!isOrgCreate && !img?.src && !isVideo) return;
     const slug = ownerSlugById.get(entry.postOwnerId) ?? ownerSlug;
+    const ownerProfile = ownerProfileById?.get(entry.postOwnerId);
     out.push({
       id: `${featured ? "pin" : "grid"}-${entry.cotMocId}-${i}`,
       cotMocId: entry.cotMocId,
@@ -159,6 +187,8 @@ function hydrateMainItems(
       cardLayout: entry.cardLayout,
       orgAvatarUrl: entry.orgAvatarUrl,
       orgKicker: entry.orgKicker,
+      authorName: isOrgCreate ? null : ownerProfile?.name ?? null,
+      authorAvatarUrl: isOrgCreate ? null : ownerProfile?.avatarUrl ?? null,
     });
   });
   return out;
@@ -247,17 +277,20 @@ export async function fetchGalleryMainPage(params: {
     Math.max(1, params.limit ?? GALLERY_SCROLL_PAGE_SIZE),
   );
 
-  const stubs = await withVerifiedGalleryVariants(
-    await getGalleryStubsCached(userId),
+  const stubs = sortGalleryByPriority(
+    await withVerifiedGalleryVariants(await getGalleryStubsCached(userId)),
   );
   const filterCounts = computeFilterCounts(stubs);
   const slice = stubs.slice(offset, offset + limit);
 
   const admin = createServiceRoleClient();
   const ownerIds = [...new Set(slice.map((x) => x.postOwnerId))];
-  const ownerSlugById = await resolveOwnerSlugs(admin, ownerIds);
+  const ownerProfileById = await resolveOwnerProfiles(admin, ownerIds);
+  const ownerSlugById = new Map(
+    [...ownerProfileById].map(([id, profile]) => [id, profile.slug]),
+  );
   const items = await attachPersonalFiltersToGalleryItems(
-    hydrateMainItems(slice, ownerSlug, ownerSlugById),
+    hydrateMainItems(slice, ownerSlug, ownerSlugById, ownerProfileById),
   );
 
   const nextOffset = offset + items.length;

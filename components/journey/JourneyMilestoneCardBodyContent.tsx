@@ -13,14 +13,17 @@ import { JourneyCardVideo } from "@/components/journey/JourneyCardVideo";
 import { JourneyCoverImage } from "@/components/journey/JourneyCoverImage";
 import { JourneyTextPanelTonePicker } from "@/components/journey/JourneyTextPanelTonePicker";
 import type { MilestoneMediaItem } from "@/components/journey/milestone-types";
-import { photoGridImagesFromBlocks } from "@/lib/journey/image-grid";
+import type { GridImage } from "@/lib/journey/image-grid";
+import { gridThumbSrc } from "@/lib/journey/image-grid";
 import type { MilestoneCardContentKind } from "@/lib/journey/milestone-card-kind";
+import { milestonePhotoLayout } from "@/lib/journey/milestone-card-kind";
 import {
-  detectMediaPostKind,
   extractVideoUrl,
   milestoneArticleTextPanelPlain,
   milestoneCardCaptionPlain,
   shouldShowMilestoneCardTitle,
+  shouldShowTextPanelTitle,
+  textPanelBodyPlain,
 } from "@/lib/journey/post-media";
 import {
   resolveTextPanelTone,
@@ -46,7 +49,7 @@ type Props = {
   body?: string | null;
   noiDungBlocks?: Block[] | null;
   preview?: MilestoneMediaItem | null;
-  photoGridImages?: ReturnType<typeof photoGridImagesFromBlocks>;
+  photoGridImages?: GridImage[] | null;
   articleTags?: readonly ArticleTagRef[];
   /** Timeline card kind — `text` = panel chữ, không unfold / không ảnh bìa. */
   contentKind?: MilestoneCardContentKind;
@@ -59,6 +62,8 @@ type Props = {
   onTextPanelExpandedChange?: (expanded: boolean) => void;
   /** Feed cộng đồng — mở permalink thay vì unfold inline. */
   readMoreHref?: string | null;
+  /** Feed tổng hợp — album/video chỉ hiện cover, không full grid/embed. */
+  compactMediaPreview?: boolean;
   onTagLinkClick?: (e: React.MouseEvent) => void;
 };
 
@@ -84,29 +89,20 @@ export function JourneyMilestoneCardBodyContent({
   textPanelExpanded: textPanelExpandedProp,
   onTextPanelExpandedChange,
   readMoreHref = null,
+  compactMediaPreview = false,
   onTagLinkClick,
 }: Props) {
   const router = useRouter();
   const blocks = noiDungBlocks ?? null;
-  const photoGridImages =
-    photoGridOverride ?? photoGridImagesFromBlocks(blocks);
-  const mediaKind = detectMediaPostKind(blocks);
+  const hasCoverPreview = Boolean(preview?.src);
+  const photoGridImages = photoGridOverride ?? null;
+  const photoLayout = milestonePhotoLayout(blocks, hasCoverPreview, body);
   const isTextCard = contentKind === "text";
   const isPhotoCard = contentKind === "photo";
-  const isVideoPost =
-    contentKind === "video" ||
-    (contentKind == null && mediaKind === "video");
-  const isPhotoAlbum =
-    isPhotoCard ||
-    (contentKind == null &&
-      photoGridImages !== null &&
-      (mediaKind === "photo" || photoGridOverride != null));
-  const isArticle =
-    contentKind === "article" ||
-    (contentKind == null &&
-      !isPhotoAlbum &&
-      !isVideoPost &&
-      !isTextCard);
+  const isVideoPost = contentKind === "video";
+  const isPhotoAlbumMulti = isPhotoCard && photoLayout === "album";
+  const isPhotoSingle = isPhotoCard && photoLayout === "single";
+  const isArticle = contentKind === "article";
   const textPanelSeed =
     title.trim() ||
     milestoneArticleTextPanelPlain(body, blocks) ||
@@ -137,9 +133,22 @@ export function JourneyMilestoneCardBodyContent({
     setTextPanelExpanded(false);
   }, [isTextCard, textCardPanelText, title, setTextPanelExpanded]);
   const videoEmbedUrl = isVideoPost ? extractVideoUrl(blocks ?? []) : null;
+  const useCompactMedia =
+    compactMediaPreview && isPhotoCard && Boolean(readMoreHref);
   const videoProcessingMeta = isVideoPost
     ? extractVideoProcessingMeta(blocks ?? [])
     : null;
+  const compactPhotoPreview = useMemo(() => {
+    if (!useCompactMedia || !photoGridImages?.[0]) return preview;
+    if (preview?.src) return preview;
+    const first = photoGridImages[0];
+    return {
+      src: gridThumbSrc(first),
+      width: first.width,
+      height: first.height,
+      label: title,
+    };
+  }, [photoGridImages, preview, title, useCompactMedia]);
   const showCardTitle = shouldShowMilestoneCardTitle(title, blocks, body);
   const cardCaption = milestoneCardCaptionPlain(body, blocks);
   const isContentOpen = expandTrigger?.expanded ?? false;
@@ -148,14 +157,10 @@ export function JourneyMilestoneCardBodyContent({
   const hasJcardText =
     showCardTitleInBody || showCardCaptionInBody || articleTags.length > 0;
   const showExpandTrigger =
-    Boolean(
-      expandTrigger?.enabled &&
-        (isArticle || isPhotoAlbum || isVideoPost) &&
-        !isContentOpen,
-    ) ||
+    Boolean(expandTrigger?.enabled && isArticle && !isContentOpen) ||
     Boolean(readMoreHref && isArticle);
 
-  const expandCtaLabel = isPhotoAlbum || isVideoPost ? "Xem thêm" : "Đọc bài viết";
+  const expandCtaLabel = "Xem đầy đủ";
 
   function handleBodyClick(e: React.MouseEvent<HTMLElement>) {
     if (readMoreHref) {
@@ -185,7 +190,7 @@ export function JourneyMilestoneCardBodyContent({
           "aria-expanded": isContentOpen,
           "aria-label":
             expandTrigger?.ariaLabel ??
-            (readMoreHref ? `Mở bài viết: ${showCardTitle ? title : cardCaption || title}` : undefined),
+            (readMoreHref ? `Xem đầy đủ: ${showCardTitle ? title : cardCaption || title}` : undefined),
           onClick: handleBodyClick,
           onKeyDown: handleBodyKeyDown,
         }
@@ -197,13 +202,15 @@ export function JourneyMilestoneCardBodyContent({
 
   if (isTextCard) {
     const panelText = textCardPanelText;
-    const showTitle = shouldShowMilestoneCardTitle(title, blocks, body);
+    const showTitle = shouldShowTextPanelTitle(title, blocks);
+    const bodyPlain = textPanelBodyPlain(title, body, blocks);
     const toneClass = textPanelToneClass(panelTone);
     const lightInk = textPanelUsesLightInk(panelTone);
-    const paragraphs = panelText ? splitTextPanelParagraphs(panelText) : [];
+    const paragraphs = bodyPlain ? splitTextPanelParagraphs(bodyPlain) : [];
+    const collapseSource = bodyPlain ?? panelText ?? "";
     const centerAlign = textPanelUsesCenterAlign(paragraphs.length);
-    const needsTextPanelCollapse = panelText
-      ? textPanelNeedsCollapse(panelText, paragraphs.length)
+    const needsTextPanelCollapse = collapseSource
+      ? textPanelNeedsCollapse(collapseSource, paragraphs.length)
       : false;
     const isTextPanelCollapsed = needsTextPanelCollapse && !textPanelExpanded;
 
@@ -227,7 +234,7 @@ export function JourneyMilestoneCardBodyContent({
           }
           aria-label={
             isTextPanelCollapsed
-              ? `Xem thêm: ${showTitle ? title : panelText?.slice(0, 80) ?? "bài viết"}`
+              ? `Xem đầy đủ: ${showTitle ? title : panelText?.slice(0, 80) ?? "bài viết"}`
               : undefined
           }
           onClick={
@@ -258,7 +265,7 @@ export function JourneyMilestoneCardBodyContent({
           {isTextPanelCollapsed ? (
             <span className="jcard-expand-cta" aria-hidden>
               <ChevronDown size={14} strokeWidth={2.4} />
-              Xem thêm
+              Xem đầy đủ
             </span>
           ) : null}
         </div>
@@ -325,7 +332,30 @@ export function JourneyMilestoneCardBodyContent({
         ) : null}
 
         <div className="jcard-media-zone">
-          {isVideoPost && videoEmbedUrl ? (
+          {useCompactMedia ? (
+            readMoreHref ? (
+              <Link href={readMoreHref} className="preview" prefetch={false}>
+                {compactPhotoPreview?.src ? (
+                  <JourneyCoverImage
+                    src={compactPhotoPreview.src}
+                    srcSet={compactPhotoPreview.srcSet}
+                    sizes={
+                      compactPhotoPreview.srcSet
+                        ? "(max-width: 767px) 100vw, 680px"
+                        : undefined
+                    }
+                    width={compactPhotoPreview.width}
+                    height={compactPhotoPreview.height}
+                    alt={compactPhotoPreview.label || title}
+                  />
+                ) : null}
+                <span className="jcard-expand-cta" aria-hidden>
+                  <ChevronDown size={14} strokeWidth={2.4} />
+                  {expandCtaLabel}
+                </span>
+              </Link>
+            ) : null
+          ) : isVideoPost && videoEmbedUrl ? (
             <JourneyCardVideo
               url={videoEmbedUrl}
               title={showCardTitle ? title : cardCaption || title}
@@ -342,21 +372,15 @@ export function JourneyMilestoneCardBodyContent({
               }
               noiDungBlocks={blocks ?? undefined}
             />
-          ) : isPhotoAlbum && photoGridImages ? (
+          ) : isPhotoAlbumMulti && photoGridImages ? (
             <div className="preview preview--photo-grid">
-              <ImageGrid
-                images={photoGridImages}
-                readOnly
-                timelineLightbox
-              />
-              {showExpandTrigger ? (
-                <span className="jcard-expand-cta" aria-hidden>
-                  <ChevronDown size={14} strokeWidth={2.4} />
-                  {expandCtaLabel}
-                </span>
-              ) : null}
+              <ImageGrid images={photoGridImages} readOnly timelineLightbox />
             </div>
-          ) : readMoreHref ? (
+          ) : (isPhotoSingle || isPhotoCard) && photoGridImages ? (
+            <div className="preview preview--photo-grid">
+              <ImageGrid images={photoGridImages} readOnly timelineLightbox />
+            </div>
+          ) : readMoreHref && isArticle ? (
             <Link href={readMoreHref} className="preview" prefetch={false}>
               {preview ? (
                 <JourneyCoverImage
@@ -382,25 +406,18 @@ export function JourneyMilestoneCardBodyContent({
                 </span>
               ) : null}
             </Link>
-          ) : (
+          ) : preview?.src && isArticle ? (
             <div className="preview">
-              {preview ? (
-                <JourneyCoverImage
-                  src={preview.src}
-                  srcSet={preview.srcSet}
-                  sizes={
-                    preview.srcSet ? "(max-width: 767px) 100vw, 680px" : undefined
-                  }
-                  width={preview.width}
-                  height={preview.height}
-                  alt={preview.label || title}
-                />
-              ) : (
-                <div className="preview-inner">
-                  <ImageIcon size={28} strokeWidth={1.5} aria-hidden />
-                  <span className="preview-label">Ảnh bìa bài viết</span>
-                </div>
-              )}
+              <JourneyCoverImage
+                src={preview.src}
+                srcSet={preview.srcSet}
+                sizes={
+                  preview.srcSet ? "(max-width: 767px) 100vw, 680px" : undefined
+                }
+                width={preview.width}
+                height={preview.height}
+                alt={preview.label || title}
+              />
               {showExpandTrigger ? (
                 <span className="jcard-expand-cta" aria-hidden>
                   <ChevronDown size={14} strokeWidth={2.4} />
@@ -408,7 +425,7 @@ export function JourneyMilestoneCardBodyContent({
                 </span>
               ) : null}
             </div>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

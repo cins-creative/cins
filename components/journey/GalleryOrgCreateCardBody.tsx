@@ -1,4 +1,4 @@
-import { BadgeCheck, BookOpen, Users } from "lucide-react";
+import { BookOpen, Users } from "lucide-react";
 
 import { FeaturedFlagBadge } from "@/components/journey/FeaturedFlagBadge";
 import type { MilestoneCardLayout } from "@/components/journey/milestone-types";
@@ -96,10 +96,6 @@ export function GalleryOrgCreateCardBody({
         ) : null}
         <h3 className="j-gallery-org-card__title">{label}</h3>
         {desc ? <p className="j-gallery-org-card__desc">{desc}</p> : null}
-        <span className="j-gallery-org-card__verified">
-          <BadgeCheck size={12} strokeWidth={2.4} aria-hidden />
-          Đã xác thực
-        </span>
       </div>
     </div>
   );

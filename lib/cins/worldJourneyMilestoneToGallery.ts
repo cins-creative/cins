@@ -66,6 +66,16 @@ export function worldJourneyMilestonesToGalleryItems(
         m.congDongOrg?.avatarUrl ??
         null,
       orgKicker: m.org ?? m.congDongOrg?.name ?? null,
+      authorName:
+        m.lensOwnerName ??
+        m.attribution?.name ??
+        m.congDongOrg?.name ??
+        null,
+      authorAvatarUrl:
+        m.lensOwnerAvatarUrl ??
+        m.attribution?.avatarUrl ??
+        m.congDongOrg?.avatarUrl ??
+        null,
     });
   });
 

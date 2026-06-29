@@ -225,7 +225,7 @@ function ReadOnlyBlock({ block }: { block: Block }) {
             title="Video"
             allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
             allowFullScreen
-            loading="lazy"
+            loading="eager"
           />
         </div>
       );

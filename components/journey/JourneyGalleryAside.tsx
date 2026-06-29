@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 
-import { FeaturedFlagBadge } from "@/components/journey/FeaturedFlagBadge";
 import { GalleryItemVisual, GalleryVideoPlayBadge } from "@/components/journey/GalleryItemVisual";
 import { GalleryMediaFilterDropdown } from "@/components/journey/GalleryMediaFilterDropdown";
 import type { GalleryMediaKind } from "@/lib/journey/post-media";
@@ -154,7 +153,6 @@ export function JourneyGalleryAside({
                   {b.isVideo || b.mediaKind === "video" ? (
                     <GalleryVideoPlayBadge />
                   ) : null}
-                  <FeaturedFlagBadge className="j-g-banner-pin" />
                 </a>
               ))}
             </div>

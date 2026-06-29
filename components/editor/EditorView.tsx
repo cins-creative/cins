@@ -42,11 +42,28 @@ import {
   Star,
   Trash2,
   Users,
+  Video,
   X,
+  Images,
   type LucideIcon,
 } from "lucide-react";
 
 import { LayoutThumbIcon } from "@/components/editor/LayoutThumbIcon";
+import {
+  EditorTagMenu,
+  type EditorTagMenuPick,
+} from "@/components/editor/EditorTagMenu";
+import {
+  articleTagLabel,
+  articleTagLoaiClass,
+  type ArticleTagRef,
+} from "@/lib/editor/article-tag";
+import {
+  getAtHashTrigger,
+  stripAtHashTrigger,
+  type AtHashTrigger,
+} from "@/lib/editor/use-at-hash-trigger";
+import { getAvatarUrl } from "@/lib/journey/profile";
 import {
   collectScrollResizeTargets,
   computeCenteredAnchoredMenuPosition,
@@ -67,7 +84,6 @@ import {
   getCfAccountHash,
   rememberCfAccountHashFromDeliveryUrl,
 } from "@/lib/cloudflare/account-hash";
-import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import type { CoAuthorDraft } from "@/lib/social/types";
 import type {
   Block as ServerBlock,
@@ -105,6 +121,7 @@ import {
   inferComposePreviewKind,
 } from "@/lib/journey/compose-preview-kind";
 import { useEditorVideoUpload } from "@/lib/journey/use-editor-video-upload";
+import { bunnyIframeSrc, classifyBunnyVideoUrl } from "@/lib/bunny/embed";
 
 type ImageUploadTrack = {
   progress: number;
@@ -560,7 +577,17 @@ export function EditorView({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [openAddIdx, setOpenAddIdx] = useState<number | null>(null);
 
-  const tags = initial?.tags ?? [];
+  const [tags, setTags] = useState<ArticleTagRef[]>(() => [...(initial?.tags ?? [])]);
+  const [collaborators, setCollaborators] = useState<CoAuthorDraft[]>(() =>
+    [...(initial?.coAuthors ?? [])],
+  );
+  const [ownerVaiTro] = useState(() => initial?.ownerVaiTro ?? "");
+  const [atHashMenu, setAtHashMenu] = useState<{
+    blockId: string;
+    trigger: AtHashTrigger;
+    anchorRect: DOMRect;
+    textarea: HTMLTextAreaElement;
+  } | null>(null);
   const [vis, setVis] = useState<Visibility>(initial?.visibility ?? "public");
   const sortedCongDongFilters = useMemo(
     () =>
@@ -597,6 +624,8 @@ export function EditorView({
   );
   const imgPickerTargetRef = useRef<ImgPickerTarget | null>(null);
   const imageFileInputRef = useRef<HTMLInputElement | null>(null);
+  const minimalAlbumInputRef = useRef<HTMLInputElement | null>(null);
+  const minimalVideoInputRef = useRef<HTMLInputElement | null>(null);
   const initialPhotosStartedRef = useRef(false);
   const initialVideoStartedRef = useRef(false);
   const videoBlockIdRef = useRef<string | null>(null);
@@ -944,6 +973,60 @@ export function EditorView({
     setEditorExpanded(true);
   }, []);
 
+  const hasPhotoBlocks = blocks.some((b) => b.t === "imgs");
+  const hasVideoBlock = blocks.some((b) => b.t === "embed");
+  const isMinimalMediaCompose =
+    usesMinimalFlow && editorExpanded && (hasPhotoBlocks || hasVideoBlock);
+
+  const onMinimalAlbumPick = useCallback(
+    (e: ChangeEvent<HTMLInputElement>) => {
+      const files = e.target.files ? Array.from(e.target.files) : [];
+      e.target.value = "";
+      if (files.length === 0) return;
+      if (hasVideoBlock) {
+        setToast("Không thể thêm album khi đã có video.");
+        return;
+      }
+      expandMinimalToFullEditor();
+      setEditorExpanded(true);
+      seedPhotoFiles(files);
+    },
+    [expandMinimalToFullEditor, hasVideoBlock, seedPhotoFiles],
+  );
+
+  const onMinimalVideoPick = useCallback(
+    (e: ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      e.target.value = "";
+      if (!file) return;
+      if (hasVideoBlock) {
+        setToast("Bài đã có video.");
+        return;
+      }
+      if (hasPhotoBlocks) {
+        setToast("Không thể thêm video vào bài album ảnh.");
+        return;
+      }
+      expandMinimalToFullEditor();
+      setEditorExpanded(true);
+      const blockId = newId();
+      videoBlockIdRef.current = blockId;
+      pushHistory();
+      setBlocks((prev) => {
+        const withoutBody = prev.filter((b) => b.t !== "body");
+        return [...withoutBody, { id: blockId, t: "embed", embedUrl: "" }];
+      });
+      void uploadVideoFile(file);
+    },
+    [
+      expandMinimalToFullEditor,
+      hasPhotoBlocks,
+      hasVideoBlock,
+      pushHistory,
+      uploadVideoFile,
+    ],
+  );
+
   useEffect(() => {
     if (
       !initialPhotoFiles?.length ||
@@ -1254,6 +1337,64 @@ export function EditorView({
     [pushHistory],
   );
 
+  const existingUserIds = useMemo(
+    () => new Set(collaborators.map((c) => c.idNguoiDung)),
+    [collaborators],
+  );
+  const existingTagIds = useMemo(
+    () => new Set(tags.map((t) => t.id)),
+    [tags],
+  );
+
+  const handleAtHashSync = useCallback(
+    (blockId: string, trigger: AtHashTrigger | null, textarea: HTMLTextAreaElement) => {
+      if (!trigger) {
+        setAtHashMenu((prev) => (prev?.blockId === blockId ? null : prev));
+        return;
+      }
+      setAtHashMenu({
+        blockId,
+        trigger,
+        anchorRect: textarea.getBoundingClientRect(),
+        textarea,
+      });
+    },
+    [],
+  );
+
+  const handleEditorTagPick = useCallback(
+    (pick: EditorTagMenuPick) => {
+      if (!atHashMenu) return;
+      const { blockId, trigger, textarea } = atHashMenu;
+      const block = blocks.find((b) => b.id === blockId);
+      if (!block) return;
+      const { text: stripped, caret } = stripAtHashTrigger(
+        block.text ?? "",
+        trigger,
+      );
+      updateBlock(blockId, { text: stripped });
+      if (pick.kind === "user") {
+        setCollaborators((prev) => {
+          if (prev.some((c) => c.idNguoiDung === pick.user.idNguoiDung)) {
+            return prev;
+          }
+          return [...prev, pick.user];
+        });
+      } else {
+        setTags((prev) => {
+          if (prev.some((t) => t.id === pick.tag.id)) return prev;
+          return [...prev, pick.tag];
+        });
+      }
+      setAtHashMenu(null);
+      requestAnimationFrame(() => {
+        textarea.focus();
+        textarea.setSelectionRange(caret, caret);
+      });
+    },
+    [atHashMenu, blocks, updateBlock],
+  );
+
   const handlePublish = useCallback(() => {
     if (isPending) return;
 
@@ -1374,6 +1515,8 @@ export function EditorView({
           thoiDiem: initial.thoiDiem,
           blocks: serverBlocks,
           personalFilterIds,
+          coAuthors: collaborators,
+          ownerVaiTro,
         });
         if (!result.ok) {
           setToast(result.error || "Không lưu được bài viết.");
@@ -1407,6 +1550,8 @@ export function EditorView({
         thoiDiem: isoToday(),
         blocks: serverBlocks,
         personalFilterIds,
+        coAuthors: collaborators.length > 0 ? collaborators : undefined,
+        ownerVaiTro: ownerVaiTro.trim() || undefined,
         congDong: congDongCompose
           ? {
               orgId: congDongCompose.orgId,
@@ -1444,6 +1589,8 @@ export function EditorView({
     sub,
     coverSeed,
     tags,
+    collaborators,
+    ownerVaiTro,
     vis,
     publishVisibility,
     congDongCompose,
@@ -1619,47 +1766,104 @@ export function EditorView({
           />
         ) : null}
 
+        {showFullEditor &&
+        (collaborators.length > 0 || tags.length > 0) ? (
+          <EditorComposeMetaChips
+            collaborators={collaborators}
+            tags={tags}
+            onRemoveCollaborator={(id) =>
+              setCollaborators((prev) =>
+                prev.filter((c) => c.idNguoiDung !== id),
+              )
+            }
+            onRemoveTag={(id) =>
+              setTags((prev) => prev.filter((t) => t.id !== id))
+            }
+          />
+        ) : null}
+
         {showMinimalToolbar ? (
           <div className="ed-minimal-toolbar">
             {!(minimalCoverVisible || coverSeed) ? (
               <button
                 type="button"
-                className="ed-btn ghost ed-minimal-tool"
+                className="ed-minimal-tool ed-minimal-tool--cover"
                 onClick={() => setMinimalCoverVisible(true)}
               >
-                <ImagePlus size={15} strokeWidth={2} aria-hidden />
-                Thêm ảnh bìa
+                <ImagePlus size={18} strokeWidth={1.8} aria-hidden />
+                <span className="ed-minimal-tool--cover-label">
+                  <span className="ed-minimal-tool--cover-title">
+                    Thêm ảnh bìa
+                  </span>
+                  <span className="ed-minimal-tool--cover-hint">Tuỳ chọn</span>
+                </span>
               </button>
             ) : null}
-            {isMinimalUI ? (
-              <button
-                type="button"
-                className="ed-btn ghost ed-minimal-tool"
-                onClick={expandMinimalToFullEditor}
-              >
-                <Plus size={15} strokeWidth={2} aria-hidden />
-                Thêm nội dung
-              </button>
-            ) : null}
+            <div className="ed-minimal-toolbar-actions">
+              {!hasPhotoBlocks && !hasVideoBlock ? (
+                <button
+                  type="button"
+                  className="ed-btn ghost ed-minimal-tool"
+                  onClick={() => minimalAlbumInputRef.current?.click()}
+                >
+                  <Images size={15} strokeWidth={2} aria-hidden />
+                  Album ảnh
+                </button>
+              ) : null}
+              {!hasPhotoBlocks && !hasVideoBlock ? (
+                <button
+                  type="button"
+                  className="ed-btn ghost ed-minimal-tool"
+                  onClick={() => minimalVideoInputRef.current?.click()}
+                >
+                  <Video size={15} strokeWidth={2} aria-hidden />
+                  Thêm video
+                </button>
+              ) : null}
+              {isMinimalUI ? (
+                <button
+                  type="button"
+                  className="ed-btn ghost ed-minimal-tool"
+                  onClick={expandMinimalToFullEditor}
+                >
+                  <Plus size={15} strokeWidth={2} aria-hidden />
+                  Bài viết dài
+                </button>
+              ) : null}
+            </div>
           </div>
         ) : null}
 
         {showFullEditor ? (
-        <div className="blocks">
-          <AddZone
-            idx={0}
-            open={openAddIdx === 0}
-            onToggle={(open) => setOpenAddIdx(open ? 0 : null)}
-            onPick={(type) => addBlock(type, 0)}
-            starter={blocks.length === 0}
-            anchorPicker={isOverlay}
-          />
+        <div
+          className={`blocks${isMinimalMediaCompose ? " is-minimal-media-compose" : ""}`}
+        >
+          {!isMinimalMediaCompose ? (
+            <AddZone
+              idx={0}
+              open={openAddIdx === 0}
+              onToggle={(open) => setOpenAddIdx(open ? 0 : null)}
+              onPick={(type) => addBlock(type, 0)}
+              starter={blocks.length === 0}
+              anchorPicker={isOverlay}
+            />
+          ) : null}
           {blocks.map((b, i) => (
             <div key={b.id}>
               <BlockRow
                 block={b}
                 imageUploads={imageUploads}
                 selected={selectedId === b.id}
+                isMinimalMediaCompose={isMinimalMediaCompose}
+                minimalVideoState={
+                  isMinimalMediaCompose && b.t === "embed"
+                    ? {
+                        localPreviewUrl: localVideoPreviewUrl,
+                        uploading: videoUploading,
+                        error: videoUploadError,
+                      }
+                    : undefined
+                }
                 onSelect={() => setSelectedId(b.id)}
                 onChangeText={(text) => updateBlock(b.id, { text })}
                 onChangeSize={(size) => updateBlock(b.id, { size })}
@@ -1694,30 +1898,42 @@ export function EditorView({
                 }
                 onMosaicPickImage={(slot) => mosaicPickImage(b.id, slot)}
                 onMosaicPasteImage={(slot) => mosaicPasteImage(b.id, slot)}
+                enableAtHash={showFullEditor}
+                onAtHashSync={(trigger, textarea) =>
+                  handleAtHashSync(b.id, trigger, textarea)
+                }
               />
-              <AddZone
-                idx={i + 1}
-                open={openAddIdx === i + 1}
-                onToggle={(open) => setOpenAddIdx(open ? i + 1 : null)}
-                onPick={(type) => addBlock(type, i + 1)}
-                anchorPicker={isOverlay}
-              />
+              {!isMinimalMediaCompose ? (
+                <AddZone
+                  idx={i + 1}
+                  open={openAddIdx === i + 1}
+                  onToggle={(open) => setOpenAddIdx(open ? i + 1 : null)}
+                  onPick={(type) => addBlock(type, i + 1)}
+                  anchorPicker={isOverlay}
+                />
+              ) : null}
             </div>
           ))}
         </div>
         ) : null}
 
-        {localVideoPreviewUrl && videoUploading ? (
-          <p className="ed-video-upload-hint" aria-live="polite">
-            <Loader2 size={14} className="ed-spin" aria-hidden /> Đang tải
-            video…
-          </p>
+        {showFullEditor && !isMinimalMediaCompose ? (
+        <div className="hint-foot">
+          Bấm nút <b>+</b> ở khe giữa các block để chèn nội dung mới. Gõ{" "}
+          <b>@</b> để gắn cộng sự, <b>#</b> để gắn thẻ bài viết.
+        </div>
         ) : null}
 
-        {showFullEditor ? (
-        <div className="hint-foot">
-          Bấm nút <b>+</b> ở khe giữa các block để chèn nội dung mới.
-        </div>
+        {atHashMenu ? (
+          <EditorTagMenu
+            trigger={atHashMenu.trigger}
+            anchorRect={atHashMenu.anchorRect}
+            ownerId={ownerId}
+            existingUserIds={existingUserIds}
+            existingTagIds={existingTagIds}
+            onPick={handleEditorTagPick}
+            onClose={() => setAtHashMenu(null)}
+          />
         ) : null}
       </main>
 
@@ -1729,6 +1945,25 @@ export function EditorView({
         aria-hidden
         tabIndex={-1}
         onChange={onImageFileInputChange}
+      />
+      <input
+        ref={minimalAlbumInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        multiple
+        style={{ display: "none" }}
+        aria-hidden
+        tabIndex={-1}
+        onChange={onMinimalAlbumPick}
+      />
+      <input
+        ref={minimalVideoInputRef}
+        type="file"
+        accept="video/*"
+        style={{ display: "none" }}
+        aria-hidden
+        tabIndex={-1}
+        onChange={onMinimalVideoPick}
       />
 
       {toast ? <div className="ed-toast">{toast}</div> : null}
@@ -2224,6 +2459,12 @@ type BlockRowProps = {
   block: Block;
   imageUploads: Record<string, ImageUploadTrack>;
   selected: boolean;
+  isMinimalMediaCompose?: boolean;
+  minimalVideoState?: {
+    localPreviewUrl: string | null;
+    uploading: boolean;
+    error: string | null;
+  };
   onSelect: () => void;
   onChangeText: (s: string) => void;
   onChangeSize: (s: "s" | "m" | "l") => void;
@@ -2252,6 +2493,11 @@ type BlockRowProps = {
   ) => void;
   onMosaicPickImage: (slot: number) => void;
   onMosaicPasteImage: (slot: number) => void;
+  enableAtHash?: boolean;
+  onAtHashSync?: (
+    trigger: AtHashTrigger | null,
+    textarea: HTMLTextAreaElement,
+  ) => void;
 };
 
 function PhImageActions({
@@ -2294,56 +2540,115 @@ function PhImageActions({
 }
 
 function BlockRow(p: BlockRowProps) {
-  const { block: b, selected, onSelect } = p;
+  const { block: b, selected, onSelect, isMinimalMediaCompose } = p;
   return (
     <div
-      className={`block${selected ? " selected" : ""}`}
+      className={`block${selected ? " selected" : ""}${isMinimalMediaCompose ? " is-minimal-media-block" : ""}`}
       data-block-type={b.t}
       onClick={onSelect}
     >
-      <div className="block-side">
-        <button
-          type="button"
-          className="side-btn"
-          onClick={(e) => {
-            e.stopPropagation();
-            p.onUp();
-          }}
-          title="Lên"
-          aria-label="Di chuyển lên"
-        >
-          ▲
-        </button>
-        <button
-          type="button"
-          className="side-btn"
-          onClick={(e) => {
-            e.stopPropagation();
-            p.onDown();
-          }}
-          title="Xuống"
-          aria-label="Di chuyển xuống"
-        >
-          ▼
-        </button>
-        <button
-          type="button"
-          className="side-btn del"
-          onClick={(e) => {
-            e.stopPropagation();
-            p.onDelete();
-          }}
-          title="Xoá block"
-          aria-label="Xoá"
-        >
-          ✕
-        </button>
-      </div>
+      {!isMinimalMediaCompose ? (
+        <div className="block-side">
+          <button
+            type="button"
+            className="side-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              p.onUp();
+            }}
+            title="Lên"
+            aria-label="Di chuyển lên"
+          >
+            ▲
+          </button>
+          <button
+            type="button"
+            className="side-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              p.onDown();
+            }}
+            title="Xuống"
+            aria-label="Di chuyển xuống"
+          >
+            ▼
+          </button>
+          <button
+            type="button"
+            className="side-btn del"
+            onClick={(e) => {
+              e.stopPropagation();
+              p.onDelete();
+            }}
+            title="Xoá block"
+            aria-label="Xoá"
+          >
+            ✕
+          </button>
+        </div>
+      ) : null}
       <div className="block-inner">
         <BlockInner {...p} />
       </div>
     </div>
   );
+}
+
+function EditorMinimalVideoPreview({
+  embedUrl,
+  localPreviewUrl,
+  uploading,
+  error,
+}: {
+  embedUrl: string;
+  localPreviewUrl: string | null;
+  uploading: boolean;
+  error: string | null;
+}) {
+  const bunny = embedUrl.trim() ? classifyBunnyVideoUrl(embedUrl) : null;
+
+  if (error) {
+    return <p className="ed-minimal-video-error">{error}</p>;
+  }
+
+  if (localPreviewUrl) {
+    return (
+      <div className="ed-minimal-video-preview ed-minimal-video-preview--local">
+        {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+        <video src={localPreviewUrl} controls playsInline />
+        {uploading ? (
+          <div className="ed-minimal-video-uploading" aria-live="polite">
+            <Loader2 size={18} strokeWidth={2} className="ed-spin" aria-hidden />
+            <span>Đang tải video lên…</span>
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
+  if (bunny) {
+    return (
+      <div className="ed-minimal-video-preview">
+        <iframe
+          src={bunnyIframeSrc(bunny)}
+          title="Xem trước video"
+          allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+          allowFullScreen
+        />
+      </div>
+    );
+  }
+
+  if (uploading) {
+    return (
+      <div className="ed-minimal-video-preview ed-minimal-video-preview--pending">
+        <Loader2 size={22} strokeWidth={2} className="ed-spin" aria-hidden />
+        <span>Đang chuẩn bị video…</span>
+      </div>
+    );
+  }
+
+  return null;
 }
 
 function BlockInner(p: BlockRowProps) {
@@ -2363,6 +2668,8 @@ function BlockInner(p: BlockRowProps) {
         placeholder={placeholder}
         value={b.text || ""}
         onChange={p.onChangeText}
+        enableAtHash={p.enableAtHash}
+        onAtHashSync={p.onAtHashSync}
       />
     );
   }
@@ -2374,6 +2681,8 @@ function BlockInner(p: BlockRowProps) {
           placeholder="Trích dẫn nổi bật…"
           value={b.text || ""}
           onChange={p.onChangeText}
+          enableAtHash={p.enableAtHash}
+          onAtHashSync={p.onAtHashSync}
         />
       </div>
     );
@@ -2480,6 +2789,16 @@ function BlockInner(p: BlockRowProps) {
   }
 
   if (b.t === "embed") {
+    if (p.isMinimalMediaCompose && p.minimalVideoState) {
+      return (
+        <EditorMinimalVideoPreview
+          embedUrl={b.embedUrl || ""}
+          localPreviewUrl={p.minimalVideoState.localPreviewUrl}
+          uploading={p.minimalVideoState.uploading}
+          error={p.minimalVideoState.error}
+        />
+      );
+    }
     return (
       <div className="b-embed">
         <div className="em-ic" aria-hidden>
@@ -2519,7 +2838,9 @@ function ImageBlock({ block, p }: { block: Block; p: BlockRowProps }) {
 
   return (
     <div className="b-imgs">
-      <LayBar block={block} p={p} layout={layout} />
+      {!p.isMinimalMediaCompose ? (
+        <LayBar block={block} p={p} layout={layout} />
+      ) : null}
 
       <div className={`imgwrap ${layout}${block.rounded ? " rounded" : ""}`}>
         {imgs.map((seed, i) => (
@@ -3060,18 +3381,87 @@ function MosaicBlock({ block, p }: { block: Block; p: BlockRowProps }) {
 
 /* ─── Autosize textarea ──────────────────────────────────────────── */
 
+function EditorComposeMetaChips({
+  collaborators,
+  tags,
+  onRemoveCollaborator,
+  onRemoveTag,
+}: {
+  collaborators: CoAuthorDraft[];
+  tags: ArticleTagRef[];
+  onRemoveCollaborator: (id: string) => void;
+  onRemoveTag: (id: string) => void;
+}) {
+  if (collaborators.length === 0 && tags.length === 0) return null;
+  return (
+    <div className="meta-chips ed-compose-meta-chips" aria-label="Cộng sự và thẻ">
+      {collaborators.map((c) => {
+        const name = c.tenHienThi || c.slug;
+        const avatarUrl = getAvatarUrl(c.avatarId ?? null);
+        return (
+          <span key={c.idNguoiDung} className="meta-chip meta-chip-coauthor">
+            <span className="ed-coauthor-avatar" aria-hidden>
+              {avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={avatarUrl} alt="" />
+              ) : (
+                name.slice(0, 1).toUpperCase()
+              )}
+            </span>
+            <span className="meta-chip-name">{name}</span>
+            <button
+              type="button"
+              className="meta-chip-x"
+              aria-label={`Bỏ cộng sự ${name}`}
+              onClick={() => onRemoveCollaborator(c.idNguoiDung)}
+            >
+              ×
+            </button>
+          </span>
+        );
+      })}
+      {tags.map((t) => {
+        const cls = articleTagLoaiClass(t.loai_bai_viet);
+        return (
+          <span key={t.id} className={`meta-chip meta-chip-tag ${cls}`}>
+            <span className="meta-chip-loai" aria-hidden>
+              {articleTagLabel(t.loai_bai_viet)}
+            </span>
+            <span className="meta-chip-name">{t.tieu_de}</span>
+            <button
+              type="button"
+              className="meta-chip-x"
+              aria-label={`Bỏ tag ${t.tieu_de}`}
+              onClick={() => onRemoveTag(t.id)}
+            >
+              ×
+            </button>
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
 function AutosizeTextarea({
   className,
   value,
   onChange,
   placeholder,
   maxRows,
+  enableAtHash = false,
+  onAtHashSync,
 }: {
   className?: string;
   value: string;
   onChange: (s: string) => void;
   placeholder?: string;
   maxRows?: number;
+  enableAtHash?: boolean;
+  onAtHashSync?: (
+    trigger: AtHashTrigger | null,
+    textarea: HTMLTextAreaElement,
+  ) => void;
 }) {
   const ref = useRef<HTMLTextAreaElement | null>(null);
 
@@ -3082,6 +3472,12 @@ function AutosizeTextarea({
     ta.style.height = `${ta.scrollHeight + 2}px`;
   }, []);
 
+  const syncAtHash = useCallback(() => {
+    const ta = ref.current;
+    if (!ta || !enableAtHash || !onAtHashSync) return;
+    onAtHashSync(getAtHashTrigger(ta.value, ta.selectionStart), ta);
+  }, [enableAtHash, onAtHashSync]);
+
   useEffect(() => {
     resize();
   }, [value, resize]);
@@ -3089,8 +3485,9 @@ function AutosizeTextarea({
   const onChangeRaw = useCallback(
     (e: ChangeEvent<HTMLTextAreaElement>) => {
       onChange(e.target.value);
+      queueMicrotask(syncAtHash);
     },
-    [onChange],
+    [onChange, syncAtHash],
   );
 
   const onKeyDown = useCallback(
@@ -3114,6 +3511,9 @@ function AutosizeTextarea({
       value={value}
       onChange={onChangeRaw}
       onKeyDown={onKeyDown}
+      onKeyUp={syncAtHash}
+      onClick={syncAtHash}
+      onSelect={syncAtHash}
     />
   );
 }

@@ -1,6 +1,13 @@
 import { redirect } from "next/navigation";
 
 import { HomeWorldJourneyClient } from "@/components/cins/home-v2/HomeWorldJourneyClient";
+import { HomeModuleColumn } from "@/components/cins/home-adaptive/HomeModuleColumn";
+import type { HomeModuleCtx } from "@/components/cins/home-adaptive/types";
+import {
+  resolvePersona,
+  resolveSeeking,
+  type GiaiDoan,
+} from "@/lib/cins/home-adaptive/persona";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import {
   getAvatarUrl,
@@ -9,7 +16,10 @@ import {
 import { fetchOwnerBySlug } from "@/lib/journey/profile-page-fetch";
 import { buildWorldJourneyFilterChips } from "@/lib/cins/worldJourneyFeedFilters";
 import { mapLinhVucForGuestAside } from "@/lib/cins/worldJourneyGuestAside";
-import { fetchWorldJourneyFeedMilestonesCached } from "@/lib/cins/worldJourneyFeedFetch";
+import {
+  fetchWorldJourneyExploreMilestonesCached,
+  fetchWorldJourneyFeedMilestonesCached,
+} from "@/lib/cins/worldJourneyFeedFetch";
 import { listLinhVucForHub } from "@/lib/career/queries";
 
 import "@/app/[slug]/journey/journey.css";
@@ -28,10 +38,23 @@ export async function HomeWorldJourneyMain() {
 
   const filterChips = buildWorldJourneyFilterChips();
   const linhVucs = mapLinhVucForGuestAside(await listLinhVucForHub());
-  const milestones = await fetchWorldJourneyFeedMilestonesCached(session.profile.id);
+  const [milestones, exploreMilestones] = await Promise.all([
+    fetchWorldJourneyFeedMilestonesCached(session.profile.id),
+    fetchWorldJourneyExploreMilestonesCached(session.profile.id),
+  ]);
+
+  const giaiDoan = owner.giai_doan as GiaiDoan | null;
+  const moduleCtx: HomeModuleCtx = {
+    viewerId: session.profile.id,
+    viewerSlug: owner.slug,
+    persona: resolvePersona(giaiDoan),
+    seeking: resolveSeeking(giaiDoan),
+  };
 
   return (
     <HomeWorldJourneyClient
+      leftAside={<HomeModuleColumn side="left" ctx={moduleCtx} />}
+      rightAside={<HomeModuleColumn side="right" ctx={moduleCtx} />}
       sidebarProfile={{
         id: owner.id,
         slug: owner.slug,
@@ -50,6 +73,7 @@ export async function HomeWorldJourneyMain() {
       filterChips={filterChips}
       linhVucs={linhVucs}
       milestones={milestones}
+      exploreMilestones={exploreMilestones}
     />
   );
 }

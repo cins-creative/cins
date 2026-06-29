@@ -129,7 +129,7 @@
 | `editor/` · `tiptap/` | Editor: sanitize, image-layout, co-author role, search | `sanitize.ts`, `coauthor-role-action.ts` |
 | `images/` | Crop cover/square/viewport | `crop-*.ts` |
 | `admin/` | Article admin, môn thi, sql-runner, require-admin | `require-admin.ts`, `sql-runner.ts`, `db-connection.ts` |
-| `cins/` | Navigation, hub paths | `mainNav.ts`, `hubPaths.ts` |
+| `cins/` | Navigation, hub paths, **World Journey feed**, **trang chủ adaptive** | `mainNav.ts`, `hubPaths.ts`, `worldJourneyFeedFetch.ts`, `worldJourneyOrgFeed.ts`, `home-adaptive/*` |
 | `dev/` | Dev tools inline edit | `inline-article-edit.ts` |
 | `youtube.ts` | Nhúng YouTube | (root) |
 
@@ -157,6 +157,7 @@
 | `migration_org_bai_dang_noi_dung_blocks.sql` | Cột `org_bai_dang.noi_dung_blocks` jsonb — nội dung Block kiểu Journey; `noi_dung` HTML legacy giữ tạm. |
 | `migration_khoa_hoc_v2.sql` | **Trang khóa học v2** (gộp, thay `migration_giao_trinh_thu_tu.sql` lẻ): `org_giao_trinh.thu_tu` + `so_buoi`; `org_lop_hoc.lich_hoc` + `giao_vien_text`; `org_khoa_hoc.noi_dung_blocks`. Idempotent + backfill `thu_tu`. Chạy xong → regenerate SCHEMA.md. |
 | `migration_org_hinh_anh_loai_expand.sql` | Mở rộng CHECK `org_hinh_anh.loai`: thêm `ngoai_khoa`, `su_kien`, `hop_tac` (UI gallery tab Hình ảnh). Chạy: `node scripts/run-org-hinh-anh-loai-migration.mjs`. |
+| `migration_org_tuyen_dung.sql` | **Trang chủ adaptive:** `org_tuyen_dung` + `org_tuyen_dung_ung_tuyen` + `org_scout_luu`; enum `loai_hinh_lam_viec_enum`, `trang_thai_tuyen_dung_enum`, `trang_thai_ung_tuyen_enum`. Chạy: `node scripts/run-org-tuyen-dung-migration.mjs`. |
 
 **Org bài đăng — blocks (app, sau migration):** `lib/truong/bai-dang-blocks.ts` · API `bai-dang` POST/PATCH nhận `noi_dung_blocks` · fetch `queries.ts` · card có blocks → `JourneyMilestoneCardBodyContent` + `PostBlockRenderer`; không blocks → HTML legacy. Compose org vẫn Tiptap/HTML — chưa ghi blocks từ UI.
 
@@ -226,6 +227,7 @@ GOOGLE_CLIENT_ID / SECRET
 | Route trường | `/truong-dai-hoc/[slug]` — layout v6 (`tdh-page--v6`) |
 | Route Journey | `/{slug}` timeline · `/{slug}/p/{postSlug}` bài viết · `/{slug}/p/new` tạo (cần login) |
 | Hub công khai | `/`, `/nganh-hoc`, `/nghe-nghiep`, `/truong-dai-hoc`, `/bai-viet`, … |
+| **Trang chủ (đã login)** | `/` → `HomeWorldJourneyMain` — layout 3 cột adaptive (`components/cins/home-adaptive/`), feed giữa `WorldJourneyFeed` (tab Đang theo dõi / Khám phá). Persona từ `giai_doan`. Brief: `cursor_brief_trang_chu_adaptive.md`. |
 | **Cộng đồng** | `/cong-dong` (listing) · `/cong-dong/tao` · `/cong-dong/[slug]` (feed v4) · … |
 | **Cơ sở đào tạo** | `/co-so` (listing) · `/co-so/[slug]` (chi tiết v6) · `/co-so/[slug]/khoa-hoc/[khoa-slug]` (trang khóa — đã có route site) |
 | **Khóa học (cơ sở đào tạo)** | Xem §6 *Khóa học — chi tiết site* |
@@ -247,6 +249,16 @@ GOOGLE_CLIENT_ID / SECRET
 | Callback | Đọc verifier từ **request** cookies, ghi session lên **response** redirect (`lib/supabase/route-handler.ts`) |
 | Co-author trên Journey | Tagged/bookmark: `che_do_hien_thi_journey` — user tự đặt Nổi bật trên timeline của mình. Migration: `migration_journey_foreign_visibility.sql` |
 | Like count | Hiển thị công khai mặc định (`attachSocialState`, `PostActionsRail`) |
+
+### Trang chủ adaptive (`giai_doan`)
+
+- **Entry:** `app/page.tsx` → `HomeWorldJourneyMain` (`components/cins/home-v2/`) khi đã login; guest vẫn aside generic.
+- **Persona:** `lib/cins/home-adaptive/persona.ts` — `resolvePersona(giai_doan)` → `hoc` | `lam` | `day`; `tim_viec` → `seeking` trên cụm LÀM.
+- **Module registry:** `components/cins/home-adaptive/HomeModuleColumn.tsx` + `modules/{hoc,lam,day,shared}.tsx`.
+- **Data loaders:** `lib/cins/home-adaptive/fetches.ts`, `co-hoi.ts`, `suggestions.ts`, `profile-completeness.ts`.
+- **Feed (giữa, chung mọi persona):** `WorldJourneyFeed` — tab follow (`fetchWorldJourneyMilestonesCached`: user + tag + org) · tab explore (`fetchWorldJourneyExploreMilestonesCached`). Auto chuyển Khám phá khi follow feed trống.
+- **CSS module:** `app/world-journey-feed.css` (prefix `ha-*`, `wj-feed-tabs`).
+- **DB mới (co_hoi / scout):** xem `migration_org_tuyen_dung.sql` · L19 `CINS_DECISIONS.md`.
 
 ### Cộng đồng — chi tiết site
 

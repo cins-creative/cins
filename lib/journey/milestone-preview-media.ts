@@ -7,7 +7,7 @@ import { buildBunnyVideoThumbnailUrl } from "@/lib/bunny/thumbnail";
 import { journeyImageFields } from "@/lib/journey/images";
 import {
   detectMediaPostKind,
-  extractPhotoImageIds,
+  extractAllImageIds,
   extractVideoUrl,
 } from "@/lib/journey/post-media";
 
@@ -28,7 +28,11 @@ function coverFromImageId(
   ];
 }
 
-/** Preview ảnh/video trên milestone card — cover CF, ảnh album, thumbnail Bunny. */
+/**
+ * Preview ảnh/video trên milestone card (article cover, video thumb).
+ * Bài album ảnh: chỉ trả preview khi có `cover_id` tuỳ chọn — ảnh album render từ blocks;
+ * thumb Gallery dùng `resolveGalleryVisual` (ảnh đầu album khi không có cover).
+ */
 export function milestonePreviewMedia(
   coverId: string | null | undefined,
   blocks: Block[] | null | undefined,
@@ -37,17 +41,6 @@ export function milestonePreviewMedia(
   const parsed = blocks ?? [];
   const mediaKind = detectMediaPostKind(parsed);
   const trimmedCover = coverId?.trim() || null;
-
-  if (trimmedCover && mediaKind !== "photo") {
-    const fromCover = coverFromImageId(trimmedCover, label);
-    if (fromCover.length > 0) return fromCover;
-  }
-
-  if (mediaKind === "photo") {
-    const photoId = extractPhotoImageIds(parsed)[0] ?? trimmedCover;
-    if (photoId) return coverFromImageId(photoId, label);
-    return [];
-  }
 
   if (mediaKind === "video") {
     const videoUrl = extractVideoUrl(parsed);
@@ -62,6 +55,14 @@ export function milestonePreviewMedia(
     return [];
   }
 
-  if (trimmedCover) return coverFromImageId(trimmedCover, label);
+  if (mediaKind === "photo") {
+    if (trimmedCover) return coverFromImageId(trimmedCover, label);
+    return [];
+  }
+
+  const contentImageId = extractAllImageIds(parsed)[0] ?? null;
+  const resolvedId = trimmedCover ?? contentImageId;
+  if (resolvedId) return coverFromImageId(resolvedId, label);
+
   return [];
 }

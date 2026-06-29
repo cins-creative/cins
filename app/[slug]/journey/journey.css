@@ -894,7 +894,6 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   border-radius: 10px;
   overflow: hidden;
   background: var(--bg-surface);
-  transition: transform 0.18s var(--j-ease);
 }
 button.j-main-gallery-item,
 a.j-main-gallery-item {
@@ -914,14 +913,80 @@ a.j-main-gallery-item:focus-visible {
   outline: 2px solid rgba(31, 116, 201, 0.45);
   outline-offset: 2px;
 }
-.j-main-gallery-item:hover {
-  transform: translateY(-3px);
-}
 .j-main-gallery-thumb {
   position: relative;
+  flex: 1 1 auto;
+  width: 100%;
   aspect-ratio: 16 / 9;
   overflow: hidden;
   background: var(--neutral-100);
+}
+/* Ô "Thêm bài viết" — cell đầu gallery khi xem trang của chính mình. */
+.j-main-gallery-item.j-main-gallery-create {
+  aspect-ratio: 16 / 9;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px;
+  border: 1.5px dashed var(--border);
+  background: var(--bg-surface);
+  transition: border-color 120ms ease, background 120ms ease;
+}
+.j-main-gallery-item.j-main-gallery-create:hover {
+  border-color: var(--cins-blue, #1f74c9);
+  background: var(--cins-blue-soft, #eef4ff);
+}
+.j-main-gallery-create-main {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--ink-body);
+  font: inherit;
+  cursor: pointer;
+}
+.j-main-gallery-create-plus {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: var(--cins-blue, #1f74c9);
+  color: #fff;
+}
+.j-main-gallery-create-label {
+  font-size: 13px;
+  font-weight: 600;
+}
+.j-main-gallery-create-actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+.j-main-gallery-create-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease;
+}
+.j-main-gallery-create-actions button:hover {
+  color: var(--cins-blue, #1f74c9);
+  border-color: var(--cins-blue, #1f74c9);
 }
 .j-gallery-verified-badge {
   position: absolute;
@@ -940,6 +1005,105 @@ a.j-main-gallery-item:focus-visible {
     0 1px 4px rgba(15, 23, 42, 0.18),
     0 0 0 2px rgba(255, 255, 255, 0.75);
   pointer-events: none;
+}
+.j-gallery-verified-badge.is-interactive {
+  pointer-events: auto;
+  cursor: help;
+  outline: none;
+}
+.j-gallery-verified-badge.is-interactive:hover,
+.j-gallery-verified-badge.is-interactive:focus-visible {
+  box-shadow:
+    0 2px 8px rgba(15, 23, 42, 0.28),
+    0 0 0 2px rgba(255, 255, 255, 0.95);
+}
+/* Tooltip xác thực — fixed (thoát overflow:hidden của card), neo phải badge. */
+.j-verify-tip {
+  position: fixed;
+  z-index: 1200;
+  transform: translateX(-100%);
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 168px;
+  max-width: 248px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--ink-display, #0f172a);
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.28);
+  font-family: var(--font-sans);
+  pointer-events: none;
+  animation: jVerifyTipIn 120ms ease;
+}
+@keyframes jVerifyTipIn {
+  from {
+    opacity: 0;
+    transform: translateX(-100%) translateY(-3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-100%) translateY(0);
+  }
+}
+.j-verify-tip-loading {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.85);
+}
+.j-verify-tip-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.j-verify-tip-avatar {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--j-verified, #16a34a);
+  color: #fff;
+}
+.j-verify-tip-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.j-verify-tip-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.j-verify-tip-name {
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.j-verify-tip-role {
+  font-size: 11px;
+  line-height: 1.3;
+  color: rgba(255, 255, 255, 0.72);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.j-verify-tip-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--cins-green-soft, #6efec0);
 }
 .j-main-gallery-item.is-org-create {
   background:
@@ -1126,6 +1290,13 @@ a.j-main-gallery-item:focus-visible {
   object-fit: cover;
   display: block;
 }
+/* Ảnh/placeholder phải ra khỏi luồng để chiều cao thumb chỉ do aspect-ratio
+   quyết định — ảnh dọc/nhỏ không còn đẩy giãn hay co hẹp card. */
+.j-main-gallery-thumb img,
+.j-main-gallery-thumb .j-gallery-video-ph {
+  position: absolute;
+  inset: 0;
+}
 .j-gallery-video-ph {
   display: flex;
   align-items: center;
@@ -1144,6 +1315,7 @@ a.j-main-gallery-item:focus-visible {
 .j-main-gallery-item .j-g-play {
   pointer-events: none;
 }
+/* Legacy info block — vẫn dùng ở TruongDoanProjectMasonry (title dưới ảnh). */
 .j-main-gallery-info {
   padding: 10px 12px 12px;
   display: flex;
@@ -1171,6 +1343,105 @@ a.j-main-gallery-item:focus-visible {
   overflow: hidden;
 }
 
+/* Card gallery: mặc định chỉ hiện cover; hover → overlay thông tin fade-in.
+   Avatar nằm ngay trên tiêu đề, cả khối neo dưới đáy. Không zoom, không trượt. */
+.j-main-gallery-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 12px;
+  color: #fff;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(15, 23, 42, 0) 0%,
+      rgba(15, 23, 42, 0) 40%,
+      rgba(15, 23, 42, 0.86) 100%
+    );
+  opacity: 0;
+  transition: opacity 0.18s var(--j-ease);
+  pointer-events: none;
+}
+.j-main-gallery-item:hover .j-main-gallery-overlay,
+.j-main-gallery-item:focus-visible .j-main-gallery-overlay,
+.j-main-gallery-item:focus-within .j-main-gallery-overlay {
+  opacity: 1;
+}
+
+/* Author chip — glass pill, nằm trên tiêu đề. */
+.j-main-gallery-author {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 100%;
+  margin-bottom: 7px;
+  padding: 4px 10px 4px 4px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.42);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  min-width: 0;
+}
+.j-main-gallery-overlay .j-main-gallery-author-avatar {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  max-width: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex: 0 0 auto;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+.j-main-gallery-overlay .j-main-gallery-author-avatar--fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+}
+.j-main-gallery-author-name {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Khối tiêu đề + nội dung — neo dưới đáy. */
+.j-main-gallery-overlay-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.j-main-gallery-overlay-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1.32;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-shadow: 0 1px 3px rgba(15, 23, 42, 0.5);
+}
+.j-main-gallery-overlay-excerpt {
+  font-size: 12px;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.85);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-shadow: 0 1px 2px rgba(15, 23, 42, 0.45);
+}
+
 @media (max-width: 991.98px) {
   .j-main-gallery-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1193,26 +1464,40 @@ a.j-main-gallery-item:focus-visible {
     transform: scale(0.72);
     transform-origin: top left;
   }
-  .j-main-gallery-info {
-    padding: 5px 6px 6px;
-    gap: 1px;
+  .j-main-gallery-overlay {
+    padding: 7px;
+    gap: 3px;
   }
-  .j-main-gallery-info strong {
+  .j-main-gallery-overlay .j-main-gallery-author-avatar {
+    width: 18px;
+    height: 18px;
+    min-width: 18px;
+    max-width: 18px;
+  }
+  .j-main-gallery-author-name {
     font-size: 10px;
-    font-weight: 600;
-    line-height: 1.25;
-    -webkit-line-clamp: 3;
   }
-  .j-main-gallery-info small,
-  .j-main-gallery-excerpt {
-    font-size: 9px;
-    line-height: 1.2;
+  .j-main-gallery-overlay-title {
+    font-size: 11px;
+    line-height: 1.25;
+  }
+  .j-main-gallery-overlay-excerpt {
+    font-size: 10px;
+    line-height: 1.25;
+    -webkit-line-clamp: 1;
   }
   .j-main-gallery-thumb .j-g-play,
   .j-main-gallery-item .j-g-play {
     width: 22px;
     height: 22px;
     font-size: 8px;
+  }
+}
+
+/* Thiết bị cảm ứng không có hover — hiện overlay sẵn để vẫn thấy thông tin. */
+@media (hover: none) {
+  .j-main-gallery-overlay {
+    opacity: 1;
   }
 }
 .j-friends-grid {
@@ -2495,15 +2780,6 @@ a.j-main-gallery-item:focus-visible {
   transition:
     opacity 0.34s var(--j-unfold-ease, cubic-bezier(0.22, 1, 0.36, 1)),
     transform 0.34s var(--j-unfold-ease, cubic-bezier(0.22, 1, 0.36, 1));
-}
-.jcard--photo .jcard-expand-cta,
-.jcard--video .jcard-expand-cta {
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0) 35%,
-    rgba(255, 255, 255, 0.96) 100%
-  );
-  color: var(--cins-blue, #1f74c9);
 }
 .jcard-body.is-content-open .jcard-expand-cta,
 .j-m-card.jcard--article.is-expanded .jcard-expand-cta {
@@ -6567,9 +6843,16 @@ select.j-edit-input {
 
 .ed-minimal-toolbar {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  flex-direction: column;
+  gap: 10px;
   margin-top: 14px;
+}
+
+.ed-minimal-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
 }
 
 .ed-minimal-tool {
@@ -6579,6 +6862,56 @@ select.j-edit-input {
   font-size: 13px;
 }
 
+.ed-minimal-tool--cover {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 56px;
+  padding: 12px 16px;
+  border: 1.5px dashed var(--border-strong, #cbd5e1);
+  border-radius: var(--radius-md, 12px);
+  background: var(--neutral-50, #f8fafc);
+  color: var(--ink-muted, #64748b);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    color 0.18s ease,
+    background 0.18s ease;
+}
+
+.ed-minimal-tool--cover:hover {
+  border-color: var(--cins-blue, #2563eb);
+  color: var(--cins-blue, #2563eb);
+  background: var(--cins-blue-soft, #eff6ff);
+}
+
+.ed-minimal-tool--cover-label {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  text-align: left;
+}
+
+.ed-minimal-tool--cover-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: inherit;
+  line-height: 1.2;
+}
+
+.ed-minimal-tool--cover-hint {
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0.72;
+  line-height: 1.2;
+}
+
 .ed-video-upload-hint {
   display: flex;
   align-items: center;
@@ -6586,6 +6919,62 @@ select.j-edit-input {
   margin-top: 12px;
   font-size: 13px;
   color: var(--ink-muted);
+}
+
+.cins-editor-page.is-minimal-compose .blocks.is-minimal-media-compose .block.is-minimal-media-block {
+  padding-left: 0;
+}
+
+.cins-editor-page.is-minimal-compose .blocks.is-minimal-media-compose .block.is-minimal-media-block .block-inner {
+  margin-left: 0;
+}
+
+.ed-minimal-video-preview {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-md, 12px);
+  background: #000;
+  aspect-ratio: 16 / 9;
+}
+
+.ed-minimal-video-preview iframe,
+.ed-minimal-video-preview video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  object-fit: contain;
+}
+
+.ed-minimal-video-preview--pending {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--ink-muted, #64748b);
+  font-size: 13px;
+  background: var(--neutral-50, #f8fafc);
+}
+
+.ed-minimal-video-preview--local .ed-minimal-video-uploading {
+  position: absolute;
+  inset: auto 12px 12px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.72);
+  color: #fff;
+  font-size: 13px;
+}
+
+.ed-minimal-video-error {
+  margin: 0;
+  font-size: 13px;
+  color: #b91c1c;
 }
 
 .j-compose-error {
@@ -9745,10 +10134,12 @@ select.j-edit-input {
   align-items: center;
   justify-content: center;
   gap: 12px;
-  min-height: 220px;
   padding: 36px 28px;
   text-align: center;
   color: #fff;
+  aspect-ratio: 5 / 3;
+  width: 100%;
+  box-sizing: border-box;
 }
 .jcard-text-panel-title {
   margin: 0;
@@ -9798,14 +10189,12 @@ select.j-edit-input {
   justify-content: flex-start;
   align-items: stretch;
   height: auto;
-  min-height: 240px;
   aspect-ratio: 5 / 3;
   padding: 24px 28px 0;
   gap: 10px;
 }
 @media (min-width: 768px) {
   .jcard-text-panel.is-collapsed {
-    min-height: 280px;
     padding: 28px 32px 0;
   }
 }
@@ -9814,7 +10203,7 @@ select.j-edit-input {
 }
 .jcard-text-panel.is-content-open {
   height: auto;
-  min-height: 220px;
+  aspect-ratio: auto;
   padding: 36px 28px;
   justify-content: center;
   align-items: center;
@@ -9952,11 +10341,9 @@ select.j-edit-input {
 }
 @media (max-width: 767.98px) {
   .jcard-text-panel {
-    min-height: 180px;
     padding: 28px 20px;
   }
   .jcard-text-panel.is-collapsed {
-    min-height: 220px;
     padding: 20px 20px 0;
   }
   .jcard-text-panel.is-content-open {
@@ -10127,12 +10514,49 @@ select.j-edit-input {
 .j-m-card.jcard--article .jcard-media-zone > :is(.preview, a.preview) img {
   border-radius: 0;
 }
-.j-m-card.jcard--photo .jcard-media-zone > .preview--photo-grid,
-.j-m-card.jcard--photo .jcard-media-zone > .preview--photo-grid .image-grid {
+.j-m-card.jcard--photo .jcard-media-zone .preview--photo-grid,
+.j-m-card.jcard--photo .jcard-media-zone .preview--photo-grid .image-grid,
+.j-m-card.jcard--photo .jcard-media-zone .preview--photo-grid .image-grid-row,
+.j-m-card.jcard--photo .jcard-media-zone .preview--photo-grid .image-grid-cell,
+.j-m-card.jcard--photo .jcard-media-zone .preview--photo-grid .image-grid-cell img {
+  border-radius: 0;
+}
+.jcard-photo-album {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+}
+.preview--album-hero {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: var(--neutral-100, #f1f2f5);
+  cursor: pointer;
+  overflow: hidden;
+  border-radius: 0;
+  position: relative;
+  aspect-ratio: 16 / 9;
+  min-height: 0;
+  max-height: none;
+}
+.preview--album-hero img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  border-radius: 0;
+}
+.j-m-card.jcard--photo .jcard-photo-album > .preview--album-hero,
+.j-m-card.jcard--photo .jcard-photo-album > .preview--photo-grid {
   border-radius: 0;
 }
 .j-m-card.jcard--photo .jcard-media-zone > .preview:not(.preview--photo-grid),
-.j-m-card.jcard--photo .jcard-media-zone > .preview:not(.preview--photo-grid) img {
+.j-m-card.jcard--photo .jcard-media-zone > .preview:not(.preview--photo-grid) img,
+.j-m-card.jcard--photo .jcard-media-zone > a.preview,
+.j-m-card.jcard--photo .jcard-media-zone > a.preview img {
   border-radius: 0;
 }
 .j-m-card.jcard--video .jcard-media-zone > .jcard-video-player,
@@ -10157,7 +10581,7 @@ select.j-edit-input {
   min-height: 0;
   display: block;
   background: var(--neutral-100, #f1f2f5);
-  border-radius: 14px;
+  border-radius: 0;
   overflow: hidden;
   position: relative;
   z-index: 2;
@@ -10165,7 +10589,7 @@ select.j-edit-input {
 }
 .preview--photo-grid .image-grid {
   width: 100%;
-  border-radius: 14px;
+  border-radius: 0;
 }
 .preview--photo-grid .image-grid-cell {
   cursor: pointer;

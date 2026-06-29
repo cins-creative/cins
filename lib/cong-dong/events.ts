@@ -68,3 +68,32 @@ export async function loadUpcomingCongDongEvents(
   if (error || !data) return [];
   return data.map(mapRow);
 }
+
+/**
+ * Sự kiện sắp tới toàn cục cho trang chủ (module `su_kien`, brief §5).
+ * `loaiFilter` lọc "theo cụm" persona; rỗng = không lọc loại.
+ */
+export async function loadUpcomingEventsForHome(
+  loaiFilter: string[] = [],
+  limit = 4,
+): Promise<CongDongEvent[]> {
+  const admin = createServiceRoleClient();
+  const now = new Date().toISOString();
+
+  let query = admin
+    .from("org_su_kien")
+    .select(
+      "id, tieu_de, mo_ta, cover_id, bat_dau, ket_thuc, dia_diem, loai_su_kien",
+    )
+    .or(`ket_thuc.is.null,ket_thuc.gte.${now}`)
+    .order("bat_dau", { ascending: true })
+    .limit(limit);
+
+  if (loaiFilter.length > 0) {
+    query = query.in("loai_su_kien", loaiFilter);
+  }
+
+  const { data, error } = await query.returns<SuKienRow[]>();
+  if (error || !data) return [];
+  return data.map(mapRow);
+}
