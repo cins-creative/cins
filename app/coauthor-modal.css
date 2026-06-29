@@ -33,7 +33,7 @@
 }
 .ed-coauthor-modal {
   position: relative;
-  width: min(760px, 100%);
+  width: min(400px, 100%);
   max-height: min(86vh, 720px);
   overflow: auto;
   border-radius: 22px;
@@ -58,7 +58,6 @@
 .ed-coauthor-modal .ed-coauthor {
   border: none;
   border-radius: 22px;
-  padding-right: 58px;
 }
 .ed-coauthor-modal-actions {
   display: flex;
@@ -78,6 +77,9 @@
   margin: 0 16px 12px;
   color: var(--danger, #e5484d);
   font-weight: 700;
+}
+.ed-coauthor-hint.ed-coauthor-modal-feedback.is-success {
+  color: var(--success, #16a34a);
 }
 .ed-coauthor-save {
   min-height: 38px;

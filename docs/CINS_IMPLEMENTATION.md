@@ -201,7 +201,13 @@ CLOUDFLARE_*             (account hash, API token)
 GOOGLE_CLIENT_ID / SECRET
 ```
 
-- **Deploy**: Vercel. Max 4.5MB request body → video KHÔNG đi qua Vercel (browser upload thẳng Bunny qua TUS; Vercel chỉ `post-video/prepare` ký request).
+- **Deploy**: **Cloudflare Workers** qua OpenNext (`@opennextjs/cloudflare`). Config: `wrangler.jsonc` (`nodejs_compat`, binding `HYPERDRIVE` + `ASSETS`), `open-next.config.ts`. Worker hiện tại: `https://cins-website.info-cins-vn.workers.dev`.
+  - **Build phải dùng webpack** (`next build --webpack`) — build Turbopack chạy trên Workers bị `ChunkLoadError`. Đã cài trong script `build`.
+  - **Postgres TCP** (admin SQL `lib/admin/*`, tag trigram `lib/tag/postgres.ts`) đi qua **Hyperdrive** (config `cins-supabase`, binding `HYPERDRIVE`, caching off). Code lấy connection string từ `lib/db/hyperdrive.ts`; fallback `DATABASE_URL` khi chạy Node (`next dev`).
+  - **Env**: `NEXT_PUBLIC_*` inline lúc build từ `.env.local`. Secret server-side set bằng `wrangler secret bulk` (SUPABASE_SERVICE_ROLE_KEY, CLOUDFLARE_IMAGES_API_TOKEN, ARTICLE_INLINE_IMAGE_UPLOAD_TOKEN, DATABASE_URL, BUNNY_*, GOOGLE_*, CINS_SYSTEM_USER_ID). Local preview: `.dev.vars` (gitignore).
+  - **Scripts**: `npm run preview` (build + wrangler preview), `npm run deploy` (build + deploy), `npm run cf-typegen`. Deploy local cần biến `CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE`.
+  - **OAuth**: thêm `https://<worker-domain>/auth/callback` vào Supabase → Authentication → URL Configuration → Redirect URLs.
+  - Request body lớn: video KHÔNG đi qua server (browser upload thẳng Bunny qua TUS; server chỉ `post-video/prepare` ký request).
 - **Video flow**: `prepare` (tạo object + ký) → browser TUS upload → Bunny re-encode HLS → webhook/poll `status`/`processing` → `complete` → `notifications/video-ready`.
 - **Auth**: Google OAuth only, `/login` với `state` phân biệt đăng ký/đăng nhập; onboarding modal overlay khi `giai_doan IS NULL`; trigger `handle_new_user()` `SECURITY DEFINER`.
 

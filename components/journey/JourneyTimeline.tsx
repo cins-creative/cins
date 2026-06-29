@@ -133,7 +133,21 @@ export function JourneyTimeline({
   const loadingMoreRef = useRef(false);
 
   useEffect(() => {
-    setItems([...initialMilestones]);
+    setItems((prev) => {
+      const serverTpIds = new Set(
+        initialMilestones
+          .map((m) => m.tacPhamId)
+          .filter((id): id is string => Boolean(id)),
+      );
+      const optimisticOnly = prev.filter(
+        (m) => m.tacPhamId && !serverTpIds.has(m.tacPhamId),
+      );
+      let merged = [...initialMilestones];
+      for (const extra of optimisticOnly) {
+        merged = mergeMilestoneIntoTimeline(merged, extra);
+      }
+      return merged;
+    });
     setHasMore(scrollLoad?.hasMore ?? false);
     setNextOffset(scrollLoad?.nextOffset ?? initialMilestones.length);
     setLoadError(false);
@@ -224,6 +238,11 @@ export function JourneyTimeline({
       const detail = (event as CustomEvent<CoAuthorInviteAcceptedDetail>).detail;
       if (!detail || detail.ownerSlug !== ownerSlug) return;
       setItems((prev) => mergeMilestoneIntoTimeline(prev, detail.milestone));
+      const mid = detail.milestone.cotMocId ?? detail.milestone.id;
+      requestAnimationFrame(() => {
+        const el = rootRef.current?.querySelector(`[data-mid="${mid}"]`);
+        el?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
     };
     const onFailed = (event: Event) => {
       const detail = (event as CustomEvent<CoAuthorInviteFailedDetail>).detail;
@@ -535,6 +554,8 @@ export function JourneyTimeline({
           isOwner={isOwner}
           viewerProfileId={viewerProfileId}
           ownerSlug={ownerSlug}
+          ownerName={ownerName}
+          ownerAvatarUrl={ownerAvatarUrl}
           initialCoAuthorInvites={coAuthorPendingInvites}
           initialCoSoStaffInvites={coSoStaffPendingInvites}
           initialMembershipPending={membershipPendingOutbound}

@@ -69,8 +69,10 @@ export function PostPageClientBridge({
     void fetch(
       `/api/journey/${encodeURIComponent(ownerSlug)}/p/${encodeURIComponent(postSlug)}`,
     )
-      .then((res) => (res.ok ? res.json() : null))
-      .then((fresh: MilestonePostDetail | null) => {
+      .then((res) =>
+        res.ok ? (res.json() as Promise<MilestonePostDetail>) : null,
+      )
+      .then((fresh) => {
         if (!fresh) return;
         setDetail(fresh);
         setCommentCountOverride(fresh.social.commentCount);

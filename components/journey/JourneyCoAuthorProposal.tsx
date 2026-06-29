@@ -45,13 +45,10 @@ export function JourneyCoAuthorProposal({
   const [collaborators, setCollaborators] = useState<CoAuthorDraft[]>([]);
   const [loadingList, setLoadingList] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [messageTone, setMessageTone] = useState<"error" | "success">("error");
   const [pending, startTransition] = useTransition();
   const isOwnerMode = mode === "owner";
   const title = isOwnerMode ? "Quản lý cộng sự" : "Đề xuất cộng sự";
-  const helperText = isOwnerMode
-    ? "Thêm hoặc bỏ cộng sự — người mới sẽ nhận lời mời."
-    : "Đề xuất sẽ được gửi cho chủ bài viết duyệt trước khi mời cộng sự.";
-  const submitLabel = isOwnerMode ? "Lưu" : "Gửi đề xuất";
 
   useEffect(() => {
     queueMicrotask(() => setMounted(true));
@@ -72,6 +69,7 @@ export function JourneyCoAuthorProposal({
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
+        setMessageTone("error");
         setMessage(
           typeof json.error === "string"
             ? json.error
@@ -83,6 +81,7 @@ export function JourneyCoAuthorProposal({
       const rows = (json.tac_gia ?? []) as CoAuthorPersisted[];
       setCollaborators(persistedToDraft(rows));
     } catch {
+      setMessageTone("error");
       setMessage("Lỗi mạng khi tải cộng sự.");
       setCollaborators([]);
     } finally {
@@ -109,42 +108,69 @@ export function JourneyCoAuthorProposal({
     };
   }, [open, close]);
 
-  const submitOwner = () => {
-    setMessage(null);
-    startTransition(async () => {
-      const res = await fetch(`/api/tac-pham/${tacPhamId}/tac-gia`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ collaborators }),
-      });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setMessage(
-          typeof json.error === "string"
-            ? json.error
-            : "Không lưu được danh sách cộng sự.",
-        );
-        return;
-      }
-      if (
-        Array.isArray(json.coAuthorCredits) &&
-        typeof json.tacPhamId === "string"
-      ) {
-        dispatchMilestoneCreditsUpdated({
-          tacPhamId: json.tacPhamId,
-          coAuthorCredits: json.coAuthorCredits as CoAuthorCredit[],
+  // Owner: mọi thay đổi (thêm/xóa cộng sự) tự lưu ngay, không cần nút "Lưu".
+  const persistOwner = useCallback(
+    (list: CoAuthorDraft[]) => {
+      setMessage(null);
+      startTransition(async () => {
+        const res = await fetch(`/api/tac-pham/${tacPhamId}/tac-gia`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ collaborators: list }),
         });
-      }
-      setMessage("Đã lưu cộng sự.");
-      close();
-    });
-  };
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setMessageTone("error");
+          setMessage(
+            typeof json.error === "string"
+              ? json.error
+              : "Không lưu được danh sách cộng sự.",
+          );
+          return;
+        }
+        if (
+          Array.isArray(json.coAuthorCredits) &&
+          typeof json.tacPhamId === "string"
+        ) {
+          dispatchMilestoneCreditsUpdated({
+            tacPhamId: json.tacPhamId,
+            coAuthorCredits: json.coAuthorCredits as CoAuthorCredit[],
+          });
+        }
+        setMessageTone("success");
+        setMessage("Đã lưu cộng sự.");
+      });
+    },
+    [tacPhamId],
+  );
 
-  const submitProposal = () => {
-    if (collaborators.length === 0) return;
+  const handleOwnerChange = useCallback(
+    (next: CoAuthorDraft[]) => {
+      setCollaborators(next);
+      persistOwner(next);
+    },
+    [persistOwner],
+  );
+
+  const handleOwnerConfirm = useCallback(
+    (drafts: CoAuthorDraft[]) => {
+      const merged = [
+        ...collaborators,
+        ...drafts.filter(
+          (d) => !collaborators.some((c) => c.idNguoiDung === d.idNguoiDung),
+        ),
+      ];
+      setCollaborators(merged);
+      persistOwner(merged);
+    },
+    [collaborators, persistOwner],
+  );
+
+  const submitProposal = (list: CoAuthorDraft[] = collaborators) => {
+    if (list.length === 0) return;
     setMessage(null);
     startTransition(async () => {
-      for (const item of collaborators) {
+      for (const item of list) {
         const res = await fetch(`/api/tac-pham/${tacPhamId}/tac-gia`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -155,6 +181,7 @@ export function JourneyCoAuthorProposal({
         });
         const json = await res.json().catch(() => ({}));
         if (!res.ok) {
+          setMessageTone("error");
           setMessage(
             typeof json.error === "string"
               ? json.error
@@ -163,20 +190,12 @@ export function JourneyCoAuthorProposal({
           return;
         }
       }
+      setMessageTone("success");
       setMessage("Đã gửi đề xuất cho chủ bài viết duyệt.");
       setCollaborators([]);
       close();
     });
   };
-
-  const submit = () => {
-    if (isOwnerMode) submitOwner();
-    else submitProposal();
-  };
-
-  const canSubmit = isOwnerMode
-    ? !loadingList && !pending
-    : collaborators.length > 0 && !pending;
 
   const modal = open ? (
     <div
@@ -210,25 +229,30 @@ export function JourneyCoAuthorProposal({
             ownerId={ownerId}
             collaborators={collaborators}
             ownerVaiTro=""
-            onCollaboratorsChange={setCollaborators}
+            onCollaboratorsChange={
+              isOwnerMode ? handleOwnerChange : setCollaborators
+            }
             onOwnerVaiTroChange={() => {}}
-            initialPickerOpen={isOwnerMode}
+            initialPickerOpen
+            onConfirmSelection={
+              isOwnerMode ? handleOwnerConfirm : (drafts) => submitProposal(drafts)
+            }
           />
         )}
-        {message ? (
-          <p className="ed-coauthor-hint ed-coauthor-modal-feedback">{message}</p>
-        ) : null}
-        <div className="ed-coauthor-modal-actions">
-          <span>{helperText}</span>
-          <button
-            type="button"
-            className="ed-coauthor-save"
-            disabled={!canSubmit}
-            onClick={submit}
+        {pending ? (
+          <p className="ed-coauthor-hint ed-coauthor-modal-feedback">
+            Đang lưu…
+          </p>
+        ) : message ? (
+          <p
+            className={
+              "ed-coauthor-hint ed-coauthor-modal-feedback" +
+              (messageTone === "success" ? " is-success" : "")
+            }
           >
-            {pending ? "Đang lưu…" : submitLabel}
-          </button>
-        </div>
+            {message}
+          </p>
+        ) : null}
       </div>
     </div>
   ) : null;

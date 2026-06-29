@@ -22,6 +22,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { AuthorRoleTooltip } from "@/components/journey/AuthorRoleTooltip";
+import { parseVaiTroPositions } from "@/lib/social/vai-tro";
 import { JourneyAuthorRowFriendAction } from "@/components/journey/JourneyAuthorRowFriendAction";
 import { JourneyMilestoneCardBodyContent } from "@/components/journey/JourneyMilestoneCardBodyContent";
 import { JourneyMilestoneUnfold } from "@/components/journey/JourneyMilestoneUnfold";
@@ -754,7 +755,9 @@ export function JourneyMilestoneCard({
                     >
                       {c.name}
                     </span>
-                    {c.role ? <AuthorRoleTooltip role={c.role} /> : null}
+                    {parseVaiTroPositions(c.role).map((pos) => (
+                      <AuthorRoleTooltip key={pos} role={pos} />
+                    ))}
                   </span>
                 </span>
               </JourneyUserPopover>

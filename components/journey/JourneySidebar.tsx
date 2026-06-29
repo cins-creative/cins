@@ -212,17 +212,12 @@ export function JourneySidebar({
         ) : null}
       </div>
 
-      <div className="j-profile-summary">
-        <div className="j-ai-tag">AI Summary</div>
-        {profile.aiSummaryJourney ? (
+      {profile.aiSummaryJourney ? (
+        <div className="j-profile-summary">
+          <div className="j-ai-tag">AI Summary</div>
           <p>{profile.aiSummaryJourney}</p>
-        ) : (
-          <p className="j-profile-summary-empty">
-            Chưa có tóm tắt AI. Tóm tắt sẽ tự sinh sau khi bạn ghi vài cột mốc
-            đầu tiên trên Journey.
-          </p>
-        )}
-      </div>
+        </div>
+      ) : null}
 
       {switchNav}
     </aside>

@@ -49,5 +49,3 @@ async function handleCongDongSavePost(req: Request, ctx: RouteContext) {
 export async function POST(req: Request, ctx: RouteContext) {
   return handleCongDongSavePost(req, ctx);
 }
-
-export { handleCongDongSavePost };

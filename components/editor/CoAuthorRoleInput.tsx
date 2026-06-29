@@ -25,6 +25,11 @@ type Props = {
   options: CoAuthorNgheRoleOption[];
   ariaLabel: string;
   placeholder?: string;
+  /**
+   * Khi user chọn 1 option. Nếu truyền, dùng thay cho `onChange(label)` lúc chọn
+   * (để caller tự xử lý — vd. gom nhiều vị trí). `onChange` vẫn dùng cho gõ text.
+   */
+  onSelect?: (option: CoAuthorNgheRoleOption) => void;
 };
 
 export function CoAuthorRoleInput({
@@ -33,6 +38,7 @@ export function CoAuthorRoleInput({
   options,
   ariaLabel,
   placeholder = "Tìm vị trí công việc",
+  onSelect,
 }: Props) {
   const listId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -67,11 +73,15 @@ export function CoAuthorRoleInput({
 
   const selectOption = useCallback(
     (option: CoAuthorNgheRoleOption) => {
-      onChange(option.roleLabel);
+      if (onSelect) {
+        onSelect(option);
+      } else {
+        onChange(option.roleLabel);
+      }
       closeList();
       inputRef.current?.blur();
     },
-    [closeList, onChange],
+    [closeList, onChange, onSelect],
   );
 
   useEffect(() => {

@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
-import { readFile } from "node:fs/promises";
-import path from "node:path";
 
 import { CinsShell } from "@/components/cins/CinsShell";
 import { CinsHomeV2Page } from "@/components/cins/home-v2/CinsHomeV2Page";
+import homeV2Body from "@/components/cins/home-v2/home-v2-body";
 import { HomeWorldJourneyMain } from "@/components/cins/home-v2/HomeWorldJourneyMain";
 import { AuthGateRoot } from "@/components/auth/AuthGateProvider";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
@@ -19,14 +18,7 @@ export const metadata: Metadata = {
 
 export default async function Home() {
   const session = await getCurrentSessionAndProfile();
-  const raw = await readFile(
-    path.join(
-      process.cwd(),
-      "components/cins/home-v2/home-v2-body.html",
-    ),
-    "utf8",
-  );
-  const guestMarkup = injectHomeSidebarNav(raw);
+  const guestMarkup = injectHomeSidebarNav(homeV2Body);
 
   if (session?.profile?.slug) {
     return (

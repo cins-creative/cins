@@ -4,6 +4,7 @@ import postgres from "postgres";
 
 import { resolveAdminDbCredentials } from "@/lib/admin/db-connection";
 import { getAdminDbUrl } from "@/lib/admin/db-url";
+import { isUsingHyperdrive } from "@/lib/db/hyperdrive";
 
 export type TagSql = postgres.Sql;
 
@@ -15,6 +16,7 @@ export async function withTagPostgres<T>(
   if (!url) return null;
 
   const db = resolveAdminDbCredentials(url);
+  const viaHyperdrive = isUsingHyperdrive();
   const sql = postgres({
     host: db.host,
     port: db.port,
@@ -24,7 +26,10 @@ export async function withTagPostgres<T>(
     max: 1,
     connect_timeout: 15,
     idle_timeout: 5,
+    /* Hyperdrive đã lo SSL tới origin; không bật SSL tới proxy. */
     ssl: db.host.includes("supabase.co") ? "require" : undefined,
+    /* Hyperdrive khuyến nghị tắt fetch_types để giảm round-trip. */
+    ...(viaHyperdrive ? { fetch_types: false } : {}),
   });
 
   try {

@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { loadCoAuthorCreditsForTacPham } from "@/lib/journey/coauthor-credits";
 import { removeCoAuthor, respondCoAuthor } from "@/lib/social/co-author";
+import { MAX_COAUTHOR_POSITIONS } from "@/lib/social/vai-tro";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 type RouteCtx = { params: Promise<{ id: string; nguoiDungId: string }> };
@@ -29,7 +30,7 @@ export async function PATCH(req: Request, ctx: RouteCtx) {
     return NextResponse.json({ error: "Chỉ người được tag mới phản hồi." }, { status: 403 });
   }
 
-  let body: { trang_thai?: string };
+  let body: { trang_thai?: string; vai_tro?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -44,7 +45,27 @@ export async function PATCH(req: Request, ctx: RouteCtx) {
     );
   }
 
-  const result = await respondCoAuthor(tacPhamId, nguoiDungId, trangThai);
+  let viTri: string[] | undefined;
+  if (body.vai_tro !== undefined) {
+    if (
+      !Array.isArray(body.vai_tro) ||
+      body.vai_tro.some((v) => typeof v !== "string")
+    ) {
+      return NextResponse.json(
+        { error: "vai_tro phải là mảng chuỗi." },
+        { status: 400 },
+      );
+    }
+    viTri = (body.vai_tro as string[]).map((v) => v.trim()).filter(Boolean);
+    if (viTri.length > MAX_COAUTHOR_POSITIONS) {
+      return NextResponse.json(
+        { error: `Tối đa ${MAX_COAUTHOR_POSITIONS} vị trí công việc.` },
+        { status: 400 },
+      );
+    }
+  }
+
+  const result = await respondCoAuthor(tacPhamId, nguoiDungId, trangThai, viTri);
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: 400 });
   }

@@ -63,6 +63,7 @@ import {
   stripAtHashTrigger,
   type AtHashTrigger,
 } from "@/lib/editor/use-at-hash-trigger";
+import { getTextareaCaretRect } from "@/lib/editor/textarea-caret";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import {
   collectScrollResizeTargets,
@@ -502,6 +503,9 @@ function bodyPlainFromServerBlocks(
     .filter(Boolean)
     .join("\n\n");
 }
+
+/** blockId giả cho textarea minimal (`sub`) — tái dùng hạ tầng menu @/# theo block. */
+const MINIMAL_SUB_BLOCK_ID = "__minimal_sub__";
 
 export function EditorView({
   ownerId,
@@ -1355,24 +1359,16 @@ export function EditorView({
       setAtHashMenu({
         blockId,
         trigger,
-        anchorRect: textarea.getBoundingClientRect(),
+        // Neo menu ngay tại ký tự `@`/`#` vừa gõ (caret), không phải góc textarea.
+        anchorRect: getTextareaCaretRect(textarea, trigger.start),
         textarea,
       });
     },
     [],
   );
 
-  const handleEditorTagPick = useCallback(
+  const applyTagPickSelection = useCallback(
     (pick: EditorTagMenuPick) => {
-      if (!atHashMenu) return;
-      const { blockId, trigger, textarea } = atHashMenu;
-      const block = blocks.find((b) => b.id === blockId);
-      if (!block) return;
-      const { text: stripped, caret } = stripAtHashTrigger(
-        block.text ?? "",
-        trigger,
-      );
-      updateBlock(blockId, { text: stripped });
       if (pick.kind === "user") {
         setCollaborators((prev) => {
           if (prev.some((c) => c.idNguoiDung === pick.user.idNguoiDung)) {
@@ -1386,13 +1382,42 @@ export function EditorView({
           return [...prev, pick.tag];
         });
       }
+    },
+    [],
+  );
+
+  const handleEditorTagPick = useCallback(
+    (pick: EditorTagMenuPick) => {
+      if (!atHashMenu) return;
+      const { blockId, trigger, textarea } = atHashMenu;
+
+      if (blockId === MINIMAL_SUB_BLOCK_ID) {
+        const { text: stripped, caret } = stripAtHashTrigger(sub, trigger);
+        setSub(stripped);
+        applyTagPickSelection(pick);
+        setAtHashMenu(null);
+        requestAnimationFrame(() => {
+          textarea.focus();
+          textarea.setSelectionRange(caret, caret);
+        });
+        return;
+      }
+
+      const block = blocks.find((b) => b.id === blockId);
+      if (!block) return;
+      const { text: stripped, caret } = stripAtHashTrigger(
+        block.text ?? "",
+        trigger,
+      );
+      updateBlock(blockId, { text: stripped });
+      applyTagPickSelection(pick);
       setAtHashMenu(null);
       requestAnimationFrame(() => {
         textarea.focus();
         textarea.setSelectionRange(caret, caret);
       });
     },
-    [atHashMenu, blocks, updateBlock],
+    [atHashMenu, blocks, updateBlock, sub, applyTagPickSelection],
   );
 
   const handlePublish = useCallback(() => {
@@ -1739,6 +1764,10 @@ export function EditorView({
             value={sub}
             onChange={setSub}
             maxRows={12}
+            enableAtHash
+            onAtHashSync={(trigger, textarea) =>
+              handleAtHashSync(MINIMAL_SUB_BLOCK_ID, trigger, textarea)
+            }
           />
         ) : showFullEditor ? (
           <AutosizeTextarea
@@ -1766,7 +1795,7 @@ export function EditorView({
           />
         ) : null}
 
-        {showFullEditor &&
+        {(showFullEditor || usesMinimalFlow) &&
         (collaborators.length > 0 || tags.length > 0) ? (
           <EditorComposeMetaChips
             collaborators={collaborators}

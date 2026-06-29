@@ -261,11 +261,11 @@ export function PostMetaRail({
           </div>
         </div>
       ) : null}
-      </div>
 
       {commentsRail ? (
         <div className="post-rail-blk post-rail-blk--comments">{commentsRail}</div>
       ) : null}
+      </div>
     </aside>
   );
 }

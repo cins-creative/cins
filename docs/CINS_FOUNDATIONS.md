@@ -42,9 +42,9 @@ Kết nối giữa người có chuyên môn là giá trị cốt lõi, và **ph
 - **Frontend**: Next.js App Router
 - **Database**: Supabase (Postgres) + pgvector cho vector(6) + HNSW index — project `ospzzzxcomrmhqrnkoiw.supabase.co`
 - **Storage**: Cloudflare Images (lưu cloudflare_id)
-- **Video**: browser → Bunny Stream qua TUS; Cloudflare R2 lưu source. Không ffmpeg server-side, không xử lý video trên Vercel.
+- **Video**: browser → Bunny Stream qua TUS; Cloudflare R2 lưu source. Không ffmpeg server-side, không xử lý video trên server.
 - **Realtime chat**: Supabase Realtime
-- **Deploy**: Vercel (max 4.5MB request body)
+- **Deploy**: Cloudflare Workers qua OpenNext (`@opennextjs/cloudflare`). Postgres TCP (admin SQL, tag trigram) đi qua **Hyperdrive**. Xem `CINS_IMPLEMENTATION.md` §4.
 
 ---
 

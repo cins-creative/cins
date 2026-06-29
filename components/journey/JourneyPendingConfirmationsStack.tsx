@@ -14,6 +14,8 @@ type Props = {
   isOwner: boolean;
   viewerProfileId: string;
   ownerSlug: string;
+  ownerName: string;
+  ownerAvatarUrl?: string | null;
   initialCoAuthorInvites: ReadonlyArray<PendingCoAuthorInvite>;
   initialCoSoStaffInvites: ReadonlyArray<PendingCoSoStaffInviteNotification>;
   initialMembershipPending?: ReadonlyArray<OutboundMembershipPending>;
@@ -24,6 +26,8 @@ export function JourneyPendingConfirmationsStack({
   isOwner,
   viewerProfileId,
   ownerSlug,
+  ownerName,
+  ownerAvatarUrl = null,
   initialCoAuthorInvites,
   initialCoSoStaffInvites,
   initialMembershipPending = [],
@@ -51,6 +55,8 @@ export function JourneyPendingConfirmationsStack({
           invites={pending.coAuthorInvites}
           viewerProfileId={viewerProfileId}
           ownerSlug={ownerSlug}
+          viewerName={ownerName}
+          viewerAvatarUrl={ownerAvatarUrl}
         />
       ) : null}
       {pending.coAuthorReviews.length > 0 ? (

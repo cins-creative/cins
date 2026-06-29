@@ -3,9 +3,6 @@
 import { Search, UserPlus, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
-import { CoAuthorRoleInput } from "@/components/editor/CoAuthorRoleInput";
-import { loadCoAuthorNgheRoleOptions } from "@/lib/editor/coauthor-role-action";
-import type { CoAuthorNgheRoleOption } from "@/lib/editor/coauthor-role-types";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import type { CoAuthorDraft } from "@/lib/social/types";
 
@@ -24,6 +21,11 @@ type Props = {
   onOwnerVaiTroChange: (v: string) => void;
   /** Mở sẵn picker tìm người (modal quản lý cộng sự). */
   initialPickerOpen?: boolean;
+  /**
+   * Nếu có: nút "Thêm đã chọn" gọi thẳng callback này với danh sách vừa chọn
+   * (bỏ bước thêm vào chip + footer). Dùng cho modal Đề xuất — gửi luôn.
+   */
+  onConfirmSelection?: (drafts: CoAuthorDraft[]) => void;
 };
 
 export function CoAuthorSection({
@@ -31,13 +33,13 @@ export function CoAuthorSection({
   collaborators,
   onCollaboratorsChange,
   initialPickerOpen = false,
+  onConfirmSelection,
 }: Props) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchUser[]>([]);
   const [hasMutual, setHasMutual] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(initialPickerOpen);
-  const [roleOptions, setRoleOptions] = useState<CoAuthorNgheRoleOption[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const search = useCallback(async (q: string) => {
@@ -69,20 +71,6 @@ export function CoAuthorSection({
     return () => clearTimeout(t);
   }, [query, search]);
 
-  useEffect(() => {
-    let cancelled = false;
-    void loadCoAuthorNgheRoleOptions()
-      .then((rows) => {
-        if (!cancelled) setRoleOptions(rows);
-      })
-      .catch(() => {
-        if (!cancelled) setRoleOptions([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   const addSelectedUsers = () => {
     const selectedUsers = results.filter(
       (u) =>
@@ -90,16 +78,19 @@ export function CoAuthorSection({
         !collaborators.some((c) => c.idNguoiDung === u.id),
     );
     if (selectedUsers.length === 0) return;
-    onCollaboratorsChange([
-      ...collaborators,
-      ...selectedUsers.map((u) => ({
-        idNguoiDung: u.id,
-        slug: u.slug,
-        tenHienThi: u.ten_hien_thi,
-        avatarId: u.avatar_id,
-        vaiTro: "",
-      })),
-    ]);
+    const drafts = selectedUsers.map((u) => ({
+      idNguoiDung: u.id,
+      slug: u.slug,
+      tenHienThi: u.ten_hien_thi,
+      avatarId: u.avatar_id,
+      vaiTro: "",
+    }));
+    if (onConfirmSelection) {
+      onConfirmSelection(drafts);
+      setSelectedIds([]);
+      return;
+    }
+    onCollaboratorsChange([...collaborators, ...drafts]);
     setQuery("");
     setResults([]);
     setSelectedIds([]);
@@ -118,14 +109,6 @@ export function CoAuthorSection({
     onCollaboratorsChange(collaborators.filter((c) => c.idNguoiDung !== id));
   };
 
-  const updateRole = (id: string, vaiTro: string) => {
-    onCollaboratorsChange(
-      collaborators.map((c) =>
-        c.idNguoiDung === id ? { ...c, vaiTro } : c,
-      ),
-    );
-  };
-
   return (
     <section className="ed-coauthor" aria-label="Người cùng làm">
       {collaborators.length > 0 ? (
@@ -142,12 +125,6 @@ export function CoAuthorSection({
                   <small>@{c.slug}</small>
                 </span>
               </span>
-              <CoAuthorRoleInput
-                value={c.vaiTro}
-                onChange={(next) => updateRole(c.idNguoiDung, next)}
-                options={roleOptions}
-                ariaLabel={`Vị trí công việc của ${c.tenHienThi || c.slug}`}
-              />
               <button
                 type="button"
                 className="ed-coauthor-chip-remove"
@@ -161,15 +138,17 @@ export function CoAuthorSection({
         </ul>
       ) : null}
 
-      <button
-        type="button"
-        className="ed-coauthor-add"
-        onClick={() => setPickerOpen((open) => !open)}
-        aria-expanded={pickerOpen}
-      >
-        <UserPlus size={15} strokeWidth={2} aria-hidden />
-        Thêm người
-      </button>
+      {!pickerOpen ? (
+        <button
+          type="button"
+          className="ed-coauthor-add"
+          onClick={() => setPickerOpen(true)}
+          aria-expanded={pickerOpen}
+        >
+          <UserPlus size={15} strokeWidth={2} aria-hidden />
+          Thêm người
+        </button>
+      ) : null}
 
       {pickerOpen ? (
         <div className="ed-coauthor-picker">

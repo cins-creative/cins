@@ -16,6 +16,7 @@ import type {
 export type { PendingCoAuthorInvite };
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { insertSocialThongBao } from "@/lib/social/thong-bao-insert";
+import { joinVaiTroPositions } from "@/lib/social/vai-tro";
 
 type TacGiaRow = {
   id_tac_pham: string;
@@ -311,6 +312,8 @@ export async function respondCoAuthor(
   tacPhamId: string,
   userId: string,
   trangThai: "accepted" | "declined",
+  /** Vị trí công việc do người được thêm tự chọn (tối đa 2) — chỉ áp khi accept. */
+  viTri?: ReadonlyArray<string>,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const admin = createServiceRoleClient();
   const { data: row } = await admin
@@ -327,9 +330,18 @@ export async function respondCoAuthor(
     return { ok: false, error: "Lời mời đã được xử lý." };
   }
 
+  const update: {
+    trang_thai: "accepted" | "declined";
+    xu_ly_luc: string;
+    vai_tro?: string | null;
+  } = { trang_thai: trangThai, xu_ly_luc: new Date().toISOString() };
+  if (trangThai === "accepted" && viTri) {
+    update.vai_tro = joinVaiTroPositions(viTri);
+  }
+
   const { error } = await admin
     .from("content_tac_pham_tac_gia")
-    .update({ trang_thai: trangThai, xu_ly_luc: new Date().toISOString() })
+    .update(update)
     .eq("id_tac_pham", tacPhamId)
     .eq("id_nguoi_dung", userId);
 

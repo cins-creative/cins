@@ -55,6 +55,7 @@ export function JourneyProfileGuestActions({
         <JourneyUserFollowButton
           targetUserId={targetUserId}
           viewerProfileId={viewerProfileId}
+          compact
         />
         <JourneyFollowButton
           targetUserId={targetUserId}
@@ -62,6 +63,7 @@ export function JourneyProfileGuestActions({
           status={ketBan.status}
           ready={ketBan.ready}
           refreshStatus={ketBan.refresh}
+          compact
         />
         <button
           type="button"

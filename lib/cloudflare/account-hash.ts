@@ -1,5 +1,13 @@
 const STORAGE_KEY = "cins-cf-images-account-hash";
 
+/**
+ * Account hash công khai của Cloudflare Images (hiện trong mọi URL `imagedelivery.net`
+ * mà trình duyệt tải — KHÔNG phải secret). Dùng làm fallback cuối cùng để ảnh vẫn
+ * hiển thị khi build production thiếu `NEXT_PUBLIC_CF_IMAGES_ACCOUNT_HASH`.
+ * Env vẫn được ưu tiên để có thể override khi đổi account.
+ */
+const DEFAULT_CF_IMAGES_ACCOUNT_HASH = "uJ2XS8GFEXi_dIXASK1Fkw";
+
 let memoryHash: string | null = null;
 
 export function extractCfAccountHashFromDeliveryUrl(
@@ -45,5 +53,8 @@ export function getCfAccountHash(): string | null {
     }
   }
 
-  return process.env.CLOUDFLARE_IMAGES_HASH?.trim() || null;
+  return (
+    process.env.CLOUDFLARE_IMAGES_HASH?.trim() ||
+    DEFAULT_CF_IMAGES_ACCOUNT_HASH
+  );
 }

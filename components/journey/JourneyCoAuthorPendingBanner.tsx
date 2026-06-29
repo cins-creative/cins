@@ -4,12 +4,19 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { MilestoneItem } from "@/components/journey/milestone-types";
 import {
+  buildAcceptedTaggedMilestone,
+  dispatchJourneyTimelineRefresh,
+} from "@/lib/journey/coauthor-accept-optimistic";
+import {
   dispatchCoAuthorInviteAccepted,
   dispatchCoAuthorInviteDeclined,
   dispatchCoAuthorInviteFailed,
 } from "@/lib/journey/coauthor-invite-events";
 import { prefetchMilestoneDetail } from "@/lib/journey/milestone-detail-cache";
 import { CoAuthorInviteMessage } from "@/components/journey/CoAuthorInviteMessage";
+import { CoAuthorPositionPicker } from "@/components/journey/CoAuthorPositionPicker";
+import { loadCoAuthorNgheRoleOptions } from "@/lib/editor/coauthor-role-action";
+import type { CoAuthorNgheRoleOption } from "@/lib/editor/coauthor-role-types";
 import type { PendingCoAuthorInvite } from "@/lib/social/types";
 
 function coAuthorPostHref(inv: PendingCoAuthorInvite): string | null {
@@ -22,12 +29,16 @@ type Props = {
   viewerProfileId: string;
   /** Slug Journey đang xem — để sync optimistic với timeline parent. */
   ownerSlug: string;
+  viewerName: string;
+  viewerAvatarUrl?: string | null;
 };
 
 export function JourneyCoAuthorPendingBanner({
   invites,
   viewerProfileId,
   ownerSlug,
+  viewerName,
+  viewerAvatarUrl = null,
 }: Props) {
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(() => new Set());
   const [preloaded, setPreloaded] = useState<Map<string, MilestoneItem>>(
@@ -38,11 +49,29 @@ export function JourneyCoAuthorPendingBanner({
   );
   const [respondingId, setRespondingId] = useState<string | null>(null);
   const preloadInflight = useRef(new Set<string>());
+  /** Invite đang ở bước chọn vị trí công việc trước khi accept. */
+  const [pickingId, setPickingId] = useState<string | null>(null);
+  const [pickedPositions, setPickedPositions] = useState<string[]>([]);
+  const [roleOptions, setRoleOptions] = useState<CoAuthorNgheRoleOption[]>([]);
 
   const visibleInvites = useMemo(
     () => invites.filter((inv) => !dismissedIds.has(inv.tacPhamId)),
     [invites, dismissedIds],
   );
+
+  useEffect(() => {
+    let cancelled = false;
+    void loadCoAuthorNgheRoleOptions()
+      .then((rows) => {
+        if (!cancelled) setRoleOptions(rows);
+      })
+      .catch(() => {
+        if (!cancelled) setRoleOptions([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     for (const inv of invites) {
@@ -104,6 +133,7 @@ export function JourneyCoAuthorPendingBanner({
       inv: PendingCoAuthorInvite,
       trangThai: "accepted" | "declined",
       milestone?: MilestoneItem,
+      positions?: string[],
     ) => {
       setRespondingId(inv.tacPhamId);
       try {
@@ -112,11 +142,15 @@ export function JourneyCoAuthorPendingBanner({
           {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ trang_thai: trangThai }),
+            body: JSON.stringify({
+              trang_thai: trangThai,
+              ...(trangThai === "accepted" ? { vai_tro: positions ?? [] } : {}),
+            }),
           },
         );
         if (res.ok) {
           window.dispatchEvent(new Event("cins:notifications-changed"));
+          dispatchJourneyTimelineRefresh(ownerSlug);
           return;
         }
         const json = await res.json().catch(() => ({}));
@@ -148,22 +182,34 @@ export function JourneyCoAuthorPendingBanner({
     [ownerSlug, restoreInvite, viewerProfileId],
   );
 
-  const respond = useCallback(
-    (inv: PendingCoAuthorInvite, trangThai: "accepted" | "declined") => {
+  const decline = useCallback(
+    (inv: PendingCoAuthorInvite) => {
+      if (respondingId) return;
+      if (pickingId === inv.tacPhamId) setPickingId(null);
+      dismissInvite(inv.tacPhamId);
+      dispatchCoAuthorInviteDeclined({ ownerSlug, tacPhamId: inv.tacPhamId });
+      void respondInBackground(inv, "declined");
+    },
+    [dismissInvite, ownerSlug, pickingId, respondInBackground, respondingId],
+  );
+
+  const startPicking = useCallback((inv: PendingCoAuthorInvite) => {
+    setPickedPositions([]);
+    setPickingId(inv.tacPhamId);
+    setItemErrors((prev) => {
+      if (!prev.has(inv.tacPhamId)) return prev;
+      const next = new Map(prev);
+      next.delete(inv.tacPhamId);
+      return next;
+    });
+  }, []);
+
+  const confirmAccept = useCallback(
+    (inv: PendingCoAuthorInvite, positions: string[]) => {
       if (respondingId) return;
 
-      if (trangThai === "declined") {
-        dismissInvite(inv.tacPhamId);
-        dispatchCoAuthorInviteDeclined({
-          ownerSlug,
-          tacPhamId: inv.tacPhamId,
-        });
-        void respondInBackground(inv, trangThai);
-        return;
-      }
-
-      const milestone = preloaded.get(inv.tacPhamId);
-      if (!milestone) {
+      const base = preloaded.get(inv.tacPhamId);
+      if (!base) {
         setItemErrors((prev) => {
           const next = new Map(prev);
           next.set(inv.tacPhamId, "Đang tải nội dung… thử lại sau giây lát.");
@@ -172,6 +218,18 @@ export function JourneyCoAuthorPendingBanner({
         return;
       }
 
+      const milestone = buildAcceptedTaggedMilestone(
+        base,
+        {
+          id: viewerProfileId,
+          name: viewerName,
+          slug: ownerSlug,
+          avatarUrl: viewerAvatarUrl,
+        },
+        positions,
+      );
+
+      setPickingId(null);
       dismissInvite(inv.tacPhamId);
       dispatchCoAuthorInviteAccepted({
         ownerSlug,
@@ -179,12 +237,11 @@ export function JourneyCoAuthorPendingBanner({
         milestone: {
           ...milestone,
           canProposeCoAuthor: true,
-          createdAt: new Date().toISOString(),
         },
       });
-      void respondInBackground(inv, trangThai, milestone);
+      void respondInBackground(inv, "accepted", milestone, positions);
     },
-    [dismissInvite, ownerSlug, preloaded, respondInBackground, respondingId],
+    [dismissInvite, ownerSlug, preloaded, respondInBackground, respondingId, viewerAvatarUrl, viewerName, viewerProfileId],
   );
 
   if (visibleInvites.length === 0) return null;
@@ -196,6 +253,7 @@ export function JourneyCoAuthorPendingBanner({
         const isResponding = respondingId === inv.tacPhamId;
         const error = itemErrors.get(inv.tacPhamId);
         const ready = preloaded.has(inv.tacPhamId);
+        const isPicking = pickingId === inv.tacPhamId;
         return (
           <div key={inv.tacPhamId} className="j-coauthor-pending">
             <div className="j-coauthor-pending-body">
@@ -208,42 +266,86 @@ export function JourneyCoAuthorPendingBanner({
                 className="j-coauthor-pending-message"
               />
             </div>
-            <div className="j-coauthor-pending-actions">
-              {postHref ? (
-                <a
-                  href={postHref}
-                  className="j-coauthor-pending-btn is-view"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
+            {isPicking ? (
+              <div className="j-coauthor-pending-pick">
+                <p className="j-coauthor-pending-pick-label">
+                  Chọn vị trí công việc của bạn trong dự án (tối đa 2):
+                </p>
+                <CoAuthorPositionPicker
+                  value={pickedPositions}
+                  onChange={setPickedPositions}
+                  options={roleOptions}
+                />
+                <div className="j-coauthor-pending-actions">
+                  <button
+                    type="button"
+                    className="j-coauthor-pending-btn is-accept"
+                    disabled={
+                      isResponding || !ready || pickedPositions.length === 0
+                    }
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      confirmAccept(inv, pickedPositions);
+                    }}
+                  >
+                    Xác nhận tham gia
+                  </button>
+                  <button
+                    type="button"
+                    className="j-coauthor-pending-btn is-decline"
+                    disabled={isResponding}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPickingId(null);
+                    }}
+                  >
+                    Huỷ
+                  </button>
+                  {error ? (
+                    <p className="j-coauthor-pending-error">{error}</p>
+                  ) : null}
+                </div>
+              </div>
+            ) : (
+              <div className="j-coauthor-pending-actions">
+                {postHref ? (
+                  <a
+                    href={postHref}
+                    className="j-coauthor-pending-btn is-view"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    Xem nội dung
+                  </a>
+                ) : null}
+                <button
+                  type="button"
+                  className="j-coauthor-pending-btn is-accept"
+                  disabled={isResponding || !ready}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    startPicking(inv);
+                  }}
                 >
-                  Xem nội dung
-                </a>
-              ) : null}
-              <button
-                type="button"
-                className="j-coauthor-pending-btn is-accept"
-                disabled={isResponding || !ready}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  respond(inv, "accepted");
-                }}
-              >
-                Chấp nhận
-              </button>
-              <button
-                type="button"
-                className="j-coauthor-pending-btn is-decline"
-                disabled={isResponding}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  respond(inv, "declined");
-                }}
-              >
-                Từ chối
-              </button>
-              {error ? <p className="j-coauthor-pending-error">{error}</p> : null}
-            </div>
+                  Chấp nhận
+                </button>
+                <button
+                  type="button"
+                  className="j-coauthor-pending-btn is-decline"
+                  disabled={isResponding}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    decline(inv);
+                  }}
+                >
+                  Từ chối
+                </button>
+                {error ? (
+                  <p className="j-coauthor-pending-error">{error}</p>
+                ) : null}
+              </div>
+            )}
           </div>
         );
       })}

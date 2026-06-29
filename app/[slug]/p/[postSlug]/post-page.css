@@ -123,6 +123,15 @@
   .block-inner,
 .j-post-page:has(.post-canvas--media.post-canvas--split)
   .post-view-content--media
+  .post-blocks-fb
+  .block[data-block-type="embed"],
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media
+  .post-blocks-fb
+  .block[data-block-type="embed"]
+  .block-inner,
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media
   .image-album-carousel,
 .j-post-page:has(.post-canvas--media.post-canvas--split)
   .post-view-content--media
@@ -193,6 +202,17 @@
   min-height: 0;
   aspect-ratio: auto;
   max-height: 100%;
+}
+
+/* Video full-bleed (modal + permalink) — bỏ bo góc + viền để khít nền đen */
+.cins-post-view.post-canvas--media.post-canvas--split
+  .post-view-content--media
+  .b-embed-ro.is-iframe,
+.cins-post-view .post-canvas--media.post-canvas--split
+  .post-view-content--media
+  .b-embed-ro.is-iframe {
+  border-radius: 0;
+  border: none;
 }
 
 .j-post-page:has(.post-canvas--media.post-canvas--split) .post-view-rail {
@@ -494,7 +514,7 @@
 
 .cins-post-view.post-canvas--split .post-rail-scroll,
 .cins-post-view .post-canvas--split .post-rail-scroll {
-  flex: 0 1 auto;
+  flex: 1 1 auto;
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
@@ -504,11 +524,10 @@
 
 .cins-post-view.post-canvas--split .post-rail-blk--comments,
 .cins-post-view .post-canvas--split .post-rail-blk--comments {
-  flex: 1 1 auto;
-  min-height: 180px;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  flex: none;
+  min-height: 0;
+  display: block;
+  overflow: visible;
   padding: 20px 24px 14px 14px;
   border-top: 1px solid var(--border);
 }
@@ -583,6 +602,11 @@
 
 .cins-post-view .post-rail-blk + .post-rail-blk {
   border-top: 1px solid var(--border);
+}
+
+/* Block "Đóng góp" — nền tint nhẹ để tách khỏi các block nội dung khác */
+.cins-post-view .post-rail-blk--people {
+  background: var(--neutral-50, #f5f6f8);
 }
 
 .cins-post-view .post-rail-author {
@@ -1104,6 +1128,7 @@
   flex-direction: column;
   min-height: 0;
   padding: 0;
+  border-radius: 0;
 }
 
 .cins-post-view.post-canvas--split .post-view-content--media .post-view-content-inner,
@@ -3223,7 +3248,8 @@
   }
 
   /* Flatten rail — media trước, meta/caption sau */
-  .cins-post-view .post-view-rail {
+  .cins-post-view .post-view-rail,
+  .cins-post-view .post-rail-scroll {
     display: contents;
   }
 

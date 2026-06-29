@@ -224,6 +224,7 @@ function ReadOnlyBlock({ block }: { block: Block }) {
             src={bunnyIframeSrc(bunny)}
             title="Video"
             allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+            referrerPolicy="strict-origin-when-cross-origin"
             allowFullScreen
             loading="eager"
           />

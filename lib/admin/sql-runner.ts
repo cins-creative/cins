@@ -2,6 +2,7 @@ import postgres from "postgres";
 
 import { resolveAdminDbCredentials } from "@/lib/admin/db-connection";
 import { getAdminDbUrl } from "@/lib/admin/db-url";
+import { isUsingHyperdrive } from "@/lib/db/hyperdrive";
 
 export type AdminSqlMode = "read" | "full";
 
@@ -102,6 +103,7 @@ export async function runAdminSql(
   }
 
   const db = resolveAdminDbCredentials(url);
+  const viaHyperdrive = isUsingHyperdrive();
   const sql = postgres({
     host: db.host,
     port: db.port,
@@ -112,6 +114,7 @@ export async function runAdminSql(
     connect_timeout: 15,
     idle_timeout: 5,
     ssl: db.host.includes("supabase.co") ? "require" : undefined,
+    ...(viaHyperdrive ? { fetch_types: false } : {}),
   });
 
   const started = Date.now();

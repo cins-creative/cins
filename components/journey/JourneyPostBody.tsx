@@ -462,7 +462,6 @@ export function JourneyPostBody({
         onCommentRemoved={onCommentRemoved}
         onThreadsReordered={onThreadsReordered}
         sectionId={commentsSectionId}
-        pinCompose={isSplit}
       />
     )
   ) : null;
