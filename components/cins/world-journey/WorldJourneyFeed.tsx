@@ -4,14 +4,12 @@ import {
   ArrowDownNarrowWide,
   Check,
   ChevronDown,
-  Compass,
   FileText,
   History,
   Image as ImageIcon,
   LayoutGrid,
   Rows3,
   Sparkles,
-  UserRoundCheck,
   Video,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -39,40 +37,6 @@ import "@/app/[slug]/journey/journey.css";
 import "@/app/world-journey-feed.css";
 
 type FeedView = "feed" | "grid";
-type FeedTab = "following" | "explore";
-
-function WorldJourneyFeedTabs({
-  tab,
-  onTab,
-}: {
-  tab: FeedTab;
-  onTab: (t: FeedTab) => void;
-}) {
-  return (
-    <div className="wj-feed-tabs" role="tablist" aria-label="Nguồn feed">
-      <button
-        type="button"
-        role="tab"
-        aria-selected={tab === "following"}
-        className={tab === "following" ? "on" : undefined}
-        onClick={() => onTab("following")}
-      >
-        <UserRoundCheck size={15} strokeWidth={2} aria-hidden />
-        Đang theo dõi
-      </button>
-      <button
-        type="button"
-        role="tab"
-        aria-selected={tab === "explore"}
-        className={tab === "explore" ? "on" : undefined}
-        onClick={() => onTab("explore")}
-      >
-        <Compass size={15} strokeWidth={2} aria-hidden />
-        Khám phá
-      </button>
-    </div>
-  );
-}
 
 function WorldJourneyFilterBar({
   chips,
@@ -96,6 +60,8 @@ function WorldJourneyFilterBar({
   onSortOpen: (open: boolean) => void;
 }) {
   const sortRef = useRef<HTMLDivElement>(null);
+  const filterRef = useRef<HTMLDivElement>(null);
+  const [filterOpen, setFilterOpen] = useState(false);
 
   useEffect(() => {
     if (!sortOpen) return;
@@ -105,6 +71,18 @@ function WorldJourneyFilterBar({
     document.addEventListener("click", onDoc);
     return () => document.removeEventListener("click", onDoc);
   }, [sortOpen, onSortOpen]);
+
+  useEffect(() => {
+    if (!filterOpen) return;
+    const onDoc = (e: MouseEvent) => {
+      if (!filterRef.current?.contains(e.target as Node)) setFilterOpen(false);
+    };
+    document.addEventListener("click", onDoc);
+    return () => document.removeEventListener("click", onDoc);
+  }, [filterOpen]);
+
+  const activeChip =
+    chips.find((c) => c.id === activeFilter) ?? chips[0];
 
   const chipIcon = (icon: string) => {
     const props = { size: 13, strokeWidth: 2 };
@@ -124,36 +102,58 @@ function WorldJourneyFilterBar({
 
   return (
     <div className="wj-filter-bar">
-      {chips.map((chip) => (
+      <div className="wj-filter-wrap" ref={filterRef}>
         <button
-          key={chip.id}
           type="button"
-          className={`wj-fchip${activeFilter === chip.id ? " active" : ""}`}
-          onClick={() => onFilter(chip.id)}
+          className="wj-filter-btn"
+          aria-haspopup="menu"
+          aria-expanded={filterOpen}
+          onClick={() => setFilterOpen((v) => !v)}
         >
-          {chipIcon(chip.icon)}
-          {chip.label}
+          {chipIcon(activeChip.icon)}
+          <span className="wj-filter-val">{activeChip.label}</span>
+          <ChevronDown size={13} />
         </button>
-      ))}
+        {filterOpen ? (
+          <div className="wj-filter-pop" role="menu">
+            {chips.map((chip) => (
+              <button
+                key={chip.id}
+                type="button"
+                className={activeFilter === chip.id ? "sel" : undefined}
+                role="menuitem"
+                onClick={() => {
+                  onFilter(chip.id);
+                  setFilterOpen(false);
+                }}
+              >
+                {chipIcon(chip.icon)}
+                <span>{chip.label}</span>
+                <Check size={13} />
+              </button>
+            ))}
+          </div>
+        ) : null}
+      </div>
       <span className="wj-filter-spacer" />
       <div className="wj-view-toggle" role="group" aria-label="Chế độ xem">
         <button
           type="button"
           className={`wj-vt-btn${view === "feed" ? " active" : ""}`}
           aria-label="Dòng thời gian"
+          title="Dòng thời gian"
           onClick={() => onView("feed")}
         >
-          <Rows3 size={13} />
-          <span>Dòng</span>
+          <Rows3 size={15} />
         </button>
         <button
           type="button"
           className={`wj-vt-btn${view === "grid" ? " active" : ""}`}
           aria-label="Lưới"
+          title="Lưới"
           onClick={() => onView("grid")}
         >
-          <LayoutGrid size={13} />
-          <span>Lưới</span>
+          <LayoutGrid size={15} />
         </button>
       </div>
       <div className="wj-sort-wrap" ref={sortRef}>
@@ -201,6 +201,7 @@ export function WorldJourneyFeed({
   exploreMilestones,
   leftAside,
   rightAside,
+  pendingConfirmations,
 }: {
   sidebarProfile: SidebarProfile;
   viewerProfileId: string;
@@ -211,11 +212,9 @@ export function WorldJourneyFeed({
   exploreMilestones?: MilestoneItem[];
   leftAside?: ReactNode;
   rightAside?: ReactNode;
+  /** Banner "việc cần xác nhận" — hiện đầu cột feed để user chú ý. */
+  pendingConfirmations?: ReactNode;
 }) {
-  const hasExploreTab = exploreMilestones !== undefined;
-  const [feedTab, setFeedTab] = useState<FeedTab>(() =>
-    hasExploreTab && milestones.length === 0 ? "explore" : "following",
-  );
   const [activeFilter, setActiveFilter] = useState("all");
   const [activeLinhVucSlug, setActiveLinhVucSlug] = useState<string | null>(
     null,
@@ -227,10 +226,14 @@ export function WorldJourneyFeed({
   const [sortOpen, setSortOpen] = useState(false);
 
   const activeChip = findWorldJourneyFilterChip(filterChips, activeFilter);
-  const sourceMilestones =
-    hasExploreTab && feedTab === "explore"
-      ? (exploreMilestones ?? [])
-      : milestones;
+  /* 1 feed duy nhất: bài từ người đang theo dõi xếp trên, rồi tới bài Khám phá
+     (khử trùng lặp theo id). */
+  const sourceMilestones = useMemo(() => {
+    if (exploreMilestones === undefined) return milestones;
+    const seen = new Set(milestones.map((m) => m.id));
+    const exploreExtra = exploreMilestones.filter((m) => !seen.has(m.id));
+    return [...milestones, ...exploreExtra];
+  }, [milestones, exploreMilestones]);
   const visibleMilestones = useMemo(
     () =>
       sourceMilestones.filter(
@@ -253,9 +256,6 @@ export function WorldJourneyFeed({
         aria-label="World Journey"
       >
         <header className="wj-feed-header">
-          {hasExploreTab ? (
-            <WorldJourneyFeedTabs tab={feedTab} onTab={setFeedTab} />
-          ) : null}
           <WorldJourneyFilterBar
             chips={filterChips}
             activeFilter={activeFilter}
@@ -279,6 +279,7 @@ export function WorldJourneyFeed({
           )}
 
           <div className={`wj-feed${view === "grid" ? " view-grid" : ""}`}>
+            {pendingConfirmations}
             <CinsFeedComposer
               ownerSlug={sidebarProfile.slug}
               ownerName={sidebarProfile.tenHienThi}
@@ -290,22 +291,11 @@ export function WorldJourneyFeed({
             visibleMilestones.length === 0 ? (
               <div className="wj-feed-empty">
                 <Sparkles size={22} strokeWidth={1.8} aria-hidden />
-                <b>
-                  {feedTab === "explore" ? "Khám phá đang trống" : "Feed đang trống"}
-                </b>
+                <b>Feed đang trống</b>
                 <p>
-                  {feedTab === "explore" ? (
-                    <>
-                      Bài <strong>Nổi bật</strong> từ cộng đồng sẽ hiện ở đây khi có
-                      dữ liệu.
-                    </>
-                  ) : (
-                    <>
-                      Theo dõi vài người hoặc tổ chức — bài{" "}
-                      <strong>Công khai</strong> / <strong>Nổi bật</strong> sẽ hiện
-                      ở đây. Hoặc chuyển sang tab <strong>Khám phá</strong>.
-                    </>
-                  )}
+                  Theo dõi vài người hoặc tổ chức, hoặc khám phá bài{" "}
+                  <strong>Công khai</strong> / <strong>Nổi bật</strong> từ cộng đồng
+                  — tất cả sẽ hiện ở đây.
                 </p>
               </div>
             ) : (

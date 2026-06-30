@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
+import { JourneyFollowButton } from "@/components/journey/JourneyFollowButton";
 import { JourneyUserFollowButton } from "@/components/journey/JourneyUserFollowButton";
 import { avatarHueFromSeed, avatarInitialFromName } from "@/lib/chat/avatar";
 import { useKetBanStatus } from "@/lib/social/use-ket-ban-status";
@@ -74,8 +75,16 @@ export function JourneyUserPopoverActions({
           Nhắn tin
         </button>
         <div className="j-friend-card-follow">
+          <JourneyFollowButton
+            targetUserId={user.idNguoiDung}
+            viewerProfileId={viewerProfileId}
+            status={ketBan.status}
+            ready={ketBan.ready}
+            refreshStatus={ketBan.refresh}
+          />
+        </div>
+        <div className="j-friend-card-follow">
           <JourneyUserFollowButton
-            compact
             targetUserId={user.idNguoiDung}
             viewerProfileId={viewerProfileId}
           />

@@ -1468,7 +1468,24 @@ export function EditorView({
         DEFAULT_ARTICLE_POST_TITLE;
     }
     const moTaFinal = sub.trim();
-    const coverFinal = sanitizeBaiDangCoverIdInput(coverSeed, serverBlocks);
+    let coverFinal = sanitizeBaiDangCoverIdInput(coverSeed, serverBlocks);
+
+    /* Bài chỉ có ảnh bìa, không block nội dung nào → coi ảnh bìa như 1 album
+       ảnh (album 1 tấm). Bài hợp lệ (qua validate `blocks.length > 0`) và
+       render dạng photo card thay vì bị chặn "thiếu ít nhất 1 block". Ảnh bìa
+       chuyển hẳn vào album nên xoá `coverFinal` để tránh hiện ảnh 2 lần. */
+    let publishBlocks: ServerBlock[] = serverBlocks;
+    if (serverBlocks.length === 0 && coverFinal) {
+      publishBlocks = [
+        {
+          id: newId(),
+          loai: "imgs",
+          thu_tu: 0,
+          config: { layout: "full", rounded: false, cap: "", imgs: [coverFinal] },
+        },
+      ];
+      coverFinal = null;
+    }
 
     startTransition(async () => {
       if (orgBaiDangCompose && isEdit && initial) {
@@ -1478,7 +1495,7 @@ export function EditorView({
           tieuDe: tieuDeFinal,
           tomTat: moTaFinal || null,
           coverId: coverFinal,
-          blocks: serverBlocks,
+          blocks: publishBlocks,
           loaiBaiDang: composeLoaiBaiDang,
           schedulePublishAt: composeSchedulePublishAt,
         });
@@ -1505,7 +1522,7 @@ export function EditorView({
           tieuDe: tieuDeFinal,
           tomTat: moTaFinal || null,
           coverId: coverFinal,
-          blocks: serverBlocks,
+          blocks: publishBlocks,
           loaiBaiDang: composeLoaiBaiDang,
           schedulePublishAt: composeSchedulePublishAt,
         });
@@ -1538,7 +1555,7 @@ export function EditorView({
           visibility: publishVisibility,
           loaiMoc: initial.loaiMoc,
           thoiDiem: initial.thoiDiem,
-          blocks: serverBlocks,
+          blocks: publishBlocks,
           personalFilterIds,
           coAuthors: collaborators,
           ownerVaiTro,
@@ -1573,7 +1590,7 @@ export function EditorView({
         visibility: publishVisibility,
         loaiMoc: DEFAULT_LOAI_MOC,
         thoiDiem: isoToday(),
-        blocks: serverBlocks,
+        blocks: publishBlocks,
         personalFilterIds,
         coAuthors: collaborators.length > 0 ? collaborators : undefined,
         ownerVaiTro: ownerVaiTro.trim() || undefined,

@@ -854,6 +854,19 @@ PK: (`id_to_chuc`, `id_nguoi_dung`) — shortlist tài năng org/giảng viên q
 | `tao_luc` | timestamp with time zone | NO | now() |
 | `journey_loai_moc_visibility` | jsonb | NO | '{}'::jsonb |
 
+### user_quyen_he_thong *(phân quyền cấp hệ thống — migration `migration_user_quyen_he_thong.sql`)*
+
+| Cột | Kiểu | Null | Default |
+|---|---|---|---|
+| `id` | uuid | NO | uuid_generate_v4() |
+| `id_nguoi_dung` | uuid | NO |  |
+| `vai_tro` | vai_tro_he_thong_enum | NO |  |
+| `cap_boi` | uuid | YES |  |
+| `tao_luc` | timestamptz | NO | now() |
+| `cap_nhat_luc` | timestamptz | NO | now() |
+
+> **Ghi chú:** `super_admin` không lưu bảng — suy từ email `info.cins.vn@gmail.com` trong app. `thanh_vien` = không có dòng.
+
 ### user_nhom_boi_canh
 
 | Cột | Kiểu | Null | Default |
@@ -1064,6 +1077,7 @@ PK: (`id_to_chuc`, `id_nguoi_dung`) — shortlist tài năng org/giảng viên q
 - `trinh_do_dau_vao_enum` : co_ban / trung_cap / nang_cao / khong_yeu_cau
 - `vai_tro_chat_enum` : admin / thanh_vien
 - `vai_tro_to_chuc_enum` : owner / admin / giao_vien / nhan_vien / hoc_vien / thanh_vien / quan_ly_tuyen_sinh / quan_ly_noi_dung
+- `vai_tro_he_thong_enum` : admin / curator *(thanh_vien = không có dòng; super_admin = email app)*
 - `visibility_field_enum` : public / friends / private
 - `visibility_giao_trinh_enum` : public / chi_hoc_vien / private
 

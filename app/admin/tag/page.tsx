@@ -4,6 +4,6 @@ import { renderAdminPage } from "@/lib/admin/admin-page";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export default function AdminTagPage() {
+export default async function AdminTagPage() {
   return renderAdminPage(<AdminTagScreen />);
 }

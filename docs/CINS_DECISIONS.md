@@ -140,6 +140,7 @@
 
 ### v6 (engagement + social graph + org)
 
+- **L19 — Phân quyền hệ thống CINs (2026-06-30):** 4 vai trò: `super_admin` (chỉ email `info.cins.vn@gmail.com`, bất biến, không lưu DB), `admin`, `curator`, `thanh_vien`. Bảng `user_quyen_he_thong` lưu admin/curator + audit `cap_boi`. Chỉ super_admin cấp/thu quyền admin; admin cấp curator/thành viên. Vào `/admin`: super_admin + admin + curator; tab quản lý user: super_admin + admin. Migration: `migration_user_quyen_he_thong.sql`.
 - **L5 — "Anti-engagement" → "Engagement có context".** Like/reaction công khai mặc định (social proof thẩm mỹ). Viral triệt tiêu bằng *kiến trúc* (không feed toàn cục) chứ không bằng cấm like.
 - **L6 — Bỏ follow-user → kết bạn 2 chiều (`user_ket_ban`).** Follow-user vô nghĩa khi không feed. Kết bạn phục vụ: danh bạ nghề + bạn chung + điều kiện tag co-author. `user_theo_doi` thu hẹp còn follow tag/org (xem O1).
 - **L7 — Gộp `studio` + `doanh_nghiep`.** Giữ enum value, ẩn `doanh_nghiep` khỏi UI. Org user tạo ngay còn 3 loại. *Vì sao*: hai loại gần như giống hệt (cùng `project_du_an`, cùng tab) — không đáng 2 nhãn riêng.

@@ -55,6 +55,8 @@ export type TruongListItem = {
   ktx_dia_chi?: string | null;
   nganhCount: number;
   nganhTags: string[];
+  /** Số khóa học của cơ sở đào tạo (`org_khoa_hoc`). Chỉ set cho cơ sở. */
+  khoaHocCount?: number | null;
 };
 
 export type TruongNganhProgram = {

@@ -4,6 +4,8 @@ Tài liệu ghi lại các quyết định design/dev đồng bộ với **CINs 
 
 ## Typography — Anton chỉ cho `h1`
 
+> **⚠️ QUYẾT ĐỊNH MỚI (single-font) — `CINS_DEV_RULES.md` §4:** chuẩn hiện tại là **một font duy nhất Be Vietnam Pro** cho toàn UI (ngoại lệ JetBrains Mono cho code/blockquote). **Anton & Crimson Pro = DEPRECATED**, đang gỡ. Mục bên dưới mô tả trạng thái CSS **cũ** (Anton cho `h1`) — cần dọn `app/cins-font-bridge.css` (`h1` → Be Vietnam), `app/cins-design-tokens.css`, `app/layout.tsx` để khớp quyết định mới.
+
 - **Không dùng font Anton** cho tiêu đề bài viết, card sự kiện, excerpt hay bất kỳ `h2`–`h6` nào.
 - **Chỉ tiêu đề cấp 1 (`<h1>`)** — ví dụ headline hero — mới dùng Anton (biến `--font-anton` / `next/font` trong `app/layout.tsx`).
 - Các tiêu đề “display” marketing và **tiêu đề bài viết / card** (ví dụ `.evb-card-title`, `.ft-card-title`) dùng **Be Vietnam Pro** qua `--font-sans` / `--font-display` (đã map sang Be Vietnam, không Anton).

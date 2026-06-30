@@ -3,7 +3,6 @@ import { Suspense } from "react";
 import { AdminBaiVietListLoader } from "@/app/admin/bai-viet/_components/AdminBaiVietListLoader";
 import { AdminBaiVietTableSkeleton } from "@/app/admin/bai-viet/_components/AdminBaiVietTable.skeleton";
 import { renderAdminPage } from "@/lib/admin/admin-page";
-import { checkAdminAccess } from "@/lib/admin/require-admin";
 import { parseAdminArticleListParams } from "@/lib/admin/article-list-params";
 
 export const dynamic = "force-dynamic";
@@ -16,9 +15,6 @@ export default async function AdminBaiVietPage({
 }: {
   searchParams: SearchParams;
 }) {
-  const gate = checkAdminAccess();
-  if (!gate.ok) return renderAdminPage(null);
-
   const listParams = parseAdminArticleListParams(await searchParams);
 
   return renderAdminPage(

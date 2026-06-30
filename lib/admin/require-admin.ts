@@ -2,7 +2,8 @@ import { hasServiceRoleEnv } from "@/lib/supabase/service-role";
 
 export type AdminGateResult =
   | { ok: true }
-  | { ok: false; reason: "no_service_role" };
+  | { ok: false; reason: "no_service_role" }
+  | { ok: false; reason: "no_role" };
 
 /**
  * Quyền vào `/admin` chỉ phụ thuộc vào session — middleware đã redirect `/login`

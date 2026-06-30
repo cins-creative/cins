@@ -22,6 +22,8 @@ type Props = {
   /** Cột module adaptive (server components) truyền xuống feed. */
   leftAside?: ReactNode;
   rightAside?: ReactNode;
+  /** Banner "việc cần xác nhận" (co-author, follow…) hiện đầu feed. */
+  pendingConfirmations?: ReactNode;
 };
 
 /** Bọc feed trang chủ logged-in — overlay compose hoạt động trên wj-composer. */
@@ -35,6 +37,7 @@ export function HomeWorldJourneyClient({
   exploreMilestones,
   leftAside,
   rightAside,
+  pendingConfirmations,
 }: Props) {
   return (
     <JourneyComposeProvider
@@ -53,6 +56,7 @@ export function HomeWorldJourneyClient({
         exploreMilestones={exploreMilestones}
         leftAside={leftAside}
         rightAside={rightAside}
+        pendingConfirmations={pendingConfirmations}
       />
     </JourneyComposeProvider>
   );

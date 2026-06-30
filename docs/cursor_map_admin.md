@@ -47,7 +47,7 @@ Tổ chức
   /admin/verify               → verify_yeu_cau + verify_xac_nhan pending
 
 Người dùng
-  /admin/nguoi-dung
+  /admin/nguoi-dung          → user_nguoi_dung + user_quyen_he_thong (phân quyền hệ thống)
 
 Hệ thống
   /admin/linh-vuc
@@ -61,21 +61,18 @@ Hệ thống
 ## Guard
 
 ```typescript
-// middleware.ts hoặc layout server component
-// Chưa implement auth — placeholder check
-// Khi implement: kiểm tra user_thanh_vien_to_chuc WHERE vai_tro = 'owner'
-// CINS owner là user duy nhất có quyền vào /admin
+// lib/auth/system-role.ts + lib/admin/admin-page.tsx (async renderAdminPage)
+// super_admin: info.cins.vn@gmail.com (hardcoded, không DB)
+// admin/curator: user_quyen_he_thong + legacy CINS_ADMIN_EMAILS → admin
+// Panel /admin: canAccessAdminPanel (super_admin | admin | curator)
+// Tab /admin/nguoi-dung: canManageUsers (super_admin | admin)
+// Sửa nội dung: canEditContent (super_admin | admin | curator)
+```
 
-export async function adminGuard(userId: string) {
-  const { data } = await supabase
-    .from('user_thanh_vien_to_chuc')
-    .select('vai_tro')
-    .eq('id_nguoi_dung', userId)
-    .eq('vai_tro', 'owner')
-    .limit(1)
-    .single()
-  return !!data
-}
+Legacy placeholder (đã thay):
+
+```typescript
+// middleware.ts — chỉ check session; role gate ở renderAdminPage
 ```
 
 ---
@@ -333,7 +330,7 @@ Các section sau chỉ render empty state với icon — chưa cần data:
 
 - `/admin/to-chuc` — tất cả tổ chức (studio, doanh nghiệp...)
 - `/admin/verify` — xác nhận milestone (verify_yeu_cau + verify_xac_nhan)
-- `/admin/nguoi-dung`
+- `/admin/nguoi-dung` — **đã implement:** phân quyền hệ thống (`AdminNguoiDungScreen`, API `admin/nguoi-dung/*`)
 - `/admin/linh-vuc`
 - `/admin/analytics`
 - `/admin/vector-queue`

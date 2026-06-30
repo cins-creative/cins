@@ -1,7 +1,7 @@
 import { AdminPlaceholderScreen } from "@/components/admin/AdminMockScreens";
 import { renderAdminPage } from "@/lib/admin/admin-page";
 
-export default function AdminAnalyticsPage() {
+export default async function AdminAnalyticsPage() {
   return renderAdminPage(
     <AdminPlaceholderScreen
       title="Analytics"

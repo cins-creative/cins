@@ -38,13 +38,14 @@
   --ink2: var(--ink-title);
   --ink3: var(--ink-body);
   --ink4: var(--ink-muted);
-  --r-xs: var(--radius-xs);
-  --r-sm: var(--radius-sm);
-  --r-md: var(--radius-md);
+  /* Bo góc giảm nhẹ so với token mặc định cho trang chủ (gọn hơn). */
+  --r-xs: 5px;
+  --r-sm: 8px;
+  --r-md: 10px;
   /* Card/composer — khớp Journey timeline (.wj-composer, j-m-card) */
-  --r-lg: var(--radius-lg);
-  --r-xl: var(--radius-lg);
-  --r-2xl: var(--radius-xl);
+  --r-lg: 14px;
+  --r-xl: 14px;
+  --r-2xl: 18px;
   --r-pill: var(--radius-pill);
   --sh-xs: var(--shadow-xs);
   --sh-sm: var(--shadow-sm);
@@ -55,11 +56,12 @@
   --font-display: "Anton", "Be Vietnam Pro", system-ui, sans-serif;
   --font-serif: "Crimson Pro", Georgia, serif;
   --wj-sticky-top: 64px;
-  --wj-feed-gap: 14px;
-  --wj-feed-card-gap: 10px;
+  --wj-feed-gap: 10px;
+  --wj-feed-card-gap: 8px;
   --wj-feed-pad-top: 0;
   --wj-feed-max: 760px;
-  --wj-shell-pad-top: 24px;
+  --wj-shell-pad-top: 16px;
+  --wj-shell-gutter: 16px;
   --wj-aside-left-w: var(--j-sidebar-w, 248px);
   --wj-aside-right-w: 332px;
   --mint-ink: #0e6b4d;
@@ -84,9 +86,10 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
-  max-width: 1360px;
-  margin: 0 auto;
-  padding: 8px var(--space-8, 28px);
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 8px 16px;
   background: var(--bg);
   border-bottom: 1px solid var(--border);
 }
@@ -177,6 +180,91 @@
   height: 12px;
 }
 
+/* ── Bộ lọc dạng dropdown (thay cho cụm chip) ── */
+.wj-filter-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.wj-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink1);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  cursor: pointer;
+  transition: border-color 0.15s var(--ease);
+}
+
+.wj-filter-btn:hover {
+  border-color: var(--border-s);
+}
+
+.wj-filter-btn svg {
+  width: 13px;
+  height: 13px;
+}
+
+.wj-filter-btn .wj-filter-val {
+  white-space: nowrap;
+}
+
+.wj-filter-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--sh-md);
+  padding: 6px;
+  min-width: 180px;
+  z-index: 5;
+}
+
+.wj-filter-pop button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--ink3);
+  border-radius: var(--r-sm);
+}
+
+.wj-filter-pop button:hover {
+  background: #f1f2f5;
+  color: var(--ink1);
+}
+
+.wj-filter-pop button.sel {
+  color: var(--blue);
+  font-weight: 600;
+  background: var(--blue-soft);
+}
+
+.wj-filter-pop button svg {
+  width: 13px;
+  height: 13px;
+}
+
+.wj-filter-pop button > svg:last-child {
+  margin-left: auto;
+  opacity: 0;
+  color: var(--blue);
+}
+
+.wj-filter-pop button.sel > svg:last-child {
+  opacity: 1;
+}
+
 .wj-filter-spacer {
   flex: 1;
   min-width: 4px;
@@ -194,18 +282,19 @@
 .wj-vt-btn {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 5px 10px;
+  justify-content: center;
+  padding: 6px 9px;
   font-size: 12px;
   font-weight: 500;
   color: var(--ink2);
   border-radius: var(--r-pill);
+  cursor: pointer;
   transition: all 0.18s var(--ease);
 }
 
 .wj-vt-btn svg {
-  width: 13px;
-  height: 13px;
+  width: 15px;
+  height: 15px;
 }
 
 .wj-vt-btn:hover {
@@ -304,13 +393,13 @@
   width: 100%;
   max-width: 1360px;
   margin: 0 auto;
-  padding: var(--wj-shell-pad-top, 24px) var(--space-8, 28px) 48px;
+  padding: var(--wj-shell-pad-top, 16px) 16px 32px;
   display: grid;
   grid-template-columns:
     minmax(0, var(--wj-aside-left-w))
     minmax(0, var(--wj-feed-max))
     minmax(0, var(--wj-aside-right-w));
-  gap: var(--j-gutter, 40px);
+  gap: var(--wj-shell-gutter, 24px);
   align-items: start;
 }
 
@@ -320,7 +409,7 @@
   align-self: start;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
 }
 
 .wj-mini-profile {
@@ -451,7 +540,7 @@
   grid-template-columns:
     minmax(0, var(--wj-aside-left-w))
     minmax(0, 1fr);
-  gap: 20px;
+  gap: 16px;
 }
 
 .wj-shell.view-grid .wj-guest-aside--right {
@@ -476,7 +565,7 @@
 
 .world-journey-home .wj-feed > .cins-feed-composer-row .wj-composer {
   padding: 8px 12px;
-  border-radius: var(--radius-lg);
+  border-radius: var(--r-lg);
 }
 
 .world-journey-home .wj-feed .wj-feed-timeline.j-timeline {
@@ -501,6 +590,12 @@
 
 .world-journey-home .wj-feed .wj-feed-timeline .j-milestone {
   margin-bottom: 0;
+}
+
+/* Bo góc thẻ milestone gọn hơn ở trang chủ (mặc định journey.css là 20px). */
+.world-journey-home .wj-feed .wj-feed-timeline .j-m-card,
+.world-journey-home .wj-feed .wj-feed-timeline .j-m-card.jcard {
+  border-radius: var(--r-lg);
 }
 
 .world-journey-home .wj-feed .wj-feed-timeline .j-timeline-end {
@@ -545,7 +640,7 @@
 .wj-post {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md, 14px);
+  border-radius: var(--r-md);
   box-shadow: var(--sh-xs);
   overflow: hidden;
 }

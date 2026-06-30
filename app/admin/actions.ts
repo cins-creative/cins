@@ -46,7 +46,7 @@ import { uploadToCloudflareImages } from "@/lib/cloudflare/upload-image";
 import { hasAdminDbUrl } from "@/lib/admin/db-url";
 import { runAdminSql, type AdminSqlMode, type AdminSqlResult } from "@/lib/admin/sql-runner";
 import { revalidatePath } from "next/cache";
-import { getCurrentUserIsCinsAdmin } from "@/lib/auth/cins-admin-server";
+import { getCurrentUserSystemRole, canEditContent } from "@/lib/auth/system-role";
 import { createServiceRoleClient, hasServiceRoleEnv } from "@/lib/supabase/service-role";
 
 /* Admin server actions chỉ cần service-role key trên server. Trang
@@ -136,8 +136,8 @@ export async function adminSyncArticleOutgoingLienQuan(
 export async function adminSaveArticle(formData: FormData): Promise<{ ok: boolean; message?: string }> {
   const gate = await requireDraftTools();
   if (!gate.ok) return { ok: false, message: gate.message };
-  if (!(await getCurrentUserIsCinsAdmin())) {
-    return { ok: false, message: "Chỉ admin CINs được lưu bài." };
+  if (!canEditContent(await getCurrentUserSystemRole())) {
+    return { ok: false, message: "Chỉ editor được lưu bài." };
   }
 
   const id = String(formData.get("id") ?? "").trim();
@@ -371,8 +371,8 @@ export async function updateAdminMonThiThumbnail(
 > {
   const gate = await requireDraftTools();
   if (!gate.ok) return gate;
-  if (!(await getCurrentUserIsCinsAdmin())) {
-    return { ok: false, message: "Chỉ admin CINs được upload ảnh môn thi." };
+  if (!canEditContent(await getCurrentUserSystemRole())) {
+    return { ok: false, message: "Chỉ editor được upload ảnh môn thi." };
   }
 
   const id = monThiId.trim();

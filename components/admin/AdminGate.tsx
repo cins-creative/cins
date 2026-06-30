@@ -1,7 +1,19 @@
 import type { AdminGateResult } from "@/lib/admin/require-admin";
+import { SUPER_ADMIN_EMAIL } from "@/lib/auth/system-role";
 
-export function AdminGate({ gate }: { gate: AdminGateResult }) {
-  if (gate.ok) return null;
+export function AdminGate({ gate }: { gate: Extract<AdminGateResult, { ok: false }> }) {
+  if (gate.reason === "no_role") {
+    return (
+      <div className="cins-admin admin-gate">
+        <h1 className="page-title">Không có quyền</h1>
+        <p className="admin-gate-desc">
+          Chỉ Admin, Curator hoặc Admin tối cao được truy cập panel nội bộ. Liên hệ{" "}
+          <code>{SUPER_ADMIN_EMAIL}</code>{" "}
+          nếu bạn cần quyền truy cập.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="cins-admin admin-gate">

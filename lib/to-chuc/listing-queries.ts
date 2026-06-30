@@ -120,8 +120,26 @@ export async function listCoSoDaoTaoForListing(): Promise<TruongListItem[]> {
           ktx_gia_thang: null,
           nganhCount: 0,
           nganhTags: [],
+          khoaHocCount: 0,
         }),
       );
+    }
+
+    const orgIds = items.map((i) => i.id);
+    if (orgIds.length) {
+      const { data: khoaRows } = await supabase
+        .from("org_khoa_hoc")
+        .select("id_to_chuc")
+        .in("id_to_chuc", orgIds);
+      const countByOrg = new Map<string, number>();
+      for (const row of khoaRows ?? []) {
+        const oid = (row as { id_to_chuc?: string }).id_to_chuc?.trim();
+        if (!oid) continue;
+        countByOrg.set(oid, (countByOrg.get(oid) ?? 0) + 1);
+      }
+      for (const item of items) {
+        item.khoaHocCount = countByOrg.get(item.id) ?? 0;
+      }
     }
 
     return items.sort((a, b) => a.ten.localeCompare(b.ten, "vi"));

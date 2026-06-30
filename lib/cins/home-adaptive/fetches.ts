@@ -38,7 +38,7 @@ export type KhoaHocGoiYItem = {
   orgSlug: string;
   orgTen: string;
   sub: string;
-  /** Thumbnail khóa học — `cover_id`, fallback `avatar_id` (4:3). */
+  /** Thumbnail khóa học — `avatar_id` (list thumb), fallback `cover_id`. */
   thumbnailUrl: string | null;
 };
 
@@ -242,9 +242,11 @@ export async function loadKhoaHocGoiY(limit = 4): Promise<KhoaHocGoiYItem[]> {
       r.loai_mo_hinh === "lien_tuc_theo_thang"
         ? `${org.ten?.trim() ?? "Cơ sở"} · liên tục theo tháng`
         : `${org.ten?.trim() ?? "Cơ sở"} · cohort`;
+    /* Khớp với KhoaHocCard: ưu tiên thumbnail (`avatar_id`) rồi mới tới banner
+       (`cover_id`), để hình trong aside trùng với cover trên card khóa học. */
     const thumbnailUrl =
-      resolveTruongImageSrcSync(r.cover_id, ["public", "cover", "medium"]) ??
       resolveTruongImageSrcSync(r.avatar_id, ["public", "avatar", "medium"]) ??
+      resolveTruongImageSrcSync(r.cover_id, ["public", "cover", "medium"]) ??
       null;
     out.push({
       id: r.id,

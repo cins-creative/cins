@@ -25,6 +25,7 @@ export function CoSoListingCard({ school, index }: Props) {
       ? school.ten_chinh_thuc.trim()
       : null;
   const desc = school.mo_ta?.trim() || null;
+  const khoaHocCount = school.khoaHocCount ?? 0;
 
   return (
     <Link
@@ -87,7 +88,11 @@ export function CoSoListingCard({ school, index }: Props) {
         {desc ? <p className="tdh-coso-desc">{desc}</p> : null}
 
         <div className="tdh-coso-foot">
-          <span className="tdh-coso-foot-label">Xem trang cơ sở</span>
+          <span className="tdh-coso-foot-label">
+            {khoaHocCount > 0
+              ? `${khoaHocCount} khóa học`
+              : "Chưa có khóa học"}
+          </span>
           <span className="tdh-coso-foot-arrow" aria-hidden>
             <ArrowRight size={18} strokeWidth={2.2} />
           </span>

@@ -125,6 +125,21 @@ export async function isFollowing(
   return isFollowingTarget(followerId, targetId, loai);
 }
 
+/** ID các user mà `followerId` đang theo dõi (loai = nguoi_dung). */
+export async function listFollowingUserIds(
+  followerId: string,
+): Promise<string[]> {
+  if (!followerId) return [];
+  const admin = createServiceRoleClient();
+  const { data } = await admin
+    .from("user_theo_doi")
+    .select("id_doi_tuong")
+    .eq("id_nguoi_theo_doi", followerId)
+    .eq("loai_doi_tuong", USER_FOLLOW_DB_LOAI)
+    .returns<Array<{ id_doi_tuong: string }>>();
+  return (data ?? []).map((row) => row.id_doi_tuong).filter(Boolean);
+}
+
 export async function getFollowStatus(
   viewerId: string | null,
   targetId: string,

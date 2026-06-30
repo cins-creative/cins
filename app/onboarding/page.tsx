@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 
 import { OnboardingForm } from "@/components/onboarding/OnboardingForm";
 import { OnboardingSignOut } from "@/components/onboarding/OnboardingSignOut";
-import { isCinsAdminEmail } from "@/lib/auth/cins-admin";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 
 export const dynamic = "force-dynamic";
@@ -42,11 +41,7 @@ export default async function OnboardingPage({
   }
 
   if (session.profile.giai_doan) {
-    if (isCinsAdminEmail(session.email)) {
-      redirect("/admin");
-    }
-    const slugPart = encodeURIComponent(session.profile.slug);
-    redirect(`/${slugPart}`);
+    redirect("/");
   }
 
   const initialName = session.profile.ten_hien_thi?.trim() || "";

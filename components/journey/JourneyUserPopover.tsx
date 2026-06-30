@@ -9,6 +9,7 @@ import "./journey-user-popover.css";
 
 import { JourneyUserPopoverActions } from "@/components/journey/JourneyUserPopoverActions";
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
+import { useMutualFriends } from "@/lib/social/use-mutual-friends";
 
 type UserPreview = {
   idNguoiDung: string;
@@ -31,6 +32,7 @@ type Props = {
   slug?: string | null;
   fallbackName?: string | null;
   fallbackAvatarUrl?: string | null;
+  fallbackCoverUrl?: string | null;
   backdropZIndex?: number;
   children: React.ReactNode;
 };
@@ -39,6 +41,7 @@ export function JourneyUserPopover({
   slug,
   fallbackName,
   fallbackAvatarUrl,
+  fallbackCoverUrl,
   backdropZIndex = 9500,
   children,
 }: Props) {
@@ -48,6 +51,7 @@ export function JourneyUserPopover({
   const [profile, setProfile] = useState<UserPreview | null>(null);
   const [loading, setLoading] = useState(false);
   const wrapRef = useRef<HTMLSpanElement | null>(null);
+  const mutual = useMutualFriends(profile?.idNguoiDung ?? "", viewerProfileId);
 
   useEffect(() => {
     queueMicrotask(() => setMounted(true));
@@ -67,17 +71,30 @@ export function JourneyUserPopover({
     };
   }, [open]);
 
-  const toggle = () => {
-    if (!slug) return;
-    setOpen((value) => !value);
-    if (profile || loading) return;
+  useEffect(() => {
+    setProfile(null);
+  }, [slug]);
+
+  useEffect(() => {
+    if (!open || !slug) return;
+    let cancelled = false;
     setLoading(true);
     void fetch(`/api/users/preview?slug=${encodeURIComponent(slug)}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((json) => {
-        setProfile(json?.profile ?? null);
+        if (!cancelled) setProfile(json?.profile ?? null);
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, slug]);
+
+  const toggle = () => {
+    if (!slug) return;
+    setOpen((value) => !value);
   };
 
   if (!slug) return <>{children}</>;
@@ -90,7 +107,7 @@ export function JourneyUserPopover({
           slug,
           tenHienThi: fallbackName,
           avatarUrl: fallbackAvatarUrl ?? null,
-          coverUrl: null,
+          coverUrl: fallbackCoverUrl ?? null,
           bio: null,
           aiSummaryJourney: null,
           giaiDoan: null,
@@ -143,17 +160,46 @@ export function JourneyUserPopover({
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 {visibleProfile.coverUrl ? <img src={visibleProfile.coverUrl} alt="" /> : null}
               </div>
-              <div className="j-friend-avatar">
-                {visibleProfile.avatarUrl ? (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img src={visibleProfile.avatarUrl} alt="" />
-                ) : (
-                  <span>{(visibleProfile.tenHienThi || visibleProfile.slug).slice(0, 1)}</span>
-                )}
-              </div>
               <div className="j-friend-body">
+                <div className="j-friend-avatar">
+                  {visibleProfile.avatarUrl ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img src={visibleProfile.avatarUrl} alt="" />
+                  ) : (
+                    <span>{(visibleProfile.tenHienThi || visibleProfile.slug).slice(0, 1)}</span>
+                  )}
+                </div>
                 <h3>{visibleProfile.tenHienThi}</h3>
-                <p className="j-friend-slug">@{visibleProfile.slug}</p>
+                {visibleProfile.giaiDoan || visibleProfile.tinhThanh ? (
+                  <p className="j-friend-meta">
+                    {[visibleProfile.giaiDoan, visibleProfile.tinhThanh]
+                      .filter(Boolean)
+                      .join(", ")}
+                  </p>
+                ) : null}
+                {mutual.visible ? (
+                  <div className="j-friend-mutual" title={`${mutual.count} bạn chung`}>
+                    {mutual.users.length > 0 ? (
+                      <span className="j-friend-mutual-faces" aria-hidden>
+                        {mutual.users.slice(0, 3).map((u) => (
+                          <span key={u.idNguoiDung} className="j-friend-mutual-face">
+                            {u.avatarUrl ? (
+                              /* eslint-disable-next-line @next/next/no-img-element */
+                              <img src={u.avatarUrl} alt="" />
+                            ) : (
+                              <span className="j-friend-mutual-ini">
+                                {(u.tenHienThi || u.slug).slice(0, 1)}
+                              </span>
+                            )}
+                          </span>
+                        ))}
+                      </span>
+                    ) : null}
+                    <span className="j-friend-mutual-text">
+                      <strong>{mutual.count}</strong> bạn chung
+                    </span>
+                  </div>
+                ) : null}
                 {visibleProfile.bio ? <p className="j-friend-bio">{visibleProfile.bio}</p> : null}
                 {visibleProfile.aiSummaryJourney ? (
                   <p className="j-user-pop-ai">
@@ -176,10 +222,6 @@ export function JourneyUserPopover({
                     <strong>{visibleProfile.stats.banBe}</strong>
                     Bạn bè
                   </span>
-                </div>
-                <div className="j-friend-meta">
-                  {visibleProfile.giaiDoan ? <span>{visibleProfile.giaiDoan}</span> : null}
-                  {visibleProfile.tinhThanh ? <span>{visibleProfile.tinhThanh}</span> : null}
                 </div>
                 {visibleProfile.idNguoiDung ? (
                   <JourneyUserPopoverActions

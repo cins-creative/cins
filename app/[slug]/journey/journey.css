@@ -32,7 +32,7 @@
   --j-ctx-h:           56px;
   --j-sidebar-w:       248px;
   --j-gallery-w:       280px;
-  --j-gutter:          40px;
+  --j-gutter:          24px;
   --j-rail-x:          0px;
   /* Không indent rail — card full width trong timeline. */
   --j-content-pad-l:   0px;
@@ -81,7 +81,7 @@
   max-width: 1360px;
   min-width: 0;
   margin: 0 auto;
-  padding: 0 var(--space-8);
+  padding: 0 var(--space-4);
   display: grid;
   grid-template-columns: var(--j-sidebar-w) minmax(0, 1fr) var(--j-gallery-w);
   gap: var(--j-gutter);
@@ -103,7 +103,7 @@
 .j-sidebar {
   position: sticky;
   top: var(--j-topbar-h);
-  padding: 28px 0 40px;
+  padding: 16px 0 32px;
   max-height: calc(100vh - var(--j-topbar-h));
   overflow-x: clip;
   overflow-y: auto;
@@ -817,7 +817,7 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
 /* Main alternate panels (Gallery / Friends) */
 .j-main-panel {
   min-height: calc(100vh - var(--j-topbar-h));
-  padding: 28px 0 80px;
+  padding: 16px 0 40px;
 }
 .j-gallery-main {
   padding-top: 0;
@@ -2118,7 +2118,7 @@ a.j-main-gallery-item:focus-visible {
   position: relative;
   width: 100%;
   min-width: 0;
-  padding: 0 0 80px;
+  padding: 0 0 40px;
   max-width: 760px;
   min-height: calc(100vh - var(--j-topbar-h));
   display: flex;
@@ -2540,10 +2540,10 @@ a.j-main-gallery-item:focus-visible {
  * ──────────────────────────────────────────────────────────────── */
 .j-year-block {
   position: relative;
-  margin-top: 22px;
+  margin-top: 14px;
 }
 .j-year-block:first-of-type {
-  margin-top: 12px;
+  margin-top: 8px;
 }
 .j-year-header {
   position: relative;
@@ -2587,7 +2587,7 @@ a.j-main-gallery-item:focus-visible {
 .j-milestone {
   position: relative;
   z-index: 2;
-  margin-bottom: 18px;
+  margin-bottom: 12px;
 }
 
 .j-m-month {
@@ -4443,7 +4443,7 @@ button.j-m-card-hit {
 
 /* Composer tạo nội dung — layout kiểu Facebook (prompt + 3 hành động). */
 .j-create-composer {
-  margin: 24px 0 0 var(--j-content-pad-l);
+  margin: 12px 0 0 var(--j-content-pad-l);
   background: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -5177,7 +5177,7 @@ button.j-m-card-hit {
   position: sticky;
   top: var(--j-topbar-h);
   min-width: 0;
-  padding: 28px 0 40px;
+  padding: 16px 0 32px;
   max-height: calc(100vh - var(--j-topbar-h));
   overflow-x: clip;
   overflow-y: auto;
@@ -9469,7 +9469,12 @@ select.j-edit-input {
 
 .j-milestone.j-tagged .j-m-card > .j-truong-verify-bar,
 .j-milestone.j-verified .j-m-card > .j-truong-verify-bar {
-  border-radius: 23px 23px 0 0;
+  /* Thẻ j-m-card đã overflow:hidden + bo góc. Cho thanh verify tràn 1px ra ngoài
+     (phủ viền card) + bo góc = 0 → màu xanh lấp đầy góc bo, không hở khe trắng. */
+  border-radius: 0;
+  margin: -1px -1px 0;
+  width: calc(100% + 2px);
+  max-width: none;
 }
 
 .j-truong-verify-icon {

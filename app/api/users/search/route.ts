@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
+import { listFollowingUserIds } from "@/lib/social/follow";
 import { listFriends } from "@/lib/social/ket-ban";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -17,7 +18,14 @@ export async function GET(req: Request) {
   const admin = createServiceRoleClient();
   let allowedIds: string[] | null = null;
   if (mutualOnly) {
-    allowedIds = await listFriends(session.profile.id);
+    // "Bạn bè" (kết bạn accepted) + người mình đang theo dõi.
+    const [friends, following] = await Promise.all([
+      listFriends(session.profile.id),
+      listFollowingUserIds(session.profile.id),
+    ]);
+    allowedIds = [...new Set([...friends, ...following])].filter(
+      (id) => id !== session.profile.id,
+    );
     if (allowedIds.length === 0) {
       return NextResponse.json({ users: [] });
     }

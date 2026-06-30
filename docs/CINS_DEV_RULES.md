@@ -47,6 +47,17 @@
 
 ## 3. Checklist theo loại task
 
+### Gate quyền — hỏi TRƯỚC khi build feature đọc-ghi (BẮT BUỘC)
+
+Trước khi scaffold/triển khai **bất kỳ** trang / feature / endpoint **đọc-ghi dữ liệu** → **DỪNG và hỏi user** profile quyền, KHÔNG tự giả định mặc định rồi vá quyền sau:
+
+1. **Ai xem được?** (khách / user / chỉ chủ / chỉ member org / chỉ Curator…)
+2. **Ai hành động (tạo/sửa/xóa)?** Theo **trục 1** (role toàn cục) hay **trục 2** (quan hệ: chủ sở hữu / org owner)? — xem `CINS_FOUNDATIONS.md` §12.
+3. **Có đụng moat không?** Liên quan verify quan hệ hay phong canonical (`da_verify`)? Nếu có → ai bấm, ai là đích.
+4. **Soft-delete:** ai được set `da_xoa`.
+
+Sau khi user trả lời → mới sinh **RLS policy + query (`auth.uid()`) + guard UI** khớp profile. Chưa rõ thì hỏi lại, KHÔNG đoán.
+
 ### API / Route handler
 
 - [ ] Validate input ở **backend**; không tin mỗi frontend.
@@ -69,6 +80,7 @@
 - [ ] Search/filter gõ tay: **debounce ~300ms** nếu gọi API.
 - [ ] Streaming: tách UI tĩnh khỏi data fetch, mỗi khối 1 `<Suspense>` + `loading.tsx` (xem §8).
 - [ ] Design tokens: dùng biến CINS (§4), **không** hardcode màu/peach/gray neutral.
+- [ ] Mobile-first: layout đẹp từ **360px**; media trong feed/bài **full-bleed** (sát mép) ở mobile, thắt theo container từ breakpoint lớn (text vẫn giữ lề); nav cố định tôn trọng `env(safe-area-inset-*)`. Touch target ≥ 44×44px (xem §7 UX).
 
 ---
 
@@ -94,14 +106,14 @@ mint #6EFEC0 · orange #FFB85C · violet #BB89F8 · yellow #FDE859
 ```
 - Logo CINs **chỉ** đặt trên nền trắng. Nền khác → bọc card/box trắng trước.
 
-### Chữ
+### Chữ — MỘT font duy nhất: Be Vietnam Pro
 ```
---font-display : "Anton"           — số nhóm, hero label, poster. KHÔNG dùng body/heading nhỏ.
---font-sans    : "Be Vietnam Pro"  — heading H1–H4 + body (hiển thị dấu tiếng Việt chuẩn).
---font-serif   : "Crimson Pro"     — editorial/long-form.
---font-mono    : "JetBrains Mono"
+--font-sans : "Be Vietnam Pro"  — DUY NHẤT cho toàn UI (heading H1–H6 + body + long-form). Dấu tiếng Việt chuẩn.
+--font-mono : "JetBrains Mono"  — NGOẠI LỆ duy nhất: khối code, blockquote, số liệu mono.
 ```
+- Be Vietnam Pro tự host qua **`next/font/google`**, phơi ra CSS variable, map `--font-sans` → `font-sans` mặc định. **CHỈ load weight thực dùng** (vd 300/400/500/600/700), không load cả 9 weight × italic.
 - Font weight ưu tiên: **300 / 400 / 500** (theo demo production).
+- **DEPRECATED — đang gỡ:** `Anton` (`--font-display`) & `Crimson Pro` (`--font-serif`). KHÔNG dùng cho code/UI mới. Để hiện thực hóa single-font, cần dọn code: `app/cins-font-bridge.css` (`h1 { font-family: var(--font-anton) }` → Be Vietnam), `app/cins-design-tokens.css`, font loader `app/layout.tsx`, và `docs/CINs-design-conventions.md` §Typography.
 
 ### Shape & shadow
 ```
@@ -123,7 +135,13 @@ border mặc định: 1px solid var(--border)
 - CẤM `select('*')` — chỉ cột cần dùng.
 - CẤM N+1 → embed quan hệ Supabase trong 1 query.
 - Index cho mọi cột trong WHERE / ORDER BY / JOIN (pgvector dùng HNSW cho `vector(6)`).
-- Connection pooling bật. Transaction cho thao tác nhiều bảng (vd. owner row + `content_tac_pham` cùng transaction).
+- Connection pooling bật. Transaction cho thao tác nhiều bảng (vd. owner row + `content_tac_pham` cùng transaction). Luồng nhiều bước/cần nguyên tử (đặc biệt **verify: claim → accept/veto**) viết bằng **RPC / Postgres function**, không chia nhiều round-trip dễ race.
+- **RLS perf (gotcha hay bỏ sót):** RLS chạy **per-row** → mọi cột policy tham chiếu (FK quan hệ, `da_xoa`, cột lens) **phải có index**, không thì mỗi query quét toàn bảng. Bọc `auth.uid()` thành `(select auth.uid())` trong policy → Postgres tính **một lần**, không phải mỗi dòng.
+- **Region:** DB + app cùng region gần VN (Singapore) — latency tới DB nhân lên mỗi query. CINS đi qua **Hyperdrive** cho Postgres TCP (xem `CINS_FOUNDATIONS.md` §3).
+
+### Realtime (Supabase) có kỷ luật
+- Realtime CHỈ cho **chat / thread đang mở / thông báo** — **KHÔNG bao giờ làm cơ chế feed/Gallery** (subscribe cả feed = sập).
+- Subscribe **scope hẹp** (đúng channel/row cần), luôn **unsubscribe khi unmount**.
 
 ### Hình ảnh & Media (Cloudflare)
 - Cloudflare Images: lưu `cloudflare_id`; serve qua `imagedelivery.net`. Lưu `width`/`height` (đã có ở `content_media`) để tránh layout shift.
@@ -322,7 +340,47 @@ export async function SectionA() {
 
 ---
 
-## 9. Checklist tổng trước khi commit
+## 9. Vòng đời media & xóa
+
+Media KHÔNG ở Supabase Storage: **video → Bunny Stream** (source ở R2), **ảnh → Cloudflare Images**. DB chỉ lưu **metadata + id tham chiếu**, không lưu file.
+
+### Xóa = 1 hành động, 2 cách xử lý
+- **DB = soft delete**: set `da_xoa = TRUE` (KHÔNG hard-delete row) — giữ bản ghi, chỉ ẩn (đồng bộ ẩn dụ sổ cái + Journey là source of truth). Mọi query list/feed/lens lọc `da_xoa = FALSE` — tốt nhất qua **RLS / helper chung**, không nhớ-thủ-công từng query.
+- **Media ngoài = hard delete**: gọi Bunny / Cloudflare Images API xóa asset thật (giảm chi phí + quota). Gọi từ **server** bằng key bí mật, KHÔNG từ client.
+
+### Thứ tự & độ bền
+- Soft-delete DB **trước** (phản hồi user tức thì) → xóa asset ngoài **async / queue**.
+- Xóa asset **idempotent** + chịu retry; lưu trạng thái "đã xóa asset" để không gọi API trùng (404). Lỗi xóa asset KHÔNG được chặn/đảo ngược soft-delete → đẩy vào hàng chờ retry.
+- Hệ quả: item soft-deleted **không khôi phục đầy đủ** (text/metadata còn, ảnh/video đã mất). Đừng code "restore" với giả định media còn nguyên.
+
+### Upload nháp = upload ngay + dọn rác mồ côi
+- Thêm media lúc soạn nháp → **upload thẳng Bunny/Cloudflare NGAY** (Direct Upload), preview bằng URL đã upload / object URL tạm. KHÔNG base64 vào localStorage, KHÔNG lưu `blob:` xuống DB.
+- Asset đã upload nhưng chưa gắn bài = trạng thái **`pending`** (ghi `tao_luc` + owner). Bấm Đăng → `attached`. Hủy/đóng không đăng → rác mồ côi.
+- **Cron dọn rác (bắt buộc):** quét asset `pending` quá ngưỡng (vd >24h) chưa gắn → xóa thật trên Bunny/Cloudflare + xóa metadata. Idempotent + chừa khoảng an toàn (đừng xóa asset vừa upload vài phút). Không có cron → rác tích lũy, **vẫn tốn tiền + quota**.
+
+---
+
+## 10. State & persistence (client)
+
+Tách 2 mục tiêu — cơ chế khác nhau, đừng gộp:
+
+- **"Chuyển trang mượt" = RAM**, KHÔNG phải localStorage: Router Cache + `<Link>` prefetch + `staleTimes`; cache TanStack/SWR cũng ở RAM. KHÔNG nhét feed/data lớn vào localStorage để "chuyển trang nhanh".
+- **"Sống qua reload (F5 / mở lại)" = localStorage/IndexedDB** — chỉ cho:
+  - **Nháp đang soạn** (caption + tag AI đã gật, chưa đăng): localStorage, autosave debounce ~1s, **key theo user**; xóa khi **đăng xong** và khi **logout**. Media của nháp KHÔNG lưu local (đã upload — xem §9).
+  - Preferences UI (theme, tab cuối, thu/mở, onboarding), tag gần đây, hàng chờ optimistic (like/follow lúc mạng chập chờn). Data lớn (snapshot Journey của chính chủ, stale-while-revalidate) → **IndexedDB**.
+
+### KHÔNG persist như "sự thật" (đặc thù CINS)
+- **Data verified-moat** ("đã xác thực bởi org", `da_verify`): KHÔNG phục vụ từ cache local như đang đúng — org thu hồi mà client vẫn hiện badge cũ = **phá moat**. Luôn lấy tươi từ server (hoặc hiện cached kèm trạng thái "đang cập nhật").
+- Mọi cache persistent phải tôn trọng `da_xoa` + vô hiệu khi data đổi (bài đã xóa KHÔNG sống dai trên client sau reload).
+
+### Guardrail
+- **Xóa cache theo-user khi logout** (máy dùng chung phổ biến ở VN — không dọn = lộ nháp/Journey của user trước).
+- Session/token ở **httpOnly cookie** (`@supabase/ssr`), KHÔNG localStorage (đồng bộ §6).
+- localStorage **đồng bộ, chặn main thread, ~5MB** → chỉ thứ nhỏ (prefs, nháp, tag gần đây); lớn hơn → IndexedDB.
+
+---
+
+## 11. Checklist tổng trước khi commit
 
 - [ ] Không `select('*')`, list có pagination (`.range` + `count`).
 - [ ] Tên bảng/cột/API theo convention CINS (§7), không `created_at`/số nhiều tiếng Anh.
@@ -330,7 +388,7 @@ export async function SectionA() {
 - [ ] Ảnh optimize + lazy; upload dùng optimistic + Direct Upload.
 - [ ] Không import thư viện thừa.
 - [ ] Đổi schema → migration idempotent, không sửa DB tay.
-- [ ] Design tokens CINS (blue/Lucide/Anton+Be Vietnam Pro+Crimson Pro), không peach/Feather/gray mặc định.
+- [ ] Design tokens CINS (blue/Lucide/**Be Vietnam Pro duy nhất**, mono chỉ cho code), không peach/Feather/gray mặc định, không Anton/Crimson (deprecated).
 - [ ] Lighthouse > 85 cho trang vừa sửa (trang public).
 
 ---

@@ -51,6 +51,7 @@
 |---|---|
 | `tag` · `tag/dedup` | Tạo tag (AI gen tom_tat) · dedup alias |
 | `admin/tag/list` · `merge` · `[id]/tom-tat` · `[id]/verify` | Admin: list · gộp · regen tóm tắt · set `da_verify` |
+| `admin/nguoi-dung/list` · `[id]/vai-tro` | Admin: danh sách user + phân quyền hệ thống (`user_quyen_he_thong`) — gate `canManageUsers` |
 | `keywords/link-content` | Link keyword vào content |
 | `nghe/role-preview` | Preview vị trí nghề |
 
@@ -111,7 +112,7 @@
 | Folder | Vai trò chính | File đáng chú ý |
 |---|---|---|
 | `supabase/` | Client server/browser/service-role, env, cookie, error | `service-role.ts`, `route-handler.ts`, `env.ts` |
-| `auth/` | Google OAuth, session, login-intent (state param đăng ký/đăng nhập) | `google-oauth.ts`, `session.ts`, `oauth-intent-*`, `cins-admin*` |
+| `auth/` | Google OAuth, session, login-intent, **vai trò hệ thống** | `google-oauth.ts`, `session.ts`, `oauth-intent-*`, `cins-admin*`, `system-role.ts` |
 | `social/` | Kết bạn, follow entity, notification, co-author, video-ready | `ket-ban.ts`, `follow.ts`, `follow-entity.ts` ⚠️§5, `thong-bao-insert.ts` |
 | `journey/` | Milestone, timeline, gallery, video processing, co-author credit, cache | `timeline-merge.ts`, `milestone-verify.ts`, `foreign-milestone-visibility.ts`, `video-upload-session.ts`, `sync-tac-pham-tags.ts` |
 | `cong-dong/` | Tạo org, membership, thảo luận, filter, sidebar, mirror tác phẩm, **quản lý thành viên**, categories, event rail, **branding** | `org-create.ts`, `org-profile.ts`, `membership.ts`, `members.ts`, `vai-tro.ts`, `categories.ts`, `event-rail.ts`, `creator-milestone.ts`, `sync-from-publish.ts`, `tac-pham-mirror.ts` ⚠️§5 |
@@ -128,7 +129,7 @@
 | `cloudflare/` | Image upload + delivery URL | `upload-image.ts`, `pick-image-delivery-url.ts` |
 | `editor/` · `tiptap/` | Editor: sanitize, image-layout, co-author role, search | `sanitize.ts`, `coauthor-role-action.ts` |
 | `images/` | Crop cover/square/viewport | `crop-*.ts` |
-| `admin/` | Article admin, môn thi, sql-runner, require-admin | `require-admin.ts`, `sql-runner.ts`, `db-connection.ts` |
+| `admin/` | Article admin, môn thi, sql-runner, require-admin, **quản lý user/vai trò** | `require-admin.ts`, `sql-runner.ts`, `nguoi-dung-roles.ts` |
 | `cins/` | Navigation, hub paths, **World Journey feed**, **trang chủ adaptive** | `mainNav.ts`, `hubPaths.ts`, `worldJourneyFeedFetch.ts`, `worldJourneyOrgFeed.ts`, `home-adaptive/*` |
 | `dev/` | Dev tools inline edit | `inline-article-edit.ts` |
 | `youtube.ts` | Nhúng YouTube | (root) |
@@ -152,6 +153,7 @@
 | `migration_social_luu_private_note.sql` | Cột `social_luu.ghi_chu_rieng` — ghi chú riêng khi lưu về Journey |
 | `migration_org_bai_dang_archived.sql` | Enum `trang_thai_bai_dang_enum` + value `archived` — ẩn bài đăng org (soft delete) |
 | `migration_user_theo_doi_muc.sql` | Follow entity (tag/org) — tách khỏi follow-user |
+| `migration_user_quyen_he_thong.sql` | Bảng `user_quyen_he_thong` + enum `vai_tro_he_thong_enum` (admin/curator cấp hệ thống) |
 | `migration_filter_dong.sql` | **Filter cá nhân động**: `filter_nhan` + `filter_gan` + enum `filter_doi_tuong_enum` + cột `org_bai_dang.thoi_diem` (org journey). Chạy lại an toàn (IF NOT EXISTS). |
 | `migration_org_bai_dang_reaction.sql` | Enum `loai_doi_tuong_social_enum` + value `org_bai_dang` (like/lưu polymorphic). |
 | `migration_org_bai_dang_noi_dung_blocks.sql` | Cột `org_bai_dang.noi_dung_blocks` jsonb — nội dung Block kiểu Journey; `noi_dung` HTML legacy giữ tạm. |
@@ -251,6 +253,7 @@ GOOGLE_CLIENT_ID / SECRET
 | Tương tác | Like / bookmark / bình luận → modal đăng nhập nếu chưa session (`AuthGateProvider` trên `app/[slug]/layout`; cộng đồng: `useCongDongAuthGate` + `AuthRequiredModal`) |
 | OAuth | Google PKCE — `app/auth/callback/route.ts`; cookie `cins-oauth-intent`, `cins-oauth-return` |
 | Protected | `/onboarding`, `/admin`, `/{slug}/p/new`, `/{slug}/p/.../edit` |
+| Admin panel gate | Middleware: session bắt buộc. `renderAdminPage` + `lib/auth/system-role.ts`: chỉ `super_admin` / `admin` / `curator`. Tab `/admin/nguoi-dung`: `canManageUsers` (super_admin + admin). Sửa nội dung: `canEditContent`. |
 | Dev OAuth | `NEXT_PUBLIC_SITE_URL=http://localhost:3001`; Supabase Redirect URLs `http://localhost:3001/auth/callback` (không lẫn `127.0.0.1`) |
 | Callback | Đọc verifier từ **request** cookies, ghi session lên **response** redirect (`lib/supabase/route-handler.ts`) |
 | Co-author trên Journey | Tagged/bookmark: `che_do_hien_thi_journey` — user tự đặt Nổi bật trên timeline của mình. Migration: `migration_journey_foreign_visibility.sql` |

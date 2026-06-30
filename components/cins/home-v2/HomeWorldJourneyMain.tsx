@@ -3,6 +3,12 @@ import { redirect } from "next/navigation";
 import { HomeWorldJourneyClient } from "@/components/cins/home-v2/HomeWorldJourneyClient";
 import { HomeModuleColumn } from "@/components/cins/home-adaptive/HomeModuleColumn";
 import type { HomeModuleCtx } from "@/components/cins/home-adaptive/types";
+import { JourneyPendingConfirmationsStack } from "@/components/journey/JourneyPendingConfirmationsStack";
+import {
+  getCachedOutboundMembershipPending,
+  getCachedPendingCoAuthorInvites,
+  getCachedPendingCoSoStaffInvites,
+} from "@/lib/journey/journey-page-cache";
 import {
   resolvePersona,
   resolveSeeking,
@@ -38,9 +44,18 @@ export async function HomeWorldJourneyMain() {
 
   const filterChips = buildWorldJourneyFilterChips();
   const linhVucs = mapLinhVucForGuestAside(await listLinhVucForHub());
-  const [milestones, exploreMilestones] = await Promise.all([
+  const [
+    milestones,
+    exploreMilestones,
+    coAuthorPendingInvites,
+    coSoStaffPendingInvites,
+    membershipPendingOutbound,
+  ] = await Promise.all([
     fetchWorldJourneyFeedMilestonesCached(session.profile.id),
     fetchWorldJourneyExploreMilestonesCached(session.profile.id),
+    getCachedPendingCoAuthorInvites(session.profile.id),
+    getCachedPendingCoSoStaffInvites(session.profile.id),
+    getCachedOutboundMembershipPending(session.profile.id),
   ]);
 
   const giaiDoan = owner.giai_doan as GiaiDoan | null;
@@ -55,6 +70,18 @@ export async function HomeWorldJourneyMain() {
     <HomeWorldJourneyClient
       leftAside={<HomeModuleColumn side="left" ctx={moduleCtx} />}
       rightAside={<HomeModuleColumn side="right" ctx={moduleCtx} />}
+      pendingConfirmations={
+        <JourneyPendingConfirmationsStack
+          isOwner
+          viewerProfileId={session.profile.id}
+          ownerSlug={owner.slug}
+          ownerName={owner.ten_hien_thi ?? owner.slug}
+          ownerAvatarUrl={getAvatarUrl(owner.avatar_id)}
+          initialCoAuthorInvites={coAuthorPendingInvites}
+          initialCoSoStaffInvites={coSoStaffPendingInvites}
+          initialMembershipPending={membershipPendingOutbound}
+        />
+      }
       sidebarProfile={{
         id: owner.id,
         slug: owner.slug,

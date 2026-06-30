@@ -4670,3 +4670,127 @@
     flex-direction: column;
   }
 }
+
+/* ── Quản lý user / phân quyền hệ thống ── */
+
+.cins-admin .admin-nguoi-dung-page {
+  min-height: 100%;
+}
+
+.cins-admin .admin-nguoi-dung-alert {
+  margin-bottom: 16px;
+}
+
+.cins-admin .admin-nguoi-dung-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.cins-admin .admin-nguoi-dung-ava {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--accent-bg);
+  color: var(--fg-2);
+  overflow: hidden;
+}
+
+.cins-admin .admin-nguoi-dung-ava--has-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cins-admin .admin-nguoi-dung-user-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.cins-admin .admin-nguoi-dung-user-name {
+  font-weight: 600;
+  color: var(--fg-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cins-admin .admin-nguoi-dung-user-slug {
+  font-size: 12px;
+  color: var(--fg-3);
+  text-decoration: none;
+}
+
+.cins-admin .admin-nguoi-dung-user-slug:hover {
+  color: var(--fg-2);
+  text-decoration: underline;
+}
+
+.cins-admin .admin-nguoi-dung-muted {
+  font-size: 13px;
+  color: var(--fg-2);
+}
+
+.cins-admin .admin-nguoi-dung-status {
+  font-size: 12px;
+  color: var(--fg-3);
+  text-transform: capitalize;
+}
+
+.cins-admin .admin-nguoi-dung-role {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.cins-admin .admin-nguoi-dung-role--super_admin {
+  background: #1a1917;
+  color: #fff;
+}
+
+.cins-admin .admin-nguoi-dung-role--admin {
+  background: #e8f0fe;
+  color: #1a56db;
+}
+
+.cins-admin .admin-nguoi-dung-role--curator {
+  background: #f0ede8;
+  color: #5a5855;
+}
+
+.cins-admin .admin-nguoi-dung-role--thanh_vien {
+  background: #f5f4f0;
+  color: var(--fg-3);
+}
+
+.cins-admin .admin-nguoi-dung-select {
+  min-width: 180px;
+  max-width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 12px;
+  color: var(--fg-1);
+}
+
+.cins-admin .admin-nguoi-dung-select:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.cins-admin .admin-nguoi-dung-locked {
+  display: inline-flex;
+}

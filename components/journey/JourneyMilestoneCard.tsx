@@ -513,8 +513,7 @@ export function JourneyMilestoneCard({
       attribution?.isOrg &&
         attribution.orgKind === "truong" &&
         (variant === "tagged" || variant === "verified") &&
-        !useForeignFrame &&
-        (canManageTagged || !entityLens),
+        !useForeignFrame,
     );
   const showMilestoneVerifyBadge =
     !showsTruongVerifyBar &&
@@ -1072,8 +1071,17 @@ export function JourneyMilestoneCard({
   function renderMilestoneCardInterior() {
     return (
       <>
+          {/* Verify bar (trường xác thực) — hiện cho mọi người, kể cả trên home/entity feed. */}
+          {showsTruongVerifyBar && attribution ? (
+            <TruongVerifyBar attr={attribution} />
+          ) : null}
+
           {variant === "tagged" || variant === "verified" ? (
-            attribution && !canManageTagged && !useForeignFrame && !entityLens ? (
+            attribution &&
+            !canManageTagged &&
+            !useForeignFrame &&
+            !entityLens &&
+            !showsTruongVerifyBar ? (
               <TaggedByPanel attr={attribution} dateLabel={displayDate} />
             ) : null
           ) : null}
@@ -1123,40 +1131,72 @@ export function JourneyMilestoneCard({
                   </span>
                 </JourneyUserPopover>
               )}
-              <span className="badge-row">
-                {isBookmarkMilestone ? (
-                  <span className="ctx-badge j-type-bookmark">
-                    <Bookmark size={11} strokeWidth={1.8} aria-hidden />
-                    {TYPE_LABEL.bookmark}
-                  </span>
-                ) : isCongDongPost ? (
-                  <span className="ctx-badge j-vis-cong-dong">
-                    <Users size={11} strokeWidth={1.8} aria-hidden />
-                    Cộng đồng
-                  </span>
-                ) : showMilestoneVerifyBadge && showOrgVerifyBadge ? (
-                  <MilestoneVerifyBadge />
-                ) : (
-                  <span className={`ctx-badge ${TYPE_CLASS[type]}`}>
-                    <MilestoneTypeBadgeContent type={type} />
-                  </span>
-                )}
-                {vis && !isCongDongPost ? (
-                  <span
-                    className={`ctx-badge j-vis-${visibility ?? "public"}`}
-                    title={vis.label}
-                    aria-label={vis.label}
-                  >
-                    <vis.Icon
-                      size={11}
-                      strokeWidth={1.8}
-                      aria-hidden
-                      {...(visibility === "feature" ? { fill: "currentColor" } : {})}
-                    />
-                    {visibility === "feature" ? "Nổi bật" : vis.label}
-                  </span>
-                ) : null}
-              </span>
+              {/* Trang chủ/entity: badge trạng thái chỉ chủ bài thấy & sửa được. */}
+              {canManage && ownerSlug ? (
+                <span className="badge-row">
+                  {isBookmarkMilestone ? (
+                    <span className="ctx-badge j-type-bookmark">
+                      <Bookmark size={11} strokeWidth={1.8} aria-hidden />
+                      {TYPE_LABEL.bookmark}
+                    </span>
+                  ) : isCongDongPost ? (
+                    <span className="ctx-badge j-vis-cong-dong">
+                      <Users size={11} strokeWidth={1.8} aria-hidden />
+                      Cộng đồng
+                    </span>
+                  ) : showMilestoneVerifyBadge && showOrgVerifyBadge ? (
+                    <MilestoneVerifyBadge />
+                  ) : (
+                    <JourneyMilestoneInlineControls
+                      kind="type"
+                      milestoneId={cotMocId ?? milestone.id}
+                      current={type}
+                      options={EDITABLE_TYPE_OPTIONS}
+                      personalFilterSlugs={
+                        canManageSelf && !foreignJourneyContext
+                          ? personalFilterSlugs
+                          : undefined
+                      }
+                    >
+                      <span className={`ctx-badge ${TYPE_CLASS[type]}`}>
+                        <MilestoneTypeBadgeContent type={type} />
+                      </span>
+                    </JourneyMilestoneInlineControls>
+                  )}
+                  {showMilestoneVerifyBadge && !showOrgVerifyBadge ? (
+                    <MilestoneVerifyBadge />
+                  ) : null}
+                  {vis && !isCongDongPost ? (
+                    <JourneyMilestoneInlineControls
+                      kind="visibility"
+                      milestoneId={cotMocId ?? milestone.id}
+                      current={visibility ?? "public"}
+                      options={
+                        foreignJourneyContext
+                          ? FOREIGN_JOURNEY_VIS_OPTIONS
+                          : EDITABLE_VIS_OPTIONS
+                      }
+                      foreignJourney={foreignJourneyContext}
+                    >
+                      <span
+                        className={`ctx-badge j-vis-${visibility ?? "public"}`}
+                        title={vis.label}
+                        aria-label={vis.label}
+                      >
+                        <vis.Icon
+                          size={11}
+                          strokeWidth={1.8}
+                          aria-hidden
+                          {...(visibility === "feature"
+                            ? { fill: "currentColor" }
+                            : {})}
+                        />
+                        {visibility === "feature" ? "Nổi bật" : vis.label}
+                      </span>
+                    </JourneyMilestoneInlineControls>
+                  ) : null}
+                </span>
+              ) : null}
             </div>
           ) : canManage && ownerSlug ? (
             <div
@@ -1167,7 +1207,10 @@ export function JourneyMilestoneCard({
                 (useForeignFrame ? " jcard-datebar--bookmark-source" : "")
               }
             >
-              {canManageTagged && attribution && !useForeignFrame ? (
+              {canManageTagged &&
+              attribution &&
+              !useForeignFrame &&
+              !showsTruongVerifyBar ? (
                 <TaggedByPanel attr={attribution} dateLabel={displayDate} />
               ) : null}
               {isCongDongPost && congDongOrg ? (

@@ -271,6 +271,22 @@ diem = Σ(nhap_i × he_so_i) / Σ(thang_diem_i × he_so_i) × quy_ve_thang
 
 Check: `user_thanh_vien_to_chuc.vai_tro IN ('admin', 'quan_ly_noi_dung', 'quan_ly_tuyen_sinh')`.
 
+### Mô hình quyền 2 trục (khung tư duy — đừng làm phẳng thành 1 danh sách)
+
+- **Trục 1 — quyền toàn cục** (bạn LÀ GÌ trên nền tảng):
+  - **Khách**: chỉ đọc nội dung public.
+  - **User thường** (mặc định): Journey riêng, tạo catalog concept (nháp permissionless), đăng tác phẩm, gắn tag *mô tả*, gửi claim verify.
+  - **CINS Curator**: authority **biên tập từ điển** — phong canonical / `da_verify` tag, gộp alias, gán nhóm. KHÔNG có quyền verify quan hệ.
+  - **CINS Admin**: seed `linh_vuc` + ngành, `edu_*`, duyệt org, moderation toàn cục (xem §12 trên + §O).
+- **Trục 2 — quyền theo quan hệ (per-row)**:
+  - **Chủ sở hữu**: row này của tôi → sửa / soft-delete (`da_xoa`) tác phẩm của mình, xác nhận tag trên tác phẩm của mình, accept/veto claim nhắm tới chính mình.
+  - **Org owner/admin**: vận hành org, verify thành viên/affiliate, accept/veto claim nhắm tới org, quản thành viên (theo `vai_tro` ở trên).
+  - **Org member**: thuộc org (roster, đăng dưới ngữ cảnh org) nhưng KHÔNG giữ authority org.
+- **Bất biến quyền** (đồng bộ quy tắc 27 + §V):
+  - "Tag chuẩn" (`da_verify`/canonical = trục 1, Curator) ≠ "đã xác thực" (quan hệ = trục 2, đích claim). **KHÔNG gộp một cột** → gộp là mất moat.
+  - **AI không phải role**: chỉ gợi tag *mô tả*; KHÔNG bao giờ giữ accept/veto, canonical, hay authority trục 2.
+  - **RLS là nơi thực thi quyền**, không phải UI/Cursor. UI ẩn/hiện chỉ là tiện ích; chặn thật ở RLS. Không để quyền phụ thuộc client làm đúng. (Gate build feature → `CINS_DEV_RULES.md` §3.)
+
 ---
 
 ## 13. Nhóm tương lai (không trong MVP)
