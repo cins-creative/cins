@@ -42,13 +42,18 @@ import { JourneyBookmarkButton } from "@/components/journey/JourneyBookmarkButto
 import { JourneyMilestoneInlineControls } from "@/components/journey/JourneyMilestoneInlineControls";
 import { JourneyLikeButton } from "@/components/journey/JourneyLikeButton";
 import { JourneyMilestoneOwnerMenu } from "@/components/journey/JourneyMilestoneOwnerMenu";
+import { JourneyMilestoneInsightsModal } from "@/components/journey/JourneyMilestoneInsightsModal";
 import { JourneyMilestoneViewerMenu } from "@/components/social/JourneyMilestoneViewerMenu";
 import { IdentityPendingMilestoneCard } from "@/components/journey/IdentityPendingMilestoneCard";
 import { IdentityVerifiedMilestoneCard } from "@/components/journey/IdentityVerifiedMilestoneCard";
 import { JourneyOrgPopover } from "@/components/journey/JourneyOrgPopover";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  trackSuKien,
+  useImpressionTracker,
+} from "@/lib/social/track-su-kien";
 import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import type {
   CoAuthorCredit,
@@ -589,6 +594,29 @@ export function JourneyMilestoneCard({
   const orgAttachCotMocId = cotMocId ?? milestone.id;
   const [liveCommentCount, setLiveCommentCount] = useState(comments ?? 0);
 
+  /* Analytics tiếp cận/tương tác — KHÔNG đo nội dung của chính mình. */
+  const articleRef = useRef<HTMLElement | null>(null);
+  const [insightsOpen, setInsightsOpen] = useState(false);
+  const trackOwnContent =
+    isOwner ||
+    (Boolean(viewerProfileId) &&
+      (viewerProfileId === postOwnerId || viewerProfileId === ownerProfileId));
+  /* Nút "Số liệu" — chỉ bài do chính mình đăng (self/verified); org enforce thêm ở server. */
+  const canSeeInsights =
+    isOwner && Boolean(cotMocId) && (variant === "self" || variant === "verified");
+  const onOpenInsights = canSeeInsights
+    ? () => setInsightsOpen(true)
+    : undefined;
+  useImpressionTracker(
+    articleRef,
+    {
+      loaiDoiTuong: "cot_moc",
+      idDoiTuong: milestoneId,
+      nguon: entityLens ? "entity_lens" : "journey_home",
+    },
+    !trackOwnContent,
+  );
+
   useEffect(() => {
     setLiveCommentCount(comments ?? 0);
   }, [comments]);
@@ -701,6 +729,26 @@ export function JourneyMilestoneCard({
     );
   }
 
+  function trackContentOpen() {
+    if (trackOwnContent) return;
+    trackSuKien({
+      loai_su_kien: "mo_card",
+      loai_doi_tuong: "cot_moc",
+      id_doi_tuong: milestoneId,
+      nguon: entityLens ? "entity_lens" : "journey_home",
+    });
+  }
+
+  function trackCommentOpen() {
+    if (trackOwnContent) return;
+    trackSuKien({
+      loai_su_kien: "xem_binh_luan",
+      loai_doi_tuong: "cot_moc",
+      id_doi_tuong: milestoneId,
+      nguon: entityLens ? "entity_lens" : "journey_home",
+    });
+  }
+
   function handleExpandTrigger(e: React.MouseEvent<HTMLElement>) {
     if (
       !supportsInlineUnfold ||
@@ -710,6 +758,7 @@ export function JourneyMilestoneCard({
     ) {
       return;
     }
+    trackContentOpen();
     inlineExpand.onToggleContent();
   }
 
@@ -718,6 +767,7 @@ export function JourneyMilestoneCard({
     if (e.key !== "Enter" && e.key !== " ") return;
     if (shouldIgnoreExpandTrigger(e.target as Element)) return;
     e.preventDefault();
+    trackContentOpen();
     inlineExpand.onToggleContent();
   }
 
@@ -818,7 +868,10 @@ export function JourneyMilestoneCard({
       {inlineExpand ? (
         <JourneyCommentLink
           commentCount={liveCommentCount}
-          onOpenComments={inlineExpand.onOpenComments}
+          onOpenComments={() => {
+            trackCommentOpen();
+            inlineExpand.onOpenComments();
+          }}
         />
       ) : (
         <button
@@ -896,6 +949,7 @@ export function JourneyMilestoneCard({
 
   return (
     <article
+      ref={articleRef}
       className={milestoneCls + ((showUnfold || showTextPanelUnfold) ? " is-card-expanded" : "")}
       data-mid={cotMocId ?? milestone.id}
       data-content-kind={cardContentKind}
@@ -954,6 +1008,13 @@ export function JourneyMilestoneCard({
           </div>
         )}
       </div>
+      {canSeeInsights ? (
+        <JourneyMilestoneInsightsModal
+          open={insightsOpen}
+          onClose={() => setInsightsOpen(false)}
+          milestoneId={cotMocId ?? milestone.id}
+        />
+      ) : null}
     </article>
   );
 
@@ -1091,6 +1152,7 @@ export function JourneyMilestoneCard({
             foreignJourney={foreignJourneyContext}
             personalFilterSlugs={personalFilterSlugs}
             className="jcard-date-menu"
+            onOpenInsights={onOpenInsights}
           />
         ) : null}
       </>
@@ -1137,6 +1199,14 @@ export function JourneyMilestoneCard({
                     entityPosterLabel ?? entityPosterSlug ?? "Người dùng"
                   }
                   fallbackAvatarUrl={entityPosterAvatar}
+                  track={
+                    trackOwnContent
+                      ? null
+                      : {
+                          idBoiCanh: milestoneId,
+                          nguon: entityLens ? "entity_lens" : "journey_home",
+                        }
+                  }
                 >
                   <span className="org-chip">
                     <span className="org-logo" aria-hidden>
@@ -1379,6 +1449,7 @@ export function JourneyMilestoneCard({
                     foreignJourney={foreignJourneyContext}
                     personalFilterSlugs={personalFilterSlugs}
                     className="jcard-date-menu"
+                    onOpenInsights={onOpenInsights}
                   />
                 </>
               ) : null}
@@ -1426,6 +1497,14 @@ export function JourneyMilestoneCard({
                 slug={ownerSlug ?? ""}
                 fallbackName={authorName || (ownerSlug ? `@${ownerSlug}` : "Người dùng")}
                 fallbackAvatarUrl={authorAvatarUrl}
+                track={
+                  trackOwnContent
+                    ? null
+                    : {
+                        idBoiCanh: milestoneId,
+                        nguon: entityLens ? "entity_lens" : "journey_home",
+                      }
+                }
               >
                 <span className="org-chip">
                   <span className="org-logo" aria-hidden>

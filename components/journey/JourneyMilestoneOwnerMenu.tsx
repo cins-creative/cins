@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  BarChart3,
   BookOpen,
   Briefcase,
   Calendar,
@@ -70,6 +71,8 @@ type Props = {
   className?: string;
   /** Nhãn lọc đang gắn — để gán/bỏ trong menu. */
   personalFilterSlugs?: string[];
+  /** Mở modal số liệu tiếp cận (chỉ chủ bài / quản trị org). Bỏ trống → ẩn mục. */
+  onOpenInsights?: () => void;
 };
 
 /* ╔══════════════════════════════════════════════════════════════════╗
@@ -137,6 +140,7 @@ export function JourneyMilestoneOwnerMenu({
   foreignJourney,
   className,
   personalFilterSlugs = [],
+  onOpenInsights,
 }: Props) {
   const router = useRouter();
   const personalAttach = useMilestonePersonalFilterAttach(
@@ -393,6 +397,24 @@ export function JourneyMilestoneOwnerMenu({
               <span className="j-m-menu-lbl">
                 {copied ? "Đã sao chép link!" : "Sao chép link"}
               </span>
+            </button>
+          ) : null}
+
+          {/* Số liệu tiếp cận (chỉ chủ bài / quản trị org) */}
+          {onOpenInsights ? (
+            <button
+              type="button"
+              className="j-m-menu-item"
+              role="menuitem"
+              onClick={() => {
+                close();
+                onOpenInsights();
+              }}
+            >
+              <span className="j-m-menu-ico" aria-hidden>
+                <BarChart3 size={14} strokeWidth={1.7} />
+              </span>
+              <span className="j-m-menu-lbl">Số liệu tiếp cận</span>
             </button>
           ) : null}
 

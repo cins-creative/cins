@@ -21,6 +21,11 @@ export type OrgBaiDangComposeConfig = {
   orgId: string;
   onPostPublished?: (post: TruongBaiDang) => void;
   onPostUpdated?: (post: TruongBaiDang) => void;
+  /**
+   * Ép `loai_bai_dang` cố định cho mọi bài tạo/sửa trong context này (vd. tab
+   * Showcase studio luôn publish loại `showcase`). Khi set, ẩn dropdown chọn loại.
+   */
+  forceLoaiBaiDang?: string;
 };
 
 export type PublishOrgBaiDangInput = {
@@ -29,7 +34,8 @@ export type PublishOrgBaiDangInput = {
   tomTat?: string | null;
   coverId?: string | null;
   blocks: Block[];
-  loaiBaiDang?: BaiDangLoai;
+  /** `BaiDangLoai` chuẩn, hoặc loại đặc thù (vd. `showcase`). */
+  loaiBaiDang?: BaiDangLoai | string;
   /** ISO — nếu trong tương lai: lưu `nhap` + `tao_luc`, chỉ hiện feed khi đến giờ. */
   schedulePublishAt?: string | null;
 };
@@ -46,7 +52,7 @@ export function defaultLoaiBaiDangFromBlocks(
   return "thong_bao";
 }
 
-function resolveLoaiBaiDang(input: PublishOrgBaiDangInput): BaiDangLoai {
+function resolveLoaiBaiDang(input: PublishOrgBaiDangInput): string {
   return input.loaiBaiDang ?? defaultLoaiBaiDangFromBlocks(input.blocks);
 }
 

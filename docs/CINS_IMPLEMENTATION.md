@@ -2,7 +2,7 @@
 
 > **File trong repo:** `docs/CINS_IMPLEMENTATION.md`
 > **Tầng đổi nhanh nhất.** Map API route · lib · SQL migration · env/infra · ghi chú triển khai site. Dựng từ cây thư mục thật repo `cins-website` (2026-06-10).
-> Khi conflict về *cấu trúc DB*: SCHEMA.md / DB thắng. File này map *code*, không phải schema.
+> Khi conflict về *cấu trúc DB*: DB thật (đọc trực tiếp) thắng. File này map *code*, không phải schema.
 > Regenerate khi cấu trúc thư mục đổi đáng kể: `dir /b /s app\api\*.ts` + `dir /b /s lib\*.ts`.
 
 ---
@@ -157,15 +157,16 @@
 | `migration_filter_dong.sql` | **Filter cá nhân động**: `filter_nhan` + `filter_gan` + enum `filter_doi_tuong_enum` + cột `org_bai_dang.thoi_diem` (org journey). Chạy lại an toàn (IF NOT EXISTS). |
 | `migration_org_bai_dang_reaction.sql` | Enum `loai_doi_tuong_social_enum` + value `org_bai_dang` (like/lưu polymorphic). |
 | `migration_org_bai_dang_noi_dung_blocks.sql` | Cột `org_bai_dang.noi_dung_blocks` jsonb — nội dung Block kiểu Journey; `noi_dung` HTML legacy giữ tạm. |
-| `migration_khoa_hoc_v2.sql` | **Trang khóa học v2** (gộp, thay `migration_giao_trinh_thu_tu.sql` lẻ): `org_giao_trinh.thu_tu` + `so_buoi`; `org_lop_hoc.lich_hoc` + `giao_vien_text`; `org_khoa_hoc.noi_dung_blocks`. Idempotent + backfill `thu_tu`. Chạy xong → regenerate SCHEMA.md. |
+| `migration_khoa_hoc_v2.sql` | **Trang khóa học v2** (gộp, thay `migration_giao_trinh_thu_tu.sql` lẻ): `org_giao_trinh.thu_tu` + `so_buoi`; `org_lop_hoc.lich_hoc` + `giao_vien_text`; `org_khoa_hoc.noi_dung_blocks`. Idempotent + backfill `thu_tu`. Chạy xong → đối chiếu lại schema DB. |
 | `migration_org_hinh_anh_loai_expand.sql` | Mở rộng CHECK `org_hinh_anh.loai`: thêm `ngoai_khoa`, `su_kien`, `hop_tac` (UI gallery tab Hình ảnh). Chạy: `node scripts/run-org-hinh-anh-loai-migration.mjs`. |
 | `migration_org_tuyen_dung.sql` | **Trang chủ adaptive:** `org_tuyen_dung` + `org_tuyen_dung_ung_tuyen` + `org_scout_luu`; enum `loai_hinh_lam_viec_enum`, `trang_thai_tuyen_dung_enum`, `trang_thai_ung_tuyen_enum`. Chạy: `node scripts/run-org-tuyen-dung-migration.mjs`. |
+| `migration_social_su_kien.sql` | **Analytics tiếp cận/tương tác (riêng tư):** enum `loai_su_kien_social_enum` + `nguon_su_kien_enum`; mở rộng `loai_doi_tuong_social_enum` (+`nguoi_dung`,+`to_chuc`); thêm cột vào `social_luot_xem` (`loai_su_kien`/`phien_id`/`nguon`/`loai_boi_canh`/`id_boi_canh`/`ngu_canh`); bảng rollup `social_thong_ke_doi_tuong_ngay` (RLS riêng tư); hàm `social_rollup_su_kien()`. App: `lib/social/su-kien.ts` (record + `canViewCotMocInsight` + `getCotMocInsight`), `lib/social/track-su-kien.ts` (client), API `POST /api/social/su-kien` (ghi event) + `GET ?cotMocId=` (đọc số liệu — chỉ chủ bài cá nhân hoặc quản trị viên `owner`/`admin` của org). UI: `JourneyMilestoneInsightsModal` mở từ mục **"Số liệu tiếp cận"** trong `JourneyMilestoneOwnerMenu`. Chạy: `node scripts/run-su-kien-migration.mjs`; lên lịch `social_rollup_su_kien` cron. Env tuỳ chọn `SU_KIEN_SALT`. |
 
 **Org bài đăng — blocks (app, sau migration):** `lib/truong/bai-dang-blocks.ts` · API `bai-dang` POST/PATCH nhận `noi_dung_blocks` · fetch `queries.ts` · card có blocks → `JourneyMilestoneCardBodyContent` + `PostBlockRenderer`; không blocks → HTML legacy. Compose org vẫn Tiptap/HTML — chưa ghi blocks từ UI.
 
 | `script_delete_org_bai_dang_legacy.sql` | Xóa bài `org_bai_dang` legacy (`noi_dung_blocks` rỗng) + reaction/lưu/tag liên quan. Có block comment xóa toàn bộ nếu cần reset. |
 
-**Cấu trúc 2 bảng mới** *(tham chiếu tạm cho Cursor — SCHEMA.md là sự thật sau khi chạy migration + regenerate)*:
+**Cấu trúc 2 bảng mới** *(tham chiếu tạm cho Cursor — DB thật là sự thật sau khi chạy migration; đọc trực tiếp để đối chiếu)*:
 
 ```
 filter_nhan
@@ -218,11 +219,11 @@ GOOGLE_CLIENT_ID / SECRET
 ## 5. ⚠️ Cần kiểm tra / nợ kỹ thuật
 
 - **`follow` vs `ket-ban` cùng tồn tại — chủ đích (L17).** `lib/social/follow.ts` + `follow-entity.ts` + route `follow/requests`, `follow/status`. Follow nay gồm cả người (`nguoi_dung`), không còn bỏ. Vì follow **không cần duyệt**, `follow/requests` là **tàn dư** → dọn, hoặc repurpose cho "tài khoản riêng tư duyệt người theo dõi" (ngoài scope MVP).
-- **`tac-pham-mirror.ts` + `migration_cong_dong_tac_pham_link.sql`.** Có cơ chế mirror tác phẩm vào cộng đồng. Cần verify migration này có sinh **bảng/cột mới** ngoài 67 bảng đã đếm không → nếu có, cập nhật SCHEMA.md.
+- **`tac-pham-mirror.ts` + `migration_cong_dong_tac_pham_link.sql`.** Có cơ chế mirror tác phẩm vào cộng đồng. Cần verify migration này có sinh **bảng/cột mới** ngoài 67 bảng đã đếm không → đối chiếu DB trực tiếp.
 - **File mock/legacy trong `lib/truong/`**: `doan-project-mock.ts`, `message-inbox-mock.ts`, `milestone-tag-notify-mock.ts`, `timeline-steps-legacy.ts`. Là placeholder/cũ — đánh dấu để dọn hoặc thay bằng implement thật.
 - **`gallery-stubs.ts`** (lib/journey) — stub, chưa thật.
 - **`loai_bai_dang_org_enum` deprecate** (filter động, session 2026-06-07): filter động thay vai trò phân loại bài đăng org, nhưng enum GIỮ lại (còn code dùng). Dọn khi filter động đã thay xong toàn bộ điểm phân loại.
-- **`migration_khoa_hoc_v2.sql` chưa chạy trên DB** → SCHEMA.md chưa có 5 cột mới. Chạy migration rồi regenerate trước khi Cursor code trang khóa.
+- **`migration_khoa_hoc_v2.sql` chưa chạy trên DB** → DB chưa có 5 cột mới. Chạy migration rồi đối chiếu DB trực tiếp trước khi Cursor code trang khóa.
 
 ---
 

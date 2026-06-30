@@ -1,6 +1,7 @@
 export const CO_SO_TAB_IDS = [
   "bai-dang",
   "khoa-hoc",
+  "su-kien",
   "san-pham",
   "hinh-anh",
 ] as const;
@@ -18,6 +19,7 @@ export type CoSoPageCauHinh = {
 export const CO_SO_TAB_LABELS: Record<CoSoTabId, string> = {
   "bai-dang": "Bài đăng",
   "khoa-hoc": "Khóa học",
+  "su-kien": "Sự kiện",
   "san-pham": "Sản phẩm học viên",
   "hinh-anh": "Hình ảnh cơ sở",
 };

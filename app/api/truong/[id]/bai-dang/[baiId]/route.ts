@@ -5,7 +5,7 @@ import {
   mapOrgBaiDangApiRow,
   ORG_BAI_DANG_API_SELECT,
 } from "@/lib/truong/bai-dang-api-fields";
-import { normalizeLoaiBaiDang } from "@/lib/truong/bai-dang";
+import { resolveOrgBaiDangLoaiForWrite } from "@/lib/truong/bai-dang";
 import { sanitizeBaiDangCoverIdInput } from "@/lib/truong/bai-dang-cover";
 import { assertTruongOrgWriteApi } from "@/lib/truong/inline-api-auth";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -42,7 +42,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   for (const key of allowed) {
     if (!(key in body)) continue;
     if (key === "loai_bai_dang") {
-      patch[key] = normalizeLoaiBaiDang(body[key]);
+      patch[key] = resolveOrgBaiDangLoaiForWrite(body[key]);
       continue;
     }
     if (key === "noi_dung_blocks") {

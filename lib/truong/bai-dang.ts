@@ -43,6 +43,26 @@ export function normalizeLoaiBaiDang(raw: unknown): BaiDangLoai {
   return LOAI_ALIASES[key] ?? "thong_bao";
 }
 
+/**
+ * Loại bài đăng đặc thù studio/doanh nghiệp được giữ nguyên (không normalize về
+ * 5 loại chuẩn). Hiện chỉ có `showcase` — tab Showcase trang studio.
+ */
+export const ORG_BAI_DANG_PASSTHROUGH_LOAI = ["showcase"] as const;
+
+/**
+ * Chuẩn hóa `loai_bai_dang` cho ghi DB nhưng cho phép một số loại đặc thù
+ * (vd. `showcase`) đi thẳng — dùng ở API POST/PATCH bài đăng org.
+ */
+export function resolveOrgBaiDangLoaiForWrite(raw: unknown): string {
+  const key = String(raw ?? "")
+    .trim()
+    .toLowerCase();
+  if ((ORG_BAI_DANG_PASSTHROUGH_LOAI as readonly string[]).includes(key)) {
+    return key;
+  }
+  return normalizeLoaiBaiDang(raw);
+}
+
 export function loaiBaiDangLabel(raw: unknown): string {
   return BAI_DANG_LOAI_LABELS[normalizeLoaiBaiDang(raw)];
 }

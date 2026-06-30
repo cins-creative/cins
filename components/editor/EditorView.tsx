@@ -1496,7 +1496,7 @@ export function EditorView({
           tomTat: moTaFinal || null,
           coverId: coverFinal,
           blocks: publishBlocks,
-          loaiBaiDang: composeLoaiBaiDang,
+          loaiBaiDang: orgBaiDangCompose.forceLoaiBaiDang ?? composeLoaiBaiDang,
           schedulePublishAt: composeSchedulePublishAt,
         });
         if (!result.ok) {
@@ -1523,7 +1523,7 @@ export function EditorView({
           tomTat: moTaFinal || null,
           coverId: coverFinal,
           blocks: publishBlocks,
-          loaiBaiDang: composeLoaiBaiDang,
+          loaiBaiDang: orgBaiDangCompose.forceLoaiBaiDang ?? composeLoaiBaiDang,
           schedulePublishAt: composeSchedulePublishAt,
         });
         if (!result.ok) {
@@ -1700,11 +1700,13 @@ export function EditorView({
             />
           ) : orgBaiDangCompose ? (
             <div className="ed-topbar-actions-cluster">
-              <OrgBaiDangLoaiComposeDropdown
-                value={composeLoaiBaiDang}
-                onChange={setComposeLoaiBaiDang}
-                menuZIndex={9200}
-              />
+              {orgBaiDangCompose.forceLoaiBaiDang ? null : (
+                <OrgBaiDangLoaiComposeDropdown
+                  value={composeLoaiBaiDang}
+                  onChange={setComposeLoaiBaiDang}
+                  menuZIndex={9200}
+                />
+              )}
               <OrgBaiDangScheduleComposeButton
                 value={composeSchedulePublishAt}
                 onChange={setComposeSchedulePublishAt}

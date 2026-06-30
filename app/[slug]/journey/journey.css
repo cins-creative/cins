@@ -9126,14 +9126,15 @@ select.j-edit-input {
   box-shadow: none;
 }
 
-/* Viewer menu ("..." của người xem) — pin absolute góc trên-trái card. */
+/* Viewer menu ("..." của người xem) — pin absolute góc trên-phải card. */
 .j-m-card.jcard:has(.jcard-viewer-menu) {
   position: relative;
 }
 .jcard-viewer-menu {
   position: absolute;
   top: 8px;
-  left: 8px;
+  right: 8px;
+  left: auto;
   z-index: 14;
   flex: 0 0 auto;
 }
@@ -9143,12 +9144,12 @@ select.j-edit-input {
   background: rgba(255, 255, 255, 0.94);
   border-color: rgba(15, 23, 42, 0.1);
   color: var(--ink-body, #334155);
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.2);
+  box-shadow: none;
 }
 .jcard-viewer-menu .j-m-menu-pop {
   top: calc(100% + 6px);
-  left: 0;
-  right: auto;
+  right: 0;
+  left: auto;
   z-index: 40;
 }
 .ctx-badge,

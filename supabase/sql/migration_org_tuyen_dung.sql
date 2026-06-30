@@ -1,6 +1,6 @@
 -- Trang chủ adaptive — module `co_hoi` (tuyển dụng) + `scout_tai_nang`.
 -- Demand-side / B2B (brief §8). Idempotent — chạy trên Supabase SQL Editor.
--- ⚠️ ĐỀ XUẤT: chốt với Tú trước khi chạy; sau khi chạy → cập nhật CINS_SCHEMA.md.
+-- ⚠️ ĐỀ XUẤT: chốt với Tú trước khi chạy; sau khi chạy → đối chiếu schema DB trực tiếp.
 
 -- ── Enums ──────────────────────────────────────────────────────
 DO $$ BEGIN

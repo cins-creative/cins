@@ -9,6 +9,13 @@ import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEdit
 import { TruongYearSelect } from "@/components/truong/YearFilterProvider";
 import { TruongTimelineMocSingleForm } from "@/components/truong/tuyensinh/TruongTimelineMocSingleForm";
 import { KhoaHocCreateModal } from "@/components/co-so/KhoaHocCreateModal";
+import { SuKienCreateModal } from "@/components/co-so/SuKienCreateModal";
+import {
+  labelLoaiSuKien,
+  type SuKienCardData,
+} from "@/lib/to-chuc/su-kien-constants";
+import { formatTimelineDate, getStepStatus } from "@/lib/truong/timeline";
+import { coSoTabPath } from "@/lib/to-chuc/co-so-routes";
 import {
   CO_SO_KHOA_UPDATED_EVENT,
   notifyCoSoKhoaListChanged,
@@ -64,12 +71,58 @@ type MocModalMode = { kind: "new" } | { kind: "edit"; mocId: string };
 
 const WEEKLY_KHAI_GIANG_LABEL = LICH_KHAI_GIANG_LIEN_TUC_DEFAULT;
 
+const SU_KIEN_STEP_PREFIX = "su-kien:";
+
+function suKienStepId(eventId: string): string {
+  return `${SU_KIEN_STEP_PREFIX}${eventId}`;
+}
+
+function parseSuKienStepId(stepId: string): string | null {
+  return stepId.startsWith(SU_KIEN_STEP_PREFIX)
+    ? stepId.slice(SU_KIEN_STEP_PREFIX.length)
+    : null;
+}
+
+/** Chuyển sự kiện org → bước timeline cho sidebar thông báo. */
+function buildSuKienSteps(
+  events: SuKienCardData[],
+  orgSlug: string,
+): TuyenSinhTimelineStep[] {
+  return events.map((ev) => {
+    const status = getStepStatus(ev.batDau, ev.ketThuc);
+    const startLabel = formatTimelineDate(ev.batDau) ?? "";
+    const endLabel = ev.ketThuc ? formatTimelineDate(ev.ketThuc) : null;
+    let dateLabel =
+      endLabel && endLabel !== startLabel
+        ? `${startLabel} – ${endLabel}`
+        : startLabel;
+    if (status === "active") dateLabel = `${dateLabel} · Đang diễn ra`;
+    const descParts = [labelLoaiSuKien(ev.loaiSuKien)];
+    if (ev.diaDiem) descParts.push(ev.diaDiem);
+    return {
+      id: suKienStepId(ev.id),
+      label: ev.ten,
+      dateLabel,
+      desc: descParts.join(" · "),
+      link: coSoTabPath(orgSlug, "su-kien"),
+      status,
+      dot: status === "done" ? "✓" : status === "active" ? "→" : "★",
+    };
+  });
+}
+
 function coSoStepSortKey(
   step: TuyenSinhTimelineStep,
   lopPins: CoSoLopTimelinePin[],
   khoaList: KhoaHocCardData[],
   yearMoc: TuyenSinhTimelineMoc[],
+  suKienList: SuKienCardData[],
 ): number {
+  const suKienId = parseSuKienStepId(step.id);
+  if (suKienId) {
+    const ev = suKienList.find((e) => e.id === suKienId);
+    return ev ? mocDateSortKey(ev.batDau, ev.ketThuc) : Number.MAX_SAFE_INTEGER;
+  }
   const lopParsed = parseCoSoAutoPinLopId(step.id);
   if (lopParsed) {
     const pin = lopPins.find((p) => p.lopId === lopParsed.lopId);
@@ -196,10 +249,12 @@ export function CoSoUpcomingSidebar({
 
   const [khoaList, setKhoaList] = useState<KhoaHocCardData[]>([]);
   const [lopPins, setLopPins] = useState<CoSoLopTimelinePin[]>([]);
+  const [suKienList, setSuKienList] = useState<SuKienCardData[]>([]);
   const [timelineMoc, setTimelineMoc] = useState<TuyenSinhTimelineMoc[]>([]);
   const [showPastSteps, setShowPastSteps] = useState(false);
   const [mocModal, setMocModal] = useState<MocModalMode | null>(null);
   const [editingKhoa, setEditingKhoa] = useState<KhoaHocCardData | null>(null);
+  const [suKienModalOpen, setSuKienModalOpen] = useState(false);
   const [timelineYear, setTimelineYear] = useState(defaultTruongNganhYear());
 
   const loadLopPins = useCallback(async () => {
@@ -234,9 +289,24 @@ export function CoSoUpcomingSidebar({
     }
   }, [orgId]);
 
+  const loadSuKien = useCallback(async () => {
+    try {
+      const res = await fetch(
+        `/api/org/${encodeURIComponent(orgId)}/su-kien`,
+        { credentials: "include" },
+      );
+      const data = (await res.json()) as { suKien?: SuKienCardData[] };
+      if (res.ok) {
+        setSuKienList(data.suKien ?? []);
+      }
+    } catch {
+      /* giữ danh sách cũ */
+    }
+  }, [orgId]);
+
   const refreshTimelineSources = useCallback(async () => {
-    await Promise.all([loadKhoa(), loadLopPins()]);
-  }, [loadKhoa, loadLopPins]);
+    await Promise.all([loadKhoa(), loadLopPins(), loadSuKien()]);
+  }, [loadKhoa, loadLopPins, loadSuKien]);
 
   useEffect(() => {
     void refreshTimelineSources();
@@ -260,6 +330,7 @@ export function CoSoUpcomingSidebar({
     if (!isManaging) {
       setMocModal(null);
       setEditingKhoa(null);
+      setSuKienModalOpen(false);
     }
   }, [isManaging]);
 
@@ -273,10 +344,33 @@ export function CoSoUpcomingSidebar({
     return [...lopSteps, ...khoaFallback];
   }, [lopPins, khoaList, orgSlug, timelineYear]);
 
+  const suKienOfYear = useMemo(
+    () =>
+      suKienList.filter((ev) => {
+        const d = new Date(ev.batDau);
+        return !Number.isNaN(d.getTime()) && d.getFullYear() === timelineYear;
+      }),
+    [suKienList, timelineYear],
+  );
+
+  const suKienSteps = useMemo(
+    () => buildSuKienSteps(suKienOfYear, orgSlug),
+    [suKienOfYear, orgSlug],
+  );
+
+  const suKienYears = useMemo(
+    () =>
+      suKienList
+        .map((ev) => new Date(ev.batDau).getFullYear())
+        .filter((y) => Number.isFinite(y)),
+    [suKienList],
+  );
+
   const timelineYearOptions = useMemo(() => {
     const years = [
       ...collectCoSoTimelineYears(timelineMoc),
       ...collectCoSoLopTimelineYears(lopPins),
+      ...suKienYears,
     ];
     const unique = [...new Set(years)].sort((a, b) => b - a);
     if (
@@ -287,7 +381,7 @@ export function CoSoUpcomingSidebar({
       return [timelineYear, ...unique].sort((a, b) => b - a);
     }
     return unique;
-  }, [timelineMoc, lopPins, isManaging, timelineYear]);
+  }, [timelineMoc, lopPins, suKienYears, isManaging, timelineYear]);
 
   useEffect(() => {
     if (!timelineYearOptions.length) return;
@@ -307,13 +401,13 @@ export function CoSoUpcomingSidebar({
   );
 
   const timelineSteps = useMemo(() => {
-    const merged = [...autoPinSteps, ...customSteps];
+    const merged = [...autoPinSteps, ...customSteps, ...suKienSteps];
     return merged.sort(
       (a, b) =>
-        coSoStepSortKey(a, lopPins, khoaList, yearMoc) -
-        coSoStepSortKey(b, lopPins, khoaList, yearMoc),
+        coSoStepSortKey(a, lopPins, khoaList, yearMoc, suKienList) -
+        coSoStepSortKey(b, lopPins, khoaList, yearMoc, suKienList),
     );
-  }, [autoPinSteps, customSteps, lopPins, khoaList, yearMoc]);
+  }, [autoPinSteps, customSteps, suKienSteps, lopPins, khoaList, yearMoc, suKienList]);
 
   const focus = useMemo(
     () => getAdmissionTimelineFocus(timelineSteps),
@@ -347,10 +441,12 @@ export function CoSoUpcomingSidebar({
   }
 
   function isStepTimelineEditable(step: TuyenSinhTimelineStep): boolean {
+    if (parseSuKienStepId(step.id)) return false;
     return !isCoSoAutoPinLopStepId(step.id);
   }
 
   function handleEditStep(step: TuyenSinhTimelineStep) {
+    if (parseSuKienStepId(step.id)) return;
     if (isCoSoAutoPinStepId(step.id)) {
       handleEditAutoPin(step);
       return;
@@ -533,6 +629,26 @@ export function CoSoUpcomingSidebar({
                   </div>
                 </button>
               ) : null}
+
+              {isManaging ? (
+                <button
+                  type="button"
+                  className="timeline-item timeline-add-moc timeline-add-su-kien"
+                  onClick={() => {
+                    setEditingKhoa(null);
+                    setMocModal(null);
+                    setSuKienModalOpen(true);
+                  }}
+                >
+                  <div className="timeline-dot timeline-dot--add">★</div>
+                  <div className="timeline-content">
+                    <div className="timeline-label">Thêm sự kiện</div>
+                    <p className="timeline-desc">
+                      Workshop, open day, talkshow… hiện trên bảng thông báo
+                    </p>
+                  </div>
+                </button>
+              ) : null}
             </div>
           )}
         </section>
@@ -546,6 +662,19 @@ export function CoSoUpcomingSidebar({
           editing={editingKhoa}
           onClose={() => setEditingKhoa(null)}
           onUpdated={handleKhoaUpdated}
+        />
+      ) : null}
+
+      {isManaging ? (
+        <SuKienCreateModal
+          open={suKienModalOpen}
+          orgId={orgId}
+          orgDiaChi={orgDiaChi}
+          onClose={() => setSuKienModalOpen(false)}
+          onCreated={(created) => {
+            setSuKienList((prev) => [created, ...prev]);
+            ctx?.showToast("Đã thêm sự kiện");
+          }}
         />
       ) : null}
 

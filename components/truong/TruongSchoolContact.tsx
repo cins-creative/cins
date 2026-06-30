@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { TruongChiNhanhTableModal } from "@/components/truong/TruongChiNhanhTableModal";
 import {
+  formatChiNhanhAddress,
   resolvePrimaryChiNhanhDisplay,
   resolveTruongChiNhanh,
 } from "@/lib/truong/chi-nhanh";
@@ -92,7 +93,8 @@ export function TruongSchoolContact({
   const branches = resolveTruongChiNhanh(school);
   const primaryBranch = resolvePrimaryChiNhanhDisplay(school);
   const primaryLines = buildSchoolSidebarContactLines(school);
-  const otherBranchCount = Math.max(0, branches.length - 1);
+  const otherBranches = branches.slice(1);
+  const otherBranchCount = otherBranches.length;
   const branchesForModal = branches.map((branch, index) =>
     index === 0 && primaryBranch ? primaryBranch : branch,
   );
@@ -160,13 +162,33 @@ export function TruongSchoolContact({
             </div>
           ))}
           {otherBranchCount > 0 ? (
-            <button
-              type="button"
-              className="ss-contact-more-branches"
-              onClick={() => setBranchesOpen(true)}
-            >
-              Xem thêm {otherBranchCount} chi nhánh khác
-            </button>
+            <div className="ss-contact-branches" aria-label="Hệ thống cơ sở">
+              <div className="ss-contact-branches-head">
+                Hệ thống cơ sở · {branches.length}
+              </div>
+              <ul className="ss-contact-branch-list" role="list">
+                {otherBranches.map((branch, index) => (
+                  <li key={branch.id} className="ss-contact-branch">
+                    <span className="ss-contact-branch-idx" aria-hidden>
+                      {index + 2}
+                    </span>
+                    <div className="ss-contact-branch-info">
+                      <div className="ss-contact-branch-name">{branch.ten}</div>
+                      <div className="ss-contact-branch-addr">
+                        {formatChiNhanhAddress(branch)}
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <button
+                type="button"
+                className="ss-contact-more-branches"
+                onClick={() => setBranchesOpen(true)}
+              >
+                Xem chi tiết liên hệ từng cơ sở
+              </button>
+            </div>
           ) : null}
         </div>
         <TruongChiNhanhTableModal

@@ -2,8 +2,8 @@
 
 > **File trong repo:** `docs/CINS_DEV_RULES.md`
 > **Mục đích:** Gom rule code/security/performance về **một chỗ**, đã chỉnh theo convention thực tế của CINS (không phải Basakila/Sine Art).
-> **Cặp đôi:** đọc cùng `docs/CINS_INSTRUCTION.md` (router) → `CINS_FOUNDATIONS.md` + `CINS_SCHEMA.md`. File này nói **cách code**; các file kia nói **nghiệp vụ & cấu trúc DB**.
-> **Khi xung đột:** `CINS_SCHEMA.md` / DB thắng về cấu trúc; `CINS_FOUNDATIONS.md` thắng về nghiệp vụ/naming; file này thắng về security/performance/style code.
+> **Cặp đôi:** đọc cùng `docs/CINS_INSTRUCTION.md` (router) → `CINS_FOUNDATIONS.md` + **schema DB (đọc trực tiếp)**. File này nói **cách code**; các file kia nói **nghiệp vụ & cấu trúc DB**.
+> **Khi xung đột:** **DB thật (đọc trực tiếp)** thắng về cấu trúc; `CINS_FOUNDATIONS.md` thắng về nghiệp vụ/naming; file này thắng về security/performance/style code.
 
 ---
 
@@ -11,7 +11,7 @@
 
 1. **`docs/CINS_INSTRUCTION.md`** — router, biết tra file nào.
 2. **`docs/CINS_DEV_RULES.md`** (file này) — §1, §2 trước mọi task.
-3. **`docs/CINS_FOUNDATIONS.md`** — nghiệp vụ, quy tắc kiến trúc. **`docs/CINS_SCHEMA.md`** — bảng/cột/enum khi cần chi tiết DB.
+3. **`docs/CINS_FOUNDATIONS.md`** — nghiệp vụ, quy tắc kiến trúc. **DB trực tiếp** (Prisma/Supabase MCP · `information_schema`) — bảng/cột/enum khi cần chi tiết DB.
 4. Mở sâu §5 (Performance) / §6 (Security) / §7 (Conventions) **chỉ khi** task đụng vào mảng đó.
 
 ---

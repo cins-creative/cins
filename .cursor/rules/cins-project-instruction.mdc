@@ -9,8 +9,8 @@ Before implementing or querying CINs domain features (Supabase `org_*`, `article
 
 1. Read **`docs/CINS_INSTRUCTION.md`** (router) — biết tra file nào.
 2. Read **`docs/CINS_DEV_RULES.md`** for coding, security, performance, streaming, and UI conventions.
-3. Tra đúng file: **FOUNDATIONS** (luật nền) · **SCHEMA** (bảng/cột/enum từ DB) · **IMPLEMENTATION** (API/lib/SQL/site) · **DECISIONS** (quyết định + câu treo).
-4. Prefer field/table names from `CINS_SCHEMA.md` / `CINS_FOUNDATIONS.md` over training data; security/performance from `CINS_DEV_RULES.md`.
+3. Tra đúng nguồn: **FOUNDATIONS** (luật nền) · **DB trực tiếp** (bảng/cột/enum — Prisma/Supabase MCP hoặc `information_schema`) · **IMPLEMENTATION** (API/lib/SQL/site) · **DECISIONS** (quyết định + câu treo).
+4. Prefer field/table names from **DB thật (đọc trực tiếp)** / `CINS_FOUNDATIONS.md` over training data; security/performance from `CINS_DEV_RULES.md`.
 5. Khi user gửi instruction mới: merge vào **đúng file** (không nhồi hết vào một file). Cập nhật router nếu cần.
 
 Stack: Next.js App Router, Supabase (`ospzzzxcomrmhqrnkoiw`), Cloudflare Images, Vercel — `CINS_FOUNDATIONS.md` §3, `CINS_IMPLEMENTATION.md` §4.

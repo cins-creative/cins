@@ -65,7 +65,7 @@
 
 ### Session org-journey + filter động (2026-06-07)
 
-> Schema áp dụng sau khi chạy `migration_filter_dong.sql` → regenerate SCHEMA.md (67 → 69 bảng).
+> Schema áp dụng sau khi chạy `migration_filter_dong.sql` → đối chiếu DB trực tiếp (67 → 69 bảng).
 
 - **Org Journey — gộp vào `org_bai_dang` (KHÔNG tạo `org_cot_moc`).**
   Áp cho **3 loại tổ chức thật** (`truong_dai_hoc`, `co_so_dao_tao`, `studio`); `cong_dong` KHÔNG (đã có feed cột mốc riêng). Thêm cột `org_bai_dang.thoi_diem` (ngày mốc lịch sử, khác `tao_luc`). Org journey **KHÔNG verify** — org tự kể về mình, khác milestone danh tính nghề của *người*.
@@ -159,5 +159,5 @@
 
 ### 2026-06-07
 - **4 bảng `content_thao_luan*` có trong DB nhưng instruction cũ ghi "TBD".** → đã chính thức hoá rồi sau đó đảo (xem trên).
-- **Header instruction nói "62 bảng", memory nói "~53"; DB thật = 67 bảng logic.** Sau v6 cộng đồng v2: ~65 bảng (bỏ 3 thao_luan*, thêm cong_dong_filter_gan, rename 1). → SCHEMA.md sinh từ DB để khỏi lệch.
-- *Bài học*: prose schema chép tay luôn drift. SCHEMA.md phải generate từ `information_schema`, không sửa tay.
+- **Header instruction nói "62 bảng", memory nói "~53"; DB thật = 67 bảng logic.** Sau v6 cộng đồng v2: ~65 bảng (bỏ 3 thao_luan*, thêm cong_dong_filter_gan, rename 1). → đọc trực tiếp từ DB để khỏi lệch.
+- *Bài học*: prose schema chép tay luôn drift. **Bỏ file `CINS_SCHEMA.md` (2026-06-30)** — cấu trúc đọc trực tiếp từ DB (Prisma/Supabase MCP · `information_schema`), không duy trì bản chép tay nữa.

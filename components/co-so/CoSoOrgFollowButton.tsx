@@ -10,12 +10,21 @@ type Props = {
   orgId: string;
   /** Quản trị viên cơ sở — hiện nút nhưng không bật theo dõi chính mình. */
   disabled?: boolean;
+  /**
+   * `pill` — nút có chữ (layout dual co-so/studio).
+   * `icon` — nút icon gọn 36×36 (hàng CTA cạnh avatar trang trường).
+   */
+  variant?: "pill" | "icon";
 };
 
 const AUTH_MESSAGE =
   "Đăng nhập hoặc tạo tài khoản CINs để theo dõi cơ sở đào tạo này.";
 
-export function CoSoOrgFollowButton({ orgId, disabled = false }: Props) {
+export function CoSoOrgFollowButton({
+  orgId,
+  disabled = false,
+  variant = "pill",
+}: Props) {
   const ctx = useTruongInlineEdit();
   const { isAuthenticated, openAuthModal } = useAuthGate();
   const [following, setFollowing] = useState(false);
@@ -78,13 +87,20 @@ export function CoSoOrgFollowButton({ orgId, disabled = false }: Props) {
     });
   }
 
+  const label = following ? "Đang theo dõi" : "Theo dõi";
+  const baseClass =
+    variant === "icon"
+      ? `ss-btn ss-btn-user-follow${following ? " is-following" : ""}`
+      : `cso-ss-btn-follow${following ? " is-following" : ""}`;
+
   return (
     <button
       type="button"
-      className={`cso-ss-btn-follow${following ? " is-following" : ""}`}
+      className={baseClass}
       aria-pressed={following}
       disabled={disabled || !loaded || pending}
-      title={disabled ? "Bạn đang quản trị cơ sở này" : undefined}
+      aria-label={variant === "icon" ? label : undefined}
+      title={disabled ? "Bạn đang quản trị tổ chức này" : label}
       onClick={toggle}
     >
       {following ? (
@@ -92,7 +108,7 @@ export function CoSoOrgFollowButton({ orgId, disabled = false }: Props) {
       ) : (
         <UserPlus size={17} strokeWidth={2.2} aria-hidden />
       )}
-      {following ? "Đang theo dõi" : "Theo dõi"}
+      <span className="ss-btn-user-follow-label">{label}</span>
     </button>
   );
 }

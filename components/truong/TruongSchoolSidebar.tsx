@@ -2,6 +2,7 @@
 
 import { Pencil } from "lucide-react";
 
+import { CoSoOrgFollowButton } from "@/components/co-so/CoSoOrgFollowButton";
 import { TruongGioiThieuTruong } from "@/components/truong/TruongGioiThieuTruong";
 import type { TruongSettingsSection } from "@/components/truong/TruongPageSettingsModal";
 import { TruongOrgCover } from "@/components/truong/TruongOrgCover";
@@ -121,9 +122,10 @@ export function TruongSchoolSidebar({
                     <TruongMilestoneTagNotify />
                   </>
                 ) : (
-                  <div className="cso-ss-primary-action--single">
+                  <>
                     <TruongUserChatLauncher />
-                  </div>
+                    <CoSoOrgFollowButton orgId={school.id} disabled={canEdit} />
+                  </>
                 )}
               </div>
 
@@ -194,7 +196,14 @@ export function TruongSchoolSidebar({
                 <TruongMessageInbox />
               </>
             ) : (
-              <TruongUserChatLauncher />
+              <>
+                <TruongUserChatLauncher />
+                <CoSoOrgFollowButton
+                  orgId={school.id}
+                  disabled={canEdit}
+                  variant="icon"
+                />
+              </>
             )}
           </div>
         </div>

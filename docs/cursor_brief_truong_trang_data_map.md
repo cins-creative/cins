@@ -1,7 +1,7 @@
 # Brief — Map dữ liệu trang `/truong-dai-hoc/[slug]`
 
 > Dùng khi seed / bulk SQL cho nhiều trường. **Không** bao tab **Bài đăng** (`org_bai_dang`).
-> Nguồn UI: `TruongDetailView` · `lib/truong/queries.ts` · `docs/CINS_SCHEMA.md`.
+> Nguồn UI: `TruongDetailView` · `lib/truong/queries.ts` · schema DB (đọc trực tiếp).
 
 **Route:** `app/truong-dai-hoc/[slug]/page.tsx` → `getTruongPagePayload(slug)` → `TruongDetailView`.
 

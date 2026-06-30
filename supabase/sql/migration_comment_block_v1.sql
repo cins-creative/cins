@@ -1,5 +1,5 @@
 -- Comment Block v1 — chạy từng lệnh riêng trên Supabase SQL editor.
--- Sau khi chạy: regenerate docs/CINS_SCHEMA.md.
+-- Sau khi chạy: đối chiếu schema DB trực tiếp (không còn file CINS_SCHEMA.md).
 
 -- 1) Reaction trỏ vào comment (PG: không dùng giá trị mới trong cùng transaction với ADD VALUE).
 ALTER TYPE loai_doi_tuong_social_enum ADD VALUE IF NOT EXISTS 'binh_luan';

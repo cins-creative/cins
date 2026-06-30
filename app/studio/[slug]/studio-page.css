@@ -1,155 +1,446 @@
-.studio-page {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 0 20px 64px;
-}
+/* ──────────────────────────────────────────────────────────────
+ * Studio / Doanh nghiệp — trang chi tiết v6 (tái dùng shell cơ sở).
+ * Chỉ override / bổ sung phần riêng của studio.
+ * ──────────────────────────────────────────────────────────── */
 
-.studio-cover {
-  display: block;
-  width: 100%;
-  height: 200px;
-  object-fit: cover;
-  border-radius: 0 0 18px 18px;
-}
-
-.studio-cover--empty {
-  background: linear-gradient(120deg, var(--bg-2, #eef1f6), var(--bg-1, #f7f9fc));
-}
-
-.studio-head {
-  display: flex;
-  gap: 20px;
-  align-items: flex-end;
-  margin-top: -44px;
-  padding: 0 8px;
-}
-
-.studio-avatar {
-  flex: none;
-  width: 96px;
-  height: 96px;
-  border-radius: 22px;
-  overflow: hidden;
-  background: var(--bg-2, #eef1f6);
-  border: 3px solid var(--surface, #fff);
-  display: grid;
-  place-items: center;
-  font-size: 30px;
-  font-weight: 700;
-  color: var(--text-2, #5b6573);
-  box-shadow: var(--sh-sm, 0 2px 8px rgba(15, 23, 42, 0.08));
-}
-
-.studio-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.studio-head-main {
-  flex: 1;
-  min-width: 0;
-  padding-bottom: 4px;
-}
-
-.studio-kind {
+/* Chip phân loại trên sidebar (Studio / Doanh nghiệp). */
+.studio-kind-chip {
   display: inline-block;
-  font-size: 12px;
-  font-weight: 600;
+  align-self: flex-start;
+  font-size: 11px;
+  font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--text-3, #8a94a3);
+  color: var(--cins-blue, #1f74c9);
+  background: var(--cins-blue-soft, #e8f1fb);
+  border-radius: 999px;
+  padding: 3px 10px;
+  margin-bottom: 6px;
 }
 
-.studio-name {
-  margin: 4px 0 0;
-  font-size: 26px;
-  font-weight: 800;
-  line-height: 1.2;
-  color: var(--text-1, #18202b);
-}
-
-.studio-legal {
-  margin: 4px 0 0;
-  font-size: 14px;
-  color: var(--text-3, #8a94a3);
-}
-
-.studio-desc {
-  margin: 8px 0 0;
-  font-size: 15px;
-  color: var(--text-2, #5b6573);
-}
-
-.studio-meta {
+/* Liên hệ trong sidebar. */
+.studio-ss-contact-list {
   list-style: none;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 18px;
-  margin: 12px 0 0;
+  margin: 0;
   padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
 }
 
-.studio-meta li {
+.studio-ss-contact-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--ink-body, #334155);
+}
+
+.studio-ss-contact-item svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--ink-muted, #64748b);
+}
+
+.studio-ss-contact-item a {
+  color: var(--cins-blue, #1f74c9);
+  word-break: break-word;
+}
+
+.studio-ss-about {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink-body, #334155);
+  white-space: pre-line;
+}
+
+.studio-ss-about--clamp {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 6;
+  line-clamp: 6;
+  overflow: hidden;
+}
+
+.studio-ss-about-toggle {
+  margin-top: 6px;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--cins-blue, #1f74c9);
+  cursor: pointer;
+}
+
+.studio-ss-about-toggle:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ── Right rail: tin tuyển dụng đang mở ─────────────────────── */
+.studio-jobs-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.studio-job-mini {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border, #e6e9ef);
+  border-radius: 12px;
+  background: var(--bg-surface, #fff);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.studio-job-mini:hover {
+  border-color: var(--cins-blue, #1f74c9);
+  box-shadow: 0 4px 14px rgba(31, 116, 201, 0.1);
+}
+
+.studio-job-mini-ic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  background: var(--cins-blue-soft, #e8f1fb);
+  color: var(--cins-blue, #1f74c9);
+}
+
+.studio-job-mini-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.studio-job-mini-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-display, #18202b);
+  line-height: 1.3;
+}
+
+.studio-job-mini-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  color: var(--ink-muted, #64748b);
+}
+
+.studio-jobs-more {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--cins-blue, #1f74c9);
+  padding: 4px 2px;
+}
+
+/* ── Tab Tuyển dụng ─────────────────────────────────────────── */
+.studio-jobs-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.studio-jobs-hdr-text {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.studio-job-add-btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   font-size: 13px;
-  color: var(--text-2, #5b6573);
-}
-
-.studio-tabs {
-  display: flex;
-  gap: 6px;
-  margin: 24px 8px 0;
-  border-bottom: 1px solid var(--border, #e6e9ef);
-}
-
-.studio-tab {
-  padding: 10px 16px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-3, #8a94a3);
-  border-bottom: 2px solid transparent;
-}
-
-.studio-tab.is-active {
-  color: var(--text-1, #18202b);
-  border-bottom-color: var(--accent, #1f74c9);
-}
-
-.studio-body {
-  margin: 24px 8px 0;
-}
-
-.studio-intro {
-  margin-bottom: 24px;
-}
-
-.studio-intro h2 {
-  font-size: 16px;
   font-weight: 700;
-  margin: 0 0 8px;
-  color: var(--text-1, #18202b);
+  color: #fff;
+  background: var(--cins-blue, #1f74c9);
+  border: none;
+  border-radius: 10px;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: background 0.15s ease;
 }
 
-.studio-intro p {
-  margin: 0;
-  font-size: 15px;
+.studio-job-add-btn:hover {
+  background: var(--cins-blue-deep, #195ea3);
+}
+
+.studio-job-list {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.studio-job-card {
+  border: 1px solid var(--border, #e6e9ef);
+  border-radius: 16px;
+  padding: 16px 18px;
+  background: var(--bg-surface, #fff);
+}
+
+.studio-job-card-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.studio-job-card-ic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 11px;
+  background: var(--cins-blue-soft, #e8f1fb);
+  color: var(--cins-blue, #1f74c9);
+}
+
+.studio-job-card-titles {
+  flex: 1;
+  min-width: 0;
+}
+
+.studio-job-card-title {
+  margin: 0 0 6px;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.25;
+  color: var(--ink-display, #18202b);
+}
+
+.studio-job-card-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.studio-job-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-body, #334155);
+  background: var(--neutral-100, #f4f4f5);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+
+.studio-job-chip--status {
+  background: #fef3f2;
+  color: #b42318;
+}
+
+.studio-job-edit-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  border: 1px solid var(--border, #e6e9ef);
+  background: var(--bg-surface, #fff);
+  color: var(--ink-muted, #64748b);
+  cursor: pointer;
+}
+
+.studio-job-edit-btn:hover {
+  border-color: var(--cins-blue, #1f74c9);
+  color: var(--cins-blue, #1f74c9);
+}
+
+.studio-job-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin: 12px 0 0;
+}
+
+.studio-job-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-body, #334155);
+}
+
+.studio-job-card-desc {
+  margin: 12px 0 0;
+  font-size: 14px;
   line-height: 1.6;
-  color: var(--text-2, #5b6573);
+  color: var(--ink-body, #334155);
   white-space: pre-line;
 }
 
-.studio-empty {
-  padding: 40px 24px;
-  text-align: center;
-  border: 1px dashed var(--border, #e6e9ef);
-  border-radius: 14px;
-  color: var(--text-3, #8a94a3);
-  font-size: 14px;
+.studio-job-card-foot {
+  margin-top: 14px;
 }
 
-.studio-empty p {
-  margin: 0;
+.studio-job-apply-btn {
+  display: inline-flex;
+  align-items: center;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--cins-blue, #1f74c9);
+  border: none;
+  border-radius: 10px;
+  padding: 9px 20px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.studio-job-apply-btn:hover {
+  background: var(--cins-blue-deep, #195ea3);
+}
+
+/* ── Form ứng tuyển (inline) ────────────────────────────────── */
+.studio-apply-form {
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid var(--border, #e6e9ef);
+  border-radius: 12px;
+  background: var(--neutral-50, #fafafa);
+}
+
+.studio-apply-form--done {
+  color: #047857;
+  font-size: 13.5px;
+  font-weight: 600;
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+}
+
+.studio-apply-label {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-body, #334155);
+  margin-bottom: 6px;
+}
+
+.studio-apply-textarea,
+.studio-job-input,
+.studio-job-textarea {
+  width: 100%;
+  font: inherit;
+  font-size: 14px;
+  color: var(--ink-display, #18202b);
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-strong, #d4d8e0);
+  border-radius: 9px;
+  padding: 9px 11px;
+  resize: vertical;
+}
+
+.studio-apply-textarea:focus,
+.studio-job-input:focus,
+.studio-job-textarea:focus {
+  outline: none;
+  border-color: var(--cins-blue, #1f74c9);
+  box-shadow: 0 0 0 3px rgba(31, 116, 201, 0.12);
+}
+
+.studio-apply-error,
+.studio-job-form-error {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  color: #b42318;
+}
+
+.studio-apply-actions,
+.studio-job-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.studio-apply-cancel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-body, #334155);
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-strong, #d4d8e0);
+  border-radius: 9px;
+  padding: 8px 16px;
+  cursor: pointer;
+}
+
+.studio-apply-submit {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--cins-blue, #1f74c9);
+  border: none;
+  border-radius: 9px;
+  padding: 8px 18px;
+  cursor: pointer;
+}
+
+.studio-apply-submit:disabled,
+.studio-apply-cancel:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ── Modal đăng / sửa tin ───────────────────────────────────── */
+.studio-job-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 6px;
+}
+
+.studio-job-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.studio-job-field-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-body, #334155);
+}
+
+.studio-job-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.studio-job-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  color: var(--ink-body, #334155);
+}
+
+@media (max-width: 560px) {
+  .studio-job-grid {
+    grid-template-columns: 1fr;
+  }
 }

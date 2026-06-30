@@ -1,4 +1,4 @@
-/** Khớp `he_dao_tao_enum` — `docs/CINS_SCHEMA.md`. */
+/** Khớp `he_dao_tao_enum` — DB (đọc trực tiếp). */
 export const HE_DAO_TAO_VALUES = [
   "dai_hoc",
   "cao_dang",

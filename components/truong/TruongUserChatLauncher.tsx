@@ -46,9 +46,11 @@ export function TruongUserChatLauncher() {
         type="button"
         className="ss-btn primary ss-btn-user-chat"
         onClick={() => setOpen(true)}
+        aria-label="Nhắn tin"
+        title="Nhắn tin"
       >
         <MessageIcon />
-        Nhắn tin
+        <span className="ss-btn-user-chat-label">Nhắn tin</span>
       </button>
 
       <TruongInlineModal

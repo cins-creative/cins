@@ -2249,6 +2249,16 @@
   min-width: 0;
 }
 
+/* Nút theo dõi compact (chỉ icon) — gọn theo nội dung, không kéo dài 112px. */
+.world-journey-home .ha-row .j-follow-wrap {
+  flex: 0 0 auto;
+}
+.world-journey-home .ha-row .j-friend-btn.is-compact {
+  width: 38px;
+  min-width: 38px;
+  padding: 0;
+}
+
 .world-journey-home .ha-row-name {
   display: flex;
   align-items: center;

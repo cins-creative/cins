@@ -5,7 +5,7 @@ import {
   mapOrgBaiDangApiRow,
   ORG_BAI_DANG_API_SELECT,
 } from "@/lib/truong/bai-dang-api-fields";
-import { normalizeLoaiBaiDang } from "@/lib/truong/bai-dang";
+import { resolveOrgBaiDangLoaiForWrite } from "@/lib/truong/bai-dang";
 import { sanitizeBaiDangCoverIdInput } from "@/lib/truong/bai-dang-cover";
 import { assertTruongOrgWriteApi } from "@/lib/truong/inline-api-auth";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -36,7 +36,7 @@ export async function POST(request: Request, context: RouteContext) {
   const insertRow: Record<string, unknown> = {
     id_to_chuc: orgId,
     tieu_de,
-    loai_bai_dang: normalizeLoaiBaiDang(body.loai_bai_dang),
+    loai_bai_dang: resolveOrgBaiDangLoaiForWrite(body.loai_bai_dang),
     tom_tat: body.tom_tat ?? null,
     noi_dung: body.noi_dung ?? null,
     trang_thai: body.trang_thai ?? "da_dang",

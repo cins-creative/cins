@@ -10,6 +10,8 @@ import "./journey-user-popover.css";
 import { JourneyUserPopoverActions } from "@/components/journey/JourneyUserPopoverActions";
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
 import { useMutualFriends } from "@/lib/social/use-mutual-friends";
+import { trackSuKien } from "@/lib/social/track-su-kien";
+import type { NguonSuKien } from "@/lib/social/su-kien-constants";
 
 type UserPreview = {
   idNguoiDung: string;
@@ -34,6 +36,11 @@ type Props = {
   fallbackAvatarUrl?: string | null;
   fallbackCoverUrl?: string | null;
   backdropZIndex?: number;
+  /**
+   * Đo "click xem hồ sơ" — quy về cột mốc (bối cảnh) phát sinh.
+   * Bỏ trống → không đo.
+   */
+  track?: { idBoiCanh: string; nguon?: NguonSuKien } | null;
   children: React.ReactNode;
 };
 
@@ -43,6 +50,7 @@ export function JourneyUserPopover({
   fallbackAvatarUrl,
   fallbackCoverUrl,
   backdropZIndex = 9500,
+  track,
   children,
 }: Props) {
   const { viewerProfileId } = useCinsChat();
@@ -94,7 +102,19 @@ export function JourneyUserPopover({
 
   const toggle = () => {
     if (!slug) return;
-    setOpen((value) => !value);
+    setOpen((value) => {
+      const next = !value;
+      if (next && track?.idBoiCanh) {
+        trackSuKien({
+          loai_su_kien: "mo_popover_nguoi",
+          loai_doi_tuong: "cot_moc",
+          id_doi_tuong: track.idBoiCanh,
+          nguon: track.nguon ?? null,
+          ngu_canh: slug ? { target_slug: slug } : null,
+        });
+      }
+      return next;
+    });
   };
 
   if (!slug) return <>{children}</>;

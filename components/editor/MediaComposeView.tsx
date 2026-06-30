@@ -821,7 +821,7 @@ export function MediaComposeView({
           tomTat: trimmedCaption.slice(0, 280) || null,
           coverId: null,
           blocks,
-          loaiBaiDang: composeLoaiBaiDang,
+          loaiBaiDang: orgBaiDangCompose.forceLoaiBaiDang ?? composeLoaiBaiDang,
           schedulePublishAt: composeSchedulePublishAt,
         });
         if (!res.ok) {
@@ -842,7 +842,7 @@ export function MediaComposeView({
           tomTat: trimmedCaption.slice(0, 280) || null,
           coverId: null,
           blocks,
-          loaiBaiDang: composeLoaiBaiDang,
+          loaiBaiDang: orgBaiDangCompose.forceLoaiBaiDang ?? composeLoaiBaiDang,
           schedulePublishAt: composeSchedulePublishAt,
         });
         if (!res.ok) {
@@ -962,11 +962,13 @@ export function MediaComposeView({
               />
             ) : orgBaiDangCompose ? (
               <div className="ed-topbar-actions-cluster">
-                <OrgBaiDangLoaiComposeDropdown
-                  value={composeLoaiBaiDang}
-                  onChange={setComposeLoaiBaiDang}
-                  menuZIndex={9200}
-                />
+                {orgBaiDangCompose.forceLoaiBaiDang ? null : (
+                  <OrgBaiDangLoaiComposeDropdown
+                    value={composeLoaiBaiDang}
+                    onChange={setComposeLoaiBaiDang}
+                    menuZIndex={9200}
+                  />
+                )}
                 <OrgBaiDangScheduleComposeButton
                   value={composeSchedulePublishAt}
                   onChange={setComposeSchedulePublishAt}

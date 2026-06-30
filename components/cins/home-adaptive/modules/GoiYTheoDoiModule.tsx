@@ -1,4 +1,4 @@
-import { BadgeCheck, UserRoundPlus } from "lucide-react";
+import { UserRoundPlus } from "lucide-react";
 import Link from "next/link";
 
 import { ModuleCard, ModuleEmpty } from "@/components/cins/home-adaptive/ModuleCard";
@@ -31,7 +31,6 @@ export async function GoiYTheoDoiModule({ ctx }: { ctx: HomeModuleCtx }) {
             <div className="ha-row-meta">
               <Link href={`/${s.slug}`} className="ha-row-name" prefetch={false}>
                 {s.name}
-                <BadgeCheck size={12} strokeWidth={2} aria-hidden />
               </Link>
               <div className="ha-row-sub">{giaiDoanLabel(s.giaiDoan)}</div>
             </div>

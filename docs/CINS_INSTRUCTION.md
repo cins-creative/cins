@@ -1,7 +1,7 @@
 # CINS — README (Project Instructions)
 
 > **File router — điểm vào cho agent & developer.** Bản đầy đủ sống trong `docs/` (5 file bên dưới).
-> **Phiên bản:** v10 theo dõi/phân bổ 2026-06-15 · v9 khóa học + entity lens 2026-06-10 · org-journey/filter 2026-06-07 · **70 bảng logic hiện tại** (sau `migration_org_tuyen_dung.sql` — xem SCHEMA.md).
+> **Phiên bản:** v10 theo dõi/phân bổ 2026-06-15 · v9 khóa học + entity lens 2026-06-10 · org-journey/filter 2026-06-07 · **70 bảng logic hiện tại** (sau `migration_org_tuyen_dung.sql` — đọc trực tiếp từ DB để xác nhận cấu trúc).
 
 CINS = creative hub cho ngành sáng tạo Việt Nam (Next.js + Supabase). Hai tầng core: **Journey** (blog cá nhân tích lũy, source of truth) + **Gallery** (feed khám phá visual). Verify là moat.
 
@@ -12,12 +12,12 @@ CINS = creative hub cho ngành sáng tạo Việt Nam (Next.js + Supabase). Hai 
 | Cần gì | File | Ghi chú |
 |---|---|---|
 | Triết lý, **29 quy tắc** kiến trúc, luồng verify, loại org, naming, quy ước làm việc | [`CINS_FOUNDATIONS.md`](./CINS_FOUNDATIONS.md) | Luật nền, đổi chậm |
-| Bảng / cột / enum / FK cụ thể | [`CINS_SCHEMA.md`](./CINS_SCHEMA.md) | **Sinh từ DB — là sự thật cấu trúc** |
+| Bảng / cột / enum / FK cụ thể | **Đọc trực tiếp từ DB** | Prisma/Supabase MCP hoặc `information_schema` — **là sự thật cấu trúc** |
 | API route, lib, file SQL, seed, env/infra, ghi chú site | [`CINS_IMPLEMENTATION.md`](./CINS_IMPLEMENTATION.md) | Đổi nhanh nhất |
 | Đã quyết gì & vì sao · câu hỏi còn treo | [`CINS_DECISIONS.md`](./CINS_DECISIONS.md) | File chống quên |
 | Code/security/performance/UI conventions | [`CINS_DEV_RULES.md`](./CINS_DEV_RULES.md) | Cách code |
 
-Thứ tự ưu tiên khi xung đột: **DB thật > CINS_SCHEMA.md > CINS_FOUNDATIONS.md > các file khác**. Không bao giờ tin prose schema hơn DB.
+Thứ tự ưu tiên khi xung đột: **DB thật (đọc trực tiếp) > CINS_FOUNDATIONS.md > các file khác**. Không bao giờ tin prose schema hơn DB.
 
 **Map chuyên sâu:** [`cursor_map_truong.md`](./cursor_map_truong.md) · [`cursor_brief_truong_trang_data_map.md`](./cursor_brief_truong_trang_data_map.md) *(bulk SQL field→UI, không tab Bài đăng)* · [`cursor_map_admin.md`](./cursor_map_admin.md) · [`cursor_map_inline_edit.md`](./cursor_map_inline_edit.md)
 
@@ -25,9 +25,9 @@ Thứ tự ưu tiên khi xung đột: **DB thật > CINS_SCHEMA.md > CINS_FOUNDA
 
 ## Luật bắt buộc trong mọi chat
 
-1. **Nhắc cập nhật tài liệu.** Nếu quyết định/thay đổi chạm FOUNDATIONS / SCHEMA / IMPLEMENTATION / DECISIONS → trước khi kết thúc: chỉ rõ **file + mục**, tóm tắt 1–2 câu, **hỏi xác nhận** "cập nhật vào [file] chứ?". Đặc biệt: bảng/cột/enum → SCHEMA; quy tắc kiến trúc → FOUNDATIONS; chốt câu OPEN → DECISIONS.
+1. **Nhắc cập nhật tài liệu.** Nếu quyết định/thay đổi chạm FOUNDATIONS / IMPLEMENTATION / DECISIONS → trước khi kết thúc: chỉ rõ **file + mục**, tóm tắt 1–2 câu, **hỏi xác nhận** "cập nhật vào [file] chứ?". Đặc biệt: bảng/cột/enum → **đối chiếu DB trực tiếp** (không còn file schema chép tay); quy tắc kiến trúc → FOUNDATIONS; chốt câu OPEN → DECISIONS.
 
-2. **Schema là source of truth.** Query `information_schema` trước khi generate SQL. Không assume field name từ trí nhớ hay instruction cũ.
+2. **Schema là source of truth.** Đọc trực tiếp từ DB (Prisma/Supabase MCP hoặc `information_schema`) trước khi generate SQL. Không assume field name từ trí nhớ hay instruction cũ.
 
 3. **Làm việc bằng tiếng Việt.** English giữ cho technical terms, tên phần mềm, tên nghề.
 
@@ -39,7 +39,7 @@ Thứ tự ưu tiên khi xung đột: **DB thật > CINS_SCHEMA.md > CINS_FOUNDA
 
 ## Số liệu neo (cập nhật khi đổi)
 
-- **DB hiện tại**: 67 bảng logic (66 thường + `social_luot_xem` partitioned; 2 partition con không tính). Sau khi chạy `migration_filter_dong.sql` → **69 bảng** (`filter_nhan`, `filter_gan`). Xác nhận lại bằng `CINS_SCHEMA.md` mỗi lần regenerate.
+- **DB hiện tại**: 67 bảng logic (66 thường + `social_luot_xem` partitioned; 2 partition con không tính). Sau khi chạy `migration_filter_dong.sql` → **69 bảng** (`filter_nhan`, `filter_gan`). Xác nhận lại bằng schema DB thật (đọc trực tiếp) mỗi khi nghi ngờ.
 - **Org user tạo ngay**: `co_so_dao_tao` · `studio` · `cong_dong` (`doanh_nghiep` ẩn UI; `truong_dai_hoc` CINS duyệt).
 - **Seed partner đầu**: Sine Art (`co_so_dao_tao`, ~520 học viên).
 

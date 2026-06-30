@@ -4827,3 +4827,166 @@
   color: var(--cins-blue, #1f74c9);
 }
 
+/* ── Tab Sự kiện ── */
+
+.tdh-page--cso .cso-sk-skeleton {
+  min-height: 200px;
+  border-radius: var(--radius-lg, 18px);
+  background: linear-gradient(
+    90deg,
+    var(--neutral-100, #f1f2f5) 25%,
+    var(--neutral-50, #f8f9fb) 50%,
+    var(--neutral-100, #f1f2f5) 75%
+  );
+  background-size: 200% 100%;
+  animation: cso-kh-shimmer 1.2s infinite;
+}
+
+.tdh-page--cso .cso-sk-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tdh-page--cso .cso-sk-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 18px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg, 16px);
+  box-shadow: var(--shadow-xs);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.tdh-page--cso .cso-sk-card:hover {
+  border-color: color-mix(in srgb, var(--cins-blue) 35%, var(--border));
+  box-shadow: var(--shadow-sm);
+}
+
+.tdh-page--cso .cso-sk-card--past {
+  opacity: 0.62;
+}
+
+.tdh-page--cso .cso-sk-card-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.tdh-page--cso .cso-sk-card-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.tdh-page--cso .cso-sk-kind {
+  font-family: var(--font-sans);
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  background: var(--cins-violet-soft, #efe7fb);
+  color: #5c2bb6;
+}
+
+.tdh-page--cso .cso-sk-badge {
+  font-family: var(--font-sans);
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  background: var(--neutral-100);
+  color: var(--ink-muted);
+}
+
+.tdh-page--cso .cso-sk-name {
+  margin: 0 0 8px;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+  color: var(--ink-display);
+}
+
+.tdh-page--cso .cso-sk-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin-bottom: 8px;
+}
+
+.tdh-page--cso .cso-sk-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.tdh-page--cso .cso-sk-meta-item svg {
+  color: var(--cins-blue);
+  flex-shrink: 0;
+}
+
+.tdh-page--cso .cso-sk-desc {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--ink-body);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.tdh-page--cso .cso-sk-card-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.tdh-page--cso .cso-sk-act {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-surface);
+  color: var(--ink-body);
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    background 0.15s ease;
+}
+
+.tdh-page--cso .cso-sk-act:hover {
+  border-color: var(--cins-blue);
+  color: var(--cins-blue);
+}
+
+.tdh-page--cso .cso-sk-act--danger:hover {
+  border-color: var(--danger, #d4332f);
+  color: var(--danger, #d4332f);
+}
+
+.tdh-page--cso .cso-sk-act:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+

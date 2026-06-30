@@ -243,7 +243,8 @@ export async function listTruongDaiHoc(): Promise<TruongListItem[]> {
           logo_id,
           avatar_id,
           cover_id,
-          tinh_thanh
+          tinh_thanh,
+          cau_hinh
         )
       `,
       );

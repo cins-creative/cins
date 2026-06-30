@@ -71,11 +71,11 @@ export const MAIN_NAV_ITEMS: MainNavItem[] = [
   },
   {
     id: "business",
-    href: "/#business",
-    label: "Doanh nghiệp",
-    tip: "Studio, agency và công ty đang tuyển — danh sách thực tập, fulltime và freelance",
+    href: "/studio",
+    label: "Studio",
+    tip: "Studio, agency và doanh nghiệp ngành sáng tạo — khám phá đội ngũ, dự án và cơ hội hợp tác",
     icon: "business",
-    isActive: () => false,
+    isActive: (p) => p === "/studio" || p.startsWith("/studio/"),
   },
   {
     id: "events",

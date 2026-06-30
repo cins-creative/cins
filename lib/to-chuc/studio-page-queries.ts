@@ -2,8 +2,13 @@ import "server-only";
 
 import { cache } from "react";
 
+import { createPublicSupabaseClient } from "@/lib/supabase/public";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { resolveTruongImageSrcSync } from "@/lib/truong/media-url";
+import { fetchBaiDang, fetchHinhAnh } from "@/lib/truong/queries";
+import type { TruongBaiDang, TruongHinhAnh } from "@/lib/truong/types";
+import { STUDIO_SHOWCASE_LOAI } from "@/lib/to-chuc/studio-page-config";
 
 export type StudioPagePayload = {
   id: string;
@@ -87,3 +92,120 @@ async function loadStudioBySlug(
 }
 
 export const getStudioBySlugCached = cache(loadStudioBySlug);
+
+/** Owner object đủ field cho cover/avatar/timeline/sidebar studio. */
+export type StudioOwner = {
+  id: string;
+  slug: string;
+  ten: string;
+  loaiToChuc: string;
+  avatar_id: string | null;
+  logo_id: string | null;
+  avatar_src: string | null;
+  cover_id: string | null;
+  cover_src: string | null;
+  moTa: string | null;
+  gioiThieu: string | null;
+  tenChinhThuc: string | null;
+  website: string | null;
+  tinhThanh: string | null;
+  diaChi: string | null;
+  dienThoai: string | null;
+  emailLienHe: string | null;
+};
+
+export type StudioDetailPayload = {
+  studio: StudioOwner;
+  /** Bài đăng thường (đã loại các bài loại "showcase"). */
+  baidang: TruongBaiDang[];
+  /** Bài đăng được gán loại "showcase" — hiển thị ở tab Showcase. */
+  showcase: TruongBaiDang[];
+  hinhanh: TruongHinhAnh[];
+};
+
+async function loadStudioDetailPayload(
+  slug: string,
+): Promise<StudioDetailPayload | null> {
+  const cleaned = slug?.trim();
+  if (!cleaned || !hasSupabaseEnv()) return null;
+
+  const supabase = createPublicSupabaseClient();
+  const { data, error } = await supabase
+    .from("org_to_chuc")
+    .select(
+      "id, slug, ten, mo_ta, gioi_thieu_truong, tinh_thanh, dia_chi, dien_thoai, email_lien_he, avatar_id, cover_id, loai_to_chuc, cau_hinh",
+    )
+    .eq("slug", cleaned)
+    .in("loai_to_chuc", ["studio", "doanh_nghiep"])
+    .maybeSingle<{
+      id: string;
+      slug: string;
+      ten: string;
+      mo_ta: string | null;
+      gioi_thieu_truong: string | null;
+      tinh_thanh: string | null;
+      dia_chi: string | null;
+      dien_thoai: string | null;
+      email_lien_he: string | null;
+      avatar_id: string | null;
+      cover_id: string | null;
+      loai_to_chuc: string;
+      cau_hinh: Record<string, unknown> | null;
+    }>();
+
+  if (error || !data) return null;
+
+  const cauHinh = data.cau_hinh ?? {};
+  const website =
+    typeof cauHinh.website === "string" ? (cauHinh.website as string) : null;
+  const tenChinhThuc =
+    typeof cauHinh.ten_chinh_thuc === "string"
+      ? (cauHinh.ten_chinh_thuc as string)
+      : null;
+
+  const studio: StudioOwner = {
+    id: data.id,
+    slug: data.slug,
+    ten: data.ten,
+    loaiToChuc: data.loai_to_chuc,
+    avatar_id: data.avatar_id,
+    logo_id: null,
+    avatar_src: data.avatar_id?.trim()
+      ? resolveTruongImageSrcSync(data.avatar_id, ["public", "avatar"])
+      : null,
+    cover_id: data.cover_id,
+    cover_src: data.cover_id?.trim()
+      ? resolveTruongImageSrcSync(data.cover_id, ["public", "cover", "medium"])
+      : null,
+    moTa: data.mo_ta,
+    gioiThieu: data.gioi_thieu_truong,
+    tenChinhThuc,
+    website,
+    tinhThanh: data.tinh_thanh,
+    diaChi: data.dia_chi,
+    dienThoai: data.dien_thoai,
+    emailLienHe: data.email_lien_he,
+  };
+
+  const [posts, hinhanh] = await Promise.all([
+    fetchBaiDang(supabase, data.id, 40),
+    fetchHinhAnh(supabase, data.id),
+  ]);
+
+  const showcase = posts.filter(
+    (p) => p.loai_bai_dang === STUDIO_SHOWCASE_LOAI,
+  );
+  const baidang = posts.filter(
+    (p) => p.loai_bai_dang !== STUDIO_SHOWCASE_LOAI,
+  );
+
+  return { studio, baidang, showcase, hinhanh };
+}
+
+export async function getStudioMetaBySlugCached(slug: string) {
+  const payload = await getStudioDetailPayloadCached(slug);
+  if (!payload) return null;
+  return { ten: payload.studio.ten, moTa: payload.studio.moTa };
+}
+
+export const getStudioDetailPayloadCached = cache(loadStudioDetailPayload);

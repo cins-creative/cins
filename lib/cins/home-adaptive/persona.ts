@@ -5,7 +5,7 @@
  * `tim_viec` không phải persona riêng — là modifier `seeking` chồng lên cụm LÀM (§7).
  */
 
-/** Enum `giai_doan_enum` (CINS_SCHEMA.md — user_nguoi_dung.giai_doan). */
+/** Enum `giai_doan_enum` (DB: `user_nguoi_dung.giai_doan` — đọc trực tiếp). */
 export type GiaiDoan =
   | "moi_bat_dau"
   | "dang_hoc"

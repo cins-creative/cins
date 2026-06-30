@@ -304,7 +304,9 @@
 }
 
 .tdh-page--v6 .ss-id-top .ss-btn-notify-label,
-.tdh-page--v6 .ss-id-top .ss-btn-messages-label {
+.tdh-page--v6 .ss-id-top .ss-btn-messages-label,
+.tdh-page--v6 .ss-id-top .ss-btn-user-chat-label,
+.tdh-page--v6 .ss-id-top .ss-btn-user-follow-label {
   display: none;
 }
 
@@ -325,10 +327,35 @@
 }
 
 .tdh-page--v6 .ss-id-top .ss-btn-notify,
-.tdh-page--v6 .ss-id-top .ss-btn.ss-btn-messages {
+.tdh-page--v6 .ss-id-top .ss-btn.ss-btn-messages,
+.tdh-page--v6 .ss-id-top .ss-btn.ss-btn-user-chat,
+.tdh-page--v6 .ss-id-top .ss-btn.ss-btn-user-follow {
   width: 36px;
   min-width: 36px;
   justify-content: center;
+}
+
+.tdh-page--v6 .ss-btn.ss-btn-user-follow {
+  background: var(--surface, #fff);
+  color: var(--ink, #1c1c1e);
+  border: 1px solid var(--border, #e4e6eb);
+  box-shadow: none;
+}
+
+.tdh-page--v6 .ss-btn.ss-btn-user-follow:hover:not(:disabled) {
+  border-color: var(--cins-blue, #1f74c9);
+  color: var(--cins-blue, #1f74c9);
+}
+
+.tdh-page--v6 .ss-btn.ss-btn-user-follow.is-following {
+  color: var(--cins-blue, #1f74c9);
+  border-color: var(--cins-blue, #1f74c9);
+  background: var(--cins-blue-soft, #e7f0fb);
+}
+
+.tdh-page--v6 .ss-btn.ss-btn-user-follow:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .tdh-page--v6 .ss-id-top .ss-btn.ghost {
@@ -654,6 +681,65 @@
 
 .tdh-page--v6 .ss-contact-more-branches:hover {
   color: var(--cins-blue-dark, #1a5fa8);
+}
+
+.tdh-page--v6 .ss-contact-branches {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border2, rgba(0, 0, 0, 0.08));
+}
+
+.tdh-page--v6 .ss-contact-branches-head {
+  font-family: var(--font-sans);
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink3);
+  margin-bottom: 8px;
+}
+
+.tdh-page--v6 .ss-contact-branch-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tdh-page--v6 .ss-contact-branch {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.tdh-page--v6 .ss-contact-branch-idx {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-sans);
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--cins-blue, #1f74c9);
+  background: var(--cins-blue-soft, #e7f0fb);
+}
+
+.tdh-page--v6 .ss-contact-branch-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.tdh-page--v6 .ss-contact-branch-addr {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink2, #444);
 }
 
 .tdh-page--v6 .ss-stat-grid {

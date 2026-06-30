@@ -7,7 +7,7 @@ import {
 } from "@/lib/truong/mon-thi-thumbnail";
 import { createServiceRoleClient, hasServiceRoleEnv } from "@/lib/supabase/service-role";
 
-/** Khớp `docs/CINS_SCHEMA.md` (`edu_mon_thi`) — không có `cap_nhat_luc` / `tao_luc`. */
+/** Khớp DB `edu_mon_thi` (đọc trực tiếp) — không có `cap_nhat_luc` / `tao_luc`. */
 const SELECT = "id, ma, ten, loai, trang_thai, thumbnail_id, id_bai_viet";
 
 export type AdminMonThiRow = {

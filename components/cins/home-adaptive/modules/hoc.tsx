@@ -67,10 +67,7 @@ export async function DuongToiDoModule(_props: { ctx: HomeModuleCtx }) {
             </span>
             <div className="ha-trow-meta">
               <div className="ha-trow-name">{s.ten}</div>
-              <div className="ha-trow-sub">
-                {[s.loai_truong, s.tinh_thanh].filter(Boolean).join(" · ") ||
-                  "Cơ sở đào tạo"}
-              </div>
+              <div className="ha-trow-sub">Cơ sở đào tạo</div>
             </div>
           </Link>
         ))
