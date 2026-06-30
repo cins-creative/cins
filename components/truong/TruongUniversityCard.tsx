@@ -64,6 +64,12 @@ export type TruongUniversityCardProps = {
   foot: TruongUniversityCardFoot;
   className?: string;
   dataType?: string;
+  /**
+   * `listing` — bố cục trang danh sách trường: badge loại nằm cùng hàng mã
+   * trường ở đầu card, ẩn hàng tag, đưa địa điểm + số chi nhánh xuống đáy.
+   * `default` — bố cục cũ (dùng ở grid trường theo ngành).
+   */
+  variant?: "default" | "listing";
 };
 
 export function TruongUniversityCard({
@@ -74,14 +80,20 @@ export function TruongUniversityCard({
   foot,
   className,
   dataType,
+  variant = "default",
 }: TruongUniversityCardProps) {
   const coverUrl = resolveSchoolCoverSrc(school);
   const loai =
     school.org_loai === "co_so_dao_tao"
       ? labelLoaiCoSo(school.loai_truong)
       : labelLoaiTruong(school.loai_truong);
+  const typeLabel = loai !== "—" ? loai : "Trường ĐH";
   const locationLabel = labelTinhThanh(school.tinh_thanh);
-  const cardClass = ["tdh-card", className].filter(Boolean).join(" ");
+  const branchCount = school.chi_nhanh?.length ?? 0;
+  const isListing = variant === "listing";
+  const cardClass = ["tdh-card", isListing ? "tdh-card--listing" : "", className]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <Link
@@ -124,39 +136,64 @@ export function TruongUniversityCard({
             {school.ten_tieng_anh?.trim() ? (
               <p className="tdh-card-en">{school.ten_tieng_anh.trim()}</p>
             ) : null}
-            {school.ma_truong ? (
+            {isListing ? (
+              school.ma_truong || typeLabel ? (
+                <div className="tdh-card-head-tags">
+                  {school.ma_truong ? (
+                    <span className="tdh-card-code">{school.ma_truong}</span>
+                  ) : null}
+                  <span className="tdh-card-type">{typeLabel}</span>
+                </div>
+              ) : null
+            ) : school.ma_truong ? (
               <span className="tdh-card-code">{school.ma_truong}</span>
             ) : null}
           </div>
         </div>
-        <div className="tdh-card-meta">
-          {loai !== "—" ? (
-            <span className="tdh-card-type">{loai}</span>
-          ) : (
-            <span className="tdh-card-type">Trường ĐH</span>
-          )}
-          {locationLabel ? (
-            <span className="tdh-card-loc">
-              <LocationIcon />
-              {locationLabel}
-            </span>
-          ) : null}
-        </div>
-        <div className="tdh-card-tags">
-          {tags.map((tag) => {
-            const { label, muted } = normalizeTag(tag);
-            return (
-              <span
-                key={label}
-                className={["tdh-card-tag", muted ? "muted" : ""]
-                  .filter(Boolean)
-                  .join(" ")}
-              >
-                {label}
+
+        {!isListing ? (
+          <>
+            <div className="tdh-card-meta">
+              <span className="tdh-card-type">{typeLabel}</span>
+              {locationLabel ? (
+                <span className="tdh-card-loc">
+                  <LocationIcon />
+                  {locationLabel}
+                </span>
+              ) : null}
+            </div>
+            <div className="tdh-card-tags">
+              {tags.map((tag) => {
+                const { label, muted } = normalizeTag(tag);
+                return (
+                  <span
+                    key={label}
+                    className={["tdh-card-tag", muted ? "muted" : ""]
+                      .filter(Boolean)
+                      .join(" ")}
+                  >
+                    {label}
+                  </span>
+                );
+              })}
+            </div>
+          </>
+        ) : null}
+
+        {isListing && (locationLabel || branchCount > 0) ? (
+          <div className="tdh-card-locbar">
+            {locationLabel ? (
+              <span className="tdh-card-loc">
+                <LocationIcon />
+                {locationLabel}
               </span>
-            );
-          })}
-        </div>
+            ) : null}
+            {branchCount > 0 ? (
+              <span className="tdh-card-branch">{branchCount} chi nhánh</span>
+            ) : null}
+          </div>
+        ) : null}
+
         <div className="tdh-card-foot">
           <div>
             <div className="tdh-card-stat-num">

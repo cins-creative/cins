@@ -23,6 +23,7 @@ import type {
   CalcConfigDraft,
   MonThiCatalogItem,
 } from "@/lib/truong/calc-draft";
+import type { SystemRole } from "@/lib/auth/system-role";
 import type {
   TruongBaiDang,
   TruongDetail,
@@ -37,6 +38,8 @@ import type {
 type Ctx = {
   /** Quyền sửa từ server (org admin / dev). */
   canEdit: boolean;
+  /** Vai trò hệ thống của viewer (badge topbar) — null khi chưa đăng nhập. */
+  systemRole: SystemRole | null;
   /** Đang bật UI chỉnh sửa trên trang. */
   editMode: boolean;
   setEditMode: (on: boolean) => void;
@@ -122,10 +125,12 @@ function editModeStorageKey(slug: string) {
 export function TruongInlineEditProvider({
   children,
   canEdit,
+  systemRole = null,
   initial,
 }: {
   children: ReactNode;
   canEdit: boolean;
+  systemRole?: SystemRole | null;
   initial: TruongPagePayload;
 }) {
   const [school, setSchool] = useState(initial.school);
@@ -571,6 +576,7 @@ export function TruongInlineEditProvider({
   const value = useMemo<Ctx>(
     () => ({
       canEdit,
+      systemRole,
       editMode,
       setEditMode,
       isEditing,
@@ -616,6 +622,7 @@ export function TruongInlineEditProvider({
     }),
     [
       canEdit,
+      systemRole,
       editMode,
       setEditMode,
       isEditing,

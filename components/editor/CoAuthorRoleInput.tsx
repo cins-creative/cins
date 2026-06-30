@@ -5,18 +5,34 @@ import { createPortal } from "react-dom";
 
 import type { CoAuthorNgheRoleOption } from "@/lib/editor/coauthor-role-types";
 
-const MAX_OPTIONS = 10;
+const MAX_OPTIONS = 20;
 const LIST_MAX_H = 280;
 
+/** Bỏ dấu tiếng Việt + thường hóa để tìm kiếm khoan dung hơn. */
+function normalizeText(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d");
+}
+
 function matchesRoleOption(option: CoAuthorNgheRoleOption, query: string): boolean {
-  const q = query.trim().toLowerCase();
+  const q = normalizeText(query.trim());
   if (!q) return true;
-  return [
-    option.roleLabel,
-    option.roleShort,
-    option.linhVucTen,
-    option.tieuDe,
-  ].some((part) => part?.toLowerCase().includes(q));
+  const haystack = normalizeText(
+    [
+      option.roleLabel,
+      option.roleShort,
+      option.roleEng,
+      option.linhVucTen,
+      option.tieuDe,
+    ]
+      .filter(Boolean)
+      .join(" "),
+  );
+  // Mỗi từ khóa (cách nhau bởi khoảng trắng) phải khớp ở đâu đó.
+  return q.split(/\s+/).every((token) => haystack.includes(token));
 }
 
 type Props = {
@@ -192,16 +208,18 @@ export function CoAuthorRoleInput({
                   >
                     <span className="ed-coauthor-role-option-main">
                       {option.linhVucTen ? (
-                        <>
-                          <span className="ed-coauthor-role-option-lv">
-                            {option.linhVucTen}
-                          </span>
-                          <span className="ed-coauthor-role-option-sep">·</span>
-                        </>
+                        <span className="ed-coauthor-role-option-lv">
+                          {option.linhVucTen}
+                        </span>
                       ) : null}
                       <span className="ed-coauthor-role-option-title">
                         {option.roleShort}
                       </span>
+                      {option.roleEng ? (
+                        <span className="ed-coauthor-role-option-eng">
+                          {option.roleEng}
+                        </span>
+                      ) : null}
                     </span>
                     {option.tieuDe !== option.roleShort ? (
                       <span className="ed-coauthor-role-option-sub">

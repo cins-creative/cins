@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 
 import { TruongDetailView } from "@/components/truong/TruongDetailView";
 import { CinsShell } from "@/components/cins/CinsShell";
+import { getCurrentUserSystemRole } from "@/lib/auth/system-role";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { loadOrgBaiDangBookmarkSocial } from "@/lib/truong/org-bai-dang-bookmark";
 import { getOrgAdminStatus } from "@/lib/truong/org-admin";
@@ -16,7 +17,10 @@ export async function TruongDetailLoader({ slug }: Props) {
   if (!payload) notFound();
 
   const session = await getCurrentSessionAndProfile();
-  const canEdit = await getOrgAdminStatus(slug, session?.profile?.id ?? null);
+  const [canEdit, systemRole] = await Promise.all([
+    getOrgAdminStatus(slug, session?.profile?.id ?? null),
+    getCurrentUserSystemRole(),
+  ]);
   const viewerProfileId = session?.profile?.id ?? null;
 
   const postIds = payload.baidang.map((p) => p.id);
@@ -40,7 +44,11 @@ export async function TruongDetailLoader({ slug }: Props) {
   return (
     <CinsShell data-screen-label="Truong-chi-tiet">
       <div className={`tdh-page tdh-page--v6${canEdit ? " tdh-page--can-edit" : ""}`}>
-        <TruongDetailView payload={payloadWithSocial} canEdit={canEdit} />
+        <TruongDetailView
+          payload={payloadWithSocial}
+          canEdit={canEdit}
+          systemRole={systemRole}
+        />
       </div>
     </CinsShell>
   );

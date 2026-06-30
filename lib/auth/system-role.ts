@@ -19,7 +19,7 @@ export function normalizeEmail(email: string | null | undefined): string | null 
 
 /**
  * Suy vai trò từ email auth + vai trò DB (nếu có).
- * Thứ tự: super_admin email → legacy CINS_ADMIN_EMAILS → DB → thanh_vien.
+ * Thứ tự: super_admin email → DB (`user_quyen_he_thong`) → legacy CINS_ADMIN_EMAILS → thanh_vien.
  */
 export function resolveSystemRole(
   email: string | null | undefined,
@@ -27,9 +27,9 @@ export function resolveSystemRole(
 ): SystemRole {
   const normalized = normalizeEmail(email);
   if (normalized === SUPER_ADMIN_EMAIL) return "super_admin";
-  if (normalized && CINS_ADMIN_EMAILS.includes(normalized)) return "admin";
   if (dbRole === "admin") return "admin";
   if (dbRole === "curator") return "curator";
+  if (normalized && CINS_ADMIN_EMAILS.includes(normalized)) return "admin";
   return "thanh_vien";
 }
 

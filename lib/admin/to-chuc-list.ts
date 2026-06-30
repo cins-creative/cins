@@ -26,20 +26,7 @@ type DbRow = {
   tinh_thanh: string | null;
   trang_thai_tin_cay: string;
   avatar_id: string | null;
-  org_co_so_dao_tao:
-    | { da_verify: boolean }
-    | { da_verify: boolean }[]
-    | null;
-  org_truong_dai_hoc:
-    | { da_verify: boolean }
-    | { da_verify: boolean }[]
-    | null;
 };
-
-function firstRelation<T>(raw: T | T[] | null | undefined): T | null {
-  if (!raw) return null;
-  return Array.isArray(raw) ? (raw[0] ?? null) : raw;
-}
 
 function normalizeLoai(loai: string): Exclude<AdminToChucLoaiFilter, "all"> {
   if (loai === "doanh_nghiep") return "studio";
@@ -56,11 +43,13 @@ function normalizeLoai(loai: string): Exclude<AdminToChucLoaiFilter, "all"> {
 
 export function mapRow(row: DbRow): AdminToChucListRow {
   const loai = normalizeLoai(row.loai_to_chuc);
-  const coSo = firstRelation(row.org_co_so_dao_tao);
-  const truong = firstRelation(row.org_truong_dai_hoc);
+  /* Verify áp dụng cho trường & cơ sở đào tạo — hiện nút khi org chưa đạt
+     trạng thái verified_official. Dựa trên trang_thai_tin_cay (không phụ thuộc
+     bản ghi con org_truong_dai_hoc/org_co_so_dao_tao có thể chưa tồn tại). */
+  const isVerifiableLoai =
+    loai === "co_so_dao_tao" || loai === "truong_dai_hoc";
   const showVerify =
-    (loai === "co_so_dao_tao" && coSo?.da_verify === false) ||
-    (loai === "truong_dai_hoc" && truong?.da_verify === false);
+    isVerifiableLoai && row.trang_thai_tin_cay !== "verified_official";
 
   return {
     id: row.id,
@@ -112,9 +101,7 @@ export async function fetchAdminToChucList(
   const { data, error } = await admin
     .from("org_to_chuc")
     .select(
-      `id, ten, slug, loai_to_chuc, tinh_thanh, trang_thai_tin_cay, avatar_id,
-      org_co_so_dao_tao ( da_verify ),
-      org_truong_dai_hoc ( da_verify )`,
+      `id, ten, slug, loai_to_chuc, tinh_thanh, trang_thai_tin_cay, avatar_id`,
     )
     .neq("trang_thai_hoat_dong", "da_dong_cua")
     .order("ten", { ascending: true })

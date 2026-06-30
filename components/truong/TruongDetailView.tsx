@@ -42,6 +42,7 @@ import {
   mergeTruongYearOptions,
   pickMaxTruongYear,
 } from "@/lib/truong/year-options";
+import type { SystemRole } from "@/lib/auth/system-role";
 import type { TruongChiNhanh, TruongPagePayload } from "@/lib/truong/types";
 
 const TABS = [
@@ -59,6 +60,7 @@ const TABS = [
 type Props = {
   payload: TruongPagePayload;
   canEdit?: boolean;
+  systemRole?: SystemRole | null;
 };
 
 type SettingsSavedPatch = Partial<{
@@ -354,9 +356,17 @@ function TruongDetailViewBody({ payload, canEdit }: Props) {
   );
 }
 
-export function TruongDetailView({ payload, canEdit = false }: Props) {
+export function TruongDetailView({
+  payload,
+  canEdit = false,
+  systemRole = null,
+}: Props) {
   return (
-    <TruongInlineEditProvider canEdit={canEdit} initial={payload}>
+    <TruongInlineEditProvider
+      canEdit={canEdit}
+      systemRole={systemRole}
+      initial={payload}
+    >
       <TruongDetailViewBody payload={payload} canEdit={canEdit} />
     </TruongInlineEditProvider>
   );

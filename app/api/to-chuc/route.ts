@@ -3,8 +3,9 @@ import { NextResponse } from "next/server";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { createCongDongOrg } from "@/lib/cong-dong/org-create";
 import { createCoSoDaoTaoOrg } from "@/lib/to-chuc/co-so-create";
+import { createStudioOrg } from "@/lib/to-chuc/studio-create";
 
-/** POST /api/to-chuc — tạo org (`cong_dong` | `co_so_dao_tao`). */
+/** POST /api/to-chuc — tạo org (`cong_dong` | `co_so_dao_tao` | `studio`). */
 export async function POST(req: Request) {
   const session = await getCurrentSessionAndProfile();
   if (!session?.profile) {
@@ -75,6 +76,36 @@ export async function POST(req: Request) {
       id: result.data.id,
       slug: result.data.slug,
       redirect: `/co-so/${result.data.slug}/bai-dang`,
+    });
+  }
+
+  if (loai === "studio") {
+    const result = await createStudioOrg(session.profile.id, {
+      ten: body.ten ?? "",
+      slug: body.slug ?? "",
+      moTa: body.mo_ta,
+      tenChinhThuc: body.ten_chinh_thuc,
+      tinhThanh: body.tinh_thanh,
+      diaChi: body.dia_chi,
+      dienThoai: body.dien_thoai,
+      emailLienHe: body.email_lien_he,
+      avatarId: body.avatar_id,
+      gioiThieu: body.gioi_thieu_truong,
+      website: body.website,
+    });
+
+    if (!result.ok) {
+      return NextResponse.json(
+        { error: result.error, field: result.field },
+        { status: 400 },
+      );
+    }
+
+    return NextResponse.json({
+      ok: true,
+      id: result.data.id,
+      slug: result.data.slug,
+      redirect: `/studio/${result.data.slug}`,
     });
   }
 

@@ -17,6 +17,8 @@ export type TruongUniversityCardSchool = Pick<
   | "tinh_thanh"
 > & {
   ten_tieng_anh?: string | null;
+  /** Chi nhánh / cơ sở — chỉ dùng ở variant listing (đếm số chi nhánh). */
+  chi_nhanh?: TruongListItem["chi_nhanh"];
 };
 
 export type TruongUniversityCardFoot = {

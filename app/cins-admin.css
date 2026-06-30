@@ -4794,3 +4794,347 @@
 .cins-admin .admin-nguoi-dung-locked {
   display: inline-flex;
 }
+
+/* ── Báo cáo (report) ─────────────────────────────────────────────── */
+.cins-admin .page-subtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--muted, #6b7280);
+}
+
+.cins-admin .bc-spin {
+  animation: bc-spin 0.8s linear infinite;
+}
+
+@keyframes bc-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.cins-admin .bc-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 64px 16px;
+  color: var(--muted, #6b7280);
+}
+
+.cins-admin .bc-layout {
+  display: grid;
+  grid-template-columns: minmax(300px, 380px) 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.cins-admin .bc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: calc(100vh - 160px);
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.cins-admin .bc-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  padding: 12px;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+
+.cins-admin .bc-card:hover {
+  border-color: #c4b5fd;
+}
+
+.cins-admin .bc-card.is-active {
+  border-color: #7c5cff;
+  box-shadow: 0 0 0 2px rgba(124, 92, 255, 0.18);
+}
+
+.cins-admin .bc-card.is-hot {
+  border-color: #fca5a5;
+  background: #fff7f7;
+}
+
+.cins-admin .bc-count {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 52px;
+  height: 52px;
+  border-radius: 10px;
+  background: #f1f3f7;
+  color: #374151;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.cins-admin .bc-count small {
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 2px;
+  opacity: 0.7;
+}
+
+.cins-admin .bc-count.is-hot {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.cins-admin .bc-card-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.cins-admin .bc-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text, #1c2333);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cins-admin .bc-card-meta {
+  font-size: 12px;
+  color: var(--muted, #6b7280);
+}
+
+.cins-admin .bc-card-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.cins-admin .bc-chip {
+  font-size: 10.5px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #4f46e5;
+}
+
+.cins-admin .bc-card-chev {
+  color: #9ca3af;
+  flex-shrink: 0;
+}
+
+.cins-admin .bc-detail {
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 14px;
+  background: #fff;
+  padding: 18px;
+  min-height: 320px;
+}
+
+.cins-admin .bc-detail-empty {
+  display: grid;
+  place-items: center;
+  min-height: 280px;
+  color: var(--muted, #6b7280);
+}
+
+.cins-admin .bc-detail-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border, #e5e7eb);
+  margin-bottom: 12px;
+}
+
+.cins-admin .bc-detail-head h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.cins-admin .bc-detail-status {
+  font-size: 12px;
+  color: var(--muted, #6b7280);
+  white-space: nowrap;
+}
+
+.cins-admin .bc-report-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cins-admin .bc-report {
+  border: 1px solid var(--border, #eef0f4);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: #fafbfc;
+}
+
+.cins-admin .bc-report-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.cins-admin .bc-report-loai {
+  font-weight: 700;
+  color: #dc2626;
+}
+
+.cins-admin .bc-report-who {
+  color: var(--text, #374151);
+}
+
+.cins-admin .bc-report-time {
+  margin-left: auto;
+  color: var(--muted, #9ca3af);
+}
+
+.cins-admin .bc-report-tieude {
+  margin: 6px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.cins-admin .bc-report-noidung {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #374151;
+}
+
+.cins-admin .bc-report-evidence {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.cins-admin .bc-evidence-thumb {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.cins-admin .bc-evidence-link {
+  font-size: 12px;
+  color: #4f46e5;
+  word-break: break-all;
+  max-width: 320px;
+}
+
+.cins-admin .bc-resolve {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border, #e5e7eb);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cins-admin .bc-resolve-label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.cins-admin .bc-resolve-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cins-admin .bc-preset {
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border, #e5e7eb);
+  background: #fff;
+  cursor: pointer;
+}
+
+.cins-admin .bc-preset:hover {
+  border-color: #7c5cff;
+  color: #6a47f5;
+}
+
+.cins-admin .bc-resolve-text {
+  width: 100%;
+  font: inherit;
+  font-size: 13px;
+  padding: 8px 10px;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 8px;
+  resize: vertical;
+}
+
+.cins-admin .bc-resolve-msg {
+  margin: 0;
+  font-size: 13px;
+  color: #16a34a;
+}
+
+.cins-admin .bc-resolve-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.cins-admin .bc-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 9px 16px;
+  border-radius: 9px;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.cins-admin .bc-btn-ghost {
+  background: #f1f3f7;
+  color: #374151;
+}
+
+.cins-admin .bc-btn-danger {
+  background: #dc2626;
+  color: #fff;
+}
+
+.cins-admin .bc-btn-danger:hover {
+  background: #c41f1f;
+}
+
+.cins-admin .bc-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 880px) {
+  .cins-admin .bc-layout {
+    grid-template-columns: 1fr;
+  }
+}

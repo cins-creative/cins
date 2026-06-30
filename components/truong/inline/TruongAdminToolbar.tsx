@@ -1,15 +1,20 @@
 "use client";
 
-import { Pencil } from "lucide-react";
+import { Eye, Pencil, Shield, ShieldCheck } from "lucide-react";
 import { createPortal } from "react-dom";
 
 import { useTopbarPageSlot } from "@/components/cins/useTopbarPageSlot";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
+import {
+  isElevatedRole,
+  SYSTEM_ROLE_LABELS,
+} from "@/lib/auth/system-role-labels";
 
 export function TruongAdminToolbar() {
   const ctx = useTruongInlineEdit();
   const slot = useTopbarPageSlot();
 
+  // Thành viên cơ bản (không có quyền sửa trang) → không hiển thị gì.
   if (!ctx?.canEdit || !slot) return null;
 
   const {
@@ -17,10 +22,21 @@ export function TruongAdminToolbar() {
     saving,
     avatarDraft,
     coverDraft,
+    systemRole,
     setEditMode,
     commitAvatarDraft,
     commitCoverDraft,
   } = ctx;
+
+  const elevated = isElevatedRole(systemRole);
+  const roleKey = elevated ? systemRole : "org";
+  const roleLabel = elevated ? SYSTEM_ROLE_LABELS[systemRole] : "Quản trị";
+  const RoleIcon =
+    roleKey === "super_admin"
+      ? Shield
+      : roleKey === "admin"
+        ? ShieldCheck
+        : Pencil;
 
   return createPortal(
     <div className="tb-truong-admin" role="group" aria-label="Quản trị trang trường">
@@ -51,17 +67,26 @@ export function TruongAdminToolbar() {
       ) : null}
       <button
         type="button"
-        className={`tb-truong-admin-btn${isEditing ? " is-active" : ""}`}
+        className={`tb-truong-admin-btn tb-truong-role-btn tb-truong-role-btn--${roleKey}${
+          isEditing ? " is-active" : ""
+        }`}
         aria-pressed={isEditing}
         title={
           isEditing
-            ? "Xem như người dùng"
-            : "Bật chế độ quản trị trang trường"
+            ? "Đang ở chế độ quản trị — bấm để xem như người dùng"
+            : `Vai trò: ${roleLabel} — bấm để bật chế độ quản trị`
         }
         onClick={() => setEditMode(!isEditing)}
       >
-        <Pencil size={14} strokeWidth={2} aria-hidden />
-        <span>{isEditing ? "Đang sửa" : "Quản trị"}</span>
+        {isEditing ? (
+          <Eye size={14} strokeWidth={2} aria-hidden />
+        ) : (
+          <RoleIcon size={14} strokeWidth={2} aria-hidden />
+        )}
+        <span className="tb-truong-role-name">{roleLabel}</span>
+        <span className="tb-truong-role-state" aria-hidden>
+          {isEditing ? "Đang sửa" : "Xem"}
+        </span>
       </button>
     </div>,
     slot,

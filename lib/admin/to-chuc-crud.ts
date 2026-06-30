@@ -173,6 +173,64 @@ export async function updateAdminToChuc(
   return { ok: true, row: mapRow(data) };
 }
 
+/**
+ * Cấp Verified cho tổ chức — set `trang_thai_tin_cay = verified_official` và
+ * `da_verify = true` ở bảng con (org_truong_dai_hoc / org_co_so_dao_tao).
+ * Chỉ áp dụng cho trường ĐH và cơ sở đào tạo.
+ */
+export async function verifyAdminToChuc(
+  orgId: string,
+): Promise<
+  { ok: true; row: AdminToChucListRow } | { ok: false; error: string }
+> {
+  const admin = createServiceRoleClient();
+
+  const { data: org, error: readErr } = await admin
+    .from("org_to_chuc")
+    .select("id, loai_to_chuc")
+    .eq("id", orgId)
+    .maybeSingle<{ id: string; loai_to_chuc: string }>();
+
+  if (readErr) return { ok: false, error: readErr.message };
+  if (!org) return { ok: false, error: "Không tìm thấy tổ chức." };
+
+  const subtypeTable =
+    org.loai_to_chuc === "truong_dai_hoc"
+      ? "org_truong_dai_hoc"
+      : org.loai_to_chuc === "co_so_dao_tao"
+        ? "org_co_so_dao_tao"
+        : null;
+
+  if (!subtypeTable) {
+    return {
+      ok: false,
+      error: "Chỉ cấp Verified cho trường đại học hoặc cơ sở đào tạo.",
+    };
+  }
+
+  const { data, error } = await admin
+    .from("org_to_chuc")
+    .update({ trang_thai_tin_cay: "verified_official" })
+    .eq("id", orgId)
+    .select(DETAIL_SELECT)
+    .maybeSingle<DbDetailRow>();
+
+  if (error) return { ok: false, error: error.message };
+  if (!data) return { ok: false, error: "Không tìm thấy tổ chức." };
+
+  /* Đồng bộ cờ da_verify ở bảng con nếu bản ghi tồn tại. Bản ghi con có thể
+     chưa được tạo — khi đó update không ảnh hưởng dòng nào, vẫn coi là OK vì
+     trang_thai_tin_cay (nguồn hiển thị badge + showVerify) đã cập nhật. */
+  const { error: subErr } = await admin
+    .from(subtypeTable)
+    .update({ da_verify: true })
+    .eq("id_to_chuc", orgId);
+
+  if (subErr) return { ok: false, error: subErr.message };
+
+  return { ok: true, row: mapRow(data) };
+}
+
 /** Soft delete — đặt `trang_thai_hoat_dong = da_dong_cua`. */
 export async function archiveAdminToChuc(
   orgId: string,

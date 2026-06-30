@@ -1,13 +1,10 @@
 /**
- * Whitelist email CINs admin — sau khi login, các email này redirect thẳng `/admin`
- * thay vì `/onboarding` / `/{slug}/journey`.
+ * Legacy whitelist admin — chỉ fallback khi chưa có dòng `user_quyen_he_thong`.
+ * Vai trò hệ thống (L19) lưu DB; super_admin suy từ `SUPER_ADMIN_EMAIL` trong app.
  *
  * Khi sửa danh sách: bắt buộc lowercase, trim trước khi push.
  */
-export const CINS_ADMIN_EMAILS: readonly string[] = [
-  "nguyenthanhtu.nkl@gmail.com",
-  "info.cins.vn@gmail.com",
-] as const;
+export const CINS_ADMIN_EMAILS: readonly string[] = [] as const;
 
 export function isCinsAdminEmail(email: string | null | undefined): boolean {
   if (!email) return false;

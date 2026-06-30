@@ -560,6 +560,59 @@
   color: var(--ink-muted);
 }
 
+/* Variant listing: mã trường + loại nằm cùng hàng ở đầu card. */
+.tdh-page .tdh-card-head-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.tdh-page .tdh-card-head-tags .tdh-card-code {
+  margin-top: 0;
+}
+
+/* Variant listing: địa điểm + số chi nhánh đặt xuống đáy, ngay trên foot. */
+.tdh-page .tdh-card--listing {
+  display: flex;
+  flex-direction: column;
+}
+
+.tdh-page .tdh-card--listing .tdh-card-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+}
+
+.tdh-page .tdh-card--listing .tdh-card-head {
+  margin-bottom: 12px;
+}
+
+.tdh-page .tdh-card-locbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+  margin-bottom: 12px;
+}
+
+.tdh-page .tdh-card-branch {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  background: var(--cins-blue-soft);
+  color: var(--cins-blue-dark);
+}
+
 .tdh-page .tdh-card-foot {
   display: flex;
   align-items: center;

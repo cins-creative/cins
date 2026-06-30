@@ -1,26 +1,20 @@
 import "server-only";
 
-import { createClient } from "@/lib/supabase/server";
-
-import { isCinsAdminEmail } from "@/lib/auth/cins-admin";
+import { getCurrentUserSystemRole } from "@/lib/auth/system-role";
 
 /**
- * Server-side helper: xác định user hiện tại có phải CINs admin không.
+ * Server-side helper: user hiện tại có quyền admin cấp hệ thống CINs không
+ * (`super_admin` hoặc `admin` từ `user_quyen_he_thong` / email super_admin).
  *
- * Tham chiếu danh sách email trong `lib/auth/cins-admin.ts` (CINS_ADMIN_EMAILS).
- * Trả `false` cho mọi trường hợp không xác định được session (anon, lỗi network, ...).
+ * Trả `false` khi không xác định được session (anon, lỗi network, ...).
  *
- * Dùng để gate các toolbar quản trị inline (NganhHubAdminToolbar,
- * NganhAdminToolbar, TruongAdminToolbar) — chỉ admin CINs hoặc role org tương ứng
- * mới thấy.
+ * Dùng gate toolbar quản trị inline (NganhHubAdminToolbar, TruongAdminToolbar, …)
+ * — song song với quyền org tương ứng.
  */
 export async function getCurrentUserIsCinsAdmin(): Promise<boolean> {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    return isCinsAdminEmail(user?.email);
+    const role = await getCurrentUserSystemRole();
+    return role === "super_admin" || role === "admin";
   } catch {
     return false;
   }

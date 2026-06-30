@@ -147,6 +147,15 @@ export function AdminNguoiDungScreen() {
   }, [load, query]);
 
   async function handleRoleChange(userId: string, role: SystemRole) {
+    const previousRows = rows;
+    const roleLabel =
+      ROLE_OPTIONS.find((o) => o.value === role)?.label ?? role;
+
+    setRows((current) =>
+      current.map((row) =>
+        row.id === userId ? { ...row, role, roleLabel } : row,
+      ),
+    );
     setSavingId(userId);
     setSaveError(null);
     try {
@@ -164,6 +173,7 @@ export function AdminNguoiDungScreen() {
       }
       await load();
     } catch (e) {
+      setRows(previousRows);
       setSaveError(e instanceof Error ? e.message : "Không cập nhật được vai trò.");
     } finally {
       setSavingId(null);

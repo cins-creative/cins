@@ -42,6 +42,7 @@ import { JourneyBookmarkButton } from "@/components/journey/JourneyBookmarkButto
 import { JourneyMilestoneInlineControls } from "@/components/journey/JourneyMilestoneInlineControls";
 import { JourneyLikeButton } from "@/components/journey/JourneyLikeButton";
 import { JourneyMilestoneOwnerMenu } from "@/components/journey/JourneyMilestoneOwnerMenu";
+import { JourneyMilestoneViewerMenu } from "@/components/social/JourneyMilestoneViewerMenu";
 import { IdentityPendingMilestoneCard } from "@/components/journey/IdentityPendingMilestoneCard";
 import { IdentityVerifiedMilestoneCard } from "@/components/journey/IdentityVerifiedMilestoneCard";
 import { JourneyOrgPopover } from "@/components/journey/JourneyOrgPopover";
@@ -664,6 +665,34 @@ export function JourneyMilestoneCard({
     (Boolean(entityPosterLabel || authorAvatarUrl || milestone.lensOwnerAvatarUrl) ||
       (isCongDongPost && Boolean(congDongOrg)));
 
+  /* Người xem nội dung của người khác → menu "..." (mở / chia sẻ / copy / báo cáo).
+   * Chỉ hiện khi viewer KHÔNG quản lý được nội dung và đây không phải bài của
+   * chính họ. Báo cáo gắn vào cột mốc (`cot_moc`). */
+  const viewerReportTargetId = cotMocId ?? milestone.id;
+  const viewerPostOwnerSlug =
+    postOwnerSlug?.trim() ||
+    entityPosterSlug ||
+    ownerSlug?.trim() ||
+    null;
+  const viewerPostHref =
+    postSlug && viewerPostOwnerSlug
+      ? `/${viewerPostOwnerSlug}/p/${postSlug}`
+      : null;
+  const isOwnContent =
+    Boolean(viewerProfileId) &&
+    (viewerProfileId === postOwnerId || viewerProfileId === ownerProfileId);
+  const showViewerMenu =
+    !canManage && !isOwnContent && Boolean(viewerReportTargetId);
+  const viewerMenuNode = showViewerMenu ? (
+    <JourneyMilestoneViewerMenu
+      reportTargetId={viewerReportTargetId}
+      reportTargetTitle={title}
+      postHref={viewerPostHref}
+      viewerLoggedIn={Boolean(viewerProfileId)}
+      className="jcard-viewer-menu"
+    />
+  ) : null;
+
   function shouldIgnoreExpandTrigger(target: Element | null): boolean {
     return Boolean(
       target?.closest(
@@ -1197,6 +1226,7 @@ export function JourneyMilestoneCard({
                   ) : null}
                 </span>
               ) : null}
+              {viewerMenuNode}
             </div>
           ) : canManage && ownerSlug ? (
             <div
@@ -1370,6 +1400,7 @@ export function JourneyMilestoneCard({
                 <span className={`ctx-badge ${TYPE_CLASS[type]}`}>
                   <MilestoneTypeBadgeContent type={type} />
                 </span>
+                {viewerMenuNode}
               </span>
             </div>
           ) : isTaggedFromOthers && attribution ? (

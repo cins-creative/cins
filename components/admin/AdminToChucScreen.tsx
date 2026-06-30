@@ -103,6 +103,7 @@ export function AdminToChucScreen() {
   const [deletingRow, setDeletingRow] = useState<AdminToChucListRow | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [verifyingId, setVerifyingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -148,6 +149,32 @@ export function AdminToChucScreen() {
   function handleSaved(row: AdminToChucListRow) {
     setRows((prev) => prev.map((r) => (r.id === row.id ? row : r)));
     void load();
+  }
+
+  async function handleVerify(row: AdminToChucListRow) {
+    if (verifyingId) return;
+    setVerifyingId(row.id);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/admin/to-chuc/${encodeURIComponent(row.id)}/verify`,
+        { method: "POST" },
+      );
+      const json = (await res.json()) as {
+        row?: AdminToChucListRow;
+        error?: string;
+      };
+      if (!res.ok || !json.row) {
+        throw new Error(json.error ?? "Không cấp được Verified.");
+      }
+      const updated = json.row;
+      setRows((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+      void load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Không cấp được Verified.");
+    } finally {
+      setVerifyingId(null);
+    }
   }
 
   async function confirmDelete() {
@@ -324,8 +351,19 @@ export function AdminToChucScreen() {
                                 className="admin-to-chuc-act admin-to-chuc-act--icon admin-to-chuc-act--verify"
                                 aria-label="Cấp Verified"
                                 title="Cấp Verified"
+                                disabled={verifyingId === row.id}
+                                onClick={() => void handleVerify(row)}
                               >
-                                <BadgeCheck size={15} strokeWidth={2.2} aria-hidden />
+                                {verifyingId === row.id ? (
+                                  <Loader2
+                                    size={15}
+                                    strokeWidth={2.2}
+                                    className="admin-to-chuc-spin"
+                                    aria-hidden
+                                  />
+                                ) : (
+                                  <BadgeCheck size={15} strokeWidth={2.2} aria-hidden />
+                                )}
                               </button>
                             ) : null}
                             <button

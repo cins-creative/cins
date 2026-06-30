@@ -26,6 +26,7 @@ import {
   CO_SO_TAB_LABELS,
   type CoSoTabId,
 } from "@/lib/to-chuc/co-so-page-cau-hinh";
+import type { SystemRole } from "@/lib/auth/system-role";
 import type { CoSoDetailPayload, CoSoFilterChip } from "@/lib/to-chuc/co-so-page-queries";
 import {
   CO_SO_DEFAULT_TAB,
@@ -46,6 +47,7 @@ type Props = {
   payload: CoSoDetailPayload;
   canEdit?: boolean;
   canManageKhoaHoc?: boolean;
+  systemRole?: SystemRole | null;
 };
 
 type SettingsSavedPatch = {
@@ -341,10 +343,12 @@ export function CoSoDetailView({
   payload,
   canEdit = false,
   canManageKhoaHoc = false,
+  systemRole = null,
 }: Props) {
   return (
     <TruongInlineEditProvider
       canEdit={canEdit}
+      systemRole={systemRole}
       initial={coSoToInlinePayload(payload)}
     >
       <CoSoDetailViewBody

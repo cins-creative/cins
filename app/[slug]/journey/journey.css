@@ -1501,6 +1501,96 @@ a.j-main-gallery-item:focus-visible {
     opacity: 1;
   }
 }
+/* ── Gallery view toggle (toolbar .j-tlb) — thẻ ↔ lưới gọn ── */
+.j-gallery-view-toggle {
+  display: inline-flex;
+  background: var(--neutral-100, #f1f2f5);
+  border: 1px solid var(--border, #e4e6eb);
+  border-radius: var(--radius-pill, 999px);
+  padding: 2px;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.j-gvt-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 30px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-muted, #5c6370);
+  border-radius: var(--radius-pill, 999px);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.j-gvt-btn:hover {
+  color: var(--ink-display, #0f172a);
+}
+.j-gvt-btn.active {
+  background: var(--bg-surface, #fff);
+  color: var(--cins-blue, #1f74c9);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+}
+
+/* ── Card view: bảng thông tin trắng dưới ảnh (luôn hiển thị) ── */
+.j-main-gallery-info-panel {
+  display: none;
+}
+.j-main-gallery-grid--card {
+  align-items: start;
+}
+.j-main-gallery-grid--card .j-main-gallery-item {
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border, #e4e6eb);
+}
+.j-main-gallery-grid--card .j-main-gallery-item .j-main-gallery-overlay {
+  display: none;
+}
+.j-main-gallery-grid--card
+  .j-main-gallery-item
+  .j-main-gallery-info-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 11px 12px;
+  background: var(--bg-surface, #fff);
+  color: var(--ink-body);
+}
+.j-main-gallery-info-title {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--ink-display);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.j-main-gallery-info-excerpt {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ink-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@media (max-width: 575.98px) {
+  .j-main-gallery-grid--card
+    .j-main-gallery-item
+    .j-main-gallery-info-panel {
+    padding: 8px 9px 10px;
+  }
+  .j-main-gallery-info-title {
+    font-size: 12px;
+  }
+  .j-main-gallery-info-excerpt {
+    font-size: 11px;
+  }
+}
+
 .j-friends-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -9034,6 +9124,32 @@ select.j-edit-input {
   width: 28px;
   height: 28px;
   box-shadow: none;
+}
+
+/* Viewer menu ("..." của người xem) — pin absolute góc trên-trái card. */
+.j-m-card.jcard:has(.jcard-viewer-menu) {
+  position: relative;
+}
+.jcard-viewer-menu {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 14;
+  flex: 0 0 auto;
+}
+.jcard-viewer-menu .j-m-menu-btn {
+  width: 30px;
+  height: 30px;
+  background: rgba(255, 255, 255, 0.94);
+  border-color: rgba(15, 23, 42, 0.1);
+  color: var(--ink-body, #334155);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.2);
+}
+.jcard-viewer-menu .j-m-menu-pop {
+  top: calc(100% + 6px);
+  left: 0;
+  right: auto;
+  z-index: 40;
 }
 .ctx-badge,
 .verify-badge {

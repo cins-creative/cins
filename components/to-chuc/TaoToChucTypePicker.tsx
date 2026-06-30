@@ -6,20 +6,12 @@ import {
   GraduationCap,
 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
 
-import { TaoToChucDevNoticeModal } from "@/components/to-chuc/TaoToChucDevNoticeModal";
 import { TaoToChucPageShell } from "@/components/to-chuc/TaoToChucPageShell";
 
 export function TaoToChucTypePicker({ userSlug }: { userSlug: string }) {
-  const [studioNoticeOpen, setStudioNoticeOpen] = useState(false);
-
   return (
     <>
-      <TaoToChucDevNoticeModal
-        open={studioNoticeOpen}
-        onClose={() => setStudioNoticeOpen(false)}
-      />
       <TaoToChucPageShell>
         <p className="cins-login-eyebrow">@{userSlug} · tạo tổ chức</p>
         <h1 className="cins-login-title">Tạo tổ chức</h1>
@@ -29,11 +21,7 @@ export function TaoToChucTypePicker({ userSlug }: { userSlug: string }) {
         </p>
 
         <div className="ttc-type-grid">
-          <button
-            type="button"
-            className="ttc-type-card"
-            onClick={() => setStudioNoticeOpen(true)}
-          >
+          <Link href="/tao-to-chuc/studio" className="ttc-type-card" prefetch={false}>
             <div className="ttc-type-ico studio">
               <Briefcase size={26} aria-hidden />
             </div>
@@ -44,7 +32,7 @@ export function TaoToChucTypePicker({ userSlug }: { userSlug: string }) {
             <span className="ttc-type-arrow" aria-hidden>
               <ArrowRight size={18} />
             </span>
-          </button>
+          </Link>
 
           <Link href="/tao-to-chuc/co-so" className="ttc-type-card" prefetch={false}>
             <div className="ttc-type-ico edu">

@@ -1,6 +1,6 @@
 "use client";
 
-import { Image as ImageIcon, Plus, Video } from "lucide-react";
+import { Grid3x3, Image as ImageIcon, LayoutGrid, Plus, Video } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -38,6 +38,10 @@ import {
 } from "@/lib/journey/post-media";
 import { matchesPersonalFilterSlug } from "@/lib/filter/client-utils";
 import { useJourneyPersonalFilterOptional } from "@/components/journey/JourneyPersonalFilterContext";
+
+/** Chế độ xem gallery: `card` (mặc định, có bảng thông tin trắng dưới ảnh) hoặc
+ *  `grid` (lưới gọn, thông tin hiện khi hover). */
+type GalleryViewMode = "card" | "grid";
 
 type ScrollLoadConfig = {
   ownerSlug: string;
@@ -196,6 +200,9 @@ export function JourneyGalleryGridView({
 
   const [typeFilter, setTypeFilter] = useState<FilterGroup>("all");
   const [mediaFilter, setMediaFilter] = useState<GalleryMediaFilter>("all");
+  // Lưới gọn mặc định; người dùng có thể chuyển sang dạng thẻ.
+  const [view, setView] = useState<GalleryViewMode>("grid");
+  const effectiveView: GalleryViewMode = hideToolbar ? "grid" : view;
   const [galleryItems, setGalleryItems] = useState<GalleryMainItem[]>(() =>
     legacyAll ? [...legacyAll] : [...(initialItems ?? [])],
   );
@@ -424,6 +431,32 @@ export function JourneyGalleryGridView({
                 count={filterCount}
                 optionCounts={mediaCounts}
               />
+              <div
+                className="j-gallery-view-toggle"
+                role="group"
+                aria-label="Chế độ xem"
+              >
+                <button
+                  type="button"
+                  className={`j-gvt-btn${view === "card" ? " active" : ""}`}
+                  aria-label="Dạng thẻ"
+                  aria-pressed={view === "card"}
+                  title="Dạng thẻ"
+                  onClick={() => setView("card")}
+                >
+                  <LayoutGrid size={15} />
+                </button>
+                <button
+                  type="button"
+                  className={`j-gvt-btn${view === "grid" ? " active" : ""}`}
+                  aria-label="Lưới gọn"
+                  aria-pressed={view === "grid"}
+                  title="Lưới gọn"
+                  onClick={() => setView("grid")}
+                >
+                  <Grid3x3 size={15} />
+                </button>
+              </div>
             </div>
           ) : null}
         </div>
@@ -439,7 +472,11 @@ export function JourneyGalleryGridView({
           <em>{emptyFilterLabel}</em>. Đổi bộ lọc hoặc chọn “Tất cả”.
         </div>
       ) : (
-        <div className="j-main-gallery-grid">
+        <div
+          className={`j-main-gallery-grid${
+            effectiveView === "card" ? " j-main-gallery-grid--card" : ""
+          }`}
+        >
           {createTile}
           {filtered.map((item) => {
             const className = galleryItemClassName(item);
@@ -514,6 +551,17 @@ export function JourneyGalleryGridView({
                       </small>
                     ) : null}
                   </span>
+                </span>
+                {/* Bảng thông tin trắng — chỉ hiện ở chế độ thẻ (CSS). */}
+                <span className="j-main-gallery-info-panel">
+                  <strong className="j-main-gallery-info-title">
+                    {item.label}
+                  </strong>
+                  {item.meta ? (
+                    <small className="j-main-gallery-info-excerpt">
+                      {item.meta}
+                    </small>
+                  ) : null}
                 </span>
               </>
             );

@@ -42,10 +42,6 @@ export function TruongListingClient({ schools }: Props) {
     () => schools.filter((s) => truongListingFilterType(s) === "csdt").length,
     [schools],
   );
-  const programCount = useMemo(
-    () => schools.reduce((n, s) => n + s.nganhCount, 0),
-    [schools],
-  );
 
   const visible = useMemo(() => {
     return schools.filter((s) => {
@@ -58,54 +54,6 @@ export function TruongListingClient({ schools }: Props) {
 
   return (
     <div className="tdh-list">
-      <section className="tdh-list-hero">
-        <div className="tdh-list-hero-bg" aria-hidden>
-          <div className="blob-v" />
-          <div className="blob-y" />
-          <div className="blob-m" />
-        </div>
-        <div className="tdh-list-hero-inner">
-          <div className="tdh-list-kicker">
-            Hướng nghiệp
-            <span className="tdh-list-kicker-divider" aria-hidden />
-            <span className="tdh-list-kicker-code">trường đào tạo</span>
-          </div>
-          <h1 className="tdh-list-title">
-            Trường <em>đào tạo</em>
-          </h1>
-          <p className="tdh-list-lead">
-            Danh sách trường đại học và cơ sở đào tạo ngành sáng tạo tại Việt Nam —
-            so sánh chương trình, mã trường và ngành đang tuyển trên CINs.
-          </p>
-        </div>
-      </section>
-
-      <div className="tdh-list-stats">
-        <div className="tdh-list-stats-grid">
-          <div className="tdh-list-stat">
-            <div className="tdh-list-stat-label">Trường đại học</div>
-            <div className="tdh-list-stat-value">
-              {dhCount || schools.length}
-              <span className="unit">trường</span>
-            </div>
-          </div>
-          <div className="tdh-list-stat">
-            <div className="tdh-list-stat-label">Cơ sở đào tạo</div>
-            <div className="tdh-list-stat-value">
-              {csdtCount}
-              <span className="unit">cơ sở</span>
-            </div>
-          </div>
-          <div className="tdh-list-stat">
-            <div className="tdh-list-stat-label">Chương trình tuyển</div>
-            <div className="tdh-list-stat-value">
-              {programCount}
-              <span className="unit">ngành</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <div className="tdh-list-toolbar">
         <div className="tdh-list-toolbar-inner">
           <div

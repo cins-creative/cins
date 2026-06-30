@@ -33,6 +33,7 @@ export function TruongSchoolCard({ school, index }: Props) {
       tags={tags}
       foot={buildTruongUniversityCardFoot(school.nganhCount)}
       dataType={school.loai_truong ?? ""}
+      variant="listing"
     />
   );
 }

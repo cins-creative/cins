@@ -207,6 +207,7 @@ export function OrgBaiDangJourneyCard({ post, owner = null }: Props) {
 
   return (
     <article
+      id={`org-post-${post.id}`}
       className={`j-milestone j-self org-baidang-milestone${expanded || showTextPanelUnfold ? " is-card-expanded" : ""}${showScheduledUi ? " is-scheduled" : ""}`}
       data-year={year ?? undefined}
       data-month={month ?? undefined}

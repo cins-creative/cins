@@ -1,12 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { OrgBaiDangCreateComposer } from "@/components/truong/OrgBaiDangCreateComposer";
+import { OrgBaiDangGridView } from "@/components/truong/OrgBaiDangGridView";
 import { OrgBaiDangJourneyCard } from "@/components/truong/OrgBaiDangJourneyCard";
 import { OrgBaiDangScheduledQueue } from "@/components/truong/OrgBaiDangScheduledQueue";
 import { OrgBaiDangTimelineBar } from "@/components/truong/OrgBaiDangTimelineBar";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
+import type { OrgBaiDangView } from "@/lib/truong/bai-dang-grid";
 import {
   baiDangMonthLabel,
   baiDangYear,
@@ -35,6 +37,24 @@ export function OrgBaiDangJourneyTimeline({ posts: postsProp }: Props) {
   );
   const canEdit = Boolean(ctx?.isEditing);
   const [filterKey, setFilterKey] = useState<OrgBaiDangTimelineFilterKey>("all");
+  const [view, setView] = useState<OrgBaiDangView>("timeline");
+  const [pendingScrollId, setPendingScrollId] = useState<string | null>(null);
+
+  function openPostInTimeline(postId: string) {
+    setView("timeline");
+    setPendingScrollId(postId);
+  }
+
+  useEffect(() => {
+    if (view !== "timeline" || !pendingScrollId) return;
+    const el = document.getElementById(`org-post-${pendingScrollId}`);
+    setPendingScrollId(null);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+    el.classList.add("is-flash");
+    const t = setTimeout(() => el.classList.remove("is-flash"), 1600);
+    return () => clearTimeout(t);
+  }, [view, pendingScrollId]);
 
   const customSlugs = useMemo(
     () => filterCtx?.filters.map((f) => f.slug) ?? [],
@@ -113,18 +133,28 @@ export function OrgBaiDangJourneyTimeline({ posts: postsProp }: Props) {
         loaiCounts={loaiCounts}
         nhanCounts={nhanCounts}
         enabled={posts.length > 0}
+        view={view}
+        onView={setView}
       />
-      {canEdit ? <OrgBaiDangCreateComposer /> : null}
-      {filtered.length === 0 ? (
-        <p className="tdh-placeholder">Không có bài đăng thuộc nhóm lọc này.</p>
+      {view === "grid" ? (
+        <OrgBaiDangGridView posts={filtered} onOpenPost={openPostInTimeline} />
       ) : (
-        yearGroups.map(({ year, posts: yearPosts }) => (
-          <section key={year} className="j-year-block" data-year={year}>
-            {yearPosts.map((post) => (
-              <OrgBaiDangJourneyCard key={post.id} post={post} />
-            ))}
-          </section>
-        ))
+        <>
+          {canEdit ? <OrgBaiDangCreateComposer /> : null}
+          {filtered.length === 0 ? (
+            <p className="tdh-placeholder">
+              Không có bài đăng thuộc nhóm lọc này.
+            </p>
+          ) : (
+            yearGroups.map(({ year, posts: yearPosts }) => (
+              <section key={year} className="j-year-block" data-year={year}>
+                {yearPosts.map((post) => (
+                  <OrgBaiDangJourneyCard key={post.id} post={post} />
+                ))}
+              </section>
+            ))
+          )}
+        </>
       )}
     </main>
   );

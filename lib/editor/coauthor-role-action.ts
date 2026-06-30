@@ -30,12 +30,21 @@ function rowToOption(row: NgheRoleRow): CoAuthorNgheRoleOption {
     row.tieu_de?.trim() ||
     "Không tiêu đề";
   const roleShort = extractNgheRoleShort(tieuDe);
+  const engShort = row.tieu_de_eng?.trim()
+    ? extractNgheRoleShort(row.tieu_de_eng)
+    : null;
+  // Chỉ giữ tên tiếng Anh khi khác tên đang hiển thị.
+  const roleEng =
+    engShort && engShort.toLowerCase() !== roleShort.toLowerCase()
+      ? engShort
+      : null;
   const linhVucTen = parseLinhVucTen(row.linh_vuc);
 
   return {
     slug: row.slug,
     tieuDe,
     roleShort,
+    roleEng,
     linhVucTen,
     roleLabel: formatNgheRoleLabel(linhVucTen, roleShort),
   };
