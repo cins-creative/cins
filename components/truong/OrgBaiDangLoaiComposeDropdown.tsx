@@ -4,8 +4,10 @@ import {
   Award,
   CalendarDays,
   Check,
+  FileText,
   GraduationCap,
   Megaphone,
+  Package,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -22,28 +24,35 @@ import {
   collectScrollResizeTargets,
   computeFixedMenuPosition,
 } from "@/lib/ui/clamp-fixed-menu-position";
+import { loaiBaiDangCssClass } from "@/lib/truong/bai-dang";
 import {
-  BAI_DANG_LOAI_LABELS,
-  BAI_DANG_LOAI_VALUES,
-  loaiBaiDangCssClass,
-  type BaiDangLoai,
-} from "@/lib/truong/bai-dang";
+  SCHOOL_LOAI_CONFIG,
+  loaiOptionLabel,
+  type OrgBaiDangLoaiOption,
+} from "@/lib/truong/org-bai-dang-loai-options";
 
-const LOAI_ICON: Record<BaiDangLoai, LucideIcon> = {
+const LOAI_ICON_BY_VALUE: Record<string, LucideIcon> = {
   thong_bao: Megaphone,
   tuyen_sinh: GraduationCap,
   hoc_bong: Award,
   su_kien: CalendarDays,
-  khac: Megaphone,
+  khac: FileText,
+  showcase: Package,
 };
+
+function loaiIcon(value: string): LucideIcon {
+  return LOAI_ICON_BY_VALUE[value] ?? Megaphone;
+}
 
 const LOAI_MENU_W = 232;
 const LOAI_MENU_EST_H = 220;
 const LOAI_MENU_Z = 9600;
 
 type Props = {
-  value: BaiDangLoai;
-  onChange: (loai: BaiDangLoai) => void;
+  value: string;
+  onChange: (loai: string) => void;
+  /** Danh sách loại — mặc định 5 loại trường/cơ sở. */
+  options?: OrgBaiDangLoaiOption[];
   disabled?: boolean;
   menuZIndex?: number;
 };
@@ -51,6 +60,7 @@ type Props = {
 export function OrgBaiDangLoaiComposeDropdown({
   value,
   onChange,
+  options = SCHOOL_LOAI_CONFIG.options,
   disabled = false,
   menuZIndex = LOAI_MENU_Z,
 }: Props) {
@@ -64,12 +74,12 @@ export function OrgBaiDangLoaiComposeDropdown({
     left: number;
   } | null>(null);
 
-  const ActiveIcon = LOAI_ICON[value];
+  const ActiveIcon = loaiIcon(value);
   const lc = loaiBaiDangCssClass(value);
 
   const currentLabel = useMemo(
-    () => BAI_DANG_LOAI_LABELS[value],
-    [value],
+    () => loaiOptionLabel({ ...SCHOOL_LOAI_CONFIG, options }, value),
+    [options, value],
   );
 
   useEffect(() => {
@@ -133,7 +143,7 @@ export function OrgBaiDangLoaiComposeDropdown({
     };
   }, [open]);
 
-  const pick = (loai: BaiDangLoai) => {
+  const pick = (loai: string) => {
     onChange(loai);
     setOpen(false);
   };
@@ -156,24 +166,24 @@ export function OrgBaiDangLoaiComposeDropdown({
               }}
               onMouseDown={(e) => e.stopPropagation()}
             >
-              {BAI_DANG_LOAI_VALUES.map((loai) => {
-                const active = value === loai;
-                const Icon = LOAI_ICON[loai];
-                const itemLc = loaiBaiDangCssClass(loai);
+              {options.map((option) => {
+                const active = value === option.value;
+                const Icon = loaiIcon(option.value);
+                const itemLc = loaiBaiDangCssClass(option.value);
                 return (
                   <button
-                    key={loai}
+                    key={option.value}
                     type="button"
                     role="option"
                     aria-selected={active}
                     className={`org-compose-loai-opt org-compose-loai-opt--${itemLc}${active ? " is-active" : ""}`}
-                    onClick={() => pick(loai)}
+                    onClick={() => pick(option.value)}
                   >
                     <span className="org-compose-loai-opt-ico" aria-hidden>
                       <Icon size={15} strokeWidth={2} />
                     </span>
                     <span className="org-compose-loai-opt-label">
-                      {BAI_DANG_LOAI_LABELS[loai]}
+                      {option.label}
                     </span>
                     {active ? (
                       <Check size={15} strokeWidth={2.2} aria-hidden />

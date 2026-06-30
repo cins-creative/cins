@@ -165,7 +165,7 @@ export function JourneyFollowButton({
             : sendFriendRequest
         }
       >
-        <Icon size={15} strokeWidth={2} aria-hidden />
+        <Icon size={17} strokeWidth={2} aria-hidden />
         {compact ? null : <span className="j-friend-btn-label">{label}</span>}
       </button>
       {(quanHe === "pending_received" ||

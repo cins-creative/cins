@@ -90,7 +90,7 @@ export function canManageCommunityContent(
 export function canManageCommunity(
   vaiTro: CongDongVaiTro | null | undefined,
 ): boolean {
-  return vaiTro === "admin";
+  return vaiTro === "owner" || vaiTro === "admin";
 }
 
 export function canManageLabels(

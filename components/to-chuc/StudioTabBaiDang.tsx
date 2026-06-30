@@ -6,7 +6,9 @@ import { CoSoOrgBaiDangTimeline } from "@/components/co-so/CoSoOrgBaiDangTimelin
 import { JourneyComposeProvider } from "@/components/journey/JourneyComposeContext";
 import { TruongBaiDangEditProvider } from "@/components/truong/inline/TruongBaiDangEdit";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
+import { OrgBaiDangLoaiConfigProvider } from "@/components/truong/OrgBaiDangLoaiConfigContext";
 import { isTruongBaiDangScheduled } from "@/lib/truong/org-bai-dang-schedule";
+import { STUDIO_LOAI_CONFIG } from "@/lib/truong/org-bai-dang-loai-options";
 import type { TruongBaiDang, TruongListItem } from "@/lib/truong/types";
 import { STUDIO_SHOWCASE_LOAI } from "@/lib/to-chuc/studio-page-config";
 
@@ -119,28 +121,37 @@ export function StudioTabBaiDang({
   );
 
   if (!ctx?.isEditing) {
-    return content;
+    return (
+      <OrgBaiDangLoaiConfigProvider config={STUDIO_LOAI_CONFIG}>
+        {content}
+      </OrgBaiDangLoaiConfigProvider>
+    );
   }
 
   const { school, orgId } = ctx;
 
   return (
-    <JourneyComposeProvider
-      ownerId={orgId}
-      ownerSlug={school.slug}
-      ownerName={school.ten}
-      ownerAvatarId={school.avatar_id ?? school.logo_id}
-      isOwner
-      orgBaiDangCompose={{
-        orgId,
-        onPostPublished,
-        onPostUpdated,
-        ...(variant === "showcase"
-          ? { forceLoaiBaiDang: STUDIO_SHOWCASE_LOAI }
-          : {}),
-      }}
-    >
-      {content}
-    </JourneyComposeProvider>
+    <OrgBaiDangLoaiConfigProvider config={STUDIO_LOAI_CONFIG}>
+      <JourneyComposeProvider
+        ownerId={orgId}
+        ownerSlug={school.slug}
+        ownerName={school.ten}
+        ownerAvatarId={school.avatar_id ?? school.logo_id}
+        isOwner
+        orgBaiDangCompose={{
+          orgId,
+          onPostPublished,
+          onPostUpdated,
+          ...(variant === "showcase"
+            ? { forceLoaiBaiDang: STUDIO_SHOWCASE_LOAI }
+            : {
+                loaiOptions: STUDIO_LOAI_CONFIG.options,
+                defaultLoaiBaiDang: STUDIO_LOAI_CONFIG.defaultValue,
+              }),
+        }}
+      >
+        {content}
+      </JourneyComposeProvider>
+    </OrgBaiDangLoaiConfigProvider>
   );
 }

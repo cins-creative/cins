@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import { ArticleJsonLd } from "@/components/article/ArticleJsonLd";
 import { InlineArticleDraftBar } from "@/components/article/InlineArticleDraftBar";
 import {
@@ -14,7 +12,6 @@ import { NgheLeadRich } from "@/components/article/nghe/NgheLeadRich";
 import { NgheSidebarTabs } from "@/components/article/nghe/NgheSidebarTabs";
 import { TacPhamSection } from "@/components/article/TacPhamSection";
 import { resolveHubArticleImages } from "@/lib/bai-viet/thumbnail";
-import { buildBaiVietHubUrl } from "@/lib/bai-viet/hub-loai";
 import { buildArticleLeadSource } from "@/lib/articles/article-lead-source";
 import { articlePublicHref } from "@/lib/articles/article-href";
 import { fetchRecentTacPhamGallery } from "@/lib/articles/queries";
@@ -95,11 +92,7 @@ export async function KeywordArticleView({
         <main className="article-main">
           <div className="article-grid kw-article-grid">
             <nav className="kw-breadcrumb" aria-label="Breadcrumb">
-              <Link href="/bai-viet">Khám phá</Link>
-              <span aria-hidden>›</span>
-              <Link href={buildBaiVietHubUrl({ loai: "keyword" })}>
-                Keyword
-              </Link>
+              <span>Keyword</span>
               <span aria-hidden>›</span>
               <span>{titleMain}</span>
             </nav>
@@ -137,7 +130,6 @@ export async function KeywordArticleView({
                   <TacPhamSection
                     items={galleryItems}
                     showCommunityFallback={galleryItems.length === 0}
-                    viewAllHref="/bai-viet"
                   />
                   <KeywordRelatedBlogs
                     blogs={[...blogs, ...other]}

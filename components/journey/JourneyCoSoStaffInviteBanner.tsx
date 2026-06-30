@@ -65,6 +65,9 @@ export function JourneyCoSoStaffInviteBanner({ invites }: Props) {
     <div className="j-coauthor-pending-stack j-coso-staff-invite-stack" aria-live="polite">
       {visibleInvites.map((invite) => {
         const error = errors.get(invite.membershipId);
+        const isStudio =
+          invite.loaiToChuc === "studio" || invite.loaiToChuc === "doanh_nghiep";
+        const orgHref = `${isStudio ? "/studio" : "/co-so"}/${invite.orgSlug}`;
         return (
           <div
             key={invite.membershipId}
@@ -77,19 +80,19 @@ export function JourneyCoSoStaffInviteBanner({ invites }: Props) {
                 inviterAvatarUrl={invite.inviterAvatarUrl}
                 orgTen={invite.orgTen}
                 orgSlug={invite.orgSlug}
-                orgHref={`/co-so/${invite.orgSlug}`}
+                orgHref={orgHref}
                 vaiTroLabel={invite.vaiTroLabel}
               />
               <p className="j-coso-staff-invite-hint">
-                Chấp nhận để quyền có hiệu lực trên trang cơ sở.
+                Chấp nhận để quyền có hiệu lực trên trang {isStudio ? "studio" : "cơ sở"}.
               </p>
             </div>
             <div className="j-coauthor-pending-actions">
               <Link
-                href={`/co-so/${invite.orgSlug}`}
+                href={orgHref}
                 className="j-coauthor-pending-btn is-view"
               >
-                Xem cơ sở
+                {isStudio ? "Xem studio" : "Xem cơ sở"}
               </Link>
               <button
                 type="button"

@@ -11,6 +11,8 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Cần đăng nhập." }, { status: 401 });
   }
 
+  const profileId = session.profile.id;
+
   const { searchParams } = new URL(req.url);
   const q = (searchParams.get("q") ?? "").trim().toLowerCase();
   const mutualOnly = searchParams.get("mutual_only") === "true";
@@ -20,11 +22,11 @@ export async function GET(req: Request) {
   if (mutualOnly) {
     // "Bạn bè" (kết bạn accepted) + người mình đang theo dõi.
     const [friends, following] = await Promise.all([
-      listFriends(session.profile.id),
-      listFollowingUserIds(session.profile.id),
+      listFriends(profileId),
+      listFollowingUserIds(profileId),
     ]);
     allowedIds = [...new Set([...friends, ...following])].filter(
-      (id) => id !== session.profile.id,
+      (id) => id !== profileId,
     );
     if (allowedIds.length === 0) {
       return NextResponse.json({ users: [] });
@@ -34,7 +36,7 @@ export async function GET(req: Request) {
   let query = admin
     .from("user_nguoi_dung")
     .select("id, slug, ten_hien_thi, avatar_id")
-    .neq("id", session.profile.id)
+    .neq("id", profileId)
     .limit(20);
 
   if (allowedIds) {

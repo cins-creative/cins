@@ -3,7 +3,7 @@ import type { TruongBaiDang } from "@/lib/truong/types";
 
 /** Cột org_bai_dang trả về từ API inline bài đăng. */
 export const ORG_BAI_DANG_API_SELECT =
-  "id, loai_bai_dang, tieu_de, tom_tat, noi_dung, noi_dung_blocks, cover_id, tao_luc, trang_thai";
+  "id, loai_bai_dang, tieu_de, tom_tat, noi_dung, noi_dung_blocks, cover_id, tao_luc, trang_thai, ghim";
 
 type BaiDangDbRow = {
   id?: string;
@@ -15,6 +15,7 @@ type BaiDangDbRow = {
   cover_id?: string | null;
   tao_luc?: string | null;
   trang_thai?: string | null;
+  ghim?: boolean | null;
 };
 
 /** Chuẩn hóa row Supabase → `TruongBaiDang` (camelCase + parse blocks). */
@@ -32,6 +33,7 @@ export function mapOrgBaiDangApiRow(
     cover_id: row.cover_id?.trim() || null,
     tao_luc: row.tao_luc ?? null,
     trang_thai: row.trang_thai ?? null,
+    ghim: row.ghim ?? false,
     tags: extras?.tags ?? [],
     cover_src: extras?.cover_src ?? null,
   };

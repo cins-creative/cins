@@ -55,7 +55,6 @@ export function JourneyProfileGuestActions({
         <JourneyUserFollowButton
           targetUserId={targetUserId}
           viewerProfileId={viewerProfileId}
-          compact
         />
         <JourneyFollowButton
           targetUserId={targetUserId}
@@ -63,7 +62,6 @@ export function JourneyProfileGuestActions({
           status={ketBan.status}
           ready={ketBan.ready}
           refreshStatus={ketBan.refresh}
-          compact
         />
         <button
           type="button"
@@ -72,7 +70,8 @@ export function JourneyProfileGuestActions({
           disabled
           aria-label="Chia sẻ"
         >
-          <Share2 size={15} strokeWidth={2} aria-hidden />
+          <Share2 size={17} strokeWidth={2} aria-hidden />
+          <span className="j-act-btn-cap">Chia sẻ</span>
         </button>
       </div>
     </div>

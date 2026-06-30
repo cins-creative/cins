@@ -1,6 +1,5 @@
 import "server-only";
 
-import { getCinsSystemUserId } from "@/lib/cong-dong/cins-system";
 import {
   isOrgSlugTaken,
   slugifyOrgName,
@@ -116,16 +115,6 @@ export async function createCoSoDaoTaoOrg(
     };
   }
 
-  let cinsOwnerId: string;
-  try {
-    cinsOwnerId = getCinsSystemUserId();
-  } catch (e) {
-    return {
-      ok: false,
-      error: e instanceof Error ? e.message : "Thiếu CINS_SYSTEM_USER_ID.",
-    };
-  }
-
   const tenChinhThuc = input.tenChinhThuc?.trim() || ten;
   const admin = createServiceRoleClient();
 
@@ -182,24 +171,16 @@ export async function createCoSoDaoTaoOrg(
     return { ok: false, error: extError.message };
   }
 
+  // Người tạo = owner (quyền tối đa). CINs admin truy cập qua quyền hệ thống,
+  // không cần thêm tài khoản hệ thống vào org.
   const { error: ownerError } = await admin.from("user_thanh_vien_to_chuc").insert({
     id_to_chuc: org.id,
-    id_nguoi_dung: cinsOwnerId,
+    id_nguoi_dung: creatorId,
     vai_tro: "owner",
   });
   if (ownerError) {
     await rollbackAll();
     return { ok: false, error: ownerError.message };
-  }
-
-  const { error: adminMemberError } = await admin.from("user_thanh_vien_to_chuc").insert({
-    id_to_chuc: org.id,
-    id_nguoi_dung: creatorId,
-    vai_tro: "admin",
-  });
-  if (adminMemberError) {
-    await rollbackAll();
-    return { ok: false, error: adminMemberError.message };
   }
 
   const seed = await seedDefaultCoSoFilters(org.id);

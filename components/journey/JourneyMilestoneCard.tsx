@@ -14,6 +14,7 @@ import {
   Eye,
   Lock,
   MessageCircle,
+  Palette,
   Star,
   Tag,
   Trophy,
@@ -54,6 +55,10 @@ import {
   trackSuKien,
   useImpressionTracker,
 } from "@/lib/social/track-su-kien";
+import type {
+  LoaiDoiTuongSuKien,
+  NguonSuKien,
+} from "@/lib/social/su-kien-constants";
 import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import type {
   CoAuthorCredit,
@@ -102,6 +107,12 @@ type Props = {
   authorName?: string | null;
   /** Trang entity — mỗi card từ tác giả khác nhau, luôn hiện người đăng. */
   entityLens?: boolean;
+  /**
+   * Nguồn bề mặt cho analytics (tách "ngoài / trong trang tổ chức"). Mặc định
+   * suy từ `entityLens`, nhưng feed world-journey nên truyền "journey_home"
+   * (vì cũng dùng layout entityLens nhưng KHÔNG phải trang tổ chức).
+   */
+  analyticsNguon?: NguonSuKien;
   /** Mở rộng inline — chỉ bài viết (nội dung / bình luận tách riêng). */
   inlineExpand?: {
     showContent: boolean;
@@ -236,6 +247,15 @@ function CoSoTypeBadge() {
   );
 }
 
+function StudioTypeBadge() {
+  return (
+    <span className="ctx-badge j-type-studio">
+      <Palette size={11} strokeWidth={1.8} aria-hidden />
+      Studio
+    </span>
+  );
+}
+
 function congDongInlineContext(
   org?: MilestoneItem["congDongOrg"] | null,
   postTitle?: string | null,
@@ -284,6 +304,7 @@ export function JourneyMilestoneCard({
   authorAvatarUrl,
   authorName,
   entityLens = false,
+  analyticsNguon,
   inlineExpand,
   feedCompactMedia = false,
   readMoreHref = null,
@@ -381,6 +402,30 @@ export function JourneyMilestoneCard({
           "j-tagged",
           "j-verified",
           "j-co-so-create",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+        displayDate={displayDate}
+        title={title}
+        body={body}
+        attribution={attribution}
+        orgHref={orgHref}
+        milestoneId={cotMocId ?? milestone.id}
+        year={year}
+        month={month}
+        day={day}
+      />
+    );
+  }
+
+  if (cardLayout === "studio-create") {
+    return (
+      <StudioCreateMilestoneCard
+        milestoneCls={[
+          "j-milestone",
+          "j-tagged",
+          "j-verified",
+          "j-studio-create",
         ]
           .filter(Boolean)
           .join(" ")}
@@ -592,27 +637,45 @@ export function JourneyMilestoneCard({
   const authorsInUnfold = pinActionsAboveComments && showAuthorsStrip;
   const milestoneId = cotMocId ?? milestone.id;
   const orgAttachCotMocId = cotMocId ?? milestone.id;
+  /* Đối tượng analytics: bài đăng tổ chức (`org_bai_dang`, vd. feed world) tính
+     riêng theo `org_bai_dang`; còn lại là cột mốc thường. `cotMocId` của org
+     post chính là `org_bai_dang.id` (xem worldJourneyOrgFeed). */
+  const trackLoaiDoiTuong: LoaiDoiTuongSuKien = orgBaiDangRef
+    ? "org_bai_dang"
+    : "cot_moc";
+  const trackIdDoiTuong = orgBaiDangRef?.postId ?? milestoneId;
   const [liveCommentCount, setLiveCommentCount] = useState(comments ?? 0);
 
   /* Analytics tiếp cận/tương tác — KHÔNG đo nội dung của chính mình. */
   const articleRef = useRef<HTMLElement | null>(null);
+  /* Nguồn bề mặt — ưu tiên prop tường minh; fallback theo entityLens. */
+  const nguonSuKien: NguonSuKien =
+    analyticsNguon ?? (entityLens ? "entity_lens" : "journey_home");
   const [insightsOpen, setInsightsOpen] = useState(false);
+  /* "Nội dung của mình" → KHÔNG tự đếm. Với BOOKMARK, chủ journey là NGƯỜI LƯU
+     (không phải tác giả) nên lượt xem của họ + mọi người khác vẫn tính cho bài
+     gốc (`cotMocId`); chỉ loại trừ đúng TÁC GIẢ GỐC (`postOwnerId`). */
   const trackOwnContent =
-    isOwner ||
-    (Boolean(viewerProfileId) &&
-      (viewerProfileId === postOwnerId || viewerProfileId === ownerProfileId));
-  /* Nút "Số liệu" — chỉ bài do chính mình đăng (self/verified); org enforce thêm ở server. */
+    variant === "bookmark"
+      ? Boolean(viewerProfileId) && viewerProfileId === postOwnerId
+      : isOwner ||
+        (Boolean(viewerProfileId) &&
+          (viewerProfileId === postOwnerId || viewerProfileId === ownerProfileId));
+  /* Nút "Số liệu" — bài của mình (self/verified) hoặc bài mình được gắn thẻ
+     (tagged → số liệu chung). Bookmark loại ngoài. Quyền cụ thể enforce ở server. */
   const canSeeInsights =
-    isOwner && Boolean(cotMocId) && (variant === "self" || variant === "verified");
+    isOwner &&
+    Boolean(cotMocId) &&
+    (variant === "self" || variant === "verified" || variant === "tagged");
   const onOpenInsights = canSeeInsights
     ? () => setInsightsOpen(true)
     : undefined;
   useImpressionTracker(
     articleRef,
     {
-      loaiDoiTuong: "cot_moc",
-      idDoiTuong: milestoneId,
-      nguon: entityLens ? "entity_lens" : "journey_home",
+      loaiDoiTuong: trackLoaiDoiTuong,
+      idDoiTuong: trackIdDoiTuong,
+      nguon: nguonSuKien,
     },
     !trackOwnContent,
   );
@@ -733,9 +796,9 @@ export function JourneyMilestoneCard({
     if (trackOwnContent) return;
     trackSuKien({
       loai_su_kien: "mo_card",
-      loai_doi_tuong: "cot_moc",
-      id_doi_tuong: milestoneId,
-      nguon: entityLens ? "entity_lens" : "journey_home",
+      loai_doi_tuong: trackLoaiDoiTuong,
+      id_doi_tuong: trackIdDoiTuong,
+      nguon: nguonSuKien,
     });
   }
 
@@ -743,9 +806,9 @@ export function JourneyMilestoneCard({
     if (trackOwnContent) return;
     trackSuKien({
       loai_su_kien: "xem_binh_luan",
-      loai_doi_tuong: "cot_moc",
-      id_doi_tuong: milestoneId,
-      nguon: entityLens ? "entity_lens" : "journey_home",
+      loai_doi_tuong: trackLoaiDoiTuong,
+      id_doi_tuong: trackIdDoiTuong,
+      nguon: nguonSuKien,
     });
   }
 
@@ -1204,7 +1267,7 @@ export function JourneyMilestoneCard({
                       ? null
                       : {
                           idBoiCanh: milestoneId,
-                          nguon: entityLens ? "entity_lens" : "journey_home",
+                          nguon: nguonSuKien,
                         }
                   }
                 >
@@ -1502,7 +1565,7 @@ export function JourneyMilestoneCard({
                     ? null
                     : {
                         idBoiCanh: milestoneId,
-                        nguon: entityLens ? "entity_lens" : "journey_home",
+                        nguon: nguonSuKien,
                       }
                 }
               >
@@ -2205,6 +2268,91 @@ function CoSoCreateMilestoneCard({
             {href ? (
               <Link href={href} className="jcs-cta" prefetch={false}>
                 Xem cơ sở đào tạo
+              </Link>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function StudioCreateMilestoneCard({
+  milestoneCls,
+  displayDate,
+  title,
+  body,
+  attribution,
+  orgHref,
+  milestoneId,
+  year,
+  month,
+  day,
+}: {
+  milestoneCls: string;
+  displayDate: string;
+  title: string;
+  body?: string | null;
+  attribution?: MilestoneAttribution | null;
+  orgHref?: string | null;
+  milestoneId: string;
+  year: number;
+  month: number;
+  day: number;
+}) {
+  const orgName = attribution?.name ?? title.replace(/^Tạo studio\s+/i, "");
+  const avatarUrl = attribution?.avatarUrl ?? null;
+  const coverUrl = attribution?.coverUrl ?? null;
+  const href = orgHref ?? attribution?.href ?? null;
+  const initial = (attribution?.initial || orgName.charAt(0) || "?").toUpperCase();
+
+  return (
+    <article
+      className={milestoneCls}
+      data-mid={milestoneId}
+      data-content-kind="studio"
+      data-year={year}
+      data-month={month}
+      data-group="studio"
+    >
+      <div className="j-m-body-wrap">
+        <div className="j-m-card jcard jcard--studio">
+          <div className={`jcs-hero${coverUrl ? " has-cover-img" : ""}`}>
+            <div
+              className={`jcs-cover${coverUrl ? " has-img" : ""}`}
+              aria-hidden
+            >
+              {coverUrl ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img src={coverUrl} alt="" />
+              ) : null}
+            </div>
+            <div className="jcs-topbar">
+              <StudioTypeBadge />
+            </div>
+          </div>
+
+          <div className="jcs-body">
+            <div className="jcs-logo-wrap" aria-hidden>
+              {avatarUrl ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img src={avatarUrl} alt="" className="jcs-logo" />
+              ) : (
+                <span className="jcs-logo jcs-logo--fallback">{initial}</span>
+              )}
+            </div>
+            <p className="jcs-kicker">Người tạo studio</p>
+            <time
+              className="jcs-date"
+              dateTime={`${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`}
+            >
+              {displayDate}
+            </time>
+            <h2 className="jcs-title">{orgName}</h2>
+            {body ? <p className="jcs-desc">{body}</p> : null}
+            {href ? (
+              <Link href={href} className="jcs-cta" prefetch={false}>
+                Xem studio
               </Link>
             ) : null}
           </div>

@@ -425,6 +425,7 @@ export async function fetchBaiDang(
       noi_dung_blocks,
       cover_id,
       tao_luc,
+      ghim,
       org_bai_dang_tag (
         article_bai_viet ( tieu_de_viet, tieu_de, slug )
       )
@@ -433,6 +434,7 @@ export async function fetchBaiDang(
     .eq("id_to_chuc", orgId)
     .eq("trang_thai", "da_dang")
     .lte("tao_luc", nowIso)
+    .order("ghim", { ascending: false })
     .order("tao_luc", { ascending: false })
     .limit(limit);
 
@@ -447,6 +449,7 @@ export async function fetchBaiDang(
       noi_dung_blocks?: unknown;
       cover_id?: string | null;
       tao_luc?: string | null;
+      ghim?: boolean | null;
       org_bai_dang_tag?: {
         article_bai_viet?: {
           tieu_de_viet?: string | null;
@@ -477,6 +480,7 @@ export async function fetchBaiDang(
       cover_src: null,
       tao_luc: r.tao_luc ?? null,
       trang_thai: "da_dang",
+      ghim: Boolean(r.ghim),
       tags,
     });
   }

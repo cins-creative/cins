@@ -8,7 +8,9 @@ import {
 
 function isOrgCreateGalleryItem(m: MilestoneItem): boolean {
   return (
-    m.cardLayout === "cong-dong-create" || m.cardLayout === "co-so-create"
+    m.cardLayout === "cong-dong-create" ||
+    m.cardLayout === "co-so-create" ||
+    m.cardLayout === "studio-create"
   );
 }
 

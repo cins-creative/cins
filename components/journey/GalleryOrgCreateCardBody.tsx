@@ -1,10 +1,13 @@
-import { BookOpen, Users } from "lucide-react";
+import { BookOpen, Palette, Users } from "lucide-react";
 
 import { FeaturedFlagBadge } from "@/components/journey/FeaturedFlagBadge";
 import type { MilestoneCardLayout } from "@/components/journey/milestone-types";
 
 type Props = {
-  layout: Extract<MilestoneCardLayout, "cong-dong-create" | "co-so-create">;
+  layout: Extract<
+    MilestoneCardLayout,
+    "cong-dong-create" | "co-so-create" | "studio-create"
+  >;
   label: string;
   kicker?: string | null;
   description?: string | null;
@@ -29,7 +32,7 @@ function orgCreateCardDescription(
   if (trimmed === kicker?.trim() || trimmed === formattedKicker) return "";
 
   const cleaned = trimmed
-    .replace(/^Người tạo (cơ sở đào tạo|cộng đồng)\s*[·•]\s*/iu, "")
+    .replace(/^Người tạo (cơ sở đào tạo|cộng đồng|studio)\s*[·•]\s*/iu, "")
     .replace(/\s*trên CINs\.?$/iu, "")
     .trim();
 
@@ -47,6 +50,7 @@ export function GalleryOrgCreateCardBody({
   featured = false,
 }: Props) {
   const isCongDong = layout === "cong-dong-create";
+  const isStudio = layout === "studio-create";
   const initial = (label.trim().charAt(0) || "?").toUpperCase();
   const kickerLabel = kicker ? formatOrgCreateKicker(kicker) : "";
   const desc = orgCreateCardDescription(description, kicker, label);
@@ -56,7 +60,7 @@ export function GalleryOrgCreateCardBody({
       <div
         className={[
           "j-gallery-org-card__hero",
-          isCongDong ? "is-cong-dong" : "is-co-so",
+          isCongDong ? "is-cong-dong" : isStudio ? "is-studio" : "is-co-so",
           coverSrc ? "has-cover" : "",
         ]
           .filter(Boolean)
@@ -72,6 +76,11 @@ export function GalleryOrgCreateCardBody({
             <>
               <Users size={12} strokeWidth={1.9} aria-hidden />
               Cộng đồng
+            </>
+          ) : isStudio ? (
+            <>
+              <Palette size={12} strokeWidth={1.9} aria-hidden />
+              Studio
             </>
           ) : (
             <>

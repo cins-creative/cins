@@ -5,6 +5,12 @@ export type AdminToChucLoaiFilter =
   | "cong_dong"
   | "studio";
 
+export type AdminToChucNguoiTao = {
+  id: string;
+  ten: string;
+  slug: string | null;
+};
+
 export type AdminToChucListRow = {
   id: string;
   ten: string;
@@ -15,6 +21,7 @@ export type AdminToChucListRow = {
   tinCay: string;
   avatarUrl: string | null;
   journey: string;
+  nguoiTao: AdminToChucNguoiTao | null;
   showVerify?: boolean;
 };
 

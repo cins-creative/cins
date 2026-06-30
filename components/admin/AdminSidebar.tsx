@@ -126,9 +126,11 @@ export function AdminSidebar() {
       <div className="admin-sidebar-panel">
         <div className="sidebar-logo">
           <Link href="/" className="sidebar-logo-link">
-            <span className="sidebar-logo-mark">
-              C<em>.</em>INS
-            </span>
+            <img
+              src="/assets/logo-cins-wide.svg"
+              alt="C.INS"
+              className="sidebar-logo-img"
+            />
             <small>Admin nội bộ</small>
           </Link>
         </div>

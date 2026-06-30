@@ -1,7 +1,6 @@
 import "server-only";
 
 import { slugifyOrgName } from "@/lib/cong-dong/org-slug";
-import { getCurrentUserIsCinsAdmin } from "@/lib/auth/cins-admin-server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { resolveTruongImageSrcSync } from "@/lib/truong/media-url";
 
@@ -81,7 +80,6 @@ export async function canViewerManageKhoaHoc(
   orgId: string,
 ): Promise<boolean> {
   if (!profileId) return false;
-  if (await getCurrentUserIsCinsAdmin()) return true;
   const vaiTro = await getViewerCoSoVaiTro(profileId, orgId);
   return canManageKhoaHoc(vaiTro);
 }

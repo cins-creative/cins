@@ -4,7 +4,6 @@ import {
   isOrgSlugTaken,
   validateOrgSlug,
 } from "@/lib/cong-dong/org-slug";
-import { getCurrentUserIsCinsAdmin } from "@/lib/auth/cins-admin-server";
 import { getViewerCoSoVaiTro } from "@/lib/to-chuc/co-so-membership";
 import {
   canChangeCoSoSlug,
@@ -104,24 +103,16 @@ async function buildViewer(
   orgId: string,
   profileId: string,
 ): Promise<CoSoSettingsViewer> {
-  const [isCinsAdmin, vaiTro] = await Promise.all([
-    getCurrentUserIsCinsAdmin(),
-    getViewerCoSoVaiTro(profileId, orgId),
-  ]);
+  const vaiTro = await getViewerCoSoVaiTro(profileId, orgId);
 
-  const vaiTroLabel =
-    isCinsAdmin && !vaiTro
-      ? "Quản trị CINs"
-      : vaiTro
-        ? coSoVaiTroLabel(vaiTro)
-        : "Quản trị viên";
+  const vaiTroLabel = vaiTro ? coSoVaiTroLabel(vaiTro) : "Quản trị viên";
 
   return {
     vaiTro,
     vaiTroLabel,
-    isCinsAdmin,
+    isCinsAdmin: false,
     canManageMembers: false,
-    canChangeSlug: isCinsAdmin || canChangeCoSoSlug(vaiTro),
+    canChangeSlug: canChangeCoSoSlug(vaiTro),
   };
 }
 

@@ -239,10 +239,13 @@ export function MediaComposeView({
     const first = sortedCongDongFilters[0]?.slug;
     return first ? [first] : [];
   });
-  const [composeLoaiBaiDang, setComposeLoaiBaiDang] = useState<BaiDangLoai>(
+  const [composeLoaiBaiDang, setComposeLoaiBaiDang] = useState<string>(
     () => {
       if (editInitial?.orgBaiDangLoai) {
         return normalizeLoaiBaiDang(editInitial.orgBaiDangLoai);
+      }
+      if (orgBaiDangCompose?.defaultLoaiBaiDang) {
+        return orgBaiDangCompose.defaultLoaiBaiDang;
       }
       return mode === "photo" || mode === "video" ? "su_kien" : "thong_bao";
     },
@@ -966,6 +969,7 @@ export function MediaComposeView({
                   <OrgBaiDangLoaiComposeDropdown
                     value={composeLoaiBaiDang}
                     onChange={setComposeLoaiBaiDang}
+                    options={orgBaiDangCompose.loaiOptions}
                     menuZIndex={9200}
                   />
                 )}

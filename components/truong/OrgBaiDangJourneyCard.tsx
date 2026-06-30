@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ChevronUp } from "lucide-react";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 
 import { JourneyMilestoneCardBodyContent } from "@/components/journey/JourneyMilestoneCardBodyContent";
 import type { MilestoneMediaItem } from "@/components/journey/milestone-types";
@@ -25,6 +25,7 @@ import { OrgBaiDangScheduledBadge } from "@/components/truong/OrgBaiDangSchedule
 import { baiDangUsesBlocks } from "@/lib/truong/bai-dang-blocks";
 import { TruongBaiDangPostActions } from "@/components/truong/inline/TruongBaiDangEdit";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
+import { trackSuKien, useImpressionTracker } from "@/lib/social/track-su-kien";
 import { TruongOrgAvatar } from "@/components/truong/TruongOrgAvatar";
 import { baiDangCoverDisplayUrl, baiDangTimelinePreviewUrl } from "@/lib/truong/bai-dang-cover";
 import {
@@ -87,6 +88,27 @@ export function OrgBaiDangJourneyCard({ post, owner = null }: Props) {
   const isScheduled = isTruongBaiDangScheduled(post);
   const showScheduledUi = ctx?.isEditing && isScheduled;
   const [expanded, setExpanded] = useState(false);
+  const articleRef = useRef<HTMLElement>(null);
+
+  /* Analytics tiếp cận — card này luôn trên TRANG TỔ CHỨC (org/co-so/studio)
+   * → nguồn `org_page` (trong tổ chức). Người CÓ quyền sửa org là "người trong
+   * nhà" → KHÔNG tự đếm lượt tiếp cận của họ (phản-vanity). */
+  const isOrgStaff = Boolean(ctx?.canEdit);
+  useImpressionTracker(
+    articleRef,
+    { loaiDoiTuong: "org_bai_dang", idDoiTuong: post.id, nguon: "org_page" },
+    !isOrgStaff,
+  );
+
+  function trackOpenContent() {
+    if (isOrgStaff) return;
+    trackSuKien({
+      loai_su_kien: "mo_card",
+      loai_doi_tuong: "org_bai_dang",
+      id_doi_tuong: post.id,
+      nguon: "org_page",
+    });
+  }
 
   const usesBlocks = baiDangUsesBlocks(post);
   const blocks = post.noiDungBlocks ?? null;
@@ -173,7 +195,10 @@ export function OrgBaiDangJourneyCard({ post, owner = null }: Props) {
     if (!legacyCardExpand) return;
     const t = e.target as HTMLElement;
     if (t.closest("a, button")) return;
-    setExpanded((v) => !v);
+    setExpanded((v) => {
+      if (!v) trackOpenContent();
+      return !v;
+    });
   }
 
   function onBlocksExpandTrigger(e: React.MouseEvent<HTMLElement>) {
@@ -184,6 +209,7 @@ export function OrgBaiDangJourneyCard({ post, owner = null }: Props) {
     ) {
       return;
     }
+    trackOpenContent();
     setExpanded(true);
   }
 
@@ -192,6 +218,7 @@ export function OrgBaiDangJourneyCard({ post, owner = null }: Props) {
     if (e.key !== "Enter" && e.key !== " ") return;
     if (shouldIgnoreExpandTrigger(e.target as Element)) return;
     e.preventDefault();
+    trackOpenContent();
     setExpanded(true);
   }
 
@@ -207,6 +234,7 @@ export function OrgBaiDangJourneyCard({ post, owner = null }: Props) {
 
   return (
     <article
+      ref={articleRef}
       id={`org-post-${post.id}`}
       className={`j-milestone j-self org-baidang-milestone${expanded || showTextPanelUnfold ? " is-card-expanded" : ""}${showScheduledUi ? " is-scheduled" : ""}`}
       data-year={year ?? undefined}

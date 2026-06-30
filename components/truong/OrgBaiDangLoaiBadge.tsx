@@ -4,44 +4,42 @@ import {
   Award,
   CalendarDays,
   Check,
-  ChevronDown,
+  FileText,
   GraduationCap,
   Megaphone,
+  Package,
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { useOrgBaiDangFilterOptional } from "@/components/truong/OrgBaiDangFilterContext";
+import { useOrgBaiDangLoaiConfig } from "@/components/truong/OrgBaiDangLoaiConfigContext";
 import { useBaiDangActions } from "@/components/truong/inline/TruongBaiDangEdit";
 import { DEFAULT_FILTER_MAU } from "@/lib/filter/constants";
-import {
-  BAI_DANG_LOAI_LABELS,
-  BAI_DANG_LOAI_VALUES,
-  loaiBaiDangCssClass,
-  loaiBaiDangLabel,
-  normalizeLoaiBaiDang,
-  type BaiDangLoai,
-} from "@/lib/truong/bai-dang";
+import { loaiBaiDangCssClass } from "@/lib/truong/bai-dang";
+import { loaiOptionLabel } from "@/lib/truong/org-bai-dang-loai-options";
 import type { TruongBaiDang } from "@/lib/truong/types";
 
-const LOAI_ICON: Record<BaiDangLoai, LucideIcon> = {
+/** Icon theo giá trị enum (gồm cả `showcase` cho studio). */
+const LOAI_ICON_BY_VALUE: Record<string, LucideIcon> = {
   thong_bao: Megaphone,
   tuyen_sinh: GraduationCap,
   hoc_bong: Award,
   su_kien: CalendarDays,
-  khac: Megaphone,
+  khac: FileText,
+  showcase: Package,
 };
+
+function loaiIcon(value: string): LucideIcon {
+  return LOAI_ICON_BY_VALUE[value] ?? Megaphone;
+}
 
 type Props = {
   post: TruongBaiDang;
 };
 
-function badgeClass(lc: string, editable = false): string {
-  return [
-    "org-baidang-loai-badge",
-    `org-baidang-loai-badge--${lc}`,
-    editable ? "org-baidang-loai-badge--editable" : "",
-  ]
+function badgeClass(lc: string): string {
+  return ["org-baidang-loai-badge", `org-baidang-loai-badge--${lc}`]
     .filter(Boolean)
     .join(" ");
 }
@@ -49,13 +47,14 @@ function badgeClass(lc: string, editable = false): string {
 export function OrgBaiDangLoaiBadge({ post }: Props) {
   const actions = useBaiDangActions();
   const filterCtx = useOrgBaiDangFilterOptional();
+  const config = useOrgBaiDangLoaiConfig();
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
 
-  const loai = normalizeLoaiBaiDang(post.loai_bai_dang);
+  const value = config.resolveValue(post.loai_bai_dang);
   const lc = loaiBaiDangCssClass(post.loai_bai_dang);
-  const LoaiIcon = LOAI_ICON[loai];
-  const loaiLabel = loaiBaiDangLabel(post.loai_bai_dang);
+  const LoaiIcon = loaiIcon(value);
+  const loaiLabel = loaiOptionLabel(config, value);
   /** Menu chỉ một lựa chọn — nhãn riêng hoặc loại bài đăng. */
   const activeNhan = post.personalFilters?.[0] ?? null;
   const displayLabel = activeNhan ? activeNhan.ten : loaiLabel;
@@ -99,29 +98,23 @@ export function OrgBaiDangLoaiBadge({ post }: Props) {
     >
       <button
         type="button"
-        className={badgeClass(lc, true)}
+        className="org-baidang-loai-picker-trigger"
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label={`Nhãn bài đăng: ${displayLabel}. Chọn nhãn khác`}
         onClick={() => setOpen((v) => !v)}
       >
-        {badgeContent}
-        <ChevronDown
-          size={14}
-          strokeWidth={2}
-          className="org-baidang-loai-badge-caret"
-          aria-hidden
-        />
+        <span className={badgeClass(lc)}>{badgeContent}</span>
       </button>
       <div className="org-baidang-loai-menu" role="menu">
         <p className="org-baidang-loai-menu-title">Loại bài đăng</p>
-        {BAI_DANG_LOAI_VALUES.map((value) => {
-          const Icon = LOAI_ICON[value];
-          const optLc = loaiBaiDangCssClass(value);
-          const active = !activeNhan && loai === value;
+        {config.options.map((option) => {
+          const Icon = loaiIcon(option.value);
+          const optLc = loaiBaiDangCssClass(option.value);
+          const active = !activeNhan && value === option.value;
           return (
             <button
-              key={value}
+              key={option.value}
               type="button"
               role="menuitemradio"
               aria-checked={active}
@@ -130,14 +123,14 @@ export function OrgBaiDangLoaiBadge({ post }: Props) {
                 setOpen(false);
                 if (activeNhan) {
                   void actions.updatePersonalFilters(post.id, []).then(() => {
-                    if (loai !== value) {
-                      void actions.updateLoaiBaiDang(post.id, value);
+                    if (value !== option.value) {
+                      void actions.updateLoaiBaiDang(post.id, option.value);
                     }
                   });
                   return;
                 }
-                if (loai !== value) {
-                  void actions.updateLoaiBaiDang(post.id, value);
+                if (value !== option.value) {
+                  void actions.updateLoaiBaiDang(post.id, option.value);
                 }
               }}
             >
@@ -148,7 +141,7 @@ export function OrgBaiDangLoaiBadge({ post }: Props) {
                 <Icon size={14} strokeWidth={2} />
               </span>
               <span className="org-baidang-loai-menu-label">
-                {BAI_DANG_LOAI_LABELS[value]}
+                {option.label}
               </span>
               {active ? (
                 <Check

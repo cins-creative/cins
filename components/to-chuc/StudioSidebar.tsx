@@ -8,12 +8,15 @@ import {
   MessageSquare,
   Pencil,
   Phone,
-  Sparkles,
 } from "lucide-react";
 import { useState } from "react";
 
+import { CoSoOrgFollowButton } from "@/components/co-so/CoSoOrgFollowButton";
+import { TruongMessageInbox } from "@/components/truong/TruongMessageInbox";
+import { TruongMilestoneTagNotify } from "@/components/truong/TruongMilestoneTagNotify";
 import { TruongOrgAvatar } from "@/components/truong/TruongOrgAvatar";
 import { TruongOrgCover } from "@/components/truong/TruongOrgCover";
+import { TruongUserChatLauncher } from "@/components/truong/TruongUserChatLauncher";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
 import { labelTinhThanh } from "@/lib/truong/contact";
 import type { StudioOwner } from "@/lib/to-chuc/studio-page-queries";
@@ -21,16 +24,14 @@ import type { StudioOwner } from "@/lib/to-chuc/studio-page-queries";
 type Props = {
   studio: StudioOwner;
   openJobCount: number;
-  showcaseCount?: number;
   /** Bật chỉnh sửa ảnh bìa / logo (chỉ owner). */
   canEditMedia?: boolean;
   /** Mở modal cài đặt trang studio (chỉ owner). */
   onOpenSettings?: () => void;
+  /** Render như tab-panel trong mobile shell. */
+  isMobileShell?: boolean;
+  isMobileShellActive?: boolean;
 };
-
-function studioKindLabel(loai: string): string {
-  return loai === "doanh_nghiep" ? "Doanh nghiệp" : "Studio";
-}
 
 function studioSubtitle(studio: StudioOwner): string | null {
   const moTa = studio.moTa?.trim();
@@ -77,13 +78,17 @@ function StudioAbout({ text }: { text: string }) {
 export function StudioSidebar({
   studio,
   openJobCount,
-  showcaseCount = 0,
   canEditMedia = false,
   onOpenSettings,
+  isMobileShell = false,
+  isMobileShellActive = false,
 }: Props) {
   const ctx = useTruongInlineEdit();
   const editableMedia = canEditMedia && Boolean(ctx?.isEditing);
-  const showSettings = Boolean(onOpenSettings) && Boolean(ctx?.isEditing);
+  const isEditing = Boolean(canEditMedia && ctx?.isEditing);
+  const isOwner = Boolean(canEditMedia && ctx?.canEdit);
+  const showAdminCta = isOwner && isEditing;
+  const showSettings = Boolean(onOpenSettings) && isEditing;
   const displayTen = ctx?.school?.ten ?? studio.ten;
   const displayMoTa = ctx?.school?.mo_ta ?? studio.moTa;
   const displayGioiThieu = ctx?.school?.gioi_thieu_truong ?? studio.gioiThieu;
@@ -140,7 +145,14 @@ export function StudioSidebar({
   }>;
 
   return (
-    <aside className="school-side fade f1 cso-ss-side" aria-label="Thông tin studio">
+    <aside
+      className="school-side fade f1 cso-ss-side"
+      aria-label="Thông tin studio"
+      id={isMobileShell ? "cso-shell-panel-info" : undefined}
+      role={isMobileShell ? "tabpanel" : undefined}
+      aria-labelledby={isMobileShell ? "cso-shell-tab-info" : undefined}
+      hidden={isMobileShell ? !isMobileShellActive : undefined}
+    >
       <div className="cso-ss-card">
         <div className="cso-ss-pad">
           <div className="cso-ss-cover">
@@ -164,32 +176,48 @@ export function StudioSidebar({
             </div>
 
             <div className="cso-ss-identity">
-              <span className="studio-kind-chip">
-                {studioKindLabel(studio.loaiToChuc)}
-              </span>
               <h1 className="cso-ss-name">{displayTen}</h1>
               {subtitle ? <p className="cso-ss-sub">{subtitle}</p> : null}
+              {showSettings ? (
+                <button
+                  type="button"
+                  className="cso-ss-edit-info-btn"
+                  onClick={onOpenSettings}
+                >
+                  <Pencil size={14} strokeWidth={2.2} aria-hidden />
+                  Sửa thông tin studio
+                </button>
+              ) : null}
             </div>
 
-            {showSettings ? (
-              <button
-                type="button"
-                className="cso-ss-edit-info-btn"
-                onClick={onOpenSettings}
-              >
-                <Pencil size={14} strokeWidth={2.2} aria-hidden />
-                Sửa thông tin studio
-              </button>
-            ) : null}
-
-            <div className="cso-ss-primary-action cso-ss-primary-action--dual">
-              <button type="button" className="cso-ss-btn-msg" disabled>
-                <MessageSquare size={17} strokeWidth={2} aria-hidden />
-                Nhắn tin
-              </button>
-              <button type="button" className="cso-ss-btn-follow" disabled>
-                Theo dõi
-              </button>
+            <div
+              className={`cso-ss-primary-action${
+                showAdminCta
+                  ? " cso-ss-primary-action--admin"
+                  : " cso-ss-primary-action--dual"
+              }`}
+            >
+              {showAdminCta ? (
+                <>
+                  <TruongMessageInbox />
+                  <TruongMilestoneTagNotify />
+                </>
+              ) : ctx ? (
+                <>
+                  <TruongUserChatLauncher />
+                  <CoSoOrgFollowButton orgId={studio.id} disabled={isOwner} />
+                </>
+              ) : (
+                <>
+                  <button type="button" className="cso-ss-btn-msg" disabled>
+                    <MessageSquare size={17} strokeWidth={2} aria-hidden />
+                    Nhắn tin
+                  </button>
+                  <button type="button" className="cso-ss-btn-follow" disabled>
+                    Theo dõi
+                  </button>
+                </>
+              )}
             </div>
 
             {contactItems.length > 0 ? (
@@ -234,15 +262,6 @@ export function StudioSidebar({
                   </div>
                   <div className="cso-ss-stat-card-val cso-ss-stat-card-val--text">
                     {openJobCount > 0 ? `${openJobCount} vị trí` : "—"}
-                  </div>
-                </div>
-                <div className="cso-ss-stat-card">
-                  <div className="cso-ss-stat-card-label">
-                    <Sparkles size={12} strokeWidth={2.2} aria-hidden />
-                    Showcase
-                  </div>
-                  <div className="cso-ss-stat-card-val cso-ss-stat-card-val--text">
-                    {showcaseCount > 0 ? `${showcaseCount} dự án` : "—"}
                   </div>
                 </div>
               </div>

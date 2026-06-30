@@ -52,11 +52,12 @@ export default async function LoginPage({
       </div>
 
       <nav className="cins-login-top">
-        <Link href="/" className="cins-login-logo">
-          <span className="cins-login-logo-mark">C</span>
-          <span className="cins-login-logo-text">
-            C<span className="cins-login-logo-dot">.</span>INS
-          </span>
+        <Link href="/" className="cins-login-logo" aria-label="C.INS trang chủ">
+          <img
+            src="/assets/logo-cins-wide.svg"
+            alt="C.INS"
+            className="cins-login-logo-img"
+          />
         </Link>
         <Link href="/" className="cins-login-back">
           ← Về trang chủ

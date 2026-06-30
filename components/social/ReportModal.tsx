@@ -72,7 +72,9 @@ export function ReportModal({
   function addUrl() {
     const v = urlDraft.trim();
     if (!v) return;
-    setEvidence((prev) => [...prev, { loai: "url", value: v }].slice(0, 8));
+    setEvidence((prev) =>
+      [...prev, { loai: "url" as const, value: v }].slice(0, 8),
+    );
     setUrlDraft("");
   }
 
@@ -95,7 +97,7 @@ export function ReportModal({
         return;
       }
       setEvidence((prev) =>
-        [...prev, { loai: "anh", value: json.url! }].slice(0, 8),
+        [...prev, { loai: "anh" as const, value: json.url! }].slice(0, 8),
       );
     } catch {
       setError("Tải ảnh thất bại.");

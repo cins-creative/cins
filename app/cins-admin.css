@@ -63,23 +63,10 @@
   display: block;
 }
 
-.cins-admin .sidebar-logo-link:hover .sidebar-logo-mark {
-  color: var(--cins-blue);
-}
-
-.cins-admin .sidebar-logo-mark {
+.cins-admin .sidebar-logo-img {
   display: block;
-  font-size: var(--text-lg);
-  font-weight: var(--weight-extrabold);
-  color: var(--fg-1);
-  letter-spacing: -0.4px;
-  line-height: 1.1;
-  transition: color 0.15s ease;
-}
-
-.cins-admin .sidebar-logo-mark em {
-  color: var(--cins-blue);
-  font-style: normal;
+  height: 44px;
+  width: auto;
 }
 
 .cins-admin .sidebar-logo small {
@@ -4485,6 +4472,21 @@
   font-weight: 700;
   color: var(--fg-2);
   white-space: nowrap;
+}
+
+.cins-admin .admin-to-chuc-creator {
+  font-size: 13px;
+  color: var(--fg-2);
+  white-space: nowrap;
+}
+
+.cins-admin .admin-to-chuc-creator-link {
+  color: var(--cins-blue, #1f74c9);
+  font-weight: 600;
+}
+
+.cins-admin .admin-to-chuc-creator-link:hover {
+  text-decoration: underline;
 }
 
 .cins-admin .admin-to-chuc-actions {

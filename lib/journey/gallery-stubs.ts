@@ -247,6 +247,12 @@ function resolveOrgCreateCardLayout(
   ) {
     return "co-so-create";
   }
+  if (
+    verified.attribution.orgKind === "studio" &&
+    verified.attribution.role === "Người tạo studio"
+  ) {
+    return "studio-create";
+  }
   return "default";
 }
 
@@ -285,7 +291,7 @@ async function fetchOrgCreateGalleryStubs(
     const attr = verified?.attribution;
     const orgName =
       attr?.name?.trim() ||
-      row.tieu_de?.replace(/^Tạo (cộng đồng|cơ sở đào tạo)\s+/i, "").trim() ||
+      row.tieu_de?.replace(/^Tạo (cộng đồng|cơ sở đào tạo|studio)\s+/i, "").trim() ||
       row.tieu_de?.trim() ||
       "Tổ chức";
 

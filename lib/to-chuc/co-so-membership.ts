@@ -1,6 +1,5 @@
 import "server-only";
 
-import { getCurrentUserIsCinsAdmin } from "@/lib/auth/cins-admin-server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 import {
@@ -38,8 +37,6 @@ export async function isCoSoOrgAdmin(
   orgId: string,
   profileId: string,
 ): Promise<boolean> {
-  if (await getCurrentUserIsCinsAdmin()) return true;
-
   const admin = createServiceRoleClient();
   const { data: org } = await admin
     .from("org_to_chuc")

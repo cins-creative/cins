@@ -4,6 +4,12 @@
   "main": ".open-next/worker.js",
   "compatibility_date": "2026-06-29",
   "compatibility_flags": ["nodejs_compat"],
+  // Giữ workers.dev khi custom domain chưa gắn xong (tránh deploy fail → mất URL test).
+  "workers_dev": true,
+  "routes": [
+    { "pattern": "cins.vn", "custom_domain": true },
+    { "pattern": "www.cins.vn", "custom_domain": true }
+  ],
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"

@@ -66,23 +66,25 @@
 .cins-app-sidebar .sb-brand-mark {
   width: 32px;
   height: 32px;
-  background: var(--cins-blue);
-  border-radius: 9px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
-  font-family: var(--font-anton), Anton, sans-serif;
-  font-size: 17px;
-  letter-spacing: 0.5px;
+  overflow: hidden;
+  transition:
+    width 0.18s var(--app-nav-ease),
+    opacity 0.18s var(--app-nav-ease);
+}
+
+.cins-app-sidebar .sb-brand-mark img {
+  width: 32px;
+  height: 32px;
+  display: block;
 }
 
 .cins-app-sidebar .sb-brand-text {
-  font-weight: 800;
-  font-size: 19px;
-  color: var(--cins-blue);
-  letter-spacing: -0.4px;
+  display: flex;
+  align-items: center;
   white-space: nowrap;
   opacity: 0;
   transform: translateX(-6px);
@@ -90,11 +92,25 @@
   pointer-events: none;
 }
 
+.cins-app-sidebar .sb-brand-text img {
+  height: 40px;
+  width: auto;
+  display: block;
+}
+
 .cins-app-sidebar.sidebar:hover .sb-brand-text,
 .cins-app-sidebar.sidebar:focus-within .sb-brand-text,
 .cins-app-sidebar.sidebar:has(.sb-user.open) .sb-brand-text {
   opacity: 1;
   transform: none;
+}
+
+/* Mở rộng → ẩn icon vuông để tránh trùng icon trong logo ngang. */
+.cins-app-sidebar.sidebar:hover .sb-brand-mark,
+.cins-app-sidebar.sidebar:focus-within .sb-brand-mark,
+.cins-app-sidebar.sidebar:has(.sb-user.open) .sb-brand-mark {
+  width: 0;
+  opacity: 0;
 }
 
 .cins-app-sidebar .sb-list {
@@ -1815,6 +1831,11 @@ a.j-notify-mini-action.is-link:hover {
     opacity: 1;
     transform: none;
     pointer-events: auto;
+  }
+
+  .cins-app-sidebar.sidebar .sb-brand-mark {
+    width: 0;
+    opacity: 0;
   }
 
   .cins-app-topbar .tb-burger {

@@ -89,7 +89,8 @@ function isGalleryPostPermalink(href: string | undefined): href is string {
 function isOrgCreateGalleryItem(item: GalleryMainItem): boolean {
   return (
     item.cardLayout === "cong-dong-create" ||
-    item.cardLayout === "co-so-create"
+    item.cardLayout === "co-so-create" ||
+    item.cardLayout === "studio-create"
   );
 }
 
@@ -103,6 +104,7 @@ function galleryItemClassName(item: {
     item.featured ? "is-featured" : "",
     item.cardLayout === "cong-dong-create" ? "is-org-create is-cong-dong" : "",
     item.cardLayout === "co-so-create" ? "is-org-create is-co-so" : "",
+    item.cardLayout === "studio-create" ? "is-org-create is-studio" : "",
     item.variant === "verified" && !item.cardLayout ? "is-verified" : "",
   ]
     .filter(Boolean)
@@ -487,7 +489,12 @@ export function JourneyGalleryGridView({
                 : `Xem ${item.label}`;
             const body = isOrgCreate ? (
               <GalleryOrgCreateCardBody
-                layout={item.cardLayout as "cong-dong-create" | "co-so-create"}
+                layout={
+                  item.cardLayout as
+                    | "cong-dong-create"
+                    | "co-so-create"
+                    | "studio-create"
+                }
                 label={item.label}
                 kicker={item.orgKicker}
                 description={item.meta}

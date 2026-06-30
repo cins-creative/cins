@@ -75,6 +75,12 @@ function toRow(
 
 /* ── Insight RIÊNG TƯ cho chủ bài ────────────────────────────────────── */
 
+/** Nguồn bề mặt được xem là "trong trang tổ chức" (entity-lens / org page). */
+const NGUON_TRONG_TO_CHUC: ReadonlySet<string> = new Set(["entity_lens", "org_page"]);
+
+export type NguonBreakdownItem = { nguon: string; luot: number; nguoi: number };
+export type GiaiDoanBreakdownItem = { giaiDoan: string; nguoi: number };
+
 export type CotMocInsight = {
   luotTiepCan: number;
   tiepCanUnique: number;
@@ -83,6 +89,13 @@ export type CotMocInsight = {
   luotClickProfile: number;
   luotXemMedia: number;
   luotClickLienKet: number;
+  /** Tách lượt tiếp cận: trong trang tổ chức vs bên ngoài (theo người duy nhất). */
+  tiepCanTrongToChuc: number;
+  tiepCanBenNgoai: number;
+  /** Chi tiết theo từng nguồn (luot = impression, nguoi = người/phiên duy nhất). */
+  nguonBreakdown: NguonBreakdownItem[];
+  /** Phân loại người xem duy nhất theo `giai_doan` (khách → 'khach'). */
+  giaiDoanBreakdown: GiaiDoanBreakdownItem[];
 };
 
 const EMPTY_INSIGHT: CotMocInsight = {
@@ -93,13 +106,22 @@ const EMPTY_INSIGHT: CotMocInsight = {
   luotClickProfile: 0,
   luotXemMedia: 0,
   luotClickLienKet: 0,
+  tiepCanTrongToChuc: 0,
+  tiepCanBenNgoai: 0,
+  nguonBreakdown: [],
+  giaiDoanBreakdown: [],
 };
 
 /**
  * Kiểm tra requester có quyền xem số liệu của 1 cột mốc không.
- *  - Bài cá nhân (không gắn tổ chức): chỉ chủ bài.
- *  - Bài của tổ chức (`id_to_chuc`): chỉ **quản trị viên** tổ chức (vai trò
- *    `owner` / `admin`, thành viên đang active) — không lộ cho thành viên thường.
+ * Bài gắn thẻ = "bài chung của mọi người được gắn" → ai cũng xem được số liệu
+ * chung. Cụ thể, cho phép nếu requester là MỘT trong:
+ *   1. Tác giả gốc (`content_cot_moc.id_nguoi_dung`) — kể cả khi bài đã được
+ *      tổ chức xác thực (`id_to_chuc` set).
+ *   2. Đồng tác giả / người được gắn đã chấp nhận (`content_tac_pham_tac_gia`
+ *      `trang_thai = accepted`) trên tác phẩm liên kết của cột mốc.
+ *   3. Quản trị viên tổ chức (vai trò `owner`/`admin`, active) — chỉ khi bài
+ *      thuộc tổ chức (`id_to_chuc`).
  */
 export async function canViewCotMocInsight(
   cotMocId: string,
@@ -115,6 +137,29 @@ export async function canViewCotMocInsight(
     .maybeSingle<{ id: string; id_nguoi_dung: string; id_to_chuc: string | null }>();
   if (!moc) return false;
 
+  /* (1) Tác giả gốc — ưu tiên, không phụ thuộc tổ chức. */
+  if (moc.id_nguoi_dung === requesterId) return true;
+
+  /* (2) Người được gắn (đồng tác giả accepted) trên tác phẩm của cột mốc. */
+  const { data: links } = await admin
+    .from("content_tac_pham_thuoc_moc")
+    .select("id_tac_pham")
+    .eq("id_cot_moc", cotMocId);
+  const tacPhamIds = (links ?? [])
+    .map((l) => (l as { id_tac_pham: string }).id_tac_pham)
+    .filter(Boolean);
+  if (tacPhamIds.length > 0) {
+    const { data: coAuthor } = await admin
+      .from("content_tac_pham_tac_gia")
+      .select("id_nguoi_dung")
+      .in("id_tac_pham", tacPhamIds)
+      .eq("id_nguoi_dung", requesterId)
+      .eq("trang_thai", "accepted")
+      .maybeSingle<{ id_nguoi_dung: string }>();
+    if (coAuthor) return true;
+  }
+
+  /* (3) Quản trị viên tổ chức sở hữu bài. */
   if (moc.id_to_chuc) {
     const { data: membership } = await admin
       .from("user_thanh_vien_to_chuc")
@@ -124,32 +169,82 @@ export async function canViewCotMocInsight(
       .eq("trang_thai", "active")
       .in("vai_tro", ["owner", "admin"])
       .maybeSingle<{ vai_tro: string }>();
-    return Boolean(membership);
+    if (membership) return true;
   }
 
-  return moc.id_nguoi_dung === requesterId;
+  return false;
 }
 
 /**
- * Đọc số liệu tổng hợp của 1 cột mốc — CHỈ người có quyền (chủ bài cá nhân
- * hoặc quản trị viên tổ chức). Trả null nếu không đủ quyền (phản-vanity).
+ * Đọc số liệu của 1 cột mốc — REAL-TIME từ log thô (qua RPC service role),
+ * gồm tổng chỉ số + tách nguồn (trong tổ chức / bên ngoài) + phân loại người
+ * xem theo `giai_doan`. CHỈ người có quyền (`canViewCotMocInsight`). Trả null
+ * nếu không đủ quyền (phản-vanity).
  */
 export async function getCotMocInsight(
   cotMocId: string,
   requesterId: string | null,
 ): Promise<CotMocInsight | null> {
   if (!(await canViewCotMocInsight(cotMocId, requesterId))) return null;
+  return readSubjectInsight("cot_moc", cotMocId);
+}
+
+/**
+ * Kiểm tra quyền xem số liệu bài đăng tổ chức (`org_bai_dang`).
+ * Chỉ quản trị viên tổ chức (vai trò `owner`/`admin`, active).
+ */
+export async function canViewOrgBaiDangInsight(
+  baiDangId: string,
+  requesterId: string | null,
+): Promise<boolean> {
+  if (!requesterId) return false;
   const admin = createServiceRoleClient();
 
-  const { data: rows } = await admin
-    .from("social_thong_ke_doi_tuong_ngay")
-    .select(
-      "luot_tiep_can, tiep_can_unique, luot_xem_noi_dung, luot_mo_comment, luot_click_profile, luot_xem_media, luot_click_lien_ket",
-    )
-    .eq("loai_doi_tuong", "cot_moc")
-    .eq("id_doi_tuong", cotMocId)
-    .returns<
-      Array<{
+  const { data: post } = await admin
+    .from("org_bai_dang")
+    .select("id, id_to_chuc")
+    .eq("id", baiDangId)
+    .maybeSingle<{ id: string; id_to_chuc: string | null }>();
+  if (!post?.id_to_chuc) return false;
+
+  const { data: membership } = await admin
+    .from("user_thanh_vien_to_chuc")
+    .select("vai_tro")
+    .eq("id_to_chuc", post.id_to_chuc)
+    .eq("id_nguoi_dung", requesterId)
+    .eq("trang_thai", "active")
+    .in("vai_tro", ["owner", "admin"])
+    .maybeSingle<{ vai_tro: string }>();
+  return Boolean(membership);
+}
+
+/**
+ * Đọc số liệu bài đăng tổ chức — REAL-TIME. Chỉ quản trị viên tổ chức.
+ * Trả null nếu không đủ quyền (phản-vanity).
+ */
+export async function getOrgBaiDangInsight(
+  baiDangId: string,
+  requesterId: string | null,
+): Promise<CotMocInsight | null> {
+  if (!(await canViewOrgBaiDangInsight(baiDangId, requesterId))) return null;
+  return readSubjectInsight("org_bai_dang", baiDangId);
+}
+
+/** Đọc tổng hợp số liệu của 1 đối tượng từ log thô (không kiểm tra quyền). */
+async function readSubjectInsight(
+  loai: "cot_moc" | "org_bai_dang",
+  id: string,
+): Promise<CotMocInsight> {
+  const admin = createServiceRoleClient();
+
+  const [totalRes, nguonRes, giaiDoanRes] = await Promise.all([
+    admin.rpc("social_insight_doi_tuong", { p_loai: loai, p_id: id }),
+    admin.rpc("social_insight_nguon", { p_loai: loai, p_id: id }),
+    admin.rpc("social_insight_giai_doan", { p_loai: loai, p_id: id }),
+  ]);
+
+  const total = (Array.isArray(totalRes.data) ? totalRes.data[0] : null) as
+    | {
         luot_tiep_can: number;
         tiep_can_unique: number;
         luot_xem_noi_dung: number;
@@ -157,21 +252,49 @@ export async function getCotMocInsight(
         luot_click_profile: number;
         luot_xem_media: number;
         luot_click_lien_ket: number;
-      }>
-    >();
+      }
+    | null
+    | undefined;
 
-  if (!rows || rows.length === 0) return { ...EMPTY_INSIGHT };
+  const nguonRows = (Array.isArray(nguonRes.data) ? nguonRes.data : []) as Array<{
+    nguon: string;
+    luot: number | string;
+    nguoi: number | string;
+  }>;
+  const giaiDoanRows = (
+    Array.isArray(giaiDoanRes.data) ? giaiDoanRes.data : []
+  ) as Array<{ giai_doan: string; nguoi: number | string }>;
 
-  return rows.reduce<CotMocInsight>(
-    (acc, r) => ({
-      luotTiepCan: acc.luotTiepCan + (r.luot_tiep_can ?? 0),
-      tiepCanUnique: acc.tiepCanUnique + (r.tiep_can_unique ?? 0),
-      luotXemNoiDung: acc.luotXemNoiDung + (r.luot_xem_noi_dung ?? 0),
-      luotMoComment: acc.luotMoComment + (r.luot_mo_comment ?? 0),
-      luotClickProfile: acc.luotClickProfile + (r.luot_click_profile ?? 0),
-      luotXemMedia: acc.luotXemMedia + (r.luot_xem_media ?? 0),
-      luotClickLienKet: acc.luotClickLienKet + (r.luot_click_lien_ket ?? 0),
-    }),
-    { ...EMPTY_INSIGHT },
-  );
+  const nguonBreakdown: NguonBreakdownItem[] = nguonRows
+    .map((r) => ({
+      nguon: r.nguon,
+      luot: Number(r.luot) || 0,
+      nguoi: Number(r.nguoi) || 0,
+    }))
+    .sort((a, b) => b.luot - a.luot);
+
+  let tiepCanTrongToChuc = 0;
+  let tiepCanBenNgoai = 0;
+  for (const r of nguonBreakdown) {
+    if (NGUON_TRONG_TO_CHUC.has(r.nguon)) tiepCanTrongToChuc += r.nguoi;
+    else tiepCanBenNgoai += r.nguoi;
+  }
+
+  const giaiDoanBreakdown: GiaiDoanBreakdownItem[] = giaiDoanRows
+    .map((r) => ({ giaiDoan: r.giai_doan, nguoi: Number(r.nguoi) || 0 }))
+    .sort((a, b) => b.nguoi - a.nguoi);
+
+  return {
+    luotTiepCan: Number(total?.luot_tiep_can) || 0,
+    tiepCanUnique: Number(total?.tiep_can_unique) || 0,
+    luotXemNoiDung: Number(total?.luot_xem_noi_dung) || 0,
+    luotMoComment: Number(total?.luot_mo_comment) || 0,
+    luotClickProfile: Number(total?.luot_click_profile) || 0,
+    luotXemMedia: Number(total?.luot_xem_media) || 0,
+    luotClickLienKet: Number(total?.luot_click_lien_ket) || 0,
+    tiepCanTrongToChuc,
+    tiepCanBenNgoai,
+    nguonBreakdown,
+    giaiDoanBreakdown,
+  };
 }

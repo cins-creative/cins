@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, Search, UserCog, UserPlus, X } from "lucide-react";
+import { Crown, Loader2, Search, UserCog, UserPlus, X } from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -13,6 +13,7 @@ import { createPortal } from "react-dom";
 import { CongDongAuthorMetaLine } from "@/components/cong-dong/CongDongAuthorMetaLine";
 import { CongDongMemberRolePicker } from "@/components/cong-dong/CongDongMemberRolePicker";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
+import { TransferOwnerModal } from "@/components/to-chuc/TransferOwnerModal";
 import {
   type CongDongVaiTro,
 } from "@/lib/cong-dong/vai-tro";
@@ -32,6 +33,9 @@ type Props = {
   open: boolean;
   onClose: () => void;
   orgId: string;
+  orgSlug: string;
+  orgLabel: string;
+  viewerIsOwner: boolean;
 };
 
 function MemberAvatar({
@@ -54,7 +58,14 @@ function MemberAvatar({
   );
 }
 
-export function CongDongMembersModal({ open, onClose, orgId }: Props) {
+export function CongDongMembersModal({
+  open,
+  onClose,
+  orgId,
+  orgSlug,
+  orgLabel,
+  viewerIsOwner,
+}: Props) {
   const titleId = useId();
   const [members, setMembers] = useState<CongDongMemberAdmin[]>([]);
   const [loading, setLoading] = useState(false);
@@ -63,6 +74,10 @@ export function CongDongMembersModal({ open, onClose, orgId }: Props) {
   const [results, setResults] = useState<SearchUser[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [addRole, setAddRole] = useState<CongDongVaiTro>("thanh_vien");
+  const [transferTarget, setTransferTarget] =
+    useState<CongDongMemberAdmin | null>(null);
+  const [transferPending, setTransferPending] = useState(false);
+  const [transferError, setTransferError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   const loadMembers = useCallback(async () => {
@@ -198,6 +213,36 @@ export function CongDongMembersModal({ open, onClose, orgId }: Props) {
       }
       upsertMember(json.member);
     });
+  }
+
+  function onConfirmTransfer(confirmSlug: string) {
+    if (!transferTarget) return;
+    setTransferError(null);
+    setTransferPending(true);
+    void (async () => {
+      try {
+        const res = await fetch(`/api/cong-dong/${orgId}/transfer-owner`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            membershipId: transferTarget.id,
+            confirmSlug,
+          }),
+        });
+        const json = (await res.json().catch(() => null)) as {
+          members?: CongDongMemberAdmin[];
+          error?: string;
+        } | null;
+        if (!res.ok || !json?.members) {
+          setTransferError(json?.error ?? "Không bàn giao được quyền sở hữu.");
+          return;
+        }
+        setMembers(json.members);
+        setTransferTarget(null);
+      } finally {
+        setTransferPending(false);
+      }
+    })();
   }
 
   if (!open || typeof document === "undefined") return null;
@@ -373,13 +418,30 @@ export function CongDongMembersModal({ open, onClose, orgId }: Props) {
                         </JourneyUserPopover>
                       </div>
                       {member.editable ? (
-                        <CongDongMemberRolePicker
-                          compact
-                          value={member.vaiTro}
-                          disabled={pending}
-                          ariaLabel={`Quyền của ${member.tenHienThi}`}
-                          onChange={(vaiTro) => onRoleChange(member, vaiTro)}
-                        />
+                        <span className="cd-v4-members-row-actions">
+                          {viewerIsOwner ? (
+                            <button
+                              type="button"
+                              className="cd-v4-members-transfer"
+                              title={`Bàn giao quyền sở hữu cho ${member.tenHienThi}`}
+                              aria-label={`Bàn giao quyền sở hữu cho ${member.tenHienThi}`}
+                              disabled={pending || transferPending}
+                              onClick={() => {
+                                setTransferError(null);
+                                setTransferTarget(member);
+                              }}
+                            >
+                              <Crown size={15} strokeWidth={2} aria-hidden />
+                            </button>
+                          ) : null}
+                          <CongDongMemberRolePicker
+                            compact
+                            value={member.vaiTro}
+                            disabled={pending}
+                            ariaLabel={`Quyền của ${member.tenHienThi}`}
+                            onChange={(vaiTro) => onRoleChange(member, vaiTro)}
+                          />
+                        </span>
                       ) : (
                         <span className="cd-v4-members-role-badge">
                           Chủ sở hữu
@@ -392,6 +454,22 @@ export function CongDongMembersModal({ open, onClose, orgId }: Props) {
             </div>
           </section>
         </div>
+
+        <TransferOwnerModal
+          open={Boolean(transferTarget)}
+          orgSlug={orgSlug}
+          orgLabel={orgLabel}
+          targetName={transferTarget?.tenHienThi ?? ""}
+          pending={transferPending}
+          error={transferError}
+          onConfirm={onConfirmTransfer}
+          onClose={() => {
+            if (!transferPending) {
+              setTransferTarget(null);
+              setTransferError(null);
+            }
+          }}
+        />
       </div>
     </div>,
     document.body,

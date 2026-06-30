@@ -48,7 +48,7 @@ export function BaiVietArticleView({
         <header className="bv-detail-hero">
           <div>
             <nav className="bv-breadcrumb" aria-label="Breadcrumb">
-              <Link href="/bai-viet">Bài viết</Link>
+              <span>Bài viết</span>
               {nhom.bo_phan ? (
                 <>
                   <span className="bv-breadcrumb-sep" aria-hidden>

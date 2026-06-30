@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+import { buildCanonicalHostRedirect } from "@/lib/auth/auth-origin";
 import { getSupabaseCookieOptions } from "@/lib/supabase/cookie-options";
 import {
   getTrimmedSupabaseAnonKey,
@@ -10,7 +11,7 @@ import {
 import { appendSetCookieHeaders } from "@/lib/supabase/route-handler";
 
 /** Đổi thành `false` trước khi deploy production bình thường. */
-const MAINTENANCE_MODE = true;
+const MAINTENANCE_MODE = false;
 
 /**
  * Hostname bị maintenance khi `MAINTENANCE_MODE = true`.
@@ -168,6 +169,11 @@ function redirectToLogin(
 }
 
 export async function middleware(request: NextRequest) {
+  const canonicalHost = buildCanonicalHostRedirect(request.nextUrl);
+  if (canonicalHost) {
+    return NextResponse.redirect(canonicalHost.url, canonicalHost.status);
+  }
+
   const legacyNganh = redirectLegacyNganhHubTab(request);
   if (legacyNganh) return legacyNganh;
   const legacyTruong = redirectLegacyTruongDaiHocPath(request);

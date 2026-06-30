@@ -26,6 +26,7 @@ type DbRow = {
   tinh_thanh: string | null;
   trang_thai_tin_cay: string;
   avatar_id: string | null;
+  nguoi_tao: string | null;
 };
 
 function normalizeLoai(loai: string): Exclude<AdminToChucLoaiFilter, "all"> {
@@ -62,6 +63,7 @@ export function mapRow(row: DbRow): AdminToChucListRow {
     tinCay: row.trang_thai_tin_cay,
     avatarUrl: getAvatarUrl(row.avatar_id),
     journey: "—",
+    nguoiTao: null,
     showVerify,
   };
 }
@@ -90,8 +92,45 @@ function matchesQuery(row: AdminToChucListRow, q: string): boolean {
     row.ten.toLowerCase().includes(needle) ||
     row.slug.toLowerCase().includes(needle) ||
     row.loaiLabel.toLowerCase().includes(needle) ||
-    row.tinhThanh.toLowerCase().includes(needle)
+    row.tinhThanh.toLowerCase().includes(needle) ||
+    (row.nguoiTao?.ten.toLowerCase().includes(needle) ?? false)
   );
+}
+
+/** Gắn thông tin người tạo (tên + slug) vào từng row theo `org_to_chuc.nguoi_tao`. */
+async function attachNguoiTao(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  rows: AdminToChucListRow[],
+  creatorIdByOrg: Map<string, string | null>,
+): Promise<void> {
+  const creatorIds = Array.from(
+    new Set(
+      Array.from(creatorIdByOrg.values()).filter(
+        (id): id is string => Boolean(id),
+      ),
+    ),
+  );
+  if (creatorIds.length === 0) return;
+
+  const { data } = await admin
+    .from("user_nguoi_dung")
+    .select("id, slug, ten_hien_thi")
+    .in("id", creatorIds)
+    .returns<{ id: string; slug: string | null; ten_hien_thi: string | null }[]>();
+
+  const creatorMap = new Map<string, AdminToChucListRow["nguoiTao"]>();
+  for (const u of data ?? []) {
+    creatorMap.set(u.id, {
+      id: u.id,
+      ten: u.ten_hien_thi?.trim() || u.slug || "Người dùng",
+      slug: u.slug,
+    });
+  }
+
+  for (const row of rows) {
+    const creatorId = creatorIdByOrg.get(row.id);
+    row.nguoiTao = creatorId ? creatorMap.get(creatorId) ?? null : null;
+  }
 }
 
 export async function fetchAdminToChucList(
@@ -101,7 +140,7 @@ export async function fetchAdminToChucList(
   const { data, error } = await admin
     .from("org_to_chuc")
     .select(
-      `id, ten, slug, loai_to_chuc, tinh_thanh, trang_thai_tin_cay, avatar_id`,
+      `id, ten, slug, loai_to_chuc, tinh_thanh, trang_thai_tin_cay, avatar_id, nguoi_tao`,
     )
     .neq("trang_thai_hoat_dong", "da_dong_cua")
     .order("ten", { ascending: true })
@@ -123,6 +162,11 @@ export async function fetchAdminToChucList(
   }
 
   const allRows = (data ?? []).map(mapRow);
+  const creatorIdByOrg = new Map<string, string | null>(
+    (data ?? []).map((row) => [row.id, row.nguoi_tao]),
+  );
+  await attachNguoiTao(admin, allRows, creatorIdByOrg);
+
   const stats = buildStats(allRows);
   const rows = allRows.filter(
     (row) => matchesLoai(row, params.loai) && matchesQuery(row, params.q),

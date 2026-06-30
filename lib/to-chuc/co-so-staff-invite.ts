@@ -12,6 +12,7 @@ export type PendingCoSoStaffInviteNotification = {
   orgId: string;
   orgSlug: string;
   orgTen: string;
+  loaiToChuc: string;
   vaiTro: string;
   vaiTroLabel: string;
   inviterName: string;
@@ -24,6 +25,7 @@ type InvitePayload = {
   orgId: string;
   orgSlug: string;
   orgTen: string;
+  loaiToChuc?: string;
   vaiTro: string;
   inviterId?: string;
   inviterName: string;
@@ -32,6 +34,9 @@ type InvitePayload = {
 };
 
 const LOAI_DOI_TUONG = "co_so_staff_invite";
+
+/** Loại org dùng chung hệ thống staff-invite (co-so + studio). */
+const STAFF_INVITE_ORG_TYPES = ["co_so_dao_tao", "studio", "doanh_nghiep"];
 
 function parseInvitePayload(raw: string): InvitePayload | null {
   try {
@@ -49,6 +54,7 @@ export async function notifyCoSoStaffInvite(params: {
   orgId: string;
   orgSlug: string;
   orgTen: string;
+  loaiToChuc?: string;
   vaiTro: string;
   inviterId: string;
   inviterName: string;
@@ -60,6 +66,7 @@ export async function notifyCoSoStaffInvite(params: {
     orgId: params.orgId,
     orgSlug: params.orgSlug,
     orgTen: params.orgTen,
+    loaiToChuc: params.loaiToChuc ?? "co_so_dao_tao",
     vaiTro: params.vaiTro,
     inviterId: params.inviterId,
     inviterName: params.inviterName,
@@ -146,7 +153,9 @@ export async function listPendingCoSoStaffInviteNotifications(
       | { id: string; slug: string; ten: string; loai_to_chuc: string }[]
       | null;
     const org = Array.isArray(orgRaw) ? (orgRaw[0] ?? null) : orgRaw;
-    if (!org?.slug || org.loai_to_chuc !== "co_so_dao_tao") continue;
+    if (!org?.slug || !STAFF_INVITE_ORG_TYPES.includes(org.loai_to_chuc)) {
+      continue;
+    }
 
     const membershipId = row.id as string;
     const { data: notifyRow } = await admin
@@ -169,6 +178,7 @@ export async function listPendingCoSoStaffInviteNotifications(
       orgId: org.id,
       orgSlug: org.slug,
       orgTen: org.ten,
+      loaiToChuc: org.loai_to_chuc,
       vaiTro: row.vai_tro as string,
       vaiTroLabel: coSoAssignableRoleLabel(
         row.vai_tro as Parameters<typeof coSoAssignableRoleLabel>[0],
@@ -299,10 +309,10 @@ export async function respondCoSoStaffInvite(params: {
     .from("org_to_chuc")
     .select("id")
     .eq("id", row.id_to_chuc)
-    .eq("loai_to_chuc", "co_so_dao_tao")
+    .in("loai_to_chuc", STAFF_INVITE_ORG_TYPES)
     .maybeSingle<{ id: string }>();
   if (!org?.id) {
-    return { ok: false, error: "Không tìm thấy cơ sở." };
+    return { ok: false, error: "Không tìm thấy tổ chức." };
   }
 
   const now = new Date().toISOString();

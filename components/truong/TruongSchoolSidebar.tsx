@@ -12,6 +12,7 @@ import { TruongOrgAvatar } from "@/components/truong/TruongOrgAvatar";
 import { TruongSchoolContact } from "@/components/truong/TruongSchoolContact";
 import { TruongUserChatLauncher } from "@/components/truong/TruongUserChatLauncher";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
+import { hasTruongGioiThieuContent } from "@/lib/truong/gioi-thieu";
 import { labelLoaiTruong } from "@/lib/nganh/truong-shared";
 import type { TruongDetail } from "@/lib/truong/types";
 
@@ -27,6 +28,164 @@ function truongSidebarSubtitle(school: TruongDetail): string | null {
   const en = school.ten_tieng_anh?.trim();
   if (en && en !== school.ten.trim()) return en;
   return null;
+}
+
+type BodyProps = {
+  school: TruongDetail;
+  subtitle: string | null;
+  loai: string;
+  showAdminCta: boolean;
+  canEdit: boolean;
+  isEditing: boolean;
+  showTuyenSinStats: boolean;
+  showKtxStat: boolean;
+  ktxPriceLabel: string | null;
+  showGioiThieu: boolean;
+  onOpenSettings?: (section: TruongSettingsSection) => void;
+  /** Desktop trường: avatar overlap cover 168px — khác mobile/cơ sở. */
+  layout?: "desktop" | "stack";
+};
+
+function TruongSidebarStack({
+  school,
+  subtitle,
+  loai,
+  showAdminCta,
+  canEdit,
+  isEditing,
+  showTuyenSinStats,
+  showKtxStat,
+  ktxPriceLabel,
+  showGioiThieu,
+  onOpenSettings,
+  layout = "stack",
+}: BodyProps) {
+  const avatarClass =
+    layout === "desktop" ? "cso-ss-ava truong-ss-ava" : "cso-ss-ava";
+
+  return (
+    <div className="cso-ss-stack">
+      <div className="cso-ss-ava-row">
+        <TruongOrgAvatar
+          school={school}
+          size="lg"
+          className={avatarClass}
+          editable={canEdit && isEditing}
+        />
+      </div>
+
+      <div className="cso-ss-identity">
+        <h1 className="cso-ss-name">{school.ten}</h1>
+        {subtitle ? <p className="cso-ss-sub">{subtitle}</p> : null}
+        {isEditing && onOpenSettings ? (
+          <button
+            type="button"
+            className="cso-ss-edit-info-btn"
+            onClick={() => onOpenSettings("identity")}
+          >
+            <Pencil size={14} strokeWidth={2.2} aria-hidden />
+            Sửa thông tin trường
+          </button>
+        ) : null}
+      </div>
+
+      <div className="cso-ss-badges">
+        <span className="cso-ss-badge">Trường ĐH</span>
+        {loai !== "—" ? <span className="cso-ss-badge">{loai}</span> : null}
+        {school.ma_truong ? (
+          <span className="cso-ss-badge">{school.ma_truong}</span>
+        ) : null}
+        {school.nam_thanh_lap ? (
+          <span className="cso-ss-badge">Thành lập {school.nam_thanh_lap}</span>
+        ) : null}
+      </div>
+
+      <div
+        className={`cso-ss-primary-action${
+          showAdminCta
+            ? " cso-ss-primary-action--admin"
+            : " cso-ss-primary-action--dual"
+        }`}
+      >
+        {showAdminCta ? (
+          <>
+            <TruongMessageInbox />
+            <TruongMilestoneTagNotify />
+          </>
+        ) : (
+          <>
+            <TruongUserChatLauncher />
+            <CoSoOrgFollowButton orgId={school.id} disabled={canEdit} />
+          </>
+        )}
+      </div>
+
+      <section className="cso-ss-sec" aria-labelledby="truong-ss-contact-title">
+        <div className="cso-ss-sec-head">
+          <h2 id="truong-ss-contact-title" className="cso-ss-sec-title">
+            Liên hệ
+          </h2>
+        </div>
+        <TruongSchoolContact
+          school={school}
+          isEditing={isEditing}
+          variant="sidebar"
+        />
+      </section>
+
+      {showTuyenSinStats ? (
+        <section className="cso-ss-sec" aria-labelledby="truong-ss-stats-title">
+          <div className="cso-ss-sec-head">
+            <h2 id="truong-ss-stats-title" className="cso-ss-sec-title">
+              Số liệu tuyển sinh
+            </h2>
+            {isEditing && onOpenSettings ? (
+              <button
+                type="button"
+                className="cso-ss-sec-edit"
+                onClick={() => onOpenSettings("tuyen-sinh")}
+              >
+                Sửa
+              </button>
+            ) : null}
+          </div>
+          {showKtxStat ? (
+            <div className="cso-ss-stat-grid">
+              <div className="cso-ss-stat-card">
+                <div className="cso-ss-stat-card-label">Ký túc xá</div>
+                <div className="cso-ss-stat-card-val cso-ss-stat-card-val--text">
+                  {ktxPriceLabel ?? "Có KTX"}
+                </div>
+                {school.ktx_dia_chi ? (
+                  <p className="cso-ss-stat-empty">{school.ktx_dia_chi}</p>
+                ) : null}
+              </div>
+            </div>
+          ) : (
+            <p className="cso-ss-stat-empty">Đang cập nhật</p>
+          )}
+        </section>
+      ) : null}
+
+      {showGioiThieu ? (
+        <section className="cso-ss-sec" aria-labelledby="truong-ss-about-title">
+          <div className="cso-ss-sec-head">
+            <h2 id="truong-ss-about-title" className="cso-ss-sec-title">
+              Giới thiệu
+            </h2>
+          </div>
+          <TruongGioiThieuTruong
+            school={school}
+            onOpenAbout={
+              isEditing && onOpenSettings
+                ? () => onOpenSettings("about")
+                : undefined
+            }
+          />
+        </section>
+      ) : null}
+    </div>
+  );
 }
 
 export function TruongSchoolSidebar({
@@ -50,6 +209,22 @@ export function TruongSchoolSidebar({
       : null;
 
   const showKtxStat = Boolean(school.co_ktx);
+  const showGioiThieu =
+    hasTruongGioiThieuContent(school.gioi_thieu_truong) || canEdit;
+
+  const bodyProps: BodyProps = {
+    school,
+    subtitle,
+    loai,
+    showAdminCta,
+    canEdit,
+    isEditing,
+    showTuyenSinStats,
+    showKtxStat,
+    ktxPriceLabel,
+    showGioiThieu,
+    onOpenSettings,
+  };
 
   const asideProps = {
     className: `school-side fade f1${isMobileShell ? " cso-ss-side" : ""}`,
@@ -70,221 +245,27 @@ export function TruongSchoolSidebar({
                 <TruongOrgCover school={school} editable layout="v6" />
               </div>
             </div>
-
-            <div className="cso-ss-stack">
-              <div className="cso-ss-ava-row">
-                <TruongOrgAvatar
-                  school={school}
-                  size="lg"
-                  className="cso-ss-ava"
-                  editable
-                />
-              </div>
-
-              <div className="cso-ss-identity">
-                <h1 className="cso-ss-name">{school.ten}</h1>
-                {subtitle ? <p className="cso-ss-sub">{subtitle}</p> : null}
-                {isEditing && onOpenSettings ? (
-                  <button
-                    type="button"
-                    className="cso-ss-edit-info-btn"
-                    onClick={() => onOpenSettings("identity")}
-                  >
-                    <Pencil size={14} strokeWidth={2.2} aria-hidden />
-                    Sửa thông tin trường
-                  </button>
-                ) : null}
-              </div>
-
-              <div className="cso-ss-badges">
-                <span className="cso-ss-badge">Trường ĐH</span>
-                {loai !== "—" ? <span className="cso-ss-badge">{loai}</span> : null}
-                {school.ma_truong ? (
-                  <span className="cso-ss-badge">{school.ma_truong}</span>
-                ) : null}
-                {school.nam_thanh_lap ? (
-                  <span className="cso-ss-badge">
-                    Thành lập {school.nam_thanh_lap}
-                  </span>
-                ) : null}
-              </div>
-
-              <div
-                className={`cso-ss-primary-action${
-                  showAdminCta
-                    ? " cso-ss-primary-action--admin"
-                    : " cso-ss-primary-action--dual"
-                }`}
-              >
-                {showAdminCta ? (
-                  <>
-                    <TruongMessageInbox />
-                    <TruongMilestoneTagNotify />
-                  </>
-                ) : (
-                  <>
-                    <TruongUserChatLauncher />
-                    <CoSoOrgFollowButton orgId={school.id} disabled={canEdit} />
-                  </>
-                )}
-              </div>
-
-              <section className="cso-ss-sec" aria-labelledby="truong-ss-contact-title">
-                <div className="cso-ss-sec-head">
-                  <h2 id="truong-ss-contact-title" className="cso-ss-sec-title">
-                    Liên hệ
-                  </h2>
-                </div>
-                <TruongSchoolContact
-                  school={school}
-                  isEditing={isEditing}
-                  variant="sidebar"
-                />
-              </section>
-
-              {showTuyenSinStats ? (
-                <section className="cso-ss-sec" aria-labelledby="truong-ss-stats-title">
-                  <div className="cso-ss-sec-head">
-                    <h2 id="truong-ss-stats-title" className="cso-ss-sec-title">
-                      Số liệu tuyển sinh
-                    </h2>
-                    {isEditing && onOpenSettings ? (
-                      <button
-                        type="button"
-                        className="cso-ss-sec-edit"
-                        onClick={() => onOpenSettings("tuyen-sinh")}
-                      >
-                        Sửa
-                      </button>
-                    ) : null}
-                  </div>
-                  <div className="ss-stat-grid">
-                    {showKtxStat ? (
-                      <div className="ss-stat span-2">
-                        <div className="lbl">Ký túc xá</div>
-                        {ktxPriceLabel ? (
-                          <div className="val text">{ktxPriceLabel}</div>
-                        ) : null}
-                        {school.ktx_dia_chi ? (
-                          <div className="sub">{school.ktx_dia_chi}</div>
-                        ) : null}
-                      </div>
-                    ) : null}
-                  </div>
-                </section>
-              ) : null}
-            </div>
+            <TruongSidebarStack {...bodyProps} layout="stack" />
           </div>
         </div>
       </aside>
     );
   }
 
+  /* Desktop trường ĐH: cover full-width trên sidebar (3 cột), stack nội dung
+   * giống cơ sở/studio — KHÔNG dùng cso-ss-side shell (overflow/ẩn cover). */
   return (
     <aside {...asideProps}>
       <div className="ss-cover">
-        <TruongOrgCover school={school} editable layout="v6" />
+        <TruongOrgCover
+          school={school}
+          editable={canEdit && isEditing}
+          layout="v6"
+        />
       </div>
-
-      <div className="ss-card-id">
-        <div className="ss-id-top">
-          <TruongOrgAvatar school={school} size="lg" className="ss-avatar" editable />
-          <div className="ss-cta">
-            {showAdminCta ? (
-              <>
-                <TruongMilestoneTagNotify />
-                <TruongMessageInbox />
-              </>
-            ) : (
-              <>
-                <TruongUserChatLauncher />
-                <CoSoOrgFollowButton
-                  orgId={school.id}
-                  disabled={canEdit}
-                  variant="icon"
-                />
-              </>
-            )}
-          </div>
-        </div>
-
-        <h1 className="ss-name">{school.ten}</h1>
-        {school.ten_tieng_anh?.trim() ? (
-          <p className="ss-en">{school.ten_tieng_anh.trim()}</p>
-        ) : null}
-        {school.mo_ta?.trim() ? (
-          <p className="ss-mo-ta">{school.mo_ta.trim()}</p>
-        ) : null}
-        {isEditing && onOpenSettings ? (
-          <button
-            type="button"
-            className="ss-edit-info-btn"
-            onClick={() => onOpenSettings("identity")}
-          >
-            <Pencil size={14} strokeWidth={2.2} aria-hidden />
-            Sửa thông tin trường
-          </button>
-        ) : null}
-
-        <div className="ss-badges">
-          <span className="ss-badge">Trường ĐH</span>
-          {loai !== "—" ? <span className="ss-badge">{loai}</span> : null}
-          {school.ma_truong ? (
-            <span className="ss-badge">{school.ma_truong}</span>
-          ) : null}
-          {school.nam_thanh_lap ? (
-            <span className="ss-badge">Thành lập {school.nam_thanh_lap}</span>
-          ) : null}
-        </div>
-
-        <div className="ss-gioi-thieu-wrap">
-          <TruongGioiThieuTruong
-            school={school}
-            onOpenAbout={
-              isEditing && onOpenSettings
-                ? () => onOpenSettings("about")
-                : undefined
-            }
-          />
-        </div>
+      <div className="truong-ss-pad">
+        <TruongSidebarStack {...bodyProps} layout="desktop" />
       </div>
-
-      <div className="ss-section">
-        <div className="ss-section-head ss-section-head--contact">
-          <div className="ss-section-label">Liên hệ</div>
-        </div>
-        <TruongSchoolContact school={school} isEditing={isEditing} variant="sidebar" />
-      </div>
-
-      {showTuyenSinStats ? (
-        <div className="ss-section">
-          <div className="ss-section-head">
-            <div className="ss-section-label">Số liệu tuyển sinh</div>
-            {isEditing && onOpenSettings ? (
-              <button
-                type="button"
-                className="tdh-inline-chip-btn"
-                onClick={() => onOpenSettings("tuyen-sinh")}
-              >
-                Sửa
-              </button>
-            ) : null}
-          </div>
-          <div className="ss-stat-grid">
-            {showKtxStat ? (
-              <div className="ss-stat span-2">
-                <div className="lbl">Ký túc xá</div>
-                {ktxPriceLabel ? (
-                  <div className="val text">{ktxPriceLabel}</div>
-                ) : null}
-                {school.ktx_dia_chi ? (
-                  <div className="sub">{school.ktx_dia_chi}</div>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
     </aside>
   );
 }

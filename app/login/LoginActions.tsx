@@ -4,6 +4,7 @@ import { Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { LoginGoogleButton } from "@/app/login/LoginGoogleButton";
+import { LoginPasswordForm } from "@/app/login/LoginPasswordForm";
 import { startGoogleLogin, type LoginIntent } from "@/lib/auth/google-oauth";
 import {
   readRememberedAccount,
@@ -149,6 +150,16 @@ export function LoginActions({
           {error}
         </p>
       ) : null}
+
+      <div className="cins-login-divider" role="separator">
+        <span>hoặc dùng email</span>
+      </div>
+
+      <LoginPasswordForm
+        returnPath={returnPath}
+        disabled={busy}
+        onBusyChange={setBusy}
+      />
     </div>
   );
 }

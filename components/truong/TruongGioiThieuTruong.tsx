@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 import { GioiThieuRichBody } from "@/components/truong/GioiThieuRichBody";
@@ -18,6 +19,7 @@ export function TruongGioiThieuTruong({
   onOpenAbout,
 }: Props) {
   const ctx = useTruongInlineEdit();
+  const pathname = usePathname();
   const school = ctx?.school ?? schoolProp;
   const [open, setOpen] = useState(false);
   if (!school) return null;
@@ -25,6 +27,14 @@ export function TruongGioiThieuTruong({
   const html = school.gioi_thieu_truong;
   const hasContent = hasTruongGioiThieuContent(html);
   const canEdit = Boolean(ctx?.canEdit);
+  const isCoSo =
+    school.org_loai === "co_so_dao_tao" ||
+    pathname.startsWith("/co-so");
+  const buttonLabel = isCoSo
+    ? "Giới thiệu cơ sở"
+    : hasContent
+      ? "Lịch sử trường"
+      : "Thêm giới thiệu trường";
 
   if (!hasContent && !canEdit) return null;
 
@@ -45,7 +55,7 @@ export function TruongGioiThieuTruong({
         onClick={() => setOpen(true)}
         aria-haspopup="dialog"
       >
-        {hasContent ? "Lịch sử trường" : "Thêm giới thiệu trường"}
+        {buttonLabel}
       </button>
       <TruongInlineModal
         open={open}

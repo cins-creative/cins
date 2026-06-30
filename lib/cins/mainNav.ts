@@ -85,14 +85,6 @@ export const MAIN_NAV_ITEMS: MainNavItem[] = [
     icon: "events",
     isActive: () => false,
   },
-  {
-    id: "blog",
-    href: "/bai-viet",
-    label: "Bài viết",
-    tip: "Bài viết chuyên sâu, hướng dẫn nghề và phỏng vấn người trong ngành sáng tạo",
-    icon: "blog",
-    isActive: (p) => p === "/bai-viet" || p.startsWith("/bai-viet/"),
-  },
 ];
 
 export const MAIN_NAV_FOOT_ITEMS: MainNavItem[] = [

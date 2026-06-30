@@ -77,7 +77,11 @@ export async function NguoiCungNganhModule({ ctx }: { ctx: HomeModuleCtx }) {
                 {p.name}
                 <BadgeCheck size={12} strokeWidth={2} aria-hidden />
               </Link>
-              <div className="ha-row-sub">{giaiDoanLabel(p.giaiDoan)}</div>
+              <div className="ha-row-sub">
+                {p.mutualCount > 0
+                  ? `${p.mutualCount} bạn chung`
+                  : giaiDoanLabel(p.giaiDoan)}
+              </div>
             </div>
             <JourneyUserFollowButton
               targetUserId={p.id}

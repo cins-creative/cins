@@ -585,6 +585,9 @@ export function CoSoPageSettingsModal({
             {section === "access" && draft ? (
               <CoSoSettingsMembersPanel
                 orgId={orgId}
+                orgSlug={draft.slug}
+                orgLabel={draft.ten}
+                viewerIsOwner={draft.viewer.vaiTro === "owner"}
                 members={draft.members}
                 canManage={draft.viewer.canManageMembers}
                 onMembersChange={(members) => patchDraft({ members })}

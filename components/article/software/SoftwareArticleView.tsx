@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import { ArticleJsonLd } from "@/components/article/ArticleJsonLd";
 import { InlineArticleDraftBar } from "@/components/article/InlineArticleDraftBar";
 import { SoftwareEditableLead } from "@/components/article/software/SoftwareEditableLead";
@@ -12,7 +10,6 @@ import { SoftwareCompareTable } from "@/components/article/software/SoftwareComp
 import { SoftwareCoverHero } from "@/components/article/software/SoftwareCoverHero";
 import { SoftwareSummaryCard } from "@/components/article/software/SoftwareSummaryCard";
 import { resolveHubArticleImages } from "@/lib/bai-viet/thumbnail";
-import { buildBaiVietHubUrl } from "@/lib/bai-viet/hub-loai";
 import { buildArticleLeadSource } from "@/lib/articles/article-lead-source";
 import { articlePublicHref } from "@/lib/articles/article-href";
 import { linkKeywordsInContent } from "@/lib/articles/link-keywords-in-content";
@@ -89,11 +86,7 @@ export async function SoftwareArticleView({
         <main className="article-main">
           <div className="article-grid sw-article-grid">
             <nav className="sw-breadcrumb" aria-label="Breadcrumb">
-              <Link href="/bai-viet">Khám phá</Link>
-              <span aria-hidden>›</span>
-              <Link href={buildBaiVietHubUrl({ loai: "phan_mem" })}>
-                Phần mềm
-              </Link>
+              <span>Phần mềm</span>
               <span aria-hidden>›</span>
               <span>{titleMain}</span>
             </nav>

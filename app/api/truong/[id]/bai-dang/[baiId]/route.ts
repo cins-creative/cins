@@ -37,6 +37,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     "cover_id",
     "trang_thai",
     "tao_luc",
+    "ghim",
   ] as const;
   const patch: Record<string, unknown> = {};
   for (const key of allowed) {
@@ -56,6 +57,10 @@ export async function PATCH(request: Request, context: RouteContext) {
           ? (patch.noi_dung_blocks as ReturnType<typeof sanitizeBaiDangBlocksInput>)
           : undefined,
       );
+      continue;
+    }
+    if (key === "ghim") {
+      patch[key] = Boolean(body[key]);
       continue;
     }
     if (key === "tao_luc") {

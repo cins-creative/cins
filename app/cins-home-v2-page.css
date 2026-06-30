@@ -94,12 +94,15 @@ html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
   padding:0 18px;border-bottom:1px solid var(--border);flex-shrink:0;
 }
 .sb-brand-mark{
-  width:32px;height:32px;background:var(--blue);border-radius:9px;flex-shrink:0;
-  display:flex;align-items:center;justify-content:center;color:#fff;
-  font-family:var(--display);font-size:17px;letter-spacing:.5px;
+  width:32px;height:32px;flex-shrink:0;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+  transition:width .18s var(--ease),opacity .18s var(--ease);
 }
-.sb-brand-text{font-weight:800;font-size:19px;color:var(--blue);letter-spacing:-.4px;white-space:nowrap;opacity:0;transform:translateX(-6px);transition:all .18s var(--ease) .06s;pointer-events:none}
+.sb-brand-mark img{width:32px;height:32px;display:block}
+.sb-brand-text{display:flex;align-items:center;white-space:nowrap;opacity:0;transform:translateX(-6px);transition:all .18s var(--ease) .06s;pointer-events:none}
+.sb-brand-text img{height:40px;width:auto;display:block}
 .sidebar:hover .sb-brand-text,.sidebar:focus-within .sb-brand-text{opacity:1;transform:none}
+.sidebar:hover .sb-brand-mark,.sidebar:focus-within .sb-brand-mark{width:0;opacity:0}
 .sb-list{list-style:none;padding:14px 12px 4px;display:flex;flex-direction:column;gap:2px;flex:1;overflow-y:auto;overflow-x:hidden}
 .sb-list::-webkit-scrollbar{width:0;display:none}
 .sb-item{
@@ -236,6 +239,7 @@ html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
   .sidebar{transform:translateX(-100%);width:240px;box-shadow:var(--sh-lg)}
   .sidebar.open{transform:none}
   .sidebar .sb-brand-text,.sidebar .sb-label{opacity:1;transform:none;pointer-events:auto}
+  .sidebar .sb-brand-mark{width:0;opacity:0}
   .tb-burger{display:inline-flex}
   .topbar-inner{padding:0 12px;gap:6px}
   .tb-quiz span,.tb-ask span,.tb-divider{display:none}

@@ -79,15 +79,17 @@ export default function MaintenancePage() {
   return (
     <div className="cins-maint-page">
       <nav className="cins-maint-top">
-        <Link className="cins-maint-logo" href="/">
-          <span className="cins-maint-logo-mark">C</span>
-          CINs
+        <Link className="cins-maint-logo" href="/" aria-label="C.INS trang chủ">
+          <img
+            src="/assets/logo-cins-wide.svg"
+            alt="C.INS"
+            className="cins-maint-logo-img"
+          />
         </Link>
         <div className="cins-maint-nav-links">
           <Link href="/">Trang chủ</Link>
           <Link href={CO_SO_DAO_TAO_HUB_PATH}>Trường đại học</Link>
           <Link href="/huong-nghiep">Hướng nghiệp</Link>
-          <Link href="/bai-viet">Bài viết</Link>
         </div>
         <Link className="cins-maint-nav-cta" href="/huong-nghiep">
           <IconStar />

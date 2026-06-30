@@ -17,7 +17,6 @@ import { StudioJobsSidebar } from "@/components/to-chuc/StudioJobsSidebar";
 import { StudioTabBaiDang } from "@/components/to-chuc/StudioTabBaiDang";
 import { StudioTabTuyenDung } from "@/components/to-chuc/tabs/StudioTabTuyenDung";
 import {
-  STUDIO_SHOWCASE_LOAI,
   STUDIO_TAB_IDS,
   STUDIO_TAB_LABELS,
   type StudioTabId,
@@ -113,18 +112,6 @@ function StudioDetailViewInner({
     [jobs],
   );
 
-  const showcaseCount = useMemo(() => {
-    if (ctx?.baidang) {
-      return ctx.baidang.filter(
-        (p) =>
-          String(p.loai_bai_dang ?? "")
-            .trim()
-            .toLowerCase() === STUDIO_SHOWCASE_LOAI,
-      ).length;
-    }
-    return showcase.length;
-  }, [ctx?.baidang, showcase.length]);
-
   // Cover/avatar lấy id từ inline-edit context để phản ánh thay đổi sau khi lưu.
   const coverOwner = {
     ...studioCoverOwner(studio),
@@ -145,7 +132,6 @@ function StudioDetailViewInner({
       <StudioSidebar
         studio={studio}
         openJobCount={openJobs.length}
-        showcaseCount={showcaseCount}
         canEditMedia={canEdit}
         onOpenSettings={canEdit ? () => setSettingsOpen(true) : undefined}
       />
@@ -236,7 +222,12 @@ function StudioDetailViewInner({
         })}
       </div>
 
-      <StudioJobsSidebar jobs={openJobs} orgSlug={studio.slug} />
+      <StudioJobsSidebar
+        jobs={openJobs}
+        orgSlug={studio.slug}
+        posts={baidang}
+        canManage={canEdit}
+      />
 
       {canEdit ? (
         <StudioPageSettingsModal

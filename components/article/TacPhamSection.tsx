@@ -9,13 +9,14 @@ type Props = {
   items: TacPhamGalleryItem[];
   /** Hiện gallery placeholder cộng đồng (giống trang nghề) khi chưa có tác phẩm gắn bài. */
   showCommunityFallback?: boolean;
+  /** Link "Xem tất cả" — bỏ trống thì ẩn (không còn hub `/bai-viet`). */
   viewAllHref?: string;
 };
 
 export function TacPhamSection({
   items,
   showCommunityFallback = false,
-  viewAllHref = "/bai-viet",
+  viewAllHref,
 }: Props) {
   const hasDbItems = items.length > 0;
   if (!hasDbItems && !showCommunityFallback) return null;
@@ -27,7 +28,7 @@ export function TacPhamSection({
           Tác phẩm liên quan
           <em> — từ cộng đồng CINs</em>
         </h3>
-        <Link href={viewAllHref}>Xem tất cả →</Link>
+        {viewAllHref ? <Link href={viewAllHref}>Xem tất cả →</Link> : null}
       </div>
       <div className="gallery">
         {hasDbItems

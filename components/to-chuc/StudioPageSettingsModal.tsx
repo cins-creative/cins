@@ -11,10 +11,15 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
+import { StudioSettingsMembersSection } from "@/components/to-chuc/StudioSettingsMembersSection";
 import { GioiThieuContentEditor } from "@/components/truong/GioiThieuContentEditor";
 import { normalizeTruongGioiThieuHtml } from "@/lib/truong/gioi-thieu";
 
-export type StudioSettingsSection = "identity" | "about" | "contact";
+export type StudioSettingsSection =
+  | "identity"
+  | "about"
+  | "contact"
+  | "members";
 
 type SettingsData = {
   orgId: string;
@@ -51,6 +56,7 @@ const NAV: ReadonlyArray<{ id: StudioSettingsSection; label: string }> = [
   { id: "identity", label: "Danh tính" },
   { id: "about", label: "Giới thiệu" },
   { id: "contact", label: "Liên hệ" },
+  { id: "members", label: "Thành viên" },
 ];
 
 function savePayloadForSection(
@@ -256,7 +262,23 @@ export function StudioPageSettingsModal({
           </div>
         ) : null}
 
-        {!loading && draft ? (
+        {!loading && draft && section === "members" ? (
+          <div className="cso-settings-body">
+            <StudioSettingsMembersSection
+              orgId={orgId}
+              orgSlug={draft.slug}
+              orgLabel={draft.ten}
+              onError={setErr}
+            />
+            {err ? (
+              <p className="cso-settings-err" role="alert">
+                {err}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+
+        {!loading && draft && section !== "members" ? (
           <form className="cso-settings-body" onSubmit={onSaveSection}>
             {section === "identity" ? (
               <section className="cso-settings-section">

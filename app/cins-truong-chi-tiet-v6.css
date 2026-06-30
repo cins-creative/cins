@@ -45,6 +45,9 @@
   border-right: 1px solid var(--border, #e4e6eb);
   display: flex;
   flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  text-align: left;
   gap: 14px;
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -287,6 +290,7 @@
   min-width: 0;
   display: flex;
   flex-direction: row;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 8px;
   justify-content: flex-end;
@@ -304,9 +308,7 @@
 }
 
 .tdh-page--v6 .ss-id-top .ss-btn-notify-label,
-.tdh-page--v6 .ss-id-top .ss-btn-messages-label,
-.tdh-page--v6 .ss-id-top .ss-btn-user-chat-label,
-.tdh-page--v6 .ss-id-top .ss-btn-user-follow-label {
+.tdh-page--v6 .ss-id-top .ss-btn-messages-label {
   display: none;
 }
 
@@ -327,12 +329,36 @@
 }
 
 .tdh-page--v6 .ss-id-top .ss-btn-notify,
-.tdh-page--v6 .ss-id-top .ss-btn.ss-btn-messages,
+.tdh-page--v6 .ss-id-top .ss-btn.ss-btn-messages {
+  width: 36px;
+  min-width: 36px;
+  justify-content: center;
+}
+
+/* Nút khách (Nhắn tin / Theo dõi) — icon vuông 36px, nằm ngang 1 dòng cạnh avatar. */
 .tdh-page--v6 .ss-id-top .ss-btn.ss-btn-user-chat,
 .tdh-page--v6 .ss-id-top .ss-btn.ss-btn-user-follow {
   width: 36px;
   min-width: 36px;
+  height: 36px;
+  padding: 0;
+  gap: 0;
   justify-content: center;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.tdh-page--v6 .ss-id-top .ss-btn-user-chat-label,
+.tdh-page--v6 .ss-id-top .ss-btn-user-follow-label {
+  display: none;
+}
+
+.tdh-page--v6 .ss-id-top .ss-btn.ss-btn-user-chat svg,
+.tdh-page--v6 .ss-id-top .ss-btn.ss-btn-user-follow svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
 }
 
 .tdh-page--v6 .ss-btn.ss-btn-user-follow {
@@ -583,6 +609,7 @@
 .tdh-page--v6 .ss-contact {
   display: flex;
   flex-direction: column;
+  text-align: left;
 }
 
 .tdh-page--v6 .ss-contact-row {
@@ -665,7 +692,7 @@
 }
 
 .tdh-page--v6 .ss-contact-more-branches {
-  align-self: center;
+  align-self: flex-start;
   margin: 10px 0 0;
   padding: 0;
   border: none;
@@ -888,6 +915,322 @@
   font-size: 14px;
   color: var(--ink);
   line-height: 1.35;
+}
+
+/* ── Trường ĐH desktop sidebar: cover 168px + stack nội dung (cso-ss-*)
+   Không dùng `.cso-ss-side` shell — tránh ẩn cover / overflow lệch layout 3 cột. ── */
+.tdh-page--v6:not(.tdh-page--cso) .school-side:not(.cso-ss-side) {
+  --truong-ss-avatar-size: 88px;
+  gap: 0;
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .school-side:not(.cso-ss-side) .truong-ss-pad {
+  position: relative;
+  z-index: 2;
+  padding: 0 18px 24px;
+  margin-top: calc(-1 * (14px + var(--truong-ss-avatar-size) / 2));
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .school-side:not(.cso-ss-side) .cso-ss-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .school-side:not(.cso-ss-side) .cso-ss-ava-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  margin: 0;
+  position: relative;
+  z-index: 3;
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .school-side:not(.cso-ss-side) .truong-ss-ava.tdh-org-avatar {
+  width: var(--truong-ss-avatar-size);
+  height: var(--truong-ss-avatar-size);
+  border-radius: var(--radius-lg, 20px);
+  border: 1px solid var(--border, #e4e6eb);
+  background: #fff;
+  box-shadow: none;
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .school-side:not(.cso-ss-side) .truong-ss-ava .tdh-org-avatar-img {
+  border-radius: calc(var(--radius-lg, 20px) - 2px);
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .school-side:not(.cso-ss-side) .cso-ss-identity {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  text-align: left;
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .school-side:not(.cso-ss-side) .cso-ss-name {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-weight: 800;
+  font-size: 20px;
+  line-height: 1.15;
+  letter-spacing: -0.35px;
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+  text-align: left;
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .school-side:not(.cso-ss-side) .cso-ss-sub {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ink-body, rgba(0, 0, 0, 0.55));
+  text-align: left;
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .school-side:not(.cso-ss-side) .cso-ss-edit-info-btn {
+  align-self: flex-start;
+  margin-top: 4px;
+  border: 1.5px solid rgba(31, 116, 201, 0.28);
+  background: var(--cins-blue-soft, #e7f0fb);
+  color: var(--cins-blue, #1f74c9);
+  border-radius: var(--radius-pill, 999px);
+  padding: 8px 14px;
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .school-side:not(.cso-ss-side) .cso-ss-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .school-side:not(.cso-ss-side) .cso-ss-badge {
+  font-size: 11.5px;
+  font-weight: 500;
+  padding: 5px 11px;
+  border-radius: var(--radius-pill, 999px);
+  background: var(--neutral-100, #f1f2f5);
+  color: var(--ink-title, rgba(0, 0, 0, 0.6));
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .school-side:not(.cso-ss-side) .cso-ss-primary-action--dual {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .school-side:not(.cso-ss-side) .cso-ss-primary-action--admin {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .school-side:not(.cso-ss-side) .cso-ss-primary-action--dual .ss-btn-user-chat {
+  width: 100%;
+  height: 44px;
+  border: none;
+  border-radius: var(--radius-md, 14px);
+  font-size: 14.5px;
+  font-weight: 600;
+  box-shadow: none;
+  transform: none;
+  justify-content: center;
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .school-side:not(.cso-ss-side) .cso-ss-primary-action--dual .ss-btn-user-chat-label {
+  display: inline;
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .school-side:not(.cso-ss-side) .cso-ss-primary-action--dual .ss-btn-user-chat svg {
+  width: 17px;
+  height: 17px;
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .school-side:not(.cso-ss-side) .cso-ss-btn-follow {
+  width: 100%;
+  height: 44px;
+  border: 1.5px solid var(--border, rgba(0, 0, 0, 0.1));
+  border-radius: var(--radius-md, 14px);
+  background: var(--neutral-100, #f1f2f5);
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 14.5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .school-side:not(.cso-ss-side) .cso-ss-btn-follow.is-following {
+  background: var(--cins-blue-soft, #e7f0fb);
+  border-color: rgba(31, 116, 201, 0.25);
+  color: var(--cins-blue, #1f74c9);
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .school-side:not(.cso-ss-side) .cso-ss-btn-follow .ss-btn-user-follow-label {
+  display: inline;
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .school-side:not(.cso-ss-side) .cso-ss-primary-action--admin .ss-btn {
+  width: 100%;
+  height: 44px;
+  min-height: 44px;
+  padding: 0 10px;
+  border-radius: var(--radius-md, 14px);
+  font-size: 13px;
+  font-weight: 700;
+  justify-content: center;
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .school-side:not(.cso-ss-side) .cso-ss-primary-action--admin .ss-btn-messages-label,
+.tdh-page--v6:not(.tdh-page--cso) .school-side:not(.cso-ss-side) .cso-ss-primary-action--admin .ss-btn-notify-label {
+  display: inline;
+  font-size: 13px;
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .school-side:not(.cso-ss-side) .cso-ss-sec {
+  margin: 0;
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .school-side:not(.cso-ss-side) .cso-ss-sec-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  gap: 10px;
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .school-side:not(.cso-ss-side) .cso-ss-sec-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .school-side:not(.cso-ss-side) .cso-ss-sec-edit {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--cins-blue, #1f74c9);
+  cursor: pointer;
+}
+
+/* Liên hệ sidebar — studio-ss-contact-list (đồng bộ StudioSidebar). */
+.tdh-page--v6 .cso-ss-sec .studio-ss-contact-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tdh-page--v6 .cso-ss-sec .studio-ss-contact-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--ink-body, #334155);
+}
+
+.tdh-page--v6 .cso-ss-sec .studio-ss-contact-item svg,
+.tdh-page--v6 .cso-ss-sec .studio-ss-contact-icon-fb {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--ink-muted, #64748b);
+}
+
+.tdh-page--v6 .cso-ss-sec .studio-ss-contact-icon-fb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+}
+
+.tdh-page--v6 .cso-ss-sec .studio-ss-contact-icon-fb svg {
+  width: 15px;
+  height: 15px;
+}
+
+.tdh-page--v6 .cso-ss-sec .studio-ss-contact-item a {
+  color: var(--cins-blue, #1f74c9);
+  word-break: break-word;
+}
+
+.tdh-page--v6 .cso-ss-sec .ss-contact-empty {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.4));
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .school-side:not(.cso-ss-side) .cso-ss-stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .school-side:not(.cso-ss-side) .cso-ss-stat-card {
+  background: var(--neutral-50, #f8f9fb);
+  border: 1px solid var(--border, #e4e6eb);
+  border-radius: var(--radius-md, 14px);
+  padding: 13px 14px;
+  min-width: 0;
+  grid-column: 1 / -1;
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .school-side:not(.cso-ss-side) .cso-ss-stat-card-label {
+  font-size: 11px;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.4));
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .school-side:not(.cso-ss-side) .cso-ss-stat-card-val--text {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1.35;
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .school-side:not(.cso-ss-side) .cso-ss-stat-empty {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.4));
+  line-height: 1.4;
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .school-side:not(.cso-ss-side) .cso-ss-sec .tdh-gioi-thieu-btn {
+  width: 100%;
+  justify-content: center;
+  margin: 0;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: var(--radius-md, 14px);
+  border: 1.5px solid var(--border, #e4e6eb);
+  background: var(--neutral-50, #f8f9fb);
+  color: var(--cins-blue, #1f74c9);
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .school-side:not(.cso-ss-side) .cso-ss-sec .tdh-gioi-thieu-btn:hover {
+  background: var(--cins-blue-soft, #e7f0fb);
+  border-color: rgba(31, 116, 201, 0.28);
 }
 
 /* Center column */
@@ -4033,7 +4376,7 @@
   --j-content-pad-l: 0px;
   --tdh-baidang-stack-gap: 14px;
   --tdh-baidang-card-gap: 16px;
-  padding: 16px 24px 48px;
+  padding: 0 24px 48px;
 }
 
 .tdh-page--v6 #tdh-panel-bai-dang.tdh-v6-panel.on,
@@ -4062,6 +4405,18 @@
 .tdh-page--v6 #tdh-panel-bai-dang .tdh-org-baidang-timeline > .j-create-composer,
 .tdh-page--v6 #cso-panel-bai-dang .tdh-org-baidang-timeline > .j-create-composer {
   margin: 0;
+}
+
+/* Composer + empty-state là flex item của timeline → để stack-gap điều phối
+   khoảng cách, bỏ margin/padding dọc thừa của từng block cho gap đều nhau. */
+.tdh-page--v6 #tdh-panel-bai-dang .tdh-org-baidang-timeline > .cins-feed-composer-row,
+.tdh-page--v6 #cso-panel-bai-dang .tdh-org-baidang-timeline > .cins-feed-composer-row {
+  margin: 0;
+}
+
+.tdh-page--v6 #tdh-panel-bai-dang .tdh-org-baidang-timeline > .j-empty,
+.tdh-page--v6 #cso-panel-bai-dang .tdh-org-baidang-timeline > .j-empty {
+  padding: 0;
 }
 
 .tdh-page--v6 #tdh-panel-bai-dang .tdh-org-baidang-timeline .j-year-block,

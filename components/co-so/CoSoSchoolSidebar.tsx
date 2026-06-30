@@ -4,10 +4,8 @@ import {
   BadgeCheck,
   Calendar,
   MessageSquare,
-  Monitor,
   Pencil,
   Shield,
-  Users,
 } from "lucide-react";
 
 import { CoSoOrgFollowButton } from "@/components/co-so/CoSoOrgFollowButton";
@@ -153,8 +151,8 @@ export function CoSoSchoolSidebar({
             <div className="cso-ss-stat-grid">
               <div className="cso-ss-stat-card">
                 <div className="cso-ss-stat-card-label">
-                  <Users size={12} strokeWidth={2.2} aria-hidden />
-                  Học viên
+                  <BadgeCheck size={12} strokeWidth={2.2} aria-hidden />
+                  Xác thực
                 </div>
                 {hasStudents ? (
                   <div className="cso-ss-stat-card-val">—</div>
@@ -174,16 +172,6 @@ export function CoSoSchoolSidebar({
                 </div>
                 <div className="cso-ss-stat-card-val cso-ss-stat-card-val--text">
                   {school.nam_thanh_lap ?? "—"}
-                </div>
-              </div>
-
-              <div className="cso-ss-stat-card">
-                <div className="cso-ss-stat-card-label">
-                  <Monitor size={12} strokeWidth={2.2} aria-hidden />
-                  Hình thức
-                </div>
-                <div className="cso-ss-stat-card-val cso-ss-stat-card-val--text is-muted">
-                  —
                 </div>
               </div>
             </div>

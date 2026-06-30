@@ -199,7 +199,6 @@ export async function adminSaveArticle(formData: FormData): Promise<{ ok: boolea
   const res = await updateArticleForAdmin(id, patch);
   if (!res.ok) return { ok: false, message: res.message };
 
-  revalidatePath("/bai-viet");
   revalidatePath(`/bai-viet/${slug}`);
   revalidatePath("/nganh-hoc");
   revalidatePath(`/nganh-hoc/${slug}`);
@@ -235,7 +234,6 @@ export async function adminCreateArticle(
 
   const s = res.slug.trim();
   revalidatePath("/admin/bai-viet");
-  revalidatePath("/bai-viet");
   if (s) revalidatePath(`/bai-viet/${s}`);
   if (loai_bai_viet === "nganh_dao_tao") {
     revalidatePath("/nganh-hoc");
@@ -275,7 +273,6 @@ export async function adminUpdateArticleStatus(
 
   const s = slug.trim();
   revalidatePath("/admin/bai-viet");
-  revalidatePath("/bai-viet");
   if (s) revalidatePath(`/bai-viet/${s}`);
   if (loaiBaiViet.trim() === "nganh_dao_tao") {
     revalidatePath("/nganh-hoc");
@@ -327,7 +324,6 @@ export async function updateAdminArticleThumbnail(
     const loai = String(data.loai_bai_viet ?? "").trim();
 
     revalidatePath("/admin/bai-viet");
-    revalidatePath("/bai-viet");
     if (slug) revalidatePath(`/bai-viet/${slug}`);
     if (loai === "nganh_dao_tao") {
       revalidatePath("/nganh-hoc");
@@ -500,7 +496,6 @@ export async function adminDeleteArticle(
 
   const s = slug.trim();
   revalidatePath("/admin/bai-viet");
-  revalidatePath("/bai-viet");
   if (s) revalidatePath(`/bai-viet/${s}`);
   if (loaiBaiViet.trim() === "nganh_dao_tao") {
     revalidatePath("/nganh-hoc");

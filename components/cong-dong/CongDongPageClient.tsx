@@ -605,6 +605,9 @@ export function CongDongPageClient({ initial }: Props) {
         open={membersOpen}
         onClose={() => setMembersOpen(false)}
         orgId={org.id}
+        orgSlug={org.slug}
+        orgLabel={org.ten}
+        viewerIsOwner={viewerVaiTro === "owner"}
       />
     ) : null}
     </>

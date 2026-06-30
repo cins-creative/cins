@@ -73,35 +73,11 @@
 .cins-login-logo {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  font-family: var(--font-display);
-  font-weight: var(--weight-extrabold);
-  font-size: 22px;
-  color: var(--ink-display);
-  letter-spacing: -0.3px;
 }
-.cins-login-logo-mark {
-  display: inline-grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-md);
-  background: var(--cins-blue);
-  color: #fff;
-  font-weight: 800;
-  font-size: 18px;
-  box-shadow: var(--shadow-sm);
-}
-.cins-login-logo-text {
-  display: inline-flex;
-  align-items: baseline;
-  letter-spacing: -0.5px;
-}
-.cins-login-logo-dot {
-  color: var(--cins-blue);
-  font-size: 1.4em;
-  line-height: 0.5;
-  margin: 0 1px;
+.cins-login-logo-img {
+  height: 52px;
+  width: auto;
+  display: block;
 }
 .cins-login-back {
   font-size: var(--text-sm);
@@ -385,6 +361,191 @@
   font-size: 13px;
   color: var(--danger);
   line-height: 1.45;
+}
+
+/* ── Divider giữa Google và form email ── */
+.cins-login-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 14px 0 16px;
+  color: var(--ink-muted);
+  font-size: 12px;
+  font-weight: var(--weight-medium);
+}
+.cins-login-divider::before,
+.cins-login-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ── Form email / mật khẩu ── */
+.cins-login-pw {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.cins-login-pw-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  background: var(--neutral-50, rgba(0, 0, 0, 0.04));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.cins-login-pw-tab {
+  padding: 8px 10px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink-title);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.cins-login-pw-tab:hover:not(:disabled):not(.is-active) {
+  color: var(--cins-blue);
+}
+.cins-login-pw-tab.is-active {
+  background: var(--bg-surface);
+  color: var(--cins-blue);
+  font-weight: var(--weight-semibold);
+  box-shadow: var(--shadow-xs);
+}
+.cins-login-pw-tab:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.cins-login-pw-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cins-login-pw-label {
+  font-size: 13px;
+  font-weight: var(--weight-medium);
+  color: var(--ink-title);
+}
+.cins-login-pw-field input {
+  width: 100%;
+  padding: 12px 14px;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  color: var(--ink-display);
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.cins-login-pw-field input::placeholder {
+  color: var(--ink-muted);
+}
+.cins-login-pw-field input:focus {
+  outline: none;
+  border-color: var(--cins-blue);
+  box-shadow: 0 0 0 3px var(--cins-blue-soft);
+}
+.cins-login-pw-field input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cins-login-pw-input-wrap {
+  position: relative;
+}
+.cins-login-pw-input-wrap input {
+  padding-right: 44px;
+}
+.cins-login-pw-toggle {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.cins-login-pw-toggle:hover:not(:disabled) {
+  color: var(--cins-blue);
+}
+
+.cins-login-pw-error {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--danger);
+}
+.cins-login-pw-notice {
+  margin: 0;
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-body);
+  background: var(--cins-blue-soft);
+  border: 1px solid var(--cins-blue);
+  border-radius: var(--radius-md);
+}
+
+.cins-login-pw-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 13px 22px;
+  margin-top: 2px;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 15px;
+  color: #fff;
+  background: var(--cins-blue);
+  border: 1.5px solid var(--cins-blue);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  box-shadow:
+    var(--shadow-sm),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.cins-login-pw-submit:hover:not(:disabled) {
+  background: var(--cins-blue-dark);
+  border-color: var(--cins-blue-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+.cins-login-pw-submit:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: var(--shadow-xs);
+}
+.cins-login-pw-submit:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+.cins-login-pw-spin {
+  animation: cins-login-rot 0.9s linear infinite;
 }
 
 /* ── Hint divider giữa actions và bullets ── */

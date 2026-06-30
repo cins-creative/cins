@@ -7,6 +7,7 @@ import {
   extractBodyCaption,
 } from "@/lib/journey/post-media";
 import type { BaiDangLoai } from "@/lib/truong/bai-dang";
+import type { OrgBaiDangLoaiOption } from "@/lib/truong/org-bai-dang-loai-options";
 import { mapOrgBaiDangApiRow } from "@/lib/truong/bai-dang-api-fields";
 import { baiDangCoverDisplayUrl } from "@/lib/truong/bai-dang-cover";
 import {
@@ -26,6 +27,10 @@ export type OrgBaiDangComposeConfig = {
    * Showcase studio luôn publish loại `showcase`). Khi set, ẩn dropdown chọn loại.
    */
   forceLoaiBaiDang?: string;
+  /** Danh sách loại bài đăng cho dropdown — mặc định 5 loại trường/cơ sở. */
+  loaiOptions?: OrgBaiDangLoaiOption[];
+  /** Loại mặc định khi soạn bài mới (vd. studio → `khac` = "Bài đăng"). */
+  defaultLoaiBaiDang?: string;
 };
 
 export type PublishOrgBaiDangInput = {

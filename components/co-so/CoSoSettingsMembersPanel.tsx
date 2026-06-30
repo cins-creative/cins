@@ -1,8 +1,9 @@
 "use client";
 
-import { Loader2, Search, Trash2, UserPlus } from "lucide-react";
+import { Crown, Loader2, Search, Trash2, UserPlus } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
+import { TransferOwnerModal } from "@/components/to-chuc/TransferOwnerModal";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import {
   CO_SO_ASSIGNABLE_ROLES,
@@ -21,6 +22,11 @@ type SearchUser = {
 
 type Props = {
   orgId: string;
+  orgSlug: string;
+  orgLabel: string;
+  viewerIsOwner: boolean;
+  /** Base API tài nguyên thành viên, vd `/api/co-so/<id>` hoặc `/api/studio/<id>`. */
+  apiBase?: string;
   members: CoSoMemberAdmin[];
   canManage: boolean;
   onMembersChange: (members: CoSoMemberAdmin[]) => void;
@@ -60,17 +66,27 @@ function isPendingMember(member: CoSoMemberAdmin): boolean {
 
 export function CoSoSettingsMembersPanel({
   orgId,
+  orgSlug,
+  orgLabel,
+  viewerIsOwner,
+  apiBase,
   members,
   canManage,
   onMembersChange,
   onError,
 }: Props) {
+  const base = apiBase ?? `/api/co-so/${encodeURIComponent(orgId)}`;
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchUser[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [addRole, setAddRole] = useState<CoSoStaffVaiTro>("nhan_vien");
   const [inviteTarget, setInviteTarget] = useState<SearchUser | null>(null);
   const [memberPending, setMemberPending] = useState(false);
+  const [transferTarget, setTransferTarget] = useState<CoSoMemberAdmin | null>(
+    null,
+  );
+  const [transferPending, setTransferPending] = useState(false);
+  const [transferError, setTransferError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   const normalizedMembers = useMemo(
@@ -85,7 +101,7 @@ export function CoSoSettingsMembersPanel({
     let cancelled = false;
     void (async () => {
       try {
-        const res = await fetch(`/api/co-so/${encodeURIComponent(orgId)}/members`);
+        const res = await fetch(`${base}/members`);
         const json = (await res.json().catch(() => null)) as {
           members?: CoSoMemberAdmin[];
         } | null;
@@ -98,7 +114,7 @@ export function CoSoSettingsMembersPanel({
     return () => {
       cancelled = true;
     };
-  }, [orgId]);
+  }, [base]);
 
   const memberUserIds = useMemo(
     () => new Set(normalizedMembers.map((member) => member.userId)),
@@ -164,7 +180,7 @@ export function CoSoSettingsMembersPanel({
     startTransition(async () => {
       setMemberPending(true);
       try {
-        const res = await fetch(`/api/co-so/${encodeURIComponent(orgId)}/members`, {
+        const res = await fetch(`${base}/members`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ userId: inviteTarget.id, vaiTro: addRole }),
@@ -200,7 +216,7 @@ export function CoSoSettingsMembersPanel({
     setMemberPending(true);
     try {
       const res = await fetch(
-        `/api/co-so/${encodeURIComponent(orgId)}/members/${encodeURIComponent(member.id)}`,
+        `${base}/members/${encodeURIComponent(member.id)}`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -227,7 +243,7 @@ export function CoSoSettingsMembersPanel({
     setMemberPending(true);
     try {
       const res = await fetch(
-        `/api/co-so/${encodeURIComponent(orgId)}/members/${encodeURIComponent(member.id)}`,
+        `${base}/members/${encodeURIComponent(member.id)}`,
         { method: "DELETE" },
       );
       const json = (await res.json().catch(() => null)) as { error?: string } | null;
@@ -239,6 +255,36 @@ export function CoSoSettingsMembersPanel({
     } finally {
       setMemberPending(false);
     }
+  }
+
+  function onConfirmTransfer(confirmSlug: string) {
+    if (!transferTarget) return;
+    setTransferError(null);
+    setTransferPending(true);
+    void (async () => {
+      try {
+        const res = await fetch(`${base}/transfer-owner`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            membershipId: transferTarget.id,
+            confirmSlug,
+          }),
+        });
+        const json = (await res.json().catch(() => null)) as {
+          members?: CoSoMemberAdmin[];
+          error?: string;
+        } | null;
+        if (!res.ok || !json?.members) {
+          setTransferError(json?.error ?? "Không bàn giao được quyền sở hữu.");
+          return;
+        }
+        onMembersChange(json.members.map(normalizeMember));
+        setTransferTarget(null);
+      } finally {
+        setTransferPending(false);
+      }
+    })();
   }
 
   const inviteTargetName =
@@ -299,6 +345,24 @@ export function CoSoSettingsMembersPanel({
                 {coSoVaiTroLabel(member.vaiTro)}
               </span>
             )}
+            {viewerIsOwner &&
+            member.editable &&
+            !member.isSelf &&
+            member.trangThai === "active" ? (
+              <button
+                type="button"
+                className="cso-settings-member-transfer"
+                title={`Bàn giao quyền sở hữu cho ${member.tenHienThi}`}
+                aria-label={`Bàn giao quyền sở hữu cho ${member.tenHienThi}`}
+                disabled={memberPending || pending}
+                onClick={() => {
+                  setTransferError(null);
+                  setTransferTarget(member);
+                }}
+              >
+                <Crown size={14} aria-hidden />
+              </button>
+            ) : null}
             {canManage && member.editable && !member.isSelf ? (
               <button
                 type="button"
@@ -450,6 +514,22 @@ export function CoSoSettingsMembersPanel({
           Chỉ quản trị viên mới mời hoặc đổi quyền người khác.
         </p>
       )}
+
+      <TransferOwnerModal
+        open={Boolean(transferTarget)}
+        orgSlug={orgSlug}
+        orgLabel={orgLabel}
+        targetName={transferTarget?.tenHienThi ?? ""}
+        pending={transferPending}
+        error={transferError}
+        onConfirm={onConfirmTransfer}
+        onClose={() => {
+          if (!transferPending) {
+            setTransferTarget(null);
+            setTransferError(null);
+          }
+        }}
+      />
     </section>
   );
 }

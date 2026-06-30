@@ -14,10 +14,6 @@ export default function NotFound() {
       </h1>
       <p className="max-w-md text-zinc-600">
         Đường dẫn không đúng, bài chưa xuất bản, hoặc chưa cấu hình Supabase. Thử{" "}
-        <Link href="/bai-viet" className="font-semibold text-blue-700 underline">
-          danh sách bài viết
-        </Link>{" "}
-        hoặc{" "}
         <Link href="/" className="font-semibold text-blue-700 underline">
           về trang chủ
         </Link>

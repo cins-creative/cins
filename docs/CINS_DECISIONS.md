@@ -22,6 +22,8 @@
 | O10 | Gom nhiều khóa → "Chương trình học" (lộ trình 6–12 tháng, kiểu Keyframe CTH) | **Defer cứng** | Khi có org thật cần track dài hạn nhiều khóa nối tiếp. Sine Art không cần (dạy theo môn rời). |
 | O11 | `org_giao_trinh.loai` (phân loại bài: bắt buộc / tùy chọn / project) | **Defer** | Khi org thật yêu cầu phân loại bài trong lộ trình; hiện `mo_ta_chi_tiet` + `thu_tu` + `so_buoi` đủ. |
 | O12 | Học phí theo gói tháng (1/2/3/6) cho mô hình liên tục | **Defer** | `org_khoa_hoc.hoc_phi` đọc là giá/tháng ở MVP. Thêm bảng giá bundle khi có nhu cầu thật. |
+| O14 | Escape hatch cho CINs admin trên trang org người khác (đổi owner / quản member / cứu hộ) — đặt ở đâu? | **Defer** — sau L20 admin KHÔNG còn god-mode inline trên trang org | Khi có ca cứu hộ thật (org bỏ hoang, owner mất tài khoản). Ưu tiên thêm vào trang `/admin` (trục 1) thay vì mở lại short-circuit trên front-end. |
+| O15 | Tỉ lệ chèn bài org chưa-follow vào feed giữa + có nên chèn không? | **Tạm 1 org / 10 người, tối đa 1 bài/org, gắn nhãn "Gợi ý", không engagement-sort** (L21 #3) | Khi đo được feed thật: org-post có bị bỏ qua / báo phiền không. Có thể hạ về 0 (chỉ giữ kênh gợi ý + attribution) nếu chèn feed gây loãng. Chốt trước khi scale ngoài cohort đầu. |
 
 > O7 (lớp "uy tín/hữu ích" cho `content_thao_luan`) → **đã đóng / không còn áp dụng** (xem L12): `content_thao_luan` đã bỏ, thảo luận giờ là comment trên cột mốc.
 
@@ -30,6 +32,28 @@
 ---
 
 ## LOG — quyết định đã chốt
+
+### Phân bổ nội dung org ≠ phân bổ user (2026-06-30)
+
+- **L21 — Org không "chen" vào trang chủ người lạ; reach hữu cơ qua 3 kênh, có rào chắn.**
+  Bài *người* lan tỏa theo 3 lớp visibility (L18). Bài *org* (`org_bai_dang`, org tự kể — **không** verify) bất đối xứng: chỉ org **đã theo dõi** mới vào feed giữa đầy đủ. Org chưa theo dõi tiếp cận người lạ qua:
+  1. **Gợi ý theo dõi org** (module `goi_y_theo_doi`): chấm điểm theo **bạn chung theo dõi org** (mạnh nhất) + **cùng tỉnh/thành** + **hợp `giai_doan`→`loai_to_chuc`** + **còn hoạt động** (có `org_bai_dang` gần đây). **Match theo ngành/nghề chỉ làm được với `truong_dai_hoc`** (`org_truong_nganh.id_nganh`); `co_so_dao_tao`/`studio` **chưa có** bảng nối org↔nghề → dùng tín hiệu còn lại.
+  2. **Attribution tác phẩm verified member**: học viên hiện "học tại khóa X @ org", nhân viên studio hiện "làm tại dự án Z @ studio Y" (Verify Loại 2). User thấy tác phẩm đẹp → funnel sang trang org → follow. Kênh đẹp nhất (dùng moat verify, gần như 0 push).
+  3. **Chèn feed tỉ lệ thấp** (xem O15): bài org *liên quan* (dùng lại bộ chấm điểm #1) chèn vào feed giữa với **hạn mức cứng** (~1 bài org / 10 bài người), **tối đa 1 bài/org/lần tải**, gắn nhãn **"Gợi ý"**, **không** xếp theo engagement. Né free-ads + giữ lằn ranh reach trả phí → `ad_` phase sau.
+- **Cộng đồng (`cong_dong`) — bài KHÔNG rò ra feed; chỉ lan tỏa "căn phòng".**
+  Bài `che_do_hien_thi='cong_dong'` giữ trong feed cộng đồng (đã loại trừ khỏi World Journey feed — quy tắc 26, L18). Lan tỏa cộng đồng = (a) gợi ý **"Tham gia cộng đồng X"** cho người hợp gu, (b) bài "tốt nghiệp" sang `public`/`theo_nhom` → chảy ra theo đường của *người*. Giữ tính phòng-riêng (chống spam).
+- **Bất biến giữ nguyên**: số follower **ẩn** (L18); không feed thuật toán toàn cục / engagement-rank (quy tắc 22, O13); org reach hữu cơ **siết hơn** user `feature` (chừa đất `ad_`).
+- *Thứ tự build*: gợi ý org (#1) → attribution studio (#2) → cộng đồng → chèn feed (#3, đụng luật feed, làm sau cùng).
+- *Hệ quả file*: FOUNDATIONS quy tắc 22 (thêm bất đối xứng org); §13 (việc tương lai: bảng nối org↔nghề cho `co_so`/`studio`). Mở **O15**. IMPLEMENTATION: `lib/cins/home-adaptive/suggestions.ts` (gợi ý org), `lib/cins/worldJourneyFeedFetch.ts` (chèn tỉ lệ thấp — bước sau).
+
+### Tách trục quyền: admin hệ thống ≠ sửa trang org (2026-06-30)
+
+- **L20 — Inline-edit / vận hành trang org = TRỤC 2 (membership) thuần; quyền admin hệ thống (trục 1) KHÔNG tự mở khoá.**
+  • Bỏ short-circuit `getCurrentUserIsCinsAdmin()` ở: `getOrgAdminStatus` + `isTruongOrgAdmin` (`lib/truong/org-admin.ts`), `isStudioOrgAdmin` + `assertCanManageMembers` + `transferStudioOwnership` (`studio-members.ts`), `isCoSoOrgAdmin` (`co-so-membership.ts`), `assertCanManageMembers` + transfer (`co-so-members.ts`), transfer cộng đồng (`cong-dong/members.ts`), viewer settings (`truong-settings.ts` / `co-so-settings.ts`), `canViewerManageKhoaHoc` (`khoa-hoc.ts`), `canViewerManageSuKien` (`su-kien.ts`). Tất cả CHỈ còn dựa `user_thanh_vien_to_chuc.vai_tro`.
+  • CINs admin (trục 1) can thiệp qua **trang `/admin`** — `app/api/admin/*` **giữ nguyên** gate `getCurrentUserIsCinsAdmin`. Admin KHÔNG "đi vào" trang org của người khác để inline-edit.
+  • Lý do: 1 tài khoản (vd `CINs_Official` = super_admin `info.cins.vn@gmail.com`) vừa là admin vừa là user thường — không để god-mode toolbar lộ trên mọi trang.
+  • Hệ quả: chưa có UI cứu hộ (đổi owner / quản member) cho admin trên trang người khác → xem câu treo **O14**.
+  • Data: studio/cộng đồng/cơ sở legacy pattern cũ (system=owner + creator=admin) chuẩn hoá thủ công về creator=owner; `CINs_Official` gỡ khỏi mọi org không phải của mình.
 
 ### Trang chủ adaptive theo `giai_doan` (2026-06-28)
 

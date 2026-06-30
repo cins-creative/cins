@@ -604,10 +604,13 @@ export function EditorView({
     const first = sortedCongDongFilters[0]?.slug;
     return first ? [first] : [];
   });
-  const [composeLoaiBaiDang, setComposeLoaiBaiDang] = useState<BaiDangLoai>(
+  const [composeLoaiBaiDang, setComposeLoaiBaiDang] = useState<string>(
     () => {
       if (initial?.orgBaiDangLoai) {
         return normalizeLoaiBaiDang(initial.orgBaiDangLoai);
+      }
+      if (orgBaiDangCompose?.defaultLoaiBaiDang) {
+        return orgBaiDangCompose.defaultLoaiBaiDang;
       }
       if (initial?.blocks?.length) {
         return defaultLoaiBaiDangFromBlocks(initial.blocks);
@@ -1704,6 +1707,7 @@ export function EditorView({
                 <OrgBaiDangLoaiComposeDropdown
                   value={composeLoaiBaiDang}
                   onChange={setComposeLoaiBaiDang}
+                  options={orgBaiDangCompose.loaiOptions}
                   menuZIndex={9200}
                 />
               )}

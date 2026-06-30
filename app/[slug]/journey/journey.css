@@ -294,13 +294,12 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
 }
 .j-profile-action-row {
   display: grid;
-  grid-template-columns: 42px 42px 42px;
+  grid-template-columns: repeat(3, 1fr);
   gap: 8px;
   align-items: stretch;
-  justify-content: start;
 }
 .j-profile-action-row:not(:has(.j-follow-wrap)) {
-  grid-template-columns: 42px;
+  grid-template-columns: 1fr;
 }
 .j-act-btn {
   display: inline-flex;
@@ -365,19 +364,30 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   background: var(--neutral-100, #f1f2f5);
   color: var(--ink-body);
 }
+
+/* Hàng 3 nút phụ (theo dõi / kết bạn / chia sẻ): fill đều, icon trên + chữ nhỏ dưới. */
 .j-profile-action-row .j-follow-wrap {
   min-width: 0;
 }
-.j-profile-action-row .j-friend-btn {
+.j-profile-action-row .j-friend-btn,
+.j-profile-action-row .j-act-btn--icon {
   width: 100%;
   min-width: 0;
-  height: 42px;
-  padding: 0;
+  height: auto;
+  min-height: 56px;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 4px;
   border-radius: 12px;
-  font-size: 12px;
-  gap: 5px;
 }
-.j-profile-action-row .j-friend-btn-label {
+.j-profile-action-row .j-friend-btn-label,
+.j-profile-action-row .j-act-btn-cap {
+  display: block;
+  max-width: 100%;
+  font-size: 10.5px;
+  font-weight: var(--weight-semibold);
+  line-height: 1.2;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -1143,6 +1153,11 @@ a.j-main-gallery-item:focus-visible {
     radial-gradient(circle at 16% 24%, rgba(110, 254, 192, 0.42), transparent 34%),
     linear-gradient(135deg, #0e6b4d 0%, #1a8f66 55%, #0f172a 100%);
 }
+.j-gallery-org-card__hero.is-studio {
+  background:
+    radial-gradient(circle at 16% 24%, rgba(196, 181, 253, 0.45), transparent 34%),
+    linear-gradient(135deg, #7c3aed 0%, #9d5cff 55%, #0f172a 100%);
+}
 .j-gallery-org-card__cover {
   position: absolute;
   inset: 0;
@@ -1236,6 +1251,9 @@ a.j-main-gallery-item:focus-visible {
 }
 .j-main-gallery-item.is-co-so .j-gallery-org-card__kicker {
   color: #0e6b4d;
+}
+.j-main-gallery-item.is-studio .j-gallery-org-card__kicker {
+  color: #7c3aed;
 }
 .j-gallery-org-card__title {
   margin: 4px 0 0;
@@ -10177,6 +10195,43 @@ select.j-edit-input {
   color: #fff;
   filter: brightness(1.03);
   transform: translateY(-1px);
+}
+
+/* ── Milestone: tạo studio — violet hero (giống cơ sở đào tạo) ────── */
+.j-milestone.j-studio-create .j-m-card {
+  cursor: default;
+  border-left: none;
+}
+.j-milestone.j-studio-create.j-verified .j-m-diamond {
+  box-shadow:
+    0 0 0 2px var(--bg-page),
+    0 0 0 3.5px #7c3aed;
+}
+.jcard--studio {
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, #7c3aed 14%, var(--border));
+  border-radius: var(--radius-lg, 20px);
+  background:
+    linear-gradient(var(--bg-surface), var(--bg-surface)) padding-box,
+    linear-gradient(135deg, rgba(124, 58, 237, 0.32), rgba(196, 181, 253, 0.42)) border-box;
+  box-shadow: var(--shadow-sm);
+}
+.jcard--studio .jcs-cover {
+  background:
+    radial-gradient(circle at 18% 22%, rgba(196, 181, 253, 0.4), transparent 30%),
+    linear-gradient(135deg, #7c3aed 0%, #9d5cff 52%, #0f172a 100%);
+}
+.jcard--studio .jcs-logo--fallback {
+  background: linear-gradient(135deg, #ede9fe, #f5f3ff);
+  color: #7c3aed;
+}
+.jcard--studio .jcs-kicker {
+  color: #7c3aed;
+}
+.j-type-studio {
+  background: color-mix(in srgb, #7c3aed 12%, #fff);
+  color: #7c3aed;
+  border-color: color-mix(in srgb, #7c3aed 22%, var(--border));
 }
 
 /* ── Milestone: cột mốc danh tính chờ xác thực (timeline) ─────────── */

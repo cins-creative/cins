@@ -105,6 +105,7 @@ export function WorldJourneyFeedTimeline({
           year={yb.year}
           milestones={yb.milestones}
           entityLens
+          analyticsNguon="journey_home"
           viewerProfileId={viewerProfileId}
           inlineExpand={inlineExpand}
           onTogglePost={handleToggleContent}

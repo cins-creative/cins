@@ -1,5 +1,6 @@
 "use client";
 
+import { Globe, Mail, MapPin, Phone } from "lucide-react";
 import { useState } from "react";
 
 import { TruongChiNhanhTableModal } from "@/components/truong/TruongChiNhanhTableModal";
@@ -11,6 +12,7 @@ import {
 import {
   buildSchoolSidebarContactLines,
   buildTruongContactLines,
+  type TruongContactLine,
 } from "@/lib/truong/contact";
 import type { TruongListItem } from "@/lib/truong/types";
 
@@ -84,6 +86,19 @@ function ContactIcon({
   );
 }
 
+function sidebarContactIcon(kind: TruongContactLine["kind"]) {
+  switch (kind) {
+    case "phone":
+      return Phone;
+    case "email":
+      return Mail;
+    case "web":
+      return Globe;
+    default:
+      return MapPin;
+  }
+}
+
 export function TruongSchoolContact({
   school,
   isEditing,
@@ -119,78 +134,70 @@ export function TruongSchoolContact({
   if (variant === "sidebar") {
     return (
       <>
-        <div className="ss-contact" aria-label="Liên hệ trường">
-          {primaryLines.map((line) => (
-            <div
-              key={`${line.kind}-${line.label}-${line.value}`}
-              className="ss-contact-row"
-              aria-label={line.label}
-            >
-              <span
-                className={`ss-contact-icon${
-                  line.kind === "facebook" ? " ss-contact-icon--facebook" : ""
-                }`}
-                aria-hidden
+        <ul className="studio-ss-contact-list" aria-label="Liên hệ trường">
+          {primaryLines.map((line) => {
+            const Icon = sidebarContactIcon(line.kind);
+            const opensNewTab =
+              line.kind === "web" || line.kind === "facebook";
+            return (
+              <li
+                key={`${line.kind}-${line.label}-${line.value}`}
+                className="studio-ss-contact-item"
               >
-                <ContactIcon kind={line.kind} />
-              </span>
-              <div className="ss-contact-body">
-                {line.kind === "address" && primaryBranch ? (
-                  <div className="ss-contact-branch-name">{primaryBranch.ten}</div>
-                ) : null}
+                {line.kind === "facebook" ? (
+                  <span
+                    className="studio-ss-contact-icon-fb"
+                    aria-hidden
+                  >
+                    <ContactIcon kind={line.kind} />
+                  </span>
+                ) : (
+                  <Icon size={15} strokeWidth={2} aria-hidden />
+                )}
                 {line.href ? (
                   <a
                     href={line.href}
-                    className="ss-contact-val"
-                    target={
-                      line.kind === "web" || line.kind === "facebook"
-                        ? "_blank"
-                        : undefined
-                    }
-                    rel={
-                      line.kind === "web" || line.kind === "facebook"
-                        ? "noopener noreferrer"
-                        : undefined
-                    }
+                    target={opensNewTab ? "_blank" : undefined}
+                    rel={opensNewTab ? "noopener noreferrer" : undefined}
                   >
                     {line.value}
                   </a>
                 ) : (
-                  <div className="ss-contact-val">{line.value}</div>
+                  <span>{line.value}</span>
                 )}
-              </div>
+              </li>
+            );
+          })}
+        </ul>
+        {otherBranchCount > 0 ? (
+          <div className="ss-contact-branches" aria-label="Hệ thống cơ sở">
+            <div className="ss-contact-branches-head">
+              Hệ thống cơ sở · {branches.length}
             </div>
-          ))}
-          {otherBranchCount > 0 ? (
-            <div className="ss-contact-branches" aria-label="Hệ thống cơ sở">
-              <div className="ss-contact-branches-head">
-                Hệ thống cơ sở · {branches.length}
-              </div>
-              <ul className="ss-contact-branch-list" role="list">
-                {otherBranches.map((branch, index) => (
-                  <li key={branch.id} className="ss-contact-branch">
-                    <span className="ss-contact-branch-idx" aria-hidden>
-                      {index + 2}
-                    </span>
-                    <div className="ss-contact-branch-info">
-                      <div className="ss-contact-branch-name">{branch.ten}</div>
-                      <div className="ss-contact-branch-addr">
-                        {formatChiNhanhAddress(branch)}
-                      </div>
+            <ul className="ss-contact-branch-list" role="list">
+              {otherBranches.map((branch, index) => (
+                <li key={branch.id} className="ss-contact-branch">
+                  <span className="ss-contact-branch-idx" aria-hidden>
+                    {index + 2}
+                  </span>
+                  <div className="ss-contact-branch-info">
+                    <div className="ss-contact-branch-name">{branch.ten}</div>
+                    <div className="ss-contact-branch-addr">
+                      {formatChiNhanhAddress(branch)}
                     </div>
-                  </li>
-                ))}
-              </ul>
-              <button
-                type="button"
-                className="ss-contact-more-branches"
-                onClick={() => setBranchesOpen(true)}
-              >
-                Xem chi tiết liên hệ từng cơ sở
-              </button>
-            </div>
-          ) : null}
-        </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <button
+              type="button"
+              className="ss-contact-more-branches"
+              onClick={() => setBranchesOpen(true)}
+            >
+              Xem chi tiết liên hệ từng cơ sở
+            </button>
+          </div>
+        ) : null}
         <TruongChiNhanhTableModal
           open={branchesOpen}
           onClose={() => setBranchesOpen(false)}

@@ -1,6 +1,6 @@
 "use client";
 
-import { UserCheck, UserPlus } from "lucide-react";
+import { Check, Rss } from "lucide-react";
 import { useCallback, useEffect, useState, useTransition } from "react";
 
 import { useAuthGate } from "@/components/auth/AuthGateProvider";
@@ -95,9 +95,9 @@ export function JourneyUserFollowButton({
         onClick={toggle}
       >
         {following ? (
-          <UserCheck size={15} strokeWidth={2} aria-hidden />
+          <Check size={17} strokeWidth={2} aria-hidden />
         ) : (
-          <UserPlus size={15} strokeWidth={2} aria-hidden />
+          <Rss size={17} strokeWidth={2} aria-hidden />
         )}
         {compact ? null : <span className="j-friend-btn-label">{label}</span>}
       </button>

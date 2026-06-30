@@ -58,11 +58,12 @@ export default async function OnboardingPage({
       </div>
 
       <header className="cins-onb-top">
-        <Link href="/" className="cins-onb-logo" aria-label="Về trang chủ CINs">
-          <span className="cins-onb-logo-mark">C</span>
-          <span className="cins-onb-logo-text">
-            C<span className="cins-onb-logo-dot">.</span>INS
-          </span>
+        <Link href="/" className="cins-onb-logo" aria-label="Về trang chủ C.INS">
+          <img
+            src="/assets/logo-cins-wide.svg"
+            alt="C.INS"
+            className="cins-onb-logo-img"
+          />
         </Link>
         <OnboardingSignOut />
       </header>

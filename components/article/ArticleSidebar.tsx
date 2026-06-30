@@ -132,12 +132,8 @@ export function ArticleSidebar({ lienQuan }: { lienQuan: ArticleCard[] }) {
         <div className="side-card">
           <SideCardHeader title="Bài viết liên quan" hint="Trống" />
           <p className="side-card-lead">
-            Bài này chưa được gắn liên kết tới bài khác trong hệ thống. Bạn có thể
-            xem danh sách bài đã xuất bản.
+            Bài này chưa được gắn liên kết tới bài khác trong hệ thống.
           </p>
-          <Link href="/bai-viet" className="side-card-cta-link">
-            Mở danh sách bài viết →
-          </Link>
         </div>
       ) : (
         <ArticleSidebarTabs

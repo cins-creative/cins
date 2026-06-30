@@ -5469,6 +5469,36 @@ a.cd-v4-role-menu-btn {
   white-space: nowrap;
 }
 
+.cd-v4-members-row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cd-v4-members-transfer {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--border, #e4e6eb);
+  background: #fff;
+  color: var(--ink-muted, #65676b);
+  cursor: pointer;
+}
+
+.cd-v4-members-transfer:hover {
+  background: #fef3c7;
+  border-color: #fcd34d;
+  color: #b45309;
+}
+
+.cd-v4-members-transfer:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .cd-v4-members-err {
   margin: 0;
   padding: 10px 12px;

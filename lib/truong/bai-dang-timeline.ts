@@ -94,6 +94,9 @@ export function sortBaiDangByTaoLuc(
   posts: ReadonlyArray<TruongBaiDang>,
 ): TruongBaiDang[] {
   return [...posts].sort((a, b) => {
+    const pinA = a.ghim ? 1 : 0;
+    const pinB = b.ghim ? 1 : 0;
+    if (pinB !== pinA) return pinB - pinA;
     const ta = a.tao_luc ? new Date(a.tao_luc).getTime() : 0;
     const tb = b.tao_luc ? new Date(b.tao_luc).getTime() : 0;
     return tb - ta;
@@ -115,6 +118,9 @@ export function groupBaiDangByYear(
     .map(([year, yearPosts]) => ({
       year,
       posts: [...yearPosts].sort((a, b) => {
+        const pinA = a.ghim ? 1 : 0;
+        const pinB = b.ghim ? 1 : 0;
+        if (pinB !== pinA) return pinB - pinA;
         const ta = a.tao_luc ? new Date(a.tao_luc).getTime() : 0;
         const tb = b.tao_luc ? new Date(b.tao_luc).getTime() : 0;
         return tb - ta;

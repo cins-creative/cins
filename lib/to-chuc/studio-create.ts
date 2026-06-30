@@ -1,6 +1,5 @@
 import "server-only";
 
-import { getCinsSystemUserId } from "@/lib/cong-dong/cins-system";
 import {
   isOrgSlugTaken,
   slugifyOrgName,
@@ -136,16 +135,6 @@ export async function createStudioOrg(
     };
   }
 
-  let cinsOwnerId: string;
-  try {
-    cinsOwnerId = getCinsSystemUserId();
-  } catch (e) {
-    return {
-      ok: false,
-      error: e instanceof Error ? e.message : "Thiếu CINS_SYSTEM_USER_ID.",
-    };
-  }
-
   const admin = createServiceRoleClient();
 
   const cauHinh: Record<string, unknown> = {};
@@ -185,26 +174,18 @@ export async function createStudioOrg(
     await admin.from("org_to_chuc").delete().eq("id", org.id);
   };
 
-  const { error: ownerError } = await admin.from("user_thanh_vien_to_chuc").insert({
-    id_to_chuc: org.id,
-    id_nguoi_dung: cinsOwnerId,
-    vai_tro: "owner",
-  });
-  if (ownerError) {
-    await rollbackAll();
-    return { ok: false, error: ownerError.message };
-  }
-
-  const { error: adminMemberError } = await admin
+  // Người tạo = owner (quyền tối đa). CINs admin truy cập qua quyền hệ thống,
+  // không cần thêm tài khoản hệ thống vào org.
+  const { error: ownerError } = await admin
     .from("user_thanh_vien_to_chuc")
     .insert({
       id_to_chuc: org.id,
       id_nguoi_dung: creatorId,
-      vai_tro: "admin",
+      vai_tro: "owner",
     });
-  if (adminMemberError) {
+  if (ownerError) {
     await rollbackAll();
-    return { ok: false, error: adminMemberError.message };
+    return { ok: false, error: ownerError.message };
   }
 
   const milestone = await createStudioCreatorMilestone({

@@ -38,6 +38,7 @@ type OrgRow = {
 function orgPublicHref(org: OrgRow): string | null {
   if (org.loai_to_chuc === "cong_dong") return `/cong-dong/${org.slug}`;
   if (org.loai_to_chuc === "co_so_dao_tao") return `/co-so/${org.slug}`;
+  if (org.loai_to_chuc === "studio") return `/studio/${org.slug}`;
   if (org.loai_to_chuc === "truong_dai_hoc") {
     return truongRootPath(org.slug);
   }
@@ -151,6 +152,28 @@ export async function loadVerifiedMetaForCotMocs(
           slug: org.slug,
           isOrg: true,
           orgKind: "co_so_dao_tao",
+          href: orgPublicHref(org),
+        },
+        orgHref: orgPublicHref(org),
+      });
+      continue;
+    }
+
+    if (org?.loai_to_chuc === "studio") {
+      const avatarUrl = getAvatarUrl(org.avatar_id);
+      const coverUrl = getCoverUrl(org.cover_id);
+      const isMembership = membershipApprovedIds.has(row.id_cot_moc);
+      out.set(row.id_cot_moc, {
+        verifiedBy: `✓ ${org.ten}`,
+        attribution: {
+          name: org.ten,
+          role: isMembership ? "Xác nhận bởi tổ chức" : "Người tạo studio",
+          avatarUrl,
+          coverUrl: isMembership ? null : coverUrl,
+          initial: org.ten.charAt(0).toUpperCase(),
+          slug: org.slug,
+          isOrg: true,
+          orgKind: "studio",
           href: orgPublicHref(org),
         },
         orgHref: orgPublicHref(org),

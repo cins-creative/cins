@@ -145,7 +145,8 @@ function formatVnDate(iso: string | null | undefined): string {
 function isOrgCreateGalleryStub(entry: GalleryStub): boolean {
   return (
     entry.cardLayout === "cong-dong-create" ||
-    entry.cardLayout === "co-so-create"
+    entry.cardLayout === "co-so-create" ||
+    entry.cardLayout === "studio-create"
   );
 }
 

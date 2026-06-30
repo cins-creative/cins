@@ -1,5 +1,4 @@
 import Image from "next/image";
-import Link from "next/link";
 
 import { ArticleJsonLd } from "@/components/article/ArticleJsonLd";
 import { InlineArticleDraftBar } from "@/components/article/InlineArticleDraftBar";
@@ -175,9 +174,6 @@ export async function MonHocArticleView({
                     Xem thêm môn học, ngành đào tạo và nghề nghiệp liên quan
                     trên CINs.
                   </p>
-                  <Link href="/bai-viet" className="tb-cta nghe-quiz-cta">
-                    Mở thư viện bài viết →
-                  </Link>
                 </div>
               </aside>
             </div>

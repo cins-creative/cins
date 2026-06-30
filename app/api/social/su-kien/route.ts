@@ -1,24 +1,46 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
-import { getCotMocInsight, recordSuKien } from "@/lib/social/su-kien";
+import {
+  getCotMocInsight,
+  getOrgBaiDangInsight,
+  recordSuKien,
+} from "@/lib/social/su-kien";
 import { isUuid } from "@/lib/social/su-kien-constants";
 
 /**
- * GET /api/social/su-kien?cotMocId=... — số liệu tiếp cận của 1 cột mốc.
- * Chỉ chủ bài cá nhân hoặc quản trị viên tổ chức (server enforce). 403 nếu không đủ quyền.
+ * GET /api/social/su-kien — số liệu tiếp cận RIÊNG TƯ của 1 đối tượng.
+ *   - `?cotMocId=...`  → cột mốc (chủ bài / người được gắn / quản trị org)
+ *   - `?baiDangId=...` → bài đăng tổ chức (chỉ quản trị viên tổ chức)
+ * Server enforce quyền; 403 nếu không đủ quyền.
  */
 export async function GET(req: Request) {
-  const cotMocId = new URL(req.url).searchParams.get("cotMocId");
-  if (!isUuid(cotMocId)) {
-    return NextResponse.json({ error: "Thiếu cotMocId hợp lệ." }, { status: 400 });
+  const params = new URL(req.url).searchParams;
+  const cotMocId = params.get("cotMocId");
+  const baiDangId = params.get("baiDangId");
+
+  const target = cotMocId
+    ? { loai: "cot_moc" as const, id: cotMocId }
+    : baiDangId
+      ? { loai: "org_bai_dang" as const, id: baiDangId }
+      : null;
+  if (!target || !isUuid(target.id)) {
+    return NextResponse.json(
+      { error: "Thiếu cotMocId hoặc baiDangId hợp lệ." },
+      { status: 400 },
+    );
   }
+
   const session = await getCurrentSessionAndProfile().catch(() => null);
   const requesterId = session?.profile?.id ?? null;
   if (!requesterId) {
     return NextResponse.json({ error: "Cần đăng nhập." }, { status: 401 });
   }
-  const insight = await getCotMocInsight(cotMocId, requesterId);
+
+  const insight =
+    target.loai === "cot_moc"
+      ? await getCotMocInsight(target.id, requesterId)
+      : await getOrgBaiDangInsight(target.id, requesterId);
   if (!insight) {
     return NextResponse.json(
       { error: "Bạn không có quyền xem số liệu nội dung này." },

@@ -431,7 +431,58 @@
   text-decoration: underline;
 }
 
-/* Liên hệ — icon rows */
+/* Liên hệ — studio list (TruongSchoolContact sidebar) */
+.tdh-page--cso .cso-ss-card .studio-ss-contact-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tdh-page--cso .cso-ss-card .studio-ss-contact-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--ink-body, #334155);
+}
+
+.tdh-page--cso .cso-ss-card .studio-ss-contact-item svg,
+.tdh-page--cso .cso-ss-card .studio-ss-contact-icon-fb {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--ink-muted, #64748b);
+}
+
+.tdh-page--cso .cso-ss-card .studio-ss-contact-icon-fb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+}
+
+.tdh-page--cso .cso-ss-card .studio-ss-contact-icon-fb svg {
+  width: 15px;
+  height: 15px;
+}
+
+.tdh-page--cso .cso-ss-card .studio-ss-contact-item a {
+  color: var(--cins-blue, #1f74c9);
+  word-break: break-word;
+}
+
+.tdh-page--cso .cso-ss-card .ss-contact-empty {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.4));
+}
+
+/* Liên hệ — icon rows (legacy ss-contact-row — giữ cho trang khác nếu còn dùng) */
 .tdh-page--cso .cso-ss-card .ss-contact {
   display: block;
 }

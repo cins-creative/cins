@@ -319,6 +319,90 @@ export async function addCongDongMemberBySlug(params: {
   });
 }
 
+/**
+ * Bàn giao quyền sở hữu cộng đồng cho thành viên khác.
+ * Chỉ owner hiện tại (hoặc CINs admin). Owner cũ → admin; người nhận → owner.
+ */
+export async function transferCongDongOwnership(params: {
+  orgId: string;
+  actorId: string;
+  membershipId: string;
+  confirmSlug: string;
+}): Promise<
+  { ok: true; members: CongDongMemberAdmin[] } | { ok: false; error: string }
+> {
+  const admin = createServiceRoleClient();
+  const { data: org } = await admin
+    .from("org_to_chuc")
+    .select("id, slug, ten")
+    .eq("id", params.orgId)
+    .eq("loai_to_chuc", "cong_dong")
+    .maybeSingle<{ id: string; slug: string; ten: string }>();
+  if (!org?.id) {
+    return { ok: false, error: "Không tìm thấy cộng đồng." };
+  }
+
+  if (
+    params.confirmSlug.trim().toLowerCase() !== org.slug.trim().toLowerCase()
+  ) {
+    return { ok: false, error: "Tên xác nhận không khớp đường dẫn cộng đồng." };
+  }
+
+  const actorRole = await getViewerVaiTroInOrg(params.actorId, params.orgId);
+  if (actorRole !== "owner") {
+    return { ok: false, error: "Chỉ chủ sở hữu mới bàn giao quyền sở hữu." };
+  }
+
+  const { data: target } = await admin
+    .from("user_thanh_vien_to_chuc")
+    .select("id, id_nguoi_dung, vai_tro, trang_thai")
+    .eq("id", params.membershipId)
+    .eq("id_to_chuc", params.orgId)
+    .maybeSingle<{
+      id: string;
+      id_nguoi_dung: string;
+      vai_tro: string;
+      trang_thai: string;
+    }>();
+
+  if (!target || !isCongDongCommunityRole(target.vai_tro)) {
+    return { ok: false, error: "Không tìm thấy thành viên." };
+  }
+  if (target.trang_thai !== "active") {
+    return { ok: false, error: "Chỉ bàn giao được cho thành viên đã tham gia." };
+  }
+  if (target.vai_tro === "owner") {
+    return { ok: false, error: "Thành viên này đã là chủ sở hữu." };
+  }
+  if (target.id_nguoi_dung === params.actorId) {
+    return { ok: false, error: "Không thể bàn giao cho chính mình." };
+  }
+
+  const { error: demoteError } = await admin
+    .from("user_thanh_vien_to_chuc")
+    .update({ vai_tro: "admin" })
+    .eq("id_to_chuc", params.orgId)
+    .eq("vai_tro", "owner");
+  if (demoteError) {
+    return { ok: false, error: demoteError.message };
+  }
+
+  const { error: promoteError } = await admin
+    .from("user_thanh_vien_to_chuc")
+    .update({ vai_tro: "owner", trang_thai: "active" })
+    .eq("id", target.id);
+  if (promoteError) {
+    return { ok: false, error: promoteError.message };
+  }
+
+  const refreshed = await listCongDongMembers({
+    orgId: params.orgId,
+    actorId: params.actorId,
+  });
+  if (!refreshed.ok) return refreshed;
+  return { ok: true, members: refreshed.members };
+}
+
 export async function updateCongDongMemberRole(params: {
   orgId: string;
   actorId: string;

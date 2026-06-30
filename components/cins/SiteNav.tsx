@@ -44,9 +44,13 @@ export function CinsAppSidebar() {
       id="app-sidebar"
       aria-label="Điều hướng chính"
     >
-      <Link href="/" className="sb-brand" aria-label="CINs trang chủ">
-        <div className="sb-brand-mark">C</div>
-        <div className="sb-brand-text">CINs</div>
+      <Link href="/" className="sb-brand" aria-label="C.INS trang chủ">
+        <div className="sb-brand-mark">
+          <img src="/assets/logo-cins-icon.svg" alt="" />
+        </div>
+        <div className="sb-brand-text">
+          <img src="/assets/logo-cins-wide.svg" alt="C.INS" />
+        </div>
       </Link>
       <ul className="sb-list">
         {MAIN_NAV_ITEMS.map((item) => (

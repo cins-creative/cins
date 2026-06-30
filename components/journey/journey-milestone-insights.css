@@ -12,6 +12,8 @@
 
 .jmi-modal {
   width: min(460px, 100%);
+  max-height: min(86vh, 720px);
+  overflow-y: auto;
   background: var(--surface, #fff);
   color: var(--text, #0f172a);
   border-radius: 16px;
@@ -130,11 +132,111 @@
   color: #dc2626;
 }
 
+.jmi-section {
+  margin-top: 16px;
+}
+
+.jmi-section-title {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted, #64748b);
+}
+
+.jmi-split {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.jmi-split-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(37, 99, 235, 0.07);
+}
+
+.jmi-split-ico {
+  color: #2563eb;
+  margin-bottom: 4px;
+}
+
+.jmi-split-num {
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.jmi-split-lbl {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.jmi-split-hint {
+  font-size: 11px;
+  color: var(--text-muted, #64748b);
+}
+
+.jmi-bars {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.jmi-bar-row {
+  display: grid;
+  grid-template-columns: 120px 1fr auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.jmi-bar-lbl {
+  font-size: 12.5px;
+  color: var(--text, #0f172a);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.jmi-bar-track {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.22);
+  overflow: hidden;
+}
+
+.jmi-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #3b82f6, #2563eb);
+  min-width: 4px;
+}
+
+.jmi-bar-num {
+  font-size: 12.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.jmi-empty {
+  font-size: 12.5px;
+  color: var(--text-muted, #64748b);
+  margin: 0;
+}
+
 .jmi-foot {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin: 14px 2px 0;
+  margin: 16px 2px 0;
   font-size: 11.5px;
   color: var(--text-muted, #94a3b8);
 }

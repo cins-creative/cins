@@ -1,4 +1,3 @@
-import { getCurrentUserIsCinsAdmin } from "@/lib/auth/cins-admin-server";
 import { createServiceRoleClient, hasServiceRoleEnv } from "@/lib/supabase/service-role";
 
 const ORG_ADMIN_ROLES = [
@@ -10,13 +9,15 @@ const ORG_ADMIN_ROLES = [
 
 /**
  * Quyền ghi API inline trường theo `org_to_chuc.id` + `user_nguoi_dung.id`.
+ *
+ * Trục 2 (quan hệ) thuần: CHỈ dựa vào membership org. Quyền admin hệ thống
+ * (trục 1) KHÔNG mở khoá sửa trang org — admin can thiệp qua trang `/admin`.
  */
 export async function isTruongOrgAdmin(
   orgId: string,
   profileId: string,
 ): Promise<boolean> {
   if (!hasServiceRoleEnv()) return false;
-  if (await getCurrentUserIsCinsAdmin()) return true;
 
   try {
     const supabase = createServiceRoleClient();
@@ -52,18 +53,16 @@ export function canUseTruongInlineEdit(): boolean {
 }
 
 /**
- * Quyền quản trị trang trường cho UI inline edit.
+ * Quyền quản trị trang trường cho UI inline edit — **trục 2 (quan hệ) thuần**.
  *
- * Trả `true` khi:
- *   1. CINs admin login (email trong `CINS_ADMIN_EMAILS`) — quyền siêu admin,
- *      thấy toolbar trên mọi trang trường.
- *   2. User login đồng thời là member của `org_to_chuc` với một trong các
- *      `vai_tro` admin (`owner`, `admin`, `quan_ly_noi_dung`,
- *      `quan_ly_tuyen_sinh`).
+ * Trả `true` CHỈ khi user login là member của `org_to_chuc` với một trong các
+ * `vai_tro` admin (`owner`, `admin`, `quan_ly_noi_dung`, `quan_ly_tuyen_sinh`).
  *
- * Mọi trường hợp khác (anon, user bình thường) → `false`.
- */
-/**
+ * Quyền admin hệ thống CINs (trục 1) KHÔNG mở khoá toolbar/inline-edit ở đây:
+ * admin can thiệp qua trang `/admin`, không "đi vào" trang org của người khác.
+ *
+ * Mọi trường hợp khác (anon, user bình thường, admin không phải member) → `false`.
+ *
  * @param profileId — `user_nguoi_dung.id` (KHÔNG phải `auth.users.id`).
  */
 export async function getOrgAdminStatus(
@@ -71,8 +70,6 @@ export async function getOrgAdminStatus(
   profileId?: string | null,
 ): Promise<boolean> {
   if (!hasServiceRoleEnv()) return false;
-
-  if (await getCurrentUserIsCinsAdmin()) return true;
 
   if (!profileId) return false;
 

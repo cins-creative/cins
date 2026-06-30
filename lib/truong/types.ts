@@ -110,6 +110,8 @@ export type TruongBaiDang = {
   /** Hydrate per viewer — không cache trong `getTruongPagePayload`. */
   viewerBookmarked?: boolean;
   bookmarkCount?: number;
+  /** Ghim lên đầu timeline org (`org_bai_dang.ghim`). */
+  ghim?: boolean | null;
 };
 
 export type TruongHinhAnh = {

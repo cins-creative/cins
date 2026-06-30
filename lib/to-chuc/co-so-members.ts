@@ -1,7 +1,6 @@
 import "server-only";
 
 import { getAvatarUrl } from "@/lib/journey/profile";
-import { getCurrentUserIsCinsAdmin } from "@/lib/auth/cins-admin-server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 import type { CoSoStaffVaiTro } from "./co-so-vai-tro";
@@ -67,7 +66,7 @@ async function assertCanManageMembers(
     return { ok: false, error: "Bạn không có quyền quản trị cơ sở này." };
   }
   const vaiTro = await getViewerCoSoVaiTro(actorId, orgId);
-  if (!(await getCurrentUserIsCinsAdmin()) && !canManageCoSoMembers(vaiTro)) {
+  if (!canManageCoSoMembers(vaiTro)) {
     return {
       ok: false,
       error: "Chỉ quản trị viên mới quản lý quyền trên cơ sở.",
@@ -486,6 +485,91 @@ export async function updateCoSoStaffMemberRole(params: {
       isSelf: row.id_nguoi_dung === params.actorId,
     },
   };
+}
+
+/**
+ * Bàn giao quyền sở hữu (owner) cho một thành viên khác.
+ * Chỉ owner hiện tại (hoặc CINs admin) mới thực hiện được.
+ * Owner cũ → admin; người nhận → owner.
+ */
+export async function transferCoSoOwnership(params: {
+  orgId: string;
+  actorId: string;
+  membershipId: string;
+  confirmSlug: string;
+}): Promise<
+  { ok: true; members: CoSoMemberAdmin[] } | { ok: false; error: string }
+> {
+  const org = await loadCoSoOrgMeta(params.orgId);
+  if (!org?.id) {
+    return { ok: false, error: "Không tìm thấy cơ sở." };
+  }
+
+  if (
+    params.confirmSlug.trim().toLowerCase() !== org.slug.trim().toLowerCase()
+  ) {
+    return { ok: false, error: "Tên xác nhận không khớp đường dẫn cơ sở." };
+  }
+
+  const actorRole = await getViewerCoSoVaiTro(params.actorId, params.orgId);
+  if (actorRole !== "owner") {
+    return { ok: false, error: "Chỉ chủ sở hữu mới bàn giao quyền sở hữu." };
+  }
+
+  const admin = createServiceRoleClient();
+  const { data: target } = await admin
+    .from("user_thanh_vien_to_chuc")
+    .select("id, id_nguoi_dung, vai_tro, trang_thai")
+    .eq("id", params.membershipId)
+    .eq("id_to_chuc", params.orgId)
+    .maybeSingle<{
+      id: string;
+      id_nguoi_dung: string;
+      vai_tro: string;
+      trang_thai: string;
+    }>();
+
+  if (!target || !isCoSoStaffRole(target.vai_tro)) {
+    return { ok: false, error: "Không tìm thấy thành viên." };
+  }
+  if (target.trang_thai !== "active") {
+    return {
+      ok: false,
+      error: "Chỉ bàn giao được cho thành viên đã tham gia.",
+    };
+  }
+  if (target.vai_tro === "owner") {
+    return { ok: false, error: "Thành viên này đã là chủ sở hữu." };
+  }
+  if (target.id_nguoi_dung === params.actorId) {
+    return { ok: false, error: "Không thể bàn giao cho chính mình." };
+  }
+
+  // Hạ tất cả owner hiện tại xuống admin trước (tránh 2 owner cùng lúc).
+  const { error: demoteError } = await admin
+    .from("user_thanh_vien_to_chuc")
+    .update({ vai_tro: "admin" })
+    .eq("id_to_chuc", params.orgId)
+    .eq("vai_tro", "owner");
+  if (demoteError) {
+    return { ok: false, error: demoteError.message };
+  }
+
+  // Nâng người nhận lên owner.
+  const { error: promoteError } = await admin
+    .from("user_thanh_vien_to_chuc")
+    .update({ vai_tro: "owner", trang_thai: "active" })
+    .eq("id", target.id);
+  if (promoteError) {
+    return { ok: false, error: promoteError.message };
+  }
+
+  const refreshed = await listCoSoStaffMembers({
+    orgId: params.orgId,
+    actorId: params.actorId,
+  });
+  if (!refreshed.ok) return refreshed;
+  return { ok: true, members: refreshed.members };
 }
 
 export async function removeCoSoStaffMember(params: {

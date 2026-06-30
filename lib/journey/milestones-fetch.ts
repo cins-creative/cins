@@ -133,6 +133,12 @@ function resolveOrgCreateCardLayout(
   ) {
     return "co-so-create";
   }
+  if (
+    verified.attribution.orgKind === "studio" &&
+    verified.attribution.role === "Người tạo studio"
+  ) {
+    return "studio-create";
+  }
   return "default";
 }
 
@@ -710,6 +716,10 @@ export async function fetchBookmarkedMilestonesForUser(params: {
         body: cm.mo_ta || null,
         postSlug: tp.slug as string,
         postOwnerSlug: (owner?.slug as string) ?? null,
+        /* Tác giả gốc — để analytics KHÔNG đếm lượt xem của chính chủ bài khi
+           họ xem bài của mình qua bản lưu của người khác. Số liệu vẫn quy về
+           cột mốc gốc (`cotMocId = cm.id`), bản lưu không có số liệu riêng. */
+        postOwnerId: (tp.id_nguoi_dung as string) ?? null,
         tacPhamId: tp.id as string,
         media: milestoneCoverMedia(
           tp.cover_id as string,

@@ -3,6 +3,7 @@ import { Fragment, type ReactNode } from "react";
 import { JourneyMilestoneCard } from "@/components/journey/JourneyMilestoneCard";
 import type { MilestoneItem } from "@/components/journey/milestone-types";
 import { worldJourneyMilestoneCardKind } from "@/lib/cins/worldJourneyMilestoneFeed";
+import type { NguonSuKien } from "@/lib/social/su-kien-constants";
 
 export type TimelineInlineExpandState = {
   key: string;
@@ -43,6 +44,8 @@ type Props = {
   afterFirstSlot?: ReactNode;
   /** Trang entity — mỗi card dùng chủ cột mốc riêng (`lensOwner*`). */
   entityLens?: boolean;
+  /** Nguồn bề mặt cho analytics — forward sang card (vd "journey_home", "org_page"). */
+  analyticsNguon?: NguonSuKien;
   /** Feed tổng hợp — ảnh/video preview gọn, bấm → permalink (không full grid). */
   feedCompactMedia?: boolean;
   /** Permalink bài — dùng khi `feedCompactMedia`. */
@@ -72,6 +75,7 @@ export function JourneyYearBlock({
   onCloseExpand,
   afterFirstSlot,
   entityLens = false,
+  analyticsNguon,
   feedCompactMedia = false,
   milestonePermalink,
 }: Props) {
@@ -108,6 +112,7 @@ export function JourneyYearBlock({
               authorAvatarUrl={cardCtx.authorAvatarUrl}
               authorName={cardCtx.authorName}
               entityLens={entityLens}
+              analyticsNguon={analyticsNguon}
               feedCompactMedia={feedCompactMedia}
               readMoreHref={
                 feedCompactMedia && milestonePermalink

@@ -6,7 +6,6 @@ import {
   ExternalLink,
   GraduationCap,
   Loader2,
-  Pencil,
   Plus,
   Search,
   Trash2,
@@ -16,7 +15,6 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { AdminToChucDeleteDialog } from "@/components/admin/AdminToChucDeleteDialog";
-import { AdminToChucEditModal } from "@/components/admin/AdminToChucEditModal";
 import { BadgeTinCay } from "@/components/admin/badges";
 import type {
   AdminToChucListResponse,
@@ -99,7 +97,6 @@ export function AdminToChucScreen() {
   const [stats, setStats] = useState(EMPTY_STATS);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
   const [deletingRow, setDeletingRow] = useState<AdminToChucListRow | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -145,11 +142,6 @@ export function AdminToChucScreen() {
     }),
     [stats],
   );
-
-  function handleSaved(row: AdminToChucListRow) {
-    setRows((prev) => prev.map((r) => (r.id === row.id ? row : r)));
-    void load();
-  }
 
   async function handleVerify(row: AdminToChucListRow) {
     if (verifyingId) return;
@@ -306,13 +298,14 @@ export function AdminToChucScreen() {
                   <th>Khu vực</th>
                   <th>Tin cậy</th>
                   <th>Journey</th>
+                  <th>Người tạo</th>
                   <th className="admin-to-chuc-th-actions">Thao tác</th>
                 </tr>
               </thead>
               <tbody>
                 {!loading && rows.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="admin-table-empty">
+                    <td colSpan={7} className="admin-table-empty">
                       Không có tổ chức phù hợp bộ lọc.
                     </td>
                   </tr>
@@ -343,6 +336,25 @@ export function AdminToChucScreen() {
                           <BadgeTinCay status={row.tinCay} />
                         </td>
                         <td className="admin-to-chuc-journey">{row.journey}</td>
+                        <td className="admin-to-chuc-creator">
+                          {row.nguoiTao ? (
+                            row.nguoiTao.slug ? (
+                              <Link
+                                href={`/${row.nguoiTao.slug}`}
+                                className="admin-to-chuc-creator-link"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title={`@${row.nguoiTao.slug}`}
+                              >
+                                {row.nguoiTao.ten}
+                              </Link>
+                            ) : (
+                              <span>{row.nguoiTao.ten}</span>
+                            )
+                          ) : (
+                            <span className="admin-to-chuc-muted">—</span>
+                          )}
+                        </td>
                         <td>
                           <div className="admin-to-chuc-actions">
                             {row.showVerify ? (
@@ -366,15 +378,6 @@ export function AdminToChucScreen() {
                                 )}
                               </button>
                             ) : null}
-                            <button
-                              type="button"
-                              className="admin-to-chuc-act admin-to-chuc-act--icon admin-to-chuc-act--edit"
-                              aria-label="Sửa"
-                              title="Sửa"
-                              onClick={() => setEditingId(row.id)}
-                            >
-                              <Pencil size={15} strokeWidth={2.2} aria-hidden />
-                            </button>
                             <button
                               type="button"
                               className="admin-to-chuc-act admin-to-chuc-act--icon admin-to-chuc-act--delete"
@@ -420,15 +423,6 @@ export function AdminToChucScreen() {
           </div>
         </section>
       </div>
-
-      {editingId ? (
-        <AdminToChucEditModal
-          orgId={editingId}
-          open
-          onClose={() => setEditingId(null)}
-          onSaved={handleSaved}
-        />
-      ) : null}
 
       <AdminToChucDeleteDialog
         open={Boolean(deletingRow)}
