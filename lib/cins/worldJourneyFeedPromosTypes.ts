@@ -7,6 +7,8 @@ export type FeedPromoCard = {
   sub: string;
   href: string;
   imageUrl: string | null;
+  /** Logo / avatar tổ chức — hiển thị cạnh tên org trên card khóa học / sự kiện. */
+  orgLogoUrl?: string | null;
   /** Badge ngày trên cover — rail sự kiện. */
   dateBadge?: { month: string; day: string };
 };

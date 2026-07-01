@@ -4657,6 +4657,237 @@
   font-size: 10px;
 }
 
+.cins-admin .admin-to-chuc-act--delegate {
+  border-color: rgba(124, 92, 255, 0.28);
+  color: #6a47f5;
+  background: #f5f3ff;
+}
+
+.cins-admin .admin-to-chuc-act--delegate:hover {
+  border-color: rgba(124, 92, 255, 0.45);
+  background: #ede9fe;
+}
+
+.cins-admin .admin-to-chuc-chu-trang {
+  font-size: 13px;
+  max-width: 140px;
+}
+
+.cins-admin .admin-org-members-dialog {
+  width: min(560px, calc(100vw - 32px));
+  max-height: min(88vh, 720px);
+  display: flex;
+  flex-direction: column;
+  border-radius: 14px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg, 0 24px 48px rgba(0, 0, 0, 0.12));
+  overflow: hidden;
+}
+
+.cins-admin .admin-org-members-dialog__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, #fafbfc 0%, var(--bg-surface) 100%);
+}
+
+.cins-admin .admin-org-members-dialog__title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--fg-1);
+}
+
+.cins-admin .admin-org-members-dialog__sub {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--fg-3);
+}
+
+.cins-admin .admin-org-members-dialog__body {
+  padding: 16px 18px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cins-admin .admin-org-members-dialog__footer {
+  padding: 12px 18px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.cins-admin .admin-org-members-pwd {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(124, 92, 255, 0.22);
+  background: #faf8ff;
+}
+
+.cins-admin .admin-org-members-pwd .form-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.cins-admin .admin-org-members-pwd-hint {
+  margin: 8px 0 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--fg-4);
+}
+
+.cins-admin .admin-org-members-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+}
+
+.cins-admin .admin-org-members-add-row {
+  display: grid;
+  grid-template-columns: 1fr minmax(140px, 180px);
+  gap: 8px;
+}
+
+.cins-admin .admin-org-members-search {
+  min-width: 0;
+}
+
+.cins-admin .admin-org-members-role-select {
+  min-width: 0;
+  font-size: 13px;
+  padding: 8px 10px;
+}
+
+.cins-admin .admin-org-members-search-results {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.cins-admin .admin-org-members-search-hit {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+.cins-admin .admin-org-members-search-hit:last-child {
+  border-bottom: 0;
+}
+
+.cins-admin .admin-org-members-search-hit:hover {
+  background: var(--accent-bg, #f0ede8);
+}
+
+.cins-admin .admin-org-members-search-hit strong {
+  display: block;
+  font-size: 13px;
+}
+
+.cins-admin .admin-org-member-ava {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #e8eef5;
+  color: var(--cins-blue-dark);
+  font-size: 13px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.cins-admin .admin-org-members-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cins-admin .admin-org-members-row {
+  display: grid;
+  grid-template-columns: auto 1fr minmax(120px, 150px) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.cins-admin .admin-org-members-row-copy strong {
+  display: block;
+  font-size: 13px;
+}
+
+.cins-admin .admin-org-members-owner-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #b45309;
+}
+
+.cins-admin .admin-org-members-role-readonly {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--fg-3);
+}
+
+.cins-admin .admin-org-members-row-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.cins-admin .admin-org-members-transfer {
+  border-color: rgba(180, 83, 9, 0.28);
+  color: #b45309;
+  background: #fffbeb;
+}
+
+.cins-admin .admin-org-members-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+@media (max-width: 640px) {
+  .cins-admin .admin-org-members-add-row,
+  .cins-admin .admin-org-members-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 960px) {
   .cins-admin .admin-to-chuc-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));

@@ -22,16 +22,28 @@
 | O10 | Gom nhiều khóa → "Chương trình học" (lộ trình 6–12 tháng, kiểu Keyframe CTH) | **Defer cứng** | Khi có org thật cần track dài hạn nhiều khóa nối tiếp. Sine Art không cần (dạy theo môn rời). |
 | O11 | `org_giao_trinh.loai` (phân loại bài: bắt buộc / tùy chọn / project) | **Defer** | Khi org thật yêu cầu phân loại bài trong lộ trình; hiện `mo_ta_chi_tiet` + `thu_tu` + `so_buoi` đủ. |
 | O12 | Học phí theo gói tháng (1/2/3/6) cho mô hình liên tục | **Defer** | `org_khoa_hoc.hoc_phi` đọc là giá/tháng ở MVP. Thêm bảng giá bundle khi có nhu cầu thật. |
-| O14 | Escape hatch cho CINs admin trên trang org người khác (đổi owner / quản member / cứu hộ) — đặt ở đâu? | **Defer** — sau L20 admin KHÔNG còn god-mode inline trên trang org | Khi có ca cứu hộ thật (org bỏ hoang, owner mất tài khoản). Ưu tiên thêm vào trang `/admin` (trục 1) thay vì mở lại short-circuit trên front-end. |
 | O15 | Tỉ lệ chèn bài org chưa-follow vào feed giữa + có nên chèn không? | **Tạm 1 org / 10 người, tối đa 1 bài/org, gắn nhãn "Gợi ý", không engagement-sort** (L21 #3) | Khi đo được feed thật: org-post có bị bỏ qua / báo phiền không. Có thể hạ về 0 (chỉ giữ kênh gợi ý + attribution) nếu chèn feed gây loãng. Chốt trước khi scale ngoài cohort đầu. |
 
 > O7 (lớp "uy tín/hữu ích" cho `content_thao_luan`) → **đã đóng / không còn áp dụng** (xem L12): `content_thao_luan` đã bỏ, thảo luận giờ là comment trên cột mốc.
 
 > O1 (giữ `user_theo_doi` hay bỏ?) → **đã đóng / chốt GIỮ + MỞ RỘNG** (xem L17): theo dõi gồm cả `nguoi_dung` (không chỉ tag/org), nội dung được theo dõi phân bổ lên Gallery.
 
+> O14 (escape hatch admin gán quyền org) → **đã đóng** (xem **L22**, 2026-07-01): panel `/admin/to-chuc` + mật khẩu ủy quyền env, chỉ `super_admin` — không mở lại god-mode inline trên trang org (giữ L20).
+
 ---
 
 ## LOG — quyết định đã chốt
+
+### Phân quyền org từ admin — escape hatch trục 1 (2026-07-01)
+
+- **L22 — Super admin gán membership org qua `/admin/to-chuc`; mật khẩu ủy quyền tách khỏi đăng nhập.**
+  • **Phạm vi**: mọi `loai_to_chuc` (trường ĐH, cơ sở, studio, cộng đồng) — không inline-edit trên trang public (L20 giữ nguyên).
+  • **Ai**: chỉ `super_admin` (`canGrantAdmin`) — `admin`/`curator` CINs không thấy nút / không gọi được API.
+  • **Mật khẩu**: env `CINS_ORG_DELEGATION_PASSWORD` (server-only, timing-safe compare). Đăng nhập super admin **không đủ** — mọi mutation gán/đổi/gỡ/bàn giao owner cần `delegationPassword` đúng.
+  • **UI**: `/admin/to-chuc` — cột **Chủ trang** (`user_thanh_vien_to_chuc.vai_tro=owner`) tách khỏi **Người tạo** (`org_to_chuc.nguoi_tao` metadata). Nút Shield → `AdminToChucMembersModal`.
+  • **API** (service role): `GET/POST …/admin/to-chuc/[id]/members` · `PATCH/DELETE …/members/[membershipId]` · `POST …/transfer-owner`. Lib: `lib/admin/org-delegation.ts`, `lib/admin/org-members.ts`.
+  • **Vai trò gán được**: staff org (`owner`, `admin`, `quan_ly_*`, `giao_vien`, `nhan_vien`) hoặc cộng đồng (`owner`, `admin`, `quan_ly_noi_dung`, `thanh_vien`) — một owner/org; bàn giao hạ owner cũ → `admin`.
+  • **Đóng O14** — cứu hộ org bỏ hoang / seed trường chưa có staff không cần SQL tay.
 
 ### Phân bổ nội dung org ≠ phân bổ user (2026-06-30)
 
@@ -52,7 +64,7 @@
   • Bỏ short-circuit `getCurrentUserIsCinsAdmin()` ở: `getOrgAdminStatus` + `isTruongOrgAdmin` (`lib/truong/org-admin.ts`), `isStudioOrgAdmin` + `assertCanManageMembers` + `transferStudioOwnership` (`studio-members.ts`), `isCoSoOrgAdmin` (`co-so-membership.ts`), `assertCanManageMembers` + transfer (`co-so-members.ts`), transfer cộng đồng (`cong-dong/members.ts`), viewer settings (`truong-settings.ts` / `co-so-settings.ts`), `canViewerManageKhoaHoc` (`khoa-hoc.ts`), `canViewerManageSuKien` (`su-kien.ts`). Tất cả CHỈ còn dựa `user_thanh_vien_to_chuc.vai_tro`.
   • CINs admin (trục 1) can thiệp qua **trang `/admin`** — `app/api/admin/*` **giữ nguyên** gate `getCurrentUserIsCinsAdmin`. Admin KHÔNG "đi vào" trang org của người khác để inline-edit.
   • Lý do: 1 tài khoản (vd `CINs_Official` = super_admin `info.cins.vn@gmail.com`) vừa là admin vừa là user thường — không để god-mode toolbar lộ trên mọi trang.
-  • Hệ quả: chưa có UI cứu hộ (đổi owner / quản member) cho admin trên trang người khác → xem câu treo **O14**.
+  • Hệ quả: escape hatch gán membership → **L22** (`/admin/to-chuc`, không god-mode inline). Trước L22 xem **O14** (đã đóng).
   • Data: studio/cộng đồng/cơ sở legacy pattern cũ (system=owner + creator=admin) chuẩn hoá thủ công về creator=owner; `CINs_Official` gỡ khỏi mọi org không phải của mình.
 
 ### Trang chủ adaptive theo `giai_doan` (2026-06-28)

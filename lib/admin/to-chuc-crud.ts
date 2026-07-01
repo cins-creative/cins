@@ -41,6 +41,7 @@ type DbDetailRow = {
   trang_thai_tin_cay: string;
   trang_thai_hoat_dong: string;
   avatar_id: string | null;
+  nguoi_tao: string | null;
   org_co_so_dao_tao:
     | { da_verify: boolean }
     | { da_verify: boolean }[]
@@ -70,7 +71,7 @@ function mapDetail(row: DbDetailRow): AdminToChucDetail {
 }
 
 const DETAIL_SELECT = `id, ten, slug, loai_to_chuc, mo_ta, tinh_thanh, dia_chi, dien_thoai,
-  email_lien_he, trang_thai_tin_cay, trang_thai_hoat_dong, avatar_id,
+  email_lien_he, trang_thai_tin_cay, trang_thai_hoat_dong, avatar_id, nguoi_tao,
   org_co_so_dao_tao ( da_verify ),
   org_truong_dai_hoc ( da_verify )`;
 

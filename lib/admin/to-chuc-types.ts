@@ -11,6 +11,12 @@ export type AdminToChucNguoiTao = {
   slug: string | null;
 };
 
+/** Chủ trang vận hành — `user_thanh_vien_to_chuc.vai_tro = owner`. */
+export type AdminToChucChuTrang = {
+  ten: string;
+  slug: string | null;
+};
+
 export type AdminToChucListRow = {
   id: string;
   ten: string;
@@ -22,6 +28,7 @@ export type AdminToChucListRow = {
   avatarUrl: string | null;
   journey: string;
   nguoiTao: AdminToChucNguoiTao | null;
+  chuTrang: AdminToChucChuTrang | null;
   showVerify?: boolean;
 };
 

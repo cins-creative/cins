@@ -47,6 +47,8 @@ Thứ tự ưu tiên khi xung đột: **DB thật (đọc trực tiếp) > CINS_
 
 ## Thay đổi lớn gần đây (tóm tắt — chi tiết ở DECISIONS)
 
+**v11 — phân quyền org từ admin (2026-07-01):** Super admin gán `user_thanh_vien_to_chuc` (owner, ban tuyển sinh, …) qua `/admin/to-chuc` + mật khẩu env `CINS_ORG_DELEGATION_PASSWORD`. Không mở god-mode inline (L20). Xem **L22**, đóng **O14**.
+
 **v10 — theo dõi + phân bổ (2026-06-15):** Mở **theo dõi 1 chiều** cho người + tag + org (kết bạn 2 chiều vẫn giữ song song). Nội dung public của đối tượng được theo dõi phân bổ lên **Gallery** (follow-feed, sắp thời gian thực ở MVP). Bỏ khung anti-engagement (gỡ cấm follower-user / feed); giữ phản-vanity = số follower ẩn. **0 migration** (enum `loai_theo_doi_enum` đã có `nguoi_dung`). Xem DECISIONS L17/L18, O13.
 
 **v9 — trang khóa học (2026-06-10):** Tác phẩm gán **cấp khóa** (`id_khoa_hoc`), lớp tự suy từ ghi danh. "Sản phẩm học viên" = lens verified trên Journey. Trang khóa ưu tiên mô hình liên tục (Sine Art). Migration: `migration_khoa_hoc_v2.sql`.

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { SuKienDetailModal } from "@/components/co-so/SuKienDetailModal";
+import { SuKienHeroCarousel } from "@/components/su-kien/SuKienHeroCarousel";
 import {
   LOAI_SU_KIEN_LABELS,
   LOAI_SU_KIEN_VALUES,
@@ -88,11 +89,9 @@ function eventTag(item: SuKienListItem): { label: string; kind: string } {
 
 function SuKienListCard({
   item,
-  featured,
   onOpen,
 }: {
   item: SuKienListItem;
-  featured?: boolean;
   onOpen: (item: SuKienListItem) => void;
 }) {
   const { month, day } = eventDate(item.batDau);
@@ -103,7 +102,7 @@ function SuKienListCard({
   return (
     <button
       type="button"
-      className={`evb-card${featured ? " is-featured" : ""}`}
+      className="evb-card"
       onClick={() => onOpen(item)}
     >
       <div className="evb-card-img relative">
@@ -113,11 +112,7 @@ function SuKienListCard({
             alt=""
             fill
             className="object-cover"
-            sizes={
-              featured
-                ? "(max-width: 1080px) 100vw, 66vw"
-                : "(max-width: 700px) 100vw, 33vw"
-            }
+            sizes="(max-width: 700px) 100vw, 33vw"
           />
         ) : (
           <span className="sk-list-cover-ph" aria-hidden>
@@ -196,8 +191,6 @@ export function SuKienListingClient({ events }: Props) {
     });
   }, [events, timeFilter, loaiFilter, tinhThanh, query]);
 
-  const featuredId = visible[0]?.id ?? null;
-
   function handleSoDangKyChange(suKienId: string, soDangKy: number) {
     setDetail((prev) =>
       prev?.id === suKienId ? { ...prev, soDangKy } : prev,
@@ -206,30 +199,15 @@ export function SuKienListingClient({ events }: Props) {
 
   return (
     <>
-      <header className="sk-list-hero">
-        <div className="sk-list-hero-inner">
-          <p className="sk-list-kicker">Lịch ngành sáng tạo</p>
-          <h1 className="sk-list-title">Sự kiện trên CINs</h1>
-          <p className="sk-list-lead">
-            Open day, workshop, talkshow và festival — khám phá sự kiện sắp
-            diễn ra từ trường, cơ sở đào tạo và studio trên nền tảng.
-          </p>
-          <div className="sk-list-stats">
-            <span>
-              <strong>{upcomingCount}</strong> sắp diễn ra
-            </span>
-            {pastCount > 0 ? (
-              <>
-                <span aria-hidden>·</span>
-                <span>
-                  <strong>{pastCount}</strong> đã qua
-                </span>
-              </>
-            ) : null}
-          </div>
-        </div>
-      </header>
+      <SuKienHeroCarousel
+        events={events}
+        upcomingCount={upcomingCount}
+        pastCount={pastCount}
+        onOpen={setDetail}
+      />
 
+      <div className="sk-list-page">
+      <div className="sk-list-body">
       <div className="sk-list-toolbar">
         <div
           className="sk-list-pills"
@@ -331,7 +309,6 @@ export function SuKienListingClient({ events }: Props) {
             <SuKienListCard
               key={item.id}
               item={item}
-              featured={item.id === featuredId && timeFilter === "upcoming"}
               onOpen={setDetail}
             />
           ))}
@@ -344,6 +321,8 @@ export function SuKienListingClient({ events }: Props) {
         {" · "}
         <Link href="/studio">Studio & doanh nghiệp</Link>
       </p>
+      </div>
+      </div>
 
       <SuKienDetailModal
         open={Boolean(detail)}

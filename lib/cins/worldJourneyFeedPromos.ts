@@ -53,10 +53,14 @@ type SuKienPromoRow = {
     slug: string | null;
     ten: string | null;
     loai_to_chuc: string | null;
+    avatar_id?: string | null;
+    logo_id?: string | null;
   } | {
     slug: string | null;
     ten: string | null;
     loai_to_chuc: string | null;
+    avatar_id?: string | null;
+    logo_id?: string | null;
   }[] | null;
 };
 
@@ -72,7 +76,7 @@ async function queryUpcomingSuKienPromoRows(
   let query = admin
     .from("org_su_kien")
     .select(
-      "id, ten, cover_id, bat_dau, loai_su_kien, id_to_chuc, org_to_chuc!inner ( slug, ten, loai_to_chuc )",
+      "id, ten, cover_id, bat_dau, loai_su_kien, id_to_chuc, org_to_chuc!inner ( slug, ten, loai_to_chuc, avatar_id, logo_id )",
     )
     .or(`ket_thuc.is.null,ket_thuc.gte.${now}`)
     .order("bat_dau", { ascending: true })
@@ -135,6 +139,10 @@ async function loadFeedPromoEvents(
       const coverSrc = row.cover_id
         ? resolveTruongImageSrcSync(row.cover_id, ["public", "cover", "medium"])
         : null;
+      const orgAvatarId = org?.avatar_id ?? org?.logo_id;
+      const orgLogoUrl = orgAvatarId
+        ? resolveTruongImageSrcSync(orgAvatarId, ["public", "avatar"])
+        : null;
 
       return {
         id: row.id,
@@ -142,6 +150,7 @@ async function loadFeedPromoEvents(
         sub: `${orgTen} · ${loaiLabel}`,
         href,
         imageUrl: coverSrc,
+        orgLogoUrl,
         dateBadge: promoEventDate(row.bat_dau),
       };
     }),
@@ -163,6 +172,7 @@ function mapCourses(
       sub: `${k.orgTen} · ${k.sub}`,
       href: `/co-so/${k.orgSlug}/khoa-hoc/${k.slug}`,
       imageUrl: k.thumbnailUrl,
+      orgLogoUrl: k.orgAvatarUrl,
     })),
   };
 }

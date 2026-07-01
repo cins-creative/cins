@@ -8,6 +8,7 @@ import type {
   AdminToChucLoaiFilter,
 } from "@/lib/admin/to-chuc-types";
 import { formatTinhThanh, getAvatarUrl } from "@/lib/journey/profile";
+import { fetchOrgOwnerSummaries } from "@/lib/admin/org-members";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 const LOAI_LABEL: Record<string, string> = {
@@ -64,6 +65,7 @@ export function mapRow(row: DbRow): AdminToChucListRow {
     avatarUrl: getAvatarUrl(row.avatar_id),
     journey: "—",
     nguoiTao: null,
+    chuTrang: null,
     showVerify,
   };
 }
@@ -93,7 +95,8 @@ function matchesQuery(row: AdminToChucListRow, q: string): boolean {
     row.slug.toLowerCase().includes(needle) ||
     row.loaiLabel.toLowerCase().includes(needle) ||
     row.tinhThanh.toLowerCase().includes(needle) ||
-    (row.nguoiTao?.ten.toLowerCase().includes(needle) ?? false)
+    (row.nguoiTao?.ten.toLowerCase().includes(needle) ?? false) ||
+    (row.chuTrang?.ten.toLowerCase().includes(needle) ?? false)
   );
 }
 
@@ -166,6 +169,12 @@ export async function fetchAdminToChucList(
     (data ?? []).map((row) => [row.id, row.nguoi_tao]),
   );
   await attachNguoiTao(admin, allRows, creatorIdByOrg);
+
+  const ownerMap = await fetchOrgOwnerSummaries(allRows.map((row) => row.id));
+  for (const row of allRows) {
+    const owner = ownerMap.get(row.id);
+    row.chuTrang = owner ?? null;
+  }
 
   const stats = buildStats(allRows);
   const rows = allRows.filter(

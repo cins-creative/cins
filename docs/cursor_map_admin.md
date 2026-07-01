@@ -66,6 +66,7 @@ Hệ thống
 // admin/curator: user_quyen_he_thong + legacy CINS_ADMIN_EMAILS → admin
 // Panel /admin: canAccessAdminPanel (super_admin | admin | curator)
 // Tab /admin/nguoi-dung: canManageUsers (super_admin | admin)
+// Phân quyền org /admin/to-chuc: canGrantAdmin (super_admin only) + CINS_ORG_DELEGATION_PASSWORD + delegationPassword mỗi mutation (L22)
 // Sửa nội dung: canEditContent (super_admin | admin | curator)
 ```
 
@@ -96,6 +97,8 @@ Legacy placeholder (đã thay):
 - Slide-over sửa các cột trên; code: `lib/admin/mon-thi-server.ts`, `components/admin/AdminMonThiScreen.tsx`
 
 ### Tab Trường — queries
+
+**Phân quyền org (đã implement — L22):** `/admin/to-chuc` — cột Chủ trang + nút Shield → `AdminToChucMembersModal` · API `admin/to-chuc/[id]/members` · `transfer-owner`. Chỉ `super_admin`; mutation cần `delegationPassword`.
 
 ```typescript
 // Danh sách trường + đếm ngành

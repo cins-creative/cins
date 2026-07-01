@@ -16,17 +16,43 @@ function splitPromoSub(sub: string): { primary: string; secondary: string | null
   };
 }
 
+function PromoOrgLine({
+  name,
+  logoUrl,
+}: {
+  name: string;
+  logoUrl?: string | null;
+}) {
+  return (
+    <span className="wj-feed-promo-card-org">
+      <span className="wj-feed-promo-card-org-logo" aria-hidden>
+        {logoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={logoUrl} alt="" width={18} height={18} loading="lazy" />
+        ) : (
+          <span className="wj-feed-promo-card-org-logo-fallback">
+            {name.slice(0, 1).toUpperCase()}
+          </span>
+        )}
+      </span>
+      <span className="wj-feed-promo-card-org-name">{name}</span>
+    </span>
+  );
+}
+
 function PromoCourseCard({
   href,
   title,
   sub,
   imageUrl,
+  orgLogoUrl,
   className = "is-course",
 }: {
   href: string;
   title: string;
   sub: string;
   imageUrl: string | null;
+  orgLogoUrl?: string | null;
   className?: string;
 }) {
   const { primary, secondary } = splitPromoSub(sub);
@@ -56,7 +82,7 @@ function PromoCourseCard({
             sub ? <span className="wj-feed-promo-card-sub">{sub}</span> : null
           ) : (
             <>
-              <span className="wj-feed-promo-card-org">{primary}</span>
+              <PromoOrgLine name={primary} logoUrl={orgLogoUrl} />
               {showTag ? (
                 <span className="wj-feed-promo-card-tag">{secondary}</span>
               ) : null}
@@ -73,12 +99,14 @@ function PromoEventCard({
   title,
   sub,
   imageUrl,
+  orgLogoUrl,
   dateBadge,
 }: {
   href: string;
   title: string;
   sub: string;
   imageUrl: string | null;
+  orgLogoUrl?: string | null;
   dateBadge?: { month: string; day: string };
 }) {
   const { primary, secondary } = splitPromoSub(sub);
@@ -109,7 +137,7 @@ function PromoEventCard({
       <span className="wj-feed-promo-card-body">
         <span className="wj-feed-promo-card-name">{title}</span>
         <span className="wj-feed-promo-card-meta">
-          <span className="wj-feed-promo-card-org">{primary}</span>
+          <PromoOrgLine name={primary} logoUrl={orgLogoUrl} />
           {secondary ? (
             <span className="wj-feed-promo-card-tag">{secondary}</span>
           ) : null}
@@ -208,7 +236,6 @@ export function WorldJourneyFeedPromoRail({ variant, slotKey }: Props) {
     >
       <div className="wj-feed-promo-rail-head">
         <div className="wj-feed-promo-rail-head-copy">
-          <span className="wj-feed-promo-rail-kicker">Gợi ý</span>
           <h3 className="wj-feed-promo-rail-title">{variant.title}</h3>
         </div>
         <Link
@@ -229,6 +256,7 @@ export function WorldJourneyFeedPromoRail({ variant, slotKey }: Props) {
                 title={item.title}
                 sub={item.sub}
                 imageUrl={item.imageUrl}
+                orgLogoUrl={item.orgLogoUrl}
               />
             );
           }
@@ -252,6 +280,7 @@ export function WorldJourneyFeedPromoRail({ variant, slotKey }: Props) {
                 title={item.title}
                 sub={item.sub}
                 imageUrl={item.imageUrl}
+                orgLogoUrl={item.orgLogoUrl}
                 dateBadge={item.dateBadge}
               />
             );

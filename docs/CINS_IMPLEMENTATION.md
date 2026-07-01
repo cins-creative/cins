@@ -52,6 +52,8 @@
 | `tag` · `tag/dedup` | Tạo tag (AI gen tom_tat) · dedup alias |
 | `admin/tag/list` · `merge` · `[id]/tom-tat` · `[id]/verify` | Admin: list · gộp · regen tóm tắt · set `da_verify` |
 | `admin/nguoi-dung/list` · `[id]/vai-tro` | Admin: danh sách user + phân quyền hệ thống (`user_quyen_he_thong`) — gate `canManageUsers` |
+| `admin/to-chuc/list` · `[id]` · `[id]/verify` | Admin: danh sách tổ chức · chi tiết/PATCH/archive · cấp Verified |
+| `admin/to-chuc/[id]/members` · `…/members/[membershipId]` · `…/transfer-owner` | **Chỉ `super_admin`**: gán/đổi/gỡ membership org + bàn giao `owner` — mọi mutation cần `delegationPassword` (env `CINS_ORG_DELEGATION_PASSWORD`). `GET` danh sách không cần mật khẩu. Lib: `lib/admin/org-delegation.ts`, `org-members.ts`. UI: `/admin/to-chuc` → `AdminToChucMembersModal`. |
 | `keywords/link-content` | Link keyword vào content |
 | `nghe/role-preview` | Preview vị trí nghề |
 
@@ -129,7 +131,7 @@
 | `cloudflare/` | Image upload + delivery URL | `upload-image.ts`, `pick-image-delivery-url.ts` |
 | `editor/` · `tiptap/` | Editor: sanitize, image-layout, co-author role, search | `sanitize.ts`, `coauthor-role-action.ts` |
 | `images/` | Crop cover/square/viewport | `crop-*.ts` |
-| `admin/` | Article admin, môn thi, sql-runner, require-admin, **quản lý user/vai trò** | `require-admin.ts`, `sql-runner.ts`, `nguoi-dung-roles.ts` |
+| `admin/` | Article admin, môn thi, sql-runner, require-admin, **quản lý user/vai trò**, **ủy quyền membership org** | `require-admin.ts`, `sql-runner.ts`, `nguoi-dung-roles.ts`, `org-delegation.ts`, `org-members.ts`, `to-chuc-list.ts` |
 | `cins/` | Navigation, hub paths, **World Journey feed**, **trang chủ adaptive** | `mainNav.ts`, `hubPaths.ts`, `worldJourneyFeedFetch.ts`, `worldJourneyOrgFeed.ts`, `home-adaptive/*` |
 | `dev/` | Dev tools inline edit | `inline-article-edit.ts` |
 | `youtube.ts` | Nhúng YouTube | (root) |
@@ -203,14 +205,17 @@ CLOUDFLARE_*             (account hash, API token)
 
 # Google OAuth (login only)
 GOOGLE_CLIENT_ID / SECRET
+
+# Admin — ủy quyền gán quyền org (chỉ super_admin, server-only)
+CINS_ORG_DELEGATION_PASSWORD   (bắt buộc để dùng panel Phân quyền /admin/to-chuc; không commit)
 ```
 
-- **Deploy**: **Cloudflare Workers** qua OpenNext (`@opennextjs/cloudflare`). Config: `wrangler.jsonc` (`nodejs_compat`, binding `HYPERDRIVE` + `ASSETS`), `open-next.config.ts`. Worker hiện tại: `https://cins-website.info-cins-vn.workers.dev`.
+- **Deploy**: **Cloudflare Workers** qua OpenNext (`@opennextjs/cloudflare`). Config: `wrangler.jsonc` (worker **`cins`**, `nodejs_compat`, binding `HYPERDRIVE` + `ASSETS`), `open-next.config.ts`. Production: **`https://cins.vn`** (và `www.cins.vn`); workers.dev: `https://cins.info-cins-vn.workers.dev`.
   - **Build phải dùng webpack** (`next build --webpack`) — build Turbopack chạy trên Workers bị `ChunkLoadError`. Đã cài trong script `build`.
   - **Postgres TCP** (admin SQL `lib/admin/*`, tag trigram `lib/tag/postgres.ts`) đi qua **Hyperdrive** (config `cins-supabase`, binding `HYPERDRIVE`, caching off). Code lấy connection string từ `lib/db/hyperdrive.ts`; fallback `DATABASE_URL` khi chạy Node (`next dev`).
-  - **Env**: `NEXT_PUBLIC_*` inline lúc build từ `.env.local`. Secret server-side set bằng `wrangler secret bulk` (SUPABASE_SERVICE_ROLE_KEY, CLOUDFLARE_IMAGES_API_TOKEN, ARTICLE_INLINE_IMAGE_UPLOAD_TOKEN, DATABASE_URL, BUNNY_*, GOOGLE_*, CINS_SYSTEM_USER_ID). Local preview: `.dev.vars` (gitignore).
-  - **Scripts**: `npm run preview` (build + wrangler preview), `npm run deploy` (build + deploy), `npm run cf-typegen`. Deploy local cần biến `CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE`.
-  - **OAuth**: thêm `https://<worker-domain>/auth/callback` vào Supabase → Authentication → URL Configuration → Redirect URLs.
+  - **Env**: `NEXT_PUBLIC_*` inline lúc build từ `.env.local`. Secret server-side set bằng `wrangler secret bulk` (SUPABASE_SERVICE_ROLE_KEY, CLOUDFLARE_IMAGES_API_TOKEN, ARTICLE_INLINE_IMAGE_UPLOAD_TOKEN, DATABASE_URL, BUNNY_*, GOOGLE_*, CINS_SYSTEM_USER_ID, **CINS_ORG_DELEGATION_PASSWORD**). Local preview: `.dev.vars` (gitignore).
+  - **Scripts**: `npm run preview` (build + wrangler preview), `npm run deploy` (build + deploy), `npm run cf-typegen`. Deploy local (Windows): set `CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE` trong `.dev.vars` (cùng giá trị `DATABASE_URL`; tên cũ `WRANGLER_HYPERDRIVE_…` không còn đủ với Wrangler 4).
+  - **OAuth**: thêm `https://cins.vn/auth/callback` (và `https://www.cins.vn/auth/callback` nếu dùng) vào Supabase → Authentication → URL Configuration → Redirect URLs.
   - Request body lớn: video KHÔNG đi qua server (browser upload thẳng Bunny qua TUS; server chỉ `post-video/prepare` ký request).
 - **Video flow**: `prepare` (tạo object + ký) → browser TUS upload → Bunny re-encode HLS → webhook/poll `status`/`processing` → `complete` → `notifications/video-ready`.
 - **Auth**: Google OAuth only, `/login` với `state` phân biệt đăng ký/đăng nhập; onboarding modal overlay khi `giai_doan IS NULL`; trigger `handle_new_user()` `SECURITY DEFINER`.
@@ -256,7 +261,7 @@ GOOGLE_CLIENT_ID / SECRET
 | Tương tác | Like / bookmark / bình luận → modal đăng nhập nếu chưa session (`AuthGateProvider` trên `app/[slug]/layout`; cộng đồng: `useCongDongAuthGate` + `AuthRequiredModal`) |
 | OAuth | Google PKCE — `app/auth/callback/route.ts`; cookie `cins-oauth-intent`, `cins-oauth-return` |
 | Protected | `/onboarding`, `/admin`, `/{slug}/p/new`, `/{slug}/p/.../edit` |
-| Admin panel gate | Middleware: session bắt buộc. `renderAdminPage` + `lib/auth/system-role.ts`: chỉ `super_admin` / `admin` / `curator`. Tab `/admin/nguoi-dung`: `canManageUsers` (super_admin + admin). Sửa nội dung: `canEditContent`. |
+| Admin panel gate | Middleware: session bắt buộc. `renderAdminPage` + `lib/auth/system-role.ts`: chỉ `super_admin` / `admin` / `curator`. Tab `/admin/nguoi-dung`: `canManageUsers` (super_admin + admin). Sửa nội dung: `canEditContent`. **Phân quyền org** (`/admin/to-chuc`, nút Shield): chỉ `super_admin` + `CINS_ORG_DELEGATION_PASSWORD` + mật khẩu ủy quyền mỗi mutation (L22). |
 | Dev OAuth | `NEXT_PUBLIC_SITE_URL=http://localhost:3001`; Supabase Redirect URLs `http://localhost:3001/auth/callback` (không lẫn `127.0.0.1`) |
 | Callback | Đọc verifier từ **request** cookies, ghi session lên **response** redirect (`lib/supabase/route-handler.ts`) |
 | Co-author trên Journey | Tagged/bookmark: `che_do_hien_thi_journey` — user tự đặt Nổi bật trên timeline của mình. Migration: `migration_journey_foreign_visibility.sql` |
@@ -278,7 +283,7 @@ GOOGLE_CLIENT_ID / SECRET
 - Helper loại trừ Journey public: `lib/journey/journey-visible-clause.ts`.
 - Mỗi post kèm badge **nghề + verified journey** người đăng.
 - `org_to_chuc.cau_hinh.che_do`: `cong_khai` (mặc định) / `rieng_tu`.
-- Tạo org: `POST /api/to-chuc` → **1 dòng** `user_thanh_vien_to_chuc` (**creator = `owner`**) + cột mốc Journey (`loai_moc=thanh_tuu`, `nguon_goc=sinh_tu_org_assign`) + `verify_xac_nhan` → filter **Verified**, vai trò **Người tạo cộng đồng**. CINs admin truy cập qua quyền hệ thống (trục 1, trang `/admin`) — **KHÔNG** thêm tài khoản hệ thống vào org. ⚠️ Org tạo bằng code cũ có thể còn pattern legacy "CINS `owner` + creator `admin`" → chuẩn hoá về creator=owner khi gặp (xem `CINS_DECISIONS.md` L20).
+- Tạo org: `POST /api/to-chuc` → **1 dòng** `user_thanh_vien_to_chuc` (**creator = `owner`**) + cột mốc Journey (`loai_moc=thanh_tuu`, `nguon_goc=sinh_tu_org_assign`) + `verify_xac_nhan` → filter **Verified**, vai trò **Người tạo cộng đồng**. CINs admin truy cập qua quyền hệ thống (trục 1, trang `/admin`) — **KHÔNG** thêm tài khoản hệ thống vào org. Trường seed / org bỏ hoang: super admin gán staff qua **`/admin/to-chuc` → Phân quyền** (L22). ⚠️ Org tạo bằng code cũ có thể còn pattern legacy "CINS `owner` + creator `admin`" → chuẩn hoá về creator=owner khi gặp (xem `CINS_DECISIONS.md` L20).
 - Nhãn lọc: admin định nghĩa taxonomy; seed 4 nhãn mặc định (`lib/cong-dong/default-filters.ts`) + tutorial `/cong-dong/[slug]/nhan`.
 - **UI trang `/cong-dong/[slug]`** (`CongDongPageClient`, CSS `app/cong-dong/cong-dong.css`): layout 3 cột — sidebar org · feed · event rail (ẩn &lt;1100px). Nền trang: xám phẳng `#eceef2` (không dùng gradient `body`).
 

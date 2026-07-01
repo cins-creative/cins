@@ -131,7 +131,7 @@ export async function KhoaHocGoiYModule(_props: { ctx: HomeModuleCtx }) {
                     </span>
                   )}
                 </span>
-                <span className="ha-trow-sub-text">{k.sub}</span>
+                <span className="ha-trow-sub-text">{k.orgTen}</span>
               </div>
             </div>
           </Link>

@@ -8,6 +8,7 @@ import {
   Loader2,
   Plus,
   Search,
+  Shield,
   Trash2,
   Users,
 } from "lucide-react";
@@ -15,6 +16,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { AdminToChucDeleteDialog } from "@/components/admin/AdminToChucDeleteDialog";
+import { AdminToChucMembersModal } from "@/components/admin/AdminToChucMembersModal";
 import { BadgeTinCay } from "@/components/admin/badges";
 import type {
   AdminToChucListResponse,
@@ -90,7 +92,11 @@ function AdminOrgLogo({ row }: { row: AdminToChucListRow }) {
   );
 }
 
-export function AdminToChucScreen() {
+export function AdminToChucScreen({
+  canDelegateOrgMembers = false,
+}: {
+  canDelegateOrgMembers?: boolean;
+}) {
   const [loaiFilter, setLoaiFilter] = useState<AdminToChucLoaiFilter>("all");
   const [query, setQuery] = useState("");
   const [rows, setRows] = useState<AdminToChucListRow[]>([]);
@@ -101,6 +107,7 @@ export function AdminToChucScreen() {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
+  const [membersOrg, setMembersOrg] = useState<AdminToChucListRow | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -298,6 +305,7 @@ export function AdminToChucScreen() {
                   <th>Khu vực</th>
                   <th>Tin cậy</th>
                   <th>Journey</th>
+                  <th>Chủ trang</th>
                   <th>Người tạo</th>
                   <th className="admin-to-chuc-th-actions">Thao tác</th>
                 </tr>
@@ -305,7 +313,7 @@ export function AdminToChucScreen() {
               <tbody>
                 {!loading && rows.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="admin-table-empty">
+                    <td colSpan={8} className="admin-table-empty">
                       Không có tổ chức phù hợp bộ lọc.
                     </td>
                   </tr>
@@ -336,6 +344,25 @@ export function AdminToChucScreen() {
                           <BadgeTinCay status={row.tinCay} />
                         </td>
                         <td className="admin-to-chuc-journey">{row.journey}</td>
+                        <td className="admin-to-chuc-chu-trang">
+                          {row.chuTrang ? (
+                            row.chuTrang.slug ? (
+                              <Link
+                                href={`/${row.chuTrang.slug}`}
+                                className="admin-to-chuc-creator-link"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title={`@${row.chuTrang.slug}`}
+                              >
+                                {row.chuTrang.ten}
+                              </Link>
+                            ) : (
+                              <span>{row.chuTrang.ten}</span>
+                            )
+                          ) : (
+                            <span className="admin-to-chuc-muted">Chưa gán</span>
+                          )}
+                        </td>
                         <td className="admin-to-chuc-creator">
                           {row.nguoiTao ? (
                             row.nguoiTao.slug ? (
@@ -357,6 +384,17 @@ export function AdminToChucScreen() {
                         </td>
                         <td>
                           <div className="admin-to-chuc-actions">
+                            {canDelegateOrgMembers ? (
+                              <button
+                                type="button"
+                                className="admin-to-chuc-act admin-to-chuc-act--icon admin-to-chuc-act--delegate"
+                                aria-label="Phân quyền"
+                                title="Phân quyền tổ chức"
+                                onClick={() => setMembersOrg(row)}
+                              >
+                                <Shield size={15} strokeWidth={2.2} aria-hidden />
+                              </button>
+                            ) : null}
                             {row.showVerify ? (
                               <button
                                 type="button"
@@ -423,6 +461,13 @@ export function AdminToChucScreen() {
           </div>
         </section>
       </div>
+
+      <AdminToChucMembersModal
+        orgId={membersOrg?.id ?? null}
+        open={Boolean(membersOrg)}
+        onClose={() => setMembersOrg(null)}
+        onOwnerChanged={() => void load()}
+      />
 
       <AdminToChucDeleteDialog
         open={Boolean(deletingRow)}
