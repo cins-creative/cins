@@ -101,7 +101,7 @@ export async function KhoaHocGoiYModule(_props: { ctx: HomeModuleCtx }) {
   return (
     <ModuleCard icon={BookOpen} title="Khóa học hợp với bạn" moreHref="/co-so-dao-tao">
       {courses.length === 0 ? (
-        <ModuleEmpty>Chưa có khóa học đang mở — sẽ cập nhật sớm.</ModuleEmpty>
+        <ModuleEmpty>Chưa có khóa học từ cơ sở đào tạo — sẽ cập nhật sớm.</ModuleEmpty>
       ) : (
         courses.map((k) => (
           <Link

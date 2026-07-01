@@ -5371,3 +5371,215 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Tuyển dụng · phân phối ─────────────────────────────────── */
+.cins-admin .td-adm-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.cins-admin .td-adm-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  font-size: 13.5px;
+  color: #334155;
+}
+
+.cins-admin .td-adm-msg {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #047857;
+  font-size: 13px;
+}
+
+.cins-admin .td-adm-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 48px 24px;
+  text-align: center;
+  color: #64748b;
+}
+
+.cins-admin .td-adm-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.cins-admin .td-adm-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+
+.cins-admin .td-adm-table th,
+.cins-admin .td-adm-table td {
+  padding: 12px 14px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.cins-admin .td-adm-table th {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  background: #f8fafc;
+}
+
+.cins-admin .td-adm-table tr.is-editing td {
+  background: #fffbeb;
+}
+
+.cins-admin .td-adm-job-title {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.cins-admin .td-adm-job-sub {
+  margin-top: 4px;
+  font-size: 12.5px;
+  color: #64748b;
+}
+
+.cins-admin .td-adm-org {
+  display: block;
+  font-weight: 500;
+}
+
+.cins-admin .td-adm-studio-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: #1f74c9;
+}
+
+.cins-admin .td-adm-status {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.cins-admin .td-adm-status--open {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.cins-admin .td-adm-status--draft {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.cins-admin .td-adm-status--closed {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.cins-admin .td-adm-pill {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.cins-admin .td-adm-pill--on {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.cins-admin .td-adm-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.cins-admin .td-adm-chip {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+}
+
+.cins-admin .td-adm-audience-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 220px;
+}
+
+.cins-admin .td-adm-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #334155;
+}
+
+.cins-admin .td-adm-check--compact {
+  font-size: 12px;
+}
+
+.cins-admin .td-adm-actions {
+  white-space: nowrap;
+}
+
+.cins-admin .td-adm-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 12px;
+  margin-right: 4px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid #d4d8e0;
+  background: #fff;
+  color: #334155;
+  cursor: pointer;
+}
+
+.cins-admin .td-adm-btn--primary {
+  background: #1f74c9;
+  border-color: #1f74c9;
+  color: #fff;
+}
+
+.cins-admin .td-adm-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cins-admin .td-adm-spin {
+  animation: td-adm-spin 0.8s linear infinite;
+}
+
+@keyframes td-adm-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

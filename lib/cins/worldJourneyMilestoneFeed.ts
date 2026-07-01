@@ -24,6 +24,7 @@ export function worldJourneyMilestoneCardKind(
 export function canWorldJourneyInlineExpandOnFeed(
   milestone: MilestoneItem,
 ): boolean {
+  if (milestone.orgSuKienRef) return false;
   return worldJourneyMilestoneCardKind(milestone) === "article";
 }
 

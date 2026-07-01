@@ -56,9 +56,9 @@
   --font-display: "Anton", "Be Vietnam Pro", system-ui, sans-serif;
   --font-serif: "Crimson Pro", Georgia, serif;
   --wj-sticky-top: 64px;
-  --wj-feed-gap: 10px;
-  --wj-feed-card-gap: 8px;
-  --wj-feed-pad-top: 0;
+  --wj-feed-gap: 14px;
+  --wj-feed-card-gap: 14px;
+  --wj-feed-pad-top: 10px;
   --wj-feed-max: 760px;
   --wj-shell-pad-top: 16px;
   --wj-shell-gutter: 16px;
@@ -1548,6 +1548,84 @@
   margin-top: auto;
 }
 
+/* Sự kiện org xen kẽ timeline feed giữa */
+.world-journey-home .wj-feed-timeline .j-milestone.j-org-su-kien .j-m-card.jcard {
+  border-color: color-mix(in srgb, var(--mint) 28%, var(--border));
+}
+
+.world-journey-home .wj-feed-timeline .j-feed-suggestion-badge {
+  background: color-mix(in srgb, var(--violet) 12%, transparent);
+  color: var(--violet);
+  border: 1px solid color-mix(in srgb, var(--violet) 22%, transparent);
+}
+
+.world-journey-home .wj-feed-timeline .j-org-su-kien-title {
+  display: block;
+  font-family: var(--font-display, inherit);
+  font-size: 22px;
+  line-height: 1.25;
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: none;
+  margin: 0 0 8px;
+}
+
+.world-journey-home .wj-feed-timeline .j-org-su-kien-title:hover {
+  color: var(--violet);
+}
+
+.world-journey-home .wj-feed-timeline .j-org-su-kien-social-hint {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--violet);
+}
+
+.world-journey-home .wj-feed-timeline .j-org-su-kien-when {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--ink3);
+}
+
+.world-journey-home .wj-feed-timeline .j-org-su-kien-desc {
+  margin: 0 0 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink2);
+}
+
+.world-journey-home .wj-feed-timeline .j-org-su-kien-cover {
+  display: block;
+  position: relative;
+  border-radius: var(--r-md, 12px);
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  background: var(--surface2);
+}
+
+.world-journey-home .wj-feed-timeline .j-org-su-kien-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.world-journey-home .wj-feed-timeline .j-org-su-kien-cover-tag,
+.world-journey-home .wj-feed-timeline .j-org-su-kien-meta-tag {
+  display: inline-flex;
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+  font-size: 12px;
+  font-weight: 600;
+  background: color-mix(in srgb, var(--mint) 16%, white);
+  color: var(--ink2);
+}
+
+.world-journey-home .wj-feed-timeline .j-org-su-kien-cover-tag {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+}
+
 .wj-btn {
   display: inline-flex;
   align-items: center;
@@ -2391,10 +2469,10 @@
     --j-rail-x: 0px;
     --j-content-pad-l: 0px;
     --j-timeline-stack-gap: 8px;
-    --j-timeline-card-gap: 10px;
-    --wj-feed-gap: 12px;
-    --wj-feed-card-gap: 10px;
-    --wj-feed-pad-top: 0;
+    --j-timeline-card-gap: 14px;
+    --wj-feed-gap: 14px;
+    --wj-feed-card-gap: 14px;
+    --wj-feed-pad-top: 10px;
   }
 
   .world-journey-home .wj-shell {
@@ -2403,6 +2481,37 @@
     max-width: none;
     margin: 0;
     padding: 0 0 40px;
+  }
+
+  /* view-grid: bỏ cột aside (1199px rule specificity cao hơn — nếu không ghi đè feed chỉ ~290px). */
+  .world-journey-home .wj-shell.view-grid {
+    grid-template-columns: 1fr;
+    max-width: none;
+    margin: 0;
+    padding: 0 0 40px;
+    gap: 0;
+  }
+
+  .world-journey-home .wj-feed.view-grid {
+    max-width: none;
+    width: 100%;
+    gap: 0;
+  }
+
+  .world-journey-home .wj-feed.view-grid .wj-feed-grid-panel {
+    width: 100%;
+    min-width: 0;
+    padding: 0;
+  }
+
+  .world-journey-home .wj-feed.view-grid .j-main-gallery-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2px;
+    width: 100%;
+  }
+
+  .world-journey-home .wj-feed.view-grid .j-main-gallery-item {
+    border-radius: 0;
   }
 
   .world-journey-home .wj-guest-aside--left {
@@ -2425,6 +2534,13 @@
   .world-journey-home .wj-feed .wj-feed-timeline.j-timeline {
     background: var(--bg-page);
     gap: var(--j-timeline-stack-gap);
+    padding-top: 0;
+  }
+
+  .world-journey-home .wj-feed .wj-feed-timeline .j-year-block,
+  .world-journey-home .wj-feed .wj-feed-timeline .j-year-block:first-of-type {
+    padding-top: 0;
+    margin-top: 0;
   }
 
   .world-journey-home .wj-feed .wj-feed-timeline .j-m-body-wrap,
@@ -2465,8 +2581,34 @@
     background: var(--bg-surface, #fff);
   }
 
-  .world-journey-home .wj-feed .wj-feed-timeline .j-m-card {
+  .world-journey-home .wj-feed .wj-feed-timeline .j-milestone,
+  .world-journey-home .wj-feed .wj-feed-timeline .j-m-body-wrap,
+  .world-journey-home .wj-feed .wj-feed-timeline .j-m-card,
+  .world-journey-home .wj-feed .wj-feed-timeline .j-m-card.jcard {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  /* Media full-bleed — padding gom trong datebar / jcard-text / actions */
+  .world-journey-home .wj-feed .wj-feed-timeline .j-m-card,
+  .world-journey-home .wj-feed .wj-feed-timeline .j-m-card.jcard {
+    padding: 0;
+  }
+
+  .world-journey-home .wj-feed .wj-feed-timeline .j-m-card:not(:has(.jcard-datebar)) {
     padding: 16px;
+  }
+
+  .world-journey-home .wj-feed .wj-feed-timeline .j-m-card .jcard-media-zone,
+  .world-journey-home .wj-feed .wj-feed-timeline .j-m-card .jcard-media-zone > .preview,
+  .world-journey-home .wj-feed .wj-feed-timeline .j-m-card .jcard-media-zone > a.preview {
+    width: 100%;
+    max-width: none;
+    border-radius: 0;
+  }
+
+  .world-journey-home .wj-feed .wj-feed-timeline .j-m-card .jcard-media-zone img {
+    border-radius: 0;
   }
 
   .world-journey-home .wj-feed > .cins-feed-composer-row .wj-composer {
@@ -2741,14 +2883,24 @@
 .world-journey-home .ha-org-up-list {
   list-style: none;
   margin: 0;
-  padding: 0 0 8px;
+  padding: 0 8px 8px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 10px;
 }
 
 .world-journey-home .ha-org-up-item {
   margin: 0;
+}
+
+.world-journey-home .ha-org-up-item--interest .ha-org-up--banner {
+  border-color: color-mix(in srgb, var(--violet, #6b4ce6) 28%, var(--border));
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--violet, #6b4ce6) 12%, transparent);
+}
+
+.world-journey-home .ha-org-up-item--rsvp .ha-org-up--banner {
+  border-color: color-mix(in srgb, var(--blue) 28%, var(--border));
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--blue) 12%, transparent);
 }
 
 .world-journey-home .ha-org-up {
@@ -2760,6 +2912,91 @@
   text-decoration: none;
   border-radius: var(--r-sm);
   transition: background 0.15s var(--ease);
+}
+
+.world-journey-home .ha-org-up--banner {
+  flex-direction: column;
+  gap: 8px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  background: var(--surface);
+  box-shadow: var(--sh-xs);
+  transition:
+    transform 0.15s var(--ease),
+    box-shadow 0.15s var(--ease),
+    border-color 0.15s var(--ease);
+}
+
+.world-journey-home .ha-org-up--banner:hover {
+  background: var(--surface);
+  transform: translateY(-1px);
+  box-shadow: var(--sh-sm, 0 4px 14px color-mix(in srgb, var(--ink1) 8%, transparent));
+}
+
+.world-journey-home .ha-org-up-banner {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: linear-gradient(
+    145deg,
+    var(--violet-soft, #f0ebff),
+    var(--neutral-100, #f1f2f5)
+  );
+}
+
+.world-journey-home .ha-org-up-banner-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.world-journey-home .ha-org-up-banner-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--ink4);
+  letter-spacing: 0.04em;
+}
+
+.world-journey-home .ha-org-up-banner-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(15, 23, 42, 0.08) 0%,
+    rgba(15, 23, 42, 0.02) 42%,
+    rgba(15, 23, 42, 0.18) 100%
+  );
+  pointer-events: none;
+}
+
+.world-journey-home .ha-org-up-date--overlay {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.world-journey-home .ha-org-up-banner-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1;
+  display: flex;
+}
+
+.world-journey-home .ha-org-up--banner .ha-org-up-body {
+  padding: 0 10px 10px;
+  gap: 3px;
 }
 
 .world-journey-home .ha-org-up:hover {
@@ -2829,6 +3066,31 @@
   align-items: center;
   gap: 6px;
   min-width: 0;
+}
+
+.world-journey-home .ha-org-up-org-logo {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--neutral-100, #f1f2f5);
+}
+
+.world-journey-home .ha-org-up-org-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.world-journey-home .ha-org-up-org-logo-fallback {
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--ink4);
+  line-height: 1;
 }
 
 .world-journey-home .ha-org-up-org {
@@ -2908,6 +3170,29 @@
   font-size: 11px;
   color: var(--ink4);
   line-height: 1.3;
+}
+
+.world-journey-home .ha-org-up-countdown {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 2px 0 0;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--ink4);
+  line-height: 1.2;
+}
+
+.world-journey-home .ha-org-up-countdown--live {
+  color: var(--mint-ink, #0e6b4d);
+}
+
+.world-journey-home .ha-org-up-countdown-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--blue);
+  flex-shrink: 0;
 }
 
 /* category (khám phá lĩnh vực) */
@@ -3020,6 +3305,7 @@
   width: 18px;
   height: 18px;
   border-radius: 4px;
+  border: 1px solid var(--border);
   overflow: hidden;
   display: flex;
   align-items: center;

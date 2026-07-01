@@ -210,7 +210,7 @@ export async function loadHocVienCuaBan(
   return out.slice(0, limit);
 }
 
-/** HỌC · Khóa học đang mở từ cơ sở đào tạo. */
+/** HỌC · Khóa học đang mở từ cơ sở đào tạo (không gồm chương trình trường đại học). */
 export async function loadKhoaHocGoiY(limit = 4): Promise<KhoaHocGoiYItem[]> {
   const admin = createServiceRoleClient();
   const { data } = await admin
@@ -226,6 +226,7 @@ export async function loadKhoaHocGoiY(limit = 4): Promise<KhoaHocGoiYItem[]> {
       org_to_chuc!inner(slug, ten, loai_to_chuc, avatar_id, logo_id)
     `,
     )
+    .eq("org_to_chuc.loai_to_chuc", "co_so_dao_tao")
     .in("trang_thai_khoa_hoc", ["sap_khai_giang", "dang_mo_don", "dang_hoc"])
     .order("ten_khoa_hoc", { ascending: true })
     .limit(limit);
@@ -242,17 +243,20 @@ export async function loadKhoaHocGoiY(limit = 4): Promise<KhoaHocGoiYItem[]> {
       org_to_chuc?: {
         slug?: string;
         ten?: string;
+        loai_to_chuc?: string;
         avatar_id?: string | null;
         logo_id?: string | null;
       } | {
         slug?: string;
         ten?: string;
+        loai_to_chuc?: string;
         avatar_id?: string | null;
         logo_id?: string | null;
       }[];
     };
     const org = Array.isArray(r.org_to_chuc) ? r.org_to_chuc[0] : r.org_to_chuc;
     if (!org?.slug?.trim()) continue;
+    if (org.loai_to_chuc && org.loai_to_chuc !== "co_so_dao_tao") continue;
     const orgName = org.ten?.trim() ?? "Cơ sở";
     const loaiMoHinh: LoaiMoHinhKhoa =
       r.loai_mo_hinh === "lien_tuc_theo_thang" ? "lien_tuc_theo_thang" : "cohort_co_dinh";

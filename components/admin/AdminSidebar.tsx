@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 const NAV = [
   { section: "Nội dung" },
   { href: "/admin/bai-viet", label: "Bài viết", icon: "doc" },
+  { href: "/admin/tuyen-dung", label: "Tuyển dụng", icon: "briefcase" },
   { href: "/admin/tag", label: "Quản lý Tag", icon: "tag" },
   { href: "/admin/de-xuat", label: "Đề xuất tag", icon: "alert", badge: 12 },
   { href: "/admin/bao-cao", label: "Báo cáo", icon: "flag" },
@@ -34,6 +35,13 @@ function NavIcon({ name }: { name: string }) {
         <svg {...p}>
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
           <polyline points="14 2 14 8 20 8" />
+        </svg>
+      );
+    case "briefcase":
+      return (
+        <svg {...p}>
+          <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+          <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
         </svg>
       );
     case "alert":

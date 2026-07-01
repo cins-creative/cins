@@ -14,6 +14,7 @@ import { useAuthGate } from "@/components/auth/AuthGateProvider";
 import { StudioJobApplyForm } from "@/components/to-chuc/StudioJobApplyForm";
 import { StudioJobEditModal } from "@/components/to-chuc/StudioJobEditModal";
 import { labelTinhThanh } from "@/lib/truong/contact";
+import { giaiDoanMucTieuLabels } from "@/lib/to-chuc/studio-tuyen-dung-distribution";
 import {
   STUDIO_JOB_LOAI_HINH_LABEL,
   STUDIO_JOB_STATUS_LABEL,
@@ -134,12 +135,20 @@ export function StudioTabTuyenDung({
                         <MapPin size={12} strokeWidth={2} aria-hidden />
                         {jobPlace(job)}
                       </span>
+                      {job.linhVucTen ? (
+                        <span className="studio-job-chip">{job.linhVucTen}</span>
+                      ) : null}
                       {job.capDo ? (
                         <span className="studio-job-chip">{job.capDo}</span>
                       ) : null}
                       {canEdit && job.trangThai !== "dang_mo" ? (
                         <span className="studio-job-chip studio-job-chip--status">
                           {STUDIO_JOB_STATUS_LABEL[job.trangThai]}
+                        </span>
+                      ) : null}
+                      {canEdit && job.hienThiCoHoi ? (
+                        <span className="studio-job-chip studio-job-chip--dist">
+                          Cơ hội
                         </span>
                       ) : null}
                     </div>
@@ -173,8 +182,39 @@ export function StudioTabTuyenDung({
                   </div>
                 ) : null}
 
+                {job.moTaNgan?.trim() && !job.moTa?.trim() ? (
+                  <p className="studio-job-card-desc studio-job-card-desc--lead">
+                    {job.moTaNgan.trim()}
+                  </p>
+                ) : null}
+
                 {job.moTa?.trim() ? (
                   <p className="studio-job-card-desc">{job.moTa.trim()}</p>
+                ) : null}
+
+                {job.yeuCau?.trim() ? (
+                  <div className="studio-job-card-block">
+                    <h4 className="studio-job-card-block-title">Yêu cầu</h4>
+                    <p className="studio-job-card-desc">{job.yeuCau.trim()}</p>
+                  </div>
+                ) : null}
+
+                {job.quyenLoi?.trim() ? (
+                  <div className="studio-job-card-block">
+                    <h4 className="studio-job-card-block-title">Quyền lợi</h4>
+                    <p className="studio-job-card-desc">{job.quyenLoi.trim()}</p>
+                  </div>
+                ) : null}
+
+                {canEdit ? (
+                  <div className="studio-job-card-dist">
+                    <span className="studio-job-card-dist-label">Phân phối:</span>
+                    {giaiDoanMucTieuLabels(job.giaiDoanMucTieu).map((label) => (
+                      <span key={label} className="studio-job-chip studio-job-chip--dist">
+                        {label}
+                      </span>
+                    ))}
+                  </div>
                 ) : null}
 
                 {!canEdit && job.trangThai === "dang_mo" ? (

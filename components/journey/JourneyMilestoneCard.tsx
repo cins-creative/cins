@@ -47,6 +47,7 @@ import { JourneyMilestoneInsightsModal } from "@/components/journey/JourneyMiles
 import { JourneyMilestoneViewerMenu } from "@/components/social/JourneyMilestoneViewerMenu";
 import { IdentityPendingMilestoneCard } from "@/components/journey/IdentityPendingMilestoneCard";
 import { IdentityVerifiedMilestoneCard } from "@/components/journey/IdentityVerifiedMilestoneCard";
+import { OrgSuKienFeedMilestoneCard } from "@/components/journey/OrgSuKienFeedMilestoneCard";
 import { JourneyOrgPopover } from "@/components/journey/JourneyOrgPopover";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
 import Link from "next/link";
@@ -336,6 +337,7 @@ export function JourneyMilestoneCard({
     social,
     noiDungBlocks,
     orgBaiDangRef,
+    orgSuKienRef,
     cardLayout = "default",
     orgHref,
     congDongOrg,
@@ -369,6 +371,12 @@ export function JourneyMilestoneCard({
     authorName?.trim() ||
     (ownerSlug?.trim() ? `@${ownerSlug.trim()}` : null) ||
     "Journey của bạn";
+
+  if (orgSuKienRef) {
+    return (
+      <OrgSuKienFeedMilestoneCard milestone={milestone} entityLens={entityLens} />
+    );
+  }
 
   if (cardLayout === "cong-dong-create") {
     return (

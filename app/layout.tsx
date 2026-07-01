@@ -28,6 +28,13 @@ export const metadata: Metadata = {
   title: "CINs — Khám phá ngành sáng tạo thị giác tại Việt Nam",
   description:
     "120+ vị trí nghề · 38 trường đại học · Lộ trình 4 bước. Tìm ra đúng nghề trước khi chọn ngành.",
+  icons: {
+    icon: [
+      { url: "/assets/logo-cins-icon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", sizes: "32x32" },
+    ],
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export default function RootLayout({

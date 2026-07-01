@@ -136,6 +136,17 @@ export type MilestoneOrgBaiDangRef = {
   orgName: string;
 };
 
+/** Sự kiện org (`org_su_kien`) trên World Journey feed — không có `content_cot_moc`. */
+export type MilestoneOrgSuKienRef = {
+  suKienId: string;
+  orgSlug: string;
+  orgName: string;
+  orgLoai: string;
+  href: string;
+  batDau: string;
+  loaiSuKien: string | null;
+};
+
 export type MilestoneMediaItem = {
   /** URL ảnh (Cloudflare imagedelivery hoặc legacy picsum). */
   src: string;
@@ -208,6 +219,12 @@ export type MilestoneItem = {
   bookmark?: MilestoneBookmarkSource | null;
   /** Bài đăng trường/org đã lưu — render unfold từ `noiDungBlocks`. */
   orgBaiDangRef?: MilestoneOrgBaiDangRef | null;
+  /** Sự kiện org trên feed giữa — card riêng, link sang trang org. */
+  orgSuKienRef?: MilestoneOrgSuKienRef | null;
+  /** Nhãn gợi ý (social graph) — hiển thị trên card feed. */
+  feedSuggestion?: boolean;
+  /** Dòng social hint — vd. "3 bạn bè sẽ tham gia". */
+  feedSocialHint?: string | null;
   /** Badge "✓ Sine Art" — chỉ khi đã được verified. */
   verifiedBy?: string | null;
 

@@ -32,6 +32,8 @@ function shouldApplyMaintenance(hostname: string): boolean {
 function isBypassedPath(pathname: string): boolean {
   if (pathname === "/maintenance") return true;
   if (pathname === "/favicon.ico") return true;
+  if (pathname === "/apple-touch-icon.png") return true;
+  if (pathname.startsWith("/assets/")) return true;
   if (pathname.startsWith("/_next/static")) return true;
   if (pathname.startsWith("/_next/image")) return true;
   if (pathname === "/login" || pathname.startsWith("/login/")) return true;

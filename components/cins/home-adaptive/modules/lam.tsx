@@ -102,12 +102,8 @@ export async function GoiYStudioModule({ ctx }: { ctx: HomeModuleCtx }) {
   );
 }
 
-/**
- * LÀM · Cơ hội (tuyển dụng) — CHƯA CÓ SCHEMA job posting (brief §8).
- * Render placeholder lịch sự; nối data thật sau khi chốt bảng `org_tuyen_dung`.
- */
 export async function CoHoiModule({ ctx }: { ctx: HomeModuleCtx }) {
-  const jobs = await loadCoHoiForHome(4);
+  const jobs = await loadCoHoiForHome(ctx.giaiDoan, 4);
   return (
     <ModuleCard
       icon={Briefcase}
@@ -116,20 +112,32 @@ export async function CoHoiModule({ ctx }: { ctx: HomeModuleCtx }) {
     >
       {jobs.length === 0 ? (
         <ModuleEmpty>
-          Tin tuyển dụng từ studio sẽ xuất hiện ở đây khi tính năng tuyển dụng mở.
+          Chưa có tin tuyển dụng phù hợp giai đoạn của bạn. Theo dõi studio để nhận
+          thông báo khi có vị trí mới.
         </ModuleEmpty>
       ) : (
-        jobs.map((job) => (
-          <div key={job.id} className="ha-trow">
-            <span className="ha-trow-th" aria-hidden>
-              {job.orgTen.slice(0, 2).toUpperCase()}
-            </span>
-            <div className="ha-trow-meta">
-              <div className="ha-trow-name">{job.tieuDe}</div>
-              <div className="ha-trow-sub">{job.sub}</div>
+        jobs.map((job) => {
+          const inner = (
+            <>
+              <span className="ha-trow-th" aria-hidden>
+                {job.orgTen.slice(0, 2).toUpperCase()}
+              </span>
+              <div className="ha-trow-meta">
+                <div className="ha-trow-name">{job.tieuDe}</div>
+                <div className="ha-trow-sub">{job.sub}</div>
+              </div>
+            </>
+          );
+          return job.href ? (
+            <Link key={job.id} href={job.href} className="ha-trow ha-trow--link" prefetch={false}>
+              {inner}
+            </Link>
+          ) : (
+            <div key={job.id} className="ha-trow">
+              {inner}
             </div>
-          </div>
-        ))
+          );
+        })
       )}
     </ModuleCard>
   );

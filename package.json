@@ -12,6 +12,8 @@
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
   },
   "dependencies": {
+    "@rive-app/canvas": "^2.38.3",
+    "@rive-app/react-canvas": "^4.29.3",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.105.1",
     "@tiptap/extension-image": "^3.23.4",

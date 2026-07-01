@@ -11,18 +11,25 @@ import {
 } from "@/lib/to-chuc/su-kien-dang-ky";
 import { labelLoaiSuKien } from "@/lib/to-chuc/su-kien-constants";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { resolveTruongImageSrcSync } from "@/lib/truong/media-url";
 import { formatTimelineDate, getStepStatus } from "@/lib/truong/timeline";
 import { truongRootPath } from "@/lib/truong/truong-routes";
 
 export type SidebarUpcomingEvent = FollowedOrgUpcomingItem & {
   kind: "su_kien";
   phanHoi: LoaiPhanHoiSuKien | null;
+  coverSrc: string | null;
+  orgAvatarUrl: string | null;
+  batDauIso: string;
+  ketThucIso: string | null;
 };
 
 type OrgEmbed = {
   slug: string | null;
   ten: string | null;
   loai_to_chuc: string | null;
+  avatar_id: string | null;
+  logo_id: string | null;
 };
 
 type SuKienRow = {
@@ -31,6 +38,7 @@ type SuKienRow = {
   loai_su_kien: string | null;
   bat_dau: string;
   ket_thuc: string | null;
+  cover_id: string | null;
   id_to_chuc: string;
   org_to_chuc: OrgEmbed | OrgEmbed[] | null;
 };
@@ -84,6 +92,7 @@ function mapSuKienRow(
 
   const orgLoai = org.loai_to_chuc?.trim() ?? "co_so_dao_tao";
   const orgSlug = org.slug.trim();
+  const orgAvatarId = org.avatar_id ?? org.logo_id;
 
   return {
     id: `sk:${row.id}`,
@@ -99,6 +108,14 @@ function mapSuKienRow(
     status: status === "active" ? "active" : "upcoming",
     sortKey: eventSortKey(row.bat_dau),
     phanHoi,
+    coverSrc: row.cover_id
+      ? resolveTruongImageSrcSync(row.cover_id, ["public", "cover", "medium"])
+      : null,
+    orgAvatarUrl: orgAvatarId
+      ? resolveTruongImageSrcSync(orgAvatarId, ["public", "avatar"])
+      : null,
+    batDauIso: row.bat_dau,
+    ketThucIso: row.ket_thuc,
   };
 }
 
@@ -117,7 +134,7 @@ async function fetchUpcomingSuKienRows(
   let query = admin
     .from("org_su_kien")
     .select(
-      "id, ten, loai_su_kien, bat_dau, ket_thuc, id_to_chuc, org_to_chuc!inner ( slug, ten, loai_to_chuc )",
+      "id, ten, loai_su_kien, bat_dau, ket_thuc, cover_id, id_to_chuc, org_to_chuc!inner ( slug, ten, loai_to_chuc, avatar_id, logo_id )",
     )
     .or(`ket_thuc.is.null,ket_thuc.gte.${now}`)
     .order("bat_dau", { ascending: true })

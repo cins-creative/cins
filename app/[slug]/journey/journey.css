@@ -7119,6 +7119,120 @@ select.j-edit-input {
   color: var(--ink-muted);
 }
 
+/* Compose overlay — mobile fullscreen (sheet + skeleton fill viewport) */
+@media (max-width: 991.98px) {
+  .j-compose-overlay {
+    padding: 0;
+    overflow: hidden;
+    background: var(--bg-page, #f4f5f7);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  .j-compose-sheet,
+  .j-compose-sheet.j-compose-sheet--media,
+  .j-compose-sheet.j-compose-sheet--milestone {
+    --j-compose-radius: 0;
+    width: 100%;
+    max-width: none;
+    min-height: 100dvh;
+    min-height: 100svh;
+    margin: 0;
+    border-radius: 0;
+    box-shadow: none;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .j-compose-sheet > .cins-editor-page.is-overlay,
+  .j-compose-sheet > .j-ms-compose {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .j-compose-sheet .cins-editor-page.is-overlay,
+  .j-compose-sheet .cins-editor-page.mc-compose-page.is-overlay {
+    flex: 1 1 auto;
+    min-height: 100dvh;
+    min-height: 100svh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .j-compose-sheet .cins-editor-page.is-overlay .ed-topbar {
+    flex-shrink: 0;
+    padding-top: env(safe-area-inset-top, 0);
+  }
+
+  .j-compose-sheet .cins-editor-page.is-overlay .editor-canvas-wrap {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+    overflow-y: auto;
+  }
+
+  .j-compose-sheet .cins-editor-page.is-overlay .editor-canvas {
+    margin: 0;
+    padding: 16px 16px max(24px, env(safe-area-inset-bottom, 0px));
+    padding-left: 16px;
+    border-radius: 0;
+    min-height: 100%;
+  }
+
+  .j-compose-sheet .cins-editor-page.mc-compose-page.is-overlay .mc-compose-main {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding-bottom: max(20px, env(safe-area-inset-bottom, 0px));
+  }
+
+  .j-compose-skeleton {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+    min-height: 100svh;
+    padding: max(16px, env(safe-area-inset-top, 0px)) 16px
+      max(16px, env(safe-area-inset-bottom, 0px));
+    box-sizing: border-box;
+  }
+
+  .j-compose-skeleton-bar {
+    flex-shrink: 0;
+    border-radius: 0;
+  }
+
+  .j-compose-skeleton-body {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 0;
+    border-radius: 0;
+  }
+
+  .j-ms-compose {
+    min-height: 100dvh;
+    min-height: 100svh;
+  }
+
+  .j-ms-compose-head {
+    padding-top: max(14px, env(safe-area-inset-top, 0px));
+  }
+
+  .j-compose-error {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100dvh;
+    min-height: 100svh;
+    padding: max(16px, env(safe-area-inset-top, 0px)) 16px
+      max(16px, env(safe-area-inset-bottom, 0px));
+  }
+}
+
 @keyframes j-sheet-in {
   from {
     opacity: 0;
@@ -9358,6 +9472,8 @@ select.j-edit-input {
   justify-content: center;
   overflow: hidden;
   flex: 0 0 auto;
+  box-sizing: border-box;
+  border: 1px solid var(--border, #e4e6eb);
   background: #dbeafe;
   color: #1d4ed8;
   font-size: 8px;

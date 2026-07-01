@@ -66,6 +66,7 @@ export async function HomeWorldJourneyMain() {
     viewerId: session.profile.id,
     viewerSlug: owner.slug,
     persona: resolvePersona(giaiDoan),
+    giaiDoan,
     seeking: resolveSeeking(giaiDoan),
   };
 

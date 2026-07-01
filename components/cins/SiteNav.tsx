@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { CinsSidebarRiveBrand } from "@/components/cins/CinsSidebarRiveBrand";
 import { SidebarNavIcon } from "@/components/cins/SidebarNavIcon";
 import { useCinsSidebarNav } from "@/components/cins/useCinsSidebarNav";
 import {
@@ -44,14 +45,7 @@ export function CinsAppSidebar() {
       id="app-sidebar"
       aria-label="Điều hướng chính"
     >
-      <Link href="/" className="sb-brand" aria-label="C.INS trang chủ">
-        <div className="sb-brand-mark">
-          <img src="/assets/logo-cins-icon.svg" alt="" />
-        </div>
-        <div className="sb-brand-text">
-          <img src="/assets/logo-cins-wide.svg" alt="C.INS" />
-        </div>
-      </Link>
+      <CinsSidebarRiveBrand />
       <ul className="sb-list">
         {MAIN_NAV_ITEMS.map((item) => (
           <SidebarLink key={item.id} item={item} pathname={pathname} />

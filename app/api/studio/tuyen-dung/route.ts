@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { createStudioJob, type StudioJobInput } from "@/lib/to-chuc/studio-tuyen-dung-mutations";
+import type { GiaiDoan } from "@/lib/cins/home-adaptive/persona";
 
 /** POST /api/studio/tuyen-dung — tạo tin tuyển dụng (admin org). */
 export async function POST(req: Request) {
@@ -25,14 +26,21 @@ export async function POST(req: Request) {
   const result = await createStudioJob(orgId, session.profile.id, {
     tieuDe: body?.tieuDe ?? "",
     moTa: body?.moTa,
+    yeuCau: body?.yeuCau,
+    quyenLoi: body?.quyenLoi,
+    moTaNgan: body?.moTaNgan,
     loaiHinh: body?.loaiHinh,
     capDo: body?.capDo,
     tinhThanh: body?.tinhThanh,
     lamTuXa: body?.lamTuXa,
+    idLinhVuc: body?.idLinhVuc,
     mucLuongTu: body?.mucLuongTu,
     mucLuongDen: body?.mucLuongDen,
     hienThiLuong: body?.hienThiLuong,
+    soLuong: body?.soLuong,
     hanNop: body?.hanNop,
+    hienThiCoHoi: body?.hienThiCoHoi,
+    giaiDoanMucTieu: body?.giaiDoanMucTieu as GiaiDoan[] | null | undefined,
     trangThai: body?.trangThai,
   });
 

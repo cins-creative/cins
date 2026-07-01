@@ -16,6 +16,10 @@ import {
   fetchFollowedOrgBaiDangMilestones,
   listFollowingOrgIds,
 } from "@/lib/cins/worldJourneyOrgFeed";
+import {
+  fetchFollowedOrgSuKienMilestones,
+  fetchFriendSuggestedSuKienMilestones,
+} from "@/lib/cins/worldJourneyOrgSuKienFeed";
 
 const FEED_LIMIT = 50;
 const QUERY_LIMIT = 120;
@@ -219,6 +223,8 @@ export async function fetchWorldJourneyFeedMilestones(
     featureLinks,
     tagLinks,
     orgMilestones,
+    orgSuKienMilestones,
+    friendSuKienSuggestions,
   ] = await Promise.all([
     fetchLinkRowsForAuthors(
       [viewerId],
@@ -229,6 +235,8 @@ export async function fetchWorldJourneyFeedMilestones(
     fetchGlobalFeatureLinkRows(),
     fetchLinkRowsForFollowedTags(followingTagIds),
     fetchFollowedOrgBaiDangMilestones(followingOrgIds),
+    fetchFollowedOrgSuKienMilestones(followingOrgIds),
+    fetchFriendSuggestedSuKienMilestones(friendIds),
   ]);
 
   const strangerFeatureLinks = featureLinks.filter((row) => {
@@ -244,10 +252,20 @@ export async function fetchWorldJourneyFeedMilestones(
     ...tagLinks,
   ]).filter((cm) => isVisibleCotMoc(cm, viewerId, friendSet, followingSet));
 
-  if (cotMocs.length === 0 && orgMilestones.length === 0) return [];
+  if (cotMocs.length === 0 && orgMilestones.length === 0) {
+    const orgOnly = [...orgSuKienMilestones, ...friendSuKienSuggestions]
+      .slice()
+      .sort(compareTimelineOrder)
+      .slice(0, FEED_LIMIT);
+    if (orgOnly.length > 0) return orgOnly;
+    return [];
+  }
 
   if (cotMocs.length === 0) {
-    return orgMilestones.slice().sort(compareTimelineOrder).slice(0, FEED_LIMIT);
+    return [...orgMilestones, ...orgSuKienMilestones, ...friendSuKienSuggestions]
+      .slice()
+      .sort(compareTimelineOrder)
+      .slice(0, FEED_LIMIT);
   }
 
   const ownerIdByCotMoc = new Map(
@@ -267,7 +285,19 @@ export async function fetchWorldJourneyFeedMilestones(
   const withLens = applyLensOwners(built, ownerIdByCotMoc, authors);
   const withSocial = await attachSocialState(admin, withLens, viewerId);
 
-  const merged = [...withSocial, ...orgMilestones]
+  const followedSuKienIds = new Set(
+    orgSuKienMilestones.map((m) => m.orgSuKienRef?.suKienId).filter(Boolean),
+  );
+  const dedupedFriendSuKien = friendSuKienSuggestions.filter(
+    (m) => !followedSuKienIds.has(m.orgSuKienRef?.suKienId ?? ""),
+  );
+
+  const merged = [
+    ...withSocial,
+    ...orgMilestones,
+    ...orgSuKienMilestones,
+    ...dedupedFriendSuKien,
+  ]
     .slice()
     .sort(compareTimelineOrder)
     .slice(0, FEED_LIMIT);

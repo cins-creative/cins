@@ -205,6 +205,7 @@
 
 .sk-hero-title {
   margin: 0 0 12px;
+  font-family: var(--font-be-vietnam, "Be Vietnam Pro"), sans-serif;
   font-size: clamp(28px, 5vw, 52px);
   font-weight: 800;
   line-height: 1.08;

@@ -1,7 +1,7 @@
 import Link from "next/link";
 
-import type { FollowedOrgUpcomingItem } from "@/lib/cins/home-adaptive/followed-org-upcoming";
-import type { LoaiPhanHoiSuKien } from "@/lib/to-chuc/su-kien-dang-ky";
+import { HaOrgUpCountdown } from "@/components/cins/home-adaptive/HaOrgUpCountdown";
+import type { SidebarUpcomingEvent } from "@/lib/cins/home-adaptive/sidebar-upcoming-events";
 
 const MONTHS = [
   "Th1", "Th2", "Th3", "Th4", "Th5", "Th6",
@@ -19,69 +19,96 @@ function dateBadge(dateLabel: string): { month: string; day: string } | null {
   };
 }
 
-function kindTag(item: FollowedOrgUpcomingItem): string | null {
-  if (item.kind === "khoa") return "Khóa học";
-  if (item.kind === "moc") return "Mốc tuyển sinh";
-  if (!item.subLabel) return null;
-  if (item.label.toLowerCase().includes(item.subLabel.toLowerCase())) return null;
-  return item.subLabel;
-}
-
 function dateRangeLine(dateLabel: string): string | null {
   const clean = dateLabel.replace(/\s*·\s*Đang diễn ra$/, "").trim();
   if (!clean.includes("–")) return null;
   return clean;
 }
 
-/** Một dòng sự kiện sidebar trang chủ. */
-export function HaOrgUpcomingRow({
-  item,
-}: {
-  item: FollowedOrgUpcomingItem & { phanHoi?: LoaiPhanHoiSuKien | null };
-}) {
+function overlayBadge(item: SidebarUpcomingEvent, isLive: boolean) {
+  if (item.phanHoi === "se_tham_gia") {
+    return <span className="ha-org-up-rsvp">Sẽ tham gia</span>;
+  }
+  if (item.phanHoi === "quan_tam") {
+    return <span className="ha-org-up-interest">Quan tâm</span>;
+  }
+  if (isLive) return <span className="ha-org-up-live">Đang diễn ra</span>;
+  if (item.subLabel) {
+    return <span className="ha-org-up-tag">{item.subLabel}</span>;
+  }
+  return null;
+}
+
+/** Một dòng sự kiện sidebar trang chủ — card banner + meta. */
+export function HaOrgUpcomingRow({ item }: { item: SidebarUpcomingEvent }) {
   const badge = dateBadge(item.dateLabel);
-  const tag = kindTag(item);
   const range = dateRangeLine(item.dateLabel);
   const isLive = item.status === "active";
-  const phanHoi = item.phanHoi ?? null;
-
-  function headBadge() {
-    if (phanHoi === "se_tham_gia") {
-      return <span className="ha-org-up-rsvp">Sẽ tham gia</span>;
-    }
-    if (phanHoi === "quan_tam") {
-      return <span className="ha-org-up-interest">Quan tâm</span>;
-    }
-    if (isLive) return <span className="ha-org-up-live">Đang diễn ra</span>;
-    if (tag) return <span className="ha-org-up-tag">{tag}</span>;
-    return null;
-  }
+  const overlay = overlayBadge(item, isLive);
+  const itemClass =
+    item.phanHoi === "quan_tam"
+      ? "ha-org-up-item ha-org-up-item--interest"
+      : item.phanHoi === "se_tham_gia"
+        ? "ha-org-up-item ha-org-up-item--rsvp"
+        : "ha-org-up-item";
 
   return (
-    <li className="ha-org-up-item">
-      <Link href={item.href} className="ha-org-up" prefetch={false}>
-        <div
-          className={`ha-org-up-date${isLive ? " ha-org-up-date--live" : ""}`}
-          aria-hidden
-        >
-          {badge ? (
-            <>
-              <span className="ha-org-up-date-month">{badge.month}</span>
-              <span className="ha-org-up-date-day">{badge.day}</span>
-            </>
+    <li className={itemClass}>
+      <Link href={item.href} className="ha-org-up ha-org-up--banner" prefetch={false}>
+        <div className="ha-org-up-banner" aria-hidden>
+          {item.coverSrc ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={item.coverSrc}
+              alt=""
+              className="ha-org-up-banner-img"
+              loading="lazy"
+            />
           ) : (
-            <span className="ha-org-up-date-fallback">
-              {item.kind === "su_kien" ? "SK" : item.kind === "khoa" ? "KH" : "M"}
+            <span className="ha-org-up-banner-fallback">
+              {item.label.slice(0, 2).toUpperCase()}
             </span>
           )}
+          <span className="ha-org-up-banner-shade" />
+          {badge ? (
+            <span
+              className={`ha-org-up-date ha-org-up-date--overlay${isLive ? " ha-org-up-date--live" : ""}`}
+            >
+              <span className="ha-org-up-date-month">{badge.month}</span>
+              <span className="ha-org-up-date-day">{badge.day}</span>
+            </span>
+          ) : null}
+          {overlay ? (
+            <span className="ha-org-up-banner-badge">{overlay}</span>
+          ) : null}
         </div>
         <div className="ha-org-up-body">
           <div className="ha-org-up-head">
+            <span className="ha-org-up-org-logo" aria-hidden>
+              {item.orgAvatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={item.orgAvatarUrl}
+                  alt=""
+                  width={18}
+                  height={18}
+                  loading="lazy"
+                />
+              ) : (
+                <span className="ha-org-up-org-logo-fallback">
+                  {item.orgName.slice(0, 1).toUpperCase()}
+                </span>
+              )}
+            </span>
             <span className="ha-org-up-org">{item.orgName}</span>
-            {headBadge()}
           </div>
           <p className="ha-org-up-title">{item.label}</p>
           {range ? <p className="ha-org-up-range">{range}</p> : null}
+          <HaOrgUpCountdown
+            batDauIso={item.batDauIso}
+            ketThucIso={item.ketThucIso}
+            status={item.status}
+          />
         </div>
       </Link>
     </li>

@@ -3,6 +3,10 @@ import "server-only";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { isTruongOrgAdmin } from "@/lib/truong/org-admin";
 import {
+  normalizeGiaiDoanMucTieu,
+  TUYEN_DUNG_GIAI_DOAN_DEFAULT,
+} from "@/lib/to-chuc/studio-tuyen-dung-distribution";
+import {
   mapStudioJobRow,
   STUDIO_JOB_LOAI_HINH_LABEL,
   STUDIO_JOB_SELECT,
@@ -11,18 +15,27 @@ import {
   type StudioJobLoaiHinh,
   type StudioJobStatus,
 } from "@/lib/to-chuc/studio-tuyen-dung-types";
+import type { GiaiDoan } from "@/lib/cins/home-adaptive/persona";
+import { normalizeTinhThanhForDb } from "@/lib/truong/contact";
 
 export type StudioJobInput = {
   tieuDe: string;
   moTa?: string | null;
+  yeuCau?: string | null;
+  quyenLoi?: string | null;
+  moTaNgan?: string | null;
   loaiHinh?: StudioJobLoaiHinh;
   capDo?: string | null;
   tinhThanh?: string | null;
   lamTuXa?: boolean;
+  idLinhVuc?: string | null;
   mucLuongTu?: number | null;
   mucLuongDen?: number | null;
   hienThiLuong?: boolean;
+  soLuong?: number | null;
   hanNop?: string | null;
+  hienThiCoHoi?: boolean;
+  giaiDoanMucTieu?: GiaiDoan[] | null;
   trangThai?: StudioJobStatus;
 };
 
@@ -34,7 +47,32 @@ type SimpleResult =
   | { ok: true }
   | { ok: false; error: string; status: number };
 
-function normalizeInput(input: StudioJobInput) {
+function normalizeInput(
+  input: StudioJobInput,
+):
+  | { error: string }
+  | {
+      payload: {
+        tieu_de: string;
+        mo_ta: string | null;
+        yeu_cau: string | null;
+        quyen_loi: string | null;
+        mo_ta_ngan: string | null;
+        loai_hinh: StudioJobLoaiHinh;
+        cap_do: string | null;
+        tinh_thanh: string | null;
+        lam_tu_xa: boolean;
+        id_linh_vuc: string | null;
+        muc_luong_tu: number | null;
+        muc_luong_den: number | null;
+        hien_thi_luong: boolean;
+        so_luong: number | null;
+        han_nop: string | null;
+        hien_thi_co_hoi: boolean;
+        giai_doan_muc_tieu: GiaiDoan[];
+        trang_thai: StudioJobStatus;
+      };
+    } {
   const tieuDe = input.tieuDe?.trim();
   if (!tieuDe) return { error: "Cần nhập tiêu đề vị trí." };
 
@@ -50,18 +88,35 @@ function normalizeInput(input: StudioJobInput) {
   const toInt = (v: number | null | undefined) =>
     typeof v === "number" && Number.isFinite(v) && v >= 0 ? Math.round(v) : null;
 
+  const tinhThanh = input.lamTuXa
+    ? null
+    : normalizeTinhThanhForDb(input.tinhThanh) ?? null;
+
+  const giaiDoanMucTieu = normalizeGiaiDoanMucTieu(
+    input.giaiDoanMucTieu ?? TUYEN_DUNG_GIAI_DOAN_DEFAULT,
+  );
+
+  const idLinhVuc = input.idLinhVuc?.trim() || null;
+
   return {
     payload: {
       tieu_de: tieuDe,
       mo_ta: input.moTa?.trim() || null,
+      yeu_cau: input.yeuCau?.trim() || null,
+      quyen_loi: input.quyenLoi?.trim() || null,
+      mo_ta_ngan: input.moTaNgan?.trim() || null,
       loai_hinh: loaiHinh,
       cap_do: input.capDo?.trim() || null,
-      tinh_thanh: input.tinhThanh?.trim() || null,
+      tinh_thanh: tinhThanh,
       lam_tu_xa: Boolean(input.lamTuXa),
+      id_linh_vuc: idLinhVuc,
       muc_luong_tu: toInt(input.mucLuongTu),
       muc_luong_den: toInt(input.mucLuongDen),
       hien_thi_luong: Boolean(input.hienThiLuong),
+      so_luong: toInt(input.soLuong),
       han_nop: input.hanNop?.trim() || null,
+      hien_thi_co_hoi: input.hienThiCoHoi !== false,
+      giai_doan_muc_tieu: giaiDoanMucTieu,
       trang_thai: trangThai,
     },
   };
@@ -77,7 +132,7 @@ export async function createStudioJob(
   }
 
   const normalized = normalizeInput(input);
-  if (normalized.error) {
+  if ("error" in normalized) {
     return { ok: false, error: normalized.error, status: 400 };
   }
 
@@ -115,7 +170,7 @@ export async function updateStudioJob(
   }
 
   const normalized = normalizeInput(input);
-  if (normalized.error) {
+  if ("error" in normalized) {
     return { ok: false, error: normalized.error, status: 400 };
   }
 

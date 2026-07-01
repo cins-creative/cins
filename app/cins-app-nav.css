@@ -61,6 +61,29 @@
   flex-shrink: 0;
   text-decoration: none;
   color: inherit;
+  overflow: hidden;
+}
+
+/* Logo Rive — icon thu gọn ↔ wordmark khi sidebar mở rộng */
+.cins-app-sidebar .sb-brand-rive {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  transition:
+    width 0.26s var(--app-nav-ease),
+    height 0.26s var(--app-nav-ease);
+}
+
+.cins-app-sidebar .sb-brand-rive.is-expanded,
+.cins-app-sidebar.sidebar:hover .sb-brand-rive,
+.cins-app-sidebar.sidebar:focus-within .sb-brand-rive,
+.cins-app-sidebar.sidebar:has(.sb-user.open) .sb-brand-rive {
+  width: 168px;
+  height: 40px;
+}
+
+.cins-app-sidebar .sb-brand-rive canvas {
+  display: block;
 }
 
 .cins-app-sidebar .sb-brand-mark {
@@ -1836,6 +1859,12 @@ a.j-notify-mini-action.is-link:hover {
   .cins-app-sidebar.sidebar .sb-brand-mark {
     width: 0;
     opacity: 0;
+  }
+
+  .cins-app-sidebar.sidebar .sb-brand-rive,
+  .cins-app-sidebar.sidebar .sb-brand-rive.is-expanded {
+    width: 168px;
+    height: 40px;
   }
 
   .cins-app-topbar .tb-burger {

@@ -12,12 +12,16 @@ import {
 import { NGANH_HOC_HUB_PATH } from "@/lib/cins/hubPaths";
 import type { FeedPromoVariant } from "@/lib/cins/worldJourneyFeedPromosTypes";
 import { listFollowingOrgIds } from "@/lib/cins/worldJourneyOrgFeed";
+import {
+  fetchFriendSuggestedSuKienMilestones,
+} from "@/lib/cins/worldJourneyOrgSuKienFeed";
 import { listNganhArticlesForHub } from "@/lib/nganh/queries";
 import { coSoTabPath } from "@/lib/to-chuc/co-so-routes";
 import { labelLoaiSuKien } from "@/lib/to-chuc/su-kien-constants";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { resolveTruongImageSrcSync } from "@/lib/truong/media-url";
 import { truongRootPath } from "@/lib/truong/truong-routes";
+import { listFriends } from "@/lib/social/ket-ban";
 
 export type { FeedPromoCard, FeedPromoVariant } from "@/lib/cins/worldJourneyFeedPromosTypes";
 
@@ -219,11 +223,64 @@ function mapPeople(
   };
 }
 
+/** Rail gợi ý — sự kiện nhiều bạn bè đang tham gia. */
+async function loadFriendParticipationEventPromo(
+  viewerId: string,
+  limit = 8,
+): Promise<FeedPromoVariant | null> {
+  const friendIds = await listFriends(viewerId);
+  if (friendIds.length === 0) return null;
+
+  const milestones = await fetchFriendSuggestedSuKienMilestones(
+    friendIds,
+    new Set(),
+    limit,
+  );
+  if (milestones.length === 0) return null;
+
+  return {
+    kind: "events",
+    title: "Bạn bè đang tham gia",
+    moreHref: "/su-kien",
+    moreLabel: "Xem thêm",
+    items: milestones.map((m) => {
+      const ref = m.orgSuKienRef!;
+      const orgName = ref.orgName;
+      const loaiLabel = labelLoaiSuKien(ref.loaiSuKien);
+      const friendHint = m.feedSocialHint?.trim();
+      const coverSrc = m.media?.[0]?.src ?? null;
+      const orgLogoUrl = m.lensOwnerAvatarUrl ?? m.attribution?.avatarUrl ?? null;
+      const d = new Date(ref.batDau);
+      const dateBadge =
+        Number.isNaN(d.getTime())
+          ? undefined
+          : {
+              month: PROMO_EVENT_MONTHS[d.getMonth()] ?? "",
+              day: String(d.getDate()).padStart(2, "0"),
+            };
+
+      return {
+        id: ref.suKienId,
+        title: m.title,
+        sub: friendHint
+          ? `${friendHint} · ${orgName}`
+          : `${orgName} · ${loaiLabel}`,
+        href: ref.href,
+        imageUrl: coverSrc,
+        orgLogoUrl,
+        dateBadge,
+      };
+    }),
+  };
+}
+
 /** Gợi ý xen kẽ feed timeline — theo persona (không render ở Gallery). */
 export async function loadFeedInlinePromos(
   viewerId: string,
   persona: Persona,
 ): Promise<FeedPromoVariant[]> {
+  const friendEventsPromo = await loadFriendParticipationEventPromo(viewerId, 8);
+
   if (persona === "hoc") {
     const [courses, nganhResult, people, events] = await Promise.all([
       loadKhoaHocGoiY(8),
@@ -232,9 +289,10 @@ export async function loadFeedInlinePromos(
       loadFeedPromoEvents(viewerId, persona, 8),
     ]);
 
-    /* Xen kẽ: khóa học → sự kiện → ngành → người (lặp theo slot). */
+    /* Xen kẽ: khóa học → sự kiện bạn bè → sự kiện → ngành → người. */
     return [
       mapCourses(courses, "Khóa học gợi ý"),
+      friendEventsPromo,
       events,
       mapCareers(nganhResult.ok ? nganhResult.items : []),
       mapPeople(people),
@@ -265,6 +323,7 @@ export async function loadFeedInlinePromos(
             })),
           }
         : null,
+      friendEventsPromo,
       events,
       mapPeople(people),
     ].filter((v): v is FeedPromoVariant => v != null);
@@ -280,6 +339,7 @@ export async function loadFeedInlinePromos(
 
   return [
     mapCourses(courses, "Khóa học đang mở"),
+    friendEventsPromo,
     events,
     mapCareers(nganhResult.ok ? nganhResult.items : []),
     mapPeople(people),
