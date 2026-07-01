@@ -131,7 +131,7 @@ export function CoSoSchoolSidebar({
           <section className="cso-ss-sec" aria-labelledby="cso-ss-contact-title">
             <div className="cso-ss-sec-head">
               <h2 id="cso-ss-contact-title" className="cso-ss-sec-title">
-                Liên hệ
+                Cơ sở chính
               </h2>
             </div>
             <TruongSchoolContact

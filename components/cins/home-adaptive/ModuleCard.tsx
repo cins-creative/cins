@@ -8,8 +8,6 @@ type ModuleCardProps = {
   /** Link "xem tất cả" góc phải header. */
   moreHref?: string;
   moreLabel?: string;
-  /** Nhãn "luôn có" (brief §2 — su_kien + goi_y_theo_doi). */
-  constant?: boolean;
   className?: string;
   children: ReactNode;
 };
@@ -20,7 +18,6 @@ export function ModuleCard({
   title,
   moreHref,
   moreLabel = "Xem tất cả",
-  constant = false,
   className,
   children,
 }: ModuleCardProps) {
@@ -29,8 +26,7 @@ export function ModuleCard({
       <div className="ha-card-head">
         {Icon ? <Icon size={16} strokeWidth={2} aria-hidden /> : null}
         <span className="ha-card-title">{title}</span>
-        {constant ? <span className="ha-card-flag">luôn có</span> : null}
-        {moreHref && !constant ? (
+        {moreHref ? (
           <Link href={moreHref} className="ha-card-more" prefetch={false}>
             {moreLabel}
           </Link>

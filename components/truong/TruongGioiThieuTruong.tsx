@@ -10,7 +10,7 @@ import { hasTruongGioiThieuContent } from "@/lib/truong/gioi-thieu";
 import type { TruongListItem } from "@/lib/truong/types";
 
 type Props = {
-  school?: Pick<TruongListItem, "ten" | "gioi_thieu_truong">;
+  school?: Pick<TruongListItem, "ten" | "gioi_thieu_truong" | "org_loai">;
   onOpenAbout?: () => void;
 };
 

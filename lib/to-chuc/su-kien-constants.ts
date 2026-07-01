@@ -45,12 +45,20 @@ export type SuKienCardData = {
   id: string;
   ten: string;
   loaiSuKien: LoaiSuKien;
+  /** Tóm tắt ngắn — card / timeline. */
   moTa: string | null;
+  /** Nội dung chi tiết HTML (Tiptap). */
+  noiDung: string | null;
   coverId: string | null;
   coverSrc: string | null;
   batDau: string;
   ketThuc: string | null;
+  /** Khu vực — mã `tinh_thanh_vn_enum`. */
+  tinhThanh: string | null;
+  /** Địa chỉ chi tiết hoặc link online. */
   diaDiem: string | null;
+  mienPhi: boolean;
+  giaVe: number | null;
   slotToiDa: number | null;
   soDangKy: number;
 };
@@ -59,11 +67,26 @@ export type TaoSuKienInput = {
   ten: string;
   loaiSuKien: string;
   moTa?: string | null;
+  noiDung?: string | null;
   batDau: string;
   ketThuc?: string | null;
+  tinhThanh?: string | null;
   diaDiem?: string | null;
+  mienPhi?: boolean;
+  giaVe?: number | null;
   slotToiDa?: number | null;
   coverId?: string | null;
 };
+
+export function labelSuKienVe(
+  mienPhi: boolean,
+  giaVe: number | null | undefined,
+): string {
+  if (mienPhi) return "Miễn phí";
+  if (typeof giaVe === "number" && giaVe > 0) {
+    return `${new Intl.NumberFormat("vi-VN").format(giaVe)} đ`;
+  }
+  return "Tính phí";
+}
 
 export type CapNhatSuKienInput = Partial<TaoSuKienInput>;

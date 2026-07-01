@@ -172,7 +172,7 @@ const GIAI_DOAN_LABEL: Record<GiaiDoan, string> = {
   dang_lam: "Đang làm",
   tim_viec: "Đang tìm việc",
   freelance: "Freelance",
-  dang_day: "Đang giảng dạy",
+  dang_day: "Giáo viên",
 };
 export function getGiaiDoanLabel(g: GiaiDoan | null): string {
   return g ? GIAI_DOAN_LABEL[g] : "Đang khởi tạo hồ sơ";

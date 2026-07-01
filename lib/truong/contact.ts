@@ -47,6 +47,11 @@ export const TINH_THANH_OPTIONS: { value: string; label: string }[] = [
   { value: "dong_nai", label: "Đồng Nai" },
 ];
 
+/** Dropdown bắt buộc chọn khu vực (không có option rỗng). */
+export const TINH_THANH_SELECT_OPTIONS = TINH_THANH_OPTIONS.filter(
+  (o) => o.value !== "",
+);
+
 const TINH_THANH_LABELS: Record<string, string> = {
   hcm: "TP. Hồ Chí Minh",
   ho_chi_minh: "TP. Hồ Chí Minh",
@@ -63,6 +68,16 @@ export function labelTinhThanh(code: string | null | undefined): string | null {
   if (!key) return null;
   if (TINH_THANH_LABELS[key]) return TINH_THANH_LABELS[key];
   return key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+export function formatSuKienDiaDiemDisplay(
+  tinhThanh: string | null | undefined,
+  diaDiem: string | null | undefined,
+): string | null {
+  const region = labelTinhThanh(tinhThanh);
+  const detail = diaDiem?.trim();
+  if (region && detail) return `${region} · ${detail}`;
+  return region || detail || null;
 }
 
 /** Chuẩn hóa trước khi PATCH — tránh lỗi enum DB (vd. \"HCM\" → ho_chi_minh). */

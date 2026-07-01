@@ -60,7 +60,7 @@ const GIAI_DOAN_OPTIONS: ReadonlyArray<{
   },
   {
     value: "dang_day",
-    label: "Đang dạy",
+    label: "Giáo viên",
     hint: "Mình là mentor, giảng viên, hoặc đào tạo nội bộ.",
     accent: "blue",
   },

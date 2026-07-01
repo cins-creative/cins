@@ -776,7 +776,7 @@ function EventBanners() {
               CINs đồng tổ chức và bảo trợ truyền thông cho các sự kiện trong ngành. Đăng ký sớm để giữ chỗ.
             </p>
           </div>
-          <a href="#" className="evb-link">Xem tất cả sự kiện →</a>
+          <a href="/su-kien" className="evb-link">Xem tất cả sự kiện →</a>
         </div>
         <div className="evb-grid">
           {events.map((e, i) => (

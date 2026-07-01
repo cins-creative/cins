@@ -42,6 +42,10 @@ type Props = {
    * dưới milestone mới nhất, dễ thấy mà không đẩy nội dung cũ xuống.
    */
   afterFirstSlot?: ReactNode;
+  /** Bù số bài đã render trước block năm này (feed xen kẽ gợi ý). */
+  postCountOffset?: number;
+  /** Node chèn sau milestone thứ N (1-based, đếm xuyên timeline). */
+  insertAfterPostCounts?: ReadonlyMap<number, ReactNode>;
   /** Trang entity — mỗi card dùng chủ cột mốc riêng (`lensOwner*`). */
   entityLens?: boolean;
   /** Nguồn bề mặt cho analytics — forward sang card (vd "journey_home", "org_page"). */
@@ -74,6 +78,8 @@ export function JourneyYearBlock({
   onOpenComments,
   onCloseExpand,
   afterFirstSlot,
+  postCountOffset = 0,
+  insertAfterPostCounts,
   entityLens = false,
   analyticsNguon,
   feedCompactMedia = false,
@@ -139,6 +145,7 @@ export function JourneyYearBlock({
               }
             />
             {idx === 0 && afterFirstSlot ? afterFirstSlot : null}
+            {insertAfterPostCounts?.get(postCountOffset + idx + 1) ?? null}
           </Fragment>
         );
       })}

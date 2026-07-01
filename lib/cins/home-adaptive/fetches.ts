@@ -2,6 +2,8 @@ import "server-only";
 
 import { getAvatarUrl } from "@/lib/journey/profile";
 import { loadPendingCoSoStaffInvites } from "@/lib/to-chuc/co-so-staff-invite";
+import { labelLoaiMoHinhKhoa } from "@/lib/to-chuc/khoa-hoc-labels";
+import type { LoaiMoHinhKhoa } from "@/lib/to-chuc/khoa-hoc-types";
 import { resolveTruongImageSrcSync } from "@/lib/truong/media-url";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -37,7 +39,10 @@ export type KhoaHocGoiYItem = {
   ten: string;
   orgSlug: string;
   orgTen: string;
+  /** Loại khóa (cohort / liên tục…) — hiển thị cạnh logo org. */
   sub: string;
+  /** Logo / avatar tổ chức. */
+  orgAvatarUrl: string | null;
   /** Thumbnail khóa học — `avatar_id` (list thumb), fallback `cover_id`. */
   thumbnailUrl: string | null;
 };
@@ -218,7 +223,7 @@ export async function loadKhoaHocGoiY(limit = 4): Promise<KhoaHocGoiYItem[]> {
       loai_mo_hinh,
       cover_id,
       avatar_id,
-      org_to_chuc!inner(slug, ten, loai_to_chuc)
+      org_to_chuc!inner(slug, ten, loai_to_chuc, avatar_id, logo_id)
     `,
     )
     .in("trang_thai_khoa_hoc", ["sap_khai_giang", "dang_mo_don", "dang_hoc"])
@@ -234,14 +239,28 @@ export async function loadKhoaHocGoiY(limit = 4): Promise<KhoaHocGoiYItem[]> {
       loai_mo_hinh: string;
       cover_id?: string | null;
       avatar_id?: string | null;
-      org_to_chuc?: { slug?: string; ten?: string } | { slug?: string; ten?: string }[];
+      org_to_chuc?: {
+        slug?: string;
+        ten?: string;
+        avatar_id?: string | null;
+        logo_id?: string | null;
+      } | {
+        slug?: string;
+        ten?: string;
+        avatar_id?: string | null;
+        logo_id?: string | null;
+      }[];
     };
     const org = Array.isArray(r.org_to_chuc) ? r.org_to_chuc[0] : r.org_to_chuc;
     if (!org?.slug?.trim()) continue;
-    const sub =
-      r.loai_mo_hinh === "lien_tuc_theo_thang"
-        ? `${org.ten?.trim() ?? "Cơ sở"} · liên tục theo tháng`
-        : `${org.ten?.trim() ?? "Cơ sở"} · cohort`;
+    const orgName = org.ten?.trim() ?? "Cơ sở";
+    const loaiMoHinh: LoaiMoHinhKhoa =
+      r.loai_mo_hinh === "lien_tuc_theo_thang" ? "lien_tuc_theo_thang" : "cohort_co_dinh";
+    const sub = labelLoaiMoHinhKhoa(loaiMoHinh);
+    const orgAvatarId = org.avatar_id ?? org.logo_id;
+    const orgAvatarUrl = orgAvatarId
+      ? resolveTruongImageSrcSync(orgAvatarId, ["public", "avatar"])
+      : null;
     /* Khớp với KhoaHocCard: ưu tiên thumbnail (`avatar_id`) rồi mới tới banner
        (`cover_id`), để hình trong aside trùng với cover trên card khóa học. */
     const thumbnailUrl =
@@ -253,8 +272,9 @@ export async function loadKhoaHocGoiY(limit = 4): Promise<KhoaHocGoiYItem[]> {
       slug: r.slug,
       ten: r.ten_khoa_hoc,
       orgSlug: org.slug.trim(),
-      orgTen: org.ten?.trim() ?? "Cơ sở",
+      orgTen: orgName,
       sub,
+      orgAvatarUrl,
       thumbnailUrl,
     });
   }

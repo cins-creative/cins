@@ -43,9 +43,18 @@ export async function POST(req: Request, ctx: RouteContext) {
     ten: typeof body.ten === "string" ? body.ten : "",
     loaiSuKien: typeof body.loaiSuKien === "string" ? body.loaiSuKien : "",
     moTa: typeof body.moTa === "string" ? body.moTa : null,
+    noiDung: typeof body.noiDung === "string" ? body.noiDung : null,
     batDau: typeof body.batDau === "string" ? body.batDau : "",
     ketThuc: typeof body.ketThuc === "string" ? body.ketThuc : null,
+    tinhThanh: typeof body.tinhThanh === "string" ? body.tinhThanh : null,
     diaDiem: typeof body.diaDiem === "string" ? body.diaDiem : null,
+    mienPhi: body.mienPhi === false ? false : true,
+    giaVe:
+      typeof body.giaVe === "number"
+        ? body.giaVe
+        : body.giaVe == null
+          ? null
+          : Number(body.giaVe),
     slotToiDa:
       typeof body.slotToiDa === "number"
         ? body.slotToiDa

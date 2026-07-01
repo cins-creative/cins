@@ -12,8 +12,10 @@ import { KhoaHocCreateModal } from "@/components/co-so/KhoaHocCreateModal";
 import { SuKienCreateModal } from "@/components/co-so/SuKienCreateModal";
 import {
   labelLoaiSuKien,
+  labelSuKienVe,
   type SuKienCardData,
 } from "@/lib/to-chuc/su-kien-constants";
+import { formatSuKienDiaDiemDisplay } from "@/lib/truong/contact";
 import { formatTimelineDate, getStepStatus } from "@/lib/truong/timeline";
 import { coSoTabPath } from "@/lib/to-chuc/co-so-routes";
 import {
@@ -61,6 +63,7 @@ type Props = {
   orgId: string;
   orgSlug: string;
   orgDiaChi?: string | null;
+  orgTinhThanh?: string | null;
   canManageKhoaHoc?: boolean;
   isMobileShell?: boolean;
   isMobileShellActive?: boolean;
@@ -97,8 +100,12 @@ function buildSuKienSteps(
         ? `${startLabel} – ${endLabel}`
         : startLabel;
     if (status === "active") dateLabel = `${dateLabel} · Đang diễn ra`;
-    const descParts = [labelLoaiSuKien(ev.loaiSuKien)];
-    if (ev.diaDiem) descParts.push(ev.diaDiem);
+    const descParts = [
+      labelLoaiSuKien(ev.loaiSuKien),
+      labelSuKienVe(ev.mienPhi, ev.giaVe),
+    ];
+    const diaDiemLabel = formatSuKienDiaDiemDisplay(ev.tinhThanh, ev.diaDiem);
+    if (diaDiemLabel) descParts.push(diaDiemLabel);
     return {
       id: suKienStepId(ev.id),
       label: ev.ten,
@@ -238,6 +245,7 @@ export function CoSoUpcomingSidebar({
   orgId,
   orgSlug,
   orgDiaChi = null,
+  orgTinhThanh = null,
   canManageKhoaHoc = false,
   isMobileShell = false,
   isMobileShellActive = false,
@@ -670,6 +678,7 @@ export function CoSoUpcomingSidebar({
           open={suKienModalOpen}
           orgId={orgId}
           orgDiaChi={orgDiaChi}
+          orgTinhThanh={orgTinhThanh}
           onClose={() => setSuKienModalOpen(false)}
           onCreated={(created) => {
             setSuKienList((prev) => [created, ...prev]);

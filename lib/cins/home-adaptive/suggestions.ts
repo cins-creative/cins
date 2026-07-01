@@ -143,6 +143,12 @@ const FOLLOWABLE_ORG_LOAI = [
   "doanh_nghiep",
 ] as const;
 
+/** Trường / cơ sở đào tạo — feed promo xen kẽ (cả hai loại). */
+export const SCHOOL_ORG_LOAI = ["truong_dai_hoc", "co_so_dao_tao"] as const;
+
+/** Chỉ cơ sở đào tạo (không trường đại học) — module sidebar `duong_toi_do`. */
+export const CO_SO_DAO_TAO_LOAI = ["co_so_dao_tao"] as const;
+
 /** persona → loại org "hợp gu" (cộng điểm khi trùng). */
 const PERSONA_ORG_LOAI: Record<Persona, string[]> = {
   hoc: ["truong_dai_hoc", "co_so_dao_tao"],
@@ -180,7 +186,9 @@ function tinhThanhLabel(value: string | null): string {
 export async function loadOrgFollowSuggestions(
   viewerId: string,
   limit = 3,
+  options?: { loaiToChuc?: readonly string[] },
 ): Promise<OrgFollowSuggestion[]> {
+  const loaiFilter = options?.loaiToChuc;
   const admin = createServiceRoleClient();
 
   const [
@@ -264,6 +272,7 @@ export async function loadOrgFollowSuggestions(
   for (const row of [...(byMutual.data ?? []), ...(byPersona.data ?? []), ...(byTinh.data ?? [])]) {
     if (excluded.has(row.id) || !row.slug?.trim() || !row.ten?.trim()) continue;
     if (!(FOLLOWABLE_ORG_LOAI as readonly string[]).includes(row.loai_to_chuc)) continue;
+    if (loaiFilter && !loaiFilter.includes(row.loai_to_chuc)) continue;
     if (row.trang_thai_hoat_dong === "da_dong_cua") continue;
     candidates.set(row.id, row);
   }
@@ -322,11 +331,19 @@ function orgLoaiLabel(loai: string): string {
     case "co_so_dao_tao":
       return "Cơ sở đào tạo";
     case "studio":
-    case "doanh_nghiep":
       return "Studio";
+    case "doanh_nghiep":
+      return "Doanh nghiệp";
     case "cong_dong":
       return "Cộng đồng";
     default:
       return "Tổ chức";
   }
+}
+
+/** Dòng phụ org — luôn có loại tổ chức để không nhầm với người dùng. */
+export function orgFollowSubtitle(loaiToChuc: string, reason: string): string {
+  const typeLabel = orgLoaiLabel(loaiToChuc);
+  if (!reason || reason === typeLabel) return typeLabel;
+  return `${typeLabel} · ${reason}`;
 }

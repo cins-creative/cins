@@ -273,6 +273,7 @@ function CoSoDetailViewInner({
                   orgId={school.id}
                   orgTen={school.ten}
                   orgDiaChi={school.dia_chi}
+                  orgTinhThanh={school.tinh_thanh}
                   canManageSuKien={canManageKhoaHoc}
                 />
               ) : null}
@@ -295,6 +296,7 @@ function CoSoDetailViewInner({
         orgId={school.id}
         orgSlug={orgSlug}
         orgDiaChi={school.dia_chi}
+        orgTinhThanh={school.tinh_thanh}
         canManageKhoaHoc={canManageKhoaHoc}
         isMobileShell={isMobileShell}
         isMobileShellActive={mobileTab === "notify"}

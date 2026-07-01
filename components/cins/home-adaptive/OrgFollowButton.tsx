@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Rss } from "lucide-react";
+import { Bell, BellPlus } from "lucide-react";
 import { useCallback, useEffect, useState, useTransition } from "react";
 
 import { useAuthGate } from "@/components/auth/AuthGateProvider";
@@ -73,9 +73,9 @@ export function OrgFollowButton({ orgId, compact = false }: Props) {
       onClick={toggle}
     >
       {following ? (
-        <Check size={17} strokeWidth={2} aria-hidden />
+        <Bell size={17} strokeWidth={2} aria-hidden />
       ) : (
-        <Rss size={17} strokeWidth={2} aria-hidden />
+        <BellPlus size={17} strokeWidth={2} aria-hidden />
       )}
       {compact ? null : <span className="j-friend-btn-label">{label}</span>}
     </button>

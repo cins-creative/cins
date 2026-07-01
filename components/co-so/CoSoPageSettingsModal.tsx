@@ -98,7 +98,7 @@ const NAV: ReadonlyArray<{ id: CoSoSettingsSection; label: string }> = [
   { id: "contact", label: "Liên hệ" },
   { id: "verify", label: "Xác thực" },
   { id: "access", label: "Quyền quản trị" },
-  { id: "filters", label: "Nhãn timeline" },
+  { id: "filters", label: "Quản lý nhãn" },
 ];
 
 function mapFiltersToChips(

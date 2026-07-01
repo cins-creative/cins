@@ -1036,7 +1036,7 @@
   height: 44px;
   border: none;
   border-radius: var(--radius-md, 14px);
-  font-size: 14.5px;
+  font-size: 12.5px;
   font-weight: 600;
   box-shadow: none;
   transform: none;
@@ -1048,8 +1048,8 @@
 }
 
 .tdh-page--v6:not(.tdh-page--cso) .school-side:not(.cso-ss-side) .cso-ss-primary-action--dual .ss-btn-user-chat svg {
-  width: 17px;
-  height: 17px;
+  width: 15px;
+  height: 15px;
 }
 
 .tdh-page--v6:not(.tdh-page--cso) .school-side:not(.cso-ss-side) .cso-ss-btn-follow {
@@ -1061,11 +1061,11 @@
   color: var(--ink-display, rgba(0, 0, 0, 0.85));
   font-family: var(--font-sans);
   font-weight: 600;
-  font-size: 14.5px;
+  font-size: 12.5px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   cursor: pointer;
 }
 
@@ -1073,6 +1073,12 @@
   background: var(--cins-blue-soft, #e7f0fb);
   border-color: rgba(31, 116, 201, 0.25);
   color: var(--cins-blue, #1f74c9);
+}
+
+.tdh-page--v6:not(.tdh-page--cso) .school-side:not(.cso-ss-side) .cso-ss-btn-follow svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
 }
 
 .tdh-page--v6:not(.tdh-page--cso) .school-side:not(.cso-ss-side) .cso-ss-btn-follow .ss-btn-user-follow-label {

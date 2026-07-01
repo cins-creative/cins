@@ -27,6 +27,12 @@ export async function PATCH(req: Request, ctx: RouteContext) {
     ten: typeof body.ten === "string" ? body.ten : undefined,
     loaiSuKien: typeof body.loaiSuKien === "string" ? body.loaiSuKien : undefined,
     moTa: typeof body.moTa === "string" ? body.moTa : undefined,
+    noiDung:
+      body.noiDung === null
+        ? null
+        : typeof body.noiDung === "string"
+          ? body.noiDung
+          : undefined,
     batDau: typeof body.batDau === "string" ? body.batDau : undefined,
     ketThuc:
       body.ketThuc === null
@@ -40,6 +46,24 @@ export async function PATCH(req: Request, ctx: RouteContext) {
         : typeof body.diaDiem === "string"
           ? body.diaDiem
           : undefined,
+    tinhThanh:
+      body.tinhThanh === null
+        ? null
+        : typeof body.tinhThanh === "string"
+          ? body.tinhThanh
+          : undefined,
+    mienPhi:
+      body.mienPhi === undefined
+        ? undefined
+        : body.mienPhi === false
+          ? false
+          : true,
+    giaVe:
+      body.giaVe === null
+        ? null
+        : body.giaVe === undefined
+          ? undefined
+          : Number(body.giaVe),
     slotToiDa:
       body.slotToiDa === null
         ? null

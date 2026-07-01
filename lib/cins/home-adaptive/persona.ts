@@ -19,9 +19,12 @@ export type Persona = "hoc" | "lam" | "day";
 
 /** Id module — mỗi id tương ứng 1 component tự lo data + empty-state. */
 export type ModuleId =
+  // ưu tiên — chỉ hiện khi viewer theo dõi org
+  | "theo_doi_org"
   // luôn có ở mọi persona
   | "su_kien"
   | "goi_y_theo_doi"
+  | "goi_y_studio"
   // cụm HỌC
   | "kham_pha_linh_vuc"
   | "duong_toi_do"
@@ -74,16 +77,23 @@ export const MODULE_LAYOUT: Record<
   { left: ModuleId[]; right: ModuleId[] }
 > = {
   hoc: {
-    left: ["kham_pha_linh_vuc", "duong_toi_do"],
-    right: ["su_kien", "goi_y_theo_doi", "khoa_hoc_goi_y"],
+    left: ["kham_pha_linh_vuc", "khoa_hoc_goi_y"],
+    right: ["theo_doi_org", "su_kien", "goi_y_theo_doi"],
   },
   lam: {
     left: ["ho_so_cua_ban", "nguoi_cung_nganh"],
-    right: ["su_kien", "goi_y_theo_doi", "co_hoi", "loi_moi_xac_nhan"],
+    right: [
+      "theo_doi_org",
+      "su_kien",
+      "goi_y_theo_doi",
+      "goi_y_studio",
+      "co_hoi",
+      "loi_moi_xac_nhan",
+    ],
   },
   day: {
     left: ["cho_ban_duyet", "hoc_vien_cua_ban"],
-    right: ["su_kien", "goi_y_theo_doi", "scout_tai_nang"],
+    right: ["theo_doi_org", "su_kien", "goi_y_theo_doi", "scout_tai_nang"],
   },
 };
 

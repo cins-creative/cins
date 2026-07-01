@@ -8,6 +8,7 @@ import { WorldJourneyFeed } from "@/components/cins/world-journey/WorldJourneyFe
 
 import type { WjLinhVucAsideItem } from "@/lib/cins/worldJourneyGuestAside";
 import type { WjFilterChip } from "@/lib/cins/worldJourneyFeedFilters";
+import type { FeedPromoVariant } from "@/lib/cins/worldJourneyFeedPromosTypes";
 import type { MilestoneItem } from "@/components/journey/milestone-types";
 
 type Props = {
@@ -24,6 +25,7 @@ type Props = {
   rightAside?: ReactNode;
   /** Banner "việc cần xác nhận" (co-author, follow…) hiện đầu feed. */
   pendingConfirmations?: ReactNode;
+  feedPromos?: FeedPromoVariant[];
 };
 
 /** Bọc feed trang chủ logged-in — overlay compose hoạt động trên wj-composer. */
@@ -38,6 +40,7 @@ export function HomeWorldJourneyClient({
   leftAside,
   rightAside,
   pendingConfirmations,
+  feedPromos,
 }: Props) {
   return (
     <JourneyComposeProvider
@@ -57,6 +60,7 @@ export function HomeWorldJourneyClient({
         leftAside={leftAside}
         rightAside={rightAside}
         pendingConfirmations={pendingConfirmations}
+        feedPromos={feedPromos}
       />
     </JourneyComposeProvider>
   );

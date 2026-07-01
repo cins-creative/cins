@@ -1,9 +1,14 @@
-import { BookOpen, Compass, Map } from "lucide-react";
+import { BookOpen, Compass, GraduationCap } from "lucide-react";
 import Link from "next/link";
 
 import { ModuleCard, ModuleEmpty } from "@/components/cins/home-adaptive/ModuleCard";
+import { HaOrgSuggestionRow } from "@/components/cins/home-adaptive/HaOrgSuggestionRow";
 import type { HomeModuleCtx } from "@/components/cins/home-adaptive/types";
 import { loadKhoaHocGoiY } from "@/lib/cins/home-adaptive/fetches";
+import {
+  loadOrgFollowSuggestions,
+  CO_SO_DAO_TAO_LOAI,
+} from "@/lib/cins/home-adaptive/suggestions";
 import { listLinhVucForHub } from "@/lib/career/queries";
 import {
   linhVucHubHref,
@@ -41,12 +46,26 @@ export async function KhamPhaLinhVucModule(_props: { ctx: HomeModuleCtx }) {
   );
 }
 
-/** HỌC · Đường tới đó — trường / cơ sở đào tạo. */
-export async function DuongToiDoModule(_props: { ctx: HomeModuleCtx }) {
+/** HỌC · Trường / cơ sở đào tạo gợi ý theo dõi (cột trái — tách khỏi gợi ý người). */
+export async function DuongToiDoModule({ ctx }: { ctx: HomeModuleCtx }) {
+  const suggested = await loadOrgFollowSuggestions(ctx.viewerId, 3, {
+    loaiToChuc: CO_SO_DAO_TAO_LOAI,
+  });
+
+  if (suggested.length > 0) {
+    return (
+      <ModuleCard icon={GraduationCap} title="Cơ sở đào tạo" moreHref="/co-so-dao-tao">
+        {suggested.map((o) => (
+          <HaOrgSuggestionRow key={o.id} org={o} />
+        ))}
+      </ModuleCard>
+    );
+  }
+
   const schools = (await listCoSoDaoTaoForListing()).slice(0, 3);
 
   return (
-    <ModuleCard icon={Map} title="Đường tới đó" moreHref="/co-so-dao-tao">
+    <ModuleCard icon={GraduationCap} title="Cơ sở đào tạo" moreHref="/co-so-dao-tao">
       {schools.length === 0 ? (
         <ModuleEmpty>Chưa có trường — sẽ cập nhật sớm.</ModuleEmpty>
       ) : (
@@ -101,7 +120,19 @@ export async function KhoaHocGoiYModule(_props: { ctx: HomeModuleCtx }) {
             </span>
             <div className="ha-trow-meta">
               <div className="ha-trow-name">{k.ten}</div>
-              <div className="ha-trow-sub">{k.sub}</div>
+              <div className="ha-trow-sub ha-trow-sub--org">
+                <span className="ha-trow-org-logo" aria-hidden>
+                  {k.orgAvatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={k.orgAvatarUrl} alt="" width={18} height={18} loading="lazy" />
+                  ) : (
+                    <span className="ha-trow-org-logo-fallback">
+                      {k.orgTen.slice(0, 1).toUpperCase()}
+                    </span>
+                  )}
+                </span>
+                <span className="ha-trow-sub-text">{k.sub}</span>
+              </div>
             </div>
           </Link>
         ))

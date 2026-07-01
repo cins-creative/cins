@@ -79,11 +79,11 @@ export const MAIN_NAV_ITEMS: MainNavItem[] = [
   },
   {
     id: "events",
-    href: "/#events",
+    href: "/su-kien",
     label: "Sự kiện",
     tip: "Open day, talkshow, workshop và cuộc thi sắp diễn ra trong 30 ngày tới",
     icon: "events",
-    isActive: () => false,
+    isActive: (p) => p === "/su-kien" || p.startsWith("/su-kien/"),
   },
 ];
 

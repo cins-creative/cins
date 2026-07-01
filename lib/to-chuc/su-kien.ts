@@ -5,6 +5,9 @@ import { resolveTruongImageSrcSync } from "@/lib/truong/media-url";
 
 import { getViewerCoSoVaiTro } from "./co-so-membership";
 import { canManageKhoaHoc } from "./co-so-vai-tro";
+import { normalizeTinhThanhForDb } from "@/lib/truong/contact";
+import { normalizeTruongGioiThieuHtml } from "@/lib/truong/gioi-thieu";
+import { demDangKySeThamGia } from "./su-kien-dang-ky";
 import {
   isLoaiSuKien,
   type LoaiSuKien,
@@ -31,15 +34,19 @@ type SuKienRow = {
   ten: string;
   loai_su_kien: string;
   mo_ta: string | null;
+  noi_dung: string | null;
   cover_id: string | null;
   bat_dau: string;
   ket_thuc: string | null;
+  tinh_thanh: string | null;
   dia_diem: string | null;
+  mien_phi: boolean | null;
+  gia_ve: number | null;
   slot_toi_da: number | null;
 };
 
 const SU_KIEN_SELECT =
-  "id, ten, loai_su_kien, mo_ta, cover_id, bat_dau, ket_thuc, dia_diem, slot_toi_da";
+  "id, ten, loai_su_kien, mo_ta, noi_dung, cover_id, bat_dau, ket_thuc, tinh_thanh, dia_diem, mien_phi, gia_ve, slot_toi_da";
 
 function mapRow(row: SuKienRow, soDangKy: number): SuKienCardData {
   const loai: LoaiSuKien = isLoaiSuKien(row.loai_su_kien)
@@ -50,13 +57,17 @@ function mapRow(row: SuKienRow, soDangKy: number): SuKienCardData {
     ten: row.ten,
     loaiSuKien: loai,
     moTa: row.mo_ta?.trim() || null,
+    noiDung: row.noi_dung?.trim() || null,
     coverId: row.cover_id ?? null,
     coverSrc: row.cover_id
       ? resolveTruongImageSrcSync(row.cover_id, ["public", "cover", "medium"])
       : null,
     batDau: row.bat_dau,
     ketThuc: row.ket_thuc,
+    tinhThanh: row.tinh_thanh?.trim() || null,
     diaDiem: row.dia_diem?.trim() || null,
+    mienPhi: row.mien_phi !== false,
+    giaVe: typeof row.gia_ve === "number" && row.gia_ve > 0 ? row.gia_ve : null,
     slotToiDa: typeof row.slot_toi_da === "number" ? row.slot_toi_da : null,
     soDangKy,
   };
@@ -82,22 +93,6 @@ async function orgExists(orgId: string): Promise<boolean> {
   return Boolean(data?.id);
 }
 
-async function demDangKy(suKienIds: string[]): Promise<Map<string, number>> {
-  const counts = new Map<string, number>();
-  if (!suKienIds.length) return counts;
-  const admin = createServiceRoleClient();
-  const { data } = await admin
-    .from("org_dang_ky_su_kien")
-    .select("id_su_kien")
-    .in("id_su_kien", suKienIds);
-  for (const row of data ?? []) {
-    const sid = (row as { id_su_kien?: string }).id_su_kien;
-    if (!sid) continue;
-    counts.set(sid, (counts.get(sid) ?? 0) + 1);
-  }
-  return counts;
-}
-
 export async function listSuKienCuaOrg(
   orgId: string,
 ): Promise<
@@ -117,7 +112,7 @@ export async function listSuKienCuaOrg(
   if (error) return { ok: false, error: error.message };
 
   const rows = (data ?? []) as SuKienRow[];
-  const counts = await demDangKy(rows.map((r) => r.id));
+  const counts = await demDangKySeThamGia(rows.map((r) => r.id));
   return {
     ok: true,
     suKien: rows.map((row) => mapRow(row, counts.get(row.id) ?? 0)),
@@ -136,9 +131,13 @@ type ValidInsert = {
   ten: string;
   loai_su_kien: LoaiSuKien;
   mo_ta: string | null;
+  noi_dung: string | null;
   bat_dau: string;
   ket_thuc: string | null;
+  tinh_thanh: string | null;
   dia_diem: string | null;
+  mien_phi: boolean;
+  gia_ve: number | null;
   slot_toi_da: number | null;
   cover_id: string | null;
 };
@@ -164,6 +163,19 @@ function validateInput(
   if (ketThuc && new Date(ketThuc) < new Date(batDau)) {
     return { ok: false, error: "Thời gian kết thúc phải sau thời gian bắt đầu." };
   }
+  const tinhThanh = normalizeTinhThanhForDb(input.tinhThanh);
+  if (!tinhThanh) {
+    return { ok: false, error: "Cần chọn khu vực tổ chức sự kiện." };
+  }
+  const mienPhi = input.mienPhi !== false;
+  let giaVe: number | null = null;
+  if (!mienPhi && input.giaVe != null && input.giaVe !== undefined) {
+    const n = Number(input.giaVe);
+    if (!Number.isInteger(n) || n < 0) {
+      return { ok: false, error: "Giá vé không hợp lệ." };
+    }
+    giaVe = n > 0 ? n : null;
+  }
   let slot: number | null = null;
   if (input.slotToiDa != null && input.slotToiDa !== undefined) {
     const n = Number(input.slotToiDa);
@@ -172,17 +184,25 @@ function validateInput(
     }
     slot = n > 0 ? n : null;
   }
+  const coverId = input.coverId?.trim();
+  if (!coverId) {
+    return { ok: false, error: "Cần ảnh bìa sự kiện." };
+  }
   return {
     ok: true,
     data: {
       ten,
       loai_su_kien: input.loaiSuKien,
       mo_ta: input.moTa?.trim() || null,
+      noi_dung: normalizeTruongGioiThieuHtml(input.noiDung),
       bat_dau: batDau,
       ket_thuc: ketThuc,
+      tinh_thanh: tinhThanh,
       dia_diem: input.diaDiem?.trim() || null,
+      mien_phi: mienPhi,
+      gia_ve: mienPhi ? null : giaVe,
       slot_toi_da: slot,
-      cover_id: input.coverId?.trim() || null,
+      cover_id: coverId,
     },
   };
 }
@@ -254,9 +274,15 @@ export async function capNhatSuKien(
     ten: input.ten ?? current.ten,
     loaiSuKien: input.loaiSuKien ?? current.loai_su_kien,
     moTa: input.moTa !== undefined ? input.moTa : current.mo_ta,
+    noiDung: input.noiDung !== undefined ? input.noiDung : current.noi_dung,
     batDau: input.batDau ?? current.bat_dau,
     ketThuc: input.ketThuc !== undefined ? input.ketThuc : current.ket_thuc,
+    tinhThanh:
+      input.tinhThanh !== undefined ? input.tinhThanh : current.tinh_thanh,
     diaDiem: input.diaDiem !== undefined ? input.diaDiem : current.dia_diem,
+    mienPhi:
+      input.mienPhi !== undefined ? input.mienPhi : current.mien_phi !== false,
+    giaVe: input.giaVe !== undefined ? input.giaVe : current.gia_ve,
     slotToiDa:
       input.slotToiDa !== undefined ? input.slotToiDa : current.slot_toi_da,
     coverId: input.coverId !== undefined ? input.coverId : current.cover_id,
@@ -275,7 +301,7 @@ export async function capNhatSuKien(
   if (error || !data) {
     return { ok: false, error: error?.message ?? "Không lưu được sự kiện." };
   }
-  const counts = await demDangKy([suKienId]);
+  const counts = await demDangKySeThamGia([suKienId]);
   return { ok: true, suKien: mapRow(data, counts.get(suKienId) ?? 0) };
 }
 

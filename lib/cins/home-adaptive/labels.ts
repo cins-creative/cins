@@ -6,7 +6,7 @@ const GIAI_DOAN_LABEL: Record<GiaiDoan, string> = {
   dang_lam: "Đang đi làm",
   tim_viec: "Đang tìm việc",
   freelance: "Freelance",
-  dang_day: "Đang dạy",
+  dang_day: "Giáo viên",
 };
 
 /** Nhãn `giai_doan` hiển thị — fallback nhẹ khi null (FOUNDATIONS V4). */

@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 
+import { WorldJourneyFeedPromoRail } from "@/components/cins/world-journey/WorldJourneyFeedPromoRail";
 import {
   JourneyYearBlock,
   timelineExpandKey,
@@ -11,11 +12,16 @@ import type { MilestoneItem } from "@/components/journey/milestone-types";
 import {
   canWorldJourneyInlineExpandOnFeed,
 } from "@/lib/cins/worldJourneyMilestoneFeed";
+import {
+  FEED_INLINE_PROMO_INTERVAL,
+  type FeedPromoVariant,
+} from "@/lib/cins/worldJourneyFeedPromosTypes";
 import { compareTimelineOrder } from "@/lib/journey/timeline-sort";
 
 type Props = {
   milestones: ReadonlyArray<MilestoneItem>;
   viewerProfileId: string;
+  feedPromos?: FeedPromoVariant[];
 };
 
 function groupByYearDesc(
@@ -43,14 +49,47 @@ function canInlineExpand(milestone: MilestoneItem): boolean {
   return canWorldJourneyInlineExpandOnFeed(milestone);
 }
 
+function buildPromoInsertMap(
+  postCount: number,
+  promos: FeedPromoVariant[],
+): Map<number, ReactNode> {
+  const map = new Map<number, ReactNode>();
+  if (postCount === 0 || promos.length === 0) return map;
+
+  let promoIdx = 0;
+  for (
+    let after = FEED_INLINE_PROMO_INTERVAL;
+    after <= postCount;
+    after += FEED_INLINE_PROMO_INTERVAL
+  ) {
+    const variant = promos[promoIdx % promos.length];
+    map.set(
+      after,
+      <WorldJourneyFeedPromoRail
+        key={`feed-promo-${promoIdx}`}
+        slotKey={`${promoIdx}`}
+        variant={variant}
+      />,
+    );
+    promoIdx += 1;
+  }
+  return map;
+}
+
 export function WorldJourneyFeedTimeline({
   milestones,
   viewerProfileId,
+  feedPromos = [],
 }: Props) {
   const [inlineExpand, setInlineExpand] =
     useState<TimelineInlineExpandState>(null);
 
   const byYear = useMemo(() => groupByYearDesc(milestones), [milestones]);
+
+  const promoInsertMap = useMemo(
+    () => buildPromoInsertMap(milestones.length, feedPromos),
+    [milestones.length, feedPromos],
+  );
 
   const handleToggleContent = useCallback((milestone: MilestoneItem) => {
     if (!canInlineExpand(milestone)) return;
@@ -97,22 +136,30 @@ export function WorldJourneyFeedTimeline({
 
   const handleCloseExpand = useCallback(() => setInlineExpand(null), []);
 
+  let postCountOffset = 0;
+
   return (
     <main className="j-timeline wj-feed-timeline" aria-label="Feed World Journey">
-      {byYear.map((yb) => (
-        <JourneyYearBlock
-          key={yb.year}
-          year={yb.year}
-          milestones={yb.milestones}
-          entityLens
-          analyticsNguon="journey_home"
-          viewerProfileId={viewerProfileId}
-          inlineExpand={inlineExpand}
-          onTogglePost={handleToggleContent}
-          onOpenComments={handleOpenComments}
-          onCloseExpand={handleCloseExpand}
-        />
-      ))}
+      {byYear.map((yb) => {
+        const block = (
+          <JourneyYearBlock
+            key={yb.year}
+            year={yb.year}
+            milestones={yb.milestones}
+            entityLens
+            analyticsNguon="journey_home"
+            viewerProfileId={viewerProfileId}
+            inlineExpand={inlineExpand}
+            onTogglePost={handleToggleContent}
+            onOpenComments={handleOpenComments}
+            onCloseExpand={handleCloseExpand}
+            postCountOffset={postCountOffset}
+            insertAfterPostCounts={promoInsertMap}
+          />
+        );
+        postCountOffset += yb.milestones.length;
+        return block;
+      })}
       <div className="j-timeline-end" aria-hidden>
         <div className="j-timeline-end-text">— hết feed mới —</div>
       </div>

@@ -26,6 +26,7 @@ import {
   fetchWorldJourneyExploreMilestonesCached,
   fetchWorldJourneyFeedMilestonesCached,
 } from "@/lib/cins/worldJourneyFeedFetch";
+import { loadFeedInlinePromos } from "@/lib/cins/worldJourneyFeedPromos";
 import { listLinhVucForHub } from "@/lib/career/queries";
 
 import "@/app/[slug]/journey/journey.css";
@@ -44,21 +45,23 @@ export async function HomeWorldJourneyMain() {
 
   const filterChips = buildWorldJourneyFilterChips();
   const linhVucs = mapLinhVucForGuestAside(await listLinhVucForHub());
+  const giaiDoan = owner.giai_doan as GiaiDoan | null;
   const [
     milestones,
     exploreMilestones,
     coAuthorPendingInvites,
     coSoStaffPendingInvites,
     membershipPendingOutbound,
+    feedPromos,
   ] = await Promise.all([
     fetchWorldJourneyFeedMilestonesCached(session.profile.id),
     fetchWorldJourneyExploreMilestonesCached(session.profile.id),
     getCachedPendingCoAuthorInvites(session.profile.id),
     getCachedPendingCoSoStaffInvites(session.profile.id),
     getCachedOutboundMembershipPending(session.profile.id),
+    loadFeedInlinePromos(session.profile.id, resolvePersona(giaiDoan)),
   ]);
 
-  const giaiDoan = owner.giai_doan as GiaiDoan | null;
   const moduleCtx: HomeModuleCtx = {
     viewerId: session.profile.id,
     viewerSlug: owner.slug,
@@ -101,6 +104,7 @@ export async function HomeWorldJourneyMain() {
       linhVucs={linhVucs}
       milestones={milestones}
       exploreMilestones={exploreMilestones}
+      feedPromos={feedPromos}
     />
   );
 }

@@ -1,6 +1,7 @@
 import {
   BadgeCheck,
   Briefcase,
+  Building2,
   Eye,
   Plus,
   Route,
@@ -8,12 +9,16 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+import { HaOrgSuggestionRow } from "@/components/cins/home-adaptive/HaOrgSuggestionRow";
+import { HaUserSuggestionRow } from "@/components/cins/home-adaptive/HaUserSuggestionRow";
 import { ModuleCard, ModuleEmpty } from "@/components/cins/home-adaptive/ModuleCard";
 import type { HomeModuleCtx } from "@/components/cins/home-adaptive/types";
-import { JourneyUserFollowButton } from "@/components/journey/JourneyUserFollowButton";
 import { loadCoHoiForHome } from "@/lib/cins/home-adaptive/co-hoi";
 import { loadLoiMoiXacNhan } from "@/lib/cins/home-adaptive/fetches";
-import { loadFollowSuggestions } from "@/lib/cins/home-adaptive/suggestions";
+import {
+  loadFollowSuggestions,
+  loadOrgFollowSuggestions,
+} from "@/lib/cins/home-adaptive/suggestions";
 import { loadProfileCompleteness } from "@/lib/cins/home-adaptive/profile-completeness";
 import { giaiDoanLabel } from "@/lib/cins/home-adaptive/labels";
 
@@ -61,36 +66,38 @@ export async function NguoiCungNganhModule({ ctx }: { ctx: HomeModuleCtx }) {
         <ModuleEmpty>Chưa có gợi ý kết nối.</ModuleEmpty>
       ) : (
         people.map((p) => (
-          <div key={p.id} className="ha-row">
-            <Link href={`/${p.slug}`} className="ha-row-av" prefetch={false}>
-              {p.avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={p.avatarUrl} alt="" width={40} height={40} />
-              ) : (
-                <span className="ha-row-av-fallback" aria-hidden>
-                  {p.name.slice(0, 2).toUpperCase()}
-                </span>
-              )}
-            </Link>
-            <div className="ha-row-meta">
-              <Link href={`/${p.slug}`} className="ha-row-name" prefetch={false}>
-                {p.name}
-                <BadgeCheck size={12} strokeWidth={2} aria-hidden />
-              </Link>
-              <div className="ha-row-sub">
-                {p.mutualCount > 0
-                  ? `${p.mutualCount} bạn chung`
-                  : giaiDoanLabel(p.giaiDoan)}
-              </div>
-            </div>
-            <JourneyUserFollowButton
-              targetUserId={p.id}
-              viewerProfileId={ctx.viewerId}
-              compact
-            />
-          </div>
+          <HaUserSuggestionRow
+            key={p.id}
+            userId={p.id}
+            slug={p.slug}
+            name={p.name}
+            avatarUrl={p.avatarUrl}
+            subtitle={
+              p.mutualCount > 0
+                ? `${p.mutualCount} bạn chung`
+                : giaiDoanLabel(p.giaiDoan)
+            }
+            viewerProfileId={ctx.viewerId}
+          />
         ))
       )}
+    </ModuleCard>
+  );
+}
+
+/** LÀM · Studio & doanh nghiệp gợi ý theo dõi — tách khỏi gợi ý người. */
+export async function GoiYStudioModule({ ctx }: { ctx: HomeModuleCtx }) {
+  const orgs = await loadOrgFollowSuggestions(ctx.viewerId, 3, {
+    loaiToChuc: ["studio", "doanh_nghiep"],
+  });
+
+  if (orgs.length === 0) return null;
+
+  return (
+    <ModuleCard icon={Building2} title="Studio & doanh nghiệp" moreHref="/studio">
+      {orgs.map((o) => (
+        <HaOrgSuggestionRow key={o.id} org={o} />
+      ))}
     </ModuleCard>
   );
 }

@@ -2,6 +2,7 @@
 
 import {
   CalendarDays,
+  ImageIcon,
   MapPin,
   Pencil,
   Plus,
@@ -9,17 +10,22 @@ import {
   Users,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import Image from "next/image";
 
 import { SuKienCreateModal } from "@/components/co-so/SuKienCreateModal";
+import { SuKienDetailModal } from "@/components/co-so/SuKienDetailModal";
 import {
   labelLoaiSuKien,
+  labelSuKienVe,
   type SuKienCardData,
 } from "@/lib/to-chuc/su-kien-constants";
+import { formatSuKienDiaDiemDisplay } from "@/lib/truong/contact";
 
 type Props = {
   orgId: string;
   orgTen: string;
   orgDiaChi?: string | null;
+  orgTinhThanh?: string | null;
   canManageSuKien: boolean;
 };
 
@@ -56,6 +62,7 @@ export function CoSoTabSuKien({
   orgId,
   orgTen,
   orgDiaChi = null,
+  orgTinhThanh = null,
   canManageSuKien,
 }: Props) {
   const [items, setItems] = useState<SuKienCardData[]>([]);
@@ -64,6 +71,9 @@ export function CoSoTabSuKien({
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<SuKienCardData | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [detailSuKien, setDetailSuKien] = useState<SuKienCardData | null>(
+    null,
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -118,6 +128,15 @@ export function CoSoTabSuKien({
           (a, b) =>
             new Date(a.batDau).getTime() - new Date(b.batDau).getTime(),
         ),
+    );
+  }
+
+  function handleSoDangKyChange(suKienId: string, soDangKy: number) {
+    setItems((prev) =>
+      prev.map((s) => (s.id === suKienId ? { ...s, soDangKy } : s)),
+    );
+    setDetailSuKien((prev) =>
+      prev?.id === suKienId ? { ...prev, soDangKy } : prev,
     );
   }
 
@@ -210,13 +229,39 @@ export function CoSoTabSuKien({
           <ul className="cso-sk-list">
             {items.map((sk) => {
               const past = isPast(sk.batDau, sk.ketThuc);
+              const diaDiemLabel = formatSuKienDiaDiemDisplay(
+                sk.tinhThanh,
+                sk.diaDiem,
+              );
               return (
                 <li
                   key={sk.id}
                   className={`cso-sk-card${past ? " cso-sk-card--past" : ""}`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setDetailSuKien(sk)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setDetailSuKien(sk);
+                    }
+                  }}
                 >
-                  <div className="cso-sk-card-main">
-                    <div className="cso-sk-card-top">
+                  <div className="cso-sk-cover">
+                    {sk.coverSrc ? (
+                      <Image
+                        src={sk.coverSrc}
+                        alt=""
+                        fill
+                        className="cso-sk-cover-img"
+                        sizes="(max-width: 720px) 100vw, 320px"
+                      />
+                    ) : (
+                      <span className="cso-sk-cover-ph" aria-hidden>
+                        <ImageIcon size={32} strokeWidth={1.25} />
+                      </span>
+                    )}
+                    <div className="cso-sk-cover-badges">
                       <span className="cso-sk-kind">
                         {labelLoaiSuKien(sk.loaiSuKien)}
                       </span>
@@ -224,54 +269,62 @@ export function CoSoTabSuKien({
                         <span className="cso-sk-badge">Đã diễn ra</span>
                       ) : null}
                     </div>
+                    {canManageSuKien ? (
+                      <div className="cso-sk-card-actions">
+                        <button
+                          type="button"
+                          className="cso-sk-act"
+                          aria-label="Sửa sự kiện"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCreateOpen(false);
+                            setEditing(sk);
+                          }}
+                        >
+                          <Pencil size={15} aria-hidden />
+                        </button>
+                        <button
+                          type="button"
+                          className="cso-sk-act cso-sk-act--danger"
+                          aria-label="Xóa sự kiện"
+                          disabled={deletingId === sk.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void handleDelete(sk);
+                          }}
+                        >
+                          <Trash2 size={15} aria-hidden />
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+                  <div className="cso-sk-card-body">
                     <h3 className="cso-sk-name">{sk.ten}</h3>
                     <div className="cso-sk-meta">
                       <span className="cso-sk-meta-item">
                         <CalendarDays size={14} aria-hidden />
                         {formatRange(sk.batDau, sk.ketThuc)}
                       </span>
-                      {sk.diaDiem ? (
-                        <span className="cso-sk-meta-item">
-                          <MapPin size={14} aria-hidden />
-                          {sk.diaDiem}
-                        </span>
-                      ) : null}
-                      {sk.slotToiDa ? (
-                        <span className="cso-sk-meta-item">
-                          <Users size={14} aria-hidden />
-                          {sk.soDangKy}/{sk.slotToiDa}
-                        </span>
-                      ) : null}
+                      <span className="cso-sk-meta-item cso-sk-meta-item--tag">
+                        {labelSuKienVe(sk.mienPhi, sk.giaVe)}
+                      </span>
                     </div>
+                    {diaDiemLabel ? (
+                      <p className="cso-sk-loc">
+                        <MapPin size={13} aria-hidden />
+                        {diaDiemLabel}
+                      </p>
+                    ) : null}
+                    {sk.slotToiDa ? (
+                      <p className="cso-sk-slots">
+                        <Users size={13} aria-hidden />
+                        {sk.soDangKy}/{sk.slotToiDa} chỗ
+                      </p>
+                    ) : null}
                     {sk.moTa ? (
                       <p className="cso-sk-desc">{sk.moTa}</p>
                     ) : null}
                   </div>
-
-                  {canManageSuKien ? (
-                    <div className="cso-sk-card-actions">
-                      <button
-                        type="button"
-                        className="cso-sk-act"
-                        aria-label="Sửa sự kiện"
-                        onClick={() => {
-                          setCreateOpen(false);
-                          setEditing(sk);
-                        }}
-                      >
-                        <Pencil size={15} aria-hidden />
-                      </button>
-                      <button
-                        type="button"
-                        className="cso-sk-act cso-sk-act--danger"
-                        aria-label="Xóa sự kiện"
-                        disabled={deletingId === sk.id}
-                        onClick={() => void handleDelete(sk)}
-                      >
-                        <Trash2 size={15} aria-hidden />
-                      </button>
-                    </div>
-                  ) : null}
                 </li>
               );
             })}
@@ -279,12 +332,21 @@ export function CoSoTabSuKien({
         )}
       </div>
 
+      <SuKienDetailModal
+        open={Boolean(detailSuKien)}
+        orgId={orgId}
+        suKien={detailSuKien}
+        onClose={() => setDetailSuKien(null)}
+        onSoDangKyChange={handleSoDangKyChange}
+      />
+
       {canManageSuKien ? (
         <>
           <SuKienCreateModal
             open={createOpen && !editing}
             orgId={orgId}
             orgDiaChi={orgDiaChi}
+            orgTinhThanh={orgTinhThanh}
             onClose={() => setCreateOpen(false)}
             onCreated={handleCreated}
           />
@@ -292,6 +354,7 @@ export function CoSoTabSuKien({
             open={Boolean(editing)}
             orgId={orgId}
             orgDiaChi={orgDiaChi}
+            orgTinhThanh={orgTinhThanh}
             editing={editing}
             onClose={() => setEditing(null)}
             onUpdated={handleUpdated}

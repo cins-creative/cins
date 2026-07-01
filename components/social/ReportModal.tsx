@@ -2,6 +2,7 @@
 
 import { AlertTriangle, Check, Loader2, Paperclip, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import {
   LOAI_BAO_CAO_OPTIONS,
@@ -40,7 +41,12 @@ export function ReportModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const reset = useCallback(() => {
     setLoai("");
@@ -64,10 +70,19 @@ export function ReportModal({
   }, [open, onClose]);
 
   useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
+
+  useEffect(() => {
     if (!open) reset();
   }, [open, reset]);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
   function addUrl() {
     const v = urlDraft.trim();
@@ -149,7 +164,7 @@ export function ReportModal({
     }
   }
 
-  return (
+  return createPortal(
     <div
       className="rpt-overlay"
       role="dialog"
@@ -339,6 +354,7 @@ export function ReportModal({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

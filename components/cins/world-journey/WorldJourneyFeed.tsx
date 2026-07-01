@@ -31,6 +31,7 @@ import {
 import { worldJourneyMilestonesToGalleryItems } from "@/lib/cins/worldJourneyMilestoneToGallery";
 import type { WjLinhVucAsideItem } from "@/lib/cins/worldJourneyGuestAside";
 import type { MilestoneItem } from "@/components/journey/milestone-types";
+import type { FeedPromoVariant } from "@/lib/cins/worldJourneyFeedPromosTypes";
 
 import "@/app/[slug]/journey/image-grid.css";
 import "@/app/[slug]/journey/journey.css";
@@ -202,6 +203,7 @@ export function WorldJourneyFeed({
   leftAside,
   rightAside,
   pendingConfirmations,
+  feedPromos,
 }: {
   sidebarProfile: SidebarProfile;
   viewerProfileId: string;
@@ -214,6 +216,7 @@ export function WorldJourneyFeed({
   rightAside?: ReactNode;
   /** Banner "việc cần xác nhận" — hiện đầu cột feed để user chú ý. */
   pendingConfirmations?: ReactNode;
+  feedPromos?: FeedPromoVariant[];
 }) {
   const [activeFilter, setActiveFilter] = useState("all");
   const [activeLinhVucSlug, setActiveLinhVucSlug] = useState<string | null>(
@@ -302,6 +305,7 @@ export function WorldJourneyFeed({
               <WorldJourneyFeedTimeline
                 milestones={visibleMilestones}
                 viewerProfileId={viewerProfileId}
+                feedPromos={feedPromos}
               />
             )
           ) : galleryItems.length === 0 ? (
