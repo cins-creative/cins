@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Tham chiếu design zip — không phải app Next.js production
+    "_ref_cins_zip/**",
   ]),
 ]);
 
