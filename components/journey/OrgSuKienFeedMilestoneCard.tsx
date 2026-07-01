@@ -1,16 +1,26 @@
 "use client";
 
-import { Calendar } from "lucide-react";
+import { CalendarDays, Clock3 } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 
+import { HaOrgUpCountdown } from "@/components/cins/home-adaptive/HaOrgUpCountdown";
 import { JourneyOrgPopover } from "@/components/journey/JourneyOrgPopover";
 import type { MilestoneAttribution, MilestoneItem } from "@/components/journey/milestone-types";
+import { SuKienPhanHoiActions } from "@/components/to-chuc/SuKienPhanHoiActions";
+import type { LoaiPhanHoiSuKien } from "@/lib/to-chuc/su-kien-dang-ky";
 import { labelLoaiSuKien } from "@/lib/to-chuc/su-kien-constants";
+import { getStepStatus } from "@/lib/truong/timeline";
 
 type Props = {
   milestone: MilestoneItem;
   entityLens?: boolean;
 };
+
+const MONTHS = [
+  "Th1", "Th2", "Th3", "Th4", "Th5", "Th6",
+  "Th7", "Th8", "Th9", "Th10", "Th11", "Th12",
+];
 
 function orgKindForPopover(
   kind: MilestoneAttribution["orgKind"],
@@ -21,134 +31,168 @@ function orgKindForPopover(
   return undefined;
 }
 
-function formatDisplayDate(year: number, month: number, day: number): string {
-  return `${String(day).padStart(2, "0")}-${String(month).padStart(2, "0")}-${year}`;
+function dateBadgeParts(
+  year: number,
+  month: number,
+  day: number,
+): { month: string; day: string } {
+  return {
+    month: MONTHS[month - 1] ?? "",
+    day: String(day).padStart(2, "0"),
+  };
 }
 
-function formatEventWhen(iso: string): string | null {
+function formatEventWhen(iso: string): { time: string; date: string } | null {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return null;
-  return new Intl.DateTimeFormat("vi-VN", {
+  const time = new Intl.DateTimeFormat("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(d);
+  const date = new Intl.DateTimeFormat("vi-VN", {
     weekday: "short",
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
   }).format(d);
+  return { time, date };
 }
 
-/** Card sự kiện org trên World Journey feed — không dùng unfold cột mốc. */
+/** Card sự kiện org trên World Journey feed — banner + RSVP inline. */
 export function OrgSuKienFeedMilestoneCard({
   milestone,
   entityLens = false,
 }: Props) {
   const ref = milestone.orgSuKienRef;
   const attr = milestone.attribution;
+  const [phanHoi, setPhanHoi] = useState<LoaiPhanHoiSuKien | null>(null);
+
   if (!ref || !attr) return null;
 
-  const displayDate = formatDisplayDate(
-    milestone.year,
-    milestone.month,
-    milestone.day,
-  );
-  const eventWhen = formatEventWhen(ref.batDau);
   const cover = milestone.media?.[0];
   const popoverKind = orgKindForPopover(attr.orgKind);
   const loaiLabel = labelLoaiSuKien(ref.loaiSuKien);
+  const when = formatEventWhen(ref.batDau);
+  const badge = dateBadgeParts(milestone.year, milestone.month, milestone.day);
+  const stepStatus = getStepStatus(ref.batDau, ref.ketThuc ?? null);
+  const countdownStatus =
+    stepStatus === "active" ? ("active" as const) : ("upcoming" as const);
 
-  const orgChip = (
-    <span className="org-chip">
-      <span className="org-logo is-square" aria-hidden>
+  const orgRow = (
+    <span className="j-osk-org-row">
+      <span className="j-osk-org-logo" aria-hidden>
         {attr.avatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={attr.avatarUrl} alt="" />
+          <img src={attr.avatarUrl} alt="" loading="lazy" />
         ) : (
-          (attr.initial ?? attr.name.slice(0, 1)).toUpperCase()
+          <span className="j-osk-org-logo-fallback">
+            {(attr.initial ?? attr.name.slice(0, 1)).toUpperCase()}
+          </span>
         )}
       </span>
-      <span className="org-copy">
-        <strong>{attr.name}</strong>
-        <small>{displayDate}</small>
-      </span>
+      <span className="j-osk-org-name">{attr.name}</span>
     </span>
   );
 
+  const cardClass = [
+    "j-milestone",
+    "j-tagged",
+    "j-org-su-kien",
+    entityLens ? "j-entity-lens" : "",
+    milestone.feedSuggestion ? "j-feed-suggestion" : "",
+    phanHoi === "quan_tam" ? "j-org-su-kien--interest" : "",
+    phanHoi === "se_tham_gia" ? "j-org-su-kien--rsvp" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
-    <article
-      className={[
-        "j-milestone",
-        "j-tagged",
-        "j-org-su-kien",
-        entityLens ? "j-entity-lens" : "",
-        milestone.feedSuggestion ? "j-feed-suggestion" : "",
-      ]
-        .filter(Boolean)
-        .join(" ")}
-      data-mid={milestone.id}
-    >
-      <div className="j-m-card jcard">
-        <div
-          className={
-            "jcard-datebar" +
-            (entityLens ? " jcard-datebar--entity-lens" : " jcard-datebar--guest")
-          }
-        >
-          {popoverKind ? (
-            <JourneyOrgPopover
-              slug={ref.orgSlug}
-              orgKind={popoverKind}
-              href={ref.href}
-              fallbackName={attr.name}
-              fallbackAvatarUrl={attr.avatarUrl}
-            >
-              {orgChip}
-            </JourneyOrgPopover>
+    <article className={cardClass} data-mid={milestone.id}>
+      <div className="j-m-card jcard j-org-su-kien-card">
+        <div className="j-osk-hero">
+          {cover?.src ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={cover.src}
+              alt=""
+              className="j-osk-hero-img"
+              loading="lazy"
+            />
           ) : (
-            <Link href={ref.href} prefetch={false}>
-              {orgChip}
-            </Link>
-          )}
-          <span className="badge-row">
-            {milestone.feedSuggestion ? (
-              <span className="ctx-badge j-feed-suggestion-badge">Gợi ý</span>
-            ) : null}
-            <span className="ctx-badge j-type-su-kien">
-              <Calendar size={11} strokeWidth={1.8} aria-hidden />
-              Sự kiện
+            <span className="j-osk-hero-fallback" aria-hidden>
+              {milestone.title.slice(0, 2).toUpperCase()}
             </span>
+          )}
+          <span className="j-osk-hero-shade" aria-hidden />
+          <span className="j-osk-date-badge">
+            <span className="j-osk-date-month">{badge.month}</span>
+            <span className="j-osk-date-day">{badge.day}</span>
+            <HaOrgUpCountdown
+              batDauIso={ref.batDau}
+              ketThucIso={ref.ketThuc ?? null}
+              status={countdownStatus}
+            />
+          </span>
+          <span className="j-osk-hero-badges">
+            {milestone.feedSuggestion ? (
+              <span className="j-osk-pill j-osk-pill--suggest">Gợi ý</span>
+            ) : null}
+            <span className="j-osk-pill j-osk-pill--type">{loaiLabel}</span>
           </span>
         </div>
 
-        <div className="jcard-body j-org-su-kien-body">
-          <Link href={ref.href} className="j-org-su-kien-title" prefetch={false}>
+        <div className="j-osk-body">
+          <div className="j-osk-head">
+            {popoverKind ? (
+              <JourneyOrgPopover
+                slug={ref.orgSlug}
+                orgKind={popoverKind}
+                href={ref.href}
+                fallbackName={attr.name}
+                fallbackAvatarUrl={attr.avatarUrl}
+              >
+                {orgRow}
+              </JourneyOrgPopover>
+            ) : (
+              <Link href={ref.href} prefetch={false} className="j-osk-org-link">
+                {orgRow}
+              </Link>
+            )}
+            <span className="j-osk-kind-badge">
+              <CalendarDays size={12} strokeWidth={2} aria-hidden />
+              Sự kiện
+            </span>
+          </div>
+
+          <Link href={ref.href} className="j-osk-title" prefetch={false}>
             {milestone.title}
           </Link>
+
           {milestone.feedSocialHint ? (
-            <p className="j-org-su-kien-social-hint">{milestone.feedSocialHint}</p>
+            <p className="j-osk-social-hint">{milestone.feedSocialHint}</p>
           ) : null}
-          {eventWhen ? (
-            <p className="j-org-su-kien-when">{eventWhen}</p>
-          ) : null}
-          {milestone.body ? (
-            <p className="j-org-su-kien-desc">{milestone.body}</p>
-          ) : null}
-          {cover?.src ? (
-            <Link
-              href={ref.href}
-              className="j-org-su-kien-cover"
-              prefetch={false}
-              aria-label={`Xem sự kiện: ${milestone.title}`}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={cover.src} alt="" loading="lazy" />
-              <span className="j-org-su-kien-cover-tag">{loaiLabel}</span>
-            </Link>
-          ) : (
-            <p className="j-org-su-kien-meta">
-              <span className="j-org-su-kien-meta-tag">{loaiLabel}</span>
+
+          {when ? (
+            <p className="j-osk-when">
+              <Clock3 size={14} strokeWidth={2} aria-hidden />
+              <span>
+                <strong>{when.time}</strong>
+                <span className="j-osk-when-sep"> · </span>
+                {when.date}
+              </span>
             </p>
-          )}
+          ) : null}
+
+          {milestone.body ? (
+            <p className="j-osk-desc">{milestone.body}</p>
+          ) : null}
+
+          <SuKienPhanHoiActions
+            orgId={ref.orgId}
+            suKienId={ref.suKienId}
+            className="j-osk-actions"
+            onLoaiChange={setPhanHoi}
+          />
         </div>
       </div>
     </article>

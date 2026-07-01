@@ -49,6 +49,11 @@ type ProviderProps = {
   congDongCompose?: CongDongComposeConfig;
   /** Tab bài đăng trường — publish vào `org_bai_dang`. */
   orgBaiDangCompose?: OrgBaiDangComposeConfig;
+  /**
+   * Đồng bộ `?compose=` lên URL (pushState). Tắt trên trang chủ feed — tránh entry
+   * history cũ khiến Back từ trang khác mở lại `/?compose=article`.
+   */
+  syncComposeUrl?: boolean;
 };
 
 function syncComposeUrl(state: JourneyComposeState | null, mode: "push" | "replace") {
@@ -81,6 +86,7 @@ export function JourneyComposeProvider({
   onAfterPublished,
   congDongCompose,
   orgBaiDangCompose,
+  syncComposeUrl: syncComposeUrlEnabled = true,
 }: ProviderProps) {
   const router = useRouter();
   const [compose, setCompose] = useState<JourneyComposeState | null>(
@@ -90,9 +96,9 @@ export function JourneyComposeProvider({
     (state: JourneyComposeState) => {
       if (!isOwner) return;
       setCompose(state);
-      syncComposeUrl(state, "push");
+      if (syncComposeUrlEnabled) syncComposeUrl(state, "push");
     },
-    [isOwner],
+    [isOwner, syncComposeUrlEnabled],
   );
 
   const openComposeWithPhotos = useCallback(
@@ -113,11 +119,32 @@ export function JourneyComposeProvider({
 
   const closeCompose = useCallback(() => {
     setCompose(null);
-    syncComposeUrl(null, "replace");
-  }, []);
+    if (syncComposeUrlEnabled) syncComposeUrl(null, "replace");
+  }, [syncComposeUrlEnabled]);
 
   useEffect(() => {
-    if (!isOwner) return;
+    if (syncComposeUrlEnabled || !isOwner) return;
+    const params = new URLSearchParams(window.location.search);
+    if (
+      !params.has("compose") &&
+      !params.has("edit") &&
+      !params.has("cotMoc")
+    ) {
+      return;
+    }
+    params.delete("compose");
+    params.delete("edit");
+    params.delete("cotMoc");
+    const qs = params.toString();
+    window.history.replaceState(
+      null,
+      "",
+      qs ? `${window.location.pathname}?${qs}` : window.location.pathname,
+    );
+  }, [isOwner, syncComposeUrlEnabled]);
+
+  useEffect(() => {
+    if (!isOwner || !syncComposeUrlEnabled) return;
     const onPop = () => {
       const params = new URLSearchParams(window.location.search);
       const edit = params.get("edit")?.trim();
@@ -139,7 +166,7 @@ export function JourneyComposeProvider({
     };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
-  }, [isOwner]);
+  }, [isOwner, syncComposeUrlEnabled]);
 
   const onPublished = useCallback(
     (detail?: ComposePublishedDetail) => {

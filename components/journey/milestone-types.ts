@@ -139,11 +139,13 @@ export type MilestoneOrgBaiDangRef = {
 /** Sự kiện org (`org_su_kien`) trên World Journey feed — không có `content_cot_moc`. */
 export type MilestoneOrgSuKienRef = {
   suKienId: string;
+  orgId: string;
   orgSlug: string;
   orgName: string;
   orgLoai: string;
   href: string;
   batDau: string;
+  ketThuc?: string | null;
   loaiSuKien: string | null;
 };
 

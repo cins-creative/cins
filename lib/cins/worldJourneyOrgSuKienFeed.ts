@@ -118,11 +118,13 @@ function mapSuKienToMilestone(
       : undefined,
     orgSuKienRef: {
       suKienId: row.id,
+      orgId: row.id_to_chuc,
       orgSlug,
       orgName,
       orgLoai,
       href,
       batDau: row.bat_dau,
+      ketThuc: row.ket_thuc,
       loaiSuKien: row.loai_su_kien,
     },
     attribution: {

@@ -49,6 +49,7 @@ export function HomeWorldJourneyClient({
       ownerName={sidebarProfile.tenHienThi ?? sidebarProfile.slug}
       ownerAvatarId={ownerAvatarId}
       isOwner
+      syncComposeUrl={false}
     >
       <WorldJourneyFeed
         sidebarProfile={sidebarProfile}

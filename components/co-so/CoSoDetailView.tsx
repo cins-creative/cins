@@ -40,9 +40,9 @@ import type { TruongChiNhanh } from "@/lib/truong/types";
 const TABS = [
   { id: "bai-dang", label: CO_SO_TAB_LABELS["bai-dang"], num: "01" },
   { id: "khoa-hoc", label: CO_SO_TAB_LABELS["khoa-hoc"], num: "02" },
-  { id: "su-kien", label: CO_SO_TAB_LABELS["su-kien"], num: "03" },
-  { id: "san-pham", label: CO_SO_TAB_LABELS["san-pham"], num: "04" },
-  { id: "hinh-anh", label: CO_SO_TAB_LABELS["hinh-anh"], num: "05" },
+  { id: "san-pham", label: CO_SO_TAB_LABELS["san-pham"], num: "03" },
+  { id: "hinh-anh", label: CO_SO_TAB_LABELS["hinh-anh"], num: "04" },
+  { id: "su-kien", label: CO_SO_TAB_LABELS["su-kien"], num: "05" },
 ] as const satisfies ReadonlyArray<{ id: CoSoTabId; label: string; num: string }>;
 
 type Props = {

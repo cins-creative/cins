@@ -1,9 +1,9 @@
 export const CO_SO_TAB_IDS = [
   "bai-dang",
   "khoa-hoc",
-  "su-kien",
   "san-pham",
   "hinh-anh",
+  "su-kien",
 ] as const;
 
 export type CoSoTabId = (typeof CO_SO_TAB_IDS)[number];
