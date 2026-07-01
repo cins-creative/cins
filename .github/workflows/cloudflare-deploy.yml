@@ -29,54 +29,24 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Verify required secrets
+      - name: Prepare deploy environment
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE: ${{ secrets.CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           NEXT_PUBLIC_CF_IMAGES_ACCOUNT_HASH: ${{ secrets.NEXT_PUBLIC_CF_IMAGES_ACCOUNT_HASH }}
           NEXT_PUBLIC_BUNNY_LIBRARY_ID: ${{ secrets.NEXT_PUBLIC_BUNNY_LIBRARY_ID }}
+          BUNNY_LIBRARY_ID: ${{ secrets.BUNNY_LIBRARY_ID }}
           NEXT_PUBLIC_BUNNY_CDN_HOSTNAME: ${{ secrets.NEXT_PUBLIC_BUNNY_CDN_HOSTNAME }}
+          BUNNY_CDN_HOSTNAME: ${{ secrets.BUNNY_CDN_HOSTNAME }}
+          BUNNY_CND_HOSTNAME: ${{ secrets.BUNNY_CND_HOSTNAME }}
           NEXT_PUBLIC_ARTICLE_INLINE_IMAGE_UPLOAD_TOKEN: ${{ secrets.NEXT_PUBLIC_ARTICLE_INLINE_IMAGE_UPLOAD_TOKEN }}
+          ARTICLE_INLINE_IMAGE_UPLOAD_TOKEN: ${{ secrets.ARTICLE_INLINE_IMAGE_UPLOAD_TOKEN }}
           NEXT_PUBLIC_CAREER_THUMB_UPLOAD_TOKEN: ${{ secrets.NEXT_PUBLIC_CAREER_THUMB_UPLOAD_TOKEN }}
-        run: |
-          set -euo pipefail
-          missing=()
-          for name in \
-            CLOUDFLARE_API_TOKEN \
-            CLOUDFLARE_ACCOUNT_ID \
-            DATABASE_URL \
-            NEXT_PUBLIC_SUPABASE_URL \
-            NEXT_PUBLIC_SUPABASE_ANON_KEY \
-            NEXT_PUBLIC_CF_IMAGES_ACCOUNT_HASH \
-            NEXT_PUBLIC_BUNNY_LIBRARY_ID \
-            NEXT_PUBLIC_BUNNY_CDN_HOSTNAME \
-            NEXT_PUBLIC_ARTICLE_INLINE_IMAGE_UPLOAD_TOKEN \
-            NEXT_PUBLIC_CAREER_THUMB_UPLOAD_TOKEN
-          do
-            if [ -z "${!name:-}" ]; then
-              missing+=("$name")
-            fi
-          done
-          if [ "${#missing[@]}" -gt 0 ]; then
-            echo "Missing GitHub Actions secrets (Repository secrets, exact names):"
-            printf '  - %s\n' "${missing[@]}"
-            exit 1
-          fi
+        run: bash scripts/ci-prepare-deploy-env.sh
 
       - name: Deploy to Cloudflare Workers
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE: ${{ secrets.DATABASE_URL }}
-          NEXT_PUBLIC_SITE_URL: https://cins.vn
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          NEXT_PUBLIC_CF_IMAGES_ACCOUNT_HASH: ${{ secrets.NEXT_PUBLIC_CF_IMAGES_ACCOUNT_HASH }}
-          NEXT_PUBLIC_BUNNY_LIBRARY_ID: ${{ secrets.NEXT_PUBLIC_BUNNY_LIBRARY_ID }}
-          NEXT_PUBLIC_BUNNY_CDN_HOSTNAME: ${{ secrets.NEXT_PUBLIC_BUNNY_CDN_HOSTNAME }}
-          NEXT_PUBLIC_ARTICLE_INLINE_IMAGE_UPLOAD_TOKEN: ${{ secrets.NEXT_PUBLIC_ARTICLE_INLINE_IMAGE_UPLOAD_TOKEN }}
-          NEXT_PUBLIC_CAREER_THUMB_UPLOAD_TOKEN: ${{ secrets.NEXT_PUBLIC_CAREER_THUMB_UPLOAD_TOKEN }}
         run: npm run deploy
