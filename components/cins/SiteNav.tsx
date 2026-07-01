@@ -45,7 +45,7 @@ export function CinsAppSidebar() {
       id="app-sidebar"
       aria-label="Điều hướng chính"
     >
-      <CinsSidebarRiveBrand />
+      <CinsSidebarRiveBrand sidebarId="app-sidebar" />
       <ul className="sb-list">
         {MAIN_NAV_ITEMS.map((item) => (
           <SidebarLink key={item.id} item={item} pathname={pathname} />

@@ -1,83 +1,79 @@
-import type { Rive } from "@rive-app/canvas";
+import type { Rive, StateMachineInput } from "@rive-app/canvas";
+import { Alignment, Fit, Layout } from "@rive-app/canvas";
 
+/** Sidebar brand — Rive `LogCINs.riv` (public/rive/LogoCINs.riv). */
 export const RIVE_LOGO_SRC = "/rive/LogoCINs.riv";
+
+/** Đọc từ `rive.contents` của file gốc. */
+export const RIVE_ARTBOARD = "Artboard";
 export const RIVE_STATE_MACHINE = "State Machine 1";
-/** Tên timeline trong LogoCINs.riv (có dấu cách cuối). */
-export const RIVE_TRANSITION_ANIM = "Transition ";
-/** Khớp thời lượng timeline trong file Rive (~0.5s). */
-export const RIVE_TRANSITION_MS = 520;
+export const RIVE_EXPANDED_INPUT = "Boolean 1";
+export const RIVE_TRIGGER_INPUT = "Trigger 1";
 
-/** State Machine 1 — State 1: icon thu gọn (sidebar 64px). */
-export const RIVE_LOGO_STATE_COLLAPSED = 0;
-/** State Machine 1 — State 2: wordmark đầy đủ (sidebar hover mở rộng). */
-export const RIVE_LOGO_STATE_EXPANDED = 1;
+/** Rail thu gọn — icon vuông căn giữa. */
+export const LOGO_LAYOUT_COLLAPSED = new Layout({
+  fit: Fit.Contain,
+  alignment: Alignment.Center,
+});
 
-function easeOutCubic(t: number): number {
-  return 1 - (1 - t) ** 3;
+/** Sidebar mở — logo full chiều cao vùng brand, căn giữa ngang. */
+export const LOGO_LAYOUT_EXPANDED = new Layout({
+  fit: Fit.FitHeight,
+  alignment: Alignment.Center,
+  layoutScaleFactor: 1.28,
+});
+
+type LogoSidebarInputs = {
+  booleanInput?: StateMachineInput | null;
+  triggerInput?: StateMachineInput | null;
+};
+
+function getStateMachineInput(
+  rive: Rive,
+  inputName: string,
+): StateMachineInput | null {
+  return (
+    rive
+      .stateMachineInputs(RIVE_STATE_MACHINE)
+      ?.find((input) => input.name === inputName) ?? null
+  );
+}
+
+export function syncLogoSidebarLayout(rive: Rive, expanded: boolean): void {
+  rive.layout = expanded ? LOGO_LAYOUT_EXPANDED : LOGO_LAYOUT_COLLAPSED;
+  rive.resizeToCanvas();
 }
 
 /**
- * LogoCINs.riv: SM `State Machine 1` (State 1 ↔ State 2) + timeline `Transition `.
- * SM không có input — scrub timeline (0 = State 1, 1 = State 2).
+ * File `LogCINs.riv`:
+ * - Animations: State 1 (icon), State 2 (transition), State 3 (logo mở)
+ * - SM inputs: Boolean 1 (false = thu gọn), Trigger 1 (fire để chạy transition)
  */
-function primeLogoTimeline(rive: Rive): void {
-  rive.stop(RIVE_STATE_MACHINE);
-  rive.stop(RIVE_TRANSITION_ANIM);
-  rive.startRendering();
-}
-
-export function runLogoSidebarTransition(
+export function applyLogoSidebarExpanded(
   rive: Rive,
   expanded: boolean,
-  fromProgress: number,
-  onProgress?: (value: number) => void,
-): { cancel: () => void } {
-  const anim = RIVE_TRANSITION_ANIM;
-  const toProgress = expanded
-    ? RIVE_LOGO_STATE_EXPANDED
-    : RIVE_LOGO_STATE_COLLAPSED;
-  let raf = 0;
-  let cancelled = false;
+  inputs: LogoSidebarInputs = {},
+  options: { fireTrigger?: boolean } = {},
+): void {
+  const { fireTrigger = true } = options;
 
-  const cancel = () => {
-    cancelled = true;
-    if (raf) cancelAnimationFrame(raf);
-    rive.stop(anim);
-  };
+  const booleanInput =
+    inputs.booleanInput ?? getStateMachineInput(rive, RIVE_EXPANDED_INPUT);
+  const triggerInput =
+    inputs.triggerInput ?? getStateMachineInput(rive, RIVE_TRIGGER_INPUT);
 
-  if (Math.abs(fromProgress - toProgress) < 0.001) {
-    primeLogoTimeline(rive);
-    rive.scrub(anim, toProgress);
-    onProgress?.(toProgress);
-    return { cancel };
+  syncLogoSidebarLayout(rive, expanded);
+
+  if (booleanInput) {
+    booleanInput.value = expanded;
   }
 
-  primeLogoTimeline(rive);
-  const start = performance.now();
-  const from = fromProgress;
+  rive.play(RIVE_STATE_MACHINE);
 
-  const step = (now: number) => {
-    if (cancelled) return;
-    const t = Math.min(1, (now - start) / RIVE_TRANSITION_MS);
-    const value = from + (toProgress - from) * easeOutCubic(t);
-    rive.scrub(anim, value);
-    rive.startRendering();
-    onProgress?.(value);
-    if (t < 1) {
-      raf = requestAnimationFrame(step);
-    } else {
-      onProgress?.(toProgress);
-    }
-  };
+  if (fireTrigger && triggerInput) {
+    triggerInput.fire();
+  }
 
-  rive.scrub(anim, from);
-  onProgress?.(from);
-  raf = requestAnimationFrame(step);
-
-  return { cancel };
-}
-
-export function setLogoSidebarProgress(rive: Rive, progress: number): void {
-  primeLogoTimeline(rive);
-  rive.scrub(RIVE_TRANSITION_ANIM, progress);
+  rive.resizeToCanvas();
+  rive.startRendering();
 }

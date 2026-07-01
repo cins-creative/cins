@@ -25,6 +25,9 @@ type Props = {
   resumeAfterRedirect?: boolean;
   /** URL quay lại sau OAuth (từ `?next=`). */
   returnPath?: string | null;
+  /** Ẩn nút "Tiếp tục với …" — dùng trên home guest (chỉ /login mới hiện). */
+  showRememberedAccount?: boolean;
+  className?: string;
 };
 
 function RememberedAccountCard({
@@ -78,6 +81,8 @@ export function LoginActions({
   autoIntent = null,
   resumeAfterRedirect = false,
   returnPath = null,
+  showRememberedAccount = true,
+  className,
 }: Props) {
   const [busy, setBusy] = useState(false);
   const [remembered, setRemembered] = useState<RememberedAccount | null>(null);
@@ -118,8 +123,10 @@ export function LoginActions({
   }, [autoIntent, initialError, resumeAfterRedirect]);
 
   return (
-    <div className="cins-login-actions">
-      {remembered ? (
+    <div
+      className={["cins-login-actions", className].filter(Boolean).join(" ")}
+    >
+      {showRememberedAccount && remembered ? (
         <RememberedAccountCard
           account={remembered}
           busy={busy}

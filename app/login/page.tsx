@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { LoginActions } from "@/app/login/LoginActions";
+import { HomeLoginCard } from "@/components/auth/HomeLoginCard";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 
 type SearchParams = Promise<{
@@ -9,18 +9,6 @@ type SearchParams = Promise<{
   auto?: string;
   next?: string;
 }>;
-
-function ErrorBanner({ message }: { message: string }) {
-  return (
-    <div className="cins-login-banner cins-login-banner--err" role="alert">
-      <span className="cins-login-banner-dot" aria-hidden />
-      <div>
-        <strong>Đăng nhập chưa hoàn tất.</strong>
-        <p>{message}</p>
-      </div>
-    </div>
-  );
-}
 
 export default async function LoginPage({
   searchParams,
@@ -65,55 +53,13 @@ export default async function LoginPage({
       </nav>
 
       <main className="cins-login-main">
-        <section className="cins-login-card" aria-label="Đăng nhập C.INS">
-          <p className="cins-login-eyebrow">khám phá hành trình của bạn</p>
-
-          {errorMsg ? <ErrorBanner message={errorMsg} /> : null}
-
-          <LoginActions
-            initialError={errorMsg}
-            autoIntent={autoIntent}
-            resumeAfterRedirect={Boolean(safeNext && !errorMsg)}
-            returnPath={safeNext}
-          />
-
-          <ul className="cins-login-bullets" aria-label="Lợi ích tài khoản CINs">
-            <li>
-              <span className="cins-login-bullet-ico" aria-hidden>
-                ✦
-              </span>
-              <span>
-                <strong>Journey cá nhân</strong> — ghi lại hành trình sáng tạo,
-                tự động liên kết tác phẩm vào timeline.
-              </span>
-            </li>
-            <li>
-              <span className="cins-login-bullet-ico" aria-hidden>
-                ✦
-              </span>
-              <span>
-                <strong>Verify</strong> — milestone gắn cờ xác thực từ trường,
-                tổ chức, dự án thực.
-              </span>
-            </li>
-            <li>
-              <span className="cins-login-bullet-ico" aria-hidden>
-                ✦
-              </span>
-              <span>
-                <strong>Khám phá ngành nghề</strong> — gợi ý ngành đào tạo &amp;
-                nghề sáng tạo phù hợp với bạn.
-              </span>
-            </li>
-          </ul>
-
-          <p className="cins-login-fineprint">
-            Bằng việc tiếp tục, bạn đồng ý với{" "}
-            <Link href="/dieu-khoan">Điều khoản sử dụng</Link> và{" "}
-            <Link href="/chinh-sach-rieng-tu">Chính sách bảo mật</Link> của
-            C.INS.
-          </p>
-        </section>
+        <HomeLoginCard
+          id="login-card"
+          initialError={errorMsg}
+          autoIntent={autoIntent}
+          resumeAfterRedirect={Boolean(safeNext && !errorMsg)}
+          returnPath={safeNext}
+        />
       </main>
 
       <footer className="cins-login-footer">

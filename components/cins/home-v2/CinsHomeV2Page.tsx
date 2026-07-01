@@ -4,15 +4,17 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { HomeV2TopbarUserMenu } from "@/components/cins/home-v2/HomeV2TopbarUserMenu";
+import { GuestHomeLoginPanel } from "@/components/cins/home-v2/GuestHomeLoginPanel";
 import type { UserAccountProfile } from "@/components/cins/UserAccountMenu";
 import "@/app/cins-home-v2-page.css";
 
 type Props = {
-  guestMarkup: string;
+  chrome: string;
+  main: string;
 };
 
 /** Landing marketing home v2 — guest (đã đăng nhập dùng CinsShell ở page.tsx). */
-export function CinsHomeV2Page({ guestMarkup }: Props) {
+export function CinsHomeV2Page({ chrome, main }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [topbarUserMount, setTopbarUserMount] = useState<HTMLElement | null>(
     null,
@@ -59,9 +61,29 @@ export function CinsHomeV2Page({ guestMarkup }: Props) {
 
     const onSidebarNavClick = (e: MouseEvent) => {
       const link = (e.target as Element).closest<HTMLAnchorElement>(
-        "a.sb-item[href], a.tb-login[href], a.tb-signup[href]",
+        "a.sb-item[href], a.tb-login[href], a.tb-signup[href], a.btn-yellow[href], .foot-cta-card a[href]",
       );
       if (!link || !root.contains(link)) return;
+
+      const isAuthCta =
+        link.classList.contains("tb-login") ||
+        link.classList.contains("tb-signup") ||
+        link.classList.contains("btn-yellow") ||
+        (link.closest(".foot-cta-card") !== null &&
+          /đăng nhập|đăng ký/i.test(link.textContent ?? ""));
+
+      if (isAuthCta) {
+        e.preventDefault();
+        document.getElementById("sidebar")?.classList.remove("open");
+        const isRegister =
+          link.classList.contains("tb-signup") ||
+          link.classList.contains("btn-yellow") ||
+          (link.closest(".foot-cta-card") !== null &&
+            /đăng ký/i.test(link.textContent ?? ""));
+        router.push(isRegister ? "/login?auto=register" : "/login");
+        return;
+      }
+
       const href = link.getAttribute("href") ?? "";
       if (!href.startsWith("/") || href.startsWith("//")) return;
       e.preventDefault();
@@ -200,15 +222,21 @@ export function CinsHomeV2Page({ guestMarkup }: Props) {
       });
       tip?.remove();
     };
-  }, [guestMarkup, router]);
+  }, [chrome, main, router]);
 
   return (
     <>
-      <div className="cins-home-v2-page">
-        <div
-          ref={rootRef}
-          dangerouslySetInnerHTML={{ __html: guestMarkup }}
-        />
+      <div className="cins-home-v2-page" ref={rootRef}>
+        <div dangerouslySetInnerHTML={{ __html: chrome }} />
+        <div className="cins-home-v2-columns">
+          <div
+            className="cins-home-v2-col-main"
+            dangerouslySetInnerHTML={{ __html: main }}
+          />
+          <aside className="cins-home-v2-login-aside" aria-label="Đăng nhập">
+            <GuestHomeLoginPanel />
+          </aside>
+        </div>
       </div>
       <HomeV2TopbarUserMenu mountEl={topbarUserMount} profile={topbarProfile} />
     </>

@@ -81,14 +81,14 @@ html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
    NAV — hover-expand sidebar + topbar
    ===================================================== */
 
-/* sidebar: 64px collapsed → 240px on hover */
-.sidebar{
+/* sidebar: 64px collapsed → 240px on hover (chỉ trang home v2 standalone, không áp CinsAppSidebar) */
+.cins-home-v2-page > .sidebar{
   position:fixed;top:0;left:0;height:100vh;width:64px;
   background:var(--surface);border-right:1px solid var(--border);
   z-index:60;display:flex;flex-direction:column;overflow:hidden;
   transition:width .26s var(--ease),box-shadow .26s var(--ease);
 }
-.sidebar:hover,.sidebar:focus-within{width:240px;box-shadow:6px 0 24px rgba(15,23,42,.06)}
+.cins-home-v2-page > .sidebar:hover,.cins-home-v2-page > .sidebar:focus-within{width:240px;box-shadow:6px 0 24px rgba(15,23,42,.06)}
 .sb-brand{
   height:64px;display:flex;align-items:center;gap:12px;
   padding:0 18px;border-bottom:1px solid var(--border);flex-shrink:0;
@@ -101,8 +101,8 @@ html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
 .sb-brand-mark img{width:32px;height:32px;display:block}
 .sb-brand-text{display:flex;align-items:center;white-space:nowrap;opacity:0;transform:translateX(-6px);transition:all .18s var(--ease) .06s;pointer-events:none}
 .sb-brand-text img{height:40px;width:auto;display:block}
-.sidebar:hover .sb-brand-text,.sidebar:focus-within .sb-brand-text{opacity:1;transform:none}
-.sidebar:hover .sb-brand-mark,.sidebar:focus-within .sb-brand-mark{width:0;opacity:0}
+.cins-home-v2-page > .sidebar:hover .sb-brand-text,.cins-home-v2-page > .sidebar:focus-within .sb-brand-text{opacity:1;transform:none}
+.cins-home-v2-page > .sidebar:hover .sb-brand-mark,.cins-home-v2-page > .sidebar:focus-within .sb-brand-mark{width:0;opacity:0}
 .sb-list{list-style:none;padding:14px 12px 4px;display:flex;flex-direction:column;gap:2px;flex:1;overflow-y:auto;overflow-x:hidden}
 .sb-list::-webkit-scrollbar{width:0;display:none}
 .sb-item{
@@ -117,7 +117,7 @@ html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
 .sb-ico{width:24px;height:24px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
 .sb-ico svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 .sb-label{opacity:0;transform:translateX(-4px);transition:opacity .18s var(--ease) .04s,transform .18s var(--ease) .04s}
-.sidebar:hover .sb-label,.sidebar:focus-within .sb-label{opacity:1;transform:none}
+.cins-home-v2-page > .sidebar:hover .sb-label,.cins-home-v2-page > .sidebar:focus-within .sb-label{opacity:1;transform:none}
 .sb-foot{padding:10px 8px 14px;border-top:1px solid var(--border);flex-shrink:0;display:flex;flex-direction:column;gap:6px}
 .sb-foot .sb-item{font-size:12.5px;color:var(--ink3)}
 
@@ -235,6 +235,57 @@ html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
 /* body offset for fixed sidebar */
 @media (min-width:961px){.cins-home-v2-page{padding-left:64px}}
 
+/* =====================================================
+   Guest home — 2 cột: nội dung (trái) + login sticky (phải)
+   ===================================================== */
+.cins-home-v2-columns{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 420px;
+  gap:28px;
+  align-items:start;
+  max-width:1440px;
+  margin:0 auto;
+  padding:0 24px;
+}
+.cins-home-v2-col-main{min-width:0}
+.cins-home-v2-login-aside{
+  position:sticky;
+  top:76px;
+  align-self:start;
+  z-index:45;
+  max-height:calc(100vh - 88px);
+  overflow-y:auto;
+  padding:20px 0 56px;
+  scrollbar-width:thin;
+}
+.cins-home-v2-login-aside::-webkit-scrollbar{width:6px}
+.cins-home-v2-login-aside::-webkit-scrollbar-thumb{
+  background:var(--border-s);border-radius:999px;
+}
+/* Cột trái hẹp hơn — hero xếp 1 cột cho dễ đọc */
+@media (min-width:1200px){
+  .cins-home-v2-col-main .hero-grid{grid-template-columns:1fr;gap:36px}
+  .cins-home-v2-col-main .hero-side{max-width:100%;margin:0}
+  .cins-home-v2-col-main .hero h1{font-size:52px}
+  .cins-home-v2-page #topbar .tb-auth,
+  .cins-home-v2-page #topbar .tb-divider{display:none}
+}
+
+@media (max-width:1199px){
+  .cins-home-v2-columns{
+    grid-template-columns:1fr;
+    gap:0;
+    padding:0;
+  }
+  .cins-home-v2-login-aside{
+    position:static;
+    max-height:none;
+    overflow:visible;
+    padding:0 20px 28px;
+    order:-1;
+  }
+}
+
 @media (max-width:960px){
   .sidebar{transform:translateX(-100%);width:240px;box-shadow:var(--sh-lg)}
   .sidebar.open{transform:none}
@@ -252,7 +303,7 @@ html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
    ===================================================== */
 /* Nền xám phẳng giống mẫu iframe (cins-home-v2-10: body background:#F4F5F8), không blob / không pseudo gradient */
 .hero{
-  position:relative;overflow:hidden;padding:32px 0 52px;
+  position:relative;overflow:hidden;padding:24px 0 48px;
   background:#F4F5F8;
 }
 .hero-grid{position:relative;z-index:1;display:grid;grid-template-columns:1.1fr .9fr;gap:56px;align-items:center}
