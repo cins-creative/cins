@@ -1,0 +1,44 @@
+name: Cloudflare Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: cloudflare-deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy Worker cins
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Deploy to Cloudflare Workers
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          NEXT_PUBLIC_SITE_URL: https://cins.vn
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_CF_IMAGES_ACCOUNT_HASH: ${{ secrets.NEXT_PUBLIC_CF_IMAGES_ACCOUNT_HASH }}
+          NEXT_PUBLIC_BUNNY_LIBRARY_ID: ${{ secrets.NEXT_PUBLIC_BUNNY_LIBRARY_ID }}
+          NEXT_PUBLIC_BUNNY_CDN_HOSTNAME: ${{ secrets.NEXT_PUBLIC_BUNNY_CDN_HOSTNAME }}
+          NEXT_PUBLIC_ARTICLE_INLINE_IMAGE_UPLOAD_TOKEN: ${{ secrets.NEXT_PUBLIC_ARTICLE_INLINE_IMAGE_UPLOAD_TOKEN }}
+          NEXT_PUBLIC_CAREER_THUMB_UPLOAD_TOKEN: ${{ secrets.NEXT_PUBLIC_CAREER_THUMB_UPLOAD_TOKEN }}
+        run: npm run deploy
