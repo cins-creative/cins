@@ -648,6 +648,14 @@ async function loadUserSocialStats(
   return out;
 }
 
+/** Batch stats Journey / Gallery / Bạn bè — tái dùng ngoài follow (vd. global search). */
+export async function loadUserSocialStatsByIds(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  userIds: string[],
+) {
+  return loadUserSocialStats(admin, userIds);
+}
+
 export async function listFollowHandledNotifications(
   viewerId: string,
   options: { limit?: number } = {},

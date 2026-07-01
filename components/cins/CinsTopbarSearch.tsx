@@ -4,6 +4,7 @@ import { Search } from "lucide-react";
 import { usePathname, useSearchParams } from "next/navigation";
 
 import { isNgheNghiepHubPath, NGANH_HOC_HUB_PATH, NGHE_NGHIEP_HUB_PATH } from "@/lib/cins/hubPaths";
+import { TIM_KIEM_PATH } from "@/lib/search/paths";
 
 export function CinsTopbarSearch() {
   const pathname = usePathname() ?? "";
@@ -11,23 +12,39 @@ export function CinsTopbarSearch() {
 
   const isNganhHub = pathname.startsWith(NGANH_HOC_HUB_PATH);
   const isNgheHub = isNgheNghiepHubPath(pathname);
+  const isTimKiem = pathname.startsWith(TIM_KIEM_PATH);
 
-  const action = isNganhHub ? NGANH_HOC_HUB_PATH : NGHE_NGHIEP_HUB_PATH;
+  const action = isNganhHub
+    ? NGANH_HOC_HUB_PATH
+    : isNgheHub
+      ? NGHE_NGHIEP_HUB_PATH
+      : TIM_KIEM_PATH;
+
   const q = sp.get("q") ?? "";
   const linhVuc = sp.get("linh_vuc") ?? "";
   const nhom = sp.get("nhom") ?? "";
+  const kind = sp.get("kind") ?? "";
 
   const placeholder = isNganhHub
     ? "Tìm ngành học, mã ngành…"
-    : "Tìm vị trí công việc bạn quan tâm…";
+    : isNgheHub
+      ? "Tìm vị trí công việc bạn quan tâm…"
+      : "Tìm nghề, trường, người, bài viết…";
+
+  const ariaLabel = isNganhHub
+    ? "Tìm ngành học"
+    : isNgheHub
+      ? "Tìm vị trí công việc"
+      : "Tìm kiếm trên CINs";
 
   return (
     <form action={action} method="get" className="tb-search" role="search">
-      {isNganhHub && nhom ? (
-        <input type="hidden" name="nhom" value={nhom} />
-      ) : null}
+      {isNganhHub && nhom ? <input type="hidden" name="nhom" value={nhom} /> : null}
       {isNgheHub && linhVuc ? (
         <input type="hidden" name="linh_vuc" value={linhVuc} />
+      ) : null}
+      {isTimKiem && kind && kind !== "all" ? (
+        <input type="hidden" name="kind" value={kind} />
       ) : null}
       <Search size={16} strokeWidth={2} aria-hidden className="tb-search-icon" />
       <input
@@ -35,7 +52,7 @@ export function CinsTopbarSearch() {
         name="q"
         defaultValue={q}
         placeholder={placeholder}
-        aria-label={isNganhHub ? "Tìm ngành học" : "Tìm vị trí công việc"}
+        aria-label={ariaLabel}
         autoComplete="off"
       />
     </form>
