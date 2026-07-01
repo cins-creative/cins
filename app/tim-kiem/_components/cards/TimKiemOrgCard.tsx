@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, GraduationCap, MapPin } from "lucide-react";
 
@@ -47,13 +46,13 @@ export function TimKiemOrgCard({ hit }: { hit: SearchHit }) {
           className={`tk-org-card-cover-bg${coverUrl ? " tk-org-card-cover-bg--photo" : ""}`}
         >
           {coverUrl ? (
-            <Image
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
               src={coverUrl}
               alt=""
-              fill
+              loading="lazy"
+              decoding="async"
               className="tk-org-card-cover-photo"
-              sizes="(max-width: 640px) 100vw, 360px"
-              unoptimized={coverUrl.includes("imagedelivery.net")}
             />
           ) : (
             <div className="tk-org-card-cover-pattern" />

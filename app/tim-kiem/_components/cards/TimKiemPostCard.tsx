@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight, FileText } from "lucide-react";
 
@@ -28,13 +27,13 @@ export function TimKiemPostCard({ hit, variant }: Props) {
         aria-hidden
       >
         {coverUrl ? (
-          <Image
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
             src={coverUrl}
             alt=""
-            fill
+            loading="lazy"
+            decoding="async"
             className="tk-post-card-cover-img"
-            sizes="(max-width: 640px) 120px, 160px"
-            unoptimized={coverUrl.includes("imagedelivery.net")}
           />
         ) : (
           <span className="tk-post-card-cover-fallback">

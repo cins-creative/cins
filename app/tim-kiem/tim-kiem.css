@@ -81,6 +81,7 @@
 
 .tk-title {
   margin: 0 0 10px;
+  font-family: var(--font-sans, "Be Vietnam Pro", system-ui, sans-serif);
   font-size: clamp(1.85rem, 4.5vw, 2.75rem);
   font-weight: 900;
   line-height: 1.05;
@@ -469,6 +470,10 @@
 }
 
 .tk-org-card-cover-photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
 }
 
@@ -930,6 +935,10 @@
 }
 
 .tk-post-card-cover-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
 }
 

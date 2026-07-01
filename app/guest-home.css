@@ -867,30 +867,6 @@
   color: var(--ink-body);
 }
 
-.gh-school-tags {
-  grid-column: 1 / -1;
-  list-style: none;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin: 12px 0;
-  padding: 0;
-}
-
-.gh-school-tag {
-  font-size: 11.5px;
-  font-weight: 600;
-  padding: 3px 9px;
-  border-radius: var(--radius-xs);
-  background: var(--cins-blue-soft);
-  color: var(--cins-blue-dark, var(--cins-blue));
-}
-
-.gh-school-tag--muted {
-  background: var(--neutral-100);
-  color: var(--ink-muted);
-}
-
 .gh-school-locbar {
   grid-column: 1 / -1;
   display: flex;
@@ -920,14 +896,14 @@
 .gh-school-branch {
   display: inline-flex;
   align-items: center;
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 9.5px;
+  font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
-  padding: 3px 9px;
+  letter-spacing: 0.02em;
+  padding: 1px 6px;
   border-radius: var(--radius-pill);
-  background: var(--cins-blue-soft);
-  color: var(--cins-blue-dark, var(--cins-blue));
+  background: color-mix(in srgb, var(--ink-muted) 8%, transparent);
+  color: color-mix(in srgb, var(--ink-muted) 82%, transparent);
 }
 
 .gh-school-foot {

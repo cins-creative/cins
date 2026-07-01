@@ -59,9 +59,6 @@ export function GuestHomeSchoolCard({ school, index, href }: Props) {
   const typeLabel = labelLoaiTruong(school.loai_truong);
   const locationLabel = labelTinhThanh(school.tinh_thanh);
   const branchCount = school.chi_nhanh?.length ?? 0;
-  const tags = school.nganhTags.slice(0, 2);
-  const extraTags =
-    school.nganhCount > tags.length ? school.nganhCount - tags.length : 0;
 
   return (
     <Link href={href} className="gh-school-card">
@@ -134,19 +131,6 @@ export function GuestHomeSchoolCard({ school, index, href }: Props) {
             </div>
           ) : null}
         </div>
-
-        {tags.length > 0 ? (
-          <ul className="gh-school-tags" aria-label="Ngành đào tạo nổi bật">
-            {tags.map((tag) => (
-              <li key={tag} className="gh-school-tag">
-                {tag}
-              </li>
-            ))}
-            {extraTags > 0 ? (
-              <li className="gh-school-tag gh-school-tag--muted">+{extraTags}</li>
-            ) : null}
-          </ul>
-        ) : null}
 
         {locationLabel || branchCount > 0 ? (
           <div className="gh-school-locbar">

@@ -402,29 +402,44 @@ export async function runGlobalSearch(options: {
     };
   }
 
-  const tasks: Promise<SearchHit[]>[] = [];
+  try {
+    const tasks: Promise<SearchHit[]>[] = [];
 
-  if (shouldSearchKind(kind, "article")) tasks.push(searchArticles(query));
-  if (shouldSearchKind(kind, "org")) tasks.push(searchOrgs(query));
-  if (shouldSearchKind(kind, "user")) tasks.push(searchUsers(query));
-  if (shouldSearchKind(kind, "user_post")) tasks.push(searchUserPosts(query));
-  if (shouldSearchKind(kind, "org_post")) tasks.push(searchOrgPosts(query));
+    if (shouldSearchKind(kind, "article")) tasks.push(searchArticles(query));
+    if (shouldSearchKind(kind, "org")) tasks.push(searchOrgs(query));
+    if (shouldSearchKind(kind, "user")) tasks.push(searchUsers(query));
+    if (shouldSearchKind(kind, "user_post")) tasks.push(searchUserPosts(query));
+    if (shouldSearchKind(kind, "org_post")) tasks.push(searchOrgPosts(query));
 
-  const groups = await Promise.all(tasks);
-  const hits = mergeHits(groups);
+    const groups = await Promise.all(tasks);
+    const hits = mergeHits(groups);
 
-  const counts = emptyCounts();
-  for (const hit of hits) {
-    counts[hit.kind] += 1;
+    const counts = emptyCounts();
+    for (const hit of hits) {
+      counts[hit.kind] += 1;
+    }
+
+    return {
+      ok: true,
+      query,
+      kind,
+      hits,
+      counts,
+    };
+  } catch (error) {
+    console.error("[global-search]", error);
+    return {
+      ok: false,
+      query,
+      kind,
+      hits: [],
+      counts: emptyCounts(),
+      message:
+        error instanceof Error
+          ? error.message
+          : "Không thực hiện được tìm kiếm.",
+    };
   }
-
-  return {
-    ok: true,
-    query,
-    kind,
-    hits,
-    counts,
-  };
 }
 
 export function groupHitsByKind(hits: SearchHit[]): SearchEntityKind[] {

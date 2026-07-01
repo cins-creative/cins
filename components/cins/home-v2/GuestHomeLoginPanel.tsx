@@ -7,8 +7,8 @@ import "@/app/guest-home.css";
 import "./guest-home-login.css";
 
 const PERKS = [
-  { label: "Journey", desc: "Timeline sáng tạo" },
-  { label: "Verify", desc: "Milestone xác thực" },
+  { label: "Journey", desc: "Lưu lại hành trình sáng tạo của bạn" },
+  { label: "Verify", desc: "Xác thực từ tổ chức uy tín" },
   { label: "Khám phá", desc: "Gợi ý ngành nghề" },
 ] as const;
 

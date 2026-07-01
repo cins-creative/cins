@@ -33,6 +33,16 @@ const TIER_CEILING = {
   content: 280,
 } as const;
 
+/** Khớp ký tự theo thứ tự — "tu" khớp "truc" (Trúc) sau khi bỏ dấu. */
+function isCharSubsequence(needle: string, haystack: string): boolean {
+  if (!needle) return true;
+  let j = 0;
+  for (let i = 0; i < haystack.length && j < needle.length; i++) {
+    if (haystack[i] === needle[j]) j++;
+  }
+  return j === needle.length;
+}
+
 function scoreTextInTier(
   q: string,
   raw: string | null | undefined,
@@ -54,6 +64,10 @@ function scoreTextInTier(
   }
 
   if (text.includes(q)) return ceiling - 110;
+
+  if (q.length >= 2 && isCharSubsequence(q, text)) {
+    return ceiling - 125;
+  }
 
   if (qTokens.length > 0) {
     const matched = qTokens.filter((t) => text.includes(t));
