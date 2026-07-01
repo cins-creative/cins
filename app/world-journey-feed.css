@@ -62,8 +62,10 @@
   --wj-feed-max: 760px;
   --wj-shell-pad-top: 16px;
   --wj-shell-gutter: 16px;
-  --wj-aside-left-w: var(--j-sidebar-w, 248px);
-  --wj-aside-right-w: 332px;
+  /* Hai cột aside cùng bề ngang (tổng ~580px như trước: 248 + 332). */
+  --wj-aside-w: 290px;
+  --wj-aside-left-w: var(--wj-aside-w);
+  --wj-aside-right-w: var(--wj-aside-w);
   --mint-ink: #0e6b4d;
   --mint-deep: #0e9b6e;
   --warn-ink: #7a5a00;

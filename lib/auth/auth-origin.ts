@@ -55,8 +55,11 @@ export function resolveAuthOrigin(): string {
 }
 
 /**
- * Trả về thông báo lỗi nếu user đang ở origin khác cấu hình (cookie PKCE sẽ lệch).
+ * Trả về thông báo lỗi nếu user đang ở origin dev khác cấu hình (cookie PKCE sẽ lệch).
  * Chỉ khác prefix `www.` được coi là cùng site — không chặn.
+ *
+ * Không chặn production (cins.vn) khi env build còn `localhost` — OAuth client dùng
+ * `resolveAuthOrigin()` = `window.location.origin` nên PKCE vẫn đúng.
  */
 export function authOriginMismatchMessage(): string | null {
   if (typeof window === "undefined") return null;
@@ -70,8 +73,12 @@ export function authOriginMismatchMessage(): string | null {
     const currentHost = new URL(current).hostname;
     const configuredHost = new URL(configured).hostname;
     if (siteHostnamesEquivalent(currentHost, configuredHost)) return null;
+
+    const currentIsDev = isLikelyLocalOrPreviewHost(currentHost);
+    const configuredIsDev = isLikelyLocalOrPreviewHost(configuredHost);
+    if (!currentIsDev || !configuredIsDev) return null;
   } catch {
-    /* fall through */
+    return null;
   }
 
   return (

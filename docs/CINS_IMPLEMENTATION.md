@@ -262,7 +262,8 @@ CINS_ORG_DELEGATION_PASSWORD   (bắt buộc để dùng panel Phân quyền /ad
 | OAuth | Google PKCE — `app/auth/callback/route.ts`; cookie `cins-oauth-intent`, `cins-oauth-return` |
 | Protected | `/onboarding`, `/admin`, `/{slug}/p/new`, `/{slug}/p/.../edit` |
 | Admin panel gate | Middleware: session bắt buộc. `renderAdminPage` + `lib/auth/system-role.ts`: chỉ `super_admin` / `admin` / `curator`. Tab `/admin/nguoi-dung`: `canManageUsers` (super_admin + admin). Sửa nội dung: `canEditContent`. **Phân quyền org** (`/admin/to-chuc`, nút Shield): chỉ `super_admin` + `CINS_ORG_DELEGATION_PASSWORD` + mật khẩu ủy quyền mỗi mutation (L22). |
-| Dev OAuth | `NEXT_PUBLIC_SITE_URL=http://localhost:3001`; Supabase Redirect URLs `http://localhost:3001/auth/callback` (không lẫn `127.0.0.1`) |
+| Dev OAuth | `NEXT_PUBLIC_SITE_URL=http://localhost:3001` trong `.env.local`; Supabase Redirect URLs `http://localhost:3001/auth/callback` (không lẫn `127.0.0.1`) |
+| Production site URL | **`NEXT_PUBLIC_SITE_URL=https://cins.vn`** phải có lúc `next build` / `npm run deploy` (biến shell ưu tiên hơn `.env.local`). Script `scripts/ensure-prod-site-url.mjs` tự ép khi deploy nếu env còn localhost. Build sai → trang login cảnh báo origin lệch & canonical host redirect không chạy. |
 | Callback | Đọc verifier từ **request** cookies, ghi session lên **response** redirect (`lib/supabase/route-handler.ts`) |
 | Co-author trên Journey | Tagged/bookmark: `che_do_hien_thi_journey` — user tự đặt Nổi bật trên timeline của mình. Migration: `migration_journey_foreign_visibility.sql` |
 | Like count | Hiển thị công khai mặc định (`attachSocialState`, `PostActionsRail`) |
