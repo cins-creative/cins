@@ -47,8 +47,11 @@ missing=()
 [ -z "$NEXT_PUBLIC_ARTICLE_INLINE_IMAGE_UPLOAD_TOKEN" ] && missing+=("NEXT_PUBLIC_ARTICLE_INLINE_IMAGE_UPLOAD_TOKEN hoặc ARTICLE_INLINE_IMAGE_UPLOAD_TOKEN")
 
 if [ "${#missing[@]}" -gt 0 ]; then
-  echo "Thiếu secret (hoặc tên không khớp — xem scripts/ci-prepare-deploy-env.sh):"
+  echo "::error title=Thiếu GitHub secrets::Thêm các Repository secrets sau (Settings → Secrets → Actions):"
   printf '  - %s\n' "${missing[@]}"
+  echo ""
+  echo "Quan trọng: CLOUDFLARE_API_TOKEN là token deploy Workers (Cloudflare Dashboard → My Profile → API Tokens → Edit Cloudflare Workers)."
+  echo "Không dùng CLOUDFLARE_IMAGES_API_TOKEN thay thế."
   exit 1
 fi
 
