@@ -58,7 +58,7 @@
   --wj-sticky-top: 64px;
   --wj-feed-gap: 14px;
   --wj-feed-card-gap: 14px;
-  --wj-feed-pad-top: 10px;
+  --wj-feed-pad-top: 0;
   --wj-feed-max: 760px;
   --wj-shell-pad-top: 16px;
   --wj-shell-gutter: 16px;
@@ -1611,45 +1611,68 @@
   top: 10px;
   left: 10px;
   z-index: 1;
-  min-width: 52px;
-  max-width: 112px;
-  text-align: center;
-  border: 1px solid rgba(255, 255, 255, 0.85);
-  border-radius: var(--r-md, 12px);
+  display: inline-flex;
+  align-items: stretch;
+  flex-direction: row;
+  min-width: 0;
+  max-width: min(calc(100% - 20px), 220px);
+  text-align: left;
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  border-radius: 10px;
   overflow: hidden;
   background: var(--surface);
-  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.14);
+  box-shadow: 0 1px 6px rgba(15, 23, 42, 0.12);
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-date-core {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  min-width: 36px;
+  border-right: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
+  background: var(--surface);
+  text-align: center;
 }
 
 .world-journey-home .wj-feed-timeline .j-osk-date-month {
   display: block;
   background: var(--neutral-800, #1b1f2a);
   color: #fff;
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 700;
-  padding: 3px 0;
+  padding: 2px 0;
   text-transform: uppercase;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.2px;
+  line-height: 1.1;
 }
 
 .world-journey-home .wj-feed-timeline .j-osk-date-day {
   display: block;
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 800;
-  line-height: 1.1;
-  padding: 4px 6px 2px;
+  line-height: 1;
+  padding: 2px 4px 3px;
   color: var(--ink);
 }
 
 .world-journey-home .wj-feed-timeline .j-osk-date-badge .ha-org-up-countdown {
-  justify-content: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
   margin: 0;
-  padding: 4px 6px 6px;
+  padding: 0 8px;
   font-size: 9px;
   font-weight: 700;
   color: var(--ink3);
-  line-height: 1.25;
-  border-top: 1px solid color-mix(in srgb, var(--border) 65%, transparent);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  border-top: none;
   background: color-mix(in srgb, var(--neutral-50, #f8f9fb) 88%, white);
 }
 
@@ -1659,8 +1682,8 @@
 }
 
 .world-journey-home .wj-feed-timeline .j-osk-date-badge .ha-org-up-countdown-dot {
-  width: 4px;
-  height: 4px;
+  width: 3px;
+  height: 3px;
 }
 
 .world-journey-home .wj-feed-timeline .j-osk-hero-badges {
@@ -2814,7 +2837,7 @@
     --j-timeline-card-gap: 14px;
     --wj-feed-gap: 14px;
     --wj-feed-card-gap: 14px;
-    --wj-feed-pad-top: 10px;
+    --wj-feed-pad-top: 0;
   }
 
   .world-journey-home .wj-shell {
@@ -3410,11 +3433,52 @@
   min-width: 0;
 }
 
-.world-journey-home .ha-org-up-org-logo {
+.world-journey-home .ha-org-up .j-org-pop-wrap {
+  display: flex;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.world-journey-home .ha-org-up .j-org-pop-wrap > .j-user-pop-trigger {
+  display: flex;
+  max-width: 100%;
+  min-width: 0;
+  border-radius: var(--r-sm);
+}
+
+.world-journey-home .ha-org-up .j-user-pop-trigger:hover .ha-org-up-org,
+.world-journey-home .ha-org-up .j-user-pop-trigger:focus-visible .ha-org-up-org {
+  color: var(--blue);
+}
+
+.world-journey-home .ha-trow-sub--org .j-org-pop-wrap {
+  display: flex;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.world-journey-home .ha-trow-sub--org .j-org-pop-wrap > .j-user-pop-trigger {
+  display: flex;
+  max-width: 100%;
+  min-width: 0;
+  border-radius: var(--r-sm);
+}
+
+.world-journey-home .ha-trow-sub--org .j-user-pop-trigger:hover .ha-trow-sub-text,
+.world-journey-home
+  .ha-trow-sub--org
+  .j-user-pop-trigger:focus-visible
+  .ha-trow-sub-text {
+  color: var(--blue);
+}
+
+.world-journey-home .ha-org-up-org-logo,
+.world-journey-home .ha-trow-org-logo {
   flex-shrink: 0;
   width: 18px;
   height: 18px;
-  border-radius: 4px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -3422,13 +3486,15 @@
   background: var(--neutral-100, #f1f2f5);
 }
 
-.world-journey-home .ha-org-up-org-logo img {
+.world-journey-home .ha-org-up-org-logo img,
+.world-journey-home .ha-trow-org-logo img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.world-journey-home .ha-org-up-org-logo-fallback {
+.world-journey-home .ha-org-up-org-logo-fallback,
+.world-journey-home .ha-trow-org-logo-fallback {
   font-size: 9px;
   font-weight: 800;
   color: var(--ink4);
@@ -3436,9 +3502,9 @@
 }
 
 .world-journey-home .ha-org-up-org {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  color: var(--blue);
+  color: var(--ink4);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -3535,6 +3601,144 @@
   border-radius: 50%;
   background: var(--blue);
   flex-shrink: 0;
+}
+
+.world-journey-home .ha-org-up-item--list {
+  margin: 0;
+}
+
+.world-journey-home .ha-org-up-list-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  text-decoration: none;
+  color: inherit;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.world-journey-home .ha-org-up-list-row:hover {
+  border-color: color-mix(in srgb, var(--blue) 28%, var(--border));
+  background: var(--neutral-50, #f8f9fb);
+}
+
+.world-journey-home .ha-org-up-item--interest .ha-org-up-list-row {
+  border-color: color-mix(in srgb, var(--violet, #6b4ce6) 22%, var(--border));
+}
+
+.world-journey-home .ha-org-up-item--rsvp .ha-org-up-list-row {
+  border-color: color-mix(in srgb, var(--blue) 22%, var(--border));
+}
+
+.world-journey-home .ha-org-up-date--list {
+  flex-shrink: 0;
+  width: 40px;
+}
+
+.world-journey-home .ha-org-up-list-body {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.world-journey-home .ha-org-up-list-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+}
+
+.world-journey-home .ha-org-up-list-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink1);
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.world-journey-home .ha-org-up-list-badge {
+  flex-shrink: 0;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: var(--r-pill);
+}
+
+.world-journey-home .ha-org-up-list-badge.is-rsvp {
+  color: var(--blue-dark);
+  background: var(--blue-soft);
+}
+
+.world-journey-home .ha-org-up-list-badge.is-interest {
+  color: var(--violet-ink, #5b21b6);
+  background: color-mix(in srgb, var(--violet, #6b4ce6) 12%, white);
+}
+
+.world-journey-home .ha-org-up-list-org {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.world-journey-home .ha-org-up-list-org-name {
+  font-size: 11.5px;
+  color: var(--ink4);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.world-journey-home .ha-org-up-list-org .j-org-pop-wrap {
+  display: flex;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.world-journey-home .ha-org-up-list-org .j-user-pop-trigger {
+  display: flex;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.world-journey-home .ha-org-up-more {
+  margin: 0;
+  padding: 0 12px 10px;
+  text-align: center;
+}
+
+.world-journey-home .ha-org-up-more a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--blue);
+  text-decoration: none;
+}
+
+.world-journey-home .ha-org-up-more a:hover {
+  border-color: color-mix(in srgb, var(--blue) 35%, var(--border));
+  background: var(--blue-soft);
 }
 
 /* category (khám phá lĩnh vực) */
@@ -3640,32 +3844,6 @@
   align-items: center;
   gap: 6px;
   min-width: 0;
-}
-
-.world-journey-home .ha-trow-org-logo {
-  flex-shrink: 0;
-  width: 18px;
-  height: 18px;
-  border-radius: 4px;
-  border: 1px solid var(--border);
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--neutral-100, #f1f2f5);
-}
-
-.world-journey-home .ha-trow-org-logo img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.world-journey-home .ha-trow-org-logo-fallback {
-  font-size: 9px;
-  font-weight: 800;
-  color: var(--ink4);
-  line-height: 1;
 }
 
 .world-journey-home .ha-trow-sub-text {

@@ -2,6 +2,7 @@ import { BookOpen, Compass, GraduationCap } from "lucide-react";
 import Link from "next/link";
 
 import { ModuleCard, ModuleEmpty } from "@/components/cins/home-adaptive/ModuleCard";
+import { HaOrgPopoverChip } from "@/components/cins/home-adaptive/HaOrgPopoverChip";
 import { HaOrgSuggestionRow } from "@/components/cins/home-adaptive/HaOrgSuggestionRow";
 import type { HomeModuleCtx } from "@/components/cins/home-adaptive/types";
 import { loadKhoaHocGoiY } from "@/lib/cins/home-adaptive/fetches";
@@ -120,19 +121,14 @@ export async function KhoaHocGoiYModule(_props: { ctx: HomeModuleCtx }) {
             </span>
             <div className="ha-trow-meta">
               <div className="ha-trow-name">{k.ten}</div>
-              <div className="ha-trow-sub ha-trow-sub--org">
-                <span className="ha-trow-org-logo" aria-hidden>
-                  {k.orgAvatarUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={k.orgAvatarUrl} alt="" width={18} height={18} loading="lazy" />
-                  ) : (
-                    <span className="ha-trow-org-logo-fallback">
-                      {k.orgTen.slice(0, 1).toUpperCase()}
-                    </span>
-                  )}
-                </span>
-                <span className="ha-trow-sub-text">{k.orgTen}</span>
-              </div>
+              <HaOrgPopoverChip
+                orgSlug={k.orgSlug}
+                orgName={k.orgTen}
+                orgLoai="co_so_dao_tao"
+                orgAvatarUrl={k.orgAvatarUrl}
+                wrapClassName="ha-trow-sub ha-trow-sub--org"
+                nameClassName="ha-trow-sub-text"
+              />
             </div>
           </Link>
         ))

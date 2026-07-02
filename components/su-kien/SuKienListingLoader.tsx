@@ -1,8 +1,31 @@
 import { SuKienListingClient } from "@/components/su-kien/SuKienListingClient";
+import { getCurrentSessionAndProfile } from "@/lib/auth/session";
+import { loadUserSuKienPhanHoiMap } from "@/lib/to-chuc/su-kien-dang-ky";
 import { listSuKienForListing } from "@/lib/to-chuc/su-kien-listing";
 
-export async function SuKienListingLoader() {
-  const events = await listSuKienForListing();
+type Props = {
+  initialTab?: string;
+  initialSuKienId?: string;
+};
 
-  return <SuKienListingClient events={events} />;
+export async function SuKienListingLoader({
+  initialTab,
+  initialSuKienId,
+}: Props) {
+  const [events, session] = await Promise.all([
+    listSuKienForListing(),
+    getCurrentSessionAndProfile(),
+  ]);
+  const phanHoiMap = await loadUserSuKienPhanHoiMap(session?.profile?.id ?? null);
+  const mySuKienPhanHoi = Object.fromEntries(phanHoiMap);
+
+  return (
+    <SuKienListingClient
+      events={events}
+      mySuKienPhanHoi={mySuKienPhanHoi}
+      initialTab={initialTab}
+      initialSuKienId={initialSuKienId}
+      isLoggedIn={Boolean(session?.profile?.id)}
+    />
+  );
 }

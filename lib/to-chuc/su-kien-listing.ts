@@ -21,6 +21,7 @@ export type SuKienListItem = SuKienCardData & {
   orgTen: string;
   orgLoai: string;
   orgHref: string;
+  orgAvatarUrl: string | null;
   status: TimelineStepStatus;
 };
 
@@ -45,18 +46,22 @@ type SuKienRow = {
         slug?: string | null;
         ten?: string | null;
         loai_to_chuc?: string | null;
+        avatar_id?: string | null;
+        logo_id?: string | null;
       }
     | {
         id?: string;
         slug?: string | null;
         ten?: string | null;
         loai_to_chuc?: string | null;
+        avatar_id?: string | null;
+        logo_id?: string | null;
       }[]
     | null;
 };
 
 const SU_KIEN_LISTING_SELECT =
-  "id, ten, loai_su_kien, mo_ta, noi_dung, cover_id, bat_dau, ket_thuc, tinh_thanh, dia_diem, mien_phi, gia_ve, slot_toi_da, id_to_chuc, org_to_chuc!inner ( id, slug, ten, loai_to_chuc )";
+  "id, ten, loai_su_kien, mo_ta, noi_dung, cover_id, bat_dau, ket_thuc, tinh_thanh, dia_diem, mien_phi, gia_ve, slot_toi_da, id_to_chuc, org_to_chuc!inner ( id, slug, ten, loai_to_chuc, avatar_id, logo_id )";
 
 function readOrg(row: SuKienRow) {
   const embed = row.org_to_chuc;
@@ -66,7 +71,11 @@ function readOrg(row: SuKienRow) {
   const ten = org?.ten?.trim();
   const loai = org?.loai_to_chuc?.trim() ?? "";
   if (!id || !slug || !ten) return null;
-  return { id, slug, ten, loai };
+  const orgAvatarId =
+    (Array.isArray(embed) ? embed[0] : embed)?.avatar_id ??
+    (Array.isArray(embed) ? embed[0] : embed)?.logo_id ??
+    null;
+  return { id, slug, ten, loai, orgAvatarId };
 }
 
 function mapRow(
@@ -104,6 +113,9 @@ function mapRow(
     orgTen: org.ten,
     orgLoai: org.loai,
     orgHref: orgSuKienHref(org.loai, org.slug),
+    orgAvatarUrl: org.orgAvatarId
+      ? resolveTruongImageSrcSync(org.orgAvatarId, ["public", "avatar"])
+      : null,
     status,
   };
 }

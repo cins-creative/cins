@@ -9,7 +9,6 @@ import { JourneyOrgPopover } from "@/components/journey/JourneyOrgPopover";
 import type { MilestoneAttribution, MilestoneItem } from "@/components/journey/milestone-types";
 import { SuKienPhanHoiActions } from "@/components/to-chuc/SuKienPhanHoiActions";
 import type { LoaiPhanHoiSuKien } from "@/lib/to-chuc/su-kien-dang-ky";
-import { labelLoaiSuKien } from "@/lib/to-chuc/su-kien-constants";
 import { getStepStatus } from "@/lib/truong/timeline";
 
 type Props = {
@@ -71,7 +70,6 @@ export function OrgSuKienFeedMilestoneCard({
 
   const cover = milestone.media?.[0];
   const popoverKind = orgKindForPopover(attr.orgKind);
-  const loaiLabel = labelLoaiSuKien(ref.loaiSuKien);
   const when = formatEventWhen(ref.batDau);
   const badge = dateBadgeParts(milestone.year, milestone.month, milestone.day);
   const stepStatus = getStepStatus(ref.batDau, ref.ketThuc ?? null);
@@ -125,20 +123,21 @@ export function OrgSuKienFeedMilestoneCard({
           )}
           <span className="j-osk-hero-shade" aria-hidden />
           <span className="j-osk-date-badge">
-            <span className="j-osk-date-month">{badge.month}</span>
-            <span className="j-osk-date-day">{badge.day}</span>
+            <span className="j-osk-date-core">
+              <span className="j-osk-date-month">{badge.month}</span>
+              <span className="j-osk-date-day">{badge.day}</span>
+            </span>
             <HaOrgUpCountdown
               batDauIso={ref.batDau}
               ketThucIso={ref.ketThuc ?? null}
               status={countdownStatus}
             />
           </span>
-          <span className="j-osk-hero-badges">
-            {milestone.feedSuggestion ? (
+          {milestone.feedSuggestion ? (
+            <span className="j-osk-hero-badges">
               <span className="j-osk-pill j-osk-pill--suggest">Gợi ý</span>
-            ) : null}
-            <span className="j-osk-pill j-osk-pill--type">{loaiLabel}</span>
-          </span>
+            </span>
+          ) : null}
         </div>
 
         <div className="j-osk-body">

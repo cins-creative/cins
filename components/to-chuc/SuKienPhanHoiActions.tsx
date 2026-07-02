@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, Heart, Users } from "lucide-react";
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 
 import { useAuthGate } from "@/components/auth/AuthGateProvider";
 import type { LoaiPhanHoiSuKien } from "@/lib/to-chuc/su-kien-dang-ky";
@@ -13,6 +13,7 @@ type Props = {
   suKienId: string;
   slotToiDa?: number | null;
   initialSoDangKy?: number;
+  initialLoai?: LoaiPhanHoiSuKien | null;
   enabled?: boolean;
   className?: string;
   onLoaiChange?: (loai: LoaiPhanHoiSuKien | null) => void;
@@ -24,21 +25,32 @@ export function SuKienPhanHoiActions({
   suKienId,
   slotToiDa = null,
   initialSoDangKy = 0,
+  initialLoai = null,
   enabled = true,
   className,
   onLoaiChange,
   onSoDangKyChange,
 }: Props) {
   const { isAuthenticated, openAuthModal } = useAuthGate();
-  const [loai, setLoai] = useState<LoaiPhanHoiSuKien | null>(null);
+  const [loai, setLoai] = useState<LoaiPhanHoiSuKien | null>(initialLoai);
   const [soDangKy, setSoDangKy] = useState(initialSoDangKy);
   const [loaded, setLoaded] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const onLoaiChangeRef = useRef(onLoaiChange);
+  const onSoDangKyChangeRef = useRef(onSoDangKyChange);
+  const pendingFirstFetchRef = useRef(true);
+
+  useEffect(() => {
+    onLoaiChangeRef.current = onLoaiChange;
+    onSoDangKyChangeRef.current = onSoDangKyChange;
+  });
 
   const refresh = useCallback(() => {
     if (!enabled) return;
-    setLoaded(false);
+    if (pendingFirstFetchRef.current) {
+      setLoaded(false);
+    }
     setActionError(null);
     void fetch(
       `/api/org/${encodeURIComponent(orgId)}/su-kien/${encodeURIComponent(suKienId)}/dang-ky`,
@@ -53,16 +65,28 @@ export function SuKienPhanHoiActions({
           const nextLoai = data.loai ?? null;
           const nextCount =
             typeof data.soDangKy === "number" ? data.soDangKy : initialSoDangKy;
-          setLoai(nextLoai);
-          setSoDangKy(nextCount);
-          onLoaiChange?.(nextLoai);
-          onSoDangKyChange?.(nextCount);
+          setLoai((prev) => {
+            if (prev !== nextLoai) {
+              onLoaiChangeRef.current?.(nextLoai);
+            }
+            return nextLoai;
+          });
+          setSoDangKy((prev) => {
+            if (prev !== nextCount) {
+              onSoDangKyChangeRef.current?.(nextCount);
+            }
+            return nextCount;
+          });
         }
       })
-      .finally(() => setLoaded(true));
-  }, [enabled, orgId, suKienId, initialSoDangKy, onLoaiChange, onSoDangKyChange]);
+      .finally(() => {
+        pendingFirstFetchRef.current = false;
+        setLoaded(true);
+      });
+  }, [enabled, orgId, suKienId, initialSoDangKy]);
 
   useEffect(() => {
+    pendingFirstFetchRef.current = true;
     if (enabled) {
       setSoDangKy(initialSoDangKy);
       refresh();
@@ -72,6 +96,12 @@ export function SuKienPhanHoiActions({
       setActionError(null);
     }
   }, [enabled, suKienId, orgId, initialSoDangKy, refresh]);
+
+  useEffect(() => {
+    if (enabled) {
+      setLoai(initialLoai);
+    }
+  }, [enabled, initialLoai, suKienId]);
 
   function handlePhanHoi(nextLoai: LoaiPhanHoiSuKien) {
     if (!isAuthenticated) {
@@ -104,8 +134,8 @@ export function SuKienPhanHoiActions({
         typeof data?.soDangKy === "number" ? data.soDangKy : soDangKy;
       setLoai(newLoai);
       setSoDangKy(newCount);
-      onLoaiChange?.(newLoai);
-      onSoDangKyChange?.(newCount);
+      onLoaiChangeRef.current?.(newLoai);
+      onSoDangKyChangeRef.current?.(newCount);
     });
   }
 

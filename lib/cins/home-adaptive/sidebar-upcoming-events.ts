@@ -6,7 +6,7 @@ import type { FollowedOrgUpcomingItem } from "@/lib/cins/home-adaptive/followed-
 import { listFollowingOrgIds } from "@/lib/cins/worldJourneyOrgFeed";
 import { coSoTabPath } from "@/lib/to-chuc/co-so-routes";
 import {
-  isLoaiPhanHoiSuKien,
+  loadUserSuKienPhanHoiMap,
   type LoaiPhanHoiSuKien,
 } from "@/lib/to-chuc/su-kien-dang-ky";
 import { labelLoaiSuKien } from "@/lib/to-chuc/su-kien-constants";
@@ -14,6 +14,23 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { resolveTruongImageSrcSync } from "@/lib/truong/media-url";
 import { formatTimelineDate, getStepStatus } from "@/lib/truong/timeline";
 import { truongRootPath } from "@/lib/truong/truong-routes";
+
+export type SidebarUpcomingEventsBundle = {
+  items: SidebarUpcomingEvent[];
+  /** Số sự kiện sắp diễn ra mà viewer quan tâm hoặc sẽ tham gia. */
+  myEventsTotal: number;
+};
+
+export function sidebarSuKienId(item: SidebarUpcomingEvent): string {
+  return item.id.replace(/^sk:/, "");
+}
+
+export function sidebarEventHref(item: SidebarUpcomingEvent): string {
+  if (item.phanHoi) {
+    return `/su-kien?tab=cua-ban&suKien=${encodeURIComponent(sidebarSuKienId(item))}`;
+  }
+  return item.href;
+}
 
 export type SidebarUpcomingEvent = FollowedOrgUpcomingItem & {
   kind: "su_kien";
@@ -42,8 +59,6 @@ type SuKienRow = {
   id_to_chuc: string;
   org_to_chuc: OrgEmbed | OrgEmbed[] | null;
 };
-
-const TRANG_THAI_HUY = new Set(["tu_choi", "huy"]);
 
 function pickOrg(org: SuKienRow["org_to_chuc"]): OrgEmbed | null {
   if (!org) return null;
@@ -160,60 +175,64 @@ async function fetchUpcomingSuKienRows(
   return out;
 }
 
+function sortSidebarEvents(
+  pool: SidebarUpcomingEvent[],
+  followedSet: Set<string>,
+): SidebarUpcomingEvent[] {
+  return [...pool].sort((a, b) => {
+    const rankA = priorityRank(a.phanHoi, followedSet.has(a.orgId));
+    const rankB = priorityRank(b.phanHoi, followedSet.has(b.orgId));
+    if (rankA !== rankB) return rankA - rankB;
+    const liveOrder =
+      (a.status === "active" ? 0 : 1) - (b.status === "active" ? 0 : 1);
+    if (liveOrder !== 0) return liveOrder;
+    return a.sortKey - b.sortKey;
+  });
+}
+
 /**
- * Sidebar trang chủ — tối đa 2 sự kiện sắp diễn ra.
- * Ưu tiên: đăng ký tham gia → quan tâm → org đang theo dõi → gợi ý khác.
+ * Sidebar trang chủ — tối đa `limit` sự kiện (mặc định 3).
+ * Ưu tiên sự kiện viewer quan tâm / sẽ tham gia; sau đó org theo dõi → gợi ý.
  */
 export const loadSidebarUpcomingEvents = cache(
   async function loadSidebarUpcomingEvents(
     viewerId: string,
     loaiSuKienFilter: string[] = [],
-    limit = 2,
-  ): Promise<SidebarUpcomingEvent[]> {
-    const admin = createServiceRoleClient();
-    const [followedOrgIds, { data: dangKyRows }] = await Promise.all([
+    limit = 3,
+  ): Promise<SidebarUpcomingEventsBundle> {
+    const [followedOrgIds, phanHoiBySuKien] = await Promise.all([
       listFollowingOrgIds(viewerId),
-      admin
-        .from("org_dang_ky_su_kien")
-        .select("id_su_kien, loai_phan_hoi, trang_thai")
-        .eq("id_nguoi_dung", viewerId)
-        .returns<
-          Array<{
-            id_su_kien: string;
-            loai_phan_hoi: string;
-            trang_thai: string;
-          }>
-        >(),
+      loadUserSuKienPhanHoiMap(viewerId),
     ]);
 
     const followedSet = new Set(followedOrgIds);
-    const phanHoiBySuKien = new Map<string, LoaiPhanHoiSuKien>();
-    for (const row of dangKyRows ?? []) {
-      if (TRANG_THAI_HUY.has(row.trang_thai)) continue;
-      if (!isLoaiPhanHoiSuKien(row.loai_phan_hoi)) continue;
-      phanHoiBySuKien.set(row.id_su_kien, row.loai_phan_hoi);
-    }
-
     const registeredIds = [...phanHoiBySuKien.keys()];
     const seenIds = new Set<string>();
-    const pool: SidebarUpcomingEvent[] = [];
+    const myPool: SidebarUpcomingEvent[] = [];
 
-    const registeredRows =
-      registeredIds.length > 0
-        ? await fetchUpcomingSuKienRows({
-            suKienIds: registeredIds,
-            loaiFilter: [],
-            limit: registeredIds.length,
-            excludeIds: seenIds,
-          })
-        : [];
-
-    for (const row of registeredRows) {
-      seenIds.add(row.id);
-      const item = mapSuKienRow(row, phanHoiBySuKien.get(row.id) ?? null);
-      if (item) pool.push(item);
+    if (registeredIds.length > 0) {
+      const registeredRows = await fetchUpcomingSuKienRows({
+        suKienIds: registeredIds,
+        loaiFilter: [],
+        limit: registeredIds.length,
+        excludeIds: seenIds,
+      });
+      for (const row of registeredRows) {
+        seenIds.add(row.id);
+        const item = mapSuKienRow(row, phanHoiBySuKien.get(row.id) ?? null);
+        if (item?.phanHoi) myPool.push(item);
+      }
     }
 
+    const myEventsTotal = myPool.length;
+    if (myEventsTotal > 0) {
+      return {
+        items: sortSidebarEvents(myPool, followedSet).slice(0, limit),
+        myEventsTotal,
+      };
+    }
+
+    const pool: SidebarUpcomingEvent[] = [];
     const followedOnlyIds = followedOrgIds.filter((id) => id);
     if (followedOnlyIds.length > 0) {
       const followedRows = await fetchUpcomingSuKienRows({
@@ -242,22 +261,9 @@ export const loadSidebarUpcomingEvents = cache(
       }
     }
 
-    pool.sort((a, b) => {
-      const rankA = priorityRank(
-        a.phanHoi,
-        followedSet.has(a.orgId),
-      );
-      const rankB = priorityRank(
-        b.phanHoi,
-        followedSet.has(b.orgId),
-      );
-      if (rankA !== rankB) return rankA - rankB;
-      const liveOrder =
-        (a.status === "active" ? 0 : 1) - (b.status === "active" ? 0 : 1);
-      if (liveOrder !== 0) return liveOrder;
-      return a.sortKey - b.sortKey;
-    });
-
-    return pool.slice(0, limit);
+    return {
+      items: sortSidebarEvents(pool, followedSet).slice(0, limit),
+      myEventsTotal: 0,
+    };
   },
 );

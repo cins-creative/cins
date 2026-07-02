@@ -17,10 +17,11 @@ function eventDate(iso: string): { month: string; day: string } {
 /** Module "Sự kiện sắp tới" — bổ sung toàn cục khi org theo dõi chưa đủ (brief §5). */
 export async function SuKienModule({ ctx }: { ctx: HomeModuleCtx }) {
   const loaiFilter = SU_KIEN_LOAI_BY_PERSONA[ctx.persona];
-  const [sidebarEvents, globalEvents] = await Promise.all([
-    loadSidebarUpcomingEvents(ctx.viewerId, loaiFilter, 2),
+  const [sidebarEventsBundle, globalEvents] = await Promise.all([
+    loadSidebarUpcomingEvents(ctx.viewerId, loaiFilter, 3),
     loadUpcomingEventsForHome(loaiFilter, 4),
   ]);
+  const sidebarEvents = sidebarEventsBundle.items;
 
   const sidebarEventIds = new Set(
     sidebarEvents.map((i) => i.id.replace(/^sk:/, "")),

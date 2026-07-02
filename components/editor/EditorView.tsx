@@ -984,6 +984,25 @@ export function EditorView({
   const hasVideoBlock = blocks.some((b) => b.t === "embed");
   const isMinimalMediaCompose =
     usesMinimalFlow && editorExpanded && (hasPhotoBlocks || hasVideoBlock);
+  /** Minimal compose expanded — mỗi lần bấm + tạo thêm một block (session nội dung). */
+  const canAddMoreSessions = usesMinimalFlow && editorExpanded;
+
+  const pickBlockAt = useCallback(
+    (type: BlockType, idx: number) => {
+      if (isMinimalMediaCompose) {
+        if (hasVideoBlock && type === "imgs") {
+          setToast("Không thể thêm album khi đã có video.");
+          return;
+        }
+        if (hasPhotoBlocks && type === "embed") {
+          setToast("Không thể thêm video vào bài album ảnh.");
+          return;
+        }
+      }
+      addBlock(type, idx);
+    },
+    [addBlock, hasPhotoBlocks, hasVideoBlock, isMinimalMediaCompose],
+  );
 
   const onMinimalAlbumPick = useCallback(
     (e: ChangeEvent<HTMLInputElement>) => {
@@ -1895,7 +1914,7 @@ export function EditorView({
               idx={0}
               open={openAddIdx === 0}
               onToggle={(open) => setOpenAddIdx(open ? 0 : null)}
-              onPick={(type) => addBlock(type, 0)}
+              onPick={(type) => pickBlockAt(type, 0)}
               starter={blocks.length === 0}
               anchorPicker={isOverlay}
             />
@@ -1955,12 +1974,13 @@ export function EditorView({
                   handleAtHashSync(b.id, trigger, textarea)
                 }
               />
-              {!isMinimalMediaCompose ? (
+              {!isMinimalMediaCompose || i === blocks.length - 1 ? (
                 <AddZone
                   idx={i + 1}
                   open={openAddIdx === i + 1}
                   onToggle={(open) => setOpenAddIdx(open ? i + 1 : null)}
-                  onPick={(type) => addBlock(type, i + 1)}
+                  onPick={(type) => pickBlockAt(type, i + 1)}
+                  starter={canAddMoreSessions && i === blocks.length - 1}
                   anchorPicker={isOverlay}
                 />
               ) : null}
@@ -1969,7 +1989,8 @@ export function EditorView({
         </div>
         ) : null}
 
-        {showFullEditor && !isMinimalMediaCompose ? (
+        {showFullEditor &&
+        (!isMinimalMediaCompose || (canAddMoreSessions && blocks.length > 0)) ? (
         <div className="hint-foot">
           Bấm nút <b>+</b> ở khe giữa các block để chèn nội dung mới. Gõ{" "}
           <b>@</b> để gắn cộng sự, <b>#</b> để gắn thẻ bài viết.

@@ -1,7 +1,11 @@
 import Link from "next/link";
 
 import { HaOrgUpCountdown } from "@/components/cins/home-adaptive/HaOrgUpCountdown";
-import type { SidebarUpcomingEvent } from "@/lib/cins/home-adaptive/sidebar-upcoming-events";
+import { HaOrgPopoverChip } from "@/components/cins/home-adaptive/HaOrgPopoverChip";
+import {
+  sidebarEventHref,
+  type SidebarUpcomingEvent,
+} from "@/lib/cins/home-adaptive/sidebar-upcoming-events";
 
 const MONTHS = [
   "Th1", "Th2", "Th3", "Th4", "Th5", "Th6",
@@ -54,7 +58,7 @@ export function HaOrgUpcomingRow({ item }: { item: SidebarUpcomingEvent }) {
 
   return (
     <li className={itemClass}>
-      <Link href={item.href} className="ha-org-up ha-org-up--banner" prefetch={false}>
+      <Link href={sidebarEventHref(item)} className="ha-org-up ha-org-up--banner" prefetch={false}>
         <div className="ha-org-up-banner" aria-hidden>
           {item.coverSrc ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -83,25 +87,14 @@ export function HaOrgUpcomingRow({ item }: { item: SidebarUpcomingEvent }) {
           ) : null}
         </div>
         <div className="ha-org-up-body">
-          <div className="ha-org-up-head">
-            <span className="ha-org-up-org-logo" aria-hidden>
-              {item.orgAvatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={item.orgAvatarUrl}
-                  alt=""
-                  width={18}
-                  height={18}
-                  loading="lazy"
-                />
-              ) : (
-                <span className="ha-org-up-org-logo-fallback">
-                  {item.orgName.slice(0, 1).toUpperCase()}
-                </span>
-              )}
-            </span>
-            <span className="ha-org-up-org">{item.orgName}</span>
-          </div>
+          <HaOrgPopoverChip
+            orgSlug={item.orgSlug}
+            orgName={item.orgName}
+            orgLoai={item.orgLoai}
+            orgAvatarUrl={item.orgAvatarUrl}
+            wrapClassName="ha-org-up-head"
+            nameClassName="ha-org-up-org"
+          />
           <p className="ha-org-up-title">{item.label}</p>
           {range ? <p className="ha-org-up-range">{range}</p> : null}
           <HaOrgUpCountdown

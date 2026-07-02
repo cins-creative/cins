@@ -15,13 +15,22 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default function SuKienListingPage() {
+export default async function SuKienListingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string; suKien?: string }>;
+}) {
   if (!hasSupabaseEnv()) notFound();
+
+  const sp = await searchParams;
 
   return (
     <CinsShell data-screen-label="Su-kien-listing">
       <Suspense fallback={<SuKienListingSkeleton />}>
-        <SuKienListingLoader />
+        <SuKienListingLoader
+          initialTab={sp.tab}
+          initialSuKienId={sp.suKien}
+        />
       </Suspense>
     </CinsShell>
   );

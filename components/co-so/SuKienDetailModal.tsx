@@ -17,7 +17,6 @@ import { useAuthGate } from "@/components/auth/AuthGateProvider";
 import { TruongInlineModal } from "@/components/truong/inline/TruongInlineModal";
 import type { LoaiPhanHoiSuKien } from "@/lib/to-chuc/su-kien-dang-ky";
 import {
-  labelLoaiSuKien,
   labelSuKienVe,
   type SuKienCardData,
 } from "@/lib/to-chuc/su-kien-constants";
@@ -175,9 +174,6 @@ export function SuKienDetailModal({
             <ImageIcon size={40} strokeWidth={1.25} />
           </span>
         )}
-        <div className="cso-sk-detail-cover-meta">
-          <span className="cso-sk-kind">{labelLoaiSuKien(suKien.loaiSuKien)}</span>
-        </div>
         <button
           type="button"
           className="cso-sk-detail-close"

@@ -3,17 +3,19 @@
 import { CalendarDays, ImageIcon, MapPin, Search } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { SuKienDetailModal } from "@/components/co-so/SuKienDetailModal";
+import { HaOrgPopoverChip } from "@/components/cins/home-adaptive/HaOrgPopoverChip";
 import { SuKienHeroCarousel } from "@/components/su-kien/SuKienHeroCarousel";
+import { SuKienPhanHoiActions } from "@/components/to-chuc/SuKienPhanHoiActions";
 import {
   LOAI_SU_KIEN_LABELS,
   LOAI_SU_KIEN_VALUES,
   labelLoaiSuKien,
-  labelSuKienVe,
   type LoaiSuKien,
 } from "@/lib/to-chuc/su-kien-constants";
+import type { LoaiPhanHoiSuKien } from "@/lib/to-chuc/su-kien-dang-ky";
 import type { SuKienListItem } from "@/lib/to-chuc/su-kien-listing";
 import {
   TINH_THANH_SELECT_OPTIONS,
@@ -23,9 +25,13 @@ import {
 
 type Props = {
   events: SuKienListItem[];
+  mySuKienPhanHoi: Record<string, LoaiPhanHoiSuKien>;
+  initialTab?: string;
+  initialSuKienId?: string;
+  isLoggedIn: boolean;
 };
 
-type TimeFilter = "upcoming" | "past";
+type TimeFilter = "upcoming" | "past" | "cua-ban";
 
 const MONTHS = [
   "Th1",
@@ -89,75 +95,122 @@ function eventTag(item: SuKienListItem): { label: string; kind: string } {
 
 function SuKienListCard({
   item,
+  initialLoai,
   onOpen,
+  onPhanHoiChange,
+  onSoDangKyChange,
 }: {
   item: SuKienListItem;
+  initialLoai?: LoaiPhanHoiSuKien | null;
   onOpen: (item: SuKienListItem) => void;
+  onPhanHoiChange?: (suKienId: string, loai: LoaiPhanHoiSuKien | null) => void;
+  onSoDangKyChange?: (suKienId: string, soDangKy: number) => void;
 }) {
   const { month, day } = eventDate(item.batDau);
   const tag = eventTag(item);
   const location = formatSuKienDiaDiemDisplay(item.tinhThanh, item.diaDiem);
   const time = formatTimeRange(item.batDau, item.ketThuc);
+  const rsvpEnabled = item.status !== "done";
 
   return (
-    <button
-      type="button"
-      className="evb-card"
-      onClick={() => onOpen(item)}
-    >
-      <div className="evb-card-img relative">
-        {item.coverSrc ? (
-          <Image
-            src={item.coverSrc}
-            alt=""
-            fill
-            className="object-cover"
-            sizes="(max-width: 700px) 100vw, 33vw"
-          />
-        ) : (
-          <span className="sk-list-cover-ph" aria-hidden>
-            <ImageIcon size={36} strokeWidth={1.25} />
-          </span>
-        )}
-        <span className={`evb-card-tag ${tag.kind}`.trim()}>
-          {tag.kind === "is-live" ? <span className="evb-pulse" /> : null}
-          {tag.label}
-        </span>
-        <div className="evb-card-date">
-          <span className="evb-card-date-d">{day}</span>
-          <span className="evb-card-date-m">{month}</span>
-        </div>
-      </div>
-      <div className="evb-card-body">
-        <div className="evb-card-meta">
-          {time ? <span>🕐 {time}</span> : null}
-          {location ? (
-            <span>
-              <MapPin size={13} strokeWidth={2} aria-hidden />
-              {location}
+    <article className="evb-card evb-card--listing">
+      <button
+        type="button"
+        className="evb-card-hit evb-card-hit--cover"
+        onClick={() => onOpen(item)}
+        aria-label={`Xem chi tiết ${item.ten}`}
+      >
+        <div className="evb-card-img relative">
+          {item.coverSrc ? (
+            <Image
+              src={item.coverSrc}
+              alt=""
+              fill
+              className="object-cover"
+              sizes="(max-width: 700px) 100vw, 33vw"
+            />
+          ) : (
+            <span className="sk-list-cover-ph" aria-hidden>
+              <ImageIcon size={36} strokeWidth={1.25} />
             </span>
-          ) : null}
-        </div>
-        <h2 className="evb-card-title">{item.ten}</h2>
-        {item.moTa ? <p className="evb-card-desc">{item.moTa}</p> : null}
-        <div className="evb-card-foot">
-          <div className="evb-card-host">
-            {item.orgTen}{" "}
-            <span>{labelSuKienVe(item.mienPhi, item.giaVe)}</span>
+          )}
+          <span className={`evb-card-tag ${tag.kind}`.trim()}>
+            {tag.kind === "is-live" ? <span className="evb-pulse" /> : null}
+            {tag.label}
+          </span>
+          <div className="evb-card-date">
+            <span className="evb-card-date-d">{day}</span>
+            <span className="evb-card-date-m">{month}</span>
           </div>
-          <span className="evb-card-cta">Xem chi tiết →</span>
+        </div>
+      </button>
+      <div className="evb-card-body">
+        <div className="evb-card-meta evb-card-meta--org">
+          <HaOrgPopoverChip
+            orgSlug={item.orgSlug}
+            orgName={item.orgTen}
+            orgLoai={item.orgLoai}
+            orgAvatarUrl={item.orgAvatarUrl}
+            wrapClassName="evb-card-org"
+            nameClassName="evb-card-org-name"
+          />
+        </div>
+        <button
+          type="button"
+          className="evb-card-hit evb-card-hit--content"
+          onClick={() => onOpen(item)}
+        >
+          {time || location ? (
+            <div className="evb-card-meta">
+              {time ? <span>🕐 {time}</span> : null}
+              {location ? (
+                <span>
+                  <MapPin size={13} strokeWidth={2} aria-hidden />
+                  {location}
+                </span>
+              ) : null}
+            </div>
+          ) : null}
+          <h2 className="evb-card-title">{item.ten}</h2>
+          {item.moTa ? <p className="evb-card-desc">{item.moTa}</p> : null}
+        </button>
+        <div className="evb-card-actions">
+          <SuKienPhanHoiActions
+            orgId={item.orgId}
+            suKienId={item.id}
+            slotToiDa={item.slotToiDa}
+            initialSoDangKy={item.soDangKy}
+            initialLoai={initialLoai ?? null}
+            enabled={rsvpEnabled}
+            className="evb-card-phan-hoi"
+            onLoaiChange={(loai) => onPhanHoiChange?.(item.id, loai)}
+            onSoDangKyChange={(n) => onSoDangKyChange?.(item.id, n)}
+          />
         </div>
       </div>
-    </button>
+    </article>
   );
 }
 
-export function SuKienListingClient({ events }: Props) {
-  const [timeFilter, setTimeFilter] = useState<TimeFilter>("upcoming");
+export function SuKienListingClient({
+  events,
+  mySuKienPhanHoi,
+  initialTab,
+  initialSuKienId,
+  isLoggedIn,
+}: Props) {
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>(() =>
+    initialTab === "cua-ban" ? "cua-ban" : "upcoming",
+  );
   const [loaiFilter, setLoaiFilter] = useState<LoaiSuKien | "all">("all");
   const [tinhThanh, setTinhThanh] = useState("");
   const [query, setQuery] = useState("");
   const [detail, setDetail] = useState<SuKienListItem | null>(null);
+  const [phanHoiMap, setPhanHoiMap] = useState(mySuKienPhanHoi);
+
+  useEffect(() => {
+    setPhanHoiMap(mySuKienPhanHoi);
+  }, [mySuKienPhanHoi]);
 
   const upcomingCount = useMemo(
     () => events.filter((e) => e.status !== "done").length,
@@ -167,13 +220,29 @@ export function SuKienListingClient({ events }: Props) {
     () => events.filter((e) => e.status === "done").length,
     [events],
   );
+  const mineCount = useMemo(
+    () =>
+      events.filter(
+        (e) => phanHoiMap[e.id] && e.status !== "done",
+      ).length,
+    [events, phanHoiMap],
+  );
+
+  useEffect(() => {
+    if (!initialSuKienId) return;
+    const found = events.find((e) => e.id === initialSuKienId);
+    if (found) setDetail(found);
+  }, [events, initialSuKienId]);
 
   const visible = useMemo(() => {
     const q = normalize(query);
     return events.filter((item) => {
       const isPast = item.status === "done";
-      if (timeFilter === "upcoming" && isPast) return false;
-      if (timeFilter === "past" && !isPast) return false;
+      if (timeFilter === "cua-ban") {
+        if (!isLoggedIn || !phanHoiMap[item.id]) return false;
+        if (isPast) return false;
+      } else if (timeFilter === "upcoming" && isPast) return false;
+      else if (timeFilter === "past" && !isPast) return false;
       if (loaiFilter !== "all" && item.loaiSuKien !== loaiFilter) return false;
       if (tinhThanh && item.tinhThanh !== tinhThanh) return false;
       if (!q) return true;
@@ -189,22 +258,34 @@ export function SuKienListingClient({ events }: Props) {
       );
       return haystack.includes(q);
     });
-  }, [events, timeFilter, loaiFilter, tinhThanh, query]);
+  }, [events, timeFilter, loaiFilter, tinhThanh, query, isLoggedIn, phanHoiMap]);
 
-  function handleSoDangKyChange(suKienId: string, soDangKy: number) {
+  const handlePhanHoiChange = useCallback(
+    (suKienId: string, loai: LoaiPhanHoiSuKien | null) => {
+      setPhanHoiMap((prev) => {
+        const current = prev[suKienId];
+        if (loai) {
+          if (current === loai) return prev;
+          return { ...prev, [suKienId]: loai };
+        }
+        if (!(suKienId in prev)) return prev;
+        const next = { ...prev };
+        delete next[suKienId];
+        return next;
+      });
+    },
+    [],
+  );
+
+  const handleSoDangKyChange = useCallback((suKienId: string, soDangKy: number) => {
     setDetail((prev) =>
       prev?.id === suKienId ? { ...prev, soDangKy } : prev,
     );
-  }
+  }, []);
 
   return (
     <>
-      <SuKienHeroCarousel
-        events={events}
-        upcomingCount={upcomingCount}
-        pastCount={pastCount}
-        onOpen={setDetail}
-      />
+      <SuKienHeroCarousel events={events} onOpen={setDetail} />
 
       <div className="sk-list-page">
       <div className="sk-list-body">
@@ -217,6 +298,7 @@ export function SuKienListingClient({ events }: Props) {
           {(
             [
               ["upcoming", "Sắp diễn ra", upcomingCount],
+              ["cua-ban", "Sự kiện của bạn", mineCount],
               ["past", "Đã qua", pastCount],
             ] as const
           ).map(([key, label, count]) => (
@@ -263,34 +345,26 @@ export function SuKienListingClient({ events }: Props) {
               ))}
             </select>
           </label>
-        </div>
 
-        <div
-          className="sk-list-pills sk-list-pills--wrap"
-          role="tablist"
-          aria-label="Lọc theo loại sự kiện"
-        >
-          <button
-            type="button"
-            role="tab"
-            aria-selected={loaiFilter === "all"}
-            className={`sk-list-pill sk-list-pill--sm${loaiFilter === "all" ? " on" : ""}`}
-            onClick={() => setLoaiFilter("all")}
-          >
-            Tất cả
-          </button>
-          {LOAI_SU_KIEN_VALUES.map((loai) => (
-            <button
-              key={loai}
-              type="button"
-              role="tab"
-              aria-selected={loaiFilter === loai}
-              className={`sk-list-pill sk-list-pill--sm${loaiFilter === loai ? " on" : ""}`}
-              onClick={() => setLoaiFilter(loai)}
+          <label className="sk-list-select-wrap">
+            <span className="sk-list-select-label">Loại sự kiện</span>
+            <select
+              className="sk-list-select"
+              value={loaiFilter}
+              onChange={(e) => {
+                const value = e.target.value;
+                setLoaiFilter(value === "all" ? "all" : (value as LoaiSuKien));
+              }}
+              aria-label="Lọc theo loại sự kiện"
             >
-              {LOAI_SU_KIEN_LABELS[loai]}
-            </button>
-          ))}
+              <option value="all">Tất cả loại</option>
+              {LOAI_SU_KIEN_VALUES.map((loai) => (
+                <option key={loai} value={loai}>
+                  {LOAI_SU_KIEN_LABELS[loai]}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
       </div>
 
@@ -298,9 +372,21 @@ export function SuKienListingClient({ events }: Props) {
         <div className="sk-list-empty">
           <CalendarDays size={36} strokeWidth={1.25} aria-hidden />
           <p>
-            {events.length === 0
-              ? "Chưa có sự kiện nào trên CINs. Hãy quay lại sau hoặc theo dõi tổ chức để nhận cập nhật."
-              : "Không có sự kiện phù hợp bộ lọc. Thử đổi từ khoá hoặc khu vực."}
+            {timeFilter === "cua-ban" ? (
+              isLoggedIn ? (
+                <>
+                  Bạn chưa quan tâm hoặc đăng ký sự kiện nào sắp diễn ra. Bấm{" "}
+                  <strong>Quan tâm</strong> hoặc <strong>Sẽ tham gia</strong>{" "}
+                  trên thẻ sự kiện, feed hoặc trang chi tiết.
+                </>
+              ) : (
+                "Đăng nhập để xem sự kiện bạn quan tâm hoặc sẽ tham gia."
+              )
+            ) : events.length === 0 ? (
+              "Chưa có sự kiện nào trên CINs. Hãy quay lại sau hoặc theo dõi tổ chức để nhận cập nhật."
+            ) : (
+              "Không có sự kiện phù hợp bộ lọc. Thử đổi từ khoá hoặc khu vực."
+            )}
           </p>
         </div>
       ) : (
@@ -309,7 +395,10 @@ export function SuKienListingClient({ events }: Props) {
             <SuKienListCard
               key={item.id}
               item={item}
+              initialLoai={phanHoiMap[item.id] ?? null}
               onOpen={setDetail}
+              onPhanHoiChange={handlePhanHoiChange}
+              onSoDangKyChange={handleSoDangKyChange}
             />
           ))}
         </div>

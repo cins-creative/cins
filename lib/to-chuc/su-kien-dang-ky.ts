@@ -76,6 +76,34 @@ export async function layPhanHoiViewer(
   return isLoaiPhanHoiSuKien(data.loai_phan_hoi) ? data.loai_phan_hoi : null;
 }
 
+/** Map sự kiện → loại phản hồi (quan tâm / sẽ tham gia) của viewer. */
+export async function loadUserSuKienPhanHoiMap(
+  profileId: string | null | undefined,
+): Promise<Map<string, LoaiPhanHoiSuKien>> {
+  const out = new Map<string, LoaiPhanHoiSuKien>();
+  if (!profileId) return out;
+
+  const admin = createServiceRoleClient();
+  const { data } = await admin
+    .from("org_dang_ky_su_kien")
+    .select("id_su_kien, loai_phan_hoi, trang_thai")
+    .eq("id_nguoi_dung", profileId)
+    .returns<
+      Array<{
+        id_su_kien: string;
+        loai_phan_hoi: string;
+        trang_thai: string;
+      }>
+    >();
+
+  for (const row of data ?? []) {
+    if (TRANG_THAI_HUY.has(row.trang_thai)) continue;
+    if (!isLoaiPhanHoiSuKien(row.loai_phan_hoi)) continue;
+    out.set(row.id_su_kien, row.loai_phan_hoi);
+  }
+  return out;
+}
+
 export async function datPhanHoiSuKien(
   suKienId: string,
   profileId: string,
