@@ -93,15 +93,25 @@ function eventTag(item: SuKienListItem): { label: string; kind: string } {
   return { label: labelLoaiSuKien(item.loaiSuKien), kind: "" };
 }
 
+function compareNearestSuKien(a: SuKienListItem, b: SuKienListItem): number {
+  const rank = (status: SuKienListItem["status"]) =>
+    status === "active" ? 0 : status === "upcoming" ? 1 : 2;
+  const byStatus = rank(a.status) - rank(b.status);
+  if (byStatus !== 0) return byStatus;
+  return new Date(a.batDau).getTime() - new Date(b.batDau).getTime();
+}
+
 function SuKienListCard({
   item,
   initialLoai,
+  featured = false,
   onOpen,
   onPhanHoiChange,
   onSoDangKyChange,
 }: {
   item: SuKienListItem;
   initialLoai?: LoaiPhanHoiSuKien | null;
+  featured?: boolean;
   onOpen: (item: SuKienListItem) => void;
   onPhanHoiChange?: (suKienId: string, loai: LoaiPhanHoiSuKien | null) => void;
   onSoDangKyChange?: (suKienId: string, soDangKy: number) => void;
@@ -113,7 +123,9 @@ function SuKienListCard({
   const rsvpEnabled = item.status !== "done";
 
   return (
-    <article className="evb-card evb-card--listing">
+    <article
+      className={`evb-card evb-card--listing${featured ? " is-featured" : ""}`}
+    >
       <button
         type="button"
         className="evb-card-hit evb-card-hit--cover"
@@ -127,7 +139,12 @@ function SuKienListCard({
               alt=""
               fill
               className="object-cover"
-              sizes="(max-width: 700px) 100vw, 33vw"
+              sizes={
+                featured
+                  ? "(max-width: 700px) 100vw, 100vw"
+                  : "(max-width: 700px) 100vw, 33vw"
+              }
+              priority={featured}
             />
           ) : (
             <span className="sk-list-cover-ph" aria-hidden>
@@ -260,6 +277,23 @@ export function SuKienListingClient({
     });
   }, [events, timeFilter, loaiFilter, tinhThanh, query, isLoggedIn, phanHoiMap]);
 
+  const featuredSuKienId = useMemo(() => {
+    if (timeFilter === "past") return null;
+    const candidates = visible.filter((item) => item.status !== "done");
+    if (!candidates.length) return null;
+    return [...candidates].sort(compareNearestSuKien)[0]?.id ?? null;
+  }, [visible, timeFilter]);
+
+  const orderedVisible = useMemo(() => {
+    if (!featuredSuKienId) return visible;
+    const featured = visible.find((item) => item.id === featuredSuKienId);
+    if (!featured) return visible;
+    return [
+      featured,
+      ...visible.filter((item) => item.id !== featuredSuKienId),
+    ];
+  }, [visible, featuredSuKienId]);
+
   const handlePhanHoiChange = useCallback(
     (suKienId: string, loai: LoaiPhanHoiSuKien | null) => {
       setPhanHoiMap((prev) => {
@@ -391,10 +425,11 @@ export function SuKienListingClient({
         </div>
       ) : (
         <div className="evb-grid sk-list-grid">
-          {visible.map((item) => (
+          {orderedVisible.map((item) => (
             <SuKienListCard
               key={item.id}
               item={item}
+              featured={item.id === featuredSuKienId}
               initialLoai={phanHoiMap[item.id] ?? null}
               onOpen={setDetail}
               onPhanHoiChange={handlePhanHoiChange}
