@@ -95,17 +95,24 @@ export function suggestLayoutForPhotoCount(count: number): ImgLayout {
   return "grid9";
 }
 
-export function initMosaicCellsFromSeeds(seeds: string[]): MosaicCell[] {
-  if (seeds.length === 0) {
-    return [
-      { seed: "empty-0", c: 2, r: 2 },
-      { seed: "empty-1", c: 1, r: 1 },
-      { seed: "empty-2", c: 1, r: 1 },
-    ];
+const MOSAIC_DEFAULT_CELL_COUNT = 4;
+const MOSAIC_DEFAULT_COLS = 2;
+
+/** Lưới mosaic mặc định: 2 cột × 2 hàng, mỗi ô 1×1. */
+export function defaultMosaicGrid(
+  blockId: string,
+  seeds: string[] = [],
+): { cols: number; cells: MosaicCell[] } {
+  const normalized =
+    seeds.length > 0
+      ? [...seeds]
+      : Array.from({ length: MOSAIC_DEFAULT_CELL_COUNT }, (_, i) => `m-${blockId}-${i}`);
+  while (normalized.length < MOSAIC_DEFAULT_CELL_COUNT) {
+    normalized.push(`m-${blockId}-${normalized.length}`);
   }
-  return seeds.map((seed, i) => ({
-    seed,
-    c: i === 0 ? 2 : 1,
-    r: i === 0 ? 2 : 1,
-  }));
+  const slots = normalized.slice(0, MOSAIC_DEFAULT_CELL_COUNT);
+  return {
+    cols: MOSAIC_DEFAULT_COLS,
+    cells: slots.map((seed) => ({ seed, c: 1, r: 1 })),
+  };
 }

@@ -1948,45 +1948,49 @@
 }
 .cins-editor-page .mz.empty {
   background: var(--bg-surface);
-  border: 2px dashed var(--border-strong);
+  border: 1px dashed var(--border-strong);
+  min-height: 72px;
 }
 .cins-editor-page .mz-fill {
   position: absolute;
   inset: 0;
-  border: none;
-  background: none;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 10px;
-}
-.cins-editor-page .mz-fill:has(.mz-fill-action:nth-child(3)) {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-template-rows: repeat(2, minmax(0, 1fr));
-}
-.cins-editor-page .mz-fill-action {
-  height: 100%;
-  min-height: 58px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: rgba(255, 255, 255, 0.72);
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  color: var(--ink-muted);
+  padding: 8px;
+}
+.cins-editor-page .mz-fill-action {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 0;
+  height: auto;
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--ink-body);
   cursor: pointer;
   font-family: inherit;
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+.cins-editor-page .mz-fill-action--muted {
+  color: var(--ink-muted);
 }
 .cins-editor-page .mz-fill-action:hover {
   border-color: var(--cins-blue);
   color: var(--cins-blue);
   background: var(--cins-blue-soft);
+}
+.cins-editor-page .mz-fill-action svg {
+  flex-shrink: 0;
 }
 .cins-editor-page .mz.text-cell {
   background: transparent;

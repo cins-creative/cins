@@ -71,6 +71,7 @@ import {
   computeFixedMenuPosition,
 } from "@/lib/ui/clamp-fixed-menu-position";
 import {
+  defaultMosaicGrid,
   getImgLayoutMeta,
   IMG_LAYOUTS,
   imgLayoutPreviewSlots,
@@ -535,6 +536,10 @@ export function EditorView({
     return composeIntent !== "minimal";
   });
   const [minimalCoverVisible, setMinimalCoverVisible] = useState(false);
+  /** Bật chrome block đầy đủ (lay-bar, add-zone giữa block, side controls). */
+  const [minimalRichBlocks, setMinimalRichBlocks] = useState(
+    () => composeIntent === "photo" || composeIntent === "video",
+  );
   const isMinimalUI = isOverlay && usesMinimalFlow && !editorExpanded;
   const showFullEditor = !isMinimalUI;
   /* Huỷ → journey (không link `/p/slug` — intercept modal sẽ mở popup thay vì thoát edit). */
@@ -973,6 +978,7 @@ export function EditorView({
   );
 
   const expandMinimalToFullEditor = useCallback(() => {
+    setMinimalRichBlocks(true);
     setBlocks((prev) => {
       if (prev.some((b) => b.t !== "body" && b.t !== "spacer")) return prev;
       return prev.filter((b) => b.t !== "body");
@@ -983,12 +989,20 @@ export function EditorView({
   const hasPhotoBlocks = blocks.some((b) => b.t === "imgs");
   const hasVideoBlock = blocks.some((b) => b.t === "embed");
   const isMinimalMediaCompose =
-    usesMinimalFlow && editorExpanded && (hasPhotoBlocks || hasVideoBlock);
+    usesMinimalFlow &&
+    editorExpanded &&
+    (hasPhotoBlocks || hasVideoBlock) &&
+    !minimalRichBlocks;
   /** Minimal compose expanded — mỗi lần bấm + tạo thêm một block (session nội dung). */
   const canAddMoreSessions = usesMinimalFlow && editorExpanded;
 
   const pickBlockAt = useCallback(
     (type: BlockType, idx: number) => {
+      if (usesMinimalFlow && editorExpanded) {
+        if (type === "imgs" || !["imgs", "embed"].includes(type)) {
+          setMinimalRichBlocks(true);
+        }
+      }
       if (isMinimalMediaCompose) {
         if (hasVideoBlock && type === "imgs") {
           setToast("Không thể thêm album khi đã có video.");
@@ -1001,7 +1015,14 @@ export function EditorView({
       }
       addBlock(type, idx);
     },
-    [addBlock, hasPhotoBlocks, hasVideoBlock, isMinimalMediaCompose],
+    [
+      addBlock,
+      editorExpanded,
+      hasPhotoBlocks,
+      hasVideoBlock,
+      isMinimalMediaCompose,
+      usesMinimalFlow,
+    ],
   );
 
   const onMinimalAlbumPick = useCallback(
@@ -1131,31 +1152,28 @@ export function EditorView({
         prev.map((b) => {
           if (b.id !== id || b.t !== "imgs") return b;
           if (layout === "mosaic") {
-            // Init cells lần đầu: lấy `imgs` hiện có (hoặc 3 ô seed mới),
-            // cell đầu c=2/r=2 (ảnh lớn), còn lại c=1/r=1.
-            const seeds =
-              b.cells?.length
-                ? b.cells.map((c) => c.seed)
-                : (b.imgs && b.imgs.length
-                    ? b.imgs.slice()
-                    : [
-                        `m-${b.id}-0`,
-                        `m-${b.id}-1`,
-                        `m-${b.id}-2`,
-                      ]);
-            const cells: MosaicCell[] =
-              b.cells && b.cells.length
-                ? b.cells
-                : seeds.map((s, i) => ({
-                    seed: s,
-                    c: i === 0 ? 2 : 1,
-                    r: i === 0 ? 2 : 1,
-                  }));
+            if (b.cells?.length) {
+              return {
+                ...b,
+                layout,
+                cols: b.cols || 2,
+                cells: b.cells,
+              };
+            }
+            const seeds = (b.imgs || []).filter(
+              (s) => s && !/^extra-/.test(s),
+            );
+            const { cols, cells } = defaultMosaicGrid(
+              b.id,
+              seeds.length ? seeds : undefined,
+            );
             return {
               ...b,
               layout,
-              cols: b.cols || 3,
+              cols,
               cells,
+              gap: b.gap ?? 0,
+              pad: b.pad ?? 0,
             };
           }
           const meta = getImgLayoutMeta(layout);
@@ -2911,9 +2929,7 @@ function ImageBlock({ block, p }: { block: Block; p: BlockRowProps }) {
 
   return (
     <div className="b-imgs">
-      {!p.isMinimalMediaCompose ? (
-        <LayBar block={block} p={p} layout={layout} />
-      ) : null}
+      <LayBar block={block} p={p} layout={layout} />
 
       <div className={`imgwrap ${layout}${block.rounded ? " rounded" : ""}`}>
         {imgs.map((seed, i) => (
@@ -3001,7 +3017,7 @@ function LayBar({
  */
 function MosaicBlock({ block, p }: { block: Block; p: BlockRowProps }) {
   const [editing, setEditing] = useState(false);
-  const cols = block.cols || 3;
+  const cols = block.cols || 2;
   const cells = useMemo(() => block.cells ?? [], [block.cells]);
   const gap = block.gap ?? 0;
   const pad = block.pad ?? 0;
@@ -3239,35 +3255,38 @@ function MosaicBlock({ block, p }: { block: Block; p: BlockRowProps }) {
                   <button
                     type="button"
                     className="mz-fill-action"
+                    aria-label="Thêm ảnh"
                     onClick={(e) => {
                       e.stopPropagation();
                       p.onMosaicPickImage(i);
                     }}
                   >
-                    <ImagePlus size={20} strokeWidth={1.8} aria-hidden />
-                    <span>Thêm ảnh</span>
+                    <ImagePlus size={14} strokeWidth={2} aria-hidden />
+                    <span>Ảnh</span>
                   </button>
                   <button
                     type="button"
                     className="mz-fill-action"
+                    aria-label="Dán ảnh"
                     onClick={(e) => {
                       e.stopPropagation();
                       p.onMosaicPasteImage(i);
                     }}
                   >
-                    <ClipboardPaste size={20} strokeWidth={1.8} aria-hidden />
-                    <span>Dán ảnh</span>
+                    <ClipboardPaste size={14} strokeWidth={2} aria-hidden />
+                    <span>Dán</span>
                   </button>
                   <button
                     type="button"
-                    className="mz-fill-action"
+                    className="mz-fill-action mz-fill-action--muted"
+                    aria-label="Thêm chữ"
                     onClick={(e) => {
                       e.stopPropagation();
                       p.onMosaicSetTextCell(i);
                     }}
                   >
-                    <RectangleHorizontal size={20} strokeWidth={1.8} aria-hidden />
-                    <span>Thêm chữ</span>
+                    <RectangleHorizontal size={14} strokeWidth={2} aria-hidden />
+                    <span>Chữ</span>
                   </button>
                 </div>
               ) : isText ? (
@@ -3639,7 +3658,7 @@ function fromServerBlocks(blocks: ServerBlock[]): Block[] {
         local.cols =
           typeof cfg.cols === "number" && cfg.cols >= 2 && cfg.cols <= 4
             ? cfg.cols
-            : 3;
+            : 2;
         local.gap =
           typeof cfg.gap === "number" && cfg.gap >= 0 && cfg.gap <= 32
             ? cfg.gap
