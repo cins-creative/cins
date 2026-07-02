@@ -565,6 +565,13 @@
   margin: 0;
 }
 
+.world-journey-home .wj-feed > .j-pending-confirmations {
+  padding-top: 0;
+  padding-bottom: 0;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
 .world-journey-home .wj-feed > .cins-feed-composer-row .wj-composer {
   padding: 8px 12px;
   border-radius: var(--r-lg);
@@ -3717,28 +3724,21 @@
 
 .world-journey-home .ha-org-up-more {
   margin: 0;
-  padding: 0 12px 10px;
+  padding: 2px 12px 10px;
   text-align: center;
 }
 
 .world-journey-home .ha-org-up-more a {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 34px;
-  padding: 0 14px;
-  border-radius: var(--r-pill);
-  border: 1px solid var(--border);
-  background: var(--surface);
-  font-size: 12.5px;
+  display: inline;
+  font-size: 11px;
   font-weight: 600;
-  color: var(--blue);
+  color: var(--ink4, rgba(0, 0, 0, 0.45));
   text-decoration: none;
 }
 
 .world-journey-home .ha-org-up-more a:hover {
-  border-color: color-mix(in srgb, var(--blue) 35%, var(--border));
-  background: var(--blue-soft);
+  color: var(--blue);
+  text-decoration: underline;
 }
 
 /* category (khám phá lĩnh vực) */

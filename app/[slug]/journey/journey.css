@@ -8498,11 +8498,19 @@ select.j-edit-input {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin-bottom: 12px;
+  margin-bottom: 0;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 .j-pending-confirmations:empty {
   display: none;
   margin: 0;
+  padding: 0;
+}
+
+.j-pending-confirmations .j-coauthor-pending-stack {
+  margin-top: 0;
+  margin-bottom: 0;
 }
 
 .j-membership-pending-stack {
