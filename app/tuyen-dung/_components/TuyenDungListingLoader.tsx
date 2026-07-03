@@ -1,4 +1,4 @@
-import { Briefcase, CalendarClock, CircleDollarSign, MapPin } from "lucide-react";
+import { Briefcase, CircleDollarSign, MapPin } from "lucide-react";
 import Link from "next/link";
 
 import { loadTuyenDungListing } from "@/lib/to-chuc/tuyen-dung-listing";
@@ -23,6 +23,8 @@ export async function TuyenDungListingLoader() {
 
       <ul className="tuyen-dung-grid">
         {items.map((job) => {
+          const statusTone = job.expired ? "expired" : "open";
+          const statusLabel = job.expired ? "Hết hạn nộp" : "Đang tuyển";
           const inner = (
             <>
               <div className="tuyen-dung-card-head">
@@ -36,13 +38,22 @@ export async function TuyenDungListingLoader() {
                 </span>
                 <div className="tuyen-dung-card-titles">
                   <h2 className="tuyen-dung-card-title">{job.tieuDe}</h2>
-                  <span className="tuyen-dung-card-org">{job.orgTen}</span>
+                  <span className="tuyen-dung-card-org">
+                    <Briefcase size={12} strokeWidth={2} aria-hidden />
+                    {job.orgTen}
+                  </span>
                 </div>
+                <span
+                  className="tuyen-dung-status"
+                  data-tone={statusTone}
+                >
+                  <span className="tuyen-dung-status-dot" aria-hidden />
+                  {statusLabel}
+                </span>
               </div>
 
               <div className="tuyen-dung-chips">
-                <span className="tuyen-dung-chip">
-                  <Briefcase size={12} strokeWidth={2} aria-hidden />
+                <span className="tuyen-dung-chip tuyen-dung-chip--type">
                   {job.loaiHinhLabel}
                 </span>
                 <span className="tuyen-dung-chip">
@@ -63,27 +74,26 @@ export async function TuyenDungListingLoader() {
                 <p className="tuyen-dung-card-desc">{job.moTaNgan}</p>
               ) : null}
 
-              {job.salary || job.deadline ? (
-                <div className="tuyen-dung-card-meta">
-                  {job.salary ? (
-                    <span className="tuyen-dung-meta tuyen-dung-meta--sal">
-                      <CircleDollarSign size={14} strokeWidth={2} aria-hidden />
-                      {job.salary}
-                    </span>
+              <div className="tuyen-dung-card-foot">
+                <span className="tuyen-dung-salary">
+                  <CircleDollarSign size={15} strokeWidth={2} aria-hidden />
+                  {job.salary ?? "Thỏa thuận"}
+                </span>
+                <span className="tuyen-dung-card-dates">
+                  <span>Hạn: {job.deadline ?? "Không giới hạn"}</span>
+                  {job.posted ? (
+                    <>
+                      <span aria-hidden>·</span>
+                      <span>Đăng {job.posted}</span>
+                    </>
                   ) : null}
-                  {job.deadline ? (
-                    <span className="tuyen-dung-meta">
-                      <CalendarClock size={14} strokeWidth={2} aria-hidden />
-                      {job.deadline}
-                    </span>
-                  ) : null}
-                </div>
-              ) : null}
+                </span>
+              </div>
             </>
           );
 
           return (
-            <li key={job.id} className="tuyen-dung-card">
+            <li key={job.id} className="tuyen-dung-card" data-status={statusTone}>
               {job.href ? (
                 <Link href={job.href} className="tuyen-dung-card-hit" prefetch={false}>
                   {inner}

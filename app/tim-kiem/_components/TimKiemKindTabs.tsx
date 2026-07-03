@@ -2,8 +2,10 @@ import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import {
   BookOpen,
+  Briefcase,
   Building2,
   FileText,
+  GraduationCap,
   LayoutGrid,
   UserRound,
 } from "lucide-react";
@@ -14,6 +16,8 @@ import { SEARCH_KIND_TABS, type SearchKindTab } from "@/lib/search/types";
 const TAB_ICONS: Record<SearchKindTab, LucideIcon> = {
   all: LayoutGrid,
   article: BookOpen,
+  khoa_hoc: GraduationCap,
+  tuyen_dung: Briefcase,
   org: Building2,
   user: UserRound,
   post: FileText,

@@ -21,6 +21,13 @@ import {
   type RawOrgSearchRow,
 } from "@/lib/search/org-hit-meta";
 import {
+  buildKhoaHocSearchItem,
+  buildTuyenDungSearchItem,
+  KHOA_HOC_SEARCH_SELECT,
+  KHOA_HOC_SEARCH_SELECT_NO_BLOCKS,
+  TUYEN_DUNG_SEARCH_SELECT,
+} from "@/lib/search/org-listing-hit-meta";
+import {
   buildOrgPostSearchItem,
   buildUserPostSearchItem,
   ORG_POST_SEARCH_SELECT,
@@ -84,6 +91,8 @@ type ArticleRow = {
 function emptyCounts(): Record<SearchEntityKind, number> {
   return {
     article: 0,
+    khoa_hoc: 0,
+    org_tuyen_dung: 0,
     org: 0,
     user: 0,
     user_post: 0,
@@ -97,6 +106,8 @@ function shouldSearchKind(
 ): boolean {
   if (tab === "all") return true;
   if (tab === "article") return entity === "article";
+  if (tab === "khoa_hoc") return entity === "khoa_hoc";
+  if (tab === "tuyen_dung") return entity === "org_tuyen_dung";
   if (tab === "org") return entity === "org";
   if (tab === "user") return entity === "user";
   if (tab === "post") return entity === "user_post" || entity === "org_post";
@@ -193,6 +204,46 @@ async function searchArticles(q: string): Promise<SearchHit[]> {
   }
 
   return rankSearchItems(q, [...byId.values()], PER_KIND_LIMIT);
+}
+
+async function searchKhoaHoc(q: string): Promise<SearchHit[]> {
+  const admin = createServiceRoleClient();
+
+  const runQuery = (select: string) =>
+    admin
+      .from("org_khoa_hoc")
+      .select(select)
+      .or(buildSupabaseOrIlike(["ten_khoa_hoc", "mo_ta", "slug"], q))
+      .limit(FETCH_POOL);
+
+  let { data, error } = await runQuery(KHOA_HOC_SEARCH_SELECT);
+  if (error?.message?.includes("noi_dung_blocks")) {
+    ({ data } = await runQuery(KHOA_HOC_SEARCH_SELECT_NO_BLOCKS));
+  }
+
+  const items = ((data ?? []) as Record<string, unknown>[])
+    .map((row) => buildKhoaHocSearchItem(row))
+    .filter((item): item is ScoredSearchItem => item !== null);
+
+  return rankSearchItems(q, items, PER_KIND_LIMIT);
+}
+
+async function searchTuyenDung(q: string): Promise<SearchHit[]> {
+  const admin = createServiceRoleClient();
+
+  const { data } = await admin
+    .from("org_tuyen_dung")
+    .select(TUYEN_DUNG_SEARCH_SELECT)
+    .eq("da_xoa", false)
+    .eq("trang_thai", "dang_mo")
+    .or(buildSupabaseOrIlike(["tieu_de", "mo_ta_ngan", "mo_ta"], q))
+    .limit(FETCH_POOL);
+
+  const items = ((data ?? []) as Record<string, unknown>[])
+    .map((row) => buildTuyenDungSearchItem(row))
+    .filter((item): item is ScoredSearchItem => item !== null);
+
+  return rankSearchItems(q, items, PER_KIND_LIMIT);
 }
 
 async function searchOrgs(q: string): Promise<SearchHit[]> {
@@ -375,6 +426,8 @@ export async function runGlobalSearch(options: {
   const kindRaw = (options.kind ?? "all").trim();
   const kind: SearchKindTab =
     kindRaw === "article" ||
+    kindRaw === "khoa_hoc" ||
+    kindRaw === "tuyen_dung" ||
     kindRaw === "org" ||
     kindRaw === "user" ||
     kindRaw === "post"
@@ -406,6 +459,9 @@ export async function runGlobalSearch(options: {
     const tasks: Promise<SearchHit[]>[] = [];
 
     if (shouldSearchKind(kind, "article")) tasks.push(searchArticles(query));
+    if (shouldSearchKind(kind, "khoa_hoc")) tasks.push(searchKhoaHoc(query));
+    if (shouldSearchKind(kind, "org_tuyen_dung"))
+      tasks.push(searchTuyenDung(query));
     if (shouldSearchKind(kind, "org")) tasks.push(searchOrgs(query));
     if (shouldSearchKind(kind, "user")) tasks.push(searchUsers(query));
     if (shouldSearchKind(kind, "user_post")) tasks.push(searchUserPosts(query));
@@ -445,6 +501,8 @@ export async function runGlobalSearch(options: {
 export function groupHitsByKind(hits: SearchHit[]): SearchEntityKind[] {
   const order: SearchEntityKind[] = [
     "article",
+    "khoa_hoc",
+    "org_tuyen_dung",
     "org",
     "user",
     "user_post",

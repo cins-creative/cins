@@ -1,7 +1,9 @@
 import {
+  Briefcase,
   BookOpen,
   Building2,
   FileText,
+  GraduationCap,
   Sparkles,
   UserRound,
 } from "lucide-react";
@@ -15,6 +17,8 @@ import { TimKiemSectionHeader } from "./TimKiemSectionHeader";
 
 const SECTION_ICONS: Record<SearchEntityKind, LucideIcon> = {
   article: Sparkles,
+  khoa_hoc: GraduationCap,
+  org_tuyen_dung: Briefcase,
   org: Building2,
   user: UserRound,
   user_post: FileText,

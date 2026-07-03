@@ -625,15 +625,26 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     }
   }, [launch?.thread, launch?.tab]);
 
-  // Card ngữ cảnh chờ: gắn vào phòng thật khi đã resolve (bỏ qua phòng tạm).
+  // Card ngữ cảnh chờ: gắn theo phòng THỰC của hội thoại vừa mở. Dùng
+  // active.roomId (không phải launch.thread.roomId) vì org room có thể resolve
+  // sang roomId canonical khác — nếu key theo launch cũ, card sẽ mất khi
+  // active đổi sang roomId thật. Chỉ gắn khi active đúng là hội thoại đã launch.
   useEffect(() => {
     const card = launch?.nguCanh;
-    const roomId = launch?.thread?.roomId;
-    if (!card || !roomId || isPendingRoomId(roomId)) return;
+    const launchThread = launch?.thread;
+    if (!card || !launchThread || !active) return;
+    const roomId = active.roomId;
+    if (!roomId || isPendingRoomId(roomId)) return;
+    const sameThread =
+      active.id === launchThread.id ||
+      (active.orgId != null && active.orgId === launchThread.orgId) ||
+      (active.peerUserId != null &&
+        active.peerUserId === launchThread.peerUserId);
+    if (!sameThread) return;
     setPendingCardByRoom((prev) =>
       prev[roomId] ? prev : { ...prev, [roomId]: card },
     );
-  }, [launch?.nguCanh, launch?.thread?.roomId]);
+  }, [launch?.nguCanh, launch?.thread, active]);
 
   useEffect(() => {
     void (async () => {

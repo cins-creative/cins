@@ -3,13 +3,13 @@ import {
   Briefcase,
   Building2,
   Eye,
-  Plus,
   Route,
   Users,
 } from "lucide-react";
 import Link from "next/link";
 
 import { HaOrgSuggestionRow } from "@/components/cins/home-adaptive/HaOrgSuggestionRow";
+import { HaUpdateProjectButton } from "@/components/cins/home-adaptive/HaUpdateProjectButton";
 import { HaUserSuggestionRow } from "@/components/cins/home-adaptive/HaUserSuggestionRow";
 import { ModuleCard, ModuleEmpty } from "@/components/cins/home-adaptive/ModuleCard";
 import type { HomeModuleCtx } from "@/components/cins/home-adaptive/types";
@@ -39,10 +39,7 @@ export async function HoSoCuaBanModule({ ctx }: { ctx: HomeModuleCtx }) {
         ) : (
           <div className="ha-nudge-hint">Hồ sơ của bạn đã sẵn sàng để studio tìm thấy.</div>
         )}
-        <Link href={`/${ctx.viewerSlug}/journey`} className="ha-btn-full" prefetch={false}>
-          <Plus size={15} strokeWidth={2} aria-hidden />
-          Cập nhật dự án mới
-        </Link>
+        <HaUpdateProjectButton viewerSlug={ctx.viewerSlug} />
       </div>
       {ctx.seeking ? (
         <div className="ha-vis-note">

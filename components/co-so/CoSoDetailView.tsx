@@ -31,6 +31,9 @@ import {
 import type { SystemRole } from "@/lib/auth/system-role";
 import type { CoSoDetailPayload, CoSoFilterChip } from "@/lib/to-chuc/co-so-page-queries";
 import { countActiveStudioJobs } from "@/lib/to-chuc/studio-tuyen-dung-format";
+import { CO_SO_KHOA_UPDATED_EVENT } from "@/lib/to-chuc/co-so-khoa-events";
+import { isKhoaHocMuted } from "@/lib/to-chuc/khoa-hoc-labels";
+import type { KhoaHocCardData } from "@/lib/to-chuc/khoa-hoc-types";
 import {
   CO_SO_DEFAULT_TAB,
   coSoTabPath,
@@ -120,6 +123,37 @@ function CoSoDetailViewInner({
 
   // Số tin tuyển dụng đang mở & còn hiệu lực — hiển thị badge trên tab.
   const activeJobCount = useMemo(() => countActiveStudioJobs(jobs), [jobs]);
+
+  // Số khóa học đang hoạt động (không tạm dừng / đã kết thúc) — badge tab.
+  // Khóa học fetch client-side ở tab; nạp nhẹ ở đây để badge hiện dù chưa mở tab.
+  const [activeKhoaCount, setActiveKhoaCount] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    const load = () => {
+      fetch(`/api/co-so/${school.id}/khoa-hoc`, { credentials: "include" })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data: { khoaHoc?: KhoaHocCardData[] } | null) => {
+          if (cancelled || !data?.khoaHoc) return;
+          setActiveKhoaCount(
+            data.khoaHoc.reduce(
+              (n, k) => (isKhoaHocMuted(k.trangThaiKhoaHoc) ? n : n + 1),
+              0,
+            ),
+          );
+        })
+        .catch(() => {});
+    };
+    load();
+    const onChange = (e: Event) => {
+      const detail = (e as CustomEvent<{ orgId?: string }>).detail;
+      if (!detail || detail.orgId === school.id) load();
+    };
+    window.addEventListener(CO_SO_KHOA_UPDATED_EVENT, onChange);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(CO_SO_KHOA_UPDATED_EVENT, onChange);
+    };
+  }, [school.id]);
 
   useEffect(() => {
     setMountedTabs((prev) => {
@@ -249,6 +283,14 @@ function CoSoDetailViewInner({
                     aria-label={`${activeJobCount} tin đang tuyển`}
                   >
                     {activeJobCount}
+                  </span>
+                ) : null}
+                {t.id === "khoa-hoc" && activeKhoaCount > 0 ? (
+                  <span
+                    className="tdh-v6-tab-badge"
+                    aria-label={`${activeKhoaCount} khóa đang hoạt động`}
+                  >
+                    {activeKhoaCount}
                   </span>
                 ) : null}
               </Link>

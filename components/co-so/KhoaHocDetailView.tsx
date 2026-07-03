@@ -1415,7 +1415,8 @@ export function KhoaHocDetailView({
           id: k.id,
           tieuDe: k.tenKhoaHoc,
           moTa: k.moTa?.trim() || null,
-          anh: k.coverUrl ?? k.thumbnailUrl ?? null,
+          // Ưu tiên thumbnail (ảnh vuông) — khớp ảnh card khóa học ở grid.
+          anh: k.thumbnailUrl ?? k.coverUrl ?? null,
           href: coSoKhoaHocDetailPath(orgSlug, k.slug),
           orgTen,
         },
@@ -1450,7 +1451,8 @@ export function KhoaHocDetailView({
           id: `${k.id}#lop-${lop.id}`,
           tieuDe: `${k.tenKhoaHoc} · ${maLabel}`,
           moTa,
-          anh: k.coverUrl ?? k.thumbnailUrl ?? null,
+          // Ưu tiên thumbnail (ảnh vuông) — khớp ảnh card khóa học ở grid.
+          anh: k.thumbnailUrl ?? k.coverUrl ?? null,
           href: coSoKhoaHocDetailPath(orgSlug, k.slug),
           orgTen,
         },

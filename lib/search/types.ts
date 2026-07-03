@@ -1,6 +1,8 @@
 export const SEARCH_KIND_TABS = [
   { id: "all", label: "Tất cả" },
   { id: "article", label: "Kiến thức" },
+  { id: "khoa_hoc", label: "Khóa học" },
+  { id: "tuyen_dung", label: "Tuyển dụng" },
   { id: "org", label: "Tổ chức" },
   { id: "user", label: "Người dùng" },
   { id: "post", label: "Bài viết" },
@@ -10,6 +12,8 @@ export type SearchKindTab = (typeof SEARCH_KIND_TABS)[number]["id"];
 
 export type SearchEntityKind =
   | "article"
+  | "khoa_hoc"
+  | "org_tuyen_dung"
   | "org"
   | "user"
   | "user_post"
@@ -44,6 +48,24 @@ export type SearchPostMeta = {
   authorHandle: string | null;
 };
 
+export type SearchCourseMeta = {
+  coverUrl: string | null;
+  orgTen: string;
+  orgAvatarUrl: string | null;
+  /** Học phí đã format (hoặc "Miễn phí" / "Liên hệ"). */
+  hocPhi: string | null;
+  trinhDoLabel: string | null;
+};
+
+export type SearchJobMeta = {
+  orgTen: string;
+  orgAvatarUrl: string | null;
+  /** Mức lương đã format (null = thỏa thuận). */
+  salary: string | null;
+  loaiHinhLabel: string | null;
+  place: string | null;
+};
+
 export type SearchHit = {
   id: string;
   kind: SearchEntityKind;
@@ -62,6 +84,10 @@ export type SearchHit = {
   userMeta?: SearchUserMeta | null;
   /** Metadata bổ sung cho card bài viết (cover, tác giả). */
   postMeta?: SearchPostMeta | null;
+  /** Metadata bổ sung cho card khóa học. */
+  courseMeta?: SearchCourseMeta | null;
+  /** Metadata bổ sung cho card tin tuyển dụng. */
+  jobMeta?: SearchJobMeta | null;
 };
 
 export type GlobalSearchResult = {
@@ -75,13 +101,21 @@ export type GlobalSearchResult = {
 
 export const SEARCH_SECTION_LABELS: Record<SearchEntityKind, string> = {
   article: "Nghề, ngành & kiến thức",
+  khoa_hoc: "Khóa học",
+  org_tuyen_dung: "Tin tuyển dụng",
   org: "Tổ chức",
   user: "Người dùng",
   user_post: "Bài trên Journey",
   org_post: "Bài đăng tổ chức",
 };
 
-export type SearchSectionLayout = "knowledge" | "orgs" | "people" | "posts";
+export type SearchSectionLayout =
+  | "knowledge"
+  | "orgs"
+  | "people"
+  | "posts"
+  | "courses"
+  | "jobs";
 
 export const SEARCH_SECTION_META: Record<
   SearchEntityKind,
@@ -95,6 +129,16 @@ export const SEARCH_SECTION_META: Record<
     label: "Nghề, ngành & kiến thức",
     lead: "Bài nghề, ngành, blog và tag trên CINs",
     layout: "knowledge",
+  },
+  khoa_hoc: {
+    label: "Khóa học",
+    lead: "Khóa học từ cơ sở đào tạo trên CINs",
+    layout: "courses",
+  },
+  org_tuyen_dung: {
+    label: "Tin tuyển dụng",
+    lead: "Vị trí đang tuyển từ studio, doanh nghiệp & cơ sở",
+    layout: "jobs",
   },
   org: {
     label: "Tổ chức",

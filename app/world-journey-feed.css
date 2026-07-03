@@ -3247,8 +3247,27 @@
 }
 
 /* ════════ Trang chủ adaptive — module columns (ha-*) ════════ */
+/* Cột module (trái/phải) tự cuộn riêng khi nội dung cao hơn viewport —
+   pin sticky dưới topbar, min-height:0 để max-height + overflow có hiệu lực. */
 .world-journey-home .ha-col {
   gap: 14px;
+  position: sticky;
+  top: calc(var(--wj-sticky-top) + 24px);
+  align-self: start;
+  min-height: 0;
+  max-height: calc(100dvh - var(--wj-sticky-top) - 40px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+@media (max-width: 991.98px) {
+  /* Mobile: cột về static, bỏ giới hạn cao & cuộn riêng. */
+  .world-journey-home .ha-col {
+    position: static;
+    max-height: none;
+    overflow: visible;
+  }
 }
 
 .world-journey-home .ha-card {
@@ -4184,11 +4203,15 @@
   gap: 8px;
   width: 100%;
   padding: 11px;
+  border: none;
   border-radius: var(--r-md);
   background: var(--blue);
   color: #fff;
+  font-family: inherit;
   font-weight: 600;
   font-size: 13.5px;
+  text-decoration: none;
+  cursor: pointer;
 }
 
 .world-journey-home .ha-btn-full:hover {

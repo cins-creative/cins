@@ -23,6 +23,8 @@ export async function TimKiemLoader({ q, kind }: Props) {
 
   const statItems: Array<{ key: SearchEntityKind; label: string }> = [
     { key: "article", label: "Kiến thức" },
+    { key: "khoa_hoc", label: "Khóa học" },
+    { key: "org_tuyen_dung", label: "Tuyển dụng" },
     { key: "org", label: "Tổ chức" },
     { key: "user", label: "Người dùng" },
     { key: "user_post", label: "Journey" },

@@ -177,50 +177,64 @@ export function StudioJobDetailModal({
               {cd}
             </span>
           ))}
-          {canEdit && !isOpen ? (
-            <span className="studio-job-chip studio-job-chip--status">
+          {canEdit ? (
+            <span
+              className="studio-job-chip studio-job-chip--status"
+              data-status={job.trangThai}
+            >
               {STUDIO_JOB_STATUS_LABEL[job.trangThai]}
             </span>
           ) : null}
         </div>
       </header>
 
-      {/* ── Mức lương — khối riêng, nổi bật (thông tin quan trọng nhất) ── */}
-      {salary ? (
-        <div className="studio-job-detail-salary">
-          <span className="studio-job-detail-salary-ic" aria-hidden>
-            <CircleDollarSign size={22} strokeWidth={2} />
-          </span>
-          <span className="studio-job-detail-salary-body">
-            <span className="studio-job-detail-salary-label">Mức lương</span>
-            <span className="studio-job-detail-salary-value">{salary}</span>
-          </span>
-        </div>
-      ) : null}
-
-      {/* ── Thông tin nhanh: hạn nộp · số lượng ─────────────────── */}
-      {deadline || job.soLuong ? (
-        <div className="studio-job-card-meta studio-job-detail-meta">
-          {deadline ? (
-            <span className="studio-job-meta-item">
-              <CalendarClock size={14} strokeWidth={2} aria-hidden />
-              {deadline}
-            </span>
+      {/* ── Tổng quan: mức lương + thông tin nhanh, chia 2 cột ──── */}
+      {salary || deadline || job.soLuong || job.diaChi?.trim() ? (
+        <div className="studio-job-detail-overview">
+          {salary ? (
+            <div className="studio-job-detail-salary">
+              <span className="studio-job-detail-salary-ic" aria-hidden>
+                <CircleDollarSign size={22} strokeWidth={2} />
+              </span>
+              <span className="studio-job-detail-salary-body">
+                <span className="studio-job-detail-salary-label">Mức lương</span>
+                <span className="studio-job-detail-salary-value">{salary}</span>
+              </span>
+            </div>
           ) : null}
-          {job.soLuong ? (
-            <span className="studio-job-meta-item">
-              <Users size={14} strokeWidth={2} aria-hidden />
-              Cần tuyển {job.soLuong}
-            </span>
+
+          {deadline || job.soLuong || job.diaChi?.trim() ? (
+            <dl className="studio-job-detail-facts">
+              {deadline ? (
+                <div className="studio-job-detail-fact">
+                  <CalendarClock size={16} strokeWidth={2} aria-hidden />
+                  <div className="studio-job-detail-fact-body">
+                    <dt>Hạn nộp</dt>
+                    <dd>{deadline}</dd>
+                  </div>
+                </div>
+              ) : null}
+              {job.soLuong ? (
+                <div className="studio-job-detail-fact">
+                  <Users size={16} strokeWidth={2} aria-hidden />
+                  <div className="studio-job-detail-fact-body">
+                    <dt>Số lượng</dt>
+                    <dd>Cần tuyển {job.soLuong}</dd>
+                  </div>
+                </div>
+              ) : null}
+              {job.diaChi?.trim() ? (
+                <div className="studio-job-detail-fact">
+                  <MapPin size={16} strokeWidth={2} aria-hidden />
+                  <div className="studio-job-detail-fact-body">
+                    <dt>Địa điểm</dt>
+                    <dd>{job.diaChi.trim()}</dd>
+                  </div>
+                </div>
+              ) : null}
+            </dl>
           ) : null}
         </div>
-      ) : null}
-
-      {job.diaChi?.trim() ? (
-        <p className="studio-job-detail-address">
-          <MapPin size={14} strokeWidth={2} aria-hidden />
-          {job.diaChi.trim()}
-        </p>
       ) : null}
 
       {job.moTaNgan?.trim() ? (
@@ -321,9 +335,6 @@ export function StudioJobDetailModal({
       ) : (
         <footer className="studio-job-detail-foot studio-job-detail-foot--sticky studio-job-detail-foot--actions">
           <div className="studio-job-detail-foot-info">
-            {salary ? (
-              <span className="studio-job-detail-foot-salary">{salary}</span>
-            ) : null}
             {isOpen ? (
               deadline ? (
                 <span className="studio-job-detail-foot-deadline">{deadline}</span>

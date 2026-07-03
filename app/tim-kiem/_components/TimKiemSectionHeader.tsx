@@ -16,6 +16,8 @@ type Props = {
 
 const KIND_TAB: Record<SearchEntityKind, SearchKindTab> = {
   article: "article",
+  khoa_hoc: "khoa_hoc",
+  org_tuyen_dung: "tuyen_dung",
   org: "org",
   user: "user",
   user_post: "post",

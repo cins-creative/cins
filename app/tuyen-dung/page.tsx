@@ -20,16 +20,25 @@ export default function TuyenDungPage() {
     <CinsShell data-screen-label="Tuyen-dung-listing">
       <div className="tuyen-dung-page">
         <header className="tuyen-dung-hero">
-          <span className="tuyen-dung-eyebrow">Cơ hội nghề nghiệp</span>
-          <h1 className="tuyen-dung-title">Tuyển dụng ngành sáng tạo</h1>
-          <p className="tuyen-dung-sub">
-            Tin tuyển dụng đang mở từ studio, agency và doanh nghiệp trên CINs.
-          </p>
+          <span className="tuyen-dung-hero-blob tuyen-dung-hero-blob--yellow" aria-hidden />
+          <span className="tuyen-dung-hero-blob tuyen-dung-hero-blob--mint" aria-hidden />
+          <div className="tuyen-dung-hero-inner">
+            <p className="tuyen-dung-eyebrow">Cơ hội nghề nghiệp</p>
+            <h1 className="tuyen-dung-title">
+              Tuyển dụng <span className="tuyen-dung-title-accent">ngành sáng tạo</span>
+            </h1>
+            <p className="tuyen-dung-lead">
+              Tin tuyển dụng đang mở từ studio, agency và doanh nghiệp ngành sáng
+              tạo trên CINs — vị trí, mức lương, nơi làm và hạn nộp.
+            </p>
+          </div>
         </header>
 
-        <Suspense fallback={<TuyenDungListingSkeleton />}>
-          <TuyenDungListingLoader />
-        </Suspense>
+        <div className="tuyen-dung-body">
+          <Suspense fallback={<TuyenDungListingSkeleton />}>
+            <TuyenDungListingLoader />
+          </Suspense>
+        </div>
       </div>
     </CinsShell>
   );

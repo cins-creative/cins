@@ -1,37 +1,110 @@
 /* Trang tuyển dụng toàn sàn — /tuyen-dung. Token CINS (blue, Lucide, Be Vietnam Pro). */
 
 .tuyen-dung-page {
-  max-width: 1080px;
-  margin: 0 auto;
-  padding: var(--space-6) var(--space-5) var(--space-12);
+  --td-content-max: 1120px;
+  --td-page-pad: 20px;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0 0 56px;
 }
 
+/* ── Hero (theme /tim-kiem) ── */
 .tuyen-dung-hero {
-  margin-bottom: var(--space-6);
+  position: relative;
+  width: 100%;
+  margin: 0 0 28px;
+  padding: 36px 0 32px;
+  overflow: hidden;
+  background: linear-gradient(
+    135deg,
+    var(--cins-blue-soft) 0%,
+    #fff 52%,
+    var(--bg-page) 100%
+  );
+  border-bottom: 1px solid var(--border);
+}
+
+.tuyen-dung-hero-blob {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.tuyen-dung-hero-blob--yellow {
+  width: 220px;
+  height: 220px;
+  top: -90px;
+  right: 8%;
+  background: var(--cins-yellow);
+  opacity: 0.45;
+}
+
+.tuyen-dung-hero-blob--mint {
+  width: 140px;
+  height: 140px;
+  bottom: -40px;
+  left: 55%;
+  background: var(--cins-mint);
+  opacity: 0.35;
+  border-radius: 55% 45% 60% 40% / 50% 60% 40% 50%;
+}
+
+.tuyen-dung-hero-inner {
+  position: relative;
+  z-index: 1;
+  max-width: var(--td-content-max);
+  margin: 0 auto;
+  padding: 0 var(--td-page-pad);
 }
 
 .tuyen-dung-eyebrow {
-  display: inline-block;
-  font-size: var(--text-sm);
-  font-weight: var(--weight-medium);
+  margin: 0 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--cins-blue);
-  margin-bottom: 4px;
+}
+
+.tuyen-dung-eyebrow::before {
+  content: "";
+  width: 22px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--cins-blue);
 }
 
 .tuyen-dung-title {
-  margin: 0;
-  font-size: var(--text-3xl);
-  font-weight: var(--weight-extrabold);
-  line-height: 1.15;
-  letter-spacing: -0.3px;
+  margin: 0 0 10px;
+  font-size: clamp(1.85rem, 4.5vw, 2.75rem);
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  color: var(--ink-display);
+}
+
+.tuyen-dung-title-accent {
   color: var(--cins-blue);
 }
 
-.tuyen-dung-sub {
-  margin: 6px 0 0;
-  font-size: var(--text-md);
-  line-height: 1.5;
-  color: var(--fg-3);
+.tuyen-dung-lead {
+  margin: 0;
+  max-width: 54ch;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--ink-body);
+}
+
+/* ── Body ── */
+.tuyen-dung-body {
+  min-width: 0;
+  max-width: var(--td-content-max);
+  margin: 0 auto;
+  padding: 0 var(--td-page-pad);
 }
 
 .tuyen-dung-count {
@@ -55,21 +128,41 @@
 }
 
 .tuyen-dung-card {
+  position: relative;
   background: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-xs);
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(15, 23, 42, 0.06));
   overflow: hidden;
   transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease,
-    transform 0.15s ease;
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    transform 0.16s ease;
 }
 
 .tuyen-dung-card:hover {
-  border-color: var(--border-strong);
-  box-shadow: var(--shadow-md);
+  border-color: var(--cins-blue-soft);
+  box-shadow: var(--shadow-md, 0 8px 24px rgba(15, 23, 42, 0.08));
   transform: translateY(-2px);
+}
+
+.tuyen-dung-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+  background: var(--cins-blue);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.tuyen-dung-card:hover::before {
+  opacity: 1;
+}
+
+.tuyen-dung-card[data-status="expired"] {
+  opacity: 0.82;
 }
 
 .tuyen-dung-card-hit {
@@ -84,7 +177,7 @@
 
 .tuyen-dung-card-head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
   min-width: 0;
 }
@@ -129,13 +222,51 @@
 }
 
 .tuyen-dung-card-org {
-  display: block;
-  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 3px;
   font-size: var(--text-sm);
   color: var(--fg-3);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.tuyen-dung-card-org svg {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+/* ── Badge trạng thái ── */
+.tuyen-dung-status {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.tuyen-dung-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.tuyen-dung-status[data-tone="open"] {
+  color: #067647;
+  background: #ecfdf3;
+}
+
+.tuyen-dung-status[data-tone="expired"] {
+  color: #b54708;
+  background: #fffaeb;
 }
 
 .tuyen-dung-chips {
@@ -162,6 +293,12 @@
   opacity: 0.7;
 }
 
+.tuyen-dung-chip--type {
+  background: var(--cins-blue-soft);
+  color: var(--cins-blue-dark);
+  font-weight: var(--weight-semibold);
+}
+
 .tuyen-dung-card-desc {
   margin: 0;
   font-size: 13px;
@@ -173,29 +310,41 @@
   overflow: hidden;
 }
 
-.tuyen-dung-card-meta {
+/* ── Chân card: lương nổi bật + dòng ngày phụ, cách bằng đường kẻ ── */
+.tuyen-dung-card-foot {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px 14px;
+  flex-direction: column;
+  gap: 4px;
   margin-top: auto;
-  padding-top: 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
 }
 
-.tuyen-dung-meta {
+.tuyen-dung-salary {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  font-size: var(--text-sm);
+  gap: 6px;
+  font-size: var(--text-md);
+  font-weight: var(--weight-bold);
+  color: #0f7b4f;
+}
+
+.tuyen-dung-salary svg {
+  flex-shrink: 0;
+  opacity: 0.9;
+}
+
+.tuyen-dung-card-dates {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-xs);
   color: var(--fg-3);
 }
 
-.tuyen-dung-meta svg {
-  opacity: 0.8;
-}
-
-.tuyen-dung-meta--sal {
-  color: var(--cins-blue-dark);
-  font-weight: var(--weight-semibold);
+.tuyen-dung-card-dates span[aria-hidden] {
+  opacity: 0.55;
 }
 
 .tuyen-dung-empty {
@@ -264,13 +413,17 @@
   border-radius: var(--radius-pill);
 }
 
-@media (max-width: 520px) {
+@media (max-width: 640px) {
   .tuyen-dung-page {
-    padding: var(--space-5) var(--space-4) var(--space-10);
+    --td-page-pad: 16px;
+    padding-bottom: 40px;
   }
-  .tuyen-dung-title {
-    font-size: var(--text-2xl);
+  .tuyen-dung-hero {
+    padding-top: 24px;
   }
+}
+
+@media (max-width: 520px) {
   .tuyen-dung-grid {
     grid-template-columns: 1fr;
   }

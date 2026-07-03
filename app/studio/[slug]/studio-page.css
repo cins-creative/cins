@@ -297,13 +297,75 @@
   min-width: 0;
 }
 
-.studio-job-card-title {
+.studio-job-card-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
   margin: 0 0 7px;
+}
+
+/* Chừa chỗ cho nút "Sửa" (admin) ở góc phải trên để không đè badge trạng thái. */
+.studio-job-card:has(.studio-job-edit-btn) .studio-job-card-title-row {
+  padding-right: 38px;
+}
+
+.studio-job-card-title {
+  margin: 0;
   font-size: 16px;
   font-weight: 800;
   line-height: 1.25;
   color: var(--ink-display, #18202b);
   transition: color 0.16s ease;
+}
+
+/* Badge trạng thái tin — chấm màu + nhãn, luôn hiển thị rõ. */
+.studio-job-status-badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 5px 9px 5px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.studio-job-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.studio-job-status-badge[data-tone="open"] {
+  color: #067647;
+  background: #ecfdf3;
+}
+
+.studio-job-status-badge[data-tone="expired"] {
+  color: #b54708;
+  background: #fffaeb;
+}
+
+.studio-job-status-badge[data-tone="closed"] {
+  color: #b42318;
+  background: #fef3f2;
+}
+
+.studio-job-status-badge[data-tone="draft"] {
+  color: #52525b;
+  background: #f4f4f5;
+}
+
+/* Card không còn hoạt động — làm dịu nhẹ để phân biệt tin đang mở. */
+.studio-job-card[data-status="closed"] .studio-job-card-ic,
+.studio-job-card[data-status="expired"] .studio-job-card-ic,
+.studio-job-card[data-status="draft"] .studio-job-card-ic {
+  background: #f1f5f9;
+  color: #94a3b8;
 }
 
 .studio-job-card-title-link {
@@ -335,6 +397,22 @@
 }
 
 .studio-job-chip--status {
+  background: #fef3f2;
+  color: #b42318;
+}
+
+/* Trạng thái tin theo màu: Nháp (xám) · Đang mở (xanh) · Đã đóng (đỏ). */
+.studio-job-chip--status[data-status="dang_mo"] {
+  background: #ecfdf3;
+  color: #067647;
+}
+
+.studio-job-chip--status[data-status="nhap"] {
+  background: #f4f4f5;
+  color: #52525b;
+}
+
+.studio-job-chip--status[data-status="da_dong"] {
   background: #fef3f2;
   color: #b42318;
 }
@@ -385,6 +463,66 @@
   border-radius: 8px;
   padding: 4px 10px;
   font-weight: 700;
+}
+
+/* ── Lưới thông tin card (co-so): chia cột rõ ràng ─────────── */
+.studio-job-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 14px 0 0;
+  border: 1px solid var(--border, #e6e9ef);
+  border-radius: 12px;
+  background: #fbfcfe;
+  overflow: hidden;
+}
+
+.studio-job-fact {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 14px;
+  border-left: 1px solid var(--border, #eef1f5);
+  min-width: 0;
+}
+
+.studio-job-fact:first-child {
+  border-left: none;
+}
+
+.studio-job-fact-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-muted, #94a3b8);
+}
+
+.studio-job-fact-value {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink-display, #1f2937);
+  overflow-wrap: anywhere;
+}
+
+.studio-job-fact--salary .studio-job-fact-value {
+  color: #0f7b4f;
+}
+
+/* Dòng ngày phụ (hạn nộp / ngày đăng) — nhỏ, mờ, ở cuối card. */
+.studio-job-card-dates {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 12px 0 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-muted, #94a3b8);
+}
+
+.studio-job-card-dates span[aria-hidden] {
+  opacity: 0.6;
 }
 
 .studio-job-card-desc {
@@ -601,22 +739,6 @@
 }
 
 .studio-iselect-option-check {
-  flex-shrink: 0;
-  color: var(--cins-blue, #1f74c9);
-}
-
-/* Địa chỉ cụ thể trong modal chi tiết. */
-.studio-job-detail-address {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 12px 0 0;
-  font-size: 13.5px;
-  font-weight: 600;
-  color: var(--ink-body, #334155);
-}
-
-.studio-job-detail-address svg {
   flex-shrink: 0;
   color: var(--cins-blue, #1f74c9);
 }
@@ -1028,16 +1150,70 @@
   padding-bottom: 30px;
 }
 
+/* ── Tổng quan: mức lương + thông tin nhanh, chia 2 cột ───────── */
+.studio-job-detail-overview {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
 /* ── Mức lương — khối riêng, to & nổi bật ─────────────────────── */
 .studio-job-detail-salary {
   display: flex;
   align-items: center;
   gap: 14px;
-  margin-top: 16px;
   padding: 16px 18px;
   background: linear-gradient(135deg, #eaf6ef 0%, #e6f1fb 100%);
   border: 1px solid #cdeadb;
   border-radius: 14px;
+}
+
+/* Thông tin nhanh — danh sách nhãn/giá trị, gọn & dễ đọc. */
+.studio-job-detail-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 14px 16px;
+  background: var(--neutral-50, #f8fafc);
+  border: 1px solid var(--border-subtle, #eef1f6);
+  border-radius: 14px;
+}
+
+.studio-job-detail-fact {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.studio-job-detail-fact > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--cins-blue, #1f74c9);
+}
+
+.studio-job-detail-fact-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.studio-job-detail-fact-body dt {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-muted, #94a3b8);
+}
+
+.studio-job-detail-fact-body dd {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--ink-body, #334155);
 }
 
 .studio-job-detail-salary-ic {
@@ -1128,19 +1304,6 @@
 
 .studio-job-detail-chips {
   margin-top: 14px;
-}
-
-.studio-job-detail-meta {
-  gap: 10px 12px;
-  margin-top: 14px;
-  padding: 14px 16px;
-  background: var(--neutral-50, #f8fafc);
-  border: 1px solid var(--border-subtle, #eef1f6);
-  border-radius: 12px;
-}
-
-.studio-job-detail-meta .studio-job-meta-item {
-  font-size: 13.5px;
 }
 
 /* Dòng "Xem trang nghề" — nhỏ, phụ, nằm dưới cụm mô tả ngắn. */
@@ -1288,18 +1451,29 @@
   border-radius: 12px;
 }
 
-/* Footer cố định (sticky) đáy modal — luôn thấy 3 nút hành động.
-   Ép nền đặc (không dựa vào biến có thể thiếu) để khi cuộn không bị lộ
-   nền tối phía sau ("đen thui"). */
+/* Footer cố định (sticky) — full-bleed sát 2 cạnh + đáy modal.
+   Modal `.tdh-inline-modal` padding 24px (2 bên), `.studio-job-detail-modal`
+   padding-bottom 30px. Dùng margin âm để "phá" padding cho footer chạm mép.
+   `bottom: -30px` + padding đáy bù 30px: mép cuộn bám sát đáy, không lộ nền
+   tối phía sau, giữ nút luôn hiển thị khi cuộn. */
 .studio-job-detail-foot--sticky {
   position: sticky;
-  bottom: -1px;
+  bottom: -30px;
   z-index: 3;
-  margin-top: 20px;
-  margin-bottom: 0;
-  background: #eef4fc;
-  border: 1px solid #cfe3f8;
-  box-shadow: 0 -6px 16px rgba(15, 23, 42, 0.06);
+  flex-wrap: nowrap;
+  margin: 24px -24px -30px;
+  padding: 15px 24px calc(15px + 30px);
+  background: #fff;
+  border: none;
+  border-top: 1px solid #e6edf6;
+  border-radius: 0;
+  box-shadow: 0 -8px 22px rgba(15, 23, 42, 0.07);
+}
+
+/* Bo góc dưới khớp modal (12px) khi footer là phần tử cuối. */
+.studio-job-detail-foot--sticky:last-child {
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
 }
 
 /* Cụm 3 nút: Nhắn tin · Lưu về · Ứng tuyển */
@@ -1309,6 +1483,13 @@
   gap: 8px;
   flex-shrink: 0;
   flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* Có tin gợi ý phía sau footer sticky: chừa khoảng để item cuối không bị
+   footer che khi cuộn hết. */
+.studio-job-detail-related {
+  padding-bottom: 8px;
 }
 
 .studio-job-act-btn {

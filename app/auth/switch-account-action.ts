@@ -29,11 +29,22 @@ import { flushDeferredAuthCookies } from "@/lib/supabase/route-handler";
  *
  * Dùng qua `<form action={switchAccountAction.bind(null, slug)}>`.
  */
+/** Chỉ nhận đường dẫn nội bộ an toàn (bắt đầu bằng "/" nhưng không phải "//"). */
+function safeReturnTo(raw: FormDataEntryValue | null | undefined): string {
+  if (typeof raw !== "string") return "/";
+  const value = raw.trim();
+  if (!value.startsWith("/") || value.startsWith("//") || value.startsWith("/\\")) {
+    return "/";
+  }
+  return value;
+}
+
 export async function switchAccountAction(
   slug: string,
   _formData?: FormData,
 ): Promise<void> {
   const targetSlug = slug.trim().toLowerCase();
+  const returnTo = safeReturnTo(_formData?.get("returnTo"));
   if (!targetSlug) redirect("/login");
 
   const supabase = await createClient();
@@ -65,7 +76,7 @@ export async function switchAccountAction(
   // Đã đứng sẵn ở tài khoản đích → không cần làm gì.
   if (current?.profile?.slug === targetSlug) {
     await writeAccountVault(list);
-    redirect("/");
+    redirect(returnTo);
   }
 
   // (2) Đổi phiên sang tài khoản đích.
@@ -90,7 +101,7 @@ export async function switchAccountAction(
 
   await flushDeferredAuthCookies();
   revalidatePath("/", "layout");
-  redirect("/");
+  redirect(returnTo);
 }
 
 /**

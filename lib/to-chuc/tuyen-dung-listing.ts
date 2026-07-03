@@ -3,7 +3,7 @@ import "server-only";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import { createPublicSupabaseClient } from "@/lib/supabase/public";
 import { orgJobPath } from "@/lib/to-chuc/tuyen-dung-href";
-import { formatStudioDeadline } from "@/lib/to-chuc/studio-tuyen-dung-format";
+import { formatStudioDateShort } from "@/lib/to-chuc/studio-tuyen-dung-format";
 import { capDoLabels } from "@/lib/to-chuc/studio-tuyen-dung-distribution";
 import { STUDIO_JOB_LOAI_HINH_LABEL } from "@/lib/to-chuc/studio-tuyen-dung-types";
 
@@ -19,7 +19,12 @@ export type TuyenDungListItem = {
   linhVucTen: string | null;
   capDo: string[];
   salary: string | null;
+  /** Hạn nộp dạng ngắn "dd/mm/yyyy" (null nếu không có hạn). */
   deadline: string | null;
+  /** Ngày đăng tin dạng ngắn "dd/mm/yyyy". */
+  posted: string | null;
+  /** Tin đã qua hạn nộp (dù trạng thái vẫn "đang mở"). */
+  expired: boolean;
   href: string | null;
 };
 
@@ -47,12 +52,22 @@ type Row = {
   muc_luong_den: number | null;
   hien_thi_luong: boolean | null;
   han_nop: string | null;
+  tao_luc: string | null;
   org_to_chuc: OrgEmbed | OrgEmbed[] | null;
   linh_vuc?: { ten: string | null } | { ten: string | null }[] | null;
 };
 
 const TUYEN_DUNG_LIST_SELECT =
-  "id, tieu_de, mo_ta_ngan, loai_hinh, cap_do, tinh_thanh, lam_tu_xa, muc_luong_tu, muc_luong_den, hien_thi_luong, han_nop, org_to_chuc:org_to_chuc!inner(ten, slug, avatar_id, loai_to_chuc), linh_vuc:linh_vuc(ten)";
+  "id, tieu_de, mo_ta_ngan, loai_hinh, cap_do, tinh_thanh, lam_tu_xa, muc_luong_tu, muc_luong_den, hien_thi_luong, han_nop, tao_luc, org_to_chuc:org_to_chuc!inner(ten, slug, avatar_id, loai_to_chuc), linh_vuc:linh_vuc(ten)";
+
+/** Tin đã qua hạn nộp (kết thúc sau 23:59:59 ngày hạn). */
+function isExpired(hanNop: string | null): boolean {
+  if (!hanNop) return false;
+  const d = new Date(hanNop);
+  if (Number.isNaN(d.getTime())) return false;
+  d.setHours(23, 59, 59, 999);
+  return d.getTime() < Date.now();
+}
 
 function pickOrg(org: Row["org_to_chuc"]): OrgEmbed | null {
   if (!org) return null;
@@ -121,7 +136,9 @@ export async function loadTuyenDungListing(
         linhVucTen: pickLinhVuc(row.linh_vuc),
         capDo: capDoLabels(row.cap_do),
         salary: salary(row),
-        deadline: formatStudioDeadline(row.han_nop),
+        deadline: formatStudioDateShort(row.han_nop),
+        posted: formatStudioDateShort(row.tao_luc),
+        expired: isExpired(row.han_nop),
         href: orgSlug ? orgJobPath(org?.loai_to_chuc, orgSlug, row.id) : null,
       };
     });

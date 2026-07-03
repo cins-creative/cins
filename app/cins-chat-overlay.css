@@ -1541,17 +1541,20 @@
   align-items: stretch;
   max-width: min(280px, 100%);
   padding: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(15, 23, 42, 0.08);
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.06);
-  color: inherit;
+  background: #fff;
+  color: #16202c;
   text-decoration: none;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+  transition: background 0.15s ease, border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 a.cins-chat-ctx-card:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.3);
+  background: #f7f9fc;
+  border-color: rgba(15, 23, 42, 0.14);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
 }
 
 .cins-chat-ctx-card-img {

@@ -2,9 +2,7 @@
 
 import {
   Briefcase,
-  CalendarClock,
   ChevronRight,
-  CircleDollarSign,
   MapPin,
   Pencil,
   Plus,
@@ -20,14 +18,14 @@ import {
   studioTabPath,
 } from "@/lib/to-chuc/studio-routes";
 import {
-  formatStudioDeadline,
+  formatStudioDateShort,
   formatStudioSalary,
   studioJobPlace,
+  studioJobStatusBadge,
 } from "@/lib/to-chuc/studio-tuyen-dung-format";
 import { capDoLabels } from "@/lib/to-chuc/studio-tuyen-dung-distribution";
 import {
   STUDIO_JOB_LOAI_HINH_LABEL,
-  STUDIO_JOB_STATUS_LABEL,
   type StudioJob,
 } from "@/lib/to-chuc/studio-tuyen-dung-types";
 
@@ -86,12 +84,8 @@ export function StudioTabTuyenDung({
 
   return (
     <>
-      <div className="sec-hdr studio-jobs-hdr">
-        <div className="studio-jobs-hdr-text">
-          <span className="sec-num">03</span>
-          <h2 className="sec-title">Tuyển dụng</h2>
-        </div>
-        {canEdit ? (
+      {canEdit ? (
+        <div className="sec-hdr studio-jobs-hdr studio-jobs-hdr--no-title">
           <button
             type="button"
             className="studio-job-add-btn"
@@ -100,8 +94,8 @@ export function StudioTabTuyenDung({
             <Plus size={16} strokeWidth={2.2} aria-hidden />
             Đăng tin mới
           </button>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
 
       {visibleJobs.length === 0 ? (
         <p className="tdh-placeholder">
@@ -113,10 +107,16 @@ export function StudioTabTuyenDung({
         <ul className="studio-job-list">
           {visibleJobs.map((job) => {
             const salary = formatStudioSalary(job);
-            const deadline = formatStudioDeadline(job.hanNop);
+            const deadline = formatStudioDateShort(job.hanNop);
+            const posted = formatStudioDateShort(job.taoLuc);
             const lead = job.moTaNgan?.trim() || job.moTa?.trim() || null;
+            const status = studioJobStatusBadge(job);
             return (
-              <li key={job.id} className="studio-job-card">
+              <li
+                key={job.id}
+                className="studio-job-card"
+                data-status={status.tone}
+              >
                 <button
                   type="button"
                   className="studio-job-card-hit"
@@ -128,7 +128,19 @@ export function StudioTabTuyenDung({
                       <Briefcase size={18} strokeWidth={2} />
                     </span>
                     <div className="studio-job-card-titles">
-                      <h3 className="studio-job-card-title">{job.tieuDe}</h3>
+                      <div className="studio-job-card-title-row">
+                        <h3 className="studio-job-card-title">{job.tieuDe}</h3>
+                        <span
+                          className="studio-job-status-badge"
+                          data-tone={status.tone}
+                        >
+                          <span
+                            className="studio-job-status-dot"
+                            aria-hidden
+                          />
+                          {status.label}
+                        </span>
+                      </div>
                       <div className="studio-job-card-chips">
                         <span className="studio-job-chip">
                           {STUDIO_JOB_LOAI_HINH_LABEL[job.loaiHinh]}
@@ -145,11 +157,6 @@ export function StudioTabTuyenDung({
                             {cd}
                           </span>
                         ))}
-                        {canEdit && job.trangThai !== "dang_mo" ? (
-                          <span className="studio-job-chip studio-job-chip--status">
-                            {STUDIO_JOB_STATUS_LABEL[job.trangThai]}
-                          </span>
-                        ) : null}
                         {canEdit && job.hienThiCoHoi ? (
                           <span className="studio-job-chip studio-job-chip--dist">
                             Cơ hội
@@ -167,28 +174,36 @@ export function StudioTabTuyenDung({
                     )}
                   </div>
 
-                  {salary || deadline ? (
-                    <div className="studio-job-card-meta">
-                      {salary ? (
-                        <span className="studio-job-meta-item studio-job-meta-item--salary">
-                          <CircleDollarSign size={14} strokeWidth={2} aria-hidden />
-                          {salary}
-                        </span>
-                      ) : null}
-                      {deadline ? (
-                        <span className="studio-job-meta-item">
-                          <CalendarClock size={14} strokeWidth={2} aria-hidden />
-                          {deadline}
-                        </span>
-                      ) : null}
+                  <dl className="studio-job-facts">
+                    <div className="studio-job-fact studio-job-fact--salary">
+                      <dt className="studio-job-fact-label">Mức lương</dt>
+                      <dd className="studio-job-fact-value">
+                        {salary ?? "Thỏa thuận"}
+                      </dd>
                     </div>
-                  ) : null}
+                    <div className="studio-job-fact">
+                      <dt className="studio-job-fact-label">Cần tuyển</dt>
+                      <dd className="studio-job-fact-value">
+                        {job.soLuong ? `${job.soLuong} người` : "—"}
+                      </dd>
+                    </div>
+                  </dl>
 
                   {lead ? (
                     <p className="studio-job-card-desc studio-job-card-desc--lead">
                       {lead}
                     </p>
                   ) : null}
+
+                  <p className="studio-job-card-dates">
+                    <span>Hạn nộp: {deadline ?? "Không giới hạn"}</span>
+                    {posted ? (
+                      <>
+                        <span aria-hidden>·</span>
+                        <span>Đăng {posted}</span>
+                      </>
+                    ) : null}
+                  </p>
                 </button>
 
                 {canEdit ? (

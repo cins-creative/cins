@@ -27,6 +27,19 @@ export function formatStudioDeadline(hanNop: string | null): string | null {
   return `Hạn nộp ${d.toLocaleDateString("vi-VN")}`;
 }
 
+/** Ngày dạng ngắn "dd/mm/yyyy" (null nếu không có / sai định dạng). */
+export function formatStudioDateShort(value: string | null): string | null {
+  if (!value) return null;
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString("vi-VN");
+}
+
+/** Ngày đăng tin hiển thị "dd/mm/yyyy" (null nếu không có / sai định dạng). */
+export function formatStudioPostedDate(taoLuc: string | null): string | null {
+  return formatStudioDateShort(taoLuc);
+}
+
 /**
  * Tin còn hiệu lực: trạng thái "đang mở" và (không có hạn nộp hoặc chưa qua hạn).
  * Hết hiệu lực tính từ sau khi kết thúc ngày hạn nộp (23:59:59).
@@ -39,6 +52,18 @@ export function isStudioJobActive(job: StudioJob, now: Date = new Date()): boole
   const endOfDay = new Date(d);
   endOfDay.setHours(23, 59, 59, 999);
   return endOfDay.getTime() >= now.getTime();
+}
+
+/** Nhãn + tông màu trạng thái tin để hiển thị badge rõ ràng trên card. */
+export function studioJobStatusBadge(job: StudioJob): {
+  label: string;
+  tone: "open" | "closed" | "expired" | "draft";
+} {
+  if (job.trangThai === "nhap") return { label: "Bản nháp", tone: "draft" };
+  if (job.trangThai === "da_dong") return { label: "Đã đóng", tone: "closed" };
+  return isStudioJobActive(job)
+    ? { label: "Đang tuyển", tone: "open" }
+    : { label: "Hết hạn nộp", tone: "expired" };
 }
 
 /** Số tin tuyển dụng đang mở & còn hiệu lực trong danh sách. */

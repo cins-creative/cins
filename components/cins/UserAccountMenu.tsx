@@ -2,6 +2,7 @@
 
 import { ChevronDown, PlusCircle, UserPlus, Users, X } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { signOutAction } from "@/app/auth/sign-out-action";
@@ -43,6 +44,17 @@ export function UserAccountMenu({
   const [switchOpen, setSwitchOpen] = useState(false);
   const cardRef = useRef<HTMLDivElement | null>(null);
   const menuId = useId();
+  // Giá trị mặc định (SSR-safe, không dùng useSearchParams để tránh deopt toàn
+  // trang). Full URL kèm query được cập nhật ngay trước khi submit ở client.
+  const pathname = usePathname() || "/";
+
+  function captureReturnTo(ev: React.MouseEvent<HTMLButtonElement>) {
+    const form = ev.currentTarget.form;
+    const input = form?.elements.namedItem("returnTo");
+    if (input instanceof HTMLInputElement) {
+      input.value = `${window.location.pathname}${window.location.search}`;
+    }
+  }
   const initials = getNameInitials(profile.tenHienThi, profile.slug);
   const displayName = profile.tenHienThi || profile.slug;
   const isTopbar = placement === "topbar";
@@ -129,10 +141,16 @@ export function UserAccountMenu({
                       action={switchAccountAction.bind(null, acc.slug)}
                       className="app-user-switch-form"
                     >
+                      <input
+                        type="hidden"
+                        name="returnTo"
+                        defaultValue={pathname}
+                      />
                       <button
                         type="submit"
                         className="app-user-switch-item"
                         role="menuitem"
+                        onClick={captureReturnTo}
                       >
                         <span className="app-user-switch-ava" aria-hidden>
                           {acc.avatarUrl ? (
