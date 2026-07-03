@@ -1,5 +1,6 @@
 import {
   MAIN_NAV_FOOT_ITEMS,
+  MAIN_NAV_GROUP_BREAK_AFTER,
   MAIN_NAV_ITEMS,
   type MainNavIcon,
   type MainNavItem,
@@ -47,9 +48,12 @@ function renderNavAnchor(item: MainNavItem, pathname: string): string {
 }
 
 function renderMainNavListHtml(pathname: string): string {
-  const items = MAIN_NAV_ITEMS.map(
-    (item) => `    <li>${renderNavAnchor(item, pathname)}</li>`,
-  ).join("\n");
+  const items = MAIN_NAV_ITEMS.map((item) => {
+    const row = `    <li>${renderNavAnchor(item, pathname)}</li>`;
+    return MAIN_NAV_GROUP_BREAK_AFTER.has(item.id)
+      ? `${row}\n    <li class="sb-sep" role="separator" aria-hidden="true"></li>`
+      : row;
+  }).join("\n");
   return `<ul class="sb-list">\n${items}\n  </ul>`;
 }
 

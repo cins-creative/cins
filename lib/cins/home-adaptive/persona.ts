@@ -88,7 +88,6 @@ const NOTIFY_MODULES: readonly ModuleId[] = [
 const MODULE_ORDER: Record<Persona, ModuleId[]> = {
   hoc: [
     "kham_pha_linh_vuc",
-    "goi_y_theo_doi",
     "theo_doi_org",
     "su_kien",
     "khoa_hoc_goi_y",
@@ -97,7 +96,6 @@ const MODULE_ORDER: Record<Persona, ModuleId[]> = {
     "ho_so_cua_ban",
     "nguoi_cung_nganh",
     "goi_y_studio",
-    "goi_y_theo_doi",
     "loi_moi_xac_nhan",
     "theo_doi_org",
     "su_kien",
@@ -107,7 +105,6 @@ const MODULE_ORDER: Record<Persona, ModuleId[]> = {
     "cho_ban_duyet",
     "hoc_vien_cua_ban",
     "scout_tai_nang",
-    "goi_y_theo_doi",
     "theo_doi_org",
     "su_kien",
   ],

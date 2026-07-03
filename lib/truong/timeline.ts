@@ -53,14 +53,18 @@ export function getTimelineStatus(row: TruongTuyenSinhNamRow): TimelineStepStatu
   return getStepStatus(row.ngay_mo_ho_so, row.ngay_dong_ho_so);
 }
 
-/** Hiển thị ngày timeline: `dd/mm/yyyy` (input thường là `YYYY-MM-DD`). */
+/**
+ * Hiển thị ngày timeline: `dd/mm/yyyy` (input thường là `YYYY-MM-DD`).
+ * Nếu mốc có kèm giờ (`YYYY-MM-DDTHH:mm`) thì hiển thị `dd/mm/yyyy HH:mm`.
+ */
 export function formatTimelineDate(iso: string | null | undefined): string | null {
   const raw = iso?.trim();
   if (!raw) return null;
 
-  const isoDay = raw.slice(0, 10).match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (isoDay) {
-    return `${isoDay[3]}/${isoDay[2]}/${isoDay[1]}`;
+  const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?/);
+  if (m) {
+    const dateStr = `${m[3]}/${m[2]}/${m[1]}`;
+    return m[4] != null ? `${dateStr} ${m[4]}:${m[5]}` : dateStr;
   }
 
   const d = new Date(raw);

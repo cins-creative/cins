@@ -24,6 +24,20 @@ type Props = {
   feedPromos?: FeedPromoVariant[];
 };
 
+/**
+ * Sắp xếp feed trong 1 năm: ưu tiên nội dung CHƯA xem / xem ít
+ * (`viewerSeenCount` thấp) lên trên; cùng số lượt thì theo dòng thời gian.
+ */
+function compareFeedUnseenThenTimeline(
+  a: MilestoneItem,
+  b: MilestoneItem,
+): number {
+  const sa = a.viewerSeenCount ?? 0;
+  const sb = b.viewerSeenCount ?? 0;
+  if (sa !== sb) return sa - sb;
+  return compareTimelineOrder(a, b);
+}
+
 function groupByYearDesc(
   milestones: ReadonlyArray<MilestoneItem>,
 ): Array<{ year: number; milestones: ReadonlyArray<MilestoneItem> }> {
@@ -37,7 +51,7 @@ function groupByYearDesc(
     .sort((a, b) => b[0] - a[0])
     .map(([year, items]) => ({
       year,
-      milestones: items.slice().sort(compareTimelineOrder),
+      milestones: items.slice().sort(compareFeedUnseenThenTimeline),
     }));
 }
 
@@ -49,12 +63,15 @@ function canInlineExpand(milestone: MilestoneItem): boolean {
   return canWorldJourneyInlineExpandOnFeed(milestone);
 }
 
+// Tạm ẩn rail gợi ý xen giữa feed (WorldJourneyFeedPromoRail). Đổi `true` để bật lại.
+const SHOW_FEED_PROMO_RAIL = false;
+
 function buildPromoInsertMap(
   postCount: number,
   promos: FeedPromoVariant[],
 ): Map<number, ReactNode> {
   const map = new Map<number, ReactNode>();
-  if (postCount === 0 || promos.length === 0) return map;
+  if (!SHOW_FEED_PROMO_RAIL || postCount === 0 || promos.length === 0) return map;
 
   let promoIdx = 0;
   for (

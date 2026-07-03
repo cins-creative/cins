@@ -3,7 +3,6 @@ import {
   Briefcase,
   Building2,
   Eye,
-  MapPin,
   Plus,
   Route,
   Users,
@@ -72,6 +71,7 @@ export async function NguoiCungNganhModule({ ctx }: { ctx: HomeModuleCtx }) {
             slug={p.slug}
             name={p.name}
             avatarUrl={p.avatarUrl}
+            isFriend={p.isFriend}
             subtitle={
               p.mutualCount > 0
                 ? `${p.mutualCount} bạn chung`
@@ -131,21 +131,17 @@ export async function CoHoiModule({ ctx }: { ctx: HomeModuleCtx }) {
               <div className="ha-trow-meta">
                 <div className="ha-trow-name">{job.tieuDe}</div>
                 <div className="ha-trow-sub ha-trow-sub-text">{job.orgTen}</div>
-                <div className="ha-trow-chips">
-                  <span className="ha-trow-chip">{job.loaiHinhLabel}</span>
-                  <span className="ha-trow-chip">
-                    <MapPin size={11} strokeWidth={2} aria-hidden />
-                    {job.place}
-                  </span>
-                  {job.linhVucTen ? (
-                    <span className="ha-trow-chip">{job.linhVucTen}</span>
-                  ) : null}
-                  {job.salary ? (
-                    <span className="ha-trow-chip ha-trow-chip--sal">
-                      {job.salary}
-                    </span>
-                  ) : null}
-                </div>
+                {(() => {
+                  const tags = [
+                    job.loaiHinhLabel,
+                    job.place,
+                    job.linhVucTen,
+                    job.salary,
+                  ].filter(Boolean);
+                  return tags.length > 0 ? (
+                    <div className="ha-trow-tags">{tags.join(", ")}</div>
+                  ) : null;
+                })()}
               </div>
             </>
           );

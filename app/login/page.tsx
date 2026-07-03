@@ -8,6 +8,7 @@ type SearchParams = Promise<{
   error?: string;
   auto?: string;
   next?: string;
+  them?: string;
 }>;
 
 export default async function LoginPage({
@@ -15,14 +16,18 @@ export default async function LoginPage({
 }: {
   searchParams: SearchParams;
 }) {
-  const { error, auto, next } = await searchParams;
+  const { error, auto, next, them } = await searchParams;
   const errorMsg = error?.trim() || null;
+
+  /* "Thêm tài khoản" từ menu user: cho phép đăng nhập tài khoản khác dù đang
+   * có phiên (không auto-redirect về trang cá nhân hiện tại). */
+  const addAccount = them === "1" || them === "true";
 
   const safeNext =
     next && next.startsWith("/") && !next.startsWith("//") ? next : null;
 
   const session = await getCurrentSessionAndProfile();
-  if (session?.profile && !errorMsg) {
+  if (session?.profile && !errorMsg && !addAccount) {
     redirect(safeNext ?? `/${encodeURIComponent(session.profile.slug)}`);
   }
 

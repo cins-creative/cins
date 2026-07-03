@@ -1,12 +1,15 @@
 "use client";
 
-import { Check, Heart, Users } from "lucide-react";
+import { Check, Heart, MessageCircle, Users } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 
 import { useAuthGate } from "@/components/auth/AuthGateProvider";
+import { useCinsChatContext } from "@/components/cins/CinsChatProvider";
+import type { ChatContextCard } from "@/lib/chat/types";
 import type { LoaiPhanHoiSuKien } from "@/lib/to-chuc/su-kien-dang-ky";
 
 const AUTH_MESSAGE = "Đăng nhập để quan tâm hoặc đăng ký tham gia sự kiện.";
+const AUTH_MESSAGE_CHAT = "Đăng nhập để nhắn tin cho tổ chức.";
 
 type Props = {
   orgId: string;
@@ -18,6 +21,12 @@ type Props = {
   className?: string;
   onLoaiChange?: (loai: LoaiPhanHoiSuKien | null) => void;
   onSoDangKyChange?: (soDangKy: number) => void;
+  /** Bật nút "Nhắn tin" cho org kèm card ngữ cảnh sự kiện. */
+  nguCanh?: ChatContextCard | null;
+  /** Tên org — hiển thị optimistic khi mở chat. */
+  orgTen?: string | null;
+  /** Avatar org — optimistic. */
+  orgAvatarUrl?: string | null;
 };
 
 export function SuKienPhanHoiActions({
@@ -30,8 +39,13 @@ export function SuKienPhanHoiActions({
   className,
   onLoaiChange,
   onSoDangKyChange,
+  nguCanh = null,
+  orgTen,
+  orgAvatarUrl,
 }: Props) {
   const { isAuthenticated, openAuthModal } = useAuthGate();
+  const chat = useCinsChatContext();
+  const [messaging, setMessaging] = useState(false);
   const [loai, setLoai] = useState<LoaiPhanHoiSuKien | null>(initialLoai);
   const [soDangKy, setSoDangKy] = useState(initialSoDangKy);
   const [loaded, setLoaded] = useState(false);
@@ -139,6 +153,26 @@ export function SuKienPhanHoiActions({
     });
   }
 
+  async function handleMessage() {
+    if (!isAuthenticated) {
+      openAuthModal(AUTH_MESSAGE_CHAT);
+      return;
+    }
+    if (!chat || !nguCanh || messaging) return;
+    setMessaging(true);
+    try {
+      await chat.openChat({
+        orgId,
+        orgPreview: { name: orgTen ?? undefined, avatarUrl: orgAvatarUrl ?? null },
+        nguCanh,
+      });
+    } catch {
+      /* provider tự xử lý lỗi */
+    } finally {
+      setMessaging(false);
+    }
+  }
+
   const slotFull =
     slotToiDa != null && soDangKy >= slotToiDa && loai !== "se_tham_gia";
 
@@ -174,6 +208,17 @@ export function SuKienPhanHoiActions({
           )}
           {loai === "se_tham_gia" ? "Đã đăng ký" : "Sẽ tham gia"}
         </button>
+        {nguCanh && chat ? (
+          <button
+            type="button"
+            className="cso-sk-detail-btn cso-sk-detail-btn--message"
+            disabled={messaging}
+            onClick={handleMessage}
+          >
+            <MessageCircle size={16} aria-hidden />
+            {messaging ? "Đang mở…" : "Nhắn tin"}
+          </button>
+        ) : null}
       </div>
     </div>
   );

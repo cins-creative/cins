@@ -15,6 +15,7 @@ import {
   ListOrdered,
   Lock,
   Layers,
+  MessageCircle,
   Monitor,
   MapPin,
   Eye,
@@ -29,6 +30,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 
+import { useCinsChatContext } from "@/components/cins/CinsChatProvider";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
 
 import type {
@@ -551,12 +553,15 @@ function LopHocCard({
   loaiMoHinh,
   canManage = false,
   onEdit,
+  onRegister,
 }: {
   lop: LopHocDetailData;
   lopIndex: number;
   loaiMoHinh: KhoaHocCardData["loaiMoHinh"];
   canManage?: boolean;
   onEdit?: (lop: LopHocDetailData) => void;
+  /** Mở chat inbox với cơ sở, card ngữ cảnh focus vào khóa + lớp này. */
+  onRegister?: (lop: LopHocDetailData) => void;
 }) {
   const maLabel = lop.maLop ?? `Lớp ${lopIndex + 1}`;
   const lopStatus = labelTrangThaiLopBadge(lop.trangThaiLop);
@@ -645,7 +650,11 @@ function LopHocCard({
           </div>
         </div>
         {!canManage ? (
-          <button type="button" className="cso-khd-lop-card-cta">
+          <button
+            type="button"
+            className="cso-khd-lop-card-cta"
+            onClick={() => onRegister?.(lop)}
+          >
             <UserPlus size={15} aria-hidden />
             Đăng ký lớp này
             <ChevronRight size={15} aria-hidden />
@@ -702,6 +711,8 @@ function DetailContent({
   isManagingLop = false,
   onOpenAddLop,
   onEditLop,
+  onConsult,
+  onRegisterLop,
 }: {
   detail: KhoaHocDetailPayload;
   orgSlug: string;
@@ -723,6 +734,10 @@ function DetailContent({
   isManagingLop?: boolean;
   onOpenAddLop: () => void;
   onEditLop: (lop: LopHocDetailData) => void;
+  /** Mở chat tư vấn với cơ sở, kèm card khóa học "chờ" trong ô soạn. */
+  onConsult?: () => void;
+  /** Mở chat đăng ký lớp — card ngữ cảnh focus vào khóa + lớp cụ thể. */
+  onRegisterLop?: (lop: LopHocDetailData) => void;
 }) {
   const display = useMemo(
     () => resolveKhoaHocDetailDisplay(detail),
@@ -912,6 +927,16 @@ function DetailContent({
               <UserPlus size={15} aria-hidden />
               Đăng ký học
             </button>
+            {onConsult ? (
+              <button
+                type="button"
+                className="cso-khd-btn cso-khd-btn--ghost"
+                onClick={onConsult}
+              >
+                <MessageCircle size={15} aria-hidden />
+                Tư vấn
+              </button>
+            ) : null}
           </div>
         </header>
 
@@ -1045,6 +1070,7 @@ function DetailContent({
                   loaiMoHinh={khoa.loaiMoHinh}
                   canManage={isManagingLop}
                   onEdit={onEditLop}
+                  onRegister={onRegisterLop}
                 />
               ))}
               {isManagingLop ? (
@@ -1146,6 +1172,7 @@ export function KhoaHocDetailView({
   onKhoaUpdated,
 }: Props) {
   const router = useRouter();
+  const chat = useCinsChatContext();
   const ctx = useTruongInlineEdit();
   const searchParams = useSearchParams();
   const mockupFromQuery = searchParams.get("mockup") === "1";
@@ -1376,6 +1403,63 @@ export function KhoaHocDetailView({
     setEditingLop(null);
   }
 
+  function handleConsult() {
+    if (!chat || !detail) return;
+    const k = detail.khoa;
+    void chat
+      .openChat({
+        orgId,
+        orgPreview: { name: orgTen },
+        nguCanh: {
+          loai: "khoa_hoc",
+          id: k.id,
+          tieuDe: k.tenKhoaHoc,
+          moTa: k.moTa?.trim() || null,
+          anh: k.coverUrl ?? k.thumbnailUrl ?? null,
+          href: coSoKhoaHocDetailPath(orgSlug, k.slug),
+          orgTen,
+        },
+      })
+      .catch(() => {
+        /* provider tự xử lý lỗi mở hội thoại */
+      });
+  }
+
+  function handleRegisterLop(lop: LopHocDetailData) {
+    if (!chat || !detail) return;
+    const k = detail.khoa;
+    const maLabel = lop.maLop?.trim() || lop.tenLop?.trim() || "lớp học";
+    const scheduleParts: string[] = [];
+    if (lop.tenLop?.trim() && lop.tenLop.trim() !== maLabel) {
+      scheduleParts.push(lop.tenLop.trim());
+    }
+    if (lop.lichHoc?.trim()) scheduleParts.push(lop.lichHoc.trim());
+    if (lop.ngayKhaiGiang?.trim()) {
+      scheduleParts.push(formatKhaiGiangCard("cohort_co_dinh", lop.ngayKhaiGiang));
+    }
+    const moTa = scheduleParts.length
+      ? `Đăng ký lớp — ${scheduleParts.join(" · ")}`
+      : "Muốn đăng ký lớp này";
+    void chat
+      .openChat({
+        orgId,
+        orgPreview: { name: orgTen },
+        nguCanh: {
+          loai: "khoa_hoc",
+          // id ghép lớp để phân biệt với card "Tư vấn" cùng khóa.
+          id: `${k.id}#lop-${lop.id}`,
+          tieuDe: `${k.tenKhoaHoc} · ${maLabel}`,
+          moTa,
+          anh: k.coverUrl ?? k.thumbnailUrl ?? null,
+          href: coSoKhoaHocDetailPath(orgSlug, k.slug),
+          orgTen,
+        },
+      })
+      .catch(() => {
+        /* provider tự xử lý lỗi mở hội thoại */
+      });
+  }
+
   function handleKhoaUpdated(updated: KhoaHocCardData) {
     setDetail((prev) => (prev ? { ...prev, khoa: updated } : prev));
     onKhoaUpdated?.(updated);
@@ -1473,6 +1557,8 @@ export function KhoaHocDetailView({
         isManagingLop={isManagingKhoa}
         onOpenAddLop={handleOpenAddLop}
         onEditLop={handleEditLop}
+        onConsult={chat && !isMockup ? handleConsult : undefined}
+        onRegisterLop={chat && !isMockup ? handleRegisterLop : undefined}
       />
       {isManagingKhoa ? (
         <LopHocEditModal

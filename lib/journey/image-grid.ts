@@ -126,6 +126,161 @@ export function isPortraitGridImage(image: GridImage): boolean {
   return image.height > image.width;
 }
 
+/* ── Phân loại hướng ảnh cho layout no-crop ──────────────────────── */
+
+export type GridImageOrientation = "portrait" | "landscape" | "square";
+
+/** Dung sai quanh 1:1 để coi là ảnh vuông. */
+export const SQUARE_ASPECT_TOLERANCE = 1.05;
+/** Tỉ lệ ảnh dọc tối thiểu để cả album chuyển sang Masonry. */
+export const MASONRY_MIN_PORTRAIT_SHARE = 0.8;
+/** Số cột Masonry tối đa. */
+export const MASONRY_MAX_COLUMNS = 3;
+/** Số ảnh tối đa trên một hàng Justified. */
+export const JUSTIFIED_MAX_PER_ROW = 3;
+
+/** Aspect ratio = width / height (fallback 1 nếu thiếu số liệu). */
+export function gridImageAspect(image: GridImage): number {
+  const w = image.width > 0 ? image.width : GRID_IMAGE_DEFAULT_WIDTH;
+  const h = image.height > 0 ? image.height : GRID_IMAGE_DEFAULT_HEIGHT;
+  return w / h;
+}
+
+export function classifyGridImage(image: GridImage): GridImageOrientation {
+  const aspect = gridImageAspect(image);
+  if (aspect > SQUARE_ASPECT_TOLERANCE) return "landscape";
+  if (aspect < 1 / SQUARE_ASPECT_TOLERANCE) return "portrait";
+  return "square";
+}
+
+/** Một ô trong layout — giữ index gốc để lightbox/overlay hoạt động. */
+export type AlbumCell = {
+  image: GridImage;
+  index: number;
+  aspect: number;
+};
+
+export type AlbumLayout =
+  | { kind: "single"; portrait: boolean; cell: AlbumCell }
+  | {
+      kind: "square";
+      layoutCount: number;
+      displayImages: GridImage[];
+      remaining: number;
+      overlaySlotIndex: number | null;
+    }
+  | {
+      kind: "masonry";
+      columns: AlbumCell[][];
+      remaining: number;
+      overlaySlotIndex: number | null;
+    }
+  | {
+      kind: "justified";
+      rows: AlbumCell[][];
+      remaining: number;
+      overlaySlotIndex: number | null;
+    };
+
+function toCell(image: GridImage, index: number): AlbumCell {
+  return { image, index, aspect: gridImageAspect(image) };
+}
+
+/** Chia cells vào các cột Masonry cân bằng (cột "thấp" nhất nhận ảnh kế). */
+function packMasonryColumns(cells: AlbumCell[], columns: number): AlbumCell[][] {
+  const cols: AlbumCell[][] = Array.from({ length: columns }, () => []);
+  const heights = new Array(columns).fill(0);
+  for (const cell of cells) {
+    let target = 0;
+    for (let c = 1; c < columns; c++) {
+      if (heights[c] < heights[target]) target = c;
+    }
+    cols[target].push(cell);
+    // Chiều cao tương đối của ảnh khi bề rộng cột = 1 là 1/aspect.
+    heights[target] += 1 / (cell.aspect || 1);
+  }
+  return cols.filter((col) => col.length > 0);
+}
+
+/** Chia cells thành các hàng Justified (tối đa JUSTIFIED_MAX_PER_ROW / hàng). */
+function splitJustifiedRows(cells: AlbumCell[]): AlbumCell[][] {
+  const rows: AlbumCell[][] = [];
+  for (let i = 0; i < cells.length; i += JUSTIFIED_MAX_PER_ROW) {
+    rows.push(cells.slice(i, i + JUSTIFIED_MAX_PER_ROW));
+  }
+  return rows;
+}
+
+/**
+ * Chọn layout album theo hướng ảnh (brief no-crop):
+ * - 1 ảnh: giữ tỉ lệ gốc (single)
+ * - toàn ảnh vuông: grid vuông
+ * - gần như toàn ảnh dọc: Masonry dọc
+ * - còn lại (ngang / trộn): Justified Grid
+ *
+ * >6 ảnh (chế độ xem): vẫn chọn layout theo hướng ảnh như trên nhưng chỉ hiện
+ * 6 ô đầu, ô cuối phủ overlay "+N" (N = số ảnh còn lại). Trước đây >6 luôn ép
+ * về grid vuông → ảnh ngang bị nhốt trong ô vuông; nay tôn trọng hướng ảnh.
+ */
+export function resolveAlbumLayout(
+  images: GridImage[],
+  showAll = false,
+): AlbumLayout {
+  const total = images.length;
+
+  if (total === 1) {
+    return {
+      kind: "single",
+      portrait: isPortraitGridImage(images[0]),
+      cell: toCell(images[0], 0),
+    };
+  }
+
+  const displayCount = albumGridDisplayCount(total, showAll);
+  const remaining = albumGridRemainingCount(total, showAll);
+  const overlaySlotIndex = remaining > 0 ? displayCount - 1 : null;
+  const displayImages = images.slice(0, displayCount);
+
+  const squareLayout = (): AlbumLayout => ({
+    kind: "square",
+    layoutCount: albumGridLayoutCount(total, showAll),
+    displayImages,
+    remaining,
+    overlaySlotIndex,
+  });
+
+  // Phân loại hướng theo đúng số ảnh sẽ hiện (6 ô đầu khi >6).
+  const orientations = displayImages.map(classifyGridImage);
+  const portraitCount = orientations.filter((o) => o === "portrait").length;
+  const landscapeCount = orientations.filter((o) => o === "landscape").length;
+  const squareCount = orientations.filter((o) => o === "square").length;
+
+  if (squareCount === displayCount) return squareLayout();
+
+  const cells = displayImages.map(toCell);
+
+  const portraitDominant =
+    landscapeCount === 0 &&
+    portraitCount / displayCount >= MASONRY_MIN_PORTRAIT_SHARE;
+
+  if (portraitDominant) {
+    const columns = Math.min(MASONRY_MAX_COLUMNS, displayCount);
+    return {
+      kind: "masonry",
+      columns: packMasonryColumns(cells, columns),
+      remaining,
+      overlaySlotIndex,
+    };
+  }
+
+  return {
+    kind: "justified",
+    rows: splitJustifiedRows(cells),
+    remaining,
+    overlaySlotIndex,
+  };
+}
+
 /** @deprecated Dùng `albumGridDisplayCount`. */
 export function facebookGridDisplayCount(total: number): number {
   return albumGridDisplayCount(total);

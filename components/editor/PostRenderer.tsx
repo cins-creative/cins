@@ -22,6 +22,11 @@ import {
   resolveImageSeedUrl,
 } from "@/lib/editor/resolve-image-seed-url";
 import type { Block } from "@/lib/editor/types";
+import {
+  flattenMosaicCells,
+  normalizeLegacyLayout,
+  type ImgLayout,
+} from "@/lib/editor/image-layout";
 import { getYoutubeId } from "@/lib/youtube";
 
 /**
@@ -80,8 +85,6 @@ function resolveEmbedUrl(cfg: Record<string, unknown>): string {
 function figmaEmbedUrl(originalUrl: string): string {
   return `https://www.figma.com/embed?embed_host=cins&url=${encodeURIComponent(originalUrl)}`;
 }
-
-type ImgLayout = "full" | "boxed" | "duo" | "trio" | "grid4" | "mosaic";
 
 /* ─── Cover image (read-only) ──────────────────────────────────── */
 
@@ -288,124 +291,20 @@ function ReadOnlyBlock({ block }: { block: Block }) {
     );
   }
   if (block.loai === "imgs") {
-    const layout: ImgLayout =
-      typeof cfg.layout === "string"
-        ? (cfg.layout as ImgLayout)
-        : "full";
+    const layout: ImgLayout = normalizeLegacyLayout(cfg.layout);
     const rounded = !!cfg.rounded;
     const cap = typeof cfg.cap === "string" ? cfg.cap : "";
 
-    if (layout === "mosaic") {
-      // Lưới tùy chỉnh: cells chứa col/row span riêng, render bằng grid
-      // theo `cols`. Cell rỗng (seed bắt đầu bằng `m-` hoặc `extra-`)
-      // bị bỏ qua trong read-only view.
-      const cols =
-        typeof cfg.cols === "number" && cfg.cols >= 2 && cfg.cols <= 4
-          ? cfg.cols
-          : 3;
-      const gap =
-        typeof cfg.gap === "number" && cfg.gap >= 0 && cfg.gap <= 32
-          ? cfg.gap
-          : 0;
-      const pad =
-        typeof cfg.pad === "number" && cfg.pad >= 0 && cfg.pad <= 48
-          ? cfg.pad
-          : 0;
-      const rawCells = Array.isArray(cfg.cells) ? (cfg.cells as unknown[]) : [];
-      const cells = rawCells
-        .map((raw) => {
-          const c = raw as
-            | {
-                seed?: unknown;
-                c?: unknown;
-                r?: unknown;
-                kind?: unknown;
-                text?: unknown;
-                align?: unknown;
-                font?: unknown;
-                size?: unknown;
-              }
-            | null;
-          if (!c || typeof c.seed !== "string") return null;
-          const kind = c.kind === "text" ? "text" : "image";
-          if (kind === "image" && (!c.seed || /^m-|^extra-/.test(c.seed))) {
-            return null;
-          }
-          return {
-            seed: c.seed,
-            c:
-              typeof c.c === "number" && c.c >= 1 && c.c <= 4 ? c.c : 1,
-            r:
-              typeof c.r === "number" && c.r >= 1 && c.r <= 4 ? c.r : 1,
-            kind,
-            text: typeof c.text === "string" ? c.text : "",
-            align:
-              c.align === "left" || c.align === "right" || c.align === "center"
-                ? c.align
-                : "center",
-            font: c.font === "sans" || c.font === "serif" ? c.font : "serif",
-            size:
-              c.size === "sm" || c.size === "lg" || c.size === "md"
-                ? c.size
-                : "md",
-          };
-        })
-        .filter(
-          (
-            x,
-          ): x is {
-            seed: string;
-            c: number;
-            r: number;
-            kind: "image" | "text";
-            text: string;
-            align: "left" | "center" | "right";
-            font: "serif" | "sans";
-            size: "sm" | "md" | "lg";
-          } => x !== null,
-        );
-      if (cells.length === 0) return null;
-      return (
-        <div className="b-imgs b-imgs-ro mosaic-mode">
-          <div
-            className={`mosaic${rounded ? " rounded" : ""}`}
-            style={{
-              gridTemplateColumns: `repeat(${cols}, 1fr)`,
-              gap,
-              padding: pad,
-            }}
-          >
-            {cells.map((cell, i) => (
-              <div
-                key={`${cell.seed}-${i}`}
-                className="mz"
-                style={{
-                  gridColumn: `span ${cell.c}`,
-                  gridRow: `span ${cell.r}`,
-                }}
-              >
-                {cell.kind === "text" ? (
-                  <div
-                    className={`mz-text mz-align-${cell.align} mz-font-${cell.font} mz-size-${cell.size}`}
-                  >
-                    <p>{cell.text}</p>
-                  </div>
-                ) : (
-                  <img src={ph(cell.seed, 900, 900)} alt="" loading="lazy" onError={handleBlockImageError} />
-                )}
-              </div>
-            ))}
-          </div>
-          {cap ? <div className="img-cap img-cap-ro">{cap}</div> : null}
-        </div>
-      );
-    }
-
-    const imgs = Array.isArray(cfg.imgs)
+    const rawImgs = Array.isArray(cfg.imgs)
       ? (cfg.imgs as unknown[])
           .map((s) => (typeof s === "string" ? s : ""))
           .filter(Boolean)
       : [];
+    // Bài cũ dùng mosaic chỉ có `cells` → gom seed ảnh ra thành album.
+    const imgs = (rawImgs.length > 0
+      ? rawImgs
+      : flattenMosaicCells(cfg.cells)
+    ).filter((s) => !/^m-|^extra-/.test(s));
     if (imgs.length === 0) return null;
 
     return (

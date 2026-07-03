@@ -1,4 +1,4 @@
-/* Album layout — theo album-layout-demo: 1 ảnh giữ tỉ lệ gốc, 2+ crop vuông */
+/* Album layout — no-crop: ảnh giữ nguyên tỉ lệ gốc, nền trắng lấp phần thừa */
 
 .image-grid {
   display: flex;
@@ -9,7 +9,7 @@
   max-width: 100%;
   margin-left: auto;
   margin-right: auto;
-  background: var(--border, #e4e6eb);
+  background: #fff;
 }
 
 .image-grid-col {
@@ -25,12 +25,12 @@
 /* ── 1 ảnh: giữ tỉ lệ gốc, không crop ── */
 .image-grid--single {
   display: block;
-  background: var(--neutral-100, #f4f4f5);
+  background: #fff;
 }
 .image-grid--single.is-portrait {
   display: flex;
   justify-content: center;
-  background: #111;
+  background: #fff;
 }
 .image-grid--single.is-portrait .image-grid-cell {
   flex: none;
@@ -53,18 +53,21 @@
   display: block;
 }
 
-/* ── 2 ảnh: 2 cột vuông ── */
-.image-grid[data-count="2"] {
+/* ── 2 ảnh: 2 cột vuông ──
+   Loại trừ justified/masonry: các layout đó cũng đặt data-count nhưng KHÔNG
+   dùng ô vuông / khung cố định (nếu không sẽ bị ép tỉ lệ → khoảng trống). */
+.image-grid[data-count="2"]:not(.image-grid--justified):not(.image-grid--masonry) {
   flex-direction: row;
 }
-.image-grid[data-count="2"] .image-grid-cell {
+.image-grid[data-count="2"]:not(.image-grid--justified):not(.image-grid--masonry)
+  .image-grid-cell {
   flex: 1;
   aspect-ratio: 1 / 1;
   min-width: 0;
 }
 
 /* ── 3 ảnh: ô lớn trái + 2 ô nhỏ phải (container 3:2) ── */
-.image-grid[data-count="3"] {
+.image-grid[data-count="3"]:not(.image-grid--justified):not(.image-grid--masonry) {
   flex-direction: row;
   aspect-ratio: 3 / 2;
 }
@@ -106,17 +109,59 @@
   border: 0;
   margin: 0;
   overflow: hidden;
-  background: var(--neutral-100, #f1f2f5);
+  background: #fff;
   cursor: pointer;
   min-height: 0;
 }
 
-/* 2+ ảnh: crop vuông trong ô */
+/* 2+ ảnh: KHÔNG crop. Masonry/justified có tỉ lệ ô = tỉ lệ ảnh nên lấp đầy khít;
+   các ô có tỉ lệ cố định (square/3 ảnh/>6) hiển thị trọn ảnh, nền trắng lấp phần thừa. */
 .image-grid:not(.image-grid--single) .image-grid-cell img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
+}
+
+/* Justified / Masonry: ô đã có aspect-ratio = tỉ lệ ảnh nên `cover` lấp khít,
+   không để lộ nền trắng (letterbox), cũng gần như không crop. */
+.image-grid.image-grid--justified .image-grid-cell img,
+.image-grid.image-grid--masonry .image-grid-cell img {
+  object-fit: cover;
+}
+
+/* ── Masonry dọc: album gần như toàn ảnh dọc, giữ tỉ lệ gốc, không crop ── */
+.image-grid--masonry {
+  flex-direction: row;
+  align-items: flex-start;
+}
+.image-grid--masonry .image-grid-mcol {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.image-grid--masonry .image-grid-cell {
+  width: 100%;
+  /* aspect-ratio đặt inline theo từng ảnh */
+}
+
+/* ── Justified Grid: hàng đều cao, ảnh ngang/trộn giữ tỉ lệ gốc, không crop ── */
+.image-grid--justified {
+  gap: 3px;
+}
+.image-grid-jrow {
+  display: flex;
+  gap: 3px;
+  width: 100%;
+  /* KHÔNG stretch: để chiều cao ô suy ra từ aspect-ratio (mọi ô trong hàng ra cùng chiều cao) */
+  align-items: flex-start;
+}
+.image-grid-jrow .image-grid-cell {
+  /* flex-grow (= aspect) và aspect-ratio đặt inline; flex-basis: 0 để bề rộng tỉ lệ theo aspect */
+  flex-basis: 0;
+  min-width: 0;
 }
 
 .grid-overlay {

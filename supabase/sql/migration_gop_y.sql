@@ -24,8 +24,10 @@ CREATE TABLE IF NOT EXISTS public.gop_y (
   ho_ten         text,
   email          text,
   noi_dung       text NOT NULL,
-  -- "Trang bạn góp ý": URL trang hiện tại lúc user mở popup.
+  -- "Trang bạn góp ý": URL trang hiện tại lúc user mở popup (có thể user sửa).
   trang_url      text,
+  -- URL ảnh minh họa (screenshot lỗi / hình minh họa tính năng) do user dán vào.
+  anh_url        text,
   user_agent     text,
   trang_thai     public.gop_y_trang_thai_enum NOT NULL DEFAULT 'moi',
   ghi_chu        text,
@@ -33,6 +35,9 @@ CREATE TABLE IF NOT EXISTS public.gop_y (
   xu_ly_luc      timestamptz,
   tao_luc        timestamptz NOT NULL DEFAULT now()
 );
+
+-- Bảng đã tạo từ trước: bổ sung cột anh_url (idempotent).
+ALTER TABLE public.gop_y ADD COLUMN IF NOT EXISTS anh_url text;
 
 COMMENT ON TABLE public.gop_y IS
   'Góp ý / phản hồi người dùng toàn site. id_nguoi_dung null = khách ẩn danh.';

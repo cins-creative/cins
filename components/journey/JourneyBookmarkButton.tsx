@@ -28,6 +28,8 @@ type Props = {
   initialCount?: number;
   showCount?: boolean;
   buttonClassName?: string;
+  /** Nhãn chữ hiển thị cạnh icon (để cả nút click được, không chỉ icon). */
+  label?: string;
   iconSize?: number;
   iconStrokeWidth?: number;
   saveEndpoint?: BookmarkSaveEndpoint;
@@ -43,6 +45,7 @@ export function JourneyBookmarkButton({
   initialCount = 0,
   showCount = false,
   buttonClassName = "action-btn",
+  label,
   iconSize = 16,
   iconStrokeWidth = 1.8,
   saveEndpoint,
@@ -353,6 +356,7 @@ export function JourneyBookmarkButton({
           fill={saved ? "currentColor" : "none"}
           aria-hidden
         />
+        {label ? <span className="jbb-label">{label}</span> : null}
         {showCount && count > 0 ? <span>{count}</span> : null}
       </button>
       {mounted && modal ? createPortal(modal, document.body) : null}

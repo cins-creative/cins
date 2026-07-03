@@ -9,6 +9,14 @@ export function isTemporaryImageRef(value: string): boolean {
   return value.startsWith("blob:") || value.startsWith("data:");
 }
 
+/**
+ * Ô ảnh trống vừa thêm (chưa chọn/upload ảnh) — seed dạng `new-...`.
+ * Không được resolve thành picsum dummy; render như placeholder rỗng.
+ */
+export function isPlaceholderImageSeed(value: string): boolean {
+  return /^new-/.test(value.trim());
+}
+
 /** URL http(s) đầy đủ — ảnh gốc từ web trường / bên thứ ba. */
 export function isExternalHttpImageRef(value: string): boolean {
   return /^https?:\/\//i.test(value.trim());

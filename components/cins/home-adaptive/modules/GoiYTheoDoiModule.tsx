@@ -28,6 +28,7 @@ export async function GoiYTheoDoiModule({ ctx }: { ctx: HomeModuleCtx }) {
           slug={s.slug}
           name={s.name}
           avatarUrl={s.avatarUrl}
+          isFriend={s.isFriend}
           subtitle={
             s.mutualCount > 0
               ? `${s.mutualCount} bạn chung`

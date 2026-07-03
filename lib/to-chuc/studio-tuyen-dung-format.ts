@@ -26,3 +26,25 @@ export function formatStudioDeadline(hanNop: string | null): string | null {
   if (Number.isNaN(d.getTime())) return null;
   return `Hạn nộp ${d.toLocaleDateString("vi-VN")}`;
 }
+
+/**
+ * Tin còn hiệu lực: trạng thái "đang mở" và (không có hạn nộp hoặc chưa qua hạn).
+ * Hết hiệu lực tính từ sau khi kết thúc ngày hạn nộp (23:59:59).
+ */
+export function isStudioJobActive(job: StudioJob, now: Date = new Date()): boolean {
+  if (job.trangThai !== "dang_mo") return false;
+  if (!job.hanNop) return true;
+  const d = new Date(job.hanNop);
+  if (Number.isNaN(d.getTime())) return true;
+  const endOfDay = new Date(d);
+  endOfDay.setHours(23, 59, 59, 999);
+  return endOfDay.getTime() >= now.getTime();
+}
+
+/** Số tin tuyển dụng đang mở & còn hiệu lực trong danh sách. */
+export function countActiveStudioJobs(
+  jobs: StudioJob[],
+  now: Date = new Date(),
+): number {
+  return jobs.reduce((n, job) => (isStudioJobActive(job, now) ? n + 1 : n), 0);
+}

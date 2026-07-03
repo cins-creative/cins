@@ -1,17 +1,31 @@
 "use client";
 
-import { MessageSquarePlus, X } from "lucide-react";
+import { HeartHandshake, MessageSquarePlus, Route, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { GopYContentEditor, type GopYContent } from "./GopYContentEditor";
 import "./gop-y-button.css";
 
+// TODO: thay "#" bằng link thật khi có (mở tab mới).
+const DONATE_URL = "#";
+const ROADMAP_URL = "#";
+
 type Status = "idle" | "sending" | "done" | "error";
+
+const EMPTY_CONTENT: GopYContent = {
+  noiDung: "",
+  anhUrl: "",
+  hasText: false,
+  hasImage: false,
+};
 
 export function GopYButton() {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [noiDung, setNoiDung] = useState("");
+  const [content, setContent] = useState<GopYContent>(EMPTY_CONTENT);
+  const [uploading, setUploading] = useState(false);
+  const [editorKey, setEditorKey] = useState(0);
   const [email, setEmail] = useState("");
   const [trangUrl, setTrangUrl] = useState("");
   const [status, setStatus] = useState<Status>("idle");
@@ -40,16 +54,19 @@ export function GopYButton() {
     setTimeout(() => {
       setOpen(false);
       setStatus("idle");
-      setNoiDung("");
+      setContent(EMPTY_CONTENT);
+      setUploading(false);
+      setEditorKey((k) => k + 1);
       setEmail("");
     }, 1400);
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (status === "sending") return;
-    if (noiDung.trim().length < 2) {
-      setErrorMsg("Vui lòng nhập nội dung góp ý.");
+    if (status === "sending" || uploading) return;
+    const { noiDung, anhUrl, hasText, hasImage } = content;
+    if (!hasText && !hasImage) {
+      setErrorMsg("Vui lòng nhập nội dung hoặc chèn ảnh góp ý.");
       setStatus("error");
       return;
     }
@@ -60,9 +77,10 @@ export function GopYButton() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          noiDung: noiDung.trim(),
+          noiDung,
           email: email.trim() || undefined,
-          trangUrl,
+          trangUrl: trangUrl.trim() || undefined,
+          anhUrl: anhUrl || undefined,
         }),
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
@@ -120,9 +138,47 @@ export function GopYButton() {
                   Đóng góp ý kiến
                 </h2>
                 <p className="gopy-sub">
-                  Cho tụi mình biết bạn thích gì, gặp lỗi gì, hay muốn thêm gì
-                  trên CINs.
+                  Hiện dự án đang ở giai đoạn beta nên sẽ khá nhiều lỗi, các bạn
+                  giúp CINs góp ý để cải thiện nha!
                 </p>
+
+                <div className="gopy-links">
+                  <a
+                    className="gopy-link gopy-link--donate"
+                    href={DONATE_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => {
+                      if (DONATE_URL === "#") e.preventDefault();
+                    }}
+                  >
+                    <span className="gopy-link-ic">
+                      <HeartHandshake size={20} strokeWidth={2.1} aria-hidden />
+                    </span>
+                    <span className="gopy-link-txt">
+                      <span className="gopy-link-title">Donate dự án</span>
+                      <span className="gopy-link-desc">Góp sức nuôi CINs lớn lên</span>
+                    </span>
+                  </a>
+
+                  <a
+                    className="gopy-link gopy-link--roadmap"
+                    href={ROADMAP_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => {
+                      if (ROADMAP_URL === "#") e.preventDefault();
+                    }}
+                  >
+                    <span className="gopy-link-ic">
+                      <Route size={20} strokeWidth={2.1} aria-hidden />
+                    </span>
+                    <span className="gopy-link-txt">
+                      <span className="gopy-link-title">Lộ trình phát triển</span>
+                      <span className="gopy-link-desc">Xem CINs sắp làm gì tiếp</span>
+                    </span>
+                  </a>
+                </div>
 
                 {status === "done" ? (
                   <div className="gopy-done">
@@ -133,18 +189,22 @@ export function GopYButton() {
                   </div>
                 ) : (
                   <form className="gopy-form" onSubmit={handleSubmit}>
-                    <label className="gopy-field">
+                    <div className="gopy-field">
                       <span className="gopy-label">Nội dung góp ý *</span>
-                      <textarea
-                        className="gopy-textarea"
-                        rows={5}
-                        value={noiDung}
-                        onChange={(e) => setNoiDung(e.target.value)}
-                        placeholder="Mình nghĩ trang này nên…"
-                        autoFocus
-                        maxLength={5000}
+                      <GopYContentEditor
+                        key={editorKey}
+                        onContentChange={setContent}
+                        onUploadingChange={setUploading}
+                        onError={(msg) => {
+                          setErrorMsg(msg);
+                          setStatus("error");
+                        }}
+                        onClearError={() => {
+                          setErrorMsg(null);
+                          setStatus((s) => (s === "error" ? "idle" : s));
+                        }}
                       />
-                    </label>
+                    </div>
 
                     <label className="gopy-field">
                       <span className="gopy-label">
@@ -160,12 +220,20 @@ export function GopYButton() {
                       />
                     </label>
 
-                    <div className="gopy-page">
-                      <span className="gopy-page-label">Trang bạn góp ý</span>
-                      <span className="gopy-page-url" title={trangUrl}>
-                        {trangUrl || "—"}
+                    <label className="gopy-field">
+                      <span className="gopy-label">
+                        Trang bạn góp ý{" "}
+                        <span className="gopy-optional">(có thể sửa)</span>
                       </span>
-                    </div>
+                      <input
+                        type="text"
+                        className="gopy-input gopy-input--url"
+                        value={trangUrl}
+                        onChange={(e) => setTrangUrl(e.target.value)}
+                        placeholder="https://…"
+                        maxLength={2000}
+                      />
+                    </label>
 
                     {status === "error" && errorMsg ? (
                       <p className="gopy-error">{errorMsg}</p>
@@ -182,7 +250,7 @@ export function GopYButton() {
                       <button
                         type="submit"
                         className="gopy-btn gopy-btn-primary"
-                        disabled={status === "sending"}
+                        disabled={status === "sending" || uploading}
                       >
                         {status === "sending" ? "Đang gửi…" : "Gửi góp ý"}
                       </button>

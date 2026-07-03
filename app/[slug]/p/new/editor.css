@@ -867,6 +867,23 @@
   align-items: center;
   justify-content: center;
 }
+.cins-editor-page .cover-add .cover-add-txt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+.cins-editor-page .cover-add .cover-add-title {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.cins-editor-page .cover-add .cover-add-sub {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.35;
+  color: var(--ink-muted, #64748b);
+}
 .cins-editor-page .cover-add.has {
   border: none;
   padding: 0;
@@ -1692,111 +1709,144 @@
   position: relative;
 }
 .cins-editor-page .imgwrap {
-  display: grid;
-  gap: 0;
+  display: block;
+  background: #fff;
 }
 .cins-editor-page .imgwrap.rounded {
   border-radius: var(--radius-md);
   overflow: hidden;
 }
+
+/* full: nhiều ảnh xếp dọc full-width, giữ tỉ lệ gốc (không crop). */
 .cins-editor-page .imgwrap.full {
-  grid-template-columns: 1fr;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
-.cins-editor-page .imgwrap.boxed {
-  grid-template-columns: 1fr;
-  max-width: 560px;
-  margin: 0 auto;
+
+/* masonry: 3 cột CSS columns theo chiều cao thật, không crop. */
+.cins-editor-page .imgwrap.masonry {
+  column-count: 3;
+  column-gap: 3px;
 }
+.cins-editor-page .imgwrap.masonry .ph {
+  break-inside: avoid;
+  margin-bottom: 3px;
+}
+
+/* justified: hàng giãn FULL chiều ngang (flex-grow), cao hàng linh hoạt. */
+.cins-editor-page .imgwrap.justified {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+.cins-editor-page .imgwrap.justified .ph {
+  flex: 1 1 240px;
+  height: 240px;
+}
+
+/* duo: 2 ảnh cạnh nhau, cao đều — cắt gọn để lấp đầy. */
 .cins-editor-page .imgwrap.duo {
-  grid-template-columns: 1fr 1fr;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 3px;
 }
-.cins-editor-page .imgwrap.trio {
-  grid-template-columns: 2fr 1fr;
-  grid-template-rows: 1fr 1fr;
+.cins-editor-page .imgwrap.duo .ph {
+  aspect-ratio: 4 / 5;
 }
-.cins-editor-page .imgwrap.trio .ph:first-child {
-  grid-row: span 2;
-  aspect-ratio: 1 / 1;
-  min-height: 0;
-  min-width: 0;
+
+/* grid2 / grid3 / grid4: lưới ô vuông đều, cắt gọn (object-fit: cover). */
+.cins-editor-page .imgwrap.grid2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 3px;
+}
+.cins-editor-page .imgwrap.grid3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
 }
 .cins-editor-page .imgwrap.grid4 {
-  grid-template-columns: 1fr 1fr;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 3px;
 }
-.cins-editor-page .imgwrap.row3 {
-  grid-template-columns: repeat(3, 1fr);
-}
-.cins-editor-page .imgwrap.big-right {
-  grid-template-columns: 1fr 2fr;
-  grid-template-rows: 1fr 1fr;
-}
-.cins-editor-page .imgwrap.big-right .ph:nth-child(3) {
-  grid-column: 2;
-  grid-row: 1 / span 2;
-}
-.cins-editor-page .imgwrap.strip5 {
-  grid-template-columns: repeat(5, 1fr);
-}
-.cins-editor-page .imgwrap.grid6 {
-  grid-template-columns: repeat(3, 1fr);
-}
-.cins-editor-page .imgwrap.grid9 {
-  grid-template-columns: repeat(3, 1fr);
-}
-.cins-editor-page .imgwrap.stack {
-  grid-template-columns: 1fr;
-}
-.cins-editor-page .imgwrap.duo-stack {
-  grid-template-columns: 1fr 1fr;
-}
-.cins-editor-page .ph {
-  position: relative;
-  background: var(--neutral-100);
-  overflow: hidden;
-  aspect-ratio: 16/10;
-}
-.cins-editor-page .imgwrap.boxed .ph {
-  aspect-ratio: auto;
-  height: auto;
-  background: transparent;
-  overflow: visible;
-  display: block;
-  line-height: 0;
-}
-.cins-editor-page .imgwrap.boxed .ph img {
-  width: 100%;
-  height: auto;
-  max-height: min(70vh, 560px);
-  object-fit: contain;
-  display: block;
-}
-.cins-editor-page .imgwrap.duo .ph,
-.cins-editor-page .imgwrap.grid4 .ph,
-.cins-editor-page .imgwrap.row3 .ph,
-.cins-editor-page .imgwrap.strip5 .ph,
-.cins-editor-page .imgwrap.grid6 .ph,
-.cins-editor-page .imgwrap.grid9 .ph,
-.cins-editor-page .imgwrap.duo-stack .ph {
-  aspect-ratio: 1/1;
-}
-.cins-editor-page .imgwrap.stack .ph {
-  aspect-ratio: 16/10;
-}
-.cins-editor-page .imgwrap.big-right .ph {
+.cins-editor-page .imgwrap.grid2 .ph,
+.cins-editor-page .imgwrap.grid3 .ph,
+.cins-editor-page .imgwrap.grid4 .ph {
   aspect-ratio: 1 / 1;
-  min-height: 0;
-  min-width: 0;
 }
-.cins-editor-page .imgwrap.trio .ph:not(:first-child) {
+
+/* hero: ảnh đầu lớn full-width, các ảnh còn lại thành dải vuông bên dưới. */
+.cins-editor-page .imgwrap.hero {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+}
+.cins-editor-page .imgwrap.hero .ph {
   aspect-ratio: 1 / 1;
-  min-height: 0;
-  min-width: 0;
 }
-.cins-editor-page .ph img {
+.cins-editor-page .imgwrap.hero .ph:first-child {
+  grid-column: 1 / -1;
+  aspect-ratio: 16 / 9;
+}
+
+/* Các layout lưới cắt gọn: ảnh phủ kín ô. */
+.cins-editor-page .imgwrap.duo .ph img,
+.cins-editor-page .imgwrap.grid2 .ph img,
+.cins-editor-page .imgwrap.grid3 .ph img,
+.cins-editor-page .imgwrap.grid4 .ph img,
+.cins-editor-page .imgwrap.hero .ph img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+/* Ô trống trong lưới: bám theo aspect-ratio của ô, bỏ min-height mặc định. */
+.cins-editor-page .imgwrap.duo .ph.is-empty,
+.cins-editor-page .imgwrap.grid2 .ph.is-empty,
+.cins-editor-page .imgwrap.grid3 .ph.is-empty,
+.cins-editor-page .imgwrap.grid4 .ph.is-empty,
+.cins-editor-page .imgwrap.hero .ph.is-empty {
+  min-height: 0;
+  min-width: 0;
+}
+
+.cins-editor-page .ph {
+  position: relative;
+  background: #fff;
+  overflow: hidden;
+}
+/* Ô ảnh trống vừa thêm — chưa chọn ảnh → nền placeholder, không dùng dummy. */
+.cins-editor-page .ph.is-empty {
+  min-height: 220px;
+  background:
+    repeating-linear-gradient(
+      45deg,
+      #f4f5f7,
+      #f4f5f7 12px,
+      #eceef1 12px,
+      #eceef1 24px
+    );
+  border: 1px dashed var(--line, #d6dae0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cins-editor-page .imgwrap.justified .ph.is-empty {
+  min-width: 220px;
+}
+/* Mặc định (full/masonry): ảnh full-width, cao tự nhiên → không crop. */
+.cins-editor-page .ph img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
   display: block;
+}
+/* justified: ảnh phủ kín ô đã giãn (fill ngang), cắt gọn nhẹ ở cao. */
+.cins-editor-page .imgwrap.justified .ph img {
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
 }
 .cins-editor-page .img-cap {
   font-size: 12px;
@@ -1894,9 +1944,53 @@
   opacity: 0;
   transition: opacity 0.15s;
 }
-.cins-editor-page .ph:hover .ph-actions,
-.cins-editor-page .mz:hover .ph-actions {
+.cins-editor-page .ph:hover .ph-actions {
   opacity: 1;
+}
+/* Nút xoá ảnh (góc phải trên mỗi ô). */
+.cins-editor-page .ph-del {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(14, 17, 23, 0.72);
+  color: #fff;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.cins-editor-page .ph:hover .ph-del {
+  opacity: 1;
+}
+.cins-editor-page .ph-del:hover {
+  background: #e5484d;
+}
+/* Nút "Thêm ảnh" dưới block ảnh. */
+.cins-editor-page .img-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 7px 14px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--bg-surface);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.cins-editor-page .img-add-btn:hover {
+  border-color: var(--cins-blue);
+  color: var(--cins-blue);
 }
 .cins-editor-page .ph-change {
   display: inline-flex;
@@ -1918,450 +2012,6 @@
   background: var(--cins-blue);
 }
 
-/* ─── Mosaic (Lưới tùy chỉnh) ─────────────────────────────────────── */
-.cins-editor-page .b-imgs.mosaic-mode {
-  position: relative;
-}
-.cins-editor-page .mosaic {
-  display: grid;
-  gap: 0;
-  grid-auto-flow: dense;
-  grid-auto-rows: 96px;
-}
-.cins-editor-page .mosaic.rounded {
-  border-radius: var(--radius-md);
-  overflow: hidden;
-}
-.cins-editor-page .mz {
-  position: relative;
-  overflow: hidden;
-  background: var(--neutral-100);
-}
-.cins-editor-page .mz img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-.cins-editor-page .mz .ph-actions {
-  bottom: 8px;
-}
-.cins-editor-page .mz.empty {
-  background: var(--bg-surface);
-  border: 1px dashed var(--border-strong);
-  min-height: 72px;
-}
-.cins-editor-page .mz-fill {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 8px;
-}
-.cins-editor-page .mz-fill-action {
-  display: inline-flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  min-height: 0;
-  height: auto;
-  padding: 5px 10px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.88);
-  color: var(--ink-body);
-  cursor: pointer;
-  font-family: inherit;
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 1;
-  white-space: nowrap;
-}
-.cins-editor-page .mz-fill-action--muted {
-  color: var(--ink-muted);
-}
-.cins-editor-page .mz-fill-action:hover {
-  border-color: var(--cins-blue);
-  color: var(--cins-blue);
-  background: var(--cins-blue-soft);
-}
-.cins-editor-page .mz-fill-action svg {
-  flex-shrink: 0;
-}
-.cins-editor-page .mz.text-cell {
-  background: transparent;
-}
-.cins-editor-page .mz-text {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  padding: 18px;
-  color: var(--ink-display);
-  font-family: var(--font-serif);
-  font-size: clamp(18px, 3vw, 42px);
-  font-weight: 800;
-  line-height: 1.05;
-}
-.cins-editor-page .mz-font-serif {
-  font-family: var(--font-serif);
-}
-.cins-editor-page .mz-font-sans {
-  font-family: var(--font-sans);
-}
-.cins-editor-page .mz-size-sm {
-  font-size: clamp(15px, 2vw, 26px);
-}
-.cins-editor-page .mz-size-md {
-  font-size: clamp(18px, 3vw, 42px);
-}
-.cins-editor-page .mz-size-lg {
-  font-size: clamp(24px, 4.5vw, 62px);
-}
-.cins-editor-page .mz-align-left {
-  justify-content: flex-start;
-  text-align: left;
-}
-.cins-editor-page .mz-align-center {
-  justify-content: center;
-  text-align: center;
-}
-.cins-editor-page .mz-align-right {
-  justify-content: flex-end;
-  text-align: right;
-}
-.cins-editor-page .mz-text p {
-  margin: 0;
-  white-space: pre-wrap;
-}
-.cins-editor-page .mz-text textarea {
-  width: 100%;
-  min-height: 72px;
-  border: 0;
-  outline: none;
-  resize: none;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  line-height: inherit;
-  text-align: inherit;
-}
-.cins-editor-page .mz-text-tools {
-  position: absolute;
-  top: 8px;
-  left: 8px;
-  z-index: 6;
-  display: inline-flex;
-  gap: 3px;
-  padding: 3px;
-  border-radius: var(--radius-pill);
-  background: rgba(14, 17, 23, 0.75);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-}
-.cins-editor-page .mz-tool-group {
-  display: inline-flex;
-  gap: 3px;
-}
-.cins-editor-page .mz-tool-sep {
-  width: 1px;
-  height: 18px;
-  align-self: center;
-  background: rgba(255, 255, 255, 0.22);
-}
-.cins-editor-page .mz-text-tools button {
-  min-width: 24px;
-  height: 24px;
-  padding: 0 7px;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.75);
-  cursor: pointer;
-  font-family: var(--font-sans);
-  font-size: 10px;
-  font-weight: 800;
-}
-.cins-editor-page .mz-text-tools button.active,
-.cins-editor-page .mz-text-tools button:hover {
-  background: #fff;
-  color: var(--neutral-900);
-}
-.cins-editor-page .mz-del {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: rgba(14, 17, 23, 0.7);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  color: #fff;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: opacity 0.12s;
-  z-index: 5;
-  pointer-events: none;
-}
-.cins-editor-page .mosaic.editing .mz-del {
-  opacity: 0.65;
-  pointer-events: auto;
-}
-.cins-editor-page .mosaic.editing .mz:hover .mz-del {
-  opacity: 1;
-}
-.cins-editor-page .mosaic.editing .mz.empty .mz-del {
-  background: var(--neutral-300);
-  color: var(--ink-body);
-  opacity: 0.9;
-}
-.cins-editor-page .mz .hdl {
-  position: absolute;
-  background: var(--cins-blue);
-  opacity: 0;
-  transition: opacity 0.12s;
-  z-index: 4;
-  pointer-events: none;
-  touch-action: none;
-}
-.cins-editor-page .mosaic.editing .mz:hover .hdl {
-  opacity: 0.9;
-  pointer-events: auto;
-}
-.cins-editor-page .mz .hdl.r {
-  right: 0;
-  top: 20%;
-  bottom: 20%;
-  width: 6px;
-  cursor: ew-resize;
-  border-radius: 3px 0 0 3px;
-}
-.cins-editor-page .mz .hdl.b {
-  bottom: 0;
-  left: 20%;
-  right: 20%;
-  height: 6px;
-  cursor: ns-resize;
-  border-radius: 3px 3px 0 0;
-}
-.cins-editor-page .mz .hdl:hover {
-  opacity: 1;
-}
-.cins-editor-page .mz-add {
-  border: 2px dashed var(--border-strong);
-  border-radius: var(--radius-sm);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--ink-muted);
-  cursor: pointer;
-  background: var(--bg-surface);
-  min-height: 96px;
-}
-.cins-editor-page .mz-add:hover {
-  border-color: var(--cins-blue);
-  color: var(--cins-blue);
-  background: var(--cins-blue-soft);
-}
-.cins-editor-page .mos-edit {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 6;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 32px;
-  padding: 0 14px;
-  border-radius: var(--radius-pill);
-  background: rgba(14, 17, 23, 0.78);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  color: #fff;
-  border: none;
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-.cins-editor-page .b-imgs.mosaic-mode:hover .mos-edit,
-.cins-editor-page .block.selected .b-imgs.mosaic-mode .mos-edit {
-  opacity: 1;
-}
-.cins-editor-page .mos-hint {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 11px;
-  color: var(--ink-muted);
-  margin-top: 9px;
-}
-.cins-editor-page .mos-hint svg {
-  color: var(--cins-blue);
-}
-
-/* Control bar (mosaic edit mode) — static, không đè lên grid */
-.cins-editor-page .ctrl-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  background: var(--neutral-900);
-  border-radius: var(--radius-pill);
-  padding: 5px 8px;
-  margin-bottom: 10px;
-}
-.cins-editor-page .ctrl-bar .cb-group {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-}
-.cins-editor-page .ctrl-bar .lay-btn {
-  position: static;
-  width: 30px;
-  min-width: 30px;
-  height: 30px;
-  padding: 0;
-  border-radius: var(--radius-pill);
-  border: none;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.7);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.cins-editor-page .ctrl-bar .lay-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
-}
-.cins-editor-page .ctrl-bar .lay-btn.active {
-  background: #fff;
-  color: var(--neutral-900);
-}
-.cins-editor-page .cb-sep {
-  width: 1px;
-  height: 20px;
-  background: rgba(255, 255, 255, 0.18);
-}
-.cins-editor-page .cb-spacer {
-  flex: 1 1 auto;
-  min-width: 24px;
-}
-.cins-editor-page .cb-actions {
-  display: inline-flex;
-  justify-content: flex-end;
-  margin-left: auto;
-}
-.cins-editor-page .cb-range-group {
-  display: inline-grid;
-  gap: 5px;
-  padding: 5px 8px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 13px;
-  background: rgba(255, 255, 255, 0.06);
-  min-width: 0;
-}
-.cins-editor-page .cb-range {
-  display: inline-grid;
-  grid-template-columns: 30px 72px 34px;
-  align-items: center;
-  gap: 6px;
-  color: rgba(255, 255, 255, 0.72);
-  font-size: 11px;
-  font-weight: 700;
-}
-.cins-editor-page .cb-range input {
-  width: 72px;
-  accent-color: var(--cins-yellow);
-  cursor: pointer;
-}
-.cins-editor-page .cb-range output {
-  color: #fff;
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-}
-.cins-editor-page .cbtn {
-  width: 26px;
-  height: 26px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: transparent;
-  border-radius: var(--radius-sm);
-  font-weight: 700;
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.8);
-  cursor: pointer;
-  font-family: inherit;
-}
-.cins-editor-page .cbtn:hover {
-  border-color: #fff;
-  color: #fff;
-}
-.cins-editor-page .cbtn.active {
-  background: var(--cins-blue);
-  border-color: var(--cins-blue);
-  color: #fff;
-}
-.cins-editor-page .cb-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 28px;
-  padding: 0 12px;
-  border: 1px solid rgba(255, 255, 255, 0.32);
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: var(--radius-pill);
-  font-family: inherit;
-  font-size: 11px;
-  font-weight: 600;
-  color: #fff;
-  cursor: pointer;
-}
-.cins-editor-page .cb-pill:hover {
-  border-color: #fff;
-  background: rgba(255, 255, 255, 0.16);
-}
-.cins-editor-page .cb-pill.icon-only {
-  width: 32px;
-  height: 28px;
-  padding: 0;
-  justify-content: center;
-  gap: 0;
-}
-.cins-editor-page .cb-pill.round-pill.active {
-  background: var(--cins-yellow);
-  color: var(--neutral-900);
-  border-color: var(--cins-yellow);
-}
-.cins-editor-page .cb-save {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 28px;
-  padding: 0 14px;
-  border-radius: var(--radius-pill);
-  background: var(--cins-mint, #6efec0);
-  border: 1px solid var(--cins-mint, #6efec0);
-  color: var(--neutral-900);
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-}
-.cins-editor-page .cb-save:hover {
-  filter: brightness(0.95);
-}
 
 /* Embed block */
 .cins-editor-page .b-embed {

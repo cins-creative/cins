@@ -11,6 +11,8 @@ import {
 import { getAvatarUrl } from "@/lib/journey/profile";
 import { compareTimelineOrder } from "@/lib/journey/timeline-sort";
 import { listFriends } from "@/lib/social/ket-ban";
+import { demLuotXemCuaViewer } from "@/lib/social/su-kien";
+import { loadUserSuKienPhanHoiMap } from "@/lib/to-chuc/su-kien-dang-ky";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import {
   fetchFollowedOrgBaiDangMilestones,
@@ -200,16 +202,66 @@ function applyLensOwners(
   });
 }
 
+/**
+ * ID đối tượng analytics của 1 milestone — khớp `id_doi_tuong` mà client bắn
+ * lên `social_luot_xem`: sự kiện → `suKienId`; bài đăng org → `postId`; còn lại
+ * là cột mốc (`cotMocId` ?? `id`). Dùng để tra số lần viewer đã xem.
+ */
+function analyticsIdOf(m: MilestoneItem): string {
+  if (m.orgSuKienRef?.suKienId) return m.orgSuKienRef.suKienId;
+  if (m.orgBaiDangRef?.postId) return m.orgBaiDangRef.postId;
+  return m.cotMocId ?? m.id;
+}
+
+/**
+ * Xếp hạng feed: ưu tiên nội dung CHƯA xem / xem ít (số lượt `hien_thi` của
+ * viewer thấp) lên trên; cùng số lượt thì giữ thứ tự dòng thời gian
+ * (`compareTimelineOrder`). Cắt còn `FEED_LIMIT`.
+ */
+async function rankFeedByUnseen(
+  viewerId: string,
+  items: MilestoneItem[],
+): Promise<MilestoneItem[]> {
+  if (items.length === 0) return [];
+
+  const seen = await demLuotXemCuaViewer(
+    viewerId,
+    items.map(analyticsIdOf),
+  );
+
+  return items
+    .slice()
+    .sort((a, b) => {
+      const sa = seen.get(analyticsIdOf(a)) ?? 0;
+      const sb = seen.get(analyticsIdOf(b)) ?? 0;
+      if (sa !== sb) return sa - sb;
+      return compareTimelineOrder(a, b);
+    })
+    .slice(0, FEED_LIMIT)
+    /* Đính số lượt xem để client giữ đúng thứ tự "chưa xem lên trên" khi
+       group-by-year (WorldJourneyFeedTimeline sort lại trong mỗi năm). */
+    .map((m) => ({ ...m, viewerSeenCount: seen.get(analyticsIdOf(m)) ?? 0 }));
+}
+
 export async function fetchWorldJourneyFeedMilestones(
   viewerId: string,
 ): Promise<MilestoneItem[]> {
-  const [friendIds, followingIds, followingTagIds, followingOrgIds] =
+  const [friendIds, followingIds, followingTagIds, followingOrgIds, phanHoiMap] =
     await Promise.all([
       listFriends(viewerId),
       listFollowingUserIds(viewerId),
       listFollowingTagIds(viewerId),
       listFollowingOrgIds(viewerId),
+      loadUserSuKienPhanHoiMap(viewerId),
     ]);
+
+  /* Sự kiện viewer đã phản hồi (Quan tâm / Đã đăng ký) → ẩn khỏi feed: đã hành
+     động rồi thì không lặp lại. `loadUserSuKienPhanHoiMap` đã bỏ trạng thái huỷ. */
+  const respondedSuKienIds = new Set(phanHoiMap.keys());
+  const dropRespondedSuKien = (m: MilestoneItem): boolean => {
+    const sid = m.orgSuKienRef?.suKienId;
+    return !sid || !respondedSuKienIds.has(sid);
+  };
 
   const friendSet = new Set(friendIds);
   const followingSet = new Set(followingIds);
@@ -223,8 +275,8 @@ export async function fetchWorldJourneyFeedMilestones(
     featureLinks,
     tagLinks,
     orgMilestones,
-    orgSuKienMilestones,
-    friendSuKienSuggestions,
+    orgSuKienMilestonesAll,
+    friendSuKienSuggestionsAll,
   ] = await Promise.all([
     fetchLinkRowsForAuthors(
       [viewerId],
@@ -235,9 +287,14 @@ export async function fetchWorldJourneyFeedMilestones(
     fetchGlobalFeatureLinkRows(),
     fetchLinkRowsForFollowedTags(followingTagIds),
     fetchFollowedOrgBaiDangMilestones(followingOrgIds),
-    fetchFollowedOrgSuKienMilestones(followingOrgIds),
+    fetchFollowedOrgSuKienMilestones(followingOrgIds, friendIds),
     fetchFriendSuggestedSuKienMilestones(friendIds),
   ]);
+
+  /* Ẩn sự kiện viewer đã phản hồi (Quan tâm / Đã đăng ký) khỏi mọi nguồn feed. */
+  const orgSuKienMilestones = orgSuKienMilestonesAll.filter(dropRespondedSuKien);
+  const friendSuKienSuggestions =
+    friendSuKienSuggestionsAll.filter(dropRespondedSuKien);
 
   const strangerFeatureLinks = featureLinks.filter((row) => {
     const ownerId = row.content_cot_moc?.id_nguoi_dung;
@@ -253,19 +310,18 @@ export async function fetchWorldJourneyFeedMilestones(
   ]).filter((cm) => isVisibleCotMoc(cm, viewerId, friendSet, followingSet));
 
   if (cotMocs.length === 0 && orgMilestones.length === 0) {
-    const orgOnly = [...orgSuKienMilestones, ...friendSuKienSuggestions]
-      .slice()
-      .sort(compareTimelineOrder)
-      .slice(0, FEED_LIMIT);
-    if (orgOnly.length > 0) return orgOnly;
-    return [];
+    return rankFeedByUnseen(viewerId, [
+      ...orgSuKienMilestones,
+      ...friendSuKienSuggestions,
+    ]);
   }
 
   if (cotMocs.length === 0) {
-    return [...orgMilestones, ...orgSuKienMilestones, ...friendSuKienSuggestions]
-      .slice()
-      .sort(compareTimelineOrder)
-      .slice(0, FEED_LIMIT);
+    return rankFeedByUnseen(viewerId, [
+      ...orgMilestones,
+      ...orgSuKienMilestones,
+      ...friendSuKienSuggestions,
+    ]);
   }
 
   const ownerIdByCotMoc = new Map(
@@ -292,17 +348,12 @@ export async function fetchWorldJourneyFeedMilestones(
     (m) => !followedSuKienIds.has(m.orgSuKienRef?.suKienId ?? ""),
   );
 
-  const merged = [
+  return rankFeedByUnseen(viewerId, [
     ...withSocial,
     ...orgMilestones,
     ...orgSuKienMilestones,
     ...dedupedFriendSuKien,
-  ]
-    .slice()
-    .sort(compareTimelineOrder)
-    .slice(0, FEED_LIMIT);
-
-  return merged;
+  ]);
 }
 
 /** Tab Khám phá — chỉ bài Nổi bật toàn cục từ người chưa follow/bạn bè. */

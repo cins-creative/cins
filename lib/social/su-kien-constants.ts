@@ -23,6 +23,7 @@ export const LOAI_DOI_TUONG_SUKIEN = [
   "nguoi_dung",
   "to_chuc",
   "org_bai_dang",
+  "su_kien",
 ] as const;
 export type LoaiDoiTuongSuKien = (typeof LOAI_DOI_TUONG_SUKIEN)[number];
 export const LOAI_DOI_TUONG_SUKIEN_SET: ReadonlySet<string> = new Set(

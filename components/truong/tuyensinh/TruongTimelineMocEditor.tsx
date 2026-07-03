@@ -4,10 +4,13 @@ import { useEffect, useState } from "react";
 
 import {
   emptyTimelineMoc,
+  mocHasTime,
   TIMELINE_MOC_DESC_MAX,
   TIMELINE_MOC_LABEL_MAX,
   TIMELINE_MOC_LINK_MAX,
   TIMELINE_MOC_MAX_ITEMS,
+  withMocTime,
+  withoutMocTime,
   type TuyenSinhTimelineMoc,
 } from "@/lib/truong/timeline-steps";
 
@@ -66,6 +69,7 @@ export function TruongTimelineMocEditor({
   onLinkThongTinChange,
 }: Props) {
   const [endDateOpen, setEndDateOpen] = useState<Record<string, boolean>>({});
+  const [timeOpen, setTimeOpen] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     setEndDateOpen((prev) => {
@@ -79,7 +83,34 @@ export function TruongTimelineMocEditor({
       }
       return changed ? next : prev;
     });
+    setTimeOpen((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const row of moc) {
+        if (
+          (mocHasTime(row.ngay_tu) || mocHasTime(row.ngay_den)) &&
+          !next[row.id]
+        ) {
+          next[row.id] = true;
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
   }, [moc]);
+
+  function toggleTime(index: number, rowId: string, next: boolean) {
+    const conv = next ? withMocTime : withoutMocTime;
+    updateAt(index, {
+      ngay_tu: conv(moc[index]?.ngay_tu),
+      ngay_den: conv(moc[index]?.ngay_den),
+    });
+    setTimeOpen((prev) => ({ ...prev, [rowId]: next }));
+  }
+
+  function showTimeFor(rowId: string): boolean {
+    return Boolean(timeOpen[rowId]);
+  }
 
   function updateAt(index: number, patch: Partial<TuyenSinhTimelineMoc>) {
     onChange(
@@ -130,6 +161,10 @@ export function TruongTimelineMocEditor({
       <ol className="tdh-timeline-moc-list">
         {moc.map((row, index) => {
           const showEnd = showEndFor(row);
+          const showTime = showTimeFor(row.id);
+          const dateType = showTime ? "datetime-local" : "date";
+          const dateVal = (v: string | null) =>
+            !v ? "" : showTime ? v.slice(0, 16) : v.slice(0, 10);
           return (
             <li key={row.id} className="tdh-timeline-moc-card">
               <div className="tdh-timeline-moc-card-hdr">
@@ -162,8 +197,8 @@ export function TruongTimelineMocEditor({
                 <label className="tdh-inline-field">
                   <span>{showEnd ? "Từ ngày" : "Ngày"}</span>
                   <input
-                    type="date"
-                    value={row.ngay_tu ?? ""}
+                    type={dateType}
+                    value={dateVal(row.ngay_tu)}
                     onChange={(e) =>
                       updateAt(index, {
                         ngay_tu: e.target.value || null,
@@ -175,8 +210,8 @@ export function TruongTimelineMocEditor({
                   <label className="tdh-inline-field">
                     <span>Đến ngày</span>
                     <input
-                      type="date"
-                      value={row.ngay_den ?? ""}
+                      type={dateType}
+                      value={dateVal(row.ngay_den)}
                       onChange={(e) =>
                         updateAt(index, {
                           ngay_den: e.target.value || null,
@@ -207,6 +242,16 @@ export function TruongTimelineMocEditor({
                   </button>
                 )}
               </div>
+              <label className="tdh-timeline-moc-time-toggle">
+                <input
+                  type="checkbox"
+                  checked={showTime}
+                  onChange={(e) =>
+                    toggleTime(index, row.id, e.target.checked)
+                  }
+                />
+                <span>Thêm giờ cụ thể</span>
+              </label>
               <label className="tdh-inline-field">
                 <span>Mô tả (tối đa {TIMELINE_MOC_DESC_MAX} ký tự)</span>
                 <textarea

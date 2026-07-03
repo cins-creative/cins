@@ -3,7 +3,7 @@ import "server-only";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import type { GiaiDoan } from "@/lib/cins/home-adaptive/persona";
 import { getAvatarUrl } from "@/lib/journey/profile";
-import { studioJobPath } from "@/lib/to-chuc/studio-routes";
+import { orgJobPath } from "@/lib/to-chuc/tuyen-dung-href";
 import { jobMatchesViewerGiaiDoan } from "@/lib/to-chuc/studio-tuyen-dung-distribution";
 import {
   mapStudioJobRow,
@@ -39,6 +39,7 @@ type OrgEmbed = {
   ten: string | null;
   slug: string | null;
   avatar_id: string | null;
+  loai_to_chuc: string | null;
 };
 
 type Row = {
@@ -97,7 +98,7 @@ export async function loadCoHoiForHome(
     const { data, error } = await admin
       .from("org_tuyen_dung")
       .select(
-        "id, tieu_de, mo_ta_ngan, loai_hinh, tinh_thanh, lam_tu_xa, muc_luong_tu, muc_luong_den, hien_thi_luong, giai_doan_muc_tieu, hien_thi_co_hoi, org_to_chuc:org_to_chuc!inner(ten, slug, avatar_id), linh_vuc:linh_vuc(ten)",
+        "id, tieu_de, mo_ta_ngan, loai_hinh, tinh_thanh, lam_tu_xa, muc_luong_tu, muc_luong_den, hien_thi_luong, giai_doan_muc_tieu, hien_thi_co_hoi, org_to_chuc:org_to_chuc!inner(ten, slug, avatar_id, loai_to_chuc), linh_vuc:linh_vuc(ten)",
       )
       .eq("da_xoa", false)
       .eq("trang_thai", "dang_mo")
@@ -135,7 +136,7 @@ export async function loadCoHoiForHome(
         linhVucTen: lv,
         salary: formatSalary(row),
         sub: [orgTen, lv, place, loaiLabel].filter(Boolean).join(" · "),
-        href: orgSlug ? studioJobPath(orgSlug, row.id) : null,
+        href: orgSlug ? orgJobPath(org?.loai_to_chuc, orgSlug, row.id) : null,
       };
     });
   } catch {

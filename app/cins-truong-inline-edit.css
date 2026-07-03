@@ -2356,6 +2356,28 @@
   margin-bottom: 0;
 }
 
+.tdh-timeline-moc-time-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 8px 0 2px;
+  font-size: 13px;
+  color: var(--muted, #6b7280);
+  cursor: pointer;
+  user-select: none;
+}
+
+.tdh-timeline-moc-time-toggle input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--blue, #1f74c9);
+  cursor: pointer;
+}
+
+.tdh-timeline-moc-time-toggle:hover {
+  color: var(--blue, #1f74c9);
+}
+
 .tdh-timeline-moc-card .tdh-inline-field {
   margin-bottom: 0;
 }

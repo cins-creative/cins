@@ -23,6 +23,7 @@ export type CreateGopYInput = {
   email?: string | null;
   noiDung: string;
   trangUrl?: string | null;
+  anhUrl?: string | null;
   userAgent?: string | null;
 };
 
@@ -43,6 +44,7 @@ export type GopYItem = {
   email: string | null;
   noiDung: string;
   trangUrl: string | null;
+  anhUrl: string | null;
   userAgent: string | null;
   trangThai: GopYTrangThai;
   ghiChu: string | null;

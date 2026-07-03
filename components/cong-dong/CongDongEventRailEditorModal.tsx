@@ -10,6 +10,12 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
+import {
+  emptyModularWhen,
+  localDateToIso,
+  ModularDateTimeField,
+  type ModularWhen,
+} from "@/components/common/ModularDateTimeField";
 import { congDongBannerImageUrl, congDongImageUrl } from "@/lib/cong-dong/images";
 import type {
   CongDongEventRailConfig,
@@ -144,8 +150,7 @@ export function CongDongEventRailEditorModal({
   const [schMoTa, setSchMoTa] = useState("");
   const [schCoverId, setSchCoverId] = useState<string | null>(null);
   const [schPreviewUrl, setSchPreviewUrl] = useState<string | null>(null);
-  const [schBatDau, setSchBatDau] = useState("");
-  const [schKetThuc, setSchKetThuc] = useState("");
+  const [schWhen, setSchWhen] = useState<ModularWhen>(emptyModularWhen);
 
   useEffect(() => {
     if (!open) return;
@@ -161,8 +166,7 @@ export function CongDongEventRailEditorModal({
     setSchMoTa("");
     setSchCoverId(null);
     setSchPreviewUrl(null);
-    setSchBatDau("");
-    setSchKetThuc("");
+    setSchWhen(emptyModularWhen());
   }, [open, config]);
 
   useEffect(() => {
@@ -376,8 +380,8 @@ export function CongDongEventRailEditorModal({
                   tieuDe: schTitle,
                   moTa: schMoTa || null,
                   coverId: schCoverId,
-                  batDau: schBatDau ? new Date(schBatDau).toISOString() : "",
-                  ketThuc: schKetThuc ? new Date(schKetThuc).toISOString() : "",
+                  batDau: localDateToIso(schWhen.start) ?? "",
+                  ketThuc: localDateToIso(schWhen.end) ?? "",
                 });
               }}
             >
@@ -448,26 +452,14 @@ export function CongDongEventRailEditorModal({
                       maxLength={280}
                     />
                   </label>
-                  <div className="cd-v4-event-edit-dates">
-                    <label className="cd-v4-event-edit-field">
-                      <span>Bắt đầu hiển thị *</span>
-                      <input
-                        type="datetime-local"
-                        value={schBatDau}
-                        onChange={(e) => setSchBatDau(e.target.value)}
-                        required
-                      />
-                    </label>
-                    <label className="cd-v4-event-edit-field">
-                      <span>Kết thúc *</span>
-                      <input
-                        type="datetime-local"
-                        value={schKetThuc}
-                        onChange={(e) => setSchKetThuc(e.target.value)}
-                        required
-                      />
-                    </label>
-                  </div>
+                  <ModularDateTimeField
+                    value={schWhen}
+                    onChange={setSchWhen}
+                    startLabel="Bắt đầu hiển thị *"
+                    endLabel="Kết thúc *"
+                    endRequired
+                    fieldClassName="cd-v4-event-edit-field"
+                  />
                   <button
                     type="submit"
                     className="cd-v4-event-edit-save"

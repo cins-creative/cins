@@ -1,6 +1,10 @@
 import "server-only";
 
-import type { MilestoneItem } from "@/components/journey/milestone-types";
+import type {
+  FeedFriendAttendee,
+  MilestoneItem,
+} from "@/components/journey/milestone-types";
+import { getAvatarUrl } from "@/lib/journey/profile";
 import { labelLoaiSuKien } from "@/lib/to-chuc/su-kien-constants";
 import { orgSuKienHref } from "@/lib/to-chuc/su-kien-routes";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -9,6 +13,15 @@ import { getStepStatus } from "@/lib/truong/timeline";
 
 /** Tối thiểu bạn bè đăng ký "sẽ tham gia" để gợi ý sự kiện trên feed. */
 export const MIN_FRIENDS_FOR_EVENT_SUGGESTION = 2;
+
+/** Tối đa bạn bè giữ lại cho popup danh sách (tránh payload phình to). */
+const MAX_FRIEND_ATTENDEES = 30;
+
+type UserEmbed = {
+  slug: string | null;
+  ten_hien_thi: string | null;
+  avatar_id: string | null;
+};
 
 type OrgEmbed = {
   slug: string | null;
@@ -64,7 +77,7 @@ function mapSuKienToMilestone(
   row: SuKienFeedRow,
   options: {
     feedSuggestion?: boolean;
-    friendCount?: number;
+    friends?: FeedFriendAttendee[];
   } = {},
 ): MilestoneItem | null {
   const org = pickOrg(row.org_to_chuc);
@@ -88,7 +101,8 @@ function mapSuKienToMilestone(
     ? resolveTruongImageSrcSync(row.cover_id, ["public", "cover", "medium"])
     : null;
 
-  const friendCount = options.friendCount ?? 0;
+  const friends = options.friends ?? [];
+  const friendCount = friends.length;
   let feedSocialHint: string | null = null;
   if (friendCount >= MIN_FRIENDS_FOR_EVENT_SUGGESTION) {
     feedSocialHint = `${friendCount} bạn bè sẽ tham gia`;
@@ -143,6 +157,7 @@ function mapSuKienToMilestone(
     orgHref: href,
     feedSuggestion: options.feedSuggestion === true,
     feedSocialHint,
+    feedFriends: friends.length > 0 ? friends : undefined,
   };
 }
 
@@ -191,49 +206,100 @@ async function fetchUpcomingSuKienRows(params: {
   return out;
 }
 
-/** Sự kiện sắp diễn ra từ org đang theo dõi → card timeline feed giữa. */
+/**
+ * Sự kiện sắp diễn ra từ org đang theo dõi → card timeline feed giữa.
+ * `friendIds` (tuỳ chọn): đính kèm danh sách bạn bè "sẽ tham gia" cho chip avatar.
+ */
 export async function fetchFollowedOrgSuKienMilestones(
   orgIds: string[],
+  friendIds: string[] = [],
   limit = 20,
 ): Promise<MilestoneItem[]> {
   if (orgIds.length === 0) return [];
 
   const rows = await fetchUpcomingSuKienRows({ orgIds, limit });
+  const friendMap = await fetchFriendAttendeesBySuKien(
+    friendIds,
+    rows.map((r) => r.id),
+  );
+
   const items: MilestoneItem[] = [];
   for (const row of rows) {
-    const item = mapSuKienToMilestone(row);
+    const item = mapSuKienToMilestone(row, {
+      friends: friendMap.get(row.id),
+    });
     if (item) items.push(item);
   }
   return items;
 }
 
-async function countFriendsParticipatingBySuKien(
+/**
+ * Bạn bè "sẽ tham gia" từng sự kiện — kèm profile để dựng chip + popup.
+ * Fetch 2 bước (đăng ký → profile) rồi join JS: không phụ thuộc FK embed
+ * PostgREST giữa `org_dang_ky_su_kien` và `user_nguoi_dung`.
+ */
+async function fetchFriendAttendeesBySuKien(
   friendIds: string[],
   suKienIds?: string[],
-): Promise<Map<string, number>> {
-  const counts = new Map<string, number>();
-  if (friendIds.length === 0) return counts;
+): Promise<Map<string, FeedFriendAttendee[]>> {
+  const map = new Map<string, FeedFriendAttendee[]>();
+  if (friendIds.length === 0) return map;
 
   const admin = createServiceRoleClient();
-  let query = admin
+  let regQuery = admin
     .from("org_dang_ky_su_kien")
-    .select("id_su_kien, loai_phan_hoi, trang_thai")
+    .select("id_su_kien, id_nguoi_dung, trang_thai")
     .in("id_nguoi_dung", friendIds)
     .eq("loai_phan_hoi", "se_tham_gia");
 
   if (suKienIds?.length) {
-    query = query.in("id_su_kien", suKienIds);
+    regQuery = regQuery.in("id_su_kien", suKienIds);
   }
 
-  const { data } = await query.returns<
-    Array<{ id_su_kien: string; loai_phan_hoi: string; trang_thai: string }>
+  const { data: regs } = await regQuery.returns<
+    Array<{ id_su_kien: string; id_nguoi_dung: string; trang_thai: string }>
   >();
 
-  for (const row of data ?? []) {
+  const pairs: Array<{ suKienId: string; userId: string }> = [];
+  const userIds = new Set<string>();
+  for (const row of regs ?? []) {
     if (TRANG_THAI_HUY.has(row.trang_thai)) continue;
-    counts.set(row.id_su_kien, (counts.get(row.id_su_kien) ?? 0) + 1);
+    pairs.push({ suKienId: row.id_su_kien, userId: row.id_nguoi_dung });
+    userIds.add(row.id_nguoi_dung);
   }
-  return counts;
+  if (pairs.length === 0) return map;
+
+  const { data: users } = await admin
+    .from("user_nguoi_dung")
+    .select("id, slug, ten_hien_thi, avatar_id")
+    .in("id", [...userIds])
+    .returns<Array<{ id: string } & UserEmbed>>();
+
+  const byUser = new Map<string, FeedFriendAttendee>();
+  for (const u of users ?? []) {
+    const slug = u.slug?.trim();
+    if (!slug) continue;
+    const name = u.ten_hien_thi?.trim() || slug;
+    byUser.set(u.id, {
+      id: u.id,
+      slug,
+      name,
+      avatarUrl: getAvatarUrl(u.avatar_id),
+      initial: name.slice(0, 1).toUpperCase(),
+    });
+  }
+
+  for (const { suKienId, userId } of pairs) {
+    const attendee = byUser.get(userId);
+    if (!attendee) continue;
+    const arr = map.get(suKienId);
+    if (arr) {
+      if (arr.length < MAX_FRIEND_ATTENDEES) arr.push(attendee);
+    } else {
+      map.set(suKienId, [attendee]);
+    }
+  }
+  return map;
 }
 
 /**
@@ -247,13 +313,14 @@ export async function fetchFriendSuggestedSuKienMilestones(
 ): Promise<MilestoneItem[]> {
   if (friendIds.length === 0) return [];
 
-  const friendCounts = await countFriendsParticipatingBySuKien(friendIds);
-  const candidateIds = [...friendCounts.entries()]
+  const friendMap = await fetchFriendAttendeesBySuKien(friendIds);
+  const candidateIds = [...friendMap.entries()]
     .filter(
-      ([id, count]) =>
-        count >= MIN_FRIENDS_FOR_EVENT_SUGGESTION && !excludeSuKienIds.has(id),
+      ([id, friends]) =>
+        friends.length >= MIN_FRIENDS_FOR_EVENT_SUGGESTION &&
+        !excludeSuKienIds.has(id),
     )
-    .sort((a, b) => b[1] - a[1])
+    .sort((a, b) => b[1].length - a[1].length)
     .slice(0, limit + excludeSuKienIds.size)
     .map(([id]) => id);
 
@@ -264,22 +331,21 @@ export async function fetchFriendSuggestedSuKienMilestones(
     limit: candidateIds.length,
   });
 
-  const byFriendCount = friendCounts;
   const items: MilestoneItem[] = [];
   for (const row of rows) {
-    const friendCount = byFriendCount.get(row.id) ?? 0;
-    if (friendCount < MIN_FRIENDS_FOR_EVENT_SUGGESTION) continue;
+    const friends = friendMap.get(row.id) ?? [];
+    if (friends.length < MIN_FRIENDS_FOR_EVENT_SUGGESTION) continue;
     const item = mapSuKienToMilestone(row, {
       feedSuggestion: true,
-      friendCount,
+      friends,
     });
     if (item) items.push(item);
   }
 
   items.sort(
     (a, b) =>
-      (byFriendCount.get(b.cotMocId ?? "") ?? 0) -
-      (byFriendCount.get(a.cotMocId ?? "") ?? 0),
+      (friendMap.get(b.cotMocId ?? "")?.length ?? 0) -
+      (friendMap.get(a.cotMocId ?? "")?.length ?? 0),
   );
 
   return items.slice(0, limit);

@@ -73,6 +73,38 @@ function toRow(
   };
 }
 
+/**
+ * Đếm số lần 1 viewer đã "tiếp cận" (`hien_thi`) từng đối tượng trong danh sách.
+ * Dùng để xếp hạng feed: đối tượng CHƯA xem (không có trong map ⇒ 0) hoặc xem
+ * ít lên trên. Match theo `id_doi_tuong` (UUID toàn cục duy nhất) nên không cần
+ * lọc thêm `loai_doi_tuong`. Trả map rỗng cho khách (không `viewerId`).
+ */
+export async function demLuotXemCuaViewer(
+  viewerId: string | null | undefined,
+  idDoiTuongs: string[],
+): Promise<Map<string, number>> {
+  const counts = new Map<string, number>();
+  if (!viewerId) return counts;
+
+  const ids = [...new Set(idDoiTuongs.filter(Boolean))];
+  if (ids.length === 0) return counts;
+
+  const admin = createServiceRoleClient();
+  const { data } = await admin
+    .from("social_luot_xem")
+    .select("id_doi_tuong")
+    .eq("nguoi_xem", viewerId)
+    .eq("loai_su_kien", "hien_thi")
+    .in("id_doi_tuong", ids)
+    .limit(5000)
+    .returns<Array<{ id_doi_tuong: string }>>();
+
+  for (const row of data ?? []) {
+    counts.set(row.id_doi_tuong, (counts.get(row.id_doi_tuong) ?? 0) + 1);
+  }
+  return counts;
+}
+
 /* ── Insight RIÊNG TƯ cho chủ bài ────────────────────────────────────── */
 
 /** Nguồn bề mặt được xem là "trong trang tổ chức" (entity-lens / org page). */

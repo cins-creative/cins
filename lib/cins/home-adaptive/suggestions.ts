@@ -15,6 +15,8 @@ export type FollowSuggestion = {
   giaiDoan: string | null;
   /** Số bạn chung với người xem (0 nếu không có / không xác định). */
   mutualCount: number;
+  /** Người xem đã là bạn bè (kết bạn accepted) với gợi ý này. */
+  isFriend: boolean;
 };
 
 type UserRow = {
@@ -66,6 +68,7 @@ export async function loadFollowSuggestions(
       avatarUrl: getAvatarUrl(row.avatar_id),
       giaiDoan: row.giai_doan,
       mutualCount: 0,
+      isFriend: false,
     });
     if (out.length >= limit) break;
   }
@@ -114,6 +117,7 @@ async function attachMutualCounts(
 
   for (const s of suggestions) {
     s.mutualCount = mutualByUser.get(s.id)?.size ?? 0;
+    s.isFriend = viewerFriends.has(s.id);
   }
 }
 

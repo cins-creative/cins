@@ -1,13 +1,15 @@
 "use client";
 
-import { CalendarDays, Clock3 } from "lucide-react";
+import { Clock3 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { HaOrgUpCountdown } from "@/components/cins/home-adaptive/HaOrgUpCountdown";
 import { JourneyOrgPopover } from "@/components/journey/JourneyOrgPopover";
+import { OrgSuKienFriendsChips } from "@/components/journey/OrgSuKienFriendsChips";
 import type { MilestoneAttribution, MilestoneItem } from "@/components/journey/milestone-types";
 import { SuKienPhanHoiActions } from "@/components/to-chuc/SuKienPhanHoiActions";
+import { useImpressionTracker } from "@/lib/social/track-su-kien";
 import type { LoaiPhanHoiSuKien } from "@/lib/to-chuc/su-kien-dang-ky";
 import { getStepStatus } from "@/lib/truong/timeline";
 
@@ -65,6 +67,19 @@ export function OrgSuKienFeedMilestoneCard({
   const ref = milestone.orgSuKienRef;
   const attr = milestone.attribution;
   const [phanHoi, setPhanHoi] = useState<LoaiPhanHoiSuKien | null>(null);
+  const articleRef = useRef<HTMLElement | null>(null);
+
+  /* Đo lượt tiếp cận sự kiện (`hien_thi`) → xếp hạng feed "chưa xem / xem ít".
+     Tracker tự no-op khi thiếu id hợp lệ. */
+  useImpressionTracker(
+    articleRef,
+    {
+      loaiDoiTuong: "su_kien",
+      idDoiTuong: ref?.suKienId ?? "",
+      nguon: entityLens ? "entity_lens" : "journey_home",
+    },
+    Boolean(ref?.suKienId),
+  );
 
   if (!ref || !attr) return null;
 
@@ -105,7 +120,7 @@ export function OrgSuKienFeedMilestoneCard({
     .join(" ");
 
   return (
-    <article className={cardClass} data-mid={milestone.id}>
+    <article ref={articleRef} className={cardClass} data-mid={milestone.id}>
       <div className="j-m-card jcard j-org-su-kien-card">
         <div className="j-osk-hero">
           {cover?.src ? (
@@ -122,22 +137,6 @@ export function OrgSuKienFeedMilestoneCard({
             </span>
           )}
           <span className="j-osk-hero-shade" aria-hidden />
-          <span className="j-osk-date-badge">
-            <span className="j-osk-date-core">
-              <span className="j-osk-date-month">{badge.month}</span>
-              <span className="j-osk-date-day">{badge.day}</span>
-            </span>
-            <HaOrgUpCountdown
-              batDauIso={ref.batDau}
-              ketThucIso={ref.ketThuc ?? null}
-              status={countdownStatus}
-            />
-          </span>
-          {milestone.feedSuggestion ? (
-            <span className="j-osk-hero-badges">
-              <span className="j-osk-pill j-osk-pill--suggest">Gợi ý</span>
-            </span>
-          ) : null}
         </div>
 
         <div className="j-osk-body">
@@ -157,9 +156,16 @@ export function OrgSuKienFeedMilestoneCard({
                 {orgRow}
               </Link>
             )}
-            <span className="j-osk-kind-badge">
-              <CalendarDays size={12} strokeWidth={2} aria-hidden />
-              Sự kiện
+            <span className="j-osk-date-badge">
+              <span className="j-osk-date-core">
+                <span className="j-osk-date-month">{badge.month}</span>
+                <span className="j-osk-date-day">{badge.day}</span>
+              </span>
+              <HaOrgUpCountdown
+                batDauIso={ref.batDau}
+                ketThucIso={ref.ketThuc ?? null}
+                status={countdownStatus}
+              />
             </span>
           </div>
 
@@ -167,7 +173,12 @@ export function OrgSuKienFeedMilestoneCard({
             {milestone.title}
           </Link>
 
-          {milestone.feedSocialHint ? (
+          {milestone.feedFriends && milestone.feedFriends.length > 0 ? (
+            <OrgSuKienFriendsChips
+              friends={milestone.feedFriends}
+              eventTitle={milestone.title}
+            />
+          ) : milestone.feedSocialHint ? (
             <p className="j-osk-social-hint">{milestone.feedSocialHint}</p>
           ) : null}
 
@@ -191,6 +202,17 @@ export function OrgSuKienFeedMilestoneCard({
             suKienId={ref.suKienId}
             className="j-osk-actions"
             onLoaiChange={setPhanHoi}
+            orgTen={attr.name}
+            orgAvatarUrl={attr.avatarUrl}
+            nguCanh={{
+              loai: "su_kien",
+              id: ref.suKienId,
+              tieuDe: milestone.title,
+              moTa: milestone.body ?? null,
+              anh: cover?.src ?? null,
+              href: ref.href,
+              orgTen: attr.name,
+            }}
           />
         </div>
       </div>

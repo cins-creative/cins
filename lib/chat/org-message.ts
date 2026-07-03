@@ -740,6 +740,59 @@ export async function sendOrgMessageToStudent(params: {
   }
 }
 
+/**
+ * Mở (hoặc tạo) phòng chat giữa 1 USER và 1 ORG khi user chủ động nhắn tin.
+ * KHÔNG chèn card ngữ cảnh ở đây — card chỉ là "chờ" phía client, được gửi kèm
+ * tin nhắn đầu tiên khi user thực sự gửi. Dùng chung mô hình phòng `1_org`.
+ */
+export async function openUserOrgRoom(
+  orgId: string,
+  viewerId: string,
+): Promise<{ ok: true; thread: ChatThread } | { ok: false; error: string }> {
+  const admin = createServiceRoleClient();
+
+  const { data: org } = await admin
+    .from("org_to_chuc")
+    .select("id, ten, loai_to_chuc, avatar_id")
+    .eq("id", orgId)
+    .maybeSingle<OrgRow>();
+
+  if (!org?.id) {
+    return { ok: false, error: "Không tìm thấy tổ chức." };
+  }
+
+  let roomId: string;
+  try {
+    roomId = await findOrCreateOrgStudentRoom(orgId, viewerId);
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Không mở được hội thoại.",
+    };
+  }
+
+  const now = new Date().toISOString();
+
+  const { data: last } = await admin
+    .from("chat_tin_nhan")
+    .select(MESSAGE_SELECT)
+    .eq("id_phong", roomId)
+    .eq("da_xoa", false)
+    .order("tao_luc", { ascending: false })
+    .limit(1)
+    .maybeSingle<MessageRow>();
+
+  const thread = buildOrgThread(
+    roomId,
+    org,
+    last ? messagePreview(last) : "Bắt đầu trò chuyện",
+    last?.tao_luc ?? now,
+    0,
+  );
+
+  return { ok: true, thread: { ...thread, messages: [] } };
+}
+
 export async function listOrgThreadsForUser(viewerId: string): Promise<ChatThread[]> {
   const admin = createServiceRoleClient();
 

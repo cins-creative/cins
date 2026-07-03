@@ -3,8 +3,14 @@ import { Menu as MenuIcon } from "lucide-react";
 import Link from "next/link";
 
 import { CinsTopbarSearch } from "@/components/cins/CinsTopbarSearch";
+import { SessionRestorer } from "@/components/cins/SessionRestorer";
 import { UserAccountMenu } from "@/components/cins/UserAccountMenu";
 import { JourneyNotifications } from "@/components/journey/JourneyNotifications";
+import {
+  getSwitchableAccounts,
+  hasRestoreHint,
+  readAccountVault,
+} from "@/lib/auth/account-vault";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import { countUnreadNotifications } from "@/lib/social/notifications";
@@ -32,9 +38,19 @@ export async function CinsAppTopbar() {
           avatarUrl: getAvatarUrl(session.profile.avatar_id),
         }
       : null;
+  const switchableAccounts = accountProfile
+    ? await getSwitchableAccounts(accountProfile.slug)
+    : [];
+
+  /* Khách nhưng kho còn tài khoản + hint bật → thử khôi phục phiên mặc định. */
+  const canRestore =
+    !isAuthed &&
+    (await hasRestoreHint()) &&
+    (await readAccountVault()).length > 0;
 
   return (
     <nav className="topbar cins-app-topbar" id="app-topbar">
+      {canRestore ? <SessionRestorer canRestore /> : null}
       <div className="topbar-inner">
         <div className="tb-left">
           <button
@@ -69,9 +85,13 @@ export async function CinsAppTopbar() {
             />
           ) : null}
           {accountProfile ? (
-            <UserAccountMenu profile={accountProfile} placement="topbar" />
+            <UserAccountMenu
+              profile={accountProfile}
+              placement="topbar"
+              savedAccounts={switchableAccounts}
+            />
           ) : null}
-          {isAuthed ? null : (
+          {isAuthed || canRestore ? null : (
             <>
               <span className="tb-divider" aria-hidden />
               <div className="tb-auth">

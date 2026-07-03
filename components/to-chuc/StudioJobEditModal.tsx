@@ -1,8 +1,27 @@
 "use client";
 
-import { Check, Sparkles, X } from "lucide-react";
-import { useEffect, useId, useMemo, useState } from "react";
+import {
+  Award,
+  Briefcase,
+  Check,
+  Clock,
+  Crown,
+  GraduationCap,
+  Globe,
+  Laptop,
+  Leaf,
+  Sparkles,
+  Sprout,
+  Star,
+  TrendingUp,
+  X,
+} from "lucide-react";
+import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
 
+import {
+  StudioIconSelect,
+  type StudioSelectOption,
+} from "@/components/to-chuc/StudioIconSelect";
 import { StudioJobTitlePicker } from "@/components/to-chuc/StudioJobTitlePicker";
 import { STUDIO_PERK_ICONS } from "@/components/to-chuc/StudioPerkList";
 import { TruongInlineModal } from "@/components/truong/inline/TruongInlineModal";
@@ -44,6 +63,37 @@ const STATUS_OPTIONS = Object.entries(STUDIO_JOB_STATUS_LABEL) as Array<
   [StudioJobStatus, string]
 >;
 
+const ICON_SIZE = 15;
+
+const LOAI_HINH_ICONS: Record<StudioJobLoaiHinh, ReactNode> = {
+  toan_thoi_gian: <Briefcase size={ICON_SIZE} strokeWidth={2} />,
+  ban_thoi_gian: <Clock size={ICON_SIZE} strokeWidth={2} />,
+  remote: <Globe size={ICON_SIZE} strokeWidth={2} />,
+  freelance: <Laptop size={ICON_SIZE} strokeWidth={2} />,
+  thuc_tap: <GraduationCap size={ICON_SIZE} strokeWidth={2} />,
+};
+
+const LOAI_HINH_SELECT_OPTIONS: StudioSelectOption[] = LOAI_HINH_OPTIONS.map(
+  ([value, label]) => ({ value, label, icon: LOAI_HINH_ICONS[value] }),
+);
+
+const CAP_DO_ICONS: Record<string, ReactNode> = {
+  intern: <GraduationCap size={ICON_SIZE} strokeWidth={2} />,
+  fresher: <Sprout size={ICON_SIZE} strokeWidth={2} />,
+  junior: <Leaf size={ICON_SIZE} strokeWidth={2} />,
+  middle: <TrendingUp size={ICON_SIZE} strokeWidth={2} />,
+  senior: <Award size={ICON_SIZE} strokeWidth={2} />,
+  lead: <Star size={ICON_SIZE} strokeWidth={2} />,
+  director: <Crown size={ICON_SIZE} strokeWidth={2} />,
+};
+
+const CAP_DO_SELECT_OPTIONS: StudioSelectOption[] =
+  STUDIO_JOB_CAP_DO_OPTIONS.filter((o) => o.value).map((o) => ({
+    value: o.value,
+    label: o.label,
+    icon: CAP_DO_ICONS[o.value],
+  }));
+
 function parseMoney(raw: string): number | null {
   const t = raw.trim().replace(/[.,\s]/g, "");
   if (!t) return null;
@@ -71,8 +121,9 @@ export function StudioJobEditModal({ orgId, job, onClose, onSaved }: Props) {
   const [loaiHinh, setLoaiHinh] = useState<StudioJobLoaiHinh>(
     job?.loaiHinh ?? "toan_thoi_gian",
   );
-  const [capDo, setCapDo] = useState(job?.capDo ?? "");
+  const [capDo, setCapDo] = useState<string[]>(job?.capDo ?? []);
   const [tinhThanh, setTinhThanh] = useState(job?.tinhThanh ?? "");
+  const [diaChi, setDiaChi] = useState(job?.diaChi ?? "");
   const [lamTuXa, setLamTuXa] = useState(job?.lamTuXa ?? false);
   const [idLinhVuc, setIdLinhVuc] = useState(job?.idLinhVuc ?? "");
   const [hienThiLuong, setHienThiLuong] = useState(job?.hienThiLuong ?? false);
@@ -126,6 +177,28 @@ export function StudioJobEditModal({ orgId, job, onClose, onSaved }: Props) {
     return job?.ngheTieuDe ?? "Vị trí trong hệ thống";
   }, [idNghe, ngheOptions, job?.ngheTieuDe]);
 
+  // Lĩnh vực suy ra tự động từ nghề đã chọn (khớp theo tên) — VD nghề thuộc
+  // "Game" / "Phim điện ảnh" thì tự set lĩnh vực tương ứng.
+  const ngheLinhVucTen = useMemo(() => {
+    if (!idNghe) return null;
+    return ngheOptions.find((o) => o.id === idNghe)?.linhVucTen?.trim() || null;
+  }, [idNghe, ngheOptions]);
+
+  useEffect(() => {
+    if (!ngheLinhVucTen || linhVucs.length === 0) return;
+    const norm = (s: string) =>
+      s
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/đ/g, "d")
+        .trim();
+    const match = linhVucs.find((lv) => norm(lv.ten) === norm(ngheLinhVucTen));
+    if (match) {
+      setIdLinhVuc((prev) => (prev === match.id ? prev : match.id));
+    }
+  }, [ngheLinhVucTen, linhVucs]);
+
   const phucLoiNoteByKey = useMemo(
     () => new Map(phucLoi.map((p) => [p.key, p.note] as const)),
     [phucLoi],
@@ -165,8 +238,9 @@ export function StudioJobEditModal({ orgId, job, onClose, onSaved }: Props) {
       phucLoi,
       moTaNgan: moTaNgan.trim() || null,
       loaiHinh,
-      capDo: capDo.trim() || null,
+      capDo,
       tinhThanh: tinhThanh.trim() || null,
+      diaChi: diaChi.trim() || null,
       lamTuXa,
       idLinhVuc: idLinhVuc.trim() || null,
       idNghe,
@@ -346,6 +420,7 @@ export function StudioJobEditModal({ orgId, job, onClose, onSaved }: Props) {
               className="studio-job-input"
               value={idLinhVuc}
               onChange={(e) => setIdLinhVuc(e.target.value)}
+              disabled={Boolean(idNghe)}
             >
               <option value="">— Chưa chọn —</option>
               {linhVucs.map((lv) => (
@@ -354,37 +429,37 @@ export function StudioJobEditModal({ orgId, job, onClose, onSaved }: Props) {
                 </option>
               ))}
             </select>
+            {idNghe ? (
+              <span className="studio-job-field-hint">
+                Tự động theo lĩnh vực của nghề đã chọn.
+              </span>
+            ) : null}
           </label>
 
-          <label className="studio-job-field">
+          <div className="studio-job-field">
             <span className="studio-job-field-label">Loại hình</span>
-            <select
-              className="studio-job-input"
+            <StudioIconSelect
+              ariaLabel="Loại hình công việc"
+              options={LOAI_HINH_SELECT_OPTIONS}
               value={loaiHinh}
-              onChange={(e) => setLoaiHinh(e.target.value as StudioJobLoaiHinh)}
-            >
-              {LOAI_HINH_OPTIONS.map(([val, label]) => (
-                <option key={val} value={val}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
+              onChange={(v) => setLoaiHinh(v as StudioJobLoaiHinh)}
+            />
+          </div>
 
-          <label className="studio-job-field">
+          <div className="studio-job-field">
             <span className="studio-job-field-label">Cấp độ</span>
-            <select
-              className="studio-job-input"
-              value={capDo}
-              onChange={(e) => setCapDo(e.target.value)}
-            >
-              {STUDIO_JOB_CAP_DO_OPTIONS.map((opt) => (
-                <option key={opt.value || "none"} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </label>
+            <StudioIconSelect
+              multiple
+              ariaLabel="Cấp độ vị trí (chọn nhiều)"
+              placeholder="Chọn 1 hoặc nhiều cấp độ"
+              options={CAP_DO_SELECT_OPTIONS}
+              values={capDo}
+              onChange={setCapDo}
+            />
+            <span className="studio-job-field-hint">
+              Có thể chọn nhiều cấp độ (VD: Junior + Middle).
+            </span>
+          </div>
 
           <label className="studio-job-field">
             <span className="studio-job-field-label">Tỉnh / thành</span>
@@ -423,6 +498,23 @@ export function StudioJobEditModal({ orgId, job, onClose, onSaved }: Props) {
             />
           </label>
         </div>
+
+        <label className="studio-job-field">
+          <span className="studio-job-field-label">Địa chỉ cụ thể</span>
+          <input
+            className="studio-job-input"
+            value={diaChi}
+            maxLength={240}
+            placeholder="Số nhà, đường, phường/quận… (VD: 12 Nguyễn Huệ, Q.1)"
+            onChange={(e) => setDiaChi(e.target.value)}
+            disabled={lamTuXa}
+          />
+          <span className="studio-job-field-hint">
+            {lamTuXa
+              ? "Vị trí remote — không cần địa chỉ."
+              : "Địa điểm làm việc chi tiết, bổ sung cho tỉnh/thành."}
+          </span>
+        </label>
 
         <label className="studio-job-check">
           <input

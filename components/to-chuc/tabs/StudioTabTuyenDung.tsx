@@ -24,6 +24,7 @@ import {
   formatStudioSalary,
   studioJobPlace,
 } from "@/lib/to-chuc/studio-tuyen-dung-format";
+import { capDoLabels } from "@/lib/to-chuc/studio-tuyen-dung-distribution";
 import {
   STUDIO_JOB_LOAI_HINH_LABEL,
   STUDIO_JOB_STATUS_LABEL,
@@ -139,9 +140,11 @@ export function StudioTabTuyenDung({
                         {job.linhVucTen ? (
                           <span className="studio-job-chip">{job.linhVucTen}</span>
                         ) : null}
-                        {job.capDo ? (
-                          <span className="studio-job-chip">{job.capDo}</span>
-                        ) : null}
+                        {capDoLabels(job.capDo).map((cd) => (
+                          <span key={cd} className="studio-job-chip">
+                            {cd}
+                          </span>
+                        ))}
                         {canEdit && job.trangThai !== "dang_mo" ? (
                           <span className="studio-job-chip studio-job-chip--status">
                             {STUDIO_JOB_STATUS_LABEL[job.trangThai]}
@@ -208,10 +211,16 @@ export function StudioTabTuyenDung({
         <StudioJobDetailModal
           key={detailJob.id}
           job={detailJob}
+          orgId={orgId}
           orgTen={orgTen}
+          jobHref={studioJobPath(orgSlug, detailJob.id)}
           canEdit={canEdit}
           viewerLoggedIn={viewerLoggedIn}
           onClose={closeDetail}
+          relatedJobs={visibleJobs.filter(
+            (j) => j.id !== detailJob.id && j.trangThai === "dang_mo",
+          )}
+          onOpenJob={openDetail}
           onEdit={
             canEdit
               ? (job) => {

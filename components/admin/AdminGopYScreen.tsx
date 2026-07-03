@@ -27,6 +27,30 @@ function fmtDate(iso: string): string {
   });
 }
 
+type NoiDungSeg = { type: "text"; text: string } | { type: "image"; url: string };
+
+/** Tách nội dung thành đoạn văn + ảnh (`![](url)`) theo đúng thứ tự đã gửi. */
+function parseNoiDung(s: string): NoiDungSeg[] {
+  const segs: NoiDungSeg[] = [];
+  let buf: string[] = [];
+  const flush = () => {
+    const t = buf.join("\n").trim();
+    if (t) segs.push({ type: "text", text: t });
+    buf = [];
+  };
+  for (const line of s.split("\n")) {
+    const m = line.trim().match(/^!\[\]\((.+)\)$/);
+    if (m) {
+      flush();
+      segs.push({ type: "image", url: m[1] });
+    } else {
+      buf.push(line);
+    }
+  }
+  flush();
+  return segs;
+}
+
 const NEXT_ACTIONS: Array<{ value: GopYTrangThai; label: string; kind: string }> = [
   { value: "dang_xu_ly", label: "Đang xử lý", kind: "ghost" },
   { value: "da_xu_ly", label: "Đã xử lý", kind: "primary" },
@@ -128,7 +152,70 @@ export function AdminGopYScreen({ items }: Props) {
                 <span className="gopy-admin-time">{fmtDate(item.taoLuc)}</span>
               </div>
 
-              <p className="gopy-admin-noidung">{item.noiDung}</p>
+              {(() => {
+                const segs = parseNoiDung(item.noiDung);
+                const hasImg = segs.some((s) => s.type === "image");
+                // Bản ghi mới: nội dung + ảnh xen kẽ nằm trong noiDung.
+                if (hasImg) {
+                  return (
+                    <div className="gopy-admin-content">
+                      {segs.map((s, i) =>
+                        s.type === "text" ? (
+                          <p key={i} className="gopy-admin-noidung">
+                            {s.text}
+                          </p>
+                        ) : (
+                          <a
+                            key={i}
+                            href={s.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="gopy-admin-img"
+                            title="Mở ảnh minh họa"
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={s.url}
+                              alt="Ảnh minh họa góp ý"
+                              loading="lazy"
+                              onError={(e) => {
+                                const a = e.currentTarget.closest("a");
+                                if (a instanceof HTMLElement) a.style.display = "none";
+                              }}
+                            />
+                          </a>
+                        ),
+                      )}
+                    </div>
+                  );
+                }
+                // Bản ghi cũ: noiDung là text thuần + anhUrl riêng.
+                return (
+                  <>
+                    <p className="gopy-admin-noidung">{item.noiDung}</p>
+                    {item.anhUrl ? (
+                      <a
+                        href={item.anhUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="gopy-admin-img"
+                        title="Mở ảnh minh họa"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={item.anhUrl}
+                          alt="Ảnh minh họa góp ý"
+                          loading="lazy"
+                          onError={(e) => {
+                            const a = e.currentTarget.closest("a");
+                            if (a instanceof HTMLElement) a.style.display = "none";
+                          }}
+                        />
+                      </a>
+                    ) : null}
+                  </>
+                );
+              })()}
 
               {item.trangUrl ? (
                 <a

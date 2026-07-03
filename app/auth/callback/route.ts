@@ -1,5 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import {
+  ACCOUNT_VAULT_COOKIE,
+  decodeVault,
+  setAccountVaultOnResponse,
+  setRestoreHintOnResponse,
+  upsertAccount,
+} from "@/lib/auth/account-vault";
 import type { LoginIntent } from "@/lib/auth/login-intent";
 import {
   clearOAuthIntentOnResponse,
@@ -95,7 +102,8 @@ export async function GET(request: NextRequest) {
     redirectResponse,
   );
 
-  const { error: exchangeErr } = await supabase.auth.exchangeCodeForSession(code);
+  const { data: exchangeData, error: exchangeErr } =
+    await supabase.auth.exchangeCodeForSession(code);
   if (exchangeErr) {
     const msg = exchangeErr.message.includes("PKCE code verifier")
       ? "Phiên đăng nhập hết hạn hoặc mở sai trình duyệt. Vui lòng thử «Đăng nhập với Google» lại."
@@ -128,9 +136,14 @@ export async function GET(request: NextRequest) {
   } else {
     const { data: profile } = await supabase
       .from("user_nguoi_dung")
-      .select("slug, giai_doan")
+      .select("slug, giai_doan, ten_hien_thi, avatar_id")
       .eq("auth_user_id", user.id)
-      .maybeSingle<{ slug: string; giai_doan: string | null }>();
+      .maybeSingle<{
+        slug: string;
+        giai_doan: string | null;
+        ten_hien_thi: string | null;
+        avatar_id: string | null;
+      }>();
 
     if (!profile || !profile.giai_doan) {
       destination = new URL("/onboarding", origin);
@@ -139,6 +152,25 @@ export async function GET(request: NextRequest) {
     } else {
       // Sau đăng nhập → World Journey (trang chủ).
       destination = new URL("/", origin);
+    }
+
+    // Ghi nhớ tài khoản vừa đăng nhập (Google) vào kho chuyển nhanh.
+    const refreshToken = exchangeData.session?.refresh_token;
+    if (profile?.slug && refreshToken) {
+      const vault = decodeVault(
+        request.cookies.get(ACCOUNT_VAULT_COOKIE)?.value,
+      );
+      setAccountVaultOnResponse(
+        redirectResponse,
+        upsertAccount(vault, {
+          slug: profile.slug,
+          tenHienThi: profile.ten_hien_thi,
+          avatarId: profile.avatar_id,
+          refreshToken,
+          addedAt: Date.now(),
+        }),
+      );
+      setRestoreHintOnResponse(redirectResponse);
     }
   }
 

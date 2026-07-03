@@ -88,3 +88,42 @@ export const STUDIO_JOB_CAP_DO_OPTIONS = [
   { value: "lead", label: "Lead" },
   { value: "director", label: "Director trở lên" },
 ] as const;
+
+/** Nhãn ngắn cho chip hiển thị (không kèm phần giải thích). */
+export const STUDIO_JOB_CAP_DO_LABEL: Record<string, string> = {
+  intern: "Intern",
+  fresher: "Fresher",
+  junior: "Junior",
+  middle: "Middle",
+  senior: "Senior",
+  lead: "Lead",
+  director: "Director",
+};
+
+const CAP_DO_SET = new Set<string>(
+  STUDIO_JOB_CAP_DO_OPTIONS.map((o) => o.value).filter(Boolean),
+);
+
+/** Chuẩn hóa cấp độ về mảng value hợp lệ, không trùng, giữ thứ tự khai báo. */
+export function normalizeCapDo(
+  raw: string[] | string | null | undefined,
+): string[] {
+  const arr = Array.isArray(raw) ? raw : raw ? [raw] : [];
+  const picked = new Set<string>();
+  for (const item of arr) {
+    const key = item?.trim();
+    if (key && CAP_DO_SET.has(key)) picked.add(key);
+  }
+  return STUDIO_JOB_CAP_DO_OPTIONS.map((o) => o.value).filter((v) =>
+    picked.has(v),
+  );
+}
+
+/** Nhãn hiển thị cho danh sách cấp độ. */
+export function capDoLabels(
+  values: string[] | string | null | undefined,
+): string[] {
+  return normalizeCapDo(values).map(
+    (v) => STUDIO_JOB_CAP_DO_LABEL[v] ?? v,
+  );
+}

@@ -16,6 +16,7 @@ export async function POST(req: Request) {
   let body: {
     noiDung?: string;
     trangUrl?: string;
+    anhUrl?: string;
     email?: string;
     hoTen?: string;
   } | null = null;
@@ -39,6 +40,7 @@ export async function POST(req: Request) {
     email: body?.email ?? session?.email ?? null,
     noiDung,
     trangUrl: body?.trangUrl ?? null,
+    anhUrl: body?.anhUrl ?? null,
     userAgent: req.headers.get("user-agent"),
   });
 

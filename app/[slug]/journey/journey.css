@@ -7440,68 +7440,35 @@ select.j-edit-input {
   display: block;
   border-radius: var(--radius-md);
 }
-.j-ps-block-rich .article-rich-content .rich-imgs--duo {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+/* full: ảnh xếp dọc full-width, giữ tỉ lệ gốc (không crop). */
+.j-ps-block-rich .article-rich-content .rich-imgs--full {
+  display: flex;
+  flex-direction: column;
   gap: 6px;
 }
-.j-ps-block-rich .article-rich-content .rich-imgs--triple,
-.j-ps-block-rich .article-rich-content .rich-imgs--row3 {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+/* masonry: 3 cột CSS columns theo chiều cao thật (không crop). */
+.j-ps-block-rich .article-rich-content .rich-imgs--masonry {
+  column-count: 3;
+  column-gap: 6px;
+}
+.j-ps-block-rich .article-rich-content .rich-imgs--masonry .rich-img-cell {
+  break-inside: avoid;
+  margin-bottom: 6px;
+}
+/* justified: hàng ảnh cao đều, tự xuống hàng; bề rộng theo tỉ lệ ảnh. */
+.j-ps-block-rich .article-rich-content .rich-imgs--justified {
+  display: flex;
+  flex-wrap: wrap;
   gap: 6px;
+  align-items: flex-start;
 }
-.j-ps-block-rich .article-rich-content .rich-imgs--trio {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  grid-template-rows: 1fr 1fr;
-  gap: 6px;
+.j-ps-block-rich .article-rich-content .rich-imgs--justified .rich-img-cell {
+  height: 260px;
+  flex: 0 0 auto;
 }
-.j-ps-block-rich .article-rich-content .rich-imgs--trio .rich-img-cell:first-child {
-  grid-row: span 2;
-}
-.j-ps-block-rich .article-rich-content .rich-imgs--big-right {
-  display: grid;
-  grid-template-columns: 1fr 2fr;
-  grid-template-rows: 1fr 1fr;
-  gap: 6px;
-}
-.j-ps-block-rich .article-rich-content .rich-imgs--big-right .rich-img-cell:nth-child(3) {
-  grid-column: 2;
-  grid-row: span 2;
-}
-.j-ps-block-rich .article-rich-content .rich-imgs--grid4,
-.j-ps-block-rich .article-rich-content .rich-imgs--grid6,
-.j-ps-block-rich .article-rich-content .rich-imgs--grid9 {
-  display: grid;
-  gap: 6px;
-}
-.j-ps-block-rich .article-rich-content .rich-imgs--grid4 {
-  grid-template-columns: 1fr 1fr;
-}
-.j-ps-block-rich .article-rich-content .rich-imgs--grid6,
-.j-ps-block-rich .article-rich-content .rich-imgs--grid9 {
-  grid-template-columns: repeat(3, 1fr);
-}
-.j-ps-block-rich .article-rich-content .rich-imgs--strip5 {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 4px;
-}
-.j-ps-block-rich .article-rich-content .rich-imgs--stack {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 8px;
-}
-.j-ps-block-rich .article-rich-content .rich-imgs--duo-stack {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
-}
-.j-ps-block-rich .article-rich-content .rich-imgs--boxed {
-  max-width: 560px;
-  margin-left: auto;
-  margin-right: auto;
+.j-ps-block-rich .article-rich-content .rich-imgs--justified .rich-img-cell img {
+  height: 100%;
+  width: auto;
 }
 .j-ps-empty {
   padding: 30px 56px;

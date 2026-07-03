@@ -3,9 +3,12 @@
 import { useEffect, useState } from "react";
 
 import {
+  mocHasTime,
   TIMELINE_MOC_DESC_MAX,
   TIMELINE_MOC_LABEL_MAX,
   TIMELINE_MOC_LINK_MAX,
+  withMocTime,
+  withoutMocTime,
   type TuyenSinhTimelineMoc,
 } from "@/lib/truong/timeline-steps";
 
@@ -40,15 +43,33 @@ export function TruongTimelineMocSingleForm({
 }: Props) {
   const [row, setRow] = useState(initial);
   const [showEnd, setShowEnd] = useState(Boolean(initial.ngay_den));
+  const [showTime, setShowTime] = useState(
+    mocHasTime(initial.ngay_tu) || mocHasTime(initial.ngay_den),
+  );
 
   useEffect(() => {
     setRow(initial);
     setShowEnd(Boolean(initial.ngay_den));
+    setShowTime(mocHasTime(initial.ngay_tu) || mocHasTime(initial.ngay_den));
   }, [initial]);
 
   function patch(p: Partial<TuyenSinhTimelineMoc>) {
     setRow((prev) => ({ ...prev, ...p }));
   }
+
+  function toggleTime(next: boolean) {
+    setShowTime(next);
+    const conv = next ? withMocTime : withoutMocTime;
+    setRow((prev) => ({
+      ...prev,
+      ngay_tu: conv(prev.ngay_tu),
+      ngay_den: conv(prev.ngay_den),
+    }));
+  }
+
+  const dateType = showTime ? "datetime-local" : "date";
+  const dateVal = (v: string | null) =>
+    !v ? "" : showTime ? v.slice(0, 16) : v.slice(0, 10);
 
   return (
     <form
@@ -75,8 +96,8 @@ export function TruongTimelineMocSingleForm({
         <label className="tdh-inline-field">
           <span>{showEnd ? "Từ ngày" : "Ngày"}</span>
           <input
-            type="date"
-            value={row.ngay_tu ?? ""}
+            type={dateType}
+            value={dateVal(row.ngay_tu)}
             onChange={(e) => patch({ ngay_tu: e.target.value || null })}
             required
           />
@@ -85,8 +106,8 @@ export function TruongTimelineMocSingleForm({
           <label className="tdh-inline-field">
             <span>Đến ngày</span>
             <input
-              type="date"
-              value={row.ngay_den ?? ""}
+              type={dateType}
+              value={dateVal(row.ngay_den)}
               onChange={(e) => patch({ ngay_den: e.target.value || null })}
             />
           </label>
@@ -116,6 +137,14 @@ export function TruongTimelineMocSingleForm({
           </button>
         )}
       </div>
+      <label className="tdh-timeline-moc-time-toggle">
+        <input
+          type="checkbox"
+          checked={showTime}
+          onChange={(e) => toggleTime(e.target.checked)}
+        />
+        <span>Thêm giờ cụ thể</span>
+      </label>
       <label className="tdh-inline-field">
         <span>Mô tả (tối đa {TIMELINE_MOC_DESC_MAX} ký tự)</span>
         <textarea

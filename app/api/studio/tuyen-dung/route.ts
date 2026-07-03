@@ -33,6 +33,7 @@ export async function POST(req: Request) {
     loaiHinh: body?.loaiHinh,
     capDo: body?.capDo,
     tinhThanh: body?.tinhThanh,
+    diaChi: body?.diaChi,
     lamTuXa: body?.lamTuXa,
     idLinhVuc: body?.idLinhVuc,
     idNghe: body?.idNghe,

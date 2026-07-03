@@ -7,6 +7,13 @@ import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { TruongInlineModal } from "@/components/truong/inline/TruongInlineModal";
 import { GioiThieuContentEditor } from "@/components/truong/GioiThieuContentEditor";
 import {
+  emptyModularWhen,
+  isoRangeToModularWhen,
+  localDateToIso,
+  ModularDateTimeField,
+  type ModularWhen,
+} from "@/components/common/ModularDateTimeField";
+import {
   LOAI_SU_KIEN_VALUES,
   LOAI_SU_KIEN_LABELS,
   type LoaiSuKien,
@@ -28,27 +35,9 @@ type Props = {
   onClose: () => void;
   onCreated?: (suKien: SuKienCardData) => void;
   onUpdated?: (suKien: SuKienCardData) => void;
+  /** Xóa sự kiện đang sửa — chỉ hiện khi ở chế độ sửa. */
+  onDelete?: () => void | Promise<void>;
 };
-
-/** ISO (UTC) → giá trị `datetime-local` theo giờ trình duyệt. */
-function isoToLocalInput(iso: string | null | undefined): string {
-  if (!iso) return "";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
-    d.getHours(),
-  )}:${pad(d.getMinutes())}`;
-}
-
-/** `datetime-local` (giờ trình duyệt) → ISO UTC để gửi server. */
-function localInputToIso(local: string): string | null {
-  const raw = local.trim();
-  if (!raw) return null;
-  const d = new Date(raw);
-  if (Number.isNaN(d.getTime())) return null;
-  return d.toISOString();
-}
 
 type CoverDraft = {
   imageId: string | null;
@@ -65,6 +54,7 @@ export function SuKienCreateModal({
   onClose,
   onCreated,
   onUpdated,
+  onDelete,
 }: Props) {
   const isEdit = Boolean(editing);
   const titleId = useId();
@@ -75,8 +65,7 @@ export function SuKienCreateModal({
     "hcm";
   const [ten, setTen] = useState("");
   const [loaiSuKien, setLoaiSuKien] = useState<LoaiSuKien>("workshop");
-  const [batDau, setBatDau] = useState("");
-  const [ketThuc, setKetThuc] = useState("");
+  const [when, setWhen] = useState<ModularWhen>(emptyModularWhen);
   const [tinhThanh, setTinhThanh] = useState(defaultTinhThanh);
   const [diaDiem, setDiaDiem] = useState("");
   const [mienPhi, setMienPhi] = useState(true);
@@ -91,12 +80,13 @@ export function SuKienCreateModal({
   });
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const reset = useCallback(() => {
     setTen("");
     setLoaiSuKien("workshop");
-    setBatDau("");
-    setKetThuc("");
+    setWhen(emptyModularWhen());
     setTinhThanh(defaultTinhThanh);
     setDiaDiem("");
     setMienPhi(true);
@@ -142,6 +132,7 @@ export function SuKienCreateModal({
 
   useEffect(() => {
     if (!open) return;
+    setConfirmDelete(false);
     if (!editing) {
       reset();
       if (orgDiaChi?.trim()) setDiaDiem(orgDiaChi.trim());
@@ -149,8 +140,7 @@ export function SuKienCreateModal({
     }
     setTen(editing.ten);
     setLoaiSuKien(editing.loaiSuKien);
-    setBatDau(isoToLocalInput(editing.batDau));
-    setKetThuc(isoToLocalInput(editing.ketThuc));
+    setWhen(isoRangeToModularWhen(editing.batDau, editing.ketThuc));
     setTinhThanh(
       normalizeTinhThanhForDb(editing.tinhThanh) ?? defaultTinhThanh,
     );
@@ -169,17 +159,33 @@ export function SuKienCreateModal({
   }, [open, editing, reset, orgDiaChi, defaultTinhThanh]);
 
   function handleClose() {
-    if (submitting) return;
+    if (submitting || deleting) return;
+    setConfirmDelete(false);
     reset();
     onClose();
   }
 
+  async function handleDelete() {
+    if (!onDelete || submitting || deleting) return;
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      return;
+    }
+    setDeleting(true);
+    try {
+      await onDelete();
+    } finally {
+      setDeleting(false);
+      setConfirmDelete(false);
+    }
+  }
+
   function validateClient(): string | null {
     if (!ten.trim()) return "Cần tên sự kiện.";
-    if (!batDau.trim()) return "Cần thời gian bắt đầu.";
-    const start = localInputToIso(batDau);
-    const end = localInputToIso(ketThuc);
-    if (!start) return "Thời gian bắt đầu không hợp lệ.";
+    if (!when.start.trim()) return "Cần ngày bắt đầu.";
+    const start = localDateToIso(when.start);
+    const end = localDateToIso(when.end);
+    if (!start) return "Ngày bắt đầu không hợp lệ.";
     if (end && new Date(end) < new Date(start)) {
       return "Thời gian kết thúc phải sau thời gian bắt đầu.";
     }
@@ -212,8 +218,8 @@ export function SuKienCreateModal({
     const payload = {
       ten: ten.trim(),
       loaiSuKien,
-      batDau: localInputToIso(batDau),
-      ketThuc: localInputToIso(ketThuc),
+      batDau: localDateToIso(when.start),
+      ketThuc: localDateToIso(when.end),
       tinhThanh: normalizeTinhThanhForDb(tinhThanh),
       diaDiem: diaDiem.trim() || null,
       mienPhi,
@@ -372,29 +378,25 @@ export function SuKienCreateModal({
             </div>
           </div>
 
-          <div className="cso-kh-field-row">
-            <label className="cso-kh-field">
-              <span className="cso-kh-label">
-                Bắt đầu <span className="cso-kh-req">*</span>
-              </span>
-              <input
-                type="datetime-local"
-                className="cso-kh-input"
-                value={batDau}
-                onChange={(e) => setBatDau(e.target.value)}
-                required
-              />
-            </label>
-            <label className="cso-kh-field">
-              <span className="cso-kh-label">Kết thúc</span>
-              <input
-                type="datetime-local"
-                className="cso-kh-input"
-                value={ketThuc}
-                onChange={(e) => setKetThuc(e.target.value)}
-                min={batDau || undefined}
-              />
-            </label>
+          <div className="cso-kh-field">
+            <span className="cso-kh-label">
+              Thời gian <span className="cso-kh-req">*</span>
+            </span>
+            <ModularDateTimeField
+              value={when}
+              onChange={setWhen}
+              startLabel="Bắt đầu"
+              endLabel="Kết thúc"
+              addEndLabel="Thêm ngày kết thúc"
+              removeEndLabel="Bỏ ngày kết thúc"
+              fieldClassName="cso-kh-field"
+              labelClassName="cso-kh-label"
+              inputClassName="cso-kh-input"
+            />
+            <p className="cso-kh-field-hint">
+              Mặc định chỉ cần chọn ngày. Bật “Thêm giờ cụ thể” nếu sự kiện có
+              giờ, hoặc thêm ngày kết thúc nếu diễn ra nhiều ngày.
+            </p>
           </div>
 
           <div className="cso-kh-field-row">
@@ -498,11 +500,31 @@ export function SuKienCreateModal({
         </div>
 
         <div className="cso-kh-create-foot">
+          {isEdit && onDelete ? (
+            <button
+              type="button"
+              className="cso-kh-foot-btn cso-kh-foot-btn--danger"
+              style={{ marginRight: "auto" }}
+              onClick={handleDelete}
+              disabled={submitting || deleting}
+            >
+              {deleting ? (
+                <>
+                  <Loader2 size={15} className="tdh-spin" aria-hidden />
+                  Đang xóa…
+                </>
+              ) : confirmDelete ? (
+                "Bấm lần nữa để xóa"
+              ) : (
+                "Xóa sự kiện"
+              )}
+            </button>
+          ) : null}
           <button
             type="button"
             className="cso-kh-foot-btn cso-kh-foot-btn--ghost"
             onClick={handleClose}
-            disabled={submitting}
+            disabled={submitting || deleting}
           >
             Huỷ
           </button>
@@ -511,9 +533,10 @@ export function SuKienCreateModal({
             className="cso-kh-foot-btn cso-kh-foot-btn--primary"
             disabled={
               submitting ||
+              deleting ||
               cover.uploading ||
               !ten.trim() ||
-              !batDau.trim() ||
+              !when.start.trim() ||
               !tinhThanh ||
               !cover.imageId
             }

@@ -2,6 +2,7 @@
 
 import {
   Image as ImageIcon,
+  MessageSquareQuote,
   PanelRightOpen,
   Paperclip,
   Pin,
@@ -60,6 +61,7 @@ import {
 } from "@/lib/chat/thread-merge";
 import { applyOptimisticReaction } from "@/lib/chat/optimistic-reactions";
 import {
+  createOptimisticChatMessage,
   messagePreviewText,
 } from "@/lib/chat/optimistic-message";
 import { appendChatMessageIfNew, mergeChatMessageUpdate, reconcileChatMessage } from "@/lib/chat/realtime";
@@ -74,6 +76,7 @@ import {
   CHAT_PARTICIPANT_KIND_LABEL,
   CHAT_THREAD_GROUP_LABEL,
   CHAT_THREAD_GROUP_ORDER,
+  type ChatContextCard,
   type ChatMessage,
   type ChatMessageReplyPreview,
   type ChatLaunchState,
@@ -272,6 +275,10 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   const [query, setQuery] = useState("");
   const [draft, setDraft] = useState("");
   const [pendingImages, setPendingImages] = useState<PendingImageDraft[]>([]);
+  /** Card ngữ cảnh "chờ" theo phòng — chèn vào ô soạn, chỉ gửi khi user gửi tin. */
+  const [pendingCardByRoom, setPendingCardByRoom] = useState<
+    Record<string, ChatContextCard>
+  >({});
   const [mobileShowThread, setMobileShowThread] = useState(() => Boolean(launch?.thread));
   const [sidePanel, setSidePanel] = useState<ChatSidePanel | null>(null);
   const [sideMediaLightboxIndex, setSideMediaLightboxIndex] = useState<number | null>(
@@ -326,6 +333,11 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   const highlightTimerRef = useRef<number | null>(null);
 
   pendingImagesRef.current = pendingImages;
+
+  // Giữ launch mới nhất cho effect prefetch (deps []) — tránh closure cũ đọc
+  // thread optimistic `org:` rồi ghi đè activeId về phòng tạm sau khi đã resolve.
+  const launchRef = useRef(launch);
+  launchRef.current = launch;
 
   const active = useMemo(
     () => threads.find((t) => t.id === activeId) ?? null,
@@ -613,6 +625,16 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     }
   }, [launch?.thread, launch?.tab]);
 
+  // Card ngữ cảnh chờ: gắn vào phòng thật khi đã resolve (bỏ qua phòng tạm).
+  useEffect(() => {
+    const card = launch?.nguCanh;
+    const roomId = launch?.thread?.roomId;
+    if (!card || !roomId || isPendingRoomId(roomId)) return;
+    setPendingCardByRoom((prev) =>
+      prev[roomId] ? prev : { ...prev, [roomId]: card },
+    );
+  }, [launch?.nguCanh, launch?.thread?.roomId]);
+
   useEffect(() => {
     void (async () => {
       setLoadError(null);
@@ -621,26 +643,28 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
       if (cached?.threads.length) {
         setThreads((prev) => {
           let next = preserveThreadMessages(prev, cached.threads);
-          if (launch?.thread) {
-            next = mergeLaunchThread(next, launch.thread);
+          const launchThread = launchRef.current?.thread;
+          if (launchThread) {
+            next = mergeLaunchThread(next, launchThread);
           }
           return next;
         });
         onUnreadChange(cached.totalUnread);
         setLoadingThreads(false);
         setActiveId((current) => {
-          if (launch?.thread) return launch.thread.id;
+          const launchThread = launchRef.current?.thread;
+          if (launchThread) return launchThread.id;
           if (current) return current;
           return cached.threads[0]?.id ?? "";
         });
-      } else if (!launch?.thread) {
+      } else if (!launchRef.current?.thread) {
         setLoadingThreads(true);
       }
 
       try {
         const snapshot = await prefetchChatData();
         if (!snapshot) {
-          if (!cached?.threads.length && !launch?.thread) {
+          if (!cached?.threads.length && !launchRef.current?.thread) {
             throw new Error("Không tải được hội thoại.");
           }
           return;
@@ -652,20 +676,22 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
 
         setThreads((prev) => {
           let next = preserveThreadMessages(prev, snapshot.threads);
-          if (launch?.thread) {
-            next = mergeLaunchThread(next, launch.thread);
+          const launchThread = launchRef.current?.thread;
+          if (launchThread) {
+            next = mergeLaunchThread(next, launchThread);
           }
           return next;
         });
         onUnreadChange(snapshot.totalUnread);
 
         setActiveId((current) => {
-          if (launch?.thread) return launch.thread.id;
+          const launchThread = launchRef.current?.thread;
+          if (launchThread) return launchThread.id;
           if (current) return current;
           return snapshot.threads[0]?.id ?? "";
         });
       } catch (error) {
-        if (!launch?.thread && !cached?.threads.length) {
+        if (!launchRef.current?.thread && !cached?.threads.length) {
           setLoadError(
             error instanceof Error ? error.message : "Không tải được hội thoại.",
           );
@@ -911,11 +937,26 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   }, []);
 
   const sendableImages = pendingImages.filter((image) => !image.error);
+  const rawPendingCard = active?.roomId
+    ? pendingCardByRoom[active.roomId] ?? null
+    : null;
+  const cardAlreadyInThread = Boolean(
+    rawPendingCard &&
+      active?.messages.some(
+        (m) =>
+          m.nguCanh != null &&
+          m.nguCanh.loai === rawPendingCard.loai &&
+          m.nguCanh.id === rawPendingCard.id,
+      ),
+  );
+  const activePendingCard = cardAlreadyInThread ? null : rawPendingCard;
   const canSend =
     Boolean(active) &&
     !isPendingRoom &&
     !connecting &&
-    (draft.trim().length > 0 || sendableImages.length > 0);
+    (draft.trim().length > 0 ||
+      sendableImages.length > 0 ||
+      activePendingCard != null);
 
   const activePinnedMessages = useMemo(
     () => (active?.roomId ? pinnedByRoom[active.roomId] ?? [] : []),
@@ -1274,8 +1315,71 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     [viewerProfileId],
   );
 
+  const sendPendingCard = useCallback(
+    (thread: ChatThread, card: ChatContextCard) => {
+      setPendingCardByRoom((prev) => {
+        if (!prev[thread.roomId]) return prev;
+        const next = { ...prev };
+        delete next[thread.roomId];
+        return next;
+      });
+
+      const optimistic: ChatMessage = {
+        ...createOptimisticChatMessage({ body: "", kind: "context" }),
+        nguCanh: card,
+      };
+      appendOptimisticMessages(thread, [optimistic]);
+
+      void (async () => {
+        try {
+          const res = await fetch(`/api/chat/rooms/${thread.roomId}/messages`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ngu_canh: card }),
+          });
+          const json = (await res.json()) as {
+            message?: ChatMessage;
+            error?: string;
+          };
+          if (!res.ok || !json.message) {
+            throw new Error(json.error ?? "Không gửi được thẻ nội dung.");
+          }
+          setThreads((prev) =>
+            prev.map((t) => {
+              if (t.id !== thread.id) return t;
+              const messages = reconcileChatMessage(t.messages, json.message!);
+              if (viewerProfileId) {
+                writeRoomMessagesCache(viewerProfileId, t.roomId, messages);
+              }
+              return { ...t, messages };
+            }),
+          );
+        } catch {
+          setThreads((prev) =>
+            prev.map((t) =>
+              t.id === thread.id
+                ? {
+                    ...t,
+                    messages: t.messages.filter((m) => m.id !== optimistic.id),
+                  }
+                : t,
+            ),
+          );
+          setPendingCardByRoom((prev) =>
+            prev[thread.roomId] ? prev : { ...prev, [thread.roomId]: card },
+          );
+        }
+      })();
+    },
+    [appendOptimisticMessages, viewerProfileId],
+  );
+
   const sendMessage = useCallback(() => {
     if (!active || !canSend) return;
+
+    if (activePendingCard) {
+      sendPendingCard(active, activePendingCard);
+    }
 
     const text = draft.trim();
     const snapshotText = draft;
@@ -1361,11 +1465,13 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     });
   }, [
     active,
+    activePendingCard,
     appendOptimisticMessages,
     canSend,
     draft,
     replyTarget,
     sendableImages,
+    sendPendingCard,
     submitAlbumBatch,
     submitRoomMessage,
   ]);
@@ -1589,6 +1695,52 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                 target={replyTarget}
                 onCancel={() => setReplyTarget(null)}
               />
+            ) : null}
+            {activePendingCard ? (
+              <div className="cins-chat-compose-ctx">
+                <span className="cins-chat-compose-ctx-media" aria-hidden>
+                  {activePendingCard.anh ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      className="cins-chat-compose-ctx-thumb"
+                      src={activePendingCard.anh}
+                      alt=""
+                    />
+                  ) : (
+                    <MessageSquareQuote size={16} strokeWidth={2} />
+                  )}
+                </span>
+                <div className="cins-chat-compose-ctx-text">
+                  <span className="cins-chat-compose-ctx-note">Trao đổi về</span>
+                  <strong>{activePendingCard.tieuDe}</strong>
+                  {activePendingCard.orgTen ? (
+                    <span className="cins-chat-compose-ctx-sub">
+                      {activePendingCard.orgTen}
+                    </span>
+                  ) : activePendingCard.moTa ? (
+                    <span className="cins-chat-compose-ctx-sub">
+                      {activePendingCard.moTa}
+                    </span>
+                  ) : null}
+                </div>
+                <button
+                  type="button"
+                  className="cins-chat-compose-ctx-remove"
+                  aria-label="Bỏ thẻ nội dung"
+                  onClick={() =>
+                    active
+                      ? setPendingCardByRoom((prev) => {
+                          if (!prev[active.roomId]) return prev;
+                          const next = { ...prev };
+                          delete next[active.roomId];
+                          return next;
+                        })
+                      : undefined
+                  }
+                >
+                  <X size={14} strokeWidth={2.2} aria-hidden />
+                </button>
+              </div>
             ) : null}
             {pendingImages.length > 0 ? (
               <div className="j-chat-mini-compose-attach-list cins-chat-compose-attach-list">

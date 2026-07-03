@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { getSwitchableAccounts } from "@/lib/auth/account-vault";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 
@@ -8,10 +9,11 @@ import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 export async function GET() {
   const session = await getCurrentSessionAndProfile();
   if (!session?.profile) {
-    return NextResponse.json({ profile: null });
+    return NextResponse.json({ profile: null, savedAccounts: [] });
   }
 
   const { id, slug, ten_hien_thi, email, avatar_id } = session.profile;
+  const savedAccounts = await getSwitchableAccounts(slug);
   return NextResponse.json({
     profile: {
       id,
@@ -21,5 +23,6 @@ export async function GET() {
       avatarId: avatar_id,
       avatarUrl: getAvatarUrl(avatar_id),
     },
+    savedAccounts,
   });
 }

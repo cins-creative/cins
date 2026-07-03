@@ -1,5 +1,8 @@
 import type { GiaiDoan } from "@/lib/cins/home-adaptive/persona";
-import { normalizeGiaiDoanMucTieu } from "@/lib/to-chuc/studio-tuyen-dung-distribution";
+import {
+  normalizeCapDo,
+  normalizeGiaiDoanMucTieu,
+} from "@/lib/to-chuc/studio-tuyen-dung-distribution";
 import {
   normalizeStudioPhucLoi,
   type StudioJobPhucLoiItem,
@@ -24,8 +27,11 @@ export type StudioJob = {
   phucLoi: StudioJobPhucLoiItem[];
   moTaNgan: string | null;
   loaiHinh: StudioJobLoaiHinh;
-  capDo: string | null;
+  /** Cấp độ vị trí — nhiều giá trị (intern/fresher/junior/…). */
+  capDo: string[];
   tinhThanh: string | null;
+  /** Địa chỉ cụ thể nơi làm việc (bổ sung cho tỉnh/thành). */
+  diaChi: string | null;
   lamTuXa: boolean;
   idLinhVuc: string | null;
   linhVucTen: string | null;
@@ -71,7 +77,7 @@ export const STUDIO_JOB_STATUS_LABEL: Record<StudioJobStatus, string> = {
 };
 
 export const STUDIO_JOB_SELECT =
-  "id, tieu_de, mo_ta, yeu_cau, quyen_loi, phuc_loi, mo_ta_ngan, loai_hinh, cap_do, tinh_thanh, lam_tu_xa, id_linh_vuc, id_nghe, muc_luong_tu, muc_luong_den, hien_thi_luong, so_luong, han_nop, hien_thi_co_hoi, giai_doan_muc_tieu, trang_thai, tao_luc, linh_vuc:linh_vuc(id, ten), nghe:id_nghe(id, slug, tieu_de, tieu_de_viet)";
+  "id, tieu_de, mo_ta, yeu_cau, quyen_loi, phuc_loi, mo_ta_ngan, loai_hinh, cap_do, tinh_thanh, dia_chi, lam_tu_xa, id_linh_vuc, id_nghe, muc_luong_tu, muc_luong_den, hien_thi_luong, so_luong, han_nop, hien_thi_co_hoi, giai_doan_muc_tieu, trang_thai, tao_luc, linh_vuc:linh_vuc(id, ten), nghe:id_nghe(id, slug, tieu_de, tieu_de_viet)";
 
 type JobRow = {
   id: string;
@@ -82,8 +88,9 @@ type JobRow = {
   phuc_loi: unknown;
   mo_ta_ngan: string | null;
   loai_hinh: string | null;
-  cap_do: string | null;
+  cap_do: string[] | string | null;
   tinh_thanh: string | null;
+  dia_chi: string | null;
   lam_tu_xa: boolean | null;
   id_linh_vuc: string | null;
   id_nghe: string | null;
@@ -133,8 +140,9 @@ export function mapStudioJobRow(row: JobRow): StudioJob {
     phucLoi: normalizeStudioPhucLoi(row.phuc_loi),
     moTaNgan: row.mo_ta_ngan,
     loaiHinh: loai in STUDIO_JOB_LOAI_HINH_LABEL ? loai : "toan_thoi_gian",
-    capDo: row.cap_do?.trim() || null,
+    capDo: normalizeCapDo(row.cap_do),
     tinhThanh: row.tinh_thanh,
+    diaChi: row.dia_chi?.trim() || null,
     lamTuXa: Boolean(row.lam_tu_xa),
     idLinhVuc: row.id_linh_vuc,
     linhVucTen: pickLinhVucTen(row.linh_vuc),

@@ -1,15 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Plus } from "lucide-react";
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
-import { createPortal } from "react-dom";
+import { ChevronDown } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { getNameInitials } from "@/lib/journey/profile";
 
@@ -72,6 +65,12 @@ function loadMyOrgs(): Promise<MyOrg[]> {
   return orgsCache;
 }
 
+/**
+ * Mục sidebar có danh sách tổ chức của người dùng — **xổ inline** ngay dưới mục
+ * (accordion). Danh sách org tải ngay khi mount; nếu có tổ chức thì xổ sẵn
+ * (mặc định mở) và hiện mũi tên, còn chưa có tổ chức thì không xổ / không mũi tên.
+ * (Vẫn bị thu gọn theo CSS khi sidebar ở dạng rail chưa hover.)
+ */
 export function SidebarOrgFlyout({
   kind,
   children,
@@ -80,114 +79,69 @@ export function SidebarOrgFlyout({
   children: ReactNode;
 }) {
   const cfg = KIND_CONFIG[kind];
-  const liRef = useRef<HTMLLIElement>(null);
-  const closeTimer = useRef<number | undefined>(undefined);
-  const [mounted, setMounted] = useState(false);
-  const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   const [orgs, setOrgs] = useState<MyOrg[] | null>(null);
 
-  useEffect(() => setMounted(true), []);
-  useEffect(
-    () => () => {
-      if (closeTimer.current) window.clearTimeout(closeTimer.current);
-    },
-    [],
-  );
-
-  const openFlyout = useCallback(() => {
-    if (closeTimer.current) window.clearTimeout(closeTimer.current);
-    const li = liRef.current;
-    if (li) {
-      const r = li.getBoundingClientRect();
-      // Sidebar mở rộng 64px → 240px khi hover; neo panel theo mép phải mở
-      // rộng (clamp 240) để không đặt panel đè lên sidebar lúc đang animate.
-      const sidebar = document.getElementById("app-sidebar");
-      const sidebarRight = sidebar
-        ? sidebar.getBoundingClientRect().right
-        : r.right;
-      const left = Math.round(Math.max(sidebarRight, 240) + 8);
-      const top = Math.max(12, Math.min(r.top - 6, window.innerHeight - 360));
-      setPos({ top, left });
-    }
-    setOpen(true);
-    if (orgs === null) void loadMyOrgs().then(setOrgs);
-  }, [orgs]);
-
-  const scheduleClose = useCallback(() => {
-    if (closeTimer.current) window.clearTimeout(closeTimer.current);
-    closeTimer.current = window.setTimeout(() => setOpen(false), 160);
+  useEffect(() => {
+    let alive = true;
+    void loadMyOrgs().then((list) => {
+      if (alive) setOrgs(list);
+    });
+    return () => {
+      alive = false;
+    };
   }, []);
 
   const items = orgs?.filter((o) => cfg.types.includes(o.loaiToChuc)) ?? null;
+  const hasItems = (items?.length ?? 0) > 0;
+  // Xổ sẵn khi đã có tổ chức. Chưa có org → không xổ, cũng không hiện mũi tên.
+  const open = hasItems;
 
   return (
-    <li
-      ref={liRef}
-      className="sb-li-flyout"
-      onMouseEnter={openFlyout}
-      onMouseLeave={scheduleClose}
-      onFocus={openFlyout}
-      onBlur={scheduleClose}
-    >
-      {children}
-      {mounted && open && pos
-        ? createPortal(
-            <div
-              className="sb-flyout"
-              style={{ top: pos.top, left: pos.left }}
-              onMouseEnter={openFlyout}
-              onMouseLeave={scheduleClose}
-              role="menu"
-            >
-              <div className="sb-flyout-title">{cfg.title}</div>
-              <div className="sb-flyout-body">
-                {items === null ? (
-                  <div className="sb-flyout-loading">
-                    <span className="sb-flyout-spin" aria-hidden />
-                    Đang tải…
-                  </div>
-                ) : items.length === 0 ? (
-                  <div className="sb-flyout-empty">{cfg.emptyText}</div>
-                ) : (
-                  <ul className="sb-flyout-list">
-                    {items.map((o) => (
-                      <li key={o.id}>
-                        <Link
-                          href={o.href ?? "#"}
-                          className="sb-flyout-item"
-                          role="menuitem"
-                        >
-                          <span className="sb-flyout-ava" aria-hidden>
-                            {o.avatarUrl ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img src={o.avatarUrl} alt="" />
-                            ) : (
-                              <span className="sb-flyout-ava-txt">
-                                {getNameInitials(o.ten, o.slug)}
-                              </span>
-                            )}
+    <li className={`sb-li-flyout${open ? " is-open" : ""}`}>
+      <span className="sb-flyout-anchor">
+        {children}
+        {hasItems ? (
+          <ChevronDown
+            className="sb-flyout-caret"
+            size={15}
+            strokeWidth={2.2}
+            aria-hidden
+          />
+        ) : null}
+      </span>
+
+      <div className={`sb-sublist-wrap${open ? " is-open" : ""}`}>
+        <div className="sb-sublist-inner">
+          <ul className="sb-sublist" role="menu">
+            {items && items.length > 0
+              ? items.map((o) => (
+                  <li key={o.id}>
+                    <Link
+                      href={o.href ?? "#"}
+                      className="sb-subitem"
+                      role="menuitem"
+                    >
+                      <span className="sb-subitem-ava" aria-hidden>
+                        {o.avatarUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={o.avatarUrl} alt="" />
+                        ) : (
+                          <span className="sb-subitem-ava-txt">
+                            {getNameInitials(o.ten, o.slug)}
                           </span>
-                          <span className="sb-flyout-meta">
-                            <span className="sb-flyout-name">{o.ten}</span>
-                            <span className="sb-flyout-role">
-                              {o.vaiTroLabel}
-                            </span>
-                          </span>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-              <Link href={cfg.createHref} className="sb-flyout-create">
-                <Plus size={15} strokeWidth={2.2} aria-hidden />
-                {cfg.createLabel}
-              </Link>
-            </div>,
-            document.body,
-          )
-        : null}
+                        )}
+                      </span>
+                      <span className="sb-subitem-meta">
+                        <span className="sb-subitem-name">{o.ten}</span>
+                        <span className="sb-subitem-role">{o.vaiTroLabel}</span>
+                      </span>
+                    </Link>
+                  </li>
+                ))
+              : null}
+          </ul>
+        </div>
+      </div>
     </li>
   );
 }

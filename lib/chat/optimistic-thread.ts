@@ -34,5 +34,7 @@ export function buildOptimisticDirectThread(
 }
 
 export function isPendingRoomId(roomId: string): boolean {
-  return roomId.startsWith("pending-");
+  // `pending-<userId>`: DM optimistic · `org:<orgId>`: org optimistic —
+  // cả hai chưa phải phòng thật (id thật là UUID), không được fetch messages.
+  return roomId.startsWith("pending-") || roomId.startsWith("org:");
 }

@@ -63,10 +63,10 @@
 .gopy-modal {
   position: relative;
   width: 100%;
-  max-width: 460px;
-  max-height: min(90vh, 720px);
+  max-width: 640px;
+  max-height: min(92vh, 860px);
   overflow-y: auto;
-  padding: 24px;
+  padding: 30px 32px;
   background: #fff;
   border-radius: 18px;
   box-shadow: 0 24px 60px -12px rgba(15, 23, 42, 0.4);
@@ -106,6 +106,98 @@
   font-size: 13.5px;
   line-height: 1.5;
   color: var(--ink-muted, #64748b);
+}
+
+/* ── 2 nút nổi bật: Donate & Lộ trình ────────────────────────────── */
+.gopy-links {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.gopy-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  text-decoration: none;
+  border: 1px solid transparent;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+
+.gopy-link:hover {
+  transform: translateY(-2px);
+}
+
+.gopy-link-ic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 11px;
+}
+
+.gopy-link-txt {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.gopy-link-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.gopy-link-desc {
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.25;
+  opacity: 0.85;
+}
+
+/* Donate — gradient ấm, nổi bật nhất */
+.gopy-link--donate {
+  background: linear-gradient(135deg, #ff7a59 0%, #ff4d6d 100%);
+  color: #fff;
+  box-shadow: 0 8px 20px -8px rgba(255, 77, 109, 0.7);
+}
+
+.gopy-link--donate:hover {
+  box-shadow: 0 12px 24px -8px rgba(255, 77, 109, 0.75);
+  filter: brightness(1.03);
+}
+
+.gopy-link--donate .gopy-link-ic {
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+}
+
+/* Lộ trình — xanh thương hiệu, viền nhấn */
+.gopy-link--roadmap {
+  background: linear-gradient(135deg, #eaf3fd 0%, #dbeafe 100%);
+  color: var(--cins-blue-deep, #16548f);
+  border-color: #bcdcff;
+}
+
+.gopy-link--roadmap:hover {
+  box-shadow: 0 10px 22px -10px rgba(31, 116, 201, 0.55);
+}
+
+.gopy-link--roadmap .gopy-link-ic {
+  background: var(--cins-blue, #1f74c9);
+  color: #fff;
+}
+
+@media (max-width: 460px) {
+  .gopy-links {
+    grid-template-columns: 1fr;
+  }
 }
 
 .gopy-form {
@@ -174,6 +266,183 @@
   color: var(--ink-body, #475569);
   word-break: break-all;
   line-height: 1.4;
+}
+
+.gopy-input--url {
+  font-size: 12.5px;
+  color: var(--ink-body, #475569);
+}
+
+/* ── Ô soạn Tiptap: text + ảnh xen kẽ + toolbar chèn ảnh ──────────── */
+.gopy-tiptap {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border, #d7dce3);
+  border-radius: 10px;
+  background: #fff;
+  overflow: hidden;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.gopy-tiptap:focus-within {
+  border-color: var(--cins-blue, #1f74c9);
+  box-shadow: 0 0 0 3px rgba(31, 116, 201, 0.15);
+}
+
+/* Thanh công cụ gọn (giống editor bài viết) nằm trên cùng. */
+.gopy-tiptap-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 5px;
+  padding: 7px 9px;
+  background: #fafafa;
+  border-bottom: 1px solid var(--border, #e2e8f0);
+}
+
+.gopy-tb-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 7px;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--ink-body, #334155);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.gopy-tb-btn:hover:not(:disabled) {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.gopy-tb-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.gopy-tb-btn[data-active="true"] {
+  background: #e7f0fb;
+  border-color: #9cc6f0;
+  color: var(--cins-blue-deep, #16548f);
+}
+
+.gopy-tb-btn--img {
+  margin-left: auto;
+  padding: 0 10px;
+}
+
+.gopy-tb-btn-label {
+  font-size: 11.5px;
+}
+
+.gopy-tb-sep {
+  width: 1px;
+  height: 20px;
+  margin: 0 3px;
+  background: #e2e8f8;
+  flex-shrink: 0;
+}
+
+.gopy-tiptap-editor {
+  min-height: 170px;
+  max-height: 420px;
+  overflow-y: auto;
+  cursor: text;
+}
+
+.gopy-prose {
+  padding: 10px 12px;
+  min-height: 170px;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink-display, #18202b);
+  outline: none;
+}
+
+.gopy-prose:focus {
+  outline: none;
+}
+
+.gopy-prose > * {
+  margin: 0 0 8px;
+}
+
+.gopy-prose > *:last-child {
+  margin-bottom: 0;
+}
+
+.gopy-prose ul,
+.gopy-prose ol {
+  margin: 0 0 8px;
+  padding-left: 22px;
+}
+
+.gopy-prose li {
+  margin: 2px 0;
+}
+
+.gopy-prose a {
+  color: var(--cins-blue, #1f74c9);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Placeholder (extension-placeholder) — chỉ hiện khi editor rỗng. */
+.gopy-prose p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: var(--ink-muted, #94a3b8);
+}
+
+.gopy-prose img {
+  display: block;
+  width: 100%;
+  max-height: 260px;
+  object-fit: contain;
+  border: 1px solid var(--border-subtle, #eef1f6);
+  border-radius: 10px;
+  background: var(--neutral-50, #f8fafc);
+}
+
+/* Ảnh đang chọn (click) — viền xanh nhẹ để biết đang thao tác. */
+.gopy-prose img.ProseMirror-selectednode {
+  outline: 2px solid var(--cins-blue, #1f74c9);
+  outline-offset: 1px;
+}
+
+.gopy-tiptap-hint {
+  margin: 0;
+  padding: 7px 10px;
+  font-size: 11.5px;
+  color: var(--ink-muted, #94a3b8);
+  border-top: 1px solid var(--border-subtle, #eef1f6);
+  background: var(--neutral-50, #f8fafc);
+}
+
+.gopy-file-input {
+  display: none;
+}
+
+.gopy-spin {
+  animation: gopy-spin 0.7s linear infinite;
+}
+
+@keyframes gopy-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .gopy-error {

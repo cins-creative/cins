@@ -263,6 +263,7 @@ export function CoSoUpcomingSidebar({
   const [mocModal, setMocModal] = useState<MocModalMode | null>(null);
   const [editingKhoa, setEditingKhoa] = useState<KhoaHocCardData | null>(null);
   const [suKienModalOpen, setSuKienModalOpen] = useState(false);
+  const [editingSuKien, setEditingSuKien] = useState<SuKienCardData | null>(null);
   const [timelineYear, setTimelineYear] = useState(defaultTruongNganhYear());
 
   const loadLopPins = useCallback(async () => {
@@ -339,6 +340,7 @@ export function CoSoUpcomingSidebar({
       setMocModal(null);
       setEditingKhoa(null);
       setSuKienModalOpen(false);
+      setEditingSuKien(null);
     }
   }, [isManaging]);
 
@@ -443,18 +445,32 @@ export function CoSoUpcomingSidebar({
   }
 
   function stepEditHint(step: TuyenSinhTimelineStep): string {
+    if (parseSuKienStepId(step.id)) return "Bấm để sửa hoặc xóa sự kiện";
     if (isCoSoAutoPinLopStepId(step.id)) return "";
     if (isCoSoAutoPinKhoaStepId(step.id)) return "Bấm để sửa khóa học";
     return "Bấm để sửa hoặc xóa";
   }
 
   function isStepTimelineEditable(step: TuyenSinhTimelineStep): boolean {
-    if (parseSuKienStepId(step.id)) return false;
+    if (parseSuKienStepId(step.id)) return true;
     return !isCoSoAutoPinLopStepId(step.id);
   }
 
   function handleEditStep(step: TuyenSinhTimelineStep) {
-    if (parseSuKienStepId(step.id)) return;
+    const suKienId = parseSuKienStepId(step.id);
+    if (suKienId) {
+      const ev = suKienList.find((e) => e.id === suKienId);
+      if (!ev) {
+        ctx?.showToast("Không tìm thấy sự kiện — thử tải lại trang.");
+        void refreshTimelineSources();
+        return;
+      }
+      setMocModal(null);
+      setEditingKhoa(null);
+      setSuKienModalOpen(false);
+      setEditingSuKien(ev);
+      return;
+    }
     if (isCoSoAutoPinStepId(step.id)) {
       handleEditAutoPin(step);
       return;
@@ -534,6 +550,37 @@ export function CoSoUpcomingSidebar({
     setEditingKhoa(null);
     notifyCoSoKhoaListChanged(orgId);
     ctx?.showToast("Đã cập nhật khóa học");
+  }
+
+  function handleSuKienUpdated(updated: SuKienCardData) {
+    setSuKienList((prev) =>
+      prev.map((e) => (e.id === updated.id ? updated : e)),
+    );
+    setEditingSuKien(null);
+    ctx?.showToast("Đã cập nhật sự kiện");
+  }
+
+  async function handleDeleteSuKien() {
+    if (!editingSuKien) return;
+    const id = editingSuKien.id;
+    try {
+      const res = await fetch(
+        `/api/org/${encodeURIComponent(orgId)}/su-kien/${encodeURIComponent(id)}`,
+        { method: "DELETE", credentials: "include" },
+      );
+      if (!res.ok) {
+        const json = (await res.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        ctx?.showToast(json?.error ?? "Không xóa được sự kiện.");
+        return;
+      }
+      setSuKienList((prev) => prev.filter((e) => e.id !== id));
+      setEditingSuKien(null);
+      ctx?.showToast("Đã xóa sự kiện");
+    } catch {
+      ctx?.showToast("Lỗi mạng — thử lại sau.");
+    }
   }
 
   function handleDeleteMoc() {
@@ -675,15 +722,21 @@ export function CoSoUpcomingSidebar({
 
       {isManaging ? (
         <SuKienCreateModal
-          open={suKienModalOpen}
+          open={suKienModalOpen || Boolean(editingSuKien)}
           orgId={orgId}
           orgDiaChi={orgDiaChi}
           orgTinhThanh={orgTinhThanh}
-          onClose={() => setSuKienModalOpen(false)}
+          editing={editingSuKien}
+          onClose={() => {
+            setSuKienModalOpen(false);
+            setEditingSuKien(null);
+          }}
           onCreated={(created) => {
             setSuKienList((prev) => [created, ...prev]);
             ctx?.showToast("Đã thêm sự kiện");
           }}
+          onUpdated={handleSuKienUpdated}
+          onDelete={editingSuKien ? handleDeleteSuKien : undefined}
         />
       ) : null}
 

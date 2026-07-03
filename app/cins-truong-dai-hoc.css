@@ -1181,7 +1181,7 @@ a.tdh-identity-contact-value:hover { color: var(--cins-blue); text-decoration: u
 .cost-row .val { font-family: var(--font-mono); color: var(--ink); font-weight: 700; }
 
 /* Legacy mockup footer — không áp dụng SiteFooter (.footer) hay modal inline */
-footer:not(.footer):not(.tdh-inline-modal-actions):not(.tdh-message-inbox-compose):not(.org-compose-schedule-footer):not(.cso-settings-foot):not(.cso-khd-final):not(.cins-chat-compose) {
+footer:not(.footer):not(.tdh-inline-modal-actions):not(.tdh-message-inbox-compose):not(.org-compose-schedule-footer):not(.cso-settings-foot):not(.cso-khd-final):not(.cins-chat-compose):not(.studio-job-detail-foot) {
   background: var(--neutral-900);
   color: #fff;
   padding: 48px 40px 28px;
@@ -1303,7 +1303,7 @@ footer:not(.footer):not(.tdh-inline-modal-actions):not(.tdh-message-inbox-compos
   .gallery-grid { grid-template-columns: 1fr; }
   .gallery-cell-wide { grid-column: span 1; aspect-ratio: 16/10; }
   .journey-grid { grid-template-columns: 1fr; }
-  footer:not(.footer):not(.tdh-inline-modal-actions):not(.tdh-message-inbox-compose):not(.org-compose-schedule-footer):not(.cso-settings-foot):not(.cso-khd-final):not(.cins-chat-compose) {
+  footer:not(.footer):not(.tdh-inline-modal-actions):not(.tdh-message-inbox-compose):not(.org-compose-schedule-footer):not(.cso-settings-foot):not(.cso-khd-final):not(.cins-chat-compose):not(.studio-job-detail-foot) {
     padding: 36px 20px 24px;
   }
   .footer-top {

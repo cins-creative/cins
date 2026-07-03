@@ -31,6 +31,7 @@ export async function PATCH(req: Request, ctx: RouteContext) {
     loaiHinh: body?.loaiHinh,
     capDo: body?.capDo,
     tinhThanh: body?.tinhThanh,
+    diaChi: body?.diaChi,
     lamTuXa: body?.lamTuXa,
     idLinhVuc: body?.idLinhVuc,
     idNghe: body?.idNghe,

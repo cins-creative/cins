@@ -31,18 +31,32 @@ import {
 } from "@/lib/chat/realtime";
 import { useChatRealtime } from "@/lib/chat/use-chat-realtime";
 import type {
+  ChatContextCard,
   ChatLaunchState,
   ChatMessage,
+  ChatOrgKind,
   ChatPeerPreview,
   ChatThread,
   ChatThreadGroup,
 } from "@/lib/chat/types";
+
+type OpenChatOrgPreview = {
+  name?: string;
+  avatarUrl?: string | null;
+  orgKind?: ChatOrgKind;
+};
 
 type OpenChatOptions = {
   targetUserId?: string;
   peerPreview?: Omit<ChatPeerPreview, "userId">;
   roomId?: string;
   tab?: ChatThreadGroup;
+  /** Mở hội thoại với 1 TỔ CHỨC (user → org). */
+  orgId?: string;
+  /** Xem trước tổ chức khi đang resolve phòng. */
+  orgPreview?: OpenChatOrgPreview;
+  /** Card ngữ cảnh đính vào hội thoại (tuyển dụng/sự kiện/tuyển sinh). */
+  nguCanh?: ChatContextCard | null;
 };
 
 type ChatFocusSurface = "full" | "mini" | null;
@@ -251,10 +265,74 @@ export function CinsChatProvider({
     return json.thread;
   }, []);
 
+  const resolveOrgRoom = useCallback(
+    async (orgId: string, nguCanh?: ChatContextCard | null) => {
+      const res = await fetch("/api/chat/rooms/open-org", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orgId, nguCanh: nguCanh ?? null }),
+      });
+      const json = (await res.json()) as {
+        thread?: ChatThread;
+        nguCanh?: ChatContextCard | null;
+        error?: string;
+      };
+      if (!res.ok || !json.thread) {
+        throw new Error(json.error ?? "Không mở được hội thoại với tổ chức.");
+      }
+
+      setLaunch({
+        thread: json.thread,
+        tab: "to_chuc",
+        resolving: false,
+        nguCanh: json.nguCanh ?? nguCanh ?? null,
+      });
+      return json.thread;
+    },
+    [],
+  );
+
   const openChat = useCallback(
     async (options?: OpenChatOptions) => {
       if (!viewerProfileId) {
         router.push("/login");
+        return;
+      }
+
+      if (options?.orgId) {
+        const optimistic: ChatThread = {
+          id: `org:${options.orgId}`,
+          roomId: `org:${options.orgId}`,
+          orgId: options.orgId,
+          name: options.orgPreview?.name ?? "Tổ chức",
+          group: "to_chuc",
+          kind: "org",
+          orgKind: options.orgPreview?.orgKind,
+          verified: true,
+          role: "Tổ chức",
+          avatarInitial: (options.orgPreview?.name ?? "T").slice(0, 1).toUpperCase(),
+          avatarHue: 210,
+          avatarUrl: options.orgPreview?.avatarUrl ?? null,
+          preview: "",
+          lastAt: new Date().toISOString(),
+          unread: 0,
+          messages: [],
+        };
+        setLaunch({
+          thread: optimistic,
+          tab: "to_chuc",
+          resolving: true,
+          nguCanh: options.nguCanh ?? null,
+        });
+        setOpen(true);
+
+        try {
+          await resolveOrgRoom(options.orgId, options.nguCanh);
+        } catch (error) {
+          setOpen(false);
+          setLaunch(null);
+          throw error;
+        }
         return;
       }
 
@@ -309,7 +387,7 @@ export function CinsChatProvider({
       );
       setOpen(true);
     },
-    [resolveDirectRoom, router, viewerProfileId],
+    [resolveDirectRoom, resolveOrgRoom, router, viewerProfileId],
   );
 
   const value = useMemo(

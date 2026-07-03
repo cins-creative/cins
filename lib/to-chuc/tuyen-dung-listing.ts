@@ -2,8 +2,9 @@ import "server-only";
 
 import { getAvatarUrl } from "@/lib/journey/profile";
 import { createPublicSupabaseClient } from "@/lib/supabase/public";
-import { studioJobPath } from "@/lib/to-chuc/studio-routes";
+import { orgJobPath } from "@/lib/to-chuc/tuyen-dung-href";
 import { formatStudioDeadline } from "@/lib/to-chuc/studio-tuyen-dung-format";
+import { capDoLabels } from "@/lib/to-chuc/studio-tuyen-dung-distribution";
 import { STUDIO_JOB_LOAI_HINH_LABEL } from "@/lib/to-chuc/studio-tuyen-dung-types";
 
 export type TuyenDungListItem = {
@@ -16,7 +17,7 @@ export type TuyenDungListItem = {
   loaiHinhLabel: string;
   place: string;
   linhVucTen: string | null;
-  capDo: string | null;
+  capDo: string[];
   salary: string | null;
   deadline: string | null;
   href: string | null;
@@ -31,6 +32,7 @@ type OrgEmbed = {
   ten: string | null;
   slug: string | null;
   avatar_id: string | null;
+  loai_to_chuc: string | null;
 };
 
 type Row = {
@@ -38,7 +40,7 @@ type Row = {
   tieu_de: string;
   mo_ta_ngan: string | null;
   loai_hinh: string | null;
-  cap_do: string | null;
+  cap_do: string[] | string | null;
   tinh_thanh: string | null;
   lam_tu_xa: boolean | null;
   muc_luong_tu: number | null;
@@ -50,7 +52,7 @@ type Row = {
 };
 
 const TUYEN_DUNG_LIST_SELECT =
-  "id, tieu_de, mo_ta_ngan, loai_hinh, cap_do, tinh_thanh, lam_tu_xa, muc_luong_tu, muc_luong_den, hien_thi_luong, han_nop, org_to_chuc:org_to_chuc!inner(ten, slug, avatar_id), linh_vuc:linh_vuc(ten)";
+  "id, tieu_de, mo_ta_ngan, loai_hinh, cap_do, tinh_thanh, lam_tu_xa, muc_luong_tu, muc_luong_den, hien_thi_luong, han_nop, org_to_chuc:org_to_chuc!inner(ten, slug, avatar_id, loai_to_chuc), linh_vuc:linh_vuc(ten)";
 
 function pickOrg(org: Row["org_to_chuc"]): OrgEmbed | null {
   if (!org) return null;
@@ -117,10 +119,10 @@ export async function loadTuyenDungListing(
           ] ?? loai,
         place: place(row),
         linhVucTen: pickLinhVuc(row.linh_vuc),
-        capDo: row.cap_do?.trim() || null,
+        capDo: capDoLabels(row.cap_do),
         salary: salary(row),
         deadline: formatStudioDeadline(row.han_nop),
-        href: orgSlug ? studioJobPath(orgSlug, row.id) : null,
+        href: orgSlug ? orgJobPath(org?.loai_to_chuc, orgSlug, row.id) : null,
       };
     });
 

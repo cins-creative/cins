@@ -18,6 +18,10 @@ import { resolveImageSeedUrl } from "@/lib/editor/resolve-image-seed-url";
 
 import type { Block, BlockType } from "@/lib/editor/types";
 import {
+  flattenMosaicCells,
+  normalizeLegacyLayout,
+} from "@/lib/editor/image-layout";
+import {
   buildBunnyEmbedUrl,
   classifyBunnyVideoUrl,
 } from "@/lib/bunny/embed";
@@ -124,7 +128,7 @@ function buildEmbedIframe(cls: {
  * Quy ước:
  *   - Wrap toàn bài trong `<div class="article-rich-content">…</div>` để CSS scope
  *     không rò ra ngoài (khớp pattern hiện có cho `article_bai_viet`).
- *   - Block image/embed/palette/mosaic serialize ra HTML tĩnh, ảnh dùng `<img loading="lazy">`.
+ *   - Block image/embed/palette serialize ra HTML tĩnh, ảnh dùng `<img loading="lazy">`.
  *     Khi sang Cloudflare Images sẽ thay src qua `imagedelivery.net` (chỉ đổi src builder
  *     trong `imgSrcForSeed`, layout không đổi).
  *   - Sanitize: text blocks là plain text (đã escape), KHÔNG nhúng HTML thô từ user.
@@ -219,7 +223,9 @@ function getText(b: Block): string {
 }
 
 function renderImgsBlock(b: Block): string {
-  const layout = (b.config?.layout as string) || "full";
+  // Layout: full / masonry / justified / duo / grid2 / grid3 / grid4 / hero.
+  // Layout cũ được map sang qua normalizeLegacyLayout.
+  const layout = normalizeLegacyLayout(b.config?.layout);
   const rounded = !!b.config?.rounded;
   const cap = (b.config?.cap as string | undefined) || "";
 
@@ -227,92 +233,14 @@ function renderImgsBlock(b: Block): string {
     ? `<div class="rich-img-cap">${escapeHtml(cap)}</div>`
     : "";
 
-  if (layout === "mosaic") {
-    // Lưới tùy chỉnh: render grid với col/row span theo `cells`. Bỏ qua
-    // cell rỗng (seed bắt đầu m-/extra-).
-    const rawCells = (b.config?.cells as unknown[] | undefined) || [];
-    const cells = rawCells
-      .map((raw) => {
-        const c = raw as
-          | {
-              seed?: unknown;
-              c?: unknown;
-              r?: unknown;
-              kind?: unknown;
-              text?: unknown;
-              align?: unknown;
-              font?: unknown;
-              size?: unknown;
-            }
-          | null;
-        if (!c || typeof c.seed !== "string") return null;
-        const kind = c.kind === "text" ? "text" : "image";
-        if (kind === "image" && (!c.seed || /^m-|^extra-/.test(c.seed))) {
-          return null;
-        }
-        const cc =
-          typeof c.c === "number" && c.c >= 1 && c.c <= 4 ? c.c : 1;
-        const rr =
-          typeof c.r === "number" && c.r >= 1 && c.r <= 4 ? c.r : 1;
-        const align =
-          c.align === "left" || c.align === "right" || c.align === "center"
-            ? c.align
-            : "center";
-        const text = typeof c.text === "string" ? c.text : "";
-        const font = c.font === "sans" || c.font === "serif" ? c.font : "serif";
-        const size =
-          c.size === "sm" || c.size === "lg" || c.size === "md" ? c.size : "md";
-        return { seed: c.seed, c: cc, r: rr, kind, text, align, font, size };
-      })
-      .filter(
-        (
-          x,
-        ): x is {
-          seed: string;
-          c: number;
-          r: number;
-          kind: "image" | "text";
-          text: string;
-          align: "left" | "center" | "right";
-          font: "serif" | "sans";
-          size: "sm" | "md" | "lg";
-        } => x !== null,
-      );
-    if (cells.length === 0) return "";
-    const cols =
-      typeof b.config?.cols === "number" &&
-      b.config.cols >= 2 &&
-      b.config.cols <= 4
-        ? b.config.cols
-        : 3;
-    const gap =
-      typeof b.config?.gap === "number" &&
-      b.config.gap >= 0 &&
-      b.config.gap <= 32
-        ? Math.round(b.config.gap)
-        : 0;
-    const pad =
-      typeof b.config?.pad === "number" &&
-      b.config.pad >= 0 &&
-      b.config.pad <= 48
-        ? Math.round(b.config.pad)
-        : 0;
-    const cellsHtml = cells
-      .map((cell) => {
-        if (cell.kind === "text") {
-          const style = `grid-column:span ${cell.c};grid-row:span ${cell.r}`;
-          return `<div class="rich-mosaic-cell rich-mosaic-text is-${cell.align} is-${cell.font} is-${cell.size}" style="${style}"><p>${escapeHtml(cell.text)}</p></div>`;
-        }
-        const src = imgSrcForSeed(cell.seed);
-        const style = `grid-column:span ${cell.c};grid-row:span ${cell.r}`;
-        return `<div class="rich-mosaic-cell" style="${style}"><img loading="lazy" src="${escapeHtml(src)}" alt=""></div>`;
-      })
-      .join("");
-    const gridStyle = `grid-template-columns:repeat(${cols},1fr);gap:${gap}px;padding:${pad}px`;
-    return `<figure class="rich-imgs rich-imgs--mosaic${rounded ? " is-rounded" : ""}"><div class="rich-mosaic" style="${gridStyle}">${cellsHtml}</div>${capHtml}</figure>`;
-  }
-
-  const imgs = (b.config?.imgs as string[] | undefined) || [];
+  const rawImgs = Array.isArray(b.config?.imgs)
+    ? (b.config.imgs as unknown[]).map((s) => (typeof s === "string" ? s : "")).filter(Boolean)
+    : [];
+  // Bài cũ dùng mosaic chỉ có `cells` → gom seed ảnh ra thành album.
+  const imgs = (rawImgs.length > 0
+    ? rawImgs
+    : flattenMosaicCells(b.config?.cells)
+  ).filter((s) => !/^m-|^extra-/.test(s));
 
   if (imgs.length === 0) return "";
 
@@ -323,7 +251,7 @@ function renderImgsBlock(b: Block): string {
     })
     .join("");
 
-  return `<figure class="rich-imgs rich-imgs--${escapeHtml(layout)}${rounded ? " is-rounded" : ""}">${cellsHtml}${capHtml}</figure>`;
+  return `<figure class="rich-imgs rich-imgs--${layout}${rounded ? " is-rounded" : ""}">${cellsHtml}${capHtml}</figure>`;
 }
 
 function imgSrcForSeed(seed: string): string {

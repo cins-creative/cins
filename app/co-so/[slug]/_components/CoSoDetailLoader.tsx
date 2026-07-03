@@ -10,6 +10,7 @@ import {
   canViewerManageKhoaHoc,
 } from "@/lib/to-chuc/khoa-hoc";
 import { getCoSoDetailPayloadCached } from "@/lib/to-chuc/co-so-page-queries";
+import { fetchStudioJobs } from "@/lib/to-chuc/studio-tuyen-dung-queries";
 
 type Props = {
   slug: string;
@@ -31,6 +32,8 @@ export async function CoSoDetailLoader({ slug }: Props) {
       loadOrgBaiDangBookmarkSocial(postIds, viewerProfileId),
       getCurrentUserSystemRole(),
     ]);
+
+  const jobs = await fetchStudioJobs(payload.school.id, canEdit);
 
   const payloadWithSocial = {
     ...payload,
@@ -56,6 +59,8 @@ export async function CoSoDetailLoader({ slug }: Props) {
           isOrgMember={isOrgMember}
           canManageKhoaHoc={canManageKhoaHoc}
           systemRole={systemRole}
+          jobs={jobs}
+          viewerLoggedIn={Boolean(viewerProfileId)}
         />
       </div>
     </CinsShell>

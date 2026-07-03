@@ -3,6 +3,7 @@ import "server-only";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { isTruongOrgAdmin } from "@/lib/truong/org-admin";
 import {
+  normalizeCapDo,
   normalizeGiaiDoanMucTieu,
   TUYEN_DUNG_GIAI_DOAN_DEFAULT,
 } from "@/lib/to-chuc/studio-tuyen-dung-distribution";
@@ -30,8 +31,9 @@ export type StudioJobInput = {
   phucLoi?: unknown;
   moTaNgan?: string | null;
   loaiHinh?: StudioJobLoaiHinh;
-  capDo?: string | null;
+  capDo?: string[] | string | null;
   tinhThanh?: string | null;
+  diaChi?: string | null;
   lamTuXa?: boolean;
   idLinhVuc?: string | null;
   idNghe?: string | null;
@@ -66,8 +68,9 @@ function normalizeInput(
         phuc_loi: StudioJobPhucLoiItem[];
         mo_ta_ngan: string | null;
         loai_hinh: StudioJobLoaiHinh;
-        cap_do: string | null;
+        cap_do: string[] | null;
         tinh_thanh: string | null;
+        dia_chi: string | null;
         lam_tu_xa: boolean;
         id_linh_vuc: string | null;
         id_nghe: string | null;
@@ -106,6 +109,7 @@ function normalizeInput(
 
   const idLinhVuc = input.idLinhVuc?.trim() || null;
   const idNghe = input.idNghe?.trim() || null;
+  const capDo = normalizeCapDo(input.capDo);
 
   return {
     payload: {
@@ -116,8 +120,9 @@ function normalizeInput(
       phuc_loi: normalizeStudioPhucLoi(input.phucLoi),
       mo_ta_ngan: input.moTaNgan?.trim() || null,
       loai_hinh: loaiHinh,
-      cap_do: input.capDo?.trim() || null,
+      cap_do: capDo.length ? capDo : null,
       tinh_thanh: tinhThanh,
+      dia_chi: input.diaChi?.trim() || null,
       lam_tu_xa: Boolean(input.lamTuXa),
       id_linh_vuc: idLinhVuc,
       id_nghe: idNghe,

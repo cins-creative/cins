@@ -38,6 +38,7 @@ import {
   mapCheDoLuuToForeignJourney,
 } from "@/lib/journey/bookmark-visibility";
 import { fetchBookmarkedOrgBaiDangMilestones } from "@/lib/truong/org-bai-dang-bookmark";
+import { fetchBookmarkedOrgTuyenDungMilestones } from "@/lib/to-chuc/tuyen-dung-bookmark";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 /* ╔══════════════════════════════════════════════════════════════════╗
@@ -613,7 +614,14 @@ export async function fetchBookmarkedMilestonesForUser(params: {
     ]),
   );
 
-  const orgBookmarks = await fetchBookmarkedOrgBaiDangMilestones({ userId, admin });
+  const [orgBaiDangBookmarks, orgTuyenDungBookmarks] = await Promise.all([
+    fetchBookmarkedOrgBaiDangMilestones({ userId, admin }),
+    fetchBookmarkedOrgTuyenDungMilestones({ userId, admin }),
+  ]);
+  const orgBookmarks = mergeMilestoneLists(
+    orgBaiDangBookmarks,
+    orgTuyenDungBookmarks,
+  );
 
   const cotMocIds = [...new Set(savedAtByMoc.keys())];
   if (cotMocIds.length === 0) return orgBookmarks;

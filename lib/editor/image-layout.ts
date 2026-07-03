@@ -1,34 +1,33 @@
 import { resolveImageSeedUrl } from "@/lib/editor/resolve-image-seed-url";
 
+/**
+ * Layout cho block ảnh.
+ *
+ * Nhóm adaptive (không crop, giữ tỉ lệ gốc):
+ *   - full:      Tràn viền, nhiều ảnh xếp dọc full-width.
+ *   - masonry:   Masonry 3 cột (CSS columns), theo chiều cao thật của ảnh.
+ *   - justified: Hàng giãn full chiều ngang, cao hàng co theo tỉ lệ ảnh.
+ *
+ * Nhóm lưới cơ bản (cắt gọn — object-fit: cover):
+ *   - duo:       2 ảnh cạnh nhau, cao đều.
+ *   - grid2:     Lưới 2 cột, ô vuông đều.
+ *   - grid3:     Lưới 3 cột, ô vuông đều.
+ *   - grid4:     Lưới 2×2, tối đa 4 ô vuông.
+ *   - hero:      1 ảnh lớn trên + dải ảnh nhỏ bên dưới.
+ */
 export type ImgLayout =
   | "full"
-  | "boxed"
-  | "stack"
+  | "masonry"
+  | "justified"
   | "duo"
-  | "duo-stack"
-  | "row3"
-  | "trio"
-  | "big-right"
+  | "grid2"
+  | "grid3"
   | "grid4"
-  | "strip5"
-  | "grid6"
-  | "grid9"
-  | "mosaic";
-
-export type MosaicCell = {
-  seed: string;
-  c: number;
-  r: number;
-  kind?: "image" | "text";
-  text?: string;
-  align?: "left" | "center" | "right";
-  font?: "serif" | "sans";
-  size?: "sm" | "md" | "lg";
-};
+  | "hero";
 
 export type ImgLayoutMeta = {
   k: ImgLayout;
-  /** Số ô tối đa trong preview (hoặc cap khi dynamic). */
+  /** Cap số ô preview (dynamic = theo số ảnh, tối đa n). */
   n: number;
   name: string;
   /** true = số ô = số ảnh (tối đa n), thay vì cố định n ô. */
@@ -36,25 +35,18 @@ export type ImgLayoutMeta = {
 };
 
 const IMG_LAYOUT_META: ImgLayoutMeta[] = [
-  { k: "full", n: 1, name: "Tràn viền" },
-  { k: "boxed", n: 1, name: "Trong khung" },
-  { k: "stack", n: 10, name: "Xếp dọc", dynamic: true },
-  { k: "duo", n: 2, name: "Đôi" },
-  { k: "duo-stack", n: 10, name: "2 cột", dynamic: true },
-  { k: "row3", n: 3, name: "Hàng 3" },
-  { k: "trio", n: 3, name: "Lớn trái" },
-  { k: "big-right", n: 3, name: "Lớn phải" },
-  { k: "grid4", n: 4, name: "Lưới 4" },
-  { k: "strip5", n: 5, name: "Dải 5" },
-  { k: "grid6", n: 6, name: "Lưới 6" },
-  { k: "grid9", n: 9, name: "Lưới 9" },
-  { k: "mosaic", n: 3, name: "Lưới tùy chỉnh" },
+  { k: "full", n: 30, name: "Tràn viền", dynamic: true },
+  { k: "duo", n: 30, name: "Đôi (2 cột)", dynamic: true },
+  { k: "grid2", n: 30, name: "Lưới 2 cột", dynamic: true },
+  { k: "grid3", n: 30, name: "Lưới 3 cột", dynamic: true },
+  { k: "grid4", n: 4, name: "Lưới 2×2", dynamic: false },
+  { k: "masonry", n: 30, name: "Masonry 3 cột", dynamic: true },
+  { k: "justified", n: 30, name: "Justified", dynamic: true },
+  { k: "hero", n: 30, name: "Nổi bật", dynamic: true },
 ];
 
-/** Layout hiển thị trên LayBar — không gồm legacy ẩn khỏi picker. */
-export const IMG_LAYOUTS: ImgLayoutMeta[] = IMG_LAYOUT_META.filter(
-  (l) => l.k !== "stack" && l.k !== "duo-stack",
-);
+/** Layout hiển thị trên LayBar. */
+export const IMG_LAYOUTS: ImgLayoutMeta[] = IMG_LAYOUT_META;
 
 /** URL hiển thị ảnh trong editor — hỗ trợ blob preview, Cloudflare UUID, URL ngoài, picsum seed. */
 export function resolveEditorImageUrl(
@@ -73,46 +65,54 @@ export function imgLayoutPreviewSlots(
   layout: ImgLayout,
   photoCount: number,
 ): number {
-  if (layout === "mosaic") return 0;
   const meta = getImgLayoutMeta(layout);
-  if (meta.dynamic) {
-    return Math.min(Math.max(photoCount, 1), meta.n);
+  return Math.min(Math.max(photoCount, 1), meta.n);
+}
+
+/** Map layout cũ (đã bỏ) → 1 trong 3 layout mới, để bài đăng cũ không vỡ. */
+const LEGACY_LAYOUT_MAP: Record<string, ImgLayout> = {
+  full: "full",
+  boxed: "full",
+  stack: "full",
+  duo: "duo",
+  row3: "grid3",
+  trio: "grid3",
+  "big-right": "hero",
+  strip5: "justified",
+  "duo-stack": "masonry",
+  grid2: "grid2",
+  grid3: "grid3",
+  grid4: "grid4",
+  grid6: "masonry",
+  grid9: "masonry",
+  mosaic: "masonry",
+  masonry: "masonry",
+  justified: "justified",
+  hero: "hero",
+};
+
+export function normalizeLegacyLayout(raw: unknown): ImgLayout {
+  if (typeof raw === "string" && raw in LEGACY_LAYOUT_MAP) {
+    return LEGACY_LAYOUT_MAP[raw];
   }
-  return meta.n;
+  return "full";
 }
 
-export function imgLayoutSlotCount(layout: ImgLayout): number {
-  return imgLayoutPreviewSlots(layout, 1);
-}
-
-export function suggestLayoutForPhotoCount(count: number): ImgLayout {
-  if (count <= 1) return "full";
-  if (count === 2) return "duo";
-  if (count === 3) return "row3";
-  if (count === 4) return "grid4";
-  if (count === 5) return "strip5";
-  if (count <= 6) return "grid6";
-  return "grid9";
-}
-
-const MOSAIC_DEFAULT_CELL_COUNT = 4;
-const MOSAIC_DEFAULT_COLS = 2;
-
-/** Lưới mosaic mặc định: 2 cột × 2 hàng, mỗi ô 1×1. */
-export function defaultMosaicGrid(
-  blockId: string,
-  seeds: string[] = [],
-): { cols: number; cells: MosaicCell[] } {
-  const normalized =
-    seeds.length > 0
-      ? [...seeds]
-      : Array.from({ length: MOSAIC_DEFAULT_CELL_COUNT }, (_, i) => `m-${blockId}-${i}`);
-  while (normalized.length < MOSAIC_DEFAULT_CELL_COUNT) {
-    normalized.push(`m-${blockId}-${normalized.length}`);
+/** Trích seed ảnh hợp lệ từ `cells` mosaic cũ (bỏ ô chữ & seed rỗng). */
+export function flattenMosaicCells(cells: unknown): string[] {
+  if (!Array.isArray(cells)) return [];
+  const out: string[] = [];
+  for (const raw of cells) {
+    if (!raw || typeof raw !== "object") continue;
+    const cell = raw as { seed?: unknown; kind?: unknown };
+    if (cell.kind === "text") continue;
+    if (
+      typeof cell.seed === "string" &&
+      cell.seed.trim().length > 0 &&
+      !/^m-|^extra-/.test(cell.seed)
+    ) {
+      out.push(cell.seed);
+    }
   }
-  const slots = normalized.slice(0, MOSAIC_DEFAULT_CELL_COUNT);
-  return {
-    cols: MOSAIC_DEFAULT_COLS,
-    cells: slots.map((seed) => ({ seed, c: 1, r: 1 })),
-  };
+  return out;
 }

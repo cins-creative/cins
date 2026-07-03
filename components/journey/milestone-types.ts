@@ -84,6 +84,20 @@ export type MilestoneAttribution = {
   postCount?: number;
 };
 
+/** Một người bạn "sẽ tham gia" sự kiện — chip avatar + popup danh sách trên feed. */
+export type FeedFriendAttendee = {
+  /** UUID người dùng. */
+  id: string;
+  /** Tên hiển thị (fallback slug). */
+  name: string;
+  /** Slug trang cá nhân → link `/{slug}`. */
+  slug: string;
+  /** Avatar Cloudflare (null → dùng chữ cái đầu). */
+  avatarUrl?: string | null;
+  /** 1 chữ cái khi không có avatar. */
+  initial?: string | null;
+};
+
 export type MilestoneCongDongOrg = {
   orgId: string;
   name: string;
@@ -227,8 +241,17 @@ export type MilestoneItem = {
   feedSuggestion?: boolean;
   /** Dòng social hint — vd. "3 bạn bè sẽ tham gia". */
   feedSocialHint?: string | null;
+  /** Bạn bè "sẽ tham gia" sự kiện — chip avatar + popup danh sách. */
+  feedFriends?: FeedFriendAttendee[];
   /** Badge "✓ Sine Art" — chỉ khi đã được verified. */
   verifiedBy?: string | null;
+
+  /**
+   * World Journey feed — số lần viewer đã "tiếp cận" (`hien_thi`) nội dung này.
+   * 0/undefined = chưa xem. Dùng để ưu tiên nội dung chưa xem / xem ít lên trên
+   * khi sắp xếp trong mỗi năm (không ảnh hưởng Journey cá nhân).
+   */
+  viewerSeenCount?: number | null;
 
   /** Card layout — `cong-dong-create` = milestone tạo cộng đồng (logo org). */
   cardLayout?: MilestoneCardLayout;

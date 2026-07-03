@@ -6,6 +6,10 @@ import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { normalizeBookmarkPrivateNote } from "@/lib/journey/bookmark-private-note";
 import { mapBookmarkUiToCheDoLuu } from "@/lib/journey/bookmark-visibility";
 import { saveOrgBaiDangBookmark } from "@/lib/truong/org-bai-dang-bookmark";
+import {
+  saveOrgTuyenDungBookmark,
+  SOCIAL_LOAI_ORG_TUYEN_DUNG,
+} from "@/lib/to-chuc/tuyen-dung-bookmark";
 import { SOCIAL_LOAI_ORG_BAI_DANG } from "@/lib/truong/social-constants";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -41,6 +45,24 @@ export async function handleSaveBookmarkPost(req: Request) {
   if (loaiDoiTuong === SOCIAL_LOAI_ORG_BAI_DANG) {
     const result = await saveOrgBaiDangBookmark({
       postId: idDoiTuong,
+      viewerId: session.profile.id,
+      visibility,
+      ghiChuRieng,
+    });
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: result.status });
+    }
+    return NextResponse.json({
+      ok: true,
+      visibility: result.visibility,
+      bookmarked: result.bookmarked,
+      count: result.count,
+    });
+  }
+
+  if (loaiDoiTuong === SOCIAL_LOAI_ORG_TUYEN_DUNG) {
+    const result = await saveOrgTuyenDungBookmark({
+      jobId: idDoiTuong,
       viewerId: session.profile.id,
       visibility,
       ghiChuRieng,

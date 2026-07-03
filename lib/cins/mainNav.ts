@@ -103,6 +103,9 @@ export const MAIN_NAV_ITEMS: MainNavItem[] = [
   },
 ];
 
+/** id item KẾT THÚC một cụm — chèn đường kẻ ngay sau (trừ item cuối). */
+export const MAIN_NAV_GROUP_BREAK_AFTER = new Set(["home", "courses", "jobs"]);
+
 export const MAIN_NAV_FOOT_ITEMS: MainNavItem[] = [
   {
     id: "help",

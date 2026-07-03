@@ -20,6 +20,7 @@ import {
   loadReactionsForMessages,
 } from "@/lib/chat/message-enrich";
 import type {
+  ChatContextCard,
   ChatMessage,
   ChatMessageKind,
   ChatMessageReplyPreview,
@@ -60,6 +61,7 @@ export type MessageRow = {
   loai_tin?: string | null;
   id_dinh_kem?: string | null;
   id_tin_tra_loi?: string | null;
+  ngu_canh?: ChatContextCard | null;
   tao_luc: string;
   da_xoa?: boolean;
   da_sua?: boolean;
@@ -80,7 +82,7 @@ function normalizeMessageRow(row: MessageRow): NormalizedMessageRow {
 }
 
 export const MESSAGE_SELECT =
-  "id, id_phong, id_nguoi_gui, noi_dung, loai_tin, id_dinh_kem, id_tin_tra_loi, tao_luc, da_xoa, da_sua, sua_luc, content_media(cloudflare_id)";
+  "id, id_phong, id_nguoi_gui, noi_dung, loai_tin, id_dinh_kem, id_tin_tra_loi, ngu_canh, tao_luc, da_xoa, da_sua, sua_luc, content_media(cloudflare_id)";
 
 type ReadRow = {
   id_phong: string;
@@ -90,6 +92,10 @@ type ReadRow = {
 export function messagePreview(row: MessageRow): string {
   if (row.da_xoa) return "Đã thu hồi tin nhắn";
   const normalized = normalizeMessageRow(row);
+  const nguCanh = parseNguCanh(normalized.ngu_canh);
+  if (nguCanh) {
+    return `Trao đổi về: ${nguCanh.tieuDe}`;
+  }
   if (normalized.loai_tin === "media") {
     const caption = normalized.noi_dung?.trim() || "";
     if (caption && !isCloudflareImageId(caption)) return caption;
@@ -115,13 +121,36 @@ type MapMessageExtras = {
   readByPeer?: boolean;
 };
 
+function parseNguCanh(raw: unknown): ChatContextCard | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const id = typeof r.id === "string" ? r.id : null;
+  const tieuDe = typeof r.tieuDe === "string" ? r.tieuDe : null;
+  const loai = typeof r.loai === "string" ? r.loai : null;
+  if (!id || !tieuDe || !loai) return null;
+  return {
+    loai,
+    id,
+    tieuDe,
+    moTa: typeof r.moTa === "string" ? r.moTa : null,
+    anh: typeof r.anh === "string" ? r.anh : null,
+    href: typeof r.href === "string" ? r.href : null,
+    orgTen: typeof r.orgTen === "string" ? r.orgTen : null,
+  };
+}
+
 export function mapMessageFromRow(
   row: MessageRow,
   viewerId: string,
   extras: MapMessageExtras = {},
 ): ChatMessage {
   const normalized = normalizeMessageRow(row);
-  const kind: ChatMessageKind = normalized.loai_tin === "media" ? "media" : "text";
+  const nguCanh = parseNguCanh(normalized.ngu_canh);
+  const kind: ChatMessageKind = nguCanh
+    ? "context"
+    : normalized.loai_tin === "media"
+      ? "media"
+      : "text";
   const imageId = kind === "media" ? resolveImageId(normalized) : null;
   let body = normalized.noi_dung?.trim() || "";
 
@@ -144,6 +173,7 @@ export function mapMessageFromRow(
     reactions: extras.reactions,
     pinned: extras.pinned,
     readByPeer: extras.readByPeer,
+    nguCanh,
   };
 }
 
@@ -745,7 +775,12 @@ export async function sendRoomMessage(
   viewerId: string,
   input:
     | string
-    | { body?: string; cloudflareImageId?: string; replyToId?: string },
+    | {
+        body?: string;
+        cloudflareImageId?: string;
+        replyToId?: string;
+        nguCanh?: unknown;
+      },
 ): Promise<{ ok: true; message: ChatMessage } | { ok: false; error: string }> {
   const body =
     typeof input === "string" ? input.trim() : (input.body?.trim() ?? "");
@@ -755,8 +790,10 @@ export async function sendRoomMessage(
       : input.cloudflareImageId?.trim();
   const replyToId =
     typeof input === "string" ? undefined : input.replyToId?.trim();
+  const nguCanh =
+    typeof input === "string" ? null : parseNguCanh(input.nguCanh);
 
-  if (!body && !cloudflareImageId) {
+  if (!body && !cloudflareImageId && !nguCanh) {
     return { ok: false, error: "Tin nhắn trống." };
   }
 
@@ -801,13 +838,15 @@ export async function sendRoomMessage(
         id_dinh_kem: mediaId,
         noi_dung: body || cloudflareImageId,
         ...(replyToId ? { id_tin_tra_loi: replyToId } : {}),
+        ...(nguCanh ? { ngu_canh: nguCanh } : {}),
       }
     : {
         id_phong: roomId,
         id_nguoi_gui: viewerId,
-        noi_dung: body,
+        noi_dung: body || null,
         loai_tin: "text" as const,
         ...(replyToId ? { id_tin_tra_loi: replyToId } : {}),
+        ...(nguCanh ? { ngu_canh: nguCanh } : {}),
       };
 
   const { data, error } = await admin

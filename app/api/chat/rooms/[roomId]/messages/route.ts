@@ -57,13 +57,14 @@ export async function POST(req: Request, context: RouteContext) {
     return NextResponse.json({ error: "Thiếu roomId." }, { status: 400 });
   }
 
-  let body: { noi_dung?: string; cloudflare_image_id?: string; id_tin_tra_loi?: string };
+  let body: {
+    noi_dung?: string;
+    cloudflare_image_id?: string;
+    id_tin_tra_loi?: string;
+    ngu_canh?: unknown;
+  };
   try {
-    body = (await req.json()) as {
-      noi_dung?: string;
-      cloudflare_image_id?: string;
-      id_tin_tra_loi?: string;
-    };
+    body = (await req.json()) as typeof body;
   } catch {
     return NextResponse.json({ error: "Body không hợp lệ." }, { status: 400 });
   }
@@ -72,6 +73,7 @@ export async function POST(req: Request, context: RouteContext) {
     body: body.noi_dung,
     cloudflareImageId: body.cloudflare_image_id,
     replyToId: body.id_tin_tra_loi,
+    nguCanh: body.ngu_canh ?? null,
   });
 
   if (!result.ok) {

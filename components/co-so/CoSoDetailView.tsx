@@ -13,6 +13,7 @@ import {
 } from "@/components/co-so/CoSoPageSettingsModal";
 import { CoSoTabBaidang } from "@/components/co-so/tabs/CoSoTabBaidang";
 import { CoSoTabSuKien } from "@/components/co-so/tabs/CoSoTabSuKien";
+import { CoSoTabTuyenDung } from "@/components/co-so/tabs/CoSoTabTuyenDung";
 import { TruongOrgCover } from "@/components/truong/TruongOrgCover";
 import {
   TruongInlineEditProvider,
@@ -29,12 +30,14 @@ import {
 } from "@/lib/to-chuc/co-so-page-cau-hinh";
 import type { SystemRole } from "@/lib/auth/system-role";
 import type { CoSoDetailPayload, CoSoFilterChip } from "@/lib/to-chuc/co-so-page-queries";
+import { countActiveStudioJobs } from "@/lib/to-chuc/studio-tuyen-dung-format";
 import {
   CO_SO_DEFAULT_TAB,
   coSoTabPath,
   parseCoSoRouteFromPathname,
 } from "@/lib/to-chuc/co-so-routes";
 import { coSoToInlinePayload } from "@/lib/to-chuc/co-so-inline-payload";
+import type { StudioJob } from "@/lib/to-chuc/studio-tuyen-dung-types";
 import type { TruongChiNhanh } from "@/lib/truong/types";
 
 const TABS = [
@@ -43,6 +46,7 @@ const TABS = [
   { id: "san-pham", label: CO_SO_TAB_LABELS["san-pham"], num: "03" },
   { id: "hinh-anh", label: CO_SO_TAB_LABELS["hinh-anh"], num: "04" },
   { id: "su-kien", label: CO_SO_TAB_LABELS["su-kien"], num: "05" },
+  { id: "tuyen-dung", label: CO_SO_TAB_LABELS["tuyen-dung"], num: "06" },
 ] as const satisfies ReadonlyArray<{ id: CoSoTabId; label: string; num: string }>;
 
 type Props = {
@@ -52,6 +56,9 @@ type Props = {
   isOrgMember?: boolean;
   canManageKhoaHoc?: boolean;
   systemRole?: SystemRole | null;
+  /** Tin tuyển dụng của cơ sở (tab Tuyển dụng). */
+  jobs?: StudioJob[];
+  viewerLoggedIn?: boolean;
 };
 
 type SettingsSavedPatch = {
@@ -76,7 +83,7 @@ function useCoSoRouteState() {
   const pathname = usePathname();
   return useMemo(() => {
     const parsed = parseCoSoRouteFromPathname(pathname ?? "");
-    return parsed ?? { tab: CO_SO_DEFAULT_TAB, khoaSlug: null };
+    return parsed ?? { tab: CO_SO_DEFAULT_TAB, khoaSlug: null, jobId: null };
   }, [pathname]);
 }
 
@@ -84,6 +91,8 @@ function CoSoDetailViewInner({
   payload,
   canEdit = false,
   canManageKhoaHoc = false,
+  jobs = [],
+  viewerLoggedIn = false,
   settingsOpen = false,
   settingsSection = "identity",
   onSettingsOpenChange,
@@ -102,12 +111,15 @@ function CoSoDetailViewInner({
   const baseSchool = ctx?.school ?? payload.school;
   const school = { ...baseSchool, ...schoolExtra };
   const orgSlug = school.slug;
-  const { tab, khoaSlug } = useCoSoRouteState();
+  const { tab, khoaSlug, jobId } = useCoSoRouteState();
   const [mountedTabs, setMountedTabs] = useState<Set<CoSoTabId>>(
     () => new Set([tab]),
   );
   const editableMedia = canEdit && Boolean(ctx?.canEdit);
   const { isMobileShell, mobileTab, setMobileTab } = useCoSoMobileShell("content");
+
+  // Số tin tuyển dụng đang mở & còn hiệu lực — hiển thị badge trên tab.
+  const activeJobCount = useMemo(() => countActiveStudioJobs(jobs), [jobs]);
 
   useEffect(() => {
     setMountedTabs((prev) => {
@@ -231,6 +243,14 @@ function CoSoDetailViewInner({
                 className={`tdh-v6-tab${tab === t.id ? " on" : ""}`}
               >
                 {t.label}
+                {t.id === "tuyen-dung" && activeJobCount > 0 ? (
+                  <span
+                    className="tdh-v6-tab-badge"
+                    aria-label={`${activeJobCount} tin đang tuyển`}
+                  >
+                    {activeJobCount}
+                  </span>
+                ) : null}
               </Link>
             ))}
           </div>
@@ -289,6 +309,18 @@ function CoSoDetailViewInner({
               {t.id === "hinh-anh" ? (
                 <CoSoTabHinhanh images={hinhanh} />
               ) : null}
+              {t.id === "tuyen-dung" ? (
+                <CoSoTabTuyenDung
+                  jobs={jobs}
+                  orgId={school.id}
+                  orgSlug={orgSlug}
+                  orgTen={school.ten}
+                  canEdit={canEdit}
+                  viewerLoggedIn={viewerLoggedIn}
+                  activeJobId={tab === "tuyen-dung" ? jobId : null}
+                  num={t.num}
+                />
+              ) : null}
             </div>
           );
         })}
@@ -325,6 +357,8 @@ function CoSoDetailViewBody({
   payload,
   canEdit,
   canManageKhoaHoc,
+  jobs,
+  viewerLoggedIn,
 }: Props) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsSection, setSettingsSection] =
@@ -344,6 +378,8 @@ function CoSoDetailViewBody({
         payload={payload}
         canEdit={canEdit}
         canManageKhoaHoc={canManageKhoaHoc}
+        jobs={jobs}
+        viewerLoggedIn={viewerLoggedIn}
         settingsOpen={settingsOpen}
         settingsSection={settingsSection}
         onSettingsOpenChange={canEdit ? setSettingsOpen : undefined}
@@ -359,6 +395,8 @@ export function CoSoDetailView({
   isOrgMember = false,
   canManageKhoaHoc = false,
   systemRole = null,
+  jobs = [],
+  viewerLoggedIn = false,
 }: Props) {
   return (
     <TruongInlineEditProvider
@@ -371,6 +409,8 @@ export function CoSoDetailView({
         payload={payload}
         canEdit={canEdit}
         canManageKhoaHoc={canManageKhoaHoc}
+        jobs={jobs}
+        viewerLoggedIn={viewerLoggedIn}
       />
     </TruongInlineEditProvider>
   );

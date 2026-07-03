@@ -1614,21 +1614,18 @@
 }
 
 .world-journey-home .wj-feed-timeline .j-osk-date-badge {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  z-index: 1;
+  flex-shrink: 0;
   display: inline-flex;
   align-items: stretch;
   flex-direction: row;
   min-width: 0;
-  max-width: min(calc(100% - 20px), 220px);
+  max-width: 220px;
   text-align: left;
-  border: 1px solid rgba(255, 255, 255, 0.82);
+  border: 1px solid var(--border);
   border-radius: 10px;
   overflow: hidden;
   background: var(--surface);
-  box-shadow: 0 1px 6px rgba(15, 23, 42, 0.12);
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.06);
 }
 
 .world-journey-home .wj-feed-timeline .j-osk-date-core {
@@ -1826,6 +1823,189 @@
   color: var(--violet);
 }
 
+/* Chip "N bạn bè sẽ tham gia" — avatar chồng + label, bấm mở popup danh sách. */
+.world-journey-home .wj-feed-timeline .j-osk-friends {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  padding: 3px 8px 3px 4px;
+  border: none;
+  border-radius: var(--r-pill, 999px);
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-friends:hover {
+  background: var(--surface2, #f1f5f9);
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-friends-avatars {
+  display: inline-flex;
+  align-items: center;
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-friends-avatars > * + * {
+  margin-left: -9px;
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-friends-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink3, #64748b);
+}
+
+/* Avatar dùng chung (chip + popup) — popup portal ra body nên để global scope. */
+.j-osk-friend-av {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid #fff;
+  background: #eef1f6;
+}
+
+.j-osk-friend-av img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.j-osk-friend-av-txt {
+  font-size: 10px;
+  font-weight: 800;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.j-osk-friend-more {
+  background: #ede9fe;
+  color: #6d28d9;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.j-osk-friend-av--lg {
+  width: 36px;
+  height: 36px;
+  border-width: 1px;
+  border-color: #eef1f6;
+}
+
+.j-osk-friend-av--lg .j-osk-friend-av-txt {
+  font-size: 13px;
+}
+
+/* Popup danh sách bạn bè (createPortal → body). */
+.j-osk-friends-pop {
+  position: fixed;
+  z-index: 1200;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 14px 38px rgba(15, 23, 42, 0.18);
+  overflow: hidden;
+  animation: j-osk-friends-pop-in 0.12s ease;
+}
+
+@keyframes j-osk-friends-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.j-osk-friends-pop-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 10px 10px 13px;
+  border-bottom: 1px solid #eef1f6;
+  color: #6d28d9;
+}
+
+.j-osk-friends-pop-title {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+  font-size: 13px;
+  font-weight: 800;
+  color: #18202b;
+}
+
+.j-osk-friends-pop-sub {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.j-osk-friends-pop-close {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.j-osk-friends-pop-close:hover {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.j-osk-friends-pop-list {
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  max-height: 264px;
+  overflow-y: auto;
+}
+
+.j-osk-friends-pop-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: 9px;
+  text-decoration: none;
+  color: #18202b;
+}
+
+.j-osk-friends-pop-item:hover {
+  background: #f4f6fa;
+}
+
+.j-osk-friends-pop-name {
+  min-width: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .world-journey-home .wj-feed-timeline .j-osk-when {
   margin: 0;
   display: inline-flex;
@@ -1922,6 +2102,17 @@
 
 .world-journey-home .wj-feed-timeline .j-osk-actions .cso-sk-detail-btn--join:not(.is-active):hover:not(:disabled) {
   background: #1a66b3;
+}
+
+/* Nút "Nhắn tin" org — chiếm trọn hàng dưới 2 nút RSVP */
+.world-journey-home .wj-feed-timeline .j-osk-actions .cso-sk-detail-btn--message {
+  grid-column: 1 / -1;
+  border-color: rgba(31, 116, 201, 0.2);
+  color: var(--cins-blue-deep, #195ea3);
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-actions .cso-sk-detail-btn--message:hover:not(:disabled) {
+  background: var(--cins-blue-soft, #e8f1fb);
 }
 
 .world-journey-home .wj-feed-timeline .j-feed-suggestion-badge {
@@ -2097,6 +2288,28 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  /* Grid item mặc định min-height:auto (= chiều cao nội dung) sẽ thắng max-height,
+     làm cột tràn khỏi viewport và không cuộn được. min-height:0 để max-height +
+     overflow-y:auto có hiệu lực → cột tự cuộn riêng khi tràn. */
+  min-height: 0;
+  max-height: calc(100dvh - var(--wj-sticky-top) - 40px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+/* Thanh cuộn mảnh, chỉ hiện khi hover cột */
+.wj-guest-aside::-webkit-scrollbar {
+  width: 6px;
+}
+
+.wj-guest-aside::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: transparent;
+}
+
+.wj-guest-aside:hover::-webkit-scrollbar-thumb {
+  background: var(--border-s, rgba(0, 0, 0, 0.18));
 }
 
 .wj-guest-aside--left {
@@ -2895,6 +3108,9 @@
     order: 3;
     position: static;
     padding: 0 16px;
+    /* Trên mobile cột về static → bỏ giới hạn cao & cuộn riêng. */
+    max-height: none;
+    overflow: visible;
   }
 
   .world-journey-home .wj-feed {
@@ -3148,6 +3364,19 @@
 .world-journey-home .ha-row-name svg {
   color: var(--blue);
   flex-shrink: 0;
+}
+
+/* Badge "đã là bạn bè" cạnh tên gợi ý. */
+.world-journey-home .ha-row-friend-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--mint-deep, #0e9b6e);
+}
+
+.world-journey-home .ha-row-friend-badge svg {
+  color: inherit;
 }
 
 .world-journey-home .ha-row-sub {
@@ -3896,9 +4125,22 @@
   font-weight: 600;
 }
 
-/* Card cơ hội — logo studio căn trên để cân với 3 dòng nội dung. */
+/* Card cơ hội — chi tiết gộp 1 dòng chữ nhẹ, ngăn cách bằng dấu phẩy. */
+.world-journey-home .ha-trow-tags {
+  margin-top: 4px;
+  font-size: 11.5px;
+  color: var(--ink4);
+  line-height: 1.45;
+}
+
+/* Card cơ hội — avatar & tên luôn thẳng hàng (căn trên cùng). */
+.world-journey-home .ha-trow--link {
+  align-items: flex-start;
+}
+
+.world-journey-home .ha-trow--link .ha-trow-th,
 .world-journey-home .ha-trow--link .ha-trow-meta {
-  align-self: center;
+  align-self: flex-start;
 }
 
 /* nudge (hồ sơ của bạn) */

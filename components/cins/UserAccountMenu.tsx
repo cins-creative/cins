@@ -1,14 +1,25 @@
 "use client";
 
-import { PlusCircle } from "lucide-react";
+import { ChevronDown, PlusCircle, UserPlus, Users, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { signOutAction } from "@/app/auth/sign-out-action";
+import {
+  removeSavedAccountAction,
+  switchAccountAction,
+} from "@/app/auth/switch-account-action";
 import { SidebarNavIcon } from "@/components/cins/SidebarNavIcon";
 import { getNameInitials } from "@/lib/journey/profile";
 
 export type UserAccountProfile = {
+  slug: string;
+  tenHienThi: string | null;
+  avatarUrl: string | null;
+};
+
+/** Tài khoản khác đã ghi nhớ để chuyển nhanh (hiển thị, không kèm token). */
+export type SwitchableAccount = {
   slug: string;
   tenHienThi: string | null;
   avatarUrl: string | null;
@@ -19,10 +30,17 @@ type Placement = "sidebar" | "topbar";
 type Props = {
   profile: UserAccountProfile;
   placement?: Placement;
+  /** Các tài khoản khác đã đăng nhập trên trình duyệt này (bỏ tài khoản hiện tại). */
+  savedAccounts?: SwitchableAccount[];
 };
 
-export function UserAccountMenu({ profile, placement = "sidebar" }: Props) {
+export function UserAccountMenu({
+  profile,
+  placement = "sidebar",
+  savedAccounts = [],
+}: Props) {
   const [open, setOpen] = useState(false);
+  const [switchOpen, setSwitchOpen] = useState(false);
   const cardRef = useRef<HTMLDivElement | null>(null);
   const menuId = useId();
   const initials = getNameInitials(profile.tenHienThi, profile.slug);
@@ -74,6 +92,102 @@ export function UserAccountMenu({ profile, placement = "sidebar" }: Props) {
             </span>
             <span>Trang cá nhân</span>
           </Link>
+
+          <div className="app-user-switch">
+            <button
+              type="button"
+              className="app-user-menu-item app-user-switch-toggle"
+              aria-expanded={switchOpen}
+              onClick={() => setSwitchOpen((v) => !v)}
+            >
+              <span className="app-user-menu-ico" aria-hidden>
+                <Users size={18} strokeWidth={1.7} />
+              </span>
+              <span className="app-user-switch-label">Chuyển tài khoản</span>
+              {savedAccounts.length > 0 ? (
+                <span className="app-user-switch-count" aria-hidden>
+                  {savedAccounts.length}
+                </span>
+              ) : null}
+              <ChevronDown
+                size={16}
+                strokeWidth={1.8}
+                className={`app-user-switch-caret${switchOpen ? " is-open" : ""}`}
+                aria-hidden
+              />
+            </button>
+
+            {switchOpen ? (
+              <div
+                className="app-user-switch-list"
+                role="group"
+                aria-label="Tài khoản khác"
+              >
+                {savedAccounts.map((acc) => (
+                  <div className="app-user-switch-row" key={acc.slug}>
+                    <form
+                      action={switchAccountAction.bind(null, acc.slug)}
+                      className="app-user-switch-form"
+                    >
+                      <button
+                        type="submit"
+                        className="app-user-switch-item"
+                        role="menuitem"
+                      >
+                        <span className="app-user-switch-ava" aria-hidden>
+                          {acc.avatarUrl ? (
+                            <img src={acc.avatarUrl} alt="" />
+                          ) : (
+                            <span className="app-user-ava-fallback">
+                              {getNameInitials(acc.tenHienThi, acc.slug)}
+                            </span>
+                          )}
+                        </span>
+                        <span className="app-user-switch-meta">
+                          <span className="app-user-switch-name">
+                            {acc.tenHienThi || acc.slug}
+                          </span>
+                          <span className="app-user-switch-handle">
+                            @{acc.slug}
+                          </span>
+                        </span>
+                      </button>
+                    </form>
+                    <form
+                      action={removeSavedAccountAction.bind(null, acc.slug)}
+                      className="app-user-switch-remove-form"
+                    >
+                      <button
+                        type="submit"
+                        className="app-user-switch-remove"
+                        aria-label={`Bỏ ghi nhớ @${acc.slug}`}
+                        title="Bỏ ghi nhớ tài khoản này"
+                      >
+                        <X size={14} strokeWidth={2} aria-hidden />
+                      </button>
+                    </form>
+                  </div>
+                ))}
+                {savedAccounts.length === 0 ? (
+                  <p className="app-user-switch-empty">
+                    Chưa có tài khoản nào khác được ghi nhớ trên máy này.
+                  </p>
+                ) : null}
+                <Link
+                  href="/login?them=1"
+                  className="app-user-menu-item app-user-switch-add"
+                  role="menuitem"
+                  onClick={() => setOpen(false)}
+                >
+                  <span className="app-user-menu-ico" aria-hidden>
+                    <UserPlus size={18} strokeWidth={1.7} />
+                  </span>
+                  <span>Thêm tài khoản</span>
+                </Link>
+              </div>
+            ) : null}
+          </div>
+
           <Link
             href="/tao-to-chuc"
             className="app-user-menu-item"

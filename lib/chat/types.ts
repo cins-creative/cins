@@ -1,4 +1,21 @@
-export type ChatMessageKind = "text" | "media";
+export type ChatMessageKind = "text" | "media" | "context";
+
+/** Loại đối tượng ngữ cảnh đính vào chat khi user nhắn tin org qua 1 nội dung. */
+export type ChatContextLoai =
+  | "tuyen_dung"
+  | "su_kien"
+  | "tuyen_sinh";
+
+/** Snapshot card ngữ cảnh (lưu trong `chat_tin_nhan.ngu_canh`). */
+export type ChatContextCard = {
+  loai: ChatContextLoai | string;
+  id: string;
+  tieuDe: string;
+  moTa?: string | null;
+  anh?: string | null;
+  href?: string | null;
+  orgTen?: string | null;
+};
 
 export type ChatReactionSummary = {
   emoji: string;
@@ -32,6 +49,8 @@ export type ChatMessage = {
   reactions?: ChatReactionSummary[];
   pinned?: boolean;
   readByPeer?: boolean;
+  /** Card ngữ cảnh (tuyển dụng/sự kiện/tuyển sinh) — hiển thị dạng card. */
+  nguCanh?: ChatContextCard | null;
 };
 
 export type ChatParticipantKind = "user" | "org";
@@ -113,4 +132,6 @@ export type ChatLaunchState = {
   thread: ChatThread;
   tab?: ChatThreadGroup;
   resolving?: boolean;
+  /** Card ngữ cảnh chờ — chèn vào ô soạn, chỉ gửi khi user gửi tin. */
+  nguCanh?: ChatContextCard | null;
 };

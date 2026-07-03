@@ -1,5 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import {
+  ACCOUNT_VAULT_COOKIE,
+  decodeVault,
+  setAccountVaultOnResponse,
+  setRestoreHintOnResponse,
+  upsertAccount,
+} from "@/lib/auth/account-vault";
 import { normalizeOAuthReturnPath } from "@/lib/auth/oauth-return-path";
 import {
   appendSetCookieHeaders,
@@ -128,9 +135,14 @@ export async function POST(request: NextRequest) {
 
   const { data: profile } = await supabase
     .from("user_nguoi_dung")
-    .select("slug, giai_doan")
+    .select("slug, giai_doan, ten_hien_thi, avatar_id")
     .eq("auth_user_id", data.user.id)
-    .maybeSingle<{ slug: string; giai_doan: string | null }>();
+    .maybeSingle<{
+      slug: string;
+      giai_doan: string | null;
+      ten_hien_thi: string | null;
+      avatar_id: string | null;
+    }>();
 
   let redirectTo: string;
   if (!profile || !profile.giai_doan) {
@@ -143,5 +155,22 @@ export async function POST(request: NextRequest) {
 
   const response = NextResponse.json({ ok: true, redirect: redirectTo });
   appendSetCookieHeaders(carrier, response);
+
+  // Ghi nhớ tài khoản vừa đăng nhập vào kho để chuyển nhanh sau này.
+  if (profile?.slug && data.session?.refresh_token) {
+    const vault = decodeVault(request.cookies.get(ACCOUNT_VAULT_COOKIE)?.value);
+    setAccountVaultOnResponse(
+      response,
+      upsertAccount(vault, {
+        slug: profile.slug,
+        tenHienThi: profile.ten_hien_thi,
+        avatarId: profile.avatar_id,
+        refreshToken: data.session.refresh_token,
+        addedAt: Date.now(),
+      }),
+    );
+    setRestoreHintOnResponse(response);
+  }
+
   return response;
 }

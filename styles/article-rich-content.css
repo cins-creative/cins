@@ -22,52 +22,6 @@
   margin-bottom: var(--space-4);
 }
 
-/* ── Editor mosaic typography cells ── */
-.article-rich-content .rich-mosaic-text {
-  display: flex;
-  align-items: center;
-  min-height: 96px;
-  padding: 18px;
-  background: transparent;
-  color: var(--ink-display, var(--fg-1));
-  font-family: var(--font-serif);
-  font-size: clamp(18px, 3vw, 42px);
-  font-weight: 800;
-  line-height: 1.05;
-}
-.article-rich-content .rich-mosaic-text p {
-  width: 100%;
-  margin: 0;
-  white-space: pre-wrap;
-}
-.article-rich-content .rich-mosaic-text.is-serif {
-  font-family: var(--font-serif);
-}
-.article-rich-content .rich-mosaic-text.is-sans {
-  font-family: var(--font-sans);
-}
-.article-rich-content .rich-mosaic-text.is-sm {
-  font-size: clamp(15px, 2vw, 26px);
-}
-.article-rich-content .rich-mosaic-text.is-md {
-  font-size: clamp(18px, 3vw, 42px);
-}
-.article-rich-content .rich-mosaic-text.is-lg {
-  font-size: clamp(24px, 4.5vw, 62px);
-}
-.article-rich-content .rich-mosaic-text.is-left {
-  justify-content: flex-start;
-  text-align: left;
-}
-.article-rich-content .rich-mosaic-text.is-center {
-  justify-content: center;
-  text-align: center;
-}
-.article-rich-content .rich-mosaic-text.is-right {
-  justify-content: flex-end;
-  text-align: right;
-}
-
 /* ── Section ── */
 .article-rich-content .arc-section {
   margin-bottom: var(--space-12);
@@ -208,6 +162,74 @@
   display: block;
   border-radius: 10px;
   box-sizing: border-box;
+}
+
+/* ── Album ảnh (block imgs) ──────────────────────────────────────── */
+/* Nhóm adaptive (giữ tỉ lệ gốc): full / masonry. */
+.article-rich-content .rich-imgs--full {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.article-rich-content .rich-imgs--masonry {
+  column-count: 3;
+  column-gap: 6px;
+}
+.article-rich-content .rich-imgs--masonry .rich-img-cell {
+  break-inside: avoid;
+  margin-bottom: 6px;
+}
+
+/* justified: hàng giãn full chiều ngang, cao hàng linh hoạt. */
+.article-rich-content .rich-imgs--justified {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.article-rich-content .rich-imgs--justified .rich-img-cell {
+  flex: 1 1 240px;
+  height: 260px;
+}
+
+/* Nhóm lưới cắt gọn: duo / grid2 / grid3 / grid4 / hero. */
+.article-rich-content .rich-imgs--duo,
+.article-rich-content .rich-imgs--grid2,
+.article-rich-content .rich-imgs--grid4 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+.article-rich-content .rich-imgs--grid3,
+.article-rich-content .rich-imgs--hero {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+.article-rich-content .rich-imgs--duo .rich-img-cell {
+  aspect-ratio: 4 / 5;
+}
+.article-rich-content .rich-imgs--grid2 .rich-img-cell,
+.article-rich-content .rich-imgs--grid3 .rich-img-cell,
+.article-rich-content .rich-imgs--grid4 .rich-img-cell,
+.article-rich-content .rich-imgs--hero .rich-img-cell {
+  aspect-ratio: 1 / 1;
+}
+.article-rich-content .rich-imgs--hero .rich-img-cell:first-child {
+  grid-column: 1 / -1;
+  aspect-ratio: 16 / 9;
+}
+
+/* Ảnh trong các layout cắt gọn (justified + lưới) phủ kín ô. */
+.article-rich-content .rich-imgs--justified .rich-img-cell img,
+.article-rich-content .rich-imgs--duo .rich-img-cell img,
+.article-rich-content .rich-imgs--grid2 .rich-img-cell img,
+.article-rich-content .rich-imgs--grid3 .rich-img-cell img,
+.article-rich-content .rich-imgs--grid4 .rich-img-cell img,
+.article-rich-content .rich-imgs--hero .rich-img-cell img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 0;
 }
 
 .article-rich-content [data-youtube-video] {

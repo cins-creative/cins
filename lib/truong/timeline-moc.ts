@@ -39,6 +39,26 @@ export function newTimelineMocId(): string {
   return `moc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+/** Mốc có kèm giờ cụ thể (`YYYY-MM-DDTHH:mm`) hay chỉ có ngày. */
+export function mocHasTime(v: string | null | undefined): boolean {
+  return /T\d{2}:\d{2}/.test(v?.trim() ?? "");
+}
+
+/** Ép chuỗi ngày có phần giờ (mặc định `T00:00` nếu đang chỉ có ngày). */
+export function withMocTime(v: string | null | undefined): string | null {
+  const raw = v?.trim();
+  if (!raw) return null;
+  if (mocHasTime(raw)) return raw.slice(0, 16);
+  return `${raw.slice(0, 10)}T00:00`;
+}
+
+/** Bỏ phần giờ, chỉ giữ ngày (`YYYY-MM-DD`). */
+export function withoutMocTime(v: string | null | undefined): string | null {
+  const raw = v?.trim();
+  if (!raw) return null;
+  return raw.slice(0, 10);
+}
+
 export function emptyTimelineMoc(): TuyenSinhTimelineMoc {
   return {
     id: newTimelineMocId(),

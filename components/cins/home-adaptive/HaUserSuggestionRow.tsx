@@ -1,5 +1,7 @@
 "use client";
 
+import { UserCheck } from "lucide-react";
+
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
 
 type Props = {
@@ -7,6 +9,8 @@ type Props = {
   name: string;
   avatarUrl: string | null;
   subtitle: string;
+  /** Đã là bạn bè (kết bạn) → hiện icon nhỏ cạnh tên. */
+  isFriend?: boolean;
 };
 
 /** Một dòng gợi ý người — click avatar/tên mở card hồ sơ. */
@@ -15,6 +19,7 @@ export function HaUserSuggestionRow({
   name,
   avatarUrl,
   subtitle,
+  isFriend = false,
 }: Props) {
   return (
     <div className="ha-row">
@@ -35,7 +40,18 @@ export function HaUserSuggestionRow({
             )}
           </span>
           <span className="ha-row-meta">
-            <span className="ha-row-name">{name}</span>
+            <span className="ha-row-name">
+              {name}
+              {isFriend ? (
+                <span
+                  className="ha-row-friend-badge"
+                  title="Đã là bạn bè"
+                  aria-label="Đã là bạn bè"
+                >
+                  <UserCheck size={13} strokeWidth={2.2} aria-hidden />
+                </span>
+              ) : null}
+            </span>
             <span className="ha-row-sub">{subtitle}</span>
           </span>
         </span>

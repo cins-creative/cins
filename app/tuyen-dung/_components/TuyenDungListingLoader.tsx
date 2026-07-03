@@ -52,9 +52,11 @@ export async function TuyenDungListingLoader() {
                 {job.linhVucTen ? (
                   <span className="tuyen-dung-chip">{job.linhVucTen}</span>
                 ) : null}
-                {job.capDo ? (
-                  <span className="tuyen-dung-chip">{job.capDo}</span>
-                ) : null}
+                {job.capDo.map((cd) => (
+                  <span key={cd} className="tuyen-dung-chip">
+                    {cd}
+                  </span>
+                ))}
               </div>
 
               {job.moTaNgan ? (

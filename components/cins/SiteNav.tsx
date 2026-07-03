@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Fragment } from "react";
 
 import { CinsSidebarRiveBrand } from "@/components/cins/CinsSidebarRiveBrand";
 import { SidebarNavIcon } from "@/components/cins/SidebarNavIcon";
 import { SidebarOrgFlyout } from "@/components/cins/SidebarOrgFlyout";
 import { useCinsSidebarNav } from "@/components/cins/useCinsSidebarNav";
 import {
+  MAIN_NAV_GROUP_BREAK_AFTER,
   MAIN_NAV_ITEMS,
   type MainNavItem,
 } from "@/lib/cins/mainNav";
@@ -68,7 +70,12 @@ export function CinsAppSidebar() {
       <CinsSidebarRiveBrand sidebarId="app-sidebar" />
       <ul className="sb-list">
         {MAIN_NAV_ITEMS.map((item) => (
-          <SidebarLink key={item.id} item={item} pathname={pathname} />
+          <Fragment key={item.id}>
+            <SidebarLink item={item} pathname={pathname} />
+            {MAIN_NAV_GROUP_BREAK_AFTER.has(item.id) ? (
+              <li className="sb-sep" role="separator" aria-hidden />
+            ) : null}
+          </Fragment>
         ))}
       </ul>
     </aside>

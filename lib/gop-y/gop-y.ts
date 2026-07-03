@@ -24,6 +24,7 @@ export type {
 
 const MAX_NOI_DUNG = 5000;
 const MAX_FIELD = 500;
+const MAX_URL = 2000;
 
 function trimTo(value: string | null | undefined, max: number): string | null {
   const v = (value ?? "").toString().trim();
@@ -48,7 +49,8 @@ export async function createGopY(
       ho_ten: trimTo(input.hoTen, MAX_FIELD),
       email: trimTo(input.email, MAX_FIELD),
       noi_dung: noiDung,
-      trang_url: trimTo(input.trangUrl, MAX_FIELD),
+      trang_url: trimTo(input.trangUrl, MAX_URL),
+      anh_url: trimTo(input.anhUrl, MAX_URL),
       user_agent: trimTo(input.userAgent, MAX_FIELD),
     })
     .select("id")
@@ -65,6 +67,7 @@ type GopYRow = {
   email: string | null;
   noi_dung: string;
   trang_url: string | null;
+  anh_url: string | null;
   user_agent: string | null;
   trang_thai: GopYTrangThai;
   ghi_chu: string | null;
@@ -78,7 +81,7 @@ export async function listGopYForAdmin(): Promise<GopYItem[]> {
   const { data } = await admin
     .from("gop_y")
     .select(
-      "id, id_nguoi_dung, ho_ten, email, noi_dung, trang_url, user_agent, trang_thai, ghi_chu, tao_luc, xu_ly_luc",
+      "id, id_nguoi_dung, ho_ten, email, noi_dung, trang_url, anh_url, user_agent, trang_thai, ghi_chu, tao_luc, xu_ly_luc",
     )
     .order("tao_luc", { ascending: false })
     .returns<GopYRow[]>();
@@ -110,6 +113,7 @@ export async function listGopYForAdmin(): Promise<GopYItem[]> {
     email: r.email,
     noiDung: r.noi_dung,
     trangUrl: r.trang_url,
+    anhUrl: r.anh_url,
     userAgent: r.user_agent,
     trangThai: r.trang_thai,
     ghiChu: r.ghi_chu,

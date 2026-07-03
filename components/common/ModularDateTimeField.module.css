@@ -1,0 +1,69 @@
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dates {
+  display: grid;
+  gap: 10px 12px;
+  align-items: end;
+}
+
+.datesSingle {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.datesRange {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.toggles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  color: var(--muted, #6b7280);
+  cursor: pointer;
+  user-select: none;
+}
+
+.toggle input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--blue, #1f74c9);
+  cursor: pointer;
+}
+
+.toggle:hover {
+  color: var(--blue, #1f74c9);
+}
+
+.toggleBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 13px;
+  color: var(--blue, #1f74c9);
+  cursor: pointer;
+}
+
+.toggleBtn:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 560px) {
+  .datesRange {
+    grid-template-columns: 1fr;
+  }
+}
