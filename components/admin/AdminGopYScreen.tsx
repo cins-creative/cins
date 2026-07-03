@@ -9,7 +9,7 @@ import {
   GOP_Y_TRANG_THAI_ORDER,
   type GopYItem,
   type GopYTrangThai,
-} from "@/lib/gop-y/gop-y";
+} from "@/lib/gop-y/types";
 
 type Props = { items: GopYItem[] };
 

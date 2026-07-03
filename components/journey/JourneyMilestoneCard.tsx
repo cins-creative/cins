@@ -1701,7 +1701,7 @@ export function JourneyMilestoneCard({
                     showBlocks={showContent}
                     showComments={showComments}
                     commentsFocus={showComments}
-                    postOwnerSlug={inlineExpand.postOwnerSlug}
+                    postOwnerSlug={inlineExpand!.postOwnerSlug}
                     postSlug={postSlug}
                     milestoneId={milestoneId}
                     actionsBeforeComments={

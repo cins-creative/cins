@@ -2,38 +2,28 @@ import "server-only";
 
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { resolveTruongImageSrcSync } from "@/lib/truong/media-url";
+import type {
+  CreateGopYInput,
+  CreateGopYResult,
+  GopYItem,
+  GopYTrangThai,
+  UserBrief,
+} from "@/lib/gop-y/types";
 
-export type GopYTrangThai = "moi" | "dang_xu_ly" | "da_xu_ly" | "bo_qua";
-
-export const GOP_Y_TRANG_THAI_LABEL: Record<GopYTrangThai, string> = {
-  moi: "Mới",
-  dang_xu_ly: "Đang xử lý",
-  da_xu_ly: "Đã xử lý",
-  bo_qua: "Bỏ qua",
-};
-
-export const GOP_Y_TRANG_THAI_ORDER: GopYTrangThai[] = [
-  "moi",
-  "dang_xu_ly",
-  "da_xu_ly",
-  "bo_qua",
-];
+export {
+  GOP_Y_TRANG_THAI_LABEL,
+  GOP_Y_TRANG_THAI_ORDER,
+} from "@/lib/gop-y/types";
+export type {
+  CreateGopYInput,
+  CreateGopYResult,
+  GopYItem,
+  GopYTrangThai,
+  UserBrief,
+} from "@/lib/gop-y/types";
 
 const MAX_NOI_DUNG = 5000;
 const MAX_FIELD = 500;
-
-export type CreateGopYInput = {
-  idNguoiDung?: string | null;
-  hoTen?: string | null;
-  email?: string | null;
-  noiDung: string;
-  trangUrl?: string | null;
-  userAgent?: string | null;
-};
-
-export type CreateGopYResult =
-  | { ok: true; id: string }
-  | { ok: false; error: string };
 
 function trimTo(value: string | null | undefined, max: number): string | null {
   const v = (value ?? "").toString().trim();
@@ -67,27 +57,6 @@ export async function createGopY(
   if (error) return { ok: false, error: error.message };
   return { ok: true, id: data.id };
 }
-
-export type UserBrief = {
-  id: string;
-  slug: string;
-  tenHienThi: string;
-  avatarSrc: string | null;
-};
-
-export type GopYItem = {
-  id: string;
-  hoTen: string | null;
-  email: string | null;
-  noiDung: string;
-  trangUrl: string | null;
-  userAgent: string | null;
-  trangThai: GopYTrangThai;
-  ghiChu: string | null;
-  taoLuc: string;
-  xuLyLuc: string | null;
-  nguoiGui: UserBrief | null;
-};
 
 type GopYRow = {
   id: string;

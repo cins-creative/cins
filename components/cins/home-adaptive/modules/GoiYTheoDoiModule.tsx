@@ -25,7 +25,6 @@ export async function GoiYTheoDoiModule({ ctx }: { ctx: HomeModuleCtx }) {
       {people.map((s) => (
         <HaUserSuggestionRow
           key={s.id}
-          userId={s.id}
           slug={s.slug}
           name={s.name}
           avatarUrl={s.avatarUrl}
@@ -34,7 +33,6 @@ export async function GoiYTheoDoiModule({ ctx }: { ctx: HomeModuleCtx }) {
               ? `${s.mutualCount} bạn chung`
               : giaiDoanLabel(s.giaiDoan)
           }
-          viewerProfileId={ctx.viewerId}
         />
       ))}
     </ModuleCard>
