@@ -220,6 +220,8 @@ export type CongDongPageData = {
   org: CongDongOrg;
   isThanhVien: boolean;
   isAdmin: boolean;
+  /** Quyền admin CINs (trục 1) — mở khoá vận hành dù không phải member. */
+  isCinsAdmin: boolean;
   viewerVaiTro: CongDongVaiTro | null;
   hideMembershipForOwner: boolean;
   notifyLevel: OrgNotifyLevel;

@@ -48,6 +48,8 @@ const TABS = [
 type Props = {
   payload: CoSoDetailPayload;
   canEdit?: boolean;
+  /** Member org thật (trục 2) — khoá theo dõi/nhắn tin chính org của mình. */
+  isOrgMember?: boolean;
   canManageKhoaHoc?: boolean;
   systemRole?: SystemRole | null;
 };
@@ -354,12 +356,14 @@ function CoSoDetailViewBody({
 export function CoSoDetailView({
   payload,
   canEdit = false,
+  isOrgMember = false,
   canManageKhoaHoc = false,
   systemRole = null,
 }: Props) {
   return (
     <TruongInlineEditProvider
       canEdit={canEdit}
+      isOrgMember={isOrgMember}
       systemRole={systemRole}
       initial={coSoToInlinePayload(payload)}
     >

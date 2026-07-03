@@ -147,6 +147,10 @@ export function CongDongPageClient({ initial }: Props) {
   const [viewerVaiTro, setViewerVaiTro] = useState<CongDongVaiTro | null>(
     initial.viewerVaiTro,
   );
+  // Quyền CINs (trục 1) mở khoá vận hành dù không phải member cộng đồng.
+  const isCinsAdmin = initial.isCinsAdmin;
+  const canManageLabelsView = canManageLabels(viewerVaiTro) || isCinsAdmin;
+  const canManageMembersView = canManageMembers(viewerVaiTro) || isCinsAdmin;
   const [notifyLevel, setNotifyLevel] = useState<OrgNotifyLevel>(
     initial.notifyLevel,
   );
@@ -411,13 +415,14 @@ export function CongDongPageClient({ initial }: Props) {
                   orgId={org.id}
                   isThanhVien={isThanhVien}
                   viewerVaiTro={viewerVaiTro}
+                  isCinsAdmin={isCinsAdmin}
                   hideForOwner={initial.hideMembershipForOwner}
                   initialNotifyLevel={notifyLevel}
                   onJoined={onJoined}
                   onLeft={onLeftCommunity}
                   onNotifyLevelChange={setNotifyLevel}
                   onManageLabels={
-                    canManageLabels(viewerVaiTro)
+                    canManageLabelsView
                       ? () => setFilterAdminOpen(true)
                       : undefined
                   }
@@ -427,7 +432,7 @@ export function CongDongPageClient({ initial }: Props) {
                       : undefined
                   }
                   onManageMembers={
-                    canManageMembers(viewerVaiTro)
+                    canManageMembersView
                       ? () => setMembersOpen(true)
                       : undefined
                   }
@@ -570,14 +575,14 @@ export function CongDongPageClient({ initial }: Props) {
         <CongDongEventRail
           orgId={org.id}
           eventRail={eventRail}
-          canManage={canManageLabels(viewerVaiTro)}
+          canManage={canManageLabelsView}
           onEventRailChange={setEventRail}
         />
       </div>
 
     </div>
 
-    {canManageLabels(viewerVaiTro) ? (
+    {canManageLabelsView ? (
       <CongDongFilterAdminModal
         open={filterAdminOpen}
         onClose={() => setFilterAdminOpen(false)}
@@ -600,7 +605,7 @@ export function CongDongPageClient({ initial }: Props) {
       />
     ) : null}
 
-    {canManageMembers(viewerVaiTro) ? (
+    {canManageMembersView ? (
       <CongDongMembersModal
         open={membersOpen}
         onClose={() => setMembersOpen(false)}

@@ -69,32 +69,70 @@ export function resolveSeeking(giaiDoan: GiaiDoan | null | undefined): boolean {
 }
 
 /**
- * Khai báo module nào ở cột nào theo persona (brief §6).
- * Thêm/đổi nhóm sau này = sửa map này, KHÔNG `if persona` rải trong JSX.
+ * Nội dung dạng "cơ hội & thông báo" — org theo dõi, sự kiện, tuyển dụng, khóa học.
+ * Luôn nằm ở **cột phải** cho mọi persona; các module còn lại dồn sang **cột trái**.
+ * Đổi phân loại 1 module = thêm/bớt id ở đây (không cần `if persona`).
  */
+const NOTIFY_MODULES: readonly ModuleId[] = [
+  "theo_doi_org",
+  "su_kien",
+  "co_hoi",
+  "khoa_hoc_goi_y",
+];
+
+/**
+ * Thứ tự tổng các module theo persona (brief §6). Hệ thống tự tách 2 cột:
+ * cột phải = các id thuộc NOTIFY_MODULES, cột trái = phần còn lại — giữ nguyên
+ * thứ tự khai báo. Thêm/đổi nhóm sau này = sửa list này, KHÔNG `if persona` rải JSX.
+ */
+const MODULE_ORDER: Record<Persona, ModuleId[]> = {
+  hoc: [
+    "kham_pha_linh_vuc",
+    "goi_y_theo_doi",
+    "theo_doi_org",
+    "su_kien",
+    "khoa_hoc_goi_y",
+  ],
+  lam: [
+    "ho_so_cua_ban",
+    "nguoi_cung_nganh",
+    "goi_y_studio",
+    "goi_y_theo_doi",
+    "loi_moi_xac_nhan",
+    "theo_doi_org",
+    "su_kien",
+    "co_hoi",
+  ],
+  day: [
+    "cho_ban_duyet",
+    "hoc_vien_cua_ban",
+    "scout_tai_nang",
+    "goi_y_theo_doi",
+    "theo_doi_org",
+    "su_kien",
+  ],
+};
+
+const NOTIFY_SET = new Set<ModuleId>(NOTIFY_MODULES);
+
+function splitColumns(order: ModuleId[]): { left: ModuleId[]; right: ModuleId[] } {
+  const left: ModuleId[] = [];
+  const right: ModuleId[] = [];
+  for (const id of order) {
+    if (NOTIFY_SET.has(id)) right.push(id);
+    else left.push(id);
+  }
+  return { left, right };
+}
+
+/** Cột trái/phải mỗi persona — dẫn xuất từ MODULE_ORDER + NOTIFY_MODULES. */
 export const MODULE_LAYOUT: Record<
   Persona,
   { left: ModuleId[]; right: ModuleId[] }
 > = {
-  hoc: {
-    left: ["kham_pha_linh_vuc", "khoa_hoc_goi_y"],
-    right: ["theo_doi_org", "su_kien", "goi_y_theo_doi"],
-  },
-  lam: {
-    left: ["ho_so_cua_ban", "nguoi_cung_nganh"],
-    right: [
-      "theo_doi_org",
-      "su_kien",
-      "goi_y_theo_doi",
-      "goi_y_studio",
-      "co_hoi",
-      "loi_moi_xac_nhan",
-    ],
-  },
-  day: {
-    left: ["cho_ban_duyet", "hoc_vien_cua_ban"],
-    right: ["theo_doi_org", "su_kien", "goi_y_theo_doi", "scout_tai_nang"],
-  },
+  hoc: splitColumns(MODULE_ORDER.hoc),
+  lam: splitColumns(MODULE_ORDER.lam),
+  day: splitColumns(MODULE_ORDER.day),
 };
 
 /** Lọc Sự kiện + Gợi ý theo dõi "theo cụm" (brief §5). */

@@ -9,7 +9,9 @@ import {
   Plus,
   Search,
   Shield,
+  ShieldCheck,
   Trash2,
+  UserCog,
   Users,
 } from "lucide-react";
 import Link from "next/link";
@@ -17,6 +19,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { AdminToChucDeleteDialog } from "@/components/admin/AdminToChucDeleteDialog";
 import { AdminToChucMembersModal } from "@/components/admin/AdminToChucMembersModal";
+import { AdminToChucOwnerDialog } from "@/components/admin/AdminToChucOwnerDialog";
 import { BadgeTinCay } from "@/components/admin/badges";
 import type {
   AdminToChucListResponse,
@@ -108,6 +111,7 @@ export function AdminToChucScreen({
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [membersOrg, setMembersOrg] = useState<AdminToChucListRow | null>(null);
+  const [ownerOrg, setOwnerOrg] = useState<AdminToChucListRow | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -150,40 +154,54 @@ export function AdminToChucScreen({
     [stats],
   );
 
-  async function handleVerify(row: AdminToChucListRow) {
+  /** Toggle Verified: chưa verify → cấp (POST), đã verify → gỡ (DELETE). */
+  async function handleToggleVerify(row: AdminToChucListRow) {
     if (verifyingId) return;
+    const revoke = Boolean(row.isVerified);
     setVerifyingId(row.id);
     setError(null);
     try {
       const res = await fetch(
         `/api/admin/to-chuc/${encodeURIComponent(row.id)}/verify`,
-        { method: "POST" },
+        { method: revoke ? "DELETE" : "POST" },
       );
       const json = (await res.json()) as {
         row?: AdminToChucListRow;
         error?: string;
       };
       if (!res.ok || !json.row) {
-        throw new Error(json.error ?? "Không cấp được Verified.");
+        throw new Error(
+          json.error ?? (revoke ? "Không gỡ được Verified." : "Không cấp được Verified."),
+        );
       }
       const updated = json.row;
       setRows((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
       void load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Không cấp được Verified.");
+      setError(
+        e instanceof Error
+          ? e.message
+          : revoke
+            ? "Không gỡ được Verified."
+            : "Không cấp được Verified.",
+      );
     } finally {
       setVerifyingId(null);
     }
   }
 
-  async function confirmDelete() {
+  async function confirmDelete(delegationPassword: string) {
     if (!deletingRow) return;
     setDeleting(true);
     setDeleteError(null);
     try {
       const res = await fetch(
         `/api/admin/to-chuc/${encodeURIComponent(deletingRow.id)}`,
-        { method: "DELETE" },
+        {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ delegationPassword }),
+        },
       );
       const json = (await res.json()) as { error?: string };
       if (!res.ok) {
@@ -345,7 +363,31 @@ export function AdminToChucScreen({
                         </td>
                         <td className="admin-to-chuc-journey">{row.journey}</td>
                         <td className="admin-to-chuc-chu-trang">
-                          {row.chuTrang ? (
+                          {canDelegateOrgMembers ? (
+                            <button
+                              type="button"
+                              className="admin-to-chuc-owner-edit"
+                              title="Đổi chủ trang (cần mật khẩu ủy quyền)"
+                              aria-label="Đổi chủ trang"
+                              onClick={() => setOwnerOrg(row)}
+                            >
+                              <span className="admin-to-chuc-owner-edit-name">
+                                {row.chuTrang ? (
+                                  row.chuTrang.ten
+                                ) : (
+                                  <span className="admin-to-chuc-muted">
+                                    Chưa gán
+                                  </span>
+                                )}
+                              </span>
+                              <UserCog
+                                size={13}
+                                strokeWidth={2.2}
+                                className="admin-to-chuc-owner-edit-icon"
+                                aria-hidden
+                              />
+                            </button>
+                          ) : row.chuTrang ? (
                             row.chuTrang.slug ? (
                               <Link
                                 href={`/${row.chuTrang.slug}`}
@@ -398,11 +440,22 @@ export function AdminToChucScreen({
                             {row.showVerify ? (
                               <button
                                 type="button"
-                                className="admin-to-chuc-act admin-to-chuc-act--icon admin-to-chuc-act--verify"
-                                aria-label="Cấp Verified"
-                                title="Cấp Verified"
+                                className={`admin-to-chuc-act admin-to-chuc-act--icon ${
+                                  row.isVerified
+                                    ? "admin-to-chuc-act--verified"
+                                    : "admin-to-chuc-act--verify"
+                                }`}
+                                aria-label={
+                                  row.isVerified ? "Gỡ Verified" : "Cấp Verified"
+                                }
+                                title={
+                                  row.isVerified
+                                    ? "Đã Verified — bấm để gỡ"
+                                    : "Cấp Verified"
+                                }
+                                aria-pressed={row.isVerified}
                                 disabled={verifyingId === row.id}
-                                onClick={() => void handleVerify(row)}
+                                onClick={() => void handleToggleVerify(row)}
                               >
                                 {verifyingId === row.id ? (
                                   <Loader2
@@ -411,6 +464,8 @@ export function AdminToChucScreen({
                                     className="admin-to-chuc-spin"
                                     aria-hidden
                                   />
+                                ) : row.isVerified ? (
+                                  <ShieldCheck size={15} strokeWidth={2.2} aria-hidden />
                                 ) : (
                                   <BadgeCheck size={15} strokeWidth={2.2} aria-hidden />
                                 )}
@@ -469,6 +524,18 @@ export function AdminToChucScreen({
         onOwnerChanged={() => void load()}
       />
 
+      <AdminToChucOwnerDialog
+        open={Boolean(ownerOrg)}
+        org={
+          ownerOrg
+            ? { id: ownerOrg.id, ten: ownerOrg.ten, slug: ownerOrg.slug }
+            : null
+        }
+        currentOwnerName={ownerOrg?.chuTrang?.ten ?? null}
+        onClose={() => setOwnerOrg(null)}
+        onSaved={() => void load()}
+      />
+
       <AdminToChucDeleteDialog
         open={Boolean(deletingRow)}
         orgName={deletingRow?.ten ?? ""}
@@ -479,7 +546,7 @@ export function AdminToChucScreen({
           setDeletingRow(null);
           setDeleteError(null);
         }}
-        onConfirm={() => void confirmDelete()}
+        onConfirm={(pwd) => void confirmDelete(pwd)}
       />
     </div>
   );

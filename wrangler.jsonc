@@ -6,6 +6,12 @@
   "compatibility_flags": ["nodejs_compat"],
   // Giữ workers.dev khi custom domain chưa gắn xong (tránh deploy fail → mất URL test).
   "workers_dev": true,
+  // Account ID (không bí mật — xuất hiện trong URL API/ảnh). Cần ở runtime cho
+  // upload Cloudflare Images (lib/cloudflare/upload-image.ts, fetch-image-delivery-url.ts,
+  // api/article-inline-image, api/career-thumbnail). Token nhạy cảm vẫn để secret.
+  "vars": {
+    "CLOUDFLARE_ACCOUNT_ID": "2a6e413a7ced7243651c9d476e7d2f25"
+  },
   "routes": [
     { "pattern": "cins.vn", "custom_domain": true },
     { "pattern": "www.cins.vn", "custom_domain": true }

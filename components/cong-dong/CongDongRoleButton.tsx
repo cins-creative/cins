@@ -47,6 +47,8 @@ type Props = {
   orgId: string;
   isThanhVien: boolean;
   viewerVaiTro: CongDongVaiTro | null;
+  /** Quyền admin CINs (trục 1) — mở menu quản trị dù chưa là member. */
+  isCinsAdmin?: boolean;
   hideForOwner: boolean;
   initialNotifyLevel: OrgNotifyLevel;
   onJoined: (vaiTro: CongDongVaiTro) => void;
@@ -62,6 +64,7 @@ export function CongDongRoleButton({
   orgId,
   isThanhVien,
   viewerVaiTro,
+  isCinsAdmin = false,
   hideForOwner,
   initialNotifyLevel,
   onJoined,
@@ -234,6 +237,9 @@ export function CongDongRoleButton({
     Boolean(displayVaiTro) &&
     !(hideForOwner && displayVaiTro === "owner");
 
+  // CINs admin (trục 1) mở menu quản trị dù chưa tham gia cộng đồng.
+  const showRoleMenu = isMember || isCinsAdmin;
+
   const roleMenu =
     menuOpen && typeof document !== "undefined" ? (
       <div
@@ -284,7 +290,7 @@ export function CongDongRoleButton({
           ) : null}
         </div>
 
-        {canManageLabels(displayVaiTro) ? (
+        {onManageLabels && (canManageLabels(displayVaiTro) || isCinsAdmin) ? (
           <button
             type="button"
             className="cd-v4-role-menu-btn"
@@ -349,7 +355,7 @@ export function CongDongRoleButton({
 
   return (
     <div className="cd-v4-id-actions" ref={rootRef}>
-      {!isMember ? (
+      {!showRoleMenu ? (
         <button
           type="button"
           className="cd-v4-btn cd-v4-btn--primary cd-v4-btn--grow"
@@ -375,7 +381,7 @@ export function CongDongRoleButton({
             }}
             disabled={leavePending}
           >
-            {roleButtonLabel(displayVaiTro)}
+            {isMember ? roleButtonLabel(displayVaiTro) : "Quản trị CINs"}
           </button>
           {roleMenu && createPortal(roleMenu, document.body)}
         </div>

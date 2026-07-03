@@ -5,13 +5,14 @@ import { usePathname } from "next/navigation";
 
 import { CinsSidebarRiveBrand } from "@/components/cins/CinsSidebarRiveBrand";
 import { SidebarNavIcon } from "@/components/cins/SidebarNavIcon";
+import { SidebarOrgFlyout } from "@/components/cins/SidebarOrgFlyout";
 import { useCinsSidebarNav } from "@/components/cins/useCinsSidebarNav";
 import {
   MAIN_NAV_ITEMS,
   type MainNavItem,
 } from "@/lib/cins/mainNav";
 
-function SidebarLink({
+function SidebarAnchor({
   item,
   pathname,
 }: {
@@ -20,18 +21,37 @@ function SidebarLink({
 }) {
   const active = item.isActive(pathname);
   return (
+    <Link
+      href={item.href}
+      className={`sb-item${active ? " active" : ""}`}
+      data-tip={item.flyout ? undefined : item.tip}
+      aria-current={active ? "page" : undefined}
+    >
+      <span className="sb-ico">
+        <SidebarNavIcon name={item.icon} />
+      </span>
+      <span className="sb-label">{item.label}</span>
+    </Link>
+  );
+}
+
+function SidebarLink({
+  item,
+  pathname,
+}: {
+  item: MainNavItem;
+  pathname: string;
+}) {
+  if (item.flyout) {
+    return (
+      <SidebarOrgFlyout kind={item.flyout}>
+        <SidebarAnchor item={item} pathname={pathname} />
+      </SidebarOrgFlyout>
+    );
+  }
+  return (
     <li>
-      <Link
-        href={item.href}
-        className={`sb-item${active ? " active" : ""}`}
-        data-tip={item.tip}
-        aria-current={active ? "page" : undefined}
-      >
-        <span className="sb-ico">
-          <SidebarNavIcon name={item.icon} />
-        </span>
-        <span className="sb-label">{item.label}</span>
-      </Link>
+      <SidebarAnchor item={item} pathname={pathname} />
     </li>
   );
 }

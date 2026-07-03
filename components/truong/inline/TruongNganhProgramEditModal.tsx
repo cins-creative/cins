@@ -433,6 +433,7 @@ export function TruongNganhProgramEditModal({
         }}
         className="tdh-inline-modal--wide tdh-nganh-program-edit-modal"
         labelledBy="tdh-nganh-program-edit-title"
+        showClose={false}
       >
         <div className="tdh-nganh-program-edit-head">
           <div className="tdh-nganh-program-edit-head-copy">

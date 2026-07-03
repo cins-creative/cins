@@ -266,6 +266,24 @@ export async function blockUser(
   return { ok: true, data: mapRow(data) };
 }
 
+/**
+ * Giữ lại các user đã hoàn tất onboarding (giai_doan != null), theo đúng thứ tự đầu vào.
+ * Dùng để loại hồ sơ "đang khởi tạo" khỏi danh sách bạn bè trước khi phân trang —
+ * tránh lệch count/pagination khi loader ẩn bớt hồ sơ.
+ */
+async function filterActiveUserIds(ids: string[]): Promise<string[]> {
+  if (ids.length === 0) return [];
+  const admin = createServiceRoleClient();
+  const { data } = await admin
+    .from("user_nguoi_dung")
+    .select("id")
+    .in("id", ids)
+    .not("giai_doan", "is", null)
+    .returns<Array<{ id: string }>>();
+  const activeSet = new Set((data ?? []).map((row) => row.id));
+  return ids.filter((id) => activeSet.has(id));
+}
+
 export async function listFriends(userId: string): Promise<string[]> {
   const admin = createServiceRoleClient();
   const { data } = await admin
@@ -395,7 +413,7 @@ export async function listMutualFriendProfilesPage(
   hasMore: boolean;
   totalCount: number;
 }> {
-  const friendIds = await listFriends(userId);
+  const friendIds = await filterActiveUserIds(await listFriends(userId));
   const offset = Math.max(0, params.offset ?? 0);
   const limit = Math.min(
     24,

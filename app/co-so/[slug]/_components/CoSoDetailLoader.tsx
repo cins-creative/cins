@@ -5,7 +5,7 @@ import { CinsShell } from "@/components/cins/CinsShell";
 import { getCurrentUserSystemRole } from "@/lib/auth/system-role";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { loadOrgBaiDangBookmarkSocial } from "@/lib/truong/org-bai-dang-bookmark";
-import { getOrgAdminStatus } from "@/lib/truong/org-admin";
+import { getOrgAdminStatus, getOrgMemberStatus } from "@/lib/truong/org-admin";
 import {
   canViewerManageKhoaHoc,
 } from "@/lib/to-chuc/khoa-hoc";
@@ -23,9 +23,10 @@ export async function CoSoDetailLoader({ slug }: Props) {
   const viewerProfileId = session?.profile?.id ?? null;
   const postIds = payload.baidang.map((p) => p.id);
 
-  const [canEdit, canManageKhoaHoc, bookmarkSocial, systemRole] =
+  const [canEdit, isOrgMember, canManageKhoaHoc, bookmarkSocial, systemRole] =
     await Promise.all([
       getOrgAdminStatus(slug, viewerProfileId),
+      getOrgMemberStatus(slug, viewerProfileId),
       canViewerManageKhoaHoc(viewerProfileId, payload.school.id),
       loadOrgBaiDangBookmarkSocial(postIds, viewerProfileId),
       getCurrentUserSystemRole(),
@@ -52,6 +53,7 @@ export async function CoSoDetailLoader({ slug }: Props) {
         <CoSoDetailView
           payload={payloadWithSocial}
           canEdit={canEdit}
+          isOrgMember={isOrgMember}
           canManageKhoaHoc={canManageKhoaHoc}
           systemRole={systemRole}
         />

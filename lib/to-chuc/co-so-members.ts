@@ -1,5 +1,6 @@
 import "server-only";
 
+import { getCurrentUserIsCinsAdmin } from "@/lib/auth/cins-admin-server";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -62,6 +63,9 @@ async function assertCanManageMembers(
   actorId: string,
   orgId: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
+  // Quyền CINs (trục 1): toàn quyền quản lý thành viên mọi org.
+  if (await getCurrentUserIsCinsAdmin()) return { ok: true };
+
   if (!(await isCoSoOrgAdmin(orgId, actorId))) {
     return { ok: false, error: "Bạn không có quyền quản trị cơ sở này." };
   }
@@ -511,8 +515,9 @@ export async function transferCoSoOwnership(params: {
     return { ok: false, error: "Tên xác nhận không khớp đường dẫn cơ sở." };
   }
 
+  const isCinsAdmin = await getCurrentUserIsCinsAdmin();
   const actorRole = await getViewerCoSoVaiTro(params.actorId, params.orgId);
-  if (actorRole !== "owner") {
+  if (actorRole !== "owner" && !isCinsAdmin) {
     return { ok: false, error: "Chỉ chủ sở hữu mới bàn giao quyền sở hữu." };
   }
 
@@ -541,7 +546,7 @@ export async function transferCoSoOwnership(params: {
   if (target.vai_tro === "owner") {
     return { ok: false, error: "Thành viên này đã là chủ sở hữu." };
   }
-  if (target.id_nguoi_dung === params.actorId) {
+  if (target.id_nguoi_dung === params.actorId && !isCinsAdmin) {
     return { ok: false, error: "Không thể bàn giao cho chính mình." };
   }
 

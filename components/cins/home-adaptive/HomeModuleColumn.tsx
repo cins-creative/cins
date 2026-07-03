@@ -16,7 +16,6 @@ import {
   HoSoCuaBanModule,
   LoiMoiXacNhanModule,
   NguoiCungNganhModule,
-  OpenToWorkBanner,
 } from "@/components/cins/home-adaptive/modules/lam";
 import {
   ChoBanDuyetModule,
@@ -59,12 +58,14 @@ function orderForSeeking(ids: ModuleId[], seeking: boolean): ModuleId[] {
 export async function HomeModuleColumn({
   side,
   ctx,
+  prepend,
 }: {
   side: "left" | "right";
   ctx: HomeModuleCtx;
+  /** Nội dung chèn lên đầu cột (trong cùng <aside>, giữ nguyên lưới 3 cột). */
+  prepend?: ReactNode;
 }) {
   const baseIds = MODULE_LAYOUT[ctx.persona][side];
-  const showOtw = ctx.persona === "lam" && ctx.seeking && side === "right";
   const ids =
     side === "right" ? orderForSeeking(baseIds, ctx.seeking) : baseIds;
 
@@ -77,7 +78,7 @@ export async function HomeModuleColumn({
       className={`wj-guest-aside wj-guest-aside--${side} ha-col ha-col--${side}`}
       aria-label="Gợi ý theo nhóm"
     >
-      {showOtw ? <OpenToWorkBanner /> : null}
+      {prepend}
       {rendered.map((node, i) => (
         <Fragment key={ids[i]}>{node}</Fragment>
       ))}

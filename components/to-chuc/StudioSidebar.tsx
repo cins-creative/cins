@@ -9,9 +9,9 @@ import {
   Pencil,
   Phone,
 } from "lucide-react";
-import { useState } from "react";
 
 import { CoSoOrgFollowButton } from "@/components/co-so/CoSoOrgFollowButton";
+import { TruongGioiThieuTruong } from "@/components/truong/TruongGioiThieuTruong";
 import { TruongMessageInbox } from "@/components/truong/TruongMessageInbox";
 import { TruongMilestoneTagNotify } from "@/components/truong/TruongMilestoneTagNotify";
 import { TruongOrgAvatar } from "@/components/truong/TruongOrgAvatar";
@@ -19,6 +19,7 @@ import { TruongOrgCover } from "@/components/truong/TruongOrgCover";
 import { TruongUserChatLauncher } from "@/components/truong/TruongUserChatLauncher";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
 import { labelTinhThanh } from "@/lib/truong/contact";
+import { hasTruongGioiThieuContent } from "@/lib/truong/gioi-thieu";
 import type { StudioOwner } from "@/lib/to-chuc/studio-page-queries";
 
 type Props = {
@@ -45,36 +46,6 @@ function cleanWebsite(url: string): string {
   return url.replace(/^https?:\/\//, "").replace(/\/$/, "");
 }
 
-/** Ngưỡng ký tự trước khi cần thu gọn phần giới thiệu. */
-const STUDIO_ABOUT_CLAMP_CHARS = 240;
-
-function StudioAbout({ text }: { text: string }) {
-  const [expanded, setExpanded] = useState(false);
-  const isLong = text.length > STUDIO_ABOUT_CLAMP_CHARS;
-
-  return (
-    <>
-      <p
-        className={`studio-ss-about${
-          isLong && !expanded ? " studio-ss-about--clamp" : ""
-        }`}
-      >
-        {text}
-      </p>
-      {isLong ? (
-        <button
-          type="button"
-          className="studio-ss-about-toggle"
-          aria-expanded={expanded}
-          onClick={() => setExpanded((v) => !v)}
-        >
-          {expanded ? "Thu gọn" : "Xem thêm"}
-        </button>
-      ) : null}
-    </>
-  );
-}
-
 export function StudioSidebar({
   studio,
   openJobCount,
@@ -86,7 +57,9 @@ export function StudioSidebar({
   const ctx = useTruongInlineEdit();
   const editableMedia = canEditMedia && Boolean(ctx?.isEditing);
   const isEditing = Boolean(canEditMedia && ctx?.isEditing);
-  const isOwner = Boolean(canEditMedia && ctx?.canEdit);
+  // "org của mình" (member thật, trục 2) — khoá theo dõi/nhắn tin + hiện hộp thư
+  // org. Admin CINs (trục 1, không member) vẫn theo dõi/nhắn tin như user thường.
+  const isOwner = Boolean(ctx?.isOrgMember);
   const showAdminCta = isOwner && isEditing;
   const showSettings = Boolean(onOpenSettings) && isEditing;
   const displayTen = ctx?.school?.ten ?? studio.ten;
@@ -267,14 +240,14 @@ export function StudioSidebar({
               </div>
             </section>
 
-            {displayGioiThieu?.trim() ? (
+            {hasTruongGioiThieuContent(displayGioiThieu) || isOwner || isEditing ? (
               <section className="cso-ss-sec" aria-labelledby="studio-ss-about-title">
                 <div className="cso-ss-sec-head">
                   <h2 id="studio-ss-about-title" className="cso-ss-sec-title">
                     Giới thiệu
                   </h2>
                 </div>
-                <StudioAbout text={displayGioiThieu.trim()} />
+                <TruongGioiThieuTruong onOpenAbout={onOpenSettings} />
               </section>
             ) : null}
           </div>

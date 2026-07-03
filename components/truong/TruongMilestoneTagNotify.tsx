@@ -292,6 +292,7 @@ export function TruongMilestoneTagNotify() {
         onClose={() => setOpen(false)}
         className="tdh-inline-modal--wide tdh-milestone-tag-modal"
         labelledBy="tdh-org-notify-title"
+        showClose={false}
       >
         <div className="tdh-milestone-tag-hdr">
           <div>

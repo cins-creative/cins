@@ -29,7 +29,10 @@ export type AdminToChucListRow = {
   journey: string;
   nguoiTao: AdminToChucNguoiTao | null;
   chuTrang: AdminToChucChuTrang | null;
+  /** Tổ chức thuộc loại có thể verify (trường ĐH / cơ sở đào tạo). */
   showVerify?: boolean;
+  /** Đang ở trạng thái verified_official — dùng để render nút gỡ Verified. */
+  isVerified?: boolean;
 };
 
 export type AdminToChucListStats = {

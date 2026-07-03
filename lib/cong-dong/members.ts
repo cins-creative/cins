@@ -1,5 +1,6 @@
 import "server-only";
 
+import { getCurrentUserIsCinsAdmin } from "@/lib/auth/cins-admin-server";
 import { loadAuthorBadges } from "@/lib/cong-dong/author-badges";
 import {
   getViewerVaiTroInOrg,
@@ -95,6 +96,9 @@ async function assertCanManageMembers(
   actorId: string,
   orgId: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
+  // Quyền CINs (trục 1): toàn quyền quản lý thành viên mọi org.
+  if (await getCurrentUserIsCinsAdmin()) return { ok: true };
+
   const vaiTro = await getViewerVaiTroInOrg(actorId, orgId);
   if (!canManageCommunity(vaiTro)) {
     return { ok: false, error: "Chỉ admin cộng đồng mới quản lý thành viên." };
@@ -348,8 +352,9 @@ export async function transferCongDongOwnership(params: {
     return { ok: false, error: "Tên xác nhận không khớp đường dẫn cộng đồng." };
   }
 
+  const isCinsAdmin = await getCurrentUserIsCinsAdmin();
   const actorRole = await getViewerVaiTroInOrg(params.actorId, params.orgId);
-  if (actorRole !== "owner") {
+  if (actorRole !== "owner" && !isCinsAdmin) {
     return { ok: false, error: "Chỉ chủ sở hữu mới bàn giao quyền sở hữu." };
   }
 
@@ -374,7 +379,7 @@ export async function transferCongDongOwnership(params: {
   if (target.vai_tro === "owner") {
     return { ok: false, error: "Thành viên này đã là chủ sở hữu." };
   }
-  if (target.id_nguoi_dung === params.actorId) {
+  if (target.id_nguoi_dung === params.actorId && !isCinsAdmin) {
     return { ok: false, error: "Không thể bàn giao cho chính mình." };
   }
 

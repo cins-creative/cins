@@ -45,13 +45,15 @@ function normalizeLoai(loai: string): Exclude<AdminToChucLoaiFilter, "all"> {
 
 export function mapRow(row: DbRow): AdminToChucListRow {
   const loai = normalizeLoai(row.loai_to_chuc);
-  /* Verify áp dụng cho trường & cơ sở đào tạo — hiện nút khi org chưa đạt
-     trạng thái verified_official. Dựa trên trang_thai_tin_cay (không phụ thuộc
-     bản ghi con org_truong_dai_hoc/org_co_so_dao_tao có thể chưa tồn tại). */
+  /* Verify áp dụng cho trường & cơ sở đào tạo. Nút verify LUÔN hiển thị cho
+     các loại này (dạng toggle): chưa verify → "Cấp Verified", đã verify →
+     "Gỡ Verified". Nhờ vậy nút không biến mất sau khi cấp — admin có thể khôi
+     phục / thu hồi. Dựa trên trang_thai_tin_cay (không phụ thuộc bản ghi con
+     org_truong_dai_hoc/org_co_so_dao_tao có thể chưa tồn tại). */
   const isVerifiableLoai =
     loai === "co_so_dao_tao" || loai === "truong_dai_hoc";
-  const showVerify =
-    isVerifiableLoai && row.trang_thai_tin_cay !== "verified_official";
+  const isVerified = row.trang_thai_tin_cay === "verified_official";
+  const showVerify = isVerifiableLoai;
 
   return {
     id: row.id,
@@ -67,13 +69,14 @@ export function mapRow(row: DbRow): AdminToChucListRow {
     nguoiTao: null,
     chuTrang: null,
     showVerify,
+    isVerified,
   };
 }
 
 function buildStats(rows: AdminToChucListRow[]): AdminToChucListStats {
   return {
     total: rows.length,
-    pendingVerify: rows.filter((row) => row.showVerify).length,
+    pendingVerify: rows.filter((row) => row.showVerify && !row.isVerified).length,
     verified: rows.filter((row) => row.tinCay === "verified_official").length,
     truong: rows.filter((row) => row.loai === "truong_dai_hoc").length,
     coSo: rows.filter((row) => row.loai === "co_so_dao_tao").length,

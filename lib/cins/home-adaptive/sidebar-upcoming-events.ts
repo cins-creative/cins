@@ -11,9 +11,17 @@ import {
 } from "@/lib/to-chuc/su-kien-dang-ky";
 import { labelLoaiSuKien } from "@/lib/to-chuc/su-kien-constants";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { defaultTruongNganhYear } from "@/lib/truong/diem-chuan";
 import { resolveTruongImageSrcSync } from "@/lib/truong/media-url";
 import { formatTimelineDate, getStepStatus } from "@/lib/truong/timeline";
+import {
+  aggregateTimelineForYear,
+  buildTuyenSinhTimelineStepsForCalendarYear,
+  getAdmissionTimelineFocus,
+  type TuyenSinhTimelineStep,
+} from "@/lib/truong/timeline-steps";
 import { truongRootPath } from "@/lib/truong/truong-routes";
+import type { TruongTuyenSinhNamRow } from "@/lib/truong/types";
 
 export type SidebarUpcomingEventsBundle = {
   items: SidebarUpcomingEvent[];
@@ -33,7 +41,7 @@ export function sidebarEventHref(item: SidebarUpcomingEvent): string {
 }
 
 export type SidebarUpcomingEvent = FollowedOrgUpcomingItem & {
-  kind: "su_kien";
+  kind: "su_kien" | "moc";
   phanHoi: LoaiPhanHoiSuKien | null;
   coverSrc: string | null;
   orgAvatarUrl: string | null;
@@ -190,9 +198,205 @@ function sortSidebarEvents(
   });
 }
 
+/* ────────────────────────────────────────────────────────────────
+ * Mốc thông báo tuyển sinh — từ trường viewer đang theo dõi.
+ * Map sang cùng shape `SidebarUpcomingEvent` để hiển thị chung với sự kiện.
+ * ──────────────────────────────────────────────────────────────── */
+
+type TruongOrgEmbed = {
+  id: string;
+  slug: string | null;
+  ten: string | null;
+  loai_to_chuc: string | null;
+  avatar_id: string | null;
+  logo_id: string | null;
+};
+
+function mapTuyenSinhTimelineRow(
+  raw: Record<string, unknown>,
+): TruongTuyenSinhNamRow | null {
+  const id = typeof raw.id === "string" ? raw.id : null;
+  const nam = typeof raw.nam === "number" ? raw.nam : Number(raw.nam);
+  if (!id || Number.isNaN(nam)) return null;
+  const otn = raw.org_truong_nganh as { id?: string; slug?: string | null } | null;
+  return {
+    id,
+    nam,
+    chi_tieu: typeof raw.chi_tieu === "number" ? raw.chi_tieu : null,
+    diem_chuan: typeof raw.diem_chuan === "number" ? raw.diem_chuan : null,
+    tinh_trang: (raw.tinh_trang as string | null) ?? null,
+    ngay_mo_ho_so: (raw.ngay_mo_ho_so as string | null) ?? null,
+    ngay_dong_ho_so: (raw.ngay_dong_ho_so as string | null) ?? null,
+    ngay_thi_tu: (raw.ngay_thi_tu as string | null) ?? null,
+    ngay_thi_den: (raw.ngay_thi_den as string | null) ?? null,
+    ngay_cong_bo_diem: (raw.ngay_cong_bo_diem as string | null) ?? null,
+    ngay_xac_nhan_nhap_hoc_tu: (raw.ngay_xac_nhan_nhap_hoc_tu as string | null) ?? null,
+    ngay_xac_nhan_nhap_hoc_den: (raw.ngay_xac_nhan_nhap_hoc_den as string | null) ?? null,
+    ghi_chu_timeline: (raw.ghi_chu_timeline as string | null) ?? null,
+    link_thong_tin: (raw.link_thong_tin as string | null) ?? null,
+    truongNganhId: (otn?.id as string) ?? "",
+    programSlug: otn?.slug ?? null,
+    nganhTitle: null,
+    phuongThuc: [],
+  };
+}
+
+/** Chuyển nhãn ngày `dd/mm/yyyy` (hoặc khoảng `dd/mm – dd/mm`) sang ISO cho đếm ngược. */
+function timelineDateLabelToIso(label: string): {
+  startIso: string;
+  endIso: string | null;
+  startSort: number;
+} {
+  const matches = [...label.matchAll(/(\d{1,2})\/(\d{1,2})\/(\d{4})/g)];
+  const toIso = (m: RegExpMatchArray) =>
+    `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}T00:00:00`;
+  const startIso = matches[0] ? toIso(matches[0]) : new Date().toISOString();
+  const endIso = matches[1] ? toIso(matches[1]) : null;
+  const startSort = new Date(startIso).getTime();
+  return {
+    startIso,
+    endIso,
+    startSort: Number.isNaN(startSort) ? Number.MAX_SAFE_INTEGER : startSort,
+  };
+}
+
+function mapMocStep(
+  org: TruongOrgEmbed,
+  step: TuyenSinhTimelineStep,
+): SidebarUpcomingEvent | null {
+  const orgSlug = org.slug?.trim();
+  const orgName = org.ten?.trim();
+  if (!orgSlug || !orgName) return null;
+
+  const { startIso, endIso, startSort } = timelineDateLabelToIso(step.dateLabel);
+  const orgLoai = org.loai_to_chuc?.trim() || "truong_dai_hoc";
+  const orgAvatarId = org.avatar_id ?? org.logo_id;
+  const isActive = step.status === "active";
+  const href =
+    step.link && step.link.startsWith("/") ? step.link : truongRootPath(orgSlug);
+
+  return {
+    id: `moc:${org.id}:${step.id}`,
+    kind: "moc",
+    orgId: org.id,
+    orgSlug,
+    orgName,
+    orgLoai,
+    href,
+    label: step.label,
+    dateLabel: step.dateLabel,
+    subLabel: "Thông báo tuyển sinh",
+    status: isActive ? "active" : "upcoming",
+    sortKey: (isActive ? 0 : 1e12) + startSort,
+    phanHoi: null,
+    coverSrc: null,
+    orgAvatarUrl: orgAvatarId
+      ? resolveTruongImageSrcSync(orgAvatarId, ["public", "avatar"])
+      : null,
+    batDauIso: startIso,
+    ketThucIso: endIso,
+  };
+}
+
+/** Mốc tuyển sinh sắp tới / đang diễn ra của các trường viewer đang theo dõi. */
+async function fetchFollowedAdmissionMilestones(
+  followedOrgIds: string[],
+): Promise<SidebarUpcomingEvent[]> {
+  if (followedOrgIds.length === 0) return [];
+
+  const admin = createServiceRoleClient();
+  const calendarYear = defaultTruongNganhYear();
+
+  const { data: orgRows } = await admin
+    .from("org_to_chuc")
+    .select("id, slug, ten, loai_to_chuc, avatar_id, logo_id")
+    .in("id", followedOrgIds)
+    .eq("loai_to_chuc", "truong_dai_hoc")
+    .returns<TruongOrgEmbed[]>();
+
+  const truongs = (orgRows ?? []).filter((o) => o.slug?.trim() && o.ten?.trim());
+  if (truongs.length === 0) return [];
+
+  const truongIds = truongs.map((o) => o.id);
+  const orgById = new Map(truongs.map((o) => [o.id, o]));
+
+  const { data: nganhRows } = await admin
+    .from("org_truong_nganh")
+    .select("id")
+    .in("id_to_chuc", truongIds)
+    .returns<Array<{ id: string }>>();
+  const nganhIds = (nganhRows ?? []).map((r) => r.id);
+  if (nganhIds.length === 0) return [];
+
+  const { data: tsRows } = await admin
+    .from("org_tuyen_sinh_nam")
+    .select(
+      `
+      id,
+      nam,
+      ngay_mo_ho_so,
+      ngay_dong_ho_so,
+      ngay_thi_tu,
+      ngay_thi_den,
+      ngay_cong_bo_diem,
+      ngay_xac_nhan_nhap_hoc_tu,
+      ngay_xac_nhan_nhap_hoc_den,
+      ghi_chu_timeline,
+      link_thong_tin,
+      org_truong_nganh!inner ( id, slug, id_to_chuc )
+    `,
+    )
+    .in("id_truong_nganh", nganhIds)
+    .returns<Record<string, unknown>[]>();
+
+  const rowsByOrg = new Map<string, TruongTuyenSinhNamRow[]>();
+  for (const raw of tsRows ?? []) {
+    const row = mapTuyenSinhTimelineRow(raw);
+    if (!row) continue;
+    const embed = raw.org_truong_nganh as
+      | { id_to_chuc?: string }
+      | { id_to_chuc?: string }[]
+      | null;
+    const otn = Array.isArray(embed) ? embed[0] : embed;
+    const orgId = otn?.id_to_chuc;
+    if (!orgId) continue;
+    const list = rowsByOrg.get(orgId) ?? [];
+    list.push(row);
+    rowsByOrg.set(orgId, list);
+  }
+
+  const out: SidebarUpcomingEvent[] = [];
+  for (const [orgId, rows] of rowsByOrg) {
+    const org = orgById.get(orgId);
+    if (!org) continue;
+    const yearRows = rows.filter((r) => r.nam === calendarYear);
+    const aggregated = aggregateTimelineForYear(yearRows.length ? yearRows : rows);
+    if (!aggregated) continue;
+    const steps = buildTuyenSinhTimelineStepsForCalendarYear(
+      aggregated,
+      calendarYear,
+    );
+    const focus = getAdmissionTimelineFocus(steps);
+    const focusIds = new Set(
+      [focus.currentId, focus.nextId].filter(Boolean) as string[],
+    );
+    for (const step of steps) {
+      if (step.status === "done") continue;
+      const isFocus = focusIds.has(step.id);
+      if (step.status !== "active" && step.status !== "upcoming" && !isFocus) {
+        continue;
+      }
+      const item = mapMocStep(org, step);
+      if (item) out.push(item);
+    }
+  }
+  return out;
+}
+
 /**
- * Sidebar trang chủ — tối đa `limit` sự kiện (mặc định 3).
- * Ưu tiên sự kiện viewer quan tâm / sẽ tham gia; sau đó org theo dõi → gợi ý.
+ * Sidebar trang chủ — tối đa `limit` mục (mặc định 3).
+ * Ưu tiên sự kiện viewer quan tâm / sẽ tham gia; sau đó mốc tuyển sinh + sự kiện
+ * từ org theo dõi; cuối cùng là gợi ý toàn cục.
  */
 export const loadSidebarUpcomingEvents = cache(
   async function loadSidebarUpcomingEvents(
@@ -206,6 +410,7 @@ export const loadSidebarUpcomingEvents = cache(
     ]);
 
     const followedSet = new Set(followedOrgIds);
+    const milestones = await fetchFollowedAdmissionMilestones(followedOrgIds);
     const registeredIds = [...phanHoiBySuKien.keys()];
     const seenIds = new Set<string>();
     const myPool: SidebarUpcomingEvent[] = [];
@@ -227,12 +432,15 @@ export const loadSidebarUpcomingEvents = cache(
     const myEventsTotal = myPool.length;
     if (myEventsTotal > 0) {
       return {
-        items: sortSidebarEvents(myPool, followedSet).slice(0, limit),
+        items: sortSidebarEvents([...myPool, ...milestones], followedSet).slice(
+          0,
+          limit,
+        ),
         myEventsTotal,
       };
     }
 
-    const pool: SidebarUpcomingEvent[] = [];
+    const pool: SidebarUpcomingEvent[] = [...milestones];
     const followedOnlyIds = followedOrgIds.filter((id) => id);
     if (followedOnlyIds.length > 0) {
       const followedRows = await fetchUpcomingSuKienRows({

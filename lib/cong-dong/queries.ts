@@ -1,5 +1,6 @@
 import "server-only";
 
+import { getCurrentUserIsCinsAdmin } from "@/lib/auth/cins-admin-server";
 import {
   CONG_DONG_CHE_DO,
 } from "@/lib/cong-dong/constants";
@@ -177,6 +178,7 @@ export async function loadCongDongPageData(params: {
     soThanhVien,
     soBaiViet,
     isAdmin,
+    isCinsAdmin,
     filters,
     feed,
     communityPulse,
@@ -189,6 +191,7 @@ export async function loadCongDongPageData(params: {
     countThanhVien(orgRow.id),
     countCongDongPosts(orgRow.id),
     viewerId ? isCongDongAdmin(viewerId, orgRow.id) : Promise.resolve(false),
+    getCurrentUserIsCinsAdmin(),
     listCongDongFilters(orgRow.id),
     listCongDongPosts({ orgId: orgRow.id, viewerId }),
     loadCommunityPulse(orgRow.id),
@@ -228,6 +231,7 @@ export async function loadCongDongPageData(params: {
     },
     isThanhVien: member,
     isAdmin,
+    isCinsAdmin,
     viewerVaiTro,
     hideMembershipForOwner,
     notifyLevel,

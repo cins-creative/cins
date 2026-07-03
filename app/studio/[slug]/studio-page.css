@@ -148,6 +148,12 @@
 }
 
 /* ── Tab Tuyển dụng ─────────────────────────────────────────── */
+/* `.tdh-page--v6 .sec-hdr { display: none }` ẩn mọi section header trên trang v6;
+   header tuyển dụng chứa nút «Đăng tin mới» nên phải override để hiện lại. */
+.tdh-page--v6 .sec-hdr.studio-jobs-hdr {
+  display: flex;
+}
+
 .studio-jobs-hdr {
   display: flex;
   align-items: center;
@@ -190,10 +196,71 @@
 }
 
 .studio-job-card {
+  position: relative;
   border: 1px solid var(--border, #e6e9ef);
   border-radius: 16px;
-  padding: 16px 18px;
   background: var(--bg-surface, #fff);
+  transition: border-color 0.16s ease, box-shadow 0.16s ease,
+    transform 0.16s ease;
+}
+
+.studio-job-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 14px;
+  bottom: 14px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--cins-blue, #1f74c9);
+  opacity: 0;
+  transition: opacity 0.16s ease;
+}
+
+.studio-job-card:hover {
+  border-color: #cfe0f4;
+  box-shadow: 0 10px 26px -10px rgba(31, 116, 201, 0.28);
+  transform: translateY(-1px);
+}
+
+.studio-job-card:hover::before {
+  opacity: 1;
+}
+
+/* Toàn thẻ là nút bấm mở popup chi tiết. */
+.studio-job-card-hit {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 16px 18px;
+  border: none;
+  border-radius: 16px;
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.studio-job-card-hit:focus-visible {
+  outline: 2px solid var(--cins-blue, #1f74c9);
+  outline-offset: 2px;
+}
+
+.studio-job-card-arrow {
+  flex-shrink: 0;
+  color: var(--ink-muted, #94a3b8);
+  align-self: center;
+  transition: transform 0.16s ease, color 0.16s ease;
+}
+
+.studio-job-card:hover .studio-job-card-arrow {
+  color: var(--cins-blue, #1f74c9);
+  transform: translateX(3px);
+}
+
+.studio-job-card:hover .studio-job-card-title {
+  color: var(--cins-blue, #1f74c9);
 }
 
 .studio-job-card-head {
@@ -206,12 +273,18 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   flex-shrink: 0;
-  border-radius: 11px;
-  background: var(--cins-blue-soft, #e8f1fb);
+  border-radius: 12px;
+  background: linear-gradient(135deg, #e8f1fb 0%, #f0f6fd 100%);
   color: var(--cins-blue, #1f74c9);
+  transition: background 0.16s ease, color 0.16s ease;
+}
+
+.studio-job-card:hover .studio-job-card-ic {
+  background: var(--cins-blue, #1f74c9);
+  color: #fff;
 }
 
 .studio-job-card-titles {
@@ -220,11 +293,22 @@
 }
 
 .studio-job-card-title {
-  margin: 0 0 6px;
+  margin: 0 0 7px;
   font-size: 16px;
   font-weight: 800;
   line-height: 1.25;
   color: var(--ink-display, #18202b);
+  transition: color 0.16s ease;
+}
+
+.studio-job-card-title-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.studio-job-card-title-link:hover {
+  color: var(--cins-blue, #1f74c9);
+  text-decoration: underline;
 }
 
 .studio-job-card-chips {
@@ -251,6 +335,10 @@
 }
 
 .studio-job-edit-btn {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  z-index: 1;
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
@@ -272,7 +360,8 @@
 .studio-job-card-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 18px;
+  align-items: center;
+  gap: 8px 14px;
   margin: 12px 0 0;
 }
 
@@ -283,6 +372,14 @@
   font-size: 13px;
   font-weight: 600;
   color: var(--ink-body, #334155);
+}
+
+.studio-job-meta-item--salary {
+  color: #0f7b4f;
+  background: #e9f9f0;
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-weight: 700;
 }
 
 .studio-job-card-desc {
@@ -459,6 +556,114 @@
   color: var(--ink-muted, #64748b);
 }
 
+/* ── Picker vị trí (nghề) trong ô tiêu đề ─────────────────────── */
+.studio-job-nghe-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.studio-job-nghe-list {
+  position: fixed;
+  z-index: 10500;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-strong, #d4d8e0);
+  border-radius: 11px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.16);
+  overflow-y: auto;
+}
+
+.studio-job-nghe-option {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.studio-job-nghe-option.is-active,
+.studio-job-nghe-option:hover {
+  background: var(--cins-blue-soft, #eff6ff);
+}
+
+.studio-job-nghe-option-main {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink-display, #0f172a);
+}
+
+.studio-job-nghe-option-lv {
+  color: var(--cins-blue, #1f74c9);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.studio-job-nghe-option-eng {
+  font-size: 12px;
+  font-weight: 500;
+  font-style: italic;
+  color: var(--ink-muted, #64748b);
+}
+
+.studio-job-nghe-option-eng::before {
+  content: "·";
+  margin-right: 6px;
+  font-style: normal;
+  color: var(--ink-muted, #94a3b8);
+}
+
+.studio-job-nghe-option-sub {
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: var(--ink-muted, #64748b);
+}
+
+.studio-job-nghe-linked {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--ink-body, #334155);
+}
+
+.studio-job-nghe-linked strong {
+  color: var(--cins-blue, #1f74c9);
+  font-weight: 700;
+}
+
+.studio-job-nghe-linked-ic {
+  font-size: 12px;
+}
+
+.studio-job-nghe-linked-x {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: none;
+  background: var(--neutral-100, #f4f4f5);
+  color: var(--ink-muted, #64748b);
+  cursor: pointer;
+}
+
+.studio-job-nghe-linked-x:hover {
+  background: #fef3f2;
+  color: #b42318;
+}
+
 .studio-job-audience-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -493,6 +698,10 @@
 
 .studio-job-card-desc--lead {
   font-weight: 500;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .studio-job-card-block {
@@ -524,8 +733,269 @@
   color: var(--ink-muted, #64748b);
 }
 
+/* ── Phúc lợi: picker (form) ─────────────────────────────────────── */
+.studio-perk-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.studio-perk {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.studio-perk-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 11px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  color: var(--ink-body, #334155);
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-strong, #d4d8e0);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.studio-perk-toggle:hover {
+  border-color: var(--cins-blue, #1f74c9);
+}
+
+.studio-perk.is-active .studio-perk-toggle {
+  border-color: var(--cins-blue, #1f74c9);
+  background: rgba(31, 116, 201, 0.07);
+  color: var(--cins-blue, #1f74c9);
+}
+
+.studio-perk-ic {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--cins-blue, #1f74c9);
+}
+
+.studio-perk-label {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.studio-perk-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--cins-blue, #1f74c9);
+  color: #fff;
+}
+
+.studio-perk:not(.is-active) .studio-perk-check {
+  display: none;
+}
+
+.studio-perk-note {
+  width: 100%;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--ink-display, #18202b);
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-strong, #d4d8e0);
+  border-radius: 8px;
+  padding: 7px 10px;
+}
+
+.studio-perk-note:focus {
+  outline: none;
+  border-color: var(--cins-blue, #1f74c9);
+  box-shadow: 0 0 0 3px rgba(31, 116, 201, 0.12);
+}
+
+/* ── Phúc lợi: hiển thị (card) ───────────────────────────────────── */
+.studio-perk-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 16px;
+}
+
+.studio-perk-list-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--ink-body, #334155);
+}
+
+.studio-perk-list-ic {
+  display: inline-flex;
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--cins-blue, #1f74c9);
+}
+
+.studio-perk-list-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.studio-perk-list-label {
+  font-weight: 600;
+  color: var(--ink-display, #18202b);
+}
+
+.studio-perk-list-note {
+  font-size: 12px;
+  color: var(--ink-muted, #64748b);
+}
+
+/* ── Popup chi tiết tin tuyển dụng ───────────────────────────────── */
+.studio-job-detail-modal {
+  padding-top: 8px;
+}
+
+.studio-job-detail-head {
+  margin-bottom: 4px;
+}
+
+.studio-job-detail-title {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 800;
+  line-height: 1.22;
+  color: var(--ink-display, #18202b);
+  letter-spacing: -0.01em;
+}
+
+.studio-job-detail-org {
+  display: inline-flex;
+  align-items: center;
+  margin: 6px 0 0;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--cins-blue, #1f74c9);
+}
+
+.studio-job-detail-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--cins-blue, #1f74c9);
+  background: var(--cins-blue-soft, #e8f1fb);
+  border: none;
+  border-radius: 9px;
+  padding: 7px 14px;
+  cursor: pointer;
+}
+
+.studio-job-detail-edit:hover {
+  background: #d6e8fb;
+}
+
+.studio-job-detail-chips {
+  margin-top: 14px;
+}
+
+.studio-job-detail-meta {
+  gap: 10px 12px;
+  margin-top: 14px;
+  padding: 14px 16px;
+  background: var(--neutral-50, #f8fafc);
+  border: 1px solid var(--border-subtle, #eef1f6);
+  border-radius: 12px;
+}
+
+.studio-job-detail-meta .studio-job-meta-item {
+  font-size: 13.5px;
+}
+
+.studio-job-detail-nghe-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--cins-blue, #1f74c9);
+  text-decoration: none;
+}
+
+.studio-job-detail-nghe-link:hover {
+  text-decoration: underline;
+}
+
+.studio-job-detail-lead {
+  margin: 14px 0 0;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.55;
+  color: var(--ink-body, #334155);
+}
+
+.studio-job-detail-sec {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-subtle, #eef1f6);
+}
+
+.studio-job-detail-sec-title {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-muted, #64748b);
+}
+
+.studio-job-detail-text {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: var(--ink-body, #334155);
+  white-space: pre-line;
+}
+
+.studio-job-detail-dist {
+  margin-top: 18px;
+}
+
+.studio-job-detail-foot {
+  margin-top: 20px;
+}
+
+.studio-job-detail-foot .studio-job-apply-btn {
+  padding: 11px 26px;
+  font-size: 14.5px;
+}
+
+.studio-job-detail-closed {
+  margin: 20px 0 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink-muted, #94a3b8);
+}
+
 @media (max-width: 560px) {
   .studio-job-audience-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .studio-perk-grid,
+  .studio-perk-list {
     grid-template-columns: 1fr;
   }
 }

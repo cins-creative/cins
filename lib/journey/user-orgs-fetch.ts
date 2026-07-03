@@ -4,6 +4,7 @@ import { loadCongDongStatsByOrgIds } from "@/lib/cong-dong/stats";
 import { getAvatarUrl, getProfileCoverUrl } from "@/lib/journey/profile";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { commentVaiTroLabel } from "@/lib/social/comments/vai-tro-label";
+import { studioRootPath } from "@/lib/to-chuc/studio-routes";
 import { truongRootPath } from "@/lib/truong/truong-routes";
 
 export type UserOrgMembershipItem = {
@@ -79,6 +80,9 @@ function orgPublicHref(org: {
   }
   if (org.loai_to_chuc === "truong_dai_hoc") {
     return truongRootPath(org.slug);
+  }
+  if (org.loai_to_chuc === "studio" || org.loai_to_chuc === "doanh_nghiep") {
+    return studioRootPath(org.slug);
   }
   return null;
 }

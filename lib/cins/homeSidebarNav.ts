@@ -20,6 +20,7 @@ const HOME_SIDEBAR_ICONS: Record<MainNavIcon, string> = {
     '<svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>',
   business:
     '<svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2"/><path d="M3 12h18"/></svg>',
+  jobs: '<svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2"/><path d="M3 12h5"/><path d="M16 12h5"/><path d="M11 12a1 1 0 002 0"/></svg>',
   events:
     '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18"/><path d="M8 3v4M16 3v4"/></svg>',
   blog: '<svg viewBox="0 0 24 24"><path d="M14 3l7 7-11 11H3v-7L14 3z"/><path d="M13 4l7 7"/></svg>',

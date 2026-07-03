@@ -30,11 +30,16 @@ export function TruongGioiThieuTruong({
   const isCoSo =
     school.org_loai === "co_so_dao_tao" ||
     pathname.startsWith("/co-so");
+  const isStudio = pathname.startsWith("/studio");
   const buttonLabel = isCoSo
     ? "Giới thiệu cơ sở"
-    : hasContent
-      ? "Lịch sử trường"
-      : "Thêm giới thiệu trường";
+    : isStudio
+      ? hasContent
+        ? "Xem giới thiệu"
+        : "Thêm giới thiệu"
+      : hasContent
+        ? "Lịch sử trường"
+        : "Thêm giới thiệu trường";
 
   if (!hasContent && !canEdit) return null;
 
@@ -62,6 +67,7 @@ export function TruongGioiThieuTruong({
         onClose={() => setOpen(false)}
         className="tdh-inline-modal--wide tdh-gioi-thieu-modal"
         labelledBy="tdh-gioi-thieu-title"
+        showClose={false}
       >
         <header className="tdh-gioi-thieu-modal-head">
           <h2 id="tdh-gioi-thieu-title" className="tdh-gioi-thieu-modal-title">

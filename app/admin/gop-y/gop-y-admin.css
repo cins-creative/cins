@@ -1,0 +1,246 @@
+.gopy-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 18px;
+}
+
+.gopy-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--admin-border, #e2e8f0);
+  background: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--admin-ink, #334155);
+  cursor: pointer;
+}
+
+.gopy-filter.is-active {
+  background: #1f74c9;
+  border-color: #1f74c9;
+  color: #fff;
+}
+
+.gopy-filter-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.08);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.gopy-filter.is-active .gopy-filter-count {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.gopy-admin-msg {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fef3f2;
+  color: #b42318;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.gopy-admin-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 48px 0;
+  color: var(--admin-muted, #94a3b8);
+}
+
+.gopy-admin-empty p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.gopy-admin-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.gopy-admin-card {
+  padding: 16px 18px;
+  border: 1px solid var(--admin-border, #e2e8f0);
+  border-left: 4px solid var(--admin-border, #e2e8f0);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.gopy-admin-card.status-moi {
+  border-left-color: #1f74c9;
+}
+.gopy-admin-card.status-dang_xu_ly {
+  border-left-color: #d97706;
+}
+.gopy-admin-card.status-da_xu_ly {
+  border-left-color: #0f7b4f;
+}
+.gopy-admin-card.status-bo_qua {
+  border-left-color: #94a3b8;
+}
+
+.gopy-admin-card-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-bottom: 10px;
+}
+
+.gopy-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.gopy-status-badge.status-moi {
+  background: #e8f1fb;
+  color: #1f74c9;
+}
+.gopy-status-badge.status-dang_xu_ly {
+  background: #fef3e2;
+  color: #b45309;
+}
+.gopy-status-badge.status-da_xu_ly {
+  background: #e9f9f0;
+  color: #0f7b4f;
+}
+.gopy-status-badge.status-bo_qua {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.gopy-admin-who {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--admin-ink, #334155);
+}
+
+.gopy-admin-time {
+  margin-left: auto;
+  font-size: 12.5px;
+  color: var(--admin-muted, #94a3b8);
+}
+
+.gopy-admin-noidung {
+  margin: 0 0 10px;
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--admin-ink, #1e293b);
+  white-space: pre-line;
+}
+
+.gopy-admin-page-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1f74c9;
+  text-decoration: none;
+  word-break: break-all;
+}
+
+.gopy-admin-page-link:hover {
+  text-decoration: underline;
+}
+
+.gopy-admin-manage {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--admin-border, #e2e8f0);
+}
+
+.gopy-admin-note {
+  flex: 1;
+  min-width: 200px;
+  padding: 8px 12px;
+  border: 1px solid var(--admin-border, #d7dce3);
+  border-radius: 9px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--admin-ink, #1e293b);
+}
+
+.gopy-admin-note:focus {
+  outline: none;
+  border-color: #1f74c9;
+  box-shadow: 0 0 0 3px rgba(31, 116, 201, 0.15);
+}
+
+.gopy-admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.gopy-admin-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 9px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.gopy-admin-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.gopy-admin-btn-primary {
+  background: #0f7b4f;
+  color: #fff;
+}
+
+.gopy-admin-btn-primary:hover:not(:disabled) {
+  background: #0c6640;
+}
+
+.gopy-admin-btn-ghost {
+  background: #fff;
+  border-color: var(--admin-border, #d7dce3);
+  color: var(--admin-ink, #475569);
+}
+
+.gopy-admin-btn-ghost:hover:not(:disabled) {
+  background: #f8fafc;
+}
+
+.gopy-spin {
+  animation: gopy-spin 0.8s linear infinite;
+}
+
+@keyframes gopy-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

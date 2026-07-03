@@ -1,5 +1,6 @@
 import {
   Briefcase,
+  BriefcaseBusiness,
   Calendar,
   Compass,
   FileText,
@@ -32,6 +33,7 @@ const ICON_MAP: Record<MainNavIcon, LucideIcon> = {
   courses: FileText,
   community: Users,
   business: Briefcase,
+  jobs: BriefcaseBusiness,
   events: Calendar,
   blog: Newspaper,
   profile: UserCircle,

@@ -54,7 +54,9 @@ export function HaOrgUpcomingRow({ item }: { item: SidebarUpcomingEvent }) {
       ? "ha-org-up-item ha-org-up-item--interest"
       : item.phanHoi === "se_tham_gia"
         ? "ha-org-up-item ha-org-up-item--rsvp"
-        : "ha-org-up-item";
+        : item.kind === "moc"
+          ? "ha-org-up-item ha-org-up-item--moc"
+          : "ha-org-up-item";
 
   return (
     <li className={itemClass}>

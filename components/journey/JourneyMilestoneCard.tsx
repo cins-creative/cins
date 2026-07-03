@@ -639,6 +639,14 @@ export function JourneyMilestoneCard({
     (inlineExpand && showUnfold) || showTextPanelUnfold,
   );
   const isContentOpen = supportsInlineUnfold && showContent;
+  /* Khối xổ inline render khi: bài viết (xổ nội dung) HOẶC bất kỳ loại card nào
+     đang mở bình luận. Ảnh/video/text không hỗ trợ xổ nội dung nhưng vẫn cho
+     bình luận inline — nếu chỉ gate theo `supportsInlineUnfold` thì action bar
+     (đã dời vào khối xổ) lẫn khối bình luận đều biến mất, khiến media "fill" chỗ
+     trống. */
+  const canRenderInlineUnfold = Boolean(
+    inlineExpand && (supportsInlineUnfold || showComments),
+  );
   const pinActionsAboveComments = Boolean(
     inlineExpand && showUnfold && showComments,
   );
@@ -1661,7 +1669,7 @@ export function JourneyMilestoneCard({
             onTagLinkClick={(e) => e.stopPropagation()}
           />
 
-          {inlineExpand && supportsInlineUnfold ? (
+          {canRenderInlineUnfold ? (
             <div
               className="j-m-card-unfold"
               data-open={unfoldOpen ? "true" : "false"}

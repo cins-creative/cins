@@ -492,6 +492,7 @@
 }
 
 .tdh-inline-modal {
+  position: relative;
   width: 100%;
   max-width: 440px;
   background: #fff;
@@ -504,6 +505,60 @@
   max-width: min(720px, calc(100vw - 40px));
   max-height: min(90vh, 900px);
   overflow-y: auto;
+  /* Ẩn thanh cuộn (vẫn cuộn được) — Firefox + IE/Edge cũ. */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+/* Ẩn thanh cuộn — Chrome / Safari / Edge Chromium. */
+.tdh-inline-modal--wide::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+/* Nút đóng (X) dựng sẵn — ghim góc trên phải kể cả khi nội dung cuộn.
+ * Slot cao 0px + position:sticky nên không chiếm chỗ, không đẩy tiêu đề. */
+.tdh-inline-modal-close-slot {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  height: 0;
+  pointer-events: none;
+}
+
+.tdh-inline-modal-close {
+  position: absolute;
+  top: 0;
+  right: 0;
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.06);
+  color: var(--ink-muted, #64748b);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.tdh-inline-modal-close:hover {
+  background: rgba(15, 23, 42, 0.12);
+  color: var(--ink, #0f172a);
+}
+
+.tdh-inline-modal-close:focus-visible {
+  outline: 2px solid var(--blue, #1f74c9);
+  outline-offset: 2px;
+}
+
+/* Chừa chỗ cho nút X (chỉ tiêu đề là con trực tiếp — modal dùng nút đóng dựng
+ * sẵn; modal có header riêng tự canh nút đóng của nó). */
+.tdh-inline-modal > .tdh-inline-modal-title {
+  padding-right: 40px;
 }
 
 .tdh-inline-modal-sm {

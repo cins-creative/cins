@@ -3695,6 +3695,16 @@
   background: color-mix(in srgb, var(--violet, #6b4ce6) 12%, white);
 }
 
+.world-journey-home .ha-org-up-list-badge.is-moc {
+  color: var(--amber-ink, #92400e);
+  background: color-mix(in srgb, var(--amber, #f59e0b) 16%, white);
+}
+
+.world-journey-home .ha-org-up-item--moc .ha-org-up-list-row,
+.world-journey-home .ha-org-up-item--moc .ha-org-up--banner {
+  border-color: color-mix(in srgb, var(--amber, #f59e0b) 26%, var(--border));
+}
+
 .world-journey-home .ha-org-up-list-org {
   display: flex;
   align-items: center;
@@ -3853,6 +3863,44 @@
   text-overflow: ellipsis;
 }
 
+/* Chips chi tiết trong card cơ hội (loại hình · nơi làm · lĩnh vực · lương). */
+.world-journey-home .ha-trow-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  margin-top: 6px;
+}
+
+.world-journey-home .ha-trow-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  border-radius: var(--r-sm, 8px);
+  background: var(--neutral-100, #f1f2f5);
+  color: var(--ink3, rgba(0, 0, 0, 0.5));
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.world-journey-home .ha-trow-chip svg {
+  flex-shrink: 0;
+  opacity: 0.75;
+}
+
+.world-journey-home .ha-trow-chip--sal {
+  background: var(--blue-soft, #e7f0fb);
+  color: var(--blue-dark, #1656a0);
+  font-weight: 600;
+}
+
+/* Card cơ hội — logo studio căn trên để cân với 3 dòng nội dung. */
+.world-journey-home .ha-trow--link .ha-trow-meta {
+  align-self: center;
+}
+
 /* nudge (hồ sơ của bạn) */
 .world-journey-home .ha-nudge {
   padding: 4px 16px 16px;
@@ -3922,39 +3970,5 @@
 
 .world-journey-home .ha-vis-note b {
   color: var(--ink1);
-}
-
-/* open-to-work banner (§7) */
-.world-journey-home .ha-otw {
-  border: 1px solid #bdf2dd;
-  background: linear-gradient(150deg, var(--mint-soft, #d9fbed), var(--surface));
-  border-radius: var(--r-lg);
-  padding: 14px 16px;
-  box-shadow: var(--sh-xs);
-}
-
-.world-journey-home .ha-otw-top {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  font-weight: 700;
-  color: #0f5e4e;
-  margin-bottom: 4px;
-}
-
-.world-journey-home .ha-otw-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #16a085;
-  box-shadow: 0 0 0 3px rgba(22, 160, 133, 0.2);
-}
-
-.world-journey-home .ha-otw p {
-  margin: 0;
-  font-size: 12.5px;
-  color: var(--ink3);
-  line-height: 1.45;
 }
 

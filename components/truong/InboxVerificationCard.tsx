@@ -205,6 +205,7 @@ export function InboxVerificationCard({
         onClose={() => setEvidenceOpen(false)}
         className="tdh-message-inbox-evidence-modal"
         labelledBy="tdh-inbox-evidence-title"
+        showClose={false}
       >
         <div className="tdh-message-inbox-evidence-modal-hdr">
           <h3 id="tdh-inbox-evidence-title" className="tdh-inline-modal-title">

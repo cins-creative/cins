@@ -15,11 +15,11 @@ export async function TheoDoiOrgModule({ ctx }: { ctx: HomeModuleCtx }) {
   );
 
   return (
-    <ModuleCard icon={BellRing} title="Sự kiện sắp diễn ra">
+    <ModuleCard icon={BellRing} title="Sự kiện & thông báo">
       {items.length === 0 ? (
         <ModuleEmpty>
-          Chưa có sự kiện sắp diễn ra — bấm Quan tâm hoặc Sẽ tham gia trên feed
-          để theo dõi tại đây.
+          Chưa có sự kiện hay mốc thông báo sắp tới — bấm Quan tâm hoặc Sẽ tham
+          gia trên feed, hoặc theo dõi trường để nhận mốc tuyển sinh tại đây.
         </ModuleEmpty>
       ) : (
         <HaOrgUpcomingEventsPanel items={items} myEventsTotal={myEventsTotal} />

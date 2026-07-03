@@ -13,11 +13,14 @@ export type MainNavIcon =
   | "courses"
   | "community"
   | "business"
+  | "jobs"
   | "events"
   | "blog"
   | "profile"
   | "help"
   | "settings";
+
+export type OrgFlyoutKind = "education" | "community" | "studio";
 
 export type MainNavItem = {
   id: string;
@@ -26,6 +29,8 @@ export type MainNavItem = {
   tip: string;
   icon: MainNavIcon;
   isActive: (pathname: string) => boolean;
+  /** Nếu có: hover item sẽ xổ ngang danh sách tổ chức của user theo nhóm này. */
+  flyout?: OrgFlyoutKind;
 };
 
 export const MAIN_NAV_ITEMS: MainNavItem[] = [
@@ -52,6 +57,7 @@ export const MAIN_NAV_ITEMS: MainNavItem[] = [
     tip: "Trường đại học và cơ sở đào tạo ngành sáng tạo — học phí, chương trình, học bổng và open day",
     icon: "education",
     isActive: isCoSoDaoTaoHubPath,
+    flyout: "education",
   },
   {
     id: "courses",
@@ -68,6 +74,7 @@ export const MAIN_NAV_ITEMS: MainNavItem[] = [
     tip: "Cộng đồng nghề — thảo luận, chia sẻ kinh nghiệm và kết nối người trong ngành",
     icon: "community",
     isActive: (p) => p === "/cong-dong" || p.startsWith("/cong-dong/"),
+    flyout: "community",
   },
   {
     id: "business",
@@ -76,6 +83,15 @@ export const MAIN_NAV_ITEMS: MainNavItem[] = [
     tip: "Studio, agency và doanh nghiệp ngành sáng tạo — khám phá đội ngũ, dự án và cơ hội hợp tác",
     icon: "business",
     isActive: (p) => p === "/studio" || p.startsWith("/studio/"),
+    flyout: "studio",
+  },
+  {
+    id: "jobs",
+    href: "/tuyen-dung",
+    label: "Tuyển dụng",
+    tip: "Tin tuyển dụng đang mở từ studio, agency và doanh nghiệp ngành sáng tạo — vị trí, mức lương và hạn nộp",
+    icon: "jobs",
+    isActive: (p) => p === "/tuyen-dung" || p.startsWith("/tuyen-dung/"),
   },
   {
     id: "events",

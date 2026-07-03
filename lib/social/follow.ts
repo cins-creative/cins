@@ -543,6 +543,9 @@ export async function loadFollowProfiles(
     .from("user_nguoi_dung")
     .select("id, slug, ten_hien_thi, avatar_id, cover_id, bio, giai_doan, tinh_thanh")
     .in("id", userIds)
+    // Ẩn user chưa hoàn tất onboarding (giai_doan null): trang /[slug] của họ 404
+    // với người ngoài, nên không hiển thị thẻ bạn bè / gợi ý dẫn tới link hỏng.
+    .not("giai_doan", "is", null)
     .limit(limit);
   const stats = await loadUserSocialStats(
     admin,

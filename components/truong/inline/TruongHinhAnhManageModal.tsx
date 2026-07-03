@@ -333,6 +333,7 @@ function TruongHinhAnhManageDialog({
       onClose={handleCancel}
       className="tdh-inline-modal--wide tdh-hinhanh-manage-modal"
       labelledBy="tdh-hinhanh-manage-title"
+      showClose={false}
     >
       <div className="tdh-hinhanh-manage-head">
         <div className="tdh-hinhanh-manage-head-copy">

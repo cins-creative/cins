@@ -36,8 +36,14 @@ import type {
 } from "@/lib/truong/types";
 
 type Ctx = {
-  /** Quyền sửa từ server (org admin / dev). */
+  /** Quyền sửa từ server (org admin trục 2 HOẶC admin CINs trục 1). */
   canEdit: boolean;
+  /**
+   * Viewer là member thật của org (trục 2) — KHÔNG tính admin CINs.
+   * Dùng để khoá theo dõi/nhắn tin "org của mình"; admin CINs (không member)
+   * vẫn theo dõi/nhắn tin/like như user thường.
+   */
+  isOrgMember: boolean;
   /** Vai trò hệ thống của viewer (badge topbar) — null khi chưa đăng nhập. */
   systemRole: SystemRole | null;
   /** Đang bật UI chỉnh sửa trên trang. */
@@ -125,11 +131,13 @@ function editModeStorageKey(slug: string) {
 export function TruongInlineEditProvider({
   children,
   canEdit,
+  isOrgMember = false,
   systemRole = null,
   initial,
 }: {
   children: ReactNode;
   canEdit: boolean;
+  isOrgMember?: boolean;
   systemRole?: SystemRole | null;
   initial: TruongPagePayload;
 }) {
@@ -576,6 +584,7 @@ export function TruongInlineEditProvider({
   const value = useMemo<Ctx>(
     () => ({
       canEdit,
+      isOrgMember,
       systemRole,
       editMode,
       setEditMode,
@@ -622,6 +631,7 @@ export function TruongInlineEditProvider({
     }),
     [
       canEdit,
+      isOrgMember,
       systemRole,
       editMode,
       setEditMode,

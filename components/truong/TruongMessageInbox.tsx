@@ -357,6 +357,7 @@ export function TruongMessageInbox() {
         onClose={() => setOpen(false)}
         className="tdh-inline-modal--wide tdh-message-inbox-modal"
         labelledBy="tdh-message-inbox-title"
+        showClose={false}
       >
         <div className="tdh-message-inbox-hdr">
           <div>

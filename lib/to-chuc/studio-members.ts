@@ -1,5 +1,6 @@
 import "server-only";
 
+import { getCurrentUserIsCinsAdmin } from "@/lib/auth/cins-admin-server";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -91,6 +92,9 @@ export async function isStudioOrgAdmin(
   orgId: string,
   profileId: string,
 ): Promise<boolean> {
+  // Quyền CINs (trục 1) mở khoá vận hành mọi org — độc lập membership.
+  if (await getCurrentUserIsCinsAdmin()) return true;
+
   const admin = createServiceRoleClient();
   const { data: org } = await admin
     .from("org_to_chuc")
@@ -116,6 +120,9 @@ async function assertCanManageMembers(
   actorId: string,
   orgId: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
+  // Quyền CINs (trục 1): toàn quyền quản lý thành viên mọi org.
+  if (await getCurrentUserIsCinsAdmin()) return { ok: true };
+
   if (!(await isStudioOrgAdmin(orgId, actorId))) {
     return { ok: false, error: "Bạn không có quyền quản trị studio này." };
   }
@@ -542,8 +549,9 @@ export async function transferStudioOwnership(params: {
     return { ok: false, error: "Tên xác nhận không khớp đường dẫn studio." };
   }
 
+  const isCinsAdmin = await getCurrentUserIsCinsAdmin();
   const actorRole = await getViewerCoSoVaiTro(params.actorId, params.orgId);
-  if (actorRole !== "owner") {
+  if (actorRole !== "owner" && !isCinsAdmin) {
     return { ok: false, error: "Chỉ chủ sở hữu mới bàn giao quyền sở hữu." };
   }
 
@@ -569,7 +577,7 @@ export async function transferStudioOwnership(params: {
   if (target.vai_tro === "owner") {
     return { ok: false, error: "Thành viên này đã là chủ sở hữu." };
   }
-  if (target.id_nguoi_dung === params.actorId) {
+  if (target.id_nguoi_dung === params.actorId && !isCinsAdmin) {
     return { ok: false, error: "Không thể bàn giao cho chính mình." };
   }
 

@@ -232,6 +232,61 @@ export async function verifyAdminToChuc(
   return { ok: true, row: mapRow(data) };
 }
 
+/**
+ * Gỡ Verified — đưa `trang_thai_tin_cay` về `binh_thuong` và set
+ * `da_verify = false` ở bảng con. Dùng để khôi phục trạng thái trước khi cấp
+ * (toggle nút Verified trong admin). Chỉ áp dụng cho trường ĐH / cơ sở đào tạo.
+ */
+export async function revokeAdminToChuc(
+  orgId: string,
+): Promise<
+  { ok: true; row: AdminToChucListRow } | { ok: false; error: string }
+> {
+  const admin = createServiceRoleClient();
+
+  const { data: org, error: readErr } = await admin
+    .from("org_to_chuc")
+    .select("id, loai_to_chuc")
+    .eq("id", orgId)
+    .maybeSingle<{ id: string; loai_to_chuc: string }>();
+
+  if (readErr) return { ok: false, error: readErr.message };
+  if (!org) return { ok: false, error: "Không tìm thấy tổ chức." };
+
+  const subtypeTable =
+    org.loai_to_chuc === "truong_dai_hoc"
+      ? "org_truong_dai_hoc"
+      : org.loai_to_chuc === "co_so_dao_tao"
+        ? "org_co_so_dao_tao"
+        : null;
+
+  if (!subtypeTable) {
+    return {
+      ok: false,
+      error: "Chỉ gỡ Verified cho trường đại học hoặc cơ sở đào tạo.",
+    };
+  }
+
+  const { data, error } = await admin
+    .from("org_to_chuc")
+    .update({ trang_thai_tin_cay: "binh_thuong" })
+    .eq("id", orgId)
+    .select(DETAIL_SELECT)
+    .maybeSingle<DbDetailRow>();
+
+  if (error) return { ok: false, error: error.message };
+  if (!data) return { ok: false, error: "Không tìm thấy tổ chức." };
+
+  const { error: subErr } = await admin
+    .from(subtypeTable)
+    .update({ da_verify: false })
+    .eq("id_to_chuc", orgId);
+
+  if (subErr) return { ok: false, error: subErr.message };
+
+  return { ok: true, row: mapRow(data) };
+}
+
 /** Soft delete — đặt `trang_thai_hoat_dong = da_dong_cua`. */
 export async function archiveAdminToChuc(
   orgId: string,

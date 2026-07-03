@@ -1,5 +1,6 @@
 "use client";
 
+import { X } from "lucide-react";
 import { useEffect, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
@@ -9,6 +10,19 @@ type Props = {
   children: ReactNode;
   className?: string;
   labelledBy?: string;
+  /**
+   * Cho phép đóng khi bấm ra nền (backdrop). MẶC ĐỊNH `false` để tránh mất nội
+   * dung đang soạn khi lỡ tay bấm ra ngoài — người dùng phải chủ động bấm nút
+   * đóng (góc trên phải) hoặc nút Hủy/Đóng trong form.
+   */
+  closeOnBackdrop?: boolean;
+  /**
+   * Hiện nút đóng (X) góc trên phải do wrapper dựng sẵn. MẶC ĐỊNH `true`.
+   * Đặt `false` cho các modal đã tự render nút đóng riêng ở header (tránh 2 nút).
+   */
+  showClose?: boolean;
+  /** Nhãn a11y cho nút đóng dựng sẵn. */
+  closeLabel?: string;
 };
 
 export function TruongInlineModal({
@@ -17,6 +31,9 @@ export function TruongInlineModal({
   children,
   className,
   labelledBy,
+  closeOnBackdrop = false,
+  showClose = true,
+  closeLabel = "Đóng",
 }: Props) {
   useEffect(() => {
     if (!open) return;
@@ -37,7 +54,7 @@ export function TruongInlineModal({
     <div
       className="tdh-inline-modal-backdrop"
       role="presentation"
-      onClick={onClose}
+      onClick={closeOnBackdrop ? onClose : undefined}
     >
       <div
         className={modalClass}
@@ -46,6 +63,19 @@ export function TruongInlineModal({
         aria-labelledby={labelledBy}
         onClick={(e) => e.stopPropagation()}
       >
+        {showClose ? (
+          <div className="tdh-inline-modal-close-slot">
+            <button
+              type="button"
+              className="tdh-inline-modal-close"
+              onClick={onClose}
+              aria-label={closeLabel}
+              title={closeLabel}
+            >
+              <X size={18} strokeWidth={2.2} aria-hidden />
+            </button>
+          </div>
+        ) : null}
         {children}
       </div>
     </div>,

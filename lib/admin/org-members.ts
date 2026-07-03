@@ -481,6 +481,108 @@ export async function transferAdminOrgOwner(params: {
   return { ok: true, members: payload.payload.members };
 }
 
+/**
+ * Đặt chủ trang (owner) cho tổ chức bằng userId / slug — kể cả người chưa là
+ * thành viên. Owner cũ bị hạ xuống Admin. Dùng cho luồng "Đổi chủ trang" trong
+ * admin (chọn user → lưu → nhập mật khẩu ủy quyền). Bắt buộc mật khẩu.
+ */
+export async function setAdminOrgOwner(params: {
+  orgId: string;
+  userId?: string;
+  slug?: string;
+  delegationPassword: string;
+}): Promise<
+  | {
+      ok: true;
+      members: AdminOrgMember[];
+      owner: { ten: string; slug: string | null };
+    }
+  | { ok: false; error: string }
+> {
+  const pwd = assertDelegationPasswordForMutation(params.delegationPassword);
+  if (!pwd.ok) return pwd;
+
+  const org = await loadOrgMeta(params.orgId);
+  if (!org) return { ok: false, error: "Không tìm thấy tổ chức." };
+
+  const admin = createServiceRoleClient();
+
+  let userId = params.userId?.trim();
+  if (!userId && params.slug?.trim()) {
+    const { data: p } = await admin
+      .from("user_nguoi_dung")
+      .select("id")
+      .eq("slug", params.slug.trim().toLowerCase())
+      .maybeSingle<{ id: string }>();
+    if (!p?.id) {
+      return { ok: false, error: "Không tìm thấy tài khoản với slug này." };
+    }
+    userId = p.id;
+  }
+  if (!userId) return { ok: false, error: "Thiếu userId hoặc slug." };
+
+  const { data: profile } = await admin
+    .from("user_nguoi_dung")
+    .select("id, slug, ten_hien_thi, avatar_id")
+    .eq("id", userId)
+    .maybeSingle<{
+      id: string;
+      slug: string;
+      ten_hien_thi: string | null;
+      avatar_id: string | null;
+    }>();
+
+  if (!profile?.slug) return { ok: false, error: "Không tìm thấy người dùng." };
+
+  const { data: existingRows } = await admin
+    .from("user_thanh_vien_to_chuc")
+    .select("id, vai_tro, trang_thai")
+    .eq("id_to_chuc", org.id)
+    .eq("id_nguoi_dung", userId);
+
+  const existing = (existingRows ?? [])[0];
+  if (existing?.vai_tro === "owner" && existing.trang_thai === "active") {
+    return { ok: false, error: "Người này đã là chủ trang hiện tại." };
+  }
+
+  // Hạ mọi owner hiện tại (khác user đích) xuống admin.
+  const { error: demoteError } = await admin
+    .from("user_thanh_vien_to_chuc")
+    .update({ vai_tro: "admin" })
+    .eq("id_to_chuc", org.id)
+    .eq("vai_tro", "owner")
+    .neq("id_nguoi_dung", userId);
+  if (demoteError) return { ok: false, error: demoteError.message };
+
+  if (existing) {
+    const { error } = await admin
+      .from("user_thanh_vien_to_chuc")
+      .update({ vai_tro: "owner", trang_thai: "active" })
+      .eq("id", existing.id);
+    if (error) return { ok: false, error: error.message };
+  } else {
+    const { error } = await admin.from("user_thanh_vien_to_chuc").insert({
+      id_to_chuc: org.id,
+      id_nguoi_dung: userId,
+      vai_tro: "owner",
+      trang_thai: "active",
+    });
+    if (error) return { ok: false, error: error.message };
+  }
+
+  const payload = await getAdminOrgMembersPayload(org.id);
+  if (!payload.ok) return payload;
+
+  return {
+    ok: true,
+    members: payload.payload.members,
+    owner: {
+      ten: profile.ten_hien_thi?.trim() || profile.slug,
+      slug: profile.slug,
+    },
+  };
+}
+
 /** Owner hiện tại (membership) — dùng cột bảng admin. */
 export async function fetchOrgOwnerSummaries(
   orgIds: string[],

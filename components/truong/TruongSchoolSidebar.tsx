@@ -36,6 +36,8 @@ type BodyProps = {
   loai: string;
   showAdminCta: boolean;
   canEdit: boolean;
+  /** Member org thật (trục 2) — khoá theo dõi/nhắn tin chính trường của mình. */
+  isOrgMember: boolean;
   isEditing: boolean;
   showTuyenSinStats: boolean;
   showKtxStat: boolean;
@@ -52,6 +54,7 @@ function TruongSidebarStack({
   loai,
   showAdminCta,
   canEdit,
+  isOrgMember,
   isEditing,
   showTuyenSinStats,
   showKtxStat,
@@ -115,7 +118,7 @@ function TruongSidebarStack({
         ) : (
           <>
             <TruongUserChatLauncher />
-            <CoSoOrgFollowButton orgId={school.id} disabled={canEdit} />
+            <CoSoOrgFollowButton orgId={school.id} disabled={isOrgMember} />
           </>
         )}
       </div>
@@ -197,7 +200,8 @@ export function TruongSchoolSidebar({
   if (!ctx) return null;
 
   const { school, isEditing, canEdit } = ctx;
-  const showAdminCta = canEdit && isEditing;
+  const isOrgMember = Boolean(ctx.isOrgMember);
+  const showAdminCta = isOrgMember && isEditing;
   const loai = labelLoaiTruong(school.loai_truong);
   const subtitle = truongSidebarSubtitle(school);
 
@@ -218,6 +222,7 @@ export function TruongSchoolSidebar({
     loai,
     showAdminCta,
     canEdit,
+    isOrgMember,
     isEditing,
     showTuyenSinStats,
     showKtxStat,

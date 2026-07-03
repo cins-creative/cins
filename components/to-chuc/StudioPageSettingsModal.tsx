@@ -208,7 +208,6 @@ export function StudioPageSettingsModal({
     <div
       className="tdh-inline-modal-backdrop cso-settings-backdrop"
       role="presentation"
-      onClick={onClose}
     >
       <div
         className="tdh-inline-modal tdh-inline-modal--wide cso-settings-modal"

@@ -1,25 +1,20 @@
 "use client";
 
-import { JourneyUserFollowButton } from "@/components/journey/JourneyUserFollowButton";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
 
 type Props = {
-  userId: string;
   slug: string;
   name: string;
   avatarUrl: string | null;
   subtitle: string;
-  viewerProfileId: string | null;
 };
 
-/** Một dòng gợi ý người — click avatar/tên mở card hồ sơ, nút riêng để theo dõi. */
+/** Một dòng gợi ý người — click avatar/tên mở card hồ sơ. */
 export function HaUserSuggestionRow({
-  userId,
   slug,
   name,
   avatarUrl,
   subtitle,
-  viewerProfileId,
 }: Props) {
   return (
     <div className="ha-row">
@@ -45,11 +40,6 @@ export function HaUserSuggestionRow({
           </span>
         </span>
       </JourneyUserPopover>
-      <JourneyUserFollowButton
-        targetUserId={userId}
-        viewerProfileId={viewerProfileId}
-        compact
-      />
     </div>
   );
 }

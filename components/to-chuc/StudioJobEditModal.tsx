@@ -1,9 +1,18 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { Check, Sparkles, X } from "lucide-react";
+import { useEffect, useId, useMemo, useState } from "react";
 
+import { StudioJobTitlePicker } from "@/components/to-chuc/StudioJobTitlePicker";
+import { STUDIO_PERK_ICONS } from "@/components/to-chuc/StudioPerkList";
 import { TruongInlineModal } from "@/components/truong/inline/TruongInlineModal";
+import { formatNgheRoleLabel } from "@/lib/articles/nghe-role-label";
 import { TINH_THANH_OPTIONS } from "@/lib/truong/contact";
+import {
+  STUDIO_PHUC_LOI_CATALOG,
+  type StudioJobPhucLoiItem,
+  type StudioPhucLoiKey,
+} from "@/lib/to-chuc/studio-phuc-loi";
 import type { GiaiDoan } from "@/lib/cins/home-adaptive/persona";
 import {
   STUDIO_JOB_CAP_DO_OPTIONS,
@@ -16,6 +25,7 @@ import {
   type StudioJob,
   type StudioJobLoaiHinh,
   type StudioJobStatus,
+  type StudioNgheOption,
 } from "@/lib/to-chuc/studio-tuyen-dung-types";
 
 type Props = {
@@ -51,10 +61,13 @@ export function StudioJobEditModal({ orgId, job, onClose, onSaved }: Props) {
   const baseId = useId();
   const isEdit = Boolean(job);
   const [tieuDe, setTieuDe] = useState(job?.tieuDe ?? "");
+  const [idNghe, setIdNghe] = useState<string | null>(job?.idNghe ?? null);
   const [moTaNgan, setMoTaNgan] = useState(job?.moTaNgan ?? "");
   const [moTa, setMoTa] = useState(job?.moTa ?? "");
   const [yeuCau, setYeuCau] = useState(job?.yeuCau ?? "");
-  const [quyenLoi, setQuyenLoi] = useState(job?.quyenLoi ?? "");
+  const [phucLoi, setPhucLoi] = useState<StudioJobPhucLoiItem[]>(
+    job?.phucLoi ?? [],
+  );
   const [loaiHinh, setLoaiHinh] = useState<StudioJobLoaiHinh>(
     job?.loaiHinh ?? "toan_thoi_gian",
   );
@@ -83,6 +96,7 @@ export function StudioJobEditModal({ orgId, job, onClose, onSaved }: Props) {
       : [...TUYEN_DUNG_GIAI_DOAN_DEFAULT],
   );
   const [linhVucs, setLinhVucs] = useState<LinhVucOption[]>([]);
+  const [ngheOptions, setNgheOptions] = useState<StudioNgheOption[]>([]);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -94,10 +108,42 @@ export function StudioJobEditModal({ orgId, job, onClose, onSaved }: Props) {
         if (!cancelled && json.items) setLinhVucs(json.items);
       })
       .catch(() => {});
+    void fetch("/api/meta/nghe-vi-tri", { credentials: "same-origin" })
+      .then((res) => res.json())
+      .then((json: { items?: StudioNgheOption[] }) => {
+        if (!cancelled && json.items) setNgheOptions(json.items);
+      })
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
   }, []);
+
+  const linkedLabel = useMemo(() => {
+    if (!idNghe) return null;
+    const opt = ngheOptions.find((o) => o.id === idNghe);
+    if (opt) return formatNgheRoleLabel(opt.linhVucTen, opt.roleShort);
+    return job?.ngheTieuDe ?? "Vị trí trong hệ thống";
+  }, [idNghe, ngheOptions, job?.ngheTieuDe]);
+
+  const phucLoiNoteByKey = useMemo(
+    () => new Map(phucLoi.map((p) => [p.key, p.note] as const)),
+    [phucLoi],
+  );
+
+  function togglePhucLoi(key: StudioPhucLoiKey) {
+    setPhucLoi((prev) =>
+      prev.some((p) => p.key === key)
+        ? prev.filter((p) => p.key !== key)
+        : [...prev, { key, note: null }],
+    );
+  }
+
+  function setPhucLoiNote(key: StudioPhucLoiKey, note: string) {
+    setPhucLoi((prev) =>
+      prev.map((p) => (p.key === key ? { ...p, note: note || null } : p)),
+    );
+  }
 
   async function submit() {
     if (!tieuDe.trim()) {
@@ -116,13 +162,14 @@ export function StudioJobEditModal({ orgId, job, onClose, onSaved }: Props) {
       tieuDe: tieuDe.trim(),
       moTa: moTa.trim() || null,
       yeuCau: yeuCau.trim() || null,
-      quyenLoi: quyenLoi.trim() || null,
+      phucLoi,
       moTaNgan: moTaNgan.trim() || null,
       loaiHinh,
       capDo: capDo.trim() || null,
       tinhThanh: tinhThanh.trim() || null,
       lamTuXa,
       idLinhVuc: idLinhVuc.trim() || null,
+      idNghe,
       hienThiLuong,
       mucLuongTu: parseMoney(mucLuongTu),
       mucLuongDen: parseMoney(mucLuongDen),
@@ -173,16 +220,45 @@ export function StudioJobEditModal({ orgId, job, onClose, onSaved }: Props) {
       </h3>
 
       <div className="studio-job-form">
-        <label className="studio-job-field">
-          <span className="studio-job-field-label">Tiêu đề vị trí *</span>
-          <input
-            className="studio-job-input"
+        <div className="studio-job-field">
+          <span className="studio-job-field-label" id={`${baseId}-tieude`}>
+            Tiêu đề vị trí *
+          </span>
+          <StudioJobTitlePicker
             value={tieuDe}
-            maxLength={200}
-            placeholder="VD: 2D Animator (Junior)"
-            onChange={(e) => setTieuDe(e.target.value)}
+            options={ngheOptions}
+            inputId={`${baseId}-tieude-input`}
+            onChangeText={(next) => {
+              setTieuDe(next);
+              if (!next.trim()) setIdNghe(null);
+            }}
+            onSelectNghe={(opt) => {
+              setTieuDe(opt.roleShort);
+              setIdNghe(opt.id);
+            }}
           />
-        </label>
+          {linkedLabel ? (
+            <span className="studio-job-nghe-linked">
+              <span className="studio-job-nghe-linked-ic" aria-hidden>
+                🔗
+              </span>
+              Gắn với nghề: <strong>{linkedLabel}</strong>
+              <button
+                type="button"
+                className="studio-job-nghe-linked-x"
+                onClick={() => setIdNghe(null)}
+                aria-label="Bỏ liên kết nghề"
+              >
+                <X size={12} strokeWidth={2.5} aria-hidden />
+              </button>
+            </span>
+          ) : (
+            <span className="studio-job-field-hint">
+              Chọn vị trí có sẵn trong hệ thống để gắn với trang nghề, hoặc gõ để
+              tạo vị trí mới.
+            </span>
+          )}
+        </div>
 
         <label className="studio-job-field">
           <span className="studio-job-field-label">Tóm tắt ngắn</span>
@@ -219,17 +295,49 @@ export function StudioJobEditModal({ orgId, job, onClose, onSaved }: Props) {
           />
         </label>
 
-        <label className="studio-job-field">
-          <span className="studio-job-field-label">Quyền lợi</span>
-          <textarea
-            className="studio-job-textarea"
-            rows={3}
-            value={quyenLoi}
-            maxLength={4000}
-            placeholder="Lương thưởng, phúc lợi, môi trường, growth…"
-            onChange={(e) => setQuyenLoi(e.target.value)}
-          />
-        </label>
+        <div className="studio-job-field">
+          <span className="studio-job-field-label">Quyền lợi & phúc lợi</span>
+          <span className="studio-job-field-hint">
+            Tick các phúc lợi áp dụng. Bấm vào ô ghi chú của mục đã chọn để mô tả
+            chi tiết (VD: BHXH full lương, thưởng dự án…).
+          </span>
+          <div className="studio-perk-grid">
+            {STUDIO_PHUC_LOI_CATALOG.map((item) => {
+              const active = phucLoiNoteByKey.has(item.key);
+              const Icon = STUDIO_PERK_ICONS[item.icon] ?? Sparkles;
+              return (
+                <div
+                  key={item.key}
+                  className={`studio-perk${active ? " is-active" : ""}`}
+                >
+                  <button
+                    type="button"
+                    className="studio-perk-toggle"
+                    aria-pressed={active}
+                    onClick={() => togglePhucLoi(item.key)}
+                  >
+                    <span className="studio-perk-ic" aria-hidden>
+                      <Icon size={16} strokeWidth={2} />
+                    </span>
+                    <span className="studio-perk-label">{item.label}</span>
+                    <span className="studio-perk-check" aria-hidden>
+                      {active ? <Check size={13} strokeWidth={3} /> : null}
+                    </span>
+                  </button>
+                  {active ? (
+                    <input
+                      className="studio-perk-note"
+                      value={phucLoiNoteByKey.get(item.key) ?? ""}
+                      placeholder={item.hint}
+                      maxLength={160}
+                      onChange={(e) => setPhucLoiNote(item.key, e.target.value)}
+                    />
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+        </div>
 
         <div className="studio-job-grid">
           <label className="studio-job-field">

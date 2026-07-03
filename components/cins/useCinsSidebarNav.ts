@@ -26,8 +26,16 @@ export function useCinsSidebarNav(sidebarId = "app-sidebar") {
         sidebar.classList.remove("open");
       }
     };
+    // Trên mobile: chạm vào một link điều hướng phải đóng drawer (nếu không,
+    // class .open còn lại sau khi client-side navigation → sidebar không thu).
+    const onSidebarClick = (e: MouseEvent) => {
+      if (window.innerWidth > 960) return;
+      const link = (e.target as HTMLElement).closest("a[href]");
+      if (link) sidebar?.classList.remove("open");
+    };
     burger?.addEventListener("click", onBurger);
     document.addEventListener("click", onDocClick);
+    sidebar?.addEventListener("click", onSidebarClick);
 
     let tip: HTMLDivElement | null = null;
     const sbListeners: Array<{
@@ -82,6 +90,7 @@ export function useCinsSidebarNav(sidebarId = "app-sidebar") {
       window.removeEventListener("scroll", onScroll);
       burger?.removeEventListener("click", onBurger);
       document.removeEventListener("click", onDocClick);
+      sidebar?.removeEventListener("click", onSidebarClick);
       sbListeners.forEach(({ el, enter, move, leave }) => {
         el.removeEventListener("mouseenter", enter);
         el.removeEventListener("mousemove", move);

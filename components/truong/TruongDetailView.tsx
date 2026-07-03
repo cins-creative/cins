@@ -60,6 +60,8 @@ const TABS = [
 type Props = {
   payload: TruongPagePayload;
   canEdit?: boolean;
+  /** Member org thật (trục 2) — khoá theo dõi/nhắn tin chính org của mình. */
+  isOrgMember?: boolean;
   systemRole?: SystemRole | null;
 };
 
@@ -359,11 +361,13 @@ function TruongDetailViewBody({ payload, canEdit }: Props) {
 export function TruongDetailView({
   payload,
   canEdit = false,
+  isOrgMember = false,
   systemRole = null,
 }: Props) {
   return (
     <TruongInlineEditProvider
       canEdit={canEdit}
+      isOrgMember={isOrgMember}
       systemRole={systemRole}
       initial={payload}
     >

@@ -37,6 +37,7 @@ export function OrgBaiDangScheduledQueue({ posts }: Props) {
         onClose={() => setOpen(false)}
         className="tdh-inline-modal--wide org-baidang-scheduled-modal"
         labelledBy="org-baidang-scheduled-modal-title"
+        showClose={false}
       >
         <div className="org-baidang-scheduled-modal-head">
           <div>

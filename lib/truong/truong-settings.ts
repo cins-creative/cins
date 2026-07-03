@@ -1,5 +1,6 @@
 import "server-only";
 
+import { getCurrentUserIsCinsAdmin } from "@/lib/auth/cins-admin-server";
 import {
   isOrgSlugTaken,
   validateOrgSlug,
@@ -103,16 +104,23 @@ async function buildViewer(
   orgId: string,
   profileId: string,
 ): Promise<CoSoSettingsViewer> {
-  const vaiTro = await getViewerCoSoVaiTro(profileId, orgId);
+  const [vaiTro, isCinsAdmin] = await Promise.all([
+    getViewerCoSoVaiTro(profileId, orgId),
+    getCurrentUserIsCinsAdmin(),
+  ]);
 
-  const vaiTroLabel = vaiTro ? coSoVaiTroLabel(vaiTro) : "Quản trị viên";
+  const vaiTroLabel = isCinsAdmin
+    ? "Quản trị CINs"
+    : vaiTro
+      ? coSoVaiTroLabel(vaiTro)
+      : "Quản trị viên";
 
   return {
     vaiTro,
     vaiTroLabel,
-    isCinsAdmin: false,
+    isCinsAdmin,
     canManageMembers: false,
-    canChangeSlug: canChangeCoSoSlug(vaiTro),
+    canChangeSlug: isCinsAdmin || canChangeCoSoSlug(vaiTro),
   };
 }
 

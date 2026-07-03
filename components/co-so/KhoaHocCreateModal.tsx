@@ -303,6 +303,7 @@ export function KhoaHocCreateModal({
       onClose={handleClose}
       className="tdh-inline-modal--wide cso-kh-create-modal"
       labelledBy={titleId}
+      showClose={false}
     >
       <div className="cso-kh-create-head">
         <h2 id={titleId} className="tdh-inline-modal-title">

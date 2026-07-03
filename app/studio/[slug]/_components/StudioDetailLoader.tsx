@@ -4,7 +4,7 @@ import { CinsShell } from "@/components/cins/CinsShell";
 import { StudioDetailView } from "@/components/to-chuc/StudioDetailView";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { getCurrentUserSystemRole } from "@/lib/auth/system-role";
-import { getOrgAdminStatus } from "@/lib/truong/org-admin";
+import { getOrgAdminStatus, getOrgMemberStatus } from "@/lib/truong/org-admin";
 import { loadOrgBaiDangBookmarkSocial } from "@/lib/truong/org-bai-dang-bookmark";
 import { getStudioDetailPayloadCached } from "@/lib/to-chuc/studio-page-queries";
 import { fetchStudioJobs } from "@/lib/to-chuc/studio-tuyen-dung-queries";
@@ -23,8 +23,9 @@ export async function StudioDetailLoader({ slug }: Props) {
 
   const postIds = [...payload.baidang, ...payload.showcase].map((p) => p.id);
 
-  const [canEdit, bookmarkSocial, systemRole] = await Promise.all([
+  const [canEdit, isOrgMember, bookmarkSocial, systemRole] = await Promise.all([
     getOrgAdminStatus(slug, viewerProfileId),
+    getOrgMemberStatus(slug, viewerProfileId),
     loadOrgBaiDangBookmarkSocial(postIds, viewerProfileId),
     getCurrentUserSystemRole(),
   ]);
@@ -56,6 +57,7 @@ export async function StudioDetailLoader({ slug }: Props) {
           payload={payloadWithSocial}
           jobs={jobs}
           canEdit={canEdit}
+          isOrgMember={isOrgMember}
           viewerProfileId={viewerProfileId}
           systemRole={systemRole}
         />

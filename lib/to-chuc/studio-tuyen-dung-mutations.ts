@@ -16,6 +16,10 @@ import {
   type StudioJobStatus,
 } from "@/lib/to-chuc/studio-tuyen-dung-types";
 import type { GiaiDoan } from "@/lib/cins/home-adaptive/persona";
+import {
+  normalizeStudioPhucLoi,
+  type StudioJobPhucLoiItem,
+} from "@/lib/to-chuc/studio-phuc-loi";
 import { normalizeTinhThanhForDb } from "@/lib/truong/contact";
 
 export type StudioJobInput = {
@@ -23,12 +27,14 @@ export type StudioJobInput = {
   moTa?: string | null;
   yeuCau?: string | null;
   quyenLoi?: string | null;
+  phucLoi?: unknown;
   moTaNgan?: string | null;
   loaiHinh?: StudioJobLoaiHinh;
   capDo?: string | null;
   tinhThanh?: string | null;
   lamTuXa?: boolean;
   idLinhVuc?: string | null;
+  idNghe?: string | null;
   mucLuongTu?: number | null;
   mucLuongDen?: number | null;
   hienThiLuong?: boolean;
@@ -57,12 +63,14 @@ function normalizeInput(
         mo_ta: string | null;
         yeu_cau: string | null;
         quyen_loi: string | null;
+        phuc_loi: StudioJobPhucLoiItem[];
         mo_ta_ngan: string | null;
         loai_hinh: StudioJobLoaiHinh;
         cap_do: string | null;
         tinh_thanh: string | null;
         lam_tu_xa: boolean;
         id_linh_vuc: string | null;
+        id_nghe: string | null;
         muc_luong_tu: number | null;
         muc_luong_den: number | null;
         hien_thi_luong: boolean;
@@ -97,6 +105,7 @@ function normalizeInput(
   );
 
   const idLinhVuc = input.idLinhVuc?.trim() || null;
+  const idNghe = input.idNghe?.trim() || null;
 
   return {
     payload: {
@@ -104,12 +113,14 @@ function normalizeInput(
       mo_ta: input.moTa?.trim() || null,
       yeu_cau: input.yeuCau?.trim() || null,
       quyen_loi: input.quyenLoi?.trim() || null,
+      phuc_loi: normalizeStudioPhucLoi(input.phucLoi),
       mo_ta_ngan: input.moTaNgan?.trim() || null,
       loai_hinh: loaiHinh,
       cap_do: input.capDo?.trim() || null,
       tinh_thanh: tinhThanh,
       lam_tu_xa: Boolean(input.lamTuXa),
       id_linh_vuc: idLinhVuc,
+      id_nghe: idNghe,
       muc_luong_tu: toInt(input.mucLuongTu),
       muc_luong_den: toInt(input.mucLuongDen),
       hien_thi_luong: Boolean(input.hienThiLuong),

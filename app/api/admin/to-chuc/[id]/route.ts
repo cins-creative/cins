@@ -6,6 +6,10 @@ import {
   updateAdminToChuc,
 } from "@/lib/admin/to-chuc-crud";
 import type { AdminToChucUpdateInput } from "@/lib/admin/to-chuc-types";
+import {
+  isOrgDelegationConfigured,
+  verifyOrgDelegationPassword,
+} from "@/lib/admin/org-delegation";
 import { getCurrentUserIsCinsAdmin } from "@/lib/auth/cins-admin-server";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -90,7 +94,7 @@ export async function PATCH(req: Request, context: RouteContext) {
   return NextResponse.json({ row: result.row });
 }
 
-export async function DELETE(_req: Request, context: RouteContext) {
+export async function DELETE(req: Request, context: RouteContext) {
   const isAdmin = await getCurrentUserIsCinsAdmin();
   if (!isAdmin) {
     return NextResponse.json({ error: "Không có quyền." }, { status: 403 });
@@ -99,6 +103,25 @@ export async function DELETE(_req: Request, context: RouteContext) {
   const { id } = await context.params;
   if (!id?.trim()) {
     return NextResponse.json({ error: "Missing id" }, { status: 400 });
+  }
+
+  if (!isOrgDelegationConfigured()) {
+    return NextResponse.json(
+      { error: "Server chưa cấu hình CINS_ORG_DELEGATION_PASSWORD." },
+      { status: 503 },
+    );
+  }
+
+  let body: { delegationPassword?: string } = {};
+  try {
+    body = (await req.json()) as { delegationPassword?: string };
+  } catch {
+    body = {};
+  }
+
+  const pwd = verifyOrgDelegationPassword(body.delegationPassword);
+  if (!pwd.ok) {
+    return NextResponse.json({ error: pwd.error }, { status: 403 });
   }
 
   const result = await archiveAdminToChuc(id);

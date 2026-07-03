@@ -1,5 +1,6 @@
 import "server-only";
 
+import { getCurrentUserIsCinsAdmin } from "@/lib/auth/cins-admin-server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 import {
@@ -37,6 +38,9 @@ export async function isCoSoOrgAdmin(
   orgId: string,
   profileId: string,
 ): Promise<boolean> {
+  // Quyền CINs (trục 1) mở khoá vận hành mọi org — độc lập membership.
+  if (await getCurrentUserIsCinsAdmin()) return true;
+
   const admin = createServiceRoleClient();
   const { data: org } = await admin
     .from("org_to_chuc")

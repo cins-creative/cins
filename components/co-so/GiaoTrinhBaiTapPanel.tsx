@@ -243,6 +243,7 @@ export function GiaoTrinhBaiTapPanel({
       onClose={handleClose}
       className="tdh-inline-modal--wide cso-kh-create-modal cso-khd-bt-panel"
       labelledBy={titleId}
+      showClose={false}
     >
       <div className="cso-kh-create-head">
         <div>

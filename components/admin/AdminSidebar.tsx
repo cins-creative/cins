@@ -10,6 +10,7 @@ const NAV = [
   { href: "/admin/tag", label: "Quản lý Tag", icon: "tag" },
   { href: "/admin/de-xuat", label: "Đề xuất tag", icon: "alert", badge: 12 },
   { href: "/admin/bao-cao", label: "Báo cáo", icon: "flag" },
+  { href: "/admin/gop-y", label: "Góp ý", icon: "message" },
   { section: "Tổ chức" },
   { href: "/admin/to-chuc", label: "Tổ chức", icon: "org" },
   { href: "/admin/nganh", label: "Ngành đào tạo", icon: "edu" },
@@ -111,6 +112,12 @@ function NavIcon({ name }: { name: string }) {
         <svg {...p}>
           <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
           <line x1="4" y1="22" x2="4" y2="15" />
+        </svg>
+      );
+    case "message":
+      return (
+        <svg {...p}>
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
         </svg>
       );
     case "sql":

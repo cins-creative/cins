@@ -158,6 +158,7 @@ export function SuKienDetailModal({
       onClose={onClose}
       className="tdh-inline-modal--wide cso-sk-detail-modal"
       labelledBy={titleId}
+      showClose={false}
     >
       <div className="cso-sk-detail-cover">
         {suKien.coverSrc ? (

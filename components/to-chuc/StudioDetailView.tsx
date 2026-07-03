@@ -40,6 +40,8 @@ type Props = {
   payload: StudioDetailPayload;
   jobs: StudioJob[];
   canEdit?: boolean;
+  /** Member org thật (trục 2) — khoá theo dõi/nhắn tin chính org của mình. */
+  isOrgMember?: boolean;
   viewerProfileId?: string | null;
   systemRole?: SystemRole | null;
 };
@@ -59,12 +61,14 @@ export function StudioDetailView({
   payload,
   jobs,
   canEdit = false,
+  isOrgMember = false,
   viewerProfileId = null,
   systemRole = null,
 }: Props) {
   return (
     <TruongInlineEditProvider
       canEdit={canEdit}
+      isOrgMember={isOrgMember}
       systemRole={systemRole}
       initial={studioToInlinePayload(payload)}
     >
@@ -203,6 +207,7 @@ function StudioDetailViewInner({
                 <StudioTabTuyenDung
                   jobs={jobs}
                   orgId={studio.id}
+                  orgSlug={studio.slug}
                   orgTen={studio.ten}
                   canEdit={canEdit}
                   viewerLoggedIn={Boolean(viewerProfileId)}

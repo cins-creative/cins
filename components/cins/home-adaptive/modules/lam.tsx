@@ -3,6 +3,7 @@ import {
   Briefcase,
   Building2,
   Eye,
+  MapPin,
   Plus,
   Route,
   Users,
@@ -68,7 +69,6 @@ export async function NguoiCungNganhModule({ ctx }: { ctx: HomeModuleCtx }) {
         people.map((p) => (
           <HaUserSuggestionRow
             key={p.id}
-            userId={p.id}
             slug={p.slug}
             name={p.name}
             avatarUrl={p.avatarUrl}
@@ -77,7 +77,6 @@ export async function NguoiCungNganhModule({ ctx }: { ctx: HomeModuleCtx }) {
                 ? `${p.mutualCount} bạn chung`
                 : giaiDoanLabel(p.giaiDoan)
             }
-            viewerProfileId={ctx.viewerId}
           />
         ))
       )}
@@ -103,12 +102,14 @@ export async function GoiYStudioModule({ ctx }: { ctx: HomeModuleCtx }) {
 }
 
 export async function CoHoiModule({ ctx }: { ctx: HomeModuleCtx }) {
-  const jobs = await loadCoHoiForHome(ctx.giaiDoan, 4);
+  const jobs = await loadCoHoiForHome(ctx.giaiDoan, 3);
   return (
     <ModuleCard
       icon={Briefcase}
       title={ctx.seeking ? "Cơ hội cho bạn · đang mở" : "Cơ hội cho bạn"}
       className={ctx.seeking ? "ha-card--accent" : undefined}
+      moreHref="/tuyen-dung"
+      moreLabel="Xem thêm"
     >
       {jobs.length === 0 ? (
         <ModuleEmpty>
@@ -120,11 +121,31 @@ export async function CoHoiModule({ ctx }: { ctx: HomeModuleCtx }) {
           const inner = (
             <>
               <span className="ha-trow-th" aria-hidden>
-                {job.orgTen.slice(0, 2).toUpperCase()}
+                {job.avatarUrl ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img src={job.avatarUrl} alt="" loading="lazy" />
+                ) : (
+                  job.orgTen.slice(0, 2).toUpperCase()
+                )}
               </span>
               <div className="ha-trow-meta">
                 <div className="ha-trow-name">{job.tieuDe}</div>
-                <div className="ha-trow-sub">{job.sub}</div>
+                <div className="ha-trow-sub ha-trow-sub-text">{job.orgTen}</div>
+                <div className="ha-trow-chips">
+                  <span className="ha-trow-chip">{job.loaiHinhLabel}</span>
+                  <span className="ha-trow-chip">
+                    <MapPin size={11} strokeWidth={2} aria-hidden />
+                    {job.place}
+                  </span>
+                  {job.linhVucTen ? (
+                    <span className="ha-trow-chip">{job.linhVucTen}</span>
+                  ) : null}
+                  {job.salary ? (
+                    <span className="ha-trow-chip ha-trow-chip--sal">
+                      {job.salary}
+                    </span>
+                  ) : null}
+                </div>
               </div>
             </>
           );
@@ -178,21 +199,5 @@ export async function LoiMoiXacNhanModule({ ctx }: { ctx: HomeModuleCtx }) {
         ))
       )}
     </ModuleCard>
-  );
-}
-
-/** Banner open-to-work (§7) — chỉ hiện khi seeking, đầu cột phải cụm LÀM. */
-export function OpenToWorkBanner() {
-  return (
-    <div className="ha-otw">
-      <div className="ha-otw-top">
-        <span className="ha-otw-dot" aria-hidden />
-        Đang mở cơ hội việc làm
-      </div>
-      <p>
-        Hồ sơ của bạn đang được đẩy tới studio đang tuyển. Feed của bạn không đổi —
-        chỉ cách người khác thấy bạn đổi.
-      </p>
-    </div>
   );
 }

@@ -34,12 +34,15 @@ export function HaOrgUpcomingListRow({ item }: { item: SidebarUpcomingEvent }) {
   const badge = dateBadge(item.dateLabel);
   const isLive = item.status === "active";
   const phanHoi = phanHoiLabel(item);
+  const isMoc = item.kind === "moc";
   const itemClass =
     item.phanHoi === "quan_tam"
       ? "ha-org-up-item ha-org-up-item--interest"
       : item.phanHoi === "se_tham_gia"
         ? "ha-org-up-item ha-org-up-item--rsvp"
-        : "ha-org-up-item";
+        : isMoc
+          ? "ha-org-up-item ha-org-up-item--moc"
+          : "ha-org-up-item";
 
   return (
     <li className={`${itemClass} ha-org-up-item--list`}>
@@ -65,6 +68,8 @@ export function HaOrgUpcomingListRow({ item }: { item: SidebarUpcomingEvent }) {
               >
                 {phanHoi}
               </span>
+            ) : isMoc ? (
+              <span className="ha-org-up-list-badge is-moc">Thông báo</span>
             ) : null}
           </span>
           <HaOrgPopoverChip

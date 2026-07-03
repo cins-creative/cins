@@ -34,6 +34,18 @@
 
 ## LOG — quyết định đã chốt
 
+### Admin CINs vận hành trực tiếp trên trang org — đảo L20 (2026-07-03)
+
+- **L23 — Quyền admin CINs (trục 1: `super_admin`/`admin`) MỞ KHOÁ toàn quyền vận hành trên trang org công khai, mọi `loai_to_chuc`.** Đảo ngược L20.
+  • **Ai**: `super_admin` + `admin` (helper `getCurrentUserIsCinsAdmin`, gồm cả 2). `curator` KHÔNG. Membership org (trục 2) vẫn hoạt động song song.
+  • **Phạm vi**: trường ĐH, cơ sở đào tạo, studio/doanh_nghiệp, cộng đồng. Toàn quyền: inline-edit nội dung, cài đặt trang (kể cả đổi slug), quản lý thành viên, bàn giao owner, quản lý khóa học / sự kiện.
+  • **"Quyền CINs" ≠ "quyền owner"**: admin thao tác dưới danh nghĩa hệ thống, KHÔNG hiển thị như owner (badge toolbar = "Admin"/"Quản trị CINs"; `viewerVaiTro`/`viewerIsOwner` giữ nguyên `null`). Không giả mạo vai trò membership.
+  • **Vẫn là user thường** (2026-07-03): admin CINs KHÔNG bị coi là "org của mình" cho các hành vi xã hội — vẫn theo dõi / nhắn tin / like org như user bình thường. Chỉ **member org thật (trục 2)** mới bị khoá "theo dõi/nhắn tin chính mình" + thấy hộp thư org. Tách tín hiệu: `getOrgMemberStatus` (trục 2 thuần, không tính admin CINs) đi cạnh `getOrgAdminStatus` (đã gồm override) — truyền `isOrgMember` xuống `TruongInlineEditProvider`; các sidebar (`CoSoSchoolSidebar`/`StudioSidebar`/`TruongSchoolSidebar`) dùng `isOrgMember` (không phải `canEdit`) để quyết định khoá nút theo dõi/nhắn tin và hiện hộp thư org, còn `canEdit` chỉ mở UI chỉnh sửa.
+  • **Cơ chế**: re-add short-circuit `getCurrentUserIsCinsAdmin()` vào các gate đã gỡ ở L20 — `isTruongOrgAdmin`/`getOrgAdminStatus` (`org-admin.ts`), `isStudioOrgAdmin`/`assertCanManageMembers`/`transferStudioOwnership` (`studio-members.ts`), `isCoSoOrgAdmin` (`co-so-membership.ts`), `assertCanManageMembers`/`transferCoSoOwnership` (`co-so-members.ts`), `isCongDongAdmin` (`cong-dong/membership.ts`), `assertCanManageMembers`/`transferCongDongOwnership` (`cong-dong/members.ts`), `buildViewer` (`truong-settings.ts`/`co-so-settings.ts`), `canViewerManageKhoaHoc` (`khoa-hoc.ts`), `canViewerManageSuKien` (`su-kien.ts`). Cộng đồng thêm flag `isCinsAdmin` xuyên xuống `CongDongPageClient` + `CongDongRoleButton` để hiện menu quản trị dù chưa là member.
+  • **Lý do đảo L20**: chủ dự án cần admin CINs can thiệp trực tiếp trên trang org (seed/cứu hộ/kiểm duyệt) mà không phải "đi vòng" qua `/admin` hay tự thêm mình vào membership. Đánh đổi: chấp nhận toolbar quản trị lộ trên trang org cho tài khoản admin — bù lại tách nhãn rõ "Admin/CINs" khác owner.
+  • **Còn hiệu lực**: L22 (`/admin/to-chuc` + mật khẩu ủy quyền, chỉ super_admin) vẫn là kênh gán membership chính thức; L23 là quyền vận hành trực tiếp (không cần mật khẩu ủy quyền).
+  • **RLS**: quyền thực thi qua service-role trong lib server-only (UI chỉ ẩn/hiện). Giữ nguyên nguyên tắc FOUNDATIONS §quyền.
+
 ### Phân quyền org từ admin — escape hatch trục 1 (2026-07-01)
 
 - **L22 — Super admin gán membership org qua `/admin/to-chuc`; mật khẩu ủy quyền tách khỏi đăng nhập.**
@@ -59,6 +71,8 @@
 - *Hệ quả file*: FOUNDATIONS quy tắc 22 (thêm bất đối xứng org); §13 (việc tương lai: bảng nối org↔nghề cho `co_so`/`studio`). Mở **O15**. IMPLEMENTATION: `lib/cins/home-adaptive/suggestions.ts` (gợi ý org), `lib/cins/worldJourneyFeedFetch.ts` (chèn tỉ lệ thấp — bước sau).
 
 ### Tách trục quyền: admin hệ thống ≠ sửa trang org (2026-06-30)
+
+> ⚠️ **ĐÃ ĐẢO bởi L23 (2026-07-03):** admin CINs (trục 1) NAY mở khoá toàn quyền vận hành trên trang org. Entry L20 giữ lại làm lịch sử; hành vi hiện tại theo **L23**.
 
 - **L20 — Inline-edit / vận hành trang org = TRỤC 2 (membership) thuần; quyền admin hệ thống (trục 1) KHÔNG tự mở khoá.**
   • Bỏ short-circuit `getCurrentUserIsCinsAdmin()` ở: `getOrgAdminStatus` + `isTruongOrgAdmin` (`lib/truong/org-admin.ts`), `isStudioOrgAdmin` + `assertCanManageMembers` + `transferStudioOwnership` (`studio-members.ts`), `isCoSoOrgAdmin` (`co-so-membership.ts`), `assertCanManageMembers` + transfer (`co-so-members.ts`), transfer cộng đồng (`cong-dong/members.ts`), viewer settings (`truong-settings.ts` / `co-so-settings.ts`), `canViewerManageKhoaHoc` (`khoa-hoc.ts`), `canViewerManageSuKien` (`su-kien.ts`). Tất cả CHỈ còn dựa `user_thanh_vien_to_chuc.vai_tro`.

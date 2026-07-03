@@ -5,7 +5,7 @@ import { CinsShell } from "@/components/cins/CinsShell";
 import { getCurrentUserSystemRole } from "@/lib/auth/system-role";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { loadOrgBaiDangBookmarkSocial } from "@/lib/truong/org-bai-dang-bookmark";
-import { getOrgAdminStatus } from "@/lib/truong/org-admin";
+import { getOrgAdminStatus, getOrgMemberStatus } from "@/lib/truong/org-admin";
 import { getTruongPagePayload } from "@/lib/truong/queries";
 
 type Props = {
@@ -17,8 +17,9 @@ export async function TruongDetailLoader({ slug }: Props) {
   if (!payload) notFound();
 
   const session = await getCurrentSessionAndProfile();
-  const [canEdit, systemRole] = await Promise.all([
+  const [canEdit, isOrgMember, systemRole] = await Promise.all([
     getOrgAdminStatus(slug, session?.profile?.id ?? null),
+    getOrgMemberStatus(slug, session?.profile?.id ?? null),
     getCurrentUserSystemRole(),
   ]);
   const viewerProfileId = session?.profile?.id ?? null;
@@ -47,6 +48,7 @@ export async function TruongDetailLoader({ slug }: Props) {
         <TruongDetailView
           payload={payloadWithSocial}
           canEdit={canEdit}
+          isOrgMember={isOrgMember}
           systemRole={systemRole}
         />
       </div>
