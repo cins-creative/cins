@@ -93,6 +93,7 @@ import {
   GRID_IMAGE_DEFAULT_HEIGHT,
   GRID_IMAGE_DEFAULT_WIDTH,
   type GridImage,
+  type GridUploadSlotState,
 } from "@/lib/journey/image-grid";
 import {
   DEFAULT_ARTICLE_POST_TITLE,
@@ -217,11 +218,13 @@ function editorAlbumGridFromBlocks(
   uploadingSlots: Set<number>;
   uploadProgressBySlot: Map<number, number>;
   slotErrors: Map<number, string>;
+  uploadBySlot: Map<number, GridUploadSlotState>;
 } {
   const images: GridImage[] = [];
   const uploadingSlots = new Set<number>();
   const uploadProgressBySlot = new Map<number, number>();
   const slotErrors = new Map<number, string>();
+  const uploadBySlot = new Map<number, GridUploadSlotState>();
 
   imgBlocks.forEach((block, index) => {
     const seed = (block.imgs || [])[0]?.trim() ?? "";
@@ -237,12 +240,32 @@ function editorAlbumGridFromBlocks(
     if (track?.status === "uploading") {
       uploadingSlots.add(index);
       uploadProgressBySlot.set(index, track.progress);
+      uploadBySlot.set(index, {
+        progress: track.progress,
+        status: "uploading",
+      });
+    } else if (track?.status === "done") {
+      uploadBySlot.set(index, { progress: 100, status: "done" });
     } else if (track?.status === "error") {
-      slotErrors.set(index, track.error ?? "Upload lỗi");
+      const message = track.error ?? "Upload lỗi";
+      slotErrors.set(index, message);
+      uploadBySlot.set(index, { progress: 0, status: "error", error: message });
+    } else if (seed && isTemporaryImageRef(seed)) {
+      uploadingSlots.add(index);
+      uploadProgressBySlot.set(index, 0);
+      uploadBySlot.set(index, { progress: 0, status: "uploading" });
+    } else if (seed && isPersistedImageSeed(seed)) {
+      uploadBySlot.set(index, { progress: 100, status: "done" });
     }
   });
 
-  return { images, uploadingSlots, uploadProgressBySlot, slotErrors };
+  return {
+    images,
+    uploadingSlots,
+    uploadProgressBySlot,
+    slotErrors,
+    uploadBySlot,
+  };
 }
 
 const BLOCK_TYPES: Array<{
@@ -2488,9 +2511,7 @@ function EditorPhotoAlbumPreview({
         <ImageGrid
           images={grid.images}
           isFirstGroup
-          uploadingSlots={grid.uploadingSlots}
-          uploadProgressBySlot={grid.uploadProgressBySlot}
-          slotErrors={grid.slotErrors}
+          uploadBySlot={grid.uploadBySlot}
           showAllImages
           readOnly
         />

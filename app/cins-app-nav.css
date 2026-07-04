@@ -268,7 +268,7 @@
   border: 0;
   background: transparent;
   text-align: left;
-  font: inherit;
+  font-family: inherit;
   padding-right: 34px;
 }
 

@@ -21,6 +21,8 @@ import {
   extractVideoUrl,
   milestoneArticleTextPanelPlain,
   milestoneCardCaptionPlain,
+  milestoneCardEmptyFallback,
+  milestoneCardHasVisibleBody,
   shouldShowMilestoneCardTitle,
   shouldShowTextPanelTitle,
   textPanelBodyPlain,
@@ -64,6 +66,8 @@ type Props = {
   readMoreHref?: string | null;
   /** Feed tổng hợp — album/video chỉ hiện cover, không full grid/embed. */
   compactMediaPreview?: boolean;
+  /** Có permalink bài — dùng cho fallback copy. */
+  hasLinkedPost?: boolean;
   onTagLinkClick?: (e: React.MouseEvent) => void;
 };
 
@@ -90,6 +94,7 @@ export function JourneyMilestoneCardBodyContent({
   onTextPanelExpandedChange,
   readMoreHref = null,
   compactMediaPreview = false,
+  hasLinkedPost = false,
   onTagLinkClick,
 }: Props) {
   const router = useRouter();
@@ -151,11 +156,18 @@ export function JourneyMilestoneCardBodyContent({
   }, [photoGridImages, preview, title, useCompactMedia]);
   const showCardTitle = shouldShowMilestoneCardTitle(title, blocks, body);
   const cardCaption = milestoneCardCaptionPlain(body, blocks);
+  const emptyFallback =
+    !milestoneCardHasVisibleBody(title, body, blocks, hasCoverPreview)
+      ? milestoneCardEmptyFallback(blocks, hasLinkedPost || Boolean(readMoreHref))
+      : null;
   const isContentOpen = expandTrigger?.expanded ?? false;
   const showCardTitleInBody = showCardTitle;
   const showCardCaptionInBody = Boolean(cardCaption);
   const hasJcardText =
-    showCardTitleInBody || showCardCaptionInBody || articleTags.length > 0;
+    showCardTitleInBody ||
+    showCardCaptionInBody ||
+    articleTags.length > 0 ||
+    Boolean(emptyFallback);
   const showExpandTrigger =
     Boolean(expandTrigger?.enabled && isArticle && !isContentOpen) ||
     Boolean(readMoreHref && isArticle);
@@ -261,6 +273,8 @@ export function JourneyMilestoneCardBodyContent({
                 <p key={`${idx}-${para.slice(0, 48)}`}>{para}</p>
               ))}
             </div>
+          ) : emptyFallback ? (
+            <p className="jcard-text-panel-body jcard-desc--empty">{emptyFallback}</p>
           ) : null}
           {isTextPanelCollapsed ? (
             <span className="jcard-expand-cta" aria-hidden>
@@ -314,6 +328,12 @@ export function JourneyMilestoneCardBodyContent({
             {showCardCaptionInBody ? (
               <div className="jcard-lead">
                 <p className="jcard-desc">{cardCaption}</p>
+              </div>
+            ) : null}
+
+            {emptyFallback ? (
+              <div className="jcard-lead">
+                <p className="jcard-desc jcard-desc--empty">{emptyFallback}</p>
               </div>
             ) : null}
 

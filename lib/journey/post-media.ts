@@ -295,6 +295,39 @@ export function shouldShowMilestoneCardTitle(
   return true;
 }
 
+/** Card timeline có gì để render trong `.jcard-body` (ngoài datebar). */
+export function milestoneCardHasVisibleBody(
+  title: string,
+  body: string | null | undefined,
+  blocks: ReadonlyArray<Block> | null | undefined,
+  hasCoverPreview = false,
+): boolean {
+  if (hasCoverPreview) return true;
+  if (shouldShowMilestoneCardTitle(title, blocks, body)) return true;
+  if (milestoneCardCaptionPlain(body, blocks)) return true;
+  if (milestoneArticleTextPanelPlain(body, blocks)) return true;
+  if (extractAllImageIds(blocks).length > 0) return true;
+  if (detectMediaPostKind(blocks) === "video") {
+    const url = blocks?.find((b) => b.loai === "embed")?.config?.url;
+    if (typeof url === "string" && url.trim()) return true;
+  }
+  return false;
+}
+
+/** Nhãn khi milestone/post tồn tại nhưng không có preview trên card. */
+export function milestoneCardEmptyFallback(
+  blocks: ReadonlyArray<Block> | null | undefined,
+  hasLinkedPost: boolean,
+): string {
+  if (blocks?.some((b) => b.loai === "imgs")) {
+    return "Album ảnh chưa có ảnh hiển thị — mở bài viết hoặc đăng lại nội dung.";
+  }
+  if (hasLinkedPost) {
+    return "Bài viết chưa có nội dung hiển thị trên timeline.";
+  }
+  return "Mốc này chưa có nội dung.";
+}
+
 /** Tiêu đề trên card chữ — gồm cả tieu_de auto từ dòng đầu nội dung. */
 export function shouldShowTextPanelTitle(
   title: string,

@@ -36,7 +36,10 @@ export function milestoneCardContentKind(
   const imageCount = extractAllImageIds(parsed).length;
 
   if (mediaKind === "video") return "video";
-  if (mediaKind === "photo") return "photo";
+  /* Block `imgs` nhưng chưa có id ảnh lưu (blob lỗi publish) — không render card photo rỗng. */
+  if (mediaKind === "photo" && (imageCount > 0 || hasCoverPreview)) {
+    return "photo";
+  }
 
   // Chỉ chữ — không ảnh thật trong blocks (không suy ra từ preview media).
   if (imageCount === 0 && blocksAreTextPanelOnly(parsed)) {

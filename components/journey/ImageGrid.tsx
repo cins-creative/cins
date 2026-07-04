@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import {
   useCallback,
   useState,
@@ -11,6 +11,7 @@ import {
 import { ImageGridOverlay } from "@/components/journey/ImageGridOverlay";
 import { ImageAlbumCarousel } from "@/components/journey/ImageAlbumCarousel";
 import { ImageLightbox } from "@/components/journey/ImageLightbox";
+import { ImageUploadProgressOverlay } from "@/components/ui/ImageUploadProgressOverlay";
 import { handleBlockImageError } from "@/lib/editor/resolve-image-seed-url";
 import {
   albumGridComposeRows,
@@ -18,6 +19,7 @@ import {
   resolveAlbumLayout,
   type AlbumCell,
   type GridImage,
+  type GridUploadSlotState,
 } from "@/lib/journey/image-grid";
 
 type Props = {
@@ -30,6 +32,8 @@ type Props = {
   uploadProgressBySlot?: ReadonlyMap<number, number>;
   /** Lỗi upload theo index (compose preview). */
   slotErrors?: ReadonlyMap<number, string>;
+  /** Trạng thái upload đầy đủ theo index (ưu tiên hơn uploadingSlots / slotErrors). */
+  uploadBySlot?: ReadonlyMap<number, GridUploadSlotState>;
   /** Compose — không mở lightbox. */
   readOnly?: boolean;
   /** Compose — hiển thị mọi ảnh (không giới hạn 6 + overlay +N). */
@@ -55,6 +59,7 @@ type CellProps = {
   isUploading: boolean;
   uploadProgress?: number;
   slotError?: string;
+  uploadState?: GridUploadSlotState;
   showOverlay: boolean;
   remaining: number;
   onOpen: (index: number) => void;
@@ -70,6 +75,7 @@ function ImageGridCell({
   isUploading,
   uploadProgress,
   slotError,
+  uploadState,
   showOverlay,
   remaining,
   onOpen,
@@ -97,6 +103,19 @@ function ImageGridCell({
       : style;
 
   const thumbSrc = gridThumbSrc(image);
+  const uploadActive = uploadState?.status === "uploading";
+  const uploadDone = uploadState?.status === "done";
+  const uploadFailed = uploadState?.status === "error";
+  const legacyUploading = !uploadState && isUploading;
+  const cellClasses = [
+    "image-grid-cell",
+    !thumbSrc ? "is-compose-pending" : "",
+    uploadActive || legacyUploading ? "is-upload-active" : "",
+    uploadDone ? "is-upload-done" : "",
+    uploadFailed ? "is-upload-error" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <CellTag
@@ -113,7 +132,7 @@ function ImageGridCell({
             },
           }
         : { "aria-hidden": true as const })}
-      className={`image-grid-cell${!thumbSrc ? " is-compose-pending" : ""}`}
+      className={cellClasses}
       style={cellStyle}
     >
       {thumbSrc ? (
@@ -134,7 +153,26 @@ function ImageGridCell({
           onError={handleBlockImageError}
         />
       ) : null}
-      {isUploading ? (
+      {uploadState ? (
+        <>
+          {uploadActive || uploadFailed ? (
+            <ImageUploadProgressOverlay
+              progress={uploadState.progress}
+              status={uploadState.status}
+              error={uploadState.error}
+            />
+          ) : null}
+          {uploadDone ? (
+            <span
+              className="image-grid-upload-done"
+              role="status"
+              aria-label="Đã tải xong"
+            >
+              <Check size={14} strokeWidth={2.5} aria-hidden />
+            </span>
+          ) : null}
+        </>
+      ) : legacyUploading ? (
         <span className="image-grid-uploading" aria-busy="true">
           <Loader2 size={22} strokeWidth={2} className="mc-spin" />
           {typeof uploadProgress === "number" ? (
@@ -142,7 +180,7 @@ function ImageGridCell({
           ) : null}
         </span>
       ) : null}
-      {slotError ? (
+      {!uploadState && slotError ? (
         <span className="image-grid-error" role="alert" title={slotError}>
           Upload lỗi
         </span>
@@ -158,6 +196,7 @@ export function ImageGrid({
   uploadingSlots,
   uploadProgressBySlot,
   slotErrors,
+  uploadBySlot,
   readOnly = false,
   showAllImages = false,
   timelineLightbox = false,
@@ -209,6 +248,7 @@ export function ImageGrid({
   ) => {
     const image = images[slotIndex];
     if (!image) return null;
+    const uploadState = uploadBySlot?.get(slotIndex);
     return (
       <ImageGridCell
         key={`${image.id}-${slotIndex}`}
@@ -218,7 +258,8 @@ export function ImageGrid({
         useButtonCells={useButtonCells}
         isUploading={uploadingSlots?.has(slotIndex) ?? false}
         uploadProgress={uploadProgressBySlot?.get(slotIndex)}
-        slotError={slotErrors?.get(slotIndex)}
+        slotError={uploadState ? uploadState.error : slotErrors?.get(slotIndex)}
+        uploadState={uploadState}
         showOverlay={opts?.overlay ?? false}
         remaining={opts?.remaining ?? 0}
         onOpen={openLightbox}

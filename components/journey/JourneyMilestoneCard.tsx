@@ -1639,6 +1639,7 @@ export function JourneyMilestoneCard({
             contentKind={cardContentKind}
             compactMediaPreview={useFeedCompactMedia}
             readMoreHref={cardReadMoreHref}
+            hasLinkedPost={Boolean(postSlug)}
             canEditTextPanelTone={
               canManageSelf &&
               variant === "self" &&

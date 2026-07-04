@@ -16,6 +16,13 @@ export type GridImage = {
   composePending?: boolean;
 };
 
+/** Trạng thái upload từng ô album trong compose overlay. */
+export type GridUploadSlotState = {
+  progress: number;
+  status: "uploading" | "done" | "error";
+  error?: string;
+};
+
 export type BlockRenderGroup =
   | { type: "image_grid"; images: GridImage[] }
   | { type: "block"; block: Block };

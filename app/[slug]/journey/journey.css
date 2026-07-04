@@ -7124,6 +7124,37 @@ select.j-edit-input {
   background: var(--neutral-100, #eceef2);
 }
 
+.cins-editor-page .ed-photo-album-compose .image-grid-cell.is-upload-active::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.32);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.cins-editor-page .ed-photo-album-compose .image-grid-cell .img-upload-progress {
+  inset: auto 8px 8px 8px;
+  z-index: 3;
+}
+
+.cins-editor-page .ed-photo-album-compose .image-grid-upload-done {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: rgba(22, 101, 52, 0.92);
+  color: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.22);
+  pointer-events: none;
+}
+
 .cins-editor-page .ed-photo-album-add {
   display: flex;
   flex-direction: column;
@@ -10486,6 +10517,12 @@ select.j-edit-input {
   line-height: 1.65;
   letter-spacing: 0.01em;
   white-space: pre-wrap;
+}
+.jcard-desc--empty {
+  color: var(--ink-muted, #64748b);
+  font-family: var(--font-sans, "Be Vietnam Pro", system-ui, sans-serif);
+  font-size: 14px;
+  font-style: italic;
 }
 .jcard--photo .jcard-desc,
 .jcard--video .jcard-desc {

@@ -89,6 +89,11 @@ function mapSuKienToMilestone(
   const parts = calendarParts(row.bat_dau);
   if (!parts) return null;
 
+  const nowIso = new Date().toISOString();
+  const eventMs = Date.parse(row.bat_dau);
+  const feedSortAt =
+    !Number.isNaN(eventMs) && eventMs <= Date.now() ? row.bat_dau : nowIso;
+
   const orgSlug = org.slug.trim();
   const orgName = org.ten.trim();
   const orgLoai = org.loai_to_chuc?.trim() ?? "co_so_dao_tao";
@@ -118,6 +123,7 @@ function mapSuKienToMilestone(
     month: parts.month,
     day: parts.day,
     createdAt: row.bat_dau,
+    feedSortAt,
     title: row.ten?.trim() || "Sự kiện",
     body: row.mo_ta?.trim() || null,
     media: coverSrc

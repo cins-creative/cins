@@ -9,6 +9,9 @@ import {
   buildSelfMilestonesForCotMocs,
 } from "@/lib/journey/milestones-fetch";
 import { getAvatarUrl } from "@/lib/journey/profile";
+import {
+  compareWorldJourneyFeedOrder,
+} from "@/lib/cins/worldJourneyFeedSort";
 import { compareTimelineOrder } from "@/lib/journey/timeline-sort";
 import { listFriends } from "@/lib/social/ket-ban";
 import { demLuotXemCuaViewer } from "@/lib/social/su-kien";
@@ -235,7 +238,7 @@ async function rankFeedByUnseen(
       const sa = seen.get(analyticsIdOf(a)) ?? 0;
       const sb = seen.get(analyticsIdOf(b)) ?? 0;
       if (sa !== sb) return sa - sb;
-      return compareTimelineOrder(a, b);
+      return compareWorldJourneyFeedOrder(a, b);
     })
     .slice(0, FEED_LIMIT)
     /* Đính số lượt xem để client giữ đúng thứ tự "chưa xem lên trên" khi

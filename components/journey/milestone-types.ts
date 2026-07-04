@@ -253,6 +253,12 @@ export type MilestoneItem = {
    */
   viewerSeenCount?: number | null;
 
+  /**
+   * Thời điểm xếp trên World Journey feed — sự kiện org tương lai dùng thay cho
+   * `bat_dau` (badge vẫn hiện ngày sự kiện).
+   */
+  feedSortAt?: string | null;
+
   /** Card layout — `cong-dong-create` = milestone tạo cộng đồng (logo org). */
   cardLayout?: MilestoneCardLayout;
   /** Cột mốc danh tính chờ org duyệt — chỉ owner thấy (`chi_minh`). */
