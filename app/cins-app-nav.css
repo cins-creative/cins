@@ -262,7 +262,16 @@
   display: block;
 }
 
-/* Mũi tên chỉ hiện khi sidebar mở rộng (giống .sb-label). */
+/* Hàng flyout có org — toggle accordion, không điều hướng. */
+.cins-app-sidebar button.sb-item.sb-item--flyout {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  padding-right: 34px;
+}
+
 .sb-flyout-caret {
   position: absolute;
   right: 8px;
@@ -273,18 +282,24 @@
   pointer-events: none;
   transition:
     opacity 0.18s var(--app-nav-ease),
-    transform 0.2s var(--app-nav-ease);
+    transform 0.2s var(--app-nav-ease),
+    color 0.16s ease;
 }
 
-.cins-app-sidebar.sidebar:hover .sb-flyout-caret,
-.cins-app-sidebar.sidebar:focus-within .sb-flyout-caret,
-.cins-app-sidebar.sidebar:has(.sb-user.open) .sb-flyout-caret {
+/* Mũi tên luôn hiện khi có org — kể cả đang thu (chưa is-open). */
+.cins-app-sidebar.sidebar:hover .sb-li-flyout.has-items .sb-flyout-caret,
+.cins-app-sidebar.sidebar:focus-within .sb-li-flyout.has-items .sb-flyout-caret,
+.cins-app-sidebar.sidebar:has(.sb-user.open) .sb-li-flyout.has-items .sb-flyout-caret {
   opacity: 1;
 }
 
 .sb-li-flyout.is-open .sb-flyout-caret {
   transform: translateY(-50%) rotate(180deg);
   color: var(--cins-blue, #1f74c9);
+}
+
+.sb-li-flyout.has-items:not(.is-open) .sb-flyout-caret {
+  color: var(--ink-muted, rgba(0, 0, 0, 0.4));
 }
 
 /* Container xổ ra: dùng grid 0fr→1fr để trượt mượt theo chiều cao thật. */
@@ -908,8 +923,18 @@
   height: var(--site-nav-height);
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border);
-  transition: box-shadow var(--app-nav-dur) var(--app-nav-ease);
+  transition:
+    transform var(--app-nav-dur) var(--app-nav-ease),
+    margin-bottom var(--app-nav-dur) var(--app-nav-ease),
+    box-shadow var(--app-nav-dur) var(--app-nav-ease);
   flex-shrink: 0;
+  will-change: transform;
+}
+
+.cins-app-topbar.topbar.is-hidden {
+  transform: translateY(-100%);
+  margin-bottom: calc(-1 * var(--site-nav-height));
+  pointer-events: none;
 }
 
 .cins-app-topbar.topbar.scrolled {

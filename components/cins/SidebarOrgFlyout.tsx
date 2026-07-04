@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { ChevronDown } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 
+import { SidebarNavIcon } from "@/components/cins/SidebarNavIcon";
 import { getNameInitials } from "@/lib/journey/profile";
+import type { MainNavItem } from "@/lib/cins/mainNav";
 
 export type OrgFlyoutKind = "education" | "community" | "studio";
 
@@ -66,20 +68,23 @@ function loadMyOrgs(): Promise<MyOrg[]> {
 }
 
 /**
- * Mục sidebar có danh sách tổ chức của người dùng — **xổ inline** ngay dưới mục
- * (accordion). Danh sách org tải ngay khi mount; nếu có tổ chức thì xổ sẵn
- * (mặc định mở) và hiện mũi tên, còn chưa có tổ chức thì không xổ / không mũi tên.
- * (Vẫn bị thu gọn theo CSS khi sidebar ở dạng rail chưa hover.)
+ * Mục sidebar có danh sách tổ chức — xổ inline (accordion) ngay dưới mục.
+ * Có org → hàng chính chỉ thu/mở (không điều hướng), mũi tên luôn hiện.
+ * Chưa có org → hàng chính link tới hub như nav thường.
  */
 export function SidebarOrgFlyout({
   kind,
-  children,
+  item,
+  pathname,
 }: {
   kind: OrgFlyoutKind;
-  children: ReactNode;
+  item: MainNavItem;
+  pathname: string;
 }) {
   const cfg = KIND_CONFIG[kind];
   const [orgs, setOrgs] = useState<MyOrg[] | null>(null);
+  /** Mặc định xổ — bấm hàng chính hoặc mũi tên để thu lại. */
+  const [expanded, setExpanded] = useState(true);
 
   useEffect(() => {
     let alive = true;
@@ -93,21 +98,56 @@ export function SidebarOrgFlyout({
 
   const items = orgs?.filter((o) => cfg.types.includes(o.loaiToChuc)) ?? null;
   const hasItems = (items?.length ?? 0) > 0;
-  // Xổ sẵn khi đã có tổ chức. Chưa có org → không xổ, cũng không hiện mũi tên.
-  const open = hasItems;
+  const open = hasItems && expanded;
+  const active = item.isActive(pathname);
+
+  const liClass = [
+    "sb-li-flyout",
+    hasItems ? "has-items" : "",
+    open ? "is-open" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
-    <li className={`sb-li-flyout${open ? " is-open" : ""}`}>
+    <li className={liClass}>
       <span className="sb-flyout-anchor">
-        {children}
         {hasItems ? (
-          <ChevronDown
-            className="sb-flyout-caret"
-            size={15}
-            strokeWidth={2.2}
-            aria-hidden
-          />
-        ) : null}
+          <button
+            type="button"
+            className={`sb-item sb-item--flyout${active ? " active" : ""}`}
+            aria-expanded={expanded}
+            aria-label={
+              expanded
+                ? `${item.label} — thu gọn danh sách`
+                : `${item.label} — mở rộng danh sách`
+            }
+            onClick={() => setExpanded((v) => !v)}
+          >
+            <span className="sb-ico">
+              <SidebarNavIcon name={item.icon} />
+            </span>
+            <span className="sb-label">{item.label}</span>
+            <ChevronDown
+              className="sb-flyout-caret"
+              size={15}
+              strokeWidth={2.2}
+              aria-hidden
+            />
+          </button>
+        ) : (
+          <Link
+            href={item.href}
+            className={`sb-item${active ? " active" : ""}`}
+            data-tip={item.tip}
+            aria-current={active ? "page" : undefined}
+          >
+            <span className="sb-ico">
+              <SidebarNavIcon name={item.icon} />
+            </span>
+            <span className="sb-label">{item.label}</span>
+          </Link>
+        )}
       </span>
 
       <div className={`sb-sublist-wrap${open ? " is-open" : ""}`}>

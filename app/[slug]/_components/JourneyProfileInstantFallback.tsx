@@ -3,9 +3,11 @@
 import { useSyncExternalStore } from "react";
 
 import { JourneyMainPanelSkeleton } from "@/components/journey/JourneyMainPanelSkeleton";
-import { JourneyFriendsView } from "@/components/journey/JourneyFriendsView";
-import { JourneyGalleryGridView } from "@/components/journey/JourneyGalleryGridView";
-import { JourneyOrganizationsView } from "@/components/journey/JourneyOrganizationsView";
+import {
+  JourneyFriendsViewLazy,
+  JourneyGalleryGridViewLazy,
+  JourneyOrganizationsViewLazy,
+} from "@/components/journey/journey-profile-lazy-views";
 import { JourneyTimeline } from "@/components/journey/JourneyTimeline";
 import { useJourneyView } from "@/components/journey/JourneyViewContext";
 import type { LoaiMocVisibilityMap } from "@/lib/journey/filter-visibility";
@@ -55,7 +57,7 @@ export function JourneyProfileInstantFallback({
   if (view === "gallery") {
     const data = cached as JourneyGalleryPanelData;
     return (
-      <JourneyGalleryGridView
+      <JourneyGalleryGridViewLazy
         initialItems={data.items}
         totalCount={data.totalCount}
         scrollLoad={{
@@ -73,7 +75,7 @@ export function JourneyProfileInstantFallback({
   if (view === "friends") {
     const data = cached as JourneyFriendsPanelData;
     return (
-      <JourneyFriendsView
+      <JourneyFriendsViewLazy
         initialFriends={data.friends}
         totalCount={data.totalCount}
         isOwner={isOwner}
@@ -89,7 +91,7 @@ export function JourneyProfileInstantFallback({
 
   if (view === "organizations") {
     const data = cached as JourneyOrganizationsPanelData;
-    return <JourneyOrganizationsView data={data} />;
+    return <JourneyOrganizationsViewLazy data={data} />;
   }
 
   const data = cached as JourneyTimelinePanelData;

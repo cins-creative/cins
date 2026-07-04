@@ -18,15 +18,16 @@ import {
 import { NGHE_NGHIEP_HUB_PATH } from "@/lib/cins/hubPaths";
 import { listCoSoDaoTaoForListing } from "@/lib/to-chuc/listing-queries";
 
-/** HỌC · Khám phá theo lĩnh vực. */
+/** HỌC · Lĩnh vực. */
 export async function KhamPhaLinhVucModule(_props: { ctx: HomeModuleCtx }) {
   const linhVucs = mapLinhVucForGuestAside(await listLinhVucForHub()).slice(0, 6);
 
   return (
     <ModuleCard
       icon={Compass}
-      title="Khám phá theo lĩnh vực"
+      title="Lĩnh vực"
       moreHref={NGHE_NGHIEP_HUB_PATH}
+      moreLabel="Xem thêm"
     >
       {linhVucs.length === 0 ? (
         <ModuleEmpty>Chưa có lĩnh vực — sẽ cập nhật sớm.</ModuleEmpty>

@@ -12,7 +12,13 @@ import {
   parseFacebookFromCauHinh,
 } from "@/lib/truong/chi-nhanh";
 import { parseKtxDiaChiFromCauHinh } from "@/lib/truong/ktx-cau-hinh";
-import { resolveTruongImageSrc, resolveTruongImageSrcSync } from "@/lib/truong/media-url";
+import { resolveTruongImageSrcSync } from "@/lib/truong/media-url";
+import {
+  ORG_AVATAR_VARIANTS,
+  ORG_BAIDANG_COVER_VARIANTS,
+  ORG_COVER_VARIANTS,
+  ORG_GALLERY_THUMB_VARIANTS,
+} from "@/lib/truong/org-image-variants";
 
 import {
   defaultTruongNganhYear,
@@ -174,10 +180,10 @@ function mapListFields(
 function enrichListItemMediaSync(item: TruongListItem): TruongListItem {
   const avatarImageId = item.avatar_id ?? item.logo_id;
   const avatar_src = avatarImageId
-    ? resolveTruongImageSrcSync(avatarImageId, ["public", "avatar"])
+    ? resolveTruongImageSrcSync(avatarImageId, ORG_AVATAR_VARIANTS)
     : null;
   const cover_src = item.cover_id
-    ? resolveTruongImageSrcSync(item.cover_id, ["public", "cover", "medium"])
+    ? resolveTruongImageSrcSync(item.cover_id, ORG_COVER_VARIANTS)
     : null;
   return {
     ...item,
@@ -485,16 +491,13 @@ export async function fetchBaiDang(
     });
   }
 
-  await Promise.all(
-    out.map(async (post) => {
-      if (!post.cover_id) return;
-      post.cover_src = await resolveTruongImageSrc(post.cover_id, [
-        "public",
-        "cover",
-        "medium",
-      ]);
-    }),
-  );
+  for (const post of out) {
+    if (!post.cover_id) continue;
+    post.cover_src = resolveTruongImageSrcSync(
+      post.cover_id,
+      ORG_BAIDANG_COVER_VARIANTS,
+    );
+  }
 
   const filterMap = await loadPersonalFiltersForOrgBaiDang(out.map((p) => p.id));
   for (const post of out) {
@@ -538,15 +541,12 @@ export async function fetchHinhAnh(
     })
     .filter(Boolean) as TruongHinhAnh[];
 
-  await Promise.all(
-    rows.map(async (photo) => {
-      photo.src = await resolveTruongImageSrc(photo.cloudflare_id, [
-        "public",
-        "cover",
-        "medium",
-      ]);
-    }),
-  );
+  for (const photo of rows) {
+    photo.src = resolveTruongImageSrcSync(
+      photo.cloudflare_id,
+      ORG_GALLERY_THUMB_VARIANTS,
+    );
+  }
 
   return rows;
 }
@@ -854,14 +854,10 @@ async function loadTruongPagePayloadUncached(
     const baseSchool = mapListFields(org, otd, tagSet);
     const avatarImageId = baseSchool.avatar_id ?? baseSchool.logo_id;
     const avatar_src = avatarImageId
-      ? resolveTruongImageSrcSync(avatarImageId, ["public", "avatar"])
+      ? resolveTruongImageSrcSync(avatarImageId, ORG_AVATAR_VARIANTS)
       : null;
     const cover_src = baseSchool.cover_id
-      ? resolveTruongImageSrcSync(baseSchool.cover_id, [
-          "public",
-          "cover",
-          "medium",
-        ])
+      ? resolveTruongImageSrcSync(baseSchool.cover_id, ORG_COVER_VARIANTS)
       : null;
 
     const [cauHinhYears, stats, baidang, hinhanh, tuyenSinh, journeyMembers] =

@@ -12,6 +12,10 @@ import {
   parseFacebookFromCauHinh,
 } from "@/lib/truong/chi-nhanh";
 import { resolveTruongImageSrcSync } from "@/lib/truong/media-url";
+import {
+  ORG_AVATAR_VARIANTS,
+  ORG_COVER_VARIANTS,
+} from "@/lib/truong/org-image-variants";
 import { fetchBaiDang, fetchHinhAnh } from "@/lib/truong/queries";
 import type {
   TruongBaiDang,
@@ -130,10 +134,10 @@ async function loadCoSoDetailPayload(
   const ext = org.org_co_so_dao_tao;
   const avatarImageId = org.avatar_id?.trim() || null;
   const avatar_src = avatarImageId
-    ? resolveTruongImageSrcSync(avatarImageId, ["public", "avatar"])
+    ? resolveTruongImageSrcSync(avatarImageId, ORG_AVATAR_VARIANTS)
     : null;
   const cover_src = org.cover_id?.trim()
-    ? resolveTruongImageSrcSync(org.cover_id, ["public", "cover", "medium"])
+    ? resolveTruongImageSrcSync(org.cover_id, ORG_COVER_VARIANTS)
     : null;
 
   let filters: CoSoFilterChip[] = [];

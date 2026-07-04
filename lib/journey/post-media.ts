@@ -1,5 +1,6 @@
 import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import type { Block, LoaiMoc, Visibility } from "@/lib/editor/types";
+import { isPersistedImageSeed } from "@/lib/truong/image-ref";
 import type { BaiDangLoai } from "@/lib/truong/bai-dang";
 
 export type MediaPostKind = "photo" | "video";
@@ -484,7 +485,7 @@ export function mediaPostHasContent(
       const imgs = b.config?.imgs;
       return (
         Array.isArray(imgs) &&
-        imgs.some((id) => typeof id === "string" && id.trim().length > 0)
+        imgs.some((id) => typeof id === "string" && isPersistedImageSeed(id))
       );
     });
   }
@@ -505,7 +506,7 @@ export function extractPhotoImageIds(
     const raw = block.config?.imgs;
     if (!Array.isArray(raw)) continue;
     for (const id of raw) {
-      if (typeof id === "string" && id.trim()) ids.push(id.trim());
+      if (typeof id === "string" && isPersistedImageSeed(id)) ids.push(id.trim());
     }
   }
   return ids;

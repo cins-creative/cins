@@ -46,9 +46,7 @@ function SidebarLink({
 }) {
   if (item.flyout) {
     return (
-      <SidebarOrgFlyout kind={item.flyout}>
-        <SidebarAnchor item={item} pathname={pathname} />
-      </SidebarOrgFlyout>
+      <SidebarOrgFlyout kind={item.flyout} item={item} pathname={pathname} />
     );
   }
   return (

@@ -56,6 +56,8 @@ export function milestonePreviewMedia(
   }
 
   if (mediaKind === "photo") {
+    const photoIds = extractAllImageIds(parsed);
+    if (photoIds.length > 0) return [];
     if (trimmedCover) return coverFromImageId(trimmedCover, label);
     return [];
   }

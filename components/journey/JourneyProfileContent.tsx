@@ -6,9 +6,14 @@ import { JourneyOrganizationsSectionSkeleton } from "@/app/[slug]/_components/Jo
 import { JourneyFriendsSectionSkeleton } from "@/app/[slug]/_components/JourneyFriendsSection.skeleton";
 import { JourneyGalleryMainSectionSkeleton } from "@/app/[slug]/_components/JourneyGalleryMainSection.skeleton";
 import { JourneyTimelineSectionSkeleton } from "@/app/[slug]/_components/JourneyTimelineSection.skeleton";
-import { JourneyOrganizationsView } from "@/components/journey/JourneyOrganizationsView";
-import { JourneyFriendsView } from "@/components/journey/JourneyFriendsView";
-import { JourneyGalleryGridView } from "@/components/journey/JourneyGalleryGridView";
+import {
+  JourneyFriendsViewLazy,
+  JourneyGalleryGridViewLazy,
+  JourneyOrganizationsViewLazy,
+  prefetchJourneyFriendsView,
+  prefetchJourneyGalleryView,
+  prefetchJourneyOrganizationsView,
+} from "@/components/journey/journey-profile-lazy-views";
 import { JourneyComposeProvider } from "@/components/journey/JourneyComposeContext";
 import { BunnyVideoProcessingPoller } from "@/components/journey/BunnyVideoProcessingPoller";
 import { JourneyTimeline } from "@/components/journey/JourneyTimeline";
@@ -364,6 +369,12 @@ export function JourneyProfileContent({
     viewerProfileId,
   ]);
 
+  useEffect(() => {
+    if (view === "gallery") prefetchJourneyGalleryView();
+    if (view === "friends") prefetchJourneyFriendsView();
+    if (view === "organizations") prefetchJourneyOrganizationsView();
+  }, [view]);
+
   const pendingMembershipCount =
     timelineCache &&
     timelineCache !== "loading" &&
@@ -663,7 +674,7 @@ export function JourneyProfileContent({
             <p className="j-load-error">Không tải được gallery. Thử tải lại trang.</p>
           </section>
         ) : (
-          <JourneyGalleryGridView
+          <JourneyGalleryGridViewLazy
             initialItems={galleryCache.items}
             totalCount={galleryCache.totalCount}
             scrollLoad={{
@@ -684,7 +695,7 @@ export function JourneyProfileContent({
             <p className="j-load-error">Không tải được danh sách bạn bè.</p>
           </section>
         ) : (
-          <JourneyFriendsView
+          <JourneyFriendsViewLazy
             initialFriends={friendsCache.friends}
             totalCount={friendsCache.totalCount}
             isOwner={isOwner}
@@ -704,7 +715,7 @@ export function JourneyProfileContent({
             <p className="j-load-error">Không tải được danh sách tổ chức.</p>
           </section>
         ) : (
-          <JourneyOrganizationsView data={organizationsCache} />
+          <JourneyOrganizationsViewLazy data={organizationsCache} />
         )
       ) : timelineCache === "loading" || timelineCache === null ? (
         <JourneyTimelineSectionSkeleton />

@@ -24,6 +24,7 @@ import { Suspense } from "react";
 import type { KetBanStatusSummary } from "@/lib/social/types";
 
 import { JourneyFeaturedAsideSection } from "@/app/[slug]/_components/JourneyFeaturedAsideSection";
+import { JourneyFeaturedAsideOnDemand } from "@/app/[slug]/_components/JourneyFeaturedAsideOnDemand";
 import { JourneyFeaturedAsideSectionSkeleton } from "@/app/[slug]/_components/JourneyFeaturedAsideSection.skeleton";
 
 type OwnerRow = {
@@ -228,12 +229,16 @@ export function JourneyProfileShell({
         </Suspense>
       }
       featuredAside={
-        <Suspense fallback={<JourneyFeaturedAsideSectionSkeleton />}>
-          <JourneyFeaturedAsideSection
-            ownerId={owner.id}
-            ownerSlug={owner.slug}
-          />
-        </Suspense>
+        activeView === "journey" ? (
+          <Suspense fallback={<JourneyFeaturedAsideSectionSkeleton />}>
+            <JourneyFeaturedAsideSection
+              ownerId={owner.id}
+              ownerSlug={owner.slug}
+            />
+          </Suspense>
+        ) : (
+          <JourneyFeaturedAsideOnDemand ownerSlug={owner.slug} />
+        )
       }
     />
   );

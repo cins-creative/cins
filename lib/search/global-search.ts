@@ -221,7 +221,7 @@ async function searchKhoaHoc(q: string): Promise<SearchHit[]> {
     ({ data } = await runQuery(KHOA_HOC_SEARCH_SELECT_NO_BLOCKS));
   }
 
-  const items = ((data ?? []) as Record<string, unknown>[])
+  const items = ((data ?? []) as unknown as Record<string, unknown>[])
     .map((row) => buildKhoaHocSearchItem(row))
     .filter((item): item is ScoredSearchItem => item !== null);
 
@@ -239,7 +239,7 @@ async function searchTuyenDung(q: string): Promise<SearchHit[]> {
     .or(buildSupabaseOrIlike(["tieu_de", "mo_ta_ngan", "mo_ta"], q))
     .limit(FETCH_POOL);
 
-  const items = ((data ?? []) as Record<string, unknown>[])
+  const items = ((data ?? []) as unknown as Record<string, unknown>[])
     .map((row) => buildTuyenDungSearchItem(row))
     .filter((item): item is ScoredSearchItem => item !== null);
 

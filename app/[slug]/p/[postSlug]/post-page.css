@@ -3253,6 +3253,36 @@
     display: contents;
   }
 
+  /* Split canvas — gỡ sticky viewport rail (spec cao hơn rule desktop ở trên) */
+  .cins-post-view.post-canvas--split .post-view-rail,
+  .cins-post-view .post-canvas--split .post-view-rail {
+    display: contents;
+    position: static;
+    top: auto;
+    align-self: auto;
+    min-height: 0;
+    max-height: none;
+    height: auto;
+    overflow: visible;
+    border-left: none;
+    border-radius: 0;
+    z-index: auto;
+  }
+
+  .cins-post-view.post-canvas--split .post-rail-scroll,
+  .cins-post-view .post-canvas--split .post-rail-scroll {
+    display: contents;
+    flex: none;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .cins-post-view.post-canvas--split:not(.post-canvas--media) .post-view-content,
+  .cins-post-view .post-canvas--split:not(.post-canvas--media) .post-view-content {
+    order: 1;
+    border-radius: 16px 16px 0 0;
+  }
+
   .cins-post-view .post-view-content {
     order: 1;
     padding: 24px 20px 28px;

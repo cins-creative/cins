@@ -274,8 +274,10 @@ export async function updatePost(
     }
   }
 
-  /* 7. Revalidate profile. */
+  /* 7. Revalidate profile + feed trang chủ. */
   revalidatePath(`/${session.profile.slug}`);
+  revalidatePath("/");
+  revalidatePath("/luoi");
 
   const milestone = await buildMilestoneItemForCotMoc(admin, input.cotMocId);
 

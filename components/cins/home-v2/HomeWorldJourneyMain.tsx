@@ -32,7 +32,12 @@ import { listLinhVucForHub } from "@/lib/career/queries";
 import "@/app/[slug]/journey/journey.css";
 
 /** Trang chủ đã đăng nhập — World Journey feed + sidebar khám phá (trang khách). */
-export async function HomeWorldJourneyMain() {
+export async function HomeWorldJourneyMain({
+  feedView = "feed",
+}: {
+  /** `feed` = dòng thời gian (`/`), `grid` = lưới (`/luoi`). */
+  feedView?: "feed" | "grid";
+}) {
   const session = await getCurrentSessionAndProfile();
   if (!session?.profile?.slug) return null;
 
@@ -106,6 +111,7 @@ export async function HomeWorldJourneyMain() {
       milestones={milestones}
       exploreMilestones={exploreMilestones}
       feedPromos={feedPromos}
+      feedView={feedView}
     />
   );
 }

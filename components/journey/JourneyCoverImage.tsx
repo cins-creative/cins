@@ -14,10 +14,10 @@ type Props = {
   className?: string;
 };
 
-/** CF variant tùy chỉnh có thể 403 — fallback sang `public`. */
+/** CF variant nhỏ có thể 403 — fallback sang `public`. */
 function imagedeliveryPublicUrl(url: string): string {
   return url.replace(
-    /(https:\/\/imagedelivery\.net\/[^/]+\/[^/]+)\/(?:thumbnail|medium|cover|avatar)(?=\/|\?|$)/i,
+    /(https:\/\/imagedelivery\.net\/[^/]+\/[^/]+)\/(?:thumbnail|medium|cover|avatar|grid|gridsm)(?=\/|\?|$)/i,
     "$1/public",
   );
 }

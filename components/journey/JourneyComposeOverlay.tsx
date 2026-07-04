@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
 import "@/app/[slug]/journey/journey.css";
+import "@/app/[slug]/journey/image-grid.css";
 import "@/app/[slug]/p/new/editor.css";
 
 import type { EditorInitial } from "@/components/editor/EditorView";

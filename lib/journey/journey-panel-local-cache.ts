@@ -335,17 +335,42 @@ export function isJourneyPanelCacheStale(
   return !isFresh(entry);
 }
 
+function markPanelStale(
+  ownerSlug: string,
+  viewerProfileId: string | null,
+  panel: keyof JourneyPanelSnapshot,
+): void {
+  if (typeof window === "undefined") return;
+  const snapshot = readSnapshot(ownerSlug, viewerProfileId);
+  const entry = snapshot?.[panel];
+  if (!entry) return;
+  writeSnapshot(ownerSlug, viewerProfileId, {
+    ...snapshot,
+    [panel]: { ...entry, savedAt: 0 },
+  });
+}
+
 /** Buộc refetch timeline sau bookmark / social — cache cũ thiếu `social.viewerBookmarked`. */
 export function markJourneyTimelinePanelStale(
   ownerSlug: string,
   viewerProfileId: string | null,
 ): void {
-  if (typeof window === "undefined") return;
-  const snapshot = readSnapshot(ownerSlug, viewerProfileId);
-  const entry = snapshot?.timeline;
-  if (!entry) return;
-  writeSnapshot(ownerSlug, viewerProfileId, {
-    ...snapshot,
-    timeline: { ...entry, savedAt: 0 },
-  });
+  markPanelStale(ownerSlug, viewerProfileId, "timeline");
+}
+
+/** Buộc refetch gallery sau publish ảnh / xoá bài. */
+export function markJourneyGalleryPanelStale(
+  ownerSlug: string,
+  viewerProfileId: string | null,
+): void {
+  markPanelStale(ownerSlug, viewerProfileId, "gallery");
+}
+
+/** Sau compose publish — timeline + gallery localStorage có thể thiếu bài mới. */
+export function markJourneyOwnerPanelsStale(
+  ownerSlug: string,
+  viewerProfileId: string | null,
+): void {
+  markJourneyTimelinePanelStale(ownerSlug, viewerProfileId);
+  markJourneyGalleryPanelStale(ownerSlug, viewerProfileId);
 }

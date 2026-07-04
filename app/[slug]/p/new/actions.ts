@@ -353,8 +353,10 @@ export async function publishPost(
     }
   }
 
-  /* 6. Revalidate profile để CTA / timeline thấy bài mới. */
+  /* 6. Revalidate profile + feed trang chủ (compose từ World Journey). */
   revalidatePath(`/${session.profile.slug}`);
+  revalidatePath("/");
+  revalidatePath("/luoi");
 
   const milestone = await buildMilestoneItemForCotMoc(admin, cotMoc.id);
 

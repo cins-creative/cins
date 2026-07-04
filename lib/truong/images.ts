@@ -4,11 +4,21 @@ import {
   isTemporaryImageRef,
 } from "@/lib/truong/image-ref";
 
-/** Cloudflare Images — variants theo brief trường đại học. */
-export type CfImageVariant = "public" | "avatar" | "cover" | "medium";
+/** Cloudflare Images — variants theo Dashboard (xem CINS_IMPLEMENTATION §4). */
+export type CfImageVariant =
+  | "public"
+  | "avatar"
+  | "cover"
+  | "medium"
+  | "thumbnail"
+  | "grid"
+  | "gridsm";
 
 const VARIANT_FALLBACK_ORDER: CfImageVariant[] = [
   "public",
+  "grid",
+  "gridsm",
+  "thumbnail",
   "avatar",
   "cover",
   "medium",

@@ -96,6 +96,8 @@ function ImageGridCell({
         }
       : style;
 
+  const thumbSrc = gridThumbSrc(image);
+
   return (
     <CellTag
       {...(useButtonCells
@@ -111,25 +113,27 @@ function ImageGridCell({
             },
           }
         : { "aria-hidden": true as const })}
-      className="image-grid-cell"
+      className={`image-grid-cell${!thumbSrc ? " is-compose-pending" : ""}`}
       style={cellStyle}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={gridThumbSrc(image)}
-        alt=""
-        width={image.width}
-        height={image.height}
-        loading={isFirstGroup && slotIndex === 0 ? "eager" : "lazy"}
-        decoding="async"
-        onLoad={(e) => {
-          const el = e.currentTarget;
-          if (el.naturalWidth > 0 && el.naturalHeight > 0) {
-            setNaturalAspect(el.naturalWidth / el.naturalHeight);
-          }
-        }}
-        onError={handleBlockImageError}
-      />
+      {thumbSrc ? (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img
+          src={thumbSrc}
+          alt=""
+          width={image.width}
+          height={image.height}
+          loading={isFirstGroup && slotIndex === 0 ? "eager" : "lazy"}
+          decoding="async"
+          onLoad={(e) => {
+            const el = e.currentTarget;
+            if (el.naturalWidth > 0 && el.naturalHeight > 0) {
+              setNaturalAspect(el.naturalWidth / el.naturalHeight);
+            }
+          }}
+          onError={handleBlockImageError}
+        />
+      ) : null}
       {isUploading ? (
         <span className="image-grid-uploading" aria-busy="true">
           <Loader2 size={22} strokeWidth={2} className="mc-spin" />

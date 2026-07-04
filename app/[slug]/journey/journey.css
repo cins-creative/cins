@@ -1021,6 +1021,10 @@ a.j-main-gallery-item:focus-visible {
   pointer-events: auto;
   cursor: help;
   outline: none;
+  z-index: 5;
+}
+.j-gallery-verified-badge.is-interactive.is-open {
+  z-index: 6;
 }
 .j-gallery-verified-badge.is-interactive:hover,
 .j-gallery-verified-badge.is-interactive:focus-visible {
@@ -1028,11 +1032,11 @@ a.j-main-gallery-item:focus-visible {
     0 2px 8px rgba(15, 23, 42, 0.28),
     0 0 0 2px rgba(255, 255, 255, 0.95);
 }
-/* Tooltip xác thực — fixed (thoát overflow:hidden của card), neo phải badge. */
+/* Tooltip xác thực — portal + fixed (thoát overflow/stacking của card). */
 .j-verify-tip {
   position: fixed;
   z-index: 1200;
-  transform: translateX(-100%);
+  transform: translate(-100%, -100%);
   display: flex;
   flex-direction: column;
   gap: 7px;
@@ -1047,14 +1051,18 @@ a.j-main-gallery-item:focus-visible {
   pointer-events: none;
   animation: jVerifyTipIn 120ms ease;
 }
+.j-verify-tip--portal {
+  pointer-events: auto;
+  z-index: 10050;
+}
 @keyframes jVerifyTipIn {
   from {
     opacity: 0;
-    transform: translateX(-100%) translateY(-3px);
+    transform: translate(-100%, calc(-100% - 3px));
   }
   to {
     opacity: 1;
-    transform: translateX(-100%) translateY(0);
+    transform: translate(-100%, -100%);
   }
 }
 .j-verify-tip-loading {
@@ -1089,6 +1097,7 @@ a.j-main-gallery-item:focus-visible {
   flex-direction: column;
   gap: 1px;
   min-width: 0;
+  flex: 1 1 auto;
 }
 .j-verify-tip-name {
   font-size: 12.5px;
@@ -1541,6 +1550,9 @@ a.j-main-gallery-item:focus-visible {
   border-radius: var(--radius-pill, 999px);
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
+  text-decoration: none;
+  padding: 0;
+  font: inherit;
 }
 .j-gvt-btn:hover {
   color: var(--ink-display, #0f172a);
@@ -2239,6 +2251,7 @@ a.j-main-gallery-item:focus-visible {
   top: var(--j-topbar-h);
   z-index: 120;
   pointer-events: auto;
+  transition: top var(--app-nav-dur, 0.18s) var(--app-nav-ease, ease);
   background: rgba(244, 245, 248, 0.92);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
@@ -7086,6 +7099,74 @@ select.j-edit-input {
   color: #b91c1c;
 }
 
+.cins-editor-page .ed-photo-album-compose {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.cins-editor-page .ed-photo-album-compose .preview--photo-grid {
+  border-radius: var(--radius-md, 12px);
+  overflow: hidden;
+  /* Fit theo số ảnh / layout grid — không dùng khung .preview 16:9 max 360px */
+  aspect-ratio: auto;
+  min-height: 0;
+  max-height: none;
+  height: auto;
+  align-items: stretch;
+  justify-content: flex-start;
+}
+
+.cins-editor-page .ed-photo-album-compose .preview--photo-grid .image-grid {
+  height: auto;
+}
+
+.cins-editor-page .ed-photo-album-compose .image-grid-cell.is-compose-pending {
+  background: var(--neutral-100, #eceef2);
+}
+
+.cins-editor-page .ed-photo-album-add {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 12px;
+  min-height: 120px;
+  padding: 20px 16px;
+  border: 1.5px dashed var(--border-strong);
+  border-radius: var(--radius-md, 12px);
+  background: var(--neutral-100, #f8fafc);
+  color: var(--ink-muted);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.cins-editor-page .ed-photo-album-add:hover {
+  border-color: #45bd62;
+  background: #f0fdf4;
+  color: var(--ink-body);
+}
+
+.cins-editor-page .ed-photo-album-add strong {
+  color: var(--ink-display);
+  font-size: 14px;
+}
+
+.cins-editor-page .ed-photo-album-add span {
+  font-size: 12px;
+  max-width: 320px;
+  line-height: 1.4;
+}
+
+.cins-editor-page .blocks.is-photo-album-compose {
+  padding-left: 0;
+}
+
+.cins-editor-page.is-minimal-compose .blocks.is-photo-album-compose {
+  margin-top: 4px;
+}
+
 .j-compose-error {
   padding: 32px 24px;
   text-align: center;
@@ -10908,6 +10989,8 @@ select.j-edit-input {
 .preview--photo-grid {
   aspect-ratio: auto;
   min-height: 0;
+  max-height: none;
+  height: auto;
   display: block;
   background: var(--neutral-100, #f1f2f5);
   border-radius: 0;

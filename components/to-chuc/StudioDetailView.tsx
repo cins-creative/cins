@@ -1,10 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
-import { HinhAnhTabPanel } from "@/components/truong/HinhAnhTabPanel";
+import {
+  prefetchStudioTab,
+  StudioHinhAnhTabLazy,
+  StudioTabTuyenDungLazy,
+} from "@/components/org/org-tab-lazy-views";
 import { TruongAdminToolbar } from "@/components/truong/inline/TruongAdminToolbar";
 import {
   TruongInlineEditProvider,
@@ -22,13 +25,12 @@ import {
   type StudioTabId,
 } from "@/lib/to-chuc/studio-page-config";
 import {
-  STUDIO_DEFAULT_TAB,
-  parseStudioTabFromPathname,
   studioTabPath,
 } from "@/lib/to-chuc/studio-routes";
+import { useStudioTabNav } from "@/lib/to-chuc/use-studio-tab-nav";
+import { useOrgStudioJobs } from "@/lib/to-chuc/use-org-studio-jobs";
 import { studioToInlinePayload } from "@/lib/to-chuc/studio-inline-payload";
 import type { StudioDetailPayload, StudioOwner } from "@/lib/to-chuc/studio-page-queries";
-import type { StudioJob } from "@/lib/to-chuc/studio-tuyen-dung-types";
 import type { SystemRole } from "@/lib/auth/system-role";
 
 const TABS = STUDIO_TAB_IDS.map((id) => ({
@@ -38,7 +40,6 @@ const TABS = STUDIO_TAB_IDS.map((id) => ({
 
 type Props = {
   payload: StudioDetailPayload;
-  jobs: StudioJob[];
   canEdit?: boolean;
   /** Member org thật (trục 2) — khoá theo dõi/nhắn tin chính org của mình. */
   isOrgMember?: boolean;
@@ -59,7 +60,6 @@ function studioCoverOwner(studio: StudioOwner) {
 
 export function StudioDetailView({
   payload,
-  jobs,
   canEdit = false,
   isOrgMember = false,
   viewerProfileId = null,
@@ -75,7 +75,6 @@ export function StudioDetailView({
       <TruongAdminToolbar />
       <StudioDetailViewInner
         payload={payload}
-        jobs={jobs}
         canEdit={canEdit}
         viewerProfileId={viewerProfileId}
       />
@@ -83,21 +82,26 @@ export function StudioDetailView({
   );
 }
 
+function studioTabPrefetch(tab: StudioTabId) {
+  if (tab === "bai-dang") return;
+  prefetchStudioTab(tab);
+}
+
 function StudioDetailViewInner({
   payload,
-  jobs,
   canEdit = false,
   viewerProfileId = null,
-}: Omit<Props, "systemRole">) {
+}: {
+  payload: StudioDetailPayload;
+  canEdit?: boolean;
+  viewerProfileId?: string | null;
+}) {
   const { studio, baidang, showcase, hinhanh } = payload;
   const ctx = useTruongInlineEdit();
   const editableMedia = canEdit && Boolean(ctx?.isEditing);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const pathname = usePathname();
-  const tab = useMemo(
-    () => parseStudioTabFromPathname(pathname ?? ""),
-    [pathname],
-  );
+  const { tab, selectTab } = useStudioTabNav(studio.slug);
+  const { jobs } = useOrgStudioJobs(studio.id);
   const [mountedTabs, setMountedTabs] = useState<Set<StudioTabId>>(
     () => new Set([tab]),
   );
@@ -165,6 +169,12 @@ function StudioDetailViewInner({
                 id={`cso-tab-${t.id}`}
                 aria-controls={`cso-panel-${t.id}`}
                 className={`tdh-v6-tab${tab === t.id ? " on" : ""}`}
+                onMouseEnter={() => studioTabPrefetch(t.id)}
+                onFocus={() => studioTabPrefetch(t.id)}
+                onClick={(event) => {
+                  event.preventDefault();
+                  if (tab !== t.id) selectTab(t.id);
+                }}
               >
                 {t.label}
               </Link>
@@ -204,7 +214,7 @@ function StudioDetailViewInner({
               ) : null}
 
               {t.id === "tuyen-dung" ? (
-                <StudioTabTuyenDung
+                <StudioTabTuyenDungLazy
                   jobs={jobs}
                   orgId={studio.id}
                   orgSlug={studio.slug}
@@ -215,7 +225,7 @@ function StudioDetailViewInner({
               ) : null}
 
               {t.id === "hinh-anh" ? (
-                <HinhAnhTabPanel
+                <StudioHinhAnhTabLazy
                   images={hinhanh}
                   sectionNum="04"
                   sectionTitle="Hình ảnh"
@@ -266,4 +276,4 @@ function StudioDetailViewInner({
   );
 }
 
-export { STUDIO_DEFAULT_TAB };
+export { STUDIO_DEFAULT_TAB } from "@/lib/to-chuc/studio-routes";

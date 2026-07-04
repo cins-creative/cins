@@ -297,14 +297,20 @@ function getTimelineStatus(row: OrgTuyenSinhNam) {
 
 ## Cloudflare Image URL
 
-```typescript
-const CF = process.env.CLOUDFLARE_IMAGES_HASH
-// hoặc lib/cloudflare/fetch-image-delivery-url.ts
+Variants trên Dashboard (2026-07-04) — chi tiết đầy đủ: [`CINS_IMPLEMENTATION.md`](./CINS_IMPLEMENTATION.md) §4 (Cloudflare Images).
 
-`https://imagedelivery.net/${CF}/${avatar_id}/avatar`   // 80×80
-`https://imagedelivery.net/${CF}/${cover_id}/cover`     // full width
-`https://imagedelivery.net/${CF}/${cloudflare_id}/medium` // gallery
+```typescript
+const CF = process.env.NEXT_PUBLIC_CF_IMAGES_ACCOUNT_HASH
+// lib/truong/images.ts · lib/journey/images.ts
+
+`https://imagedelivery.net/${CF}/${id}/avatar`      // 64×64 — avatar
+`https://imagedelivery.net/${CF}/${id}/thumbnail`  // 300×300 — thumb vuông
+`https://imagedelivery.net/${CF}/${id}/grid`       // 640×360 — lưới gallery 16:9 (chính)
+`https://imagedelivery.net/${CF}/${id}/gridsm`     // 400×225 — lưới mobile 2 cột
+`https://imagedelivery.net/${CF}/${id}/public`     // 1366×768 — cover / ảnh lớn
 ```
+
+**Gallery grid** (`j-main-gallery-grid`, World Journey `/?display=luoi`): dùng `grid` (+ `gridsm` trong `srcset`), không `thumbnail` (vuông) hay `public` (quá nặng).
 
 ---
 

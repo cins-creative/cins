@@ -145,8 +145,9 @@ border mặc định: 1px solid var(--border)
 
 ### Hình ảnh & Media (Cloudflare)
 - Cloudflare Images: lưu `cloudflare_id`; serve qua `imagedelivery.net`. Lưu `width`/`height` (đã có ở `content_media`) để tránh layout shift.
+- **Variants** (Dashboard): `avatar` 64×64 · `thumbnail` 300×300 (vuông) · **`grid` 640×360** · **`gridsm` 400×225** (lưới 16:9) · `public` 1366×768. Bảng đầy đủ + code map → `CINS_IMPLEMENTATION.md` §4.
 - LUÔN `loading="lazy"` trừ ảnh above-the-fold (`loading="eager"` + `fetchpriority="high"` + preload).
-- WebP/AVIF qua Cloudflare variants. `srcset` cho responsive.
+- WebP/AVIF qua Cloudflare variants. `srcset` cho responsive (`gallery-grid`: `gridsm` + `grid`).
 - Video: Bunny Stream (delivery) + R2 (source). YouTube/Vimeo → thumbnail click-to-load, không nhúng iframe trực tiếp.
 
 ### Optimistic UI cho upload ảnh (Journey editor)

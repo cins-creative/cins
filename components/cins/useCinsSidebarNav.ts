@@ -10,8 +10,11 @@ export function useCinsSidebarNav(sidebarId = "app-sidebar") {
     const burger = document.getElementById("app-tb-burger");
 
     const onScroll = () => {
-      topbar?.classList.toggle("scrolled", window.scrollY > 4);
+      const y = window.scrollY;
+      if (!topbar) return;
+      topbar.classList.toggle("scrolled", y > 4);
     };
+    topbar?.classList.remove("is-hidden");
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
 

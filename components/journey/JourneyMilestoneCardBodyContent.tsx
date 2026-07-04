@@ -380,6 +380,19 @@ export function JourneyMilestoneCardBodyContent({
             <div className="preview preview--photo-grid">
               <ImageGrid images={photoGridImages} readOnly timelineLightbox />
             </div>
+          ) : isPhotoCard && preview?.src ? (
+            <div className="preview preview--photo-grid preview--photo-single">
+              <JourneyCoverImage
+                src={preview.src}
+                srcSet={preview.srcSet}
+                sizes={
+                  preview.srcSet ? "(max-width: 767px) 100vw, 680px" : undefined
+                }
+                width={preview.width}
+                height={preview.height}
+                alt={preview.label || title}
+              />
+            </div>
           ) : readMoreHref && isArticle ? (
             <Link href={readMoreHref} className="preview" prefetch={false}>
               {preview ? (

@@ -5,12 +5,15 @@ import {
   invalidateMilestoneDetailCache,
   milestoneDetailCacheKey,
 } from "@/lib/journey/milestone-detail-cache";
+import { markJourneyOwnerPanelsStale } from "@/lib/journey/journey-panel-local-cache";
 import { invalidatePostPageCache } from "@/lib/journey/post-local-cache";
 
 export const COMPOSE_PUBLISHED_EVENT = "cins:compose-published";
 
 export type ComposePublishedDetail = {
   ownerSlug: string;
+  /** Profile id chủ bài — invalidate panel cache localStorage sau publish. */
+  ownerProfileId?: string;
   postSlug?: string | null;
   tacPhamId?: string;
   cotMocId?: string;
@@ -36,6 +39,9 @@ export function invalidateCachesAfterComposePublish(
 export function dispatchComposePublished(detail: ComposePublishedDetail): void {
   if (typeof window === "undefined") return;
   invalidateCachesAfterComposePublish(detail);
+  if (detail.ownerProfileId) {
+    markJourneyOwnerPanelsStale(detail.ownerSlug, detail.ownerProfileId);
+  }
   window.dispatchEvent(
     new CustomEvent(COMPOSE_PUBLISHED_EVENT, { detail }),
   );

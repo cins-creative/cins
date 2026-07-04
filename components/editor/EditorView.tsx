@@ -72,6 +72,7 @@ import {
   normalizeLegacyLayout,
   type ImgLayout,
 } from "@/lib/editor/image-layout";
+import { ImageGrid } from "@/components/journey/ImageGrid";
 import { CongDongFeedFilterDropdown } from "@/components/cong-dong/CongDongFeedFilterDropdown";
 import { updatePost } from "@/app/[slug]/p/[postSlug]/edit/actions";
 import { publishPost } from "@/app/[slug]/p/new/actions";
@@ -88,7 +89,16 @@ import type {
   Visibility as ServerVisibility,
 } from "@/lib/editor/types";
 import type { CongDongComposeConfig } from "@/lib/cong-dong/types";
-import { DEFAULT_ARTICLE_POST_TITLE } from "@/lib/journey/post-media";
+import {
+  GRID_IMAGE_DEFAULT_HEIGHT,
+  GRID_IMAGE_DEFAULT_WIDTH,
+  type GridImage,
+} from "@/lib/journey/image-grid";
+import {
+  DEFAULT_ARTICLE_POST_TITLE,
+  detectMediaPostKind,
+  mediaPostHasContent,
+} from "@/lib/journey/post-media";
 import { readImageFileFromClipboard } from "@/lib/files/clipboard-images";
 import { OrgBaiDangLoaiComposeDropdown } from "@/components/truong/OrgBaiDangLoaiComposeDropdown";
 import { OrgBaiDangScheduleComposeButton } from "@/components/truong/OrgBaiDangScheduleComposeButton";
@@ -113,11 +123,13 @@ import { sanitizeBaiDangCoverIdInput } from "@/lib/truong/bai-dang-cover";
 import {
   isTemporaryImageRef,
   isPlaceholderImageSeed,
+  isPersistedImageSeed,
 } from "@/lib/truong/image-ref";
 import type { ComposeIntent } from "@/lib/journey/compose-types";
 import {
   COMPOSE_PREVIEW_LABELS,
   inferComposePreviewKind,
+  inferComposePreviewKindFromEditor,
 } from "@/lib/journey/compose-preview-kind";
 import { useEditorVideoUpload } from "@/lib/journey/use-editor-video-upload";
 import { bunnyIframeSrc, classifyBunnyVideoUrl } from "@/lib/bunny/embed";
@@ -185,6 +197,53 @@ type Block = {
 type Visibility = "feature" | "public" | "theo_nhom" | "chi_minh";
 
 const ph = (s: string, w = 900, h = 600) => resolveImageSeedUrl(s, w, h);
+
+const MAX_EDITOR_ALBUM_PHOTOS = 10;
+
+/** Bài album ảnh thuần (caption tuỳ chọn) — không phải bài viết dài. */
+function isEditorPhotoAlbumBlocks(blocks: Block[]): boolean {
+  if (!blocks.some((b) => b.t === "imgs")) return false;
+  if (blocks.some((b) => b.t === "embed")) return false;
+  return blocks.every(
+    (b) => b.t === "imgs" || b.t === "body" || b.t === "spacer",
+  );
+}
+
+function editorAlbumGridFromBlocks(
+  imgBlocks: ReadonlyArray<Block>,
+  imageUploads: Record<string, ImageUploadTrack>,
+): {
+  images: GridImage[];
+  uploadingSlots: Set<number>;
+  uploadProgressBySlot: Map<number, number>;
+  slotErrors: Map<number, string>;
+} {
+  const images: GridImage[] = [];
+  const uploadingSlots = new Set<number>();
+  const uploadProgressBySlot = new Map<number, number>();
+  const slotErrors = new Map<number, string>();
+
+  imgBlocks.forEach((block, index) => {
+    const seed = (block.imgs || [])[0]?.trim() ?? "";
+    const hasRealSeed = Boolean(seed && !isPlaceholderImageSeed(seed));
+    images.push({
+      id: hasRealSeed ? seed : block.id,
+      width: GRID_IMAGE_DEFAULT_WIDTH,
+      height: GRID_IMAGE_DEFAULT_HEIGHT,
+      previewSrc: hasRealSeed ? ph(seed, 900, 900) : undefined,
+      composePending: !hasRealSeed,
+    });
+    const track = seed ? imageUploads[seed] : undefined;
+    if (track?.status === "uploading") {
+      uploadingSlots.add(index);
+      uploadProgressBySlot.set(index, track.progress);
+    } else if (track?.status === "error") {
+      slotErrors.set(index, track.error ?? "Upload lỗi");
+    }
+  });
+
+  return { images, uploadingSlots, uploadProgressBySlot, slotErrors };
+}
 
 const BLOCK_TYPES: Array<{
   t: BlockType;
@@ -527,9 +586,7 @@ export function EditorView({
   });
   const [minimalCoverVisible, setMinimalCoverVisible] = useState(false);
   /** Bật chrome block đầy đủ (lay-bar, add-zone giữa block, side controls). */
-  const [minimalRichBlocks, setMinimalRichBlocks] = useState(
-    () => composeIntent === "photo" || composeIntent === "video",
-  );
+  const [minimalRichBlocks, setMinimalRichBlocks] = useState(false);
   const isMinimalUI = isOverlay && usesMinimalFlow && !editorExpanded;
   const showFullEditor = !isMinimalUI;
   /* Huỷ → journey (không link `/p/slug` — intercept modal sẽ mở popup thay vì thoát edit). */
@@ -773,10 +830,13 @@ export function EditorView({
       file: File,
       onPick: (seed: string) => void,
       onUploadResolved?: (from: string, to: string) => void,
+      opts?: { existingLocalSeed?: string },
     ) => {
       if (!file.type?.startsWith("image/")) return;
-      const localSeed = URL.createObjectURL(file);
-      onPick(localSeed);
+      const localSeed = opts?.existingLocalSeed ?? URL.createObjectURL(file);
+      if (!opts?.existingLocalSeed) {
+        onPick(localSeed);
+      }
       setImageUploadTrack(localSeed, { progress: 0, status: "uploading" });
 
       const finishTrack = (key: string, track: ImageUploadTrack | null) => {
@@ -819,7 +879,7 @@ export function EditorView({
   );
 
   const previewKind = useMemo(
-    () => inferComposePreviewKind(toServerBlocks(blocks), coverSeed),
+    () => inferComposePreviewKindFromEditor(blocks, coverSeed, toServerBlocks(blocks)),
     [blocks, coverSeed],
   );
   const previewMeta = COMPOSE_PREVIEW_LABELS[previewKind];
@@ -919,40 +979,35 @@ export function EditorView({
 
   const seedPhotoFiles = useCallback(
     (files: File[]) => {
-      if (files.length === 0) return;
+      const imageFiles = files.filter((f) => f.type?.startsWith("image/"));
+      if (imageFiles.length === 0) return;
       pushHistory();
-      const created: Array<{ id: string; placeholder: string }> = [];
+      const created: Array<{ id: string; file: File; localSeed: string }> = [];
       setBlocks((prev) => {
         const next = prev.slice();
-        for (const _file of files) {
+        for (const file of imageFiles) {
           const id = newId();
-          const placeholder = `new-${id}`;
+          const localSeed = URL.createObjectURL(file);
+          created.push({ id, file, localSeed });
           next.push({
             id,
             t: "imgs",
             layout: "full",
-            imgs: [placeholder],
+            imgs: [localSeed],
             cap: "",
             rounded: false,
           });
-          created.push({ id, placeholder });
         }
         return next;
       });
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const meta = created[i];
-        if (!meta) continue;
+      for (const { file, localSeed } of created) {
         beginImageUpload(
           file,
-          (seed) => {
-            setBlocks((prev) =>
-              prev.map((b) =>
-                b.id === meta.id ? { ...b, imgs: [seed] } : b,
-              ),
-            );
+          () => {
+            /* blob đã gán trong setBlocks ở trên */
           },
           replaceImageSeed,
+          { existingLocalSeed: localSeed },
         );
       }
     },
@@ -970,11 +1025,29 @@ export function EditorView({
 
   const hasPhotoBlocks = blocks.some((b) => b.t === "imgs");
   const hasVideoBlock = blocks.some((b) => b.t === "embed");
+  const isPhotoAlbumCompose = useMemo(
+    () =>
+      (composeIntent === "photo" && hasPhotoBlocks) ||
+      (hasPhotoBlocks &&
+        !hasVideoBlock &&
+        !minimalRichBlocks &&
+        isEditorPhotoAlbumBlocks(blocks)),
+    [blocks, composeIntent, hasPhotoBlocks, hasVideoBlock, minimalRichBlocks],
+  );
+  const photoAlbumImgBlocks = useMemo(
+    () => (isPhotoAlbumCompose ? blocks.filter((b) => b.t === "imgs") : []),
+    [blocks, isPhotoAlbumCompose],
+  );
+  const photoAlbumGrid = useMemo(
+    () => editorAlbumGridFromBlocks(photoAlbumImgBlocks, imageUploads),
+    [photoAlbumImgBlocks, imageUploads],
+  );
   const isMinimalMediaCompose =
     usesMinimalFlow &&
     editorExpanded &&
     (hasPhotoBlocks || hasVideoBlock) &&
-    !minimalRichBlocks;
+    !minimalRichBlocks &&
+    !isPhotoAlbumCompose;
   /** Minimal compose expanded — mỗi lần bấm + tạo thêm một block (session nội dung). */
   const canAddMoreSessions = usesMinimalFlow && editorExpanded;
 
@@ -1016,11 +1089,10 @@ export function EditorView({
         setToast("Không thể thêm album khi đã có video.");
         return;
       }
-      expandMinimalToFullEditor();
       setEditorExpanded(true);
       seedPhotoFiles(files);
     },
-    [expandMinimalToFullEditor, hasVideoBlock, seedPhotoFiles],
+    [hasVideoBlock, seedPhotoFiles],
   );
 
   const onMinimalVideoPick = useCallback(
@@ -1355,6 +1427,27 @@ export function EditorView({
         },
       ];
       coverFinal = null;
+    }
+
+    if (
+      detectMediaPostKind(publishBlocks) === "photo" &&
+      mediaPostHasContent(publishBlocks, "photo")
+    ) {
+      /* Album ảnh render từ blocks — không lưu cover_id (tránh ảnh bìa trùng trên card). */
+      coverFinal = null;
+    } else if (
+      detectMediaPostKind(publishBlocks) === "photo" &&
+      !mediaPostHasContent(publishBlocks, "photo")
+    ) {
+      setToast("Ảnh album chưa sẵn sàng — đợi upload xong rồi thử lại.");
+      return;
+    } else if (publishBlocks.length === 0) {
+      if (hasMediaBlock || coverSeed) {
+        setToast("Ảnh chưa sẵn sàng — đợi upload xong rồi thử lại.");
+      } else {
+        setToast("Thêm nội dung trước khi đăng.");
+      }
+      return;
     }
 
     startTransition(async () => {
@@ -1774,9 +1867,9 @@ export function EditorView({
 
         {showFullEditor ? (
         <div
-          className={`blocks${isMinimalMediaCompose ? " is-minimal-media-compose" : ""}`}
+          className={`blocks${isMinimalMediaCompose ? " is-minimal-media-compose" : ""}${isPhotoAlbumCompose ? " is-photo-album-compose" : ""}`}
         >
-          {!isMinimalMediaCompose ? (
+          {!isMinimalMediaCompose && !isPhotoAlbumCompose ? (
             <AddZone
               idx={0}
               open={openAddIdx === 0}
@@ -1786,7 +1879,24 @@ export function EditorView({
               anchorPicker={isOverlay}
             />
           ) : null}
-          {blocks.map((b, i) => (
+          {isPhotoAlbumCompose && photoAlbumGrid.images.length > 0 ? (
+            <EditorPhotoAlbumPreview
+              grid={photoAlbumGrid}
+              photoCount={photoAlbumImgBlocks.length}
+              maxPhotos={MAX_EDITOR_ALBUM_PHOTOS}
+              onAddFiles={(files) => {
+                const room = MAX_EDITOR_ALBUM_PHOTOS - photoAlbumImgBlocks.length;
+                if (room <= 0) {
+                  setToast(`Album tối đa ${MAX_EDITOR_ALBUM_PHOTOS} ảnh.`);
+                  return;
+                }
+                seedPhotoFiles(files.slice(0, room));
+              }}
+            />
+          ) : null}
+          {blocks.map((b, i) => {
+            if (isPhotoAlbumCompose && b.t === "imgs") return null;
+            return (
             <div key={b.id}>
               <BlockRow
                 block={b}
@@ -1827,7 +1937,8 @@ export function EditorView({
                   handleAtHashSync(b.id, trigger, textarea)
                 }
               />
-              {!isMinimalMediaCompose || i === blocks.length - 1 ? (
+              {!isPhotoAlbumCompose &&
+              (!isMinimalMediaCompose || i === blocks.length - 1) ? (
                 <AddZone
                   idx={i + 1}
                   open={openAddIdx === i + 1}
@@ -1838,11 +1949,25 @@ export function EditorView({
                 />
               ) : null}
             </div>
-          ))}
+            );
+          })}
+          {isPhotoAlbumCompose && canAddMoreSessions ? (
+            <AddZone
+              idx={blocks.length}
+              open={openAddIdx === blocks.length}
+              onToggle={(open) =>
+                setOpenAddIdx(open ? blocks.length : null)
+              }
+              onPick={(type) => pickBlockAt(type, blocks.length)}
+              starter={blocks.length > 0}
+              anchorPicker={isOverlay}
+            />
+          ) : null}
         </div>
         ) : null}
 
         {showFullEditor &&
+        !isPhotoAlbumCompose &&
         (!isMinimalMediaCompose || (canAddMoreSessions && blocks.length > 0)) ? (
         <div className="hint-foot">
           Bấm nút <b>+</b> ở khe giữa các block để chèn nội dung mới. Gõ{" "}
@@ -2315,6 +2440,92 @@ function AddZone({
         +
       </button>
       {anchorPicker ? portaledPicker : picker}
+    </div>
+  );
+}
+
+/* ─── Photo album compose preview (WYSIWYG grid) ─────────────────── */
+
+function EditorPhotoAlbumPreview({
+  grid,
+  photoCount,
+  maxPhotos,
+  onAddFiles,
+}: {
+  grid: ReturnType<typeof editorAlbumGridFromBlocks>;
+  photoCount: number;
+  maxPhotos: number;
+  onAddFiles: (files: File[]) => void;
+}) {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const canAddMore = photoCount < maxPhotos;
+
+  const onFileChange = useCallback(
+    (e: ChangeEvent<HTMLInputElement>) => {
+      const files = e.target.files ? Array.from(e.target.files) : [];
+      e.target.value = "";
+      if (files.length === 0) return;
+      onAddFiles(files);
+    },
+    [onAddFiles],
+  );
+
+  const onDrop = useCallback(
+    (e: DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      const files = Array.from(e.dataTransfer.files).filter((f) =>
+        f.type?.startsWith("image/"),
+      );
+      if (files.length === 0) return;
+      onAddFiles(files);
+    },
+    [onAddFiles],
+  );
+
+  return (
+    <div className="ed-photo-album-compose">
+      <div className="preview preview--photo-grid">
+        <ImageGrid
+          images={grid.images}
+          isFirstGroup
+          uploadingSlots={grid.uploadingSlots}
+          uploadProgressBySlot={grid.uploadProgressBySlot}
+          slotErrors={grid.slotErrors}
+          showAllImages
+          readOnly
+        />
+      </div>
+
+      {canAddMore ? (
+        <div
+          className="ed-photo-album-add"
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={onDrop}
+          onClick={() => fileInputRef.current?.click()}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              fileInputRef.current?.click();
+            }
+          }}
+        >
+          <ImagePlus size={24} strokeWidth={1.6} aria-hidden />
+          <strong>Thêm ảnh</strong>
+          <span>
+            Kéo thả hoặc bấm để chọn — layout tự động theo số ảnh (tối đa{" "}
+            {maxPhotos})
+          </span>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            multiple
+            hidden
+            onChange={onFileChange}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -3015,45 +3226,53 @@ const SERVER_TO_LOCAL_TYPE: Record<ServerBlockType, BlockType> = {
 };
 
 function toServerBlocks(blocks: Block[]): ServerBlock[] {
-  return blocks.map((b, i) => {
-    const loai = LOCAL_TO_SERVER_TYPE[b.t];
-    let config: Record<string, unknown> = {};
-    if (b.t === "h2" || b.t === "h3" || b.t === "body" || b.t === "quote") {
-      /* Plain text — server sẽ escape khi render HTML. */
-      config = { html: (b.text || "").slice(0, 8000) };
-    } else if (b.t === "imgs") {
-      const baseImgs = (b.imgs || [])
-        .filter(
-          (seed) =>
-            !seed.startsWith("blob:") &&
-            !seed.startsWith("data:") &&
-            !/^new-|^m-|^extra-/.test(seed),
-        )
-        .slice(0, 24);
-      config = {
-        layout: normalizeLegacyLayout(b.layout),
-        rounded: !!b.rounded,
-        cap: (b.cap || "").slice(0, 280),
-        imgs: baseImgs,
-      };
-    } else if (b.t === "embed") {
-      config = { url: (b.embedUrl || "").trim().slice(0, 2048) };
-    } else if (b.t === "palette") {
-      config = { colors: (b.colors || []).slice(0, 8) };
-    } else if (b.t === "spacer") {
-      config = { size: b.size || "m" };
-    } else if (b.t === "divider") {
-      const thick: "thin" | "med" | "thick" =
-        b.dividerThick === "thin" || b.dividerThick === "thick"
-          ? b.dividerThick
-          : "med";
-      config = {
-        len: Math.max(5, Math.min(100, b.dividerLen ?? 8)),
-        thick,
-      };
-    }
-    return { id: b.id, loai, thu_tu: i, config };
-  });
+  return blocks
+    .map((b, i) => {
+      const loai = LOCAL_TO_SERVER_TYPE[b.t];
+      let config: Record<string, unknown> = {};
+      if (b.t === "h2" || b.t === "h3" || b.t === "body" || b.t === "quote") {
+        /* Plain text — server sẽ escape khi render HTML. */
+        config = { html: (b.text || "").slice(0, 8000) };
+      } else if (b.t === "imgs") {
+        const baseImgs = (b.imgs || [])
+          .filter(
+            (seed) =>
+              !seed.startsWith("blob:") &&
+              !seed.startsWith("data:") &&
+              isPersistedImageSeed(seed),
+          )
+          .slice(0, 24);
+        config = {
+          layout: normalizeLegacyLayout(b.layout),
+          rounded: !!b.rounded,
+          cap: (b.cap || "").slice(0, 280),
+          imgs: baseImgs,
+        };
+      } else if (b.t === "embed") {
+        config = { url: (b.embedUrl || "").trim().slice(0, 2048) };
+      } else if (b.t === "palette") {
+        config = { colors: (b.colors || []).slice(0, 8) };
+      } else if (b.t === "spacer") {
+        config = { size: b.size || "m" };
+      } else if (b.t === "divider") {
+        const thick: "thin" | "med" | "thick" =
+          b.dividerThick === "thin" || b.dividerThick === "thick"
+            ? b.dividerThick
+            : "med";
+        config = {
+          len: Math.max(5, Math.min(100, b.dividerLen ?? 8)),
+          thick,
+        };
+      }
+      return { id: b.id, loai, thu_tu: i, config };
+    })
+    .filter(
+      (block) =>
+        block.loai !== "imgs" ||
+        (Array.isArray(block.config.imgs) &&
+          (block.config.imgs as string[]).length > 0),
+    )
+    .map((block, i) => ({ ...block, thu_tu: i }));
 }
 
 function isoToday(): string {

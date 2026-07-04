@@ -34,6 +34,16 @@ export function isCfImageUuid(value: string): boolean {
   return CF_UUID_RE.test(value.trim());
 }
 
+/** Id ảnh đã lưu DB / hiển thị timeline — loại blob, placeholder compose, block id. */
+export function isPersistedImageSeed(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed) return false;
+  if (isTemporaryImageRef(trimmed)) return false;
+  if (isPlaceholderImageSeed(trimmed)) return false;
+  if (/^(b-|extra-|m-)/.test(trimmed)) return false;
+  return isCfImageUuid(trimmed) || isExternalHttpImageRef(trimmed);
+}
+
 /** UUID Cloudflare đầu tiên trong block album — fallback cover khi blob chưa upload xong. */
 export function firstCfUuidFromBlocks(
   blocks: ReadonlyArray<Block> | null | undefined,
@@ -60,10 +70,45 @@ export function firstCfUuidFromBlocks(
 }
 
 /** Chuẩn hóa `cover_id` trước khi ghi DB — không lưu blob:/data:. */
+/** Chuẩn hóa `cover_id` trước khi ghi DB — không lưu blob:/data:. */
+function blocksArePhotoAlbumOnly(blocks: ReadonlyArray<Block>): boolean {
+  let hasImgs = false;
+  let hasEmbed = false;
+  for (const block of blocks) {
+    if (block.loai === "body" || block.loai === "spacer") continue;
+    if (block.loai === "imgs") {
+      hasImgs = true;
+      continue;
+    }
+    if (block.loai === "embed") {
+      hasEmbed = true;
+      continue;
+    }
+    return false;
+  }
+  return hasImgs && !hasEmbed;
+}
+
+function photoAlbumHasPersistedImages(blocks: ReadonlyArray<Block>): boolean {
+  for (const block of blocks) {
+    if (block.loai !== "imgs" || block.config?.layout === "mosaic") continue;
+    const raw = block.config?.imgs;
+    if (!Array.isArray(raw)) continue;
+    for (const id of raw) {
+      if (typeof id === "string" && isPersistedImageSeed(id)) return true;
+    }
+  }
+  return false;
+}
+
 export function sanitizePersistableCoverId(
   raw: unknown,
   blocks?: ReadonlyArray<Block> | null,
 ): string | null {
+  if (blocks?.length && blocksArePhotoAlbumOnly(blocks) && photoAlbumHasPersistedImages(blocks)) {
+    return null;
+  }
+
   const trimmed = typeof raw === "string" ? raw.trim() : "";
   if (!trimmed) return firstCfUuidFromBlocks(blocks);
   if (isTemporaryImageRef(trimmed)) return firstCfUuidFromBlocks(blocks);

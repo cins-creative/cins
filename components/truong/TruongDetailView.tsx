@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { CoSoMobileShellNav } from "@/components/co-so/CoSoMobileShellNav";
@@ -24,16 +23,18 @@ import {
   useTruongDoanToolbarSlot,
 } from "@/components/truong/TruongDoanToolbarContext";
 import { TruongTabBaidang } from "@/components/truong/tabs/TruongTabBaidang";
-import { TruongTabDoanSinhVien } from "@/components/truong/tabs/TruongTabDoanSinhVien";
-import { TruongTabHinhanh } from "@/components/truong/tabs/TruongTabHinhanh";
-import { TruongTabNganh } from "@/components/truong/tabs/TruongTabNganh";
-import { TruongTabTuyensinh } from "@/components/truong/tabs/TruongTabTuyensinh";
+import {
+  prefetchTruongTab,
+  TruongTabDoanSinhVienLazy,
+  TruongTabHinhanhLazy,
+  TruongTabNganhLazy,
+  TruongTabTuyensinhLazy,
+} from "@/components/org/org-tab-lazy-views";
 import { YearFilterProvider } from "@/components/truong/YearFilterProvider";
+import { useTruongTabNav } from "@/lib/truong/use-truong-tab-nav";
 import { formatHocPhiLabel } from "@/lib/truong/display";
 import { resolveInitialDisplayYear } from "@/lib/truong/pin-display-year";
 import {
-  parseTruongRouteFromPathname,
-  TRUONG_DEFAULT_TAB,
   TRUONG_TAB_LABELS,
   truongTabPath,
   type TruongTabId,
@@ -88,11 +89,9 @@ type SettingsSavedPatch = Partial<{
   facebook: string | null;
 }>;
 
-function useTruongRouteTab(): TruongTabId {
-  const pathname = usePathname();
-  return useMemo(() => {
-    return parseTruongRouteFromPathname(pathname ?? "") ?? TRUONG_DEFAULT_TAB;
-  }, [pathname]);
+function truongTabPrefetch(tab: TruongTabId) {
+  if (tab === "bai-dang") return;
+  prefetchTruongTab(tab);
 }
 
 function TruongDoanToolbarSlot({ active }: { active: boolean }) {
@@ -113,7 +112,8 @@ function TruongDetailViewInner({
   onOpenSettings?: (section: TruongSettingsSection) => void;
 }) {
   const ctx = useTruongInlineEdit();
-  const tab = useTruongRouteTab();
+  const orgSlugEarly = ctx?.school.slug ?? "";
+  const { tab, selectTab } = useTruongTabNav(orgSlugEarly);
   const [mountedTabs, setMountedTabs] = useState<Set<TruongTabId>>(
     () => new Set([tab]),
   );
@@ -274,6 +274,12 @@ function TruongDetailViewInner({
                   id={`tdh-tab-${t.id}`}
                   aria-controls={`tdh-panel-${t.id}`}
                   className={`tdh-v6-tab${tab === t.id ? " on" : ""}`}
+                  onMouseEnter={() => truongTabPrefetch(t.id)}
+                  onFocus={() => truongTabPrefetch(t.id)}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    if (tab !== t.id) selectTab(t.id);
+                  }}
                 >
                   {t.label}
                 </Link>
@@ -299,14 +305,14 @@ function TruongDetailViewInner({
                 {t.id === "bai-dang" ? (
                   <TruongTabBaidang posts={baidang} />
                 ) : null}
-                {t.id === "nganh" ? <TruongTabNganh school={school} /> : null}
+                {t.id === "nganh" ? <TruongTabNganhLazy school={school} /> : null}
                 {t.id === "tuyen-sinh" ? (
-                  <TruongTabTuyensinh school={school} tuyenSinh={tuyenSinh} />
+                  <TruongTabTuyensinhLazy school={school} tuyenSinh={tuyenSinh} />
                 ) : null}
                 {t.id === "hinh-anh" ? (
-                  <TruongTabHinhanh images={hinhanh} />
+                  <TruongTabHinhanhLazy images={hinhanh} />
                 ) : null}
-                {t.id === "do-an-sinh-vien" ? <TruongTabDoanSinhVien /> : null}
+                {t.id === "do-an-sinh-vien" ? <TruongTabDoanSinhVienLazy /> : null}
               </div>
             );
           })}

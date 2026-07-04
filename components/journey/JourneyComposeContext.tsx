@@ -177,7 +177,10 @@ export function JourneyComposeProvider({
         !orgBaiDangCompose
       ) {
         if (detail?.ownerSlug) {
-          dispatchComposePublished(detail);
+          dispatchComposePublished({
+            ...detail,
+            ownerProfileId: detail.ownerProfileId ?? ownerId,
+          });
         } else {
           window.dispatchEvent(
             new CustomEvent("cins:journey-timeline-changed", {

@@ -10,6 +10,7 @@ import {
 
 import { CoSoOrgFollowButton } from "@/components/co-so/CoSoOrgFollowButton";
 import type { CoSoSettingsSection } from "@/components/co-so/CoSoPageSettingsModal";
+import { OrgSidebarShareButton } from "@/components/org/OrgSidebarShareButton";
 import { TruongMessageInbox } from "@/components/truong/TruongMessageInbox";
 import { TruongMilestoneTagNotify } from "@/components/truong/TruongMilestoneTagNotify";
 import { TruongOrgCover } from "@/components/truong/TruongOrgCover";
@@ -116,6 +117,7 @@ export function CoSoSchoolSidebar({
               <>
                 <TruongUserChatLauncher />
                 <CoSoOrgFollowButton orgId={school.id} disabled={isOwner} />
+                <OrgSidebarShareButton />
               </>
             ) : (
               <>
@@ -126,6 +128,7 @@ export function CoSoSchoolSidebar({
                 <button type="button" className="cso-ss-btn-follow" disabled>
                   Theo dõi
                 </button>
+                <OrgSidebarShareButton />
               </>
             )}
           </div>

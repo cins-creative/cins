@@ -1,5 +1,6 @@
 import type { MilestoneItem } from "@/components/journey/milestone-types";
 import type { GalleryMainItem } from "@/lib/journey/gallery-page-fetch";
+import { galleryGridAssetFromCfUrl } from "@/lib/cloudflare/cf-variant-url";
 import {
   galleryItemExcerptLine,
   galleryItemLabel,
@@ -41,15 +42,18 @@ export function worldJourneyMilestonesToGalleryItems(
       m.org?.trim() ||
       "";
 
+    const gridAsset =
+      thumb?.src && !isVideo ? galleryGridAssetFromCfUrl(thumb.src) : null;
+
     out.push({
       id: `wj-grid-${cotMocId}-${i}`,
       cotMocId,
       personalFilterSlugs: m.personalFilterSlugs,
       personalFilters: m.personalFilters,
-      src: thumb?.src ?? "",
-      srcSet: thumb?.srcSet,
-      width: thumb?.width,
-      height: thumb?.height,
+      src: gridAsset?.src ?? thumb?.src ?? "",
+      srcSet: gridAsset?.srcSet ?? thumb?.srcSet,
+      width: gridAsset?.width ?? thumb?.width,
+      height: gridAsset?.height ?? thumb?.height,
       label: isOrgCreate
         ? m.title
         : galleryItemLabel(m.title, mediaKind),

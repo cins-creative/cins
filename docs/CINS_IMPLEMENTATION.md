@@ -212,6 +212,20 @@ GOOGLE_CLIENT_ID / SECRET
 CINS_ORG_DELEGATION_PASSWORD   (bắt buộc để dùng panel Phân quyền /admin/to-chuc; không commit)
 ```
 
+**Cloudflare Images — variants** (Dashboard → Images → Variants; cập nhật 2026-07-04):
+
+| Name | Kích thước | Fit | Dùng cho |
+|---|---|---|---|
+| `avatar` | 64×64 | cover | Avatar org / user |
+| `thumbnail` | 300×300 | cover | Thumb **vuông** (hub card, preview nhỏ) |
+| `grid` | 640×360 (16:9) | cover | **Lưới gallery** — World Journey `/?display=luoi`, Journey gallery, entity lens. Phủ @2x ô ~320px (3 cột) |
+| `gridsm` | 400×225 (16:9) | cover | Lưới gallery **mobile 2 cột** |
+| `public` | 1366×768 | scale-down | Cover banner, ảnh lớn; **không** dùng cho ô thumbnail lưới |
+
+URL: `https://imagedelivery.net/${NEXT_PUBLIC_CF_IMAGES_ACCOUNT_HASH}/${cloudflare_id}/${variant}`
+
+Code map: `lib/journey/images.ts` (role `gallery-grid` → `grid` + `srcset` `gridsm`/`grid`) · `lib/truong/images.ts` (`CfImageVariant`) · `sizes` lưới: `(max-width: 991px) 50vw, (max-width: 1400px) 33vw, 25vw` (`JourneyGalleryGridView`). Ô lưới CSS: `aspect-ratio: 16/9` — **không** dùng `thumbnail` (vuông) hay `public` (nặng) cho grid thumb.
+
 - **Deploy**: **Cloudflare Workers** qua OpenNext (`@opennextjs/cloudflare`). Config: `wrangler.jsonc` (worker **`cins`**, `nodejs_compat`, binding `HYPERDRIVE` + `ASSETS`), `open-next.config.ts`. Production: **`https://cins.vn`** (và `www.cins.vn`); workers.dev: `https://cins.info-cins-vn.workers.dev`.
   - **Build phải dùng webpack** (`next build --webpack`) — build Turbopack chạy trên Workers bị `ChunkLoadError`. Đã cài trong script `build`.
   - **Postgres TCP** (admin SQL `lib/admin/*`, tag trigram `lib/tag/postgres.ts`) đi qua **Hyperdrive** (config `cins-supabase`, binding `HYPERDRIVE`, caching off). Code lấy connection string từ `lib/db/hyperdrive.ts`; fallback `DATABASE_URL` khi chạy Node (`next dev`).

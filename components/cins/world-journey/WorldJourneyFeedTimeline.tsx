@@ -16,7 +16,6 @@ import {
   FEED_INLINE_PROMO_INTERVAL,
   type FeedPromoVariant,
 } from "@/lib/cins/worldJourneyFeedPromosTypes";
-import { compareTimelineOrder } from "@/lib/journey/timeline-sort";
 
 type Props = {
   milestones: ReadonlyArray<MilestoneItem>;
@@ -25,20 +24,9 @@ type Props = {
 };
 
 /**
- * Sắp xếp feed trong 1 năm: ưu tiên nội dung CHƯA xem / xem ít
- * (`viewerSeenCount` thấp) lên trên; cùng số lượt thì theo dòng thời gian.
+ * Nhóm milestone theo năm (mới → cũ), giữ thứ tự đã sort từ parent.
  */
-function compareFeedUnseenThenTimeline(
-  a: MilestoneItem,
-  b: MilestoneItem,
-): number {
-  const sa = a.viewerSeenCount ?? 0;
-  const sb = b.viewerSeenCount ?? 0;
-  if (sa !== sb) return sa - sb;
-  return compareTimelineOrder(a, b);
-}
-
-function groupByYearDesc(
+function groupByYearPreserveOrder(
   milestones: ReadonlyArray<MilestoneItem>,
 ): Array<{ year: number; milestones: ReadonlyArray<MilestoneItem> }> {
   const map = new Map<number, MilestoneItem[]>();
@@ -49,10 +37,7 @@ function groupByYearDesc(
   }
   return Array.from(map.entries())
     .sort((a, b) => b[0] - a[0])
-    .map(([year, items]) => ({
-      year,
-      milestones: items.slice().sort(compareFeedUnseenThenTimeline),
-    }));
+    .map(([year, items]) => ({ year, milestones: items }));
 }
 
 function milestoneOwnerSlug(milestone: MilestoneItem): string {
@@ -101,7 +86,10 @@ export function WorldJourneyFeedTimeline({
   const [inlineExpand, setInlineExpand] =
     useState<TimelineInlineExpandState>(null);
 
-  const byYear = useMemo(() => groupByYearDesc(milestones), [milestones]);
+  const byYear = useMemo(
+    () => groupByYearPreserveOrder(milestones),
+    [milestones],
+  );
 
   const promoInsertMap = useMemo(
     () => buildPromoInsertMap(milestones.length, feedPromos),

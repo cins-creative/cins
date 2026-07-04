@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import {
   ArrowDownNarrowWide,
   Check,
@@ -12,13 +13,12 @@ import {
   Sparkles,
   Video,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { CinsFeedComposer } from "@/components/cins/CinsFeedComposer";
 import { WorldJourneyFeedTimeline } from "@/components/cins/world-journey/WorldJourneyFeedTimeline";
 import { WorldJourneyGuestLeftAside } from "@/components/cins/world-journey/WorldJourneyGuestLeftAside";
 import { WorldJourneyGuestRightAside } from "@/components/cins/world-journey/WorldJourneyGuestRightAside";
-import { JourneyGalleryGridView } from "@/components/journey/JourneyGalleryGridView";
 import type { SidebarProfile } from "@/components/journey/JourneySidebar";
 import { JourneyViewProvider } from "@/components/journey/JourneyViewContext";
 import {
@@ -28,23 +28,57 @@ import {
   WORLD_JOURNEY_SORT_OPTIONS,
   type WjFilterChip,
 } from "@/lib/cins/worldJourneyFeedFilters";
+import { sortWorldJourneyMilestones } from "@/lib/cins/worldJourneyFeedSort";
 import { worldJourneyMilestonesToGalleryItems } from "@/lib/cins/worldJourneyMilestoneToGallery";
 import type { WjLinhVucAsideItem } from "@/lib/cins/worldJourneyGuestAside";
 import type { MilestoneItem } from "@/components/journey/milestone-types";
+import {
+  COMPOSE_PUBLISHED_EVENT,
+  type ComposePublishedDetail,
+} from "@/lib/journey/compose-published-sync";
+import { mergeMilestoneIntoTimeline } from "@/lib/journey/timeline-merge";
 import type { FeedPromoVariant } from "@/lib/cins/worldJourneyFeedPromosTypes";
+import {
+  homeFeedHref,
+  resolveHomeFeedDisplay,
+  type HomeFeedDisplay,
+} from "@/lib/cins/home-feed-display-url";
 
 import "@/app/[slug]/journey/image-grid.css";
 import "@/app/[slug]/journey/journey.css";
 import "@/app/world-journey-feed.css";
 
-type FeedView = "feed" | "grid";
+type FeedView = HomeFeedDisplay;
+
+function WorldJourneyGridSkeleton() {
+  return (
+    <div
+      className="j-main-gallery-grid j-main-gallery-grid--loading"
+      aria-busy="true"
+      aria-label="Đang tải lưới"
+    />
+  );
+}
+
+const JourneyGalleryGridView = dynamic(
+  () =>
+    import("@/components/journey/JourneyGalleryGridView").then(
+      (m) => m.JourneyGalleryGridView,
+    ),
+  { loading: () => <WorldJourneyGridSkeleton /> },
+);
+
+function prefetchJourneyGalleryGrid() {
+  void import("@/components/journey/JourneyGalleryGridView");
+}
 
 function WorldJourneyFilterBar({
   chips,
   activeFilter,
   onFilter,
   view,
-  onView,
+  onViewChange,
+  onPrefetchGrid,
   sort,
   onSort,
   sortOpen,
@@ -54,7 +88,8 @@ function WorldJourneyFilterBar({
   activeFilter: string;
   onFilter: (id: string) => void;
   view: FeedView;
-  onView: (v: FeedView) => void;
+  onViewChange: (view: FeedView) => void;
+  onPrefetchGrid?: () => void;
   sort: (typeof WORLD_JOURNEY_SORT_OPTIONS)[number];
   onSort: (s: (typeof WORLD_JOURNEY_SORT_OPTIONS)[number]) => void;
   sortOpen: boolean;
@@ -69,8 +104,8 @@ function WorldJourneyFilterBar({
     const onDoc = (e: MouseEvent) => {
       if (!sortRef.current?.contains(e.target as Node)) onSortOpen(false);
     };
-    document.addEventListener("click", onDoc);
-    return () => document.removeEventListener("click", onDoc);
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
   }, [sortOpen, onSortOpen]);
 
   useEffect(() => {
@@ -78,8 +113,8 @@ function WorldJourneyFilterBar({
     const onDoc = (e: MouseEvent) => {
       if (!filterRef.current?.contains(e.target as Node)) setFilterOpen(false);
     };
-    document.addEventListener("click", onDoc);
-    return () => document.removeEventListener("click", onDoc);
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
   }, [filterOpen]);
 
   const activeChip =
@@ -109,7 +144,10 @@ function WorldJourneyFilterBar({
           className="wj-filter-btn"
           aria-haspopup="menu"
           aria-expanded={filterOpen}
-          onClick={() => setFilterOpen((v) => !v)}
+          onClick={(e) => {
+            e.stopPropagation();
+            setFilterOpen((v) => !v);
+          }}
         >
           {chipIcon(activeChip.icon)}
           <span className="wj-filter-val">{activeChip.label}</span>
@@ -123,7 +161,8 @@ function WorldJourneyFilterBar({
                 type="button"
                 className={activeFilter === chip.id ? "sel" : undefined}
                 role="menuitem"
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   onFilter(chip.id);
                   setFilterOpen(false);
                 }}
@@ -143,7 +182,8 @@ function WorldJourneyFilterBar({
           className={`wj-vt-btn${view === "feed" ? " active" : ""}`}
           aria-label="Dòng thời gian"
           title="Dòng thời gian"
-          onClick={() => onView("feed")}
+          aria-pressed={view === "feed"}
+          onClick={() => onViewChange("feed")}
         >
           <Rows3 size={15} />
         </button>
@@ -152,7 +192,10 @@ function WorldJourneyFilterBar({
           className={`wj-vt-btn${view === "grid" ? " active" : ""}`}
           aria-label="Lưới"
           title="Lưới"
-          onClick={() => onView("grid")}
+          aria-pressed={view === "grid"}
+          onMouseEnter={onPrefetchGrid}
+          onFocus={onPrefetchGrid}
+          onClick={() => onViewChange("grid")}
         >
           <LayoutGrid size={15} />
         </button>
@@ -162,7 +205,11 @@ function WorldJourneyFilterBar({
           type="button"
           className="wj-sort-btn"
           aria-expanded={sortOpen}
-          onClick={() => onSortOpen(!sortOpen)}
+          aria-haspopup="menu"
+          onClick={(e) => {
+            e.stopPropagation();
+            onSortOpen(!sortOpen);
+          }}
         >
           <ArrowDownNarrowWide size={13} />
           <span>Sắp xếp:</span>
@@ -177,7 +224,8 @@ function WorldJourneyFilterBar({
                 type="button"
                 className={sort === opt ? "sel" : undefined}
                 role="menuitem"
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   onSort(opt);
                   onSortOpen(false);
                 }}
@@ -204,6 +252,7 @@ export function WorldJourneyFeed({
   rightAside,
   pendingConfirmations,
   feedPromos,
+  feedView = "feed",
 }: {
   sidebarProfile: SidebarProfile;
   viewerProfileId: string;
@@ -217,40 +266,104 @@ export function WorldJourneyFeed({
   /** Banner "việc cần xác nhận" — hiện đầu cột feed để user chú ý. */
   pendingConfirmations?: ReactNode;
   feedPromos?: FeedPromoVariant[];
+  /** Chế độ xem feed — `/?display=luoi` (grid) · `/` (feed); legacy `/luoi`. */
+  feedView?: HomeFeedDisplay;
 }) {
+  const [view, setView] = useState<FeedView>(feedView);
+
+  useEffect(() => {
+    setView(feedView);
+  }, [feedView]);
+
+  const handleViewChange = useCallback((next: FeedView) => {
+    setView((current) => {
+      if (current === next) return current;
+      const href = homeFeedHref(next);
+      window.history.pushState(null, "", href);
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    const onPopState = () => {
+      setView(
+        resolveHomeFeedDisplay(
+          window.location.pathname,
+          window.location.search,
+        ),
+      );
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
   const [activeFilter, setActiveFilter] = useState("all");
   const [activeLinhVucSlug, setActiveLinhVucSlug] = useState<string | null>(
     null,
   );
-  const [view, setView] = useState<FeedView>("feed");
   const [sort, setSort] = useState<(typeof WORLD_JOURNEY_SORT_OPTIONS)[number]>(
     WORLD_JOURNEY_SORT_OPTIONS[0],
   );
   const [sortOpen, setSortOpen] = useState(false);
+  const [feedMilestones, setFeedMilestones] = useState(milestones);
+
+  useEffect(() => {
+    setFeedMilestones(milestones);
+  }, [milestones]);
+
+  useEffect(() => {
+    const onComposePublished = (event: Event) => {
+      const detail = (event as CustomEvent<ComposePublishedDetail>).detail;
+      if (!detail?.ownerSlug || detail.ownerSlug !== sidebarProfile.slug) return;
+      if (!detail.milestone) return;
+      setFeedMilestones((prev) =>
+        mergeMilestoneIntoTimeline(prev, detail.milestone!),
+      );
+    };
+    window.addEventListener(COMPOSE_PUBLISHED_EVENT, onComposePublished);
+    return () =>
+      window.removeEventListener(COMPOSE_PUBLISHED_EVENT, onComposePublished);
+  }, [sidebarProfile.slug]);
 
   const activeChip = findWorldJourneyFilterChip(filterChips, activeFilter);
   /* 1 feed duy nhất: bài từ người đang theo dõi xếp trên, rồi tới bài Khám phá
      (khử trùng lặp theo id). */
   const sourceMilestones = useMemo(() => {
-    if (exploreMilestones === undefined) return milestones;
-    const seen = new Set(milestones.map((m) => m.id));
+    if (exploreMilestones === undefined) return feedMilestones;
+    const seen = new Set(feedMilestones.map((m) => m.id));
     const exploreExtra = exploreMilestones.filter((m) => !seen.has(m.id));
-    return [...milestones, ...exploreExtra];
+    return [...feedMilestones, ...exploreExtra];
+  }, [feedMilestones, exploreMilestones]);
+  const exploreIds = useMemo(() => {
+    if (exploreMilestones === undefined) return new Set<string>();
+    const followingIds = new Set(feedMilestones.map((m) => m.id));
+    return new Set(
+      exploreMilestones
+        .filter((m) => !followingIds.has(m.id))
+        .map((m) => m.id),
+    );
   }, [milestones, exploreMilestones]);
-  const visibleMilestones = useMemo(
-    () =>
-      sourceMilestones.filter(
-        (milestone) =>
-          worldJourneyMilestoneMatchesFilter(milestone, activeChip) &&
-          worldJourneyMilestoneMatchesLinhVuc(milestone, activeLinhVucSlug),
-      ),
-    [sourceMilestones, activeChip, activeLinhVucSlug],
-  );
+
+  const visibleMilestones = useMemo(() => {
+    const filtered = sourceMilestones.filter(
+      (milestone) =>
+        worldJourneyMilestoneMatchesFilter(milestone, activeChip) &&
+        worldJourneyMilestoneMatchesLinhVuc(milestone, activeLinhVucSlug),
+    );
+    return sortWorldJourneyMilestones(filtered, sort, exploreIds);
+  }, [sourceMilestones, activeChip, activeLinhVucSlug, sort, exploreIds]);
 
   const galleryItems = useMemo(
-    () => worldJourneyMilestonesToGalleryItems(visibleMilestones),
-    [visibleMilestones],
+    () =>
+      view === "grid"
+        ? worldJourneyMilestonesToGalleryItems(visibleMilestones)
+        : [],
+    [visibleMilestones, view],
   );
+
+  useEffect(() => {
+    if (feedView === "grid") prefetchJourneyGalleryGrid();
+  }, [feedView]);
 
   return (
     <JourneyViewProvider initialView="journey" slug={sidebarProfile.slug}>
@@ -264,7 +377,8 @@ export function WorldJourneyFeed({
             activeFilter={activeFilter}
             onFilter={setActiveFilter}
             view={view}
-            onView={setView}
+            onViewChange={handleViewChange}
+            onPrefetchGrid={prefetchJourneyGalleryGrid}
             sort={sort}
             onSort={setSort}
             sortOpen={sortOpen}

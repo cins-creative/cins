@@ -7,7 +7,6 @@ import { getCurrentUserSystemRole } from "@/lib/auth/system-role";
 import { getOrgAdminStatus, getOrgMemberStatus } from "@/lib/truong/org-admin";
 import { loadOrgBaiDangBookmarkSocial } from "@/lib/truong/org-bai-dang-bookmark";
 import { getStudioDetailPayloadCached } from "@/lib/to-chuc/studio-page-queries";
-import { fetchStudioJobs } from "@/lib/to-chuc/studio-tuyen-dung-queries";
 import type { TruongBaiDang } from "@/lib/truong/types";
 
 type Props = {
@@ -29,8 +28,6 @@ export async function StudioDetailLoader({ slug }: Props) {
     loadOrgBaiDangBookmarkSocial(postIds, viewerProfileId),
     getCurrentUserSystemRole(),
   ]);
-
-  const jobs = await fetchStudioJobs(payload.studio.id, canEdit);
 
   const hydrate = (post: TruongBaiDang): TruongBaiDang => {
     const social = bookmarkSocial[post.id];
@@ -55,7 +52,6 @@ export async function StudioDetailLoader({ slug }: Props) {
       >
         <StudioDetailView
           payload={payloadWithSocial}
-          jobs={jobs}
           canEdit={canEdit}
           isOrgMember={isOrgMember}
           viewerProfileId={viewerProfileId}

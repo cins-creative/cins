@@ -34,3 +34,51 @@ export function inferComposePreviewKind(
   const hasCover = Boolean(coverSeed?.trim());
   return milestoneCardContentKind(blocks, hasCover, null);
 }
+
+/** Block editor client — `t` + seed blob/CF đều tính là có ảnh khi chọn badge. */
+export type ComposeEditorBlockLike = {
+  t: string;
+  imgs?: string[];
+  embedUrl?: string;
+};
+
+function editorBlockHasImageSeed(block: ComposeEditorBlockLike): boolean {
+  if (block.t !== "imgs") return false;
+  return (block.imgs ?? []).some((seed) => {
+    const trimmed = typeof seed === "string" ? seed.trim() : "";
+    if (!trimmed) return false;
+    return !/^new-/.test(trimmed);
+  });
+}
+
+function editorBlocksArePhotoAlbumOnly(
+  blocks: ReadonlyArray<ComposeEditorBlockLike>,
+): boolean {
+  if (!blocks.some((b) => b.t === "imgs")) return false;
+  if (blocks.some((b) => b.t === "embed")) return false;
+  return blocks.every(
+    (b) => b.t === "imgs" || b.t === "body" || b.t === "spacer",
+  );
+}
+
+/**
+ * Badge compose — nhìn blocks đang soạn (kể cả blob đang upload), không chỉ
+ * payload server sau `toServerBlocks` (blob bị lọc → badge "Chỉ chữ" sai).
+ */
+export function inferComposePreviewKindFromEditor(
+  blocks: ReadonlyArray<ComposeEditorBlockLike>,
+  coverSeed: string | null,
+  serverBlocks: ServerBlock[],
+): ComposePreviewKind {
+  const hasEmbed = blocks.some(
+    (b) => b.t === "embed" && Boolean(b.embedUrl?.trim()),
+  );
+  const hasImgs = blocks.some(editorBlockHasImageSeed);
+
+  if (hasEmbed && !hasImgs) return "video";
+  if (hasImgs && !hasEmbed && editorBlocksArePhotoAlbumOnly(blocks)) {
+    return "photo";
+  }
+
+  return inferComposePreviewKind(serverBlocks, coverSeed);
+}

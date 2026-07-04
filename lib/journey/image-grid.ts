@@ -4,6 +4,7 @@ import {
   resolveImageSeedThumbUrl,
 } from "@/lib/editor/resolve-image-seed-url";
 import { detectMediaPostKind } from "@/lib/journey/post-media";
+import { isPersistedImageSeed } from "@/lib/truong/image-ref";
 
 export type GridImage = {
   id: string;
@@ -11,6 +12,8 @@ export type GridImage = {
   height: number;
   /** Blob / URL preview khi đang compose (ưu tiên hơn Cloudflare id). */
   previewSrc?: string;
+  /** Ô album compose chưa có ảnh — không resolve picsum dummy. */
+  composePending?: boolean;
 };
 
 export type BlockRenderGroup =
@@ -39,7 +42,7 @@ export function extractImagesFromImgsBlock(block: Block): GridImage[] {
       : GRID_IMAGE_DEFAULT_HEIGHT;
 
   return raw
-    .filter((s): s is string => typeof s === "string" && s.trim().length > 0)
+    .filter((s): s is string => typeof s === "string" && isPersistedImageSeed(s))
     .map((id) => ({ id: id.trim(), width, height }));
 }
 
@@ -306,6 +309,7 @@ export function albumGridComposeRows(slotCount: number): number[][] {
 export function gridThumbSrc(image: GridImage): string {
   const preview = image.previewSrc?.trim();
   if (preview) return preview;
+  if (image.composePending) return "";
   return resolveImageSeedThumbUrl(image.id, image.width, image.height);
 }
 
@@ -313,5 +317,6 @@ export function gridThumbSrc(image: GridImage): string {
 export function gridLightboxSrc(image: GridImage): string {
   const preview = image.previewSrc?.trim();
   if (preview) return preview;
+  if (image.composePending) return "";
   return resolveImageSeedLightboxUrl(image.id, image.width, image.height);
 }

@@ -5,11 +5,11 @@ import {
 } from "@/lib/truong/images";
 import type { TruongHinhAnh } from "@/lib/truong/types";
 
-/** Variant gallery — `public` trước (CF mặc định); `medium` có thể chưa tạo trên account. */
+/** Variant gallery org — `grid`/`gridsm` trước (CINS_IMPLEMENTATION §4). */
 export const GALLERY_CF_VARIANTS: CfImageVariant[] = [
+  "grid",
+  "gridsm",
   "public",
-  "cover",
-  "medium",
 ];
 
 export function hinhAnhDisplayUrlCandidates(

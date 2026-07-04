@@ -6,6 +6,10 @@ import { createPublicSupabaseClient } from "@/lib/supabase/public";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { resolveTruongImageSrcSync } from "@/lib/truong/media-url";
+import {
+  ORG_AVATAR_VARIANTS,
+  ORG_COVER_VARIANTS,
+} from "@/lib/truong/org-image-variants";
 import { fetchBaiDang, fetchHinhAnh } from "@/lib/truong/queries";
 import type { TruongBaiDang, TruongHinhAnh } from "@/lib/truong/types";
 import { STUDIO_SHOWCASE_LOAI } from "@/lib/to-chuc/studio-page-config";
@@ -78,16 +82,8 @@ async function loadStudioBySlug(
     diaChi: data.dia_chi,
     dienThoai: data.dien_thoai,
     emailLienHe: data.email_lien_he,
-    avatarSrc: resolveTruongImageSrcSync(data.avatar_id, [
-      "public",
-      "avatar",
-      "medium",
-    ]),
-    coverSrc: resolveTruongImageSrcSync(data.cover_id, [
-      "public",
-      "cover",
-      "medium",
-    ]),
+    avatarSrc: resolveTruongImageSrcSync(data.avatar_id, ORG_AVATAR_VARIANTS),
+    coverSrc: resolveTruongImageSrcSync(data.cover_id, ORG_COVER_VARIANTS),
   };
 }
 
@@ -171,11 +167,11 @@ async function loadStudioDetailPayload(
     avatar_id: data.avatar_id,
     logo_id: null,
     avatar_src: data.avatar_id?.trim()
-      ? resolveTruongImageSrcSync(data.avatar_id, ["public", "avatar"])
+      ? resolveTruongImageSrcSync(data.avatar_id, ORG_AVATAR_VARIANTS)
       : null,
     cover_id: data.cover_id,
     cover_src: data.cover_id?.trim()
-      ? resolveTruongImageSrcSync(data.cover_id, ["public", "cover", "medium"])
+      ? resolveTruongImageSrcSync(data.cover_id, ORG_COVER_VARIANTS)
       : null,
     moTa: data.mo_ta,
     gioiThieu: data.gioi_thieu_truong,

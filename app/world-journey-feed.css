@@ -83,7 +83,7 @@
 /* ── Feed header: 1 hàng gọn — tab + chip lọc trái, xem/sắp xếp phải ── */
 .wj-feed-header {
   position: relative;
-  z-index: 1;
+  z-index: 20;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -94,6 +94,7 @@
   padding: 8px 16px;
   background: var(--bg);
   border-bottom: 1px solid var(--border);
+  overflow: visible;
 }
 
 .wj-feed-tabs {
@@ -142,12 +143,7 @@
   min-width: 0;
   margin: 0;
   padding: 0;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.wj-filter-bar::-webkit-scrollbar {
-  display: none;
+  overflow: visible;
 }
 
 .wj-fchip {
@@ -226,7 +222,7 @@
   box-shadow: var(--sh-md);
   padding: 6px;
   min-width: 180px;
-  z-index: 5;
+  z-index: 100;
 }
 
 .wj-filter-pop button {
@@ -288,10 +284,14 @@
   padding: 6px 9px;
   font-size: 12px;
   font-weight: 500;
+  font-family: inherit;
   color: var(--ink2);
+  background: transparent;
+  border: 0;
   border-radius: var(--r-pill);
   cursor: pointer;
   transition: all 0.18s var(--ease);
+  text-decoration: none;
 }
 
 .wj-vt-btn svg {
@@ -352,7 +352,7 @@
   box-shadow: var(--sh-md);
   padding: 6px;
   min-width: 180px;
-  z-index: 5;
+  z-index: 100;
 }
 
 .wj-sort-pop button {
@@ -2050,7 +2050,7 @@
 
 .world-journey-home .wj-feed-timeline .j-osk-actions .cso-sk-detail-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -2059,21 +2059,22 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
+  min-width: 0;
   min-height: 40px;
-  padding: 0 14px;
+  padding: 0 10px;
   border-radius: 999px;
   border: 1px solid var(--border, #e4e6eb);
-  background: #fff;
+  background: var(--bg-page, #f4f5f7);
   font-family: inherit;
   font-size: 13px;
-  font-weight: 700;
-  color: var(--ink-body);
+  font-weight: 600;
+  color: var(--ink-muted, #5c6370);
+  box-shadow: none;
   cursor: pointer;
   transition:
     background 0.14s ease,
     border-color 0.14s ease,
-    color 0.14s ease,
-    box-shadow 0.14s ease;
+    color 0.14s ease;
 }
 
 .world-journey-home .wj-feed-timeline .j-osk-actions .cso-sk-detail-btn:disabled {
@@ -2081,38 +2082,37 @@
   cursor: not-allowed;
 }
 
+.world-journey-home .wj-feed-timeline .j-osk-actions .cso-sk-detail-btn:hover:not(:disabled) {
+  background: #eceef2;
+  border-color: var(--border-strong, #cdd3dc);
+  color: var(--ink-body, rgba(0, 0, 0, 0.72));
+}
+
 .world-journey-home .wj-feed-timeline .j-osk-actions .cso-sk-detail-btn--interest.is-active {
   border-color: rgba(219, 39, 119, 0.35);
   background: #fdf2f8;
   color: #be185d;
+  font-weight: 700;
 }
 
-.world-journey-home .wj-feed-timeline .j-osk-actions .cso-sk-detail-btn--join {
-  border-color: rgba(31, 116, 201, 0.12);
-  background: var(--cins-blue, #1f74c9);
-  color: #fff;
-  box-shadow: 0 6px 18px rgba(31, 116, 201, 0.22);
+.world-journey-home .wj-feed-timeline .j-osk-actions .cso-sk-detail-btn--interest.is-active:hover:not(:disabled) {
+  background: #fce7f3;
+  border-color: rgba(219, 39, 119, 0.45);
+  color: #be185d;
 }
 
 .world-journey-home .wj-feed-timeline .j-osk-actions .cso-sk-detail-btn--join.is-active {
   background: #15803d;
   border-color: rgba(21, 128, 61, 0.2);
+  color: #fff;
   box-shadow: 0 6px 18px rgba(21, 128, 61, 0.22);
+  font-weight: 700;
 }
 
-.world-journey-home .wj-feed-timeline .j-osk-actions .cso-sk-detail-btn--join:not(.is-active):hover:not(:disabled) {
-  background: #1a66b3;
-}
-
-/* Nút "Nhắn tin" org — chiếm trọn hàng dưới 2 nút RSVP */
-.world-journey-home .wj-feed-timeline .j-osk-actions .cso-sk-detail-btn--message {
-  grid-column: 1 / -1;
-  border-color: rgba(31, 116, 201, 0.2);
-  color: var(--cins-blue-deep, #195ea3);
-}
-
-.world-journey-home .wj-feed-timeline .j-osk-actions .cso-sk-detail-btn--message:hover:not(:disabled) {
-  background: var(--cins-blue-soft, #e8f1fb);
+.world-journey-home .wj-feed-timeline .j-osk-actions .cso-sk-detail-btn--join.is-active:hover:not(:disabled) {
+  background: #166534;
+  border-color: rgba(21, 128, 61, 0.3);
+  color: #fff;
 }
 
 .world-journey-home .wj-feed-timeline .j-feed-suggestion-badge {

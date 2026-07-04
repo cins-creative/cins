@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 
 import { CoSoOrgFollowButton } from "@/components/co-so/CoSoOrgFollowButton";
+import { OrgSidebarShareButton } from "@/components/org/OrgSidebarShareButton";
 import { TruongGioiThieuTruong } from "@/components/truong/TruongGioiThieuTruong";
 import { TruongMessageInbox } from "@/components/truong/TruongMessageInbox";
 import { TruongMilestoneTagNotify } from "@/components/truong/TruongMilestoneTagNotify";
@@ -179,6 +180,7 @@ export function StudioSidebar({
                 <>
                   <TruongUserChatLauncher />
                   <CoSoOrgFollowButton orgId={studio.id} disabled={isOwner} />
+                  <OrgSidebarShareButton />
                 </>
               ) : (
                 <>
@@ -189,6 +191,7 @@ export function StudioSidebar({
                   <button type="button" className="cso-ss-btn-follow" disabled>
                     Theo dõi
                   </button>
+                  <OrgSidebarShareButton />
                 </>
               )}
             </div>

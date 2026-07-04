@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { CoSoAdminToolbar } from "@/components/co-so/CoSoAdminToolbar";
@@ -12,8 +11,14 @@ import {
   type CoSoSettingsSection,
 } from "@/components/co-so/CoSoPageSettingsModal";
 import { CoSoTabBaidang } from "@/components/co-so/tabs/CoSoTabBaidang";
-import { CoSoTabSuKien } from "@/components/co-so/tabs/CoSoTabSuKien";
-import { CoSoTabTuyenDung } from "@/components/co-so/tabs/CoSoTabTuyenDung";
+import { CoSoTabPlaceholder } from "@/components/co-so/tabs/CoSoTabPlaceholder";
+import {
+  CoSoTabHinhanhLazy,
+  CoSoTabKhoaHocLazy,
+  CoSoTabSuKienLazy,
+  CoSoTabTuyenDungLazy,
+  prefetchCoSoTab,
+} from "@/components/org/org-tab-lazy-views";
 import { TruongOrgCover } from "@/components/truong/TruongOrgCover";
 import {
   TruongInlineEditProvider,
@@ -21,9 +26,6 @@ import {
 } from "@/components/truong/inline/TruongInlineEditContext";
 import { CoSoSchoolSidebar } from "@/components/co-so/CoSoSchoolSidebar";
 import { CoSoUpcomingSidebar } from "@/components/co-so/CoSoUpcomingSidebar";
-import { CoSoTabHinhanh } from "@/components/co-so/tabs/CoSoTabHinhanh";
-import { CoSoTabKhoaHoc } from "@/components/co-so/tabs/CoSoTabKhoaHoc";
-import { CoSoTabPlaceholder } from "@/components/co-so/tabs/CoSoTabPlaceholder";
 import {
   CO_SO_TAB_LABELS,
   type CoSoTabId,
@@ -34,13 +36,10 @@ import { countActiveStudioJobs } from "@/lib/to-chuc/studio-tuyen-dung-format";
 import { CO_SO_KHOA_UPDATED_EVENT } from "@/lib/to-chuc/co-so-khoa-events";
 import { isKhoaHocMuted } from "@/lib/to-chuc/khoa-hoc-labels";
 import type { KhoaHocCardData } from "@/lib/to-chuc/khoa-hoc-types";
-import {
-  CO_SO_DEFAULT_TAB,
-  coSoTabPath,
-  parseCoSoRouteFromPathname,
-} from "@/lib/to-chuc/co-so-routes";
+import { coSoTabPath } from "@/lib/to-chuc/co-so-routes";
+import { useCoSoTabNav } from "@/lib/to-chuc/use-co-so-tab-nav";
+import { useOrgStudioJobs } from "@/lib/to-chuc/use-org-studio-jobs";
 import { coSoToInlinePayload } from "@/lib/to-chuc/co-so-inline-payload";
-import type { StudioJob } from "@/lib/to-chuc/studio-tuyen-dung-types";
 import type { TruongChiNhanh } from "@/lib/truong/types";
 
 const TABS = [
@@ -59,8 +58,6 @@ type Props = {
   isOrgMember?: boolean;
   canManageKhoaHoc?: boolean;
   systemRole?: SystemRole | null;
-  /** Tin tuyển dụng của cơ sở (tab Tuyển dụng). */
-  jobs?: StudioJob[];
   viewerLoggedIn?: boolean;
 };
 
@@ -82,19 +79,15 @@ type SettingsSavedPatch = {
   facebook?: string | null;
 };
 
-function useCoSoRouteState() {
-  const pathname = usePathname();
-  return useMemo(() => {
-    const parsed = parseCoSoRouteFromPathname(pathname ?? "");
-    return parsed ?? { tab: CO_SO_DEFAULT_TAB, khoaSlug: null, jobId: null };
-  }, [pathname]);
+function coSoTabPrefetch(tab: CoSoTabId) {
+  if (tab === "bai-dang") return;
+  prefetchCoSoTab(tab);
 }
 
 function CoSoDetailViewInner({
   payload,
   canEdit = false,
   canManageKhoaHoc = false,
-  jobs = [],
   viewerLoggedIn = false,
   settingsOpen = false,
   settingsSection = "identity",
@@ -114,20 +107,25 @@ function CoSoDetailViewInner({
   const baseSchool = ctx?.school ?? payload.school;
   const school = { ...baseSchool, ...schoolExtra };
   const orgSlug = school.slug;
-  const { tab, khoaSlug, jobId } = useCoSoRouteState();
+  const { tab, khoaSlug, jobId, selectTab } = useCoSoTabNav(orgSlug);
+  const { jobs } = useOrgStudioJobs(school.id);
   const [mountedTabs, setMountedTabs] = useState<Set<CoSoTabId>>(
     () => new Set([tab]),
   );
   const editableMedia = canEdit && Boolean(ctx?.canEdit);
   const { isMobileShell, mobileTab, setMobileTab } = useCoSoMobileShell("content");
 
-  // Số tin tuyển dụng đang mở & còn hiệu lực — hiển thị badge trên tab.
   const activeJobCount = useMemo(() => countActiveStudioJobs(jobs), [jobs]);
 
-  // Số khóa học đang hoạt động (không tạm dừng / đã kết thúc) — badge tab.
-  // Khóa học fetch client-side ở tab; nạp nhẹ ở đây để badge hiện dù chưa mở tab.
+  const [khoaBadgeRequested, setKhoaBadgeRequested] = useState(tab === "khoa-hoc");
   const [activeKhoaCount, setActiveKhoaCount] = useState(0);
+
   useEffect(() => {
+    if (tab === "khoa-hoc") setKhoaBadgeRequested(true);
+  }, [tab]);
+
+  useEffect(() => {
+    if (!khoaBadgeRequested) return;
     let cancelled = false;
     const load = () => {
       fetch(`/api/co-so/${school.id}/khoa-hoc`, { credentials: "include" })
@@ -153,7 +151,7 @@ function CoSoDetailViewInner({
       cancelled = true;
       window.removeEventListener(CO_SO_KHOA_UPDATED_EVENT, onChange);
     };
-  }, [school.id]);
+  }, [school.id, khoaBadgeRequested]);
 
   useEffect(() => {
     setMountedTabs((prev) => {
@@ -275,6 +273,20 @@ function CoSoDetailViewInner({
                 id={`cso-tab-${t.id}`}
                 aria-controls={`cso-panel-${t.id}`}
                 className={`tdh-v6-tab${tab === t.id ? " on" : ""}`}
+                onMouseEnter={() => {
+                  coSoTabPrefetch(t.id);
+                  if (t.id === "khoa-hoc") setKhoaBadgeRequested(true);
+                }}
+                onFocus={() => {
+                  coSoTabPrefetch(t.id);
+                  if (t.id === "khoa-hoc") setKhoaBadgeRequested(true);
+                }}
+                onClick={(event) => {
+                  event.preventDefault();
+                  if (tab !== t.id || khoaSlug || jobId) {
+                    selectTab(t.id);
+                  }
+                }}
               >
                 {t.label}
                 {t.id === "tuyen-dung" && activeJobCount > 0 ? (
@@ -322,7 +334,7 @@ function CoSoDetailViewInner({
                 />
               ) : null}
               {t.id === "khoa-hoc" ? (
-                <CoSoTabKhoaHoc
+                <CoSoTabKhoaHocLazy
                   orgId={school.id}
                   orgSlug={orgSlug}
                   orgTen={school.ten}
@@ -333,7 +345,7 @@ function CoSoDetailViewInner({
                 />
               ) : null}
               {t.id === "su-kien" ? (
-                <CoSoTabSuKien
+                <CoSoTabSuKienLazy
                   orgId={school.id}
                   orgTen={school.ten}
                   orgDiaChi={school.dia_chi}
@@ -349,10 +361,10 @@ function CoSoDetailViewInner({
                 />
               ) : null}
               {t.id === "hinh-anh" ? (
-                <CoSoTabHinhanh images={hinhanh} />
+                <CoSoTabHinhanhLazy images={hinhanh} />
               ) : null}
               {t.id === "tuyen-dung" ? (
-                <CoSoTabTuyenDung
+                <CoSoTabTuyenDungLazy
                   jobs={jobs}
                   orgId={school.id}
                   orgSlug={orgSlug}
@@ -399,7 +411,6 @@ function CoSoDetailViewBody({
   payload,
   canEdit,
   canManageKhoaHoc,
-  jobs,
   viewerLoggedIn,
 }: Props) {
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -420,7 +431,6 @@ function CoSoDetailViewBody({
         payload={payload}
         canEdit={canEdit}
         canManageKhoaHoc={canManageKhoaHoc}
-        jobs={jobs}
         viewerLoggedIn={viewerLoggedIn}
         settingsOpen={settingsOpen}
         settingsSection={settingsSection}
@@ -437,7 +447,6 @@ export function CoSoDetailView({
   isOrgMember = false,
   canManageKhoaHoc = false,
   systemRole = null,
-  jobs = [],
   viewerLoggedIn = false,
 }: Props) {
   return (
@@ -451,7 +460,6 @@ export function CoSoDetailView({
         payload={payload}
         canEdit={canEdit}
         canManageKhoaHoc={canManageKhoaHoc}
-        jobs={jobs}
         viewerLoggedIn={viewerLoggedIn}
       />
     </TruongInlineEditProvider>

@@ -2,7 +2,7 @@
 
 import { Grid3x3, Image as ImageIcon, LayoutGrid, Plus, Video } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   useCallback,
   useEffect,
@@ -14,6 +14,7 @@ import {
 
 import { GalleryItemVisual, GalleryVideoPlayBadge } from "@/components/journey/GalleryItemVisual";
 import { useJourneyCompose } from "@/components/journey/JourneyComposeContext";
+import { GALLERY_GRID_IMAGE_SIZES } from "@/lib/cloudflare/cf-variant-url";
 import { GalleryMediaFilterDropdown } from "@/components/journey/GalleryMediaFilterDropdown";
 import { GalleryOrgCreateCardBody } from "@/components/journey/GalleryOrgCreateCardBody";
 import { GalleryVerifiedBadge } from "@/components/journey/GalleryVerifiedBadge";
@@ -38,10 +39,15 @@ import {
 } from "@/lib/journey/post-media";
 import { matchesPersonalFilterSlug } from "@/lib/filter/client-utils";
 import { useJourneyPersonalFilterOptional } from "@/components/journey/JourneyPersonalFilterContext";
+import {
+  galleryDisplayFromSearch,
+  galleryDisplayHref,
+  type GalleryDisplay,
+} from "@/lib/journey/gallery-display-url";
 
 /** Chế độ xem gallery: `card` (mặc định, có bảng thông tin trắng dưới ảnh) hoặc
- *  `grid` (lưới gọn, thông tin hiện khi hover). */
-type GalleryViewMode = "card" | "grid";
+ *  `grid` (lưới gọn, thông tin hiện khi hover). URL: `?view=gallery` · `?view=gallery&display=luoi`. */
+type GalleryViewMode = GalleryDisplay;
 
 type ScrollLoadConfig = {
   ownerSlug: string;
@@ -124,10 +130,45 @@ export function JourneyGalleryGridView({
   const personalFilter = useJourneyPersonalFilterOptional();
   const { openPost, overlay } = useJourneyPostOverlay();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const compose = useJourneyCompose();
   const composeOwnerSlug = compose.ownerSlug || scrollLoad?.ownerSlug || "";
+  const galleryOwnerSlug = scrollLoad?.ownerSlug || composeOwnerSlug;
+  const gallerySearch = searchParams?.toString() ?? "";
+  const urlDisplay: GalleryViewMode = galleryDisplayFromSearch(gallerySearch);
+  const [displayView, setDisplayView] = useState<GalleryViewMode>(urlDisplay);
   const createPhotoInputRef = useRef<HTMLInputElement>(null);
   const createVideoInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setDisplayView(urlDisplay);
+  }, [urlDisplay]);
+
+  useEffect(() => {
+    const onPopState = () => {
+      setDisplayView(galleryDisplayFromSearch(window.location.search));
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
+  const handleDisplayChange = useCallback(
+    (next: GalleryDisplay) => {
+      setDisplayView((current) => {
+        if (current === next) return current;
+        if (galleryOwnerSlug) {
+          const href = galleryDisplayHref(
+            galleryOwnerSlug,
+            next,
+            gallerySearch,
+          );
+          window.history.pushState({ galleryDisplay: next }, "", href);
+        }
+        return next;
+      });
+    },
+    [galleryOwnerSlug, gallerySearch],
+  );
 
   const openComposeMinimal = useCallback(() => {
     if (compose.canCompose) {
@@ -202,9 +243,7 @@ export function JourneyGalleryGridView({
 
   const [typeFilter, setTypeFilter] = useState<FilterGroup>("all");
   const [mediaFilter, setMediaFilter] = useState<GalleryMediaFilter>("all");
-  // Lưới gọn mặc định; người dùng có thể chuyển sang dạng thẻ.
-  const [view, setView] = useState<GalleryViewMode>("grid");
-  const effectiveView: GalleryViewMode = hideToolbar ? "grid" : view;
+  const effectiveView: GalleryViewMode = hideToolbar ? "grid" : displayView;
   const [galleryItems, setGalleryItems] = useState<GalleryMainItem[]>(() =>
     legacyAll ? [...legacyAll] : [...(initialItems ?? [])],
   );
@@ -440,21 +479,21 @@ export function JourneyGalleryGridView({
               >
                 <button
                   type="button"
-                  className={`j-gvt-btn${view === "card" ? " active" : ""}`}
+                  className={`j-gvt-btn${displayView === "card" ? " active" : ""}`}
                   aria-label="Dạng thẻ"
-                  aria-pressed={view === "card"}
+                  aria-pressed={displayView === "card"}
                   title="Dạng thẻ"
-                  onClick={() => setView("card")}
+                  onClick={() => handleDisplayChange("card")}
                 >
                   <LayoutGrid size={15} />
                 </button>
                 <button
                   type="button"
-                  className={`j-gvt-btn${view === "grid" ? " active" : ""}`}
+                  className={`j-gvt-btn${displayView === "grid" ? " active" : ""}`}
                   aria-label="Lưới gọn"
-                  aria-pressed={view === "grid"}
+                  aria-pressed={displayView === "grid"}
                   title="Lưới gọn"
-                  onClick={() => setView("grid")}
+                  onClick={() => handleDisplayChange("grid")}
                 >
                   <Grid3x3 size={15} />
                 </button>
@@ -509,9 +548,7 @@ export function JourneyGalleryGridView({
                     src={item.src}
                     srcSet={item.srcSet}
                     sizes={
-                      item.srcSet
-                        ? "(max-width: 575px) 33vw, (max-width: 991px) 50vw, 33vw"
-                        : undefined
+                      item.srcSet ? GALLERY_GRID_IMAGE_SIZES : undefined
                     }
                     width={item.width}
                     height={item.height}

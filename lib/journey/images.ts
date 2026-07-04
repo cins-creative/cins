@@ -35,12 +35,11 @@ type RolePreset = {
 
 /**
  * Kích thước theo layout Journey v2 (@2x retina):
- *   • Gallery aside pinned ~280px → 560×315 (16:9)
- *   • Gallery grid item ~140px → 280×280
- *   • Milestone card preview ~680px → 800×450 (16:9)
+ *   • Gallery aside pinned ~280px → 560×315 (16:9) — variant `public`
+ *   • Gallery grid ~320px ô → 640×360 (16:9) — variant `grid` + `gridsm`
+ *   • Milestone card preview ~760px feed → 640×360 — variant `grid` (không `public`)
  *
- * Variant URL: chỉ `public` được đảm bảo trên mọi tài khoản CF (upload post-image).
- * Các variant tùy chỉnh (thumbnail/medium/cover) có thể 403 nếu chưa tạo trên dashboard.
+ * Variants: `avatar`, `thumbnail`, `grid`, `gridsm`, `public` (Dashboard 2026-07-04).
  */
 const CF_DEFAULT_VARIANT = "public";
 
@@ -48,20 +47,26 @@ const ROLE_PRESETS: Record<JourneyImageRole, RolePreset> = {
   "gallery-pinned": {
     width: 560,
     height: 315,
-    defaultVariant: CF_DEFAULT_VARIANT,
-    srcSetVariants: [],
+    defaultVariant: "grid",
+    srcSetVariants: [{ name: "gridsm", w: 400 }],
   },
   "gallery-grid": {
-    width: 280,
-    height: 280,
-    defaultVariant: CF_DEFAULT_VARIANT,
-    srcSetVariants: [],
+    width: 640,
+    height: 360,
+    defaultVariant: "grid",
+    srcSetVariants: [
+      { name: "gridsm", w: 400 },
+      { name: "grid", w: 640 },
+    ],
   },
   "milestone-preview": {
-    width: 800,
-    height: 450,
-    defaultVariant: CF_DEFAULT_VARIANT,
-    srcSetVariants: [],
+    width: 640,
+    height: 360,
+    defaultVariant: "grid",
+    srcSetVariants: [
+      { name: "gridsm", w: 400 },
+      { name: "grid", w: 640 },
+    ],
   },
 };
 
@@ -117,7 +122,7 @@ export function resolveJourneyImage(
 
     return {
       src,
-      srcSet: srcSetParts.length > 1 ? srcSetParts.join(", ") : undefined,
+      srcSet: srcSetParts.length > 0 ? srcSetParts.join(", ") : undefined,
       width: preset.width,
       height: preset.height,
     };

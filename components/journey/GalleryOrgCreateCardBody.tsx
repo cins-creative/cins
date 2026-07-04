@@ -1,5 +1,3 @@
-import { BookOpen, Palette, Users } from "lucide-react";
-
 import { FeaturedFlagBadge } from "@/components/journey/FeaturedFlagBadge";
 import type { MilestoneCardLayout } from "@/components/journey/milestone-types";
 
@@ -71,24 +69,6 @@ export function GalleryOrgCreateCardBody({
           /* eslint-disable-next-line @next/next/no-img-element */
           <img src={coverSrc} alt="" className="j-gallery-org-card__cover" />
         ) : null}
-        <span className="j-gallery-org-card__type">
-          {isCongDong ? (
-            <>
-              <Users size={12} strokeWidth={1.9} aria-hidden />
-              Cộng đồng
-            </>
-          ) : isStudio ? (
-            <>
-              <Palette size={12} strokeWidth={1.9} aria-hidden />
-              Studio
-            </>
-          ) : (
-            <>
-              <BookOpen size={12} strokeWidth={1.9} aria-hidden />
-              Cơ sở đào tạo
-            </>
-          )}
-        </span>
       </div>
 
       <div className="j-gallery-org-card__body">

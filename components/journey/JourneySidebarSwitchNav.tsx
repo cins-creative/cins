@@ -12,6 +12,11 @@ import {
   journeyHrefForView,
   useJourneyView,
 } from "@/components/journey/JourneyViewContext";
+import {
+  prefetchJourneyFriendsView,
+  prefetchJourneyGalleryView,
+  prefetchJourneyOrganizationsView,
+} from "@/components/journey/journey-profile-lazy-views";
 
 type Props = {
   slug: string;
@@ -34,6 +39,7 @@ export function JourneySidebarSwitchNav({ slug, friendCount, orgCount }: Props) 
         view="friends"
         activeView={activeView}
         onSelect={setView}
+        onPrefetch={prefetchJourneyFriendsView}
         icon={<UserRound size={15} aria-hidden />}
         label="Friends"
         count={friendCount}
@@ -43,6 +49,7 @@ export function JourneySidebarSwitchNav({ slug, friendCount, orgCount }: Props) 
         view="organizations"
         activeView={activeView}
         onSelect={setView}
+        onPrefetch={prefetchJourneyOrganizationsView}
         icon={<Building2 size={15} aria-hidden />}
         label="Tổ chức"
         count={orgCount}
@@ -70,12 +77,16 @@ function ProfileFeedToggle({
       <Waypoints size={15} aria-hidden />
     );
   const href = journeyHrefForView(slug, targetView);
+  const prefetch =
+    targetView === "gallery" ? prefetchJourneyGalleryView : undefined;
 
   return (
     <a
       href={href}
       className="j-profile-switch-btn"
       aria-label={`Chuyển sang ${label}`}
+      onMouseEnter={prefetch}
+      onFocus={prefetch}
       onClick={(event) => {
         event.preventDefault();
         if (activeView !== targetView) onSelect(targetView);
@@ -94,6 +105,7 @@ function ProfileSwitchButton({
   view,
   activeView,
   onSelect,
+  onPrefetch,
   icon,
   label,
   count,
@@ -102,6 +114,7 @@ function ProfileSwitchButton({
   view: JourneyProfileView;
   activeView: JourneyProfileView;
   onSelect: (view: JourneyProfileView) => void;
+  onPrefetch?: () => void;
   icon: React.ReactNode;
   label: string;
   count?: number;
@@ -119,6 +132,8 @@ function ProfileSwitchButton({
       aria-label={
         countLabel != null ? `${label}, ${countLabel}` : label
       }
+      onMouseEnter={onPrefetch}
+      onFocus={onPrefetch}
       onClick={(event) => {
         event.preventDefault();
         if (!active) onSelect(view);
