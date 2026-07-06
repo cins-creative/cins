@@ -73,7 +73,15 @@ export function JourneyCardVideo({
   );
 
   useEffect(() => {
-    if (!playing) setIframeReady(false);
+    if (!playing) {
+      setIframeReady(false);
+      return;
+    }
+    /* Bunny iframe cross-origin thường không fire onLoad — không chặn poster/opacity mãi. */
+    const timer = window.setTimeout(() => {
+      setIframeReady(true);
+    }, 1200);
+    return () => window.clearTimeout(timer);
   }, [playing, url]);
 
   function renderPosterLayer(showLoading = false) {

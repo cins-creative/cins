@@ -5,7 +5,27 @@ import type { NextConfig } from "next";
 /** Trỏ Turbopack về đúng app root — tránh đọc lockfile ở thư mục cha và bỏ qua `.env.local` của repo. */
 const projectRoot = path.dirname(fileURLToPath(import.meta.url));
 
+function pickEnv(...keys: string[]): string {
+  for (const key of keys) {
+    const value = process.env[key]?.trim();
+    if (value) return value;
+  }
+  return "";
+}
+
 const nextConfig: NextConfig = {
+  /** Client Journey video — fallback tên env server / typo CND trong `.env.local`. */
+  env: {
+    NEXT_PUBLIC_BUNNY_LIBRARY_ID: pickEnv(
+      "NEXT_PUBLIC_BUNNY_LIBRARY_ID",
+      "BUNNY_LIBRARY_ID",
+    ),
+    NEXT_PUBLIC_BUNNY_CDN_HOSTNAME: pickEnv(
+      "NEXT_PUBLIC_BUNNY_CDN_HOSTNAME",
+      "BUNNY_CDN_HOSTNAME",
+      "BUNNY_CND_HOSTNAME",
+    ),
+  },
   /** Một bản ProseMirror/Tiptap — tránh RangeError gapcursor khi split chunk. */
   transpilePackages: [
     "@tiptap/react",

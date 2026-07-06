@@ -1467,6 +1467,10 @@ export function EditorView({
         }
       }
       if (type === "imgs") {
+        if (isMinimalMediaCompose && hasBunnyVideoBlock) {
+          setToast("Không thể thêm album khi đã có video.");
+          return;
+        }
         setOpenAddIdx(null);
         const extendAlbum = isInsertIndexAdjacentToAlbumRun(
           blocksRef.current,
@@ -1479,10 +1483,6 @@ export function EditorView({
         return;
       }
       if (isMinimalMediaCompose) {
-        if (hasBunnyVideoBlock && type === "imgs") {
-          setToast("Không thể thêm album khi đã có video.");
-          return;
-        }
         if (hasPhotoBlocks && type === "embed") {
           setToast("Không thể thêm video vào bài album ảnh.");
           return;
@@ -3959,13 +3959,13 @@ function enrichBunnyEmbedBlocksForPublish(
 ): ServerBlock[] {
   return blocks.map((block) => {
     if (block.loai !== "embed") return block;
-    const url = String(block.config.url ?? "").trim();
+    const url = String(block.config?.url ?? "").trim();
     const bunny = classifyBunnyVideoUrl(url);
     if (!bunny) return block;
     return {
       ...block,
       config: {
-        ...block.config,
+        ...(block.config ?? {}),
         bunnyVideoId: bunny.videoId,
         ...(!isEdit ? { videoProcessing: true } : {}),
       },

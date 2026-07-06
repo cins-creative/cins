@@ -22,6 +22,7 @@ import {
   milestonesToShareGalleryItems,
   PORTFOLIO_ALL_FILTER_SHARE_SPEC,
   type JourneyGalleryFilterShareSpec,
+  type ShareGallerySourceItem,
 } from "@/lib/journey/gallery-filter-share";
 import type { GalleryMainItem } from "@/lib/journey/gallery-page-fetch";
 import {
@@ -152,7 +153,7 @@ export function JourneyProfileShareModal({
     let cancelled = false;
 
     const applyFiltered = (
-      sources: Parameters<typeof mergeShareGallerySources>[0],
+      sources: ReadonlyArray<ReadonlyArray<ShareGallerySourceItem>>,
     ) => {
       const merged = mergeShareGallerySources(...sources);
       const filtered = filterGalleryItemsForShare(merged, filterSpec);

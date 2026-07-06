@@ -1,47 +1,29 @@
-import type { Metadata } from "next";
-import { Suspense } from "react";
-
-import { JourneyProfilePageLoader } from "@/app/[slug]/_components/JourneyProfilePageLoader";
-import { JourneyProfilePageSkeleton } from "@/app/[slug]/_components/JourneyProfilePage.skeleton";
-import { CinsShell } from "@/components/cins/CinsShell";
+import {
+  journeyPageGenerateMetadata,
+  JourneyPageRoute,
+  type JourneyMetadataSearchParams,
+  type JourneyPageParams,
+  type JourneyPageSearchParams,
+} from "@/app/[slug]/_lib/journey-page-route";
 
 export const dynamic = "force-dynamic";
 
-type Params = Promise<{ slug: string }>;
-
 export async function generateMetadata({
-  params,
-}: {
-  params: Params;
-}): Promise<Metadata> {
-  const { slug } = await params;
-  return {
-    title: `Journey · ${slug} · CINS`,
-    description: `Hành trình sáng tạo của ${slug} trên CINS.`,
-    robots: { index: false, follow: false },
-  };
-}
-type SearchParams = Promise<{
-  welcome?: string;
-  view?: string;
-  compose?: string;
-  edit?: string;
-}>;
-
-export async function renderJourneyPage({
   params,
   searchParams,
 }: {
-  params: Params;
-  searchParams: SearchParams;
+  params: JourneyPageParams;
+  searchParams?: JourneyMetadataSearchParams;
 }) {
-  return (
-    <CinsShell data-screen-label="Journey">
-      <Suspense fallback={<JourneyProfilePageSkeleton />}>
-        <JourneyProfilePageLoader params={params} searchParams={searchParams} />
-      </Suspense>
-    </CinsShell>
-  );
+  return journeyPageGenerateMetadata({ params, searchParams });
 }
 
-export default renderJourneyPage;
+export default async function JourneyPage({
+  params,
+  searchParams,
+}: {
+  params: JourneyPageParams;
+  searchParams: JourneyPageSearchParams;
+}) {
+  return JourneyPageRoute({ params, searchParams });
+}

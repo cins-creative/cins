@@ -40,7 +40,6 @@ export function resolveWorldJourneyFeedSortable(
     month: milestone.month,
     day: milestone.day,
     createdAt: milestone.createdAt,
-    taoLuc: milestone.taoLuc,
     visibility: milestone.visibility,
     id: milestone.id,
   };
