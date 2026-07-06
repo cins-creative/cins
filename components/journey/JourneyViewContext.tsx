@@ -51,6 +51,12 @@ export function JourneyViewProvider({
     setViewState(initialView);
   }, [initialView]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const fromUrl = viewFromSearch(window.location.search);
+    setViewState((current) => (current === fromUrl ? current : fromUrl));
+  }, []);
+
   const setView = useCallback(
     (next: JourneyProfileView) => {
       setViewState(next);

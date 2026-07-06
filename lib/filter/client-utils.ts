@@ -20,8 +20,12 @@ export function buildPersonalFilterSearchUrl(
   filterSlug: string | null,
 ): string {
   const params = new URLSearchParams(search);
-  if (filterSlug) params.set("filter", filterSlug);
-  else params.delete("filter");
+  if (filterSlug) {
+    params.set("filter", filterSlug);
+    params.delete("nhom");
+  } else {
+    params.delete("filter");
+  }
   const q = params.toString();
   return q ? `${pathname}?${q}` : pathname;
 }

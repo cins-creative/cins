@@ -16,6 +16,7 @@ import {
   fetchGalleryItemsForShare,
   filterGalleryItemsForShare,
   galleryFilterShareUrl,
+  galleryFilterSpecFromSearch,
   galleryThumbsForShareSpec,
   mergeShareGallerySources,
   milestonesToShareGalleryItems,
@@ -26,7 +27,6 @@ import type { GalleryMainItem } from "@/lib/journey/gallery-page-fetch";
 import {
   buildSocialShareItems,
   copyTextToClipboard,
-  galleryShareUrl,
   JOURNEY_SHARE_CARD_VARIANTS,
   journeyShareUrl,
   openFacebookShare,
@@ -233,9 +233,10 @@ export function JourneyProfileShareModal({
 
   const cardTargetUrl =
     cardKind === "gallery"
-      ? portfolioFilter && portfolioFilter.kind !== "all"
-        ? galleryFilterShareUrl(profile.slug, portfolioFilter)
-        : galleryShareUrl(profile.slug)
+      ? galleryFilterShareUrl(
+          profile.slug,
+          portfolioFilter ?? PORTFOLIO_ALL_FILTER_SHARE_SPEC,
+        )
       : journeyShareUrl(profile.slug);
 
   const cardProfile: JourneyShareProfile = {
@@ -396,7 +397,11 @@ export function JourneyProfileShareModal({
                 type="button"
                 className="j-share-menu-item"
                 onClick={() => {
-                  setPortfolioFilter(PORTFOLIO_ALL_FILTER_SHARE_SPEC);
+                  setPortfolioFilter(
+                    typeof window !== "undefined"
+                      ? galleryFilterSpecFromSearch(window.location.search)
+                      : PORTFOLIO_ALL_FILTER_SHARE_SPEC,
+                  );
                   setStep("gallery-card");
                 }}
               >

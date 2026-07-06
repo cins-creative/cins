@@ -52,6 +52,10 @@ import {
 import type { PendingCoAuthorInvite } from "@/lib/social/types";
 import type { PendingCoSoStaffInviteNotification } from "@/lib/to-chuc/co-so-staff-invite";
 import type { OutboundMembershipPending } from "@/lib/journey/membership-milestone-types";
+import {
+  buildGalleryGroupFilterSearchUrl,
+  galleryGroupFromSearch,
+} from "@/lib/journey/gallery-filter-share";
 import { matchesPersonalFilterSlug } from "@/lib/filter/client-utils";
 import { CONG_DONG_PERSONAL_FILTER_SLUG } from "@/lib/filter/cong-dong-personal-filter.shared";
 import { useJourneyPersonalFilterOptional } from "@/components/journey/JourneyPersonalFilterContext";
@@ -119,7 +123,20 @@ export function JourneyTimeline({
   scrollLoad,
 }: Props) {
   const personalFilter = useJourneyPersonalFilterOptional();
-  const [filter, setFilter] = useState<FilterGroup>("all");
+  const [filter, setFilter] = useState<FilterGroup>(() => {
+    if (typeof window === "undefined") return "all";
+    return galleryGroupFromSearch(window.location.search) ?? "all";
+  });
+  const handleFilterChange = useCallback((group: FilterGroup) => {
+    setFilter(group);
+    if (typeof window === "undefined") return;
+    const href = buildGalleryGroupFilterSearchUrl(
+      window.location.pathname,
+      window.location.search,
+      group,
+    );
+    window.history.replaceState(window.history.state, "", href);
+  }, []);
   const [items, setItems] = useState<MilestoneItem[]>(() => [...initialMilestones]);
   const [hasMore, setHasMore] = useState(scrollLoad?.hasMore ?? false);
   const [nextOffset, setNextOffset] = useState(
@@ -183,6 +200,10 @@ export function JourneyTimeline({
       return;
     }
     if (personalFilter?.activeSlug) setFilter("all");
+    else {
+      const group = galleryGroupFromSearch(window.location.search);
+      if (group) setFilter(group);
+    }
   }, [personalFilter?.activeSlug, personalFilter]);
 
   const personalFilterSlug = personalFilter?.activeSlug ?? null;
@@ -541,7 +562,7 @@ export function JourneyTimeline({
         year={spy.year}
         month={spy.month}
         filter={filter}
-        onFilterChange={setFilter}
+        onFilterChange={handleFilterChange}
         options={options}
         enabled={isOwner || hasData}
         isOwner={isOwner}

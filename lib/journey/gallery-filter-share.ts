@@ -1,9 +1,26 @@
 import type { FilterGroup } from "@/components/journey/JourneyTimelineBar";
 import type { MilestoneItem } from "@/components/journey/milestone-types";
-import { matchesPersonalFilterSlug } from "@/lib/filter/client-utils";
+import {
+  matchesPersonalFilterSlug,
+  personalFilterSlugFromSearch,
+} from "@/lib/filter/client-utils";
 import type { GalleryMainItem } from "@/lib/journey/gallery-page-fetch";
 import { filterByGroup } from "@/lib/journey/milestone-filter-options";
 import { absoluteShareUrl } from "@/lib/journey/profile-share";
+
+/** Nhãn dropdown filter timeline/gallery — dùng cho share URL + modal. */
+export const FILTER_GROUP_LABELS: Record<FilterGroup, string> = {
+  all: "Tất cả",
+  hoc: "Học tập",
+  lam: "Công việc",
+  "du-an": "Dự án",
+  "su-kien": "Sự kiện",
+  "thanh-tuu": "Thành tựu",
+  "ca-nhan": "Cá nhân",
+  bookmark: "Lưu về",
+  verified: "Verified",
+  "cong-dong": "Cộng đồng",
+};
 
 /** Spec lọc gallery khi chia sẻ từ dropdown filter timeline / gallery. */
 export type JourneyGalleryFilterShareSpec =
@@ -47,6 +64,53 @@ export function galleryFilterShareUrl(
   }
   const qs = params.toString();
   return absoluteShareUrl(`/${encodeURIComponent(slug)}?${qs}`);
+}
+
+/** Chia sẻ Portfolio toàn bộ — tương đương filter dropdown "Tất cả". */
+export const PORTFOLIO_ALL_FILTER_SHARE_SPEC: JourneyGalleryFilterShareSpec = {
+  kind: "all",
+  label: "Tất cả",
+};
+
+/** Ghi `nhom` lên URL khi đổi filter nhóm (giữ các param khác, xóa nhãn riêng). */
+export function buildGalleryGroupFilterSearchUrl(
+  pathname: string,
+  search: string,
+  group: FilterGroup,
+): string {
+  const params = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);
+  if (group === "all") {
+    params.delete("nhom");
+  } else {
+    params.set("nhom", group);
+  }
+  params.delete("filter");
+  const q = params.toString();
+  return q ? `${pathname}?${q}` : pathname;
+}
+
+/** Đọc filter đang active từ query — dùng khi mở modal chia sẻ Portfolio. */
+export function galleryFilterSpecFromSearch(
+  search: string,
+): JourneyGalleryFilterShareSpec {
+  const q = search.startsWith("?") ? search.slice(1) : search;
+  const personalSlug = personalFilterSlugFromSearch(q);
+  if (personalSlug) {
+    return {
+      kind: "personal-label",
+      slug: personalSlug,
+      label: personalSlug,
+    };
+  }
+  const group = galleryGroupFromSearch(q);
+  if (group) {
+    return {
+      kind: "group",
+      group,
+      label: FILTER_GROUP_LABELS[group],
+    };
+  }
+  return PORTFOLIO_ALL_FILTER_SHARE_SPEC;
 }
 
 export type ShareGallerySourceItem = Pick<
@@ -145,9 +209,3 @@ export function dispatchJourneyShareOpen(): void {
   if (typeof window === "undefined") return;
   window.dispatchEvent(new CustomEvent(JOURNEY_SHARE_OPEN_EVENT));
 }
-
-/** Chia sẻ Portfolio toàn bộ — tương đương filter dropdown "Tất cả". */
-export const PORTFOLIO_ALL_FILTER_SHARE_SPEC: JourneyGalleryFilterShareSpec = {
-  kind: "all",
-  label: "Tất cả",
-};

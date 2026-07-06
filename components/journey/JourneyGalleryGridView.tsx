@@ -45,7 +45,10 @@ import {
   galleryDisplayHref,
   type GalleryDisplay,
 } from "@/lib/journey/gallery-display-url";
-import { galleryGroupFromSearch } from "@/lib/journey/gallery-filter-share";
+import {
+  buildGalleryGroupFilterSearchUrl,
+  galleryGroupFromSearch,
+} from "@/lib/journey/gallery-filter-share";
 
 /** Chế độ xem gallery: `card` (mặc định, có bảng thông tin trắng dưới ảnh) hoặc
  *  `grid` (lưới gọn, thông tin hiện khi hover). URL: `?view=gallery` · `?view=gallery&display=luoi`. */
@@ -248,6 +251,16 @@ export function JourneyGalleryGridView({
     if (typeof window === "undefined") return "all";
     return galleryGroupFromSearch(window.location.search) ?? "all";
   });
+  const handleTypeFilterChange = useCallback((group: FilterGroup) => {
+    setTypeFilter(group);
+    if (typeof window === "undefined") return;
+    const href = buildGalleryGroupFilterSearchUrl(
+      window.location.pathname,
+      window.location.search,
+      group,
+    );
+    window.history.replaceState(window.history.state, "", href);
+  }, []);
   const [mediaFilter, setMediaFilter] = useState<GalleryMediaFilter>("all");
   const effectiveView: GalleryViewMode = hideToolbar ? "grid" : displayView;
   const [galleryItems, setGalleryItems] = useState<GalleryMainItem[]>(() =>
@@ -474,7 +487,7 @@ export function JourneyGalleryGridView({
               <JourneyTimelineBar
                 embed
                 filter={typeFilter}
-                onFilterChange={setTypeFilter}
+                onFilterChange={handleTypeFilterChange}
                 options={typeOptions}
                 enabled={hasData}
                 isOwner={isOwner}
