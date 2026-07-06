@@ -2,7 +2,9 @@ import {
   CO_SO_DAO_TAO_HUB_PATH,
   isCoSoDaoTaoHubPath,
   isNgheNghiepHubPath,
+  isTimKhoaHocHubPath,
   NGHE_NGHIEP_HUB_PATH,
+  TIM_KHOA_HOC_HUB_PATH,
 } from "@/lib/cins/hubPaths";
 
 export type MainNavIcon =
@@ -64,11 +66,11 @@ export const MAIN_NAV_ITEMS: MainNavItem[] = [
   },
   {
     id: "courses",
-    href: "/#courses",
+    href: TIM_KHOA_HOC_HUB_PATH,
     label: "Tìm khoá học",
     tip: "Khoá học online & offline — từ nhập môn cho học sinh đến chuyên sâu cho người đi làm",
     icon: "courses",
-    isActive: () => false,
+    isActive: isTimKhoaHocHubPath,
   },
   {
     id: "community",

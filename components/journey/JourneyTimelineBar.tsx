@@ -26,8 +26,14 @@ import {
 import { createPortal } from "react-dom";
 
 import { updateLoaiMocVisibility } from "@/app/[slug]/journey/visibility-actions";
+import { JourneyFilterShareButton } from "@/components/journey/JourneyFilterShareButton";
+import { useJourneyFilterShareOptional } from "@/components/journey/JourneyFilterShareContext";
 import { JourneyPersonalFilterMenuSection } from "@/components/journey/JourneyPersonalFilterMenuSection";
 import { useJourneyPersonalFilterOptional } from "@/components/journey/JourneyPersonalFilterContext";
+import {
+  JOURNEY_SHARE_OPEN_EVENT,
+  PORTFOLIO_ALL_FILTER_SHARE_SPEC,
+} from "@/lib/journey/gallery-filter-share";
 import type { MilestoneType } from "@/components/journey/milestone-types";
 import { DEFAULT_FILTER_MAU } from "@/lib/filter/constants";
 import { CONG_DONG_PERSONAL_FILTER_MAU } from "@/lib/filter/cong-dong-personal-filter.shared";
@@ -193,6 +199,12 @@ export function JourneyTimelineBar({
     setPortalReady(true);
   }, []);
 
+  useEffect(() => {
+    const closeMenu = () => setOpen(false);
+    window.addEventListener(JOURNEY_SHARE_OPEN_EVENT, closeMenu);
+    return () => window.removeEventListener(JOURNEY_SHARE_OPEN_EVENT, closeMenu);
+  }, []);
+
   const onToggleVis = (key: LoaiMocFilterKey) => {
     const current = getVisibility(visState, key);
     const next: FilterVisibility = current === "public" ? "private" : "public";
@@ -340,6 +352,7 @@ export function JourneyTimelineBar({
                 ? () => onToggleVis(opt.group as LoaiMocFilterKey)
                 : undefined
             }
+            onShareMenuClose={() => setOpen(false)}
           />
         ))}
         {statusOptions.length > 0 ? (
@@ -362,6 +375,7 @@ export function JourneyTimelineBar({
                 }
                 isOwner={isOwner}
                 visibility={null}
+                onShareMenuClose={() => setOpen(false)}
               />
             ))}
           </>
@@ -432,6 +446,7 @@ function DropdownItem({
   isOwner,
   visibility,
   onToggleVis,
+  onShareMenuClose,
 }: {
   opt: Option;
   active: boolean;
@@ -441,7 +456,9 @@ function DropdownItem({
   visibility: FilterVisibility | null;
   /** Toggle handler — chỉ truyền khi visibility != null && owner. */
   onToggleVis?: () => void;
+  onShareMenuClose?: () => void;
 }) {
+  const filterShare = useJourneyFilterShareOptional();
   const cls = [
     "j-dd-opt",
     opt.modifier === "verified" && "j-dd-opt--verified",
@@ -469,6 +486,25 @@ function DropdownItem({
         <span className="j-dd-lbl">{opt.label}</span>
         <span className="j-dd-n">{opt.count}</span>
       </button>
+      <JourneyFilterShareButton
+        label={opt.label}
+        onShare={
+          filterShare
+            ? () => {
+                filterShare.openGalleryFilterShare(
+                  opt.group === "all"
+                    ? PORTFOLIO_ALL_FILTER_SHARE_SPEC
+                    : {
+                        kind: "group",
+                        group: opt.group,
+                        label: opt.label,
+                      },
+                );
+                onShareMenuClose?.();
+              }
+            : undefined
+        }
+      />
       {showToggle ? (
         <button
           type="button"

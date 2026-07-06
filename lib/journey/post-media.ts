@@ -2,6 +2,7 @@ import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import type { Block, LoaiMoc, Visibility } from "@/lib/editor/types";
 import { classifyBunnyVideoUrl } from "@/lib/bunny/embed";
 import type { ComposeIntent } from "@/lib/journey/compose-types";
+import { extractVideoCanvasRatio } from "@/lib/journey/video-canvas-ratio";
 import { isPersistedImageSeed } from "@/lib/truong/image-ref";
 import { textPanelNeedsCollapse } from "@/lib/journey/text-panel-tone";
 import type { BaiDangLoai } from "@/lib/truong/bai-dang";
@@ -716,6 +717,7 @@ export type MediaEditInitial = {
   articleTags?: ArticleTagRef[];
   photoImageIds?: string[];
   videoUrl?: string;
+  videoCanvasRatio?: import("@/lib/journey/video-canvas-ratio").VideoCanvasRatio;
   personalFilterIds?: string[];
   orgBaiDangLoai?: BaiDangLoai;
   orgBaiDangSchedulePublishAt?: string | null;
@@ -754,6 +756,10 @@ export function buildMediaEditInitial(params: {
     videoUrl:
       params.kind === "video"
         ? (extractVideoUrl(params.blocks) ?? "")
+        : undefined,
+    videoCanvasRatio:
+      params.kind === "video"
+        ? (extractVideoCanvasRatio(params.blocks) ?? undefined)
         : undefined,
     personalFilterIds: params.personalFilterIds,
     orgBaiDangLoai: params.orgBaiDangLoai,

@@ -1,12 +1,14 @@
 "use client";
 
-import { Mail, Share2 } from "lucide-react";
+import { Mail } from "lucide-react";
 import { useState } from "react";
 
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
 import { JourneyFollowButton } from "@/components/journey/JourneyFollowButton";
+import { JourneyProfileShareTrigger } from "@/components/journey/JourneyProfileShareTrigger";
 import { JourneyUserFollowButton } from "@/components/journey/JourneyUserFollowButton";
 import type { ChatPeerPreview } from "@/lib/chat/types";
+import type { JourneyShareProfile } from "@/lib/journey/profile-share";
 import type { useKetBanStatus } from "@/lib/social/use-ket-ban-status";
 
 type KetBanState = ReturnType<typeof useKetBanStatus>;
@@ -16,6 +18,7 @@ type Props = {
   viewerProfileId: string | null;
   ketBan: KetBanState;
   chatPeerPreview: Omit<ChatPeerPreview, "userId">;
+  shareProfile: JourneyShareProfile;
 };
 
 export function JourneyProfileGuestActions({
@@ -23,6 +26,7 @@ export function JourneyProfileGuestActions({
   viewerProfileId,
   ketBan,
   chatPeerPreview,
+  shareProfile,
 }: Props) {
   const { openChat } = useCinsChat();
   const [error, setError] = useState<string | null>(null);
@@ -63,16 +67,11 @@ export function JourneyProfileGuestActions({
           ready={ketBan.ready}
           refreshStatus={ketBan.refresh}
         />
-        <button
-          type="button"
-          className="j-act-btn j-act-btn--icon"
-          title="Chia sẻ"
-          disabled
-          aria-label="Chia sẻ"
-        >
-          <Share2 size={17} strokeWidth={2} aria-hidden />
-          <span className="j-act-btn-cap">Chia sẻ</span>
-        </button>
+        <JourneyProfileShareTrigger
+          shareProfile={shareProfile}
+          viewerProfileId={viewerProfileId}
+          variant="icon-row"
+        />
       </div>
     </div>
   );

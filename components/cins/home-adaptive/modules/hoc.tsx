@@ -15,7 +15,7 @@ import {
   linhVucHubHref,
   mapLinhVucForGuestAside,
 } from "@/lib/cins/worldJourneyGuestAside";
-import { NGHE_NGHIEP_HUB_PATH } from "@/lib/cins/hubPaths";
+import { NGHE_NGHIEP_HUB_PATH, TIM_KHOA_HOC_HUB_PATH } from "@/lib/cins/hubPaths";
 import { listCoSoDaoTaoForListing } from "@/lib/to-chuc/listing-queries";
 
 /** HỌC · Lĩnh vực. */
@@ -101,7 +101,7 @@ export async function DuongToiDoModule({ ctx }: { ctx: HomeModuleCtx }) {
 export async function KhoaHocGoiYModule(_props: { ctx: HomeModuleCtx }) {
   const courses = await loadKhoaHocGoiY(4);
   return (
-    <ModuleCard icon={BookOpen} title="Khóa học hợp với bạn" moreHref="/co-so-dao-tao">
+    <ModuleCard icon={BookOpen} title="Khóa học hợp với bạn" moreHref={TIM_KHOA_HOC_HUB_PATH}>
       {courses.length === 0 ? (
         <ModuleEmpty>Chưa có khóa học từ cơ sở đào tạo — sẽ cập nhật sớm.</ModuleEmpty>
       ) : (

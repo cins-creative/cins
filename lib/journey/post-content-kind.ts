@@ -1,17 +1,19 @@
 import type { Block } from "@/lib/editor/types";
 import {
-  buildBunnyVideoThumbnailUrl,
   classifyBunnyVideoUrl,
 } from "@/lib/bunny/embed";
 import {
   blocksAreMediaCaptionOnly,
   blocksAreTextPanelOnly,
   extractAllImageIds,
-  extractVideoUrl,
   hasArticleLayoutBlocks,
   type GalleryMediaKind,
 } from "@/lib/journey/post-media";
 import { extractVideoProcessingMeta } from "@/lib/journey/video-processing-meta";
+import {
+  resolveBunnyVideoPreviewMp4FromBlocks,
+  resolveBunnyVideoThumbnailFromBlocks,
+} from "@/lib/journey/video-embed";
 import { isPersistedImageSeed } from "@/lib/truong/image-ref";
 
 /** Loại hiển thị nội dung — source of truth Phase 1+. */
@@ -506,11 +508,13 @@ export type PostGridEntry = {
   coverId: string | null;
   coverSrc: string | null;
   videoProcessing: boolean;
+  /** MP4 Bunny — gallery hiển thị frame đầu khi không có thumbnail. */
+  videoPreviewSrc: string | null;
 };
 
 /**
  * Quyết định bài có lên grid không + thumb nào.
- * Trả `null` khi ẩn (text thuần, video đang encode, không có thumb).
+ * Trả `null` khi ẩn (text thuần, album/article không có ảnh). Video Bunny luôn lên grid.
  */
 export function resolvePostGridEntry(
   input: PostContentResolveInput,
@@ -531,18 +535,15 @@ export function resolvePostGridEntry(
   const videoProcessing =
     resolution.kind === "bunny_video" && processingMeta?.processing === true;
 
-  if (videoProcessing) return null;
-
   if (resolution.kind === "bunny_video") {
-    const videoUrl = extractVideoUrl(blocks);
-    const bunny = videoUrl ? classifyBunnyVideoUrl(videoUrl) : null;
-    const coverSrc = bunny ? buildBunnyVideoThumbnailUrl(bunny.videoId) : null;
-    if (!coverSrc && !coverTrimmed) return null;
+    const coverSrc = resolveBunnyVideoThumbnailFromBlocks(blocks);
+    const videoPreviewSrc = resolveBunnyVideoPreviewMp4FromBlocks(blocks);
     return {
       mediaKind: "video",
       coverId: coverTrimmed,
       coverSrc,
-      videoProcessing: false,
+      videoProcessing,
+      videoPreviewSrc,
     };
   }
 
@@ -568,5 +569,6 @@ export function resolvePostGridEntry(
     coverId: thumbId,
     coverSrc: null,
     videoProcessing: false,
+    videoPreviewSrc: null,
   };
 }

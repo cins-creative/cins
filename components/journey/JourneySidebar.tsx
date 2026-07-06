@@ -5,14 +5,15 @@ import {
   Link2,
   MapPin,
   Pencil,
-  Share2,
 } from "lucide-react";
 
 import type { EditProfileInitial } from "@/components/journey/JourneyEditProfileModal";
 import { JourneyAvatarTrigger } from "@/components/journey/JourneyAvatarTrigger";
 import { JourneyCoverTrigger } from "@/components/journey/JourneyCoverTrigger";
 import { JourneyProfileGuestSection } from "@/components/journey/JourneyProfileGuestSection";
+import { JourneyProfileShareTrigger } from "@/components/journey/JourneyProfileShareTrigger";
 import { JourneySidebarOwnerActions } from "@/components/journey/JourneySidebarOwnerActions";
+import type { JourneyShareProfile } from "@/lib/journey/profile-share";
 import type { GiaiDoan } from "@/lib/auth/session";
 import {
   formatTinhThanh,
@@ -97,6 +98,17 @@ export function JourneySidebar({
   /* "Vai trò" tạm dùng giai_doan label. Sau này có thể thay bằng vai trò tự nhập. */
   const roleLine = getGiaiDoanLabel(profile.giaiDoan);
 
+  const shareProfile: JourneyShareProfile = {
+    slug: profile.slug,
+    displayName: profile.tenHienThi || profile.slug,
+    initials,
+    avatarUrl,
+    coverUrl,
+    bio: profile.bio,
+    roleLine,
+    locationLine: cityLabel,
+  };
+
   return (
     <aside className="j-sidebar" aria-label="Hồ sơ người dùng">
       {isOwner ? (
@@ -156,26 +168,24 @@ export function JourneySidebar({
             avatarUrl,
             avatarInitial: initials,
           }}
+          shareProfile={shareProfile}
         />
       ) : editProfileInitial ? (
         <JourneySidebarOwnerActions
           ownerSlug={profile.slug}
           initial={editProfileInitial}
+          shareProfile={shareProfile}
+          viewerProfileId={viewerProfileId}
         />
       ) : (
         <div className="j-profile-actions">
           <button type="button" className="j-btn-msg" disabled>
             <Pencil size={14} strokeWidth={1.8} aria-hidden /> Chỉnh sửa hồ sơ
           </button>
-          <button
-            type="button"
-            className="j-btn-icon"
-            title="Chia sẻ Journey"
-            disabled
-            aria-label="Chia sẻ"
-          >
-            <Share2 size={14} strokeWidth={1.8} aria-hidden />
-          </button>
+          <JourneyProfileShareTrigger
+            shareProfile={shareProfile}
+            viewerProfileId={viewerProfileId}
+          />
         </div>
       )}
 

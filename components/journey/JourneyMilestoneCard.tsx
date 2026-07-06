@@ -170,6 +170,16 @@ function usesOrgVerifyTypeBadge(
   return Boolean(verifiedBy?.trim()) && type === "ca-nhan" && !isCongDongPost;
 }
 
+/** Org xác thực milestone — bar «Đã xác thực bởi», không phải via-bar «Được gắn bởi». */
+function attributionUsesVerifyBar(
+  attr: MilestoneAttribution | null | undefined,
+  variant: MilestoneItem["variant"],
+): boolean {
+  if (!attr?.isOrg || attr.orgKind === "cong_dong") return false;
+  if (attr.orgKind === "truong") return true;
+  return variant === "verified";
+}
+
 function MilestoneVerifyBadge() {
   return <span className="verify-badge">Verify</span>;
 }
@@ -569,10 +579,9 @@ export function JourneyMilestoneCard({
   const showOrgVerifyBadge = usesOrgVerifyTypeBadge(type, verifiedBy, isCongDongPost);
   const showsTruongVerifyBar =
     Boolean(
-      attribution?.isOrg &&
-        attribution.orgKind === "truong" &&
-        (variant === "tagged" || variant === "verified") &&
-        !useForeignFrame,
+      (variant === "tagged" || variant === "verified") &&
+        !useForeignFrame &&
+        attributionUsesVerifyBar(attribution, variant),
     );
   const showMilestoneVerifyBadge =
     !showsTruongVerifyBar &&
@@ -1252,7 +1261,11 @@ export function JourneyMilestoneCard({
             !useForeignFrame &&
             !entityLens &&
             !showsTruongVerifyBar ? (
-              <TaggedByPanel attr={attribution} dateLabel={displayDate} />
+              <TaggedByPanel
+                attr={attribution}
+                dateLabel={displayDate}
+                variant={variant}
+              />
             ) : null
           ) : null}
 
@@ -1390,7 +1403,11 @@ export function JourneyMilestoneCard({
               attribution &&
               !useForeignFrame &&
               !showsTruongVerifyBar ? (
-                <TaggedByPanel attr={attribution} dateLabel={displayDate} />
+                <TaggedByPanel
+                attr={attribution}
+                dateLabel={displayDate}
+                variant={variant}
+              />
               ) : null}
               {isCongDongPost && congDongOrg ? (
                 <CongDongSourceChip
@@ -2050,11 +2067,13 @@ function TruongVerifyBar({ attr }: { attr: MilestoneAttribution }) {
 function TaggedByPanel({
   attr,
   dateLabel,
+  variant,
 }: {
   attr: MilestoneAttribution;
   dateLabel: string;
+  variant: MilestoneItem["variant"];
 }) {
-  if (attr.isOrg && attr.orgKind === "truong") {
+  if (attributionUsesVerifyBar(attr, variant)) {
     return <TruongVerifyBar attr={attr} />;
   }
 

@@ -3706,6 +3706,15 @@
   background: #000;
   aspect-ratio: 16 / 9;
 }
+.cins-editor-page.mc-compose-page .mc-video-preview.is-canvas-1-1 {
+  aspect-ratio: 1 / 1;
+}
+.cins-editor-page.mc-compose-page .mc-video-preview.is-canvas-3-4 {
+  aspect-ratio: 3 / 4;
+}
+.cins-editor-page.mc-compose-page .mc-video-preview.is-canvas-16-9 {
+  aspect-ratio: 16 / 9;
+}
 .cins-editor-page.mc-compose-page .mc-video-preview--local .mc-video-uploading {
   position: absolute;
   inset: auto 12px 12px 12px;

@@ -1,16 +1,20 @@
 "use client";
 
-import { Pencil, Share2 } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { useState } from "react";
 
 import {
   JourneyEditProfileModal,
   type EditProfileInitial,
 } from "@/components/journey/JourneyEditProfileModal";
+import { JourneyProfileShareTrigger } from "@/components/journey/JourneyProfileShareTrigger";
+import type { JourneyShareProfile } from "@/lib/journey/profile-share";
 
 type Props = {
   ownerSlug: string;
   initial: EditProfileInitial;
+  shareProfile: JourneyShareProfile;
+  viewerProfileId?: string | null;
 };
 
 /**
@@ -19,7 +23,12 @@ type Props = {
  * Tách riêng client component để JourneySidebar (server component) vẫn render
  * markup tĩnh, modal state nằm trong client-only boundary này.
  */
-export function JourneySidebarOwnerActions({ ownerSlug, initial }: Props) {
+export function JourneySidebarOwnerActions({
+  ownerSlug,
+  initial,
+  shareProfile,
+  viewerProfileId = null,
+}: Props) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -32,15 +41,10 @@ export function JourneySidebarOwnerActions({ ownerSlug, initial }: Props) {
         >
           <Pencil size={14} strokeWidth={1.8} aria-hidden /> Chỉnh sửa hồ sơ
         </button>
-        <button
-          type="button"
-          className="j-btn-icon"
-          title="Chia sẻ Journey"
-          disabled
-          aria-label="Chia sẻ"
-        >
-          <Share2 size={14} strokeWidth={1.8} aria-hidden />
-        </button>
+        <JourneyProfileShareTrigger
+          shareProfile={shareProfile}
+          viewerProfileId={viewerProfileId}
+        />
       </div>
 
       <JourneyEditProfileModal

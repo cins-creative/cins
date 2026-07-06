@@ -12,6 +12,15 @@ import {
 } from "@/lib/journey/post-media";
 import { resolvePostGridEntry } from "@/lib/journey/post-content-kind";
 import {
+  buildBunnyVideoMp4Url as buildBunnyVideoMp4UrlServer,
+  buildBunnyVideoThumbnailUrl as buildBunnyVideoThumbnailUrlServer,
+} from "@/lib/bunny/thumbnail";
+import {
+  bunnyVideoIdFromBlocks,
+  resolveBunnyEmbed,
+} from "@/lib/journey/video-embed";
+import { extractVideoUrl } from "@/lib/journey/post-media";
+import {
   loadVerifiedMetaForCotMocs,
   type VerifiedMilestoneMeta,
 } from "@/lib/journey/milestone-verify";
@@ -71,6 +80,8 @@ export type GalleryStub = {
   coverId: string | null;
   /** URL thumbnail trực tiếp (Bunny video / org cover). */
   coverSrc: string | null;
+  /** MP4 Bunny — frame đầu gallery khi không có thumbnail. */
+  videoPreviewSrc: string | null;
   videoProcessing: boolean;
   postOwnerId: string;
   type: MilestoneType;
@@ -102,6 +113,25 @@ function parseBlocks(raw: unknown): Block[] {
   return out;
 }
 
+function enrichVideoGridVisuals(
+  blocks: Block[],
+  gridEntry: NonNullable<ReturnType<typeof resolvePostGridEntry>>,
+): NonNullable<ReturnType<typeof resolvePostGridEntry>> {
+  if (gridEntry.mediaKind !== "video") return gridEntry;
+  const url = extractVideoUrl(blocks) ?? "";
+  const bunny = resolveBunnyEmbed(url, bunnyVideoIdFromBlocks(blocks));
+  if (!bunny) return gridEntry;
+  return {
+    ...gridEntry,
+    coverSrc:
+      gridEntry.coverSrc ??
+      buildBunnyVideoThumbnailUrlServer(bunny.videoId),
+    videoPreviewSrc:
+      gridEntry.videoPreviewSrc ??
+      buildBunnyVideoMp4UrlServer(bunny.videoId),
+  };
+}
+
 function rowToStub(
   r: GalleryRow,
   source: "self" | "tagged",
@@ -110,12 +140,13 @@ function rowToStub(
   const tp = r.content_tac_pham;
   if (!cm || !tp) return null;
   const blocks = parseBlocks(tp.noi_dung_blocks);
-  const gridEntry = resolvePostGridEntry({
+  const gridEntryRaw = resolvePostGridEntry({
     moTa: tp.mo_ta ?? cm.mo_ta,
     coverId: tp.cover_id,
     blocks,
   });
-  if (!gridEntry) return null;
+  if (!gridEntryRaw) return null;
+  const gridEntry = enrichVideoGridVisuals(blocks, gridEntryRaw);
   if (
     !gridEntry.coverId &&
     !gridEntry.coverSrc &&
@@ -136,6 +167,7 @@ function rowToStub(
     excerpt: galleryItemExcerptLine(cm.mo_ta, tp.mo_ta, blocks),
     coverId: gridEntry.coverId,
     coverSrc: gridEntry.coverSrc,
+    videoPreviewSrc: gridEntry.videoPreviewSrc,
     videoProcessing: gridEntry.videoProcessing,
     postOwnerId: tp.id_nguoi_dung,
     type: LOAI_MOC_TO_TYPE[cm.loai_moc],
@@ -258,6 +290,7 @@ async function fetchOrgCreateGalleryStubs(
       excerpt: row.mo_ta?.trim() || "",
       coverId: null,
       coverSrc: attr?.coverUrl ?? null,
+      videoPreviewSrc: null,
       videoProcessing: false,
       postOwnerId: userId,
       type: LOAI_MOC_TO_TYPE[row.loai_moc],

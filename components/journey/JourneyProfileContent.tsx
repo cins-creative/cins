@@ -15,6 +15,7 @@ import {
   prefetchJourneyOrganizationsView,
 } from "@/components/journey/journey-profile-lazy-views";
 import { JourneyComposeProvider } from "@/components/journey/JourneyComposeContext";
+import { JourneyFilterShareProvider } from "@/components/journey/JourneyFilterShareContext";
 import { BunnyVideoProcessingPoller } from "@/components/journey/BunnyVideoProcessingPoller";
 import { JourneyTimeline } from "@/components/journey/JourneyTimeline";
 import { JourneyPersonalFilterProvider } from "@/components/journey/JourneyPersonalFilterContext";
@@ -67,6 +68,8 @@ import {
   mergeMilestoneIntoTimeline,
   removeMilestoneByTacPhamId,
 } from "@/lib/journey/timeline-merge";
+import { getNameInitials } from "@/lib/journey/profile";
+import type { JourneyShareProfile } from "@/lib/journey/profile-share";
 
 export type JourneyProfileInitialData = {
   timeline?: JourneyTimelinePanelData;
@@ -655,8 +658,41 @@ export function JourneyProfileContent({
     };
   }, [ownerSlug, viewerProfileId, fetchTimeline, fetchGallery]);
 
+  const filterShareProfile: JourneyShareProfile = {
+    slug: ownerSlug,
+    displayName: ownerName || ownerSlug,
+    initials: getNameInitials(ownerName, ownerSlug),
+    avatarUrl: ownerAvatarUrl,
+    coverUrl: null,
+    bio: null,
+    roleLine: "",
+    stats:
+      galleryCache && galleryCache !== "loading" && galleryCache !== "error"
+        ? {
+            cotMoc:
+              timelineCache &&
+              timelineCache !== "loading" &&
+              timelineCache !== "error"
+                ? timelineCache.page.totalCount
+                : 0,
+            tacPham: galleryCache.totalCount,
+          }
+        : undefined,
+    galleryThumbs:
+      galleryCache && galleryCache !== "loading" && galleryCache !== "error"
+        ? galleryCache.items
+            .map((item) => item.src)
+            .filter(Boolean)
+            .slice(0, 6)
+        : undefined,
+  };
+
   return (
     <JourneyPersonalFilterProvider ownerId={ownerId} isOwner={isOwner}>
+      <JourneyFilterShareProvider
+        profile={filterShareProfile}
+        viewerProfileId={viewerProfileId}
+      >
       <JourneyComposeProvider
         ownerId={ownerId}
         ownerSlug={ownerSlug}
@@ -746,6 +782,7 @@ export function JourneyProfileContent({
         />
       )}
       </JourneyComposeProvider>
+      </JourneyFilterShareProvider>
     </JourneyPersonalFilterProvider>
   );
 }

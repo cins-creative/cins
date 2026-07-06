@@ -22,6 +22,7 @@ import {
 } from "@/lib/editor/resolve-image-seed-url";
 import type { Block } from "@/lib/editor/types";
 import { resolveBunnyEmbed } from "@/lib/journey/video-embed";
+import { videoCanvasRatioClass } from "@/lib/journey/video-canvas-ratio";
 import {
   flattenMosaicCells,
   normalizeLegacyLayout,
@@ -85,6 +86,14 @@ function resolveEmbedBunnyVideoId(cfg: Record<string, unknown>): string | null {
   const id =
     typeof cfg.bunnyVideoId === "string" ? cfg.bunnyVideoId.trim() : "";
   return id || null;
+}
+
+function resolveEmbedCanvasClass(cfg: Record<string, unknown>): string {
+  const ratio = cfg.videoCanvasRatio;
+  if (ratio === "16:9" || ratio === "1:1" || ratio === "3:4") {
+    return videoCanvasRatioClass(ratio);
+  }
+  return "";
 }
 
 /* Figma embed URL — bọc URL gốc qua proxy embed của Figma. */
@@ -209,9 +218,13 @@ function ReadOnlyBlock({ block }: { block: Block }) {
 
     const youtubeId = getYoutubeId(url);
     if (youtubeId) {
+      const canvasClass = resolveEmbedCanvasClass(cfg);
       return (
         <div
-          className="b-embed b-embed-ro is-iframe"
+          className={
+            "b-embed b-embed-ro is-iframe" +
+            (canvasClass ? ` ${canvasClass}` : "")
+          }
           data-provider="youtube"
         >
           <iframe
@@ -228,8 +241,15 @@ function ReadOnlyBlock({ block }: { block: Block }) {
 
     const bunny = resolveBunnyEmbed(url, bunnyVideoId);
     if (bunny) {
+      const canvasClass = resolveEmbedCanvasClass(cfg);
       return (
-        <div className="b-embed b-embed-ro is-iframe" data-provider="bunny">
+        <div
+          className={
+            "b-embed b-embed-ro is-iframe" +
+            (canvasClass ? ` ${canvasClass}` : "")
+          }
+          data-provider="bunny"
+        >
           <iframe
             src={bunnyIframeSrc(bunny)}
             title="Video"

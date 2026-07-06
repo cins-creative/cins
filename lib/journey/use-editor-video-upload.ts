@@ -6,6 +6,10 @@ import {
   registerVideoUpload,
   releaseVideoUpload,
 } from "@/lib/journey/video-upload-session";
+import {
+  probeVideoFileCanvasRatio,
+  type VideoCanvasRatio,
+} from "@/lib/journey/video-canvas-ratio";
 
 const MAX_VIDEO_BYTES = 500 * 1024 * 1024;
 const ENCODE_POLL_MS = 5_000;
@@ -29,6 +33,8 @@ export function useEditorVideoUpload() {
   const [localVideoPreviewUrl, setLocalVideoPreviewUrl] = useState<
     string | null
   >(null);
+  const [videoCanvasRatio, setVideoCanvasRatio] =
+    useState<VideoCanvasRatio | null>(null);
 
   const uploadSessionRef = useRef(0);
   const activeUploadRef = useRef<{ abort: () => void } | null>(null);
@@ -121,12 +127,17 @@ export function useEditorVideoUpload() {
       setBunnyVideoId(null);
       setVideoUploadProgress(0);
       setVideoEncodeReady(false);
+      setVideoCanvasRatio(null);
       setLocalVideoPreviewUrl((prev) => {
         if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
         return URL.createObjectURL(file);
       });
 
       try {
+        const canvasRatio = await probeVideoFileCanvasRatio(file);
+        if (session !== uploadSessionRef.current) return;
+        setVideoCanvasRatio(canvasRatio);
+
         const prepRes = await fetch("/api/post-video/prepare", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -230,6 +241,7 @@ export function useEditorVideoUpload() {
     videoEncodeReady,
     videoEncoding,
     localVideoPreviewUrl,
+    videoCanvasRatio,
     uploadVideoFile,
     abortActiveVideoUpload,
   };

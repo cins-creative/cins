@@ -2,6 +2,7 @@ import type { MilestoneItem } from "@/components/journey/milestone-types";
 import type { GalleryMainItem } from "@/lib/journey/gallery-page-fetch";
 import { galleryGridAssetFromCfUrl } from "@/lib/cloudflare/cf-variant-url";
 import { resolvePostGridEntry } from "@/lib/journey/post-content-kind";
+import { resolveBunnyVideoPreviewMp4FromBlocks } from "@/lib/journey/video-embed";
 import {
   galleryItemExcerptLine,
   galleryItemLabel,
@@ -74,6 +75,10 @@ export function worldJourneyMilestonesToGalleryItems(
       mediaKind,
       isVideo,
       videoProcessing: gridEntry?.videoProcessing,
+      videoPreviewSrc: isVideo
+        ? (gridEntry?.videoPreviewSrc ??
+          resolveBunnyVideoPreviewMp4FromBlocks(m.noiDungBlocks ?? []))
+        : null,
       cardLayout: m.cardLayout,
       orgAvatarUrl:
         m.attribution?.avatarUrl ??

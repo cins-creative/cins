@@ -13,6 +13,10 @@ import {
   buildVideoIframeSrc,
   bunnyVideoIdFromBlocks,
 } from "@/lib/journey/video-embed";
+import {
+  extractVideoCanvasRatio,
+  videoCanvasRatioClass,
+} from "@/lib/journey/video-canvas-ratio";
 
 type PreviewMedia = NonNullable<MilestoneItem["media"]>[number];
 
@@ -40,7 +44,7 @@ export function resolveVideoPoster(
 }
 
 /**
- * Video trên milestone card — chạm/click phát inline trong khung 16:9, không fullscreen.
+ * Video trên milestone card — chạm/click phát inline; khung canvas theo tỉ lệ upload.
  */
 export function JourneyCardVideo({
   url,
@@ -52,6 +56,9 @@ export function JourneyCardVideo({
   const [playing, setPlaying] = useState(false);
   const [iframeReady, setIframeReady] = useState(false);
   const posterSrc = resolveVideoPoster(url, preview);
+  const canvasClass = videoCanvasRatioClass(
+    extractVideoCanvasRatio(noiDungBlocks),
+  );
   const bunnyVideoId = useMemo(
     () => bunnyVideoIdFromBlocks(noiDungBlocks),
     [noiDungBlocks],
@@ -99,7 +106,10 @@ export function JourneyCardVideo({
   if (playing) {
     if (processing) {
       return (
-        <div className="jcard-video-player" onClick={(e) => e.stopPropagation()}>
+        <div
+          className={`jcard-video-player ${canvasClass}`}
+          onClick={(e) => e.stopPropagation()}
+        >
           <MilestoneVideoEmbed
             url={url}
             title={title}
@@ -114,7 +124,8 @@ export function JourneyCardVideo({
       return (
         <div
           className={
-            "jcard-video-player" + (iframeReady ? " is-playing-ready" : "")
+            `jcard-video-player ${canvasClass}` +
+            (iframeReady ? " is-playing-ready" : "")
           }
           onClick={(e) => e.stopPropagation()}
         >
@@ -136,7 +147,8 @@ export function JourneyCardVideo({
     return (
       <div
         className={
-          "jcard-video-player" + (iframeReady ? " is-playing-ready" : "")
+          `jcard-video-player ${canvasClass}` +
+          (iframeReady ? " is-playing-ready" : "")
         }
         onClick={(e) => e.stopPropagation()}
       >
@@ -155,7 +167,7 @@ export function JourneyCardVideo({
   return (
     <button
       type="button"
-      className="preview preview--video jcard-video-trigger"
+      className={`preview preview--video jcard-video-trigger ${canvasClass}`}
       aria-label={`Phát video: ${title}`}
       disabled={processing}
       onClick={(e) => {

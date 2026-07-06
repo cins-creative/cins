@@ -16,6 +16,7 @@ import {
   NGANH_HOC_HUB_PATH,
   NGHE_NGHIEP_HUB_PATH,
   ngheNghiepDetailHref,
+  TIM_KHOA_HOC_HUB_PATH,
 } from "@/lib/cins/hubPaths";
 import type { GuestHomeData } from "@/lib/cins/guest-home/loadGuestHomeData";
 import { coSoKhoaHocDetailPath } from "@/lib/to-chuc/co-so-routes";
@@ -346,7 +347,7 @@ export function GuestHomeView({ data }: Props) {
               <SectionHead
                 eyebrow="khóa học ngắn hạn"
                 title="Khóa đang mở đăng ký"
-                href={CO_SO_DAO_TAO_HUB_PATH}
+                href={TIM_KHOA_HOC_HUB_PATH}
                 linkLabel="Tìm khóa học"
               />
               <ul className="gh-course-grid" id="gh-courses">

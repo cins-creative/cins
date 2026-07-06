@@ -1,9 +1,12 @@
 import {
   buildBunnyEmbedUrl,
+  buildBunnyVideoMp4Url,
+  buildBunnyVideoThumbnailUrl,
   classifyBunnyVideoUrl,
   type BunnyVideoEmbed,
 } from "@/lib/bunny/embed";
 import type { Block } from "@/lib/editor/types";
+import { extractVideoUrl } from "@/lib/journey/post-media";
 import { getYoutubeId } from "@/lib/youtube";
 
 const GUID_RE =
@@ -55,6 +58,30 @@ export function resolveBunnyEmbed(
     };
   }
   return null;
+}
+
+function resolveBunnyFromBlocks(
+  blocks: ReadonlyArray<Block> | null | undefined,
+): BunnyVideoEmbed | null {
+  if (!blocks?.length) return null;
+  const url = extractVideoUrl(blocks) ?? "";
+  return resolveBunnyEmbed(url, bunnyVideoIdFromBlocks(blocks));
+}
+
+/** Thumbnail Bunny từ embed block — dùng `bunnyVideoId` khi URL chưa classify được. */
+export function resolveBunnyVideoThumbnailFromBlocks(
+  blocks: ReadonlyArray<Block> | null | undefined,
+): string | null {
+  const bunny = resolveBunnyFromBlocks(blocks);
+  return bunny ? buildBunnyVideoThumbnailUrl(bunny.videoId) : null;
+}
+
+/** MP4 preview — frame đầu gallery khi thumbnail.jpg chưa có / lỗi. */
+export function resolveBunnyVideoPreviewMp4FromBlocks(
+  blocks: ReadonlyArray<Block> | null | undefined,
+): string | null {
+  const bunny = resolveBunnyFromBlocks(blocks);
+  return bunny ? buildBunnyVideoMp4Url(bunny.videoId) : null;
 }
 
 /** URL iframe phát video milestone — Bunny / YouTube / Vimeo. */

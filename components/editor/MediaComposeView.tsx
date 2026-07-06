@@ -62,6 +62,11 @@ import {
 import { getAvatarUrl } from "@/lib/journey/profile";
 import { isValidMediaVideoUrl } from "@/lib/journey/video-url";
 import {
+  probeVideoFileCanvasRatio,
+  videoCanvasRatioClass,
+  type VideoCanvasRatio,
+} from "@/lib/journey/video-canvas-ratio";
+import {
   registerVideoUpload,
   releaseVideoUpload,
 } from "@/lib/journey/video-upload-session";
@@ -213,6 +218,9 @@ export function MediaComposeView({
   });
   const [videoUploading, setVideoUploading] = useState(false);
   const [videoUploadError, setVideoUploadError] = useState<string | null>(null);
+  const [videoCanvasRatio, setVideoCanvasRatio] = useState<VideoCanvasRatio | null>(
+    editInitial?.videoCanvasRatio ?? null,
+  );
   const [localVideoPreviewUrl, setLocalVideoPreviewUrl] = useState<string | null>(
     null,
   );
@@ -527,12 +535,17 @@ export function MediaComposeView({
       setError(null);
       setVideoUrl("");
       setBunnyVideoId(null);
+      setVideoCanvasRatio(null);
       setLocalVideoPreviewUrl((prev) => {
         if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
         return URL.createObjectURL(file);
       });
 
       try {
+        const canvasRatio = await probeVideoFileCanvasRatio(file);
+        if (session !== uploadSessionRef.current) return;
+        setVideoCanvasRatio(canvasRatio);
+
         const prepRes = await fetch("/api/post-video/prepare", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -704,6 +717,7 @@ export function MediaComposeView({
     setBunnyVideoId(null);
     setVideoUploadError(null);
     setVideoUploading(false);
+    setVideoCanvasRatio(null);
     setLocalVideoPreviewUrl((prev) => {
       if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
       return null;
@@ -801,6 +815,7 @@ export function MediaComposeView({
           thu_tu: blocks.length,
           config: {
             url: trimmedUrl,
+            ...(videoCanvasRatio ? { videoCanvasRatio } : {}),
             ...(bunny
               ? {
                   bunnyVideoId: bunny.videoId,
@@ -1164,7 +1179,9 @@ export function MediaComposeView({
           ) : (
             <>
               {localVideoPreviewUrl ? (
-                <div className="mc-video-preview mc-video-preview--local">
+                <div
+                  className={`mc-video-preview mc-video-preview--local ${videoCanvasRatioClass(videoCanvasRatio)}`}
+                >
                   {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
                   <video src={localVideoPreviewUrl} controls playsInline />
                   {videoUploading ? (
@@ -1175,7 +1192,9 @@ export function MediaComposeView({
                   ) : null}
                 </div>
               ) : bunnyPreview ? (
-                <div className="mc-video-preview">
+                <div
+                  className={`mc-video-preview ${videoCanvasRatioClass(videoCanvasRatio)}`}
+                >
                   <iframe
                     src={bunnyIframeSrc(bunnyPreview)}
                     title="Xem trước video"

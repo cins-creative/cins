@@ -145,6 +145,7 @@ import {
   inferComposePreviewKindFromEditor,
 } from "@/lib/journey/compose-preview-kind";
 import { useEditorVideoUpload } from "@/lib/journey/use-editor-video-upload";
+import { videoCanvasRatioClass } from "@/lib/journey/video-canvas-ratio";
 import { bunnyIframeSrc, classifyBunnyVideoUrl } from "@/lib/bunny/embed";
 
 type ImageUploadTrack = {
@@ -197,6 +198,8 @@ type Block = {
   cap?: string;
   /* Embed block */
   embedUrl?: string;
+  /** Tỉ lệ khung canvas Journey — suy từ kích thước file upload. */
+  videoCanvasRatio?: import("@/lib/journey/video-canvas-ratio").VideoCanvasRatio;
   /* Palette block */
   colors?: string[];
   /* Spacer */
@@ -932,6 +935,7 @@ export function EditorView({
     videoEncodeReady,
     videoEncoding,
     localVideoPreviewUrl,
+    videoCanvasRatio,
     uploadVideoFile,
   } = useEditorVideoUpload();
 
@@ -1569,13 +1573,20 @@ export function EditorView({
 
   useEffect(() => {
     const blockId = videoBlockIdRef.current;
-    if (!videoUrl || !blockId) return;
+    if (!blockId) return;
+    if (!videoUrl && !videoCanvasRatio) return;
     setBlocks((prev) =>
       prev.map((b) =>
-        b.id === blockId ? { ...b, embedUrl: videoUrl } : b,
+        b.id === blockId
+          ? {
+              ...b,
+              ...(videoUrl ? { embedUrl: videoUrl } : {}),
+              ...(videoCanvasRatio ? { videoCanvasRatio } : {}),
+            }
+          : b,
       ),
     );
-  }, [videoUrl]);
+  }, [videoUrl, videoCanvasRatio]);
 
   const updateBlock = useCallback(
     (id: string, patch: Partial<Block>) => {
@@ -3263,6 +3274,7 @@ function EditorMinimalVideoPreview({
   encoding,
   encodeReady,
   error,
+  videoCanvasRatio,
 }: {
   embedUrl: string;
   localPreviewUrl: string | null;
@@ -3271,8 +3283,15 @@ function EditorMinimalVideoPreview({
   encoding: boolean;
   encodeReady: boolean;
   error: string | null;
+  videoCanvasRatio?: Block["videoCanvasRatio"];
 }) {
   const bunny = embedUrl.trim() ? classifyBunnyVideoUrl(embedUrl) : null;
+  const canvasClass = videoCanvasRatioClass(videoCanvasRatio);
+
+  const previewClass = (
+    extra: string,
+  ) =>
+    `ed-minimal-video-preview ${extra} ${canvasClass}`.trim();
 
   if (error) {
     return <p className="ed-minimal-video-error">{error}</p>;
@@ -3280,7 +3299,11 @@ function EditorMinimalVideoPreview({
 
   if (localPreviewUrl) {
     return (
-      <div className="ed-minimal-video-preview ed-minimal-video-preview--local ed-minimal-video-preview--compact">
+      <div
+        className={previewClass(
+          "ed-minimal-video-preview--local ed-minimal-video-preview--compact",
+        )}
+      >
         {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
         <video src={localPreviewUrl} controls playsInline />
         {uploading ? (
@@ -3308,7 +3331,9 @@ function EditorMinimalVideoPreview({
   if (bunny && encoding) {
     return (
       <div
-        className="ed-minimal-video-preview ed-minimal-video-preview--encoding ed-minimal-video-preview--compact"
+        className={previewClass(
+          "ed-minimal-video-preview--encoding ed-minimal-video-preview--compact",
+        )}
         aria-live="polite"
       >
         <Video size={28} strokeWidth={1.6} aria-hidden />
@@ -3327,7 +3352,9 @@ function EditorMinimalVideoPreview({
 
   if (bunny) {
     return (
-      <div className="ed-minimal-video-preview ed-minimal-video-preview--compact">
+      <div
+        className={previewClass("ed-minimal-video-preview--compact")}
+      >
         <iframe
           key={encodeReady ? "ready" : "loaded"}
           src={bunnyIframeSrc(bunny)}
@@ -3341,7 +3368,11 @@ function EditorMinimalVideoPreview({
 
   if (uploading) {
     return (
-      <div className="ed-minimal-video-preview ed-minimal-video-preview--pending ed-minimal-video-preview--compact">
+      <div
+        className={previewClass(
+          "ed-minimal-video-preview--pending ed-minimal-video-preview--compact",
+        )}
+      >
         <Loader2 size={22} strokeWidth={2} className="ed-spin" aria-hidden />
         <span>Đang chuẩn bị video…</span>
       </div>
@@ -3499,6 +3530,7 @@ function BlockInner(p: BlockRowProps) {
           encoding={p.minimalVideoState.encoding}
           encodeReady={p.minimalVideoState.encodeReady}
           error={p.minimalVideoState.error}
+          videoCanvasRatio={b.videoCanvasRatio}
         />
       );
     }
@@ -3879,6 +3911,13 @@ function fromServerBlocks(blocks: ServerBlock[]): Block[] {
       else if (cfg.albumGridCell === false) local.albumGridCell = false;
     } else if (t === "embed") {
       local.embedUrl = typeof cfg.url === "string" ? cfg.url : "";
+      const ratio =
+        cfg.videoCanvasRatio === "16:9" ||
+        cfg.videoCanvasRatio === "1:1" ||
+        cfg.videoCanvasRatio === "3:4"
+          ? cfg.videoCanvasRatio
+          : null;
+      if (ratio) local.videoCanvasRatio = ratio;
     } else if (t === "palette") {
       local.colors = Array.isArray(cfg.colors)
         ? (cfg.colors as unknown[]).map(String)
@@ -3963,7 +4002,11 @@ function toServerBlocks(blocks: Block[]): ServerBlock[] {
               : {}),
         };
       } else if (b.t === "embed") {
-        config = { url: (b.embedUrl || "").trim().slice(0, 2048) };
+        const url = (b.embedUrl || "").trim().slice(0, 2048);
+        config = { url };
+        if (b.videoCanvasRatio) {
+          config.videoCanvasRatio = b.videoCanvasRatio;
+        }
       } else if (b.t === "palette") {
         config = { colors: (b.colors || []).slice(0, 8) };
       } else if (b.t === "spacer") {

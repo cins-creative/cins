@@ -3,6 +3,8 @@
 import { Plus, Trash2 } from "lucide-react";
 import { useCallback, useState, useTransition } from "react";
 
+import { JourneyFilterShareButton } from "@/components/journey/JourneyFilterShareButton";
+import { useJourneyFilterShareOptional } from "@/components/journey/JourneyFilterShareContext";
 import { useJourneyPersonalFilterOptional } from "@/components/journey/JourneyPersonalFilterContext";
 import {
   countUserPersonalFilters,
@@ -26,6 +28,7 @@ function PersonalFilterRow({
   onSelect,
   showDelete,
   onDelete,
+  onShareMenuClose,
 }: {
   filter: PersonalFilter;
   active: boolean;
@@ -33,8 +36,10 @@ function PersonalFilterRow({
   onSelect: () => void;
   showDelete?: boolean;
   onDelete?: () => void;
+  onShareMenuClose?: () => void;
 }) {
   const mau = filter.mau ?? DEFAULT_FILTER_MAU;
+  const filterShare = useJourneyFilterShareOptional();
 
   return (
     <div className={"j-dd-opt j-dd-row" + (active ? " is-active" : "")}>
@@ -55,6 +60,21 @@ function PersonalFilterRow({
           <span className="j-dd-n">{count}</span>
         ) : null}
       </button>
+      <JourneyFilterShareButton
+        label={filter.ten}
+        onShare={
+          filterShare
+            ? () => {
+                filterShare.openGalleryFilterShare({
+                  kind: "personal-label",
+                  slug: filter.slug,
+                  label: filter.ten,
+                });
+                onShareMenuClose?.();
+              }
+            : undefined
+        }
+      />
       {showDelete && onDelete ? (
         <button
           type="button"
@@ -159,6 +179,7 @@ export function JourneyPersonalFilterMenuSection({
           }
           showDelete={isOwner && !isSystemPersonalFilterSlug(filter.slug)}
           onDelete={() => onDelete(filter)}
+          onShareMenuClose={onItemSelect}
         />
       ))}
       {isOwner ? (

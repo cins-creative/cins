@@ -39,11 +39,13 @@ import {
 } from "@/lib/journey/post-media";
 import { matchesPersonalFilterSlug } from "@/lib/filter/client-utils";
 import { useJourneyPersonalFilterOptional } from "@/components/journey/JourneyPersonalFilterContext";
+import { useJourneyFilterShareOptional } from "@/components/journey/JourneyFilterShareContext";
 import {
   galleryDisplayFromSearch,
   galleryDisplayHref,
   type GalleryDisplay,
 } from "@/lib/journey/gallery-display-url";
+import { galleryGroupFromSearch } from "@/lib/journey/gallery-filter-share";
 
 /** Chế độ xem gallery: `card` (mặc định, có bảng thông tin trắng dưới ảnh) hoặc
  *  `grid` (lưới gọn, thông tin hiện khi hover). URL: `?view=gallery` · `?view=gallery&display=luoi`. */
@@ -128,6 +130,7 @@ export function JourneyGalleryGridView({
   items = [],
 }: Props) {
   const personalFilter = useJourneyPersonalFilterOptional();
+  const filterShare = useJourneyFilterShareOptional();
   const { openPost, overlay } = useJourneyPostOverlay();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -241,7 +244,10 @@ export function JourneyGalleryGridView({
         ]
       : null;
 
-  const [typeFilter, setTypeFilter] = useState<FilterGroup>("all");
+  const [typeFilter, setTypeFilter] = useState<FilterGroup>(() => {
+    if (typeof window === "undefined") return "all";
+    return galleryGroupFromSearch(window.location.search) ?? "all";
+  });
   const [mediaFilter, setMediaFilter] = useState<GalleryMediaFilter>("all");
   const effectiveView: GalleryViewMode = hideToolbar ? "grid" : displayView;
   const [galleryItems, setGalleryItems] = useState<GalleryMainItem[]>(() =>
@@ -265,8 +271,17 @@ export function JourneyGalleryGridView({
   }, [initialItems, scrollLoad?.hasMore, scrollLoad?.nextOffset, legacyAll]);
 
   useEffect(() => {
-    if (personalFilter?.activeSlug) setTypeFilter("all");
-  }, [personalFilter?.activeSlug]);
+    filterShare?.registerGalleryItems(galleryItems);
+  }, [filterShare, galleryItems]);
+
+  useEffect(() => {
+    if (personalFilter?.activeSlug) {
+      setTypeFilter("all");
+      return;
+    }
+    const group = galleryGroupFromSearch(gallerySearch);
+    if (group) setTypeFilter(group);
+  }, [gallerySearch, personalFilter?.activeSlug]);
 
   const loadMore = useCallback(async () => {
     if (!scrollLoad || loadingRef.current || !hasMore) return;
@@ -556,6 +571,7 @@ export function JourneyGalleryGridView({
                     priority={item.featured}
                     isVideo={item.isVideo || item.mediaKind === "video"}
                     videoProcessing={item.videoProcessing}
+                    videoPreviewSrc={item.videoPreviewSrc}
                   />
                   {item.isVideo || item.mediaKind === "video" ? (
                     <GalleryVideoPlayBadge />

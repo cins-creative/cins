@@ -12,6 +12,8 @@ type Props = {
   /** Above-the-fold — eager + fetchPriority high. */
   priority?: boolean;
   className?: string;
+  /** Gọi khi img hết fallback (CF public) vẫn lỗi — gallery chuyển sang frame video. */
+  onFinalError?: () => void;
 };
 
 /** CF variant nhỏ có thể 403 — fallback sang `public`. */
@@ -34,6 +36,7 @@ export function JourneyCoverImage({
   sizes,
   priority = false,
   className,
+  onFinalError,
 }: Props) {
   if (!src) return null;
 
@@ -66,6 +69,7 @@ export function JourneyCoverImage({
           }
         }
         handleBlockImageError(event);
+        onFinalError?.();
       }}
     />
   );

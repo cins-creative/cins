@@ -4,6 +4,9 @@ export const NGHE_NGHIEP_HUB_PATH = "/nghe-nghiep";
 /** Hub trường / cơ sở đào tạo — URL canonical. */
 export const CO_SO_DAO_TAO_HUB_PATH = "/co-so-dao-tao";
 
+/** Hub tìm khóa học — URL canonical. */
+export const TIM_KHOA_HOC_HUB_PATH = "/tim-khoa-hoc";
+
 export const NGANH_HOC_HUB_PATH = "/nganh-hoc";
 
 export function ngheNghiepDetailHref(slug: string): string {
@@ -26,6 +29,13 @@ export function isCoSoDaoTaoHubPath(pathname: string): boolean {
     pathname.startsWith(`${CO_SO_DAO_TAO_HUB_PATH}/`) ||
     pathname === "/truong-dai-hoc" ||
     pathname.startsWith("/truong-dai-hoc/")
+  );
+}
+
+export function isTimKhoaHocHubPath(pathname: string): boolean {
+  return (
+    pathname === TIM_KHOA_HOC_HUB_PATH ||
+    pathname.startsWith(`${TIM_KHOA_HOC_HUB_PATH}/`)
   );
 }
 

@@ -34,6 +34,18 @@
 
 ## LOG — quyết định đã chốt
 
+### Chia sẻ profile Journey / Gallery (2026-07-06)
+
+- **L24 — Modal chia sẻ trang cá nhân: 3 luồng + card export (phase 1).**
+  • **Copy link**: URL Journey `/{slug}` — hoạt động ngay từ menu chính.
+  • **Chia sẻ Journey**: thẻ giới thiệu hồ sơ — 4 layout MVP: **Hồ sơ** (dashboard) · **Glass** · **Hero** · **Tab**.
+  • **Chia sẻ Gallery**: thẻ tác phẩm (name card mặt sau) — 3 layout MVP: Mosaic / Spotlight / Filmstrip; thumb lấy từ gallery panel cache khi có.
+  • **Sau chọn layout**: Copy link (Journey hoặc Gallery tùy loại thẻ) + chia sẻ MXH (FB, X, LinkedIn, Zalo, WA, native share).
+  • **Phase 2 (một phần)**: Copy ảnh PNG thẻ (`html-to-image`) + QR footer encode URL Journey/Gallery; clipboard hoặc fallback tải file.
+  • **Phase 2 (còn lại)**: OG/Twitter card động khi paste URL (canvas preview trên MXH).
+  • **Entry UI**: nút Chia sẻ sidebar owner + guest action row (`JourneyProfileShareTrigger`).
+  • **Chưa làm**: chia sẻ view filter dropdown timeline (nút `j-dd-share` — brief riêng).
+
 ### Admin CINs vận hành trực tiếp trên trang org — đảo L20 (2026-07-03)
 
 - **L23 — Quyền admin CINs (trục 1: `super_admin`/`admin`) MỞ KHOÁ toàn quyền vận hành trên trang org công khai, mọi `loai_to_chuc`.** Đảo ngược L20.

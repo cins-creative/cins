@@ -195,6 +195,36 @@ function countDisplayedItems(feed: NotificationFeed): number {
   );
 }
 
+/** Thông báo chỉ cần xem — giữ snapshot khi mở menu để không biến mất sau mark-all. */
+type InfoNotificationSnapshot = Pick<
+  NotificationFeed,
+  | "comments"
+  | "accepted"
+  | "videoReady"
+  | "orgMilestoneTagApproved"
+  | "membershipMilestoneResolved"
+>;
+
+function extractInfoSnapshot(feed: NotificationFeed): InfoNotificationSnapshot {
+  return {
+    comments: feed.comments,
+    accepted: feed.accepted,
+    videoReady: feed.videoReady,
+    orgMilestoneTagApproved: feed.orgMilestoneTagApproved,
+    membershipMilestoneResolved: feed.membershipMilestoneResolved,
+  };
+}
+
+function countInfoItems(info: InfoNotificationSnapshot): number {
+  return (
+    info.comments.length +
+    info.accepted.length +
+    info.videoReady.length +
+    info.orgMilestoneTagApproved.length +
+    info.membershipMilestoneResolved.length
+  );
+}
+
 function removeCoAuthorInviteFromFeed(
   feed: NotificationFeed,
   tacPhamId: string,
@@ -234,6 +264,10 @@ export function JourneyNotifications({
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [unreadLoaded, setUnreadLoaded] = useState(() => Boolean(cachedUnread));
   const [error, setError] = useState<string | null>(null);
+  /** Giữ nội dung info khi panel mở — tránh mất ngay sau PATCH mark_all. */
+  const [infoSnapshot, setInfoSnapshot] = useState<InfoNotificationSnapshot | null>(
+    null,
+  );
   const [pending, startTransition] = useTransition();
   const [portalReady, setPortalReady] = useState(false);
   const [menuStyle, setMenuStyle] = useState<{ top: number; right: number } | null>(
@@ -409,16 +443,15 @@ export function JourneyNotifications({
     [activeFeed],
   );
 
+  const unreadInfoItems = useMemo((): InfoNotificationSnapshot => {
+    if (open && infoSnapshot) return infoSnapshot;
+    return extractInfoSnapshot(activeFeed);
+  }, [open, infoSnapshot, activeFeed]);
+
   const displayedInfoCount = useMemo(() => {
     if (tab !== "unread") return 0;
-    return (
-      activeFeed.orgMilestoneTagApproved.length +
-      activeFeed.membershipMilestoneResolved.length +
-      activeFeed.comments.length +
-      activeFeed.videoReady.length +
-      activeFeed.accepted.length
-    );
-  }, [tab, activeFeed]);
+    return countInfoItems(unreadInfoItems);
+  }, [tab, unreadInfoItems]);
 
   const historyCount = useMemo(() => {
     if (!historyFeed) return null;
@@ -471,14 +504,29 @@ export function JourneyNotifications({
   }, [feed.unreadCount, unreadLoaded, fetchUnreadFeed]);
 
   useEffect(() => {
-    if (!open) return;
-    if (unreadLoaded) {
-      void dismissInfoNotifications();
+    if (!open) {
+      setInfoSnapshot(null);
       return;
     }
+
+    let cancelled = false;
     setLoadingUnread(true);
-    void dismissInfoNotifications().finally(() => setLoadingUnread(false));
-  }, [open, dismissInfoNotifications, unreadLoaded]);
+
+    void (async () => {
+      try {
+        const loaded = await fetchUnreadFeed();
+        if (cancelled) return;
+        if (loaded) setInfoSnapshot(extractInfoSnapshot(loaded));
+        await dismissInfoNotifications();
+      } finally {
+        if (!cancelled) setLoadingUnread(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, fetchUnreadFeed, dismissInfoNotifications]);
 
   useEffect(() => {
     if (!open || tab !== "history") return;
@@ -829,7 +877,7 @@ export function JourneyNotifications({
                       </button>
                     </li>
                   ))}
-                  {activeFeed.membershipMilestoneResolved.map((notice) => (
+                  {unreadInfoItems.membershipMilestoneResolved.map((notice) => (
                     <li key={notice.notificationId}>
                       <HistoryInfoItem
                         href={notice.journeyHref}
@@ -852,7 +900,7 @@ export function JourneyNotifications({
                       />
                     </li>
                   ))}
-                  {activeFeed.orgMilestoneTagApproved.map((notice) => (
+                  {unreadInfoItems.orgMilestoneTagApproved.map((notice) => (
                     <li key={notice.notificationId}>
                       <HistoryInfoItem
                         href={notice.albumHref || "#"}
@@ -865,6 +913,54 @@ export function JourneyNotifications({
                         }
                       />
                     </li>
+                  ))}
+                  {unreadInfoItems.accepted.map((notice) => (
+                    <HistoryInfoItem
+                      key={notice.notificationId}
+                      href={`/${notice.slug}`}
+                      label={
+                        <>
+                          <strong>{notice.tenHienThi}</strong> đã chấp nhận kết bạn.
+                        </>
+                      }
+                      time={formatNotifyTime(notice.taoLuc)}
+                      avatar={<Avatar request={notice} />}
+                    />
+                  ))}
+                  {unreadInfoItems.comments.map((notice) => (
+                    <HistoryInfoItem
+                      key={notice.notificationId}
+                      href={
+                        notice.ownerSlug && notice.postSlug
+                          ? `/${notice.ownerSlug}/p/${notice.postSlug}`
+                          : `/${notice.slug}`
+                      }
+                      label={commentNotifyLabel(notice)}
+                      time={formatNotifyTime(notice.taoLuc)}
+                      avatar={<Avatar request={notice} />}
+                    />
+                  ))}
+                  {unreadInfoItems.videoReady.map((notice) => (
+                    <HistoryInfoItem
+                      key={notice.notificationId}
+                      href={
+                        notice.ownerSlug && notice.postSlug
+                          ? `/${notice.ownerSlug}/p/${notice.postSlug}`
+                          : "#"
+                      }
+                      label={
+                        <>
+                          <strong>Video đã sẵn sàng</strong>
+                          <small>{notice.postTitle}</small>
+                        </>
+                      }
+                      time={formatNotifyTime(notice.taoLuc)}
+                      avatar={
+                        <span className="j-notify-avatar is-video" aria-hidden>
+                          <Video size={16} strokeWidth={1.8} />
+                        </span>
+                      }
+                    />
                   ))}
                 </>
               ) : (

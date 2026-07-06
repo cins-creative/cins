@@ -2,14 +2,12 @@ import "server-only";
 
 import type { MilestoneMediaItem } from "@/components/journey/milestone-types";
 import type { Block } from "@/lib/editor/types";
-import { classifyBunnyVideoUrl } from "@/lib/bunny/embed";
-import { buildBunnyVideoThumbnailUrl } from "@/lib/bunny/thumbnail";
 import { journeyImageFields } from "@/lib/journey/images";
 import {
   detectMediaPostKind,
   extractAllImageIds,
-  extractVideoUrl,
 } from "@/lib/journey/post-media";
+import { resolveBunnyVideoThumbnailFromBlocks } from "@/lib/journey/video-embed";
 
 function coverFromImageId(
   imageId: string,
@@ -43,13 +41,9 @@ export function milestonePreviewMedia(
   const trimmedCover = coverId?.trim() || null;
 
   if (mediaKind === "video") {
-    const videoUrl = extractVideoUrl(parsed);
-    if (videoUrl) {
-      const bunny = classifyBunnyVideoUrl(videoUrl);
-      const thumb = bunny ? buildBunnyVideoThumbnailUrl(bunny.videoId) : null;
-      if (thumb) {
-        return [{ src: thumb, width: 1280, height: 720, label }];
-      }
+    const thumb = resolveBunnyVideoThumbnailFromBlocks(parsed);
+    if (thumb) {
+      return [{ src: thumb, width: 1280, height: 720, label }];
     }
     if (trimmedCover) return coverFromImageId(trimmedCover, label);
     return [];

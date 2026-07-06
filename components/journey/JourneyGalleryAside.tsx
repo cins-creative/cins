@@ -26,6 +26,7 @@ export type GalleryPinnedBanner = {
   mediaKind?: GalleryMediaKind;
   isVideo?: boolean;
   videoProcessing?: boolean;
+  videoPreviewSrc?: string | null;
 };
 
 export type GalleryGridItem = {
@@ -41,6 +42,7 @@ export type GalleryGridItem = {
   /** Có overlay ▶ giữa thumbnail không. */
   isVideo?: boolean;
   videoProcessing?: boolean;
+  videoPreviewSrc?: string | null;
   href?: string;
   mediaKind?: GalleryMediaKind;
 };
@@ -148,6 +150,7 @@ export function JourneyGalleryAside({
                       priority={index === 0}
                       isVideo={b.isVideo || b.mediaKind === "video"}
                       videoProcessing={b.videoProcessing}
+                      videoPreviewSrc={b.videoPreviewSrc}
                     />
                   </span>
                   {b.isVideo || b.mediaKind === "video" ? (
@@ -178,6 +181,7 @@ export function JourneyGalleryAside({
                       alt={it.label}
                       isVideo={it.isVideo || it.mediaKind === "video"}
                       videoProcessing={it.videoProcessing}
+                      videoPreviewSrc={it.videoPreviewSrc}
                     />
                   </span>
                   {it.isVideo || it.mediaKind === "video" ? (

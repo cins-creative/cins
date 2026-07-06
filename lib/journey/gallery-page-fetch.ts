@@ -60,6 +60,8 @@ export type GalleryMainItem = {
   mediaKind?: GalleryMediaKind;
   isVideo?: boolean;
   videoProcessing?: boolean;
+  /** MP4 Bunny — frame đầu khi thumbnail thiếu/lỗi. */
+  videoPreviewSrc?: string | null;
   cardLayout?: MilestoneCardLayout;
   orgAvatarUrl?: string | null;
   orgKicker?: string | null;
@@ -185,6 +187,7 @@ function hydrateMainItems(
       mediaKind: entry.mediaKind,
       isVideo,
       videoProcessing: entry.videoProcessing,
+      videoPreviewSrc: entry.videoPreviewSrc,
       cardLayout: entry.cardLayout,
       orgAvatarUrl: entry.orgAvatarUrl,
       orgKicker: entry.orgKicker,
@@ -232,6 +235,7 @@ function hydrateAsideItems(
       mediaKind: entry.mediaKind,
       isVideo,
       videoProcessing: entry.videoProcessing,
+      videoPreviewSrc: entry.videoPreviewSrc,
     });
   });
 
@@ -254,6 +258,7 @@ function hydrateAsideItems(
       mediaKind: entry.mediaKind,
       isVideo,
       videoProcessing: entry.videoProcessing,
+      videoPreviewSrc: entry.videoPreviewSrc,
     });
   });
 
