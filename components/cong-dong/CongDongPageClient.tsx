@@ -1131,6 +1131,7 @@ function CongDongJourneyPostCard({
     isMilestoneArticleCard(
       mirror?.noiDungBlocks,
       Boolean(mirror?.previewMedia?.src),
+      mirror?.moTa,
     );
   const postOwnerSlug = mirror?.ownerSlug || post.author.slug;
   const postSlug = mirror?.postSlug || null;

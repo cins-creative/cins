@@ -18,7 +18,6 @@ import {
   MessageCircle,
   Monitor,
   MapPin,
-  Eye,
   Pause,
   Pencil,
   Plus,
@@ -30,6 +29,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 
+import { CoSoKhoaHocOrgFooter } from "@/components/co-so/CoSoKhoaHocOrgFooter";
 import { useCinsChatContext } from "@/components/cins/CinsChatProvider";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
 
@@ -74,7 +74,6 @@ import {
 import { getYoutubeId } from "@/lib/youtube";
 import {
   formatKhaiGiangCard,
-  formatKhoaFooterDangKyLine,
   formatKhoaHocPhi,
   formatThoiLuongKhoa,
   isScaffoldLopHoc,
@@ -103,6 +102,15 @@ type Props = {
   canManageKhoaHoc?: boolean;
   onKhoaUpdated?: (khoa: KhoaHocCardData) => void;
 };
+
+function BaiTapYoutubeIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <rect x="2" y="6" width="20" height="12" rx="3" stroke="currentColor" strokeWidth="2" />
+      <path d="M10 9.5v5l5-2.5-5-2.5z" fill="currentColor" />
+    </svg>
+  );
+}
 
 function BaiTapCard({
   item,
@@ -206,7 +214,7 @@ function BaiTapCard({
                       .join(" ")}
                     aria-hidden
                   >
-                    <Eye size={16} />
+                    <BaiTapYoutubeIcon />
                   </span>
                 ) : null}
               </div>
@@ -790,7 +798,6 @@ function DetailContent({
     ? labelHinhThucLopChiTiet(khoa.hinhThuc)
     : "—";
   const khoaStatus = labelTrangThaiKhoaHoc(khoa.trangThaiKhoaHoc);
-  const finalCtaTitle = isMockup ? "SẴN SÀNG CẦM CHÌ?" : "Sẵn sàng bắt đầu?";
 
   return (
     <div className="cso-khd cso-khd--landing">
@@ -1139,22 +1146,7 @@ function DetailContent({
           </p>
         </div>
 
-        <footer className="cso-khd-final">
-          <h3>{finalCtaTitle}</h3>
-          <p>
-            {formatKhoaFooterDangKyLine(
-              khoa.loaiMoHinh,
-              khoa.ngayKhaiGiangGanNhat,
-            )}{" "}
-            ·
-            học phí <span className="cso-khd-final-price">{hocPhiFormatted}</span> ·
-            gửi đăng ký tới {orgTen || "cơ sở"} duyệt
-          </p>
-          <button type="button" className="cso-khd-btn">
-            <UserPlus size={15} aria-hidden />
-            Đăng ký học
-          </button>
-        </footer>
+        <CoSoKhoaHocOrgFooter />
       </article>
     </div>
   );

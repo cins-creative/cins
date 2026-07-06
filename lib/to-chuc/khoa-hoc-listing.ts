@@ -1,16 +1,19 @@
 import "server-only";
 
-import { createPublicSupabaseClient } from "@/lib/supabase/public";
+import { buildSupabaseOrIlike } from "@/lib/search/ilike-patterns";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { coSoKhoaHocDetailPath } from "@/lib/to-chuc/co-so-routes";
 import { parseKhoaHocNoiDungBlocks } from "@/lib/to-chuc/khoa-hoc-meta-blocks";
 import {
   formatKhoaHocPhi,
   formatThoiLuongKhoa,
+  labelHinhThucLop,
   labelLoaiMoHinhKhoa,
   labelTrangThaiKhoaHoc,
   labelTrinhDoDauVao,
 } from "@/lib/to-chuc/khoa-hoc-labels";
 import type {
+  HinhThucLop,
   LoaiMoHinhKhoa,
   TrangThaiKhoaHoc,
   TrinhDoDauVao,
@@ -25,12 +28,17 @@ export type KhoaHocListItem = {
   orgSlug: string;
   orgAvatarUrl: string | null;
   coverUrl: string | null;
+  loaiMoHinh: LoaiMoHinhKhoa;
   loaiMoHinhLabel: string;
+  hinhThuc: HinhThucLop | null;
+  hinhThucLabel: string | null;
   trinhDoLabel: string;
   trangThaiLabel: string;
   trangThaiTone: "open" | "soon" | "pause";
   thoiLuongLabel: string;
+  hocPhi: number | null;
   hocPhiLabel: string;
+  hocPhiSuffix: string;
   href: string;
 };
 
@@ -123,7 +131,41 @@ function coverUrl(row: Row): string | null {
   );
 }
 
-function mapRow(row: Row): KhoaHocListItem | null {
+type LopMetaRow = {
+  id: string;
+  id_khoa_hoc: string;
+  hinh_thuc: HinhThucLop;
+};
+
+function hocPhiSuffix(loaiMoHinh: LoaiMoHinhKhoa): string {
+  return loaiMoHinh === "lien_tuc_theo_thang" ? "/th" : "";
+}
+
+async function fetchLopHinhThucForKhoa(
+  khoaIds: string[],
+): Promise<Map<string, HinhThucLop | null>> {
+  const map = new Map<string, HinhThucLop | null>();
+  for (const id of khoaIds) map.set(id, null);
+  if (!khoaIds.length) return map;
+
+  const supabase = createServiceRoleClient();
+  const { data: rows } = await supabase
+    .from("org_lop_hoc")
+    .select("id, id_khoa_hoc, hinh_thuc, ngay_khai_giang")
+    .in("id_khoa_hoc", khoaIds)
+    .order("ngay_khai_giang", { ascending: true });
+
+  for (const row of (rows ?? []) as LopMetaRow[]) {
+    if (map.get(row.id_khoa_hoc) != null) continue;
+    map.set(row.id_khoa_hoc, row.hinh_thuc ?? null);
+  }
+  return map;
+}
+
+function mapRow(
+  row: Row,
+  hinhThuc: HinhThucLop | null,
+): KhoaHocListItem | null {
   const org = pickOrg(row.org_to_chuc);
   const orgSlug = org?.slug?.trim();
   if (!org || !orgSlug) return null;
@@ -140,6 +182,9 @@ function mapRow(row: Row): KhoaHocListItem | null {
     row.loai_mo_hinh === "lien_tuc_theo_thang"
       ? "lien_tuc_theo_thang"
       : "cohort_co_dinh";
+  const hocPhiRaw = row.hoc_phi != null ? Number(row.hoc_phi) : null;
+  const hocPhiSuffixStr = hocPhiSuffix(loaiMoHinh);
+  const hocPhiLabel = formatKhoaHocPhi(hocPhiRaw, loaiMoHinh);
 
   return {
     id: row.id,
@@ -149,7 +194,10 @@ function mapRow(row: Row): KhoaHocListItem | null {
     orgSlug,
     orgAvatarUrl: orgAvatar(org),
     coverUrl: coverUrl(row),
+    loaiMoHinh,
     loaiMoHinhLabel: labelLoaiMoHinhKhoa(loaiMoHinh),
+    hinhThuc,
+    hinhThucLabel: hinhThuc ? labelHinhThucLop(hinhThuc) : null,
     trinhDoLabel: labelTrinhDoDauVao(row.trinh_do_dau_vao),
     trangThaiLabel: status.text,
     trangThaiTone: status.tone,
@@ -157,41 +205,82 @@ function mapRow(row: Row): KhoaHocListItem | null {
       row.thoi_luong_buoi,
       row.thoi_luong_phut_moi_buoi,
     ),
-    hocPhiLabel: formatKhoaHocPhi(
-      row.hoc_phi != null ? Number(row.hoc_phi) : null,
-      loaiMoHinh,
-    ),
+    hocPhi: hocPhiRaw,
+    hocPhiLabel,
+    hocPhiSuffix: hocPhiSuffixStr,
     href: coSoKhoaHocDetailPath(orgSlug, courseSlug),
   };
 }
 
+function matchesKhoaQuery(item: KhoaHocListItem, query: string): boolean {
+  const ql = query.trim().toLowerCase();
+  if (!ql) return true;
+  const haystack = [
+    item.tenKhoaHoc,
+    item.moTa,
+    item.orgTen,
+    item.orgSlug,
+    item.loaiMoHinhLabel,
+    item.hinhThucLabel,
+    item.trinhDoLabel,
+    item.trangThaiLabel,
+    item.thoiLuongLabel,
+    item.hocPhiLabel,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return haystack.includes(ql);
+}
+
 /**
  * Khóa học đang mở toàn sàn cho trang `/tim-khoa-hoc`.
- * Public read — cơ sở đào tạo, trạng thái mở, không ẩn (`cheDoHienThi`).
+ * Service role (server-only) — catalog công khai; RLS anon thường không đọc được `org_khoa_hoc`.
+ * Lọc: cơ sở đào tạo, trạng thái mở, không ẩn (`cheDoHienThi`).
  */
 export async function loadKhoaHocListing(
-  limit = 24,
+  limit = 200,
   offset = 0,
+  query?: string,
 ): Promise<KhoaHocListing> {
   try {
-    const supabase = createPublicSupabaseClient();
-    let { data, error, count } = await supabase
+    const supabase = createServiceRoleClient();
+    const q = query?.trim() ?? "";
+    const searchMode = q.length > 0;
+    const fetchLimit = searchMode ? 200 : limit;
+    const fetchOffset = searchMode ? 0 : offset;
+
+    let queryBuilder = supabase
       .from("org_khoa_hoc")
       .select(KHOA_HOC_LIST_SELECT, { count: "exact" })
       .eq("org_to_chuc.loai_to_chuc", "co_so_dao_tao")
-      .in("trang_thai_khoa_hoc", OPEN_STATUSES)
+      .in("trang_thai_khoa_hoc", OPEN_STATUSES);
+
+    if (searchMode) {
+      queryBuilder = queryBuilder.or(
+        buildSupabaseOrIlike(["ten_khoa_hoc", "mo_ta", "slug"], q),
+      );
+    }
+
+    let { data, error, count } = await queryBuilder
       .order("ten_khoa_hoc", { ascending: true })
-      .range(offset, offset + limit - 1)
+      .range(fetchOffset, fetchOffset + fetchLimit - 1)
       .returns<Row[]>();
 
     if (error?.message.includes("noi_dung_blocks")) {
-      const fallback = await supabase
+      let fallbackBuilder = supabase
         .from("org_khoa_hoc")
         .select(KHOA_HOC_LIST_SELECT_NO_BLOCKS, { count: "exact" })
         .eq("org_to_chuc.loai_to_chuc", "co_so_dao_tao")
-        .in("trang_thai_khoa_hoc", OPEN_STATUSES)
+        .in("trang_thai_khoa_hoc", OPEN_STATUSES);
+      if (searchMode) {
+        fallbackBuilder = fallbackBuilder.or(
+          buildSupabaseOrIlike(["ten_khoa_hoc", "mo_ta", "slug"], q),
+        );
+      }
+      const fallback = await fallbackBuilder
         .order("ten_khoa_hoc", { ascending: true })
-        .range(offset, offset + limit - 1)
+        .range(fetchOffset, fetchOffset + fetchLimit - 1)
         .returns<Row[]>();
       data = fallback.data;
       error = fallback.error;
@@ -200,9 +289,18 @@ export async function loadKhoaHocListing(
 
     if (error || !data) return { items: [], total: 0 };
 
-    const items = data
-      .map((row) => mapRow(row))
+    const lopMap = await fetchLopHinhThucForKhoa(data.map((row) => row.id));
+
+    let items = data
+      .map((row) => mapRow(row, lopMap.get(row.id) ?? null))
       .filter((item): item is KhoaHocListItem => item != null);
+
+    if (searchMode) {
+      items = items.filter((item) => matchesKhoaQuery(item, q));
+      const total = items.length;
+      items = items.slice(offset, offset + limit);
+      return { items, total };
+    }
 
     return { items, total: count ?? items.length };
   } catch {

@@ -102,10 +102,14 @@ function JourneyMirrorBody({
 }) {
   const blocks = mirror.noiDungBlocks;
   const hasCoverPreview = Boolean(mirror.previewMedia?.src);
-  const cardKind = milestoneCardContentKind(blocks, hasCoverPreview);
+  const cardKind = milestoneCardContentKind(blocks, hasCoverPreview, mirror.moTa);
   const isArticle = cardKind === "article";
   const isTextCard = cardKind === "text";
-  const photoGridImages = milestoneCardPhotoGrid(blocks);
+  const photoGridImages = milestoneCardPhotoGrid(
+    blocks,
+    hasCoverPreview,
+    mirror.moTa,
+  );
   const textCardPanelText = useMemo(() => {
     if (!isTextCard) return null;
     return milestoneArticleTextPanelPlain(mirror.moTa, blocks);

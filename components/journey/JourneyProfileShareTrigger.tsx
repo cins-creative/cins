@@ -1,7 +1,7 @@
 "use client";
 
 import { Share2 } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { JourneyProfileShareModal } from "@/components/journey/JourneyProfileShareModal";
 import { dispatchJourneyShareOpen } from "@/lib/journey/gallery-filter-share";
@@ -23,6 +23,8 @@ export function JourneyProfileShareTrigger({
   variant = "sidebar-icon",
 }: Props) {
   const [open, setOpen] = useState(false);
+  const anchorRef = useRef<HTMLButtonElement>(null);
+  const isPopover = variant === "sidebar-icon";
 
   const button =
     variant === "icon-row" ? (
@@ -41,13 +43,16 @@ export function JourneyProfileShareTrigger({
       </button>
     ) : (
       <button
+        ref={anchorRef}
         type="button"
         className="j-btn-icon"
         title="Chia sẻ Journey"
         aria-label="Chia sẻ"
+        aria-expanded={open}
+        aria-haspopup="dialog"
         onClick={() => {
           dispatchJourneyShareOpen();
-          setOpen(true);
+          setOpen((v) => !v);
         }}
       >
         <Share2 size={14} strokeWidth={1.8} aria-hidden />
@@ -62,6 +67,8 @@ export function JourneyProfileShareTrigger({
         onClose={() => setOpen(false)}
         profile={shareProfile}
         viewerProfileId={viewerProfileId}
+        presentation={isPopover ? "popover" : "modal"}
+        anchorRef={isPopover ? anchorRef : undefined}
       />
     </>
   );

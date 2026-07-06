@@ -104,7 +104,9 @@ export function AuthRequiredModal({ open, message, onClose }: Props) {
 
         <p className="j-auth-modal-footnote">
           <UserPlus size={14} strokeWidth={1.8} aria-hidden />
-          Chưa có tài khoản? Chọn <strong>Tạo tài khoản</strong> ở trên.
+          <span>
+            Chưa có tài khoản? Chọn <strong>Tạo tài khoản</strong> ở trên.
+          </span>
         </p>
 
         {error ? (

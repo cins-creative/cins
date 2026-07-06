@@ -1,0 +1,42 @@
+---
+description: Khi user nói "Ổn định dev server" — restart dev LAN sạch (npm run host)
+alwaysApply: true
+---
+
+# Ổn định dev server (trigger phrase)
+
+Khi user viết **"Ổn định dev server"** (hoặc gần nghĩa: dev server bất ổn, trắng trang, stale HMR, cần host lại):
+
+## Hành động mặc định
+
+1. **Chạy `npm run host`** — không hỏi thêm trừ khi port/process bị chặn bất thường.
+2. Script thực tế (`package.json` → `node scripts/dev-host.mjs`):
+   - `scripts/clean-next.mjs` — xóa `.next`
+   - `scripts/kill-port.mjs 3001` — giải phóng port (Windows + Unix)
+   - `next dev -H 0.0.0.0 -p 3001` — Turbopack mặc định (Next 16)
+3. **Không** thay bằng inline `rm -rf` / `lsof` — máy dev là Windows; giữ script Node cross-platform.
+
+## Script liên quan
+
+| Lệnh | Khi nào |
+|------|---------|
+| `npm run host` | Mặc định — LAN/iPad, khởi động sạch |
+| `npm run clean` | Chỉ khi server **đã tắt** và cần xóa cache thủ công |
+| `npm run dev` | Localhost only — không clean/kill/bind LAN |
+| `npm run host:webpack` | So sánh HMR khi Turbopack desync — đề xuất, không tự đổi config |
+
+## Phạm vi được phép sửa
+
+Chỉ: `package.json` scripts, `scripts/dev-host.mjs`, `scripts/clean-next.mjs`, `scripts/kill-port.mjs`, `next.config`, `.gitignore`.
+
+**Không** đụng: logic app, component, route, schema, biến môi trường.
+
+## next.config
+
+- `turbopack.root` trỏ đúng app root — giữ nguyên.
+- Turbopack vs webpack: đề xuất `host:webpack` để so sánh; **không** tự tắt Turbopack trong config.
+
+## Triệu chứng thường gặp
+
+- Trắng trang + log `ENOENT` / SST Turbopack / `build-manifest.json` → `.next` bị xóa khi server còn chạy → `npm run host`.
+- **Không** chạy `npm run clean` khi dev server đang chạy.

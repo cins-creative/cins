@@ -178,8 +178,6 @@ export function PostMetaRail({
         ) : null}
       </div>
 
-      <div className="post-rail-blk post-rail-blk--actions">{actionsRail}</div>
-
       {verifyTags.length > 0 ? (
         <div className="post-rail-blk post-rail-blk--tags post-rail-blk--verify">
           <div className="post-rail-lbl">Xác thực</div>
@@ -261,6 +259,8 @@ export function PostMetaRail({
           </div>
         </div>
       ) : null}
+
+      <div className="post-rail-blk post-rail-blk--actions">{actionsRail}</div>
 
       {commentsRail ? (
         <div className="post-rail-blk post-rail-blk--comments">{commentsRail}</div>

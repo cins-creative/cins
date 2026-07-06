@@ -1,6 +1,5 @@
 "use client";
 
-import { PostCover } from "@/components/editor/PostRenderer";
 import { PostBlockRenderer } from "@/components/journey/PostBlockRenderer";
 import type { Block } from "@/lib/editor/types";
 import {
@@ -8,7 +7,6 @@ import {
   shouldShowMilestoneCardTitle,
 } from "@/lib/journey/post-media";
 import { resolveBaiDangUnfoldTomTat } from "@/lib/truong/bai-dang-content";
-import { sanitizePersistableCoverId } from "@/lib/truong/image-ref";
 
 type Props = {
   title: string;
@@ -21,12 +19,12 @@ type Props = {
   blocksOnly?: boolean;
 };
 
-/** Unfold bài article — khớp editor canvas: title · sub · cover · blocks. */
+/** Unfold bài article — title · sub · blocks (`cover_id` chỉ thumb Gallery). */
 export function JourneyUnfoldArticleContent({
   title,
   tomTat,
   noiDungHtml = null,
-  coverId,
+  coverId: _coverId,
   blocks,
   blocksOnly = false,
 }: Props) {
@@ -35,7 +33,6 @@ export function JourneyUnfoldArticleContent({
     if (unfoldBlocks.length === 0) return null;
     return <PostBlockRenderer blocks={unfoldBlocks} />;
   }
-  const coverSeed = sanitizePersistableCoverId(coverId);
   const showTitle = shouldShowMilestoneCardTitle(title, blocks, tomTat);
   const unfoldTomTat =
     resolveBaiDangUnfoldTomTat({
@@ -50,7 +47,6 @@ export function JourneyUnfoldArticleContent({
       {unfoldTomTat ? (
         <p className="sub-in sub-ro">{unfoldTomTat}</p>
       ) : null}
-      {coverSeed ? <PostCover seed={coverSeed} /> : null}
       <PostBlockRenderer blocks={blocks} />
     </>
   );

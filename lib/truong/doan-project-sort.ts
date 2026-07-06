@@ -29,3 +29,15 @@ export function sortDoanProjects(
   list.sort((a, b) => b.submittedAt.localeCompare(a.submittedAt));
   return list;
 }
+
+/** Tab Sản phẩm công khai — điểm org chấm trước, rồi mới nhất. */
+export function sortDoanProjectsForPublic(
+  items: OrgDoanProjectItem[],
+): OrgDoanProjectItem[] {
+  return [...items].sort(
+    (a, b) =>
+      b.diemSapXep - a.diemSapXep ||
+      b.submittedAt.localeCompare(a.submittedAt) ||
+      a.projectTitle.localeCompare(b.projectTitle, "vi"),
+  );
+}

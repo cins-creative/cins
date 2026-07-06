@@ -848,7 +848,6 @@
   align-items: flex-start;
   gap: 10px;
   box-shadow: var(--shadow-sm);
-  position: relative;
 }
 
 .ttda-root .cnode .cic {
@@ -869,22 +868,6 @@
   color: var(--ink-title);
   line-height: 1.4;
   padding-top: 1px;
-}
-
-.ttda-root .cnode .num {
-  position: absolute;
-  top: -8px;
-  left: -8px;
-  width: 19px;
-  height: 19px;
-  border-radius: 50%;
-  background: var(--neutral-900);
-  color: #fff;
-  font-size: 10px;
-  font-weight: 900;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .ttda-root .cnode.hotter {

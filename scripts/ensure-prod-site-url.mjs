@@ -8,6 +8,16 @@ import { spawnSync } from "node:child_process";
 
 const PRODUCTION_SITE_URL = "https://cins.vn";
 
+function isDevSiteHost(hostname) {
+  const h = hostname.toLowerCase();
+  return (
+    h === "localhost" ||
+    h === "127.0.0.1" ||
+    h === "0.0.0.0" ||
+    /^\d+\.\d+\.\d+\.\d+$/.test(h)
+  );
+}
+
 function ensureProductionSiteUrl() {
   const raw = process.env.NEXT_PUBLIC_SITE_URL?.trim();
   if (!raw) {
@@ -15,8 +25,16 @@ function ensureProductionSiteUrl() {
     return;
   }
   try {
-    const host = new URL(raw).hostname;
-    if (host === "localhost" || host === "127.0.0.1") {
+    const parsed = new URL(raw);
+    if (isDevSiteHost(parsed.hostname)) {
+      process.env.NEXT_PUBLIC_SITE_URL = PRODUCTION_SITE_URL;
+      return;
+    }
+    // Ép https cho apex production (tránh http://cins.vn trong bundle).
+    if (
+      parsed.hostname.toLowerCase().replace(/^www\./, "") === "cins.vn" &&
+      parsed.protocol !== "https:"
+    ) {
       process.env.NEXT_PUBLIC_SITE_URL = PRODUCTION_SITE_URL;
     }
   } catch {

@@ -14,6 +14,8 @@ import {
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
+/** Alt tĩnh — OG alt động theo slug nằm trong generateMetadata. */
+export const alt = "Hành trình sáng tạo trên CINs";
 
 type Params = Promise<{ slug: string }>;
 type SearchParams = Promise<{ view?: string }>;
@@ -59,21 +61,4 @@ export default async function Image({
     ...size,
     fonts,
   });
-}
-
-export async function alt({
-  params,
-  searchParams,
-}: {
-  params: Params;
-  searchParams?: SearchParams;
-}): Promise<string> {
-  const { slug } = await params;
-  const sp = searchParams ? await searchParams : {};
-  const kind = shareKindFromSearch(sp.view);
-  const ctx = await fetchOgShareContext(slug, kind);
-  if (!ctx) {
-    return `Journey · ${slug} · CINs`;
-  }
-  return `${ctx.displayTitle} · CINs`;
 }

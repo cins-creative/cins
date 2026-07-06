@@ -66,6 +66,23 @@ function serializePayload(payload: OrgMilestoneTagPayload): string {
   return JSON.stringify(payload);
 }
 
+export function doanHienThiSanPham(
+  payload: OrgMilestoneTagPayload,
+): boolean {
+  return payload.hienThiSanPham === true;
+}
+
+export function doanDiemSapXep(payload: OrgMilestoneTagPayload): number {
+  const n = payload.diemSapXep;
+  return typeof n === "number" && Number.isFinite(n) ? n : 0;
+}
+
+export type ListOrgDoanProjectsOptions = {
+  /** Chỉ bài org đã bật hiển thị tab Sản phẩm. */
+  featuredOnly?: boolean;
+  khoaHocId?: string | null;
+};
+
 export async function canReviewOrgMilestoneTags(
   orgId: string,
   profileId: string,
@@ -763,8 +780,83 @@ function pickTile(index: number): OrgDoanProjectItem["tile"] {
   return tiles[index % tiles.length]!;
 }
 
+export async function countOrgApprovedDoanTags(orgId: string): Promise<number> {
+  const admin = createServiceRoleClient();
+  const { data: rows } = await admin
+    .from("verify_yeu_cau")
+    .select("noi_dung")
+    .eq("id_to_chuc", orgId)
+    .eq("trang_thai", "da_duyet")
+    .returns<Array<{ noi_dung: string | null }>>();
+
+  let count = 0;
+  for (const row of rows ?? []) {
+    if (parseOrgMilestoneTagPayload(row.noi_dung)) count += 1;
+  }
+  return count;
+}
+
+export async function updateOrgDoanProjectDisplay(
+  orgId: string,
+  requestId: string,
+  viewerId: string,
+  patch: { hienThiSanPham?: boolean; diemSapXep?: number },
+): Promise<{ ok: true; item: OrgDoanProjectItem } | { ok: false; error: string }> {
+  const allowed = await canReviewOrgMilestoneTags(orgId, viewerId);
+  if (!allowed) {
+    return { ok: false, error: "Không có quyền quản lý sản phẩm học viên." };
+  }
+
+  const admin = createServiceRoleClient();
+  const { data: row } = await admin
+    .from("verify_yeu_cau")
+    .select("id, id_cot_moc, noi_dung, tao_luc, nguoi_yeu_cau")
+    .eq("id", requestId)
+    .eq("id_to_chuc", orgId)
+    .eq("trang_thai", "da_duyet")
+    .maybeSingle<{
+      id: string;
+      id_cot_moc: string;
+      noi_dung: string | null;
+      tao_luc: string;
+      nguoi_yeu_cau: string;
+    }>();
+
+  if (!row?.id) {
+    return { ok: false, error: "Không tìm thấy sản phẩm đã duyệt." };
+  }
+
+  const payload = parseOrgMilestoneTagPayload(row.noi_dung);
+  if (!payload) {
+    return { ok: false, error: "Payload yêu cầu không hợp lệ." };
+  }
+
+  const nextPayload: OrgMilestoneTagPayload = { ...payload };
+  if (patch.hienThiSanPham !== undefined) {
+    nextPayload.hienThiSanPham = patch.hienThiSanPham;
+  }
+  if (patch.diemSapXep !== undefined) {
+    nextPayload.diemSapXep = patch.diemSapXep;
+  }
+
+  const { error } = await admin
+    .from("verify_yeu_cau")
+    .update({ noi_dung: serializePayload(nextPayload) })
+    .eq("id", requestId);
+
+  if (error) return { ok: false, error: error.message };
+
+  const items = await listApprovedOrgDoanProjects(orgId);
+  const item = items.find((p) => p.id === requestId);
+  if (!item) {
+    return { ok: false, error: "Không tải lại được sản phẩm sau khi lưu." };
+  }
+  return { ok: true, item };
+}
+
 export async function listApprovedOrgDoanProjects(
   orgId: string,
+  options: ListOrgDoanProjectsOptions = {},
 ): Promise<OrgDoanProjectItem[]> {
   const admin = createServiceRoleClient();
   const { data: rows } = await admin
@@ -834,6 +926,17 @@ export async function listApprovedOrgDoanProjects(
   for (const [index, row] of (rows ?? []).entries()) {
     const payload = parseOrgMilestoneTagPayload(row.noi_dung);
     if (!payload) continue;
+
+    if (options.featuredOnly && !doanHienThiSanPham(payload)) continue;
+    if (
+      options.khoaHocId &&
+      payload.khoaHocId &&
+      payload.khoaHocId !== options.khoaHocId
+    ) {
+      continue;
+    }
+    if (options.khoaHocId && !payload.khoaHocId) continue;
+
     items.push({
       id: row.id,
       cotMocId: row.id_cot_moc,
@@ -859,7 +962,11 @@ export async function listApprovedOrgDoanProjects(
       coverGradient: payload.album.coverGradient ?? null,
       photoCount: payload.album.photoCount ?? null,
       isVideo: isGalleryVideoCoverSrc(payload.album.coverSrc ?? null),
-      tile: pickTile(index),
+      tile: pickTile(items.length),
+      khoaHocId: payload.khoaHocId ?? null,
+      khoaHocTen: payload.khoaHocTen ?? null,
+      hienThiSanPham: doanHienThiSanPham(payload),
+      diemSapXep: doanDiemSapXep(payload),
     });
   }
   return items;

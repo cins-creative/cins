@@ -1,9 +1,18 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 
-import { TruongInlineModal } from "@/components/truong/inline/TruongInlineModal";
+import { useAuthGate } from "@/components/auth/AuthGateProvider";
+import { useCinsChatContext } from "@/components/cins/CinsChatProvider";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
+import type { ChatOrgKind } from "@/lib/chat/types";
+import { truongDetailHref } from "@/lib/nganh/truong-shared";
+import { CO_SO_DEFAULT_TAB, coSoTabPath } from "@/lib/to-chuc/co-so-routes";
+import { studioRootPath } from "@/lib/to-chuc/studio-routes";
+import type { TruongListItem } from "@/lib/truong/types";
+
+const AUTH_MESSAGE_CHAT = "Đăng nhập để nhắn tin cho tổ chức trên CINs.";
 
 function MessageIcon() {
   return (
@@ -21,88 +30,90 @@ function MessageIcon() {
   );
 }
 
-/** Nút nhắn tin cho khách — gửi câu hỏi tới trường (mock). */
+function orgPageHref(
+  school: Pick<TruongListItem, "slug" | "org_loai">,
+  pathname: string,
+): string {
+  if (school.org_loai === "co_so_dao_tao") {
+    return coSoTabPath(school.slug, CO_SO_DEFAULT_TAB);
+  }
+  if (pathname.startsWith("/studio/")) {
+    return studioRootPath(school.slug);
+  }
+  return truongDetailHref(school.slug);
+}
+
+function mapSchoolOrgKind(
+  school: Pick<TruongListItem, "org_loai">,
+  pathname: string,
+): ChatOrgKind | undefined {
+  if (school.org_loai === "co_so_dao_tao") return "co_so_dao_tao";
+  if (school.org_loai === "truong_dai_hoc") return "truong_dai_hoc";
+  if (pathname.startsWith("/studio/")) return "studio";
+  return "truong_dai_hoc";
+}
+
+/** Nút nhắn tin cho khách — mở CinsChatOverlay (cần đăng nhập). */
 export function TruongUserChatLauncher() {
   const ctx = useTruongInlineEdit();
-  const [open, setOpen] = useState(false);
-  const [subject, setSubject] = useState("");
-  const [body, setBody] = useState("");
+  const pathname = usePathname() ?? "";
+  const { isAuthenticated, openAuthModal } = useAuthGate();
+  const chat = useCinsChatContext();
+  const [messaging, setMessaging] = useState(false);
 
   if (!ctx) return null;
   if (ctx.canEdit && ctx.isEditing) return null;
 
-  function send() {
-    if (!ctx) return;
-    if (!body.trim()) return;
-    ctx.showToast("Đã gửi tin nhắn tới trường (mock). Trường sẽ phản hồi qua Journey.");
-    setSubject("");
-    setBody("");
-    setOpen(false);
+  const { orgId, school } = ctx;
+  const isStudio = pathname.startsWith("/studio/");
+
+  async function handleMessage() {
+    if (!isAuthenticated) {
+      openAuthModal(AUTH_MESSAGE_CHAT);
+      return;
+    }
+    if (!chat || messaging) return;
+
+    setMessaging(true);
+    try {
+      await chat.openChat({
+        orgId,
+        orgPreview: {
+          name: school.ten,
+          avatarUrl: school.avatar_src ?? null,
+          orgKind: mapSchoolOrgKind(school, pathname),
+        },
+        nguCanh: isStudio
+          ? undefined
+          : {
+              loai: "tuyen_sinh",
+              id: school.id,
+              tieuDe: school.ten,
+              moTa: school.mo_ta?.trim() || null,
+              href: orgPageHref(school, pathname),
+              orgTen: school.ten,
+            },
+      });
+    } catch {
+      /* openChat đã đóng overlay khi lỗi */
+    } finally {
+      setMessaging(false);
+    }
   }
 
   return (
-    <>
-      <button
-        type="button"
-        className="ss-btn primary ss-btn-user-chat"
-        onClick={() => setOpen(true)}
-        aria-label="Nhắn tin"
-        title="Nhắn tin"
-      >
-        <MessageIcon />
-        <span className="ss-btn-user-chat-label">Nhắn tin</span>
-      </button>
-
-      <TruongInlineModal
-        open={open}
-        onClose={() => setOpen(false)}
-        labelledBy="tdh-user-chat-title"
-      >
-        <h3 id="tdh-user-chat-title" className="tdh-inline-modal-title">
-          Nhắn tin tới {ctx.school.ten}
-        </h3>
-        <p className="tdh-user-chat-lead">
-          Gửi câu hỏi tuyển sinh hoặc về ngành học. Trường phản hồi qua tài khoản CINs
-          của bạn. (Mock)
-        </p>
-        <label className="tdh-user-chat-field">
-          <span className="tdh-user-chat-label">Chủ đề</span>
-          <input
-            type="text"
-            className="tdh-user-chat-input"
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            placeholder="Ví dụ: Hỏi khối thi ngành Đồ họa"
-          />
-        </label>
-        <label className="tdh-user-chat-field">
-          <span className="tdh-user-chat-label">Nội dung</span>
-          <textarea
-            className="tdh-user-chat-textarea"
-            rows={5}
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            placeholder="Viết câu hỏi của bạn…"
-          />
-        </label>
-        <div className="tdh-inline-modal-actions">
-          <button
-            type="button"
-            className="tdh-inline-btn ghost"
-            onClick={() => setOpen(false)}
-          >
-            Hủy
-          </button>
-          <button
-            type="button"
-            className="tdh-inline-btn primary"
-            disabled={!body.trim()}
-            onClick={send}
-          >
-            Gửi
-          </button>
-        </div>
-      </TruongInlineModal>
-    </>
+    <button
+      type="button"
+      className="ss-btn primary ss-btn-user-chat"
+      onClick={() => void handleMessage()}
+      disabled={messaging || !chat}
+      aria-label="Nhắn tin"
+      title="Nhắn tin"
+    >
+      <MessageIcon />
+      <span className="ss-btn-user-chat-label">
+        {messaging ? "Đang mở…" : "Nhắn tin"}
+      </span>
+    </button>
   );
 }

@@ -4208,18 +4208,18 @@ a.cd-v4-role-menu-btn {
   padding: 14px 16px 12px;
 }
 
-.cd-v4-jcard-body .j-m-body-wrap .j-m-card:not(.jcard--article):not(.jcard--photo):not(.jcard--video)
-  .jcard-body {
-  padding: 14px 16px 12px;
-}
-
 .cd-v4-jcard-body .j-m-body-wrap .jcard-media-zone > :is(.preview, a.preview),
 .cd-v4-jcard-body .j-m-body-wrap .jcard-media-zone > :is(.preview, a.preview) img {
   border-radius: 0;
 }
 
-.cd-v4-jcard-body .j-m-body-wrap .jcard-body {
-  padding: 14px 16px 12px;
+/* Card chữ — panel full-bleed giống wj-feed / Journey timeline */
+.cd-v4-jcard-body .j-m-body-wrap .j-m-card.jcard--text .jcard-body {
+  padding: 0;
+}
+
+.cd-v4-jcard-body .j-m-body-wrap .j-m-card.jcard--text .jcard-text-panel {
+  border-radius: 0;
 }
 
 .cd-v4-jcard-body .j-m-body-wrap .j-m-card-unfold[data-open="true"] {

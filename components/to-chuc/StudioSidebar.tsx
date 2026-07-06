@@ -12,6 +12,7 @@ import {
 
 import { CoSoOrgFollowButton } from "@/components/co-so/CoSoOrgFollowButton";
 import { OrgSidebarShareButton } from "@/components/org/OrgSidebarShareButton";
+import { useStudioOrgShareSource } from "@/components/org/useOrgSidebarShareSource";
 import { TruongGioiThieuTruong } from "@/components/truong/TruongGioiThieuTruong";
 import { TruongMessageInbox } from "@/components/truong/TruongMessageInbox";
 import { TruongMilestoneTagNotify } from "@/components/truong/TruongMilestoneTagNotify";
@@ -77,6 +78,17 @@ export function StudioSidebar({
     ten: displayTen,
   });
   const tinhThanh = labelTinhThanh(displayTinhThanh);
+  const shareSource = useStudioOrgShareSource({
+    slug: studio.slug,
+    ten: displayTen,
+    moTa: displayMoTa,
+    avatar_id: ctx?.school?.avatar_id ?? studio.avatar_id,
+    logo_id: ctx?.school?.logo_id ?? studio.logo_id,
+    avatar_src: studio.avatar_src,
+    cover_id: ctx?.school?.cover_id ?? studio.cover_id,
+    cover_src: studio.cover_src,
+    tinhThanh: displayTinhThanh,
+  });
   const coverOwner = {
     cover_id: ctx?.school?.cover_id ?? studio.cover_id,
     cover_src: studio.cover_src,
@@ -180,7 +192,7 @@ export function StudioSidebar({
                 <>
                   <TruongUserChatLauncher />
                   <CoSoOrgFollowButton orgId={studio.id} disabled={isOwner} />
-                  <OrgSidebarShareButton />
+                  <OrgSidebarShareButton kind="studio" source={shareSource} />
                 </>
               ) : (
                 <>
@@ -191,7 +203,7 @@ export function StudioSidebar({
                   <button type="button" className="cso-ss-btn-follow" disabled>
                     Theo dõi
                   </button>
-                  <OrgSidebarShareButton />
+                  <OrgSidebarShareButton kind="studio" source={shareSource} />
                 </>
               )}
             </div>

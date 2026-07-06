@@ -16,6 +16,8 @@ type Props = {
   profile: JourneyShareProfile;
   targetUrl: string;
   exportRef?: RefObject<HTMLElement | null>;
+  /** Org share — thay nhãn Portfolio trên thẻ gallery. */
+  galleryFeatureLabel?: string;
 };
 
 const SHARE_CARD_LOGO_SRC = "/assets/logo-cins-64.png";
@@ -400,9 +402,11 @@ function GalleryGridLayout({
 function PortfolioLayout({
   profile,
   thumbs,
+  featureLabel = "Portfolio",
 }: {
   profile: JourneyShareProfile;
   thumbs: string[];
+  featureLabel?: string;
 }) {
   const cells = [...thumbs.slice(0, 4)];
   while (cells.length < 4) cells.push("");
@@ -420,7 +424,7 @@ function PortfolioLayout({
             cins.vn/{profile.slug}
           </span>
         </div>
-        <span className="j-share-card-portfolio-badge">Portfolio</span>
+        <span className="j-share-card-portfolio-badge">{featureLabel}</span>
       </header>
       <div className="j-share-card-portfolio-mosaic" aria-hidden>
         <GalleryThumb
@@ -450,7 +454,9 @@ export function JourneyShareCardPreview({
   profile,
   targetUrl,
   exportRef,
+  galleryFeatureLabel,
 }: Props) {
+  const galleryLabel = galleryFeatureLabel ?? "Portfolio";
   const journeyVariant: JourneyJourneyCardVariant =
     kind === "journey" &&
     (variant === "profile" ||
@@ -490,14 +496,18 @@ export function JourneyShareCardPreview({
       aria-label={
         kind === "journey"
           ? `Thẻ giới thiệu Journey — ${profile.displayName}`
-          : `Thẻ Portfolio — ${profile.displayName}`
+          : `Thẻ ${galleryLabel} — ${profile.displayName}`
       }
     >
       <div className="j-share-card-main">
         {kind === "journey" ? (
           <JourneyLayout variant={journeyVariant} profile={profile} />
         ) : galleryVariant === "portfolio" ? (
-          <PortfolioLayout profile={profile} thumbs={thumbs} />
+          <PortfolioLayout
+            profile={profile}
+            thumbs={thumbs}
+            featureLabel={galleryLabel}
+          />
         ) : (
           <GalleryGridLayout
             profile={profile}

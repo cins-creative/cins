@@ -6,6 +6,7 @@ import { JourneyPendingConfirmationsStack } from "@/components/journey/JourneyPe
 import { JourneyCreateComposer } from "@/components/journey/JourneyCreateComposer";
 import { JourneyTimelineBar } from "@/components/journey/JourneyTimelineBar";
 import type { FilterGroup } from "@/components/journey/JourneyTimelineBar";
+import { JourneyTimelineGridView } from "@/components/journey/JourneyTimelineGridView";
 import {
   JourneyYearBlock,
   timelineExpandKey,
@@ -59,6 +60,7 @@ import {
 import { matchesPersonalFilterSlug } from "@/lib/filter/client-utils";
 import { CONG_DONG_PERSONAL_FILTER_SLUG } from "@/lib/filter/cong-dong-personal-filter.shared";
 import { useJourneyPersonalFilterOptional } from "@/components/journey/JourneyPersonalFilterContext";
+import type { OrgBaiDangView } from "@/lib/truong/bai-dang-grid";
 
 function isIdentityMembershipMilestone(m: MilestoneItem): boolean {
   return (
@@ -137,6 +139,8 @@ export function JourneyTimeline({
     );
     window.history.replaceState(window.history.state, "", href);
   }, []);
+  const [view, setView] = useState<OrgBaiDangView>("timeline");
+  const [pendingScrollId, setPendingScrollId] = useState<string | null>(null);
   const [items, setItems] = useState<MilestoneItem[]>(() => [...initialMilestones]);
   const [hasMore, setHasMore] = useState(scrollLoad?.hasMore ?? false);
   const [nextOffset, setNextOffset] = useState(
@@ -425,6 +429,24 @@ export function JourneyTimeline({
 
   const handleCloseExpand = useCallback(() => setInlineExpand(null), []);
 
+  const openMilestoneInTimeline = useCallback((milestoneId: string) => {
+    setView("timeline");
+    setPendingScrollId(milestoneId);
+  }, []);
+
+  useEffect(() => {
+    if (view !== "timeline" || !pendingScrollId) return;
+    const el = rootRef.current?.querySelector<HTMLElement>(
+      `.j-milestone[data-mid="${CSS.escape(pendingScrollId)}"]`,
+    );
+    setPendingScrollId(null);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+    el.classList.add("is-flash");
+    const t = window.setTimeout(() => el.classList.remove("is-flash"), 1600);
+    return () => window.clearTimeout(t);
+  }, [view, pendingScrollId]);
+
   useEffect(() => {
     const el = rootRef.current;
     if (!el) return;
@@ -506,6 +528,7 @@ export function JourneyTimeline({
   }, [filter, ownerSlug, yearNow, filtered[0]?.id, filtered[0]?.year, filtered[0]?.month]);
 
   useEffect(() => {
+    if (view === "grid") return;
     const root = rootRef.current;
     if (!root || filtered.length === 0) return;
 
@@ -535,7 +558,7 @@ export function JourneyTimeline({
       window.removeEventListener("resize", schedule);
       if (raf) window.cancelAnimationFrame(raf);
     };
-  }, [filtered]);
+  }, [filtered, view]);
 
   const totalVisible = filtered.length;
   const hasPersonalLabelFilter = Boolean(personalFilter?.activeSlug);
@@ -552,6 +575,15 @@ export function JourneyTimeline({
     items.length > 0 ||
     (scrollLoad?.totalCount ?? 0) > 0;
 
+  const barSpy =
+    view === "grid"
+      ? timelineScrollSpyFromParts(
+          filtered[0]?.year,
+          filtered[0]?.month,
+          yearNow,
+        )
+      : spy;
+
   return (
     <main
       className="j-timeline"
@@ -559,8 +591,8 @@ export function JourneyTimeline({
       ref={rootRef}
     >
       <JourneyTimelineBar
-        year={spy.year}
-        month={spy.month}
+        year={barSpy.year}
+        month={barSpy.month}
         filter={filter}
         onFilterChange={handleFilterChange}
         options={options}
@@ -568,6 +600,8 @@ export function JourneyTimeline({
         isOwner={isOwner}
         filterVisibility={filterVisibility}
         personalLabelMatchCount={totalVisible}
+        view={hasData ? view : undefined}
+        onView={hasData ? setView : undefined}
       />
 
       {isOwner && viewerProfileId ? (
@@ -583,98 +617,114 @@ export function JourneyTimeline({
         />
       ) : null}
 
-      {/* CTA "Thêm nội dung mới" ở trên cùng (trước cột mốc gần nhất) để
-          owner luôn có lối tạo bài viết ngay khi mở Journey. Càng kéo
-          xuống, milestones sẽ cũ dần (year DESC + thoi_diem DESC). */}
-      {hasData && isOwner ? (
-        <JourneyCreateComposer
-          ownerSlug={ownerSlug}
-          ownerName={ownerName}
-          avatarUrl={ownerAvatarUrl ?? undefined}
-        />
-      ) : null}
-
-      {hasData ? (
-        byYear.length > 0 ? (
-          byYear.map((yb) => (
-            <JourneyYearBlock
-              key={yb.year}
-              year={yb.year}
-              milestones={yb.milestones}
-              metaLeft={
-                yb.year === Number(yearNow) ? "Năm hiện tại" : undefined
-              }
-              verifiedCount={
-                yb.milestones.filter((m) => m.variant === "verified").length
-              }
-              isOwner={isOwner}
-              ownerSlug={ownerSlug}
-              ownerProfileId={ownerProfileId}
-              viewerProfileId={viewerProfileId}
-              authorAvatarUrl={ownerAvatarUrl ?? null}
-              authorName={ownerName}
-              inlineExpand={inlineExpand}
-              onTogglePost={handleToggleContent}
-              onOpenComments={handleOpenComments}
-              onCloseExpand={handleCloseExpand}
-            />
-          ))
-        ) : (
-          <FilteredEmptyState
-            filter={filter}
-            personalLabelName={activePersonalFilter?.ten ?? null}
+      {view === "grid" ? (
+        hasData ? (
+          <JourneyTimelineGridView
+            milestones={filtered}
+            onOpenMilestone={openMilestoneInTimeline}
           />
+        ) : isOwner ? (
+          <OwnerEmptyState
+            ownerSlug={ownerSlug}
+            ownerName={ownerName}
+            ownerAvatarUrl={ownerAvatarUrl ?? null}
+          />
+        ) : (
+          <GuestEmptyState ownerName={ownerName} />
         )
-      ) : isOwner ? (
-        <OwnerEmptyState
-          ownerSlug={ownerSlug}
-          ownerName={ownerName}
-          ownerAvatarUrl={ownerAvatarUrl ?? null}
-        />
       ) : (
-        <GuestEmptyState ownerName={ownerName} />
-      )}
+        <>
+          {hasData && isOwner ? (
+            <JourneyCreateComposer
+              ownerSlug={ownerSlug}
+              ownerName={ownerName}
+              avatarUrl={ownerAvatarUrl ?? undefined}
+            />
+          ) : null}
 
-      {scrollLoad && hasMore ? (
-        <div ref={sentinelRef} className="j-timeline-scroll-sentinel" aria-hidden />
-      ) : null}
+          {hasData ? (
+            byYear.length > 0 ? (
+              byYear.map((yb) => (
+                <JourneyYearBlock
+                  key={yb.year}
+                  year={yb.year}
+                  milestones={yb.milestones}
+                  metaLeft={
+                    yb.year === Number(yearNow) ? "Năm hiện tại" : undefined
+                  }
+                  verifiedCount={
+                    yb.milestones.filter((m) => m.variant === "verified").length
+                  }
+                  isOwner={isOwner}
+                  ownerSlug={ownerSlug}
+                  ownerProfileId={ownerProfileId}
+                  viewerProfileId={viewerProfileId}
+                  authorAvatarUrl={ownerAvatarUrl ?? null}
+                  authorName={ownerName}
+                  inlineExpand={inlineExpand}
+                  onTogglePost={handleToggleContent}
+                  onOpenComments={handleOpenComments}
+                  onCloseExpand={handleCloseExpand}
+                />
+              ))
+            ) : (
+              <FilteredEmptyState
+                filter={filter}
+                personalLabelName={activePersonalFilter?.ten ?? null}
+              />
+            )
+          ) : isOwner ? (
+            <OwnerEmptyState
+              ownerSlug={ownerSlug}
+              ownerName={ownerName}
+              ownerAvatarUrl={ownerAvatarUrl ?? null}
+            />
+          ) : (
+            <GuestEmptyState ownerName={ownerName} />
+          )}
 
-      {loadingMore ? (
-        <div className="j-timeline-load-more" aria-busy="true" aria-live="polite">
-          <article className="j-milestone">
-            <div className="j-m-body-wrap">
-              <div className="j-m-card jcard j-skel-post-card">
-                <div className="jcard-datebar">
-                  <div className="j-skel j-skel-post-avatar" />
-                  <div className="j-skel-post-badges">
-                    <div className="j-skel j-skel-post-badge" />
+          {scrollLoad && hasMore ? (
+            <div ref={sentinelRef} className="j-timeline-scroll-sentinel" aria-hidden />
+          ) : null}
+
+          {loadingMore ? (
+            <div className="j-timeline-load-more" aria-busy="true" aria-live="polite">
+              <article className="j-milestone">
+                <div className="j-m-body-wrap">
+                  <div className="j-m-card jcard j-skel-post-card">
+                    <div className="jcard-datebar">
+                      <div className="j-skel j-skel-post-avatar" />
+                      <div className="j-skel-post-badges">
+                        <div className="j-skel j-skel-post-badge" />
+                      </div>
+                    </div>
+                    <div className="jcard-body">
+                      <div className="j-skel j-skel-post-line j-skel-post-line--title" />
+                      <div className="j-skel j-skel-post-line" />
+                    </div>
                   </div>
                 </div>
-                <div className="jcard-body">
-                  <div className="j-skel j-skel-post-line j-skel-post-line--title" />
-                  <div className="j-skel j-skel-post-line" />
-                </div>
-              </div>
+              </article>
             </div>
-          </article>
-        </div>
-      ) : null}
+          ) : null}
 
-      {loadError ? (
-        <div className="j-timeline-load-retry-wrap">
-          <button
-            type="button"
-            className="j-timeline-load-retry"
-            onClick={() => void loadMore()}
-          >
-            Không tải được thêm cột mốc — thử lại
-          </button>
-        </div>
-      ) : null}
+          {loadError ? (
+            <div className="j-timeline-load-retry-wrap">
+              <button
+                type="button"
+                className="j-timeline-load-retry"
+                onClick={() => void loadMore()}
+              >
+                Không tải được thêm cột mốc — thử lại
+              </button>
+            </div>
+          ) : null}
 
-      <div className="j-timeline-end" aria-hidden>
-        <div className="j-timeline-end-text">— bắt đầu hành trình —</div>
-      </div>
+          <div className="j-timeline-end" aria-hidden>
+            <div className="j-timeline-end-text">— bắt đầu hành trình —</div>
+          </div>
+        </>
+      )}
     </main>
   );
 }

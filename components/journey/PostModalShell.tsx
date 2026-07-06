@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
 
 export function PostModalShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const sheetRef = useRef<HTMLElement | null>(null);
+  const overlayRef = useRef<HTMLDivElement | null>(null);
   const [portalReady, setPortalReady] = useState(false);
 
   useEffect(() => {
@@ -45,7 +45,7 @@ export function PostModalShell({ children }: { children: React.ReactNode }) {
   }, [handleClose]);
 
   useEffect(() => {
-    sheetRef.current?.scrollTo({ top: 0, left: 0 });
+    overlayRef.current?.scrollTo({ top: 0, left: 0 });
   }, [children]);
 
   const handleBackdropClick = useCallback(
@@ -59,6 +59,7 @@ export function PostModalShell({ children }: { children: React.ReactNode }) {
 
   return createPortal(
     <div
+      ref={overlayRef}
       className="j-post-overlay"
       role="dialog"
       aria-modal="true"
@@ -75,7 +76,6 @@ export function PostModalShell({ children }: { children: React.ReactNode }) {
       </button>
       <article
         className="j-post-sheet"
-        ref={sheetRef}
         onClick={(e) => e.stopPropagation()}
       >
         {children}

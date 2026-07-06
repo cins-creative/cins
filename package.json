@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "clean": "node scripts/clean-next.mjs",
+    "clear-browser-cache": "node scripts/clear-cursor-browser-cache.mjs",
     "dev": "next dev -p 3001",
     "host": "node scripts/dev-host.mjs",
     "host:webpack": "node scripts/dev-host.mjs --webpack",

@@ -7,6 +7,7 @@ import {
   setRestoreHintOnResponse,
   upsertAccount,
 } from "@/lib/auth/account-vault";
+import { normalizeDevBindAllOrigin } from "@/lib/auth/auth-origin";
 import type { LoginIntent } from "@/lib/auth/login-intent";
 import {
   clearOAuthIntentOnResponse,
@@ -63,7 +64,7 @@ function readOAuthReturnFromRequest(request: NextRequest): string | null {
  */
 export async function GET(request: NextRequest) {
   const url = request.nextUrl;
-  const origin = url.origin;
+  const origin = normalizeDevBindAllOrigin(url.origin);
   const code = url.searchParams.get("code");
   const nextParam = url.searchParams.get("next");
   const errorDescription = url.searchParams.get("error_description");

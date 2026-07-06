@@ -218,6 +218,10 @@ function packMasonryColumns(cells: AlbumCell[], columns: number): AlbumCell[][] 
 
 /** Chia cells thành các hàng Justified (tối đa JUSTIFIED_MAX_PER_ROW / hàng). */
 function splitJustifiedRows(cells: AlbumCell[]): AlbumCell[][] {
+  // 4 ảnh: 2×2 cân bằng — tránh hàng 3+1 lệch.
+  if (cells.length === 4) {
+    return [cells.slice(0, 2), cells.slice(2, 4)];
+  }
   const rows: AlbumCell[][] = [];
   for (let i = 0; i < cells.length; i += JUSTIFIED_MAX_PER_ROW) {
     rows.push(cells.slice(i, i + JUSTIFIED_MAX_PER_ROW));
@@ -230,7 +234,7 @@ function splitJustifiedRows(cells: AlbumCell[]): AlbumCell[][] {
  * - 1 ảnh: giữ tỉ lệ gốc (single)
  * - toàn ảnh vuông: grid vuông
  * - gần như toàn ảnh dọc: Masonry dọc
- * - còn lại (ngang / trộn): Justified Grid
+ * - còn lại (ngang / trộn): Justified Grid (4 ảnh → 2×2)
  *
  * >6 ảnh (chế độ xem): vẫn chọn layout theo hướng ảnh như trên nhưng chỉ hiện
  * 6 ô đầu, ô cuối phủ overlay "+N" (N = số ảnh còn lại). Trước đây >6 luôn ép

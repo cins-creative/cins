@@ -221,6 +221,7 @@ function hydrateAsideItems(
     if (!img?.src && !isVideo) return;
     pinned.push({
       id: `pin-${entry.cotMocId}-${i}`,
+      cotMocId: entry.cotMocId,
       src: img?.src ?? "",
       srcSet: img?.srcSet,
       width: img?.width,
@@ -246,6 +247,7 @@ function hydrateAsideItems(
     if (!img?.src && !isVideo) return;
     items.push({
       id: `grid-${entry.cotMocId}-${i}`,
+      cotMocId: entry.cotMocId,
       src: img?.src ?? "",
       srcSet: img?.srcSet,
       width: img?.width,

@@ -25,11 +25,42 @@ export function isLikelyLocalOrPreviewHost(hostname: string): boolean {
   const h = hostname.toLowerCase();
   return (
     h === "localhost" ||
+    h === "0.0.0.0" ||
     h.endsWith(".localhost") ||
     h.endsWith(".vercel.app") ||
     h.endsWith(".workers.dev") ||
     /^\d+\.\d+\.\d+\.\d+$/.test(h)
   );
+}
+
+/**
+ * `next dev -H 0.0.0.0` — tab browser có thể hiện `http://0.0.0.0:3001`.
+ * OAuth `redirectTo` + cookie PKCE phải dùng `localhost` (khớp Supabase allowlist).
+ */
+export function normalizeDevBindAllOrigin(origin: string): string {
+  try {
+    const url = new URL(origin);
+    if (url.hostname.toLowerCase() !== "0.0.0.0") return origin;
+    url.hostname = "localhost";
+    return url.origin;
+  } catch {
+    return origin;
+  }
+}
+
+/** Request URL → redirect 308 sang `localhost` nếu client mở `0.0.0.0` trong thanh địa chỉ. */
+export function buildDevBindAllHostRedirect(
+  requestUrl: URL,
+  requestHostHeader?: string | null,
+): { url: URL; status: 308 } | null {
+  /* `next dev -H 0.0.0.0` — `request.nextUrl.hostname` có thể là `0.0.0.0` dù Host là localhost → loop. */
+  const clientHost = (requestHostHeader ?? requestUrl.host)
+    .split(":")[0]
+    .toLowerCase();
+  if (clientHost !== "0.0.0.0") return null;
+  const url = new URL(requestUrl.toString());
+  url.hostname = "localhost";
+  return { url, status: 308 };
 }
 
 export function getConfiguredSiteUrl(): URL | null {
@@ -49,7 +80,7 @@ export function getConfiguredSiteOrigin(): string | null {
 /** Origin dùng cho `redirectTo` OAuth — luôn khớp tab browser (PKCE cookie). */
 export function resolveAuthOrigin(): string {
   if (typeof window !== "undefined") {
-    return window.location.origin;
+    return normalizeDevBindAllOrigin(window.location.origin);
   }
   return getConfiguredSiteOrigin() ?? "";
 }
@@ -66,7 +97,7 @@ export function authOriginMismatchMessage(): string | null {
   const configured = getConfiguredSiteOrigin();
   if (!configured) return null;
 
-  const current = window.location.origin;
+  const current = normalizeDevBindAllOrigin(window.location.origin);
   if (current === configured) return null;
 
   try {
@@ -76,6 +107,14 @@ export function authOriginMismatchMessage(): string | null {
 
     const currentIsDev = isLikelyLocalOrPreviewHost(currentHost);
     const configuredIsDev = isLikelyLocalOrPreviewHost(configuredHost);
+
+    if (currentIsDev && !configuredIsDev) {
+      return (
+        `Bạn đang dev trên ${current} nhưng NEXT_PUBLIC_SITE_URL=${configured}. ` +
+        `Đặt NEXT_PUBLIC_SITE_URL=http://localhost:3001 trong .env.local và mở http://localhost:3001 (không dùng 0.0.0.0).`
+      );
+    }
+
     if (!currentIsDev || !configuredIsDev) return null;
   } catch {
     return null;

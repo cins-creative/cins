@@ -35,6 +35,9 @@ const nextArgs = ["dev", "-H", hostname, "-p", port];
 if (useWebpack) nextArgs.push("--webpack");
 
 console.log(`[host] next ${nextArgs.join(" ")}`);
+console.log(
+  `[host] Mở http://localhost:${port} (không dùng http://0.0.0.0:${port} — OAuth PKCE lệch origin).`,
+);
 
 const nextBin = join(projectRoot, "node_modules", "next", "dist", "bin", "next");
 const dev = spawn(process.execPath, [nextBin, ...nextArgs], {

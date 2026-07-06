@@ -39,11 +39,6 @@ export function CareerHubRoleCard({
         </div>
         <div className="hn-role-body">
           <CareerHubCardLabels career={career} showLinhVuc={showLinhVuc} />
-          <footer className="hn-role-foot">
-            <span className="hn-role-arrow" aria-hidden>
-              →
-            </span>
-          </footer>
         </div>
       </CareerHubCardLink>
     </li>

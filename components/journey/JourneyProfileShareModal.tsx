@@ -8,7 +8,7 @@ import {
   Map,
   Palette,
 } from "lucide-react";
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { createPortal } from "react-dom";
 
 import { JourneyShareCardPreview } from "@/components/journey/JourneyShareCardPreview";
@@ -37,6 +37,11 @@ import {
   type JourneyShareMenuStep,
   type JourneyShareProfile,
 } from "@/lib/journey/profile-share";
+import type { OrgShareContext } from "@/lib/org/org-profile-share";
+import {
+  orgGalleryShareUrl,
+  orgPageShareUrl,
+} from "@/lib/org/org-profile-share";
 import { isLikelyLocalOrPreviewHost } from "@/lib/auth/auth-origin";
 import { copyShareCardImage } from "@/lib/journey/share-card-export";
 import {
@@ -53,33 +58,50 @@ type Props = {
   galleryFilter?: JourneyGalleryFilterShareSpec | null;
   /** Item gallery đang hiển thị trên grid — ưu tiên hơn cache 8 item. */
   liveGalleryItems?: ReadonlyArray<GalleryMainItem>;
+  /** Modal toàn màn hình (mặc định) hoặc popover neo nút trigger. */
+  presentation?: "modal" | "popover";
+  /** Nút mở popover — bắt buộc khi `presentation="popover"`. */
+  anchorRef?: RefObject<HTMLElement | null>;
+  /** Trang org (cơ sở / trường / studio) — thay nhãn Journey/Portfolio. */
+  orgShare?: OrgShareContext | null;
 };
 
 function stepTitle(
   step: JourneyShareMenuStep,
   portfolioFilter: JourneyGalleryFilterShareSpec | null | undefined,
+  orgShare?: OrgShareContext | null,
 ): string {
   if (step === "menu") return "Chia sẻ";
-  if (step === "journey-card") return "Chia sẻ Journey";
-  if (portfolioFilter && portfolioFilter.kind !== "all") {
-    return `Chia sẻ Portfolio · ${portfolioFilter.label}`;
+  if (step === "journey-card") {
+    return orgShare ? "Chia sẻ trang" : "Chia sẻ Journey";
   }
-  return "Chia sẻ Portfolio";
+  const galleryLabel = orgShare?.galleryFeatureLabel ?? "Portfolio";
+  if (portfolioFilter && portfolioFilter.kind !== "all") {
+    return `Chia sẻ ${galleryLabel} · ${portfolioFilter.label}`;
+  }
+  return `Chia sẻ ${galleryLabel}`;
 }
 
 function stepSubtitle(
   step: JourneyShareMenuStep,
   slug: string,
   portfolioFilter: JourneyGalleryFilterShareSpec | null | undefined,
+  orgShare?: OrgShareContext | null,
 ): string {
-  if (step === "menu") return `cins.vn/${slug}`;
+  const pathLine = orgShare ? `cins.vn/${orgShare.pathLabel}` : `cins.vn/${slug}`;
+  const galleryLabel = orgShare?.galleryFeatureLabel ?? "Portfolio";
+  if (step === "menu") return pathLine;
   if (step === "journey-card") {
-    return "Thẻ giới thiệu hồ sơ — toàn bộ Journey (Tất cả)";
+    return orgShare
+      ? "Thẻ giới thiệu trang — toàn bộ"
+      : "Thẻ giới thiệu hồ sơ — toàn bộ Journey";
   }
   if (portfolioFilter && portfolioFilter.kind !== "all") {
     return `Thẻ tác phẩm — lọc theo "${portfolioFilter.label}"`;
   }
-  return "Thẻ Portfolio — toàn bộ tác phẩm (Tất cả)";
+  return orgShare
+    ? `Thẻ ${galleryLabel} — toàn bộ`
+    : "Thẻ Portfolio — toàn bộ tác phẩm";
 }
 
 export function JourneyProfileShareModal({
@@ -89,10 +111,19 @@ export function JourneyProfileShareModal({
   viewerProfileId = null,
   galleryFilter = null,
   liveGalleryItems = [],
+  presentation = "modal",
+  anchorRef,
+  orgShare = null,
 }: Props) {
   const titleId = useId();
   const cardExportRef = useRef<HTMLElement>(null);
+  const sheetRef = useRef<HTMLElement>(null);
   const [portalReady, setPortalReady] = useState(false);
+  const [popoverStyle, setPopoverStyle] = useState<{
+    top: number;
+    left: number;
+    maxWidth: number;
+  } | null>(null);
   const [step, setStep] = useState<JourneyShareMenuStep>("menu");
   const [journeyVariant, setJourneyVariant] =
     useState<JourneyShareCardVariant>("profile");
@@ -108,10 +139,60 @@ export function JourneyProfileShareModal({
   const [portfolioFilter, setPortfolioFilter] =
     useState<JourneyGalleryFilterShareSpec | null>(null);
   const skipMenu = Boolean(galleryFilter);
+  const isPopover = presentation === "popover";
+
+  const handleClose = useCallback(() => {
+    setStep("menu");
+    setFlash(null);
+    onClose();
+  }, [onClose]);
 
   useEffect(() => {
     setPortalReady(true);
   }, []);
+
+  useLayoutEffect(() => {
+    if (!open || !isPopover) {
+      setPopoverStyle(null);
+      return;
+    }
+    const updatePosition = () => {
+      const anchor = anchorRef?.current;
+      if (!anchor) return;
+      const rect = anchor.getBoundingClientRect();
+      const left = Math.max(16, rect.left);
+      const panelW = step === "menu" ? 300 : 480;
+      setPopoverStyle({
+        top: rect.bottom + 8,
+        left,
+        maxWidth: Math.min(panelW, window.innerWidth - left - 16),
+      });
+    };
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [open, isPopover, anchorRef, step]);
+
+  useEffect(() => {
+    if (!open || !isPopover) return;
+    const onDocClick = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (anchorRef?.current?.contains(target)) return;
+      if (sheetRef.current?.contains(target)) return;
+      handleClose();
+    };
+    const timer = window.setTimeout(() => {
+      document.addEventListener("click", onDocClick, true);
+    }, 0);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener("click", onDocClick, true);
+    };
+  }, [open, isPopover, anchorRef, handleClose]);
 
   useEffect(() => {
     if (!open) {
@@ -128,6 +209,18 @@ export function JourneyProfileShareModal({
 
   useEffect(() => {
     if (!open || step !== "gallery-card") return;
+
+    if (orgShare) {
+      const fromLive = liveGalleryItems
+        .map((item) => item.src)
+        .filter(Boolean)
+        .slice(0, 6);
+      setGalleryThumbs(
+        fromLive.length > 0 ? fromLive : (profile.galleryThumbs ?? []),
+      );
+      setShareStats(profile.stats ?? { cotMoc: 0, tacPham: 0 });
+      return;
+    }
 
     const filterSpec = portfolioFilter ?? PORTFOLIO_ALL_FILTER_SHARE_SPEC;
     const timeline = readJourneyTimelinePanelCache(profile.slug, viewerProfileId);
@@ -195,13 +288,8 @@ export function JourneyProfileShareModal({
     profile.galleryThumbs,
     profile.stats,
     viewerProfileId,
+    orgShare,
   ]);
-
-  const handleClose = useCallback(() => {
-    setStep("menu");
-    setFlash(null);
-    onClose();
-  }, [onClose]);
 
   useEffect(() => {
     if (!open) return;
@@ -218,9 +306,18 @@ export function JourneyProfileShareModal({
   }, []);
 
   const copyJourneyLink = useCallback(async () => {
-    const ok = await copyTextToClipboard(journeyShareUrl(profile.slug));
-    showFlash(ok ? "Đã copy link Journey." : "Không copy được link.");
-  }, [profile.slug, showFlash]);
+    const url = orgShare
+      ? orgPageShareUrl(orgShare)
+      : journeyShareUrl(profile.slug);
+    const ok = await copyTextToClipboard(url);
+    showFlash(
+      ok
+        ? orgShare
+          ? "Đã copy link trang."
+          : "Đã copy link Journey."
+        : "Không copy được link.",
+    );
+  }, [orgShare, profile.slug, showFlash]);
 
   const cardKind: JourneyShareCardKind | null =
     step === "journey-card"
@@ -234,11 +331,15 @@ export function JourneyProfileShareModal({
 
   const cardTargetUrl =
     cardKind === "gallery"
-      ? galleryFilterShareUrl(
-          profile.slug,
-          portfolioFilter ?? PORTFOLIO_ALL_FILTER_SHARE_SPEC,
-        )
-      : journeyShareUrl(profile.slug);
+      ? orgShare
+        ? orgGalleryShareUrl(orgShare)
+        : galleryFilterShareUrl(
+            profile.slug,
+            portfolioFilter ?? PORTFOLIO_ALL_FILTER_SHARE_SPEC,
+          )
+      : orgShare
+        ? orgPageShareUrl(orgShare)
+        : journeyShareUrl(profile.slug);
 
   const cardProfile: JourneyShareProfile = {
     ...profile,
@@ -306,62 +407,77 @@ export function JourneyProfileShareModal({
   );
 
   if (!open || !portalReady) return null;
+  if (isPopover && !popoverStyle) return null;
 
-  return createPortal(
-    <div
-      className="j-share-backdrop"
+  const anchoredStyle = isPopover
+    ? {
+        top: popoverStyle!.top,
+        left: popoverStyle!.left,
+        maxWidth: popoverStyle!.maxWidth,
+      }
+    : undefined;
+
+  const sheetClass =
+    "j-share-sheet" +
+    (isPopover ? " j-share-sheet--popover" : "") +
+    (step !== "menu" ? " is-card-step" : "");
+
+  const sheet = (
+    <section
+      ref={sheetRef}
+      className={sheetClass}
       role="dialog"
-      aria-modal="true"
+      aria-modal={isPopover ? "false" : "true"}
       aria-labelledby={titleId}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) handleClose();
-      }}
+      style={anchoredStyle}
+      onClick={(e) => e.stopPropagation()}
     >
-      <section className="j-share-sheet">
-        <header className="j-share-head">
-          <div className="j-share-head-main">
-            {step !== "menu" ? (
-              <button
-                type="button"
-                className="j-share-back"
-                onClick={() => {
-                  if (skipMenu) handleClose();
-                  else {
-                    setPortfolioFilter(null);
-                    setStep("menu");
-                  }
-                }}
-                aria-label={skipMenu ? "Đóng" : "Quay lại"}
-              >
-                <ArrowLeft size={18} strokeWidth={2} aria-hidden />
-              </button>
-            ) : null}
-            <div>
-              <h2 id={titleId} className="j-share-title">
-                {stepTitle(step, portfolioFilter)}
-              </h2>
+      <header className="j-share-head">
+        <div className="j-share-head-main">
+          {step !== "menu" ? (
+            <button
+              type="button"
+              className="j-share-back"
+              onClick={() => {
+                if (skipMenu) handleClose();
+                else {
+                  setPortfolioFilter(null);
+                  setStep("menu");
+                }
+              }}
+              aria-label={skipMenu ? "Đóng" : "Quay lại"}
+            >
+              <ArrowLeft size={18} strokeWidth={2} aria-hidden />
+            </button>
+          ) : null}
+          <div>
+            <h2 id={titleId} className="j-share-title">
+              {stepTitle(step, portfolioFilter, orgShare)}
+            </h2>
+            {!(isPopover && step === "menu") ? (
               <p className="j-share-sub">
-                {stepSubtitle(step, profile.slug, portfolioFilter)}
+                {stepSubtitle(step, profile.slug, portfolioFilter, orgShare)}
               </p>
-            </div>
+            ) : null}
           </div>
-          <button
-            type="button"
-            className="j-share-close"
-            aria-label="Đóng"
-            onClick={handleClose}
-          >
-            ×
-          </button>
-        </header>
+        </div>
+        <button
+          type="button"
+          className="j-share-close"
+          aria-label="Đóng"
+          onClick={handleClose}
+        >
+          ×
+        </button>
+      </header>
 
-        {flash ? (
-          <p className="j-share-flash" role="status">
-            {flash}
-          </p>
-        ) : null}
+      {flash ? (
+        <p className="j-share-flash" role="status">
+          {flash}
+        </p>
+      ) : null}
 
-        <div className="j-share-body">
+      <div className="j-share-body">
           {step === "menu" ? (
             <div className="j-share-menu">
               <button
@@ -374,7 +490,11 @@ export function JourneyProfileShareModal({
                 </span>
                 <span className="j-share-menu-copy">
                   <strong>Copy link</strong>
-                  <span>Copy URL Journey vào bộ nhớ tạm</span>
+                  <span>
+                    {orgShare
+                      ? "Copy URL trang vào bộ nhớ tạm"
+                      : "Copy URL Journey vào bộ nhớ tạm"}
+                  </span>
                 </span>
               </button>
 
@@ -387,9 +507,11 @@ export function JourneyProfileShareModal({
                   <Map size={20} strokeWidth={1.8} aria-hidden />
                 </span>
                 <span className="j-share-menu-copy">
-                  <strong>Chia sẻ Journey</strong>
+                  <strong>{orgShare ? "Chia sẻ trang" : "Chia sẻ Journey"}</strong>
                   <span>
-                    Thẻ giới thiệu hồ sơ — toàn bộ Journey (Tất cả)
+                    {orgShare
+                      ? "Thẻ giới thiệu trang — toàn bộ"
+                      : "Thẻ giới thiệu hồ sơ — toàn bộ Journey"}
                   </span>
                 </span>
               </button>
@@ -399,9 +521,11 @@ export function JourneyProfileShareModal({
                 className="j-share-menu-item"
                 onClick={() => {
                   setPortfolioFilter(
-                    typeof window !== "undefined"
-                      ? galleryFilterSpecFromSearch(window.location.search)
-                      : PORTFOLIO_ALL_FILTER_SHARE_SPEC,
+                    orgShare
+                      ? PORTFOLIO_ALL_FILTER_SHARE_SPEC
+                      : typeof window !== "undefined"
+                        ? galleryFilterSpecFromSearch(window.location.search)
+                        : PORTFOLIO_ALL_FILTER_SHARE_SPEC,
                   );
                   setStep("gallery-card");
                 }}
@@ -410,9 +534,12 @@ export function JourneyProfileShareModal({
                   <Palette size={20} strokeWidth={1.8} aria-hidden />
                 </span>
                 <span className="j-share-menu-copy">
-                  <strong>Chia sẻ Portfolio</strong>
+                  <strong>
+                    Chia sẻ {orgShare?.galleryFeatureLabel ?? "Portfolio"}
+                  </strong>
                   <span>
-                    Thẻ tác phẩm — toàn bộ Portfolio (Tất cả)
+                    Thẻ {orgShare?.galleryFeatureLabel ?? "Portfolio"} — toàn bộ
+                    {orgShare ? "" : " tác phẩm"}
                   </span>
                 </span>
               </button>
@@ -426,6 +553,12 @@ export function JourneyProfileShareModal({
                     cardKind === "journey"
                       ? journeyVariant === opt.id
                       : galleryVariant === opt.id;
+                  const chipLabel =
+                    orgShare &&
+                    cardKind === "gallery" &&
+                    opt.id === "portfolio"
+                      ? orgShare.galleryFeatureLabel
+                      : opt.label;
                   return (
                     <button
                       key={opt.id}
@@ -442,7 +575,7 @@ export function JourneyProfileShareModal({
                         }
                       }}
                     >
-                      {opt.label}
+                      {chipLabel}
                     </button>
                   );
                 })}
@@ -456,6 +589,7 @@ export function JourneyProfileShareModal({
                   profile={cardProfile}
                   targetUrl={cardTargetUrl}
                   exportRef={cardExportRef}
+                  galleryFeatureLabel={orgShare?.galleryFeatureLabel}
                 />
               </div>
 
@@ -518,7 +652,21 @@ export function JourneyProfileShareModal({
             </>
           ) : null}
         </div>
-      </section>
+    </section>
+  );
+
+  if (isPopover) {
+    return createPortal(sheet, document.body);
+  }
+
+  return createPortal(
+    <div
+      className="j-share-backdrop"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) handleClose();
+      }}
+    >
+      {sheet}
     </div>,
     document.body,
   );

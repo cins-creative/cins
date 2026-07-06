@@ -1524,10 +1524,27 @@
 }
 
 /* Card ngữ cảnh (tuyển dụng / sự kiện / tuyển sinh) trong luồng chat */
+.cins-chat-bubble-row:has(.cins-chat-ctx-card-wrap) {
+  width: 100%;
+  max-width: 100%;
+}
+
+.cins-chat-bubble-row:has(.cins-chat-ctx-card-wrap) .cins-chat-bubble-wrap {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+}
+
+.cins-chat-bubble:has(.cins-chat-ctx-card-wrap) {
+  width: 100%;
+  box-sizing: border-box;
+}
+
 .cins-chat-ctx-card-wrap {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  width: 100%;
 }
 
 .cins-chat-ctx-card-note {
@@ -1538,8 +1555,8 @@
 .cins-chat-ctx-card {
   display: flex;
   gap: 10px;
-  align-items: stretch;
-  max-width: min(280px, 100%);
+  align-items: flex-start;
+  width: 100%;
   padding: 8px;
   border: 1px solid rgba(15, 23, 42, 0.08);
   border-radius: 14px;
@@ -1559,8 +1576,9 @@ a.cins-chat-ctx-card:hover {
 
 .cins-chat-ctx-card-img {
   flex: 0 0 auto;
-  width: 56px;
-  height: 56px;
+  width: min(32%, 120px);
+  aspect-ratio: 4 / 3;
+  height: auto;
   border-radius: 10px;
   object-fit: cover;
 }
@@ -1569,6 +1587,7 @@ a.cins-chat-ctx-card:hover {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  flex: 1;
   min-width: 0;
 }
 
@@ -2505,6 +2524,10 @@ a.cins-chat-ctx-card:hover {
 
   .cins-chat-bubble-row {
     max-width: 90%;
+  }
+
+  .cins-chat-bubble-row:has(.cins-chat-ctx-card-wrap) {
+    max-width: 100%;
   }
 
   .cins-chat-back-mobile {

@@ -50,6 +50,7 @@ import {
   partitionBlocksForSplitRail,
   shouldMovePostTextToSplitRail,
 } from "@/lib/journey/post-media";
+import { resolvePostDisplayKind } from "@/lib/journey/post-content-kind";
 import { getAvatarUrl } from "@/lib/journey/profile";
 
 import { PostActionsRail, PostShareMenu } from "./PostActionsRail";
@@ -59,8 +60,8 @@ import { PostMetaRail } from "./PostMetaRail";
    ║ JourneyPostBody — view layout cho bài viết. ĐỒNG BỘ với editor   ║
    ║ canvas (`EditorView`):                                           ║
    ║                                                                  ║
-   ║   • Title → Sub → Cover → Blocks (khớp editor canvas)            ║
-   ║   • Split: hero + cover trong `post-view-content`, rail = meta   ║
+   ║   • Title → Sub → Blocks (cover_id chỉ thumb lưới Gallery)        ║
+   ║   • Split: hero trong `post-view-content`, rail = meta            ║
    ║   • Tag chips (meta-chips row)                                   ║
    ║   • Blocks (cùng class `.block` `.b-text` `.b-imgs` …)           ║
    ║   • Byline (author chip + ngày + chế độ hiển thị)                ║
@@ -278,10 +279,18 @@ export function JourneyPostBody({
     ? `cins-editor-page cins-post-view j-m-unfold-post${mediaPost ? " j-m-unfold-post--media" : ""}${commentsOnlyInline ? " j-m-unfold-post--comments-only" : ""}`
     : `cins-editor-page cins-post-view editor-canvas post-canvas${mediaPost ? " post-canvas--media" : ""}${isSplit ? " post-canvas--split" : ""}`;
 
-  const coverEl =
-    variant === "full" && !mediaPost && coverSeed ? (
-      <PostCover seed={coverSeed} />
-    ) : null;
+  const postDisplayKind = resolvePostDisplayKind({
+    moTa: heroSub,
+    coverId: coverSeed,
+    blocks: blocks ?? [],
+  });
+  /** `cover_id` chỉ thumb Gallery — bài viết dài không lặp ảnh bìa khi đọc. */
+  const showCoverInReadView =
+    variant === "full" &&
+    !mediaPost &&
+    Boolean(coverSeed) &&
+    postDisplayKind.kind !== "article";
+  const coverEl = showCoverInReadView ? <PostCover seed={coverSeed} /> : null;
 
   const heroEl =
     variant === "full" && !mediaPost ? (

@@ -68,7 +68,8 @@ import {
 import {
   flattenMosaicCells,
   IMG_LAYOUTS,
-  imgLayoutEditorMinSlots,
+  countFilledImageSeeds,
+  getImgLayoutMeta,
   padBlockImageSeedsForLayout,
   normalizeLegacyLayout,
   type ImgLayout,
@@ -1218,7 +1219,12 @@ export function EditorView({
         prev.map((b) => {
           if (b.id !== blockId || b.t !== "imgs") return b;
           const layout = normalizeLegacyLayout(b.layout);
-          const imgs = padBlockImageSeedsForLayout(b.id, b.imgs || [], layout);
+          const imgs = padBlockImageSeedsForLayout(
+            b.id,
+            b.imgs || [],
+            layout,
+            "expand",
+          );
           imgs[slot] = seed;
           return { ...b, imgs };
         }),
@@ -1636,7 +1642,7 @@ export function EditorView({
           return {
             ...b,
             layout,
-            imgs: padBlockImageSeedsForLayout(b.id, b.imgs || [], layout),
+            imgs: padBlockImageSeedsForLayout(b.id, b.imgs || [], layout, "expand"),
           };
         }),
       );
@@ -1644,7 +1650,7 @@ export function EditorView({
     [pushHistory],
   );
 
-  /* Xoá 1 ô ảnh khỏi block — layout cố định giữ số ô, thay bằng placeholder. */
+  /* Xoá 1 ô ảnh khỏi block — ô trống thu gọn; ảnh thật → placeholder hoặc bỏ ô. */
   const removeImageFromBlock = useCallback(
     (id: string, slot: number) => {
       pushHistory();
@@ -1654,12 +1660,27 @@ export function EditorView({
           const layout = normalizeLegacyLayout(b.layout);
           const imgs = [...(b.imgs || [])];
           if (slot < 0 || slot >= imgs.length) return b;
-          const minSlots = imgLayoutEditorMinSlots(layout, imgs.length);
-          if (slot < minSlots) {
+
+          if (isPlaceholderImageSeed(imgs[slot])) {
+            const next = imgs.filter((_, i) => i !== slot);
+            return { ...b, imgs: next.length > 0 ? next : [`new-${b.id}-0`] };
+          }
+
+          const meta = getImgLayoutMeta(layout);
+          const filled = countFilledImageSeeds(imgs);
+
+          if (!meta.dynamic) {
             imgs[slot] = `new-${b.id}-${slot}`;
             return { ...b, imgs };
           }
-          return { ...b, imgs: imgs.filter((_, i) => i !== slot) };
+
+          if (filled <= 1) {
+            const next = imgs.filter((_, i) => i !== slot);
+            return { ...b, imgs: next.length > 0 ? next : [`new-${b.id}-0`] };
+          }
+
+          imgs[slot] = `new-${b.id}-${slot}`;
+          return { ...b, imgs };
         }),
       );
     },
@@ -2062,15 +2083,7 @@ export function EditorView({
       {/* TOPBAR */}
       <header className="ed-topbar">
         <div className="ed-topbar-inner">
-          {isOverlay ? (
-            <span className="ed-title">
-              {isEdit
-                ? "Chỉnh sửa bài viết"
-                : isMinimalUI
-                  ? "Đăng bài mới"
-                  : "Trình tạo bài viết"}
-            </span>
-          ) : (
+          {isOverlay ? null : (
             <Link href={`/${ownerSlug}`} className="ed-brand" title="Về Journey">
               <span className="ed-brand-mark">CI</span>
               <span className="ed-title">Trình tạo bài viết</span>
@@ -2084,12 +2097,6 @@ export function EditorView({
               {previewMeta.label}
             </span>
           ) : null}
-          <span className="ed-status">
-            <span className="ico" aria-hidden>
-              ✓
-            </span>{" "}
-            Bản nháp tự lưu trên thiết bị
-          </span>
           <span className="ed-spacer" />
 
           {congDongCompose ? (
@@ -3620,10 +3627,11 @@ function EditorComposeImage({
 
 function ImageBlock({ block, p }: { block: Block; p: BlockRowProps }) {
   const layout = normalizeLegacyLayout(block.layout);
-  const slotCount = imgLayoutEditorMinSlots(layout, (block.imgs || []).length);
-  const imgs = padBlockImageSeedsForLayout(block.id, block.imgs || [], layout).slice(
-    0,
-    slotCount,
+  const imgs = padBlockImageSeedsForLayout(
+    block.id,
+    block.imgs || [],
+    layout,
+    "display",
   );
 
   return (

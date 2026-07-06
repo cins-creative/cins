@@ -3,8 +3,20 @@ import { GraduationCap } from "lucide-react";
 
 import type { KhoaHocListItem } from "@/lib/to-chuc/khoa-hoc-listing";
 
+function splitPriceDisplay(khoa: KhoaHocListItem): { main: string; suffix: string } {
+  if (khoa.hocPhiLabel === "—") return { main: "Liên hệ", suffix: "" };
+  if (khoa.hocPhiSuffix && khoa.hocPhiLabel.endsWith(khoa.hocPhiSuffix)) {
+    return {
+      main: khoa.hocPhiLabel.slice(0, -khoa.hocPhiSuffix.length),
+      suffix: khoa.hocPhiSuffix,
+    };
+  }
+  return { main: khoa.hocPhiLabel, suffix: "" };
+}
+
 export function KhoaHocListingCard({ khoa }: { khoa: KhoaHocListItem }) {
   const orgInitial = khoa.orgTen.trim().charAt(0).toUpperCase() || "?";
+  const price = splitPriceDisplay(khoa);
 
   return (
     <Link href={khoa.href} className="tkh-card" prefetch={false}>
@@ -49,12 +61,23 @@ export function KhoaHocListingCard({ khoa }: { khoa: KhoaHocListItem }) {
         ) : null}
 
         <span className="tkh-card-chips">
-          <span className="tkh-chip">{khoa.loaiMoHinhLabel}</span>
+          <span className="tkh-chip tkh-chip--model">{khoa.loaiMoHinhLabel}</span>
+          {khoa.hinhThucLabel ? (
+            <span className="tkh-chip tkh-chip--format">{khoa.hinhThucLabel}</span>
+          ) : null}
           <span className="tkh-chip">{khoa.trinhDoLabel}</span>
         </span>
 
         <span className="tkh-card-foot">
-          <span className="tkh-card-price">{khoa.hocPhiLabel}</span>
+          <span className="tkh-card-price">
+            <span className="tkh-card-price-label">Học phí</span>
+            <span className="tkh-card-price-main">
+              {price.main}
+              {price.suffix ? (
+                <span className="tkh-card-price-suffix">{price.suffix}</span>
+              ) : null}
+            </span>
+          </span>
           {khoa.thoiLuongLabel !== "—" ? (
             <span className="tkh-card-duration">{khoa.thoiLuongLabel}</span>
           ) : null}

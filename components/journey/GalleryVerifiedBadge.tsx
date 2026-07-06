@@ -168,7 +168,7 @@ export function GalleryVerifiedBadge({ className, cotMocId }: Props) {
             : undefined
         }
       >
-        <BadgeCheck size={13} strokeWidth={2.4} />
+        <BadgeCheck size={11} strokeWidth={2.6} />
       </span>
       {mounted && tooltip ? createPortal(tooltip, document.body) : null}
     </>

@@ -3,6 +3,8 @@
 import { Pencil } from "lucide-react";
 
 import { CoSoOrgFollowButton } from "@/components/co-so/CoSoOrgFollowButton";
+import { OrgSidebarShareButton } from "@/components/org/OrgSidebarShareButton";
+import { useOrgSidebarShareSource } from "@/components/org/useOrgSidebarShareSource";
 import { TruongGioiThieuTruong } from "@/components/truong/TruongGioiThieuTruong";
 import type { TruongSettingsSection } from "@/components/truong/TruongPageSettingsModal";
 import { TruongOrgCover } from "@/components/truong/TruongOrgCover";
@@ -46,6 +48,7 @@ type BodyProps = {
   onOpenSettings?: (section: TruongSettingsSection) => void;
   /** Desktop trường: avatar overlap cover 168px — khác mobile/cơ sở. */
   layout?: "desktop" | "stack";
+  shareSource: ReturnType<typeof useOrgSidebarShareSource>;
 };
 
 function TruongSidebarStack({
@@ -62,6 +65,7 @@ function TruongSidebarStack({
   showGioiThieu,
   onOpenSettings,
   layout = "stack",
+  shareSource,
 }: BodyProps) {
   const avatarClass =
     layout === "desktop" ? "cso-ss-ava truong-ss-ava" : "cso-ss-ava";
@@ -119,6 +123,7 @@ function TruongSidebarStack({
           <>
             <TruongUserChatLauncher />
             <CoSoOrgFollowButton orgId={school.id} disabled={isOrgMember} />
+            <OrgSidebarShareButton kind="truong" source={shareSource} />
           </>
         )}
       </div>
@@ -215,6 +220,7 @@ export function TruongSchoolSidebar({
   const showKtxStat = Boolean(school.co_ktx);
   const showGioiThieu =
     hasTruongGioiThieuContent(school.gioi_thieu_truong) || canEdit;
+  const shareSource = useOrgSidebarShareSource(school);
 
   const bodyProps: BodyProps = {
     school,
@@ -229,6 +235,7 @@ export function TruongSchoolSidebar({
     ktxPriceLabel,
     showGioiThieu,
     onOpenSettings,
+    shareSource,
   };
 
   const asideProps = {

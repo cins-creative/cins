@@ -17,6 +17,7 @@ import {
   ORG_COVER_VARIANTS,
 } from "@/lib/truong/org-image-variants";
 import { fetchBaiDang, fetchHinhAnh } from "@/lib/truong/queries";
+import { countOrgApprovedDoanTags } from "@/lib/journey/org-milestone-tag";
 import type {
   TruongBaiDang,
   TruongDetail,
@@ -42,6 +43,8 @@ export type CoSoDetailPayload = {
   maCoSo: string;
   pageConfig: CoSoPageCauHinh;
   filters: CoSoFilterChip[];
+  /** Số học viên đã được org duyệt gắn đồ án (verify_yeu_cau). */
+  hocVienXacThucCount: number;
 };
 
 type OrgRow = {
@@ -157,9 +160,10 @@ async function loadCoSoDetailPayload(
     }));
   }
 
-  const [baidang, hinhanh] = await Promise.all([
+  const [baidang, hinhanh, hocVienXacThucCount] = await Promise.all([
     fetchBaiDang(supabase, org.id),
     fetchHinhAnh(supabase, org.id),
+    countOrgApprovedDoanTags(org.id),
   ]);
 
   return {
@@ -171,6 +175,7 @@ async function loadCoSoDetailPayload(
     maCoSo: ext.ma_co_so,
     pageConfig: parseCoSoPageCauHinh(org.cau_hinh),
     filters,
+    hocVienXacThucCount,
   };
 }
 

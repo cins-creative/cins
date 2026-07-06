@@ -233,6 +233,7 @@ function CoSoDetailViewInner({
       <CoSoSchoolSidebar
         school={school}
         daVerify={daVerify}
+        hocVienXacThucCount={payload.hocVienXacThucCount}
         canEditMedia={canEdit}
         onOpenSettings={onOpenSettings}
         isMobileShell={isMobileShell}
@@ -354,7 +355,11 @@ function CoSoDetailViewInner({
                 />
               ) : null}
               {t.id === "san-pham" ? (
-                <CoSoTabSanPhamLazy orgId={school.id} num={t.num} />
+                <CoSoTabSanPhamLazy
+                  orgId={school.id}
+                  num={t.num}
+                  canManageKhoaHoc={canManageKhoaHoc}
+                />
               ) : null}
               {t.id === "hinh-anh" ? (
                 <CoSoTabHinhanhLazy images={hinhanh} />

@@ -18,9 +18,18 @@ type Props = {
   /** Milestone đang mở. `null` = modal đóng. */
   milestoneId: string | null;
   onClose(): void;
+  /** `slide-right` — panel trượt từ phải (vd. admin overlay). */
+  variant?: "center" | "slide-right";
+  /** z-index cao hơn modal nền khác (vd. bảng quản trị cơ sở). */
+  stacked?: boolean;
 };
 
-export function JourneyPostModal({ milestoneId, onClose }: Props) {
+export function JourneyPostModal({
+  milestoneId,
+  onClose,
+  variant = "center",
+  stacked = false,
+}: Props) {
   const [detail, setDetail] = useState<MilestonePostDetail | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -95,10 +104,17 @@ export function JourneyPostModal({ milestoneId, onClose }: Props) {
   if (milestoneId === null || portalNode === null) return null;
 
   const postSlug = detail?.posts[0]?.slug ?? null;
+  const overlayClass = [
+    "j-post-overlay",
+    variant === "slide-right" ? "j-post-overlay--slide-right" : "",
+    stacked ? "j-post-overlay--stacked" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return createPortal(
     <div
-      className="j-post-overlay"
+      className={overlayClass}
       role="dialog"
       aria-modal="true"
       aria-label="Chi tiết bài viết"
@@ -124,7 +140,7 @@ export function JourneyPostModal({ milestoneId, onClose }: Props) {
             postSlug={postSlug}
             isOwner={detail.viewerIsOwner}
             hideOpenLink
-            layout="split"
+            layout={variant === "slide-right" ? "stack" : "split"}
             onMilestoneUpdated={() => {
               if (!milestoneId) return;
               void loadMilestoneDetail(milestoneId).then((res) => {

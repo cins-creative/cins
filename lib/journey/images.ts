@@ -35,7 +35,7 @@ type RolePreset = {
 
 /**
  * Kích thước theo layout Journey v2 (@2x retina):
- *   • Gallery aside pinned ~280px → 560×315 (16:9) — variant `public`
+ *   • Gallery aside pinned ~340px → 560×315 (16:9) — variant `public`
  *   • Gallery grid ~320px ô → 640×360 (16:9) — variant `grid` + `gridsm`
  *   • Milestone card preview ~760px feed → 640×360 — variant `grid` (không `public`)
  *

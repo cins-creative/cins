@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 
 import { GalleryItemVisual, GalleryVideoPlayBadge } from "@/components/journey/GalleryItemVisual";
 import { GalleryMediaFilterDropdown } from "@/components/journey/GalleryMediaFilterDropdown";
+import { useJourneyPostOverlay } from "@/components/journey/useJourneyPostOverlay";
 import type { GalleryMediaKind } from "@/lib/journey/post-media";
 import {
   matchesGalleryMediaFilter,
@@ -21,8 +22,10 @@ export type GalleryPinnedBanner = {
   pin: string;
   title: string;
   meta: string;
-  /** Link ngữ cảnh — VD /{slug}?mid=cins. */
+  /** Link ngữ cảnh — VD /{slug}/p/{postSlug}. */
   href?: string;
+  /** Cột mốc — mở modal bài viết client-side. */
+  cotMocId?: string;
   mediaKind?: GalleryMediaKind;
   isVideo?: boolean;
   videoProcessing?: boolean;
@@ -44,6 +47,8 @@ export type GalleryGridItem = {
   videoProcessing?: boolean;
   videoPreviewSrc?: string | null;
   href?: string;
+  /** Cột mốc — mở modal bài viết client-side. */
+  cotMocId?: string;
   mediaKind?: GalleryMediaKind;
 };
 
@@ -62,6 +67,13 @@ type Props = {
   featuredOnly?: boolean;
 };
 
+function asideCotMocId(item: { id: string; cotMocId?: string }): string | null {
+  const direct = item.cotMocId?.trim();
+  if (direct) return direct;
+  const m = item.id.match(/^(?:pin|grid)-(.+)-\d+$/);
+  return m?.[1]?.trim() || null;
+}
+
 /**
  * Gallery cột phải — tổng hợp visual từ cột mốc + tác phẩm.
  */
@@ -73,6 +85,7 @@ export function JourneyGalleryAside({
   featuredOnly = false,
 }: Props) {
   void ownerSlug;
+  const { openPost, overlay } = useJourneyPostOverlay();
 
   const [filter, setFilter] = useState<GalleryMediaFilter>("all");
 
@@ -131,71 +144,84 @@ export function JourneyGalleryAside({
         <>
           {filteredPinned.length > 0 ? (
             <div className="j-g-pinned">
-              {filteredPinned.map((b, index) => (
-                <a
-                  key={b.id}
-                  href={b.href ?? "#"}
-                  className="j-g-banner"
-                  data-pinned-id={b.id}
-                  aria-label={[b.title, b.meta].filter(Boolean).join(" · ") || "Bài nổi bật"}
-                >
-                  <span className="j-g-banner-bg">
-                    <GalleryItemVisual
-                      src={b.src}
-                      srcSet={b.srcSet}
-                      sizes={b.srcSet ? "280px" : undefined}
-                      width={b.width}
-                      height={b.height}
-                      alt=""
-                      priority={index === 0}
-                      isVideo={b.isVideo || b.mediaKind === "video"}
-                      videoProcessing={b.videoProcessing}
-                      videoPreviewSrc={b.videoPreviewSrc}
-                    />
-                  </span>
-                  {b.isVideo || b.mediaKind === "video" ? (
-                    <GalleryVideoPlayBadge />
-                  ) : null}
-                </a>
-              ))}
+              {filteredPinned.map((b, index) => {
+                const cotMocId = asideCotMocId(b);
+                const label =
+                  [b.title, b.meta].filter(Boolean).join(" · ") || "Bài nổi bật";
+                return (
+                  <button
+                    key={b.id}
+                    type="button"
+                    className="j-g-banner"
+                    data-pinned-id={b.id}
+                    aria-label={label}
+                    disabled={!cotMocId}
+                    onClick={() => openPost(cotMocId)}
+                  >
+                    <span className="j-g-banner-bg">
+                      <GalleryItemVisual
+                        src={b.src}
+                        srcSet={b.srcSet}
+                        sizes={b.srcSet ? "340px" : undefined}
+                        width={b.width}
+                        height={b.height}
+                        alt=""
+                        priority={index === 0}
+                        isVideo={b.isVideo || b.mediaKind === "video"}
+                        videoProcessing={b.videoProcessing}
+                        videoPreviewSrc={b.videoPreviewSrc}
+                      />
+                    </span>
+                    {b.isVideo || b.mediaKind === "video" ? (
+                      <GalleryVideoPlayBadge />
+                    ) : null}
+                  </button>
+                );
+              })}
             </div>
           ) : null}
 
           {filteredItems.length > 0 ? (
             <div className="j-gallery-grid">
-              {filteredItems.map((it) => (
-                <a
-                  key={it.id}
-                  href={it.href ?? "#"}
-                  className={"j-g-item" + (it.isVerified ? " is-verified" : "")}
-                  data-item-id={it.id}
-                  aria-label={it.label}
-                >
-                  <span className="j-g-thumb">
-                    <GalleryItemVisual
-                      src={it.src}
-                      srcSet={it.srcSet}
-                      sizes={it.srcSet ? "140px" : undefined}
-                      width={it.width}
-                      height={it.height}
-                      alt={it.label}
-                      isVideo={it.isVideo || it.mediaKind === "video"}
-                      videoProcessing={it.videoProcessing}
-                      videoPreviewSrc={it.videoPreviewSrc}
-                    />
-                  </span>
-                  {it.isVideo || it.mediaKind === "video" ? (
-                    <GalleryVideoPlayBadge />
-                  ) : null}
-                  <span className="j-g-overlay">
-                    <span className="j-g-label">{it.label}</span>
-                  </span>
-                </a>
-              ))}
+              {filteredItems.map((it) => {
+                const cotMocId = asideCotMocId(it);
+                return (
+                  <button
+                    key={it.id}
+                    type="button"
+                    className={"j-g-item" + (it.isVerified ? " is-verified" : "")}
+                    data-item-id={it.id}
+                    aria-label={it.label}
+                    disabled={!cotMocId}
+                    onClick={() => openPost(cotMocId)}
+                  >
+                    <span className="j-g-thumb">
+                      <GalleryItemVisual
+                        src={it.src}
+                        srcSet={it.srcSet}
+                        sizes={it.srcSet ? "170px" : undefined}
+                        width={it.width}
+                        height={it.height}
+                        alt={it.label}
+                        isVideo={it.isVideo || it.mediaKind === "video"}
+                        videoProcessing={it.videoProcessing}
+                        videoPreviewSrc={it.videoPreviewSrc}
+                      />
+                    </span>
+                    {it.isVideo || it.mediaKind === "video" ? (
+                      <GalleryVideoPlayBadge />
+                    ) : null}
+                    <span className="j-g-overlay">
+                      <span className="j-g-label">{it.label}</span>
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           ) : null}
         </>
       )}
+      {overlay}
     </aside>
   );
 }

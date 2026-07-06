@@ -43,6 +43,10 @@ export type OrgMilestoneTagPayload = {
   evidence: OrgAttachEvidence[];
   /** ISO — org gỡ sau khi đã duyệt (`verify_yeu_cau.trang_thai` = tu_choi). */
   unlinkedAt?: string | null;
+  /** Org bật hiển thị tab Sản phẩm học viên (duyệt ≠ tự hiện). */
+  hienThiSanPham?: boolean;
+  /** Điểm sắp xếp trên tab công khai — cao hơn = trước. */
+  diemSapXep?: number;
 };
 
 export type OrgSearchHit = {
@@ -119,4 +123,10 @@ export type OrgDoanProjectItem = {
   photoCount?: number | null;
   tile: "short" | "tall" | "square";
   isVideo?: boolean;
+  khoaHocId?: string | null;
+  khoaHocTen?: string | null;
+  /** Org đã bật hiển thị trên tab Sản phẩm. */
+  hienThiSanPham: boolean;
+  /** Điểm sắp xếp công khai. */
+  diemSapXep: number;
 };

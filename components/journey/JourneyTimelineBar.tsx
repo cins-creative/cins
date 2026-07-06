@@ -30,6 +30,8 @@ import { JourneyFilterShareButton } from "@/components/journey/JourneyFilterShar
 import { useJourneyFilterShareOptional } from "@/components/journey/JourneyFilterShareContext";
 import { JourneyPersonalFilterMenuSection } from "@/components/journey/JourneyPersonalFilterMenuSection";
 import { useJourneyPersonalFilterOptional } from "@/components/journey/JourneyPersonalFilterContext";
+import { OrgBaiDangViewToggle } from "@/components/truong/OrgBaiDangViewToggle";
+import type { OrgBaiDangView } from "@/lib/truong/bai-dang-grid";
 import {
   JOURNEY_SHARE_OPEN_EVENT,
   PORTFOLIO_ALL_FILTER_SHARE_SPEC,
@@ -95,6 +97,9 @@ type Props = {
   embed?: boolean;
   /** Số cột mốc sau lọc nhãn riêng — hiển thị trên nút trigger. */
   personalLabelMatchCount?: number;
+  /** Toggle dòng thời gian ↔ lưới (đồng bộ org bài đăng). */
+  view?: OrgBaiDangView;
+  onView?: (view: OrgBaiDangView) => void;
 };
 
 const GROUP_LABELS: Record<FilterGroup, string> = {
@@ -167,6 +172,8 @@ export function JourneyTimelineBar({
   filterVisibility,
   embed = false,
   personalLabelMatchCount,
+  view,
+  onView,
 }: Props) {
   const personalFilter = useJourneyPersonalFilterOptional();
   const activePersonalFilter = personalFilter?.activeSlug
@@ -424,6 +431,11 @@ export function JourneyTimelineBar({
     );
   }
 
+  const viewToggle =
+    onView && view ? (
+      <OrgBaiDangViewToggle view={view} onView={onView} />
+    ) : null;
+
   return (
     <div className="j-tlb">
       <div className="j-tlb-year">{year}</div>
@@ -433,7 +445,14 @@ export function JourneyTimelineBar({
       >
         {month || "—"}
       </div>
-      {filterControl}
+      {viewToggle ? (
+        <div className="org-baidang-tlb-actions">
+          {viewToggle}
+          {filterControl}
+        </div>
+      ) : (
+        filterControl
+      )}
       {portalReady && menu ? createPortal(menu, document.body) : null}
     </div>
   );

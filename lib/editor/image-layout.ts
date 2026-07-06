@@ -69,34 +69,60 @@ export function imgLayoutPreviewSlots(
   return Math.min(Math.max(photoCount, 1), meta.n);
 }
 
-/** Số ô tối thiểu trong editor — layout cố định (grid4) hoặc cột gợi ý (duo, grid3…). */
-export function imgLayoutEditorMinSlots(
+/** Seed ảnh thật (không placeholder `new-…`). */
+export function countFilledImageSeeds(imgs: ReadonlyArray<string>): number {
+  return imgs.filter((s) => {
+    const t = s.trim();
+    return t.length > 0 && !/^new-/.test(t);
+  }).length;
+}
+
+const LAYOUT_SLOT_FLOOR: Partial<Record<ImgLayout, number>> = {
+  duo: 2,
+  grid2: 2,
+  grid3: 3,
+  hero: 2,
+};
+
+/** Số ô gợi ý khi đổi layout (grid3 → 3 cột). */
+export function imgLayoutSuggestedSlots(
   layout: ImgLayout,
-  photoCount: number,
+  imgs: ReadonlyArray<string>,
 ): number {
   const meta = getImgLayoutMeta(layout);
-  const count = Math.max(photoCount, 0);
+  const count = imgs.length;
   if (!meta.dynamic) {
     return Math.max(count, meta.n);
   }
-  const floorByLayout: Partial<Record<ImgLayout, number>> = {
-    duo: 2,
-    grid2: 2,
-    grid3: 3,
-    hero: 2,
-  };
-  const floor = floorByLayout[layout] ?? 1;
+  const floor = LAYOUT_SLOT_FLOOR[layout] ?? 1;
   return Math.min(Math.max(count, floor), meta.n);
 }
 
-/** Bổ sung seed `new-…` cho ô trống khi đổi layout nhiều ảnh. */
+/** Số ô hiển thị theo mảng thực tế — không ép floor sau khi user thu gọn. */
+export function imgLayoutEditorMinSlots(
+  layout: ImgLayout,
+  imgs: ReadonlyArray<string>,
+): number {
+  const meta = getImgLayoutMeta(layout);
+  const count = imgs.length;
+  if (!meta.dynamic) {
+    return Math.max(count, meta.n);
+  }
+  return Math.min(Math.max(count, 1), meta.n);
+}
+
+/** Bổ sung seed `new-…` cho ô trống. `expand` = khi đổi layout / gán slot; `display` = render. */
 export function padBlockImageSeedsForLayout(
   blockId: string,
   imgs: ReadonlyArray<string>,
   layout: ImgLayout,
+  mode: "display" | "expand" = "display",
 ): string[] {
   const next = [...imgs];
-  const need = imgLayoutEditorMinSlots(layout, next.length);
+  const need =
+    mode === "expand"
+      ? imgLayoutSuggestedSlots(layout, next)
+      : imgLayoutEditorMinSlots(layout, next);
   while (next.length < need) {
     next.push(`new-${blockId}-${next.length}`);
   }

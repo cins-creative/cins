@@ -3294,13 +3294,14 @@
     border-top: 1px solid var(--border);
   }
 
-  .cins-post-view .post-rail-blk--actions {
+  .cins-post-view .post-rail-blk--tags,
+  .cins-post-view .post-rail-blk--people {
     order: 3;
   }
 
-  .cins-post-view .post-rail-blk--tags,
-  .cins-post-view .post-rail-blk--people {
+  .cins-post-view .post-rail-blk--actions {
     order: 4;
+    border-top: 1px solid var(--border);
   }
 
   .cins-post-view .post-rail-blk--comments {

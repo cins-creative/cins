@@ -299,7 +299,6 @@ export function ThongTinDuAnSlides({
               </div>
               <div className="crow">
                 <div className="cnode">
-                  <span className="num">1</span>
                   <span className="cic">
                     <TtdaIcon>
                       <Search size={15} strokeWidth={1.6} />
@@ -313,7 +312,6 @@ export function ThongTinDuAnSlides({
                   </TtdaIcon>
                 </span>
                 <div className="cnode">
-                  <span className="num">2</span>
                   <span className="cic">
                     <TtdaIcon>
                       <School size={15} strokeWidth={1.6} />
@@ -327,7 +325,6 @@ export function ThongTinDuAnSlides({
                   </TtdaIcon>
                 </span>
                 <div className="cnode">
-                  <span className="num">3</span>
                   <span className="cic">
                     <TtdaIcon>
                       <Megaphone size={15} strokeWidth={1.6} />
@@ -360,7 +357,6 @@ export function ThongTinDuAnSlides({
               </div>
               <div className="crow">
                 <div className="cnode hotter">
-                  <span className="num">6</span>
                   <span className="cic">
                     <TtdaIcon>
                       <Flame size={15} strokeWidth={1.6} />
@@ -374,7 +370,6 @@ export function ThongTinDuAnSlides({
                   </TtdaIcon>
                 </span>
                 <div className="cnode">
-                  <span className="num">5</span>
                   <span className="cic">
                     <TtdaIcon>
                       <Search size={15} strokeWidth={1.6} />
@@ -388,7 +383,6 @@ export function ThongTinDuAnSlides({
                   </TtdaIcon>
                 </span>
                 <div className="cnode">
-                  <span className="num">4</span>
                   <span className="cic">
                     <TtdaIcon>
                       <Users size={15} strokeWidth={1.6} />
