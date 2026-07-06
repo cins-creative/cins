@@ -7,6 +7,7 @@ import {
   GraduationCap,
   HelpCircle,
   Home,
+  Info,
   LayoutGrid,
   type LucideIcon,
   Newspaper,
@@ -38,6 +39,7 @@ const ICON_MAP: Record<MainNavIcon, LucideIcon> = {
   blog: Newspaper,
   profile: UserCircle,
   help: HelpCircle,
+  project: Info,
   settings: Settings,
 };
 

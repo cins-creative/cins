@@ -1,10 +1,10 @@
 import type { MilestoneItem } from "@/components/journey/milestone-types";
 import type { GalleryMainItem } from "@/lib/journey/gallery-page-fetch";
 import { galleryGridAssetFromCfUrl } from "@/lib/cloudflare/cf-variant-url";
+import { resolvePostGridEntry } from "@/lib/journey/post-content-kind";
 import {
   galleryItemExcerptLine,
   galleryItemLabel,
-  galleryMediaKindFromBlocks,
 } from "@/lib/journey/post-media";
 
 function isOrgCreateGalleryItem(m: MilestoneItem): boolean {
@@ -30,20 +30,27 @@ export function worldJourneyMilestonesToGalleryItems(
   milestones.forEach((m, i) => {
     const cotMocId = m.cotMocId ?? m.id;
     const isOrgCreate = isOrgCreateGalleryItem(m);
-    const mediaKind = galleryMediaKindFromBlocks(m.noiDungBlocks);
+    const gridEntry = resolvePostGridEntry({
+      moTa: m.tacPhamMoTa ?? m.body,
+      coverId: m.tacPhamCoverId,
+      hasCover: Boolean(m.media?.[0]?.src),
+      blocks: m.noiDungBlocks ?? [],
+    });
     const thumb = m.media?.[0];
-    const isVideo = mediaKind === "video" || Boolean(thumb?.isVideo);
+    const isVideo = gridEntry?.mediaKind === "video" || Boolean(thumb?.isVideo);
 
+    if (!isOrgCreate && !gridEntry) return;
     if (!isOrgCreate && !thumb?.src && !isVideo) return;
 
     const featured = m.visibility === "feature";
     const meta =
-      galleryItemExcerptLine(m.body, null, m.noiDungBlocks ?? null) ||
+      galleryItemExcerptLine(m.body, m.tacPhamMoTa, m.noiDungBlocks ?? null) ||
       m.org?.trim() ||
       "";
 
     const gridAsset =
       thumb?.src && !isVideo ? galleryGridAssetFromCfUrl(thumb.src) : null;
+    const mediaKind = gridEntry?.mediaKind ?? (isVideo ? "video" : "article");
 
     out.push({
       id: `wj-grid-${cotMocId}-${i}`,
@@ -66,6 +73,7 @@ export function worldJourneyMilestonesToGalleryItems(
       variant: m.variant,
       mediaKind,
       isVideo,
+      videoProcessing: gridEntry?.videoProcessing,
       cardLayout: m.cardLayout,
       orgAvatarUrl:
         m.attribution?.avatarUrl ??

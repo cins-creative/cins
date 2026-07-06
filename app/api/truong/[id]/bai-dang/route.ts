@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 
-import { sanitizeBaiDangBlocksInput } from "@/lib/truong/bai-dang-blocks";
+import {
+  sanitizeBaiDangBlocksInput,
+  validateOrgBaiDangContent,
+} from "@/lib/truong/bai-dang-blocks";
 import {
   mapOrgBaiDangApiRow,
   ORG_BAI_DANG_API_SELECT,
@@ -59,6 +62,27 @@ export async function POST(request: Request, context: RouteContext) {
     body.cover_id,
     insertRow.noi_dung_blocks as ReturnType<typeof sanitizeBaiDangBlocksInput> | undefined,
   );
+
+  const blocks = insertRow.noi_dung_blocks as
+    | ReturnType<typeof sanitizeBaiDangBlocksInput>
+    | undefined;
+  if (blocks?.length) {
+    const contentCheck = validateOrgBaiDangContent({
+      tomTat:
+        typeof insertRow.tom_tat === "string"
+          ? insertRow.tom_tat
+          : insertRow.tom_tat == null
+            ? null
+            : String(insertRow.tom_tat),
+      coverId:
+        typeof insertRow.cover_id === "string" ? insertRow.cover_id : null,
+      blocks,
+    });
+    if (!contentCheck.ok) {
+      return NextResponse.json({ error: contentCheck.error }, { status: 400 });
+    }
+    insertRow.tom_tat = contentCheck.resolution.effectiveMoTa;
+  }
 
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase

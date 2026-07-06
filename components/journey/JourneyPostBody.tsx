@@ -25,7 +25,7 @@ import {
   type MilestonePostDetail,
 } from "@/app/[slug]/journey/actions";
 import { PostBlockRenderer } from "@/components/journey/PostBlockRenderer";
-import { PostBlocksRenderer, PostCover } from "@/components/editor/PostRenderer";
+import { PostCover } from "@/components/editor/PostRenderer";
 import { JourneyArticleTagLink } from "@/components/journey/JourneyArticleTagLink";
 import { JourneyMilestoneOwnerMenu } from "@/components/journey/JourneyMilestoneOwnerMenu";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
@@ -474,21 +474,14 @@ export function JourneyPostBody({
     return partitionBlocksForSplitRail(blocks);
   }, [blocks, moveTextToRail]);
 
-  function renderPostBlocks(
-    blockList: ReadonlyArray<Block> | null | undefined,
-    useMediaRenderer: boolean,
-  ) {
+  function renderPostBlocks(blockList: ReadonlyArray<Block> | null | undefined) {
     if (!showBlocks || !blockList || blockList.length === 0) return null;
-    return useMediaRenderer || isMediaPost(blockList) ? (
-      <PostBlockRenderer blocks={blockList} />
-    ) : (
-      <PostBlocksRenderer blocks={blockList} />
-    );
+    return <PostBlockRenderer blocks={blockList} />;
   }
 
   const railContentEl =
     moveTextToRail && showBlocks && mediaPost
-      ? renderPostBlocks(splitBlockParts.railBlocks, mediaPost)
+      ? renderPostBlocks(splitBlockParts.railBlocks)
       : null;
 
   const splitContentLeadEl =
@@ -519,11 +512,7 @@ export function JourneyPostBody({
 
   const blocksEl =
     showBlocks && renderBlocks && renderBlocks.length > 0 ? (
-      mediaPost ? (
-        <PostBlockRenderer blocks={renderBlocks} />
-      ) : (
-        <PostBlocksRenderer blocks={renderBlocks} />
-      )
+      <PostBlockRenderer blocks={renderBlocks} />
     ) : showBlocks && mainPost?.noiDungHtml ? (
       <div
         className="post-html-fallback article-rich-content"
@@ -535,7 +524,7 @@ export function JourneyPostBody({
 
   const splitContentBlocksEl =
     moveTextToRail && showBlocks
-      ? (renderPostBlocks(splitBlockParts.mediaBlocks, mediaPost) ??
+      ? (renderPostBlocks(splitBlockParts.mediaBlocks) ??
         (mainPost?.noiDungHtml ? (
           <div
             className="post-html-fallback article-rich-content"

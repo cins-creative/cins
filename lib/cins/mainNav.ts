@@ -18,6 +18,7 @@ export type MainNavIcon =
   | "blog"
   | "profile"
   | "help"
+  | "project"
   | "settings";
 
 export type OrgFlyoutKind = "education" | "community" | "studio";
@@ -29,6 +30,8 @@ export type MainNavItem = {
   tip: string;
   icon: MainNavIcon;
   isActive: (pathname: string) => boolean;
+  /** Nhấn mạnh nhẹ trong sidebar (vd. mục foot quan trọng). */
+  highlight?: boolean;
   /** Nếu có: hover item sẽ xổ ngang danh sách tổ chức của user theo nhóm này. */
   flyout?: OrgFlyoutKind;
 };
@@ -107,6 +110,15 @@ export const MAIN_NAV_ITEMS: MainNavItem[] = [
 export const MAIN_NAV_GROUP_BREAK_AFTER = new Set(["home", "courses", "jobs"]);
 
 export const MAIN_NAV_FOOT_ITEMS: MainNavItem[] = [
+  {
+    id: "project",
+    href: "/thong-tin-du-an",
+    label: "Thông tin dự án",
+    tip: "Tầm nhìn, triết lý sản phẩm và hướng phát triển của CINs",
+    icon: "project",
+    highlight: true,
+    isActive: (p) => p === "/thong-tin-du-an",
+  },
   {
     id: "help",
     href: "/#help",

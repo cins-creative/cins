@@ -83,6 +83,12 @@ export const CoSoTabTuyenDungLazy = dynamic(
   { loading: () => <OrgTabPanelSkeleton label="Đang tải tuyển dụng" /> },
 );
 
+export const CoSoTabSanPhamLazy = dynamic(
+  () =>
+    import("@/components/co-so/tabs/CoSoTabSanPham").then((m) => m.CoSoTabSanPham),
+  { loading: () => <OrgTabPanelSkeleton label="Đang tải sản phẩm học viên" /> },
+);
+
 export const CoSoTabHinhanhLazy = dynamic(
   () =>
     import("@/components/co-so/tabs/CoSoTabHinhanh").then((m) => m.CoSoTabHinhanh),
@@ -106,7 +112,7 @@ export function prefetchCoSoTab(
       void import("@/components/co-so/tabs/CoSoTabHinhanh");
       break;
     case "san-pham":
-      void import("@/components/co-so/tabs/CoSoTabPlaceholder");
+      void import("@/components/co-so/tabs/CoSoTabSanPham");
       break;
   }
 }

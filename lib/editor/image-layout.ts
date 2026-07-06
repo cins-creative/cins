@@ -69,6 +69,40 @@ export function imgLayoutPreviewSlots(
   return Math.min(Math.max(photoCount, 1), meta.n);
 }
 
+/** Số ô tối thiểu trong editor — layout cố định (grid4) hoặc cột gợi ý (duo, grid3…). */
+export function imgLayoutEditorMinSlots(
+  layout: ImgLayout,
+  photoCount: number,
+): number {
+  const meta = getImgLayoutMeta(layout);
+  const count = Math.max(photoCount, 0);
+  if (!meta.dynamic) {
+    return Math.max(count, meta.n);
+  }
+  const floorByLayout: Partial<Record<ImgLayout, number>> = {
+    duo: 2,
+    grid2: 2,
+    grid3: 3,
+    hero: 2,
+  };
+  const floor = floorByLayout[layout] ?? 1;
+  return Math.min(Math.max(count, floor), meta.n);
+}
+
+/** Bổ sung seed `new-…` cho ô trống khi đổi layout nhiều ảnh. */
+export function padBlockImageSeedsForLayout(
+  blockId: string,
+  imgs: ReadonlyArray<string>,
+  layout: ImgLayout,
+): string[] {
+  const next = [...imgs];
+  const need = imgLayoutEditorMinSlots(layout, next.length);
+  while (next.length < need) {
+    next.push(`new-${blockId}-${next.length}`);
+  }
+  return next;
+}
+
 /** Map layout cũ (đã bỏ) → 1 trong 3 layout mới, để bài đăng cũ không vỡ. */
 const LEGACY_LAYOUT_MAP: Record<string, ImgLayout> = {
   full: "full",

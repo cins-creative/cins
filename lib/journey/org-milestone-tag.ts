@@ -14,6 +14,7 @@ import {
   type OrgSearchHit,
 } from "@/lib/journey/org-milestone-tag-types";
 import { notifyOrgMilestoneTagApproved } from "@/lib/social/org-milestone-tag-notify";
+import { isGalleryVideoCoverSrc } from "@/lib/journey/post-media";
 import { isCoSoOrgAdmin } from "@/lib/to-chuc/co-so-membership";
 import { truongRootPath } from "@/lib/truong/truong-routes";
 import { isTruongOrgAdmin } from "@/lib/truong/org-admin";
@@ -857,6 +858,7 @@ export async function listApprovedOrgDoanProjects(
       coverAlt: payload.album.coverAlt ?? null,
       coverGradient: payload.album.coverGradient ?? null,
       photoCount: payload.album.photoCount ?? null,
+      isVideo: isGalleryVideoCoverSrc(payload.album.coverSrc ?? null),
       tile: pickTile(index),
     });
   }

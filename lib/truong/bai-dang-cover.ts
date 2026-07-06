@@ -50,12 +50,26 @@ export function baiDangFirstBlockImageUrl(
   return null;
 }
 
-/** URL preview timeline — cover DB hoặc ảnh đầu trong blocks. */
-export function baiDangTimelinePreviewUrl(
+/** URL preview timeline Journey — chỉ ảnh bìa user upload. */
+export function baiDangJourneyPreviewUrl(
+  post: Pick<TruongBaiDang, "cover_id" | "cover_src" | "noiDungBlocks">,
+): string | null {
+  return baiDangCoverDisplayUrl(post);
+}
+
+/** URL preview grid — ưu tiên cover, fallback ảnh đầu trong blocks. */
+export function baiDangGridPreviewUrl(
   post: Pick<TruongBaiDang, "cover_id" | "cover_src" | "noiDungBlocks">,
 ): string | null {
   return (
     baiDangCoverDisplayUrl(post) ??
     baiDangFirstBlockImageUrl(post.noiDungBlocks)
   );
+}
+
+/** @deprecated Dùng `baiDangJourneyPreviewUrl` hoặc `baiDangGridPreviewUrl`. */
+export function baiDangTimelinePreviewUrl(
+  post: Pick<TruongBaiDang, "cover_id" | "cover_src" | "noiDungBlocks">,
+): string | null {
+  return baiDangGridPreviewUrl(post);
 }

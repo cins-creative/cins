@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Loader2 } from "lucide-react";
+import { Check, Loader2, X } from "lucide-react";
 import {
   useCallback,
   useState,
@@ -49,6 +49,12 @@ type Props = {
   lightboxImages?: GridImage[];
   /** Cộng thêm vào index ô grid khi mở lightbox. */
   lightboxIndexOffset?: number;
+  /** Compose album — đổi / dán / xóa từng ô. */
+  composeSlotActions?: {
+    onPickImage: (slotIndex: number) => void;
+    onPasteImage: (slotIndex: number) => void;
+    onRemoveImage: (slotIndex: number) => void;
+  };
 };
 
 type CellProps = {
@@ -65,6 +71,7 @@ type CellProps = {
   onOpen: (index: number) => void;
   /** Style bổ sung cho ô (justified: flex-grow + aspect-ratio; masonry: aspect-ratio). */
   style?: CSSProperties;
+  composeSlotActions?: Props["composeSlotActions"];
 };
 
 function ImageGridCell({
@@ -80,6 +87,7 @@ function ImageGridCell({
   remaining,
   onOpen,
   style,
+  composeSlotActions,
 }: CellProps) {
   const CellTag = useButtonCells ? "button" : "div";
 
@@ -110,6 +118,7 @@ function ImageGridCell({
   const cellClasses = [
     "image-grid-cell",
     !thumbSrc ? "is-compose-pending" : "",
+    composeSlotActions ? "is-compose-editable" : "",
     uploadActive || legacyUploading ? "is-upload-active" : "",
     uploadDone ? "is-upload-done" : "",
     uploadFailed ? "is-upload-error" : "",
@@ -186,6 +195,44 @@ function ImageGridCell({
         </span>
       ) : null}
       {showOverlay ? <ImageGridOverlay count={remaining} /> : null}
+      {composeSlotActions ? (
+        <>
+          <div className="ph-actions">
+            <button
+              type="button"
+              className="ph-change"
+              onClick={(e) => {
+                e.stopPropagation();
+                composeSlotActions.onPickImage(slotIndex);
+              }}
+            >
+              Đổi ảnh
+            </button>
+            <button
+              type="button"
+              className="ph-change"
+              onClick={(e) => {
+                e.stopPropagation();
+                composeSlotActions.onPasteImage(slotIndex);
+              }}
+            >
+              Dán ảnh
+            </button>
+          </div>
+          <button
+            type="button"
+            className="ph-del"
+            title="Xoá ảnh"
+            aria-label="Xoá ảnh"
+            onClick={(e) => {
+              e.stopPropagation();
+              composeSlotActions.onRemoveImage(slotIndex);
+            }}
+          >
+            <X size={14} strokeWidth={2} aria-hidden />
+          </button>
+        </>
+      ) : null}
     </CellTag>
   );
 }
@@ -205,6 +252,7 @@ export function ImageGrid({
   onLightboxIndexChange,
   lightboxImages: lightboxImagesProp,
   lightboxIndexOffset = 0,
+  composeSlotActions,
 }: Props) {
   const [internalLightboxIndex, setInternalLightboxIndex] = useState<number | null>(
     null,
@@ -264,6 +312,7 @@ export function ImageGrid({
         remaining={opts?.remaining ?? 0}
         onOpen={openLightbox}
         style={opts?.style}
+        composeSlotActions={composeSlotActions}
       />
     );
   };

@@ -33,6 +33,7 @@ import {
   articleTagLoaiClass,
   type ArticleTagRef,
 } from "@/lib/editor/article-tag";
+import { validatePostContentForPublish } from "@/lib/journey/post-content-kind";
 import { publishPost } from "@/app/[slug]/p/new/actions";
 import { updatePost } from "@/app/[slug]/p/[postSlug]/edit/actions";
 import { uploadPostImageWithProgress } from "@/lib/files/upload-post-image";
@@ -816,12 +817,23 @@ export function MediaComposeView({
         isPhoto ? "photo" : "video",
       );
 
+      const contentCheck = validatePostContentForPublish({
+        moTa: trimmedCaption.slice(0, 280),
+        coverId: null,
+        blocks,
+      });
+      if (!contentCheck.ok) {
+        setError(contentCheck.error);
+        return;
+      }
+      const moTaPublish = contentCheck.resolution.effectiveMoTa ?? "";
+
       if (orgBaiDangCompose && isEdit && editInitial) {
         const res = await updateOrgBaiDangClient({
           orgId: orgBaiDangCompose.orgId,
           baiDangId: editInitial.tacPhamId,
           tieuDe,
-          tomTat: trimmedCaption.slice(0, 280) || null,
+          tomTat: moTaPublish || null,
           coverId: null,
           blocks,
           loaiBaiDang: orgBaiDangCompose.forceLoaiBaiDang ?? composeLoaiBaiDang,
@@ -842,7 +854,7 @@ export function MediaComposeView({
         const res = await publishOrgBaiDangClient({
           orgId: orgBaiDangCompose.orgId,
           tieuDe,
-          tomTat: trimmedCaption.slice(0, 280) || null,
+          tomTat: moTaPublish || null,
           coverId: null,
           blocks,
           loaiBaiDang: orgBaiDangCompose.forceLoaiBaiDang ?? composeLoaiBaiDang,
@@ -865,7 +877,7 @@ export function MediaComposeView({
           tacPhamId: editInitial.tacPhamId,
           cotMocId: editInitial.cotMocId,
           tieuDe,
-          moTa: trimmedCaption.slice(0, 280),
+          moTa: moTaPublish,
           coverSeed: null,
           tags: articleTags,
           visibility: publishVisibility,
@@ -896,7 +908,7 @@ export function MediaComposeView({
       const res = await publishPost({
         ownerSlug,
         tieuDe,
-        moTa: trimmedCaption.slice(0, 280),
+        moTa: moTaPublish,
         coverSeed: null,
         tags: articleTags,
         visibility: publishVisibility,
@@ -953,6 +965,12 @@ export function MediaComposeView({
             </Link>
           )}
           <div className="mc-compose-top-title">{pageTitle}</div>
+          {!isPhoto ? (
+            <p className="mc-compose-mode-hint">
+              Video Bunny — chỉ tiêu đề, mô tả và upload video. Poster hiện trên lưới
+              sau khi encode xong.
+            </p>
+          ) : null}
           <div className="mc-compose-top-actions">
             {congDongCompose ? (
               <CongDongFeedFilterDropdown

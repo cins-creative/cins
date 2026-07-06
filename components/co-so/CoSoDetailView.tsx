@@ -11,10 +11,10 @@ import {
   type CoSoSettingsSection,
 } from "@/components/co-so/CoSoPageSettingsModal";
 import { CoSoTabBaidang } from "@/components/co-so/tabs/CoSoTabBaidang";
-import { CoSoTabPlaceholder } from "@/components/co-so/tabs/CoSoTabPlaceholder";
 import {
   CoSoTabHinhanhLazy,
   CoSoTabKhoaHocLazy,
+  CoSoTabSanPhamLazy,
   CoSoTabSuKienLazy,
   CoSoTabTuyenDungLazy,
   prefetchCoSoTab,
@@ -354,11 +354,7 @@ function CoSoDetailViewInner({
                 />
               ) : null}
               {t.id === "san-pham" ? (
-                <CoSoTabPlaceholder
-                  num={t.num}
-                  title="Sản phẩm học viên"
-                  hint="Sản phẩm học viên sẽ hiện khi học viên đăng tác phẩm gắn với cơ sở."
-                />
+                <CoSoTabSanPhamLazy orgId={school.id} num={t.num} />
               ) : null}
               {t.id === "hinh-anh" ? (
                 <CoSoTabHinhanhLazy images={hinhanh} />

@@ -125,6 +125,7 @@ function timelineFilterButtonLabel(
   personalName: string | null,
 ): string {
   if (personalName) return personalName;
+  if (group === "all") return "Nhãn";
   return GROUP_LABELS[group];
 }
 

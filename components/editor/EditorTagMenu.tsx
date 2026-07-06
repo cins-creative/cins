@@ -156,7 +156,7 @@ export function EditorTagMenu({
       try {
         const qs = new URLSearchParams({
           q: trigger.query,
-          mutual_only: "true",
+          friends_only: "true",
         });
         const res = await fetch(`/api/users/search?${qs.toString()}`);
         const json = await res.json();
@@ -429,7 +429,7 @@ export function EditorTagMenu({
           <p className="ed-editor-tag-menu-hint">
             {trigger.query
               ? "Không tìm thấy bạn bè phù hợp."
-              : "Follow người dùng khác để tag họ vào bài."}
+              : "Kết bạn với người dùng khác để tag họ vào bài."}
           </p>
         ) : (
           userItems.map((u, i) => {

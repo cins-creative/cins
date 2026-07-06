@@ -121,6 +121,10 @@ html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
 .cins-home-v2-page > .sidebar:hover .sb-label,.cins-home-v2-page > .sidebar:focus-within .sb-label{opacity:1;transform:none}
 .sb-foot{padding:10px 8px 14px;border-top:1px solid var(--border);flex-shrink:0;display:flex;flex-direction:column;gap:6px}
 .sb-foot .sb-item{font-size:12.5px;color:var(--ink3)}
+.sb-foot .sb-item.sb-item--highlight{color:var(--blue);font-weight:600;background:var(--blue-soft);border:1px solid color-mix(in srgb,var(--blue) 22%,transparent);box-shadow:0 1px 0 color-mix(in srgb,var(--blue) 6%,transparent)}
+.sb-foot .sb-item.sb-item--highlight:hover{background:color-mix(in srgb,var(--blue) 14%,var(--surface));border-color:color-mix(in srgb,var(--blue) 32%,transparent)}
+.sb-foot .sb-item.sb-item--highlight.active{font-weight:700;border-color:color-mix(in srgb,var(--blue) 40%,transparent)}
+.sb-foot .sb-item.sb-item--highlight.active::before{display:none}
 
 /* sidebar cursor-following tooltip */
 .sb-tooltip{

@@ -1,6 +1,9 @@
 import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import type { Block, LoaiMoc, Visibility } from "@/lib/editor/types";
+import { classifyBunnyVideoUrl } from "@/lib/bunny/embed";
+import type { ComposeIntent } from "@/lib/journey/compose-types";
 import { isPersistedImageSeed } from "@/lib/truong/image-ref";
+import { textPanelNeedsCollapse } from "@/lib/journey/text-panel-tone";
 import type { BaiDangLoai } from "@/lib/truong/bai-dang";
 
 export type MediaPostKind = "photo" | "video";
@@ -42,6 +45,14 @@ export function detectMediaPostKind(
   if (hasImgs && !hasEmbed) return "photo";
   if (hasEmbed && !hasImgs) return "video";
   return null;
+}
+
+/** Intent overlay edit — album/bài viết dùng minimal (giống «Đăng bài mới»); video giữ luồng video. */
+export function resolveEditComposeIntent(
+  blocks: ReadonlyArray<Block> | null | undefined,
+): ComposeIntent {
+  if (detectMediaPostKind(blocks) === "video") return "video";
+  return "minimal";
 }
 
 /** Chỉ caption trong blocks — không có album / heading / embed / … */
@@ -173,6 +184,22 @@ export function galleryMediaKindFromBlocks(
   return "article";
 }
 
+/** Poster/thumbnail gallery — Bunny Stream, YouTube, v.v. */
+export function isGalleryVideoCoverSrc(
+  src: string | null | undefined,
+): boolean {
+  const trimmed = src?.trim();
+  if (!trimmed) return false;
+  if (classifyBunnyVideoUrl(trimmed)) return true;
+  if (/\.b-cdn\.net\/[^/]+\/thumbnail\.jpg/i.test(trimmed)) return true;
+  try {
+    const host = new URL(trimmed).hostname.replace(/^www\./, "");
+    return /^(i\.)?ytimg\.com$/i.test(host) || host === "img.youtube.com";
+  } catch {
+    return false;
+  }
+}
+
 export type GalleryMediaFilter = "all" | GalleryMediaKind;
 
 export const GALLERY_MEDIA_FILTER_OPTIONS: ReadonlyArray<{
@@ -207,6 +234,12 @@ export function galleryMediaFilterLabel(filter: GalleryMediaFilter): string {
   return (
     GALLERY_MEDIA_FILTER_OPTIONS.find((o) => o.id === filter)?.label ?? "Tất cả"
   );
+}
+
+/** Nhãn trên nút dropdown — khi chưa chọn loại cụ thể hiện «Loại nội dung». */
+export function galleryMediaFilterButtonLabel(filter: GalleryMediaFilter): string {
+  if (filter === "all") return "Loại nội dung";
+  return galleryMediaFilterLabel(filter);
 }
 
 export function matchesGalleryMediaFilter(
@@ -506,6 +539,31 @@ export function blocksForArticleCardUnfold(
   }
 
   return result;
+}
+
+/** Bài article trên timeline — có thêm nội dung ngoài preview card (blocks / chữ dài). */
+export function articleCardNeedsDepthPreview(
+  body: string | null | undefined,
+  blocks: ReadonlyArray<Block> | null | undefined,
+  hasCoverPreview: boolean,
+): boolean {
+  if (hasCoverPreview) return false;
+  if (blocksForArticleCardUnfold(body, blocks).length > 0) return true;
+  const caption = milestoneCardCaptionPlain(body, blocks);
+  if (!caption) return false;
+  const paras = caption
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+  return textPanelNeedsCollapse(caption, paras.length) || caption.length > 160;
+}
+
+/** Blocks trong vùng peek card article thu gọn — cùng logic unfold (bỏ đoạn trùng caption). */
+export function articleCardPeekBlocks(
+  body: string | null | undefined,
+  blocks: ReadonlyArray<Block> | null | undefined,
+): Block[] {
+  return blocksForArticleCardUnfold(body, blocks);
 }
 
 export function mediaPostHasContent(

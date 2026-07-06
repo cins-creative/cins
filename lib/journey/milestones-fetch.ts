@@ -80,6 +80,7 @@ type ThuocMocRow = {
     id: string;
     slug: string | null;
     tieu_de: string;
+    mo_ta: string | null;
     cover_id: string | null;
     loai_tac_pham: string;
     noi_dung_blocks: unknown;
@@ -101,6 +102,7 @@ type BookmarkLinkRow = {
     id: string;
     slug: string | null;
     tieu_de: string;
+    mo_ta: string | null;
     cover_id: string | null;
     loai_tac_pham: string;
     noi_dung_blocks: unknown;
@@ -161,7 +163,7 @@ export async function buildSelfMilestonesForCotMocs(
   const { data: thuocMocRows } = await admin
     .from("content_tac_pham_thuoc_moc")
     .select(
-      "id_cot_moc, id_tac_pham, thu_tu, content_tac_pham:content_tac_pham!inner(id, slug, tieu_de, cover_id, loai_tac_pham, noi_dung_blocks)",
+      "id_cot_moc, id_tac_pham, thu_tu, content_tac_pham:content_tac_pham!inner(id, slug, tieu_de, mo_ta, cover_id, loai_tac_pham, noi_dung_blocks)",
     )
     .in("id_cot_moc", ids)
     .order("thu_tu", { ascending: true })
@@ -312,6 +314,10 @@ export async function buildSelfMilestonesForCotMocs(
             firstPost?.tieu_de ?? m.tieu_de,
           ),
       noiDungBlocks: isOrgCreateCard || isIdentityCard ? null : noiDungBlocks,
+      tacPhamCoverId:
+        isOrgCreateCard || isIdentityCard ? null : (firstPost?.cover_id ?? null),
+      tacPhamMoTa:
+        isOrgCreateCard || isIdentityCard ? null : (firstPost?.mo_ta ?? null),
       articleTags: isOrgCreateCard || isIdentityCard ? [] : articleTags,
       coAuthorCredits: isOrgCreateCard || isIdentityCard
         ? []
@@ -471,7 +477,7 @@ export async function fetchTaggedMilestonesForUser(params: {
   const { data: tacPhams } = await admin
     .from("content_tac_pham")
     .select(
-      "id, slug, tieu_de, cover_id, loai_tac_pham, noi_dung_blocks, id_nguoi_dung",
+      "id, slug, tieu_de, mo_ta, cover_id, loai_tac_pham, noi_dung_blocks, id_nguoi_dung",
     )
     .in("id", tacPhamIds);
 
@@ -573,6 +579,8 @@ export async function fetchTaggedMilestonesForUser(params: {
         (tp.tieu_de as string) || cm.tieu_de,
       ),
       noiDungBlocks: parseServerBlocks(tp.noi_dung_blocks),
+      tacPhamCoverId: (tp.cover_id as string) ?? null,
+      tacPhamMoTa: (tp.mo_ta as string) ?? null,
       articleTags: tagsByTacPham.get(tacPhamId) ?? [],
       attribution: owner
         ? {
@@ -648,7 +656,7 @@ export async function fetchBookmarkedMilestonesForUser(params: {
   const { data: links } = await admin
     .from("content_tac_pham_thuoc_moc")
     .select(
-      "id_cot_moc, id_tac_pham, thu_tu, content_tac_pham:content_tac_pham!inner(id, slug, tieu_de, cover_id, loai_tac_pham, noi_dung_blocks, id_nguoi_dung)",
+      "id_cot_moc, id_tac_pham, thu_tu, content_tac_pham:content_tac_pham!inner(id, slug, tieu_de, mo_ta, cover_id, loai_tac_pham, noi_dung_blocks, id_nguoi_dung)",
     )
     .in("id_cot_moc", visibleCotMocs.map((cm) => cm.id))
     .order("thu_tu", { ascending: true })
@@ -735,6 +743,8 @@ export async function fetchBookmarkedMilestonesForUser(params: {
           (tp.tieu_de as string) || cm.tieu_de,
         ),
         noiDungBlocks: parseServerBlocks(tp.noi_dung_blocks),
+        tacPhamCoverId: (tp.cover_id as string) ?? null,
+        tacPhamMoTa: (tp.mo_ta as string) ?? null,
         articleTags: tagsByTacPham.get(tp.id as string) ?? [],
         congDongOrg: isCongDongBookmark ? congDongOrg : null,
         bookmark: {

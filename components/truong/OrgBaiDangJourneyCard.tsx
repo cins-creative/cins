@@ -27,7 +27,7 @@ import { TruongBaiDangPostActions } from "@/components/truong/inline/TruongBaiDa
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
 import { trackSuKien, useImpressionTracker } from "@/lib/social/track-su-kien";
 import { TruongOrgAvatar } from "@/components/truong/TruongOrgAvatar";
-import { baiDangCoverDisplayUrl, baiDangTimelinePreviewUrl } from "@/lib/truong/bai-dang-cover";
+import { baiDangCoverDisplayUrl, baiDangJourneyPreviewUrl } from "@/lib/truong/bai-dang-cover";
 import {
   baiDangHasExpandableBody,
   buildBaiDangThumbPreview,
@@ -61,7 +61,7 @@ function shouldIgnoreExpandTrigger(target: Element | null): boolean {
 }
 
 function orgBaiDangPreviewMedia(post: TruongBaiDang): MilestoneMediaItem | null {
-  const url = baiDangTimelinePreviewUrl(post);
+  const url = baiDangJourneyPreviewUrl(post);
   if (!url) return null;
 
   let width = 800;
@@ -130,7 +130,7 @@ export function OrgBaiDangJourneyCard({ post, owner = null }: Props) {
   }, [post, usesBlocks, coverUrl]);
 
   const blocksCardKind = usesBlocks
-    ? milestoneCardContentKind(blocks, Boolean(previewMedia?.src))
+    ? milestoneCardContentKind(blocks, Boolean(previewMedia?.src), post.tom_tat)
     : null;
   const cardKind = blocksCardKind ?? baiDangCardKind(post);
   const isArticleCard = cardKind === "article";
@@ -160,7 +160,12 @@ export function OrgBaiDangJourneyCard({ post, owner = null }: Props) {
   );
 
   const photoGridImages = useMemo(() => {
-    if (usesBlocks) return milestoneCardPhotoGrid(blocks);
+    if (usesBlocks)
+      return milestoneCardPhotoGrid(
+        blocks,
+        Boolean(previewMedia?.src),
+        post.tom_tat,
+      );
     return legacyPhotoGrid;
   }, [usesBlocks, blocks, legacyPhotoGrid]);
 

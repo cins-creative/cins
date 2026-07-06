@@ -62,9 +62,6 @@ export function milestonePreviewMedia(
     return [];
   }
 
-  const contentImageId = extractAllImageIds(parsed)[0] ?? null;
-  const resolvedId = trimmedCover ?? contentImageId;
-  if (resolvedId) return coverFromImageId(resolvedId, label);
-
+  if (trimmedCover) return coverFromImageId(trimmedCover, label);
   return [];
 }

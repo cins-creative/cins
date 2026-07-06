@@ -70,48 +70,13 @@ export function firstCfUuidFromBlocks(
 }
 
 /** Chuẩn hóa `cover_id` trước khi ghi DB — không lưu blob:/data:. */
-/** Chuẩn hóa `cover_id` trước khi ghi DB — không lưu blob:/data:. */
-function blocksArePhotoAlbumOnly(blocks: ReadonlyArray<Block>): boolean {
-  let hasImgs = false;
-  let hasEmbed = false;
-  for (const block of blocks) {
-    if (block.loai === "body" || block.loai === "spacer") continue;
-    if (block.loai === "imgs") {
-      hasImgs = true;
-      continue;
-    }
-    if (block.loai === "embed") {
-      hasEmbed = true;
-      continue;
-    }
-    return false;
-  }
-  return hasImgs && !hasEmbed;
-}
-
-function photoAlbumHasPersistedImages(blocks: ReadonlyArray<Block>): boolean {
-  for (const block of blocks) {
-    if (block.loai !== "imgs" || block.config?.layout === "mosaic") continue;
-    const raw = block.config?.imgs;
-    if (!Array.isArray(raw)) continue;
-    for (const id of raw) {
-      if (typeof id === "string" && isPersistedImageSeed(id)) return true;
-    }
-  }
-  return false;
-}
-
 export function sanitizePersistableCoverId(
   raw: unknown,
-  blocks?: ReadonlyArray<Block> | null,
+  _blocks?: ReadonlyArray<Block> | null,
 ): string | null {
-  if (blocks?.length && blocksArePhotoAlbumOnly(blocks) && photoAlbumHasPersistedImages(blocks)) {
-    return null;
-  }
-
   const trimmed = typeof raw === "string" ? raw.trim() : "";
-  if (!trimmed) return firstCfUuidFromBlocks(blocks);
-  if (isTemporaryImageRef(trimmed)) return firstCfUuidFromBlocks(blocks);
+  if (!trimmed) return null;
+  if (isTemporaryImageRef(trimmed)) return null;
 
   if (CF_UUID_RE.test(trimmed)) return trimmed;
 

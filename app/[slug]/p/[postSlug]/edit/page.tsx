@@ -2,10 +2,6 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
 import { EditorView, type EditorInitial } from "@/components/editor/EditorView";
-import {
-  MediaComposeView,
-  type MediaComposeMode,
-} from "@/components/editor/MediaComposeView";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import type {
@@ -13,10 +9,7 @@ import type {
   LoaiMoc,
   Visibility,
 } from "@/lib/editor/types";
-import {
-  buildMediaEditInitial,
-  detectMediaPostKind,
-} from "@/lib/journey/post-media";
+import { resolveEditComposeIntent } from "@/lib/journey/post-media";
 import { loadCoAuthorsForTacPham } from "@/lib/social/co-author";
 import { loadPersonalFilterIdsForCotMoc } from "@/lib/filter/gan";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -192,35 +185,7 @@ export default async function EditPostPage({
     personalFilterIds,
   };
 
-  const mediaKind = detectMediaPostKind(blocks);
   const ownerName = owner.ten_hien_thi || `@${owner.slug}`;
-
-  if (mediaKind === "photo" || mediaKind === "video") {
-    const mediaEditInitial = buildMediaEditInitial({
-      tacPhamId: tp.id,
-      cotMocId: cm.id,
-      postSlug,
-      tieuDe: tp.tieu_de ?? "",
-      visibility: initial.visibility,
-      loaiMoc: initial.loaiMoc,
-      thoiDiem: initial.thoiDiem,
-      blocks,
-      kind: mediaKind,
-      articleTags: tags,
-      personalFilterIds,
-    });
-
-    return (
-      <MediaComposeView
-        mode={mediaKind as MediaComposeMode}
-        ownerId={owner.id}
-        ownerSlug={owner.slug}
-        ownerName={ownerName}
-        ownerAvatarId={owner.avatar_id}
-        editInitial={mediaEditInitial}
-      />
-    );
-  }
 
   return (
     <EditorView
@@ -230,6 +195,7 @@ export default async function EditPostPage({
       mode="edit"
       initial={initial}
       postSlug={postSlug}
+      composeIntent={resolveEditComposeIntent(blocks)}
     />
   );
 }

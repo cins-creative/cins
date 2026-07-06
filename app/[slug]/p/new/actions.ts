@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import { uniquePostSlugForUser, slugifyPostTitle } from "@/lib/editor/post-slug";
-import { blocksToHtml, deriveMoTaFallback } from "@/lib/editor/sanitize";
+import { blocksToHtml } from "@/lib/editor/sanitize";
 import {
   VALID_LOAI_MOC,
   VALID_VIS,
@@ -24,6 +24,7 @@ import { buildMilestoneItemForCotMoc } from "@/lib/journey/milestones-fetch";
 import type { MilestoneItem } from "@/components/journey/milestone-types";
 import { revalidateTaggedArticlePages } from "@/lib/tag/revalidate-tag-pages";
 import { DEFAULT_ARTICLE_POST_TITLE } from "@/lib/journey/post-media";
+import { validatePostContentForPublish } from "@/lib/journey/post-content-kind";
 
 /* ╔══════════════════════════════════════════════════════════════════╗
    ║ Server Action: publishPost                                       ║
@@ -107,7 +108,7 @@ export async function publishPost(
 
   const moTa = (input.moTa || "").trim().slice(0, MAX_MOTA);
 
-  if (!Array.isArray(input.blocks) || input.blocks.length === 0) {
+  if (!Array.isArray(input.blocks)) {
     return {
       ok: false,
       error: "Bài viết chưa có nội dung. Thêm ít nhất một block.",
@@ -142,6 +143,21 @@ export async function publishPost(
     };
   }
 
+  const contentCheck = validatePostContentForPublish({
+    moTa,
+    coverId: input.coverSeed,
+    blocks: normalized,
+  });
+  if (!contentCheck.ok) {
+    return {
+      ok: false,
+      error: contentCheck.error,
+      field: contentCheck.field,
+    };
+  }
+
+  const moTaFinal = contentCheck.resolution.effectiveMoTa;
+
   /* 3. Slug. */
   const baseSlug = slugifyPostTitle(tieuDe);
   let slug: string;
@@ -156,7 +172,6 @@ export async function publishPost(
 
   /* 4. HTML render. */
   const noiDungHtml = blocksToHtml(normalized);
-  const moTaFinal = moTa || deriveMoTaFallback(normalized);
 
   /* 5. Insert DB — cộng đồng: cột mốc che_do_hien_thi=cong_dong + tac_pham. */
   const admin = createServiceRoleClient();

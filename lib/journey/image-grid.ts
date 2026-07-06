@@ -4,6 +4,7 @@ import {
   resolveImageSeedThumbUrl,
 } from "@/lib/editor/resolve-image-seed-url";
 import { detectMediaPostKind } from "@/lib/journey/post-media";
+import { isServerAlbumGridImgBlock } from "@/lib/editor/album-grid-block";
 import { isPersistedImageSeed } from "@/lib/truong/image-ref";
 
 export type GridImage = {
@@ -53,7 +54,7 @@ export function extractImagesFromImgsBlock(block: Block): GridImage[] {
     .map((id) => ({ id: id.trim(), width, height }));
 }
 
-/** Gom các block `imgs` liên tiếp — logic render-time theo brief Facebook grid. */
+/** Gom các block album (`albumGridCell`) liên tiếp — ảnh inline render riêng. */
 export function groupBlocksForRender(
   blocks: ReadonlyArray<Block>,
 ): BlockRenderGroup[] {
@@ -67,10 +68,12 @@ export function groupBlocksForRender(
   };
 
   for (const block of blocks) {
-    const extracted = extractImagesFromImgsBlock(block);
-    if (extracted.length > 0) {
-      imageBuffer.push(...extracted);
-      continue;
+    if (isServerAlbumGridImgBlock(block, blocks)) {
+      const extracted = extractImagesFromImgsBlock(block);
+      if (extracted.length > 0) {
+        imageBuffer.push(...extracted);
+        continue;
+      }
     }
 
     flushImages();
@@ -81,6 +84,7 @@ export function groupBlocksForRender(
     }
 
     if (block.loai === "imgs") {
+      groups.push({ type: "block", block });
       continue;
     }
 

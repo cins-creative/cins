@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
 import "@/app/[slug]/journey/journey.css";
@@ -9,7 +9,6 @@ import "@/app/[slug]/journey/image-grid.css";
 import "@/app/[slug]/p/new/editor.css";
 
 import type { EditorInitial } from "@/components/editor/EditorView";
-import type { MediaComposeMode } from "@/components/editor/MediaComposeView";
 import type { CongDongComposeConfig } from "@/lib/cong-dong/types";
 import type { OrgBaiDangComposeConfig } from "@/lib/truong/org-bai-dang-compose";
 import { readTruongInlineError, truongInlineFetch } from "@/lib/truong/inline-api";
@@ -18,11 +17,7 @@ import type {
   ComposeIntent,
   JourneyComposeState,
 } from "@/lib/journey/compose-types";
-import {
-  buildMediaEditInitial,
-  detectMediaPostKind,
-  type MediaEditInitial,
-} from "@/lib/journey/post-media";
+import { resolveEditComposeIntent } from "@/lib/journey/post-media";
 
 const EditorViewLazy = dynamic(
   () =>
@@ -31,17 +26,6 @@ const EditorViewLazy = dynamic(
     })),
   {
     loading: () => <ComposeOverlaySkeleton label="Đang mở trình soạn bài viết…" />,
-    ssr: false,
-  },
-);
-
-const MediaComposeViewLazy = dynamic(
-  () =>
-    import("@/components/editor/MediaComposeView").then((mod) => ({
-      default: mod.MediaComposeView,
-    })),
-  {
-    loading: () => <ComposeOverlaySkeleton label="Đang mở trình đăng ảnh/video…" />,
     ssr: false,
   },
 );
@@ -74,18 +58,12 @@ export function JourneyComposeOverlay({
   ownerId,
   ownerSlug,
   ownerName,
-  ownerAvatarId,
   congDongCompose,
   orgBaiDangCompose,
   onClose,
   onPublished,
 }: Props) {
   const [editInitial, setEditInitial] = useState<EditorInitial | null>(null);
-  const [mediaEditInitial, setMediaEditInitial] =
-    useState<MediaEditInitial | null>(null);
-  const [mediaEditMode, setMediaEditMode] = useState<MediaComposeMode | null>(
-    null,
-  );
   const [editPostSlug, setEditPostSlug] = useState<string | null>(null);
   const [editError, setEditError] = useState<string | null>(null);
   const [editLoading, setEditLoading] = useState(compose.kind === "edit");
@@ -102,6 +80,11 @@ export function JourneyComposeOverlay({
     if (compose.kind === "video") return "video";
     return undefined;
   }, [compose]);
+
+  const editEditorIntent = useMemo((): ComposeIntent | undefined => {
+    if (!editInitial) return undefined;
+    return resolveEditComposeIntent(editInitial.blocks);
+  }, [editInitial]);
 
   const isCreateEditor =
     compose.kind === "article" ||
@@ -127,8 +110,6 @@ export function JourneyComposeOverlay({
   useEffect(() => {
     if (compose.kind !== "edit") {
       setEditInitial(null);
-      setMediaEditInitial(null);
-      setMediaEditMode(null);
       setEditPostSlug(null);
       setEditError(null);
       setEditLoading(false);
@@ -139,8 +120,6 @@ export function JourneyComposeOverlay({
     setEditLoading(true);
     setEditError(null);
     setEditInitial(null);
-    setMediaEditInitial(null);
-    setMediaEditMode(null);
 
     const loadEdit = orgBaiDangCompose
       ? truongInlineFetch(
@@ -168,33 +147,7 @@ export function JourneyComposeOverlay({
     void loadEdit
       .then((data) => {
         if (cancelled) return;
-        const mediaKind = detectMediaPostKind(data.initial.blocks);
-        if (mediaKind === "photo" || mediaKind === "video") {
-          setMediaEditInitial(
-            buildMediaEditInitial({
-              tacPhamId: data.initial.tacPhamId,
-              cotMocId: data.initial.cotMocId,
-              postSlug: data.postSlug,
-              tieuDe: data.initial.tieuDe,
-              visibility: data.initial.visibility,
-              loaiMoc: data.initial.loaiMoc,
-              thoiDiem: data.initial.thoiDiem,
-              blocks: data.initial.blocks,
-              kind: mediaKind,
-              articleTags: data.initial.tags,
-              personalFilterIds: data.initial.personalFilterIds,
-              orgBaiDangLoai: data.initial.orgBaiDangLoai,
-              orgBaiDangSchedulePublishAt:
-                data.initial.orgBaiDangSchedulePublishAt,
-            }),
-          );
-          setMediaEditMode(mediaKind);
-          setEditInitial(null);
-        } else {
-          setEditInitial(data.initial);
-          setMediaEditInitial(null);
-          setMediaEditMode(null);
-        }
+        setEditInitial(data.initial);
         setEditPostSlug(data.postSlug);
         setEditLoading(false);
       })
@@ -208,13 +161,6 @@ export function JourneyComposeOverlay({
       cancelled = true;
     };
   }, [compose, ownerSlug, orgBaiDangCompose]);
-
-  const handleBackdrop = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      if (e.target === e.currentTarget) onClose();
-    },
-    [onClose],
-  );
 
   if (typeof document === "undefined") return null;
 
@@ -233,8 +179,6 @@ export function JourneyComposeOverlay({
                 ? "Đăng bài mới"
                 : "Tạo bài viết";
 
-  const isMediaSheet = mediaEditMode !== null;
-
   const isMilestoneSheet =
     compose.kind === "milestone" || compose.kind === "milestone-edit";
 
@@ -244,10 +188,9 @@ export function JourneyComposeOverlay({
       role="dialog"
       aria-modal="true"
       aria-label={ariaLabel}
-      onClick={handleBackdrop}
     >
       <div
-        className={`j-compose-sheet${isMediaSheet ? " j-compose-sheet--media" : ""}${isMilestoneSheet ? " j-compose-sheet--milestone" : ""}`}
+        className={`j-compose-sheet${isMilestoneSheet ? " j-compose-sheet--milestone" : ""}`}
       >
         {isCreateEditor ? (
           <EditorViewLazy
@@ -286,20 +229,6 @@ export function JourneyComposeOverlay({
                 Đóng
               </button>
             </div>
-          ) : mediaEditInitial && mediaEditMode ? (
-            <MediaComposeViewLazy
-              mode={mediaEditMode}
-              ownerId={ownerId}
-              ownerSlug={ownerSlug}
-              ownerName={ownerName}
-              ownerAvatarId={ownerAvatarId}
-              editInitial={mediaEditInitial}
-              presentation="overlay"
-              congDongCompose={congDongCompose}
-              orgBaiDangCompose={orgBaiDangCompose}
-              onClose={onClose}
-              onPublished={onPublished}
-            />
           ) : editInitial && editPostSlug ? (
             <EditorViewLazy
               ownerId={ownerId}
@@ -309,6 +238,7 @@ export function JourneyComposeOverlay({
               initial={editInitial}
               postSlug={editPostSlug}
               presentation="overlay"
+              composeIntent={editEditorIntent}
               congDongCompose={congDongCompose}
               orgBaiDangCompose={orgBaiDangCompose}
               onClose={onClose}

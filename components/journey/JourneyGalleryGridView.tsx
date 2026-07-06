@@ -438,7 +438,7 @@ export function JourneyGalleryGridView({
     : mediaFilter !== "all"
       ? galleryMediaFilterLabel(mediaFilter)
       : typeFilter === "all"
-        ? "Tất cả"
+        ? "Nhãn"
         : typeOptions.find((o) => o.group === typeFilter)?.label ?? "đã chọn";
 
   return (

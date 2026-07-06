@@ -39,7 +39,7 @@ export function PostBlockRenderer({ blocks }: Props) {
                   images={group.images}
                   isFirstGroup={isFirstGroup}
                   readOnly
-                  albumCarousel
+                  timelineLightbox
                 />
               </div>
             </div>

@@ -37,7 +37,7 @@ export function CoAuthorSection({
 }: Props) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchUser[]>([]);
-  const [hasMutual, setHasMutual] = useState<boolean | null>(null);
+  const [hasFriends, setHasFriends] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(initialPickerOpen);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -47,7 +47,7 @@ export function CoAuthorSection({
     try {
       const qs = new URLSearchParams({
         q,
-        mutual_only: "true",
+        friends_only: "true",
       });
       const res = await fetch(`/api/users/search?${qs.toString()}`);
       const json = await res.json();
@@ -58,7 +58,7 @@ export function CoAuthorSection({
       const users = (json.users ?? []) as SearchUser[];
       const filtered = users.filter((u) => u.id !== ownerId);
       setResults(filtered);
-      if (!q) setHasMutual(filtered.length > 0);
+      if (!q) setHasFriends(filtered.length > 0);
     } finally {
       setLoading(false);
     }
@@ -152,9 +152,9 @@ export function CoAuthorSection({
 
       {pickerOpen ? (
         <div className="ed-coauthor-picker">
-          {hasMutual === false ? (
+          {hasFriends === false ? (
             <p className="ed-coauthor-empty">
-              Follow người dùng khác để tag họ vào bài.
+              Kết bạn với người dùng khác để thêm họ làm cộng sự.
             </p>
           ) : (
             <>

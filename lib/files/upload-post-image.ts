@@ -26,10 +26,19 @@ export function uploadPostImageWithProgress(
     }, timeoutMs);
 
     xhr.open("POST", "/api/post-image/upload");
+    xhr.withCredentials = true;
 
     xhr.upload.onprogress = (event) => {
-      if (!event.lengthComputable || !onProgress) return;
+      if (!onProgress) return;
+      if (!event.lengthComputable) {
+        onProgress(1);
+        return;
+      }
       onProgress(Math.min(100, Math.round((event.loaded / event.total) * 100)));
+    };
+
+    xhr.upload.onloadstart = () => {
+      onProgress?.(1);
     };
 
     const finish = (fn: () => void) => {

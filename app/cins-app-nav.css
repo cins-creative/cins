@@ -250,6 +250,29 @@
   color: var(--ink-muted);
 }
 
+.cins-app-sidebar .sb-foot .sb-item.sb-item--highlight {
+  color: var(--cins-blue);
+  font-weight: 600;
+  background: var(--cins-blue-soft);
+  border: 1px solid color-mix(in srgb, var(--cins-blue) 22%, transparent);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--cins-blue) 6%, transparent);
+}
+
+.cins-app-sidebar .sb-foot .sb-item.sb-item--highlight:hover {
+  background: color-mix(in srgb, var(--cins-blue) 14%, var(--surface));
+  color: var(--cins-blue);
+  border-color: color-mix(in srgb, var(--cins-blue) 32%, transparent);
+}
+
+.cins-app-sidebar .sb-foot .sb-item.sb-item--highlight.active {
+  font-weight: 700;
+  border-color: color-mix(in srgb, var(--cins-blue) 40%, transparent);
+}
+
+.cins-app-sidebar .sb-foot .sb-item.sb-item--highlight.active::before {
+  display: none;
+}
+
 /* ── Org quick-access — xổ inline (accordion) ngay trong sidebar ── */
 .sb-li-flyout {
   position: relative;
@@ -262,21 +285,47 @@
   display: block;
 }
 
-/* Hàng flyout có org — toggle accordion, không điều hướng. */
-.cins-app-sidebar button.sb-item.sb-item--flyout {
-  width: 100%;
+/* Hàng flyout có org — nhãn link hub; mũi tên toggle accordion. */
+.cins-app-sidebar .sb-item.sb-item--flyout {
+  gap: 0;
+  padding: 0;
+}
+
+.sb-flyout-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 11px 8px;
+  border-radius: var(--radius-md);
+  color: inherit;
+  text-decoration: none;
+}
+
+.sb-flyout-toggle {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin-right: 4px;
   border: 0;
   background: transparent;
-  text-align: left;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  color: inherit;
   font-family: inherit;
-  padding-right: 34px;
+}
+
+.sb-flyout-toggle:hover {
+  background: rgba(31, 116, 201, 0.12);
+  color: var(--cins-blue, #1f74c9);
 }
 
 .sb-flyout-caret {
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%) rotate(0deg);
+  transform: rotate(0deg);
   color: var(--ink-muted, rgba(0, 0, 0, 0.4));
   opacity: 0;
   pointer-events: none;
@@ -294,12 +343,34 @@
 }
 
 .sb-li-flyout.is-open .sb-flyout-caret {
-  transform: translateY(-50%) rotate(180deg);
+  transform: rotate(180deg);
   color: var(--cins-blue, #1f74c9);
 }
 
 .sb-li-flyout.has-items:not(.is-open) .sb-flyout-caret {
   color: var(--ink-muted, rgba(0, 0, 0, 0.4));
+}
+
+/* Thu gọn rail: ẩn nút caret — còn ~40px cho icon, giống mục nav thường. */
+@media (min-width: 961px) {
+  .cins-app-sidebar.sidebar:not(:hover):not(:focus-within):not(:has(.sb-user.open))
+    .sb-li-flyout.has-items
+    .sb-flyout-toggle {
+    display: none;
+  }
+
+  .cins-app-sidebar.sidebar:not(:hover):not(:focus-within):not(:has(.sb-user.open))
+    .sb-item.sb-item--flyout {
+    padding: 11px 8px;
+  }
+
+  .cins-app-sidebar.sidebar:not(:hover):not(:focus-within):not(:has(.sb-user.open))
+    .sb-flyout-main {
+    flex: none;
+    width: 100%;
+    padding: 0;
+    gap: 14px;
+  }
 }
 
 /* Container xổ ra: dùng grid 0fr→1fr để trượt mượt theo chiều cao thật. */

@@ -15,19 +15,22 @@ export async function GET(req: Request) {
 
   const { searchParams } = new URL(req.url);
   const q = (searchParams.get("q") ?? "").trim().toLowerCase();
+  const friendsOnly = searchParams.get("friends_only") === "true";
   const mutualOnly = searchParams.get("mutual_only") === "true";
 
   const admin = createServiceRoleClient();
   let allowedIds: string[] | null = null;
-  if (mutualOnly) {
-    // "Bạn bè" (kết bạn accepted) + người mình đang theo dõi.
-    const [friends, following] = await Promise.all([
-      listFriends(profileId),
-      listFollowingUserIds(profileId),
-    ]);
-    allowedIds = [...new Set([...friends, ...following])].filter(
-      (id) => id !== profileId,
-    );
+  if (friendsOnly || mutualOnly) {
+    const friends = await listFriends(profileId);
+    if (friendsOnly) {
+      allowedIds = friends.filter((id) => id !== profileId);
+    } else {
+      // mutual_only: bạn bè + người mình đang theo dõi.
+      const following = await listFollowingUserIds(profileId);
+      allowedIds = [...new Set([...friends, ...following])].filter(
+        (id) => id !== profileId,
+      );
+    }
     if (allowedIds.length === 0) {
       return NextResponse.json({ users: [] });
     }

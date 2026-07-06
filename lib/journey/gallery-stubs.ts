@@ -7,15 +7,10 @@ import type {
 } from "@/components/journey/milestone-types";
 import type { Block } from "@/lib/editor/types";
 import {
-  extractPhotoImageIds,
-  extractVideoUrl,
   galleryItemExcerptLine,
-  galleryMediaKindFromBlocks,
   type GalleryMediaKind,
 } from "@/lib/journey/post-media";
-import { extractVideoProcessingMeta } from "@/lib/journey/video-processing-meta";
-import { classifyBunnyVideoUrl } from "@/lib/bunny/embed";
-import { buildBunnyVideoThumbnailUrl } from "@/lib/bunny/thumbnail";
+import { resolvePostGridEntry } from "@/lib/journey/post-content-kind";
 import {
   loadVerifiedMetaForCotMocs,
   type VerifiedMilestoneMeta,
@@ -107,51 +102,6 @@ function parseBlocks(raw: unknown): Block[] {
   return out;
 }
 
-function resolveGalleryVisual(
-  coverId: string | null | undefined,
-  blocks: Block[],
-  mediaKind: GalleryMediaKind,
-): {
-  coverId: string | null;
-  coverSrc: string | null;
-  videoProcessing: boolean;
-} | null {
-  const processing =
-    extractVideoProcessingMeta(blocks)?.processing === true &&
-    mediaKind === "video";
-
-  if (coverId?.trim() && mediaKind !== "photo") {
-    return {
-      coverId: coverId.trim(),
-      coverSrc: null,
-      videoProcessing: processing,
-    };
-  }
-
-  if (mediaKind === "photo") {
-    const photoId = extractPhotoImageIds(blocks)[0] ?? null;
-    if (photoId) {
-      return { coverId: photoId, coverSrc: null, videoProcessing: false };
-    }
-    if (coverId?.trim()) {
-      return { coverId: coverId.trim(), coverSrc: null, videoProcessing: false };
-    }
-    return null;
-  }
-
-  if (mediaKind === "video") {
-    const videoUrl = extractVideoUrl(blocks);
-    if (!videoUrl) return null;
-    const bunny = classifyBunnyVideoUrl(videoUrl);
-    const coverSrc = bunny
-      ? buildBunnyVideoThumbnailUrl(bunny.videoId)
-      : null;
-    return { coverId: null, coverSrc, videoProcessing: processing };
-  }
-
-  return null;
-}
-
 function rowToStub(
   r: GalleryRow,
   source: "self" | "tagged",
@@ -160,13 +110,16 @@ function rowToStub(
   const tp = r.content_tac_pham;
   if (!cm || !tp) return null;
   const blocks = parseBlocks(tp.noi_dung_blocks);
-  const mediaKind = galleryMediaKindFromBlocks(blocks);
-  const visual = resolveGalleryVisual(tp.cover_id, blocks, mediaKind);
-  if (!visual) return null;
+  const gridEntry = resolvePostGridEntry({
+    moTa: tp.mo_ta ?? cm.mo_ta,
+    coverId: tp.cover_id,
+    blocks,
+  });
+  if (!gridEntry) return null;
   if (
-    !visual.coverId &&
-    !visual.coverSrc &&
-    mediaKind !== "video"
+    !gridEntry.coverId &&
+    !gridEntry.coverSrc &&
+    gridEntry.mediaKind !== "video"
   ) {
     return null;
   }
@@ -181,13 +134,13 @@ function rowToStub(
     tacPhamSlug: tp.slug,
     tieuDe: tp.tieu_de,
     excerpt: galleryItemExcerptLine(cm.mo_ta, tp.mo_ta, blocks),
-    coverId: visual.coverId,
-    coverSrc: visual.coverSrc,
-    videoProcessing: visual.videoProcessing,
+    coverId: gridEntry.coverId,
+    coverSrc: gridEntry.coverSrc,
+    videoProcessing: gridEntry.videoProcessing,
     postOwnerId: tp.id_nguoi_dung,
     type: LOAI_MOC_TO_TYPE[cm.loai_moc],
     variant: source === "tagged" ? "tagged" : "self",
-    mediaKind,
+    mediaKind: gridEntry.mediaKind,
   };
 }
 

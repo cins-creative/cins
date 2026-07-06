@@ -134,6 +134,27 @@
   background: var(--cins-blue-soft);
 }
 
+.cins-editor-page .ed-compose-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  margin-left: 4px;
+  border: 0;
+  border-radius: var(--radius-sm, 8px);
+  background: transparent;
+  color: var(--ink-body);
+  cursor: pointer;
+}
+
+.cins-editor-page .ed-compose-close:hover,
+.cins-editor-page .ed-compose-close:focus-visible {
+  background: var(--neutral-100, #f4f4f5);
+  outline: none;
+}
+
 /* ──── VISIBILITY SELECT ──── */
 .cins-editor-page .vis-select {
   position: relative;
@@ -1841,6 +1862,7 @@
   height: auto;
   object-fit: contain;
   display: block;
+  transition: opacity 0.18s ease;
 }
 /* justified: ảnh phủ kín ô đã giãn (fill ngang), cắt gọn nhẹ ở cao. */
 .cins-editor-page .imgwrap.justified .ph img {
@@ -1968,6 +1990,37 @@
 }
 .cins-editor-page .ph:hover .ph-del {
   opacity: 1;
+}
+.cins-editor-page .ed-photo-album-compose .image-grid-cell.is-compose-editable {
+  position: relative;
+}
+.cins-editor-page .ed-photo-album-compose .image-grid-cell.is-compose-editable:hover .ph-actions,
+.cins-editor-page .ed-photo-album-compose .image-grid-cell.is-compose-editable:hover .ph-del {
+  opacity: 1;
+}
+.cins-editor-page .ed-photo-album-add-compact {
+  display: flex;
+  justify-content: center;
+  margin-top: 12px;
+}
+.cins-editor-page .ed-photo-album-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border: 1.5px dashed var(--border-strong, #cbd5e1);
+  border-radius: var(--radius-md, 12px);
+  background: var(--neutral-100, #f8fafc);
+  color: var(--ink-body, #334155);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.cins-editor-page .ed-photo-album-add-btn:hover {
+  border-color: #45bd62;
+  background: #f0fdf4;
+  color: var(--ink-display, #0f172a);
 }
 .cins-editor-page .ph-del:hover {
   background: #e5484d;
@@ -3270,6 +3323,15 @@
   font-size: 15px;
   font-weight: 700;
   color: var(--ink-display);
+}
+.cins-editor-page.mc-compose-page .mc-compose-mode-hint {
+  flex: 1 1 100%;
+  margin: 0;
+  padding: 0 12px 4px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-muted, #6b7280);
 }
 .cins-editor-page.mc-compose-page .mc-compose-top-actions {
   display: flex;

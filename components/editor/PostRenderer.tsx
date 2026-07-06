@@ -14,7 +14,6 @@
 
 import {
   bunnyIframeSrc,
-  classifyBunnyVideoUrl,
 } from "@/lib/bunny/embed";
 import { VideoProcessingPlaceholder } from "@/components/journey/VideoProcessingPlaceholder";
 import {
@@ -22,6 +21,7 @@ import {
   resolveImageSeedUrl,
 } from "@/lib/editor/resolve-image-seed-url";
 import type { Block } from "@/lib/editor/types";
+import { resolveBunnyEmbed } from "@/lib/journey/video-embed";
 import {
   flattenMosaicCells,
   normalizeLegacyLayout,
@@ -79,6 +79,12 @@ function resolveEmbedUrl(cfg: Record<string, unknown>): string {
     return cfg.embedUrl.trim();
   }
   return "";
+}
+
+function resolveEmbedBunnyVideoId(cfg: Record<string, unknown>): string | null {
+  const id =
+    typeof cfg.bunnyVideoId === "string" ? cfg.bunnyVideoId.trim() : "";
+  return id || null;
 }
 
 /* Figma embed URL — bọc URL gốc qua proxy embed của Figma. */
@@ -196,6 +202,7 @@ function ReadOnlyBlock({ block }: { block: Block }) {
   }
   if (block.loai === "embed") {
     const url = resolveEmbedUrl(cfg);
+    const bunnyVideoId = resolveEmbedBunnyVideoId(cfg);
     if (cfg.videoProcessing === true) {
       return <VideoProcessingPlaceholder />;
     }
@@ -219,7 +226,7 @@ function ReadOnlyBlock({ block }: { block: Block }) {
       );
     }
 
-    const bunny = classifyBunnyVideoUrl(url);
+    const bunny = resolveBunnyEmbed(url, bunnyVideoId);
     if (bunny) {
       return (
         <div className="b-embed b-embed-ro is-iframe" data-provider="bunny">

@@ -7,6 +7,7 @@ import {
   extractBodyCaption,
 } from "@/lib/journey/post-media";
 import type { BaiDangLoai } from "@/lib/truong/bai-dang";
+import { validateOrgBaiDangContent } from "@/lib/truong/bai-dang-blocks";
 import type { OrgBaiDangLoaiOption } from "@/lib/truong/org-bai-dang-loai-options";
 import { mapOrgBaiDangApiRow } from "@/lib/truong/bai-dang-api-fields";
 import { baiDangCoverDisplayUrl } from "@/lib/truong/bai-dang-cover";
@@ -92,6 +93,16 @@ export async function updateOrgBaiDangClient(
     return { ok: false, error: "Bài đăng chưa có nội dung." };
   }
 
+  const contentCheck = validateOrgBaiDangContent({
+    tomTat: input.tomTat,
+    coverId: input.coverId,
+    blocks: input.blocks,
+  });
+  if (!contentCheck.ok) {
+    return { ok: false, error: contentCheck.error };
+  }
+  const tom_tat = contentCheck.resolution.effectiveMoTa;
+
   const res = await truongInlineFetch(
     input.orgId,
     `/bai-dang/${encodeURIComponent(input.baiDangId)}`,
@@ -99,7 +110,7 @@ export async function updateOrgBaiDangClient(
       method: "PATCH",
       body: JSON.stringify({
         tieu_de,
-        tom_tat: input.tomTat?.trim() || null,
+        tom_tat,
         noi_dung_blocks: input.blocks,
         cover_id: input.coverId?.trim() || null,
         loai_bai_dang: resolveLoaiBaiDang(input),
@@ -129,12 +140,22 @@ export async function publishOrgBaiDangClient(
     return { ok: false, error: "Bài đăng chưa có nội dung." };
   }
 
+  const contentCheck = validateOrgBaiDangContent({
+    tomTat: input.tomTat,
+    coverId: input.coverId,
+    blocks: input.blocks,
+  });
+  if (!contentCheck.ok) {
+    return { ok: false, error: contentCheck.error };
+  }
+  const tom_tat = contentCheck.resolution.effectiveMoTa;
+
   const statusPayload = resolveTrangThaiPayload(input);
   const res = await truongInlineFetch(input.orgId, "/bai-dang", {
     method: "POST",
     body: JSON.stringify({
       tieu_de,
-      tom_tat: input.tomTat?.trim() || null,
+      tom_tat,
       noi_dung_blocks: input.blocks,
       cover_id: input.coverId?.trim() || null,
       loai_bai_dang: resolveLoaiBaiDang(input),

@@ -1,6 +1,9 @@
 import type { Block as ServerBlock } from "@/lib/editor/types";
 
-import { milestoneCardContentKind } from "@/lib/journey/milestone-card-kind";
+import {
+  postDisplayKindToMilestoneCardKind,
+  resolvePostDisplayKind,
+} from "@/lib/journey/post-content-kind";
 
 /** Dạng card khi render — badge trong trình soạn. */
 export type ComposePreviewKind = "text" | "photo" | "video" | "article";
@@ -11,28 +14,35 @@ export const COMPOSE_PREVIEW_LABELS: Record<
 > = {
   text: {
     label: "Chỉ chữ",
-    hint: "Card chữ lớn kiểu Facebook — không cần ảnh bìa",
+    hint: "Timeline: panel chữ — không hiện trên lưới ảnh",
   },
   photo: {
-    label: "Ảnh",
-    hint: "Album ảnh trên timeline",
+    label: "Album ảnh",
+    hint: "Timeline: album / hero cover — hiện trên lưới",
   },
   video: {
-    label: "Video",
-    hint: "Video với khung cover + thời lượng",
+    label: "Video Bunny",
+    hint: "Chỉ tiêu đề, mô tả và video — poster lên lưới khi encode xong",
   },
   article: {
     label: "Bài viết",
-    hint: "Bài dài với nhiều block",
+    hint: "Bài dài nhiều block — thumb trên lưới nếu có ảnh/cover",
   },
 };
 
 export function inferComposePreviewKind(
   blocks: ServerBlock[],
   coverSeed: string | null,
+  moTa?: string | null,
 ): ComposePreviewKind {
-  const hasCover = Boolean(coverSeed?.trim());
-  return milestoneCardContentKind(blocks, hasCover, null);
+  const kind = resolvePostDisplayKind({
+    moTa,
+    coverId: coverSeed,
+    hasCover: Boolean(coverSeed?.trim()),
+    blocks,
+  }).kind;
+
+  return postDisplayKindToMilestoneCardKind(kind);
 }
 
 /** Block editor client — `t` + seed blob/CF đều tính là có ảnh khi chọn badge. */
@@ -69,6 +79,7 @@ export function inferComposePreviewKindFromEditor(
   blocks: ReadonlyArray<ComposeEditorBlockLike>,
   coverSeed: string | null,
   serverBlocks: ServerBlock[],
+  moTa?: string | null,
 ): ComposePreviewKind {
   const hasEmbed = blocks.some(
     (b) => b.t === "embed" && Boolean(b.embedUrl?.trim()),
@@ -80,5 +91,5 @@ export function inferComposePreviewKindFromEditor(
     return "photo";
   }
 
-  return inferComposePreviewKind(serverBlocks, coverSeed);
+  return inferComposePreviewKind(serverBlocks, coverSeed, moTa);
 }

@@ -11,6 +11,7 @@ import { ImageGrid } from "@/components/journey/ImageGrid";
 import { JourneyArticleTagLink } from "@/components/journey/JourneyArticleTagLink";
 import { JourneyCardVideo } from "@/components/journey/JourneyCardVideo";
 import { JourneyCoverImage } from "@/components/journey/JourneyCoverImage";
+import { PostBlockRenderer } from "@/components/journey/PostBlockRenderer";
 import { JourneyTextPanelTonePicker } from "@/components/journey/JourneyTextPanelTonePicker";
 import type { MilestoneMediaItem } from "@/components/journey/milestone-types";
 import type { GridImage } from "@/lib/journey/image-grid";
@@ -18,6 +19,8 @@ import { gridThumbSrc } from "@/lib/journey/image-grid";
 import type { MilestoneCardContentKind } from "@/lib/journey/milestone-card-kind";
 import { milestonePhotoLayout } from "@/lib/journey/milestone-card-kind";
 import {
+  articleCardNeedsDepthPreview,
+  articleCardPeekBlocks,
   extractVideoUrl,
   milestoneArticleTextPanelPlain,
   milestoneCardCaptionPlain,
@@ -27,6 +30,10 @@ import {
   shouldShowTextPanelTitle,
   textPanelBodyPlain,
 } from "@/lib/journey/post-media";
+import {
+  resolvePostCardLayout,
+  type PostCardLayout,
+} from "@/lib/journey/post-content-kind";
 import {
   resolveTextPanelTone,
   splitTextPanelParagraphs,
@@ -101,6 +108,13 @@ export function JourneyMilestoneCardBodyContent({
   const blocks = noiDungBlocks ?? null;
   const hasCoverPreview = Boolean(preview?.src);
   const photoGridImages = photoGridOverride ?? null;
+  const cardLayout: PostCardLayout = resolvePostCardLayout({
+    moTa: body,
+    hasCover: hasCoverPreview,
+    blocks,
+  });
+  const isAlbumHeroGrid = cardLayout === "album_hero_grid";
+  const isTextWithImage = cardLayout === "text_with_image";
   const photoLayout = milestonePhotoLayout(blocks, hasCoverPreview, body);
   const isTextCard = contentKind === "text";
   const isPhotoCard = contentKind === "photo";
@@ -172,7 +186,28 @@ export function JourneyMilestoneCardBodyContent({
     Boolean(expandTrigger?.enabled && isArticle && !isContentOpen) ||
     Boolean(readMoreHref && isArticle);
 
+  const articleNeedsDepth =
+    showExpandTrigger &&
+    isArticle &&
+    !preview?.src &&
+    articleCardNeedsDepthPreview(body, blocks, hasCoverPreview);
+  const articlePeekBlocks = useMemo(() => {
+    if (!articleNeedsDepth || !blocks?.length) return [];
+    return articleCardPeekBlocks(body, blocks);
+  }, [articleNeedsDepth, body, blocks]);
+  const showArticleContentPeek =
+    articleNeedsDepth && articlePeekBlocks.length > 0;
+  const showArticleTextDepth =
+    articleNeedsDepth && articlePeekBlocks.length === 0;
+
   const expandCtaLabel = "Xem đầy đủ";
+
+  const expandCtaOverlay = (
+    <span className="jcard-expand-cta" aria-hidden>
+      <ChevronDown size={14} strokeWidth={2.4} />
+      {expandCtaLabel}
+    </span>
+  );
 
   function handleBodyClick(e: React.MouseEvent<HTMLElement>) {
     if (readMoreHref) {
@@ -318,7 +353,14 @@ export function JourneyMilestoneCardBodyContent({
         .join("")}
       {...bodyShellProps}
     >
-      <div className="jcard-content">
+      <div
+        className={[
+          "jcard-content",
+          showArticleTextDepth ? "is-article-depth" : "",
+        ]
+          .filter(Boolean)
+          .join("")}
+      >
         {hasJcardText ? (
           <div className="jcard-text">
             {showCardTitleInBody ? (
@@ -392,6 +434,24 @@ export function JourneyMilestoneCardBodyContent({
               }
               noiDungBlocks={blocks ?? undefined}
             />
+          ) : isAlbumHeroGrid && preview?.src && photoGridImages ? (
+            <div className="jcard-photo-album">
+              <div className="preview preview--album-hero">
+                <JourneyCoverImage
+                  src={preview.src}
+                  srcSet={preview.srcSet}
+                  sizes={
+                    preview.srcSet ? "(max-width: 767px) 100vw, 680px" : undefined
+                  }
+                  width={preview.width}
+                  height={preview.height}
+                  alt={preview.label || title}
+                />
+              </div>
+              <div className="preview preview--photo-grid">
+                <ImageGrid images={photoGridImages} readOnly timelineLightbox />
+              </div>
+            </div>
           ) : isPhotoAlbumMulti && photoGridImages ? (
             <div className="preview preview--photo-grid">
               <ImageGrid images={photoGridImages} readOnly timelineLightbox />
@@ -399,6 +459,19 @@ export function JourneyMilestoneCardBodyContent({
           ) : (isPhotoSingle || isPhotoCard) && photoGridImages ? (
             <div className="preview preview--photo-grid">
               <ImageGrid images={photoGridImages} readOnly timelineLightbox />
+            </div>
+          ) : isTextWithImage && preview?.src ? (
+            <div className="preview preview--photo-grid preview--photo-single">
+              <JourneyCoverImage
+                src={preview.src}
+                srcSet={preview.srcSet}
+                sizes={
+                  preview.srcSet ? "(max-width: 767px) 100vw, 680px" : undefined
+                }
+                width={preview.width}
+                height={preview.height}
+                alt={preview.label || title}
+              />
             </div>
           ) : isPhotoCard && preview?.src ? (
             <div className="preview preview--photo-grid preview--photo-single">
@@ -412,6 +485,13 @@ export function JourneyMilestoneCardBodyContent({
                 height={preview.height}
                 alt={preview.label || title}
               />
+            </div>
+          ) : showArticleContentPeek ? (
+            <div className="preview preview--article-peek">
+              <div className="preview--article-peek-inner">
+                <PostBlockRenderer blocks={articlePeekBlocks} />
+              </div>
+              {showExpandTrigger ? expandCtaOverlay : null}
             </div>
           ) : readMoreHref && isArticle ? (
             <Link href={readMoreHref} className="preview" prefetch={false}>
@@ -432,12 +512,7 @@ export function JourneyMilestoneCardBodyContent({
                   <span className="preview-label">Ảnh bìa bài viết</span>
                 </div>
               )}
-              {showExpandTrigger ? (
-                <span className="jcard-expand-cta" aria-hidden>
-                  <ChevronDown size={14} strokeWidth={2.4} />
-                  {expandCtaLabel}
-                </span>
-              ) : null}
+              {showExpandTrigger ? expandCtaOverlay : null}
             </Link>
           ) : preview?.src && isArticle ? (
             <div className="preview">
@@ -451,15 +526,11 @@ export function JourneyMilestoneCardBodyContent({
                 height={preview.height}
                 alt={preview.label || title}
               />
-              {showExpandTrigger ? (
-                <span className="jcard-expand-cta" aria-hidden>
-                  <ChevronDown size={14} strokeWidth={2.4} />
-                  {expandCtaLabel}
-                </span>
-              ) : null}
+              {showExpandTrigger ? expandCtaOverlay : null}
             </div>
           ) : null}
         </div>
+        {showArticleTextDepth && showExpandTrigger ? expandCtaOverlay : null}
       </div>
     </div>
   );

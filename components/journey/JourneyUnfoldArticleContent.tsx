@@ -1,6 +1,7 @@
 "use client";
 
-import { PostBlocksRenderer, PostCover } from "@/components/editor/PostRenderer";
+import { PostCover } from "@/components/editor/PostRenderer";
+import { PostBlockRenderer } from "@/components/journey/PostBlockRenderer";
 import type { Block } from "@/lib/editor/types";
 import {
   blocksForArticleCardUnfold,
@@ -32,9 +33,9 @@ export function JourneyUnfoldArticleContent({
   if (blocksOnly) {
     const unfoldBlocks = blocksForArticleCardUnfold(tomTat, blocks);
     if (unfoldBlocks.length === 0) return null;
-    return <PostBlocksRenderer blocks={unfoldBlocks} />;
+    return <PostBlockRenderer blocks={unfoldBlocks} />;
   }
-  const coverSeed = sanitizePersistableCoverId(coverId, blocks);
+  const coverSeed = sanitizePersistableCoverId(coverId);
   const showTitle = shouldShowMilestoneCardTitle(title, blocks, tomTat);
   const unfoldTomTat =
     resolveBaiDangUnfoldTomTat({
@@ -50,7 +51,7 @@ export function JourneyUnfoldArticleContent({
         <p className="sub-in sub-ro">{unfoldTomTat}</p>
       ) : null}
       {coverSeed ? <PostCover seed={coverSeed} /> : null}
-      <PostBlocksRenderer blocks={blocks} />
+      <PostBlockRenderer blocks={blocks} />
     </>
   );
 }

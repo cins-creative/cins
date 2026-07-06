@@ -28,6 +28,8 @@ const HOME_SIDEBAR_ICONS: Record<MainNavIcon, string> = {
   profile:
     '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="10" r="3.2"/><path d="M5.5 19.5a8 8 0 0113 0"/></svg>',
   help: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 015 0c0 1.5-2.5 2-2.5 3.5"/><path d="M12 17h.01"/></svg>',
+  project:
+    '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>',
   settings:
     '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33h0a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51h0a1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82v0a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>',
 };
@@ -42,7 +44,8 @@ function escapeHtml(value: string): string {
 
 function renderNavAnchor(item: MainNavItem, pathname: string): string {
   const active = item.isActive(pathname);
-  return `<a href="${escapeHtml(item.href)}" class="sb-item${active ? " active" : ""}" data-tip="${escapeHtml(item.tip)}">
+  const highlight = item.highlight ? " sb-item--highlight" : "";
+  return `<a href="${escapeHtml(item.href)}" class="sb-item${active ? " active" : ""}${highlight}" data-tip="${escapeHtml(item.tip)}">
       <span class="sb-ico">${HOME_SIDEBAR_ICONS[item.icon]}</span>
       <span class="sb-label">${escapeHtml(item.label)}</span></a>`;
 }

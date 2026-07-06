@@ -9,6 +9,7 @@ import { SidebarNavIcon } from "@/components/cins/SidebarNavIcon";
 import { SidebarOrgFlyout } from "@/components/cins/SidebarOrgFlyout";
 import { useCinsSidebarNav } from "@/components/cins/useCinsSidebarNav";
 import {
+  MAIN_NAV_FOOT_ITEMS,
   MAIN_NAV_GROUP_BREAK_AFTER,
   MAIN_NAV_ITEMS,
   type MainNavItem,
@@ -25,7 +26,7 @@ function SidebarAnchor({
   return (
     <Link
       href={item.href}
-      className={`sb-item${active ? " active" : ""}`}
+      className={`sb-item${active ? " active" : ""}${item.highlight ? " sb-item--highlight" : ""}`}
       data-tip={item.flyout ? undefined : item.tip}
       aria-current={active ? "page" : undefined}
     >
@@ -76,6 +77,11 @@ export function CinsAppSidebar() {
           </Fragment>
         ))}
       </ul>
+      <div className="sb-foot">
+        {MAIN_NAV_FOOT_ITEMS.map((item) => (
+          <SidebarAnchor key={item.id} item={item} pathname={pathname} />
+        ))}
+      </div>
     </aside>
   );
 }

@@ -12,6 +12,7 @@ import { createPortal } from "react-dom";
 import {
   GALLERY_MEDIA_FILTER_OPTIONS,
   galleryMediaFilterLabel,
+  galleryMediaFilterButtonLabel,
   type GalleryMediaFilter,
 } from "@/lib/journey/post-media";
 import { computeFixedMenuPosition } from "@/lib/ui/clamp-fixed-menu-position";
@@ -160,7 +161,7 @@ export function GalleryMediaFilterDropdown({
       </div>
     ) : null;
 
-  const label = galleryMediaFilterLabel(filter);
+  const label = galleryMediaFilterButtonLabel(filter);
   const countLabel = count != null ? count.toLocaleString("vi-VN") : null;
   const isToolbar = variant === "toolbar";
 

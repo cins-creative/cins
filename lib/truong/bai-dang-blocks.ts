@@ -1,5 +1,9 @@
 import type { Block } from "@/lib/editor/types";
 import { milestoneCardContentKind } from "@/lib/journey/milestone-card-kind";
+import {
+  validatePostContentForPublish,
+  type PostPublishValidationResult,
+} from "@/lib/journey/post-content-kind";
 import { parseServerBlocks } from "@/lib/journey/parse-server-blocks";
 
 import type { TruongBaiDang } from "@/lib/truong/types";
@@ -46,7 +50,21 @@ export function resolveBaiDangCardKind(
     return milestoneCardContentKind(
       post.noiDungBlocks,
       Boolean(baiDangCoverDisplayUrl(post)),
+      post.tom_tat,
     );
   }
   return legacyKind(post);
+}
+
+/** Validate `org_bai_dang` blocks — cùng rule Journey user (Phase 1.5). */
+export function validateOrgBaiDangContent(params: {
+  tomTat?: string | null;
+  coverId?: string | null;
+  blocks: Block[];
+}): PostPublishValidationResult {
+  return validatePostContentForPublish({
+    moTa: params.tomTat,
+    coverId: params.coverId,
+    blocks: params.blocks,
+  });
 }

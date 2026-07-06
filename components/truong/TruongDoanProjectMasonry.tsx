@@ -1,14 +1,16 @@
 "use client";
 
-import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { JourneyCoverImage } from "@/components/journey/JourneyCoverImage";
+import { GalleryVideoPlayBadge } from "@/components/journey/GalleryItemVisual";
 import { JourneyPostModal } from "@/components/journey/JourneyPostModal";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
 import type { OrgDoanProjectItem } from "@/lib/journey/org-milestone-tag-types";
 import {
   displayMediaPostTitle,
+  isGalleryVideoCoverSrc,
   isPostPermalinkHref,
 } from "@/lib/journey/post-media";
 
@@ -87,7 +89,7 @@ function DoanStudentMeta({
         aria-hidden
       >
         {item.studentAvatarUrl ? (
-          <Image
+          <JourneyCoverImage
             src={item.studentAvatarUrl}
             alt=""
             width={22}
@@ -134,6 +136,7 @@ function DoanProjectCardHit({
   displayTitle: string;
 }) {
   const hasImage = Boolean(item.coverSrc);
+  const isVideo = item.isVideo ?? isGalleryVideoCoverSrc(item.coverSrc);
 
   return (
     <>
@@ -146,10 +149,11 @@ function DoanProjectCardHit({
         }
       >
         {hasImage ? (
-          <Image
+          <JourneyCoverImage
             src={item.coverSrc!}
             alt={item.coverAlt ?? item.projectTitle}
-            fill
+            width={1280}
+            height={720}
             sizes="(max-width: 575px) 100vw, (max-width: 991px) 50vw, 33vw"
             className="tdh-doan-gallery-img"
           />
@@ -158,6 +162,7 @@ function DoanProjectCardHit({
             {studentInitials(item.studentName)}
           </span>
         )}
+        {isVideo ? <GalleryVideoPlayBadge /> : null}
       </div>
       <span className="j-main-gallery-info">
         <strong>{displayTitle}</strong>

@@ -3,7 +3,7 @@ import {
   milestoneCardCaptionPlain,
 } from "@/lib/journey/post-media";
 import { loaiBaiDangLabel } from "@/lib/truong/bai-dang";
-import { baiDangTimelinePreviewUrl } from "@/lib/truong/bai-dang-cover";
+import { baiDangGridPreviewUrl } from "@/lib/truong/bai-dang-cover";
 import { baiDangYear } from "@/lib/truong/bai-dang-timeline";
 import type { TruongBaiDang } from "@/lib/truong/types";
 
@@ -28,7 +28,7 @@ export function orgBaiDangPostsToGridItems(
     id: post.id,
     title: post.tieu_de?.trim() || "Bài đăng",
     excerpt: milestoneCardCaptionPlain(post.tom_tat, post.noiDungBlocks ?? null),
-    thumbSrc: baiDangTimelinePreviewUrl(post),
+    thumbSrc: baiDangGridPreviewUrl(post),
     isVideo: galleryMediaKindFromBlocks(post.noiDungBlocks) === "video",
     loaiLabel: loaiBaiDangLabel(post.loai_bai_dang),
     year: baiDangYear(post.tao_luc),

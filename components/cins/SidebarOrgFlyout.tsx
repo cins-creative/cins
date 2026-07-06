@@ -69,7 +69,7 @@ function loadMyOrgs(): Promise<MyOrg[]> {
 
 /**
  * Mục sidebar có danh sách tổ chức — xổ inline (accordion) ngay dưới mục.
- * Có org → hàng chính chỉ thu/mở (không điều hướng), mũi tên luôn hiện.
+ * Có org → nhãn/icon link tới hub listing; mũi tên thu/mở danh sách org.
  * Chưa có org → hàng chính link tới hub như nav thường.
  */
 export function SidebarOrgFlyout({
@@ -113,28 +113,39 @@ export function SidebarOrgFlyout({
     <li className={liClass}>
       <span className="sb-flyout-anchor">
         {hasItems ? (
-          <button
-            type="button"
+          <div
             className={`sb-item sb-item--flyout${active ? " active" : ""}`}
-            aria-expanded={expanded}
-            aria-label={
-              expanded
-                ? `${item.label} — thu gọn danh sách`
-                : `${item.label} — mở rộng danh sách`
-            }
-            onClick={() => setExpanded((v) => !v)}
           >
-            <span className="sb-ico">
-              <SidebarNavIcon name={item.icon} />
-            </span>
-            <span className="sb-label">{item.label}</span>
-            <ChevronDown
-              className="sb-flyout-caret"
-              size={15}
-              strokeWidth={2.2}
-              aria-hidden
-            />
-          </button>
+            <Link
+              href={item.href}
+              className="sb-flyout-main"
+              data-tip={item.tip}
+              aria-current={active ? "page" : undefined}
+            >
+              <span className="sb-ico">
+                <SidebarNavIcon name={item.icon} />
+              </span>
+              <span className="sb-label">{item.label}</span>
+            </Link>
+            <button
+              type="button"
+              className="sb-flyout-toggle"
+              aria-expanded={expanded}
+              aria-label={
+                expanded
+                  ? `${item.label} — thu gọn danh sách`
+                  : `${item.label} — mở rộng danh sách`
+              }
+              onClick={() => setExpanded((v) => !v)}
+            >
+              <ChevronDown
+                className="sb-flyout-caret"
+                size={15}
+                strokeWidth={2.2}
+                aria-hidden
+              />
+            </button>
+          </div>
         ) : (
           <Link
             href={item.href}

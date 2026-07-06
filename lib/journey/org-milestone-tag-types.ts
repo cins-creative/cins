@@ -118,4 +118,5 @@ export type OrgDoanProjectItem = {
   coverGradient?: string | null;
   photoCount?: number | null;
   tile: "short" | "tall" | "square";
+  isVideo?: boolean;
 };

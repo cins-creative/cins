@@ -277,6 +277,10 @@ export type MilestoneItem = {
 
   /** Media tối đa 3 thumbnail trên grid (single/double/triple). */
   media?: MilestoneMediaItem[];
+  /** `content_tac_pham.cover_id` — dùng classify grid (Phase 3). */
+  tacPhamCoverId?: string | null;
+  /** `content_tac_pham.mo_ta` — classify grid chính xác hơn `body` (cột mốc). */
+  tacPhamMoTa?: string | null;
 
   /**
    * Canonical block array của tác phẩm chính (`content_tac_pham.noi_dung_

@@ -6,65 +6,30 @@ import {
   GRID_IMAGE_DEFAULT_WIDTH,
 } from "@/lib/journey/image-grid";
 import {
-  blocksAreMediaCaptionOnly,
-  blocksAreTextPanelOnly,
-  detectMediaPostKind,
-  extractAllImageIds,
-  hasArticleLayoutBlocks,
-} from "@/lib/journey/post-media";
+  postDisplayKindToMilestoneCardKind,
+  resolvePostDisplayKind,
+} from "@/lib/journey/post-content-kind";
+import { extractAllImageIds } from "@/lib/journey/post-media";
 
 export type MilestoneCardContentKind = "photo" | "video" | "article" | "text";
 
 export type MilestonePhotoLayout = "single" | "album";
 
 /**
- * Loại card timeline — quy tắc cover & layout:
- * - cover_id tuỳ chọn → Gallery thumb + cover bài viết dài (article).
- * - Video → luôn video (cover = frame/thumbnail tuỳ chọn).
- * - 1 ảnh + caption → photo (lightbox).
- * - Album ≥2 ảnh, caption-only → photo album (grid từ blocks, không hero cover).
- * - Chỉ chữ (body/h2/h3/quote) → text panel.
- * - Ảnh inline + chữ / palette / cover bài → article (unfold).
+ * Loại card timeline — delegate `lib/journey/post-content-kind.ts` (Phase 1).
  */
 export function milestoneCardContentKind(
   blocks: ReadonlyArray<Block> | null | undefined,
   hasCoverPreview = false,
-  _body: string | null | undefined = null,
+  body: string | null | undefined = null,
 ): MilestoneCardContentKind {
-  const parsed = blocks ?? [];
-  const mediaKind = detectMediaPostKind(parsed);
-  const imageCount = extractAllImageIds(parsed).length;
+  const kind = resolvePostDisplayKind({
+    moTa: body,
+    hasCover: hasCoverPreview,
+    blocks: blocks ?? [],
+  }).kind;
 
-  if (mediaKind === "video") return "video";
-  /* Block `imgs` nhưng chưa có id ảnh lưu (blob lỗi publish) — không render card photo rỗng. */
-  if (mediaKind === "photo" && (imageCount > 0 || hasCoverPreview)) {
-    return "photo";
-  }
-
-  // Chỉ chữ — không ảnh thật trong blocks (không suy ra từ preview media).
-  if (imageCount === 0 && blocksAreTextPanelOnly(parsed)) {
-    return "text";
-  }
-
-  if (imageCount >= 1 && blocksAreMediaCaptionOnly(parsed)) {
-    return "photo";
-  }
-
-  if (hasArticleLayoutBlocks(parsed)) return "article";
-
-  if (imageCount > 0 && !blocksAreMediaCaptionOnly(parsed)) {
-    return "article";
-  }
-
-  if (hasCoverPreview && imageCount === 0 && !blocksAreTextPanelOnly(parsed)) {
-    return "article";
-  }
-
-  if (imageCount === 0) {
-    return "text";
-  }
-
-  return "article";
+  return postDisplayKindToMilestoneCardKind(kind);
 }
 
 export function milestonePhotoLayout(
@@ -76,7 +41,9 @@ export function milestonePhotoLayout(
     return null;
   }
   const imageCount = extractAllImageIds(blocks).length;
-  return imageCount <= 1 ? "single" : "album";
+  const hasCoverOnly =
+    hasCoverPreview && imageCount === 0 ? 1 : imageCount;
+  return hasCoverOnly <= 1 ? "single" : "album";
 }
 
 export function milestoneCardPhotoGrid(

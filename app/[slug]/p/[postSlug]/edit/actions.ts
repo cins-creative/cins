@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import type { ArticleTagRef } from "@/lib/editor/article-tag";
-import { blocksToHtml, deriveMoTaFallback } from "@/lib/editor/sanitize";
+import { blocksToHtml } from "@/lib/editor/sanitize";
 import {
   VALID_LOAI_MOC,
   VALID_VIS,
@@ -17,6 +17,7 @@ import { syncCoAuthorsFromEditor } from "@/lib/social/co-author";
 import { setMilestonePersonalFilters } from "@/lib/filter/gan";
 import { revalidateTaggedArticlePages } from "@/lib/tag/revalidate-tag-pages";
 import { DEFAULT_ARTICLE_POST_TITLE } from "@/lib/journey/post-media";
+import { validatePostContentForPublish } from "@/lib/journey/post-content-kind";
 import type { CoAuthorDraft } from "@/lib/social/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { buildMilestoneItemForCotMoc } from "@/lib/journey/milestones-fetch";
@@ -90,7 +91,7 @@ export async function updatePost(
   }
   const moTa = (input.moTa || "").trim().slice(0, MAX_MOTA);
 
-  if (!Array.isArray(input.blocks) || input.blocks.length === 0) {
+  if (!Array.isArray(input.blocks)) {
     return {
       ok: false,
       error: "Bài viết chưa có nội dung. Thêm ít nhất một block.",
@@ -125,9 +126,23 @@ export async function updatePost(
     };
   }
 
-  /* 3. Re-render HTML + derive mo_ta nếu user clear. */
+  const contentCheck = validatePostContentForPublish({
+    moTa,
+    coverId: input.coverSeed,
+    blocks: normalized,
+  });
+  if (!contentCheck.ok) {
+    return {
+      ok: false,
+      error: contentCheck.error,
+      field: contentCheck.field,
+    };
+  }
+
+  const moTaFinal = contentCheck.resolution.effectiveMoTa;
+
+  /* 3. Re-render HTML. */
   const noiDungHtml = blocksToHtml(normalized);
-  const moTaFinal = moTa || deriveMoTaFallback(normalized);
 
   /* 4. Verify ownership trước khi update (tránh PII leak). */
   const admin = createServiceRoleClient();
