@@ -146,7 +146,7 @@ import {
   inferComposePreviewKindFromEditor,
 } from "@/lib/journey/compose-preview-kind";
 import { useEditorVideoUpload } from "@/lib/journey/use-editor-video-upload";
-import { videoCanvasRatioClass } from "@/lib/journey/video-canvas-ratio";
+import { readImageFileDimensions } from "@/lib/journey/probe-image-dimensions";
 import { bunnyIframeSrc, classifyBunnyVideoUrl } from "@/lib/bunny/embed";
 
 type ImageUploadTrack = {
@@ -197,6 +197,9 @@ type Block = {
   imgs?: string[]; // mảng "seed" cho picsum (placeholder cho Cloudflare media_id)
   rounded?: boolean;
   cap?: string;
+  /** Kích thước gốc ảnh (ô đầu / album 1 ảnh–1 block) — lưu xuống server cho grid layout. */
+  width?: number;
+  height?: number;
   /* Embed block */
   embedUrl?: string;
   /** Tỉ lệ khung canvas Journey — suy từ kích thước file upload. */
@@ -238,6 +241,21 @@ function isEditorBunnyVideoBlock(
   const url = (block.embedUrl || "").trim();
   if (!url) return false;
   return classifyBunnyVideoUrl(url) !== null;
+}
+
+function blockGridDimensions(block: Block): {
+  width: number;
+  height: number;
+} {
+  const width =
+    typeof block.width === "number" && block.width > 0
+      ? Math.round(block.width)
+      : GRID_IMAGE_DEFAULT_WIDTH;
+  const height =
+    typeof block.height === "number" && block.height > 0
+      ? Math.round(block.height)
+      : GRID_IMAGE_DEFAULT_HEIGHT;
+  return { width, height };
 }
 
 /** Album compose: mỗi ảnh một block `imgs` (grid justify/masonry) — không phải 1 block nhiều ô. */
@@ -358,10 +376,12 @@ function editorAlbumGridFromBlocks(
     const isPersisted = isPersistedImageSeed(seed);
     const hasPreview = Boolean(seed && !isPlaceholder);
 
+    const { width, height } = blockGridDimensions(block);
+
     images.push({
       id: isPersisted ? seed : block.id,
-      width: GRID_IMAGE_DEFAULT_WIDTH,
-      height: GRID_IMAGE_DEFAULT_HEIGHT,
+      width,
+      height,
       previewSrc: isTemp
         ? seed
         : hasPreview
@@ -1121,6 +1141,18 @@ export function EditorView({
     [],
   );
 
+  const applyImageDimensionsToSeed = useCallback(
+    (seed: string, width: number, height: number) => {
+      setBlocks((prev) =>
+        prev.map((b) => {
+          if (b.t !== "imgs" || !b.imgs?.includes(seed)) return b;
+          return { ...b, width, height };
+        }),
+      );
+    },
+    [],
+  );
+
   const beginImageUpload = useCallback(
     (
       file: File,
@@ -1145,6 +1177,10 @@ export function EditorView({
         onPick(localSeed);
       }
       setImageUploadTrack(localSeed, { progress: 0, status: "uploading" });
+
+      void readImageFileDimensions(file).then(({ width, height }) => {
+        applyImageDimensionsToSeed(localSeed, width, height);
+      });
 
       const finishTrack = (key: string, track: ImageUploadTrack | null) => {
         setImageUploadTrack(key, track);
@@ -1188,7 +1224,7 @@ export function EditorView({
         }
       })();
     },
-    [setImageUploadTrack],
+    [applyImageDimensionsToSeed, setImageUploadTrack],
   );
 
   const hasPendingUploads = useMemo(
@@ -3917,6 +3953,12 @@ function fromServerBlocks(blocks: ServerBlock[]): Block[] {
       local.imgs = imgs.filter((s) => !/^m-|^extra-/.test(s));
       if (cfg.albumGridCell === true) local.albumGridCell = true;
       else if (cfg.albumGridCell === false) local.albumGridCell = false;
+      if (typeof cfg.width === "number" && cfg.width > 0) {
+        local.width = Math.round(cfg.width);
+      }
+      if (typeof cfg.height === "number" && cfg.height > 0) {
+        local.height = Math.round(cfg.height);
+      }
     } else if (t === "embed") {
       local.embedUrl = typeof cfg.url === "string" ? cfg.url : "";
       const ratio =
@@ -4003,6 +4045,12 @@ function toServerBlocks(blocks: Block[]): ServerBlock[] {
           rounded: !!b.rounded,
           cap: (b.cap || "").slice(0, 280),
           imgs: baseImgs,
+          ...(typeof b.width === "number" && b.width > 0
+            ? { width: Math.round(b.width) }
+            : {}),
+          ...(typeof b.height === "number" && b.height > 0
+            ? { height: Math.round(b.height) }
+            : {}),
           ...(b.albumGridCell === true
             ? { albumGridCell: true }
             : b.albumGridCell === false

@@ -95,6 +95,18 @@ export function groupBlocksForRender(
   return groups;
 }
 
+/** Mọi ảnh persisted trong blocks `imgs` — giữ width/height từng block (album + inline). */
+export function extractPhotoGridImagesFromBlocks(
+  blocks: ReadonlyArray<Block> | null | undefined,
+): GridImage[] {
+  if (!blocks?.length) return [];
+  const all: GridImage[] = [];
+  for (const block of blocks) {
+    all.push(...extractImagesFromImgsBlock(block));
+  }
+  return all;
+}
+
 /** Ảnh album (Facebook grid) từ blocks — null nếu không phải bài ảnh. */
 export function photoGridImagesFromBlocks(
   blocks: ReadonlyArray<Block> | null | undefined,

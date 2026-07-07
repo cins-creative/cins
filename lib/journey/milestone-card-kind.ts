@@ -1,9 +1,8 @@
 import type { Block } from "@/lib/editor/types";
 import {
+  extractPhotoGridImagesFromBlocks,
   photoGridImagesFromBlocks,
   type GridImage,
-  GRID_IMAGE_DEFAULT_HEIGHT,
-  GRID_IMAGE_DEFAULT_WIDTH,
 } from "@/lib/journey/image-grid";
 import {
   postDisplayKindToMilestoneCardKind,
@@ -58,14 +57,8 @@ export function milestoneCardPhotoGrid(
   const fromAlbum = photoGridImagesFromBlocks(blocks);
   if (fromAlbum && fromAlbum.length > 0) return fromAlbum;
 
-  const ids = extractAllImageIds(blocks);
-  if (ids.length === 0) return null;
-
-  return ids.map((id) => ({
-    id,
-    width: GRID_IMAGE_DEFAULT_WIDTH,
-    height: GRID_IMAGE_DEFAULT_HEIGHT,
-  }));
+  const fromInline = extractPhotoGridImagesFromBlocks(blocks);
+  return fromInline.length > 0 ? fromInline : null;
 }
 
 export function isMilestoneArticleCard(
