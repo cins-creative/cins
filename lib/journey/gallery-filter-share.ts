@@ -4,6 +4,7 @@ import {
   matchesPersonalFilterSlug,
   personalFilterSlugFromSearch,
 } from "@/lib/filter/client-utils";
+import type { GalleryDisplay } from "@/lib/journey/gallery-display-url";
 import type { GalleryMainItem } from "@/lib/journey/gallery-page-fetch";
 import { filterByGroup } from "@/lib/journey/milestone-filter-options";
 import { absoluteShareUrl } from "@/lib/journey/profile-share";
@@ -54,9 +55,13 @@ export function galleryGroupFromSearch(search: string): FilterGroup | null {
 export function galleryFilterShareUrl(
   slug: string,
   spec: JourneyGalleryFilterShareSpec,
+  display: GalleryDisplay = "card",
 ): string {
   const params = new URLSearchParams();
   params.set("view", "gallery");
+  if (display === "grid") {
+    params.set("display", "luoi");
+  }
   if (spec.kind === "personal-label") {
     params.set("filter", spec.slug);
   } else if (spec.kind === "group" && spec.group !== "all") {

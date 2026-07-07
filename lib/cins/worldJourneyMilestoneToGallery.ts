@@ -4,6 +4,10 @@ import { galleryGridAssetFromCfUrl } from "@/lib/cloudflare/cf-variant-url";
 import { resolvePostGridEntry } from "@/lib/journey/post-content-kind";
 import { resolveBunnyVideoPreviewMp4FromBlocks } from "@/lib/journey/video-embed";
 import {
+  extractVideoCanvasRatio,
+  videoPreviewDimensionsFromRatio,
+} from "@/lib/journey/video-canvas-ratio";
+import {
   galleryItemExcerptLine,
   galleryItemLabel,
 } from "@/lib/journey/post-media";
@@ -52,6 +56,12 @@ export function worldJourneyMilestonesToGalleryItems(
     const gridAsset =
       thumb?.src && !isVideo ? galleryGridAssetFromCfUrl(thumb.src) : null;
     const mediaKind = gridEntry?.mediaKind ?? (isVideo ? "video" : "article");
+    const videoCanvasRatio = isVideo
+      ? (extractVideoCanvasRatio(m.noiDungBlocks ?? []) ?? undefined)
+      : undefined;
+    const videoDims = videoCanvasRatio
+      ? videoPreviewDimensionsFromRatio(videoCanvasRatio)
+      : null;
 
     out.push({
       id: `wj-grid-${cotMocId}-${i}`,
@@ -60,8 +70,8 @@ export function worldJourneyMilestonesToGalleryItems(
       personalFilters: m.personalFilters,
       src: gridAsset?.src ?? thumb?.src ?? "",
       srcSet: gridAsset?.srcSet ?? thumb?.srcSet,
-      width: gridAsset?.width ?? thumb?.width,
-      height: gridAsset?.height ?? thumb?.height,
+      width: gridAsset?.width ?? videoDims?.width ?? thumb?.width,
+      height: gridAsset?.height ?? videoDims?.height ?? thumb?.height,
       label: isOrgCreate
         ? m.title
         : galleryItemLabel(m.title, mediaKind),
@@ -79,6 +89,7 @@ export function worldJourneyMilestonesToGalleryItems(
         ? (gridEntry?.videoPreviewSrc ??
           resolveBunnyVideoPreviewMp4FromBlocks(m.noiDungBlocks ?? []))
         : null,
+      videoCanvasRatio,
       cardLayout: m.cardLayout,
       orgAvatarUrl:
         m.attribution?.avatarUrl ??

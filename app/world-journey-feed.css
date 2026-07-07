@@ -633,8 +633,14 @@
   min-width: 0;
 }
 
-.world-journey-home .wj-feed.view-grid .j-main-gallery-grid {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+.world-journey-home .wj-feed.view-grid .j-main-gallery-grid--masonry {
+  columns: 4;
+}
+
+@media (max-width: 991.98px) {
+  .world-journey-home .wj-feed.view-grid .j-main-gallery-grid--masonry {
+    columns: 2;
+  }
 }
 
 .wj-feed.view-grid .wj-composer,

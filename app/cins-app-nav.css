@@ -546,9 +546,14 @@
   }
 
   .cins-app-sidebar.sidebar:not(:hover):not(:focus-within):not(:has(.sb-user.open)) .sb-foot {
-    padding-left: 0;
-    padding-right: 0;
-    align-items: center;
+    /* Giữ padding như bản mở rộng — không thu về 0 */
+    padding: 10px 8px 14px;
+  }
+
+  .cins-app-sidebar.sidebar:not(:hover):not(:focus-within):not(:has(.sb-user.open)) .sb-foot .sb-item {
+    justify-content: flex-start;
+    padding-left: 8px;
+    padding-right: 8px;
   }
 
   .cins-app-sidebar.sidebar:not(:hover):not(:focus-within):not(:has(.sb-user.open)) .sb-user-pill {
@@ -1993,48 +1998,47 @@ a.j-notify-mini-action.is-link:hover {
 
 .j-notify-request-popover .j-friend-cover {
   position: relative;
-  height: 78px;
+  height: 96px;
+  overflow: hidden;
   background:
-    radial-gradient(circle at 20% 24%, rgba(253, 232, 89, 0.95), transparent 28%),
-    linear-gradient(135deg, #1d4ed8, #7c3aed 58%, #0f172a);
+    radial-gradient(circle at 16% 18%, rgba(253, 232, 89, 0.9), transparent 34%),
+    radial-gradient(circle at 84% 26%, rgba(124, 58, 237, 0.55), transparent 42%),
+    linear-gradient(135deg, #1d4ed8, #7c3aed 60%, #0f172a);
+}
+
+.j-notify-request-popover .j-friend-cover.has-img {
+  background: var(--neutral-100, #f1f2f5);
 }
 
 .j-notify-request-popover .j-friend-cover img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
+  z-index: 0;
 }
 
 .j-notify-request-popover .j-friend-cover::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, transparent 32%, rgba(15, 23, 42, 0.55));
+  background: linear-gradient(180deg, transparent 36%, var(--bg-surface) 98%);
 }
 
-.j-notify-request-popover .j-friend-avatar {
-  position: relative;
-  z-index: 1;
-  width: 54px;
-  height: 54px;
-  margin: -27px 14px 0;
-  border: 3px solid var(--bg-surface);
-  border-radius: 999px;
-  overflow: hidden;
-  background: linear-gradient(135deg, #dbeafe, #fef3c7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #1d4ed8;
-  font-size: 20px;
-  font-weight: 900;
+/* Avatar nằm trong .j-friend-body — dùng chung layout JourneyUserPopover */
+.j-notify-request-popover.j-user-popover .j-frq-card .j-friend-body {
+  margin-top: -42px;
+  padding: 0 18px 10px;
+  text-align: center;
 }
 
-.j-notify-request-popover .j-friend-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.j-notify-request-popover.j-user-popover .j-frq-card .j-friend-avatar {
+  width: 78px;
+  height: 78px;
+  margin: 0 auto 9px;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.22);
 }
 
 .j-notify-request-popover .j-frq-card .j-friend-body {
@@ -2044,14 +2048,13 @@ a.j-notify-mini-action.is-link:hover {
 .j-notify-request-popover .j-friend-body {
   position: relative;
   z-index: 1;
-  padding: 8px 14px 14px;
 }
 
 .j-notify-request-popover .j-friend-body h3 {
   margin: 0;
-  font-size: 15px;
-  font-weight: 700;
-  line-height: 1.15;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.2;
   letter-spacing: -0.02em;
   color: var(--ink-display);
 }

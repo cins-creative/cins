@@ -16,6 +16,7 @@ import { createPortal } from "react-dom";
 
 import { CoAuthorInviteMessage } from "@/components/journey/CoAuthorInviteMessage";
 import { CoSoStaffInviteMessage } from "@/components/journey/CoSoStaffInviteMessage";
+import "./journey-user-popover.css";
 import type { CoAuthorCredit } from "@/components/journey/milestone-types";
 import {
   COAUTHOR_INVITE_ACCEPTED_EVENT,
@@ -1369,15 +1370,15 @@ function FollowRequestModal({
               <img src={coverUrl} alt="" />
             ) : null}
           </div>
-          <div className="j-friend-avatar">
-            {selected.avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={selected.avatarUrl} alt="" />
-            ) : (
-              <span>{(selected.tenHienThi || selected.slug).slice(0, 1)}</span>
-            )}
-          </div>
           <div className="j-friend-body">
+            <div className="j-friend-avatar">
+              {selected.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={selected.avatarUrl} alt="" />
+              ) : (
+                <span>{(selected.tenHienThi || selected.slug).slice(0, 1)}</span>
+              )}
+            </div>
             <h3>{selected.tenHienThi}</h3>
             <p className="j-friend-slug">@{selected.slug}</p>
             {selected.bio ? <p className="j-friend-bio">{selected.bio}</p> : null}

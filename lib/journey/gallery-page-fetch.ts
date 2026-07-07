@@ -29,6 +29,8 @@ import {
 } from "@/lib/journey/post-media";
 import { loadVerifiedCotMocIdSet } from "@/lib/journey/milestone-verify";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import type { VideoCanvasRatio } from "@/lib/journey/video-canvas-ratio";
+import { videoPreviewDimensionsFromRatio } from "@/lib/journey/video-canvas-ratio";
 
 export const GALLERY_SCROLL_PAGE_SIZE = 24;
 const GALLERY_ASIDE_LIMIT_PER_TYPE = 12;
@@ -68,6 +70,7 @@ export type GalleryMainItem = {
   /** Tác giả hiển thị trên overlay hover của card gallery. */
   authorName?: string | null;
   authorAvatarUrl?: string | null;
+  videoCanvasRatio?: VideoCanvasRatio;
 };
 
 const getGalleryStubsCached = cache(collectGalleryStubs);
@@ -120,6 +123,10 @@ function stubImageFields(
   height?: number;
 } | null {
   if (entry.coverSrc) {
+    if (entry.mediaKind === "video") {
+      const dims = videoPreviewDimensionsFromRatio(entry.videoCanvasRatio);
+      return { src: entry.coverSrc, width: dims.width, height: dims.height };
+    }
     return { src: entry.coverSrc, width: 800, height: 450 };
   }
   if (entry.coverId) {
@@ -193,6 +200,7 @@ function hydrateMainItems(
       orgKicker: entry.orgKicker,
       authorName: isOrgCreate ? null : ownerProfile?.name ?? null,
       authorAvatarUrl: isOrgCreate ? null : ownerProfile?.avatarUrl ?? null,
+      videoCanvasRatio: entry.videoCanvasRatio,
     });
   });
   return out;

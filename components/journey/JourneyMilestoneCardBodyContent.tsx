@@ -81,7 +81,7 @@ type Props = {
 function shouldIgnoreBodyTrigger(target: Element | null): boolean {
   return Boolean(
     target?.closest(
-      "a, button, input, textarea, select, summary, .j-m-menu, .authors-details, .image-grid-cell, .jcard-video-trigger, .jcard-actions",
+      "a, button, input, textarea, select, summary, .j-m-menu, .authors-details, .image-grid-cell, .jcard-video-trigger, .jcard-video-native, .jcard-video-root, .jcard-actions",
     ),
   );
 }

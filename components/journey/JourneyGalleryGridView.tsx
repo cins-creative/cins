@@ -1,6 +1,8 @@
 "use client";
 
-import { Grid3x3, Image as ImageIcon, LayoutGrid, Plus, Video } from "lucide-react";
+import { Image as ImageIcon, LayoutGrid, Plus, Video } from "lucide-react";
+
+import { LayoutThumbIcon } from "@/components/editor/LayoutThumbIcon";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -32,7 +34,6 @@ import {
 } from "@/lib/journey/milestone-filter-options";
 import type { MilestoneFilterCounts } from "@/lib/journey/milestones-page-fetch";
 import {
-  computeGalleryMediaFilterCounts,
   galleryMediaFilterLabel,
   matchesGalleryMediaFilter,
   type GalleryMediaFilter,
@@ -49,6 +50,8 @@ import {
   buildGalleryGroupFilterSearchUrl,
   galleryGroupFromSearch,
 } from "@/lib/journey/gallery-filter-share";
+import { useGalleryMasonryAspects } from "@/components/journey/useGalleryMasonryAspects";
+import { useGalleryPortraitVideoIds } from "@/components/journey/useGalleryPortraitVideoIds";
 
 /** Chế độ xem gallery: `card` (mặc định, có bảng thông tin trắng dưới ảnh) hoặc
  *  `grid` (lưới gọn, thông tin hiện khi hover). URL: `?view=gallery` · `?view=gallery&display=luoi`. */
@@ -120,6 +123,150 @@ function galleryItemClassName(item: {
   ]
     .filter(Boolean)
     .join(" ");
+}
+
+type GalleryItemTileLayout = "grid" | "portrait-rail" | "masonry";
+
+function GalleryMainItemTile({
+  item,
+  onOpenPost,
+  layout = "grid",
+  thumbAspect,
+}: {
+  item: GalleryMainItem;
+  onOpenPost: (cotMocId: string) => void;
+  layout?: GalleryItemTileLayout;
+  thumbAspect?: number;
+}) {
+  const isOrgCreate = isOrgCreateGalleryItem(item);
+  const className = [
+    galleryItemClassName(item),
+    layout === "portrait-rail" ? "is-portrait-rail" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const viewLabel =
+    item.variant === "verified"
+      ? `Xem ${item.label} (đã xác thực)`
+      : `Xem ${item.label}`;
+  const thumbStyle =
+    layout === "portrait-rail"
+      ? { aspectRatio: String(thumbAspect ?? 9 / 16) }
+      : layout === "masonry"
+        ? { aspectRatio: String(thumbAspect ?? 16 / 9) }
+        : undefined;
+
+  const body = isOrgCreate ? (
+    <GalleryOrgCreateCardBody
+      layout={
+        item.cardLayout as
+          | "cong-dong-create"
+          | "co-so-create"
+          | "studio-create"
+      }
+      label={item.label}
+      kicker={item.orgKicker}
+      description={item.meta}
+      coverSrc={item.src || undefined}
+      orgAvatarUrl={item.orgAvatarUrl}
+      featured={item.featured}
+    />
+  ) : (
+    <>
+      <div className="j-main-gallery-thumb" style={thumbStyle}>
+        <GalleryItemVisual
+          src={item.src}
+          srcSet={item.srcSet}
+          sizes={item.srcSet ? GALLERY_GRID_IMAGE_SIZES : undefined}
+          width={item.width}
+          height={item.height}
+          alt={item.label}
+          priority={item.featured}
+          isVideo={item.isVideo || item.mediaKind === "video"}
+          videoProcessing={item.videoProcessing}
+          videoPreviewSrc={item.videoPreviewSrc}
+        />
+        {item.isVideo || item.mediaKind === "video" ? (
+          <GalleryVideoPlayBadge />
+        ) : null}
+        {item.variant === "verified" ? (
+          <GalleryVerifiedBadge cotMocId={item.cotMocId} />
+        ) : null}
+      </div>
+      <span className="j-main-gallery-overlay" aria-hidden>
+        <span className="j-main-gallery-overlay-body">
+          {item.authorName ? (
+            <span className="j-main-gallery-author">
+              {item.authorAvatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  className="j-main-gallery-author-avatar"
+                  src={item.authorAvatarUrl}
+                  alt=""
+                  loading="lazy"
+                />
+              ) : (
+                <span className="j-main-gallery-author-avatar j-main-gallery-author-avatar--fallback">
+                  {item.authorName.trim().charAt(0).toUpperCase()}
+                </span>
+              )}
+              <span className="j-main-gallery-author-name">
+                {item.authorName}
+              </span>
+            </span>
+          ) : null}
+          <strong className="j-main-gallery-overlay-title">{item.label}</strong>
+          {item.meta ? (
+            <small className="j-main-gallery-overlay-excerpt">{item.meta}</small>
+          ) : null}
+        </span>
+      </span>
+      <span className="j-main-gallery-info-panel">
+        <strong className="j-main-gallery-info-title">{item.label}</strong>
+        {item.meta ? (
+          <small className="j-main-gallery-info-excerpt">{item.meta}</small>
+        ) : null}
+      </span>
+    </>
+  );
+
+  if (isOrgCreate && item.href) {
+    return (
+      <Link
+        href={item.href}
+        className={className}
+        prefetch={false}
+        aria-label={viewLabel}
+      >
+        {body}
+      </Link>
+    );
+  }
+
+  if (isGalleryPostPermalink(item.href)) {
+    return (
+      <Link
+        href={item.href}
+        className={className}
+        prefetch={false}
+        scroll={false}
+        aria-label={viewLabel}
+      >
+        {body}
+      </Link>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      className={className}
+      onClick={() => onOpenPost(item.cotMocId)}
+      aria-label={viewLabel}
+    >
+      {body}
+    </button>
+  );
 }
 
 export function JourneyGalleryGridView({
@@ -288,6 +435,10 @@ export function JourneyGalleryGridView({
   }, [filterShare, galleryItems]);
 
   useEffect(() => {
+    filterShare?.registerGalleryDisplay(displayView);
+  }, [filterShare, displayView]);
+
+  useEffect(() => {
     if (personalFilter?.activeSlug) {
       setTypeFilter("all");
       return;
@@ -358,16 +509,6 @@ export function JourneyGalleryGridView({
     });
   }, [visibleItems, mediaFilter, personalFilter?.activeSlug]);
 
-  const baseForMediaCounts = useMemo(() => {
-    let rows = visibleItems;
-    if (personalFilter?.activeSlug) {
-      rows = rows.filter((item) =>
-        matchesPersonalFilterSlug(item.personalFilterSlugs, personalFilter.activeSlug),
-      );
-    }
-    return filterByGroup(rows, typeFilter);
-  }, [visibleItems, typeFilter, personalFilter?.activeSlug]);
-
   const typeCounts = useMemo((): MilestoneFilterCounts => {
     if (scrollLoad?.filterCounts && mediaFilter === "all" && !personalFilter?.activeSlug) {
       return scrollLoad.filterCounts;
@@ -380,11 +521,6 @@ export function JourneyGalleryGridView({
     baseForTypeCounts,
   ]);
 
-  const mediaCounts = useMemo(
-    () => computeGalleryMediaFilterCounts(baseForMediaCounts),
-    [baseForMediaCounts],
-  );
-
   const filtered = useMemo(() => {
     let rows = visibleItems;
     if (personalFilter?.activeSlug) {
@@ -395,6 +531,34 @@ export function JourneyGalleryGridView({
     rows = filterByGroup(rows, typeFilter);
     return rows.filter((item) => matchesGalleryMediaFilter(item.mediaKind, mediaFilter));
   }, [visibleItems, typeFilter, mediaFilter, personalFilter?.activeSlug]);
+
+  const showPortraitRail = effectiveView === "card" && !hideToolbar;
+  const showMasonry = effectiveView === "grid";
+  const { portraitIds, aspectById } = useGalleryPortraitVideoIds(
+    filtered,
+    showPortraitRail,
+  );
+
+  const { portraitRailItems, mainGridItems } = useMemo(() => {
+    if (!showPortraitRail) {
+      return {
+        portraitRailItems: [] as GalleryMainItem[],
+        mainGridItems: filtered,
+      };
+    }
+    const rail: GalleryMainItem[] = [];
+    const grid: GalleryMainItem[] = [];
+    for (const item of filtered) {
+      if (portraitIds.has(item.id)) {
+        rail.push(item);
+      } else {
+        grid.push(item);
+      }
+    }
+    return { portraitRailItems: rail, mainGridItems: grid };
+  }, [filtered, showPortraitRail, portraitIds]);
+
+  const masonryAspectById = useGalleryMasonryAspects(mainGridItems, showMasonry);
 
   const activePersonalFilter = personalFilter?.activeSlug
     ? personalFilter.filters.find((f) => f.slug === personalFilter.activeSlug)
@@ -497,8 +661,6 @@ export function JourneyGalleryGridView({
                 filter={mediaFilter}
                 onFilterChange={setMediaFilter}
                 variant="toolbar"
-                count={filterCount}
-                optionCounts={mediaCounts}
               />
               <div
                 className="j-gallery-view-toggle"
@@ -523,7 +685,12 @@ export function JourneyGalleryGridView({
                   title="Lưới gọn"
                   onClick={() => handleDisplayChange("grid")}
                 >
-                  <Grid3x3 size={15} />
+                  <LayoutThumbIcon
+                    layout="masonry"
+                    variant="stroke"
+                    size={15}
+                    masonryColumns={2}
+                  />
                 </button>
               </div>
             </div>
@@ -541,146 +708,41 @@ export function JourneyGalleryGridView({
           <em>{emptyFilterLabel}</em>. Đổi bộ lọc hoặc chọn “Tất cả”.
         </div>
       ) : (
-        <div
-          className={`j-main-gallery-grid${
-            effectiveView === "card" ? " j-main-gallery-grid--card" : ""
-          }`}
-        >
-          {createTile}
-          {filtered.map((item) => {
-            const className = galleryItemClassName(item);
-            const isOrgCreate = isOrgCreateGalleryItem(item);
-            const viewLabel =
-              item.variant === "verified"
-                ? `Xem ${item.label} (đã xác thực)`
-                : `Xem ${item.label}`;
-            const body = isOrgCreate ? (
-              <GalleryOrgCreateCardBody
-                layout={
-                  item.cardLayout as
-                    | "cong-dong-create"
-                    | "co-so-create"
-                    | "studio-create"
-                }
-                label={item.label}
-                kicker={item.orgKicker}
-                description={item.meta}
-                coverSrc={item.src || undefined}
-                orgAvatarUrl={item.orgAvatarUrl}
-                featured={item.featured}
-              />
-            ) : (
-              <>
-                <div className="j-main-gallery-thumb">
-                  <GalleryItemVisual
-                    src={item.src}
-                    srcSet={item.srcSet}
-                    sizes={
-                      item.srcSet ? GALLERY_GRID_IMAGE_SIZES : undefined
-                    }
-                    width={item.width}
-                    height={item.height}
-                    alt={item.label}
-                    priority={item.featured}
-                    isVideo={item.isVideo || item.mediaKind === "video"}
-                    videoProcessing={item.videoProcessing}
-                    videoPreviewSrc={item.videoPreviewSrc}
+        <>
+          {portraitRailItems.length > 0 ? (
+            <div className="j-gallery-portrait-rail" aria-label="Video dọc">
+              <div className="j-gallery-portrait-rail__track">
+                {portraitRailItems.map((item) => (
+                  <GalleryMainItemTile
+                    key={item.id}
+                    item={item}
+                    onOpenPost={openPost}
+                    layout="portrait-rail"
+                    thumbAspect={aspectById.get(item.id)}
                   />
-                  {item.isVideo || item.mediaKind === "video" ? (
-                    <GalleryVideoPlayBadge />
-                  ) : null}
-                  {item.variant === "verified" ? (
-                    <GalleryVerifiedBadge cotMocId={item.cotMocId} />
-                  ) : null}
-                </div>
-                <span className="j-main-gallery-overlay" aria-hidden>
-                  <span className="j-main-gallery-overlay-body">
-                    {item.authorName ? (
-                      <span className="j-main-gallery-author">
-                        {item.authorAvatarUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            className="j-main-gallery-author-avatar"
-                            src={item.authorAvatarUrl}
-                            alt=""
-                            loading="lazy"
-                          />
-                        ) : (
-                          <span className="j-main-gallery-author-avatar j-main-gallery-author-avatar--fallback">
-                            {item.authorName.trim().charAt(0).toUpperCase()}
-                          </span>
-                        )}
-                        <span className="j-main-gallery-author-name">
-                          {item.authorName}
-                        </span>
-                      </span>
-                    ) : null}
-                    <strong className="j-main-gallery-overlay-title">
-                      {item.label}
-                    </strong>
-                    {item.meta ? (
-                      <small className="j-main-gallery-overlay-excerpt">
-                        {item.meta}
-                      </small>
-                    ) : null}
-                  </span>
-                </span>
-                {/* Bảng thông tin trắng — chỉ hiện ở chế độ thẻ (CSS). */}
-                <span className="j-main-gallery-info-panel">
-                  <strong className="j-main-gallery-info-title">
-                    {item.label}
-                  </strong>
-                  {item.meta ? (
-                    <small className="j-main-gallery-info-excerpt">
-                      {item.meta}
-                    </small>
-                  ) : null}
-                </span>
-              </>
-            );
-
-            if (isOrgCreate && item.href) {
-              return (
-                <Link
-                  key={item.id}
-                  href={item.href}
-                  className={className}
-                  prefetch={false}
-                  aria-label={viewLabel}
-                >
-                  {body}
-                </Link>
-              );
-            }
-
-            if (isGalleryPostPermalink(item.href)) {
-              return (
-                <Link
-                  key={item.id}
-                  href={item.href}
-                  className={className}
-                  prefetch={false}
-                  scroll={false}
-                  aria-label={viewLabel}
-                >
-                  {body}
-                </Link>
-              );
-            }
-
-            return (
-              <button
+                ))}
+              </div>
+            </div>
+          ) : null}
+          <div
+            className={`j-main-gallery-grid${
+              effectiveView === "card"
+                ? " j-main-gallery-grid--card"
+                : " j-main-gallery-grid--masonry"
+            }`}
+          >
+            {createTile}
+            {mainGridItems.map((item) => (
+              <GalleryMainItemTile
                 key={item.id}
-                type="button"
-                className={className}
-                onClick={() => openPost(item.cotMocId)}
-                aria-label={viewLabel}
-              >
-                {body}
-              </button>
-            );
-          })}
-        </div>
+                item={item}
+                onOpenPost={openPost}
+                layout={showMasonry ? "masonry" : "grid"}
+                thumbAspect={showMasonry ? masonryAspectById.get(item.id) : undefined}
+              />
+            ))}
+          </div>
+        </>
       )}
 
       {overlay}

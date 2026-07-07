@@ -1,16 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import {
   CoSoOrgNhanTimelineBar,
   type CoSoNhanFilter,
 } from "@/components/co-so/CoSoOrgNhanTimelineBar";
 import { OrgBaiDangCreateComposer } from "@/components/truong/OrgBaiDangCreateComposer";
-import { OrgBaiDangGridView } from "@/components/truong/OrgBaiDangGridView";
 import { OrgBaiDangJourneyCard } from "@/components/truong/OrgBaiDangJourneyCard";
 import { OrgBaiDangTimelineBar } from "@/components/truong/OrgBaiDangTimelineBar";
-import type { OrgBaiDangView } from "@/lib/truong/bai-dang-grid";
 import {
   baiDangMonthLabel,
   baiDangYear,
@@ -65,24 +63,6 @@ export function CoSoOrgBaiDangTimeline({
   const useOrgFilters = orgFilters.length > 0;
   const [loaiFilter, setLoaiFilter] = useState<BaiDangTimelineFilter>("all");
   const [nhanFilter, setNhanFilter] = useState<CoSoNhanFilter>("all");
-  const [view, setView] = useState<OrgBaiDangView>("timeline");
-  const [pendingScrollId, setPendingScrollId] = useState<string | null>(null);
-
-  function openPostInTimeline(postId: string) {
-    setView("timeline");
-    setPendingScrollId(postId);
-  }
-
-  useEffect(() => {
-    if (view !== "timeline" || !pendingScrollId) return;
-    const el = document.getElementById(`org-post-${pendingScrollId}`);
-    setPendingScrollId(null);
-    if (!el) return;
-    el.scrollIntoView({ behavior: "smooth", block: "start" });
-    el.classList.add("is-flash");
-    const t = setTimeout(() => el.classList.remove("is-flash"), 1600);
-    return () => clearTimeout(t);
-  }, [view, pendingScrollId]);
 
   const loaiCounts = useMemo(() => countBaiDangByFilter(posts), [posts]);
   const nhanCounts = useMemo(
@@ -117,8 +97,6 @@ export function CoSoOrgBaiDangTimeline({
       counts={nhanCounts}
       filters={orgFilters}
       enabled={barEnabled}
-      view={view}
-      onView={setView}
     />
   ) : (
     <OrgBaiDangTimelineBar
@@ -129,8 +107,6 @@ export function CoSoOrgBaiDangTimeline({
       loaiCounts={loaiCounts}
       nhanCounts={{}}
       enabled={barEnabled}
-      view={view}
-      onView={setView}
     />
   );
 
@@ -162,29 +138,23 @@ export function CoSoOrgBaiDangTimeline({
   return (
     <main className="j-timeline tdh-org-baidang-timeline" aria-label="Timeline bài đăng">
       {timelineBar}
-      {view === "grid" ? (
-        <OrgBaiDangGridView posts={filtered} onOpenPost={openPostInTimeline} />
+      {composeEnabled ? <OrgBaiDangCreateComposer /> : null}
+      {filtered.length === 0 ? (
+        <p className="tdh-placeholder">
+          Không có bài đăng thuộc nhóm lọc này.
+        </p>
       ) : (
-        <>
-          {composeEnabled ? <OrgBaiDangCreateComposer /> : null}
-          {filtered.length === 0 ? (
-            <p className="tdh-placeholder">
-              Không có bài đăng thuộc nhóm lọc này.
-            </p>
-          ) : (
-            yearGroups.map(({ year, posts: yearPosts }) => (
-              <section key={year} className="j-year-block" data-year={year}>
-                {yearPosts.map((post) => (
-                  <OrgBaiDangJourneyCard
-                    key={post.id}
-                    post={post}
-                    owner={owner}
-                  />
-                ))}
-              </section>
-            ))
-          )}
-        </>
+        yearGroups.map(({ year, posts: yearPosts }) => (
+          <section key={year} className="j-year-block" data-year={year}>
+            {yearPosts.map((post) => (
+              <OrgBaiDangJourneyCard
+                key={post.id}
+                post={post}
+                owner={owner}
+              />
+            ))}
+          </section>
+        ))
       )}
     </main>
   );

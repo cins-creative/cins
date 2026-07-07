@@ -127,7 +127,7 @@
   height: calc(100dvh - var(--site-nav-height, 64px));
   max-height: calc(100dvh - var(--site-nav-height, 64px));
   overflow: hidden;
-  padding: 18px 16px 24px;
+  padding: 18px 16px 24px 8px;
   border-left: 1px solid var(--border, #e4e6eb);
   display: flex;
   flex-direction: column;
@@ -146,7 +146,7 @@
   scrollbar-width: none;
   -ms-overflow-style: none;
   /* Chừa chỗ cho pulse dot/badge — tránh crop mốc đầu timeline */
-  padding: 10px 8px 20px;
+  padding: 10px 8px 20px 2px;
   box-sizing: border-box;
 }
 
@@ -172,6 +172,7 @@
   flex-wrap: nowrap;
   width: 100%;
   min-width: 0;
+  padding-left: 8px;
 }
 
 .tdh-page--v6 .tdh-admission-side-year-row .timeline-year-kicker {
@@ -2924,7 +2925,7 @@
   }
 
   .tdh-page--v6 .tdh-admission-side {
-    padding: 16px 12px 28px;
+    padding: 16px 12px 28px 6px;
   }
 }
 
@@ -3349,7 +3350,7 @@
     overflow: visible;
     border-left: none;
     border-top: 1px solid var(--border, #e4e6eb);
-    padding: 20px 18px 32px;
+    padding: 20px 18px 32px 10px;
   }
 
   .tdh-page--cso .tdh-admission-side .timeline-section--rail {
@@ -3439,7 +3440,7 @@
   }
 
   .tdh-page--v6 .tdh-admission-side {
-    padding: 18px 16px 28px;
+    padding: 18px 16px 28px 8px;
   }
 
   .tdh-page--v6 .ptxt-item {
@@ -3541,7 +3542,7 @@
   }
 
   .tdh-page--v6 .tdh-admission-side {
-    padding: 16px 12px 24px;
+    padding: 16px 12px 24px 6px;
   }
 
   .tdh-page--v6 .tdh-admission-side-year-row .sec-year-select {

@@ -24,6 +24,7 @@ import {
   type JourneyGalleryFilterShareSpec,
   type ShareGallerySourceItem,
 } from "@/lib/journey/gallery-filter-share";
+import type { GalleryDisplay } from "@/lib/journey/gallery-display-url";
 import type { GalleryMainItem } from "@/lib/journey/gallery-page-fetch";
 import {
   buildSocialShareItems,
@@ -56,6 +57,8 @@ type Props = {
   viewerProfileId?: string | null;
   /** Mở thẳng bước Gallery với lọc từ dropdown filter (bỏ qua menu chính). */
   galleryFilter?: JourneyGalleryFilterShareSpec | null;
+  /** Chế độ xem gallery khi chia sẻ — `card` (mặc định) · `grid` (`display=luoi`). */
+  galleryDisplay?: GalleryDisplay;
   /** Item gallery đang hiển thị trên grid — ưu tiên hơn cache 8 item. */
   liveGalleryItems?: ReadonlyArray<GalleryMainItem>;
   /** Modal toàn màn hình (mặc định) hoặc popover neo nút trigger. */
@@ -110,6 +113,7 @@ export function JourneyProfileShareModal({
   profile,
   viewerProfileId = null,
   galleryFilter = null,
+  galleryDisplay = "card",
   liveGalleryItems = [],
   presentation = "modal",
   anchorRef,
@@ -336,6 +340,7 @@ export function JourneyProfileShareModal({
         : galleryFilterShareUrl(
             profile.slug,
             portfolioFilter ?? PORTFOLIO_ALL_FILTER_SHARE_SPEC,
+            galleryDisplay,
           )
       : orgShare
         ? orgPageShareUrl(orgShare)

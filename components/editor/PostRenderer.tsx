@@ -13,9 +13,10 @@
    ╚══════════════════════════════════════════════════════════════════╝ */
 
 import {
-  bunnyIframeSrc,
+  buildBunnyVideoThumbnailUrl,
 } from "@/lib/bunny/embed";
 import { VideoProcessingPlaceholder } from "@/components/journey/VideoProcessingPlaceholder";
+import { PostBunnyEmbed } from "@/components/journey/PostBunnyEmbed";
 import {
   handleBlockImageError,
   resolveImageSeedUrl,
@@ -146,11 +147,23 @@ export function PostBlocksRenderer({
   );
 }
 
-export function PostReadOnlyBlock({ block }: { block: Block }) {
-  return ReadOnlyBlock({ block });
+export function PostReadOnlyBlock({
+  block,
+  mediaAutoplay = false,
+}: {
+  block: Block;
+  mediaAutoplay?: boolean;
+}) {
+  return ReadOnlyBlock({ block, mediaAutoplay });
 }
 
-function ReadOnlyBlock({ block }: { block: Block }) {
+function ReadOnlyBlock({
+  block,
+  mediaAutoplay = false,
+}: {
+  block: Block;
+  mediaAutoplay?: boolean;
+}) {
   const cfg = block.config || {};
   const text = typeof cfg.html === "string" ? cfg.html : "";
 
@@ -219,6 +232,9 @@ function ReadOnlyBlock({ block }: { block: Block }) {
     const youtubeId = getYoutubeId(url);
     if (youtubeId) {
       const canvasClass = resolveEmbedCanvasClass(cfg);
+      const youtubeSrc = mediaAutoplay
+        ? `https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1&playsinline=1`
+        : `https://www.youtube-nocookie.com/embed/${youtubeId}`;
       return (
         <div
           className={
@@ -228,7 +244,7 @@ function ReadOnlyBlock({ block }: { block: Block }) {
           data-provider="youtube"
         >
           <iframe
-            src={`https://www.youtube-nocookie.com/embed/${youtubeId}`}
+            src={youtubeSrc}
             title="YouTube video player"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             referrerPolicy="strict-origin-when-cross-origin"
@@ -241,24 +257,17 @@ function ReadOnlyBlock({ block }: { block: Block }) {
 
     const bunny = resolveBunnyEmbed(url, bunnyVideoId);
     if (bunny) {
-      const canvasClass = resolveEmbedCanvasClass(cfg);
+      const poster =
+        buildBunnyVideoThumbnailUrl(bunny.videoId) ??
+        (typeof cfg.posterUrl === "string" ? cfg.posterUrl.trim() : null);
       return (
-        <div
-          className={
-            "b-embed b-embed-ro is-iframe" +
-            (canvasClass ? ` ${canvasClass}` : "")
-          }
-          data-provider="bunny"
-        >
-          <iframe
-            src={bunnyIframeSrc(bunny)}
-            title="Video"
-            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
-            referrerPolicy="strict-origin-when-cross-origin"
-            allowFullScreen
-            loading="eager"
-          />
-        </div>
+        <PostBunnyEmbed
+          videoId={bunny.videoId}
+          title="Video"
+          poster={poster}
+          blocks={[block]}
+          autoplay={mediaAutoplay}
+        />
       );
     }
 

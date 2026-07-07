@@ -13,6 +13,7 @@ import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { isFriend } from "@/lib/social/ket-ban";
 import { fetchCommentsForSocialObject } from "@/lib/social/comments/fetch-for-object";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { enrichBlocksVideoCanvasRatio } from "@/lib/journey/enrich-blocks-video-canvas-ratio";
 
 export type PostFetchResult =
   | { ok: true; data: MilestonePostDetail }
@@ -377,17 +378,21 @@ export async function fetchMilestonePostDetail(
     loadPostContributors(admin, tacPhamIds),
   ]);
 
-  const posts: MilestonePostContent[] = tacPhamRows.map((tp) => ({
-    id: tp.id,
-    slug: tp.slug ?? "",
-    tieuDe: tp.tieu_de,
-    moTa: tp.mo_ta,
-    noiDungHtml: tp.noi_dung_html,
-    noiDungBlocks: parseServerBlocks(tp.noi_dung_blocks),
-    coverId: tp.cover_id,
-    articleTags: (tagsByTacPham.get(tp.id) ?? []) as ArticleTagRef[],
-    contributors: contributorsByTacPham.get(tp.id) ?? [],
-  }));
+  const posts: MilestonePostContent[] = await Promise.all(
+    tacPhamRows.map(async (tp) => ({
+      id: tp.id,
+      slug: tp.slug ?? "",
+      tieuDe: tp.tieu_de,
+      moTa: tp.mo_ta,
+      noiDungHtml: tp.noi_dung_html,
+      noiDungBlocks: await enrichBlocksVideoCanvasRatio(
+        parseServerBlocks(tp.noi_dung_blocks),
+      ),
+      coverId: tp.cover_id,
+      articleTags: (tagsByTacPham.get(tp.id) ?? []) as ArticleTagRef[],
+      contributors: contributorsByTacPham.get(tp.id) ?? [],
+    })),
+  );
 
   return {
     ok: true,

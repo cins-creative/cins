@@ -1635,9 +1635,14 @@ a.j-main-gallery-item:focus-visible {
   }
   .j-main-gallery-thumb .j-g-play,
   .j-main-gallery-item .j-g-play {
-    width: 22px;
-    height: 22px;
-    font-size: 8px;
+    width: 32px;
+    height: 32px;
+  }
+  .j-main-gallery-thumb .j-g-play svg,
+  .j-main-gallery-item .j-g-play svg {
+    width: 14px;
+    height: 14px;
+    margin-left: 1px;
   }
 }
 
@@ -1680,6 +1685,110 @@ a.j-main-gallery-item:focus-visible {
   background: var(--bg-surface, #fff);
   color: var(--cins-blue, #1f74c9);
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+}
+
+/* ── Gallery card view — rail video dọc (W < H, probe Bunny MP4) ── */
+.j-gallery-portrait-rail {
+  --j-portrait-rail-item-w: 224px;
+  --j-portrait-rail-max-h: 472px;
+  margin-bottom: 10px;
+}
+.j-gallery-portrait-rail__track {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  max-height: var(--j-portrait-rail-max-h);
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  padding: 2px 2px 6px;
+  margin: 0 -2px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+.j-gallery-portrait-rail__track .j-main-gallery-item.is-portrait-rail {
+  flex: 0 0 auto;
+  width: var(--j-portrait-rail-item-w);
+  max-height: var(--j-portrait-rail-max-h);
+  scroll-snap-align: start;
+  overflow: hidden;
+}
+.j-gallery-portrait-rail__track .j-main-gallery-item.is-portrait-rail .j-main-gallery-thumb {
+  aspect-ratio: 9 / 16;
+  flex: 0 0 auto;
+  width: 100%;
+  max-height: var(--j-portrait-rail-max-h);
+}
+.j-gallery-portrait-rail__track
+  .j-main-gallery-item.is-portrait-rail
+  .j-main-gallery-overlay,
+.j-gallery-portrait-rail__track
+  .j-main-gallery-item.is-portrait-rail
+  .j-main-gallery-info-panel {
+  display: none !important;
+}
+.j-gallery-portrait-rail__track
+  .j-main-gallery-item.is-portrait-rail:hover
+  .j-main-gallery-overlay,
+.j-gallery-portrait-rail__track
+  .j-main-gallery-item.is-portrait-rail:focus-visible
+  .j-main-gallery-overlay,
+.j-gallery-portrait-rail__track
+  .j-main-gallery-item.is-portrait-rail:focus-within
+  .j-main-gallery-overlay {
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (max-width: 575.98px) {
+  .cins-journey-page .j-gallery-portrait-rail {
+    --j-portrait-rail-item-w: 160px;
+    --j-portrait-rail-max-h: 420px;
+  }
+}
+
+/* ── Masonry view (lưới gọn): CSS columns, tỉ lệ thumb = ảnh/video gốc ── */
+.j-main-gallery-grid--masonry {
+  display: block;
+  columns: 3;
+  column-gap: 8px;
+}
+.j-main-gallery-grid--masonry > .j-main-gallery-item,
+.j-main-gallery-grid--masonry > .j-main-gallery-create,
+.j-main-gallery-grid--masonry > button.j-main-gallery-item,
+.j-main-gallery-grid--masonry > a.j-main-gallery-item {
+  break-inside: avoid;
+  margin-bottom: 8px;
+  width: 100%;
+  display: inline-flex;
+  vertical-align: top;
+}
+.j-main-gallery-grid--masonry .j-main-gallery-thumb {
+  flex: none;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+}
+.j-main-gallery-grid--masonry .j-main-gallery-item.is-org-create {
+  aspect-ratio: 16 / 9;
+}
+
+@media (max-width: 991.98px) {
+  .j-main-gallery-grid--masonry {
+    columns: 2;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .j-main-gallery-grid--masonry {
+    column-gap: 4px;
+  }
+  .j-main-gallery-grid--masonry > .j-main-gallery-item,
+  .j-main-gallery-grid--masonry > .j-main-gallery-create,
+  .j-main-gallery-grid--masonry > button.j-main-gallery-item,
+  .j-main-gallery-grid--masonry > a.j-main-gallery-item {
+    margin-bottom: 4px;
+  }
 }
 
 /* ── Card view: bảng thông tin trắng dưới ảnh (luôn hiển thị) ── */
@@ -1736,6 +1845,57 @@ a.j-main-gallery-item:focus-visible {
     font-size: 12px;
   }
   .j-main-gallery-info-excerpt {
+    font-size: 11px;
+  }
+}
+
+/* Card view: org-create — hero 16:9 + body (như thumb + info panel), không ép cả ô 16:9. */
+.j-main-gallery-grid--card .j-main-gallery-item.is-org-create {
+  aspect-ratio: auto;
+}
+.j-main-gallery-grid--card .j-gallery-org-card__hero {
+  flex: 0 0 auto;
+  flex-basis: auto;
+  aspect-ratio: 16 / 9;
+  width: 100%;
+}
+.j-main-gallery-grid--card .j-gallery-org-card__body {
+  flex: 0 0 auto;
+  align-items: stretch;
+  text-align: left;
+  padding: 10px 11px 12px;
+  gap: 4px;
+}
+.j-main-gallery-grid--card .j-gallery-org-card__logo {
+  display: none;
+}
+.j-main-gallery-grid--card .j-gallery-org-card__kicker {
+  margin: 0;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+.j-main-gallery-grid--card .j-gallery-org-card__title {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.35;
+}
+.j-main-gallery-grid--card .j-gallery-org-card__desc {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+@media (max-width: 575.98px) {
+  .j-main-gallery-grid--card .j-gallery-org-card__body {
+    padding: 8px 9px 10px;
+  }
+  .j-main-gallery-grid--card .j-gallery-org-card__title {
+    font-size: 12px;
+  }
+  .j-main-gallery-grid--card .j-gallery-org-card__desc {
+    display: -webkit-box;
     font-size: 11px;
   }
 }
@@ -2459,9 +2619,10 @@ a.j-main-gallery-item:focus-visible {
   flex-direction: column;
 }
 
-/* CONTEXT BAR — sticky 3-col, các item căn giữa theo chiều cao 56px. */
+/* CONTEXT BAR — sticky 3-col, các item căn giữa theo chiều cao 56px.
+ * Frosted glass: nền bán trong suốt + backdrop-filter để card cuộn lọt dưới bar. */
 .j-tlb {
-  --j-tlb-blur-bg: color-mix(in srgb, var(--bg-page, #f4f5f8) 86%, transparent);
+  --j-tlb-blur-bg: color-mix(in srgb, var(--bg-page, #f4f5f8) 74%, transparent);
   position: sticky;
   top: var(--j-topbar-h);
   z-index: 120;
@@ -2470,7 +2631,7 @@ a.j-main-gallery-item:focus-visible {
   background: var(--j-tlb-blur-bg);
   backdrop-filter: blur(12px) saturate(1.08);
   -webkit-backdrop-filter: blur(12px) saturate(1.08);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid color-mix(in srgb, var(--border, #e4e6eb) 72%, transparent);
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
@@ -3333,14 +3494,14 @@ a.j-main-gallery-item:focus-visible {
   padding-bottom: 2px;
 }
 .j-m-card.jcard--article.has-unfold.is-collapsed {
-  --j-article-peek-h: 280px;
+  --j-article-peek-h: 480px;
 }
 .preview--article-peek {
   position: relative;
   box-sizing: border-box;
-  height: var(--j-article-peek-h, 280px);
-  min-height: var(--j-article-peek-h, 280px);
-  max-height: var(--j-article-peek-h, 280px);
+  height: var(--j-article-peek-h, 480px);
+  min-height: var(--j-article-peek-h, 480px);
+  max-height: var(--j-article-peek-h, 480px);
   display: block;
   background: var(--bg-surface, #fff);
   border-radius: 0;
@@ -3482,7 +3643,7 @@ a.j-main-gallery-item:focus-visible {
 }
 .jcard-content.is-article-depth .jcard-lead {
   position: relative;
-  max-height: calc(var(--j-article-peek-h, 280px) - 4em);
+  max-height: calc(var(--j-article-peek-h, 480px) - 4em);
   overflow: hidden;
 }
 /* Chỉ ẩn CTA khi đã xổ nội dung bài — mở bình luận vẫn giữ «Xem đầy đủ». */
@@ -6093,18 +6254,36 @@ button.j-g-item:disabled {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 30px;
-  height: 30px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  background: rgba(15, 23, 42, 0.72);
+  border: 2px solid rgba(255, 255, 255, 0.92);
+  box-shadow:
+    0 4px 14px rgba(15, 23, 42, 0.42),
+    0 0 0 1px rgba(15, 23, 42, 0.12);
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
-  font-size: 10px;
   z-index: 2;
+  pointer-events: none;
+}
+.j-g-play svg {
+  width: 18px;
+  height: 18px;
+  margin-left: 2px;
+  flex-shrink: 0;
+}
+/* Gallery aside — banner 16:9 rộng hơn → nút play to hơn một chút. */
+.j-g-banner .j-g-play {
+  width: 44px;
+  height: 44px;
+}
+.j-g-banner .j-g-play svg {
+  width: 20px;
+  height: 20px;
+  margin-left: 2px;
 }
 .j-g-overlay {
   position: absolute;
@@ -6268,10 +6447,11 @@ button.j-g-item:disabled {
     padding-left: 16px;
   }
 
+  /* Timeline / gallery context bar — giữ tint page (không trắng đặc) để blur card thấy rõ. */
   .cins-journey-page .j-tlb {
     padding-left: 12px;
     padding-right: 12px;
-    --j-tlb-blur-bg: color-mix(in srgb, var(--bg-surface, #fff) 90%, transparent);
+    --j-tlb-blur-bg: color-mix(in srgb, var(--bg-page, #f4f5f8) 72%, transparent);
     background: var(--j-tlb-blur-bg);
     backdrop-filter: blur(12px) saturate(1.08);
     -webkit-backdrop-filter: blur(12px) saturate(1.08);
@@ -7299,18 +7479,42 @@ select.j-edit-input {
   background: #000;
 }
 
+/* block-inner fill 100% khung block — media căn giữa bên trong */
 .j-post-sheet:has(.post-canvas--media.post-canvas--split)
   .post-view-content--media
   .post-blocks-fb
-  .block-image-grid
-  .block-inner {
+  > .block {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.j-post-sheet:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media
+  .post-blocks-fb
+  > .block
+  > .block-inner {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   padding: 0;
 }
 
 .j-post-sheet:has(.post-canvas--media.post-canvas--split)
   .post-view-content--media
   .post-blocks-fb
-  .block[data-block-type="embed"]
+  .block-image-grid
   .block-inner {
   padding: 0;
 }
@@ -7368,6 +7572,96 @@ select.j-edit-input {
   min-height: 0;
   aspect-ratio: auto;
   max-height: 100%;
+  position: relative;
+}
+
+.j-post-sheet:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media
+  .b-embed.b-embed-ro.is-native-video,
+.j-post-sheet:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media
+  .b-embed.b-embed-ro.is-native-video,
+.j-post-sheet:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media
+  .b-embed-ro.is-native-video,
+.j-post-sheet:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media
+  .b-embed-ro.is-native-video.is-canvas-3-4,
+.j-post-sheet:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media
+  .b-embed-ro.is-native-video.is-canvas-1-1,
+.j-post-sheet:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media
+  .b-embed-ro.is-native-video.is-canvas-16-9 {
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  aspect-ratio: auto;
+  max-height: 100%;
+  position: relative;
+  align-self: stretch;
+  margin-inline: 0;
+  background: #000;
+  border: none;
+}
+
+.j-post-sheet:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media
+  .b-embed-ro.is-native-video
+  .jcard-video-root,
+.j-post-sheet:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media
+  .b-embed-ro.is-native-video
+  .jcard-video-player {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  min-height: 0;
+  aspect-ratio: unset;
+  background: #000;
+}
+
+.j-post-sheet:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media
+  .b-embed-ro.is-native-video
+  .jcard-video-native {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  background: #000;
+}
+
+.j-post-sheet:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media
+  .b-embed-ro.is-iframe.is-canvas-3-4 {
+  flex: 0 0 auto;
+  width: min(100%, 420px, calc(min(78dvh, 900px) * 3 / 4));
+  max-width: 100%;
+  aspect-ratio: 3 / 4;
+  height: auto;
+  max-height: min(78dvh, 900px);
+  margin-inline: auto;
+  align-self: center;
+  position: relative;
+}
+
+.j-post-sheet:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media
+  .b-embed-ro.is-iframe.is-canvas-1-1 {
+  flex: 0 0 auto;
+  width: min(100%, 420px, min(78dvh, 900px));
+  max-width: 100%;
+  aspect-ratio: 1 / 1;
+  height: auto;
+  max-height: min(78dvh, 900px);
+  margin-inline: auto;
+  align-self: center;
   position: relative;
 }
 
@@ -12114,9 +12408,9 @@ select.j-edit-input {
 /* Article peek — giữ khung cố định; không bị rule `.preview--photo-grid` kéo dài. */
 .preview.preview--article-peek,
 .j-m-card.jcard--article.has-unfold.is-collapsed .preview.preview--article-peek {
-  height: var(--j-article-peek-h, 280px);
-  min-height: var(--j-article-peek-h, 280px);
-  max-height: var(--j-article-peek-h, 280px);
+  height: var(--j-article-peek-h, 480px);
+  min-height: var(--j-article-peek-h, 480px);
+  max-height: var(--j-article-peek-h, 480px);
   aspect-ratio: auto;
   overflow: hidden;
 }
@@ -12147,15 +12441,21 @@ select.j-edit-input {
   aspect-ratio: 16 / 9;
 }
 .j-m-blocks .b-embed-ro.is-iframe.is-canvas-1-1,
-.cins-editor-page.cins-post-view.j-m-unfold-post .b-embed.b-embed-ro.is-iframe.is-canvas-1-1 {
+.cins-editor-page.cins-post-view.j-m-unfold-post .b-embed.b-embed-ro.is-iframe.is-canvas-1-1,
+.cins-editor-page.cins-post-view .b-embed.b-embed-ro.is-native-video.is-canvas-1-1,
+.cins-editor-page.cins-post-view .b-embed.b-embed-ro.is-iframe.is-canvas-1-1 {
   aspect-ratio: 1 / 1;
 }
 .j-m-blocks .b-embed-ro.is-iframe.is-canvas-3-4,
-.cins-editor-page.cins-post-view.j-m-unfold-post .b-embed.b-embed-ro.is-iframe.is-canvas-3-4 {
+.cins-editor-page.cins-post-view.j-m-unfold-post .b-embed.b-embed-ro.is-iframe.is-canvas-3-4,
+.cins-editor-page.cins-post-view .b-embed.b-embed-ro.is-native-video.is-canvas-3-4,
+.cins-editor-page.cins-post-view .b-embed.b-embed-ro.is-iframe.is-canvas-3-4 {
   aspect-ratio: 3 / 4;
 }
 .j-m-blocks .b-embed-ro.is-iframe.is-canvas-16-9,
-.cins-editor-page.cins-post-view.j-m-unfold-post .b-embed.b-embed-ro.is-iframe.is-canvas-16-9 {
+.cins-editor-page.cins-post-view.j-m-unfold-post .b-embed.b-embed-ro.is-iframe.is-canvas-16-9,
+.cins-editor-page.cins-post-view .b-embed.b-embed-ro.is-native-video.is-canvas-16-9,
+.cins-editor-page.cins-post-view .b-embed.b-embed-ro.is-iframe.is-canvas-16-9 {
   aspect-ratio: 16 / 9;
 }
 .preview--video:hover {
@@ -12322,6 +12622,54 @@ select.j-edit-input {
   display: block;
   z-index: 2;
 }
+.jcard-video-root {
+  display: block;
+  width: 100%;
+}
+.jcard-video-root > .jcard-video-player {
+  width: 100%;
+}
+.jcard-video-player .jcard-video-native,
+.b-embed-ro.is-native-video .jcard-video-native {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  z-index: 2;
+  background: #0f172a;
+}
+.jcard-video-quality-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  z-index: 3;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #f8fafc;
+  background: rgba(15, 23, 42, 0.78);
+  pointer-events: none;
+  white-space: nowrap;
+}
+.b-embed-ro.is-native-video {
+  position: relative;
+  overflow: hidden;
+}
+.b-embed-ro.is-native-video .jcard-video-root,
+.b-embed-ro.is-native-video .jcard-video-player {
+  aspect-ratio: inherit;
+  max-height: inherit;
+  min-height: 0;
+  border-radius: inherit;
+}
+.cins-post-view .b-embed-ro.is-native-video .jcard-video-player {
+  width: 100%;
+  max-height: none;
+}
 .jcard-video-player .j-m-video-embed {
   position: absolute;
   inset: 0;
@@ -12349,6 +12697,37 @@ select.j-edit-input {
 }
 .jcard-video-trigger:disabled {
   cursor: wait;
+}
+
+.j-m-card.jcard--video .jcard-media-zone > .jcard-video-root:has(.is-canvas-3-4),
+.j-m-card.jcard--video .jcard-media-zone > .jcard-video-root:has(.is-canvas-1-1) {
+  width: min(100%, 420px);
+  max-width: min(100%, 420px);
+  margin-inline: auto;
+}
+.j-m-card.jcard--video .jcard-media-zone .jcard-video-root > .jcard-video-trigger.is-canvas-3-4,
+.j-m-card.jcard--video .jcard-media-zone .jcard-video-root > .jcard-video-player.is-canvas-3-4,
+.j-m-card.jcard--video .jcard-media-zone .jcard-video-root > .preview.preview--video.is-canvas-3-4 {
+  width: 100%;
+  max-width: 100%;
+  max-height: none;
+  min-height: 0;
+  margin-inline: auto;
+  aspect-ratio: 3 / 4;
+}
+.j-m-card.jcard--video .jcard-media-zone .jcard-video-root > .jcard-video-trigger.is-canvas-1-1,
+.j-m-card.jcard--video .jcard-media-zone .jcard-video-root > .jcard-video-player.is-canvas-1-1,
+.j-m-card.jcard--video .jcard-media-zone .jcard-video-root > .preview.preview--video.is-canvas-1-1 {
+  width: 100%;
+  max-width: 100%;
+  max-height: none;
+  min-height: 0;
+  margin-inline: auto;
+  aspect-ratio: 1 / 1;
+}
+.j-m-card.jcard--video .jcard-media-zone .jcard-video-root > .jcard-video-player.is-canvas-3-4,
+.j-m-card.jcard--video .jcard-media-zone .jcard-video-root > .jcard-video-player.is-canvas-1-1 {
+  min-height: 0;
 }
 
 /* Video dọc / vuông — khung hẹp căn giữa; landscape giữ full bleed + max-height 420. */

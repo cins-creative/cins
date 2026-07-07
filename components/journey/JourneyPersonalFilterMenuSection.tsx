@@ -24,7 +24,6 @@ type Props = {
 function PersonalFilterRow({
   filter,
   active,
-  count,
   onSelect,
   showDelete,
   onDelete,
@@ -32,7 +31,6 @@ function PersonalFilterRow({
 }: {
   filter: PersonalFilter;
   active: boolean;
-  count?: number;
   onSelect: () => void;
   showDelete?: boolean;
   onDelete?: () => void;
@@ -56,9 +54,6 @@ function PersonalFilterRow({
           aria-hidden
         />
         <span className="j-dd-lbl">{filter.ten}</span>
-        {typeof count === "number" ? (
-          <span className="j-dd-n">{count}</span>
-        ) : null}
       </button>
       <JourneyFilterShareButton
         label={filter.ten}
@@ -173,7 +168,6 @@ export function JourneyPersonalFilterMenuSection({
           key={filter.id}
           filter={filter}
           active={activeSlug === filter.slug}
-          count={filter.count}
           onSelect={() =>
             selectSlug(activeSlug === filter.slug ? null : filter.slug)
           }

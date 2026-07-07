@@ -11,6 +11,7 @@ import {
 } from "react";
 
 import { JourneyProfileShareModal } from "@/components/journey/JourneyProfileShareModal";
+import type { GalleryDisplay } from "@/lib/journey/gallery-display-url";
 import {
   dispatchJourneyShareOpen,
   type JourneyGalleryFilterShareSpec,
@@ -22,6 +23,8 @@ type ContextValue = {
   openGalleryFilterShare: (spec: JourneyGalleryFilterShareSpec) => void;
   /** Gallery grid đang mở — cập nhật để share lấy thumb đúng filter. */
   registerGalleryItems: (items: ReadonlyArray<GalleryMainItem>) => void;
+  /** Chế độ xem gallery (card / lưới gọn) — gắn vào URL chia sẻ. */
+  registerGalleryDisplay: (display: GalleryDisplay) => void;
 };
 
 const JourneyFilterShareContext = createContext<ContextValue | null>(null);
@@ -39,9 +42,11 @@ export function JourneyFilterShareProvider({
   children,
 }: ProviderProps) {
   const liveGalleryItemsRef = useRef<ReadonlyArray<GalleryMainItem>>([]);
+  const galleryDisplayRef = useRef<GalleryDisplay>("card");
   const [open, setOpen] = useState(false);
   const [activeSpec, setActiveSpec] =
     useState<JourneyGalleryFilterShareSpec | null>(null);
+  const [galleryDisplay, setGalleryDisplay] = useState<GalleryDisplay>("card");
   const [liveGalleryItems, setLiveGalleryItems] = useState<
     ReadonlyArray<GalleryMainItem>
   >([]);
@@ -53,10 +58,15 @@ export function JourneyFilterShareProvider({
     [],
   );
 
+  const registerGalleryDisplay = useCallback((display: GalleryDisplay) => {
+    galleryDisplayRef.current = display;
+  }, []);
+
   const openGalleryFilterShare = useCallback(
     (spec: JourneyGalleryFilterShareSpec) => {
       dispatchJourneyShareOpen();
       setLiveGalleryItems(liveGalleryItemsRef.current);
+      setGalleryDisplay(galleryDisplayRef.current);
       setActiveSpec(spec);
       setOpen(true);
     },
@@ -67,11 +77,12 @@ export function JourneyFilterShareProvider({
     setOpen(false);
     setActiveSpec(null);
     setLiveGalleryItems([]);
+    setGalleryDisplay("card");
   }, []);
 
   const value = useMemo(
-    () => ({ openGalleryFilterShare, registerGalleryItems }),
-    [openGalleryFilterShare, registerGalleryItems],
+    () => ({ openGalleryFilterShare, registerGalleryItems, registerGalleryDisplay }),
+    [openGalleryFilterShare, registerGalleryItems, registerGalleryDisplay],
   );
 
   return (
@@ -83,6 +94,7 @@ export function JourneyFilterShareProvider({
         profile={profile}
         viewerProfileId={viewerProfileId}
         galleryFilter={activeSpec}
+        galleryDisplay={galleryDisplay}
         liveGalleryItems={liveGalleryItems}
       />
     </JourneyFilterShareContext.Provider>

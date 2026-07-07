@@ -9,6 +9,7 @@ import {
 } from "@/lib/to-chuc/khoa-hoc";
 import type {
   CapNhatKhoaHocInput,
+  GoiHocPhiKhoa,
   HinhThucLop,
   KhoaHocCheDoHienThi,
   LoaiMoHinhKhoa,
@@ -48,6 +49,7 @@ export async function PATCH(req: Request, ctx: RouteContext) {
     thoiLuongBuoi?: number | null;
     thoiLuongPhutMoiBuoi?: number | null;
     hocPhi?: number | null;
+    goiHocPhi?: GoiHocPhiKhoa[];
     trinhDoDauVao?: TrinhDoDauVao;
     coverId?: string | null;
     thumbnailId?: string | null;
@@ -73,6 +75,7 @@ export async function PATCH(req: Request, ctx: RouteContext) {
     thoiLuongBuoi: body.thoiLuongBuoi,
     thoiLuongPhutMoiBuoi: body.thoiLuongPhutMoiBuoi,
     hocPhi: body.hocPhi,
+    goiHocPhi: body.goiHocPhi,
     trinhDoDauVao: body.trinhDoDauVao,
     coverId: body.coverId,
     thumbnailId: body.thumbnailId,

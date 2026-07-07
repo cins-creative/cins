@@ -14,6 +14,11 @@ export type TuyenSinhTimelineStep = {
   link: string | null;
   status: TimelineStepStatus;
   dot: string;
+  /** Ảnh bìa sự kiện — hiển thị trên timeline sidebar (cơ sở). */
+  coverSrc?: string | null;
+  /** ISO mốc đếm ngược — sidebar «Tiếp theo». */
+  countdownStartIso?: string | null;
+  countdownEndIso?: string | null;
 };
 
 export const TIMELINE_MOC_LABEL_MAX = 80;
@@ -233,6 +238,8 @@ export function buildTimelineStepsFromMocDraft(
       link,
       status,
       dot: "",
+      countdownStartIso: ngay_tu,
+      countdownEndIso: ngay_den,
     };
   }),
   );

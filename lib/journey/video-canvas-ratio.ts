@@ -65,9 +65,18 @@ export function extractVideoCanvasRatio(
     const url =
       typeof block.config?.url === "string" ? block.config.url.trim() : "";
     if (!url) continue;
-    return parseVideoCanvasRatio(block.config?.videoCanvasRatio) ?? "16:9";
+    return parseVideoCanvasRatio(block.config?.videoCanvasRatio);
   }
   return null;
+}
+
+/** Kích thước gợi ý cho poster video (intrinsic width/height). */
+export function videoPreviewDimensionsFromRatio(
+  ratio: VideoCanvasRatio | null | undefined,
+): { width: number; height: number } {
+  if (ratio === "3:4") return { width: 720, height: 960 };
+  if (ratio === "1:1") return { width: 720, height: 720 };
+  return { width: 1280, height: 720 };
 }
 
 export function videoCanvasRatioClass(

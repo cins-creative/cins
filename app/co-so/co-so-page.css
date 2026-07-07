@@ -630,6 +630,10 @@
 }
 
 .tdh-page--cso .cso-ss-stat-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
   background: var(--neutral-50, #f8f9fb);
   border: 1px solid var(--border, #e4e6eb);
   border-radius: var(--radius-md, 14px);
@@ -646,6 +650,7 @@
   margin-bottom: 6px;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 5px;
 }
 
@@ -2635,6 +2640,105 @@
   }
 }
 
+.cso-kh-goi-phi {
+  gap: 10px;
+}
+
+.cso-kh-goi-phi-hint {
+  margin: 0 0 4px;
+}
+
+.cso-kh-goi-phi-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cso-kh-goi-phi-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border, #e4e6eb);
+  background: var(--bg-subtle, #f8f9fb);
+}
+
+.cso-kh-goi-phi-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cso-kh-goi-phi-item-idx {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.45));
+}
+
+.cso-kh-goi-phi-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.42));
+  cursor: pointer;
+}
+
+.cso-kh-goi-phi-remove:hover:not(:disabled) {
+  background: rgba(180, 35, 24, 0.08);
+  color: #b42318;
+}
+
+.cso-kh-goi-phi-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.cso-kh-goi-phi-k {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.48));
+}
+
+.cso-kh-goi-phi-metrics {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 520px) {
+  .cso-kh-goi-phi-metrics {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cso-kh-goi-phi-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  align-self: flex-start;
+  padding: 8px 12px;
+  border: 1px dashed var(--border, #d0d4dc);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--cins-blue, #1f74c9);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cso-kh-goi-phi-add:hover:not(:disabled) {
+  border-color: var(--cins-blue, #1f74c9);
+  background: rgba(31, 116, 201, 0.05);
+}
+
 .cso-kh-model-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -3246,6 +3350,109 @@
   font-family: var(--font-sans);
   font-weight: 800;
   color: var(--cins-blue, #1f74c9);
+}
+
+.tdh-page--cso .cso-khd-metric--fee-picker {
+  position: relative;
+  z-index: 4;
+}
+
+.tdh-page--cso .cso-khd-fee-picker-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+}
+
+.tdh-page--cso .cso-khd-fee-picker-trigger:hover .cso-khd-fee-picker-chevron-wrap,
+.tdh-page--cso .cso-khd-metric--fee-picker.is-open .cso-khd-fee-picker-chevron-wrap {
+  background: rgba(31, 116, 201, 0.16);
+  border-color: rgba(31, 116, 201, 0.3);
+}
+
+.tdh-page--cso .cso-khd-fee-picker-trigger:focus-visible {
+  outline: 2px solid rgba(31, 116, 201, 0.45);
+  outline-offset: 3px;
+  border-radius: 8px;
+}
+
+.tdh-page--cso .cso-khd-fee-picker-chevron-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: rgba(31, 116, 201, 0.1);
+  border: 1px solid rgba(31, 116, 201, 0.2);
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.tdh-page--cso .cso-khd-fee-picker-chevron {
+  flex-shrink: 0;
+  color: var(--cins-blue, #1f74c9);
+  transition: transform 0.18s ease;
+}
+
+.tdh-page--cso .cso-khd-metric--fee-picker.is-open .cso-khd-fee-picker-chevron {
+  transform: rotate(180deg);
+}
+
+.tdh-page--cso .cso-khd-fee-picker-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 8;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  border-radius: 12px;
+  border: 1px solid #c8ddf5;
+  background: #fff;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.12);
+}
+
+.tdh-page--cso .cso-khd-fee-picker-opt {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  color: var(--ink-display, rgba(0, 0, 0, 0.88));
+}
+
+.tdh-page--cso .cso-khd-fee-picker-opt:hover,
+.tdh-page--cso .cso-khd-fee-picker-opt.is-active {
+  background: rgba(31, 116, 201, 0.08);
+}
+
+.tdh-page--cso .cso-khd-fee-picker-opt-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--cins-blue, #1f74c9);
+}
+
+.tdh-page--cso .cso-khd-fee-picker-opt-meta {
+  font-size: 12px;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.48));
 }
 
 .tdh-page--cso .cso-khd-metric--duration .cso-khd-metric-v {
@@ -4869,6 +5076,85 @@
     padding-left: 14px;
     padding-right: 14px;
   }
+}
+
+/* Timeline sidebar — banner sự kiện */
+.tdh-page--cso .tdh-admission-side .timeline-event-banner {
+  position: relative;
+  width: 100%;
+  margin: 0 0 8px;
+  border-radius: var(--radius-md, 10px);
+  overflow: hidden;
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+  background: linear-gradient(
+    145deg,
+    var(--cins-violet-soft, #efe7fb),
+    var(--cins-blue-soft, #e7f0fb)
+  );
+  aspect-ratio: 16 / 9;
+}
+
+.tdh-page--cso .tdh-admission-side .timeline-event-banner-link {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+.tdh-page--cso .tdh-admission-side .timeline-event-banner-img {
+  object-fit: cover;
+}
+
+.tdh-page--cso .tdh-admission-side .timeline-item--focus .timeline-event-banner {
+  border-color: color-mix(in srgb, var(--cins-blue, #1f74c9) 28%, var(--border));
+  box-shadow: var(--shadow-xs, 0 1px 3px rgba(15, 23, 42, 0.06));
+}
+
+.tdh-page--cso .tdh-admission-side .timeline-item--past .timeline-event-banner {
+  filter: saturate(0.65);
+}
+
+.tdh-page--cso .tdh-admission-side .timeline-focus-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+  min-width: 0;
+}
+
+.tdh-page--cso .tdh-admission-side .timeline-focus-row .timeline-focus-kicker {
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+
+.tdh-page--cso .tdh-admission-side .timeline-focus-row .ha-org-up-countdown {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--cins-blue, #1f74c9);
+  line-height: 1.2;
+  white-space: nowrap;
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tdh-page--cso .tdh-admission-side .timeline-focus-row .ha-org-up-countdown--live {
+  color: var(--cins-mint-deep, #0d7a52);
+}
+
+.tdh-page--cso .tdh-admission-side .timeline-focus-row .ha-org-up-countdown-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--cins-blue, #1f74c9);
+  flex-shrink: 0;
 }
 
 /* Timeline sidebar — phân loại mốc khóa / lớp / thông báo */

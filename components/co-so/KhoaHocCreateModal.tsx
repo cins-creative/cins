@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 
 import { TruongInlineModal } from "@/components/truong/inline/TruongInlineModal";
+import { KhoaHocGoiPhiEditor } from "@/components/co-so/KhoaHocGoiPhiEditor";
 import {
   HINH_THUC_LOP_OPTIONS,
   LOAI_MO_HINH_OPTIONS,
@@ -21,6 +22,12 @@ import type {
   TrinhDoDauVao,
   TrangThaiKhoaHoc,
 } from "@/lib/to-chuc/khoa-hoc-types";
+import {
+  emptyGoiHocPhiDraft,
+  goiHocPhiDraftsFromKhoa,
+  normalizeGoiHocPhiDrafts,
+  type GoiHocPhiDraft,
+} from "@/lib/to-chuc/khoa-hoc-goi-phi";
 
 type Props = {
   open: boolean;
@@ -31,20 +38,6 @@ type Props = {
   onCreated?: (khoa: KhoaHocCardData) => void;
   onUpdated?: (khoa: KhoaHocCardData) => void;
 };
-
-function parseOptionalInt(raw: string): number | null {
-  const t = raw.trim();
-  if (!t) return null;
-  const n = Number.parseInt(t, 10);
-  return Number.isFinite(n) ? n : null;
-}
-
-function parseOptionalMoney(raw: string): number | null {
-  const t = raw.trim().replace(/\./g, "").replace(/,/g, "");
-  if (!t) return null;
-  const n = Number.parseFloat(t);
-  return Number.isFinite(n) ? n : null;
-}
 
 function needsDiaChi(hinhThuc: HinhThucLop): boolean {
   return hinhThuc === "truc_tiep" || hinhThuc === "ket_hop";
@@ -77,9 +70,9 @@ export function KhoaHocCreateModal({
   const [hinhThuc, setHinhThuc] = useState<HinhThucLop>("truc_tiep");
   const [diaChiHoc, setDiaChiHoc] = useState("");
   const [yeuCauChuanBi, setYeuCauChuanBi] = useState("");
-  const [thoiLuongBuoi, setThoiLuongBuoi] = useState("");
-  const [thoiLuongPhut, setThoiLuongPhut] = useState("");
-  const [hocPhi, setHocPhi] = useState("");
+  const [goiHocPhiDrafts, setGoiHocPhiDrafts] = useState<GoiHocPhiDraft[]>([
+    emptyGoiHocPhiDraft(),
+  ]);
   const [trinhDoDauVao, setTrinhDoDauVao] =
     useState<TrinhDoDauVao>("khong_yeu_cau");
   const [trangThaiKhoaHoc, setTrangThaiKhoaHoc] =
@@ -108,9 +101,7 @@ export function KhoaHocCreateModal({
     setHinhThuc("truc_tiep");
     setDiaChiHoc("");
     setYeuCauChuanBi("");
-    setThoiLuongBuoi("");
-    setThoiLuongPhut("");
-    setHocPhi("");
+    setGoiHocPhiDrafts([emptyGoiHocPhiDraft()]);
     setTrinhDoDauVao("khong_yeu_cau");
     setTrangThaiKhoaHoc("sap_khai_giang");
     setCheDoHienThi("cong_khai");
@@ -136,15 +127,7 @@ export function KhoaHocCreateModal({
     setHinhThuc(editing.hinhThuc ?? "truc_tiep");
     setDiaChiHoc(editing.diaChiHoc ?? orgDiaChi?.trim() ?? "");
     setYeuCauChuanBi(editing.yeuCauChuanBi ?? "");
-    setThoiLuongBuoi(
-      editing.thoiLuongBuoi != null ? String(editing.thoiLuongBuoi) : "",
-    );
-    setThoiLuongPhut(
-      editing.thoiLuongPhutMoiBuoi != null
-        ? String(editing.thoiLuongPhutMoiBuoi)
-        : "",
-    );
-    setHocPhi(editing.hocPhi != null ? String(editing.hocPhi) : "");
+    setGoiHocPhiDrafts(goiHocPhiDraftsFromKhoa(editing));
     setTrinhDoDauVao(editing.trinhDoDauVao);
     setTrangThaiKhoaHoc(editing.trangThaiKhoaHoc);
     setCheDoHienThi(editing.cheDoHienThi);
@@ -201,13 +184,12 @@ export function KhoaHocCreateModal({
   }
 
   function buildPayload(): CapNhatKhoaHocInput {
+    const goiHocPhi = normalizeGoiHocPhiDrafts(goiHocPhiDrafts);
     return {
       tenKhoaHoc,
       loaiMoHinh,
       moTa: moTa.trim() || null,
-      thoiLuongBuoi: parseOptionalInt(thoiLuongBuoi),
-      thoiLuongPhutMoiBuoi: parseOptionalInt(thoiLuongPhut),
-      hocPhi: parseOptionalMoney(hocPhi),
+      goiHocPhi: goiHocPhi.length > 0 ? goiHocPhi : undefined,
       trinhDoDauVao,
       thumbnailId: thumbnail.imageId,
       coverId: bannerCover.imageId,
@@ -633,63 +615,29 @@ export function KhoaHocCreateModal({
           </p>
         </label>
 
-        <div className="cso-kh-field-row">
-          <label className="cso-kh-field">
-            <span className="cso-kh-label">Số buổi</span>
-            <input
-              type="number"
-              min={0}
-              className="cso-kh-input"
-              value={thoiLuongBuoi}
-              onChange={(e) => setThoiLuongBuoi(e.target.value)}
-              placeholder="24"
-            />
-          </label>
-          <label className="cso-kh-field">
-            <span className="cso-kh-label">Phút / buổi</span>
-            <input
-              type="number"
-              min={0}
-              className="cso-kh-input"
-              value={thoiLuongPhut}
-              onChange={(e) => setThoiLuongPhut(e.target.value)}
-              placeholder="180"
-            />
-          </label>
-        </div>
+        <KhoaHocGoiPhiEditor
+          packages={goiHocPhiDrafts}
+          loaiMoHinh={loaiMoHinh}
+          disabled={submitting}
+          onChange={setGoiHocPhiDrafts}
+        />
 
-        <div className="cso-kh-field-row">
-          <label className="cso-kh-field">
-            <span className="cso-kh-label">
-              Học phí
-              {loaiMoHinh === "lien_tuc_theo_thang" ? " (VNĐ/tháng)" : " (VNĐ/khóa)"}
-            </span>
-            <input
-              type="text"
-              inputMode="numeric"
-              className="cso-kh-input"
-              value={hocPhi}
-              onChange={(e) => setHocPhi(e.target.value)}
-              placeholder="6500000"
-            />
-          </label>
-          <label className="cso-kh-field">
-            <span className="cso-kh-label">Trình độ đầu vào</span>
-            <select
-              className="cso-kh-input"
-              value={trinhDoDauVao}
-              onChange={(e) =>
-                setTrinhDoDauVao(e.target.value as TrinhDoDauVao)
-              }
-            >
-              {TRINH_DO_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
+        <label className="cso-kh-field">
+          <span className="cso-kh-label">Trình độ đầu vào</span>
+          <select
+            className="cso-kh-input"
+            value={trinhDoDauVao}
+            onChange={(e) =>
+              setTrinhDoDauVao(e.target.value as TrinhDoDauVao)
+            }
+          >
+            {TRINH_DO_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </label>
 
         {isEdit ? (
           <label className="cso-kh-field">

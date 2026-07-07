@@ -24,10 +24,6 @@ type Props = {
   filter: GalleryMediaFilter;
   onFilterChange: (filter: GalleryMediaFilter) => void;
   className?: string;
-  /** Số tác phẩm — hiển thị trong nút toolbar (`.j-tlb-dd-count`). */
-  count?: number;
-  /** Count theo từng loại nội dung — hiển thị trong menu. */
-  optionCounts?: Partial<Record<GalleryMediaFilter, number>>;
   /** `toolbar` — nút `.j-tlb-dd-btn` trên context bar gallery chính. */
   variant?: "compact" | "toolbar";
 };
@@ -36,8 +32,6 @@ export function GalleryMediaFilterDropdown({
   filter,
   onFilterChange,
   className,
-  count,
-  optionCounts,
   variant = "compact",
 }: Props) {
   const [open, setOpen] = useState(false);
@@ -134,7 +128,6 @@ export function GalleryMediaFilterDropdown({
         <div className="j-dd-section-label">Loại nội dung</div>
         {GALLERY_MEDIA_FILTER_OPTIONS.map((opt) => {
           const active = filter === opt.id;
-          const optCount = optionCounts?.[opt.id];
           return (
             <div
               key={opt.id}
@@ -151,9 +144,6 @@ export function GalleryMediaFilterDropdown({
                 }}
               >
                 <span className="j-dd-lbl">{opt.label}</span>
-                {optCount != null ? (
-                  <span className="j-dd-n">{optCount}</span>
-                ) : null}
               </button>
             </div>
           );
@@ -162,7 +152,6 @@ export function GalleryMediaFilterDropdown({
     ) : null;
 
   const label = galleryMediaFilterButtonLabel(filter);
-  const countLabel = count != null ? count.toLocaleString("vi-VN") : null;
   const isToolbar = variant === "toolbar";
 
   return (
@@ -185,16 +174,9 @@ export function GalleryMediaFilterDropdown({
           }}
           aria-haspopup="listbox"
           aria-expanded={open}
-          aria-label={
-            countLabel != null
-              ? `Loại nội dung: ${label}, ${countLabel} tác phẩm`
-              : `Loại nội dung: ${label}`
-          }
+          aria-label={`Loại nội dung: ${label}`}
         >
           <span>{label}</span>
-          {countLabel != null ? (
-            <span className="j-tlb-dd-count">{countLabel}</span>
-          ) : null}
           <span
             className={isToolbar ? "j-tlb-dd-caret" : "j-gallery-dd-caret"}
             aria-hidden

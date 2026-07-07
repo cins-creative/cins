@@ -61,6 +61,8 @@ function buildLopAutoPinStep(
     link: coSoKhoaHocDetailPath(orgSlug, pin.khoaSlug),
     status,
     dot: status === "done" ? "✓" : status === "active" ? "→" : "",
+    countdownStartIso: ngay,
+    countdownEndIso: null,
   };
 }
 

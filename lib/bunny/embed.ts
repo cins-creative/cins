@@ -79,7 +79,7 @@ export function buildBunnyVideoThumbnailUrl(videoId: string): string | null {
 /** MP4 Bunny Stream — gallery lấy frame đầu qua `<video preload="metadata">`. */
 export function buildBunnyVideoMp4Url(
   videoId: string,
-  quality: "360p" | "480p" | "720p" = "360p",
+  quality: "360p" | "480p" | "720p" | "1080p" = "360p",
 ): string | null {
   const cdnHostname = process.env.NEXT_PUBLIC_BUNNY_CDN_HOSTNAME?.trim();
   if (!cdnHostname || !videoId.trim()) return null;

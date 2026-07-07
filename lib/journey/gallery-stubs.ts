@@ -21,6 +21,10 @@ import {
 } from "@/lib/journey/video-embed";
 import { extractVideoUrl } from "@/lib/journey/post-media";
 import {
+  extractVideoCanvasRatio,
+  type VideoCanvasRatio,
+} from "@/lib/journey/video-canvas-ratio";
+import {
   loadVerifiedMetaForCotMocs,
   type VerifiedMilestoneMeta,
 } from "@/lib/journey/milestone-verify";
@@ -91,6 +95,7 @@ export type GalleryStub = {
   orgHref?: string | null;
   orgAvatarUrl?: string | null;
   orgKicker?: string | null;
+  videoCanvasRatio?: VideoCanvasRatio;
 };
 
 function parseBlocks(raw: unknown): Block[] {
@@ -173,6 +178,10 @@ function rowToStub(
     type: LOAI_MOC_TO_TYPE[cm.loai_moc],
     variant: source === "tagged" ? "tagged" : "self",
     mediaKind: gridEntry.mediaKind,
+    videoCanvasRatio:
+      gridEntry.mediaKind === "video"
+        ? (extractVideoCanvasRatio(blocks) ?? undefined)
+        : undefined,
   };
 }
 

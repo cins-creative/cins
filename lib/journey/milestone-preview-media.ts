@@ -8,6 +8,10 @@ import {
   extractAllImageIds,
 } from "@/lib/journey/post-media";
 import { resolveBunnyVideoThumbnailFromBlocks } from "@/lib/journey/video-embed";
+import {
+  extractVideoCanvasRatio,
+  videoPreviewDimensionsFromRatio,
+} from "@/lib/journey/video-canvas-ratio";
 
 function coverFromImageId(
   imageId: string,
@@ -43,7 +47,10 @@ export function milestonePreviewMedia(
   if (mediaKind === "video") {
     const thumb = resolveBunnyVideoThumbnailFromBlocks(parsed);
     if (thumb) {
-      return [{ src: thumb, width: 1280, height: 720, label }];
+      const dims = videoPreviewDimensionsFromRatio(
+        extractVideoCanvasRatio(parsed),
+      );
+      return [{ src: thumb, width: dims.width, height: dims.height, label }];
     }
     if (trimmedCover) return coverFromImageId(trimmedCover, label);
     return [];

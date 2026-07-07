@@ -19,6 +19,15 @@ export type TrangThaiKhoaHoc =
 /** Hiển thị trang khóa trên cơ sở — lưu trong `noi_dung_blocks` meta. */
 export type KhoaHocCheDoHienThi = "cong_khai" | "an";
 
+/** Gói học phí — lưu meta `noi_dung_blocks`; cột `hoc_phi` = gói đầu (listing). */
+export type GoiHocPhiKhoa = {
+  id: string;
+  tenGoi: string;
+  hocPhi: number;
+  soBuoi?: number | null;
+  phutMoiBuoi?: number | null;
+};
+
 /** `trang_thai_lop_enum` — per-lớp (`org_lop_hoc.trang_thai`). */
 export type TrangThaiLop =
   | "sap_khai_giang"
@@ -38,6 +47,8 @@ export type KhoaHocCardData = {
   thoiLuongBuoi: number | null;
   thoiLuongPhutMoiBuoi: number | null;
   hocPhi: number | null;
+  /** Nhiều gói học phí — meta blocks; rỗng = dùng cột legacy. */
+  goiHocPhi: GoiHocPhiKhoa[];
   /** Thumbnail danh sách khóa (`org_khoa_hoc.avatar_id`). */
   thumbnailId: string | null;
   thumbnailUrl: string | null;
@@ -66,6 +77,7 @@ export type TaoKhoaHocInput = {
   thoiLuongBuoi?: number | null;
   thoiLuongPhutMoiBuoi?: number | null;
   hocPhi?: number | null;
+  goiHocPhi?: GoiHocPhiKhoa[];
   trinhDoDauVao?: TrinhDoDauVao;
   thumbnailId?: string | null;
   coverId?: string | null;

@@ -716,7 +716,7 @@ const MINIMAL_SUB_BLOCK_ID = "__minimal_sub__";
 
 const MINIMAL_THUMB_ADD_LABEL = "Thêm ảnh Thumbnail";
 const MINIMAL_THUMB_ADD_HINT =
-  "Tuỳ chọn · chỉ hiển thị trên grid, không có thì dùng ảnh đầu bài";
+  "Không bắt buộc, tỉ lệ mặc định 16:9 hoặc kích thước tự do — không cần cắt ảnh để xem ở dạng lưới masonry";
 const MINIMAL_THUMB_EMPTY_HINT =
   "Thumbnail chỉ hiển thị trên grid view. Không thêm thì tự lấy ảnh đầu tiên trong bài.";
 

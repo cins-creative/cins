@@ -30,6 +30,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 
 import { CoSoKhoaHocOrgFooter } from "@/components/co-so/CoSoKhoaHocOrgFooter";
+import {
+  KhoaHocFeePicker,
+  selectedGoiDurationLabel,
+} from "@/components/co-so/KhoaHocFeePicker";
 import { useCinsChatContext } from "@/components/cins/CinsChatProvider";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
 
@@ -66,6 +70,7 @@ import {
 } from "@/lib/to-chuc/bai-tap-section-display-storage";
 import { isInlineBaiTapThumbnail } from "@/lib/to-chuc/bai-tap-thumbnail";
 import { notifyCoSoKhoaListChanged } from "@/lib/to-chuc/co-so-khoa-events";
+import { resolveGoiHocPhiForDisplay } from "@/lib/to-chuc/khoa-hoc-goi-phi";
 import {
   coSoRootPath,
   coSoKhoaHocDetailPath,
@@ -74,8 +79,6 @@ import {
 import { getYoutubeId } from "@/lib/youtube";
 import {
   formatKhaiGiangCard,
-  formatKhoaHocPhi,
-  formatThoiLuongKhoa,
   isScaffoldLopHoc,
   labelBaiTapSectionDisplay,
   labelHinhThucLopChiTiet,
@@ -784,16 +787,20 @@ function DetailContent({
   const showBaiTapSection =
     isManagingBaiTap || giaoTrinh.length > 0 || baiTapList.length > 0;
 
-  const thoiLuongLabel = formatThoiLuongKhoa(
-    khoa.thoiLuongBuoi,
-    khoa.thoiLuongPhutMoiBuoi,
+  const goiHocPhi = useMemo(
+    () => resolveGoiHocPhiForDisplay(khoa),
+    [khoa],
   );
+  const [selectedGoiId, setSelectedGoiId] = useState(goiHocPhi[0]?.id ?? "");
+  useEffect(() => {
+    if (!goiHocPhi.some((goi) => goi.id === selectedGoiId)) {
+      setSelectedGoiId(goiHocPhi[0]?.id ?? "");
+    }
+  }, [goiHocPhi, selectedGoiId]);
+  const selectedGoi =
+    goiHocPhi.find((goi) => goi.id === selectedGoiId) ?? goiHocPhi[0] ?? null;
+  const thoiLuongLabel = selectedGoiDurationLabel(selectedGoi);
   const hasThoiLuong = thoiLuongLabel !== "—";
-  const hocPhiFormatted = formatKhoaHocPhi(khoa.hocPhi, khoa.loaiMoHinh);
-  const hasHocPhi = khoa.hocPhi != null;
-  const hocPhiValue = hocPhiFormatted.replace(/\/th$/, "");
-  const hocPhiUnit =
-    khoa.loaiMoHinh === "lien_tuc_theo_thang" ? "VNĐ/tháng" : "VNĐ/khóa";
   const hinhThucLabel = khoa.hinhThuc
     ? labelHinhThucLopChiTiet(khoa.hinhThuc)
     : "—";
@@ -896,24 +903,12 @@ function DetailContent({
               className="cso-khd-hero-metrics"
               aria-label="Học phí và thời lượng"
             >
-              <div className="cso-khd-metric cso-khd-metric--fee">
-                <span className="cso-khd-metric-k">Học phí</span>
-                <div className="cso-khd-metric-main">
-                  <span
-                    className={[
-                      "cso-khd-metric-v",
-                      !hasHocPhi ? "is-empty" : "",
-                    ]
-                      .filter(Boolean)
-                      .join(" ")}
-                  >
-                    {hocPhiValue}
-                  </span>
-                  {hasHocPhi ? (
-                    <span className="cso-khd-metric-unit">{hocPhiUnit}</span>
-                  ) : null}
-                </div>
-              </div>
+              <KhoaHocFeePicker
+                packages={goiHocPhi}
+                loaiMoHinh={khoa.loaiMoHinh}
+                selectedId={selectedGoiId}
+                onSelect={(goi) => setSelectedGoiId(goi.id)}
+              />
               <div className="cso-khd-metric cso-khd-metric--duration">
                 <span className="cso-khd-metric-k">Thời lượng</span>
                 <span

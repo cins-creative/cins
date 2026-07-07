@@ -30,8 +30,6 @@ import { JourneyFilterShareButton } from "@/components/journey/JourneyFilterShar
 import { useJourneyFilterShareOptional } from "@/components/journey/JourneyFilterShareContext";
 import { JourneyPersonalFilterMenuSection } from "@/components/journey/JourneyPersonalFilterMenuSection";
 import { useJourneyPersonalFilterOptional } from "@/components/journey/JourneyPersonalFilterContext";
-import { OrgBaiDangViewToggle } from "@/components/truong/OrgBaiDangViewToggle";
-import type { OrgBaiDangView } from "@/lib/truong/bai-dang-grid";
 import {
   JOURNEY_SHARE_OPEN_EVENT,
   PORTFOLIO_ALL_FILTER_SHARE_SPEC,
@@ -95,11 +93,6 @@ type Props = {
   filterVisibility?: LoaiMocVisibilityMap;
   /** Chỉ dropdown filter — không bọc `.j-tlb` (gallery ghép nhiều filter). */
   embed?: boolean;
-  /** Số cột mốc sau lọc nhãn riêng — hiển thị trên nút trigger. */
-  personalLabelMatchCount?: number;
-  /** Toggle dòng thời gian ↔ lưới (đồng bộ org bài đăng). */
-  view?: OrgBaiDangView;
-  onView?: (view: OrgBaiDangView) => void;
 };
 
 const GROUP_LABELS: Record<FilterGroup, string> = {
@@ -171,9 +164,6 @@ export function JourneyTimelineBar({
   isOwner = false,
   filterVisibility,
   embed = false,
-  personalLabelMatchCount,
-  view,
-  onView,
 }: Props) {
   const personalFilter = useJourneyPersonalFilterOptional();
   const activePersonalFilter = personalFilter?.activeSlug
@@ -285,14 +275,10 @@ export function JourneyTimelineBar({
     };
   }, [open]);
 
-  const current = options.find((o) => o.group === filter);
   const currentLabel = timelineFilterButtonLabel(
     filter,
     activePersonalFilter?.ten ?? null,
   );
-  const currentCount = hasPersonalFilter
-    ? (personalLabelMatchCount ?? activePersonalFilter?.count ?? 0)
-    : (current?.count ?? 0);
   const dotColor = activePersonalFilter
     ? (activePersonalFilter.mau ?? DEFAULT_FILTER_MAU)
     : DOT_COLOR[filter];
@@ -414,7 +400,6 @@ export function JourneyTimelineBar({
           style={{ background: dotColor }}
         />
         <span>{currentLabel}</span>
-        <span className="j-tlb-dd-count">{currentCount}</span>
         <span className="j-tlb-dd-caret" aria-hidden>
           <ChevronDown size={14} strokeWidth={1.8} />
         </span>
@@ -431,11 +416,6 @@ export function JourneyTimelineBar({
     );
   }
 
-  const viewToggle =
-    onView && view ? (
-      <OrgBaiDangViewToggle view={view} onView={onView} />
-    ) : null;
-
   return (
     <div className="j-tlb">
       <div className="j-tlb-year">{year}</div>
@@ -445,14 +425,7 @@ export function JourneyTimelineBar({
       >
         {month || "—"}
       </div>
-      {viewToggle ? (
-        <div className="org-baidang-tlb-actions">
-          {viewToggle}
-          {filterControl}
-        </div>
-      ) : (
-        filterControl
-      )}
+      {filterControl}
       {portalReady && menu ? createPortal(menu, document.body) : null}
     </div>
   );
@@ -503,7 +476,6 @@ function DropdownItem({
           <Icon size={13} strokeWidth={1.7} />
         </span>
         <span className="j-dd-lbl">{opt.label}</span>
-        <span className="j-dd-n">{opt.count}</span>
       </button>
       <JourneyFilterShareButton
         label={opt.label}

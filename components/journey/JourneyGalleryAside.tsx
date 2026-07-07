@@ -106,7 +106,6 @@ export function JourneyGalleryAside({
     : pinned.length === 0 && items.length === 0;
   const filteredEmpty =
     !empty && filteredPinned.length === 0 && filteredItems.length === 0;
-  const titleCount = featuredOnly ? pinned.length : totalTacPham;
   const showFilter = featuredOnly ? pinned.length > 0 : totalTacPham > 0;
 
   return (
@@ -117,7 +116,6 @@ export function JourneyGalleryAside({
       <div className="j-gallery-head">
         <div className="j-gallery-title">
           {featuredOnly ? "Nội dung nổi bật" : "Tác phẩm"}
-          <span className="j-gallery-count">{titleCount}</span>
         </div>
 
         {showFilter ? (

@@ -1,9 +1,11 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { HaOrgUpCountdown } from "@/components/cins/home-adaptive/HaOrgUpCountdown";
 import { TruongInlineModal } from "@/components/truong/inline/TruongInlineModal";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
 import { TruongYearSelect } from "@/components/truong/YearFilterProvider";
@@ -114,6 +116,9 @@ function buildSuKienSteps(
       link: coSoTabPath(orgSlug, "su-kien"),
       status,
       dot: status === "done" ? "✓" : status === "active" ? "→" : "★",
+      coverSrc: ev.coverSrc,
+      countdownStartIso: ev.batDau,
+      countdownEndIso: ev.ketThuc,
     };
   });
 }
@@ -163,6 +168,7 @@ function TimelineStepItem({
   const className = [
     "timeline-item",
     step.status,
+    parseSuKienStepId(step.id) ? "timeline-item--su-kien" : "",
     role === "past" ? "timeline-item--past" : "",
     role === "current" ? "timeline-item--focus timeline-item--current" : "",
     role === "next" ? "timeline-item--focus timeline-item--next" : "",
@@ -170,6 +176,37 @@ function TimelineStepItem({
   ]
     .filter(Boolean)
     .join(" ");
+
+  const bannerImage = step.coverSrc ? (
+    <Image
+      src={step.coverSrc}
+      alt=""
+      fill
+      className="timeline-event-banner-img"
+      sizes="260px"
+      unoptimized={step.coverSrc.includes("imagedelivery.net")}
+    />
+  ) : null;
+
+  const bannerNode =
+    bannerImage && step.link && !isEditing ? (
+      step.link.startsWith("/") ? (
+        <Link href={step.link} className="timeline-event-banner-link">
+          {bannerImage}
+        </Link>
+      ) : (
+        <a
+          href={timelineLinkHref(step.link)}
+          className="timeline-event-banner-link"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {bannerImage}
+        </a>
+      )
+    ) : bannerImage ? (
+      <div className="timeline-event-banner-link">{bannerImage}</div>
+    ) : null;
 
   const labelNode =
     step.link && !isEditing ? (
@@ -201,12 +238,24 @@ function TimelineStepItem({
       <div className="timeline-dot">{step.dot}</div>
       <div className="timeline-content">
         {role === "next" ? (
-          <span className="timeline-focus-kicker">Tiếp theo</span>
+          <div className="timeline-focus-row">
+            <span className="timeline-focus-kicker">Tiếp theo</span>
+            {step.countdownStartIso ? (
+              <HaOrgUpCountdown
+                batDauIso={step.countdownStartIso}
+                ketThucIso={step.countdownEndIso ?? null}
+                status={step.status === "active" ? "active" : "upcoming"}
+              />
+            ) : null}
+          </div>
         ) : null}
         {role === "current" ? (
           <span className="timeline-focus-kicker timeline-focus-kicker--now">
             Hiện tại
           </span>
+        ) : null}
+        {bannerNode ? (
+          <div className="timeline-event-banner">{bannerNode}</div>
         ) : null}
         <div
           className={[

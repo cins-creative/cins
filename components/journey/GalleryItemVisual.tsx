@@ -1,8 +1,10 @@
 "use client";
 
+import { Play } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { JourneyCoverImage } from "@/components/journey/JourneyCoverImage";
+import { setCachedVideoAspect } from "@/lib/journey/gallery-video-dimension-cache";
 
 type Props = {
   src: string;
@@ -75,6 +77,12 @@ function GalleryVideoFrameThumb({
       muted
       playsInline
       aria-label={alt}
+      onLoadedMetadata={(event) => {
+        const video = event.currentTarget;
+        if (video.videoWidth > 0 && video.videoHeight > 0) {
+          setCachedVideoAspect(activeSrc, video.videoWidth, video.videoHeight);
+        }
+      }}
       onLoadedData={(event) => {
         const video = event.currentTarget;
         if (video.currentTime === 0) {
@@ -156,7 +164,7 @@ export function GalleryItemVisual({
 export function GalleryVideoPlayBadge() {
   return (
     <span className="j-g-play" aria-hidden>
-      ▶
+      <Play strokeWidth={2.2} fill="currentColor" />
     </span>
   );
 }

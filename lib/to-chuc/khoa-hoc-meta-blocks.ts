@@ -1,5 +1,9 @@
 import type { Block } from "@/lib/editor/types";
-import type { KhoaHocCheDoHienThi } from "@/lib/to-chuc/khoa-hoc-types";
+import { parseGoiHocPhiMeta } from "@/lib/to-chuc/khoa-hoc-goi-phi";
+import type {
+  GoiHocPhiKhoa,
+  KhoaHocCheDoHienThi,
+} from "@/lib/to-chuc/khoa-hoc-types";
 
 const YEU_CAU_HEADING = "Yêu cầu chuẩn bị";
 const DIA_DIEM_HEADING = "Địa điểm học";
@@ -27,17 +31,30 @@ function headingBlock(thuTu: number, html: string): Block {
   };
 }
 
-function metaBlock(cheDoHienThi: KhoaHocCheDoHienThi): Block {
+function metaBlock(
+  cheDoHienThi: KhoaHocCheDoHienThi,
+  goiHocPhi?: GoiHocPhiKhoa[],
+): Block {
+  const payload: {
+    cheDoHienThi: KhoaHocCheDoHienThi;
+    goiHocPhi?: GoiHocPhiKhoa[];
+  } = { cheDoHienThi };
+  if (goiHocPhi?.length) payload.goiHocPhi = goiHocPhi;
   return {
     id: newBlockId(),
     loai: "body",
     thu_tu: -9999,
-    config: { html: `${META_PREFIX}${JSON.stringify({ cheDoHienThi })}` },
+    config: { html: `${META_PREFIX}${JSON.stringify(payload)}` },
   };
 }
 
-function parseMetaFromBlocks(blocks: unknown): KhoaHocCheDoHienThi {
-  if (!Array.isArray(blocks)) return "cong_khai";
+function parseMetaFromBlocks(blocks: unknown): {
+  cheDoHienThi: KhoaHocCheDoHienThi;
+  goiHocPhi: GoiHocPhiKhoa[];
+} {
+  if (!Array.isArray(blocks)) {
+    return { cheDoHienThi: "cong_khai", goiHocPhi: [] };
+  }
   for (const raw of blocks) {
     const block = raw as Block;
     if (block.loai !== "body") continue;
@@ -46,14 +63,18 @@ function parseMetaFromBlocks(blocks: unknown): KhoaHocCheDoHienThi {
     try {
       const parsed = JSON.parse(html.slice(META_PREFIX.length)) as {
         cheDoHienThi?: unknown;
+        goiHocPhi?: unknown;
       };
-      if (parsed.cheDoHienThi === "an") return "an";
-      if (parsed.cheDoHienThi === "cong_khai") return "cong_khai";
+      const cheDoHienThi = parsed.cheDoHienThi === "an" ? "an" : "cong_khai";
+      return {
+        cheDoHienThi,
+        goiHocPhi: parseGoiHocPhiMeta(parsed.goiHocPhi),
+      };
     } catch {
       /* ignore malformed meta */
     }
   }
-  return "cong_khai";
+  return { cheDoHienThi: "cong_khai", goiHocPhi: [] };
 }
 
 /** Ghi meta + yêu cầu chuẩn bị + địa điểm (offline) vào `org_khoa_hoc.noi_dung_blocks`. */
@@ -62,9 +83,13 @@ export function buildKhoaHocNoiDungBlocks(opts: {
   diaChiHoc?: string | null;
   includeDiaDiem?: boolean;
   cheDoHienThi?: KhoaHocCheDoHienThi;
+  goiHocPhi?: GoiHocPhiKhoa[];
 }): Block[] {
   const blocks: Block[] = [
-    metaBlock(opts.cheDoHienThi === "an" ? "an" : "cong_khai"),
+    metaBlock(
+      opts.cheDoHienThi === "an" ? "an" : "cong_khai",
+      opts.goiHocPhi,
+    ),
   ];
   let thuTu = 0;
   const yeuCau = opts.yeuCauChuanBi?.trim();
@@ -90,10 +115,16 @@ export function parseKhoaHocNoiDungBlocks(blocks: unknown): {
   yeuCauChuanBi: string | null;
   diaChiHoc: string | null;
   cheDoHienThi: KhoaHocCheDoHienThi;
+  goiHocPhi: GoiHocPhiKhoa[];
 } {
-  const cheDoHienThi = parseMetaFromBlocks(blocks);
+  const meta = parseMetaFromBlocks(blocks);
   if (!Array.isArray(blocks)) {
-    return { yeuCauChuanBi: null, diaChiHoc: null, cheDoHienThi };
+    return {
+      yeuCauChuanBi: null,
+      diaChiHoc: null,
+      cheDoHienThi: meta.cheDoHienThi,
+      goiHocPhi: meta.goiHocPhi,
+    };
   }
   let yeuCauChuanBi: string | null = null;
   let diaChiHoc: string | null = null;
@@ -112,5 +143,10 @@ export function parseKhoaHocNoiDungBlocks(blocks: unknown): {
     if (heading === YEU_CAU_HEADING) yeuCauChuanBi = body;
     if (heading === DIA_DIEM_HEADING) diaChiHoc = body;
   }
-  return { yeuCauChuanBi, diaChiHoc, cheDoHienThi };
+  return {
+    yeuCauChuanBi,
+    diaChiHoc,
+    cheDoHienThi: meta.cheDoHienThi,
+    goiHocPhi: meta.goiHocPhi,
+  };
 }

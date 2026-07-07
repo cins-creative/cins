@@ -3,8 +3,6 @@
 import { ChevronDown, Circle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-import { OrgBaiDangViewToggle } from "@/components/truong/OrgBaiDangViewToggle";
-import type { OrgBaiDangView } from "@/lib/truong/bai-dang-grid";
 import type { CoSoFilterChip } from "@/lib/to-chuc/co-so-page-queries";
 
 export type CoSoNhanFilter = "all" | string;
@@ -17,9 +15,6 @@ type Props = {
   counts: Record<string, number>;
   filters: CoSoFilterChip[];
   enabled?: boolean;
-  /** Khi truyền, hiện toggle timeline ↔ lưới (giống World Journey). */
-  view?: OrgBaiDangView;
-  onView?: (view: OrgBaiDangView) => void;
 };
 
 export function CoSoOrgNhanTimelineBar({
@@ -30,8 +25,6 @@ export function CoSoOrgNhanTimelineBar({
   counts,
   filters,
   enabled = true,
-  view,
-  onView,
 }: Props) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -50,11 +43,11 @@ export function CoSoOrgNhanTimelineBar({
       ? "Tất cả"
       : (filters.find((f) => f.slug === filter)?.ten ?? "Tất cả");
 
-  const viewToggle =
-    onView && view ? <OrgBaiDangViewToggle view={view} onView={onView} /> : null;
-
-  const filterDropdown = (
-    <div className={`j-tlb-filter${open ? " is-open" : ""}`} ref={wrapRef}>
+  return (
+    <div className="j-tlb org-baidang-tlb">
+      <div className="j-tlb-year">{year ?? "—"}</div>
+      <div className="j-tlb-month">{monthLabel ?? ""}</div>
+      <div className={`j-tlb-filter${open ? " is-open" : ""}`} ref={wrapRef}>
         <button
           type="button"
           className="j-tlb-dd-btn"
@@ -107,21 +100,7 @@ export function CoSoOrgNhanTimelineBar({
             </button>
           ))}
         </div>
-    </div>
-  );
-
-  return (
-    <div className="j-tlb org-baidang-tlb">
-      <div className="j-tlb-year">{year ?? "—"}</div>
-      <div className="j-tlb-month">{monthLabel ?? ""}</div>
-      {viewToggle ? (
-        <div className="org-baidang-tlb-actions">
-          {viewToggle}
-          {filterDropdown}
-        </div>
-      ) : (
-        filterDropdown
-      )}
+      </div>
     </div>
   );
 }

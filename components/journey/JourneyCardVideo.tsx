@@ -1,21 +1,30 @@
 "use client";
 
 import { Loader2, Play } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
+import { BunnyNativeVideoPlayer } from "@/components/journey/BunnyNativeVideoPlayer";
 import { JourneyCoverImage } from "@/components/journey/JourneyCoverImage";
 import { MilestoneVideoEmbed } from "@/components/journey/MilestoneVideoEmbed";
 import type { MilestoneItem } from "@/components/journey/milestone-types";
-import type { Block } from "@/lib/editor/types";
 import { classifyBunnyVideoUrl } from "@/lib/bunny/embed";
+import type { Block } from "@/lib/editor/types";
 import { youtubeVideoThumbnailUrl } from "@/lib/journey/post-media";
 import {
   buildVideoIframeSrc,
   bunnyVideoIdFromBlocks,
+  resolveBunnyEmbed,
 } from "@/lib/journey/video-embed";
+import { useResolvedVideoCanvasRatio } from "@/lib/journey/use-resolved-video-canvas-ratio";
 import {
-  extractVideoCanvasRatio,
   videoCanvasRatioClass,
+  videoPreviewDimensionsFromRatio,
 } from "@/lib/journey/video-canvas-ratio";
 
 type PreviewMedia = NonNullable<MilestoneItem["media"]>[number];
@@ -44,7 +53,8 @@ export function resolveVideoPoster(
 }
 
 /**
- * Video trên milestone card — chạm/click phát inline; khung canvas theo tỉ lệ upload.
+ * Video trên milestone card — Bunny: native MP4 480p + prefetch;
+ * YouTube/Vimeo: iframe cải thiện (poster giữ đến khi iframe sẵn sàng).
  */
 export function JourneyCardVideo({
   url,
@@ -56,12 +66,18 @@ export function JourneyCardVideo({
   const [playing, setPlaying] = useState(false);
   const [iframeReady, setIframeReady] = useState(false);
   const posterSrc = resolveVideoPoster(url, preview);
-  const canvasClass = videoCanvasRatioClass(
-    extractVideoCanvasRatio(noiDungBlocks),
-  );
   const bunnyVideoId = useMemo(
     () => bunnyVideoIdFromBlocks(noiDungBlocks),
     [noiDungBlocks],
+  );
+  const canvasRatio = useResolvedVideoCanvasRatio(noiDungBlocks, bunnyVideoId);
+  const canvasClass = videoCanvasRatioClass(canvasRatio);
+  const posterDims = videoPreviewDimensionsFromRatio(canvasRatio);
+  const posterWidth = preview?.width ?? posterDims.width;
+  const posterHeight = preview?.height ?? posterDims.height;
+  const bunnyEmbed = useMemo(
+    () => resolveBunnyEmbed(url, bunnyVideoId),
+    [url, bunnyVideoId],
   );
   const iframeSrc = useMemo(
     () =>
@@ -75,22 +91,52 @@ export function JourneyCardVideo({
   useEffect(() => {
     if (!playing) {
       setIframeReady(false);
-      return;
     }
-    /* Bunny iframe cross-origin thường không fire onLoad — không chặn poster/opacity mãi. */
-    const timer = window.setTimeout(() => {
-      setIframeReady(true);
-    }, 1200);
-    return () => window.clearTimeout(timer);
-  }, [playing, url]);
+  }, [playing]);
+
+  if (processing) {
+    return (
+      <div
+        className={`jcard-video-player ${canvasClass}`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <MilestoneVideoEmbed
+          url={url}
+          title={title}
+          processing
+          bunnyVideoId={bunnyVideoId}
+        />
+      </div>
+    );
+  }
+
+  if (bunnyEmbed) {
+    return (
+      <BunnyNativeVideoPlayer
+        videoId={bunnyEmbed.videoId}
+        title={title}
+        poster={posterSrc}
+        canvasClass={canvasClass}
+        mode="feed"
+        preview={
+          preview
+            ? {
+                srcSet: preview.srcSet,
+                width: posterWidth,
+                height: posterHeight,
+              }
+            : null
+        }
+      />
+    );
+  }
 
   function renderPosterLayer(showLoading = false) {
     if (!posterSrc) return null;
     return (
       <div
         className={
-          "jcard-video-poster-layer" +
-          (iframeReady ? " is-hidden" : "")
+          "jcard-video-poster-layer" + (iframeReady ? " is-hidden" : "")
         }
         aria-hidden={iframeReady}
       >
@@ -98,8 +144,8 @@ export function JourneyCardVideo({
           src={posterSrc}
           srcSet={preview?.srcSet}
           sizes={preview?.srcSet ? "(max-width: 767px) 100vw, 680px" : undefined}
-          width={preview?.width ?? 1280}
-          height={preview?.height ?? 720}
+          width={posterWidth}
+          height={posterHeight}
           alt=""
         />
         {showLoading ? (
@@ -112,22 +158,6 @@ export function JourneyCardVideo({
   }
 
   if (playing) {
-    if (processing) {
-      return (
-        <div
-          className={`jcard-video-player ${canvasClass}`}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <MilestoneVideoEmbed
-            url={url}
-            title={title}
-            processing
-            bunnyVideoId={bunnyVideoId}
-          />
-        </div>
-      );
-    }
-
     if (iframeSrc) {
       return (
         <div
@@ -137,7 +167,7 @@ export function JourneyCardVideo({
           }
           onClick={(e) => e.stopPropagation()}
         >
-          {renderPosterLayer(true)}
+          {renderPosterLayer(!iframeReady)}
           <iframe
             src={iframeSrc}
             title={title}
@@ -160,7 +190,7 @@ export function JourneyCardVideo({
         }
         onClick={(e) => e.stopPropagation()}
       >
-        {renderPosterLayer(true)}
+        {renderPosterLayer(!iframeReady)}
         <MilestoneVideoEmbed
           url={url}
           title={title}
@@ -177,27 +207,19 @@ export function JourneyCardVideo({
       type="button"
       className={`preview preview--video jcard-video-trigger ${canvasClass}`}
       aria-label={`Phát video: ${title}`}
-      disabled={processing}
       onClick={(e) => {
         e.stopPropagation();
-        if (!processing) setPlaying(true);
+        setPlaying(true);
       }}
     >
-      {processing ? (
-        <MilestoneVideoEmbed
-          url={url}
-          title={title}
-          processing
-          bunnyVideoId={bunnyVideoId}
-        />
-      ) : posterSrc ? (
+      {posterSrc ? (
         <>
           <JourneyCoverImage
             src={posterSrc}
             srcSet={preview?.srcSet}
             sizes={preview?.srcSet ? "(max-width: 767px) 100vw, 680px" : undefined}
-            width={preview?.width ?? 1280}
-            height={preview?.height ?? 720}
+            width={posterWidth}
+            height={posterHeight}
             alt=""
           />
           <span className="jcard-video-play" aria-hidden>

@@ -95,9 +95,10 @@ export function buildVideoIframeSrc(
   const bunny = resolveBunnyEmbed(url, options?.bunnyVideoId);
   if (bunny) {
     const base = buildBunnyEmbedUrl(bunny.libraryId, bunny.videoId);
-    return autoplay
-      ? `${base}${sep(base)}autoplay=true&preload=true`
-      : base;
+    if (autoplay) {
+      return `${base}${sep(base)}autoplay=true&preload=true&playsinline=true`;
+    }
+    return `${base}${sep(base)}preload=true&playsinline=true`;
   }
 
   const youtubeId = getYoutubeId(url);

@@ -483,9 +483,13 @@ export function JourneyPostBody({
     return partitionBlocksForSplitRail(blocks);
   }, [blocks, moveTextToRail]);
 
+  const mediaAutoplay = variant === "full";
+
   function renderPostBlocks(blockList: ReadonlyArray<Block> | null | undefined) {
     if (!showBlocks || !blockList || blockList.length === 0) return null;
-    return <PostBlockRenderer blocks={blockList} />;
+    return (
+      <PostBlockRenderer blocks={blockList} mediaAutoplay={mediaAutoplay} />
+    );
   }
 
   const railContentEl =
@@ -521,7 +525,10 @@ export function JourneyPostBody({
 
   const blocksEl =
     showBlocks && renderBlocks && renderBlocks.length > 0 ? (
-      <PostBlockRenderer blocks={renderBlocks} />
+      <PostBlockRenderer
+        blocks={renderBlocks}
+        mediaAutoplay={mediaAutoplay}
+      />
     ) : showBlocks && mainPost?.noiDungHtml ? (
       <div
         className="post-html-fallback article-rich-content"

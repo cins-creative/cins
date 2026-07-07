@@ -9,13 +9,15 @@ import { groupBlocksForRender } from "@/lib/journey/image-grid";
 
 type Props = {
   blocks: ReadonlyArray<Block>;
+  /** Modal / permalink — tự phát video khi mở. */
+  mediaAutoplay?: boolean;
 };
 
 /**
  * Render Journey post blocks — gom các block `imgs` liên tiếp thành
  * Facebook-style image grid (render-time only, không đổi DB).
  */
-export function PostBlockRenderer({ blocks }: Props) {
+export function PostBlockRenderer({ blocks, mediaAutoplay = false }: Props) {
   const groups = useMemo(() => groupBlocksForRender(blocks), [blocks]);
 
   if (groups.length === 0) return null;
@@ -53,7 +55,10 @@ export function PostBlockRenderer({ blocks }: Props) {
             data-block-type={group.block.loai}
           >
             <div className="block-inner">
-              <PostReadOnlyBlock block={group.block} />
+              <PostReadOnlyBlock
+                block={group.block}
+                mediaAutoplay={mediaAutoplay}
+              />
             </div>
           </div>
         );

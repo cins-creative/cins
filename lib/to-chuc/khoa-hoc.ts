@@ -11,8 +11,10 @@ import {
   buildKhoaHocNoiDungBlocks,
   parseKhoaHocNoiDungBlocks,
 } from "./khoa-hoc-meta-blocks";
+import { deriveLegacyFieldsFromGoiHocPhi } from "./khoa-hoc-goi-phi";
 import type {
   CapNhatKhoaHocInput,
+  GoiHocPhiKhoa,
   HinhThucLop,
   KhoaHocCardData,
   KhoaHocCheDoHienThi,
@@ -354,6 +356,7 @@ function mapRowToCard(
     thoiLuongBuoi: row.thoi_luong_buoi,
     thoiLuongPhutMoiBuoi: row.thoi_luong_phut_moi_buoi,
     hocPhi: row.hoc_phi != null ? Number(row.hoc_phi) : null,
+    goiHocPhi: parsed.goiHocPhi,
     thumbnailId: row.avatar_id,
     thumbnailUrl,
     coverId: row.cover_id,
@@ -444,6 +447,38 @@ export async function listKhoaHocCuaOrg(
   return { ok: true, khoaHoc };
 }
 
+function validateGoiHocPhi(
+  goiHocPhi: ReadonlyArray<GoiHocPhiKhoa> | undefined,
+): string | null {
+  if (!goiHocPhi?.length) return null;
+  for (const goi of goiHocPhi) {
+    if (!goi.tenGoi.trim()) {
+      return "Mỗi gói học phí cần tên gói.";
+    }
+    if (goi.hocPhi < 0) return "Học phí gói phải ≥ 0.";
+    if (goi.soBuoi != null && goi.soBuoi < 0) {
+      return "Số buổi gói phải ≥ 0.";
+    }
+    if (goi.phutMoiBuoi != null && goi.phutMoiBuoi < 0) {
+      return "Phút/buổi gói phải ≥ 0.";
+    }
+  }
+  return null;
+}
+
+function mergeInputWithGoiHocPhi(input: TaoKhoaHocInput): TaoKhoaHocInput {
+  const goi = input.goiHocPhi?.length ? input.goiHocPhi : undefined;
+  if (!goi?.length) return input;
+  const legacy = deriveLegacyFieldsFromGoiHocPhi(goi);
+  return {
+    ...input,
+    goiHocPhi: goi,
+    hocPhi: legacy.hocPhi,
+    thoiLuongBuoi: legacy.thoiLuongBuoi,
+    thoiLuongPhutMoiBuoi: legacy.thoiLuongPhutMoiBuoi,
+  };
+}
+
 function validateTaoInput(
   input: TaoKhoaHocInput,
 ): { ok: true; data: TaoKhoaHocInput } | { ok: false; error: string } {
@@ -482,21 +517,21 @@ function validateTaoInput(
   }
   const cheDoHienThi: KhoaHocCheDoHienThi =
     input.cheDoHienThi === "an" ? "an" : "cong_khai";
-  return {
-    ok: true,
-    data: {
-      ...input,
-      tenKhoaHoc: ten,
-      trinhDoDauVao: trinhDo,
-      moTa: input.moTa?.trim() || null,
-      hinhThuc,
-      ngayKhaiGiang: input.ngayKhaiGiang?.trim() || null,
-      diaChiHoc: input.diaChiHoc?.trim() || null,
-      lichHoc: input.lichHoc?.trim() || null,
-      yeuCauChuanBi: input.yeuCauChuanBi?.trim() || null,
-      cheDoHienThi,
-    },
-  };
+  const goiErr = validateGoiHocPhi(input.goiHocPhi);
+  if (goiErr) return { ok: false, error: goiErr };
+  const merged = mergeInputWithGoiHocPhi({
+    ...input,
+    tenKhoaHoc: ten,
+    trinhDoDauVao: trinhDo,
+    moTa: input.moTa?.trim() || null,
+    hinhThuc,
+    ngayKhaiGiang: input.ngayKhaiGiang?.trim() || null,
+    diaChiHoc: input.diaChiHoc?.trim() || null,
+    lichHoc: input.lichHoc?.trim() || null,
+    yeuCauChuanBi: input.yeuCauChuanBi?.trim() || null,
+    cheDoHienThi,
+  });
+  return { ok: true, data: merged };
 }
 
 export async function taoKhoaHoc(
@@ -525,6 +560,7 @@ export async function taoKhoaHoc(
     diaChiHoc: data.diaChiHoc,
     includeDiaDiem: needsDiaChi(hinhThuc),
     cheDoHienThi: data.cheDoHienThi,
+    goiHocPhi: data.goiHocPhi,
   });
 
   const admin = createServiceRoleClient();
@@ -691,6 +727,7 @@ export async function capNhatKhoaHoc(
       diaChiHoc: data.diaChiHoc,
       includeDiaDiem: needsDiaChi(hinhThuc),
       cheDoHienThi: data.cheDoHienThi,
+      goiHocPhi: data.goiHocPhi,
     }),
   };
   if (data.trangThaiKhoaHoc) {

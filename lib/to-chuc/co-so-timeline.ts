@@ -86,6 +86,8 @@ function buildAutoPinStep(
     link: href,
     status,
     dot: status === "done" ? "✓" : status === "active" ? "→" : "",
+    countdownStartIso: ngay,
+    countdownEndIso: null,
   };
 }
 

@@ -97,10 +97,19 @@ export async function prepareBunnyVideoUpload(
 /** Bunny Stream encode status — 4 = Finished. */
 const BUNNY_VIDEO_STATUS_FINISHED = 4;
 
-export async function getBunnyVideoStatus(
+type BunnyVideoApiRow = {
+  status?: number;
+  encodeProgress?: number;
+  length?: number;
+  width?: number;
+  height?: number;
+};
+
+async function fetchBunnyVideoRow(
   videoId: string,
 ): Promise<
-  { ok: true; ready: boolean; status: number } | { ok: false; error: string }
+  | { ok: true; data: BunnyVideoApiRow }
+  | { ok: false; error: string }
 > {
   const config = getBunnyStreamConfig();
   if (!config) {
@@ -122,11 +131,13 @@ export async function getBunnyVideoStatus(
     return { ok: false, error: "Không đọc được trạng thái video." };
   }
 
-  const data = (await res.json()) as {
-    status?: number;
-    encodeProgress?: number;
-    length?: number;
-  };
+  return { ok: true, data: (await res.json()) as BunnyVideoApiRow };
+}
+
+function bunnyVideoReadyFromRow(data: BunnyVideoApiRow): {
+  ready: boolean;
+  status: number;
+} {
   const status = typeof data.status === "number" ? data.status : -1;
   const encodeProgress =
     typeof data.encodeProgress === "number" ? data.encodeProgress : 0;
@@ -135,9 +146,28 @@ export async function getBunnyVideoStatus(
     status === BUNNY_VIDEO_STATUS_FINISHED ||
     (encodeProgress >= 100 && length > 0) ||
     (status >= 3 && length > 0);
-  return {
-    ok: true,
-    ready,
-    status,
-  };
+  return { ready, status };
+}
+
+export async function getBunnyVideoStatus(
+  videoId: string,
+): Promise<
+  { ok: true; ready: boolean; status: number } | { ok: false; error: string }
+> {
+  const row = await fetchBunnyVideoRow(videoId);
+  if (!row.ok) return row;
+  const { ready, status } = bunnyVideoReadyFromRow(row.data);
+  return { ok: true, ready, status };
+}
+
+/** Kích thước gốc từ Bunny Stream API — dùng resolve canvas trước khi client probe. */
+export async function getBunnyVideoDimensions(
+  videoId: string,
+): Promise<{ width: number; height: number } | null> {
+  const row = await fetchBunnyVideoRow(videoId);
+  if (!row.ok) return null;
+  const width = typeof row.data.width === "number" ? row.data.width : 0;
+  const height = typeof row.data.height === "number" ? row.data.height : 0;
+  if (width <= 0 || height <= 0) return null;
+  return { width, height };
 }
