@@ -13,13 +13,13 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
-import { articleTagLabel } from "@/lib/editor/article-tag";
 import {
   CREATABLE_TAG_LOAI,
   type CreatableTagLoai,
   type PickableTagLoai,
 } from "@/lib/tag/tag-loai";
 
+import { TagSuggestionMeta } from "./TagSuggestionMeta";
 import "./tag-input.css";
 
 export type TagLoai = PickableTagLoai;
@@ -29,6 +29,7 @@ export type TagInputValue = {
   tieu_de: string;
   loai_bai_viet: TagLoai;
   da_verify?: boolean;
+  linh_vuc_ten?: string | null;
 };
 
 type TagMatch = TagInputValue & { da_verify: boolean };
@@ -78,14 +79,6 @@ const MENU_Z_INDEX = 10200;
 const MENU_GAP = 6;
 const MENU_MAX_WIDTH = 360;
 const MENU_EST_HEIGHT = 300;
-
-function SuggestionLoaiBadge({ loai }: { loai: PickableTagLoai }) {
-  return (
-    <span className={`tag-input-item-loai is-loai-${loai.replace(/_/g, "-")}`}>
-      {articleTagLabel(loai)}
-    </span>
-  );
-}
 
 type MenuPosition = {
   top: number;
@@ -464,7 +457,10 @@ export function TagInput({
                   />
                 ) : null}
                 <span className="tag-input-item-label">{exactMatch.tieu_de}</span>
-                <SuggestionLoaiBadge loai={exactMatch.loai_bai_viet} />
+                <TagSuggestionMeta
+                  loai={exactMatch.loai_bai_viet}
+                  linhVucTen={exactMatch.linh_vuc_ten}
+                />
               </button>
             ) : (
               <>
@@ -496,7 +492,10 @@ export function TagInput({
                         />
                       ) : null}
                       <span className="tag-input-item-label">{item.tag.tieu_de}</span>
-                      <SuggestionLoaiBadge loai={item.tag.loai_bai_viet} />
+                      <TagSuggestionMeta
+                        loai={item.tag.loai_bai_viet}
+                        linhVucTen={item.tag.linh_vuc_ten}
+                      />
                     </button>
                   ) : (
                     <button

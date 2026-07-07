@@ -3,17 +3,19 @@ import {
   Briefcase,
   Building2,
   Eye,
+  MapPin,
   Route,
   Users,
 } from "lucide-react";
 import Link from "next/link";
+import type { CSSProperties } from "react";
 
 import { HaOrgSuggestionRow } from "@/components/cins/home-adaptive/HaOrgSuggestionRow";
 import { HaUpdateProjectButton } from "@/components/cins/home-adaptive/HaUpdateProjectButton";
 import { HaUserSuggestionRow } from "@/components/cins/home-adaptive/HaUserSuggestionRow";
 import { ModuleCard, ModuleEmpty } from "@/components/cins/home-adaptive/ModuleCard";
 import type { HomeModuleCtx } from "@/components/cins/home-adaptive/types";
-import { loadCoHoiForHome } from "@/lib/cins/home-adaptive/co-hoi";
+import { loadCoHoiForHome, type CoHoiItem } from "@/lib/cins/home-adaptive/co-hoi";
 import { loadLoiMoiXacNhan } from "@/lib/cins/home-adaptive/fetches";
 import {
   loadFollowSuggestions,
@@ -26,26 +28,44 @@ import { giaiDoanLabel } from "@/lib/cins/home-adaptive/labels";
 export async function HoSoCuaBanModule({ ctx }: { ctx: HomeModuleCtx }) {
   const { percent, missing } = await loadProfileCompleteness(ctx.viewerId);
   const nextStep = missing[0];
+  const ready = percent >= 100;
 
   return (
-    <ModuleCard icon={Route} title="Hồ sơ của bạn">
-      <div className="ha-nudge">
-        <div className="ha-nudge-title">Hồ sơ đã đầy {percent}%</div>
-        <div className="ha-prog">
-          <i style={{ width: `${percent}%` }} />
+    <ModuleCard
+      icon={Route}
+      title="Hồ sơ của bạn"
+      badge={ready ? "Sẵn sàng" : `${percent}%`}
+      className={
+        ctx.seeking ? "ha-card--profile ha-card--accent" : "ha-card--profile"
+      }
+    >
+      <div className="ha-profile-body">
+        <div className="ha-profile-meter">
+          <div
+            className="ha-profile-ring"
+            style={{ "--ha-pct": percent } as CSSProperties}
+            aria-hidden
+          >
+            <span className="ha-profile-pct">{percent}%</span>
+          </div>
+          <div className="ha-profile-copy">
+            <p className="ha-profile-status">
+              {ready ? "Hồ sơ đã hoàn thiện" : "Đang hoàn thiện hồ sơ"}
+            </p>
+            <p className="ha-profile-hint">
+              {nextStep
+                ? `${nextStep} để studio dễ tìm thấy bạn.`
+                : "Hồ sơ của bạn đã sẵn sàng để studio tìm thấy."}
+            </p>
+          </div>
         </div>
-        {nextStep ? (
-          <div className="ha-nudge-hint">{nextStep} để studio dễ tìm thấy bạn</div>
-        ) : (
-          <div className="ha-nudge-hint">Hồ sơ của bạn đã sẵn sàng để studio tìm thấy.</div>
-        )}
-        <HaUpdateProjectButton viewerSlug={ctx.viewerSlug} />
+        <HaUpdateProjectButton viewerSlug={ctx.viewerSlug} className="ha-profile-cta" />
       </div>
       {ctx.seeking ? (
-        <div className="ha-vis-note">
+        <div className="ha-profile-open">
           <Eye size={15} strokeWidth={2} aria-hidden />
           <span>
-            <b>Đang mở cơ hội</b> — hồ sơ của bạn được đẩy tới studio đang tuyển.
+            <b>Đang mở cơ hội</b> — hồ sơ được đẩy tới studio đang tuyển.
           </span>
         </div>
       ) : null}
@@ -58,24 +78,27 @@ export async function NguoiCungNganhModule({ ctx }: { ctx: HomeModuleCtx }) {
   const people = await loadFollowSuggestions(ctx.viewerId, 4);
 
   return (
-    <ModuleCard icon={Users} title="Người cùng ngành">
+    <ModuleCard icon={Users} title="Người cùng ngành" className="ha-card--people">
       {people.length === 0 ? (
         <ModuleEmpty>Chưa có gợi ý kết nối.</ModuleEmpty>
       ) : (
-        people.map((p) => (
-          <HaUserSuggestionRow
-            key={p.id}
-            slug={p.slug}
-            name={p.name}
-            avatarUrl={p.avatarUrl}
-            isFriend={p.isFriend}
-            subtitle={
-              p.mutualCount > 0
-                ? `${p.mutualCount} bạn chung`
-                : giaiDoanLabel(p.giaiDoan)
-            }
-          />
-        ))
+        <div className="ha-people-list">
+          {people.map((p) => (
+            <HaUserSuggestionRow
+              key={p.id}
+              variant="person"
+              slug={p.slug}
+              name={p.name}
+              avatarUrl={p.avatarUrl}
+              isFriend={p.isFriend}
+              subtitle={
+                p.mutualCount > 0
+                  ? `${p.mutualCount} bạn chung`
+                  : giaiDoanLabel(p.giaiDoan)
+              }
+            />
+          ))}
+        </div>
       )}
     </ModuleCard>
   );
@@ -90,12 +113,69 @@ export async function GoiYStudioModule({ ctx }: { ctx: HomeModuleCtx }) {
   if (orgs.length === 0) return null;
 
   return (
-    <ModuleCard icon={Building2} title="Studio & doanh nghiệp" moreHref="/studio">
-      {orgs.map((o) => (
-        <HaOrgSuggestionRow key={o.id} org={o} />
-      ))}
+    <ModuleCard
+      icon={Building2}
+      title="Studio & doanh nghiệp"
+      moreHref="/studio"
+      className="ha-card--studio"
+    >
+      <div className="ha-studio-list">
+        {orgs.map((o) => (
+          <HaOrgSuggestionRow key={o.id} org={o} />
+        ))}
+      </div>
     </ModuleCard>
   );
+}
+
+function CoHoiJobRow({ job }: { job: CoHoiItem }) {
+  const chips: Array<{ key: string; label: string; sal?: boolean }> = [];
+  if (job.loaiHinhLabel) chips.push({ key: "loai", label: job.loaiHinhLabel });
+  if (job.place) chips.push({ key: "place", label: job.place });
+  if (job.linhVucTen) chips.push({ key: "lv", label: job.linhVucTen });
+  if (job.salary) chips.push({ key: "sal", label: job.salary, sal: true });
+
+  const body = (
+    <>
+      <div className="ha-job-title">{job.tieuDe}</div>
+      <div className="ha-job-org">
+        <span className="ha-job-org-av" aria-hidden>
+          {job.avatarUrl ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img src={job.avatarUrl} alt="" loading="lazy" />
+          ) : (
+            job.orgTen.slice(0, 2).toUpperCase()
+          )}
+        </span>
+        <span className="ha-job-org-name">{job.orgTen}</span>
+      </div>
+      {chips.length > 0 ? (
+        <div className="ha-job-chips">
+          {chips.map((chip) => (
+            <span
+              key={chip.key}
+              className={`ha-job-chip${chip.sal ? " ha-job-chip--sal" : ""}`}
+            >
+              {chip.key === "place" ? (
+                <MapPin size={10} strokeWidth={2.2} aria-hidden />
+              ) : null}
+              {chip.label}
+            </span>
+          ))}
+        </div>
+      ) : null}
+    </>
+  );
+
+  if (job.href) {
+    return (
+      <Link href={job.href} className="ha-job" prefetch={false}>
+        {body}
+      </Link>
+    );
+  }
+
+  return <div className="ha-job">{body}</div>;
 }
 
 export async function CoHoiModule({ ctx }: { ctx: HomeModuleCtx }) {
@@ -103,8 +183,8 @@ export async function CoHoiModule({ ctx }: { ctx: HomeModuleCtx }) {
   return (
     <ModuleCard
       icon={Briefcase}
-      title={ctx.seeking ? "Cơ hội cho bạn · đang mở" : "Cơ hội cho bạn"}
-      className={ctx.seeking ? "ha-card--accent" : undefined}
+      title="Cơ hội cho bạn"
+      className={ctx.seeking ? "ha-card--jobs ha-card--accent" : "ha-card--jobs"}
       moreHref="/tuyen-dung"
       moreLabel="Xem thêm"
     >
@@ -114,44 +194,11 @@ export async function CoHoiModule({ ctx }: { ctx: HomeModuleCtx }) {
           thông báo khi có vị trí mới.
         </ModuleEmpty>
       ) : (
-        jobs.map((job) => {
-          const inner = (
-            <>
-              <span className="ha-trow-th" aria-hidden>
-                {job.avatarUrl ? (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img src={job.avatarUrl} alt="" loading="lazy" />
-                ) : (
-                  job.orgTen.slice(0, 2).toUpperCase()
-                )}
-              </span>
-              <div className="ha-trow-meta">
-                <div className="ha-trow-name">{job.tieuDe}</div>
-                <div className="ha-trow-sub ha-trow-sub-text">{job.orgTen}</div>
-                {(() => {
-                  const tags = [
-                    job.loaiHinhLabel,
-                    job.place,
-                    job.linhVucTen,
-                    job.salary,
-                  ].filter(Boolean);
-                  return tags.length > 0 ? (
-                    <div className="ha-trow-tags">{tags.join(", ")}</div>
-                  ) : null;
-                })()}
-              </div>
-            </>
-          );
-          return job.href ? (
-            <Link key={job.id} href={job.href} className="ha-trow ha-trow--link" prefetch={false}>
-              {inner}
-            </Link>
-          ) : (
-            <div key={job.id} className="ha-trow">
-              {inner}
-            </div>
-          );
-        })
+        <div className="ha-job-list">
+          {jobs.map((job) => (
+            <CoHoiJobRow key={job.id} job={job} />
+          ))}
+        </div>
       )}
     </ModuleCard>
   );
@@ -163,33 +210,29 @@ export async function CoHoiModule({ ctx }: { ctx: HomeModuleCtx }) {
 export async function LoiMoiXacNhanModule({ ctx }: { ctx: HomeModuleCtx }) {
   const invites = await loadLoiMoiXacNhan(ctx.viewerId, 4);
   return (
-    <ModuleCard icon={BadgeCheck} title="Lời mời xác nhận">
+    <ModuleCard icon={BadgeCheck} title="Lời mời xác nhận" className="ha-card--invites">
       {invites.length === 0 ? (
         <ModuleEmpty>Không có lời mời xác nhận nào đang chờ.</ModuleEmpty>
       ) : (
-        invites.map((inv) => (
-          <div key={`${inv.kind}:${inv.id}`} className="ha-row">
-            <div className="ha-row-meta">
-              <div className="ha-row-name">{inv.orgName}</div>
-              <div className="ha-row-sub">{inv.label}</div>
+        <div className="ha-invite-list">
+          {invites.map((inv) => (
+            <div key={`${inv.kind}:${inv.id}`} className="ha-invite">
+              <div className="ha-invite-meta">
+                <div className="ha-invite-name">{inv.orgName}</div>
+                <div className="ha-invite-sub">{inv.label}</div>
+              </div>
+              {inv.orgSlug ? (
+                <Link
+                  href={inv.kind === "staff" ? `/co-so/${inv.orgSlug}` : "#"}
+                  className="ha-invite-btn"
+                  prefetch={false}
+                >
+                  Phản hồi
+                </Link>
+              ) : null}
             </div>
-            {inv.orgSlug ? (
-              <Link
-                href={inv.kind === "staff" ? `/co-so/${inv.orgSlug}` : "#"}
-                className="ha-btn-full"
-                style={{
-                  width: "auto",
-                  padding: "8px 13px",
-                  fontSize: 12,
-                  flexShrink: 0,
-                }}
-                prefetch={false}
-              >
-                Phản hồi
-              </Link>
-            ) : null}
-          </div>
-        ))
+          ))}
+        </div>
       )}
     </ModuleCard>
   );

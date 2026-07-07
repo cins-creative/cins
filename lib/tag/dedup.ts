@@ -16,7 +16,11 @@ export type TagDedupMatch = {
   tieu_de: string;
   da_verify: boolean;
   loai_bai_viet: PickableTagLoai;
+  /** `linh_vuc.ten` qua `article_bai_viet.id_linh_vuc` — chủ yếu bài `nghe`. */
+  linh_vuc_ten?: string | null;
 };
+
+type LinhVucEmbed = { ten?: string | null } | { ten?: string | null }[] | null;
 
 type TagRow = {
   id: string;
@@ -25,7 +29,26 @@ type TagRow = {
   tieu_de_eng?: string | null;
   da_verify: boolean | null;
   loai_bai_viet: PickableTagLoai | string | null;
+  linh_vuc?: LinhVucEmbed;
+  linh_vuc_ten?: string | null;
 };
+
+function parseLinhVucTen(raw: LinhVucEmbed): string | null {
+  const node = Array.isArray(raw) ? raw[0] : raw;
+  if (!node || typeof node !== "object") return null;
+  const ten = String(node.ten ?? "").trim();
+  return ten || null;
+}
+
+function toTagDedupMatch(row: TagRow): TagDedupMatch {
+  return {
+    id: row.id,
+    tieu_de: row.tieu_de,
+    da_verify: row.da_verify === true,
+    loai_bai_viet: parsePickableTagLoai(row.loai_bai_viet),
+    linh_vuc_ten: row.linh_vuc_ten ?? parseLinhVucTen(row.linh_vuc ?? null) ?? null,
+  };
+}
 
 const SUGGEST_MENU_MAX = 12;
 const SUGGEST_FETCH_MAX = 40;
@@ -83,18 +106,13 @@ async function loadTagMatch(id: string): Promise<TagDedupMatch | null> {
   const admin = createServiceRoleClient();
   const { data } = await admin
     .from("article_bai_viet")
-    .select("id, tieu_de, da_verify, loai_bai_viet")
+    .select("id, tieu_de, da_verify, loai_bai_viet, linh_vuc:id_linh_vuc(ten)")
     .eq("id", id)
     .in("loai_bai_viet", [...PICKABLE_TAG_LOAI])
     .eq("trang_thai_noi_dung", "published")
     .maybeSingle<TagRow>();
   if (!data?.id) return null;
-  return {
-    id: data.id,
-    tieu_de: data.tieu_de,
-    da_verify: data.da_verify === true,
-    loai_bai_viet: parsePickableTagLoai(data.loai_bai_viet),
-  };
+  return toTagDedupMatch(data);
 }
 
 function scoreFallbackMatch(query: string, candidate: string): number {
@@ -194,36 +212,42 @@ async function suggestFuzzyViaTrigram(
           tieu_de: string;
           da_verify: boolean;
           loai_bai_viet: string;
+          linh_vuc_ten: string | null;
           sim: number;
         }[]
       >`
         SELECT
-          id,
-          tieu_de,
-          da_verify,
-          loai_bai_viet,
+          abv.id,
+          abv.tieu_de,
+          abv.da_verify,
+          abv.loai_bai_viet,
+          lv.ten AS linh_vuc_ten,
           GREATEST(
-            similarity(lower(trim(tieu_de)), ${normalized}),
-            similarity(lower(trim(coalesce(tieu_de_viet, ''))), ${normalized}),
-            similarity(lower(trim(coalesce(tieu_de_eng, ''))), ${normalized})
+            similarity(lower(trim(abv.tieu_de)), ${normalized}),
+            similarity(lower(trim(coalesce(abv.tieu_de_viet, ''))), ${normalized}),
+            similarity(lower(trim(coalesce(abv.tieu_de_eng, ''))), ${normalized})
           ) AS sim
-        FROM article_bai_viet
-        WHERE loai_bai_viet IN ('keyword', 'phan_mem', 'mon_hoc', 'nganh_dao_tao', 'nghe')
-          AND trang_thai_noi_dung = 'published'
+        FROM article_bai_viet abv
+        LEFT JOIN linh_vuc lv ON lv.id = abv.id_linh_vuc
+        WHERE abv.loai_bai_viet IN ('keyword', 'phan_mem', 'mon_hoc', 'nganh_dao_tao', 'nghe')
+          AND abv.trang_thai_noi_dung = 'published'
           AND (
-            similarity(lower(trim(tieu_de)), ${normalized}) > 0.25
-            OR similarity(lower(trim(coalesce(tieu_de_viet, ''))), ${normalized}) > 0.25
-            OR similarity(lower(trim(coalesce(tieu_de_eng, ''))), ${normalized}) > 0.25
+            similarity(lower(trim(abv.tieu_de)), ${normalized}) > 0.25
+            OR similarity(lower(trim(coalesce(abv.tieu_de_viet, ''))), ${normalized}) > 0.25
+            OR similarity(lower(trim(coalesce(abv.tieu_de_eng, ''))), ${normalized}) > 0.25
           )
-        ORDER BY da_verify DESC, sim DESC
+        ORDER BY abv.da_verify DESC, sim DESC
         LIMIT ${SUGGEST_FETCH_MAX}
       `;
-      const matches = rows.map((r) => ({
-        id: r.id,
-        tieu_de: r.tieu_de,
-        da_verify: r.da_verify === true,
-        loai_bai_viet: parsePickableTagLoai(r.loai_bai_viet),
-      }));
+      const matches = rows.map((r) =>
+        toTagDedupMatch({
+          id: r.id,
+          tieu_de: r.tieu_de,
+          da_verify: r.da_verify,
+          loai_bai_viet: r.loai_bai_viet,
+          linh_vuc_ten: r.linh_vuc_ten,
+        }),
+      );
       const scores = new Map(matches.map((m, i) => [m.id, rows[i]?.sim ?? 0]));
       return pickDiverseSuggestions(matches, scores);
     } catch (err) {
@@ -248,7 +272,9 @@ async function suggestFuzzyViaIlike(
 
   const { data } = await admin
     .from("article_bai_viet")
-    .select("id, tieu_de, tieu_de_viet, tieu_de_eng, da_verify, loai_bai_viet")
+    .select(
+      "id, tieu_de, tieu_de_viet, tieu_de_eng, da_verify, loai_bai_viet, linh_vuc:id_linh_vuc(ten)",
+    )
     .in("loai_bai_viet", [...PICKABLE_TAG_LOAI])
     .eq("trang_thai_noi_dung", "published")
     .or(
@@ -261,12 +287,7 @@ async function suggestFuzzyViaIlike(
     .map((row) => {
       const score = scoreTagTitles(normalized, row);
       return {
-        match: {
-          id: row.id,
-          tieu_de: row.tieu_de,
-          da_verify: row.da_verify === true,
-          loai_bai_viet: parsePickableTagLoai(row.loai_bai_viet),
-        },
+        match: toTagDedupMatch(row),
         score,
       };
     })
@@ -344,7 +365,9 @@ async function loadAiCandidatePool(
   const [verified, fuzzy] = await Promise.all([
     admin
       .from("article_bai_viet")
-      .select("id, tieu_de, da_verify, loai_bai_viet")
+      .select(
+        "id, tieu_de, da_verify, loai_bai_viet, linh_vuc:id_linh_vuc(ten)",
+      )
       .in("loai_bai_viet", [...PICKABLE_TAG_LOAI])
       .eq("trang_thai_noi_dung", "published")
       .eq("da_verify", true)
@@ -353,7 +376,9 @@ async function loadAiCandidatePool(
     pattern.length >= 2
       ? admin
           .from("article_bai_viet")
-          .select("id, tieu_de, da_verify, loai_bai_viet")
+          .select(
+            "id, tieu_de, da_verify, loai_bai_viet, linh_vuc:id_linh_vuc(ten)",
+          )
           .in("loai_bai_viet", [...PICKABLE_TAG_LOAI])
           .eq("trang_thai_noi_dung", "published")
           .or(
@@ -369,13 +394,7 @@ async function loadAiCandidatePool(
     const id = String(row.id);
     if (seen.has(id)) continue;
     seen.add(id);
-    const typed = row as TagRow;
-    out.push({
-      id,
-      tieu_de: String(typed.tieu_de ?? ""),
-      da_verify: typed.da_verify === true,
-      loai_bai_viet: parsePickableTagLoai(typed.loai_bai_viet),
-    });
+    out.push(toTagDedupMatch(row as TagRow));
     if (out.length >= 50) break;
   }
   return out;

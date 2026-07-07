@@ -11,6 +11,8 @@ type Props = {
   subtitle: string;
   /** Đã là bạn bè (kết bạn) → hiện icon nhỏ cạnh tên. */
   isFriend?: boolean;
+  /** `person` — danh sách gọn trong card Người cùng ngành. */
+  variant?: "default" | "person";
 };
 
 /** Một dòng gợi ý người — click avatar/tên mở card hồ sơ. */
@@ -20,9 +22,12 @@ export function HaUserSuggestionRow({
   avatarUrl,
   subtitle,
   isFriend = false,
+  variant = "default",
 }: Props) {
+  const rowClass = variant === "person" ? "ha-person" : "ha-row";
+
   return (
-    <div className="ha-row">
+    <div className={rowClass}>
       <JourneyUserPopover
         slug={slug}
         fallbackName={name}

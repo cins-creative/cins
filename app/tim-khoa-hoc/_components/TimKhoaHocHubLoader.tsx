@@ -30,6 +30,7 @@ export async function TimKhoaHocHubLoader({ q, loai }: Props) {
       activeNhomLabel: null,
       nganhGroups: [],
       sampleNganh: [],
+      listError: undefined,
     }),
   ]);
 

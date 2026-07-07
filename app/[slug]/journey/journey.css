@@ -854,6 +854,14 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
 .j-gallery-main .j-tlb-filters > .j-tlb-filter {
   position: relative;
 }
+/* Gallery toolbar — dropdown gọn, cao khớp .j-gallery-view-toggle (36px) */
+.j-gallery-main .j-tlb-filters .j-tlb-dd-btn {
+  height: 36px;
+  min-width: 0;
+  padding: 0 10px;
+  gap: 6px;
+  font-size: 12px;
+}
 .j-gallery-media-dd-menu .j-gallery-dd-opt {
   grid-template-columns: 1fr auto;
 }
@@ -12230,10 +12238,37 @@ select.j-edit-input {
   font-size: 12px;
   line-height: 1.5;
   color: var(--ink-body);
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
+  white-space: normal;
+}
+
+.j-tag-tip--media {
+  width: min(260px, calc(100vw - 24px));
+  padding: 0;
   overflow: hidden;
+}
+
+.j-tag-tip-media {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: var(--neutral-50, #f8fafc);
+}
+
+.j-tag-tip-thumb {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+.j-tag-tip-body {
+  padding: 10px 12px 12px;
 }
 
 /* Vai trò đồng tác giả — khớp bài nghề */
@@ -12729,6 +12764,22 @@ select.j-edit-input {
 .j-m-card.jcard--video .jcard-media-zone .jcard-video-root > .jcard-video-player.is-canvas-3-4,
 .j-m-card.jcard--video .jcard-media-zone .jcard-video-root > .jcard-video-player.is-canvas-1-1 {
   min-height: 0;
+}
+
+/* Timeline video card — nền đen (#000) quanh khung video (cover/contain). */
+.j-m-card.jcard--video .jcard-media-zone :is(
+  .jcard-video-root,
+  .jcard-video-player,
+  .jcard-video-trigger,
+  .preview.preview--video
+) {
+  background: #000;
+}
+
+.j-m-card.jcard--video .jcard-media-zone .jcard-video-native {
+  object-fit: cover;
+  object-position: center;
+  background: #000;
 }
 
 /* Video dọc / vuông — khung hẹp căn giữa; landscape giữ full bleed + max-height 420. */

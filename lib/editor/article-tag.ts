@@ -16,6 +16,8 @@ export type ArticleTagRef = {
   da_verify?: boolean;
   /** Slug lĩnh vực (`article_bai_viet.id_linh_vuc`) — dùng filter feed theo lĩnh vực. */
   linh_vuc_slug?: string | null;
+  /** URL thumbnail bài tag (`article_bai_viet.thumbnail`) — tooltip Journey. */
+  thumb_url?: string | null;
 };
 
 /* ─── Shared label + color class helpers ─────────────────────────────

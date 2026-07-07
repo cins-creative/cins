@@ -21,6 +21,7 @@ import {
 import { createPortal } from "react-dom";
 
 import { CongDongFilterChip } from "@/components/cong-dong/CongDongFilterChip";
+import { useJourneyCompose } from "@/components/journey/JourneyComposeContext";
 import { getCongDongPostMenuPermissions } from "@/lib/cong-dong/post-permissions";
 import { congDongPostPermalink } from "@/lib/cong-dong/post-permalink";
 import type { CongDongFilter, CongDongPost } from "@/lib/cong-dong/types";
@@ -87,6 +88,7 @@ function CongDongPostMenuInner({
   const [editError, setEditError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const { openCompose, canCompose } = useJourneyCompose();
 
   const close = useCallback(() => {
     setOpen(false);
@@ -279,15 +281,33 @@ function CongDongPostMenuInner({
               </button>
             ) : null}
             {perms.canEditJourney && post.journeyMirror ? (
-              <Link
-                href={`/${journeyOwnerSlug}/p/${post.journeyMirror.postSlug}/edit`}
-                className="cd-v4-role-menu-btn"
-                role="menuitem"
-                onClick={close}
-              >
-                <Pencil size={15} strokeWidth={2} aria-hidden />
-                <span>Sửa bài viết</span>
-              </Link>
+              canCompose ? (
+                <button
+                  type="button"
+                  className="cd-v4-role-menu-btn"
+                  role="menuitem"
+                  onClick={() => {
+                    close();
+                    openCompose({
+                      kind: "edit",
+                      postSlug: post.journeyMirror!.postSlug,
+                    });
+                  }}
+                >
+                  <Pencil size={15} strokeWidth={2} aria-hidden />
+                  <span>Sửa bài viết</span>
+                </button>
+              ) : (
+                <Link
+                  href={`/${journeyOwnerSlug}/p/${post.journeyMirror.postSlug}/edit`}
+                  className="cd-v4-role-menu-btn"
+                  role="menuitem"
+                  onClick={close}
+                >
+                  <Pencil size={15} strokeWidth={2} aria-hidden />
+                  <span>Sửa bài viết</span>
+                </Link>
+              )
             ) : null}
             {perms.canViewJourney && postPermalink ? (
               <Link

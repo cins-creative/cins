@@ -29,6 +29,11 @@ export async function buildJourneyMetadata(
   const description =
     ctx?.description ?? `Hành trình sáng tạo của ${slug} trên CINS.`;
 
+  const ogImagePath =
+    kind === "gallery"
+      ? `/${encodeURIComponent(slug)}/opengraph-image?view=gallery`
+      : `/${encodeURIComponent(slug)}/opengraph-image`;
+
   return {
     metadataBase: new URL(siteOrigin),
     title,
@@ -41,7 +46,7 @@ export async function buildJourneyMetadata(
       siteName: "CINs",
       locale: "vi_VN",
       type: "profile",
-      images: [{ alt: title }],
+      images: [{ url: ogImagePath, alt: title }],
     },
     twitter: {
       card: "summary_large_image",

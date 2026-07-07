@@ -125,7 +125,6 @@ async function JourneyProfileInitialLoader({
   isOwner,
   viewerProfileId,
   filterVisibility,
-  initialCompose,
 }: {
   activeView: JourneyProfileView;
   ownerId: string;
@@ -136,7 +135,6 @@ async function JourneyProfileInitialLoader({
   isOwner: boolean;
   viewerProfileId: string | null;
   filterVisibility: LoaiMocVisibilityMap;
-  initialCompose?: JourneyComposeState | null;
 }) {
   const initialData = await loadInitialData(activeView, {
     ownerId,
@@ -156,7 +154,6 @@ async function JourneyProfileInitialLoader({
       isOwner={isOwner}
       viewerProfileId={viewerProfileId}
       filterVisibility={filterVisibility}
-      initialCompose={initialCompose}
     />
   );
 }
@@ -195,10 +192,13 @@ export function JourneyProfileShell({
         aiSummaryJourney: owner.ai_summary_journey,
         giaiDoan: owner.giai_doan,
       }}
+      ownerId={owner.id}
+      ownerAvatarId={owner.avatar_id}
       isOwner={isOwner}
       editProfileInitial={editProfileInitial}
       viewerProfileId={viewerProfileId}
       initialKetBanStatus={initialKetBanStatus}
+      initialCompose={initialCompose}
       countsPromise={countsPromise}
       mainPanel={
         <Suspense
@@ -224,7 +224,6 @@ export function JourneyProfileShell({
             isOwner={isOwner}
             viewerProfileId={viewerProfileId}
             filterVisibility={filterVisibility}
-            initialCompose={initialCompose}
           />
         </Suspense>
       }

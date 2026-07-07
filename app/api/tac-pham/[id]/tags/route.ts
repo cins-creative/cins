@@ -106,5 +106,6 @@ export async function PUT(req: Request, ctx: RouteCtx) {
     return NextResponse.json({ error: result.error }, { status: 400 });
   }
 
-  return NextResponse.json({ ok: true, tags: normalized });
+  const tags = await loadTacPhamArticleTags(admin, tacPhamId);
+  return NextResponse.json({ ok: true, tags });
 }

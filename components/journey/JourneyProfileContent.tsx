@@ -14,15 +14,12 @@ import {
   prefetchJourneyGalleryView,
   prefetchJourneyOrganizationsView,
 } from "@/components/journey/journey-profile-lazy-views";
-import { JourneyComposeProvider } from "@/components/journey/JourneyComposeContext";
 import { JourneyFilterShareProvider } from "@/components/journey/JourneyFilterShareContext";
-import { BunnyVideoProcessingPoller } from "@/components/journey/BunnyVideoProcessingPoller";
 import { JourneyTimeline } from "@/components/journey/JourneyTimeline";
 import { JourneyPersonalFilterProvider } from "@/components/journey/JourneyPersonalFilterContext";
 import { useJourneyView } from "@/components/journey/JourneyViewContext";
 import type { MilestoneItem } from "@/components/journey/milestone-types";
 import type { LoaiMocVisibilityMap } from "@/lib/journey/filter-visibility";
-import type { JourneyComposeState } from "@/lib/journey/compose-types";
 import {
   hydrateJourneyPanelsFromLocalStorage,
   isJourneyPanelCacheStale,
@@ -114,7 +111,6 @@ type Props = {
   isOwner: boolean;
   viewerProfileId: string | null;
   filterVisibility: LoaiMocVisibilityMap;
-  initialCompose?: JourneyComposeState | null;
 };
 
 export function JourneyProfileContent({
@@ -127,7 +123,6 @@ export function JourneyProfileContent({
   isOwner,
   viewerProfileId,
   filterVisibility,
-  initialCompose = null,
 }: Props) {
   const { view } = useJourneyView();
 
@@ -693,15 +688,6 @@ export function JourneyProfileContent({
         profile={filterShareProfile}
         viewerProfileId={viewerProfileId}
       >
-      <JourneyComposeProvider
-        ownerId={ownerId}
-        ownerSlug={ownerSlug}
-        ownerName={ownerName}
-        ownerAvatarId={ownerAvatarId}
-        isOwner={isOwner}
-        initialCompose={initialCompose}
-      >
-        {isOwner ? <BunnyVideoProcessingPoller ownerSlug={ownerSlug} /> : null}
       {view === "gallery" ? (
         galleryCache === "loading" || galleryCache === null ? (
           <JourneyGalleryMainSectionSkeleton />
@@ -781,7 +767,6 @@ export function JourneyProfileContent({
           }}
         />
       )}
-      </JourneyComposeProvider>
       </JourneyFilterShareProvider>
     </JourneyPersonalFilterProvider>
   );

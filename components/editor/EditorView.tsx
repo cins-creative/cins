@@ -147,6 +147,7 @@ import {
 } from "@/lib/journey/compose-preview-kind";
 import { useEditorVideoUpload } from "@/lib/journey/use-editor-video-upload";
 import { readImageFileDimensions } from "@/lib/journey/probe-image-dimensions";
+import { videoCanvasRatioClass } from "@/lib/journey/video-canvas-ratio";
 import { bunnyIframeSrc, classifyBunnyVideoUrl } from "@/lib/bunny/embed";
 
 type ImageUploadTrack = {

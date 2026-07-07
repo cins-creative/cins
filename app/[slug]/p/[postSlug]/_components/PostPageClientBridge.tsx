@@ -1,15 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import type { MilestonePostDetail } from "@/lib/journey/milestone-post-types";
 import { JourneyPostBody } from "@/components/journey/JourneyPostBody";
+import { BunnyVideoProcessingPoller } from "@/components/journey/BunnyVideoProcessingPoller";
+import { JourneyComposeProvider } from "@/components/journey/JourneyComposeContext";
 import {
   isPostPageCacheStale,
   writePostPageCache,
 } from "@/lib/journey/post-local-cache";
 import { POST_COMMENTS_SYNC_EVENT } from "@/lib/journey/comments-sync-client";
 import { milestoneContentKind } from "@/lib/journey/post-media";
+import { parseComposeSearchParams } from "@/lib/journey/compose-types";
 
 type Props = {
   ownerSlug: string;
@@ -81,7 +84,15 @@ export function PostPageClientBridge({
       .catch(() => undefined);
   }, [ownerSlug, postSlug]);
 
-  return (
+  const initialCompose = useMemo(
+    () =>
+      typeof window === "undefined"
+        ? null
+        : parseComposeSearchParams(new URLSearchParams(window.location.search)),
+    [],
+  );
+
+  const body = (
     <JourneyPostBody
       initialDetail={detail}
       postSlug={postSlugFromDb}
@@ -91,5 +102,21 @@ export function PostPageClientBridge({
       commentCountOverride={commentCountOverride}
       commentsSlot={commentsSlot}
     />
+  );
+
+  if (!isOwner) return body;
+
+  return (
+    <JourneyComposeProvider
+      ownerId={detail.owner.id}
+      ownerSlug={ownerSlug}
+      ownerName={detail.owner.tenHienThi}
+      ownerAvatarId={detail.owner.avatarId}
+      isOwner
+      initialCompose={initialCompose}
+    >
+      <BunnyVideoProcessingPoller ownerSlug={ownerSlug} />
+      {body}
+    </JourneyComposeProvider>
   );
 }

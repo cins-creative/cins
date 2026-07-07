@@ -79,7 +79,7 @@ type Props = {
    ║ JourneyMilestoneOwnerMenu — kebab (3 chấm) trên góc phải card.   ║
    ║                                                                  ║
    ║ Chỉ render khi viewer là owner. Mở submenu cấp 2 cho "Nhóm" và   ║
-   ║ "Hiển thị"; "Sửa bài viết" link sang editor, "Xoá" có confirm.   ║
+   ║ "Hiển thị"; "Sửa bài viết" mở overlay compose; "Xoá" có confirm.   ║
    ║                                                                  ║
    ║ Click ngoài / Escape → đóng menu. Submenu hover-overlap chống   ║
    ║ flicker bằng `setTimeout(0)` defer cho `onMouseLeave`.            ║
@@ -313,10 +313,6 @@ export function JourneyMilestoneOwnerMenu({
   }
 
   const linkOwnerSlug = permalinkOwnerSlug || ownerSlug;
-  const editHref =
-    !hideEdit && postSlug !== null && postSlug.length > 0
-      ? `/${linkOwnerSlug}/p/${postSlug}/edit`
-      : null;
   const viewHref =
     postSlug !== null && postSlug.length > 0
       ? `/${linkOwnerSlug}/p/${postSlug}`
@@ -425,13 +421,11 @@ export function JourneyMilestoneOwnerMenu({
                 type="button"
                 className="j-m-menu-item"
                 role="menuitem"
+                disabled={!canCompose}
                 onClick={() => {
                   close();
-                  if (canCompose) {
-                    openCompose({ kind: "edit", postSlug });
-                  } else if (editHref) {
-                    window.location.href = editHref;
-                  }
+                  if (!canCompose || !postSlug) return;
+                  openCompose({ kind: "edit", postSlug });
                 }}
               >
                 <span className="j-m-menu-ico" aria-hidden>

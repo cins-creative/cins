@@ -12,7 +12,6 @@ import {
 import { createPortal } from "react-dom";
 
 import {
-  articleTagLabel,
   type ArticleTagRef,
 } from "@/lib/editor/article-tag";
 import type { AtHashTrigger } from "@/lib/editor/use-at-hash-trigger";
@@ -24,6 +23,7 @@ import {
   type PickableTagLoai,
 } from "@/lib/tag/tag-loai";
 
+import { TagSuggestionMeta } from "@/components/tag/TagSuggestionMeta";
 import "@/components/tag/tag-input.css";
 
 const USER_MENU_W = 320;
@@ -44,6 +44,7 @@ type TagDedupMatch = {
   tieu_de: string;
   da_verify: boolean;
   loai_bai_viet: PickableTagLoai;
+  linh_vuc_ten?: string | null;
 };
 
 type LoaiFilter = PickableTagLoai | "all";
@@ -542,11 +543,10 @@ export function EditorTagMenu({
                 />
               ) : null}
               <span className="tag-input-item-label">{exactMatch.tieu_de}</span>
-              <span
-                className={`tag-input-item-loai is-loai-${exactMatch.loai_bai_viet.replace(/_/g, "-")}`}
-              >
-                {articleTagLabel(exactMatch.loai_bai_viet)}
-              </span>
+              <TagSuggestionMeta
+                loai={exactMatch.loai_bai_viet}
+                linhVucTen={exactMatch.linh_vuc_ten}
+              />
             </button>
           ) : (
             <>
@@ -583,11 +583,10 @@ export function EditorTagMenu({
                     <span className="tag-input-item-label">
                       {item.tag.tieu_de}
                     </span>
-                    <span
-                      className={`tag-input-item-loai is-loai-${item.tag.loai_bai_viet.replace(/_/g, "-")}`}
-                    >
-                      {articleTagLabel(item.tag.loai_bai_viet)}
-                    </span>
+                    <TagSuggestionMeta
+                      loai={item.tag.loai_bai_viet}
+                      linhVucTen={item.tag.linh_vuc_ten}
+                    />
                   </button>
                 ) : (
                   <button

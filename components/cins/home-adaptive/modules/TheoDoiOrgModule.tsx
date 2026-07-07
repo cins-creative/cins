@@ -15,7 +15,7 @@ export async function TheoDoiOrgModule({ ctx }: { ctx: HomeModuleCtx }) {
   );
 
   return (
-    <ModuleCard icon={BellRing} title="Sự kiện & thông báo">
+    <ModuleCard icon={BellRing} title="Sự kiện & thông báo" className="ha-card--notify">
       {items.length === 0 ? (
         <ModuleEmpty>
           Chưa có sự kiện hay mốc thông báo sắp tới — bấm Quan tâm hoặc Sẽ tham

@@ -10,14 +10,21 @@ import { useJourneyCompose } from "@/components/journey/JourneyComposeContext";
  * Owner → mở trình soạn bài viết ngay (overlay), khỏi rời trang.
  * Khách/không có quyền → điều hướng sang Journey như cũ.
  */
-export function HaUpdateProjectButton({ viewerSlug }: { viewerSlug: string }) {
+export function HaUpdateProjectButton({
+  viewerSlug,
+  className,
+}: {
+  viewerSlug: string;
+  className?: string;
+}) {
   const { openCompose, canCompose } = useJourneyCompose();
+  const btnClass = className ? `ha-btn-full ${className}` : "ha-btn-full";
 
   if (canCompose) {
     return (
       <button
         type="button"
-        className="ha-btn-full"
+        className={btnClass}
         onClick={() => openCompose({ kind: "article", intent: "minimal" })}
       >
         <Plus size={15} strokeWidth={2} aria-hidden />
@@ -27,7 +34,7 @@ export function HaUpdateProjectButton({ viewerSlug }: { viewerSlug: string }) {
   }
 
   return (
-    <Link href={`/${viewerSlug}/journey`} className="ha-btn-full" prefetch={false}>
+    <Link href={`/${viewerSlug}/journey`} className={btnClass} prefetch={false}>
       <Plus size={15} strokeWidth={2} aria-hidden />
       Cập nhật dự án mới
     </Link>

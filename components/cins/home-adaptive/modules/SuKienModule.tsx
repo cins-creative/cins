@@ -34,7 +34,7 @@ export async function SuKienModule({ ctx }: { ctx: HomeModuleCtx }) {
   const events = showGlobal ? globalEvents : supplemental;
 
   return (
-    <ModuleCard icon={CalendarDays} title="Sự kiện sắp tới">
+    <ModuleCard icon={CalendarDays} title="Sự kiện sắp tới" className="ha-card--notify">
       {events.length === 0 ? (
         <ModuleEmpty>Chưa có sự kiện sắp tới cho nhóm của bạn.</ModuleEmpty>
       ) : (

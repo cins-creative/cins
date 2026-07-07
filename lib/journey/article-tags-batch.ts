@@ -2,6 +2,7 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { resolveArticleThumbnailOnlySync } from "@/lib/bai-viet/thumbnail";
 import type { ArticleTagRef } from "@/lib/editor/article-tag";
 
 /* ╔══════════════════════════════════════════════════════════════════╗
@@ -28,6 +29,7 @@ type GanRow = {
     loai_bai_viet?: string | null;
     tom_tat?: string | null;
     da_verify?: boolean | null;
+    thumbnail?: string | null;
     linh_vuc?: { slug?: string | null } | null;
   } | null;
 };
@@ -42,7 +44,7 @@ export async function fetchArticleTagsForTacPham(
   const { data } = await admin
     .from("article_gan_tac_pham")
     .select(
-      "id_tac_pham, article_bai_viet ( id, slug, tieu_de, loai_bai_viet, tom_tat, da_verify, linh_vuc:id_linh_vuc ( slug ) )",
+      "id_tac_pham, article_bai_viet ( id, slug, tieu_de, loai_bai_viet, tom_tat, da_verify, thumbnail, linh_vuc:id_linh_vuc ( slug ) )",
     )
     .in("id_tac_pham", tacPhamIds as string[])
     .returns<GanRow[]>();
@@ -58,6 +60,7 @@ export async function fetchArticleTagsForTacPham(
       tom_tat: a.tom_tat?.trim() || null,
       da_verify: a.da_verify === true,
       linh_vuc_slug: a.linh_vuc?.slug?.trim() || null,
+      thumb_url: resolveArticleThumbnailOnlySync(a.thumbnail),
     };
     const arr = out.get(row.id_tac_pham);
     if (arr) arr.push(tag);

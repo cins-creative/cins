@@ -25,7 +25,7 @@ export function EntityLightTimeline({
   const [view, setView] = useState<EntityViewMode>("timeline");
 
   return (
-    <section className="entity-light-works" aria-label="Tác phẩm gắn tag">
+    <section className="entity-light-works" aria-label="Tác phẩm">
       <EntityLightToolbar
         workCount={milestones.length}
         sort={sort}
@@ -33,17 +33,19 @@ export function EntityLightTimeline({
         onViewChange={setView}
       />
 
-      {milestones.length === 0 ? (
-        <p className="entity-light-empty">Chưa có tác phẩm nào gắn tag này.</p>
-      ) : view === "grid" ? (
-        <EntityLightGrid milestones={milestones} />
-      ) : (
-        <EntityLightJourneyFeed
-          milestones={milestones}
-          sort={sort}
-          viewerProfileId={viewerProfileId}
-        />
-      )}
+      <div className="entity-light-works-content">
+        {milestones.length === 0 ? (
+          <p className="entity-light-empty">Chưa có tác phẩm nào gắn tag này.</p>
+        ) : view === "grid" ? (
+          <EntityLightGrid milestones={milestones} />
+        ) : (
+          <EntityLightJourneyFeed
+            milestones={milestones}
+            sort={sort}
+            viewerProfileId={viewerProfileId}
+          />
+        )}
+      </div>
     </section>
   );
 }

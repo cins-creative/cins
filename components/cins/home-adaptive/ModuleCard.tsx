@@ -5,6 +5,8 @@ import type { ReactNode } from "react";
 type ModuleCardProps = {
   icon?: LucideIcon;
   title: string;
+  /** Pill nhỏ cạnh tiêu đề (vd. «Đang mở»). */
+  badge?: string;
   /** Link "xem tất cả" góc phải header. */
   moreHref?: string;
   moreLabel?: string;
@@ -16,6 +18,7 @@ type ModuleCardProps = {
 export function ModuleCard({
   icon: Icon,
   title,
+  badge,
   moreHref,
   moreLabel = "Xem tất cả",
   className,
@@ -26,6 +29,7 @@ export function ModuleCard({
       <div className="ha-card-head">
         {Icon ? <Icon size={16} strokeWidth={2} aria-hidden /> : null}
         <span className="ha-card-title">{title}</span>
+        {badge ? <span className="ha-card-badge">{badge}</span> : null}
         {moreHref ? (
           <Link href={moreHref} className="ha-card-more" prefetch={false}>
             {moreLabel}

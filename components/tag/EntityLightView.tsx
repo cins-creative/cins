@@ -64,75 +64,81 @@ export async function EntityLightView({ article, sort }: Props) {
 
   return (
     <article className="entity-light-page">
-      <header className="entity-light-hero">
-        <div className="entity-light-hero-main">
-          <span className={`entity-light-badge ${loaiBadgeClass(article.loai_bai_viet)}`}>
-            {loaiLabel(article.loai_bai_viet)}
-          </span>
-          <div className="entity-light-title-row">
-            <h1 className="entity-light-title">{article.tieu_de}</h1>
-            {verified ? (
-              <span className="entity-light-verified">
-                <BadgeCheck size={16} strokeWidth={2.2} aria-hidden />
-                Verified
+      <header className="entity-light-header">
+        <div className="entity-light-header-inner">
+          <div className="entity-light-hero">
+            <div className="entity-light-hero-main">
+              <span className={`entity-light-badge ${loaiBadgeClass(article.loai_bai_viet)}`}>
+                {loaiLabel(article.loai_bai_viet)}
               </span>
-            ) : null}
-          </div>
-          {summary ? <p className="entity-light-desc">{summary}</p> : null}
-          {users.length > 0 ? (
-            <div className="entity-light-users">
-              <div className="entity-light-pile" aria-hidden>
-                {pile.map((u) => {
-                  const avatarUrl = getAvatarUrl(u.avatarId);
-                  return avatarUrl ? (
-                    <Image
-                      key={u.id}
-                      src={avatarUrl}
-                      alt=""
-                      width={30}
-                      height={30}
-                      className="entity-light-pile-avatar"
-                      unoptimized
-                    />
-                  ) : (
-                    <span
-                      key={u.id}
-                      className="entity-light-pile-avatar entity-light-pile-fallback"
-                    >
-                      {getNameInitials(u.tenHienThi, u.slug)}
-                    </span>
-                  );
-                })}
+              <div className="entity-light-title-row">
+                <h1 className="entity-light-title">{article.tieu_de}</h1>
+                {verified ? (
+                  <span className="entity-light-verified">
+                    <BadgeCheck size={16} strokeWidth={2.2} aria-hidden />
+                    Verified
+                  </span>
+                ) : null}
               </div>
-              <p className="entity-light-users-meta">
-                <strong>{users.length} người</strong> dùng tag này
-              </p>
+              {summary ? <p className="entity-light-desc">{summary}</p> : null}
+              {users.length > 0 ? (
+                <div className="entity-light-users">
+                  <div className="entity-light-pile" aria-hidden>
+                    {pile.map((u) => {
+                      const avatarUrl = getAvatarUrl(u.avatarId);
+                      return avatarUrl ? (
+                        <Image
+                          key={u.id}
+                          src={avatarUrl}
+                          alt=""
+                          width={30}
+                          height={30}
+                          className="entity-light-pile-avatar"
+                          unoptimized
+                        />
+                      ) : (
+                        <span
+                          key={u.id}
+                          className="entity-light-pile-avatar entity-light-pile-fallback"
+                        >
+                          {getNameInitials(u.tenHienThi, u.slug)}
+                        </span>
+                      );
+                    })}
+                  </div>
+                  <p className="entity-light-users-meta">
+                    <strong>{users.length} người</strong> dùng tag này
+                  </p>
+                </div>
+              ) : null}
             </div>
-          ) : null}
+            {thumbUrl ? (
+              <div className="entity-light-thumb">
+                <Image
+                  src={thumbUrl}
+                  alt=""
+                  fill
+                  className="entity-light-thumb-img"
+                  sizes="(max-width: 640px) 100vw, 360px"
+                  unoptimized
+                />
+              </div>
+            ) : (
+              <div className="entity-light-thumb is-placeholder">
+                <span>Chưa có thumbnail minh họa cho {article.tieu_de}</span>
+              </div>
+            )}
+          </div>
         </div>
-        {thumbUrl ? (
-          <div className="entity-light-thumb">
-            <Image
-              src={thumbUrl}
-              alt=""
-              width={172}
-              height={129}
-              className="entity-light-thumb-img"
-              unoptimized
-            />
-          </div>
-        ) : (
-          <div className="entity-light-thumb is-placeholder" aria-hidden>
-            <span>{article.tieu_de.slice(0, 12)}</span>
-          </div>
-        )}
       </header>
 
-      <EntityLightTimeline
-        milestones={milestones}
-        sort={sort}
-        viewerProfileId={viewerProfileId}
-      />
+      <div className="entity-light-body">
+        <EntityLightTimeline
+          milestones={milestones}
+          sort={sort}
+          viewerProfileId={viewerProfileId}
+        />
+      </div>
     </article>
   );
 }
