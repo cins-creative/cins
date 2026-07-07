@@ -232,7 +232,5 @@ export type CongDongPageData = {
   filters: CongDongFilter[];
   initialPosts: CongDongPost[];
   nextCursor: string | null;
-  communityPulse: CongDongPulseItem[];
-  eventRail: CongDongEventRailState;
   categories: CongDongCategory[];
 };

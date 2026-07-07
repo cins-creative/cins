@@ -3208,8 +3208,13 @@
   }
 
   .world-journey-home .wj-feed .wj-feed-timeline .j-m-card .jcard-media-zone,
-  .world-journey-home .wj-feed .wj-feed-timeline .j-m-card .jcard-media-zone > .preview,
-  .world-journey-home .wj-feed .wj-feed-timeline .j-m-card .jcard-media-zone > a.preview {
+  .world-journey-home .wj-feed .wj-feed-timeline .j-m-card .jcard-media-zone :is(
+    .preview,
+    a.preview,
+    .jcard-video-root,
+    .jcard-video-trigger,
+    .jcard-video-player
+  ) {
     width: 100%;
     max-width: none;
     border-radius: 0;

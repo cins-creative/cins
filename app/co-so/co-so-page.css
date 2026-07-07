@@ -3358,13 +3358,10 @@
 }
 
 .tdh-page--cso .cso-khd-fee-picker-trigger {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  display: block;
   width: 100%;
   margin: 0;
-  padding: 0;
+  padding: 0 46px 0 0;
   border: none;
   background: transparent;
   text-align: left;
@@ -3385,6 +3382,9 @@
 }
 
 .tdh-page--cso .cso-khd-fee-picker-chevron-wrap {
+  position: absolute;
+  top: 50%;
+  right: 18px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -3394,6 +3394,7 @@
   border-radius: 10px;
   background: rgba(31, 116, 201, 0.1);
   border: 1px solid rgba(31, 116, 201, 0.2);
+  transform: translateY(-50%);
   transition:
     background 0.15s ease,
     border-color 0.15s ease;
@@ -3407,6 +3408,10 @@
 
 .tdh-page--cso .cso-khd-metric--fee-picker.is-open .cso-khd-fee-picker-chevron {
   transform: rotate(180deg);
+}
+
+.tdh-page--cso .cso-khd-metric--fee-picker.is-open .cso-khd-fee-picker-chevron-wrap {
+  transform: translateY(-50%);
 }
 
 .tdh-page--cso .cso-khd-fee-picker-menu {
@@ -5076,6 +5081,28 @@
     padding-left: 14px;
     padding-right: 14px;
   }
+}
+
+/* Sidebar thông báo — không crop pulse ring / stroke ngoài timeline dot */
+.tdh-page--v6.tdh-page--cso .tdh-admission-side {
+  overflow-x: visible;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.tdh-page--v6.tdh-page--cso .tdh-admission-side::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.tdh-page--v6.tdh-page--cso .tdh-admission-side .timeline-section--rail {
+  overflow: visible;
+  min-height: auto;
+  /* Chừa chỗ pulse ring dot (tối đa ~7px) — tránh crop khi overflow auto */
+  padding: 10px 8px 20px 8px;
 }
 
 /* Timeline sidebar — banner sự kiện */

@@ -14,8 +14,6 @@ import {
 import { listCongDongFilters } from "@/lib/cong-dong/filters";
 import { listCongDongPosts } from "@/lib/cong-dong/posts";
 import { loadCongDongCategories } from "@/lib/cong-dong/categories";
-import { loadCongDongEventRail } from "@/lib/cong-dong/event-rail";
-import { loadCommunityPulse } from "@/lib/cong-dong/sidebar-data";
 import { countCongDongPosts } from "@/lib/cong-dong/stats";
 import type {
   CongDongOrg,
@@ -181,8 +179,6 @@ export async function loadCongDongPageData(params: {
     isCinsAdmin,
     filters,
     feed,
-    communityPulse,
-    eventRail,
     categories,
     notifySettings,
     viewerProfileResult,
@@ -194,8 +190,6 @@ export async function loadCongDongPageData(params: {
     getCurrentUserIsCinsAdmin(),
     listCongDongFilters(orgRow.id),
     listCongDongPosts({ orgId: orgRow.id, viewerId }),
-    loadCommunityPulse(orgRow.id),
-    loadCongDongEventRail(orgRow.id),
     loadCongDongCategories(orgRow.id),
     viewerId
       ? getOrgFollowSettings(viewerId, orgRow.id)
@@ -245,8 +239,6 @@ export async function loadCongDongPageData(params: {
     filters,
     initialPosts: feed.posts,
     nextCursor: feed.nextCursor,
-    communityPulse,
-    eventRail,
     categories,
   };
 }

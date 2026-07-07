@@ -34,18 +34,18 @@ import {
   CongDongOrgBrandingCover,
 } from "@/components/cong-dong/CongDongOrgBranding";
 import { CongDongFeedFilterDropdown } from "@/components/cong-dong/CongDongFeedFilterDropdown";
-import { CongDongEventRail } from "@/components/cong-dong/CongDongEventRail";
+import { CongDongNotifySidebar } from "@/components/cong-dong/CongDongNotifySidebar";
 import { CongDongFeedPostContent } from "@/components/cong-dong/CongDongFeedPostContent";
 import { CongDongFilterChip } from "@/components/cong-dong/CongDongFilterChip";
 import { CongDongPostMenu } from "@/components/cong-dong/CongDongPostMenu";
 import { JourneyArticleTagManager } from "@/components/journey/JourneyArticleTagManager";
 import { JourneyMilestoneUnfold } from "@/components/journey/JourneyMilestoneUnfold";
+import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
 import { JourneyPostCommentsBlock } from "@/components/journey/JourneyPostBody";
 import { CongDongRoleButton } from "@/components/cong-dong/CongDongRoleButton";
 import {
   compareCongDongPostsByMilestoneDate,
   congDongPostTimelineParts,
-  formatCongDongRelativeTime,
 } from "@/lib/cong-dong/feed-display";
 import { SOCIAL_LOAI_DOI_TUONG } from "@/lib/cong-dong/constants";
 import {
@@ -62,7 +62,6 @@ import type {
   CongDongMemberPreview,
   CongDongPageData,
   CongDongPost,
-  CongDongPulseItem,
 } from "@/lib/cong-dong/types";
 import { isMilestoneArticleCard } from "@/lib/journey/milestone-card-kind";
 import type { MilestonePostComment } from "@/lib/journey/milestone-post-types";
@@ -176,7 +175,6 @@ export function CongDongPageClient({ initial }: Props) {
   const [filterAdminOpen, setFilterAdminOpen] = useState(false);
   const [groupSettingsOpen, setGroupSettingsOpen] = useState(false);
   const [membersOpen, setMembersOpen] = useState(false);
-  const [eventRail, setEventRail] = useState(initial.eventRail);
   const [categories, setCategories] = useState<CongDongCategory[]>(
     initial.categories,
   );
@@ -489,14 +487,6 @@ export function CongDongPageClient({ initial }: Props) {
                 </p>
               </>
             ) : null}
-
-            {initial.communityPulse.length > 0 ? (
-              <>
-                <div className="cd-v4-divider" />
-                <h2 className="cd-v4-sec-title">Nhịp cộng đồng</h2>
-                <CommunityPulse items={initial.communityPulse} />
-              </>
-            ) : null}
           </div>
         </aside>
 
@@ -572,11 +562,10 @@ export function CongDongPageClient({ initial }: Props) {
           ) : null}
         </div>
 
-        <CongDongEventRail
+        <CongDongNotifySidebar
           orgId={org.id}
-          eventRail={eventRail}
+          orgTinhThanh={org.tinhThanh}
           canManage={canManageLabelsView}
-          onEventRailChange={setEventRail}
         />
       </div>
 
@@ -684,42 +673,6 @@ function CareerMap({ segments }: { segments: CongDongCareerSegment[] }) {
           </div>
         ))}
       </div>
-    </div>
-  );
-}
-
-function CommunityPulse({ items }: { items: CongDongPulseItem[] }) {
-  return (
-    <div className="cd-v4-pulse">
-      {items.map((item, i) => (
-        <div key={`${item.kind}-${item.userSlug}-${i}`} className="cd-v4-pulse-item">
-          <span
-            className={`cd-v4-pulse-dot${item.kind === "join" ? " is-join" : " is-mile"}`}
-            aria-hidden
-          />
-          <div className="cd-v4-pulse-copy">
-            {item.kind === "milestone" ? (
-              <>
-                <strong>{item.userName}</strong> vừa đạt cột mốc{" "}
-                <span className="cd-v4-pulse-badge">
-                  <BadgeCheck size={12} strokeWidth={2} aria-hidden />
-                  {item.milestoneTitle}
-                </span>{" "}
-                <span className="cd-v4-pulse-time">
-                  · {formatCongDongRelativeTime(item.taoLuc)}
-                </span>
-              </>
-            ) : (
-              <>
-                <strong>{item.userName}</strong> vừa tham gia{" "}
-                <span className="cd-v4-pulse-time">
-                  · {formatCongDongRelativeTime(item.taoLuc)}
-                </span>
-              </>
-            )}
-          </div>
-        </div>
-      ))}
     </div>
   );
 }
@@ -1184,27 +1137,30 @@ function CongDongJourneyPostCard({
         </span>
       ) : null}
       <header className="cd-v4-jcard-top">
-        <Link
-          href={`/${post.author.slug}`}
-          className="cd-v4-jcard-author"
-          prefetch={false}
+        <JourneyUserPopover
+          slug={post.author.slug}
+          fallbackName={post.author.tenHienThi}
+          fallbackAvatarUrl={avatarUrl}
+          track={{ idBoiCanh: post.id, nguon: "cong_dong" }}
         >
-          <span className="cd-v4-jcard-av">
-            {avatarUrl ? (
-              /* eslint-disable-next-line @next/next/no-img-element */
-              <img src={avatarUrl} alt="" />
-            ) : (
-              initial
-            )}
+          <span className="cd-v4-jcard-author">
+            <span className="cd-v4-jcard-av">
+              {avatarUrl ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img src={avatarUrl} alt="" />
+              ) : (
+                initial
+              )}
+            </span>
+            <span className="cd-v4-jcard-meta">
+              <strong>{post.author.tenHienThi}</strong>
+              <CongDongAuthorMetaLine
+                soBaiVietTrongNhom={post.author.soBaiVietTrongNhom}
+                thoiDiem={post.thoiDiem}
+              />
+            </span>
           </span>
-          <span className="cd-v4-jcard-meta">
-            <strong>{post.author.tenHienThi}</strong>
-            <CongDongAuthorMetaLine
-              soBaiVietTrongNhom={post.author.soBaiVietTrongNhom}
-              thoiDiem={post.thoiDiem}
-            />
-          </span>
-        </Link>
+        </JourneyUserPopover>
 
         <div className="cd-v4-jcard-badges">
           {post.author.vaiTroLabel ? (

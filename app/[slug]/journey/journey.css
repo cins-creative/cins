@@ -3439,7 +3439,7 @@ a.j-main-gallery-item:focus-visible {
   display: flex;
   justify-content: center;
   align-items: center;
-  background: #0f172a;
+  background: #000;
   overflow: hidden;
 }
 .jcard-media-zone > .jcard-video-player {
@@ -12367,13 +12367,14 @@ select.j-edit-input {
 .j-m-card.jcard--photo .jcard-media-zone > a.preview img {
   border-radius: 0;
 }
-.j-m-card.jcard--video .jcard-media-zone > .jcard-video-player,
-.j-m-card.jcard--video .jcard-media-zone .jcard-video-player.preview--video,
-.j-m-card.jcard--video .jcard-media-zone > .jcard-video-trigger,
-.j-m-card.jcard--video .jcard-media-zone > .preview.preview--video {
-  border-radius: 0;
-}
-.j-m-card.jcard--video .jcard-media-zone .jcard-video-trigger img {
+.j-m-card.jcard--video .jcard-media-zone :is(
+  .jcard-video-root,
+  .jcard-video-player,
+  .jcard-video-trigger,
+  .preview.preview--video
+),
+.j-m-card.jcard--video .jcard-media-zone :is(.jcard-video-trigger, .preview.preview--video) img,
+.j-m-card.jcard--video .jcard-media-zone .jcard-video-poster-layer img {
   border-radius: 0;
 }
 .jcard--photo .preview--photo-grid {
