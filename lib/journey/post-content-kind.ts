@@ -14,6 +14,12 @@ import {
   resolveBunnyVideoPreviewMp4FromBlocks,
   resolveBunnyVideoThumbnailFromBlocks,
 } from "@/lib/journey/video-embed";
+import {
+  extractVideoCanvasRatio,
+  type VideoCanvasRatio,
+  type VideoOrientation,
+  videoOrientationFromCanvasRatio,
+} from "@/lib/journey/video-canvas-ratio";
 import { isPersistedImageSeed } from "@/lib/truong/image-ref";
 
 /** Loại hiển thị nội dung — source of truth Phase 1+. */
@@ -32,6 +38,10 @@ export type PostContentResolution = {
   effectiveMoTa: string | null;
   gridVisible: boolean;
   gridThumbSource: "cover" | "first_image" | "video_poster" | null;
+  /** Chỉ `bunny_video` — tỉ lệ khung lưu trên block embed (`9:16`, `16:9`, …). */
+  videoCanvasRatio: VideoCanvasRatio | null;
+  /** Chỉ `bunny_video` — dọc / ngang / vuông, suy từ `videoCanvasRatio`. */
+  videoOrientation: VideoOrientation | null;
 };
 
 export type PostPublishValidationResult =
@@ -145,18 +155,47 @@ function isYoutubeEmbedBlock(block: Block): boolean {
   return Boolean(url.trim() && extractYoutubeId(url));
 }
 
+const BUNNY_VIDEO_COMPANION_LOAI = new Set<Block["loai"]>([
+  "embed",
+  "body",
+  "spacer",
+  "quote",
+  "h2",
+  "h3",
+]);
+
 function isBunnyVideoPost(blocks: ReadonlyArray<Block>): boolean {
   const embeds = embedBlocks(blocks);
   if (embeds.length !== 1) return false;
   if (!isBunnyEmbedBlock(embeds[0]!)) return false;
   if (blocks.some((b) => b.loai === "imgs")) return false;
-  return blocks.every(
-    (b) =>
-      b.loai === "embed" ||
-      b.loai === "body" ||
-      b.loai === "spacer",
-  );
+  return blocks.every((b) => BUNNY_VIDEO_COMPANION_LOAI.has(b.loai));
 }
+
+function resolveBunnyVideoMeta(
+  blocks: ReadonlyArray<Block>,
+): Pick<PostContentResolution, "videoCanvasRatio" | "videoOrientation"> {
+  const videoCanvasRatio = extractVideoCanvasRatio(blocks) ?? "16:9";
+  return {
+    videoCanvasRatio,
+    videoOrientation: videoOrientationFromCanvasRatio(videoCanvasRatio),
+  };
+}
+
+function withBunnyVideoMeta(
+  base: Omit<PostContentResolution, "videoCanvasRatio" | "videoOrientation">,
+  blocks: ReadonlyArray<Block>,
+): PostContentResolution {
+  return { ...base, ...resolveBunnyVideoMeta(blocks) };
+}
+
+const NON_VIDEO_RESOLUTION_META: Pick<
+  PostContentResolution,
+  "videoCanvasRatio" | "videoOrientation"
+> = {
+  videoCanvasRatio: null,
+  videoOrientation: null,
+};
 
 function hasYoutubeEmbed(blocks: ReadonlyArray<Block>): boolean {
   return embedBlocks(blocks).some(isYoutubeEmbedBlock);
@@ -197,6 +236,7 @@ function isPlainTextOnlyContent(input: PostContentResolveInput): boolean {
   if (hasValidCover(input)) return false;
   if (extractAllImageIds(blocks).length > 0) return false;
   if (hasArticleLayoutBlocks(blocks)) return false;
+  if (embedBlocks(blocks).some(isBunnyEmbedBlock)) return false;
 
   const moTaTrimmed = (input.moTa ?? "").trim();
   const meaningful = meaningfulBlocks(blocks);
@@ -208,6 +248,16 @@ function isPlainTextOnlyContent(input: PostContentResolveInput): boolean {
 }
 
 /** Phân loại nội dung — dùng cho card, grid (Phase 2+) và publish. */
+function finalizePostContentResolution(
+  base: Omit<PostContentResolution, "videoCanvasRatio" | "videoOrientation">,
+  blocks: ReadonlyArray<Block>,
+): PostContentResolution {
+  if (base.kind === "bunny_video") {
+    return withBunnyVideoMeta(base, blocks);
+  }
+  return { ...base, ...NON_VIDEO_RESOLUTION_META };
+}
+
 export function resolvePostDisplayKind(
   input: PostContentResolveInput,
 ): PostContentResolution {
@@ -218,39 +268,51 @@ export function resolvePostDisplayKind(
   const effectiveMoTa = resolveEffectiveMoTa(moTaTrimmed, blocks);
 
   if (isBunnyVideoPost(blocks)) {
-    return {
-      kind: "bunny_video",
-      effectiveMoTa,
-      gridVisible: true,
-      gridThumbSource: coverOk ? "cover" : "video_poster",
-    };
+    return finalizePostContentResolution(
+      {
+        kind: "bunny_video",
+        effectiveMoTa,
+        gridVisible: true,
+        gridThumbSource: coverOk ? "cover" : "video_poster",
+      },
+      blocks,
+    );
   }
 
   if (hasYoutubeEmbed(blocks)) {
-    return {
-      kind: "article",
-      effectiveMoTa,
-      gridVisible: true,
-      gridThumbSource: coverOk ? "cover" : imageIds[0] ? "first_image" : null,
-    };
+    return finalizePostContentResolution(
+      {
+        kind: "article",
+        effectiveMoTa,
+        gridVisible: true,
+        gridThumbSource: coverOk ? "cover" : imageIds[0] ? "first_image" : null,
+      },
+      blocks,
+    );
   }
 
   if (isPlainTextOnlyContent(input)) {
-    return {
-      kind: "text",
-      effectiveMoTa,
-      gridVisible: false,
-      gridThumbSource: null,
-    };
+    return finalizePostContentResolution(
+      {
+        kind: "text",
+        effectiveMoTa,
+        gridVisible: false,
+        gridThumbSource: null,
+      },
+      blocks,
+    );
   }
 
   if (blocksArePureImageAlbum(blocks) && imageIds.length > 0) {
-    return {
-      kind: "album",
-      effectiveMoTa,
-      gridVisible: true,
-      gridThumbSource: coverOk ? "cover" : "first_image",
-    };
+    return finalizePostContentResolution(
+      {
+        kind: "album",
+        effectiveMoTa,
+        gridVisible: true,
+        gridThumbSource: coverOk ? "cover" : "first_image",
+      },
+      blocks,
+    );
   }
 
   if (!moTaTrimmed) {
@@ -261,74 +323,124 @@ export function resolvePostDisplayKind(
         rest.length === 0 ||
         rest.every((b) => b.loai === "imgs" || b.loai === "spacer");
       if (restIsAlbumOnly && (imageIds.length > 0 || coverOk)) {
-        return {
-          kind: "album",
-          effectiveMoTa,
-          gridVisible: true,
-          gridThumbSource: coverOk ? "cover" : "first_image",
-        };
+        return finalizePostContentResolution(
+          {
+            kind: "album",
+            effectiveMoTa,
+            gridVisible: true,
+            gridThumbSource: coverOk ? "cover" : "first_image",
+          },
+          blocks,
+        );
       }
     } else if (first && first.loai !== "spacer" && first.loai !== "imgs") {
-      return {
-        kind: "article",
-        effectiveMoTa,
-        gridVisible: true,
-        gridThumbSource: coverOk ? "cover" : imageIds[0] ? "first_image" : null,
-      };
+      if (first.loai === "embed" && isBunnyEmbedBlock(first)) {
+        return finalizePostContentResolution(
+          {
+            kind: "bunny_video",
+            effectiveMoTa,
+            gridVisible: true,
+            gridThumbSource: coverOk ? "cover" : "video_poster",
+          },
+          blocks,
+        );
+      }
+      return finalizePostContentResolution(
+        {
+          kind: "article",
+          effectiveMoTa,
+          gridVisible: true,
+          gridThumbSource: coverOk ? "cover" : imageIds[0] ? "first_image" : null,
+        },
+        blocks,
+      );
     }
   }
 
   if (hasArticleLayoutBlocks(blocks)) {
-    return {
-      kind: "article",
-      effectiveMoTa,
-      gridVisible: true,
-      gridThumbSource: coverOk ? "cover" : imageIds[0] ? "first_image" : null,
-    };
+    return finalizePostContentResolution(
+      {
+        kind: "article",
+        effectiveMoTa,
+        gridVisible: true,
+        gridThumbSource: coverOk ? "cover" : imageIds[0] ? "first_image" : null,
+      },
+      blocks,
+    );
   }
 
   if (imageIds.length > 0 && blocksAreMediaCaptionOnly(blocks)) {
-    return {
-      kind: "album",
-      effectiveMoTa,
-      gridVisible: true,
-      gridThumbSource: coverOk ? "cover" : "first_image",
-    };
+    return finalizePostContentResolution(
+      {
+        kind: "album",
+        effectiveMoTa,
+        gridVisible: true,
+        gridThumbSource: coverOk ? "cover" : "first_image",
+      },
+      blocks,
+    );
   }
 
   if (imageIds.length > 0) {
-    return {
-      kind: "article",
-      effectiveMoTa,
-      gridVisible: true,
-      gridThumbSource: coverOk ? "cover" : "first_image",
-    };
+    return finalizePostContentResolution(
+      {
+        kind: "article",
+        effectiveMoTa,
+        gridVisible: true,
+        gridThumbSource: coverOk ? "cover" : "first_image",
+      },
+      blocks,
+    );
   }
 
   if (coverOk && blocksArePlainTextOnly(blocks)) {
-    return {
-      kind: "album",
-      effectiveMoTa,
-      gridVisible: true,
-      gridThumbSource: "cover",
-    };
+    return finalizePostContentResolution(
+      {
+        kind: "album",
+        effectiveMoTa,
+        gridVisible: true,
+        gridThumbSource: "cover",
+      },
+      blocks,
+    );
+  }
+
+  const loneBunnyEmbed =
+    embedBlocks(blocks).length === 1 &&
+    isBunnyEmbedBlock(embedBlocks(blocks)[0]!);
+  if (loneBunnyEmbed) {
+    return finalizePostContentResolution(
+      {
+        kind: "bunny_video",
+        effectiveMoTa,
+        gridVisible: true,
+        gridThumbSource: coverOk ? "cover" : "video_poster",
+      },
+      blocks,
+    );
   }
 
   if (blocksArePlainTextOnly(blocks) || moTaTrimmed || effectiveMoTa) {
-    return {
-      kind: "text",
-      effectiveMoTa,
-      gridVisible: false,
-      gridThumbSource: null,
-    };
+    return finalizePostContentResolution(
+      {
+        kind: "text",
+        effectiveMoTa,
+        gridVisible: false,
+        gridThumbSource: null,
+      },
+      blocks,
+    );
   }
 
-  return {
-    kind: "text",
-    effectiveMoTa: null,
-    gridVisible: false,
-    gridThumbSource: null,
-  };
+  return finalizePostContentResolution(
+    {
+      kind: "text",
+      effectiveMoTa: null,
+      gridVisible: false,
+      gridThumbSource: null,
+    },
+    blocks,
+  );
 }
 
 function findInvalidImageBlockReasons(blocks: ReadonlyArray<Block>): string[] {
@@ -561,6 +673,8 @@ export type PostGridEntry = {
   videoProcessing: boolean;
   /** MP4 Bunny — gallery hiển thị frame đầu khi không có thumbnail. */
   videoPreviewSrc: string | null;
+  videoCanvasRatio: VideoCanvasRatio | null;
+  videoOrientation: VideoOrientation | null;
 };
 
 /**
@@ -595,6 +709,8 @@ export function resolvePostGridEntry(
       coverSrc,
       videoProcessing,
       videoPreviewSrc,
+      videoCanvasRatio: resolution.videoCanvasRatio,
+      videoOrientation: resolution.videoOrientation,
     };
   }
 
@@ -621,5 +737,7 @@ export function resolvePostGridEntry(
     coverSrc: null,
     videoProcessing: false,
     videoPreviewSrc: null,
+    videoCanvasRatio: null,
+    videoOrientation: null,
   };
 }

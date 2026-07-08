@@ -39,6 +39,16 @@ export function HaUserSuggestionRow({
     ketBan.quanHe !== "accepted" &&
     ketBan.quanHe !== "blocked";
 
+  const friendBadge = isFriend ? (
+    <span
+      className="ha-row-friend-badge"
+      title="Đã là bạn bè"
+      aria-label="Đã là bạn bè"
+    >
+      <UserCheck size={13} strokeWidth={2.2} aria-hidden />
+    </span>
+  ) : null;
+
   return (
     <div className={rowClass}>
       <JourneyUserPopover
@@ -60,20 +70,13 @@ export function HaUserSuggestionRow({
           <span className="ha-row-meta">
             <span className="ha-row-name">
               {name}
-              {isFriend ? (
-                <span
-                  className="ha-row-friend-badge"
-                  title="Đã là bạn bè"
-                  aria-label="Đã là bạn bè"
-                >
-                  <UserCheck size={13} strokeWidth={2.2} aria-hidden />
-                </span>
-              ) : null}
+              {variant !== "person" ? friendBadge : null}
             </span>
             <span className="ha-row-sub">{subtitle}</span>
           </span>
         </span>
       </JourneyUserPopover>
+      {variant === "person" ? friendBadge : null}
       {showFriendBtn ? (
         <JourneyFollowButton
           compact

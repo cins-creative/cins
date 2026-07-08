@@ -21,7 +21,6 @@ import {
 } from "@/lib/journey/video-embed";
 import { extractVideoUrl } from "@/lib/journey/post-media";
 import {
-  extractVideoCanvasRatio,
   type VideoCanvasRatio,
 } from "@/lib/journey/video-canvas-ratio";
 import {
@@ -178,10 +177,7 @@ function rowToStub(
     type: LOAI_MOC_TO_TYPE[cm.loai_moc],
     variant: source === "tagged" ? "tagged" : "self",
     mediaKind: gridEntry.mediaKind,
-    videoCanvasRatio:
-      gridEntry.mediaKind === "video"
-        ? (extractVideoCanvasRatio(blocks) ?? undefined)
-        : undefined,
+    videoCanvasRatio: gridEntry.videoCanvasRatio ?? undefined,
   };
 }
 

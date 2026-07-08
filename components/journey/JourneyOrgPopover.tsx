@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { BookOpen, FileText, ShieldCheck, Users, X } from "lucide-react";
+import { BookOpen, Briefcase, FileText, ShieldCheck, Users, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { truongRootPath } from "@/lib/truong/truong-routes";
 
-type OrgPopoverKind = "cong_dong" | "co_so_dao_tao" | "truong";
+type OrgPopoverKind = "cong_dong" | "co_so_dao_tao" | "truong" | "studio";
 
 type OrgPreview = {
   slug: string;
@@ -21,6 +21,7 @@ type OrgPreview = {
   soBaiViet?: number;
   soKhoaHoc?: number;
   soNganh?: number;
+  soTuyenDung?: number;
   namThanhLap?: number | null;
   daVerify?: boolean;
   loaiCoSo?: string | null;
@@ -43,42 +44,51 @@ function previewApi(orgKind: OrgPopoverKind, slug: string): string {
   if (orgKind === "truong") {
     return `/api/truong/preview?slug=${encodeURIComponent(slug)}`;
   }
+  if (orgKind === "studio") {
+    return `/api/studio/preview?slug=${encodeURIComponent(slug)}`;
+  }
   return `/api/cong-dong/preview?slug=${encodeURIComponent(slug)}`;
 }
 
 function defaultHref(orgKind: OrgPopoverKind, slug: string): string {
   if (orgKind === "co_so_dao_tao") return `/co-so/${slug}`;
   if (orgKind === "truong") return truongRootPath(slug);
+  if (orgKind === "studio") return `/studio/${slug}`;
   return `/cong-dong/${slug}`;
 }
 
 function slugPath(orgKind: OrgPopoverKind, slug: string): string {
   if (orgKind === "co_so_dao_tao") return `/co-so/${slug}`;
   if (orgKind === "truong") return truongRootPath(slug);
+  if (orgKind === "studio") return `/studio/${slug}`;
   return `/cong-dong/${slug}`;
 }
 
 function orgKicker(orgKind: OrgPopoverKind): string {
   if (orgKind === "co_so_dao_tao") return "Cơ sở đào tạo";
   if (orgKind === "truong") return "Trường đại học";
+  if (orgKind === "studio") return "Studio";
   return "Cộng đồng";
 }
 
 function orgPrimaryCta(orgKind: OrgPopoverKind): string {
   if (orgKind === "co_so_dao_tao") return "Xem cơ sở";
   if (orgKind === "truong") return "Xem trường";
+  if (orgKind === "studio") return "Xem studio";
   return "Xem cộng đồng";
 }
 
 function orgLoadError(orgKind: OrgPopoverKind): string {
   if (orgKind === "co_so_dao_tao") return "Không tải được cơ sở.";
   if (orgKind === "truong") return "Không tải được trường.";
+  if (orgKind === "studio") return "Không tải được studio.";
   return "Không tải được cộng đồng.";
 }
 
 function orgDialogLabel(orgKind: OrgPopoverKind): string {
   if (orgKind === "co_so_dao_tao") return "Thông tin cơ sở đào tạo";
   if (orgKind === "truong") return "Thông tin trường đại học";
+  if (orgKind === "studio") return "Thông tin studio";
   return "Thông tin cộng đồng";
 }
 
@@ -88,13 +98,15 @@ function isPopoverKind(
   return (
     orgKind === "cong_dong" ||
     orgKind === "co_so_dao_tao" ||
-    orgKind === "truong"
+    orgKind === "truong" ||
+    orgKind === "studio"
   );
 }
 
 function orgCardClass(orgKind: OrgPopoverKind): string {
   if (orgKind === "co_so_dao_tao") return " is-coso";
   if (orgKind === "truong") return " is-truong";
+  if (orgKind === "studio") return " is-studio";
   return "";
 }
 
@@ -261,6 +273,25 @@ export function JourneyOrgPopover({
                             </span>
                             {visible.namThanhLap ? (
                               <span>Thành lập {visible.namThanhLap}</span>
+                            ) : null}
+                          </>
+                        ) : popoverKind === "studio" ? (
+                          <>
+                            <span>
+                              <Users size={14} aria-hidden />
+                              <strong>{visible.soThanhVien}</strong> thành viên
+                            </span>
+                            {typeof visible.soTuyenDung === "number" ? (
+                              <span>
+                                <Briefcase size={14} aria-hidden />
+                                <strong>{visible.soTuyenDung}</strong> tin tuyển dụng
+                              </span>
+                            ) : null}
+                            {typeof visible.soBaiViet === "number" ? (
+                              <span>
+                                <FileText size={14} aria-hidden />
+                                <strong>{visible.soBaiViet}</strong> bài viết
+                              </span>
                             ) : null}
                           </>
                         ) : (

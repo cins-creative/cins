@@ -42,6 +42,7 @@ import {
   orgLoaiToMilestoneType,
 } from "@/lib/truong/org-bai-dang-bookmark";
 import { SOCIAL_LOAI_ORG_BAI_DANG } from "@/lib/truong/social-constants";
+import { SOCIAL_LOAI_ORG_TUYEN_DUNG } from "@/lib/to-chuc/tuyen-dung-bookmark";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 /** Số cột mốc hydrate mỗi lần user cuộn tới cuối timeline. */
@@ -445,6 +446,60 @@ async function collectOrgBaiDangBookmarkStubs(
   return stubs;
 }
 
+async function collectOrgTuyenDungBookmarkStubs(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  userId: string,
+): Promise<TimelineStub[]> {
+  const { data: savedRows } = await admin
+    .from("social_luu")
+    .select("id_doi_tuong, tao_luc")
+    .eq("id_nguoi_dung", userId)
+    .eq("loai_doi_tuong", SOCIAL_LOAI_ORG_TUYEN_DUNG);
+
+  const savedAtByJob = new Map(
+    (savedRows ?? []).map((row) => [
+      row.id_doi_tuong as string,
+      (row.tao_luc as string | null) ?? null,
+    ]),
+  );
+  const jobIds = [...savedAtByJob.keys()];
+  if (jobIds.length === 0) return [];
+
+  const { data: jobs } = await admin
+    .from("org_tuyen_dung")
+    .select("id, tao_luc, da_xoa")
+    .in("id", jobIds)
+    .returns<
+      Array<{
+        id: string;
+        tao_luc: string | null;
+        da_xoa: boolean | null;
+      }>
+    >();
+
+  const stubs: TimelineStub[] = [];
+  for (const job of jobs ?? []) {
+    if (job.da_xoa) continue;
+    const dateIso = savedAtByJob.get(job.id) ?? job.tao_luc;
+    if (!dateIso) continue;
+    const { year, month, day } = parseUtcDateParts(dateIso);
+    stubs.push({
+      id: `bookmark:tuyen-dung:${job.id}`,
+      source: "bookmark",
+      cotMocId: job.id,
+      visibility: "public",
+      variant: "bookmark",
+      type: "lam",
+      thoiDiem: dateIso,
+      taoLuc: savedAtByJob.get(job.id) ?? job.tao_luc,
+      year,
+      month,
+      day,
+    });
+  }
+  return stubs;
+}
+
 async function collectTimelineStubs(
   admin: ReturnType<typeof createServiceRoleClient>,
   userId: string,
@@ -463,10 +518,14 @@ async function collectTimelineStubs(
     ...selfCotMocIds,
     ...taggedExtra.map((s) => s.cotMocId),
   ]);
-  const orgBookmarkStubs = await collectOrgBaiDangBookmarkStubs(admin, userId);
+  const [orgBookmarkStubs, orgTuyenDungBookmarkStubs] = await Promise.all([
+    collectOrgBaiDangBookmarkStubs(admin, userId),
+    collectOrgTuyenDungBookmarkStubs(admin, userId),
+  ]);
   const bookmarkExtra = [
     ...bookmarks.filter((s) => !seenCotMocIds.has(s.cotMocId)),
     ...orgBookmarkStubs.filter((s) => !seenCotMocIds.has(s.cotMocId)),
+    ...orgTuyenDungBookmarkStubs.filter((s) => !seenCotMocIds.has(s.cotMocId)),
   ];
 
   const merged = [...self, ...taggedExtra, ...bookmarkExtra];

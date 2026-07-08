@@ -371,7 +371,7 @@ export function WorldJourneyFeed({
   return (
     <JourneyViewProvider initialView="journey" slug={sidebarProfile.slug}>
       <div
-        className="world-journey-home cins-journey-page"
+        className={`world-journey-home cins-journey-page${view === "grid" ? " view-grid" : ""}`}
         aria-label="World Journey"
       >
         <header className="wj-feed-header">
@@ -390,22 +390,25 @@ export function WorldJourneyFeed({
         </header>
 
         <div className={`wj-shell${view === "grid" ? " view-grid" : ""}`}>
-          {leftAside ?? (
-            <WorldJourneyGuestLeftAside
-              linhVucs={linhVucs}
-              activeLinhVucSlug={activeLinhVucSlug}
-              onLinhVucFilter={setActiveLinhVucSlug}
-            />
-          )}
+          {view !== "grid" &&
+            (leftAside ?? (
+              <WorldJourneyGuestLeftAside
+                linhVucs={linhVucs}
+                activeLinhVucSlug={activeLinhVucSlug}
+                onLinhVucFilter={setActiveLinhVucSlug}
+              />
+            ))}
 
           <div className={`wj-feed${view === "grid" ? " view-grid" : ""}`}>
-            {pendingConfirmations}
-            <CinsFeedComposer
-              ownerSlug={sidebarProfile.slug}
-              ownerName={sidebarProfile.tenHienThi}
-              avatarUrl={sidebarProfile.avatarUrl}
-              layout="feed"
-            />
+            {view !== "grid" ? pendingConfirmations : null}
+            {view !== "grid" ? (
+              <CinsFeedComposer
+                ownerSlug={sidebarProfile.slug}
+                ownerName={sidebarProfile.tenHienThi}
+                avatarUrl={sidebarProfile.avatarUrl}
+                layout="feed"
+              />
+            ) : null}
 
           {view === "feed" ? (
             visibleMilestones.length === 0 ? (
@@ -452,7 +455,8 @@ export function WorldJourneyFeed({
           ) : null}
         </div>
 
-        {rightAside ?? (view === "feed" ? <WorldJourneyGuestRightAside /> : null)}
+        {view !== "grid" &&
+          (rightAside ?? <WorldJourneyGuestRightAside />)}
       </div>
     </div>
     </JourneyViewProvider>

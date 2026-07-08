@@ -2,22 +2,25 @@ import "server-only";
 
 import { getAvatarUrl } from "@/lib/journey/profile";
 import { resolvePersona, type GiaiDoan, type Persona } from "@/lib/cins/home-adaptive/persona";
+import {
+  CO_SO_DAO_TAO_LOAI,
+  orgLoaiLabel,
+  SCHOOL_ORG_LOAI,
+  type FollowSuggestion,
+  type OrgFollowSuggestion,
+} from "@/lib/cins/home-adaptive/suggestions-display";
 import { listFriends } from "@/lib/social/ket-ban";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { resolveTruongImageSrcSync } from "@/lib/truong/media-url";
 import { truongRootPath } from "@/lib/truong/truong-routes";
 
-export type FollowSuggestion = {
-  id: string;
-  slug: string;
-  name: string;
-  avatarUrl: string | null;
-  giaiDoan: string | null;
-  /** Số bạn chung với người xem (0 nếu không có / không xác định). */
-  mutualCount: number;
-  /** Người xem đã là bạn bè (kết bạn accepted) với gợi ý này. */
-  isFriend: boolean;
-};
+export type { FollowSuggestion, OrgFollowSuggestion } from "@/lib/cins/home-adaptive/suggestions-display";
+export {
+  CO_SO_DAO_TAO_LOAI,
+  orgFollowSubtitle,
+  orgLoaiLabel,
+  SCHOOL_ORG_LOAI,
+} from "@/lib/cins/home-adaptive/suggestions-display";
 
 type UserRow = {
   id: string;
@@ -123,19 +126,6 @@ async function attachMutualCounts(
 
 /* ───────────────────────── Gợi ý theo dõi TỔ CHỨC (L21 #1) ───────────────────────── */
 
-export type OrgFollowSuggestion = {
-  id: string;
-  slug: string;
-  name: string;
-  avatarUrl: string | null;
-  loaiToChuc: string;
-  href: string;
-  /** Số bạn chung đang theo dõi org này. */
-  mutualCount: number;
-  /** Lý do gợi ý hiển thị (1 dòng phụ). */
-  reason: string;
-};
-
 /**
  * Loại org *theo dõi được* để gợi ý (cộng đồng đi luồng "Tham gia" riêng — L21).
  * `doanh_nghiep` ẩn UI nhưng dùng chung template studio.
@@ -146,12 +136,6 @@ const FOLLOWABLE_ORG_LOAI = [
   "studio",
   "doanh_nghiep",
 ] as const;
-
-/** Trường / cơ sở đào tạo — feed promo xen kẽ (cả hai loại). */
-export const SCHOOL_ORG_LOAI = ["truong_dai_hoc", "co_so_dao_tao"] as const;
-
-/** Chỉ cơ sở đào tạo (không trường đại học) — module sidebar `duong_toi_do`. */
-export const CO_SO_DAO_TAO_LOAI = ["co_so_dao_tao"] as const;
 
 /** persona → loại org "hợp gu" (cộng điểm khi trùng). */
 const PERSONA_ORG_LOAI: Record<Persona, string[]> = {
@@ -326,28 +310,4 @@ export async function loadOrgFollowSuggestions(
 
   scored.sort((a, b) => b._score - a._score || b.mutualCount - a.mutualCount);
   return scored.slice(0, limit).map(({ _score, ...rest }) => rest);
-}
-
-function orgLoaiLabel(loai: string): string {
-  switch (loai) {
-    case "truong_dai_hoc":
-      return "Trường đại học";
-    case "co_so_dao_tao":
-      return "Cơ sở đào tạo";
-    case "studio":
-      return "Studio";
-    case "doanh_nghiep":
-      return "Doanh nghiệp";
-    case "cong_dong":
-      return "Cộng đồng";
-    default:
-      return "Tổ chức";
-  }
-}
-
-/** Dòng phụ org — luôn có loại tổ chức để không nhầm với người dùng. */
-export function orgFollowSubtitle(loaiToChuc: string, reason: string): string {
-  const typeLabel = orgLoaiLabel(loaiToChuc);
-  if (!reason || reason === typeLabel) return typeLabel;
-  return `${typeLabel} · ${reason}`;
 }

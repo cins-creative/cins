@@ -31,6 +31,30 @@ export const COMPOSE_PREVIEW_LABELS: Record<
   },
 };
 
+export function composePreviewVideoOrientationLabel(
+  blocks: ServerBlock[],
+  coverSeed: string | null,
+  moTa?: string | null,
+): string | null {
+  const { kind, videoOrientation } = resolvePostDisplayKind({
+    moTa,
+    coverId: coverSeed,
+    hasCover: Boolean(coverSeed?.trim()),
+    blocks,
+  });
+  if (kind !== "bunny_video") return null;
+  switch (videoOrientation) {
+    case "portrait":
+      return "Video dọc";
+    case "landscape":
+      return "Video ngang";
+    case "square":
+      return "Video vuông";
+    default:
+      return null;
+  }
+}
+
 export function inferComposePreviewKind(
   blocks: ServerBlock[],
   coverSeed: string | null,

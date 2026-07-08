@@ -12,6 +12,7 @@ import {
   useRef,
   useState,
   type ChangeEvent,
+  type CSSProperties,
 } from "react";
 
 import { GalleryItemVisual, GalleryVideoPlayBadge } from "@/components/journey/GalleryItemVisual";
@@ -51,6 +52,7 @@ import {
   galleryGroupFromSearch,
 } from "@/lib/journey/gallery-filter-share";
 import { useGalleryMasonryAspects } from "@/components/journey/useGalleryMasonryAspects";
+import { useBalancedMasonryColumns } from "@/components/journey/useBalancedMasonryColumns";
 import { useGalleryPortraitVideoIds } from "@/components/journey/useGalleryPortraitVideoIds";
 
 /** Chế độ xem gallery: `card` (mặc định, có bảng thông tin trắng dưới ảnh) hoặc
@@ -559,6 +561,17 @@ export function JourneyGalleryGridView({
   }, [filtered, showPortraitRail, portraitIds]);
 
   const masonryAspectById = useGalleryMasonryAspects(mainGridItems, showMasonry);
+  const masonryProfile = hideToolbar ? "world-journey" : "gallery";
+  const {
+    containerRef: masonryContainerRef,
+    columns: masonryColumns,
+    columnCount: masonryColumnCount,
+  } = useBalancedMasonryColumns(
+    mainGridItems,
+    masonryAspectById,
+    showMasonry,
+    masonryProfile,
+  );
 
   const activePersonalFilter = personalFilter?.activeSlug
     ? personalFilter.filters.find((f) => f.slug === personalFilter.activeSlug)
@@ -725,22 +738,53 @@ export function JourneyGalleryGridView({
             </div>
           ) : null}
           <div
+            ref={showMasonry ? masonryContainerRef : undefined}
             className={`j-main-gallery-grid${
               effectiveView === "card"
                 ? " j-main-gallery-grid--card"
-                : " j-main-gallery-grid--masonry"
+                : " j-main-gallery-grid--masonry j-main-gallery-grid--masonry-balanced"
             }`}
+            style={
+              showMasonry
+                ? ({ "--masonry-cols": masonryColumnCount } as CSSProperties)
+                : undefined
+            }
           >
-            {createTile}
-            {mainGridItems.map((item) => (
-              <GalleryMainItemTile
-                key={item.id}
-                item={item}
-                onOpenPost={openPost}
-                layout={showMasonry ? "masonry" : "grid"}
-                thumbAspect={showMasonry ? masonryAspectById.get(item.id) : undefined}
-              />
-            ))}
+            {showMasonry && masonryColumns ? (
+              masonryColumns.length > 0 ? (
+                masonryColumns.map((col, ci) => (
+                  <div key={`mcol-${ci}`} className="j-main-gallery-grid__mcol">
+                    {ci === 0 ? createTile : null}
+                    {col.map(({ data: item }) => (
+                      <GalleryMainItemTile
+                        key={item.id}
+                        item={item}
+                        onOpenPost={openPost}
+                        layout="masonry"
+                        thumbAspect={masonryAspectById.get(item.id)}
+                      />
+                    ))}
+                  </div>
+                ))
+              ) : (
+                createTile
+              )
+            ) : (
+              <>
+                {createTile}
+                {mainGridItems.map((item) => (
+                  <GalleryMainItemTile
+                    key={item.id}
+                    item={item}
+                    onOpenPost={openPost}
+                    layout={showMasonry ? "masonry" : "grid"}
+                    thumbAspect={
+                      showMasonry ? masonryAspectById.get(item.id) : undefined
+                    }
+                  />
+                ))}
+              </>
+            )}
           </div>
         </>
       )}

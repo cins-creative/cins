@@ -1781,6 +1781,29 @@ a.j-main-gallery-item:focus-visible {
   aspect-ratio: 16 / 9;
 }
 
+/* Masonry cân bằng — flex cột + pack JS (shortest column), thay CSS columns tuần tự. */
+.j-main-gallery-grid--masonry-balanced {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 8px;
+  columns: auto;
+}
+.j-main-gallery-grid--masonry-balanced .j-main-gallery-grid__mcol {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.j-main-gallery-grid--masonry-balanced > .j-main-gallery-item,
+.j-main-gallery-grid--masonry-balanced > .j-main-gallery-create,
+.j-main-gallery-grid--masonry-balanced > button.j-main-gallery-item,
+.j-main-gallery-grid--masonry-balanced > a.j-main-gallery-item {
+  break-inside: auto;
+  margin-bottom: 0;
+}
+
 @media (max-width: 991.98px) {
   .j-main-gallery-grid--masonry {
     columns: 2;
@@ -9963,6 +9986,11 @@ select.j-edit-input {
   background:
     radial-gradient(circle at 20% 24%, var(--cins-yellow, #fde859), transparent 28%),
     linear-gradient(135deg, var(--cins-blue-dark), var(--cins-violet) 58%, #0f172a);
+}
+.j-org-pop-cover.is-studio {
+  background:
+    radial-gradient(circle at 16% 24%, rgba(196, 181, 253, 0.45), transparent 34%),
+    linear-gradient(135deg, #7c3aed 0%, #9d5cff 55%, #0f172a 100%);
 }
 
 .j-pending-confirmations {

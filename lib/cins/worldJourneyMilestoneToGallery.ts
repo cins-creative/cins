@@ -57,7 +57,7 @@ export function worldJourneyMilestonesToGalleryItems(
       thumb?.src && !isVideo ? galleryGridAssetFromCfUrl(thumb.src) : null;
     const mediaKind = gridEntry?.mediaKind ?? (isVideo ? "video" : "article");
     const videoCanvasRatio = isVideo
-      ? (extractVideoCanvasRatio(m.noiDungBlocks ?? []) ?? undefined)
+      ? (gridEntry?.videoCanvasRatio ?? extractVideoCanvasRatio(m.noiDungBlocks ?? []) ?? undefined)
       : undefined;
     const videoDims = videoCanvasRatio
       ? videoPreviewDimensionsFromRatio(videoCanvasRatio)

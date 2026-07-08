@@ -3,6 +3,9 @@ import type { Block } from "@/lib/editor/types";
 /** Tỉ lệ khung canvas mặc định theo hướng video upload. */
 export type VideoCanvasRatio = "16:9" | "1:1" | "3:4" | "9:16";
 
+/** Hướng video — suy từ `videoCanvasRatio` trên block embed. */
+export type VideoOrientation = "portrait" | "landscape" | "square";
+
 const SQUARE_TOLERANCE = 0.08;
 /** Ngưỡng phân biệt 9:16 (dọc hẹp) vs 3:4 (dọc rộng hơn). */
 const TALL_PORTRAIT_MIN = 1.6;
@@ -73,6 +76,35 @@ export function extractVideoCanvasRatio(
     return parseVideoCanvasRatio(block.config?.videoCanvasRatio);
   }
   return null;
+}
+
+export function videoOrientationFromCanvasRatio(
+  ratio: VideoCanvasRatio | null | undefined,
+): VideoOrientation | null {
+  switch (ratio) {
+    case "9:16":
+    case "3:4":
+      return "portrait";
+    case "16:9":
+      return "landscape";
+    case "1:1":
+      return "square";
+    default:
+      return null;
+  }
+}
+
+export function isPortraitVideoOrientation(
+  orientation: VideoOrientation | null | undefined,
+): boolean {
+  return orientation === "portrait";
+}
+
+/** Embed video đầu tiên — dọc / ngang / vuông (null khi chưa có ratio). */
+export function extractVideoOrientationFromBlocks(
+  blocks: ReadonlyArray<Block> | null | undefined,
+): VideoOrientation | null {
+  return videoOrientationFromCanvasRatio(extractVideoCanvasRatio(blocks));
 }
 
 /** Kích thước gợi ý cho poster video (intrinsic width/height). */
