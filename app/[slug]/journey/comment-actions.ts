@@ -161,10 +161,7 @@ export async function addMilestoneCommentV1(
             .eq("id", replyAuthor)
             .maybeSingle<{ ten_hien_thi: string | null; slug: string }>()
         : { data: null };
-      text = prefixReplyMention(
-        text,
-        replyProfile?.ten_hien_thi?.trim() || replyProfile?.slug,
-      );
+      text = prefixReplyMention(text, replyProfile?.slug?.trim());
     }
   }
 

@@ -33,3 +33,26 @@ export function parseCommentMentionSegments(text: string): CommentTextSegment[] 
 export function commentTextHasMentions(text: string): boolean {
   return parseCommentMentionSegments(text).some((s) => s.type === "mention");
 }
+
+/** Prefix @slug khi mở form trả lời — khớp COMMENT_MENTION_RE. */
+export function composeReplyMentionPrefix(
+  slug: string | null | undefined,
+): string {
+  const normalized = slug?.trim().toLowerCase();
+  if (!normalized || !/^[a-z0-9._-]{2,40}$/.test(normalized)) return "";
+  return `@${normalized} `;
+}
+
+/** Gắn @slug đầu nội dung nếu chưa có (client compose + server persist). */
+export function prefixReplyMentionText(
+  text: string,
+  slug: string | null | undefined,
+): string {
+  const prefix = composeReplyMentionPrefix(slug);
+  if (!prefix) return text.trim();
+  const trimmed = text.trim();
+  if (trimmed.toLowerCase().startsWith(prefix.trim().toLowerCase())) {
+    return trimmed;
+  }
+  return `${prefix}${trimmed}`;
+}

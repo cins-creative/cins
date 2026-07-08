@@ -37,6 +37,7 @@ import {
   MAX_COMMENT_ATTACHMENTS,
   sanitizeCommentImageIds,
 } from "@/lib/social/comments/attachments";
+import { composeReplyMentionPrefix } from "@/lib/social/comments/mention-parse";
 import {
   COMMENT_REACTION_EMOJIS,
   commentReactionLabel,
@@ -121,8 +122,14 @@ export function CommentBlock(props: CommentBlockProps) {
 
   useEffect(() => {
     if (!replyTo) return;
-    inputRef.current?.focus({ preventScroll: false });
-    inputRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    const el = inputRef.current;
+    if (!el) return;
+    el.focus({ preventScroll: false });
+    const end = el.value.length;
+    el.setSelectionRange(end, end);
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+    el.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [replyTo?.id]);
 
   function cancelReply() {
@@ -136,7 +143,9 @@ export function CommentBlock(props: CommentBlockProps) {
       return;
     }
     setReplyTo(comment);
-    if (comment) setText("");
+    if (comment) {
+      setText(composeReplyMentionPrefix(comment.author?.slug));
+    }
   }
 
   function handleSend(payload: { text: string; imageIds: string[] }) {

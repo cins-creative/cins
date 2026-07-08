@@ -78,7 +78,7 @@ export function isMilestoneTextCard(
 }
 
 export {
-  resolveTextPanelTone,
-  textPanelToneClass,
-  textPanelUsesLightInk,
-} from "@/lib/journey/text-panel-tone";
+  resolveChiChuNen,
+  chiChuNenClass,
+  chiChuUsesLightInk,
+} from "@/lib/journey/plain-text-bg";

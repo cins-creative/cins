@@ -77,14 +77,14 @@ import {
   resolveBookmarkFrameKind,
 } from "@/lib/journey/bookmark-source-theme";
 import {
-  milestoneArticleTextPanelPlain,
+  plainTextCardPlain,
   milestoneCardCaptionPlain,
   shouldShowMilestoneCardTitle,
 } from "@/lib/journey/post-media";
 import {
-  splitTextPanelParagraphs,
-  textPanelNeedsCollapse,
-} from "@/lib/journey/text-panel-tone";
+  splitChiChuParagraphs,
+  chiChuNeedsCollapse,
+} from "@/lib/journey/plain-text-bg";
 import { JOURNEY_MILESTONE_TYPE_OPTIONS } from "@/lib/journey/milestone-type-options";
 import { getNameInitials } from "@/lib/journey/profile";
 import { truongRootPath } from "@/lib/truong/truong-routes";
@@ -623,29 +623,29 @@ export function JourneyMilestoneCard({
   const useFeedCompactMedia = feedCompactMedia && cardContentKind === "photo";
   const cardReadMoreHref =
     useFeedCompactMedia && readMoreHref ? readMoreHref : null;
-  const textCardPanelText = useMemo(() => {
+  const chiChuCardText = useMemo(() => {
     if (!isTextCard) return null;
-    return milestoneArticleTextPanelPlain(body, noiDungBlocks);
+    return plainTextCardPlain(body, noiDungBlocks);
   }, [isTextCard, body, noiDungBlocks]);
-  const textPanelParagraphs = useMemo(
-    () => (textCardPanelText ? splitTextPanelParagraphs(textCardPanelText) : []),
-    [textCardPanelText],
+  const chiChuParagraphs = useMemo(
+    () => (chiChuCardText ? splitChiChuParagraphs(chiChuCardText) : []),
+    [chiChuCardText],
   );
-  const textPanelCollapsible = Boolean(
-    textCardPanelText &&
-      textPanelNeedsCollapse(textCardPanelText, textPanelParagraphs.length),
+  const chiChuCollapsible = Boolean(
+    chiChuCardText &&
+      chiChuNeedsCollapse(chiChuCardText, chiChuParagraphs.length),
   );
-  const [textPanelExpanded, setTextPanelExpanded] = useState(false);
+  const [chiChuExpanded, setChiChuExpanded] = useState(false);
   const [unfoldMounted, setUnfoldMounted] = useState(false);
   const [unfoldReady, setUnfoldReady] = useState(false);
   const showContent = inlineExpand?.showContent ?? false;
   const showComments = inlineExpand?.showComments ?? false;
   const showUnfold = showContent || showComments;
   const unfoldOpen = showUnfold && unfoldReady;
-  const showTextPanelUnfold =
-    isTextCard && textPanelCollapsible && textPanelExpanded;
+  const showChiChuUnfold =
+    isTextCard && chiChuCollapsible && chiChuExpanded;
   const showUnfoldToggle = Boolean(
-    (inlineExpand && showUnfold) || showTextPanelUnfold,
+    (inlineExpand && showUnfold) || showChiChuUnfold,
   );
   const isContentOpen = supportsInlineUnfold && showContent;
   /* Khối xổ inline render khi: bài viết (xổ nội dung) HOẶC bất kỳ loại card nào
@@ -710,8 +710,8 @@ export function JourneyMilestoneCard({
   }, [comments]);
 
   useEffect(() => {
-    setTextPanelExpanded(false);
-  }, [textCardPanelText, title]);
+    setChiChuExpanded(false);
+  }, [chiChuCardText, title]);
 
   useEffect(() => {
     if (!showUnfold) {
@@ -1019,8 +1019,8 @@ export function JourneyMilestoneCard({
           type="button"
           className="jcard-unfold-toggle"
           onClick={() => {
-            if (showTextPanelUnfold) {
-              setTextPanelExpanded(false);
+            if (showChiChuUnfold) {
+              setChiChuExpanded(false);
               return;
             }
             inlineExpand?.onClose();
@@ -1042,7 +1042,7 @@ export function JourneyMilestoneCard({
   return (
     <article
       ref={articleRef}
-      className={milestoneCls + ((showUnfold || showTextPanelUnfold) ? " is-card-expanded" : "")}
+      className={milestoneCls + ((showUnfold || showChiChuUnfold) ? " is-card-expanded" : "")}
       data-mid={cotMocId ?? milestone.id}
       data-content-kind={cardContentKind}
       data-year={year}
@@ -1668,18 +1668,18 @@ export function JourneyMilestoneCard({
                 ? "inline"
                 : "overlay"
             }
-            canEditTextPanelTone={
+            canEditChiChuNen={
               canManageSelf &&
               variant === "self" &&
               cardContentKind === "text" &&
               Boolean(tacPhamId)
             }
             tacPhamId={tacPhamId}
-            textPanelExpanded={
-              textPanelCollapsible ? textPanelExpanded : undefined
+            chiChuExpanded={
+              chiChuCollapsible ? chiChuExpanded : undefined
             }
-            onTextPanelExpandedChange={
-              textPanelCollapsible ? setTextPanelExpanded : undefined
+            onChiChuExpandedChange={
+              chiChuCollapsible ? setChiChuExpanded : undefined
             }
             articleTags={liveArticleTags}
             expandTrigger={

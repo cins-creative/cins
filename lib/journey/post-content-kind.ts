@@ -4,7 +4,7 @@ import {
 } from "@/lib/bunny/embed";
 import {
   blocksAreMediaCaptionOnly,
-  blocksAreTextPanelOnly,
+  blocksArePlainTextOnly,
   extractAllImageIds,
   hasArticleLayoutBlocks,
   type GalleryMediaKind,
@@ -191,6 +191,22 @@ export function resolveEffectiveMoTa(
   return fallback || null;
 }
 
+/** Bài chỉ chữ — không ảnh/video/cover, không layout bài viết dài. */
+function isPlainTextOnlyContent(input: PostContentResolveInput): boolean {
+  const blocks = input.blocks ?? [];
+  if (hasValidCover(input)) return false;
+  if (extractAllImageIds(blocks).length > 0) return false;
+  if (hasArticleLayoutBlocks(blocks)) return false;
+
+  const moTaTrimmed = (input.moTa ?? "").trim();
+  const meaningful = meaningfulBlocks(blocks);
+
+  if (meaningful.length > 0 && blocksArePlainTextOnly(blocks)) return true;
+  if (moTaTrimmed && meaningful.length === 0) return true;
+
+  return false;
+}
+
 /** Phân loại nội dung — dùng cho card, grid (Phase 2+) và publish. */
 export function resolvePostDisplayKind(
   input: PostContentResolveInput,
@@ -219,12 +235,12 @@ export function resolvePostDisplayKind(
     };
   }
 
-  if (moTaTrimmed && hasTextContentInBlocks(blocks)) {
+  if (isPlainTextOnlyContent(input)) {
     return {
-      kind: "article",
+      kind: "text",
       effectiveMoTa,
-      gridVisible: true,
-      gridThumbSource: coverOk ? "cover" : imageIds[0] ? "first_image" : null,
+      gridVisible: false,
+      gridThumbSource: null,
     };
   }
 
@@ -289,7 +305,7 @@ export function resolvePostDisplayKind(
     };
   }
 
-  if (coverOk && blocksAreTextPanelOnly(blocks)) {
+  if (coverOk && blocksArePlainTextOnly(blocks)) {
     return {
       kind: "album",
       effectiveMoTa,
@@ -298,7 +314,7 @@ export function resolvePostDisplayKind(
     };
   }
 
-  if (blocksAreTextPanelOnly(blocks) || moTaTrimmed || effectiveMoTa) {
+  if (blocksArePlainTextOnly(blocks) || moTaTrimmed || effectiveMoTa) {
     return {
       kind: "text",
       effectiveMoTa,
@@ -477,7 +493,7 @@ export function validatePostContentForPublish(params: {
 
 /** Layout timeline card — Phase 2. */
 export type PostCardLayout =
-  | "text_panel"
+  | "chi_chu"
   | "text_with_image"
   | "album_hero_grid"
   | "album_single"
@@ -493,12 +509,12 @@ export function resolvePostCardLayout(
   const imageIds = extractAllImageIds(blocks);
   const coverOk = hasValidCover(input);
 
-  if (resolution.kind === "text") return "text_panel";
+  if (resolution.kind === "text") return "chi_chu";
   if (resolution.kind === "bunny_video") return "video";
   if (resolution.kind === "article") return "article";
 
   if (coverOk && imageIds.length > 0) return "album_hero_grid";
-  if (coverOk && blocksAreTextPanelOnly(blocks)) return "text_with_image";
+  if (coverOk && blocksArePlainTextOnly(blocks)) return "text_with_image";
   if (coverOk) return "text_with_image";
   if (imageIds.length <= 1) return "album_single";
   return "album_grid";

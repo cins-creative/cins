@@ -1538,6 +1538,32 @@
   padding: 0 4px;
 }
 
+/* Post media — ảnh album không bo góc (khớp full-bleed canvas) */
+.cins-post-view.post-canvas--media .post-blocks-fb .block-image-grid .image-grid,
+.cins-post-view .post-canvas--media .post-blocks-fb .block-image-grid .image-grid,
+.cins-post-view.post-canvas--media
+  .post-blocks-fb
+  .block-image-grid
+  .image-grid-cell,
+.cins-post-view
+  .post-canvas--media
+  .post-blocks-fb
+  .block-image-grid
+  .image-grid-cell,
+.cins-post-view.post-canvas--media
+  .post-blocks-fb
+  .block-image-grid
+  .image-grid-cell
+  img,
+.cins-post-view
+  .post-canvas--media
+  .post-blocks-fb
+  .block-image-grid
+  .image-grid-cell
+  img {
+  border-radius: 0;
+}
+
 /* Byline — author, meta chips, hành động. */
 .cins-post-view .post-byline {
   display: flex;
@@ -3241,53 +3267,66 @@
   color: var(--ink-muted, #6b7280);
 }
 
-/* @mention inline — avatar + tên, click mở user card */
+/* @mention inline — avatar + tên, căn giữa cùng dòng với chữ bình luận */
 .post-comments-v1 .post-comments-text .j-user-pop-wrap {
-  display: inline-flex;
+  display: inline;
   vertical-align: middle;
-  max-width: min(100%, 220px);
-  margin: 0 1px;
+  max-width: none !important;
+  width: auto;
+  flex-shrink: 0;
+  margin: 0;
 }
 .post-comments-v1 .post-comments-text .j-user-pop-trigger {
-  display: inline-flex;
-  max-width: 100%;
+  display: inline;
+  max-width: none;
+  width: auto;
+  vertical-align: middle;
+  line-height: inherit;
+  font: inherit;
+}
+.post-comments-v1 .post-comments-text > span {
   vertical-align: middle;
 }
 .post-comments-v1 .post-comments-mention-tag {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  max-width: 100%;
-  padding: 1px 8px 1px 2px;
-  border-radius: 999px;
-  border: 1px solid rgba(37, 99, 235, 0.18);
-  background: rgba(37, 99, 235, 0.07);
+  gap: 4px;
+  max-width: none;
+  width: auto;
+  flex: 0 0 auto;
+  padding: 0;
+  margin-right: 0.2em;
+  border-radius: 0;
+  border: 0;
+  background: transparent;
   color: var(--cins-blue, #2563eb);
-  font-size: 12px;
+  font-size: inherit;
   font-weight: 700;
-  line-height: 1.35;
+  line-height: inherit;
+  vertical-align: middle;
   white-space: nowrap;
-  transition:
-    background 0.14s ease,
-    border-color 0.14s ease;
+  transition: color 0.14s ease;
 }
 .post-comments-v1 .post-comments-mention-tag:hover {
-  background: rgba(37, 99, 235, 0.12);
-  border-color: rgba(37, 99, 235, 0.32);
+  background: transparent;
+  border-color: transparent;
+  color: var(--cins-blue-dark, #1d4ed8);
+  text-decoration: underline;
 }
 .post-comments-v1 .post-comments-mention-tag-avatar {
   flex: 0 0 auto;
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   border-radius: 999px;
   overflow: hidden;
   background: linear-gradient(135deg, #dbeafe, #fef3c7);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 800;
   color: #1d4ed8;
+  vertical-align: middle;
 }
 .post-comments-v1 .post-comments-mention-tag-avatar img {
   width: 100%;
@@ -3296,9 +3335,13 @@
   display: block;
 }
 .post-comments-v1 .post-comments-mention-tag-name {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  flex: 0 0 auto;
+  min-width: max-content;
+  overflow: visible;
+  text-overflow: unset;
+  white-space: nowrap;
+  line-height: inherit;
+  vertical-align: middle;
 }
 
 /* Portal body — tránh crop bởi overflow compose / unfold */
@@ -3456,6 +3499,8 @@
   display: block;
   -webkit-line-clamp: unset;
   overflow: visible;
+  /* Chip @mention (inline-flex) được giữ nguyên chiều rộng tên đầy đủ */
+  overflow-wrap: anywhere;
 }
 .cins-post-view .post-comments-v1 .post-comments-text-row .post-comments-actions {
   width: 100%;

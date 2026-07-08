@@ -12,7 +12,7 @@ import { JourneyArticleTagLink } from "@/components/journey/JourneyArticleTagLin
 import { JourneyCardVideo } from "@/components/journey/JourneyCardVideo";
 import { JourneyCoverImage } from "@/components/journey/JourneyCoverImage";
 import { PostBlockRenderer } from "@/components/journey/PostBlockRenderer";
-import { JourneyTextPanelTonePicker } from "@/components/journey/JourneyTextPanelTonePicker";
+import { JourneyChiChuNenPicker } from "@/components/journey/JourneyChiChuNenPicker";
 import type { MilestoneMediaItem } from "@/components/journey/milestone-types";
 import type { GridImage } from "@/lib/journey/image-grid";
 import { gridThumbSrc } from "@/lib/journey/image-grid";
@@ -22,29 +22,29 @@ import {
   articleCardNeedsDepthPreview,
   articleCardPeekBlocks,
   extractVideoUrl,
-  milestoneArticleTextPanelPlain,
+  plainTextCardPlain,
   milestoneCardCaptionPlain,
   milestoneCardCaptionForDisplay,
   milestoneCardCaptionNeedsCollapse,
   milestoneCardEmptyFallback,
   milestoneCardHasVisibleBody,
   shouldShowMilestoneCardTitle,
-  shouldShowTextPanelTitle,
-  textPanelBodyPlain,
+  shouldShowChiChuTitle,
+  chiChuBodyPlain,
 } from "@/lib/journey/post-media";
 import {
   resolvePostCardLayout,
   type PostCardLayout,
 } from "@/lib/journey/post-content-kind";
 import {
-  resolveTextPanelTone,
-  splitTextPanelParagraphs,
-  textPanelNeedsCollapse,
-  textPanelToneClass,
-  textPanelUsesCenterAlign,
-  textPanelUsesLightInk,
-  type TextPanelToneId,
-} from "@/lib/journey/text-panel-tone";
+  resolveChiChuNen,
+  splitChiChuParagraphs,
+  chiChuNeedsCollapse,
+  chiChuNenClass,
+  chiChuUsesCenterAlign,
+  chiChuUsesLightInk,
+  type ChiChuNenId,
+} from "@/lib/journey/plain-text-bg";
 import { extractVideoProcessingMeta } from "@/lib/journey/video-processing-meta";
 
 type ExpandTriggerProps = {
@@ -62,15 +62,15 @@ type Props = {
   preview?: MilestoneMediaItem | null;
   photoGridImages?: GridImage[] | null;
   articleTags?: readonly ArticleTagRef[];
-  /** Timeline card kind — `text` = panel chữ, không unfold / không ảnh bìa. */
+  /** Timeline card kind — `text` = bài chỉ chữ (nền màu), không unfold / không ảnh bìa. */
   contentKind?: MilestoneCardContentKind;
-  /** Chủ Journey — hiện nút chọn màu nền card chữ. */
-  canEditTextPanelTone?: boolean;
+  /** Chủ Journey — hiện nút chọn nền màu bài chỉ chữ. */
+  canEditChiChuNen?: boolean;
   tacPhamId?: string | null;
   expandTrigger?: ExpandTriggerProps;
-  /** Card chữ — trạng thái mở rộng (controlled từ `JourneyMilestoneCard` / actions). */
-  textPanelExpanded?: boolean;
-  onTextPanelExpandedChange?: (expanded: boolean) => void;
+  /** Bài chỉ chữ — trạng thái mở rộng (controlled từ `JourneyMilestoneCard` / actions). */
+  chiChuExpanded?: boolean;
+  onChiChuExpandedChange?: (expanded: boolean) => void;
   /** Feed cộng đồng — mở permalink thay vì unfold inline. */
   readMoreHref?: string | null;
   /** Feed tổng hợp — album/video chỉ hiện cover, không full grid/embed. */
@@ -100,11 +100,11 @@ export function JourneyMilestoneCardBodyContent({
   photoGridImages: photoGridOverride,
   articleTags = [],
   contentKind,
-  canEditTextPanelTone = false,
+  canEditChiChuNen = false,
   tacPhamId = null,
   expandTrigger,
-  textPanelExpanded: textPanelExpandedProp,
-  onTextPanelExpandedChange,
+  chiChuExpanded: chiChuExpandedProp,
+  onChiChuExpandedChange,
   readMoreHref = null,
   compactMediaPreview = false,
   disableCaptionCollapse = false,
@@ -130,36 +130,36 @@ export function JourneyMilestoneCardBodyContent({
   const isPhotoAlbumMulti = isPhotoCard && photoLayout === "album";
   const isPhotoSingle = isPhotoCard && photoLayout === "single";
   const isArticle = contentKind === "article";
-  const textPanelSeed =
+  const chiChuSeed =
     title.trim() ||
-    milestoneArticleTextPanelPlain(body, blocks) ||
-    "cins-text";
-  const [panelTone, setPanelTone] = useState<TextPanelToneId>(() =>
-    resolveTextPanelTone(blocks, textPanelSeed),
+    plainTextCardPlain(body, blocks) ||
+    "cins-chi-chu";
+  const [chiChuNen, setChiChuNen] = useState<ChiChuNenId>(() =>
+    resolveChiChuNen(blocks, chiChuSeed),
   );
-  const [internalTextPanelExpanded, setInternalTextPanelExpanded] = useState(false);
+  const [internalChiChuExpanded, setInternalChiChuExpanded] = useState(false);
   const [captionExpanded, setCaptionExpanded] = useState(false);
-  const textPanelExpandedControlled = onTextPanelExpandedChange !== undefined;
-  const textPanelExpanded = textPanelExpandedControlled
-    ? (textPanelExpandedProp ?? false)
-    : internalTextPanelExpanded;
-  const setTextPanelExpanded = textPanelExpandedControlled
-    ? onTextPanelExpandedChange
-    : setInternalTextPanelExpanded;
+  const chiChuExpandedControlled = onChiChuExpandedChange !== undefined;
+  const chiChuExpanded = chiChuExpandedControlled
+    ? (chiChuExpandedProp ?? false)
+    : internalChiChuExpanded;
+  const setChiChuExpanded = chiChuExpandedControlled
+    ? onChiChuExpandedChange
+    : setInternalChiChuExpanded;
 
   useEffect(() => {
-    setPanelTone(resolveTextPanelTone(blocks, textPanelSeed));
-  }, [blocks, textPanelSeed]);
+    setChiChuNen(resolveChiChuNen(blocks, chiChuSeed));
+  }, [blocks, chiChuSeed]);
 
-  const textCardPanelText = useMemo(() => {
+  const chiChuCardText = useMemo(() => {
     if (!isTextCard) return null;
-    return milestoneArticleTextPanelPlain(body, blocks);
+    return plainTextCardPlain(body, blocks);
   }, [isTextCard, body, blocks]);
 
   useEffect(() => {
     if (!isTextCard) return;
-    setTextPanelExpanded(false);
-  }, [isTextCard, textCardPanelText, title, setTextPanelExpanded]);
+    setChiChuExpanded(false);
+  }, [isTextCard, chiChuCardText, title, setChiChuExpanded]);
   const videoEmbedUrl = isVideoPost ? extractVideoUrl(blocks ?? []) : null;
   const useCompactMedia =
     compactMediaPreview && isPhotoCard && Boolean(readMoreHref);
@@ -275,70 +275,70 @@ export function JourneyMilestoneCardBodyContent({
   }
 
   if (isTextCard) {
-    const panelText = textCardPanelText;
-    const showTitle = shouldShowTextPanelTitle(title, blocks);
-    const bodyPlain = textPanelBodyPlain(title, body, blocks);
-    const toneClass = textPanelToneClass(panelTone);
-    const lightInk = textPanelUsesLightInk(panelTone);
-    const paragraphs = bodyPlain ? splitTextPanelParagraphs(bodyPlain) : [];
-    const collapseSource = bodyPlain ?? panelText ?? "";
-    const centerAlign = textPanelUsesCenterAlign(paragraphs.length);
-    const needsTextPanelCollapse = collapseSource
-      ? textPanelNeedsCollapse(collapseSource, paragraphs.length)
+    const cardText = chiChuCardText;
+    const showTitle = shouldShowChiChuTitle(title, blocks);
+    const bodyPlain = chiChuBodyPlain(title, body, blocks);
+    const nenClass = chiChuNenClass(chiChuNen);
+    const lightInk = chiChuUsesLightInk(chiChuNen);
+    const paragraphs = bodyPlain ? splitChiChuParagraphs(bodyPlain) : [];
+    const collapseSource = bodyPlain ?? cardText ?? "";
+    const centerAlign = chiChuUsesCenterAlign(paragraphs.length);
+    const needsChiChuCollapse = collapseSource
+      ? chiChuNeedsCollapse(collapseSource, paragraphs.length)
       : false;
-    const isTextPanelCollapsed = needsTextPanelCollapse && !textPanelExpanded;
+    const isChiChuCollapsed = needsChiChuCollapse && !chiChuExpanded;
 
     return (
       <div className="jcard-body">
         <div
           className={[
-            "jcard-text-panel",
-            toneClass,
+            "jcard-chi-chu",
+            nenClass,
             lightInk ? " is-light-ink" : "",
             centerAlign ? " is-align-center" : " is-align-left",
-            isTextPanelCollapsed ? " is-collapsed is-expand-trigger" : "",
-            textPanelExpanded ? " is-content-open" : "",
+            isChiChuCollapsed ? " is-collapsed is-expand-trigger" : "",
+            chiChuExpanded ? " is-content-open" : "",
           ]
             .filter(Boolean)
             .join(" ")}
-          role={isTextPanelCollapsed ? "button" : undefined}
-          tabIndex={isTextPanelCollapsed ? 0 : undefined}
+          role={isChiChuCollapsed ? "button" : undefined}
+          tabIndex={isChiChuCollapsed ? 0 : undefined}
           aria-expanded={
-            needsTextPanelCollapse ? textPanelExpanded : undefined
+            needsChiChuCollapse ? chiChuExpanded : undefined
           }
           aria-label={
-            isTextPanelCollapsed
-              ? `Xem đầy đủ: ${showTitle ? title : panelText?.slice(0, 80) ?? "bài viết"}`
+            isChiChuCollapsed
+              ? `Xem đầy đủ: ${showTitle ? title : cardText?.slice(0, 80) ?? "bài viết"}`
               : undefined
           }
           onClick={
-            isTextPanelCollapsed
-              ? () => setTextPanelExpanded(true)
+            isChiChuCollapsed
+              ? () => setChiChuExpanded(true)
               : undefined
           }
           onKeyDown={
-            isTextPanelCollapsed
+            isChiChuCollapsed
               ? (e) => {
                   if (e.key !== "Enter" && e.key !== " ") return;
                   e.preventDefault();
-                  setTextPanelExpanded(true);
+                  setChiChuExpanded(true);
                 }
               : undefined
           }
         >
           {showTitle ? (
-            <h2 className="jcard-text-panel-title">{title}</h2>
+            <h2 className="jcard-chi-chu-title">{title}</h2>
           ) : null}
           {paragraphs.length > 0 ? (
-            <div className="jcard-text-panel-body">
+            <div className="jcard-chi-chu-body">
               {paragraphs.map((para, idx) => (
                 <p key={`${idx}-${para.slice(0, 48)}`}>{para}</p>
               ))}
             </div>
           ) : emptyFallback ? (
-            <p className="jcard-text-panel-body jcard-desc--empty">{emptyFallback}</p>
+            <p className="jcard-chi-chu-body jcard-desc--empty">{emptyFallback}</p>
           ) : null}
-          {isTextPanelCollapsed ? (
+          {isChiChuCollapsed ? (
             <span className="jcard-expand-cta" aria-hidden>
               <ChevronDown size={14} strokeWidth={2.4} />
               Xem đầy đủ
@@ -346,11 +346,11 @@ export function JourneyMilestoneCardBodyContent({
           ) : null}
         </div>
 
-        {canEditTextPanelTone && tacPhamId ? (
-          <JourneyTextPanelTonePicker
+        {canEditChiChuNen && tacPhamId ? (
+          <JourneyChiChuNenPicker
             tacPhamId={tacPhamId}
-            tone={panelTone}
-            onToneChange={setPanelTone}
+            nen={chiChuNen}
+            onNenChange={setChiChuNen}
           />
         ) : null}
 

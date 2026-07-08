@@ -9,11 +9,11 @@ import {
   milestoneCardContentKind,
   milestoneCardPhotoGrid,
 } from "@/lib/journey/milestone-card-kind";
-import { milestoneArticleTextPanelPlain } from "@/lib/journey/post-media";
+import { plainTextCardPlain } from "@/lib/journey/post-media";
 import {
-  splitTextPanelParagraphs,
-  textPanelNeedsCollapse,
-} from "@/lib/journey/text-panel-tone";
+  splitChiChuParagraphs,
+  chiChuNeedsCollapse,
+} from "@/lib/journey/plain-text-bg";
 
 type ExpandTriggerProps = {
   enabled: boolean;
@@ -110,28 +110,28 @@ function JourneyMirrorBody({
     hasCoverPreview,
     mirror.moTa,
   );
-  const textCardPanelText = useMemo(() => {
+  const chiChuCardText = useMemo(() => {
     if (!isTextCard) return null;
-    return milestoneArticleTextPanelPlain(mirror.moTa, blocks);
+    return plainTextCardPlain(mirror.moTa, blocks);
   }, [isTextCard, mirror.moTa, blocks]);
-  const textPanelParagraphs = useMemo(
-    () => (textCardPanelText ? splitTextPanelParagraphs(textCardPanelText) : []),
-    [textCardPanelText],
+  const chiChuParagraphs = useMemo(
+    () => (chiChuCardText ? splitChiChuParagraphs(chiChuCardText) : []),
+    [chiChuCardText],
   );
-  const textPanelCollapsible = Boolean(
-    textCardPanelText &&
-      textPanelNeedsCollapse(textCardPanelText, textPanelParagraphs.length),
+  const chiChuCollapsible = Boolean(
+    chiChuCardText &&
+      chiChuNeedsCollapse(chiChuCardText, chiChuParagraphs.length),
   );
-  const [textPanelExpanded, setTextPanelExpanded] = useState(false);
+  const [chiChuExpanded, setChiChuExpanded] = useState(false);
   const isExpanded = expandTrigger?.expanded ?? false;
   const showUnfold = isExpanded && Boolean(unfold);
-  const showTextPanelUnfold =
-    isTextCard && textPanelCollapsible && textPanelExpanded;
-  const showUnfoldToggle = Boolean((showUnfold && onCollapse) || showTextPanelUnfold);
+  const showChiChuUnfold =
+    isTextCard && chiChuCollapsible && chiChuExpanded;
+  const showUnfoldToggle = Boolean((showUnfold && onCollapse) || showChiChuUnfold);
 
   useEffect(() => {
-    setTextPanelExpanded(false);
-  }, [textCardPanelText, mirror.tieuDe]);
+    setChiChuExpanded(false);
+  }, [chiChuCardText, mirror.tieuDe]);
 
   return (
     <div className="j-m-body-wrap">
@@ -151,11 +151,11 @@ function JourneyMirrorBody({
           photoGridImages={photoGridImages}
           articleTags={mirror.articleTags}
           contentKind={cardKind}
-          textPanelExpanded={
-            textPanelCollapsible ? textPanelExpanded : undefined
+          chiChuExpanded={
+            chiChuCollapsible ? chiChuExpanded : undefined
           }
-          onTextPanelExpandedChange={
-            textPanelCollapsible ? setTextPanelExpanded : undefined
+          onChiChuExpandedChange={
+            chiChuCollapsible ? setChiChuExpanded : undefined
           }
           expandTrigger={isArticle ? expandTrigger : undefined}
         />
@@ -173,8 +173,8 @@ function JourneyMirrorBody({
               type="button"
               className="jcard-unfold-toggle"
               onClick={() => {
-                if (showTextPanelUnfold) {
-                  setTextPanelExpanded(false);
+                if (showChiChuUnfold) {
+                  setChiChuExpanded(false);
                   return;
                 }
                 onCollapse?.();

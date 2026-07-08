@@ -12,11 +12,11 @@ import {
   milestoneCardContentKind,
   milestoneCardPhotoGrid,
 } from "@/lib/journey/milestone-card-kind";
-import { milestoneCardCaptionForDisplay, milestoneArticleTextPanelPlain } from "@/lib/journey/post-media";
+import { milestoneCardCaptionForDisplay, plainTextCardPlain } from "@/lib/journey/post-media";
 import {
-  splitTextPanelParagraphs,
-  textPanelNeedsCollapse,
-} from "@/lib/journey/text-panel-tone";
+  splitChiChuParagraphs,
+  chiChuNeedsCollapse,
+} from "@/lib/journey/plain-text-bg";
 import { OrgBaiDangBookmarkButton } from "@/components/truong/OrgBaiDangBookmarkButton";
 import { OrgBaiDangLikeButton } from "@/components/truong/OrgBaiDangLikeButton";
 import { OrgBaiDangLoaiBadge } from "@/components/truong/OrgBaiDangLoaiBadge";
@@ -137,21 +137,21 @@ export function OrgBaiDangJourneyCard({ post, owner = null }: Props) {
   const isArticleCard = cardKind === "article";
   const isTextCard = cardKind === "text";
   const isMediaCard = cardKind === "photo" || cardKind === "video";
-  const textCardPanelText = useMemo(() => {
+  const chiChuCardText = useMemo(() => {
     if (!isTextCard || !usesBlocks) return null;
-    return milestoneArticleTextPanelPlain(post.tom_tat, blocks);
+    return plainTextCardPlain(post.tom_tat, blocks);
   }, [isTextCard, usesBlocks, post.tom_tat, blocks]);
-  const textPanelParagraphs = useMemo(
-    () => (textCardPanelText ? splitTextPanelParagraphs(textCardPanelText) : []),
-    [textCardPanelText],
+  const chiChuParagraphs = useMemo(
+    () => (chiChuCardText ? splitChiChuParagraphs(chiChuCardText) : []),
+    [chiChuCardText],
   );
-  const textPanelCollapsible = Boolean(
-    textCardPanelText &&
-      textPanelNeedsCollapse(textCardPanelText, textPanelParagraphs.length),
+  const chiChuCollapsible = Boolean(
+    chiChuCardText &&
+      chiChuNeedsCollapse(chiChuCardText, chiChuParagraphs.length),
   );
-  const [textPanelExpanded, setTextPanelExpanded] = useState(false);
-  const showTextPanelUnfold =
-    isTextCard && textPanelCollapsible && textPanelExpanded;
+  const [chiChuExpanded, setChiChuExpanded] = useState(false);
+  const showChiChuUnfold =
+    isTextCard && chiChuCollapsible && chiChuExpanded;
   const useUnifiedMediaBody = usesBlocks || isMediaCard;
 
   const legacyPhotoGrid = useMemo(
@@ -178,7 +178,7 @@ export function OrgBaiDangJourneyCard({ post, owner = null }: Props) {
   const showUnfold = supportsInlineUnfold && expanded;
   const cardBodyForDisplay = useMemo(() => {
     if (usesBlocks) {
-      const fromBlocks = milestoneArticleTextPanelPlain(post.tom_tat, blocks);
+      const fromBlocks = plainTextCardPlain(post.tom_tat, blocks);
       if (fromBlocks) return fromBlocks;
     }
     return resolveBaiDangUnfoldTomTat(post);
@@ -190,8 +190,8 @@ export function OrgBaiDangJourneyCard({ post, owner = null }: Props) {
   );
 
   useEffect(() => {
-    setTextPanelExpanded(false);
-  }, [textCardPanelText, post.tieu_de]);
+    setChiChuExpanded(false);
+  }, [chiChuCardText, post.tieu_de]);
 
   const thumbPreview = useMemo(
     () => buildBaiDangThumbPreview(post.noi_dung),
@@ -253,7 +253,7 @@ export function OrgBaiDangJourneyCard({ post, owner = null }: Props) {
     <article
       ref={articleRef}
       id={`org-post-${post.id}`}
-      className={`j-milestone j-self org-baidang-milestone${expanded || showTextPanelUnfold ? " is-card-expanded" : ""}${showScheduledUi ? " is-scheduled" : ""}`}
+      className={`j-milestone j-self org-baidang-milestone${expanded || showChiChuUnfold ? " is-card-expanded" : ""}${showScheduledUi ? " is-scheduled" : ""}`}
       data-year={year ?? undefined}
       data-month={month ?? undefined}
       data-content-kind={cardKind}
@@ -300,11 +300,11 @@ export function OrgBaiDangJourneyCard({ post, owner = null }: Props) {
                 photoGridImages={photoGridImages}
                 contentKind={usesBlocks ? cardKind : undefined}
                 captionExpandMode="inline"
-                textPanelExpanded={
-                  textPanelCollapsible ? textPanelExpanded : undefined
+                chiChuExpanded={
+                  chiChuCollapsible ? chiChuExpanded : undefined
                 }
-                onTextPanelExpandedChange={
-                  textPanelCollapsible ? setTextPanelExpanded : undefined
+                onChiChuExpandedChange={
+                  chiChuCollapsible ? setChiChuExpanded : undefined
                 }
                 expandTrigger={
                   supportsInlineUnfold
@@ -438,11 +438,11 @@ export function OrgBaiDangJourneyCard({ post, owner = null }: Props) {
               initialCount={post.bookmarkCount}
             />
             <span className="action-spacer" />
-            {showTextPanelUnfold ? (
+            {showChiChuUnfold ? (
               <button
                 type="button"
                 className="jcard-unfold-toggle"
-                onClick={() => setTextPanelExpanded(false)}
+                onClick={() => setChiChuExpanded(false)}
                 aria-label="Thu gọn"
               >
                 <ChevronUp size={15} strokeWidth={2.2} aria-hidden />

@@ -30,9 +30,9 @@ import {
   purgeTacPhamHostingAssets,
 } from "@/lib/journey/purge-tac-pham-hosting";
 import {
-  applyTextPanelToneToBlocks,
-  isTextPanelToneId,
-} from "@/lib/journey/text-panel-tone";
+  applyChiChuNenToBlocks,
+  isChiChuNenId,
+} from "@/lib/journey/plain-text-bg";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { notifyMilestoneComment } from "@/lib/social/follow";
 
@@ -1129,15 +1129,15 @@ export async function editMilestoneComment(
   return { ok: true, data: { id: commentId, noiDung: text } };
 }
 
-export async function updateTextPanelTone(
+export async function updateChiChuNen(
   tacPhamId: string,
-  tone: number,
-): Promise<ActionResult<{ tone: number }>> {
+  nen: number,
+): Promise<ActionResult<{ nen: number }>> {
   if (!tacPhamId?.trim()) {
     return { ok: false, error: "Thiếu tác phẩm." };
   }
 
-  if (!isTextPanelToneId(tone)) {
+  if (!isChiChuNenId(nen)) {
     return { ok: false, error: "Màu nền không hợp lệ." };
   }
 
@@ -1165,9 +1165,9 @@ export async function updateTextPanelTone(
   }
 
   const blocks = parseServerBlocks(tpRow.noi_dung_blocks) ?? [];
-  const nextBlocks = applyTextPanelToneToBlocks(blocks, tone);
+  const nextBlocks = applyChiChuNenToBlocks(blocks, nen);
   if (!nextBlocks) {
-    return { ok: false, error: "Bài chữ cần ít nhất một block nội dung." };
+    return { ok: false, error: "Bài chỉ chữ cần ít nhất một block nội dung." };
   }
 
   const { error: updErr } = await admin
@@ -1183,5 +1183,5 @@ export async function updateTextPanelTone(
     revalidatePath(`/${session.profile.slug}`);
   }
 
-  return { ok: true, data: { tone } };
+  return { ok: true, data: { nen } };
 }

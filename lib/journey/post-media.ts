@@ -5,7 +5,7 @@ import type { ComposeIntent } from "@/lib/journey/compose-types";
 import { resolvePostDisplayKind } from "@/lib/journey/post-content-kind";
 import { extractVideoCanvasRatio } from "@/lib/journey/video-canvas-ratio";
 import { isPersistedImageSeed } from "@/lib/truong/image-ref";
-import { textPanelNeedsCollapse } from "@/lib/journey/text-panel-tone";
+import { chiChuNeedsCollapse } from "@/lib/journey/plain-text-bg";
 import type { BaiDangLoai } from "@/lib/truong/bai-dang";
 
 export type MediaPostKind = "photo" | "video";
@@ -348,7 +348,7 @@ export function milestoneCardHasVisibleBody(
   if (hasCoverPreview) return true;
   if (shouldShowMilestoneCardTitle(title, blocks, body)) return true;
   if (milestoneCardCaptionPlain(body, blocks)) return true;
-  if (milestoneArticleTextPanelPlain(body, blocks)) return true;
+  if (plainTextCardPlain(body, blocks)) return true;
   if (extractAllImageIds(blocks).length > 0) return true;
   if (detectMediaPostKind(blocks) === "video") {
     const url = blocks?.find((b) => b.loai === "embed")?.config?.url;
@@ -371,8 +371,8 @@ export function milestoneCardEmptyFallback(
   return "Mốc này chưa có nội dung.";
 }
 
-/** Tiêu đề trên card chữ — gồm cả tieu_de auto từ dòng đầu nội dung. */
-export function shouldShowTextPanelTitle(
+/** Tiêu đề trên card chỉ chữ — gồm cả tieu_de auto từ dòng đầu nội dung. */
+export function shouldShowChiChuTitle(
   title: string,
   blocks: ReadonlyArray<Block> | null | undefined,
 ): boolean {
@@ -385,15 +385,15 @@ export function shouldShowTextPanelTitle(
   return true;
 }
 
-/** Nội dung panel chữ — bỏ đoạn trùng tiêu đề khi hiện tiêu đề riêng. */
-export function textPanelBodyPlain(
+/** Nội dung card chỉ chữ — bỏ đoạn trùng tiêu đề khi hiện tiêu đề riêng. */
+export function chiChuBodyPlain(
   title: string,
   body: string | null | undefined,
   blocks: ReadonlyArray<Block> | null | undefined,
 ): string | null {
-  const plain = milestoneArticleTextPanelPlain(body, blocks);
+  const plain = plainTextCardPlain(body, blocks);
   if (!plain) return null;
-  if (!shouldShowTextPanelTitle(title, blocks)) return plain;
+  if (!shouldShowChiChuTitle(title, blocks)) return plain;
 
   const trimmedTitle = title.trim();
   const parts = plain
@@ -502,7 +502,7 @@ export function milestoneCardBodyForDisplay(
   const fromBody = body?.trim();
   if (fromBody) return fromBody;
   if (blocks?.length) {
-    const fromBlocks = milestoneArticleTextPanelPlain(body, blocks);
+    const fromBlocks = plainTextCardPlain(body, blocks);
     if (fromBlocks) return fromBlocks;
   }
   return body;
@@ -550,29 +550,51 @@ export function milestoneCardCaptionForDisplay(
   return stripped.trim() || null;
 }
 
-/** Nội dung đầy đủ trên card chữ (body / heading / quote) — không cắt dòng. */
-export function milestoneArticleTextPanelPlain(
+function plainTextFromBlocks(
+  blocks: ReadonlyArray<Block> | null | undefined,
+): string | null {
+  if (!blocks?.length) return null;
+  const parts: string[] = [];
+  for (const block of blocks) {
+    if (
+      block.loai !== "body" &&
+      block.loai !== "h2" &&
+      block.loai !== "h3" &&
+      block.loai !== "quote"
+    ) {
+      continue;
+    }
+    const html = block.config?.html;
+    if (typeof html !== "string") continue;
+    const plain = htmlFragmentToPlainText(html);
+    if (plain) parts.push(plain);
+  }
+  return parts.length ? parts.join("\n\n") : null;
+}
+
+/** Gộp mô tả + block chữ — bỏ trùng khi block lặp lại mo_ta. */
+function mergePlainTextMoTaAndBlocks(
+  moTa: string | null,
+  blocksText: string | null,
+): string | null {
+  if (moTa && blocksText) {
+    if (blocksText === moTa) return moTa;
+    if (blocksText.startsWith(moTa)) return blocksText;
+    if (moTa.startsWith(blocksText)) return moTa;
+    return `${moTa}\n\n${blocksText}`;
+  }
+  return moTa ?? blocksText;
+}
+
+/** Nội dung đầy đủ card chỉ chữ — gồm mo_ta (mô tả) + block chữ bổ sung. */
+export function plainTextCardPlain(
   body: string | null | undefined,
   blocks: ReadonlyArray<Block> | null | undefined,
 ): string | null {
-  if (blocks?.length) {
-    const parts: string[] = [];
-    for (const block of blocks) {
-      if (
-        block.loai !== "body" &&
-        block.loai !== "h2" &&
-        block.loai !== "h3" &&
-        block.loai !== "quote"
-      ) {
-        continue;
-      }
-      const html = block.config?.html;
-      if (typeof html !== "string") continue;
-      const plain = htmlFragmentToPlainText(html);
-      if (plain) parts.push(plain);
-    }
-    if (parts.length) return parts.join("\n\n");
-  }
+  const moTa = body?.trim() || null;
+  const blocksText = plainTextFromBlocks(blocks);
+  const merged = mergePlainTextMoTaAndBlocks(moTa, blocksText);
+  if (merged) return merged;
   return milestoneCardCaptionPlain(body, blocks);
 }
 
@@ -616,7 +638,7 @@ export function milestoneCardCaptionNeedsCollapse(
     .split(/\n\n+/)
     .map((p) => p.trim())
     .filter(Boolean);
-  return textPanelNeedsCollapse(caption, paras.length);
+  return chiChuNeedsCollapse(caption, paras.length);
 }
 
 /** Bài article trên timeline — có thêm nội dung ngoài preview card (blocks / chữ dài). */
@@ -633,7 +655,7 @@ export function articleCardNeedsDepthPreview(
     .split(/\n\s*\n/)
     .map((p) => p.trim())
     .filter(Boolean);
-  return textPanelNeedsCollapse(caption, paras.length) || caption.length > 160;
+  return chiChuNeedsCollapse(caption, paras.length) || caption.length > 160;
 }
 
 /** Blocks trong vùng peek card article thu gọn — cùng logic unfold (bỏ đoạn trùng caption). */
@@ -700,7 +722,8 @@ export function blocksAreMediaCaptionOnly(
 }
 
 /** Chỉ block chữ trên card text panel — không album/embed/ảnh inline. */
-export function blocksAreTextPanelOnly(
+/** Chỉ block chữ (body/h2/h3/quote/spacer) — không media, không layout bài viết. */
+export function blocksArePlainTextOnly(
   blocks: ReadonlyArray<Block> | null | undefined,
 ): boolean {
   if (!blocks?.length) return true;
@@ -739,7 +762,7 @@ export function isSubstantialArticleBody(
   body: string | null | undefined,
   blocks: ReadonlyArray<Block> | null | undefined,
 ): boolean {
-  const plain = (milestoneArticleTextPanelPlain(body, blocks) ?? "").trim();
+  const plain = (plainTextCardPlain(body, blocks) ?? "").trim();
   if (plain.length > 360) return true;
   return plain.split(/\n\s*\n/).filter((p) => p.trim()).length > 2;
 }

@@ -1,6 +1,7 @@
 import "server-only";
 
 import { insertSocialThongBao } from "@/lib/social/thong-bao-insert";
+import { prefixReplyMentionText } from "@/lib/social/comments/mention-parse";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 const MENTION_RE = /@([a-z0-9._-]{2,40})/gi;
@@ -132,14 +133,10 @@ async function notifyMentionRecipient(
   if (!result.ok) console.error("[notifyCommentMentions]", result.error);
 }
 
-/** Prefix @tên khi trả lời reply (flatten về root). */
+/** Prefix @slug khi trả lời reply (flatten về root). */
 export function prefixReplyMention(
   text: string,
-  replyToName: string | null | undefined,
+  replyToSlug: string | null | undefined,
 ): string {
-  const trimmed = text.trim();
-  if (!replyToName?.trim()) return trimmed;
-  const prefix = `@${replyToName.trim()} `;
-  if (trimmed.toLowerCase().startsWith(prefix.trim().toLowerCase())) return trimmed;
-  return `${prefix}${trimmed}`;
+  return prefixReplyMentionText(text, replyToSlug);
 }
