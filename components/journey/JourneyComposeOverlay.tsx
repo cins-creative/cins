@@ -83,7 +83,7 @@ export function JourneyComposeOverlay({
 
   const editEditorIntent = useMemo((): ComposeIntent | undefined => {
     if (!editInitial) return undefined;
-    return resolveEditComposeIntent(editInitial.blocks);
+    return resolveEditComposeIntent(editInitial.blocks, editInitial.moTa);
   }, [editInitial]);
 
   const isCreateEditor =

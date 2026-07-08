@@ -1663,6 +1663,11 @@ export function JourneyMilestoneCard({
             compactMediaPreview={useFeedCompactMedia}
             readMoreHref={cardReadMoreHref}
             hasLinkedPost={Boolean(postSlug)}
+            captionExpandMode={
+              cardContentKind === "photo" || cardContentKind === "video"
+                ? "inline"
+                : "overlay"
+            }
             canEditTextPanelTone={
               canManageSelf &&
               variant === "self" &&

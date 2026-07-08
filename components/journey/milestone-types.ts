@@ -146,6 +146,7 @@ export type MilestoneBookmarkSource = {
 /** Bookmark từ `org_bai_dang` — unfold blocks local, không gọi Journey post API. */
 export type MilestoneOrgBaiDangRef = {
   postId: string;
+  orgId: string;
   orgSlug: string;
   orgName: string;
 };
@@ -252,6 +253,12 @@ export type MilestoneItem = {
    * khi sắp xếp trong mỗi năm (không ảnh hưởng Journey cá nhân).
    */
   viewerSeenCount?: number | null;
+
+  /**
+   * World Journey feed — bài/sự kiện org từ tổ chức viewer đang theo dõi
+   * (ưu tiên xếp trên bài org chưa follow).
+   */
+  feedOrgFollowed?: boolean;
 
   /**
    * Thời điểm xếp trên World Journey feed — sự kiện org tương lai dùng thay cho

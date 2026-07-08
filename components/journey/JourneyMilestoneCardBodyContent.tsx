@@ -24,6 +24,7 @@ import {
   extractVideoUrl,
   milestoneArticleTextPanelPlain,
   milestoneCardCaptionPlain,
+  milestoneCardCaptionForDisplay,
   milestoneCardCaptionNeedsCollapse,
   milestoneCardEmptyFallback,
   milestoneCardHasVisibleBody,
@@ -74,6 +75,10 @@ type Props = {
   readMoreHref?: string | null;
   /** Feed tổng hợp — album/video chỉ hiện cover, không full grid/embed. */
   compactMediaPreview?: boolean;
+  /** Org bài đăng / feed — caption photo/video là nội dung chính, không thu gọn. */
+  disableCaptionCollapse?: boolean;
+  /** `inline` — «xem thêm...» cuối dòng; `overlay` — CTA «Xem đầy đủ» (mặc định Journey). */
+  captionExpandMode?: "overlay" | "inline";
   /** Có permalink bài — dùng cho fallback copy. */
   hasLinkedPost?: boolean;
   onTagLinkClick?: (e: React.MouseEvent) => void;
@@ -102,6 +107,8 @@ export function JourneyMilestoneCardBodyContent({
   onTextPanelExpandedChange,
   readMoreHref = null,
   compactMediaPreview = false,
+  disableCaptionCollapse = false,
+  captionExpandMode = "overlay",
   hasLinkedPost = false,
   onTagLinkClick,
 }: Props) {
@@ -171,7 +178,7 @@ export function JourneyMilestoneCardBodyContent({
     };
   }, [photoGridImages, preview, title, useCompactMedia]);
   const showCardTitle = shouldShowMilestoneCardTitle(title, blocks, body);
-  const cardCaption = milestoneCardCaptionPlain(body, blocks);
+  const cardCaption = milestoneCardCaptionForDisplay(title, body, blocks);
   const emptyFallback =
     !milestoneCardHasVisibleBody(title, body, blocks, hasCoverPreview)
       ? milestoneCardEmptyFallback(blocks, hasLinkedPost || Boolean(readMoreHref))
@@ -180,14 +187,22 @@ export function JourneyMilestoneCardBodyContent({
   const showCardTitleInBody = showCardTitle;
   const showCardCaptionInBody = Boolean(cardCaption);
   const captionNeedsCollapse =
+    !disableCaptionCollapse &&
     Boolean(cardCaption) &&
     (isPhotoCard || isVideoPost) &&
     milestoneCardCaptionNeedsCollapse(cardCaption);
   const isCaptionCollapsed = captionNeedsCollapse && !captionExpanded;
+  const captionExpandInline = captionExpandMode === "inline";
 
   useEffect(() => {
     setCaptionExpanded(false);
   }, [cardCaption, title]);
+
+  function expandCaption(e?: React.MouseEvent | React.KeyboardEvent) {
+    e?.stopPropagation();
+    e?.preventDefault?.();
+    setCaptionExpanded(true);
+  }
 
   const hasJcardText =
     showCardTitleInBody ||
@@ -383,36 +398,55 @@ export function JourneyMilestoneCardBodyContent({
               <div
                 className={[
                   "jcard-lead",
-                  isCaptionCollapsed ? "is-caption-collapsed is-caption-expand-trigger" : "",
+                  isCaptionCollapsed ? "is-caption-collapsed" : "",
+                  isCaptionCollapsed && !captionExpandInline
+                    ? "is-caption-expand-trigger"
+                    : "",
+                  isCaptionCollapsed && captionExpandInline
+                    ? "is-caption-expand-inline"
+                    : "",
                   captionExpanded ? "is-caption-expanded" : "",
                 ]
                   .filter(Boolean)
                   .join(" ")}
-                role={isCaptionCollapsed ? "button" : undefined}
-                tabIndex={isCaptionCollapsed ? 0 : undefined}
+                role={
+                  isCaptionCollapsed && !captionExpandInline ? "button" : undefined
+                }
+                tabIndex={
+                  isCaptionCollapsed && !captionExpandInline ? 0 : undefined
+                }
                 aria-expanded={captionNeedsCollapse ? captionExpanded : undefined}
                 aria-label={
-                  isCaptionCollapsed
+                  isCaptionCollapsed && !captionExpandInline
                     ? `Xem đầy đủ: ${cardCaption!.slice(0, 80)}`
                     : undefined
                 }
                 onClick={
-                  isCaptionCollapsed
-                    ? () => setCaptionExpanded(true)
+                  isCaptionCollapsed && !captionExpandInline
+                    ? () => expandCaption()
                     : undefined
                 }
                 onKeyDown={
-                  isCaptionCollapsed
+                  isCaptionCollapsed && !captionExpandInline
                     ? (e) => {
                         if (e.key !== "Enter" && e.key !== " ") return;
-                        e.preventDefault();
-                        setCaptionExpanded(true);
+                        expandCaption(e);
                       }
                     : undefined
                 }
               >
                 <p className="jcard-desc">{cardCaption}</p>
-                {isCaptionCollapsed ? (
+                {isCaptionCollapsed && captionExpandInline ? (
+                  <button
+                    type="button"
+                    className="jcard-caption-more"
+                    onClick={expandCaption}
+                    aria-label={`Xem thêm: ${cardCaption!.slice(0, 80)}`}
+                  >
+                    xem thêm...
+                  </button>
+                ) : null}
+                {isCaptionCollapsed && !captionExpandInline ? (
                   <span className="jcard-expand-cta jcard-expand-cta--light" aria-hidden>
                     <ChevronDown size={14} strokeWidth={2.4} />
                     {expandCtaLabel}

@@ -90,6 +90,8 @@ export async function NguoiCungNganhModule({ ctx }: { ctx: HomeModuleCtx }) {
               slug={p.slug}
               name={p.name}
               avatarUrl={p.avatarUrl}
+              targetUserId={p.id}
+              viewerProfileId={ctx.viewerId}
               isFriend={p.isFriend}
               subtitle={
                 p.mutualCount > 0

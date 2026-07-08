@@ -247,7 +247,7 @@
 
 .tdh-page--cso .cso-ss-primary-action--dual {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 44px;
+  grid-template-columns: minmax(0, 1fr) auto 44px;
   gap: 10px;
   align-items: stretch;
 }
@@ -304,6 +304,10 @@
 }
 
 .tdh-page--cso .cso-ss-btn-follow.is-following {
+  width: 44px;
+  min-width: 44px;
+  padding: 0;
+  gap: 0;
   background: var(--cins-blue-soft, #e7f0fb);
   border-color: rgba(31, 116, 201, 0.25);
   color: var(--cins-blue, #1f74c9);

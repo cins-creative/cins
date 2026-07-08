@@ -97,7 +97,7 @@ export function flushSuKienNow(): void {
 /* Dedup impression theo phiên — mỗi đối tượng chỉ tính tiếp cận 1 lần/phiên. */
 const seenImpression = new Set<string>();
 
-type ImpressionArgs = {
+export type ImpressionArgs = {
   loaiDoiTuong: LoaiDoiTuongSuKien;
   idDoiTuong: string;
   nguon?: NguonSuKien;

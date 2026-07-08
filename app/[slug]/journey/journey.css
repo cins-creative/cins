@@ -3772,7 +3772,8 @@ a.j-main-gallery-item:focus-visible {
 .j-m-card.is-expanded .jcard-body {
   padding-bottom: 4px;
 }
-.j-m-unfold-post .blocks-readonly {
+/* Media unfold — full-bleed; khoảng cách nằm trong từng block. */
+.j-m-unfold-post.j-m-unfold-post--media .blocks-readonly {
   padding-inline: 0;
   gap: 0;
 }
@@ -3785,9 +3786,13 @@ a.j-main-gallery-item:focus-visible {
   color: var(--jcard-ink, var(--ink-body));
   white-space: pre-wrap;
 }
-.j-m-unfold-post:not(.j-m-unfold-post--media) .blocks-readonly {
+/* Article unfold — flex gap (post-page readonly dùng gap:0 + h2/h3 margin). */
+.cins-editor-page.cins-post-view.j-m-unfold-post:not(.j-m-unfold-post--media)
+  .blocks-readonly.post-blocks-fb {
+  display: flex;
+  flex-direction: column;
   padding-inline: 16px;
-  gap: 10px;
+  gap: 12px;
 }
 /* Unfold article — title/sub khớp editor canvas (thu nhỏ trong card timeline). */
 .j-m-unfold-post:not(.j-m-unfold-post--media) .title-in.title-ro {
@@ -11952,6 +11957,47 @@ select.j-edit-input {
   outline: 2px solid rgba(31, 116, 201, 0.45);
   outline-offset: 2px;
   border-radius: 8px;
+}
+.jcard--photo .jcard-lead.is-caption-collapsed.is-caption-expand-inline,
+.jcard--video .jcard-lead.is-caption-collapsed.is-caption-expand-inline {
+  cursor: default;
+}
+.jcard--photo .jcard-lead.is-caption-expand-inline.is-caption-collapsed .jcard-desc,
+.jcard--video .jcard-lead.is-caption-expand-inline.is-caption-collapsed .jcard-desc {
+  -webkit-line-clamp: 3;
+  margin-bottom: 0;
+  padding-right: 0.35em;
+}
+.jcard-caption-more {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  margin: 0;
+  border: 0;
+  padding: 0 0 0 2.25em;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    var(--jcard-bg, var(--bg-surface, #fff)) 32%,
+    var(--jcard-bg, var(--bg-surface, #fff)) 100%
+  );
+  color: var(--cins-blue, #1f74c9);
+  font-family: var(--font-sans, "Be Vietnam Pro", system-ui, sans-serif);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.55;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.jcard-caption-more:hover {
+  text-decoration: underline;
+}
+.jcard-caption-more:focus-visible {
+  outline: 2px solid rgba(31, 116, 201, 0.45);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 .jcard--article .jcard-desc {
   font-family: var(--font-sans);

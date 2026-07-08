@@ -17,7 +17,7 @@ import { syncCoAuthorsFromEditor } from "@/lib/social/co-author";
 import { setMilestonePersonalFilters } from "@/lib/filter/gan";
 import { revalidateTaggedArticlePages } from "@/lib/tag/revalidate-tag-pages";
 import { DEFAULT_ARTICLE_POST_TITLE } from "@/lib/journey/post-media";
-import { validatePostContentForPublish } from "@/lib/journey/post-content-kind";
+import { validatePostContentForPublish, validateMoTaLength } from "@/lib/journey/post-content-kind";
 import type { CoAuthorDraft } from "@/lib/social/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { buildMilestoneItemForCotMoc } from "@/lib/journey/milestones-fetch";
@@ -65,7 +65,6 @@ export type UpdatePostResult =
   | { ok: false; error: string; field?: string };
 
 const MAX_TITLE = 200;
-const MAX_MOTA = 280;
 const MAX_BLOCKS = 200;
 
 export async function updatePost(
@@ -89,7 +88,15 @@ export async function updatePost(
       field: "tieuDe",
     };
   }
-  const moTa = (input.moTa || "").trim().slice(0, MAX_MOTA);
+  const moTaCheck = validateMoTaLength(input.moTa);
+  if (!moTaCheck.ok) {
+    return {
+      ok: false,
+      error: moTaCheck.error,
+      field: moTaCheck.field,
+    };
+  }
+  const moTa = moTaCheck.trimmed;
 
   if (!Array.isArray(input.blocks)) {
     return {
@@ -129,6 +136,7 @@ export async function updatePost(
   const contentCheck = validatePostContentForPublish({
     moTa,
     coverId: input.coverSeed,
+    tieuDe,
     blocks: normalized,
   });
   if (!contentCheck.ok) {

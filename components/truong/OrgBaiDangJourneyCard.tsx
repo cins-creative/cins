@@ -12,7 +12,7 @@ import {
   milestoneCardContentKind,
   milestoneCardPhotoGrid,
 } from "@/lib/journey/milestone-card-kind";
-import { milestoneCardCaptionPlain, milestoneArticleTextPanelPlain } from "@/lib/journey/post-media";
+import { milestoneCardCaptionForDisplay, milestoneArticleTextPanelPlain } from "@/lib/journey/post-media";
 import {
   splitTextPanelParagraphs,
   textPanelNeedsCollapse,
@@ -32,6 +32,7 @@ import {
   baiDangHasExpandableBody,
   buildBaiDangThumbPreview,
   buildLegacyPhotoGridImages,
+  resolveBaiDangUnfoldTomTat,
   stripHtmlToPlainText,
 } from "@/lib/truong/bai-dang-content";
 import {
@@ -175,7 +176,18 @@ export function OrgBaiDangJourneyCard({ post, owner = null }: Props) {
   const year = baiDangYear(post.tao_luc);
   const month = post.tao_luc ? new Date(post.tao_luc).getMonth() + 1 : null;
   const showUnfold = supportsInlineUnfold && expanded;
-  const cardCaption = milestoneCardCaptionPlain(post.tom_tat, blocks);
+  const cardBodyForDisplay = useMemo(() => {
+    if (usesBlocks) {
+      const fromBlocks = milestoneArticleTextPanelPlain(post.tom_tat, blocks);
+      if (fromBlocks) return fromBlocks;
+    }
+    return resolveBaiDangUnfoldTomTat(post);
+  }, [usesBlocks, post, blocks]);
+  const cardCaption = milestoneCardCaptionForDisplay(
+    post.tieu_de,
+    cardBodyForDisplay,
+    blocks,
+  );
 
   useEffect(() => {
     setTextPanelExpanded(false);
@@ -282,11 +294,12 @@ export function OrgBaiDangJourneyCard({ post, owner = null }: Props) {
             <>
               <JourneyMilestoneCardBodyContent
                 title={post.tieu_de}
-                body={post.tom_tat}
+                body={cardBodyForDisplay}
                 noiDungBlocks={usesBlocks ? blocks : null}
                 preview={previewMedia}
                 photoGridImages={photoGridImages}
                 contentKind={usesBlocks ? cardKind : undefined}
+                captionExpandMode="inline"
                 textPanelExpanded={
                   textPanelCollapsible ? textPanelExpanded : undefined
                 }

@@ -99,16 +99,18 @@ export function CoSoOrgFollowButton({
       className={baseClass}
       aria-pressed={following}
       disabled={disabled || !loaded || pending}
-      aria-label={variant === "icon" ? label : undefined}
+      aria-label={following || variant === "icon" ? label : undefined}
       title={disabled ? "Bạn đang quản trị tổ chức này" : label}
       onClick={toggle}
     >
       {following ? (
         <UserCheck size={17} strokeWidth={2.2} aria-hidden />
       ) : (
-        <UserPlus size={17} strokeWidth={2.2} aria-hidden />
+        <>
+          <UserPlus size={17} strokeWidth={2.2} aria-hidden />
+          <span className="ss-btn-user-follow-label">{label}</span>
+        </>
       )}
-      <span className="ss-btn-user-follow-label">{label}</span>
     </button>
   );
 }

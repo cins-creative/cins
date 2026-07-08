@@ -5,6 +5,7 @@ import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import type { Block, LoaiMoc, Visibility } from "@/lib/editor/types";
 import { loadCoAuthorsForTacPham } from "@/lib/social/co-author";
 import { loadPersonalFilterIdsForCotMoc } from "@/lib/filter/gan";
+import { parseServerBlocks } from "@/lib/journey/parse-server-blocks";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { sanitizePersistableCoverId } from "@/lib/truong/image-ref";
 
@@ -25,6 +26,7 @@ type CotMocRow = {
   loai_moc: LoaiMoc;
   che_do_hien_thi: Visibility | null;
   thoi_diem: string | null;
+  mo_ta: string | null;
 };
 
 export type PostEditInitialResult =
@@ -38,32 +40,48 @@ export type PostEditInitialResult =
       error: "not_found" | "forbidden";
     };
 
-function sanitizeBlocks(raw: unknown): Block[] {
-  if (!Array.isArray(raw)) return [];
-  const out: Block[] = [];
-  for (const item of raw) {
-    if (!item || typeof item !== "object") continue;
-    const obj = item as Record<string, unknown>;
-    if (typeof obj.loai !== "string") continue;
-    out.push({
-      id: typeof obj.id === "string" ? obj.id : `b-${out.length}`,
-      loai: obj.loai as Block["loai"],
-      thu_tu: typeof obj.thu_tu === "number" ? obj.thu_tu : out.length,
-      config:
-        obj.config && typeof obj.config === "object"
-          ? (obj.config as Record<string, unknown>)
-          : {},
-    });
-  }
-  return out;
-}
-
 function isoToday(): string {
   const d = new Date();
   const yyyy = d.getFullYear();
   const mm = String(d.getMonth() + 1).padStart(2, "0");
   const dd = String(d.getDate()).padStart(2, "0");
   return `${yyyy}-${mm}-${dd}`;
+}
+
+/** Khôi phục nội dung khi `noi_dung_blocks` trống nhưng mirror còn trên cột mốc. */
+function recoverEditContent(params: {
+  tacPhamId: string;
+  blocks: Block[];
+  moTa: string | null;
+  cotMoTa: string | null;
+}): { blocks: Block[]; moTa: string | null } {
+  let blocks = params.blocks;
+  let moTa = params.moTa?.trim() || null;
+  const cotMoTa = params.cotMoTa?.trim() || null;
+
+  if (!moTa && cotMoTa) {
+    moTa = cotMoTa;
+  }
+
+  if (blocks.length > 0) {
+    return { blocks, moTa };
+  }
+
+  const seed = moTa || cotMoTa;
+  if (!seed) {
+    return { blocks, moTa };
+  }
+
+  blocks = [
+    {
+      id: `b-recover-${params.tacPhamId.slice(0, 8)}`,
+      loai: "body",
+      thu_tu: 0,
+      config: { html: seed.replace(/\r\n/g, "\n") },
+    },
+  ];
+
+  return { blocks, moTa: moTa ?? seed };
 }
 
 export async function fetchPostEditInitial(params: {
@@ -97,7 +115,7 @@ export async function fetchPostEditInitial(params: {
 
   const { data: cm, error: cmErr } = await admin
     .from("content_cot_moc")
-    .select("id, id_nguoi_dung, loai_moc, che_do_hien_thi, thoi_diem")
+    .select("id, id_nguoi_dung, loai_moc, che_do_hien_thi, thoi_diem, mo_ta")
     .eq("id", firstCotMocId)
     .maybeSingle<CotMocRow>();
 
@@ -142,7 +160,13 @@ export async function fetchPostEditInitial(params: {
       vaiTro: r.vaiTro,
     }));
 
-  const blocks = sanitizeBlocks(tp.noi_dung_blocks);
+  const parsedBlocks = parseServerBlocks(tp.noi_dung_blocks) ?? [];
+  const { blocks, moTa } = recoverEditContent({
+    tacPhamId: tp.id,
+    blocks: parsedBlocks,
+    moTa: tp.mo_ta,
+    cotMoTa: cm.mo_ta,
+  });
 
   return {
     ok: true,
@@ -151,7 +175,7 @@ export async function fetchPostEditInitial(params: {
       tacPhamId: tp.id,
       cotMocId: cm.id,
       tieuDe: tp.tieu_de ?? "",
-      moTa: tp.mo_ta,
+      moTa,
       coverSeed: sanitizePersistableCoverId(tp.cover_id, blocks),
       tags,
       visibility: (tp.che_do_hien_thi ?? cm.che_do_hien_thi ?? "public") as Visibility,

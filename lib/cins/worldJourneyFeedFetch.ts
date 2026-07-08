@@ -10,15 +10,15 @@ import {
 } from "@/lib/journey/milestones-fetch";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import {
-  compareWorldJourneyFeedOrder,
+  compareWorldJourneyFeedByUnseen,
 } from "@/lib/cins/worldJourneyFeedSort";
-import { compareTimelineOrder } from "@/lib/journey/timeline-sort";
+import { worldJourneyAnalyticsId } from "@/lib/cins/worldJourneyAnalytics";
 import { listFriends } from "@/lib/social/ket-ban";
 import { demLuotXemCuaViewer } from "@/lib/social/su-kien";
 import { loadUserSuKienPhanHoiMap } from "@/lib/to-chuc/su-kien-dang-ky";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import {
-  fetchFollowedOrgBaiDangMilestones,
+  fetchWorldJourneyOrgBaiDangMilestones,
   listFollowingOrgIds,
 } from "@/lib/cins/worldJourneyOrgFeed";
 import {
@@ -206,17 +206,6 @@ function applyLensOwners(
 }
 
 /**
- * ID đối tượng analytics của 1 milestone — khớp `id_doi_tuong` mà client bắn
- * lên `social_luot_xem`: sự kiện → `suKienId`; bài đăng org → `postId`; còn lại
- * là cột mốc (`cotMocId` ?? `id`). Dùng để tra số lần viewer đã xem.
- */
-function analyticsIdOf(m: MilestoneItem): string {
-  if (m.orgSuKienRef?.suKienId) return m.orgSuKienRef.suKienId;
-  if (m.orgBaiDangRef?.postId) return m.orgBaiDangRef.postId;
-  return m.cotMocId ?? m.id;
-}
-
-/**
  * Xếp hạng feed: ưu tiên nội dung CHƯA xem / xem ít (số lượt `hien_thi` của
  * viewer thấp) lên trên; cùng số lượt thì giữ thứ tự dòng thời gian
  * (`compareTimelineOrder`). Cắt còn `FEED_LIMIT`.
@@ -229,21 +218,18 @@ async function rankFeedByUnseen(
 
   const seen = await demLuotXemCuaViewer(
     viewerId,
-    items.map(analyticsIdOf),
+    items.map(worldJourneyAnalyticsId),
   );
 
-  return items
+  const withSeen = items.map((m) => ({
+    ...m,
+    viewerSeenCount: seen.get(worldJourneyAnalyticsId(m)) ?? 0,
+  }));
+
+  return withSeen
     .slice()
-    .sort((a, b) => {
-      const sa = seen.get(analyticsIdOf(a)) ?? 0;
-      const sb = seen.get(analyticsIdOf(b)) ?? 0;
-      if (sa !== sb) return sa - sb;
-      return compareWorldJourneyFeedOrder(a, b);
-    })
-    .slice(0, FEED_LIMIT)
-    /* Đính số lượt xem để client giữ đúng thứ tự "chưa xem lên trên" khi
-       group-by-year (WorldJourneyFeedTimeline sort lại trong mỗi năm). */
-    .map((m) => ({ ...m, viewerSeenCount: seen.get(analyticsIdOf(m)) ?? 0 }));
+    .sort(compareWorldJourneyFeedByUnseen)
+    .slice(0, FEED_LIMIT);
 }
 
 export async function fetchWorldJourneyFeedMilestones(
@@ -289,7 +275,7 @@ export async function fetchWorldJourneyFeedMilestones(
     fetchLinkRowsForAuthors(followingOnlyIds, ["feature", "public"]),
     fetchGlobalFeatureLinkRows(),
     fetchLinkRowsForFollowedTags(followingTagIds),
-    fetchFollowedOrgBaiDangMilestones(followingOrgIds),
+    fetchWorldJourneyOrgBaiDangMilestones(followingOrgIds),
     fetchFollowedOrgSuKienMilestones(followingOrgIds, friendIds),
     fetchFriendSuggestedSuKienMilestones(friendIds),
   ]);
@@ -397,9 +383,9 @@ export async function fetchWorldJourneyExploreMilestones(
     loadAuthors(authorIds),
   ]);
 
-  const sorted = built.slice().sort(compareTimelineOrder).slice(0, FEED_LIMIT);
-  const withLens = applyLensOwners(sorted, ownerIdByCotMoc, authors);
-  return attachSocialState(admin, withLens, viewerId);
+  const withLens = applyLensOwners(built, ownerIdByCotMoc, authors);
+  const withSocial = await attachSocialState(admin, withLens, viewerId);
+  return rankFeedByUnseen(viewerId, withSocial);
 }
 
 /** @deprecated alias — dùng `fetchWorldJourneyFeedMilestones`. */

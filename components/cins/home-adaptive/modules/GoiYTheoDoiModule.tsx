@@ -28,6 +28,8 @@ export async function GoiYTheoDoiModule({ ctx }: { ctx: HomeModuleCtx }) {
           slug={s.slug}
           name={s.name}
           avatarUrl={s.avatarUrl}
+          targetUserId={s.id}
+          viewerProfileId={ctx.viewerId}
           isFriend={s.isFriend}
           subtitle={
             s.mutualCount > 0

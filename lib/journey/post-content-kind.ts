@@ -38,7 +38,24 @@ export type PostPublishValidationResult =
   | { ok: true; resolution: PostContentResolution; blocks: Block[] }
   | { ok: false; error: string; field?: string };
 
-const MAX_MOTA = 280;
+/** Mô tả bài (`tom_tat` / `moTa`) — tối đa khi publish. */
+export const POST_MOTA_MAX = 15_000;
+
+export function validateMoTaLength(
+  moTa: string | null | undefined,
+):
+  | { ok: true; trimmed: string }
+  | { ok: false; error: string; field: "moTa" } {
+  const trimmed = (moTa ?? "").trim();
+  if (trimmed.length > POST_MOTA_MAX) {
+    return {
+      ok: false,
+      error: `Mô tả tối đa ${POST_MOTA_MAX.toLocaleString("vi-VN")} ký tự (hiện ${trimmed.length.toLocaleString("vi-VN")}).`,
+      field: "moTa",
+    };
+  }
+  return { ok: true, trimmed };
+}
 
 const TEXT_LOAI = new Set<Block["loai"]>(["body", "h2", "h3", "quote"]);
 
@@ -151,7 +168,7 @@ function deriveMoTaFromBlocks(blocks: ReadonlyArray<Block>): string {
       continue;
     }
     const plain = blockPlainText(block);
-    if (plain) return plain.slice(0, MAX_MOTA);
+    if (plain) return plain;
   }
   return "";
 }
@@ -161,13 +178,13 @@ export function resolveEffectiveMoTa(
   moTaInput: string | null | undefined,
   blocks: ReadonlyArray<Block>,
 ): string | null {
-  const trimmed = (moTaInput ?? "").trim().slice(0, MAX_MOTA);
+  const trimmed = (moTaInput ?? "").trim();
   if (trimmed) return trimmed;
 
   const first = firstMeaningfulBlock(blocks);
   if (first?.loai === "body") {
     const plain = blockPlainText(first);
-    if (plain) return plain.slice(0, MAX_MOTA);
+    if (plain) return plain;
   }
 
   const fallback = deriveMoTaFromBlocks(blocks);
@@ -179,7 +196,7 @@ export function resolvePostDisplayKind(
   input: PostContentResolveInput,
 ): PostContentResolution {
   const blocks = input.blocks ?? [];
-  const moTaTrimmed = (input.moTa ?? "").trim().slice(0, MAX_MOTA);
+  const moTaTrimmed = (input.moTa ?? "").trim();
   const imageIds = extractAllImageIds(blocks);
   const coverOk = hasValidCover(input);
   const effectiveMoTa = resolveEffectiveMoTa(moTaTrimmed, blocks);
@@ -323,35 +340,42 @@ function hasPublishableContent(
   blocks: ReadonlyArray<Block>,
   coverId: string | null | undefined,
   resolution: PostContentResolution,
+  tieuDe?: string | null,
 ): boolean {
   if (resolution.kind === "bunny_video") {
     return embedBlocks(blocks).some(isBunnyEmbedBlock);
   }
-  if (resolution.kind === "text") {
-    return Boolean(
-      resolution.effectiveMoTa ||
-        hasTextContentInBlocks(blocks),
-    );
-  }
-  if (resolution.kind === "album" || resolution.kind === "article") {
-    const coverOk =
-      Boolean(coverId?.trim() && isPersistedImageSeed(coverId.trim())) ||
-      extractAllImageIds(blocks).length > 0 ||
-      hasTextContentInBlocks(blocks) ||
-      embedBlocks(blocks).length > 0;
-    return coverOk;
+  /* Bài chữ/article/album: không bắt buộc field nào — tiêu đề, mô tả, block, ảnh bìa đều tùy chọn. */
+  if (
+    resolution.kind === "text" ||
+    resolution.kind === "article" ||
+    resolution.kind === "album"
+  ) {
+    if (resolution.effectiveMoTa?.trim()) return true;
+    if (tieuDe?.trim()) return true;
+    if (coverId?.trim() && isPersistedImageSeed(coverId.trim())) return true;
+    if (extractAllImageIds(blocks).length > 0) return true;
+    if (hasTextContentInBlocks(blocks)) return true;
+    if (embedBlocks(blocks).length > 0) return true;
+    return true;
   }
   return false;
 }
 
-/** Validate trước publish/update — chặn ảnh lỗi & nội dung rỗng (#24–26). */
+/** Validate trước publish/update — chặn ảnh lỗi & video chưa sẵn sàng (#24–26). */
 export function validatePostContentForPublish(params: {
   moTa?: string | null;
   coverId?: string | null;
+  tieuDe?: string | null;
   blocks: ReadonlyArray<Block>;
 }): PostPublishValidationResult {
   const blocks = [...params.blocks];
   const coverTrimmed = params.coverId?.trim() || null;
+
+  const moTaCheck = validateMoTaLength(params.moTa);
+  if (!moTaCheck.ok) {
+    return { ok: false, error: moTaCheck.error, field: moTaCheck.field };
+  }
 
   if (coverTrimmed && !isPersistedImageSeed(coverTrimmed)) {
     return {
@@ -412,12 +436,23 @@ export function validatePostContentForPublish(params: {
   }
 
   const resolution = resolvePostDisplayKind({
-    moTa: params.moTa,
+    moTa: moTaCheck.trimmed,
     coverId: coverTrimmed,
     blocks,
   });
 
-  if (!hasPublishableContent(blocks, coverTrimmed, resolution)) {
+  if (
+    resolution.effectiveMoTa &&
+    resolution.effectiveMoTa.length > POST_MOTA_MAX
+  ) {
+    return {
+      ok: false,
+      error: `Mô tả tối đa ${POST_MOTA_MAX.toLocaleString("vi-VN")} ký tự (hiện ${resolution.effectiveMoTa.length.toLocaleString("vi-VN")}).`,
+      field: "moTa",
+    };
+  }
+
+  if (!hasPublishableContent(blocks, coverTrimmed, resolution, params.tieuDe)) {
     return {
       ok: false,
       error: "Bài viết chưa có nội dung hiển thị — thêm chữ, ảnh hoặc video.",

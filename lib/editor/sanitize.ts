@@ -263,7 +263,7 @@ export function deriveMoTaFallback(blocks: ReadonlyArray<Block>): string {
   for (const b of blocks) {
     if (b.loai === "body" || b.loai === "h2" || b.loai === "h3") {
       const t = getText(b).trim();
-      if (t) return t.slice(0, 280);
+      if (t) return t;
     }
   }
   return "";

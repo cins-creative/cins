@@ -7,11 +7,16 @@ import TruongDetailLoading from "./loading";
 
 type Props = {
   children: ReactNode;
+  modal: ReactNode;
   params: Promise<{ slug: string }>;
 };
 
 /** Shell + data fetch một lần; tab đổi URL mà không remount layout. */
-export default async function TruongSlugLayout({ children, params }: Props) {
+export default async function TruongSlugLayout({
+  children,
+  modal,
+  params,
+}: Props) {
   const { slug } = await params;
 
   return (
@@ -20,6 +25,7 @@ export default async function TruongSlugLayout({ children, params }: Props) {
         <TruongDetailLoader slug={slug} />
       </Suspense>
       {children}
+      {modal}
     </>
   );
 }

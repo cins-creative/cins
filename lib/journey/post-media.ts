@@ -2,6 +2,7 @@ import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import type { Block, LoaiMoc, Visibility } from "@/lib/editor/types";
 import { classifyBunnyVideoUrl } from "@/lib/bunny/embed";
 import type { ComposeIntent } from "@/lib/journey/compose-types";
+import { resolvePostDisplayKind } from "@/lib/journey/post-content-kind";
 import { extractVideoCanvasRatio } from "@/lib/journey/video-canvas-ratio";
 import { isPersistedImageSeed } from "@/lib/truong/image-ref";
 import { textPanelNeedsCollapse } from "@/lib/journey/text-panel-tone";
@@ -48,11 +49,19 @@ export function detectMediaPostKind(
   return null;
 }
 
-/** Intent overlay edit — album/bài viết dùng minimal (giống «Đăng bài mới»); video giữ luồng video. */
+/** Intent overlay edit — video/album giữ luồng riêng; bài viết dài mở editor đầy đủ. */
 export function resolveEditComposeIntent(
   blocks: ReadonlyArray<Block> | null | undefined,
+  moTa?: string | null,
 ): ComposeIntent {
-  if (detectMediaPostKind(blocks) === "video") return "video";
+  const mediaKind = detectMediaPostKind(blocks);
+  if (mediaKind === "video") return "video";
+  if (mediaKind === "photo") return "photo";
+  const kind = resolvePostDisplayKind({
+    blocks: blocks ?? [],
+    moTa: moTa ?? null,
+  }).kind;
+  if (kind === "article") return "full";
   return "minimal";
 }
 
@@ -483,6 +492,62 @@ export function milestoneCardCaptionPlain(
   if (!raw) return null;
   const text = htmlFragmentToPlainText(raw);
   return text || null;
+}
+
+/** Nội dung chữ trên card — ưu tiên `mo_ta`/body (mô tả editor), blocks là nội dung dài. */
+export function milestoneCardBodyForDisplay(
+  body: string | null | undefined,
+  blocks: ReadonlyArray<Block> | null | undefined,
+): string | null | undefined {
+  const fromBody = body?.trim();
+  if (fromBody) return fromBody;
+  if (blocks?.length) {
+    const fromBlocks = milestoneArticleTextPanelPlain(body, blocks);
+    if (fromBlocks) return fromBlocks;
+  }
+  return body;
+}
+
+function stripRepeatedTitlePrefix(caption: string, title: string): string {
+  let rest = caption.trim();
+  const trimmedTitle = title.trim();
+  if (!trimmedTitle) return rest;
+
+  let changed = true;
+  while (changed && rest) {
+    changed = false;
+    if (rest.startsWith(trimmedTitle)) {
+      rest = rest.slice(trimmedTitle.length).replace(/^\s+/, "");
+      changed = true;
+      continue;
+    }
+    const paras = rest
+      .split(/\n\s*\n/)
+      .map((p) => p.trim())
+      .filter(Boolean);
+    if (paras[0] === trimmedTitle) {
+      rest = paras.slice(1).join("\n\n");
+      changed = true;
+    }
+  }
+  return rest;
+}
+
+/**
+ * Caption card photo/video/article — ưu tiên blocks, bỏ đoạn trùng `title` khi
+ * tiêu đề hiện riêng (cùng logic org `OrgBaiDangJourneyCard`).
+ */
+export function milestoneCardCaptionForDisplay(
+  title: string,
+  body: string | null | undefined,
+  blocks: ReadonlyArray<Block> | null | undefined,
+): string | null {
+  const displayBody = milestoneCardBodyForDisplay(body, blocks);
+  const caption = milestoneCardCaptionPlain(displayBody, blocks);
+  if (!caption) return null;
+  if (!shouldShowMilestoneCardTitle(title, blocks, body)) return caption;
+  const stripped = stripRepeatedTitlePrefix(caption, title);
+  return stripped.trim() || null;
 }
 
 /** Nội dung đầy đủ trên card chữ (body / heading / quote) — không cắt dòng. */

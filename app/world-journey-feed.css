@@ -3732,6 +3732,16 @@
   color: var(--blue);
 }
 
+.world-journey-home .ha-person .j-follow-wrap {
+  flex: 0 0 auto;
+}
+
+.world-journey-home .ha-person .j-friend-btn.is-compact {
+  width: 38px;
+  min-width: 38px;
+  padding: 0;
+}
+
 .world-journey-home .ha-card--studio .ha-row {
   padding: 10px var(--ha-inset-x, 14px) 10px 14px;
   border-bottom: 1px solid var(--neutral-100, #f1f2f5);

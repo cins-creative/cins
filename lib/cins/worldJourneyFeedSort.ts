@@ -55,7 +55,15 @@ export function compareWorldJourneyFeedOrder(
   );
 }
 
-/** Chưa xem / xem ít lên trên; cùng mức tiếp cận thì theo thứ tự timeline feed. */
+/** Org chưa follow xếp sau bài user + org đang follow. */
+function worldJourneyOrgFollowRank(m: MilestoneItem): number {
+  if (m.orgBaiDangRef || m.orgSuKienRef) {
+    return m.feedOrgFollowed ? 0 : 1;
+  }
+  return 0;
+}
+
+/** Chưa xem / xem ít lên trên; org đang follow trước org lạ; rồi timeline feed. */
 export function compareWorldJourneyFeedByUnseen(
   a: MilestoneItem,
   b: MilestoneItem,
@@ -63,6 +71,9 @@ export function compareWorldJourneyFeedByUnseen(
   const sa = a.viewerSeenCount ?? 0;
   const sb = b.viewerSeenCount ?? 0;
   if (sa !== sb) return sa - sb;
+  const fa = worldJourneyOrgFollowRank(a);
+  const fb = worldJourneyOrgFollowRank(b);
+  if (fa !== fb) return fa - fb;
   return compareWorldJourneyFeedOrder(a, b);
 }
 

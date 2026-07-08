@@ -513,7 +513,7 @@ export async function fetchBaiDang(
       if (!extractVideoProcessingMeta(post.noiDungBlocks)?.processing) return;
       const synced = await syncOrgBaiDangVideoProcessing(
         post.id,
-        post.noiDungBlocks,
+        post.noiDungBlocks ?? null,
       );
       if (synced) post.noiDungBlocks = synced;
     }),

@@ -26,6 +26,7 @@ import {
 import { deleteMilestoneComment } from "@/app/[slug]/journey/actions";
 import { useOptionalAuthGate } from "@/components/auth/AuthGateProvider";
 import { CommentAttachments } from "@/components/journey/CommentAttachments";
+import { CommentMentionText } from "@/components/journey/CommentMentionText";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
 import { InlineExternalVideoEmbed } from "@/components/shared/InlineExternalVideoEmbed";
 import { rememberCfAccountHashFromDeliveryUrl } from "@/lib/cloudflare/account-hash";
@@ -913,7 +914,7 @@ function CommentTextBody({ text }: { text: string }) {
 
   return (
     <>
-      {displayText ? <p className="post-comments-text">{displayText}</p> : null}
+      {displayText ? <CommentMentionText text={displayText} /> : null}
       {iframeSrc ? <InlineExternalVideoEmbed src={iframeSrc} /> : null}
     </>
   );

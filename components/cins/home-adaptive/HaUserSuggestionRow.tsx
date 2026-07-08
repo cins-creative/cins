@@ -2,13 +2,17 @@
 
 import { UserCheck } from "lucide-react";
 
+import { JourneyFollowButton } from "@/components/journey/JourneyFollowButton";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
+import { useKetBanStatus } from "@/lib/social/use-ket-ban-status";
 
 type Props = {
   slug: string;
   name: string;
   avatarUrl: string | null;
   subtitle: string;
+  targetUserId: string;
+  viewerProfileId: string | null;
   /** Đã là bạn bè (kết bạn) → hiện icon nhỏ cạnh tên. */
   isFriend?: boolean;
   /** `person` — danh sách gọn trong card Người cùng ngành. */
@@ -21,10 +25,19 @@ export function HaUserSuggestionRow({
   name,
   avatarUrl,
   subtitle,
+  targetUserId,
+  viewerProfileId,
   isFriend = false,
   variant = "default",
 }: Props) {
   const rowClass = variant === "person" ? "ha-person" : "ha-row";
+  const ketBan = useKetBanStatus(targetUserId, viewerProfileId);
+  const showFriendBtn =
+    !isFriend &&
+    Boolean(viewerProfileId) &&
+    viewerProfileId !== targetUserId &&
+    ketBan.quanHe !== "accepted" &&
+    ketBan.quanHe !== "blocked";
 
   return (
     <div className={rowClass}>
@@ -61,6 +74,16 @@ export function HaUserSuggestionRow({
           </span>
         </span>
       </JourneyUserPopover>
+      {showFriendBtn ? (
+        <JourneyFollowButton
+          compact
+          targetUserId={targetUserId}
+          viewerProfileId={viewerProfileId}
+          status={ketBan.status}
+          ready={ketBan.ready}
+          refreshStatus={ketBan.refresh}
+        />
+      ) : null}
     </div>
   );
 }

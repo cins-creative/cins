@@ -3,7 +3,6 @@ import { Fragment, type ReactNode } from "react";
 import {
   GoiYTheoDoiModule,
 } from "@/components/cins/home-adaptive/modules/GoiYTheoDoiModule";
-import { SuKienModule } from "@/components/cins/home-adaptive/modules/SuKienModule";
 import { TheoDoiOrgModule } from "@/components/cins/home-adaptive/modules/TheoDoiOrgModule";
 import {
   KhamPhaLinhVucModule,
@@ -30,7 +29,6 @@ type ModuleComponent = (props: { ctx: HomeModuleCtx }) => ReactNode | Promise<Re
 /** Registry: ModuleId → component. Đổi nhóm = sửa MODULE_LAYOUT, không sửa đây. */
 const MODULE_REGISTRY: Record<ModuleId, ModuleComponent> = {
   theo_doi_org: TheoDoiOrgModule,
-  su_kien: SuKienModule,
   goi_y_theo_doi: GoiYTheoDoiModule,
   goi_y_studio: GoiYStudioModule,
   kham_pha_linh_vuc: KhamPhaLinhVucModule,

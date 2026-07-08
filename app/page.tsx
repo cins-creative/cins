@@ -6,6 +6,8 @@ import { HomeWorldJourneyMain } from "@/components/cins/home-v2/HomeWorldJourney
 import { AuthGateRoot } from "@/components/auth/AuthGateProvider";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "CINs — Khám phá ngành sáng tạo thị giác tại Việt Nam",
   description:

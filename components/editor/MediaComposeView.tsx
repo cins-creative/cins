@@ -33,7 +33,7 @@ import {
   articleTagLoaiClass,
   type ArticleTagRef,
 } from "@/lib/editor/article-tag";
-import { validatePostContentForPublish } from "@/lib/journey/post-content-kind";
+import { validatePostContentForPublish, POST_MOTA_MAX } from "@/lib/journey/post-content-kind";
 import { publishPost } from "@/app/[slug]/p/new/actions";
 import { updatePost } from "@/app/[slug]/p/[postSlug]/edit/actions";
 import { uploadPostImageWithProgress } from "@/lib/files/upload-post-image";
@@ -833,7 +833,7 @@ export function MediaComposeView({
       );
 
       const contentCheck = validatePostContentForPublish({
-        moTa: trimmedCaption.slice(0, 280),
+        moTa: trimmedCaption,
         coverId: null,
         blocks,
       });
@@ -1099,6 +1099,7 @@ export function MediaComposeView({
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
             rows={1}
+            maxLength={POST_MOTA_MAX}
           />
 
           {articleTags.length > 0 ? (

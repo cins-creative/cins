@@ -252,6 +252,7 @@ export async function fetchBookmarkedOrgBaiDangMilestones(params: {
       noiDungBlocks: blocks,
       orgBaiDangRef: {
         postId: post.id,
+        orgId: post.id_to_chuc,
         orgSlug: org.slug.trim(),
         orgName: org.ten.trim(),
       },

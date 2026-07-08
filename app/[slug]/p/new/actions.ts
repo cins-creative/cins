@@ -24,7 +24,7 @@ import { buildMilestoneItemForCotMoc } from "@/lib/journey/milestones-fetch";
 import type { MilestoneItem } from "@/components/journey/milestone-types";
 import { revalidateTaggedArticlePages } from "@/lib/tag/revalidate-tag-pages";
 import { DEFAULT_ARTICLE_POST_TITLE } from "@/lib/journey/post-media";
-import { validatePostContentForPublish } from "@/lib/journey/post-content-kind";
+import { validatePostContentForPublish, validateMoTaLength } from "@/lib/journey/post-content-kind";
 
 /* ╔══════════════════════════════════════════════════════════════════╗
    ║ Server Action: publishPost                                       ║
@@ -79,7 +79,6 @@ export type PublishPostResult =
     };
 
 const MAX_TITLE = 200;
-const MAX_MOTA = 280;
 const MAX_BLOCKS = 200;
 
 export async function publishPost(
@@ -106,7 +105,15 @@ export async function publishPost(
     };
   }
 
-  const moTa = (input.moTa || "").trim().slice(0, MAX_MOTA);
+  const moTaCheck = validateMoTaLength(input.moTa);
+  if (!moTaCheck.ok) {
+    return {
+      ok: false,
+      error: moTaCheck.error,
+      field: moTaCheck.field,
+    };
+  }
+  const moTa = moTaCheck.trimmed;
 
   if (!Array.isArray(input.blocks)) {
     return {
@@ -146,6 +153,7 @@ export async function publishPost(
   const contentCheck = validatePostContentForPublish({
     moTa,
     coverId: input.coverSeed,
+    tieuDe,
     blocks: normalized,
   });
   if (!contentCheck.ok) {

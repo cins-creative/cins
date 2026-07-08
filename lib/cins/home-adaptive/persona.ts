@@ -22,7 +22,6 @@ export type ModuleId =
   // ưu tiên — chỉ hiện khi viewer theo dõi org
   | "theo_doi_org"
   // luôn có ở mọi persona
-  | "su_kien"
   | "goi_y_theo_doi"
   | "goi_y_studio"
   // cụm HỌC
@@ -75,7 +74,6 @@ export function resolveSeeking(giaiDoan: GiaiDoan | null | undefined): boolean {
  */
 const NOTIFY_MODULES: readonly ModuleId[] = [
   "theo_doi_org",
-  "su_kien",
   "co_hoi",
   "khoa_hoc_goi_y",
 ];
@@ -89,7 +87,6 @@ const MODULE_ORDER: Record<Persona, ModuleId[]> = {
   hoc: [
     "kham_pha_linh_vuc",
     "theo_doi_org",
-    "su_kien",
     "khoa_hoc_goi_y",
   ],
   lam: [
@@ -98,7 +95,6 @@ const MODULE_ORDER: Record<Persona, ModuleId[]> = {
     "goi_y_studio",
     "loi_moi_xac_nhan",
     "theo_doi_org",
-    "su_kien",
     "co_hoi",
   ],
   day: [
@@ -106,7 +102,6 @@ const MODULE_ORDER: Record<Persona, ModuleId[]> = {
     "hoc_vien_cua_ban",
     "scout_tai_nang",
     "theo_doi_org",
-    "su_kien",
   ],
 };
 

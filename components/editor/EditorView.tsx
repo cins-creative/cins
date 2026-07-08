@@ -105,7 +105,7 @@ import {
   detectMediaPostKind,
   mediaPostHasContent,
 } from "@/lib/journey/post-media";
-import { validatePostContentForPublish } from "@/lib/journey/post-content-kind";
+import { validatePostContentForPublish, POST_MOTA_MAX } from "@/lib/journey/post-content-kind";
 import { readImageFileFromClipboard } from "@/lib/files/clipboard-images";
 import { OrgBaiDangLoaiComposeDropdown } from "@/components/truong/OrgBaiDangLoaiComposeDropdown";
 import { OrgBaiDangScheduleComposeButton } from "@/components/truong/OrgBaiDangScheduleComposeButton";
@@ -709,7 +709,7 @@ function isTextOnlyEditorInitial(initial: EditorInitial | undefined): boolean {
     initial.coverSeed ?? null,
     initial.blocks,
   );
-  return inferComposePreviewKind(initial.blocks ?? [], cover) === "text";
+  return inferComposePreviewKind(initial.blocks ?? [], cover, initial.moTa) === "text";
 }
 
 function bodyPlainFromServerBlocks(
@@ -1951,15 +1951,7 @@ export function EditorView({
 
     const serverBlocks: ServerBlock[] = toServerBlocks(blocks);
 
-    const hasBodyText = blocks.some(
-      (b) => b.t === "body" && Boolean(b.text?.trim()),
-    );
     const hasMediaBlock = blocks.some((b) => b.t === "imgs" || b.t === "embed");
-    const hasCaption = Boolean(sub.trim());
-    if (!hasBodyText && !hasMediaBlock && !coverSeed && !hasCaption) {
-      setToast("Thêm nội dung trước khi đăng.");
-      return;
-    }
 
     if (congDongCompose && composeFilterSlugs.length === 0) {
       setToast("Chọn loại bài đăng trước khi đăng.");
@@ -1970,7 +1962,7 @@ export function EditorView({
     if (!tieuDeFinal) {
       const captionLine = sub.trim().split("\n")[0]?.trim();
       const bodyLine = blocks
-        .find((b) => b.t === "body")
+        .find((b) => b.t === "body" || b.t === "h2" || b.t === "h3")
         ?.text?.trim()
         .split("\n")[0]
         ?.trim();
@@ -2011,15 +2003,15 @@ export function EditorView({
     } else if (publishBlocks.length === 0) {
       if (hasMediaBlock || coverSeed) {
         setToast("Ảnh chưa sẵn sàng — đợi upload xong rồi thử lại.");
-      } else {
-        setToast("Thêm nội dung trước khi đăng.");
+        return;
       }
-      return;
+      /* mo_ta / tiêu đề only — blocks rỗng vẫn publish được. */
     }
 
     const contentCheck = validatePostContentForPublish({
       moTa: moTaFinal,
       coverId: coverFinal,
+      tieuDe: tieuDeFinal,
       blocks: publishBlocks,
     });
     if (!contentCheck.ok) {
@@ -2335,6 +2327,7 @@ export function EditorView({
             value={sub}
             onChange={setSub}
             maxRows={12}
+            maxLength={POST_MOTA_MAX}
             enableAtHash
             onAtHashSync={(trigger, textarea) =>
               handleAtHashSync(MINIMAL_SUB_BLOCK_ID, trigger, textarea)
@@ -2347,6 +2340,7 @@ export function EditorView({
             value={sub}
             onChange={setSub}
             maxRows={3}
+            maxLength={POST_MOTA_MAX}
           />
         ) : null}
 
@@ -3989,6 +3983,7 @@ function AutosizeTextarea({
   onChange,
   placeholder,
   maxRows,
+  maxLength,
   enableAtHash = false,
   onAtHashSync,
 }: {
@@ -3997,6 +3992,7 @@ function AutosizeTextarea({
   onChange: (s: string) => void;
   placeholder?: string;
   maxRows?: number;
+  maxLength?: number;
   enableAtHash?: boolean;
   onAtHashSync?: (
     trigger: AtHashTrigger | null,
@@ -4049,6 +4045,7 @@ function AutosizeTextarea({
       rows={1}
       placeholder={placeholder}
       value={value}
+      maxLength={maxLength}
       onChange={onChangeRaw}
       onKeyDown={onKeyDown}
       onKeyUp={syncAtHash}

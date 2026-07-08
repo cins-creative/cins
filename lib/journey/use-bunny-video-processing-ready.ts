@@ -13,8 +13,8 @@ export function useBunnyVideoProcessingReady(
 
   useEffect(() => {
     setReady(false);
-    const id = bunnyVideoId?.trim();
-    if (!processing || !id) return;
+    const videoId = bunnyVideoId?.trim() ?? "";
+    if (!processing || videoId.length === 0) return;
 
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
@@ -23,7 +23,7 @@ export function useBunnyVideoProcessingReady(
       if (cancelled) return;
       try {
         const res = await fetch(
-          `/api/post-video/status?videoId=${encodeURIComponent(id)}`,
+          `/api/post-video/status?videoId=${encodeURIComponent(videoId)}`,
           { cache: "no-store" },
         );
         if (!res.ok) {

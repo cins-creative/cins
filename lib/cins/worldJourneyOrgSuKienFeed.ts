@@ -77,6 +77,7 @@ function mapSuKienToMilestone(
   row: SuKienFeedRow,
   options: {
     feedSuggestion?: boolean;
+    feedOrgFollowed?: boolean;
     friends?: FeedFriendAttendee[];
   } = {},
 ): MilestoneItem | null {
@@ -136,6 +137,8 @@ function mapSuKienToMilestone(
           },
         ]
       : undefined,
+    feedSuggestion: options.feedSuggestion === true,
+    feedOrgFollowed: options.feedOrgFollowed === true,
     orgSuKienRef: {
       suKienId: row.id,
       orgId: row.id_to_chuc,
@@ -161,7 +164,6 @@ function mapSuKienToMilestone(
     lensOwnerName: orgName,
     lensOwnerAvatarUrl: avatarUrl,
     orgHref: href,
-    feedSuggestion: options.feedSuggestion === true,
     feedSocialHint,
     feedFriends: friends.length > 0 ? friends : undefined,
   };
@@ -232,6 +234,7 @@ export async function fetchFollowedOrgSuKienMilestones(
   const items: MilestoneItem[] = [];
   for (const row of rows) {
     const item = mapSuKienToMilestone(row, {
+      feedOrgFollowed: true,
       friends: friendMap.get(row.id),
     });
     if (item) items.push(item);

@@ -456,17 +456,15 @@ export const loadSidebarUpcomingEvents = cache(
       }
     }
 
-    if (pool.length < limit) {
-      const globalRows = await fetchUpcomingSuKienRows({
-        loaiFilter: loaiSuKienFilter,
-        limit: 8,
-        excludeIds: seenIds,
-      });
-      for (const row of globalRows) {
-        seenIds.add(row.id);
-        const item = mapSuKienRow(row, phanHoiBySuKien.get(row.id) ?? null);
-        if (item) pool.push(item);
-      }
+    const globalRows = await fetchUpcomingSuKienRows({
+      loaiFilter: loaiSuKienFilter,
+      limit: 12,
+      excludeIds: seenIds,
+    });
+    for (const row of globalRows) {
+      seenIds.add(row.id);
+      const item = mapSuKienRow(row, phanHoiBySuKien.get(row.id) ?? null);
+      if (item) pool.push(item);
     }
 
     return {

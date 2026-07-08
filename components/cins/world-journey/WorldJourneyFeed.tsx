@@ -345,7 +345,7 @@ export function WorldJourneyFeed({
         .filter((m) => !followingIds.has(m.id))
         .map((m) => m.id),
     );
-  }, [milestones, exploreMilestones]);
+  }, [feedMilestones, exploreMilestones]);
 
   const visibleMilestones = useMemo(() => {
     const filtered = sourceMilestones.filter(

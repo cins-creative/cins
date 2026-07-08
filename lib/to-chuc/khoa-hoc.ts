@@ -157,7 +157,15 @@ async function demDanXuatKhoa(
       .in("trang_thai", ["da_dang_ky", "dang_hoc"]),
   ]);
 
-  let lopRows = lopRes.data ?? [];
+  type LopDanXuatRow = {
+    id_khoa_hoc: string;
+    ngay_khai_giang: string | null;
+    ma_lop: string | null;
+    giao_vien_phu_trach: string | null;
+    giao_vien_text?: string | null;
+  };
+
+  let lopRows: LopDanXuatRow[] = (lopRes.data ?? []) as LopDanXuatRow[];
   if (lopRes.error?.message?.includes("giao_vien_text")) {
     const fallback = await admin
       .from("org_lop_hoc")
@@ -165,7 +173,7 @@ async function demDanXuatKhoa(
       .in("id_khoa_hoc", khoaIds)
       .in("trang_thai", ["sap_khai_giang", "dang_hoc"])
       .order("ngay_khai_giang", { ascending: true });
-    lopRows = fallback.data ?? [];
+    lopRows = (fallback.data ?? []) as LopDanXuatRow[];
   }
 
   const hvRows = hvRes.data ?? [];
