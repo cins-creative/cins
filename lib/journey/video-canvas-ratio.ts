@@ -1,9 +1,11 @@
 import type { Block } from "@/lib/editor/types";
 
 /** Tỉ lệ khung canvas mặc định theo hướng video upload. */
-export type VideoCanvasRatio = "16:9" | "1:1" | "3:4";
+export type VideoCanvasRatio = "16:9" | "1:1" | "3:4" | "9:16";
 
 const SQUARE_TOLERANCE = 0.08;
+/** Ngưỡng phân biệt 9:16 (dọc hẹp) vs 3:4 (dọc rộng hơn). */
+const TALL_PORTRAIT_MIN = 1.6;
 
 export function resolveVideoCanvasRatio(
   width: number,
@@ -13,6 +15,7 @@ export function resolveVideoCanvasRatio(
   const aspect = width / height;
   if (Math.abs(aspect - 1) <= SQUARE_TOLERANCE) return "1:1";
   if (width > height) return "16:9";
+  if (height / width >= TALL_PORTRAIT_MIN) return "9:16";
   return "3:4";
 }
 
@@ -52,7 +55,9 @@ export async function probeVideoFileCanvasRatio(
 export function parseVideoCanvasRatio(
   value: unknown,
 ): VideoCanvasRatio | null {
-  if (value === "16:9" || value === "1:1" || value === "3:4") return value;
+  if (value === "16:9" || value === "1:1" || value === "3:4" || value === "9:16") {
+    return value;
+  }
   return null;
 }
 
@@ -74,6 +79,7 @@ export function extractVideoCanvasRatio(
 export function videoPreviewDimensionsFromRatio(
   ratio: VideoCanvasRatio | null | undefined,
 ): { width: number; height: number } {
+  if (ratio === "9:16") return { width: 405, height: 720 };
   if (ratio === "3:4") return { width: 720, height: 960 };
   if (ratio === "1:1") return { width: 720, height: 720 };
   return { width: 1280, height: 720 };

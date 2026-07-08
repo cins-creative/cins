@@ -14,6 +14,7 @@ import {
 import { createPortal } from "react-dom";
 
 import { TruongCalcConfigModalHost } from "@/components/truong/TruongCalcConfigModalHost";
+import { BunnyVideoProcessingPoller } from "@/components/journey/BunnyVideoProcessingPoller";
 import { rememberCfAccountHashFromDeliveryUrl } from "@/lib/cloudflare/account-hash";
 import { cauHinhMonThiCacheKey } from "@/lib/truong/cau-hinh-tinh-diem";
 import { readTruongInlineError, truongInlineFetch } from "@/lib/truong/inline-api";
@@ -94,15 +95,18 @@ type Ctx = {
   programs: TruongNganhProgram[];
   saving: boolean;
   toast: string | null;
-  patchSchool: (patch: Partial<TruongDetail>) => Promise<boolean>;
+  patchSchool: (
+    patch: Partial<TruongDetail>,
+    options?: { silent?: boolean; skipSaving?: boolean },
+  ) => Promise<boolean>;
   /** Cập nhật state `school` cục bộ (không gọi API) — dùng sau lưu cài đặt cơ sở. */
   applySchoolPatch: (patch: Partial<TruongDetail>) => void;
   avatarDraft: { file: File; previewUrl: string } | null;
   setAvatarDraft: (draft: { file: File; previewUrl: string } | null) => void;
-  commitAvatarDraft: () => Promise<boolean>;
+  commitAvatarDraft: (file?: File) => Promise<boolean>;
   coverDraft: { file: File; previewUrl: string } | null;
   setCoverDraft: (draft: { file: File; previewUrl: string } | null) => void;
-  commitCoverDraft: () => Promise<boolean>;
+  commitCoverDraft: (file?: File) => Promise<boolean>;
   uploadImage: (file: File) => Promise<{ imageId: string; url: string } | null>;
   setBaidang: React.Dispatch<React.SetStateAction<TruongBaiDang[]>>;
   setHinhanh: React.Dispatch<React.SetStateAction<TruongHinhAnh[]>>;
@@ -310,7 +314,10 @@ export function TruongInlineEditProvider({
   }, []);
 
   const patchSchool = useCallback(
-    async (patch: Partial<TruongDetail>): Promise<boolean> => {
+    async (
+      patch: Partial<TruongDetail>,
+      options?: { silent?: boolean; skipSaving?: boolean },
+    ): Promise<boolean> => {
       if (!canEdit) return false;
       if (!editMode) setEditModeState(true);
       const prev = school;
@@ -319,7 +326,7 @@ export function TruongInlineEditProvider({
         payload.tinh_thanh = normalizeTinhThanhForDb(payload.tinh_thanh);
       }
       setSchool((s) => ({ ...s, ...payload }));
-      setSaving(true);
+      if (!options?.skipSaving) setSaving(true);
       try {
         const res = await truongInlineFetch(school.id, "", {
           method: "PATCH",
@@ -329,10 +336,16 @@ export function TruongInlineEditProvider({
           throw new Error(await readTruongInlineError(res));
         }
         const json = (await res.json()) as { contactFieldsSkipped?: boolean };
+        if (!options?.silent) {
+          if (json.contactFieldsSkipped) {
+            showToast(
+              "Đã lưu một phần — chạy SQL org-truong-contact-fields.sql để lưu địa chỉ & liên hệ",
+            );
+          } else {
+            showToast("Đã lưu");
+          }
+        }
         if (json.contactFieldsSkipped) {
-          showToast(
-            "Đã lưu một phần — chạy SQL org-truong-contact-fields.sql để lưu địa chỉ & liên hệ",
-          );
           setSchool((s) => {
             const next = { ...s };
             for (const key of ORG_CONTACT_FIELD_KEYS) {
@@ -341,8 +354,6 @@ export function TruongInlineEditProvider({
             }
             return next;
           });
-        } else {
-          showToast("Đã lưu");
         }
         return true;
       } catch (err) {
@@ -354,7 +365,7 @@ export function TruongInlineEditProvider({
         showToast(`Lưu thất bại: ${msg} — đã hoàn tác`);
         return false;
       } finally {
-        setSaving(false);
+        if (!options?.skipSaving) setSaving(false);
       }
     },
     [canEdit, editMode, school, showToast],
@@ -381,20 +392,32 @@ export function TruongInlineEditProvider({
     [isEditing, school.id],
   );
 
-  const commitAvatarDraft = useCallback(async (): Promise<boolean> => {
-    if (!isEditing || !avatarDraft) return false;
-    const uploaded = await uploadImage(avatarDraft.file);
-    if (!uploaded) {
-      showToast("Tải logo thất bại");
-      return false;
+  const commitAvatarDraft = useCallback(async (overrideFile?: File): Promise<boolean> => {
+    const file = overrideFile ?? avatarDraft?.file;
+    if (!isEditing || !file) return false;
+    setSaving(true);
+    try {
+      const uploaded = await uploadImage(file);
+      if (!uploaded) {
+        showToast("Tải logo thất bại");
+        return false;
+      }
+      const ok = await patchSchool(
+        {
+          avatar_id: uploaded.imageId,
+          logo_id: uploaded.imageId,
+          avatar_src: uploaded.url,
+        },
+        { silent: true, skipSaving: true },
+      );
+      if (ok) {
+        setAvatarDraft(null);
+        showToast("Đã lưu logo");
+      }
+      return ok;
+    } finally {
+      setSaving(false);
     }
-    const ok = await patchSchool({
-      avatar_id: uploaded.imageId,
-      logo_id: uploaded.imageId,
-      avatar_src: uploaded.url,
-    });
-    if (ok) setAvatarDraft(null);
-    return ok;
   }, [
     isEditing,
     avatarDraft,
@@ -404,19 +427,31 @@ export function TruongInlineEditProvider({
     setAvatarDraft,
   ]);
 
-  const commitCoverDraft = useCallback(async (): Promise<boolean> => {
-    if (!isEditing || !coverDraft) return false;
-    const uploaded = await uploadImage(coverDraft.file);
-    if (!uploaded) {
-      showToast("Tải ảnh bìa thất bại");
-      return false;
+  const commitCoverDraft = useCallback(async (overrideFile?: File): Promise<boolean> => {
+    const file = overrideFile ?? coverDraft?.file;
+    if (!isEditing || !file) return false;
+    setSaving(true);
+    try {
+      const uploaded = await uploadImage(file);
+      if (!uploaded) {
+        showToast("Tải ảnh bìa thất bại");
+        return false;
+      }
+      const ok = await patchSchool(
+        {
+          cover_id: uploaded.imageId,
+          cover_src: uploaded.url,
+        },
+        { silent: true, skipSaving: true },
+      );
+      if (ok) {
+        setCoverDraft(null);
+        showToast("Đã lưu ảnh bìa");
+      }
+      return ok;
+    } finally {
+      setSaving(false);
     }
-    const ok = await patchSchool({
-      cover_id: uploaded.imageId,
-      cover_src: uploaded.url,
-    });
-    if (ok) setCoverDraft(null);
-    return ok;
   }, [
     isEditing,
     coverDraft,
@@ -683,6 +718,7 @@ export function TruongInlineEditProvider({
 
   return (
     <TruongInlineEditContext.Provider value={value}>
+      {canEdit ? <BunnyVideoProcessingPoller orgId={initial.school.id} /> : null}
       {children}
       <TruongCalcConfigModalHost />
       {toastNode}

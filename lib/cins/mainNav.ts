@@ -36,6 +36,8 @@ export type MainNavItem = {
   highlight?: boolean;
   /** Nếu có: hover item sẽ xổ ngang danh sách tổ chức của user theo nhóm này. */
   flyout?: OrgFlyoutKind;
+  /** Chưa có trang — click mở overlay thông báo. */
+  comingSoon?: boolean;
 };
 
 export const MAIN_NAV_ITEMS: MainNavItem[] = [
@@ -128,6 +130,7 @@ export const MAIN_NAV_FOOT_ITEMS: MainNavItem[] = [
     tip: "Câu hỏi thường gặp, hỗ trợ tài khoản và liên hệ với đội ngũ CINs",
     icon: "help",
     isActive: () => false,
+    comingSoon: true,
   },
   {
     id: "settings",
@@ -136,5 +139,6 @@ export const MAIN_NAV_FOOT_ITEMS: MainNavItem[] = [
     tip: "Cập nhật thông tin cá nhân, thông báo, quyền riêng tư và ngôn ngữ",
     icon: "settings",
     isActive: () => false,
+    comingSoon: true,
   },
 ];

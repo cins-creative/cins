@@ -70,6 +70,7 @@ import {
   IMG_LAYOUTS,
   countFilledImageSeeds,
   getImgLayoutMeta,
+  canAppendImageSlot,
   padBlockImageSeedsForLayout,
   normalizeLegacyLayout,
   type ImgLayout,
@@ -79,7 +80,7 @@ import { CongDongFeedFilterDropdown } from "@/components/cong-dong/CongDongFeedF
 import { updatePost } from "@/app/[slug]/p/[postSlug]/edit/actions";
 import { publishPost } from "@/app/[slug]/p/new/actions";
 import { resolveAlbumGridCell } from "@/lib/editor/album-grid-block";
-import { pickEditorStockImageSeed } from "@/lib/editor/editor-stock-image-seeds";
+import { isEditorEmptyImageSeed } from "@/lib/editor/editor-stock-image-seeds";
 import { resolveImageSeedUrl } from "@/lib/editor/resolve-image-seed-url";
 import {
   getCfAccountHash,
@@ -129,7 +130,6 @@ import type { ComposePublishedDetail } from "@/lib/journey/compose-published-syn
 import { sanitizeBaiDangCoverIdInput } from "@/lib/truong/bai-dang-cover";
 import {
   isTemporaryImageRef,
-  isPlaceholderImageSeed,
   isPersistedImageSeed,
 } from "@/lib/truong/image-ref";
 import type { ComposeIntent } from "@/lib/journey/compose-types";
@@ -332,14 +332,14 @@ function buildEditorAlbumComposeSegments(
   return segments;
 }
 
-/** Ảnh compose chưa có CF id — blob preview hoặc ô placeholder `new-…`. */
+/** Ảnh compose chưa có CF id — blob preview hoặc ô placeholder `new-…` / stock `lib-…`. */
 function editorBlocksHaveUnpersistedImages(
   blocks: ReadonlyArray<Block>,
   coverSeed: string | null,
 ): boolean {
   if (
     coverSeed &&
-    (isTemporaryImageRef(coverSeed) || isPlaceholderImageSeed(coverSeed))
+    (isTemporaryImageRef(coverSeed) || isEditorEmptyImageSeed(coverSeed))
   ) {
     return true;
   }
@@ -348,7 +348,7 @@ function editorBlocksHaveUnpersistedImages(
     for (const raw of block.imgs ?? []) {
       const seed = typeof raw === "string" ? raw.trim() : "";
       if (!seed) continue;
-      if (isTemporaryImageRef(seed) || isPlaceholderImageSeed(seed)) return true;
+      if (isTemporaryImageRef(seed) || isEditorEmptyImageSeed(seed)) return true;
     }
   }
   return false;
@@ -372,7 +372,7 @@ function editorAlbumGridFromBlocks(
 
   imgBlocks.forEach((block, index) => {
     const seed = (block.imgs || [])[0]?.trim() ?? "";
-    const isPlaceholder = isPlaceholderImageSeed(seed);
+    const isPlaceholder = isEditorEmptyImageSeed(seed);
     const isTemp = isTemporaryImageRef(seed);
     const isPersisted = isPersistedImageSeed(seed);
     const hasPreview = Boolean(seed && !isPlaceholder);
@@ -1086,16 +1086,28 @@ export function EditorView({
     return () => document.removeEventListener("keydown", onKey);
   }, [undo]);
 
-  /* Đóng dropdown khi click ra ngoài. */
+  /* Đóng dropdown / bỏ chọn block khi click ra ngoài. */
   useEffect(() => {
     function onDocClick(e: globalThis.MouseEvent) {
+      const t = e.target as HTMLElement;
       const root = editorRef.current;
+
+      if (
+        t.closest(".ed-editor-tag-menu") ||
+        t.closest(".picker-portal-root")
+      ) {
+        return;
+      }
+
       if (root && !root.contains(e.target as Node)) {
         setOpenAddIdx(null);
-      } else if (root) {
+        setSelectedId(null);
+        return;
+      }
+      if (root) {
         /* click trong editor nhưng ngoài add-zone */
-        const t = e.target as HTMLElement;
         if (!t.closest(".add-zone")) setOpenAddIdx(null);
+        if (!t.closest(".block")) setSelectedId(null);
       }
     }
     document.addEventListener("click", onDocClick);
@@ -1256,13 +1268,12 @@ export function EditorView({
         prev.map((b) => {
           if (b.id !== blockId || b.t !== "imgs") return b;
           const layout = normalizeLegacyLayout(b.layout);
-          const imgs = padBlockImageSeedsForLayout(
-            b.id,
-            b.imgs || [],
-            layout,
-            "expand",
-          );
+          let imgs = [...(b.imgs || [])];
+          while (imgs.length <= slot) {
+            imgs.push(`new-${b.id}-${imgs.length}`);
+          }
           imgs[slot] = seed;
+          imgs = padBlockImageSeedsForLayout(b.id, imgs, layout, "expand");
           return { ...b, imgs };
         }),
       );
@@ -1415,7 +1426,6 @@ export function EditorView({
       }
       pushHistory();
       const id = newId();
-      const seed = pickEditorStockImageSeed(id);
       setBlocks((prev) => {
         const next = prev.slice();
         const at = Math.max(0, Math.min(insertAt, next.length));
@@ -1423,7 +1433,7 @@ export function EditorView({
           id,
           t: "imgs",
           layout: "full",
-          imgs: [seed],
+          imgs: [`new-${id}`],
           cap: "",
           rounded: false,
           albumGridCell: albumGrid,
@@ -1687,6 +1697,90 @@ export function EditorView({
     [pushHistory],
   );
 
+  const appendImageSlotToBlock = useCallback(
+    (id: string) => {
+      pushHistory();
+      setBlocks((prev) =>
+        prev.map((b) => {
+          if (b.id !== id || b.t !== "imgs") return b;
+          const layout = normalizeLegacyLayout(b.layout);
+          const imgs = padBlockImageSeedsForLayout(
+            b.id,
+            b.imgs || [],
+            layout,
+            "display",
+          );
+          if (!canAppendImageSlot(layout, imgs)) return b;
+          return { ...b, imgs: [...imgs, `new-${b.id}-${imgs.length}`] };
+        }),
+      );
+    },
+    [pushHistory],
+  );
+
+  const appendImageFilesToBlock = useCallback(
+    (id: string, files: File[]) => {
+      const imageFiles = files.filter(isAllowedUploadImageFile);
+      if (imageFiles.length === 0) {
+        setToast("Chọn ảnh JPEG, PNG, WebP hoặc GIF.");
+        return;
+      }
+
+      const block = blocksRef.current.find((b) => b.id === id);
+      if (!block || block.t !== "imgs") return;
+      const layout = normalizeLegacyLayout(block.layout);
+      const meta = getImgLayoutMeta(layout);
+      const current = padBlockImageSeedsForLayout(
+        block.id,
+        block.imgs || [],
+        layout,
+        "display",
+      );
+      const room = meta.dynamic ? meta.n - current.length : 0;
+      const toAdd = Math.min(imageFiles.length, room);
+      if (toAdd <= 0) {
+        setToast(`Block ảnh tối đa ${meta.n} ảnh.`);
+        return;
+      }
+
+      pushHistory();
+      const pending: Array<{
+        file: File;
+        localSeed: string;
+      }> = [];
+
+      setBlocks((prev) =>
+        prev.map((b) => {
+          if (b.id !== id || b.t !== "imgs") return b;
+          const imgs = padBlockImageSeedsForLayout(
+            b.id,
+            b.imgs || [],
+            layout,
+            "display",
+          );
+          for (let i = 0; i < toAdd; i++) {
+            const localSeed = URL.createObjectURL(imageFiles[i]!);
+            pending.push({ file: imageFiles[i]!, localSeed });
+            imgs.push(localSeed);
+          }
+          return { ...b, imgs };
+        }),
+      );
+
+      for (const { file, localSeed } of pending) {
+        beginImageUpload(
+          file,
+          () => {
+            /* blob đã gán trong setBlocks */
+          },
+          replaceImageSeed,
+          { existingLocalSeed: localSeed },
+        );
+      }
+    },
+    [beginImageUpload, pushHistory, replaceImageSeed],
+  );
+
   /* Xoá 1 ô ảnh khỏi block — ô trống thu gọn; ảnh thật → placeholder hoặc bỏ ô. */
   const removeImageFromBlock = useCallback(
     (id: string, slot: number) => {
@@ -1698,7 +1792,7 @@ export function EditorView({
           const imgs = [...(b.imgs || [])];
           if (slot < 0 || slot >= imgs.length) return b;
 
-          if (isPlaceholderImageSeed(imgs[slot])) {
+          if (isEditorEmptyImageSeed(imgs[slot] ?? "")) {
             const next = imgs.filter((_, i) => i !== slot);
             return { ...b, imgs: next.length > 0 ? next : [`new-${b.id}-0`] };
           }
@@ -2500,6 +2594,10 @@ export function EditorView({
                       onRemoveImage={(slot) =>
                         removeImageFromBlock(b.id, slot)
                       }
+                      onAddImageSlot={() => appendImageSlotToBlock(b.id)}
+                      onAddImageFiles={(files) =>
+                        appendImageFilesToBlock(b.id, files)
+                      }
                       enableAtHash={showFullEditor}
                       onAtHashSync={(trigger, textarea) =>
                         handleAtHashSync(b.id, trigger, textarea)
@@ -2564,6 +2662,10 @@ export function EditorView({
                     onDown={() => moveBlock(b.id, 1)}
                     onDelete={() => deleteBlock(b.id)}
                     onRemoveImage={(slot) => removeImageFromBlock(b.id, slot)}
+                    onAddImageSlot={() => appendImageSlotToBlock(b.id)}
+                    onAddImageFiles={(files) =>
+                      appendImageFilesToBlock(b.id, files)
+                    }
                     enableAtHash={showFullEditor}
                     onAtHashSync={(trigger, textarea) =>
                       handleAtHashSync(b.id, trigger, textarea)
@@ -3209,6 +3311,8 @@ type BlockRowProps = {
   onDown: () => void;
   onDelete: () => void;
   onRemoveImage: (slot: number) => void;
+  onAddImageSlot: () => void;
+  onAddImageFiles: (files: File[]) => void;
   enableAtHash?: boolean;
   onAtHashSync?: (
     trigger: AtHashTrigger | null,
@@ -3670,6 +3774,18 @@ function ImageBlock({ block, p }: { block: Block; p: BlockRowProps }) {
     layout,
     "display",
   );
+  const canAdd = canAppendImageSlot(layout, imgs);
+  const addFileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const onAddFilesChange = useCallback(
+    (e: ChangeEvent<HTMLInputElement>) => {
+      const files = e.target.files ? Array.from(e.target.files) : [];
+      e.target.value = "";
+      if (files.length === 0) return;
+      p.onAddImageFiles(files);
+    },
+    [p],
+  );
 
   return (
     <div className="b-imgs">
@@ -3677,7 +3793,7 @@ function ImageBlock({ block, p }: { block: Block; p: BlockRowProps }) {
 
       <div className={`imgwrap ${layout}${block.rounded ? " rounded" : ""}`}>
         {imgs.map((seed, i) => {
-          const isEmpty = isPlaceholderImageSeed(seed);
+          const isEmpty = isEditorEmptyImageSeed(seed);
           return (
           <div key={`${block.id}-${i}`} className={`ph${isEmpty ? " is-empty" : ""}`}>
             {isEmpty ? null : (
@@ -3712,6 +3828,41 @@ function ImageBlock({ block, p }: { block: Block; p: BlockRowProps }) {
           );
         })}
       </div>
+
+      {canAdd ? (
+        <div className="img-add-row">
+          <button
+            type="button"
+            className="img-add-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              addFileInputRef.current?.click();
+            }}
+          >
+            <ImagePlus size={14} strokeWidth={2} aria-hidden />
+            Thêm ảnh
+          </button>
+          <button
+            type="button"
+            className="img-add-btn img-add-btn--ghost"
+            onClick={(e) => {
+              e.stopPropagation();
+              p.onAddImageSlot();
+            }}
+          >
+            <Plus size={14} strokeWidth={2} aria-hidden />
+            Ô trống
+          </button>
+          <input
+            ref={addFileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            multiple
+            hidden
+            onChange={onAddFilesChange}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -3965,7 +4116,8 @@ function fromServerBlocks(blocks: ServerBlock[]): Block[] {
       const ratio =
         cfg.videoCanvasRatio === "16:9" ||
         cfg.videoCanvasRatio === "1:1" ||
-        cfg.videoCanvasRatio === "3:4"
+        cfg.videoCanvasRatio === "3:4" ||
+        cfg.videoCanvasRatio === "9:16"
           ? cfg.videoCanvasRatio
           : null;
       if (ratio) local.videoCanvasRatio = ratio;

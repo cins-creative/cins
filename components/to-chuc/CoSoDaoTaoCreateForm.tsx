@@ -23,6 +23,10 @@ import {
 
 import { TaoToChucPageShell } from "@/components/to-chuc/TaoToChucPageShell";
 import { LOAI_CO_SO_OPTIONS } from "@/lib/to-chuc/constants";
+import {
+  CO_SO_DEFAULT_TAB,
+  coSoTabPath,
+} from "@/lib/to-chuc/co-so-routes";
 import { TINH_THANH_OPTIONS } from "@/lib/truong/contact";
 
 function slugifyPreview(value: string): string {
@@ -120,7 +124,7 @@ export function CoSoDaoTaoCreateForm({ userSlug }: { userSlug: string }) {
   useEffect(() => {
     if (step !== "success" || !createdSlugRef.current) return;
     const t = setTimeout(() => {
-      router.push(`/co-so/${createdSlugRef.current}`);
+      router.push(coSoTabPath(createdSlugRef.current, CO_SO_DEFAULT_TAB));
       router.refresh();
     }, 1800);
     return () => clearTimeout(t);

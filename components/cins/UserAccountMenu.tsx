@@ -10,6 +10,7 @@ import {
   removeSavedAccountAction,
   switchAccountAction,
 } from "@/app/auth/switch-account-action";
+import { CinsComingSoonModal } from "@/components/cins/CinsComingSoonModal";
 import { SidebarNavIcon } from "@/components/cins/SidebarNavIcon";
 import { getNameInitials } from "@/lib/journey/profile";
 
@@ -42,6 +43,7 @@ export function UserAccountMenu({
 }: Props) {
   const [open, setOpen] = useState(false);
   const [switchOpen, setSwitchOpen] = useState(false);
+  const [comingSoonOpen, setComingSoonOpen] = useState(false);
   const cardRef = useRef<HTMLDivElement | null>(null);
   const menuId = useId();
   // Giá trị mặc định (SSR-safe, không dùng useSearchParams để tránh deopt toàn
@@ -85,7 +87,8 @@ export function UserAccountMenu({
   }, [open]);
 
   return (
-    <div className={`${rootClass}${open ? " open" : ""}`} ref={cardRef}>
+    <>
+      <div className={`${rootClass}${open ? " open" : ""}`} ref={cardRef}>
       {open ? (
         <div
           className={menuClass}
@@ -228,28 +231,34 @@ export function UserAccountMenu({
             </span>
             <span>Tạo cộng đồng</span>
           </Link>
-          <Link
-            href="/#settings"
+          <button
+            type="button"
             className="app-user-menu-item"
             role="menuitem"
-            onClick={() => setOpen(false)}
+            onClick={() => {
+              setOpen(false);
+              setComingSoonOpen(true);
+            }}
           >
             <span className="app-user-menu-ico" aria-hidden>
               <SidebarNavIcon name="settings" />
             </span>
             <span>Cài đặt</span>
-          </Link>
-          <Link
-            href="/#help"
+          </button>
+          <button
+            type="button"
             className="app-user-menu-item"
             role="menuitem"
-            onClick={() => setOpen(false)}
+            onClick={() => {
+              setOpen(false);
+              setComingSoonOpen(true);
+            }}
           >
             <span className="app-user-menu-ico" aria-hidden>
               <SidebarNavIcon name="help" />
             </span>
             <span>Trợ giúp</span>
-          </Link>
+          </button>
           <form action={signOutAction} className="app-user-menu-form">
             <button
               type="submit"
@@ -301,5 +310,10 @@ export function UserAccountMenu({
         </span>
       </button>
     </div>
+      <CinsComingSoonModal
+        open={comingSoonOpen}
+        onClose={() => setComingSoonOpen(false)}
+      />
+    </>
   );
 }

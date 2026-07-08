@@ -7,35 +7,45 @@ const POLL_ACTIVE_MS = 5_000;
 const POLL_IDLE_MS = 20_000;
 
 type ProcessingItem = {
-  tacPhamId: string;
+  kind?: "tac_pham" | "org_bai_dang";
+  tacPhamId?: string;
+  orgBaiDangId?: string;
+  orgId?: string;
   bunnyVideoId: string;
 };
 
-function dispatchVideoReady(ownerSlug: string) {
-  window.dispatchEvent(
-    new CustomEvent("cins:journey-timeline-changed", {
-      detail: { ownerSlug },
-    }),
-  );
-  window.dispatchEvent(
-    new CustomEvent("cins:video-ready", {
-      detail: { ownerSlug },
-    }),
-  );
+function dispatchVideoReady(ownerSlug: string | null) {
+  if (ownerSlug) {
+    window.dispatchEvent(
+      new CustomEvent("cins:journey-timeline-changed", {
+        detail: { ownerSlug },
+      }),
+    );
+    window.dispatchEvent(
+      new CustomEvent("cins:video-ready", {
+        detail: { ownerSlug },
+      }),
+    );
+  }
+  window.dispatchEvent(new CustomEvent("cins:org-baidang-changed"));
 }
 
 /**
  * Poll Bunny encode cho bài video đang `videoProcessing` — gỡ cờ + refresh
- * timeline + chuông thông báo khi sẵn sàng.
+ * timeline Journey / bài đăng org khi sẵn sàng.
  */
 export function BunnyVideoProcessingPoller({
-  ownerSlug,
+  ownerSlug = null,
+  orgId = null,
 }: {
-  ownerSlug: string;
+  ownerSlug?: string | null;
+  orgId?: string | null;
 }) {
   const router = useRouter();
   const ownerSlugRef = useRef(ownerSlug);
   ownerSlugRef.current = ownerSlug;
+  const orgIdRef = useRef(orgId);
+  orgIdRef.current = orgId;
 
   useEffect(() => {
     let cancelled = false;
@@ -48,7 +58,10 @@ export function BunnyVideoProcessingPoller({
       let didComplete = false;
 
       try {
-        const listRes = await fetch("/api/post-video/processing", {
+        const listUrl = orgIdRef.current
+          ? `/api/post-video/processing?orgId=${encodeURIComponent(orgIdRef.current)}`
+          : "/api/post-video/processing";
+        const listRes = await fetch(listUrl, {
           cache: "no-store",
         });
         if (!listRes.ok || cancelled) return;
@@ -69,13 +82,24 @@ export function BunnyVideoProcessingPoller({
           const statusJson = (await statusRes.json()) as { ready?: boolean };
           if (!statusJson.ready) continue;
 
+          const isOrg =
+            item.kind === "org_bai_dang" ||
+            Boolean(item.orgBaiDangId && item.orgId);
+          const completeBody = isOrg
+            ? {
+                orgBaiDangId: item.orgBaiDangId,
+                orgId: item.orgId,
+                bunnyVideoId: item.bunnyVideoId,
+              }
+            : {
+                tacPhamId: item.tacPhamId,
+                bunnyVideoId: item.bunnyVideoId,
+              };
+
           const completeRes = await fetch("/api/post-video/complete", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              tacPhamId: item.tacPhamId,
-              bunnyVideoId: item.bunnyVideoId,
-            }),
+            body: JSON.stringify(completeBody),
           });
           if (!completeRes.ok) continue;
 
@@ -104,7 +128,7 @@ export function BunnyVideoProcessingPoller({
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [router]);
+  }, [router, orgId]);
 
   return null;
 }

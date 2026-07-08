@@ -165,6 +165,15 @@
     color var(--app-nav-dur) var(--app-nav-ease);
 }
 
+.cins-app-sidebar button.sb-item {
+  width: 100%;
+  margin: 0;
+  border: none;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+}
+
 .cins-app-sidebar .sb-item:hover {
   background: var(--cins-blue-soft);
   color: var(--cins-blue);
@@ -250,27 +259,97 @@
   color: var(--ink-muted);
 }
 
+@keyframes sb-cta-icon-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.14);
+  }
+}
+
+@keyframes sb-cta-icon-ring {
+  0% {
+    transform: scale(0.72);
+    opacity: 0.55;
+  }
+  70%,
+  100% {
+    transform: scale(1.55);
+    opacity: 0;
+  }
+}
+
 .cins-app-sidebar .sb-foot .sb-item.sb-item--highlight {
-  color: var(--cins-blue);
+  color: var(--neutral-0);
   font-weight: 600;
-  background: var(--cins-blue-soft);
-  border: 1px solid color-mix(in srgb, var(--cins-blue) 22%, transparent);
-  box-shadow: 0 1px 0 color-mix(in srgb, var(--cins-blue) 6%, transparent);
+  background: linear-gradient(
+    145deg,
+    #2b8ae8 0%,
+    var(--cins-blue, #1f74c9) 42%,
+    #124a8f 100%
+  );
+  border: none;
+  box-shadow: none;
+  transition:
+    background var(--app-nav-dur) var(--app-nav-ease),
+    color var(--app-nav-dur) var(--app-nav-ease);
 }
 
 .cins-app-sidebar .sb-foot .sb-item.sb-item--highlight:hover {
-  background: color-mix(in srgb, var(--cins-blue) 14%, var(--surface));
-  color: var(--cins-blue);
-  border-color: color-mix(in srgb, var(--cins-blue) 32%, transparent);
+  background: linear-gradient(
+    145deg,
+    #3296f0 0%,
+    #247fd4 42%,
+    #1656a0 100%
+  );
+  color: var(--neutral-0);
+  box-shadow: none;
 }
 
 .cins-app-sidebar .sb-foot .sb-item.sb-item--highlight.active {
   font-weight: 700;
-  border-color: color-mix(in srgb, var(--cins-blue) 40%, transparent);
+  background: linear-gradient(
+    145deg,
+    #247fd4 0%,
+    var(--cins-blue-dark, #1656a0) 42%,
+    #0f3568 100%
+  );
+  color: var(--neutral-0);
+  box-shadow: none;
 }
 
 .cins-app-sidebar .sb-foot .sb-item.sb-item--highlight.active::before {
   display: none;
+}
+
+.cins-app-sidebar .sb-foot .sb-item.sb-item--highlight .sb-ico {
+  position: relative;
+}
+
+.cins-app-sidebar .sb-foot .sb-item.sb-item--highlight .sb-ico::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.55);
+  pointer-events: none;
+  animation: sb-cta-icon-ring 2.4s ease-out infinite;
+}
+
+.cins-app-sidebar .sb-foot .sb-item.sb-item--highlight .sb-ico svg,
+.cins-app-sidebar .sb-foot .sb-item.sb-item--highlight .sb-ico .sb-mage-icon {
+  animation: sb-cta-icon-pulse 2.4s ease-in-out infinite;
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cins-app-sidebar .sb-foot .sb-item.sb-item--highlight .sb-ico::after,
+  .cins-app-sidebar .sb-foot .sb-item.sb-item--highlight .sb-ico svg,
+  .cins-app-sidebar .sb-foot .sb-item.sb-item--highlight .sb-ico .sb-mage-icon {
+    animation: none;
+  }
 }
 
 /* ── Org quick-access — xổ inline (accordion) ngay trong sidebar ── */
@@ -2402,4 +2481,90 @@ a.j-notify-mini-action.is-link:hover {
   .cins-app-topbar .tb-login {
     display: none;
   }
+}
+
+.cins-coming-soon-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.42);
+}
+
+.cins-coming-soon-modal {
+  position: relative;
+  width: min(420px, 100%);
+  padding: 24px 22px 22px;
+  border: 1px solid var(--border, #e4e6eb);
+  border-radius: 24px;
+  background: var(--bg-surface, #fff);
+  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.24);
+  color: var(--ink-body, rgba(0, 0, 0, 0.55));
+  text-align: center;
+}
+
+.cins-coming-soon-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  margin: 0;
+  border: 1px solid var(--border, #e4e6eb);
+  border-radius: 50%;
+  background: #fff;
+  color: var(--ink-muted, #64748b);
+  cursor: pointer;
+}
+
+.cins-coming-soon-close:hover {
+  background: var(--neutral-100, #f1f2f5);
+  color: var(--ink-display, #0f172a);
+}
+
+.cins-coming-soon-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: 0 auto 14px;
+  border-radius: 14px;
+  background: var(--cins-yellow-soft, #fff8dc);
+  color: var(--cins-yellow-ink, #8a6d00);
+}
+
+.cins-coming-soon-message {
+  margin: 0 0 18px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.55;
+  color: var(--ink-display, #0f172a);
+}
+
+.cins-coming-soon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 120px;
+  padding: 10px 18px;
+  border: none;
+  border-radius: var(--radius-pill, 999px);
+  background: var(--cins-blue, #1f74c9);
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cins-coming-soon-btn:hover {
+  background: #1863ad;
 }

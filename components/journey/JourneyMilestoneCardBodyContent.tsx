@@ -24,6 +24,7 @@ import {
   extractVideoUrl,
   milestoneArticleTextPanelPlain,
   milestoneCardCaptionPlain,
+  milestoneCardCaptionNeedsCollapse,
   milestoneCardEmptyFallback,
   milestoneCardHasVisibleBody,
   shouldShowMilestoneCardTitle,
@@ -130,6 +131,7 @@ export function JourneyMilestoneCardBodyContent({
     resolveTextPanelTone(blocks, textPanelSeed),
   );
   const [internalTextPanelExpanded, setInternalTextPanelExpanded] = useState(false);
+  const [captionExpanded, setCaptionExpanded] = useState(false);
   const textPanelExpandedControlled = onTextPanelExpandedChange !== undefined;
   const textPanelExpanded = textPanelExpandedControlled
     ? (textPanelExpandedProp ?? false)
@@ -177,6 +179,16 @@ export function JourneyMilestoneCardBodyContent({
   const isContentOpen = expandTrigger?.expanded ?? false;
   const showCardTitleInBody = showCardTitle;
   const showCardCaptionInBody = Boolean(cardCaption);
+  const captionNeedsCollapse =
+    Boolean(cardCaption) &&
+    (isPhotoCard || isVideoPost) &&
+    milestoneCardCaptionNeedsCollapse(cardCaption);
+  const isCaptionCollapsed = captionNeedsCollapse && !captionExpanded;
+
+  useEffect(() => {
+    setCaptionExpanded(false);
+  }, [cardCaption, title]);
+
   const hasJcardText =
     showCardTitleInBody ||
     showCardCaptionInBody ||
@@ -368,8 +380,44 @@ export function JourneyMilestoneCardBodyContent({
             ) : null}
 
             {showCardCaptionInBody ? (
-              <div className="jcard-lead">
+              <div
+                className={[
+                  "jcard-lead",
+                  isCaptionCollapsed ? "is-caption-collapsed is-caption-expand-trigger" : "",
+                  captionExpanded ? "is-caption-expanded" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                role={isCaptionCollapsed ? "button" : undefined}
+                tabIndex={isCaptionCollapsed ? 0 : undefined}
+                aria-expanded={captionNeedsCollapse ? captionExpanded : undefined}
+                aria-label={
+                  isCaptionCollapsed
+                    ? `Xem đầy đủ: ${cardCaption!.slice(0, 80)}`
+                    : undefined
+                }
+                onClick={
+                  isCaptionCollapsed
+                    ? () => setCaptionExpanded(true)
+                    : undefined
+                }
+                onKeyDown={
+                  isCaptionCollapsed
+                    ? (e) => {
+                        if (e.key !== "Enter" && e.key !== " ") return;
+                        e.preventDefault();
+                        setCaptionExpanded(true);
+                      }
+                    : undefined
+                }
+              >
                 <p className="jcard-desc">{cardCaption}</p>
+                {isCaptionCollapsed ? (
+                  <span className="jcard-expand-cta jcard-expand-cta--light" aria-hidden>
+                    <ChevronDown size={14} strokeWidth={2.4} />
+                    {expandCtaLabel}
+                  </span>
+                ) : null}
               </div>
             ) : null}
 

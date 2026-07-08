@@ -65,12 +65,16 @@ export function orgPublicHref(loai: string, slug: string): string {
   const s = slug.trim();
   if (!s) return "/";
   if (loai === "cong_dong") return `/cong-dong/${encodeURIComponent(s)}`;
-  if (loai === "co_so_dao_tao") return `/co-so/${encodeURIComponent(s)}`;
+  if (loai === "co_so_dao_tao") return coSoTabPath(s, CO_SO_DEFAULT_TAB);
   if (loai === "studio" || loai === "doanh_nghiep") {
-    return `/studio/${encodeURIComponent(s)}`;
+    return studioTabPath(s, STUDIO_DEFAULT_TAB);
   }
-  if (loai === "truong_dai_hoc") return truongRootPath(s);
+  if (loai === "truong_dai_hoc") return truongTabPath(s, TRUONG_DEFAULT_TAB);
   return truongRootPath(s);
+}
+
+export function orgDefaultTabHref(loai: string, slug: string): string {
+  return orgPublicHref(loai, slug);
 }
 
 function orgBaiDangHub(loai: string): OrgBaiDangPermalinkHub {
@@ -103,15 +107,4 @@ export function userJourneyHref(userSlug: string): string {
 
 export function articleHref(loai: string, slug: string): string {
   return articlePublicHref(loai, slug);
-}
-
-export function orgDefaultTabHref(loai: string, slug: string): string {
-  const s = slug.trim();
-  if (!s) return orgPublicHref(loai, slug);
-  if (loai === "co_so_dao_tao") return coSoTabPath(s, CO_SO_DEFAULT_TAB);
-  if (loai === "studio" || loai === "doanh_nghiep") {
-    return studioTabPath(s, STUDIO_DEFAULT_TAB);
-  }
-  if (loai === "truong_dai_hoc") return truongTabPath(s, TRUONG_DEFAULT_TAB);
-  return orgPublicHref(loai, slug);
 }

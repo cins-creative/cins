@@ -3404,15 +3404,6 @@
 }
 
 /* ── Card cơ hội (sidebar LÀM) ── */
-.world-journey-home .ha-card--jobs.ha-card--accent {
-  border-color: color-mix(in srgb, var(--mint, #6efec0) 55%, var(--border));
-  background: linear-gradient(
-    165deg,
-    color-mix(in srgb, var(--mint-soft, #e8fdf5) 70%, var(--surface)) 0%,
-    var(--surface) 42%
-  );
-}
-
 .world-journey-home .ha-card--jobs .ha-card-head {
   flex-wrap: wrap;
   align-items: center;
@@ -3430,10 +3421,6 @@
   flex-shrink: 0;
 }
 
-.world-journey-home .ha-card--jobs.ha-card--accent .ha-card-head svg {
-  color: var(--mint-deep, #0e9b6e);
-}
-
 .world-journey-home .ha-card-badge {
   flex-shrink: 0;
   padding: 2px 8px;
@@ -3449,26 +3436,30 @@
 .world-journey-home .ha-job-list {
   display: flex;
   flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px 12px 12px;
 }
 
 .world-journey-home .ha-job {
   display: block;
-  padding: 12px 12px 12px 14px;
+  padding: 10px 10px 10px 11px;
   text-decoration: none;
   color: inherit;
-  border-bottom: 1px solid var(--neutral-100, #f1f2f5);
-  transition: background 0.15s var(--ease, ease);
+  border: 1px solid var(--neutral-100, #f1f2f5);
+  border-radius: var(--r-md, 12px);
+  background: var(--neutral-50, #f8f9fb);
+  transition:
+    background 0.15s var(--ease, ease),
+    border-color 0.15s var(--ease, ease),
+    box-shadow 0.15s var(--ease, ease);
   min-width: 0;
-}
-
-.world-journey-home .ha-job:last-child {
-  border-bottom: 0;
-  padding-bottom: 14px;
 }
 
 .world-journey-home a.ha-job:hover,
 .world-journey-home a.ha-job:focus-visible {
-  background: var(--neutral-50, #f8f9fb);
+  background: var(--surface, #fff);
+  border-color: color-mix(in srgb, var(--blue) 22%, var(--border));
+  box-shadow: var(--sh-xs);
 }
 
 .world-journey-home a.ha-job:hover .ha-job-title,
@@ -3476,85 +3467,107 @@
   color: var(--blue);
 }
 
-.world-journey-home .ha-job-title {
-  font-size: 13.5px;
-  font-weight: 700;
-  color: var(--ink1);
-  line-height: 1.32;
-  overflow-wrap: anywhere;
-  word-break: break-word;
-}
-
-.world-journey-home .ha-job-org {
+.world-journey-home .ha-job-inner {
   display: flex;
-  align-items: center;
-  gap: 7px;
-  margin-top: 6px;
+  align-items: flex-start;
+  gap: 10px;
   min-width: 0;
 }
 
-.world-journey-home .ha-job-org-av {
-  width: 22px;
-  height: 22px;
-  border-radius: 6px;
+.world-journey-home .ha-job-av {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
   flex-shrink: 0;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--blue-soft, #e7f0fb);
-  color: var(--blue);
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  border: 1px solid color-mix(in srgb, var(--blue) 12%, transparent);
 }
 
-.world-journey-home .ha-job-org-av img {
+.world-journey-home .ha-job-av img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.world-journey-home .ha-job-org-name {
+.world-journey-home .ha-job-av-fallback {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--blue);
+}
+
+.world-journey-home .ha-job-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.world-journey-home .ha-job-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink1);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.world-journey-home .ha-job-org {
   font-size: 12px;
-  font-weight: 500;
-  color: var(--ink4);
+  font-weight: 600;
+  color: var(--ink3);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.world-journey-home .ha-job-chips {
+.world-journey-home .ha-job-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 5px;
-  margin-top: 8px;
+  align-items: center;
+  gap: 2px 0;
+  margin-top: 1px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--ink4);
 }
 
-.world-journey-home .ha-job-chip {
+.world-journey-home .ha-job-meta-part {
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  max-width: 100%;
-  padding: 3px 7px;
-  border-radius: var(--r-sm, 8px);
-  background: var(--neutral-100, #f1f2f5);
-  color: var(--ink3);
-  font-size: 10.5px;
-  font-weight: 500;
-  line-height: 1.35;
-  white-space: normal;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  min-width: 0;
 }
 
-.world-journey-home .ha-job-chip--sal {
-  background: transparent;
-  padding: 0;
+.world-journey-home .ha-job-meta-part:not(:last-child)::after {
+  content: "·";
+  margin: 0 5px;
+  color: var(--neutral-300, #c8ccd4);
+  font-weight: 700;
+}
+
+.world-journey-home .ha-job-meta-part svg {
+  flex-shrink: 0;
+  opacity: 0.75;
+}
+
+.world-journey-home .ha-job-sal {
+  margin-top: 3px;
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.35;
   color: var(--blue-dark, #1656a0);
-  font-size: 13px;
-  font-weight: 600;
-  flex: 1 1 100%;
+  letter-spacing: -0.01em;
 }
 
 /* ── Card hồ sơ (cột trái LÀM) ── */

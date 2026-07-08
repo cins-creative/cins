@@ -22,8 +22,6 @@ export function CoSoAdminToolbar({ onOpenSettings }: Props) {
 
   const isEditing = ctx?.isEditing ?? false;
   const saving = ctx?.saving ?? false;
-  const avatarDraft = ctx?.avatarDraft ?? null;
-  const coverDraft = ctx?.coverDraft ?? null;
   const systemRole = ctx?.systemRole ?? null;
   const elevated = isElevatedRole(systemRole);
   const roleKey = elevated ? systemRole : "org";
@@ -41,26 +39,6 @@ export function CoSoAdminToolbar({ onOpenSettings }: Props) {
         <span className="tb-truong-admin-saving" aria-live="polite">
           Đang lưu…
         </span>
-      ) : null}
-      {ctx?.canEdit && isEditing && avatarDraft ? (
-        <button
-          type="button"
-          className="tb-truong-admin-save"
-          disabled={saving}
-          onClick={() => void ctx.commitAvatarDraft()}
-        >
-          Lưu logo
-        </button>
-      ) : null}
-      {ctx?.canEdit && isEditing && coverDraft ? (
-        <button
-          type="button"
-          className="tb-truong-admin-save"
-          disabled={saving}
-          onClick={() => void ctx.commitCoverDraft()}
-        >
-          Lưu bìa
-        </button>
       ) : null}
       <button
         type="button"

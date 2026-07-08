@@ -47,7 +47,8 @@ export function TruongOrgAvatar({
   const isBlob = src?.startsWith("blob:") ?? false;
   const canEdit = editable && ctx?.isEditing;
   const initials = schoolInitials(school.ten);
-  const hasPending = Boolean(ctx?.avatarDraft);
+  const isSaving = Boolean(ctx?.saving);
+  const hasPending = Boolean(ctx?.avatarDraft) && !isSaving;
 
   function openPicker() {
     inputRef.current?.click();
@@ -72,9 +73,15 @@ export function TruongOrgAvatar({
   }
 
   function onApplyPreview(file: File, nextPreview: string) {
-    ctx?.setAvatarDraft({ file, previewUrl: nextPreview });
-    ctx?.showToast("Đã cập nhật xem trước logo — bấm «Lưu logo» trên thanh công cụ");
     closeCrop();
+    void (async () => {
+      try {
+        ctx?.setAvatarDraft({ file, previewUrl: nextPreview });
+        await ctx?.commitAvatarDraft(file);
+      } catch {
+        ctx?.showToast("Lưu logo thất bại — thử lại");
+      }
+    })();
   }
 
   const wrapClass = [
@@ -109,6 +116,10 @@ export function TruongOrgAvatar({
         {hasPending ? (
           <span className="tdh-org-avatar-pending-badge" title="Chưa lưu lên máy chủ">
             Nháp
+          </span>
+        ) : isSaving && ctx?.avatarDraft ? (
+          <span className="tdh-org-avatar-pending-badge" aria-live="polite">
+            Đang lưu…
           </span>
         ) : null}
         {canEdit ? (

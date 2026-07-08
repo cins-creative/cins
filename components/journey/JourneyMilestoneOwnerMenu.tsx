@@ -57,7 +57,7 @@ type Props = {
   hideTypeChange?: boolean;
   /** Ẩn sửa bài (không sửa bài người khác từ Journey Lưu về). */
   hideEdit?: boolean;
-  /** Ẩn xoá cột mốc (bài được người khác gắn lên Journey). */
+  /** Ẩn xóa nội dung (bài được người khác gắn lên Journey). */
   hideDelete?: boolean;
   /** Gọi sau khi đổi loại/hiển thị/xoá thành công (vd. refetch modal post). */
   onAfterChange?: () => void;
@@ -79,7 +79,7 @@ type Props = {
    ║ JourneyMilestoneOwnerMenu — kebab (3 chấm) trên góc phải card.   ║
    ║                                                                  ║
    ║ Chỉ render khi viewer là owner. Mở submenu cấp 2 cho "Nhóm" và   ║
-   ║ "Hiển thị"; "Sửa bài viết" mở overlay compose; "Xoá" có confirm.   ║
+   ║ "Hiển thị"; "Sửa bài viết" mở overlay compose; "Xóa nội dung" có confirm.   ║
    ║                                                                  ║
    ║ Click ngoài / Escape → đóng menu. Submenu hover-overlap chống   ║
    ║ flicker bằng `setTimeout(0)` defer cho `onMouseLeave`.            ║
@@ -582,11 +582,11 @@ export function JourneyMilestoneOwnerMenu({
             <>
           <div className="j-m-menu-sep" aria-hidden />
 
-          {/* Xoá */}
+          {/* Xóa nội dung */}
           {confirmDelete ? (
             <div className="j-m-menu-confirm">
               <p className="j-m-menu-confirm-msg">
-                Xoá cột mốc này? Bài viết liên kết (nếu có) cũng sẽ bị xoá.
+                Xóa nội dung? Việc này không thể hoàn tác, bạn chấp nhận chứ?
               </p>
               <div className="j-m-menu-confirm-actions">
                 <button
@@ -603,7 +603,7 @@ export function JourneyMilestoneOwnerMenu({
                   onClick={handleDelete}
                   disabled={pending}
                 >
-                  {pending ? "Đang xoá…" : "Xoá luôn"}
+                  {pending ? "Đang xóa…" : "Xóa luôn"}
                 </button>
               </div>
             </div>
@@ -618,7 +618,7 @@ export function JourneyMilestoneOwnerMenu({
               <span className="j-m-menu-ico" aria-hidden>
                 <Trash2 size={14} strokeWidth={1.7} />
               </span>
-              <span className="j-m-menu-lbl">Xoá cột mốc</span>
+              <span className="j-m-menu-lbl">Xóa nội dung</span>
             </button>
           )}
             </>

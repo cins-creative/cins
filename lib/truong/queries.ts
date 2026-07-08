@@ -5,6 +5,8 @@ import { loadPersonalFiltersForOrgBaiDang } from "@/lib/filter/org-bai-dang-gan"
 import { createPublicSupabaseClient } from "@/lib/supabase/public";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { parseBaiDangBlocks } from "@/lib/truong/bai-dang-blocks";
+import { extractVideoProcessingMeta } from "@/lib/journey/video-processing-meta";
+import { syncOrgBaiDangVideoProcessing } from "@/lib/journey/sync-video-processing-blocks";
 import { formatHocPhiLabel } from "@/lib/truong/display";
 import { enrichProgramsWithCoverSrcSync } from "@/lib/truong/program-cover";
 import {
@@ -505,6 +507,17 @@ export async function fetchBaiDang(
     post.personalFilters = filters;
     post.personalFilterSlugs = filters.map((f) => f.slug);
   }
+
+  await Promise.all(
+    out.map(async (post) => {
+      if (!extractVideoProcessingMeta(post.noiDungBlocks)?.processing) return;
+      const synced = await syncOrgBaiDangVideoProcessing(
+        post.id,
+        post.noiDungBlocks,
+      );
+      if (synced) post.noiDungBlocks = synced;
+    }),
+  );
 
   return out;
 }

@@ -3,14 +3,13 @@
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { type FormEvent, useState } from "react";
 
-import {
-  authOriginMismatchMessage,
-  resolveAuthOrigin,
-} from "@/lib/auth/auth-origin";
+import { EmailOtpVerification } from "@/components/auth/EmailOtpVerification";
+import { authOriginMismatchMessage } from "@/lib/auth/auth-origin";
 import { stashOAuthIntent } from "@/lib/auth/oauth-intent-client";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 type Mode = "login" | "register";
+type Step = "credentials" | "verify-otp";
 
 type Props = {
   /** URL quay lại sau đăng nhập (từ `?next=`). */
@@ -28,7 +27,7 @@ function mapAuthError(message: string): string {
     return "Sai tài khoản hoặc mật khẩu.";
   }
   if (lower.includes("email not confirmed")) {
-    return "Email chưa được xác nhận. Vui lòng mở email kích hoạt rồi đăng nhập lại.";
+    return "Email chưa được xác nhận. Nhập mã 6 số đã gửi tới email của bạn.";
   }
   if (lower.includes("password should be")) {
     return `Mật khẩu cần tối thiểu ${MIN_PASSWORD} ký tự.`;
@@ -48,6 +47,9 @@ export function LoginPasswordForm({
   onBusyChange,
 }: Props) {
   const [mode, setMode] = useState<Mode>("login");
+  const [step, setStep] = useState<Step>("credentials");
+  const [pendingEmail, setPendingEmail] = useState("");
+  const [otpSendOnMount, setOtpSendOnMount] = useState(false);
   const [identifier, setIdentifier] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -66,6 +68,26 @@ export function LoginPasswordForm({
   function switchMode(next: Mode) {
     if (next === mode) return;
     setMode(next);
+    setStep("credentials");
+    setPendingEmail("");
+    setOtpSendOnMount(false);
+    setError(null);
+    setNotice(null);
+  }
+
+  function openOtpStep(targetEmail: string) {
+    setPendingEmail(targetEmail.trim());
+    setOtpSendOnMount(true);
+    setStep("verify-otp");
+    setError(null);
+    setNotice(null);
+    setBusyState(false);
+  }
+
+  function backToCredentials() {
+    setStep("credentials");
+    setPendingEmail("");
+    setOtpSendOnMount(false);
     setError(null);
     setNotice(null);
   }
@@ -77,10 +99,20 @@ export function LoginPasswordForm({
       body: JSON.stringify({ identifier: identifier.trim(), password, next: returnPath }),
     });
     const json = (await res.json().catch(() => null)) as
-      | { ok?: boolean; redirect?: string; error?: string }
+      | {
+          ok?: boolean;
+          redirect?: string;
+          error?: string;
+          code?: string;
+          email?: string;
+        }
       | null;
 
     if (!res.ok || !json?.ok) {
+      if (json?.code === "email_not_confirmed" && json.email) {
+        openOtpStep(json.email);
+        return;
+      }
       setError(json?.error || "Không đăng nhập được. Vui lòng thử lại.");
       setBusyState(false);
       return;
@@ -99,12 +131,10 @@ export function LoginPasswordForm({
 
     stashOAuthIntent("register");
     const supabase = createSupabaseBrowserClient();
-    const origin = resolveAuthOrigin();
 
     const { data, error: signUpErr } = await supabase.auth.signUp({
       email: email.trim(),
       password,
-      options: { emailRedirectTo: `${origin}/auth/callback` },
     });
 
     if (signUpErr) {
@@ -119,12 +149,8 @@ export function LoginPasswordForm({
       return;
     }
 
-    /* Confirmation bật (mặc định): hiện hướng dẫn. Không tiết lộ email đã tồn tại hay chưa. */
-    setNotice(
-      `Đã gửi email xác nhận tới ${email.trim()}. Mở liên kết trong email (cùng trình duyệt này) để kích hoạt tài khoản.`,
-    );
+    openOtpStep(email.trim());
     setPassword("");
-    setBusyState(false);
   }
 
   function onSubmit(e: FormEvent) {
@@ -151,6 +177,18 @@ export function LoginPasswordForm({
 
     setBusyState(true);
     void (mode === "login" ? handleLogin() : handleRegister());
+  }
+
+  if (step === "verify-otp" && pendingEmail) {
+    return (
+      <EmailOtpVerification
+        email={pendingEmail}
+        returnPath={returnPath}
+        sendOnMount={otpSendOnMount}
+        onBack={backToCredentials}
+        disabled={disabled}
+      />
+    );
   }
 
   return (

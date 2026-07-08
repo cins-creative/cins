@@ -20,12 +20,8 @@ export function TruongAdminToolbar() {
   const {
     isEditing,
     saving,
-    avatarDraft,
-    coverDraft,
     systemRole,
     setEditMode,
-    commitAvatarDraft,
-    commitCoverDraft,
   } = ctx;
 
   const elevated = isElevatedRole(systemRole);
@@ -44,26 +40,6 @@ export function TruongAdminToolbar() {
         <span className="tb-truong-admin-saving" aria-live="polite">
           Đang lưu…
         </span>
-      ) : null}
-      {isEditing && avatarDraft ? (
-        <button
-          type="button"
-          className="tb-truong-admin-save"
-          disabled={saving}
-          onClick={() => void commitAvatarDraft()}
-        >
-          Lưu logo
-        </button>
-      ) : null}
-      {isEditing && coverDraft ? (
-        <button
-          type="button"
-          className="tb-truong-admin-save"
-          disabled={saving}
-          onClick={() => void commitCoverDraft()}
-        >
-          Lưu bìa
-        </button>
       ) : null}
       <button
         type="button"

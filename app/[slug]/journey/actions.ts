@@ -26,6 +26,10 @@ import {
 } from "@/lib/journey/post-page-fetch";
 import { parseServerBlocks } from "@/lib/journey/parse-server-blocks";
 import {
+  collectHostingAssetsFromTacPham,
+  purgeTacPhamHostingAssets,
+} from "@/lib/journey/purge-tac-pham-hosting";
+import {
   applyTextPanelToneToBlocks,
   isTextPanelToneId,
 } from "@/lib/journey/text-panel-tone";
@@ -562,7 +566,8 @@ export async function updateCover(
  *   • updateMilestoneType       — đổi `loai_moc` (nhóm filter)
  *   • updateMilestoneVisibility — đổi `che_do_hien_thi` (public / theo_nhom / chi_minh)
  *   • deleteMilestone           — xoá cột mốc + dọn dẹp link `thuoc_moc` +
- *                                 xoá `content_tac_pham` orphan (chỉ thuộc 1 mốc).
+ *                                 xoá `content_tac_pham` orphan (chỉ thuộc 1 mốc)
+ *                                 và dọn video Bunny / ảnh Cloudflare không còn dùng.
  *
  * Tất cả đều check `id_nguoi_dung = session.profile.id` qua helper
  * `requireMilestoneOwnership` — không tin payload từ client.
@@ -840,6 +845,10 @@ export async function deleteMilestone(
   }
 
   /* Bài viết "mồ côi" (không còn cột mốc nào tham chiếu) → xoá luôn. */
+  let hostingAssets = {
+    cloudflareImageIds: [] as string[],
+    bunnyVideoIds: [] as string[],
+  };
   if (tacPhamIds.length > 0) {
     const { data: stillUsed } = await admin
       .from("content_tac_pham_thuoc_moc")
@@ -848,7 +857,34 @@ export async function deleteMilestone(
       .returns<Array<{ id_tac_pham: string }>>();
     const stillUsedIds = new Set((stillUsed ?? []).map((l) => l.id_tac_pham));
     const orphanIds = tacPhamIds.filter((id) => !stillUsedIds.has(id));
+
     if (orphanIds.length > 0) {
+      const { data: orphanRows } = await admin
+        .from("content_tac_pham")
+        .select("id, cover_id, noi_dung_blocks")
+        .in("id", orphanIds)
+        .returns<
+          Array<{
+            id: string;
+            cover_id: string | null;
+            noi_dung_blocks: unknown;
+          }>
+        >();
+
+      const { data: orphanMedia } = await admin
+        .from("content_media")
+        .select("cloudflare_id")
+        .in("id_tac_pham", orphanIds)
+        .returns<Array<{ cloudflare_id: string | null }>>();
+
+      hostingAssets = collectHostingAssetsFromTacPham(
+        orphanRows ?? [],
+        (orphanMedia ?? [])
+          .map((row) => row.cloudflare_id)
+          .filter((id): id is string => Boolean(id?.trim())),
+      );
+
+      await admin.from("content_media").delete().in("id_tac_pham", orphanIds);
       await admin.from("content_tac_pham").delete().in("id", orphanIds);
     }
   }
@@ -859,6 +895,13 @@ export async function deleteMilestone(
     .eq("id", milestoneId);
   if (delErr) {
     return { ok: false, error: "Không xoá được cột mốc: " + delErr.message };
+  }
+
+  if (
+    hostingAssets.cloudflareImageIds.length > 0 ||
+    hostingAssets.bunnyVideoIds.length > 0
+  ) {
+    await purgeTacPhamHostingAssets(admin, hostingAssets);
   }
 
   revalidatePath(`/${owner.profileSlug}`);

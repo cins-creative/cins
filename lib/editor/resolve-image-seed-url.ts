@@ -1,3 +1,4 @@
+import { isEditorStockImageSeed } from "@/lib/editor/editor-stock-image-seeds";
 import { getCfAccountHash } from "@/lib/cloudflare/account-hash";
 import {
   isCfImageUuid,
@@ -43,6 +44,7 @@ export function resolveImageSeedUrl(
 ): string {
   const trimmed = (seed || "").trim();
   if (!trimmed) return "";
+  if (isEditorStockImageSeed(trimmed)) return "";
   if (isTemporaryImageRef(trimmed)) return trimmed;
   if (isExternalHttpImageRef(trimmed)) return trimmed;
   if (isCfImageUuid(trimmed)) {
@@ -60,6 +62,7 @@ export function resolveImageSeedThumbUrl(
 ): string {
   const trimmed = (seed || "").trim();
   if (!trimmed) return "";
+  if (isEditorStockImageSeed(trimmed)) return "";
   if (isTemporaryImageRef(trimmed)) return trimmed;
   if (isExternalHttpImageRef(trimmed)) return trimmed;
   if (isCfImageUuid(trimmed)) {
@@ -81,6 +84,7 @@ export function resolveImageSeedLightboxUrl(
 ): string {
   const trimmed = (seed || "").trim();
   if (!trimmed) return "";
+  if (isEditorStockImageSeed(trimmed)) return "";
   if (isTemporaryImageRef(trimmed)) return trimmed;
   if (isExternalHttpImageRef(trimmed)) return trimmed;
   if (isCfImageUuid(trimmed)) {

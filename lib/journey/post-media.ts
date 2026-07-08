@@ -542,6 +542,18 @@ export function blocksForArticleCardUnfold(
   return result;
 }
 
+/** Caption trên card photo/video — thu gọn khi dài (giống panel chữ). */
+export function milestoneCardCaptionNeedsCollapse(
+  caption: string | null | undefined,
+): boolean {
+  if (!caption?.trim()) return false;
+  const paras = caption
+    .split(/\n\n+/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+  return textPanelNeedsCollapse(caption, paras.length);
+}
+
 /** Bài article trên timeline — có thêm nội dung ngoài preview card (blocks / chữ dài). */
 export function articleCardNeedsDepthPreview(
   body: string | null | undefined,

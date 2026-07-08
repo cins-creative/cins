@@ -4,7 +4,14 @@ import { loadCongDongStatsByOrgIds } from "@/lib/cong-dong/stats";
 import { getAvatarUrl, getProfileCoverUrl } from "@/lib/journey/profile";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { commentVaiTroLabel } from "@/lib/social/comments/vai-tro-label";
-import { studioRootPath } from "@/lib/to-chuc/studio-routes";
+import {
+  CO_SO_DEFAULT_TAB,
+  coSoTabPath,
+} from "@/lib/to-chuc/co-so-routes";
+import {
+  STUDIO_DEFAULT_TAB,
+  studioTabPath,
+} from "@/lib/to-chuc/studio-routes";
 import { truongRootPath } from "@/lib/truong/truong-routes";
 
 export type UserOrgMembershipItem = {
@@ -76,13 +83,13 @@ function orgPublicHref(org: {
     return `/cong-dong/${encodeURIComponent(org.slug)}`;
   }
   if (org.loai_to_chuc === "co_so_dao_tao") {
-    return `/co-so/${encodeURIComponent(org.slug)}`;
+    return coSoTabPath(org.slug, CO_SO_DEFAULT_TAB);
   }
   if (org.loai_to_chuc === "truong_dai_hoc") {
     return truongRootPath(org.slug);
   }
   if (org.loai_to_chuc === "studio" || org.loai_to_chuc === "doanh_nghiep") {
-    return studioRootPath(org.slug);
+    return studioTabPath(org.slug, STUDIO_DEFAULT_TAB);
   }
   return null;
 }

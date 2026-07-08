@@ -22,6 +22,7 @@ import {
   resolveBunnyEmbed,
 } from "@/lib/journey/video-embed";
 import { useResolvedVideoCanvasRatio } from "@/lib/journey/use-resolved-video-canvas-ratio";
+import { useBunnyVideoProcessingReady } from "@/lib/journey/use-bunny-video-processing-ready";
 import {
   videoCanvasRatioClass,
   videoPreviewDimensionsFromRatio,
@@ -79,6 +80,11 @@ export function JourneyCardVideo({
     () => resolveBunnyEmbed(url, bunnyVideoId),
     [url, bunnyVideoId],
   );
+  const bunnyReady = useBunnyVideoProcessingReady(
+    Boolean(processing),
+    bunnyVideoId ?? bunnyEmbed?.videoId,
+  );
+  const showProcessing = Boolean(processing) && !bunnyReady;
   const iframeSrc = useMemo(
     () =>
       buildVideoIframeSrc(url, {
@@ -94,7 +100,7 @@ export function JourneyCardVideo({
     }
   }, [playing]);
 
-  if (processing) {
+  if (showProcessing) {
     return (
       <div
         className={`jcard-video-player ${canvasClass}`}

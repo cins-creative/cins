@@ -108,6 +108,32 @@ function redirectLegacyJourneyPath(request: NextRequest): NextResponse | null {
   return NextResponse.redirect(url, 308);
 }
 
+/** `/co-so/:slug` → `/co-so/:slug/bai-dang` — tránh redirect RSC (meta refresh) gây lỗi lần đầu. */
+function redirectCoSoRootToDefaultTab(
+  request: NextRequest,
+): NextResponse | null {
+  const { pathname } = request.nextUrl;
+  const match = pathname.match(/^\/co-so\/([^/]+)\/?$/);
+  if (!match || match[1].startsWith("_")) return null;
+
+  const url = request.nextUrl.clone();
+  url.pathname = `/co-so/${match[1]}/bai-dang`;
+  return NextResponse.redirect(url, 308);
+}
+
+/** `/studio/:slug` → `/studio/:slug/bai-dang` — cùng pattern với cơ sở đào tạo. */
+function redirectStudioRootToDefaultTab(
+  request: NextRequest,
+): NextResponse | null {
+  const { pathname } = request.nextUrl;
+  const match = pathname.match(/^\/studio\/([^/]+)\/?$/);
+  if (!match || match[1].startsWith("_")) return null;
+
+  const url = request.nextUrl.clone();
+  url.pathname = `/studio/${match[1]}/bai-dang`;
+  return NextResponse.redirect(url, 308);
+}
+
 /**
  * Resolve session bằng `@supabase/ssr` server client với cookie adapter cho middleware.
  * Trả về `{ response, user }` — response đã được sync cookies refresh token (nếu Supabase
@@ -182,6 +208,10 @@ export async function middleware(request: NextRequest) {
   if (legacyTruong) return legacyTruong;
   const legacyJourney = redirectLegacyJourneyPath(request);
   if (legacyJourney) return legacyJourney;
+  const coSoRoot = redirectCoSoRootToDefaultTab(request);
+  if (coSoRoot) return coSoRoot;
+  const studioRoot = redirectStudioRootToDefaultTab(request);
+  if (studioRoot) return studioRoot;
 
   const { pathname } = request.nextUrl;
 

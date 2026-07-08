@@ -127,10 +127,18 @@ export async function POST(request: NextRequest) {
   });
   if (error || !data.user) {
     const lower = error?.message?.toLowerCase() ?? "";
-    const msg = lower.includes("email not confirmed")
-      ? "Email chưa được xác nhận. Vui lòng mở email kích hoạt rồi đăng nhập lại."
-      : GENERIC_AUTH_ERR;
-    return NextResponse.json({ error: msg }, { status: 401 });
+    if (lower.includes("email not confirmed")) {
+      return NextResponse.json(
+        {
+          error:
+            "Email chưa được xác nhận. Nhập mã 6 số đã gửi tới email của bạn.",
+          code: "email_not_confirmed",
+          email,
+        },
+        { status: 401 },
+      );
+    }
+    return NextResponse.json({ error: GENERIC_AUTH_ERR }, { status: 401 });
   }
 
   const { data: profile } = await supabase

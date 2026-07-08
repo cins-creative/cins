@@ -44,6 +44,6 @@ export function useResolvedVideoCanvasRatio(
     };
   }, [fromBlocks, bunnyVideoId]);
 
-  // Giữ tỉ lệ từ block meta (SSR-enriched) — không fallback 16:9 khi đang probe.
-  return fromBlocks ?? probed ?? "16:9";
+  // Probe MP4 khi có — ưu tiên kích thước thật (sửa meta 3:4 sai với video 9:16).
+  return probed ?? fromBlocks ?? "16:9";
 }

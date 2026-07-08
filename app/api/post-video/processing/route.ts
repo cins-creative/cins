@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
-import { listProcessingVideoPosts } from "@/lib/journey/video-processing";
+import {
+  listProcessingOrgBaiDangPosts,
+  listProcessingVideoItems,
+} from "@/lib/journey/video-processing";
 
-/* GET /api/post-video/processing — bài video đang chờ xử lý của user hiện tại. */
+/* GET /api/post-video/processing — bài video đang chờ xử lý (Journey + org bài đăng). */
 
-export async function GET() {
+export async function GET(request: Request) {
   const session = await getCurrentSessionAndProfile();
   if (!session?.profile) {
     return NextResponse.json(
@@ -14,6 +17,12 @@ export async function GET() {
     );
   }
 
-  const items = await listProcessingVideoPosts(session.profile.id);
+  const orgId = new URL(request.url).searchParams.get("orgId")?.trim();
+  if (orgId) {
+    const items = await listProcessingOrgBaiDangPosts(orgId);
+    return NextResponse.json({ items });
+  }
+
+  const items = await listProcessingVideoItems(session.profile.id);
   return NextResponse.json({ items });
 }

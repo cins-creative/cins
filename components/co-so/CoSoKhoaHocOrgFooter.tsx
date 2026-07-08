@@ -1,14 +1,15 @@
 "use client";
 
-import { MessageSquare } from "lucide-react";
+import { ArrowUpRight, MapPin, Phone } from "lucide-react";
+import Link from "next/link";
 
-import { CoSoOrgFollowButton } from "@/components/co-so/CoSoOrgFollowButton";
-import { OrgSidebarShareButton } from "@/components/org/OrgSidebarShareButton";
-import { useOrgSidebarShareSource } from "@/components/org/useOrgSidebarShareSource";
 import { TruongOrgAvatar } from "@/components/truong/TruongOrgAvatar";
-import { TruongSchoolContact } from "@/components/truong/TruongSchoolContact";
-import { TruongUserChatLauncher } from "@/components/truong/TruongUserChatLauncher";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
+import { coSoRootPath } from "@/lib/to-chuc/co-so-routes";
+import {
+  formatChiNhanhAddress,
+  resolveTruongChiNhanh,
+} from "@/lib/truong/chi-nhanh";
 import type { TruongDetail } from "@/lib/truong/types";
 
 type Props = {
@@ -17,83 +18,74 @@ type Props = {
   orgId?: string;
 };
 
-function csoSidebarSubtitle(school: TruongDetail): string | null {
-  const moTa = school.mo_ta?.trim();
-  if (moTa) return moTa;
-  const official = school.ten_chinh_thuc?.trim();
-  if (official && official !== school.ten.trim()) return official;
-  const en = school.ten_tieng_anh?.trim();
-  if (en && en !== school.ten.trim()) return en;
-  return null;
-}
-
-/** Footer chi tiết khóa — thông tin cơ sở (cùng nội dung sidebar trái). */
-export function CoSoKhoaHocOrgFooter({ school: schoolProp, orgId: orgIdProp }: Props) {
+/** Footer chi tiết khóa — gradient + danh sách cơ sở. */
+export function CoSoKhoaHocOrgFooter({ school: schoolProp }: Props) {
   const ctx = useTruongInlineEdit();
   const school = ctx?.school ?? schoolProp;
-  const orgId = ctx?.orgId ?? orgIdProp ?? school?.id;
 
-  if (!school || !orgId) return null;
+  if (!school) return null;
 
-  const isEditing = Boolean(ctx?.isEditing);
-  const isOwner = Boolean(ctx?.isOrgMember);
-  const showAdminCta = isOwner && isEditing;
-  const subtitle = csoSidebarSubtitle(school);
-  const shareSource = useOrgSidebarShareSource(school);
+  const branches = resolveTruongChiNhanh(school);
 
   return (
     <footer className="cso-khd-org-foot" aria-label="Thông tin cơ sở đào tạo">
-      <div className="cso-khd-org-foot-card">
-        <div className="cso-khd-org-foot-head">
+      <div className="cso-khd-org-foot-glow" aria-hidden />
+      <div className="cso-khd-org-foot-inner">
+        <Link
+          href={coSoRootPath(school.slug)}
+          scroll={false}
+          className="cso-khd-org-foot-brand"
+        >
           <TruongOrgAvatar
             school={school}
-            size="lg"
-            className="cso-ss-ava cso-khd-org-foot-ava"
+            size="md"
+            className="cso-khd-org-foot-ava"
           />
-          <div className="cso-ss-identity cso-khd-org-foot-identity">
-            <h2 className="cso-ss-name">{school.ten}</h2>
-            {subtitle ? <p className="cso-ss-sub">{subtitle}</p> : null}
-          </div>
-        </div>
+          <span className="cso-khd-org-foot-brand-copy">
+            <span className="cso-khd-org-foot-eyebrow">Cơ sở đào tạo</span>
+            <span className="cso-khd-org-foot-name">{school.ten}</span>
+          </span>
+          <ArrowUpRight
+            size={18}
+            strokeWidth={2}
+            className="cso-khd-org-foot-brand-go"
+            aria-hidden
+          />
+        </Link>
 
-        <div
-          className={`cso-ss-primary-action cso-khd-org-foot-actions${
-            showAdminCta
-              ? " cso-ss-primary-action--admin"
-              : " cso-ss-primary-action--dual"
-          }`}
-        >
-          {showAdminCta ? null : ctx ? (
-            <>
-              <TruongUserChatLauncher />
-              <CoSoOrgFollowButton orgId={orgId} disabled={isOwner} />
-              <OrgSidebarShareButton kind="co_so" source={shareSource} />
-            </>
-          ) : (
-            <>
-              <button type="button" className="cso-ss-btn-msg" disabled>
-                <MessageSquare size={17} strokeWidth={2} aria-hidden />
-                Nhắn tin
-              </button>
-              <button type="button" className="cso-ss-btn-follow" disabled>
-                Theo dõi
-              </button>
-              <OrgSidebarShareButton kind="co_so" source={shareSource} />
-            </>
-          )}
-        </div>
-
-        <section
-          className="cso-ss-sec cso-khd-org-foot-contact"
-          aria-labelledby="cso-khd-org-foot-contact-title"
-        >
-          <div className="cso-ss-sec-head">
-            <h2 id="cso-khd-org-foot-contact-title" className="cso-ss-sec-title">
-              Cơ sở chính
-            </h2>
+        {branches.length > 0 ? (
+          <div className="cso-khd-org-foot-addr-section">
+            <p className="cso-khd-org-foot-addr-label">
+              Hệ thống cơ sở
+              <span className="cso-khd-org-foot-addr-count">{branches.length}</span>
+            </p>
+            <ul className="cso-khd-org-foot-addr-grid" aria-label="Địa chỉ cơ sở">
+              {branches.map((branch) => {
+                const phone = branch.dien_thoai?.trim();
+                return (
+                  <li key={branch.id} className="cso-khd-org-foot-addr-card">
+                    <div className="cso-khd-org-foot-addr-card-head">
+                      <MapPin size={14} strokeWidth={2.2} aria-hidden />
+                      <span>{branch.ten}</span>
+                    </div>
+                    <p className="cso-khd-org-foot-addr-text">
+                      {formatChiNhanhAddress(branch)}
+                    </p>
+                    {phone ? (
+                      <a
+                        className="cso-khd-org-foot-addr-phone"
+                        href={`tel:${phone.replace(/\s+/g, "")}`}
+                      >
+                        <Phone size={13} strokeWidth={2} aria-hidden />
+                        {phone}
+                      </a>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
           </div>
-          <TruongSchoolContact school={school} isEditing={isEditing} variant="sidebar" />
-        </section>
+        ) : null}
       </div>
     </footer>
   );

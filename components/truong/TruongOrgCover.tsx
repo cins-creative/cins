@@ -24,7 +24,8 @@ export function TruongOrgCover({ school, editable = false, layout = "legacy" }: 
   const avatarPreviewUrl = ctx?.avatarDraft?.previewUrl ?? null;
   const coverUrl = resolveSchoolCoverSrc(school, previewUrl);
   const canEdit = editable && ctx?.isEditing;
-  const hasPending = Boolean(ctx?.coverDraft);
+  const isSaving = Boolean(ctx?.saving);
+  const hasPending = Boolean(ctx?.coverDraft) && !isSaving;
 
   function openPicker() {
     inputRef.current?.click();
@@ -33,10 +34,14 @@ export function TruongOrgCover({ school, editable = false, layout = "legacy" }: 
   function onFilePicked(file: File | undefined) {
     if (!file || !ctx) return;
     const previewUrl = URL.createObjectURL(file);
-    ctx.setCoverDraft({ file, previewUrl });
-    ctx.showToast(
-      "Đã cập nhật xem trước ảnh bìa — bấm «Lưu ảnh bìa» trên thanh công cụ",
-    );
+    void (async () => {
+      try {
+        ctx.setCoverDraft({ file, previewUrl });
+        await ctx.commitCoverDraft(file);
+      } catch {
+        ctx.showToast("Lưu ảnh bìa thất bại — thử lại");
+      }
+    })();
   }
 
   const overlay =
@@ -44,6 +49,10 @@ export function TruongOrgCover({ school, editable = false, layout = "legacy" }: 
       <>
         {hasPending ? (
           <span className="tdh-cover-pending-badge">Ảnh bìa nháp</span>
+        ) : isSaving && ctx?.coverDraft ? (
+          <span className="tdh-cover-pending-badge" aria-live="polite">
+            Đang lưu…
+          </span>
         ) : null}
         <button
           type="button"

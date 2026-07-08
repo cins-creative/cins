@@ -1,3 +1,4 @@
+import { isEditorEmptyImageSeed } from "@/lib/editor/editor-stock-image-seeds";
 import type { Block as ServerBlock } from "@/lib/editor/types";
 
 import {
@@ -57,7 +58,7 @@ function editorBlockHasImageSeed(block: ComposeEditorBlockLike): boolean {
   return (block.imgs ?? []).some((seed) => {
     const trimmed = typeof seed === "string" ? seed.trim() : "";
     if (!trimmed) return false;
-    return !/^new-/.test(trimmed);
+    return !isEditorEmptyImageSeed(trimmed);
   });
 }
 

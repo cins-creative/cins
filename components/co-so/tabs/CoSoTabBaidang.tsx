@@ -3,6 +3,7 @@
 import { useCallback } from "react";
 
 import { CoSoOrgBaiDangTimeline } from "@/components/co-so/CoSoOrgBaiDangTimeline";
+import { OrgBaiDangPostDetailView } from "@/components/truong/OrgBaiDangPostDetailView";
 import { JourneyComposeProvider } from "@/components/journey/JourneyComposeContext";
 import { TruongBaiDangEditProvider } from "@/components/truong/inline/TruongBaiDangEdit";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
@@ -14,8 +15,10 @@ type Props = {
   posts: TruongBaiDang[];
   school: TruongDetail;
   orgId: string;
+  orgSlug: string;
   canEdit: boolean;
   filters: CoSoFilterChip[];
+  activeBaiDangId?: string | null;
 };
 
 function CoSoTabBaidangContent({
@@ -23,12 +26,26 @@ function CoSoTabBaidangContent({
   school,
   composeEnabled,
   filters,
+  activePost,
+  orgSlug,
 }: {
   posts: TruongBaiDang[];
   school: TruongDetail;
   composeEnabled: boolean;
   filters: CoSoFilterChip[];
+  activePost: TruongBaiDang | null;
+  orgSlug: string;
 }) {
+  if (activePost) {
+    return (
+      <OrgBaiDangPostDetailView
+        post={activePost}
+        school={school}
+        orgSlug={orgSlug}
+      />
+    );
+  }
+
   return (
     <TruongBaiDangEditProvider>
       <CoSoOrgBaiDangTimeline
@@ -45,11 +62,16 @@ export function CoSoTabBaidang({
   posts: postsProp,
   school,
   orgId,
+  orgSlug,
   canEdit,
   filters,
+  activeBaiDangId = null,
 }: Props) {
   const ctx = useTruongInlineEdit();
   const posts = ctx?.baidang ?? postsProp;
+  const activePost = activeBaiDangId
+    ? posts.find((p) => p.id === activeBaiDangId) ?? null
+    : null;
 
   const onPostPublished = useCallback(
     (post: TruongBaiDang) => {
@@ -112,6 +134,8 @@ export function CoSoTabBaidang({
         school={school}
         composeEnabled={false}
         filters={filters}
+        activePost={activePost}
+        orgSlug={orgSlug}
       />
     );
   }
@@ -134,6 +158,8 @@ export function CoSoTabBaidang({
         school={school}
         composeEnabled
         filters={filters}
+        activePost={activePost}
+        orgSlug={orgSlug}
       />
     </JourneyComposeProvider>
   );

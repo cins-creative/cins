@@ -1776,12 +1776,8 @@
   aspect-ratio: 4 / 5;
 }
 
-/* grid2 / grid3 / grid4: lưới ô vuông đều, cắt gọn (object-fit: cover). */
-.cins-editor-page .imgwrap.grid2 {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 3px;
-}
+/* grid2: 3 ảnh ngang · grid3 / grid4: lưới ô vuông. */
+.cins-editor-page .imgwrap.grid2,
 .cins-editor-page .imgwrap.grid3 {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -2026,11 +2022,17 @@
   background: #e5484d;
 }
 /* Nút "Thêm ảnh" dưới block ảnh. */
+.cins-editor-page .img-add-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
 .cins-editor-page .img-add-btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-top: 8px;
   padding: 7px 14px;
   border: 1px dashed var(--border-strong);
   border-radius: var(--radius-pill);
@@ -2040,6 +2042,12 @@
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
+}
+.cins-editor-page .img-add-btn--ghost {
+  border-style: solid;
+  border-color: var(--line, #d6dae0);
+  background: transparent;
+  color: var(--ink-muted);
 }
 .cins-editor-page .img-add-btn:hover {
   border-color: var(--cins-blue);
@@ -3863,11 +3871,14 @@
 .cins-editor-page.mc-compose-page.is-overlay .mc-video-drop span {
   font-size: 12px;
 }
-.cins-editor-page.is-overlay .editor-canvas-wrap {
+.cins-editor-page.is-overlay .editor-canvas {
   max-height: calc(100vh - 140px);
   overflow-y: auto;
   /* Picker dùng `position: fixed` — không cần clip để tránh cắt menu chèn block. */
   overflow-x: visible;
+  -webkit-overflow-scrolling: touch;
+  /* Compose overlay — left padding 56px cho `.block-side` (left: -46px). */
+  padding-left: 56px;
 }
 
 /* Picker portal — compose overlay neo theo nút `+` (AddZone). */
@@ -3909,11 +3920,6 @@
   pointer-events: auto;
 }
 
-/* Compose overlay — left padding 56px cho `.block-side` (left: -46px). */
-.cins-editor-page.is-overlay .editor-canvas {
-  overflow: visible;
-  padding-left: 56px;
-}
 .cins-editor-page.is-overlay .cover-add-slot {
   margin: 0 0 24px;
 }

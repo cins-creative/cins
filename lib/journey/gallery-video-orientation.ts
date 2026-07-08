@@ -15,6 +15,8 @@ export function portraitAspectFromCanvasRatio(
   ratio: VideoCanvasRatio | null | undefined,
 ): number | null {
   switch (ratio) {
+    case "9:16":
+      return 9 / 16;
     case "3:4":
       return 3 / 4;
     case "1:1":
@@ -34,7 +36,9 @@ export function isLikelyPortraitGalleryVideo(
   >,
 ): boolean {
   if (!isGalleryVideoItem(item)) return false;
-  if (item.videoCanvasRatio === "3:4") return true;
+  if (item.videoCanvasRatio === "3:4" || item.videoCanvasRatio === "9:16") {
+    return true;
+  }
   if (item.videoCanvasRatio === "16:9" || item.videoCanvasRatio === "1:1") {
     return false;
   }

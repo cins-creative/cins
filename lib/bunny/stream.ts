@@ -171,3 +171,36 @@ export async function getBunnyVideoDimensions(
   if (width <= 0 || height <= 0) return null;
   return { width, height };
 }
+
+/** Xóa video khỏi Bunny Stream (best-effort — không throw). */
+export async function deleteBunnyStreamVideo(
+  videoId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const id = videoId.trim();
+  const config = getBunnyStreamConfig();
+  if (!id || !config) {
+    return { ok: false, error: "Bunny Stream chưa được cấu hình." };
+  }
+
+  try {
+    const res = await fetch(
+      `https://video.bunnycdn.com/library/${config.libraryId}/videos/${encodeURIComponent(id)}`,
+      {
+        method: "DELETE",
+        headers: {
+          AccessKey: config.apiKey,
+          Accept: "application/json",
+        },
+      },
+    );
+
+    if (res.ok || res.status === 404) return { ok: true };
+
+    return { ok: false, error: "Không xóa được video trên Bunny Stream." };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Không xóa được video.",
+    };
+  }
+}

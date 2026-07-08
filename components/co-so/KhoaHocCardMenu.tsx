@@ -47,6 +47,7 @@ export function KhoaHocCardMenu({
         aria-expanded={open}
         aria-haspopup="menu"
         onClick={(e) => {
+          e.preventDefault();
           e.stopPropagation();
           setOpen((v) => !v);
         }}
@@ -59,7 +60,10 @@ export function KhoaHocCardMenu({
         <div
           className="cso-kh-card-menu-pop"
           role="menu"
-          onClick={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
         >
           <button
             type="button"

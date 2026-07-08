@@ -15,6 +15,10 @@ import { CoSoSettingsMembersPanel } from "@/components/co-so/CoSoSettingsMembers
 import { GioiThieuContentEditor } from "@/components/truong/GioiThieuContentEditor";
 import { TruongChiNhanhEditor } from "@/components/truong/tuyensinh/TruongChiNhanhEditor";
 import { LOAI_CO_SO_OPTIONS } from "@/lib/to-chuc/constants";
+import {
+  CO_SO_DEFAULT_TAB,
+  coSoTabPath,
+} from "@/lib/to-chuc/co-so-routes";
 import type { CoSoPageCauHinh } from "@/lib/to-chuc/co-so-page-cau-hinh";
 import type { CoSoFilterChip } from "@/lib/to-chuc/co-so-page-queries";
 import {
@@ -278,7 +282,7 @@ export function CoSoPageSettingsModal({
       setDraft(json.settings);
       emitSaved(json.settings);
       if (json.settings.slug !== prevSlug) {
-        router.replace(`/co-so/${json.settings.slug}`);
+        router.replace(coSoTabPath(json.settings.slug, CO_SO_DEFAULT_TAB));
       }
       onClose();
     });

@@ -50,10 +50,18 @@ export function KhoaHocCard({
   const bannerUrl = khoa.coverUrl ?? khoa.thumbnailUrl;
   const covClass = `cso-kh-card-cov c${(khoa.coverVariant % 3) + 1}`;
   const cardClass = `cso-kh-card${muted ? " muted" : ""}`;
-  const lopLabel =
-    khoa.loaiMoHinh === "lien_tuc_theo_thang" ? "khung" : "lớp mở";
 
-  const body = (
+  const menuNode =
+    canManage && onManage && onEdit && onDelete ? (
+      <KhoaHocCardMenu
+        khoaTen={khoa.tenKhoaHoc}
+        onManage={onManage}
+        onEdit={onEdit}
+        onDelete={onDelete}
+      />
+    ) : null;
+
+  const cardContent = (
     <>
       <div className={covClass}>
         {cardThumbUrl ? (
@@ -78,14 +86,6 @@ export function KhoaHocCard({
           {status.text}
         </span>
       </div>
-      {canManage && onManage && onEdit && onDelete ? (
-        <KhoaHocCardMenu
-          khoaTen={khoa.tenKhoaHoc}
-          onManage={onManage}
-          onEdit={onEdit}
-          onDelete={onDelete}
-        />
-      ) : null}
       <div className="cso-kh-card-body">
         <div className="cso-kh-card-top">
           <div className="cso-kh-card-name">{khoa.tenKhoaHoc}</div>
@@ -124,7 +124,7 @@ export function KhoaHocCard({
         <div className="cso-kh-card-foot">
           <span className="cso-kh-foot-m">
             <CalendarDays size={13} aria-hidden />
-            <b>{khoa.soLopMo}</b> {lopLabel}
+            <b>{khoa.soLopMo}</b> lớp
           </span>
           <span className="cso-kh-foot-m">
             <Users size={13} aria-hidden />
@@ -137,9 +137,12 @@ export function KhoaHocCard({
 
   if (href) {
     return (
-      <Link href={href} scroll={false} className={cardClass}>
-        {body}
-      </Link>
+      <article className={cardClass}>
+        <Link href={href} scroll={false} className="cso-kh-card-link">
+          {cardContent}
+        </Link>
+        {menuNode}
+      </article>
     );
   }
 
@@ -156,7 +159,8 @@ export function KhoaHocCard({
         }
       }}
     >
-      {body}
+      {cardContent}
+      {menuNode}
     </article>
   );
 }

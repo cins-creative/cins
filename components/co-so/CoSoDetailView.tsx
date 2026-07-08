@@ -107,7 +107,7 @@ function CoSoDetailViewInner({
   const baseSchool = ctx?.school ?? payload.school;
   const school = { ...baseSchool, ...schoolExtra };
   const orgSlug = school.slug;
-  const { tab, khoaSlug, jobId, selectTab } = useCoSoTabNav(orgSlug);
+  const { tab, khoaSlug, jobId, baiDangId, selectTab } = useCoSoTabNav(orgSlug);
   const { jobs } = useOrgStudioJobs(school.id);
   const [mountedTabs, setMountedTabs] = useState<Set<CoSoTabId>>(
     () => new Set([tab]),
@@ -284,7 +284,7 @@ function CoSoDetailViewInner({
                 }}
                 onClick={(event) => {
                   event.preventDefault();
-                  if (tab !== t.id || khoaSlug || jobId) {
+                  if (tab !== t.id || khoaSlug || jobId || baiDangId) {
                     selectTab(t.id);
                   }
                 }}
@@ -330,8 +330,10 @@ function CoSoDetailViewInner({
                   posts={baidang}
                   school={school}
                   orgId={school.id}
+                  orgSlug={orgSlug}
                   canEdit={canEdit}
                   filters={filters}
+                  activeBaiDangId={tab === "bai-dang" ? baiDangId : null}
                 />
               ) : null}
               {t.id === "khoa-hoc" ? (

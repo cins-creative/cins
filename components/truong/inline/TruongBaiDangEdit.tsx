@@ -1,6 +1,7 @@
 "use client";
 
 import { BarChart3, ExternalLink, Link2, MoreVertical, Pin, PinOff, Pencil, Trash2 } from "lucide-react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   createContext,
@@ -334,19 +335,17 @@ export function TruongBaiDangPostActions({ post }: { post: TruongBaiDang }) {
       {open ? (
         <div className="j-m-menu-pop" role="menu">
           {postHref ? (
-            <a
+            <Link
               href={postHref}
               className="j-m-menu-item"
               role="menuitem"
-              target="_blank"
-              rel="noopener noreferrer"
               onClick={() => setOpen(false)}
             >
               <span className="j-m-menu-ico" aria-hidden>
                 <ExternalLink size={14} strokeWidth={1.7} />
               </span>
               <span className="j-m-menu-lbl">Mở bài viết</span>
-            </a>
+            </Link>
           ) : null}
           {postHref ? (
             <button

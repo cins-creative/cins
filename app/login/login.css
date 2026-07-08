@@ -548,6 +548,110 @@
   animation: cins-login-rot 0.9s linear infinite;
 }
 
+/* ── Email OTP verification ── */
+.cins-login-otp {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.cins-login-otp-head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cins-login-otp-eyebrow {
+  margin: 0;
+  font-size: 12px;
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cins-blue);
+}
+.cins-login-otp-title {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.25;
+  font-weight: var(--weight-bold);
+  color: var(--ink-display);
+}
+.cins-login-otp-desc {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--ink-body);
+}
+.cins-login-otp-desc strong {
+  color: var(--ink-title);
+  font-weight: var(--weight-semibold);
+}
+.cins-login-otp-digits {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+}
+.cins-login-otp-digit {
+  width: 100%;
+  aspect-ratio: 1;
+  min-height: 48px;
+  padding: 0;
+  text-align: center;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 22px;
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.04em;
+  color: var(--ink-display);
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.cins-login-otp-digit:focus {
+  outline: none;
+  border-color: var(--cins-blue);
+  box-shadow: 0 0 0 3px var(--cins-blue-soft);
+}
+.cins-login-otp-digit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.cins-login-otp-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+.cins-login-otp-link {
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: var(--weight-medium);
+  color: var(--cins-blue);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.cins-login-otp-link:hover:not(:disabled) {
+  color: var(--cins-blue-dark);
+}
+.cins-login-otp-link:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  text-decoration: none;
+}
+.cins-login-otp-link--muted {
+  color: var(--ink-muted);
+  text-decoration: none;
+}
+.cins-login-otp-link--muted:hover:not(:disabled) {
+  color: var(--ink-title);
+  text-decoration: underline;
+}
+
 /* ── Hint divider giữa actions và bullets ── */
 .cins-login-hint {
   font-size: 12.5px;

@@ -1,36 +1,42 @@
-import { coSoTabPath, CO_SO_DEFAULT_TAB } from "@/lib/to-chuc/co-so-routes";
+import { coSoBaiDangPostPath } from "@/lib/to-chuc/co-so-routes";
 import { studioTabPath, STUDIO_DEFAULT_TAB } from "@/lib/to-chuc/studio-routes";
 import { truongTabPath, TRUONG_DEFAULT_TAB } from "@/lib/truong/truong-routes";
 import type { TruongListItem } from "@/lib/truong/types";
 
 export type OrgBaiDangPermalinkHub = "truong" | "co-so" | "studio";
 
-/** Anchor id của card bài đăng trên timeline org. */
+/** Anchor id của card bài đăng trên timeline org (scroll trong tab). */
 export function orgBaiDangPostElementId(postId: string): string {
   return `org-post-${postId}`;
 }
 
-function baiDangTabBasePath(
+function orgBaiDangPostBasePath(
   orgSlug: string,
+  postId: string,
   hub: OrgBaiDangPermalinkHub,
 ): string {
   switch (hub) {
     case "co-so":
-      return coSoTabPath(orgSlug, CO_SO_DEFAULT_TAB);
+      return coSoBaiDangPostPath(orgSlug, postId);
     case "studio":
-      return studioTabPath(orgSlug, STUDIO_DEFAULT_TAB);
+      return `${studioTabPath(orgSlug, STUDIO_DEFAULT_TAB)}/${encodeURIComponent(postId)}`;
     default:
-      return truongTabPath(orgSlug, TRUONG_DEFAULT_TAB);
+      return `${truongTabPath(orgSlug, TRUONG_DEFAULT_TAB)}/${encodeURIComponent(postId)}`;
   }
 }
 
-/** Path + hash tới bài đăng trên tab Bài đăng của org. */
+/** Path tới trang chi tiết bài đăng org. */
 export function orgBaiDangPermalinkPath(
   orgSlug: string,
   postId: string,
   hub: OrgBaiDangPermalinkHub = "truong",
 ): string {
-  return `${baiDangTabBasePath(orgSlug, hub)}#${orgBaiDangPostElementId(postId)}`;
+  return orgBaiDangPostBasePath(orgSlug, postId, hub);
+}
+
+/** Hash scroll trên timeline (giữ cho link nội bộ tab). */
+export function orgBaiDangTimelineHash(postId: string): string {
+  return `#${orgBaiDangPostElementId(postId)}`;
 }
 
 /** Suy ra hub từ pathname hiện tại (client). */

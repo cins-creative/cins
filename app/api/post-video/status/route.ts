@@ -1,19 +1,10 @@
 import { NextResponse } from "next/server";
 
-import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { getBunnyVideoStatus } from "@/lib/bunny/stream";
 
-/* GET /api/post-video/status?videoId= — trạng thái encode Bunny Stream. */
+/* GET /api/post-video/status?videoId= — trạng thái encode Bunny Stream (public read). */
 
 export async function GET(request: Request) {
-  const session = await getCurrentSessionAndProfile();
-  if (!session?.profile) {
-    return NextResponse.json(
-      { error: "Phiên đăng nhập đã hết hạn." },
-      { status: 401 },
-    );
-  }
-
   const videoId = new URL(request.url).searchParams.get("videoId")?.trim();
   if (!videoId) {
     return NextResponse.json({ error: "Thiếu videoId." }, { status: 400 });

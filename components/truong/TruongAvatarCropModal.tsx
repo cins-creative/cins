@@ -92,7 +92,6 @@ export function TruongAvatarCropModal({
         natural,
       );
       onApplyPreview(file, previewUrl);
-      onClose();
     } catch {
       /* parent may toast */
     } finally {
@@ -129,8 +128,7 @@ export function TruongAvatarCropModal({
           Cắt logo trường
         </h2>
         <p className="tdh-avatar-crop-lead">
-          Kéo để căn chỉnh, zoom để phóng to. Bấm «Áp dụng» để xem trước trên
-          trang — chưa đăng lên máy chủ.
+          Kéo để căn chỉnh, zoom để phóng to. Bấm «Lưu» để áp dụng logo lên cơ sở.
         </p>
 
         <div
@@ -196,7 +194,7 @@ export function TruongAvatarCropModal({
             onClick={() => void applyCrop()}
             disabled={busy || !natural}
           >
-            {busy ? "Đang xử lý…" : "Áp dụng"}
+            {busy ? "Đang lưu…" : "Lưu"}
           </button>
         </div>
       </div>

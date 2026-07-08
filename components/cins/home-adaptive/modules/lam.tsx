@@ -129,42 +129,40 @@ export async function GoiYStudioModule({ ctx }: { ctx: HomeModuleCtx }) {
 }
 
 function CoHoiJobRow({ job }: { job: CoHoiItem }) {
-  const chips: Array<{ key: string; label: string; sal?: boolean }> = [];
-  if (job.loaiHinhLabel) chips.push({ key: "loai", label: job.loaiHinhLabel });
-  if (job.place) chips.push({ key: "place", label: job.place });
-  if (job.linhVucTen) chips.push({ key: "lv", label: job.linhVucTen });
-  if (job.salary) chips.push({ key: "sal", label: job.salary, sal: true });
+  const meta = [job.loaiHinhLabel, job.place, job.linhVucTen].filter(Boolean);
 
   const body = (
-    <>
-      <div className="ha-job-title">{job.tieuDe}</div>
-      <div className="ha-job-org">
-        <span className="ha-job-org-av" aria-hidden>
-          {job.avatarUrl ? (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img src={job.avatarUrl} alt="" loading="lazy" />
-          ) : (
-            job.orgTen.slice(0, 2).toUpperCase()
-          )}
-        </span>
-        <span className="ha-job-org-name">{job.orgTen}</span>
+    <div className="ha-job-inner">
+      <span className="ha-job-av" aria-hidden>
+        {job.avatarUrl ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img src={job.avatarUrl} alt="" loading="lazy" />
+        ) : (
+          <span className="ha-job-av-fallback">{job.orgTen.slice(0, 2).toUpperCase()}</span>
+        )}
+      </span>
+      <div className="ha-job-body">
+        <div className="ha-job-title">{job.tieuDe}</div>
+        <div className="ha-job-org">{job.orgTen}</div>
+        {meta.length > 0 ? (
+          <div className="ha-job-meta">
+            {meta.map((part, i) => (
+              <span key={`${part}-${i}`} className="ha-job-meta-part">
+                {part === job.place ? (
+                  <>
+                    <MapPin size={10} strokeWidth={2.2} aria-hidden />
+                    {part}
+                  </>
+                ) : (
+                  part
+                )}
+              </span>
+            ))}
+          </div>
+        ) : null}
+        {job.salary ? <div className="ha-job-sal">{job.salary}</div> : null}
       </div>
-      {chips.length > 0 ? (
-        <div className="ha-job-chips">
-          {chips.map((chip) => (
-            <span
-              key={chip.key}
-              className={`ha-job-chip${chip.sal ? " ha-job-chip--sal" : ""}`}
-            >
-              {chip.key === "place" ? (
-                <MapPin size={10} strokeWidth={2.2} aria-hidden />
-              ) : null}
-              {chip.label}
-            </span>
-          ))}
-        </div>
-      ) : null}
-    </>
+    </div>
   );
 
   if (job.href) {
@@ -184,7 +182,7 @@ export async function CoHoiModule({ ctx }: { ctx: HomeModuleCtx }) {
     <ModuleCard
       icon={Briefcase}
       title="Cơ hội cho bạn"
-      className={ctx.seeking ? "ha-card--jobs ha-card--accent" : "ha-card--jobs"}
+      className="ha-card--jobs"
       moreHref="/tuyen-dung"
       moreLabel="Xem thêm"
     >

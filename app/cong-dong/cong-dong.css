@@ -3569,6 +3569,8 @@
   .j-compose-overlay {
     padding: 0;
     overflow: hidden;
+    height: 100dvh;
+    height: 100svh;
     background: var(--bg-page, #f4f5f7);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
@@ -3580,13 +3582,15 @@
     --j-compose-radius: 0;
     width: 100%;
     max-width: none;
-    min-height: 100dvh;
-    min-height: 100svh;
+    height: 100%;
+    max-height: 100%;
+    min-height: 0;
     margin: 0;
     border-radius: 0;
     box-shadow: none;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
   }
 
   .j-compose-sheet > .cins-editor-page.is-overlay,
@@ -3600,10 +3604,11 @@
   .j-compose-sheet .cins-editor-page.is-overlay,
   .j-compose-sheet .cins-editor-page.mc-compose-page.is-overlay {
     flex: 1 1 auto;
-    min-height: 100dvh;
-    min-height: 100svh;
+    min-height: 0;
+    max-height: 100%;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
   }
 
   .j-compose-sheet .cins-editor-page.is-overlay .ed-topbar {
@@ -3611,25 +3616,25 @@
     padding-top: env(safe-area-inset-top, 0);
   }
 
-  .j-compose-sheet .cins-editor-page.is-overlay .editor-canvas-wrap {
+  .j-compose-sheet .cins-editor-page.is-overlay .editor-canvas {
     flex: 1 1 auto;
     min-height: 0;
-    max-height: none;
-    overflow-y: auto;
-  }
-
-  .j-compose-sheet .cins-editor-page.is-overlay .editor-canvas {
     margin: 0;
     padding: 16px 16px max(24px, env(safe-area-inset-bottom, 0px));
     padding-left: 16px;
     border-radius: 0;
-    min-height: 100%;
+    overflow-y: auto;
+    overflow-x: visible;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
   }
 
   .j-compose-sheet .cins-editor-page.mc-compose-page.is-overlay .mc-compose-main {
     flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
     padding-bottom: max(20px, env(safe-area-inset-bottom, 0px));
   }
 

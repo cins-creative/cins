@@ -46,6 +46,9 @@ import {
 
 import "@/app/[slug]/journey/image-grid.css";
 import "@/app/[slug]/journey/journey.css";
+/* Inline unfold + bình luận dùng `.cins-post-view` — cùng CSS với journey layout / modal. */
+import "@/app/[slug]/p/new/editor.css";
+import "@/app/[slug]/p/[postSlug]/post-page.css";
 import "@/app/world-journey-feed.css";
 
 type FeedView = HomeFeedDisplay;

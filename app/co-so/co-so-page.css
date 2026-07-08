@@ -1890,9 +1890,18 @@
   isolation: isolate;
 }
 
-.tdh-page--cso a.cso-kh-card {
+.tdh-page--cso a.cso-kh-card,
+.tdh-page--cso .cso-kh-card-link {
   text-decoration: none;
   color: inherit;
+}
+
+.tdh-page--cso .cso-kh-card-link {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-height: 0;
 }
 
 .tdh-page--cso .cso-kh-card:has(.cso-kh-card-menu-wrap.open) {
@@ -4823,47 +4832,191 @@
 }
 
 .tdh-page--cso .cso-khd-org-foot {
-  margin: 26px 0 0;
-  padding: 0;
-  border-top: 1px solid var(--hair, #edeef1);
+  position: relative;
+  margin: 0;
+  padding: 22px 24px 24px;
+  border-top: none;
+  overflow: hidden;
+  background: linear-gradient(
+    135deg,
+    #124a8a 0%,
+    var(--cins-blue, #1f74c9) 38%,
+    #3e8fdd 72%,
+    #6eb5f2 100%
+  );
 }
 
-.tdh-page--cso .cso-khd-org-foot-card {
-  padding: 22px 22px 20px;
-  background: var(--surface, #fff);
+.tdh-page--cso .cso-khd-org-foot-glow {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(255, 255, 255, 0.22), transparent 42%),
+    radial-gradient(circle at 88% 82%, rgba(187, 137, 248, 0.28), transparent 46%);
 }
 
-.tdh-page--cso .cso-khd-org-foot-head {
+.tdh-page--cso .cso-khd-org-foot-inner {
+  position: relative;
+  z-index: 1;
   display: flex;
-  align-items: flex-start;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.tdh-page--cso .cso-khd-org-foot-brand {
+  display: flex;
+  align-items: center;
   gap: 14px;
+  min-width: 0;
+  padding: 4px 2px;
+  text-decoration: none;
+  color: #fff;
+  transition: opacity 0.15s;
+}
+
+.tdh-page--cso .cso-khd-org-foot-brand:hover {
+  opacity: 0.94;
+}
+
+.tdh-page--cso .cso-khd-org-foot-brand:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.72);
+  outline-offset: 3px;
+  border-radius: 12px;
 }
 
 .tdh-page--cso .cso-khd-org-foot-ava.tdh-org-avatar {
   flex-shrink: 0;
-  width: 56px;
-  height: 56px;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.42);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.18);
 }
 
-.tdh-page--cso .cso-khd-org-foot-identity {
+.tdh-page--cso .cso-khd-org-foot-ava .tdh-org-avatar-initials {
+  font-size: 17px;
+}
+
+.tdh-page--cso .cso-khd-org-foot-brand-copy {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.tdh-page--cso .cso-khd-org-foot-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.tdh-page--cso .cso-khd-org-foot-name {
+  font-family: var(--font-sans);
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+
+.tdh-page--cso .cso-khd-org-foot-brand-go {
+  flex-shrink: 0;
+  opacity: 0.82;
+}
+
+.tdh-page--cso .cso-khd-org-foot-addr-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tdh-page--cso .cso-khd-org-foot-addr-label {
   margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.78);
 }
 
-.tdh-page--cso .cso-khd-org-foot-identity .cso-ss-name {
-  font-size: 20px;
-  line-height: 1.15;
+.tdh-page--cso .cso-khd-org-foot-addr-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0;
+  color: #fff;
 }
 
-.tdh-page--cso .cso-khd-org-foot-actions {
-  margin-top: 16px;
+.tdh-page--cso .cso-khd-org-foot-addr-grid {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px;
 }
 
-.tdh-page--cso .cso-khd-org-foot-contact {
-  margin-top: 18px;
-  padding-top: 16px;
-  border-top: 1px solid var(--hair, #edeef1);
+.tdh-page--cso .cso-khd-org-foot-addr-card {
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+
+.tdh-page--cso .cso-khd-org-foot-addr-card-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: #fff;
+}
+
+.tdh-page--cso .cso-khd-org-foot-addr-card-head svg {
+  flex-shrink: 0;
+  opacity: 0.88;
+}
+
+.tdh-page--cso .cso-khd-org-foot-addr-text {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.tdh-page--cso .cso-khd-org-foot-addr-phone {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: #fff;
+  text-decoration: none;
+}
+
+.tdh-page--cso .cso-khd-org-foot-addr-phone:hover {
+  text-decoration: underline;
 }
 
 .tdh-page--cso .cso-khd-skeleton {
@@ -4925,7 +5078,7 @@
     padding-right: 28px;
   }
 
-  .tdh-page--cso .cso-khd-org-foot-card {
+  .tdh-page--cso .cso-khd-org-foot {
     padding-left: 28px;
     padding-right: 28px;
   }
@@ -5077,7 +5230,7 @@
     gap: 8px;
   }
 
-  .tdh-page--cso .cso-khd-org-foot-card {
+  .tdh-page--cso .cso-khd-org-foot {
     padding-left: 14px;
     padding-right: 14px;
   }
@@ -6139,3 +6292,76 @@
   text-align: center;
 }
 
+
+/* Trang chi ti?t b�i dang org � `/co-so/:slug/bai-dang/:id` */
+.org-baidang-post-page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 8px 0 32px;
+}
+
+.org-baidang-post-page-head {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.org-baidang-post-page-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.06);
+  color: #334155;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.org-baidang-post-page-org {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.org-baidang-post-page-org-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.org-baidang-post-page-org-name {
+  font-weight: 700;
+  color: #0f172a;
+  text-decoration: none;
+}
+
+.org-baidang-post-page-org-name:hover {
+  text-decoration: underline;
+}
+
+.org-baidang-post-page-title {
+  margin: 0 0 12px;
+  font-size: clamp(1.35rem, 2.8vw, 1.75rem);
+  line-height: 1.25;
+  color: #0f172a;
+}
+
+.org-baidang-post-page-lead {
+  margin: 0 0 20px;
+  font-size: 1rem;
+  line-height: 1.55;
+  color: #475569;
+}
+
+.org-baidang-post-page-body .b-embed-ro.is-native-video.is-canvas-9-16 {
+  width: min(100%, 420px);
+  margin-inline: auto;
+}

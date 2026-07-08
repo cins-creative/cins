@@ -762,6 +762,10 @@ export function JourneyMilestoneCard({
     (variant === "self" || variant === "verified") &&
     Boolean(authorName || authorAvatarUrl || ownerSlug) &&
     !isCongDongPost;
+  /** Badge loại «Cá nhân» — phân loại nội bộ; bạn bè / người lạ không cần thấy. */
+  const showPersonalTypeBadge = isOwner || type !== "ca-nhan";
+  /** Visibility (Công khai / Bạn bè / …) — metadata chỉ chủ Journey. */
+  const showVisibilityMetaBadge = isOwner;
   const entityPosterLabel =
     authorName?.trim() ||
     milestone.lensOwnerName?.trim() ||
@@ -1197,12 +1201,12 @@ export function JourneyMilestoneCard({
                 <CongDongTypeBadge />
               ) : showMilestoneVerifyBadge && showOrgVerifyBadge ? (
                 <MilestoneVerifyBadge />
-              ) : (
+              ) : showPersonalTypeBadge ? (
                 <span className={`ctx-badge ${TYPE_CLASS[type]}`}>
                   <MilestoneTypeBadgeContent type={type} />
                 </span>
-              )}
-              {vis ? (
+              ) : null}
+              {vis && showVisibilityMetaBadge ? (
                 <span
                   className={`ctx-badge ${
                     isCongDongSelfPost
@@ -1564,9 +1568,11 @@ export function JourneyMilestoneCard({
                 <small>{displayDate}</small>
               </span>
               <span className="badge-row">
-                <span className={`ctx-badge ${TYPE_CLASS[type]}`}>
-                  <MilestoneTypeBadgeContent type={type} />
-                </span>
+                {showPersonalTypeBadge ? (
+                  <span className={`ctx-badge ${TYPE_CLASS[type]}`}>
+                    <MilestoneTypeBadgeContent type={type} />
+                  </span>
+                ) : null}
                 {viewerMenuNode}
               </span>
             </div>
@@ -1620,15 +1626,15 @@ export function JourneyMilestoneCard({
               <span className="badge-row">
                 {showMilestoneVerifyBadge && showOrgVerifyBadge ? (
                   <MilestoneVerifyBadge />
-                ) : (
+                ) : showPersonalTypeBadge ? (
                   <span className={`ctx-badge ${TYPE_CLASS[type]}`}>
                     <MilestoneTypeBadgeContent type={type} />
                   </span>
-                )}
+                ) : null}
                 {showMilestoneVerifyBadge && !showOrgVerifyBadge ? (
                   <MilestoneVerifyBadge />
                 ) : null}
-                {vis ? (
+                {vis && showVisibilityMetaBadge ? (
                   <span
                     className={`ctx-badge j-vis-${visibility ?? "public"}`}
                     title={vis.label}

@@ -12,6 +12,7 @@ import {
   parseKhoaHocNoiDungBlocks,
 } from "./khoa-hoc-meta-blocks";
 import { deriveLegacyFieldsFromGoiHocPhi } from "./khoa-hoc-goi-phi";
+import { isScaffoldLopDbRow, type ScaffoldLopDbRow } from "./khoa-hoc-labels";
 import type {
   CapNhatKhoaHocInput,
   GoiHocPhiKhoa,
@@ -140,10 +141,12 @@ async function demDanXuatKhoa(
   const admin = createServiceRoleClient();
   const today = new Date().toISOString().slice(0, 10);
 
-  const [{ data: lopRows }, { data: hvRows }] = await Promise.all([
+  const [lopRes, hvRes] = await Promise.all([
     admin
       .from("org_lop_hoc")
-      .select("id_khoa_hoc, ngay_khai_giang")
+      .select(
+        "id_khoa_hoc, ngay_khai_giang, ma_lop, giao_vien_phu_trach, giao_vien_text",
+      )
       .in("id_khoa_hoc", khoaIds)
       .in("trang_thai", ["sap_khai_giang", "dang_hoc"])
       .order("ngay_khai_giang", { ascending: true }),
@@ -154,7 +157,22 @@ async function demDanXuatKhoa(
       .in("trang_thai", ["da_dang_ky", "dang_hoc"]),
   ]);
 
-  for (const row of lopRows ?? []) {
+  let lopRows = lopRes.data ?? [];
+  if (lopRes.error?.message?.includes("giao_vien_text")) {
+    const fallback = await admin
+      .from("org_lop_hoc")
+      .select("id_khoa_hoc, ngay_khai_giang, ma_lop, giao_vien_phu_trach")
+      .in("id_khoa_hoc", khoaIds)
+      .in("trang_thai", ["sap_khai_giang", "dang_hoc"])
+      .order("ngay_khai_giang", { ascending: true });
+    lopRows = fallback.data ?? [];
+  }
+
+  const hvRows = hvRes.data ?? [];
+
+  const visibleLopRows = lopRows.filter((row) => !isScaffoldLopDbRow(row));
+
+  for (const row of visibleLopRows) {
     const khoaId = row.id_khoa_hoc as string;
     const entry = map.get(khoaId);
     if (!entry) continue;
@@ -165,7 +183,7 @@ async function demDanXuatKhoa(
     string,
     { future: string | null; earliest: string | null }
   >();
-  for (const row of lopRows ?? []) {
+  for (const row of visibleLopRows) {
     const khoaId = row.id_khoa_hoc as string;
     const ngay = row.ngay_khai_giang as string | null;
     if (!ngay) continue;
@@ -183,7 +201,7 @@ async function demDanXuatKhoa(
   }
 
   const usersByKhoa = new Map<string, Set<string>>();
-  for (const row of hvRows ?? []) {
+  for (const row of hvRows) {
     const khoaId = row.id_khoa_hoc as string;
     const userId = row.id_nguoi_dung as string;
     if (!usersByKhoa.has(khoaId)) usersByKhoa.set(khoaId, new Set());
@@ -800,15 +818,43 @@ export async function xoaKhoaHoc(
     return { ok: false, error: "Không tìm thấy khóa học." };
   }
 
-  const { count: lopCount } = await admin
+  let resolvedLopRows: ScaffoldLopDbRow[] = [];
+  const { data: lopRows, error: lopListError } = await admin
     .from("org_lop_hoc")
-    .select("id", { count: "exact", head: true })
+    .select("id, ma_lop, giao_vien_phu_trach, giao_vien_text")
     .eq("id_khoa_hoc", khoaId);
-  if ((lopCount ?? 0) > 0) {
+
+  if (lopListError?.message?.includes("giao_vien_text")) {
+    const fallback = await admin
+      .from("org_lop_hoc")
+      .select("id, ma_lop, giao_vien_phu_trach")
+      .eq("id_khoa_hoc", khoaId);
+    if (fallback.error) {
+      return { ok: false, error: fallback.error.message };
+    }
+    resolvedLopRows = fallback.data ?? [];
+  } else if (lopListError) {
+    return { ok: false, error: lopListError.message };
+  } else {
+    resolvedLopRows = lopRows ?? [];
+  }
+
+  const realLopRows = resolvedLopRows.filter((row) => !isScaffoldLopDbRow(row));
+  if (realLopRows.length > 0) {
     return {
       ok: false,
       error: "Không xóa được — khóa đã có lớp học. Hãy xóa hoặc chuyển lớp trước.",
     };
+  }
+
+  if (resolvedLopRows.length > 0) {
+    const { error: lopDeleteError } = await admin
+      .from("org_lop_hoc")
+      .delete()
+      .eq("id_khoa_hoc", khoaId);
+    if (lopDeleteError) {
+      return { ok: false, error: lopDeleteError.message };
+    }
   }
 
   const { count: hvCount } = await admin

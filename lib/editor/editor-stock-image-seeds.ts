@@ -12,6 +12,16 @@ export const EDITOR_STOCK_IMAGE_SEEDS = [
   "lib-cins-nang",
 ] as const;
 
+export function isEditorStockImageSeed(value: string): boolean {
+  return /^lib-/.test((value || "").trim());
+}
+
+/** Ô chưa có ảnh thật trong editor — placeholder `new-…` hoặc stock `lib-…`. */
+export function isEditorEmptyImageSeed(value: string): boolean {
+  const trimmed = (value || "").trim();
+  return /^new-/.test(trimmed) || isEditorStockImageSeed(trimmed);
+}
+
 export function pickEditorStockImageSeed(blockId: string): string {
   let hash = 0;
   for (let i = 0; i < blockId.length; i += 1) {
