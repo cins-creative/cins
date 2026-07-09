@@ -6,7 +6,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 export const DEFAULT_CO_SO_FILTER_TEMPLATES = [
   { ten: "Bài viết", slug: "bai-viet", mau: "#1F74C9", thu_tu: 0 },
   { ten: "Khóa học", slug: "khoa-hoc", mau: "#BB89F8", thu_tu: 1 },
-  { ten: "Sự kiện", slug: "su-kien", mau: "#FFB85C", thu_tu: 2 },
+  { ten: "Sự kiện", slug: "su-kien", mau: "#FDAD4C", thu_tu: 2 },
   { ten: "Thành tựu", slug: "thanh-tuu", mau: "#6EFEC0", thu_tu: 3 },
 ] as const;
 

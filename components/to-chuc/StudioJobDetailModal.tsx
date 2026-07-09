@@ -361,6 +361,7 @@ export function StudioJobDetailModal({
               buttonClassName="studio-job-act-btn studio-job-act-btn--ghost studio-job-act-btn--save"
               label="Lưu về"
               iconSize={16}
+              disableActorsReveal
               saveEndpoint={({ visibility, privateNote }) => ({
                 url: "/api/luu-bai",
                 body: {

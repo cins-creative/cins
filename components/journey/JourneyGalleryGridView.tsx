@@ -16,6 +16,7 @@ import {
 } from "react";
 
 import { GalleryItemVisual, GalleryVideoPlayBadge } from "@/components/journey/GalleryItemVisual";
+import { GalleryMainHoverOverlay } from "@/components/journey/GalleryMainHoverOverlay";
 import { useJourneyCompose } from "@/components/journey/JourneyComposeContext";
 import { GALLERY_GRID_IMAGE_SIZES } from "@/lib/cloudflare/cf-variant-url";
 import { GalleryMediaFilterDropdown } from "@/components/journey/GalleryMediaFilterDropdown";
@@ -195,34 +196,12 @@ function GalleryMainItemTile({
           <GalleryVerifiedBadge cotMocId={item.cotMocId} />
         ) : null}
       </div>
-      <span className="j-main-gallery-overlay" aria-hidden>
-        <span className="j-main-gallery-overlay-body">
-          {item.authorName ? (
-            <span className="j-main-gallery-author">
-              {item.authorAvatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  className="j-main-gallery-author-avatar"
-                  src={item.authorAvatarUrl}
-                  alt=""
-                  loading="lazy"
-                />
-              ) : (
-                <span className="j-main-gallery-author-avatar j-main-gallery-author-avatar--fallback">
-                  {item.authorName.trim().charAt(0).toUpperCase()}
-                </span>
-              )}
-              <span className="j-main-gallery-author-name">
-                {item.authorName}
-              </span>
-            </span>
-          ) : null}
-          <strong className="j-main-gallery-overlay-title">{item.label}</strong>
-          {item.meta ? (
-            <small className="j-main-gallery-overlay-excerpt">{item.meta}</small>
-          ) : null}
-        </span>
-      </span>
+      <GalleryMainHoverOverlay
+        label={item.label}
+        meta={item.meta}
+        authorName={item.authorName}
+        authorAvatarUrl={item.authorAvatarUrl}
+      />
       <span className="j-main-gallery-info-panel">
         <strong className="j-main-gallery-info-title">{item.label}</strong>
         {item.meta ? (

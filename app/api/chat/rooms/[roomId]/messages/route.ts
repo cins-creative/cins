@@ -60,6 +60,7 @@ export async function POST(req: Request, context: RouteContext) {
   let body: {
     noi_dung?: string;
     cloudflare_image_id?: string;
+    id_emoji_muc?: string;
     id_tin_tra_loi?: string;
     ngu_canh?: unknown;
   };
@@ -72,6 +73,7 @@ export async function POST(req: Request, context: RouteContext) {
   const result = await sendRoomMessage(roomId, session.profile.id, {
     body: body.noi_dung,
     cloudflareImageId: body.cloudflare_image_id,
+    emojiMucId: body.id_emoji_muc,
     replyToId: body.id_tin_tra_loi,
     nguCanh: body.ngu_canh ?? null,
   });

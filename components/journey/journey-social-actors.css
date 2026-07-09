@@ -1,0 +1,355 @@
+
+.jsa-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10850;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(2px);
+}
+
+@media (min-width: 520px) {
+  .jsa-backdrop {
+    align-items: center;
+    padding: 16px;
+  }
+}
+
+.jsa-modal {
+  width: min(460px, 100%);
+  max-height: min(82vh, 680px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface, #fff);
+  color: var(--text, #0f172a);
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 24px 60px rgba(2, 6, 23, 0.35);
+  animation: jsa-modal-rise 0.18s ease-out;
+}
+
+@media (min-width: 520px) {
+  .jsa-modal {
+    border-radius: 16px;
+    animation: jsa-modal-pop 0.16s ease-out;
+  }
+}
+
+@keyframes jsa-modal-rise {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes jsa-modal-pop {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.jsa-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 16px 16px 10px;
+  border-bottom: 1px solid var(--border, #e2e8f0);
+  flex: none;
+}
+
+.jsa-head-ico {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--neutral-100, #f1f5f9);
+  color: var(--cins-blue, #2563eb);
+  flex: none;
+}
+
+.jsa-head-ico.is-liked {
+  background: #fff1f2;
+  color: #e11d48;
+}
+
+.jsa-head-ico.is-comment {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.jsa-head-ico.is-bookmark {
+  background: var(--cins-blue-soft, #dbeafe);
+  color: var(--cins-blue, #2563eb);
+}
+
+.jsa-head-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.jsa-head-copy strong {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.jsa-head-copy small {
+  font-size: 12px;
+  color: var(--text-muted, #64748b);
+}
+
+.jsa-close {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted, #64748b);
+  cursor: pointer;
+  flex: none;
+}
+
+.jsa-close:hover {
+  background: var(--neutral-100, #f1f5f9);
+}
+
+.jsa-msg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 28px 16px;
+  font-size: 13px;
+  color: var(--text-muted, #64748b);
+  text-align: center;
+}
+
+.jsa-msg--err {
+  color: #b91c1c;
+}
+
+.jsa-list {
+  list-style: none;
+  margin: 0;
+  padding: 6px 8px 4px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.jsa-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+}
+
+.jsa-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  padding: 8px;
+  border-radius: 12px;
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.12s;
+}
+
+.jsa-item:hover {
+  background: var(--neutral-100, #f1f5f9);
+}
+
+.jsa-item-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.jsa-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  object-fit: cover;
+  flex: none;
+}
+
+.jsa-avatar--initial {
+  display: grid;
+  place-items: center;
+  background: var(--cins-blue-soft, #dbeafe);
+  color: var(--cins-blue, #2563eb);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.jsa-name {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jsa-sub {
+  font-size: 12px;
+  color: var(--text-muted, #64748b);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jsa-bio {
+  font-size: 12px;
+  color: var(--text, #334155);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.jsa-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin-top: 2px;
+}
+
+.jsa-mutual,
+.jsa-when {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-muted, #64748b);
+}
+
+.jsa-mutual {
+  color: var(--cins-blue, #2563eb);
+  font-weight: 600;
+}
+
+.jsa-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  padding-right: 4px;
+}
+
+.jsa-act {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 999px;
+  background: var(--surface, #fff);
+  color: var(--text-muted, #64748b);
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+
+.jsa-act:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.jsa-act.is-add-friend {
+  color: var(--cins-blue, #2563eb);
+  border-color: rgba(37, 99, 235, 0.25);
+  background: #eff6ff;
+}
+
+.jsa-act.is-add-friend:hover:not(:disabled) {
+  background: #dbeafe;
+}
+
+.jsa-act.is-follow {
+  color: #64748b;
+}
+
+.jsa-act.is-follow.is-following {
+  color: var(--cins-blue, #2563eb);
+  border-color: rgba(37, 99, 235, 0.3);
+  background: var(--cins-blue-soft, #dbeafe);
+}
+
+.jsa-act.is-accept {
+  color: #15803d;
+  border-color: rgba(21, 128, 61, 0.28);
+  background: #f0fdf4;
+}
+
+.jsa-act.is-decline {
+  color: #b91c1c;
+  border-color: rgba(185, 28, 28, 0.22);
+  background: #fef2f2;
+}
+
+.jsa-act.is-pending {
+  color: #b45309;
+  border-color: rgba(180, 83, 9, 0.25);
+  background: #fffbeb;
+}
+
+.jsa-act.is-friends {
+  border-color: rgba(21, 128, 61, 0.28);
+  background: #f0fdf4;
+  color: #15803d;
+  cursor: default;
+}
+
+.jsa-act:hover:not(:disabled):not(.is-friends) {
+  background: var(--neutral-100, #f1f5f9);
+}
+
+.jsa-more-wrap {
+  padding: 4px 12px 12px;
+  flex: none;
+}
+
+.jsa-more {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--cins-blue, #2563eb);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.jsa-more:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.jsa-more:hover:not(:disabled) {
+  background: var(--neutral-100, #f1f5f9);
+}

@@ -12,6 +12,7 @@ type Props = {
   query: string;
   activeKind: SearchKindTab;
   icon: LucideIcon;
+  onFilterKind?: (kind: SearchKindTab) => void;
 };
 
 const KIND_TAB: Record<SearchEntityKind, SearchKindTab> = {
@@ -30,6 +31,7 @@ export function TimKiemSectionHeader({
   query,
   activeKind,
   icon: Icon,
+  onFilterKind,
 }: Props) {
   const meta = SEARCH_SECTION_META[kind];
   const showMoreLink = activeKind === "all" && count > 0;
@@ -49,13 +51,24 @@ export function TimKiemSectionHeader({
       <div className="tk-section-head-actions">
         <span className="tk-section-count">{count}</span>
         {showMoreLink && tab !== "all" ? (
-          <Link
-            href={buildTimKiemUrl({ q: query, kind: tab })}
-            className="tk-section-more"
-          >
-            Lọc tab này
-            <ArrowRight size={14} strokeWidth={2.2} aria-hidden />
-          </Link>
+          onFilterKind ? (
+            <button
+              type="button"
+              className="tk-section-more"
+              onClick={() => onFilterKind(tab)}
+            >
+              Lọc tab này
+              <ArrowRight size={14} strokeWidth={2.2} aria-hidden />
+            </button>
+          ) : (
+            <Link
+              href={buildTimKiemUrl({ q: query, kind: tab })}
+              className="tk-section-more"
+            >
+              Lọc tab này
+              <ArrowRight size={14} strokeWidth={2.2} aria-hidden />
+            </Link>
+          )
         ) : null}
       </div>
     </header>

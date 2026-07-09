@@ -1,4 +1,4 @@
-export type ChatMessageKind = "text" | "media" | "context";
+export type ChatMessageKind = "text" | "media" | "sticker" | "context";
 
 /** Loại đối tượng ngữ cảnh đính vào chat khi user nhắn tin org qua 1 nội dung. */
 export type ChatContextLoai =

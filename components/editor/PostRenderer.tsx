@@ -29,6 +29,12 @@ import {
   normalizeLegacyLayout,
   type ImgLayout,
 } from "@/lib/editor/image-layout";
+import {
+  buildEmbedIframeSrc,
+  classifyEmbedUrl,
+  type ClassifiedEmbed,
+} from "@/lib/editor/embed-providers";
+
 import { getYoutubeId } from "@/lib/youtube";
 
 /**
@@ -39,48 +45,46 @@ function ph(seed: string, w = 900, h = 600): string {
   return resolveImageSeedUrl(seed, w, h);
 }
 
-/* Embed URL classifier (client-safe; duplicate of `sanitize.ts` vì file đó
-   bị `server-only`). Chỉ whitelist YouTube / Figma / Behance — khớp với
-   serializer của `blocksToHtml`. */
-const EMBED_HOSTS: Array<{
-  host: RegExp;
-  provider: "youtube" | "figma" | "behance";
-}> = [
-  {
-    host: /^(www\.|m\.)?(youtube\.com|youtube-nocookie\.com|youtu\.be)$/i,
-    provider: "youtube",
-  },
-  { host: /^(www\.)?figma\.com$/i, provider: "figma" },
-  { host: /^(www\.)?behance\.net$/i, provider: "behance" },
-];
-
-function classifyEmbed(rawUrl: string): {
-  provider: "youtube" | "figma" | "behance";
-  url: string;
-} | null {
-  const trimmed = rawUrl.trim();
-  if (!trimmed) return null;
-  let parsed: URL;
-  try {
-    parsed = new URL(trimmed);
-  } catch {
-    return null;
-  }
-  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return null;
-  for (const e of EMBED_HOSTS) {
-    if (e.host.test(parsed.host)) {
-      return { provider: e.provider, url: parsed.toString() };
-    }
-  }
-  return null;
-}
-
 function resolveEmbedUrl(cfg: Record<string, unknown>): string {
   if (typeof cfg.url === "string" && cfg.url.trim()) return cfg.url.trim();
   if (typeof cfg.embedUrl === "string" && cfg.embedUrl.trim()) {
     return cfg.embedUrl.trim();
   }
   return "";
+}
+
+function embedIframeAllow(provider: ClassifiedEmbed["provider"]): string {
+  if (provider === "rive") {
+    return "autoplay; encrypted-media; clipboard-write";
+  }
+  if (provider === "sketchfab") {
+    return "autoplay; fullscreen; xr-spatial-tracking";
+  }
+  if (provider === "youtube" || provider === "vimeo") {
+    return "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+  }
+  return "fullscreen";
+}
+
+function embedIframeTitle(provider: ClassifiedEmbed["provider"]): string {
+  switch (provider) {
+    case "youtube":
+      return "YouTube video player";
+    case "vimeo":
+      return "Vimeo video player";
+    case "figma":
+      return "Figma file";
+    case "framer":
+      return "Framer prototype";
+    case "sketchfab":
+      return "Sketchfab 3D model";
+    case "rive":
+      return "Rive animation";
+    case "behance":
+      return "Behance project";
+    default:
+      return "Embedded content";
+  }
 }
 
 function resolveEmbedBunnyVideoId(cfg: Record<string, unknown>): string | null {
@@ -95,11 +99,6 @@ function resolveEmbedCanvasClass(cfg: Record<string, unknown>): string {
     return videoCanvasRatioClass(ratio);
   }
   return "";
-}
-
-/* Figma embed URL — bọc URL gốc qua proxy embed của Figma. */
-function figmaEmbedUrl(originalUrl: string): string {
-  return `https://www.figma.com/embed?embed_host=cins&url=${encodeURIComponent(originalUrl)}`;
 }
 
 /* ─── Cover image (read-only) ──────────────────────────────────── */
@@ -271,7 +270,7 @@ function ReadOnlyBlock({
       );
     }
 
-    const cls = classifyEmbed(url);
+    const cls = classifyEmbedUrl(url);
     if (!cls) {
       if (url.trim()) {
         return (
@@ -293,23 +292,35 @@ function ReadOnlyBlock({
       return null;
     }
 
-    /* Figma → iframe qua proxy embed_host. Figma không yêu cầu tách ID. */
-    if (cls.provider === "figma") {
+    const iframeSrc = buildEmbedIframeSrc(cls, { autoplay: mediaAutoplay });
+    if (iframeSrc) {
+      const canvasClass =
+        cls.provider === "youtube" ? resolveEmbedCanvasClass(cfg) : "";
       return (
-        <div className="b-embed b-embed-ro is-iframe" data-provider="figma">
+        <div
+          className={
+            "b-embed b-embed-ro is-iframe" +
+            (canvasClass ? ` ${canvasClass}` : "")
+          }
+          data-provider={cls.provider}
+        >
           <iframe
-            src={figmaEmbedUrl(cls.url)}
-            title="Figma file"
+            src={iframeSrc}
+            title={embedIframeTitle(cls.provider)}
+            allow={embedIframeAllow(cls.provider)}
+            referrerPolicy={
+              cls.provider === "youtube" || cls.provider === "vimeo"
+                ? "strict-origin-when-cross-origin"
+                : undefined
+            }
             allowFullScreen
-            loading="lazy"
+            loading={mediaAutoplay ? "eager" : "lazy"}
           />
         </div>
       );
     }
 
-    /* Behance (hoặc YouTube không extract được ID): fallback anchor link
-       — Behance dùng project ID không có trong public URL, không inline
-       được. User vẫn mở được tab mới qua link. */
+    /* Behance: không inline iframe — fallback link. */
     return (
       <div className="b-embed b-embed-ro" data-provider={cls.provider}>
         <div className="em-ic" aria-hidden>

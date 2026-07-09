@@ -1488,6 +1488,28 @@
   overflow-y: auto;
   flex: 1;
   min-height: 0;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.j-notify-list::-webkit-scrollbar {
+  display: none;
+}
+
+.j-notify-list-sentinel {
+  list-style: none;
+  min-height: 1px;
+  margin: 0;
+  padding: 0;
+}
+
+.j-notify-list-loading {
+  margin: 0;
+  padding: 8px 4px 2px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--ink-muted);
+  text-align: center;
 }
 
 .j-notify-item.is-history {

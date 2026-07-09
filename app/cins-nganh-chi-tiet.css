@@ -56,7 +56,7 @@
 }
 
 .nct-page--can-edit .nct-admin-toolbar-host .tdh-mode-btn-admin {
-  box-shadow: 0 2px 8px rgba(31, 116, 201, 0.28);
+  box-shadow: 0 2px 8px var(--cins-priv-accent-shadow);
 }
 
 .nct-page--can-edit .nct-side-col {

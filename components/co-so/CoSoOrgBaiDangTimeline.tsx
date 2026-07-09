@@ -7,8 +7,9 @@ import {
   type CoSoNhanFilter,
 } from "@/components/co-so/CoSoOrgNhanTimelineBar";
 import { OrgBaiDangCreateComposer } from "@/components/truong/OrgBaiDangCreateComposer";
-import { OrgBaiDangJourneyCard } from "@/components/truong/OrgBaiDangJourneyCard";
+import { OrgBaiDangFilteredFeed } from "@/components/truong/OrgBaiDangFilteredFeed";
 import { OrgBaiDangTimelineBar } from "@/components/truong/OrgBaiDangTimelineBar";
+import { useOrgBaiDangView } from "@/components/truong/useOrgBaiDangView";
 import {
   baiDangMonthLabel,
   baiDangYear,
@@ -63,6 +64,7 @@ export function CoSoOrgBaiDangTimeline({
   const useOrgFilters = orgFilters.length > 0;
   const [loaiFilter, setLoaiFilter] = useState<BaiDangTimelineFilter>("all");
   const [nhanFilter, setNhanFilter] = useState<CoSoNhanFilter>("all");
+  const { view, setView, openPostFromGrid } = useOrgBaiDangView();
 
   const loaiCounts = useMemo(() => countBaiDangByFilter(posts), [posts]);
   const nhanCounts = useMemo(
@@ -97,6 +99,8 @@ export function CoSoOrgBaiDangTimeline({
       counts={nhanCounts}
       filters={orgFilters}
       enabled={barEnabled}
+      view={view}
+      onViewChange={setView}
     />
   ) : (
     <OrgBaiDangTimelineBar
@@ -107,6 +111,8 @@ export function CoSoOrgBaiDangTimeline({
       loaiCounts={loaiCounts}
       nhanCounts={{}}
       enabled={barEnabled}
+      view={view}
+      onViewChange={setView}
     />
   );
 
@@ -139,23 +145,13 @@ export function CoSoOrgBaiDangTimeline({
     <main className="j-timeline tdh-org-baidang-timeline" aria-label="Timeline bài đăng">
       {timelineBar}
       {composeEnabled ? <OrgBaiDangCreateComposer /> : null}
-      {filtered.length === 0 ? (
-        <p className="tdh-placeholder">
-          Không có bài đăng thuộc nhóm lọc này.
-        </p>
-      ) : (
-        yearGroups.map(({ year, posts: yearPosts }) => (
-          <section key={year} className="j-year-block" data-year={year}>
-            {yearPosts.map((post) => (
-              <OrgBaiDangJourneyCard
-                key={post.id}
-                post={post}
-                owner={owner}
-              />
-            ))}
-          </section>
-        ))
-      )}
+      <OrgBaiDangFilteredFeed
+        filtered={filtered}
+        yearGroups={yearGroups}
+        view={view}
+        onOpenPostFromGrid={openPostFromGrid}
+        owner={owner}
+      />
     </main>
   );
 }

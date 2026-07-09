@@ -1,4 +1,5 @@
-import Link from "next/link";
+"use client";
+
 import type { LucideIcon } from "lucide-react";
 import {
   BookOpen,
@@ -10,7 +11,6 @@ import {
   UserRound,
 } from "lucide-react";
 
-import { buildTimKiemUrl } from "@/lib/search/paths";
 import { SEARCH_KIND_TABS, type SearchKindTab } from "@/lib/search/types";
 
 const TAB_ICONS: Record<SearchKindTab, LucideIcon> = {
@@ -24,28 +24,28 @@ const TAB_ICONS: Record<SearchKindTab, LucideIcon> = {
 };
 
 type Props = {
-  query: string;
   activeKind: SearchKindTab;
+  onKindChange: (kind: SearchKindTab) => void;
 };
 
-export function TimKiemKindTabs({ query, activeKind }: Props) {
+export function TimKiemKindTabs({ activeKind, onKindChange }: Props) {
   return (
     <nav className="tk-tabs" aria-label="Lọc loại kết quả">
       {SEARCH_KIND_TABS.map((tab) => {
         const isActive = tab.id === activeKind;
-        const href = buildTimKiemUrl({ q: query, kind: tab.id });
         const Icon = TAB_ICONS[tab.id];
 
         return (
-          <Link
+          <button
             key={tab.id}
-            href={href}
+            type="button"
             className={`tk-tab${isActive ? " is-active" : ""}`}
             aria-current={isActive ? "page" : undefined}
+            onClick={() => onKindChange(tab.id)}
           >
             <Icon size={15} strokeWidth={2} aria-hidden className="tk-tab-ico" />
             {tab.label}
-          </Link>
+          </button>
         );
       })}
     </nav>

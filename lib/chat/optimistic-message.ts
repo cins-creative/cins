@@ -15,7 +15,8 @@ export function createOptimisticChatMessage(input: {
   replyTo?: ChatMessageReplyPreview | null;
   sentAt?: string;
 }): ChatMessage {
-  const kind = input.kind ?? (input.imageId ? "media" : "text");
+  const kind =
+    input.kind ?? (input.imageId ? "media" : "text");
   const imageId = input.imageId ?? null;
   const imageUrl =
     input.imageUrl ??
@@ -72,6 +73,9 @@ export function messagePreviewText(message: ChatMessage): string {
     return message.albumImages.length > 1
       ? `${message.albumImages.length} ảnh`
       : "Ảnh";
+  }
+  if (message.kind === "sticker") {
+    return "Meme";
   }
   if (message.kind === "media" || message.imageId) {
     return message.body.trim() || "Ảnh";

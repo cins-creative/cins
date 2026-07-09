@@ -206,7 +206,8 @@ export function TruongSchoolSidebar({
 
   const { school, isEditing, canEdit } = ctx;
   const isOrgMember = Boolean(ctx.isOrgMember);
-  const showAdminCta = isOrgMember && isEditing;
+  /** Tin nhắn + tag đồ án: mọi admin org (member trục 2 hoặc CINs trục 1). */
+  const showAdminCta = canEdit && isEditing;
   const loai = labelLoaiTruong(school.loai_truong);
   const subtitle = truongSidebarSubtitle(school);
 

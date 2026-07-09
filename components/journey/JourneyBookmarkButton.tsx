@@ -1,8 +1,13 @@
 "use client";
 
 import { useAuthGate } from "@/components/auth/AuthGateProvider";
+import {
+  JourneyActionActorsCount,
+  type JourneyActionActorsConfig,
+} from "@/components/journey/JourneyActionActorsCount";
+import { SOCIAL_LOAI_DOI_TUONG } from "@/lib/cong-dong/constants";
 import { Bookmark, CheckCircle2, Lock, Globe2, X } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   BOOKMARK_PRIVATE_NOTE_MAX_LENGTH,
@@ -36,6 +41,8 @@ type Props = {
   resolveOpenBlock?: () => string | null;
   onRequireAuth?: (action: () => void) => void;
   modalZIndex?: number;
+  loaiDoiTuong?: string;
+  disableActorsReveal?: boolean;
 };
 
 export function JourneyBookmarkButton({
@@ -52,6 +59,8 @@ export function JourneyBookmarkButton({
   resolveOpenBlock,
   onRequireAuth,
   modalZIndex = 10800,
+  loaiDoiTuong = SOCIAL_LOAI_DOI_TUONG.COT_MOC,
+  disableActorsReveal = false,
 }: Props) {
   const { requireAuth: defaultRequireAuth } = useAuthGate();
   const requireAuth = onRequireAuth ?? defaultRequireAuth;
@@ -341,24 +350,57 @@ export function JourneyBookmarkButton({
     </div>
   ) : null;
 
+  const actors = useMemo<JourneyActionActorsConfig | null>(() => {
+    if (disableActorsReveal || count <= 0 || !milestoneId) return null;
+    return {
+      kind: "bookmark",
+      loaiDoiTuong,
+      idDoiTuong: milestoneId,
+      count,
+    };
+  }, [count, disableActorsReveal, loaiDoiTuong, milestoneId]);
+
+  const showActorsCount = showCount && count > 0;
+  const bookmarkIconButton = (
+    <button
+      type="button"
+      className={
+        showActorsCount
+          ? "action-btn-part action-btn-part--icon"
+          : `${buttonClassName}${saved ? " is-bookmarked" : ""}`
+      }
+      aria-label={saved ? "Đã lưu" : "Lưu"}
+      aria-pressed={saved}
+      onClick={(event) => {
+        event.stopPropagation();
+        requireAuth(openModal);
+      }}
+    >
+      <Bookmark
+        size={iconSize}
+        strokeWidth={iconStrokeWidth}
+        fill={saved ? "currentColor" : "none"}
+        aria-hidden
+      />
+      {label ? <span className="jbb-label">{label}</span> : null}
+      {showActorsCount && !actors ? (
+        <span className="action-btn-count action-btn-count--static" aria-hidden>
+          {count}
+        </span>
+      ) : null}
+    </button>
+  );
+
   return (
     <>
-      <button
-        type="button"
-        className={`${buttonClassName}${saved ? " is-bookmarked" : ""}`}
-        aria-label={saved ? "Đã lưu" : "Lưu"}
-        aria-pressed={saved}
-        onClick={() => requireAuth(openModal)}
-      >
-        <Bookmark
-          size={iconSize}
-          strokeWidth={iconStrokeWidth}
-          fill={saved ? "currentColor" : "none"}
-          aria-hidden
-        />
-        {label ? <span className="jbb-label">{label}</span> : null}
-        {showCount && count > 0 ? <span>{count}</span> : null}
-      </button>
+      {showActorsCount && actors ? (
+        <span className={`action-btn action-btn--split${saved ? " is-bookmarked" : ""}`}>
+          {bookmarkIconButton}
+          <JourneyActionActorsCount actors={actors} />
+        </span>
+      ) : (
+        bookmarkIconButton
+      )}
       {mounted && modal ? createPortal(modal, document.body) : null}
     </>
   );

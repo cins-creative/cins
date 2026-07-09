@@ -31,7 +31,14 @@ import {
 import { scheduleWhenIdle } from "@/lib/client/schedule-when-idle";
 import {
   EMPTY_NOTIFICATION_HISTORY_FEED,
+  NOTIFICATION_LIST_PAGE_SIZE,
+  appendHistoryTimeline,
+  buildHistoryTimeline,
+  buildInfoTimeline,
+  parseNotificationFeedPage,
   parseNotificationFeedPayload,
+  type HistoryTimelineEntry,
+  type InfoTimelineEntry,
 } from "@/lib/social/notification-feed-client";
 import {
   readHistoryNotificationsCache,
@@ -241,6 +248,129 @@ function removeCoAuthorInviteFromFeed(
   };
 }
 
+function renderInfoTimelineEntry(entry: InfoTimelineEntry): ReactNode {
+  switch (entry.kind) {
+    case "membershipMilestoneResolved":
+      return (
+        <HistoryInfoItem
+          key={entry.item.notificationId}
+          href={entry.item.journeyHref}
+          label={membershipMilestoneNotifyLabel(entry.item)}
+          time={formatNotifyTime(entry.item.taoLuc)}
+          avatar={
+            <span
+              className={`j-notify-avatar${
+                entry.item.action === "approved" ? " is-verified" : " is-rejected"
+              }`}
+              aria-hidden
+            >
+              {entry.item.action === "approved" ? (
+                <CheckCircle2 size={16} strokeWidth={2} />
+              ) : (
+                <XCircle size={16} strokeWidth={2} />
+              )}
+            </span>
+          }
+        />
+      );
+    case "orgMilestoneTagApproved":
+      return (
+        <HistoryInfoItem
+          key={entry.item.notificationId}
+          href={entry.item.albumHref || "#"}
+          label={orgMilestoneTagNotifyLabel(entry.item)}
+          time={formatNotifyTime(entry.item.taoLuc)}
+          avatar={
+            <span className="j-notify-avatar is-verified" aria-hidden>
+              <CheckCircle2 size={16} strokeWidth={2} />
+            </span>
+          }
+        />
+      );
+    case "accepted":
+      return (
+        <HistoryInfoItem
+          key={entry.item.notificationId}
+          href={`/${entry.item.slug}`}
+          label={
+            <>
+              <strong>{entry.item.tenHienThi}</strong> đã chấp nhận kết bạn.
+            </>
+          }
+          time={formatNotifyTime(entry.item.taoLuc)}
+          avatar={<Avatar request={entry.item} />}
+        />
+      );
+    case "comment":
+      return (
+        <HistoryInfoItem
+          key={entry.item.notificationId}
+          href={
+            entry.item.ownerSlug && entry.item.postSlug
+              ? `/${entry.item.ownerSlug}/p/${entry.item.postSlug}`
+              : `/${entry.item.slug}`
+          }
+          label={commentNotifyLabel(entry.item)}
+          time={formatNotifyTime(entry.item.taoLuc)}
+          avatar={<Avatar request={entry.item} />}
+        />
+      );
+    case "videoReady":
+      return (
+        <HistoryInfoItem
+          key={entry.item.notificationId}
+          href={
+            entry.item.ownerSlug && entry.item.postSlug
+              ? `/${entry.item.ownerSlug}/p/${entry.item.postSlug}`
+              : "#"
+          }
+          label={
+            <>
+              <strong>Video đã sẵn sàng</strong>
+              <small>{entry.item.postTitle}</small>
+            </>
+          }
+          time={formatNotifyTime(entry.item.taoLuc)}
+          avatar={
+            <span className="j-notify-avatar is-video" aria-hidden>
+              <Video size={16} strokeWidth={1.8} />
+            </span>
+          }
+        />
+      );
+  }
+}
+
+function renderHistoryTimelineEntry(entry: HistoryTimelineEntry): ReactNode {
+  switch (entry.kind) {
+    case "handledFollow":
+      return (
+        <li key={entry.item.notificationId}>
+          <Link href={`/${entry.item.slug}`} className="j-notify-item is-history">
+            <Avatar request={entry.item} />
+            <span>
+              <strong>{entry.item.tenHienThi}</strong>{" "}
+              {entry.item.action === "accept"
+                ? "— bạn đã chấp nhận kết nối"
+                : "— bạn đã từ chối"}
+              <small>{formatNotifyTime(entry.item.xuLyLuc)}</small>
+            </span>
+          </Link>
+        </li>
+      );
+    case "processedCoAuthorReview":
+      return (
+        <HistoryCoAuthorItem key={entry.item.notificationId} review={entry.item} />
+      );
+    case "accepted":
+    case "comment":
+    case "membershipMilestoneResolved":
+    case "orgMilestoneTagApproved":
+    case "videoReady":
+      return renderInfoTimelineEntry(entry);
+  }
+}
+
 export function JourneyNotifications({
   initialUnreadCount,
   viewerProfileId,
@@ -263,6 +393,11 @@ export function JourneyNotifications({
   );
   const [loadingUnread, setLoadingUnread] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [loadingMoreHistory, setLoadingMoreHistory] = useState(false);
+  const [historyEntries, setHistoryEntries] = useState<HistoryTimelineEntry[]>([]);
+  const [historyHasMore, setHistoryHasMore] = useState(false);
+  const [historyNextOffset, setHistoryNextOffset] = useState(0);
+  const [visibleInfoCount, setVisibleInfoCount] = useState(NOTIFICATION_LIST_PAGE_SIZE);
   const [unreadLoaded, setUnreadLoaded] = useState(() => Boolean(cachedUnread));
   const [error, setError] = useState<string | null>(null);
   /** Giữ nội dung info khi panel mở — tránh mất ngay sau PATCH mark_all. */
@@ -276,6 +411,11 @@ export function JourneyNotifications({
   );
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
+  const sentinelRef = useRef<HTMLLIElement>(null);
+  const loadingMoreRef = useRef(false);
+  const historyNextOffsetRef = useRef(0);
+  const historyHasMoreRef = useRef(false);
   const ignoreOutsideClickRef = useRef(false);
 
   useEffect(() => {
@@ -364,14 +504,16 @@ export function JourneyNotifications({
   }, [applyFeed]);
 
   const prefetchHistoryFeed = useCallback(async () => {
-    const res = await fetch("/api/notifications?filter=history", {
-      cache: "no-store",
-    });
+    const res = await fetch(
+      `/api/notifications?filter=history&offset=0&limit=${NOTIFICATION_LIST_PAGE_SIZE}`,
+      { cache: "no-store" },
+    );
     const json = await res.json().catch(() => null);
     if (!res.ok) return null;
-    const next = parseFeedPayload(json) ?? EMPTY_HISTORY_FEED;
-    writeHistoryNotificationsCache(viewerProfileId, next);
-    return next;
+    const parsed = parseNotificationFeedPage(json);
+    if (!parsed) return null;
+    writeHistoryNotificationsCache(viewerProfileId, parsed.feed);
+    return parsed.feed;
   }, [viewerProfileId]);
 
   const fetchUnreadFeed = useCallback(async () => {
@@ -454,32 +596,67 @@ export function JourneyNotifications({
     return countInfoItems(unreadInfoItems);
   }, [tab, unreadInfoItems]);
 
-  const historyCount = useMemo(() => {
-    if (!historyFeed) return null;
-    return countDisplayedItems(historyFeed);
-  }, [historyFeed]);
-
-  const loadHistory = useCallback(async () => {
-    setLoadingHistory(true);
-    try {
-      const res = await fetch("/api/notifications?filter=history", { cache: "no-store" });
-      const json = await res.json().catch(() => null);
-      if (!res.ok) {
-        setHistoryFeed(EMPTY_HISTORY_FEED);
-        setError(
-          json && typeof json.error === "string"
-            ? json.error
-            : "Không tải được lịch sử thông báo.",
-        );
-        return;
+  const loadHistory = useCallback(
+    async (reset = true) => {
+      if (reset) {
+        setHistoryEntries([]);
+        setHistoryNextOffset(0);
+        setHistoryHasMore(false);
+        historyNextOffsetRef.current = 0;
+        historyHasMoreRef.current = false;
+        setLoadingHistory(true);
       }
-      const next = parseFeedPayload(json) ?? EMPTY_HISTORY_FEED;
-      setHistoryFeed(next);
-      writeHistoryNotificationsCache(viewerProfileId, next);
+      try {
+        const offset = reset ? 0 : historyNextOffsetRef.current;
+        const res = await fetch(
+          `/api/notifications?filter=history&offset=${offset}&limit=${NOTIFICATION_LIST_PAGE_SIZE}`,
+          { cache: "no-store" },
+        );
+        const json = await res.json().catch(() => null);
+        if (!res.ok) {
+          if (reset) {
+            setHistoryFeed(EMPTY_HISTORY_FEED);
+            setHistoryEntries([]);
+          }
+          setError(
+            json && typeof json.error === "string"
+              ? json.error
+              : "Không tải được lịch sử thông báo.",
+          );
+          return;
+        }
+        const parsed = parseNotificationFeedPage(json);
+        if (!parsed) return;
+        const timeline = buildHistoryTimeline(parsed.feed);
+        if (reset) {
+          setHistoryFeed(parsed.feed);
+          setHistoryEntries(timeline);
+          writeHistoryNotificationsCache(viewerProfileId, parsed.feed);
+        } else {
+          setHistoryEntries((prev) => appendHistoryTimeline(prev, timeline));
+        }
+        setHistoryHasMore(parsed.hasMore);
+        setHistoryNextOffset(parsed.nextOffset);
+        historyHasMoreRef.current = parsed.hasMore;
+        historyNextOffsetRef.current = parsed.nextOffset;
+      } finally {
+        if (reset) setLoadingHistory(false);
+      }
+    },
+    [viewerProfileId],
+  );
+
+  const loadMoreHistory = useCallback(async () => {
+    if (!historyHasMoreRef.current || loadingMoreRef.current) return;
+    loadingMoreRef.current = true;
+    setLoadingMoreHistory(true);
+    try {
+      await loadHistory(false);
     } finally {
-      setLoadingHistory(false);
+      loadingMoreRef.current = false;
+      setLoadingMoreHistory(false);
     }
-  }, [viewerProfileId]);
+  }, [loadHistory]);
 
   useEffect(() => {
     const cancelIdle = scheduleWhenIdle(() => {
@@ -531,9 +708,24 @@ export function JourneyNotifications({
 
   useEffect(() => {
     if (!open || tab !== "history") return;
-    if (historyFeed || loadingHistory) return;
-    void loadHistory();
-  }, [open, tab, historyFeed, loadingHistory, loadHistory]);
+    if (historyEntries.length > 0 || loadingHistory) return;
+    void loadHistory(true);
+  }, [open, tab, historyEntries.length, loadingHistory, loadHistory]);
+
+  useEffect(() => {
+    if (open) return;
+    setHistoryEntries([]);
+    setHistoryHasMore(false);
+    setHistoryNextOffset(0);
+    historyHasMoreRef.current = false;
+    historyNextOffsetRef.current = 0;
+    setVisibleInfoCount(NOTIFICATION_LIST_PAGE_SIZE);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    setVisibleInfoCount(NOTIFICATION_LIST_PAGE_SIZE);
+  }, [open, tab]);
 
   const refreshUnread = useCallback(() => {
     void fetchUnreadFeed().catch(() => {
@@ -608,7 +800,7 @@ export function JourneyNotifications({
       const next = parseFeedPayload(json);
       if (next) applyFeed(next);
       setSelected(null);
-      if (tab === "history") void loadHistory();
+      if (tab === "history") void loadHistory(true);
     });
   };
 
@@ -670,7 +862,7 @@ export function JourneyNotifications({
           coAuthorCredits: json.coAuthorCredits as CoAuthorCredit[],
         });
       }
-      if (tab === "history") void loadHistory();
+      if (tab === "history") void loadHistory(true);
     });
   };
 
@@ -706,15 +898,63 @@ export function JourneyNotifications({
     [feed.followRequests, selected],
   );
 
+  const historyTimeline = historyEntries;
+
+  const unreadInfoTimeline = useMemo(
+    () => (tab === "unread" ? buildInfoTimeline(unreadInfoItems) : []),
+    [tab, unreadInfoItems],
+  );
+
+  const visibleInfoTimeline = useMemo(
+    () => unreadInfoTimeline.slice(0, visibleInfoCount),
+    [unreadInfoTimeline, visibleInfoCount],
+  );
+
+  const hasMoreInfo = visibleInfoCount < unreadInfoTimeline.length;
+
   const listCount =
     tab === "unread"
       ? unreadLoaded
         ? displayedPendingCount + displayedInfoCount
         : pendingActionCount
-      : historyCount ?? 0;
+      : historyEntries.length;
 
   const showMoreHint =
     tab === "unread" && unreadLoaded && pendingActionCount > displayedPendingCount;
+
+  const canLoadMoreList =
+    tab === "history" ? historyHasMore : tab === "unread" && hasMoreInfo;
+
+  useEffect(() => {
+    if (!open || !canLoadMoreList) return;
+    const root = listRef.current;
+    const node = sentinelRef.current;
+    if (!root || !node || typeof IntersectionObserver === "undefined") return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) return;
+        if (tab === "history") {
+          void loadMoreHistory();
+          return;
+        }
+        setVisibleInfoCount((count) =>
+          Math.min(count + NOTIFICATION_LIST_PAGE_SIZE, unreadInfoTimeline.length),
+        );
+      },
+      { root, rootMargin: "48px 0px", threshold: 0 },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [
+    open,
+    tab,
+    canLoadMoreList,
+    loadMoreHistory,
+    unreadInfoTimeline.length,
+    historyEntries.length,
+    visibleInfoCount,
+  ]);
 
   const title =
     unreadCount > 0 ? `${unreadCount} thông báo chưa đọc` : "Không có thông báo mới";
@@ -766,7 +1006,7 @@ export function JourneyNotifications({
                 : "Chưa có lịch sử. Lịch sử gồm: kết nối đã chấp nhận/từ chối, ai đó chấp nhận kết bạn với bạn, bình luận/video đã đọc."}
             </p>
           ) : (
-            <ul className="j-notify-list">
+            <ul ref={listRef} className="j-notify-list">
               {tab === "unread" ? (
                 <>
                   {activeFeed.coSoStaffInvites.map((invite) => (
@@ -878,194 +1118,19 @@ export function JourneyNotifications({
                       </button>
                     </li>
                   ))}
-                  {unreadInfoItems.membershipMilestoneResolved.map((notice) => (
-                    <li key={notice.notificationId}>
-                      <HistoryInfoItem
-                        href={notice.journeyHref}
-                        label={membershipMilestoneNotifyLabel(notice)}
-                        time={formatNotifyTime(notice.taoLuc)}
-                        avatar={
-                          <span
-                            className={`j-notify-avatar${
-                              notice.action === "approved" ? " is-verified" : " is-rejected"
-                            }`}
-                            aria-hidden
-                          >
-                            {notice.action === "approved" ? (
-                              <CheckCircle2 size={16} strokeWidth={2} />
-                            ) : (
-                              <XCircle size={16} strokeWidth={2} />
-                            )}
-                          </span>
-                        }
-                      />
-                    </li>
-                  ))}
-                  {unreadInfoItems.orgMilestoneTagApproved.map((notice) => (
-                    <li key={notice.notificationId}>
-                      <HistoryInfoItem
-                        href={notice.albumHref || "#"}
-                        label={orgMilestoneTagNotifyLabel(notice)}
-                        time={formatNotifyTime(notice.taoLuc)}
-                        avatar={
-                          <span className="j-notify-avatar is-verified" aria-hidden>
-                            <CheckCircle2 size={16} strokeWidth={2} />
-                          </span>
-                        }
-                      />
-                    </li>
-                  ))}
-                  {unreadInfoItems.accepted.map((notice) => (
-                    <HistoryInfoItem
-                      key={notice.notificationId}
-                      href={`/${notice.slug}`}
-                      label={
-                        <>
-                          <strong>{notice.tenHienThi}</strong> đã chấp nhận kết bạn.
-                        </>
-                      }
-                      time={formatNotifyTime(notice.taoLuc)}
-                      avatar={<Avatar request={notice} />}
-                    />
-                  ))}
-                  {unreadInfoItems.comments.map((notice) => (
-                    <HistoryInfoItem
-                      key={notice.notificationId}
-                      href={
-                        notice.ownerSlug && notice.postSlug
-                          ? `/${notice.ownerSlug}/p/${notice.postSlug}`
-                          : `/${notice.slug}`
-                      }
-                      label={commentNotifyLabel(notice)}
-                      time={formatNotifyTime(notice.taoLuc)}
-                      avatar={<Avatar request={notice} />}
-                    />
-                  ))}
-                  {unreadInfoItems.videoReady.map((notice) => (
-                    <HistoryInfoItem
-                      key={notice.notificationId}
-                      href={
-                        notice.ownerSlug && notice.postSlug
-                          ? `/${notice.ownerSlug}/p/${notice.postSlug}`
-                          : "#"
-                      }
-                      label={
-                        <>
-                          <strong>Video đã sẵn sàng</strong>
-                          <small>{notice.postTitle}</small>
-                        </>
-                      }
-                      time={formatNotifyTime(notice.taoLuc)}
-                      avatar={
-                        <span className="j-notify-avatar is-video" aria-hidden>
-                          <Video size={16} strokeWidth={1.8} />
-                        </span>
-                      }
-                    />
-                  ))}
+                  {visibleInfoTimeline.map((entry) => renderInfoTimelineEntry(entry))}
                 </>
               ) : (
                 <>
-                  {activeFeed.handledFollows.map((item) => (
-                    <li key={item.notificationId}>
-                      <Link href={`/${item.slug}`} className="j-notify-item is-history">
-                        <Avatar request={item} />
-                        <span>
-                          <strong>{item.tenHienThi}</strong>{" "}
-                          {item.action === "accept" ? "— bạn đã chấp nhận kết nối" : "— bạn đã từ chối"}
-                          <small>{formatNotifyTime(item.xuLyLuc)}</small>
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
-                  {activeFeed.processedCoAuthorReviews.map((review) => (
-                    <HistoryCoAuthorItem key={review.notificationId} review={review} />
-                  ))}
-                  {activeFeed.accepted.map((notice) => (
-                    <HistoryInfoItem
-                      key={notice.notificationId}
-                      href={`/${notice.slug}`}
-                      label={
-                        <>
-                          <strong>{notice.tenHienThi}</strong> đã chấp nhận kết bạn.
-                        </>
-                      }
-                      time={formatNotifyTime(notice.taoLuc)}
-                      avatar={<Avatar request={notice} />}
-                    />
-                  ))}
-                  {activeFeed.comments.map((notice) => (
-                    <HistoryInfoItem
-                      key={notice.notificationId}
-                      href={
-                        notice.ownerSlug && notice.postSlug
-                          ? `/${notice.ownerSlug}/p/${notice.postSlug}`
-                          : `/${notice.slug}`
-                      }
-                      label={commentNotifyLabel(notice)}
-                      time={formatNotifyTime(notice.taoLuc)}
-                      avatar={<Avatar request={notice} />}
-                    />
-                  ))}
-                  {activeFeed.membershipMilestoneResolved.map((notice) => (
-                    <HistoryInfoItem
-                      key={notice.notificationId}
-                      href={notice.journeyHref}
-                      label={membershipMilestoneNotifyLabel(notice)}
-                      time={formatNotifyTime(notice.taoLuc)}
-                      avatar={
-                        <span
-                          className={`j-notify-avatar${
-                            notice.action === "approved" ? " is-verified" : " is-rejected"
-                          }`}
-                          aria-hidden
-                        >
-                          {notice.action === "approved" ? (
-                            <CheckCircle2 size={16} strokeWidth={2} />
-                          ) : (
-                            <XCircle size={16} strokeWidth={2} />
-                          )}
-                        </span>
-                      }
-                    />
-                  ))}
-                  {activeFeed.orgMilestoneTagApproved.map((notice) => (
-                    <HistoryInfoItem
-                      key={notice.notificationId}
-                      href={notice.albumHref || "#"}
-                      label={orgMilestoneTagNotifyLabel(notice)}
-                      time={formatNotifyTime(notice.taoLuc)}
-                      avatar={
-                        <span className="j-notify-avatar is-verified" aria-hidden>
-                          <CheckCircle2 size={16} strokeWidth={2} />
-                        </span>
-                      }
-                    />
-                  ))}
-                  {activeFeed.videoReady.map((notice) => (
-                    <HistoryInfoItem
-                      key={notice.notificationId}
-                      href={
-                        notice.ownerSlug && notice.postSlug
-                          ? `/${notice.ownerSlug}/p/${notice.postSlug}`
-                          : "#"
-                      }
-                      label={
-                        <>
-                          <strong>Video đã sẵn sàng</strong>
-                          <small>{notice.postTitle}</small>
-                        </>
-                      }
-                      time={formatNotifyTime(notice.taoLuc)}
-                      avatar={
-                        <span className="j-notify-avatar is-video" aria-hidden>
-                          <Video size={16} strokeWidth={1.8} />
-                        </span>
-                      }
-                    />
-                  ))}
+                  {historyTimeline.map((entry) => renderHistoryTimelineEntry(entry))}
                 </>
               )}
+              {canLoadMoreList ? (
+                <li ref={sentinelRef} className="j-notify-list-sentinel" aria-hidden />
+              ) : null}
+              {loadingMoreHistory ? (
+                <li className="j-notify-list-loading">Đang tải thêm…</li>
+              ) : null}
             </ul>
           )}
           {showMoreHint ? (

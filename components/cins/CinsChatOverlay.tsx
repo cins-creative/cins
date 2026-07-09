@@ -23,6 +23,7 @@ import { createPortal } from "react-dom";
 
 import { ChatImageLightbox } from "@/components/cins/ChatImageLightbox";
 import { ChatMessageThreadItems } from "@/components/cins/ChatMessageThreadItems";
+import { ChatStickerPicker } from "@/components/cins/ChatStickerPicker";
 import { ChatReplyComposeBar } from "@/components/cins/ChatReplyComposeBar";
 import type { ChatMessageActionHandlers } from "@/components/cins/ChatMessageActions";
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
@@ -70,6 +71,8 @@ import {
   isPendingRoomId,
   pendingDirectRoomId,
 } from "@/lib/chat/optimistic-thread";
+import type { UserEmojiMuc } from "@/lib/user-emoji/types";
+import { userEmojiDeliveryUrl } from "@/lib/user-emoji/delivery-url";
 import { imageFilesFromClipboard } from "@/lib/files/clipboard-images";
 import {
   CHAT_ORG_KIND_LABEL,
@@ -285,6 +288,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     null,
   );
   const [replyTarget, setReplyTarget] = useState<ChatMessage | null>(null);
+  const [stickerPickerOpen, setStickerPickerOpen] = useState(false);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingDraft, setEditingDraft] = useState("");
   const [pinnedByRoom, setPinnedByRoom] = useState<Record<string, ChatMessage[]>>({});
@@ -1326,6 +1330,25 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     [viewerProfileId],
   );
 
+  const sendSticker = useCallback(
+    async (thread: ChatThread, item: UserEmojiMuc) => {
+      const optimistic = createOptimisticChatMessage({
+        body: "",
+        kind: "sticker",
+        imageId: item.cloudflareId,
+        imageUrl:
+          item.url ?? userEmojiDeliveryUrl(item.cloudflareId, "thumbnail"),
+      });
+      appendOptimisticMessages(thread, [optimistic]);
+      await submitRoomMessage(
+        thread,
+        { id_emoji_muc: item.id },
+        optimistic.id,
+      );
+    },
+    [appendOptimisticMessages, submitRoomMessage],
+  );
+
   const sendPendingCard = useCallback(
     (thread: ChatThread, card: ChatContextCard) => {
       setPendingCardByRoom((prev) => {
@@ -1776,6 +1799,17 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                 ))}
               </div>
             ) : null}
+            {stickerPickerOpen ? (
+              <ChatStickerPicker
+                onClose={() => setStickerPickerOpen(false)}
+                disabled={connecting || isPendingRoom}
+                onSend={(item) => {
+                  if (!active) return;
+                  setStickerPickerOpen(false);
+                  void sendSticker(active, item);
+                }}
+              />
+            ) : null}
             <div className="cins-chat-compose-row">
             <div className="cins-chat-input-wrap">
               <input
@@ -1792,6 +1826,23 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                   e.target.value = "";
                 }}
               />
+              <button
+                type="button"
+                className="cins-chat-attach cins-chat-attach-meme"
+                data-sticker-trigger
+                aria-label="Meme của tôi"
+                aria-expanded={stickerPickerOpen}
+                disabled={connecting || isPendingRoom}
+                onClick={() => setStickerPickerOpen((open) => !open)}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  className="cins-chat-attach-meme-icon"
+                  src="/assets/chat-meme-trigger.png"
+                  alt=""
+                  aria-hidden
+                />
+              </button>
               <button
                 type="button"
                 className="cins-chat-attach"

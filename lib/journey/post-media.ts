@@ -1,7 +1,20 @@
 import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import type { Block, LoaiMoc, Visibility } from "@/lib/editor/types";
 import { classifyBunnyVideoUrl } from "@/lib/bunny/embed";
+import {
+  buildEmbedIframeSrc,
+  classifyEmbedUrl,
+  type Tier1EmbedPlatformId,
+} from "@/lib/editor/embed-providers";
 import type { ComposeIntent } from "@/lib/journey/compose-types";
+import {
+  blocksAreMediaCaptionOnly,
+  blocksArePlainTextOnly,
+  extractAllImageIds,
+  extractPhotoImageIds,
+  hasArticleLayoutBlocks,
+  type GalleryMediaKind,
+} from "@/lib/journey/post-block-helpers";
 import { resolvePostDisplayKind } from "@/lib/journey/post-content-kind";
 import { extractVideoCanvasRatio } from "@/lib/journey/video-canvas-ratio";
 import { isPersistedImageSeed } from "@/lib/truong/image-ref";
@@ -52,11 +65,29 @@ export function detectMediaPostKind(
   return null;
 }
 
+/** Nền tảng Tier 1 (YouTube, Figma, …) — không gồm Bunny Stream / Behance. */
+export function detectExternalEmbedPlatform(
+  blocks: ReadonlyArray<Block> | null | undefined,
+): Tier1EmbedPlatformId | null {
+  if (!blocks?.length) return null;
+  for (const block of blocks) {
+    if (block.loai !== "embed") continue;
+    const url = blockEmbedConfigUrl(block);
+    if (!url) continue;
+    const classified = classifyEmbedUrl(url);
+    if (!classified || classified.provider === "behance") continue;
+    if (buildEmbedIframeSrc(classified) === null) continue;
+    return classified.provider as Tier1EmbedPlatformId;
+  }
+  return null;
+}
+
 /** Intent overlay edit — video/album giữ luồng riêng; bài viết dài mở editor đầy đủ. */
 export function resolveEditComposeIntent(
   blocks: ReadonlyArray<Block> | null | undefined,
   moTa?: string | null,
 ): ComposeIntent {
+  if (detectExternalEmbedPlatform(blocks)) return "embed";
   const mediaKind = detectMediaPostKind(blocks);
   if (mediaKind === "video") return "video";
   if (mediaKind === "photo") return "photo";
@@ -186,7 +217,14 @@ export function isPostPermalinkHref(href: string | undefined): href is string {
   return Boolean(href && /\/p\/[^/?#]+/.test(href));
 }
 
-export type GalleryMediaKind = "article" | "photo" | "video";
+export type { GalleryMediaKind };
+export {
+  blocksAreMediaCaptionOnly,
+  blocksArePlainTextOnly,
+  extractAllImageIds,
+  extractPhotoImageIds,
+  hasArticleLayoutBlocks,
+} from "@/lib/journey/post-block-helpers";
 
 export function galleryMediaKindFromBlocks(
   blocks: ReadonlyArray<Block> | null | undefined,
@@ -698,6 +736,68 @@ export function articleCardPeekBlocks(
   return blocksForArticleCardUnfold(body, blocks);
 }
 
+function blockEmbedConfigUrl(block: Block): string {
+  const cfg = block.config ?? {};
+  if (typeof cfg.url === "string" && cfg.url.trim()) return cfg.url.trim();
+  if (typeof cfg.embedUrl === "string" && cfg.embedUrl.trim()) {
+    return cfg.embedUrl.trim();
+  }
+  return "";
+}
+
+function isInlineIframeEmbedBlock(block: Block): boolean {
+  if (block.loai !== "embed") return false;
+  const bunnyId =
+    typeof block.config?.bunnyVideoId === "string"
+      ? block.config.bunnyVideoId.trim()
+      : "";
+  if (bunnyId) return false;
+  const url = blockEmbedConfigUrl(block);
+  if (!url) return false;
+  const cls = classifyEmbedUrl(url);
+  if (!cls || cls.provider === "behance") return false;
+  return buildEmbedIframeSrc(cls) !== null;
+}
+
+/** Timeline card — peek chỉ gồm block embed (có URL). */
+export function articleCardHasEmbedOnlyPeek(
+  body: string | null | undefined,
+  blocks: ReadonlyArray<Block> | null | undefined,
+): boolean {
+  const peek = blocksForArticleCardUnfold(body, blocks);
+  if (!peek.some((b) => b.loai === "embed" && blockEmbedConfigUrl(b))) {
+    return false;
+  }
+  return peek.every((b) => b.loai === "embed" || b.loai === "spacer");
+}
+
+/** Timeline card — embed Tier 1 fill peek, tương tác trực tiếp (không overlay «Xem đầy đủ»). */
+export function resolveEmbedIframePeek(
+  body: string | null | undefined,
+  blocks: ReadonlyArray<Block> | null | undefined,
+): { provider: Tier1EmbedPlatformId; iframeSrc: string } | null {
+  const peek = blocksForArticleCardUnfold(body, blocks);
+  if (!peek.length) return null;
+  if (!peek.every((b) => b.loai === "embed" || b.loai === "spacer")) return null;
+  const embeds = peek.filter((b) => b.loai === "embed");
+  if (embeds.length !== 1) return null;
+  const block = embeds[0]!;
+  if (!isInlineIframeEmbedBlock(block)) return null;
+  const url = blockEmbedConfigUrl(block);
+  const cls = classifyEmbedUrl(url);
+  if (!cls || cls.provider === "behance") return null;
+  const iframeSrc = buildEmbedIframeSrc(cls);
+  if (!iframeSrc) return null;
+  return { provider: cls.provider as Tier1EmbedPlatformId, iframeSrc };
+}
+
+export function articleCardEmbedInteractivePeek(
+  body: string | null | undefined,
+  blocks: ReadonlyArray<Block> | null | undefined,
+): boolean {
+  return resolveEmbedIframePeek(body, blocks) !== null;
+}
+
 export function mediaPostHasContent(
   blocks: ReadonlyArray<Block>,
   kind: MediaPostKind,
@@ -717,69 +817,6 @@ export function mediaPostHasContent(
     const url = b.config?.url;
     return typeof url === "string" && url.trim().length > 0;
   });
-}
-
-/** Trích id ảnh theo thứ tự block — mỗi block `imgs` thường 1 ảnh. */
-export function extractPhotoImageIds(
-  blocks: ReadonlyArray<Block>,
-): string[] {
-  const ids: string[] = [];
-  for (const block of blocks) {
-    if (block.loai !== "imgs" || block.config?.layout === "mosaic") continue;
-    const raw = block.config?.imgs;
-    if (!Array.isArray(raw)) continue;
-    for (const id of raw) {
-      if (typeof id === "string" && isPersistedImageSeed(id)) ids.push(id.trim());
-    }
-  }
-  return ids;
-}
-
-/** Mọi ảnh trong blocks (album hoặc ảnh inline trong bài viết). */
-export function extractAllImageIds(
-  blocks: ReadonlyArray<Block> | null | undefined,
-): string[] {
-  if (!blocks?.length) return [];
-  return extractPhotoImageIds(blocks);
-}
-
-/** Chỉ caption + album — không heading/quote/… */
-export function blocksAreMediaCaptionOnly(
-  blocks: ReadonlyArray<Block> | null | undefined,
-): boolean {
-  if (!blocks?.length) return true;
-  return blocks.every(
-    (b) => b.loai === "body" || b.loai === "spacer" || b.loai === "imgs",
-  );
-}
-
-/** Chỉ block chữ trên card text panel — không album/embed/ảnh inline. */
-/** Chỉ block chữ (body/h2/h3/quote/spacer) — không media, không layout bài viết. */
-export function blocksArePlainTextOnly(
-  blocks: ReadonlyArray<Block> | null | undefined,
-): boolean {
-  if (!blocks?.length) return true;
-  return blocks.every(
-    (b) =>
-      b.loai === "body" ||
-      b.loai === "spacer" ||
-      b.loai === "h2" ||
-      b.loai === "h3" ||
-      b.loai === "quote",
-  );
-}
-
-/** Block layout bài viết dài (palette, mosaic, divider) — không dùng text panel. */
-export function hasArticleLayoutBlocks(
-  blocks: ReadonlyArray<Block> | null | undefined,
-): boolean {
-  if (!blocks?.length) return false;
-  return blocks.some(
-    (b) =>
-      b.loai === "palette" ||
-      b.loai === "divider" ||
-      (b.loai === "imgs" && b.config?.layout === "mosaic"),
-  );
 }
 
 /** @deprecated — heading/quote vẫn là card chữ; dùng `hasArticleLayoutBlocks`. */

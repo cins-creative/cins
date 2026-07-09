@@ -111,7 +111,9 @@ export function inferComposePreviewKindFromEditor(
   );
   const hasImgs = blocks.some(editorBlockHasImageSeed);
 
-  if (hasEmbed && !hasImgs) return "video";
+  if (hasEmbed && !hasImgs) {
+    return inferComposePreviewKind(serverBlocks, coverSeed, moTa);
+  }
   if (hasImgs && !hasEmbed && editorBlocksArePhotoAlbumOnly(blocks)) {
     return "photo";
   }

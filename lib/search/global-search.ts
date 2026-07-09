@@ -498,15 +498,4 @@ export async function runGlobalSearch(options: {
   }
 }
 
-export function groupHitsByKind(hits: SearchHit[]): SearchEntityKind[] {
-  const order: SearchEntityKind[] = [
-    "article",
-    "khoa_hoc",
-    "org_tuyen_dung",
-    "org",
-    "user",
-    "user_post",
-    "org_post",
-  ];
-  return order.filter((kind) => hits.some((h) => h.kind === kind));
-}
+export { groupHitsByKind } from "@/lib/search/filter-hits";

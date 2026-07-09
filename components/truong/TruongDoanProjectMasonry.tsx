@@ -7,6 +7,10 @@ import { JourneyCoverImage } from "@/components/journey/JourneyCoverImage";
 import { GalleryVideoPlayBadge } from "@/components/journey/GalleryItemVisual";
 import { JourneyPostModal } from "@/components/journey/JourneyPostModal";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
+import {
+  GALLERY_GRID_IMAGE_SIZES,
+  galleryGridAssetFromCfUrl,
+} from "@/lib/cloudflare/cf-variant-url";
 import type { OrgDoanProjectItem } from "@/lib/journey/org-milestone-tag-types";
 import {
   displayMediaPostTitle,
@@ -137,6 +141,9 @@ function DoanProjectCardHit({
 }) {
   const hasImage = Boolean(item.coverSrc);
   const isVideo = item.isVideo ?? isGalleryVideoCoverSrc(item.coverSrc);
+  const gridAsset = item.coverSrc
+    ? galleryGridAssetFromCfUrl(item.coverSrc)
+    : null;
 
   return (
     <>
@@ -150,11 +157,12 @@ function DoanProjectCardHit({
       >
         {hasImage ? (
           <JourneyCoverImage
-            src={item.coverSrc!}
+            src={gridAsset?.src ?? item.coverSrc!}
+            srcSet={gridAsset?.srcSet}
+            sizes={gridAsset?.srcSet ? GALLERY_GRID_IMAGE_SIZES : undefined}
             alt={item.coverAlt ?? item.projectTitle}
-            width={1280}
-            height={720}
-            sizes="(max-width: 575px) 100vw, (max-width: 991px) 50vw, 33vw"
+            width={gridAsset?.width ?? 640}
+            height={gridAsset?.height ?? 360}
             className="tdh-doan-gallery-img"
           />
         ) : (

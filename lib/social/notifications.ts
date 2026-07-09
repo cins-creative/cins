@@ -14,6 +14,10 @@ import {
 } from "@/lib/social/follow";
 import { listPendingReceived } from "@/lib/social/ket-ban";
 import { listPendingCoSoStaffInviteNotifications } from "@/lib/to-chuc/co-so-staff-invite";
+import {
+  buildHistoryTimeline,
+  historyTimelineToFeed,
+} from "@/lib/social/notification-feed-client";
 import type { NotificationFeed, NotificationFilter } from "@/lib/social/types";
 import { listOrgMilestoneTagApprovedNotifications } from "@/lib/social/org-milestone-tag-notify";
 import { listMembershipMilestoneResolvedNotifications } from "@/lib/social/membership-milestone-notify";
@@ -41,6 +45,12 @@ export const EMPTY_NOTIFICATION_FEED: NotificationFeed = {
 
 export type LoadNotificationFeedOptions = {
   displayLimit?: number;
+  offset?: number;
+};
+
+export type NotificationFeedResult = NotificationFeed & {
+  hasMore?: boolean;
+  nextOffset?: number;
 };
 
 function capUnreadLists(payload: FeedPayload, limit: number): FeedPayload {
@@ -67,25 +77,13 @@ function capUnreadLists(payload: FeedPayload, limit: number): FeedPayload {
 }
 
 function capHistoryLists(payload: FeedPayload, limit: number): FeedPayload {
-  let left = limit;
-  const take = <T>(arr: T[]): T[] => {
-    if (left <= 0) return [];
-    const slice = arr.slice(0, left);
-    left -= slice.length;
-    return slice;
-  };
+  const page = buildHistoryTimeline(payload).slice(0, limit);
   return {
     followRequests: [],
     coAuthorInvites: [],
     coAuthorReviews: [],
     coSoStaffInvites: [],
-    handledFollows: take(payload.handledFollows),
-    processedCoAuthorReviews: take(payload.processedCoAuthorReviews),
-    accepted: take(payload.accepted),
-    orgMilestoneTagApproved: take(payload.orgMilestoneTagApproved),
-    membershipMilestoneResolved: take(payload.membershipMilestoneResolved),
-    comments: take(payload.comments),
-    videoReady: take(payload.videoReady),
+    ...historyTimelineToFeed(page),
   };
 }
 
@@ -93,7 +91,7 @@ export async function loadNotificationFeed(
   viewerId: string,
   filter: NotificationFilter,
   options: LoadNotificationFeedOptions = {},
-): Promise<NotificationFeed> {
+): Promise<NotificationFeedResult> {
   try {
     return await loadNotificationFeedUnsafe(viewerId, filter, options);
   } catch (error) {
@@ -106,11 +104,12 @@ async function loadNotificationFeedUnsafe(
   viewerId: string,
   filter: NotificationFilter,
   options: LoadNotificationFeedOptions = {},
-): Promise<NotificationFeed> {
+): Promise<NotificationFeedResult> {
   const unreadOnly = filter === "unread";
   const historyOnly = filter === "history";
-  const displayLimit = options.displayLimit ?? NOTIFICATION_DISPLAY_LIMIT;
-  const rowLimit = displayLimit;
+  const pageLimit = options.displayLimit ?? NOTIFICATION_DISPLAY_LIMIT;
+  const offset = historyOnly ? Math.max(0, options.offset ?? 0) : 0;
+  const rowLimit = historyOnly ? offset + pageLimit + 1 : pageLimit;
 
   const [
     unreadCount,
@@ -188,14 +187,28 @@ async function loadNotificationFeedUnsafe(
 
   const payload =
     filter === "unread"
-      ? capUnreadLists(raw, displayLimit)
-      : capHistoryLists(raw, displayLimit);
+      ? capUnreadLists(raw, pageLimit)
+      : capHistoryLists(raw, offset + pageLimit + 1);
 
   if (filter === "unread") {
     return { unreadCount, ...payload };
   }
 
-  return { unreadCount: 0, ...payload };
+  const timeline = buildHistoryTimeline(payload);
+  const page = timeline.slice(offset, offset + pageLimit);
+  const hasMore = timeline.length > offset + pageLimit;
+  const historyPayload = historyTimelineToFeed(page);
+
+  return {
+    unreadCount: 0,
+    followRequests: [],
+    coAuthorInvites: [],
+    coAuthorReviews: [],
+    coSoStaffInvites: [],
+    ...historyPayload,
+    hasMore,
+    nextOffset: offset + page.length,
+  };
 }
 
 /** Đếm badge — head count, không hydrate profile. */

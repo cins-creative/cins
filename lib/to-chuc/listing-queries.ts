@@ -2,6 +2,10 @@ import "server-only";
 
 import { createPublicSupabaseClient } from "@/lib/supabase/public";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
+import {
+  createServiceRoleClient,
+  hasServiceRoleEnv,
+} from "@/lib/supabase/service-role";
 import { resolveTruongImageSrcSync } from "@/lib/truong/media-url";
 import type { TruongListItem } from "@/lib/truong/types";
 
@@ -126,8 +130,9 @@ export async function listCoSoDaoTaoForListing(): Promise<TruongListItem[]> {
     }
 
     const orgIds = items.map((i) => i.id);
-    if (orgIds.length) {
-      const { data: khoaRows } = await supabase
+    if (orgIds.length && hasServiceRoleEnv()) {
+      const admin = createServiceRoleClient();
+      const { data: khoaRows } = await admin
         .from("org_khoa_hoc")
         .select("id_to_chuc")
         .in("id_to_chuc", orgIds);

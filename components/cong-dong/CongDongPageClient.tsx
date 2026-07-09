@@ -89,7 +89,7 @@ type SortMode = "moi" | "tuongtac" | "az";
 const FACEPILE_COLORS = [
   "var(--cins-violet, #7c5cfc)",
   "var(--cins-mint, #1fa97e)",
-  "var(--cins-orange, #f0913b)",
+  "var(--cins-orange, #FDAD4C)",
   "var(--cins-blue, #1f74c9)",
 ];
 

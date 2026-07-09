@@ -1296,6 +1296,7 @@
 }
 
 .cins-chat-compose {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -1774,6 +1775,32 @@ a.cins-chat-ctx-card:hover {
 .cins-chat-attach:hover {
   color: var(--cins-blue);
   background: var(--cins-blue-soft);
+}
+
+.cins-chat-attach-meme {
+  padding: 0;
+  overflow: hidden;
+}
+
+.cins-chat-attach-meme-icon {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center;
+  transform: scaleX(-1);
+  opacity: 0.85;
+  transition: opacity 160ms ease;
+}
+
+.cins-chat-attach-meme:hover,
+.cins-chat-attach-meme[aria-expanded="true"] {
+  background: transparent;
+}
+
+.cins-chat-attach-meme:hover .cins-chat-attach-meme-icon,
+.cins-chat-attach-meme[aria-expanded="true"] .cins-chat-attach-meme-icon {
+  opacity: 1;
 }
 
 .cins-chat-input-wrap textarea {
@@ -2534,5 +2561,325 @@ a.cins-chat-ctx-card:hover {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+  }
+}
+
+/* Meme / sticker cá nhân */
+.cins-chat-msg-sticker {
+  display: block;
+  max-width: 140px;
+  max-height: 140px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.cins-chat-sticker-picker {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 8px);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  max-height: min(320px, 42vh);
+  padding: 10px;
+  border: 1px solid var(--border, rgba(15, 23, 42, 0.1));
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: var(--shadow-md, 0 8px 24px rgba(15, 23, 42, 0.12));
+}
+
+.cins-chat-sticker-picker-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cins-chat-sticker-picker-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.cins-chat-sticker-picker-actions {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.cins-chat-sticker-picker-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+}
+
+.cins-chat-sticker-picker-icon:hover,
+.cins-chat-sticker-picker-icon.is-active {
+  color: var(--cins-blue, #1f74c9);
+  background: var(--cins-blue-soft, rgba(31, 116, 201, 0.08));
+}
+
+.cins-chat-sticker-picker-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.cins-chat-sticker-picker-tab {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 999px;
+  background: #f8fafc;
+  color: rgba(0, 0, 0, 0.65);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 10px 3px 3px;
+  cursor: pointer;
+  max-width: 140px;
+}
+
+.cins-chat-sticker-picker-tab-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: #fff;
+}
+
+.cins-chat-sticker-picker-tab-fallback {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: rgba(15, 23, 42, 0.08);
+}
+
+.cins-chat-sticker-picker-tab-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.cins-chat-sticker-picker-tab.is-active {
+  border-color: rgba(31, 116, 201, 0.35);
+  background: var(--cins-blue-soft, rgba(31, 116, 201, 0.08));
+  color: var(--cins-blue, #1f74c9);
+}
+
+.cins-chat-sticker-picker-tab.is-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  padding: 0;
+}
+
+.cins-chat-sticker-picker-new-bo {
+  display: flex;
+  gap: 6px;
+}
+
+.cins-chat-sticker-picker-new-bo input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 8px;
+  padding: 6px 8px;
+  font: inherit;
+  font-size: 12px;
+}
+
+.cins-chat-sticker-picker-new-bo button {
+  border: 0;
+  border-radius: 8px;
+  background: var(--cins-blue, #1f74c9);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0 10px;
+  cursor: pointer;
+}
+
+.cins-chat-sticker-picker-new-bo button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cins-chat-sticker-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 6px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 80px;
+  max-height: 200px;
+  padding: 2px;
+}
+
+.cins-chat-sticker-picker-cell {
+  position: relative;
+}
+
+.cins-chat-sticker-picker-sticker {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  border: 0;
+  border-radius: 8px;
+  padding: 2px;
+  background: #f8fafc;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.cins-chat-sticker-picker-sticker:hover:not(:disabled) {
+  background: var(--cins-blue-soft, rgba(31, 116, 201, 0.08));
+}
+
+.cins-chat-sticker-picker-sticker:disabled {
+  cursor: default;
+}
+
+.cins-chat-sticker-picker-sticker img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.cins-chat-sticker-picker-remove {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 18px;
+  height: 18px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.72);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.cins-chat-sticker-picker-cover {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.55);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.cins-chat-sticker-picker-cover.is-active {
+  background: var(--cins-blue, #1f74c9);
+  color: #fff;
+}
+
+.cins-chat-sticker-picker-foot {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  flex-shrink: 0;
+  border-top: 1px solid rgba(15, 23, 42, 0.06);
+  padding-top: 8px;
+}
+
+.cins-chat-sticker-picker-count {
+  font-size: 11px;
+  line-height: 1.2;
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.cins-chat-sticker-picker-foot-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  width: 100%;
+}
+
+.cins-chat-sticker-picker-file {
+  display: none;
+}
+
+.cins-chat-sticker-picker-upload,
+.cins-chat-sticker-picker-delete-bo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+  border: 0;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+  padding: 7px 6px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.cins-chat-sticker-picker-upload {
+  background: var(--cins-blue-soft, rgba(31, 116, 201, 0.08));
+  color: var(--cins-blue, #1f74c9);
+}
+
+.cins-chat-sticker-picker-upload:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cins-chat-sticker-picker-delete-bo {
+  background: rgba(220, 38, 38, 0.08);
+  color: #b91c1c;
+}
+
+.cins-chat-sticker-picker-status,
+.cins-chat-sticker-picker-empty {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.45);
+  text-align: center;
+  padding: 16px 8px;
+}
+
+.cins-chat-sticker-picker-error {
+  font-size: 12px;
+  color: #b91c1c;
+  margin: 0;
+}
+
+.cins-chat-sticker-picker .is-spin {
+  animation: cins-chat-spin 0.8s linear infinite;
+}
+
+@keyframes cins-chat-spin {
+  to {
+    transform: rotate(360deg);
   }
 }

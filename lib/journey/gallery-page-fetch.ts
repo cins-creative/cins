@@ -18,7 +18,6 @@ import { attachPersonalFiltersToGalleryItems } from "@/lib/filter/attach-milesto
 import type { PersonalFilterRef } from "@/lib/filter/types";
 import {
   collectGalleryStubs,
-  resolveOwnerSlugs,
   resolveOwnerProfiles,
   type GalleryStub,
   type OwnerProfile,
@@ -164,15 +163,6 @@ function postHref(ownerSlug: string, postSlug: string | null): string {
   return `/${ownerSlug}/p/${postSlug}`;
 }
 
-function formatVnDate(iso: string | null | undefined): string {
-  if (!iso) return "";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  const dd = String(d.getDate()).padStart(2, "0");
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  return `${dd}/${mm}/${d.getFullYear()}`;
-}
-
 function isOrgCreateGalleryStub(entry: GalleryStub): boolean {
   return (
     entry.cardLayout === "cong-dong-create" ||
@@ -232,6 +222,7 @@ function hydrateAsideItems(
   stubs: GalleryStub[],
   ownerSlug: string,
   ownerSlugById: Map<string, string>,
+  ownerProfileById?: Map<string, OwnerProfile>,
 ): {
   pinned: GalleryPinnedBanner[];
   items: GalleryGridItem[];
@@ -249,6 +240,7 @@ function hydrateAsideItems(
     const img = stubImageFields(entry, "gallery-pinned");
     const isVideo = entry.mediaKind === "video";
     if (!img?.src && !isVideo) return;
+    const ownerProfile = ownerProfileById?.get(entry.postOwnerId);
     pinned.push({
       id: `pin-${entry.cotMocId}-${i}`,
       cotMocId: entry.cotMocId,
@@ -258,7 +250,9 @@ function hydrateAsideItems(
       height: img?.height,
       pin: "Nổi bật",
       title: galleryItemLabel(entry.tieuDe, entry.mediaKind),
-      meta: formatVnDate(entry.thoiDiem),
+      meta: entry.excerpt,
+      authorName: ownerProfile?.name ?? null,
+      authorAvatarUrl: ownerProfile?.avatarUrl ?? null,
       href: postHref(
         ownerSlugById.get(entry.postOwnerId) ?? ownerSlug,
         entry.tacPhamSlug,
@@ -368,6 +362,9 @@ export async function fetchGalleryForUser(params: {
 
   const admin = createServiceRoleClient();
   const ownerIds = [...new Set(stubs.map((x) => x.postOwnerId))];
-  const ownerSlugById = await resolveOwnerSlugs(admin, ownerIds);
-  return hydrateAsideItems(stubs, ownerSlug, ownerSlugById);
+  const ownerProfileById = await resolveOwnerProfiles(admin, ownerIds);
+  const ownerSlugById = new Map(
+    [...ownerProfileById].map(([id, profile]) => [id, profile.slug]),
+  );
+  return hydrateAsideItems(stubs, ownerSlug, ownerSlugById, ownerProfileById);
 }

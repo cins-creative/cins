@@ -13,7 +13,7 @@ const FOLLOW_SUGGESTIONS = [
   {
     id: "trang-ui",
     initials: "TU",
-    avatarStyle: "linear-gradient(135deg, #ff758c, #ffb85c)",
+    avatarStyle: "linear-gradient(135deg, #ff758c, #fdad4c)",
     isOrg: false,
     verified: true,
     name: "Trang UI",

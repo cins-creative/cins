@@ -8,14 +8,27 @@
   /* ---------- ACCENT QUARTET (mascot palette) ---------- */
   --cins-yellow: #FDE859;  /* Artist mascot · sun · CTA energy */
   --cins-mint:   #6EFEC0;  /* Supporter mascot · success · refresh */
-  --cins-orange: #FFB85C;  /* Manager mascot · warmth · highlight */
+  --cins-orange: #FDAD4C;  /* Brand orange · Manager mascot · warmth · highlight */
   --cins-violet: #BB89F8;  /* Technical Artist mascot · creativity */
 
   /* Tints (10–20% versions for backgrounds) */
   --cins-yellow-soft: #FFF8C9;
   --cins-mint-soft:   #D9FBED;
-  --cins-orange-soft: #FFE6C9;
+  --cins-orange-soft: color-mix(in srgb, var(--cins-orange) 22%, white);
   --cins-violet-soft: #ECDDFE;
+
+  /* Quản trị / owner — cam, tách khỏi brand blue (chỉ UI đặc quyền admin/owner) */
+  --cins-priv-accent: #D97706;
+  --cins-priv-accent-strong: #B45309;
+  --cins-priv-accent-ink: #9A3412;
+  --cins-priv-accent-soft: var(--cins-orange-soft);
+  --cins-priv-accent-border: color-mix(in srgb, var(--cins-priv-accent-strong) 32%, transparent);
+  --cins-priv-accent-shadow: rgba(217, 119, 6, 0.32);
+  --cins-priv-accent-gradient: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--cins-orange) 22%, transparent),
+    color-mix(in srgb, var(--cins-orange-soft) 65%, transparent)
+  );
 
   /* ---------- NEUTRALS ---------- */
   --neutral-0:    #FFFFFF;

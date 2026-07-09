@@ -23,7 +23,7 @@ export const DEFAULT_CONG_DONG_FILTER_TEMPLATES = [
     ten: "💼 Tuyển người",
     slug: "tuyen-nguoi",
     icon: "briefcase",
-    mau: "#FFB85C",
+    mau: "#FDAD4C",
     thu_tu: 2,
   },
   {

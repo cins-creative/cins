@@ -19,6 +19,7 @@ import {
   loadPinnedMessageIds,
   loadReactionsForMessages,
 } from "@/lib/chat/message-enrich";
+import { resolveOwnedUserEmojiMuc } from "@/lib/user-emoji/resolve-owned";
 import type {
   ChatContextCard,
   ChatMessage,
@@ -101,6 +102,7 @@ export function messagePreview(row: MessageRow): string {
     if (caption && !isCloudflareImageId(caption)) return caption;
     return "Ảnh";
   }
+  if (normalized.loai_tin === "sticker") return "Meme";
   return normalized.noi_dung?.trim() || "";
 }
 
@@ -148,10 +150,13 @@ export function mapMessageFromRow(
   const nguCanh = parseNguCanh(normalized.ngu_canh);
   const kind: ChatMessageKind = nguCanh
     ? "context"
-    : normalized.loai_tin === "media"
-      ? "media"
-      : "text";
-  const imageId = kind === "media" ? resolveImageId(normalized) : null;
+    : normalized.loai_tin === "sticker"
+      ? "sticker"
+      : normalized.loai_tin === "media"
+        ? "media"
+        : "text";
+  const imageId =
+    kind === "media" || kind === "sticker" ? resolveImageId(normalized) : null;
   let body = normalized.noi_dung?.trim() || "";
 
   if (kind === "media" && imageId && body === imageId) {
@@ -778,6 +783,7 @@ export async function sendRoomMessage(
     | {
         body?: string;
         cloudflareImageId?: string;
+        emojiMucId?: string;
         replyToId?: string;
         nguCanh?: unknown;
       },
@@ -788,13 +794,19 @@ export async function sendRoomMessage(
     typeof input === "string"
       ? undefined
       : input.cloudflareImageId?.trim();
+  const emojiMucId =
+    typeof input === "string" ? undefined : input.emojiMucId?.trim();
   const replyToId =
     typeof input === "string" ? undefined : input.replyToId?.trim();
   const nguCanh =
     typeof input === "string" ? null : parseNguCanh(input.nguCanh);
 
-  if (!body && !cloudflareImageId && !nguCanh) {
+  if (!body && !cloudflareImageId && !emojiMucId && !nguCanh) {
     return { ok: false, error: "Tin nhắn trống." };
+  }
+
+  if (cloudflareImageId && emojiMucId) {
+    return { ok: false, error: "Chỉ gửi một loại đính kèm mỗi lần." };
   }
 
   if (cloudflareImageId && !isCloudflareImageId(cloudflareImageId)) {
@@ -823,14 +835,35 @@ export async function sendRoomMessage(
   }
 
   let mediaId: string | null = null;
-  if (cloudflareImageId) {
+  let stickerCloudflareId: string | null = null;
+
+  if (emojiMucId) {
+    const resolved = await resolveOwnedUserEmojiMuc(emojiMucId, viewerId);
+    if (!resolved) {
+      return { ok: false, error: "Meme không hợp lệ hoặc không thuộc tài khoản bạn." };
+    }
+    stickerCloudflareId = resolved.cloudflareId;
+    mediaId = await ensureChatMediaId(stickerCloudflareId, viewerId);
+    if (!mediaId) {
+      return { ok: false, error: "Không lưu được meme." };
+    }
+  } else if (cloudflareImageId) {
     mediaId = await ensureChatMediaId(cloudflareImageId, viewerId);
     if (!mediaId) {
       return { ok: false, error: "Không lưu được ảnh đính kèm." };
     }
   }
 
-  const insertRow = cloudflareImageId
+  const insertRow = stickerCloudflareId
+    ? {
+        id_phong: roomId,
+        id_nguoi_gui: viewerId,
+        loai_tin: "sticker" as const,
+        id_dinh_kem: mediaId,
+        noi_dung: stickerCloudflareId,
+        ...(replyToId ? { id_tin_tra_loi: replyToId } : {}),
+      }
+    : cloudflareImageId
     ? {
         id_phong: roomId,
         id_nguoi_gui: viewerId,

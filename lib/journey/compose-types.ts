@@ -1,12 +1,16 @@
-export type ComposeCreateKind = "article" | "photo" | "video" | "milestone";
+export type ComposeCreateKind = "article" | "photo" | "video" | "milestone" | "embed";
 
 /** Luồng mở trình soạn — create luôn qua EditorView (một sheet). */
-export type ComposeIntent = "minimal" | "photo" | "video" | "full";
+export type ComposeIntent = "minimal" | "photo" | "video" | "full" | "embed";
 
 export type JourneyComposeState =
   | { kind: "article"; intent?: ComposeIntent }
   | { kind: "photo"; pendingFiles?: File[] }
   | { kind: "video"; pendingFile?: File }
+  | {
+      kind: "embed";
+      platform: import("@/lib/editor/embed-providers").Tier1EmbedPlatformId;
+    }
   | { kind: "milestone" }
   | { kind: "milestone-edit"; cotMocId: string }
   | { kind: "edit"; postSlug: string };
@@ -26,8 +30,23 @@ export function parseComposeSearchParams(
     compose === "article" ||
     compose === "photo" ||
     compose === "video" ||
+    compose === "embed" ||
     compose === "milestone"
   ) {
+    if (compose === "embed") {
+      const platform = params.get("platform")?.trim();
+      if (
+        platform === "youtube" ||
+        platform === "vimeo" ||
+        platform === "figma" ||
+        platform === "framer" ||
+        platform === "sketchfab" ||
+        platform === "rive"
+      ) {
+        return { kind: "embed", platform };
+      }
+      return null;
+    }
     return { kind: compose };
   }
   return null;
@@ -48,6 +67,9 @@ export function composeStateToSearchParams(
   } else if (state.kind === "milestone-edit") {
     next.set("compose", "milestone-edit");
     next.set("cotMoc", state.cotMocId);
+  } else if (state.kind === "embed") {
+    next.set("compose", "embed");
+    next.set("platform", state.platform);
   } else {
     next.set("compose", state.kind);
   }

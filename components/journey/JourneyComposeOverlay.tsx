@@ -17,7 +17,10 @@ import type {
   ComposeIntent,
   JourneyComposeState,
 } from "@/lib/journey/compose-types";
-import { resolveEditComposeIntent } from "@/lib/journey/post-media";
+import {
+  detectExternalEmbedPlatform,
+  resolveEditComposeIntent,
+} from "@/lib/journey/post-media";
 
 const EditorViewLazy = dynamic(
   () =>
@@ -71,6 +74,8 @@ export function JourneyComposeOverlay({
     compose.kind === "photo" ? compose.pendingFiles : undefined;
   const pendingVideoFile =
     compose.kind === "video" ? compose.pendingFile : undefined;
+  const embedPlatform =
+    compose.kind === "embed" ? compose.platform : undefined;
 
   const createEditorIntent = useMemo((): ComposeIntent | undefined => {
     if (compose.kind === "article") {
@@ -78,6 +83,7 @@ export function JourneyComposeOverlay({
     }
     if (compose.kind === "photo") return "photo";
     if (compose.kind === "video") return "video";
+    if (compose.kind === "embed") return "embed";
     return undefined;
   }, [compose]);
 
@@ -86,10 +92,16 @@ export function JourneyComposeOverlay({
     return resolveEditComposeIntent(editInitial.blocks, editInitial.moTa);
   }, [editInitial]);
 
+  const editEmbedPlatform = useMemo(() => {
+    if (!editInitial || editEditorIntent !== "embed") return undefined;
+    return detectExternalEmbedPlatform(editInitial.blocks) ?? undefined;
+  }, [editInitial, editEditorIntent]);
+
   const isCreateEditor =
     compose.kind === "article" ||
     compose.kind === "photo" ||
-    compose.kind === "video";
+    compose.kind === "video" ||
+    compose.kind === "embed";
 
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -171,7 +183,9 @@ export function JourneyComposeOverlay({
         ? "Thêm ảnh"
         : compose.kind === "video"
           ? "Thêm video"
-          : compose.kind === "milestone"
+          : compose.kind === "embed"
+            ? "Nhúng tác phẩm"
+            : compose.kind === "milestone"
             ? "Thêm cột mốc"
             : compose.kind === "milestone-edit"
               ? "Chỉnh sửa yêu cầu cột mốc"
@@ -199,6 +213,7 @@ export function JourneyComposeOverlay({
             ownerName={ownerName}
             presentation="overlay"
             composeIntent={createEditorIntent}
+            embedPlatform={embedPlatform}
             initialPhotoFiles={pendingPhotoFiles}
             initialVideoFile={pendingVideoFile}
             congDongCompose={congDongCompose}
@@ -239,6 +254,7 @@ export function JourneyComposeOverlay({
               postSlug={editPostSlug}
               presentation="overlay"
               composeIntent={editEditorIntent}
+              embedPlatform={editEmbedPlatform}
               congDongCompose={congDongCompose}
               orgBaiDangCompose={orgBaiDangCompose}
               onClose={onClose}

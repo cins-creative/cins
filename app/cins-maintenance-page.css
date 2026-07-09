@@ -7,8 +7,8 @@
   --cins-yellow-soft: #fff8c9;
   --cins-mint: #6efec0;
   --cins-mint-soft: #d9fbed;
-  --cins-orange: #ffb85c;
-  --cins-orange-soft: #ffe6c9;
+  --cins-orange: #fdad4c;
+  --cins-orange-soft: color-mix(in srgb, var(--cins-orange) 22%, white);
   --cins-violet: #bb89f8;
   --cins-violet-soft: #ecddfe;
   --cins-violet-deep: #5c2bb6;

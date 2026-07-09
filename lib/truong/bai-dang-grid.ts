@@ -5,6 +5,7 @@ import {
 import { loaiBaiDangLabel } from "@/lib/truong/bai-dang";
 import { baiDangGridPreviewUrl } from "@/lib/truong/bai-dang-cover";
 import { baiDangYear } from "@/lib/truong/bai-dang-timeline";
+import { orgBaiDangPostElementId } from "@/lib/truong/org-bai-dang-permalink";
 import type { TruongBaiDang } from "@/lib/truong/types";
 
 /** Hai chế độ xem bài đăng tổ chức — mặc định timeline (giống World Journey). */
@@ -19,6 +20,17 @@ export type OrgBaiDangGridItem = {
   loaiLabel: string;
   year: number | null;
 };
+
+/** Cuộn timeline tới bài đăng và nhấp nháy viền (mở từ lưới). */
+export function focusOrgBaiDangPostOnTimeline(postId: string): void {
+  requestAnimationFrame(() => {
+    const el = document.getElementById(orgBaiDangPostElementId(postId));
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+    el.classList.add("is-flash");
+    window.setTimeout(() => el.classList.remove("is-flash"), 1600);
+  });
+}
 
 /** Map bài đăng tổ chức → ô lưới (cover/ảnh đầu + tiêu đề + trích đoạn). */
 export function orgBaiDangPostsToGridItems(

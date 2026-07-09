@@ -27,6 +27,10 @@ type Props = {
   returnPath?: string | null;
   /** Ẩn nút "Tiếp tục với …" — dùng trên home guest (chỉ /login mới hiện). */
   showRememberedAccount?: boolean;
+  /** Ẩn nút "Đăng ký với Google" — home guest chỉ còn đăng nhập. */
+  showRegisterGoogleButton?: boolean;
+  /** Đặt nút Google sau form email — dùng trên home guest. */
+  googleLoginAfterPassword?: boolean;
   className?: string;
 };
 
@@ -82,6 +86,8 @@ export function LoginActions({
   resumeAfterRedirect = false,
   returnPath = null,
   showRememberedAccount = true,
+  showRegisterGoogleButton = true,
+  googleLoginAfterPassword = false,
   className,
 }: Props) {
   const [busy, setBusy] = useState(false);
@@ -122,6 +128,40 @@ export function LoginActions({
     runLogin("login");
   }, [autoIntent, initialError, resumeAfterRedirect]);
 
+  const registerGoogleButton = showRegisterGoogleButton ? (
+    <LoginGoogleButton
+      intent="register"
+      variant="primary"
+      label="Đăng ký với Google"
+      disabled={busy}
+      returnTo={returnPath}
+      onLoadingChange={setBusy}
+      onError={(m) => setError(m || null)}
+    />
+  ) : null;
+
+  const loginGoogleButton = (
+    <LoginGoogleButton
+      intent="login"
+      variant={
+        googleLoginAfterPassword || showRegisterGoogleButton
+          ? "secondary"
+          : "primary"
+      }
+      label="Đăng nhập với Google"
+      disabled={busy}
+      returnTo={returnPath}
+      onLoadingChange={setBusy}
+      onError={(m) => setError(m || null)}
+    />
+  );
+
+  const oauthError = error ? (
+    <p className="cins-login-error" role="alert">
+      {error}
+    </p>
+  ) : null;
+
   return (
     <div
       className={["cins-login-actions", className].filter(Boolean).join(" ")}
@@ -134,39 +174,33 @@ export function LoginActions({
         />
       ) : null}
 
-      <LoginGoogleButton
-        intent="register"
-        variant="primary"
-        label="Đăng ký với Google"
-        disabled={busy}
-        returnTo={returnPath}
-        onLoadingChange={setBusy}
-        onError={(m) => setError(m || null)}
-      />
-      <LoginGoogleButton
-        intent="login"
-        variant="secondary"
-        label="Đăng nhập với Google"
-        disabled={busy}
-        returnTo={returnPath}
-        onLoadingChange={setBusy}
-        onError={(m) => setError(m || null)}
-      />
-      {error ? (
-        <p className="cins-login-error" role="alert">
-          {error}
-        </p>
+      {!googleLoginAfterPassword ? (
+        <>
+          {registerGoogleButton}
+          {loginGoogleButton}
+          {oauthError}
+          <div className="cins-login-divider" role="separator">
+            <span>hoặc dùng email</span>
+          </div>
+        </>
       ) : null}
-
-      <div className="cins-login-divider" role="separator">
-        <span>hoặc dùng email</span>
-      </div>
 
       <LoginPasswordForm
         returnPath={returnPath}
         disabled={busy}
         onBusyChange={setBusy}
       />
+
+      {googleLoginAfterPassword ? (
+        <>
+          <div className="cins-login-divider" role="separator">
+            <span>hoặc</span>
+          </div>
+          {registerGoogleButton}
+          {loginGoogleButton}
+          {oauthError}
+        </>
+      ) : null}
     </div>
   );
 }

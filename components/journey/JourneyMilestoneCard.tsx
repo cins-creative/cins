@@ -78,6 +78,7 @@ import {
   resolveBookmarkFrameKind,
 } from "@/lib/journey/bookmark-source-theme";
 import {
+  articleCardEmbedInteractivePeek,
   plainTextCardPlain,
   chiChuBodyPlain,
   milestoneCardCaptionPlain,
@@ -692,7 +693,9 @@ export function JourneyMilestoneCard({
   const resolvedPostOwner = postOwnerSlug || ownerSlug || null;
   const isArticle = cardContentKind === "article";
   const isTextCard = cardContentKind === "text";
-  const supportsInlineUnfold = isArticle;
+  const embedInteractivePeek =
+    isArticle && articleCardEmbedInteractivePeek(body, noiDungBlocks);
+  const supportsInlineUnfold = isArticle && !embedInteractivePeek;
   const useFeedCompactMedia = feedCompactMedia && cardContentKind === "photo";
   const cardReadMoreHref =
     useFeedCompactMedia && readMoreHref ? readMoreHref : null;
@@ -734,6 +737,8 @@ export function JourneyMilestoneCard({
   );
   const authorsInUnfold = pinActionsAboveComments && showAuthorsStrip;
   const milestoneId = cotMocId ?? milestone.id;
+  const likeActorsMediaLabel =
+    cardContentKind === "photo" || cardContentKind === "video" ? "anh" : undefined;
   const orgAttachCotMocId = cotMocId ?? milestone.id;
   /* Đối tượng analytics: bài đăng tổ chức (`org_bai_dang`, vd. feed world) tính
      riêng theo `org_bai_dang`; còn lại là cột mốc thường. `cotMocId` của org
@@ -851,10 +856,12 @@ export function JourneyMilestoneCard({
     null;
   const entityPosterAvatar =
     authorAvatarUrl ?? milestone.lensOwnerAvatarUrl ?? null;
-  /** Trang entity — luôn hiện datebar đọc-only (kể cả khi viewer là chủ bài). */
+  /** Trang entity / feed tổng hợp — datebar đọc-only cho người xem.
+   * Chủ bài (`canManage`) dùng datebar chuẩn như `/[slug]/journey`. */
   const showEntityDatebar =
     entityLens &&
     !useForeignFrame &&
+    !(canManage && ownerSlug) &&
     (Boolean(entityPosterLabel || authorAvatarUrl || milestone.lensOwnerAvatarUrl) ||
       (isCongDongPost && Boolean(congDongOrg)));
 
@@ -1025,33 +1032,31 @@ export function JourneyMilestoneCard({
   const jcardActions = (
     <div className="jcard-actions">
       <JourneyLikeButton
-        milestoneId={cotMocId ?? milestone.id}
+        milestoneId={milestoneId}
         initialLiked={social?.viewerLiked}
         initialCount={social?.likeCount}
         showCount={social?.showCounts}
+        actorsMediaLabel={likeActorsMediaLabel}
       />
       {inlineExpand ? (
         <JourneyCommentLink
           commentCount={liveCommentCount}
+          idDoiTuong={milestoneId}
           onOpenComments={() => {
             trackCommentOpen();
             inlineExpand.onOpenComments();
           }}
         />
       ) : (
-        <button
-          type="button"
-          className="action-btn"
-          aria-label="Bình luận"
-          data-open-post="true"
-        >
-          <MessageCircle size={16} strokeWidth={1.8} aria-hidden />
-          {liveCommentCount ? <span>{liveCommentCount}</span> : null}
-        </button>
+        <JourneyCommentLink
+          commentCount={liveCommentCount}
+          idDoiTuong={milestoneId}
+          openPostPopup
+        />
       )}
       {canBookmark ? (
         <JourneyBookmarkButton
-          milestoneId={cotMocId ?? milestone.id}
+          milestoneId={milestoneId}
           title={title}
           initialSaved={social?.viewerBookmarked}
           initialCount={social?.bookmarkCount}

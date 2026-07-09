@@ -200,10 +200,13 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-pill, 999px);
   background: var(--bg-surface);
+  font: inherit;
   font-size: 13px;
   font-weight: 600;
   color: var(--ink-body);
   text-decoration: none;
+  cursor: pointer;
+  appearance: none;
   transition:
     background 0.15s ease,
     border-color 0.15s ease,
@@ -354,10 +357,16 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
   font-size: 12px;
   font-weight: 700;
   color: var(--cins-blue);
   text-decoration: none;
+  cursor: pointer;
+  appearance: none;
 }
 
 .tk-section-more:hover {

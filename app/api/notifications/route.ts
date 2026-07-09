@@ -20,7 +20,16 @@ export async function GET(req: Request) {
   }
 
   const filter = parseFilter(new URL(req.url).searchParams.get("filter"));
-  const feed = await loadNotificationFeed(session.profile.id, filter);
+  const params = new URL(req.url).searchParams;
+  const offset = Math.max(0, Number.parseInt(params.get("offset") ?? "0", 10) || 0);
+  const limit = Math.min(
+    30,
+    Math.max(1, Number.parseInt(params.get("limit") ?? "10", 10) || 10),
+  );
+  const feed = await loadNotificationFeed(session.profile.id, filter, {
+    offset: filter === "history" ? offset : undefined,
+    displayLimit: limit,
+  });
   return NextResponse.json(feed);
 }
 

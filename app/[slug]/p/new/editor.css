@@ -1904,7 +1904,6 @@
   background: rgba(255, 255, 255, 0.35);
   border-radius: 999px;
 }
-.cins-editor-page .b-imgs:hover .lay-bar,
 .cins-editor-page .block.selected .lay-bar {
   opacity: 1;
 }
@@ -1962,7 +1961,7 @@
   opacity: 0;
   transition: opacity 0.15s;
 }
-.cins-editor-page .ph:hover .ph-actions {
+.cins-editor-page .block.selected .ph:hover .ph-actions {
   opacity: 1;
 }
 /* Nút xoá ảnh (góc phải trên mỗi ô). */
@@ -1984,7 +1983,7 @@
   opacity: 0;
   transition: opacity 0.15s;
 }
-.cins-editor-page .ph:hover .ph-del {
+.cins-editor-page .block.selected .ph:hover .ph-del {
   opacity: 1;
 }
 .cins-editor-page .ed-photo-album-compose .image-grid-cell.is-compose-editable {

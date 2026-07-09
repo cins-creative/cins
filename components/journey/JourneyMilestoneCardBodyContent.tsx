@@ -12,6 +12,7 @@ import { JourneyArticleTagLink } from "@/components/journey/JourneyArticleTagLin
 import { JourneyCardVideo } from "@/components/journey/JourneyCardVideo";
 import { JourneyCoverImage } from "@/components/journey/JourneyCoverImage";
 import { PostBlockRenderer } from "@/components/journey/PostBlockRenderer";
+import { JourneyCardEmbedPeek } from "@/components/journey/JourneyCardEmbedPeek";
 import { JourneyChiChuNenPicker } from "@/components/journey/JourneyChiChuNenPicker";
 import type { MilestoneMediaItem } from "@/components/journey/milestone-types";
 import type { GridImage } from "@/lib/journey/image-grid";
@@ -20,6 +21,7 @@ import type { MilestoneCardContentKind } from "@/lib/journey/milestone-card-kind
 import { milestonePhotoLayout } from "@/lib/journey/milestone-card-kind";
 import {
   articleCardNeedsDepthPreview,
+  articleCardEmbedInteractivePeek,
   articleCardPeekBlocks,
   extractVideoUrl,
   plainTextCardPlain,
@@ -208,15 +210,20 @@ export function JourneyMilestoneCardBodyContent({
     showCardCaptionInBody ||
     articleTags.length > 0 ||
     Boolean(emptyFallback);
-  const showExpandTrigger =
+  const isEmbedInteractivePeek =
+    isArticle && articleCardEmbedInteractivePeek(body, blocks);
+  const showExpandTriggerBase =
     Boolean(expandTrigger?.enabled && isArticle && !isContentOpen) ||
     Boolean(readMoreHref && isArticle);
+  const showExpandTrigger =
+    showExpandTriggerBase && !isEmbedInteractivePeek;
 
   const articleNeedsDepth =
-    showExpandTrigger &&
     isArticle &&
-    !preview?.src &&
-    articleCardNeedsDepthPreview(body, blocks, hasCoverPreview);
+    (isEmbedInteractivePeek ||
+      (!preview?.src &&
+        showExpandTriggerBase &&
+        articleCardNeedsDepthPreview(body, blocks, hasCoverPreview)));
   const articlePeekBlocks = useMemo(() => {
     if (!articleNeedsDepth || !blocks?.length) return [];
     return articleCardPeekBlocks(body, blocks);
@@ -375,6 +382,7 @@ export function JourneyMilestoneCardBodyContent({
     <div
       className={[
         "jcard-body",
+        isEmbedInteractivePeek ? " is-embed-peek-body" : "",
         showExpandTrigger ? " is-expand-trigger" : "",
         isContentOpen ? " is-content-open" : "",
       ]
@@ -570,6 +578,8 @@ export function JourneyMilestoneCardBodyContent({
                 alt={preview.label || title}
               />
             </div>
+          ) : isEmbedInteractivePeek && blocks?.length ? (
+            <JourneyCardEmbedPeek body={body} blocks={blocks} />
           ) : showArticleContentPeek ? (
             <div className="preview preview--article-peek">
               <div className="preview--article-peek-inner">

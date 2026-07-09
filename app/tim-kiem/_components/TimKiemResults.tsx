@@ -31,6 +31,7 @@ type Props = {
   query: string;
   activeKind: SearchKindTab;
   counts: Record<SearchEntityKind, number>;
+  onFilterKind?: (kind: SearchKindTab) => void;
 };
 
 function sectionGridClass(kind: SearchEntityKind): string {
@@ -44,6 +45,7 @@ export function TimKiemResults({
   query,
   activeKind,
   counts,
+  onFilterKind,
 }: Props) {
   if (hits.length === 0) return null;
 
@@ -65,6 +67,7 @@ export function TimKiemResults({
               query={query}
               activeKind={activeKind}
               icon={SECTION_ICONS[kind]}
+              onFilterKind={onFilterKind}
             />
             <ul className={sectionGridClass(kind)}>
               {sectionHits.map((hit) => (

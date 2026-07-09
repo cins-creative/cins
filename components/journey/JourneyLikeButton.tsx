@@ -1,14 +1,22 @@
 "use client";
 
 import { useAuthGate } from "@/components/auth/AuthGateProvider";
+import {
+  JourneyActionActorsCount,
+  type JourneyActionActorsConfig,
+} from "@/components/journey/JourneyActionActorsCount";
+import { SOCIAL_LOAI_DOI_TUONG } from "@/lib/cong-dong/constants";
 import { Heart } from "lucide-react";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 
 type Props = {
   milestoneId: string;
   initialLiked?: boolean;
   initialCount?: number;
   showCount?: boolean;
+  loaiDoiTuong?: string;
+  actorsMediaLabel?: JourneyActionActorsConfig["mediaLabel"];
+  disableActorsReveal?: boolean;
 };
 
 type SocialEvent = CustomEvent<{
@@ -24,6 +32,9 @@ export function JourneyLikeButton({
   initialLiked = false,
   initialCount = 0,
   showCount = false,
+  loaiDoiTuong = SOCIAL_LOAI_DOI_TUONG.COT_MOC,
+  actorsMediaLabel,
+  disableActorsReveal = false,
 }: Props) {
   const { requireAuth } = useAuthGate();
   const [liked, setLiked] = useState(initialLiked);
@@ -64,7 +75,7 @@ export function JourneyLikeButton({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            loai_doi_tuong: "cot_moc",
+            loai_doi_tuong: loaiDoiTuong,
             id_doi_tuong: milestoneId,
             emoji: "heart",
             active: nextLiked,
@@ -90,17 +101,64 @@ export function JourneyLikeButton({
     });
   };
 
+  const actors = useMemo<JourneyActionActorsConfig | null>(() => {
+    if (disableActorsReveal || count <= 0) return null;
+    return {
+      kind: "like",
+      loaiDoiTuong,
+      idDoiTuong: milestoneId,
+      count,
+      mediaLabel: actorsMediaLabel,
+    };
+  }, [
+    actorsMediaLabel,
+    count,
+    disableActorsReveal,
+    loaiDoiTuong,
+    milestoneId,
+  ]);
+
+  const showCountChip = showCount && count > 0;
+
+  if (!showCountChip) {
+    return (
+      <button
+        type="button"
+        className={`action-btn${liked ? " is-liked" : ""}`}
+        aria-label={liked ? "Bỏ thích" : "Thích"}
+        aria-pressed={liked}
+        disabled={pending}
+        onClick={toggle}
+      >
+        <Heart size={16} strokeWidth={1.8} fill={liked ? "currentColor" : "none"} aria-hidden />
+      </button>
+    );
+  }
+
   return (
-    <button
-      type="button"
-      className={`action-btn${liked ? " is-liked" : ""}`}
-      aria-label={liked ? "Bỏ thích" : "Thích"}
-      aria-pressed={liked}
-      disabled={pending}
-      onClick={toggle}
-    >
-      <Heart size={16} strokeWidth={1.8} fill={liked ? "currentColor" : "none"} aria-hidden />
-      {showCount && count > 0 ? <span>{count}</span> : null}
-    </button>
+    <span className={`action-btn action-btn--split${liked ? " is-liked" : ""}`}>
+      <button
+        type="button"
+        className="action-btn-part action-btn-part--icon"
+        aria-label={liked ? "Bỏ thích" : "Thích"}
+        aria-pressed={liked}
+        disabled={pending}
+        onClick={(event) => {
+          event.stopPropagation();
+          toggle();
+        }}
+      >
+        <Heart size={16} strokeWidth={1.8} fill={liked ? "currentColor" : "none"} aria-hidden />
+      </button>
+      {showCountChip ? (
+        actors ? (
+          <JourneyActionActorsCount actors={actors} />
+        ) : (
+          <span className="action-btn-count action-btn-count--static" aria-hidden>
+            {count}
+          </span>
+        )
+      ) : null}
+    </span>
   );
 }

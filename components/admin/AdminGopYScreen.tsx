@@ -4,12 +4,18 @@ import { ExternalLink, Loader2, MessageSquare } from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
 
 import { adminUpdateGopYStatus } from "@/app/admin/gop-y/actions";
+import { ImageLightbox } from "@/components/journey/ImageLightbox";
 import {
   GOP_Y_TRANG_THAI_LABEL,
   GOP_Y_TRANG_THAI_ORDER,
   type GopYItem,
   type GopYTrangThai,
 } from "@/lib/gop-y/types";
+import {
+  GRID_IMAGE_DEFAULT_HEIGHT,
+  GRID_IMAGE_DEFAULT_WIDTH,
+  type GridImage,
+} from "@/lib/journey/image-grid";
 
 type Props = { items: GopYItem[] };
 
@@ -51,6 +57,54 @@ function parseNoiDung(s: string): NoiDungSeg[] {
   return segs;
 }
 
+function itemImageUrls(item: GopYItem): string[] {
+  const fromContent = parseNoiDung(item.noiDung)
+    .filter((s): s is { type: "image"; url: string } => s.type === "image")
+    .map((s) => s.url);
+  if (fromContent.length > 0) return fromContent;
+  return item.anhUrl ? [item.anhUrl] : [];
+}
+
+function urlToGridImage(url: string): GridImage {
+  return {
+    id: url,
+    width: GRID_IMAGE_DEFAULT_WIDTH,
+    height: GRID_IMAGE_DEFAULT_HEIGHT,
+    previewSrc: url,
+  };
+}
+
+type GopYImageButtonProps = {
+  url: string;
+  item: GopYItem;
+  onOpen: (urls: string[], index: number) => void;
+};
+
+function GopYImageButton({ url, item, onOpen }: GopYImageButtonProps) {
+  const urls = itemImageUrls(item);
+  const index = Math.max(0, urls.indexOf(url));
+
+  return (
+    <button
+      type="button"
+      className="gopy-admin-img"
+      title="Xem ảnh minh họa"
+      onClick={() => onOpen(urls, index)}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={url}
+        alt="Ảnh minh họa góp ý"
+        loading="lazy"
+        onError={(e) => {
+          const btn = e.currentTarget.closest("button");
+          if (btn instanceof HTMLElement) btn.style.display = "none";
+        }}
+      />
+    </button>
+  );
+}
+
 const NEXT_ACTIONS: Array<{ value: GopYTrangThai; label: string; kind: string }> = [
   { value: "dang_xu_ly", label: "Đang xử lý", kind: "ghost" },
   { value: "da_xu_ly", label: "Đã xử lý", kind: "primary" },
@@ -64,6 +118,10 @@ export function AdminGopYScreen({ items }: Props) {
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+  const [lightbox, setLightbox] = useState<{
+    images: GridImage[];
+    index: number;
+  } | null>(null);
   const [, startTransition] = useTransition();
 
   const counts = useMemo(() => {
@@ -101,6 +159,14 @@ export function AdminGopYScreen({ items }: Props) {
             : r,
         ),
       );
+    });
+  }
+
+  function openImageLightbox(urls: string[], index: number) {
+    if (urls.length === 0) return;
+    setLightbox({
+      images: urls.map(urlToGridImage),
+      index: Math.min(Math.max(index, 0), urls.length - 1),
     });
   }
 
@@ -165,25 +231,12 @@ export function AdminGopYScreen({ items }: Props) {
                             {s.text}
                           </p>
                         ) : (
-                          <a
+                          <GopYImageButton
                             key={i}
-                            href={s.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="gopy-admin-img"
-                            title="Mở ảnh minh họa"
-                          >
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={s.url}
-                              alt="Ảnh minh họa góp ý"
-                              loading="lazy"
-                              onError={(e) => {
-                                const a = e.currentTarget.closest("a");
-                                if (a instanceof HTMLElement) a.style.display = "none";
-                              }}
-                            />
-                          </a>
+                            url={s.url}
+                            item={item}
+                            onOpen={openImageLightbox}
+                          />
                         ),
                       )}
                     </div>
@@ -194,24 +247,11 @@ export function AdminGopYScreen({ items }: Props) {
                   <>
                     <p className="gopy-admin-noidung">{item.noiDung}</p>
                     {item.anhUrl ? (
-                      <a
-                        href={item.anhUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="gopy-admin-img"
-                        title="Mở ảnh minh họa"
-                      >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={item.anhUrl}
-                          alt="Ảnh minh họa góp ý"
-                          loading="lazy"
-                          onError={(e) => {
-                            const a = e.currentTarget.closest("a");
-                            if (a instanceof HTMLElement) a.style.display = "none";
-                          }}
-                        />
-                      </a>
+                      <GopYImageButton
+                        url={item.anhUrl}
+                        item={item}
+                        onOpen={openImageLightbox}
+                      />
                     ) : null}
                   </>
                 );
@@ -260,6 +300,17 @@ export function AdminGopYScreen({ items }: Props) {
           ))}
         </ul>
       )}
+
+      {lightbox ? (
+        <ImageLightbox
+          images={lightbox.images}
+          index={lightbox.index}
+          onClose={() => setLightbox(null)}
+          onIndexChange={(index) =>
+            setLightbox((prev) => (prev ? { ...prev, index } : null))
+          }
+        />
+      ) : null}
     </>
   );
 }

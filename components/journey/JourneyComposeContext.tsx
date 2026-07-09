@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 
 import { JourneyComposeOverlay } from "@/components/journey/JourneyComposeOverlay";
 import type { CongDongComposeConfig } from "@/lib/cong-dong/types";
+import type { Tier1EmbedPlatformId } from "@/lib/editor/embed-providers";
 import type { JourneyComposeState } from "@/lib/journey/compose-types";
 import type { ComposePublishedDetail } from "@/lib/journey/compose-published-sync";
 import { dispatchComposePublished } from "@/lib/journey/compose-published-sync";
@@ -24,6 +25,7 @@ type JourneyComposeContextValue = {
   openCompose: (state: JourneyComposeState) => void;
   openComposeWithPhotos: (files: File[]) => void;
   openComposeWithVideo: (file: File) => void;
+  openComposeWithEmbed: (platform: Tier1EmbedPlatformId) => void;
   closeCompose: () => void;
   canCompose: boolean;
   ownerSlug: string;
@@ -67,6 +69,9 @@ function syncComposeUrl(state: JourneyComposeState | null, mode: "push" | "repla
     else if (state.kind === "milestone-edit") {
       params.set("compose", "milestone-edit");
       params.set("cotMoc", state.cotMocId);
+    } else if (state.kind === "embed") {
+      params.set("compose", "embed");
+      params.set("platform", state.platform);
     } else params.set("compose", state.kind);
   }
   const qs = params.toString();
@@ -117,6 +122,14 @@ export function JourneyComposeProvider({
     [isOwner, openCompose],
   );
 
+  const openComposeWithEmbed = useCallback(
+    (platform: Tier1EmbedPlatformId) => {
+      if (!isOwner) return;
+      openCompose({ kind: "embed", platform });
+    },
+    [isOwner, openCompose],
+  );
+
   const closeCompose = useCallback(() => {
     setCompose(null);
     if (syncComposeUrlEnabled) syncComposeUrl(null, "replace");
@@ -157,9 +170,26 @@ export function JourneyComposeProvider({
         kind === "article" ||
         kind === "photo" ||
         kind === "video" ||
+        kind === "embed" ||
         kind === "milestone"
       ) {
-        setCompose({ kind });
+        if (kind === "embed") {
+          const platform = params.get("platform")?.trim();
+          if (
+            platform === "youtube" ||
+            platform === "vimeo" ||
+            platform === "figma" ||
+            platform === "framer" ||
+            platform === "sketchfab" ||
+            platform === "rive"
+          ) {
+            setCompose({ kind: "embed", platform });
+          } else {
+            setCompose(null);
+          }
+        } else {
+          setCompose({ kind });
+        }
       } else {
         setCompose(null);
       }
@@ -215,6 +245,7 @@ export function JourneyComposeProvider({
       openCompose,
       openComposeWithPhotos,
       openComposeWithVideo,
+      openComposeWithEmbed,
       closeCompose,
       canCompose: isOwner,
       ownerSlug,
@@ -226,6 +257,7 @@ export function JourneyComposeProvider({
       openCompose,
       openComposeWithPhotos,
       openComposeWithVideo,
+      openComposeWithEmbed,
       closeCompose,
       isOwner,
       ownerSlug,
@@ -262,6 +294,7 @@ export function useJourneyCompose(): JourneyComposeContextValue {
       openCompose: () => {},
       openComposeWithPhotos: () => {},
       openComposeWithVideo: () => {},
+      openComposeWithEmbed: () => {},
       closeCompose: () => {},
       canCompose: false,
       ownerSlug: "",

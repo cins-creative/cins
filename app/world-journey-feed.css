@@ -3773,6 +3773,8 @@
   width: 38px;
   min-width: 38px;
   padding: 0;
+  border: none;
+  background: transparent;
 }
 
 .world-journey-home .ha-person > .ha-row-friend-badge {

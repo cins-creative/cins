@@ -11,7 +11,7 @@ import type { CongDongFilter } from "@/lib/cong-dong/types";
 const PRESET_COLORS = [
   "#BB89F8",
   "#1F74C9",
-  "#FFB85C",
+  "#FDAD4C",
   "#6EFEC0",
   "#E85D4A",
   "#2E9B6A",

@@ -3,7 +3,9 @@
 import { ChevronDown, Circle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
+import { OrgBaiDangViewToggle } from "@/components/truong/OrgBaiDangViewToggle";
 import type { CoSoFilterChip } from "@/lib/to-chuc/co-so-page-queries";
+import type { OrgBaiDangView } from "@/lib/truong/bai-dang-grid";
 
 export type CoSoNhanFilter = "all" | string;
 
@@ -15,6 +17,8 @@ type Props = {
   counts: Record<string, number>;
   filters: CoSoFilterChip[];
   enabled?: boolean;
+  view?: OrgBaiDangView;
+  onViewChange?: (view: OrgBaiDangView) => void;
 };
 
 export function CoSoOrgNhanTimelineBar({
@@ -25,6 +29,8 @@ export function CoSoOrgNhanTimelineBar({
   counts,
   filters,
   enabled = true,
+  view = "timeline",
+  onViewChange,
 }: Props) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -47,59 +53,64 @@ export function CoSoOrgNhanTimelineBar({
     <div className="j-tlb org-baidang-tlb">
       <div className="j-tlb-year">{year ?? "—"}</div>
       <div className="j-tlb-month">{monthLabel ?? ""}</div>
-      <div className={`j-tlb-filter${open ? " is-open" : ""}`} ref={wrapRef}>
-        <button
-          type="button"
-          className="j-tlb-dd-btn"
-          disabled={!enabled}
-          aria-expanded={open}
-          onClick={() => setOpen((v) => !v)}
-        >
-          {activeLabel}
-          <span className="j-tlb-dd-count">{counts[filter] ?? counts.all ?? 0}</span>
-          <ChevronDown size={14} className="j-tlb-dd-caret" aria-hidden />
-        </button>
-        <div className="j-tlb-dd-menu" role="menu">
-          <div className="j-dd-section-label">Nhãn lọc</div>
+      <div className="org-baidang-tlb-actions">
+        <div className={`j-tlb-filter${open ? " is-open" : ""}`} ref={wrapRef}>
           <button
             type="button"
-            role="menuitem"
-            className={
-              "j-dd-opt j-dd-opt-main" + (filter === "all" ? " is-active" : "")
-            }
-            onClick={() => {
-              onFilterChange("all");
-              setOpen(false);
-            }}
+            className="j-tlb-dd-btn"
+            disabled={!enabled}
+            aria-expanded={open}
+            onClick={() => setOpen((v) => !v)}
           >
-            <Circle size={14} aria-hidden />
-            <span className="j-dd-lbl">Tất cả</span>
-            <span className="j-dd-n">{counts.all ?? 0}</span>
+            {activeLabel}
+            <span className="j-tlb-dd-count">{counts[filter] ?? counts.all ?? 0}</span>
+            <ChevronDown size={14} className="j-tlb-dd-caret" aria-hidden />
           </button>
-          {filters.map((chip) => (
+          <div className="j-tlb-dd-menu" role="menu">
+            <div className="j-dd-section-label">Nhãn lọc</div>
             <button
-              key={chip.id}
               type="button"
               role="menuitem"
               className={
-                "j-dd-opt j-dd-opt-main" +
-                (filter === chip.slug ? " is-active" : "")
+                "j-dd-opt j-dd-opt-main" + (filter === "all" ? " is-active" : "")
               }
               onClick={() => {
-                onFilterChange(chip.slug);
+                onFilterChange("all");
                 setOpen(false);
               }}
             >
-              <span
-                className="j-dd-dot"
-                style={{ background: chip.mau ?? "var(--cins-blue)" }}
-                aria-hidden
-              />
-              <span className="j-dd-lbl">{chip.ten}</span>
-              <span className="j-dd-n">{counts[chip.slug] ?? 0}</span>
+              <Circle size={14} aria-hidden />
+              <span className="j-dd-lbl">Tất cả</span>
+              <span className="j-dd-n">{counts.all ?? 0}</span>
             </button>
-          ))}
+            {filters.map((chip) => (
+              <button
+                key={chip.id}
+                type="button"
+                role="menuitem"
+                className={
+                  "j-dd-opt j-dd-opt-main" +
+                  (filter === chip.slug ? " is-active" : "")
+                }
+                onClick={() => {
+                  onFilterChange(chip.slug);
+                  setOpen(false);
+                }}
+              >
+                <span
+                  className="j-dd-dot"
+                  style={{ background: chip.mau ?? "var(--cins-blue)" }}
+                  aria-hidden
+                />
+                <span className="j-dd-lbl">{chip.ten}</span>
+                <span className="j-dd-n">{counts[chip.slug] ?? 0}</span>
+              </button>
+            ))}
+          </div>
         </div>
+        {onViewChange ? (
+          <OrgBaiDangViewToggle view={view} onViewChange={onViewChange} />
+        ) : null}
       </div>
     </div>
   );

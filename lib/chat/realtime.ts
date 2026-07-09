@@ -29,12 +29,17 @@ export type ChatRealtimeMessageEvent = {
 };
 
 export function mapRealtimeRow(row: ChatRealtimeRow, viewerId: string): ChatMessage {
-  const kind = row.loai_tin === "media" ? "media" : "text";
+  const kind =
+    row.loai_tin === "sticker"
+      ? "sticker"
+      : row.loai_tin === "media"
+        ? "media"
+        : "text";
   const rawBody = row.noi_dung?.trim() || "";
   let imageId: string | null = null;
   let body = rawBody;
 
-  if (kind === "media") {
+  if (kind === "media" || kind === "sticker") {
     if (isCloudflareImageId(rawBody)) {
       imageId = rawBody;
       body = "";
@@ -59,6 +64,7 @@ export function mapRealtimeRow(row: ChatRealtimeRow, viewerId: string): ChatMess
 
 function realtimePreview(row: ChatRealtimeRow): string {
   if (row.da_xoa) return "Đã thu hồi tin nhắn";
+  if (row.loai_tin === "sticker") return "Meme";
   if (row.loai_tin === "media") {
     const caption = row.noi_dung?.trim() || "";
     if (caption && !isCloudflareImageId(caption)) return caption;
@@ -98,8 +104,13 @@ export type ReconcileChatMessageOptions = {
 function isSelfMediaMessage(message: ChatMessage): boolean {
   return (
     message.from === "me" &&
-    (message.kind === "media" || Boolean(message.imageId || message.imageUrl))
+    message.kind === "media" &&
+    Boolean(message.imageId || message.imageUrl)
   );
+}
+
+function isSelfStickerMessage(message: ChatMessage): boolean {
+  return message.from === "me" && message.kind === "sticker";
 }
 
 /** Gộp tin realtime/API với bản optimistic đang chờ — tránh trùng bubble. */
@@ -118,9 +129,13 @@ export function reconcileChatMessage(
   }
 
   if (message.from === "me") {
-
     const optimisticIdx = messages.findIndex(
-      (m) => isOptimisticMessageId(m.id) && sameOutgoingPayload(m, message),
+      (m) =>
+        isOptimisticMessageId(m.id) &&
+        (sameOutgoingPayload(m, message) ||
+          (isSelfStickerMessage(message) &&
+            isSelfStickerMessage(m) &&
+            (m.imageId ?? null) === (message.imageId ?? null))),
     );
     if (optimisticIdx >= 0) {
       const next = [...messages];

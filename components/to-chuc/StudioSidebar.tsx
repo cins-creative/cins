@@ -59,10 +59,9 @@ export function StudioSidebar({
   const ctx = useTruongInlineEdit();
   const editableMedia = canEditMedia && Boolean(ctx?.isEditing);
   const isEditing = Boolean(canEditMedia && ctx?.isEditing);
-  // "org của mình" (member thật, trục 2) — khoá theo dõi/nhắn tin + hiện hộp thư
-  // org. Admin CINs (trục 1, không member) vẫn theo dõi/nhắn tin như user thường.
   const isOwner = Boolean(ctx?.isOrgMember);
-  const showAdminCta = isOwner && isEditing;
+  /** Tin nhắn + tag đồ án: mọi admin org (member trục 2 hoặc CINs trục 1). */
+  const showAdminCta = isEditing && Boolean(ctx?.canEdit);
   const showSettings = Boolean(onOpenSettings) && isEditing;
   const displayTen = ctx?.school?.ten ?? studio.ten;
   const displayMoTa = ctx?.school?.mo_ta ?? studio.moTa;
@@ -262,7 +261,11 @@ export function StudioSidebar({
                     Giới thiệu
                   </h2>
                 </div>
-                <TruongGioiThieuTruong onOpenAbout={onOpenSettings} />
+                <TruongGioiThieuTruong
+                  onOpenAbout={
+                    isEditing && onOpenSettings ? onOpenSettings : undefined
+                  }
+                />
               </section>
             ) : null}
           </div>

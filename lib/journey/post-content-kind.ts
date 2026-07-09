@@ -1,5 +1,9 @@
 import type { Block } from "@/lib/editor/types";
 import {
+  buildEmbedIframeSrc,
+  classifyEmbedUrl,
+} from "@/lib/editor/embed-providers";
+import {
   classifyBunnyVideoUrl,
 } from "@/lib/bunny/embed";
 import {
@@ -8,7 +12,7 @@ import {
   extractAllImageIds,
   hasArticleLayoutBlocks,
   type GalleryMediaKind,
-} from "@/lib/journey/post-media";
+} from "@/lib/journey/post-block-helpers";
 import { extractVideoProcessingMeta } from "@/lib/journey/video-processing-meta";
 import {
   resolveBunnyVideoPreviewMp4FromBlocks,
@@ -114,27 +118,6 @@ function hasValidCover(input: PostContentResolveInput): boolean {
   return Boolean(id && isPersistedImageSeed(id));
 }
 
-function extractYoutubeId(url: string): string | null {
-  let u: URL;
-  try {
-    u = new URL(url.trim());
-  } catch {
-    return null;
-  }
-  const host = u.hostname.replace(/^www\./, "");
-  if (host === "youtu.be") {
-    const id = u.pathname.replace(/^\/+/, "").split("/")[0];
-    return id || null;
-  }
-  if (host === "youtube.com" || host === "m.youtube.com") {
-    const v = u.searchParams.get("v");
-    if (v) return v;
-    const m = u.pathname.match(/^\/(embed|shorts|live|v)\/([^/?#]+)/);
-    if (m) return m[2];
-  }
-  return null;
-}
-
 function embedBlocks(blocks: ReadonlyArray<Block>): Block[] {
   return blocks.filter((b) => b.loai === "embed");
 }
@@ -150,10 +133,31 @@ function isBunnyEmbedBlock(block: Block): boolean {
   return Boolean(url && classifyBunnyVideoUrl(url));
 }
 
-function isYoutubeEmbedBlock(block: Block): boolean {
+function isInlineIframeEmbedBlock(block: Block): boolean {
   if (block.loai !== "embed") return false;
+  if (isBunnyEmbedBlock(block)) return false;
   const url = typeof block.config?.url === "string" ? block.config.url : "";
-  return Boolean(url.trim() && extractYoutubeId(url));
+  if (!url.trim()) return false;
+  const cls = classifyEmbedUrl(url);
+  if (!cls || cls.provider === "behance") return false;
+  return buildEmbedIframeSrc(cls) !== null;
+}
+
+function hasInlineIframeEmbed(blocks: ReadonlyArray<Block>): boolean {
+  return embedBlocks(blocks).some(isInlineIframeEmbedBlock);
+}
+
+function inlineIframeEmbedResolution(
+  effectiveMoTa: string | null,
+  coverOk: boolean,
+  imageIds: string[],
+): Omit<PostContentResolution, "videoCanvasRatio" | "videoOrientation"> {
+  return {
+    kind: "article",
+    effectiveMoTa,
+    gridVisible: true,
+    gridThumbSource: coverOk ? "cover" : imageIds[0] ? "first_image" : null,
+  };
 }
 
 const BUNNY_VIDEO_COMPANION_LOAI = new Set<Block["loai"]>([
@@ -241,10 +245,6 @@ const NON_VIDEO_RESOLUTION_META: Pick<
   videoOrientation: null,
 };
 
-function hasYoutubeEmbed(blocks: ReadonlyArray<Block>): boolean {
-  return embedBlocks(blocks).some(isYoutubeEmbedBlock);
-}
-
 function deriveMoTaFromBlocks(blocks: ReadonlyArray<Block>): string {
   for (const block of blocks) {
     if (block.loai !== "body" && block.loai !== "h2" && block.loai !== "h3") {
@@ -281,6 +281,7 @@ function isPlainTextOnlyContent(input: PostContentResolveInput): boolean {
   if (extractAllImageIds(blocks).length > 0) return false;
   if (hasArticleLayoutBlocks(blocks)) return false;
   if (embedBlocks(blocks).some(isBunnyEmbedBlock)) return false;
+  if (hasInlineIframeEmbed(blocks)) return false;
 
   const moTaTrimmed = (input.moTa ?? "").trim();
   const meaningful = meaningfulBlocks(blocks);
@@ -326,14 +327,9 @@ export function resolvePostDisplayKind(
     );
   }
 
-  if (hasYoutubeEmbed(blocks)) {
+  if (hasInlineIframeEmbed(blocks)) {
     return finalizePostContentResolution(
-      {
-        kind: "article",
-        effectiveMoTa,
-        gridVisible: true,
-        gridThumbSource: coverOk ? "cover" : imageIds[0] ? "first_image" : null,
-      },
+      inlineIframeEmbedResolution(effectiveMoTa, coverOk, imageIds),
       blocks,
     );
   }
@@ -453,6 +449,12 @@ export function resolvePostDisplayKind(
   }
 
   if (blocksArePlainTextOnly(blocks) || moTaTrimmed || effectiveMoTa) {
+    if (hasInlineIframeEmbed(blocks)) {
+      return finalizePostContentResolution(
+        inlineIframeEmbedResolution(effectiveMoTa, coverOk, imageIds),
+        blocks,
+      );
+    }
     return finalizePostContentResolution(
       {
         kind: "text",

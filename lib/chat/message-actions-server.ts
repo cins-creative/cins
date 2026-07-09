@@ -112,8 +112,8 @@ export async function editRoomMessage(
     return { ok: false, error: "Không sửa được tin đã thu hồi." };
   }
 
-  if (row.loai_tin === "media") {
-    return { ok: false, error: "Không sửa được tin ảnh." };
+  if (row.loai_tin === "media" || row.loai_tin === "sticker") {
+    return { ok: false, error: "Không sửa được tin ảnh hoặc meme." };
   }
 
   if (!withinActionWindow(row.tao_luc)) {

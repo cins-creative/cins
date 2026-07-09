@@ -80,6 +80,13 @@ import { ImageGrid } from "@/components/journey/ImageGrid";
 import { CongDongFeedFilterDropdown } from "@/components/cong-dong/CongDongFeedFilterDropdown";
 import { updatePost } from "@/app/[slug]/p/[postSlug]/edit/actions";
 import { publishPost } from "@/app/[slug]/p/new/actions";
+import "@/app/cins-embed-picker.css";
+import { EditorExternalEmbedPanel } from "@/components/editor/EditorExternalEmbedPanel";
+import {
+  embedUrlMatchesPlatform,
+  getTier1EmbedPlatformMeta,
+  type Tier1EmbedPlatformId,
+} from "@/lib/editor/embed-providers";
 import { resolveAlbumGridCell } from "@/lib/editor/album-grid-block";
 import { isEditorEmptyImageSeed } from "@/lib/editor/editor-stock-image-seeds";
 import { resolveImageSeedUrl } from "@/lib/editor/resolve-image-seed-url";
@@ -436,7 +443,7 @@ const BLOCK_TYPES: Array<{
   { t: "body", ico: "¶", name: "Đoạn văn", desc: "Văn bản thường" },
   { t: "quote", ico: "❝", name: "Trích dẫn", desc: "Pull-quote nổi bật" },
   { t: "imgs", ico: "▥", name: "Ảnh / Album", desc: "Đổi được layout" },
-  { t: "embed", ico: "▶", name: "Nhúng", desc: "YouTube · Figma · Behance" },
+  { t: "embed", ico: "▶", name: "Nhúng", desc: "YouTube · Vimeo · Figma · Sketchfab · Rive" },
   { t: "palette", ico: "◐", name: "Bảng màu", desc: "Rút từ ảnh" },
   { t: "divider", ico: "—", name: "Ngăn cách", desc: "Divider" },
   { t: "spacer", ico: "↕", name: "Khoảng trống", desc: "Thêm khoảng cách" },
@@ -699,6 +706,8 @@ type Props = {
   orgBaiDangCompose?: OrgBaiDangComposeConfig;
   /** Luồng compose mới — một sheet cho mọi loại nội dung. */
   composeIntent?: ComposeIntent;
+  /** Nền tảng embed khi `composeIntent === "embed"`. */
+  embedPlatform?: Tier1EmbedPlatformId;
   initialPhotoFiles?: File[];
   initialVideoFile?: File;
   onClose?: () => void;
@@ -754,6 +763,7 @@ export function EditorView({
   congDongCompose,
   orgBaiDangCompose,
   composeIntent = "full",
+  embedPlatform,
   initialPhotoFiles,
   initialVideoFile,
   onClose,
@@ -764,16 +774,18 @@ export function EditorView({
   const isCreateCompose = !isEdit && isOverlay;
   const canPersistComposeDraft =
     isCreateCompose && !initialPhotoFiles?.length && !initialVideoFile;
-  const composeDraftKey = useMemo(
-    () =>
-      buildComposeEditorDraftKey({
-        ownerSlug,
-        composeIntent,
-        congDongCompose,
-        orgBaiDangCompose,
-      }),
-    [ownerSlug, composeIntent, congDongCompose, orgBaiDangCompose],
-  );
+  const composeDraftKey = useMemo(() => {
+    const base = buildComposeEditorDraftKey({
+      ownerSlug,
+      composeIntent,
+      congDongCompose,
+      orgBaiDangCompose,
+    });
+    if (composeIntent === "embed" && embedPlatform) {
+      return `${base}:${embedPlatform}`;
+    }
+    return base;
+  }, [ownerSlug, composeIntent, embedPlatform, congDongCompose, orgBaiDangCompose]);
 
   let restoredComposeDraft: ComposeEditorDraft | null | undefined;
   const peekRestoredComposeDraft = (): ComposeEditorDraft | null => {
@@ -790,7 +802,11 @@ export function EditorView({
   const isTextOnlyEdit = isEdit && isTextOnlyEditorInitial(initial);
   /** Ảnh/video overlay dùng cùng shell minimal expanded (canvas, cover, thumbnail). */
   const isOverlayMediaComposeIntent =
-    composeIntent === "photo" || composeIntent === "video";
+    composeIntent === "photo" ||
+    composeIntent === "video" ||
+    composeIntent === "embed";
+  const isExternalEmbedCompose =
+    composeIntent === "embed" && Boolean(embedPlatform);
   const usesMinimalFlow =
     (isCreateCompose &&
       (composeIntent === "minimal" || isOverlayMediaComposeIntent)) ||
@@ -800,7 +816,13 @@ export function EditorView({
       (composeIntent === "minimal" || isOverlayMediaComposeIntent));
   const [editorExpanded, setEditorExpanded] = useState(() => {
     if (restoredDraft?.editorExpanded != null) return restoredDraft.editorExpanded;
-    if (composeIntent === "photo" || composeIntent === "video") return true;
+    if (
+      composeIntent === "photo" ||
+      composeIntent === "video" ||
+      composeIntent === "embed"
+    ) {
+      return true;
+    }
     if (isEdit) return !isTextOnlyEditorInitial(initial);
     return composeIntent !== "minimal";
   });
@@ -837,10 +859,13 @@ export function EditorView({
   const showMinimalToolbar = useMemo(
     () =>
       usesMinimalFlow &&
-      (isMinimalUI || (showFullEditor && !(coverSeed || minimalCoverVisible))),
+      (isMinimalUI ||
+        isExternalEmbedCompose ||
+        (showFullEditor && !(coverSeed || minimalCoverVisible))),
     [
       usesMinimalFlow,
       isMinimalUI,
+      isExternalEmbedCompose,
       showFullEditor,
       coverSeed,
       minimalCoverVisible,
@@ -942,6 +967,8 @@ export function EditorView({
   const initialPhotosStartedRef = useRef(false);
   const initialVideoStartedRef = useRef(false);
   const videoBlockIdRef = useRef<string | null>(null);
+  const initialEmbedStartedRef = useRef(false);
+  const embedBlockIdRef = useRef<string | null>(null);
 
   const {
     videoUrl,
@@ -1285,7 +1312,18 @@ export function EditorView({
       ),
     [blocks, coverSeed, sub],
   );
-  const previewMeta = COMPOSE_PREVIEW_LABELS[previewKind];
+  const externalEmbedBlock = useMemo(
+    () => blocks.find((b) => b.t === "embed") ?? null,
+    [blocks],
+  );
+
+  const previewMeta =
+    isExternalEmbedCompose && embedPlatform
+      ? {
+          label: getTier1EmbedPlatformMeta(embedPlatform).label,
+          hint: "Nhúng từ nền tảng sáng tạo — thumbnail tuỳ chọn cho Gallery",
+        }
+      : COMPOSE_PREVIEW_LABELS[previewKind];
 
   const applyImageToBlock = useCallback(
     (target: ImgPickerTarget, seed: string) => {
@@ -1481,6 +1519,10 @@ export function EditorView({
   );
 
   const expandMinimalToFullEditor = useCallback(() => {
+    if (isExternalEmbedCompose) {
+      setToast("Bài nhúng chỉ gồm tiêu đề, mô tả, thumbnail và link embed.");
+      return;
+    }
     if (
       blocks.some((b) =>
         isEditorBunnyVideoBlock(b, videoBlockIdRef.current),
@@ -1495,7 +1537,7 @@ export function EditorView({
       return prev.filter((b) => b.t !== "body");
     });
     setEditorExpanded(true);
-  }, [blocks, setToast]);
+  }, [blocks, isExternalEmbedCompose, setToast]);
 
   const hasPhotoBlocks = blocks.some((b) => b.t === "imgs");
   const hasBunnyVideoBlock = useMemo(
@@ -1554,12 +1596,17 @@ export function EditorView({
       isBunnyVideoCompose,
     ],
   );
-  const hideBlockPalette = isMinimalMediaCompose || isBunnyVideoCompose;
+  const hideBlockPalette =
+    isMinimalMediaCompose || isBunnyVideoCompose || isExternalEmbedCompose;
   /** Minimal compose expanded — mỗi lần bấm + tạo thêm một block (session nội dung). */
   const canAddMoreSessions = usesMinimalFlow && editorExpanded;
 
   const pickBlockAt = useCallback(
     (type: BlockType, idx: number) => {
+      if (isExternalEmbedCompose) {
+        setToast("Bài nhúng chỉ gồm tiêu đề, mô tả, thumbnail và link embed.");
+        return;
+      }
       if (hasBunnyVideoBlock && !hasPhotoBlocks) {
         if (type === "imgs") {
           setToast("Không thể thêm album khi đã có video.");
@@ -1624,8 +1671,10 @@ export function EditorView({
       hasPhotoBlocks,
       hasBunnyVideoBlock,
       insertDummyImageBlockAt,
+      isExternalEmbedCompose,
       isMinimalMediaCompose,
       usesMinimalFlow,
+      setToast,
     ],
   );
 
@@ -1634,6 +1683,10 @@ export function EditorView({
       const files = e.target.files ? Array.from(e.target.files) : [];
       e.target.value = "";
       if (files.length === 0) return;
+      if (isExternalEmbedCompose) {
+        setToast("Bài nhúng không thêm album ảnh.");
+        return;
+      }
       if (hasBunnyVideoBlock) {
         setToast("Không thể thêm album khi đã có video.");
         return;
@@ -1641,7 +1694,7 @@ export function EditorView({
       setEditorExpanded(true);
       seedPhotoFiles(files);
     },
-    [hasBunnyVideoBlock, seedPhotoFiles],
+    [hasBunnyVideoBlock, isExternalEmbedCompose, seedPhotoFiles, setToast],
   );
 
   const onMinimalVideoPick = useCallback(
@@ -1649,6 +1702,10 @@ export function EditorView({
       const file = e.target.files?.[0];
       e.target.value = "";
       if (!file) return;
+      if (isExternalEmbedCompose) {
+        setToast("Bài nhúng không thêm video upload.");
+        return;
+      }
       if (hasBunnyVideoBlock) {
         setToast("Bài đã có video.");
         return;
@@ -1698,6 +1755,17 @@ export function EditorView({
     setBlocks((prev) => [...prev, { id: blockId, t: "embed", embedUrl: "" }]);
     void uploadVideoFile(initialVideoFile);
   }, [initialVideoFile, isEdit, pushHistory, uploadVideoFile]);
+
+  useEffect(() => {
+    if (!isExternalEmbedCompose || !embedPlatform || isEdit) return;
+    if (initialEmbedStartedRef.current) return;
+    initialEmbedStartedRef.current = true;
+    const blockId = newId();
+    embedBlockIdRef.current = blockId;
+    pushHistory();
+    setBlocks([{ id: blockId, t: "embed", embedUrl: "" }]);
+    setEditorExpanded(true);
+  }, [isExternalEmbedCompose, embedPlatform, isEdit, pushHistory]);
 
   useEffect(() => {
     const blockId = videoBlockIdRef.current;
@@ -2022,6 +2090,18 @@ export function EditorView({
     if (videoUploadError) {
       setToast(videoUploadError);
       return;
+    }
+
+    if (isExternalEmbedCompose && embedPlatform) {
+      const embedUrl = blocks
+        .find((b) => b.t === "embed")
+        ?.embedUrl?.trim();
+      if (!embedUrl || !embedUrlMatchesPlatform(embedUrl, embedPlatform)) {
+        setToast(
+          `Dán link ${getTier1EmbedPlatformMeta(embedPlatform).label} hợp lệ trước khi lưu.`,
+        );
+        return;
+      }
     }
 
     const serverBlocks: ServerBlock[] = toServerBlocks(blocks);
@@ -2453,7 +2533,64 @@ export function EditorView({
         ) : null}
 
         {showMinimalToolbar ? (
-          <div className="ed-minimal-toolbar">
+          <div
+            className={`ed-minimal-toolbar${isExternalEmbedCompose ? " ed-minimal-toolbar--embed" : ""}`}
+          >
+            {isExternalEmbedCompose && embedPlatform ? (
+              <>
+                {!(minimalCoverVisible || coverSeed) ? (
+                  <>
+                    <button
+                      type="button"
+                      className="ed-minimal-tool ed-minimal-tool--cover"
+                      onClick={() => minimalCoverInputRef.current?.click()}
+                    >
+                      <ImagePlus size={18} strokeWidth={1.8} aria-hidden />
+                      <span className="ed-minimal-tool--cover-label">
+                        <span className="ed-minimal-tool--cover-title">
+                          {MINIMAL_THUMB_ADD_LABEL}
+                        </span>
+                        <span className="ed-minimal-tool--cover-hint">
+                          {MINIMAL_THUMB_ADD_HINT}
+                        </span>
+                      </span>
+                    </button>
+                    <input
+                      ref={minimalCoverInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      style={{ display: "none" }}
+                      aria-hidden
+                      tabIndex={-1}
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) {
+                          setMinimalCoverVisible(true);
+                          beginImageUpload(f, setCoverSeed, replaceImageSeed);
+                        }
+                        e.target.value = "";
+                      }}
+                    />
+                  </>
+                ) : null}
+                <EditorExternalEmbedPanel
+                  platform={embedPlatform}
+                  embedUrl={externalEmbedBlock?.embedUrl ?? ""}
+                  onChangeEmbedUrl={(url) => {
+                    const blockId =
+                      embedBlockIdRef.current ?? externalEmbedBlock?.id;
+                    if (blockId) {
+                      updateBlock(blockId, { embedUrl: url });
+                      return;
+                    }
+                    const createdId = newId();
+                    embedBlockIdRef.current = createdId;
+                    setBlocks([{ id: createdId, t: "embed", embedUrl: url }]);
+                  }}
+                />
+              </>
+            ) : (
+              <>
             {isBunnyVideoCompose && !(minimalCoverVisible || coverSeed) ? (
               <EditorVideoThumbnailPicker
                 videoSrc={videoScrubSrc}
@@ -2532,10 +2669,12 @@ export function EditorView({
                 </button>
               ) : null}
             </div>
+              </>
+            )}
           </div>
         ) : null}
 
-        {showFullEditor ? (
+        {showFullEditor && !isExternalEmbedCompose ? (
         <div
           className={`blocks${hideBlockPalette ? " is-minimal-media-compose" : ""}${isPhotoAlbumCompose ? " is-photo-album-compose" : ""}`}
         >
@@ -3874,7 +4013,7 @@ function BlockInner(p: BlockRowProps) {
         <div style={{ flex: 1 }}>
           <input
             type="url"
-            placeholder="Dán link YouTube / Figma / Behance…"
+            placeholder="Dán link YouTube · Vimeo · Figma · Sketchfab · Rive…"
             value={b.embedUrl || ""}
             onChange={(e) => p.onChangeEmbedUrl(e.target.value)}
           />
@@ -4013,7 +4152,7 @@ function ImageBlock({ block, p }: { block: Block; p: BlockRowProps }) {
         })}
       </div>
 
-      {canAdd ? (
+      {canAdd && p.selected ? (
         <div className="img-add-row">
           <button
             type="button"

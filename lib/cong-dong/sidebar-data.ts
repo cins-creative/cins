@@ -23,7 +23,7 @@ const GIAI_DOAN_ORDER: GiaiDoan[] = [
 const GIAI_DOAN_COLOR: Record<GiaiDoan, string> = {
   dang_hoc: "var(--cins-mint, #1fa97e)",
   dang_lam: "var(--cins-blue, #1f74c9)",
-  freelance: "var(--cins-orange, #f0913b)",
+  freelance: "var(--cins-orange, #FDAD4C)",
   dang_day: "var(--cins-violet, #7c5cfc)",
   tim_viec: "#e85d75",
   moi_bat_dau: "#94a3b8",

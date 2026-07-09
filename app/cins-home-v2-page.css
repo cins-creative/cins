@@ -7,7 +7,7 @@
   --blue:#1F74C9; --blue-dark:#1656A0; --blue-soft:#E7F0FB;
   --yellow:#FDE859; --yellow-soft:#FFF8C9;
   --mint:#6EFEC0;   --mint-soft:#D9FBED;
-  --orange:#FFB85C; --orange-soft:#FFE6C9;
+  --orange:#FDAD4C; --orange-soft:color-mix(in srgb, var(--orange) 22%, white);
   --violet:#BB89F8; --violet-soft:#ECDDFE;
   --bg:#F4F5F8; --surface:#FFFFFF;
   --border:#E4E6EB; --border-s:#C9CCD3;

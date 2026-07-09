@@ -4,6 +4,7 @@ import { AdminGopYLoader } from "@/app/admin/gop-y/_components/AdminGopYLoader";
 import { renderAdminPage } from "@/lib/admin/admin-page";
 
 import "./gop-y-admin.css";
+import "@/app/[slug]/journey/image-grid.css";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;

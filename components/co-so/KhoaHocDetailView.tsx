@@ -947,6 +947,7 @@ function DetailContent({
                 buttonClassName="cso-khd-btn cso-khd-btn--ghost"
                 label="Lưu về"
                 iconSize={15}
+                disableActorsReveal
                 saveEndpoint={({ visibility, privateNote }) => ({
                   url: "/api/luu-bai",
                   body: {

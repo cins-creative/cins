@@ -53,10 +53,10 @@ export function CoSoSchoolSidebar({
   const ctx = useTruongInlineEdit();
   const school = ctx?.school ?? schoolProp;
   const isEditing = Boolean(canEditMedia && ctx?.isEditing);
-  // "org của mình" (member thật, trục 2) — khoá theo dõi/nhắn tin + hiện hộp thư
-  // org. Admin CINs (trục 1, không member) vẫn theo dõi/nhắn tin như user thường.
+  // isOwner (member trục 2): khoá theo dõi/nhắn tin chính org của mình.
   const isOwner = Boolean(ctx?.isOrgMember);
-  const showAdminCta = isOwner && isEditing;
+  /** Tin nhắn + tag đồ án: mọi admin org (member trục 2 hoặc CINs trục 1). */
+  const showAdminCta = isEditing && Boolean(ctx?.canEdit);
   const editable = canEditMedia;
   const subtitle = csoSidebarSubtitle(school);
   const shareSource = useOrgSidebarShareSource(school);

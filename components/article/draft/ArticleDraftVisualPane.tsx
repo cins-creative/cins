@@ -15,6 +15,8 @@ import type {
 } from "@/components/article/draft/article-draft-editor-types";
 import { ArcImagePlaceholder } from "@/components/article/draft/arcImagePlaceholderExtension";
 import { ArcSiteHeading } from "@/components/article/draft/arcSiteHeadingExtension";
+import { BlockPerLine } from "@/lib/tiptap/block-per-line-extension";
+import { prepareHtmlForTiptapEditor } from "@/lib/tiptap/split-block-breaks";
 import {
   hydrateEditorInChunks,
   yieldToMain,
@@ -54,6 +56,13 @@ function proseMirrorClass(variant: ArticleDraftEditorVariant): string {
     return "nct-prose body article-rich-content article-content-html";
   }
   return "article-rich-content article-content-html";
+}
+
+function tiptapContentHtml(
+  fullHtml: string,
+  variant: ArticleDraftEditorVariant,
+): string {
+  return prepareHtmlForTiptapEditor(visualHtmlForEditor(fullHtml, variant));
 }
 
 const MAX_ARTICLE_IMAGE_DATA_URL = 1_500_000;
@@ -249,7 +258,9 @@ export function ArticleDraftVisualPane({
         StarterKit.configure({
           heading: false,
           link: false,
+          hardBreak: false,
         }),
+        BlockPerLine,
         ArcSiteHeading,
         Link.configure({
           openOnClick: false,
@@ -280,7 +291,7 @@ export function ArticleDraftVisualPane({
       ],
       content: deferHeavyContent
         ? ""
-        : visualHtmlForEditor(value, variant),
+        : tiptapContentHtml(value, variant),
       editorProps: {
         attributes: {
           class: proseMirrorClass(variant),
@@ -327,7 +338,7 @@ export function ArticleDraftVisualPane({
         editorRef.current = ed;
         onEditorReady(ed);
         const fullHtml = valueRef.current;
-        const visualHtml = visualHtmlForEditor(fullHtml, variant);
+        const visualHtml = tiptapContentHtml(fullHtml, variant);
         if (deferHeavyContent && visualHtml.trim()) {
           const gen = ++hydrateGenRef.current;
           const introOnly = variant === "nghe-lead-inline";
@@ -383,7 +394,7 @@ export function ArticleDraftVisualPane({
     if (hydrating) return;
     const ed = editorRef.current;
     if (!ed || ed.isDestroyed) return;
-    const visualHtml = visualHtmlForEditor(value, variant);
+    const visualHtml = tiptapContentHtml(value, variant);
     if (visualHtml === lastEditorHtml.current) return;
     const cur = ed.getHTML();
     if (visualHtml !== cur) {

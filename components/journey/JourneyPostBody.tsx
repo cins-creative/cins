@@ -130,6 +130,8 @@ type Props = {
   /** Permalink split — ẩn phần hero rail (vd. kicker trùng thẻ). */
   splitSkip?: {
     kicker?: boolean;
+    /** Ẩn meta rail (author, chips, actions) — nội dung text giữ trên cột chính. */
+    rail?: boolean;
   };
   /** Timeline — action bar (like/bookmark/…) ngay trên bình luận. */
   inlineActionsSlot?: React.ReactNode;
@@ -475,7 +477,9 @@ export function JourneyPostBody({
     )
   ) : null;
 
-  const moveTextToRail = isSplit && shouldMovePostTextToSplitRail(blocks);
+  const hideSplitRail = splitSkip?.rail === true;
+  const moveTextToRail =
+    isSplit && !hideSplitRail && shouldMovePostTextToSplitRail(blocks);
   const splitBlockParts = useMemo(() => {
     if (!blocks?.length || !moveTextToRail) {
       return { railBlocks: [] as Block[], mediaBlocks: blocks ?? [] };
@@ -506,7 +510,7 @@ export function JourneyPostBody({
     ) : null;
 
   const metaRailEl =
-    isSplit && showByline ? (
+    isSplit && showByline && !hideSplitRail ? (
       <PostMetaRail
         owner={owner}
         milestone={milestone}

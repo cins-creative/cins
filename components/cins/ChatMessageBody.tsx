@@ -17,8 +17,12 @@ const CHAT_CONTEXT_LABEL: Record<string, string> = {
 
 export function ChatMessageBody({ msg }: { msg: ChatMessage }) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const isSticker = msg.kind === "sticker";
   const imageSrc =
-    msg.imageUrl ?? (msg.imageId ? chatImageDeliveryUrl(msg.imageId) : null);
+    msg.imageUrl ??
+    (msg.imageId
+      ? chatImageDeliveryUrl(msg.imageId, isSticker ? "thumbnail" : "public")
+      : null);
   const { displayText, iframeSrc } = parseTextWithExternalVideoEmbed(msg.body);
 
   if (msg.nguCanh) {
@@ -66,6 +70,15 @@ export function ChatMessageBody({ msg }: { msg: ChatMessage }) {
   return (
     <>
       {imageSrc ? (
+        isSticker ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            className="cins-chat-msg-sticker"
+            src={imageSrc}
+            alt="Meme"
+            loading="lazy"
+          />
+        ) : (
         <button
           type="button"
           className="j-chat-mini-msg-image-link cins-chat-msg-image-link"
@@ -79,6 +92,7 @@ export function ChatMessageBody({ msg }: { msg: ChatMessage }) {
             alt={msg.body || "Ảnh đính kèm"}
           />
         </button>
+        )
       ) : null}
       {displayText ? <p>{displayText}</p> : null}
       {iframeSrc ? <InlineExternalVideoEmbed src={iframeSrc} /> : null}

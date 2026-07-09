@@ -2,10 +2,11 @@
 
 import "@/app/cins-feed-composer.css";
 
-import { Flag, Image as ImageIcon, Video } from "lucide-react";
-import { useRef, type ChangeEvent } from "react";
+import { Code2, Flag, Image as ImageIcon, Video } from "lucide-react";
+import { useRef, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 
+import { EmbedPlatformPicker } from "@/components/cins/EmbedPlatformPicker";
 import { useJourneyCompose } from "@/components/journey/JourneyComposeContext";
 import { getNameInitials } from "@/lib/journey/profile";
 
@@ -33,6 +34,7 @@ export function CinsFeedComposer({
     openCompose,
     openComposeWithPhotos,
     openComposeWithVideo,
+    openComposeWithEmbed,
     canCompose,
     ownerSlug: ctxSlug,
     ownerName: ctxName,
@@ -45,6 +47,7 @@ export function CinsFeedComposer({
 
   const photoInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+  const [embedPickerOpen, setEmbedPickerOpen] = useState(false);
 
   const initials = getNameInitials(ownerName, ownerSlug);
 
@@ -126,6 +129,21 @@ export function CinsFeedComposer({
           >
             <Video size={16} />
           </button>
+          <button
+            type="button"
+            className="wj-icon-btn wj-ci-embed"
+            aria-label="Nhúng tác phẩm"
+            title="Nhúng từ YouTube, Sketchfab, Figma…"
+            onClick={() => {
+              if (canCompose) {
+                setEmbedPickerOpen(true);
+                return;
+              }
+              router.push(`/${ownerSlug}/p/new`);
+            }}
+          >
+            <Code2 size={16} strokeWidth={2} aria-hidden />
+          </button>
           {showMilestone ? (
             <button
               type="button"
@@ -158,6 +176,17 @@ export function CinsFeedComposer({
           onChange={onVideoPick}
         />
       </div>
+      <EmbedPlatformPicker
+        open={embedPickerOpen}
+        onClose={() => setEmbedPickerOpen(false)}
+        onSelect={(platform) => {
+          if (canCompose) {
+            openComposeWithEmbed(platform);
+            return;
+          }
+          router.push(`/${ownerSlug}/p/new?compose=embed&platform=${platform}`);
+        }}
+      />
     </div>
   );
 }

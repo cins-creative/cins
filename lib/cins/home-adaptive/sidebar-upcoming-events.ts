@@ -4,7 +4,17 @@ import { cache } from "react";
 
 import type { FollowedOrgUpcomingItem } from "@/lib/cins/home-adaptive/followed-org-upcoming";
 import { listFollowingOrgIds } from "@/lib/cins/worldJourneyOrgFeed";
-import { coSoTabPath } from "@/lib/to-chuc/co-so-routes";
+import { coSoKhoaHocDetailPath, coSoTabPath } from "@/lib/to-chuc/co-so-routes";
+import {
+  mapCoSoLopTimelinePinRows,
+  resolveCoSoLopTimelineLabel,
+} from "@/lib/to-chuc/co-so-timeline-lop";
+import {
+  formatKhaiGiangCard,
+  isKhoaHocMuted,
+  LICH_KHAI_GIANG_LIEN_TUC_DEFAULT,
+} from "@/lib/to-chuc/khoa-hoc-labels";
+import type { LoaiMoHinhKhoa, TrangThaiKhoaHoc } from "@/lib/to-chuc/khoa-hoc-types";
 import {
   loadUserSuKienPhanHoiMap,
   type LoaiPhanHoiSuKien,
@@ -14,6 +24,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { defaultTruongNganhYear } from "@/lib/truong/diem-chuan";
 import { resolveTruongImageSrcSync } from "@/lib/truong/media-url";
 import { formatTimelineDate, getStepStatus } from "@/lib/truong/timeline";
+import { mocDateSortKey } from "@/lib/truong/timeline-moc";
 import {
   aggregateTimelineForYear,
   buildTuyenSinhTimelineStepsForCalendarYear,
@@ -393,10 +404,218 @@ async function fetchFollowedAdmissionMilestones(
   return out;
 }
 
+/* ────────────────────────────────────────────────────────────────
+ * Mốc khai giảng cơ sở — khóa + lớp từ org viewer đang theo dõi.
+ * Đồng bộ với timeline admin `CoSoUpcomingSidebar`.
+ * ──────────────────────────────────────────────────────────────── */
+
+type CoSoOrgEmbed = TruongOrgEmbed;
+
+type KhoaTimelineRow = {
+  id: string;
+  slug: string;
+  ten_khoa_hoc: string;
+  loai_mo_hinh: LoaiMoHinhKhoa;
+  trang_thai_khoa_hoc: TrangThaiKhoaHoc;
+  ngay_khai_giang_gan_nhat: string | null;
+  id_to_chuc: string;
+};
+
+function coSoMocSidebarBase(org: CoSoOrgEmbed): Pick<
+  SidebarUpcomingEvent,
+  "kind" | "orgId" | "orgSlug" | "orgName" | "orgLoai" | "phanHoi" | "coverSrc" | "orgAvatarUrl"
+> {
+  const orgAvatarId = org.avatar_id ?? org.logo_id;
+  return {
+    kind: "moc",
+    orgId: org.id,
+    orgSlug: org.slug!.trim(),
+    orgName: org.ten!.trim(),
+    orgLoai: "co_so_dao_tao",
+    phanHoi: null,
+    coverSrc: null,
+    orgAvatarUrl: orgAvatarId
+      ? resolveTruongImageSrcSync(orgAvatarId, ["public", "avatar"])
+      : null,
+  };
+}
+
+function mapCoSoKhoaTimelineRow(
+  org: CoSoOrgEmbed,
+  row: KhoaTimelineRow,
+): SidebarUpcomingEvent | null {
+  if (isKhoaHocMuted(row.trang_thai_khoa_hoc)) return null;
+
+  const href = coSoKhoaHocDetailPath(org.slug!.trim(), row.slug);
+  const tenKhoa = row.ten_khoa_hoc?.trim() || "Khóa học";
+
+  if (row.loai_mo_hinh === "lien_tuc_theo_thang") {
+    const nowIso = new Date().toISOString();
+    return {
+      ...coSoMocSidebarBase(org),
+      id: `khoa:${row.id}`,
+      href,
+      label: tenKhoa,
+      dateLabel: LICH_KHAI_GIANG_LIEN_TUC_DEFAULT,
+      subLabel: "Khai giảng liên tục",
+      status: "active",
+      sortKey: Number.MAX_SAFE_INTEGER,
+      batDauIso: nowIso,
+      ketThucIso: null,
+    };
+  }
+
+  const ngay = row.ngay_khai_giang_gan_nhat?.trim();
+  if (!ngay) return null;
+
+  const status = getStepStatus(ngay, ngay);
+  if (status === "done") return null;
+
+  const formatted = formatTimelineDate(ngay);
+  let dateLabel = formatKhaiGiangCard(row.loai_mo_hinh, ngay);
+  if (status === "active" && formatted) {
+    dateLabel = `${formatted} · Đang diễn ra`;
+  } else if (formatted) {
+    dateLabel = formatted;
+  }
+
+  return {
+    ...coSoMocSidebarBase(org),
+    id: `khoa:${row.id}`,
+    href,
+    label: tenKhoa,
+    dateLabel,
+    subLabel: "Khai giảng khóa",
+    status: status === "active" ? "active" : "upcoming",
+    sortKey: mocDateSortKey(ngay, null),
+    batDauIso: `${ngay}T00:00:00`,
+    ketThucIso: null,
+  };
+}
+
+function mapCoSoLopTimelinePin(
+  org: CoSoOrgEmbed,
+  pin: ReturnType<typeof mapCoSoLopTimelinePinRows>[number],
+): SidebarUpcomingEvent | null {
+  const ngay = pin.ngayKhaiGiang.trim();
+  if (!ngay) return null;
+
+  const status = getStepStatus(ngay, ngay);
+  if (status === "done") return null;
+
+  const formatted = formatTimelineDate(ngay);
+  let dateLabel = formatted ?? ngay;
+  if (status === "active" && formatted) {
+    dateLabel = `${formatted} · Đang diễn ra`;
+  }
+
+  const lopLabel = resolveCoSoLopTimelineLabel(pin);
+  const href = coSoKhoaHocDetailPath(org.slug!.trim(), pin.khoaSlug);
+
+  return {
+    ...coSoMocSidebarBase(org),
+    id: `lop:${pin.lopId}`,
+    href,
+    label: `Khai giảng lớp · ${lopLabel}`,
+    dateLabel,
+    subLabel: `Khóa ${pin.tenKhoaHoc}`,
+    status: status === "active" ? "active" : "upcoming",
+    sortKey: mocDateSortKey(ngay, null),
+    batDauIso: `${ngay}T00:00:00`,
+    ketThucIso: null,
+  };
+}
+
+/** Mốc khai giảng khóa / lớp từ cơ sở viewer đang theo dõi. */
+async function fetchFollowedCoSoTimelineMilestones(
+  followedOrgIds: string[],
+): Promise<SidebarUpcomingEvent[]> {
+  if (followedOrgIds.length === 0) return [];
+
+  const admin = createServiceRoleClient();
+  const { data: orgRows } = await admin
+    .from("org_to_chuc")
+    .select("id, slug, ten, loai_to_chuc, avatar_id, logo_id")
+    .in("id", followedOrgIds)
+    .eq("loai_to_chuc", "co_so_dao_tao")
+    .returns<CoSoOrgEmbed[]>();
+
+  const coSos = (orgRows ?? []).filter((o) => o.slug?.trim() && o.ten?.trim());
+  if (coSos.length === 0) return [];
+
+  const coSoIds = coSos.map((o) => o.id);
+  const orgById = new Map(coSos.map((o) => [o.id, o]));
+
+  const [lopRes, khoaRes] = await Promise.all([
+    (async () => {
+      const primary = await admin
+        .from("org_lop_hoc")
+        .select(
+          "id, ma_lop, ngay_khai_giang, lich_hoc, org_khoa_hoc!inner ( id, slug, ten_khoa_hoc, loai_mo_hinh, trang_thai_khoa_hoc, id_to_chuc )",
+        )
+        .in("org_khoa_hoc.id_to_chuc", coSoIds)
+        .in("trang_thai", ["sap_khai_giang", "dang_hoc"])
+        .order("ngay_khai_giang", { ascending: true })
+        .limit(40);
+      if (!primary.error) return primary;
+      if (!primary.error.message.includes("lich_hoc")) return primary;
+      return admin
+        .from("org_lop_hoc")
+        .select(
+          "id, ma_lop, ngay_khai_giang, org_khoa_hoc!inner ( id, slug, ten_khoa_hoc, loai_mo_hinh, trang_thai_khoa_hoc, id_to_chuc )",
+        )
+        .in("org_khoa_hoc.id_to_chuc", coSoIds)
+        .in("trang_thai", ["sap_khai_giang", "dang_hoc"])
+        .order("ngay_khai_giang", { ascending: true })
+        .limit(40);
+    })(),
+    admin
+      .from("org_khoa_hoc")
+      .select(
+        "id, slug, ten_khoa_hoc, loai_mo_hinh, trang_thai_khoa_hoc, ngay_khai_giang_gan_nhat, id_to_chuc",
+      )
+      .in("id_to_chuc", coSoIds)
+      .in("trang_thai_khoa_hoc", ["sap_khai_giang", "dang_mo_don"])
+      .limit(40),
+  ]);
+
+  const out: SidebarUpcomingEvent[] = [];
+  const seenKhoaWithLop = new Set<string>();
+
+  for (const rawRow of lopRes.data ?? []) {
+    const embed = (rawRow as { org_khoa_hoc?: { id_to_chuc?: string } | { id_to_chuc?: string }[] })
+      .org_khoa_hoc;
+    const khoaEmbed = Array.isArray(embed) ? embed[0] : embed;
+    const orgId = khoaEmbed?.id_to_chuc;
+    if (!orgId) continue;
+    const org = orgById.get(orgId);
+    if (!org) continue;
+
+    const pins = mapCoSoLopTimelinePinRows([rawRow as Parameters<typeof mapCoSoLopTimelinePinRows>[0][number]]);
+    for (const pin of pins) {
+      seenKhoaWithLop.add(pin.khoaId);
+      const item = mapCoSoLopTimelinePin(org, pin);
+      if (item) out.push(item);
+    }
+  }
+
+  for (const row of (khoaRes.data ?? []) as KhoaTimelineRow[]) {
+    const org = orgById.get(row.id_to_chuc);
+    if (!org) continue;
+    if (row.loai_mo_hinh !== "lien_tuc_theo_thang" && seenKhoaWithLop.has(row.id)) {
+      continue;
+    }
+    const item = mapCoSoKhoaTimelineRow(org, row);
+    if (item) out.push(item);
+  }
+
+  return out;
+}
+
 /**
  * Sidebar trang chủ — tối đa `limit` mục (mặc định 3).
- * Ưu tiên sự kiện viewer quan tâm / sẽ tham gia; sau đó mốc tuyển sinh + sự kiện
- * từ org theo dõi; cuối cùng là gợi ý toàn cục.
+ * Ưu tiên sự kiện viewer quan tâm / sẽ tham gia; sau đó mốc tuyển sinh + khai giảng
+ * cơ sở + sự kiện từ org theo dõi; cuối cùng là gợi ý toàn cục.
  */
 export const loadSidebarUpcomingEvents = cache(
   async function loadSidebarUpcomingEvents(
@@ -410,7 +629,11 @@ export const loadSidebarUpcomingEvents = cache(
     ]);
 
     const followedSet = new Set(followedOrgIds);
-    const milestones = await fetchFollowedAdmissionMilestones(followedOrgIds);
+    const [admissionMilestones, coSoMilestones] = await Promise.all([
+      fetchFollowedAdmissionMilestones(followedOrgIds),
+      fetchFollowedCoSoTimelineMilestones(followedOrgIds),
+    ]);
+    const milestones = [...admissionMilestones, ...coSoMilestones];
     const registeredIds = [...phanHoiBySuKien.keys()];
     const seenIds = new Set<string>();
     const myPool: SidebarUpcomingEvent[] = [];

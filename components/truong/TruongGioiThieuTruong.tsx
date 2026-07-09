@@ -26,7 +26,8 @@ export function TruongGioiThieuTruong({
 
   const html = school.gioi_thieu_truong;
   const hasContent = hasTruongGioiThieuContent(html);
-  const canEdit = Boolean(ctx?.canEdit);
+  /** Chỉ hiện nút sửa khi đang bật chế độ chỉnh sửa — không hiện cho người xem. */
+  const showEditorActions = Boolean(ctx?.isEditing);
   const isCoSo =
     school.org_loai === "co_so_dao_tao" ||
     pathname.startsWith("/co-so");
@@ -41,7 +42,7 @@ export function TruongGioiThieuTruong({
         ? "Lịch sử trường"
         : "Thêm giới thiệu trường";
 
-  if (!hasContent && !canEdit) return null;
+  if (!hasContent && !showEditorActions) return null;
 
   function openEditor() {
     setOpen(false);
@@ -74,7 +75,7 @@ export function TruongGioiThieuTruong({
             Giới thiệu {school.ten}
           </h2>
           <div className="tdh-gioi-thieu-modal-actions">
-            {canEdit ? (
+            {showEditorActions ? (
               <button
                 type="button"
                 className="tdh-inline-btn primary"
@@ -98,11 +99,11 @@ export function TruongGioiThieuTruong({
           <div className="tdh-gioi-thieu-empty-wrap">
             <p className="tdh-gioi-thieu-empty">
               Chưa có nội dung giới thiệu.
-              {canEdit
+              {showEditorActions
                 ? " Bấm Sửa giới thiệu để thêm nội dung rich text (giống bài đăng)."
                 : ""}
             </p>
-            {canEdit ? (
+            {showEditorActions ? (
               <button
                 type="button"
                 className="tdh-inline-btn primary tdh-gioi-thieu-empty-cta"

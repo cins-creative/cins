@@ -194,9 +194,9 @@
 .tdh-page--cso .cso-ss-edit-info-btn {
   align-self: center;
   margin-top: 4px;
-  border: 1.5px solid rgba(31, 116, 201, 0.28);
-  background: var(--cins-blue-soft, #e7f0fb);
-  color: var(--cins-blue, #1f74c9);
+  border: 1.5px solid var(--cins-priv-accent-border);
+  background: var(--cins-priv-accent-soft);
+  color: var(--cins-priv-accent-strong);
   border-radius: var(--radius-pill, 999px);
   padding: 8px 14px;
   font-family: var(--font-sans);
@@ -211,8 +211,8 @@
 }
 
 .tdh-page--cso .cso-ss-edit-info-btn:hover {
-  background: #dceaf8;
-  border-color: rgba(31, 116, 201, 0.45);
+  background: color-mix(in srgb, var(--cins-priv-accent-soft) 55%, #fff);
+  border-color: color-mix(in srgb, var(--cins-priv-accent-strong) 45%, transparent);
 }
 
 .tdh-page--cso .cso-ss-badges {
@@ -6087,10 +6087,10 @@
   align-items: center;
   gap: 8px;
   padding: 9px 16px;
-  border: 1.5px solid rgba(31, 116, 201, 0.28);
+  border: 1.5px solid var(--cins-priv-accent-border);
   border-radius: 999px;
-  background: var(--cins-blue-soft, #e7f0fb);
-  color: var(--cins-blue, #1f74c9);
+  background: var(--cins-priv-accent-soft);
+  color: var(--cins-priv-accent-strong);
   font-family: var(--font-sans);
   font-size: 13px;
   font-weight: 700;
@@ -6099,8 +6099,8 @@
 }
 
 .tdh-page--cso .cso-sp-admin-open-btn:hover {
-  background: #dceaf8;
-  border-color: rgba(31, 116, 201, 0.45);
+  background: color-mix(in srgb, var(--cins-priv-accent-soft) 55%, #fff);
+  border-color: color-mix(in srgb, var(--cins-priv-accent-strong) 45%, transparent);
 }
 
 /* Modal portal — bảng quản lý (ngoài .tdh-page--cso) */

@@ -27,9 +27,7 @@ export function TruongTabNganh({ school }: Props) {
       ),
     [programs],
   );
-  const [openNganh, setOpenNganh] = useState<string | null>(
-    sortedPrograms[0]?.nganhSlug ?? null,
-  );
+  const [openNganh, setOpenNganh] = useState<string | null>(null);
 
   function handleProgramAdded(prog: (typeof sortedPrograms)[0]) {
     if (!inline) return;
@@ -46,9 +44,7 @@ export function TruongTabNganh({ school }: Props) {
     inline.setPrograms((prev) => {
       const removedSlug = prev.find((p) => p.id === programId)?.nganhSlug;
       const next = prev.filter((p) => p.id !== programId);
-      setOpenNganh((open) =>
-        open === removedSlug ? (next[0]?.nganhSlug ?? null) : open,
-      );
+      setOpenNganh((open) => (open === removedSlug ? null : open));
       return next;
     });
     inline.setTuyenSinh((rows) =>

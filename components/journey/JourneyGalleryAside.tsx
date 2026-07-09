@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 
 import { GalleryItemVisual, GalleryVideoPlayBadge } from "@/components/journey/GalleryItemVisual";
+import { GalleryMainHoverOverlay } from "@/components/journey/GalleryMainHoverOverlay";
 import { GalleryMediaFilterDropdown } from "@/components/journey/GalleryMediaFilterDropdown";
 import { useJourneyPostOverlay } from "@/components/journey/useJourneyPostOverlay";
 import type { GalleryMediaKind } from "@/lib/journey/post-media";
@@ -22,6 +23,8 @@ export type GalleryPinnedBanner = {
   pin: string;
   title: string;
   meta: string;
+  authorName?: string | null;
+  authorAvatarUrl?: string | null;
   /** Link ngữ cảnh — VD /{slug}/p/{postSlug}. */
   href?: string;
   /** Cột mốc — mở modal bài viết client-side. */
@@ -173,6 +176,12 @@ export function JourneyGalleryAside({
                     {b.isVideo || b.mediaKind === "video" ? (
                       <GalleryVideoPlayBadge />
                     ) : null}
+                    <GalleryMainHoverOverlay
+                      label={b.title}
+                      meta={b.meta}
+                      authorName={b.authorName}
+                      authorAvatarUrl={b.authorAvatarUrl}
+                    />
                   </button>
                 );
               })}

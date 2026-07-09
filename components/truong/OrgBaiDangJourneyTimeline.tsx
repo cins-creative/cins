@@ -3,9 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { OrgBaiDangCreateComposer } from "@/components/truong/OrgBaiDangCreateComposer";
-import { OrgBaiDangJourneyCard } from "@/components/truong/OrgBaiDangJourneyCard";
+import { OrgBaiDangFilteredFeed } from "@/components/truong/OrgBaiDangFilteredFeed";
 import { OrgBaiDangScheduledQueue } from "@/components/truong/OrgBaiDangScheduledQueue";
 import { OrgBaiDangTimelineBar } from "@/components/truong/OrgBaiDangTimelineBar";
+import { useOrgBaiDangView } from "@/components/truong/useOrgBaiDangView";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
 import {
   baiDangMonthLabel,
@@ -35,6 +36,7 @@ export function OrgBaiDangJourneyTimeline({ posts: postsProp }: Props) {
   );
   const canEdit = Boolean(ctx?.isEditing);
   const [filterKey, setFilterKey] = useState<OrgBaiDangTimelineFilterKey>("all");
+  const { view, setView, openPostFromGrid } = useOrgBaiDangView();
 
   const customSlugs = useMemo(
     () => filterCtx?.filters.map((f) => f.slug) ?? [],
@@ -113,21 +115,16 @@ export function OrgBaiDangJourneyTimeline({ posts: postsProp }: Props) {
         loaiCounts={loaiCounts}
         nhanCounts={nhanCounts}
         enabled={posts.length > 0}
+        view={view}
+        onViewChange={setView}
       />
       {canEdit ? <OrgBaiDangCreateComposer /> : null}
-      {filtered.length === 0 ? (
-        <p className="tdh-placeholder">
-          Không có bài đăng thuộc nhóm lọc này.
-        </p>
-      ) : (
-        yearGroups.map(({ year, posts: yearPosts }) => (
-          <section key={year} className="j-year-block" data-year={year}>
-            {yearPosts.map((post) => (
-              <OrgBaiDangJourneyCard key={post.id} post={post} />
-            ))}
-          </section>
-        ))
-      )}
+      <OrgBaiDangFilteredFeed
+        filtered={filtered}
+        yearGroups={yearGroups}
+        view={view}
+        onOpenPostFromGrid={openPostFromGrid}
+      />
     </main>
   );
 }

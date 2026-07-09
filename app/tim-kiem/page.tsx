@@ -34,7 +34,7 @@ export default async function TimKiemPage(props: { searchParams: SearchParams })
 
   return (
     <CinsShell data-screen-label="Tim-kiem">
-      <Suspense key={`${q}|${kind}`} fallback={<TimKiemSkeleton />}>
+      <Suspense key={q} fallback={<TimKiemSkeleton />}>
         <TimKiemLoader q={q} kind={kind} />
       </Suspense>
       <SiteFooter />

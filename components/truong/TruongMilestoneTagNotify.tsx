@@ -1,7 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { CheckCircle2, ChevronLeft, Clock3, Link2Off, XCircle } from "lucide-react";
+import {
+  CheckCircle2,
+  ChevronLeft,
+  Clock3,
+  Link2Off,
+  Paperclip,
+  XCircle,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { JourneyPostBody } from "@/components/journey/JourneyPostBody";
@@ -9,7 +16,8 @@ import { MilestoneTagOrgMessagePanel } from "@/components/truong/MilestoneTagOrg
 import { TruongInlineModal } from "@/components/truong/inline/TruongInlineModal";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
 import type { MilestonePostDetail } from "@/lib/journey/milestone-post-types";
-import { milestoneContentKind } from "@/lib/journey/post-media";
+import { milestoneCardContentKind } from "@/lib/journey/milestone-card-kind";
+import { milestoneCardCaptionForDisplay } from "@/lib/journey/post-media";
 import type {
   OrgAttachEvidence,
   OrgMilestoneTagRequestItem,
@@ -20,7 +28,8 @@ import {
   milestoneKindLabel,
   notifyStatusLabel,
 } from "@/lib/truong/milestone-tag-notify-mock";
-/* CSS block bài viết — trang trường không load qua layout parent. */
+/* CSS block bài viết + timeline unfold — trang trường không load qua layout parent. */
+import "@/app/[slug]/journey/journey.css";
 import "@/app/[slug]/p/new/editor.css";
 import "@/app/[slug]/p/[postSlug]/post-page.css";
 
@@ -472,6 +481,12 @@ function MilestoneTagDetail({
     ? `/${encodeURIComponent(row.studentSlug.trim())}`
     : null;
   const postPath = parsePostHref(row.album.href);
+  const hasEvidence = row.evidence.length > 0;
+  const [evidenceOpen, setEvidenceOpen] = useState(false);
+
+  useEffect(() => {
+    setEvidenceOpen(false);
+  }, [row.id]);
 
   return (
     <article className="tdh-milestone-tag-detail">
@@ -524,20 +539,28 @@ function MilestoneTagDetail({
             </li>
           </ul>
         </div>
+        {hasEvidence ? (
+          <button
+            type="button"
+            className={`tdh-milestone-tag-evidence-btn${evidenceOpen ? " is-open" : ""}`}
+            aria-expanded={evidenceOpen}
+            aria-controls={`tdh-milestone-tag-evidence-${row.id}`}
+            onClick={() => setEvidenceOpen((open) => !open)}
+          >
+            <Paperclip size={15} strokeWidth={2.4} aria-hidden />
+            <span>Xem bằng chứng</span>
+            <span className="tdh-milestone-tag-evidence-btn-count" aria-hidden>
+              {row.evidence.length}
+            </span>
+          </button>
+        ) : null}
       </header>
 
-      <div className="tdh-milestone-tag-detail-scroll">
-        {row.evidence.length > 0 ? (
-          <div className="tdh-milestone-tag-evidence-compact">
-            <p className="tdh-milestone-tag-evidence-compact-label">Bằng chứng</p>
-            <ul className="tdh-milestone-tag-evidence-list">
-              {row.evidence.map((ev, i) => (
-                <EvidenceItem key={`${row.id}-ev-${i}`} item={ev} />
-              ))}
-            </ul>
-          </div>
-        ) : null}
+      {hasEvidence && evidenceOpen ? (
+        <EvidencePanel items={row.evidence} rowId={row.id} />
+      ) : null}
 
+      <div className="tdh-milestone-tag-detail-scroll">
         {postPath ? (
           <MilestoneTagPostPreview
             key={`${postPath.ownerSlug}/${postPath.postSlug}`}
@@ -565,7 +588,7 @@ function MilestoneTagDetail({
             className="tdh-inline-btn primary"
             onClick={onApprove}
           >
-            Gắn lên trang trường
+            Xác nhận
           </button>
           <button
             type="button"
@@ -642,27 +665,77 @@ function MilestoneTagPostPreview({
   }
   if (!detail) return null;
 
-  const contentKind = milestoneContentKind(detail.posts[0]?.noiDungBlocks ?? null);
+  const mainPost = detail.posts[0];
+  const milestone = detail.milestone;
+  const heroTitle =
+    milestone.tieuDe || mainPost?.tieuDe || "Cột mốc không tiêu đề";
+  const heroSub = milestone.moTa || mainPost?.moTa || null;
+  const blocks = mainPost?.noiDungBlocks ?? null;
+  const contentKind = milestoneCardContentKind(blocks, false, heroSub);
+  const cardCaption = milestoneCardCaptionForDisplay(heroTitle, heroSub, blocks);
+  const hasCaption = Boolean(cardCaption?.trim());
 
   return (
     <div
-      className="tdh-milestone-tag-post-view j-post-page"
+      className="tdh-milestone-tag-post-view"
       data-post-content-kind={contentKind}
     >
-      <div className="j-post-page-inner">
-        <div className="j-post-page-body">
-          <JourneyPostBody
-            initialDetail={detail}
-            postSlug={postSlug}
-            isOwner={detail.viewerIsOwner}
-            hideOpenLink
-            layout="split"
-            splitSkip={{ kicker: true }}
-            commentsSlot={<></>}
-          />
+      <div
+        className={`j-m-card jcard jcard--${contentKind} has-unfold is-expanded`}
+      >
+        {hasCaption ? (
+          <div className="jcard-body is-content-open">
+            <div className="jcard-content">
+              <div className="jcard-text">
+                <div className="jcard-lead">
+                  <p className="jcard-desc">{cardCaption}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
+        <div className="j-m-card-unfold" data-open="true" aria-hidden={false}>
+          <div className="j-m-card-unfold-inner">
+            <JourneyPostBody
+              initialDetail={detail}
+              postSlug={postSlug}
+              isOwner={detail.viewerIsOwner}
+              hideOpenLink
+              variant="inline"
+              inlineSkip={{ byline: true, tags: true, contributors: true }}
+              inlineParts={{ blocks: true, comments: false }}
+              commentsSlot={<></>}
+            />
+          </div>
         </div>
       </div>
     </div>
+  );
+}
+
+function EvidencePanel({
+  items,
+  rowId,
+}: {
+  items: OrgAttachEvidence[];
+  rowId: string;
+}) {
+  return (
+    <section
+      id={`tdh-milestone-tag-evidence-${rowId}`}
+      className="tdh-milestone-tag-evidence-panel"
+      aria-label="Bằng chứng đính kèm"
+    >
+      <p className="tdh-milestone-tag-evidence-panel-lead">
+        Học viên đã gửi {items.length.toLocaleString("vi-VN")} mục bằng chứng — xem
+        trước khi duyệt tag.
+      </p>
+      <ul className="tdh-milestone-tag-evidence-list">
+        {items.map((ev, i) => (
+          <EvidenceItem key={`${rowId}-ev-${i}`} item={ev} />
+        ))}
+      </ul>
+    </section>
   );
 }
 
