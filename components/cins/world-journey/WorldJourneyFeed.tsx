@@ -6,7 +6,6 @@ import {
   Check,
   ChevronDown,
   FileText,
-  History,
   Image as ImageIcon,
   LayoutGrid,
   Rows3,
@@ -19,6 +18,7 @@ import { CinsFeedComposer } from "@/components/cins/CinsFeedComposer";
 import { WorldJourneyFeedTimeline } from "@/components/cins/world-journey/WorldJourneyFeedTimeline";
 import { WorldJourneyGuestLeftAside } from "@/components/cins/world-journey/WorldJourneyGuestLeftAside";
 import { WorldJourneyGuestRightAside } from "@/components/cins/world-journey/WorldJourneyGuestRightAside";
+import { BunnyVideoProcessingPoller } from "@/components/journey/BunnyVideoProcessingPoller";
 import type { SidebarProfile } from "@/components/journey/JourneySidebar";
 import { JourneyViewProvider } from "@/components/journey/JourneyViewContext";
 import {
@@ -28,6 +28,10 @@ import {
   WORLD_JOURNEY_SORT_OPTIONS,
   type WjFilterChip,
 } from "@/lib/cins/worldJourneyFeedFilters";
+import {
+  WORLD_JOURNEY_FEED_PAGE_SIZE,
+  WORLD_JOURNEY_FEED_SCROLL_ROOT_MARGIN,
+} from "@/lib/cins/worldJourneyFeedConstants";
 import { sortWorldJourneyMilestones } from "@/lib/cins/worldJourneyFeedSort";
 import { worldJourneyMilestonesToGalleryItems } from "@/lib/cins/worldJourneyMilestoneToGallery";
 import type { WjLinhVucAsideItem } from "@/lib/cins/worldJourneyGuestAside";
@@ -250,7 +254,8 @@ export function WorldJourneyFeed({
   filterChips,
   linhVucs,
   milestones,
-  exploreMilestones,
+  feedHasMore = false,
+  feedNextOffset = milestones.length,
   leftAside,
   rightAside,
   pendingConfirmations,
@@ -262,8 +267,8 @@ export function WorldJourneyFeed({
   filterChips: WjFilterChip[];
   linhVucs: WjLinhVucAsideItem[];
   milestones: MilestoneItem[];
-  /** Tab Khám phá — bài Nổi bật toàn cục (brief §3 empty-state). */
-  exploreMilestones?: MilestoneItem[];
+  feedHasMore?: boolean;
+  feedNextOffset?: number;
   leftAside?: ReactNode;
   rightAside?: ReactNode;
   /** Banner "việc cần xác nhận" — hiện đầu cột feed để user chú ý. */
@@ -309,10 +314,17 @@ export function WorldJourneyFeed({
   );
   const [sortOpen, setSortOpen] = useState(false);
   const [feedMilestones, setFeedMilestones] = useState(milestones);
+  const [hasMore, setHasMore] = useState(feedHasMore);
+  const [nextOffset, setNextOffset] = useState(feedNextOffset);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const loadingMoreRef = useRef(false);
 
   useEffect(() => {
     setFeedMilestones(milestones);
-  }, [milestones]);
+    setHasMore(feedHasMore);
+    setNextOffset(feedNextOffset);
+  }, [milestones, feedHasMore, feedNextOffset]);
 
   useEffect(() => {
     const onComposePublished = (event: Event) => {
@@ -329,32 +341,51 @@ export function WorldJourneyFeed({
   }, [sidebarProfile.slug]);
 
   const activeChip = findWorldJourneyFilterChip(filterChips, activeFilter);
-  /* 1 feed duy nhất: bài từ người đang theo dõi xếp trên, rồi tới bài Khám phá
-     (khử trùng lặp theo id). */
-  const sourceMilestones = useMemo(() => {
-    if (exploreMilestones === undefined) return feedMilestones;
-    const seen = new Set(feedMilestones.map((m) => m.id));
-    const exploreExtra = exploreMilestones.filter((m) => !seen.has(m.id));
-    return [...feedMilestones, ...exploreExtra];
-  }, [feedMilestones, exploreMilestones]);
-  const exploreIds = useMemo(() => {
-    if (exploreMilestones === undefined) return new Set<string>();
-    const followingIds = new Set(feedMilestones.map((m) => m.id));
-    return new Set(
-      exploreMilestones
-        .filter((m) => !followingIds.has(m.id))
-        .map((m) => m.id),
-    );
-  }, [feedMilestones, exploreMilestones]);
-
+  const exploreIds = useMemo(
+    () =>
+      new Set(
+        feedMilestones.filter((m) => m.feedExplore).map((m) => m.id),
+      ),
+    [feedMilestones],
+  );
   const visibleMilestones = useMemo(() => {
-    const filtered = sourceMilestones.filter(
+    const filtered = feedMilestones.filter(
       (milestone) =>
         worldJourneyMilestoneMatchesFilter(milestone, activeChip) &&
         worldJourneyMilestoneMatchesLinhVuc(milestone, activeLinhVucSlug),
     );
     return sortWorldJourneyMilestones(filtered, sort, exploreIds);
-  }, [sourceMilestones, activeChip, activeLinhVucSlug, sort, exploreIds]);
+  }, [feedMilestones, activeChip, activeLinhVucSlug, sort, exploreIds]);
+
+  const loadMore = useCallback(async () => {
+    if (loadingMoreRef.current || !hasMore) return;
+    loadingMoreRef.current = true;
+    setLoadingMore(true);
+    setLoadError(false);
+    try {
+      const res = await fetch(
+        `/api/world-journey/feed?offset=${nextOffset}&limit=${WORLD_JOURNEY_FEED_PAGE_SIZE}`,
+      );
+      if (!res.ok) throw new Error("load failed");
+      const data = (await res.json()) as {
+        milestones: MilestoneItem[];
+        hasMore: boolean;
+        nextOffset: number;
+      };
+      setFeedMilestones((prev) => {
+        const seen = new Set(prev.map((m) => m.id));
+        const extra = data.milestones.filter((m) => !seen.has(m.id));
+        return [...prev, ...extra];
+      });
+      setHasMore(data.hasMore);
+      setNextOffset(data.nextOffset);
+    } catch {
+      setLoadError(true);
+    } finally {
+      loadingMoreRef.current = false;
+      setLoadingMore(false);
+    }
+  }, [hasMore, nextOffset]);
 
   const galleryItems = useMemo(
     () =>
@@ -426,6 +457,10 @@ export function WorldJourneyFeed({
                 milestones={visibleMilestones}
                 viewerProfileId={viewerProfileId}
                 feedPromos={feedPromos}
+                scrollLoad={hasMore ? { enabled: true } : null}
+                loadingMore={loadingMore}
+                loadError={loadError}
+                onLoadMore={() => void loadMore()}
               />
             )
           ) : galleryItems.length === 0 ? (
@@ -444,13 +479,9 @@ export function WorldJourneyFeed({
             />
           )}
 
-          {visibleMilestones.length > 0 && view === "feed" ? (
+          {visibleMilestones.length > 0 && view === "feed" && !hasMore ? (
             <div className="wj-feed-end">
               <b>Đã hết feed mới</b>
-              <button type="button" className="wj-btn wj-btn-outline">
-                <History size={15} />
-                Xem thêm post cũ
-              </button>
             </div>
           ) : null}
         </div>
@@ -458,6 +489,7 @@ export function WorldJourneyFeed({
         {view !== "grid" &&
           (rightAside ?? <WorldJourneyGuestRightAside />)}
       </div>
+      <BunnyVideoProcessingPoller ownerSlug={sidebarProfile.slug} />
     </div>
     </JourneyViewProvider>
   );

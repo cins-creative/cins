@@ -42,6 +42,7 @@ import {
   orgLoaiToMilestoneType,
 } from "@/lib/truong/org-bai-dang-bookmark";
 import { SOCIAL_LOAI_ORG_BAI_DANG } from "@/lib/truong/social-constants";
+import { SOCIAL_LOAI_ORG_KHOA_HOC } from "@/lib/to-chuc/khoa-hoc-bookmark";
 import { SOCIAL_LOAI_ORG_TUYEN_DUNG } from "@/lib/to-chuc/tuyen-dung-bookmark";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -500,6 +501,53 @@ async function collectOrgTuyenDungBookmarkStubs(
   return stubs;
 }
 
+async function collectOrgKhoaHocBookmarkStubs(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  userId: string,
+): Promise<TimelineStub[]> {
+  const { data: savedRows } = await admin
+    .from("social_luu")
+    .select("id_doi_tuong, tao_luc")
+    .eq("id_nguoi_dung", userId)
+    .eq("loai_doi_tuong", SOCIAL_LOAI_ORG_KHOA_HOC);
+
+  const savedAtByKhoa = new Map(
+    (savedRows ?? []).map((row) => [
+      row.id_doi_tuong as string,
+      (row.tao_luc as string | null) ?? null,
+    ]),
+  );
+  const khoaIds = [...savedAtByKhoa.keys()];
+  if (khoaIds.length === 0) return [];
+
+  const { data: khoaRows } = await admin
+    .from("org_khoa_hoc")
+    .select("id, tao_luc")
+    .in("id", khoaIds)
+    .returns<Array<{ id: string; tao_luc: string | null }>>();
+
+  const stubs: TimelineStub[] = [];
+  for (const khoa of khoaRows ?? []) {
+    const dateIso = savedAtByKhoa.get(khoa.id) ?? khoa.tao_luc;
+    if (!dateIso) continue;
+    const { year, month, day } = parseUtcDateParts(dateIso);
+    stubs.push({
+      id: `bookmark:khoa-hoc:${khoa.id}`,
+      source: "bookmark",
+      cotMocId: khoa.id,
+      visibility: "public",
+      variant: "bookmark",
+      type: "hoc",
+      thoiDiem: dateIso,
+      taoLuc: savedAtByKhoa.get(khoa.id) ?? khoa.tao_luc,
+      year,
+      month,
+      day,
+    });
+  }
+  return stubs;
+}
+
 async function collectTimelineStubs(
   admin: ReturnType<typeof createServiceRoleClient>,
   userId: string,
@@ -518,14 +566,17 @@ async function collectTimelineStubs(
     ...selfCotMocIds,
     ...taggedExtra.map((s) => s.cotMocId),
   ]);
-  const [orgBookmarkStubs, orgTuyenDungBookmarkStubs] = await Promise.all([
-    collectOrgBaiDangBookmarkStubs(admin, userId),
-    collectOrgTuyenDungBookmarkStubs(admin, userId),
-  ]);
+  const [orgBookmarkStubs, orgTuyenDungBookmarkStubs, orgKhoaHocBookmarkStubs] =
+    await Promise.all([
+      collectOrgBaiDangBookmarkStubs(admin, userId),
+      collectOrgTuyenDungBookmarkStubs(admin, userId),
+      collectOrgKhoaHocBookmarkStubs(admin, userId),
+    ]);
   const bookmarkExtra = [
     ...bookmarks.filter((s) => !seenCotMocIds.has(s.cotMocId)),
     ...orgBookmarkStubs.filter((s) => !seenCotMocIds.has(s.cotMocId)),
     ...orgTuyenDungBookmarkStubs.filter((s) => !seenCotMocIds.has(s.cotMocId)),
+    ...orgKhoaHocBookmarkStubs.filter((s) => !seenCotMocIds.has(s.cotMocId)),
   ];
 
   const merged = [...self, ...taggedExtra, ...bookmarkExtra];

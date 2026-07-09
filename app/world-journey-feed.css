@@ -3714,23 +3714,20 @@
   color: var(--ink1);
 }
 
-/* ── Card người cùng ngành / studio / lời mời (cột trái LÀM) ── */
+/* ── Card người cùng ngành / studio (cột trái LÀM) ── */
 .world-journey-home .ha-card--people .ha-card-head,
-.world-journey-home .ha-card--studio .ha-card-head,
-.world-journey-home .ha-card--invites .ha-card-head {
+.world-journey-home .ha-card--studio .ha-card-head {
   padding-right: var(--ha-inset-x, 14px);
   border-bottom: 1px solid var(--neutral-100, #f1f2f5);
 }
 
 .world-journey-home .ha-card--people .ha-card-empty,
-.world-journey-home .ha-card--studio .ha-card-empty,
-.world-journey-home .ha-card--invites .ha-card-empty {
+.world-journey-home .ha-card--studio .ha-card-empty {
   padding-right: var(--ha-inset-x, 14px);
 }
 
 .world-journey-home .ha-people-list,
-.world-journey-home .ha-studio-list,
-.world-journey-home .ha-invite-list {
+.world-journey-home .ha-studio-list {
   display: flex;
   flex-direction: column;
 }
@@ -3793,56 +3790,6 @@
 .world-journey-home .ha-card--studio .ha-row:last-child {
   border-bottom: 0;
   padding-bottom: 12px;
-}
-
-.world-journey-home .ha-invite {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px var(--ha-inset-x, 14px) 10px 14px;
-  border-bottom: 1px solid var(--neutral-100, #f1f2f5);
-  min-width: 0;
-}
-
-.world-journey-home .ha-invite:last-child {
-  border-bottom: 0;
-  padding-bottom: 12px;
-}
-
-.world-journey-home .ha-invite-meta {
-  flex: 1;
-  min-width: 0;
-}
-
-.world-journey-home .ha-invite-name {
-  font-weight: 600;
-  font-size: 13.5px;
-  color: var(--ink1);
-  line-height: 1.25;
-  overflow-wrap: anywhere;
-}
-
-.world-journey-home .ha-invite-sub {
-  font-size: 12px;
-  color: var(--ink4);
-  margin-top: 2px;
-  line-height: 1.35;
-}
-
-.world-journey-home .ha-invite-btn {
-  flex-shrink: 0;
-  padding: 7px 12px;
-  border-radius: var(--r-md);
-  background: var(--blue);
-  color: #fff;
-  font-size: 12px;
-  font-weight: 600;
-  text-decoration: none;
-  white-space: nowrap;
-}
-
-.world-journey-home .ha-invite-btn:hover {
-  background: var(--blue-dark);
 }
 
 .world-journey-home .ha-card-head {

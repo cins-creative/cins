@@ -41,7 +41,6 @@ import {
   splitChiChuParagraphs,
   chiChuNeedsCollapse,
   chiChuNenClass,
-  chiChuUsesCenterAlign,
   chiChuUsesLightInk,
   type ChiChuNenId,
 } from "@/lib/journey/plain-text-bg";
@@ -276,26 +275,29 @@ export function JourneyMilestoneCardBodyContent({
 
   if (isTextCard) {
     const cardText = chiChuCardText;
-    const showTitle = shouldShowChiChuTitle(title, blocks);
+    const showTitle = shouldShowChiChuTitle(title, blocks, body);
     const bodyPlain = chiChuBodyPlain(title, body, blocks);
-    const nenClass = chiChuNenClass(chiChuNen);
-    const lightInk = chiChuUsesLightInk(chiChuNen);
-    const paragraphs = bodyPlain ? splitChiChuParagraphs(bodyPlain) : [];
+    const chiChuParagraphs = bodyPlain
+      ? splitChiChuParagraphs(bodyPlain)
+      : [];
+    const paragraphCount = chiChuParagraphs.length;
     const collapseSource = bodyPlain ?? cardText ?? "";
-    const centerAlign = chiChuUsesCenterAlign(paragraphs.length);
     const needsChiChuCollapse = collapseSource
-      ? chiChuNeedsCollapse(collapseSource, paragraphs.length)
+      ? chiChuNeedsCollapse(collapseSource, paragraphCount)
       : false;
     const isChiChuCollapsed = needsChiChuCollapse && !chiChuExpanded;
+    const isChiChuCompact = !needsChiChuCollapse;
+    const nenClass = chiChuNenClass(chiChuNen);
+    const lightInk = chiChuUsesLightInk(chiChuNen);
 
     return (
       <div className="jcard-body">
         <div
           className={[
             "jcard-chi-chu",
+            isChiChuCompact ? " is-compact" : " is-align-left",
             nenClass,
             lightInk ? " is-light-ink" : "",
-            centerAlign ? " is-align-center" : " is-align-left",
             isChiChuCollapsed ? " is-collapsed is-expand-trigger" : "",
             chiChuExpanded ? " is-content-open" : "",
           ]
@@ -329,10 +331,10 @@ export function JourneyMilestoneCardBodyContent({
           {showTitle ? (
             <h2 className="jcard-chi-chu-title">{title}</h2>
           ) : null}
-          {paragraphs.length > 0 ? (
+          {chiChuParagraphs.length > 0 ? (
             <div className="jcard-chi-chu-body">
-              {paragraphs.map((para, idx) => (
-                <p key={`${idx}-${para.slice(0, 48)}`}>{para}</p>
+              {chiChuParagraphs.map((para, idx) => (
+                <p key={idx}>{para}</p>
               ))}
             </div>
           ) : emptyFallback ? (

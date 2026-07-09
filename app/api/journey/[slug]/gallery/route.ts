@@ -30,6 +30,7 @@ export async function GET(
   const page = await fetchGalleryMainPage({
     userId: owner.id,
     ownerSlug: slug,
+    viewerId: session?.profile?.id ?? null,
     offset,
   });
 

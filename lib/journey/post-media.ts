@@ -5,7 +5,10 @@ import type { ComposeIntent } from "@/lib/journey/compose-types";
 import { resolvePostDisplayKind } from "@/lib/journey/post-content-kind";
 import { extractVideoCanvasRatio } from "@/lib/journey/video-canvas-ratio";
 import { isPersistedImageSeed } from "@/lib/truong/image-ref";
-import { chiChuNeedsCollapse } from "@/lib/journey/plain-text-bg";
+import {
+  chiChuNeedsCollapse,
+  restoreChiChuPlainLineBreaks,
+} from "@/lib/journey/plain-text-bg";
 import type { BaiDangLoai } from "@/lib/truong/bai-dang";
 
 export type MediaPostKind = "photo" | "video";
@@ -267,13 +270,30 @@ export function isArticleFallbackTitle(title: string): boolean {
 }
 
 function htmlFragmentToPlainText(html: string): string {
-  return html
+  const trimmed = html.replace(/\r\n/g, "\n");
+  if (!/<[a-z][\s>]/i.test(trimmed)) {
+    return trimmed.trim();
+  }
+  return trimmed
     .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/p>/gi, "\n")
+    .replace(/<\/(?:p|div|h[1-6]|li|blockquote|tr)>/gi, "\n\n")
+    .replace(/<(?:p|div|h[1-6]|li|blockquote|tr)(?:\s[^>]*)?>/gi, "\n")
     .replace(/<[^>]+>/g, "")
     .replace(/&nbsp;/gi, " ")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+}
+
+function compactPlainText(text: string): string {
+  return text.replace(/\s+/g, "");
+}
+
+/** Ưu tiên bản giữ nhiều xuống dòng hơn (mô tả editor thường đúng hơn block html). */
+function preferRicherPlainText(a: string, b: string): string {
+  const aBreaks = (a.match(/\n/g) ?? []).length;
+  const bBreaks = (b.match(/\n/g) ?? []).length;
+  if (aBreaks !== bBreaks) return bBreaks > aBreaks ? b : a;
+  return a.length >= b.length ? a : b;
 }
 
 /** Tiêu đề DB copy từ dòng đầu nội dung (compose không nhập title). */
@@ -375,12 +395,15 @@ export function milestoneCardEmptyFallback(
 export function shouldShowChiChuTitle(
   title: string,
   blocks: ReadonlyArray<Block> | null | undefined,
+  body?: string | null,
 ): boolean {
   const trimmedTitle = title.trim();
   if (!trimmedTitle || isArticleFallbackTitle(trimmedTitle)) return false;
 
   const kind = detectMediaPostKind(blocks);
   if (kind && isMediaFallbackTitle(trimmedTitle, kind)) return false;
+
+  if (titleMatchesAutoDerivedContent(trimmedTitle, body, blocks)) return false;
 
   return true;
 }
@@ -393,18 +416,23 @@ export function chiChuBodyPlain(
 ): string | null {
   const plain = plainTextCardPlain(body, blocks);
   if (!plain) return null;
-  if (!shouldShowChiChuTitle(title, blocks)) return plain;
 
-  const trimmedTitle = title.trim();
-  const parts = plain
-    .split(/\n\s*\n/)
-    .map((p) => p.trim())
-    .filter(Boolean);
-  if (parts.length > 0 && parts[0] === trimmedTitle) {
-    const rest = parts.slice(1).join("\n\n");
-    return rest || null;
+  let display = plain;
+  if (shouldShowChiChuTitle(title, blocks, body)) {
+    const trimmedTitle = title.trim();
+    const parts = plain
+      .split(/\n\s*\n/)
+      .map((p) => p.trim())
+      .filter(Boolean);
+    if (parts.length > 0 && parts[0] === trimmedTitle) {
+      display = parts.slice(1).join("\n\n") || plain;
+    } else if (trimmedTitle && plain.startsWith(trimmedTitle)) {
+      display = plain.slice(trimmedTitle.length).replace(/^\s+/, "") || plain;
+    }
   }
-  return plain;
+
+  const restored = restoreChiChuPlainLineBreaks(display);
+  return restored || null;
 }
 
 /** Nhãn gallery grid — luôn có default theo loại nội dung. */
@@ -581,6 +609,9 @@ function mergePlainTextMoTaAndBlocks(
     if (blocksText === moTa) return moTa;
     if (blocksText.startsWith(moTa)) return blocksText;
     if (moTa.startsWith(blocksText)) return moTa;
+    if (compactPlainText(moTa) === compactPlainText(blocksText)) {
+      return preferRicherPlainText(moTa, blocksText);
+    }
     return `${moTa}\n\n${blocksText}`;
   }
   return moTa ?? blocksText;
@@ -591,7 +622,8 @@ export function plainTextCardPlain(
   body: string | null | undefined,
   blocks: ReadonlyArray<Block> | null | undefined,
 ): string | null {
-  const moTa = body?.trim() || null;
+  const moTaRaw = body?.trim() || null;
+  const moTa = moTaRaw ? htmlFragmentToPlainText(moTaRaw) || null : null;
   const blocksText = plainTextFromBlocks(blocks);
   const merged = mergePlainTextMoTaAndBlocks(moTa, blocksText);
   if (merged) return merged;

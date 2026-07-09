@@ -135,7 +135,8 @@ export function CinsAppSidebar() {
 
 /** Khởi tạo tooltip sidebar + burger (render null). */
 export function SiteNavEffects() {
-  useCinsSidebarNav("app-sidebar");
+  const pathname = usePathname();
+  useCinsSidebarNav("app-sidebar", pathname ?? "/");
   return null;
 }
 

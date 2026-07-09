@@ -7,6 +7,23 @@ export type VideoProcessingMeta = {
   processing: boolean;
 };
 
+export function isVideoProcessingInBlocks(
+  blocks: ReadonlyArray<Block> | null | undefined,
+): boolean {
+  return extractVideoProcessingMeta(blocks)?.processing === true;
+}
+
+/** Ẩn milestone/video khỏi viewer khi encode chưa xong — trừ chủ bài. */
+export function hideProcessingVideoFromViewer(
+  blocks: ReadonlyArray<Block> | null | undefined,
+  viewerId: string | null | undefined,
+  ownerId: string | null | undefined,
+): boolean {
+  if (!isVideoProcessingInBlocks(blocks)) return false;
+  if (viewerId && ownerId && viewerId === ownerId) return false;
+  return true;
+}
+
 export function extractVideoProcessingMeta(
   blocks: ReadonlyArray<Block> | null | undefined,
 ): VideoProcessingMeta | null {

@@ -7,6 +7,10 @@ import { normalizeBookmarkPrivateNote } from "@/lib/journey/bookmark-private-not
 import { mapBookmarkUiToCheDoLuu } from "@/lib/journey/bookmark-visibility";
 import { saveOrgBaiDangBookmark } from "@/lib/truong/org-bai-dang-bookmark";
 import {
+  saveOrgKhoaHocBookmark,
+  SOCIAL_LOAI_ORG_KHOA_HOC,
+} from "@/lib/to-chuc/khoa-hoc-bookmark";
+import {
   saveOrgTuyenDungBookmark,
   SOCIAL_LOAI_ORG_TUYEN_DUNG,
 } from "@/lib/to-chuc/tuyen-dung-bookmark";
@@ -63,6 +67,24 @@ export async function handleSaveBookmarkPost(req: Request) {
   if (loaiDoiTuong === SOCIAL_LOAI_ORG_TUYEN_DUNG) {
     const result = await saveOrgTuyenDungBookmark({
       jobId: idDoiTuong,
+      viewerId: session.profile.id,
+      visibility,
+      ghiChuRieng,
+    });
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: result.status });
+    }
+    return NextResponse.json({
+      ok: true,
+      visibility: result.visibility,
+      bookmarked: result.bookmarked,
+      count: result.count,
+    });
+  }
+
+  if (loaiDoiTuong === SOCIAL_LOAI_ORG_KHOA_HOC) {
+    const result = await saveOrgKhoaHocBookmark({
+      khoaHocId: idDoiTuong,
       viewerId: session.profile.id,
       visibility,
       ghiChuRieng,

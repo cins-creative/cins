@@ -32,7 +32,6 @@ export type ModuleId =
   | "ho_so_cua_ban"
   | "nguoi_cung_nganh"
   | "co_hoi"
-  | "loi_moi_xac_nhan"
   // cụm DẠY
   | "cho_ban_duyet"
   | "hoc_vien_cua_ban"
@@ -93,7 +92,6 @@ const MODULE_ORDER: Record<Persona, ModuleId[]> = {
     "ho_so_cua_ban",
     "nguoi_cung_nganh",
     "goi_y_studio",
-    "loi_moi_xac_nhan",
     "theo_doi_org",
     "co_hoi",
   ],

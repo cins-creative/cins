@@ -25,6 +25,7 @@ import {
 import { AuthorRoleTooltip } from "@/components/journey/AuthorRoleTooltip";
 import { parseVaiTroPositions } from "@/lib/social/vai-tro";
 import { JourneyAuthorRowFriendAction } from "@/components/journey/JourneyAuthorRowFriendAction";
+import { JourneyBookmarkListingCard } from "@/components/journey/JourneyBookmarkListingCard";
 import { JourneyMilestoneCardBodyContent } from "@/components/journey/JourneyMilestoneCardBodyContent";
 import { JourneyMilestoneUnfold } from "@/components/journey/JourneyMilestoneUnfold";
 import { JourneyUnfoldArticleContent } from "@/components/journey/JourneyUnfoldArticleContent";
@@ -78,6 +79,7 @@ import {
 } from "@/lib/journey/bookmark-source-theme";
 import {
   plainTextCardPlain,
+  chiChuBodyPlain,
   milestoneCardCaptionPlain,
   shouldShowMilestoneCardTitle,
 } from "@/lib/journey/post-media";
@@ -178,6 +180,61 @@ function attributionUsesVerifyBar(
   if (!attr?.isOrg || attr.orgKind === "cong_dong") return false;
   if (attr.orgKind === "truong") return true;
   return variant === "verified";
+}
+
+type TruongVerifyBarContext = {
+  orgBaiDangRef?: MilestoneOrgBaiDangRef | null;
+  posterSlug?: string | null;
+  posterName?: string | null;
+};
+
+function normalizeOrgCompareKey(value: string): string {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function attributionMatchesOrgPoster(
+  attr: MilestoneAttribution,
+  posterSlug?: string | null,
+  posterName?: string | null,
+): boolean {
+  const attrSlug = attr.slug?.trim();
+  const posterSlugTrimmed = posterSlug?.trim();
+  if (
+    attrSlug &&
+    posterSlugTrimmed &&
+    attrSlug.toLowerCase() === posterSlugTrimmed.toLowerCase()
+  ) {
+    return true;
+  }
+
+  const attrName = normalizeOrgCompareKey(attr.name);
+  const posterNameKey = posterName ? normalizeOrgCompareKey(posterName) : "";
+  return Boolean(posterNameKey) && attrName === posterNameKey;
+}
+
+/** Bài do chính org đăng — không cần bar «Đã xác thực bởi» cùng org. */
+function isOrgSelfAuthoredPost(
+  attr: MilestoneAttribution | null | undefined,
+  ctx: TruongVerifyBarContext,
+): boolean {
+  if (!attr?.isOrg) return false;
+  if (ctx.orgBaiDangRef) {
+    return attributionMatchesOrgPoster(
+      attr,
+      ctx.orgBaiDangRef.orgSlug,
+      ctx.orgBaiDangRef.orgName,
+    );
+  }
+  return attributionMatchesOrgPoster(attr, ctx.posterSlug, ctx.posterName);
+}
+
+function shouldShowTruongVerifyBar(
+  attr: MilestoneAttribution | null | undefined,
+  variant: MilestoneItem["variant"],
+  ctx: TruongVerifyBarContext,
+): boolean {
+  if (!attr || !attributionUsesVerifyBar(attr, variant)) return false;
+  return !isOrgSelfAuthoredPost(attr, ctx);
 }
 
 function MilestoneVerifyBadge() {
@@ -327,6 +384,7 @@ export function JourneyMilestoneCard({
     body,
     attribution,
     bookmark,
+    bookmarkListing,
     verifiedBy,
     media = [],
     tags = [],
@@ -577,11 +635,25 @@ export function JourneyMilestoneCard({
   const canManageCoAuthors =
     isOwner && (variant === "self" || variant === "verified") && Boolean(tacPhamId);
   const showOrgVerifyBadge = usesOrgVerifyTypeBadge(type, verifiedBy, isCongDongPost);
+  const truongVerifyBarContext: TruongVerifyBarContext = {
+    orgBaiDangRef,
+    posterSlug:
+      orgBaiDangRef?.orgSlug ??
+      milestone.lensOwnerSlug?.trim() ??
+      ownerSlug?.trim() ??
+      postOwnerSlug?.trim() ??
+      null,
+    posterName:
+      orgBaiDangRef?.orgName ??
+      milestone.lensOwnerName?.trim() ??
+      authorName?.trim() ??
+      null,
+  };
   const showsTruongVerifyBar =
     Boolean(
       (variant === "tagged" || variant === "verified") &&
         !useForeignFrame &&
-        attributionUsesVerifyBar(attribution, variant),
+        shouldShowTruongVerifyBar(attribution, variant, truongVerifyBarContext),
     );
   const showMilestoneVerifyBadge =
     !showsTruongVerifyBar &&
@@ -614,6 +686,7 @@ export function JourneyMilestoneCard({
     hasCoverPreview,
     body,
   );
+  const cardShellKind = bookmarkListing ? "listing" : cardContentKind;
   const contributorCount = coAuthorCredits.length;
   const otherContributorCount = coAuthorsOnly.length;
   const resolvedPostOwner = postOwnerSlug || ownerSlug || null;
@@ -625,8 +698,8 @@ export function JourneyMilestoneCard({
     useFeedCompactMedia && readMoreHref ? readMoreHref : null;
   const chiChuCardText = useMemo(() => {
     if (!isTextCard) return null;
-    return plainTextCardPlain(body, noiDungBlocks);
-  }, [isTextCard, body, noiDungBlocks]);
+    return chiChuBodyPlain(title, body, noiDungBlocks);
+  }, [isTextCard, title, body, noiDungBlocks]);
   const chiChuParagraphs = useMemo(
     () => (chiChuCardText ? splitChiChuParagraphs(chiChuCardText) : []),
     [chiChuCardText],
@@ -1044,7 +1117,7 @@ export function JourneyMilestoneCard({
       ref={articleRef}
       className={milestoneCls + ((showUnfold || showChiChuUnfold) ? " is-card-expanded" : "")}
       data-mid={cotMocId ?? milestone.id}
-      data-content-kind={cardContentKind}
+      data-content-kind={cardShellKind}
       data-year={year}
       data-month={month}
       data-group={type}
@@ -1071,7 +1144,7 @@ export function JourneyMilestoneCard({
             <div
               className={
                 "j-m-card jcard j-bookmark-frame-card jcard--" +
-                cardContentKind +
+                cardShellKind +
                 (supportsInlineUnfold ? " has-unfold" : "") +
                 (showUnfold
                   ? " is-expanded"
@@ -1087,7 +1160,7 @@ export function JourneyMilestoneCard({
           <div
             className={
               "j-m-card jcard jcard--" +
-              cardContentKind +
+              cardShellKind +
               (supportsInlineUnfold ? " has-unfold" : "") +
               (showUnfold
                 ? " is-expanded"
@@ -1269,6 +1342,7 @@ export function JourneyMilestoneCard({
                 attr={attribution}
                 dateLabel={displayDate}
                 variant={variant}
+                verifyBarContext={truongVerifyBarContext}
               />
             ) : null
           ) : null}
@@ -1408,10 +1482,11 @@ export function JourneyMilestoneCard({
               !useForeignFrame &&
               !showsTruongVerifyBar ? (
                 <TaggedByPanel
-                attr={attribution}
-                dateLabel={displayDate}
-                variant={variant}
-              />
+                  attr={attribution}
+                  dateLabel={displayDate}
+                  variant={variant}
+                  verifyBarContext={truongVerifyBarContext}
+                />
               ) : null}
               {isCongDongPost && congDongOrg ? (
                 <CongDongSourceChip
@@ -1653,50 +1728,56 @@ export function JourneyMilestoneCard({
             </div>
           ) : null}
 
-          <JourneyMilestoneCardBodyContent
-            title={title}
-            body={body}
-            noiDungBlocks={noiDungBlocks}
-            preview={preview}
-            photoGridImages={photoGridImages}
-            contentKind={cardContentKind}
-            compactMediaPreview={useFeedCompactMedia}
-            readMoreHref={cardReadMoreHref}
-            hasLinkedPost={Boolean(postSlug)}
-            captionExpandMode={
-              cardContentKind === "photo" || cardContentKind === "video"
-                ? "inline"
-                : "overlay"
-            }
-            canEditChiChuNen={
-              canManageSelf &&
-              variant === "self" &&
-              cardContentKind === "text" &&
-              Boolean(tacPhamId)
-            }
-            tacPhamId={tacPhamId}
-            chiChuExpanded={
-              chiChuCollapsible ? chiChuExpanded : undefined
-            }
-            onChiChuExpandedChange={
-              chiChuCollapsible ? setChiChuExpanded : undefined
-            }
-            articleTags={liveArticleTags}
-            expandTrigger={
-              supportsInlineUnfold && inlineExpand && !isContentOpen
-                ? {
-                    enabled: true,
-                    expanded: isContentOpen,
-                    ariaLabel: `Xem đầy đủ: ${showCardTitle ? title : cardCaption || title}`,
-                    onClick: handleExpandTrigger,
-                    onKeyDown: handleExpandKeyDown,
-                  }
-                : supportsInlineUnfold && inlineExpand
-                  ? { enabled: false, expanded: isContentOpen }
-                  : undefined
-            }
-            onTagLinkClick={(e) => e.stopPropagation()}
-          />
+          {bookmarkListing ? (
+            <div className="j-bm-listing-wrap">
+              <JourneyBookmarkListingCard title={title} listing={bookmarkListing} />
+            </div>
+          ) : (
+            <JourneyMilestoneCardBodyContent
+              title={title}
+              body={body}
+              noiDungBlocks={noiDungBlocks}
+              preview={preview}
+              photoGridImages={photoGridImages}
+              contentKind={cardContentKind}
+              compactMediaPreview={useFeedCompactMedia}
+              readMoreHref={cardReadMoreHref}
+              hasLinkedPost={Boolean(postSlug)}
+              captionExpandMode={
+                cardContentKind === "photo" || cardContentKind === "video"
+                  ? "inline"
+                  : "overlay"
+              }
+              canEditChiChuNen={
+                canManageSelf &&
+                variant === "self" &&
+                cardContentKind === "text" &&
+                Boolean(tacPhamId)
+              }
+              tacPhamId={tacPhamId}
+              chiChuExpanded={
+                chiChuCollapsible ? chiChuExpanded : undefined
+              }
+              onChiChuExpandedChange={
+                chiChuCollapsible ? setChiChuExpanded : undefined
+              }
+              articleTags={liveArticleTags}
+              expandTrigger={
+                supportsInlineUnfold && inlineExpand && !isContentOpen
+                  ? {
+                      enabled: true,
+                      expanded: isContentOpen,
+                      ariaLabel: `Xem đầy đủ: ${showCardTitle ? title : cardCaption || title}`,
+                      onClick: handleExpandTrigger,
+                      onKeyDown: handleExpandKeyDown,
+                    }
+                  : supportsInlineUnfold && inlineExpand
+                    ? { enabled: false, expanded: isContentOpen }
+                    : undefined
+              }
+              onTagLinkClick={(e) => e.stopPropagation()}
+            />
+          )}
 
           {canRenderInlineUnfold ? (
             <div
@@ -1754,7 +1835,7 @@ export function JourneyMilestoneCard({
 
           {showAuthorsStrip && !authorsInUnfold ? jcardAuthors : null}
 
-          {!pinActionsAboveComments ? jcardActions : null}
+          {!bookmarkListing && !pinActionsAboveComments ? jcardActions : null}
 
           {tags.length > 0 ? (
             <div className="j-m-tags">
@@ -2079,12 +2160,14 @@ function TaggedByPanel({
   attr,
   dateLabel,
   variant,
+  verifyBarContext,
 }: {
   attr: MilestoneAttribution;
   dateLabel: string;
   variant: MilestoneItem["variant"];
+  verifyBarContext?: TruongVerifyBarContext;
 }) {
-  if (attributionUsesVerifyBar(attr, variant)) {
+  if (shouldShowTruongVerifyBar(attr, variant, verifyBarContext ?? {})) {
     return <TruongVerifyBar attr={attr} />;
   }
 

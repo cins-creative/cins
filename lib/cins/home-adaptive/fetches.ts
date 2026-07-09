@@ -1,7 +1,6 @@
 import "server-only";
 
 import { getAvatarUrl } from "@/lib/journey/profile";
-import { loadPendingCoSoStaffInvites } from "@/lib/to-chuc/co-so-staff-invite";
 import { labelLoaiMoHinhKhoa } from "@/lib/to-chuc/khoa-hoc-labels";
 import type { LoaiMoHinhKhoa } from "@/lib/to-chuc/khoa-hoc-types";
 import { resolveTruongImageSrcSync } from "@/lib/truong/media-url";
@@ -53,14 +52,6 @@ export type ScoutItem = {
   slug: string;
   avatarUrl: string | null;
   sub: string;
-};
-
-export type LoiMoiXacNhanItem = {
-  id: string;
-  orgName: string;
-  orgSlug: string;
-  label: string;
-  kind: "staff" | "verify";
 };
 
 /** Org mà viewer quản lý (dạy / admin). */
@@ -283,59 +274,6 @@ export async function loadKhoaHocGoiY(limit = 4): Promise<KhoaHocGoiYItem[]> {
     });
   }
   return out;
-}
-
-/** LÀM · Lời mời xác nhận / tham gia org. */
-export async function loadLoiMoiXacNhan(
-  viewerId: string,
-  limit = 4,
-): Promise<LoiMoiXacNhanItem[]> {
-  const out: LoiMoiXacNhanItem[] = [];
-
-  const staffInvites = await loadPendingCoSoStaffInvites(viewerId, { limit });
-  for (const inv of staffInvites) {
-    out.push({
-      id: inv.membershipId,
-      orgName: inv.orgTen,
-      orgSlug: inv.orgSlug,
-      label: `${inv.inviterName} mời bạn — ${inv.vaiTroLabel}`,
-      kind: "staff",
-    });
-  }
-
-  const admin = createServiceRoleClient();
-  const { data: verifyRows } = await admin
-    .from("verify_xac_nhan")
-    .select(
-      `
-      id,
-      id_cot_moc,
-      content_cot_moc:content_cot_moc!inner(tieu_de, id_nguoi_dung)
-    `,
-    )
-    .eq("id_nguoi_xac_nhan", viewerId)
-    .eq("trang_thai", "cho_duyet")
-    .limit(limit);
-
-  for (const row of verifyRows ?? []) {
-    const r = row as {
-      id: string;
-      content_cot_moc?: { tieu_de?: string } | { tieu_de?: string }[];
-    };
-    const cm = Array.isArray(r.content_cot_moc)
-      ? r.content_cot_moc[0]
-      : r.content_cot_moc;
-    out.push({
-      id: r.id,
-      orgName: "Xác nhận tác phẩm",
-      orgSlug: "",
-      label: cm?.tieu_de?.trim() || "Yêu cầu xác nhận",
-      kind: "verify",
-    });
-    if (out.length >= limit) break;
-  }
-
-  return out.slice(0, limit);
 }
 
 /** DẠY · Scout tài năng — học viên nổi bật trong org viewer quản lý. */

@@ -12,7 +12,11 @@ import {
   milestoneCardContentKind,
   milestoneCardPhotoGrid,
 } from "@/lib/journey/milestone-card-kind";
-import { milestoneCardCaptionForDisplay, plainTextCardPlain } from "@/lib/journey/post-media";
+import {
+  chiChuBodyPlain,
+  milestoneCardCaptionForDisplay,
+  plainTextCardPlain,
+} from "@/lib/journey/post-media";
 import {
   splitChiChuParagraphs,
   chiChuNeedsCollapse,
@@ -139,7 +143,7 @@ export function OrgBaiDangJourneyCard({ post, owner = null }: Props) {
   const isMediaCard = cardKind === "photo" || cardKind === "video";
   const chiChuCardText = useMemo(() => {
     if (!isTextCard || !usesBlocks) return null;
-    return plainTextCardPlain(post.tom_tat, blocks);
+    return chiChuBodyPlain(post.tieu_de, post.tom_tat, blocks);
   }, [isTextCard, usesBlocks, post.tom_tat, blocks]);
   const chiChuParagraphs = useMemo(
     () => (chiChuCardText ? splitChiChuParagraphs(chiChuCardText) : []),

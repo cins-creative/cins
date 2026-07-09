@@ -69,14 +69,78 @@ export function chiChuUsesLightInk(nen: ChiChuNenId): boolean {
 /** Tách đoạn card chỉ chữ (blank line giữa các đoạn). */
 export function splitChiChuParagraphs(text: string): string[] {
   return text
+    .replace(/\r\n/g, "\n")
     .split(/\n\n+/)
     .map((p) => p.trim())
     .filter(Boolean);
 }
 
-/** Một đoạn → căn giữa; từ hai đoạn trở lên → căn trái. */
-export function chiChuUsesCenterAlign(paragraphCount: number): boolean {
-  return paragraphCount <= 1;
+const CHI_CHU_RESTORE_MIN_BREAKS = 3;
+const CHI_CHU_RESTORE_BREAKS_PER_CHAR = 250;
+
+/** Plain text dính liền (paste Word/PDF, `mo_ta` không có `\n`) — khôi phục xuống dòng hiển thị. */
+export function restoreChiChuPlainLineBreaks(text: string): string {
+  const normalized = text.replace(/\r\n/g, "\n");
+  const existingBreaks = (normalized.match(/\n/g) ?? []).length;
+  if (
+    existingBreaks >= CHI_CHU_RESTORE_MIN_BREAKS ||
+    existingBreaks >= normalized.length / CHI_CHU_RESTORE_BREAKS_PER_CHAR
+  ) {
+    return normalized;
+  }
+
+  let out = normalized;
+
+  out = out.replace(/(?<=\S)(?=CHƯƠNG \d+:)/g, "\n\n");
+  out = out.replace(/(?<=\S)(?=BỘ GIÁO DỤC)/g, "\n\n");
+  out = out.replace(/(?<=\S)(?=TRƯỜNG )/g, "\n\n");
+  out = out.replace(/(?<=\S)(?=KHOA )/g, "\n\n");
+  out = out.replace(/(?<=\S)(?=BÁO CÁO )/g, "\n\n");
+  out = out.replace(/(?<=\S)(?=CHUYÊN NGÀNH:)/g, "\n\n");
+  out = out.replace(/(?<=\S)(?=\d+\.\d+\.\d+\.)/g, "\n\n");
+  out = out.replace(/(?<=\S)(?=\d+\.\d+\.)/g, "\n\n");
+  out = out.replace(/(?<=\S)(?=\[Chèn ảnh:)/g, "\n\n");
+
+  const lineLabels = [
+    "Vị trí thực tập:",
+    "Sinh viên thực hiện:",
+    "Mã số sinh viên:",
+    "Giảng viên hướng dẫn:",
+    "Khóa học:",
+    "Lĩnh vực hoạt động:",
+    "Mục tiêu hoạt động:",
+    "Vị trí đảm nhận:",
+    "Nhiệm vụ chính:",
+    "Mô tả công việc:",
+    "Mô tả sản phẩm:",
+    "Yêu cầu:",
+    "Giải pháp kỹ thuật:",
+    "Giải pháp bố cục",
+    "Giải pháp Motion",
+    "Sản phẩm 1:",
+    "Sản phẩm 2:",
+    "Sản phẩm:",
+    "Chi tiết giải pháp",
+    "Hình ảnh minh họa",
+    "Cấu trúc cây thư mục",
+    "Về kỹ năng chuyên môn:",
+    "Về kỹ năng mềm:",
+    "Giai đoạn đầu",
+    "Tiếp tục đầu tư",
+  ];
+  for (const label of lineLabels) {
+    out = out.replace(
+      new RegExp(`(?<=\\S)(?=${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "g"),
+      "\n",
+    );
+  }
+
+  /* Dòng tiêu đề IN HOA → nhãn Title case (vd. `HỌAVị trí`). */
+  out = out.replace(/(?<=[A-ZÀ-Ỹ]{2,})(?=Vị trí )/g, "\n");
+  /* Câu mới sau dấu chấm (tránh `TP.HCM`). */
+  out = out.replace(/\.(?=[A-ZÀ-ỸĐ][a-zà-ỹđ])/g, ".\n");
+
+  return out.replace(/\n{3,}/g, "\n\n").trim();
 }
 
 const CHI_CHU_COLLAPSE_CHARS = 260;
@@ -91,9 +155,62 @@ export function chiChuNeedsCollapse(
   return text.length > CHI_CHU_COLLAPSE_CHARS;
 }
 
+const CHI_CHU_TEXT_BLOCK_LOAI = new Set<Block["loai"]>([
+  "body",
+  "h2",
+  "h3",
+  "quote",
+]);
+
+function chiChuBlockHasText(block: Block): boolean {
+  if (!CHI_CHU_TEXT_BLOCK_LOAI.has(block.loai)) return false;
+  const html = block.config?.html;
+  return typeof html === "string" && html.trim().length > 0;
+}
+
+/** Nội dung seed khi phải tạo block `body` mới — tránh trùng nếu chữ đã nằm ở h2/h3/quote. */
+function seedBodyHtmlForChiChuNen(
+  blocks: ReadonlyArray<Block>,
+  moTa: string | null | undefined,
+): string | null {
+  const trimmedMoTa = moTa?.trim() || null;
+  if (trimmedMoTa) return trimmedMoTa.replace(/\r\n/g, "\n");
+
+  const hasOtherTextBlocks = blocks.some(
+    (block) =>
+      block.loai !== "body" &&
+      CHI_CHU_TEXT_BLOCK_LOAI.has(block.loai) &&
+      chiChuBlockHasText(block),
+  );
+  if (hasOtherTextBlocks) return "";
+
+  for (const block of blocks) {
+    if (!chiChuBlockHasText(block)) continue;
+    const html = block.config?.html;
+    if (typeof html === "string" && html.trim()) {
+      return html.trim();
+    }
+  }
+  return null;
+}
+
+function chiChuPostHasTextContent(
+  blocks: ReadonlyArray<Block>,
+  moTa: string | null | undefined,
+): boolean {
+  if (moTa?.trim()) return true;
+  return blocks.some(chiChuBlockHasText);
+}
+
+export type ApplyChiChuNenOptions = {
+  moTa?: string | null;
+  tacPhamId?: string;
+};
+
 export function applyChiChuNenToBlocks(
   blocks: ReadonlyArray<Block>,
   nen: ChiChuNenId,
+  options?: ApplyChiChuNenOptions,
 ): Block[] | null {
   let touched = false;
   const next = blocks.map((block) => {
@@ -107,5 +224,27 @@ export function applyChiChuNenToBlocks(
       config,
     };
   });
-  return touched ? next : null;
+  if (touched) return next;
+
+  if (!chiChuPostHasTextContent(blocks, options?.moTa)) return null;
+
+  const html = seedBodyHtmlForChiChuNen(blocks, options?.moTa);
+  if (html === null) return null;
+
+  const seed = options?.tacPhamId?.trim() || "chi-chu";
+  const minThuTu = blocks.reduce(
+    (min, block) => Math.min(min, block.thu_tu),
+    0,
+  );
+  const bodyBlock: Block = {
+    id: `b-chi-chu-nen-${seed.slice(0, 8)}`,
+    loai: "body",
+    thu_tu: minThuTu - 1,
+    config: {
+      html,
+      chiChuNen: nen,
+    },
+  };
+
+  return [...blocks, bodyBlock].sort((a, b) => a.thu_tu - b.thu_tu);
 }

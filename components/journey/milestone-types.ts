@@ -143,6 +143,35 @@ export type MilestoneBookmarkSource = {
   sourceKind?: BookmarkFrameKind | null;
 };
 
+/** Card «Lưu về» — tin tuyển dụng / khóa học (không dùng layout bài viết). */
+export type MilestoneBookmarkListingKind = "tuyen_dung" | "khoa_hoc";
+
+export type MilestoneBookmarkListingStatusTone =
+  | "open"
+  | "closed"
+  | "expired"
+  | "draft";
+
+export type MilestoneBookmarkListing = {
+  kind: MilestoneBookmarkListingKind;
+  href: string;
+  orgTen: string;
+  orgAvatarUrl?: string | null;
+  snippet?: string | null;
+  /** Tuyển dụng */
+  salary?: string | null;
+  loaiHinhLabel?: string | null;
+  place?: string | null;
+  linhVucTen?: string | null;
+  statusLabel?: string | null;
+  statusTone?: MilestoneBookmarkListingStatusTone;
+  deadline?: string | null;
+  /** Khóa học */
+  coverUrl?: string | null;
+  hocPhi?: string | null;
+  trinhDoLabel?: string | null;
+};
+
 /** Bookmark từ `org_bai_dang` — unfold blocks local, không gọi Journey post API. */
 export type MilestoneOrgBaiDangRef = {
   postId: string;
@@ -234,6 +263,8 @@ export type MilestoneItem = {
   attribution?: MilestoneAttribution | null;
   /** Khi `variant === 'bookmark'` — bookmark từ đâu. */
   bookmark?: MilestoneBookmarkSource | null;
+  /** Bookmark tin tuyển dụng / khóa học — card chuyên biệt thay vì text panel. */
+  bookmarkListing?: MilestoneBookmarkListing | null;
   /** Bài đăng trường/org đã lưu — render unfold từ `noiDungBlocks`. */
   orgBaiDangRef?: MilestoneOrgBaiDangRef | null;
   /** Sự kiện org trên feed giữa — card riêng, link sang trang org. */
@@ -259,6 +290,9 @@ export type MilestoneItem = {
    * (ưu tiên xếp trên bài org chưa follow).
    */
   feedOrgFollowed?: boolean;
+
+  /** World Journey — bài từ pool Khám phá (chưa theo dõi), dùng sort «Theo dõi». */
+  feedExplore?: boolean;
 
   /**
    * Thời điểm xếp trên World Journey feed — sự kiện org tương lai dùng thay cho

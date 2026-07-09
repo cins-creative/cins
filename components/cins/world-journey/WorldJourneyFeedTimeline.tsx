@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { WorldJourneyFeedPromoRail } from "@/components/cins/world-journey/WorldJourneyFeedPromoRail";
 import {
@@ -12,6 +12,7 @@ import type { MilestoneItem } from "@/components/journey/milestone-types";
 import {
   canWorldJourneyInlineExpandOnFeed,
 } from "@/lib/cins/worldJourneyMilestoneFeed";
+import { WORLD_JOURNEY_FEED_SCROLL_ROOT_MARGIN } from "@/lib/cins/worldJourneyFeedConstants";
 import {
   FEED_INLINE_PROMO_INTERVAL,
   type FeedPromoVariant,
@@ -21,6 +22,10 @@ type Props = {
   milestones: ReadonlyArray<MilestoneItem>;
   viewerProfileId: string;
   feedPromos?: FeedPromoVariant[];
+  scrollLoad?: { enabled: boolean } | null;
+  loadingMore?: boolean;
+  loadError?: boolean;
+  onLoadMore?: () => void;
 };
 
 /**
@@ -82,9 +87,14 @@ export function WorldJourneyFeedTimeline({
   milestones,
   viewerProfileId,
   feedPromos = [],
+  scrollLoad = null,
+  loadingMore = false,
+  loadError = false,
+  onLoadMore,
 }: Props) {
   const [inlineExpand, setInlineExpand] =
     useState<TimelineInlineExpandState>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   const byYear = useMemo(
     () => groupByYearPreserveOrder(milestones),
@@ -95,6 +105,23 @@ export function WorldJourneyFeedTimeline({
     () => buildPromoInsertMap(milestones.length, feedPromos),
     [milestones.length, feedPromos],
   );
+
+  useEffect(() => {
+    if (!scrollLoad?.enabled || !onLoadMore) return;
+    const node = sentinelRef.current;
+    if (!node || typeof IntersectionObserver === "undefined") return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          onLoadMore();
+        }
+      },
+      { root: null, rootMargin: WORLD_JOURNEY_FEED_SCROLL_ROOT_MARGIN, threshold: 0 },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [scrollLoad, onLoadMore, milestones.length]);
 
   const handleToggleContent = useCallback((milestone: MilestoneItem) => {
     if (!canInlineExpand(milestone)) return;
@@ -165,6 +192,44 @@ export function WorldJourneyFeedTimeline({
         postCountOffset += yb.milestones.length;
         return block;
       })}
+
+      {scrollLoad?.enabled ? (
+        <div ref={sentinelRef} className="j-timeline-scroll-sentinel" aria-hidden />
+      ) : null}
+
+      {loadingMore ? (
+        <div className="j-timeline-load-more" aria-busy="true" aria-live="polite">
+          <article className="j-milestone">
+            <div className="j-m-body-wrap">
+              <div className="j-m-card jcard j-skel-post-card">
+                <div className="jcard-datebar">
+                  <div className="j-skel j-skel-post-avatar" />
+                  <div className="j-skel-post-badges">
+                    <div className="j-skel j-skel-post-badge" />
+                  </div>
+                </div>
+                <div className="jcard-body">
+                  <div className="j-skel j-skel-post-line j-skel-post-line--title" />
+                  <div className="j-skel j-skel-post-line" />
+                </div>
+              </div>
+            </div>
+          </article>
+        </div>
+      ) : null}
+
+      {loadError && onLoadMore ? (
+        <div className="j-timeline-load-retry-wrap">
+          <button
+            type="button"
+            className="j-timeline-load-retry"
+            onClick={onLoadMore}
+          >
+            Không tải được thêm bài — thử lại
+          </button>
+        </div>
+      ) : null}
+
       <div className="j-timeline-end" aria-hidden>
         <div className="j-timeline-end-text">— hết feed mới —</div>
       </div>

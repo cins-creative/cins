@@ -2,12 +2,35 @@
 
 import { useEffect } from "react";
 
+function isDesktopSidebarRail(): boolean {
+  return window.matchMedia("(min-width: 961px)").matches;
+}
+
+/** Bỏ focus trong sidebar — tránh `:focus-within` giữ rail 240px sau khi rê chuột ra. */
+function blurSidebarFocus(sidebar: HTMLElement | null) {
+  if (!sidebar || !isDesktopSidebarRail()) return;
+  const active = document.activeElement;
+  if (active instanceof HTMLElement && sidebar.contains(active)) {
+    active.blur();
+  }
+}
+
 /** Tooltip theo con trỏ + burger mobile — giống home v2. */
-export function useCinsSidebarNav(sidebarId = "app-sidebar") {
+export function useCinsSidebarNav(
+  sidebarId = "app-sidebar",
+  pathname?: string | null,
+) {
+  // Client navigation (mobile drawer) — class `.open` còn lại khiến sidebar không thu.
+  useEffect(() => {
+    if (pathname == null) return;
+    document.getElementById(sidebarId)?.classList.remove("open");
+  }, [sidebarId, pathname]);
+
   useEffect(() => {
     const sidebar = document.getElementById(sidebarId);
     const topbar = document.getElementById("app-topbar");
     const burger = document.getElementById("app-tb-burger");
+    const desktopMq = window.matchMedia("(min-width: 961px)");
 
     const onScroll = () => {
       const y = window.scrollY;
@@ -36,9 +59,24 @@ export function useCinsSidebarNav(sidebarId = "app-sidebar") {
       const link = (e.target as HTMLElement).closest("a[href]");
       if (link) sidebar?.classList.remove("open");
     };
+    const onSidebarMouseLeave = () => blurSidebarFocus(sidebar);
+    const onDocPointerDown = (e: PointerEvent) => {
+      if (!sidebar || !desktopMq.matches) return;
+      const t = e.target as Node;
+      if (!sidebar.contains(t)) blurSidebarFocus(sidebar);
+    };
+    const onDesktopMqChange = () => {
+      if (desktopMq.matches) sidebar?.classList.remove("open");
+    };
+
     burger?.addEventListener("click", onBurger);
     document.addEventListener("click", onDocClick);
     sidebar?.addEventListener("click", onSidebarClick);
+    sidebar?.addEventListener("mouseleave", onSidebarMouseLeave);
+    document.addEventListener("pointerdown", onDocPointerDown, {
+      capture: true,
+    });
+    desktopMq.addEventListener("change", onDesktopMqChange);
 
     let tip: HTMLDivElement | null = null;
     const sbListeners: Array<{
@@ -94,6 +132,11 @@ export function useCinsSidebarNav(sidebarId = "app-sidebar") {
       burger?.removeEventListener("click", onBurger);
       document.removeEventListener("click", onDocClick);
       sidebar?.removeEventListener("click", onSidebarClick);
+      sidebar?.removeEventListener("mouseleave", onSidebarMouseLeave);
+      document.removeEventListener("pointerdown", onDocPointerDown, {
+        capture: true,
+      });
+      desktopMq.removeEventListener("change", onDesktopMqChange);
       sbListeners.forEach(({ el, enter, move, leave }) => {
         el.removeEventListener("mouseenter", enter);
         el.removeEventListener("mousemove", move);

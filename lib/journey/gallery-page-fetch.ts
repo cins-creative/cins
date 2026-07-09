@@ -31,6 +31,7 @@ import { loadVerifiedCotMocIdSet } from "@/lib/journey/milestone-verify";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import type { VideoCanvasRatio } from "@/lib/journey/video-canvas-ratio";
 import { videoPreviewDimensionsFromRatio } from "@/lib/journey/video-canvas-ratio";
+import { hideProcessingVideoFromViewer } from "@/lib/journey/video-processing-meta";
 
 export const GALLERY_SCROLL_PAGE_SIZE = 24;
 const GALLERY_ASIDE_LIMIT_PER_TYPE = 12;
@@ -74,6 +75,15 @@ export type GalleryMainItem = {
 };
 
 const getGalleryStubsCached = cache(collectGalleryStubs);
+
+function filterGalleryStubsForViewer(
+  stubs: GalleryStub[],
+  viewerId: string | null | undefined,
+  ownerUserId: string,
+): GalleryStub[] {
+  if (!viewerId || viewerId === ownerUserId) return stubs;
+  return stubs.filter((stub) => !stub.videoProcessing);
+}
 
 /** Thứ tự ưu tiên gallery: Nổi bật & Xác thực → Nổi bật → Xác thực → còn lại. */
 function galleryPriorityRank(stub: GalleryStub): number {
@@ -122,6 +132,18 @@ function stubImageFields(
   width?: number;
   height?: number;
 } | null {
+  if (entry.mediaKind === "video" && entry.coverId) {
+    const custom = journeyImageFields(entry.coverId, role);
+    if (custom?.src) {
+      const dims = videoPreviewDimensionsFromRatio(entry.videoCanvasRatio);
+      return {
+        src: custom.src,
+        srcSet: custom.srcSet,
+        width: dims.width,
+        height: dims.height,
+      };
+    }
+  }
   if (entry.coverSrc) {
     if (entry.mediaKind === "video") {
       const dims = videoPreviewDimensionsFromRatio(entry.videoCanvasRatio);
@@ -283,10 +305,11 @@ export async function fetchGalleryTotalCount(userId: string): Promise<number> {
 export async function fetchGalleryMainPage(params: {
   userId: string;
   ownerSlug: string;
+  viewerId?: string | null;
   offset?: number;
   limit?: number;
 }): Promise<GalleryMainPageResult> {
-  const { userId, ownerSlug } = params;
+  const { userId, ownerSlug, viewerId = null } = params;
   const offset = Math.max(0, params.offset ?? 0);
   const limit = Math.min(
     48,
@@ -294,7 +317,11 @@ export async function fetchGalleryMainPage(params: {
   );
 
   const stubs = sortGalleryByPriority(
-    await withVerifiedGalleryVariants(await getGalleryStubsCached(userId)),
+    filterGalleryStubsForViewer(
+      await withVerifiedGalleryVariants(await getGalleryStubsCached(userId)),
+      viewerId,
+      userId,
+    ),
   );
   const filterCounts = computeFilterCounts(stubs);
   const slice = stubs.slice(offset, offset + limit);
@@ -323,13 +350,18 @@ export async function fetchGalleryMainPage(params: {
 export async function fetchGalleryForUser(params: {
   userId: string;
   ownerSlug: string;
+  viewerId?: string | null;
 }): Promise<{
   pinned: GalleryPinnedBanner[];
   items: GalleryGridItem[];
   totalTacPham: number;
 }> {
-  const { userId, ownerSlug } = params;
-  const stubs = await getGalleryStubsCached(userId);
+  const { userId, ownerSlug, viewerId = null } = params;
+  const stubs = filterGalleryStubsForViewer(
+    await getGalleryStubsCached(userId),
+    viewerId,
+    userId,
+  );
   if (stubs.length === 0) {
     return { pinned: [], items: [], totalTacPham: 0 };
   }

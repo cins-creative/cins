@@ -13,7 +13,6 @@ import {
   CoHoiModule,
   GoiYStudioModule,
   HoSoCuaBanModule,
-  LoiMoiXacNhanModule,
   NguoiCungNganhModule,
 } from "@/components/cins/home-adaptive/modules/lam";
 import {
@@ -37,7 +36,6 @@ const MODULE_REGISTRY: Record<ModuleId, ModuleComponent> = {
   ho_so_cua_ban: HoSoCuaBanModule,
   nguoi_cung_nganh: NguoiCungNganhModule,
   co_hoi: CoHoiModule,
-  loi_moi_xac_nhan: LoiMoiXacNhanModule,
   cho_ban_duyet: ChoBanDuyetModule,
   hoc_vien_cua_ban: HocVienCuaBanModule,
   scout_tai_nang: ScoutTaiNangModule,

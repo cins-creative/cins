@@ -1,9 +1,11 @@
 import "server-only";
 
 import { cache } from "react";
+import { unstable_cache } from "next/cache";
 
 import type { MilestoneItem } from "@/components/journey/milestone-types";
 import { isVisibleOnWorldJourneyFeed } from "@/lib/cins/worldJourneyFeedVisibility";
+import { hideProcessingVideoFromViewer } from "@/lib/journey/video-processing-meta";
 import {
   attachSocialState,
   buildSelfMilestonesForCotMocs,
@@ -25,8 +27,9 @@ import {
   fetchFollowedOrgSuKienMilestones,
   fetchFriendSuggestedSuKienMilestones,
 } from "@/lib/cins/worldJourneyOrgSuKienFeed";
+import { WORLD_JOURNEY_FEED_PAGE_SIZE } from "@/lib/cins/worldJourneyFeedConstants";
 
-const FEED_LIMIT = 50;
+const FEED_POOL_LIMIT = 80;
 const QUERY_LIMIT = 120;
 
 const COT_MOC_FEED_SELECT =
@@ -166,6 +169,20 @@ function isVisibleCotMoc(
   });
 }
 
+function filterFeedMilestonesForViewer(
+  milestones: MilestoneItem[],
+  viewerId: string,
+): MilestoneItem[] {
+  return milestones.filter(
+    (m) =>
+      !hideProcessingVideoFromViewer(
+        m.noiDungBlocks,
+        viewerId,
+        m.postOwnerId ?? m.lensOwnerId ?? null,
+      ),
+  );
+}
+
 async function loadAuthors(authorIds: string[]): Promise<Map<string, AuthorRow>> {
   const map = new Map<string, AuthorRow>();
   if (authorIds.length === 0) return map;
@@ -208,7 +225,7 @@ function applyLensOwners(
 /**
  * Xếp hạng feed: ưu tiên nội dung CHƯA xem / xem ít (số lượt `hien_thi` của
  * viewer thấp) lên trên; cùng số lượt thì giữ thứ tự dòng thời gian
- * (`compareTimelineOrder`). Cắt còn `FEED_LIMIT`.
+ * (`compareTimelineOrder`). Cắt còn `FEED_POOL_LIMIT`.
  */
 async function rankFeedByUnseen(
   viewerId: string,
@@ -229,10 +246,17 @@ async function rankFeedByUnseen(
   return withSeen
     .slice()
     .sort(compareWorldJourneyFeedByUnseen)
-    .slice(0, FEED_LIMIT);
+    .slice(0, FEED_POOL_LIMIT);
 }
 
-export async function fetchWorldJourneyFeedMilestones(
+export type WorldJourneyFeedPage = {
+  milestones: MilestoneItem[];
+  hasMore: boolean;
+  nextOffset: number;
+  totalCount: number;
+};
+
+async function buildWorldJourneyFeedRanked(
   viewerId: string,
 ): Promise<MilestoneItem[]> {
   const [friendIds, followingIds, followingTagIds, followingOrgIds, phanHoiMap] =
@@ -298,37 +322,26 @@ export async function fetchWorldJourneyFeedMilestones(
     ...tagLinks,
   ]).filter((cm) => isVisibleCotMoc(cm, viewerId, friendSet, followingSet));
 
-  if (cotMocs.length === 0 && orgMilestones.length === 0) {
-    return rankFeedByUnseen(viewerId, [
-      ...orgSuKienMilestones,
-      ...friendSuKienSuggestions,
+  let followingPool: MilestoneItem[] = [];
+
+  if (cotMocs.length > 0) {
+    const ownerIdByCotMoc = new Map(
+      cotMocs.map((cm) => [cm.id, cm.id_nguoi_dung]),
+    );
+    const authorIds = [...new Set(cotMocs.map((cm) => cm.id_nguoi_dung))];
+
+    const admin = createServiceRoleClient();
+    const [built, authors] = await Promise.all([
+      buildSelfMilestonesForCotMocs(
+        admin,
+        cotMocs as Parameters<typeof buildSelfMilestonesForCotMocs>[1],
+      ),
+      loadAuthors(authorIds),
     ]);
+
+    const withLens = applyLensOwners(built, ownerIdByCotMoc, authors);
+    followingPool = await attachSocialState(admin, withLens, viewerId);
   }
-
-  if (cotMocs.length === 0) {
-    return rankFeedByUnseen(viewerId, [
-      ...orgMilestones,
-      ...orgSuKienMilestones,
-      ...friendSuKienSuggestions,
-    ]);
-  }
-
-  const ownerIdByCotMoc = new Map(
-    cotMocs.map((cm) => [cm.id, cm.id_nguoi_dung]),
-  );
-  const authorIds = [...new Set(cotMocs.map((cm) => cm.id_nguoi_dung))];
-
-  const admin = createServiceRoleClient();
-  const [built, authors] = await Promise.all([
-    buildSelfMilestonesForCotMocs(
-      admin,
-      cotMocs as Parameters<typeof buildSelfMilestonesForCotMocs>[1],
-    ),
-    loadAuthors(authorIds),
-  ]);
-
-  const withLens = applyLensOwners(built, ownerIdByCotMoc, authors);
-  const withSocial = await attachSocialState(admin, withLens, viewerId);
 
   const followedSuKienIds = new Set(
     orgSuKienMilestones.map((m) => m.orgSuKienRef?.suKienId).filter(Boolean),
@@ -337,26 +350,31 @@ export async function fetchWorldJourneyFeedMilestones(
     (m) => !followedSuKienIds.has(m.orgSuKienRef?.suKienId ?? ""),
   );
 
-  return rankFeedByUnseen(viewerId, [
-    ...withSocial,
-    ...orgMilestones,
-    ...orgSuKienMilestones,
-    ...dedupedFriendSuKien,
-  ]);
+  followingPool = filterFeedMilestonesForViewer(
+    [
+      ...followingPool,
+      ...orgMilestones,
+      ...orgSuKienMilestones,
+      ...dedupedFriendSuKien,
+    ],
+    viewerId,
+  ).map((m) => {
+    const ownerId = m.postOwnerId ?? m.lensOwnerId ?? null;
+    if (ownerId && !knownAuthorIds.has(ownerId)) {
+      return { ...m, feedExplore: true as const };
+    }
+    return m;
+  });
+
+  return rankFeedByUnseen(viewerId, followingPool);
 }
 
-/** Tab Khám phá — chỉ bài Nổi bật toàn cục từ người chưa follow/bạn bè. */
-export async function fetchWorldJourneyExploreMilestones(
+async function buildExplorePool(
   viewerId: string,
+  friendSet: Set<string>,
+  followingSet: Set<string>,
+  knownAuthorIds: Set<string>,
 ): Promise<MilestoneItem[]> {
-  const [friendIds, followingIds] = await Promise.all([
-    listFriends(viewerId),
-    listFollowingUserIds(viewerId),
-  ]);
-  const friendSet = new Set(friendIds);
-  const followingSet = new Set(followingIds);
-  const knownAuthorIds = new Set<string>([viewerId, ...friendIds, ...followingIds]);
-
   const featureLinks = await fetchGlobalFeatureLinkRows();
   const strangerLinks = featureLinks.filter((row) => {
     const ownerId = row.content_cot_moc?.id_nguoi_dung;
@@ -384,8 +402,79 @@ export async function fetchWorldJourneyExploreMilestones(
   ]);
 
   const withLens = applyLensOwners(built, ownerIdByCotMoc, authors);
-  const withSocial = await attachSocialState(admin, withLens, viewerId);
-  return rankFeedByUnseen(viewerId, withSocial);
+  return attachSocialState(admin, withLens, viewerId);
+}
+
+const fetchWorldJourneyFeedRankedCached = cache(buildWorldJourneyFeedRanked);
+
+function fetchWorldJourneyFeedRankedForApi(viewerId: string) {
+  return unstable_cache(
+    () => buildWorldJourneyFeedRanked(viewerId),
+    ["world-journey-feed-ranked", viewerId],
+    { revalidate: 45 },
+  )();
+}
+
+export async function fetchWorldJourneyFeedPage(
+  viewerId: string,
+  offset = 0,
+  limit = WORLD_JOURNEY_FEED_PAGE_SIZE,
+): Promise<WorldJourneyFeedPage> {
+  const ranked = await fetchWorldJourneyFeedRankedForApi(viewerId);
+  return sliceWorldJourneyFeedPage(ranked, offset, limit);
+}
+
+function sliceWorldJourneyFeedPage(
+  ranked: MilestoneItem[],
+  offset: number,
+  limit: number,
+): WorldJourneyFeedPage {
+  const safeOffset = Math.max(0, offset);
+  const safeLimit = Math.min(Math.max(1, limit), WORLD_JOURNEY_FEED_PAGE_SIZE * 3);
+  const page = ranked.slice(safeOffset, safeOffset + safeLimit);
+  const nextOffset = safeOffset + page.length;
+
+  return {
+    milestones: page,
+    hasMore: nextOffset < ranked.length,
+    nextOffset,
+    totalCount: ranked.length,
+  };
+}
+
+export async function fetchWorldJourneyFeedPageCached(
+  viewerId: string,
+  offset = 0,
+  limit = WORLD_JOURNEY_FEED_PAGE_SIZE,
+): Promise<WorldJourneyFeedPage> {
+  const ranked = await fetchWorldJourneyFeedRankedCached(viewerId);
+  return sliceWorldJourneyFeedPage(ranked, offset, limit);
+}
+
+/** Tab Khám phá — chỉ bài Nổi bật toàn cục từ người chưa follow/bạn bè. */
+export async function fetchWorldJourneyExploreMilestones(
+  viewerId: string,
+): Promise<MilestoneItem[]> {
+  const [friendIds, followingIds] = await Promise.all([
+    listFriends(viewerId),
+    listFollowingUserIds(viewerId),
+  ]);
+  const friendSet = new Set(friendIds);
+  const followingSet = new Set(followingIds);
+  const knownAuthorIds = new Set<string>([viewerId, ...friendIds, ...followingIds]);
+
+  return filterFeedMilestonesForViewer(
+    await buildExplorePool(viewerId, friendSet, followingSet, knownAuthorIds),
+    viewerId,
+  );
+}
+
+/** @deprecated — dùng `fetchWorldJourneyFeedPage`. */
+export async function fetchWorldJourneyFeedMilestones(
+  viewerId: string,
+): Promise<MilestoneItem[]> {
+  const page = await fetchWorldJourneyFeedPage(viewerId, 0, FEED_POOL_LIMIT);
+  return page.milestones;
 }
 
 /** @deprecated alias — dùng `fetchWorldJourneyFeedMilestones`. */

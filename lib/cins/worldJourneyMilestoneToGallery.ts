@@ -1,6 +1,7 @@
 import type { MilestoneItem } from "@/components/journey/milestone-types";
 import type { GalleryMainItem } from "@/lib/journey/gallery-page-fetch";
-import { galleryGridAssetFromCfUrl } from "@/lib/cloudflare/cf-variant-url";
+import { galleryGridAssetFromCfUrl, isCfDeliveryUrl } from "@/lib/cloudflare/cf-variant-url";
+import { getCoverUrl } from "@/lib/articles/cover";
 import { resolvePostGridEntry } from "@/lib/journey/post-content-kind";
 import { resolveBunnyVideoPreviewMp4FromBlocks } from "@/lib/journey/video-embed";
 import {
@@ -53,8 +54,15 @@ export function worldJourneyMilestonesToGalleryItems(
       m.org?.trim() ||
       "";
 
+    let visualSrc = thumb?.src ?? "";
+    if (isVideo && m.tacPhamCoverId?.trim()) {
+      const coverPublic = getCoverUrl(m.tacPhamCoverId, "public");
+      if (coverPublic) visualSrc = coverPublic;
+    }
     const gridAsset =
-      thumb?.src && !isVideo ? galleryGridAssetFromCfUrl(thumb.src) : null;
+      visualSrc && isCfDeliveryUrl(visualSrc)
+        ? galleryGridAssetFromCfUrl(visualSrc)
+        : null;
     const mediaKind = gridEntry?.mediaKind ?? (isVideo ? "video" : "article");
     const videoCanvasRatio = isVideo
       ? (gridEntry?.videoCanvasRatio ?? extractVideoCanvasRatio(m.noiDungBlocks ?? []) ?? undefined)
@@ -68,7 +76,7 @@ export function worldJourneyMilestonesToGalleryItems(
       cotMocId,
       personalFilterSlugs: m.personalFilterSlugs,
       personalFilters: m.personalFilters,
-      src: gridAsset?.src ?? thumb?.src ?? "",
+      src: gridAsset?.src ?? visualSrc,
       srcSet: gridAsset?.srcSet ?? thumb?.srcSet,
       width: gridAsset?.width ?? videoDims?.width ?? thumb?.width,
       height: gridAsset?.height ?? videoDims?.height ?? thumb?.height,

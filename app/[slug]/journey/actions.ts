@@ -1149,11 +1149,12 @@ export async function updateChiChuNen(
   const admin = createServiceRoleClient();
   const { data: tpRow, error: fetchErr } = await admin
     .from("content_tac_pham")
-    .select("id, id_nguoi_dung, noi_dung_blocks")
+    .select("id, id_nguoi_dung, mo_ta, noi_dung_blocks")
     .eq("id", tacPhamId)
     .maybeSingle<{
       id: string;
       id_nguoi_dung: string;
+      mo_ta: string | null;
       noi_dung_blocks: unknown;
     }>();
 
@@ -1165,7 +1166,10 @@ export async function updateChiChuNen(
   }
 
   const blocks = parseServerBlocks(tpRow.noi_dung_blocks) ?? [];
-  const nextBlocks = applyChiChuNenToBlocks(blocks, nen);
+  const nextBlocks = applyChiChuNenToBlocks(blocks, nen, {
+    moTa: tpRow.mo_ta,
+    tacPhamId,
+  });
   if (!nextBlocks) {
     return { ok: false, error: "Bài chỉ chữ cần ít nhất một block nội dung." };
   }

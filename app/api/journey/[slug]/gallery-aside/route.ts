@@ -28,6 +28,7 @@ export async function GET(
   const aside = await fetchGalleryForUser({
     userId: owner.id,
     ownerSlug: slug,
+    viewerId: session?.profile?.id ?? null,
   });
 
   return NextResponse.json(aside);

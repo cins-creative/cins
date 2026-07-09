@@ -71,6 +71,7 @@ async function loadInitialData(
     const gallery = await getCachedGalleryMainPage({
       userId: ownerId,
       ownerSlug,
+      viewerId: viewerProfileId,
       offset: 0,
     });
     return { gallery };

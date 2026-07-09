@@ -45,6 +45,7 @@ export function milestonePreviewMedia(
   const trimmedCover = coverId?.trim() || null;
 
   if (mediaKind === "video") {
+    if (trimmedCover) return coverFromImageId(trimmedCover, label);
     const thumb = resolveBunnyVideoThumbnailFromBlocks(parsed);
     if (thumb) {
       const dims = videoPreviewDimensionsFromRatio(
@@ -52,7 +53,6 @@ export function milestonePreviewMedia(
       );
       return [{ src: thumb, width: dims.width, height: dims.height, label }];
     }
-    if (trimmedCover) return coverFromImageId(trimmedCover, label);
     return [];
   }
 

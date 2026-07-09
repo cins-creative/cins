@@ -9,7 +9,7 @@ import {
   milestoneCardContentKind,
   milestoneCardPhotoGrid,
 } from "@/lib/journey/milestone-card-kind";
-import { plainTextCardPlain } from "@/lib/journey/post-media";
+import { chiChuBodyPlain } from "@/lib/journey/post-media";
 import {
   splitChiChuParagraphs,
   chiChuNeedsCollapse,
@@ -112,7 +112,7 @@ function JourneyMirrorBody({
   );
   const chiChuCardText = useMemo(() => {
     if (!isTextCard) return null;
-    return plainTextCardPlain(mirror.moTa, blocks);
+    return chiChuBodyPlain(mirror.tieuDe, mirror.moTa, blocks);
   }, [isTextCard, mirror.moTa, blocks]);
   const chiChuParagraphs = useMemo(
     () => (chiChuCardText ? splitChiChuParagraphs(chiChuCardText) : []),

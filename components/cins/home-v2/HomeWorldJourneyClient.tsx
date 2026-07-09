@@ -19,8 +19,9 @@ type Props = {
   filterChips: WjFilterChip[];
   linhVucs: WjLinhVucAsideItem[];
   milestones: MilestoneItem[];
-  /** Tab Khám phá — bài Nổi bật toàn cục. */
-  exploreMilestones?: MilestoneItem[];
+  /** Còn trang feed để load thêm khi scroll. */
+  feedHasMore?: boolean;
+  feedNextOffset?: number;
   /** Cột module adaptive (server components) truyền xuống feed. */
   leftAside?: ReactNode;
   rightAside?: ReactNode;
@@ -38,7 +39,8 @@ export function HomeWorldJourneyClient({
   filterChips,
   linhVucs,
   milestones,
-  exploreMilestones,
+  feedHasMore = false,
+  feedNextOffset = milestones.length,
   leftAside,
   rightAside,
   pendingConfirmations,
@@ -60,7 +62,8 @@ export function HomeWorldJourneyClient({
         filterChips={filterChips}
         linhVucs={linhVucs}
         milestones={milestones}
-        exploreMilestones={exploreMilestones}
+        feedHasMore={feedHasMore}
+        feedNextOffset={feedNextOffset}
         leftAside={leftAside}
         rightAside={rightAside}
         pendingConfirmations={pendingConfirmations}

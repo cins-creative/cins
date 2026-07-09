@@ -1,5 +1,4 @@
 import {
-  BadgeCheck,
   Briefcase,
   Building2,
   Eye,
@@ -16,7 +15,6 @@ import { HaUserSuggestionRow } from "@/components/cins/home-adaptive/HaUserSugge
 import { ModuleCard, ModuleEmpty } from "@/components/cins/home-adaptive/ModuleCard";
 import type { HomeModuleCtx } from "@/components/cins/home-adaptive/types";
 import { loadCoHoiForHome, type CoHoiItem } from "@/lib/cins/home-adaptive/co-hoi";
-import { loadLoiMoiXacNhan } from "@/lib/cins/home-adaptive/fetches";
 import {
   loadFollowSuggestions,
   loadOrgFollowSuggestions,
@@ -197,40 +195,6 @@ export async function CoHoiModule({ ctx }: { ctx: HomeModuleCtx }) {
         <div className="ha-job-list">
           {jobs.map((job) => (
             <CoHoiJobRow key={job.id} job={job} />
-          ))}
-        </div>
-      )}
-    </ModuleCard>
-  );
-}
-
-/**
- * LÀM · Lời mời xác nhận — staff invite + verify chờ phản hồi.
- */
-export async function LoiMoiXacNhanModule({ ctx }: { ctx: HomeModuleCtx }) {
-  const invites = await loadLoiMoiXacNhan(ctx.viewerId, 4);
-  return (
-    <ModuleCard icon={BadgeCheck} title="Lời mời xác nhận" className="ha-card--invites">
-      {invites.length === 0 ? (
-        <ModuleEmpty>Không có lời mời xác nhận nào đang chờ.</ModuleEmpty>
-      ) : (
-        <div className="ha-invite-list">
-          {invites.map((inv) => (
-            <div key={`${inv.kind}:${inv.id}`} className="ha-invite">
-              <div className="ha-invite-meta">
-                <div className="ha-invite-name">{inv.orgName}</div>
-                <div className="ha-invite-sub">{inv.label}</div>
-              </div>
-              {inv.orgSlug ? (
-                <Link
-                  href={inv.kind === "staff" ? `/co-so/${inv.orgSlug}` : "#"}
-                  className="ha-invite-btn"
-                  prefetch={false}
-                >
-                  Phản hồi
-                </Link>
-              ) : null}
-            </div>
           ))}
         </div>
       )}

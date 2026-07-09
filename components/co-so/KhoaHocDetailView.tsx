@@ -35,6 +35,7 @@ import {
   selectedGoiDurationLabel,
 } from "@/components/co-so/KhoaHocFeePicker";
 import { useCinsChatContext } from "@/components/cins/CinsChatProvider";
+import { JourneyBookmarkButton } from "@/components/journey/JourneyBookmarkButton";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
 
 import type {
@@ -938,6 +939,24 @@ function DetailContent({
                 <MessageCircle size={15} aria-hidden />
                 Tư vấn
               </button>
+            ) : null}
+            {!canEditKhoaDetail && !isMockup ? (
+              <JourneyBookmarkButton
+                milestoneId={khoa.id}
+                title={khoa.tenKhoaHoc}
+                buttonClassName="cso-khd-btn cso-khd-btn--ghost"
+                label="Lưu về"
+                iconSize={15}
+                saveEndpoint={({ visibility, privateNote }) => ({
+                  url: "/api/luu-bai",
+                  body: {
+                    loai_doi_tuong: "org_khoa_hoc",
+                    id_doi_tuong: khoa.id,
+                    visibility,
+                    ghi_chu_rieng: privateNote,
+                  },
+                })}
+              />
             ) : null}
           </div>
         </header>

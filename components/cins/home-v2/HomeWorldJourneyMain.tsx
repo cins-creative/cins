@@ -22,10 +22,8 @@ import {
 import { fetchOwnerBySlug } from "@/lib/journey/profile-page-fetch";
 import { buildWorldJourneyFilterChips } from "@/lib/cins/worldJourneyFeedFilters";
 import { mapLinhVucForGuestAside } from "@/lib/cins/worldJourneyGuestAside";
-import {
-  fetchWorldJourneyExploreMilestonesCached,
-  fetchWorldJourneyFeedMilestonesCached,
-} from "@/lib/cins/worldJourneyFeedFetch";
+import { WORLD_JOURNEY_FEED_PAGE_SIZE } from "@/lib/cins/worldJourneyFeedConstants";
+import { fetchWorldJourneyFeedPageCached } from "@/lib/cins/worldJourneyFeedFetch";
 import { loadFeedInlinePromos } from "@/lib/cins/worldJourneyFeedPromos";
 import { listLinhVucForHub } from "@/lib/career/queries";
 
@@ -52,15 +50,17 @@ export async function HomeWorldJourneyMain({
   const linhVucs = mapLinhVucForGuestAside(await listLinhVucForHub());
   const giaiDoan = owner.giai_doan as GiaiDoan | null;
   const [
-    milestones,
-    exploreMilestones,
+    feedPage,
     coAuthorPendingInvites,
     coSoStaffPendingInvites,
     membershipPendingOutbound,
     feedPromos,
   ] = await Promise.all([
-    fetchWorldJourneyFeedMilestonesCached(session.profile.id),
-    fetchWorldJourneyExploreMilestonesCached(session.profile.id),
+    fetchWorldJourneyFeedPageCached(
+      session.profile.id,
+      0,
+      WORLD_JOURNEY_FEED_PAGE_SIZE,
+    ),
     getCachedPendingCoAuthorInvites(session.profile.id),
     getCachedPendingCoSoStaffInvites(session.profile.id),
     getCachedOutboundMembershipPending(session.profile.id),
@@ -108,8 +108,9 @@ export async function HomeWorldJourneyMain({
       ownerAvatarId={owner.avatar_id}
       filterChips={filterChips}
       linhVucs={linhVucs}
-      milestones={milestones}
-      exploreMilestones={exploreMilestones}
+      milestones={feedPage.milestones}
+      feedHasMore={feedPage.hasMore}
+      feedNextOffset={feedPage.nextOffset}
       feedPromos={feedPromos}
       feedView={feedView}
     />

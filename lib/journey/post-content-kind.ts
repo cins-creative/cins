@@ -72,9 +72,10 @@ const TEXT_LOAI = new Set<Block["loai"]>(["body", "h2", "h3", "quote"]);
 function htmlFragmentToPlainText(html: string): string {
   return html
     .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/p>/gi, "\n")
+    .replace(/<\/(?:p|div|h[1-6]|li|blockquote|tr)>/gi, "\n\n")
     .replace(/<[^>]+>/g, "")
     .replace(/&nbsp;/gi, " ")
+    .replace(/\r\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
@@ -170,6 +171,49 @@ function isBunnyVideoPost(blocks: ReadonlyArray<Block>): boolean {
   if (!isBunnyEmbedBlock(embeds[0]!)) return false;
   if (blocks.some((b) => b.loai === "imgs")) return false;
   return blocks.every((b) => BUNNY_VIDEO_COMPANION_LOAI.has(b.loai));
+}
+
+function bunnyUploadEmbedCount(blocks: ReadonlyArray<Block>): number {
+  return embedBlocks(blocks).filter(isBunnyEmbedBlock).length;
+}
+
+/** Một embed Bunny upload — card timeline luôn là bài video (không unfold article). */
+function isSingleBunnyUploadPost(blocks: ReadonlyArray<Block>): boolean {
+  return bunnyUploadEmbedCount(blocks) === 1;
+}
+
+function bunnyVideoResolutionBase(
+  effectiveMoTa: string | null,
+  coverOk: boolean,
+): Omit<PostContentResolution, "videoCanvasRatio" | "videoOrientation"> {
+  return {
+    kind: "bunny_video",
+    effectiveMoTa,
+    gridVisible: true,
+    gridThumbSource: coverOk ? "cover" : "video_poster",
+  };
+}
+
+function bunnyVideoPublishCompanionError(
+  blocks: ReadonlyArray<Block>,
+): string | null {
+  if (blocks.some((b) => b.loai === "imgs")) {
+    return "Bài video Bunny chỉ gồm video — không thêm album ảnh.";
+  }
+  if (
+    blocks.some(
+      (b) =>
+        b.loai === "h2" ||
+        b.loai === "h3" ||
+        b.loai === "quote" ||
+        b.loai === "palette" ||
+        b.loai === "divider" ||
+        (b.loai === "imgs" && b.config?.layout === "mosaic"),
+    )
+  ) {
+    return "Bài video Bunny chỉ gồm tiêu đề, mô tả và video.";
+  }
+  return null;
 }
 
 function resolveBunnyVideoMeta(
@@ -269,12 +313,15 @@ export function resolvePostDisplayKind(
 
   if (isBunnyVideoPost(blocks)) {
     return finalizePostContentResolution(
-      {
-        kind: "bunny_video",
-        effectiveMoTa,
-        gridVisible: true,
-        gridThumbSource: coverOk ? "cover" : "video_poster",
-      },
+      bunnyVideoResolutionBase(effectiveMoTa, coverOk),
+      blocks,
+    );
+  }
+
+  /* Upload Bunny — một embed; không xếp article dù có mo_ta / block layout phụ. */
+  if (isSingleBunnyUploadPost(blocks)) {
+    return finalizePostContentResolution(
+      bunnyVideoResolutionBase(effectiveMoTa, coverOk),
       blocks,
     );
   }
@@ -405,21 +452,6 @@ export function resolvePostDisplayKind(
     );
   }
 
-  const loneBunnyEmbed =
-    embedBlocks(blocks).length === 1 &&
-    isBunnyEmbedBlock(embedBlocks(blocks)[0]!);
-  if (loneBunnyEmbed) {
-    return finalizePostContentResolution(
-      {
-        kind: "bunny_video",
-        effectiveMoTa,
-        gridVisible: true,
-        gridThumbSource: coverOk ? "cover" : "video_poster",
-      },
-      blocks,
-    );
-  }
-
   if (blocksArePlainTextOnly(blocks) || moTaTrimmed || effectiveMoTa) {
     return finalizePostContentResolution(
       {
@@ -523,8 +555,8 @@ export function validatePostContentForPublish(params: {
     };
   }
 
-  if (isBunnyVideoPost(blocks)) {
-    const embed = embedBlocks(blocks)[0];
+  if (isBunnyVideoPost(blocks) || isSingleBunnyUploadPost(blocks)) {
+    const embed = embedBlocks(blocks).find(isBunnyEmbedBlock);
     const url = typeof embed?.config?.url === "string" ? embed.config.url : "";
     const bunnyId =
       typeof embed?.config?.bunnyVideoId === "string"
@@ -537,29 +569,9 @@ export function validatePostContentForPublish(params: {
         field: "blocks",
       };
     }
-    if (blocks.some((b) => b.loai === "imgs")) {
-      return {
-        ok: false,
-        error: "Bài video Bunny chỉ gồm video — không thêm album ảnh.",
-        field: "blocks",
-      };
-    }
-    if (
-      blocks.some(
-        (b) =>
-          b.loai === "h2" ||
-          b.loai === "h3" ||
-          b.loai === "quote" ||
-          b.loai === "palette" ||
-          b.loai === "divider" ||
-          (b.loai === "imgs" && b.config?.layout === "mosaic"),
-      )
-    ) {
-      return {
-        ok: false,
-        error: "Bài video Bunny chỉ gồm tiêu đề, mô tả và video.",
-        field: "blocks",
-      };
+    const companionErr = bunnyVideoPublishCompanionError(blocks);
+    if (companionErr) {
+      return { ok: false, error: companionErr, field: "blocks" };
     }
   }
 
@@ -701,12 +713,14 @@ export function resolvePostGridEntry(
     resolution.kind === "bunny_video" && processingMeta?.processing === true;
 
   if (resolution.kind === "bunny_video") {
-    const coverSrc = resolveBunnyVideoThumbnailFromBlocks(blocks);
+    const bunnyThumb = resolveBunnyVideoThumbnailFromBlocks(blocks);
     const videoPreviewSrc = resolveBunnyVideoPreviewMp4FromBlocks(blocks);
+    const customCoverOk =
+      Boolean(coverTrimmed && isPersistedImageSeed(coverTrimmed));
     return {
       mediaKind: "video",
       coverId: coverTrimmed,
-      coverSrc,
+      coverSrc: customCoverOk ? null : bunnyThumb,
       videoProcessing,
       videoPreviewSrc,
       videoCanvasRatio: resolution.videoCanvasRatio,

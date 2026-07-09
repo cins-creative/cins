@@ -31,6 +31,7 @@ import {
   Loader2,
   Lock,
   Pencil,
+  Play,
   Plus,
   Save,
   SquareRoundCorner,
@@ -148,7 +149,8 @@ import {
 import { useEditorVideoUpload } from "@/lib/journey/use-editor-video-upload";
 import { readImageFileDimensions } from "@/lib/journey/probe-image-dimensions";
 import { videoCanvasRatioClass } from "@/lib/journey/video-canvas-ratio";
-import { bunnyIframeSrc, classifyBunnyVideoUrl } from "@/lib/bunny/embed";
+import { bunnyIframeSrc, buildBunnyVideoMp4Url, buildBunnyVideoThumbnailUrl, classifyBunnyVideoUrl } from "@/lib/bunny/embed";
+import { EditorVideoThumbnailPicker } from "@/components/editor/EditorVideoThumbnailPicker";
 
 type ImageUploadTrack = {
   progress: number;
@@ -786,10 +788,16 @@ export function EditorView({
   const restoredDraft = peekRestoredComposeDraft();
 
   const isTextOnlyEdit = isEdit && isTextOnlyEditorInitial(initial);
+  /** Ảnh/video overlay dùng cùng shell minimal expanded (canvas, cover, thumbnail). */
+  const isOverlayMediaComposeIntent =
+    composeIntent === "photo" || composeIntent === "video";
   const usesMinimalFlow =
-    (isCreateCompose && composeIntent === "minimal") ||
+    (isCreateCompose &&
+      (composeIntent === "minimal" || isOverlayMediaComposeIntent)) ||
     isTextOnlyEdit ||
-    (isEdit && isOverlay && composeIntent === "minimal");
+    (isEdit &&
+      isOverlay &&
+      (composeIntent === "minimal" || isOverlayMediaComposeIntent));
   const [editorExpanded, setEditorExpanded] = useState(() => {
     if (restoredDraft?.editorExpanded != null) return restoredDraft.editorExpanded;
     if (composeIntent === "photo" || composeIntent === "video") return true;
@@ -826,20 +834,6 @@ export function EditorView({
     }
     return sanitizeBaiDangCoverIdInput(initial?.coverSeed ?? null, initial?.blocks);
   });
-  const showCoverArea = useMemo(
-    () =>
-      composeIntent !== "video" &&
-      (Boolean(coverSeed) ||
-        minimalCoverVisible ||
-        (showFullEditor && !usesMinimalFlow)),
-    [
-      composeIntent,
-      coverSeed,
-      minimalCoverVisible,
-      showFullEditor,
-      usesMinimalFlow,
-    ],
-  );
   const showMinimalToolbar = useMemo(
     () =>
       usesMinimalFlow &&
@@ -951,6 +945,7 @@ export function EditorView({
 
   const {
     videoUrl,
+    bunnyVideoId,
     videoUploading,
     videoUploadProgress,
     videoUploadError,
@@ -1240,6 +1235,38 @@ export function EditorView({
     [applyImageDimensionsToSeed, setImageUploadTrack],
   );
 
+  const applyMinimalCoverFile = useCallback(
+    (file: File) => {
+      setMinimalCoverVisible(true);
+      beginImageUpload(file, setCoverSeed, replaceImageSeed);
+    },
+    [beginImageUpload, replaceImageSeed],
+  );
+
+  const videoScrubSrc = useMemo(() => {
+    if (localVideoPreviewUrl) return localVideoPreviewUrl;
+    const resolvedVideoId =
+      bunnyVideoId ??
+      (() => {
+        for (const block of blocks) {
+          if (block.t !== "embed") continue;
+          const url = (block.embedUrl || videoUrl || "").trim();
+          if (!url) continue;
+          const bunny = classifyBunnyVideoUrl(url);
+          if (bunny) return bunny.videoId;
+        }
+        return null;
+      })();
+    if (!resolvedVideoId) return null;
+    return buildBunnyVideoMp4Url(resolvedVideoId, "360p");
+  }, [blocks, bunnyVideoId, localVideoPreviewUrl, videoUrl]);
+
+  const videoThumbDisabledHint = videoUploading
+    ? "Đang tải video lên — chọn frame sau khi upload xong hoặc tải ảnh riêng."
+    : videoEncoding
+      ? "Video đang xử lý — thử chọn frame khi encode xong hoặc tải ảnh riêng."
+      : null;
+
   const hasPendingUploads = useMemo(
     () =>
       videoUploading ||
@@ -1454,13 +1481,21 @@ export function EditorView({
   );
 
   const expandMinimalToFullEditor = useCallback(() => {
+    if (
+      blocks.some((b) =>
+        isEditorBunnyVideoBlock(b, videoBlockIdRef.current),
+      )
+    ) {
+      setToast("Bài video chỉ gồm tiêu đề, mô tả và video.");
+      return;
+    }
     setMinimalRichBlocks(true);
     setBlocks((prev) => {
       if (prev.some((b) => b.t !== "body" && b.t !== "spacer")) return prev;
       return prev.filter((b) => b.t !== "body");
     });
     setEditorExpanded(true);
-  }, []);
+  }, [blocks, setToast]);
 
   const hasPhotoBlocks = blocks.some((b) => b.t === "imgs");
   const hasBunnyVideoBlock = useMemo(
@@ -1499,18 +1534,58 @@ export function EditorView({
     !isPhotoAlbumCompose;
   const isBunnyVideoCompose =
     composeIntent === "video" ||
-    (hasBunnyVideoBlock &&
-      !hasPhotoBlocks &&
-      !minimalRichBlocks &&
-      !isPhotoAlbumCompose);
+    (hasBunnyVideoBlock && !hasPhotoBlocks && !isPhotoAlbumCompose);
+  const showCoverArea = useMemo(
+    () => {
+      const wantsCover =
+        Boolean(coverSeed) ||
+        minimalCoverVisible ||
+        (showFullEditor && !usesMinimalFlow);
+      if (isBunnyVideoCompose) {
+        return Boolean(coverSeed) || minimalCoverVisible;
+      }
+      return wantsCover;
+    },
+    [
+      coverSeed,
+      minimalCoverVisible,
+      showFullEditor,
+      usesMinimalFlow,
+      isBunnyVideoCompose,
+    ],
+  );
   const hideBlockPalette = isMinimalMediaCompose || isBunnyVideoCompose;
   /** Minimal compose expanded — mỗi lần bấm + tạo thêm một block (session nội dung). */
   const canAddMoreSessions = usesMinimalFlow && editorExpanded;
 
   const pickBlockAt = useCallback(
     (type: BlockType, idx: number) => {
+      if (hasBunnyVideoBlock && !hasPhotoBlocks) {
+        if (type === "imgs") {
+          setToast("Không thể thêm album khi đã có video.");
+          return;
+        }
+        if (
+          type === "embed" &&
+          blocksRef.current.some((b) =>
+            isEditorBunnyVideoBlock(b, videoBlockIdRef.current),
+          )
+        ) {
+          setToast("Bài video chỉ gồm một video.");
+          return;
+        }
+        if (type !== "body" && type !== "spacer" && type !== "embed") {
+          setToast("Bài video chỉ gồm tiêu đề, mô tả và video.");
+          return;
+        }
+      }
       if (usesMinimalFlow && editorExpanded) {
-        if (["h2", "h3", "body", "quote"].includes(type)) {
+        if (hasBunnyVideoBlock) {
+          if (type !== "body" && type !== "spacer" && type !== "embed") {
+            setToast("Bài video chỉ gồm tiêu đề, mô tả và video.");
+            return;
+          }
+        } else if (["h2", "h3", "body", "quote"].includes(type)) {
           setMinimalRichBlocks(true);
         } else if (
           !albumGridCompose &&
@@ -2379,7 +2454,18 @@ export function EditorView({
 
         {showMinimalToolbar ? (
           <div className="ed-minimal-toolbar">
-            {composeIntent !== "video" && !(minimalCoverVisible || coverSeed) ? (
+            {isBunnyVideoCompose && !(minimalCoverVisible || coverSeed) ? (
+              <EditorVideoThumbnailPicker
+                videoSrc={videoScrubSrc}
+                videoCanvasRatio={videoCanvasRatio}
+                disabled={videoUploading}
+                disabledHint={videoThumbDisabledHint}
+                onCaptureFrame={applyMinimalCoverFile}
+                onUploadImage={applyMinimalCoverFile}
+                onError={(message) => setToast(message)}
+              />
+            ) : null}
+            {composeIntent !== "video" && !isBunnyVideoCompose && !(minimalCoverVisible || coverSeed) ? (
               <button
                 type="button"
                 className="ed-minimal-tool ed-minimal-tool--cover"
@@ -2396,7 +2482,7 @@ export function EditorView({
                 </span>
               </button>
             ) : null}
-            {composeIntent !== "video" && !(minimalCoverVisible || coverSeed) ? (
+            {composeIntent !== "video" && !isBunnyVideoCompose && !(minimalCoverVisible || coverSeed) ? (
               <input
                 ref={minimalCoverInputRef}
                 type="file"
@@ -2435,7 +2521,7 @@ export function EditorView({
                   Thêm video
                 </button>
               ) : null}
-              {isMinimalUI && composeIntent !== "video" ? (
+              {isMinimalUI && composeIntent !== "video" && !hasBunnyVideoBlock ? (
                 <button
                   type="button"
                   className="ed-btn ghost ed-minimal-tool"
@@ -2564,6 +2650,7 @@ export function EditorView({
                               encoding: videoEncoding,
                               encodeReady: videoEncodeReady,
                               error: videoUploadError,
+                              posterSeed: coverSeed,
                             }
                           : undefined
                       }
@@ -2634,6 +2721,7 @@ export function EditorView({
                             encoding: videoEncoding,
                             encodeReady: videoEncodeReady,
                             error: videoUploadError,
+                            posterSeed: coverSeed,
                           }
                         : undefined
                     }
@@ -3289,6 +3377,7 @@ type BlockRowProps = {
     encoding: boolean;
     encodeReady: boolean;
     error: string | null;
+    posterSeed?: string | null;
   };
   onSelect: () => void;
   onChangeText: (s: string) => void;
@@ -3417,6 +3506,7 @@ function EditorMinimalVideoPreview({
   encodeReady,
   error,
   videoCanvasRatio,
+  posterSeed = null,
 }: {
   embedUrl: string;
   localPreviewUrl: string | null;
@@ -3426,20 +3516,97 @@ function EditorMinimalVideoPreview({
   encodeReady: boolean;
   error: string | null;
   videoCanvasRatio?: Block["videoCanvasRatio"];
+  posterSeed?: string | null;
 }) {
+  const [playing, setPlaying] = useState(false);
   const bunny = embedUrl.trim() ? classifyBunnyVideoUrl(embedUrl) : null;
   const canvasClass = videoCanvasRatioClass(videoCanvasRatio);
+  const bunnyPoster = bunny ? buildBunnyVideoThumbnailUrl(bunny.videoId) : null;
+  const hasPoster = Boolean(posterSeed?.trim() || bunnyPoster);
 
-  const previewClass = (
-    extra: string,
-  ) =>
+  const previewClass = (extra: string) =>
     `ed-minimal-video-preview ${extra} ${canvasClass}`.trim();
+
+  useEffect(() => {
+    setPlaying(false);
+  }, [embedUrl, posterSeed, localPreviewUrl]);
+
+  const playBadge = (
+    <span className="jcard-video-play" aria-hidden>
+      <Play size={28} strokeWidth={2} fill="currentColor" />
+    </span>
+  );
+
+  const uploadPanel =
+    uploading ? (
+      <div className="ed-minimal-video-upload-panel" aria-live="polite">
+        <div className="ed-minimal-video-upload-head">
+          <Loader2 size={16} strokeWidth={2} className="ed-spin" aria-hidden />
+          <span>Đang tải video lên… {uploadProgress}%</span>
+        </div>
+        <div
+          className="ed-minimal-video-progress"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={uploadProgress}
+          aria-label="Tiến trình tải video lên"
+        >
+          <span style={{ width: `${uploadProgress}%` }} />
+        </div>
+      </div>
+    ) : null;
+
+  function renderPosterImage() {
+    if (posterSeed?.trim()) {
+      return (
+        <EditorComposeImage seed={posterSeed} width={1600} height={900} alt="" />
+      );
+    }
+    if (bunnyPoster) {
+      // eslint-disable-next-line @next/next/no-img-element
+      return <img src={bunnyPoster} alt="" />;
+    }
+    return null;
+  }
+
+  function renderPosterTrigger(
+    onPlay: () => void,
+    extraClass = "",
+    ariaLabel = "Phát video",
+  ) {
+    return (
+      <button
+        type="button"
+        className={previewClass(
+          `ed-minimal-video-preview--poster ed-minimal-video-preview--compact ${extraClass}`.trim(),
+        )}
+        aria-label={ariaLabel}
+        onClick={onPlay}
+      >
+        {renderPosterImage()}
+        {playBadge}
+      </button>
+    );
+  }
 
   if (error) {
     return <p className="ed-minimal-video-error">{error}</p>;
   }
 
   if (localPreviewUrl) {
+    if (!playing && hasPoster) {
+      return (
+        <div
+          className={previewClass(
+            "ed-minimal-video-preview--local ed-minimal-video-preview--compact",
+          )}
+        >
+          {renderPosterTrigger(() => setPlaying(true))}
+          {uploadPanel}
+        </div>
+      );
+    }
     return (
       <div
         className={previewClass(
@@ -3448,24 +3615,7 @@ function EditorMinimalVideoPreview({
       >
         {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
         <video src={localPreviewUrl} controls playsInline />
-        {uploading ? (
-          <div className="ed-minimal-video-upload-panel" aria-live="polite">
-            <div className="ed-minimal-video-upload-head">
-              <Loader2 size={16} strokeWidth={2} className="ed-spin" aria-hidden />
-              <span>Đang tải video lên… {uploadProgress}%</span>
-            </div>
-            <div
-              className="ed-minimal-video-progress"
-              role="progressbar"
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-valuenow={uploadProgress}
-              aria-label="Tiến trình tải video lên"
-            >
-              <span style={{ width: `${uploadProgress}%` }} />
-            </div>
-          </div>
-        ) : null}
+        {uploadPanel}
       </div>
     );
   }
@@ -3474,11 +3624,18 @@ function EditorMinimalVideoPreview({
     return (
       <div
         className={previewClass(
-          "ed-minimal-video-preview--encoding ed-minimal-video-preview--compact",
+          "ed-minimal-video-preview--encoding ed-minimal-video-preview--compact" +
+            (hasPoster ? " ed-minimal-video-preview--encoding-has-poster" : ""),
         )}
         aria-live="polite"
       >
-        <Video size={28} strokeWidth={1.6} aria-hidden />
+        {hasPoster ? (
+          <div className="ed-minimal-video-poster-bg" aria-hidden>
+            {renderPosterImage()}
+          </div>
+        ) : (
+          <Video size={28} strokeWidth={1.6} aria-hidden />
+        )}
         <strong>Tải lên thành công</strong>
         <span className="ed-minimal-video-encoding-note">
           Video đang được xử lý trên máy chủ. Bạn có thể đóng tab hoặc tiếp tục
@@ -3492,7 +3649,10 @@ function EditorMinimalVideoPreview({
     );
   }
 
-  if (bunny) {
+  if (bunny && !playing) {
+    if (hasPoster) {
+      return renderPosterTrigger(() => setPlaying(true));
+    }
     return (
       <div
         className={previewClass("ed-minimal-video-preview--compact")}
@@ -3508,7 +3668,36 @@ function EditorMinimalVideoPreview({
     );
   }
 
+  if (bunny && playing) {
+    return (
+      <div className={previewClass("ed-minimal-video-preview--compact")}>
+        <iframe
+          key={encodeReady ? "ready-playing" : "playing"}
+          src={bunnyIframeSrc(bunny)}
+          title="Xem trước video"
+          allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+          allowFullScreen
+        />
+      </div>
+    );
+  }
+
   if (uploading) {
+    if (posterSeed?.trim()) {
+      return (
+        <div
+          className={previewClass(
+            "ed-minimal-video-preview--pending ed-minimal-video-preview--compact ed-minimal-video-preview--pending-has-poster",
+          )}
+        >
+          <div className="ed-minimal-video-poster-bg" aria-hidden>
+            {renderPosterImage()}
+          </div>
+          <Loader2 size={22} strokeWidth={2} className="ed-spin" aria-hidden />
+          <span>Đang chuẩn bị video…</span>
+        </div>
+      );
+    }
     return (
       <div
         className={previewClass(
@@ -3672,6 +3861,7 @@ function BlockInner(p: BlockRowProps) {
           encoding={p.minimalVideoState.encoding}
           encodeReady={p.minimalVideoState.encodeReady}
           error={p.minimalVideoState.error}
+          posterSeed={p.minimalVideoState.posterSeed}
           videoCanvasRatio={b.videoCanvasRatio}
         />
       );

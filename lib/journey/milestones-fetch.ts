@@ -38,8 +38,10 @@ import {
   mapCheDoLuuToForeignJourney,
 } from "@/lib/journey/bookmark-visibility";
 import { fetchBookmarkedOrgBaiDangMilestones } from "@/lib/truong/org-bai-dang-bookmark";
+import { fetchBookmarkedOrgKhoaHocMilestones } from "@/lib/to-chuc/khoa-hoc-bookmark";
 import { fetchBookmarkedOrgTuyenDungMilestones } from "@/lib/to-chuc/tuyen-dung-bookmark";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { hideProcessingVideoFromViewer } from "@/lib/journey/video-processing-meta";
 
 /* ╔══════════════════════════════════════════════════════════════════╗
    ║ Fetch milestones cho 1 user (Journey center column).             ║
@@ -395,8 +397,19 @@ export async function fetchMilestonesForUser(params: {
       fetchBookmarkedMilestonesForUser({ userId, isOwner, admin }),
     ]);
     const merged = mergeMilestoneLists(tagged, bookmarks);
+    const withSocial = await attachSocialState(admin, merged, viewerId);
+    const visibleMilestones = isOwner
+      ? withSocial
+      : withSocial.filter(
+          (m) =>
+            !hideProcessingVideoFromViewer(
+              m.noiDungBlocks,
+              viewerId,
+              m.postOwnerId ?? userId,
+            ),
+        );
     return {
-      milestones: await attachSocialState(admin, merged, viewerId),
+      milestones: visibleMilestones,
       stats: {
         cotMoc: 0,
         cotMocVerified: 0,
@@ -431,10 +444,20 @@ export async function fetchMilestonesForUser(params: {
 
   const merged = mergeMilestoneLists(mergeMilestoneLists(milestones, tagged), bookmarks);
   const withSocial = await attachSocialState(admin, merged, viewerId);
-  const cotMocVerified = withSocial.filter((m) => m.variant === "verified").length;
+  const visibleMilestones = isOwner
+    ? withSocial
+    : withSocial.filter(
+        (m) =>
+          !hideProcessingVideoFromViewer(
+            m.noiDungBlocks,
+            viewerId,
+            m.postOwnerId ?? userId,
+          ),
+      );
+  const cotMocVerified = visibleMilestones.filter((m) => m.variant === "verified").length;
 
   return {
-    milestones: withSocial,
+    milestones: visibleMilestones,
     stats: {
       cotMoc: cotMocs.length,
       cotMocVerified,
@@ -622,13 +645,15 @@ export async function fetchBookmarkedMilestonesForUser(params: {
     ]),
   );
 
-  const [orgBaiDangBookmarks, orgTuyenDungBookmarks] = await Promise.all([
-    fetchBookmarkedOrgBaiDangMilestones({ userId, admin }),
-    fetchBookmarkedOrgTuyenDungMilestones({ userId, admin }),
-  ]);
+  const [orgBaiDangBookmarks, orgTuyenDungBookmarks, orgKhoaHocBookmarks] =
+    await Promise.all([
+      fetchBookmarkedOrgBaiDangMilestones({ userId, admin }),
+      fetchBookmarkedOrgTuyenDungMilestones({ userId, admin }),
+      fetchBookmarkedOrgKhoaHocMilestones({ userId, admin }),
+    ]);
   const orgBookmarks = mergeMilestoneLists(
-    orgBaiDangBookmarks,
-    orgTuyenDungBookmarks,
+    mergeMilestoneLists(orgBaiDangBookmarks, orgTuyenDungBookmarks),
+    orgKhoaHocBookmarks,
   );
 
   const cotMocIds = [...new Set(savedAtByMoc.keys())];

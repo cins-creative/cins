@@ -14,11 +14,14 @@ type Props = {
   featured?: boolean;
 };
 
-function formatOrgCreateKicker(text: string): string {
-  return text.trim().replace(/^Người\s+/iu, "");
-}
+const ORG_CREATE_KICKER: Record<Props["layout"], string> = {
+  "cong-dong-create": "Người tạo cộng đồng",
+  "co-so-create": "Người tạo cơ sở đào tạo",
+  "studio-create": "Người tạo studio",
+};
 
 function orgCreateCardDescription(
+  layout: Props["layout"],
   excerpt: string | null | undefined,
   kicker: string | null | undefined,
   orgName: string,
@@ -26,8 +29,8 @@ function orgCreateCardDescription(
   const trimmed = (excerpt ?? "").trim();
   if (!trimmed) return "";
 
-  const formattedKicker = kicker ? formatOrgCreateKicker(kicker) : "";
-  if (trimmed === kicker?.trim() || trimmed === formattedKicker) return "";
+  const kickerLabel = ORG_CREATE_KICKER[layout];
+  if (trimmed === kicker?.trim() || trimmed === kickerLabel) return "";
 
   const cleaned = trimmed
     .replace(/^Người tạo (cơ sở đào tạo|cộng đồng|studio)\s*[·•]\s*/iu, "")
@@ -50,8 +53,8 @@ export function GalleryOrgCreateCardBody({
   const isCongDong = layout === "cong-dong-create";
   const isStudio = layout === "studio-create";
   const initial = (label.trim().charAt(0) || "?").toUpperCase();
-  const kickerLabel = kicker ? formatOrgCreateKicker(kicker) : "";
-  const desc = orgCreateCardDescription(description, kicker, label);
+  const kickerLabel = ORG_CREATE_KICKER[layout];
+  const desc = orgCreateCardDescription(layout, description, kicker, label);
 
   return (
     <div className="j-gallery-org-card">
@@ -80,9 +83,7 @@ export function GalleryOrgCreateCardBody({
             initial
           )}
         </div>
-        {kickerLabel ? (
-          <p className="j-gallery-org-card__kicker">{kickerLabel}</p>
-        ) : null}
+        <p className="j-gallery-org-card__kicker">{kickerLabel}</p>
         <h3 className="j-gallery-org-card__title">{label}</h3>
         {desc ? <p className="j-gallery-org-card__desc">{desc}</p> : null}
       </div>
