@@ -22,6 +22,7 @@ import { milestonePhotoLayout } from "@/lib/journey/milestone-card-kind";
 import {
   articleCardNeedsDepthPreview,
   articleCardEmbedInteractivePeek,
+  articleCardPeekHasEmbedMedia,
   articleCardPeekBlocks,
   extractVideoUrl,
   plainTextCardPlain,
@@ -212,6 +213,10 @@ export function JourneyMilestoneCardBodyContent({
     Boolean(emptyFallback);
   const isEmbedInteractivePeek =
     isArticle && articleCardEmbedInteractivePeek(body, blocks);
+  const showArticleEmbedBlocksPeek =
+    isArticle &&
+    !isEmbedInteractivePeek &&
+    articleCardPeekHasEmbedMedia(body, blocks);
   const showExpandTriggerBase =
     Boolean(expandTrigger?.enabled && isArticle && !isContentOpen) ||
     Boolean(readMoreHref && isArticle);
@@ -221,6 +226,7 @@ export function JourneyMilestoneCardBodyContent({
   const articleNeedsDepth =
     isArticle &&
     (isEmbedInteractivePeek ||
+      showArticleEmbedBlocksPeek ||
       (!preview?.src &&
         showExpandTriggerBase &&
         articleCardNeedsDepthPreview(body, blocks, hasCoverPreview)));
@@ -228,8 +234,14 @@ export function JourneyMilestoneCardBodyContent({
     if (!articleNeedsDepth || !blocks?.length) return [];
     return articleCardPeekBlocks(body, blocks);
   }, [articleNeedsDepth, body, blocks]);
+  const articleEmbedPeekBlocks = useMemo(
+    () => articlePeekBlocks.filter((b) => b.loai === "embed"),
+    [articlePeekBlocks],
+  );
   const showArticleContentPeek =
-    articleNeedsDepth && articlePeekBlocks.length > 0;
+    articleNeedsDepth &&
+    articlePeekBlocks.length > 0 &&
+    !showArticleEmbedBlocksPeek;
   const showArticleTextDepth =
     articleNeedsDepth && articlePeekBlocks.length === 0;
 
@@ -580,6 +592,10 @@ export function JourneyMilestoneCardBodyContent({
             </div>
           ) : isEmbedInteractivePeek && blocks?.length ? (
             <JourneyCardEmbedPeek body={body} blocks={blocks} />
+          ) : showArticleEmbedBlocksPeek && articleEmbedPeekBlocks.length > 0 ? (
+            <div className="preview preview--article-peek is-embed-interactive">
+              <PostBlockRenderer blocks={articleEmbedPeekBlocks} />
+            </div>
           ) : showArticleContentPeek ? (
             <div className="preview preview--article-peek">
               <div className="preview--article-peek-inner">

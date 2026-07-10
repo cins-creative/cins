@@ -5,6 +5,7 @@ import { ArticlePageView } from "@/components/article/ArticlePageView";
 import { BaiVietArticleView } from "@/components/bai-viet/BaiVietArticleView";
 import { CinsShell } from "@/components/cins/CinsShell";
 import { SiteFooter } from "@/components/cins/SiteFooter";
+import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import {
   fetchBlogExploreLinks,
   fetchBlogNhomForArticle,
@@ -23,6 +24,10 @@ import { hasSupabaseEnv } from "@/lib/supabase/server";
 import { hasServiceRoleEnv } from "@/lib/supabase/service-role";
 import type { ArticleBaiViet, LoaiBaiViet } from "@/lib/articles/types";
 import { ngheNghiepDetailHref } from "@/lib/cins/hubPaths";
+import {
+  fetchEntityMilestones,
+  fetchEntityTaggedUsers,
+} from "@/lib/tag/entity-milestones-fetch";
 
 export const dynamic = "force-dynamic";
 
@@ -139,6 +144,19 @@ export default async function BaiVietSlugPage({ params }: Props) {
       : Promise.resolve([]),
   ]);
 
+  const session = await getCurrentSessionAndProfile();
+  const viewerProfileId = session?.profile?.id ?? null;
+  const sort = "moi_nhat" as const;
+
+  let entityTaggedUsers: Awaited<ReturnType<typeof fetchEntityTaggedUsers>> = [];
+  let entityMilestones: Awaited<ReturnType<typeof fetchEntityMilestones>> = [];
+  if (article.loai_bai_viet === "mon_hoc") {
+    [entityTaggedUsers, entityMilestones] = await Promise.all([
+      fetchEntityTaggedUsers(article.id),
+      fetchEntityMilestones(article.id, sort, viewerProfileId),
+    ]);
+  }
+
   return (
     <CinsShell data-screen-label={`Bai-viet-${slug}`}>
       <ArticlePageView
@@ -146,6 +164,10 @@ export default async function BaiVietSlugPage({ params }: Props) {
         lienQuan={lienQuan}
         tacPham={tacPham}
         truongRows={truongRows}
+        entityTaggedUsers={entityTaggedUsers}
+        entityMilestones={entityMilestones}
+        entitySort={sort}
+        viewerProfileId={viewerProfileId}
         draftUiEnabled={draftUiEnabled}
         draftPersistEnabled={draftPersistEnabled}
       />

@@ -1,14 +1,20 @@
 import type { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
 
-import { TagAggregationView } from "@/components/tag/TagAggregationView";
+import { SoftwareEntityArticleView } from "@/components/article/software/SoftwareEntityArticleView";
 import { CinsShell } from "@/components/cins/CinsShell";
 import { SiteFooter } from "@/components/cins/SiteFooter";
+import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import {
+  fetchRelatedArticles,
   getArticleById,
   getPhanMemArticleBySlug,
 } from "@/lib/articles/queries";
 import { parseTagAggSort } from "@/lib/tag/aggregation-queries";
+import {
+  fetchEntityMilestones,
+  fetchEntityTaggedUsers,
+} from "@/lib/tag/entity-milestones-fetch";
 import { hasSupabaseEnv } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -60,21 +66,24 @@ export default async function SoftwareDetailPage({
   }
 
   const sort = parseTagAggSort(sortRaw);
-  const daVerify =
-    (article as { da_verify?: boolean | null }).da_verify === true;
+  const session = await getCurrentSessionAndProfile();
+  const viewerProfileId = session?.profile?.id ?? null;
+
+  const [lienQuan, entityTaggedUsers, entityMilestones] = await Promise.all([
+    fetchRelatedArticles(article.id),
+    fetchEntityTaggedUsers(article.id),
+    fetchEntityMilestones(article.id, sort, viewerProfileId),
+  ]);
 
   return (
     <CinsShell data-screen-label={`Software-${slug}`}>
-      <TagAggregationView
-        article={{
-          id: article.id,
-          slug: article.slug,
-          tieu_de: article.tieu_de,
-          tom_tat: article.tom_tat,
-          da_verify: daVerify,
-          loai_bai_viet: "phan_mem",
-        }}
-        sort={sort}
+      <SoftwareEntityArticleView
+        article={article}
+        lienQuan={lienQuan}
+        entityTaggedUsers={entityTaggedUsers}
+        entityMilestones={entityMilestones}
+        entitySort={sort}
+        viewerProfileId={viewerProfileId}
       />
       <SiteFooter />
     </CinsShell>

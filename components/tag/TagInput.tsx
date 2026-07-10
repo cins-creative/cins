@@ -13,13 +13,19 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
+import { articleTagLabel } from "@/lib/editor/article-tag";
 import {
   CREATABLE_TAG_LOAI,
   type CreatableTagLoai,
   type PickableTagLoai,
 } from "@/lib/tag/tag-loai";
 
-import { TagSuggestionMeta } from "./TagSuggestionMeta";
+import { TagSuggestionLabel } from "./TagSuggestionLabel";
+import {
+  useTagSuggestSearch,
+  type LoaiFilter,
+  type TagSuggestRow,
+} from "./useTagSuggestSearch";
 import "./tag-input.css";
 
 export type TagLoai = PickableTagLoai;
@@ -32,22 +38,8 @@ export type TagInputValue = {
   linh_vuc_ten?: string | null;
 };
 
-type TagMatch = TagInputValue & { da_verify: boolean };
-
-type DedupExact = {
-  type: "exact";
-  match: TagMatch;
-};
-
-type DedupFuzzy = {
-  type: "fuzzy";
-  suggestions: TagMatch[];
-};
-
-type LoaiFilter = PickableTagLoai | "all";
-
 type MenuItem =
-  | { kind: "suggestion"; tag: TagMatch }
+  | { kind: "suggestion"; tag: TagSuggestRow }
   | { kind: "create"; label: string; loai: CreatableTagLoai };
 
 const LOAI_FILTER_OPTIONS: { id: LoaiFilter; label: string }[] = [
@@ -68,6 +60,7 @@ type Props = {
   placeholder?: string;
   disabled?: boolean;
   className?: string;
+  variant?: "default" | "modal";
 };
 
 const CREATE_LOAI_LABEL: Record<CreatableTagLoai, string> = {
@@ -77,8 +70,11 @@ const CREATE_LOAI_LABEL: Record<CreatableTagLoai, string> = {
 
 const MENU_Z_INDEX = 10200;
 const MENU_GAP = 6;
-const MENU_MAX_WIDTH = 360;
-const MENU_EST_HEIGHT = 300;
+const MENU_WIDTH = {
+  default: { max: 360 },
+  modal: { max: 480 },
+} as const;
+const MENU_EST_HEIGHT = 280;
 
 type MenuPosition = {
   top: number;
@@ -86,6 +82,77 @@ type MenuPosition = {
   width: number;
   openAbove: boolean;
 };
+
+function formatTagUsage(n: number): string {
+  if (n <= 0) return "";
+  return n === 1 ? "1 người" : `${n} người`;
+}
+
+function TagInputMenuItem({
+  tag,
+  active,
+  onPick,
+}: {
+  tag: TagSuggestRow;
+  active?: boolean;
+  onPick: () => void;
+}) {
+  const lv = tag.linh_vuc_ten?.trim();
+  const usage = formatTagUsage(tag.so_nguoi_tagged ?? 0);
+  const hasFoot = Boolean(lv || usage);
+
+  return (
+    <button
+      type="button"
+      className={`tag-input-item${active ? " is-active" : ""}`}
+      role="option"
+      aria-selected={active}
+      onClick={onPick}
+    >
+      <div className="tag-input-item-main">
+        <div
+          className={`tag-input-item-head${tag.da_verify ? " has-verified" : ""}`}
+        >
+          {tag.da_verify ? (
+            <BadgeCheck
+              className="tag-input-item-verified"
+              size={15}
+              strokeWidth={2}
+              aria-hidden
+            />
+          ) : null}
+          <div className="tag-input-item-copy">
+            <TagSuggestionLabel
+              tieu_de={tag.tieu_de}
+              tieu_de_viet={tag.tieu_de_viet}
+              tieu_de_eng={tag.tieu_de_eng}
+            />
+            {hasFoot ? (
+              <div className="tag-input-item-foot">
+                {lv ? (
+                  <span className="tag-input-item-linh-vuc">{lv}</span>
+                ) : null}
+                {usage ? (
+                  <span
+                    className="tag-input-item-usage"
+                    title="Số người đã gắn tag này"
+                  >
+                    {usage}
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+        </div>
+        <span
+          className={`tag-input-item-loai is-loai-${tag.loai_bai_viet.replace(/_/g, "-")}`}
+        >
+          {articleTagLabel(tag.loai_bai_viet)}
+        </span>
+      </div>
+    </button>
+  );
+}
 
 export function TagInput({
   value,
@@ -95,6 +162,7 @@ export function TagInput({
   placeholder = "Gõ khái niệm, phần mềm, môn học, ngành, nghề nghiệp…",
   disabled = false,
   className,
+  variant = "default",
 }: Props) {
   const listId = useId();
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -105,35 +173,37 @@ export function TagInput({
   const [menuStyle, setMenuStyle] = useState<MenuPosition | null>(null);
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [activeIdx, setActiveIdx] = useState(0);
-  const [exactMatch, setExactMatch] = useState<TagMatch | null>(null);
-  const [suggestions, setSuggestions] = useState<TagMatch[]>([]);
   const [creating, setCreating] = useState(false);
   const [loaiFilter, setLoaiFilter] = useState<LoaiFilter>("all");
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const dedupAbortRef = useRef<AbortController | null>(null);
   const valueRef = useRef(value);
   valueRef.current = value;
 
   const selectedIds = useMemo(() => new Set(value.map((t) => t.id)), [value]);
   const atMax =
     mode === "multi" && maxTags != null && value.length >= maxTags;
-
   const trimmed = query.trim();
+
+  const {
+    exactMatch,
+    suggestions,
+    refining,
+    loading,
+    hasExactSuggestion,
+    ensureIndex,
+  } = useTagSuggestSearch({
+    enabled: !disabled && !atMax && open && trimmed.length > 0,
+    query,
+    loaiFilter,
+    excludeIds: selectedIds,
+  });
 
   const menuItems = useMemo((): MenuItem[] => {
     if (!trimmed || exactMatch) return [];
-    const items: MenuItem[] = suggestions
-      .filter((s) => {
-        if (selectedIds.has(s.id)) return false;
-        if (loaiFilter === "all") return true;
-        return s.loai_bai_viet === loaiFilter;
-      })
-      .map((tag) => ({ kind: "suggestion" as const, tag }));
-    const hasExactSuggestion = suggestions.some(
-      (s) => s.tieu_de.toLowerCase() === trimmed.toLowerCase(),
-    );
+    const items: MenuItem[] = suggestions.map((tag) => ({
+      kind: "suggestion" as const,
+      tag,
+    }));
     if (!hasExactSuggestion) {
       for (const loai of CREATABLE_TAG_LOAI) {
         if (loaiFilter === "all" || loaiFilter === loai) {
@@ -142,96 +212,16 @@ export function TagInput({
       }
     }
     return items;
-  }, [trimmed, exactMatch, suggestions, selectedIds, loaiFilter]);
+  }, [trimmed, exactMatch, suggestions, hasExactSuggestion, loaiFilter]);
 
   const exactVisible =
     exactMatch &&
+    !selectedIds.has(exactMatch.id) &&
     (loaiFilter === "all" || exactMatch.loai_bai_viet === loaiFilter);
 
   useEffect(() => {
     setActiveIdx(0);
   }, [menuItems.length, trimmed, loaiFilter]);
-
-  const runDedup = useCallback(async (ten: string) => {
-    const q = ten.trim();
-    if (!q) {
-      dedupAbortRef.current?.abort();
-      dedupAbortRef.current = null;
-      setExactMatch(null);
-      setSuggestions([]);
-      setOpen(false);
-      setLoading(false);
-      return;
-    }
-    dedupAbortRef.current?.abort();
-    const controller = new AbortController();
-    dedupAbortRef.current = controller;
-    setLoading(true);
-    setOpen(true);
-    try {
-      const res = await fetch("/api/tag/dedup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ten: q }),
-        signal: controller.signal,
-      });
-      if (controller.signal.aborted) return;
-      const json = (await res.json().catch(() => null)) as
-        | DedupExact
-        | DedupFuzzy
-        | { error?: string }
-        | null;
-      if (!res.ok || !json || !("type" in json)) {
-        setExactMatch(null);
-        setSuggestions([]);
-        return;
-      }
-      if (json.type === "exact") {
-        setExactMatch(json.match);
-        setSuggestions([]);
-      } else if (json.type === "fuzzy") {
-        setExactMatch(null);
-        setSuggestions(json.suggestions ?? []);
-      }
-    } catch (err) {
-      if (controller.signal.aborted) return;
-      setExactMatch(null);
-      setSuggestions([]);
-    } finally {
-      if (!controller.signal.aborted) {
-        setLoading(false);
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (atMax) {
-      setExactMatch(null);
-      setSuggestions([]);
-      setOpen(false);
-      return;
-    }
-    if (!trimmed) {
-      setExactMatch(null);
-      setSuggestions([]);
-      setOpen(false);
-      return;
-    }
-    debounceRef.current = setTimeout(() => {
-      void runDedup(trimmed);
-    }, 180);
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [atMax, trimmed, runDedup]);
-
-  useEffect(
-    () => () => {
-      dedupAbortRef.current?.abort();
-    },
-    [],
-  );
 
   useEffect(() => {
     setMounted(true);
@@ -241,7 +231,8 @@ export function TagInput({
     const el = fieldRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
-    const width = Math.min(rect.width, MENU_MAX_WIDTH);
+    const { max } = MENU_WIDTH[variant];
+    const width = Math.min(rect.width, max);
     const spaceBelow = window.innerHeight - rect.bottom - MENU_GAP;
     const openAbove =
       spaceBelow < MENU_EST_HEIGHT && rect.top > MENU_EST_HEIGHT + MENU_GAP;
@@ -251,11 +242,12 @@ export function TagInput({
       width,
       openAbove,
     });
-  }, []);
+  }, [variant]);
 
   const showMenu = Boolean(
     open &&
       trimmed.length > 0 &&
+      !atMax &&
       (loading || exactVisible || menuItems.length > 0),
   );
 
@@ -315,8 +307,6 @@ export function TagInput({
       emitChange(next);
       setQuery("");
       setOpen(false);
-      setExactMatch(null);
-      setSuggestions([]);
     },
     [emitChange, maxTags, mode],
   );
@@ -371,11 +361,7 @@ export function TagInput({
     }
     if (e.key === "Enter") {
       e.preventDefault();
-      if (
-        exactVisible &&
-        exactMatch &&
-        !selectedIds.has(exactMatch.id)
-      ) {
+      if (exactVisible && exactMatch) {
         addTag(exactMatch);
         return;
       }
@@ -434,34 +420,17 @@ export function TagInput({
           </div>
         ) : (
           <>
-            {loading ? (
+            {refining ? (
               <div className="tag-input-loading tag-input-loading--inline" aria-live="polite">
-                <Loader2 size={14} className="ed-spin" aria-hidden /> Đang tìm…
+                <Loader2 size={14} className="ed-spin" aria-hidden /> Đang tinh chỉnh…
               </div>
             ) : null}
             {exactVisible && exactMatch ? (
-              <button
-                type="button"
-                className="tag-input-item is-active"
-                role="option"
-                aria-selected
-                disabled={selectedIds.has(exactMatch.id)}
-                onClick={() => addTag(exactMatch)}
-              >
-                {exactMatch.da_verify ? (
-                  <BadgeCheck
-                    className="tag-input-item-verified"
-                    size={16}
-                    strokeWidth={2}
-                    aria-hidden
-                  />
-                ) : null}
-                <span className="tag-input-item-label">{exactMatch.tieu_de}</span>
-                <TagSuggestionMeta
-                  loai={exactMatch.loai_bai_viet}
-                  linhVucTen={exactMatch.linh_vuc_ten}
-                />
-              </button>
+              <TagInputMenuItem
+                tag={exactMatch}
+                active
+                onPick={() => addTag(exactMatch)}
+              />
             ) : (
               <>
                 {!loading && menuItems.length === 0 ? (
@@ -475,28 +444,12 @@ export function TagInput({
                 ) : null}
                 {menuItems.map((item, idx) =>
                   item.kind === "suggestion" ? (
-                    <button
+                    <TagInputMenuItem
                       key={item.tag.id}
-                      type="button"
-                      className={`tag-input-item${idx === activeIdx ? " is-active" : ""}`}
-                      role="option"
-                      aria-selected={idx === activeIdx}
-                      onClick={() => void pickMenuItem(item)}
-                    >
-                      {item.tag.da_verify ? (
-                        <BadgeCheck
-                          className="tag-input-item-verified"
-                          size={16}
-                          strokeWidth={2}
-                          aria-hidden
-                        />
-                      ) : null}
-                      <span className="tag-input-item-label">{item.tag.tieu_de}</span>
-                      <TagSuggestionMeta
-                        loai={item.tag.loai_bai_viet}
-                        linhVucTen={item.tag.linh_vuc_ten}
-                      />
-                    </button>
+                      tag={item.tag}
+                      active={idx === activeIdx}
+                      onPick={() => void pickMenuItem(item)}
+                    />
                   ) : (
                     <button
                       key={`create-${item.loai}`}
@@ -523,7 +476,13 @@ export function TagInput({
 
   return (
     <div
-      className={`tag-input-wrap${className ? ` ${className}` : ""}`}
+      className={[
+        "tag-input-wrap",
+        variant === "modal" ? "is-modal" : "",
+        className,
+      ]
+        .filter(Boolean)
+        .join(" ")}
       ref={wrapRef}
     >
       <div
@@ -568,9 +527,17 @@ export function TagInput({
             type="text"
             value={query}
             placeholder={value.length === 0 ? placeholder : ""}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              const next = e.target.value;
+              setQuery(next);
+              if (next.trim()) {
+                setOpen(true);
+                ensureIndex();
+              }
+            }}
             onFocus={() => {
               if (atMax) return;
+              ensureIndex();
               if (trimmed) setOpen(true);
             }}
             onKeyDown={onKeyDown}

@@ -2,6 +2,7 @@ import "server-only";
 
 import { normalizeTagName } from "@/lib/tag/normalize";
 import { withTagPostgres } from "@/lib/tag/postgres";
+import { TAG_SUGGEST_MAX } from "@/lib/tag/suggest-types";
 import {
   PICKABLE_TAG_LOAI,
   parsePickableTagLoai,
@@ -14,10 +15,13 @@ export type TagLoai = PickableTagLoai;
 export type TagDedupMatch = {
   id: string;
   tieu_de: string;
+  tieu_de_viet?: string | null;
+  tieu_de_eng?: string | null;
   da_verify: boolean;
   loai_bai_viet: PickableTagLoai;
   /** `linh_vuc.ten` qua `article_bai_viet.id_linh_vuc` — chủ yếu bài `nghe`. */
   linh_vuc_ten?: string | null;
+  so_nguoi_tagged?: number;
 };
 
 type LinhVucEmbed = { ten?: string | null } | { ten?: string | null }[] | null;
@@ -44,14 +48,20 @@ function toTagDedupMatch(row: TagRow): TagDedupMatch {
   return {
     id: row.id,
     tieu_de: row.tieu_de,
+    tieu_de_viet:
+      row.tieu_de_viet == null
+        ? null
+        : String(row.tieu_de_viet).trim() || null,
+    tieu_de_eng:
+      row.tieu_de_eng == null ? null : String(row.tieu_de_eng).trim() || null,
     da_verify: row.da_verify === true,
     loai_bai_viet: parsePickableTagLoai(row.loai_bai_viet),
     linh_vuc_ten: row.linh_vuc_ten ?? parseLinhVucTen(row.linh_vuc ?? null) ?? null,
   };
 }
 
-const SUGGEST_MENU_MAX = 12;
-const SUGGEST_FETCH_MAX = 40;
+const SUGGEST_MENU_MAX = TAG_SUGGEST_MAX;
+const SUGGEST_FETCH_MAX = 28;
 
 function scoreTagTitles(
   normalized: string,
@@ -106,7 +116,9 @@ async function loadTagMatch(id: string): Promise<TagDedupMatch | null> {
   const admin = createServiceRoleClient();
   const { data } = await admin
     .from("article_bai_viet")
-    .select("id, tieu_de, da_verify, loai_bai_viet, linh_vuc:id_linh_vuc(ten)")
+    .select(
+      "id, tieu_de, tieu_de_viet, tieu_de_eng, da_verify, loai_bai_viet, linh_vuc:id_linh_vuc(ten)",
+    )
     .eq("id", id)
     .in("loai_bai_viet", [...PICKABLE_TAG_LOAI])
     .eq("trang_thai_noi_dung", "published")
@@ -210,6 +222,8 @@ async function suggestFuzzyViaTrigram(
         {
           id: string;
           tieu_de: string;
+          tieu_de_viet: string | null;
+          tieu_de_eng: string | null;
           da_verify: boolean;
           loai_bai_viet: string;
           linh_vuc_ten: string | null;
@@ -219,6 +233,8 @@ async function suggestFuzzyViaTrigram(
         SELECT
           abv.id,
           abv.tieu_de,
+          abv.tieu_de_viet,
+          abv.tieu_de_eng,
           abv.da_verify,
           abv.loai_bai_viet,
           lv.ten AS linh_vuc_ten,
@@ -243,6 +259,8 @@ async function suggestFuzzyViaTrigram(
         toTagDedupMatch({
           id: r.id,
           tieu_de: r.tieu_de,
+          tieu_de_viet: r.tieu_de_viet,
+          tieu_de_eng: r.tieu_de_eng,
           da_verify: r.da_verify,
           loai_bai_viet: r.loai_bai_viet,
           linh_vuc_ten: r.linh_vuc_ten,
@@ -300,108 +318,8 @@ async function suggestFuzzyViaIlike(
   );
 }
 
-async function suggestFuzzyViaAi(
-  ten: string,
-  candidates: TagDedupMatch[],
-): Promise<TagDedupMatch[]> {
-  const key = process.env.OPENAI_API_KEY?.trim();
-  if (!key || candidates.length === 0) return [];
-
-  const list = candidates
-    .map((c, i) => `${i + 1}. [${c.id}] ${c.tieu_de}`)
-    .join("\n");
-
-  const prompt = `Người dùng muốn tag "${ten}" trong ngành sáng tạo Việt Nam.
-Danh sách tag (keyword/phan_mem/môn học/ngành/nghề) đã có:
-${list}
-
-Chọn tối đa 5 tag trong danh sách có thể trùng nghĩa với tên người nhập (không phải tag mới).
-Trả về JSON array các id UUID đã chọn, sort theo độ phù hợp giảm dần. Ví dụ: ["uuid1","uuid2"]
-Nếu không có tag phù hợp, trả về [].`;
-
-  try {
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: process.env.OPENAI_TAG_MODEL?.trim() || "gpt-4o-mini",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.2,
-        max_tokens: 200,
-      }),
-    });
-    if (!res.ok) return [];
-
-    const json = (await res.json()) as {
-      choices?: { message?: { content?: string } }[];
-    };
-    const raw = json.choices?.[0]?.message?.content?.trim() ?? "[]";
-    const match = raw.match(/\[[\s\S]*\]/);
-    if (!match) return [];
-
-    const ids = JSON.parse(match[0]) as string[];
-    const byId = new Map(candidates.map((c) => [c.id, c]));
-    const out: TagDedupMatch[] = [];
-    for (const id of ids) {
-      const row = byId.get(id);
-      if (row) out.push(row);
-      if (out.length >= 5) break;
-    }
-    return out;
-  } catch {
-    return [];
-  }
-}
-
-async function loadAiCandidatePool(
-  normalized: string,
-): Promise<TagDedupMatch[]> {
-  const admin = createServiceRoleClient();
-  const pattern = `%${normalized.slice(0, Math.min(8, normalized.length)).replace(/[%_]/g, "")}%`;
-
-  const [verified, fuzzy] = await Promise.all([
-    admin
-      .from("article_bai_viet")
-      .select(
-        "id, tieu_de, da_verify, loai_bai_viet, linh_vuc:id_linh_vuc(ten)",
-      )
-      .in("loai_bai_viet", [...PICKABLE_TAG_LOAI])
-      .eq("trang_thai_noi_dung", "published")
-      .eq("da_verify", true)
-      .order("cap_nhat_luc", { ascending: false })
-      .limit(30),
-    pattern.length >= 2
-      ? admin
-          .from("article_bai_viet")
-          .select(
-            "id, tieu_de, da_verify, loai_bai_viet, linh_vuc:id_linh_vuc(ten)",
-          )
-          .in("loai_bai_viet", [...PICKABLE_TAG_LOAI])
-          .eq("trang_thai_noi_dung", "published")
-          .or(
-            `tieu_de.ilike.${pattern},tieu_de_viet.ilike.${pattern},tieu_de_eng.ilike.${pattern}`,
-          )
-          .limit(20)
-      : Promise.resolve({ data: [] }),
-  ]);
-
-  const seen = new Set<string>();
-  const out: TagDedupMatch[] = [];
-  for (const row of [...(verified.data ?? []), ...(fuzzy.data ?? [])]) {
-    const id = String(row.id);
-    if (seen.has(id)) continue;
-    seen.add(id);
-    out.push(toTagDedupMatch(row as TagRow));
-    if (out.length >= 50) break;
-  }
-  return out;
-}
-
 /**
- * Dedup lớp 2 — fuzzy suggest (trigram → ILIKE fallback → AI nếu vẫn trống).
+ * Dedup lớp 2 — fuzzy suggest (trigram → ILIKE fallback).
  * KHÔNG tự map — chỉ gợi ý cho user confirm ở frontend.
  */
 export async function suggestFuzzy(ten: string): Promise<TagDedupMatch[]> {
@@ -411,9 +329,5 @@ export async function suggestFuzzy(ten: string): Promise<TagDedupMatch[]> {
   const trigram = await suggestFuzzyViaTrigram(normalized);
   if (trigram && trigram.length > 0) return trigram;
 
-  const ilike = await suggestFuzzyViaIlike(normalized);
-  if (ilike.length > 0) return ilike;
-
-  const pool = await loadAiCandidatePool(normalized);
-  return suggestFuzzyViaAi(ten.trim(), pool);
+  return suggestFuzzyViaIlike(normalized);
 }

@@ -1,5 +1,369 @@
 /* First-draft shell — OpenDesign first-draft-layout-nghe.html */
 
+.cins-shell-column:has(.entity-article-page) {
+  background: var(--bg-page, #f4f5f8);
+}
+
+.cins-main:has(.entity-article-page) {
+  flex: 1;
+  min-height: calc(100dvh - var(--site-nav-height, 64px));
+  background: var(--bg-page, #f4f5f8);
+}
+
+.entity-article-page {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Panel nội dung chính */
+.entity-lead-panel {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 22px 24px 26px;
+  box-shadow: var(--shadow-xs);
+}
+
+.entity-empty-lead {
+  margin: 0;
+  padding: 8px 0;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.entity-content-extra {
+  margin-top: 24px;
+  min-width: 0;
+}
+
+.entity-content-extra .section-h:first-child {
+  margin-top: 0;
+}
+
+/* Sidebar meta / CTA */
+.entity-side-meta {
+  padding: 14px 16px;
+}
+
+.entity-side-meta-title {
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.entity-side-meta-value {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink-display);
+  line-height: 1.4;
+}
+
+.entity-sidebar-sections .kw-nganh-grid,
+.entity-sidebar-sections .job-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Tab thảo luận */
+.entity-discussion-empty {
+  padding: 28px 20px;
+  text-align: center;
+  background: var(--bg-surface);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.entity-discussion-empty-hint {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--ink-muted);
+  line-height: 1.5;
+}
+
+.entity-discussion-gallery .section-link {
+  margin-bottom: 14px;
+}
+
+/* Sidebar card đồng bộ */
+.entity-article-sidebar .side-card,
+.entity-article-sidebar .nghe-side-tab-panel {
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
+}
+
+.entity-article-sidebar .nghe-article-toc-card {
+  box-shadow: var(--shadow-xs);
+}
+
+/* Nền xám — đồng bộ entity-light-page */
+.cins-shell-column:has(.nghe-entity-page) {
+  background: var(--bg-page, #f4f5f8);
+}
+
+.cins-main:has(.nghe-entity-page) {
+  flex: 1;
+  min-height: calc(100dvh - var(--site-nav-height, 64px));
+  background: var(--bg-page, #f4f5f8);
+}
+
+.nghe-entity-page {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
+.nghe-entity-header {
+  position: relative;
+}
+
+.nghe-entity-header .entity-light-header-inner {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 36px 20px 32px;
+}
+
+.nghe-entity-header .entity-light-hero {
+  max-width: 100%;
+}
+
+.nghe-entity-header .nghe-hero-draft-bar {
+  margin: -36px -20px 16px;
+  border-radius: 0;
+}
+
+.nghe-entity-header .nghe-hero-draft-fab {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 5;
+}
+
+.nghe-entity-header .nghe-hero-draft-form {
+  width: 100%;
+}
+
+.nghe-entity-header .nghe-draft-field--title {
+  font-size: clamp(1.5rem, 3vw, 2.25rem);
+}
+
+
+
+.nghe-entity-subtitle {
+  margin: 0 0 12px;
+  font-family: var(--font-serif, Georgia, serif);
+  font-size: clamp(1rem, 2.2vw, 1.35rem);
+  font-style: italic;
+  font-weight: 600;
+  color: var(--cins-blue, #1f74c9);
+  line-height: 1.35;
+}
+
+.nghe-entity-subtitle em {
+  font-style: inherit;
+}
+
+.entity-light-badge.is-nghe {
+  background: var(--cins-orange-soft, #fff4e5);
+  color: #b05a0f;
+}
+
+.nghe-entity-thumb-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  color: transparent;
+}
+
+.nghe-entity-thumb-fallback .mascot {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.nghe-entity-body {
+  max-width: 1292px;
+  margin: 0 auto;
+  padding: 24px 20px 80px;
+}
+
+.nghe-entity-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 28px;
+  align-items: start;
+}
+
+.nghe-entity-main {
+  min-width: 0;
+}
+
+.nghe-entity-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+  overflow: visible;
+}
+
+@media (min-width: 721px) {
+  .nghe-entity-sidebar {
+    position: sticky;
+    top: calc(var(--site-nav-height, 56px) + 12px);
+    z-index: 1;
+  }
+
+  .nghe-entity-sidebar:has(.rel-item:hover),
+  .nghe-entity-sidebar:has(.rel-tile:hover),
+  .nghe-entity-sidebar:has(.rel-card:hover) {
+    z-index: 20;
+  }
+}
+
+/* Tab chính: Nội dung / Thảo luận */
+.nghe-main-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+}
+
+.nghe-main-tablist {
+  display: flex;
+  gap: 3px;
+  margin-bottom: 16px;
+  padding: 4px;
+  background: var(--neutral-50);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+}
+
+.nghe-main-tab {
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-muted);
+  line-height: 1.25;
+  text-align: center;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.nghe-main-tab:hover {
+  color: var(--ink-display);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.nghe-main-tab--active {
+  background: var(--bg-surface);
+  color: var(--cins-blue-dark);
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.09);
+}
+
+.nghe-main-tab-panel {
+  min-width: 0;
+}
+
+.nghe-main-tab-panel .nghe-lead-panel {
+  margin-bottom: 0;
+}
+
+/* Tab Nội dung: mục lục trái + lead phải */
+.nghe-content-layout {
+  display: grid;
+  grid-template-columns: 228px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+  min-width: 0;
+}
+
+.nghe-content-layout > .nghe-lead-panel {
+  min-width: 0;
+}
+
+.arv2-nghe .nghe-content-layout .nghe-article-toc {
+  position: sticky;
+  top: calc(var(--site-nav-height, 56px) + 14px);
+  align-self: start;
+}
+
+.arv2-nghe .nghe-content-layout .nghe-article-toc-card {
+  width: 100%;
+}
+
+.nghe-main-tab-panel .nghe-tagged-works {
+  margin-top: 0;
+}
+
+.nghe-main-tab-panel .nghe-tagged-works .section-h {
+  margin-top: 0;
+}
+
+.nghe-sidebar-sections {
+  min-width: 0;
+}
+
+.nghe-sidebar-sections > .section-h:first-of-type {
+  margin-top: 0;
+}
+
+.arv2-nghe .nghe-sidebar-sections .job-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 12px 0;
+  grid-template-columns: unset;
+}
+
+.arv2-nghe .nghe-sidebar-sections .rel-card {
+  width: 100%;
+  min-width: 0;
+}
+
+.arv2-nghe .nghe-sidebar-sections .rel-card .rel-card-body span {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: normal;
+  overflow-wrap: anywhere;
+}
+
+.arv2-nghe .nghe-sidebar-sections .sw-row {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.arv2-nghe .nghe-sidebar-sections .rel-tile {
+  width: 100%;
+  margin: 0;
+}
+
+.nghe-sidebar-sections .section-h {
+  font-size: 14px;
+  margin-top: 24px;
+}
+
+.nghe-sidebar-sections .section-h .num {
+  font-size: 16px;
+}
+
 /* Nền xám trắng — đồng bộ token trang (--bg-page) */
 .article-page.arv2.arv2-nghe {
   background: var(--bg-page);
@@ -18,7 +382,7 @@
   align-items: start;
 }
 
-/* Mục lục trái + cột nội dung (primary + sidebar + các section dưới) */
+/* Legacy grid — giữ cho keyword/software dùng chung file */
 .arv2-nghe .nghe-article-body {
   min-width: 0;
 }
@@ -1705,6 +2069,33 @@
 
 /* Bài loại nghề — cùng mốc 720px với article-layout-v2 */
 @media (max-width: 720px) {
+  .nghe-entity-body {
+    padding: 16px 16px 64px;
+  }
+
+  .nghe-entity-layout {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .nghe-entity-sidebar {
+    position: static;
+  }
+
+  .nghe-content-layout {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .nghe-content-layout .nghe-article-toc {
+    display: none;
+  }
+
+  .nghe-entity-header .nghe-hero-draft-fab {
+    top: 12px;
+    right: 12px;
+  }
+
   .arv2-nghe .nghe-hero-panel > .l1-hero {
     padding: 18px 16px 20px;
     align-items: start;

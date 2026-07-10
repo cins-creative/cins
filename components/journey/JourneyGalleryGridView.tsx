@@ -15,7 +15,7 @@ import {
   type CSSProperties,
 } from "react";
 
-import { GalleryItemVisual, GalleryVideoPlayBadge } from "@/components/journey/GalleryItemVisual";
+import { GalleryItemVisual, GalleryEmbedPlatformBadge, GalleryVideoPlayBadge } from "@/components/journey/GalleryItemVisual";
 import { GalleryMainHoverOverlay } from "@/components/journey/GalleryMainHoverOverlay";
 import { useJourneyCompose } from "@/components/journey/JourneyComposeContext";
 import { GALLERY_GRID_IMAGE_SIZES } from "@/lib/cloudflare/cf-variant-url";
@@ -191,6 +191,9 @@ function GalleryMainItemTile({
         />
         {item.isVideo || item.mediaKind === "video" ? (
           <GalleryVideoPlayBadge />
+        ) : null}
+        {item.mediaKind === "embed" && item.embedProvider ? (
+          <GalleryEmbedPlatformBadge provider={item.embedProvider} />
         ) : null}
         {item.variant === "verified" ? (
           <GalleryVerifiedBadge cotMocId={item.cotMocId} />

@@ -5847,17 +5847,19 @@ a.tdh-message-inbox-verify-name:hover {
 }
 
 .tdh-message-inbox-messages.cins-chat-messages .cins-chat-bubble.has-album,
-.tdh-message-inbox-messages.cins-chat-messages .cins-chat-bubble.has-image {
+.tdh-message-inbox-messages.cins-chat-messages .cins-chat-bubble.has-media-card,
+.tdh-message-inbox-messages.cins-chat-messages .cins-chat-bubble.is-sticker-only {
   max-width: min(320px, 100%);
 }
 
 .tdh-message-inbox-messages.cins-chat-messages .cins-chat-bubble-row.is-me .cins-chat-bubble.has-album,
-.tdh-message-inbox-messages.cins-chat-messages .cins-chat-bubble-row.is-me .cins-chat-bubble.has-image {
+.tdh-message-inbox-messages.cins-chat-messages .cins-chat-bubble-row.is-me .cins-chat-bubble.has-media-card,
+.tdh-message-inbox-messages.cins-chat-messages .cins-chat-bubble-row.is-me .cins-chat-bubble.is-sticker-only {
   margin-left: auto;
 }
 
 .tdh-message-inbox-messages.cins-chat-messages .cins-chat-album-grid {
-  width: min(280px, 100%);
+  width: min(320px, 100%);
   max-width: 100%;
 }
 

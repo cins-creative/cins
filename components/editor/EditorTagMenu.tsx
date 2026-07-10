@@ -20,10 +20,15 @@ import type { CoAuthorDraft } from "@/lib/social/types";
 import {
   CREATABLE_TAG_LOAI,
   type CreatableTagLoai,
-  type PickableTagLoai,
 } from "@/lib/tag/tag-loai";
 
+import { TagSuggestionLabel } from "@/components/tag/TagSuggestionLabel";
 import { TagSuggestionMeta } from "@/components/tag/TagSuggestionMeta";
+import {
+  useTagSuggestSearch,
+  type LoaiFilter,
+  type TagSuggestRow,
+} from "@/components/tag/useTagSuggestSearch";
 import "@/components/tag/tag-input.css";
 
 const USER_MENU_W = 320;
@@ -39,18 +44,8 @@ type SearchUser = {
   avatar_id: string | null;
 };
 
-type TagDedupMatch = {
-  id: string;
-  tieu_de: string;
-  da_verify: boolean;
-  loai_bai_viet: PickableTagLoai;
-  linh_vuc_ten?: string | null;
-};
-
-type LoaiFilter = PickableTagLoai | "all";
-
 type TagMenuItem =
-  | { kind: "suggestion"; tag: TagDedupMatch }
+  | { kind: "suggestion"; tag: TagSuggestRow }
   | { kind: "create"; label: string; loai: CreatableTagLoai };
 
 const LOAI_FILTER_OPTIONS: { id: LoaiFilter; label: string }[] = [
@@ -115,8 +110,6 @@ export function EditorTagMenu({
 
   const [loading, setLoading] = useState(false);
   const [users, setUsers] = useState<SearchUser[]>([]);
-  const [exactMatch, setExactMatch] = useState<TagDedupMatch | null>(null);
-  const [suggestions, setSuggestions] = useState<TagDedupMatch[]>([]);
   const [loaiFilter, setLoaiFilter] = useState<LoaiFilter>("all");
   const [creating, setCreating] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -125,6 +118,28 @@ export function EditorTagMenu({
   );
 
   const query = trigger.query.trim();
+
+  const {
+    exactMatch,
+    suggestions,
+    refining,
+    loading: tagLoading,
+    hasExactSuggestion,
+    ensureIndex,
+  } = useTagSuggestSearch({
+    enabled: mode === "tag" && Boolean(query),
+    query: trigger.query,
+    loaiFilter,
+    excludeIds: existingTagIds,
+  });
+
+  useEffect(() => {
+    if (mode === "tag") ensureIndex();
+  }, [mode, ensureIndex]);
+
+  useEffect(() => {
+    if (mode === "tag") setActiveIndex(0);
+  }, [mode, query, loaiFilter]);
 
   /* ── Vị trí: theo caret, cập nhật khi resize/scroll ──────────────── */
   const updatePos = useCallback(() => {
@@ -145,7 +160,7 @@ export function EditorTagMenu({
   // Reposition khi chiều cao menu đổi (kết quả tải xong / lọc / loading).
   useEffect(() => {
     updatePos();
-  }, [updatePos, loading, users, suggestions, exactMatch, loaiFilter, query]);
+  }, [updatePos, loading, users, suggestions, exactMatch, loaiFilter, query, tagLoading, refining]);
 
   /* ── @ mode: tìm cộng sự ─────────────────────────────────────────── */
   useEffect(() => {
@@ -160,9 +175,9 @@ export function EditorTagMenu({
           friends_only: "true",
         });
         const res = await fetch(`/api/users/search?${qs.toString()}`);
-        const json = await res.json();
+        const json = (await res.json()) as { users?: SearchUser[] };
         if (cancelled) return;
-        setUsers((json.users ?? []) as SearchUser[]);
+        setUsers(json.users ?? []);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -173,64 +188,6 @@ export function EditorTagMenu({
       clearTimeout(t);
     };
   }, [mode, trigger.query]);
-
-  /* ── # mode: dedup (exact + fuzzy) giống TagInput ────────────────── */
-  useEffect(() => {
-    if (mode !== "tag") return;
-    setActiveIndex(0);
-    if (!query) {
-      setExactMatch(null);
-      setSuggestions([]);
-      setLoading(false);
-      return;
-    }
-    let cancelled = false;
-    const controller = new AbortController();
-    setLoading(true);
-    const t = setTimeout(() => {
-      void (async () => {
-        try {
-          const res = await fetch("/api/tag/dedup", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ ten: query }),
-            signal: controller.signal,
-          });
-          const json = (await res.json().catch(() => null)) as
-            | { type: "exact"; match: TagDedupMatch }
-            | { type: "fuzzy"; suggestions: TagDedupMatch[] }
-            | { error?: string }
-            | null;
-          if (cancelled || !json || !("type" in json)) {
-            if (!cancelled) {
-              setExactMatch(null);
-              setSuggestions([]);
-            }
-            return;
-          }
-          if (json.type === "exact") {
-            setExactMatch(json.match);
-            setSuggestions([]);
-          } else {
-            setExactMatch(null);
-            setSuggestions(json.suggestions ?? []);
-          }
-        } catch {
-          if (!cancelled) {
-            setExactMatch(null);
-            setSuggestions([]);
-          }
-        } finally {
-          if (!cancelled) setLoading(false);
-        }
-      })();
-    }, 180);
-    return () => {
-      cancelled = true;
-      controller.abort();
-      clearTimeout(t);
-    };
-  }, [mode, query]);
 
   /* ── Click ngoài → đóng ──────────────────────────────────────────── */
   useEffect(() => {
@@ -257,16 +214,10 @@ export function EditorTagMenu({
 
   const tagMenuItems = useMemo((): TagMenuItem[] => {
     if (mode !== "tag" || !query || exactMatch) return [];
-    const items: TagMenuItem[] = suggestions
-      .filter((s) => {
-        if (existingTagIds.has(s.id)) return false;
-        if (loaiFilter === "all") return true;
-        return s.loai_bai_viet === loaiFilter;
-      })
-      .map((tag) => ({ kind: "suggestion" as const, tag }));
-    const hasExactSuggestion = suggestions.some(
-      (s) => s.tieu_de.toLowerCase() === query.toLowerCase(),
-    );
+    const items: TagMenuItem[] = suggestions.map((tag) => ({
+      kind: "suggestion" as const,
+      tag,
+    }));
     if (!hasExactSuggestion) {
       for (const loai of CREATABLE_TAG_LOAI) {
         if (loaiFilter === "all" || loaiFilter === loai) {
@@ -275,7 +226,7 @@ export function EditorTagMenu({
       }
     }
     return items;
-  }, [mode, query, exactMatch, suggestions, existingTagIds, loaiFilter]);
+  }, [mode, query, exactMatch, suggestions, hasExactSuggestion, loaiFilter]);
 
   /* ── Pick handlers ───────────────────────────────────────────────── */
   const pickUser = useCallback(
@@ -295,7 +246,7 @@ export function EditorTagMenu({
   );
 
   const pickExistingTag = useCallback(
-    (tag: TagDedupMatch) => {
+    (tag: TagSuggestRow) => {
       onPick({
         kind: "tag",
         tag: {
@@ -473,6 +424,7 @@ export function EditorTagMenu({
 
   /* ── Render: # mode (giống TagInput) ─────────────────────────────── */
   const hasResultPreview = Boolean(exactVisible || tagMenuItems.length > 0);
+  const showTagLoading = tagLoading && !hasResultPreview;
 
   return createPortal(
     <div
@@ -509,18 +461,18 @@ export function EditorTagMenu({
         <div className="tag-input-empty">
           Gõ để tìm khái niệm, phần mềm, môn học, ngành, nghề…
         </div>
-      ) : loading && !hasResultPreview ? (
+      ) : showTagLoading ? (
         <div className="tag-input-loading">
           <Loader2 size={14} className="ed-spin" aria-hidden /> Đang tìm…
         </div>
       ) : (
         <>
-          {loading ? (
+          {refining ? (
             <div
               className="tag-input-loading tag-input-loading--inline"
               aria-live="polite"
             >
-              <Loader2 size={14} className="ed-spin" aria-hidden /> Đang tìm…
+              <Loader2 size={14} className="ed-spin" aria-hidden /> Đang tinh chỉnh…
             </div>
           ) : null}
 
@@ -542,15 +494,20 @@ export function EditorTagMenu({
                   aria-hidden
                 />
               ) : null}
-              <span className="tag-input-item-label">{exactMatch.tieu_de}</span>
+              <TagSuggestionLabel
+                tieu_de={exactMatch.tieu_de}
+                tieu_de_viet={exactMatch.tieu_de_viet}
+                tieu_de_eng={exactMatch.tieu_de_eng}
+              />
               <TagSuggestionMeta
                 loai={exactMatch.loai_bai_viet}
                 linhVucTen={exactMatch.linh_vuc_ten}
+                soNguoiTagged={exactMatch.so_nguoi_tagged}
               />
             </button>
           ) : (
             <>
-              {!loading && tagMenuItems.length === 0 ? (
+              {!showTagLoading && tagMenuItems.length === 0 ? (
                 <div className="tag-input-empty">
                   Không thấy kết quả
                   {loaiFilter !== "all"
@@ -580,12 +537,15 @@ export function EditorTagMenu({
                         aria-hidden
                       />
                     ) : null}
-                    <span className="tag-input-item-label">
-                      {item.tag.tieu_de}
-                    </span>
+                    <TagSuggestionLabel
+                      tieu_de={item.tag.tieu_de}
+                      tieu_de_viet={item.tag.tieu_de_viet}
+                      tieu_de_eng={item.tag.tieu_de_eng}
+                    />
                     <TagSuggestionMeta
                       loai={item.tag.loai_bai_viet}
                       linhVucTen={item.tag.linh_vuc_ten}
+                      soNguoiTagged={item.tag.so_nguoi_tagged}
                     />
                   </button>
                 ) : (

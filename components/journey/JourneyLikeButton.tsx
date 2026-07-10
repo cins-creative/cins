@@ -5,9 +5,14 @@ import {
   JourneyActionActorsCount,
   type JourneyActionActorsConfig,
 } from "@/components/journey/JourneyActionActorsCount";
+import { JourneyActionTouchChip } from "@/components/journey/JourneyActionTouchChip";
+import type { JourneyActionSheetItem } from "@/components/journey/JourneyActionTouchSheet";
+import { JourneySocialActorsModal } from "@/components/journey/JourneySocialActorsModal";
 import { SOCIAL_LOAI_DOI_TUONG } from "@/lib/cong-dong/constants";
-import { Heart } from "lucide-react";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { sharePostUrl } from "@/lib/journey/share-post-url";
+import { useCoarsePointer } from "@/lib/ui/use-coarse-pointer";
+import { Heart, Share2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 
 type Props = {
   milestoneId: string;
@@ -17,6 +22,9 @@ type Props = {
   loaiDoiTuong?: string;
   actorsMediaLabel?: JourneyActionActorsConfig["mediaLabel"];
   disableActorsReveal?: boolean;
+  /** Permalink bài — long-press mobile mở chia sẻ. */
+  sharePath?: string | null;
+  shareTitle?: string | null;
 };
 
 type SocialEvent = CustomEvent<{
@@ -35,11 +43,15 @@ export function JourneyLikeButton({
   loaiDoiTuong = SOCIAL_LOAI_DOI_TUONG.COT_MOC,
   actorsMediaLabel,
   disableActorsReveal = false,
+  sharePath = null,
+  shareTitle = null,
 }: Props) {
   const { requireAuth } = useAuthGate();
+  const isCoarse = useCoarsePointer();
   const [liked, setLiked] = useState(initialLiked);
   const [count, setCount] = useState(initialCount);
   const [pending, startTransition] = useTransition();
+  const [actorsOpen, setActorsOpen] = useState(false);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -59,7 +71,7 @@ export function JourneyLikeButton({
     return () => window.removeEventListener("cins:social-action", onSocial);
   }, [milestoneId]);
 
-  const toggle = () => {
+  const toggle = useCallback(() => {
     requireAuth(() => {
       const nextLiked = !liked;
       const nextCount = Math.max(0, count + (nextLiked ? 1 : -1));
@@ -99,7 +111,7 @@ export function JourneyLikeButton({
         );
       });
     });
-  };
+  }, [count, liked, loaiDoiTuong, milestoneId, requireAuth]);
 
   const actors = useMemo<JourneyActionActorsConfig | null>(() => {
     if (disableActorsReveal || count <= 0) return null;
@@ -119,6 +131,97 @@ export function JourneyLikeButton({
   ]);
 
   const showCountChip = showCount && count > 0;
+  const actorsLabel =
+    actorsMediaLabel === "anh" ? "Người thích ảnh" : "Người thích";
+
+  const mobileSheetItems = useMemo<JourneyActionSheetItem[]>(() => {
+    const items: JourneyActionSheetItem[] = [];
+    if (actors) {
+      items.push({
+        id: "actors",
+        label: `${actorsLabel} (${count})`,
+        icon: (
+          <Heart size={17} strokeWidth={1.8} fill="currentColor" aria-hidden />
+        ),
+        tone: "liked",
+        onSelect: () => setActorsOpen(true),
+      });
+    }
+    items.push({
+      id: "toggle",
+      label: liked ? "Bỏ thích" : "Thích",
+      icon: (
+        <Heart
+          size={17}
+          strokeWidth={1.8}
+          fill={liked ? "currentColor" : "none"}
+          aria-hidden
+        />
+      ),
+      tone: liked ? "liked" : "default",
+      onSelect: toggle,
+    });
+    if (sharePath?.trim()) {
+      items.push({
+        id: "share",
+        label: "Chia sẻ bài viết",
+        icon: <Share2 size={17} strokeWidth={1.8} aria-hidden />,
+        onSelect: () => {
+          void sharePostUrl(sharePath, shareTitle);
+        },
+      });
+    }
+    return items;
+  }, [
+    actors,
+    actorsLabel,
+    count,
+    liked,
+    sharePath,
+    shareTitle,
+    toggle,
+  ]);
+
+  const actorsModal =
+    actors && actorsOpen ? (
+      <JourneySocialActorsModal
+        open={actorsOpen}
+        onClose={() => setActorsOpen(false)}
+        kind={actors.kind}
+        loaiDoiTuong={actors.loaiDoiTuong}
+        idDoiTuong={actors.idDoiTuong}
+        mediaLabel={actors.mediaLabel}
+      />
+    ) : null;
+
+  if (isCoarse) {
+    return (
+      <>
+        <JourneyActionTouchChip
+          className={`action-btn${liked ? " is-liked" : ""}`}
+          ariaLabel={liked ? "Bỏ thích" : "Thích"}
+          ariaPressed={liked}
+          disabled={pending}
+          onPress={toggle}
+          sheetTitle="Thích"
+          sheetItems={mobileSheetItems}
+        >
+          <Heart
+            size={16}
+            strokeWidth={1.8}
+            fill={liked ? "currentColor" : "none"}
+            aria-hidden
+          />
+          {showCountChip ? (
+            <span className="action-btn-count action-btn-count--static" aria-hidden>
+              {count}
+            </span>
+          ) : null}
+        </JourneyActionTouchChip>
+        {actorsModal}
+      </>
+    );
+  }
 
   if (!showCountChip) {
     return (
@@ -150,15 +253,13 @@ export function JourneyLikeButton({
       >
         <Heart size={16} strokeWidth={1.8} fill={liked ? "currentColor" : "none"} aria-hidden />
       </button>
-      {showCountChip ? (
-        actors ? (
-          <JourneyActionActorsCount actors={actors} />
-        ) : (
-          <span className="action-btn-count action-btn-count--static" aria-hidden>
-            {count}
-          </span>
-        )
-      ) : null}
+      {actors ? (
+        <JourneyActionActorsCount actors={actors} />
+      ) : (
+        <span className="action-btn-count action-btn-count--static" aria-hidden>
+          {count}
+        </span>
+      )}
     </span>
   );
 }

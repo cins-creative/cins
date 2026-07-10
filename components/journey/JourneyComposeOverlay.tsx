@@ -18,8 +18,8 @@ import type {
   JourneyComposeState,
 } from "@/lib/journey/compose-types";
 import {
-  detectExternalEmbedPlatform,
   resolveEditComposeIntent,
+  resolveEditEmbedComposeMeta,
 } from "@/lib/journey/post-media";
 
 const EditorViewLazy = dynamic(
@@ -76,6 +76,10 @@ export function JourneyComposeOverlay({
     compose.kind === "video" ? compose.pendingFile : undefined;
   const embedPlatform =
     compose.kind === "embed" ? compose.platform : undefined;
+  const riveSource =
+    compose.kind === "embed" ? compose.riveSource : undefined;
+  const pendingRiveFile =
+    compose.kind === "embed" ? compose.pendingRiveFile : undefined;
 
   const createEditorIntent = useMemo((): ComposeIntent | undefined => {
     if (compose.kind === "article") {
@@ -87,15 +91,15 @@ export function JourneyComposeOverlay({
     return undefined;
   }, [compose]);
 
+  const editEmbedMeta = useMemo(() => {
+    if (!editInitial) return null;
+    return resolveEditEmbedComposeMeta(editInitial.blocks);
+  }, [editInitial]);
+
   const editEditorIntent = useMemo((): ComposeIntent | undefined => {
     if (!editInitial) return undefined;
     return resolveEditComposeIntent(editInitial.blocks, editInitial.moTa);
   }, [editInitial]);
-
-  const editEmbedPlatform = useMemo(() => {
-    if (!editInitial || editEditorIntent !== "embed") return undefined;
-    return detectExternalEmbedPlatform(editInitial.blocks) ?? undefined;
-  }, [editInitial, editEditorIntent]);
 
   const isCreateEditor =
     compose.kind === "article" ||
@@ -214,8 +218,10 @@ export function JourneyComposeOverlay({
             presentation="overlay"
             composeIntent={createEditorIntent}
             embedPlatform={embedPlatform}
+            riveSource={riveSource}
             initialPhotoFiles={pendingPhotoFiles}
             initialVideoFile={pendingVideoFile}
+            initialRiveFile={pendingRiveFile}
             congDongCompose={congDongCompose}
             orgBaiDangCompose={orgBaiDangCompose}
             onClose={onClose}
@@ -254,7 +260,8 @@ export function JourneyComposeOverlay({
               postSlug={editPostSlug}
               presentation="overlay"
               composeIntent={editEditorIntent}
-              embedPlatform={editEmbedPlatform}
+              embedPlatform={editEmbedMeta?.embedPlatform}
+              riveSource={editEmbedMeta?.riveSource}
               congDongCompose={congDongCompose}
               orgBaiDangCompose={orgBaiDangCompose}
               onClose={onClose}

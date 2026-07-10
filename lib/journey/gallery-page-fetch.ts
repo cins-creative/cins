@@ -26,6 +26,7 @@ import {
   galleryItemLabel,
   type GalleryMediaKind,
 } from "@/lib/journey/post-media";
+import type { EmbedProviderId } from "@/lib/editor/embed-providers";
 import { loadVerifiedCotMocIdSet } from "@/lib/journey/milestone-verify";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import type { VideoCanvasRatio } from "@/lib/journey/video-canvas-ratio";
@@ -60,6 +61,8 @@ export type GalleryMainItem = {
   type: MilestoneType;
   variant: MilestoneVariant;
   mediaKind?: GalleryMediaKind;
+  /** Logo góc thumb — YouTube, Figma, Rive, … */
+  embedProvider?: EmbedProviderId | null;
   isVideo?: boolean;
   videoProcessing?: boolean;
   /** MP4 Bunny — frame đầu khi thumbnail thiếu/lỗi. */
@@ -204,6 +207,7 @@ function hydrateMainItems(
       type: entry.type,
       variant: entry.variant,
       mediaKind: entry.mediaKind,
+      embedProvider: entry.embedProvider ?? null,
       isVideo,
       videoProcessing: entry.videoProcessing,
       videoPreviewSrc: entry.videoPreviewSrc,
@@ -258,6 +262,7 @@ function hydrateAsideItems(
         entry.tacPhamSlug,
       ),
       mediaKind: entry.mediaKind,
+      embedProvider: entry.embedProvider ?? null,
       isVideo,
       videoProcessing: entry.videoProcessing,
       videoPreviewSrc: entry.videoPreviewSrc,
@@ -282,6 +287,7 @@ function hydrateAsideItems(
         entry.tacPhamSlug,
       ),
       mediaKind: entry.mediaKind,
+      embedProvider: entry.embedProvider ?? null,
       isVideo,
       videoProcessing: entry.videoProcessing,
       videoPreviewSrc: entry.videoPreviewSrc,

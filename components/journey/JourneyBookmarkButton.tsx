@@ -5,7 +5,11 @@ import {
   JourneyActionActorsCount,
   type JourneyActionActorsConfig,
 } from "@/components/journey/JourneyActionActorsCount";
+import { JourneyActionTouchChip } from "@/components/journey/JourneyActionTouchChip";
+import type { JourneyActionSheetItem } from "@/components/journey/JourneyActionTouchSheet";
+import { JourneySocialActorsModal } from "@/components/journey/JourneySocialActorsModal";
 import { SOCIAL_LOAI_DOI_TUONG } from "@/lib/cong-dong/constants";
+import { useCoarsePointer } from "@/lib/ui/use-coarse-pointer";
 import { Bookmark, CheckCircle2, Lock, Globe2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -64,8 +68,10 @@ export function JourneyBookmarkButton({
 }: Props) {
   const { requireAuth: defaultRequireAuth } = useAuthGate();
   const requireAuth = onRequireAuth ?? defaultRequireAuth;
+  const isCoarse = useCoarsePointer();
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
+  const [actorsOpen, setActorsOpen] = useState(false);
   const [blockedMessage, setBlockedMessage] = useState<string | null>(null);
   const [visibility, setVisibility] = useState<BookmarkVisibility>("public");
   const [privateNote, setPrivateNote] = useState("");
@@ -215,7 +221,7 @@ export function JourneyBookmarkButton({
     }
   };
 
-  const openModal = () => {
+  const openModal = useCallback(() => {
     const blockMsg = resolveOpenBlock?.() ?? null;
     if (blockMsg) {
       setBlockedMessage(blockMsg);
@@ -231,7 +237,11 @@ export function JourneyBookmarkButton({
     setSuccess(false);
     setPrivateNote("");
     setOpen(true);
-  };
+  }, [resolveOpenBlock]);
+
+  const pressBookmark = useCallback(() => {
+    requireAuth(openModal);
+  }, [openModal, requireAuth]);
 
   const modal = open ? (
     <div
@@ -360,7 +370,79 @@ export function JourneyBookmarkButton({
     };
   }, [count, disableActorsReveal, loaiDoiTuong, milestoneId]);
 
+  const mobileSheetItems = useMemo<JourneyActionSheetItem[]>(() => {
+    const items: JourneyActionSheetItem[] = [];
+    if (actors) {
+      items.push({
+        id: "actors",
+        label: `Người đã lưu (${count})`,
+        icon: (
+          <Bookmark size={17} strokeWidth={1.9} fill="currentColor" aria-hidden />
+        ),
+        tone: "bookmarked",
+        onSelect: () => setActorsOpen(true),
+      });
+    }
+    items.push({
+      id: "save",
+      label: saved ? "Đã lưu — mở lại" : "Lưu bài",
+      icon: (
+        <Bookmark
+          size={17}
+          strokeWidth={1.9}
+          fill={saved ? "currentColor" : "none"}
+          aria-hidden
+        />
+      ),
+      tone: saved ? "bookmarked" : "default",
+      onSelect: pressBookmark,
+    });
+    return items;
+  }, [actors, count, pressBookmark, saved]);
+
   const showActorsCount = showCount && count > 0;
+
+  const actorsModal =
+    actors && actorsOpen ? (
+      <JourneySocialActorsModal
+        open={actorsOpen}
+        onClose={() => setActorsOpen(false)}
+        kind={actors.kind}
+        loaiDoiTuong={actors.loaiDoiTuong}
+        idDoiTuong={actors.idDoiTuong}
+      />
+    ) : null;
+
+  if (isCoarse) {
+    return (
+      <>
+        <JourneyActionTouchChip
+          className={`${buttonClassName}${saved ? " is-bookmarked" : ""}`}
+          ariaLabel={saved ? "Đã lưu" : "Lưu"}
+          ariaPressed={saved}
+          onPress={pressBookmark}
+          sheetTitle="Lưu bài"
+          sheetItems={mobileSheetItems}
+        >
+          <Bookmark
+            size={iconSize}
+            strokeWidth={iconStrokeWidth}
+            fill={saved ? "currentColor" : "none"}
+            aria-hidden
+          />
+          {label ? <span className="jbb-label">{label}</span> : null}
+          {showActorsCount ? (
+            <span className="action-btn-count action-btn-count--static" aria-hidden>
+              {count}
+            </span>
+          ) : null}
+        </JourneyActionTouchChip>
+        {actorsModal}
+        {mounted && modal ? createPortal(modal, document.body) : null}
+      </>
+    );
+  }
+
   const bookmarkIconButton = (
     <button
       type="button"
@@ -373,7 +455,7 @@ export function JourneyBookmarkButton({
       aria-pressed={saved}
       onClick={(event) => {
         event.stopPropagation();
-        requireAuth(openModal);
+        pressBookmark();
       }}
     >
       <Bookmark
@@ -402,6 +484,7 @@ export function JourneyBookmarkButton({
         bookmarkIconButton
       )}
       {mounted && modal ? createPortal(modal, document.body) : null}
+      {actorsModal}
     </>
   );
 }

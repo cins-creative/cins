@@ -27,7 +27,7 @@ Kết nối giữa người có chuyên môn là giá trị cốt lõi, và **ph
 - **Like là social proof thẩm mỹ**: "X người cũng thấy đẹp" = xác nhận sự đồng cảm, không phải vanity đua số. Hiển thị mặc định.
 - **Open model**: interaction (tuyển dụng, kết nối) xảy ra ở nơi khác. CINS verify và lưu kết quả.
 - **Verify là moat**: mọi quyết định thiết kế phải bảo vệ tính xác thực của timeline. Moat tồn tại *vì* có bên thứ hai phải đồng ý — bỏ bước đó để giảm tải là mất moat.
-- **Chat phải có context**: mọi chat đều gắn với dự án / lớp / sự kiện / 1-1. Không có group chat tự do.
+- **Chat phải có context — không inbox MXH tự do**: mọi phòng chat gắn một loại ngữ cảnh (`loai_phong_chat_enum`). **1-1** user ↔ user; **1_org** user ↔ org; **nhom** = nhóm **bạn bè đã kết bạn 2 chiều** (≥3 người gồm người tạo, tối đa 20) — không mở cho người lạ hay tìm kiếm công khai. Các loại còn lại (`du_an`, `lop_hoc`, `su_kien`…) gắn entity khi triển khai. Chi tiết MVP nhóm chat → **§C**, quyết định **DECISIONS L25**.
 - **Milestone không bao giờ tự sinh từ counter**: phải có xác nhận chủ động từ người có thẩm quyền.
 - **Verified milestone bất tử**: khi org đóng cửa, milestone đã verify không mất giá trị.
 - **Hai loại quan hệ theo người**: **kết bạn** (2 chiều — cả hai thành bạn của nhau; phục vụ danh bạ nghề + bạn chung + điều kiện tag co-author) và **theo dõi** (1 chiều — không cần đồng ý; nội dung public của người được theo dõi phân bổ lên Gallery của người theo dõi). Org chỉ được **theo dõi**, không kết bạn.
@@ -155,7 +155,32 @@ User gửi: "tác phẩm này tôi làm khi học **khóa** Y @ org X" → org a
 - **Journey org (3 loại tổ chức thật)**: `truong_dai_hoc`, `co_so_dao_tao`, `studio` có Journey riêng = các dòng `org_bai_dang` (+ cột `thoi_diem` = ngày mốc lịch sử, KHÁC `tao_luc` = ngày đăng), render timeline/grid + filter cá nhân động (quy tắc 29). **KHÔNG tạo bảng `org_cot_moc`** — gộp vào `org_bai_dang`. Org journey **KHÔNG qua verify**: org tự kể về mình, khác hẳn milestone danh tính nghề của *người* (cái đó mới là moat verify).
 - **Org vẫn là context verify cho member**: milestone *cá nhân* của member (verified "Vị trí @ Org") quy về `content_cot_moc` từng user — tách bạch với Journey-tự-kể của org.
 - **`co_so_dao_tao` — trang khóa học** (xem K1–K3 + DECISIONS L14–L16): mỗi khóa (`org_khoa_hoc`) là một trang riêng `/co-so/[slug]/khoa-hoc/[khoa-slug]`. Khóa = bản mẫu ổn định (mô hình, học phí, thời lượng); **lớp** (`org_lop_hoc`) = lần mở khóa (giáo viên / lịch / sĩ số / hình thức — per-lớp); **giáo trình** (`org_giao_trinh`) = lộ trình bài có `thu_tu` + `so_buoi` + `visibility` (public xem thử / chi_hoc_vien khóa / private ẩn). Đăng ký = tạo `user_hoc_vien_lop` (gắn lớp khi cohort; khóa khi liên tục — `id_lop_hoc` nullable). Vẫn KHÔNG phải LMS: không nộp bài/chấm điểm trong CINS.
-- **`cong_dong` = cộng đồng kiểu nhóm có thảo luận** (đã pivot từ "event hub"): member đăng bài đầy đủ. **Post = `content_cot_moc`** với `che_do_hien_thi='cong_dong'` (KHÔNG dùng `content_thao_luan` — đã bỏ, xem DECISIONS L12). Điểm khác Facebook là mỗi post kèm nghề + verified journey của người đăng. Filter kiểu flair: `cong_dong_filter` + junction `cong_dong_filter_gan` (nối cột mốc), seed 4 nhãn mặc định: Khoe tác phẩm · Hỏi đáp · Tuyển người · Tài nguyên (admin sửa được). Feed cộng đồng = cột mốc `id_to_chuc=X AND che_do_hien_thi='cong_dong'` → scoped vào 1 cộng đồng → không feed toàn cục → không vi phạm luật chống-viral. Vẫn KHÔNG group chat tự do (chat phải có context). Vai trò hợp lệ: `owner`/`admin`/`quan_ly_noi_dung`/`thanh_vien`. Layout: cột trái group identity card (avatar **vuông**, face pile, bản đồ nghề theo `giai_doan`, nhịp), cột phải feed mặc định Journey (mốc tháng) ↔ Lưới.
+- **`cong_dong` = cộng đồng kiểu nhóm có thảo luận** (đã pivot từ "event hub"): member đăng bài đầy đủ. **Post = `content_cot_moc`** với `che_do_hien_thi='cong_dong'` (KHÔNG dùng `content_thao_luan` — đã bỏ, xem DECISIONS L12). Điểm khác Facebook là mỗi post kèm nghề + verified journey của người đăng. Filter kiểu flair: `cong_dong_filter` + junction `cong_dong_filter_gan` (nối cột mốc), seed 4 nhãn mặc định: Khoe tác phẩm · Hỏi đáp · Tuyển người · Tài nguyên (admin sửa được). Feed cộng đồng = cột mốc `id_to_chuc=X AND che_do_hien_thi='cong_dong'` → scoped vào 1 cộng đồng → không feed toàn cục → không vi phạm luật chống-viral. Chat trong cộng đồng (nếu có sau này) vẫn scoped theo quy tắc chat có context (§2, §C) — không inbox MXH tự do. Vai trò hợp lệ: `owner`/`admin`/`quan_ly_noi_dung`/`thanh_vien`. Layout: cột trái group identity card (avatar **vuông**, face pile, bản đồ nghề theo `giai_doan`, nhịp), cột phải feed mặc định Journey (mốc tháng) ↔ Lưới.
+
+---
+
+## C. Chat (phòng hội thoại)
+
+Nguyên tắc nền: **§2** (chat có context, không inbox MXH tự do). Bảng: `chat_phong`, `chat_thanh_vien`, `chat_tin_nhan`, `chat_da_doc`.
+
+| `loai_phong` | Ngữ cảnh | MVP |
+|---|---|---|
+| `1_1` | User ↔ user | ✅ DM; tab Bạn bè / Người lạ theo `user_ket_ban` |
+| `1_org` | User ↔ org | ✅ Hỗ trợ / tuyển sinh; card ngữ cảnh trên tin đầu |
+| `nhom` | Nhóm bạn bè | ✅ Xem dưới |
+| `du_an` / `lop_hoc` / `su_kien` | Entity gắn phòng | Defer — tạo phòng khi triển khai module tương ứng |
+| `1_1_an_danh` | Ẩn danh | Defer |
+
+**Nhóm chat (`loai_phong='nhom'`) — MVP (DECISIONS L25):**
+- Chỉ thêm thành viên là **bạn bè đã accepted** (`user_ket_ban`); tối thiểu **2 bạn được chọn** (≥3 người gồm người tạo), tối đa **20** người/phòng.
+- `chat_phong.ten_phong` tuỳ chọn; NULL → tên tự sinh từ tên thành viên.
+- `chat_phong.avatar_id` (Cloudflare) tuỳ chọn; NULL → **mosaic avatar** ghép mặt thành viên (bo góc vuông, khác user tròn). Admin nhóm đổi ảnh qua UI.
+- `loai_context='ban_be'` — hiển thị tab **Bạn bè** trong overlay chat; không discovery công khai, không link join công khai.
+- Người tạo = `vai_tro='admin'` trên `chat_thanh_vien`; thành viên khác = `thanh_vien`.
+- Tin trong nhóm hiển thị **tên người gửi** (khác DM 1-1).
+- **Chưa MVP**: thêm/xóa thành viên, đổi tên nhóm, rời nhóm, gộp phòng trùng thành viên — xem DECISIONS O16.
+
+Migration: `migration_chat_nhom.sql` (`nhom` enum + cột `ten_phong`).
 
 ---
 
@@ -185,7 +210,7 @@ che_do_hien_thi_moc_enum : feature / public / theo_nhom / chi_minh / cong_dong
 loai_bai_viet_enum       : linh_vuc / nghe / keyword / phan_mem / mon_hoc / blog / event / nganh_dao_tao
 loai_to_chuc_enum        : truong_dai_hoc / co_so_dao_tao / studio / doanh_nghiep / cong_dong   (doanh_nghiep ẩn UI)
 giai_doan_enum           : moi_bat_dau / dang_hoc / dang_lam / tim_viec / freelance / dang_day
-loai_phong_chat_enum     : 1_1 / 1_1_an_danh / 1_org / du_an / lop_hoc / su_kien
+loai_phong_chat_enum     : 1_1 / 1_1_an_danh / 1_org / nhom / du_an / lop_hoc / su_kien
 loai_mo_hinh_khoa_enum   : cohort_co_dinh / lien_tuc_theo_thang
 visibility_giao_trinh_enum : public / chi_hoc_vien / private
 trang_thai_ket_ban       : pending / accepted / blocked   (TEXT, không enum cứng)

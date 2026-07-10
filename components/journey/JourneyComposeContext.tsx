@@ -26,6 +26,7 @@ type JourneyComposeContextValue = {
   openComposeWithPhotos: (files: File[]) => void;
   openComposeWithVideo: (file: File) => void;
   openComposeWithEmbed: (platform: Tier1EmbedPlatformId) => void;
+  openComposeWithRiveFile: (file: File) => void;
   closeCompose: () => void;
   canCompose: boolean;
   ownerSlug: string;
@@ -125,7 +126,20 @@ export function JourneyComposeProvider({
   const openComposeWithEmbed = useCallback(
     (platform: Tier1EmbedPlatformId) => {
       if (!isOwner) return;
-      openCompose({ kind: "embed", platform });
+      openCompose({ kind: "embed", platform, riveSource: "url" });
+    },
+    [isOwner, openCompose],
+  );
+
+  const openComposeWithRiveFile = useCallback(
+    (file: File) => {
+      if (!isOwner) return;
+      openCompose({
+        kind: "embed",
+        platform: "rive",
+        riveSource: "file",
+        pendingRiveFile: file,
+      });
     },
     [isOwner, openCompose],
   );
@@ -179,7 +193,6 @@ export function JourneyComposeProvider({
             platform === "youtube" ||
             platform === "vimeo" ||
             platform === "figma" ||
-            platform === "framer" ||
             platform === "sketchfab" ||
             platform === "rive"
           ) {
@@ -246,6 +259,7 @@ export function JourneyComposeProvider({
       openComposeWithPhotos,
       openComposeWithVideo,
       openComposeWithEmbed,
+      openComposeWithRiveFile,
       closeCompose,
       canCompose: isOwner,
       ownerSlug,
@@ -258,6 +272,7 @@ export function JourneyComposeProvider({
       openComposeWithPhotos,
       openComposeWithVideo,
       openComposeWithEmbed,
+      openComposeWithRiveFile,
       closeCompose,
       isOwner,
       ownerSlug,
@@ -295,6 +310,7 @@ export function useJourneyCompose(): JourneyComposeContextValue {
       openComposeWithPhotos: () => {},
       openComposeWithVideo: () => {},
       openComposeWithEmbed: () => {},
+      openComposeWithRiveFile: () => {},
       closeCompose: () => {},
       canCompose: false,
       ownerSlug: "",

@@ -91,6 +91,7 @@ export function worldJourneyMilestonesToGalleryItems(
       type: m.type,
       variant: m.variant,
       mediaKind,
+      embedProvider: gridEntry?.embedProvider ?? null,
       isVideo,
       videoProcessing: gridEntry?.videoProcessing,
       videoPreviewSrc: isVideo

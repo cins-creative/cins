@@ -916,11 +916,13 @@ export async function listOrgThreadsForUser(viewerId: string): Promise<ChatThrea
 }
 
 export async function listAllChatThreads(viewerId: string): Promise<ChatThread[]> {
-  const [direct, org] = await Promise.all([
+  const { listGroupThreads } = await import("@/lib/chat/group-message");
+  const [direct, group, org] = await Promise.all([
     listDirectThreads(viewerId),
+    listGroupThreads(viewerId),
     listOrgThreadsForUser(viewerId),
   ]);
-  const merged = [...direct, ...org];
+  const merged = [...direct, ...group, ...org];
   merged.sort(
     (a, b) => new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime(),
   );

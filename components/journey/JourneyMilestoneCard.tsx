@@ -1037,11 +1037,15 @@ export function JourneyMilestoneCard({
         initialCount={social?.likeCount}
         showCount={social?.showCounts}
         actorsMediaLabel={likeActorsMediaLabel}
+        sharePath={viewerPostHref}
+        shareTitle={title}
       />
       {inlineExpand ? (
         <JourneyCommentLink
           commentCount={liveCommentCount}
           idDoiTuong={milestoneId}
+          sharePath={viewerPostHref}
+          shareTitle={title}
           onOpenComments={() => {
             trackCommentOpen();
             inlineExpand.onOpenComments();
@@ -1051,6 +1055,8 @@ export function JourneyMilestoneCard({
         <JourneyCommentLink
           commentCount={liveCommentCount}
           idDoiTuong={milestoneId}
+          sharePath={viewerPostHref}
+          shareTitle={title}
           openPostPopup
         />
       )}

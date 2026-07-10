@@ -12,8 +12,6 @@ import { ArticleHeroV2 } from "@/components/article/ArticleHeroV2";
 import { ArticleJsonLd } from "@/components/article/ArticleJsonLd";
 import { InlineArticleDraftBar } from "@/components/article/InlineArticleDraftBar";
 import { ArticleNgheView } from "@/components/article/nghe/ArticleNgheView";
-import { KeywordArticleView } from "@/components/article/keyword/KeywordArticleView";
-import { SoftwareArticleView } from "@/components/article/software/SoftwareArticleView";
 import { MonHocArticleView } from "@/components/article/mon-hoc/MonHocArticleView";
 import { ArticleSidebar } from "@/components/article/ArticleSidebar";
 import { TacPhamSection } from "@/components/article/TacPhamSection";
@@ -76,32 +74,39 @@ export function ArticlePageView({
         article={article}
         lienQuan={lienQuan}
         tacPham={tacPham}
+        entityTaggedUsers={entityTaggedUsers}
+        entityMilestones={entityMilestones}
+        entitySort={entitySort}
+        viewerProfileId={viewerProfileId}
         draftUiEnabled={draftUiEnabled}
         draftPersistEnabled={draftPersistEnabled}
       />
     );
   }
 
-  if (article.loai_bai_viet === "keyword") {
+  if (article.loai_bai_viet === "nganh_dao_tao") {
     return (
-      <KeywordArticleView
-        article={article}
-        lienQuan={lienQuan}
-        tacPham={tacPham}
-        draftUiEnabled={draftUiEnabled}
-        draftPersistEnabled={draftPersistEnabled}
-      />
-    );
-  }
-
-  if (article.loai_bai_viet === "phan_mem") {
-    return (
-      <SoftwareArticleView
-        article={article}
-        lienQuan={lienQuan}
-        draftUiEnabled={draftUiEnabled}
-        draftPersistEnabled={draftPersistEnabled}
-      />
+      <div className="article-page arv2">
+        <ArticleJsonLd article={article} slugPath={slugPath} />
+        <div className="article-wrap">
+          <div className="article-grid">
+            <main className="article-main">
+              <ArticleHeroV2 article={article} truongRows={truongRows} />
+              <ArticleContent markdown={markdown} />
+              <TruongDaoTaoSection rows={truongRows} />
+              <TacPhamSection items={tacPham} />
+            </main>
+            <ArticleSidebar lienQuan={lienQuan} />
+          </div>
+        </div>
+        {draftUiEnabled ? (
+          <InlineArticleDraftBar
+            key={`${article.id}-${article.cap_nhat_luc}`}
+            article={article}
+            persistEnabled={draftPersistEnabled}
+          />
+        ) : null}
+      </div>
     );
   }
 
@@ -113,9 +118,6 @@ export function ArticlePageView({
           <main className="article-main">
             <ArticleHeroV2 article={article} truongRows={truongRows} />
             <ArticleContent markdown={markdown} />
-            {article.loai_bai_viet === "nganh_dao_tao" ? (
-              <TruongDaoTaoSection rows={truongRows} />
-            ) : null}
             <TacPhamSection items={tacPham} />
           </main>
           <ArticleSidebar lienQuan={lienQuan} />

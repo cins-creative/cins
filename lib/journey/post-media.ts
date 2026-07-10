@@ -6,6 +6,7 @@ import {
   classifyEmbedUrl,
   type Tier1EmbedPlatformId,
 } from "@/lib/editor/embed-providers";
+import { isRiveAssetEmbedUrl } from "@/lib/editor/rive-asset-url";
 import type { ComposeIntent } from "@/lib/journey/compose-types";
 import {
   blocksAreMediaCaptionOnly,
@@ -15,7 +16,10 @@ import {
   hasArticleLayoutBlocks,
   type GalleryMediaKind,
 } from "@/lib/journey/post-block-helpers";
-import { resolvePostDisplayKind } from "@/lib/journey/post-content-kind";
+import {
+  hasGalleryEmbedContent,
+  resolvePostDisplayKind,
+} from "@/lib/journey/post-content-kind";
 import { extractVideoCanvasRatio } from "@/lib/journey/video-canvas-ratio";
 import { isPersistedImageSeed } from "@/lib/truong/image-ref";
 import {
@@ -75,9 +79,45 @@ export function detectExternalEmbedPlatform(
     const url = blockEmbedConfigUrl(block);
     if (!url) continue;
     const classified = classifyEmbedUrl(url);
-    if (!classified || classified.provider === "behance") continue;
+    if (!classified || classified.provider === "behance" || classified.provider === "framer") continue;
+    if (classified.provider === "rive-file") continue;
     if (buildEmbedIframeSrc(classified) === null) continue;
     return classified.provider as Tier1EmbedPlatformId;
+  }
+  return null;
+}
+
+/** URL file .riv trên R2 — block embed đã lưu. */
+export function detectRiveFileEmbedUrl(
+  blocks: ReadonlyArray<Block> | null | undefined,
+): string | null {
+  if (!blocks?.length) return null;
+  for (const block of blocks) {
+    if (block.loai !== "embed") continue;
+    const url = blockEmbedConfigUrl(block);
+    if (!url) continue;
+    const classified = classifyEmbedUrl(url);
+    if (classified?.provider === "rive-file") return classified.url;
+    if (isRiveAssetEmbedUrl(url)) return url.trim();
+  }
+  return null;
+}
+
+export type EditEmbedComposeMeta = {
+  embedPlatform: Tier1EmbedPlatformId;
+  riveSource?: "url" | "file";
+};
+
+/** Meta embed khi mở sửa bài — đồng bộ layout compose nhúng. */
+export function resolveEditEmbedComposeMeta(
+  blocks: ReadonlyArray<Block> | null | undefined,
+): EditEmbedComposeMeta | null {
+  if (detectRiveFileEmbedUrl(blocks)) {
+    return { embedPlatform: "rive", riveSource: "file" };
+  }
+  const platform = detectExternalEmbedPlatform(blocks);
+  if (platform) {
+    return { embedPlatform: platform, riveSource: "url" };
   }
   return null;
 }
@@ -87,7 +127,7 @@ export function resolveEditComposeIntent(
   blocks: ReadonlyArray<Block> | null | undefined,
   moTa?: string | null,
 ): ComposeIntent {
-  if (detectExternalEmbedPlatform(blocks)) return "embed";
+  if (resolveEditEmbedComposeMeta(blocks)) return "embed";
   const mediaKind = detectMediaPostKind(blocks);
   if (mediaKind === "video") return "video";
   if (mediaKind === "photo") return "photo";
@@ -225,10 +265,15 @@ export {
   extractPhotoImageIds,
   hasArticleLayoutBlocks,
 } from "@/lib/journey/post-block-helpers";
+export {
+  hasGalleryEmbedContent,
+  resolveGalleryEmbedProvider,
+} from "@/lib/journey/post-content-kind";
 
 export function galleryMediaKindFromBlocks(
   blocks: ReadonlyArray<Block> | null | undefined,
 ): GalleryMediaKind {
+  if (hasGalleryEmbedContent(blocks)) return "embed";
   const kind = detectMediaPostKind(blocks);
   if (kind === "photo") return "photo";
   if (kind === "video") return "video";
@@ -261,6 +306,7 @@ export const GALLERY_MEDIA_FILTER_OPTIONS: ReadonlyArray<{
   { id: "article", label: "Bài viết" },
   { id: "photo", label: "Album ảnh" },
   { id: "video", label: "Video" },
+  { id: "embed", label: "File nhúng" },
 ];
 
 export type GalleryMediaFilterCounts = Record<GalleryMediaFilter, number>;
@@ -273,6 +319,7 @@ export function computeGalleryMediaFilterCounts(
     article: 0,
     photo: 0,
     video: 0,
+    embed: 0,
   };
   for (const item of items) {
     const kind = item.mediaKind ?? "article";
@@ -488,6 +535,12 @@ export function galleryItemLabel(
   if (mediaKind === "video") {
     if (!trimmed || isMediaFallbackTitle(trimmed, "video")) {
       return MEDIA_FALLBACK_TITLES.video;
+    }
+    return trimmed;
+  }
+  if (mediaKind === "embed") {
+    if (!trimmed || isArticleFallbackTitle(trimmed)) {
+      return "File nhúng";
     }
     return trimmed;
   }
@@ -771,11 +824,27 @@ export function articleCardHasEmbedOnlyPeek(
   return peek.every((b) => b.loai === "embed" || b.loai === "spacer");
 }
 
+/** Timeline card — file .riv host trên CINs (R2). */
+export function resolveRiveFileEmbedPeek(
+  body: string | null | undefined,
+  blocks: ReadonlyArray<Block> | null | undefined,
+): { url: string } | null {
+  const peek = blocksForArticleCardUnfold(body, blocks);
+  if (!peek.length) return null;
+  if (!peek.every((b) => b.loai === "embed" || b.loai === "spacer")) return null;
+  const embeds = peek.filter((b) => b.loai === "embed");
+  if (embeds.length !== 1) return null;
+  const url = blockEmbedConfigUrl(embeds[0]!);
+  const cls = classifyEmbedUrl(url);
+  if (cls?.provider !== "rive-file") return null;
+  return { url: cls.url };
+}
+
 /** Timeline card — embed Tier 1 fill peek, tương tác trực tiếp (không overlay «Xem đầy đủ»). */
 export function resolveEmbedIframePeek(
   body: string | null | undefined,
   blocks: ReadonlyArray<Block> | null | undefined,
-): { provider: Tier1EmbedPlatformId; iframeSrc: string } | null {
+): { provider: EmbedProviderId; iframeSrc: string } | null {
   const peek = blocksForArticleCardUnfold(body, blocks);
   if (!peek.length) return null;
   if (!peek.every((b) => b.loai === "embed" || b.loai === "spacer")) return null;
@@ -788,14 +857,27 @@ export function resolveEmbedIframePeek(
   if (!cls || cls.provider === "behance") return null;
   const iframeSrc = buildEmbedIframeSrc(cls);
   if (!iframeSrc) return null;
-  return { provider: cls.provider as Tier1EmbedPlatformId, iframeSrc };
+  return { provider: cls.provider, iframeSrc };
 }
 
 export function articleCardEmbedInteractivePeek(
   body: string | null | undefined,
   blocks: ReadonlyArray<Block> | null | undefined,
 ): boolean {
-  return resolveEmbedIframePeek(body, blocks) !== null;
+  return (
+    resolveEmbedIframePeek(body, blocks) !== null ||
+    resolveRiveFileEmbedPeek(body, blocks) !== null
+  );
+}
+
+/** Timeline card — peek có block embed (kể cả kèm tiêu đề/chữ), không chỉ embed-only. */
+export function articleCardPeekHasEmbedMedia(
+  body: string | null | undefined,
+  blocks: ReadonlyArray<Block> | null | undefined,
+): boolean {
+  return blocksForArticleCardUnfold(body, blocks).some(
+    (b) => b.loai === "embed" && Boolean(blockEmbedConfigUrl(b)),
+  );
 }
 
 export function mediaPostHasContent(

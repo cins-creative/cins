@@ -8,10 +8,14 @@ import { isUsingHyperdrive } from "@/lib/db/hyperdrive";
 
 export type TagSql = postgres.Sql;
 
-/** Postgres pooler — dùng cho trigram / lower() exact match. Trả null nếu thiếu DATABASE_URL. */
-export async function withTagPostgres<T>(
-  fn: (sql: TagSql) => Promise<T>,
-): Promise<T | null> {
+const globalForTagSql = globalThis as unknown as { __cinsTagSql?: TagSql };
+
+/** Postgres pooler tái sử dụng — tránh connect/disconnect mỗi request dedup. */
+function getTagSql(): TagSql | null {
+  if (globalForTagSql.__cinsTagSql) {
+    return globalForTagSql.__cinsTagSql;
+  }
+
   const url = getAdminDbUrl();
   if (!url) return null;
 
@@ -23,18 +27,22 @@ export async function withTagPostgres<T>(
     database: db.database,
     username: db.username,
     password: db.password,
-    max: 1,
+    max: 3,
     connect_timeout: 15,
-    idle_timeout: 5,
-    /* Hyperdrive đã lo SSL tới origin; không bật SSL tới proxy. */
+    idle_timeout: 20,
     ssl: db.host.includes("supabase.co") ? "require" : undefined,
-    /* Hyperdrive khuyến nghị tắt fetch_types để giảm round-trip. */
     ...(viaHyperdrive ? { fetch_types: false } : {}),
   });
 
-  try {
-    return await fn(sql);
-  } finally {
-    await sql.end({ timeout: 5 });
-  }
+  globalForTagSql.__cinsTagSql = sql;
+  return sql;
+}
+
+/** Postgres pooler — dùng cho trigram / lower() exact match. Trả null nếu thiếu DATABASE_URL. */
+export async function withTagPostgres<T>(
+  fn: (sql: TagSql) => Promise<T>,
+): Promise<T | null> {
+  const sql = getTagSql();
+  if (!sql) return null;
+  return fn(sql);
 }

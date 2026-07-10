@@ -6,6 +6,7 @@ import type {
   MilestoneCardLayout,
 } from "@/components/journey/milestone-types";
 import type { Block } from "@/lib/editor/types";
+import type { EmbedProviderId } from "@/lib/editor/embed-providers";
 import {
   galleryItemExcerptLine,
   type GalleryMediaKind,
@@ -90,6 +91,7 @@ export type GalleryStub = {
   type: MilestoneType;
   variant: MilestoneVariant;
   mediaKind: GalleryMediaKind;
+  embedProvider?: EmbedProviderId | null;
   cardLayout?: MilestoneCardLayout;
   orgHref?: string | null;
   orgAvatarUrl?: string | null;
@@ -177,6 +179,7 @@ function rowToStub(
     type: LOAI_MOC_TO_TYPE[cm.loai_moc],
     variant: source === "tagged" ? "tagged" : "self",
     mediaKind: gridEntry.mediaKind,
+    embedProvider: gridEntry.embedProvider,
     videoCanvasRatio: gridEntry.videoCanvasRatio ?? undefined,
   };
 }

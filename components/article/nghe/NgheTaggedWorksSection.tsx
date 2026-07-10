@@ -12,6 +12,8 @@ type Props = {
   milestones: ReadonlyArray<MilestoneItem>;
   sort: TagAggSort;
   viewerProfileId: string | null;
+  /** Ẩn H2 khi nằm trong tab «Thảo luận». */
+  showSectionHeading?: boolean;
 };
 
 /** Tác phẩm gắn tag nghề — timeline / lưới giống trang entity keyword. */
@@ -20,16 +22,21 @@ export function NgheTaggedWorksSection({
   milestones,
   sort,
   viewerProfileId,
+  showSectionHeading = true,
 }: Props) {
   const pile = users.slice(0, FACEPILE_MAX);
 
   return (
     <div className="nghe-tagged-works">
-      <h2 className="section-h" id="nghe-sec-community">
-        <span className="num">06</span>
-        Tác phẩm liên quan
-        <em>— từ cộng đồng CINs</em>
-      </h2>
+      {showSectionHeading ? (
+        <h2 className="section-h" id="nghe-sec-community">
+          <span className="num">06</span>
+          Tác phẩm liên quan
+          <em>— từ cộng đồng CINs</em>
+        </h2>
+      ) : (
+        <div id="nghe-sec-community" className="nghe-tagged-works-anchor" />
+      )}
 
       {users.length > 0 ? (
         <div className="entity-light-users nghe-tagged-users">

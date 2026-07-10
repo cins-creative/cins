@@ -5370,7 +5370,8 @@ a.cd-v4-role-menu-btn {
 }
 
 .cd-v4-members-role-picker.is-compact {
-  width: min(100%, 200px);
+  width: auto;
+  max-width: min(100%, 148px);
 }
 
 .cd-v4-members-add-row .cd-v4-members-role-picker {
@@ -5437,18 +5438,18 @@ a.cd-v4-role-menu-btn {
   overflow: hidden;
 }
 
-.cd-v4-members-role-picker.is-compact .cd-v4-members-role-picker-summary {
-  -webkit-line-clamp: 1;
-  line-clamp: 1;
+.cd-v4-members-role-picker.is-compact .cd-v4-members-role-picker-btn {
+  align-items: center;
+  padding: 6px 10px;
+}
+
+.cd-v4-members-role-picker.is-compact .cd-v4-members-role-picker-label {
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .cd-v4-members-role-picker-menu {
-  position: absolute;
-  z-index: 3;
-  top: calc(100% + 6px);
-  right: 0;
-  left: 0;
-  min-width: min(100%, 300px);
   margin: 0;
   padding: 6px;
   list-style: none;
@@ -5456,6 +5457,12 @@ a.cd-v4-role-menu-btn {
   border-radius: var(--radius-md, 12px);
   background: var(--bg-surface, #fff);
   box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
+}
+
+.cd-v4-members-role-picker-menu.is-portal {
+  max-height: min(70dvh, 360px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .cd-v4-members-role-picker-option {
@@ -5547,7 +5554,7 @@ a.cd-v4-role-menu-btn {
 }
 
 .cd-v4-members-list li {
-  align-items: center;
+  align-items: flex-start;
 }
 
 .cd-v4-members-list li:hover {
@@ -5659,12 +5666,16 @@ a.cd-v4-role-menu-btn {
   font-weight: 700;
   color: var(--cins-violet, #7c5cfc);
   white-space: nowrap;
+  flex-shrink: 0;
+  margin-top: 2px;
 }
 
 .cd-v4-members-row-actions {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  flex-shrink: 0;
+  margin-top: 2px;
 }
 
 .cd-v4-members-transfer {

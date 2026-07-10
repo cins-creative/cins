@@ -4,6 +4,8 @@ import { Play } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { JourneyCoverImage } from "@/components/journey/JourneyCoverImage";
+import type { EmbedProviderId } from "@/lib/editor/embed-providers";
+import { embedPlatformLogoSrc } from "@/lib/editor/embed-platform-logos";
 import { setCachedVideoAspect } from "@/lib/journey/gallery-video-dimension-cache";
 
 type Props = {
@@ -165,6 +167,21 @@ export function GalleryVideoPlayBadge() {
   return (
     <span className="j-g-play" aria-hidden>
       <Play strokeWidth={2.2} fill="currentColor" />
+    </span>
+  );
+}
+
+/** Logo nền tảng nhúng — góc trên phải thumbnail gallery. */
+export function GalleryEmbedPlatformBadge({
+  provider,
+}: {
+  provider: EmbedProviderId | null | undefined;
+}) {
+  const src = embedPlatformLogoSrc(provider);
+  if (!src) return null;
+  return (
+    <span className="j-g-embed-platform" aria-hidden>
+      <img src={src} alt="" width={20} height={20} decoding="async" />
     </span>
   );
 }

@@ -2,6 +2,7 @@ import type { Block } from "@/lib/editor/types";
 import {
   buildEmbedIframeSrc,
   classifyEmbedUrl,
+  type EmbedProviderId,
 } from "@/lib/editor/embed-providers";
 import {
   classifyBunnyVideoUrl,
@@ -143,8 +144,52 @@ function isInlineIframeEmbedBlock(block: Block): boolean {
   return buildEmbedIframeSrc(cls) !== null;
 }
 
+function isRiveFileEmbedBlock(block: Block): boolean {
+  if (block.loai !== "embed") return false;
+  const url = typeof block.config?.url === "string" ? block.config.url : "";
+  if (!url.trim()) return false;
+  const cls = classifyEmbedUrl(url);
+  return cls?.provider === "rive-file";
+}
+
 function hasInlineIframeEmbed(blocks: ReadonlyArray<Block>): boolean {
   return embedBlocks(blocks).some(isInlineIframeEmbedBlock);
+}
+
+function hasRiveFileEmbed(blocks: ReadonlyArray<Block>): boolean {
+  return embedBlocks(blocks).some(isRiveFileEmbedBlock);
+}
+
+/** Embed fill peek trên timeline — iframe Tier 1 hoặc file .riv host CINs. */
+function hasArticleEmbedPeek(blocks: ReadonlyArray<Block>): boolean {
+  return hasInlineIframeEmbed(blocks) || hasRiveFileEmbed(blocks);
+}
+
+function isGalleryEmbedBlock(block: Block): boolean {
+  return isInlineIframeEmbedBlock(block) || isRiveFileEmbedBlock(block);
+}
+
+/** Bài có nhúng Tier 1 / file .riv (embed picker). */
+export function hasGalleryEmbedContent(
+  blocks: ReadonlyArray<Block> | null | undefined,
+): boolean {
+  if (!blocks?.length) return false;
+  return blocks.some(isGalleryEmbedBlock);
+}
+
+/** Provider nhúng đầu tiên — badge logo trên gallery. */
+export function resolveGalleryEmbedProvider(
+  blocks: ReadonlyArray<Block> | null | undefined,
+): EmbedProviderId | null {
+  if (!blocks?.length) return null;
+  for (const block of blocks) {
+    if (isRiveFileEmbedBlock(block)) return "rive-file";
+    if (!isInlineIframeEmbedBlock(block)) continue;
+    const url = typeof block.config?.url === "string" ? block.config.url : "";
+    const cls = classifyEmbedUrl(url);
+    if (cls) return cls.provider;
+  }
+  return null;
 }
 
 function inlineIframeEmbedResolution(
@@ -281,7 +326,7 @@ function isPlainTextOnlyContent(input: PostContentResolveInput): boolean {
   if (extractAllImageIds(blocks).length > 0) return false;
   if (hasArticleLayoutBlocks(blocks)) return false;
   if (embedBlocks(blocks).some(isBunnyEmbedBlock)) return false;
-  if (hasInlineIframeEmbed(blocks)) return false;
+  if (hasArticleEmbedPeek(blocks)) return false;
 
   const moTaTrimmed = (input.moTa ?? "").trim();
   const meaningful = meaningfulBlocks(blocks);
@@ -327,7 +372,7 @@ export function resolvePostDisplayKind(
     );
   }
 
-  if (hasInlineIframeEmbed(blocks)) {
+  if (hasArticleEmbedPeek(blocks)) {
     return finalizePostContentResolution(
       inlineIframeEmbedResolution(effectiveMoTa, coverOk, imageIds),
       blocks,
@@ -449,7 +494,7 @@ export function resolvePostDisplayKind(
   }
 
   if (blocksArePlainTextOnly(blocks) || moTaTrimmed || effectiveMoTa) {
-    if (hasInlineIframeEmbed(blocks)) {
+    if (hasArticleEmbedPeek(blocks)) {
       return finalizePostContentResolution(
         inlineIframeEmbedResolution(effectiveMoTa, coverOk, imageIds),
         blocks,
@@ -682,6 +727,8 @@ export function postDisplayKindToGalleryMediaKind(
 /** Kết quả resolve cho Gallery / lưới Journey — Phase 3. */
 export type PostGridEntry = {
   mediaKind: GalleryMediaKind;
+  /** Tier 1 / file .riv — logo góc gallery thumb. */
+  embedProvider: EmbedProviderId | null;
   coverId: string | null;
   coverSrc: string | null;
   videoProcessing: boolean;
@@ -708,7 +755,10 @@ export function resolvePostGridEntry(
     Boolean(coverTrimmed && isPersistedImageSeed(coverTrimmed)) ||
     Boolean(input.hasCover);
   const imageIds = extractAllImageIds(blocks);
-  const mediaKind = postDisplayKindToGalleryMediaKind(resolution.kind);
+  const embedProvider = resolveGalleryEmbedProvider(blocks);
+  const mediaKind: GalleryMediaKind = embedProvider
+    ? "embed"
+    : postDisplayKindToGalleryMediaKind(resolution.kind);
 
   const processingMeta = extractVideoProcessingMeta(blocks);
   const videoProcessing =
@@ -721,6 +771,7 @@ export function resolvePostGridEntry(
       Boolean(coverTrimmed && isPersistedImageSeed(coverTrimmed));
     return {
       mediaKind: "video",
+      embedProvider: null,
       coverId: coverTrimmed,
       coverSrc: customCoverOk ? null : bunnyThumb,
       videoProcessing,
@@ -749,6 +800,7 @@ export function resolvePostGridEntry(
 
   return {
     mediaKind,
+    embedProvider,
     coverId: thumbId,
     coverSrc: null,
     videoProcessing: false,

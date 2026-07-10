@@ -6,12 +6,17 @@ import {
   PanelRightOpen,
   Paperclip,
   Pin,
+  PictureInPicture2,
   Search,
   Send,
+  ArrowUpToLine,
+  BellOff,
   PinOff,
+  UserPlus,
   X,
 } from "lucide-react";
 import {
+  type ChangeEvent,
   useCallback,
   useEffect,
   useMemo,
@@ -21,10 +26,17 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
+import { ChatCreateGroupModal } from "@/components/cins/ChatCreateGroupModal";
+import { ChatGroupAvatar } from "@/components/cins/ChatGroupAvatar";
 import { ChatImageLightbox } from "@/components/cins/ChatImageLightbox";
 import { ChatMessageThreadItems } from "@/components/cins/ChatMessageThreadItems";
 import { ChatStickerPicker } from "@/components/cins/ChatStickerPicker";
 import { ChatReplyComposeBar } from "@/components/cins/ChatReplyComposeBar";
+import {
+  buildThreadMenuActions,
+  ChatThreadRowMenu,
+  useThreadLongPress,
+} from "@/components/cins/ChatThreadRowMenu";
 import type { ChatMessageActionHandlers } from "@/components/cins/ChatMessageActions";
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
 import {
@@ -74,6 +86,7 @@ import {
 import type { UserEmojiMuc } from "@/lib/user-emoji/types";
 import { userEmojiDeliveryUrl } from "@/lib/user-emoji/delivery-url";
 import { imageFilesFromClipboard } from "@/lib/files/clipboard-images";
+import { isAllowedUploadImageFile } from "@/lib/files/infer-image-mime";
 import {
   CHAT_ORG_KIND_LABEL,
   CHAT_PARTICIPANT_KIND_LABEL,
@@ -106,7 +119,8 @@ function mergeLaunchThread(
       (incoming.kind === "org" &&
         thread.kind === "org" &&
         incoming.orgId != null &&
-        thread.orgId === incoming.orgId),
+        thread.orgId === incoming.orgId) ||
+      (incoming.isGroup && thread.isGroup && thread.roomId === incoming.roomId),
   );
   const merged: ChatThread = {
     ...incoming,
@@ -132,6 +146,16 @@ function mergeLaunchThread(
 }
 
 type ChatSidePanel = "pin" | "media";
+
+type BanBeListFilter = "all" | "nhom" | "ca_nhan";
+
+const BAN_BE_FILTER_ORDER: BanBeListFilter[] = ["all", "nhom", "ca_nhan"];
+
+const BAN_BE_FILTER_LABEL: Record<BanBeListFilter, string> = {
+  all: "Tất cả",
+  nhom: "Nhóm",
+  ca_nhan: "Cá nhân",
+};
 
 const SIDE_PANEL_LABEL: Record<ChatSidePanel, string> = {
   pin: "Tin đã ghim",
@@ -209,44 +233,126 @@ function ChatKindPill({ thread }: { thread: ChatThread }) {
 function ChatThreadRow({
   thread,
   isActive,
+  isListPinned,
+  isMuted,
+  canShowMenu,
+  isMenuOpen,
+  onMenuOpenChange,
   onSelect,
+  onToggleListPin,
+  onToggleMute,
+  onLeaveGroup,
+  onDeleteGroup,
+  onHideThread,
 }: {
   thread: ChatThread;
   isActive: boolean;
+  isListPinned: boolean;
+  isMuted: boolean;
+  canShowMenu: boolean;
+  isMenuOpen: boolean;
+  onMenuOpenChange: (open: boolean) => void;
   onSelect: (thread: ChatThread) => void;
+  onToggleListPin: (thread: ChatThread) => void;
+  onToggleMute: (thread: ChatThread) => void;
+  onLeaveGroup: (thread: ChatThread) => void;
+  onDeleteGroup: (thread: ChatThread) => void;
+  onHideThread: (thread: ChatThread) => void;
 }) {
   const preview = thread.typing ? "… đang gõ" : thread.preview;
+  const { touchHandlers, consumeLongPress } = useThreadLongPress(
+    () => onMenuOpenChange(true),
+    !canShowMenu,
+  );
+
+  const menuActions = buildThreadMenuActions({
+    isListPinned,
+    isMuted,
+    isGroup: Boolean(thread.isGroup),
+    isGroupAdmin: Boolean(thread.isGroupAdmin),
+    onToggleListPin: () => onToggleListPin(thread),
+    onToggleMute: () => onToggleMute(thread),
+    onLeaveGroup: () => onLeaveGroup(thread),
+    onDeleteGroup: () => onDeleteGroup(thread),
+    onHideThread: () => onHideThread(thread),
+  });
 
   return (
-    <li>
-      <button
-        type="button"
-        className={`cins-chat-thread${isActive ? " is-active" : ""}${thread.kind === "org" ? " is-org-thread" : " is-user-thread"}`}
-        onClick={() => onSelect(thread)}
-      >
-        <ChatAvatar
-          initial={thread.avatarInitial}
-          hue={thread.avatarHue}
-          kind={thread.kind}
-          verified={thread.verified}
-          avatarUrl={thread.avatarUrl}
-        />
-        <span className="cins-chat-thread-main">
-          <span className="cins-chat-thread-top">
-            <span className="cins-chat-thread-name">
-              <strong>{thread.name}</strong>
-              <ChatKindPill thread={thread} />
+    <li
+      className={`cins-chat-thread-item${isListPinned ? " is-list-pinned" : ""}${isMenuOpen ? " is-menu-open" : ""}${isMuted ? " is-muted" : ""}`}
+      onContextMenu={(event) => {
+        if (canShowMenu) event.preventDefault();
+      }}
+      {...touchHandlers}
+    >
+      <div className="cins-chat-thread-row">
+        <button
+          type="button"
+          className={`cins-chat-thread${isActive ? " is-active" : ""}${thread.kind === "org" ? " is-org-thread" : " is-user-thread"}${thread.isGroup ? " is-group-thread" : ""}`}
+          onClick={() => {
+            if (consumeLongPress()) return;
+            onSelect(thread);
+          }}
+        >
+          {thread.isGroup ? (
+            <ChatGroupAvatar
+              size={40}
+              avatarUrl={thread.avatarUrl}
+              members={thread.memberAvatars ?? []}
+            />
+          ) : (
+            <ChatAvatar
+              initial={thread.avatarInitial}
+              hue={thread.avatarHue}
+              kind={thread.kind}
+              verified={thread.verified}
+              avatarUrl={thread.avatarUrl}
+            />
+          )}
+          <span className="cins-chat-thread-main">
+            <span className="cins-chat-thread-top">
+              <span className="cins-chat-thread-name">
+                {isListPinned ? (
+                  <ArrowUpToLine
+                    size={12}
+                    strokeWidth={2.4}
+                    className="cins-chat-thread-list-pin-inline"
+                    aria-hidden
+                  />
+                ) : null}
+                {isMuted ? (
+                  <BellOff
+                    size={12}
+                    strokeWidth={2.4}
+                    className="cins-chat-thread-muted-inline"
+                    aria-hidden
+                  />
+                ) : null}
+                <strong>{thread.name}</strong>
+                {thread.isGroup ? (
+                  <span className="cins-chat-kind-pill is-group">Nhóm</span>
+                ) : (
+                  <ChatKindPill thread={thread} />
+                )}
+              </span>
+              <time dateTime={thread.lastAt}>{formatChatTime(thread.lastAt)}</time>
             </span>
-            <time dateTime={thread.lastAt}>{formatChatTime(thread.lastAt)}</time>
+            <span className="cins-chat-thread-bottom">
+              <span className="cins-chat-thread-preview">{preview}</span>
+              {thread.unread > 0 && !isMuted ? (
+                <span className="cins-chat-unread">{thread.unread}</span>
+              ) : null}
+            </span>
           </span>
-          <span className="cins-chat-thread-bottom">
-            <span className="cins-chat-thread-preview">{preview}</span>
-            {thread.unread > 0 ? (
-              <span className="cins-chat-unread">{thread.unread}</span>
-            ) : null}
-          </span>
-        </span>
-      </button>
+        </button>
+        {canShowMenu ? (
+          <ChatThreadRowMenu
+            open={isMenuOpen}
+            onOpenChange={onMenuOpenChange}
+            actions={menuActions}
+          />
+        ) : null}
+      </div>
     </li>
   );
 }
@@ -270,6 +376,18 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     getCachedThreads,
     getCachedRoomMessages,
     prefetchChatData,
+    isRoomPinned,
+    togglePinRoom,
+    pinnedListRoomIds,
+    isListPinned,
+    toggleListPin,
+    unpinListRoom,
+    unpinRoom,
+    isRoomMuted,
+    toggleMuteRoom,
+    hiddenRoomIds,
+    hideRoom,
+    unhideRoom,
   } = useCinsChat();
   const [threads, setThreads] = useState<ChatThread[]>(() =>
     launch?.thread ? [launch.thread] : [],
@@ -295,6 +413,10 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   const [activeTab, setActiveTab] = useState<ChatThreadGroup>(
     () => launch?.tab ?? launch?.thread?.group ?? "ban_be",
   );
+  const [banBeFilter, setBanBeFilter] = useState<BanBeListFilter>("all");
+  const [groupModalOpen, setGroupModalOpen] = useState(false);
+  const [threadMenuRoomId, setThreadMenuRoomId] = useState<string | null>(null);
+  const [uploadingGroupAvatar, setUploadingGroupAvatar] = useState(false);
   const [portalReady, setPortalReady] = useState(false);
   const [loadingThreads, setLoadingThreads] = useState(() => !launch?.thread);
   const [loadingOlderRoomId, setLoadingOlderRoomId] = useState<string | null>(null);
@@ -305,6 +427,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const groupAvatarInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const roomStatusRef = useRef<Record<string, "idle" | "loading" | "ready" | "error">>(
     {},
@@ -495,8 +618,13 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return threads.filter((t) => {
+    const list = threads.filter((t) => {
       if (t.group !== activeTab) return false;
+      if (hiddenRoomIds.includes(t.roomId)) return false;
+      if (activeTab === "ban_be") {
+        if (banBeFilter === "nhom" && !t.isGroup) return false;
+        if (banBeFilter === "ca_nhan" && t.isGroup) return false;
+      }
       if (!q) return true;
       return (
         t.name.toLowerCase().includes(q) ||
@@ -505,7 +633,36 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
         threadKindLabel(t).toLowerCase().includes(q)
       );
     });
-  }, [threads, query, activeTab]);
+
+    return [...list].sort((a, b) => {
+      const aIdx = pinnedListRoomIds.indexOf(a.roomId);
+      const bIdx = pinnedListRoomIds.indexOf(b.roomId);
+      const aPinned = aIdx >= 0;
+      const bPinned = bIdx >= 0;
+      if (aPinned !== bPinned) return aPinned ? -1 : 1;
+      if (aPinned && bPinned && aIdx !== bIdx) return aIdx - bIdx;
+      return new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime();
+    });
+  }, [threads, query, activeTab, banBeFilter, pinnedListRoomIds, hiddenRoomIds]);
+
+  const banBeFilterCounts = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const inTab = threads.filter((t) => {
+      if (t.group !== "ban_be") return false;
+      if (!q) return true;
+      return (
+        t.name.toLowerCase().includes(q) ||
+        t.preview.toLowerCase().includes(q) ||
+        t.role.toLowerCase().includes(q) ||
+        threadKindLabel(t).toLowerCase().includes(q)
+      );
+    });
+    return {
+      all: inTab.length,
+      nhom: inTab.filter((t) => t.isGroup).length,
+      ca_nhan: inTab.filter((t) => !t.isGroup).length,
+    };
+  }, [threads, query]);
 
   const tabUnread = useMemo(() => {
     const counts = Object.fromEntries(
@@ -535,6 +692,10 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
 
   useEffect(() => {
     return subscribeChatMessages((event) => {
+      if (event.event === "insert") {
+        unhideRoom(event.roomId);
+      }
+
       let missingThread = false;
 
       setThreads((prev) => {
@@ -607,7 +768,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
         }
       }
     });
-  }, [subscribeChatMessages]);
+  }, [subscribeChatMessages, unhideRoom]);
 
   useEffect(() => {
     if (!launch?.thread) return;
@@ -941,6 +1102,152 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
       }
     },
     [draft, loadMessages, pendingImages, restoreComposeForRoom, scrollMessagesToBottom],
+  );
+
+  const removeThreadFromSidebar = useCallback(
+    (thread: ChatThread) => {
+      unpinListRoom(thread.roomId);
+      unpinRoom(thread.roomId);
+      setThreadMenuRoomId((prev) => (prev === thread.roomId ? null : prev));
+      setThreads((prev) => {
+        const next = prev.filter((t) => t.roomId !== thread.roomId);
+        setActiveId((currentActive) => {
+          if (currentActive !== thread.id) return currentActive;
+          setMobileShowThread(false);
+          const remaining = next.filter(
+            (t) =>
+              t.group === thread.group && !hiddenRoomIds.includes(t.roomId),
+          );
+          return remaining[0]?.id ?? "";
+        });
+        return next;
+      });
+    },
+    [hiddenRoomIds, unpinListRoom, unpinRoom],
+  );
+
+  const handleHideThread = useCallback(
+    (thread: ChatThread) => {
+      hideRoom(thread.roomId);
+      setThreadMenuRoomId((prev) => (prev === thread.roomId ? null : prev));
+      setActiveId((currentActive) => {
+        if (currentActive !== thread.id) return currentActive;
+        setMobileShowThread(false);
+        const remaining = threads.filter(
+          (t) =>
+            t.roomId !== thread.roomId &&
+            t.group === thread.group &&
+            !hiddenRoomIds.includes(t.roomId),
+        );
+        return remaining[0]?.id ?? "";
+      });
+    },
+    [hiddenRoomIds, hideRoom, threads],
+  );
+
+  const handleLeaveGroup = useCallback(
+    async (thread: ChatThread) => {
+      if (
+        !window.confirm(`Rời nhóm "${thread.name}"? Bạn sẽ không nhận tin nhắn từ nhóm này.`)
+      ) {
+        return;
+      }
+      try {
+        const res = await fetch(`/api/chat/rooms/${thread.roomId}/leave`, {
+          method: "POST",
+        });
+        const json = (await res.json()) as { error?: string };
+        if (!res.ok) {
+          window.alert(json.error ?? "Không rời được nhóm.");
+          return;
+        }
+        removeThreadFromSidebar(thread);
+      } catch {
+        window.alert("Không rời được nhóm.");
+      }
+    },
+    [removeThreadFromSidebar],
+  );
+
+  const handleDeleteGroup = useCallback(
+    async (thread: ChatThread) => {
+      if (
+        !window.confirm(
+          `Xóa nhóm "${thread.name}"? Mọi tin nhắn sẽ mất và không thể hoàn tác.`,
+        )
+      ) {
+        return;
+      }
+      try {
+        const res = await fetch(`/api/chat/rooms/${thread.roomId}`, {
+          method: "DELETE",
+        });
+        const json = (await res.json()) as { error?: string };
+        if (!res.ok) {
+          window.alert(json.error ?? "Không xóa được nhóm.");
+          return;
+        }
+        removeThreadFromSidebar(thread);
+      } catch {
+        window.alert("Không xóa được nhóm.");
+      }
+    },
+    [removeThreadFromSidebar],
+  );
+
+  const handleGroupCreated = useCallback(
+    (thread: ChatThread) => {
+      setThreads((prev) => mergeLaunchThread(prev, thread));
+      selectThread(thread);
+    },
+    [selectThread],
+  );
+
+  const handleGroupAvatarFile = useCallback(
+    async (event: ChangeEvent<HTMLInputElement>) => {
+      const roomId = active?.roomId;
+      const file = event.target.files?.[0];
+      event.target.value = "";
+      if (!roomId || !file || !active?.isGroup || !active.isGroupAdmin) return;
+      if (!isAllowedUploadImageFile(file)) return;
+
+      setUploadingGroupAvatar(true);
+      try {
+        const form = new FormData();
+        form.append("file", file);
+        const uploadRes = await fetch("/api/avatar/upload", {
+          method: "POST",
+          body: form,
+        });
+        const uploadJson = (await uploadRes.json()) as {
+          imageId?: string;
+          error?: string;
+        };
+        if (!uploadRes.ok || !uploadJson.imageId) {
+          throw new Error(uploadJson.error ?? "Upload thất bại.");
+        }
+
+        const patchRes = await fetch(`/api/chat/rooms/${roomId}/avatar`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ avatarId: uploadJson.imageId }),
+        });
+        const patchJson = (await patchRes.json()) as {
+          thread?: ChatThread;
+          error?: string;
+        };
+        if (!patchRes.ok || !patchJson.thread) {
+          throw new Error(patchJson.error ?? "Không lưu được ảnh nhóm.");
+        }
+
+        setThreads((prev) => mergeLaunchThread(prev, patchJson.thread!));
+      } catch {
+        /* ignore — có thể thêm toast sau */
+      } finally {
+        setUploadingGroupAvatar(false);
+      }
+    },
+    [active?.isGroup, active?.isGroupAdmin, active?.roomId],
   );
 
   const toggleExpandPanel = useCallback(() => {
@@ -1537,14 +1844,27 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                 <p className="cins-chat-subtitle">{totalUnread} chưa đọc</p>
               ) : null}
             </div>
-            <button
-              type="button"
-              className="cins-chat-icon-btn"
-              aria-label="Đóng"
-              onClick={onClose}
-            >
-              <X size={18} strokeWidth={1.8} aria-hidden />
-            </button>
+            <div className="cins-chat-list-head-actions">
+              {activeTab === "ban_be" ? (
+                <button
+                  type="button"
+                  className="cins-chat-icon-btn"
+                  aria-label="Tạo nhóm chat"
+                  title="Tạo nhóm chat"
+                  onClick={() => setGroupModalOpen(true)}
+                >
+                  <UserPlus size={18} strokeWidth={1.8} aria-hidden />
+                </button>
+              ) : null}
+              <button
+                type="button"
+                className="cins-chat-icon-btn"
+                aria-label="Đóng"
+                onClick={onClose}
+              >
+                <X size={18} strokeWidth={1.8} aria-hidden />
+              </button>
+            </div>
           </header>
 
           <label className="cins-chat-search">
@@ -1556,6 +1876,32 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
               placeholder="Tìm hội thoại"
             />
           </label>
+
+          {activeTab === "ban_be" ? (
+            <div
+              className="cins-chat-banbe-filters"
+              role="tablist"
+              aria-label="Lọc bạn bè"
+            >
+              {BAN_BE_FILTER_ORDER.map((filter) => (
+                <button
+                  key={filter}
+                  type="button"
+                  role="tab"
+                  aria-selected={banBeFilter === filter}
+                  className={`cins-chat-banbe-filter${banBeFilter === filter ? " is-active" : ""}`}
+                  onClick={() => setBanBeFilter(filter)}
+                >
+                  {BAN_BE_FILTER_LABEL[filter]}
+                  {banBeFilterCounts[filter] > 0 ? (
+                    <span className="cins-chat-banbe-filter-count">
+                      {banBeFilterCounts[filter]}
+                    </span>
+                  ) : null}
+                </button>
+              ))}
+            </div>
+          ) : null}
 
           <div
             className="cins-chat-thread-tabs"
@@ -1598,15 +1944,31 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                     key={thread.id}
                     thread={thread}
                     isActive={thread.id === activeId}
+                    isListPinned={isListPinned(thread.roomId)}
+                    isMuted={isRoomMuted(thread.roomId)}
+                    canShowMenu={!isPendingRoomId(thread.roomId)}
+                    isMenuOpen={threadMenuRoomId === thread.roomId}
+                    onMenuOpenChange={(open) =>
+                      setThreadMenuRoomId(open ? thread.roomId : null)
+                    }
                     onSelect={selectThread}
+                    onToggleListPin={(t) => toggleListPin(t.roomId)}
+                    onToggleMute={(t) => toggleMuteRoom(t.roomId)}
+                    onLeaveGroup={handleLeaveGroup}
+                    onDeleteGroup={handleDeleteGroup}
+                    onHideThread={handleHideThread}
                   />
                 ))}
               </ul>
             ) : (
               <p className="cins-chat-threads-empty">
                 {query.trim()
-                  ? "Không tìm thấy hội thoại trong nhóm này."
-                  : "Chưa có hội thoại trong nhóm này."}
+                  ? "Không tìm thấy hội thoại phù hợp."
+                  : activeTab === "ban_be" && banBeFilter === "nhom"
+                    ? "Chưa có nhóm chat nào."
+                    : activeTab === "ban_be" && banBeFilter === "ca_nhan"
+                      ? "Chưa có chat cá nhân nào."
+                      : "Chưa có hội thoại trong nhóm này."}
               </p>
             )}
           </div>
@@ -1626,20 +1988,48 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
             >
               ←
             </button>
-            <ChatAvatar
-              initial={active.avatarInitial}
-              hue={active.avatarHue}
-              size={36}
-              kind={active.kind}
-              verified={active.verified}
-              avatarUrl={active.avatarUrl}
-            />
+            {active.isGroup ? (
+              <span className="cins-chat-avatar-wrap">
+                <ChatGroupAvatar
+                  size={36}
+                  avatarUrl={active.avatarUrl}
+                  members={active.memberAvatars ?? []}
+                  editable={Boolean(active.isGroupAdmin)}
+                  uploading={uploadingGroupAvatar}
+                  onEditClick={() => groupAvatarInputRef.current?.click()}
+                />
+                <input
+                  ref={groupAvatarInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className="cins-chat-sr-only"
+                  tabIndex={-1}
+                  aria-hidden
+                  onChange={(e) => void handleGroupAvatarFile(e)}
+                />
+              </span>
+            ) : (
+              <ChatAvatar
+                initial={active.avatarInitial}
+                hue={active.avatarHue}
+                size={36}
+                kind={active.kind}
+                verified={active.verified}
+                avatarUrl={active.avatarUrl}
+              />
+            )}
             <div className="cins-chat-convo-meta">
               <span className="cins-chat-convo-title">
                 <strong>{active.name}</strong>
-                {active.kind === "org" ? <ChatKindPill thread={active} /> : null}
+                {active.isGroup ? (
+                  <span className="cins-chat-kind-pill is-group">Nhóm</span>
+                ) : active.kind === "org" ? (
+                  <ChatKindPill thread={active} />
+                ) : null}
               </span>
-              {active.online ? (
+              {active.isGroup && active.memberCount ? (
+                <span>{active.memberCount} thành viên</span>
+              ) : active.online ? (
                 <span>
                   <span className="cins-chat-online-dot" aria-hidden />
                   Đang hoạt động
@@ -1649,6 +2039,26 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
               ) : null}
             </div>
             <div className="cins-chat-convo-actions">
+              {active.roomId && !isPendingRoomId(active.roomId) ? (
+                <button
+                  type="button"
+                  className={`cins-chat-icon-btn cins-chat-bubble-pin${isRoomPinned(active.roomId) ? " is-active" : ""}`}
+                  aria-label={
+                    isRoomPinned(active.roomId) ? "Bỏ ghim bubble" : "Ghim bubble"
+                  }
+                  aria-pressed={isRoomPinned(active.roomId)}
+                  title={
+                    isRoomPinned(active.roomId) ? "Bỏ ghim bubble" : "Ghim bubble"
+                  }
+                  onClick={() => togglePinRoom(active.roomId, active)}
+                >
+                  <PictureInPicture2
+                    size={16}
+                    strokeWidth={1.9}
+                    aria-hidden
+                  />
+                </button>
+              ) : null}
               <button
                 type="button"
                 className={`cins-chat-icon-btn${sidePanel ? " is-active" : ""}`}
@@ -1699,6 +2109,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
             {active.messages.length > 0 ? (
               <ChatMessageThreadItems
                 messages={active.messages}
+                showSenderNames={Boolean(active.isGroup)}
                 actionHandlers={messageActionHandlers}
                 editingMessageId={editingMessageId}
                 editingDraft={editingDraft}
@@ -1708,14 +2119,24 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                   setEditingMessageId(null);
                   setEditingDraft("");
                 }}
-                renderTheirAvatar={() => (
+                renderTheirAvatar={(msg) => (
                   <ChatAvatar
-                    initial={active.avatarInitial}
-                    hue={active.avatarHue}
+                    initial={
+                      active.isGroup && msg.senderAvatarInitial
+                        ? msg.senderAvatarInitial
+                        : active.avatarInitial
+                    }
+                    hue={
+                      active.isGroup && msg.senderAvatarHue != null
+                        ? msg.senderAvatarHue
+                        : active.avatarHue
+                    }
                     size={28}
                     kind={active.kind}
                     verified={active.verified}
-                    avatarUrl={active.avatarUrl}
+                    avatarUrl={
+                      active.isGroup ? (msg.senderAvatarUrl ?? null) : active.avatarUrl
+                    }
                   />
                 )}
               />
@@ -2014,6 +2435,12 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
           ) : null}
         </div>
       </section>
+
+      <ChatCreateGroupModal
+        open={groupModalOpen}
+        onClose={() => setGroupModalOpen(false)}
+        onCreated={handleGroupCreated}
+      />
     </div>
   );
 

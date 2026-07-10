@@ -35,6 +35,7 @@ export function CinsFeedComposer({
     openComposeWithPhotos,
     openComposeWithVideo,
     openComposeWithEmbed,
+    openComposeWithRiveFile,
     canCompose,
     ownerSlug: ctxSlug,
     ownerName: ctxName,
@@ -179,12 +180,22 @@ export function CinsFeedComposer({
       <EmbedPlatformPicker
         open={embedPickerOpen}
         onClose={() => setEmbedPickerOpen(false)}
-        onSelect={(platform) => {
-          if (canCompose) {
-            openComposeWithEmbed(platform);
+        onSelect={(selection) => {
+          if (selection.type === "rive-file") {
+            if (canCompose) {
+              openComposeWithRiveFile(selection.file);
+              return;
+            }
+            router.push(`/${ownerSlug}/p/new?compose=embed&platform=rive&source=file`);
             return;
           }
-          router.push(`/${ownerSlug}/p/new?compose=embed&platform=${platform}`);
+          if (canCompose) {
+            openComposeWithEmbed(selection.platform);
+            return;
+          }
+          router.push(
+            `/${ownerSlug}/p/new?compose=embed&platform=${selection.platform}`,
+          );
         }}
       />
     </div>

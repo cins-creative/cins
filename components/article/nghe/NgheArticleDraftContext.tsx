@@ -49,6 +49,9 @@ export type NgheArticleDraftContextValue = {
   save: () => Promise<void>;
   /** Khôi phục toàn bộ trường từ bài trên server rồi đóng panel (bỏ thay đổi chưa lưu). */
   discardDraft: () => void;
+  contentEditorOpen: boolean;
+  openContentEditor: () => void;
+  closeContentEditor: () => void;
 };
 
 const NgheArticleDraftContext = createContext<NgheArticleDraftContextValue | null>(
@@ -92,6 +95,7 @@ export function NgheArticleDraftProvider({
     null,
   );
   const [saving, setSaving] = useState(false);
+  const [contentEditorOpen, setContentEditorOpen] = useState(false);
 
   const resetDraftFromArticle = useCallback(() => {
     setTieuDe(article.tieu_de);
@@ -116,6 +120,7 @@ export function NgheArticleDraftProvider({
   useEffect(() => {
     resetDraftFromArticle();
     setOpen(false);
+    setContentEditorOpen(false);
   }, [resetKey, resetDraftFromArticle]);
 
   const leadPreview = useMemo(
@@ -127,6 +132,8 @@ export function NgheArticleDraftProvider({
     startTransition(() => setOpen(true));
   }, []);
   const closePanel = useCallback(() => setOpen(false), []);
+  const openContentEditor = useCallback(() => setContentEditorOpen(true), []);
+  const closeContentEditor = useCallback(() => setContentEditorOpen(false), []);
 
   const discardDraft = useCallback(() => {
     resetDraftFromArticle();
@@ -202,12 +209,18 @@ export function NgheArticleDraftProvider({
       saveMsg,
       save,
       discardDraft,
+      contentEditorOpen,
+      openContentEditor,
+      closeContentEditor,
     }),
     [
       open,
       openPanel,
       closePanel,
       discardDraft,
+      contentEditorOpen,
+      openContentEditor,
+      closeContentEditor,
       article,
       tieu_de,
       tieu_de_viet,

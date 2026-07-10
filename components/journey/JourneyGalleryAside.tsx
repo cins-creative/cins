@@ -2,11 +2,12 @@
 
 import { useMemo, useState } from "react";
 
-import { GalleryItemVisual, GalleryVideoPlayBadge } from "@/components/journey/GalleryItemVisual";
+import { GalleryItemVisual, GalleryEmbedPlatformBadge, GalleryVideoPlayBadge } from "@/components/journey/GalleryItemVisual";
 import { GalleryMainHoverOverlay } from "@/components/journey/GalleryMainHoverOverlay";
 import { GalleryMediaFilterDropdown } from "@/components/journey/GalleryMediaFilterDropdown";
 import { useJourneyPostOverlay } from "@/components/journey/useJourneyPostOverlay";
 import type { GalleryMediaKind } from "@/lib/journey/post-media";
+import type { EmbedProviderId } from "@/lib/editor/embed-providers";
 import {
   matchesGalleryMediaFilter,
   type GalleryMediaFilter,
@@ -30,6 +31,7 @@ export type GalleryPinnedBanner = {
   /** Cột mốc — mở modal bài viết client-side. */
   cotMocId?: string;
   mediaKind?: GalleryMediaKind;
+  embedProvider?: EmbedProviderId | null;
   isVideo?: boolean;
   videoProcessing?: boolean;
   videoPreviewSrc?: string | null;
@@ -53,6 +55,7 @@ export type GalleryGridItem = {
   /** Cột mốc — mở modal bài viết client-side. */
   cotMocId?: string;
   mediaKind?: GalleryMediaKind;
+  embedProvider?: EmbedProviderId | null;
 };
 
 /** @deprecated Use GalleryMediaFilter from post-media */
@@ -176,6 +179,9 @@ export function JourneyGalleryAside({
                     {b.isVideo || b.mediaKind === "video" ? (
                       <GalleryVideoPlayBadge />
                     ) : null}
+                    {b.mediaKind === "embed" && b.embedProvider ? (
+                      <GalleryEmbedPlatformBadge provider={b.embedProvider} />
+                    ) : null}
                     <GalleryMainHoverOverlay
                       label={b.title}
                       meta={b.meta}
@@ -217,6 +223,9 @@ export function JourneyGalleryAside({
                     </span>
                     {it.isVideo || it.mediaKind === "video" ? (
                       <GalleryVideoPlayBadge />
+                    ) : null}
+                    {it.mediaKind === "embed" && it.embedProvider ? (
+                      <GalleryEmbedPlatformBadge provider={it.embedProvider} />
                     ) : null}
                     <span className="j-g-overlay">
                       <span className="j-g-label">{it.label}</span>

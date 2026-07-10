@@ -123,7 +123,6 @@ export function JourneyArticleTagManager({
     <div
       className="j-article-tag-modal-backdrop"
       role="presentation"
-      onClick={close}
     >
       <div
         className="ed-coauthor-modal j-article-tag-modal"
@@ -146,6 +145,7 @@ export function JourneyArticleTagManager({
         </h2>
         <div className="cins-editor-page is-tag-modal">
           <PostTagFields
+            variant="modal"
             tags={tags}
             onChange={(next) => {
               const previous = tagsRef.current;

@@ -4,6 +4,7 @@ import { Maximize2, Paperclip, Send, X } from "lucide-react";
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type ClipboardEvent,
@@ -12,6 +13,7 @@ import {
 
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
 import { ChatMessageThreadItems } from "@/components/cins/ChatMessageThreadItems";
+import { ChatStickerPicker } from "@/components/cins/ChatStickerPicker";
 import { avatarBg } from "@/lib/chat/avatar";
 import { writeChatThreadsCache, writeRoomMessagesCache } from "@/lib/chat/chat-session-cache";
 import {
@@ -27,12 +29,17 @@ import {
 } from "@/lib/chat/compose-image-upload";
 import { buildChatSendPlan, optimisticMessagesFromPlan, type ChatSendPayload } from "@/lib/chat/compose-send-plan";
 import { executeComposeSendPlanInBackground } from "@/lib/chat/execute-compose-send-plan";
-import { messagePreviewText } from "@/lib/chat/optimistic-message";
+import {
+  createOptimisticChatMessage,
+  messagePreviewText,
+} from "@/lib/chat/optimistic-message";
 import { fetchRoomMessagesPage } from "@/lib/chat/messages-client";
 import { reconcileChatMessage, appendChatMessageIfNew, mergeChatMessageUpdate, type ChatRealtimeMessageEvent } from "@/lib/chat/realtime";
 import { replaceOptimisticAlbumWithRealMessages } from "@/lib/chat/replace-album-batch";
 import { imageFilesFromClipboard } from "@/lib/files/clipboard-images";
 import type { ChatMessage, ChatThread } from "@/lib/chat/types";
+import { userEmojiDeliveryUrl } from "@/lib/user-emoji/delivery-url";
+import type { UserEmojiMuc } from "@/lib/user-emoji/types";
 
 const RECONCILE_MS = 120_000;
 
@@ -58,19 +65,36 @@ function mergePeekThreads(
   current: ChatThread[],
   fromApi: ChatThread[],
   dismissedKeys: Set<string>,
+  pinnedRoomIds: ReadonlySet<string>,
+  pinnedSnapshots: Record<string, ChatThread>,
 ): ChatThread[] {
   const apiByRoom = new Map(fromApi.map((t) => [t.roomId, t]));
   const merged = new Map<string, ChatThread>();
+  const pinnedSet = pinnedRoomIds;
+
+  const shouldKeep = (thread: ChatThread) => {
+    const isPinned = pinnedSet.has(thread.roomId);
+    const hasUnread = thread.unread > 0;
+    if (!hasUnread && !isPinned) return false;
+    if (dismissedKeys.has(peekKey(thread)) && !isPinned) return false;
+    return true;
+  };
 
   for (const thread of current) {
     const fresh = apiByRoom.get(thread.roomId) ?? thread;
-    if (dismissedKeys.has(peekKey(fresh))) continue;
+    if (!shouldKeep(fresh)) continue;
     merged.set(thread.roomId, fresh);
   }
 
   for (const thread of pickUnreadThreads(fromApi)) {
     if (dismissedKeys.has(peekKey(thread))) continue;
     merged.set(thread.roomId, thread);
+  }
+
+  for (const roomId of pinnedSet) {
+    const fromList = apiByRoom.get(roomId) ?? pinnedSnapshots[roomId];
+    if (!fromList) continue;
+    merged.set(roomId, fromList);
   }
 
   return [...merged.values()].sort(
@@ -121,7 +145,13 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
     getCachedThreads,
     getCachedRoomMessages,
     prefetchChatData,
+    pinnedRoomIds,
+    pinnedThreadSnapshots,
   } = useCinsChat();
+  const pinnedRoomIdSet = useMemo(
+    () => new Set(pinnedRoomIds),
+    [pinnedRoomIds],
+  );
   const [peekThreads, setPeekThreads] = useState<ChatThread[]>([]);
   const [dismissableRooms, setDismissableRooms] = useState<Set<string>>(
     () => new Set(),
@@ -134,6 +164,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [stickerPickerOpen, setStickerPickerOpen] = useState(false);
   const dismissedPeekRef = useRef<Set<string>>(new Set());
   const viewedRoomsRef = useRef<Set<string>>(new Set());
   const hydratedRoomsRef = useRef<Set<string>>(new Set());
@@ -310,21 +341,29 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
           prev,
           snapshot.threads,
           dismissedPeekRef.current,
+          pinnedRoomIdSet,
+          pinnedThreadSnapshots,
         ),
       );
     } catch {
       /* ignore */
     }
-  }, [open, prefetchChatData, viewerProfileId]);
+  }, [open, pinnedRoomIdSet, pinnedThreadSnapshots, prefetchChatData, viewerProfileId]);
 
   const applyPeekFromThreads = useCallback(
     (threads: ChatThread[]) => {
       if (open) return;
       setPeekThreads((prev) =>
-        mergePeekThreads(prev, threads, dismissedPeekRef.current),
+        mergePeekThreads(
+          prev,
+          threads,
+          dismissedPeekRef.current,
+          pinnedRoomIdSet,
+          pinnedThreadSnapshots,
+        ),
       );
     },
-    [open],
+    [open, pinnedRoomIdSet, pinnedThreadSnapshots],
   );
 
   const refreshPeekForEvent = useCallback(
@@ -354,7 +393,13 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
     if (cached && !open) {
       setTotalUnread(cached.totalUnread);
       setPeekThreads((prev) =>
-        mergePeekThreads(prev, cached.threads, dismissedPeekRef.current),
+        mergePeekThreads(
+          prev,
+          cached.threads,
+          dismissedPeekRef.current,
+          pinnedRoomIdSet,
+          pinnedThreadSnapshots,
+        ),
       );
     }
     void syncThreads();
@@ -365,7 +410,14 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
       window.clearInterval(id);
       window.removeEventListener("focus", onFocus);
     };
-  }, [getCachedThreads, open, setTotalUnread, syncThreads]);
+  }, [
+    getCachedThreads,
+    open,
+    pinnedRoomIdSet,
+    pinnedThreadSnapshots,
+    setTotalUnread,
+    syncThreads,
+  ]);
 
   useEffect(() => {
     if (miniOpen && miniThread) {
@@ -531,6 +583,8 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
               prev,
               snapshot.threads,
               dismissedPeekRef.current,
+              pinnedRoomIdSet,
+              pinnedThreadSnapshots,
             ).map((t) => (t.roomId === roomId ? { ...t, unread: 0 } : t)),
           );
         }
@@ -550,6 +604,8 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
     [
       getCachedRoomMessages,
       patchRoomState,
+      pinnedRoomIdSet,
+      pinnedThreadSnapshots,
       prefetchChatData,
       scrollMessagesToBottom,
       viewerProfileId,
@@ -619,6 +675,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
 
       setMiniThread(thread);
       setMiniOpen(true);
+      setStickerPickerOpen(false);
       restoreComposeForRoom(thread.roomId);
       setLoadError(null);
       shouldScrollToBottomRef.current = true;
@@ -657,6 +714,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
         saveComposeForRoom(thread.roomId);
         setMiniOpen(false);
         setMiniThread(null);
+        setStickerPickerOpen(false);
         setLoadError(null);
       }
     },
@@ -671,6 +729,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
     }
     setMiniOpen(false);
     setMiniThread(null);
+    setStickerPickerOpen(false);
     setLoadError(null);
     void syncThreads();
   }, [markRoomDismissable, miniThread?.roomId, saveComposeForRoom, syncThreads]);
@@ -860,6 +919,29 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
       }
     },
     [viewerProfileId],
+  );
+
+  const sendSticker = useCallback(
+    async (item: UserEmojiMuc) => {
+      if (!miniThread) return;
+      const roomId = miniThread.roomId;
+      setLoadError(null);
+      shouldScrollToBottomRef.current = true;
+      const optimistic = createOptimisticChatMessage({
+        body: "",
+        kind: "sticker",
+        imageId: item.cloudflareId,
+        imageUrl:
+          item.url ?? userEmojiDeliveryUrl(item.cloudflareId, "thumbnail"),
+      });
+      appendOptimisticMessages(roomId, [optimistic]);
+      await submitRoomMessage(
+        roomId,
+        { id_emoji_muc: item.id },
+        optimistic.id,
+      );
+    },
+    [appendOptimisticMessages, miniThread, submitRoomMessage],
   );
 
   const sendMessage = useCallback(() => {
@@ -1062,6 +1144,15 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
                 {loadError}
               </p>
             ) : null}
+            {stickerPickerOpen ? (
+              <ChatStickerPicker
+                onClose={() => setStickerPickerOpen(false)}
+                onSend={(item) => {
+                  setStickerPickerOpen(false);
+                  void sendSticker(item);
+                }}
+              />
+            ) : null}
             <div className="j-chat-mini-compose-row">
               <input
                 ref={fileInputRef}
@@ -1077,6 +1168,22 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
                   e.target.value = "";
                 }}
               />
+              <button
+                type="button"
+                className="cins-chat-attach cins-chat-attach-meme"
+                data-sticker-trigger
+                aria-label="Meme của tôi"
+                aria-expanded={stickerPickerOpen}
+                onClick={() => setStickerPickerOpen((open) => !open)}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  className="cins-chat-attach-meme-icon"
+                  src="/assets/chat-meme-trigger.png"
+                  alt=""
+                  aria-hidden
+                />
+              </button>
               <button
                 type="button"
                 className="j-chat-mini-attach"
@@ -1124,10 +1231,12 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
             {peekThreads.map((thread) => {
               const isActive =
                 miniOpen && miniThread?.roomId === thread.roomId;
+              const isPinned = pinnedRoomIdSet.has(thread.roomId);
               const showCount = thread.unread > 0;
               const showDismiss =
                 !showCount &&
                 !isActive &&
+                !isPinned &&
                 dismissableRooms.has(thread.roomId);
 
               return (
@@ -1136,6 +1245,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
                   className={[
                     "j-chat-bubble-wrap",
                     isActive ? "is-active" : "",
+                    isPinned ? "is-pinned" : "",
                   ]
                     .filter(Boolean)
                     .join(" ")}
@@ -1146,7 +1256,9 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
                     aria-label={
                       thread.unread > 0
                         ? `${thread.unread} tin nhắn chưa đọc từ ${thread.name}`
-                        : `Mở chat với ${thread.name}`
+                        : isPinned
+                          ? `Chat đã ghim với ${thread.name}`
+                          : `Mở chat với ${thread.name}`
                     }
                     aria-pressed={isActive}
                     title={thread.name}

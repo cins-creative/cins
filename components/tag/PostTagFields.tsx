@@ -15,6 +15,8 @@ type Props = {
   tags: ArticleTagRef[];
   onChange: (tags: ArticleTagRef[]) => void;
   disabled?: boolean;
+  /** Modal quản lý tag — menu gợi ý rộng hơn. */
+  variant?: "default" | "modal";
 };
 
 const PICKABLE_SET = new Set<string>(PICKABLE_TAG_LOAI);
@@ -55,7 +57,7 @@ function mergeFromInput(
 }
 
 /** Một ô tag: khái niệm, phần mềm, môn học, ngành đào tạo, nghề nghiệp. */
-export function PostTagFields({ tags, onChange, disabled }: Props) {
+export function PostTagFields({ tags, onChange, disabled, variant = "default" }: Props) {
   return (
     <div className="post-tag-fields">
       <TagInput
@@ -63,6 +65,7 @@ export function PostTagFields({ tags, onChange, disabled }: Props) {
         onChange={(next) => onChange(mergeFromInput(tags, next))}
         maxTags={MAX_TAC_PHAM_TAGS}
         disabled={disabled}
+        variant={variant}
       />
     </div>
   );

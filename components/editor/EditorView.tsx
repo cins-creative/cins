@@ -82,11 +82,14 @@ import { updatePost } from "@/app/[slug]/p/[postSlug]/edit/actions";
 import { publishPost } from "@/app/[slug]/p/new/actions";
 import "@/app/cins-embed-picker.css";
 import { EditorExternalEmbedPanel } from "@/components/editor/EditorExternalEmbedPanel";
+import { EditorRiveFileEmbedPanel } from "@/components/editor/EditorRiveFileEmbedPanel";
 import {
+  classifyEmbedUrl,
   embedUrlMatchesPlatform,
   getTier1EmbedPlatformMeta,
   type Tier1EmbedPlatformId,
 } from "@/lib/editor/embed-providers";
+import { isRiveAssetEmbedUrl } from "@/lib/editor/rive-asset-url";
 import { resolveAlbumGridCell } from "@/lib/editor/album-grid-block";
 import { isEditorEmptyImageSeed } from "@/lib/editor/editor-stock-image-seeds";
 import { resolveImageSeedUrl } from "@/lib/editor/resolve-image-seed-url";
@@ -154,6 +157,7 @@ import {
   inferComposePreviewKindFromEditor,
 } from "@/lib/journey/compose-preview-kind";
 import { useEditorVideoUpload } from "@/lib/journey/use-editor-video-upload";
+import { useEditorRiveFileUpload } from "@/lib/journey/use-editor-rive-file-upload";
 import { readImageFileDimensions } from "@/lib/journey/probe-image-dimensions";
 import { videoCanvasRatioClass } from "@/lib/journey/video-canvas-ratio";
 import { bunnyIframeSrc, buildBunnyVideoMp4Url, buildBunnyVideoThumbnailUrl, classifyBunnyVideoUrl } from "@/lib/bunny/embed";
@@ -708,8 +712,11 @@ type Props = {
   composeIntent?: ComposeIntent;
   /** Nền tảng embed khi `composeIntent === "embed"`. */
   embedPlatform?: Tier1EmbedPlatformId;
+  /** `file` — upload .riv; mặc định dán link embed. */
+  riveSource?: "url" | "file";
   initialPhotoFiles?: File[];
   initialVideoFile?: File;
+  initialRiveFile?: File;
   onClose?: () => void;
   onPublished?: (detail?: ComposePublishedDetail) => void;
 };
@@ -764,8 +771,10 @@ export function EditorView({
   orgBaiDangCompose,
   composeIntent = "full",
   embedPlatform,
+  riveSource = "url",
   initialPhotoFiles,
   initialVideoFile,
+  initialRiveFile,
   onClose,
   onPublished,
 }: Props) {
@@ -773,7 +782,10 @@ export function EditorView({
   const isEdit = mode === "edit" && !!initial;
   const isCreateCompose = !isEdit && isOverlay;
   const canPersistComposeDraft =
-    isCreateCompose && !initialPhotoFiles?.length && !initialVideoFile;
+    isCreateCompose &&
+    !initialPhotoFiles?.length &&
+    !initialVideoFile &&
+    !initialRiveFile;
   const composeDraftKey = useMemo(() => {
     const base = buildComposeEditorDraftKey({
       ownerSlug,
@@ -807,6 +819,10 @@ export function EditorView({
     composeIntent === "embed";
   const isExternalEmbedCompose =
     composeIntent === "embed" && Boolean(embedPlatform);
+  const isRiveFileEmbedComposeIntent =
+    isExternalEmbedCompose &&
+    embedPlatform === "rive" &&
+    riveSource === "file";
   const usesMinimalFlow =
     (isCreateCompose &&
       (composeIntent === "minimal" || isOverlayMediaComposeIntent)) ||
@@ -983,6 +999,14 @@ export function EditorView({
     uploadVideoFile,
   } = useEditorVideoUpload();
 
+  const {
+    riveAssetUrl,
+    riveUploading,
+    riveUploadError,
+    uploadRiveFile,
+  } = useEditorRiveFileUpload();
+
+  const initialRiveStartedRef = useRef(false);
   const videoEncodeReadyNotifiedRef = useRef(false);
   useEffect(() => {
     if (videoUploading) {
@@ -1297,9 +1321,10 @@ export function EditorView({
   const hasPendingUploads = useMemo(
     () =>
       videoUploading ||
+      riveUploading ||
       editorBlocksHaveUnpersistedImages(blocks, coverSeed) ||
       Object.values(imageUploads).some((track) => track.status === "uploading"),
-    [blocks, coverSeed, imageUploads, videoUploading],
+    [blocks, coverSeed, imageUploads, videoUploading, riveUploading],
   );
 
   const previewKind = useMemo(
@@ -1316,6 +1341,15 @@ export function EditorView({
     () => blocks.find((b) => b.t === "embed") ?? null,
     [blocks],
   );
+  const riveFileEmbedPreviewUrl = useMemo(() => {
+    if (!isRiveFileEmbedComposeIntent) return null;
+    const url = externalEmbedBlock?.embedUrl?.trim();
+    if (url && isRiveAssetEmbedUrl(url)) return url;
+    return null;
+  }, [externalEmbedBlock, isRiveFileEmbedComposeIntent]);
+  const isRiveFileEmbedCompose =
+    isRiveFileEmbedComposeIntent &&
+    Boolean(initialRiveFile || riveFileEmbedPreviewUrl);
 
   const previewMeta =
     isExternalEmbedCompose && embedPlatform
@@ -1757,7 +1791,28 @@ export function EditorView({
   }, [initialVideoFile, isEdit, pushHistory, uploadVideoFile]);
 
   useEffect(() => {
+    if (!initialRiveFile || isEdit || !isRiveFileEmbedComposeIntent) return;
+    if (initialRiveStartedRef.current) return;
+    initialRiveStartedRef.current = true;
+    void uploadRiveFile(initialRiveFile);
+  }, [initialRiveFile, isEdit, isRiveFileEmbedComposeIntent, uploadRiveFile]);
+
+  useEffect(() => {
+    if (!isEdit || !isExternalEmbedCompose) return;
+    const embedBlock = blocks.find((b) => b.t === "embed");
+    if (embedBlock) {
+      embedBlockIdRef.current = embedBlock.id;
+    }
+  }, [isEdit, isExternalEmbedCompose, blocks]);
+
+  useEffect(() => {
     if (!isExternalEmbedCompose || !embedPlatform || isEdit) return;
+    if (isRiveFileEmbedCompose) {
+      if (initialEmbedStartedRef.current) return;
+      initialEmbedStartedRef.current = true;
+      setEditorExpanded(true);
+      return;
+    }
     if (initialEmbedStartedRef.current) return;
     initialEmbedStartedRef.current = true;
     const blockId = newId();
@@ -1765,7 +1820,7 @@ export function EditorView({
     pushHistory();
     setBlocks([{ id: blockId, t: "embed", embedUrl: "" }]);
     setEditorExpanded(true);
-  }, [isExternalEmbedCompose, embedPlatform, isEdit, pushHistory]);
+  }, [isExternalEmbedCompose, embedPlatform, isEdit, isRiveFileEmbedCompose, pushHistory]);
 
   useEffect(() => {
     const blockId = videoBlockIdRef.current;
@@ -1792,6 +1847,18 @@ export function EditorView({
     },
     [],
   );
+
+  useEffect(() => {
+    if (!riveAssetUrl) return;
+    const blockId = embedBlockIdRef.current;
+    if (blockId) {
+      updateBlock(blockId, { embedUrl: riveAssetUrl });
+      return;
+    }
+    const createdId = newId();
+    embedBlockIdRef.current = createdId;
+    setBlocks([{ id: createdId, t: "embed", embedUrl: riveAssetUrl }]);
+  }, [riveAssetUrl, updateBlock]);
 
   const moveBlock = useCallback((id: string, dir: -1 | 1) => {
     setBlocks((prev) => {
@@ -2080,6 +2147,8 @@ export function EditorView({
       setToast(
         videoUploading
           ? "Đang tải video lên — vui lòng đợi hoàn tất."
+          : riveUploading
+            ? "Đang tải file .riv lên — vui lòng đợi hoàn tất."
           : editorBlocksHaveUnpersistedImages(blocks, coverSeed)
             ? "Đang tải ảnh lên Cloudflare — vui lòng đợi hoàn tất."
             : "Đang tải ảnh lên — vui lòng đợi hoàn tất.",
@@ -2092,15 +2161,34 @@ export function EditorView({
       return;
     }
 
+    if (riveUploadError) {
+      setToast(riveUploadError);
+      return;
+    }
+
     if (isExternalEmbedCompose && embedPlatform) {
-      const embedUrl = blocks
-        .find((b) => b.t === "embed")
-        ?.embedUrl?.trim();
-      if (!embedUrl || !embedUrlMatchesPlatform(embedUrl, embedPlatform)) {
-        setToast(
-          `Dán link ${getTier1EmbedPlatformMeta(embedPlatform).label} hợp lệ trước khi lưu.`,
-        );
-        return;
+      if (isRiveFileEmbedCompose) {
+        const embedUrl = blocks
+          .find((b) => b.t === "embed")
+          ?.embedUrl?.trim();
+        if (riveUploading || !embedUrl || !embedUrlMatchesPlatform(embedUrl, "rive")) {
+          setToast(
+            riveUploading
+              ? "Đang tải file .riv lên — vui lòng đợi hoàn tất."
+              : "Upload file .riv chưa xong — thử lại trước khi lưu.",
+          );
+          return;
+        }
+      } else {
+        const embedUrl = blocks
+          .find((b) => b.t === "embed")
+          ?.embedUrl?.trim();
+        if (!embedUrl || !embedUrlMatchesPlatform(embedUrl, embedPlatform)) {
+          setToast(
+            `Dán link ${getTier1EmbedPlatformMeta(embedPlatform).label} hợp lệ trước khi lưu.`,
+          );
+          return;
+        }
       }
     }
 
@@ -2573,21 +2661,31 @@ export function EditorView({
                     />
                   </>
                 ) : null}
-                <EditorExternalEmbedPanel
-                  platform={embedPlatform}
-                  embedUrl={externalEmbedBlock?.embedUrl ?? ""}
-                  onChangeEmbedUrl={(url) => {
-                    const blockId =
-                      embedBlockIdRef.current ?? externalEmbedBlock?.id;
-                    if (blockId) {
-                      updateBlock(blockId, { embedUrl: url });
-                      return;
-                    }
-                    const createdId = newId();
-                    embedBlockIdRef.current = createdId;
-                    setBlocks([{ id: createdId, t: "embed", embedUrl: url }]);
-                  }}
-                />
+                {isRiveFileEmbedCompose ? (
+                  <EditorRiveFileEmbedPanel
+                    file={initialRiveFile}
+                    previewSrc={riveFileEmbedPreviewUrl ?? undefined}
+                    uploading={riveUploading}
+                    uploadError={riveUploadError}
+                    uploadedUrl={riveAssetUrl}
+                  />
+                ) : (
+                  <EditorExternalEmbedPanel
+                    platform={embedPlatform}
+                    embedUrl={externalEmbedBlock?.embedUrl ?? ""}
+                    onChangeEmbedUrl={(url) => {
+                      const blockId =
+                        embedBlockIdRef.current ?? externalEmbedBlock?.id;
+                      if (blockId) {
+                        updateBlock(blockId, { embedUrl: url });
+                        return;
+                      }
+                      const createdId = newId();
+                      embedBlockIdRef.current = createdId;
+                      setBlocks([{ id: createdId, t: "embed", embedUrl: url }]);
+                    }}
+                  />
+                )}
               </>
             ) : (
               <>
@@ -4539,6 +4637,10 @@ function toServerBlocks(blocks: Block[]): ServerBlock[] {
       } else if (b.t === "embed") {
         const url = (b.embedUrl || "").trim().slice(0, 2048);
         config = { url };
+        const cls = classifyEmbedUrl(url);
+        if (cls?.provider === "rive-file") {
+          config.provider = "rive-file";
+        }
         if (b.videoCanvasRatio) {
           config.videoCanvasRatio = b.videoCanvasRatio;
         }

@@ -10,6 +10,8 @@ export type JourneyComposeState =
   | {
       kind: "embed";
       platform: import("@/lib/editor/embed-providers").Tier1EmbedPlatformId;
+      riveSource?: "url" | "file";
+      pendingRiveFile?: File;
     }
   | { kind: "milestone" }
   | { kind: "milestone-edit"; cotMocId: string }
@@ -39,7 +41,6 @@ export function parseComposeSearchParams(
         platform === "youtube" ||
         platform === "vimeo" ||
         platform === "figma" ||
-        platform === "framer" ||
         platform === "sketchfab" ||
         platform === "rive"
       ) {

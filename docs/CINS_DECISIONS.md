@@ -23,6 +23,7 @@
 | O11 | `org_giao_trinh.loai` (phân loại bài: bắt buộc / tùy chọn / project) | **Defer** | Khi org thật yêu cầu phân loại bài trong lộ trình; hiện `mo_ta_chi_tiet` + `thu_tu` + `so_buoi` đủ. |
 | O12 | Học phí theo gói tháng (1/2/3/6) cho mô hình liên tục | **Defer** | `org_khoa_hoc.hoc_phi` đọc là giá/tháng ở MVP. Thêm bảng giá bundle khi có nhu cầu thật. |
 | O15 | Tỉ lệ chèn bài org chưa-follow vào feed giữa + có nên chèn không? | **Tạm 1 org / 10 người, tối đa 1 bài/org, gắn nhãn "Gợi ý", không engagement-sort** (L21 #3) | Khi đo được feed thật: org-post có bị bỏ qua / báo phiền không. Có thể hạ về 0 (chỉ giữ kênh gợi ý + attribution) nếu chèn feed gây loãng. Chốt trước khi scale ngoài cohort đầu. |
+| O16 | Quản lý nhóm chat sau MVP (thêm/xóa thành viên, đổi tên, rời nhóm, dedupe phòng trùng thành viên) | **Defer** — MVP chỉ tạo nhóm + nhắn (L25) | Khi có nhu cầu thật từ user (≥ vài nhóm active) hoặc báo cáo spam trong nhóm. Ưu tiên: rời nhóm + đổi tên trước dedupe. |
 
 > O7 (lớp "uy tín/hữu ích" cho `content_thao_luan`) → **đã đóng / không còn áp dụng** (xem L12): `content_thao_luan` đã bỏ, thảo luận giờ là comment trên cột mốc.
 
@@ -33,6 +34,16 @@
 ---
 
 ## LOG — quyết định đã chốt
+
+### Nhóm chat bạn bè (2026-07-10)
+
+- **L25 — Mở nhóm chat scoped cho bạn bè; làm rõ "không group chat tự do".**
+  • **Đảo/làm rõ nguyên tắc §2 cũ**: không còn cấm mọi dạng nhiều người — thay bằng **cấm inbox MXH tự do** (link join công khai, thêm người lạ, discovery không ràng buộc).
+  • **`loai_phong='nhom'`** trên `chat_phong` + `ten_phong` tuỳ chọn; `loai_context='ban_be'`.
+  • **Gate thành viên**: chỉ `user_ket_ban.trang_thai='accepted'`; tối thiểu 2 bạn được chọn (≥3 người gồm creator), tối đa 20.
+  • **UI**: nút tạo nhóm trong overlay chat, tab Bạn bè; hiển thị tên người gửi trong bubble nhóm.
+  • **Chưa làm** (→ O16): thêm/xóa thành viên, đổi tên sau tạo, rời nhóm, gộp phòng trùng tập thành viên.
+  • Migration: `migration_chat_nhom.sql`. Chi tiết luật → **FOUNDATIONS §C**.
 
 ### Chia sẻ profile Journey / Gallery (2026-07-06)
 

@@ -3683,8 +3683,8 @@ a.j-main-gallery-item:focus-visible {
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
-  min-height: var(--j-article-peek-h, 480px);
-  height: var(--j-article-peek-h, 480px);
+  min-height: 0;
+  height: 100%;
   margin: 0;
   padding: 0;
 }
@@ -3710,7 +3710,7 @@ a.j-main-gallery-item:focus-visible {
   display: block;
   width: 100%;
   height: 100%;
-  min-height: var(--j-article-peek-h, 480px);
+  min-height: 0;
   aspect-ratio: auto;
   border: 0;
   border-radius: 0;
@@ -3740,9 +3740,10 @@ a.j-main-gallery-item:focus-visible {
   box-sizing: border-box;
   width: 100%;
   max-width: 100%;
-  height: var(--j-article-peek-h, 480px);
-  min-height: var(--j-article-peek-h, 480px);
-  max-height: var(--j-article-peek-h, 480px);
+  height: auto;
+  min-height: 0;
+  max-height: none;
+  aspect-ratio: 16 / 9;
   padding: 0;
   margin: 0;
   border: 0;
@@ -3750,6 +3751,12 @@ a.j-main-gallery-item:focus-visible {
   overflow: hidden;
   background: var(--neutral-900, #0f172a);
   isolation: isolate;
+}
+.preview.preview--article-peek.jcard-embed-peek {
+  height: auto;
+  min-height: 0;
+  max-height: none;
+  background: var(--neutral-900, #0f172a);
 }
 .j-m-card.jcard--article .jcard-body.is-embed-peek-body .jcard-media-zone {
   width: 100%;
@@ -3765,7 +3772,20 @@ a.j-main-gallery-item:focus-visible {
 }
 .jcard-embed-peek[data-provider="sketchfab"],
 .jcard-embed-peek[data-provider="rive"] {
+  aspect-ratio: 4 / 3;
+}
+.jcard-embed-peek[data-provider="rive-file"] {
   aspect-ratio: auto;
+  height: auto;
+  min-height: 180px;
+}
+.jcard-embed-peek[data-provider="rive-file"][data-aspect-ready] {
+  min-height: 0;
+  max-height: none;
+}
+.jcard-embed-peek[data-provider="figma"],
+.jcard-embed-peek[data-provider="framer"] {
+  aspect-ratio: 16 / 10;
 }
 .jcard-embed-peek iframe {
   position: absolute;
@@ -3774,6 +3794,39 @@ a.j-main-gallery-item:focus-visible {
   height: 100%;
   border: 0;
   display: block;
+}
+/* Embed trong media zone — bài có block phụ (tiêu đề…) vẫn fill khung theo tỉ lệ. */
+.jcard-media-zone > .preview--article-peek.is-embed-interactive {
+  height: auto;
+  min-height: 0;
+  max-height: none;
+  aspect-ratio: 16 / 9;
+  padding: 0;
+  background: var(--neutral-900, #0f172a);
+}
+.jcard-media-zone > .preview--article-peek.is-embed-interactive .post-blocks-fb {
+  min-height: 0;
+  height: 100%;
+}
+.jcard-media-zone > .preview--article-peek.is-embed-interactive .block[data-block-type="embed"] {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+.jcard-media-zone > .preview--article-peek.is-embed-interactive .b-embed.b-embed-ro.is-iframe,
+.jcard-media-zone > .preview--article-peek.is-embed-interactive .b-embed-ro.is-iframe,
+.jcard-media-zone > .preview--article-peek.is-embed-interactive .b-embed.is-rive-file {
+  min-height: 0;
+  height: 100%;
+  aspect-ratio: auto;
+  border: 0;
+  border-radius: 0;
+}
+.jcard-media-zone > .preview--article-peek.is-embed-interactive .b-embed.is-rive-file > div {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 .preview--article-peek-inner .b-palette {
   display: flex;
@@ -3828,23 +3881,23 @@ a.j-main-gallery-item:focus-visible {
 .preview--article-peek-inner .b-imgs-ro .imgwrap.duo {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 3px;
+  gap: 0;
 }
 .preview--article-peek-inner .b-imgs-ro .imgwrap.grid2,
 .preview--article-peek-inner .b-imgs-ro .imgwrap.grid3 {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 3px;
+  gap: 0;
 }
 .preview--article-peek-inner .b-imgs-ro .imgwrap.grid4 {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 3px;
+  gap: 0;
 }
 .preview--article-peek-inner .b-imgs-ro .imgwrap.hero {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 3px;
+  gap: 0;
 }
 .preview--article-peek-inner .b-imgs-ro .imgwrap.duo .ph {
   aspect-ratio: 4 / 5;
@@ -3878,7 +3931,7 @@ a.j-main-gallery-item:focus-visible {
 .preview--article-peek-inner .b-imgs-ro .imgwrap.full {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 0;
 }
 .preview--article-peek-inner .b-imgs-ro .imgwrap.full .ph img {
   width: 100%;
@@ -4120,7 +4173,14 @@ a.j-main-gallery-item:focus-visible {
   max-width: none;
 }
 .j-m-unfold-post .image-grid,
-.j-m-unfold-post .block-image-grid .image-grid {
+.j-m-unfold-post .block-image-grid .image-grid,
+.j-m-unfold-post .image-grid-row,
+.j-m-unfold-post .image-grid[data-count="3"] .image-grid-side,
+.j-m-unfold-post .image-grid--masonry,
+.j-m-unfold-post .image-grid--masonry .image-grid-mcol,
+.j-m-unfold-post .image-grid-jrow {
+  gap: 0;
+  column-gap: 0;
   border-radius: 0;
   background: var(--bg-surface, #fff);
 }
@@ -4150,7 +4210,7 @@ a.j-main-gallery-item:focus-visible {
   aspect-ratio: 16 / 9;
   min-height: 200px;
   padding: 0;
-  margin: 12px 0;
+  margin: 0;
   overflow: hidden;
   background: var(--neutral-900, #0f172a);
   border: none;
@@ -6804,6 +6864,36 @@ button.j-g-item:disabled {
   margin-left: 2px;
   flex-shrink: 0;
 }
+.j-g-embed-platform {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 3;
+  pointer-events: none;
+  line-height: 0;
+}
+.j-g-embed-platform img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
+}
+.j-main-gallery-thumb .j-g-embed-platform,
+.j-g-banner .j-g-embed-platform,
+.j-g-thumb .j-g-embed-platform {
+  top: 8px;
+  right: 8px;
+}
+.j-main-gallery-thumb .j-g-embed-platform img,
+.j-g-banner .j-g-embed-platform img {
+  width: 20px;
+  height: 20px;
+}
+.j-g-thumb .j-g-embed-platform img {
+  width: 16px;
+  height: 16px;
+}
 /* Gallery aside — banner 16:9 rộng hơn → nút play to hơn một chút. */
 .j-g-banner .j-g-play {
   width: 44px;
@@ -8107,6 +8197,37 @@ select.j-edit-input {
   aspect-ratio: auto;
   max-height: 100%;
   position: relative;
+}
+
+.j-post-sheet:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media
+  .b-embed-ro.is-rive-file,
+.j-post-sheet:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media
+  .b-embed.b-embed-ro.is-rive-file {
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  aspect-ratio: auto;
+  max-height: 100%;
+  position: relative;
+  align-self: stretch;
+  margin-inline: 0;
+  background: #000;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+}
+
+.j-post-sheet:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media
+  .b-embed-ro.is-rive-file > div {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 
 .j-post-sheet:has(.post-canvas--media.post-canvas--split)
@@ -13283,8 +13404,9 @@ select.j-edit-input {
   pointer-events: auto;
 }
 /* Article peek — giữ khung cố định; không bị rule `.preview--photo-grid` kéo dài. */
-.preview.preview--article-peek,
-.j-m-card.jcard--article.has-unfold.is-collapsed .preview.preview--article-peek {
+.preview.preview--article-peek:not(.jcard-embed-peek):not(.is-embed-interactive),
+.j-m-card.jcard--article.has-unfold.is-collapsed
+  .preview.preview--article-peek:not(.jcard-embed-peek):not(.is-embed-interactive) {
   height: var(--j-article-peek-h, 480px);
   min-height: var(--j-article-peek-h, 480px);
   max-height: var(--j-article-peek-h, 480px);
@@ -14223,7 +14345,7 @@ select.j-edit-input {
   border-top: 1px solid var(--jcard-border2);
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 8px;
   background: var(--bg-surface);
   overflow: visible;
 }
@@ -14335,6 +14457,43 @@ a.action-btn-part {
   text-decoration: underline;
   text-underline-offset: 2px;
 }
+
+/* Touch — tách vùng chạm like / comment / bookmark, tránh bấm nhầm khi có số lượt. */
+@media (hover: none) and (pointer: coarse) {
+  .jcard-actions {
+    gap: 14px;
+    padding-top: 6px;
+    padding-bottom: 8px;
+  }
+  .jcard-actions > .action-btn,
+  .jcard-actions > .action-btn--split,
+  .jcard-actions > a.action-btn {
+    flex: none;
+  }
+  .jcard-actions .action-btn-part--icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    min-height: 36px;
+    margin-block: -4px;
+  }
+  .jcard-actions .action-btn:not(.action-btn--split) {
+    min-width: 36px;
+    min-height: 36px;
+    justify-content: center;
+    padding-inline: 8px;
+  }
+  .jcard-actions .action-btn-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    min-height: 28px;
+    padding: 0 6px;
+  }
+}
+
 .action-spacer {
   flex: 1;
 }
@@ -15857,21 +16016,41 @@ a.action-btn-part {
   background: rgba(15, 23, 42, 0.45);
 }
 .j-article-tag-modal.ed-coauthor-modal {
-  width: min(420px, calc(100vw - 32px));
+  width: min(560px, calc(100vw - 32px));
+  min-height: min(320px, calc(86vh - 40px));
   max-height: min(86vh, 720px);
+  display: flex;
+  flex-direction: column;
 }
 .j-article-tag-modal-title {
   margin: 0;
-  padding: 18px 52px 0 16px;
-  font-size: 16px;
+  padding: 20px 56px 4px 20px;
+  font-size: 17px;
   font-weight: 800;
+  letter-spacing: -0.02em;
   color: var(--ink-display, #0f172a);
 }
 .cins-editor-page.is-tag-modal {
   min-height: 0;
-  flex: none;
-  padding: 12px 16px 4px;
+  flex: 1 1 auto;
+  padding: 16px 20px 8px;
   background: transparent;
+}
+.j-article-tag-modal .post-tag-fields {
+  margin-bottom: 0;
+}
+.j-article-tag-modal .ed-coauthor-modal-actions {
+  padding: 8px 20px 18px;
+  border-top: 1px solid rgba(226, 232, 240, 0.9);
+  background: linear-gradient(180deg, #fff 0%, #f8fafc 100%);
+}
+.j-article-tag-modal .ed-coauthor-modal-actions span {
+  font-size: 13px;
+  line-height: 1.45;
+  max-width: 34ch;
+}
+.j-article-tag-modal .ed-coauthor-hint.ed-coauthor-modal-feedback {
+  margin: 0 20px 10px;
 }
 .cins-editor-page.is-tag-modal .meta-chips.is-modal-layout {
   margin-bottom: 0;

@@ -159,7 +159,9 @@ export function mapMessageFromRow(
     kind === "media" || kind === "sticker" ? resolveImageId(normalized) : null;
   let body = normalized.noi_dung?.trim() || "";
 
-  if (kind === "media" && imageId && body === imageId) {
+  if (kind === "sticker") {
+    body = "";
+  } else if (kind === "media" && imageId && body === imageId) {
     body = "";
   }
 
@@ -523,7 +525,7 @@ async function getDirectThread(
   );
 }
 
-async function countUnreadInRoom(roomId: string, viewerId: string): Promise<number> {
+export async function countUnreadInRoom(roomId: string, viewerId: string): Promise<number> {
   const admin = createServiceRoleClient();
 
   const { data: readState } = await admin
@@ -730,12 +732,19 @@ export async function listRoomMessages(
     listPinnedMessagesForRoom(roomId, viewerId, admin),
   ]);
 
-  const messages = await enrichMessages(
+  let messages = await enrichMessages(
     chronological,
     viewerId,
     roomId,
     peerReadUpToId,
   );
+
+  const { isGroupRoomId, enrichGroupMessageSenders } = await import(
+    "@/lib/chat/group-message"
+  );
+  if (await isGroupRoomId(roomId)) {
+    messages = await enrichGroupMessageSenders(messages, chronological);
+  }
 
   const shouldMarkRead = options.markRead ?? !options.before;
   if (shouldMarkRead) {

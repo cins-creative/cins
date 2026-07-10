@@ -34,6 +34,7 @@ import {
   classifyEmbedUrl,
   type ClassifiedEmbed,
 } from "@/lib/editor/embed-providers";
+import { PostRiveFileEmbed } from "@/components/journey/PostRiveFileEmbed";
 
 import { getYoutubeId } from "@/lib/youtube";
 
@@ -271,6 +272,9 @@ function ReadOnlyBlock({
     }
 
     const cls = classifyEmbedUrl(url);
+    if (cls?.provider === "rive-file") {
+      return <PostRiveFileEmbed src={cls.url} fit="native" />;
+    }
     if (!cls) {
       if (url.trim()) {
         return (

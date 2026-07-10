@@ -8,7 +8,11 @@ import { resolveArticleThumbnailOnlySync } from "@/lib/bai-viet/thumbnail";
 import { ArticleJsonLd } from "@/components/article/ArticleJsonLd";
 import { InlineArticleDraftBar } from "@/components/article/InlineArticleDraftBar";
 import { NgheArticleDraftProvider } from "@/components/article/nghe/NgheArticleDraftContext";
-import { NgheHeroLeadInlineDraft } from "@/components/article/nghe/NgheHeroLeadInlineDraft";
+import { NgheDraftContentModal } from "@/components/article/nghe/NgheDraftContentModal";
+import {
+  NgheHeroInlineDraft,
+  NgheLeadInlineDraft,
+} from "@/components/article/nghe/NgheHeroLeadInlineDraft";
 import { NgheLayoutStatic } from "@/components/article/nghe/static/NgheLayoutStatic";
 import { ngheNghiepDetailHref } from "@/lib/cins/hubPaths";
 
@@ -65,13 +69,20 @@ export function ArticleNgheView({
             entitySort={entitySort}
             viewerProfileId={viewerProfileId}
             heroThumbnailUrl={heroThumbnailUrl}
-            heroLeadBlock={
-              <NgheHeroLeadInlineDraft
+            heroBlock={
+              <NgheHeroInlineDraft
+                leadVideoUrl={leadVideoUrl}
+                heroThumbnailUrl={heroThumbnailUrl}
+              />
+            }
+            leadBlock={
+              <NgheLeadInlineDraft
                 leadVideoUrl={leadVideoUrl}
                 heroThumbnailUrl={heroThumbnailUrl}
               />
             }
           />
+          <NgheDraftContentModal />
           <InlineArticleDraftBar
             key={`${article.id}-${article.cap_nhat_luc}`}
             article={article}

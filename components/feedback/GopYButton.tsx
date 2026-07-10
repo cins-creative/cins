@@ -138,8 +138,11 @@ export function GopYButton() {
                   Đóng góp ý kiến
                 </h2>
                 <p className="gopy-sub">
-                  Hiện dự án đang ở giai đoạn beta nên sẽ khá nhiều lỗi, các bạn
+                  Hiện dự án đang ở giai đoạn beta nên có thể sẽ gặp lỗi, các bạn
                   giúp CINs góp ý để cải thiện nha!
+                  <br />
+                  Nếu bạn cần thêm tính năng hay chỗ nào bất hợp lý cũng có thể góp
+                  ý để mình cân nhắc sửa
                 </p>
 
                 <div className="gopy-links">

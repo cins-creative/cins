@@ -4,6 +4,8 @@ import "@/app/bai-viet/article-page.css";
 import "@/app/bai-viet/article-layout-v2.css";
 import "@/app/bai-viet/article-layout-nghe.css";
 import "@/app/bai-viet/article-layout-software.css";
+import "@/components/tag/entity-page.css";
+import "@/app/bai-viet/entity-article.css";
 import "@/app/cins-truong-inline-edit.css";
 import "@/app/cins-inline-multi-image.css";
 import "@/styles/article-draft-tiptap.css";

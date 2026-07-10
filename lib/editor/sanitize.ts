@@ -86,6 +86,8 @@ function embedIframeTitle(provider: string): string {
       return "Sketchfab 3D model";
     case "rive":
       return "Rive animation";
+    case "rive-file":
+      return "Rive animation";
     default:
       return "Embedded content";
   }
@@ -177,6 +179,12 @@ export function blocksToHtml(blocks: ReadonlyArray<Block>): string {
           break;
         }
         const cls = classifyEmbedUrl(url);
+        if (cls?.provider === "rive-file") {
+          parts.push(
+            `<div class="rich-embed rich-embed-rive-file" data-provider="rive-file" data-rive-src="${escapeHtml(cls.url)}"></div>`,
+          );
+          break;
+        }
         if (cls) {
           /* YouTube/Figma → iframe thật để render trực tiếp trong HTML cache.
              Behance (không bóc được project ID) fallback anchor link. */

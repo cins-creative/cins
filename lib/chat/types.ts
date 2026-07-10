@@ -35,6 +35,13 @@ export type ChatMessageReplyPreview = {
 export type ChatMessage = {
   id: string;
   from: "me" | "them";
+  /** Nhóm chat — hiển thị tên người gửi trên bubble. */
+  senderUserId?: string;
+  senderName?: string;
+  senderAvatarInitial?: string;
+  senderAvatarHue?: number;
+  senderAvatarUrl?: string | null;
+  senderRole?: string;
   body: string;
   sentAt: string;
   kind?: ChatMessageKind;
@@ -63,10 +70,25 @@ export type ChatOrgKind =
   | "cong_dong"
   | "studio";
 
+export type ChatGroupMemberAvatar = {
+  userId: string;
+  initial: string;
+  hue: number;
+  avatarUrl?: string | null;
+};
+
 export type ChatThread = {
   id: string;
   roomId: string;
   peerUserId?: string;
+  /** Phòng nhóm bạn bè (loai_phong = nhom). */
+  isGroup?: boolean;
+  memberCount?: number;
+  memberIds?: string[];
+  /** Mosaic mặc định khi chưa có avatar nhóm tuỳ chỉnh. */
+  memberAvatars?: ChatGroupMemberAvatar[];
+  /** Viewer là admin phòng nhóm — được đổi avatar. */
+  isGroupAdmin?: boolean;
   name: string;
   group: ChatThreadGroup;
   kind: ChatParticipantKind;

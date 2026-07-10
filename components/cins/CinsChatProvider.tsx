@@ -26,6 +26,22 @@ import {
 } from "@/lib/chat/chat-prefetch";
 import { buildOptimisticDirectThread } from "@/lib/chat/optimistic-thread";
 import {
+  readHiddenRoomIds,
+  writeHiddenRoomIds,
+} from "@/lib/chat/hidden-rooms-storage";
+import {
+  readMutedRoomIds,
+  writeMutedRoomIds,
+} from "@/lib/chat/muted-rooms-storage";
+import {
+  readPinnedListRoomIds,
+  writePinnedListRoomIds,
+} from "@/lib/chat/pinned-list-rooms-storage";
+import {
+  readPinnedRoomIds,
+  writePinnedRoomIds,
+} from "@/lib/chat/pinned-rooms-storage";
+import {
   toRealtimeMessageEvent,
   type ChatRealtimeMessageEvent,
 } from "@/lib/chat/realtime";
@@ -77,6 +93,25 @@ type CinsChatContextValue = {
   getCachedRoomMessages: (roomId: string) => ChatMessage[] | null;
   prefetchChatData: () => Promise<ChatThreadsSnapshot | null>;
   prefetchRoomMessages: (roomId: string) => Promise<ChatMessage[] | null>;
+  /** Ghim bubble nổi (mini dock). */
+  pinnedRoomIds: string[];
+  pinnedThreadSnapshots: Record<string, ChatThread>;
+  isRoomPinned: (roomId: string) => boolean;
+  togglePinRoom: (roomId: string, thread?: ChatThread) => void;
+  unpinRoom: (roomId: string) => void;
+  /** Ghim lên đầu danh sách sidebar. */
+  pinnedListRoomIds: string[];
+  isListPinned: (roomId: string) => boolean;
+  toggleListPin: (roomId: string) => void;
+  unpinListRoom: (roomId: string) => void;
+  /** Tắt thông báo theo phòng (client-side). */
+  mutedRoomIds: string[];
+  isRoomMuted: (roomId: string) => boolean;
+  toggleMuteRoom: (roomId: string) => void;
+  /** Ẩn hội thoại khỏi sidebar (client-side). */
+  hiddenRoomIds: string[];
+  hideRoom: (roomId: string) => void;
+  unhideRoom: (roomId: string) => void;
 };
 
 const CinsChatContext = createContext<CinsChatContextValue | null>(null);
@@ -104,6 +139,13 @@ export function CinsChatProvider({
   const [open, setOpen] = useState(false);
   const [totalUnread, setTotalUnread] = useState(0);
   const [launch, setLaunch] = useState<ChatLaunchState | null>(null);
+  const [pinnedRoomIds, setPinnedRoomIds] = useState<string[]>([]);
+  const [pinnedListRoomIds, setPinnedListRoomIds] = useState<string[]>([]);
+  const [mutedRoomIds, setMutedRoomIds] = useState<string[]>([]);
+  const [hiddenRoomIds, setHiddenRoomIds] = useState<string[]>([]);
+  const [pinnedThreadSnapshots, setPinnedThreadSnapshots] = useState<
+    Record<string, ChatThread>
+  >({});
   const listenersRef = useRef(new Set<ChatMessageListener>());
   const focusRef = useRef<{ roomId: string | null; surface: ChatFocusSurface }>({
     roomId: null,
@@ -152,6 +194,140 @@ export function CinsChatProvider({
     async (roomId: string): Promise<ChatMessage[] | null> => {
       if (!viewerProfileId) return null;
       return prefetchRoomMessages(viewerProfileId, roomId);
+    },
+    [viewerProfileId],
+  );
+
+  useEffect(() => {
+    if (!viewerProfileId) {
+      setPinnedRoomIds([]);
+      setPinnedListRoomIds([]);
+      setMutedRoomIds([]);
+      setHiddenRoomIds([]);
+      setPinnedThreadSnapshots({});
+      return;
+    }
+    setPinnedRoomIds(readPinnedRoomIds(viewerProfileId));
+    setPinnedListRoomIds(readPinnedListRoomIds(viewerProfileId));
+    setMutedRoomIds(readMutedRoomIds(viewerProfileId));
+    setHiddenRoomIds(readHiddenRoomIds(viewerProfileId));
+  }, [viewerProfileId]);
+
+  const isRoomPinned = useCallback(
+    (roomId: string) => pinnedRoomIds.includes(roomId),
+    [pinnedRoomIds],
+  );
+
+  const unpinRoom = useCallback(
+    (roomId: string) => {
+      if (!viewerProfileId) return;
+      setPinnedRoomIds((prev) => {
+        const next = prev.filter((id) => id !== roomId);
+        writePinnedRoomIds(viewerProfileId, next);
+        return next;
+      });
+      setPinnedThreadSnapshots((prev) => {
+        if (!(roomId in prev)) return prev;
+        const next = { ...prev };
+        delete next[roomId];
+        return next;
+      });
+    },
+    [viewerProfileId],
+  );
+
+  const togglePinRoom = useCallback(
+    (roomId: string, thread?: ChatThread) => {
+      if (!viewerProfileId || !roomId) return;
+      const pinning = !pinnedRoomIds.includes(roomId);
+      if (pinning) {
+        setPinnedRoomIds((prev) => {
+          const next = [...prev.filter((id) => id !== roomId), roomId];
+          writePinnedRoomIds(viewerProfileId, next);
+          return next;
+        });
+        if (thread) {
+          setPinnedThreadSnapshots((prev) => ({ ...prev, [roomId]: thread }));
+        }
+      } else {
+        unpinRoom(roomId);
+      }
+    },
+    [pinnedRoomIds, unpinRoom, viewerProfileId],
+  );
+
+  const isListPinned = useCallback(
+    (roomId: string) => pinnedListRoomIds.includes(roomId),
+    [pinnedListRoomIds],
+  );
+
+  const unpinListRoom = useCallback(
+    (roomId: string) => {
+      if (!viewerProfileId) return;
+      setPinnedListRoomIds((prev) => {
+        const next = prev.filter((id) => id !== roomId);
+        writePinnedListRoomIds(viewerProfileId, next);
+        return next;
+      });
+    },
+    [viewerProfileId],
+  );
+
+  const toggleListPin = useCallback(
+    (roomId: string) => {
+      if (!viewerProfileId || !roomId) return;
+      setPinnedListRoomIds((prev) => {
+        const next = prev.includes(roomId)
+          ? prev.filter((id) => id !== roomId)
+          : [...prev.filter((id) => id !== roomId), roomId];
+        writePinnedListRoomIds(viewerProfileId, next);
+        return next;
+      });
+    },
+    [viewerProfileId],
+  );
+
+  const isRoomMuted = useCallback(
+    (roomId: string) => mutedRoomIds.includes(roomId),
+    [mutedRoomIds],
+  );
+
+  const toggleMuteRoom = useCallback(
+    (roomId: string) => {
+      if (!viewerProfileId || !roomId) return;
+      setMutedRoomIds((prev) => {
+        const next = prev.includes(roomId)
+          ? prev.filter((id) => id !== roomId)
+          : [...prev.filter((id) => id !== roomId), roomId];
+        writeMutedRoomIds(viewerProfileId, next);
+        return next;
+      });
+    },
+    [viewerProfileId],
+  );
+
+  const hideRoom = useCallback(
+    (roomId: string) => {
+      if (!viewerProfileId || !roomId) return;
+      setHiddenRoomIds((prev) => {
+        if (prev.includes(roomId)) return prev;
+        const next = [...prev, roomId];
+        writeHiddenRoomIds(viewerProfileId, next);
+        return next;
+      });
+    },
+    [viewerProfileId],
+  );
+
+  const unhideRoom = useCallback(
+    (roomId: string) => {
+      if (!viewerProfileId || !roomId) return;
+      setHiddenRoomIds((prev) => {
+        if (!prev.includes(roomId)) return prev;
+        const next = prev.filter((id) => id !== roomId);
+        writeHiddenRoomIds(viewerProfileId, next);
+        return next;
+      });
     },
     [viewerProfileId],
   );
@@ -405,6 +581,21 @@ export function CinsChatProvider({
       getCachedRoomMessages,
       prefetchChatData,
       prefetchRoomMessages: prefetchRoomMessagesForViewer,
+      pinnedRoomIds,
+      pinnedThreadSnapshots,
+      isRoomPinned,
+      togglePinRoom,
+      unpinRoom,
+      pinnedListRoomIds,
+      isListPinned,
+      toggleListPin,
+      unpinListRoom,
+      mutedRoomIds,
+      isRoomMuted,
+      toggleMuteRoom,
+      hiddenRoomIds,
+      hideRoom,
+      unhideRoom,
     }),
     [
       open,
@@ -419,6 +610,21 @@ export function CinsChatProvider({
       getCachedRoomMessages,
       prefetchChatData,
       prefetchRoomMessagesForViewer,
+      pinnedRoomIds,
+      pinnedThreadSnapshots,
+      isRoomPinned,
+      togglePinRoom,
+      unpinRoom,
+      pinnedListRoomIds,
+      isListPinned,
+      toggleListPin,
+      unpinListRoom,
+      mutedRoomIds,
+      isRoomMuted,
+      toggleMuteRoom,
+      hiddenRoomIds,
+      hideRoom,
+      unhideRoom,
     ],
   );
 

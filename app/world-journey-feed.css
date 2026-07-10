@@ -2350,11 +2350,13 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  height: fit-content;
   /* Grid item mặc định min-height:auto (= chiều cao nội dung) sẽ thắng max-height,
      làm cột tràn khỏi viewport và không cuộn được. min-height:0 để max-height +
      overflow-y:auto có hiệu lực → cột tự cuộn riêng khi tràn. */
   min-height: 0;
   max-height: calc(100dvh - var(--wj-sticky-top) - 40px);
+  overflow-x: clip;
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
@@ -3311,8 +3313,8 @@
 }
 
 /* ════════ Trang chủ adaptive — module columns (ha-*) ════════ */
-/* Cột module (trái/phải) tự cuộn riêng khi nội dung cao hơn viewport —
-   pin sticky dưới topbar, min-height:0 để max-height + overflow có hiệu lực. */
+/* Cột module (trái/phải): cao theo nội dung; khi tràn viewport thì cuộn riêng
+   (sticky dưới topbar). Card con không co / không cắt — chỉ cột cuộn. */
 .world-journey-home .ha-col {
   gap: 14px;
   position: sticky;
@@ -3320,13 +3322,19 @@
   align-self: start;
   min-width: 0;
   width: 100%;
+  height: fit-content;
   min-height: 0;
   max-height: calc(100dvh - var(--wj-sticky-top) - 40px);
-  overflow-x: visible;
+  overflow-x: clip;
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
   padding-right: 0;
+}
+
+.world-journey-home .ha-col > .ha-card {
+  flex: 0 0 auto;
+  height: fit-content;
 }
 
 /* Card module trong cột phải — bỏ padding phải để khít mép scrollbar.
@@ -3343,15 +3351,41 @@
   padding-right: 0;
 }
 
-/* Cột trái — padding phải thoáng hơn để nội dung không sát mép cuộn */
+/* Cột trái — padding phải thoáng hơn; cuộn mảnh khi hover (nội dung dài hơn cột phải). */
 .world-journey-home .ha-col--left {
   --ha-inset-x: 14px;
+}
+
+.world-journey-home .ha-col--left::-webkit-scrollbar {
+  width: 6px;
+}
+
+.world-journey-home .ha-col--left::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: transparent;
+}
+
+.world-journey-home .ha-col--left:hover::-webkit-scrollbar-thumb {
+  background: var(--border-s, rgba(0, 0, 0, 0.18));
+}
+
+/* Cột phải — ẩn scrollbar, vẫn cuộn được. */
+.world-journey-home .ha-col--right {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.world-journey-home .ha-col--right::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 @media (max-width: 991.98px) {
   /* Mobile: cột về static, bỏ giới hạn cao & cuộn riêng. */
   .world-journey-home .ha-col {
     position: static;
+    height: auto;
     max-height: none;
     overflow: visible;
   }
@@ -3367,8 +3401,16 @@
   width: 100%;
 }
 
+.world-journey-home .ha-card--profile,
+.world-journey-home .ha-card--people,
+.world-journey-home .ha-card--studio {
+  overflow: visible;
+  height: fit-content;
+}
+
 .world-journey-home .ha-card--jobs {
   overflow: visible;
+  height: fit-content;
 }
 
 .world-journey-home .ha-card--notify {
@@ -3730,6 +3772,8 @@
 .world-journey-home .ha-studio-list {
   display: flex;
   flex-direction: column;
+  height: fit-content;
+  overflow: visible;
 }
 
 .world-journey-home .ha-person {

@@ -14,9 +14,10 @@ type TocGroup = {
   items: TocItem[];
 };
 
-const INTRO_SELECTOR = "#nghe-sec-intro";
-const ARTICLE_SELECTOR = ".nghe-lead-panel h2";
-const RELATED_SELECTOR = ".nghe-grid-span > h2.section-h, #nghe-sec-community";
+const INTRO_SELECTOR = "#entity-sec-intro, #nghe-sec-intro";
+const ARTICLE_SELECTOR = ".nghe-lead-panel h2, .entity-lead-panel h2";
+const RELATED_SELECTOR =
+  ".ent-section-title, .ent-reading-body .section-h, #nghe-sec-community";
 
 function slugBase(text: string): string {
   return text
@@ -128,7 +129,9 @@ export function NgheArticleToc() {
   );
 
   useEffect(() => {
-    const root = document.querySelector<HTMLElement>(".nghe-article-body");
+    const root =
+      document.querySelector<HTMLElement>(".ent-shell") ??
+      document.querySelector<HTMLElement>(".nghe-article-body");
     if (!root) return;
 
     const refresh = () => setGroups(buildGroups(root));

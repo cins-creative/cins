@@ -18,7 +18,7 @@ import {
 import { computeFixedMenuPosition } from "@/lib/ui/clamp-fixed-menu-position";
 
 const GALLERY_FILTER_MENU_MIN_WIDTH = 168;
-const GALLERY_FILTER_MENU_EST_HEIGHT = 220;
+const GALLERY_FILTER_MENU_EST_HEIGHT = 260;
 
 type Props = {
   filter: GalleryMediaFilter;

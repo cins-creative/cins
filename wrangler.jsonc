@@ -31,5 +31,11 @@
       "binding": "HYPERDRIVE",
       "id": "d66e788e860c42c893c3a2902533bedf"
     }
+  ],
+  "r2_buckets": [
+    {
+      "bucket_name": "cins-rive-assets",
+      "binding": "CINS_RIVE_ASSETS"
+    }
   ]
 }

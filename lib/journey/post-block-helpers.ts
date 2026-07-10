@@ -1,7 +1,7 @@
 import type { Block } from "@/lib/editor/types";
 import { isPersistedImageSeed } from "@/lib/truong/image-ref";
 
-export type GalleryMediaKind = "article" | "photo" | "video";
+export type GalleryMediaKind = "article" | "photo" | "video" | "embed";
 
 /** Trích id ảnh theo thứ tự block — mỗi block `imgs` thường 1 ảnh. */
 export function extractPhotoImageIds(blocks: ReadonlyArray<Block>): string[] {

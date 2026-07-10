@@ -4,17 +4,21 @@
  */
 
 import { getYoutubeId } from "@/lib/youtube";
+import { isRiveAssetEmbedUrl } from "@/lib/editor/rive-asset-url";
 
 export type Tier1EmbedPlatformId =
   | "youtube"
   | "vimeo"
   | "figma"
-  | "framer"
   | "sketchfab"
   | "rive";
 
-/** Mọi provider embed được lưu / render (gồm legacy Behance). */
-export type EmbedProviderId = Tier1EmbedPlatformId | "behance";
+/** Mọi provider embed được lưu / render (gồm legacy Behance, Framer + file .riv trên R2). */
+export type EmbedProviderId =
+  | Tier1EmbedPlatformId
+  | "behance"
+  | "framer"
+  | "rive-file";
 
 export type ClassifiedEmbed = {
   provider: EmbedProviderId;
@@ -50,13 +54,6 @@ export const TIER1_EMBED_PLATFORMS: readonly Tier1EmbedPlatformMeta[] = [
     hint: "Design, prototype, FigJam",
     placeholder: "https://www.figma.com/design/…",
     exampleUrl: "https://www.figma.com/design/example",
-  },
-  {
-    id: "framer",
-    label: "Framer",
-    hint: "Prototype web, motion site",
-    placeholder: "https://framer.com/projects/…/embed",
-    exampleUrl: "https://framer.com/projects/example/embed",
   },
   {
     id: "sketchfab",
@@ -108,6 +105,9 @@ function parseEmbedUrl(rawUrl: string | undefined): URL | null {
 export function classifyEmbedUrl(
   rawUrl: string | undefined,
 ): ClassifiedEmbed | null {
+  if (isRiveAssetEmbedUrl(rawUrl)) {
+    return { provider: "rive-file", url: rawUrl!.trim() };
+  }
   const parsed = parseEmbedUrl(rawUrl);
   if (!parsed) return null;
   const host = parsed.hostname.replace(/^www\./, "");
@@ -123,6 +123,9 @@ export function embedUrlMatchesPlatform(
   rawUrl: string,
   platform: Tier1EmbedPlatformId,
 ): boolean {
+  if (platform === "rive" && isRiveAssetEmbedUrl(rawUrl)) {
+    return true;
+  }
   const cls = classifyEmbedUrl(rawUrl);
   if (cls?.provider !== platform) return false;
   return buildEmbedIframeSrc(cls) !== null;

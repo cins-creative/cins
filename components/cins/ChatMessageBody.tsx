@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { ChatImageLightbox } from "@/components/cins/ChatImageLightbox";
+import { ChatMessageMediaImage } from "@/components/cins/ChatMessageMediaImage";
 import { InlineExternalVideoEmbed } from "@/components/shared/InlineExternalVideoEmbed";
 import { chatImageDeliveryUrl } from "@/lib/chat/image-url";
 import type { ChatMessage } from "@/lib/chat/types";
@@ -15,7 +16,13 @@ const CHAT_CONTEXT_LABEL: Record<string, string> = {
   khoa_hoc: "Khóa học",
 };
 
-export function ChatMessageBody({ msg }: { msg: ChatMessage }) {
+type ChatMessageBodyProps = {
+  msg: ChatMessage;
+  /** Chỉ render ảnh/meme, bỏ caption (ThreadItems render caption riêng). */
+  mediaOnly?: boolean;
+};
+
+export function ChatMessageBody({ msg, mediaOnly = false }: ChatMessageBodyProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const isSticker = msg.kind === "sticker";
   const imageSrc =
@@ -24,6 +31,7 @@ export function ChatMessageBody({ msg }: { msg: ChatMessage }) {
       ? chatImageDeliveryUrl(msg.imageId, isSticker ? "thumbnail" : "public")
       : null);
   const { displayText, iframeSrc } = parseTextWithExternalVideoEmbed(msg.body);
+  const showCaption = !mediaOnly && !isSticker && Boolean(displayText);
 
   if (msg.nguCanh) {
     const card = msg.nguCanh;
@@ -77,27 +85,21 @@ export function ChatMessageBody({ msg }: { msg: ChatMessage }) {
             src={imageSrc}
             alt="Meme"
             loading="lazy"
+            decoding="async"
           />
         ) : (
-        <button
-          type="button"
-          className="j-chat-mini-msg-image-link cins-chat-msg-image-link"
-          aria-label="Xem ảnh đính kèm"
-          onClick={() => setLightboxOpen(true)}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            className="j-chat-mini-msg-image cins-chat-msg-image"
+          <ChatMessageMediaImage
             src={imageSrc}
-            alt={msg.body || "Ảnh đính kèm"}
+            alt={msg.body.trim() || "Ảnh đính kèm"}
+  stacked={mediaOnly}
+            onClick={() => setLightboxOpen(true)}
           />
-        </button>
         )
       ) : null}
-      {displayText ? <p>{displayText}</p> : null}
-      {iframeSrc ? <InlineExternalVideoEmbed src={iframeSrc} /> : null}
+      {showCaption ? <p>{displayText}</p> : null}
+      {!mediaOnly && iframeSrc ? <InlineExternalVideoEmbed src={iframeSrc} /> : null}
 
-      {lightboxOpen && imageSrc ? (
+      {lightboxOpen && imageSrc && !isSticker ? (
         <ChatImageLightbox
           images={[imageSrc]}
           index={0}

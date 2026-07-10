@@ -151,6 +151,9 @@ function JourneyMirrorBody({
           photoGridImages={photoGridImages}
           articleTags={mirror.articleTags}
           contentKind={cardKind}
+          captionExpandMode={
+            cardKind === "photo" || cardKind === "video" ? "inline" : "overlay"
+          }
           chiChuExpanded={
             chiChuCollapsible ? chiChuExpanded : undefined
           }

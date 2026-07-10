@@ -239,6 +239,37 @@
 
 .j-post-page:has(.post-canvas--media.post-canvas--split)
   .post-view-content--media
+  .b-embed-ro.is-rive-file,
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media
+  .b-embed.b-embed-ro.is-rive-file {
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  aspect-ratio: auto;
+  max-height: 100%;
+  position: relative;
+  align-self: stretch;
+  margin-inline: 0;
+  background: #000;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+}
+
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media
+  .b-embed-ro.is-rive-file > div {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media
   .b-embed.b-embed-ro.is-native-video,
 .j-post-page:has(.post-canvas--media.post-canvas--split)
   .post-view-content--media
@@ -340,7 +371,13 @@
   .b-embed-ro.is-native-video,
 .cins-post-view .post-canvas--media.post-canvas--split
   .post-view-content--media
-  .b-embed-ro.is-native-video {
+  .b-embed-ro.is-native-video,
+.cins-post-view.post-canvas--media.post-canvas--split
+  .post-view-content--media
+  .b-embed-ro.is-rive-file,
+.cins-post-view .post-canvas--media.post-canvas--split
+  .post-view-content--media
+  .b-embed-ro.is-rive-file {
   border-radius: 0;
   border: none;
 }
@@ -2114,6 +2151,49 @@
   padding: 0;
 }
 
+/* Readonly — bỏ khe 3px editor giữa các ô ảnh / album (editor.css load sau journey). */
+.cins-editor-page.cins-post-view .blocks-readonly .b-imgs-ro .imgwrap.full,
+.cins-editor-page.cins-post-view .blocks-readonly .b-imgs-ro .imgwrap.duo,
+.cins-editor-page.cins-post-view .blocks-readonly .b-imgs-ro .imgwrap.grid2,
+.cins-editor-page.cins-post-view .blocks-readonly .b-imgs-ro .imgwrap.grid3,
+.cins-editor-page.cins-post-view .blocks-readonly .b-imgs-ro .imgwrap.grid4,
+.cins-editor-page.cins-post-view .blocks-readonly .b-imgs-ro .imgwrap.hero,
+.cins-editor-page.cins-post-view .blocks-readonly .b-imgs-ro .imgwrap.justified,
+.cins-editor-page.cins-post-view .blocks-readonly .b-imgs-ro .imgwrap.trio,
+.cins-editor-page.cins-post-view .blocks-readonly .b-imgs-ro .imgwrap.big-right {
+  gap: 0;
+}
+.cins-editor-page.cins-post-view .blocks-readonly .b-imgs-ro .imgwrap.masonry {
+  column-gap: 0;
+}
+.cins-editor-page.cins-post-view .blocks-readonly .b-imgs-ro .imgwrap.masonry .ph {
+  margin-bottom: 0;
+}
+.cins-editor-page.cins-post-view .blocks-readonly .image-grid,
+.cins-editor-page.cins-post-view .blocks-readonly .image-grid-row,
+.cins-editor-page.cins-post-view
+  .blocks-readonly
+  .image-grid[data-count="3"]
+  .image-grid-side,
+.cins-editor-page.cins-post-view .blocks-readonly .image-grid--masonry,
+.cins-editor-page.cins-post-view .blocks-readonly .image-grid--masonry .image-grid-mcol,
+.cins-editor-page.cins-post-view .blocks-readonly .image-grid-jrow {
+  gap: 0;
+  column-gap: 0;
+}
+.cins-editor-page.cins-post-view .blocks-readonly .b-spacer,
+.cins-editor-page.cins-post-view .blocks-readonly .b-spacer.s,
+.cins-editor-page.cins-post-view .blocks-readonly .b-spacer.m,
+.cins-editor-page.cins-post-view .blocks-readonly .b-spacer.l {
+  height: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+.cins-editor-page.cins-post-view .blocks-readonly .block[data-block-type="embed"] .b-embed-ro,
+.cins-editor-page.cins-post-view .blocks-readonly .block[data-block-type="embed"] .b-embed.b-embed-ro {
+  margin-block: 0;
+}
+
 /* Text blocks read-only — match editor's `.b-text` / `.b-text.h2` /
    `.b-text.h3` exactly (font-family, size, line-height). */
 .cins-post-view .b-text-ro {
@@ -2249,6 +2329,42 @@
   min-height: 0;
   border-radius: 0;
   aspect-ratio: unset;
+}
+.cins-post-view .b-embed-ro.is-rive-file {
+  display: block;
+  position: relative;
+  padding: 0;
+  gap: 0;
+  margin: 0;
+  background: var(--neutral-900, #0f172a);
+  border: 0;
+  border-radius: 0;
+  overflow: hidden;
+  width: 100%;
+  min-height: 0;
+  align-items: stretch;
+  pointer-events: auto;
+  touch-action: manipulation;
+}
+.cins-editor-page.cins-post-view .b-embed.b-embed-ro.is-rive-file {
+  display: block;
+  padding: 0;
+  gap: 0;
+  align-items: stretch;
+  border: 0;
+  border-radius: 0;
+  background: var(--neutral-900, #0f172a);
+}
+.cins-post-view .b-embed-ro.is-rive-file > div {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.cins-post-view .b-embed-ro.is-rive-file canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
 }
 .cins-post-view .j-m-video-processing {
   display: flex;
