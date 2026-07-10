@@ -7,15 +7,9 @@ export function isValidRiveObjectKey(key: string): boolean {
   return RIVE_OBJECT_KEY_RE.test(key.trim());
 }
 
-export function parseRiveAssetObjectKeyFromUrl(rawUrl: string): string | null {
-  let parsed: URL;
-  try {
-    parsed = new URL(rawUrl.trim());
-  } catch {
-    return null;
-  }
-  if (!parsed.pathname.startsWith(CINS_RIVE_ASSET_PATH_PREFIX)) return null;
-  const key = parsed.pathname
+function parseRiveAssetObjectKeyFromPathname(pathname: string): string | null {
+  if (!pathname.startsWith(CINS_RIVE_ASSET_PATH_PREFIX)) return null;
+  const key = pathname
     .slice(CINS_RIVE_ASSET_PATH_PREFIX.length)
     .split("/")
     .map((segment) => {
@@ -29,18 +23,42 @@ export function parseRiveAssetObjectKeyFromUrl(rawUrl: string): string | null {
   return isValidRiveObjectKey(key) ? key : null;
 }
 
+export function parseRiveAssetObjectKeyFromUrl(rawUrl: string): string | null {
+  const trimmed = rawUrl.trim();
+  if (!trimmed) return null;
+
+  /* Path tương đối — lưu DB / upload dev→prod an toàn, fetch cùng origin. */
+  if (trimmed.startsWith("/")) {
+    const pathname = trimmed.split(/[?#]/)[0] ?? trimmed;
+    return parseRiveAssetObjectKeyFromPathname(pathname);
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    return null;
+  }
+  return parseRiveAssetObjectKeyFromPathname(parsed.pathname);
+}
+
 export function isRiveAssetEmbedUrl(rawUrl: string | undefined): boolean {
   if (!rawUrl?.trim()) return false;
   return parseRiveAssetObjectKeyFromUrl(rawUrl) !== null;
+}
+
+/** URL lưu block embed — luôn path tương đối, không phụ thuộc host upload. */
+export function buildRiveAssetRelativeUrl(objectKey: string): string {
+  const encodedPath = objectKey
+    .split("/")
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
+  return `${CINS_RIVE_ASSET_PATH_PREFIX}${encodedPath}`;
 }
 
 export function buildRiveAssetPublicUrl(
   objectKey: string,
   origin: string,
 ): string {
-  const encodedPath = objectKey
-    .split("/")
-    .map((segment) => encodeURIComponent(segment))
-    .join("/");
-  return `${origin.replace(/\/$/, "")}${CINS_RIVE_ASSET_PATH_PREFIX}${encodedPath}`;
+  return `${origin.replace(/\/$/, "")}${buildRiveAssetRelativeUrl(objectKey)}`;
 }

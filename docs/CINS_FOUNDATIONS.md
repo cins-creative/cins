@@ -9,21 +9,26 @@
 
 ## 1. Bản chất sản phẩm
 
-CINS là creative hub cho ngành sáng tạo Việt Nam. Không phải job board, portfolio site, MXH viral, hay LMS.
+CINS là **mạng xã hội chuyên môn** cho ngành sáng tạo Việt Nam — portfolio đa định dạng, timeline, chat, follow-feed, và tri thức canonical do cộng đồng đóng góp. Không phải job board, Behance thuần tham khảo, feed thuật toán toàn cục, hay LMS.
 
-Hai tầng core:
-- **Journey** — blog cá nhân theo thời gian. Text / ảnh / video / link. Tích lũy suốt hành trình nghề nghiệp.
-- **Gallery** — aggregated feed tối ưu visual. Tất cả tác phẩm public. Cửa ngõ vào Journey của người tạo.
+**Ba tầng core:**
+- **Portfolio / Journey** — nơi user sống và sáng tạo. Tác phẩm đa định dạng (ảnh, video, 3D/Sketchfab, Rive, Figma, text…). Xem **Lưới** (visual-first) hoặc **Dòng thời gian** (MXH). Chat, follow, like, bình luận có context. *Hook acquisition & retention.*
+- **Entity lens** — trang tag/nghề/phần mềm… gom tác phẩm + người + thảo luận theo chủ đề. Không sở hữu nội dung — query trên Journey. *Khám phá theo chuyên môn.*
+- **Canonical knowledge** — nội dung chính đã duyệt trên entity (prose/HTML), do cộng đồng đóng góp bản thảo song song, curator promote. *Giá trị dài hạn, authority, SEO.*
 
-**Journey là nơi tích lũy. Gallery là nơi khám phá.**
+**Journey là nơi tích lũy & kết nối. Entity là nơi khám phá theo chủ đề. Canonical là nơi tri thức được chốt.**
 
-Kết nối giữa người có chuyên môn là giá trị cốt lõi, và **phân bổ nội dung là động cơ tăng trưởng**. Kết nối đi qua **entity và quan hệ thật** (tag / nghề / trường / kết bạn / **theo dõi**). Gallery vừa là cửa khám phá tác phẩm public, vừa phân bổ nội dung từ người & org mà user **theo dõi** (1 chiều) — kênh reach chính, sắp theo thời gian thực ở MVP (mô hình rank để mở, xem DECISIONS).
+CINs = **đơn vị quy hoạch hạ tầng** (domain, schema section, curator, embed registry) — cộng đồng xây nội dung bên trong khung đó. Mở rộng domain theo thời gian: Game, Phim, (sau) Y tế, Khoa học…
+
+Kết nối giữa người có chuyên môn là giá trị cốt lõi; **phân bổ nội dung là động cơ tăng trưởng**. Kết nối đi qua **entity và quan hệ thật** (tag / nghề / trường / kết bạn / **theo dõi**). Gallery/follow-feed phân bổ tác phẩm public từ người & org được theo dõi — kênh reach chính, sắp theo thời gian thực ở MVP (mô hình rank để mở, xem DECISIONS).
 
 ---
 
 ## 2. Triết lý sản phẩm
 
-- **Engagement + phân bổ nội dung**: like/reaction công khai mặc định. **Theo dõi 1 chiều** (người & org) là kênh tăng trưởng — Gallery phân bổ nội dung public từ đối tượng user theo dõi. Discovery đi qua **cả** entity (tag/nghề/trường) **và** follow-feed (Gallery). Mảnh duy nhất giữ từ tư duy phản-vanity: **số follower không hiển thị công khai** (theo dõi là kênh nhận nội dung, không phải bảng điểm). Mô hình rank feed: thời gian thực ở MVP, để mở khả năng rank theo engagement — xem DECISIONS O13.
+- **MXH chuyên môn, không MXH generic**: chấp nhận hành vi người dùng — timeline, chat, follow, like, bình luận. Khác Behance (chỉ tham khảo một chiều) ở chỗ CINs có **tương tác xã hội đầy đủ** trong khung chuyên môn. Feed **scoped** (follow + entity + gợi ý có nhãn) — không feed thuật toán toàn cục.
+- **Engagement + phân bổ nội dung**: like/reaction công khai mặc định. **Theo dõi 1 chiều** (người & org) là kênh tăng trưởng — Gallery phân bổ nội dung public từ đối tượng user theo dõi. Discovery đi qua **cả** entity (tag/nghề/trường) **và** follow-feed (Gallery). **Số follower không hiển thị công khai** (theo dõi là kênh nhận nội dung, không phải bảng điểm). Mô hình rank feed: thời gian thực ở MVP — xem DECISIONS O13.
+- **Portfolio-first**: trình tạo nội dung tối ưu cho showcase đa định dạng; grid view là consumption mode mặc định cho visual. Portfolio chứng minh năng lực → động lực đóng góp canonical.
 - **Like là social proof thẩm mỹ**: "X người cũng thấy đẹp" = xác nhận sự đồng cảm, không phải vanity đua số. Hiển thị mặc định.
 - **Open model**: interaction (tuyển dụng, kết nối) xảy ra ở nơi khác. CINS verify và lưu kết quả.
 - **Verify là moat**: mọi quyết định thiết kế phải bảo vệ tính xác thực của timeline. Moat tồn tại *vì* có bên thứ hai phải đồng ý — bỏ bước đó để giảm tải là mất moat.
@@ -31,7 +36,7 @@ Kết nối giữa người có chuyên môn là giá trị cốt lõi, và **ph
 - **Milestone không bao giờ tự sinh từ counter**: phải có xác nhận chủ động từ người có thẩm quyền.
 - **Verified milestone bất tử**: khi org đóng cửa, milestone đã verify không mất giá trị.
 - **Hai loại quan hệ theo người**: **kết bạn** (2 chiều — cả hai thành bạn của nhau; phục vụ danh bạ nghề + bạn chung + điều kiện tag co-author) và **theo dõi** (1 chiều — không cần đồng ý; nội dung public của người được theo dõi phân bổ lên Gallery của người theo dõi). Org chỉ được **theo dõi**, không kết bạn.
-- **Tag là infrastructure, không phải content**: `keyword` và `phan_mem` không cần prose — giá trị nằm ở người và tác phẩm gom dưới tag. AI gen `tom_tat` đủ.
+- **Tag là infrastructure + có thể có canonical**: `keyword`/`phan_mem`/`nghe`… vẫn là entity aggregation (người + tác phẩm). **Prose canonical** (tab Nội dung) là *tùy chọn per entity* — không bắt buộc mọi tag đều có bài chính. Khi chưa có canonical: `tom_tat` AI + tab Đóng góp/Thảo luận vẫn hoạt động.
 - **Filter cá nhân ≠ tag toàn cục**: mỗi user/org tự tạo nhãn cục bộ ("Áo thun trơn", "BST hè") để *tự sắp xếp nội dung của chính mình*. Nhãn cá nhân KHÔNG kéo discovery xuyên người dùng (khác hẳn tag toàn cục) → không phá luật chống-viral. Xem quy tắc 29.
 - **Verify rẻ là tính năng**: gánh nặng xác thực phải nhẹ đến mức bên có thẩm quyền không thấy phiền — user đẩy yêu cầu, org chỉ bấm duyệt (org-veto, không org-pull). Xem §V.
 
@@ -58,7 +63,7 @@ Kết nối giữa người có chuyên môn là giá trị cốt lõi, và **ph
 
 ---
 
-## 5. Quy tắc kiến trúc cốt lõi (29 + verify)
+## 5. Quy tắc kiến trúc cốt lõi (32 + verify)
 
 1. Mọi thứ trên **Journey user** = 1 dòng `content_cot_moc` — source of truth thống nhất. (Journey *org* đi qua `org_bai_dang` + `thoi_diem`, KHÔNG dùng `content_cot_moc`; xem §O và quy tắc 29.)
 2. Milestone không bao giờ tự sinh từ counter — phải có xác nhận chủ động.
@@ -84,11 +89,14 @@ Kết nối giữa người có chuyên môn là giá trị cốt lõi, và **ph
 22. **Engagement + phân bổ**: like công khai. Gallery phân bổ nội dung qua **theo dõi** (follow-feed) cộng discovery qua entity. Feed sắp theo **thời gian thực** ở MVP (rank theo engagement để mở — xem DECISIONS O13). Số follower **không** hiển thị công khai. **Phân bổ org bất đối xứng với user** (DECISIONS L21): bài org tự kể (`org_bai_dang`, không verify) chỉ vào feed đầy đủ khi đã theo dõi; org chưa-follow tiếp cận người lạ qua *gợi ý theo dõi* (bạn chung + tỉnh + persona) + *attribution tác phẩm verified của member* + *chèn feed tỉ lệ thấp có nhãn "Gợi ý"* (không random, không engagement-sort — xem O15). Bài cộng đồng (`che_do_hien_thi='cong_dong'`) KHÔNG rò ra feed; cộng đồng lan tỏa bằng lời mời tham gia, không phải bài.
 23. **Quan hệ người = kết bạn (2 chiều, `user_ket_ban`) + theo dõi (1 chiều, `user_theo_doi` với `loai_doi_tuong='nguoi_dung'`)**. *Kết bạn*: cả hai thành bạn; phục vụ danh bạ nghề + bạn chung (realtime `bạn(A) ∩ bạn(B)`, không lưu field) + điều kiện tag co-author. *Theo dõi*: 1 chiều, **không cần đồng ý**, không có trạng thái pending; đẩy nội dung public của người/org được theo dõi lên Gallery của người theo dõi. Org chỉ theo dõi được (`loai_doi_tuong='to_chuc'`), không kết bạn. Schema sẵn có — enum `loai_theo_doi_enum` đã gồm `nguoi_dung`/`the`/`to_chuc`, **không cần migration**.
 24. **Tạo org**: chỉ `truong_dai_hoc` cần CINS duyệt; 3 loại user tạo ngay (`co_so_dao_tao`, `studio`, `cong_dong`). Xem §O.
-25. `keyword`/`phan_mem` không có trang prose. Trang detail chỉ render `tom_tat` (AI gen) + người + tác phẩm. Không vào navigation "Bài viết". `noi_dung=NULL` mãi mãi. **Trang detail mọi entity (`keyword`/`phan_mem`/`nghe`/`mon_hoc`/`truong`...) có 2 chế độ render trên cùng tập tagged-content: Lưới (visual) + Dòng thời gian (post-card).** Là *lens* (query) trên Journey cá nhân, KHÔNG kho mới, KHÔNG có chủ — Journey vẫn là source of truth (xem DECISIONS L13). Sort: mặc định mới nhất, thêm A–Z + engagement (user chọn — engagement-sort là tùy chọn thủ công trong context, không phải feed thuật toán, không vi phạm quy tắc 22). Chỉ kéo content public; hiện rõ tác giả (phễu connect); private không lộ. Tên hiển thị "Dòng thời gian", KHÔNG gọi "Journey" để tránh loãng khái niệm.
+25. **Trang entity = lens + 3 tab.** Mọi trang entity (`keyword`/`phan_mem`/`nghe`/`mon_hoc`/`truong`…) là *lens* trên Journey — KHÔNG kho mới, KHÔNG có chủ (xem DECISIONS L13). **Ba tab:** (1) **Nội dung** — bài chính canonical đã duyệt (`article_bai_viet.noi_dung`); hero hiện tác giả chính + "N người đóng góp". (2) **Đóng góp** — bản thảo song song: mỗi user soạn **một bài riêng**, không sửa chung một bài như Wikipedia; curator promote bản đủ chất lượng thành bài chính; bản không duyệt vẫn public (contributor có quyền ẩn bản của mình). (3) **Thảo luận** — timeline tác phẩm/cột mốc gắn tag + MXH scoped. Trên cùng tập tagged-content: **Lưới** (visual) + **Dòng thời gian** (post-card). Sort: mặc định mới nhất, thêm A–Z + engagement (tùy chọn thủ công trong context). Chỉ kéo content public; hiện rõ tác giả; private không lộ. Tên hiển thị "Dòng thời gian", KHÔNG gọi "Journey".
 26. **Post cộng đồng = `content_cot_moc`** (không có bảng post riêng). Đăng bài vào cộng đồng = tạo cột mốc với `id_to_chuc`=cộng đồng + `che_do_hien_thi='cong_dong'`. Cộng đồng là **view tổng hợp cột mốc của thành viên** (như Gallery), không sở hữu nội dung. Comment/reaction/lưu trỏ cột mốc → bền. Đổi thẻ sang `public`/`theo_nhom` = "tốt nghiệp" thành milestone Journey, giữ comment, rời feed cộng đồng. Nhãn flair: `cong_dong_filter` + junction `cong_dong_filter_gan` (nối cột mốc). Mọi query Journey public PHẢI loại trừ `che_do_hien_thi='cong_dong'` — gom vào 1 helper.
 27. `da_verify` không phải gatekeeping. Tag chưa verify vẫn tồn tại, vẫn dùng. `da_verify=true` chỉ ưu tiên top autocomplete.
 28. AI gen `tom_tat` tag mới từ tên tag — không đợi đủ data. Regen khi `so_data_point` tăng đáng kể (track qua `vector_dong`).
 29. **Filter cá nhân** = nhãn động do chủ sở hữu (user *hoặc* org) tự định nghĩa (`filter_nhan`), gắn polymorphic lên `content_cot_moc` (user) hoặc `org_bai_dang` (org) qua `filter_gan`. Cục bộ trong phạm vi 1 chủ sở hữu: KHÔNG tạo tag toàn cục (`article_*`), KHÔNG là kênh discovery xuyên người dùng, KHÔNG nghiệp vụ thương mại (giá/bán). Lọc áp cho **cả 2 view** Journey (timeline + grid). Verify quyền sở hữu trước mọi mutation.
+30. **Đóng góp = bản thảo song song, không collaborative edit.** Mỗi user tạo bản riêng gắn `id_bai_viet` entity. Không merge trực tiếp trên một document. Curator **promote** (thay thế bài chính), không edit-war. Bản cũ từng là chính → chuyển xuống tab Đóng góp, vẫn xem được.
+31. **Curator thẩm định nội dung ≠ verify quan hệ.** Curator (trục 1) duyệt chất lượng canonical; verify (trục 2) xác thực quan hệ org/membership. **KHÔNG gộp một cột.** Curator nhận **thông báo khi có bản mới** — không moderation hàng ngày. Giai đoạn đầu CINs admin là curator; sau mở phân quyền curator theo phạm vi (toàn cục / `linh_vuc` / `article_bai_viet`).
+32. **Bản đóng góp bị từ chối vẫn public** (trừ khi contributor ẩn). Cho phép bình luận trên bản thảo. Curator từ chối kèm feedback cụ thể. UI ưu tiên góp ý constructive; contributor giữ quyền soft-delete bản của mình.
 
 **Khóa học (K1–K3) — trang khóa & gán tác phẩm, xem DECISIONS L14–L16:**
 - K1. **Tác phẩm gán cấp khóa** (`content_cot_moc.id_khoa_hoc`), KHÔNG bắt chọn lớp. `id_lop_hoc` tự suy ra từ `user_hoc_vien_lop` để định tuyến verify; không có ghi danh → NULL, admin org duyệt.
@@ -181,6 +189,55 @@ Nguyên tắc nền: **§2** (chat có context, không inbox MXH tự do). Bản
 - **Chưa MVP**: thêm/xóa thành viên, đổi tên nhóm, rời nhóm, gộp phòng trùng thành viên — xem DECISIONS O16.
 
 Migration: `migration_chat_nhom.sql` (`nhom` enum + cột `ten_phong`).
+
+---
+
+## K. Đóng góp nội dung canonical
+
+Mô hình **bản thảo song song** (không Wikipedia collaborative edit). Chi tiết triển khai → `docs/cursor_brief_dong_gop_noi_dung.md`.
+
+### Vai trò
+
+| Vai trò | Làm gì |
+|---|---|
+| **Contributor** | Soạn bản riêng cho entity; gửi duyệt; sửa bản của mình; ẩn bản bị từ chối |
+| **Curator** | Nhận thông báo khi có bản mới; đọc; duyệt (promote → bài chính) / từ chối (kèm feedback) |
+| **Reader** | Đọc bài chính; xem các bản đóng góp; bình luận trên bản thảo |
+
+### Luồng promote
+
+```
+User soạn bản → trang_thai = cho_duyet
+    → thông báo curator phụ trách entity/domain
+    → curator duyệt:
+        · duoc_duyet → copy noi_dung vào article_bai_viet.noi_dung
+                      ghi article_tac_gia (tac_gia_chinh = contributor)
+                      bản chính cũ (nếu có) → chuyển xuống tab Đóng góp
+        · tu_choi    → bản vẫn public + ghi_chu_duyet; contributor có thể ẩn
+        · can_sua    → feedback, contributor sửa và gửi lại
+```
+
+### Attribution (hero bài chính)
+
+- **Tác giả chính** = contributor của bản đang được promote.
+- **"N người đóng góp"** = tổng contributor từng có bản được duyệt hoặc đóng góp vào lịch sử entity (cache hoặc đếm từ `article_tac_gia`).
+- Click → panel danh sách contributor (link Journey).
+
+### Editor & schema section
+
+- MVP: HTML trong khung section gợi ý theo `loai_bai_viet` (skeleton `h2` + placeholder) — tái dùng pipeline `buildArticleLeadSource` + editor Tiptap hiện có.
+- Schema section per domain (`linh_vuc`) — defer; CINs quy hoạch khi mở domain mới.
+
+### Admin
+
+- **`/admin` bảng quản lý đóng góp**: danh sách chờ duyệt, duyệt/từ chối, phân quyền curator.
+- Giai đoạn đầu: CINS admin (`super_admin`/`admin`) = curator mặc định mọi entity.
+
+### Tách bạch verify
+
+- Curator duyệt **chất lượng nội dung** → badge/attribution canonical.
+- Org verify **quan hệ thật** (membership, tác phẩm trong context org) → moat danh tính.
+- Hai trục không gộp cột, không dùng `da_verify` trên `article_bai_viet` để nói "nội dung đã thẩm định" — dùng trạng thái promote + attribution riêng.
 
 ---
 
@@ -301,7 +358,7 @@ Check: `user_thanh_vien_to_chuc.vai_tro IN ('admin', 'quan_ly_noi_dung', 'quan_l
 - **Trục 1 — quyền toàn cục** (bạn LÀ GÌ trên nền tảng):
   - **Khách**: chỉ đọc nội dung public.
   - **User thường** (mặc định): Journey riêng, tạo catalog concept (nháp permissionless), đăng tác phẩm, gắn tag *mô tả*, gửi claim verify.
-  - **CINS Curator**: authority **biên tập từ điển** — phong canonical / `da_verify` tag, gộp alias, gán nhóm. KHÔNG có quyền verify quan hệ.
+  - **CINS Curator**: authority **biên tập từ điển + thẩm định canonical** — phong canonical / `da_verify` tag, gộp alias, gán nhóm; **duyệt/từ chối bản đóng góp**, promote bài chính. Có thể gán **theo phạm vi** (`toan_cuc` / `linh_vuc` / `bai_viet`). KHÔNG có quyền verify quan hệ.
   - **CINS Admin**: seed `linh_vuc` + ngành, `edu_*`, duyệt org, moderation toàn cục (xem §12 trên + §O).
 - **Trục 2 — quyền theo quan hệ (per-row)**:
   - **Chủ sở hữu**: row này của tôi → sửa / soft-delete (`da_xoa`) tác phẩm của mình, xác nhận tag trên tác phẩm của mình, accept/veto claim nhắm tới chính mình.

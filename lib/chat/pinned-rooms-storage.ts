@@ -1,4 +1,5 @@
 const PREFIX = "cins-chat-pinned-bubble:v1:";
+const LEGACY_PREFIX = "cins-chat-pinned-bubble:";
 
 function storageKey(viewerProfileId: string): string {
   return `${PREFIX}${viewerProfileId}`;

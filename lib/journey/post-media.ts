@@ -4,6 +4,7 @@ import { classifyBunnyVideoUrl } from "@/lib/bunny/embed";
 import {
   buildEmbedIframeSrc,
   classifyEmbedUrl,
+  type EmbedProviderId,
   type Tier1EmbedPlatformId,
 } from "@/lib/editor/embed-providers";
 import { isRiveAssetEmbedUrl } from "@/lib/editor/rive-asset-url";

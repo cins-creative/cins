@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
+import { buildRiveAssetRelativeUrl } from "@/lib/editor/rive-asset-url";
 import {
-  buildRiveAssetPublicUrl,
   buildRiveObjectKey,
   MAX_RIVE_FILE_BYTES,
   putRiveObject,
@@ -55,8 +55,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: uploaded.error }, { status: 502 });
   }
 
-  const origin = new URL(request.url).origin;
-  const url = buildRiveAssetPublicUrl(key, origin);
+  const url = buildRiveAssetRelativeUrl(key);
 
   return NextResponse.json({ url, key });
 }

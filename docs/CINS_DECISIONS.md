@@ -35,6 +35,18 @@
 
 ## LOG — quyết định đã chốt
 
+### Pivot MXH chuyên môn + đóng góp canonical (2026-07-10)
+
+- **L26 — CINS chuyển định vị: mạng xã hội chuyên môn + tri thức canonical do cộng đồng đóng góp.**
+  • **Ba tầng**: Portfolio/Journey (MXH + showcase) · Entity lens (khám phá) · Canonical (bài chính đã duyệt).
+  • **Khác Behance**: có timeline, chat, follow, bình luận — hành vi MXH thật, không chỉ tham khảo.
+  • **Đóng góp ≠ Wikipedia**: mỗi user soạn **bản riêng**; curator **promote** bản đủ chất lượng thành bài chính; bản không duyệt vẫn public (contributor có quyền ẩn); bình luận trên bản thảo được phép.
+  • **Curator async**: thông báo khi có bản mới — không moderation hàng ngày. Giai đoạn đầu founder = curator; sau phân quyền qua admin.
+  • **Đảo rule 25 cũ**: entity **có thể** có prose canonical (tab Nội dung); không còn `noi_dung=NULL` mãi mãi cho keyword/phan_mem.
+  • **Curator thẩm định nội dung ≠ verify quan hệ** — giữ bất biến 2 trục (FOUNDATIONS §12).
+  • **CINs = quy hoạch hạ tầng** domain (Game, Phim, sau Y tế/Khoa học); cộng đồng tự biến trong khung guardrail tối thiểu.
+  • Triển khai theo session → `docs/cursor_brief_dong_gop_noi_dung.md`.
+
 ### Nhóm chat bạn bè (2026-07-10)
 
 - **L25 — Mở nhóm chat scoped cho bạn bè; làm rõ "không group chat tự do".**

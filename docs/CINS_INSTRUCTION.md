@@ -1,9 +1,9 @@
 # CINS — README (Project Instructions)
 
 > **File router — điểm vào cho agent & developer.** Bản đầy đủ sống trong `docs/` (5 file bên dưới).
-> **Phiên bản:** v10 theo dõi/phân bổ 2026-06-15 · v9 khóa học + entity lens 2026-06-10 · org-journey/filter 2026-06-07 · **70 bảng logic hiện tại** (sau `migration_org_tuyen_dung.sql` — đọc trực tiếp từ DB để xác nhận cấu trúc).
+> **Phiên bản:** v12 MXH chuyên môn + đóng góp canonical 2026-07-10 · v11 phân quyền org 2026-07-01 · v10 theo dõi/phân bổ 2026-06-15 · **70 bảng logic hiện tại** (đọc trực tiếp từ DB để xác nhận cấu trúc).
 
-CINS = creative hub cho ngành sáng tạo Việt Nam (Next.js + Supabase). Hai tầng core: **Journey** (blog cá nhân tích lũy, source of truth) + **Gallery** (feed khám phá visual). Verify là moat.
+CINS = **mạng xã hội chuyên môn** cho ngành sáng tạo Việt Nam (Next.js + Supabase). Ba tầng: **Portfolio/Journey** (MXH + showcase) · **Entity lens** (khám phá) · **Canonical** (tri thức đã duyệt). Verify quan hệ là moat; curator thẩm định nội dung là trục riêng.
 
 ---
 
@@ -11,7 +11,7 @@ CINS = creative hub cho ngành sáng tạo Việt Nam (Next.js + Supabase). Hai 
 
 | Cần gì | File | Ghi chú |
 |---|---|---|
-| Triết lý, **29 quy tắc** kiến trúc, luồng verify, loại org, naming, quy ước làm việc | [`CINS_FOUNDATIONS.md`](./CINS_FOUNDATIONS.md) | Luật nền, đổi chậm |
+| Triết lý, **32 quy tắc** kiến trúc, luồng verify, đóng góp canonical (§K), loại org, naming, quy ước làm việc | [`CINS_FOUNDATIONS.md`](./CINS_FOUNDATIONS.md) | Luật nền, đổi chậm |
 | Bảng / cột / enum / FK cụ thể | **Đọc trực tiếp từ DB** | Prisma/Supabase MCP hoặc `information_schema` — **là sự thật cấu trúc** |
 | API route, lib, file SQL, seed, env/infra, ghi chú site | [`CINS_IMPLEMENTATION.md`](./CINS_IMPLEMENTATION.md) | Đổi nhanh nhất |
 | Đã quyết gì & vì sao · câu hỏi còn treo | [`CINS_DECISIONS.md`](./CINS_DECISIONS.md) | File chống quên |
@@ -19,7 +19,7 @@ CINS = creative hub cho ngành sáng tạo Việt Nam (Next.js + Supabase). Hai 
 
 Thứ tự ưu tiên khi xung đột: **DB thật (đọc trực tiếp) > CINS_FOUNDATIONS.md > các file khác**. Không bao giờ tin prose schema hơn DB.
 
-**Map chuyên sâu:** [`cursor_map_truong.md`](./cursor_map_truong.md) · [`cursor_brief_truong_trang_data_map.md`](./cursor_brief_truong_trang_data_map.md) *(bulk SQL field→UI, không tab Bài đăng)* · [`cursor_map_admin.md`](./cursor_map_admin.md) · [`cursor_map_inline_edit.md`](./cursor_map_inline_edit.md)
+**Map chuyên sâu:** [`cursor_map_truong.md`](./cursor_map_truong.md) · [`cursor_brief_truong_trang_data_map.md`](./cursor_brief_truong_trang_data_map.md) *(bulk SQL field→UI, không tab Bài đăng)* · [`cursor_map_admin.md`](./cursor_map_admin.md) · [`cursor_map_inline_edit.md`](./cursor_map_inline_edit.md) · [`cursor_brief_dong_gop_noi_dung.md`](./cursor_brief_dong_gop_noi_dung.md) *(đóng góp canonical — session plan)*
 
 ---
 
@@ -47,6 +47,8 @@ Thứ tự ưu tiên khi xung đột: **DB thật (đọc trực tiếp) > CINS_
 
 ## Thay đổi lớn gần đây (tóm tắt — chi tiết ở DECISIONS)
 
+**v12 — MXH chuyên môn + đóng góp canonical (2026-07-10):** Pivot từ "chống MXH" sang **mạng xã hội chuyên môn** (portfolio + timeline + chat + follow). Entity page 3 tab: Nội dung / Đóng góp / Thảo luận. Đóng góp = bản thảo song song, curator promote (không Wikipedia edit). Xem **L26**, FOUNDATIONS §1/§K, quy tắc 25/30–32. Brief triển khai: `cursor_brief_dong_gop_noi_dung.md`.
+
 **v11 — phân quyền org từ admin (2026-07-01):** Super admin gán `user_thanh_vien_to_chuc` (owner, ban tuyển sinh, …) qua `/admin/to-chuc` + mật khẩu env `CINS_ORG_DELEGATION_PASSWORD`. Không mở god-mode inline (L20). Xem **L22**, đóng **O14**.
 
 **v10 — theo dõi + phân bổ (2026-06-15):** Mở **theo dõi 1 chiều** cho người + tag + org (kết bạn 2 chiều vẫn giữ song song). Nội dung public của đối tượng được theo dõi phân bổ lên **Gallery** (follow-feed, sắp thời gian thực ở MVP). Bỏ khung anti-engagement (gỡ cấm follower-user / feed); giữ phản-vanity = số follower ẩn. **0 migration** (enum `loai_theo_doi_enum` đã có `nguoi_dung`). Xem DECISIONS L17/L18, O13.
@@ -55,7 +57,7 @@ Thứ tự ưu tiên khi xung đột: **DB thật (đọc trực tiếp) > CINS_
 
 **v8 — trang entity = lens (2026-06-08):** Mọi trang tag/nghề/trường… là aggregation view trên Journey — Lưới + Dòng thời gian, sort mới nhất / A–Z / engagement (scoped, không feed toàn cục).
 
-**v7 — tag system:** `keyword`/`phan_mem` = infrastructure (aggregation + `tom_tat` AI, không prose). Tag tự do, `da_verify` không gatekeeping, alias dedup tự động.
+**v7 — tag system:** `keyword`/`phan_mem` = infrastructure + **có thể có prose canonical** (đảo L26). Tag tự do, `da_verify` không gatekeeping, alias dedup tự động.
 
 **v6 — social graph:** Engagement có context (like công khai). Kết bạn 2 chiều `user_ket_ban` (**theo dõi người mở lại ở v10**). Gộp `studio` + `doanh_nghiep` (ẩn UI). Cộng đồng v2: post = `content_cot_moc` (`che_do_hien_thi='cong_dong'`).
 

@@ -23,7 +23,9 @@ type Props = {
   buttonProps?: Omit<
     ButtonHTMLAttributes<HTMLButtonElement>,
     "type" | "className" | "aria-label" | "disabled" | "onClick"
-  >;
+  > & {
+    [key: `data-${string}`]: string | boolean | undefined;
+  };
 };
 
 /** Nút hành động mobile — tap ngắn = hành động chính; giữ = sheet phụ. */

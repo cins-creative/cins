@@ -13,14 +13,14 @@ export async function POST(req: Request, ctx: RouteContext) {
   }
 
   const { id } = await ctx.params;
-  let body: { thuNgo?: string | null } | null = null;
+  let body: { thuNgo?: string | null } = {};
   try {
-    body = await req.json().catch(() => ({}));
+    body = (await req.json()) as { thuNgo?: string | null };
   } catch {
     body = {};
   }
 
-  const result = await applyToStudioJob(id, session.profile.id, body?.thuNgo ?? null);
+  const result = await applyToStudioJob(id, session.profile.id, body.thuNgo ?? null);
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: result.status });
   }

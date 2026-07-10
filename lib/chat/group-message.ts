@@ -7,6 +7,7 @@ import {
 } from "@/lib/chat/avatar";
 import { isCloudflareImageId } from "@/lib/chat/image-url";
 import {
+  assertCanDirectMessage,
   assertRoomMember,
   countUnreadInRoom,
   MESSAGE_SELECT,
@@ -353,7 +354,8 @@ export async function listGroupThreads(viewerId: string): Promise<ChatThread[]> 
   const threads: ChatThread[] = [];
 
   for (const row of memberships ?? []) {
-    const room = row.chat_phong as RoomRow | null;
+    const roomRaw = row.chat_phong;
+    const room = (Array.isArray(roomRaw) ? roomRaw[0] : roomRaw) as RoomRow | null;
     if (!room?.id) continue;
 
     const memberIds = membersByRoom.get(room.id) ?? [];
