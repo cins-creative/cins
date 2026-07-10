@@ -33,7 +33,6 @@ export function GuestHomeLoginPanel() {
 
       <LoginActions
         showRememberedAccount={false}
-        showRegisterGoogleButton={false}
         googleLoginAfterPassword
         className="hg-login-actions"
       />
