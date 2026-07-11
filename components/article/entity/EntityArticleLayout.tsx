@@ -10,6 +10,14 @@ type Props = {
   /** Khối liên quan lớn — nằm dưới nội dung trong cột chính. */
   contentExtra?: ReactNode;
   discussion: ReactNode;
+  /** Tab đóng góp cộng đồng (tuỳ chọn). */
+  contribution?: ReactNode;
+  /** Tab Nội dung chưa có bài chính — ẩn tab, mặc định Thảo luận. */
+  canonicalEmpty?: boolean;
+  /** Nhãn loại entity — truyền xuống tabs (tương thích API). */
+  entityKindLabel?: string;
+  isLoggedIn?: boolean;
+  loginNext?: string;
   /** Rail phải — danh sách liên quan gọn + CTA. */
   sidebar?: ReactNode;
   /** Bật mục lục trái trong tab Nội dung. */
@@ -23,6 +31,11 @@ export function EntityArticleLayout({
   content,
   contentExtra,
   discussion,
+  contribution,
+  canonicalEmpty = false,
+  entityKindLabel,
+  isLoggedIn = false,
+  loginNext = "",
   sidebar,
   showToc = true,
   pageClassName = "",
@@ -43,7 +56,15 @@ export function EntityArticleLayout({
         {header}
         <div className="ent-grid">
           <div className="ent-primary">
-            <NgheMainContentTabs content={reading} discussion={discussion} />
+            <NgheMainContentTabs
+              content={reading}
+              contribution={contribution}
+              discussion={discussion}
+              canonicalEmpty={canonicalEmpty}
+              entityKindLabel={entityKindLabel}
+              isLoggedIn={isLoggedIn}
+              loginNext={loginNext}
+            />
           </div>
           {sidebar ? <aside className="ent-rail article-side">{sidebar}</aside> : null}
         </div>

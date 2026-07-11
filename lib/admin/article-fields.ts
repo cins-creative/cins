@@ -15,7 +15,7 @@ export type AdminTableColumnId =
   | "loai"
   | "meta"
   | "noi_dung"
-  | "meta_json"
+  | "dong_gop"
   | "status"
   | "views"
   | "date"
@@ -27,7 +27,8 @@ export type AdminFilterFieldId =
   | "linhVuc"
   | "loaiNhom"
   | "nhom"
-  | "media";
+  | "media"
+  | "dongGop";
 
 export const ADMIN_TABLE_COLUMNS: {
   id: AdminTableColumnId;
@@ -40,7 +41,7 @@ export const ADMIN_TABLE_COLUMNS: {
   { id: "loai", label: "Loại", defaultVisible: true },
   { id: "meta", label: "Lĩnh vực / Nhóm", defaultVisible: false },
   { id: "noi_dung", label: "Nội dung (xem nhanh)", defaultVisible: true },
-  { id: "meta_json", label: "Meta JSON (xem nhanh)", defaultVisible: true },
+  { id: "dong_gop", label: "Đóng góp", defaultVisible: true },
   { id: "status", label: "Trạng thái", defaultVisible: true },
   { id: "views", label: "Lượt xem", defaultVisible: false },
   { id: "date", label: "Ngày tạo", defaultVisible: false },
@@ -55,13 +56,14 @@ export const ADMIN_FILTER_FIELDS: {
   { id: "loai", label: "Loại bài", defaultVisible: true },
   { id: "status", label: "Trạng thái", defaultVisible: true },
   { id: "linhVuc", label: "Lĩnh vực", defaultVisible: true },
+  { id: "dongGop", label: "Đóng góp chờ duyệt", defaultVisible: true },
   { id: "loaiNhom", label: "Loại nhóm", defaultVisible: false },
   { id: "nhom", label: "Nhóm cụ thể", defaultVisible: false },
   { id: "media", label: "Lọc ảnh", defaultVisible: false },
 ];
 
-export const ADMIN_COLUMNS_STORAGE_KEY = "cins-admin-bai-viet-columns-v2";
-export const ADMIN_FILTERS_STORAGE_KEY = "cins-admin-bai-viet-filters-v1";
+export const ADMIN_COLUMNS_STORAGE_KEY = "cins-admin-bai-viet-columns-v3";
+export const ADMIN_FILTERS_STORAGE_KEY = "cins-admin-bai-viet-filters-v2";
 
 export type ArticleFieldStatus = {
   key: string;

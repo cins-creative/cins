@@ -367,6 +367,80 @@ button.nghe-hero-draft-edit[data-nghe-draft-active="true"] {
   max-height: min(58vh, 560px);
 }
 
+/* WYSIWYG đóng góp — mirror `.nghe-lead-panel` entity (portal không có ancestor arv2) */
+.contrib-editor-lead-mirror {
+  margin-top: 0;
+}
+
+.contrib-editor-lead-mirror .ent-page {
+  margin: 0;
+}
+
+.contrib-editor-lead-mirror .nghe-lead-panel {
+  margin: 0;
+}
+
+.contrib-editor-lead-mirror .article-draft-tiptap__editor-wrap {
+  min-height: 280px;
+  max-height: none;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+.contrib-editor-lead-mirror .ProseMirror.nghe-lead-rich {
+  min-height: 280px;
+  padding: 0;
+  outline: none;
+  border: none;
+  box-shadow: none;
+}
+
+.contrib-editor-lead-mirror .ProseMirror.nghe-lead-rich:focus {
+  outline: none;
+}
+
+.article-draft-tiptap--dong-gop .contrib-editor-lead-mirror .ProseMirror .arc-skill-grid,
+.article-draft-tiptap--dong-gop .contrib-editor-lead-mirror .ProseMirror .arc-accordion,
+.article-draft-tiptap--dong-gop .contrib-editor-lead-mirror .ProseMirror .arc-path,
+.article-draft-tiptap--dong-gop .contrib-editor-lead-mirror .ProseMirror .arc-job-item,
+.article-draft-tiptap--dong-gop .contrib-editor-lead-mirror .ProseMirror .arc-infobox {
+  outline: none;
+}
+
+.nghe-content-editor-modal .admin-edit-form__field .article-draft-tiptap--dong-gop {
+  border: none;
+  background: transparent;
+  overflow: visible;
+}
+
+.nghe-content-editor-modal .admin-edit-form__field .article-draft-tiptap--dong-gop .article-draft-tiptap__tabs,
+.nghe-content-editor-modal .admin-edit-form__field .article-draft-tiptap--dong-gop .article-block-palette,
+.nghe-content-editor-modal .admin-edit-form__field .article-draft-tiptap--dong-gop .article-draft-tiptap__toolbar {
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 10px;
+  margin-bottom: 10px;
+  background: #fff;
+}
+
+.nghe-content-editor-modal .admin-edit-form__field .article-draft-tiptap--dong-gop .article-draft-tiptap__tabs {
+  border-radius: 10px 10px 0 0;
+  margin-bottom: 0;
+  border-bottom: none;
+}
+
+.nghe-content-editor-modal .admin-edit-form__field .article-draft-tiptap--dong-gop .article-block-palette {
+  border-top: none;
+  border-radius: 0;
+  margin-bottom: 0;
+}
+
+.nghe-content-editor-modal .admin-edit-form__field .article-draft-tiptap--dong-gop .article-draft-tiptap__toolbar {
+  border-top: none;
+  border-radius: 0 0 10px 10px;
+  margin-bottom: 12px;
+}
+
 .nghe-content-editor-modal .admin-edit-form__field .article-draft-tiptap__html {
   min-height: 320px;
   max-height: min(58vh, 560px);
@@ -412,5 +486,330 @@ button.nghe-hero-draft-edit[data-nghe-draft-active="true"] {
     width: 100%;
     max-height: 100vh;
     border-radius: 0;
+  }
+}
+
+/* Modal đóng góp — layout 2 cột: bìa | nội dung chính */
+.contrib-editor-modal__dialog {
+  min-height: min(88vh, 800px);
+}
+
+.contrib-editor-modal__head {
+  flex-shrink: 0;
+}
+
+.contrib-editor-layout {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  gap: 0;
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.contrib-editor-sidebar {
+  flex: 0 0 min(380px, 40%);
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px 18px;
+  border-right: 1px solid var(--border, #e2e8f0);
+  background: #f8fafc;
+}
+
+.contrib-editor-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 14px 18px 18px;
+}
+
+.contrib-editor-compose {
+  min-height: 280px;
+  overflow: visible;
+}
+
+.contrib-editor-panel-label {
+  margin: 0 0 12px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-body, #334155);
+}
+
+.contrib-editor-main-hint {
+  margin: -4px 0 12px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink-muted, #64748b);
+}
+
+.contrib-editor-hint--short {
+  margin-bottom: 0;
+}
+
+.contrib-editor-foot-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* Field compact — không dùng typography hero full-page */
+.contrib-editor-field-label {
+  display: block;
+  margin: 12px 0 6px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-body, #334155);
+}
+
+.contrib-editor-field-label:first-child,
+.contrib-editor-meta__thumb-row + .contrib-editor-field-label {
+  margin-top: 0;
+}
+
+.contrib-editor-field {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 8px 10px;
+  font-family: var(--font-sans, system-ui, sans-serif);
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--ink-display, #0f172a);
+  background: #fff;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 8px;
+  outline: none;
+}
+
+.contrib-editor-field:focus {
+  border-color: var(--cins-blue, #1f74c9);
+  box-shadow: 0 0 0 2px rgb(31 116 201 / 0.12);
+}
+
+.contrib-editor-field--title {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.contrib-editor-field--locked {
+  color: var(--ink-muted, #64748b);
+  background: #f8fafc;
+  cursor: default;
+}
+
+.contrib-editor-field--locked:focus {
+  border-color: var(--border, #e2e8f0);
+  box-shadow: none;
+}
+
+.contrib-editor-field--area {
+  resize: vertical;
+  min-height: 4.5rem;
+  line-height: 1.5;
+}
+
+.contrib-editor-field-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.contrib-editor-field-head .contrib-editor-field-label {
+  margin-top: 0;
+}
+
+.contrib-editor-char-count {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--ink-muted, #94a3b8);
+}
+
+.contrib-editor-char-count.is-limit {
+  color: #b45309;
+}
+
+.contrib-editor-meta__file-input {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.contrib-editor-meta__thumb-picker {
+  position: relative;
+  display: block;
+  width: 100%;
+  margin: 0 0 12px;
+  padding: 0;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 8px;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: #fff;
+  cursor: pointer;
+}
+
+.contrib-editor-meta__thumb-picker img {
+  object-fit: cover;
+  object-position: center;
+}
+
+.contrib-editor-meta__thumb-picker:disabled {
+  cursor: wait;
+  opacity: 0.85;
+}
+
+.contrib-editor-meta__thumb-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--ink-muted, #64748b);
+  background: #f8fafc;
+}
+
+.contrib-editor-meta__thumb-overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 6px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  text-align: center;
+  background: linear-gradient(transparent, rgb(15 23 42 / 0.72));
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.contrib-editor-meta__thumb-picker:hover .contrib-editor-meta__thumb-overlay,
+.contrib-editor-meta__thumb-picker:focus-visible .contrib-editor-meta__thumb-overlay {
+  opacity: 1;
+}
+
+.contrib-editor-meta__thumb-msg {
+  margin: -6px 0 10px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #b45309;
+}
+
+.contrib-editor-meta__video {
+  margin-top: 10px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.contrib-editor-meta__video .nghe-lead-video {
+  border-radius: 8px;
+}
+
+.contrib-editor-meta__pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.contrib-editor-related {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border, #e2e8f0);
+}
+
+.contrib-editor-related__title {
+  margin-top: 0;
+  font-size: 13px;
+}
+
+.contrib-editor-related__field {
+  margin-bottom: 12px;
+}
+
+.contrib-editor-related__field .contrib-editor-field-label {
+  margin-top: 0;
+}
+
+.contrib-editor-related__field .tag-input-wrap {
+  margin-top: 4px;
+}
+
+.contrib-editor-meta__related-ro {
+  margin-top: 10px;
+}
+
+.contrib-related-chips {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.contrib-related-chips li {
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border, #e2e8f0);
+  background: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-body, #334155);
+}
+
+.contrib-editor-meta__readonly {
+  margin: 0;
+  font-size: 13px;
+}
+
+.contrib-editor-meta__readonly dt {
+  font-weight: 700;
+  color: var(--ink-muted, #64748b);
+  font-size: 10px;
+  text-transform: uppercase;
+  margin-top: 8px;
+}
+
+.contrib-editor-meta__readonly dd {
+  margin: 2px 0 0;
+}
+
+@media (max-width: 860px) {
+  .contrib-editor-layout {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .contrib-editor-sidebar {
+    flex: 0 0 auto;
+    max-height: none;
+    border-right: none;
+    border-bottom: 1px solid var(--border, #e2e8f0);
+  }
+
+  .contrib-editor-main {
+    flex: 1 1 auto;
+    overflow: visible;
+  }
+}
+
+@media (max-width: 720px) {
+  .contrib-editor-meta__pair {
+    grid-template-columns: 1fr;
   }
 }

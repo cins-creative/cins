@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Bell, Check, CheckCircle2, Video, X, XCircle } from "lucide-react";
+import { ArrowRight, Bell, Check, CheckCircle2, PencilLine, Video, X, XCircle } from "lucide-react";
 import type { ReactNode } from "react";
 import {
   useCallback,
@@ -47,6 +47,8 @@ import {
   writeUnreadNotificationsCache,
 } from "@/lib/social/notifications-session-cache";
 import type {
+  ArticleDongGopFeedbackNotification,
+  ArticleDongGopPromotedNotification,
   CommentNotification,
   CoAuthorReviewProfile,
   FollowAcceptedNotification,
@@ -198,6 +200,8 @@ function countDisplayedItems(feed: NotificationFeed): number {
     feed.orgMilestoneTagApproved.length +
     feed.membershipMilestoneResolved.length +
     feed.videoReady.length +
+    feed.dongGopFeedback.length +
+    feed.dongGopPromoted.length +
     feed.handledFollows.length +
     feed.processedCoAuthorReviews.length
   );
@@ -211,6 +215,8 @@ type InfoNotificationSnapshot = Pick<
   | "videoReady"
   | "orgMilestoneTagApproved"
   | "membershipMilestoneResolved"
+  | "dongGopFeedback"
+  | "dongGopPromoted"
 >;
 
 function extractInfoSnapshot(feed: NotificationFeed): InfoNotificationSnapshot {
@@ -220,6 +226,8 @@ function extractInfoSnapshot(feed: NotificationFeed): InfoNotificationSnapshot {
     videoReady: feed.videoReady,
     orgMilestoneTagApproved: feed.orgMilestoneTagApproved,
     membershipMilestoneResolved: feed.membershipMilestoneResolved,
+    dongGopFeedback: feed.dongGopFeedback,
+    dongGopPromoted: feed.dongGopPromoted,
   };
 }
 
@@ -229,7 +237,9 @@ function countInfoItems(info: InfoNotificationSnapshot): number {
     info.accepted.length +
     info.videoReady.length +
     info.orgMilestoneTagApproved.length +
-    info.membershipMilestoneResolved.length
+    info.membershipMilestoneResolved.length +
+    info.dongGopFeedback.length +
+    info.dongGopPromoted.length
   );
 }
 
@@ -338,7 +348,72 @@ function renderInfoTimelineEntry(entry: InfoTimelineEntry): ReactNode {
           }
         />
       );
+    case "dongGopFeedback":
+      return (
+        <HistoryInfoItem
+          key={entry.item.notificationId}
+          href={entry.item.entityHref}
+          label={dongGopFeedbackNotifyLabel(entry.item)}
+          time={formatNotifyTime(entry.item.taoLuc)}
+          avatar={
+            <span className="j-notify-avatar is-edit" aria-hidden>
+              <PencilLine size={16} strokeWidth={1.8} />
+            </span>
+          }
+        />
+      );
+    case "dongGopPromoted":
+      return (
+        <HistoryInfoItem
+          key={entry.item.notificationId}
+          href={entry.item.entityHref}
+          label={dongGopPromotedNotifyLabel(entry.item)}
+          time={formatNotifyTime(entry.item.taoLuc)}
+          avatar={
+            <span className="j-notify-avatar is-verified" aria-hidden>
+              <CheckCircle2 size={16} strokeWidth={1.8} />
+            </span>
+          }
+        />
+      );
   }
+}
+
+function dongGopFeedbackNotifyLabel(
+  notice: ArticleDongGopFeedbackNotification,
+): ReactNode {
+  const title = notice.entityTitle || "bản đóng góp";
+  if (notice.action === "tu_choi") {
+    return (
+      <>
+        <strong>Quản trị viên chưa duyệt bản đóng góp</strong>
+        <small>
+          {title}
+          {notice.ghiChu ? ` — ${notice.ghiChu}` : ""}
+        </small>
+      </>
+    );
+  }
+  return (
+    <>
+      <strong>Có góp ý cho bản đóng góp của bạn</strong>
+      <small>
+        {title}
+        {notice.ghiChu ? ` — ${notice.ghiChu}` : ""}
+      </small>
+    </>
+  );
+}
+
+function dongGopPromotedNotifyLabel(
+  notice: ArticleDongGopPromotedNotification,
+): ReactNode {
+  return (
+    <>
+      <strong>Bản đóng góp đã được duyệt</strong>
+      <small>{notice.entityTitle || "Nội dung chính đã cập nhật"}</small>
+    </>
+  );
 }
 
 function renderHistoryTimelineEntry(entry: HistoryTimelineEntry): ReactNode {
@@ -367,6 +442,8 @@ function renderHistoryTimelineEntry(entry: HistoryTimelineEntry): ReactNode {
     case "membershipMilestoneResolved":
     case "orgMilestoneTagApproved":
     case "videoReady":
+    case "dongGopFeedback":
+    case "dongGopPromoted":
       return renderInfoTimelineEntry(entry);
   }
 }

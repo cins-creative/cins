@@ -333,11 +333,10 @@
   margin-top: 0;
 }
 
-/* Sidebar: tooltip — clip ngang trang, tip vẫn hiện trong panel */
+/* Sidebar tooltip — kế thừa arv2-nghe; tip mở sang trái, không clip trong side-card */
 .arv2-keyword .side-card.nghe-side-tab-panel,
 .arv2-keyword .nghe-side-tabs .side-card.nghe-side-tab-panel {
-  overflow-x: clip;
-  overflow-y: visible;
+  overflow: visible;
 }
 
 .arv2-keyword .nghe-side-tab-panel:has(.rel-item:hover) {

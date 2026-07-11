@@ -1456,9 +1456,91 @@
   width: min(720px, 100vw);
 }
 
-.cins-admin .cell-preview {
-  min-width: 140px;
-  max-width: 220px;
+.cins-admin .cell-dong-gop {
+  min-width: 108px;
+  white-space: nowrap;
+}
+
+.cins-admin .admin-dong-gop-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-muted, #f8fafc);
+  color: var(--fg-3);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  line-height: 1.2;
+}
+
+.cins-admin .admin-dong-gop-badge:hover {
+  border-color: color-mix(in srgb, var(--cins-blue) 35%, var(--border));
+  color: var(--cins-blue-dark, #0b4f8a);
+}
+
+.cins-admin .admin-dong-gop-badge.is-pending {
+  background: color-mix(in srgb, #f59e0b 14%, white);
+  border-color: color-mix(in srgb, #f59e0b 40%, var(--border));
+  color: #9a6700;
+}
+
+.cins-admin .admin-dong-gop-badge-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #f59e0b;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.cins-admin .admin-bai-viet-dong-gop.is-embedded {
+  padding: 0;
+}
+
+.cins-admin .dgop-admin-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.cins-admin .dgop-admin-group-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+  padding: 0 2px;
+}
+
+.cins-admin .dgop-admin-group-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--fg-1);
+}
+
+.cins-admin .dgop-admin-group-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--fg-3);
+}
+
+.cins-admin .dgop-admin-group-count {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--fg-3);
 }
 
 .cins-admin th.col-preview,
@@ -2097,6 +2179,801 @@
   color: var(--fg-3);
 }
 
+/* ── Bài viết list (compact table, aligned with to-chuc panel) ── */
+.cins-admin .admin-bai-viet-body .admin-toolbar {
+  padding: 12px 14px;
+}
+
+.cins-admin .admin-bai-viet-body .admin-toolbar__row {
+  margin-bottom: 10px;
+}
+
+.cins-admin .filter-bar--articles {
+  gap: 8px;
+}
+
+.cins-admin .filter-bar--articles .filter-select {
+  padding: 6px 28px 6px 10px;
+  font-size: 12px;
+  font-weight: var(--weight-medium);
+}
+
+.cins-admin .filter-bar--articles .filter-count {
+  font-size: 11px;
+}
+
+.cins-admin .table-wrap--articles thead {
+  background: var(--neutral-50);
+}
+
+.cins-admin .table-wrap--articles th {
+  padding: 7px 12px;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--border);
+}
+
+.cins-admin .table-wrap--articles td {
+  padding: 7px 12px;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.cins-admin .table-wrap--articles tbody tr:hover td {
+  background: rgba(31, 116, 201, 0.03);
+}
+
+.cins-admin .table-wrap--articles .col-thumb,
+.cins-admin .table-wrap--articles .cell-thumb {
+  width: 68px;
+  padding: 7px 8px 7px 12px;
+}
+
+.cins-admin .table-wrap--articles .admin-article-thumb {
+  width: 52px;
+  border-radius: 6px;
+}
+
+.cins-admin .table-wrap--articles .admin-article-thumb__ph {
+  padding: 4px;
+  gap: 2px;
+}
+
+.cins-admin .table-wrap--articles .admin-article-thumb__ph-mark {
+  font-size: 13px;
+}
+
+.cins-admin .table-wrap--articles .admin-article-thumb__ph-hint {
+  font-size: 7px;
+}
+
+.cins-admin .table-wrap--articles .admin-article-thumb__actions {
+  padding: 3px;
+}
+
+.cins-admin .table-wrap--articles .admin-article-thumb__pick {
+  font-size: 8px;
+  padding: 2px 6px;
+}
+
+.cins-admin .table-wrap--articles .admin-article-thumb__badge {
+  top: 2px;
+  left: 2px;
+  padding: 1px 3px;
+  font-size: 7px;
+}
+
+.cins-admin .table-wrap--articles .admin-article-thumb__err,
+.cins-admin .table-wrap--articles .admin-article-thumb__ok {
+  bottom: 18px;
+  font-size: 7px;
+  padding: 2px 4px;
+}
+
+.cins-admin .table-wrap--articles .cell-title {
+  font-weight: 600;
+  font-size: 13px;
+  min-width: 140px;
+  max-width: 220px;
+  line-height: 1.3;
+}
+
+.cins-admin .table-wrap--articles .cell-title small {
+  font-size: 10px;
+  margin-top: 2px;
+}
+
+.cins-admin .table-wrap--articles .cell-meta-tags {
+  max-width: 180px;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.cins-admin .table-wrap--articles .admin-tag-row {
+  gap: 3px;
+  margin-top: 3px;
+}
+
+.cins-admin .table-wrap--articles .admin-tag {
+  padding: 2px 6px;
+  font-size: 9px;
+  max-width: 110px;
+}
+
+.cins-admin .table-wrap--articles .badge {
+  padding: 2px 7px;
+  font-size: 10px;
+}
+
+.cins-admin .table-wrap--articles .admin-cell-preview {
+  font-size: 10px;
+}
+
+.cins-admin .table-wrap--articles .cell-preview {
+  min-width: 120px;
+  max-width: 180px;
+}
+
+.cins-admin .table-wrap--articles .admin-status-select {
+  padding: 2px 22px 2px 8px;
+  font-size: 10px;
+  background-position: right 6px center;
+}
+
+.cins-admin .table-wrap--articles .row-actions {
+  gap: 4px;
+}
+
+.cins-admin .table-wrap--articles .action-btn {
+  padding: 3px 8px;
+  font-size: 10px;
+  gap: 3px;
+}
+
+.cins-admin .table-wrap--articles td:has(.row-actions) {
+  min-width: 120px;
+}
+
+.cins-admin .table-wrap--articles .cell-num,
+.cins-admin .table-wrap--articles .cell-date {
+  font-size: 11px;
+}
+
+.cins-admin .table-wrap--articles .pagination {
+  padding: 8px 12px;
+}
+
+.cins-admin .table-wrap--articles .page-btn {
+  padding: 4px 10px;
+  font-size: 11px;
+}
+
+.cins-admin .admin-bai-viet-skel .admin-skel-thumb {
+  width: 52px;
+  height: 39px;
+}
+
+/* ── Bài viết tabs + đóng góp (gộp trong /admin/bai-viet) ── */
+.cins-admin .admin-bai-viet-header__copy {
+  min-width: 0;
+}
+
+.cins-admin .admin-bai-viet-tabs {
+  display: flex;
+  gap: 6px;
+  margin: 0 0 var(--space-4);
+  padding: 4px;
+  width: fit-content;
+  max-width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-xs);
+}
+
+.cins-admin .admin-bai-viet-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 14px;
+  border-radius: calc(var(--radius-md) - 2px);
+  font-size: 13px;
+  font-weight: var(--weight-semibold);
+  color: var(--fg-3);
+  text-decoration: none;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
+}
+
+.cins-admin .admin-bai-viet-tab:hover {
+  color: var(--fg-1);
+  background: var(--neutral-50);
+}
+
+.cins-admin .admin-bai-viet-tab.is-active {
+  background: var(--cins-blue-soft);
+  color: var(--cins-blue);
+}
+
+.cins-admin .admin-bai-viet-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: var(--radius-pill);
+  background: var(--cins-orange-soft);
+  color: #b5610c;
+  font-size: 10px;
+  font-weight: var(--weight-bold);
+  font-family: var(--font-mono);
+}
+
+.cins-admin .admin-bai-viet-tab.is-active .admin-bai-viet-tab-badge {
+  background: rgba(31, 116, 201, 0.18);
+  color: var(--cins-blue-dark);
+}
+
+.cins-admin .admin-toolbar__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.cins-admin .admin-skel-tab {
+  width: 88px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 var(--space-4);
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  font-size: 12px;
+  font-weight: var(--weight-semibold);
+  color: var(--fg-2);
+  cursor: pointer;
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-filter.is-active {
+  background: var(--cins-blue);
+  border-color: var(--cins-blue);
+  color: var(--neutral-0);
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-filter-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 16px;
+  padding: 0 5px;
+  border-radius: var(--radius-pill);
+  background: rgba(0, 0, 0, 0.08);
+  font-size: 10px;
+  font-weight: var(--weight-bold);
+  font-family: var(--font-mono);
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-filter.is-active .dgop-filter-count {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-admin-msg {
+  margin: 0 0 var(--space-3);
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: #fef2f2;
+  color: var(--danger);
+  font-size: 13px;
+  font-weight: var(--weight-semibold);
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-admin-msg.is-success {
+  background: var(--cins-mint-soft);
+  color: var(--success);
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-admin-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 48px 0;
+  color: var(--fg-4);
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-admin-empty p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-admin-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-admin-card {
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-xs);
+  overflow: hidden;
+  border-left: 3px solid var(--border);
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-admin-card.status-cho_duyet {
+  border-left-color: #e08a2c;
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-admin-card.status-duoc_duyet {
+  border-left-color: var(--success);
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-admin-card.status-tu_choi {
+  border-left-color: var(--danger);
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-admin-card.status-can_sua {
+  border-left-color: var(--cins-blue);
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-admin-card.status-nhap {
+  border-left-color: var(--fg-4);
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-admin-card-main {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  gap: 16px;
+  padding: 14px 16px;
+  align-items: start;
+}
+
+@media (max-width: 720px) {
+  .cins-admin .admin-bai-viet-dong-gop .dgop-admin-card-main {
+    grid-template-columns: 96px minmax(0, 1fr);
+    gap: 12px;
+    padding: 12px;
+  }
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-admin-thumb {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--neutral-100);
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-admin-thumb img {
+  object-fit: cover;
+  object-position: center;
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-admin-thumb.is-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-admin-thumb-fallback {
+  font-size: 22px;
+  font-weight: var(--weight-bold);
+  color: var(--fg-4);
+  text-transform: uppercase;
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-admin-card-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-admin-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-admin-card-titles {
+  min-width: 0;
+  flex: 1;
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-status-badge {
+  display: inline-flex;
+  flex-shrink: 0;
+  padding: 4px 9px;
+  border-radius: var(--radius-pill);
+  font-size: 10px;
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-status-badge.status-cho_duyet {
+  background: var(--cins-orange-soft);
+  color: #b5610c;
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-status-badge.status-duoc_duyet {
+  background: var(--cins-mint-soft);
+  color: var(--success);
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-status-badge.status-tu_choi {
+  background: #fef2f2;
+  color: var(--danger);
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-status-badge.status-can_sua {
+  background: var(--cins-blue-soft);
+  color: var(--cins-blue-dark);
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-status-badge.status-nhap {
+  background: var(--neutral-100);
+  color: var(--fg-4);
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-admin-topic-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: var(--weight-bold);
+  line-height: 1.35;
+  color: var(--fg-1);
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-entity-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  font-size: 12px;
+  font-weight: var(--weight-semibold);
+  line-height: 1.3;
+  color: var(--cins-blue);
+  text-decoration: none;
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-entity-link:hover {
+  text-decoration: underline;
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-admin-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--fg-3);
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-loai-chip {
+  display: inline-flex;
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  background: var(--neutral-100);
+  color: var(--fg-2);
+  font-size: 11px;
+  font-weight: var(--weight-semibold);
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-admin-who {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--fg-2);
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-admin-who-link {
+  color: inherit;
+  text-decoration: none;
+  font-weight: var(--weight-semibold);
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-admin-who-link:hover {
+  color: var(--cins-blue);
+  text-decoration: underline;
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-admin-avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-admin-avatar.is-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--neutral-100);
+  color: var(--fg-4);
+  font-size: 9px;
+  font-weight: var(--weight-bold);
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-admin-time {
+  font-size: 11px;
+  color: var(--fg-4);
+  font-family: var(--font-mono);
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-admin-excerpt {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--fg-3);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-admin-excerpt.is-muted {
+  font-style: italic;
+  color: var(--fg-4);
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-admin-feedback {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--neutral-50);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--fg-2);
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-admin-feedback svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--fg-4);
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-admin-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-admin-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  font: inherit;
+  font-size: 12px;
+  font-weight: var(--weight-semibold);
+  color: var(--fg-2);
+  cursor: pointer;
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-tool-btn:hover:not(:disabled) {
+  border-color: var(--fg-4);
+  background: var(--neutral-50);
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-tool-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-tool-btn.is-active {
+  border-color: var(--cins-blue);
+  color: var(--cins-blue);
+  background: var(--cins-blue-soft);
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-tool-btn.is-active .dgop-tool-chevron {
+  transform: rotate(180deg);
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-tool-chevron {
+  transition: transform 0.15s ease;
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-tool-btn--approve {
+  background: var(--cins-mint-soft);
+  border-color: color-mix(in srgb, var(--success) 35%, var(--border));
+  color: var(--success);
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-tool-btn--approve:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--success) 14%, white);
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-tool-btn--reject {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 28%, var(--border));
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-tool-btn--reject:hover:not(:disabled) {
+  background: #fef2f2;
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-compare-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 0;
+  padding: 0 16px 14px;
+  border-top: 1px solid var(--border);
+  background: color-mix(in srgb, var(--neutral-50) 80%, white);
+}
+
+@media (max-width: 900px) {
+  .cins-admin .admin-bai-viet-dong-gop .dgop-compare-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-compare-col {
+  padding-top: 12px;
+  min-width: 0;
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-compare-col h3 {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: var(--weight-bold);
+  color: var(--fg-2);
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-preview-scroll {
+  max-height: min(52vh, 480px);
+  overflow: auto;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-preview-lead-mirror {
+  max-width: none;
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-preview-lead-mirror .ent-page {
+  min-height: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-preview-lead-mirror .nghe-lead-panel {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-preview-lead-mirror .nghe-lead-rich {
+  max-width: none;
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-preview-empty {
+  margin: 0;
+  padding: 14px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--fg-4);
+  background: var(--bg-surface);
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-review-box {
+  margin: 0;
+  padding: 12px 16px 14px;
+  border-top: 1px solid var(--border);
+  background: var(--neutral-50);
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-note-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 11px;
+  font-weight: var(--weight-semibold);
+  color: var(--fg-2);
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-note-label span {
+  font-weight: var(--weight-regular);
+  color: var(--fg-4);
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-note-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: 12px;
+  resize: vertical;
+  background: var(--bg-surface);
+  color: var(--fg-2);
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-review-compose {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-review-send-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-tool-btn--send {
+  background: var(--cins-blue-soft);
+  border-color: color-mix(in srgb, var(--cins-blue) 35%, var(--border));
+  color: var(--cins-blue-dark);
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-tool-btn--send:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--cins-blue) 14%, white);
+}
+
+.cins-admin .admin-bai-viet-dong-gop .dgop-spin {
+  animation: dgop-spin 0.8s linear infinite;
+}
+
+@keyframes dgop-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* ── Empty / pagination ── */
 .cins-admin .empty-state {
   padding: var(--space-12) var(--space-6);
@@ -2195,6 +3072,10 @@
   flex-direction: column;
   transform: translateX(100%);
   transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cins-admin .slideover.slideover--wide {
+  width: min(920px, 100vw);
 }
 
 .cins-admin .slideover-backdrop.open .slideover {

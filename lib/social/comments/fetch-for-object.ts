@@ -10,7 +10,12 @@ import { loadCommentIdentityBadges } from "@/lib/social/comments/identity-badges
 import type { CommentAuthor } from "@/lib/social/comments/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
-type LoaiDoiTuong = "cot_moc" | "tac_pham" | "du_an" | "thao_luan";
+type LoaiDoiTuong =
+  | "cot_moc"
+  | "tac_pham"
+  | "du_an"
+  | "thao_luan"
+  | "article_dong_gop";
 
 type CommentRow = {
   id: string;

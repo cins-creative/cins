@@ -9,6 +9,7 @@ import {
 
 import type { EditProfileInitial } from "@/components/journey/JourneyEditProfileModal";
 import { JourneyAvatarTrigger } from "@/components/journey/JourneyAvatarTrigger";
+import { AVATAR_DISPLAY_PX } from "@/lib/cloudflare/cf-image-variants";
 import { JourneyCoverTrigger } from "@/components/journey/JourneyCoverTrigger";
 import { JourneyProfileGuestSection } from "@/components/journey/JourneyProfileGuestSection";
 import { JourneyProfileShareTrigger } from "@/components/journey/JourneyProfileShareTrigger";
@@ -144,7 +145,13 @@ export function JourneySidebar({
         <div className="j-avatar">
           {avatarUrl ? (
             /* eslint-disable-next-line @next/next/no-img-element */
-            <img src={avatarUrl} alt={profile.tenHienThi || profile.slug} />
+            <img
+              src={avatarUrl}
+              alt={profile.tenHienThi || profile.slug}
+              width={AVATAR_DISPLAY_PX}
+              height={AVATAR_DISPLAY_PX}
+              decoding="async"
+            />
           ) : (
             <span aria-hidden>{initials}</span>
           )}

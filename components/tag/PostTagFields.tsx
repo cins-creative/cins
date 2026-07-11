@@ -56,7 +56,7 @@ function mergeFromInput(
   return [...other, ...fromInputValue(next, all)];
 }
 
-/** Một ô tag: khái niệm, phần mềm, môn học, ngành đào tạo, nghề nghiệp. */
+/** Một ô tag: khái niệm, phần mềm, môn học, ngành đào tạo, nghề nghiệp — user có thể tạo keyword/phan_mem/mon_hoc/nghe. */
 export function PostTagFields({ tags, onChange, disabled, variant = "default" }: Props) {
   return (
     <div className="post-tag-fields">

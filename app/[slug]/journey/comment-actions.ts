@@ -68,6 +68,34 @@ async function loadMilestoneOwner(
   };
 }
 
+/** Chủ nội dung của bình luận — cột mốc hoặc bản đóng góp entity. */
+async function loadCommentContentOwner(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  cmt: CommentRow,
+): Promise<{ ownerId: string; ownerSlug: string | null } | null> {
+  if (cmt.loai_doi_tuong === "article_dong_gop") {
+    const { data } = await admin
+      .from("article_dong_gop")
+      .select(
+        "id_nguoi_dong_gop, user_nguoi_dung: id_nguoi_dong_gop ( slug )",
+      )
+      .eq("id", cmt.id_doi_tuong)
+      .maybeSingle<{
+        id_nguoi_dong_gop: string;
+        user_nguoi_dung: { slug: string } | null;
+      }>();
+    if (!data) return null;
+    return {
+      ownerId: data.id_nguoi_dong_gop,
+      ownerSlug: data.user_nguoi_dung?.slug ?? null,
+    };
+  }
+
+  const milestone = await loadMilestoneOwner(admin, cmt.id_doi_tuong);
+  if (!milestone) return null;
+  return { ownerId: milestone.ownerId, ownerSlug: milestone.ownerSlug };
+}
+
 export async function addMilestoneCommentV1(
   milestoneId: string,
   noiDung: string,
@@ -244,8 +272,8 @@ export async function hideMilestoneCommentByOwner(
   const cmt = await loadCommentRow(admin, commentId);
   if (!cmt) return { ok: false, error: "Bình luận không tồn tại." };
 
-  const milestone = await loadMilestoneOwner(admin, cmt.id_doi_tuong);
-  if (!milestone || milestone.ownerId !== session.profile.id) {
+  const owner = await loadCommentContentOwner(admin, cmt);
+  if (!owner || owner.ownerId !== session.profile.id) {
     return { ok: false, error: "Bạn không có quyền ẩn bình luận này." };
   }
 
@@ -255,7 +283,7 @@ export async function hideMilestoneCommentByOwner(
     .eq("id", commentId);
   if (error) return { ok: false, error: error.message };
 
-  if (milestone.ownerSlug) revalidatePath(`/${milestone.ownerSlug}`);
+  if (owner.ownerSlug) revalidatePath(`/${owner.ownerSlug}`);
   return { ok: true, data: null };
 }
 
@@ -275,8 +303,8 @@ export async function pinMilestoneComment(
     return { ok: false, error: "Chỉ ghim được bình luận gốc." };
   }
 
-  const milestone = await loadMilestoneOwner(admin, cmt.id_doi_tuong);
-  if (!milestone || milestone.ownerId !== session.profile.id) {
+  const owner = await loadCommentContentOwner(admin, cmt);
+  if (!owner || owner.ownerId !== session.profile.id) {
     return { ok: false, error: "Bạn không có quyền ghim bình luận." };
   }
 
@@ -284,7 +312,7 @@ export async function pinMilestoneComment(
     await admin
       .from("social_binh_luan")
       .update({ ghim_luc: null })
-      .eq("loai_doi_tuong", "cot_moc")
+      .eq("loai_doi_tuong", cmt.loai_doi_tuong)
       .eq("id_doi_tuong", cmt.id_doi_tuong)
       .not("ghim_luc", "is", null);
   }
@@ -295,7 +323,7 @@ export async function pinMilestoneComment(
     .eq("id", commentId);
   if (error) return { ok: false, error: error.message };
 
-  if (milestone.ownerSlug) revalidatePath(`/${milestone.ownerSlug}`);
+  if (owner.ownerSlug) revalidatePath(`/${owner.ownerSlug}`);
   return { ok: true, data: null };
 }
 

@@ -22,6 +22,12 @@ import type { NotificationFeed, NotificationFilter } from "@/lib/social/types";
 import { listOrgMilestoneTagApprovedNotifications } from "@/lib/social/org-milestone-tag-notify";
 import { listMembershipMilestoneResolvedNotifications } from "@/lib/social/membership-milestone-notify";
 import { listVideoReadyNotifications } from "@/lib/social/video-ready";
+import { listDongGopFeedbackNotifications } from "@/lib/article/dong-gop/notify-feedback";
+import { listDongGopPromotedNotifications } from "@/lib/article/dong-gop/notify-promote";
+import {
+  SOCIAL_LOAI_ARTICLE_DONG_GOP_FEEDBACK,
+  SOCIAL_LOAI_ARTICLE_DONG_GOP_PROMOTED,
+} from "@/lib/article/dong-gop/types";
 
 /** Số dòng tối đa hiển thị trong dropdown thông báo. */
 export const NOTIFICATION_DISPLAY_LIMIT = 10;
@@ -39,6 +45,8 @@ export const EMPTY_NOTIFICATION_FEED: NotificationFeed = {
   videoReady: [],
   orgMilestoneTagApproved: [],
   membershipMilestoneResolved: [],
+  dongGopFeedback: [],
+  dongGopPromoted: [],
   handledFollows: [],
   processedCoAuthorReviews: [],
 };
@@ -69,6 +77,8 @@ function capUnreadLists(payload: FeedPayload, limit: number): FeedPayload {
     coAuthorInvites: take(payload.coAuthorInvites),
     coAuthorReviews: take(payload.coAuthorReviews),
     videoReady: payload.videoReady.slice(0, 5),
+    dongGopFeedback: payload.dongGopFeedback.slice(0, 5),
+    dongGopPromoted: payload.dongGopPromoted.slice(0, 5),
     comments: payload.comments.slice(0, 5),
     accepted: payload.accepted.slice(0, 5),
     handledFollows: [],
@@ -122,6 +132,8 @@ async function loadNotificationFeedUnsafe(
     orgMilestoneTagApproved,
     membershipMilestoneResolved,
     videoReady,
+    dongGopFeedback,
+    dongGopPromoted,
     handledFollows,
     processedCoAuthorReviews,
   ] = await Promise.all([
@@ -163,6 +175,16 @@ async function loadNotificationFeedUnsafe(
       historyOnly,
       limit: rowLimit,
     }),
+    listDongGopFeedbackNotifications(viewerId, {
+      unreadOnly,
+      historyOnly,
+      limit: rowLimit,
+    }),
+    listDongGopPromotedNotifications(viewerId, {
+      unreadOnly,
+      historyOnly,
+      limit: rowLimit,
+    }),
     historyOnly
       ? listFollowHandledNotifications(viewerId, { limit: rowLimit })
       : Promise.resolve([]),
@@ -181,6 +203,8 @@ async function loadNotificationFeedUnsafe(
     orgMilestoneTagApproved,
     membershipMilestoneResolved,
     videoReady,
+    dongGopFeedback,
+    dongGopPromoted,
     handledFollows,
     processedCoAuthorReviews: historyOnly ? processedCoAuthorReviews : [],
   };
@@ -228,6 +252,8 @@ export async function countUnreadNotifications(viewerId: string): Promise<number
     { count: membershipMilestoneApproved },
     { count: membershipMilestoneRejected },
     { count: video },
+    { count: dongGopFeedback },
+    { count: dongGopPromoted },
   ] = await Promise.all([
     admin
       .from("user_ket_ban")
@@ -313,6 +339,18 @@ export async function countUnreadNotifications(viewerId: string): Promise<number
       .eq("nguoi_nhan", viewerId)
       .eq("loai_doi_tuong", "video_ready")
       .eq("da_doc", false),
+    admin
+      .from("social_thong_bao")
+      .select("id", { count: "exact", head: true })
+      .eq("nguoi_nhan", viewerId)
+      .eq("loai_doi_tuong", SOCIAL_LOAI_ARTICLE_DONG_GOP_FEEDBACK)
+      .eq("da_doc", false),
+    admin
+      .from("social_thong_bao")
+      .select("id", { count: "exact", head: true })
+      .eq("nguoi_nhan", viewerId)
+      .eq("loai_doi_tuong", SOCIAL_LOAI_ARTICLE_DONG_GOP_PROMOTED)
+      .eq("da_doc", false),
   ]);
 
   return (
@@ -327,7 +365,9 @@ export async function countUnreadNotifications(viewerId: string): Promise<number
     (orgMilestoneTag ?? 0) +
     (membershipMilestoneApproved ?? 0) +
     (membershipMilestoneRejected ?? 0) +
-    (video ?? 0)
+    (video ?? 0) +
+    (dongGopFeedback ?? 0) +
+    (dongGopPromoted ?? 0)
   );
 }
 
@@ -479,6 +519,8 @@ export async function markAllInfoNotificationsRead(
       "membership_milestone_approved",
       "membership_milestone_rejected",
       "video_ready",
+      "article_dong_gop_feedback",
+      "article_dong_gop_promoted",
     ]);
   if (error) return { ok: false, error: error.message };
   return { ok: true };

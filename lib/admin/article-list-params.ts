@@ -1,5 +1,7 @@
 export const ADMIN_ARTICLE_PAGE_SIZE = 30;
 
+export type AdminBaiVietTab = "list" | "dong-gop";
+
 export type AdminArticleListParams = {
   page?: number;
   q?: string;
@@ -9,6 +11,10 @@ export type AdminArticleListParams = {
   nhom?: string;
   loaiNhom?: string;
   media?: "" | "has_thumb" | "no_thumb" | "has_cover" | "no_cover";
+  /** Chỉ bài có đóng góp `cho_duyet`. */
+  dongGop?: "cho_duyet";
+  /** Tab đóng góp — lọc theo 1 bài viết. */
+  bai?: string;
 };
 
 export type AdminArticleListSearchParams = Record<
@@ -26,6 +32,12 @@ function pickString(
   return s || undefined;
 }
 
+export function parseAdminBaiVietTab(
+  sp: AdminArticleListSearchParams,
+): AdminBaiVietTab {
+  return pickString(sp, "tab") === "dong-gop" ? "dong-gop" : "list";
+}
+
 export function parseAdminArticleListParams(
   sp: AdminArticleListSearchParams,
 ): AdminArticleListParams {
@@ -41,6 +53,8 @@ export function parseAdminArticleListParams(
       ? media
       : undefined;
 
+  const dongGop = pickString(sp, "dongGop");
+
   return {
     page,
     q: pickString(sp, "q"),
@@ -50,11 +64,17 @@ export function parseAdminArticleListParams(
     nhom: pickString(sp, "nhom"),
     loaiNhom: pickString(sp, "loaiNhom"),
     media: mediaOk,
+    dongGop: dongGop === "cho_duyet" ? "cho_duyet" : undefined,
+    bai: pickString(sp, "bai"),
   };
 }
 
-export function buildAdminBaiVietHref(params: AdminArticleListParams): string {
+export function buildAdminBaiVietHref(
+  params: AdminArticleListParams,
+  options?: { tab?: AdminBaiVietTab },
+): string {
   const sp = new URLSearchParams();
+  if (options?.tab === "dong-gop") sp.set("tab", "dong-gop");
   if (params.page && params.page > 1) sp.set("page", String(params.page));
   if (params.q) sp.set("q", params.q);
   if (params.loai) sp.set("loai", params.loai);
@@ -63,6 +83,8 @@ export function buildAdminBaiVietHref(params: AdminArticleListParams): string {
   if (params.nhom) sp.set("nhom", params.nhom);
   if (params.loaiNhom) sp.set("loaiNhom", params.loaiNhom);
   if (params.media) sp.set("media", params.media);
+  if (params.dongGop) sp.set("dongGop", params.dongGop);
+  if (params.bai && options?.tab === "dong-gop") sp.set("bai", params.bai);
   const qs = sp.toString();
   return `/admin/bai-viet${qs ? `?${qs}` : ""}`;
 }

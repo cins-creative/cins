@@ -4,6 +4,7 @@ import { Camera } from "lucide-react";
 import { useState } from "react";
 
 import { JourneyAvatarEditor } from "@/components/journey/JourneyAvatarEditor";
+import { AVATAR_DISPLAY_PX } from "@/lib/cloudflare/cf-image-variants";
 
 /* ╔══════════════════════════════════════════════════════════════════╗
    ║ JourneyAvatarTrigger                                             ║
@@ -35,7 +36,13 @@ export function JourneyAvatarTrigger({ avatarUrl, initials, alt }: Props) {
       >
         {avatarUrl ? (
           /* eslint-disable-next-line @next/next/no-img-element */
-          <img src={avatarUrl} alt={alt} />
+          <img
+            src={avatarUrl}
+            alt={alt}
+            width={AVATAR_DISPLAY_PX}
+            height={AVATAR_DISPLAY_PX}
+            decoding="async"
+          />
         ) : (
           <span aria-hidden>{initials}</span>
         )}

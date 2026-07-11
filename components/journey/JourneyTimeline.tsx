@@ -26,6 +26,8 @@ import {
 } from "@/lib/journey/coauthor-credits-events";
 import type { LoaiMocVisibilityMap } from "@/lib/journey/filter-visibility";
 import type { MilestoneFilterCounts } from "@/lib/journey/milestones-page-fetch";
+import type { DongGopFeedbackBannerItem } from "@/lib/article/dong-gop/notify-feedback";
+import type { OutboundMembershipPending } from "@/lib/journey/membership-milestone-types";
 import { buildFilterOptions, computeFilterCounts } from "@/lib/journey/milestone-filter-options";
 import {
   COAUTHOR_INVITE_ACCEPTED_EVENT,
@@ -51,7 +53,6 @@ import {
 } from "@/lib/journey/timeline-scroll-spy";
 import type { PendingCoAuthorInvite } from "@/lib/social/types";
 import type { PendingCoSoStaffInviteNotification } from "@/lib/to-chuc/co-so-staff-invite";
-import type { OutboundMembershipPending } from "@/lib/journey/membership-milestone-types";
 import {
   buildGalleryGroupFilterSearchUrl,
   galleryGroupFromSearch,
@@ -91,6 +92,7 @@ type Props = {
   coAuthorPendingInvites?: ReadonlyArray<PendingCoAuthorInvite>;
   coSoStaffPendingInvites?: ReadonlyArray<PendingCoSoStaffInviteNotification>;
   membershipPendingOutbound?: ReadonlyArray<OutboundMembershipPending>;
+  dongGopFeedbackPending?: ReadonlyArray<DongGopFeedbackBannerItem>;
   /** Infinite scroll — load trang kế qua API khi sentinel vào viewport. */
   scrollLoad?: ScrollLoadConfig;
 };
@@ -119,6 +121,7 @@ export function JourneyTimeline({
   coAuthorPendingInvites = [],
   coSoStaffPendingInvites = [],
   membershipPendingOutbound = [],
+  dongGopFeedbackPending = [],
   scrollLoad,
 }: Props) {
   const personalFilter = useJourneyPersonalFilterOptional();
@@ -578,6 +581,7 @@ export function JourneyTimeline({
           initialCoAuthorInvites={coAuthorPendingInvites}
           initialCoSoStaffInvites={coSoStaffPendingInvites}
           initialMembershipPending={membershipPendingOutbound}
+          initialDongGopFeedback={dongGopFeedbackPending}
         />
       ) : null}
 

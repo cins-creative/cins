@@ -7,6 +7,7 @@ import { createPortal } from "react-dom";
 import { handleBlockImageError } from "@/lib/editor/resolve-image-seed-url";
 import {
   gridLightboxSrc,
+  isPortraitGridImage,
   type GridImage,
 } from "@/lib/journey/image-grid";
 
@@ -117,7 +118,7 @@ export function ImageLightbox({
         <figure className="image-lightbox-figure">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={gridLightboxSrc(current)}
+            src={gridLightboxSrc(current, isPortraitGridImage(current))}
             alt=""
             width={current.width}
             height={current.height}

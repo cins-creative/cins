@@ -13,7 +13,8 @@
     "lint": "eslint",
     "preview": "node scripts/ensure-prod-site-url.mjs \"opennextjs-cloudflare build && opennextjs-cloudflare preview\"",
     "deploy": "node scripts/ensure-prod-site-url.mjs \"opennextjs-cloudflare build && opennextjs-cloudflare deploy -- --keep-vars\"",
-    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
+    "cf:variants": "node scripts/cf-ensure-image-variants.mjs"
   },
   "dependencies": {
     "@rive-app/canvas": "^2.38.3",

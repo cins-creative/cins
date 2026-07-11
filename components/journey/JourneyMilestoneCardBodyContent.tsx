@@ -16,7 +16,7 @@ import { JourneyCardEmbedPeek } from "@/components/journey/JourneyCardEmbedPeek"
 import { JourneyChiChuNenPicker } from "@/components/journey/JourneyChiChuNenPicker";
 import type { MilestoneMediaItem } from "@/components/journey/milestone-types";
 import type { GridImage } from "@/lib/journey/image-grid";
-import { gridThumbSrc } from "@/lib/journey/image-grid";
+import { gridThumbSrc, isPortraitGridImage } from "@/lib/journey/image-grid";
 import type { MilestoneCardContentKind } from "@/lib/journey/milestone-card-kind";
 import { milestonePhotoLayout } from "@/lib/journey/milestone-card-kind";
 import {
@@ -118,6 +118,16 @@ export function JourneyMilestoneCardBodyContent({
   const blocks = noiDungBlocks ?? null;
   const hasCoverPreview = Boolean(preview?.src);
   const photoGridImages = photoGridOverride ?? null;
+  const singlePortraitCanvas = Boolean(
+    photoGridImages?.length === 1 &&
+      isPortraitGridImage(photoGridImages[0]),
+  );
+  const previewPortraitCanvas = Boolean(
+    preview &&
+      (preview.height ?? 0) > 0 &&
+      (preview.width ?? 0) > 0 &&
+      (preview.height ?? 0) > (preview.width ?? 0),
+  );
   const cardLayout: PostCardLayout = resolvePostCardLayout({
     moTa: body,
     hasCover: hasCoverPreview,
@@ -561,11 +571,15 @@ export function JourneyMilestoneCardBodyContent({
               <ImageGrid images={photoGridImages} readOnly timelineLightbox />
             </div>
           ) : (isPhotoSingle || isPhotoCard) && photoGridImages ? (
-            <div className="preview preview--photo-grid">
+            <div
+              className={`preview preview--photo-grid${singlePortraitCanvas ? " is-canvas-9-16" : ""}`}
+            >
               <ImageGrid images={photoGridImages} readOnly timelineLightbox />
             </div>
           ) : isTextWithImage && preview?.src ? (
-            <div className="preview preview--photo-grid preview--photo-single">
+            <div
+              className={`preview preview--photo-grid preview--photo-single${previewPortraitCanvas ? " is-canvas-9-16" : ""}`}
+            >
               <JourneyCoverImage
                 src={preview.src}
                 srcSet={preview.srcSet}
@@ -578,7 +592,9 @@ export function JourneyMilestoneCardBodyContent({
               />
             </div>
           ) : isPhotoCard && preview?.src ? (
-            <div className="preview preview--photo-grid preview--photo-single">
+            <div
+              className={`preview preview--photo-grid preview--photo-single${previewPortraitCanvas ? " is-canvas-9-16" : ""}`}
+            >
               <JourneyCoverImage
                 src={preview.src}
                 srcSet={preview.srcSet}

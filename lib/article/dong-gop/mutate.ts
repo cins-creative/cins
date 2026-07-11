@@ -40,7 +40,10 @@ export async function upsertDongGopDraft(input: {
     if (!canContributorEditDongGop(existing.trang_thai)) {
       return {
         ok: false,
-        message: "Bản đã duyệt — không thể sửa. Hãy tạo bản mới sau khi được yêu cầu.",
+        message:
+          existing.trang_thai === "duoc_duyet"
+            ? "Bản đã duyệt — không thể sửa."
+            : "Không thể sửa bản ở trạng thái hiện tại.",
       };
     }
 
@@ -107,6 +110,23 @@ export async function submitDongGopForReview(input: {
       hien_thi: true,
     })
     .eq("id", input.idDongGop);
+
+  if (error) return { ok: false, message: error.message };
+  return { ok: true };
+}
+
+export async function showDongGopByOwner(input: {
+  idDongGop: string;
+  idNguoiDung: string;
+}): Promise<MutateResult> {
+  const admin = createServiceRoleClient();
+  const { error } = await admin
+    .from("article_dong_gop")
+    .update({ hien_thi: true, cap_nhat_luc: nowIso() })
+    .eq("id", input.idDongGop)
+    .eq("id_nguoi_dong_gop", input.idNguoiDung)
+    .eq("da_xoa", false)
+    .neq("trang_thai", "nhap");
 
   if (error) return { ok: false, message: error.message };
   return { ok: true };

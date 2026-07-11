@@ -15,7 +15,7 @@ import { ImageUploadProgressOverlay } from "@/components/ui/ImageUploadProgressO
 import { handleBlockImageError } from "@/lib/editor/resolve-image-seed-url";
 import {
   albumGridComposeRows,
-  gridThumbSrc,
+  gridThumbAsset,
   resolveAlbumLayout,
   type AlbumCell,
   type GridImage,
@@ -72,6 +72,7 @@ type CellProps = {
   /** Style bổ sung cho ô (justified: flex-grow + aspect-ratio; masonry: aspect-ratio). */
   style?: CSSProperties;
   composeSlotActions?: Props["composeSlotActions"];
+  singlePortrait?: boolean;
 };
 
 function ImageGridCell({
@@ -88,6 +89,7 @@ function ImageGridCell({
   onOpen,
   style,
   composeSlotActions,
+  singlePortrait = false,
 }: CellProps) {
   const CellTag = useButtonCells ? "button" : "div";
 
@@ -110,7 +112,8 @@ function ImageGridCell({
         }
       : style;
 
-  const thumbSrc = gridThumbSrc(image);
+  const thumb = gridThumbAsset(image, { singlePortrait });
+  const thumbSrc = thumb.src;
   const uploadActive = uploadState?.status === "uploading";
   const uploadDone = uploadState?.status === "done";
   const uploadFailed = uploadState?.status === "error";
@@ -148,6 +151,8 @@ function ImageGridCell({
         /* eslint-disable-next-line @next/next/no-img-element */
         <img
           src={thumbSrc}
+          srcSet={thumb.srcSet}
+          sizes={thumb.srcSet ? thumb.sizes : undefined}
           alt=""
           width={image.width}
           height={image.height}
@@ -292,7 +297,12 @@ export function ImageGrid({
 
   const renderCell = (
     slotIndex: number,
-    opts?: { style?: CSSProperties; overlay?: boolean; remaining?: number },
+    opts?: {
+      style?: CSSProperties;
+      overlay?: boolean;
+      remaining?: number;
+      singlePortrait?: boolean;
+    },
   ) => {
     const image = images[slotIndex];
     if (!image) return null;
@@ -313,6 +323,7 @@ export function ImageGrid({
         onOpen={openLightbox}
         style={opts?.style}
         composeSlotActions={composeSlotActions}
+        singlePortrait={opts?.singlePortrait}
       />
     );
   };
@@ -325,7 +336,7 @@ export function ImageGrid({
         className={`image-grid image-grid--single${layout.portrait ? " is-portrait" : ""}`}
         data-count="1"
       >
-        {renderCell(0)}
+        {renderCell(0, { singlePortrait: layout.portrait })}
       </div>
     );
   } else if (layout.kind === "masonry") {

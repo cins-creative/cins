@@ -227,7 +227,11 @@ export async function countDongGopByTrangThai(
 }
 
 export async function fetchDongGopListForAdmin(
-  options?: { trangThai?: TrangThaiDongGop; limit?: number },
+  options?: {
+    trangThai?: TrangThaiDongGop;
+    limit?: number;
+    idBaiViet?: string;
+  },
 ): Promise<ArticleDongGopAdminItem[]> {
   const admin = createServiceRoleClient();
   let q = admin
@@ -250,6 +254,9 @@ export async function fetchDongGopListForAdmin(
 
   if (options?.trangThai) {
     q = q.eq("trang_thai", options.trangThai);
+  }
+  if (options?.idBaiViet) {
+    q = q.eq("id_bai_viet", options.idBaiViet);
   }
   if (options?.limit) {
     q = q.limit(options.limit);

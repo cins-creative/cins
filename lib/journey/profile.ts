@@ -138,7 +138,7 @@ export function normalizeSocialLinks(
   return out;
 }
 
-/** Avatar Cloudflare → URL. Dùng variant `avatar` (64×64) cho ảnh đại diện. */
+/** Avatar Cloudflare → URL. Variant `avatar` (256×256 cover, @2x cho 96px sidebar). */
 export function getAvatarUrl(
   avatarId: string | null | undefined,
 ): string | null {

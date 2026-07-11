@@ -12,7 +12,9 @@ export type CfImageVariant =
   | "medium"
   | "thumbnail"
   | "grid"
-  | "gridsm";
+  | "gridsm"
+  | "feed"
+  | "feedsm";
 
 const VARIANT_FALLBACK_ORDER: CfImageVariant[] = [
   "public",

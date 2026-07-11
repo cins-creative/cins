@@ -1,0 +1,192 @@
+/* Compose editor trong modal đóng góp — bổ sung cho Journey editor.css */
+
+/* Picker portal (body) phải nổi trên modal đóng góp (z-index 10060). */
+body > .cins-editor-page.picker-portal-root {
+  z-index: 10120;
+}
+body > .cins-editor-page.picker-portal-root .picker {
+  z-index: 10120;
+}
+
+.contrib-editor-modal .article-compose-editor.cins-editor-page {
+  min-height: 0;
+  background: transparent;
+  font-size: 15px;
+  overflow: visible;
+}
+
+.contrib-editor-modal .article-compose-editor .blocks {
+  max-width: 100%;
+  /* Chừa chỗ cho `.block-side` (left: -46px) — tránh bị cắt bởi overflow của main. */
+  padding: 4px 4px 12px 56px;
+  box-sizing: border-box;
+}
+
+.contrib-editor-modal .article-compose-editor .block {
+  max-width: 100%;
+}
+
+/* Trong modal đóng góp: luôn hiện nút ▲▼✕ khi chọn / hover — dễ xóa khung. */
+.contrib-editor-modal .article-compose-editor .block:hover .block-side,
+.contrib-editor-modal .article-compose-editor .block.selected .block-side {
+  opacity: 1;
+}
+
+/* Danh sách */
+.article-compose-editor .b-list-input {
+  width: 100%;
+  border: none;
+  background: none;
+  outline: none;
+  resize: none;
+  overflow: hidden;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.75;
+  color: var(--ink-body);
+  padding-left: 4px;
+}
+
+.article-compose-editor .b-list-ctrl {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.article-compose-editor .b-list-ctrl button {
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  font-size: 12px;
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+
+.article-compose-editor .b-list-ctrl button.active {
+  border-color: var(--cins-blue);
+  color: var(--cins-blue);
+  background: rgb(31 116 201 / 0.06);
+}
+
+/* Bảng */
+.article-compose-editor .b-table {
+  width: 100%;
+}
+
+.article-compose-editor .b-table-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-bottom: 10px;
+}
+
+.article-compose-editor .b-table-toolbar button {
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.article-compose-editor .b-table-header-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.article-compose-editor .b-table-grid {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+}
+
+.article-compose-editor .b-table-cell {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+}
+
+.article-compose-editor .b-table-cell input {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: var(--font-sans);
+  background: var(--bg-surface);
+}
+
+.article-compose-editor .b-table-cell.is-header input {
+  font-weight: 600;
+  background: rgb(31 116 201 / 0.04);
+}
+
+.article-compose-editor .b-table-row-del {
+  position: absolute;
+  right: -4px;
+  top: 50%;
+  transform: translate(100%, -50%);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: #fff;
+  font-size: 11px;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.article-compose-editor .b-table-cell:hover .b-table-row-del,
+.article-compose-editor .block.selected .b-table-row-del {
+  opacity: 1;
+}
+
+.article-compose-editor .b-table-col-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.article-compose-editor .b-table-col-del {
+  padding: 3px 8px;
+  border: none;
+  background: none;
+  font-size: 11px;
+  color: var(--ink-muted);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* Gợi ý ảnh */
+.article-compose-editor .b-imgs-hint {
+  display: grid;
+  gap: 10px;
+}
+
+.article-compose-editor .b-imgs-hint label {
+  display: grid;
+  gap: 4px;
+}
+
+.article-compose-editor .b-imgs-hint label span {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.article-compose-editor .b-imgs-hint input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+}

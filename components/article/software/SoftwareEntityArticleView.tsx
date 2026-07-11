@@ -12,6 +12,7 @@ import {
 import { SoftwareCompareTable } from "@/components/article/software/SoftwareCompareTable";
 import { resolveHubArticleImages } from "@/lib/bai-viet/thumbnail";
 import { buildArticleLeadSource } from "@/lib/articles/article-lead-source";
+import { entityCanonicalLeadHtml } from "@/lib/article/dong-gop/canonical-content";
 import { articlePublicHref } from "@/lib/articles/article-href";
 import { linkKeywordsInContent } from "@/lib/articles/link-keywords-in-content";
 import { resolveArticleVideoUrl } from "@/lib/articles/lead-video-url";
@@ -54,7 +55,7 @@ export async function SoftwareEntityArticleView({
 }: Props) {
   const slugPath = articlePublicHref("phan_mem", article.slug);
   const leadSource = buildArticleLeadSource(
-    article.noi_dung ?? article.noi_dung_markdown,
+    entityCanonicalLeadHtml(article.noi_dung) ?? article.noi_dung_markdown,
   );
   const linkedLeadHtml = leadSource
     ? await linkKeywordsInContent(leadSource)

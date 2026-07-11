@@ -11,7 +11,6 @@ const NAV = [
   { href: "/admin/de-xuat", label: "Đề xuất tag", icon: "alert", badge: 12 },
   { href: "/admin/bao-cao", label: "Báo cáo", icon: "flag" },
   { href: "/admin/gop-y", label: "Góp ý", icon: "message" },
-  { href: "/admin/dong-gop", label: "Đóng góp", icon: "edit" },
   { section: "Tổ chức" },
   { href: "/admin/to-chuc", label: "Tổ chức", icon: "org" },
   { href: "/admin/nganh", label: "Ngành đào tạo", icon: "edu" },

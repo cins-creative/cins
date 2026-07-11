@@ -8,6 +8,7 @@ export type ArticleImagePasteStatus =
 
 export type ArticleDraftEditorVariant =
   | "default"
+  | "dong-gop"
   | "nghe-lead-inline"
   | "truong-inline"
   | "nganh-admin";

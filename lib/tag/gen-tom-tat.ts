@@ -1,8 +1,9 @@
 import "server-only";
 
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import type { CreatableTagLoai } from "@/lib/tag/tag-loai";
 
-export type TagLoai = "keyword" | "phan_mem";
+export type TagLoai = CreatableTagLoai;
 
 const VECTOR_LOAI_DOI_TUONG = "bai_viet";
 
@@ -10,7 +11,11 @@ function buildTomTatPrompt(ten: string, loai: TagLoai): string {
   const kind =
     loai === "phan_mem"
       ? "Nếu là phần mềm: nêu nó dùng để làm gì."
-      : "Nếu là kỹ thuật/khái niệm: nêu nó là gì.";
+      : loai === "nghe"
+        ? "Nếu là vị trí công việc: nêu người ở vị trí này làm gì trong ngành sáng tạo."
+        : loai === "mon_hoc"
+          ? "Nếu là môn học: nêu môn này dạy gì trong ngành sáng tạo."
+          : "Nếu là kỹ thuật/khái niệm: nêu nó là gì.";
 
   return `Mô tả 1-2 câu ngắn gọn về "${ten}" trong ngữ cảnh ngành sáng tạo Việt Nam.
 ${kind}

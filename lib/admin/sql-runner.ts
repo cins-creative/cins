@@ -65,7 +65,10 @@ function serializeCell(value: unknown): unknown {
   if (value == null) return value;
   if (value instanceof Date) return value.toISOString();
   if (typeof value === "bigint") return value.toString();
-  if (Buffer.isBuffer(value)) return `<binary ${value.length} bytes>`;
+  if (Buffer.isBuffer(value)) {
+    const len = (value as Buffer).length;
+    return `<binary ${len} bytes>`;
+  }
   if (typeof value === "object") {
     try {
       return JSON.stringify(value);

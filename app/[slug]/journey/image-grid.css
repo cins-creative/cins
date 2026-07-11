@@ -27,14 +27,14 @@
   display: block;
   background: #fff;
 }
+/* 1 ảnh dọc — full width; chiều cao canvas do `.is-canvas-9-16` (9:16) */
 .image-grid--single.is-portrait {
-  display: flex;
-  justify-content: center;
+  display: block;
+  width: 100%;
+  max-width: 100%;
   background: #fff;
 }
 .image-grid--single.is-portrait .image-grid-cell {
-  flex: none;
-  max-width: 78%;
   width: 100%;
 }
 .image-grid--single .image-grid-cell {
@@ -45,7 +45,32 @@
   background: transparent;
   cursor: pointer;
 }
-.image-grid--single .image-grid-cell img {
+.image-grid--single.is-portrait .image-grid-cell img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  display: block;
+}
+/* Canvas 9:16 — ảnh lấp khung, không letterbox ngang */
+.is-canvas-9-16 .image-grid--single.is-portrait,
+.preview--photo-grid.is-canvas-9-16 .image-grid--single.is-portrait,
+.preview--photo-grid:has(.image-grid--single.is-portrait) .image-grid--single.is-portrait {
+  height: 100%;
+}
+.is-canvas-9-16 .image-grid--single.is-portrait .image-grid-cell,
+.preview--photo-grid.is-canvas-9-16 .image-grid--single.is-portrait .image-grid-cell,
+.preview--photo-grid:has(.image-grid--single.is-portrait) .image-grid--single.is-portrait .image-grid-cell {
+  height: 100%;
+}
+.is-canvas-9-16 .image-grid--single.is-portrait .image-grid-cell img,
+.preview--photo-grid.is-canvas-9-16 .image-grid--single.is-portrait .image-grid-cell img,
+.preview--photo-grid:has(.image-grid--single.is-portrait) .image-grid--single.is-portrait .image-grid-cell img {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  object-fit: contain;
+}
+.image-grid--single:not(.is-portrait) .image-grid-cell img {
   width: 100%;
   height: auto;
   max-height: min(70vh, 560px);

@@ -19,9 +19,14 @@ export async function POST(req: Request) {
   const ten = typeof body.ten === "string" ? body.ten : "";
   const loai = body.loai;
 
-  if (loai !== "keyword" && loai !== "phan_mem") {
+  if (
+    loai !== "keyword" &&
+    loai !== "phan_mem" &&
+    loai !== "mon_hoc" &&
+    loai !== "nghe"
+  ) {
     return NextResponse.json(
-      { error: "loai phải là keyword hoặc phan_mem." },
+      { error: "loai phải là keyword, phan_mem, mon_hoc hoặc nghe." },
       { status: 400 },
     );
   }

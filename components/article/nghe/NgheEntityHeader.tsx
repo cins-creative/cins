@@ -10,6 +10,7 @@ type Props = {
   linhVucLabel?: string | null;
   thumbnailUrl?: string | null;
   draftTools?: ReactNode;
+  attribution?: ReactNode;
 };
 
 /** Header cố định trang nghề — wrapper `EntityArticleHeader`. */
@@ -20,6 +21,7 @@ export function NgheEntityHeader({
   linhVucLabel,
   thumbnailUrl,
   draftTools,
+  attribution,
 }: Props) {
   const displayTitle = (title ?? "").trim() || NGHE_HERO_TITLE_FALLBACK;
 
@@ -33,6 +35,7 @@ export function NgheEntityHeader({
       thumbnailUrl={thumbnailUrl}
       introId="nghe-sec-intro"
       draftTools={draftTools}
+      attribution={attribution}
     />
   );
 }

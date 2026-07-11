@@ -1,6 +1,10 @@
 import { isEditorStockImageSeed } from "@/lib/editor/editor-stock-image-seeds";
 import { getCfAccountHash } from "@/lib/cloudflare/account-hash";
 import {
+  FEED_PORTRAIT_IMAGE_SIZES,
+  FEED_PORTRAIT_SRCSET_WIDTHS,
+} from "@/lib/cloudflare/cf-image-variants";
+import {
   isCfImageUuid,
   isExternalHttpImageRef,
   isTemporaryImageRef,
@@ -76,11 +80,51 @@ export function resolveImageSeedThumbUrl(
   return `${PICSUM_BASE}${encodeURIComponent(trimmed)}/${w}/${h}`;
 }
 
+export type ImageSeedDeliveryAsset = {
+  src: string;
+  srcSet?: string;
+  sizes?: string;
+};
+
+/** Ảnh đơn dọc feed 9:16 — variant `feed` / `feedsm` + srcset. */
+export function resolveImageSeedFeedAsset(
+  seed: string,
+  w: number,
+  h: number,
+): ImageSeedDeliveryAsset {
+  const trimmed = (seed || "").trim();
+  if (!trimmed) return { src: "" };
+  if (isEditorStockImageSeed(trimmed)) return { src: "" };
+  if (isTemporaryImageRef(trimmed)) return { src: trimmed };
+  if (isExternalHttpImageRef(trimmed)) return { src: trimmed };
+  if (isCfImageUuid(trimmed)) {
+    const feed = cfDeliveryUrl(trimmed, "feed");
+    const feedsm = cfDeliveryUrl(trimmed, "feedsm");
+    const fallback = cfDeliveryUrlWithFallbacks(trimmed, ["public", "medium"]);
+    const src = feed ?? fallback ?? "";
+    const srcSetParts: string[] = [];
+    if (feedsm) {
+      srcSetParts.push(`${feedsm} ${FEED_PORTRAIT_SRCSET_WIDTHS.feedsm}w`);
+    }
+    if (feed) {
+      srcSetParts.push(`${feed} ${FEED_PORTRAIT_SRCSET_WIDTHS.feed}w`);
+    }
+    return {
+      src,
+      srcSet: srcSetParts.length > 0 ? srcSetParts.join(", ") : undefined,
+      sizes: srcSetParts.length > 0 ? FEED_PORTRAIT_IMAGE_SIZES : undefined,
+    };
+  }
+  const picsum = `${PICSUM_BASE}${encodeURIComponent(trimmed)}/${w}/${h}`;
+  return { src: picsum };
+}
+
 /** Lightbox — variant lớn hơn khi có. */
 export function resolveImageSeedLightboxUrl(
   seed: string,
   w: number,
   h: number,
+  portrait = false,
 ): string {
   const trimmed = (seed || "").trim();
   if (!trimmed) return "";
@@ -88,11 +132,12 @@ export function resolveImageSeedLightboxUrl(
   if (isTemporaryImageRef(trimmed)) return trimmed;
   if (isExternalHttpImageRef(trimmed)) return trimmed;
   if (isCfImageUuid(trimmed)) {
-    const fromCf = cfDeliveryUrlWithFallbacks(trimmed, [
-      "public",
-      "cover",
-      "medium",
-    ]);
+    const fromCf = cfDeliveryUrlWithFallbacks(
+      trimmed,
+      portrait
+        ? ["feed", "public", "cover", "medium"]
+        : ["public", "cover", "medium"],
+    );
     if (fromCf) return fromCf;
   }
   return `${PICSUM_BASE}${encodeURIComponent(trimmed)}/${w}/${h}`;

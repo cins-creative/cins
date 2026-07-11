@@ -15,6 +15,7 @@ import type {
 } from "@/components/article/draft/article-draft-editor-types";
 import { ArcImagePlaceholder } from "@/components/article/draft/arcImagePlaceholderExtension";
 import { ArcSiteHeading } from "@/components/article/draft/arcSiteHeadingExtension";
+import { ARTICLE_ARC_BLOCK_EXTENSIONS } from "@/components/article/draft/articleArcBlockExtensions";
 import { BlockPerLine } from "@/lib/tiptap/block-per-line-extension";
 import { prepareHtmlForTiptapEditor } from "@/lib/tiptap/split-block-breaks";
 import {
@@ -54,6 +55,9 @@ function NganhEditorStage({
 function proseMirrorClass(variant: ArticleDraftEditorVariant): string {
   if (variant === "nganh-admin") {
     return "nct-prose body article-rich-content article-content-html";
+  }
+  if (variant === "dong-gop") {
+    return "nghe-lead-rich article-rich-content article-content-html";
   }
   return "article-rich-content article-content-html";
 }
@@ -269,7 +273,9 @@ export function ArticleDraftVisualPane({
         }),
         Placeholder.configure({
           placeholder:
-            "Gõ thủ công – hoặc dán HTML ở tab HTML để giữ layout từ Claude / CMS.",
+            variant === "dong-gop"
+              ? "Soạn bản đóng góp — dùng khối layout phía trên hoặc tab HTML."
+              : "Gõ thủ công – hoặc dán HTML ở tab HTML để giữ layout từ Claude / CMS.",
         }),
         Image.configure({
           inline: true,
@@ -288,6 +294,7 @@ export function ArticleDraftVisualPane({
           modestBranding: true,
         }),
         ArcImagePlaceholder,
+        ...(variant === "dong-gop" ? ARTICLE_ARC_BLOCK_EXTENSIONS : []),
       ],
       content: deferHeavyContent
         ? ""

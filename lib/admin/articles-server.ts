@@ -12,6 +12,46 @@ import {
 import { createServiceRoleClient, hasServiceRoleEnv } from "@/lib/supabase/service-role";
 import type { ArticleMeta } from "@/lib/articles/types";
 
+type DongGopChoDuyetBaiStat = {
+  count: number;
+  moiNhat: string;
+};
+
+/** Thống kê đóng góp chờ duyệt theo bài — giữ trong file này để tránh kéo `server-only` vào client. */
+async function fetchDongGopChoDuyetStatsByBai(): Promise<
+  Map<string, DongGopChoDuyetBaiStat>
+> {
+  const admin = createServiceRoleClient();
+  const { data, error } = await admin
+    .from("article_dong_gop")
+    .select("id_bai_viet, cap_nhat_luc")
+    .eq("trang_thai", "cho_duyet")
+    .eq("da_xoa", false)
+    .order("cap_nhat_luc", { ascending: false })
+    .limit(5000);
+
+  const map = new Map<string, DongGopChoDuyetBaiStat>();
+  if (error || !data) return map;
+
+  for (const row of data) {
+    const idBai = String(
+      (row as { id_bai_viet?: string }).id_bai_viet ?? "",
+    ).trim();
+    const moiNhat = String(
+      (row as { cap_nhat_luc?: string }).cap_nhat_luc ?? "",
+    );
+    if (!idBai) continue;
+    const prev = map.get(idBai);
+    if (!prev) {
+      map.set(idBai, { count: 1, moiNhat });
+      continue;
+    }
+    prev.count += 1;
+    if (moiNhat && moiNhat > prev.moiNhat) prev.moiNhat = moiNhat;
+  }
+  return map;
+}
+
 export const ADMIN_ARTICLE_LOAI_OPTIONS = [
   "nghe",
   "keyword",
@@ -76,6 +116,10 @@ export type AdminArticleListRow = {
   noi_dung_chars: number;
   has_meta: boolean;
   meta_preview: string | null;
+  /** Số đóng góp đang `cho_duyet` (badge cột Đóng góp). */
+  dong_gop_cho_duyet: number;
+  /** Thời điểm đóng góp chờ duyệt mới nhất — dùng sort. */
+  dong_gop_moi_nhat: string | null;
 };
 
 /** List admin — không tải `noi_dung` / `meta` (preview chỉ trong editor). */
@@ -147,6 +191,8 @@ function parseListRow(raw: Record<string, unknown>): AdminArticleListRow {
     noi_dung_chars: 0,
     has_meta: false,
     meta_preview: null,
+    dong_gop_cho_duyet: 0,
+    dong_gop_moi_nhat: null,
   };
 }
 
@@ -276,6 +322,12 @@ function escapeIlikePattern(q: string): string {
   return q.replace(/[%_\\]/g, "\\$&");
 }
 
+type AdminArticleListFilterResult = {
+  data: unknown;
+  error: { message: string } | null;
+  count: number | null;
+};
+
 type AdminArticleListFilterQuery = {
   eq: (col: string, val: string) => AdminArticleListFilterQuery;
   or: (filters: string) => AdminArticleListFilterQuery;
@@ -286,7 +338,7 @@ type AdminArticleListFilterQuery = {
   range: (
     from: number,
     to: number,
-  ) => Promise<{ data: unknown; error: { message: string } | null; count: number | null }>;
+  ) => Promise<AdminArticleListFilterResult>;
 };
 
 function applyAdminArticleListFilters(
@@ -401,61 +453,82 @@ export async function listArticlesForAdmin(
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
 
-    let data: Record<string, unknown>[] | null = null;
-    let filteredCount = 0;
-    let usedEmbed = false;
+    const choDuyetStats = await fetchDongGopChoDuyetStatsByBai();
+    const pendingOrdered = [...choDuyetStats.entries()]
+      .sort((a, b) => b[1].moiNhat.localeCompare(a[1].moiNhat))
+      .map(([id]) => id);
 
-    const embedQuery = applyAdminArticleListFilters(
-      supabase
-        .from("article_bai_viet")
-        .select(LIST_SELECT_EMBED, { count: "exact" })
-        .order("cap_nhat_luc", { ascending: false }) as unknown as AdminArticleListFilterQuery,
+    const nhomBaiIds = await baiIdsForNhomFilters(supabase, params);
+    if (nhomBaiIds !== null && nhomBaiIds.length === 0) {
+      const filterOptions = await listAdminArticleFilterOptions();
+      return {
+        ok: true,
+        rows: [],
+        filterOptions,
+        totalCount: 0,
+        page,
+        pageSize,
+        loadedCount: 0,
+      };
+    }
+
+    const filteredPending = await filterBaiIdsMatchingListParams(
+      supabase,
+      pendingOrdered,
       params,
-      { embed: true },
+      nhomBaiIds,
     );
-    const withEmbed = await embedQuery.range(from, to);
 
-    if (!withEmbed.error && withEmbed.data) {
-      data = withEmbed.data as Record<string, unknown>[];
-      filteredCount = withEmbed.count ?? data.length;
-      usedEmbed = true;
+    let pageIds: string[] = [];
+    let filteredCount = 0;
+
+    if (params.dongGop === "cho_duyet") {
+      filteredCount = filteredPending.length;
+      pageIds = filteredPending.slice(from, to + 1);
     } else {
-      const nhomBaiIds = await baiIdsForNhomFilters(supabase, params);
-      if (nhomBaiIds !== null && nhomBaiIds.length === 0) {
-        const filterOptions = await listAdminArticleFilterOptions();
-        return {
-          ok: true,
-          rows: [],
-          filterOptions,
-          totalCount: 0,
-          page,
-          pageSize,
-          loadedCount: 0,
-        };
-      }
-
-      const plainQuery = applyAdminArticleListFilters(
+      const countQuery = applyAdminArticleListFilters(
         supabase
           .from("article_bai_viet")
-          .select(LIST_SELECT_PLAIN, { count: "exact" })
-          .order("cap_nhat_luc", { ascending: false }) as unknown as AdminArticleListFilterQuery,
+          .select("id", { count: "exact", head: true }) as unknown as AdminArticleListFilterQuery,
         params,
         { embed: false, baiIds: nhomBaiIds ?? undefined },
       );
-      const plain = await plainQuery.range(from, to);
-      if (plain.error) return { ok: false, message: plain.error.message };
-      data = (plain.data ?? []) as Record<string, unknown>[];
-      filteredCount = plain.count ?? data.length;
+      const { count, error: countErr } = await (countQuery as unknown as Promise<AdminArticleListFilterResult>);
+      if (countErr) return { ok: false, message: countErr.message };
+      filteredCount = count ?? 0;
+
+      const pendingTotal = filteredPending.length;
+      if (to < pendingTotal) {
+        pageIds = filteredPending.slice(from, to + 1);
+      } else if (from >= pendingTotal) {
+        pageIds = await fetchNonPendingArticleIds(
+          supabase,
+          params,
+          filteredPending,
+          from - pendingTotal,
+          pageSize,
+          nhomBaiIds,
+        );
+      } else {
+        const fromPending = filteredPending.slice(from);
+        const need = pageSize - fromPending.length;
+        const restIds = await fetchNonPendingArticleIds(
+          supabase,
+          params,
+          filteredPending,
+          0,
+          need,
+          nhomBaiIds,
+        );
+        pageIds = [...fromPending, ...restIds];
+      }
     }
 
-    let rows = (data ?? []).map((r) => parseListRow(r));
-    if (!usedEmbed) {
-      rows = await attachNhomToRows(supabase, rows);
-    }
-    rows = await attachLinhVucNames(supabase, rows);
+    let rows = await fetchAdminArticleRowsByIds(supabase, pageIds);
+    rows = attachDongGopChoDuyetStats(rows, choDuyetStats);
     rows = attachThumbnailSrcSync(rows);
 
-    const [filterOptions] = await Promise.all([listAdminArticleFilterOptions()]);
+    const filterOptions = await listAdminArticleFilterOptions();
     return {
       ok: true,
       rows,
@@ -469,6 +542,138 @@ export async function listArticlesForAdmin(
     const msg = e instanceof Error ? e.message : "Lỗi không xác định.";
     return { ok: false, message: msg };
   }
+}
+
+function attachDongGopChoDuyetStats(
+  rows: AdminArticleListRow[],
+  stats: Map<string, DongGopChoDuyetBaiStat>,
+): AdminArticleListRow[] {
+  return rows.map((row) => {
+    const s = stats.get(row.id);
+    if (!s) return row;
+    return {
+      ...row,
+      dong_gop_cho_duyet: s.count,
+      dong_gop_moi_nhat: s.moiNhat || null,
+    };
+  });
+}
+
+async function filterBaiIdsMatchingListParams(
+  supabase: ReturnType<typeof createServiceRoleClient>,
+  ids: string[],
+  params: AdminArticleListParams,
+  nhomBaiIds: string[] | null,
+): Promise<string[]> {
+  if (ids.length === 0) return [];
+  let candidate = ids;
+  if (nhomBaiIds) {
+    const allow = new Set(nhomBaiIds);
+    candidate = ids.filter((id) => allow.has(id));
+    if (candidate.length === 0) return [];
+  }
+
+  const matched = new Set<string>();
+  const chunkSize = 100;
+  for (let i = 0; i < candidate.length; i += chunkSize) {
+    const chunk = candidate.slice(i, i + chunkSize);
+    const query = applyAdminArticleListFilters(
+      supabase
+        .from("article_bai_viet")
+        .select("id")
+        .in("id", chunk) as unknown as AdminArticleListFilterQuery,
+      { ...params, dongGop: undefined },
+      { embed: false },
+    );
+    const { data, error } = await (query as unknown as Promise<AdminArticleListFilterResult>);
+    if (error) throw new Error(error.message);
+    for (const row of (data ?? []) as { id?: string }[]) {
+      const id = String(row.id ?? "").trim();
+      if (id) matched.add(id);
+    }
+  }
+  return candidate.filter((id) => matched.has(id));
+}
+
+async function fetchNonPendingArticleIds(
+  supabase: ReturnType<typeof createServiceRoleClient>,
+  params: AdminArticleListParams,
+  excludeIds: string[],
+  skip: number,
+  take: number,
+  nhomBaiIds: string[] | null,
+): Promise<string[]> {
+  if (take <= 0) return [];
+  const exclude = new Set(excludeIds);
+  const out: string[] = [];
+  let skipped = 0;
+  let offset = 0;
+  const batch = 80;
+
+  while (out.length < take) {
+    const query = applyAdminArticleListFilters(
+      supabase
+        .from("article_bai_viet")
+        .select("id")
+        .order("cap_nhat_luc", { ascending: false }) as unknown as AdminArticleListFilterQuery,
+      { ...params, dongGop: undefined },
+      { embed: false, baiIds: nhomBaiIds ?? undefined },
+    );
+    const { data, error } = await query.range(offset, offset + batch - 1);
+    if (error) throw new Error(error.message);
+    const rows = (data ?? []) as { id?: string }[];
+    if (rows.length === 0) break;
+
+    for (const row of rows) {
+      const id = String(row.id ?? "").trim();
+      if (!id || exclude.has(id)) continue;
+      if (skipped < skip) {
+        skipped += 1;
+        continue;
+      }
+      out.push(id);
+      if (out.length >= take) break;
+    }
+
+    offset += batch;
+    if (rows.length < batch) break;
+  }
+
+  return out;
+}
+
+async function fetchAdminArticleRowsByIds(
+  supabase: ReturnType<typeof createServiceRoleClient>,
+  ids: string[],
+): Promise<AdminArticleListRow[]> {
+  if (ids.length === 0) return [];
+
+  const embed = await supabase
+    .from("article_bai_viet")
+    .select(LIST_SELECT_EMBED)
+    .in("id", ids);
+
+  let rows: AdminArticleListRow[] = [];
+  if (!embed.error && embed.data) {
+    rows = (embed.data as Record<string, unknown>[]).map((r) => parseListRow(r));
+  } else {
+    const plain = await supabase
+      .from("article_bai_viet")
+      .select(LIST_SELECT_PLAIN)
+      .in("id", ids);
+    if (plain.error) throw new Error(plain.error.message);
+    rows = ((plain.data ?? []) as Record<string, unknown>[]).map((r) =>
+      parseListRow(r),
+    );
+    rows = await attachNhomToRows(supabase, rows);
+  }
+
+  rows = await attachLinhVucNames(supabase, rows);
+
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  return ids
+    .map((id) => byId.get(id))
+    .filter((r): r is AdminArticleListRow => r != null);
 }
 
 /** Một cạnh `article_lien_quan` + bài đích (đã resolve). */

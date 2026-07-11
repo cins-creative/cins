@@ -28,7 +28,12 @@ export const TRANG_THAI_DONG_GOP_ORDER: TrangThaiDongGop[] = [
 export function canContributorEditDongGop(
   trangThai: TrangThaiDongGop,
 ): boolean {
-  return trangThai === "nhap" || trangThai === "can_sua" || trangThai === "tu_choi";
+  return (
+    trangThai === "nhap" ||
+    trangThai === "cho_duyet" ||
+    trangThai === "can_sua" ||
+    trangThai === "tu_choi"
+  );
 }
 
 /** Trạng thái contributor được gửi duyệt. */
@@ -113,10 +118,16 @@ export type AdminDongGopRow = {
   idBaiViet: string;
   trangThai: TrangThaiDongGop;
   noiDung: string | null;
+  /** Body HTML đã unpack (không gồm hero meta). */
+  bodyHtml: string;
   ghiChuDuyet: string | null;
   taoLuc: string;
   capNhatLuc: string;
   duyetLuc: string | null;
+  /** Tiêu đề / tóm tắt từ hero đóng góp — null nếu trống. */
+  heroTitle: string | null;
+  excerpt: string | null;
+  thumbnailUrl: string | null;
   entity: {
     slug: string;
     tieuDe: string;
@@ -128,7 +139,56 @@ export type AdminDongGopRow = {
     id: string;
     slug: string | null;
     tenHienThi: string | null;
+    avatarUrl: string | null;
   } | null;
 };
 
+export type AdminCuratorQuyenRow = {
+  id: string;
+  phamVi: PhamViThamDinh;
+  taoLuc: string;
+  capBoiId: string | null;
+  nguoiDung: {
+    id: string;
+    slug: string;
+    tenHienThi: string | null;
+  };
+  linhVuc: { id: string; ten: string } | null;
+  baiViet: {
+    id: string;
+    slug: string;
+    tieuDe: string;
+    loaiBaiViet: string;
+  } | null;
+};
+
+export const PHAM_VI_THAM_DINH_LABEL: Record<PhamViThamDinh, string> = {
+  toan_cuc: "Toàn cục",
+  linh_vuc: "Theo lĩnh vực",
+  bai_viet: "Theo entity",
+};
+
 export const SOCIAL_LOAI_ARTICLE_DONG_GOP = "article_dong_gop" as const;
+export const SOCIAL_LOAI_ARTICLE_DONG_GOP_PROMOTED =
+  "article_dong_gop_promoted" as const;
+/** Curator yêu cầu sửa / từ chối — thông báo cho contributor. */
+export const SOCIAL_LOAI_ARTICLE_DONG_GOP_FEEDBACK =
+  "article_dong_gop_feedback" as const;
+
+/** Dữ liệu attribution đã map cho UI client (hero entity). */
+export type EntityContributorDisplay = {
+  id: string;
+  slug: string | null;
+  tenHienThi: string | null;
+  avatarUrl: string | null;
+  href: string | null;
+  vaiTro: VaiTroTacGia;
+  laHienTai: boolean;
+  taoLuc: string;
+};
+
+export type EntityAttributionDisplay = {
+  tacGiaChinh: EntityContributorDisplay | null;
+  soNguoiDongGop: number;
+  contributors: EntityContributorDisplay[];
+};

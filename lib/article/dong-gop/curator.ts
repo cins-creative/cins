@@ -1,10 +1,18 @@
 import "server-only";
 
+import { stripArticleWrapper } from "@/lib/article/blocks/compile-html";
 import { getCurrentUserIsCinsAdmin } from "@/lib/auth/cins-admin-server";
 import { getCurrentUserSystemRole } from "@/lib/auth/system-role";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
+import { buildCanonicalArticlePatchFromHero } from "./canonical-hero-sync";
+import { unpackContribNoiDung } from "./contrib-document";
 import { fetchDongGopById } from "./fetch";
+import { notifyContributorOnDongGopFeedback } from "./notify-feedback";
+import {
+  markCuratorDongGopNotificationsResolved,
+  notifyContributorOnDongGopPromote,
+} from "./notify-promote";
 import type { ArticleQuyenThamDinhRow, PhamViThamDinh, TrangThaiDongGop } from "./types";
 
 export type CuratorMutateResult =
@@ -185,6 +193,15 @@ export async function rejectDongGop(input: {
     .eq("id", input.idDongGop);
 
   if (error) return { ok: false, message: error.message };
+
+  await notifyContributorOnDongGopFeedback({
+    idNguoiDung: row.id_nguoi_dong_gop,
+    idDongGop: input.idDongGop,
+    idBaiViet: row.id_bai_viet,
+    action: "tu_choi",
+    ghiChu,
+  });
+
   return { ok: true };
 }
 
@@ -218,6 +235,15 @@ export async function requestDongGopEdit(input: {
     .eq("id", input.idDongGop);
 
   if (error) return { ok: false, message: error.message };
+
+  await notifyContributorOnDongGopFeedback({
+    idNguoiDung: row.id_nguoi_dong_gop,
+    idDongGop: input.idDongGop,
+    idBaiViet: row.id_bai_viet,
+    action: "can_sua",
+    ghiChu,
+  });
+
   return { ok: true };
 }
 
@@ -231,7 +257,10 @@ export async function promoteDongGopToCanonical(input: {
   if (!row || row.trang_thai !== "cho_duyet") {
     return { ok: false, message: "Bản không ở trạng thái chờ duyệt." };
   }
-  if (!(row.noi_dung ?? "").trim()) {
+
+  const unpacked = unpackContribNoiDung(row.noi_dung ?? "");
+  const canonicalBody = stripArticleWrapper(unpacked.bodyHtml).trim();
+  if (!canonicalBody) {
     return { ok: false, message: "Bản không có nội dung." };
   }
 
@@ -243,16 +272,27 @@ export async function promoteDongGopToCanonical(input: {
 
   const { data: prevCurrent } = await admin
     .from("article_tac_gia")
-    .select("id")
+    .select("id, id_dong_gop")
     .eq("id_bai_viet", row.id_bai_viet)
     .eq("la_hien_tai", true)
-    .maybeSingle<{ id: string }>();
+    .maybeSingle<{ id: string; id_dong_gop: string | null }>();
 
   if (prevCurrent?.id) {
     await admin
       .from("article_tac_gia")
       .update({ la_hien_tai: false })
       .eq("id", prevCurrent.id);
+
+    if (prevCurrent.id_dong_gop && prevCurrent.id_dong_gop !== row.id) {
+      await admin
+        .from("article_dong_gop")
+        .update({
+          trang_thai: "duoc_duyet" satisfies TrangThaiDongGop,
+          cap_nhat_luc: ts,
+          hien_thi: true,
+        })
+        .eq("id", prevCurrent.id_dong_gop);
+    }
   }
 
   const { error: dongGopErr } = await admin
@@ -278,22 +318,46 @@ export async function promoteDongGopToCanonical(input: {
 
   if (tacGiaErr) return { ok: false, message: tacGiaErr.message };
 
-  const { count: contributorCount } = await admin
+  const { data: tacGiaRows } = await admin
     .from("article_tac_gia")
-    .select("id_nguoi_dung", { count: "exact", head: true })
-    .eq("id_bai_viet", row.id_bai_viet);
+    .select("id_nguoi_dung")
+    .eq("id_bai_viet", row.id_bai_viet)
+    .returns<Array<{ id_nguoi_dung: string }>>();
+
+  const soNguoiDongGop = new Set(
+    (tacGiaRows ?? []).map((r) => r.id_nguoi_dung),
+  ).size;
+
+  const { data: currentArticle } = await admin
+    .from("article_bai_viet")
+    .select("meta")
+    .eq("id", row.id_bai_viet)
+    .maybeSingle<{ meta: Record<string, unknown> | null }>();
+
+  /** Hero (tom_tat / thumbnail / tiêu đề) → article_bai_viet — nuôi ent-hero + tooltip tag Journey. */
+  const articlePatch = buildCanonicalArticlePatchFromHero({
+    hero: unpacked.hero,
+    canonicalBody,
+    idTacGiaChinh: row.id_nguoi_dong_gop,
+    soNguoiDongGop,
+    currentMeta: currentArticle?.meta ?? null,
+    ts,
+  });
 
   const { error: articleErr } = await admin
     .from("article_bai_viet")
-    .update({
-      noi_dung: row.noi_dung,
-      id_tac_gia_chinh: row.id_nguoi_dong_gop,
-      so_nguoi_dong_gop: contributorCount ?? 1,
-      cap_nhat_luc: ts,
-    })
+    .update(articlePatch)
     .eq("id", row.id_bai_viet);
 
   if (articleErr) return { ok: false, message: articleErr.message };
+
+  await markCuratorDongGopNotificationsResolved(row.id);
+  await notifyContributorOnDongGopPromote({
+    idNguoiDung: row.id_nguoi_dong_gop,
+    idDongGop: row.id,
+    idBaiViet: row.id_bai_viet,
+  });
+
   return { ok: true };
 }
 

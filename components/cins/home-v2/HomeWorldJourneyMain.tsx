@@ -4,6 +4,7 @@ import { HomeWorldJourneyClient } from "@/components/cins/home-v2/HomeWorldJourn
 import { HomeModuleColumn } from "@/components/cins/home-adaptive/HomeModuleColumn";
 import type { HomeModuleCtx } from "@/components/cins/home-adaptive/types";
 import { JourneyPendingConfirmationsStack } from "@/components/journey/JourneyPendingConfirmationsStack";
+import { listPendingDongGopFeedbackBanners } from "@/lib/article/dong-gop/notify-feedback";
 import {
   getCachedOutboundMembershipPending,
   getCachedPendingCoAuthorInvites,
@@ -54,6 +55,7 @@ export async function HomeWorldJourneyMain({
     coAuthorPendingInvites,
     coSoStaffPendingInvites,
     membershipPendingOutbound,
+    dongGopFeedbackPending,
     feedPromos,
   ] = await Promise.all([
     fetchWorldJourneyFeedPageCached(
@@ -64,6 +66,7 @@ export async function HomeWorldJourneyMain({
     getCachedPendingCoAuthorInvites(session.profile.id),
     getCachedPendingCoSoStaffInvites(session.profile.id),
     getCachedOutboundMembershipPending(session.profile.id),
+    listPendingDongGopFeedbackBanners(session.profile.id),
     loadFeedInlinePromos(session.profile.id, resolvePersona(giaiDoan)),
   ]);
 
@@ -89,6 +92,7 @@ export async function HomeWorldJourneyMain({
           initialCoAuthorInvites={coAuthorPendingInvites}
           initialCoSoStaffInvites={coSoStaffPendingInvites}
           initialMembershipPending={membershipPendingOutbound}
+          initialDongGopFeedback={dongGopFeedbackPending}
         />
       }
       sidebarProfile={{

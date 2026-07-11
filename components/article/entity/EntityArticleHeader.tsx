@@ -24,6 +24,7 @@ type Props = {
   verified?: boolean;
   introId?: string;
   draftTools?: ReactNode;
+  attribution?: ReactNode;
 };
 
 function badgeText(kind: EntityBadgeKind, context: string): string {
@@ -42,6 +43,7 @@ export function EntityArticleHeader({
   verified = false,
   introId = "entity-sec-intro",
   draftTools,
+  attribution,
 }: Props) {
   const displayTitle = title.trim() || "Bài viết";
   const displayEm = (emLine ?? "").trim();
@@ -67,6 +69,7 @@ export function EntityArticleHeader({
               </span>
             ) : null}
           </div>
+          {attribution}
           {displayEm ? (
             <p className="ent-subtitle">
               <em>{displayEm}</em>

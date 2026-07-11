@@ -1,7 +1,9 @@
 import type { Block } from "@/lib/editor/types";
 import {
+  resolveImageSeedFeedAsset,
   resolveImageSeedLightboxUrl,
   resolveImageSeedThumbUrl,
+  type ImageSeedDeliveryAsset,
 } from "@/lib/editor/resolve-image-seed-url";
 import { detectMediaPostKind } from "@/lib/journey/post-media";
 import { isServerAlbumGridImgBlock } from "@/lib/editor/album-grid-block";
@@ -334,16 +336,33 @@ export function albumGridComposeRows(slotCount: number): number[][] {
 
 /** Thumbnail grid — variant nhỏ; compose dùng previewSrc (blob / URL upload) trước CF id. */
 export function gridThumbSrc(image: GridImage): string {
+  return gridThumbAsset(image).src;
+}
+
+export function gridThumbAsset(
+  image: GridImage,
+  options?: { singlePortrait?: boolean },
+): ImageSeedDeliveryAsset {
   const preview = image.previewSrc?.trim();
-  if (preview) return preview;
-  if (image.composePending) return "";
-  return resolveImageSeedThumbUrl(image.id, image.width, image.height);
+  if (preview) return { src: preview };
+  if (image.composePending) return { src: "" };
+  if (options?.singlePortrait && isPortraitGridImage(image)) {
+    return resolveImageSeedFeedAsset(image.id, image.width, image.height);
+  }
+  return {
+    src: resolveImageSeedThumbUrl(image.id, image.width, image.height),
+  };
 }
 
 /** Lightbox — variant lớn, giữ ratio gốc. */
-export function gridLightboxSrc(image: GridImage): string {
+export function gridLightboxSrc(image: GridImage, portrait = false): string {
   const preview = image.previewSrc?.trim();
   if (preview) return preview;
   if (image.composePending) return "";
-  return resolveImageSeedLightboxUrl(image.id, image.width, image.height);
+  return resolveImageSeedLightboxUrl(
+    image.id,
+    image.width,
+    image.height,
+    portrait,
+  );
 }

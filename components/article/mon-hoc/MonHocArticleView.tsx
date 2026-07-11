@@ -15,6 +15,7 @@ import {
 import { MonHocCoursesSection } from "@/components/article/mon-hoc/MonHocCoursesSection";
 import { resolveHubArticleImages } from "@/lib/bai-viet/thumbnail";
 import { buildArticleLeadSource } from "@/lib/articles/article-lead-source";
+import { entityCanonicalLeadHtml } from "@/lib/article/dong-gop/canonical-content";
 import { fetchRecentTacPhamGallery } from "@/lib/articles/queries";
 import { getVideoUrlFromArticleMeta } from "@/lib/articles/lead-video-url";
 import { partitionNgheRelated } from "@/lib/articles/rel-visual";
@@ -52,7 +53,7 @@ export async function MonHocArticleView({
 }: Props) {
   const slugPath = `/bai-viet/${article.slug}`;
   const leadSource = buildArticleLeadSource(
-    article.noi_dung ?? article.noi_dung_markdown,
+    entityCanonicalLeadHtml(article.noi_dung) ?? article.noi_dung_markdown,
   );
   const leadVideoUrl = getVideoUrlFromArticleMeta(article.meta);
   const { thumb_url: heroThumb } = await resolveHubArticleImages({

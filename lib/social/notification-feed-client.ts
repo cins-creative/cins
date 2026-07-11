@@ -1,4 +1,6 @@
 import type {
+  ArticleDongGopFeedbackNotification,
+  ArticleDongGopPromotedNotification,
   CommentNotification,
   FollowAcceptedNotification,
   FollowHandledNotification,
@@ -16,7 +18,9 @@ export type HistoryTimelineEntry =
   | { kind: "comment"; item: CommentNotification }
   | { kind: "membershipMilestoneResolved"; item: MembershipMilestoneResolvedNotification }
   | { kind: "orgMilestoneTagApproved"; item: OrgMilestoneTagApprovedNotification }
-  | { kind: "videoReady"; item: VideoReadyNotification };
+  | { kind: "videoReady"; item: VideoReadyNotification }
+  | { kind: "dongGopFeedback"; item: ArticleDongGopFeedbackNotification }
+  | { kind: "dongGopPromoted"; item: ArticleDongGopPromotedNotification };
 
 export const NOTIFICATION_LIST_PAGE_SIZE = 10;
 
@@ -31,6 +35,8 @@ export function historyTimelineToFeed(
   | "membershipMilestoneResolved"
   | "orgMilestoneTagApproved"
   | "videoReady"
+  | "dongGopFeedback"
+  | "dongGopPromoted"
 > {
   const feed = {
     handledFollows: [] as FollowHandledNotification[],
@@ -40,6 +46,8 @@ export function historyTimelineToFeed(
     membershipMilestoneResolved: [] as MembershipMilestoneResolvedNotification[],
     orgMilestoneTagApproved: [] as OrgMilestoneTagApprovedNotification[],
     videoReady: [] as VideoReadyNotification[],
+    dongGopFeedback: [] as ArticleDongGopFeedbackNotification[],
+    dongGopPromoted: [] as ArticleDongGopPromotedNotification[],
   };
 
   for (const entry of entries) {
@@ -64,6 +72,12 @@ export function historyTimelineToFeed(
         break;
       case "videoReady":
         feed.videoReady.push(entry.item);
+        break;
+      case "dongGopFeedback":
+        feed.dongGopFeedback.push(entry.item);
+        break;
+      case "dongGopPromoted":
+        feed.dongGopPromoted.push(entry.item);
         break;
     }
   }
@@ -91,7 +105,9 @@ export type InfoTimelineEntry =
   | { kind: "orgMilestoneTagApproved"; item: OrgMilestoneTagApprovedNotification }
   | { kind: "accepted"; item: FollowAcceptedNotification }
   | { kind: "comment"; item: CommentNotification }
-  | { kind: "videoReady"; item: VideoReadyNotification };
+  | { kind: "videoReady"; item: VideoReadyNotification }
+  | { kind: "dongGopFeedback"; item: ArticleDongGopFeedbackNotification }
+  | { kind: "dongGopPromoted"; item: ArticleDongGopPromotedNotification };
 
 function notificationSortTime(iso?: string | null): number {
   if (!iso) return 0;
@@ -113,6 +129,8 @@ export function buildHistoryTimeline(
     | "membershipMilestoneResolved"
     | "orgMilestoneTagApproved"
     | "videoReady"
+    | "dongGopFeedback"
+    | "dongGopPromoted"
   >,
 ): HistoryTimelineEntry[] {
   const entries: Array<HistoryTimelineEntry & { sortTime: number }> = [];
@@ -166,6 +184,20 @@ export function buildHistoryTimeline(
       sortTime: notificationSortTime(item.taoLuc),
     });
   }
+  for (const item of feed.dongGopFeedback) {
+    entries.push({
+      kind: "dongGopFeedback",
+      item,
+      sortTime: notificationSortTime(item.taoLuc),
+    });
+  }
+  for (const item of feed.dongGopPromoted) {
+    entries.push({
+      kind: "dongGopPromoted",
+      item,
+      sortTime: notificationSortTime(item.taoLuc),
+    });
+  }
 
   return sortTimelineEntries(entries).map(({ sortTime: _sortTime, ...entry }) => entry);
 }
@@ -176,6 +208,8 @@ export function buildInfoTimeline(info: {
   videoReady: VideoReadyNotification[];
   orgMilestoneTagApproved: OrgMilestoneTagApprovedNotification[];
   membershipMilestoneResolved: MembershipMilestoneResolvedNotification[];
+  dongGopFeedback: ArticleDongGopFeedbackNotification[];
+  dongGopPromoted: ArticleDongGopPromotedNotification[];
 }): InfoTimelineEntry[] {
   const entries: Array<InfoTimelineEntry & { sortTime: number }> = [];
 
@@ -214,6 +248,20 @@ export function buildInfoTimeline(info: {
       sortTime: notificationSortTime(item.taoLuc),
     });
   }
+  for (const item of info.dongGopFeedback) {
+    entries.push({
+      kind: "dongGopFeedback",
+      item,
+      sortTime: notificationSortTime(item.taoLuc),
+    });
+  }
+  for (const item of info.dongGopPromoted) {
+    entries.push({
+      kind: "dongGopPromoted",
+      item,
+      sortTime: notificationSortTime(item.taoLuc),
+    });
+  }
 
   return sortTimelineEntries(entries).map(({ sortTime: _sortTime, ...entry }) => entry);
 }
@@ -229,6 +277,8 @@ export const EMPTY_NOTIFICATION_HISTORY_FEED: NotificationFeed = {
   orgMilestoneTagApproved: [],
   membershipMilestoneResolved: [],
   videoReady: [],
+  dongGopFeedback: [],
+  dongGopPromoted: [],
   handledFollows: [],
   processedCoAuthorReviews: [],
 };
@@ -257,6 +307,13 @@ export function parseNotificationFeedPayload(
     membershipMilestoneResolved: Array.isArray(data.membershipMilestoneResolved)
       ? data.membershipMilestoneResolved
       : [],
+    videoReady: Array.isArray(data.videoReady) ? data.videoReady : [],
+    dongGopFeedback: Array.isArray(data.dongGopFeedback)
+      ? data.dongGopFeedback
+      : [],
+    dongGopPromoted: Array.isArray(data.dongGopPromoted)
+      ? data.dongGopPromoted
+      : [],
   };
 }
 
@@ -278,6 +335,8 @@ export function parseNotificationFeedPage(json: unknown): {
         feed.comments.length +
         feed.membershipMilestoneResolved.length +
         feed.orgMilestoneTagApproved.length +
-        feed.videoReady.length;
+        feed.videoReady.length +
+        feed.dongGopFeedback.length +
+        feed.dongGopPromoted.length;
   return { feed, hasMore, nextOffset };
 }

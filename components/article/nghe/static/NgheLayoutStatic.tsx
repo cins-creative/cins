@@ -41,12 +41,17 @@ type NgheLayoutStaticProps = {
   leadVideoUrl?: string | null;
   heroThumbnailUrl?: string | null;
   heroDraftTools?: ReactNode;
+  heroAttribution?: ReactNode;
   heroBlock?: ReactNode;
   leadBlock?: ReactNode;
   entityTaggedUsers?: TagAggUser[];
   entityMilestones?: ReadonlyArray<MilestoneItem>;
   entitySort?: TagAggSort;
   viewerProfileId?: string | null;
+  contribution?: ReactNode;
+  canonicalEmpty?: boolean;
+  isLoggedIn?: boolean;
+  loginNext?: string;
 };
 
 /** Khung trang nghề — header cố định + tab nội dung/thảo luận + sidebar. */
@@ -60,12 +65,17 @@ export function NgheLayoutStatic({
   leadVideoUrl,
   heroThumbnailUrl,
   heroDraftTools,
+  heroAttribution,
   heroBlock,
   leadBlock,
   entityTaggedUsers = [],
   entityMilestones = [],
   entitySort = "moi_nhat",
   viewerProfileId = null,
+  contribution,
+  canonicalEmpty = false,
+  isLoggedIn = false,
+  loginNext = "",
 }: NgheLayoutStaticProps = {}) {
   const leadTrim = leadSource?.trim() ?? "";
   const leadVid = leadVideoUrl?.trim() ?? "";
@@ -201,6 +211,7 @@ export function NgheLayoutStatic({
         linhVucLabel={heroLinhVucLabel}
         thumbnailUrl={heroThumbnailUrl}
         draftTools={heroDraftTools}
+        attribution={heroAttribution}
       />
     );
 
@@ -280,6 +291,11 @@ export function NgheLayoutStatic({
       header={header}
       content={leadPanel}
       contentExtra={contentExtra}
+      contribution={contribution}
+      canonicalEmpty={canonicalEmpty}
+      entityKindLabel="Nghề"
+      isLoggedIn={isLoggedIn}
+      loginNext={loginNext}
       discussion={
         <NgheTaggedWorksSection
           users={entityTaggedUsers}

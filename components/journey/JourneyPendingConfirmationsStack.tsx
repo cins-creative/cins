@@ -3,9 +3,11 @@
 import { JourneyCoAuthorPendingBanner } from "@/components/journey/JourneyCoAuthorPendingBanner";
 import { JourneyCoAuthorReviewBanner } from "@/components/journey/JourneyCoAuthorReviewBanner";
 import { JourneyCoSoStaffInviteBanner } from "@/components/journey/JourneyCoSoStaffInviteBanner";
+import { JourneyDongGopFeedbackBanner } from "@/components/journey/JourneyDongGopFeedbackBanner";
 import { JourneyFollowRequestBanner } from "@/components/journey/JourneyFollowRequestBanner";
 import { JourneyMembershipPendingBanner } from "@/components/journey/JourneyMembershipPendingBanner";
 import { useJourneyPendingConfirmations } from "@/lib/journey/use-journey-pending-confirmations";
+import type { DongGopFeedbackBannerItem } from "@/lib/article/dong-gop/notify-feedback";
 import type { OutboundMembershipPending } from "@/lib/journey/membership-milestone-types";
 import type { PendingCoAuthorInvite } from "@/lib/social/types";
 import type { PendingCoSoStaffInviteNotification } from "@/lib/to-chuc/co-so-staff-invite";
@@ -19,6 +21,7 @@ type Props = {
   initialCoAuthorInvites: ReadonlyArray<PendingCoAuthorInvite>;
   initialCoSoStaffInvites: ReadonlyArray<PendingCoSoStaffInviteNotification>;
   initialMembershipPending?: ReadonlyArray<OutboundMembershipPending>;
+  initialDongGopFeedback?: ReadonlyArray<DongGopFeedbackBannerItem>;
 };
 
 /** Banner xác nhận trên timeline — đồng bộ với menu thông báo. */
@@ -31,6 +34,7 @@ export function JourneyPendingConfirmationsStack({
   initialCoAuthorInvites,
   initialCoSoStaffInvites,
   initialMembershipPending = [],
+  initialDongGopFeedback = [],
 }: Props) {
   const pending = useJourneyPendingConfirmations({
     isOwner,
@@ -43,6 +47,7 @@ export function JourneyPendingConfirmationsStack({
 
   return (
     <div className="j-pending-confirmations" aria-label="Việc cần xác nhận">
+      <JourneyDongGopFeedbackBanner items={initialDongGopFeedback} />
       <JourneyMembershipPendingBanner
         items={initialMembershipPending}
         ownerSlug={ownerSlug}

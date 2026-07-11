@@ -6,6 +6,8 @@ import type { TagAggSort, TagAggUser } from "@/lib/tag/aggregation-types";
 import { getVideoUrlFromArticleMeta } from "@/lib/articles/lead-video-url";
 import { resolveArticleThumbnailOnlySync } from "@/lib/bai-viet/thumbnail";
 import { ArticleJsonLd } from "@/components/article/ArticleJsonLd";
+import { ContributionTabPanel } from "@/components/article/contribution/ContributionTabPanel";
+import { EntityArticleAttribution } from "@/components/article/entity/EntityArticleAttribution";
 import { InlineArticleDraftBar } from "@/components/article/InlineArticleDraftBar";
 import { NgheArticleDraftProvider } from "@/components/article/nghe/NgheArticleDraftContext";
 import { NgheDraftContentModal } from "@/components/article/nghe/NgheDraftContentModal";
@@ -15,6 +17,15 @@ import {
 } from "@/components/article/nghe/NgheHeroLeadInlineDraft";
 import { NgheLayoutStatic } from "@/components/article/nghe/static/NgheLayoutStatic";
 import { ngheNghiepDetailHref } from "@/lib/cins/hubPaths";
+import {
+  fetchArticleAttribution,
+  mapAttributionForDisplay,
+} from "@/lib/article/dong-gop/attribution";
+import {
+  entityCanonicalLeadHtml,
+  hasEntityCanonicalContent,
+} from "@/lib/article/dong-gop/canonical-content";
+import { listDongGopForEntityTab } from "@/lib/article/dong-gop/public-list";
 
 type ArticleNgheViewProps = {
   article: ArticleBaiViet;
@@ -32,7 +43,7 @@ type ArticleNgheViewProps = {
   viewerProfileId?: string | null;
 };
 
-export function ArticleNgheView({
+export async function ArticleNgheView({
   article,
   lienQuan = [],
   relatedJobsLienQuan = [],
@@ -44,12 +55,55 @@ export function ArticleNgheView({
   viewerProfileId = null,
 }: ArticleNgheViewProps) {
   const slugPath = ngheNghiepDetailHref(article.slug);
+  const attributionDisplay = mapAttributionForDisplay(
+    await fetchArticleAttribution(article.id),
+  );
+  const heroAttribution = (
+    <EntityArticleAttribution data={attributionDisplay} />
+  );
   const leadSource = buildNgheLeadSourceFromNoiDung(
-    article.noi_dung ?? article.noi_dung_markdown,
+    entityCanonicalLeadHtml(article.noi_dung) ?? article.noi_dung_markdown,
     relatedJobsLienQuan,
   );
   const leadVideoUrl = getVideoUrlFromArticleMeta(article.meta);
   const heroThumbnailUrl = resolveArticleThumbnailOnlySync(article.thumbnail);
+  const canonicalEmpty = !hasEntityCanonicalContent(article.noi_dung);
+  const isLoggedIn = viewerProfileId != null;
+  const contributionData = await listDongGopForEntityTab(
+    article.id,
+    viewerProfileId,
+    {
+      loaiBaiViet: "nghe",
+      entityTitle: article.tieu_de,
+      entitySeed: {
+        tieu_de: article.tieu_de,
+        tieu_de_viet: article.tieu_de_viet ?? "",
+        tieu_de_eng: article.tieu_de_eng ?? "",
+        tom_tat: article.tom_tat ?? "",
+        video_url: leadVideoUrl ?? "",
+        thumbnail: article.thumbnail ?? "",
+      },
+    },
+  );
+  const contributionPanel = (
+    <ContributionTabPanel
+      items={contributionData.items}
+      count={contributionData.count}
+      isLoggedIn={isLoggedIn}
+      viewerHasDraft={contributionData.viewerHasDraft}
+      loginNext={slugPath}
+      idBaiViet={article.id}
+      articleTitle={article.tieu_de}
+      loaiBaiViet="nghe"
+      viewerEditor={contributionData.viewerEditor}
+    />
+  );
+  const entityTabProps = {
+    contribution: contributionPanel,
+    canonicalEmpty,
+    isLoggedIn,
+    loginNext: slugPath,
+  };
 
   return (
     <div className="article-page arv2 arv2-nghe">
@@ -69,6 +123,7 @@ export function ArticleNgheView({
             entitySort={entitySort}
             viewerProfileId={viewerProfileId}
             heroThumbnailUrl={heroThumbnailUrl}
+            {...entityTabProps}
             heroBlock={
               <NgheHeroInlineDraft
                 leadVideoUrl={leadVideoUrl}
@@ -99,6 +154,7 @@ export function ArticleNgheView({
           entitySort={entitySort}
           viewerProfileId={viewerProfileId}
           heroThumbnailUrl={heroThumbnailUrl}
+          {...entityTabProps}
           heroTitle={article.tieu_de}
           heroEmLine={
             article.tieu_de_viet?.trim() ||
@@ -107,6 +163,7 @@ export function ArticleNgheView({
           }
           heroSummary={article.tom_tat}
           heroLinhVucLabel={article.linh_vuc?.ten?.trim() ?? null}
+          heroAttribution={heroAttribution}
         />
       )}
     </div>

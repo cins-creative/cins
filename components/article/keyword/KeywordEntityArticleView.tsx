@@ -1,4 +1,6 @@
+import { ContributionTabPanel } from "@/components/article/contribution/ContributionTabPanel";
 import { ArticleJsonLd } from "@/components/article/ArticleJsonLd";
+import { EntityArticleAttribution } from "@/components/article/entity/EntityArticleAttribution";
 import { EntityArticleDiscussion } from "@/components/article/entity/EntityArticleDiscussion";
 import { EntityArticleHeader } from "@/components/article/entity/EntityArticleHeader";
 import { EntityArticleLayout } from "@/components/article/entity/EntityArticleLayout";
@@ -17,6 +19,12 @@ import { articlePublicHref } from "@/lib/articles/article-href";
 import { resolveArticleVideoUrl } from "@/lib/articles/lead-video-url";
 import { partitionKeywordRelated } from "@/lib/articles/partition-keyword-related";
 import { splitArticleTitleEm } from "@/lib/articles/split-title-em";
+import {
+  fetchArticleAttribution,
+  mapAttributionForDisplay,
+} from "@/lib/article/dong-gop/attribution";
+import { hasEntityCanonicalContent, entityCanonicalLeadHtml } from "@/lib/article/dong-gop/canonical-content";
+import { listDongGopForEntityTab } from "@/lib/article/dong-gop/public-list";
 import type { MilestoneItem } from "@/components/journey/milestone-types";
 import type {
   ArticleBaiViet,
@@ -46,7 +54,7 @@ export async function KeywordEntityArticleView({
 }: Props) {
   const slugPath = articlePublicHref("keyword", article.slug);
   const leadSource = buildArticleLeadSource(
-    article.noi_dung ?? article.noi_dung_markdown,
+    entityCanonicalLeadHtml(article.noi_dung) ?? article.noi_dung_markdown,
   );
   const leadVideoUrl = resolveArticleVideoUrl(article);
   const { thumb_url: thumbUrl } = await resolveHubArticleImages({
@@ -63,6 +71,29 @@ export async function KeywordEntityArticleView({
     null;
   const verified = article.da_verify === true;
 
+  const attributionDisplay = mapAttributionForDisplay(
+    await fetchArticleAttribution(article.id),
+  );
+
+  const canonicalEmpty = !hasEntityCanonicalContent(article.noi_dung);
+  const isLoggedIn = viewerProfileId != null;
+  const contributionData = await listDongGopForEntityTab(
+    article.id,
+    viewerProfileId,
+    {
+      loaiBaiViet: "keyword",
+      entityTitle: article.tieu_de,
+      entitySeed: {
+        tieu_de: titleMain,
+        tieu_de_viet: article.tieu_de_viet ?? "",
+        tieu_de_eng: article.tieu_de_eng ?? "",
+        tom_tat: article.tom_tat ?? "",
+        video_url: leadVideoUrl ?? "",
+        thumbnail: article.thumbnail ?? "",
+      },
+    },
+  );
+
   const { nghe, phanMem, keywords, nganh, blogs, other } =
     partitionKeywordRelated(lienQuan);
   const sidebarTabs = buildKeywordSidebarTabs(nghe, phanMem, keywords);
@@ -72,7 +103,7 @@ export async function KeywordEntityArticleView({
       {leadVideoUrl ? <NgheLeadVideo url={leadVideoUrl} /> : null}
       {leadSource ? (
         <NgheLeadRich html={leadSource} excludeSlug={article.slug} />
-      ) : (
+      ) : canonicalEmpty ? null : (
         <p className="nghe-side-empty entity-empty-lead">
           Nội dung keyword đang được cập nhật.
         </p>
@@ -118,10 +149,30 @@ export async function KeywordEntityArticleView({
             summary={article.tom_tat}
             thumbnailUrl={thumbUrl}
             verified={verified}
+            attribution={
+              <EntityArticleAttribution data={attributionDisplay} />
+            }
           />
         }
         content={content}
         contentExtra={contentExtra}
+        contribution={
+          <ContributionTabPanel
+            items={contributionData.items}
+            count={contributionData.count}
+            isLoggedIn={isLoggedIn}
+            viewerHasDraft={contributionData.viewerHasDraft}
+            loginNext={slugPath}
+            idBaiViet={article.id}
+            articleTitle={article.tieu_de}
+            loaiBaiViet="keyword"
+            viewerEditor={contributionData.viewerEditor}
+          />
+        }
+        canonicalEmpty={canonicalEmpty}
+        entityKindLabel="Khái niệm"
+        isLoggedIn={isLoggedIn}
+        loginNext={slugPath}
         discussion={
           <EntityArticleDiscussion
             users={entityTaggedUsers}

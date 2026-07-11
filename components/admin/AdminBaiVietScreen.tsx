@@ -5,7 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { adminListDongGopForBaiViet } from "@/app/admin/bai-viet/dong-gop-actions";
 import { AdminArticleThumb } from "@/components/admin/AdminArticleThumb";
+import { AdminDongGopScreen } from "@/components/admin/AdminDongGopScreen";
 import { AdminSlideOver } from "@/components/admin/AdminSlideOver";
 import { AdminTableSettings } from "@/components/admin/AdminTableSettings";
 import { AdminArticleDataPreview } from "@/components/admin/AdminArticleDataPreview";
@@ -30,6 +32,7 @@ import type {
   AdminArticleFilterOptions,
   AdminArticleListRow,
 } from "@/lib/admin/articles-server";
+import type { AdminDongGopRow } from "@/lib/article/dong-gop/types";
 
 const AdminArticleCreatePanel = dynamic(
   () =>
@@ -173,8 +176,18 @@ export function AdminBaiVietScreen({
   const nhomFilter = listParams.nhom ?? "";
   const loaiNhomFilter = listParams.loaiNhom ?? "";
   const mediaFilter = listParams.media ?? "";
+  const dongGopFilter = listParams.dongGop ?? "";
   const [editId, setEditId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [dongGopBai, setDongGopBai] = useState<{
+    id: string;
+    tieuDe: string;
+  } | null>(null);
+  const [dongGopItems, setDongGopItems] = useState<AdminDongGopRow[] | null>(
+    null,
+  );
+  const [dongGopLoading, setDongGopLoading] = useState(false);
+  const [dongGopError, setDongGopError] = useState<string | null>(null);
   const [visibleColumns, setVisibleColumns] = useState<Set<AdminTableColumnId>>(() => {
     if (typeof window === "undefined") return new Set(defaultVisibleColumnIds());
     return new Set(
@@ -212,6 +225,29 @@ export function AdminBaiVietScreen({
     );
   }, [visibleFilters]);
 
+  const openDongGopForBai = useCallback(async (row: AdminArticleListRow) => {
+    setCreateOpen(false);
+    setEditId(null);
+    setDongGopBai({ id: row.id, tieuDe: row.tieu_de });
+    setDongGopItems(null);
+    setDongGopError(null);
+    setDongGopLoading(true);
+    const res = await adminListDongGopForBaiViet({ idBaiViet: row.id });
+    setDongGopLoading(false);
+    if (!res.ok) {
+      setDongGopError(res.message);
+      return;
+    }
+    setDongGopItems(res.items);
+  }, []);
+
+  const closeDongGopPanel = useCallback(() => {
+    setDongGopBai(null);
+    setDongGopItems(null);
+    setDongGopError(null);
+    setDongGopLoading(false);
+  }, []);
+
   const colVisible = (id: AdminTableColumnId) => visibleColumns.has(id);
   const filterVisible = (id: AdminFilterFieldId) => visibleFilters.has(id);
   const visibleColCount = ADMIN_TABLE_COLUMNS.filter((c) =>
@@ -243,30 +279,7 @@ export function AdminBaiVietScreen({
 
   return (
     <>
-      <header className="page-header">
-        <h1 className="page-title">Bài viết & Tag</h1>
-        <div className="page-header-actions">
-          <button
-            type="button"
-            className="btn btn-ghost"
-            onClick={() => router.refresh()}
-          >
-            Refresh
-          </button>
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={() => {
-              setEditId(null);
-              setCreateOpen(true);
-            }}
-          >
-            + Tạo mới
-          </button>
-        </div>
-      </header>
-
-      <div className="page-body">
+      <div className="page-body admin-bai-viet-body">
         <div className="admin-toolbar">
           <div className="admin-toolbar__row">
             <div className="filter-search filter-search--toolbar">
@@ -306,6 +319,25 @@ export function AdminBaiVietScreen({
                 setVisibleFilters(new Set(ids) as Set<AdminFilterFieldId>)
               }
             />
+            <div className="admin-toolbar__actions">
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => router.refresh()}
+              >
+                Refresh
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => {
+                  setEditId(null);
+                  setCreateOpen(true);
+                }}
+              >
+                + Tạo mới
+              </button>
+            </div>
           </div>
           <div className="filter-bar filter-bar--articles">
           {filterVisible("loai") ? (
@@ -357,6 +389,23 @@ export function AdminBaiVietScreen({
                 {lv.ten}
               </option>
             ))}
+          </select>
+          ) : null}
+          {filterVisible("dongGop") ? (
+          <select
+            className="filter-select"
+            value={dongGopFilter}
+            onChange={(e) =>
+              pushListParams({
+                dongGop:
+                  e.target.value === "cho_duyet" ? "cho_duyet" : undefined,
+                page: 1,
+              })
+            }
+            aria-label="Lọc đóng góp"
+          >
+            <option value="">Tất cả đóng góp</option>
+            <option value="cho_duyet">Chưa xử lý đóng góp</option>
           </select>
           ) : null}
           {filterVisible("loaiNhom") ? (
@@ -425,8 +474,8 @@ export function AdminBaiVietScreen({
           </div>
         </div>
 
-        <div className="table-wrap">
-          <table>
+        <div className="table-wrap table-wrap--articles">
+          <table className="admin-articles-table">
             <thead>
               <tr>
                 {colVisible("thumb") ? <th className="col-thumb">Ảnh</th> : null}
@@ -434,7 +483,7 @@ export function AdminBaiVietScreen({
                 {colVisible("loai") ? <th>Loại</th> : null}
                 {colVisible("meta") ? <th>Lĩnh vực / Nhóm</th> : null}
                 {colVisible("noi_dung") ? <th>Nội dung</th> : null}
-                {colVisible("meta_json") ? <th>Meta</th> : null}
+                {colVisible("dong_gop") ? <th>Đóng góp</th> : null}
                 {colVisible("status") ? <th>Trạng thái</th> : null}
                 {colVisible("views") ? <th>Lượt xem</th> : null}
                 {colVisible("date") ? <th>Ngày tạo</th> : null}
@@ -524,14 +573,34 @@ export function AdminBaiVietScreen({
                       />
                     </td>
                     ) : null}
-                    {colVisible("meta_json") ? (
-                    <td className="cell-preview" onClick={(e) => e.stopPropagation()}>
-                      <AdminArticleDataPreview
-                        hasData={r.has_meta}
-                        preview={r.meta_preview}
-                        emptyLabel="trống"
-                        title={r.meta_preview ?? "Chưa có meta"}
-                      />
+                    {colVisible("dong_gop") ? (
+                    <td
+                      className="cell-dong-gop"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void openDongGopForBai(r);
+                      }}
+                    >
+                      {r.dong_gop_cho_duyet > 0 ? (
+                        <button
+                          type="button"
+                          className="admin-dong-gop-badge is-pending"
+                          title={`${r.dong_gop_cho_duyet} đóng góp chờ duyệt`}
+                        >
+                          <span className="admin-dong-gop-badge-count">
+                            {r.dong_gop_cho_duyet}
+                          </span>
+                          chờ duyệt
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="admin-dong-gop-badge"
+                          title="Xem đóng góp của bài này"
+                        >
+                          Quản lý
+                        </button>
+                      )}
                     </td>
                     ) : null}
                     {colVisible("status") ? (
@@ -654,6 +723,34 @@ export function AdminBaiVietScreen({
             listRow={editListRow}
             onCancel={() => setEditId(null)}
             onDeleted={() => setEditId(null)}
+          />
+        ) : null}
+      </AdminSlideOver>
+
+      <AdminSlideOver
+        open={dongGopBai != null}
+        wide
+        title={
+          dongGopBai
+            ? `Đóng góp — ${dongGopBai.tieuDe}`
+            : "Đóng góp"
+        }
+        onClose={() => {
+          closeDongGopPanel();
+          router.refresh();
+        }}
+      >
+        {dongGopLoading ? (
+          <p className="admin-panel-loading">Đang tải đóng góp…</p>
+        ) : null}
+        {dongGopError ? (
+          <p className="dgop-admin-msg">{dongGopError}</p>
+        ) : null}
+        {dongGopBai && dongGopItems ? (
+          <AdminDongGopScreen
+            items={dongGopItems}
+            focusBaiVietId={dongGopBai.id}
+            embedded
           />
         ) : null}
       </AdminSlideOver>

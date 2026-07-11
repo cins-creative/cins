@@ -143,6 +143,42 @@ export type MembershipMilestoneResolvedNotification = {
   daDoc?: boolean;
 };
 
+/** Curator nhận khi có bản đóng góp entity gửi duyệt (`article_dong_gop`). */
+export type ArticleDongGopCuratorNotification = {
+  notificationId: string;
+  idDongGop: string;
+  entityTitle: string;
+  entityHref: string;
+  adminHref: string;
+  contributorName: string;
+  contributorSlug: string | null;
+  contributorAvatarUrl: string | null;
+  taoLuc?: string;
+  daDoc?: boolean;
+};
+
+/** Contributor nhận khi curator yêu cầu sửa / từ chối bản đóng góp. */
+export type ArticleDongGopFeedbackNotification = {
+  notificationId: string;
+  idDongGop: string;
+  action: "can_sua" | "tu_choi";
+  entityTitle: string;
+  entityHref: string;
+  ghiChu: string;
+  taoLuc?: string;
+  daDoc?: boolean;
+};
+
+/** Contributor nhận khi bản đóng góp được duyệt làm nội dung chính. */
+export type ArticleDongGopPromotedNotification = {
+  notificationId: string;
+  idDongGop: string;
+  entityTitle: string;
+  entityHref: string;
+  taoLuc?: string;
+  daDoc?: boolean;
+};
+
 export type FollowHandledNotification = PendingFollowRequest & {
   notificationId: string;
   action: "accept" | "decline";
@@ -181,6 +217,8 @@ export type NotificationFeed = {
   videoReady: VideoReadyNotification[];
   orgMilestoneTagApproved: OrgMilestoneTagApprovedNotification[];
   membershipMilestoneResolved: MembershipMilestoneResolvedNotification[];
+  dongGopFeedback: ArticleDongGopFeedbackNotification[];
+  dongGopPromoted: ArticleDongGopPromotedNotification[];
   handledFollows: FollowHandledNotification[];
   processedCoAuthorReviews: ProcessedCoAuthorReview[];
 };

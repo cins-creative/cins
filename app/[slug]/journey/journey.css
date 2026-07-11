@@ -9270,6 +9270,13 @@ select.j-edit-input {
   height: auto;
 }
 
+.cins-editor-page .ed-photo-album-compose .preview--photo-grid:has(.image-grid--single.is-portrait) {
+  width: 100%;
+  max-width: 100%;
+  margin-inline: 0;
+  aspect-ratio: 9 / 16;
+}
+
 .cins-editor-page .ed-photo-album-compose .image-grid-cell.is-compose-pending {
   background: var(--neutral-100, #eceef2);
 }
@@ -10810,6 +10817,121 @@ select.j-edit-input {
 .j-pending-confirmations .j-coauthor-pending-stack {
   margin-top: 0;
   margin-bottom: 0;
+}
+
+.j-dong-gop-feedback {
+  background:
+    linear-gradient(180deg, #f8fbff 0%, #fff 55%);
+  border-color: color-mix(in srgb, var(--cins-blue, #1f74c9) 22%, #e2e8f0);
+}
+
+.j-dong-gop-feedback-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.j-dong-gop-feedback-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--cins-blue, #1f74c9) 75%, #64748b);
+}
+
+.j-dong-gop-feedback-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: #0f172a;
+}
+
+.j-dong-gop-feedback-topic {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #64748b;
+}
+
+.j-dong-gop-feedback-topic-link {
+  color: #1e40af;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.j-dong-gop-feedback-topic-link:hover {
+  color: #1d4ed8;
+}
+
+.j-dong-gop-feedback-quote {
+  margin: 2px 0 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border-left: 3px solid color-mix(in srgb, var(--cins-blue, #1f74c9) 55%, #93c5fd);
+  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 6%, #fff);
+}
+
+.j-dong-gop-feedback-quote-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.j-dong-gop-feedback-quote-text {
+  display: block;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #334155;
+  font-style: normal;
+}
+
+.j-dong-gop-feedback-hint {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #64748b;
+}
+
+.j-dong-gop-feedback-actions {
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.j-dong-gop-feedback-error {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #b42318;
+}
+
+.j-dong-gop-feedback.is-reject {
+  background: linear-gradient(180deg, #fff8f8 0%, #fff 55%);
+  border-color: color-mix(in srgb, #cf1322 22%, #e2e8f0);
+}
+
+.j-dong-gop-feedback.is-reject .j-dong-gop-feedback-kicker {
+  color: color-mix(in srgb, #cf1322 55%, #64748b);
+}
+
+.j-dong-gop-feedback.is-reject .j-dong-gop-feedback-quote {
+  border-left-color: color-mix(in srgb, #cf1322 45%, #fca5a5);
+  background: color-mix(in srgb, #cf1322 5%, #fff);
+}
+
+.j-notify-avatar.is-edit {
+  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 14%, #fff);
+  color: var(--cins-blue, #1f74c9);
 }
 
 .j-membership-pending-stack {
@@ -13402,6 +13524,42 @@ select.j-edit-input {
 .preview--photo-grid .image-grid-cell {
   cursor: pointer;
   pointer-events: auto;
+}
+/* 1 ảnh dọc — canvas full bleed 9:16 */
+.preview--photo-grid.is-canvas-9-16,
+.preview--photo-grid:has(.image-grid--single.is-portrait) {
+  width: 100%;
+  max-width: 100%;
+  margin-inline: 0;
+  aspect-ratio: 9 / 16;
+  height: auto;
+  min-height: 0;
+}
+.jcard--photo .preview--photo-grid.is-canvas-9-16,
+.jcard--photo .preview--photo-grid:has(.image-grid--single.is-portrait) {
+  aspect-ratio: 9 / 16;
+}
+.j-m-card.jcard--photo .jcard-media-zone .preview--photo-grid.is-canvas-9-16,
+.j-m-card.jcard--photo .jcard-media-zone .preview--photo-grid:has(.image-grid--single.is-portrait) {
+  width: 100%;
+  max-width: 100%;
+  margin-inline: 0;
+}
+.preview--photo-grid.is-canvas-9-16 .image-grid,
+.preview--photo-grid:has(.image-grid--single.is-portrait) .image-grid {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+.preview--photo-grid.is-canvas-9-16 .image-grid--single,
+.preview--photo-grid:has(.image-grid--single.is-portrait) .image-grid--single {
+  height: 100%;
+}
+.preview--photo-single.is-canvas-9-16 img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 /* Article peek — giữ khung cố định; không bị rule `.preview--photo-grid` kéo dài. */
 .preview.preview--article-peek:not(.jcard-embed-peek):not(.is-embed-interactive),

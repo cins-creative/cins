@@ -14,10 +14,13 @@ type TocGroup = {
   items: TocItem[];
 };
 
-const INTRO_SELECTOR = "#entity-sec-intro, #nghe-sec-intro";
-const ARTICLE_SELECTOR = ".nghe-lead-panel h2, .entity-lead-panel h2";
+const ARTICLE_SELECTOR =
+  ".nghe-lead-panel h2, .entity-lead-panel h2, .nghe-lead-panel .arc-h2, .entity-lead-panel .arc-h2";
 const RELATED_SELECTOR =
   ".ent-section-title, .ent-reading-body .section-h, #nghe-sec-community";
+
+/** Hero `#entity-sec-intro` / `#nghe-sec-intro` không vào TOC — textContent cả header. */
+const TOC_SKIP_IDS = new Set(["entity-sec-intro", "nghe-sec-intro"]);
 
 function slugBase(text: string): string {
   return text
@@ -66,21 +69,18 @@ function collectGroup(
   root: HTMLElement,
   selector: string,
   seen: Set<string>,
-  introLabel?: string,
 ): TocItem[] {
   const items: TocItem[] = [];
 
   for (const el of root.querySelectorAll<HTMLElement>(selector)) {
-    if (el.id === "nghe-sec-intro" && introLabel) {
-      ensureId(el, introLabel, seen);
-      items.push({ id: el.id, label: introLabel, index: "" });
-      continue;
-    }
+    if (TOC_SKIP_IDS.has(el.id)) continue;
 
     const label = readHeadingLabel(el);
     if (!label) continue;
 
     const id = ensureId(el, label, seen);
+    if (TOC_SKIP_IDS.has(id)) continue;
+
     items.push({ id, label, index: "" });
   }
 
@@ -93,16 +93,7 @@ function collectGroup(
 function buildGroups(root: HTMLElement): TocGroup[] {
   const seen = new Set<string>();
 
-  const articleItems = [
-    ...collectGroup(root, INTRO_SELECTOR, seen, "Giới thiệu"),
-    ...collectGroup(root, ARTICLE_SELECTOR, seen).filter(
-      (item) => item.id !== "nghe-sec-intro",
-    ),
-  ].map((item, i) => ({
-    ...item,
-    index: String(i + 1).padStart(2, "0"),
-  }));
-
+  const articleItems = collectGroup(root, ARTICLE_SELECTOR, seen);
   const relatedItems = collectGroup(root, RELATED_SELECTOR, seen);
 
   const groups: TocGroup[] = [];

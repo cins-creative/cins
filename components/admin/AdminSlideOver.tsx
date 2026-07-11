@@ -8,9 +8,18 @@ type Props = {
   onClose: () => void;
   children: ReactNode;
   footer?: ReactNode;
+  /** Panel rộng hơn — quản lý đóng góp theo bài. */
+  wide?: boolean;
 };
 
-export function AdminSlideOver({ open, title, onClose, children, footer }: Props) {
+export function AdminSlideOver({
+  open,
+  title,
+  onClose,
+  children,
+  footer,
+  wide = false,
+}: Props) {
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -28,7 +37,12 @@ export function AdminSlideOver({ open, title, onClose, children, footer }: Props
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="slideover" role="dialog" aria-modal="true" aria-labelledby="admin-so-title">
+      <div
+        className={`slideover${wide ? " slideover--wide" : ""}`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="admin-so-title"
+      >
         <div className="so-header">
           <h2 id="admin-so-title" className="so-title">
             {title}

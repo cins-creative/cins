@@ -12,7 +12,12 @@ import {
   TruongTabTable,
   type TruongToolTab,
 } from "@/components/article/draft/ArticleDraftToolbar";
-import type { ArticleImagePasteStatus } from "@/components/article/draft/article-draft-editor-types";
+import { ArticleBlockPalette } from "@/components/article/draft/ArticleBlockPalette";
+import { ArticleDongGopLeadMirror } from "@/components/article/draft/ArticleDongGopLeadMirror";
+import type {
+  ArticleDraftEditorVariant,
+  ArticleImagePasteStatus,
+} from "@/components/article/draft/article-draft-editor-types";
 import { ArticleDraftVisualPane } from "@/components/article/draft/ArticleDraftVisualPane";
 import "@/styles/article-draft-tiptap.css";
 
@@ -23,17 +28,13 @@ type Tab = "visual" | "html";
 type Props = {
   value: string;
   onChange: (html: string) => void;
-  /** Gắn trong `.nghe-lead-panel` — class editor bám layout lead site. */
-  variant?: "default" | "nghe-lead-inline" | "truong-inline" | "nganh-admin";
-  /** Ẩn gợi ý dài phía trên toolbar. */
+  variant?: ArticleDraftEditorVariant;
+  /** Loại bài — palette block khi `variant="dong-gop"`. */
+  loaiBaiViet?: string;
   hideHint?: boolean;
-  /** Chỉ textarea HTML — không khởi tạo Tiptap. */
   htmlOnly?: boolean;
-  /** Tab khởi tạo — trang nghề inline dùng `html` để không parse Tiptap khi mở sửa. */
   defaultTab?: Tab;
-  /** Parse `noi_dung` sau paint khi chuyển tab Soạn thảo — inline nghề. */
   deferHeavyContent?: boolean;
-  /** Mock heading "01 — Ngành … là gì?" khi `variant="nganh-admin"`. */
   nganhTitleVi?: string;
 };
 
@@ -84,6 +85,7 @@ function ArticleDraftContentEditorFull({
   value,
   onChange,
   variant = "default",
+  loaiBaiViet = "nghe",
   hideHint = false,
   defaultTab = "visual",
   deferHeavyContent = false,
@@ -218,6 +220,7 @@ function ArticleDraftContentEditorFull({
     <div
       className={clsx(
         "article-draft-tiptap",
+        variant === "dong-gop" && "article-draft-tiptap--dong-gop",
         variant === "nghe-lead-inline" && "article-draft-tiptap--nghe-lead",
         variant === "truong-inline" && "article-draft-tiptap--truong-inline",
         variant === "nganh-admin" && "article-draft-tiptap--nganh-admin",
@@ -225,7 +228,13 @@ function ArticleDraftContentEditorFull({
     >
       {!hideHint && variant !== "truong-inline" ? (
         <p className="article-draft-tiptap__hint">
-          {variant === "nghe-lead-inline" ? (
+          {variant === "dong-gop" ? (
+            <>
+              <strong>Block Studio</strong> — chèn khối layout chuyên nghiệp (kỹ năng,
+              lộ trình, đầu việc…) bằng thanh công cụ phía dưới. Sửa chi tiết ở tab{" "}
+              <strong>HTML</strong> khi cần.
+            </>
+          ) : variant === "nghe-lead-inline" ? (
             <>
               Ô soạn phía trên chỉ chứa <code>arc-intro</code> (đoạn dẫn). Phần{" "}
               <code>arc-section</code> hiển thị read-only bên dưới — sửa các mục 01,
@@ -318,6 +327,16 @@ function ArticleDraftContentEditorFull({
         </button>
       </div>
 
+      {variant === "dong-gop" &&
+      tab === "visual" &&
+      (visualMountReady || !deferHeavyContent) ? (
+        <ArticleBlockPalette
+          editor={editor}
+          loaiBaiViet={loaiBaiViet}
+          disabled={disabledVisual}
+        />
+      ) : null}
+
       {showSharedToolbar &&
       (tab !== "visual" || visualMountReady || !deferHeavyContent) ? (
         <ArticleDraftToolbar
@@ -372,6 +391,8 @@ function ArticleDraftContentEditorFull({
               </div>
             ) : null}
           </div>
+        ) : variant === "dong-gop" ? (
+          <ArticleDongGopLeadMirror>{visualPane}</ArticleDongGopLeadMirror>
         ) : (
           visualPane
         )
@@ -427,6 +448,13 @@ function ArticleDraftContentEditorFull({
                   dangerouslySetInnerHTML={{ __html: value }}
                 />
               </div>
+            ) : variant === "dong-gop" ? (
+              <ArticleDongGopLeadMirror className="article-draft-tiptap__preview-lead-mirror">
+                <div
+                  className="nghe-lead-rich article-rich-content article-content-html"
+                  dangerouslySetInnerHTML={{ __html: value }}
+                />
+              </ArticleDongGopLeadMirror>
             ) : (
               <div
                 className="article-draft-tiptap__preview-body article-rich-content article-content-html"

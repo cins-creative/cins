@@ -9,13 +9,23 @@ export const PICKABLE_TAG_LOAI = [
 
 export type PickableTagLoai = (typeof PICKABLE_TAG_LOAI)[number];
 
-/** Chỉ keyword/phan_mem — user tạo tự do (v7). */
-export const CREATABLE_TAG_LOAI = ["keyword", "phan_mem"] as const;
+/** keyword / phan_mem / mon_hoc / nghe — user tạo tự do (v7 + mon_hoc). */
+export const CREATABLE_TAG_LOAI = [
+  "keyword",
+  "phan_mem",
+  "mon_hoc",
+  "nghe",
+] as const;
 
 export type CreatableTagLoai = (typeof CREATABLE_TAG_LOAI)[number];
 
 export function isCreatableTagLoai(loai: string): loai is CreatableTagLoai {
-  return loai === "keyword" || loai === "phan_mem";
+  return (
+    loai === "keyword" ||
+    loai === "phan_mem" ||
+    loai === "mon_hoc" ||
+    loai === "nghe"
+  );
 }
 
 export function parsePickableTagLoai(

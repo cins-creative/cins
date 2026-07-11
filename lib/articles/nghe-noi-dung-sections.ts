@@ -68,7 +68,12 @@ export function remainderHtmlAfterNgheIntro(fullHtml: string): string | null {
 /** Nguồn HTML tab Soạn thảo theo variant. */
 export function visualHtmlForEditor(
   fullHtml: string,
-  variant: "default" | "nghe-lead-inline" | "truong-inline" | "nganh-admin",
+  variant:
+    | "default"
+    | "dong-gop"
+    | "nghe-lead-inline"
+    | "truong-inline"
+    | "nganh-admin",
 ): string {
   if (variant === "nghe-lead-inline") {
     return introHtmlForNgheEditor(fullHtml);

@@ -2,8 +2,14 @@ import "server-only";
 
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
+import { getAvatarUrl } from "@/lib/journey/profile";
+
 import { fetchTacGiaListForArticle } from "./fetch";
-import type { ArticleTacGiaListItem } from "./types";
+import type {
+  ArticleTacGiaListItem,
+  EntityAttributionDisplay,
+  EntityContributorDisplay,
+} from "./types";
 
 export type ArticleAttribution = {
   idTacGiaChinh: string | null;
@@ -11,6 +17,36 @@ export type ArticleAttribution = {
   tacGiaChinh: ArticleTacGiaListItem | null;
   contributors: ArticleTacGiaListItem[];
 };
+
+function mapContributor(item: ArticleTacGiaListItem): EntityContributorDisplay {
+  const user = item.nguoi_dung;
+  const slug = user?.slug?.trim() ?? null;
+
+  return {
+    id: item.id_nguoi_dung,
+    slug,
+    tenHienThi: user?.ten_hien_thi?.trim() ?? null,
+    avatarUrl: getAvatarUrl(user?.avatar_id ?? null),
+    href: slug ? `/${slug}` : null,
+    vaiTro: item.vai_tro,
+    laHienTai: item.la_hien_tai,
+    taoLuc: item.tao_luc,
+  };
+}
+
+export function mapAttributionForDisplay(
+  raw: ArticleAttribution,
+): EntityAttributionDisplay {
+  const contributors = raw.contributors.map(mapContributor);
+  const tacGiaChinh = raw.tacGiaChinh ? mapContributor(raw.tacGiaChinh) : null;
+  const uniqueCount = new Set(raw.contributors.map((c) => c.id_nguoi_dung)).size;
+
+  return {
+    tacGiaChinh,
+    soNguoiDongGop: Math.max(raw.soNguoiDongGop, uniqueCount),
+    contributors,
+  };
+}
 
 export async function fetchArticleAttribution(
   idBaiViet: string,
