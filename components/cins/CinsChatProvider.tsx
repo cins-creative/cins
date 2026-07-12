@@ -516,6 +516,7 @@ export function CinsChatProvider({
         const peer: ChatPeerPreview = {
           userId: options.targetUserId,
           name: options.peerPreview?.name ?? "Người dùng",
+          slug: options.peerPreview?.slug,
           role: options.peerPreview?.role,
           avatarInitial: options.peerPreview?.avatarInitial,
           avatarHue: options.peerPreview?.avatarHue,

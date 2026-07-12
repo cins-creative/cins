@@ -317,6 +317,7 @@ function buildUserThread(
     id: roomId,
     roomId,
     peerUserId: peer.id,
+    peerSlug: peer.slug?.trim() || undefined,
     name,
     group,
     kind: "user",

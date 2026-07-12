@@ -8,6 +8,7 @@ import {
   LogOut,
   MoreVertical,
   Trash2,
+  User,
 } from "lucide-react";
 import {
   useCallback,
@@ -158,13 +159,27 @@ export function buildThreadMenuActions(options: {
   isMuted: boolean;
   isGroup: boolean;
   isGroupAdmin: boolean;
+  /** DM cá nhân có slug Journey — hiện «Xem người dùng». */
+  canViewProfile?: boolean;
+  onViewProfile?: () => void;
   onToggleListPin: () => void;
   onToggleMute: () => void;
   onLeaveGroup: () => void;
   onDeleteGroup: () => void;
   onHideThread: () => void;
 }): ChatThreadMenuAction[] {
-  const actions: ChatThreadMenuAction[] = [
+  const actions: ChatThreadMenuAction[] = [];
+
+  if (options.canViewProfile && options.onViewProfile) {
+    actions.push({
+      id: "view-profile",
+      label: "Xem người dùng",
+      icon: <User size={15} strokeWidth={2.1} />,
+      onSelect: options.onViewProfile,
+    });
+  }
+
+  actions.push(
     {
       id: "list-pin",
       label: options.isListPinned ? "Bỏ ghim lên đầu" : "Ghim lên đầu danh sách",
@@ -181,7 +196,7 @@ export function buildThreadMenuActions(options: {
       ),
       onSelect: options.onToggleMute,
     },
-  ];
+  );
 
   if (options.isGroup) {
     actions.push({

@@ -8510,6 +8510,69 @@ select.j-edit-input {
     background: var(--bg-surface, #fff);
     border-top: 1px solid var(--border);
     border-bottom: 1px solid var(--border);
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  .j-post-overlay
+    .j-post-sheet:has(.post-canvas--split)
+    .post-rail-blk--actions
+    .post-byline-actions {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    justify-content: space-between;
+    gap: 4px;
+    width: 100%;
+    padding: 4px;
+    border-radius: 12px;
+    background: var(--neutral-50, #f5f6f8);
+    border: 1px solid var(--border);
+  }
+
+  .j-post-overlay
+    .j-post-sheet:has(.post-canvas--split)
+    .post-rail-blk--actions
+    .post-byline-act,
+  .j-post-overlay
+    .j-post-sheet:has(.post-canvas--split)
+    .post-rail-blk--actions
+    .post-byline-share-wrap {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+  }
+
+  .j-post-overlay
+    .j-post-sheet:has(.post-canvas--split)
+    .post-rail-blk--actions
+    .post-byline-act {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    width: auto;
+    min-height: 34px;
+    height: 34px;
+    padding: 0 6px;
+    border-radius: 9px;
+  }
+
+  .j-post-overlay
+    .j-post-sheet:has(.post-canvas--split)
+    .post-rail-blk--actions
+    .post-byline-share-wrap
+    .post-byline-act.is-share {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    width: 100%;
+    min-height: 34px;
+    height: 34px;
+    padding: 0 6px;
+    border-radius: 9px;
   }
 
   .j-post-overlay .j-post-sheet:has(.post-canvas--split) .post-rail-blk--comments {
@@ -9274,7 +9337,6 @@ select.j-edit-input {
   width: 100%;
   max-width: 100%;
   margin-inline: 0;
-  aspect-ratio: 9 / 16;
 }
 
 .cins-editor-page .ed-photo-album-compose .image-grid-cell.is-compose-pending {
@@ -13525,41 +13587,48 @@ select.j-edit-input {
   cursor: pointer;
   pointer-events: auto;
 }
-/* 1 ảnh dọc — canvas full bleed 9:16 */
-.preview--photo-grid.is-canvas-9-16,
+/* 1 ảnh dọc — khung thu ngang khi cao hơn max (desktop 3:4 · mobile 9:16), không crop */
+.preview--photo-grid.is-portrait-media,
 .preview--photo-grid:has(.image-grid--single.is-portrait) {
   width: 100%;
   max-width: 100%;
   margin-inline: 0;
-  aspect-ratio: 9 / 16;
   height: auto;
   min-height: 0;
 }
-.jcard--photo .preview--photo-grid.is-canvas-9-16,
-.jcard--photo .preview--photo-grid:has(.image-grid--single.is-portrait) {
-  aspect-ratio: 9 / 16;
-}
-.j-m-card.jcard--photo .jcard-media-zone .preview--photo-grid.is-canvas-9-16,
+.j-m-card.jcard--photo .jcard-media-zone .preview--photo-grid.is-portrait-media,
 .j-m-card.jcard--photo .jcard-media-zone .preview--photo-grid:has(.image-grid--single.is-portrait) {
   width: 100%;
   max-width: 100%;
   margin-inline: 0;
 }
-.preview--photo-grid.is-canvas-9-16 .image-grid,
+.preview--photo-grid.is-portrait-media .image-grid,
 .preview--photo-grid:has(.image-grid--single.is-portrait) .image-grid {
-  width: 100%;
-  height: 100%;
   min-height: 0;
 }
-.preview--photo-grid.is-canvas-9-16 .image-grid--single,
-.preview--photo-grid:has(.image-grid--single.is-portrait) .image-grid--single {
-  height: 100%;
+.preview--photo-single.is-portrait-media {
+  --media-canvas-max-aspect: 0.75;
+  width: min(
+    100%,
+    calc(
+      100% * var(--media-natural-aspect, var(--media-canvas-max-aspect)) /
+        var(--media-canvas-max-aspect)
+    )
+  );
+  max-width: 100%;
+  margin-inline: auto;
+  aspect-ratio: var(--media-natural-aspect, var(--media-canvas-max-aspect));
 }
-.preview--photo-single.is-canvas-9-16 img {
+.preview--photo-single.is-portrait-media img {
   width: 100%;
   height: 100%;
   object-fit: contain;
   display: block;
+}
+@media (max-width: 767px) {
+  .preview--photo-single.is-portrait-media {
+    --media-canvas-max-aspect: 0.5625;
+  }
 }
 /* Article peek — giữ khung cố định; không bị rule `.preview--photo-grid` kéo dài. */
 .preview.preview--article-peek:not(.jcard-embed-peek):not(.is-embed-interactive),
@@ -13587,21 +13656,44 @@ select.j-edit-input {
 .jcard-video-trigger.is-canvas-1-1,
 .jcard-video-player.is-canvas-1-1 {
   aspect-ratio: 1 / 1;
+  max-height: none;
+  width: min(100%, 100%);
+  margin-inline: auto;
 }
 .preview--video.is-canvas-3-4,
 .jcard-video-trigger.is-canvas-3-4,
-.jcard-video-player.is-canvas-3-4 {
-  aspect-ratio: 3 / 4;
-}
+.jcard-video-player.is-canvas-3-4,
 .preview--video.is-canvas-9-16,
 .jcard-video-trigger.is-canvas-9-16,
 .jcard-video-player.is-canvas-9-16 {
-  aspect-ratio: 9 / 16;
+  --media-canvas-max-aspect: 0.75; /* desktop 3:4 */
+  width: min(
+    100%,
+    calc(
+      100% * var(--media-natural-aspect, var(--media-canvas-max-aspect)) /
+        var(--media-canvas-max-aspect)
+    )
+  );
+  max-width: 100%;
+  margin-inline: auto;
+  aspect-ratio: var(--media-natural-aspect, var(--media-canvas-max-aspect));
+  max-height: none;
+}
+@media (max-width: 767px) {
+  .preview--video.is-canvas-3-4,
+  .jcard-video-trigger.is-canvas-3-4,
+  .jcard-video-player.is-canvas-3-4,
+  .preview--video.is-canvas-9-16,
+  .jcard-video-trigger.is-canvas-9-16,
+  .jcard-video-player.is-canvas-9-16 {
+    --media-canvas-max-aspect: 0.5625; /* mobile 9:16 */
+  }
 }
 .preview--video.is-canvas-16-9,
 .jcard-video-trigger.is-canvas-16-9,
 .jcard-video-player.is-canvas-16-9 {
-  aspect-ratio: 16 / 9;
+  aspect-ratio: var(--media-natural-aspect, 1.7778);
+  width: 100%;
 }
 .j-m-blocks .b-embed-ro.is-iframe.is-canvas-1-1,
 .cins-editor-page.cins-post-view.j-m-unfold-post .b-embed.b-embed-ro.is-iframe.is-canvas-1-1,
@@ -13751,7 +13843,7 @@ select.j-edit-input {
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
 }
 .jcard-video-play {
@@ -13806,7 +13898,7 @@ select.j-edit-input {
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
 }
 .jcard-video-play--loading {
@@ -13905,33 +13997,31 @@ select.j-edit-input {
 .j-m-card.jcard--video .jcard-media-zone > .jcard-video-root:has(.is-canvas-3-4),
 .j-m-card.jcard--video .jcard-media-zone > .jcard-video-root:has(.is-canvas-9-16),
 .j-m-card.jcard--video .jcard-media-zone > .jcard-video-root:has(.is-canvas-1-1) {
-  width: min(100%, 420px);
-  max-width: min(100%, 420px);
-  margin-inline: auto;
-}
-.j-m-card.jcard--video .jcard-media-zone > .jcard-video-root:has(.is-canvas-9-16) {
-  width: min(100%, 320px);
-  max-width: min(100%, 320px);
+  width: 100%;
+  max-width: 100%;
+  margin-inline: 0;
+  display: flex;
+  justify-content: center;
 }
 .j-m-card.jcard--video .jcard-media-zone .jcard-video-root > .jcard-video-trigger.is-canvas-3-4,
 .j-m-card.jcard--video .jcard-media-zone .jcard-video-root > .jcard-video-player.is-canvas-3-4,
-.j-m-card.jcard--video .jcard-media-zone .jcard-video-root > .preview.preview--video.is-canvas-3-4 {
-  width: 100%;
-  max-width: 100%;
-  max-height: none;
-  min-height: 0;
-  margin-inline: auto;
-  aspect-ratio: 3 / 4;
-}
+.j-m-card.jcard--video .jcard-media-zone .jcard-video-root > .preview.preview--video.is-canvas-3-4,
 .j-m-card.jcard--video .jcard-media-zone .jcard-video-root > .jcard-video-trigger.is-canvas-9-16,
 .j-m-card.jcard--video .jcard-media-zone .jcard-video-root > .jcard-video-player.is-canvas-9-16,
 .j-m-card.jcard--video .jcard-media-zone .jcard-video-root > .preview.preview--video.is-canvas-9-16 {
-  width: 100%;
+  --media-canvas-max-aspect: 0.75;
+  width: min(
+    100%,
+    calc(
+      100% * var(--media-natural-aspect, var(--media-canvas-max-aspect)) /
+        var(--media-canvas-max-aspect)
+    )
+  );
   max-width: 100%;
   max-height: none;
   min-height: 0;
   margin-inline: auto;
-  aspect-ratio: 9 / 16;
+  aspect-ratio: var(--media-natural-aspect, var(--media-canvas-max-aspect));
 }
 .j-m-card.jcard--video .jcard-media-zone .jcard-video-root > .jcard-video-trigger.is-canvas-1-1,
 .j-m-card.jcard--video .jcard-media-zone .jcard-video-root > .jcard-video-player.is-canvas-1-1,
@@ -13949,7 +14039,7 @@ select.j-edit-input {
   min-height: 0;
 }
 
-/* Timeline video card — nền đen (#000) quanh khung video (cover/contain). */
+/* Timeline video card — nền đen (#000) quanh khung video. */
 .j-m-card.jcard--video .jcard-media-zone :is(
   .jcard-video-root,
   .jcard-video-player,
@@ -13975,32 +14065,32 @@ select.j-edit-input {
   max-height: 100vh;
 }
 
-/* Video dọc / vuông — khung hẹp căn giữa; landscape giữ full bleed + max-height 420. */
+/* Video dọc / vuông — thu ngang khi cao hơn max canvas; không crop */
 .j-m-card.jcard--video .jcard-media-zone > .jcard-video-trigger.is-canvas-3-4,
 .j-m-card.jcard--video .jcard-media-zone > .jcard-video-player.is-canvas-3-4,
-.j-m-card.jcard--video .jcard-media-zone > .preview.preview--video.is-canvas-3-4 {
-  width: min(100%, 420px);
-  max-width: min(100%, 420px);
-  max-height: none;
-  min-height: 0;
-  margin-inline: auto;
-  aspect-ratio: 3 / 4;
-}
+.j-m-card.jcard--video .jcard-media-zone > .preview.preview--video.is-canvas-3-4,
 .j-m-card.jcard--video .jcard-media-zone > .jcard-video-trigger.is-canvas-9-16,
 .j-m-card.jcard--video .jcard-media-zone > .jcard-video-player.is-canvas-9-16,
 .j-m-card.jcard--video .jcard-media-zone > .preview.preview--video.is-canvas-9-16 {
-  width: min(100%, 320px);
-  max-width: min(100%, 320px);
+  --media-canvas-max-aspect: 0.75;
+  width: min(
+    100%,
+    calc(
+      100% * var(--media-natural-aspect, var(--media-canvas-max-aspect)) /
+        var(--media-canvas-max-aspect)
+    )
+  );
+  max-width: 100%;
   max-height: none;
   min-height: 0;
   margin-inline: auto;
-  aspect-ratio: 9 / 16;
+  aspect-ratio: var(--media-natural-aspect, var(--media-canvas-max-aspect));
 }
 .j-m-card.jcard--video .jcard-media-zone > .jcard-video-trigger.is-canvas-1-1,
 .j-m-card.jcard--video .jcard-media-zone > .jcard-video-player.is-canvas-1-1,
 .j-m-card.jcard--video .jcard-media-zone > .preview.preview--video.is-canvas-1-1 {
-  width: min(100%, 420px);
-  max-width: min(100%, 420px);
+  width: 100%;
+  max-width: 100%;
   max-height: none;
   min-height: 0;
   margin-inline: auto;
@@ -14010,6 +14100,22 @@ select.j-edit-input {
 .j-m-card.jcard--video .jcard-media-zone > .jcard-video-player.is-canvas-9-16,
 .j-m-card.jcard--video .jcard-media-zone > .jcard-video-player.is-canvas-1-1 {
   min-height: 0;
+}
+@media (max-width: 767px) {
+  .j-m-card.jcard--video .jcard-media-zone .jcard-video-root > .jcard-video-trigger.is-canvas-3-4,
+  .j-m-card.jcard--video .jcard-media-zone .jcard-video-root > .jcard-video-player.is-canvas-3-4,
+  .j-m-card.jcard--video .jcard-media-zone .jcard-video-root > .preview.preview--video.is-canvas-3-4,
+  .j-m-card.jcard--video .jcard-media-zone .jcard-video-root > .jcard-video-trigger.is-canvas-9-16,
+  .j-m-card.jcard--video .jcard-media-zone .jcard-video-root > .jcard-video-player.is-canvas-9-16,
+  .j-m-card.jcard--video .jcard-media-zone .jcard-video-root > .preview.preview--video.is-canvas-9-16,
+  .j-m-card.jcard--video .jcard-media-zone > .jcard-video-trigger.is-canvas-3-4,
+  .j-m-card.jcard--video .jcard-media-zone > .jcard-video-player.is-canvas-3-4,
+  .j-m-card.jcard--video .jcard-media-zone > .preview.preview--video.is-canvas-3-4,
+  .j-m-card.jcard--video .jcard-media-zone > .jcard-video-trigger.is-canvas-9-16,
+  .j-m-card.jcard--video .jcard-media-zone > .jcard-video-player.is-canvas-9-16,
+  .j-m-card.jcard--video .jcard-media-zone > .preview.preview--video.is-canvas-9-16 {
+    --media-canvas-max-aspect: 0.5625;
+  }
 }
 
 .j-video-lightbox {
@@ -14616,10 +14722,10 @@ a.action-btn-part {
   text-underline-offset: 2px;
 }
 
-/* Touch — tách vùng chạm like / comment / bookmark, tránh bấm nhầm khi có số lượt. */
+/* Touch — vùng chạm đủ lớn nhưng icon + số sát nhau (không tách min-width riêng). */
 @media (hover: none) and (pointer: coarse) {
   .jcard-actions {
-    gap: 14px;
+    gap: 10px;
     padding-top: 6px;
     padding-bottom: 8px;
   }
@@ -14628,11 +14734,15 @@ a.action-btn-part {
   .jcard-actions > a.action-btn {
     flex: none;
   }
+  .jcard-actions .action-btn--split {
+    gap: 2px;
+    padding: 4px 6px;
+  }
   .jcard-actions .action-btn-part--icon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 36px;
+    min-width: 28px;
     min-height: 36px;
     margin-block: -4px;
   }
@@ -14640,15 +14750,33 @@ a.action-btn-part {
     min-width: 36px;
     min-height: 36px;
     justify-content: center;
-    padding-inline: 8px;
+    gap: 3px;
+    padding-inline: 6px;
   }
   .jcard-actions .action-btn-count {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 28px;
-    min-height: 28px;
-    padding: 0 6px;
+    min-width: 0;
+    min-height: 0;
+    padding: 0;
+    line-height: 1;
+  }
+}
+
+/* Viewport hẹp (DevTools / tablet) — icon và số không bị đẩy xa. */
+@media (max-width: 640px) {
+  .jcard-actions .action-btn--split {
+    gap: 2px;
+    padding: 4px 6px;
+  }
+  .jcard-actions .action-btn {
+    gap: 3px;
+    padding-inline: 6px;
+  }
+  .jcard-actions .action-btn-count {
+    min-width: 0;
+    padding-inline: 0;
   }
 }
 
@@ -16864,6 +16992,107 @@ a.action-btn-part {
 .j-share-menu-ic--gallery {
   background: #fdf4ff;
   color: #7e22ce;
+}
+.j-share-menu-ic--invite {
+  background: #fff7ed;
+  color: #c2410c;
+}
+.j-share-invite {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.j-share-invite-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 240px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.j-share-invite-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  padding: 8px 10px;
+  cursor: pointer;
+  color: inherit;
+}
+.j-share-invite-row:hover:not(:disabled) {
+  background: var(--bg-muted, #f8fafc);
+}
+.j-share-invite-row.is-selected {
+  border-color: rgba(31, 116, 201, 0.28);
+  background: rgba(31, 116, 201, 0.06);
+}
+.j-share-invite-row.is-disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.j-share-invite-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.j-share-invite-avatar.is-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #e2e8f0;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 600;
+}
+.j-share-invite-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+.j-share-invite-meta strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+.j-share-invite-meta span {
+  font-size: 11px;
+  color: var(--ink-muted, #64748b);
+}
+.j-share-invite-check {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid #cbd5e1;
+  flex-shrink: 0;
+}
+.j-share-invite-check.is-on {
+  border-color: #1f74c9;
+  background: #1f74c9;
+  box-shadow: inset 0 0 0 3px #fff;
+}
+.j-share-invite-send {
+  width: 100%;
+  justify-content: center;
+}
+.j-share-invite-empty,
+.j-share-invite-error {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-muted, #64748b);
+  line-height: 1.4;
+  padding: 8px 4px;
+}
+.j-share-invite-error {
+  color: #b91c1c;
 }
 .j-share-menu-copy {
   display: flex;

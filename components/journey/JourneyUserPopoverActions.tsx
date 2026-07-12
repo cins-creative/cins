@@ -49,6 +49,7 @@ export function JourneyUserPopoverActions({
         ketBan.quanHe === "accepted" ? "ban_be" : "nguoi_la",
       peerPreview: {
         name: user.tenHienThi,
+        slug: user.slug,
         role: user.giaiDoan ?? undefined,
         avatarUrl: user.avatarUrl,
         avatarInitial: avatarInitialFromName(user.tenHienThi || user.slug),

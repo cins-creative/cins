@@ -7,10 +7,12 @@ import type {
   PendingCoAuthorReview,
   PendingFollowRequest,
 } from "@/lib/social/types";
+import type { PendingCongDongInviteNotification } from "@/lib/cong-dong/invite";
 import type { PendingCoSoStaffInviteNotification } from "@/lib/to-chuc/co-so-staff-invite";
 
 export type JourneyPendingConfirmations = {
   coSoStaffInvites: PendingCoSoStaffInviteNotification[];
+  congDongInvites: PendingCongDongInviteNotification[];
   coAuthorInvites: PendingCoAuthorInvite[];
   followRequests: PendingFollowRequest[];
   coAuthorReviews: PendingCoAuthorReview[];
@@ -18,6 +20,7 @@ export type JourneyPendingConfirmations = {
 
 const EMPTY: JourneyPendingConfirmations = {
   coSoStaffInvites: [],
+  congDongInvites: [],
   coAuthorInvites: [],
   followRequests: [],
   coAuthorReviews: [],
@@ -29,6 +32,9 @@ function parseConfirmationPayload(json: unknown): JourneyPendingConfirmations | 
   return {
     coSoStaffInvites: Array.isArray(data.coSoStaffInvites)
       ? (data.coSoStaffInvites as PendingCoSoStaffInviteNotification[])
+      : [],
+    congDongInvites: Array.isArray(data.congDongInvites)
+      ? (data.congDongInvites as PendingCongDongInviteNotification[])
       : [],
     coAuthorInvites: Array.isArray(data.coAuthorInvites)
       ? (data.coAuthorInvites as PendingCoAuthorInvite[])
@@ -47,6 +53,7 @@ type Options = {
   viewerProfileId: string | null;
   initialCoAuthorInvites: ReadonlyArray<PendingCoAuthorInvite>;
   initialCoSoStaffInvites: ReadonlyArray<PendingCoSoStaffInviteNotification>;
+  initialCongDongInvites?: ReadonlyArray<PendingCongDongInviteNotification>;
 };
 
 export function useJourneyPendingConfirmations({
@@ -54,11 +61,13 @@ export function useJourneyPendingConfirmations({
   viewerProfileId,
   initialCoAuthorInvites,
   initialCoSoStaffInvites,
+  initialCongDongInvites = [],
 }: Options): JourneyPendingConfirmations {
   const [state, setState] = useState<JourneyPendingConfirmations>(() => ({
     ...EMPTY,
     coAuthorInvites: [...initialCoAuthorInvites],
     coSoStaffInvites: [...initialCoSoStaffInvites],
+    congDongInvites: [...initialCongDongInvites],
   }));
 
   useEffect(() => {
@@ -66,8 +75,9 @@ export function useJourneyPendingConfirmations({
       ...prev,
       coAuthorInvites: [...initialCoAuthorInvites],
       coSoStaffInvites: [...initialCoSoStaffInvites],
+      congDongInvites: [...initialCongDongInvites],
     }));
-  }, [initialCoAuthorInvites, initialCoSoStaffInvites]);
+  }, [initialCoAuthorInvites, initialCoSoStaffInvites, initialCongDongInvites]);
 
   const refresh = useCallback(async () => {
     if (!isOwner || !viewerProfileId) return;

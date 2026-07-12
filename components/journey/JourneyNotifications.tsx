@@ -16,6 +16,7 @@ import { createPortal } from "react-dom";
 
 import { CoAuthorInviteMessage } from "@/components/journey/CoAuthorInviteMessage";
 import { CoSoStaffInviteMessage } from "@/components/journey/CoSoStaffInviteMessage";
+import { CongDongInviteMessage } from "@/components/journey/CongDongInviteMessage";
 import "./journey-user-popover.css";
 import type { CoAuthorCredit } from "@/components/journey/milestone-types";
 import {
@@ -59,6 +60,7 @@ import type {
   PendingCoAuthorInviteNotification,
   PendingCoAuthorReview,
   PendingCoSoStaffInviteNotification,
+  PendingCongDongInviteNotification,
   PendingFollowRequest,
   ProcessedCoAuthorReview,
   VideoReadyNotification,
@@ -185,7 +187,8 @@ function countPendingActionItems(feed: NotificationFeed): number {
     feed.followRequests.length +
     feed.coAuthorInvites.length +
     feed.coAuthorReviews.length +
-    feed.coSoStaffInvites.length
+    feed.coSoStaffInvites.length +
+    feed.congDongInvites.length
   );
 }
 
@@ -197,6 +200,7 @@ function countDisplayedItems(feed: NotificationFeed): number {
     feed.coAuthorInvites.length +
     feed.coAuthorReviews.length +
     feed.coSoStaffInvites.length +
+    feed.congDongInvites.length +
     feed.orgMilestoneTagApproved.length +
     feed.membershipMilestoneResolved.length +
     feed.videoReady.length +
@@ -970,6 +974,33 @@ export function JourneyNotifications({
     });
   };
 
+  const respondCongDongInvite = (
+    invite: PendingCongDongInviteNotification,
+    action: "accept" | "decline",
+  ) => {
+    setError(null);
+    startTransition(async () => {
+      const res = await fetch(
+        `/api/cong-dong/invites/${encodeURIComponent(invite.notificationId)}/respond`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action }),
+        },
+      );
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(typeof json.error === "string" ? json.error : "Không xử lý được.");
+        return;
+      }
+      const feedRes = await fetch("/api/notifications?filter=unread");
+      const feedJson = await feedRes.json().catch(() => null);
+      const next = parseFeedPayload(feedJson);
+      if (next) applyFeed(next);
+      window.dispatchEvent(new Event("cins:notifications-changed"));
+    });
+  };
+
   const selectedStillPending = useMemo(
     () => selected && feed.followRequests.some((r) => r.idNguoiDung === selected.idNguoiDung),
     [feed.followRequests, selected],
@@ -1086,6 +1117,44 @@ export function JourneyNotifications({
             <ul ref={listRef} className="j-notify-list">
               {tab === "unread" ? (
                 <>
+                  {activeFeed.congDongInvites.map((invite) => (
+                    <li key={invite.notificationId}>
+                      <div className="j-notify-item is-coauthor-invite j-notify-item--cong-dong">
+                        <CongDongInviteMessage
+                          inviterName={invite.inviterName}
+                          inviterSlug={invite.inviterSlug}
+                          inviterAvatarUrl={invite.inviterAvatarUrl}
+                          orgTen={invite.orgTen}
+                          orgSlug={invite.orgSlug}
+                          className="j-coauthor-invite-message j-notify-coauthor-invite-text"
+                        />
+                        <div className="j-notify-inline-actions">
+                          <Link
+                            href={`/cong-dong/${encodeURIComponent(invite.orgSlug)}`}
+                            className="j-notify-mini-action is-link"
+                          >
+                            Xem cộng đồng
+                          </Link>
+                          <button
+                            type="button"
+                            className="j-notify-mini-action is-accept"
+                            disabled={pending}
+                            onClick={() => respondCongDongInvite(invite, "accept")}
+                          >
+                            Tham gia
+                          </button>
+                          <button
+                            type="button"
+                            className="j-notify-mini-action"
+                            disabled={pending}
+                            onClick={() => respondCongDongInvite(invite, "decline")}
+                          >
+                            Bỏ qua
+                          </button>
+                        </div>
+                      </div>
+                    </li>
+                  ))}
                   {activeFeed.coSoStaffInvites.map((invite) => (
                     <li key={invite.notificationId}>
                       <div className="j-notify-item is-coauthor-invite j-notify-item--cso-staff">

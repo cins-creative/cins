@@ -14,7 +14,15 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useTransition,
+  type ReactNode,
+} from "react";
 import { createPortal } from "react-dom";
 
 import {
@@ -25,6 +33,7 @@ import {
 } from "@/app/[slug]/journey/comment-actions";
 import { deleteMilestoneComment } from "@/app/[slug]/journey/actions";
 import { useOptionalAuthGate } from "@/components/auth/AuthGateProvider";
+import { ChatStickerPicker } from "@/components/cins/ChatStickerPicker";
 import { CommentAttachments } from "@/components/journey/CommentAttachments";
 import { CommentMentionText } from "@/components/journey/CommentMentionText";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
@@ -47,6 +56,7 @@ import { countCommentThreads } from "@/lib/social/comments/client-tree";
 import type { MilestonePostComment } from "@/lib/journey/milestone-post-types";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import { emitNotificationsChanged } from "@/lib/journey/notifications-client";
+import type { UserEmojiMuc } from "@/lib/user-emoji/types";
 
 type CommentSubmitResult =
   | {
@@ -88,6 +98,11 @@ export type CommentBlockProps = {
   ) => Promise<CommentSubmitResult>;
   /** Split rail — ô nhập luôn dính đáy, danh sách BL scroll phía trên. */
   pinCompose?: boolean;
+  /**
+   * Khi không được bình luận nhưng đã đăng nhập (vd. chưa tham gia cộng đồng).
+   * Nếu không truyền: hiện thông báo trung tính thay vì CTA đăng nhập.
+   */
+  commentDeniedFallback?: ReactNode;
 };
 
 export function CommentBlock(props: CommentBlockProps) {
@@ -99,8 +114,10 @@ export function CommentBlock(props: CommentBlockProps) {
     sectionId = "post-comments",
     submitComment,
     pinCompose = false,
+    commentDeniedFallback,
   } = props;
   const authGate = useOptionalAuthGate();
+  const isAuthenticated = Boolean(authGate?.isAuthenticated);
   const openAuthModal = useCallback(
     (message?: string) => {
       if (authGate) {
@@ -231,6 +248,12 @@ export function CommentBlock(props: CommentBlockProps) {
     !replyTo ? (
       <CommentComposeForm key={composeResetKey} {...composeProps} />
     ) : null
+  ) : commentDeniedFallback ? (
+    <div className="post-comments-login">{commentDeniedFallback}</div>
+  ) : isAuthenticated ? (
+    <div className="post-comments-login">
+      Bạn chưa thể bình luận lúc này.
+    </div>
   ) : (
     <div className="post-comments-login">
       <button
@@ -393,7 +416,14 @@ function CommentComposeForm({
   inline = false,
 }: ComposeProps) {
   const [attachments, setAttachments] = useState<CommentAttachmentDraft[]>([]);
+  const [stickerPickerOpen, setStickerPickerOpen] = useState(false);
+  const [stickerPickerPos, setStickerPickerPos] = useState<{
+    left: number;
+    bottom: number;
+    width: number;
+  } | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const composeRef = useRef<HTMLDivElement | null>(null);
   const attachmentsRef = useRef(attachments);
   attachmentsRef.current = attachments;
 
@@ -498,6 +528,15 @@ function CommentComposeForm({
     });
   }, []);
 
+  const sendMeme = useCallback(
+    (item: UserEmojiMuc) => {
+      if (pending || !item.cloudflareId) return;
+      setStickerPickerOpen(false);
+      onSend({ text: "", imageIds: [item.cloudflareId] });
+    },
+    [onSend, pending],
+  );
+
   const readyImageIds = attachments
     .map((a) => a.imageId)
     .filter((id): id is string => Boolean(id));
@@ -521,6 +560,30 @@ function CommentComposeForm({
   useEffect(() => {
     setPortalReady(true);
   }, []);
+
+  useLayoutEffect(() => {
+    if (!stickerPickerOpen) {
+      setStickerPickerPos(null);
+      return;
+    }
+    const update = () => {
+      const el = composeRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      setStickerPickerPos({
+        left: rect.left,
+        width: rect.width,
+        bottom: Math.max(8, window.innerHeight - rect.top + 8),
+      });
+    };
+    update();
+    window.addEventListener("scroll", update, true);
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update, true);
+      window.removeEventListener("resize", update);
+    };
+  }, [stickerPickerOpen]);
 
   const syncMention = useCallback((value: string, cursor: number) => {
     const active = getActiveMention(value, cursor);
@@ -623,6 +686,24 @@ function CommentComposeForm({
       />
     ) : null;
 
+  const stickerPickerPortal =
+    portalReady && stickerPickerOpen && stickerPickerPos ? (
+      <div
+        className="post-comments-sticker-portal"
+        style={{
+          left: stickerPickerPos.left,
+          bottom: stickerPickerPos.bottom,
+          width: stickerPickerPos.width,
+        }}
+      >
+        <ChatStickerPicker
+          onClose={() => setStickerPickerOpen(false)}
+          disabled={pending}
+          onSend={sendMeme}
+        />
+      </div>
+    ) : null;
+
   return (
     <form
       className={
@@ -636,10 +717,12 @@ function CommentComposeForm({
     >
       <div className="post-comments-compose-row">
         <div
+          ref={composeRef}
           className={
             "post-comments-compose" +
             (replyTo ? " is-replying" : "") +
-            (inline ? " is-inline" : "")
+            (inline ? " is-inline" : "") +
+            (stickerPickerOpen ? " is-sticker-open" : "")
           }
         >
           {replyTo ? (
@@ -729,6 +812,11 @@ function CommentComposeForm({
                   }
                 }
                 if (e.key === "Escape") {
+                  if (stickerPickerOpen) {
+                    e.preventDefault();
+                    setStickerPickerOpen(false);
+                    return;
+                  }
                   if (mentionActive) {
                     e.preventDefault();
                     setMentionActive(null);
@@ -777,6 +865,23 @@ function CommentComposeForm({
             />
             <button
               type="button"
+              className="post-comments-meme-btn"
+              data-sticker-trigger
+              aria-label="Meme của tôi"
+              aria-expanded={stickerPickerOpen}
+              disabled={pending}
+              onClick={() => setStickerPickerOpen((open) => !open)}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                className="post-comments-meme-btn-icon"
+                src="/assets/chat-meme-trigger.png"
+                alt=""
+                aria-hidden
+              />
+            </button>
+            <button
+              type="button"
               className="post-comments-attach-btn"
               aria-label="Đính kèm ảnh"
               disabled={
@@ -820,6 +925,9 @@ function CommentComposeForm({
         </button>
       </div>
       {mentionMenuPortal ? createPortal(mentionMenuPortal, document.body) : null}
+      {stickerPickerPortal
+        ? createPortal(stickerPickerPortal, document.body)
+        : null}
     </form>
   );
 }

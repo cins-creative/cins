@@ -7,8 +7,11 @@ export type VideoCanvasRatio = "16:9" | "1:1" | "3:4" | "9:16";
 export type VideoOrientation = "portrait" | "landscape" | "square";
 
 const SQUARE_TOLERANCE = 0.08;
-/** Ngưỡng phân biệt 9:16 (dọc hẹp) vs 3:4 (dọc rộng hơn). */
-const TALL_PORTRAIT_MIN = 1.6;
+/**
+ * Ngưỡng bucket class `9:16` — cao hơn 9:16.
+ * Clamp thật theo breakpoint nằm ở CSS (`max(--media-natural-aspect, …)`).
+ */
+export const VIDEO_PORTRAIT_MAX_HW = 16 / 9;
 
 export function resolveVideoCanvasRatio(
   width: number,
@@ -18,8 +21,36 @@ export function resolveVideoCanvasRatio(
   const aspect = width / height;
   if (Math.abs(aspect - 1) <= SQUARE_TOLERANCE) return "1:1";
   if (width > height) return "16:9";
-  if (height / width >= TALL_PORTRAIT_MIN) return "9:16";
+  if (height / width > VIDEO_PORTRAIT_MAX_HW) return "9:16";
   return "3:4";
+}
+
+/** Tỉ lệ thật width/height — không clamp; CSS media query clamp theo breakpoint. */
+export function videoNaturalAspect(width: number, height: number): number {
+  if (width <= 0 || height <= 0) return 16 / 9;
+  return width / height;
+}
+
+/** @deprecated Dùng videoNaturalAspect + CSS clamp responsive. */
+export function clampVideoCanvasAspect(width: number, height: number): number {
+  return videoNaturalAspect(width, height);
+}
+
+/** Fallback aspect khi chỉ có bucket ratio (chưa probe được kích thước). */
+export function canvasAspectFromRatio(
+  ratio: VideoCanvasRatio | null | undefined,
+): number {
+  switch (ratio) {
+    case "9:16":
+      return 9 / 16;
+    case "3:4":
+      return 3 / 4;
+    case "1:1":
+      return 1;
+    case "16:9":
+    default:
+      return 16 / 9;
+  }
 }
 
 export function probeVideoFileDimensions(

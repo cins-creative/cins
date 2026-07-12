@@ -7,10 +7,12 @@ import {
   Link2,
   Map,
   Palette,
+  Users,
 } from "lucide-react";
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { createPortal } from "react-dom";
 
+import { CongDongInviteFriendsPanel } from "@/components/cong-dong/CongDongInviteFriendsPanel";
 import { JourneyShareCardPreview } from "@/components/journey/JourneyShareCardPreview";
 import {
   fetchGalleryItemsForShare,
@@ -42,6 +44,7 @@ import type { OrgShareContext } from "@/lib/org/org-profile-share";
 import {
   orgGalleryShareUrl,
   orgPageShareUrl,
+  orgShareInviteTitle,
 } from "@/lib/org/org-profile-share";
 import { isLikelyLocalOrPreviewHost } from "@/lib/auth/auth-origin";
 import { copyShareCardImage } from "@/lib/journey/share-card-export";
@@ -67,6 +70,8 @@ type Props = {
   anchorRef?: RefObject<HTMLElement | null>;
   /** Trang org (cơ sở / trường / studio) — thay nhãn Journey/Portfolio. */
   orgShare?: OrgShareContext | null;
+  /** Gate đăng nhập trước khi mở bước mời bạn (cộng đồng). */
+  requireAuth?: (then: () => void) => void;
 };
 
 function stepTitle(
@@ -75,7 +80,9 @@ function stepTitle(
   orgShare?: OrgShareContext | null,
 ): string {
   if (step === "menu") return "Chia sẻ";
+  if (step === "invite-friends") return "Mời bạn bè";
   if (step === "journey-card") {
+    if (orgShare?.kind === "cong_dong") return "Chia sẻ cộng đồng";
     return orgShare ? "Chia sẻ trang" : "Chia sẻ Journey";
   }
   const galleryLabel = orgShare?.galleryFeatureLabel ?? "Portfolio";
@@ -94,7 +101,13 @@ function stepSubtitle(
   const pathLine = orgShare ? `cins.vn/${orgShare.pathLabel}` : `cins.vn/${slug}`;
   const galleryLabel = orgShare?.galleryFeatureLabel ?? "Portfolio";
   if (step === "menu") return pathLine;
+  if (step === "invite-friends") {
+    return "Gửi lời mời — hiện trên thông báo và Journey";
+  }
   if (step === "journey-card") {
+    if (orgShare?.kind === "cong_dong") {
+      return "Thẻ giới thiệu cộng đồng — lời mời tham gia";
+    }
     return orgShare
       ? "Thẻ giới thiệu trang — toàn bộ"
       : "Thẻ giới thiệu hồ sơ — toàn bộ Journey";
@@ -118,6 +131,7 @@ export function JourneyProfileShareModal({
   presentation = "modal",
   anchorRef,
   orgShare = null,
+  requireAuth,
 }: Props) {
   const titleId = useId();
   const cardExportRef = useRef<HTMLElement>(null);
@@ -316,9 +330,11 @@ export function JourneyProfileShareModal({
     const ok = await copyTextToClipboard(url);
     showFlash(
       ok
-        ? orgShare
-          ? "Đã copy link trang."
-          : "Đã copy link Journey."
+        ? orgShare?.kind === "cong_dong"
+          ? "Đã copy link cộng đồng."
+          : orgShare
+            ? "Đã copy link trang."
+            : "Đã copy link Journey."
         : "Không copy được link.",
     );
   }, [orgShare, profile.slug, showFlash]);
@@ -346,6 +362,8 @@ export function JourneyProfileShareModal({
         ? orgPageShareUrl(orgShare)
         : journeyShareUrl(profile.slug);
 
+  const shareInviteTitle = orgShareInviteTitle(orgShare, profile.displayName);
+
   const cardProfile: JourneyShareProfile = {
     ...profile,
     galleryThumbs,
@@ -361,13 +379,14 @@ export function JourneyProfileShareModal({
     if (!cardTargetUrl || !navigator.share) return;
     try {
       await navigator.share({
-        title: profile.displayName,
+        title: shareInviteTitle,
+        text: shareInviteTitle,
         url: cardTargetUrl,
       });
     } catch {
       /* user cancelled */
     }
-  }, [cardTargetUrl, profile.displayName]);
+  }, [cardTargetUrl, shareInviteTitle]);
 
   const copyCardImage = useCallback(async () => {
     const el = cardExportRef.current;
@@ -392,12 +411,12 @@ export function JourneyProfileShareModal({
 
   const socialItems = buildSocialShareItems(
     cardTargetUrl,
-    profile.displayName,
+    shareInviteTitle,
     {
       onNativeShare: () => void nativeShare(),
       onCopy: () => void copyCardLink(),
       onFacebookShare: () => {
-        void openFacebookShare(cardTargetUrl, profile.displayName).then(() => {
+        void openFacebookShare(cardTargetUrl, shareInviteTitle).then(() => {
           const onLocal =
             typeof window !== "undefined" &&
             isLikelyLocalOrPreviewHost(window.location.hostname);
@@ -496,12 +515,34 @@ export function JourneyProfileShareModal({
                 <span className="j-share-menu-copy">
                   <strong>Copy link</strong>
                   <span>
-                    {orgShare
-                      ? "Copy URL trang vào bộ nhớ tạm"
-                      : "Copy URL Journey vào bộ nhớ tạm"}
+                    {orgShare?.kind === "cong_dong"
+                      ? "Copy URL cộng đồng vào bộ nhớ tạm"
+                      : orgShare
+                        ? "Copy URL trang vào bộ nhớ tạm"
+                        : "Copy URL Journey vào bộ nhớ tạm"}
                   </span>
                 </span>
               </button>
+
+              {orgShare?.kind === "cong_dong" && orgShare.orgId ? (
+                <button
+                  type="button"
+                  className="j-share-menu-item"
+                  onClick={() => {
+                    const openInvite = () => setStep("invite-friends");
+                    if (requireAuth) requireAuth(openInvite);
+                    else openInvite();
+                  }}
+                >
+                  <span className="j-share-menu-ic j-share-menu-ic--invite">
+                    <Users size={20} strokeWidth={1.8} aria-hidden />
+                  </span>
+                  <span className="j-share-menu-copy">
+                    <strong>Mời bạn bè</strong>
+                    <span>Thông báo + banner trên Journey của họ</span>
+                  </span>
+                </button>
+              ) : null}
 
               <button
                 type="button"
@@ -512,43 +553,63 @@ export function JourneyProfileShareModal({
                   <Map size={20} strokeWidth={1.8} aria-hidden />
                 </span>
                 <span className="j-share-menu-copy">
-                  <strong>{orgShare ? "Chia sẻ trang" : "Chia sẻ Journey"}</strong>
+                  <strong>
+                    {orgShare?.kind === "cong_dong"
+                      ? "Chia sẻ cộng đồng"
+                      : orgShare
+                        ? "Chia sẻ trang"
+                        : "Chia sẻ Journey"}
+                  </strong>
                   <span>
-                    {orgShare
-                      ? "Thẻ giới thiệu trang — toàn bộ"
-                      : "Thẻ giới thiệu hồ sơ — toàn bộ Journey"}
+                    {orgShare?.kind === "cong_dong"
+                      ? "Thẻ + MXH — mời người khác tham gia"
+                      : orgShare
+                        ? "Thẻ giới thiệu trang — toàn bộ"
+                        : "Thẻ giới thiệu hồ sơ — toàn bộ Journey"}
                   </span>
                 </span>
               </button>
 
-              <button
-                type="button"
-                className="j-share-menu-item"
-                onClick={() => {
-                  setPortfolioFilter(
-                    orgShare
-                      ? PORTFOLIO_ALL_FILTER_SHARE_SPEC
-                      : typeof window !== "undefined"
-                        ? galleryFilterSpecFromSearch(window.location.search)
-                        : PORTFOLIO_ALL_FILTER_SHARE_SPEC,
-                  );
-                  setStep("gallery-card");
-                }}
-              >
-                <span className="j-share-menu-ic j-share-menu-ic--gallery">
-                  <Palette size={20} strokeWidth={1.8} aria-hidden />
-                </span>
-                <span className="j-share-menu-copy">
-                  <strong>
-                    Chia sẻ {orgShare?.galleryFeatureLabel ?? "Portfolio"}
-                  </strong>
-                  <span>
-                    Thẻ {orgShare?.galleryFeatureLabel ?? "Portfolio"} — toàn bộ
-                    {orgShare ? "" : " tác phẩm"}
+              {!orgShare?.pageOnly ? (
+                <button
+                  type="button"
+                  className="j-share-menu-item"
+                  onClick={() => {
+                    setPortfolioFilter(
+                      orgShare
+                        ? PORTFOLIO_ALL_FILTER_SHARE_SPEC
+                        : typeof window !== "undefined"
+                          ? galleryFilterSpecFromSearch(window.location.search)
+                          : PORTFOLIO_ALL_FILTER_SHARE_SPEC,
+                    );
+                    setStep("gallery-card");
+                  }}
+                >
+                  <span className="j-share-menu-ic j-share-menu-ic--gallery">
+                    <Palette size={20} strokeWidth={1.8} aria-hidden />
                   </span>
-                </span>
-              </button>
+                  <span className="j-share-menu-copy">
+                    <strong>
+                      Chia sẻ {orgShare?.galleryFeatureLabel ?? "Portfolio"}
+                    </strong>
+                    <span>
+                      Thẻ {orgShare?.galleryFeatureLabel ?? "Portfolio"} — toàn bộ
+                      {orgShare ? "" : " tác phẩm"}
+                    </span>
+                  </span>
+                </button>
+              ) : null}
             </div>
+          ) : step === "invite-friends" && orgShare?.orgId ? (
+            <CongDongInviteFriendsPanel
+              orgId={orgShare.orgId}
+              onDone={(message) => {
+                showFlash(message);
+                window.setTimeout(() => {
+                  setStep("menu");
+                }, 1400);
+              }}
+            />
           ) : cardKind ? (
             <>
               {JOURNEY_SHARE_CARD_VARIANTS[cardKind].length > 1 ? (

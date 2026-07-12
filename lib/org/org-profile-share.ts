@@ -6,7 +6,7 @@ import { truongRootPath, truongTabPath } from "@/lib/truong/truong-routes";
 import { coSoRootPath, coSoTabPath } from "@/lib/to-chuc/co-so-routes";
 import { studioRootPath, studioTabPath } from "@/lib/to-chuc/studio-routes";
 
-export type OrgShareKind = "co_so" | "truong" | "studio";
+export type OrgShareKind = "co_so" | "truong" | "studio" | "cong_dong";
 
 export type OrgShareContext = {
   kind: OrgShareKind;
@@ -16,11 +16,17 @@ export type OrgShareContext = {
   pathLabel: string;
   /** Nhãn thay Portfolio: Bài học viên / Hình ảnh trường / Showcase. */
   galleryFeatureLabel: string;
+  /** Chỉ chia sẻ trang (ẩn mục gallery) — cộng đồng. */
+  pageOnly?: boolean;
+  /** UUID org — dùng mời bạn vào cộng đồng. */
+  orgId?: string;
 };
 
 export type OrgShareSource = {
   slug: string;
   ten: string;
+  /** UUID `org_to_chuc` — bắt buộc khi chia sẻ cộng đồng (mời bạn). */
+  orgId?: string;
   mo_ta?: string | null;
   moTa?: string | null;
   avatar_id?: string | null;
@@ -40,13 +46,21 @@ const ORG_ROLE_LINES: Record<OrgShareKind, string> = {
   co_so: "Cơ sở đào tạo",
   truong: "Trường đại học",
   studio: "Doanh nghiệp",
+  cong_dong: "Cộng đồng",
 };
 
-const GALLERY_FEATURE_LABELS: Record<OrgShareKind, string> = {
+const GALLERY_FEATURE_LABELS: Record<
+  Exclude<OrgShareKind, "cong_dong">,
+  string
+> = {
   co_so: "Bài học viên",
   truong: "Hình ảnh trường",
   studio: "Showcase",
 };
+
+export function congDongRootPath(slug: string): string {
+  return `/cong-dong/${encodeURIComponent(slug.trim())}`;
+}
 
 export function orgShareContextForKind(
   kind: OrgShareKind,
@@ -73,6 +87,17 @@ export function orgShareContextForKind(
       galleryFeatureLabel: GALLERY_FEATURE_LABELS.truong,
     };
   }
+  if (kind === "cong_dong") {
+    const pagePath = congDongRootPath(s);
+    return {
+      kind,
+      pagePath,
+      galleryPath: pagePath,
+      pathLabel: pagePath.replace(/^\//, ""),
+      galleryFeatureLabel: "",
+      pageOnly: true,
+    };
+  }
   const pagePath = studioRootPath(s);
   return {
     kind,
@@ -91,11 +116,26 @@ export function orgGalleryShareUrl(ctx: OrgShareContext): string {
   return absoluteShareUrl(ctx.galleryPath);
 }
 
+/** Tiêu đề khi chia MXH / native — cộng đồng = lời mời tham gia. */
+export function orgShareInviteTitle(
+  ctx: OrgShareContext | null | undefined,
+  displayName: string,
+): string {
+  const name = displayName.trim() || "CINs";
+  if (ctx?.kind === "cong_dong") {
+    return `Tham gia cộng đồng «${name}» trên CINs`;
+  }
+  return name;
+}
+
 export function buildOrgShareBundle(
   kind: OrgShareKind,
   source: OrgShareSource,
 ): { profile: JourneyShareProfile; orgShare: OrgShareContext } {
   const orgShare = orgShareContextForKind(kind, source.slug);
+  if (kind === "cong_dong" && source.orgId?.trim()) {
+    orgShare.orgId = source.orgId.trim();
+  }
   const moTa = (source.mo_ta ?? source.moTa)?.trim() || null;
   const tinhThanh = source.tinh_thanh ?? source.tinhThanh ?? null;
   const schoolLike = {

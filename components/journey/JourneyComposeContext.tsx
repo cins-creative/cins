@@ -14,6 +14,7 @@ import { useRouter } from "next/navigation";
 import { JourneyComposeOverlay } from "@/components/journey/JourneyComposeOverlay";
 import type { CongDongComposeConfig } from "@/lib/cong-dong/types";
 import type { Tier1EmbedPlatformId } from "@/lib/editor/embed-providers";
+import { isTier1EmbedPlatformId } from "@/lib/editor/embed-providers";
 import type { JourneyComposeState } from "@/lib/journey/compose-types";
 import type { ComposePublishedDetail } from "@/lib/journey/compose-published-sync";
 import { dispatchComposePublished } from "@/lib/journey/compose-published-sync";
@@ -189,13 +190,7 @@ export function JourneyComposeProvider({
       ) {
         if (kind === "embed") {
           const platform = params.get("platform")?.trim();
-          if (
-            platform === "youtube" ||
-            platform === "vimeo" ||
-            platform === "figma" ||
-            platform === "sketchfab" ||
-            platform === "rive"
-          ) {
+          if (isTier1EmbedPlatformId(platform)) {
             setCompose({ kind: "embed", platform });
           } else {
             setCompose(null);

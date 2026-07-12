@@ -14,20 +14,14 @@ export const metadata: Metadata = {
     "Khám phá nghề, ngành đào tạo, trường học, khóa học và sự kiện ngành sáng tạo thị giác — dữ liệu thật trên CINs.",
 };
 
-export default async function Home({
-  searchParams,
-}: {
-  searchParams: Promise<{ display?: string }>;
-}) {
+export default async function Home() {
   const session = await getCurrentSessionAndProfile();
-  const sp = await searchParams;
-  const feedView = sp?.display === "luoi" ? "grid" : "feed";
 
   if (session?.profile?.slug) {
     return (
       <CinsShell data-screen-label="Trang-chu">
         <AuthGateRoot initialAuthenticated>
-          <HomeWorldJourneyMain feedView={feedView} />
+          <HomeWorldJourneyMain />
         </AuthGateRoot>
       </CinsShell>
     );

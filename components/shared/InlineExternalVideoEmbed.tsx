@@ -1,4 +1,8 @@
+"use client";
+
 import "@/components/shared/inline-external-video-embed.css";
+
+import { ViewportGatedEmbed } from "@/components/journey/ViewportGatedEmbed";
 
 type Props = {
   src: string;
@@ -14,7 +18,7 @@ export function InlineExternalVideoEmbed({
   const iframeSrc = src.includes("?") ? `${src}&rel=0` : `${src}?rel=0`;
 
   return (
-    <div
+    <ViewportGatedEmbed
       className={`cins-inline-video-embed${className ? ` ${className}` : ""}`}
     >
       <iframe
@@ -24,6 +28,6 @@ export function InlineExternalVideoEmbed({
         allowFullScreen
         loading="lazy"
       />
-    </div>
+    </ViewportGatedEmbed>
   );
 }

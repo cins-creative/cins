@@ -4,6 +4,7 @@ import {
   type TimelineSortable,
 } from "@/lib/journey/timeline-sort";
 
+import { WORLD_JOURNEY_FEED_AUTHOR_SOFT_QUOTA } from "./worldJourneyFeedConstants";
 import {
   WORLD_JOURNEY_SORT_OPTIONS,
 } from "./worldJourneyFeedFilters";
@@ -63,7 +64,30 @@ function worldJourneyOrgFollowRank(m: MilestoneItem): number {
   return 0;
 }
 
-/** Chưa xem / xem ít lên trên; org đang follow trước org lạ; rồi timeline feed. */
+/**
+ * Điểm chất lượng cho sort mặc định (hybrid).
+ * Comment nặng hơn like; **không** cộng view toàn cục (tránh bảng xếp hạng).
+ * View toàn cục chỉ dùng ở «Đang sôi nổi».
+ */
+export function hybridQualityScore(m: MilestoneItem): number {
+  const likes = m.social?.likeCount ?? 0;
+  const comments = m.comments ?? 0;
+  return comments * 3 + likes;
+}
+
+/** Khóa soft-quota: user hoặc org (không gộp lẫn). */
+export function worldJourneyFeedAuthorKey(m: MilestoneItem): string {
+  const orgId = m.orgBaiDangRef?.orgId ?? m.orgSuKienRef?.orgId;
+  if (orgId) return `org:${orgId}`;
+  const userId = m.postOwnerId ?? m.lensOwnerId;
+  if (userId) return `user:${userId}`;
+  return `item:${m.id}`;
+}
+
+/**
+ * Mặc định hybrid: chưa xem → org đã follow → chất lượng (comment/like) → timeline.
+ * Không dùng view toàn cục ở tầng này.
+ */
 export function compareWorldJourneyFeedByUnseen(
   a: MilestoneItem,
   b: MilestoneItem,
@@ -74,9 +98,52 @@ export function compareWorldJourneyFeedByUnseen(
   const fa = worldJourneyOrgFollowRank(a);
   const fb = worldJourneyOrgFollowRank(b);
   if (fa !== fb) return fa - fb;
+  const qa = hybridQualityScore(a);
+  const qb = hybridQualityScore(b);
+  if (qa !== qb) return qb - qa;
   return compareWorldJourneyFeedOrder(a, b);
 }
 
+/**
+ * Giữ tối đa `maxPerAuthor` bài / tác giả ở vùng ưu tiên; phần dư xếp sau
+ * (giữ thứ tự tương đối trong mỗi nhóm).
+ */
+export function applyAuthorSoftQuota(
+  items: ReadonlyArray<MilestoneItem>,
+  maxPerAuthor = WORLD_JOURNEY_FEED_AUTHOR_SOFT_QUOTA,
+): MilestoneItem[] {
+  if (items.length === 0 || maxPerAuthor < 1) return items.slice();
+
+  const primary: MilestoneItem[] = [];
+  const overflow: MilestoneItem[] = [];
+  const counts = new Map<string, number>();
+
+  for (const m of items) {
+    const key = worldJourneyFeedAuthorKey(m);
+    const n = counts.get(key) ?? 0;
+    if (n < maxPerAuthor) {
+      primary.push(m);
+      counts.set(key, n + 1);
+    } else {
+      overflow.push(m);
+    }
+  }
+
+  return primary.concat(overflow);
+}
+
+/** Rank mặc định server: hybrid comparator + soft quota tác giả. */
+export function rankWorldJourneyFeedHybrid(
+  items: ReadonlyArray<MilestoneItem>,
+  maxPerAuthor = WORLD_JOURNEY_FEED_AUTHOR_SOFT_QUOTA,
+): MilestoneItem[] {
+  return applyAuthorSoftQuota(
+    items.slice().sort(compareWorldJourneyFeedByUnseen),
+    maxPerAuthor,
+  );
+}
+
+/** «Đang sôi nổi» — có cộng view toàn cục. */
 function engagementScore(m: MilestoneItem): number {
   const likes = m.social?.likeCount ?? 0;
   const comments = m.comments ?? 0;
@@ -128,5 +195,10 @@ export function sortWorldJourneyMilestones(
   exploreIds: ReadonlySet<string>,
 ): MilestoneItem[] {
   const cmp = buildWorldJourneyFeedComparator(sort, exploreIds);
-  return milestones.slice().sort(cmp);
+  const sorted = milestones.slice().sort(cmp);
+  /* Soft quota chỉ áp mặc định «Mới nhất» — các sort tường minh giữ đúng tiêu chí. */
+  if (sort === "Mới nhất") {
+    return applyAuthorSoftQuota(sorted);
+  }
+  return sorted;
 }

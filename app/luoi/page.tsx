@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-/** Legacy URL `/luoi` → `/?display=luoi` (cùng trang chủ, chế độ lưới). */
+/** Legacy URL `/luoi` → trang chủ (chỉ còn chế độ dòng thời gian). */
 export default function HomeGridRedirectPage() {
-  redirect("/?display=luoi");
+  redirect("/");
 }

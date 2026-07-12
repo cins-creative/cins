@@ -1,14 +1,11 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import {
   ArrowDownNarrowWide,
   Check,
   ChevronDown,
   FileText,
   Image as ImageIcon,
-  LayoutGrid,
-  Rows3,
   Sparkles,
   Video,
 } from "lucide-react";
@@ -28,12 +25,8 @@ import {
   WORLD_JOURNEY_SORT_OPTIONS,
   type WjFilterChip,
 } from "@/lib/cins/worldJourneyFeedFilters";
-import {
-  WORLD_JOURNEY_FEED_PAGE_SIZE,
-  WORLD_JOURNEY_FEED_SCROLL_ROOT_MARGIN,
-} from "@/lib/cins/worldJourneyFeedConstants";
+import { WORLD_JOURNEY_FEED_PAGE_SIZE } from "@/lib/cins/worldJourneyFeedConstants";
 import { sortWorldJourneyMilestones } from "@/lib/cins/worldJourneyFeedSort";
-import { worldJourneyMilestonesToGalleryItems } from "@/lib/cins/worldJourneyMilestoneToGallery";
 import type { WjLinhVucAsideItem } from "@/lib/cins/worldJourneyGuestAside";
 import type { MilestoneItem } from "@/components/journey/milestone-types";
 import {
@@ -42,11 +35,6 @@ import {
 } from "@/lib/journey/compose-published-sync";
 import { mergeMilestoneIntoTimeline } from "@/lib/journey/timeline-merge";
 import type { FeedPromoVariant } from "@/lib/cins/worldJourneyFeedPromosTypes";
-import {
-  homeFeedHref,
-  resolveHomeFeedDisplay,
-  type HomeFeedDisplay,
-} from "@/lib/cins/home-feed-display-url";
 
 import "@/app/[slug]/journey/image-grid.css";
 import "@/app/[slug]/journey/journey.css";
@@ -55,37 +43,10 @@ import "@/app/[slug]/p/new/editor.css";
 import "@/app/[slug]/p/[postSlug]/post-page.css";
 import "@/app/world-journey-feed.css";
 
-type FeedView = HomeFeedDisplay;
-
-function WorldJourneyGridSkeleton() {
-  return (
-    <div
-      className="j-main-gallery-grid j-main-gallery-grid--loading"
-      aria-busy="true"
-      aria-label="Đang tải lưới"
-    />
-  );
-}
-
-const JourneyGalleryGridView = dynamic(
-  () =>
-    import("@/components/journey/JourneyGalleryGridView").then(
-      (m) => m.JourneyGalleryGridView,
-    ),
-  { loading: () => <WorldJourneyGridSkeleton /> },
-);
-
-function prefetchJourneyGalleryGrid() {
-  void import("@/components/journey/JourneyGalleryGridView");
-}
-
 function WorldJourneyFilterBar({
   chips,
   activeFilter,
   onFilter,
-  view,
-  onViewChange,
-  onPrefetchGrid,
   sort,
   onSort,
   sortOpen,
@@ -94,9 +55,6 @@ function WorldJourneyFilterBar({
   chips: WjFilterChip[];
   activeFilter: string;
   onFilter: (id: string) => void;
-  view: FeedView;
-  onViewChange: (view: FeedView) => void;
-  onPrefetchGrid?: () => void;
   sort: (typeof WORLD_JOURNEY_SORT_OPTIONS)[number];
   onSort: (s: (typeof WORLD_JOURNEY_SORT_OPTIONS)[number]) => void;
   sortOpen: boolean;
@@ -183,30 +141,6 @@ function WorldJourneyFilterBar({
         ) : null}
       </div>
       <span className="wj-filter-spacer" />
-      <div className="wj-view-toggle" role="group" aria-label="Chế độ xem">
-        <button
-          type="button"
-          className={`wj-vt-btn${view === "feed" ? " active" : ""}`}
-          aria-label="Dòng thời gian"
-          title="Dòng thời gian"
-          aria-pressed={view === "feed"}
-          onClick={() => onViewChange("feed")}
-        >
-          <Rows3 size={15} />
-        </button>
-        <button
-          type="button"
-          className={`wj-vt-btn${view === "grid" ? " active" : ""}`}
-          aria-label="Lưới"
-          title="Lưới"
-          aria-pressed={view === "grid"}
-          onMouseEnter={onPrefetchGrid}
-          onFocus={onPrefetchGrid}
-          onClick={() => onViewChange("grid")}
-        >
-          <LayoutGrid size={15} />
-        </button>
-      </div>
       <div className="wj-sort-wrap" ref={sortRef}>
         <button
           type="button"
@@ -260,7 +194,6 @@ export function WorldJourneyFeed({
   rightAside,
   pendingConfirmations,
   feedPromos,
-  feedView = "feed",
 }: {
   sidebarProfile: SidebarProfile;
   viewerProfileId: string;
@@ -274,37 +207,7 @@ export function WorldJourneyFeed({
   /** Banner "việc cần xác nhận" — hiện đầu cột feed để user chú ý. */
   pendingConfirmations?: ReactNode;
   feedPromos?: FeedPromoVariant[];
-  /** Chế độ xem feed — `/?display=luoi` (grid) · `/` (feed); legacy `/luoi`. */
-  feedView?: HomeFeedDisplay;
 }) {
-  const [view, setView] = useState<FeedView>(feedView);
-
-  useEffect(() => {
-    setView(feedView);
-  }, [feedView]);
-
-  const handleViewChange = useCallback((next: FeedView) => {
-    setView((current) => {
-      if (current === next) return current;
-      const href = homeFeedHref(next);
-      window.history.pushState(null, "", href);
-      return next;
-    });
-  }, []);
-
-  useEffect(() => {
-    const onPopState = () => {
-      setView(
-        resolveHomeFeedDisplay(
-          window.location.pathname,
-          window.location.search,
-        ),
-      );
-    };
-    window.addEventListener("popstate", onPopState);
-    return () => window.removeEventListener("popstate", onPopState);
-  }, []);
-
   const [activeFilter, setActiveFilter] = useState("all");
   const [activeLinhVucSlug, setActiveLinhVucSlug] = useState<string | null>(
     null,
@@ -387,32 +290,14 @@ export function WorldJourneyFeed({
     }
   }, [hasMore, nextOffset]);
 
-  const galleryItems = useMemo(
-    () =>
-      view === "grid"
-        ? worldJourneyMilestonesToGalleryItems(visibleMilestones)
-        : [],
-    [visibleMilestones, view],
-  );
-
-  useEffect(() => {
-    if (feedView === "grid") prefetchJourneyGalleryGrid();
-  }, [feedView]);
-
   return (
     <JourneyViewProvider initialView="journey" slug={sidebarProfile.slug}>
-      <div
-        className={`world-journey-home cins-journey-page${view === "grid" ? " view-grid" : ""}`}
-        aria-label="World Journey"
-      >
+      <div className="world-journey-home cins-journey-page" aria-label="World Journey">
         <header className="wj-feed-header">
           <WorldJourneyFilterBar
             chips={filterChips}
             activeFilter={activeFilter}
             onFilter={setActiveFilter}
-            view={view}
-            onViewChange={handleViewChange}
-            onPrefetchGrid={prefetchJourneyGalleryGrid}
             sort={sort}
             onSort={setSort}
             sortOpen={sortOpen}
@@ -420,29 +305,25 @@ export function WorldJourneyFeed({
           />
         </header>
 
-        <div className={`wj-shell${view === "grid" ? " view-grid" : ""}`}>
-          {view !== "grid" &&
-            (leftAside ?? (
-              <WorldJourneyGuestLeftAside
-                linhVucs={linhVucs}
-                activeLinhVucSlug={activeLinhVucSlug}
-                onLinhVucFilter={setActiveLinhVucSlug}
-              />
-            ))}
+        <div className="wj-shell">
+          {leftAside ?? (
+            <WorldJourneyGuestLeftAside
+              linhVucs={linhVucs}
+              activeLinhVucSlug={activeLinhVucSlug}
+              onLinhVucFilter={setActiveLinhVucSlug}
+            />
+          )}
 
-          <div className={`wj-feed${view === "grid" ? " view-grid" : ""}`}>
-            {view !== "grid" ? pendingConfirmations : null}
-            {view !== "grid" ? (
-              <CinsFeedComposer
-                ownerSlug={sidebarProfile.slug}
-                ownerName={sidebarProfile.tenHienThi}
-                avatarUrl={sidebarProfile.avatarUrl}
-                layout="feed"
-              />
-            ) : null}
+          <div className="wj-feed">
+            {pendingConfirmations}
+            <CinsFeedComposer
+              ownerSlug={sidebarProfile.slug}
+              ownerName={sidebarProfile.tenHienThi}
+              avatarUrl={sidebarProfile.avatarUrl}
+              layout="feed"
+            />
 
-          {view === "feed" ? (
-            visibleMilestones.length === 0 ? (
+            {visibleMilestones.length === 0 ? (
               <div className="wj-feed-empty">
                 <Sparkles size={22} strokeWidth={1.8} aria-hidden />
                 <b>Feed đang trống</b>
@@ -462,35 +343,19 @@ export function WorldJourneyFeed({
                 loadError={loadError}
                 onLoadMore={() => void loadMore()}
               />
-            )
-          ) : galleryItems.length === 0 ? (
-            <div className="wj-feed-empty">
-              <LayoutGrid size={22} strokeWidth={1.8} aria-hidden />
-              <b>Chưa có tác phẩm</b>
-              <p>
-                Ảnh, video và bài có cover từ feed sẽ hiện dạng lưới ở đây.
-              </p>
-            </div>
-          ) : (
-            <JourneyGalleryGridView
-              initialItems={galleryItems}
-              totalCount={galleryItems.length}
-              hideToolbar
-            />
-          )}
+            )}
 
-          {visibleMilestones.length > 0 && view === "feed" && !hasMore ? (
-            <div className="wj-feed-end">
-              <b>Đã hết feed mới</b>
-            </div>
-          ) : null}
+            {visibleMilestones.length > 0 && !hasMore ? (
+              <div className="wj-feed-end">
+                <b>Đã hết feed mới</b>
+              </div>
+            ) : null}
+          </div>
+
+          {rightAside ?? <WorldJourneyGuestRightAside />}
         </div>
-
-        {view !== "grid" &&
-          (rightAside ?? <WorldJourneyGuestRightAside />)}
+        <BunnyVideoProcessingPoller ownerSlug={sidebarProfile.slug} />
       </div>
-      <BunnyVideoProcessingPoller ownerSlug={sidebarProfile.slug} />
-    </div>
     </JourneyViewProvider>
   );
 }

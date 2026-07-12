@@ -617,6 +617,7 @@
   padding: 14px 18px;
   border-bottom: 1px solid var(--border);
   background: var(--bg-surface);
+  flex-shrink: 0;
 }
 
 .cins-chat-back-mobile {
@@ -928,6 +929,7 @@
   --cins-chat-media-max-square: 260px;
   --cins-chat-sticker-max: 200px;
   flex: 1;
+  min-height: 0;
   overflow: auto;
   padding: 20px 18px;
   display: flex;
@@ -1080,12 +1082,10 @@
 
 .cins-chat-bubble-wrap:hover .cins-chat-msg-actions,
 .cins-chat-bubble-wrap:focus-within .cins-chat-msg-actions,
-.cins-chat-bubble-wrap:has(.cins-chat-msg-react-picker) .cins-chat-msg-actions,
-.cins-chat-bubble-wrap:has(.cins-chat-msg-menu) .cins-chat-msg-actions,
+.cins-chat-bubble-wrap:has(.cins-chat-msg-actions.is-open) .cins-chat-msg-actions,
 .cins-chat-bubble.has-media-actions:hover .cins-chat-msg-actions,
 .cins-chat-bubble.has-media-actions:focus-within .cins-chat-msg-actions,
-.cins-chat-bubble.has-media-actions:has(.cins-chat-msg-react-picker) .cins-chat-msg-actions,
-.cins-chat-bubble.has-media-actions:has(.cins-chat-msg-menu) .cins-chat-msg-actions {
+.cins-chat-bubble.has-media-actions:has(.cins-chat-msg-actions.is-open) .cins-chat-msg-actions {
   opacity: 1;
   pointer-events: auto;
 }
@@ -1238,6 +1238,23 @@
   right: auto;
   bottom: auto;
   z-index: 12;
+}
+
+/* Portal fixed — clamp trong viewport (mobile không bị cắt mép) */
+.cins-chat-msg-menu.is-floating,
+.cins-chat-msg-react-picker.is-floating {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: auto;
+  bottom: auto;
+  transform: none;
+  z-index: 12050;
+}
+
+.cins-chat-msg-actions.is-open {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .cins-chat-msg-menu {
@@ -1584,6 +1601,7 @@
   border-top: 1px solid var(--border, #e4e6eb);
   background: var(--bg-surface, #ffffff);
   color: var(--ink-body, rgba(0, 0, 0, 0.85));
+  flex-shrink: 0;
 }
 
 .cins-chat-compose-row {
@@ -2834,6 +2852,15 @@ a.cins-chat-ctx-card:hover {
   .cins-chat-root {
     padding: 0;
     align-items: stretch;
+    /* Neo theo visualViewport — bàn phím không đẩy mất header/tin */
+    inset: auto;
+    top: var(--cins-chat-vv-top, 0px);
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: var(--cins-chat-vv-height, 100dvh);
+    max-height: var(--cins-chat-vv-height, 100dvh);
+    overflow: hidden;
   }
 
   .cins-chat-panel {
@@ -2842,12 +2869,14 @@ a.cins-chat-ctx-card:hover {
     max-height: none;
     border-radius: 0;
     border: 0;
+    min-height: 0;
   }
 
   .cins-chat-list,
   .cins-chat-main {
     width: 100%;
     min-width: 0;
+    min-height: 0;
   }
 
   .cins-chat-list.is-hidden-mobile {
@@ -2862,6 +2891,32 @@ a.cins-chat-ctx-card:hover {
 
   .cins-chat-main.is-visible-mobile {
     display: flex;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .cins-chat-convo {
+    min-height: 0;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .cins-chat-convo-head {
+    flex-shrink: 0;
+    position: relative;
+    z-index: 2;
+  }
+
+  .cins-chat-messages {
+    flex: 1 1 0;
+    min-height: 0;
+    overscroll-behavior: contain;
+  }
+
+  .cins-chat-compose {
+    flex-shrink: 0;
+    padding-bottom: max(14px, env(safe-area-inset-bottom, 0px));
   }
 
   .cins-chat-side {

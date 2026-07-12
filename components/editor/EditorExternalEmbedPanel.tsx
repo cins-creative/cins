@@ -2,6 +2,7 @@
 
 import {
   buildEmbedIframeSrcFromUrl,
+  embedIframeAllowAttr,
   embedUrlMatchesPlatform,
   getTier1EmbedPlatformMeta,
   type Tier1EmbedPlatformId,
@@ -22,14 +23,7 @@ export function EditorExternalEmbedPanel({
   const trimmed = embedUrl.trim();
   const valid = trimmed ? embedUrlMatchesPlatform(trimmed, platform) : false;
   const iframeSrc = valid ? buildEmbedIframeSrcFromUrl(trimmed) : null;
-  const iframeAllow =
-    platform === "sketchfab"
-      ? "autoplay; fullscreen; xr-spatial-tracking"
-      : platform === "rive"
-        ? "autoplay; encrypted-media; clipboard-write"
-        : platform === "youtube" || platform === "vimeo"
-          ? "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          : undefined;
+  const iframeAllow = embedIframeAllowAttr(platform);
 
   return (
     <div className="ed-embed-compose">

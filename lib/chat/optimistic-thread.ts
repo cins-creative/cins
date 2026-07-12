@@ -19,6 +19,7 @@ export function buildOptimisticDirectThread(
     id: roomId,
     roomId,
     peerUserId: peer.userId,
+    peerSlug: peer.slug?.trim() || undefined,
     name,
     group,
     kind: "user",

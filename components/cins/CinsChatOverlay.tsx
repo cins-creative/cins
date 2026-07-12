@@ -25,6 +25,7 @@ import {
   type ClipboardEvent,
 } from "react";
 import { createPortal } from "react-dom";
+import { useRouter } from "next/navigation";
 
 import { ChatCreateGroupModal } from "@/components/cins/ChatCreateGroupModal";
 import { ChatGroupAvatar } from "@/components/cins/ChatGroupAvatar";
@@ -239,6 +240,7 @@ function ChatThreadRow({
   isMenuOpen,
   onMenuOpenChange,
   onSelect,
+  onViewProfile,
   onToggleListPin,
   onToggleMute,
   onLeaveGroup,
@@ -253,6 +255,7 @@ function ChatThreadRow({
   isMenuOpen: boolean;
   onMenuOpenChange: (open: boolean) => void;
   onSelect: (thread: ChatThread) => void;
+  onViewProfile: (thread: ChatThread) => void;
   onToggleListPin: (thread: ChatThread) => void;
   onToggleMute: (thread: ChatThread) => void;
   onLeaveGroup: (thread: ChatThread) => void;
@@ -265,11 +268,18 @@ function ChatThreadRow({
     !canShowMenu,
   );
 
+  const canViewProfile =
+    !thread.isGroup &&
+    thread.kind === "user" &&
+    Boolean(thread.peerSlug?.trim());
+
   const menuActions = buildThreadMenuActions({
     isListPinned,
     isMuted,
     isGroup: Boolean(thread.isGroup),
     isGroupAdmin: Boolean(thread.isGroupAdmin),
+    canViewProfile,
+    onViewProfile: () => onViewProfile(thread),
     onToggleListPin: () => onToggleListPin(thread),
     onToggleMute: () => onToggleMute(thread),
     onLeaveGroup: () => onLeaveGroup(thread),
@@ -369,6 +379,7 @@ function messageToReplyPreview(msg: ChatMessage): ChatMessageReplyPreview {
 }
 
 export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
+  const router = useRouter();
   const {
     subscribeChatMessages,
     setChatFocus,
@@ -426,6 +437,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const chatRootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const groupAvatarInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -886,6 +898,37 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     };
   }, []);
 
+  /** Mobile keyboard — neo overlay theo visualViewport để không đẩy mất header/tin. */
+  useEffect(() => {
+    if (!portalReady) return;
+    const root = chatRootRef.current;
+    if (!root) return;
+
+    const syncVisualViewport = () => {
+      const vv = window.visualViewport;
+      const height = Math.round(vv?.height ?? window.innerHeight);
+      const offsetTop = Math.round(vv?.offsetTop ?? 0);
+      root.style.setProperty("--cins-chat-vv-height", `${height}px`);
+      root.style.setProperty("--cins-chat-vv-top", `${offsetTop}px`);
+      const layoutH = window.innerHeight;
+      root.classList.toggle("is-vv-shrunk", height < layoutH - 60);
+    };
+
+    syncVisualViewport();
+    const vv = window.visualViewport;
+    vv?.addEventListener("resize", syncVisualViewport);
+    vv?.addEventListener("scroll", syncVisualViewport);
+    window.addEventListener("resize", syncVisualViewport);
+    return () => {
+      vv?.removeEventListener("resize", syncVisualViewport);
+      vv?.removeEventListener("scroll", syncVisualViewport);
+      window.removeEventListener("resize", syncVisualViewport);
+      root.classList.remove("is-vv-shrunk");
+      root.style.removeProperty("--cins-chat-vv-height");
+      root.style.removeProperty("--cins-chat-vv-top");
+    };
+  }, [portalReady]);
+
   useEffect(() => {
     return () => {
       if (highlightTimerRef.current) {
@@ -1143,6 +1186,17 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
       });
     },
     [hiddenRoomIds, hideRoom, threads],
+  );
+
+  const handleViewProfile = useCallback(
+    (thread: ChatThread) => {
+      const slug = thread.peerSlug?.trim();
+      if (!slug) return;
+      setThreadMenuRoomId(null);
+      onClose();
+      router.push(`/${slug}`);
+    },
+    [onClose, router],
   );
 
   const handleLeaveGroup = useCallback(
@@ -1820,7 +1874,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   if (!portalReady) return null;
 
   const panel = (
-    <div className="cins-chat-root" role="presentation">
+    <div ref={chatRootRef} className="cins-chat-root" role="presentation">
       <button
         type="button"
         className="cins-chat-backdrop"
@@ -1952,6 +2006,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                       setThreadMenuRoomId(open ? thread.roomId : null)
                     }
                     onSelect={selectThread}
+                    onViewProfile={handleViewProfile}
                     onToggleListPin={(t) => toggleListPin(t.roomId)}
                     onToggleMute={(t) => toggleMuteRoom(t.roomId)}
                     onLeaveGroup={handleLeaveGroup}
@@ -2284,6 +2339,17 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                     ? "Đang kết nối hội thoại…"
                     : "Viết tin nhắn…"
                 }
+                onFocus={() => {
+                  // Tránh browser đẩy cả overlay; giữ khung theo visualViewport.
+                  window.scrollTo(0, 0);
+                  window.setTimeout(() => {
+                    window.scrollTo(0, 0);
+                    scrollMessagesToBottom("auto");
+                  }, 50);
+                  window.setTimeout(() => {
+                    scrollMessagesToBottom("auto");
+                  }, 300);
+                }}
                 onPaste={handleComposePaste}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {

@@ -6,12 +6,10 @@ import {
   type JourneyActionActorsConfig,
 } from "@/components/journey/JourneyActionActorsCount";
 import { JourneyActionTouchChip } from "@/components/journey/JourneyActionTouchChip";
-import type { JourneyActionSheetItem } from "@/components/journey/JourneyActionTouchSheet";
 import { JourneySocialActorsModal } from "@/components/journey/JourneySocialActorsModal";
 import { SOCIAL_LOAI_DOI_TUONG } from "@/lib/cong-dong/constants";
-import { sharePostUrl } from "@/lib/journey/share-post-url";
 import { useCoarsePointer } from "@/lib/ui/use-coarse-pointer";
-import { Heart, Share2 } from "lucide-react";
+import { Heart } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 
 type Props = {
@@ -22,7 +20,7 @@ type Props = {
   loaiDoiTuong?: string;
   actorsMediaLabel?: JourneyActionActorsConfig["mediaLabel"];
   disableActorsReveal?: boolean;
-  /** Permalink bài — long-press mobile mở chia sẻ. */
+  /** Permalink bài — giữ cho API tương thích; chia sẻ không còn gắn long-press. */
   sharePath?: string | null;
   shareTitle?: string | null;
 };
@@ -43,8 +41,6 @@ export function JourneyLikeButton({
   loaiDoiTuong = SOCIAL_LOAI_DOI_TUONG.COT_MOC,
   actorsMediaLabel,
   disableActorsReveal = false,
-  sharePath = null,
-  shareTitle = null,
 }: Props) {
   const { requireAuth } = useAuthGate();
   const isCoarse = useCoarsePointer();
@@ -134,53 +130,9 @@ export function JourneyLikeButton({
   const actorsLabel =
     actorsMediaLabel === "anh" ? "Người thích ảnh" : "Người thích";
 
-  const mobileSheetItems = useMemo<JourneyActionSheetItem[]>(() => {
-    const items: JourneyActionSheetItem[] = [];
-    if (actors) {
-      items.push({
-        id: "actors",
-        label: `${actorsLabel} (${count})`,
-        icon: (
-          <Heart size={17} strokeWidth={1.8} fill="currentColor" aria-hidden />
-        ),
-        tone: "liked",
-        onSelect: () => setActorsOpen(true),
-      });
-    }
-    items.push({
-      id: "toggle",
-      label: liked ? "Bỏ thích" : "Thích",
-      icon: (
-        <Heart
-          size={17}
-          strokeWidth={1.8}
-          fill={liked ? "currentColor" : "none"}
-          aria-hidden
-        />
-      ),
-      tone: liked ? "liked" : "default",
-      onSelect: toggle,
-    });
-    if (sharePath?.trim()) {
-      items.push({
-        id: "share",
-        label: "Chia sẻ bài viết",
-        icon: <Share2 size={17} strokeWidth={1.8} aria-hidden />,
-        onSelect: () => {
-          void sharePostUrl(sharePath, shareTitle);
-        },
-      });
-    }
-    return items;
-  }, [
-    actors,
-    actorsLabel,
-    count,
-    liked,
-    sharePath,
-    shareTitle,
-    toggle,
-  ]);
+  const openActors = useCallback(() => {
+    if (actors) setActorsOpen(true);
+  }, [actors]);
 
   const actorsModal =
     actors && actorsOpen ? (
@@ -203,8 +155,8 @@ export function JourneyLikeButton({
           ariaPressed={liked}
           disabled={pending}
           onPress={toggle}
-          sheetTitle="Thích"
-          sheetItems={mobileSheetItems}
+          onLongPress={actors ? openActors : undefined}
+          longPressHint={actors ? `Giữ để xem ${actorsLabel.toLowerCase()}` : undefined}
         >
           <Heart
             size={16}

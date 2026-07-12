@@ -6,29 +6,37 @@ import type { Block } from "@/lib/editor/types";
 import { BUNNY_FEED_QUALITY } from "@/lib/journey/bunny-video-playback";
 import { probeRemoteVideoDimensions } from "@/lib/journey/probe-remote-video-dimensions";
 import {
+  canvasAspectFromRatio,
   extractVideoCanvasRatio,
   resolveVideoCanvasRatio,
+  videoNaturalAspect,
   type VideoCanvasRatio,
 } from "@/lib/journey/video-canvas-ratio";
 import { buildBunnyVideoMp4Url } from "@/lib/bunny/embed";
 
+export type ResolvedVideoCanvas = {
+  ratio: VideoCanvasRatio;
+  /** CSS `--media-natural-aspect` (width/height), chưa clamp — CSS media query clamp. */
+  aspect: number;
+};
+
 /**
- * Tỉ lệ khung video trên card — ưu tiên block meta, không có thì probe MP4 Bunny.
+ * Tỉ lệ khung video trên card — ưu tiên kích thước MP4 thật (probe),
+ * không có thì meta block. Clamp cao tối đa: desktop 3:4 · mobile 9:16 (CSS).
  */
-export function useResolvedVideoCanvasRatio(
+export function useResolvedVideoCanvas(
   blocks: ReadonlyArray<Block> | null | undefined,
   bunnyVideoId: string | null | undefined,
-): VideoCanvasRatio {
+): ResolvedVideoCanvas {
   const fromBlocks = extractVideoCanvasRatio(blocks);
-  const [probed, setProbed] = useState<VideoCanvasRatio | null>(null);
+  const [probed, setProbed] = useState<ResolvedVideoCanvas | null>(null);
 
   useEffect(() => {
-    if (fromBlocks) {
+    const id = bunnyVideoId?.trim();
+    if (!id) {
       setProbed(null);
       return;
     }
-    const id = bunnyVideoId?.trim();
-    if (!id) return;
 
     let cancelled = false;
     const mp4 = buildBunnyVideoMp4Url(id, BUNNY_FEED_QUALITY);
@@ -36,14 +44,27 @@ export function useResolvedVideoCanvasRatio(
 
     void probeRemoteVideoDimensions(mp4).then((dim) => {
       if (cancelled || !dim) return;
-      setProbed(resolveVideoCanvasRatio(dim.width, dim.height));
+      setProbed({
+        ratio: resolveVideoCanvasRatio(dim.width, dim.height),
+        aspect: videoNaturalAspect(dim.width, dim.height),
+      });
     });
 
     return () => {
       cancelled = true;
     };
-  }, [fromBlocks, bunnyVideoId]);
+  }, [bunnyVideoId]);
 
-  // Probe MP4 khi có — ưu tiên kích thước thật (sửa meta 3:4 sai với video 9:16).
-  return probed ?? fromBlocks ?? "16:9";
+  if (probed) return probed;
+
+  const ratio = fromBlocks ?? "16:9";
+  return { ratio, aspect: canvasAspectFromRatio(ratio) };
+}
+
+/** @deprecated Dùng `useResolvedVideoCanvas` — giữ alias cho chỗ chỉ cần bucket ratio. */
+export function useResolvedVideoCanvasRatio(
+  blocks: ReadonlyArray<Block> | null | undefined,
+  bunnyVideoId: string | null | undefined,
+): VideoCanvasRatio {
+  return useResolvedVideoCanvas(blocks, bunnyVideoId).ratio;
 }

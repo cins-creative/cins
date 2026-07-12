@@ -11,6 +11,7 @@ import {
   type Visibility,
 } from "@/lib/editor/types";
 import type { ActionResult } from "@/lib/journey/action-result";
+import { isDefaultAvatarId } from "@/lib/journey/default-avatars";
 import {
   FOREIGN_JOURNEY_VISIBILITY_VALUES,
   type ForeignJourneyVisibility,
@@ -137,14 +138,59 @@ export async function checkSlugAvailable(
   };
 }
 
+/** Khớp enum `gioi_tinh_enum` trên Supabase — UI onboarding dùng 3 giá trị đầu. */
+export type GioiTinh = "nam" | "nu" | "khac" | "khong_muon_noi";
+
+const GIOI_TINH_VALID = new Set<string>([
+  "nam",
+  "nu",
+  "khac",
+  "khong_muon_noi",
+]);
+
 export type SubmitOnboardingInput = {
   tenHienThi: string;
   slug: string;
   giaiDoan: GiaiDoan;
+  /** Bước 3 (tuỳ chọn) — bỏ qua thì null/undefined. */
+  gioiTinh?: GioiTinh | null;
+  /** ISO date `YYYY-MM-DD` hoặc null khi skip. */
+  ngaySinh?: string | null;
+  /** Cloudflare UUID hoặc `default-*` (lib/journey/default-avatars). */
+  avatarId?: string | null;
 };
 
+function parseOptionalNgaySinh(
+  raw: string | null | undefined,
+): { ok: true; value: string | null } | { ok: false; error: string } {
+  if (raw == null || raw.trim() === "") return { ok: true, value: null };
+  const v = raw.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+    return { ok: false, error: "Ngày sinh không hợp lệ." };
+  }
+  const d = new Date(`${v}T00:00:00Z`);
+  if (Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== v) {
+    return { ok: false, error: "Ngày sinh không hợp lệ." };
+  }
+  const today = new Date();
+  const todayIso = new Date(
+    Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()),
+  )
+    .toISOString()
+    .slice(0, 10);
+  if (v > todayIso) {
+    return { ok: false, error: "Ngày sinh không thể ở tương lai." };
+  }
+  const minYear = today.getUTCFullYear() - 100;
+  if (Number(v.slice(0, 4)) < minYear) {
+    return { ok: false, error: "Ngày sinh trông không hợp lý — kiểm tra lại nhé." };
+  }
+  return { ok: true, value: v };
+}
+
 /**
- * Hoàn tất onboarding — UPDATE `ten_hien_thi`, `slug`, `giai_doan`.
+ * Hoàn tất onboarding — UPDATE `ten_hien_thi`, `slug`, `giai_doan`
+ * (+ tuỳ chọn `gioi_tinh`, `ngay_sinh`, `avatar_id` ở bước 3).
  *
  * Dùng service-role client (server-only) vì hiện tại `user_nguoi_dung` chỉ có SELECT
  * policy; ta tự enforce `auth_user_id = session.user.id`. Sau khi cập nhật xong,
@@ -192,6 +238,35 @@ export async function submitOnboarding(
     };
   }
 
+  let gioiTinh: GioiTinh | null = null;
+  if (input.gioiTinh != null && input.gioiTinh !== ("" as GioiTinh)) {
+    if (!GIOI_TINH_VALID.has(input.gioiTinh)) {
+      return {
+        ok: false,
+        error: "Giới tính không hợp lệ.",
+        field: "gioi_tinh",
+      };
+    }
+    gioiTinh = input.gioiTinh;
+  }
+
+  const ngayParsed = parseOptionalNgaySinh(input.ngaySinh);
+  if (!ngayParsed.ok) {
+    return { ok: false, error: ngayParsed.error, field: "ngay_sinh" };
+  }
+
+  let avatarId: string | null = null;
+  if (typeof input.avatarId === "string" && input.avatarId.trim()) {
+    const cleaned = input.avatarId.trim();
+    const isCf =
+      /^[A-Za-z0-9-]{8,64}$/.test(cleaned) && !cleaned.startsWith("default-");
+    if (isDefaultAvatarId(cleaned) || isCf) {
+      avatarId = cleaned;
+    } else {
+      return { ok: false, error: "Avatar không hợp lệ.", field: "avatar_id" };
+    }
+  }
+
   const admin = createServiceRoleClient();
 
   /* Race-safe slug uniqueness — query có thể true tại t1 và conflict tại t2; ta vẫn
@@ -218,13 +293,18 @@ export async function submitOnboarding(
     }
   }
 
+  const patch: Record<string, unknown> = {
+    ten_hien_thi: tenHienThi,
+    slug,
+    giai_doan: input.giaiDoan,
+  };
+  if (gioiTinh) patch.gioi_tinh = gioiTinh;
+  if (ngayParsed.value) patch.ngay_sinh = ngayParsed.value;
+  if (avatarId) patch.avatar_id = avatarId;
+
   const { error: updateErr } = await admin
     .from("user_nguoi_dung")
-    .update({
-      ten_hien_thi: tenHienThi,
-      slug,
-      giai_doan: input.giaiDoan,
-    })
+    .update(patch)
     .eq("auth_user_id", session.authUserId);
 
   if (updateErr) {
@@ -492,9 +572,12 @@ export async function updateAvatar(
       ? imageId.trim()
       : null;
 
-  /* Cloudflare imageId là UUID hoặc 32 hex; chấp nhận tối đa 64 chars,
-     chỉ alphanumeric + dash để tránh inject. */
-  if (cleaned && !/^[A-Za-z0-9-]{8,64}$/.test(cleaned)) {
+  /* Cloudflare imageId là UUID hoặc 32 hex; default avatar dùng `default-*`. */
+  if (
+    cleaned &&
+    !isDefaultAvatarId(cleaned) &&
+    !/^[A-Za-z0-9-]{8,64}$/.test(cleaned)
+  ) {
     return { ok: false, error: "imageId không hợp lệ." };
   }
 

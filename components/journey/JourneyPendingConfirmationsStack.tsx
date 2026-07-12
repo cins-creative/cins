@@ -3,6 +3,7 @@
 import { JourneyCoAuthorPendingBanner } from "@/components/journey/JourneyCoAuthorPendingBanner";
 import { JourneyCoAuthorReviewBanner } from "@/components/journey/JourneyCoAuthorReviewBanner";
 import { JourneyCoSoStaffInviteBanner } from "@/components/journey/JourneyCoSoStaffInviteBanner";
+import { JourneyCongDongInviteBanner } from "@/components/journey/JourneyCongDongInviteBanner";
 import { JourneyDongGopFeedbackBanner } from "@/components/journey/JourneyDongGopFeedbackBanner";
 import { JourneyFollowRequestBanner } from "@/components/journey/JourneyFollowRequestBanner";
 import { JourneyMembershipPendingBanner } from "@/components/journey/JourneyMembershipPendingBanner";
@@ -10,6 +11,7 @@ import { useJourneyPendingConfirmations } from "@/lib/journey/use-journey-pendin
 import type { DongGopFeedbackBannerItem } from "@/lib/article/dong-gop/notify-feedback";
 import type { OutboundMembershipPending } from "@/lib/journey/membership-milestone-types";
 import type { PendingCoAuthorInvite } from "@/lib/social/types";
+import type { PendingCongDongInviteNotification } from "@/lib/cong-dong/invite";
 import type { PendingCoSoStaffInviteNotification } from "@/lib/to-chuc/co-so-staff-invite";
 
 type Props = {
@@ -20,6 +22,7 @@ type Props = {
   ownerAvatarUrl?: string | null;
   initialCoAuthorInvites: ReadonlyArray<PendingCoAuthorInvite>;
   initialCoSoStaffInvites: ReadonlyArray<PendingCoSoStaffInviteNotification>;
+  initialCongDongInvites?: ReadonlyArray<PendingCongDongInviteNotification>;
   initialMembershipPending?: ReadonlyArray<OutboundMembershipPending>;
   initialDongGopFeedback?: ReadonlyArray<DongGopFeedbackBannerItem>;
 };
@@ -33,6 +36,7 @@ export function JourneyPendingConfirmationsStack({
   ownerAvatarUrl = null,
   initialCoAuthorInvites,
   initialCoSoStaffInvites,
+  initialCongDongInvites = [],
   initialMembershipPending = [],
   initialDongGopFeedback = [],
 }: Props) {
@@ -41,6 +45,7 @@ export function JourneyPendingConfirmationsStack({
     viewerProfileId,
     initialCoAuthorInvites,
     initialCoSoStaffInvites,
+    initialCongDongInvites,
   });
 
   if (!isOwner) return null;
@@ -52,6 +57,9 @@ export function JourneyPendingConfirmationsStack({
         items={initialMembershipPending}
         ownerSlug={ownerSlug}
       />
+      {pending.congDongInvites.length > 0 ? (
+        <JourneyCongDongInviteBanner invites={pending.congDongInvites} />
+      ) : null}
       {pending.coSoStaffInvites.length > 0 ? (
         <JourneyCoSoStaffInviteBanner invites={pending.coSoStaffInvites} />
       ) : null}

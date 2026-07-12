@@ -17,6 +17,8 @@ import {
 } from "@/lib/bunny/embed";
 import { VideoProcessingPlaceholder } from "@/components/journey/VideoProcessingPlaceholder";
 import { PostBunnyEmbed } from "@/components/journey/PostBunnyEmbed";
+import { PostRiveFileEmbed } from "@/components/journey/PostRiveFileEmbed";
+import { ViewportGatedEmbed } from "@/components/journey/ViewportGatedEmbed";
 import {
   handleBlockImageError,
   resolveImageSeedUrl,
@@ -32,9 +34,10 @@ import {
 import {
   buildEmbedIframeSrc,
   classifyEmbedUrl,
+  embedIframeAllowAttr,
+  embedIframeTitle,
   type ClassifiedEmbed,
 } from "@/lib/editor/embed-providers";
-import { PostRiveFileEmbed } from "@/components/journey/PostRiveFileEmbed";
 
 import { getYoutubeId } from "@/lib/youtube";
 
@@ -55,37 +58,7 @@ function resolveEmbedUrl(cfg: Record<string, unknown>): string {
 }
 
 function embedIframeAllow(provider: ClassifiedEmbed["provider"]): string {
-  if (provider === "rive") {
-    return "autoplay; encrypted-media; clipboard-write";
-  }
-  if (provider === "sketchfab") {
-    return "autoplay; fullscreen; xr-spatial-tracking";
-  }
-  if (provider === "youtube" || provider === "vimeo") {
-    return "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
-  }
-  return "fullscreen";
-}
-
-function embedIframeTitle(provider: ClassifiedEmbed["provider"]): string {
-  switch (provider) {
-    case "youtube":
-      return "YouTube video player";
-    case "vimeo":
-      return "Vimeo video player";
-    case "figma":
-      return "Figma file";
-    case "framer":
-      return "Framer prototype";
-    case "sketchfab":
-      return "Sketchfab 3D model";
-    case "rive":
-      return "Rive animation";
-    case "behance":
-      return "Behance project";
-    default:
-      return "Embedded content";
-  }
+  return embedIframeAllowAttr(provider);
 }
 
 function resolveEmbedBunnyVideoId(cfg: Record<string, unknown>): string | null {
@@ -236,7 +209,7 @@ function ReadOnlyBlock({
         ? `https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1&playsinline=1`
         : `https://www.youtube-nocookie.com/embed/${youtubeId}`;
       return (
-        <div
+        <ViewportGatedEmbed
           className={
             "b-embed b-embed-ro is-iframe" +
             (canvasClass ? ` ${canvasClass}` : "")
@@ -251,7 +224,7 @@ function ReadOnlyBlock({
             allowFullScreen
             loading="eager"
           />
-        </div>
+        </ViewportGatedEmbed>
       );
     }
 
@@ -273,7 +246,11 @@ function ReadOnlyBlock({
 
     const cls = classifyEmbedUrl(url);
     if (cls?.provider === "rive-file") {
-      return <PostRiveFileEmbed src={cls.url} fit="native" />;
+      return (
+        <ViewportGatedEmbed>
+          <PostRiveFileEmbed src={cls.url} fit="native" />
+        </ViewportGatedEmbed>
+      );
     }
     if (!cls) {
       if (url.trim()) {
@@ -301,7 +278,7 @@ function ReadOnlyBlock({
       const canvasClass =
         cls.provider === "youtube" ? resolveEmbedCanvasClass(cfg) : "";
       return (
-        <div
+        <ViewportGatedEmbed
           className={
             "b-embed b-embed-ro is-iframe" +
             (canvasClass ? ` ${canvasClass}` : "")
@@ -320,7 +297,7 @@ function ReadOnlyBlock({
             allowFullScreen
             loading={mediaAutoplay ? "eager" : "lazy"}
           />
-        </div>
+        </ViewportGatedEmbed>
       );
     }
 

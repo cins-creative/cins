@@ -4,11 +4,16 @@ import { useEffect, useState } from "react";
 
 import type { Block } from "@/lib/editor/types";
 import { PostRiveFileEmbed } from "@/components/journey/PostRiveFileEmbed";
+import { ViewportGatedEmbed } from "@/components/journey/ViewportGatedEmbed";
 import {
   resolveEmbedIframePeek,
   resolveRiveFileEmbedPeek,
 } from "@/lib/journey/post-media";
-import type { EmbedProviderId } from "@/lib/editor/embed-providers";
+import {
+  embedIframeAllowAttr,
+  embedIframeTitle,
+  type EmbedProviderId,
+} from "@/lib/editor/embed-providers";
 
 type Props = {
   body?: string | null;
@@ -16,36 +21,7 @@ type Props = {
 };
 
 function embedIframeAllow(provider: EmbedProviderId): string | undefined {
-  if (provider === "sketchfab") {
-    return "autoplay; fullscreen; xr-spatial-tracking";
-  }
-  if (provider === "rive") {
-    return "autoplay; encrypted-media; clipboard-write";
-  }
-  if (provider === "youtube" || provider === "vimeo") {
-    return "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
-  }
-  return "fullscreen";
-}
-
-function embedIframeTitle(provider: EmbedProviderId): string {
-  switch (provider) {
-    case "youtube":
-      return "YouTube video player";
-    case "vimeo":
-      return "Vimeo video player";
-    case "figma":
-      return "Figma file";
-    case "framer":
-      return "Framer prototype";
-    case "sketchfab":
-      return "Sketchfab 3D model";
-    case "rive":
-    case "rive-file":
-      return "Rive animation";
-    default:
-      return "Embedded content";
-  }
+  return embedIframeAllowAttr(provider);
 }
 
 /** Peek embed trên timeline card — iframe Tier 1 hoặc file .riv trên R2. */
@@ -59,7 +35,7 @@ export function JourneyCardEmbedPeek({ body, blocks }: Props) {
 
   if (riveFilePeek) {
     return (
-      <div
+      <ViewportGatedEmbed
         className="preview preview--article-peek jcard-embed-peek"
         data-provider="rive-file"
         data-aspect-ready={riveAspectRatio ? "true" : undefined}
@@ -73,7 +49,7 @@ export function JourneyCardEmbedPeek({ body, blocks }: Props) {
           fit="native"
           onArtboardAspectRatio={setRiveAspectRatio}
         />
-      </div>
+      </ViewportGatedEmbed>
     );
   }
 
@@ -81,7 +57,7 @@ export function JourneyCardEmbedPeek({ body, blocks }: Props) {
   if (!peek) return null;
 
   return (
-    <div
+    <ViewportGatedEmbed
       className="preview preview--article-peek jcard-embed-peek"
       data-provider={peek.provider}
     >
@@ -97,6 +73,6 @@ export function JourneyCardEmbedPeek({ body, blocks }: Props) {
         allowFullScreen
         loading="lazy"
       />
-    </div>
+    </ViewportGatedEmbed>
   );
 }

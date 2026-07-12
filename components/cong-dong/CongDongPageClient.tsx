@@ -358,14 +358,28 @@ export function CongDongPageClient({ initial }: Props) {
     });
   }, [org.id, activeFilterSlugs]);
 
-  const shareCommunity = async () => {
-    const url = typeof window !== "undefined" ? window.location.href : "";
-    try {
-      await navigator.clipboard.writeText(url);
-    } catch {
-      window.prompt("Sao chép link cộng đồng:", url);
-    }
-  };
+  const shareSource = useMemo(
+    () => ({
+      orgId: org.id,
+      slug: org.slug,
+      ten: org.ten,
+      moTa: org.moTa,
+      avatar_id: org.avatarId,
+      cover_id: org.coverId,
+      tinhThanh: org.tinhThanh,
+      stats: { cotMoc: org.soBaiViet, tacPham: 0 },
+    }),
+    [
+      org.id,
+      org.slug,
+      org.ten,
+      org.moTa,
+      org.avatarId,
+      org.coverId,
+      org.tinhThanh,
+      org.soBaiViet,
+    ],
+  );
 
   const onBrandingChange = useCallback(
     (patch: { avatarId?: string | null; coverId?: string | null }) => {
@@ -411,6 +425,7 @@ export function CongDongPageClient({ initial }: Props) {
                 {org.moTa ? <p className="cd-v4-desc">{org.moTa}</p> : null}
                 <CongDongRoleButton
                   orgId={org.id}
+                  shareSource={shareSource}
                   isThanhVien={isThanhVien}
                   viewerVaiTro={viewerVaiTro}
                   isCinsAdmin={isCinsAdmin}
@@ -434,7 +449,6 @@ export function CongDongPageClient({ initial }: Props) {
                       ? () => setMembersOpen(true)
                       : undefined
                   }
-                  onShare={shareCommunity}
                 />
               </div>
             </div>
@@ -536,6 +550,7 @@ export function CongDongPageClient({ initial }: Props) {
                 viewerId={initial.viewerId}
                 viewerVaiTro={viewerVaiTro}
                 canInteract={isThanhVien}
+                onJoined={onJoined}
                 onPostUpdated={handlePostUpdated}
                 onPostDeleted={handlePostDeleted}
                 barRef={feedBarRef}
@@ -803,6 +818,7 @@ function JourneyFeed({
   viewerId,
   viewerVaiTro,
   canInteract,
+  onJoined,
   onPostUpdated,
   onPostDeleted,
   barRef,
@@ -814,6 +830,7 @@ function JourneyFeed({
   viewerId: string | null;
   viewerVaiTro: CongDongVaiTro | null;
   canInteract: boolean;
+  onJoined: (vaiTro: CongDongVaiTro) => void;
   onPostUpdated: (post: CongDongPost) => void;
   onPostDeleted: (postId: string) => void;
   barRef: React.RefObject<HTMLDivElement | null>;
@@ -863,6 +880,7 @@ function JourneyFeed({
           viewerId={viewerId}
           viewerVaiTro={viewerVaiTro}
           canInteract={canInteract}
+          onJoined={onJoined}
           onPostUpdated={onPostUpdated}
           onPostDeleted={onPostDeleted}
         />
@@ -1057,6 +1075,7 @@ function CongDongJourneyPostCard({
   viewerId,
   viewerVaiTro,
   canInteract,
+  onJoined,
   onPostUpdated,
   onPostDeleted,
 }: {
@@ -1066,6 +1085,7 @@ function CongDongJourneyPostCard({
   viewerId: string | null;
   viewerVaiTro: CongDongVaiTro | null;
   canInteract: boolean;
+  onJoined: (vaiTro: CongDongVaiTro) => void;
   onPostUpdated: (post: CongDongPost) => void;
   onPostDeleted: (postId: string) => void;
 }) {
@@ -1278,11 +1298,13 @@ function CongDongJourneyPostCard({
 
       {social.commentsOpen ? (
         <CommentsPanel
+          orgId={orgId}
           postId={post.id}
           contentOwnerId={post.author.id}
           viewerId={viewerId}
           social={social}
           canInteract={canInteract}
+          onJoined={onJoined}
         />
       ) : null}
     </article>
@@ -1366,22 +1388,55 @@ function CongDongGridPostCard({
 }
 
 function CommentsPanel({
+  orgId,
   postId,
   contentOwnerId,
   viewerId,
   social,
   canInteract,
+  onJoined,
 }: {
+  orgId: string;
   postId: string;
   contentOwnerId: string;
   viewerId: string | null;
   social: ReturnType<typeof usePostSocial>;
   canInteract: boolean;
+  onJoined: (vaiTro: CongDongVaiTro) => void;
 }) {
+  const [joinPending, startJoin] = useTransition();
   const comments = social.comments.map((c) => ({
     ...c,
     isOwn: viewerId === c.author?.id,
   }));
+
+  const joinToComment = () => {
+    startJoin(async () => {
+      const res = await fetch(`/api/cong-dong/${orgId}/tham-gia`, {
+        method: "POST",
+      });
+      const json = (await res.json().catch(() => null)) as {
+        viewerVaiTro?: CongDongVaiTro | null;
+      } | null;
+      if (!res.ok) return;
+      onJoined(json?.viewerVaiTro ?? "thanh_vien");
+    });
+  };
+
+  const commentDeniedFallback =
+    viewerId && !canInteract ? (
+      <>
+        <button
+          type="button"
+          className="post-comments-login-btn"
+          onClick={joinToComment}
+          disabled={joinPending}
+        >
+          {joinPending ? "Đang tham gia…" : "Tham gia cộng đồng"}
+        </button>{" "}
+        để bình luận.
+      </>
+    ) : undefined;
 
   return (
     <div className="cd-v4-comments">
@@ -1392,6 +1447,7 @@ function CommentsPanel({
           viewerIsOwner={viewerId === contentOwnerId}
           comments={comments}
           viewerCanComment={canInteract}
+          commentDeniedFallback={commentDeniedFallback}
           sectionId={`post-comments-${postId}`}
           submitComment={social.submitCommentAsync}
           onCommentAdded={social.onCommentAdded}

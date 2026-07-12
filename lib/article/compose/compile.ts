@@ -8,6 +8,7 @@ import {
 import {
   buildEmbedIframeSrc,
   classifyEmbedUrl,
+  embedIframeAllowAttr,
 } from "@/lib/editor/embed-providers";
 
 function plainToParagraphs(
@@ -72,16 +73,11 @@ function compileTableHtml(block: ArticleComposeBlock): string {
 }
 
 function embedIframeAllow(provider: string): string {
-  if (provider === "rive") {
-    return 'allow="autoplay; encrypted-media; clipboard-write"';
-  }
-  if (provider === "sketchfab") {
-    return 'allow="autoplay; fullscreen; xr-spatial-tracking"';
-  }
+  const allow = embedIframeAllowAttr(provider);
   if (provider === "youtube" || provider === "vimeo") {
-    return 'allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin"';
+    return `allow="${allow}" referrerpolicy="strict-origin-when-cross-origin"`;
   }
-  return "allowfullscreen";
+  return `allow="${allow}"`;
 }
 
 function compileEmbedHtml(url: string): string {

@@ -17,8 +17,15 @@ type Props = {
   ariaPressed?: boolean;
   disabled?: boolean;
   onPress: () => void;
+  /**
+   * Giữ lâu — ưu tiên hơn sheet. Dùng để mở thẳng danh sách người
+   * thích / bình luận / lưu (không qua bước chọn).
+   */
+  onLongPress?: () => void;
+  /** Gợi ý trong aria khi có long-press (vd. "Giữ để xem người thích"). */
+  longPressHint?: string;
   sheetTitle?: string;
-  sheetItems: JourneyActionSheetItem[];
+  sheetItems?: JourneyActionSheetItem[];
   children: ReactNode;
   buttonProps?: Omit<
     ButtonHTMLAttributes<HTMLButtonElement>,
@@ -28,25 +35,34 @@ type Props = {
   };
 };
 
-/** Nút hành động mobile — tap ngắn = hành động chính; giữ = sheet phụ. */
+/** Nút hành động mobile — tap ngắn = hành động chính; giữ = long-press hoặc sheet phụ. */
 export function JourneyActionTouchChip({
   className,
   ariaLabel,
   ariaPressed,
   disabled = false,
   onPress,
+  onLongPress,
+  longPressHint,
   sheetTitle,
-  sheetItems,
+  sheetItems = [],
   children,
   buttonProps,
 }: Props) {
   const [sheetOpen, setSheetOpen] = useState(false);
 
-  const canLongPress = sheetItems.length > 0;
+  const useSheet = !onLongPress && sheetItems.length > 0;
+  const canLongPress = Boolean(onLongPress) || useSheet;
 
   const longPress = useLongPress({
     disabled: disabled || !canLongPress,
-    onLongPress: () => setSheetOpen(true),
+    onLongPress: () => {
+      if (onLongPress) {
+        onLongPress();
+        return;
+      }
+      setSheetOpen(true);
+    },
     onPress,
   });
 
@@ -59,14 +75,16 @@ export function JourneyActionTouchChip({
     [sheetItems],
   );
 
+  const resolvedAria = canLongPress
+    ? `${ariaLabel}. ${longPressHint ?? "Giữ để xem thêm tùy chọn"}`
+    : ariaLabel;
+
   return (
     <>
       <button
         type="button"
         className={`${className} action-btn--touch`}
-        aria-label={
-          canLongPress ? `${ariaLabel}. Giữ để xem thêm tùy chọn` : ariaLabel
-        }
+        aria-label={resolvedAria}
         aria-pressed={ariaPressed}
         disabled={disabled}
         {...buttonProps}
@@ -74,7 +92,7 @@ export function JourneyActionTouchChip({
       >
         {children}
       </button>
-      {canLongPress ? (
+      {useSheet ? (
         <JourneyActionTouchSheet
           open={sheetOpen}
           onClose={() => setSheetOpen(false)}

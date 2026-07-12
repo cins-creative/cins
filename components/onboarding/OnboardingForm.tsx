@@ -1,5 +1,6 @@
 "use client";
 
+import { ImageUp } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, useTransition } from "react";
 
@@ -7,7 +8,21 @@ import {
   checkSlugAvailable,
   submitOnboarding,
 } from "@/app/[slug]/journey/actions";
+import {
+  JourneyAvatarEditor,
+  type AvatarEditorComplete,
+} from "@/components/journey/JourneyAvatarEditor";
 import type { GiaiDoan } from "@/lib/auth/session";
+import {
+  DEFAULT_AVATAR_OPTIONS,
+  DEFAULT_AVATAR_PATHS,
+  defaultAvatarForGioiTinh,
+  getDefaultAvatarPublicPath,
+  isDefaultAvatarId,
+  type DefaultAvatarId,
+  type GioiTinhOnboarding,
+} from "@/lib/journey/default-avatars";
+import { getAvatarUrl } from "@/lib/journey/profile";
 
 type Props = {
   initialTenHienThi: string;
@@ -66,6 +81,15 @@ const GIAI_DOAN_OPTIONS: ReadonlyArray<{
   },
 ];
 
+const GIOI_TINH_OPTIONS: ReadonlyArray<{
+  value: GioiTinhOnboarding;
+  label: string;
+}> = [
+  { value: "nam", label: "Nam" },
+  { value: "nu", label: "Nữ" },
+  { value: "khong_muon_noi", label: "Không muốn nói" },
+];
+
 function normalizeSlugInput(raw: string): string {
   return raw
     .toLowerCase()
@@ -74,10 +98,11 @@ function normalizeSlugInput(raw: string): string {
 }
 
 /**
- * Form onboarding 2 bước cho route `/onboarding` — full page, không backdrop.
+ * Form onboarding 3 bước cho route `/onboarding` — full page, không backdrop.
  *
- * Sử dụng CINs design system (`--cins-*` tokens + Be Vietnam Pro + Crimson Pro).
- * Class prefix `cins-onb-*`.
+ * 1. Bạn là ai? (tên + slug)
+ * 2. Bạn đang là...? (giai đoạn)
+ * 3. Thông tin cơ bản (giới tính, ngày sinh, avatar) — có thể bỏ qua
  *
  * Sau submit thành công → redirect `/{slug}?welcome=1`.
  */
@@ -86,12 +111,20 @@ export function OnboardingForm({ initialTenHienThi, initialSlug }: Props) {
   const titleId = useId();
   const tenInputRef = useRef<HTMLInputElement>(null);
 
-  const [step, setStep] = useState<1 | 2>(1);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [tenHienThi, setTenHienThi] = useState(initialTenHienThi);
   const [slug, setSlug] = useState(initialSlug);
   const [slugDirty, setSlugDirty] = useState(false);
   const [slugStatus, setSlugStatus] = useState<SlugStatus>({ kind: "idle" });
   const [giaiDoan, setGiaiDoan] = useState<GiaiDoan | null>(null);
+
+  const [gioiTinh, setGioiTinh] = useState<GioiTinhOnboarding | null>(null);
+  const [ngaySinh, setNgaySinh] = useState("");
+  /** `default-*` hoặc Cloudflare imageId sau khi upload. */
+  const [avatarId, setAvatarId] = useState<string | null>(null);
+  const [avatarTouched, setAvatarTouched] = useState(false);
+  const [customPreviewUrl, setCustomPreviewUrl] = useState<string | null>(null);
+  const [cropOpen, setCropOpen] = useState(false);
 
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -99,6 +132,30 @@ export function OnboardingForm({ initialTenHienThi, initialSlug }: Props) {
   useEffect(() => {
     if (step === 1) tenInputRef.current?.focus();
   }, [step]);
+
+  /* Preload avatar mặc định khi vào bước 2 — sẵn sàng khi tới bước 3. */
+  useEffect(() => {
+    if (step < 2) return;
+    for (const src of DEFAULT_AVATAR_PATHS) {
+      const img = new window.Image();
+      img.decoding = "async";
+      img.src = src;
+    }
+  }, [step]);
+
+  useEffect(() => {
+    return () => {
+      if (customPreviewUrl?.startsWith("blob:")) {
+        URL.revokeObjectURL(customPreviewUrl);
+      }
+    };
+  }, [customPreviewUrl]);
+
+  const previewSrc =
+    customPreviewUrl ??
+    (isDefaultAvatarId(avatarId)
+      ? getDefaultAvatarPublicPath(avatarId)
+      : null);
 
   async function runSlugCheck(value: string): Promise<boolean> {
     setSlugStatus({ kind: "checking" });
@@ -146,17 +203,41 @@ export function OnboardingForm({ initialTenHienThi, initialSlug }: Props) {
     return true;
   }
 
-  async function onSubmit() {
+  function onPickGioiTinh(value: GioiTinhOnboarding) {
+    setGioiTinh(value);
+    if (!avatarTouched) {
+      setAvatarId(defaultAvatarForGioiTinh(value));
+      setCustomPreviewUrl(null);
+    }
+  }
+
+  function onPickAvatar(id: DefaultAvatarId) {
+    setAvatarId(id);
+    setAvatarTouched(true);
+    setCustomPreviewUrl(null);
+  }
+
+  function onCropComplete(result: AvatarEditorComplete) {
+    setAvatarId(result.imageId);
+    setCustomPreviewUrl(result.url ?? getAvatarUrl(result.imageId));
+    setAvatarTouched(true);
+  }
+
+  function onSubmit(opts?: { skipBasics?: boolean }) {
     if (!giaiDoan) {
       setSubmitError("Hãy chọn giai đoạn hiện tại của bạn.");
       return;
     }
     setSubmitError(null);
+    const skip = opts?.skipBasics === true;
     startTransition(async () => {
       const result = await submitOnboarding({
         tenHienThi,
         slug,
         giaiDoan,
+        gioiTinh: skip ? null : gioiTinh,
+        ngaySinh: skip ? null : ngaySinh.trim() || null,
+        avatarId: skip ? null : avatarId,
       });
       if (!result.ok) {
         setSubmitError(result.error);
@@ -166,6 +247,9 @@ export function OnboardingForm({ initialTenHienThi, initialSlug }: Props) {
         }
         if (result.field === "ten_hien_thi") {
           setStep(1);
+        }
+        if (result.field === "gioi_tinh" || result.field === "ngay_sinh" || result.field === "avatar_id") {
+          setStep(3);
         }
         return;
       }
@@ -187,7 +271,11 @@ export function OnboardingForm({ initialTenHienThi, initialSlug }: Props) {
         </li>
         <li className={step >= 2 ? "is-active" : ""}>
           <span className="cins-onb-step-no">2</span>
-          <span>Bạn đang ở đâu?</span>
+          <span>Bạn đang là...?</span>
+        </li>
+        <li className={step >= 3 ? "is-active" : ""}>
+          <span className="cins-onb-step-no">3</span>
+          <span>Thông tin cơ bản</span>
         </li>
       </ol>
 
@@ -261,7 +349,7 @@ export function OnboardingForm({ initialTenHienThi, initialSlug }: Props) {
             )}
           </div>
         </div>
-      ) : (
+      ) : step === 2 ? (
         <div className="cins-onb-fields">
           <p className="cins-onb-q">
             Bạn đang ở giai đoạn nào trong hành trình sáng tạo?
@@ -297,6 +385,162 @@ export function OnboardingForm({ initialTenHienThi, initialSlug }: Props) {
             })}
           </ul>
         </div>
+      ) : (
+        <div className="cins-onb-fields">
+          <p className="cins-onb-q">Thông tin cơ bản</p>
+          <p className="cins-onb-q-sub">
+            Giúp Journey của bạn trông gần gũi hơn. Bạn có thể bỏ qua hoặc
+            thay đổi sau trong phần chỉnh sửa hồ sơ.
+          </p>
+
+          <div className="cins-onb-field">
+            <span className="cins-onb-label" id="onb-gioi-tinh-label">
+              Bạn là
+            </span>
+            <ul
+              className="cins-onb-gender"
+              role="radiogroup"
+              aria-labelledby="onb-gioi-tinh-label"
+            >
+              {GIOI_TINH_OPTIONS.map((opt) => {
+                const selected = gioiTinh === opt.value;
+                return (
+                  <li key={opt.value}>
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      className={
+                        "cins-onb-gender-btn" +
+                        (selected ? " is-selected" : "")
+                      }
+                      onClick={() => onPickGioiTinh(opt.value)}
+                    >
+                      {opt.label}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+
+          <div className="cins-onb-field">
+            <label htmlFor="onb-ngay-sinh" className="cins-onb-label">
+              Ngày sinh
+            </label>
+            <input
+              id="onb-ngay-sinh"
+              className="cins-onb-input cins-onb-input--date"
+              type="date"
+              value={ngaySinh}
+              onChange={(e) => setNgaySinh(e.target.value)}
+              max={new Date().toISOString().slice(0, 10)}
+            />
+          </div>
+
+          <div className="cins-onb-field">
+            <span className="cins-onb-label" id="onb-avatar-label">
+              Chọn avatar
+            </span>
+
+            <div className="cins-onb-avatar-stage">
+              <div
+                className={
+                  "cins-onb-avatar-preview" +
+                  (previewSrc ? " has-image" : "")
+                }
+                aria-hidden={!previewSrc}
+              >
+                {previewSrc ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    key={previewSrc}
+                    src={previewSrc}
+                    alt=""
+                    width={128}
+                    height={128}
+                    decoding="async"
+                    fetchPriority="high"
+                  />
+                ) : (
+                  <span className="cins-onb-avatar-preview-empty">
+                    Chọn một ảnh bên dưới
+                  </span>
+                )}
+              </div>
+
+              <ul
+                className="cins-onb-avatars"
+                role="radiogroup"
+                aria-labelledby="onb-avatar-label"
+              >
+                <li>
+                  <button
+                    type="button"
+                    className={
+                      "cins-onb-avatar-btn cins-onb-avatar-btn--upload" +
+                      (customPreviewUrl ? " is-selected" : "")
+                    }
+                    aria-label="Tải ảnh của bạn lên"
+                    disabled={isPending}
+                    onClick={() => setCropOpen(true)}
+                  >
+                    {customPreviewUrl ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        src={customPreviewUrl}
+                        alt=""
+                        width={48}
+                        height={48}
+                        decoding="async"
+                      />
+                    ) : (
+                      <span className="cins-onb-avatar-upload-inner">
+                        <ImageUp size={18} strokeWidth={1.8} aria-hidden />
+                        <span>Tải lên</span>
+                      </span>
+                    )}
+                  </button>
+                </li>
+                {DEFAULT_AVATAR_OPTIONS.map((opt) => {
+                  const selected =
+                    !customPreviewUrl && avatarId === opt.id;
+                  return (
+                    <li key={opt.id}>
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={selected}
+                        aria-label={opt.label}
+                        disabled={isPending}
+                        className={
+                          "cins-onb-avatar-btn" +
+                          (selected ? " is-selected" : "")
+                        }
+                        onClick={() => onPickAvatar(opt.id)}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={getDefaultAvatarPublicPath(opt.id)}
+                          alt=""
+                          width={48}
+                          height={48}
+                          decoding="async"
+                          loading="lazy"
+                        />
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+
+            <p className="cins-onb-hint">
+              Chọn sẵn hoặc tải ảnh rồi cắt khung. Bạn có thể thay đổi sau trên
+              Journey.
+            </p>
+          </div>
+        </div>
       )}
 
       {submitError ? (
@@ -308,7 +552,7 @@ export function OnboardingForm({ initialTenHienThi, initialSlug }: Props) {
       <footer className="cins-onb-foot">
         {step === 1 ? (
           <>
-            <span className="cins-onb-step-label">Bước 1 / 2</span>
+            <span className="cins-onb-step-label">Bước 1 / 3</span>
             <button
               type="button"
               className="cins-onb-btn cins-onb-btn--primary"
@@ -326,7 +570,7 @@ export function OnboardingForm({ initialTenHienThi, initialSlug }: Props) {
               Tiếp tục →
             </button>
           </>
-        ) : (
+        ) : step === 2 ? (
           <>
             <button
               type="button"
@@ -336,17 +580,61 @@ export function OnboardingForm({ initialTenHienThi, initialSlug }: Props) {
             >
               ← Quay lại
             </button>
+            <div className="cins-onb-foot-right">
+              <span className="cins-onb-step-label">Bước 2 / 3</span>
+              <button
+                type="button"
+                className="cins-onb-btn cins-onb-btn--primary"
+                disabled={!giaiDoan || isPending}
+                onClick={() => setStep(3)}
+              >
+                Tiếp tục →
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
             <button
               type="button"
-              className="cins-onb-btn cins-onb-btn--primary"
-              disabled={!giaiDoan || isPending}
-              onClick={() => void onSubmit()}
+              className="cins-onb-btn cins-onb-btn--ghost"
+              disabled={isPending}
+              onClick={() => setStep(2)}
             >
-              {isPending ? "Đang lưu…" : "Bắt đầu Journey →"}
+              ← Quay lại
             </button>
+            <div className="cins-onb-foot-right">
+              <button
+                type="button"
+                className="cins-onb-btn cins-onb-btn--ghost"
+                disabled={isPending}
+                onClick={() => onSubmit({ skipBasics: true })}
+              >
+                Bỏ qua
+              </button>
+              <button
+                type="button"
+                className="cins-onb-btn cins-onb-btn--primary"
+                disabled={isPending}
+                onClick={() => onSubmit()}
+              >
+                {isPending ? "Đang lưu…" : "Bắt đầu Journey →"}
+              </button>
+            </div>
           </>
         )}
       </footer>
+
+      <JourneyAvatarEditor
+        open={cropOpen}
+        onClose={() => setCropOpen(false)}
+        currentAvatarUrl={customPreviewUrl}
+        hasAvatar={!!customPreviewUrl}
+        persist={false}
+        allowDelete={false}
+        title="Cắt ảnh đại diện"
+        saveLabel="Dùng ảnh này"
+        onComplete={onCropComplete}
+      />
     </section>
   );
 }

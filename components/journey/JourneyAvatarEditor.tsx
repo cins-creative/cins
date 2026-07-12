@@ -25,20 +25,21 @@ import {
 
 import { updateAvatar } from "@/app/[slug]/journey/actions";
 
+import "./journey-avatar-editor.css";
+
 /* ╔══════════════════════════════════════════════════════════════════╗
    ║ JourneyAvatarEditor                                              ║
    ║                                                                  ║
-   ║ Modal upload / crop / xoay avatar → Cloudflare Images → lưu      ║
-   ║ `avatar_id` vào `user_nguoi_dung`.                               ║
+   ║ Modal upload / crop / xoay avatar → Cloudflare Images.           ║
    ║                                                                  ║
    ║ Flow:                                                             ║
    ║   1. Drop / chọn file (.jpg .png .webp ≤ 2MB)                    ║
    ║   2. Crop tool: drag + zoom + rotate 90° (canvas 512×512 output) ║
-   ║   3. Lưu → POST /api/avatar/upload → server action               ║
-   ║      updateAvatar(imageId) → router.refresh()                    ║
+   ║   3. Lưu → POST /api/avatar/upload                               ║
+   ║      · persist=true (mặc định): updateAvatar + refresh           ║
+   ║      · persist=false: trả imageId/url qua onComplete (onboarding)║
    ║                                                                  ║
-   ║ Hiển thị bằng React Portal để tránh stacking-context dìm modal   ║
-   ║ xuống dưới topbar sticky.                                        ║
+   ║ Hiển thị bằng React Portal để tránh stacking-context dìm modal.  ║
    ╚══════════════════════════════════════════════════════════════════╝ */
 
 const ACCEPT_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -49,11 +50,27 @@ const CROP_DISPLAY_SIZE = 320;
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 4;
 
+export type AvatarEditorComplete = {
+  imageId: string;
+  url: string | null;
+};
+
 type Props = {
   open: boolean;
   onClose: () => void;
   currentAvatarUrl: string | null;
   hasAvatar: boolean;
+  /**
+   * true (mặc định): ghi `avatar_id` ngay qua `updateAvatar`.
+   * false: chỉ upload Cloudflare rồi gọi `onComplete` — dùng ở onboarding.
+   */
+  persist?: boolean;
+  /** Gọi sau upload thành công. */
+  onComplete?: (result: AvatarEditorComplete) => void;
+  /** Ẩn nút xoá avatar (onboarding chưa có avatar DB). */
+  allowDelete?: boolean;
+  title?: string;
+  saveLabel?: string;
 };
 
 type Offset = { x: number; y: number };
@@ -63,6 +80,11 @@ export function JourneyAvatarEditor({
   onClose,
   currentAvatarUrl,
   hasAvatar,
+  persist = true,
+  onComplete,
+  allowDelete = true,
+  title = "Ảnh đại diện",
+  saveLabel = "Lưu avatar",
 }: Props) {
   const router = useRouter();
   const titleId = useId();
@@ -71,22 +93,18 @@ export function JourneyAvatarEditor({
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  /* ── State step ─────────────────────────────────────────────────── */
   const [step, setStep] = useState<"pick" | "edit">("pick");
   const [pending, startTransition] = useTransition();
   const [busy, setBusy] = useState<"upload" | "delete" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  /* ── Source image ───────────────────────────────────────────────── */
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [imgEl, setImgEl] = useState<HTMLImageElement | null>(null);
 
-  /* ── Transform state ────────────────────────────────────────────── */
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState<0 | 90 | 180 | 270>(0);
   const [offset, setOffset] = useState<Offset>({ x: 0, y: 0 });
 
-  /* ── Drag state ─────────────────────────────────────────────────── */
   const dragStateRef = useRef<{
     pointerId: number;
     startX: number;
@@ -95,7 +113,6 @@ export function JourneyAvatarEditor({
     baseY: number;
   } | null>(null);
 
-  /* ── Reset khi mở/đóng ──────────────────────────────────────────── */
   useEffect(() => {
     if (!open) {
       setStep("pick");
@@ -109,7 +126,6 @@ export function JourneyAvatarEditor({
     }
   }, [open]);
 
-  /* ── ESC để đóng ─────────────────────────────────────────────────── */
   useEffect(() => {
     if (!open) return;
     function onKey(e: KeyboardEvent) {
@@ -119,7 +135,6 @@ export function JourneyAvatarEditor({
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose, busy]);
 
-  /* ── baseScale: cover crop area dù ảnh portrait hay landscape ────── */
   const swapAxis = rotation === 90 || rotation === 270;
   const naturalW = imgEl?.naturalWidth ?? 0;
   const naturalH = imgEl?.naturalHeight ?? 0;
@@ -131,7 +146,6 @@ export function JourneyAvatarEditor({
   }, [effW, effH]);
   const totalScale = baseScale * zoom;
 
-  /* ── Drag bounds: không cho kéo lộ background ngoài frame ────────── */
   const clampOffset = useCallback(
     (next: Offset): Offset => {
       const halfW = (effW * totalScale) / 2;
@@ -150,7 +164,6 @@ export function JourneyAvatarEditor({
     setOffset((prev) => clampOffset(prev));
   }, [clampOffset]);
 
-  /* ── Read file → đọc DataURL → load Image element ───────────────── */
   const acceptFile = useCallback((file: File) => {
     setError(null);
     if (!ACCEPT_TYPES.includes(file.type)) {
@@ -196,7 +209,6 @@ export function JourneyAvatarEditor({
     if (file) acceptFile(file);
   };
 
-  /* ── Pointer handlers (drag image) ───────────────────────────────── */
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!imgEl) return;
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
@@ -223,16 +235,11 @@ export function JourneyAvatarEditor({
     }
   };
 
-  /* ── Render to canvas + upload ───────────────────────────────────── */
   const handleSave = useCallback(async () => {
     if (!imgEl) return;
     setError(null);
     setBusy("upload");
 
-    /* Crop math:
-       Frame là vuông CROP_DISPLAY_SIZE px. Ảnh trong frame được vẽ với
-       totalScale + rotation + offset.
-       Output canvas 512×512 — ta scale luôn từ frame ra OUTPUT_SIZE. */
     try {
       const canvas = document.createElement("canvas");
       canvas.width = OUTPUT_SIZE;
@@ -264,31 +271,55 @@ export function JourneyAvatarEditor({
       });
       const json = (await res.json().catch(() => null)) as {
         imageId?: string;
+        url?: string;
         error?: string;
       } | null;
       if (!res.ok || !json?.imageId) {
         throw new Error(json?.error || "Upload thất bại. Thử lại sau.");
       }
 
-      const saveRes = await updateAvatar(json.imageId);
-      if (!saveRes.ok) {
-        throw new Error(saveRes.error || "Lưu avatar thất bại.");
+      const result: AvatarEditorComplete = {
+        imageId: json.imageId,
+        url: json.url ?? null,
+      };
+
+      if (persist) {
+        const saveRes = await updateAvatar(json.imageId);
+        if (!saveRes.ok) {
+          throw new Error(saveRes.error || "Lưu avatar thất bại.");
+        }
+        startTransition(() => {
+          router.refresh();
+        });
       }
 
-      startTransition(() => {
-        router.refresh();
-      });
+      onComplete?.(result);
       onClose();
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Có lỗi xảy ra.";
       setError(msg);
       setBusy(null);
     }
-  }, [imgEl, naturalW, naturalH, totalScale, offset.x, offset.y, rotation, onClose, router]);
+  }, [
+    imgEl,
+    naturalW,
+    naturalH,
+    totalScale,
+    offset.x,
+    offset.y,
+    rotation,
+    onClose,
+    router,
+    persist,
+    onComplete,
+  ]);
 
-  /* ── Xoá avatar ─────────────────────────────────────────────────── */
   const handleDelete = useCallback(async () => {
-    if (!confirm("Xoá avatar hiện tại? Bạn có thể upload ảnh khác bất kỳ lúc nào.")) {
+    if (
+      !confirm(
+        "Xoá avatar hiện tại? Bạn có thể upload ảnh khác bất kỳ lúc nào.",
+      )
+    ) {
       return;
     }
     setError(null);
@@ -307,10 +338,8 @@ export function JourneyAvatarEditor({
     }
   }, [onClose, router]);
 
-  /* ── Render ─────────────────────────────────────────────────────── */
   if (!open || !mounted) return null;
 
-  /* Image style trong frame (cùng công thức dùng để render canvas) */
   const imgStyle: React.CSSProperties = imgEl
     ? {
         width: naturalW * totalScale,
@@ -319,6 +348,8 @@ export function JourneyAvatarEditor({
         transformOrigin: "center center",
       }
     : {};
+
+  const showDelete = allowDelete && hasAvatar && persist;
 
   const node = (
     <div
@@ -333,7 +364,7 @@ export function JourneyAvatarEditor({
       <div className="ja-sheet">
         <header className="ja-head">
           <h2 id={titleId}>
-            <Camera size={18} strokeWidth={1.8} aria-hidden /> Ảnh đại diện
+            <Camera size={18} strokeWidth={1.8} aria-hidden /> {title}
           </h2>
           <button
             type="button"
@@ -378,7 +409,7 @@ export function JourneyAvatarEditor({
             />
             <div className="ja-hint">JPG · PNG · WEBP, tối đa 2MB</div>
 
-            {hasAvatar ? (
+            {showDelete ? (
               <button
                 type="button"
                 className="ja-btn ja-btn-danger ja-btn-ghost"
@@ -386,7 +417,12 @@ export function JourneyAvatarEditor({
                 disabled={!!busy}
               >
                 {busy === "delete" ? (
-                  <Loader2 size={14} className="ja-spin" strokeWidth={1.8} aria-hidden />
+                  <Loader2
+                    size={14}
+                    className="ja-spin"
+                    strokeWidth={1.8}
+                    aria-hidden
+                  />
                 ) : (
                   <Trash2 size={14} strokeWidth={1.8} aria-hidden />
                 )}
@@ -397,6 +433,7 @@ export function JourneyAvatarEditor({
             {currentAvatarUrl ? (
               <div className="ja-current">
                 <span>Avatar hiện tại</span>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={currentAvatarUrl} alt="Avatar hiện tại" />
               </div>
             ) : null}
@@ -431,7 +468,9 @@ export function JourneyAvatarEditor({
                   type="button"
                   className="ja-icon-btn"
                   onClick={() =>
-                    setZoom((z) => Math.max(MIN_ZOOM, Number((z - 0.1).toFixed(2))))
+                    setZoom((z) =>
+                      Math.max(MIN_ZOOM, Number((z - 0.1).toFixed(2))),
+                    )
                   }
                   aria-label="Thu nhỏ"
                 >
@@ -450,7 +489,9 @@ export function JourneyAvatarEditor({
                   type="button"
                   className="ja-icon-btn"
                   onClick={() =>
-                    setZoom((z) => Math.min(MAX_ZOOM, Number((z + 0.1).toFixed(2))))
+                    setZoom((z) =>
+                      Math.min(MAX_ZOOM, Number((z + 0.1).toFixed(2))),
+                    )
                   }
                   aria-label="Phóng to"
                 >
@@ -463,7 +504,9 @@ export function JourneyAvatarEditor({
                   type="button"
                   className="ja-icon-btn"
                   onClick={() =>
-                    setRotation((r) => (((r - 90 + 360) % 360) as 0 | 90 | 180 | 270))
+                    setRotation(
+                      (r) => (((r - 90 + 360) % 360) as 0 | 90 | 180 | 270),
+                    )
                   }
                   aria-label="Xoay trái 90°"
                 >
@@ -473,7 +516,9 @@ export function JourneyAvatarEditor({
                   type="button"
                   className="ja-icon-btn"
                   onClick={() =>
-                    setRotation((r) => (((r + 90) % 360) as 0 | 90 | 180 | 270))
+                    setRotation(
+                      (r) => (((r + 90) % 360) as 0 | 90 | 180 | 270),
+                    )
                   }
                   aria-label="Xoay phải 90°"
                 >
@@ -533,11 +578,16 @@ export function JourneyAvatarEditor({
               >
                 {busy === "upload" ? (
                   <>
-                    <Loader2 size={14} className="ja-spin" strokeWidth={1.8} aria-hidden />
+                    <Loader2
+                      size={14}
+                      className="ja-spin"
+                      strokeWidth={1.8}
+                      aria-hidden
+                    />
                     Đang lưu…
                   </>
                 ) : (
-                  "Lưu avatar"
+                  saveLabel
                 )}
               </button>
             </>

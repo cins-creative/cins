@@ -5,6 +5,7 @@ import {
   useCallback,
   useEffect,
   useId,
+  useMemo,
   useRef,
   useState,
   useTransition,
@@ -13,6 +14,12 @@ import {
 import { createPortal } from "react-dom";
 
 import { useCongDongAuthGate } from "@/components/cong-dong/useCongDongAuthGate";
+import { JourneyProfileShareModal } from "@/components/journey/JourneyProfileShareModal";
+import { dispatchJourneyShareOpen } from "@/lib/journey/gallery-filter-share";
+import {
+  buildOrgShareBundle,
+  type OrgShareSource,
+} from "@/lib/org/org-profile-share";
 import {
   canLeaveCommunity,
   canManageLabels,
@@ -45,6 +52,7 @@ const NOTIFY_OPTIONS: {
 
 type Props = {
   orgId: string;
+  shareSource: OrgShareSource;
   isThanhVien: boolean;
   viewerVaiTro: CongDongVaiTro | null;
   /** Quyền admin CINs (trục 1) — mở menu quản trị dù chưa là member. */
@@ -57,11 +65,11 @@ type Props = {
   onManageLabels?: () => void;
   onGroupSettings?: () => void;
   onManageMembers?: () => void;
-  onShare: () => void;
 };
 
 export function CongDongRoleButton({
   orgId,
+  shareSource,
   isThanhVien,
   viewerVaiTro,
   isCinsAdmin = false,
@@ -73,20 +81,26 @@ export function CongDongRoleButton({
   onManageLabels,
   onGroupSettings,
   onManageMembers,
-  onShare,
 }: Props) {
   const { requireCongDongAuth } = useCongDongAuthGate();
   const menuId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const shareAnchorRef = useRef<HTMLButtonElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuStyle, setMenuStyle] = useState<CSSProperties>({});
   const [notifyOpen, setNotifyOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const [notifyLevel, setNotifyLevel] = useState(initialNotifyLevel);
   const [joinPending, startJoin] = useTransition();
   const [leavePending, startLeave] = useTransition();
   const [notifyPending, startNotify] = useTransition();
+
+  const { profile: shareProfile, orgShare } = useMemo(
+    () => buildOrgShareBundle("cong_dong", shareSource),
+    [shareSource],
+  );
 
   const displayVaiTro =
     viewerVaiTro ?? (isThanhVien ? ("thanh_vien" as const) : null);
@@ -207,28 +221,58 @@ export function CongDongRoleButton({
     [orgId, onNotifyLevelChange],
   );
 
+  const toggleShare = useCallback(() => {
+    dispatchJourneyShareOpen();
+    setShareOpen((v) => !v);
+  }, []);
+
+  const shareModal = (
+    <JourneyProfileShareModal
+      open={shareOpen}
+      onClose={() => setShareOpen(false)}
+      profile={shareProfile}
+      orgShare={orgShare}
+      presentation="popover"
+      anchorRef={shareAnchorRef}
+      requireAuth={(then) => {
+        requireCongDongAuth(then);
+      }}
+    />
+  );
+
+  const shareButton = (
+    <button
+      ref={shareAnchorRef}
+      type="button"
+      className="cd-v4-btn cd-v4-btn--ghost cd-v4-btn--icon cd-v4-btn--icon-only"
+      title="Chia sẻ"
+      aria-label="Chia sẻ"
+      aria-expanded={shareOpen}
+      aria-haspopup="dialog"
+      onClick={toggleShare}
+    >
+      <Share2 size={16} strokeWidth={2} aria-hidden />
+    </button>
+  );
+
   if (hideForOwner && viewerVaiTro === "owner") {
     return (
-      <div className="cd-v4-id-actions">
-        {onGroupSettings ? (
-          <button
-            type="button"
-            className="cd-v4-btn cd-v4-btn--ghost cd-v4-btn--icon cd-v4-btn--icon-only"
-            aria-label="Chủ đề nhóm"
-            onClick={onGroupSettings}
-          >
-            <Settings2 size={16} strokeWidth={2} aria-hidden />
-          </button>
-        ) : null}
-        <button
-          type="button"
-          className="cd-v4-btn cd-v4-btn--ghost cd-v4-btn--icon cd-v4-btn--icon-only"
-          aria-label="Chia sẻ"
-          onClick={onShare}
-        >
-          <Share2 size={16} strokeWidth={2} aria-hidden />
-        </button>
-      </div>
+      <>
+        <div className="cd-v4-id-actions">
+          {onGroupSettings ? (
+            <button
+              type="button"
+              className="cd-v4-btn cd-v4-btn--ghost cd-v4-btn--icon cd-v4-btn--icon-only"
+              aria-label="Chủ đề nhóm"
+              onClick={onGroupSettings}
+            >
+              <Settings2 size={16} strokeWidth={2} aria-hidden />
+            </button>
+          ) : null}
+          {shareButton}
+        </div>
+        {shareModal}
+      </>
     );
   }
 
@@ -354,47 +398,43 @@ export function CongDongRoleButton({
     ) : null;
 
   return (
-    <div className="cd-v4-id-actions" ref={rootRef}>
-      {!showRoleMenu ? (
-        <button
-          type="button"
-          className="cd-v4-btn cd-v4-btn--primary cd-v4-btn--grow"
-          onClick={join}
-          disabled={joinPending}
-        >
-          {joinPending ? "Đang tham gia…" : roleButtonLabel(null)}
-        </button>
-      ) : (
-        <div className="cd-v4-role-wrap cd-v4-role-wrap--grow">
+    <>
+      <div className="cd-v4-id-actions" ref={rootRef}>
+        {!showRoleMenu ? (
           <button
-            ref={triggerRef}
             type="button"
-            className="cd-v4-btn cd-v4-btn--ghost cd-v4-btn--grow cd-v4-btn--role"
-            aria-expanded={menuOpen}
-            aria-haspopup="menu"
-            aria-controls={menuId}
-            onClick={() => {
-              requireCongDongAuth(() => {
-                setMenuOpen((v) => !v);
-                setNotifyOpen(false);
-              });
-            }}
-            disabled={leavePending}
+            className="cd-v4-btn cd-v4-btn--primary cd-v4-btn--grow"
+            onClick={join}
+            disabled={joinPending}
           >
-            {isMember ? roleButtonLabel(displayVaiTro) : "Quản trị CINs"}
+            {joinPending ? "Đang tham gia…" : roleButtonLabel(null)}
           </button>
-          {roleMenu && createPortal(roleMenu, document.body)}
-        </div>
-      )}
+        ) : (
+          <div className="cd-v4-role-wrap cd-v4-role-wrap--grow">
+            <button
+              ref={triggerRef}
+              type="button"
+              className="cd-v4-btn cd-v4-btn--ghost cd-v4-btn--grow cd-v4-btn--role"
+              aria-expanded={menuOpen}
+              aria-haspopup="menu"
+              aria-controls={menuId}
+              onClick={() => {
+                requireCongDongAuth(() => {
+                  setMenuOpen((v) => !v);
+                  setNotifyOpen(false);
+                });
+              }}
+              disabled={leavePending}
+            >
+              {isMember ? roleButtonLabel(displayVaiTro) : "Quản trị CINs"}
+            </button>
+            {roleMenu && createPortal(roleMenu, document.body)}
+          </div>
+        )}
 
-      <button
-        type="button"
-        className="cd-v4-btn cd-v4-btn--ghost cd-v4-btn--icon"
-        aria-label="Chia sẻ"
-        onClick={onShare}
-      >
-        <Share2 size={16} strokeWidth={2} aria-hidden />
-      </button>
-    </div>
+        {shareButton}
+      </div>
+      {shareModal}
+    </>
   );
 }

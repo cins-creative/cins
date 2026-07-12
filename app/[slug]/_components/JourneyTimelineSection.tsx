@@ -5,6 +5,7 @@ import {
   getCachedMilestoneTimelinePage,
   getCachedPendingCoAuthorInvites,
   getCachedPendingCoSoStaffInvites,
+  getCachedPendingCongDongInvites,
   getCachedOutboundMembershipPending,
 } from "@/lib/journey/journey-page-cache";
 
@@ -31,6 +32,7 @@ export async function JourneyTimelineSection({
     page,
     coAuthorPendingInvites,
     coSoStaffPendingInvites,
+    congDongPendingInvites,
     membershipPendingOutbound,
     dongGopFeedbackPending,
   ] = await Promise.all([
@@ -45,6 +47,9 @@ export async function JourneyTimelineSection({
       : Promise.resolve([]),
     isOwner && viewerProfileId
       ? getCachedPendingCoSoStaffInvites(viewerProfileId)
+      : Promise.resolve([]),
+    isOwner && viewerProfileId
+      ? getCachedPendingCongDongInvites(viewerProfileId)
       : Promise.resolve([]),
     isOwner && viewerProfileId
       ? getCachedOutboundMembershipPending(viewerProfileId)
@@ -65,6 +70,7 @@ export async function JourneyTimelineSection({
       viewerProfileId={viewerProfileId}
       coAuthorPendingInvites={coAuthorPendingInvites}
       coSoStaffPendingInvites={coSoStaffPendingInvites}
+      congDongPendingInvites={congDongPendingInvites}
       membershipPendingOutbound={membershipPendingOutbound}
       dongGopFeedbackPending={dongGopFeedbackPending}
       scrollLoad={{

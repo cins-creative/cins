@@ -3,7 +3,7 @@
 import { JourneyDetailBunnyVideo } from "@/components/journey/BunnyNativeVideoPlayer";
 import type { Block } from "@/lib/editor/types";
 import { buildBunnyVideoThumbnailUrl } from "@/lib/bunny/embed";
-import { useResolvedVideoCanvasRatio } from "@/lib/journey/use-resolved-video-canvas-ratio";
+import { useResolvedVideoCanvas } from "@/lib/journey/use-resolved-video-canvas-ratio";
 import { videoCanvasRatioClass } from "@/lib/journey/video-canvas-ratio";
 
 type Props = {
@@ -14,7 +14,7 @@ type Props = {
   autoplay?: boolean;
 };
 
-/** Bunny embed trong post view — resolve canvas 3:4 từ block meta hoặc probe MP4. */
+/** Bunny embed trong post view — resolve canvas từ block meta hoặc probe MP4. */
 export function PostBunnyEmbed({
   videoId,
   title = "Video",
@@ -22,8 +22,11 @@ export function PostBunnyEmbed({
   blocks = null,
   autoplay = false,
 }: Props) {
-  const ratio = useResolvedVideoCanvasRatio(blocks ?? undefined, videoId);
+  const { ratio, aspect } = useResolvedVideoCanvas(blocks ?? undefined, videoId);
   const canvasClass = videoCanvasRatioClass(ratio);
+  const canvasStyle = {
+    ["--media-natural-aspect" as string]: String(aspect),
+  };
   const thumb =
     poster ??
     buildBunnyVideoThumbnailUrl(videoId) ??
@@ -35,6 +38,7 @@ export function PostBunnyEmbed({
       title={title}
       poster={thumb}
       canvasClass={canvasClass}
+      canvasStyle={canvasStyle}
       autoplay={autoplay}
     />
   );

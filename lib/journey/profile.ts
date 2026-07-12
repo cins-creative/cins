@@ -1,5 +1,6 @@
 import { getCoverUrl } from "@/lib/articles/cover";
 import type { GiaiDoan } from "@/lib/auth/session";
+import { getDefaultAvatarUrl } from "@/lib/journey/default-avatars";
 
 /**
  * Helper này pure (không touch DB/secrets) → an toàn import cả client lẫn server.
@@ -138,10 +139,16 @@ export function normalizeSocialLinks(
   return out;
 }
 
-/** Avatar Cloudflare → URL. Variant `avatar` (256×256 cover, @2x cho 96px sidebar). */
+/**
+ * Avatar → URL.
+ *  - `default-*` → file tĩnh `/avatars/default/…` (onboarding)
+ *  - còn lại → Cloudflare Images variant `avatar`
+ */
 export function getAvatarUrl(
   avatarId: string | null | undefined,
 ): string | null {
+  const local = getDefaultAvatarUrl(avatarId);
+  if (local) return local;
   return getCoverUrl(avatarId, "avatar");
 }
 

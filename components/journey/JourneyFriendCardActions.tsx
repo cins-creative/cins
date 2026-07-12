@@ -50,6 +50,7 @@ export function JourneyFriendCardActions({
           : "nguoi_la",
       peerPreview: {
         name: friend.tenHienThi,
+        slug: friend.slug,
         role: friend.giaiDoan ?? undefined,
         avatarUrl: friend.avatarUrl,
         avatarInitial: avatarInitialFromName(friend.tenHienThi || friend.slug),

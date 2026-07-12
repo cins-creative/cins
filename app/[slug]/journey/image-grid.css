@@ -27,15 +27,26 @@
   display: block;
   background: #fff;
 }
-/* 1 ảnh dọc — full width; chiều cao canvas do `.is-canvas-9-16` (9:16) */
+/* 1 ảnh dọc — tỉ lệ gốc; nếu cao hơn max canvas thì thu ngang (không crop).
+   Desktop max 3:4 · mobile max 9:16 */
 .image-grid--single.is-portrait {
+  --media-canvas-max-aspect: 0.75; /* 3:4 */
   display: block;
-  width: 100%;
+  width: min(
+    100%,
+    calc(
+      100% * var(--media-natural-aspect, var(--media-canvas-max-aspect)) /
+        var(--media-canvas-max-aspect)
+    )
+  );
   max-width: 100%;
+  margin-inline: auto;
+  aspect-ratio: var(--media-natural-aspect, var(--media-canvas-max-aspect));
   background: #fff;
 }
 .image-grid--single.is-portrait .image-grid-cell {
   width: 100%;
+  height: 100%;
 }
 .image-grid--single .image-grid-cell {
   display: block;
@@ -47,28 +58,14 @@
 }
 .image-grid--single.is-portrait .image-grid-cell img {
   width: 100%;
-  height: auto;
+  height: 100%;
   object-fit: contain;
   display: block;
 }
-/* Canvas 9:16 — ảnh lấp khung, không letterbox ngang */
-.is-canvas-9-16 .image-grid--single.is-portrait,
-.preview--photo-grid.is-canvas-9-16 .image-grid--single.is-portrait,
-.preview--photo-grid:has(.image-grid--single.is-portrait) .image-grid--single.is-portrait {
-  height: 100%;
-}
-.is-canvas-9-16 .image-grid--single.is-portrait .image-grid-cell,
-.preview--photo-grid.is-canvas-9-16 .image-grid--single.is-portrait .image-grid-cell,
-.preview--photo-grid:has(.image-grid--single.is-portrait) .image-grid--single.is-portrait .image-grid-cell {
-  height: 100%;
-}
-.is-canvas-9-16 .image-grid--single.is-portrait .image-grid-cell img,
-.preview--photo-grid.is-canvas-9-16 .image-grid--single.is-portrait .image-grid-cell img,
-.preview--photo-grid:has(.image-grid--single.is-portrait) .image-grid--single.is-portrait .image-grid-cell img {
-  width: 100%;
-  height: 100%;
-  max-height: none;
-  object-fit: contain;
+@media (max-width: 767px) {
+  .image-grid--single.is-portrait {
+    --media-canvas-max-aspect: 0.5625; /* 9:16 */
+  }
 }
 .image-grid--single:not(.is-portrait) .image-grid-cell img {
   width: 100%;

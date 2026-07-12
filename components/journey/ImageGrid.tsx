@@ -331,10 +331,18 @@ export function ImageGrid({
   let body: ReactNode;
 
   if (layout.kind === "single") {
+    const naturalAspect = layout.cell.aspect;
     body = (
       <div
         className={`image-grid image-grid--single${layout.portrait ? " is-portrait" : ""}`}
         data-count="1"
+        style={
+          layout.portrait
+            ? ({
+                ["--media-natural-aspect" as string]: String(naturalAspect),
+              } as CSSProperties)
+            : undefined
+        }
       >
         {renderCell(0, { singlePortrait: layout.portrait })}
       </div>

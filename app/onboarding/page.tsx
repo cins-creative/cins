@@ -19,7 +19,7 @@ type SearchParams = Promise<{ intent?: string }>;
  *  - Chưa có session → /login (auth error)
  *  - Profile chưa kịp tạo → /login (race với trigger handle_new_user)
  *  - Đã có giai_doan → admin → /admin · user thường → /{slug}/journey
- *  - Còn lại → render form 2 bước trong trang này
+ *  - Còn lại → render form 3 bước trong trang này
  */
 export default async function OnboardingPage({
   searchParams,
@@ -72,10 +72,16 @@ export default async function OnboardingPage({
         <div className="cins-onb-greet">
           <p className="cins-onb-greet-eyebrow">làm quen tí nào</p>
           <h1 className="cins-onb-greet-h1">
-            Chào bạn, mình là <em>C.INS</em>.
+            Chào bạn, mình là{" "}
+            <img
+              src="/assets/logo-cins-wide.svg"
+              alt="C.INS"
+              className="cins-onb-greet-logo"
+            />
+            .
           </h1>
           <p className="cins-onb-greet-sub">
-            Hai bước siêu nhanh để mình thiết kế Journey hợp với bạn. Mọi thứ
+            Ba bước siêu nhanh để mình thiết kế Journey hợp với bạn. Mọi thứ
             đều có thể chỉnh lại sau — không cần lo nhé.
           </p>
         </div>

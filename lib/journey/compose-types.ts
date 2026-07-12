@@ -1,3 +1,5 @@
+import { isTier1EmbedPlatformId } from "@/lib/editor/embed-providers";
+
 export type ComposeCreateKind = "article" | "photo" | "video" | "milestone" | "embed";
 
 /** Luồng mở trình soạn — create luôn qua EditorView (một sheet). */
@@ -37,13 +39,7 @@ export function parseComposeSearchParams(
   ) {
     if (compose === "embed") {
       const platform = params.get("platform")?.trim();
-      if (
-        platform === "youtube" ||
-        platform === "vimeo" ||
-        platform === "figma" ||
-        platform === "sketchfab" ||
-        platform === "rive"
-      ) {
+      if (isTier1EmbedPlatformId(platform)) {
         return { kind: "embed", platform };
       }
       return null;

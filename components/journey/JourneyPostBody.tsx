@@ -16,7 +16,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import {
   type MilestonePostAuthor,
@@ -737,6 +737,7 @@ type CommentSectionProps = {
     anhDinhKem?: string[],
   ) => Promise<CommentSubmitResult>;
   pinCompose?: boolean;
+  commentDeniedFallback?: ReactNode;
 };
 
 export function JourneyPostCommentsBlock(props: CommentSectionProps) {

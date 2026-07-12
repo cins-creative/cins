@@ -3272,7 +3272,7 @@
     border-radius: 0;
   }
 
-  /* 1 ảnh dọc — canvas full bleed 9:16 */
+  /* 1 ảnh dọc — full bleed; clamp do image-grid.css */
   .world-journey-home
     .wj-feed
     .wj-feed-timeline
@@ -3284,11 +3284,10 @@
     .wj-feed-timeline
     .j-m-card
     .jcard-media-zone
-    .preview--photo-grid.is-canvas-9-16 {
+    .preview--photo-grid.is-portrait-media {
     width: 100%;
     max-width: 100%;
     margin-inline: 0;
-    aspect-ratio: 9 / 16;
   }
 
   .world-journey-home .wj-feed > .cins-feed-composer-row .wj-composer {

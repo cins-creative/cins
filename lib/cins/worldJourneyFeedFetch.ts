@@ -11,9 +11,7 @@ import {
   buildSelfMilestonesForCotMocs,
 } from "@/lib/journey/milestones-fetch";
 import { getAvatarUrl } from "@/lib/journey/profile";
-import {
-  compareWorldJourneyFeedByUnseen,
-} from "@/lib/cins/worldJourneyFeedSort";
+import { rankWorldJourneyFeedHybrid } from "@/lib/cins/worldJourneyFeedSort";
 import { worldJourneyAnalyticsId } from "@/lib/cins/worldJourneyAnalytics";
 import { listFriends } from "@/lib/social/ket-ban";
 import { demLuotXemCuaViewer } from "@/lib/social/su-kien";
@@ -223,9 +221,13 @@ function applyLensOwners(
 }
 
 /**
- * Xếp hạng feed: ưu tiên nội dung CHƯA xem / xem ít (số lượt `hien_thi` của
- * viewer thấp) lên trên; cùng số lượt thì giữ thứ tự dòng thời gian
- * (`compareTimelineOrder`). Cắt còn `FEED_POOL_LIMIT`.
+ * Xếp hạng feed mặc định (hybrid):
+ * 1. Chưa xem / xem ít của viewer trước
+ * 2. Org đã follow trước org lạ
+ * 3. Trong cùng nhóm: comment×3 + like (không cộng view toàn cục)
+ * 4. Soft quota theo tác giả / org
+ * 5. Timeline làm tie-break
+ * Cắt còn `FEED_POOL_LIMIT`.
  */
 async function rankFeedByUnseen(
   viewerId: string,
@@ -243,10 +245,7 @@ async function rankFeedByUnseen(
     viewerSeenCount: seen.get(worldJourneyAnalyticsId(m)) ?? 0,
   }));
 
-  return withSeen
-    .slice()
-    .sort(compareWorldJourneyFeedByUnseen)
-    .slice(0, FEED_POOL_LIMIT);
+  return rankWorldJourneyFeedHybrid(withSeen).slice(0, FEED_POOL_LIMIT);
 }
 
 export type WorldJourneyFeedPage = {

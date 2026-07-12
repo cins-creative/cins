@@ -5,7 +5,6 @@ import {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 
@@ -21,7 +20,8 @@ import {
   bunnyVideoIdFromBlocks,
   resolveBunnyEmbed,
 } from "@/lib/journey/video-embed";
-import { useResolvedVideoCanvasRatio } from "@/lib/journey/use-resolved-video-canvas-ratio";
+import { useOffscreenMedia } from "@/lib/journey/use-offscreen-media";
+import { useResolvedVideoCanvas } from "@/lib/journey/use-resolved-video-canvas-ratio";
 import {
   videoCanvasRatioClass,
   videoPreviewDimensionsFromRatio,
@@ -65,13 +65,25 @@ export function JourneyCardVideo({
 }: Props) {
   const [playing, setPlaying] = useState(false);
   const [iframeReady, setIframeReady] = useState(false);
+  const stopPlayback = useCallback(() => setPlaying(false), []);
+  const { ref: rootRef } = useOffscreenMedia<HTMLDivElement>({
+    enabled: playing,
+    threshold: 0.2,
+    onLeave: stopPlayback,
+  });
   const posterSrc = resolveVideoPoster(url, preview);
   const bunnyVideoId = useMemo(
     () => bunnyVideoIdFromBlocks(noiDungBlocks),
     [noiDungBlocks],
   );
-  const canvasRatio = useResolvedVideoCanvasRatio(noiDungBlocks, bunnyVideoId);
+  const { ratio: canvasRatio, aspect: canvasAspect } = useResolvedVideoCanvas(
+    noiDungBlocks,
+    bunnyVideoId,
+  );
   const canvasClass = videoCanvasRatioClass(canvasRatio);
+  const canvasStyle = {
+    ["--media-natural-aspect" as string]: String(canvasAspect),
+  };
   const posterDims = videoPreviewDimensionsFromRatio(canvasRatio);
   const posterWidth = preview?.width ?? posterDims.width;
   const posterHeight = preview?.height ?? posterDims.height;
@@ -99,6 +111,7 @@ export function JourneyCardVideo({
     return (
       <div
         className={`jcard-video-player ${canvasClass}`}
+        style={canvasStyle}
         onClick={(e) => e.stopPropagation()}
       >
         <MilestoneVideoEmbed
@@ -118,6 +131,7 @@ export function JourneyCardVideo({
         title={title}
         poster={posterSrc}
         canvasClass={canvasClass}
+        canvasStyle={canvasStyle}
         mode="feed"
         preview={
           preview
@@ -162,10 +176,12 @@ export function JourneyCardVideo({
     if (iframeSrc) {
       return (
         <div
+          ref={rootRef}
           className={
             `jcard-video-player ${canvasClass}` +
             (iframeReady ? " is-playing-ready" : "")
           }
+          style={canvasStyle}
           onClick={(e) => e.stopPropagation()}
         >
           {renderPosterLayer(!iframeReady)}
@@ -185,10 +201,12 @@ export function JourneyCardVideo({
 
     return (
       <div
+        ref={rootRef}
         className={
           `jcard-video-player ${canvasClass}` +
           (iframeReady ? " is-playing-ready" : "")
         }
+        style={canvasStyle}
         onClick={(e) => e.stopPropagation()}
       >
         {renderPosterLayer(!iframeReady)}
@@ -207,6 +225,7 @@ export function JourneyCardVideo({
     <button
       type="button"
       className={`preview preview--video jcard-video-trigger ${canvasClass}`}
+      style={canvasStyle}
       aria-label={`Phát video: ${title}`}
       onClick={(e) => {
         e.stopPropagation();

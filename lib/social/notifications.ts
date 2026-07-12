@@ -14,6 +14,7 @@ import {
 } from "@/lib/social/follow";
 import { listPendingReceived } from "@/lib/social/ket-ban";
 import { listPendingCoSoStaffInviteNotifications } from "@/lib/to-chuc/co-so-staff-invite";
+import { listPendingCongDongInviteNotifications } from "@/lib/cong-dong/invite";
 import {
   buildHistoryTimeline,
   historyTimelineToFeed,
@@ -42,6 +43,7 @@ export const EMPTY_NOTIFICATION_FEED: NotificationFeed = {
   coAuthorInvites: [],
   coAuthorReviews: [],
   coSoStaffInvites: [],
+  congDongInvites: [],
   videoReady: [],
   orgMilestoneTagApproved: [],
   membershipMilestoneResolved: [],
@@ -71,6 +73,7 @@ function capUnreadLists(payload: FeedPayload, limit: number): FeedPayload {
   };
   return {
     coSoStaffInvites: take(payload.coSoStaffInvites),
+    congDongInvites: take(payload.congDongInvites),
     orgMilestoneTagApproved: payload.orgMilestoneTagApproved.slice(0, 5),
     membershipMilestoneResolved: payload.membershipMilestoneResolved.slice(0, 5),
     followRequests: take(payload.followRequests),
@@ -93,6 +96,7 @@ function capHistoryLists(payload: FeedPayload, limit: number): FeedPayload {
     coAuthorInvites: [],
     coAuthorReviews: [],
     coSoStaffInvites: [],
+    congDongInvites: [],
     ...historyTimelineToFeed(page),
   };
 }
@@ -129,6 +133,7 @@ async function loadNotificationFeedUnsafe(
     coAuthorInvites,
     coAuthorReviews,
     coSoStaffInvites,
+    congDongInvites,
     orgMilestoneTagApproved,
     membershipMilestoneResolved,
     videoReady,
@@ -159,6 +164,9 @@ async function loadNotificationFeedUnsafe(
       : Promise.resolve([]),
     unreadOnly
       ? listPendingCoSoStaffInviteNotifications(viewerId, { limit: rowLimit })
+      : Promise.resolve([]),
+    unreadOnly
+      ? listPendingCongDongInviteNotifications(viewerId, { limit: rowLimit })
       : Promise.resolve([]),
     listOrgMilestoneTagApprovedNotifications(viewerId, {
       unreadOnly,
@@ -200,6 +208,7 @@ async function loadNotificationFeedUnsafe(
     coAuthorInvites: unreadOnly ? coAuthorInvites : [],
     coAuthorReviews: unreadOnly ? coAuthorReviews : [],
     coSoStaffInvites: unreadOnly ? coSoStaffInvites : [],
+    congDongInvites: unreadOnly ? congDongInvites : [],
     orgMilestoneTagApproved,
     membershipMilestoneResolved,
     videoReady,
@@ -229,6 +238,7 @@ async function loadNotificationFeedUnsafe(
     coAuthorInvites: [],
     coAuthorReviews: [],
     coSoStaffInvites: [],
+    congDongInvites: [],
     ...historyPayload,
     hasMore,
     nextOffset: offset + page.length,
@@ -247,6 +257,7 @@ export async function countUnreadNotifications(viewerId: string): Promise<number
     { count: coAuthorInvite },
     { count: coAuthorReview },
     { count: coSoStaffInvite },
+    { count: congDongInvite },
     { count: coSoStaffMembershipPending },
     { count: orgMilestoneTag },
     { count: membershipMilestoneApproved },
@@ -302,6 +313,12 @@ export async function countUnreadNotifications(viewerId: string): Promise<number
       .select("id", { count: "exact", head: true })
       .eq("nguoi_nhan", viewerId)
       .eq("loai_doi_tuong", "co_so_staff_invite")
+      .is("xu_ly_luc", null),
+    admin
+      .from("social_thong_bao")
+      .select("id", { count: "exact", head: true })
+      .eq("nguoi_nhan", viewerId)
+      .eq("loai_doi_tuong", "cong_dong_invite")
       .is("xu_ly_luc", null),
     admin
       .from("user_thanh_vien_to_chuc")
@@ -362,6 +379,7 @@ export async function countUnreadNotifications(viewerId: string): Promise<number
     (coAuthorInvite ?? 0) +
     (coAuthorReview ?? 0) +
     Math.max(coSoStaffInvite ?? 0, coSoStaffMembershipPending ?? 0) +
+    (congDongInvite ?? 0) +
     (orgMilestoneTag ?? 0) +
     (membershipMilestoneApproved ?? 0) +
     (membershipMilestoneRejected ?? 0) +

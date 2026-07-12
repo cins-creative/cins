@@ -130,9 +130,15 @@
 
 @media (hover: none) and (pointer: coarse) {
   .jcard-actions .action-btn--touch {
-    min-width: 44px;
-    min-height: 44px;
+    min-width: 40px;
+    min-height: 40px;
     justify-content: center;
-    padding: 8px 12px;
+    gap: 3px;
+    padding: 6px 8px;
+  }
+  .jcard-actions .action-btn--touch .action-btn-count {
+    min-width: 0;
+    min-height: 0;
+    padding: 0;
   }
 }

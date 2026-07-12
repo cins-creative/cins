@@ -52,6 +52,7 @@ import {
   type TimelineScrollSpy,
 } from "@/lib/journey/timeline-scroll-spy";
 import type { PendingCoAuthorInvite } from "@/lib/social/types";
+import type { PendingCongDongInviteNotification } from "@/lib/cong-dong/invite";
 import type { PendingCoSoStaffInviteNotification } from "@/lib/to-chuc/co-so-staff-invite";
 import {
   buildGalleryGroupFilterSearchUrl,
@@ -91,6 +92,7 @@ type Props = {
   viewerProfileId?: string | null;
   coAuthorPendingInvites?: ReadonlyArray<PendingCoAuthorInvite>;
   coSoStaffPendingInvites?: ReadonlyArray<PendingCoSoStaffInviteNotification>;
+  congDongPendingInvites?: ReadonlyArray<PendingCongDongInviteNotification>;
   membershipPendingOutbound?: ReadonlyArray<OutboundMembershipPending>;
   dongGopFeedbackPending?: ReadonlyArray<DongGopFeedbackBannerItem>;
   /** Infinite scroll — load trang kế qua API khi sentinel vào viewport. */
@@ -120,6 +122,7 @@ export function JourneyTimeline({
   viewerProfileId = null,
   coAuthorPendingInvites = [],
   coSoStaffPendingInvites = [],
+  congDongPendingInvites = [],
   membershipPendingOutbound = [],
   dongGopFeedbackPending = [],
   scrollLoad,
@@ -580,6 +583,7 @@ export function JourneyTimeline({
           ownerAvatarUrl={ownerAvatarUrl}
           initialCoAuthorInvites={coAuthorPendingInvites}
           initialCoSoStaffInvites={coSoStaffPendingInvites}
+          initialCongDongInvites={congDongPendingInvites}
           initialMembershipPending={membershipPendingOutbound}
           initialDongGopFeedback={dongGopFeedbackPending}
         />

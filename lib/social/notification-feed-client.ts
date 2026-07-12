@@ -274,6 +274,7 @@ export const EMPTY_NOTIFICATION_HISTORY_FEED: NotificationFeed = {
   coAuthorInvites: [],
   coAuthorReviews: [],
   coSoStaffInvites: [],
+  congDongInvites: [],
   orgMilestoneTagApproved: [],
   membershipMilestoneResolved: [],
   videoReady: [],
@@ -300,6 +301,9 @@ export function parseNotificationFeedPayload(
       : [],
     coSoStaffInvites: Array.isArray(data.coSoStaffInvites)
       ? data.coSoStaffInvites
+      : [],
+    congDongInvites: Array.isArray(data.congDongInvites)
+      ? data.congDongInvites
       : [],
     orgMilestoneTagApproved: Array.isArray(data.orgMilestoneTagApproved)
       ? data.orgMilestoneTagApproved

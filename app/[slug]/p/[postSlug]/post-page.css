@@ -3106,6 +3106,7 @@
   margin-top: 14px;
 }
 .cins-post-view .post-comments-v1 .post-comments-compose {
+  position: relative;
   border: 1px solid var(--border, rgba(0, 0, 0, 0.1));
   border-radius: 14px;
   background: var(--bg-surface, #fff);
@@ -3114,6 +3115,10 @@
   transition:
     border-color 140ms ease,
     box-shadow 140ms ease;
+}
+.cins-post-view .post-comments-v1 .post-comments-compose.is-sticker-open {
+  overflow: visible;
+  z-index: 6;
 }
 .cins-post-view .post-comments-v1 .post-comments-compose:focus-within {
   border-color: var(--cins-blue, #1f74c9);
@@ -3211,6 +3216,52 @@
 .cins-post-view .post-comments-v1 .post-comments-attach-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+.cins-post-view .post-comments-v1 .post-comments-meme-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  overflow: hidden;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.cins-post-view .post-comments-v1 .post-comments-meme-btn-icon {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center;
+  transform: scaleX(-1);
+  opacity: 0.85;
+  transition: opacity 160ms ease;
+}
+.cins-post-view .post-comments-v1 .post-comments-meme-btn:hover:not(:disabled) .post-comments-meme-btn-icon,
+.cins-post-view .post-comments-v1 .post-comments-meme-btn[aria-expanded="true"] .post-comments-meme-btn-icon {
+  opacity: 1;
+}
+.cins-post-view .post-comments-v1 .post-comments-meme-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+/* Portal — tránh crop bởi overflow card / unfold */
+.post-comments-sticker-portal {
+  position: fixed;
+  z-index: 420;
+  pointer-events: auto;
+}
+.post-comments-sticker-portal .cins-chat-sticker-picker {
+  position: relative;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  width: 100%;
+  max-height: min(320px, 42vh);
 }
 .cins-post-view .post-comments-v1 .post-comments-compose-attachments {
   display: flex;
@@ -3730,7 +3781,87 @@
 
   .cins-post-view .post-rail-blk--actions {
     order: 4;
+    width: 100%;
     border-top: 1px solid var(--border);
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  /* Mobile — hàng ngang (Thích · Lưu · BL · Chia sẻ), không xếp dọc */
+  .cins-post-view .post-rail-blk--actions .post-byline-actions {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    justify-content: space-between;
+    gap: 4px;
+    width: 100%;
+    padding: 4px;
+    border-radius: 12px;
+    background: var(--neutral-50, #f5f6f8);
+    border: 1px solid var(--border);
+  }
+
+  .cins-post-view .post-rail-blk--actions .post-byline-act,
+  .cins-post-view .post-rail-blk--actions .post-byline-share-wrap {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+  }
+
+  .cins-post-view .post-rail-blk--actions .post-byline-act {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    width: auto;
+    min-height: 34px;
+    height: 34px;
+    padding: 0 6px;
+    border-radius: 9px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .cins-post-view .post-rail-blk--actions .post-byline-act:hover {
+    background: var(--bg-surface, #fff);
+  }
+
+  .cins-post-view .post-rail-blk--actions .post-byline-act-count {
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .cins-post-view .post-rail-blk--actions .post-byline-share-wrap .post-byline-act.is-share {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    width: 100%;
+    min-height: 34px;
+    height: 34px;
+    padding: 0 6px;
+    border-radius: 9px;
+  }
+
+  .cins-post-view .post-rail-blk--actions .post-byline-actions--vertical {
+    flex-direction: row;
+    align-items: stretch;
+  }
+
+  .cins-post-view .post-rail-blk--actions .post-byline-actions--vertical .post-byline-act {
+    justify-content: center;
+    gap: 4px;
+    padding: 0 6px;
+  }
+
+  .cins-post-view .post-rail-blk--actions .post-byline-actions--vertical .post-byline-act-label {
+    display: none;
+  }
+
+  .cins-post-view .post-rail-blk--actions .post-byline-actions--vertical .post-byline-act-n,
+  .cins-post-view .post-rail-blk--actions .post-byline-actions--vertical .post-byline-act-count {
+    margin-left: 0;
   }
 
   .cins-post-view .post-rail-blk--comments {
@@ -3767,6 +3898,7 @@
   .cins-post-view.post-canvas--media.post-canvas--split .post-view-layout--2col,
   .cins-post-view .post-canvas--media.post-canvas--split .post-view-layout--2col {
     min-height: 0;
+    align-items: stretch;
   }
 
   .cins-post-view.post-canvas--split .post-view-content--media,
@@ -3833,6 +3965,7 @@
   .j-post-page:has(.post-canvas--media.post-canvas--split) .post-view-layout--2col {
     height: auto;
     min-height: calc(100dvh - var(--cins-topbar-h, 56px));
+    align-items: stretch;
   }
 
   .j-post-page:has(.post-canvas--media.post-canvas--split) .post-view-content--media {

@@ -7,6 +7,8 @@ import {
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
+  type RefObject,
 } from "react";
 
 import { JourneyCoverImage } from "@/components/journey/JourneyCoverImage";
@@ -21,12 +23,15 @@ import {
   type BunnyMp4Quality,
 } from "@/lib/journey/bunny-video-playback";
 import { buildBunnyVideoMp4Url } from "@/lib/bunny/embed";
+import { useOffscreenMedia } from "@/lib/journey/use-offscreen-media";
 
 type Props = {
   videoId: string;
   title: string;
   poster?: string | null;
   canvasClass?: string;
+  /** CSS aspect-ratio thật (đã clamp cao tối đa 9:16). */
+  canvasStyle?: CSSProperties;
   mode: "feed" | "detail";
   /** Chi tiết bài — tự phát khi mở (modal / permalink). */
   autoplay?: boolean;
@@ -37,9 +42,11 @@ type Props = {
   } | null;
 };
 
-function useViewportPrefetch(feedMp4Url: string | null, enabled: boolean) {
-  const rootRef = useRef<HTMLDivElement>(null);
-
+function useViewportPrefetch(
+  rootRef: RefObject<HTMLDivElement | null>,
+  feedMp4Url: string | null,
+  enabled: boolean,
+) {
   useEffect(() => {
     if (!enabled || !feedMp4Url || !rootRef.current) return;
 
@@ -62,9 +69,7 @@ function useViewportPrefetch(feedMp4Url: string | null, enabled: boolean) {
       observer.disconnect();
       cancelBunnyPrefetch(feedMp4Url);
     };
-  }, [enabled, feedMp4Url]);
-
-  return rootRef;
+  }, [enabled, feedMp4Url, rootRef]);
 }
 
 export function BunnyNativeVideoPlayer({
@@ -72,6 +77,7 @@ export function BunnyNativeVideoPlayer({
   title,
   poster = null,
   canvasClass = "",
+  canvasStyle,
   mode,
   autoplay = false,
   preview = null,
@@ -97,10 +103,26 @@ export function BunnyNativeVideoPlayer({
     [videoId],
   );
 
-  const rootRef = useViewportPrefetch(
-    feedMp4Url,
-    mode === "feed" && !playing,
-  );
+  const stopPlayback = useCallback(() => {
+    const video = videoRef.current;
+    if (video) {
+      saveBunnyPlaybackState(videoId, video.currentTime);
+      video.pause();
+    }
+    if (mode === "feed") {
+      setPlaying(false);
+      setPosterVisible(true);
+      setBuffering(false);
+    }
+  }, [mode, videoId]);
+
+  const { ref: rootRef } = useOffscreenMedia<HTMLDivElement>({
+    enabled: mode === "detail" || playing,
+    threshold: 0.2,
+    onLeave: stopPlayback,
+  });
+
+  useViewportPrefetch(rootRef, feedMp4Url, mode === "feed" && !playing);
 
   const seekToSavedTime = useCallback(() => {
     if (mode !== "detail") return;
@@ -225,6 +247,7 @@ export function BunnyNativeVideoPlayer({
         <button
           type="button"
           className={`preview preview--video jcard-video-trigger ${canvasClass}`}
+          style={canvasStyle}
           aria-label={`Phát video: ${title}`}
           onClick={startFeedPlayback}
         >
@@ -265,6 +288,7 @@ export function BunnyNativeVideoPlayer({
           ]
             .filter(Boolean)
             .join(" ")}
+          style={canvasStyle}
           onClick={(e) => e.stopPropagation()}
         >
           {showPosterLayer ? (
@@ -332,6 +356,7 @@ type DetailProps = {
   title?: string;
   poster?: string | null;
   canvasClass?: string;
+  canvasStyle?: CSSProperties;
   autoplay?: boolean;
 };
 
@@ -341,6 +366,7 @@ export function JourneyDetailBunnyVideo({
   title = "Video",
   poster = null,
   canvasClass = "",
+  canvasStyle,
   autoplay = false,
 }: DetailProps) {
   return (
@@ -349,6 +375,7 @@ export function JourneyDetailBunnyVideo({
         "b-embed b-embed-ro is-native-video" +
         (canvasClass ? ` ${canvasClass}` : "")
       }
+      style={canvasStyle}
       data-provider="bunny"
     >
       <BunnyNativeVideoPlayer
@@ -356,6 +383,7 @@ export function JourneyDetailBunnyVideo({
         title={title}
         poster={poster}
         canvasClass={canvasClass}
+        canvasStyle={canvasStyle}
         mode="detail"
         autoplay={autoplay}
       />

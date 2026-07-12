@@ -81,6 +81,8 @@ export type ChatThread = {
   id: string;
   roomId: string;
   peerUserId?: string;
+  /** Slug Journey của đối phương (DM cá nhân) — dùng «Xem người dùng». */
+  peerSlug?: string;
   /** Phòng nhóm bạn bè (loai_phong = nhom). */
   isGroup?: boolean;
   memberCount?: number;
@@ -144,6 +146,7 @@ export type OpenDirectRoomResponse = {
 export type ChatPeerPreview = {
   userId: string;
   name: string;
+  slug?: string;
   role?: string;
   avatarInitial?: string;
   avatarHue?: number;

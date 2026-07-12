@@ -204,6 +204,18 @@ export type PendingCoSoStaffInviteNotification = {
   taoLuc?: string;
 };
 
+/** Lời mời tham gia cộng đồng (`cong_dong_invite`). */
+export type PendingCongDongInviteNotification = {
+  notificationId: string;
+  orgId: string;
+  orgSlug: string;
+  orgTen: string;
+  inviterName: string;
+  inviterSlug?: string | null;
+  inviterAvatarUrl?: string | null;
+  taoLuc?: string;
+};
+
 export type NotificationFilter = "unread" | "history";
 
 export type NotificationFeed = {
@@ -214,6 +226,7 @@ export type NotificationFeed = {
   coAuthorInvites: PendingCoAuthorInviteNotification[];
   coAuthorReviews: PendingCoAuthorReview[];
   coSoStaffInvites: PendingCoSoStaffInviteNotification[];
+  congDongInvites: PendingCongDongInviteNotification[];
   videoReady: VideoReadyNotification[];
   orgMilestoneTagApproved: OrgMilestoneTagApprovedNotification[];
   membershipMilestoneResolved: MembershipMilestoneResolvedNotification[];

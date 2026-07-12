@@ -72,7 +72,11 @@ export type JourneyGalleryCardVariant =
   | "filmstrip"
   | "portfolio";
 
-export type JourneyShareMenuStep = "menu" | "journey-card" | "gallery-card";
+export type JourneyShareMenuStep =
+  | "menu"
+  | "journey-card"
+  | "gallery-card"
+  | "invite-friends";
 
 export const JOURNEY_SHARE_CARD_VARIANTS: Record<
   JourneyShareCardKind,

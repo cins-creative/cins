@@ -171,6 +171,7 @@ export function JourneySidebar({
           initialKetBanStatus={initialKetBanStatus}
           chatPeerPreview={{
             name: profile.tenHienThi || profile.slug,
+            slug: profile.slug,
             role: roleLine,
             avatarUrl,
             avatarInitial: initials,

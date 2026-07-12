@@ -1,6 +1,6 @@
 "use client";
 
-import { MessageCircle, Share2 } from "lucide-react";
+import { MessageCircle } from "lucide-react";
 
 import { useAuthGate } from "@/components/auth/AuthGateProvider";
 import {
@@ -8,10 +8,8 @@ import {
   type JourneyActionActorsConfig,
 } from "@/components/journey/JourneyActionActorsCount";
 import { JourneyActionTouchChip } from "@/components/journey/JourneyActionTouchChip";
-import type { JourneyActionSheetItem } from "@/components/journey/JourneyActionTouchSheet";
 import { JourneySocialActorsModal } from "@/components/journey/JourneySocialActorsModal";
 import { SOCIAL_LOAI_DOI_TUONG } from "@/lib/cong-dong/constants";
-import { sharePostUrl } from "@/lib/journey/share-post-url";
 import { useCoarsePointer } from "@/lib/ui/use-coarse-pointer";
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 
@@ -57,8 +55,6 @@ export function JourneyCommentLink({
   idDoiTuong,
   loaiDoiTuong = SOCIAL_LOAI_DOI_TUONG.COT_MOC,
   disableActorsReveal = false,
-  sharePath = null,
-  shareTitle = null,
 }: Props) {
   const { isAuthenticated, openAuthModal } = useAuthGate();
   const isCoarse = useCoarsePointer();
@@ -83,38 +79,9 @@ export function JourneyCommentLink({
     onOpenComments?.();
   }, [isAuthenticated, onOpenComments, openAuthModal]);
 
-  const mobileSheetItems = useMemo<JourneyActionSheetItem[]>(() => {
-    const items: JourneyActionSheetItem[] = [];
-    if (actors) {
-      items.push({
-        id: "actors",
-        label: `Người bình luận (${count})`,
-        icon: <MessageCircle size={17} strokeWidth={1.9} aria-hidden />,
-        tone: "comment",
-        onSelect: () => setActorsOpen(true),
-      });
-    }
-    if (onOpenComments) {
-      items.push({
-        id: "comment",
-        label: "Viết bình luận",
-        icon: <MessageCircle size={17} strokeWidth={1.9} aria-hidden />,
-        tone: "comment",
-        onSelect: openComments,
-      });
-    }
-    if (sharePath?.trim()) {
-      items.push({
-        id: "share",
-        label: "Chia sẻ bài viết",
-        icon: <Share2 size={17} strokeWidth={1.8} aria-hidden />,
-        onSelect: () => {
-          void sharePostUrl(sharePath, shareTitle);
-        },
-      });
-    }
-    return items;
-  }, [actors, count, onOpenComments, openComments, sharePath, shareTitle]);
+  const openActors = useCallback(() => {
+    if (actors) setActorsOpen(true);
+  }, [actors]);
 
   const actorsModal =
     actors && actorsOpen ? (
@@ -146,8 +113,10 @@ export function JourneyCommentLink({
           className="action-btn"
           ariaLabel="Bình luận"
           onPress={press}
-          sheetTitle="Bình luận"
-          sheetItems={mobileSheetItems}
+          onLongPress={actors ? openActors : undefined}
+          longPressHint={
+            actors ? "Giữ để xem người bình luận" : undefined
+          }
           buttonProps={
             openPostPopup ? { "data-open-post": "true" as const } : undefined
           }

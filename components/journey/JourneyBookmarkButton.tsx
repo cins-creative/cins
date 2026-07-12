@@ -6,7 +6,6 @@ import {
   type JourneyActionActorsConfig,
 } from "@/components/journey/JourneyActionActorsCount";
 import { JourneyActionTouchChip } from "@/components/journey/JourneyActionTouchChip";
-import type { JourneyActionSheetItem } from "@/components/journey/JourneyActionTouchSheet";
 import { JourneySocialActorsModal } from "@/components/journey/JourneySocialActorsModal";
 import { SOCIAL_LOAI_DOI_TUONG } from "@/lib/cong-dong/constants";
 import { useCoarsePointer } from "@/lib/ui/use-coarse-pointer";
@@ -370,35 +369,9 @@ export function JourneyBookmarkButton({
     };
   }, [count, disableActorsReveal, loaiDoiTuong, milestoneId]);
 
-  const mobileSheetItems = useMemo<JourneyActionSheetItem[]>(() => {
-    const items: JourneyActionSheetItem[] = [];
-    if (actors) {
-      items.push({
-        id: "actors",
-        label: `Người đã lưu (${count})`,
-        icon: (
-          <Bookmark size={17} strokeWidth={1.9} fill="currentColor" aria-hidden />
-        ),
-        tone: "bookmarked",
-        onSelect: () => setActorsOpen(true),
-      });
-    }
-    items.push({
-      id: "save",
-      label: saved ? "Đã lưu — mở lại" : "Lưu bài",
-      icon: (
-        <Bookmark
-          size={17}
-          strokeWidth={1.9}
-          fill={saved ? "currentColor" : "none"}
-          aria-hidden
-        />
-      ),
-      tone: saved ? "bookmarked" : "default",
-      onSelect: pressBookmark,
-    });
-    return items;
-  }, [actors, count, pressBookmark, saved]);
+  const openActors = useCallback(() => {
+    if (actors) setActorsOpen(true);
+  }, [actors]);
 
   const showActorsCount = showCount && count > 0;
 
@@ -421,8 +394,8 @@ export function JourneyBookmarkButton({
           ariaLabel={saved ? "Đã lưu" : "Lưu"}
           ariaPressed={saved}
           onPress={pressBookmark}
-          sheetTitle="Lưu bài"
-          sheetItems={mobileSheetItems}
+          onLongPress={actors ? openActors : undefined}
+          longPressHint={actors ? "Giữ để xem người đã lưu" : undefined}
         >
           <Bookmark
             size={iconSize}
