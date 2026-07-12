@@ -26,6 +26,25 @@ const EMPTY: JourneyPendingConfirmations = {
   coAuthorReviews: [],
 };
 
+/** Default ổn định — tránh `= []` trong params tạo reference mới mỗi render. */
+const EMPTY_INVITES: readonly never[] = [];
+
+function inviteKey(item: unknown): string {
+  if (!item || typeof item !== "object") return "";
+  const row = item as Record<string, unknown>;
+  const id = row.id ?? row.inviteId ?? row.notificationId;
+  return typeof id === "string" ? id : "";
+}
+
+function sameInviteIds(a: readonly unknown[], b: readonly unknown[]): boolean {
+  if (a === b) return true;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) {
+    if (inviteKey(a[i]) !== inviteKey(b[i])) return false;
+  }
+  return true;
+}
+
 function parseConfirmationPayload(json: unknown): JourneyPendingConfirmations | null {
   if (!json || typeof json !== "object") return null;
   const data = json as Record<string, unknown>;
@@ -61,7 +80,7 @@ export function useJourneyPendingConfirmations({
   viewerProfileId,
   initialCoAuthorInvites,
   initialCoSoStaffInvites,
-  initialCongDongInvites = [],
+  initialCongDongInvites = EMPTY_INVITES,
 }: Options): JourneyPendingConfirmations {
   const [state, setState] = useState<JourneyPendingConfirmations>(() => ({
     ...EMPTY,
@@ -71,12 +90,24 @@ export function useJourneyPendingConfirmations({
   }));
 
   useEffect(() => {
-    setState((prev) => ({
-      ...prev,
-      coAuthorInvites: [...initialCoAuthorInvites],
-      coSoStaffInvites: [...initialCoSoStaffInvites],
-      congDongInvites: [...initialCongDongInvites],
-    }));
+    setState((prev) => {
+      const nextCoAuthor = [...initialCoAuthorInvites];
+      const nextCoSo = [...initialCoSoStaffInvites];
+      const nextCongDong = [...initialCongDongInvites];
+      if (
+        sameInviteIds(prev.coAuthorInvites, nextCoAuthor) &&
+        sameInviteIds(prev.coSoStaffInvites, nextCoSo) &&
+        sameInviteIds(prev.congDongInvites, nextCongDong)
+      ) {
+        return prev;
+      }
+      return {
+        ...prev,
+        coAuthorInvites: nextCoAuthor,
+        coSoStaffInvites: nextCoSo,
+        congDongInvites: nextCongDong,
+      };
+    });
   }, [initialCoAuthorInvites, initialCoSoStaffInvites, initialCongDongInvites]);
 
   const refresh = useCallback(async () => {

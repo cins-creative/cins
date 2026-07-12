@@ -15,6 +15,8 @@ export type TruongUniversityCardSchool = Pick<
   | "cover_src"
   | "avatar_src"
   | "tinh_thanh"
+  | "viewerVaiTro"
+  | "viewerDangTheoDoi"
 > & {
   ten_tieng_anh?: string | null;
   /** Chi nhánh / cơ sở — chỉ dùng ở variant listing (đếm số chi nhánh). */

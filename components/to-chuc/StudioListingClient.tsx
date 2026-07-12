@@ -1,14 +1,17 @@
 "use client";
 
+import { UsersRound } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { StudioListingCard } from "@/components/to-chuc/StudioListingCard";
+import { isListingMineOrg } from "@/lib/to-chuc/co-so-vai-tro";
 import type { StudioListItem } from "@/lib/to-chuc/studio-listing";
 
 type FilterKey = "all" | "studio" | "doanh_nghiep";
 
 type Props = {
   studios: StudioListItem[];
+  canFilterMine?: boolean;
 };
 
 function SearchIcon() {
@@ -38,8 +41,12 @@ function normalize(value: string): string {
     .trim();
 }
 
-export function StudioListingClient({ studios }: Props) {
+export function StudioListingClient({
+  studios,
+  canFilterMine = false,
+}: Props) {
   const [filter, setFilter] = useState<FilterKey>("all");
+  const [mineOnly, setMineOnly] = useState(false);
   const [query, setQuery] = useState("");
 
   const studioCount = useMemo(
@@ -50,10 +57,15 @@ export function StudioListingClient({ studios }: Props) {
     () => studios.filter((s) => s.loaiToChuc === "doanh_nghiep").length,
     [studios],
   );
+  const myCount = useMemo(
+    () => studios.filter((s) => isListingMineOrg(s)).length,
+    [studios],
+  );
 
   const visible = useMemo(() => {
     const q = normalize(query);
     return studios.filter((s) => {
+      if (mineOnly && !isListingMineOrg(s)) return false;
       if (filter !== "all" && s.loaiToChuc !== filter) return false;
       if (!q) return true;
       const haystack = normalize(
@@ -61,7 +73,7 @@ export function StudioListingClient({ studios }: Props) {
       );
       return haystack.includes(q);
     });
-  }, [studios, filter, query]);
+  }, [studios, filter, query, mineOnly]);
 
   return (
     <div className="tdh-list">
@@ -91,6 +103,20 @@ export function StudioListingClient({ studios }: Props) {
                 {count > 0 ? ` · ${count}` : ""}
               </button>
             ))}
+            {canFilterMine ? (
+              <button
+                type="button"
+                className={`tdh-list-mine-chip${mineOnly ? " is-active" : ""}`}
+                aria-pressed={mineOnly}
+                onClick={() => setMineOnly((v) => !v)}
+              >
+                <UsersRound size={14} strokeWidth={2.25} aria-hidden />
+                Studio của tôi
+                {myCount > 0 ? (
+                  <span className="tdh-list-mine-chip-count">{myCount}</span>
+                ) : null}
+              </button>
+            ) : null}
           </div>
           <label className="tdh-list-search">
             <SearchIcon />
@@ -114,9 +140,11 @@ export function StudioListingClient({ studios }: Props) {
             ))
           ) : (
             <p className="tdh-list-empty">
-              {query.trim()
-                ? `Không có studio nào khớp «${query.trim()}». Thử đổi từ khoá hoặc bộ lọc.`
-                : "Chưa có studio nào trong bộ lọc này."}
+              {mineOnly && myCount === 0
+                ? "Bạn chưa thuộc hoặc theo dõi studio / doanh nghiệp nào trên CINs."
+                : query.trim()
+                  ? `Không có studio nào khớp «${query.trim()}». Thử đổi từ khoá hoặc bộ lọc.`
+                  : "Chưa có studio nào trong bộ lọc này."}
             </p>
           )}
         </div>

@@ -15,6 +15,7 @@ import { PostBlockRenderer } from "@/components/journey/PostBlockRenderer";
 import { JourneyCardEmbedPeek } from "@/components/journey/JourneyCardEmbedPeek";
 import { JourneyChiChuNenPicker } from "@/components/journey/JourneyChiChuNenPicker";
 import type { MilestoneMediaItem } from "@/components/journey/milestone-types";
+import { extractCfImageIdFromDeliveryUrl } from "@/lib/cloudflare/image-id-from-url";
 import type { GridImage } from "@/lib/journey/image-grid";
 import {
   gridThumbSrc,
@@ -142,9 +143,13 @@ export function JourneyMilestoneCardBodyContent({
     previewPortraitMedia && preview
       ? mediaNaturalAspect(preview.width ?? 0, preview.height ?? 0)
       : null;
+  const coverIdFromPreview = preview?.src
+    ? extractCfImageIdFromDeliveryUrl(preview.src)
+    : null;
   const cardLayout: PostCardLayout = resolvePostCardLayout({
     moTa: body,
     hasCover: hasCoverPreview,
+    coverId: coverIdFromPreview,
     blocks,
   });
   const isAlbumHeroGrid = cardLayout === "album_hero_grid";

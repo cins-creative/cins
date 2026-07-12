@@ -25,6 +25,22 @@ export type CongDongOrg = {
   trangThaiTinCay: CongDongTrangThaiTinCay;
   soThanhVien: number;
   soBaiViet: number;
+  /** Số bài `content_cot_moc` tạo trong 7 ngày gần nhất. */
+  soBaiMoi7Ngay: number;
+  /** `cau_hinh.linh_vuc` — lọc listing. */
+  linhVucIds: string[];
+  /** `cau_hinh.danh_muc` (ngành đào tạo) — lọc listing. */
+  nganhIds: string[];
+  /** Vai trò viewer trong cộng đồng (null = chưa tham gia). */
+  viewerVaiTro: CongDongVaiTro | null;
+};
+
+/** Chip lọc trên `/cong-dong`. */
+export type CongDongListingFacet = {
+  id: string;
+  slug: string;
+  ten: string;
+  count: number;
 };
 
 export type CongDongCareerSegment = {
@@ -113,6 +129,8 @@ export type CongDongMemberAdmin = {
   ngheLabel: string | null;
   soBaiVietTrongNhom: number;
   baiVietGanNhatLuc: string | null;
+  /** Chỉ có trên hàng yêu cầu xin tham gia. */
+  trangThai?: "active" | "pending";
 };
 
 export type CongDongAuthorBadge = {
@@ -141,12 +159,12 @@ export type CongDongFilter = {
   thuTu: number;
 };
 
-/** Bài nghề hoặc ngành đào tạo gắn với nhóm — tối đa 4, lưu `org_to_chuc.cau_hinh.danh_muc`. */
+/** Ngành đào tạo gắn với nhóm — tối đa 3, lưu `org_to_chuc.cau_hinh.danh_muc`. */
 export type CongDongCategory = {
   id: string;
   slug: string;
   tieuDe: string;
-  loaiBaiViet: "nghe" | "nganh_dao_tao";
+  loaiBaiViet: "nganh_dao_tao" | "nghe";
   /** `article_bai_viet.tom_tat` — tooltip sidebar. */
   tomTat?: string | null;
   /** Fallback mô tả khi `tom_tat` trống. */
@@ -159,6 +177,14 @@ export type CongDongCategory = {
   /** `article_bai_viet.id_linh_vuc` → `linh_vuc.ten` (nghề thường có; ngành có thể null). */
   linhVucTen?: string | null;
   linhVucSlug?: string | null;
+};
+
+/** Lĩnh vực hoạt động của nhóm — tối đa 3, lưu `org_to_chuc.cau_hinh.linh_vuc`. */
+export type CongDongLinhVuc = {
+  id: string;
+  slug: string;
+  ten: string;
+  mauAccent: string | null;
 };
 
 /** Cấu hình compose trên trang cộng đồng — thay visibility bằng chọn nhãn loại bài. */
@@ -219,6 +245,10 @@ export type CongDongComment = {
 export type CongDongPageData = {
   org: CongDongOrg;
   isThanhVien: boolean;
+  /** Xin tham gia nội bộ đang chờ duyệt. */
+  joinPending: boolean;
+  /** Khách công khai xem feed; nội bộ/bí mật chỉ member. */
+  canViewFeed: boolean;
   isAdmin: boolean;
   /** Quyền admin CINs (trục 1) — mở khoá vận hành dù không phải member. */
   isCinsAdmin: boolean;
@@ -233,4 +263,5 @@ export type CongDongPageData = {
   initialPosts: CongDongPost[];
   nextCursor: string | null;
   categories: CongDongCategory[];
+  linhVucs: CongDongLinhVuc[];
 };

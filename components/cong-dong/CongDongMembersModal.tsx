@@ -36,6 +36,8 @@ type Props = {
   orgSlug: string;
   orgLabel: string;
   viewerIsOwner: boolean;
+  /** Nhúng trong bảng quản lý — không portal / không khóa scroll body. */
+  embedded?: boolean;
 };
 
 function MemberAvatar({
@@ -65,9 +67,13 @@ export function CongDongMembersModal({
   orgSlug,
   orgLabel,
   viewerIsOwner,
+  embedded = false,
 }: Props) {
   const titleId = useId();
   const [members, setMembers] = useState<CongDongMemberAdmin[]>([]);
+  const [pendingRequests, setPendingRequests] = useState<CongDongMemberAdmin[]>(
+    [],
+  );
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -87,14 +93,17 @@ export function CongDongMembersModal({
       const res = await fetch(`/api/cong-dong/${orgId}/members`);
       const json = (await res.json().catch(() => null)) as {
         members?: CongDongMemberAdmin[];
+        pending?: CongDongMemberAdmin[];
         error?: string;
       } | null;
       if (!res.ok) {
         setErr(json?.error ?? "Không tải được danh sách.");
         setMembers([]);
+        setPendingRequests([]);
         return;
       }
       setMembers(json?.members ?? []);
+      setPendingRequests(json?.pending ?? []);
     } finally {
       setLoading(false);
     }
@@ -110,22 +119,22 @@ export function CongDongMembersModal({
   }, [open, loadMembers]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || embedded) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = prev;
     };
-  }, [open]);
+  }, [open, embedded]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || embedded) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+  }, [open, onClose, embedded]);
 
   useEffect(() => {
     if (!open) return;
@@ -215,6 +224,52 @@ export function CongDongMembersModal({
     });
   }
 
+  function onApproveRequest(member: CongDongMemberAdmin) {
+    setErr(null);
+    startTransition(async () => {
+      const res = await fetch(
+        `/api/cong-dong/${orgId}/members/${member.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "approve" }),
+        },
+      );
+      const json = (await res.json().catch(() => null)) as {
+        member?: CongDongMemberAdmin;
+        error?: string;
+      } | null;
+      if (!res.ok || !json?.member) {
+        setErr(json?.error ?? "Không duyệt được yêu cầu.");
+        return;
+      }
+      setPendingRequests((prev) => prev.filter((m) => m.id !== member.id));
+      upsertMember(json.member);
+    });
+  }
+
+  function onRejectRequest(member: CongDongMemberAdmin) {
+    setErr(null);
+    startTransition(async () => {
+      const res = await fetch(
+        `/api/cong-dong/${orgId}/members/${member.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "reject" }),
+        },
+      );
+      const json = (await res.json().catch(() => null)) as {
+        error?: string;
+      } | null;
+      if (!res.ok) {
+        setErr(json?.error ?? "Không từ chối được yêu cầu.");
+        return;
+      }
+      setPendingRequests((prev) => prev.filter((m) => m.id !== member.id));
+    });
+  }
+
   function onConfirmTransfer(confirmSlug: string) {
     if (!transferTarget) return;
     setTransferError(null);
@@ -249,19 +304,9 @@ export function CongDongMembersModal({
 
   const memberUserIds = new Set(members.map((m) => m.userId));
 
-  return createPortal(
-    <div
-      className="cd-v4-members-backdrop"
-      role="presentation"
-      onClick={onClose}
-    >
-      <div
-        className="cd-v4-members-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        onClick={(e) => e.stopPropagation()}
-      >
+  const body = (
+    <>
+      {!embedded ? (
         <header className="cd-v4-members-head">
           <div className="cd-v4-members-head-copy">
             <span className="cd-v4-members-head-icon" aria-hidden>
@@ -283,6 +328,7 @@ export function CongDongMembersModal({
             <X size={18} strokeWidth={2} aria-hidden />
           </button>
         </header>
+      ) : null}
 
         <div className="cd-v4-members-body">
           {err ? (
@@ -365,6 +411,70 @@ export function CongDongMembersModal({
               <p className="cd-v4-members-muted">Không thấy ai trùng tên.</p>
             ) : null}
           </section>
+
+          {pendingRequests.length > 0 ? (
+            <section className="cd-v4-members-panel cd-v4-members-panel--list">
+              <div className="cd-v4-members-panel-head">
+                <div className="cd-v4-members-panel-title">
+                  <h3>Yêu cầu tham gia</h3>
+                </div>
+                <span className="cd-v4-members-count">
+                  {pendingRequests.length}
+                </span>
+              </div>
+              <div className="cd-v4-members-list-scroll">
+                <ul className="cd-v4-members-list">
+                  {pendingRequests.map((member) => (
+                    <li key={member.id}>
+                      <div className="cd-v4-members-row-copy">
+                        <JourneyUserPopover
+                          slug={member.slug}
+                          fallbackName={member.tenHienThi}
+                          fallbackAvatarUrl={
+                            member.avatarId
+                              ? getAvatarUrl(member.avatarId)
+                              : null
+                          }
+                          backdropZIndex={MEMBERS_POPOVER_Z}
+                        >
+                          <span className="cd-v4-members-row-trigger">
+                            <MemberAvatar
+                              avatarId={member.avatarId}
+                              name={member.tenHienThi}
+                            />
+                            <div className="cd-v4-members-row-text">
+                              <strong>{member.tenHienThi}</strong>
+                              <span className="cd-v4-members-muted">
+                                Đang chờ duyệt
+                              </span>
+                            </div>
+                          </span>
+                        </JourneyUserPopover>
+                      </div>
+                      <span className="cd-v4-members-row-actions">
+                        <button
+                          type="button"
+                          className="cd-v4-members-add-btn"
+                          disabled={pending}
+                          onClick={() => onApproveRequest(member)}
+                        >
+                          Duyệt
+                        </button>
+                        <button
+                          type="button"
+                          className="cd-v4-members-transfer"
+                          disabled={pending}
+                          onClick={() => onRejectRequest(member)}
+                        >
+                          Từ chối
+                        </button>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </section>
+          ) : null}
 
           <section className="cd-v4-members-panel cd-v4-members-panel--list">
             <div className="cd-v4-members-panel-head">
@@ -470,6 +580,27 @@ export function CongDongMembersModal({
             }
           }}
         />
+    </>
+  );
+
+  if (embedded) {
+    return <div className="cd-v4-members-embed">{body}</div>;
+  }
+
+  return createPortal(
+    <div
+      className="cd-v4-members-backdrop"
+      role="presentation"
+      onClick={onClose}
+    >
+      <div
+        className="cd-v4-members-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {body}
       </div>
     </div>,
     document.body,

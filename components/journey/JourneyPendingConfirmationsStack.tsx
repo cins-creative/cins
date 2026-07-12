@@ -14,14 +14,20 @@ import type { PendingCoAuthorInvite } from "@/lib/social/types";
 import type { PendingCongDongInviteNotification } from "@/lib/cong-dong/invite";
 import type { PendingCoSoStaffInviteNotification } from "@/lib/to-chuc/co-so-staff-invite";
 
+const EMPTY_CO_AUTHOR: ReadonlyArray<PendingCoAuthorInvite> = [];
+const EMPTY_CO_SO: ReadonlyArray<PendingCoSoStaffInviteNotification> = [];
+const EMPTY_CONG_DONG: ReadonlyArray<PendingCongDongInviteNotification> = [];
+const EMPTY_MEMBERSHIP: ReadonlyArray<OutboundMembershipPending> = [];
+const EMPTY_DONG_GOP: ReadonlyArray<DongGopFeedbackBannerItem> = [];
+
 type Props = {
   isOwner: boolean;
   viewerProfileId: string;
   ownerSlug: string;
   ownerName: string;
   ownerAvatarUrl?: string | null;
-  initialCoAuthorInvites: ReadonlyArray<PendingCoAuthorInvite>;
-  initialCoSoStaffInvites: ReadonlyArray<PendingCoSoStaffInviteNotification>;
+  initialCoAuthorInvites?: ReadonlyArray<PendingCoAuthorInvite>;
+  initialCoSoStaffInvites?: ReadonlyArray<PendingCoSoStaffInviteNotification>;
   initialCongDongInvites?: ReadonlyArray<PendingCongDongInviteNotification>;
   initialMembershipPending?: ReadonlyArray<OutboundMembershipPending>;
   initialDongGopFeedback?: ReadonlyArray<DongGopFeedbackBannerItem>;
@@ -34,11 +40,11 @@ export function JourneyPendingConfirmationsStack({
   ownerSlug,
   ownerName,
   ownerAvatarUrl = null,
-  initialCoAuthorInvites,
-  initialCoSoStaffInvites,
-  initialCongDongInvites = [],
-  initialMembershipPending = [],
-  initialDongGopFeedback = [],
+  initialCoAuthorInvites = EMPTY_CO_AUTHOR,
+  initialCoSoStaffInvites = EMPTY_CO_SO,
+  initialCongDongInvites = EMPTY_CONG_DONG,
+  initialMembershipPending = EMPTY_MEMBERSHIP,
+  initialDongGopFeedback = EMPTY_DONG_GOP,
 }: Props) {
   const pending = useJourneyPendingConfirmations({
     isOwner,

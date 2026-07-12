@@ -2,7 +2,10 @@ import "server-only";
 
 import { getAvatarUrl } from "@/lib/journey/profile";
 import { isThanhVien, joinCongDong } from "@/lib/cong-dong/membership";
-import { CONG_DONG_CHE_DO } from "@/lib/cong-dong/constants";
+import {
+  CONG_DONG_CHE_DO,
+  parseCongDongCheDoFromCauHinh,
+} from "@/lib/cong-dong/constants";
 import { listFriends } from "@/lib/social/ket-ban";
 import { insertSocialThongBao } from "@/lib/social/thong-bao-insert";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -71,19 +74,11 @@ async function loadCongDongOrg(orgId: string): Promise<{
       cau_hinh: unknown;
     }>();
   if (!data) return null;
-  const cauHinh =
-    data.cau_hinh && typeof data.cau_hinh === "object"
-      ? (data.cau_hinh as { che_do?: string })
-      : null;
-  const cheDo =
-    cauHinh?.che_do === CONG_DONG_CHE_DO.RIENG_TU
-      ? CONG_DONG_CHE_DO.RIENG_TU
-      : CONG_DONG_CHE_DO.CONG_KHAI;
   return {
     id: data.id,
     slug: data.slug,
     ten: data.ten,
-    cheDo,
+    cheDo: parseCongDongCheDoFromCauHinh(data.cau_hinh),
   };
 }
 
@@ -99,10 +94,10 @@ export async function listCongDongInviteCandidates(
   if (!org) return { ok: false, error: "Không tìm thấy cộng đồng.", status: 404 };
 
   const isMember = await isThanhVien(viewerId, orgId);
-  if (org.cheDo === CONG_DONG_CHE_DO.RIENG_TU && !isMember) {
+  if (org.cheDo === CONG_DONG_CHE_DO.BI_MAT && !isMember) {
     return {
       ok: false,
-      error: "Chỉ thành viên mới mời được vào cộng đồng riêng tư.",
+      error: "Chỉ thành viên mới mời được vào cộng đồng bí mật.",
       status: 403,
     };
   }
@@ -130,6 +125,7 @@ export async function listCongDongInviteCandidates(
       .from("user_thanh_vien_to_chuc")
       .select("id_nguoi_dung")
       .eq("id_to_chuc", orgId)
+      .eq("trang_thai", "active")
       .in("id_nguoi_dung", friendIds)
       .returns<Array<{ id_nguoi_dung: string }>>(),
   ]);
@@ -230,10 +226,10 @@ export async function inviteFriendsToCongDong(params: {
   if (!org) return { ok: false, error: "Không tìm thấy cộng đồng.", status: 404 };
 
   const isMember = await isThanhVien(params.viewerId, params.orgId);
-  if (org.cheDo === CONG_DONG_CHE_DO.RIENG_TU && !isMember) {
+  if (org.cheDo === CONG_DONG_CHE_DO.BI_MAT && !isMember) {
     return {
       ok: false,
-      error: "Chỉ thành viên mới mời được vào cộng đồng riêng tư.",
+      error: "Chỉ thành viên mới mời được vào cộng đồng bí mật.",
       status: 403,
     };
   }
@@ -257,6 +253,7 @@ export async function inviteFriendsToCongDong(params: {
     .from("user_thanh_vien_to_chuc")
     .select("id_nguoi_dung")
     .eq("id_to_chuc", params.orgId)
+    .eq("trang_thai", "active")
     .in("id_nguoi_dung", uniqueIds)
     .returns<Array<{ id_nguoi_dung: string }>>();
   const memberSet = new Set((memberRows ?? []).map((r) => r.id_nguoi_dung));
@@ -379,7 +376,7 @@ export async function respondCongDongInvite(params: {
   const orgSlug = payload?.orgSlug;
 
   if (params.action === "accept") {
-    const joined = await joinCongDong(params.viewerId, orgId);
+    const joined = await joinCongDong(params.viewerId, orgId, { asInvite: true });
     if (!joined.ok) return joined;
     await setOrgFollowLevel(params.viewerId, orgId, "chi_noi_bat");
   }

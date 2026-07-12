@@ -264,23 +264,7 @@ export const MOCK_CHAT_THREADS: ChatThread[] = [
   },
 ] satisfies ChatThread[];
 
-export function formatChatTime(iso: string): string {
-  try {
-    const d = new Date(iso);
-    const now = new Date();
-    const sameDay =
-      d.getDate() === now.getDate() &&
-      d.getMonth() === now.getMonth() &&
-      d.getFullYear() === now.getFullYear();
-    return new Intl.DateTimeFormat("vi-VN", {
-      hour: "2-digit",
-      minute: "2-digit",
-      ...(sameDay ? {} : { day: "2-digit", month: "2-digit" }),
-    }).format(d);
-  } catch {
-    return iso;
-  }
-}
+export { formatChatTime } from "@/lib/chat/avatar";
 
 export function avatarBg(hue: number): string {
   return `hsl(${hue} 62% 42%)`;

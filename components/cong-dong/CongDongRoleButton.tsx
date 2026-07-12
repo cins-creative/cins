@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, ChevronRight, LogOut, Settings2, Share2, Tags, UserCog } from "lucide-react";
+import { Bell, ChevronRight, LogOut, Pencil, Share2 } from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -23,9 +23,14 @@ import {
 import {
   canLeaveCommunity,
   canManageLabels,
+  canManageMembers,
   roleButtonLabel,
   type CongDongVaiTro,
 } from "@/lib/cong-dong/vai-tro";
+import {
+  congDongJoinMode,
+  type CongDongCheDo,
+} from "@/lib/cong-dong/constants";
 import type { OrgNotifyLevel } from "@/lib/social/org-notify";
 
 const NOTIFY_OPTIONS: {
@@ -52,35 +57,38 @@ const NOTIFY_OPTIONS: {
 
 type Props = {
   orgId: string;
+  cheDo: CongDongCheDo;
   shareSource: OrgShareSource;
   isThanhVien: boolean;
+  joinPending?: boolean;
   viewerVaiTro: CongDongVaiTro | null;
   /** Quyền admin CINs (trục 1) — mở menu quản trị dù chưa là member. */
   isCinsAdmin?: boolean;
   hideForOwner: boolean;
   initialNotifyLevel: OrgNotifyLevel;
   onJoined: (vaiTro: CongDongVaiTro) => void;
+  onJoinPending?: () => void;
   onLeft: () => void;
   onNotifyLevelChange: (level: OrgNotifyLevel) => void;
-  onManageLabels?: () => void;
-  onGroupSettings?: () => void;
-  onManageMembers?: () => void;
+  /** Mở bảng quản lý cộng đồng (chủ đề · nhãn · thành viên). */
+  onManage?: () => void;
 };
 
 export function CongDongRoleButton({
   orgId,
+  cheDo,
   shareSource,
   isThanhVien,
+  joinPending = false,
   viewerVaiTro,
   isCinsAdmin = false,
   hideForOwner,
   initialNotifyLevel,
   onJoined,
+  onJoinPending,
   onLeft,
   onNotifyLevelChange,
-  onManageLabels,
-  onGroupSettings,
-  onManageMembers,
+  onManage,
 }: Props) {
   const { requireCongDongAuth } = useCongDongAuthGate();
   const menuId = useId();
@@ -93,7 +101,7 @@ export function CongDongRoleButton({
   const [notifyOpen, setNotifyOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [notifyLevel, setNotifyLevel] = useState(initialNotifyLevel);
-  const [joinPending, startJoin] = useTransition();
+  const [joinBusy, startJoin] = useTransition();
   const [leavePending, startLeave] = useTransition();
   const [notifyPending, startNotify] = useTransition();
 
@@ -169,6 +177,8 @@ export function CongDongRoleButton({
     };
   }, [menuOpen]);
 
+  const joinMode = congDongJoinMode(cheDo);
+
   const join = useCallback(() => {
     requireCongDongAuth(() => {
       startJoin(async () => {
@@ -177,12 +187,31 @@ export function CongDongRoleButton({
         });
         const json = (await res.json().catch(() => null)) as {
           viewerVaiTro?: CongDongVaiTro | null;
+          isThanhVien?: boolean;
+          joinPending?: boolean;
+          error?: string;
         } | null;
         if (!res.ok) return;
-        onJoined(json?.viewerVaiTro ?? "thanh_vien");
+        if (json?.joinPending) {
+          onJoinPending?.();
+          return;
+        }
+        if (json?.isThanhVien !== false) {
+          onJoined(json?.viewerVaiTro ?? "thanh_vien");
+        }
       });
     });
-  }, [orgId, onJoined, requireCongDongAuth]);
+  }, [orgId, onJoined, onJoinPending, requireCongDongAuth]);
+
+  const cancelPending = useCallback(() => {
+    startLeave(async () => {
+      const res = await fetch(`/api/cong-dong/${orgId}/tham-gia`, {
+        method: "DELETE",
+      });
+      if (!res.ok) return;
+      onLeft();
+    });
+  }, [orgId, onLeft]);
 
   const leave = useCallback(() => {
     if (!canLeaveCommunity(displayVaiTro)) return;
@@ -259,14 +288,14 @@ export function CongDongRoleButton({
     return (
       <>
         <div className="cd-v4-id-actions">
-          {onGroupSettings ? (
+          {onManage ? (
             <button
               type="button"
               className="cd-v4-btn cd-v4-btn--ghost cd-v4-btn--icon cd-v4-btn--icon-only"
-              aria-label="Chủ đề nhóm"
-              onClick={onGroupSettings}
+              aria-label="Quản lý cộng đồng"
+              onClick={onManage}
             >
-              <Settings2 size={16} strokeWidth={2} aria-hidden />
+              <Pencil size={16} strokeWidth={2} aria-hidden />
             </button>
           ) : null}
           {shareButton}
@@ -334,7 +363,10 @@ export function CongDongRoleButton({
           ) : null}
         </div>
 
-        {onManageLabels && (canManageLabels(displayVaiTro) || isCinsAdmin) ? (
+        {onManage &&
+        (canManageLabels(displayVaiTro) ||
+          canManageMembers(displayVaiTro) ||
+          isCinsAdmin) ? (
           <button
             type="button"
             className="cd-v4-role-menu-btn"
@@ -342,43 +374,11 @@ export function CongDongRoleButton({
             onClick={() => {
               setMenuOpen(false);
               setNotifyOpen(false);
-              onManageLabels?.();
+              onManage();
             }}
           >
-            <Tags size={15} strokeWidth={2} aria-hidden />
-            <span>Quản lý nhãn</span>
-          </button>
-        ) : null}
-
-        {onGroupSettings ? (
-          <button
-            type="button"
-            className="cd-v4-role-menu-btn"
-            role="menuitem"
-            onClick={() => {
-              setMenuOpen(false);
-              setNotifyOpen(false);
-              onGroupSettings();
-            }}
-          >
-            <Settings2 size={15} strokeWidth={2} aria-hidden />
-            <span>Chủ đề nhóm</span>
-          </button>
-        ) : null}
-
-        {onManageMembers ? (
-          <button
-            type="button"
-            className="cd-v4-role-menu-btn"
-            role="menuitem"
-            onClick={() => {
-              setMenuOpen(false);
-              setNotifyOpen(false);
-              onManageMembers();
-            }}
-          >
-            <UserCog size={15} strokeWidth={2} aria-hidden />
-            <span>Thành viên &amp; quyền</span>
+            <Pencil size={15} strokeWidth={2} aria-hidden />
+            <span>Quản lý cộng đồng</span>
           </button>
         ) : null}
 
@@ -401,14 +401,48 @@ export function CongDongRoleButton({
     <>
       <div className="cd-v4-id-actions" ref={rootRef}>
         {!showRoleMenu ? (
-          <button
-            type="button"
-            className="cd-v4-btn cd-v4-btn--primary cd-v4-btn--grow"
-            onClick={join}
-            disabled={joinPending}
-          >
-            {joinPending ? "Đang tham gia…" : roleButtonLabel(null)}
-          </button>
+          joinPending ? (
+            <div className="cd-v4-role-wrap cd-v4-role-wrap--grow">
+              <button
+                type="button"
+                className="cd-v4-btn cd-v4-btn--ghost cd-v4-btn--grow"
+                disabled
+              >
+                Đang chờ duyệt
+              </button>
+              <button
+                type="button"
+                className="cd-v4-btn cd-v4-btn--ghost"
+                onClick={cancelPending}
+                disabled={leavePending}
+              >
+                {leavePending ? "Đang huỷ…" : "Huỷ"}
+              </button>
+            </div>
+          ) : joinMode === "invite_only" ? (
+            <button
+              type="button"
+              className="cd-v4-btn cd-v4-btn--ghost cd-v4-btn--grow"
+              disabled
+            >
+              Chỉ vào qua lời mời
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="cd-v4-btn cd-v4-btn--primary cd-v4-btn--grow"
+              onClick={join}
+              disabled={joinBusy}
+            >
+              {joinBusy
+                ? joinMode === "request"
+                  ? "Đang gửi…"
+                  : "Đang tham gia…"
+                : joinMode === "request"
+                  ? "Xin tham gia"
+                  : roleButtonLabel(null)}
+            </button>
+          )
         ) : (
           <div className="cd-v4-role-wrap cd-v4-role-wrap--grow">
             <button

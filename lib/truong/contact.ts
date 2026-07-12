@@ -7,44 +7,159 @@ import {
 } from "@/lib/truong/chi-nhanh";
 import type { TruongChiNhanh, TruongListItem } from "@/lib/truong/types";
 
-/** Mã enum `tinh_thanh_vn_enum` trên Supabase (không trùng slug UI cũ). */
-const TINH_THANH_ALLOWED = [
+/**
+ * Mã enum `tinh_thanh_vn_enum` trên Supabase (CINS).
+ * 34 đơn vị hành chính sau Nghị quyết 202/2025/QH15 (hiệu lực 1/7/2025).
+ * TP.HCM = `hcm` (không phải `ho_chi_minh`).
+ *
+ * Thứ tự UI: HCM · Hà Nội · Đà Nẵng ghim đầu, còn lại A→Z theo tên Việt.
+ */
+export const TINH_THANH_ALLOWED = [
   "hcm",
   "ha_noi",
   "da_nang",
+  "an_giang",
+  "bac_ninh",
+  "ca_mau",
   "can_tho",
-  "hai_phong",
+  "cao_bang",
+  "dak_lak",
+  "dien_bien",
   "dong_nai",
+  "dong_thap",
+  "gia_lai",
+  "ha_tinh",
+  "hai_phong",
+  "hung_yen",
+  "hue",
+  "khanh_hoa",
+  "lai_chau",
+  "lam_dong",
+  "lang_son",
+  "lao_cai",
+  "nghe_an",
+  "ninh_binh",
+  "phu_tho",
+  "quang_ngai",
+  "quang_ninh",
+  "quang_tri",
+  "son_la",
+  "tay_ninh",
+  "thai_nguyen",
+  "thanh_hoa",
+  "tuyen_quang",
+  "vinh_long",
 ] as const;
 
 export type TinhThanhCode = (typeof TINH_THANH_ALLOWED)[number];
 
-/** Alias / mã cũ trong code hoặc dữ liệu legacy → mã enum DB. */
+const TINH_THANH_LABELS: Record<TinhThanhCode, string> = {
+  hcm: "TP. Hồ Chí Minh",
+  ha_noi: "Hà Nội",
+  da_nang: "Đà Nẵng",
+  an_giang: "An Giang",
+  bac_ninh: "Bắc Ninh",
+  ca_mau: "Cà Mau",
+  can_tho: "Cần Thơ",
+  cao_bang: "Cao Bằng",
+  dak_lak: "Đắk Lắk",
+  dien_bien: "Điện Biên",
+  dong_nai: "Đồng Nai",
+  dong_thap: "Đồng Tháp",
+  gia_lai: "Gia Lai",
+  ha_tinh: "Hà Tĩnh",
+  hai_phong: "Hải Phòng",
+  hung_yen: "Hưng Yên",
+  hue: "Huế",
+  khanh_hoa: "Khánh Hòa",
+  lai_chau: "Lai Châu",
+  lam_dong: "Lâm Đồng",
+  lang_son: "Lạng Sơn",
+  lao_cai: "Lào Cai",
+  nghe_an: "Nghệ An",
+  ninh_binh: "Ninh Bình",
+  phu_tho: "Phú Thọ",
+  quang_ngai: "Quảng Ngãi",
+  quang_ninh: "Quảng Ninh",
+  quang_tri: "Quảng Trị",
+  son_la: "Sơn La",
+  tay_ninh: "Tây Ninh",
+  thai_nguyen: "Thái Nguyên",
+  thanh_hoa: "Thanh Hóa",
+  tuyen_quang: "Tuyên Quang",
+  vinh_long: "Vĩnh Long",
+};
+
+/** Alias / mã legacy (trước sáp nhập hoặc slug cũ) → mã enum DB hiện hành. */
 const TINH_THANH_ALIASES: Record<string, TinhThanhCode> = {
+  // HCM
   ho_chi_minh: "hcm",
   "tp.hcm": "hcm",
   tp_hcm: "hcm",
   tphcm: "hcm",
   "tp ho chi minh": "hcm",
+  binh_duong: "hcm",
+  binhduong: "hcm",
+  ba_ria_vung_tau: "hcm",
+  brvt: "hcm",
+  vung_tau: "hcm",
+  // Hà Nội / Đà Nẵng
   hn: "ha_noi",
   hanoi: "ha_noi",
   danang: "da_nang",
   dn: "da_nang",
+  quang_nam: "da_nang",
+  // Thành phố khác
   cantho: "can_tho",
+  soc_trang: "can_tho",
+  hau_giang: "can_tho",
   haiphong: "hai_phong",
+  hai_duong: "hai_phong",
+  // Tỉnh sau sáp nhập
   dongnai: "dong_nai",
-  binh_duong: "dong_nai",
-  binhduong: "dong_nai",
+  binh_phuoc: "dong_nai",
+  ha_giang: "tuyen_quang",
+  yen_bai: "lao_cai",
+  bac_kan: "thai_nguyen",
+  vinh_phuc: "phu_tho",
+  hoa_binh: "phu_tho",
+  bac_giang: "bac_ninh",
+  thai_binh: "hung_yen",
+  nam_dinh: "ninh_binh",
+  ha_nam: "ninh_binh",
+  quang_binh: "quang_tri",
+  kon_tum: "quang_ngai",
+  binh_dinh: "gia_lai",
+  ninh_thuan: "khanh_hoa",
+  dak_nong: "lam_dong",
+  binh_thuan: "lam_dong",
+  phu_yen: "dak_lak",
+  long_an: "tay_ninh",
+  ben_tre: "vinh_long",
+  tra_vinh: "vinh_long",
+  tien_giang: "dong_thap",
+  bac_lieu: "ca_mau",
+  kien_giang: "an_giang",
 };
+
+const PINNED_CODES: readonly TinhThanhCode[] = ["hcm", "ha_noi", "da_nang"];
+
+function buildSelectOptions(): { value: string; label: string }[] {
+  const pinned = PINNED_CODES.map((value) => ({
+    value,
+    label: TINH_THANH_LABELS[value],
+  }));
+  const rest = TINH_THANH_ALLOWED.filter(
+    (code) => !PINNED_CODES.includes(code),
+  )
+    .map((value) => ({ value, label: TINH_THANH_LABELS[value] }))
+    .sort((a, b) => a.label.localeCompare(b.label, "vi"));
+  return [...pinned, ...rest];
+}
 
 export const TINH_THANH_OPTIONS: { value: string; label: string }[] = [
   { value: "", label: "— Chưa chọn —" },
-  { value: "hcm", label: "TP. Hồ Chí Minh" },
-  { value: "ha_noi", label: "Hà Nội" },
-  { value: "da_nang", label: "Đà Nẵng" },
-  { value: "can_tho", label: "Cần Thơ" },
-  { value: "hai_phong", label: "Hải Phòng" },
-  { value: "dong_nai", label: "Đồng Nai" },
+  ...buildSelectOptions(),
 ];
 
 /** Dropdown bắt buộc chọn khu vực (không có option rỗng). */
@@ -52,21 +167,18 @@ export const TINH_THANH_SELECT_OPTIONS = TINH_THANH_OPTIONS.filter(
   (o) => o.value !== "",
 );
 
-const TINH_THANH_LABELS: Record<string, string> = {
-  hcm: "TP. Hồ Chí Minh",
-  ho_chi_minh: "TP. Hồ Chí Minh",
-  ha_noi: "Hà Nội",
-  da_nang: "Đà Nẵng",
-  can_tho: "Cần Thơ",
-  hai_phong: "Hải Phòng",
-  dong_nai: "Đồng Nai",
-  binh_duong: "Bình Dương",
-};
+export const TINH_THANH_CODE_SET = new Set<string>(TINH_THANH_ALLOWED);
 
 export function labelTinhThanh(code: string | null | undefined): string | null {
   const key = (code ?? "").trim().toLowerCase();
   if (!key) return null;
-  if (TINH_THANH_LABELS[key]) return TINH_THANH_LABELS[key];
+  const normalized = normalizeTinhThanhForDb(key);
+  if (normalized && TINH_THANH_LABELS[normalized as TinhThanhCode]) {
+    return TINH_THANH_LABELS[normalized as TinhThanhCode];
+  }
+  if (key in TINH_THANH_LABELS) {
+    return TINH_THANH_LABELS[key as TinhThanhCode];
+  }
   return key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
@@ -80,7 +192,7 @@ export function formatSuKienDiaDiemDisplay(
   return region || detail || null;
 }
 
-/** Chuẩn hóa trước khi PATCH — tránh lỗi enum DB (vd. \"HCM\" → ho_chi_minh). */
+/** Chuẩn hóa trước khi PATCH — tránh lỗi enum DB. */
 export function normalizeTinhThanhForDb(value: unknown): string | null {
   if (value === "" || value === undefined || value === null) return null;
   const key = String(value).trim().toLowerCase();

@@ -9,7 +9,6 @@ import {
   listDirectThreads,
   markRoomRead,
   MESSAGE_SELECT,
-  mapMessageFromRow,
   messagePreview,
   type MessageRow,
 } from "@/lib/chat/direct-message";
@@ -619,6 +618,8 @@ export async function listOrgStudentMessagesForStaff(params: {
   orgId: string;
   studentUserId: string;
   staffUserId: string;
+  /** Phòng đang chọn trên list — ưu tiên hơn canonical để tránh lệch preview/detail. */
+  roomId?: string | null;
   markRead?: boolean;
 }): Promise<
   | { ok: true; roomId: string; messages: ChatMessage[] }
@@ -629,11 +630,45 @@ export async function listOrgStudentMessagesForStaff(params: {
   }
 
   try {
-    const roomId = await findOrCreateOrgStudentRoom(
-      params.orgId,
-      params.studentUserId,
-    );
     const admin = createServiceRoleClient();
+    let roomId = params.roomId?.trim() || "";
+
+    if (roomId) {
+      const { data: room } = await admin
+        .from("chat_phong")
+        .select("id, loai_phong, id_org_dai_dien")
+        .eq("id", roomId)
+        .maybeSingle<{
+          id: string;
+          loai_phong: string;
+          id_org_dai_dien: string | null;
+        }>();
+
+      const { data: studentMember } = await admin
+        .from("chat_thanh_vien")
+        .select("id")
+        .eq("id_phong", roomId)
+        .eq("id_nguoi_dung", params.studentUserId)
+        .is("roi_luc", null)
+        .maybeSingle<{ id: string }>();
+
+      if (
+        !room ||
+        room.loai_phong !== ORG_ROOM ||
+        room.id_org_dai_dien !== params.orgId ||
+        !studentMember?.id
+      ) {
+        roomId = "";
+      }
+    }
+
+    if (!roomId) {
+      roomId = await findOrCreateOrgStudentRoom(
+        params.orgId,
+        params.studentUserId,
+      );
+    }
+
     const { data: rows, error } = await admin
       .from("chat_tin_nhan")
       .select(MESSAGE_SELECT)
@@ -676,13 +711,18 @@ export async function sendOrgMessageToStudent(params: {
   orgId: string;
   studentUserId: string;
   staffUserId: string;
-  body: string;
+  body?: string;
+  cloudflareImageId?: string;
+  emojiMucId?: string;
 }): Promise<
   | { ok: true; roomId: string; message: ChatMessage }
   | { ok: false; error: string }
 > {
-  const text = params.body.trim();
-  if (!text) {
+  const text = params.body?.trim() ?? "";
+  const cloudflareImageId = params.cloudflareImageId?.trim();
+  const emojiMucId = params.emojiMucId?.trim();
+
+  if (!text && !cloudflareImageId && !emojiMucId) {
     return { ok: false, error: "Tin nhắn trống." };
   }
 
@@ -711,27 +751,19 @@ export async function sendOrgMessageToStudent(params: {
       params.studentUserId,
     );
     await ensureStaffOrgRoomMember(admin, roomId, params.staffUserId);
-    const now = new Date().toISOString();
 
-    const { data, error } = await admin
-      .from("chat_tin_nhan")
-      .insert({
-        id_phong: roomId,
-        id_nguoi_gui: params.staffUserId,
-        noi_dung: text,
-        loai_tin: "text",
-      })
-      .select(MESSAGE_SELECT)
-      .single<MessageRow>();
+    const { sendRoomMessage } = await import("@/lib/chat/direct-message");
+    const result = await sendRoomMessage(roomId, params.staffUserId, {
+      body: text,
+      cloudflareImageId,
+      emojiMucId,
+    });
 
-    if (error || !data) {
-      return { ok: false, error: "Không gửi được tin nhắn." };
+    if (!result.ok) {
+      return { ok: false, error: result.error };
     }
 
-    await admin.from("chat_phong").update({ cap_nhat_luc: now }).eq("id", roomId);
-
-    const message = mapMessageFromRow(data, params.staffUserId);
-    return { ok: true, roomId, message };
+    return { ok: true, roomId, message: result.message };
   } catch (e) {
     return {
       ok: false,
@@ -802,6 +834,7 @@ export async function listOrgThreadsForUser(viewerId: string): Promise<ChatThrea
       "id_phong, chat_phong!inner(id, loai_phong, id_org_dai_dien, cap_nhat_luc)",
     )
     .eq("id_nguoi_dung", viewerId)
+    .eq("vai_tro", "thanh_vien")
     .is("roi_luc", null)
     .eq("chat_phong.loai_phong", ORG_ROOM);
 

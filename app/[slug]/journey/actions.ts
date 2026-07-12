@@ -36,6 +36,7 @@ import {
 } from "@/lib/journey/plain-text-bg";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { notifyMilestoneComment } from "@/lib/social/follow";
+import { TINH_THANH_CODE_SET } from "@/lib/truong/contact";
 
 const GIAI_DOAN_VALID = new Set<GiaiDoan>([
   "moi_bat_dau",
@@ -358,47 +359,6 @@ export type UpdateProfileInput = {
   giaiDoan: GiaiDoan;
 };
 
-/* Danh sách phải khớp 1-1 với enum `tinh_thanh_vn_enum` trên Supabase
- * (project ospzzzxcomrmhqrnkoiw). Lưu ý: TP. HCM key là `hcm`, không phải
- * `ho_chi_minh` — đã từng gây lỗi `invalid input value for enum…`. */
-const TINH_THANH_OPTIONS = new Set<string>([
-  "ha_noi",
-  "hue",
-  "hai_phong",
-  "da_nang",
-  "hcm",
-  "can_tho",
-  "cao_bang",
-  "lang_son",
-  "quang_ninh",
-  "dien_bien",
-  "lai_chau",
-  "son_la",
-  "nghe_an",
-  "ha_tinh",
-  "thanh_hoa",
-  "tuyen_quang",
-  "lao_cai",
-  "thai_nguyen",
-  "phu_tho",
-  "bac_ninh",
-  "hung_yen",
-  "ninh_binh",
-  "quang_tri",
-  "quang_ngai",
-  "gia_lai",
-  "khanh_hoa",
-  "dak_lak",
-  "lam_dong",
-  "dong_nai",
-  "tay_ninh",
-  "vinh_long",
-  "dong_thap",
-  "an_giang",
-  "ca_mau",
-  "",
-]);
-
 const URL_RE = /^https?:\/\/[\w\-._~:/?#[\]@!$&'()*+,;=%]+$/i;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -445,7 +405,7 @@ export async function updateProfile(
   }
 
   const tinhThanh = (input.tinhThanh ?? "").trim().toLowerCase();
-  if (tinhThanh && !TINH_THANH_OPTIONS.has(tinhThanh)) {
+  if (tinhThanh && !TINH_THANH_CODE_SET.has(tinhThanh)) {
     return {
       ok: false,
       error: "Tỉnh / thành phố không hợp lệ.",

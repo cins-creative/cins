@@ -11,6 +11,7 @@ import { ChatMessageAlbum } from "@/components/cins/ChatMessageAlbum";
 import { ChatMessageBody } from "@/components/cins/ChatMessageBody";
 import { ChatMessageReactions } from "@/components/cins/ChatMessageReactions";
 import { ChatMessageReplyQuote } from "@/components/cins/ChatMessageReplyQuote";
+import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
 import { formatChatTime } from "@/lib/chat/avatar";
 import { groupChatMessages } from "@/lib/chat/message-albums";
 import {
@@ -45,6 +46,63 @@ function PinBadge() {
 
 function messageRowId(messageId: string): string {
   return `cins-chat-msg-${messageId}`;
+}
+
+function SenderCluster({
+  msg,
+  renderTheirAvatar,
+  showSenderNames,
+  showTime = false,
+}: {
+  msg: ChatMessage;
+  renderTheirAvatar?: (msg: ChatMessage) => ReactNode;
+  showSenderNames?: boolean;
+  showTime?: boolean;
+}) {
+  const avatar = renderTheirAvatar?.(msg) ?? null;
+  const name =
+    showSenderNames && msg.senderName ? (
+      <span className="cins-chat-sender-name">{msg.senderName}</span>
+    ) : null;
+  const time =
+    showTime ? (
+      <span className="cins-chat-sender-time">
+        {msg.edited ? <span className="cins-chat-edited">đã sửa</span> : null}
+        <time dateTime={msg.sentAt}>{formatChatTime(msg.sentAt)}</time>
+      </span>
+    ) : null;
+
+  if (!avatar && !name && !time) return null;
+
+  const identity = (
+    <div className="cins-chat-sender-identity">
+      {avatar}
+      {name || time ? (
+        <span className="cins-chat-sender-text">
+          {name}
+          {time}
+        </span>
+      ) : null}
+    </div>
+  );
+
+  const slug = msg.senderSlug?.trim();
+  if (!slug) {
+    return <div className="cins-chat-sender-cluster">{identity}</div>;
+  }
+
+  return (
+    <div className="cins-chat-sender-cluster">
+      <JourneyUserPopover
+        slug={slug}
+        fallbackName={msg.senderName}
+        fallbackAvatarUrl={msg.senderAvatarUrl}
+        backdropZIndex={13000}
+      >
+        {identity}
+      </JourneyUserPopover>
+    </div>
+  );
 }
 
 function BubbleMeta({
@@ -117,31 +175,53 @@ function SingleMessageBubble({
   const caption = layout === "media-caption" ? msg.body.trim() : "";
 
   if (msg.deleted) {
+    const useCluster = !isMe && Boolean(showSenderNames);
     return (
       <div
         id={messageRowId(msg.id)}
-        className={`cins-chat-bubble-row ${isMe ? "is-me" : "is-them"}${msg.pinned ? " is-pinned-row" : ""}`}
+        className={`cins-chat-bubble-row ${isMe ? "is-me" : "is-them"}${msg.pinned ? " is-pinned-row" : ""}${useCluster ? " has-sender-cluster" : ""}`}
       >
-        {msg.from === "them" ? renderTheirAvatar?.(msg) : null}
-        <div className={`cins-chat-bubble is-recalled${isMe ? " is-me" : " is-them"}`}>
-          <p className="cins-chat-recalled">{recalledLabel(msg)}</p>
-          <BubbleMeta msg={msg} />
-        </div>
+        {useCluster ? (
+          <div className="cins-chat-msg-stack">
+            <SenderCluster
+              msg={msg}
+              renderTheirAvatar={renderTheirAvatar}
+              showSenderNames={showSenderNames}
+              showTime
+            />
+            <div className={`cins-chat-bubble is-recalled${isMe ? " is-me" : " is-them"}`}>
+              <p className="cins-chat-recalled">{recalledLabel(msg)}</p>
+            </div>
+          </div>
+        ) : (
+          <>
+            {msg.from === "them" ? renderTheirAvatar?.(msg) : null}
+            <div className={`cins-chat-bubble is-recalled${isMe ? " is-me" : " is-them"}`}>
+              <p className="cins-chat-recalled">{recalledLabel(msg)}</p>
+              <BubbleMeta msg={msg} />
+            </div>
+          </>
+        )}
       </div>
     );
   }
+
+  const useSenderCluster = !isMe && Boolean(showSenderNames);
 
   const rowClass = [
     "cins-chat-bubble-row",
     isMe ? "is-me" : "is-them",
     msg.pinned ? "is-pinned-row" : "",
     layout === "media-only" || layout === "sticker" ? "is-media-row" : "",
+    useSenderCluster ? "has-sender-cluster" : "",
   ]
     .filter(Boolean)
     .join(" ");
 
   const metaBelowMedia =
-    !isEditing && (layout === "media-only" || layout === "sticker") ? (
+    !isEditing &&
+    !useSenderCluster &&
+    (layout === "media-only" || layout === "sticker") ? (
       <BubbleMeta msg={msg} className="cins-chat-media-meta" />
     ) : null;
 
@@ -175,7 +255,7 @@ function SingleMessageBubble({
       </div>
       <div className="cins-chat-media-caption">
         <p>{caption}</p>
-        <BubbleMeta msg={msg} />
+        {!useSenderCluster ? <BubbleMeta msg={msg} /> : null}
       </div>
     </>
   ) : layout === "media-only" || layout === "sticker" ? (
@@ -186,36 +266,51 @@ function SingleMessageBubble({
   ) : (
     <>
       <ChatMessageBody msg={msg} />
-      {!isEditing ? <BubbleMeta msg={msg} /> : null}
+      {!isEditing && !useSenderCluster ? <BubbleMeta msg={msg} /> : null}
     </>
+  );
+
+  const bubbleBlock = (
+    <div className="cins-chat-bubble-wrap">
+      <div className={bubbleClassName(msg, isMe, isEditing)}>
+        {msg.pinned && !isEditing ? <PinBadge /> : null}
+        {msg.replyTo ? <ChatMessageReplyQuote reply={msg.replyTo} /> : null}
+        {bodyContent}
+        {!isEditing && msg.reactions?.length && actionHandlers ? (
+          <ChatMessageReactions
+            placement="corner"
+            reactions={msg.reactions}
+            onToggle={(emoji, active) => actionHandlers.onReaction(msg, emoji, active)}
+          />
+        ) : null}
+        {actionHandlers && actionsInBubble ? (
+          <ChatMessageActions msg={msg} handlers={actionHandlers} />
+        ) : null}
+      </div>
+      {actionHandlers && !actionsInBubble ? (
+        <ChatMessageActions msg={msg} handlers={actionHandlers} />
+      ) : null}
+    </div>
   );
 
   return (
     <div id={messageRowId(msg.id)} className={rowClass}>
-      {msg.from === "them" ? renderTheirAvatar?.(msg) : null}
-      <div className="cins-chat-bubble-wrap">
-        {showSenderNames && msg.from === "them" && msg.senderName ? (
-          <span className="cins-chat-sender-name">{msg.senderName}</span>
-        ) : null}
-        <div className={bubbleClassName(msg, isMe, isEditing)}>
-          {msg.pinned && !isEditing ? <PinBadge /> : null}
-          {msg.replyTo ? <ChatMessageReplyQuote reply={msg.replyTo} /> : null}
-          {bodyContent}
-          {!isEditing && msg.reactions?.length && actionHandlers ? (
-            <ChatMessageReactions
-              placement="corner"
-              reactions={msg.reactions}
-              onToggle={(emoji, active) => actionHandlers.onReaction(msg, emoji, active)}
-            />
-          ) : null}
-          {actionHandlers && actionsInBubble ? (
-            <ChatMessageActions msg={msg} handlers={actionHandlers} />
-          ) : null}
+      {useSenderCluster ? (
+        <div className="cins-chat-msg-stack">
+          <SenderCluster
+            msg={msg}
+            renderTheirAvatar={renderTheirAvatar}
+            showSenderNames={showSenderNames}
+            showTime
+          />
+          {bubbleBlock}
         </div>
-        {actionHandlers && !actionsInBubble ? (
-          <ChatMessageActions msg={msg} handlers={actionHandlers} />
-        ) : null}
-      </div>
+      ) : (
+        <>
+          {msg.from === "them" ? renderTheirAvatar?.(msg) : null}
+          {bubbleBlock}
+        </>
+      )}
     </div>
   );
 }
@@ -276,37 +371,61 @@ export function ChatMessageThreadItems({
         const caption = captionMsg?.body.trim() ?? "";
         const captionAt = captionMsg?.sentAt ?? item.sentAt;
         const albumActionMsg = captionMsg ?? activeMessages[0];
+        const useSenderCluster = !isMe && Boolean(showSenderNames);
+        const headMsg = captionMsg ?? albumActionMsg ?? item.messages[0];
 
         return (
           <Fragment key={`album-${firstId}`}>
             {caption ? (
               <div
                 id={captionMsg ? messageRowId(captionMsg.id) : undefined}
-                className={`cins-chat-bubble-row ${isMe ? "is-me" : "is-them"}${captionMsg?.pinned ? " is-pinned-row" : ""}`}
+                className={`cins-chat-bubble-row ${isMe ? "is-me" : "is-them"}${captionMsg?.pinned ? " is-pinned-row" : ""}${useSenderCluster ? " has-sender-cluster" : ""}`}
               >
-                {item.from === "them" ? renderTheirAvatar?.(captionMsg ?? item.messages[0]) : null}
-                <div className="cins-chat-bubble-wrap">
-                  {showSenderNames &&
-                  item.from === "them" &&
-                  (captionMsg ?? item.messages[0]).senderName ? (
-                    <span className="cins-chat-sender-name">
-                      {(captionMsg ?? item.messages[0]).senderName}
-                    </span>
-                  ) : null}
-                  <div
-                    className={`cins-chat-bubble${isMe ? " is-me" : " is-them"} has-media-actions${captionMsg?.pinned ? " is-pinned" : ""}`}
-                  >
-                    {captionMsg?.pinned ? <PinBadge /> : null}
-                    <p>{caption}</p>
-                    <BubbleMeta msg={captionMsg ?? item.messages[0]} />
-                    {actionHandlers && albumActionMsg ? (
-                      <ChatMessageActions
-                        msg={albumActionMsg}
-                        handlers={actionHandlers}
-                      />
-                    ) : null}
+                {useSenderCluster ? (
+                  <div className="cins-chat-msg-stack">
+                    <SenderCluster
+                      msg={headMsg}
+                      renderTheirAvatar={renderTheirAvatar}
+                      showSenderNames={showSenderNames}
+                      showTime
+                    />
+                    <div className="cins-chat-bubble-wrap">
+                      <div
+                        className={`cins-chat-bubble${isMe ? " is-me" : " is-them"} has-media-actions${captionMsg?.pinned ? " is-pinned" : ""}`}
+                      >
+                        {captionMsg?.pinned ? <PinBadge /> : null}
+                        <p>{caption}</p>
+                        {actionHandlers && albumActionMsg ? (
+                          <ChatMessageActions
+                            msg={albumActionMsg}
+                            handlers={actionHandlers}
+                          />
+                        ) : null}
+                      </div>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <>
+                    {item.from === "them"
+                      ? renderTheirAvatar?.(captionMsg ?? item.messages[0])
+                      : null}
+                    <div className="cins-chat-bubble-wrap">
+                      <div
+                        className={`cins-chat-bubble${isMe ? " is-me" : " is-them"} has-media-actions${captionMsg?.pinned ? " is-pinned" : ""}`}
+                      >
+                        {captionMsg?.pinned ? <PinBadge /> : null}
+                        <p>{caption}</p>
+                        <BubbleMeta msg={captionMsg ?? item.messages[0]} />
+                        {actionHandlers && albumActionMsg ? (
+                          <ChatMessageActions
+                            msg={albumActionMsg}
+                            handlers={actionHandlers}
+                          />
+                        ) : null}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             ) : null}
             <div
@@ -315,45 +434,69 @@ export function ChatMessageThreadItems({
                   ? messageRowId(albumActionMsg.id)
                   : undefined
               }
-              className={`cins-chat-bubble-row is-media-row ${isMe ? "is-me" : "is-them"}${!isMe && caption ? " is-album-follow" : ""}${!caption && albumActionMsg?.pinned ? " is-pinned-row" : ""}`}
+              className={`cins-chat-bubble-row is-media-row ${isMe ? "is-me" : "is-them"}${!isMe && caption ? " is-album-follow" : ""}${!caption && albumActionMsg?.pinned ? " is-pinned-row" : ""}${useSenderCluster && !caption ? " has-sender-cluster" : ""}`}
             >
-              {item.from === "them" && !caption
-                ? renderTheirAvatar?.(albumActionMsg ?? item.messages[0])
-                : null}
-              <div className="cins-chat-bubble-wrap">
-                {showSenderNames &&
-                item.from === "them" &&
-                !caption &&
-                (albumActionMsg ?? item.messages[0]).senderName ? (
-                  <span className="cins-chat-sender-name">
-                    {(albumActionMsg ?? item.messages[0]).senderName}
-                  </span>
-                ) : null}
-                <div
-                  className={`cins-chat-bubble has-album has-media-actions${isMe ? " is-me" : " is-them"}${!caption && albumActionMsg?.pinned ? " is-pinned" : ""}`}
-                >
-                  {!caption && albumActionMsg?.pinned ? <PinBadge /> : null}
-                  <div className="cins-chat-media-block">
-                    <ChatMessageAlbum messages={activeMessages} />
-                    {!caption ? (
-                      <BubbleMeta
-                        msg={albumActionMsg ?? item.messages[0]}
-                        className="cins-chat-media-meta"
-                      />
-                    ) : (
-                      <time className="cins-chat-media-meta" dateTime={item.sentAt}>
-                        {formatChatTime(captionAt)}
-                      </time>
-                    )}
+              {useSenderCluster && !caption ? (
+                <div className="cins-chat-msg-stack">
+                  <SenderCluster
+                    msg={albumActionMsg ?? item.messages[0]}
+                    renderTheirAvatar={renderTheirAvatar}
+                    showSenderNames={showSenderNames}
+                    showTime
+                  />
+                  <div className="cins-chat-bubble-wrap">
+                    <div
+                      className={`cins-chat-bubble has-album has-media-actions${isMe ? " is-me" : " is-them"}${!caption && albumActionMsg?.pinned ? " is-pinned" : ""}`}
+                    >
+                      {!caption && albumActionMsg?.pinned ? <PinBadge /> : null}
+                      <div className="cins-chat-media-block">
+                        <ChatMessageAlbum messages={activeMessages} />
+                      </div>
+                      {!caption && actionHandlers && albumActionMsg ? (
+                        <ChatMessageActions
+                          msg={albumActionMsg}
+                          handlers={actionHandlers}
+                        />
+                      ) : null}
+                    </div>
                   </div>
-                  {!caption && actionHandlers && albumActionMsg ? (
-                    <ChatMessageActions
-                      msg={albumActionMsg}
-                      handlers={actionHandlers}
-                    />
-                  ) : null}
                 </div>
-              </div>
+              ) : (
+                <>
+                  {item.from === "them" && !caption
+                    ? renderTheirAvatar?.(albumActionMsg ?? item.messages[0])
+                    : null}
+                  <div className="cins-chat-bubble-wrap">
+                    <div
+                      className={`cins-chat-bubble has-album has-media-actions${isMe ? " is-me" : " is-them"}${!caption && albumActionMsg?.pinned ? " is-pinned" : ""}`}
+                    >
+                      {!caption && albumActionMsg?.pinned ? <PinBadge /> : null}
+                      <div className="cins-chat-media-block">
+                        <ChatMessageAlbum messages={activeMessages} />
+                        {!caption ? (
+                          <BubbleMeta
+                            msg={albumActionMsg ?? item.messages[0]}
+                            className="cins-chat-media-meta"
+                          />
+                        ) : !useSenderCluster ? (
+                          <time
+                            className="cins-chat-media-meta"
+                            dateTime={item.sentAt}
+                          >
+                            {formatChatTime(captionAt)}
+                          </time>
+                        ) : null}
+                      </div>
+                      {!caption && actionHandlers && albumActionMsg ? (
+                        <ChatMessageActions
+                          msg={albumActionMsg}
+                          handlers={actionHandlers}
+                        />
+                      ) : null}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </Fragment>
         );

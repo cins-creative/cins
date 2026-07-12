@@ -6,7 +6,8 @@ import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 
 export const metadata: Metadata = {
   title: "Tạo cộng đồng | CINs",
-  description: "Tạo cộng đồng nghề trên CINs — thảo luận có ngữ cảnh verified journey.",
+  description:
+    "Tạo cộng đồng nghề trên CINs — thảo luận có ngữ cảnh verified journey.",
 };
 
 export default async function TaoCongDongPage() {

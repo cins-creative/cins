@@ -79,6 +79,8 @@ import {
   messagePreviewText,
 } from "@/lib/chat/optimistic-message";
 import { appendChatMessageIfNew, mergeChatMessageUpdate, reconcileChatMessage } from "@/lib/chat/realtime";
+import { applyChatViewerPerspective } from "@/lib/chat/message-perspective";
+import { applyKnownGroupSender } from "@/lib/chat/apply-known-group-sender";
 import { replaceOptimisticAlbumWithRealMessages } from "@/lib/chat/replace-album-batch";
 import {
   isPendingRoomId,
@@ -470,6 +472,8 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   scrollMessagesToBottomRef.current = scrollMessagesToBottom;
   const forcedEmptyReloadRef = useRef<Set<string>>(new Set());
   const highlightTimerRef = useRef<number | null>(null);
+  /** Đã tự mở thread đầu (hoặc có launch) — chỉ một lần mỗi lần mở overlay. */
+  const autoOpenedTopRef = useRef(Boolean(launch?.thread));
 
   pendingImagesRef.current = pendingImages;
 
@@ -708,6 +712,11 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
         unhideRoom(event.roomId);
       }
 
+      const message = applyChatViewerPerspective(
+        [event.message],
+        viewerProfileId,
+      )[0]!;
+
       let missingThread = false;
 
       setThreads((prev) => {
@@ -715,6 +724,9 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
         const next = prev.map((t) => {
           if (t.roomId !== event.roomId) return t;
           found = true;
+          const enriched = t.isGroup
+            ? applyKnownGroupSender(message, t.memberAvatars)
+            : message;
           const isActive = t.roomId === activeRoomIdRef.current;
           const pendingAlbumId =
             pendingAlbumByRoomRef.current.get(event.roomId) ?? null;
@@ -724,14 +736,14 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
             lastAt: event.lastAt,
             messages: isActive
               ? event.event === "update"
-                ? mergeChatMessageUpdate(t.messages, event.message)
-                : appendChatMessageIfNew(t.messages, event.message, {
+                ? mergeChatMessageUpdate(t.messages, enriched)
+                : appendChatMessageIfNew(t.messages, enriched, {
                     pendingAlbumOptimisticId: pendingAlbumId,
                   })
               : t.messages,
             unread: isActive
               ? 0
-              : event.event === "insert" && event.message.from === "them"
+              : event.event === "insert" && enriched.from === "them"
                 ? t.unread + 1
                 : t.unread,
           };
@@ -758,12 +770,12 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
 
       if (
         event.roomId === activeRoomIdRef.current &&
-        event.message.from === "them"
+        message.from === "them"
       ) {
         void fetch(`/api/chat/rooms/${event.roomId}/read`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id_tin_nhan_cuoi: event.message.id }),
+          body: JSON.stringify({ id_tin_nhan_cuoi: message.id }),
         });
       }
 
@@ -780,7 +792,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
         }
       }
     });
-  }, [subscribeChatMessages, unhideRoom]);
+  }, [subscribeChatMessages, unhideRoom, viewerProfileId]);
 
   useEffect(() => {
     if (!launch?.thread) return;
@@ -839,12 +851,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
         });
         onUnreadChange(cached.totalUnread);
         setLoadingThreads(false);
-        setActiveId((current) => {
-          const launchThread = launchRef.current?.thread;
-          if (launchThread) return launchThread.id;
-          if (current) return current;
-          return cached.threads[0]?.id ?? "";
-        });
+        // Không set activeId ở đây — effect auto-open chọn thread đầu danh sách đã sort.
       } else if (!launchRef.current?.thread) {
         setLoadingThreads(true);
       }
@@ -871,13 +878,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
           return next;
         });
         onUnreadChange(snapshot.totalUnread);
-
-        setActiveId((current) => {
-          const launchThread = launchRef.current?.thread;
-          if (launchThread) return launchThread.id;
-          if (current) return current;
-          return snapshot.threads[0]?.id ?? "";
-        });
+        // activeId: launch effect hoặc auto-open top thread.
       } catch (error) {
         if (!launchRef.current?.thread && !cached?.threads.length) {
           setLoadError(
@@ -966,9 +967,16 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
       const cached = getCachedRoomMessages(roomId);
       if (cached?.length) {
         setThreads((prev) => {
-          const next = prev.map((t) =>
-            t.roomId === roomId ? { ...t, messages: cached, unread: 0 } : t,
-          );
+          const next = prev.map((t) => {
+            if (t.roomId !== roomId) return t;
+            const cachedView = applyChatViewerPerspective(
+              cached,
+              viewerProfileId,
+            ).map((msg) =>
+              t.isGroup ? applyKnownGroupSender(msg, t.memberAvatars) : msg,
+            );
+            return { ...t, messages: cachedView, unread: 0 };
+          });
           onUnreadChange(next.reduce((sum, t) => sum + t.unread, 0));
           return next;
         });
@@ -983,16 +991,25 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
           throw new Error("Không tải được tin nhắn.");
         }
 
+        const baseMessages = applyChatViewerPerspective(
+          page.messages,
+          viewerProfileId,
+        );
         hasMoreByRoomRef.current.set(roomId, page.hasMore);
         setHasMoreByRoom((prev) => ({ ...prev, [roomId]: page.hasMore }));
-        if (viewerProfileId) {
-          writeRoomMessagesCache(viewerProfileId, roomId, page.messages);
-        }
         setThreads((prev) => {
+          const thread = prev.find((t) => t.roomId === roomId);
+          const messages =
+            thread?.isGroup
+              ? baseMessages.map((msg) =>
+                  applyKnownGroupSender(msg, thread.memberAvatars),
+                )
+              : baseMessages;
+          if (viewerProfileId) {
+            writeRoomMessagesCache(viewerProfileId, roomId, messages);
+          }
           const next = prev.map((t) =>
-            t.roomId === roomId
-              ? { ...t, messages: page.messages, unread: 0 }
-              : t,
+            t.roomId === roomId ? { ...t, messages, unread: 0 } : t,
           );
           onUnreadChange(next.reduce((sum, t) => sum + t.unread, 0));
           return next;
@@ -1146,6 +1163,25 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     },
     [draft, loadMessages, pendingImages, restoreComposeForRoom, scrollMessagesToBottom],
   );
+
+  // Mặc định mở hội thoại trên cùng của tab hiện tại (sau khi list sẵn sàng).
+  useEffect(() => {
+    if (autoOpenedTopRef.current) return;
+    if (launch?.thread) {
+      autoOpenedTopRef.current = true;
+      return;
+    }
+    if (loadingThreads) return;
+
+    const top = filtered[0];
+    if (!top) {
+      if (threads.length === 0) autoOpenedTopRef.current = true;
+      return;
+    }
+
+    autoOpenedTopRef.current = true;
+    selectThread(top);
+  }, [filtered, launch?.thread, loadingThreads, selectThread, threads.length]);
 
   const removeThreadFromSidebar = useCallback(
     (thread: ChatThread) => {
@@ -1588,18 +1624,23 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
           throw new Error(json.error ?? "Không gửi được tin nhắn.");
         }
 
+        const confirmed = applyChatViewerPerspective(
+          [json.message],
+          viewerProfileId,
+        )[0]!;
+
         setThreads((prev) =>
           prev.map((t) => {
             if (t.id !== thread.id) return t;
-            const messages = reconcileChatMessage(t.messages, json.message!);
+            const messages = reconcileChatMessage(t.messages, confirmed);
             if (viewerProfileId) {
               writeRoomMessagesCache(viewerProfileId, t.roomId, messages);
             }
             return {
               ...t,
               messages,
-              preview: messagePreviewText(json.message!),
-              lastAt: json.message!.sentAt,
+              preview: messagePreviewText(confirmed),
+              lastAt: confirmed.sentAt,
             };
           }),
         );
@@ -1711,7 +1752,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   );
 
   const sendPendingCard = useCallback(
-    (thread: ChatThread, card: ChatContextCard) => {
+    (thread: ChatThread, card: ChatContextCard): Promise<boolean> => {
       setPendingCardByRoom((prev) => {
         if (!prev[thread.roomId]) return prev;
         const next = { ...prev };
@@ -1721,11 +1762,12 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
 
       const optimistic: ChatMessage = {
         ...createOptimisticChatMessage({ body: "", kind: "context" }),
+        senderUserId: viewerProfileId ?? undefined,
         nguCanh: card,
       };
       appendOptimisticMessages(thread, [optimistic]);
 
-      void (async () => {
+      return (async () => {
         try {
           const res = await fetch(`/api/chat/rooms/${thread.roomId}/messages`, {
             method: "POST",
@@ -1739,16 +1781,21 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
           if (!res.ok || !json.message) {
             throw new Error(json.error ?? "Không gửi được thẻ nội dung.");
           }
+          const message = applyChatViewerPerspective(
+            [json.message],
+            viewerProfileId,
+          )[0]!;
           setThreads((prev) =>
             prev.map((t) => {
               if (t.id !== thread.id) return t;
-              const messages = reconcileChatMessage(t.messages, json.message!);
+              const messages = reconcileChatMessage(t.messages, message);
               if (viewerProfileId) {
                 writeRoomMessagesCache(viewerProfileId, t.roomId, messages);
               }
               return { ...t, messages };
             }),
           );
+          return true;
         } catch {
           setThreads((prev) =>
             prev.map((t) =>
@@ -1763,6 +1810,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
           setPendingCardByRoom((prev) =>
             prev[thread.roomId] ? prev : { ...prev, [thread.roomId]: card },
           );
+          return false;
         }
       })();
     },
@@ -1772,10 +1820,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   const sendMessage = useCallback(() => {
     if (!active || !canSend) return;
 
-    if (activePendingCard) {
-      sendPendingCard(active, activePendingCard);
-    }
-
+    const pendingCard = activePendingCard;
     const text = draft.trim();
     const snapshotText = draft;
     const snapshotImages = sendableImages;
@@ -1796,9 +1841,8 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
       replyTo: replyPreview,
     });
     const optimistics = optimisticMessagesFromPlan(plan);
-    if (optimistics.length === 0) return;
 
-    appendOptimisticMessages(thread, optimistics);
+    if (!pendingCard && optimistics.length === 0) return;
 
     setDraft("");
     setPendingImages([]);
@@ -1807,57 +1851,77 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     composeByRoomRef.current.set(thread.roomId, { text: "", images: [] });
     inputRef.current?.focus();
 
-    const optimisticIds = new Set(optimistics.map((item) => item.id));
+    void (async () => {
+      if (pendingCard) {
+        await sendPendingCard(thread, pendingCard);
+      }
 
-    if (plan.album) {
-      pendingAlbumByRoomRef.current.set(thread.roomId, plan.album.optimistic.id);
-    }
+      if (optimistics.length === 0) return;
 
-    void executeComposeSendPlanInBackground({
-      plan,
-      imageSnapshots: snapshotImages,
-      filesByLocalId: pendingFilesByLocalIdRef.current,
-      inFlightUploads: inFlightUploadsRef.current,
-      hasText: Boolean(text),
-      replyToId: snapshotReply?.id ?? null,
-      sendText: plan.text
-        ? () =>
-            submitRoomMessage(thread, plan.text!.payload, plan.text!.optimistic.id)
-        : undefined,
-      sendAlbum: plan.album
-        ? (payloads) =>
-            submitAlbumBatch(thread, plan.album!.optimistic.id, payloads)
-        : undefined,
-      onFailure: () => {
-        pendingAlbumByRoomRef.current.delete(thread.roomId);
-        setLoadError("Không gửi được tin nhắn. Hãy thử lại.");
-        setThreads((prev) =>
-          prev.map((t) =>
-            t.id === thread.id
-              ? {
-                  ...t,
-                  messages: t.messages.filter((m) => !optimisticIds.has(m.id)),
-                }
-              : t,
-          ),
-        );
-        setDraft(snapshotText);
-        setPendingImages(snapshotImages);
-        pendingImagesRef.current = snapshotImages;
-        setReplyTarget(snapshotReply);
-        composeByRoomRef.current.set(thread.roomId, {
-          text: snapshotText,
-          images: snapshotImages,
-        });
-      },
-      onFinally: () => {
-        for (const image of snapshotImages) {
-          pendingFilesByLocalIdRef.current.delete(image.localId);
-        }
-      },
-    }).then((ok) => {
-      if (ok) revokeDraftImageUrls(snapshotImages);
-    });
+      appendOptimisticMessages(thread, optimistics);
+      const optimisticIds = new Set(optimistics.map((item) => item.id));
+
+      if (plan.album) {
+        pendingAlbumByRoomRef.current.set(thread.roomId, plan.album.optimistic.id);
+      }
+
+      void executeComposeSendPlanInBackground({
+        plan,
+        imageSnapshots: snapshotImages,
+        filesByLocalId: pendingFilesByLocalIdRef.current,
+        inFlightUploads: inFlightUploadsRef.current,
+        hasText: Boolean(text),
+        replyToId: snapshotReply?.id ?? null,
+        sendText: plan.text
+          ? () =>
+              submitRoomMessage(
+                thread,
+                plan.text!.payload,
+                plan.text!.optimistic.id,
+              )
+          : undefined,
+        sendAlbum: plan.album
+          ? (payloads) =>
+              submitAlbumBatch(thread, plan.album!.optimistic.id, payloads)
+          : undefined,
+        onFailure: () => {
+          pendingAlbumByRoomRef.current.delete(thread.roomId);
+          setLoadError("Không gửi được tin nhắn. Hãy thử lại.");
+          setThreads((prev) =>
+            prev.map((t) =>
+              t.id === thread.id
+                ? {
+                    ...t,
+                    messages: t.messages.filter((m) => !optimisticIds.has(m.id)),
+                  }
+                : t,
+            ),
+          );
+          setDraft(snapshotText);
+          setPendingImages(snapshotImages);
+          pendingImagesRef.current = snapshotImages;
+          setReplyTarget(snapshotReply);
+          composeByRoomRef.current.set(thread.roomId, {
+            text: snapshotText,
+            images: snapshotImages,
+          });
+          if (pendingCard) {
+            setPendingCardByRoom((prev) =>
+              prev[thread.roomId]
+                ? prev
+                : { ...prev, [thread.roomId]: pendingCard },
+            );
+          }
+        },
+        onFinally: () => {
+          for (const image of snapshotImages) {
+            pendingFilesByLocalIdRef.current.delete(image.localId);
+          }
+        },
+      }).then((ok) => {
+        if (ok) revokeDraftImageUrls(snapshotImages);
+      });
+    })();
   }, [
     active,
     activePendingCard,
@@ -2186,7 +2250,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                         ? msg.senderAvatarHue
                         : active.avatarHue
                     }
-                    size={28}
+                    size={active.isGroup ? 32 : 28}
                     kind={active.kind}
                     verified={active.verified}
                     avatarUrl={

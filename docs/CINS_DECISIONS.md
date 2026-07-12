@@ -35,6 +35,21 @@
 
 ## LOG — quyết định đã chốt
 
+### Chế độ phòng cộng đồng — công khai / nội bộ / bí mật (2026-07-12)
+
+- **L27 — `org_to_chuc.cau_hinh.che_do` = đúng 3 giá trị** (trục A, tách khỏi vai trò member):
+  | Giá trị | Tìm thấy | Identity card | Feed | Vào nhóm |
+  |---|---|---|---|---|
+  | `cong_khai` | Có | Có + feed preview | Khách cũng xem | 1-click join |
+  | `noi_bo` | Có | Có (không feed) | Chỉ member active | Xin tham gia (pending) hoặc invite |
+  | `bi_mat` | Không | Chỉ member / invite token | Chỉ member | Chỉ invite |
+- **Alias legacy:** `rieng_tu` (code cũ) đọc = `bi_mat` (hành vi listing/page trước đây đã là ẩn). Ghi mới dùng `bi_mat`.
+- **Join gate suy từ chế độ** — không field riêng: open / request+invite / invite-only.
+- **Request nội bộ:** `user_thanh_vien_to_chuc.trang_thai='pending'` → admin (`canManageMembers`) duyệt → `active`. Invite accept luôn `active`.
+- **Trục B (vai trò)** giữ 4: `owner`/`admin`/`quan_ly_noi_dung`/`thanh_vien`. CTA `CongDongRoleButton` trước khi member theo *chế độ phòng*; sau khi member theo *vai trò*.
+- **Trục C (bài):** vẫn `che_do_hien_thi='cong_dong'` — không rò World Journey (L12/L21). Không thêm mức privacy kiểu Discord.
+- *Vì sao 3 không 2:* `rieng_tu` cũ gộp “nội bộ discoverable” với “bí mật”; thiếu tầng tìm thấy được nhưng feed khóa — đúng nhu cầu nhóm nghề có cổng duyệt.
+
 ### Pivot MXH chuyên môn + đóng góp canonical (2026-07-10)
 
 - **L26 — CINS chuyển định vị: mạng xã hội chuyên môn + tri thức canonical do cộng đồng đóng góp.**
@@ -69,9 +84,24 @@
   • **Entry UI**: nút Chia sẻ sidebar owner + guest action row (`JourneyProfileShareTrigger`).
   • **Chưa làm**: chia sẻ view filter dropdown timeline (nút `j-dd-share` — brief riêng).
 
-### Admin CINs vận hành trực tiếp trên trang org — đảo L20 (2026-07-03)
+### Admin CINs vận hành trực tiếp trên trang org — L23 hẹp (2026-07-12)
 
-- **L23 — Quyền admin CINs (trục 1: `super_admin`/`admin`) MỞ KHOÁ toàn quyền vận hành trên trang org công khai, mọi `loai_to_chuc`.** Đảo ngược L20.
+- **L23 — Quyền admin CINs (trục 1: `super_admin`/`admin`) chỉ mở khoá vận hành trên trang `truong_dai_hoc`.** Siết lại bản L23 cũ (2026-07-03 mở mọi `loai_to_chuc`).
+  • **Ai**: `super_admin` + `admin` (helper `getCurrentUserIsCinsAdmin`). `curator` KHÔNG. Membership org (trục 2) vẫn hoạt động song song.
+  • **Phạm vi inline trên trang public**: **chỉ** `truong_dai_hoc` — inline-edit, cài đặt trang (kể cả đổi slug). **Không** mở khoá cơ sở đào tạo, studio/doanh_nghiệp, cộng đồng.
+  • **Cơ sở / studio / cộng đồng**: chỉ owner/admin org (trục 2). Admin CINs can thiệp qua **`/admin`** (duyệt/verify/list) và **L22** (`/admin/to-chuc` + mật khẩu ủy quyền) — không god-mode toolbar trên trang public.
+  • **"Quyền CINs" ≠ "quyền owner"**: trên trường ĐH, admin thao tác dưới danh nghĩa hệ thống, KHÔNG hiển thị như owner (badge toolbar = "Admin"/"Quản trị CINs"; `viewerVaiTro`/`viewerIsOwner` giữ nguyên `null`). Không giả mạo vai trò membership.
+  • **Vẫn là user thường** trên mọi org: admin CINs KHÔNG bị coi là "org của mình" cho hành vi xã hội — vẫn theo dõi / nhắn tin / like như user bình thường. Chỉ **member org thật (trục 2)** mới bị khoá "theo dõi/nhắn tin chính mình" + thấy hộp thư org. Tín hiệu: `getOrgMemberStatus` (trục 2 thuần) vs `getOrgAdminStatus` (membership **hoặc** CINs trên `truong_dai_hoc`).
+  • **Cơ chế**: `getOrgAdminStatus` / `isTruongOrgAdmin` short-circuit CINs **chỉ khi** `loai_to_chuc === 'truong_dai_hoc'`. Gate cơ sở / studio / cộng đồng / khóa học / sự kiện / bàn giao owner **không** gọi `getCurrentUserIsCinsAdmin`.
+  • **Lý do siết**: tách rõ admin CINs (hạ tầng + trường ĐH do CINs quy hoạch) khỏi owner org user-created; tránh toolbar "Admin Đang sửa" lộ trên cơ sở/cộng đồng khi đăng nhập tài khoản CINs.
+  • **Còn hiệu lực**: L22 (`/admin/to-chuc` + mật khẩu ủy quyền, chỉ super_admin) vẫn là kênh gán membership chính thức cho mọi loại org.
+  • **RLS**: quyền thực thi qua service-role trong lib server-only (UI chỉ ẩn/hiện). Giữ nguyên nguyên tắc FOUNDATIONS §quyền.
+
+### Admin CINs vận hành trực tiếp trên trang org — đảo L20 (2026-07-03) — ĐÃ SIẾT
+
+> ⚠️ **ĐÃ SIẾT 2026-07-12:** bản dưới đây mở mọi `loai_to_chuc`. Hành vi hiện tại theo **L23 hẹp** (chỉ `truong_dai_hoc`) ở mục ngay trên.
+
+- **L23 (bản 2026-07-03, lịch sử)** — Quyền admin CINs MỞ KHOÁ toàn quyền vận hành trên trang org công khai, mọi `loai_to_chuc`. Đảo ngược L20.
   • **Ai**: `super_admin` + `admin` (helper `getCurrentUserIsCinsAdmin`, gồm cả 2). `curator` KHÔNG. Membership org (trục 2) vẫn hoạt động song song.
   • **Phạm vi**: trường ĐH, cơ sở đào tạo, studio/doanh_nghiệp, cộng đồng. Toàn quyền: inline-edit nội dung, cài đặt trang (kể cả đổi slug), quản lý thành viên, bàn giao owner, quản lý khóa học / sự kiện.
   • **"Quyền CINs" ≠ "quyền owner"**: admin thao tác dưới danh nghĩa hệ thống, KHÔNG hiển thị như owner (badge toolbar = "Admin"/"Quản trị CINs"; `viewerVaiTro`/`viewerIsOwner` giữ nguyên `null`). Không giả mạo vai trò membership.
@@ -107,7 +137,7 @@
 
 ### Tách trục quyền: admin hệ thống ≠ sửa trang org (2026-06-30)
 
-> ⚠️ **ĐÃ ĐẢO bởi L23 (2026-07-03):** admin CINs (trục 1) NAY mở khoá toàn quyền vận hành trên trang org. Entry L20 giữ lại làm lịch sử; hành vi hiện tại theo **L23**.
+> ⚠️ **Lịch sử:** L20 → đảo bởi L23 (2026-07-03, mọi org) → **siết L23 hẹp (2026-07-12):** admin CINs chỉ mở khoá `truong_dai_hoc` trên trang public. Cơ sở/studio/cộng đồng lại theo L20 (membership thuần). Hành vi hiện tại: mục **L23 hẹp** ở trên.
 
 - **L20 — Inline-edit / vận hành trang org = TRỤC 2 (membership) thuần; quyền admin hệ thống (trục 1) KHÔNG tự mở khoá.**
   • Bỏ short-circuit `getCurrentUserIsCinsAdmin()` ở: `getOrgAdminStatus` + `isTruongOrgAdmin` (`lib/truong/org-admin.ts`), `isStudioOrgAdmin` + `assertCanManageMembers` + `transferStudioOwnership` (`studio-members.ts`), `isCoSoOrgAdmin` (`co-so-membership.ts`), `assertCanManageMembers` + transfer (`co-so-members.ts`), transfer cộng đồng (`cong-dong/members.ts`), viewer settings (`truong-settings.ts` / `co-so-settings.ts`), `canViewerManageKhoaHoc` (`khoa-hoc.ts`), `canViewerManageSuKien` (`su-kien.ts`). Tất cả CHỈ còn dựa `user_thanh_vien_to_chuc.vai_tro`.

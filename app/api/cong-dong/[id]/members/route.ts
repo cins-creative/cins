@@ -27,7 +27,10 @@ export async function GET(_req: Request, ctx: RouteContext) {
     return NextResponse.json({ error: result.error }, { status });
   }
 
-  return NextResponse.json({ members: result.members });
+  return NextResponse.json({
+    members: result.members,
+    pending: result.pending,
+  });
 }
 
 /** POST /api/cong-dong/:id/members — thêm hoặc cập nhật quyền theo user */

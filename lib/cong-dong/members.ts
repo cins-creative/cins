@@ -1,6 +1,5 @@
 import "server-only";
 
-import { getCurrentUserIsCinsAdmin } from "@/lib/auth/cins-admin-server";
 import { loadAuthorBadges } from "@/lib/cong-dong/author-badges";
 import {
   getViewerVaiTroInOrg,
@@ -96,9 +95,6 @@ async function assertCanManageMembers(
   actorId: string,
   orgId: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  // Quyền CINs (trục 1): toàn quyền quản lý thành viên mọi org.
-  if (await getCurrentUserIsCinsAdmin()) return { ok: true };
-
   const vaiTro = await getViewerVaiTroInOrg(actorId, orgId);
   if (!canManageCommunity(vaiTro)) {
     return { ok: false, error: "Chỉ admin cộng đồng mới quản lý thành viên." };
@@ -121,7 +117,8 @@ export async function listCongDongMembers(params: {
   orgId: string;
   actorId: string;
 }): Promise<
-  { ok: true; members: CongDongMemberAdmin[] } | { ok: false; error: string }
+  | { ok: true; members: CongDongMemberAdmin[]; pending: CongDongMemberAdmin[] }
+  | { ok: false; error: string }
 > {
   if (!(await getCongDongOrg(params.orgId))) {
     return { ok: false, error: "Không tìm thấy cộng đồng." };
@@ -134,41 +131,61 @@ export async function listCongDongMembers(params: {
   const { data, error } = await admin
     .from("user_thanh_vien_to_chuc")
     .select(
-      "id, id_nguoi_dung, vai_tro, user_nguoi_dung: id_nguoi_dung ( slug, ten_hien_thi, avatar_id )",
+      "id, id_nguoi_dung, vai_tro, trang_thai, user_nguoi_dung: id_nguoi_dung ( slug, ten_hien_thi, avatar_id )",
     )
     .eq("id_to_chuc", params.orgId)
     .in("vai_tro", COMMUNITY_ROLES)
-    .eq("trang_thai", "active")
+    .in("trang_thai", ["active", "pending"])
     .order("vai_tro", { ascending: true });
 
   if (error) return { ok: false, error: error.message };
 
-  const byUser = new Map<string, CongDongMemberAdmin>();
+  const byUserActive = new Map<string, CongDongMemberAdmin>();
+  const pendingByUser = new Map<string, CongDongMemberAdmin>();
+
   for (const row of data ?? []) {
     const mapped = mapMember(row as MemberRow);
     if (!mapped) continue;
-    const existing = byUser.get(mapped.userId);
+    const trangThai =
+      (row as { trang_thai?: string }).trang_thai === "pending"
+        ? ("pending" as const)
+        : ("active" as const);
+    const withStatus = { ...mapped, trangThai };
+
+    if (trangThai === "pending") {
+      if (!pendingByUser.has(mapped.userId)) {
+        pendingByUser.set(mapped.userId, withStatus);
+      }
+      continue;
+    }
+
+    const existing = byUserActive.get(mapped.userId);
     if (!existing) {
-      byUser.set(mapped.userId, mapped);
+      byUserActive.set(mapped.userId, withStatus);
       continue;
     }
     const currentRank = COMMUNITY_ROLES.indexOf(existing.vaiTro);
     const nextRank = COMMUNITY_ROLES.indexOf(mapped.vaiTro);
     if (nextRank < currentRank) {
-      byUser.set(mapped.userId, mapped);
+      byUserActive.set(mapped.userId, withStatus);
     }
   }
 
-  const members = [...byUser.values()].sort((a, b) => {
+  const members = [...byUserActive.values()].sort((a, b) => {
     const roleDiff =
       COMMUNITY_ROLES.indexOf(a.vaiTro) - COMMUNITY_ROLES.indexOf(b.vaiTro);
     if (roleDiff !== 0) return roleDiff;
     return a.tenHienThi.localeCompare(b.tenHienThi, "vi");
   });
 
+  const pending = [...pendingByUser.values()].sort((a, b) =>
+    a.tenHienThi.localeCompare(b.tenHienThi, "vi"),
+  );
+
   return {
     ok: true,
     members: await enrichMembersWithFeedMeta(params.orgId, members),
+    pending: await enrichMembersWithFeedMeta(params.orgId, pending),
   };
 }
 
@@ -217,7 +234,7 @@ export async function addCongDongMember(params: {
 
   const { data: existingRows } = await admin
     .from("user_thanh_vien_to_chuc")
-    .select("id, vai_tro")
+    .select("id, vai_tro, trang_thai")
     .eq("id_to_chuc", params.orgId)
     .eq("id_nguoi_dung", params.userId)
     .in("vai_tro", COMMUNITY_ROLES);
@@ -234,7 +251,7 @@ export async function addCongDongMember(params: {
   if (communityRow) {
     const { error } = await admin
       .from("user_thanh_vien_to_chuc")
-      .update({ vai_tro: nextRole })
+      .update({ vai_tro: nextRole, trang_thai: "active" })
       .eq("id", communityRow.id);
     if (error) return { ok: false, error: error.message };
     return {
@@ -252,6 +269,7 @@ export async function addCongDongMember(params: {
             ngheLabel: null,
             soBaiVietTrongNhom: 0,
             baiVietGanNhatLuc: null,
+            trangThai: "active",
           },
         ])
       )[0]!,
@@ -264,6 +282,7 @@ export async function addCongDongMember(params: {
       id_to_chuc: params.orgId,
       id_nguoi_dung: params.userId,
       vai_tro: nextRole,
+      trang_thai: "active",
     })
     .select("id")
     .single<{ id: string }>();
@@ -287,6 +306,7 @@ export async function addCongDongMember(params: {
           ngheLabel: null,
           soBaiVietTrongNhom: 0,
           baiVietGanNhatLuc: null,
+          trangThai: "active",
         },
       ])
     )[0]!,
@@ -325,7 +345,8 @@ export async function addCongDongMemberBySlug(params: {
 
 /**
  * Bàn giao quyền sở hữu cộng đồng cho thành viên khác.
- * Chỉ owner hiện tại (hoặc CINs admin). Owner cũ → admin; người nhận → owner.
+ * Chỉ owner hiện tại (trục 2). Owner cũ → admin; người nhận → owner.
+ * Admin CINs dùng L22 `/admin/to-chuc`, không bàn giao inline.
  */
 export async function transferCongDongOwnership(params: {
   orgId: string;
@@ -352,9 +373,8 @@ export async function transferCongDongOwnership(params: {
     return { ok: false, error: "Tên xác nhận không khớp đường dẫn cộng đồng." };
   }
 
-  const isCinsAdmin = await getCurrentUserIsCinsAdmin();
   const actorRole = await getViewerVaiTroInOrg(params.actorId, params.orgId);
-  if (actorRole !== "owner" && !isCinsAdmin) {
+  if (actorRole !== "owner") {
     return { ok: false, error: "Chỉ chủ sở hữu mới bàn giao quyền sở hữu." };
   }
 
@@ -379,7 +399,7 @@ export async function transferCongDongOwnership(params: {
   if (target.vai_tro === "owner") {
     return { ok: false, error: "Thành viên này đã là chủ sở hữu." };
   }
-  if (target.id_nguoi_dung === params.actorId && !isCinsAdmin) {
+  if (target.id_nguoi_dung === params.actorId) {
     return { ok: false, error: "Không thể bàn giao cho chính mình." };
   }
 
@@ -478,4 +498,82 @@ export async function updateCongDongMemberRole(params: {
     ok: true,
     member: (await enrichMembersWithFeedMeta(params.orgId, [mapped]))[0]!,
   };
+}
+
+export async function approveCongDongJoinRequest(params: {
+  orgId: string;
+  actorId: string;
+  membershipId: string;
+}): Promise<
+  { ok: true; member: CongDongMemberAdmin } | { ok: false; error: string }
+> {
+  if (!(await getCongDongOrg(params.orgId))) {
+    return { ok: false, error: "Không tìm thấy cộng đồng." };
+  }
+  const auth = await assertCanManageMembers(params.actorId, params.orgId);
+  if (!auth.ok) return auth;
+
+  const admin = createServiceRoleClient();
+  const { data: row } = await admin
+    .from("user_thanh_vien_to_chuc")
+    .select(
+      "id, id_nguoi_dung, vai_tro, trang_thai, user_nguoi_dung: id_nguoi_dung ( slug, ten_hien_thi, avatar_id )",
+    )
+    .eq("id", params.membershipId)
+    .eq("id_to_chuc", params.orgId)
+    .maybeSingle<MemberRow & { trang_thai: string }>();
+
+  if (!row) return { ok: false, error: "Không tìm thấy yêu cầu." };
+  if (row.trang_thai !== "pending") {
+    return { ok: false, error: "Yêu cầu này không còn chờ duyệt." };
+  }
+
+  const { error } = await admin
+    .from("user_thanh_vien_to_chuc")
+    .update({ trang_thai: "active", vai_tro: "thanh_vien" })
+    .eq("id", row.id);
+  if (error) return { ok: false, error: error.message };
+
+  const mapped = mapMember({ ...row, vai_tro: "thanh_vien" });
+  if (!mapped) return { ok: false, error: "Không duyệt được yêu cầu." };
+  return {
+    ok: true,
+    member: (
+      await enrichMembersWithFeedMeta(params.orgId, [
+        { ...mapped, trangThai: "active" },
+      ])
+    )[0]!,
+  };
+}
+
+export async function rejectCongDongJoinRequest(params: {
+  orgId: string;
+  actorId: string;
+  membershipId: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!(await getCongDongOrg(params.orgId))) {
+    return { ok: false, error: "Không tìm thấy cộng đồng." };
+  }
+  const auth = await assertCanManageMembers(params.actorId, params.orgId);
+  if (!auth.ok) return auth;
+
+  const admin = createServiceRoleClient();
+  const { data: row } = await admin
+    .from("user_thanh_vien_to_chuc")
+    .select("id, trang_thai, vai_tro")
+    .eq("id", params.membershipId)
+    .eq("id_to_chuc", params.orgId)
+    .maybeSingle<{ id: string; trang_thai: string; vai_tro: string }>();
+
+  if (!row) return { ok: false, error: "Không tìm thấy yêu cầu." };
+  if (row.trang_thai !== "pending") {
+    return { ok: false, error: "Yêu cầu này không còn chờ duyệt." };
+  }
+
+  const { error } = await admin
+    .from("user_thanh_vien_to_chuc")
+    .delete()
+    .eq("id", row.id);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
 }

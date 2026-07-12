@@ -1,8 +1,10 @@
 "use client";
 
+import { UsersRound } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { TruongSchoolCard } from "@/components/truong/TruongSchoolCard";
+import { isListingMineOrg } from "@/lib/to-chuc/co-so-vai-tro";
 import { truongListingFilterType } from "@/lib/truong/display";
 import { truongMatchesNameSearch } from "@/lib/truong/listing-search";
 import type { TruongListItem } from "@/lib/truong/types";
@@ -11,6 +13,7 @@ type FilterKey = "all" | "dh" | "csdt";
 
 type Props = {
   schools: TruongListItem[];
+  canFilterMine?: boolean;
 };
 
 function SearchIcon() {
@@ -30,8 +33,12 @@ function SearchIcon() {
   );
 }
 
-export function TruongListingClient({ schools }: Props) {
+export function TruongListingClient({
+  schools,
+  canFilterMine = false,
+}: Props) {
   const [filter, setFilter] = useState<FilterKey>("all");
+  const [mineOnly, setMineOnly] = useState(false);
   const [query, setQuery] = useState("");
 
   const dhCount = useMemo(
@@ -42,15 +49,20 @@ export function TruongListingClient({ schools }: Props) {
     () => schools.filter((s) => truongListingFilterType(s) === "csdt").length,
     [schools],
   );
+  const myCount = useMemo(
+    () => schools.filter((s) => isListingMineOrg(s)).length,
+    [schools],
+  );
 
   const visible = useMemo(() => {
     return schools.filter((s) => {
+      if (mineOnly && !isListingMineOrg(s)) return false;
       if (filter !== "all" && truongListingFilterType(s) !== filter) {
         return false;
       }
       return truongMatchesNameSearch(s, query);
     });
-  }, [schools, filter, query]);
+  }, [schools, filter, query, mineOnly]);
 
   return (
     <div className="tdh-list">
@@ -80,6 +92,20 @@ export function TruongListingClient({ schools }: Props) {
                 {count > 0 ? ` · ${count}` : ""}
               </button>
             ))}
+            {canFilterMine ? (
+              <button
+                type="button"
+                className={`tdh-list-mine-chip${mineOnly ? " is-active" : ""}`}
+                aria-pressed={mineOnly}
+                onClick={() => setMineOnly((v) => !v)}
+              >
+                <UsersRound size={14} strokeWidth={2.25} aria-hidden />
+                Tổ chức của tôi
+                {myCount > 0 ? (
+                  <span className="tdh-list-mine-chip-count">{myCount}</span>
+                ) : null}
+              </button>
+            ) : null}
           </div>
           <label className="tdh-list-search">
             <SearchIcon />
@@ -103,9 +129,11 @@ export function TruongListingClient({ schools }: Props) {
             ))
           ) : (
             <p className="tdh-list-empty">
-              {query.trim()
-                ? `Không có trường nào khớp tên «${query.trim()}». Thử bỏ dấu hoặc đổi bộ lọc.`
-                : "Không có trường trong bộ lọc này."}
+              {mineOnly && myCount === 0
+                ? "Bạn chưa thuộc hoặc theo dõi tổ chức giáo dục nào trên CINs."
+                : query.trim()
+                  ? `Không có trường nào khớp tên «${query.trim()}». Thử bỏ dấu hoặc đổi bộ lọc.`
+                  : "Không có trường trong bộ lọc này."}
             </p>
           )}
         </div>

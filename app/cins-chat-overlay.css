@@ -934,7 +934,7 @@
   padding: 20px 18px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 18px;
 }
 
 .cins-chat-messages-empty {
@@ -1619,7 +1619,119 @@
 }
 
 .cins-chat-bubble-row.is-them.is-album-follow {
-  padding-left: 36px;
+  padding-left: 0;
+}
+
+.cins-chat-bubble-row.has-sender-cluster.is-album-follow {
+  padding-left: 0;
+}
+
+.cins-chat-msg-stack {
+  --cins-chat-sender-avatar: 32px;
+  --cins-chat-sender-gap: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Bubble căn trái theo tên, không theo mép avatar. */
+.cins-chat-msg-stack > .cins-chat-bubble-wrap,
+.cins-chat-msg-stack > .cins-chat-bubble {
+  margin-left: calc(
+    var(--cins-chat-sender-avatar) + var(--cins-chat-sender-gap)
+  );
+}
+
+.cins-chat-sender-cluster {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.cins-chat-sender-identity {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--cins-chat-sender-gap, 8px);
+  min-width: 0;
+  max-width: 100%;
+}
+
+.cins-chat-sender-text {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.cins-chat-sender-cluster .cins-chat-avatar-wrap,
+.cins-chat-sender-cluster .cins-chat-avatar {
+  width: var(--cins-chat-sender-avatar);
+  height: var(--cins-chat-sender-avatar);
+}
+
+.cins-chat-sender-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  font-size: 10px;
+  line-height: 1.2;
+  opacity: 0.55;
+  color: var(--ink-display, rgba(15, 23, 42, 0.78));
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+.cins-chat-sender-time time {
+  margin: 0;
+}
+
+.j-chat-mini-messages .cins-chat-msg-stack {
+  --cins-chat-sender-avatar: 28px;
+}
+
+.j-chat-mini-messages .cins-chat-sender-cluster .j-chat-mini-avatar {
+  width: var(--cins-chat-sender-avatar);
+  height: var(--cins-chat-sender-avatar);
+}
+
+.cins-chat-msg-stack > .j-user-pop-wrap,
+.cins-chat-msg-stack > .j-user-pop-wrap > .j-user-pop-trigger,
+.cins-chat-sender-cluster > .j-user-pop-wrap,
+.cins-chat-sender-cluster > .j-user-pop-wrap > .j-user-pop-trigger {
+  display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.cins-chat-msg-stack > .j-user-pop-wrap > .j-user-pop-trigger,
+.cins-chat-sender-cluster > .j-user-pop-wrap > .j-user-pop-trigger {
+  align-items: center;
+}
+
+.cins-chat-bubble-row.has-sender-cluster {
+  align-items: flex-start;
+  width: fit-content;
+  max-width: 86%;
+}
+
+/* Avatar+tên nằm trên bubble → đuôi bo ít ở góc trên trái (không phải dưới trái). */
+.cins-chat-bubble-row.has-sender-cluster .cins-chat-bubble.is-them {
+  border-bottom-left-radius: 18px;
+  border-top-left-radius: 6px;
+}
+
+.cins-chat-bubble-row.has-sender-cluster .cins-chat-bubble.has-media-with-caption.is-them {
+  border-bottom-left-radius: 18px;
+  border-top-left-radius: 6px;
+}
+
+.cins-chat-bubble-row.has-sender-cluster .cins-chat-bubble-wrap {
+  width: 100%;
 }
 
 .cins-chat-album-block {
@@ -1868,10 +1980,14 @@
   max-height: min(var(--cins-chat-media-max-square), 100%);
 }
 
-/* Card ngữ cảnh (tuyển dụng / sự kiện / tuyển sinh) trong luồng chat */
+/* Card ngữ cảnh — rộng hơn bubble chữ, nhưng vẫn giữ lệch trái/phải theo người gửi */
 .cins-chat-bubble-row:has(.cins-chat-ctx-card-wrap) {
-  width: 100%;
-  max-width: 100%;
+  width: min(100%, 420px);
+  max-width: 90%;
+}
+
+.cins-chat-bubble-row.is-me:has(.cins-chat-ctx-card-wrap) {
+  width: min(100%, 400px);
 }
 
 .cins-chat-bubble-row:has(.cins-chat-ctx-card-wrap) .cins-chat-bubble-wrap {
@@ -2445,6 +2561,28 @@ a.cins-chat-ctx-card:hover {
   font-size: 18px !important;
 }
 
+.j-chat-bubble-wrap.is-group .j-chat-bubble-btn {
+  border-radius: 14px;
+  overflow: visible;
+}
+
+.j-chat-bubble-wrap.is-group .j-chat-bubble-btn .cins-chat-group-avatar {
+  width: 100% !important;
+  height: 100% !important;
+  /* Nút bubble đã có viền trắng — bỏ ring trùng của avatar list */
+  box-shadow: none;
+}
+
+.j-chat-bubble-wrap.is-group.is-pinned .j-chat-bubble-btn {
+  border-color: rgba(31, 116, 201, 0.55);
+}
+
+.j-chat-mini-head .cins-chat-group-avatar {
+  box-shadow:
+    inset 0 0 0 1px rgba(15, 23, 42, 0.08),
+    0 0 0 1.5px rgba(255, 255, 255, 0.95);
+}
+
 .j-chat-bubble-action {
   position: absolute;
   top: -4px;
@@ -2499,8 +2637,8 @@ a.cins-chat-ctx-card:hover {
 
 /* Mini chat panel */
 .j-chat-mini {
-  width: min(340px, calc(100vw - 32px));
-  height: min(440px, calc(100dvh - 120px));
+  width: min(400px, calc(100vw - 32px));
+  height: min(560px, calc(100dvh - 112px));
   display: flex;
   flex-direction: column;
   border-radius: 18px;
@@ -2626,6 +2764,7 @@ a.cins-chat-ctx-card:hover {
 
 .j-chat-mini-compose {
   position: relative;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -2842,8 +2981,8 @@ a.cins-chat-ctx-card:hover {
   }
 
   .j-chat-mini {
-    width: min(320px, calc(100vw - 24px));
-    height: min(420px, calc(100dvh - 100px));
+    width: min(360px, calc(100vw - 24px));
+    height: min(520px, calc(100dvh - 96px));
     border-radius: 16px;
   }
 }
@@ -2932,7 +3071,7 @@ a.cins-chat-ctx-card:hover {
   }
 
   .cins-chat-bubble-row:has(.cins-chat-ctx-card-wrap) {
-    max-width: 100%;
+    max-width: 92%;
   }
 
   .cins-chat-back-mobile {
@@ -3286,7 +3425,8 @@ a.cins-chat-ctx-card:hover {
   padding: 0;
   border: 0;
   border-radius: 12px;
-  overflow: hidden;
+  /* visible: badge Users không bị crop; ảnh/mosaic tự clip bên dưới */
+  overflow: visible;
   background: var(--neutral-100, #eef2f6);
   box-shadow:
     inset 0 0 0 1px rgba(15, 23, 42, 0.08),
@@ -3316,12 +3456,14 @@ a.cins-chat-ctx-card:hover {
   height: 100%;
   object-fit: cover;
   display: block;
+  border-radius: inherit;
 }
 
 .cins-chat-group-avatar-badge {
   position: absolute;
-  right: -1px;
-  bottom: -1px;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -3330,7 +3472,8 @@ a.cins-chat-ctx-card:hover {
   border-radius: 8px 0 10px 0;
   background: var(--cins-blue, #1f74c9);
   color: #fff;
-  box-shadow: 0 0 0 2px #fff;
+  box-shadow: 0 0 0 1.5px #fff;
+  pointer-events: none;
 }
 
 .cins-chat-group-avatar-fallback {
@@ -3339,6 +3482,8 @@ a.cins-chat-ctx-card:hover {
   justify-content: center;
   width: 100%;
   height: 100%;
+  border-radius: inherit;
+  overflow: hidden;
   color: var(--cins-blue, #1f74c9);
   background: linear-gradient(
     145deg,
@@ -3352,6 +3497,8 @@ a.cins-chat-ctx-card:hover {
   width: 100%;
   height: 100%;
   gap: 1px;
+  border-radius: inherit;
+  overflow: hidden;
   background: rgba(255, 255, 255, 0.92);
 }
 
@@ -3441,11 +3588,19 @@ a.cins-chat-ctx-card:hover {
 
 .cins-chat-sender-name {
   display: block;
-  margin: 0 0 4px 2px;
-  font-size: 11px;
+  margin: 0;
+  font-size: 12px;
   font-weight: 700;
-  color: var(--ink-muted);
-  line-height: 1.2;
+  color: var(--ink-display, rgba(15, 23, 42, 0.78));
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.cins-chat-sender-cluster .cins-chat-sender-name {
+  margin: 0;
 }
 
 .cins-chat-group-modal-root {

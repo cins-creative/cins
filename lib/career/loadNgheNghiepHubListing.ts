@@ -16,6 +16,8 @@ import type { CareerHubSection } from "@/lib/career/hubSections";
 import type { LinhVucSidebarGroup } from "@/lib/career/groupLinhVuc";
 import type { LinhVucRow, NgheNghiepHubItem } from "@/lib/career/types";
 import { listNgheArticlesForHub } from "@/lib/articles/queries";
+import { listCongDongOrgsForLinhVuc } from "@/lib/cong-dong/linh-vuc";
+import type { CongDongOrgCategoryPreview } from "@/lib/cong-dong/categories";
 
 export type NgheNghiepHubListingParams = {
   linh_vuc?: string;
@@ -30,6 +32,7 @@ export type NgheNghiepHubListingData = {
   groups: CareerHubSection[];
   sampleCareers: NgheNghiepHubItem[];
   showFallbackNote: boolean;
+  communities: CongDongOrgCategoryPreview[];
   listError?: { reason: "no_env" | "query_error"; message?: string };
 };
 
@@ -83,6 +86,11 @@ export async function loadNgheNghiepHubListing(
       ? orderHubSectionsByNhomThuTu(groupsRaw, nhomOrderCatalog)
       : groupsRaw;
 
+  const communities =
+    activeLv?.id && !searchQuery
+      ? await listCongDongOrgsForLinhVuc(activeLv.id, 8)
+      : [];
+
   return {
     tab: "nghe",
     linhVucSidebarGroups: groupLinhVucForSidebar(linhVucs),
@@ -91,6 +99,7 @@ export async function loadNgheNghiepHubListing(
     groups,
     sampleCareers: filtered,
     showFallbackNote,
+    communities,
     listError: !ngheArticlesResult.ok
       ? {
           reason: ngheArticlesResult.reason,

@@ -10,47 +10,7 @@ import {
   type ProfileLinkInput,
 } from "@/app/[slug]/journey/actions";
 import type { GiaiDoan } from "@/lib/auth/session";
-
-/* ─── Phải khớp 1-1 với enum `tinh_thanh_vn_enum` trong Supabase (đã verify
- *     bằng MCP). Lưu ý value của TP. HCM là `hcm` (không phải `ho_chi_minh`).
- *     34 đơn vị hành chính theo phương án sáp nhập 2025. ────────────────── */
-const TINH_THANH_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
-  { value: "", label: "— Không khai báo —" },
-  { value: "hcm", label: "TP. Hồ Chí Minh" },
-  { value: "ha_noi", label: "Hà Nội" },
-  { value: "da_nang", label: "Đà Nẵng" },
-  { value: "hai_phong", label: "Hải Phòng" },
-  { value: "can_tho", label: "Cần Thơ" },
-  { value: "hue", label: "Huế" },
-  { value: "khanh_hoa", label: "Khánh Hòa" },
-  { value: "lam_dong", label: "Lâm Đồng" },
-  { value: "dong_nai", label: "Đồng Nai" },
-  { value: "quang_ninh", label: "Quảng Ninh" },
-  { value: "bac_ninh", label: "Bắc Ninh" },
-  { value: "nghe_an", label: "Nghệ An" },
-  { value: "ha_tinh", label: "Hà Tĩnh" },
-  { value: "thanh_hoa", label: "Thanh Hóa" },
-  { value: "ninh_binh", label: "Ninh Bình" },
-  { value: "hung_yen", label: "Hưng Yên" },
-  { value: "phu_tho", label: "Phú Thọ" },
-  { value: "thai_nguyen", label: "Thái Nguyên" },
-  { value: "lao_cai", label: "Lào Cai" },
-  { value: "tuyen_quang", label: "Tuyên Quang" },
-  { value: "cao_bang", label: "Cao Bằng" },
-  { value: "lang_son", label: "Lạng Sơn" },
-  { value: "dien_bien", label: "Điện Biên" },
-  { value: "lai_chau", label: "Lai Châu" },
-  { value: "son_la", label: "Sơn La" },
-  { value: "quang_tri", label: "Quảng Trị" },
-  { value: "quang_ngai", label: "Quảng Ngãi" },
-  { value: "gia_lai", label: "Gia Lai" },
-  { value: "dak_lak", label: "Đắk Lắk" },
-  { value: "tay_ninh", label: "Tây Ninh" },
-  { value: "vinh_long", label: "Vĩnh Long" },
-  { value: "dong_thap", label: "Đồng Tháp" },
-  { value: "an_giang", label: "An Giang" },
-  { value: "ca_mau", label: "Cà Mau" },
-];
+import { TINH_THANH_OPTIONS } from "@/lib/truong/contact";
 
 type AccentTone = "yellow" | "mint" | "orange" | "violet" | "blue";
 

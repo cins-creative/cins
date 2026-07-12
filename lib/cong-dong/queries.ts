@@ -1,20 +1,32 @@
 import "server-only";
 
-import { getCurrentUserIsCinsAdmin } from "@/lib/auth/cins-admin-server";
 import {
-  CONG_DONG_CHE_DO,
+  canDiscoverCongDong,
+  canViewCongDongFeed,
+  canViewCongDongShell,
+  parseCongDongCheDoFromCauHinh,
 } from "@/lib/cong-dong/constants";
-import type { CongDongCheDo } from "@/lib/cong-dong/constants";
 import {
   countThanhVien,
+  getMembershipStatus,
   isCongDongAdmin,
   getViewerVaiTroInOrg,
-  isThanhVien,
 } from "@/lib/cong-dong/membership";
 import { listCongDongFilters } from "@/lib/cong-dong/filters";
 import { listCongDongPosts } from "@/lib/cong-dong/posts";
-import { loadCongDongCategories } from "@/lib/cong-dong/categories";
-import { countCongDongPosts } from "@/lib/cong-dong/stats";
+import {
+  loadCongDongCategories,
+  parseCategoryIdsFromCauHinh,
+} from "@/lib/cong-dong/categories";
+import {
+  loadCongDongLinhVucs,
+  parseLinhVucIdsFromCauHinh,
+} from "@/lib/cong-dong/linh-vuc";
+import { countCongDongPosts, loadCongDongRecentPostCountsByOrgIds } from "@/lib/cong-dong/stats";
+import {
+  pickCommunityVaiTro,
+  type CongDongVaiTro,
+} from "@/lib/cong-dong/vai-tro";
 import type {
   CongDongOrg,
   CongDongPageData,
@@ -33,14 +45,6 @@ function resolveCinsSystemUserId(): string | null {
   } catch {
     return null;
   }
-}
-
-function parseCheDo(cauHinh: unknown): CongDongCheDo {
-  if (!cauHinh || typeof cauHinh !== "object") return CONG_DONG_CHE_DO.CONG_KHAI;
-  const cheDo = (cauHinh as { che_do?: string }).che_do;
-  return cheDo === CONG_DONG_CHE_DO.RIENG_TU
-    ? CONG_DONG_CHE_DO.RIENG_TU
-    : CONG_DONG_CHE_DO.CONG_KHAI;
 }
 
 export async function fetchCongDongBySlug(
@@ -95,33 +99,48 @@ export async function listCongDongOrgs(
 
   const orgIds = rows.map((r) => r.id);
 
-  const [{ data: memberRows }, membershipResult] = await Promise.all([
-    admin
-      .from("user_thanh_vien_to_chuc")
-      .select("id_to_chuc")
-      .in("id_to_chuc", orgIds),
-    viewerId
-      ? admin
-          .from("user_thanh_vien_to_chuc")
-          .select("id_to_chuc")
-          .eq("id_nguoi_dung", viewerId)
-          .in("id_to_chuc", orgIds)
-      : Promise.resolve({ data: [] as { id_to_chuc: string }[] }),
-  ]);
+  const [{ data: memberRows }, membershipResult, recentPostCounts] =
+    await Promise.all([
+      admin
+        .from("user_thanh_vien_to_chuc")
+        .select("id_to_chuc")
+        .eq("trang_thai", "active")
+        .in("id_to_chuc", orgIds),
+      viewerId
+        ? admin
+            .from("user_thanh_vien_to_chuc")
+            .select("id_to_chuc, vai_tro")
+            .eq("id_nguoi_dung", viewerId)
+            .eq("trang_thai", "active")
+            .in("id_to_chuc", orgIds)
+        : Promise.resolve({
+            data: [] as { id_to_chuc: string; vai_tro: string }[],
+          }),
+      loadCongDongRecentPostCountsByOrgIds(orgIds, 7),
+    ]);
 
   const countMap = new Map<string, number>();
   for (const row of memberRows ?? []) {
     countMap.set(row.id_to_chuc, (countMap.get(row.id_to_chuc) ?? 0) + 1);
   }
 
-  const memberOrgIds = new Set(
-    (membershipResult.data ?? []).map((m) => m.id_to_chuc),
-  );
+  const viewerRolesByOrg = new Map<string, string[]>();
+  for (const row of membershipResult.data ?? []) {
+    const list = viewerRolesByOrg.get(row.id_to_chuc) ?? [];
+    list.push(row.vai_tro);
+    viewerRolesByOrg.set(row.id_to_chuc, list);
+  }
+
+  const viewerVaiTroByOrg = new Map<string, CongDongVaiTro | null>();
+  for (const [orgId, roles] of viewerRolesByOrg) {
+    viewerVaiTroByOrg.set(orgId, pickCommunityVaiTro(roles));
+  }
 
   const result: CongDongOrg[] = [];
   for (const row of rows) {
-    const cheDo = parseCheDo(row.cau_hinh);
-    if (cheDo === CONG_DONG_CHE_DO.RIENG_TU && !memberOrgIds.has(row.id)) {
+    const cheDo = parseCongDongCheDoFromCauHinh(row.cau_hinh);
+    const viewerVaiTro = viewerVaiTroByOrg.get(row.id) ?? null;
+    if (!canDiscoverCongDong(cheDo) && !viewerVaiTro) {
       continue;
     }
     result.push({
@@ -136,6 +155,10 @@ export async function listCongDongOrgs(
       trangThaiTinCay: "binh_thuong",
       soThanhVien: countMap.get(row.id) ?? 0,
       soBaiViet: 0,
+      soBaiMoi7Ngay: recentPostCounts.get(row.id) ?? 0,
+      linhVucIds: parseLinhVucIdsFromCauHinh(row.cau_hinh),
+      nganhIds: parseCategoryIdsFromCauHinh(row.cau_hinh),
+      viewerVaiTro,
     });
   }
   return result;
@@ -148,16 +171,22 @@ export async function loadCongDongPageData(params: {
   const orgRow = await fetchCongDongBySlug(params.slug);
   if (!orgRow) return null;
 
-  const cheDo = parseCheDo(orgRow.cau_hinh);
+  const cheDo = parseCongDongCheDoFromCauHinh(orgRow.cau_hinh);
   const viewerId = params.viewerId ?? null;
-  const member = viewerId ? await isThanhVien(viewerId, orgRow.id) : false;
+  const membershipStatus = viewerId
+    ? await getMembershipStatus(viewerId, orgRow.id)
+    : "none";
+  const member = membershipStatus === "active";
+  const joinPending = membershipStatus === "pending";
+
+  if (!canViewCongDongShell(cheDo, member)) {
+    return null;
+  }
+
+  const canViewFeed = canViewCongDongFeed(cheDo, member);
   const viewerVaiTroPromise = viewerId
     ? getViewerVaiTroInOrg(viewerId, orgRow.id)
     : Promise.resolve(null);
-
-  if (cheDo === CONG_DONG_CHE_DO.RIENG_TU && !member) {
-    return null;
-  }
 
   const admin = createServiceRoleClient();
   const viewerProfilePromise = viewerId
@@ -176,10 +205,10 @@ export async function loadCongDongPageData(params: {
     soThanhVien,
     soBaiViet,
     isAdmin,
-    isCinsAdmin,
     filters,
     feed,
     categories,
+    linhVucs,
     notifySettings,
     viewerProfileResult,
     viewerVaiTro,
@@ -187,10 +216,12 @@ export async function loadCongDongPageData(params: {
     countThanhVien(orgRow.id),
     countCongDongPosts(orgRow.id),
     viewerId ? isCongDongAdmin(viewerId, orgRow.id) : Promise.resolve(false),
-    getCurrentUserIsCinsAdmin(),
     listCongDongFilters(orgRow.id),
-    listCongDongPosts({ orgId: orgRow.id, viewerId }),
+    canViewFeed
+      ? listCongDongPosts({ orgId: orgRow.id, viewerId })
+      : Promise.resolve({ posts: [], nextCursor: null as string | null }),
     loadCongDongCategories(orgRow.id),
+    loadCongDongLinhVucs(orgRow.id),
     viewerId
       ? getOrgFollowSettings(viewerId, orgRow.id)
       : Promise.resolve({ muc_thong_bao: "tat" as const }),
@@ -222,10 +253,17 @@ export async function loadCongDongPageData(params: {
       trangThaiTinCay: orgRow.trang_thai_tin_cay ?? "binh_thuong",
       soThanhVien,
       soBaiViet,
+      soBaiMoi7Ngay: 0,
+      linhVucIds: parseLinhVucIdsFromCauHinh(orgRow.cau_hinh),
+      nganhIds: parseCategoryIdsFromCauHinh(orgRow.cau_hinh),
+      viewerVaiTro,
     },
     isThanhVien: member,
+    joinPending,
+    canViewFeed,
     isAdmin,
-    isCinsAdmin,
+    // Admin CINs không can thiệp cộng đồng trên trang public (L23 hẹp).
+    isCinsAdmin: false,
     viewerVaiTro,
     hideMembershipForOwner,
     notifyLevel,
@@ -240,5 +278,6 @@ export async function loadCongDongPageData(params: {
     initialPosts: feed.posts,
     nextCursor: feed.nextCursor,
     categories,
+    linhVucs,
   };
 }

@@ -20,6 +20,17 @@ export function avatarBg(hue: number): string {
 export function formatChatTime(iso: string): string {
   try {
     const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return iso;
+
+    const diffMs = Date.now() - d.getTime();
+    if (diffMs >= 0 && diffMs < 6 * 60 * 60 * 1000) {
+      const mins = Math.floor(diffMs / 60_000);
+      if (mins < 1) return "vừa xong";
+      if (mins < 60) return `${mins} phút trước`;
+      const hours = Math.floor(mins / 60);
+      return `${hours}h trước`;
+    }
+
     const now = new Date();
     const sameDay =
       d.getDate() === now.getDate() &&

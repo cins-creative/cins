@@ -29,6 +29,7 @@ import type {
   ChatThread,
   ChatThreadGroup,
 } from "@/lib/chat/types";
+import { parseChatNguCanh } from "@/lib/chat/message-perspective";
 
 const DM_ROOM = "1_1";
 const MESSAGE_PAGE_SIZE = 30;
@@ -124,21 +125,7 @@ type MapMessageExtras = {
 };
 
 function parseNguCanh(raw: unknown): ChatContextCard | null {
-  if (!raw || typeof raw !== "object") return null;
-  const r = raw as Record<string, unknown>;
-  const id = typeof r.id === "string" ? r.id : null;
-  const tieuDe = typeof r.tieuDe === "string" ? r.tieuDe : null;
-  const loai = typeof r.loai === "string" ? r.loai : null;
-  if (!id || !tieuDe || !loai) return null;
-  return {
-    loai,
-    id,
-    tieuDe,
-    moTa: typeof r.moTa === "string" ? r.moTa : null,
-    anh: typeof r.anh === "string" ? r.anh : null,
-    href: typeof r.href === "string" ? r.href : null,
-    orgTen: typeof r.orgTen === "string" ? r.orgTen : null,
-  };
+  return parseChatNguCanh(raw);
 }
 
 export function mapMessageFromRow(
@@ -168,6 +155,7 @@ export function mapMessageFromRow(
   return {
     id: normalized.id,
     from: normalized.id_nguoi_gui === viewerId ? "me" : "them",
+    senderUserId: normalized.id_nguoi_gui,
     body,
     sentAt: normalized.tao_luc,
     kind,

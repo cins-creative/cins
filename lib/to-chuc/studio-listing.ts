@@ -3,6 +3,7 @@ import "server-only";
 import { createPublicSupabaseClient } from "@/lib/supabase/public";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { resolveTruongImageSrcSync } from "@/lib/truong/media-url";
+import type { CoSoStaffVaiTro } from "@/lib/to-chuc/co-so-vai-tro";
 
 export type StudioLoai = "studio" | "doanh_nghiep";
 
@@ -17,6 +18,10 @@ export type StudioListItem = {
   loaiToChuc: StudioLoai;
   avatarSrc: string | null;
   coverSrc: string | null;
+  /** Vai trò staff của viewer (null = chưa thuộc org). */
+  viewerVaiTro?: CoSoStaffVaiTro | null;
+  /** Viewer đang theo dõi org (`user_theo_doi`). */
+  viewerDangTheoDoi?: boolean;
 };
 
 type RawStudio = {

@@ -4047,10 +4047,8 @@
   font-size: 13px;
   color: var(--ink-body, rgba(0, 0, 0, 0.72));
   line-height: 1.45;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .cso-khd-bt-thumb-preview {

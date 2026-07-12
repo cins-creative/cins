@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowRight, Briefcase, MapPin } from "lucide-react";
 
 import { labelTinhThanh } from "@/lib/truong/contact";
+import { listingOrgRelationBadge } from "@/lib/to-chuc/co-so-vai-tro";
 import type { StudioListItem } from "@/lib/to-chuc/studio-listing";
 
 type Props = {
@@ -16,6 +17,7 @@ export function StudioListingCard({ studio, index }: Props) {
   const avatarUrl = studio.avatarSrc;
   const locationLabel = labelTinhThanh(studio.tinhThanh);
   const kindLabel = studio.loaiToChuc === "doanh_nghiep" ? "Doanh nghiệp" : "Studio";
+  const relationBadge = listingOrgRelationBadge(studio);
   const subtitle =
     studio.tenChinhThuc && studio.tenChinhThuc.trim() !== studio.ten.trim()
       ? studio.tenChinhThuc.trim()
@@ -55,6 +57,9 @@ export function StudioListingCard({ studio, index }: Props) {
           <Briefcase size={14} strokeWidth={2} aria-hidden />
           {kindLabel}
         </span>
+        {relationBadge ? (
+          <span className="tdh-coso-role-badge">{relationBadge}</span>
+        ) : null}
       </div>
 
       <div className="tdh-coso-body">

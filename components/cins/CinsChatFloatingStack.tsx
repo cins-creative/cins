@@ -12,6 +12,7 @@ import {
 } from "react";
 
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
+import { ChatGroupAvatar } from "@/components/cins/ChatGroupAvatar";
 import { ChatMessageThreadItems } from "@/components/cins/ChatMessageThreadItems";
 import { ChatStickerPicker } from "@/components/cins/ChatStickerPicker";
 import { avatarBg } from "@/lib/chat/avatar";
@@ -35,6 +36,8 @@ import {
 } from "@/lib/chat/optimistic-message";
 import { fetchRoomMessagesPage } from "@/lib/chat/messages-client";
 import { reconcileChatMessage, appendChatMessageIfNew, mergeChatMessageUpdate, type ChatRealtimeMessageEvent } from "@/lib/chat/realtime";
+import { applyChatViewerPerspective } from "@/lib/chat/message-perspective";
+import { applyKnownGroupSender } from "@/lib/chat/apply-known-group-sender";
 import { replaceOptimisticAlbumWithRealMessages } from "@/lib/chat/replace-album-batch";
 import { imageFilesFromClipboard } from "@/lib/files/clipboard-images";
 import type { ChatMessage, ChatThread } from "@/lib/chat/types";
@@ -105,26 +108,46 @@ function mergePeekThreads(
 function MiniAvatar({
   thread,
   size = 36,
+  initial,
+  hue,
+  avatarUrl,
 }: {
   thread: ChatThread;
   size?: number;
+  initial?: string;
+  hue?: number;
+  avatarUrl?: string | null;
 }) {
+  if (thread.isGroup) {
+    return (
+      <ChatGroupAvatar
+        size={size}
+        avatarUrl={avatarUrl !== undefined ? avatarUrl : thread.avatarUrl}
+        members={thread.memberAvatars ?? []}
+      />
+    );
+  }
+
+  const resolvedInitial = initial ?? thread.avatarInitial;
+  const resolvedHue = hue ?? thread.avatarHue;
+  const resolvedUrl = avatarUrl !== undefined ? avatarUrl : thread.avatarUrl;
+
   return (
     <span
-      className={`j-chat-mini-avatar${thread.avatarUrl ? " has-image" : ""}`}
+      className={`j-chat-mini-avatar${resolvedUrl ? " has-image" : ""}`}
       style={{
         width: size,
         height: size,
         fontSize: size * 0.38,
-        background: thread.avatarUrl ? "transparent" : avatarBg(thread.avatarHue),
+        background: resolvedUrl ? "transparent" : avatarBg(resolvedHue),
       }}
       aria-hidden
     >
-      {thread.avatarUrl ? (
+      {resolvedUrl ? (
         /* eslint-disable-next-line @next/next/no-img-element */
-        <img src={thread.avatarUrl} alt="" />
+        <img src={resolvedUrl} alt="" />
       ) : (
-        thread.avatarInitial
+        resolvedInitial
       )}
     </span>
   );
@@ -183,6 +206,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
   const pendingAlbumByRoomRef = useRef(new Map<string, string>());
   const miniOpenRef = useRef(false);
   const miniRoomIdRef = useRef<string | null>(null);
+  const miniThreadRef = useRef<ChatThread | null>(null);
 
   pendingImagesRef.current = pendingImages;
 
@@ -193,6 +217,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
 
   miniOpenRef.current = miniOpen;
   miniRoomIdRef.current = miniThread?.roomId ?? null;
+  miniThreadRef.current = miniThread;
 
   useEffect(() => {
     return () => {
@@ -432,7 +457,15 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
     return subscribeChatMessages((event) => {
       if (open) return;
 
+      const message = applyChatViewerPerspective(
+        [event.message],
+        viewerProfileId,
+      )[0]!;
+
       if (miniOpenRef.current && miniRoomIdRef.current === event.roomId) {
+        const enriched = miniThreadRef.current?.isGroup
+          ? applyKnownGroupSender(message, miniThreadRef.current.memberAvatars)
+          : message;
         setRoomStates((prev) => {
           const current = prev[event.roomId] ?? {
             messages: [],
@@ -445,8 +478,8 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
               ...current,
               messages:
                 event.event === "update"
-                  ? mergeChatMessageUpdate(current.messages, event.message)
-                  : appendChatMessageIfNew(current.messages, event.message, {
+                  ? mergeChatMessageUpdate(current.messages, enriched)
+                  : appendChatMessageIfNew(current.messages, enriched, {
                       pendingAlbumOptimisticId:
                         pendingAlbumByRoomRef.current.get(event.roomId) ?? null,
                     }),
@@ -463,11 +496,11 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
             : prev,
         );
 
-        if (event.message.from === "them") {
+        if (message.from === "them") {
           void fetch(`/api/chat/rooms/${event.roomId}/read`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id_tin_nhan_cuoi: event.message.id }),
+            body: JSON.stringify({ id_tin_nhan_cuoi: message.id }),
           });
         }
 
@@ -536,7 +569,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
       const cached = getCachedRoomMessages(roomId);
       if (cached?.length) {
         patchRoomState(roomId, {
-          messages: cached,
+          messages: applyChatViewerPerspective(cached, viewerProfileId),
           hasMore: true,
           hydrated: true,
         });
@@ -556,14 +589,18 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
           return;
         }
 
+        const messages = applyChatViewerPerspective(
+          page.messages,
+          viewerProfileId,
+        );
         hydratedRoomsRef.current.add(roomId);
         patchRoomState(roomId, {
-          messages: page.messages,
+          messages,
           hasMore: page.hasMore,
           hydrated: true,
         });
         if (viewerProfileId) {
-          writeRoomMessagesCache(viewerProfileId, roomId, page.messages);
+          writeRoomMessagesCache(viewerProfileId, roomId, messages);
         }
         viewedRoomsRef.current.add(roomId);
 
@@ -1107,8 +1144,27 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
             {messages.length > 0 ? (
               <ChatMessageThreadItems
                 messages={messages}
-                renderTheirAvatar={() => (
-                  <MiniAvatar thread={miniThread} size={26} />
+                showSenderNames={Boolean(miniThread.isGroup)}
+                renderTheirAvatar={(msg) => (
+                  <MiniAvatar
+                    thread={miniThread}
+                    size={miniThread.isGroup ? 28 : 26}
+                    initial={
+                      miniThread.isGroup && msg.senderAvatarInitial
+                        ? msg.senderAvatarInitial
+                        : undefined
+                    }
+                    hue={
+                      miniThread.isGroup && msg.senderAvatarHue != null
+                        ? msg.senderAvatarHue
+                        : undefined
+                    }
+                    avatarUrl={
+                      miniThread.isGroup
+                        ? (msg.senderAvatarUrl ?? null)
+                        : undefined
+                    }
+                  />
                 )}
               />
             ) : null}
@@ -1246,6 +1302,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
                     "j-chat-bubble-wrap",
                     isActive ? "is-active" : "",
                     isPinned ? "is-pinned" : "",
+                    thread.isGroup ? "is-group" : "",
                   ]
                     .filter(Boolean)
                     .join(" ")}

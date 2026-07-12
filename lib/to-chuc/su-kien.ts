@@ -1,6 +1,5 @@
 import "server-only";
 
-import { getCurrentUserIsCinsAdmin } from "@/lib/auth/cins-admin-server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { resolveTruongImageSrcSync } from "@/lib/truong/media-url";
 
@@ -79,8 +78,7 @@ export async function canViewerManageSuKien(
   profileId: string | null | undefined,
   orgId: string,
 ): Promise<boolean> {
-  // Quyền CINs (trục 1) mở khoá vận hành mọi org — độc lập membership.
-  if (await getCurrentUserIsCinsAdmin()) return true;
+  // Chỉ membership (trục 2). Admin CINs không can thiệp sự kiện org ngoài trường (L23 hẹp).
   if (!profileId) return false;
   const vaiTro = await getViewerCoSoVaiTro(profileId, orgId);
   return canManageKhoaHoc(vaiTro);

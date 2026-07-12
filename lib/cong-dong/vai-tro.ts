@@ -39,6 +39,25 @@ export function pickCommunityVaiTro(
   return null;
 }
 
+/** Nhãn vai trò trên thẻ listing (không ▾). */
+export function listingRoleLabel(
+  vaiTro: CongDongVaiTro | null | undefined,
+): string | null {
+  if (!vaiTro) return null;
+  switch (vaiTro) {
+    case "thanh_vien":
+      return "Thành viên";
+    case "quan_ly_noi_dung":
+      return "Quản trị viên";
+    case "admin":
+      return "Admin";
+    case "owner":
+      return "Chủ sở hữu";
+    default:
+      return null;
+  }
+}
+
 /** Nhãn nút sidebar (có ▾ khi đã tham gia). */
 export function roleButtonLabel(
   vaiTro: CongDongVaiTro | null | undefined,

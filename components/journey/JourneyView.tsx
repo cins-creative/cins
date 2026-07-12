@@ -21,6 +21,9 @@ import type {
 import type { MilestoneItem } from "@/components/journey/milestone-types";
 import type { LoaiMocVisibilityMap } from "@/lib/journey/filter-visibility";
 
+const EMPTY_CO_AUTHOR_INVITES: ReadonlyArray<PendingCoAuthorInvite> = [];
+const EMPTY_FRIENDS: ReadonlyArray<MutualFriendProfile> = [];
+
 type Props = {
   slugFromRoute: string;
   profile: SidebarProfile;
@@ -71,9 +74,9 @@ export function JourneyView({
   editProfileInitial,
   filterVisibility,
   viewerProfileId = null,
-  coAuthorPendingInvites = [],
+  coAuthorPendingInvites = EMPTY_CO_AUTHOR_INVITES,
   activeView = "journey",
-  friends = [],
+  friends = EMPTY_FRIENDS,
 }: Props) {
   void freshlyOnboarded;
   void stats;

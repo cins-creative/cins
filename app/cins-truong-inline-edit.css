@@ -485,12 +485,21 @@
 .tdh-inline-modal-backdrop {
   position: fixed;
   inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 10050;
+  width: 100vw;
+  min-height: 100dvh;
   background: rgba(0, 0, 0, 0.45);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 20px;
+  box-sizing: border-box;
+  overflow: auto;
+  overscroll-behavior: contain;
 }
 
 .tdh-inline-modal {
@@ -5827,12 +5836,29 @@ a.tdh-message-inbox-verify-name:hover {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 18px;
   background: var(--bg-soft, #f8fafc);
+  /* Tin cũ trên · tin mới dưới (giống overlay) */
+  --cins-chat-media-max-w: 300px;
+  --cins-chat-media-max-h-portrait: 360px;
+  --cins-chat-media-max-w-portrait: 240px;
+  --cins-chat-media-max-square: 260px;
+  --cins-chat-sticker-max: 200px;
+}
+
+/* Ít tin: dồn sát ô soạn; nhiều tin: spacer co lại, scroll bình thường */
+.tdh-message-inbox-messages::before {
+  content: "";
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .tdh-message-inbox-messages.cins-chat-messages .cins-chat-bubble-row {
   max-width: 82%;
+}
+
+.tdh-message-inbox-messages.cins-chat-messages .cins-chat-bubble-row.is-media-row {
+  max-width: min(calc(var(--cins-chat-media-max-w) + 24px), 88%);
 }
 
 .tdh-message-inbox-messages.cins-chat-messages .cins-chat-bubble-row.is-me {
@@ -5849,7 +5875,7 @@ a.tdh-message-inbox-verify-name:hover {
 .tdh-message-inbox-messages.cins-chat-messages .cins-chat-bubble.has-album,
 .tdh-message-inbox-messages.cins-chat-messages .cins-chat-bubble.has-media-card,
 .tdh-message-inbox-messages.cins-chat-messages .cins-chat-bubble.is-sticker-only {
-  max-width: min(320px, 100%);
+  max-width: min(var(--cins-chat-media-max-w), 100%);
 }
 
 .tdh-message-inbox-messages.cins-chat-messages .cins-chat-bubble-row.is-me .cins-chat-bubble.has-album,
@@ -5859,7 +5885,7 @@ a.tdh-message-inbox-verify-name:hover {
 }
 
 .tdh-message-inbox-messages.cins-chat-messages .cins-chat-album-grid {
-  width: min(320px, 100%);
+  width: min(var(--cins-chat-media-max-w), 100%);
   max-width: 100%;
 }
 
@@ -5870,15 +5896,23 @@ a.tdh-message-inbox-verify-name:hover {
 }
 
 .tdh-message-inbox-compose {
+  position: relative;
   display: flex;
-  align-items: flex-end;
-  gap: 10px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
   padding: 10px 12px;
   border-top: 1px solid var(--border2, #e4e6eb);
   background: #fff;
   flex-shrink: 0;
   margin: 0;
   color: inherit;
+}
+
+.tdh-message-inbox-compose-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
 }
 
 .tdh-message-inbox-textarea {
@@ -5892,8 +5926,8 @@ a.tdh-message-inbox-verify-name:hover {
   border: 1px solid var(--border2, #e4e6eb);
   border-radius: 10px;
   resize: none;
-  min-height: 0;
-  max-height: 72px;
+  min-height: 38px;
+  max-height: 120px;
   margin: 0;
   background: var(--bg-soft, #f8fafc);
   color: var(--ink, #0f172a);
@@ -5901,7 +5935,11 @@ a.tdh-message-inbox-verify-name:hover {
 
 .tdh-message-inbox-send {
   flex-shrink: 0;
-  padding: 8px 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  padding: 8px 12px;
   font-size: 13px;
 }
 

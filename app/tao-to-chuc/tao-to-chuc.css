@@ -563,3 +563,114 @@ button.ttc-type-card {
 .ttc-logo-btn input {
   display: none;
 }
+
+.ttc-lbl-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ttc-privacy-options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+@media (max-width: 640px) {
+  .ttc-privacy-options {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ttc-privacy-opt {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  padding: 14px 14px 12px;
+  border: 1.5px solid var(--border, #e4e6eb);
+  border-radius: var(--radius-md, 14px);
+  background: var(--bg-surface, #fff);
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.ttc-privacy-opt:hover {
+  border-color: var(--cins-blue, #1f74c9);
+}
+
+.ttc-privacy-opt.is-selected {
+  border-color: var(--cins-blue, #1f74c9);
+  background: var(--cins-blue-soft, #e7f0fb);
+  box-shadow: 0 0 0 1px var(--cins-blue, #1f74c9);
+}
+
+.ttc-privacy-opt input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ttc-privacy-opt svg {
+  flex-shrink: 0;
+  color: var(--cins-blue, #1f74c9);
+}
+
+.ttc-privacy-opt strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+}
+
+.ttc-privacy-opt small {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.4));
+}
+
+.ttc-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+}
+
+.ttc-cover-upload {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 7;
+  border: 1.5px dashed var(--border-strong, #c9ccd3);
+  border-radius: var(--radius-md, 14px);
+  overflow: hidden;
+  background: var(--neutral-50, #f8f9fb);
+  cursor: pointer;
+}
+
+.ttc-cover-upload img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ttc-cover-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.4));
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ttc-cover-upload:hover {
+  border-color: var(--cins-blue, #1f74c9);
+}

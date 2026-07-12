@@ -17,7 +17,6 @@ export const dynamic = "force-dynamic";
 function CongDongListingSkeleton() {
   return (
     <div className="cd-list-page cd-list-page--loading" aria-busy="true">
-      <div className="cd-list-hero cd-list-hero--skeleton" />
       <div className="cd-list-grid">
         {Array.from({ length: 6 }, (_, i) => (
           <div key={i} className="cd-list-card cd-list-card--skeleton" />
@@ -27,13 +26,25 @@ function CongDongListingSkeleton() {
   );
 }
 
-export default function CongDongListingPage() {
+export default async function CongDongListingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ linh_vuc?: string; nganh?: string; mine?: string }>;
+}) {
   if (!hasSupabaseEnv()) notFound();
+
+  const sp = await searchParams;
+  const mineRaw = sp.mine?.trim().toLowerCase();
+  const initialMine = mineRaw === "1" || mineRaw === "true";
 
   return (
     <CinsShell data-screen-label="Cong-dong">
       <Suspense fallback={<CongDongListingSkeleton />}>
-        <CongDongListingLoader />
+        <CongDongListingLoader
+          initialLinhVucSlug={sp.linh_vuc ?? null}
+          initialNganhSlug={sp.nganh ?? null}
+          initialMine={initialMine}
+        />
       </Suspense>
     </CinsShell>
   );

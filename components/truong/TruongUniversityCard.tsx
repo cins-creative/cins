@@ -6,6 +6,7 @@ import { TruongOrgBrandMark } from "@/components/truong/TruongOrgBrandMark";
 import { TruongCardCoverGeo } from "@/components/truong/TruongCardCoverGeo";
 import { labelLoaiTruong } from "@/lib/nganh/truong-shared";
 import { labelLoaiCoSo } from "@/lib/to-chuc/constants";
+import { listingOrgRelationBadge } from "@/lib/to-chuc/co-so-vai-tro";
 import { labelTinhThanh } from "@/lib/truong/contact";
 import { truongCoverClass } from "@/lib/truong/display";
 import { resolveSchoolCoverSrc } from "@/lib/truong/school-cover";
@@ -83,6 +84,7 @@ export function TruongUniversityCard({
   variant = "default",
 }: TruongUniversityCardProps) {
   const coverUrl = resolveSchoolCoverSrc(school);
+  const relationBadge = listingOrgRelationBadge(school);
   const loai =
     school.org_loai === "co_so_dao_tao"
       ? labelLoaiCoSo(school.loai_truong)
@@ -127,6 +129,9 @@ export function TruongUniversityCard({
         ) : (
           <div className="tdh-card-cover-shade" aria-hidden />
         )}
+        {relationBadge ? (
+          <span className="tdh-coso-role-badge">{relationBadge}</span>
+        ) : null}
       </div>
       <div className="tdh-card-body">
         <div className="tdh-card-head">

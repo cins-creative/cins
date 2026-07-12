@@ -25,6 +25,7 @@ import {
 } from "@/lib/truong/contact";
 
 import "@/styles/article-draft-tiptap.css";
+import "@/app/co-so/co-so-page.css";
 
 type Props = {
   open: boolean;

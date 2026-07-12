@@ -64,11 +64,13 @@
 | `[id]/posts` · `[id]/posts/[postId]/comments` · `[id]/posts/[postId]/luu` (`bookmark` alias) | Feed cộng đồng (`content_cot_moc` che_do=`cong_dong`) · bình luận/reaction/lưu trên cột mốc |
 | `[id]/filters` · `[id]/filters/[filterId]` | Flair/filter (seed 4 nhãn mặc định) |
 | `[id]/tham-gia` · `[id]/theo-doi` · `[id]/sidebar-live` | Tham gia · theo dõi · sidebar realtime |
-| `[id]/categories` | PATCH gắn tối đa 4 bài nghề/ngành (`org_gan_bai_viet`) — admin org |
+| `[id]/categories` | GET/PATCH gắn tối đa 3 ngành đào tạo (`cau_hinh.danh_muc`) — admin org |
+| `[id]/linh-vuc` | GET/PATCH gắn tối đa 3 lĩnh vực (`cau_hinh.linh_vuc`) — admin org |
 | `[id]/profile` | PATCH `avatar_id` / `cover_id` trên `org_to_chuc` — admin org (`isCongDongAdmin`) |
 | `[id]/event-rail` | GET/PATCH banner sự kiện dọc (`org_su_kien` trong `org_to_chuc.cau_hinh`) — admin/quản trị nội dung |
-| `[id]/members` · `[id]/members/[membershipId]` | GET danh sách · POST thêm/cập nhật theo user · PATCH đổi `vai_tro` — **chỉ admin** (`canManageCommunity`) |
-| `category-articles/search` | Tìm bài nghề/ngành cho picker chủ đề nhóm |
+| `cong-dong/[id]/members` · `[id]/members/[membershipId]` | GET danh sách + `pending` xin tham gia · POST thêm/cập nhật theo user · PATCH đổi `vai_tro` hoặc `{ action: "approve"|"reject" }` — **chỉ admin** (`canManageCommunity`) |
+| `category-articles/search` | Tìm ngành đào tạo cho picker chủ đề nhóm |
+| `linh-vuc/catalog` | Danh sách lĩnh vực active cho picker |
 
 ### Tổ chức & trường (`to-chuc`, `truong`)
 | Route | Việc |
@@ -307,9 +309,10 @@ Code map: `lib/journey/images.ts` (role `gallery-grid` → `grid` + `srcset` `gr
 - Feed scoped **trong 1 org** qua `content_cot_moc` (`che_do_hien_thi='cong_dong'`, `id_to_chuc`=org) — thành viên đăng cột mốc + comment/reaction (KHÔNG nhồi vào `org_bai_dang`, KHÔNG `content_thao_luan`).
 - Helper loại trừ Journey public: `lib/journey/journey-visible-clause.ts`.
 - Mỗi post kèm badge **nghề + verified journey** người đăng.
-- `org_to_chuc.cau_hinh.che_do`: `cong_khai` (mặc định) / `rieng_tu`.
+- `org_to_chuc.cau_hinh.che_do`: `cong_khai` (mặc định) / `noi_bo` / `bi_mat` (alias đọc `rieng_tu` → `bi_mat`). Ma trận L27 — `lib/cong-dong/constants.ts` (`parseCongDongCheDo*`).
+- Xin tham gia nội bộ: `user_thanh_vien_to_chuc.trang_thai=pending` → admin duyệt qua `PATCH .../members/:id` `{ action: "approve"|"reject" }` (`lib/cong-dong/members.ts`).
 - Tạo org: `POST /api/to-chuc` → **1 dòng** `user_thanh_vien_to_chuc` (**creator = `owner`**) + cột mốc Journey (`loai_moc=thanh_tuu`, `nguon_goc=sinh_tu_org_assign`) + `verify_xac_nhan` → filter **Verified**, vai trò **Người tạo cộng đồng**. CINs admin truy cập qua quyền hệ thống (trục 1, trang `/admin`) — **KHÔNG** thêm tài khoản hệ thống vào org. Trường seed / org bỏ hoang: super admin gán staff qua **`/admin/to-chuc` → Phân quyền** (L22). ⚠️ Org tạo bằng code cũ có thể còn pattern legacy "CINS `owner` + creator `admin`" → chuẩn hoá về creator=owner khi gặp (xem `CINS_DECISIONS.md` L20).
-- Nhãn lọc: admin định nghĩa taxonomy; seed 4 nhãn mặc định (`lib/cong-dong/default-filters.ts`) + tutorial `/cong-dong/[slug]/nhan`.
+- Nhãn lọc: admin định nghĩa taxonomy; seed 4 nhãn mặc định khi tạo (`lib/cong-dong/default-filters.ts`). Sửa nhãn trong trang cộng đồng (`CongDongFilterAdminModal`). Sau tạo → vào thẳng `/cong-dong/[slug]`.
 - **UI trang `/cong-dong/[slug]`** (`CongDongPageClient`, CSS `app/cong-dong/cong-dong.css`): layout 3 cột — sidebar org · feed · event rail (ẩn &lt;1100px). Nền trang: xám phẳng `#eceef2` (không dùng gradient `body`).
 
 #### Menu thành viên (`CongDongRoleButton`)
@@ -363,7 +366,7 @@ Chi tiết bullet: `assignableRolePermissions()` trong `lib/cong-dong/vai-tro.ts
 #### Event rail & cài đặt nhóm (tóm tắt)
 
 - **Event rail** (`CongDongEventRail`): cột phải — chỉ ảnh banner; admin/quản trị hover → chỉnh (`CongDongEventRailEditorModal`, `GET/PATCH …/event-rail`).
-- **Cài đặt nhóm** (`CongDongGroupSettingsModal`): tối đa 4 bài nghề/ngành (`PATCH …/categories`, picker `CongDongCategoryPicker` + `category-articles/search`).
+- **Cài đặt nhóm** (`CongDongGroupSettingsModal`): một picker `CongDongTopicPicker` — lĩnh vực (tối đa 3, `PATCH …/linh-vuc` + `GET …/linh-vuc/catalog`) và ngành đào tạo (tối đa 3, `PATCH …/categories` + `category-articles/search`). Không gắn nghề. Lưu `cau_hinh.linh_vuc` / `cau_hinh.danh_muc`.
 - **Avatar & cover sidebar** (`CongDongOrgBrandingCover` / `CongDongOrgBrandingAvatar`): admin hover → đổi ảnh; upload `/api/avatar/upload` hoặc `/api/cover/upload` rồi `PATCH …/profile`.
 
 ### Khóa học — chi tiết site

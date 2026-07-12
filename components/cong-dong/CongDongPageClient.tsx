@@ -3,10 +3,12 @@
 import Link from "next/link";
 import {
   BadgeCheck,
+  EyeOff,
+  Globe,
   Heart,
   LayoutGrid,
+  Lock,
   MessageCircle,
-  Users,
   Waypoints,
 } from "lucide-react";
 import {
@@ -25,10 +27,12 @@ import { JourneyComposeProvider } from "@/components/journey/JourneyComposeConte
 import { JourneyCreateComposer } from "@/components/journey/JourneyCreateComposer";
 import { CongDongAuthorMetaLine } from "@/components/cong-dong/CongDongAuthorMetaLine";
 import { CongDongCategoryLinks } from "@/components/cong-dong/CongDongCategoryLinks";
+import { CongDongLinhVucLinks } from "@/components/cong-dong/CongDongLinhVucLinks";
 import { congDongFeedPostCoverUrl } from "@/lib/cong-dong/feed-post-cover";
-import { CongDongFilterAdminModal } from "@/components/cong-dong/CongDongFilterAdmin";
-import { CongDongGroupSettingsModal } from "@/components/cong-dong/CongDongGroupSettingsModal";
-import { CongDongMembersModal } from "@/components/cong-dong/CongDongMembersModal";
+import {
+  CongDongManageModal,
+  CongDongManageTriggerButton,
+} from "@/components/cong-dong/CongDongManageModal";
 import {
   CongDongOrgBrandingAvatar,
   CongDongOrgBrandingCover,
@@ -47,7 +51,12 @@ import {
   compareCongDongPostsByMilestoneDate,
   congDongPostTimelineParts,
 } from "@/lib/cong-dong/feed-display";
-import { SOCIAL_LOAI_DOI_TUONG } from "@/lib/cong-dong/constants";
+import {
+  CONG_DONG_CHE_DO,
+  SOCIAL_LOAI_DOI_TUONG,
+  congDongCheDoLabel,
+  type CongDongCheDo,
+} from "@/lib/cong-dong/constants";
 import {
   canManageLabels,
   canManageMembers,
@@ -59,6 +68,7 @@ import type {
   CongDongCategory,
   CongDongComment,
   CongDongFilter,
+  CongDongLinhVuc,
   CongDongMemberPreview,
   CongDongPageData,
   CongDongPost,
@@ -82,6 +92,36 @@ import {
 type Props = {
   initial: CongDongPageData;
 };
+
+function congDongPrivacyHint(cheDo: CongDongCheDo): string {
+  switch (cheDo) {
+    case CONG_DONG_CHE_DO.BI_MAT:
+      return "Ẩn danh sách · chỉ lời mời";
+    case CONG_DONG_CHE_DO.NOI_BO:
+      return "Tìm thấy · feed chỉ thành viên";
+    default:
+      return "Ai cũng xem được trang và bài";
+  }
+}
+
+function CongDongCoverPrivacyBadge({ cheDo }: { cheDo: CongDongCheDo }) {
+  const Icon =
+    cheDo === CONG_DONG_CHE_DO.BI_MAT
+      ? EyeOff
+      : cheDo === CONG_DONG_CHE_DO.NOI_BO
+        ? Lock
+        : Globe;
+
+  return (
+    <span
+      className={`cd-v4-cover-badge cd-v4-cover-badge--privacy is-${cheDo}`}
+      title={congDongPrivacyHint(cheDo)}
+    >
+      <Icon size={12} strokeWidth={2.2} aria-hidden />
+      {congDongCheDoLabel(cheDo)}
+    </span>
+  );
+}
 
 type FeedView = "journey" | "grid";
 type SortMode = "moi" | "tuongtac" | "az";
@@ -143,6 +183,8 @@ function postTimelineParts(thoiDiem: string): { year: string; month: string } {
 export function CongDongPageClient({ initial }: Props) {
   const [org, setOrg] = useState(initial.org);
   const [isThanhVien, setIsThanhVien] = useState(initial.isThanhVien);
+  const [joinPending, setJoinPending] = useState(initial.joinPending);
+  const [canViewFeed, setCanViewFeed] = useState(initial.canViewFeed);
   const [viewerVaiTro, setViewerVaiTro] = useState<CongDongVaiTro | null>(
     initial.viewerVaiTro,
   );
@@ -150,6 +192,9 @@ export function CongDongPageClient({ initial }: Props) {
   const isCinsAdmin = initial.isCinsAdmin;
   const canManageLabelsView = canManageLabels(viewerVaiTro) || isCinsAdmin;
   const canManageMembersView = canManageMembers(viewerVaiTro) || isCinsAdmin;
+  const canManageTopicsView = initial.isAdmin;
+  const canOpenManage =
+    canManageLabelsView || canManageMembersView || canManageTopicsView;
   const [notifyLevel, setNotifyLevel] = useState<OrgNotifyLevel>(
     initial.notifyLevel,
   );
@@ -172,11 +217,12 @@ export function CongDongPageClient({ initial }: Props) {
     posts: initial.initialPosts,
     nextCursor: initial.nextCursor,
   });
-  const [filterAdminOpen, setFilterAdminOpen] = useState(false);
-  const [groupSettingsOpen, setGroupSettingsOpen] = useState(false);
-  const [membersOpen, setMembersOpen] = useState(false);
+  const [manageOpen, setManageOpen] = useState(false);
   const [categories, setCategories] = useState<CongDongCategory[]>(
     initial.categories,
+  );
+  const [linhVucs, setLinhVucs] = useState<CongDongLinhVuc[]>(
+    initial.linhVucs ?? [],
   );
 
   const canCompose = Boolean(
@@ -258,15 +304,26 @@ export function CongDongPageClient({ initial }: Props) {
 
   const onJoined = useCallback((vaiTro: CongDongVaiTro) => {
     setIsThanhVien(true);
+    setJoinPending(false);
+    setCanViewFeed(true);
     setViewerVaiTro(vaiTro);
     setNotifyLevel("chi_noi_bat");
   }, []);
 
+  const onJoinPending = useCallback(() => {
+    setIsThanhVien(false);
+    setJoinPending(true);
+    setViewerVaiTro(null);
+  }, []);
+
   const onLeftCommunity = useCallback(() => {
     setIsThanhVien(false);
+    setJoinPending(false);
     setViewerVaiTro(null);
     setNotifyLevel("tat");
-  }, []);
+    // Nội bộ/bí mật: rời → mất feed; công khai vẫn xem được.
+    setCanViewFeed(initial.org.cheDo === "cong_khai");
+  }, [initial.org.cheDo]);
 
   const loadMore = () => {
     if (!nextCursor) return;
@@ -405,10 +462,7 @@ export function CongDongPageClient({ initial }: Props) {
                 canEdit={initial.isAdmin}
                 onBrandingChange={onBrandingChange}
               />
-              <span className="cd-v4-cover-badge">
-                <Users size={13} strokeWidth={2} aria-hidden />
-                Cộng đồng
-              </span>
+              <CongDongCoverPrivacyBadge cheDo={org.cheDo} />
               <div className="cd-v4-id-avatar-slot">
                 <CongDongOrgBrandingAvatar
                   orgId={org.id}
@@ -423,37 +477,34 @@ export function CongDongPageClient({ initial }: Props) {
               <div className="cd-v4-id-head-main">
                 <h1 className="cd-v4-title">{org.ten}</h1>
                 {org.moTa ? <p className="cd-v4-desc">{org.moTa}</p> : null}
+                {canOpenManage ? (
+                  <CongDongManageTriggerButton
+                    onClick={() => setManageOpen(true)}
+                  />
+                ) : null}
                 <CongDongRoleButton
                   orgId={org.id}
+                  cheDo={org.cheDo}
                   shareSource={shareSource}
                   isThanhVien={isThanhVien}
+                  joinPending={joinPending}
                   viewerVaiTro={viewerVaiTro}
                   isCinsAdmin={isCinsAdmin}
                   hideForOwner={initial.hideMembershipForOwner}
                   initialNotifyLevel={notifyLevel}
                   onJoined={onJoined}
+                  onJoinPending={onJoinPending}
                   onLeft={onLeftCommunity}
                   onNotifyLevelChange={setNotifyLevel}
-                  onManageLabels={
-                    canManageLabelsView
-                      ? () => setFilterAdminOpen(true)
-                      : undefined
-                  }
-                  onGroupSettings={
-                    initial.isAdmin
-                      ? () => setGroupSettingsOpen(true)
-                      : undefined
-                  }
-                  onManageMembers={
-                    canManageMembersView
-                      ? () => setMembersOpen(true)
-                      : undefined
+                  onManage={
+                    canOpenManage ? () => setManageOpen(true) : undefined
                   }
                 />
               </div>
             </div>
           </div>
           <div className="cd-v4-id-body">
+            <CongDongLinhVucLinks linhVucs={linhVucs} />
             <CongDongCategoryLinks categories={categories} />
 
             {careerMap.length > 0 ? (
@@ -522,6 +573,15 @@ export function CongDongPageClient({ initial }: Props) {
             <JourneyCreateComposer ownerSlug={viewerSlug} />
           ) : null}
 
+          {!canViewFeed ? (
+            <div className="cd-v4-feed">
+              <p className="cd-v4-empty">
+                {joinPending
+                  ? "Yêu cầu tham gia đang chờ admin duyệt. Bạn sẽ thấy bài đăng khi được chấp nhận."
+                  : "Cộng đồng nội bộ — tham gia (hoặc được mời) để xem bài đăng."}
+              </p>
+            </div>
+          ) : (
           <div
             className={`cd-v4-feed${view === "grid" ? " is-grid" : " is-journey"}${filterPending ? " is-loading" : ""}`}
           >
@@ -564,8 +624,9 @@ export function CongDongPageClient({ initial }: Props) {
               />
             )}
           </div>
+          )}
 
-          {nextCursor ? (
+          {canViewFeed && nextCursor ? (
             <button
               type="button"
               className="cd-v4-load-more"
@@ -586,37 +647,25 @@ export function CongDongPageClient({ initial }: Props) {
 
     </div>
 
-    {canManageLabelsView ? (
-      <CongDongFilterAdminModal
-        open={filterAdminOpen}
-        onClose={() => setFilterAdminOpen(false)}
-        orgId={org.id}
-        filters={filters}
-        onChange={setFilters}
-      />
-    ) : null}
-
-    {initial.isAdmin ? (
-      <CongDongGroupSettingsModal
-        open={groupSettingsOpen}
-        onClose={() => setGroupSettingsOpen(false)}
-        orgId={org.id}
-        categories={categories}
-        onSaved={(next) => {
-          setCategories(next);
-          setGroupSettingsOpen(false);
-        }}
-      />
-    ) : null}
-
-    {canManageMembersView ? (
-      <CongDongMembersModal
-        open={membersOpen}
-        onClose={() => setMembersOpen(false)}
+    {canOpenManage ? (
+      <CongDongManageModal
+        open={manageOpen}
+        onClose={() => setManageOpen(false)}
         orgId={org.id}
         orgSlug={org.slug}
         orgLabel={org.ten}
         viewerIsOwner={viewerVaiTro === "owner"}
+        canTopics={canManageTopicsView}
+        canLabels={canManageLabelsView}
+        canMembers={canManageMembersView}
+        categories={categories}
+        linhVucs={linhVucs}
+        filters={filters}
+        onFiltersChange={setFilters}
+        onTopicsSaved={(next) => {
+          setCategories(next.categories);
+          setLinhVucs(next.linhVucs);
+        }}
       />
     ) : null}
     </>
@@ -1417,9 +1466,14 @@ function CommentsPanel({
       });
       const json = (await res.json().catch(() => null)) as {
         viewerVaiTro?: CongDongVaiTro | null;
+        isThanhVien?: boolean;
+        joinPending?: boolean;
       } | null;
       if (!res.ok) return;
-      onJoined(json?.viewerVaiTro ?? "thanh_vien");
+      if (json?.joinPending) return;
+      if (json?.isThanhVien !== false) {
+        onJoined(json?.viewerVaiTro ?? "thanh_vien");
+      }
     });
   };
 

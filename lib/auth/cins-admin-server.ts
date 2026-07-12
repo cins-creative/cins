@@ -10,10 +10,10 @@ import { getCurrentUserSystemRole } from "@/lib/auth/system-role";
  *
  * Trả `false` khi không xác định được session (anon, lỗi network, ...).
  *
- * Quyền admin CINs (trục 1) mở khoá vận hành trang org (inline-edit, quản lý
- * thành viên, bàn giao) trên MỌI loại org — độc lập với membership (trục 2).
- * Đây là "quyền CINs", khác quyền owner: hành động dưới danh nghĩa hệ thống.
- * Xem `CINS_DECISIONS.md` L23 (đảo L20).
+ * Trên trang org công khai, quyền này **chỉ** mở khoá vận hành
+ * `truong_dai_hoc` (inline-edit, settings) — xem `lib/truong/org-admin.ts`.
+ * Cơ sở / studio / cộng đồng chỉ theo membership (trục 2); cứu hộ qua
+ * `/admin/to-chuc` (L22). Xem `CINS_DECISIONS.md` L23 hẹp.
  *
  * `cache()` để dedupe trong 1 request (nhiều gate gọi cùng lúc).
  */

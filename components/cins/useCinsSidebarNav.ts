@@ -59,7 +59,11 @@ export function useCinsSidebarNav(
       const link = (e.target as HTMLElement).closest("a[href]");
       if (link) sidebar?.classList.remove("open");
     };
-    const onSidebarMouseLeave = () => blurSidebarFocus(sidebar);
+    const onSidebarMouseLeave = () => {
+      /* Delay nhẹ — tránh blur ngay khi rê/click vào subitem khiến rail thu
+         giữa mousedown→click và nuốt navigation. */
+      window.setTimeout(() => blurSidebarFocus(sidebar), 0);
+    };
     const onDocPointerDown = (e: PointerEvent) => {
       if (!sidebar || !desktopMq.matches) return;
       const t = e.target as Node;

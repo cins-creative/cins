@@ -4,6 +4,7 @@ import { ArrowRight, GraduationCap, MapPin } from "lucide-react";
 
 import { TruongOrgAvatar } from "@/components/truong/TruongOrgAvatar";
 import { labelLoaiCoSo } from "@/lib/to-chuc/constants";
+import { listingOrgRelationBadge } from "@/lib/to-chuc/co-so-vai-tro";
 import { labelTinhThanh } from "@/lib/truong/contact";
 import { resolveSchoolCoverSrc } from "@/lib/truong/school-cover";
 import type { TruongListItem } from "@/lib/truong/types";
@@ -19,6 +20,7 @@ export function CoSoListingCard({ school, index }: Props) {
   const coverUrl = resolveSchoolCoverSrc(school);
   const locationLabel = labelTinhThanh(school.tinh_thanh);
   const loaiLabel = labelLoaiCoSo(school.loai_truong);
+  const relationBadge = listingOrgRelationBadge(school);
   const subtitle =
     school.ten_chinh_thuc &&
     school.ten_chinh_thuc.trim() !== school.ten.trim()
@@ -56,6 +58,9 @@ export function CoSoListingCard({ school, index }: Props) {
           <GraduationCap size={14} strokeWidth={2} aria-hidden />
           Cơ sở đào tạo
         </span>
+        {relationBadge ? (
+          <span className="tdh-coso-role-badge">{relationBadge}</span>
+        ) : null}
       </div>
 
       <div className="tdh-coso-body">

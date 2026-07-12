@@ -11,45 +11,46 @@ import { getDefaultAvatarUrl } from "@/lib/journey/default-avatars";
 
 /**
  * Bảng map enum `tinh_thanh_vn_enum` (Supabase) → tên hiển thị tiếng Việt.
- *
- * 34 đơn vị hành chính theo phương án sáp nhập 2025. TP.HCM key là `hcm`.
- * Fallback: format slug → Title Case (an toàn cho key không có trong map).
+ * Đồng bộ với `lib/truong/contact.ts` (34 tỉnh/thành NQ 202/2025/QH15).
  */
 const TINH_THANH_LABEL: Record<string, string> = {
   hcm: "TP. Hồ Chí Minh",
   ha_noi: "Hà Nội",
   da_nang: "Đà Nẵng",
-  hai_phong: "Hải Phòng",
+  an_giang: "An Giang",
+  bac_ninh: "Bắc Ninh",
+  ca_mau: "Cà Mau",
   can_tho: "Cần Thơ",
+  cao_bang: "Cao Bằng",
+  dak_lak: "Đắk Lắk",
+  dien_bien: "Điện Biên",
+  dong_nai: "Đồng Nai",
+  dong_thap: "Đồng Tháp",
+  gia_lai: "Gia Lai",
+  ha_tinh: "Hà Tĩnh",
+  hai_phong: "Hải Phòng",
+  hung_yen: "Hưng Yên",
   hue: "Huế",
   khanh_hoa: "Khánh Hòa",
-  lam_dong: "Lâm Đồng",
-  dong_nai: "Đồng Nai",
-  quang_ninh: "Quảng Ninh",
-  bac_ninh: "Bắc Ninh",
-  nghe_an: "Nghệ An",
-  ha_tinh: "Hà Tĩnh",
-  thanh_hoa: "Thanh Hóa",
-  ninh_binh: "Ninh Bình",
-  hung_yen: "Hưng Yên",
-  phu_tho: "Phú Thọ",
-  thai_nguyen: "Thái Nguyên",
-  lao_cai: "Lào Cai",
-  tuyen_quang: "Tuyên Quang",
-  cao_bang: "Cao Bằng",
-  lang_son: "Lạng Sơn",
-  dien_bien: "Điện Biên",
   lai_chau: "Lai Châu",
-  son_la: "Sơn La",
-  quang_tri: "Quảng Trị",
+  lam_dong: "Lâm Đồng",
+  lang_son: "Lạng Sơn",
+  lao_cai: "Lào Cai",
+  nghe_an: "Nghệ An",
+  ninh_binh: "Ninh Bình",
+  phu_tho: "Phú Thọ",
   quang_ngai: "Quảng Ngãi",
-  gia_lai: "Gia Lai",
-  dak_lak: "Đắk Lắk",
+  quang_ninh: "Quảng Ninh",
+  quang_tri: "Quảng Trị",
+  son_la: "Sơn La",
   tay_ninh: "Tây Ninh",
+  thai_nguyen: "Thái Nguyên",
+  thanh_hoa: "Thanh Hóa",
+  tuyen_quang: "Tuyên Quang",
   vinh_long: "Vĩnh Long",
-  dong_thap: "Đồng Tháp",
-  an_giang: "An Giang",
-  ca_mau: "Cà Mau",
+  // Legacy aliases (hiển thị)
+  ho_chi_minh: "TP. Hồ Chí Minh",
+  binh_duong: "TP. Hồ Chí Minh",
 };
 
 export function formatTinhThanh(raw: string | null | undefined): string | null {

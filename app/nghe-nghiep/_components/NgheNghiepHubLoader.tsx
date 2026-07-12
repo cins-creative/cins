@@ -23,6 +23,7 @@ export async function NgheNghiepHubLoader({ params }: Props) {
         showFallbackNote={listing.showFallbackNote}
         detailPathPrefix="/nghe-nghiep"
         listError={listing.listError}
+        communities={listing.communities}
       />
     </div>
   );

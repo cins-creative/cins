@@ -42,7 +42,7 @@ const KIND_CONFIG: Record<
   community: {
     types: ["cong_dong"],
     title: "Cộng đồng của bạn",
-    emptyText: "Bạn chưa tham gia cộng đồng nào.",
+    emptyText: "Bạn chưa quản lý cộng đồng nào.",
     createHref: "/cong-dong/tao",
     createLabel: "Tạo cộng đồng",
   },
@@ -96,7 +96,11 @@ export function SidebarOrgFlyout({
     };
   }, []);
 
-  const items = orgs?.filter((o) => cfg.types.includes(o.loaiToChuc)) ?? null;
+  /** Chỉ hiện org có vai trò/chức năng — bỏ membership thuần `thanh_vien`. */
+  const items =
+    orgs?.filter(
+      (o) => cfg.types.includes(o.loaiToChuc) && o.vaiTro !== "thanh_vien",
+    ) ?? null;
   const hasItems = (items?.length ?? 0) > 0;
   const open = hasItems && expanded;
   const active = item.isActive(pathname);
@@ -163,14 +167,18 @@ export function SidebarOrgFlyout({
 
       <div className={`sb-sublist-wrap${open ? " is-open" : ""}`}>
         <div className="sb-sublist-inner">
-          <ul className="sb-sublist" role="menu">
+          <ul className="sb-sublist">
             {items && items.length > 0
               ? items.map((o) => (
                   <li key={o.id}>
                     <Link
                       href={o.href ?? "#"}
                       className="sb-subitem"
-                      role="menuitem"
+                      prefetch={false}
+                      onPointerDown={(event) => {
+                        /* Giữ :focus-within trên sidebar suốt lúc click — rail không thu giữa mousedown→click. */
+                        event.currentTarget.focus({ preventScroll: true });
+                      }}
                     >
                       <span className="sb-subitem-ava" aria-hidden>
                         {o.avatarUrl ? (

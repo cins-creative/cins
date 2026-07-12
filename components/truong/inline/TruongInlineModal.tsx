@@ -4,6 +4,8 @@ import { X } from "lucide-react";
 import { useEffect, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
+import "@/app/cins-truong-inline-edit.css";
+
 type Props = {
   open: boolean;
   onClose: () => void;

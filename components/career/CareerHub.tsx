@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
+import { Users } from "lucide-react";
 
+import { CareerHubCongDongSection } from "@/components/career/CareerHubCongDongSection";
 import { CareerHubDeptTabs } from "@/components/career/CareerHubDeptTabs";
 import { CareerHubPageHead } from "@/components/career/CareerHubPageHead";
 import { CareerHubRail } from "@/components/career/CareerHubRail";
@@ -10,6 +12,7 @@ import { NganhHubAdminToolbar } from "@/components/nganh/hub/NganhHubAdminToolba
 import { NganhHubEditProvider } from "@/components/nganh/hub/NganhHubEditContext";
 import { NganhHubCard } from "@/components/nganh/NganhHubCard";
 import { MissingSupabaseEnvNotice } from "@/components/cins/MissingSupabaseEnvNotice";
+import type { CongDongOrgCategoryPreview } from "@/lib/cong-dong/categories";
 import type { CareerHubSection } from "@/lib/career/hubSections";
 import { NGHE_NGHIEP_HUB_PATH } from "@/lib/cins/hubPaths";
 import { deptCardThemeByIndex } from "@/lib/career/hubRailTheme";
@@ -51,6 +54,8 @@ type Props = {
   nganhListError?: { reason: "no_env" | "query_error"; message?: string };
   /** Bật toolbar + sửa thumbnail / thêm ngành trên hub `/nganh-hoc`. */
   nganhHubCanEdit?: boolean;
+  /** Cộng đồng gắn lĩnh vực đang xem (hub nghề). */
+  communities?: CongDongOrgCategoryPreview[];
 };
 
 export function CareerHub({
@@ -73,6 +78,7 @@ export function CareerHub({
   sampleNganh = [],
   nganhListError,
   nganhHubCanEdit = false,
+  communities = [],
 }: Props) {
   const detailHref = (slug: string) =>
     `${detailPathPrefix.replace(/\/$/, "")}/${slug}`;
@@ -90,6 +96,10 @@ export function CareerHub({
         `Khám phá các vị trí công việc trong lĩnh vực ${heroTitle} — mô tả ngắn, kỹ năng và lộ trình gợi ý trên CINs.`;
 
   const slugForLink = activeLinhVuc?.slug ?? "";
+  const congDongHref = slugForLink
+    ? `/cong-dong?linh_vuc=${encodeURIComponent(slugForLink)}`
+    : "/cong-dong";
+  const communityCount = communities.length;
   const heroArtSrc =
     slugForLink.includes("game") || heroTitle.toLowerCase().includes("game")
       ? "/assets/illustration-gamepad.png"
@@ -306,6 +316,32 @@ export function CareerHub({
                   <span className="l">lĩnh vực</span>
                 </div>
               </div>
+              {tab === "nghe" && slugForLink ? (
+                <Link
+                  href={congDongHref}
+                  className="hn-hero-cong-dong"
+                  aria-label={`Xem cộng đồng trong lĩnh vực ${heroTitleVi}`}
+                >
+                  <span className="hn-hero-cong-dong-icon" aria-hidden>
+                    <Users size={18} strokeWidth={2} />
+                  </span>
+                  <span className="hn-hero-cong-dong-copy">
+                    <strong>
+                      {communityCount > 0
+                        ? `${communityCount} cộng đồng`
+                        : "Cộng đồng"}
+                    </strong>
+                    <span>
+                      {communityCount > 0
+                        ? `đang hoạt động quanh ${heroTitleVi}`
+                        : `Khám phá nhóm quanh ${heroTitleVi}`}
+                    </span>
+                  </span>
+                  <span className="hn-hero-cong-dong-go" aria-hidden>
+                    Xem →
+                  </span>
+                </Link>
+              ) : null}
             </div>
             <div className="hn-ad-hero-visual" aria-hidden>
               <span className="hn-ad-pin hn-ad-pin-1">
@@ -388,6 +424,14 @@ export function CareerHub({
               </section>
             ))
           )}
+
+          {tab === "nghe" && !searchQuery ? (
+            <CareerHubCongDongSection
+              communities={communities}
+              linhVucLabel={heroTitleVi}
+              linhVucSlug={slugForLink || null}
+            />
+          ) : null}
 
           <section className="hn-foot-strip" aria-labelledby="hn-foot-title">
             <div>

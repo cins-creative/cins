@@ -61,6 +61,13 @@ import {
 import { matchesPersonalFilterSlug } from "@/lib/filter/client-utils";
 import { CONG_DONG_PERSONAL_FILTER_SLUG } from "@/lib/filter/cong-dong-personal-filter.shared";
 import { useJourneyPersonalFilterOptional } from "@/components/journey/JourneyPersonalFilterContext";
+
+const EMPTY_CO_AUTHOR: ReadonlyArray<PendingCoAuthorInvite> = [];
+const EMPTY_CO_SO: ReadonlyArray<PendingCoSoStaffInviteNotification> = [];
+const EMPTY_CONG_DONG: ReadonlyArray<PendingCongDongInviteNotification> = [];
+const EMPTY_MEMBERSHIP: ReadonlyArray<OutboundMembershipPending> = [];
+const EMPTY_DONG_GOP: ReadonlyArray<DongGopFeedbackBannerItem> = [];
+
 function isIdentityMembershipMilestone(m: MilestoneItem): boolean {
   return (
     m.cardLayout === "identity-pending" ||
@@ -120,11 +127,11 @@ export function JourneyTimeline({
   milestones: initialMilestones,
   filterVisibility,
   viewerProfileId = null,
-  coAuthorPendingInvites = [],
-  coSoStaffPendingInvites = [],
-  congDongPendingInvites = [],
-  membershipPendingOutbound = [],
-  dongGopFeedbackPending = [],
+  coAuthorPendingInvites = EMPTY_CO_AUTHOR,
+  coSoStaffPendingInvites = EMPTY_CO_SO,
+  congDongPendingInvites = EMPTY_CONG_DONG,
+  membershipPendingOutbound = EMPTY_MEMBERSHIP,
+  dongGopFeedbackPending = EMPTY_DONG_GOP,
   scrollLoad,
 }: Props) {
   const personalFilter = useJourneyPersonalFilterOptional();

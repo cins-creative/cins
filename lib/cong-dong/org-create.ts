@@ -3,9 +3,13 @@ import "server-only";
 import {
   validateCategoryArticleIds,
 } from "@/lib/cong-dong/categories";
-import { CONG_DONG_CHE_DO, CONG_DONG_FILTER_CONTEXT } from "@/lib/cong-dong/constants";
+import {
+  CONG_DONG_FILTER_CONTEXT,
+  normalizeCongDongCheDoForWrite,
+} from "@/lib/cong-dong/constants";
 import { createCongDongCreatorMilestone } from "@/lib/cong-dong/creator-milestone";
 import { seedDefaultCongDongFilters } from "@/lib/cong-dong/default-filters";
+import { validateCongDongLinhVucIds } from "@/lib/cong-dong/linh-vuc";
 import { slugifyOrgName, uniqueOrgSlug } from "@/lib/cong-dong/org-slug";
 import { normalizeTinhThanhForDb } from "@/lib/truong/contact";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -19,6 +23,7 @@ export type CreateCongDongInput = {
   coverId?: string;
   cheDo?: string;
   categoryArticleIds?: string[];
+  linhVucIds?: string[];
 };
 
 export async function createCongDongOrg(
@@ -38,10 +43,7 @@ export async function createCongDongOrg(
 
   const baseSlug = slugifyOrgName(input.slug?.trim() || ten);
   const slug = await uniqueOrgSlug(baseSlug);
-  const cheDo =
-    input.cheDo === CONG_DONG_CHE_DO.RIENG_TU
-      ? CONG_DONG_CHE_DO.RIENG_TU
-      : CONG_DONG_CHE_DO.CONG_KHAI;
+  const cheDo = normalizeCongDongCheDoForWrite(input.cheDo);
 
   const categoryValidation = await validateCategoryArticleIds(
     input.categoryArticleIds ?? [],
@@ -50,6 +52,14 @@ export async function createCongDongOrg(
     return { ok: false, error: categoryValidation.error };
   }
   const categoryIds = categoryValidation.categories.map((c) => c.id);
+
+  const linhVucValidation = await validateCongDongLinhVucIds(
+    input.linhVucIds ?? [],
+  );
+  if (!linhVucValidation.ok) {
+    return { ok: false, error: linhVucValidation.error };
+  }
+  const linhVucIds = linhVucValidation.linhVucs.map((v) => v.id);
 
   const admin = createServiceRoleClient();
 
@@ -67,6 +77,7 @@ export async function createCongDongOrg(
       cau_hinh: {
         che_do: cheDo,
         ...(categoryIds.length ? { danh_muc: categoryIds } : {}),
+        ...(linhVucIds.length ? { linh_vuc: linhVucIds } : {}),
       },
     })
     .select("id, slug")
@@ -105,6 +116,7 @@ export async function createCongDongOrg(
     id_to_chuc: org.id,
     id_nguoi_dung: creatorId,
     vai_tro: "owner",
+    trang_thai: "active",
   });
   if (ownerError) {
     await rollbackAll();

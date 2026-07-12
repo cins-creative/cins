@@ -79,6 +79,8 @@ function buildMemberAvatars(
       initial: avatarInitialFromName(name),
       hue: avatarHueFromSeed(member.id),
       avatarUrl: getAvatarUrl(member.avatar_id),
+      slug: member.slug?.trim() || undefined,
+      name,
     };
   });
 }
@@ -412,6 +414,7 @@ export async function enrichGroupMessageSenders(
     return {
       ...msg,
       senderUserId: profile.id,
+      senderSlug: profile.slug?.trim() || undefined,
       senderName: name,
       senderAvatarInitial: avatarInitialFromName(name),
       senderAvatarHue: avatarHueFromSeed(profile.id),

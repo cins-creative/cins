@@ -21,7 +21,7 @@ type PanelProps = {
   onChange: (filters: CongDongFilter[]) => void;
 };
 
-function CongDongFilterAdminPanel({ orgId, filters, onChange }: PanelProps) {
+export function CongDongFilterAdminPanel({ orgId, filters, onChange }: PanelProps) {
   const [ten, setTen] = useState("");
   const [mau, setMau] = useState(PRESET_COLORS[0]!);
   const [err, setErr] = useState<string | null>(null);

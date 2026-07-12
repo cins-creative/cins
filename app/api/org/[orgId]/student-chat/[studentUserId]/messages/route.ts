@@ -11,7 +11,7 @@ type RouteContext = {
 };
 
 /** GET — lịch sử nhắn org ↔ sinh viên (góc nhìn staff). */
-export async function GET(_req: Request, context: RouteContext) {
+export async function GET(req: Request, context: RouteContext) {
   const session = await getCurrentSessionAndProfile();
   if (!session?.profile) {
     return NextResponse.json({ error: "Cần đăng nhập." }, { status: 401 });
@@ -22,10 +22,12 @@ export async function GET(_req: Request, context: RouteContext) {
     return NextResponse.json({ error: "Thiếu thông tin." }, { status: 400 });
   }
 
+  const url = new URL(req.url);
   const result = await listOrgStudentMessagesForStaff({
     orgId: orgId.trim(),
     studentUserId: studentUserId.trim(),
     staffUserId: session.profile.id,
+    roomId: url.searchParams.get("roomId"),
   });
 
   if (!result.ok) {
@@ -38,7 +40,7 @@ export async function GET(_req: Request, context: RouteContext) {
   });
 }
 
-/** POST — staff gửi tin nhắn tới sinh viên (hiện tab Tổ chức). */
+/** POST — staff gửi tin (text / ảnh / meme) tới sinh viên. */
 export async function POST(req: Request, context: RouteContext) {
   const session = await getCurrentSessionAndProfile();
   if (!session?.profile) {
@@ -50,9 +52,13 @@ export async function POST(req: Request, context: RouteContext) {
     return NextResponse.json({ error: "Thiếu thông tin." }, { status: 400 });
   }
 
-  let body: { noi_dung?: string };
+  let body: {
+    noi_dung?: string;
+    cloudflare_image_id?: string;
+    id_emoji_muc?: string;
+  };
   try {
-    body = (await req.json()) as { noi_dung?: string };
+    body = (await req.json()) as typeof body;
   } catch {
     return NextResponse.json({ error: "Body không hợp lệ." }, { status: 400 });
   }
@@ -62,6 +68,8 @@ export async function POST(req: Request, context: RouteContext) {
     studentUserId: studentUserId.trim(),
     staffUserId: session.profile.id,
     body: body.noi_dung ?? "",
+    cloudflareImageId: body.cloudflare_image_id,
+    emojiMucId: body.id_emoji_muc,
   });
 
   if (!result.ok) {

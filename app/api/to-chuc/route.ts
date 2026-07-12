@@ -32,6 +32,9 @@ export async function POST(req: Request) {
     giay_phep_dao_tao?: string;
     danh_muc?: string[];
     category_ids?: string[];
+    category_article_ids?: string[];
+    linh_vuc?: string[];
+    linh_vuc_ids?: string[];
   };
   try {
     body = await req.json();
@@ -124,7 +127,9 @@ export async function POST(req: Request) {
     avatarId: body.avatar_id,
     coverId: body.cover_id,
     cheDo: body.che_do,
-    categoryArticleIds: body.danh_muc ?? body.category_ids,
+    categoryArticleIds:
+      body.danh_muc ?? body.category_ids ?? body.category_article_ids,
+    linhVucIds: body.linh_vuc ?? body.linh_vuc_ids,
   });
 
   if (!result.ok) {
@@ -135,6 +140,6 @@ export async function POST(req: Request) {
     ok: true,
     id: result.data.id,
     slug: result.data.slug,
-    redirect: `/cong-dong/${result.data.slug}/nhan`,
+    redirect: `/cong-dong/${result.data.slug}`,
   });
 }

@@ -1,6 +1,5 @@
 import "server-only";
 
-import { getCurrentUserIsCinsAdmin } from "@/lib/auth/cins-admin-server";
 import { slugifyOrgName } from "@/lib/cong-dong/org-slug";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { resolveTruongImageSrcSync } from "@/lib/truong/media-url";
@@ -83,8 +82,7 @@ export async function canViewerManageKhoaHoc(
   profileId: string | null | undefined,
   orgId: string,
 ): Promise<boolean> {
-  // Quyền CINs (trục 1) mở khoá vận hành mọi org — độc lập membership.
-  if (await getCurrentUserIsCinsAdmin()) return true;
+  // Chỉ membership (trục 2). Khóa học thuộc cơ sở — admin CINs không mở khoá (L23 hẹp).
   if (!profileId) return false;
   const vaiTro = await getViewerCoSoVaiTro(profileId, orgId);
   return canManageKhoaHoc(vaiTro);

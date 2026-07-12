@@ -232,6 +232,52 @@
   box-shadow: var(--shadow-xs);
 }
 
+.tdh-page .tdh-list-mine-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 7px 12px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-surface);
+  color: var(--ink-body);
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    background 0.15s ease;
+}
+
+.tdh-page .tdh-list-mine-chip:hover {
+  border-color: var(--cins-blue);
+  color: var(--cins-blue);
+}
+
+.tdh-page .tdh-list-mine-chip.is-active {
+  background: color-mix(in srgb, var(--cins-blue-soft, #e8f1fb) 80%, #fff);
+  border-color: color-mix(in srgb, var(--cins-blue) 45%, var(--border-strong));
+  color: var(--cins-blue);
+}
+
+.tdh-page .tdh-list-mine-chip-count {
+  min-width: 18px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--bg-muted, #eef1f5);
+  color: var(--ink-muted, rgba(0, 0, 0, 0.55));
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.tdh-page .tdh-list-mine-chip.is-active .tdh-list-mine-chip-count {
+  background: color-mix(in srgb, var(--cins-blue) 14%, #fff);
+  color: var(--cins-blue);
+}
+
 .tdh-page .tdh-list-search {
   display: flex;
   align-items: center;
@@ -743,6 +789,24 @@
   background: color-mix(in srgb, var(--text) 28%, transparent);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+}
+
+.tdh-page .tdh-coso-role-badge {
+  position: absolute;
+  z-index: 2;
+  top: 12px;
+  right: 12px;
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--cins-blue);
+  background: color-mix(in srgb, #fff 88%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.1);
 }
 
 .tdh-page .tdh-coso-card:hover .tdh-coso-cover-bg {

@@ -119,6 +119,16 @@ function hasValidCover(input: PostContentResolveInput): boolean {
   return Boolean(id && isPersistedImageSeed(id));
 }
 
+/** Cover trùng ảnh album → không render banner 21:9 + grid (trùng / crop sai). */
+function coverIsInAlbumImages(
+  input: PostContentResolveInput,
+  imageIds: ReadonlyArray<string>,
+): boolean {
+  const coverId = input.coverId?.trim();
+  if (!coverId || !isPersistedImageSeed(coverId)) return false;
+  return imageIds.some((id) => id === coverId);
+}
+
 function embedBlocks(blocks: ReadonlyArray<Block>): Block[] {
   return blocks.filter((b) => b.loai === "embed");
 }
@@ -684,7 +694,13 @@ export function resolvePostCardLayout(
   if (resolution.kind === "bunny_video") return "video";
   if (resolution.kind === "article") return "article";
 
-  if (coverOk && imageIds.length > 0) return "album_hero_grid";
+  if (coverOk && imageIds.length > 0) {
+    /* Cover = ảnh album (vd. cover_id sync từ tấm đầu) → album thuần, không hero. */
+    if (coverIsInAlbumImages(input, imageIds)) {
+      return imageIds.length <= 1 ? "album_single" : "album_grid";
+    }
+    return "album_hero_grid";
+  }
   if (coverOk && blocksArePlainTextOnly(blocks)) return "text_with_image";
   if (coverOk) return "text_with_image";
   if (imageIds.length <= 1) return "album_single";

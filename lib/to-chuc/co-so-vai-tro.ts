@@ -68,6 +68,34 @@ export function coSoAssignableRoleLabel(vaiTro: CoSoStaffVaiTro): string {
   }
 }
 
+/** Nhãn vai trò trên thẻ listing (không ▾). */
+export function listingOrgStaffRoleLabel(
+  vaiTro: CoSoStaffVaiTro | null | undefined,
+): string | null {
+  if (!vaiTro) return null;
+  if (vaiTro === "owner") return "Chủ sở hữu";
+  return coSoAssignableRoleLabel(vaiTro);
+}
+
+/** Listing «của tôi»: có vai trò staff hoặc đang theo dõi. */
+export function isListingMineOrg(item: {
+  viewerVaiTro?: string | null;
+  viewerDangTheoDoi?: boolean | null;
+}): boolean {
+  return Boolean(item.viewerVaiTro || item.viewerDangTheoDoi);
+}
+
+/** Badge trên card: ưu tiên vai trò, không thì «Đang theo dõi». */
+export function listingOrgRelationBadge(item: {
+  viewerVaiTro?: CoSoStaffVaiTro | null;
+  viewerDangTheoDoi?: boolean | null;
+}): string | null {
+  return (
+    listingOrgStaffRoleLabel(item.viewerVaiTro) ??
+    (item.viewerDangTheoDoi ? "Đang theo dõi" : null)
+  );
+}
+
 export function canManageCoSoMembers(
   vaiTro: CoSoStaffVaiTro | null | undefined,
 ): boolean {

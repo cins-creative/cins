@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
+import {
+  canViewCongDongFeed,
+  parseCongDongCheDoFromCauHinh,
+} from "@/lib/cong-dong/constants";
+import { isThanhVien } from "@/lib/cong-dong/membership";
 import { parseFilterSlugsFromSearchParams } from "@/lib/cong-dong/parse-filter-query";
 import { createCongDongPost, listCongDongPosts } from "@/lib/cong-dong/posts";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -11,21 +16,32 @@ async function getCongDongOrg(orgId: string) {
   const admin = createServiceRoleClient();
   const { data } = await admin
     .from("org_to_chuc")
-    .select("id, loai_to_chuc")
+    .select("id, loai_to_chuc, cau_hinh")
     .eq("id", orgId)
     .eq("loai_to_chuc", "cong_dong")
-    .maybeSingle<{ id: string; loai_to_chuc: string }>();
+    .maybeSingle<{ id: string; loai_to_chuc: string; cau_hinh: unknown }>();
   return data;
 }
 
 /** GET /api/cong-dong/:id/posts?cursor= */
 export async function GET(req: Request, ctx: RouteContext) {
   const { id: orgId } = await ctx.params;
-  if (!(await getCongDongOrg(orgId))) {
+  const org = await getCongDongOrg(orgId);
+  if (!org) {
     return NextResponse.json({ error: "Không tìm thấy cộng đồng." }, { status: 404 });
   }
 
   const session = await getCurrentSessionAndProfile();
+  const viewerId = session?.profile?.id ?? null;
+  const member = viewerId ? await isThanhVien(viewerId, orgId) : false;
+  const cheDo = parseCongDongCheDoFromCauHinh(org.cau_hinh);
+  if (!canViewCongDongFeed(cheDo, member)) {
+    return NextResponse.json(
+      { error: "Chỉ thành viên mới xem được bài trong cộng đồng này." },
+      { status: 403 },
+    );
+  }
+
   const searchParams = new URL(req.url).searchParams;
   const cursor = searchParams.get("cursor");
   const filterSlugs = parseFilterSlugsFromSearchParams(searchParams);
@@ -33,7 +49,7 @@ export async function GET(req: Request, ctx: RouteContext) {
   const feed = await listCongDongPosts({
     orgId,
     cursor,
-    viewerId: session?.profile?.id ?? null,
+    viewerId,
     filterSlugs,
   });
 

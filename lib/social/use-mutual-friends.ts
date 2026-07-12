@@ -11,18 +11,21 @@ export type MutualFriendsState = {
   visible: boolean;
 };
 
+const EMPTY_USERS: MutualFriendProfile[] = [];
+
 export function useMutualFriends(
   targetUserId: string,
   viewerProfileId: string | null,
 ): MutualFriendsState {
   const [count, setCount] = useState(0);
-  const [users, setUsers] = useState<MutualFriendProfile[]>([]);
+  const [users, setUsers] = useState<MutualFriendProfile[]>(EMPTY_USERS);
   const [loading, setLoading] = useState(false);
 
   const load = useCallback(async () => {
-    if (!viewerProfileId || viewerProfileId === targetUserId) {
-      setCount(0);
-      setUsers([]);
+    if (!viewerProfileId || !targetUserId || viewerProfileId === targetUserId) {
+      setCount((prev) => (prev === 0 ? prev : 0));
+      setUsers((prev) => (prev.length === 0 ? prev : EMPTY_USERS));
+      setLoading((prev) => (prev ? false : prev));
       return;
     }
     setLoading(true);
@@ -35,7 +38,7 @@ export function useMutualFriends(
         users: MutualFriendProfile[];
       };
       setCount(data.count ?? 0);
-      setUsers(data.users ?? []);
+      setUsers(data.users ?? EMPTY_USERS);
     } finally {
       setLoading(false);
     }
@@ -46,7 +49,10 @@ export function useMutualFriends(
   }, [load]);
 
   const visible = Boolean(
-    viewerProfileId && viewerProfileId !== targetUserId && count > 0,
+    viewerProfileId &&
+      targetUserId &&
+      viewerProfileId !== targetUserId &&
+      count > 0,
   );
 
   return { count, users, loading, visible };

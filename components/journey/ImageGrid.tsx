@@ -12,6 +12,7 @@ import { ImageGridOverlay } from "@/components/journey/ImageGridOverlay";
 import { ImageAlbumCarousel } from "@/components/journey/ImageAlbumCarousel";
 import { ImageLightbox } from "@/components/journey/ImageLightbox";
 import { ImageUploadProgressOverlay } from "@/components/ui/ImageUploadProgressOverlay";
+import { swapCfImageVariant } from "@/lib/cloudflare/cf-variant-url";
 import { handleBlockImageError } from "@/lib/editor/resolve-image-seed-url";
 import {
   albumGridComposeRows,
@@ -21,6 +22,25 @@ import {
   type GridImage,
   type GridUploadSlotState,
 } from "@/lib/journey/image-grid";
+
+/** CF variant nhỏ/crop có thể 403 hoặc lệch — thử `public` trước khi ẩn ảnh. */
+function handleGridThumbError(e: { currentTarget: HTMLImageElement }): void {
+  const img = e.currentTarget;
+  const current = img.currentSrc || img.src;
+  if (
+    /imagedelivery\.net/i.test(current) &&
+    img.dataset.cfPublicFallback !== "1"
+  ) {
+    const next = swapCfImageVariant(current, "public");
+    if (next !== current) {
+      img.dataset.cfPublicFallback = "1";
+      img.removeAttribute("srcset");
+      img.src = next;
+      return;
+    }
+  }
+  handleBlockImageError(e);
+}
 
 type Props = {
   images: GridImage[];
@@ -164,7 +184,7 @@ function ImageGridCell({
               setNaturalAspect(el.naturalWidth / el.naturalHeight);
             }
           }}
-          onError={handleBlockImageError}
+          onError={handleGridThumbError}
         />
       ) : null}
       {uploadState ? (

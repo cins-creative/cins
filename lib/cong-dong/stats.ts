@@ -57,6 +57,36 @@ export async function countCongDongPosts(orgId: string): Promise<number> {
   return count ?? 0;
 }
 
+/** Số bài mới theo từng org trong N ngày gần nhất (mặc định 7). */
+export async function loadCongDongRecentPostCountsByOrgIds(
+  orgIds: string[],
+  days = 7,
+): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  const unique = [...new Set(orgIds.filter(Boolean))];
+  if (unique.length === 0) return out;
+
+  for (const id of unique) out.set(id, 0);
+
+  const since = new Date();
+  since.setUTCDate(since.getUTCDate() - Math.max(1, days));
+
+  const admin = createServiceRoleClient();
+  const { data: rows } = await admin
+    .from("content_cot_moc")
+    .select("id_to_chuc")
+    .eq("che_do_hien_thi", CHE_DO_MOC_CONG_DONG)
+    .in("id_to_chuc", unique)
+    .gte("tao_luc", since.toISOString());
+
+  for (const row of rows ?? []) {
+    const id = row.id_to_chuc as string;
+    out.set(id, (out.get(id) ?? 0) + 1);
+  }
+
+  return out;
+}
+
 export type AuthorOrgPostMeta = {
   count: number;
   lastPostAt: string | null;

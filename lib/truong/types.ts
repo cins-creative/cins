@@ -1,5 +1,6 @@
 import type { Block } from "@/lib/editor/types";
 import type { PersonalFilterRef } from "@/lib/filter/types";
+import type { CoSoStaffVaiTro } from "@/lib/to-chuc/co-so-vai-tro";
 
 export type TruongOrgLoai = "truong_dai_hoc" | "co_so_dao_tao";
 
@@ -57,6 +58,10 @@ export type TruongListItem = {
   nganhTags: string[];
   /** Số khóa học của cơ sở đào tạo (`org_khoa_hoc`). Chỉ set cho cơ sở. */
   khoaHocCount?: number | null;
+  /** Vai trò staff của viewer (null = chưa thuộc org). */
+  viewerVaiTro?: CoSoStaffVaiTro | null;
+  /** Viewer đang theo dõi org (`user_theo_doi`). */
+  viewerDangTheoDoi?: boolean;
 };
 
 export type TruongNganhProgram = {

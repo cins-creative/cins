@@ -1,12 +1,8 @@
 import "server-only";
 
-import { getCurrentUserIsCinsAdmin } from "@/lib/auth/cins-admin-server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 import {
-  canChangeCoSoSlug,
-  canManageCoSoMembers,
-  coSoVaiTroLabel,
   pickCoSoStaffVaiTro,
   type CoSoStaffVaiTro,
 } from "./co-so-vai-tro";
@@ -38,9 +34,7 @@ export async function isCoSoOrgAdmin(
   orgId: string,
   profileId: string,
 ): Promise<boolean> {
-  // Quyền CINs (trục 1) mở khoá vận hành mọi org — độc lập membership.
-  if (await getCurrentUserIsCinsAdmin()) return true;
-
+  // Chỉ membership (trục 2). Admin CINs không can thiệp cơ sở (L23 hẹp).
   const admin = createServiceRoleClient();
   const { data: org } = await admin
     .from("org_to_chuc")

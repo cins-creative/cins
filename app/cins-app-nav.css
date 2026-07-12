@@ -478,9 +478,13 @@
   position: relative;
 }
 
-/* Ẩn nội dung con khi sidebar đang thu gọn (rail 64px) — chỉ xổ khi mở rộng. */
+/* Ẩn nội dung con khi sidebar đang thu gọn (rail 64px) — chỉ xổ khi mở rộng.
+   Giữ mở khi đang :active trên link con — tránh collapse giữa mousedown→click
+   (hover-out / mất focus-within nuốt navigation). */
 @media (min-width: 961px) {
-  .cins-app-sidebar.sidebar:not(:hover):not(:focus-within):not(:has(.sb-user.open))
+  .cins-app-sidebar.sidebar:not(:hover):not(:focus-within):not(:has(.sb-user.open)):not(
+      :has(.sb-subitem:active)
+    ):not(:has(.sb-flyout-main:active))
     .sb-sublist-wrap {
     grid-template-rows: 0fr;
   }

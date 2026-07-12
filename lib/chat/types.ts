@@ -37,6 +37,8 @@ export type ChatMessage = {
   from: "me" | "them";
   /** Nhóm chat — hiển thị tên người gửi trên bubble. */
   senderUserId?: string;
+  /** Slug Journey — click cụm avatar+tên → card user. */
+  senderSlug?: string;
   senderName?: string;
   senderAvatarInitial?: string;
   senderAvatarHue?: number;
@@ -75,6 +77,8 @@ export type ChatGroupMemberAvatar = {
   initial: string;
   hue: number;
   avatarUrl?: string | null;
+  slug?: string;
+  name?: string;
 };
 
 export type ChatThread = {

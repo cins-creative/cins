@@ -10,7 +10,7 @@ export { CONG_DONG_CATEGORY_MAX };
 
 const CATEGORY_KEY = "danh_muc";
 
-const ALLOWED_LOAI = new Set(["nghe", "nganh_dao_tao"]);
+const ALLOWED_LOAI = new Set(["nganh_dao_tao"]);
 
 const CATEGORY_ARTICLE_SELECT =
   "id, slug, tieu_de, loai_bai_viet, tom_tat, meta_description, cover_id, thumbnail, linh_vuc:id_linh_vuc(slug, ten)";
@@ -85,7 +85,7 @@ async function hydrateCategoryArticles(
     .from("article_bai_viet")
     .select(CATEGORY_ARTICLE_SELECT)
     .in("id", ids)
-    .in("loai_bai_viet", ["nghe", "nganh_dao_tao"])
+    .in("loai_bai_viet", ["nganh_dao_tao"])
     .eq("trang_thai_noi_dung", "published")
     .returns<CategoryArticleRow[]>();
 
@@ -153,7 +153,7 @@ export async function validateCategoryArticleIds(
   if (unique.length > CONG_DONG_CATEGORY_MAX) {
     return {
       ok: false,
-      error: `Tối đa ${CONG_DONG_CATEGORY_MAX} chủ đề nghề hoặc ngành.`,
+      error: `Tối đa ${CONG_DONG_CATEGORY_MAX} ngành đào tạo.`,
     };
   }
 
@@ -165,7 +165,7 @@ export async function validateCategoryArticleIds(
   if (categories.length !== unique.length) {
     return {
       ok: false,
-      error: "Một hoặc nhiều chủ đề không hợp lệ hoặc chưa được xuất bản.",
+      error: "Một hoặc nhiều ngành không hợp lệ hoặc chưa được xuất bản.",
     };
   }
 
@@ -213,7 +213,7 @@ export async function searchCongDongCategoryArticles(
   const admin = createServiceRoleClient();
 
   const loaiFilter =
-    loai && loai !== "all" ? [loai] : (["nghe", "nganh_dao_tao"] as const);
+    loai && loai !== "all" ? [loai] : (["nganh_dao_tao"] as const);
 
   let req = admin
     .from("article_bai_viet")

@@ -1,14 +1,18 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
+  ArrowLeft,
+  ArrowRight,
+  ChevronDown,
+  EyeOff,
   Globe,
   ImagePlus,
   Lock,
-  MapPin,
+  SlidersHorizontal,
   Users,
 } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   useId,
   useMemo,
@@ -18,9 +22,17 @@ import {
   type SetStateAction,
 } from "react";
 
-import { CongDongCategoryPicker } from "@/components/cong-dong/CongDongCategoryPicker";
-import type { CongDongCategory } from "@/lib/cong-dong/types";
-import { TINH_THANH_OPTIONS } from "@/lib/truong/contact";
+import { CongDongTopicPicker } from "@/components/cong-dong/CongDongTopicPicker";
+import { TaoToChucPageShell } from "@/components/to-chuc/TaoToChucPageShell";
+import type { CongDongCheDo } from "@/lib/cong-dong/constants";
+import {
+  CONG_DONG_CHE_DO,
+  congDongCheDoLabel,
+} from "@/lib/cong-dong/constants";
+import type {
+  CongDongCategory,
+  CongDongLinhVuc,
+} from "@/lib/cong-dong/types";
 
 function slugifyPreview(value: string): string {
   const cleaned = value
@@ -47,7 +59,7 @@ export function CongDongCreateForm() {
   const [err, setErr] = useState<string | null>(null);
   const [ten, setTen] = useState("");
   const [slugOverride, setSlugOverride] = useState("");
-  const [cheDo, setCheDo] = useState<"cong_khai" | "rieng_tu">("cong_khai");
+  const [cheDo, setCheDo] = useState<CongDongCheDo>(CONG_DONG_CHE_DO.CONG_KHAI);
   const [avatar, setAvatar] = useState<UploadState>({
     imageId: null,
     previewUrl: null,
@@ -59,16 +71,20 @@ export function CongDongCreateForm() {
     uploading: false,
   });
   const [categories, setCategories] = useState<CongDongCategory[]>([]);
+  const [linhVucs, setLinhVucs] = useState<CongDongLinhVuc[]>([]);
 
   const slugPreview = slugOverride.trim() || slugifyPreview(ten);
 
-  const cheDoHint = useMemo(
-    () =>
-      cheDo === "cong_khai"
-        ? "Ai cũng xem được trang và bài đăng. Thành viên mới cần bấm Tham gia để đăng bài."
-        : "Chỉ thành viên mới xem được nội dung. Phù hợp nhóm nhỏ hoặc đang thử nghiệm.",
-    [cheDo],
-  );
+  const cheDoHint = useMemo(() => {
+    switch (cheDo) {
+      case CONG_DONG_CHE_DO.NOI_BO:
+        return "Ai cũng tìm thấy trang (tên, mô tả). Feed chỉ thành viên — người mới xin tham gia để admin duyệt, hoặc vào qua lời mời.";
+      case CONG_DONG_CHE_DO.BI_MAT:
+        return "Không hiện trên danh sách. Chỉ thành viên / người có lời mời xem được trang và bài.";
+      default:
+        return "Ai cũng xem được trang và bài đăng. Thành viên mới cần bấm Tham gia để đăng bài.";
+    }
+  }, [cheDo]);
 
   async function uploadImage(
     file: File,
@@ -109,7 +125,6 @@ export function CongDongCreateForm() {
     const tenValue = String(form.get("ten") ?? "").trim();
     const slug = String(form.get("slug") ?? "").trim();
     const moTa = String(form.get("mo_ta") ?? "").trim();
-    const tinhThanh = String(form.get("tinh_thanh") ?? "").trim();
 
     startTransition(async () => {
       try {
@@ -121,24 +136,22 @@ export function CongDongCreateForm() {
             ten: tenValue,
             slug: slug || undefined,
             mo_ta: moTa || undefined,
-            tinh_thanh: tinhThanh || undefined,
-            avatar_id: avatar.imageId ?? undefined,
-            cover_id: cover.imageId ?? undefined,
+            avatar_id: avatar.imageId || undefined,
+            cover_id: cover.imageId || undefined,
             che_do: cheDo,
-            danh_muc: categories.map((c) => c.id),
+            category_article_ids: categories.map((c) => c.id),
+            linh_vuc_ids: linhVucs.map((v) => v.id),
           }),
         });
         const json = (await res.json().catch(() => null)) as {
-          redirect?: string;
           slug?: string;
           error?: string;
         } | null;
-        if (!res.ok) {
+        if (!res.ok || !json?.slug) {
           setErr(json?.error ?? "Không tạo được cộng đồng.");
           return;
         }
-        const target = json?.redirect ?? `/cong-dong/${json?.slug ?? ""}`;
-        router.push(target);
+        router.push(`/cong-dong/${json.slug}`);
         router.refresh();
       } catch {
         setErr("Lỗi mạng — thử lại sau.");
@@ -147,46 +160,162 @@ export function CongDongCreateForm() {
   }
 
   return (
-    <div className="cd-create-shell">
-      <header className="cd-create-top">
-        <Link href="/" className="cd-create-logo" prefetch={false}>
-          <span className="cd-create-logo-mark">C</span>
-          <span>C.INS</span>
-        </Link>
-        <Link href="/" className="cd-create-back" prefetch={false}>
-          ← Về trang chủ
-        </Link>
-      </header>
+    <TaoToChucPageShell wide cardLabel="Tạo cộng đồng">
+      <h1 className="cins-login-title">Tạo cộng đồng</h1>
+      <p className="cins-login-sub">
+        Nơi thành viên đăng bài và thảo luận — mỗi người kèm ngữ cảnh nghề và
+        hành trình đã verify trên CINs.
+      </p>
 
-      <main className="cd-create-main">
-        <div className="cd-create-intro">
-          <p className="cd-create-eyebrow">Cộng đồng nghề</p>
-          <h1>Tạo cộng đồng</h1>
-          <p className="cd-create-lead">
-            Nơi thành viên đăng bài và thảo luận — mỗi người kèm ngữ cảnh nghề
-            và hành trình đã verify trên CINs.
+      <form id={formId} className="ttc-form" onSubmit={onSubmit}>
+        {err ? (
+          <div className="ttc-alert" role="alert">
+            {err}
+          </div>
+        ) : null}
+
+        <div className="ttc-field">
+          <label className="ttc-lbl" htmlFor={`${formId}-ten`}>
+            Tên cộng đồng <span className="ttc-req">*</span>
+          </label>
+          <input
+            id={`${formId}-ten`}
+            name="ten"
+            className="ttc-inp"
+            required
+            maxLength={120}
+            placeholder="VD: Motion Designer Việt Nam"
+            value={ten}
+            onChange={(e) => setTen(e.target.value)}
+          />
+        </div>
+
+        <div className="ttc-field">
+          <label className="ttc-lbl" htmlFor={`${formId}-slug`}>
+            Đường dẫn <span className="ttc-opt">(tuỳ chọn)</span>
+          </label>
+          <div className="ttc-slug-box">
+            <span className="ttc-slug-pre">cins.vn/cong-dong/</span>
+            <input
+              id={`${formId}-slug`}
+              name="slug"
+              className="ttc-inp"
+              maxLength={72}
+              placeholder={slugifyPreview(ten)}
+              value={slugOverride}
+              onChange={(e) => setSlugOverride(e.target.value)}
+            />
+          </div>
+          <p className="ttc-hint">
+            Sẽ dùng <strong>{slugPreview}</strong> nếu để trống.
           </p>
         </div>
 
-        <form id={formId} className="cd-create-card" onSubmit={onSubmit}>
-          {err ? (
-            <div className="cd-create-alert" role="alert">
-              {err}
-            </div>
-          ) : null}
+        <div className="ttc-field">
+          <label className="ttc-lbl" htmlFor={`${formId}-mo-ta`}>
+            Mô tả <span className="ttc-opt">(tuỳ chọn)</span>
+          </label>
+          <textarea
+            id={`${formId}-mo-ta`}
+            name="mo_ta"
+            className="ttc-txt"
+            maxLength={500}
+            rows={3}
+            placeholder="Cộng đồng này dành cho ai? Chia sẻ gì?"
+          />
+        </div>
 
-          <section className="cd-create-section">
-            <h2 className="cd-create-section-title">Hình ảnh</h2>
-            <p className="cd-create-section-hint">
-              Cover và avatar giúp cộng đồng dễ nhận diện. Có thể bỏ qua và thêm
-              sau.
-            </p>
-            <div className="cd-create-media">
-              <label className="cd-create-cover">
+        <div className="ttc-field">
+          <span className="ttc-lbl">Chế độ hiển thị</span>
+          <div className="ttc-privacy-options" role="radiogroup" aria-label="Chế độ hiển thị">
+            <label
+              className={`ttc-privacy-opt${cheDo === CONG_DONG_CHE_DO.CONG_KHAI ? " is-selected" : ""}`}
+            >
+              <input
+                type="radio"
+                name="che_do_ui"
+                value={CONG_DONG_CHE_DO.CONG_KHAI}
+                checked={cheDo === CONG_DONG_CHE_DO.CONG_KHAI}
+                onChange={() => setCheDo(CONG_DONG_CHE_DO.CONG_KHAI)}
+              />
+              <Globe size={18} strokeWidth={1.6} aria-hidden />
+              <span>
+                <strong>{congDongCheDoLabel(CONG_DONG_CHE_DO.CONG_KHAI)}</strong>
+                <small>Tìm thấy · xem bài · tham gia ngay</small>
+              </span>
+            </label>
+            <label
+              className={`ttc-privacy-opt${cheDo === CONG_DONG_CHE_DO.NOI_BO ? " is-selected" : ""}`}
+            >
+              <input
+                type="radio"
+                name="che_do_ui"
+                value={CONG_DONG_CHE_DO.NOI_BO}
+                checked={cheDo === CONG_DONG_CHE_DO.NOI_BO}
+                onChange={() => setCheDo(CONG_DONG_CHE_DO.NOI_BO)}
+              />
+              <Lock size={18} strokeWidth={1.6} aria-hidden />
+              <span>
+                <strong>{congDongCheDoLabel(CONG_DONG_CHE_DO.NOI_BO)}</strong>
+                <small>Tìm thấy · feed khóa · xin duyệt</small>
+              </span>
+            </label>
+            <label
+              className={`ttc-privacy-opt${cheDo === CONG_DONG_CHE_DO.BI_MAT ? " is-selected" : ""}`}
+            >
+              <input
+                type="radio"
+                name="che_do_ui"
+                value={CONG_DONG_CHE_DO.BI_MAT}
+                checked={cheDo === CONG_DONG_CHE_DO.BI_MAT}
+                onChange={() => setCheDo(CONG_DONG_CHE_DO.BI_MAT)}
+              />
+              <EyeOff size={18} strokeWidth={1.6} aria-hidden />
+              <span>
+                <strong>{congDongCheDoLabel(CONG_DONG_CHE_DO.BI_MAT)}</strong>
+                <small>Ẩn danh sách · chỉ lời mời</small>
+              </span>
+            </label>
+          </div>
+          <p className="ttc-hint">{cheDoHint}</p>
+        </div>
+
+        <div className="ttc-field">
+          <span className="ttc-lbl">
+            Lĩnh vực &amp; ngành <span className="ttc-opt">(tuỳ chọn)</span>
+          </span>
+          <p className="ttc-hint" style={{ marginTop: 0, marginBottom: 10 }}>
+            Giúp phân bổ cộng đồng của bạn đến đúng người cần quan tâm
+          </p>
+          <CongDongTopicPicker
+            linhVucs={linhVucs}
+            onLinhVucsChange={setLinhVucs}
+            nganhs={categories}
+            onNganhsChange={setCategories}
+          />
+        </div>
+
+        <details className="ttc-more">
+          <summary className="ttc-more-head">
+            <span className="ttc-more-ic">
+              <SlidersHorizontal size={17} aria-hidden />
+            </span>
+            <span>
+              <div className="ttc-more-title">Hình ảnh (tuỳ chọn)</div>
+              <div className="ttc-more-sub">
+                Cover và avatar — có thể thêm sau
+              </div>
+            </span>
+            <ChevronDown size={18} className="ttc-more-chev" aria-hidden />
+          </summary>
+          <div className="ttc-more-body">
+            <div className="ttc-field" style={{ marginTop: 16 }}>
+              <span className="ttc-lbl">Ảnh bìa</span>
+              <label className="ttc-cover-upload">
                 <input
                   type="file"
                   accept="image/jpeg,image/png,image/webp,image/gif"
-                  className="cd-create-file-input"
+                  className="ttc-file-input"
                   disabled={cover.uploading}
                   onChange={async (e) => {
                     const file = e.target.files?.[0];
@@ -205,179 +334,72 @@ export function CongDongCreateForm() {
                   }}
                 />
                 {cover.previewUrl ? (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img src={cover.previewUrl} alt="" className="cd-create-cover-img" />
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={cover.previewUrl} alt="" />
                 ) : (
-                  <span className="cd-create-cover-placeholder">
-                    <ImagePlus size={22} strokeWidth={1.6} />
-                    <span>Thêm ảnh bìa</span>
-                    <small>Tỷ lệ ngang, tối đa 5MB</small>
+                  <span className="ttc-cover-placeholder">
+                    <ImagePlus size={20} strokeWidth={1.6} aria-hidden />
+                    <span>{cover.uploading ? "Đang tải…" : "Thêm ảnh bìa"}</span>
                   </span>
                 )}
-                {cover.uploading ? (
-                  <span className="cd-create-uploading">Đang tải…</span>
-                ) : null}
-              </label>
-
-              <label className="cd-create-avatar">
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,image/gif"
-                  className="cd-create-file-input"
-                  disabled={avatar.uploading}
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    setErr(null);
-                    try {
-                      await uploadImage(file, "avatar", setAvatar);
-                    } catch (uploadErr) {
-                      setErr(
-                        uploadErr instanceof Error
-                          ? uploadErr.message
-                          : "Upload avatar lỗi.",
-                      );
-                    }
-                    e.target.value = "";
-                  }}
-                />
-                {avatar.previewUrl ? (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img src={avatar.previewUrl} alt="" />
-                ) : (
-                  <span className="cd-create-avatar-placeholder">
-                    <Users size={20} strokeWidth={1.6} />
-                  </span>
-                )}
-                <span className="cd-create-avatar-label">Avatar</span>
               </label>
             </div>
-          </section>
 
-          <section className="cd-create-section">
-            <h2 className="cd-create-section-title">Thông tin cơ bản</h2>
-            <div className="cd-create-field">
-              <label htmlFor={`${formId}-ten`}>Tên cộng đồng *</label>
-              <input
-                id={`${formId}-ten`}
-                name="ten"
-                required
-                maxLength={120}
-                placeholder="VD: Motion Designer Việt Nam"
-                value={ten}
-                onChange={(e) => setTen(e.target.value)}
-              />
-            </div>
-            <div className="cd-create-field">
-              <label htmlFor={`${formId}-slug`}>
-                Đường dẫn
-                <span className="cd-create-field-optional">tuỳ chọn</span>
-              </label>
-              <div className="cd-create-slug-wrap">
-                <span className="cd-create-slug-prefix">/cong-dong/</span>
-                <input
-                  id={`${formId}-slug`}
-                  name="slug"
-                  maxLength={72}
-                  placeholder={slugifyPreview(ten)}
-                  value={slugOverride}
-                  onChange={(e) => setSlugOverride(e.target.value)}
-                />
-              </div>
-              <p className="cd-create-field-hint">
-                Sẽ dùng <code>{slugPreview}</code> nếu để trống.
-              </p>
-            </div>
-            <div className="cd-create-field">
-              <label htmlFor={`${formId}-mo-ta`}>Mô tả</label>
-              <textarea
-                id={`${formId}-mo-ta`}
-                name="mo_ta"
-                maxLength={500}
-                rows={4}
-                placeholder="Cộng đồng này dành cho ai? Chia sẻ gì?"
-              />
-            </div>
-          </section>
-
-          <section className="cd-create-section">
-            <h2 className="cd-create-section-title">Chủ đề nghề &amp; ngành</h2>
-            <p className="cd-create-section-hint">
-              Gắn tối đa 4 bài nghề hoặc ngành học — giúp người đọc tìm thấy
-              cộng đồng qua các trang đó. Có thể bỏ qua và thêm sau.
-            </p>
-            <CongDongCategoryPicker
-              value={categories}
-              onChange={setCategories}
-            />
-          </section>
-
-          <section className="cd-create-section">
-            <h2 className="cd-create-section-title">Vị trí & quyền riêng tư</h2>
-            <div className="cd-create-field">
-              <label htmlFor={`${formId}-tinh-thanh`}>
-                <MapPin size={14} aria-hidden />
-                Tỉnh / thành
-              </label>
-              <select id={`${formId}-tinh-thanh`} name="tinh_thanh" defaultValue="">
-                {TINH_THANH_OPTIONS.map((opt) => (
-                  <option key={opt.value || "none"} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <fieldset className="cd-create-privacy">
-              <legend>Chế độ hiển thị</legend>
-              <div className="cd-create-privacy-options">
-                <label
-                  className={`cd-create-privacy-opt${cheDo === "cong_khai" ? " is-selected" : ""}`}
-                >
+            <div className="ttc-field">
+              <span className="ttc-lbl">Avatar</span>
+              <div className="ttc-logo-upload">
+                <div className="ttc-logo-preview">
+                  {avatar.previewUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={avatar.previewUrl} alt="" />
+                  ) : (
+                    <Users size={18} strokeWidth={1.6} aria-hidden />
+                  )}
+                </div>
+                <label className="ttc-logo-btn">
+                  {avatar.uploading ? "Đang tải…" : "Chọn ảnh"}
                   <input
-                    type="radio"
-                    name="che_do_ui"
-                    value="cong_khai"
-                    checked={cheDo === "cong_khai"}
-                    onChange={() => setCheDo("cong_khai")}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    disabled={avatar.uploading}
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setErr(null);
+                      try {
+                        await uploadImage(file, "avatar", setAvatar);
+                      } catch (uploadErr) {
+                        setErr(
+                          uploadErr instanceof Error
+                            ? uploadErr.message
+                            : "Upload avatar lỗi.",
+                        );
+                      }
+                      e.target.value = "";
+                    }}
                   />
-                  <Globe size={18} strokeWidth={1.6} aria-hidden />
-                  <span>
-                    <strong>Công khai</strong>
-                    <small>Mọi người xem được trang</small>
-                  </span>
-                </label>
-                <label
-                  className={`cd-create-privacy-opt${cheDo === "rieng_tu" ? " is-selected" : ""}`}
-                >
-                  <input
-                    type="radio"
-                    name="che_do_ui"
-                    value="rieng_tu"
-                    checked={cheDo === "rieng_tu"}
-                    onChange={() => setCheDo("rieng_tu")}
-                  />
-                  <Lock size={18} strokeWidth={1.6} aria-hidden />
-                  <span>
-                    <strong>Riêng tư</strong>
-                    <small>Chỉ thành viên xem nội dung</small>
-                  </span>
                 </label>
               </div>
-              <p className="cd-create-field-hint">{cheDoHint}</p>
-            </fieldset>
-          </section>
+            </div>
+          </div>
+        </details>
 
-          <footer className="cd-create-footer">
-            <button type="submit" className="cd-create-submit" disabled={pending}>
-              {pending ? "Đang tạo…" : "Tạo cộng đồng"}
-            </button>
-            <Link href="/" className="cd-create-cancel" prefetch={false}>
-              Huỷ
-            </Link>
-          </footer>
-        </form>
-      </main>
-    </div>
+        <div className="ttc-actions">
+          <Link href="/cong-dong" className="ttc-btn ttc-btn-ghost" prefetch={false}>
+            <ArrowLeft size={17} aria-hidden />
+            Quay lại
+          </Link>
+          <div className="ttc-btn-spacer" />
+          <button
+            type="submit"
+            className="ttc-btn ttc-btn-primary"
+            disabled={pending}
+          >
+            {pending ? "Đang tạo…" : "Tạo cộng đồng"}
+            <ArrowRight size={17} aria-hidden />
+          </button>
+        </div>
+      </form>
+    </TaoToChucPageShell>
   );
 }

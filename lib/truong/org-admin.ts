@@ -45,12 +45,30 @@ async function isTruongOrgMemberAdmin(
   }
 }
 
+/** Admin CINs (trục 1) chỉ mở khoá vận hành trang `truong_dai_hoc` — L23 hẹp. */
+async function isCinsAdminOnTruongDaiHoc(orgId: string): Promise<boolean> {
+  if (!(await getCurrentUserIsCinsAdmin())) return false;
+  if (!hasServiceRoleEnv()) return false;
+
+  try {
+    const supabase = createServiceRoleClient();
+    const { data: org } = await supabase
+      .from("org_to_chuc")
+      .select("id")
+      .eq("id", orgId.trim())
+      .eq("loai_to_chuc", "truong_dai_hoc")
+      .maybeSingle();
+    return !!org?.id;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Quyền ghi API inline trường theo `org_to_chuc.id` + `user_nguoi_dung.id`.
  *
- * Hai trục (L23, đảo L20): membership org (trục 2) **HOẶC** quyền admin CINs
- * (trục 1 — `super_admin`/`admin`) đều mở khoá. Admin CINs vận hành trực tiếp
- * trên trang org dưới danh nghĩa hệ thống (khác quyền owner).
+ * Hai trục (L23 hẹp): membership org (trục 2) **HOẶC** admin CINs trên
+ * `truong_dai_hoc` (trục 1). Cơ sở / studio / cộng đồng chỉ theo membership.
  */
 export async function isTruongOrgAdmin(
   orgId: string,
@@ -58,8 +76,7 @@ export async function isTruongOrgAdmin(
 ): Promise<boolean> {
   if (!hasServiceRoleEnv()) return false;
 
-  // Quyền CINs (trục 1) mở khoá vận hành mọi org — độc lập membership.
-  if (await getCurrentUserIsCinsAdmin()) return true;
+  if (await isCinsAdminOnTruongDaiHoc(orgId)) return true;
 
   return isTruongOrgMemberAdmin(orgId, profileId);
 }
@@ -73,13 +90,13 @@ export function canUseTruongInlineEdit(): boolean {
 }
 
 /**
- * Quyền quản trị trang trường cho UI inline edit (dùng chung cho trường ĐH,
+ * Quyền quản trị trang org cho UI inline edit (dùng chung cho trường ĐH,
  * cơ sở, studio qua slug `org_to_chuc`).
  *
- * Trả `true` khi (L23, đảo L20):
+ * Trả `true` khi (L23 hẹp):
  * - user login là member org với `vai_tro` admin
  *   (`owner`, `admin`, `quan_ly_noi_dung`, `quan_ly_tuyen_sinh`) — trục 2; HOẶC
- * - user login là admin CINs (`super_admin`/`admin`) — trục 1, mọi org.
+ * - user login là admin CINs **và** org là `truong_dai_hoc` — trục 1.
  *
  * @param profileId — `user_nguoi_dung.id` (KHÔNG phải `auth.users.id`).
  */
@@ -89,20 +106,24 @@ export async function getOrgAdminStatus(
 ): Promise<boolean> {
   if (!hasServiceRoleEnv()) return false;
 
-  // Quyền CINs (trục 1) mở khoá vận hành mọi org — độc lập membership.
-  if (await getCurrentUserIsCinsAdmin()) return true;
-
-  if (!profileId) return false;
-
   try {
     const supabase = createServiceRoleClient();
     const { data: org } = await supabase
       .from("org_to_chuc")
-      .select("id")
+      .select("id, loai_to_chuc")
       .eq("slug", slug.trim())
-      .maybeSingle();
+      .maybeSingle<{ id: string; loai_to_chuc: string }>();
 
     if (!org?.id) return false;
+
+    if (
+      org.loai_to_chuc === "truong_dai_hoc" &&
+      (await getCurrentUserIsCinsAdmin())
+    ) {
+      return true;
+    }
+
+    if (!profileId) return false;
 
     return isTruongOrgMemberAdmin(org.id, profileId);
   } catch {

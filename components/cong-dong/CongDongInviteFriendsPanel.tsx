@@ -53,6 +53,22 @@ export function CongDongInviteFriendsPanel({ orgId, onDone }: Props) {
     });
   }, []);
 
+  const inviteable = friends.filter((f) => !f.alreadyMember);
+  const allInviteableSelected =
+    inviteable.length > 0 && inviteable.every((f) => selected.has(f.id));
+
+  const toggleSelectAll = useCallback(() => {
+    setSelected((prev) => {
+      const inviteableIds = friends
+        .filter((f) => !f.alreadyMember)
+        .map((f) => f.id);
+      if (inviteableIds.length === 0) return prev;
+      const allOn = inviteableIds.every((id) => prev.has(id));
+      if (allOn) return new Set();
+      return new Set(inviteableIds);
+    });
+  }, [friends]);
+
   const send = useCallback(() => {
     if (selected.size === 0) return;
     startTransition(async () => {
@@ -88,8 +104,6 @@ export function CongDongInviteFriendsPanel({ orgId, onDone }: Props) {
     return <p className="j-share-invite-empty">{error}</p>;
   }
 
-  const inviteable = friends.filter((f) => !f.alreadyMember);
-
   if (friends.length === 0) {
     return (
       <p className="j-share-invite-empty">
@@ -108,7 +122,26 @@ export function CongDongInviteFriendsPanel({ orgId, onDone }: Props) {
 
   return (
     <div className="j-share-invite">
-      <ul className="j-share-invite-list" role="listbox" aria-label="Chọn bạn bè">
+      <div className="j-share-invite-toolbar">
+        <button
+          type="button"
+          className="j-share-invite-select-all"
+          disabled={pending}
+          onClick={toggleSelectAll}
+        >
+          {allInviteableSelected ? "Bỏ chọn tất cả" : "Chọn tất cả"}
+        </button>
+        <span className="j-share-invite-toolbar-meta">
+          {selected.size}/{inviteable.length} người
+        </span>
+      </div>
+
+      <ul
+        className="j-share-invite-list"
+        role="listbox"
+        aria-label="Chọn bạn bè"
+        aria-multiselectable="true"
+      >
         {friends.map((friend) => {
           const disabled = friend.alreadyMember;
           const checked = selected.has(friend.id);

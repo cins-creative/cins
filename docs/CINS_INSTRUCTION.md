@@ -47,6 +47,8 @@ Thứ tự ưu tiên khi xung đột: **DB thật (đọc trực tiếp) > CINS_
 
 ## Thay đổi lớn gần đây (tóm tắt — chi tiết ở DECISIONS)
 
+**L27 — chế độ phòng cộng đồng (2026-07-12):** `cau_hinh.che_do` = `cong_khai` · `noi_bo` · `bi_mat` (alias `rieng_tu`→`bi_mat`). Join gate suy từ chế độ; xin tham gia nội bộ = `trang_thai=pending`. Xem DECISIONS L27, FOUNDATIONS §O.
+
 **v12 — MXH chuyên môn + đóng góp canonical (2026-07-10):** Pivot từ "chống MXH" sang **mạng xã hội chuyên môn** (portfolio + timeline + chat + follow). Entity page 3 tab: Nội dung / Đóng góp / Thảo luận. Đóng góp = bản thảo song song, curator promote (không Wikipedia edit). Xem **L26**, FOUNDATIONS §1/§K, quy tắc 25/30–32. Brief triển khai: `cursor_brief_dong_gop_noi_dung.md`.
 
 **v11 — phân quyền org từ admin (2026-07-01):** Super admin gán `user_thanh_vien_to_chuc` (owner, ban tuyển sinh, …) qua `/admin/to-chuc` + mật khẩu env `CINS_ORG_DELEGATION_PASSWORD`. Không mở god-mode inline (L20). Xem **L22**, đóng **O14**.
