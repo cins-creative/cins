@@ -15,7 +15,11 @@ import {
   type TuyenSinhTimelineStep,
 } from "@/lib/truong/timeline-steps";
 import { defaultTruongNganhYear } from "@/lib/truong/diem-chuan";
-import { truongRootPath } from "@/lib/truong/truong-routes";
+import { STUDIO_DEFAULT_TAB, studioTabPath } from "@/lib/to-chuc/studio-routes";
+import {
+  TRUONG_DEFAULT_TAB,
+  truongTabPath,
+} from "@/lib/truong/truong-routes";
 import type { TruongTuyenSinhNamRow } from "@/lib/truong/types";
 
 export type FollowedOrgUpcomingItem = {
@@ -45,9 +49,9 @@ function orgPublicHref(org: OrgMeta): string {
   if (org.loai_to_chuc === "co_so_dao_tao") return coSoTabPath(slug, "su-kien");
   if (org.loai_to_chuc === "cong_dong") return `/cong-dong/${slug}`;
   if (org.loai_to_chuc === "studio" || org.loai_to_chuc === "doanh_nghiep") {
-    return `/studio/${slug}`;
+    return studioTabPath(slug, STUDIO_DEFAULT_TAB);
   }
-  return truongRootPath(slug);
+  return truongTabPath(slug, TRUONG_DEFAULT_TAB);
 }
 
 function eventSortKey(batDau: string, ketThuc: string | null): number {
@@ -273,7 +277,7 @@ export const loadFollowedOrgUpcoming = cache(async function loadFollowedOrgUpcom
       aggregated,
       calendarYear,
     );
-    pushTimelineSteps(out, org, steps, truongRootPath(org.slug));
+    pushTimelineSteps(out, org, steps, truongTabPath(org.slug, TRUONG_DEFAULT_TAB));
   }
 
   for (const row of khoaRes.data ?? []) {

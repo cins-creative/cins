@@ -12,7 +12,7 @@ import {
 import { listFriends } from "@/lib/social/ket-ban";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { resolveTruongImageSrcSync } from "@/lib/truong/media-url";
-import { truongRootPath } from "@/lib/truong/truong-routes";
+import { orgPublicHref } from "@/lib/search/helpers";
 
 export type { FollowSuggestion, OrgFollowSuggestion } from "@/lib/cins/home-adaptive/suggestions-display";
 export {
@@ -154,13 +154,6 @@ type OrgRow = {
   tinh_thanh: string | null;
   trang_thai_hoat_dong: string | null;
 };
-
-function orgPublicHref(loai: string, slug: string): string {
-  if (loai === "co_so_dao_tao") return `/co-so/${slug}`;
-  if (loai === "cong_dong") return `/cong-dong/${slug}`;
-  if (loai === "studio" || loai === "doanh_nghiep") return `/studio/${slug}`;
-  return truongRootPath(slug);
-}
 
 function tinhThanhLabel(value: string | null): string {
   return value ? value.replace(/_/g, " ") : "";

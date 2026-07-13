@@ -16,6 +16,7 @@ import {
   mapLinhVucForGuestAside,
 } from "@/lib/cins/worldJourneyGuestAside";
 import { NGHE_NGHIEP_HUB_PATH, TIM_KHOA_HOC_HUB_PATH } from "@/lib/cins/hubPaths";
+import { truongDetailHref } from "@/lib/nganh/truong-shared";
 import { listCoSoDaoTaoForListing } from "@/lib/to-chuc/listing-queries";
 
 /** HỌC · Lĩnh vực. */
@@ -74,7 +75,7 @@ export async function DuongToiDoModule({ ctx }: { ctx: HomeModuleCtx }) {
         schools.map((s) => (
           <Link
             key={s.id}
-            href={`/co-so-dao-tao/${s.slug}`}
+            href={truongDetailHref(s.slug)}
             className="ha-trow"
             prefetch={false}
           >

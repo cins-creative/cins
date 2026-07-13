@@ -66,7 +66,7 @@ export function JourneyProfileShareTrigger({
           openShare();
         }}
       >
-        <Share2 size={14} strokeWidth={1.8} aria-hidden />
+        <Share2 size={16} strokeWidth={1.8} aria-hidden />
       </button>
     );
 

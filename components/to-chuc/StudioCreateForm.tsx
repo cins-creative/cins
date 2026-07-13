@@ -22,6 +22,7 @@ import {
 } from "react";
 
 import { TaoToChucPageShell } from "@/components/to-chuc/TaoToChucPageShell";
+import { STUDIO_DEFAULT_TAB, studioTabPath } from "@/lib/to-chuc/studio-routes";
 import { TINH_THANH_OPTIONS } from "@/lib/truong/contact";
 
 function slugifyPreview(value: string): string {
@@ -116,7 +117,7 @@ export function StudioCreateForm({ userSlug }: { userSlug: string }) {
   useEffect(() => {
     if (step !== "success" || !createdSlugRef.current) return;
     const t = setTimeout(() => {
-      router.push(`/studio/${createdSlugRef.current}`);
+      router.push(studioTabPath(createdSlugRef.current, STUDIO_DEFAULT_TAB));
       router.refresh();
     }, 1800);
     return () => clearTimeout(t);

@@ -1978,19 +1978,24 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   if (!portalReady) return null;
 
   const panel = (
-    <div ref={chatRootRef} className="cins-chat-root" role="presentation">
-      <button
-        type="button"
-        className="cins-chat-backdrop"
-        aria-label="Đóng tin nhắn"
-        onClick={onClose}
-      />
+    <div
+      ref={chatRootRef}
+      className="cins-chat-root"
+      role="presentation"
+      onClick={(e) => {
+        // Chỉ đóng khi click đúng vùng ngoài panel — tránh nút header
+        // (ghim bubble, …) bị coi là click backdrop khi layout sát mép.
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="cins-chat-backdrop" aria-hidden="true" />
 
       <section
         className={`cins-chat-panel${sidePanel ? " has-side-panel" : ""}`}
         role="dialog"
         aria-modal="true"
         aria-label="Tin nhắn"
+        onClick={(e) => e.stopPropagation()}
       >
         <aside
           className={`cins-chat-list${mobileShowThread ? " is-hidden-mobile" : ""}`}
@@ -2210,7 +2215,13 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                   title={
                     isRoomPinned(active.roomId) ? "Bỏ ghim bubble" : "Ghim bubble"
                   }
-                  onClick={() => togglePinRoom(active.roomId, active)}
+                  onClick={(e) => {
+                    // Không để click “xuyên” ra backdrop (đóng panel).
+                    e.preventDefault();
+                    e.stopPropagation();
+                    togglePinRoom(active.roomId, active);
+                  }}
+                  onMouseDown={(e) => e.stopPropagation()}
                 >
                   <PictureInPicture2
                     size={16}

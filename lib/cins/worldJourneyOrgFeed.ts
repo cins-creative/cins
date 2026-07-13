@@ -6,8 +6,8 @@ import { parseServerBlocks } from "@/lib/journey/parse-server-blocks";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { orgLoaiToMilestoneType } from "@/lib/truong/org-bai-dang-bookmark";
 import { parseBaiDangBlocks } from "@/lib/truong/bai-dang-blocks";
+import { orgPublicHref } from "@/lib/search/helpers";
 import { resolveTruongImageSrcSync } from "@/lib/truong/media-url";
-import { truongRootPath } from "@/lib/truong/truong-routes";
 
 type OrgEmbed = {
   slug: string | null;
@@ -34,12 +34,10 @@ function pickOrg(org: OrgPostRow["org_to_chuc"]): OrgEmbed | null {
   return Array.isArray(org) ? (org[0] ?? null) : org;
 }
 
-function orgPublicHref(org: OrgEmbed): string {
+function orgHref(org: OrgEmbed): string {
   const slug = org.slug?.trim();
   if (!slug) return "/";
-  if (org.loai_to_chuc === "co_so_dao_tao") return `/co-so/${slug}`;
-  if (org.loai_to_chuc === "cong_dong") return `/cong-dong/${slug}`;
-  return truongRootPath(slug);
+  return orgPublicHref(org.loai_to_chuc ?? "truong_dai_hoc", slug);
 }
 
 /** Org đang theo dõi (`loai_doi_tuong='to_chuc'`). */
@@ -77,7 +75,7 @@ function mapOrgPostRowToMilestone(
   );
   const orgSlug = org.slug.trim();
   const orgName = org.ten.trim();
-  const href = orgPublicHref(org);
+  const href = orgHref(org);
 
   return {
     id: `org-post:${post.id}`,

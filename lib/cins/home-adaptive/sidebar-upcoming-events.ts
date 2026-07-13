@@ -31,7 +31,11 @@ import {
   getAdmissionTimelineFocus,
   type TuyenSinhTimelineStep,
 } from "@/lib/truong/timeline-steps";
-import { truongRootPath } from "@/lib/truong/truong-routes";
+import { STUDIO_DEFAULT_TAB, studioTabPath } from "@/lib/to-chuc/studio-routes";
+import {
+  TRUONG_DEFAULT_TAB,
+  truongTabPath,
+} from "@/lib/truong/truong-routes";
 import type { TruongTuyenSinhNamRow } from "@/lib/truong/types";
 
 export type SidebarUpcomingEventsBundle = {
@@ -87,8 +91,10 @@ function pickOrg(org: SuKienRow["org_to_chuc"]): OrgEmbed | null {
 function orgSuKienHref(loai: string, slug: string): string {
   if (loai === "co_so_dao_tao") return coSoTabPath(slug, "su-kien");
   if (loai === "cong_dong") return `/cong-dong/${slug}`;
-  if (loai === "studio" || loai === "doanh_nghiep") return `/studio/${slug}`;
-  return truongRootPath(slug);
+  if (loai === "studio" || loai === "doanh_nghiep") {
+    return studioTabPath(slug, STUDIO_DEFAULT_TAB);
+  }
+  return truongTabPath(slug, TRUONG_DEFAULT_TAB);
 }
 
 function eventSortKey(batDau: string): number {
@@ -284,7 +290,9 @@ function mapMocStep(
   const orgAvatarId = org.avatar_id ?? org.logo_id;
   const isActive = step.status === "active";
   const href =
-    step.link && step.link.startsWith("/") ? step.link : truongRootPath(orgSlug);
+    step.link && step.link.startsWith("/")
+      ? step.link
+      : truongTabPath(orgSlug, TRUONG_DEFAULT_TAB);
 
   return {
     id: `moc:${org.id}:${step.id}`,

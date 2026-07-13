@@ -3,7 +3,7 @@ import "server-only";
 import type { OrgMilestoneTagPayload } from "@/lib/journey/org-milestone-tag-types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { insertSocialThongBao } from "@/lib/social/thong-bao-insert";
-import { truongRootPath } from "@/lib/truong/truong-routes";
+import { orgPublicHref } from "@/lib/search/helpers";
 
 import type { OrgMilestoneTagApprovedNotification } from "@/lib/social/types";
 
@@ -13,8 +13,7 @@ function orgPublicPath(
   loai: OrgMilestoneTagPayload["orgLoai"],
   slug: string,
 ): string {
-  if (loai === "co_so_dao_tao") return `/co-so/${encodeURIComponent(slug)}`;
-  return truongRootPath(slug);
+  return orgPublicHref(loai, slug);
 }
 
 type NotifyPayload = {

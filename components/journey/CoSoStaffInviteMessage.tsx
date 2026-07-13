@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 
 import { JourneyOrgPopover } from "@/components/journey/JourneyOrgPopover";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
+import { CO_SO_DEFAULT_TAB, coSoTabPath } from "@/lib/to-chuc/co-so-routes";
 
 type Props = {
   inviterName: string;
@@ -28,7 +29,7 @@ export function CoSoStaffInviteMessage({
   className = "j-coauthor-pending-message j-coso-staff-invite-message",
 }: Props): ReactNode {
   const initial = (inviterName || "?").slice(0, 1).toUpperCase();
-  const href = orgHref ?? `/co-so/${orgSlug}`;
+  const href = orgHref ?? coSoTabPath(orgSlug, CO_SO_DEFAULT_TAB);
   const sender = (
     <span className="j-coauthor-invite-sender">
       <span className="j-coauthor-invite-avatar" aria-hidden>

@@ -3,7 +3,7 @@ import "server-only";
 import type { MembershipMilestoneOrgLoai } from "@/lib/journey/membership-milestone-types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { insertSocialThongBao } from "@/lib/social/thong-bao-insert";
-import { truongRootPath } from "@/lib/truong/truong-routes";
+import { orgPublicHref as buildOrgPublicHref } from "@/lib/search/helpers";
 
 import type { MembershipMilestoneResolvedNotification } from "@/lib/social/types";
 
@@ -25,9 +25,9 @@ function orgPublicHref(
   loai: MembershipMilestoneOrgLoai,
   slug: string,
 ): string | null {
-  if (loai === "co_so_dao_tao") return `/co-so/${encodeURIComponent(slug)}`;
-  if (loai === "truong_dai_hoc") return truongRootPath(slug);
-  if (loai === "studio") return `/studio/${encodeURIComponent(slug)}`;
+  if (loai === "co_so_dao_tao" || loai === "truong_dai_hoc" || loai === "studio") {
+    return buildOrgPublicHref(loai, slug);
+  }
   return null;
 }
 

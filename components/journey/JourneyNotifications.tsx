@@ -19,6 +19,7 @@ import { CoSoStaffInviteMessage } from "@/components/journey/CoSoStaffInviteMess
 import { CongDongInviteMessage } from "@/components/journey/CongDongInviteMessage";
 import "./journey-user-popover.css";
 import type { CoAuthorCredit } from "@/components/journey/milestone-types";
+import { CO_SO_DEFAULT_TAB, coSoTabPath } from "@/lib/to-chuc/co-so-routes";
 import {
   COAUTHOR_INVITE_ACCEPTED_EVENT,
   COAUTHOR_INVITE_DECLINED_EVENT,
@@ -497,7 +498,6 @@ export function JourneyNotifications({
   const loadingMoreRef = useRef(false);
   const historyNextOffsetRef = useRef(0);
   const historyHasMoreRef = useRef(false);
-  const ignoreOutsideClickRef = useRef(false);
 
   useEffect(() => {
     setPortalReady(true);
@@ -528,16 +528,13 @@ export function JourneyNotifications({
 
   useEffect(() => {
     if (!open) return;
-    let removeListener: (() => void) | undefined;
+    let removeListeners: (() => void) | undefined;
+    /* Đợi sau click mở menu — tránh nuốt cùng một pointerdown/click. */
     const timer = window.setTimeout(() => {
-      function onDocClick(event: MouseEvent) {
-        if (ignoreOutsideClickRef.current) {
-          ignoreOutsideClickRef.current = false;
-          return;
-        }
-        const target = event.target as Node;
-        if (triggerRef.current?.contains(target)) return;
-        if (menuRef.current?.contains(target)) return;
+      function isInsideNotifyUi(target: EventTarget | null): boolean {
+        if (!(target instanceof Node)) return false;
+        if (triggerRef.current?.contains(target)) return true;
+        if (menuRef.current?.contains(target)) return true;
         /* Popover người/tổ chức render qua portal ra body (ngoài menuRef).
            Click trong card không được đóng menu — nếu không card sẽ bị unmount
            theo menu ngay khi vừa hiện. */
@@ -545,17 +542,27 @@ export function JourneyNotifications({
           target instanceof Element &&
           target.closest(".j-user-popover-backdrop")
         ) {
-          return;
+          return true;
         }
+        return false;
+      }
+      function onDocPointerDown(event: PointerEvent) {
+        if (isInsideNotifyUi(event.target)) return;
         setOpen(false);
       }
-      document.addEventListener("click", onDocClick, true);
-      removeListener = () =>
-        document.removeEventListener("click", onDocClick, true);
+      function onKey(event: KeyboardEvent) {
+        if (event.key === "Escape") setOpen(false);
+      }
+      document.addEventListener("pointerdown", onDocPointerDown, true);
+      document.addEventListener("keydown", onKey);
+      removeListeners = () => {
+        document.removeEventListener("pointerdown", onDocPointerDown, true);
+        document.removeEventListener("keydown", onKey);
+      };
     }, 0);
     return () => {
       window.clearTimeout(timer);
-      removeListener?.();
+      removeListeners?.();
     };
   }, [open]);
 
@@ -1178,7 +1185,7 @@ export function JourneyNotifications({
                         />
                         <div className="j-notify-inline-actions">
                           <Link
-                            href={`/co-so/${invite.orgSlug}`}
+                            href={coSoTabPath(invite.orgSlug, CO_SO_DEFAULT_TAB)}
                             className="j-notify-mini-action is-link"
                           >
                             Xem cơ sở
@@ -1309,10 +1316,7 @@ export function JourneyNotifications({
         className={`j-notify-trigger${unreadCount > 0 ? " has-unread" : ""}`}
         aria-expanded={open}
         aria-label={title}
-        onClick={() => {
-          ignoreOutsideClickRef.current = true;
-          setOpen((v) => !v);
-        }}
+        onClick={() => setOpen((v) => !v)}
       >
         <Bell size={16} strokeWidth={1.9} aria-hidden />
         {unreadCount > 0 ? <span className="j-notify-count">{unreadCount}</span> : null}

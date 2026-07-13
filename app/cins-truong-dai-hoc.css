@@ -1180,8 +1180,8 @@ a.tdh-identity-contact-value:hover { color: var(--cins-blue); text-decoration: u
 .cost-row .lbl { color: var(--ink2); font-weight: 500; }
 .cost-row .val { font-family: var(--font-mono); color: var(--ink); font-weight: 700; }
 
-/* Legacy mockup footer — không áp dụng SiteFooter (.footer), modal inline, thẻ hub (.hn-role-foot), login, journey attach modal, chat mini, account settings */
-footer:not(.footer):not(.hn-role-foot):not(.tdh-inline-modal-actions):not(.tdh-message-inbox-compose):not(.org-compose-schedule-footer):not(.cso-settings-foot):not(.cso-khd-org-foot):not(.cins-chat-compose):not(.j-chat-mini-compose):not(.cins-chat-sticker-picker-foot):not(.studio-job-detail-foot):not(.cd-v4-jcard-foot):not(.cd-create-footer):not(.cd-filter-setup-footer):not(.cd-v4-group-settings-foot):not(.cins-login-footer):not(.j-org-attach-modal-foot):not(.uas-foot) {
+/* Legacy mockup footer — không áp dụng SiteFooter (.footer), modal inline, thẻ hub (.hn-role-foot), login, journey attach modal, chat mini, account settings, seed disclaimer, edit profile */
+footer:not(.footer):not(.hn-role-foot):not(.tdh-inline-modal-actions):not(.tdh-message-inbox-compose):not(.org-compose-schedule-footer):not(.cso-settings-foot):not(.cso-khd-org-foot):not(.cins-chat-compose):not(.j-chat-mini-compose):not(.cins-chat-sticker-picker-foot):not(.studio-job-detail-foot):not(.cd-v4-jcard-foot):not(.cd-create-footer):not(.cd-filter-setup-footer):not(.cd-v4-group-settings-foot):not(.cins-login-footer):not(.j-org-attach-modal-foot):not(.uas-foot):not(.truong-ss-seed-modal-foot):not(.j-edit-foot) {
   background: var(--neutral-900);
   color: #fff;
   padding: 48px 40px 28px;
@@ -1303,7 +1303,7 @@ footer:not(.footer):not(.hn-role-foot):not(.tdh-inline-modal-actions):not(.tdh-m
   .gallery-grid { grid-template-columns: 1fr; }
   .gallery-cell-wide { grid-column: span 1; aspect-ratio: 16/10; }
   .journey-grid { grid-template-columns: 1fr; }
-  footer:not(.footer):not(.hn-role-foot):not(.tdh-inline-modal-actions):not(.tdh-message-inbox-compose):not(.org-compose-schedule-footer):not(.cso-settings-foot):not(.cso-khd-org-foot):not(.cins-chat-compose):not(.j-chat-mini-compose):not(.cins-chat-sticker-picker-foot):not(.studio-job-detail-foot):not(.cd-v4-jcard-foot):not(.cd-create-footer):not(.cd-filter-setup-footer):not(.cd-v4-group-settings-foot):not(.cins-login-footer):not(.j-org-attach-modal-foot):not(.uas-foot) {
+  footer:not(.footer):not(.hn-role-foot):not(.tdh-inline-modal-actions):not(.tdh-message-inbox-compose):not(.org-compose-schedule-footer):not(.cso-settings-foot):not(.cso-khd-org-foot):not(.cins-chat-compose):not(.j-chat-mini-compose):not(.cins-chat-sticker-picker-foot):not(.studio-job-detail-foot):not(.cd-v4-jcard-foot):not(.cd-create-footer):not(.cd-filter-setup-footer):not(.cd-v4-group-settings-foot):not(.cins-login-footer):not(.j-org-attach-modal-foot):not(.uas-foot):not(.truong-ss-seed-modal-foot):not(.j-edit-foot) {
     padding: 36px 20px 24px;
   }
   .footer-top {

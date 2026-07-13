@@ -31,7 +31,7 @@ import {
   formatTaggedAt,
   notifyStatusLabel,
 } from "@/lib/truong/milestone-tag-notify-mock";
-import { truongRootPath } from "@/lib/truong/truong-routes";
+import { orgPublicHref } from "@/lib/search/helpers";
 
 const ORG_TAG_CHANGED = "journey-org-tag-changed";
 
@@ -241,8 +241,7 @@ function orgPublicPath(
   loai: OrgMilestoneTagOwnerItem["orgLoai"],
   slug: string,
 ): string {
-  if (loai === "co_so_dao_tao") return `/co-so/${encodeURIComponent(slug)}`;
-  return truongRootPath(slug);
+  return orgPublicHref(loai, slug);
 }
 
 function statusIcon(status: OrgMilestoneTagStatus) {

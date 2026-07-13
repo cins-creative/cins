@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
   type ClipboardEvent,
+  type MouseEvent as ReactMouseEvent,
   type ReactNode,
 } from "react";
 
@@ -181,6 +182,15 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
   );
   const [miniThread, setMiniThread] = useState<ChatThread | null>(null);
   const [miniOpen, setMiniOpen] = useState(false);
+  const [miniLeaving, setMiniLeaving] = useState(false);
+  const [clickFx, setClickFx] = useState<{
+    id: number;
+    roomId: string;
+    x: number;
+    y: number;
+    size: number;
+  } | null>(null);
+  const clickFxIdRef = useRef(0);
   const [roomStates, setRoomStates] = useState<Record<string, RoomChatState>>({});
   const [draft, setDraft] = useState("");
   const [pendingImages, setPendingImages] = useState<PendingImageDraft[]>([]);
@@ -207,6 +217,9 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
   const miniOpenRef = useRef(false);
   const miniRoomIdRef = useRef<string | null>(null);
   const miniThreadRef = useRef<ChatThread | null>(null);
+  const miniLeavingRef = useRef(false);
+  const miniPanelRef = useRef<HTMLElement>(null);
+  const dockControlsRef = useRef<HTMLDivElement>(null);
 
   pendingImagesRef.current = pendingImages;
 
@@ -218,6 +231,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
   miniOpenRef.current = miniOpen;
   miniRoomIdRef.current = miniThread?.roomId ?? null;
   miniThreadRef.current = miniThread;
+  miniLeavingRef.current = miniLeaving;
 
   useEffect(() => {
     return () => {
@@ -555,7 +569,9 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
 
   useEffect(() => {
     if (open) {
+      miniLeavingRef.current = false;
       setMiniOpen(false);
+      setMiniLeaving(false);
       setMiniThread(null);
       setPeekThreads([]);
     }
@@ -703,13 +719,18 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
   const openMini = useCallback(
     (thread: ChatThread) => {
       const switching =
-        miniOpen && miniThread && miniThread.roomId !== thread.roomId;
+        miniOpen &&
+        !miniLeaving &&
+        miniThread &&
+        miniThread.roomId !== thread.roomId;
 
       if (switching && miniThread) {
         saveComposeForRoom(miniThread.roomId);
         markRoomDismissable(miniThread.roomId);
       }
 
+      setMiniLeaving(false);
+      miniLeavingRef.current = false;
       setMiniThread(thread);
       setMiniOpen(true);
       setStickerPickerOpen(false);
@@ -726,6 +747,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
     [
       loadRecentMessages,
       markRoomDismissable,
+      miniLeaving,
       miniOpen,
       miniThread,
       restoreComposeForRoom,
@@ -749,7 +771,9 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
       setPeekThreads((prev) => prev.filter((t) => t.roomId !== thread.roomId));
       if (miniThread?.roomId === thread.roomId) {
         saveComposeForRoom(thread.roomId);
+        miniLeavingRef.current = false;
         setMiniOpen(false);
+        setMiniLeaving(false);
         setMiniThread(null);
         setStickerPickerOpen(false);
         setLoadError(null);
@@ -759,17 +783,65 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
   );
 
   const closeMini = useCallback(() => {
-    const roomId = miniThread?.roomId;
-    if (roomId) {
-      saveComposeForRoom(roomId);
-      markRoomDismissable(roomId);
-    }
-    setMiniOpen(false);
-    setMiniThread(null);
+    if (!miniOpen || miniLeavingRef.current || !miniThread) return;
+    const roomId = miniThread.roomId;
+    saveComposeForRoom(roomId);
+    markRoomDismissable(roomId);
     setStickerPickerOpen(false);
     setLoadError(null);
+    miniLeavingRef.current = true;
+    setMiniLeaving(true);
+  }, [markRoomDismissable, miniOpen, miniThread, saveComposeForRoom]);
+
+  const finishCloseMini = useCallback(() => {
+    if (!miniLeavingRef.current) return;
+    miniLeavingRef.current = false;
+    setMiniOpen(false);
+    setMiniLeaving(false);
+    setMiniThread(null);
     void syncThreads();
-  }, [markRoomDismissable, miniThread?.roomId, saveComposeForRoom, syncThreads]);
+  }, [syncThreads]);
+
+  useEffect(() => {
+    if (!miniLeaving) return;
+    const timer = window.setTimeout(() => {
+      finishCloseMini();
+    }, 280);
+    return () => window.clearTimeout(timer);
+  }, [finishCloseMini, miniLeaving]);
+
+  const toggleMini = useCallback(
+    (thread: ChatThread) => {
+      if (
+        miniOpen &&
+        !miniLeavingRef.current &&
+        miniThread?.roomId === thread.roomId
+      ) {
+        closeMini();
+        return;
+      }
+      openMini(thread);
+    },
+    [closeMini, miniOpen, miniThread?.roomId, openMini],
+  );
+
+  const handleBubbleClick = useCallback(
+    (e: ReactMouseEvent<HTMLButtonElement>, thread: ChatThread) => {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const size = Math.max(rect.width, rect.height) * 1.15;
+      const fromKeyboard = e.clientX === 0 && e.clientY === 0;
+      clickFxIdRef.current += 1;
+      setClickFx({
+        id: clickFxIdRef.current,
+        roomId: thread.roomId,
+        x: fromKeyboard ? rect.width / 2 : e.clientX - rect.left,
+        y: fromKeyboard ? rect.height / 2 : e.clientY - rect.top,
+        size,
+      });
+      toggleMini(thread);
+    },
+    [toggleMini],
+  );
 
   const sendableImages = pendingImages.filter((image) => !image.error);
 
@@ -1076,6 +1148,39 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
     }
   }, [miniOpen]);
 
+  useEffect(() => {
+    /* Full overlay chat đang mở — mini ẩn, không dismiss bằng outside-click. */
+    if (!miniOpen || miniLeaving || open) return;
+    let removeListeners: (() => void) | undefined;
+    const timer = window.setTimeout(() => {
+      function onDocPointerDown(event: PointerEvent) {
+        const target = event.target as Node;
+        if (miniPanelRef.current?.contains(target)) return;
+        /* Bubble / FAB tự xử lý toggle — không đóng bằng outside-click. */
+        if (dockControlsRef.current?.contains(target)) return;
+        closeMini();
+      }
+      function onKey(event: KeyboardEvent) {
+        if (event.key !== "Escape") return;
+        if (stickerPickerOpen) {
+          setStickerPickerOpen(false);
+          return;
+        }
+        closeMini();
+      }
+      document.addEventListener("pointerdown", onDocPointerDown, true);
+      document.addEventListener("keydown", onKey);
+      removeListeners = () => {
+        document.removeEventListener("pointerdown", onDocPointerDown, true);
+        document.removeEventListener("keydown", onKey);
+      };
+    }, 0);
+    return () => {
+      window.clearTimeout(timer);
+      removeListeners?.();
+    };
+  }, [closeMini, miniLeaving, miniOpen, open, stickerPickerOpen]);
+
   if (open) {
     return (
       <div className="j-chat-dock-launcher-row">{launcher}</div>
@@ -1086,9 +1191,16 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
     <>
       {miniOpen && miniThread ? (
         <section
-          className="j-chat-mini"
+          ref={miniPanelRef}
+          className={["j-chat-mini", miniLeaving ? "is-leaving" : ""]
+            .filter(Boolean)
+            .join(" ")}
           role="dialog"
           aria-label={`Chat với ${miniThread.name}`}
+          onAnimationEnd={(e) => {
+            if (e.target !== e.currentTarget) return;
+            if (miniLeaving) finishCloseMini();
+          }}
         >
           <header className="j-chat-mini-head">
             <MiniAvatar thread={miniThread} size={34} />
@@ -1276,7 +1388,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
         </section>
       ) : null}
 
-      <div className="j-chat-dock-launcher-row">
+      <div ref={dockControlsRef} className="j-chat-dock-launcher-row">
         {peekThreads.length > 0 ? (
           <div
             className="j-chat-bubbles"
@@ -1286,7 +1398,9 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
           >
             {peekThreads.map((thread) => {
               const isActive =
-                miniOpen && miniThread?.roomId === thread.roomId;
+                miniOpen &&
+                !miniLeaving &&
+                miniThread?.roomId === thread.roomId;
               const isPinned = pinnedRoomIdSet.has(thread.roomId);
               const showCount = thread.unread > 0;
               const showDismiss =
@@ -1307,21 +1421,48 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
                     .filter(Boolean)
                     .join(" ")}
                 >
+                  {clickFx && clickFx.roomId === thread.roomId ? (
+                    <span
+                      key={clickFx.id}
+                      className="j-chat-bubble-flash"
+                      aria-hidden
+                    />
+                  ) : null}
                   <button
                     type="button"
                     className="j-chat-bubble-btn"
                     aria-label={
                       thread.unread > 0
                         ? `${thread.unread} tin nhắn chưa đọc từ ${thread.name}`
-                        : isPinned
-                          ? `Chat đã ghim với ${thread.name}`
-                          : `Mở chat với ${thread.name}`
+                        : isActive
+                          ? `Thu chat với ${thread.name}`
+                          : isPinned
+                            ? `Chat đã ghim với ${thread.name}`
+                            : `Mở chat với ${thread.name}`
                     }
                     aria-pressed={isActive}
                     title={thread.name}
-                    onClick={() => openMini(thread)}
+                    onClick={(e) => handleBubbleClick(e, thread)}
                   >
                     <MiniAvatar thread={thread} size={48} />
+                    {clickFx && clickFx.roomId === thread.roomId ? (
+                      <span
+                        key={clickFx.id}
+                        className="j-chat-bubble-ripple"
+                        aria-hidden
+                        style={{
+                          width: clickFx.size,
+                          height: clickFx.size,
+                          left: clickFx.x - clickFx.size / 2,
+                          top: clickFx.y - clickFx.size / 2,
+                        }}
+                        onAnimationEnd={() =>
+                          setClickFx((cur) =>
+                            cur?.id === clickFx.id ? null : cur,
+                          )
+                        }
+                      />
+                    ) : null}
                   </button>
                   {showCount || showDismiss ? (
                     <button
@@ -1338,7 +1479,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
                       onClick={(e) => {
                         e.stopPropagation();
                         if (showCount) {
-                          openMini(thread);
+                          toggleMini(thread);
                         } else {
                           dismissBubble(thread);
                         }

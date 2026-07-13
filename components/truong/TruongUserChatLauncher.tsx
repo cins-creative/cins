@@ -9,7 +9,7 @@ import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEdit
 import type { ChatOrgKind } from "@/lib/chat/types";
 import { truongDetailHref } from "@/lib/nganh/truong-shared";
 import { CO_SO_DEFAULT_TAB, coSoTabPath } from "@/lib/to-chuc/co-so-routes";
-import { studioRootPath } from "@/lib/to-chuc/studio-routes";
+import { STUDIO_DEFAULT_TAB, studioTabPath } from "@/lib/to-chuc/studio-routes";
 import type { TruongListItem } from "@/lib/truong/types";
 
 const AUTH_MESSAGE_CHAT = "Đăng nhập để nhắn tin cho tổ chức trên CINs.";
@@ -38,7 +38,7 @@ function orgPageHref(
     return coSoTabPath(school.slug, CO_SO_DEFAULT_TAB);
   }
   if (pathname.startsWith("/studio/")) {
-    return studioRootPath(school.slug);
+    return studioTabPath(school.slug, STUDIO_DEFAULT_TAB);
   }
   return truongDetailHref(school.slug);
 }

@@ -12,7 +12,10 @@ import {
   STUDIO_DEFAULT_TAB,
   studioTabPath,
 } from "@/lib/to-chuc/studio-routes";
-import { truongRootPath } from "@/lib/truong/truong-routes";
+import {
+  TRUONG_DEFAULT_TAB,
+  truongTabPath,
+} from "@/lib/truong/truong-routes";
 
 export type UserOrgMembershipItem = {
   id: string;
@@ -86,7 +89,7 @@ function orgPublicHref(org: {
     return coSoTabPath(org.slug, CO_SO_DEFAULT_TAB);
   }
   if (org.loai_to_chuc === "truong_dai_hoc") {
-    return truongRootPath(org.slug);
+    return truongTabPath(org.slug, TRUONG_DEFAULT_TAB);
   }
   if (org.loai_to_chuc === "studio" || org.loai_to_chuc === "doanh_nghiep") {
     return studioTabPath(org.slug, STUDIO_DEFAULT_TAB);

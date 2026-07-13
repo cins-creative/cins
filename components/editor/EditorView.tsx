@@ -3273,10 +3273,7 @@ export function EditorView({
         </div>
         ) : null}
 
-        {showFullEditor &&
-        !isPhotoAlbumCompose &&
-        !isBunnyVideoCompose &&
-        (!isMinimalMediaCompose || (canAddMoreSessions && blocks.length > 0)) ? (
+        {showFullEditor && !hideBlockPalette && !isPhotoAlbumCompose ? (
         <div className="hint-foot">
           Bấm nút <b>+</b> ở khe giữa các block để chèn nội dung mới. Gõ{" "}
           <b>@</b> để gắn cộng sự, <b>#</b> để gắn thẻ bài viết.
@@ -4569,20 +4566,24 @@ function ImageBlock({ block, p }: { block: Block; p: BlockRowProps }) {
                 error={p.imageUploads[seed].error}
               />
             ) : null}
-            {imgs.length > 1 ? (
-              <button
-                type="button"
-                className="ph-del"
-                title="Xoá ảnh"
-                aria-label="Xoá ảnh"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  p.onRemoveImage(i);
-                }}
-              >
-                <X size={14} strokeWidth={2} aria-hidden />
-              </button>
-            ) : null}
+            <button
+              type="button"
+              className="ph-del"
+              title="Xoá ảnh"
+              aria-label="Xoá ảnh"
+              onClick={(e) => {
+                e.stopPropagation();
+                /* Ô trống duy nhất: xoá cả block (mobile không có block-side).
+                   Còn lại: gỡ/clear slot như desktop. */
+                if (imgs.length === 1 && isEmpty) {
+                  p.onDelete();
+                  return;
+                }
+                p.onRemoveImage(i);
+              }}
+            >
+              <X size={14} strokeWidth={2} aria-hidden />
+            </button>
             <PhImageActions
               onPick={() => p.onPickImage(i)}
               onPaste={() => p.onPasteImage(i)}

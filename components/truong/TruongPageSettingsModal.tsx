@@ -20,7 +20,10 @@ import {
 import { MO_TA_SHORT_MAX } from "@/lib/truong/mo-ta-short";
 import { KTX_DIA_CHI_MAX } from "@/lib/truong/ktx-cau-hinh";
 import { normalizeTruongGioiThieuHtml } from "@/lib/truong/gioi-thieu";
-import { truongRootPath } from "@/lib/truong/truong-routes";
+import {
+  TRUONG_DEFAULT_TAB,
+  truongTabPath,
+} from "@/lib/truong/truong-routes";
 import type { TruongChiNhanh } from "@/lib/truong/types";
 import type { CoSoSettingsViewer } from "@/lib/to-chuc/co-so-settings-types";
 
@@ -263,7 +266,7 @@ export function TruongPageSettingsModal({
       setDraft(json.settings);
       emitSaved(json.settings);
       if (json.settings.slug !== prevSlug) {
-        router.replace(truongRootPath(json.settings.slug));
+        router.replace(truongTabPath(json.settings.slug, TRUONG_DEFAULT_TAB));
       }
       onClose();
     });

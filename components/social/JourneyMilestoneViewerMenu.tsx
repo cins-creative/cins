@@ -36,19 +36,26 @@ export function JourneyMilestoneViewerMenu({
 
   useEffect(() => {
     if (!open) return;
-    const onDocClick = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
+    let removeListeners: (() => void) | undefined;
+    const timer = window.setTimeout(() => {
+      const onDocPointerDown = (e: PointerEvent) => {
+        if (rootRef.current?.contains(e.target as Node)) return;
         setOpen(false);
-      }
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("mousedown", onDocClick);
-    document.addEventListener("keydown", onKey);
+      };
+      const onKey = (e: KeyboardEvent) => {
+        if (e.key === "Escape") setOpen(false);
+      };
+      /* Capture: tránh bị parent stopPropagation (mousedown bubble) giữ menu mở. */
+      document.addEventListener("pointerdown", onDocPointerDown, true);
+      document.addEventListener("keydown", onKey);
+      removeListeners = () => {
+        document.removeEventListener("pointerdown", onDocPointerDown, true);
+        document.removeEventListener("keydown", onKey);
+      };
+    }, 0);
     return () => {
-      document.removeEventListener("mousedown", onDocClick);
-      document.removeEventListener("keydown", onKey);
+      window.clearTimeout(timer);
+      removeListeners?.();
     };
   }, [open]);
 

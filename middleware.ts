@@ -149,6 +149,19 @@ function redirectStudioRootToDefaultTab(
   return NextResponse.redirect(url, 308);
 }
 
+/** `/co-so-dao-tao/:slug` → `/co-so-dao-tao/:slug/bai-dang` — tránh meta refresh RSC. */
+function redirectTruongRootToDefaultTab(
+  request: NextRequest,
+): NextResponse | null {
+  const { pathname } = request.nextUrl;
+  const match = pathname.match(/^\/co-so-dao-tao\/([^/]+)\/?$/);
+  if (!match || isReservedOrgSegment(match[1])) return null;
+
+  const url = request.nextUrl.clone();
+  url.pathname = `/co-so-dao-tao/${match[1]}/bai-dang`;
+  return NextResponse.redirect(url, 308);
+}
+
 /**
  * Resolve session bằng `@supabase/ssr` server client với cookie adapter cho middleware.
  * Trả về `{ response, user }` — response đã được sync cookies refresh token (nếu Supabase
@@ -227,6 +240,8 @@ export async function middleware(request: NextRequest) {
   if (coSoRoot) return coSoRoot;
   const studioRoot = redirectStudioRootToDefaultTab(request);
   if (studioRoot) return studioRoot;
+  const truongRoot = redirectTruongRootToDefaultTab(request);
+  if (truongRoot) return truongRoot;
 
   const { pathname } = request.nextUrl;
 

@@ -5,7 +5,7 @@ import Link from "next/link";
 
 import { TruongOrgAvatar } from "@/components/truong/TruongOrgAvatar";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
-import { coSoRootPath } from "@/lib/to-chuc/co-so-routes";
+import { CO_SO_DEFAULT_TAB, coSoTabPath } from "@/lib/to-chuc/co-so-routes";
 import {
   formatChiNhanhAddress,
   resolveTruongChiNhanh,
@@ -32,7 +32,7 @@ export function CoSoKhoaHocOrgFooter({ school: schoolProp }: Props) {
       <div className="cso-khd-org-foot-glow" aria-hidden />
       <div className="cso-khd-org-foot-inner">
         <Link
-          href={coSoRootPath(school.slug)}
+          href={coSoTabPath(school.slug, CO_SO_DEFAULT_TAB)}
           scroll={false}
           className="cso-khd-org-foot-brand"
         >

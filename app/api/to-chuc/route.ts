@@ -4,6 +4,7 @@ import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { createCongDongOrg } from "@/lib/cong-dong/org-create";
 import { createCoSoDaoTaoOrg } from "@/lib/to-chuc/co-so-create";
 import { createStudioOrg } from "@/lib/to-chuc/studio-create";
+import { STUDIO_DEFAULT_TAB, studioTabPath } from "@/lib/to-chuc/studio-routes";
 
 /** POST /api/to-chuc — tạo org (`cong_dong` | `co_so_dao_tao` | `studio`). */
 export async function POST(req: Request) {
@@ -108,7 +109,7 @@ export async function POST(req: Request) {
       ok: true,
       id: result.data.id,
       slug: result.data.slug,
-      redirect: `/studio/${result.data.slug}`,
+      redirect: studioTabPath(result.data.slug, STUDIO_DEFAULT_TAB),
     });
   }
 

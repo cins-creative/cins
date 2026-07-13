@@ -4,7 +4,10 @@ import { getCoverUrl } from "@/lib/articles/cover";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { labelTinhThanh } from "@/lib/truong/contact";
-import { truongRootPath } from "@/lib/truong/truong-routes";
+import {
+  TRUONG_DEFAULT_TAB,
+  truongTabPath,
+} from "@/lib/truong/truong-routes";
 
 export async function GET(req: Request) {
   const slug = new URL(req.url).searchParams.get("slug")?.trim();
@@ -59,7 +62,7 @@ export async function GET(req: Request) {
       soNganh: soNganh ?? 0,
       namThanhLap: ext?.nam_thanh_lap ?? null,
       daVerify: Boolean(ext?.da_verify),
-      href: truongRootPath(org.slug),
+      href: truongTabPath(org.slug, TRUONG_DEFAULT_TAB),
     },
   });
 }

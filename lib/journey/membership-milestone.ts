@@ -32,7 +32,7 @@ import { loadOrgAttachOptions } from "@/lib/journey/org-milestone-tag";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import { notifyMembershipMilestoneResolved } from "@/lib/social/membership-milestone-notify";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import { truongRootPath } from "@/lib/truong/truong-routes";
+import { orgPublicHref as buildOrgPublicHref } from "@/lib/search/helpers";
 
 export type SubmitMembershipMilestoneResult =
   | { ok: true; cotMocId: string; milestone?: Awaited<ReturnType<typeof buildMilestoneItemForCotMoc>> }
@@ -51,9 +51,9 @@ function orgPublicHref(
   loai: MembershipMilestoneOrgLoai,
   slug: string,
 ): string | null {
-  if (loai === "co_so_dao_tao") return `/co-so/${encodeURIComponent(slug)}`;
-  if (loai === "truong_dai_hoc") return truongRootPath(slug);
-  if (loai === "studio") return `/studio/${encodeURIComponent(slug)}`;
+  if (loai === "co_so_dao_tao" || loai === "truong_dai_hoc" || loai === "studio") {
+    return buildOrgPublicHref(loai, slug);
+  }
   return null;
 }
 
@@ -979,11 +979,13 @@ export async function respondOrgMembershipMilestoneRequest(params: {
 
   const orgLoai = org?.loai_to_chuc;
   const orgPath =
-    orgLoai === "co_so_dao_tao" || orgLoai === "truong_dai_hoc"
-      ? orgPublicPath(orgLoai, org?.slug ?? "")
-      : orgLoai === "studio" && org?.slug
-        ? `/studio/${encodeURIComponent(org.slug)}`
-        : null;
+    orgLoai === "co_so_dao_tao" ||
+    orgLoai === "truong_dai_hoc" ||
+    orgLoai === "studio"
+      ? org?.slug
+        ? buildOrgPublicHref(orgLoai, org.slug)
+        : null
+      : null;
 
   const recipe = getEffectivePhraseRecipe(payload.recipeId, payload.slots);
   const verifiedMoTa = assembleVerifiedMembershipMoTa(recipe, payload.slots);

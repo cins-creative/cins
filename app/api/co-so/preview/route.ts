@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getCoverUrl } from "@/lib/articles/cover";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import { labelTinhThanh } from "@/lib/truong/contact";
+import { CO_SO_DEFAULT_TAB, coSoTabPath } from "@/lib/to-chuc/co-so-routes";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 export async function GET(req: Request) {
@@ -73,7 +74,7 @@ export async function GET(req: Request) {
       soKhoaHoc,
       daVerify: Boolean(ext?.da_verify),
       loaiCoSo: ext?.loai_co_so ?? null,
-      href: `/co-so/${org.slug}`,
+      href: coSoTabPath(org.slug, CO_SO_DEFAULT_TAB),
     },
   });
 }

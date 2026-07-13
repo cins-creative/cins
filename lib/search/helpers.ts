@@ -5,7 +5,7 @@ import {
   orgBaiDangPermalinkPath,
   type OrgBaiDangPermalinkHub,
 } from "@/lib/truong/org-bai-dang-permalink";
-import { truongRootPath, truongTabPath, TRUONG_DEFAULT_TAB } from "@/lib/truong/truong-routes";
+import { truongTabPath, TRUONG_DEFAULT_TAB } from "@/lib/truong/truong-routes";
 
 /** Escape ký tự đặc biệt ILIKE (`%`, `_`, `,`). */
 export function escapeIlikePattern(raw: string): string {
@@ -70,7 +70,7 @@ export function orgPublicHref(loai: string, slug: string): string {
     return studioTabPath(s, STUDIO_DEFAULT_TAB);
   }
   if (loai === "truong_dai_hoc") return truongTabPath(s, TRUONG_DEFAULT_TAB);
-  return truongRootPath(s);
+  return truongTabPath(s, TRUONG_DEFAULT_TAB);
 }
 
 export function orgDefaultTabHref(loai: string, slug: string): string {

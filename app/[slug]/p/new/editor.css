@@ -1995,6 +1995,26 @@
 .cins-editor-page .ed-photo-album-compose .image-grid-cell.is-compose-editable:hover .ph-del {
   opacity: 1;
 }
+/* Mobile / viewport hẹp — không có hover thật (và DevTools mobile vẫn
+   báo hover:hover). Khi block đang chọn: luôn hiện Đổi/Dán/Xoá. */
+@media (max-width: 767.98px) {
+  .cins-editor-page .block.selected .ph .ph-actions,
+  .cins-editor-page .block.selected .ph .ph-del {
+    opacity: 1;
+  }
+  .cins-editor-page .block.selected .ph .ph-del {
+    width: 32px;
+    height: 32px;
+  }
+  .cins-editor-page .ed-photo-album-compose .image-grid-cell.is-compose-editable .ph-actions,
+  .cins-editor-page .ed-photo-album-compose .image-grid-cell.is-compose-editable .ph-del {
+    opacity: 1;
+  }
+  .cins-editor-page .ed-photo-album-compose .image-grid-cell.is-compose-editable .ph-del {
+    width: 32px;
+    height: 32px;
+  }
+}
 .cins-editor-page .ed-photo-album-add-compact {
   display: flex;
   justify-content: center;

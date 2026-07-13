@@ -4,6 +4,7 @@ import { ArrowRight, Briefcase, MapPin } from "lucide-react";
 
 import { labelTinhThanh } from "@/lib/truong/contact";
 import { listingOrgRelationBadge } from "@/lib/to-chuc/co-so-vai-tro";
+import { STUDIO_DEFAULT_TAB, studioTabPath } from "@/lib/to-chuc/studio-routes";
 import type { StudioListItem } from "@/lib/to-chuc/studio-listing";
 
 type Props = {
@@ -12,7 +13,7 @@ type Props = {
 };
 
 export function StudioListingCard({ studio, index }: Props) {
-  const href = `/studio/${studio.slug}`;
+  const href = studioTabPath(studio.slug, STUDIO_DEFAULT_TAB);
   const coverUrl = studio.coverSrc;
   const avatarUrl = studio.avatarSrc;
   const locationLabel = labelTinhThanh(studio.tinhThanh);

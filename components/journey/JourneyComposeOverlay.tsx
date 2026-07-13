@@ -10,7 +10,6 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
-import { X } from "lucide-react";
 
 import "@/app/[slug]/journey/journey.css";
 import "@/app/[slug]/journey/image-grid.css";
@@ -268,14 +267,6 @@ export function JourneyComposeOverlay({
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <button
-        type="button"
-        className="j-compose-overlay-dismiss"
-        aria-label="Đóng trình soạn"
-        onClick={onClose}
-      >
-        <X size={18} strokeWidth={2.2} aria-hidden />
-      </button>
       <div
         className={`j-compose-sheet${isMilestoneSheet ? " j-compose-sheet--milestone" : ""}`}
         onMouseDown={(event) => event.stopPropagation()}

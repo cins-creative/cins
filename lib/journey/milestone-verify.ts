@@ -6,7 +6,7 @@ import { loadCongDongStatsByOrgIds } from "@/lib/cong-dong/stats";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import { parseMembershipMilestonePayload } from "@/lib/journey/membership-milestone";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import { truongRootPath } from "@/lib/truong/truong-routes";
+import { orgPublicHref as buildOrgPublicHref } from "@/lib/search/helpers";
 
 export type VerifiedMilestoneMeta = {
   verifiedBy: string;
@@ -36,11 +36,14 @@ type OrgRow = {
 };
 
 function orgPublicHref(org: OrgRow): string | null {
-  if (org.loai_to_chuc === "cong_dong") return `/cong-dong/${org.slug}`;
-  if (org.loai_to_chuc === "co_so_dao_tao") return `/co-so/${org.slug}`;
-  if (org.loai_to_chuc === "studio") return `/studio/${org.slug}`;
-  if (org.loai_to_chuc === "truong_dai_hoc") {
-    return truongRootPath(org.slug);
+  if (
+    org.loai_to_chuc === "cong_dong" ||
+    org.loai_to_chuc === "co_so_dao_tao" ||
+    org.loai_to_chuc === "studio" ||
+    org.loai_to_chuc === "truong_dai_hoc" ||
+    org.loai_to_chuc === "doanh_nghiep"
+  ) {
+    return buildOrgPublicHref(org.loai_to_chuc, org.slug);
   }
   return null;
 }

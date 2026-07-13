@@ -1,4 +1,4 @@
-import { truongRootPath } from "@/lib/truong/truong-routes";
+import { orgPublicHref } from "@/lib/search/helpers";
 
 export type HaOrgPopoverKind =
   | "cong_dong"
@@ -17,9 +17,7 @@ export function haOrgKindForPopover(
 }
 
 export function haOrgProfileHref(loai: string, slug: string): string {
-  if (loai === "co_so_dao_tao") return `/co-so/${slug}`;
-  if (loai === "truong" || loai === "truong_dai_hoc") return truongRootPath(slug);
-  if (loai === "cong_dong") return `/cong-dong/${slug}`;
-  if (loai === "studio" || loai === "doanh_nghiep") return `/studio/${slug}`;
-  return `/co-so/${slug}`;
+  const normalized =
+    loai === "truong" ? "truong_dai_hoc" : loai === "doanh_nghiep" ? "studio" : loai;
+  return orgPublicHref(normalized, slug);
 }

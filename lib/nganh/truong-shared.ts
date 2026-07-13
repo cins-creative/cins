@@ -60,10 +60,14 @@ export function formatThoiGianThang(months: number | null | undefined): string {
   return `${m} tháng`;
 }
 
-import { truongRootPath } from "@/lib/truong/truong-routes";
+import {
+  TRUONG_DEFAULT_TAB,
+  truongTabPath,
+} from "@/lib/truong/truong-routes";
 
+/** Link vào trang trường — luôn kèm tab mặc định (tránh redirect RSC lỗi lần đầu). */
 export function truongDetailHref(slug: string): string {
-  return truongRootPath(slug);
+  return truongTabPath(slug, TRUONG_DEFAULT_TAB);
 }
 
 export function countUniqueTruong(rows: NganhTruongRow[]): number {

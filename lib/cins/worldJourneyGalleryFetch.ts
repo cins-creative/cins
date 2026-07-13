@@ -17,8 +17,8 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { listActiveCongDongOrgIds } from "@/lib/cins/worldJourneyCongDongFeed";
 import { listFollowingOrgIds } from "@/lib/cins/worldJourneyOrgFeed";
 import { STUDIO_SHOWCASE_LOAI } from "@/lib/to-chuc/studio-page-config";
+import { orgPublicHref } from "@/lib/search/helpers";
 import { studioTabPath } from "@/lib/to-chuc/studio-routes";
-import { truongRootPath } from "@/lib/truong/truong-routes";
 import { CHE_DO_MOC_CONG_DONG } from "@/lib/journey/journey-visible-clause";
 import { parseBaiDangBlocks } from "@/lib/truong/bai-dang-blocks";
 import type { Block } from "@/lib/editor/types";
@@ -269,11 +269,9 @@ function orgLoaiKicker(loai: string | null): string {
 }
 
 /** Link công khai của org theo loại — đồng bộ feed dòng thời gian. */
-function orgPublicHref(slug: string, loai: string | null): string {
-  if (loai === "co_so_dao_tao") return `/co-so/${slug}`;
-  if (loai === "cong_dong") return `/cong-dong/${slug}`;
+function orgHref(slug: string, loai: string | null): string {
   if (loai === "studio") return studioTabPath(slug, "showcase");
-  return truongRootPath(slug);
+  return orgPublicHref(loai ?? "truong_dai_hoc", slug);
 }
 
 /** Bài đăng org (trường / cơ sở) có media → card gallery, link sang trang org. */
@@ -309,7 +307,7 @@ function orgBaiDangRowToItem(
     width: img?.width,
     height: img?.height,
     label: galleryItemLabel(row.tieu_de, grid.mediaKind),
-    href: orgPublicHref(orgSlug, org.loai_to_chuc),
+    href: orgHref(orgSlug, org.loai_to_chuc),
     meta: row.tom_tat?.trim() || `${orgLoaiKicker(org.loai_to_chuc)} · ${orgName}`,
     featured: false,
     type: "du-an",

@@ -9,7 +9,12 @@ import {
   JourneyOrgPopoverActions,
   type OrgActionKind,
 } from "@/components/journey/JourneyOrgPopoverActions";
-import { truongRootPath } from "@/lib/truong/truong-routes";
+import { CO_SO_DEFAULT_TAB, coSoTabPath } from "@/lib/to-chuc/co-so-routes";
+import { STUDIO_DEFAULT_TAB, studioTabPath } from "@/lib/to-chuc/studio-routes";
+import {
+  TRUONG_DEFAULT_TAB,
+  truongTabPath,
+} from "@/lib/truong/truong-routes";
 
 type OrgPopoverKind = "cong_dong" | "co_so_dao_tao" | "truong" | "studio";
 
@@ -57,17 +62,14 @@ function previewApi(orgKind: OrgPopoverKind, slug: string): string {
 }
 
 function defaultHref(orgKind: OrgPopoverKind, slug: string): string {
-  if (orgKind === "co_so_dao_tao") return `/co-so/${slug}`;
-  if (orgKind === "truong") return truongRootPath(slug);
-  if (orgKind === "studio") return `/studio/${slug}`;
+  if (orgKind === "co_so_dao_tao") return coSoTabPath(slug, CO_SO_DEFAULT_TAB);
+  if (orgKind === "truong") return truongTabPath(slug, TRUONG_DEFAULT_TAB);
+  if (orgKind === "studio") return studioTabPath(slug, STUDIO_DEFAULT_TAB);
   return `/cong-dong/${slug}`;
 }
 
 function slugPath(orgKind: OrgPopoverKind, slug: string): string {
-  if (orgKind === "co_so_dao_tao") return `/co-so/${slug}`;
-  if (orgKind === "truong") return truongRootPath(slug);
-  if (orgKind === "studio") return `/studio/${slug}`;
-  return `/cong-dong/${slug}`;
+  return defaultHref(orgKind, slug);
 }
 
 function orgKicker(orgKind: OrgPopoverKind): string {

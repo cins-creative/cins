@@ -71,6 +71,7 @@ type OrgEmbed = {
   dien_thoai?: string | null;
   email_lien_he?: string | null;
   cau_hinh?: unknown;
+  trang_thai_tin_cay?: string | null;
 };
 
 type OrgDaiHocEmbed = {
@@ -84,6 +85,7 @@ type OrgDaiHocEmbed = {
   hoc_phi_nam_den?: number | null;
   co_ktx?: boolean | null;
   ktx_gia_thang?: number | null;
+  da_verify?: boolean | null;
 };
 
 type RawDaiHoc = OrgDaiHocEmbed & {
@@ -138,6 +140,15 @@ function nganhTitle(row: NonNullable<RawNganhLink["article_bai_viet"]>): string 
   return row.tieu_de_viet?.trim() || row.tieu_de?.trim() || "Ngành đào tạo";
 }
 
+/** Badge trang trường: tin_cay official ưu tiên, fallback cờ bảng con. */
+function resolveTruongDaVerify(
+  org: OrgEmbed,
+  otd: OrgDaiHocEmbed | null,
+): boolean {
+  if (org.trang_thai_tin_cay === "verified_official") return true;
+  return otd?.da_verify === true;
+}
+
 function mapListFields(
   org: OrgEmbed,
   otd: OrgDaiHocEmbed | null,
@@ -176,6 +187,7 @@ function mapListFields(
     ktx_dia_chi: parseKtxDiaChiFromCauHinh(org.cau_hinh),
     nganhCount: tagSet.size,
     nganhTags: [...tagSet].slice(0, 3),
+    daVerify: resolveTruongDaVerify(org, otd),
   };
 }
 
@@ -244,6 +256,7 @@ export async function listTruongDaiHoc(): Promise<TruongListItem[]> {
         website,
         ten_chinh_thuc,
         ten_tieng_anh,
+        da_verify,
         org_to_chuc!inner (
           id,
           slug,
@@ -252,7 +265,8 @@ export async function listTruongDaiHoc(): Promise<TruongListItem[]> {
           avatar_id,
           cover_id,
           tinh_thanh,
-          cau_hinh
+          cau_hinh,
+          trang_thai_tin_cay
         )
       `,
       );
@@ -768,7 +782,8 @@ const ORG_TRUONG_DAI_HOC_EMBED = `
     hoc_phi_nam_tu,
     hoc_phi_nam_den,
     co_ktx,
-    ktx_gia_thang
+    ktx_gia_thang,
+    da_verify
   )
 `;
 
@@ -786,6 +801,7 @@ const ORG_DETAIL_SELECT_WITH_CONTACT = `
   logo_id,
   avatar_id,
   cover_id,
+  trang_thai_tin_cay,
   ${ORG_TRUONG_DAI_HOC_EMBED}
 `;
 
@@ -799,6 +815,7 @@ const ORG_DETAIL_SELECT_BASE = `
   logo_id,
   avatar_id,
   cover_id,
+  trang_thai_tin_cay,
   ${ORG_TRUONG_DAI_HOC_EMBED}
 `;
 

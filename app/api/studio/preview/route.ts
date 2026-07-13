@@ -4,6 +4,7 @@ import { getCoverUrl } from "@/lib/articles/cover";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import { labelTinhThanh } from "@/lib/truong/contact";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { STUDIO_DEFAULT_TAB, studioTabPath } from "@/lib/to-chuc/studio-routes";
 
 export async function GET(req: Request) {
   const slug = new URL(req.url).searchParams.get("slug")?.trim();
@@ -66,7 +67,7 @@ export async function GET(req: Request) {
       soTuyenDung: jobCount,
       soBaiViet: postCount ?? 0,
       loaiToChuc: org.loai_to_chuc,
-      href: `/studio/${org.slug}`,
+      href: studioTabPath(org.slug, STUDIO_DEFAULT_TAB),
     },
   });
 }

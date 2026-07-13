@@ -18,9 +18,9 @@ import {
 import { listNganhArticlesForHub } from "@/lib/nganh/queries";
 import { coSoTabPath } from "@/lib/to-chuc/co-so-routes";
 import { labelLoaiSuKien } from "@/lib/to-chuc/su-kien-constants";
+import { orgPublicHref } from "@/lib/search/helpers";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { resolveTruongImageSrcSync } from "@/lib/truong/media-url";
-import { truongRootPath } from "@/lib/truong/truong-routes";
 import { listFriends } from "@/lib/social/ket-ban";
 
 export type { FeedPromoCard, FeedPromoVariant } from "@/lib/cins/worldJourneyFeedPromosTypes";
@@ -41,9 +41,7 @@ function promoEventDate(iso: string): { month: string; day: string } {
 
 function orgSuKienHref(loai: string, slug: string): string {
   if (loai === "co_so_dao_tao") return coSoTabPath(slug, "su-kien");
-  if (loai === "cong_dong") return `/cong-dong/${slug}`;
-  if (loai === "studio" || loai === "doanh_nghiep") return `/studio/${slug}`;
-  return truongRootPath(slug);
+  return orgPublicHref(loai, slug);
 }
 
 type SuKienPromoRow = {

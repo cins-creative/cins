@@ -62,6 +62,11 @@ export type TruongListItem = {
   viewerVaiTro?: CoSoStaffVaiTro | null;
   /** Viewer đang theo dõi org (`user_theo_doi`). */
   viewerDangTheoDoi?: boolean;
+  /**
+   * Trang trường đã xác thực vận hành (`trang_thai_tin_cay = verified_official`
+   * hoặc `org_truong_dai_hoc.da_verify`). Khác verify cột mốc học viên.
+   */
+  daVerify?: boolean;
 };
 
 export type TruongNganhProgram = {

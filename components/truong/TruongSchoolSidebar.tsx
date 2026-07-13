@@ -1,6 +1,6 @@
 "use client";
 
-import { Pencil } from "lucide-react";
+import { BadgeCheck, Pencil } from "lucide-react";
 
 import { CoSoOrgFollowButton } from "@/components/co-so/CoSoOrgFollowButton";
 import { OrgSidebarShareButton } from "@/components/org/OrgSidebarShareButton";
@@ -12,6 +12,7 @@ import { TruongMessageInbox } from "@/components/truong/TruongMessageInbox";
 import { TruongMilestoneTagNotify } from "@/components/truong/TruongMilestoneTagNotify";
 import { TruongOrgAvatar } from "@/components/truong/TruongOrgAvatar";
 import { TruongSchoolContact } from "@/components/truong/TruongSchoolContact";
+import { TruongSeedDisclaimerModal } from "@/components/truong/TruongSeedDisclaimerModal";
 import { TruongUserChatLauncher } from "@/components/truong/TruongUserChatLauncher";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
 import { hasTruongGioiThieuContent } from "@/lib/truong/gioi-thieu";
@@ -69,6 +70,7 @@ function TruongSidebarStack({
 }: BodyProps) {
   const avatarClass =
     layout === "desktop" ? "cso-ss-ava truong-ss-ava" : "cso-ss-ava";
+  const daVerify = school.daVerify === true;
 
   return (
     <div className="cso-ss-stack">
@@ -79,10 +81,22 @@ function TruongSidebarStack({
           className={avatarClass}
           editable={canEdit && isEditing}
         />
+        {!daVerify ? <TruongSeedDisclaimerModal /> : null}
       </div>
 
       <div className="cso-ss-identity">
-        <h1 className="cso-ss-name">{school.ten}</h1>
+        <h1 className="cso-ss-name">
+          {school.ten}
+          {daVerify ? (
+            <span
+              className="truong-ss-verify-badge"
+              title="Trường đang vận hành trang này trên CINs"
+              aria-label="Trường đang vận hành trang này trên CINs"
+            >
+              <BadgeCheck size={18} strokeWidth={2.2} aria-hidden />
+            </span>
+          ) : null}
+        </h1>
         {subtitle ? <p className="cso-ss-sub">{subtitle}</p> : null}
         {isEditing && onOpenSettings ? (
           <button

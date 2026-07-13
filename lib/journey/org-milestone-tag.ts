@@ -16,7 +16,7 @@ import {
 import { notifyOrgMilestoneTagApproved } from "@/lib/social/org-milestone-tag-notify";
 import { isGalleryVideoCoverSrc } from "@/lib/journey/post-media";
 import { isCoSoOrgAdmin } from "@/lib/to-chuc/co-so-membership";
-import { truongRootPath } from "@/lib/truong/truong-routes";
+import { orgPublicHref } from "@/lib/search/helpers";
 import { isTruongOrgAdmin } from "@/lib/truong/org-admin";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -976,6 +976,5 @@ export function orgPublicPath(
   loai: "truong_dai_hoc" | "co_so_dao_tao",
   slug: string,
 ): string {
-  if (loai === "co_so_dao_tao") return `/co-so/${slug}`;
-  return truongRootPath(slug);
+  return orgPublicHref(loai, slug);
 }

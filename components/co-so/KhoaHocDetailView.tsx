@@ -73,7 +73,7 @@ import { isInlineBaiTapThumbnail } from "@/lib/to-chuc/bai-tap-thumbnail";
 import { notifyCoSoKhoaListChanged } from "@/lib/to-chuc/co-so-khoa-events";
 import { resolveGoiHocPhiForDisplay } from "@/lib/to-chuc/khoa-hoc-goi-phi";
 import {
-  coSoRootPath,
+  CO_SO_DEFAULT_TAB,
   coSoKhoaHocDetailPath,
   coSoTabPath,
 } from "@/lib/to-chuc/co-so-routes";
@@ -835,7 +835,7 @@ function DetailContent({
           </div>
         ) : null}
         <nav className="cso-khd-crumb" aria-label="Breadcrumb">
-          <Link href={coSoRootPath(orgSlug)} scroll={false}>
+          <Link href={coSoTabPath(orgSlug, CO_SO_DEFAULT_TAB)} scroll={false}>
             {orgTen || "Cơ sở"}
           </Link>
           <ChevronRight size={13} aria-hidden />

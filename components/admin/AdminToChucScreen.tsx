@@ -26,7 +26,7 @@ import type {
   AdminToChucListRow,
   AdminToChucLoaiFilter,
 } from "@/lib/admin/to-chuc-types";
-import { truongRootPath } from "@/lib/truong/truong-routes";
+import { orgPublicHref } from "@/lib/search/helpers";
 
 const LOAI_FILTERS: { id: AdminToChucLoaiFilter; label: string }[] = [
   { id: "all", label: "Tất cả" },
@@ -49,11 +49,9 @@ const EMPTY_STATS: AdminToChucListResponse["stats"] = {
 function orgViewHref(row: AdminToChucListRow): string | null {
   switch (row.loai) {
     case "truong_dai_hoc":
-      return truongRootPath(row.slug);
     case "co_so_dao_tao":
-      return `/co-so/${row.slug}`;
     case "cong_dong":
-      return `/cong-dong/${row.slug}`;
+      return orgPublicHref(row.loai, row.slug);
     default:
       return null;
   }

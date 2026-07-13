@@ -10,6 +10,7 @@
   padding: 24px;
   font-family: var(--font-sans);
   color-scheme: light;
+  cursor: pointer;
 }
 
 .cins-chat-backdrop {
@@ -19,7 +20,9 @@
   background: rgba(14, 17, 23, 0.42);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
-  cursor: pointer;
+  /* Click đóng xử lý ở .cins-chat-root — backdrop chỉ trang trí,
+     tránh nuốt click nút header khi chúng sát/tràn mép panel. */
+  pointer-events: none;
 }
 
 .cins-chat-panel {
@@ -29,10 +32,12 @@
   width: min(1080px, 100%);
   height: min(720px, calc(100vh - 48px));
   border-radius: var(--radius-xl);
-  overflow: hidden;
+  /* visible: nút header (ghim bubble) không bị clip → click không rơi xuống root/backdrop */
+  overflow: visible;
   background: var(--bg-surface);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-lg);
+  cursor: default;
 }
 
 .cins-chat-list {
@@ -42,6 +47,17 @@
   min-width: 280px;
   border-right: 1px solid var(--border);
   background: var(--neutral-50);
+  border-radius: var(--radius-xl) 0 0 var(--radius-xl);
+  overflow: hidden;
+}
+
+.cins-chat-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
+  /* visible để nút ghim bubble ở header không bị clip khỏi hit-test */
+  overflow: visible;
 }
 
 .cins-chat-list-head {
@@ -596,18 +612,15 @@
   width: min(1280px, 100%);
 }
 
-.cins-chat-main {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-}
-
 .cins-chat-convo {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
   background: #f4f5f8;
+  border-radius: inherit;
+  /* visible: header actions (ghim bubble) vẫn nhận click khi sát mép phải */
+  overflow: visible;
 }
 
 .cins-chat-convo-head {
@@ -684,6 +697,8 @@
   gap: 6px;
   margin-left: auto;
   flex-shrink: 0;
+  position: relative;
+  z-index: 2;
 }
 
 .cins-chat-icon-btn {
@@ -2519,8 +2534,9 @@ a.cins-chat-ctx-card:hover {
 
 .j-chat-bubble-wrap.is-active .j-chat-bubble-btn {
   border-color: var(--cins-blue, #1f74c9);
-  outline: 2px solid rgba(31, 116, 201, 0.35);
-  outline-offset: 1px;
+  box-shadow:
+    0 0 0 2px rgba(31, 116, 201, 0.28),
+    0 4px 12px rgba(15, 23, 42, 0.14);
 }
 
 .j-chat-bubble-wrap.is-pinned .j-chat-bubble-btn {
@@ -2538,21 +2554,179 @@ a.cins-chat-ctx-card:hover {
   border-radius: 999px;
   background: transparent;
   cursor: pointer;
-  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
-  animation: j-chat-bubble-in 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.1);
+  /* Nhả tay: bật về với chút overshoot → cảm giác squash bật lại */
+  transition:
+    transform 260ms cubic-bezier(0.34, 1.5, 0.5, 1),
+    box-shadow 120ms ease-out,
+    border-color 160ms ease,
+    filter 100ms ease-out;
+  animation: j-chat-bubble-in 240ms ease-out both;
 }
 
 .j-chat-bubble-btn:hover {
-  transform: translateY(-3px) scale(1.06);
+  transform: scale(1.04);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.14);
 }
 
 .j-chat-bubble-btn:active {
-  transform: translateY(-1px) scale(1.02);
+  transform: scale(0.86);
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.12);
+  filter: brightness(0.97);
+  /* Ấn xuống thật nhanh, nhả ra mới bật lại */
+  transition-duration: 80ms;
 }
 
 .j-chat-bubble-btn:focus-visible {
   outline: 2px solid rgba(31, 116, 201, 0.55);
   outline-offset: 3px;
+}
+
+/* (1) Ripple lan ra từ đúng điểm chạm khi click */
+.j-chat-bubble-ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.75) 0%,
+    rgba(31, 116, 201, 0.4) 55%,
+    rgba(31, 116, 201, 0) 72%
+  );
+  transform: scale(0);
+  opacity: 0.75;
+  pointer-events: none;
+  z-index: 2;
+  animation: j-chat-bubble-ripple-spread 480ms cubic-bezier(0.22, 1, 0.36, 1)
+    forwards;
+}
+
+@keyframes j-chat-bubble-ripple-spread {
+  to {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+/* (4) Chớp viền brand tỏa ra 1 nhịp khi click */
+.j-chat-bubble-flash {
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+  box-shadow: 0 0 0 0 rgba(31, 116, 201, 0.55);
+  animation: j-chat-bubble-flash 520ms ease-out forwards;
+}
+
+.j-chat-bubble-wrap:not(.is-group) .j-chat-bubble-flash {
+  border-radius: 999px;
+}
+
+.j-chat-bubble-wrap.is-group .j-chat-bubble-flash {
+  border-radius: 16px;
+}
+
+@keyframes j-chat-bubble-flash {
+  0% {
+    box-shadow: 0 0 0 0 rgba(31, 116, 201, 0.55);
+    opacity: 1;
+  }
+  100% {
+    box-shadow: 0 0 0 9px rgba(31, 116, 201, 0);
+    opacity: 0;
+  }
+}
+
+/* Vòng sáng lan ra quanh bubble khi hover — nhỏ nhỏ cho vui */
+.j-chat-bubble-wrap::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  border: 2px solid rgba(31, 116, 201, 0.45);
+  opacity: 0;
+  transform: scale(0.85);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.j-chat-bubble-wrap:not(.is-group)::before {
+  border-radius: 999px;
+}
+
+.j-chat-bubble-wrap.is-group::before {
+  border-radius: 16px;
+}
+
+.j-chat-bubble-wrap:hover::before {
+  animation: j-chat-bubble-ripple 1.4s ease-out infinite;
+}
+
+/* Ánh sáng lướt qua avatar khi hover */
+.j-chat-bubble-btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    115deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.55) 48%,
+    transparent 66%
+  );
+  background-size: 220% 100%;
+  background-position: 140% 0;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.j-chat-bubble-btn:hover::after {
+  opacity: 1;
+  animation: j-chat-bubble-shine 0.7s ease-out;
+}
+
+/* Bubble đã ghim thở nhẹ để hút mắt */
+.j-chat-bubble-wrap.is-pinned:not(:hover)::before {
+  opacity: 0.5;
+  animation: j-chat-bubble-breathe 3.2s ease-in-out infinite;
+}
+
+@keyframes j-chat-bubble-ripple {
+  0% {
+    opacity: 0.5;
+    transform: scale(0.9);
+  }
+  70% {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+}
+
+@keyframes j-chat-bubble-shine {
+  from {
+    background-position: 140% 0;
+  }
+  to {
+    background-position: -60% 0;
+  }
+}
+
+@keyframes j-chat-bubble-breathe {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.08);
+  }
 }
 
 .j-chat-bubble-btn .j-chat-mini-avatar {
@@ -2563,7 +2737,7 @@ a.cins-chat-ctx-card:hover {
 
 .j-chat-bubble-wrap.is-group .j-chat-bubble-btn {
   border-radius: 14px;
-  overflow: visible;
+  overflow: hidden;
 }
 
 .j-chat-bubble-wrap.is-group .j-chat-bubble-btn .cins-chat-group-avatar {
@@ -2627,11 +2801,31 @@ a.cins-chat-ctx-card:hover {
 @keyframes j-chat-bubble-in {
   from {
     opacity: 0;
-    transform: translateX(12px) scale(0.88);
   }
   to {
     opacity: 1;
-    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes j-chat-mini-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes j-chat-mini-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
   }
 }
 
@@ -2648,7 +2842,42 @@ a.cins-chat-ctx-card:hover {
   box-shadow:
     0 16px 40px rgba(15, 23, 42, 0.16),
     0 4px 12px rgba(15, 23, 42, 0.08);
-  animation: j-chat-bubble-in 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  transform-origin: bottom right;
+  animation: j-chat-mini-in 240ms ease-out both;
+}
+
+.j-chat-mini.is-leaving {
+  animation: j-chat-mini-out 160ms ease-in both;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .j-chat-bubble-btn,
+  .j-chat-mini,
+  .j-chat-mini.is-leaving,
+  .j-chat-bubble-ripple,
+  .j-chat-bubble-flash,
+  .j-chat-bubble-wrap::before,
+  .j-chat-bubble-wrap:hover::before,
+  .j-chat-bubble-wrap.is-pinned:not(:hover)::before,
+  .j-chat-bubble-btn::after,
+  .j-chat-bubble-btn:hover::after {
+    animation: none;
+    transition: none;
+  }
+
+  .j-chat-bubble-wrap::before,
+  .j-chat-bubble-btn::after,
+  .j-chat-bubble-ripple,
+  .j-chat-bubble-flash {
+    opacity: 0;
+  }
+
+  .j-chat-bubble-btn:hover,
+  .j-chat-bubble-btn:active {
+    transform: none;
+    filter: none;
+  }
 }
 
 .j-chat-mini-head {
