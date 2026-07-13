@@ -109,6 +109,23 @@
 | `post-image/upload` · `article-inline-image` · `career-thumbnail` | Ảnh → Cloudflare |
 | `post-video/prepare` · `complete` · `processing` · `status` | Video → Bunny qua TUS (prepare ký request, complete/processing/status poll) |
 
+### Chat (`chat`)
+| Route | Việc |
+|---|---|
+| `chat/threads` | GET list thread (DM + org + nhóm/project active) |
+| `chat/rooms/create-group` | POST tạo nhóm bạn bè |
+| `chat/rooms/open` · `open-org` | Mở/tạo phòng 1-1 hoặc 1_org |
+| `chat/rooms/[roomId]` | PATCH tên · DELETE phòng (owner) |
+| `chat/rooms/[roomId]/members` · `.../[userId]` | Thành viên: list/thêm · đổi vai trò/kick |
+| `chat/rooms/[roomId]/invite` · `join-requests` · `leave` · `avatar` | Link mời, duyệt xin vào, rời, avatar |
+| `chat/rooms/[roomId]/messages` · `.../[messageId]` · `reactions` · `read` · `pins` | Tin, sửa/thu hồi/ghim, reaction, đã đọc |
+| `chat/rooms/[roomId]/projects` | GET list project con · POST tạo (owner/admin cha) — **L28** |
+| `chat/rooms/[roomId]/visibility` | PATCH `trang_thai` `active`\|`an` (ẩn/khôi phục project) — **L28** |
+| `chat/rooms/[roomId]/tags` · `.../[tagId]` | Thẻ tài nguyên phòng: list/tạo · xóa — **L28** |
+| `chat/rooms/[roomId]/messages/[messageId]/tags` | PUT gắn thẻ lên tin (ảnh/URL) — **L28** |
+| `chat/rooms/[roomId]/mocs` · `.../[mocId]` | Mốc timeline phòng: list/tạo · sửa/xóa — **L28** |
+| `chat/invites/[ma]` | Preview / xin gia nhập qua mã mời |
+
 ---
 
 ## 2. Lib (`lib/`) — theo domain
@@ -124,6 +141,7 @@
 | `co-so/` | **Khóa/lớp/giáo trình/ghi danh** (một phần) | `khoa-hoc.ts`, `giao-trinh.ts`, `lop.ts`, `ghi-danh.ts`, `san-pham-lens.ts` |
 | `tag/` | Tạo tag, dedup, gen tom-tat, normalize, slug, admin merge | `create.ts`, `gen-tom-tat.ts`, `dedup.ts`, `normalize.ts` |
 | `filter/` | **Filter cá nhân** (user & org): tạo/sửa/xóa nhãn, gắn lên cột mốc/bài đăng org, list theo chủ sở hữu | `create.ts`, `update.ts`, `delete.ts`, `gan.ts`, `list-cua-user.ts` |
+| `chat/` | **Chat:** DM/org/nhóm, realtime, ghim, nhóm bạn bè, **project con**, thẻ tài nguyên, mốc phòng | `group-message.ts`, `group-roles.ts`, `project-room.ts`, `room-tags.ts`, `room-moc.ts`, `direct-message.ts`, `use-chat-realtime.ts` |
 | `articles/` | Bài viết nghề/keyword/phần mềm, quan hệ liên quan, link keyword | `queries.ts`, `nghe-role-preview.ts`, `link-keywords-in-html.ts`, `partition-*` |
 | `bai-viet/` | Hub card, phân loại, pagination | `hub-card.ts`, `hub-loai.ts` |
 | `career/` | Hub nghề nghiệp: lĩnh vực → bộ phận → vị trí | `loadNgheNghiepHubListing.ts`, `groupCareers.ts` |
@@ -168,6 +186,8 @@
 | `migration_org_tuyen_dung_v3_dia_chi_cap_do.sql` | **Địa chỉ cụ thể + cấp độ nhiều giá trị:** thêm `org_tuyen_dung.dia_chi` (text); đổi `cap_do` từ `text` → `text[]` (giữ giá trị cũ thành mảng 1 phần tử). App: `StudioJob.diaChi` + `capDo: string[]`; `normalizeCapDo`/`capDoLabels`/`STUDIO_JOB_CAP_DO_LABEL` trong `studio-tuyen-dung-distribution.ts`. Form `StudioJobEditModal`: field "Địa chỉ cụ thể", dropdown icon `StudioIconSelect` (Loại hình = 1 chọn, Cấp độ = nhiều chọn), lĩnh vực auto theo nghề đã gắn. **Chạy thủ công trên Supabase SQL Editor.** |
 | `migration_social_su_kien.sql` | **Analytics tiếp cận/tương tác (riêng tư):** enum `loai_su_kien_social_enum` + `nguon_su_kien_enum`; mở rộng `loai_doi_tuong_social_enum` (+`nguoi_dung`,+`to_chuc`); thêm cột vào `social_luot_xem` (`loai_su_kien`/`phien_id`/`nguon`/`loai_boi_canh`/`id_boi_canh`/`ngu_canh`); bảng rollup `social_thong_ke_doi_tuong_ngay` (RLS riêng tư); hàm `social_rollup_su_kien()`. App: `lib/social/su-kien.ts` (record + `canViewCotMocInsight` + `getCotMocInsight`), `lib/social/track-su-kien.ts` (client), API `POST /api/social/su-kien` (ghi event) + `GET ?cotMocId=` (đọc số liệu — chỉ chủ bài cá nhân hoặc quản trị viên `owner`/`admin` của org). UI: `JourneyMilestoneInsightsModal` mở từ mục **"Số liệu tiếp cận"** trong `JourneyMilestoneOwnerMenu`. Chạy: `node scripts/run-su-kien-migration.mjs`; lên lịch `social_rollup_su_kien` cron. Env tuỳ chọn `SU_KIEN_SALT`. |
 | `migration_social_su_kien_org_baidang.sql` | **Analytics cho BÀI ĐĂNG TỔ CHỨC:** thêm `org_bai_dang` vào `loai_doi_tuong_social_enum` (idempotent). App: `lib/social/su-kien.ts` `canViewOrgBaiDangInsight` (chỉ quản trị viên `owner`/`admin` org qua `org_bai_dang.id_to_chuc`) + `getOrgBaiDangInsight` (dùng chung RPC `social_insight_*` với `p_loai='org_bai_dang'`); API `GET /api/social/su-kien?baiDangId=`. Tracking: `OrgBaiDangJourneyCard` log `org_page` (loại trừ `ctx.canEdit`); world feed `JourneyMilestoneCard` nhận diện qua `orgBaiDangRef` → log `org_bai_dang` nguồn `journey_home`. UI: mục **"Số liệu tiếp cận"** trong `TruongBaiDangPostActions`, mở `JourneyMilestoneInsightsModal` với `subject={loai:'org_bai_dang',id}`. Chạy: `node scripts/run-su-kien-org-baidang-migration.mjs`. |
+| `migration_chat_nhom.sql` (+ `*_avatar` · `*_owner` · `*_moi` · …) | Nhóm chat bạn bè: enum `nhom`, `ten_phong`, avatar, owner, mã mời / xin gia nhập |
+| `migration_chat_project_workspace.sql` | **L28 workspace nhóm:** `chat_phong.id_phong_cha` + `trang_thai` (`active`\|`an`); `chat_the_tai_nguyen` + `chat_the_gan`; `chat_moc`; trigger 1 cấp phòng con; RLS select member. **Chạy thủ công trên Supabase SQL Editor** (CINs `ospzzzxcomrmhqrnkoiw`). |
 
 **Org bài đăng — blocks (app, sau migration):** `lib/truong/bai-dang-blocks.ts` · API `bai-dang` POST/PATCH nhận `noi_dung_blocks` · fetch `queries.ts` · card có blocks → `JourneyMilestoneCardBodyContent` + `PostBlockRenderer`; không blocks → HTML legacy. Compose org vẫn Tiptap/HTML — chưa ghi blocks từ UI.
 
@@ -189,6 +209,24 @@ filter_gan
   tao_luc timestamptz · PK (id_filter, loai_doi_tuong, id_doi_tuong)
 
 org_bai_dang  +  thoi_diem date NULL  (ngày mốc lịch sử, khác tao_luc)
+```
+
+**Chat workspace L28** *(tham chiếu tạm — đối chiếu DB sau khi chạy `migration_chat_project_workspace.sql`)*:
+
+```
+chat_phong  +  id_phong_cha uuid NULL→chat_phong  ·  trang_thai text ('active'|'an') DEFAULT 'active'
+
+chat_the_tai_nguyen
+  id · id_phong→chat_phong · ten · slug · mau · thu_tu · id_nguoi_tao · tao_luc
+  UNIQUE (id_phong, slug)
+
+chat_the_gan
+  id · id_the→chat_the_tai_nguyen · id_tin_nhan→chat_tin_nhan · id_nguoi_gan · tao_luc
+  UNIQUE (id_the, id_tin_nhan)
+
+chat_moc
+  id · id_phong→chat_phong · ten · mo_ta · thoi_diem date · url · nhac_truoc_ngay
+  id_nguoi_tao · tao_luc · cap_nhat_luc
 ```
 
 ---

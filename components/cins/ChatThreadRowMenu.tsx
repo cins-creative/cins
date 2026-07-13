@@ -6,8 +6,10 @@ import {
   Bell,
   BellOff,
   EyeOff,
+  FolderKanban,
   LogOut,
   MoreVertical,
+  Settings2,
   Trash2,
   User,
 } from "lucide-react";
@@ -160,6 +162,7 @@ export function buildThreadMenuActions(options: {
   isMuted: boolean;
   isGroup: boolean;
   isGroupAdmin: boolean;
+  isGroupOwner?: boolean;
   /** DM cá nhân có slug Journey — hiện «Xem người dùng». */
   canViewProfile?: boolean;
   onViewProfile?: () => void;
@@ -168,6 +171,10 @@ export function buildThreadMenuActions(options: {
   onBlockUser?: () => void;
   onToggleListPin: () => void;
   onToggleMute: () => void;
+  onManageGroup?: () => void;
+  /** Owner/admin nhóm gốc — tạo project con nhanh. */
+  canCreateProject?: boolean;
+  onCreateProject?: () => void;
   onLeaveGroup: () => void;
   onDeleteGroup: () => void;
   onHideThread: () => void;
@@ -203,13 +210,29 @@ export function buildThreadMenuActions(options: {
   );
 
   if (options.isGroup) {
+    if (options.canCreateProject && options.onCreateProject) {
+      actions.push({
+        id: "create-project",
+        label: "Tạo project",
+        icon: <FolderKanban size={15} strokeWidth={2.1} />,
+        onSelect: options.onCreateProject,
+      });
+    }
+    if (options.onManageGroup) {
+      actions.push({
+        id: "manage-group",
+        label: "Quản lý nhóm",
+        icon: <Settings2 size={15} strokeWidth={2.1} />,
+        onSelect: options.onManageGroup,
+      });
+    }
     actions.push({
       id: "leave-group",
       label: "Rời nhóm",
       icon: <LogOut size={15} strokeWidth={2.1} />,
       onSelect: options.onLeaveGroup,
     });
-    if (options.isGroupAdmin) {
+    if (options.isGroupOwner) {
       actions.push({
         id: "delete-group",
         label: "Xóa nhóm chat",

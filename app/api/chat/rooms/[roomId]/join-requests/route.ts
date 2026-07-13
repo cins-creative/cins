@@ -2,11 +2,37 @@ import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import {
-  deleteGroupRoom,
-  updateGroupRoomName,
-} from "@/lib/chat/group-message";
+  listGroupJoinRequests,
+  respondGroupJoinRequest,
+} from "@/lib/chat/group-invite";
 
 type RouteContext = { params: Promise<{ roomId: string }> };
+
+export async function GET(_req: Request, ctx: RouteContext) {
+  const session = await getCurrentSessionAndProfile();
+  if (!session?.profile) {
+    return NextResponse.json({ error: "Cần đăng nhập." }, { status: 401 });
+  }
+
+  const { roomId } = await ctx.params;
+  if (!roomId?.trim()) {
+    return NextResponse.json({ error: "Thiếu roomId." }, { status: 400 });
+  }
+
+  const result = await listGroupJoinRequests(
+    roomId.trim(),
+    session.profile.id,
+  );
+  if (!result.ok) {
+    const status =
+      result.error.includes("quyền") || result.error.includes("admin")
+        ? 403
+        : 400;
+    return NextResponse.json({ error: result.error }, { status });
+  }
+
+  return NextResponse.json({ requests: result.requests });
+}
 
 export async function PATCH(req: Request, ctx: RouteContext) {
   const session = await getCurrentSessionAndProfile();
@@ -19,23 +45,30 @@ export async function PATCH(req: Request, ctx: RouteContext) {
     return NextResponse.json({ error: "Thiếu roomId." }, { status: 400 });
   }
 
-  let body: { tenPhong?: string | null; ten_phong?: string | null };
+  let body: { requestId?: string; action?: string };
   try {
-    body = (await req.json()) as {
-      tenPhong?: string | null;
-      ten_phong?: string | null;
-    };
+    body = (await req.json()) as { requestId?: string; action?: string };
   } catch {
     return NextResponse.json({ error: "Body không hợp lệ." }, { status: 400 });
   }
 
-  const tenPhong =
-    body.tenPhong !== undefined ? body.tenPhong : (body.ten_phong ?? null);
+  const requestId = body.requestId?.trim();
+  const action = body.action === "approve" || body.action === "reject"
+    ? body.action
+    : null;
 
-  const result = await updateGroupRoomName(
+  if (!requestId || !action) {
+    return NextResponse.json(
+      { error: "Thiếu requestId hoặc action." },
+      { status: 400 },
+    );
+  }
+
+  const result = await respondGroupJoinRequest(
     roomId.trim(),
     session.profile.id,
-    tenPhong,
+    requestId,
+    action,
   );
 
   if (!result.ok) {
@@ -46,29 +79,9 @@ export async function PATCH(req: Request, ctx: RouteContext) {
     return NextResponse.json({ error: result.error }, { status });
   }
 
-  return NextResponse.json({ thread: result.thread });
-}
-
-export async function DELETE(_req: Request, ctx: RouteContext) {
-  const session = await getCurrentSessionAndProfile();
-  if (!session?.profile) {
-    return NextResponse.json({ error: "Cần đăng nhập." }, { status: 401 });
-  }
-
-  const { roomId } = await ctx.params;
-  if (!roomId?.trim()) {
-    return NextResponse.json({ error: "Thiếu roomId." }, { status: 400 });
-  }
-
-  const result = await deleteGroupRoom(roomId.trim(), session.profile.id);
-
-  if (!result.ok) {
-    const status =
-      result.error.includes("quyền") || result.error.includes("admin")
-        ? 403
-        : 400;
-    return NextResponse.json({ error: result.error }, { status });
-  }
-
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({
+    thread: result.thread,
+    members: result.members,
+    requests: result.requests,
+  });
 }

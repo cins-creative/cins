@@ -1,7 +1,7 @@
 # CINS — README (Project Instructions)
 
 > **File router — điểm vào cho agent & developer.** Bản đầy đủ sống trong `docs/` (5 file bên dưới).
-> **Phiên bản:** v12 MXH chuyên môn + đóng góp canonical 2026-07-10 · v11 phân quyền org 2026-07-01 · v10 theo dõi/phân bổ 2026-06-15 · **70 bảng logic hiện tại** (đọc trực tiếp từ DB để xác nhận cấu trúc).
+> **Phiên bản:** v12 MXH chuyên môn + đóng góp canonical 2026-07-10 · **L28 workspace nhóm chat 2026-07-13** · v11 phân quyền org 2026-07-01 · v10 theo dõi/phân bổ 2026-06-15 · **~72 bảng logic** sau L28 (đọc trực tiếp từ DB để xác nhận).
 
 CINS = **mạng xã hội chuyên môn** cho ngành sáng tạo Việt Nam (Next.js + Supabase). Ba tầng: **Portfolio/Journey** (MXH + showcase) · **Entity lens** (khám phá) · **Canonical** (tri thức đã duyệt). Verify quan hệ là moat; curator thẩm định nội dung là trục riêng.
 
@@ -39,13 +39,15 @@ Thứ tự ưu tiên khi xung đột: **DB thật (đọc trực tiếp) > CINS_
 
 ## Số liệu neo (cập nhật khi đổi)
 
-- **DB hiện tại**: 67 bảng logic (66 thường + `social_luot_xem` partitioned; 2 partition con không tính). Sau khi chạy `migration_filter_dong.sql` → **69 bảng** (`filter_nhan`, `filter_gan`). Xác nhận lại bằng schema DB thật (đọc trực tiếp) mỗi khi nghi ngờ.
+- **DB hiện tại**: 67 bảng logic (66 thường + `social_luot_xem` partitioned; 2 partition con không tính). Sau `migration_filter_dong.sql` → **69** (`filter_nhan`, `filter_gan`). Sau `migration_chat_project_workspace.sql` (L28) → thêm `chat_the_tai_nguyen`, `chat_the_gan`, `chat_moc` (+ cột trên `chat_phong`). Xác nhận lại bằng schema DB thật mỗi khi nghi ngờ.
 - **Org user tạo ngay**: `co_so_dao_tao` · `studio` · `cong_dong` (`doanh_nghiep` ẩn UI; `truong_dai_hoc` CINS duyệt).
 - **Seed partner đầu**: Sine Art (`co_so_dao_tao`, ~520 học viên).
 
 ---
 
 ## Thay đổi lớn gần đây (tóm tắt — chi tiết ở DECISIONS)
+
+**L28 — workspace nhóm chat (2026-07-13):** phòng project con (`id_phong_cha` + ẩn/`an` + lịch sử) · thẻ tài nguyên theo phòng (`chat_the_*`) · mốc timeline phòng (`chat_moc`). Không reuse `filter_nhan`. Xem DECISIONS L28, FOUNDATIONS §C, IMPLEMENTATION chat routes.
 
 **L27 — chế độ phòng cộng đồng (2026-07-12):** `cau_hinh.che_do` = `cong_khai` · `noi_bo` · `bi_mat` (alias `rieng_tu`→`bi_mat`). Join gate suy từ chế độ; xin tham gia nội bộ = `trang_thai=pending`. Xem DECISIONS L27, FOUNDATIONS §O.
 

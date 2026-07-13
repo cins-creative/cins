@@ -1,14 +1,11 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
-import {
-  deleteGroupRoom,
-  updateGroupRoomName,
-} from "@/lib/chat/group-message";
+import { ensureGroupInviteCode } from "@/lib/chat/group-invite";
 
 type RouteContext = { params: Promise<{ roomId: string }> };
 
-export async function PATCH(req: Request, ctx: RouteContext) {
+export async function GET(_req: Request, ctx: RouteContext) {
   const session = await getCurrentSessionAndProfile();
   if (!session?.profile) {
     return NextResponse.json({ error: "Cần đăng nhập." }, { status: 401 });
@@ -19,25 +16,11 @@ export async function PATCH(req: Request, ctx: RouteContext) {
     return NextResponse.json({ error: "Thiếu roomId." }, { status: 400 });
   }
 
-  let body: { tenPhong?: string | null; ten_phong?: string | null };
-  try {
-    body = (await req.json()) as {
-      tenPhong?: string | null;
-      ten_phong?: string | null;
-    };
-  } catch {
-    return NextResponse.json({ error: "Body không hợp lệ." }, { status: 400 });
-  }
-
-  const tenPhong =
-    body.tenPhong !== undefined ? body.tenPhong : (body.ten_phong ?? null);
-
-  const result = await updateGroupRoomName(
+  const result = await ensureGroupInviteCode(
     roomId.trim(),
     session.profile.id,
-    tenPhong,
+    false,
   );
-
   if (!result.ok) {
     const status =
       result.error.includes("quyền") || result.error.includes("admin")
@@ -46,10 +29,13 @@ export async function PATCH(req: Request, ctx: RouteContext) {
     return NextResponse.json({ error: result.error }, { status });
   }
 
-  return NextResponse.json({ thread: result.thread });
+  return NextResponse.json({
+    maMoi: result.maMoi,
+    inviteUrl: result.inviteUrl,
+  });
 }
 
-export async function DELETE(_req: Request, ctx: RouteContext) {
+export async function POST(req: Request, ctx: RouteContext) {
   const session = await getCurrentSessionAndProfile();
   if (!session?.profile) {
     return NextResponse.json({ error: "Cần đăng nhập." }, { status: 401 });
@@ -60,8 +46,18 @@ export async function DELETE(_req: Request, ctx: RouteContext) {
     return NextResponse.json({ error: "Thiếu roomId." }, { status: 400 });
   }
 
-  const result = await deleteGroupRoom(roomId.trim(), session.profile.id);
+  let body: { rotate?: boolean } = {};
+  try {
+    body = (await req.json()) as { rotate?: boolean };
+  } catch {
+    body = {};
+  }
 
+  const result = await ensureGroupInviteCode(
+    roomId.trim(),
+    session.profile.id,
+    Boolean(body.rotate),
+  );
   if (!result.ok) {
     const status =
       result.error.includes("quyền") || result.error.includes("admin")
@@ -70,5 +66,8 @@ export async function DELETE(_req: Request, ctx: RouteContext) {
     return NextResponse.json({ error: result.error }, { status });
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({
+    maMoi: result.maMoi,
+    inviteUrl: result.inviteUrl,
+  });
 }

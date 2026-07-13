@@ -1,17 +1,20 @@
 "use client";
 
 import {
+  ArrowUpToLine,
+  BellOff,
+  CalendarDays,
   Image as ImageIcon,
   MessageSquareQuote,
   PanelRightOpen,
   Paperclip,
   Pin,
   PictureInPicture2,
+  PinOff,
   Search,
   Send,
-  ArrowUpToLine,
-  BellOff,
-  PinOff,
+  Settings2,
+  Tag,
   UserPlus,
   X,
 } from "lucide-react";
@@ -29,8 +32,13 @@ import { useRouter } from "next/navigation";
 
 import { ChatCreateGroupModal } from "@/components/cins/ChatCreateGroupModal";
 import { ChatGroupAvatar } from "@/components/cins/ChatGroupAvatar";
+import { ChatGroupManageModal } from "@/components/cins/ChatGroupManageModal";
 import { ChatImageLightbox } from "@/components/cins/ChatImageLightbox";
 import { ChatMessageThreadItems } from "@/components/cins/ChatMessageThreadItems";
+import {
+  ChatRoomMocsPanel,
+  ChatRoomResourcesPanel,
+} from "@/components/cins/ChatRoomWorkspacePanels";
 import { ChatStickerPicker } from "@/components/cins/ChatStickerPicker";
 import { ChatReplyComposeBar } from "@/components/cins/ChatReplyComposeBar";
 import {
@@ -148,7 +156,7 @@ function mergeLaunchThread(
   return [merged, ...rest];
 }
 
-type ChatSidePanel = "pin" | "media";
+type ChatSidePanel = "pin" | "media" | "resources" | "mocs";
 
 type BanBeListFilter = "all" | "nhom" | "ca_nhan";
 
@@ -163,9 +171,67 @@ const BAN_BE_FILTER_LABEL: Record<BanBeListFilter, string> = {
 const SIDE_PANEL_LABEL: Record<ChatSidePanel, string> = {
   pin: "Tin đã ghim",
   media: "Ảnh",
+  resources: "Tài nguyên",
+  mocs: "Mốc",
 };
 
-const SIDE_PANEL_ORDER: ChatSidePanel[] = ["pin", "media"];
+const SIDE_PANEL_ORDER: ChatSidePanel[] = ["pin", "media", "resources", "mocs"];
+
+function sidePanelIcon(panel: ChatSidePanel) {
+  switch (panel) {
+    case "pin":
+      return Pin;
+    case "media":
+      return ImageIcon;
+    case "resources":
+      return Tag;
+    case "mocs":
+      return CalendarDays;
+  }
+}
+
+/** Sắp list: nhóm cha rồi project con indent ngay dưới. */
+function nestGroupThreads(list: ChatThread[]): ChatThread[] {
+  const childrenByParent = new Map<string, ChatThread[]>();
+  const roots: ChatThread[] = [];
+
+  for (const t of list) {
+    const parentId = t.parentRoomId?.trim();
+    if (t.isGroup && parentId) {
+      const arr = childrenByParent.get(parentId) ?? [];
+      arr.push(t);
+      childrenByParent.set(parentId, arr);
+    } else {
+      roots.push(t);
+    }
+  }
+
+  const out: ChatThread[] = [];
+  const usedChildIds = new Set<string>();
+
+  for (const root of roots) {
+    out.push(root);
+    const kids = childrenByParent.get(root.roomId);
+    if (!kids?.length) continue;
+    kids.sort(
+      (a, b) => new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime(),
+    );
+    for (const kid of kids) {
+      out.push(kid);
+      usedChildIds.add(kid.roomId);
+    }
+  }
+
+  // Project mà cha không có trong list (lọc / ẩn) — vẫn hiện ở cuối
+  for (const [parentId, kids] of childrenByParent) {
+    if (roots.some((r) => r.roomId === parentId)) continue;
+    for (const kid of kids) {
+      if (!usedChildIds.has(kid.roomId)) out.push(kid);
+    }
+  }
+
+  return out;
+}
 
 function threadKindLabel(thread: ChatThread): string {
   if (thread.kind === "org" && thread.orgKind) {
@@ -245,6 +311,8 @@ function ChatThreadRow({
   onViewProfile,
   onToggleListPin,
   onToggleMute,
+  onManageGroup,
+  onCreateProject,
   onLeaveGroup,
   onDeleteGroup,
   onHideThread,
@@ -261,6 +329,8 @@ function ChatThreadRow({
   onViewProfile: (thread: ChatThread) => void;
   onToggleListPin: (thread: ChatThread) => void;
   onToggleMute: (thread: ChatThread) => void;
+  onManageGroup: (thread: ChatThread) => void;
+  onCreateProject: (thread: ChatThread) => void;
   onLeaveGroup: (thread: ChatThread) => void;
   onDeleteGroup: (thread: ChatThread) => void;
   onHideThread: (thread: ChatThread) => void;
@@ -282,17 +352,26 @@ function ChatThreadRow({
     thread.kind === "user" &&
     Boolean(thread.peerUserId?.trim());
 
+  const canCreateProject =
+    Boolean(thread.isGroup) &&
+    Boolean(thread.isGroupAdmin) &&
+    !thread.parentRoomId;
+
   const menuActions = buildThreadMenuActions({
     isListPinned,
     isMuted,
     isGroup: Boolean(thread.isGroup),
     isGroupAdmin: Boolean(thread.isGroupAdmin),
+    isGroupOwner: Boolean(thread.isGroupOwner),
     canViewProfile,
     onViewProfile: () => onViewProfile(thread),
     canBlock,
     onBlockUser: () => onBlockUser(thread),
     onToggleListPin: () => onToggleListPin(thread),
     onToggleMute: () => onToggleMute(thread),
+    canCreateProject,
+    onCreateProject: () => onCreateProject(thread),
+    onManageGroup: () => onManageGroup(thread),
     onLeaveGroup: () => onLeaveGroup(thread),
     onDeleteGroup: () => onDeleteGroup(thread),
     onHideThread: () => onHideThread(thread),
@@ -300,7 +379,7 @@ function ChatThreadRow({
 
   return (
     <li
-      className={`cins-chat-thread-item${isListPinned ? " is-list-pinned" : ""}${isMenuOpen ? " is-menu-open" : ""}${isMuted ? " is-muted" : ""}`}
+      className={`cins-chat-thread-item${isListPinned ? " is-list-pinned" : ""}${isMenuOpen ? " is-menu-open" : ""}${isMuted ? " is-muted" : ""}${thread.parentRoomId ? " is-project-child" : ""}`}
       onContextMenu={(event) => {
         if (canShowMenu) event.preventDefault();
       }}
@@ -309,7 +388,7 @@ function ChatThreadRow({
       <div className="cins-chat-thread-row">
         <button
           type="button"
-          className={`cins-chat-thread${isActive ? " is-active" : ""}${thread.kind === "org" ? " is-org-thread" : " is-user-thread"}${thread.isGroup ? " is-group-thread" : ""}`}
+          className={`cins-chat-thread${isActive ? " is-active" : ""}${thread.kind === "org" ? " is-org-thread" : " is-user-thread"}${thread.isGroup ? " is-group-thread" : ""}${thread.parentRoomId ? " is-project-thread" : ""}`}
           onClick={() => {
             if (consumeLongPress()) return;
             onSelect(thread);
@@ -351,7 +430,9 @@ function ChatThreadRow({
                 ) : null}
                 <strong>{thread.name}</strong>
                 {thread.isGroup ? (
-                  <span className="cins-chat-kind-pill is-group">Nhóm</span>
+                  <span className="cins-chat-kind-pill is-group">
+                    {thread.parentRoomId ? "Project" : "Nhóm"}
+                  </span>
                 ) : (
                   <ChatKindPill thread={thread} />
                 )}
@@ -437,6 +518,9 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   );
   const [banBeFilter, setBanBeFilter] = useState<BanBeListFilter>("all");
   const [groupModalOpen, setGroupModalOpen] = useState(false);
+  const [manageGroupThread, setManageGroupThread] = useState<ChatThread | null>(
+    null,
+  );
   const [threadMenuRoomId, setThreadMenuRoomId] = useState<string | null>(null);
   const [uploadingGroupAvatar, setUploadingGroupAvatar] = useState(false);
   const [portalReady, setPortalReady] = useState(false);
@@ -659,15 +743,17 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
       );
     });
 
-    return [...list].sort((a, b) => {
-      const aIdx = pinnedListRoomIds.indexOf(a.roomId);
-      const bIdx = pinnedListRoomIds.indexOf(b.roomId);
-      const aPinned = aIdx >= 0;
-      const bPinned = bIdx >= 0;
-      if (aPinned !== bPinned) return aPinned ? -1 : 1;
-      if (aPinned && bPinned && aIdx !== bIdx) return aIdx - bIdx;
-      return new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime();
-    });
+    return nestGroupThreads(
+      [...list].sort((a, b) => {
+        const aIdx = pinnedListRoomIds.indexOf(a.roomId);
+        const bIdx = pinnedListRoomIds.indexOf(b.roomId);
+        const aPinned = aIdx >= 0;
+        const bPinned = bIdx >= 0;
+        if (aPinned !== bPinned) return aPinned ? -1 : 1;
+        if (aPinned && bPinned && aIdx !== bIdx) return aIdx - bIdx;
+        return new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime();
+      }),
+    );
   }, [threads, query, activeTab, banBeFilter, pinnedListRoomIds, hiddenRoomIds]);
 
   const banBeFilterCounts = useMemo(() => {
@@ -1260,6 +1346,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
           window.alert(json.error ?? "Không rời được nhóm.");
           return;
         }
+        setManageGroupThread(null);
         removeThreadFromSidebar(thread);
       } catch {
         window.alert("Không rời được nhóm.");
@@ -1286,6 +1373,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
           window.alert(json.error ?? "Không xóa được nhóm.");
           return;
         }
+        setManageGroupThread(null);
         removeThreadFromSidebar(thread);
       } catch {
         window.alert("Không xóa được nhóm.");
@@ -1332,6 +1420,51 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     },
     [selectThread],
   );
+
+  const handleManageGroup = useCallback((thread: ChatThread) => {
+    if (!thread.isGroup) return;
+    setThreadMenuRoomId(null);
+    setManageGroupThread(thread);
+  }, []);
+
+  const handleCreateProjectQuick = useCallback(
+    async (thread: ChatThread) => {
+      if (!thread.isGroup || !thread.isGroupAdmin || thread.parentRoomId) return;
+      setThreadMenuRoomId(null);
+      const raw = window.prompt("Tên project mới", "");
+      if (raw == null) return;
+      const ten = raw.trim();
+      if (!ten) return;
+
+      try {
+        const res = await fetch(`/api/chat/rooms/${thread.roomId}/projects`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ten_phong: ten }),
+        });
+        const json = (await res.json().catch(() => null)) as {
+          thread?: ChatThread;
+          error?: string;
+        } | null;
+        if (!res.ok || !json?.thread) {
+          window.alert(json?.error ?? "Không tạo được project.");
+          return;
+        }
+        setThreads((prev) => mergeLaunchThread(prev, json.thread!));
+        selectThread(json.thread);
+      } catch {
+        window.alert("Không tạo được project.");
+      }
+    },
+    [selectThread],
+  );
+
+  const handleGroupManaged = useCallback((thread: ChatThread) => {
+    setThreads((prev) => mergeLaunchThread(prev, thread));
+    setManageGroupThread((cur) =>
+      cur && cur.roomId === thread.roomId ? { ...cur, ...thread } : cur,
+    );
+  }, []);
 
   const handleGroupAvatarFile = useCallback(
     async (event: ChangeEvent<HTMLInputElement>) => {
@@ -2118,6 +2251,8 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                     onViewProfile={handleViewProfile}
                     onToggleListPin={(t) => toggleListPin(t.roomId)}
                     onToggleMute={(t) => toggleMuteRoom(t.roomId)}
+                    onManageGroup={handleManageGroup}
+                    onCreateProject={(t) => void handleCreateProjectQuick(t)}
                     onLeaveGroup={handleLeaveGroup}
                     onDeleteGroup={handleDeleteGroup}
                     onHideThread={handleHideThread}
@@ -2187,13 +2322,21 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
               <span className="cins-chat-convo-title">
                 <strong>{active.name}</strong>
                 {active.isGroup ? (
-                  <span className="cins-chat-kind-pill is-group">Nhóm</span>
+                  <span className="cins-chat-kind-pill is-group">
+                    {active.parentRoomId ? "Project" : "Nhóm"}
+                  </span>
                 ) : active.kind === "org" ? (
                   <ChatKindPill thread={active} />
                 ) : null}
               </span>
               {active.isGroup && active.memberCount ? (
-                <span>{active.memberCount} thành viên</span>
+                <button
+                  type="button"
+                  className="cins-chat-convo-members-btn"
+                  onClick={() => handleManageGroup(active)}
+                >
+                  {active.memberCount} thành viên
+                </button>
               ) : active.online ? (
                 <span>
                   <span className="cins-chat-online-dot" aria-hidden />
@@ -2204,6 +2347,22 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
               ) : null}
             </div>
             <div className="cins-chat-convo-actions">
+              {active.isGroup && active.roomId && !isPendingRoomId(active.roomId) ? (
+                <button
+                  type="button"
+                  className="cins-chat-icon-btn"
+                  aria-label="Quản lý nhóm"
+                  title="Quản lý nhóm"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleManageGroup(active);
+                  }}
+                  onMouseDown={(e) => e.stopPropagation()}
+                >
+                  <Settings2 size={18} strokeWidth={1.9} />
+                </button>
+              ) : null}
               {active.roomId && !isPendingRoomId(active.roomId) ? (
                 <button
                   type="button"
@@ -2505,7 +2664,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                   aria-label="Panel mở rộng"
                 >
                   {SIDE_PANEL_ORDER.map((panel) => {
-                    const TabIcon = panel === "pin" ? Pin : ImageIcon;
+                    const TabIcon = sidePanelIcon(panel);
                     return (
                       <button
                         key={panel}
@@ -2612,6 +2771,20 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                     ) : null}
                   </>
                 ) : null}
+
+                {sidePanel === "resources" && active.roomId ? (
+                  <ChatRoomResourcesPanel
+                    roomId={active.roomId}
+                    onJumpToMessage={(id) => void scrollToMessage(id)}
+                  />
+                ) : null}
+
+                {sidePanel === "mocs" && active.roomId ? (
+                  <ChatRoomMocsPanel
+                    roomId={active.roomId}
+                    canManage={Boolean(active.isGroup && active.isGroupAdmin)}
+                  />
+                ) : null}
               </div>
             </aside>
           ) : null}
@@ -2623,6 +2796,29 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
         onClose={() => setGroupModalOpen(false)}
         onCreated={handleGroupCreated}
       />
+
+      {manageGroupThread ? (
+        <ChatGroupManageModal
+          open
+          roomId={manageGroupThread.roomId}
+          threadName={manageGroupThread.name}
+          avatarUrl={manageGroupThread.avatarUrl}
+          memberAvatars={manageGroupThread.memberAvatars}
+          canHaveProjects={!manageGroupThread.parentRoomId}
+          onClose={() => setManageGroupThread(null)}
+          onThreadUpdated={handleGroupManaged}
+          onLeaveGroup={() => handleLeaveGroup(manageGroupThread)}
+          onOpenProject={(thread) => {
+            setManageGroupThread(null);
+            void selectThread(thread);
+          }}
+          onDeleteGroup={
+            manageGroupThread.isGroupOwner
+              ? () => handleDeleteGroup(manageGroupThread)
+              : undefined
+          }
+        />
+      ) : null}
     </div>
   );
 

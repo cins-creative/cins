@@ -81,6 +81,46 @@ export type ChatGroupMemberAvatar = {
   name?: string;
 };
 
+import type { ChatGroupVaiTro } from "@/lib/chat/group-roles";
+
+export type { ChatGroupVaiTro };
+
+/** Thành viên trong bảng quản lý nhóm. */
+export type ChatGroupMember = {
+  membershipId: string;
+  userId: string;
+  slug: string;
+  tenHienThi: string;
+  avatarId: string | null;
+  avatarUrl: string | null;
+  vaiTro: ChatGroupVaiTro;
+  isViewer: boolean;
+};
+
+/** Yêu cầu xin gia nhập nhóm qua link mời. */
+export type ChatGroupJoinRequest = {
+  id: string;
+  userId: string;
+  slug: string;
+  tenHienThi: string;
+  avatarId: string | null;
+  avatarUrl: string | null;
+  taoLuc: string;
+};
+
+/** Preview trang /chat/nhom/moi/[ma]. */
+export type ChatGroupInvitePreview = {
+  maMoi: string;
+  roomId: string;
+  tenPhong: string;
+  avatarUrl: string | null;
+  memberCount: number;
+  alreadyMember: boolean;
+  pendingRequest: boolean;
+  canRequest: boolean;
+  reason?: string;
+};
+
 export type ChatThread = {
   id: string;
   roomId: string;
@@ -93,8 +133,14 @@ export type ChatThread = {
   memberIds?: string[];
   /** Mosaic mặc định khi chưa có avatar nhóm tuỳ chỉnh. */
   memberAvatars?: ChatGroupMemberAvatar[];
-  /** Viewer là admin phòng nhóm — được đổi avatar. */
+  /** Viewer là owner hoặc admin — quản lý nhóm (tên/avatar/thành viên). */
   isGroupAdmin?: boolean;
+  /** Viewer là chủ nhóm — xóa nhóm / phân quyền admin. */
+  isGroupOwner?: boolean;
+  /** Phòng project con — id nhóm cha. */
+  parentRoomId?: string | null;
+  /** active | an (ẩn khỏi list, còn lịch sử). */
+  roomTrangThai?: "active" | "an";
   name: string;
   group: ChatThreadGroup;
   kind: ChatParticipantKind;

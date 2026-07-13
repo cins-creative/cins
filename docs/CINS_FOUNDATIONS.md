@@ -32,7 +32,7 @@ Kết nối giữa người có chuyên môn là giá trị cốt lõi; **phân 
 - **Like là social proof thẩm mỹ**: "X người cũng thấy đẹp" = xác nhận sự đồng cảm, không phải vanity đua số. Hiển thị mặc định.
 - **Open model**: interaction (tuyển dụng, kết nối) xảy ra ở nơi khác. CINS verify và lưu kết quả.
 - **Verify là moat**: mọi quyết định thiết kế phải bảo vệ tính xác thực của timeline. Moat tồn tại *vì* có bên thứ hai phải đồng ý — bỏ bước đó để giảm tải là mất moat.
-- **Chat phải có context — không inbox MXH tự do**: mọi phòng chat gắn một loại ngữ cảnh (`loai_phong_chat_enum`). **1-1** user ↔ user; **1_org** user ↔ org; **nhom** = nhóm **bạn bè đã kết bạn 2 chiều** (≥3 người gồm người tạo, tối đa 20) — không mở cho người lạ hay tìm kiếm công khai. Các loại còn lại (`du_an`, `lop_hoc`, `su_kien`…) gắn entity khi triển khai. Chi tiết MVP nhóm chat → **§C**, quyết định **DECISIONS L25**.
+- **Chat phải có context — không inbox MXH tự do**: mọi phòng chat gắn một loại ngữ cảnh (`loai_phong_chat_enum`). **1-1** user ↔ user; **1_org** user ↔ org; **nhom** = nhóm **bạn bè đã kết bạn 2 chiều** (≥3 người gồm người tạo; cap app hiện tại 50) + project con / thẻ tài nguyên / mốc (L28) — không mở cho người lạ hay tìm kiếm công khai. Các loại còn lại (`du_an`, `lop_hoc`, `su_kien`…) gắn entity khi triển khai. Chi tiết → **§C**, **DECISIONS L25/L28**.
 - **Milestone không bao giờ tự sinh từ counter**: phải có xác nhận chủ động từ người có thẩm quyền.
 - **Verified milestone bất tử**: khi org đóng cửa, milestone đã verify không mất giá trị.
 - **Hai loại quan hệ theo người**: **kết bạn** (2 chiều — cả hai thành bạn của nhau; phục vụ danh bạ nghề + bạn chung + điều kiện tag co-author) và **theo dõi** (1 chiều — không cần đồng ý; nội dung public của người được theo dõi phân bổ lên Gallery của người theo dõi). Org chỉ được **theo dõi**, không kết bạn.
@@ -170,26 +170,34 @@ User gửi: "tác phẩm này tôi làm khi học **khóa** Y @ org X" → org a
 
 ## C. Chat (phòng hội thoại)
 
-Nguyên tắc nền: **§2** (chat có context, không inbox MXH tự do). Bảng: `chat_phong`, `chat_thanh_vien`, `chat_tin_nhan`, `chat_da_doc`.
+Nguyên tắc nền: **§2** (chat có context, không inbox MXH tự do). Bảng lõi: `chat_phong`, `chat_thanh_vien`, `chat_tin_nhan`, `chat_da_doc`. Workspace nhóm (L28): thêm `id_phong_cha` / `trang_thai` trên `chat_phong`; `chat_the_tai_nguyen` + `chat_the_gan`; `chat_moc`.
 
 | `loai_phong` | Ngữ cảnh | MVP |
 |---|---|---|
 | `1_1` | User ↔ user | ✅ DM; tab Bạn bè / Người lạ theo `user_ket_ban` |
 | `1_org` | User ↔ org | ✅ Hỗ trợ / tuyển sinh; card ngữ cảnh trên tin đầu |
-| `nhom` | Nhóm bạn bè | ✅ Xem dưới |
+| `nhom` | Nhóm bạn bè (+ project con) | ✅ Xem dưới |
 | `du_an` / `lop_hoc` / `su_kien` | Entity gắn phòng | Defer — tạo phòng khi triển khai module tương ứng |
 | `1_1_an_danh` | Ẩn danh | Defer |
 
-**Nhóm chat (`loai_phong='nhom'`) — MVP (DECISIONS L25):**
-- Chỉ thêm thành viên là **bạn bè đã accepted** (`user_ket_ban`); tối thiểu **2 bạn được chọn** (≥3 người gồm người tạo), tối đa **20** người/phòng.
+**Nhóm chat (`loai_phong='nhom'`) — L25 + L28:**
+- Chỉ thêm thành viên là **bạn bè đã accepted** (`user_ket_ban`); tối thiểu **2 bạn được chọn** (≥3 người gồm người tạo); cap app `MAX_GROUP_MEMBERS` (50).
 - `chat_phong.ten_phong` tuỳ chọn; NULL → tên tự sinh từ tên thành viên.
-- `chat_phong.avatar_id` (Cloudflare) tuỳ chọn; NULL → **mosaic avatar** ghép mặt thành viên (bo góc vuông, khác user tròn). Admin nhóm đổi ảnh qua UI.
-- `loai_context='ban_be'` — hiển thị tab **Bạn bè** trong overlay chat; không discovery công khai, không link join công khai.
-- Người tạo = `vai_tro='admin'` trên `chat_thanh_vien`; thành viên khác = `thanh_vien`.
+- `chat_phong.avatar_id` (Cloudflare) tuỳ chọn; NULL → **mosaic avatar** ghép mặt thành viên (bo góc vuông, khác user tròn). Owner/admin đổi ảnh qua UI.
+- `loai_context='ban_be'` — tab **Bạn bè**; không discovery công khai. Link mời có gate xin gia nhập (duyệt).
+- Vai trò `chat_thanh_vien.vai_tro`: `owner` · `admin` · `thanh_vien`. Owner/admin quản lý nhóm; owner thăng/hạ admin + xóa nhóm.
 - Tin trong nhóm hiển thị **tên người gửi** (khác DM 1-1).
-- **Chưa MVP**: thêm/xóa thành viên, đổi tên nhóm, rời nhóm, gộp phòng trùng thành viên — xem DECISIONS O16.
 
-Migration: `migration_chat_nhom.sql` (`nhom` enum + cột `ten_phong`).
+**Project con (L28):**
+- `id_phong_cha` trỏ nhóm gốc; **chỉ 1 cấp**. Owner/admin cha tạo; thành viên ⊆ cha (mặc định copy hết).
+- `trang_thai`: `active` (hiện list/FAB) · `an` (ẩn, còn lịch sử để khôi phục). Gợi ý ẩn khi im lâu — chưa auto-push.
+- List UI: indent dưới cha; pill `Project`.
+
+**Tài nguyên & mốc (L28) — không phải Drive / không phải gửi tin hẹn giờ:**
+- Thẻ phòng (`chat_the_tai_nguyen`) do member tự tạo; gắn tin có ảnh/URL qua `chat_the_gan`. **Khác** `filter_nhan` Journey (scope = phòng chat, không discovery).
+- Mốc (`chat_moc`): timeline tên + ngày + mô tả + URL + nhắc trước N ngày; owner/admin CRUD. Push nhắc thật → DECISIONS O17.
+
+Migrations: `migration_chat_nhom.sql` (+ avatar/owner/moi/…) · `migration_chat_project_workspace.sql`.
 
 ---
 
