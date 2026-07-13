@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
-import { CoSoMobileShellNav } from "@/components/co-so/CoSoMobileShellNav";
 import { useCoSoMobileShell } from "@/components/co-so/useCoSoMobileShell";
 import { TruongOrgCover } from "@/components/truong/TruongOrgCover";
 import { TruongAdmissionTimelineSidebar } from "@/components/truong/TruongAdmissionTimelineSidebar";
@@ -30,6 +29,7 @@ import {
   TruongTabNganhLazy,
   TruongTabTuyensinhLazy,
 } from "@/components/org/org-tab-lazy-views";
+import { OrgNotifyFab } from "@/components/org/OrgNotifyFab";
 import { YearFilterProvider } from "@/components/truong/YearFilterProvider";
 import { useTruongTabNav } from "@/lib/truong/use-truong-tab-nav";
 import { formatHocPhiLabel } from "@/lib/truong/display";
@@ -117,7 +117,8 @@ function TruongDetailViewInner({
   const [mountedTabs, setMountedTabs] = useState<Set<TruongTabId>>(
     () => new Set([tab]),
   );
-  const { isMobileShell, mobileTab, setMobileTab } = useCoSoMobileShell("content");
+  const { isMobileShell } = useCoSoMobileShell();
+  const [notifyCount, setNotifyCount] = useState(0);
 
   useEffect(() => {
     setMountedTabs((prev) => {
@@ -228,26 +229,15 @@ function TruongDetailViewInner({
       <TruongDoanToolbarProvider>
         <div
           className={shellClass}
-          data-mobile-tab={isMobileShell ? mobileTab : undefined}
+          data-mobile-shell={isMobileShell ? "1" : undefined}
         >
-        {isMobileShell ? (
-          <CoSoMobileShellNav value={mobileTab} onChange={setMobileTab} />
-        ) : null}
-
         <TruongSchoolSidebar
           onOpenSettings={onOpenSettings}
           isMobileShell={isMobileShell}
-          isMobileShellActive={mobileTab === "info"}
+          isMobileShellActive
         />
 
-        <div
-          className="tdh-v6-center"
-          id="tdh-shell-panel-content"
-          role={isMobileShell ? "tabpanel" : undefined}
-          aria-labelledby={isMobileShell ? "cso-shell-tab-content" : undefined}
-          hidden={isMobileShell ? mobileTab !== "content" : undefined}
-          aria-hidden={isMobileShell ? mobileTab !== "content" : undefined}
-        >
+        <div className="tdh-v6-center">
           {!isMobileShell ? (
             <div className="tdh-v6-cover-mobile">
               <TruongOrgCover school={school} editable layout="v6" />
@@ -318,10 +308,13 @@ function TruongDetailViewInner({
           })}
         </div>
 
-        <TruongAdmissionTimelineSidebar
-          isMobileShell={isMobileShell}
-          isMobileShellActive={mobileTab === "notify"}
-        />
+        <OrgNotifyFab enabled={isMobileShell} count={notifyCount}>
+          <TruongAdmissionTimelineSidebar
+            isMobileShell={isMobileShell}
+            isMobileShellActive
+            onUpcomingCountChange={setNotifyCount}
+          />
+        </OrgNotifyFab>
       </div>
 
       {canEdit && onSettingsOpenChange ? (

@@ -20,6 +20,7 @@ export function TuyenDungListingShell({ items, total }: Props) {
     <>
       <header className="td-hub-header">
         <div className="td-hub-header__glass" aria-hidden="true" />
+        <span className="j-tlb-streak-slow" aria-hidden="true" />
         <div className="td-hub-header__inner">
           <TuyenDungFilterBar {...filters} total={total} />
         </div>

@@ -38,6 +38,7 @@ export function TimKhoaHocHubShell({
     <>
       <header className="tkh-hub-header">
         <div className="tkh-hub-header__glass" aria-hidden="true" />
+        <span className="j-tlb-streak-slow" aria-hidden="true" />
         <div className="tkh-hub-header__inner">
           <TimKhoaHocKhoaFilterBar
             {...filters}

@@ -369,219 +369,229 @@ export function CongDongListingClient({
   return (
     <>
       <div className="cd-list-toolbar">
-        <div className="cd-list-toolbar-primary">
-          <label className="cd-list-search">
-            <Search size={16} strokeWidth={2} aria-hidden />
-            <input
-              type="search"
-              placeholder="Tìm cộng đồng..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              aria-label="Tìm cộng đồng"
-            />
-          </label>
-          <Link href="/cong-dong/tao" className="cd-list-create-btn">
-            <Plus size={16} strokeWidth={2.25} aria-hidden />
-            Tạo cộng đồng
-          </Link>
-        </div>
-
-        {canFilterMine ||
-        linhVucFacets.length > 0 ||
-        nganhFacets.length > 0 ? (
-          <div className="cd-list-toolbar-filters" role="toolbar" aria-label="Bộ lọc cộng đồng">
-            {canFilterMine ? (
-              <button
-                type="button"
-                className={
-                  mineOnly
-                    ? "cd-list-mine-chip is-active"
-                    : "cd-list-mine-chip"
-                }
-                aria-pressed={mineOnly}
-                onClick={() => setFilterParam("mine", mineOnly ? null : "1")}
-              >
-                <UsersRound size={14} strokeWidth={2.25} aria-hidden />
-                Cộng đồng của tôi
-                {myCommunityCount > 0 ? (
-                  <span className="cd-list-mine-chip-count">
-                    {myCommunityCount}
-                  </span>
-                ) : null}
-              </button>
-            ) : null}
-
-            {canFilterMine && invites.length > 0 ? (
-              <button
-                type="button"
-                className={
-                  invitesOnly
-                    ? "cd-list-mine-chip cd-list-invite-chip is-active"
-                    : "cd-list-mine-chip cd-list-invite-chip"
-                }
-                aria-pressed={invitesOnly}
-                onClick={() =>
-                  setFilterParam("invites", invitesOnly ? null : "1")
-                }
-              >
-                <MailPlus size={14} strokeWidth={2.25} aria-hidden />
-                Lời mời chờ xác nhận
-                <span className="cd-list-mine-chip-count">
-                  {invites.length}
-                </span>
-              </button>
-            ) : null}
-
-            {linhVucFacets.length > 0 ? (
-              <CongDongFilterDropdown
-                label="Lĩnh vực"
-                ariaLabel="Lọc theo lĩnh vực"
-                facets={linhVucFacets}
-                valueSlug={activeLinhVuc?.slug ?? null}
-                open={openFilter === "linh_vuc"}
-                onOpenChange={(next) =>
-                  setOpenFilter(next ? "linh_vuc" : null)
-                }
-                onChange={(slug) => setFilterParam("linh_vuc", slug)}
+        <div className="cins-frost-glass" aria-hidden="true" />
+        <span className="j-tlb-streak-slow" aria-hidden="true" />
+        <div className="cd-list-toolbar-inner">
+          <div className="cd-list-toolbar-primary">
+            <label className="cd-list-search">
+              <Search size={16} strokeWidth={2} aria-hidden />
+              <input
+                type="search"
+                placeholder="Tìm cộng đồng..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                aria-label="Tìm cộng đồng"
               />
-            ) : null}
-
-            {nganhFacets.length > 0 ? (
-              <CongDongFilterDropdown
-                label="Ngành"
-                ariaLabel="Lọc theo ngành đào tạo"
-                facets={nganhFacets}
-                valueSlug={activeNganh?.slug ?? null}
-                open={openFilter === "nganh"}
-                onOpenChange={(next) =>
-                  setOpenFilter(next ? "nganh" : null)
-                }
-                onChange={(slug) => setFilterParam("nganh", slug)}
-              />
-            ) : null}
-
-            {hasActiveFilters ? (
-              <button
-                type="button"
-                className="cd-list-clear-chip"
-                onClick={clearFilters}
-              >
-                <X size={14} strokeWidth={2} aria-hidden />
-                Xóa lọc
-              </button>
-            ) : null}
-          </div>
-        ) : null}
-
-        {invitesOnly ? (
-          <p className="cd-list-toolbar-meta-text">
-            {invites.length} lời mời chờ xác nhận
-          </p>
-        ) : hasActiveFilters ? (
-          <p className="cd-list-toolbar-meta-text">
-            {visible.length} kết quả
-            {mineOnly ? " · Cộng đồng của tôi" : ""}
-            {activeLinhVuc ? ` · ${activeLinhVuc.ten}` : ""}
-            {activeNganh ? ` · ${activeNganh.ten}` : ""}
-          </p>
-        ) : null}
-      </div>
-
-      {invitesOnly ? (
-        invites.length === 0 ? (
-          <div className="cd-list-empty">
-            <p>Không có lời mời cộng đồng nào đang chờ xác nhận.</p>
-            <button
-              type="button"
-              className="cd-list-clear-filters cd-list-clear-filters--empty"
-              onClick={clearFilters}
-            >
-              Xem tất cả cộng đồng
-            </button>
-          </div>
-        ) : (
-          <div className="cd-list-invites">
-            {invites.map((invite) => {
-              const responding = respondingInviteId === invite.notificationId;
-              return (
-                <div key={invite.notificationId} className="cd-list-invite">
-                  <div className="cd-list-invite-body">
-                    <CongDongInviteMessage
-                      inviterName={invite.inviterName}
-                      inviterSlug={invite.inviterSlug}
-                      inviterAvatarUrl={invite.inviterAvatarUrl}
-                      orgTen={invite.orgTen}
-                      orgSlug={invite.orgSlug}
-                      className="cd-list-invite-message"
-                    />
-                  </div>
-                  <div className="cd-list-invite-actions">
-                    <Link
-                      href={`/cong-dong/${invite.orgSlug}`}
-                      className="cd-list-invite-btn is-view"
-                    >
-                      Xem cộng đồng
-                    </Link>
-                    <button
-                      type="button"
-                      className="cd-list-invite-btn is-accept"
-                      disabled={responding}
-                      onClick={() => respondInvite(invite, "accept")}
-                    >
-                      <Check size={14} strokeWidth={2.5} aria-hidden />
-                      Tham gia
-                    </button>
-                    <button
-                      type="button"
-                      className="cd-list-invite-btn is-decline"
-                      disabled={responding}
-                      onClick={() => respondInvite(invite, "decline")}
-                    >
-                      <X size={14} strokeWidth={2.25} aria-hidden />
-                      Bỏ qua
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )
-      ) : visible.length === 0 ? (
-        <div className="cd-list-empty">
-          <p>
-            {communities.length === 0
-              ? "Chưa có cộng đồng nào. Hãy là người đầu tiên tạo cộng đồng nghề trên CINs."
-              : mineOnly && myCommunityCount === 0
-                ? "Bạn chưa tham gia cộng đồng nào."
-                : hasActiveFilters || query.trim()
-                  ? "Không tìm thấy cộng đồng phù hợp với bộ lọc hiện tại."
-                  : "Không tìm thấy cộng đồng phù hợp."}
-          </p>
-          {communities.length === 0 ? (
-            <Link
-              href="/cong-dong/tao"
-              className="cd-list-create-btn cd-list-create-btn--inline"
-            >
+            </label>
+            <Link href="/cong-dong/tao" className="cd-list-create-btn">
               <Plus size={16} strokeWidth={2.25} aria-hidden />
               Tạo cộng đồng
             </Link>
-          ) : hasActiveFilters ? (
-            <button
-              type="button"
-              className="cd-list-clear-filters cd-list-clear-filters--empty"
-              onClick={clearFilters}
+          </div>
+
+          {canFilterMine ||
+          linhVucFacets.length > 0 ||
+          nganhFacets.length > 0 ? (
+            <div
+              className="cd-list-toolbar-filters"
+              role="toolbar"
+              aria-label="Bộ lọc cộng đồng"
             >
-              Xóa bộ lọc
-            </button>
+              {canFilterMine ? (
+                <button
+                  type="button"
+                  className={
+                    mineOnly
+                      ? "cd-list-mine-chip is-active"
+                      : "cd-list-mine-chip"
+                  }
+                  aria-pressed={mineOnly}
+                  onClick={() => setFilterParam("mine", mineOnly ? null : "1")}
+                >
+                  <UsersRound size={14} strokeWidth={2.25} aria-hidden />
+                  Cộng đồng của tôi
+                  {myCommunityCount > 0 ? (
+                    <span className="cd-list-mine-chip-count">
+                      {myCommunityCount}
+                    </span>
+                  ) : null}
+                </button>
+              ) : null}
+
+              {canFilterMine && invites.length > 0 ? (
+                <button
+                  type="button"
+                  className={
+                    invitesOnly
+                      ? "cd-list-mine-chip cd-list-invite-chip is-active"
+                      : "cd-list-mine-chip cd-list-invite-chip"
+                  }
+                  aria-pressed={invitesOnly}
+                  onClick={() =>
+                    setFilterParam("invites", invitesOnly ? null : "1")
+                  }
+                >
+                  <MailPlus size={14} strokeWidth={2.25} aria-hidden />
+                  Lời mời chờ xác nhận
+                  <span className="cd-list-mine-chip-count">
+                    {invites.length}
+                  </span>
+                </button>
+              ) : null}
+
+              {linhVucFacets.length > 0 ? (
+                <CongDongFilterDropdown
+                  label="Lĩnh vực"
+                  ariaLabel="Lọc theo lĩnh vực"
+                  facets={linhVucFacets}
+                  valueSlug={activeLinhVuc?.slug ?? null}
+                  open={openFilter === "linh_vuc"}
+                  onOpenChange={(next) =>
+                    setOpenFilter(next ? "linh_vuc" : null)
+                  }
+                  onChange={(slug) => setFilterParam("linh_vuc", slug)}
+                />
+              ) : null}
+
+              {nganhFacets.length > 0 ? (
+                <CongDongFilterDropdown
+                  label="Ngành"
+                  ariaLabel="Lọc theo ngành đào tạo"
+                  facets={nganhFacets}
+                  valueSlug={activeNganh?.slug ?? null}
+                  open={openFilter === "nganh"}
+                  onOpenChange={(next) =>
+                    setOpenFilter(next ? "nganh" : null)
+                  }
+                  onChange={(slug) => setFilterParam("nganh", slug)}
+                />
+              ) : null}
+
+              {hasActiveFilters ? (
+                <button
+                  type="button"
+                  className="cd-list-clear-chip"
+                  onClick={clearFilters}
+                >
+                  <X size={14} strokeWidth={2} aria-hidden />
+                  Xóa lọc
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+
+          {invitesOnly ? (
+            <p className="cd-list-toolbar-meta-text">
+              {invites.length} lời mời chờ xác nhận
+            </p>
+          ) : hasActiveFilters ? (
+            <p className="cd-list-toolbar-meta-text">
+              {visible.length} kết quả
+              {mineOnly ? " · Cộng đồng của tôi" : ""}
+              {activeLinhVuc ? ` · ${activeLinhVuc.ten}` : ""}
+              {activeNganh ? ` · ${activeNganh.ten}` : ""}
+            </p>
           ) : null}
         </div>
-      ) : (
-        <div className="cd-list-grid">
-          {visible.map((org) => (
-            <CongDongListCard key={org.id} org={org} />
-          ))}
-        </div>
-      )}
+      </div>
+
+      <div className="cd-list-body">
+        {invitesOnly ? (
+          invites.length === 0 ? (
+            <div className="cd-list-empty">
+              <p>Không có lời mời cộng đồng nào đang chờ xác nhận.</p>
+              <button
+                type="button"
+                className="cd-list-clear-filters cd-list-clear-filters--empty"
+                onClick={clearFilters}
+              >
+                Xem tất cả cộng đồng
+              </button>
+            </div>
+          ) : (
+            <div className="cd-list-invites">
+              {invites.map((invite) => {
+                const responding = respondingInviteId === invite.notificationId;
+                return (
+                  <div key={invite.notificationId} className="cd-list-invite">
+                    <div className="cd-list-invite-body">
+                      <CongDongInviteMessage
+                        inviterName={invite.inviterName}
+                        inviterSlug={invite.inviterSlug}
+                        inviterAvatarUrl={invite.inviterAvatarUrl}
+                        orgTen={invite.orgTen}
+                        orgSlug={invite.orgSlug}
+                        className="cd-list-invite-message"
+                      />
+                    </div>
+                    <div className="cd-list-invite-actions">
+                      <Link
+                        href={`/cong-dong/${invite.orgSlug}`}
+                        className="cd-list-invite-btn is-view"
+                      >
+                        Xem cộng đồng
+                      </Link>
+                      <button
+                        type="button"
+                        className="cd-list-invite-btn is-accept"
+                        disabled={responding}
+                        onClick={() => respondInvite(invite, "accept")}
+                      >
+                        <Check size={14} strokeWidth={2.5} aria-hidden />
+                        Tham gia
+                      </button>
+                      <button
+                        type="button"
+                        className="cd-list-invite-btn is-decline"
+                        disabled={responding}
+                        onClick={() => respondInvite(invite, "decline")}
+                      >
+                        <X size={14} strokeWidth={2.25} aria-hidden />
+                        Bỏ qua
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )
+        ) : visible.length === 0 ? (
+          <div className="cd-list-empty">
+            <p>
+              {communities.length === 0
+                ? "Chưa có cộng đồng nào. Hãy là người đầu tiên tạo cộng đồng nghề trên CINs."
+                : mineOnly && myCommunityCount === 0
+                  ? "Bạn chưa tham gia cộng đồng nào."
+                  : hasActiveFilters || query.trim()
+                    ? "Không tìm thấy cộng đồng phù hợp với bộ lọc hiện tại."
+                    : "Không tìm thấy cộng đồng phù hợp."}
+            </p>
+            {communities.length === 0 ? (
+              <Link
+                href="/cong-dong/tao"
+                className="cd-list-create-btn cd-list-create-btn--inline"
+              >
+                <Plus size={16} strokeWidth={2.25} aria-hidden />
+                Tạo cộng đồng
+              </Link>
+            ) : hasActiveFilters ? (
+              <button
+                type="button"
+                className="cd-list-clear-filters cd-list-clear-filters--empty"
+                onClick={clearFilters}
+              >
+                Xóa bộ lọc
+              </button>
+            ) : null}
+          </div>
+        ) : (
+          <div className="cd-list-grid">
+            {visible.map((org) => (
+              <CongDongListCard key={org.id} org={org} />
+            ))}
+          </div>
+        )}
+      </div>
     </>
   );
 }

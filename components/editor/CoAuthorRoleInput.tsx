@@ -1,5 +1,6 @@
 "use client";
 
+import { Plus } from "lucide-react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -46,6 +47,11 @@ type Props = {
    * (để caller tự xử lý — vd. gom nhiều vị trí). `onChange` vẫn dùng cho gõ text.
    */
   onSelect?: (option: CoAuthorNgheRoleOption) => void;
+  /**
+   * Cho phép thêm vai trò tự nhập (không có trong danh sách). Khi truyền, dropdown
+   * hiện mục "Thêm vai trò mới: …" nếu từ khóa chưa khớp option nào sẵn có.
+   */
+  onAddCustom?: (label: string) => void;
 };
 
 export function CoAuthorRoleInput({
@@ -55,6 +61,7 @@ export function CoAuthorRoleInput({
   ariaLabel,
   placeholder = "Tìm vị trí công việc",
   onSelect,
+  onAddCustom,
 }: Props) {
   const listId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -69,6 +76,20 @@ export function CoAuthorRoleInput({
     () => options.filter((opt) => matchesRoleOption(opt, value)).slice(0, MAX_OPTIONS),
     [options, value],
   );
+
+  const trimmedValue = value.trim();
+  const hasExactMatch = useMemo(() => {
+    const q = normalizeText(trimmedValue);
+    if (!q) return false;
+    return options.some(
+      (opt) =>
+        normalizeText(opt.roleLabel) === q || normalizeText(opt.roleShort) === q,
+    );
+  }, [options, trimmedValue]);
+  const canAddCustom =
+    Boolean(onAddCustom) && trimmedValue.length > 0 && !hasExactMatch;
+  const totalItems = filtered.length + (canAddCustom ? 1 : 0);
+  const addIndex = canAddCustom ? filtered.length : -1;
 
   const updateTipPos = useCallback(() => {
     const node = inputRef.current;
@@ -100,6 +121,14 @@ export function CoAuthorRoleInput({
     [closeList, onChange, onSelect],
   );
 
+  const addCustom = useCallback(() => {
+    const next = value.trim();
+    if (!next || !onAddCustom) return;
+    onAddCustom(next);
+    closeList();
+    inputRef.current?.blur();
+  }, [value, onAddCustom, closeList]);
+
   useEffect(() => {
     if (!open) return;
     const onDocDown = (event: MouseEvent) => {
@@ -125,12 +154,12 @@ export function CoAuthorRoleInput({
   }, [open, updateTipPos]);
 
   useEffect(() => {
-    if (activeIndex >= filtered.length) {
-      setActiveIndex(Math.max(0, filtered.length - 1));
+    if (activeIndex >= totalItems) {
+      setActiveIndex(Math.max(0, totalItems - 1));
     }
-  }, [activeIndex, filtered.length]);
+  }, [activeIndex, totalItems]);
 
-  const showList = open && filtered.length > 0 && tipPos;
+  const showList = open && totalItems > 0 && tipPos;
 
   return (
     <div ref={rootRef} className="ed-coauthor-role-wrap">
@@ -159,15 +188,19 @@ export function CoAuthorRoleInput({
             closeList();
             return;
           }
-          if (!filtered.length) return;
+          if (!totalItems) return;
           if (event.key === "ArrowDown") {
             event.preventDefault();
-            setActiveIndex((i) => Math.min(i + 1, filtered.length - 1));
+            setActiveIndex((i) => Math.min(i + 1, totalItems - 1));
           } else if (event.key === "ArrowUp") {
             event.preventDefault();
             setActiveIndex((i) => Math.max(i - 1, 0));
           } else if (event.key === "Enter" && open) {
             event.preventDefault();
+            if (canAddCustom && activeIndex === addIndex) {
+              addCustom();
+              return;
+            }
             const picked = filtered[activeIndex];
             if (picked) selectOption(picked);
           }
@@ -229,6 +262,30 @@ export function CoAuthorRoleInput({
                   </button>
                 </li>
               ))}
+              {canAddCustom ? (
+                <li role="presentation">
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={addIndex === activeIndex}
+                    className={
+                      "ed-coauthor-role-option ed-coauthor-role-add-new" +
+                      (addIndex === activeIndex ? " is-active" : "")
+                    }
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={addCustom}
+                    onMouseEnter={() => setActiveIndex(addIndex)}
+                  >
+                    <span className="ed-coauthor-role-add-new-ico" aria-hidden>
+                      <Plus size={16} strokeWidth={2.4} />
+                    </span>
+                    <span className="ed-coauthor-role-add-new-text">
+                      Thêm vai trò mới:{" "}
+                      <strong>“{trimmedValue}”</strong>
+                    </span>
+                  </button>
+                </li>
+              ) : null}
             </ul>,
             document.body,
           )

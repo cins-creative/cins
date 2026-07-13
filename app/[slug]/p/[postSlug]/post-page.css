@@ -1919,6 +1919,24 @@
   color: var(--cins-blue-strong, #1d4ed8);
   background: var(--cins-blue-soft, #eef4ff);
 }
+/* Dark — trạng thái active phải dùng nền tối. Nền sáng cứng (#fff1f2 /
+   xanh nhạt) làm số đếm (màu --ink-muted = trắng mờ ở dark) chìm mất. */
+:root[data-theme="dark"] .cins-post-view .post-byline-act.is-active.is-like {
+  color: #fb7185;
+  background: rgba(244, 63, 94, 0.18);
+}
+:root[data-theme="dark"] .cins-post-view .post-byline-act.is-active.is-like .post-byline-act-count,
+:root[data-theme="dark"] .cins-post-view .post-byline-act.is-active.is-like .post-byline-act-n {
+  color: #fb7185;
+}
+:root[data-theme="dark"] .cins-post-view .post-byline-act.is-active.is-bookmark {
+  color: #93c5fd;
+  background: rgba(59, 130, 246, 0.2);
+}
+:root[data-theme="dark"] .cins-post-view .post-byline-act.is-active.is-bookmark .post-byline-act-count,
+:root[data-theme="dark"] .cins-post-view .post-byline-act.is-active.is-bookmark .post-byline-act-n {
+  color: #93c5fd;
+}
 .cins-post-view .post-byline-act-count {
   font-variant-numeric: tabular-nums;
   font-size: 11px;
@@ -2181,13 +2199,20 @@
   gap: 0;
   column-gap: 0;
 }
-.cins-editor-page.cins-post-view .blocks-readonly .b-spacer,
-.cins-editor-page.cins-post-view .blocks-readonly .b-spacer.s,
-.cins-editor-page.cins-post-view .blocks-readonly .b-spacer.m,
+/* Block "Khoảng trống" do người dùng chủ động thêm → bản đọc phải tôn trọng
+   chiều cao (khớp editor: s=16 / m=36 / l=64). Đường kẻ đứt chỉ dùng khi soạn
+   nên ẩn hẳn ở read-only. */
+.cins-editor-page.cins-post-view .blocks-readonly .b-spacer.s {
+  height: 16px;
+}
+.cins-editor-page.cins-post-view .blocks-readonly .b-spacer.m {
+  height: 36px;
+}
 .cins-editor-page.cins-post-view .blocks-readonly .b-spacer.l {
-  height: 0;
-  min-height: 0;
-  overflow: hidden;
+  height: 64px;
+}
+.cins-editor-page.cins-post-view .blocks-readonly .b-spacer .sp-line {
+  display: none;
 }
 .cins-editor-page.cins-post-view .blocks-readonly .block[data-block-type="embed"] .b-embed-ro,
 .cins-editor-page.cins-post-view .blocks-readonly .block[data-block-type="embed"] .b-embed.b-embed-ro {
@@ -4015,6 +4040,69 @@
     img {
     max-width: 100%;
     max-height: 100%;
+  }
+
+  /* ── Native video trong split (mobile) ──────────────────────────────────
+     Cột media + khung video co theo tỉ lệ khung hình, KHÔNG ép chiều cao cố
+     định như album ảnh. Nếu ép cao, video 16:9 với object-fit: contain sẽ bị
+     chừa khung đen trên/dưới. Ghi đè rule split desktop (height:100% +
+     aspect-ratio:auto) và chiều cao cố định min(62dvh) của cột. */
+  .j-post-page:has(.post-canvas--media.post-canvas--split)
+    .post-view-content--media:has(.b-embed-ro.is-native-video) {
+    flex: 0 0 auto;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+  }
+
+  .j-post-page:has(.post-canvas--media.post-canvas--split)
+    .post-view-content--media:has(.b-embed-ro.is-native-video)
+    .post-view-content-inner,
+  .j-post-page:has(.post-canvas--media.post-canvas--split)
+    .post-view-content--media:has(.b-embed-ro.is-native-video)
+    .post-blocks-fb {
+    flex: 0 0 auto;
+    height: auto;
+    max-height: none;
+  }
+
+  .j-post-page:has(.post-canvas--media.post-canvas--split)
+    .post-view-content--media
+    .b-embed-ro.is-native-video,
+  .j-post-page:has(.post-canvas--media.post-canvas--split)
+    .post-view-content--media
+    .b-embed-ro.is-native-video.is-canvas-16-9,
+  .j-post-page:has(.post-canvas--media.post-canvas--split)
+    .post-view-content--media
+    .b-embed-ro.is-native-video.is-canvas-1-1,
+  .j-post-page:has(.post-canvas--media.post-canvas--split)
+    .post-view-content--media
+    .b-embed-ro.is-native-video.is-canvas-3-4 {
+    flex: 0 0 auto;
+    width: 100%;
+    height: auto;
+    max-height: min(72dvh, 680px);
+    aspect-ratio: 16 / 9;
+    margin-inline: auto;
+  }
+
+  /* Video dọc / vuông — giữ đúng tỉ lệ, giới hạn bằng chiều cao để không tràn */
+  .j-post-page:has(.post-canvas--media.post-canvas--split)
+    .post-view-content--media
+    .b-embed-ro.is-native-video.is-canvas-1-1 {
+    aspect-ratio: 1 / 1;
+    width: auto;
+    height: min(72dvh, 680px);
+    max-width: 100%;
+  }
+
+  .j-post-page:has(.post-canvas--media.post-canvas--split)
+    .post-view-content--media
+    .b-embed-ro.is-native-video.is-canvas-3-4 {
+    aspect-ratio: 3 / 4;
+    width: auto;
+    height: min(72dvh, 680px);
+    max-width: 100%;
   }
 }
 

@@ -7,6 +7,17 @@
   min-height: 0;
 }
 
+/* Mobile stack (Thông tin + Nội dung): main/page cao theo nội dung để document scroll */
+@media (max-width: 991.98px) {
+  .cins-main:has(> .tdh-page--v6 .tdh-v6-shell--mobile-tabs) {
+    flex: 0 0 auto;
+    min-height: auto;
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+}
+
 .tdh-page.tdh-page--v6 {
   --tdh-bp-v6: 991.98px;
   --tdh-v6-tabs-h: 50px;
@@ -3018,41 +3029,9 @@
   }
 }
 
-/* Mobile shell — 3 tab: Thông tin · Nội dung · Thông báo (trang trường, không áp cơ sở) */
+/* Mobile shell — Thông tin + Nội dung stack; Thông báo qua FAB (trang trường) */
 .tdh-page--v6:not(.tdh-page--cso) .cso-mobile-shell-nav {
-  display: none;
-}
-
-.tdh-page--v6:not(.tdh-page--cso) .cso-mobile-shell-nav-btn {
-  flex: 1 1 0;
-  min-width: 0;
-  border: none;
-  background: transparent;
-  padding: 0 8px;
-  font-family: var(--font-sans);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ink-muted, rgba(0, 0, 0, 0.45));
-  cursor: pointer;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  align-self: stretch;
-  height: auto;
-  transition:
-    color 0.15s,
-    background 0.15s;
-}
-
-.tdh-page--v6:not(.tdh-page--cso) .cso-mobile-shell-nav-btn.is-on {
-  color: #fff;
-  background: var(--cins-blue, #1f74c9);
-  font-weight: 700;
-}
-
-.tdh-page--v6:not(.tdh-page--cso) .cso-mobile-shell-nav-btn.is-on::after {
-  display: none;
+  display: none !important;
 }
 
 /* Trường — mobile shell sidebar stack (cùng pattern cso-ss-* với cơ sở) */
@@ -3290,125 +3269,122 @@
   }
 
   .tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs {
-    --cso-mobile-shell-nav-h: 44px;
-    --tdh-v6-tabs-bar-h: 44px;
+    --tdh-v6-tabs-bar-h: 50px;
     --tdh-v6-tabs-h: var(--tdh-v6-tabs-bar-h);
   }
 
   .tdh-page--v6 .tdh-v6-shell--mobile-tabs .tdh-v6-tabs-bar {
-    top: calc(var(--site-nav-height, 64px) + var(--cso-mobile-shell-nav-h, 44px));
+    top: var(--site-nav-height, 64px);
     z-index: 40;
     margin-top: 0;
     margin-bottom: 0;
-    min-height: var(--tdh-v6-tabs-bar-h, 44px);
+    height: var(--tdh-v6-tabs-bar-h, 50px);
+    min-height: var(--tdh-v6-tabs-bar-h, 50px);
+    box-sizing: border-box;
+    display: flex;
+    align-items: stretch;
   }
 
-  .tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs .cso-mobile-shell-nav {
-    display: flex;
-    flex-shrink: 0;
-    order: 0;
-    width: 100%;
-    height: var(--cso-mobile-shell-nav-h, 44px);
-    min-height: var(--cso-mobile-shell-nav-h, 44px);
-    max-height: var(--cso-mobile-shell-nav-h, 44px);
-    position: sticky;
-    top: var(--site-nav-height, 64px);
-    z-index: 45;
-    background: var(--bg-surface, #fff);
-    border-bottom: none;
+  .tdh-page--v6 .tdh-v6-shell--mobile-tabs .tdh-v6-tabs {
+    height: 100%;
+    align-items: stretch;
+  }
+
+  .tdh-page--v6 .tdh-v6-shell--mobile-tabs .tdh-v6-tab {
+    display: inline-flex;
+    align-items: center;
+    height: 100%;
     box-sizing: border-box;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-bottom: 0;
   }
 
   .tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs .tdh-v6-center > .tdh-v6-tabs-bar {
     border-top: 1px solid var(--border, #e4e6eb);
   }
 
-  .tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs > .school-side,
-  .tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs > .tdh-v6-center,
-  .tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs > .tdh-admission-side {
-    order: 1;
-    flex: 1 1 auto;
-    min-height: 0;
+  .tdh-page--v6:not(.tdh-page--cso):has(.tdh-v6-shell--mobile-tabs) {
+    flex: 0 0 auto;
+    min-height: auto;
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .tdh-page--v6:not(.tdh-page--cso) > .tdh-v6-shell.tdh-v6-shell--mobile-tabs {
+    flex: 0 0 auto;
+    min-height: auto;
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs > .school-side {
+    order: 0;
+    flex: 0 0 auto;
+    min-height: auto;
     width: 100%;
     max-width: none;
-  }
-
-  .tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs > .school-side[hidden],
-  .tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs > .tdh-v6-center[hidden],
-  .tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs > .tdh-admission-side[hidden] {
-    display: none !important;
-  }
-
-  .tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs > .school-side:not([hidden]) {
     display: flex;
     flex-direction: column;
     position: static;
     max-height: none;
-    overflow-y: auto;
-    overscroll-behavior: contain;
+    height: auto;
+    overflow: visible;
     border-right: none;
-    border-bottom: none;
+    border-bottom: 1px solid var(--border, #e4e6eb);
     padding: 0 0 24px;
     z-index: auto;
   }
 
-  .tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs > .tdh-v6-center:not([hidden]) {
+  .tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs > .tdh-v6-center {
+    order: 1;
+    flex: 0 0 auto;
+    min-height: auto;
+    height: auto;
+    width: 100%;
+    max-width: none;
     display: flex;
     flex-direction: column;
+    overflow: visible;
   }
 
-  .tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs > .tdh-admission-side:not([hidden]) {
+  .tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs .tdh-v6-center > .tdh-v6-panel.on {
+    flex: 0 0 auto;
+    min-height: auto;
+    height: auto;
+    overflow: visible;
+  }
+
+  .tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs #tdh-panel-bai-dang.tdh-v6-panel.on {
     display: block;
-    position: static;
+    min-height: 0;
+  }
+
+  .tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs #tdh-panel-bai-dang .tdh-org-baidang-timeline {
+    flex: none;
     min-height: 0;
     height: auto;
-    max-height: none;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    border-left: none;
-    border-top: none;
-    padding: 20px 18px 32px;
-  }
-
-  .tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs .tdh-admission-side .timeline-section--rail {
-    max-height: none;
     overflow: visible;
   }
 
-  .tdh-page--v6:not(.tdh-page--cso):not(:has(.tdh-v6-shell--mobile-tabs)) > .tdh-v6-shell {
-    display: grid;
+  .tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs #tdh-panel-bai-dang .org-baidang-tlb {
+    margin-top: 0;
+    top: calc(
+      var(--site-nav-height, 64px) + var(--tdh-v6-tabs-bar-h, 50px)
+    );
   }
 
-  .tdh-page--v6:not(.tdh-page--cso):not(:has(.tdh-v6-shell--mobile-tabs)) .tdh-v6-center {
-    order: 1;
-  }
-
-  .tdh-page--v6:not(.tdh-page--cso):not(:has(.tdh-v6-shell--mobile-tabs)) .school-side {
-    order: 2;
-    position: static;
-    max-height: none;
+  .tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs .cso-ss-card {
+    flex: 0 0 auto;
     overflow: visible;
-    overscroll-behavior: auto;
-    border-right: none;
-    border-bottom: 1px solid var(--border, #e4e6eb);
-    padding: 0 0 20px;
-    z-index: auto;
-  }
-
-  .tdh-page--v6:not(.tdh-page--cso):not(:has(.tdh-v6-shell--mobile-tabs)) .tdh-admission-side {
-    order: 3;
-    position: static;
-    min-height: 0;
+    min-height: auto;
     height: auto;
-    max-height: none;
-    overflow: visible;
-    border-left: none;
-    border-top: 1px solid var(--border, #e4e6eb);
-    padding: 20px 18px 32px;
   }
 
-  .tdh-page--v6:not(.tdh-page--cso):not(:has(.tdh-v6-shell--mobile-tabs)) .tdh-admission-side .timeline-section--rail {
-    max-height: none;
+  .tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs .cso-ss-pad {
+    flex: 0 0 auto;
     overflow: visible;
   }
 
@@ -3416,7 +3392,7 @@
     display: none;
   }
 
-  /* Co-so giữ stack cũ qua co-so-page.css */
+  /* Co-so giữ stack qua co-so-page.css */
   .tdh-page--cso > .tdh-v6-shell {
     grid-template-columns: minmax(0, 1fr);
     max-width: 760px;
@@ -3424,6 +3400,7 @@
 
   .tdh-page--cso .school-side {
     position: static;
+    height: auto;
     max-height: none;
     overflow: visible;
     overscroll-behavior: auto;
@@ -3431,6 +3408,12 @@
     border-bottom: 1px solid var(--border, #e4e6eb);
     padding: 0 0 20px;
     z-index: auto;
+  }
+
+  .tdh-page--cso .school-side.cso-ss-side {
+    height: auto;
+    max-height: none;
+    overflow: visible;
   }
 
   .tdh-page--cso .tdh-v6-cover-mobile {
@@ -3484,7 +3467,7 @@
   }
 
   .tdh-page--v6 .tdh-v6-shell--mobile-tabs {
-    --tdh-v6-tabs-bar-h: 42px;
+    --tdh-v6-tabs-bar-h: 48px;
     --tdh-v6-tabs-h: var(--tdh-v6-tabs-bar-h);
   }
 
@@ -3594,7 +3577,7 @@
   }
 
   .tdh-page--v6 .tdh-v6-shell--mobile-tabs {
-    --tdh-v6-tabs-bar-h: 40px;
+    --tdh-v6-tabs-bar-h: 46px;
     --tdh-v6-tabs-h: var(--tdh-v6-tabs-bar-h);
   }
 
@@ -4538,8 +4521,7 @@
 .tdh-page--v6 #tdh-panel-bai-dang,
 .tdh-page--v6 #cso-panel-bai-dang {
   --j-topbar-h: calc(
-    var(--site-nav-height, 64px) + var(--cso-mobile-shell-nav-h, 0px) +
-      var(--tdh-v6-tabs-h, 50px)
+    var(--site-nav-height, 64px) + var(--tdh-v6-tabs-h, 50px)
   );
   --j-ctx-h: 52px;
   --j-rail-x: 0px;
@@ -4647,11 +4629,8 @@
   height: auto;
   min-height: 44px;
   box-sizing: border-box;
-  --j-tlb-blur-bg: color-mix(in srgb, var(--bg-page, #f4f5f8) 86%, transparent);
-  background: var(--j-tlb-blur-bg);
-  backdrop-filter: blur(12px) saturate(1.08);
-  -webkit-backdrop-filter: blur(12px) saturate(1.08);
-  border-bottom: 1px solid var(--border, #e4e6eb);
+  background: transparent;
+  border-bottom: 1px solid color-mix(in srgb, var(--border, #e4e6eb) 82%, transparent);
 }
 
 /* Toggle timeline ↔ lưới (mirror World Journey .wj-view-toggle). */
@@ -5023,7 +5002,11 @@
     background: var(--bg-surface, #fff);
     --tdh-baidang-stack-gap: 8px;
     --tdh-baidang-card-gap: 12px;
-    --tdh-v6-tabs-h: var(--tdh-v6-tabs-bar-h, 44px);
+    /* Khớp chiều cao thanh tab cố định — tránh hở với filter sticky */
+    --tdh-v6-tabs-h: var(--tdh-v6-tabs-bar-h, 50px);
+    --j-topbar-h: calc(
+      var(--site-nav-height, 64px) + var(--tdh-v6-tabs-bar-h, 50px)
+    );
   }
 
   .tdh-page--v6 .tdh-v6-shell--mobile-tabs .tdh-v6-center > .tdh-v6-tabs-bar + #tdh-panel-bai-dang.tdh-v6-panel.on,
@@ -5062,10 +5045,13 @@
     margin-left: 0;
     margin-right: 0;
     width: 100%;
-    background: var(--bg-surface, #fff);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
+    /* Giữ kính 50% (.j-tlb::before) — không nền đặc bg-surface */
+    background: transparent;
     border-top: none;
+    box-shadow: none;
+    top: calc(
+      var(--site-nav-height, 64px) + var(--tdh-v6-tabs-bar-h, 50px)
+    );
   }
 
   .tdh-page--v6 #tdh-panel-bai-dang .j-m-card,

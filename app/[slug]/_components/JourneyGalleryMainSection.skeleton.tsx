@@ -6,6 +6,7 @@ export function JourneyGalleryMainSectionSkeleton() {
       aria-label="Đang tải gallery"
     >
       <div className="j-tlb">
+        <span className="j-tlb-streak-slow" aria-hidden="true" />
         <div className="j-skel j-skel-tl-year" />
         <div className="j-tlb-filters">
           <div className="j-skel j-skel-tl-filter" />

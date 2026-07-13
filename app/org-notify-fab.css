@@ -1,0 +1,275 @@
+/* ── OrgNotifyFab — nút trong thanh filter + drawer Thông báo (mobile) ── */
+
+.org-notify-fab-host {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+}
+
+/* Compact trong thanh moc cộng đồng */
+.cd-v4-moc-bar .org-notify-fab-host {
+  width: 36px;
+  height: 36px;
+}
+
+.cd-v4-moc-bar .org-notify-fab {
+  width: 36px;
+  height: 36px;
+}
+
+.org-notify-fab-root {
+  --org-notify-fab-size: 52px;
+  --org-notify-fab-inset: 16px;
+  /* Fallback (studio/cộng đồng chưa có host trong tlb) */
+  --org-notify-fab-top: calc(
+    var(--site-nav-height, 64px) + 50px + 12px + env(safe-area-inset-top, 0px)
+  );
+  --org-notify-drawer-w: min(88vw, 420px);
+}
+
+.org-notify-fab-layer {
+  --org-notify-drawer-w: min(88vw, 420px);
+}
+
+.org-notify-fab {
+  position: relative;
+  top: auto;
+  right: auto;
+  bottom: auto;
+  z-index: 2;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--cins-blue, #1f74c9);
+  color: #fff;
+  box-shadow:
+    0 2px 8px rgba(15, 23, 42, 0.14),
+    0 0 0 1px rgba(15, 23, 42, 0.06);
+  cursor: pointer;
+  transition:
+    background 0.16s ease,
+    transform 0.16s ease,
+    box-shadow 0.16s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Fallback fixed khi chưa có slot trong filter bar */
+.org-notify-fab-root > .org-notify-fab:not(.is-relative) {
+  position: fixed;
+  top: var(--org-notify-fab-top);
+  right: var(--org-notify-fab-inset);
+  width: var(--org-notify-fab-size);
+  height: var(--org-notify-fab-size);
+  z-index: 80;
+}
+
+.org-notify-fab:hover,
+.org-notify-fab:focus-visible {
+  background: var(--cins-blue-dark, #155a9c);
+  outline: none;
+  box-shadow:
+    0 6px 18px rgba(15, 23, 42, 0.22),
+    0 0 0 3px rgba(31, 116, 201, 0.28);
+}
+
+.org-notify-fab.is-open {
+  background: var(--ink, #0f172a);
+}
+
+.org-notify-fab-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  font-family: var(--font-sans, system-ui, sans-serif);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+  box-shadow: 0 0 0 2px #fff;
+  pointer-events: none;
+}
+
+.org-notify-fab-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 81;
+  border: none;
+  padding: 0;
+  margin: 0;
+  background: rgba(15, 23, 42, 0.42);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  cursor: pointer;
+  transition:
+    opacity 0.22s ease,
+    visibility 0.22s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.org-notify-fab-overlay.is-on {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.org-notify-fab-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 82;
+  width: var(--org-notify-drawer-w);
+  height: 100dvh;
+  max-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-surface, #fff);
+  box-shadow: -8px 0 28px rgba(15, 23, 42, 0.14);
+  transform: translateX(100%);
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.org-notify-fab-drawer.is-on {
+  transform: translateX(0);
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.org-notify-fab-drawer-head {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  padding-top: calc(14px + env(safe-area-inset-top, 0px));
+  border-bottom: 1px solid var(--border, #e4e6eb);
+  background: var(--bg-surface, #fff);
+}
+
+.org-notify-fab-drawer-title {
+  margin: 0;
+  font-family: var(--font-sans, system-ui, sans-serif);
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+  color: var(--ink, #0f172a);
+}
+
+.org-notify-fab-drawer-close {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border, #e4e6eb);
+  border-radius: 10px;
+  background: var(--bg-surface, #fff);
+  color: var(--ink-muted, #64748b);
+  cursor: pointer;
+  padding: 0;
+  transition:
+    background 0.14s ease,
+    border-color 0.14s ease,
+    color 0.14s ease;
+}
+
+.org-notify-fab-drawer-close:hover,
+.org-notify-fab-drawer-close:focus-visible {
+  background: var(--neutral-100, #f4f5f8);
+  border-color: var(--border-strong, #d0d4dc);
+  color: var(--ink, #0f172a);
+  outline: none;
+}
+
+.org-notify-fab-drawer-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Sidebar Thông báo nằm trong drawer — full chiều cao, scroll nội bộ */
+.org-notify-fab-drawer-body > .tdh-admission-side,
+.org-notify-fab-drawer-body > .cd-v4-event-rail-col {
+  position: static !important;
+  top: auto !important;
+  align-self: stretch;
+  flex: 1 1 auto;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  min-height: 0;
+  margin: 0;
+  border: none;
+  border-left: none;
+  box-sizing: border-box;
+}
+
+.org-notify-fab-drawer-body > .tdh-admission-side {
+  padding: 12px 14px 28px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+/* Cộng đồng: rail bị `display:none` ≤1100px — buộc hiện trong drawer */
+.org-notify-fab-drawer-body > .cd-v4-event-rail-col {
+  display: flex !important;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+}
+
+.org-notify-fab-drawer-body .cd-v4-event-rail-col > .tdh-admission-side {
+  position: static !important;
+  flex: 1 1 auto;
+  width: 100%;
+  max-width: none;
+  height: auto;
+  max-height: none;
+  min-height: 0;
+  margin: 0;
+  padding: 12px 14px 28px;
+  border: none;
+  border-left: none;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  box-sizing: border-box;
+}
+
+.org-notify-fab-drawer-body .tdh-admission-side .timeline-section--rail {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: visible;
+  max-height: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .org-notify-fab,
+  .org-notify-fab-overlay,
+  .org-notify-fab-drawer {
+    transition: none;
+  }
+}

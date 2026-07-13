@@ -17,6 +17,7 @@ import "@/app/cins-truong-listing.css";
 import "@/components/tag/entity-page.css";
 import "@/styles/article-rich-content.css";
 import "@/app/co-so/co-so-page.css";
+import "@/app/org-notify-fab.css";
 import "./studio-page.css";
 import "@/app/[slug]/p/[postSlug]/post-page.css";
 

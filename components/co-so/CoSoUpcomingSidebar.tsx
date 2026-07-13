@@ -49,6 +49,7 @@ import type { KhoaHocCardData } from "@/lib/to-chuc/khoa-hoc-types";
 import { defaultTruongNganhYear } from "@/lib/truong/diem-chuan";
 import {
   buildTimelineStepsFromMocDraft,
+  countUpcomingTimelineSteps,
   emptyTimelineMoc,
   getAdmissionTimelineFocus,
   normalizeTimelineMoc,
@@ -69,6 +70,8 @@ type Props = {
   canManageKhoaHoc?: boolean;
   isMobileShell?: boolean;
   isMobileShellActive?: boolean;
+  /** Báo số mốc sắp tới lên cha (badge FAB) — không phụ thuộc `showPastSteps`. */
+  onUpcomingCountChange?: (count: number) => void;
 };
 
 type StepRole = "past" | "current" | "next" | "default";
@@ -298,6 +301,7 @@ export function CoSoUpcomingSidebar({
   canManageKhoaHoc = false,
   isMobileShell = false,
   isMobileShellActive = false,
+  onUpcomingCountChange,
 }: Props) {
   const ctx = useTruongInlineEdit();
   const pathname = usePathname();
@@ -485,6 +489,10 @@ export function CoSoUpcomingSidebar({
         : timelineSteps.filter((s) => !focus.pastIds.has(s.id)),
     [timelineSteps, focus.pastIds, showPastSteps],
   );
+
+  useEffect(() => {
+    onUpcomingCountChange?.(countUpcomingTimelineSteps(timelineSteps));
+  }, [timelineSteps, onUpcomingCountChange]);
 
   function stepRole(step: TuyenSinhTimelineStep): StepRole {
     if (focus.pastIds.has(step.id)) return "past";

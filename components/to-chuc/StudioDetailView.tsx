@@ -14,11 +14,13 @@ import {
   useTruongInlineEdit,
 } from "@/components/truong/inline/TruongInlineEditContext";
 import { TruongOrgCover } from "@/components/truong/TruongOrgCover";
+import { OrgNotifyFab } from "@/components/org/OrgNotifyFab";
 import { StudioPageSettingsModal } from "@/components/to-chuc/StudioPageSettingsModal";
 import { StudioSidebar } from "@/components/to-chuc/StudioSidebar";
 import { StudioJobsSidebar } from "@/components/to-chuc/StudioJobsSidebar";
 import { StudioTabBaiDang } from "@/components/to-chuc/StudioTabBaiDang";
 import { StudioTabTuyenDung } from "@/components/to-chuc/tabs/StudioTabTuyenDung";
+import { useCoSoMobileShell } from "@/components/co-so/useCoSoMobileShell";
 import {
   STUDIO_TAB_IDS,
   STUDIO_TAB_LABELS,
@@ -105,6 +107,8 @@ function StudioDetailViewInner({
   const [mountedTabs, setMountedTabs] = useState<Set<StudioTabId>>(
     () => new Set([tab]),
   );
+  const { isMobileShell } = useCoSoMobileShell();
+  const [notifyCount, setNotifyCount] = useState(0);
 
   useEffect(() => {
     setMountedTabs((prev) => {
@@ -133,25 +137,38 @@ function StudioDetailViewInner({
       : {}),
   };
 
+  const shellClass = [
+    "tdh-v6-shell",
+    ctx?.isEditing ? "tdh-v6-shell--editing" : "",
+    isMobileShell ? "tdh-v6-shell--mobile-tabs" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
     <div
-      className={`tdh-v6-shell${ctx?.isEditing ? " tdh-v6-shell--editing" : ""}`}
+      className={shellClass}
+      data-mobile-shell={isMobileShell ? "1" : undefined}
     >
       <StudioSidebar
         studio={studio}
         openJobCount={openJobs.length}
         canEditMedia={canEdit}
         onOpenSettings={canEdit ? () => setSettingsOpen(true) : undefined}
+        isMobileShell={isMobileShell}
+        isMobileShellActive
       />
 
       <div className="tdh-v6-center" id="cso-shell-panel-content">
-        <div className="tdh-v6-cover-mobile">
-          <TruongOrgCover
-            school={coverOwner}
-            layout="v6"
-            editable={editableMedia}
-          />
-        </div>
+        {!isMobileShell ? (
+          <div className="tdh-v6-cover-mobile">
+            <TruongOrgCover
+              school={coverOwner}
+              layout="v6"
+              editable={editableMedia}
+            />
+          </div>
+        ) : null}
 
         <div className="tdh-v6-tabs-bar">
           <div
@@ -237,12 +254,15 @@ function StudioDetailViewInner({
         })}
       </div>
 
-      <StudioJobsSidebar
-        jobs={openJobs}
-        orgSlug={studio.slug}
-        posts={baidang}
-        canManage={canEdit}
-      />
+      <OrgNotifyFab enabled={isMobileShell} count={notifyCount}>
+        <StudioJobsSidebar
+          jobs={openJobs}
+          orgSlug={studio.slug}
+          posts={baidang}
+          canManage={canEdit}
+          onUpcomingCountChange={setNotifyCount}
+        />
+      </OrgNotifyFab>
 
       {canEdit ? (
         <StudioPageSettingsModal

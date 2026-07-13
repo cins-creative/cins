@@ -1,0 +1,187 @@
+/* ── CINs frosted sticky chrome ─────────────────────────────────────
+ * Chuẩn tham chiếu: .tkh-hub-header / .j-tlb gallery.
+ * - Blur trên lớp kính (__glass / ::before), KHÔNG gắn lên sticky
+ *   (Chrome hay drop backdrop-filter → computed `none`).
+ * - 2 light streak đáy: mỏng 11s + dài ×3 / 30s.
+ * ─────────────────────────────────────────────────────────────────── */
+
+/* Glass — ::before (chỉ .j-tlb; listing/hub dùng lớp con) */
+.j-tlb::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--bg-page, #f4f5f8) 50%, transparent);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  backdrop-filter: blur(12px) saturate(1.4);
+  transform: translateZ(0);
+}
+
+/* Glass — lớp con (hub + listing toolbar) */
+.cins-frost-glass,
+.td-hub-header__glass,
+.tkh-hub-header__glass {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--bg-page, #f4f5f8) 50%, transparent);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  backdrop-filter: blur(12px) saturate(1.4);
+  border-bottom: 1px solid color-mix(in srgb, var(--border, #e4e6eb) 82%, transparent);
+  box-shadow: 0 6px 18px -14px rgba(15, 23, 42, 0.4);
+  transform: translateZ(0);
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .j-tlb::before,
+  .cins-frost-glass,
+  .td-hub-header__glass,
+  .tkh-hub-header__glass {
+    background: color-mix(in srgb, var(--bg-page, #f4f5f8) 88%, transparent);
+  }
+}
+
+/* Mesh nhẹ — listing toolbar (hub tự khai báo ::before riêng) */
+.tdh-list-toolbar::before,
+.cd-list-toolbar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.4;
+  background:
+    radial-gradient(ellipse 70% 120% at 0% -20%, rgba(31, 116, 201, 0.12), transparent 58%),
+    radial-gradient(ellipse 55% 90% at 100% 120%, rgba(31, 116, 201, 0.08), transparent 52%);
+}
+
+/* Nội dung nổi trên kính */
+.j-tlb > *:not(.j-tlb-streak-slow),
+.tdh-list-toolbar > *:not(.j-tlb-streak-slow):not(.cins-frost-glass),
+.cd-list-toolbar > *:not(.j-tlb-streak-slow):not(.cins-frost-glass) {
+  position: relative;
+  z-index: 1;
+}
+
+/* Streak mỏng — đáy bar */
+.j-tlb::after,
+.tdh-list-toolbar::after,
+.cd-list-toolbar::after,
+.td-hub-header::after,
+.tkh-hub-header::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: auto;
+  bottom: 0;
+  height: 2px;
+  z-index: 3;
+  pointer-events: none;
+  opacity: 1;
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    transparent 38%,
+    color-mix(in srgb, var(--cins-blue, #2563eb) 0%, transparent) 44%,
+    color-mix(in srgb, var(--cins-blue, #2563eb) 70%, transparent) 48%,
+    color-mix(in srgb, var(--cins-blue, #2563eb) 95%, #fff) 50%,
+    color-mix(in srgb, var(--cins-blue, #2563eb) 70%, transparent) 52%,
+    color-mix(in srgb, var(--cins-blue, #2563eb) 0%, transparent) 56%,
+    transparent 62%,
+    transparent 100%
+  );
+  background-size: 240% 100%;
+  background-repeat: no-repeat;
+  background-position: 120% 0;
+  background-color: transparent;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--cins-blue, #2563eb) 28%, transparent);
+  animation: j-tlb-lightstreak 11s ease-in-out infinite;
+}
+
+/* Streak dài ×3 — 30s */
+.j-tlb-streak-slow {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  z-index: 2;
+  pointer-events: none;
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    transparent 14%,
+    color-mix(in srgb, var(--cins-blue, #2563eb) 0%, transparent) 26%,
+    color-mix(in srgb, var(--cins-blue, #2563eb) 55%, transparent) 38%,
+    color-mix(in srgb, var(--cins-blue, #2563eb) 90%, #fff) 50%,
+    color-mix(in srgb, var(--cins-blue, #2563eb) 55%, transparent) 62%,
+    color-mix(in srgb, var(--cins-blue, #2563eb) 0%, transparent) 74%,
+    transparent 86%,
+    transparent 100%
+  );
+  background-size: 240% 100%;
+  background-repeat: no-repeat;
+  background-position: 120% 0;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--cins-blue, #2563eb) 22%, transparent);
+  animation: j-tlb-lightstreak-slow 30s ease-in-out infinite;
+}
+
+@keyframes j-tlb-lightstreak {
+  0%,
+  12% {
+    background-position: 120% 0;
+    opacity: 0;
+  }
+  22% {
+    opacity: 1;
+  }
+  58% {
+    opacity: 1;
+  }
+  70%,
+  100% {
+    background-position: -120% 0;
+    opacity: 0;
+  }
+}
+
+@keyframes j-tlb-lightstreak-slow {
+  0%,
+  8% {
+    background-position: 120% 0;
+    opacity: 0;
+  }
+  16% {
+    opacity: 0.9;
+  }
+  62% {
+    opacity: 0.9;
+  }
+  72%,
+  100% {
+    background-position: -120% 0;
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .j-tlb::after,
+  .tdh-list-toolbar::after,
+  .cd-list-toolbar::after,
+  .td-hub-header::after,
+  .tkh-hub-header::after {
+    animation: none;
+    background-position: 50% 0;
+    opacity: 0.45;
+    box-shadow: none;
+  }
+  .j-tlb-streak-slow {
+    animation: none;
+    background-position: 50% 0;
+    opacity: 0.35;
+    box-shadow: none;
+  }
+}

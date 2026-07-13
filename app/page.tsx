@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { GuestHomePage } from "@/components/cins/guest-home/GuestHomePage";
+import { GuestHomeThemeLight } from "@/components/cins/guest-home/GuestHomeThemeLight";
 import { CinsShell } from "@/components/cins/CinsShell";
 import { HomeWorldJourneyMain } from "@/components/cins/home-v2/HomeWorldJourneyMain";
 import { AuthGateRoot } from "@/components/auth/AuthGateProvider";
@@ -29,6 +30,7 @@ export default async function Home() {
 
   return (
     <CinsShell data-screen-label="Trang-chu" className="cins-shell--guest-home">
+      <GuestHomeThemeLight />
       <GuestHomePage />
     </CinsShell>
   );

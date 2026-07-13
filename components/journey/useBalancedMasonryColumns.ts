@@ -11,6 +11,8 @@ import {
 } from "@/lib/journey/masonry-pack";
 
 const FALLBACK_ASPECT = 16 / 9;
+/** Width giả định lúc SSR — phải khớp mọi lần render đầu (không đọc `window`). */
+const SSR_MASONRY_WIDTH = 1200;
 
 export function useBalancedMasonryColumns(
   items: readonly GalleryMainItem[],
@@ -20,10 +22,7 @@ export function useBalancedMasonryColumns(
 ) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [columnCount, setColumnCount] = useState(() =>
-    resolveMasonryColumnCount(
-      typeof window !== "undefined" ? window.innerWidth : 1200,
-      profile,
-    ),
+    resolveMasonryColumnCount(SSR_MASONRY_WIDTH, profile),
   );
 
   useEffect(() => {

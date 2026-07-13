@@ -7,6 +7,7 @@ import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEdit
 import { TruongYearSelect } from "@/components/truong/YearFilterProvider";
 import { defaultTruongNganhYear } from "@/lib/truong/diem-chuan";
 import {
+  countUpcomingTimelineSteps,
   getAdmissionTimelineFocus,
   timelineLinkHref,
   timelineLinkLabel,
@@ -28,6 +29,7 @@ type Props = {
   /** Fallback khi không có `TruongInlineEditProvider` (khách). */
   posts?: TruongBaiDang[];
   canManage?: boolean;
+  onUpcomingCountChange?: (count: number) => void;
 };
 
 type StepRole = "past" | "current" | "next" | "default";
@@ -108,6 +110,7 @@ export function StudioJobsSidebar({
   orgSlug,
   posts: postsProp = [],
   canManage = false,
+  onUpcomingCountChange,
 }: Props) {
   const ctx = useTruongInlineEdit();
   const isManaging = canManage && (ctx?.isEditing ?? false);
@@ -188,6 +191,10 @@ export function StudioJobsSidebar({
         : timelineSteps.filter((s) => !focus.pastIds.has(s.id)),
     [timelineSteps, focus.pastIds, showPastSteps],
   );
+
+  useEffect(() => {
+    onUpcomingCountChange?.(countUpcomingTimelineSteps(timelineSteps));
+  }, [timelineSteps, onUpcomingCountChange]);
 
   useEffect(() => {
     setShowPastSteps(false);

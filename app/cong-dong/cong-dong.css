@@ -768,14 +768,19 @@
 /* ── Listing /cong-dong ── */
 
 .cd-list-page {
-  max-width: 1080px;
-  margin: 0 auto;
-  padding: 20px 20px 56px;
+  --cd-list-content-max: 1080px;
+  --cd-list-page-pad: 20px;
+  position: relative;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0 0 56px;
+  min-height: calc(100dvh - var(--site-nav-height, 64px));
 }
 
 .cd-list-hero {
-  margin: 0 -20px 28px;
-  padding: 32px 20px 28px;
+  margin: 0 0 28px;
+  padding: 32px var(--cd-list-page-pad, 20px) 28px;
   background: linear-gradient(
     135deg,
     var(--cins-blue-soft, #e7f0fb) 0%,
@@ -856,10 +861,37 @@
 }
 
 .cd-list-toolbar {
-  margin-bottom: 22px;
+  position: sticky;
+  top: var(--site-nav-height, 64px);
+  z-index: 30;
+  width: 100%;
+  margin: 0 0 22px;
+  padding: 12px var(--cd-list-page-pad, 20px) 14px;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  /* Glass + mesh + streak: cins-frost-sticky.css (chuẩn tkh-hub-header) */
+  background: transparent;
+}
+
+.cd-list-toolbar-inner {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: var(--cd-list-content-max, 1080px);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cd-list-body {
+  width: 100%;
+  max-width: var(--cd-list-content-max, 1080px);
+  margin: 0 auto;
+  padding: 0 var(--cd-list-page-pad, 20px);
+  box-sizing: border-box;
 }
 
 .cd-list-toolbar-primary {
@@ -1256,8 +1288,10 @@
 }
 
 @media (max-width: 560px) {
+  /* Mobile: giữ 2 cột thay vì rớt về 1 cột. */
   .cd-list-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
   }
 }
 

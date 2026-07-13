@@ -6,6 +6,7 @@ export function JourneyTimelineSectionSkeleton() {
       aria-label="Đang tải timeline"
     >
       <div className="j-tlb">
+        <span className="j-tlb-streak-slow" aria-hidden="true" />
         <div className="j-skel j-skel-tl-year" />
         <div className="j-skel j-skel-tl-month" />
         <div className="j-skel j-skel-tl-filter" />

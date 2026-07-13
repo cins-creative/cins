@@ -4,6 +4,7 @@ import { ChevronDown, Circle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { OrgBaiDangViewToggle } from "@/components/truong/OrgBaiDangViewToggle";
+import { OrgNotifyFabHost } from "@/components/org/OrgNotifyFab";
 import type { CoSoFilterChip } from "@/lib/to-chuc/co-so-page-queries";
 import type { OrgBaiDangView } from "@/lib/truong/bai-dang-grid";
 
@@ -51,6 +52,7 @@ export function CoSoOrgNhanTimelineBar({
 
   return (
     <div className="j-tlb org-baidang-tlb">
+      <span className="j-tlb-streak-slow" aria-hidden="true" />
       <div className="j-tlb-year">{year ?? "—"}</div>
       <div className="j-tlb-month">{monthLabel ?? ""}</div>
       <div className="org-baidang-tlb-actions">
@@ -111,6 +113,7 @@ export function CoSoOrgNhanTimelineBar({
         {onViewChange ? (
           <OrgBaiDangViewToggle view={view} onViewChange={onViewChange} />
         ) : null}
+        <OrgNotifyFabHost />
       </div>
     </div>
   );

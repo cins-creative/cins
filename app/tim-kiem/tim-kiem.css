@@ -16,12 +16,13 @@
   margin: 0 0 28px;
   padding: 36px 0 32px;
   overflow: hidden;
-  background: linear-gradient(
-    135deg,
-    var(--cins-blue-soft) 0%,
-    #fff 52%,
-    var(--bg-page) 100%
-  );
+  background:
+    radial-gradient(
+      130% 120% at 88% -30%,
+      var(--cins-blue-soft) 0%,
+      transparent 58%
+    ),
+    linear-gradient(180deg, var(--bg-surface) 0%, var(--bg-page) 100%);
   border-bottom: 1px solid var(--border);
 }
 
@@ -29,7 +30,7 @@
   position: absolute;
   border-radius: 50%;
   pointer-events: none;
-  filter: blur(0);
+  filter: blur(36px);
 }
 
 .tk-hero-blob--yellow {
@@ -38,7 +39,7 @@
   top: -90px;
   right: 8%;
   background: var(--cins-yellow);
-  opacity: 0.45;
+  opacity: 0.32;
 }
 
 .tk-hero-blob--blue {
@@ -47,8 +48,27 @@
   bottom: -40px;
   left: 55%;
   background: var(--cins-mint);
-  opacity: 0.35;
+  opacity: 0.28;
   border-radius: 55% 45% 60% 40% / 50% 60% 40% 50%;
+}
+
+/* Dark: nền hero dịu lại, blob giảm cường độ để không chói trên nền tối */
+:root[data-theme="dark"] .tk-hero {
+  background:
+    radial-gradient(
+      130% 120% at 88% -30%,
+      color-mix(in srgb, var(--cins-blue) 22%, transparent) 0%,
+      transparent 60%
+    ),
+    linear-gradient(180deg, var(--bg-surface) 0%, var(--bg-page) 100%);
+}
+
+:root[data-theme="dark"] .tk-hero-blob--yellow {
+  opacity: 0.16;
+}
+
+:root[data-theme="dark"] .tk-hero-blob--blue {
+  opacity: 0.2;
 }
 
 .tk-hero-inner {
@@ -110,11 +130,12 @@
 }
 
 .tk-search-field {
-  flex: 1 1 280px;
+  flex: 1 1 240px;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 10px;
-  min-height: 48px;
+  height: 48px;
   padding: 0 16px;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -277,6 +298,11 @@
   background: #fef2f2;
   color: #b91c1c;
   font-size: 13px;
+}
+
+:root[data-theme="dark"] .tk-message--err {
+  background: rgba(239, 68, 68, 0.14);
+  color: #fca5a5;
 }
 
 /* ── Sections ── */
@@ -1468,6 +1494,18 @@
   height: 260px;
 }
 
+/* Dark: band shimmer sáng thay vì #eceef2 (chói) trên nền tối. */
+:root[data-theme="dark"] .tk-page--loading .tk-hero--skeleton,
+:root[data-theme="dark"] .tk-section--skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-surface) 0%,
+    color-mix(in srgb, var(--bg-surface) 60%, #ffffff) 50%,
+    var(--bg-surface) 100%
+  );
+  background-size: 200% 100%;
+}
+
 @keyframes tk-shimmer {
   0% {
     background-position: 200% 0;
@@ -1499,6 +1537,21 @@
   );
   background-size: 200% 100%;
   animation: tk-shimmer 1.2s ease-in-out infinite;
+}
+
+/* Dark: đế shimmer sáng nhẹ (rgba đen gần như tàng hình trên nền tối). */
+:root[data-theme="dark"] .tk-shimmer,
+:root[data-theme="dark"] .tk-skel-icon,
+:root[data-theme="dark"] .tk-skel-line,
+:root[data-theme="dark"] .tk-skel-card,
+:root[data-theme="dark"] .tk-skel-tab {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    var(--cins-blue-soft) 50%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
+  background-size: 200% 100%;
 }
 
 .tk-section--pending {
@@ -1612,6 +1665,13 @@
 
   .tk-search-form {
     flex-direction: column;
+    max-width: none;
+  }
+
+  /* Column: flex-basis map sang trục dọc → phải bỏ để field không cao 240px. */
+  .tk-search-field {
+    flex: 0 0 auto;
+    width: 100%;
   }
 
   .tk-search-submit {
@@ -1635,12 +1695,17 @@
   }
 
   .tk-grid--knowledge,
-  .tk-grid--orgs,
-  .tk-grid--people,
   .tk-grid--posts,
-  .tk-grid--courses,
   .tk-grid--jobs {
     grid-template-columns: 1fr;
+  }
+
+  /* Mobile: khóa học, tổ chức, người dùng đều 2 cột. */
+  .tk-grid--courses,
+  .tk-grid--orgs,
+  .tk-grid--people {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
   }
 
   .tk-section-head {

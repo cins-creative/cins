@@ -8,6 +8,7 @@
   /* ---------- ACCENT QUARTET (mascot palette) ---------- */
   --cins-yellow: #FDE859;  /* Artist mascot · sun · CTA energy */
   --cins-mint:   #6EFEC0;  /* Supporter mascot · success · refresh */
+  --cins-mint-dark: #1A7F57;  /* Mint đủ đậm để làm chữ trên nền sáng (giá, level…) */
   --cins-orange: #FDAD4C;  /* Brand orange · Manager mascot · warmth · highlight */
   --cins-violet: #BB89F8;  /* Technical Artist mascot · creativity */
 
@@ -138,6 +139,9 @@
   --cins-blue:      #4f9be8;
   --cins-blue-dark: #6fb0f0;
   --cins-blue-soft: rgba(79, 155, 232, 0.16);
+
+  /* Mint text sáng lên trên nền tối để đủ tương phản (giá khóa học, level…) */
+  --cins-mint-dark:   #4FD9A6;
 
   --cins-yellow-soft: rgba(253, 232, 89, 0.16);
   --cins-mint-soft:   rgba(110, 254, 192, 0.16);

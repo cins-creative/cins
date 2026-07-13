@@ -144,6 +144,14 @@
   transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
 }
 
+/* Khi donate render dạng <button> (chưa có link thật) — reset style nút. */
+button.gopy-link {
+  width: 100%;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
 .gopy-link:hover {
   transform: translateY(-2px);
 }
@@ -215,6 +223,67 @@
   .gopy-links {
     grid-template-columns: 1fr;
   }
+}
+
+/* ── Ghi chú cảm ơn khi bấm donate (chưa mở donate) ──────────────── */
+.gopy-donate-note {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: -6px 0 18px;
+  padding: 12px 36px 12px 14px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #fff1ec 0%, #ffe9ee 100%);
+  border: 1px solid #ffd0c4;
+  animation: gopy-note-in 0.2s ease;
+}
+
+@keyframes gopy-note-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.gopy-donate-note-ic {
+  display: inline-flex;
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: #ff4d6d;
+}
+
+.gopy-donate-note-txt {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #7a2233;
+}
+
+.gopy-donate-note-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: #b4526a;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.gopy-donate-note-close:hover {
+  background: rgba(255, 77, 109, 0.12);
+  color: #7a2233;
 }
 
 .gopy-form {

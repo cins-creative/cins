@@ -17,6 +17,7 @@ import "@/styles/article-rich-content.css";
    mới», thẻ tin, popup chi tiết/sửa). Trên trang v6 `.sec-hdr` bị ẩn mặc định,
    file này chứa override `.sec-hdr.studio-jobs-hdr` để hiện lại header + nút. */
 import "@/app/studio/[slug]/studio-page.css";
+import "@/app/org-notify-fab.css";
 import "./co-so-page.css";
 /* JourneyPostModal — load sau truong CSS để byline/BL thắng cascade. */
 import "@/app/[slug]/p/[postSlug]/post-page.css";

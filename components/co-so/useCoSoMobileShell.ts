@@ -2,17 +2,14 @@
 
 import { useEffect, useState } from "react";
 
-import {
-  CO_SO_MOBILE_SHELL_MQ,
-  type CoSoMobileShellTab,
-} from "@/lib/to-chuc/co-so-mobile-shell";
+import { CO_SO_MOBILE_SHELL_MQ } from "@/lib/to-chuc/co-so-mobile-shell";
 
-export function useCoSoMobileShell(defaultTab: CoSoMobileShellTab = "content") {
+/** Mobile shell (≤991.98px) — gộp Thông tin + Nội dung; Thông báo qua FAB. */
+export function useCoSoMobileShell() {
   const [isMobileShell, setIsMobileShell] = useState(() => {
     if (typeof window === "undefined") return false;
     return window.matchMedia(CO_SO_MOBILE_SHELL_MQ).matches;
   });
-  const [mobileTab, setMobileTab] = useState<CoSoMobileShellTab>(defaultTab);
 
   useEffect(() => {
     const mq = window.matchMedia(CO_SO_MOBILE_SHELL_MQ);
@@ -22,5 +19,5 @@ export function useCoSoMobileShell(defaultTab: CoSoMobileShellTab = "content") {
     return () => mq.removeEventListener("change", sync);
   }, []);
 
-  return { isMobileShell, mobileTab, setMobileTab };
+  return { isMobileShell };
 }

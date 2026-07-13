@@ -5,6 +5,7 @@ export type {
 export {
   aggregateTimelineForYear,
   getAdmissionTimelineFocus,
+  countUpcomingTimelineSteps,
   buildTuyenSinhTimelineSteps,
   buildTimelineStepsFromMoc,
   buildTimelineStepsFromMocDraft,

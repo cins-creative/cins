@@ -24,6 +24,7 @@ import {
   CalendarClock,
   Check,
   ClipboardPaste,
+  Crop,
   Columns2,
   Columns3,
   Globe,
@@ -165,6 +166,26 @@ import { readImageFileDimensions } from "@/lib/journey/probe-image-dimensions";
 import { videoCanvasRatioClass } from "@/lib/journey/video-canvas-ratio";
 import { bunnyIframeSrc, buildBunnyVideoMp4Url, buildBunnyVideoThumbnailUrl, classifyBunnyVideoUrl } from "@/lib/bunny/embed";
 import { EditorVideoThumbnailPicker } from "@/components/editor/EditorVideoThumbnailPicker";
+import { ImageCropModal } from "@/components/editor/ImageCropModal";
+
+/** MIME xuất ra sau khi cắt — giữ PNG/WebP có kênh alpha, còn lại về JPEG. */
+function cropOutputMime(inputType: string | undefined): string {
+  if (inputType === "image/png") return "image/png";
+  if (inputType === "image/webp") return "image/webp";
+  return "image/jpeg";
+}
+
+type CropTarget = {
+  src: string;
+  crossOrigin: boolean;
+  fileName: string;
+  mimeType: string;
+  title: string;
+  defaultAspect: number | null;
+  /** Object URL cần revoke khi đóng. */
+  revoke?: string;
+  onConfirm: (file: File) => void;
+};
 
 type ImageUploadTrack = {
   progress: number;
@@ -203,6 +224,12 @@ type BlockType =
   | "palette"
   | "divider"
   | "spacer";
+
+/**
+ * Type dùng cho picker "Chèn block" — gồm mọi `BlockType` cộng thêm các mục
+ * hành động không tạo block trực tiếp (vd `gphotos` mở trình chọn ảnh).
+ */
+type BlockInsertType = BlockType | "gphotos";
 
 type Block = {
   id: string;
@@ -440,10 +467,17 @@ function editorAlbumGridFromBlocks(
 }
 
 const BLOCK_TYPES: Array<{
-  t: BlockType;
+  t: BlockInsertType;
   ico: string;
   name: string;
   desc: string;
+  /** Ảnh icon (thay cho glyph `ico`) — vd logo Google Photos. */
+  icoSrc?: string;
+  /**
+   * Chỉ hiện trên thiết bị cảm ứng (điện thoại/tablet). Vd "Google Photos" —
+   * trên desktop hộp chọn file chỉ mở thư mục nên nút này vô nghĩa, ẩn đi.
+   */
+  mobileOnly?: boolean;
 }> = [
   { t: "h2", ico: "H₂", name: "Tiêu đề lớn", desc: "Heading section" },
   { t: "h3", ico: "H₃", name: "Tiêu đề nhỏ", desc: "Sub-heading" },
@@ -451,7 +485,14 @@ const BLOCK_TYPES: Array<{
   { t: "quote", ico: "❝", name: "Trích dẫn", desc: "Pull-quote nổi bật" },
   { t: "imgs", ico: "▥", name: "Ảnh / Album", desc: "Đổi được layout" },
   { t: "embed", ico: "▶", name: "Nhúng", desc: "YouTube · Vimeo · Figma · Sketchfab · Rive" },
-  { t: "palette", ico: "◐", name: "Bảng màu", desc: "Rút từ ảnh" },
+  {
+    t: "gphotos",
+    ico: "☁",
+    icoSrc: "/assets/google-photos.png",
+    name: "Google Photos",
+    desc: "Chọn ảnh từ điện thoại",
+    mobileOnly: true,
+  },
   { t: "divider", ico: "—", name: "Ngăn cách", desc: "Divider" },
   { t: "spacer", ico: "↕", name: "Khoảng trống", desc: "Thêm khoảng cách" },
 ];
@@ -882,6 +923,7 @@ export function EditorView({
     }
     return sanitizeBaiDangCoverIdInput(initial?.coverSeed ?? null, initial?.blocks);
   });
+  const [cropTarget, setCropTarget] = useState<CropTarget | null>(null);
   const showMinimalToolbar = useMemo(
     () =>
       usesMinimalFlow &&
@@ -989,6 +1031,9 @@ export function EditorView({
   const imageFileInputRef = useRef<HTMLInputElement | null>(null);
   const minimalAlbumInputRef = useRef<HTMLInputElement | null>(null);
   const minimalVideoInputRef = useRef<HTMLInputElement | null>(null);
+  /** Trình chọn ảnh cho mục "Google Photos" — nhớ vị trí chèn khi mở. */
+  const gphotosInputRef = useRef<HTMLInputElement | null>(null);
+  const gphotosInsertIdxRef = useRef<number | null>(null);
   const minimalCoverInputRef = useRef<HTMLInputElement | null>(null);
   const initialPhotosStartedRef = useRef(false);
   const initialVideoStartedRef = useRef(false);
@@ -1312,6 +1357,45 @@ export function EditorView({
     [beginImageUpload, replaceImageSeed],
   );
 
+  const closeCrop = useCallback(() => {
+    setCropTarget((prev) => {
+      if (prev?.revoke) URL.revokeObjectURL(prev.revoke);
+      return null;
+    });
+  }, []);
+
+  /** Mở trình cắt cho ảnh thumbnail mới (mặc định 16:9, cho cắt tự do). */
+  const openThumbnailCrop = useCallback(
+    (file: File, onCropped: (file: File) => void) => {
+      if (!isAllowedUploadImageFile(file)) {
+        setToast("Chọn ảnh JPEG, PNG, WebP hoặc GIF.");
+        return;
+      }
+      const url = URL.createObjectURL(file);
+      setCropTarget({
+        src: url,
+        crossOrigin: false,
+        revoke: url,
+        fileName: file.name || "thumbnail",
+        mimeType: cropOutputMime(file.type),
+        title: "Cắt ảnh thumbnail",
+        defaultAspect: 16 / 9,
+        onConfirm: onCropped,
+      });
+    },
+    [],
+  );
+
+  const applyThumbnailFileWithCrop = useCallback(
+    (file: File) => {
+      openThumbnailCrop(file, (cropped) => {
+        setMinimalCoverVisible(true);
+        beginImageUpload(cropped, setCoverSeed, replaceImageSeed);
+      });
+    },
+    [openThumbnailCrop, beginImageUpload, replaceImageSeed],
+  );
+
   const videoScrubSrc = useMemo(() => {
     if (localVideoPreviewUrl) return localVideoPreviewUrl;
     const resolvedVideoId =
@@ -1414,6 +1498,38 @@ export function EditorView({
       );
     },
     [pushHistory],
+  );
+
+  /** Cắt ảnh sẵn có trong block ảnh — upload bản đã cắt thay vào đúng ô. */
+  const cropImgPicker = useCallback(
+    (blockId: string, slot: number) => {
+      const block = blocksRef.current.find((b) => b.id === blockId);
+      if (!block || block.t !== "imgs") return;
+      const seed = block.imgs?.[slot];
+      if (!seed || isEditorEmptyImageSeed(seed)) return;
+      const isTemp = isTemporaryImageRef(seed);
+      const src = isTemp ? seed : resolveImageSeedUrl(seed, 1600, 1600);
+      if (!src) {
+        setToast("Không tải được ảnh để cắt.");
+        return;
+      }
+      setCropTarget({
+        src,
+        crossOrigin: !isTemp,
+        fileName: "anh-block",
+        mimeType: "image/jpeg",
+        title: "Cắt ảnh",
+        defaultAspect: null,
+        onConfirm: (file) => {
+          beginImageUpload(
+            file,
+            (newSeed) => applyImageToBlock({ blockId, slot }, newSeed),
+            replaceImageSeed,
+          );
+        },
+      });
+    },
+    [applyImageToBlock, beginImageUpload, replaceImageSeed],
   );
 
   const clearImagePick = useCallback(() => {
@@ -1672,7 +1788,26 @@ export function EditorView({
   const canAddMoreSessions = usesMinimalFlow && editorExpanded;
 
   const pickBlockAt = useCallback(
-    (type: BlockType, idx: number) => {
+    (type: BlockInsertType, idx: number) => {
+      if (type === "gphotos") {
+        if (isExternalEmbedCompose) {
+          setToast(
+            "Bài nhúng chỉ gồm tiêu đề, mô tả, thumbnail và link embed.",
+          );
+          return;
+        }
+        if (hasBunnyVideoBlock && !hasPhotoBlocks) {
+          setToast("Không thể thêm album khi đã có video.");
+          return;
+        }
+        setOpenAddIdx(null);
+        if (!isInsertIndexAdjacentToAlbumRun(blocksRef.current, idx)) {
+          setMinimalRichBlocks(true);
+        }
+        gphotosInsertIdxRef.current = idx;
+        gphotosInputRef.current?.click();
+        return;
+      }
       if (isExternalEmbedCompose) {
         setToast("Bài nhúng chỉ gồm tiêu đề, mô tả, thumbnail và link embed.");
         return;
@@ -1765,6 +1900,40 @@ export function EditorView({
       seedPhotoFiles(files);
     },
     [hasBunnyVideoBlock, isExternalEmbedCompose, seedPhotoFiles, setToast],
+  );
+
+  /**
+   * Mục "Google Photos" — mở trình chọn ảnh của thiết bị (trên điện thoại
+   * thường có sẵn nguồn Google Photos), chèn các ảnh đã chọn thành album tại
+   * đúng vị trí bấm `+`. Ảnh vẫn đi qua pipeline upload Cloudflare như thường.
+   */
+  const onGooglePhotosPick = useCallback(
+    (e: ChangeEvent<HTMLInputElement>) => {
+      const files = e.target.files ? Array.from(e.target.files) : [];
+      e.target.value = "";
+      const insertIdx = gphotosInsertIdxRef.current;
+      gphotosInsertIdxRef.current = null;
+      if (files.length === 0) return;
+      if (isExternalEmbedCompose) {
+        setToast("Bài nhúng không thêm album ảnh.");
+        return;
+      }
+      if (hasBunnyVideoBlock && !hasPhotoBlocks) {
+        setToast("Không thể thêm album khi đã có video.");
+        return;
+      }
+      setEditorExpanded(true);
+      const at =
+        typeof insertIdx === "number" ? insertIdx : blocksRef.current.length;
+      seedPhotoFilesAt(at, files);
+    },
+    [
+      hasBunnyVideoBlock,
+      hasPhotoBlocks,
+      isExternalEmbedCompose,
+      seedPhotoFilesAt,
+      setToast,
+    ],
   );
 
   const onMinimalVideoPick = useCallback(
@@ -2690,7 +2859,11 @@ export function EditorView({
               setCoverSeed(null);
               setMinimalCoverVisible(false);
             }}
-            onUploadFile={beginImageUpload}
+            onUploadFile={(file, onPick, onResolved) =>
+              openThumbnailCrop(file, (cropped) =>
+                beginImageUpload(cropped, onPick, onResolved),
+              )
+            }
           />
         ) : null}
 
@@ -2742,10 +2915,7 @@ export function EditorView({
                       tabIndex={-1}
                       onChange={(e) => {
                         const f = e.target.files?.[0];
-                        if (f) {
-                          setMinimalCoverVisible(true);
-                          beginImageUpload(f, setCoverSeed, replaceImageSeed);
-                        }
+                        if (f) applyThumbnailFileWithCrop(f);
                         e.target.value = "";
                       }}
                     />
@@ -2794,7 +2964,7 @@ export function EditorView({
                 disabled={videoUploading}
                 disabledHint={videoThumbDisabledHint}
                 onCaptureFrame={applyMinimalCoverFile}
-                onUploadImage={applyMinimalCoverFile}
+                onUploadImage={applyThumbnailFileWithCrop}
                 onError={(message) => setToast(message)}
               />
             ) : null}
@@ -2825,10 +2995,7 @@ export function EditorView({
                 tabIndex={-1}
                 onChange={(e) => {
                   const f = e.target.files?.[0];
-                  if (f) {
-                    setMinimalCoverVisible(true);
-                    beginImageUpload(f, setCoverSeed, replaceImageSeed);
-                  }
+                  if (f) applyThumbnailFileWithCrop(f);
                   e.target.value = "";
                 }}
               />
@@ -2996,6 +3163,7 @@ export function EditorView({
                       onToggleRound={() => toggleRound(b.id)}
                       onPickImage={(slot) => openImgPicker(b.id, slot)}
                       onPasteImage={(slot) => pasteImgPicker(b.id, slot)}
+                    onCropImage={(slot) => cropImgPicker(b.id, slot)}
                       onChangeCap={(cap) => updateBlock(b.id, { cap })}
                       onChangeEmbedUrl={(u) => updateBlock(b.id, { embedUrl: u })}
                       onChangeDividerLen={(dividerLen) =>
@@ -3067,6 +3235,7 @@ export function EditorView({
                     onToggleRound={() => toggleRound(b.id)}
                     onPickImage={(slot) => openImgPicker(b.id, slot)}
                     onPasteImage={(slot) => pasteImgPicker(b.id, slot)}
+                    onCropImage={(slot) => cropImgPicker(b.id, slot)}
                     onChangeCap={(cap) => updateBlock(b.id, { cap })}
                     onChangeEmbedUrl={(u) => updateBlock(b.id, { embedUrl: u })}
                     onChangeDividerLen={(dividerLen) =>
@@ -3147,6 +3316,16 @@ export function EditorView({
         onChange={onMinimalAlbumPick}
       />
       <input
+        ref={gphotosInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        multiple
+        style={{ display: "none" }}
+        aria-hidden
+        tabIndex={-1}
+        onChange={onGooglePhotosPick}
+      />
+      <input
         ref={minimalVideoInputRef}
         type="file"
         accept="video/*"
@@ -3157,6 +3336,23 @@ export function EditorView({
       />
 
       {toast ? <div className="ed-toast">{toast}</div> : null}
+
+      {cropTarget ? (
+        <ImageCropModal
+          src={cropTarget.src}
+          crossOrigin={cropTarget.crossOrigin}
+          fileName={cropTarget.fileName}
+          mimeType={cropTarget.mimeType}
+          title={cropTarget.title}
+          defaultAspect={cropTarget.defaultAspect}
+          onCancel={closeCrop}
+          onConfirm={(file) => {
+            const cb = cropTarget.onConfirm;
+            closeCrop();
+            cb(file);
+          }}
+        />
+      ) : null}
     </div>
   );
 }
@@ -3415,15 +3611,35 @@ function CoverArea({
 const PICKER_MAX_W = 420;
 const PICKER_EST_H = 280;
 
+/**
+ * `true` khi thiết bị dùng con trỏ cảm ứng (điện thoại/tablet) — nơi hộp chọn
+ * ảnh của HĐH có sẵn nguồn Google Photos. Mặc định `false` (desktop) để tránh
+ * lệch hydrate; cập nhật sau khi mount.
+ */
+function useIsCoarsePointer(): boolean {
+  const [coarse, setCoarse] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mq = window.matchMedia("(pointer: coarse)");
+    setCoarse(mq.matches);
+    const onChange = (e: MediaQueryListEvent) => setCoarse(e.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+  return coarse;
+}
+
 function BlockInsertPicker({
   onPick,
   style,
   pickerRef,
 }: {
-  onPick: (t: BlockType) => void;
+  onPick: (t: BlockInsertType) => void;
   style?: React.CSSProperties;
   pickerRef?: React.RefObject<HTMLDivElement | null>;
 }) {
+  const isTouch = useIsCoarsePointer();
+  const entries = BLOCK_TYPES.filter((b) => !b.mobileOnly || isTouch);
   return (
     <div
       ref={pickerRef}
@@ -3434,7 +3650,7 @@ function BlockInsertPicker({
     >
       <div className="picker-lbl">Chèn block</div>
       <div className="picker-grid">
-        {BLOCK_TYPES.map((b) => (
+        {entries.map((b) => (
           <button
             key={b.t}
             type="button"
@@ -3443,7 +3659,18 @@ function BlockInsertPicker({
             onClick={() => onPick(b.t)}
           >
             <span className="pic-ic" aria-hidden>
-              {b.ico}
+              {b.icoSrc ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={b.icoSrc}
+                  alt=""
+                  width={22}
+                  height={22}
+                  style={{ display: "block", objectFit: "contain" }}
+                />
+              ) : (
+                b.ico
+              )}
             </span>
             <span className="pic-t">{b.name}</span>
           </button>
@@ -3463,7 +3690,7 @@ function AddZone({
   idx: number;
   open: boolean;
   onToggle: (next: boolean) => void;
-  onPick: (t: BlockType) => void;
+  onPick: (t: BlockInsertType) => void;
   /** Khi `true` → AddZone hiển thị to + xanh nổi bật (state khởi đầu). */
   starter?: boolean;
   /** Compose overlay — portal picker, neo theo nút `+` (tránh clip + lệch vị trí). */
@@ -3721,6 +3948,7 @@ type BlockRowProps = {
   onToggleRound: () => void;
   onPickImage: (slot: number) => void;
   onPasteImage: (slot: number) => void;
+  onCropImage: (slot: number) => void;
   onChangeCap: (c: string) => void;
   onChangeEmbedUrl: (u: string) => void;
   onChangeDividerLen: (len: number) => void;
@@ -3741,11 +3969,14 @@ type BlockRowProps = {
 function PhImageActions({
   onPick,
   onPaste,
+  onCrop,
   pickLabel = "Đổi ảnh",
   pasteLabel = "Dán ảnh",
 }: {
   onPick: () => void;
   onPaste: () => void;
+  /** Chỉ có khi ô đang có ảnh — cho cắt lại ảnh hiện tại. */
+  onCrop?: () => void;
   pickLabel?: string;
   pasteLabel?: string;
 }) {
@@ -3773,6 +4004,19 @@ function PhImageActions({
         <ClipboardPaste size={14} strokeWidth={1.8} aria-hidden />
         {pasteLabel}
       </button>
+      {onCrop ? (
+        <button
+          type="button"
+          className="ph-change ph-crop"
+          onClick={(e) => {
+            e.stopPropagation();
+            onCrop();
+          }}
+        >
+          <Crop size={14} strokeWidth={1.8} aria-hidden />
+          Cắt ảnh
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -4342,6 +4586,7 @@ function ImageBlock({ block, p }: { block: Block; p: BlockRowProps }) {
             <PhImageActions
               onPick={() => p.onPickImage(i)}
               onPaste={() => p.onPasteImage(i)}
+              onCrop={isEmpty ? undefined : () => p.onCropImage(i)}
             />
           </div>
           );

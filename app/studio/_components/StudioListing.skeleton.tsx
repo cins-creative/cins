@@ -7,6 +7,8 @@ export function StudioListingSkeleton() {
     >
       <div className="tdh-list">
         <div className="tdh-list-toolbar">
+          <div className="cins-frost-glass" aria-hidden="true" />
+          <span className="j-tlb-streak-slow" aria-hidden="true" />
           <div className="tdh-list-toolbar-inner">
             <div className="tdh-skel tdh-skel-pills" />
             <div className="tdh-skel tdh-skel-search" />

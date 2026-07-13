@@ -24,6 +24,7 @@ import { formatTimelineDate, getStepStatus } from "@/lib/truong/timeline";
 import { mocDateSortKey } from "@/lib/truong/timeline-moc";
 import {
   buildTimelineStepsFromMocDraft,
+  countUpcomingTimelineSteps,
   emptyTimelineMoc,
   getAdmissionTimelineFocus,
   mocMatchesCalendarYear,
@@ -40,6 +41,7 @@ type Props = {
   orgId: string;
   orgTinhThanh?: string | null;
   canManage?: boolean;
+  onUpcomingCountChange?: (count: number) => void;
 };
 
 type StepRole = "past" | "current" | "next" | "default";
@@ -225,6 +227,7 @@ export function CongDongNotifySidebar({
   orgId,
   orgTinhThanh = null,
   canManage = false,
+  onUpcomingCountChange,
 }: Props) {
   const [suKienList, setSuKienList] = useState<SuKienCardData[]>([]);
   const [timelineMoc, setTimelineMoc] = useState<TuyenSinhTimelineMoc[]>([]);
@@ -362,6 +365,10 @@ export function CongDongNotifySidebar({
         : timelineSteps.filter((s) => !focus.pastIds.has(s.id)),
     [timelineSteps, focus.pastIds, showPastSteps],
   );
+
+  useEffect(() => {
+    onUpcomingCountChange?.(countUpcomingTimelineSteps(timelineSteps));
+  }, [timelineSteps, onUpcomingCountChange]);
 
   function stepRole(step: TuyenSinhTimelineStep): StepRole {
     if (focus.pastIds.has(step.id)) return "past";

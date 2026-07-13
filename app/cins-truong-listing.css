@@ -181,9 +181,10 @@
   position: sticky;
   top: var(--site-nav-height, 56px);
   z-index: 40;
-  background: color-mix(in srgb, var(--bg-page) 92%, transparent);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--border);
+  /* Glass + mesh + streak: cins-frost-sticky.css (chuẩn tkh-hub-header) */
+  background: transparent;
+  border-bottom: none;
+  box-shadow: none;
 }
 
 .tdh-page .tdh-list-toolbar-inner {
@@ -257,25 +258,25 @@
 }
 
 .tdh-page .tdh-list-mine-chip.is-active {
-  background: color-mix(in srgb, var(--cins-blue-soft, #e8f1fb) 80%, #fff);
+  background: var(--cins-blue-soft);
   border-color: color-mix(in srgb, var(--cins-blue) 45%, var(--border-strong));
-  color: var(--cins-blue);
+  color: var(--cins-blue-dark);
 }
 
 .tdh-page .tdh-list-mine-chip-count {
   min-width: 18px;
   padding: 1px 6px;
   border-radius: 999px;
-  background: var(--bg-muted, #eef1f5);
-  color: var(--ink-muted, rgba(0, 0, 0, 0.55));
+  background: var(--neutral-100);
+  color: var(--ink-body);
   font-size: 11px;
   font-weight: 700;
   text-align: center;
 }
 
 .tdh-page .tdh-list-mine-chip.is-active .tdh-list-mine-chip-count {
-  background: color-mix(in srgb, var(--cins-blue) 14%, #fff);
-  color: var(--cins-blue);
+  background: color-mix(in srgb, var(--cins-blue) 20%, var(--bg-surface));
+  color: var(--cins-blue-dark);
 }
 
 .tdh-page .tdh-list-search {
@@ -374,7 +375,7 @@
 }
 
 .tdh-page .tdh-card-cover-bg--photo {
-  background: var(--surface-2);
+  background: var(--neutral-100);
 }
 
 .tdh-page .tdh-card-cover-photo {
@@ -530,7 +531,7 @@
   font-size: 12px;
   font-weight: 500;
   line-height: 1.35;
-  color: var(--ink3, rgba(0, 0, 0, 0.54));
+  color: var(--ink-body);
   text-wrap: pretty;
 }
 
@@ -545,7 +546,7 @@
   padding: 2px 8px;
   border-radius: var(--radius-pill);
   background: var(--cins-mint-soft);
-  color: var(--cins-mint-deep);
+  color: var(--cins-mint-dark);
 }
 
 .tdh-page .tdh-card-meta {
@@ -749,7 +750,7 @@
 }
 
 .tdh-page .tdh-coso-cover-bg--photo {
-  background: var(--surface-2);
+  background: var(--neutral-100);
 }
 
 .tdh-page .tdh-coso-cover-pattern {
@@ -875,7 +876,7 @@
   margin-top: 8px;
   font-size: 11px;
   font-weight: 600;
-  color: #0c7a4f;
+  color: var(--cins-mint-dark);
   background: var(--cins-mint-soft, #d9fbed);
   padding: 4px 10px;
   border-radius: var(--radius-pill);
@@ -999,12 +1000,156 @@
     min-width: 0;
   }
 
+  /* Mobile: giữ 2 cột (không rớt về 1 cột). */
   .tdh-page .tdh-list-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
   }
 
   .tdh-page .tdh-list-stat-value {
     font-size: 32px;
+  }
+}
+
+/* ── Mobile: card listing gọn (2 cột) — không xếp dọc căn giữa ── */
+@media (max-width: 520px) {
+  .tdh-page .tdh-card--listing {
+    border-radius: var(--radius-md, 14px);
+  }
+
+  .tdh-page .tdh-card--listing .tdh-card-cover {
+    height: 72px;
+  }
+
+  .tdh-page .tdh-card--listing .tdh-card-body {
+    padding: 6px 10px 10px;
+  }
+
+  .tdh-page .tdh-card--listing .tdh-card-head {
+    flex-direction: row;
+    align-items: flex-start;
+    text-align: left;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .tdh-page .tdh-card--listing .tdh-card-avatar {
+    width: 40px;
+    height: 40px;
+    margin-top: -22px;
+    border-radius: 10px;
+    border-width: 2px;
+  }
+
+  .tdh-page .tdh-card--listing .tdh-card-head-text {
+    width: auto;
+    padding-top: 2px;
+  }
+
+  .tdh-page .tdh-card--listing .tdh-card-name {
+    font-size: 12.5px;
+    line-height: 1.25;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+  }
+
+  /* Tên EN chiếm chiều cao lớn trên cột hẹp — ẩn trên mobile */
+  .tdh-page .tdh-card--listing .tdh-card-en {
+    display: none;
+  }
+
+  .tdh-page .tdh-card--listing .tdh-card-head-tags {
+    justify-content: flex-start;
+    gap: 4px;
+    margin-top: 4px;
+  }
+
+  .tdh-page .tdh-card--listing .tdh-card-code,
+  .tdh-page .tdh-card--listing .tdh-card-type {
+    font-size: 9.5px;
+    padding: 2px 6px;
+  }
+
+  .tdh-page .tdh-card--listing .tdh-card-locbar {
+    justify-content: flex-start;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+
+  .tdh-page .tdh-card--listing .tdh-card-loc {
+    font-size: 10px;
+  }
+
+  .tdh-page .tdh-card--listing .tdh-card-branch {
+    font-size: 9.5px;
+    padding: 2px 6px;
+  }
+
+  .tdh-page .tdh-card--listing .tdh-card-foot {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    padding-top: 8px;
+    text-align: left;
+  }
+
+  .tdh-page .tdh-card--listing .tdh-card-foot > div {
+    display: block;
+  }
+
+  .tdh-page .tdh-card--listing .tdh-card-stat-num {
+    font-size: 16px;
+  }
+
+  .tdh-page .tdh-card--listing .tdh-card-stat-label {
+    font-size: 9px;
+    margin-top: 2px;
+  }
+
+  .tdh-page .tdh-card--listing .tdh-card-arrow {
+    width: 28px;
+    height: 28px;
+  }
+
+  .tdh-page .tdh-card--listing .tdh-card-arrow svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  /* Studio / cơ sở: vẫn căn giữa nhẹ, nhưng không xếp foot dọc */
+  .tdh-page .tdh-coso-head {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 8px;
+  }
+
+  .tdh-page .tdh-coso-head-text {
+    width: 100%;
+    padding-top: 0;
+  }
+
+  .tdh-page .tdh-coso-title-block {
+    align-items: center;
+  }
+
+  .tdh-page .tdh-coso-meta {
+    justify-content: center;
+  }
+
+  .tdh-page .tdh-coso-desc {
+    text-align: center;
+  }
+
+  .tdh-page .tdh-coso-foot {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    text-align: left;
   }
 }
 

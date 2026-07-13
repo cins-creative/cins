@@ -418,6 +418,7 @@ export function JourneyTimelineBar({
 
   return (
     <div className="j-tlb">
+      <span className="j-tlb-streak-slow" aria-hidden="true" />
       <div className="j-tlb-year">{year}</div>
       <div
         className="j-tlb-month"

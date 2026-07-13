@@ -64,6 +64,7 @@ export function CoAuthorPositionPicker({
           onChange={setSearch}
           options={options}
           onSelect={(option) => addPosition(option.roleLabel)}
+          onAddCustom={(label) => addPosition(label)}
           ariaLabel="Chọn vị trí công việc của bạn"
           placeholder="Tìm vị trí công việc của bạn"
         />

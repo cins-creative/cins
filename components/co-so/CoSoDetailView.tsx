@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import { CoSoAdminToolbar } from "@/components/co-so/CoSoAdminToolbar";
-import { CoSoMobileShellNav } from "@/components/co-so/CoSoMobileShellNav";
 import { useCoSoMobileShell } from "@/components/co-so/useCoSoMobileShell";
 import {
   CoSoPageSettingsModal,
@@ -19,6 +18,7 @@ import {
   CoSoTabTuyenDungLazy,
   prefetchCoSoTab,
 } from "@/components/org/org-tab-lazy-views";
+import { OrgNotifyFab } from "@/components/org/OrgNotifyFab";
 import { TruongOrgCover } from "@/components/truong/TruongOrgCover";
 import {
   TruongInlineEditProvider,
@@ -113,7 +113,8 @@ function CoSoDetailViewInner({
     () => new Set([tab]),
   );
   const editableMedia = canEdit && Boolean(ctx?.canEdit);
-  const { isMobileShell, mobileTab, setMobileTab } = useCoSoMobileShell("content");
+  const { isMobileShell } = useCoSoMobileShell();
+  const [notifyCount, setNotifyCount] = useState(0);
 
   const activeJobCount = useMemo(() => countActiveStudioJobs(jobs), [jobs]);
 
@@ -225,11 +226,8 @@ function CoSoDetailViewInner({
     <>
       <div
         className={shellClass}
-        data-mobile-tab={isMobileShell ? mobileTab : undefined}
+        data-mobile-shell={isMobileShell ? "1" : undefined}
       >
-      {isMobileShell ? (
-        <CoSoMobileShellNav value={mobileTab} onChange={setMobileTab} />
-      ) : null}
       <CoSoSchoolSidebar
         school={school}
         daVerify={daVerify}
@@ -237,17 +235,10 @@ function CoSoDetailViewInner({
         canEditMedia={canEdit}
         onOpenSettings={onOpenSettings}
         isMobileShell={isMobileShell}
-        isMobileShellActive={mobileTab === "info"}
+        isMobileShellActive
       />
 
-      <div
-        className="tdh-v6-center"
-        id="cso-shell-panel-content"
-        role={isMobileShell ? "tabpanel" : undefined}
-        aria-labelledby={isMobileShell ? "cso-shell-tab-content" : undefined}
-        hidden={isMobileShell ? mobileTab !== "content" : undefined}
-        aria-hidden={isMobileShell ? mobileTab !== "content" : undefined}
-      >
+      <div className="tdh-v6-center">
         {!isMobileShell ? (
           <div className="tdh-v6-cover-mobile">
             <TruongOrgCover
@@ -383,15 +374,18 @@ function CoSoDetailViewInner({
         })}
       </div>
 
-      <CoSoUpcomingSidebar
-        orgId={school.id}
-        orgSlug={orgSlug}
-        orgDiaChi={school.dia_chi}
-        orgTinhThanh={school.tinh_thanh}
-        canManageKhoaHoc={canManageKhoaHoc}
-        isMobileShell={isMobileShell}
-        isMobileShellActive={mobileTab === "notify"}
-      />
+      <OrgNotifyFab enabled={isMobileShell} count={notifyCount}>
+        <CoSoUpcomingSidebar
+          orgId={school.id}
+          orgSlug={orgSlug}
+          orgDiaChi={school.dia_chi}
+          orgTinhThanh={school.tinh_thanh}
+          canManageKhoaHoc={canManageKhoaHoc}
+          isMobileShell={isMobileShell}
+          isMobileShellActive
+          onUpcomingCountChange={setNotifyCount}
+        />
+      </OrgNotifyFab>
       </div>
 
       {canEdit && onSettingsOpenChange ? (

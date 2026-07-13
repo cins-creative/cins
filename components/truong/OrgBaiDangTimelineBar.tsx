@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { OrgBaiDangCustomFilterMenuSection } from "@/components/truong/OrgBaiDangCustomFilterMenuSection";
 import { OrgBaiDangViewToggle } from "@/components/truong/OrgBaiDangViewToggle";
 import { useOrgBaiDangFilterOptional } from "@/components/truong/OrgBaiDangFilterContext";
+import { OrgNotifyFabHost } from "@/components/org/OrgNotifyFab";
 import { BAI_DANG_LOAI_LABELS } from "@/lib/truong/bai-dang";
 import type { OrgBaiDangView } from "@/lib/truong/bai-dang-grid";
 import {
@@ -73,6 +74,7 @@ export function OrgBaiDangTimelineBar({
 
   return (
     <div className="j-tlb org-baidang-tlb">
+      <span className="j-tlb-streak-slow" aria-hidden="true" />
       <div className="j-tlb-year">{year ?? "—"}</div>
       <div className="j-tlb-month">{monthLabel ?? ""}</div>
       <div className="org-baidang-tlb-actions">
@@ -119,6 +121,7 @@ export function OrgBaiDangTimelineBar({
         {onViewChange ? (
           <OrgBaiDangViewToggle view={view} onViewChange={onViewChange} />
         ) : null}
+        <OrgNotifyFabHost />
       </div>
     </div>
   );

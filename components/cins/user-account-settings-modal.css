@@ -418,6 +418,9 @@
   gap: 12px;
   padding: 14px 20px;
   border-top: 1px solid var(--border, #e4e6eb);
+  background: var(--bg-surface, #fff);
+  color: var(--ink-body, rgba(0, 0, 0, 0.55));
+  margin-top: 0;
 }
 
 .uas-saved {

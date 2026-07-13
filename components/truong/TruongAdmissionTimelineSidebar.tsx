@@ -13,6 +13,7 @@ import {
   buildTimelineStepsFromMocDraft,
   buildTuyenSinhTimelineStepsForCalendarYear,
   collectTimelineCalendarYears,
+  countUpcomingTimelineSteps,
   mocMatchesCalendarYear,
   emptyTimelineMoc,
   getAdmissionTimelineFocus,
@@ -116,9 +117,11 @@ function TimelineStepItem({
 export function TruongAdmissionTimelineSidebar({
   isMobileShell = false,
   isMobileShellActive = false,
+  onUpcomingCountChange,
 }: {
   isMobileShell?: boolean;
   isMobileShellActive?: boolean;
+  onUpcomingCountChange?: (count: number) => void;
 } = {}) {
   const ctx = useTruongInlineEdit();
   const tuyenSinh = ctx?.tuyenSinh ?? [];
@@ -214,6 +217,10 @@ export function TruongAdmissionTimelineSidebar({
         : timelineSteps.filter((s) => !focus.pastIds.has(s.id)),
     [timelineSteps, focus.pastIds, showPastSteps],
   );
+
+  useEffect(() => {
+    onUpcomingCountChange?.(countUpcomingTimelineSteps(timelineSteps));
+  }, [timelineSteps, onUpcomingCountChange]);
 
   const modalMoc = useMemo(() => {
     if (!mocModal) return null;

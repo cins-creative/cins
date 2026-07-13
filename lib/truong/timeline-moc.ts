@@ -396,6 +396,14 @@ export function getAdmissionTimelineFocus(steps: TuyenSinhTimelineStep[]): {
   return { pastIds, currentId: null, nextId: firstUpcoming?.id ?? null };
 }
 
+/** Số mốc chưa qua (= visibleSteps khi ẩn mốc đã qua) — dùng badge FAB Thông báo. */
+export function countUpcomingTimelineSteps(
+  steps: TuyenSinhTimelineStep[],
+): number {
+  const { pastIds } = getAdmissionTimelineFocus(steps);
+  return steps.filter((s) => !pastIds.has(s.id)).length;
+}
+
 /** Trích năm lịch từ chuỗi ngày ISO / datetime. */
 export function parseCalendarYearFromDate(
   raw: string | null | undefined,

@@ -35,10 +35,12 @@ export const dynamic = "force-dynamic";
 function CongDongListingSkeleton() {
   return (
     <div className="cd-list-page cd-list-page--loading" aria-busy="true">
-      <div className="cd-list-grid">
-        {Array.from({ length: 6 }, (_, i) => (
-          <div key={i} className="cd-list-card cd-list-card--skeleton" />
-        ))}
+      <div className="cd-list-body">
+        <div className="cd-list-grid">
+          {Array.from({ length: 6 }, (_, i) => (
+            <div key={i} className="cd-list-card cd-list-card--skeleton" />
+          ))}
+        </div>
       </div>
     </div>
   );

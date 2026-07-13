@@ -39,6 +39,7 @@ import {
 } from "@/components/cong-dong/CongDongOrgBranding";
 import { CongDongFeedFilterDropdown } from "@/components/cong-dong/CongDongFeedFilterDropdown";
 import { CongDongNotifySidebar } from "@/components/cong-dong/CongDongNotifySidebar";
+import { OrgNotifyFab, OrgNotifyFabHost } from "@/components/org/OrgNotifyFab";
 import { CongDongFeedPostContent } from "@/components/cong-dong/CongDongFeedPostContent";
 import { CongDongFilterChip } from "@/components/cong-dong/CongDongFilterChip";
 import { CongDongPostMenu } from "@/components/cong-dong/CongDongPostMenu";
@@ -125,6 +126,9 @@ function CongDongCoverPrivacyBadge({ cheDo }: { cheDo: CongDongCheDo }) {
 
 type FeedView = "journey" | "grid";
 type SortMode = "moi" | "tuongtac" | "az";
+
+/** Khớp `@media (max-width: 1100px)` ẩn `.cd-v4-event-rail-col`. */
+const CONG_DONG_NOTIFY_FAB_MQ = "(max-width: 1100px)";
 
 const FACEPILE_COLORS = [
   "var(--cins-violet, #7c5cfc)",
@@ -218,6 +222,11 @@ export function CongDongPageClient({ initial }: Props) {
     nextCursor: initial.nextCursor,
   });
   const [manageOpen, setManageOpen] = useState(false);
+  const [notifyFabEnabled, setNotifyFabEnabled] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia(CONG_DONG_NOTIFY_FAB_MQ).matches;
+  });
+  const [notifyCount, setNotifyCount] = useState(0);
   const [categories, setCategories] = useState<CongDongCategory[]>(
     initial.categories,
   );
@@ -229,6 +238,14 @@ export function CongDongPageClient({ initial }: Props) {
     isThanhVien && initial.viewerId && initial.viewerSlug,
   );
   const viewerSlug = initial.viewerSlug ?? "";
+
+  useEffect(() => {
+    const mq = window.matchMedia(CONG_DONG_NOTIFY_FAB_MQ);
+    const sync = () => setNotifyFabEnabled(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -638,11 +655,14 @@ export function CongDongPageClient({ initial }: Props) {
           ) : null}
         </div>
 
-        <CongDongNotifySidebar
-          orgId={org.id}
-          orgTinhThanh={org.tinhThanh}
-          canManage={canManageLabelsView}
-        />
+        <OrgNotifyFab enabled={notifyFabEnabled} count={notifyCount}>
+          <CongDongNotifySidebar
+            orgId={org.id}
+            orgTinhThanh={org.tinhThanh}
+            canManage={canManageLabelsView}
+            onUpcomingCountChange={setNotifyCount}
+          />
+        </OrgNotifyFab>
       </div>
 
     </div>
@@ -855,6 +875,7 @@ function CongDongFeedStickyBar({
             <LayoutGrid size={15} strokeWidth={2} aria-hidden />
           </button>
         </div>
+        <OrgNotifyFabHost />
       </div>
     </div>
   );

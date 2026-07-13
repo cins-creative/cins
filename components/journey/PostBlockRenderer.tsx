@@ -20,6 +20,15 @@ type Props = {
 export function PostBlockRenderer({ blocks, mediaAutoplay = false }: Props) {
   const groups = useMemo(() => groupBlocksForRender(blocks), [blocks]);
 
+  /* Chỉ block embed ĐẦU TIÊN được tự phát — nếu bài có nhiều video, để tất cả
+     autoplay cùng lúc sẽ chồng tiếng (echo). Các video còn lại chờ user bấm. */
+  const firstEmbedBlockId = useMemo(() => {
+    for (const g of groups) {
+      if (g.type === "block" && g.block.loai === "embed") return g.block.id;
+    }
+    return null;
+  }, [groups]);
+
   if (groups.length === 0) return null;
 
   let imageGroupIndex = 0;
@@ -57,7 +66,9 @@ export function PostBlockRenderer({ blocks, mediaAutoplay = false }: Props) {
             <div className="block-inner">
               <PostReadOnlyBlock
                 block={group.block}
-                mediaAutoplay={mediaAutoplay}
+                mediaAutoplay={
+                  mediaAutoplay && group.block.id === firstEmbedBlockId
+                }
               />
             </div>
           </div>

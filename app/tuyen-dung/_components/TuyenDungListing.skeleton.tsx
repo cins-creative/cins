@@ -3,6 +3,7 @@ export function TuyenDungListingSkeleton() {
     <div aria-hidden>
       <header className="td-hub-header td-hub-header--sk">
         <div className="td-hub-header__glass" aria-hidden="true" />
+        <span className="j-tlb-streak-slow" aria-hidden="true" />
         <div className="td-hub-header__inner">
           <div className="td-hub-panel td-hub-panel--sk">
             <div className="td-hub-row td-hub-row--main">

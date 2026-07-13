@@ -63,13 +63,24 @@ export async function buildJourneyMetadata(
       siteName: "CINs",
       locale: "vi_VN",
       type: "profile",
-      images: [{ url: ogImagePath, alt: title }],
+      // Ghi rõ kích thước + type: khi override images thủ công, Next không tự
+      // thêm og:image:width/height nữa. Thiếu chúng khiến Zalo/một số crawler
+      // không dựng được card (Facebook thì tự đo nên vẫn hiện).
+      images: [
+        {
+          url: ogImagePath,
+          alt: title,
+          width: 1200,
+          height: 630,
+          type: "image/png",
+        },
+      ],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: [ogImagePath],
+      images: [{ url: ogImagePath, alt: title, width: 1200, height: 630 }],
     },
   };
 }

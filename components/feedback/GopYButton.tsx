@@ -30,13 +30,17 @@ export function GopYButton() {
   const [trangUrl, setTrangUrl] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [donateNotice, setDonateNotice] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      setDonateNotice(false);
+      return;
+    }
     if (typeof window !== "undefined") setTrangUrl(window.location.href);
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -146,23 +150,37 @@ export function GopYButton() {
                 </p>
 
                 <div className="gopy-links">
-                  <a
-                    className="gopy-link gopy-link--donate"
-                    href={DONATE_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => {
-                      if (DONATE_URL === "#") e.preventDefault();
-                    }}
-                  >
-                    <span className="gopy-link-ic">
-                      <HeartHandshake size={20} strokeWidth={2.1} aria-hidden />
-                    </span>
-                    <span className="gopy-link-txt">
-                      <span className="gopy-link-title">Donate dự án</span>
-                      <span className="gopy-link-desc">Góp sức nuôi CINs lớn lên</span>
-                    </span>
-                  </a>
+                  {DONATE_URL === "#" ? (
+                    <button
+                      type="button"
+                      className="gopy-link gopy-link--donate"
+                      onClick={() => setDonateNotice(true)}
+                      aria-pressed={donateNotice}
+                    >
+                      <span className="gopy-link-ic">
+                        <HeartHandshake size={20} strokeWidth={2.1} aria-hidden />
+                      </span>
+                      <span className="gopy-link-txt">
+                        <span className="gopy-link-title">Donate dự án</span>
+                        <span className="gopy-link-desc">Góp sức nuôi CINs lớn lên</span>
+                      </span>
+                    </button>
+                  ) : (
+                    <a
+                      className="gopy-link gopy-link--donate"
+                      href={DONATE_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <span className="gopy-link-ic">
+                        <HeartHandshake size={20} strokeWidth={2.1} aria-hidden />
+                      </span>
+                      <span className="gopy-link-txt">
+                        <span className="gopy-link-title">Donate dự án</span>
+                        <span className="gopy-link-desc">Góp sức nuôi CINs lớn lên</span>
+                      </span>
+                    </a>
+                  )}
 
                   <a
                     className="gopy-link gopy-link--roadmap"
@@ -182,6 +200,28 @@ export function GopYButton() {
                     </span>
                   </a>
                 </div>
+
+                {donateNotice ? (
+                  <div className="gopy-donate-note" role="status">
+                    <span className="gopy-donate-note-ic">
+                      <HeartHandshake size={18} strokeWidth={2.1} aria-hidden />
+                    </span>
+                    <p className="gopy-donate-note-txt">
+                      Cảm ơn bạn đã có lòng thương CINs! Tụi mình đang ưu tiên hoàn
+                      thiện các tính năng chính trước, khi có thời gian sẽ mở donate
+                      sau nha. Hi vọng bạn thấy CINs hữu ích và thích dùng!
+                    </p>
+                    <button
+                      type="button"
+                      className="gopy-donate-note-close"
+                      onClick={() => setDonateNotice(false)}
+                      aria-label="Đóng thông báo"
+                      title="Đóng"
+                    >
+                      <X size={15} strokeWidth={2.2} aria-hidden />
+                    </button>
+                  </div>
+                ) : null}
 
                 {status === "done" ? (
                   <div className="gopy-done">

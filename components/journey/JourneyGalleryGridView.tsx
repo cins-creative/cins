@@ -110,10 +110,6 @@ type Props = {
   }>;
 };
 
-function isGalleryPostPermalink(href: string | undefined): href is string {
-  return Boolean(href && /\/p\/[^/?#]+/.test(href));
-}
-
 function isOrgCreateGalleryItem(item: GalleryMainItem): boolean {
   return (
     item.cardLayout === "cong-dong-create" ||
@@ -244,7 +240,6 @@ function GalleryMainItemTile({
         href={item.href}
         className={className}
         prefetch={false}
-        scroll={isGalleryPostPermalink(item.href) ? false : undefined}
         aria-label={viewLabel}
       >
         {body}
@@ -657,6 +652,7 @@ export function JourneyGalleryGridView({
     >
       {!hideToolbar ? (
         <div className="j-tlb">
+          <span className="j-tlb-streak-slow" aria-hidden="true" />
           <div className="j-tlb-year">Gallery</div>
           <div className="j-tlb-month" aria-hidden style={{ visibility: "hidden" }}>
             —

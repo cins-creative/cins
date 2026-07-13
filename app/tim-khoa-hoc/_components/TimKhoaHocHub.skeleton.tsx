@@ -8,6 +8,7 @@ export function TimKhoaHocHubSkeleton({ loai = "all" }: { loai?: TimKhoaHocLoai 
     <div aria-hidden>
       <header className="tkh-hub-header">
         <div className="tkh-hub-header__glass" aria-hidden="true" />
+        <span className="j-tlb-streak-slow" aria-hidden="true" />
         <div className="tkh-hub-header__inner">
           <div className="tkh-hub-panel tkh-hub-panel--sk">
             <div className="tkh-sk" style={{ height: 36, borderRadius: 10 }} />

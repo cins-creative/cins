@@ -1,7 +1,7 @@
 "use client";
 
 import { Hand, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 
 import {
   embedIframeAllowAttr,
@@ -45,6 +45,52 @@ export function EmbedInteractionGate({ provider, iframeSrc }: Props) {
   useEffect(() => {
     setActive(false);
   }, [iframeSrc]);
+
+  /**
+   * Khoá scroll trang khi đang tương tác (chỉ trên thiết bị cảm ứng). Với iframe
+   * cross-origin (Spline), một ngón kéo vẫn khiến trang cuộn — trang cuộn thì
+   * embed rời viewport và `ViewportGatedEmbed` unmount iframe → "chạm 1 nhịp rồi
+   * mất tương tác". Khoá scroll giúp một ngón kéo chỉ xoay/pan scene, không cuộn
+   * trang; hai ngón (pan/zoom) vốn không cuộn trang nên không bị ảnh hưởng.
+   * Desktop dùng chuột, không khoá để tránh chặn cuộn trang.
+   *
+   * Dùng `useLayoutEffect` (chạy đồng bộ trước khi trình duyệt paint):
+   * - Bật: khoá được áp NGAY khi `active` = true, trước khi user kịp kéo. Nếu
+   *   dùng `useEffect` (chạy sau paint), nhịp kéo đầu tiên vẫn cuộn trang một
+   *   chút → embed rời khung → `ViewportGatedEmbed` unmount iframe giữa cử chỉ →
+   *   "kéo được một nhịp rồi rớt". Khoá đồng bộ giữ cử chỉ liên tục tới khi nhấc.
+   * - Thoát: gỡ `position: fixed` và `scrollTo` cùng một nhịp trước paint nên
+   *   không thấy trang "giựt lên đầu rồi cuộn lại".
+   */
+  useLayoutEffect(() => {
+    if (!active || typeof window === "undefined") return;
+    if (!window.matchMedia("(pointer: coarse)").matches) return;
+    const scrollY = window.scrollY;
+    const body = document.body;
+    const prev = {
+      position: body.style.position,
+      top: body.style.top,
+      left: body.style.left,
+      right: body.style.right,
+      width: body.style.width,
+      overflow: body.style.overflow,
+    };
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.left = "0";
+    body.style.right = "0";
+    body.style.width = "100%";
+    body.style.overflow = "hidden";
+    return () => {
+      body.style.position = prev.position;
+      body.style.top = prev.top;
+      body.style.left = prev.left;
+      body.style.right = prev.right;
+      body.style.width = prev.width;
+      body.style.overflow = prev.overflow;
+      window.scrollTo(0, scrollY);
+    };
+  }, [active]);
 
   if (!embedNeedsInteractionGate(provider)) {
     return (

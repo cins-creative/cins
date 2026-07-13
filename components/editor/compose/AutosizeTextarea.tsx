@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   type ChangeEvent,
   type KeyboardEvent,
@@ -32,9 +33,42 @@ export function AutosizeTextarea({
     ta.style.height = `${ta.scrollHeight + 2}px`;
   }, []);
 
-  useEffect(() => {
+  // Đo trước khi vẽ để tránh nháy 1 dòng rồi mới giãn ra.
+  useLayoutEffect(() => {
     resize();
   }, [value, resize]);
+
+  // Đo lại khi web-font tải xong (font thật cao hơn fallback → tránh cắt chữ)
+  // và khi bề rộng textarea đổi (mở overlay, xoay màn hình, wrap dòng lại).
+  useEffect(() => {
+    const ta = ref.current;
+    if (!ta) return;
+
+    if (typeof document !== "undefined" && document.fonts?.ready) {
+      document.fonts.ready.then(() => resize()).catch(() => {});
+    }
+
+    let ro: ResizeObserver | undefined;
+    if (typeof ResizeObserver !== "undefined") {
+      // Chỉ đo lại khi BỀ RỘNG đổi; bỏ qua thay đổi chiều cao do chính ta gây ra
+      // để tránh vòng lặp ResizeObserver.
+      let lastWidth = ta.clientWidth;
+      ro = new ResizeObserver(() => {
+        const w = ta.clientWidth;
+        if (w !== lastWidth) {
+          lastWidth = w;
+          resize();
+        }
+      });
+      ro.observe(ta);
+    } else {
+      window.addEventListener("resize", resize);
+    }
+    return () => {
+      ro?.disconnect();
+      window.removeEventListener("resize", resize);
+    };
+  }, [resize]);
 
   const onChangeRaw = useCallback(
     (e: ChangeEvent<HTMLTextAreaElement>) => {
