@@ -23,6 +23,7 @@ export type AdminUserListRow = {
   role: SystemRole;
   roleLabel: string;
   isLocked: boolean;
+  daXacMinh: boolean;
   taoLuc: string;
 };
 
@@ -49,6 +50,7 @@ type ProfileRow = {
   avatar_id: string | null;
   email_lien_he: string | null;
   trang_thai_tai_khoan: string;
+  da_xac_minh: boolean | null;
   tao_luc: string;
 };
 
@@ -117,7 +119,7 @@ export async function fetchAdminUserList(params: {
       admin
         .from("user_nguoi_dung")
         .select(
-          "id, auth_user_id, slug, ten_hien_thi, avatar_id, email_lien_he, trang_thai_tai_khoan, tao_luc",
+          "id, auth_user_id, slug, ten_hien_thi, avatar_id, email_lien_he, trang_thai_tai_khoan, da_xac_minh, tao_luc",
         )
         .order("tao_luc", { ascending: false })
         .limit(LIST_LIMIT)
@@ -167,6 +169,7 @@ export async function fetchAdminUserList(params: {
       role,
       roleLabel: systemRoleLabel(role),
       isLocked: isRoleLocked(role, params.actorRole),
+      daXacMinh: profile.da_xac_minh ?? false,
       taoLuc: profile.tao_luc,
     };
   });
@@ -314,4 +317,47 @@ export async function setUserSystemRole(
   }
 
   return { ok: true };
+}
+
+export type SetUserVerifiedInput = {
+  actorRole: SystemRole;
+  actorProfileId: string | null;
+  targetUserId: string;
+  verified: boolean;
+};
+
+/** Cấp / thu hồi tick xanh (`user_nguoi_dung.da_xac_minh`). Chỉ admin trở lên. */
+export async function setUserVerified(
+  input: SetUserVerifiedInput,
+): Promise<{ ok: true; daXacMinh: boolean } | { ok: false; message: string }> {
+  const { actorRole, actorProfileId, targetUserId, verified } = input;
+
+  if (!canManageUsers(actorRole)) {
+    return { ok: false, message: "Bạn không có quyền quản lý user." };
+  }
+
+  const admin = createServiceRoleClient();
+  const { data: exists } = await admin
+    .from("user_nguoi_dung")
+    .select("id")
+    .eq("id", targetUserId)
+    .maybeSingle();
+  if (!exists) {
+    return { ok: false, message: "Không tìm thấy người dùng." };
+  }
+
+  const { error } = await admin
+    .from("user_nguoi_dung")
+    .update({
+      da_xac_minh: verified,
+      xac_minh_luc: verified ? new Date().toISOString() : null,
+      xac_minh_boi: verified ? actorProfileId : null,
+    })
+    .eq("id", targetUserId);
+
+  if (error) {
+    return { ok: false, message: error.message };
+  }
+
+  return { ok: true, daXacMinh: verified };
 }

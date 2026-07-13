@@ -1,0 +1,16 @@
+.cins-verified-tick {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  position: relative;
+  top: -2px;
+  margin-left: 3px;
+  color: #22e06a;
+  flex: 0 0 auto;
+  line-height: 0;
+}
+
+.cins-verified-tick svg {
+  display: block;
+}

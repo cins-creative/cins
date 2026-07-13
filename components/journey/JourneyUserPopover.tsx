@@ -8,6 +8,7 @@ import { createPortal } from "react-dom";
 import "./journey-user-popover.css";
 
 import { JourneyUserPopoverActions } from "@/components/journey/JourneyUserPopoverActions";
+import { VerifiedTick } from "@/components/journey/VerifiedTick";
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
 import { useMutualFriends } from "@/lib/social/use-mutual-friends";
 import { trackSuKien } from "@/lib/social/track-su-kien";
@@ -23,6 +24,7 @@ type UserPreview = {
   aiSummaryJourney: string | null;
   giaiDoan: string | null;
   tinhThanh: string | null;
+  daXacMinh?: boolean;
   stats: {
     cotMoc: number;
     tacPham: number;
@@ -190,7 +192,14 @@ export function JourneyUserPopover({
                     <span>{(visibleProfile.tenHienThi || visibleProfile.slug).slice(0, 1)}</span>
                   )}
                 </div>
-                <h3>{visibleProfile.tenHienThi}</h3>
+                <h3>
+                  {visibleProfile.tenHienThi}
+                  <VerifiedTick
+                    slug={visibleProfile.slug}
+                    verified={visibleProfile.daXacMinh}
+                    size={16}
+                  />
+                </h3>
                 {visibleProfile.giaiDoan || visibleProfile.tinhThanh ? (
                   <p className="j-friend-meta">
                     {[visibleProfile.giaiDoan, visibleProfile.tinhThanh]

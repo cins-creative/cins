@@ -6,6 +6,7 @@ import {
   CinsChatProvider,
   useCinsChatContext,
 } from "@/components/cins/CinsChatProvider";
+import { VerifiedUsersProvider } from "@/components/cins/VerifiedUsersProvider";
 
 export function CinsChatShellBridge({
   viewerProfileId,
@@ -16,10 +17,12 @@ export function CinsChatShellBridge({
 }) {
   const existing = useCinsChatContext();
   if (existing) {
-    return <>{children}</>;
+    return <VerifiedUsersProvider>{children}</VerifiedUsersProvider>;
   }
 
   return (
-    <CinsChatProvider viewerProfileId={viewerProfileId}>{children}</CinsChatProvider>
+    <CinsChatProvider viewerProfileId={viewerProfileId}>
+      <VerifiedUsersProvider>{children}</VerifiedUsersProvider>
+    </CinsChatProvider>
   );
 }

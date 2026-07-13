@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, Search, Shield } from "lucide-react";
+import { BadgeCheck, Loader2, Search, Shield } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
@@ -104,6 +104,7 @@ export function AdminNguoiDungScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -177,6 +178,38 @@ export function AdminNguoiDungScreen() {
       setSaveError(e instanceof Error ? e.message : "Không cập nhật được vai trò.");
     } finally {
       setSavingId(null);
+    }
+  }
+
+  async function handleVerifiedToggle(userId: string, nextVerified: boolean) {
+    const previousRows = rows;
+    setRows((current) =>
+      current.map((row) =>
+        row.id === userId ? { ...row, daXacMinh: nextVerified } : row,
+      ),
+    );
+    setVerifyingId(userId);
+    setSaveError(null);
+    try {
+      const res = await fetch(
+        `/api/admin/nguoi-dung/${encodeURIComponent(userId)}/xac-minh`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ verified: nextVerified }),
+        },
+      );
+      const json = (await res.json()) as { error?: string };
+      if (!res.ok) {
+        throw new Error(json.error ?? "Không cập nhật được tick xanh.");
+      }
+    } catch (e) {
+      setRows(previousRows);
+      setSaveError(
+        e instanceof Error ? e.message : "Không cập nhật được tick xanh.",
+      );
+    } finally {
+      setVerifyingId(null);
     }
   }
 
@@ -272,6 +305,7 @@ export function AdminNguoiDungScreen() {
                   <th>Người dùng</th>
                   <th>Email</th>
                   <th>Trạng thái</th>
+                  <th>Tick xanh</th>
                   <th>Vai trò hệ thống</th>
                   <th className="admin-to-chuc-th-actions">Thao tác</th>
                 </tr>
@@ -279,7 +313,7 @@ export function AdminNguoiDungScreen() {
               <tbody>
                 {!loading && rows.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="admin-table-empty">
+                    <td colSpan={6} className="admin-table-empty">
                       Không có user phù hợp bộ lọc.
                     </td>
                   </tr>
@@ -311,6 +345,36 @@ export function AdminNguoiDungScreen() {
                         <span className="admin-nguoi-dung-status">
                           {row.trangThaiTaiKhoan.replace(/_/g, " ")}
                         </span>
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          className={`admin-nguoi-dung-tick${
+                            row.daXacMinh ? " is-on" : ""
+                          }`}
+                          disabled={verifyingId === row.id}
+                          aria-pressed={row.daXacMinh}
+                          title={
+                            row.daXacMinh
+                              ? "Đã xác minh — bấm để thu hồi tick xanh"
+                              : "Chưa xác minh — bấm để cấp tick xanh"
+                          }
+                          onClick={() =>
+                            handleVerifiedToggle(row.id, !row.daXacMinh)
+                          }
+                        >
+                          {verifyingId === row.id ? (
+                            <Loader2
+                              size={14}
+                              strokeWidth={2}
+                              className="admin-to-chuc-spin"
+                              aria-hidden
+                            />
+                          ) : (
+                            <BadgeCheck size={15} strokeWidth={2.2} aria-hidden />
+                          )}
+                          <span>{row.daXacMinh ? "Đã xác minh" : "Cấp tick"}</span>
+                        </button>
                       </td>
                       <td>
                         <RoleBadge role={row.role} />

@@ -18,6 +18,7 @@ type ProfileRow = {
   ai_summary_journey: string | null;
   giai_doan: Parameters<typeof getGiaiDoanLabel>[0] | null;
   tinh_thanh: string | null;
+  da_xac_minh: boolean | null;
 };
 
 export async function GET(req: Request) {
@@ -31,7 +32,7 @@ export async function GET(req: Request) {
   const { data: profile, error } = await admin
     .from("user_nguoi_dung")
     .select(
-      "id, slug, ten_hien_thi, avatar_id, cover_id, bio, ai_summary_journey, giai_doan, tinh_thanh",
+      "id, slug, ten_hien_thi, avatar_id, cover_id, bio, ai_summary_journey, giai_doan, tinh_thanh, da_xac_minh",
     )
     .eq("slug", slug)
     .maybeSingle<ProfileRow>();
@@ -78,6 +79,7 @@ export async function GET(req: Request) {
       aiSummaryJourney: profile.ai_summary_journey,
       giaiDoan: getGiaiDoanLabel(profile.giai_doan),
       tinhThanh: formatTinhThanh(profile.tinh_thanh),
+      daXacMinh: profile.da_xac_minh ?? false,
       stats: {
         cotMoc: cotMoc ?? 0,
         tacPham: tacPham ?? 0,

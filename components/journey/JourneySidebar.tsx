@@ -14,6 +14,7 @@ import { JourneyCoverTrigger } from "@/components/journey/JourneyCoverTrigger";
 import { JourneyProfileGuestSection } from "@/components/journey/JourneyProfileGuestSection";
 import { JourneyProfileShareTrigger } from "@/components/journey/JourneyProfileShareTrigger";
 import { JourneySidebarOwnerActions } from "@/components/journey/JourneySidebarOwnerActions";
+import { VerifiedTick } from "@/components/journey/VerifiedTick";
 import type { JourneyShareProfile } from "@/lib/journey/profile-share";
 import type { GiaiDoan } from "@/lib/auth/session";
 import {
@@ -173,6 +174,7 @@ export function JourneySidebar({
 
       <h1 className="j-profile-name">
         {profile.tenHienThi || `@${profile.slug}`}
+        <VerifiedTick slug={profile.slug} size={18} />
       </h1>
       <div className="j-profile-role">{roleLine}</div>
       <div className="j-profile-handle">cins.vn/{profile.slug}</div>

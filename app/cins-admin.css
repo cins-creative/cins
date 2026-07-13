@@ -6029,6 +6029,37 @@
   text-transform: capitalize;
 }
 
+.cins-admin .admin-nguoi-dung-tick {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2, rgba(0, 0, 0, 0.12));
+  background: transparent;
+  color: var(--fg-3);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.cins-admin .admin-nguoi-dung-tick:hover:not(:disabled) {
+  border-color: #1d9bf0;
+  color: #1d9bf0;
+}
+
+.cins-admin .admin-nguoi-dung-tick.is-on {
+  border-color: #1d9bf0;
+  background: rgba(29, 155, 240, 0.12);
+  color: #1d9bf0;
+}
+
+.cins-admin .admin-nguoi-dung-tick:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
 .cins-admin .admin-nguoi-dung-role {
   display: inline-flex;
   align-items: center;

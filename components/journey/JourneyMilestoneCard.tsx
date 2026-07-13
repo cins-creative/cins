@@ -29,6 +29,7 @@ import { JourneyBookmarkListingCard } from "@/components/journey/JourneyBookmark
 import { JourneyMilestoneCardBodyContent } from "@/components/journey/JourneyMilestoneCardBodyContent";
 import { JourneyMilestoneUnfold } from "@/components/journey/JourneyMilestoneUnfold";
 import { JourneyUnfoldArticleContent } from "@/components/journey/JourneyUnfoldArticleContent";
+import { VerifiedTick } from "@/components/journey/VerifiedTick";
 import { PostBlockRenderer } from "@/components/journey/PostBlockRenderer";
 import { POST_COMMENTS_SYNC_EVENT } from "@/lib/journey/comments-sync-client";
 import {
@@ -1452,6 +1453,7 @@ export function JourneyMilestoneCard({
                       <strong>
                         {entityPosterLabel ||
                           (ownerSlug ? `@${ownerSlug}` : "Người dùng")}
+                        <VerifiedTick slug={entityPosterSlug} />
                       </strong>
                       <small>{displayDate}</small>
                     </span>
@@ -1582,7 +1584,10 @@ export function JourneyMilestoneCard({
                     )}
                   </span>
                   <span className="org-copy">
-                    <strong>{authorName || `@${ownerSlug ?? ""}`}</strong>
+                    <strong>
+                      {authorName || `@${ownerSlug ?? ""}`}
+                      <VerifiedTick slug={ownerSlug} />
+                    </strong>
                     <small>{displayDate}</small>
                   </span>
                 </span>
@@ -1758,7 +1763,10 @@ export function JourneyMilestoneCard({
                     )}
                   </span>
                   <span className="org-copy">
-                    <strong>{authorName || `@${ownerSlug ?? ""}`}</strong>
+                    <strong>
+                      {authorName || `@${ownerSlug ?? ""}`}
+                      <VerifiedTick slug={ownerSlug} />
+                    </strong>
                     <small>{displayDate}</small>
                   </span>
                 </span>
@@ -2595,7 +2603,10 @@ function BookmarkFrameHeader({
         )}
       </span>
       <span className="org-copy">
-        <strong>{ownerName}</strong>
+        <strong>
+          {ownerName}
+          <VerifiedTick slug={ownerSlug} />
+        </strong>
         {dateLabel ? (
           <small className="j-bf-date" title={dateTitle}>
             {dateLead === "tag" ? (
