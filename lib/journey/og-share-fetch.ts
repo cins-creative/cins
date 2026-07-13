@@ -11,6 +11,10 @@ import {
 } from "@/lib/journey/profile";
 import { fetchOwnerBySlug } from "@/lib/journey/profile-page-fetch";
 import type { JourneyShareProfile } from "@/lib/journey/profile-share";
+import {
+  parseShareOgThemeState,
+  type ShareOgTheme,
+} from "@/lib/journey/share-og-theme";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 export type OgShareKind = "journey" | "gallery";
@@ -19,6 +23,7 @@ export type OgShareContext = {
   profile: JourneyShareProfile;
   displayTitle: string;
   description: string;
+  theme: ShareOgTheme;
 };
 
 function ogImageUrl(url: string | null | undefined): string | null {
@@ -62,6 +67,8 @@ export async function fetchOgShareContext(
     galleryPage?.items.map((item) => item.src).filter(Boolean).slice(0, 4) ??
     [];
 
+  const themeState = parseShareOgThemeState(owner.theme, owner.slug);
+
   const profile: JourneyShareProfile = {
     slug: owner.slug,
     displayName,
@@ -87,5 +94,5 @@ export async function fetchOgShareContext(
     : truncateBio(owner.bio) ??
       `Hành trình sáng tạo của ${displayName} trên CINs.`;
 
-  return { profile, displayTitle, description };
+  return { profile, displayTitle, description, theme: themeState.active };
 }

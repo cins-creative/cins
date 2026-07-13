@@ -95,7 +95,6 @@ export function CongDongRoleButton({
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const shareAnchorRef = useRef<HTMLButtonElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuStyle, setMenuStyle] = useState<CSSProperties>({});
   const [notifyOpen, setNotifyOpen] = useState(false);
@@ -261,8 +260,7 @@ export function CongDongRoleButton({
       onClose={() => setShareOpen(false)}
       profile={shareProfile}
       orgShare={orgShare}
-      presentation="popover"
-      anchorRef={shareAnchorRef}
+      presentation="modal"
       requireAuth={(then) => {
         requireCongDongAuth(then);
       }}
@@ -271,7 +269,6 @@ export function CongDongRoleButton({
 
   const shareButton = (
     <button
-      ref={shareAnchorRef}
       type="button"
       className="cd-v4-btn cd-v4-btn--ghost cd-v4-btn--icon cd-v4-btn--icon-only"
       title="Chia sẻ"

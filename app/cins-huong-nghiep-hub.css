@@ -196,7 +196,7 @@
 }
 
 .hn-rail-group[open] {
-  background: #fbfbfd;
+  background: var(--neutral-50);
 }
 
 .hn-rail-group > summary {
@@ -250,7 +250,7 @@
 
 .hn-rail-group[open] .hn-rail-badge {
   background: var(--ink-display);
-  color: #fff;
+  color: var(--bg-surface);
 }
 
 .hn-rail-chev {
@@ -309,6 +309,43 @@
 .hn-rail-group.g-tech .hn-rail-ico {
   background: #e8ecf4;
   color: #3d4f6f;
+}
+
+/* Dark mode: chuẩn hoá chip icon theo từng nhóm nghề — vẫn giữ mã màu riêng,
+   nhưng đồng bộ dạng nền tint mờ + icon sáng dễ đọc (thay vì ô pastel sáng chói). */
+:root[data-theme="dark"] .hn-rail-group.g-design .hn-rail-ico,
+:root[data-theme="dark"] .hn-rail-group.g-arch .hn-rail-ico {
+  background: rgba(79, 155, 232, 0.18);
+  color: #7db4ee;
+}
+:root[data-theme="dark"] .hn-rail-group.g-film .hn-rail-ico,
+:root[data-theme="dark"] .hn-rail-group.g-fun .hn-rail-ico {
+  background: rgba(253, 173, 76, 0.18);
+  color: #f0aa5c;
+}
+:root[data-theme="dark"] .hn-rail-group.g-game .hn-rail-ico {
+  background: rgba(110, 254, 192, 0.16);
+  color: #57d3a0;
+}
+:root[data-theme="dark"] .hn-rail-group.g-art .hn-rail-ico {
+  background: rgba(232, 137, 196, 0.16);
+  color: #e59ac8;
+}
+:root[data-theme="dark"] .hn-rail-group.g-media .hn-rail-ico {
+  background: rgba(253, 232, 89, 0.16);
+  color: #e6d066;
+}
+:root[data-theme="dark"] .hn-rail-group.g-fashion .hn-rail-ico {
+  background: rgba(244, 114, 182, 0.16);
+  color: #f096c6;
+}
+:root[data-theme="dark"] .hn-rail-group.g-music .hn-rail-ico {
+  background: rgba(187, 137, 248, 0.18);
+  color: #c9a6f5;
+}
+:root[data-theme="dark"] .hn-rail-group.g-tech .hn-rail-ico {
+  background: rgba(148, 163, 184, 0.20);
+  color: #aeb9cc;
 }
 
 .hn-rail-sub {
@@ -386,32 +423,6 @@
   margin-bottom: 36px;
 }
 
-.hn-ad-hero::before {
-  content: "";
-  position: absolute;
-  width: 340px;
-  height: 340px;
-  background: var(--cins-yellow);
-  opacity: 0.5;
-  border-radius: 50%;
-  top: -160px;
-  right: -100px;
-  pointer-events: none;
-}
-
-.hn-ad-hero::after {
-  content: "";
-  position: absolute;
-  width: 160px;
-  height: 160px;
-  background: var(--cins-orange);
-  opacity: 0.45;
-  border-radius: 55% 45% 60% 40% / 50% 60% 40% 50%;
-  bottom: -60px;
-  right: 30%;
-  pointer-events: none;
-}
-
 .hn-ad-hero-text {
   position: relative;
   z-index: 2;
@@ -468,7 +479,7 @@
 
 .hn-ad-stats {
   display: flex;
-  gap: 32px;
+  gap: 48px;
   margin-top: 24px;
   flex-wrap: wrap;
 }
@@ -481,10 +492,10 @@
   gap: 12px;
   margin-top: 18px;
   width: fit-content;
-  max-width: min(420px, 100%);
-  padding: 12px 14px;
+  max-width: 100%;
+  padding: 8px 12px;
   border: 1px solid color-mix(in srgb, var(--cins-blue, #1f74c9) 28%, var(--border, #e8ebf0));
-  border-radius: 14px;
+  border-radius: 12px;
   background: color-mix(in srgb, var(--cins-blue-soft, #e8f1fb) 70%, #fff);
   text-decoration: none;
   color: inherit;
@@ -492,6 +503,14 @@
     border-color 0.15s ease,
     box-shadow 0.15s ease,
     transform 0.15s ease;
+}
+
+.hn-hero-cong-dong--pile {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  width: fit-content;
+  max-width: min(400px, 100%);
 }
 
 .hn-hero-cong-dong:hover {
@@ -502,13 +521,56 @@
 
 .hn-hero-cong-dong-icon {
   flex-shrink: 0;
-  width: 36px;
-  height: 36px;
-  border-radius: 11px;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
   display: grid;
   place-items: center;
   background: var(--cins-blue, #1f74c9);
   color: #fff;
+}
+
+.hn-hero-cong-dong-avatars {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  overflow: hidden;
+  padding: 2px 2px 2px 0;
+}
+
+.hn-hero-cong-dong-avatar {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  margin-left: -9px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: var(--cins-blue, #1f74c9);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--cins-blue, #1f74c9) 12%, transparent);
+}
+
+.hn-hero-cong-dong-avatar:first-child {
+  margin-left: 0;
+}
+
+.hn-hero-cong-dong-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.hn-hero-cong-dong-body {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
 }
 
 .hn-hero-cong-dong-copy {
@@ -520,10 +582,10 @@
 }
 
 .hn-hero-cong-dong-copy strong {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--ink-display, rgba(0, 0, 0, 0.88));
-  line-height: 1.25;
+  line-height: 1.2;
 }
 
 .hn-hero-cong-dong-copy span {
@@ -561,7 +623,8 @@
 .hn-ad-hero-visual {
   position: relative;
   z-index: 2;
-  height: 240px;
+  height: 320px;
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -591,6 +654,20 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
+}
+
+.hn-ad-hero-visual:has(.hn-ad-hero-visual-img) {
+  height: auto;
+}
+
+.hn-ad-hero-visual-img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  object-fit: contain;
+  border-radius: 13px;
+  background: #fff;
+  display: block;
 }
 
 .hn-ad-pin {
@@ -761,7 +838,7 @@
   flex-direction: column;
   background: var(--bg-surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-sm, 10px);
   overflow: visible;
   text-decoration: none;
   color: inherit;
@@ -786,7 +863,7 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  border-radius: var(--radius-sm, 10px) var(--radius-sm, 10px) 0 0;
 }
 
 .hn-role-thumb::before {
@@ -892,7 +969,7 @@
 .hn-role-card[data-dept="creative"] .hn-role-thumb--has-img,
 .hn-role-card[data-dept="digital"] .hn-role-thumb--has-img,
 .hn-role-card[data-dept="research"] .hn-role-thumb--has-img {
-  background: var(--bg-surface, #fff);
+  background: #fff !important;
   padding: 0;
 }
 
@@ -1338,10 +1415,10 @@
   box-shadow: 0 1px 0 var(--border2, rgba(0, 0, 0, 0.08));
 }
 
-/* Ngành có ảnh — ô thumbnail trắng, khớp thẻ */
+/* Ngành có ảnh — ô thumbnail luôn nền trắng (kể cả dark mode), khớp ảnh minh hoạ */
 .career-hub--nganh .hn-nganh-card .hn-role-thumb--has-img {
   display: block;
-  background: var(--bg-surface, #fff) !important;
+  background: #fff !important;
 }
 
 .hn-nganh-card .hn-role-thumb--has-img {

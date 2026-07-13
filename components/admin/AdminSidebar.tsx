@@ -18,6 +18,7 @@ const NAV = [
   { section: "Users" },
   { href: "/admin/nguoi-dung", label: "Người dùng", icon: "users" },
   { section: "Hệ thống" },
+  { href: "/admin/linh-vuc", label: "Lĩnh vực", icon: "grid" },
   { href: "/admin/analytics", label: "Analytics", icon: "chart" },
 ] as const;
 
@@ -97,6 +98,15 @@ function NavIcon({ name }: { name: string }) {
           <circle cx="9" cy="7" r="4" />
           <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
           <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+        </svg>
+      );
+    case "grid":
+      return (
+        <svg {...p}>
+          <rect x="3" y="3" width="7" height="7" />
+          <rect x="14" y="3" width="7" height="7" />
+          <rect x="14" y="14" width="7" height="7" />
+          <rect x="3" y="14" width="7" height="7" />
         </svg>
       );
     case "chart":

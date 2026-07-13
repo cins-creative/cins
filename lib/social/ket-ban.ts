@@ -237,9 +237,16 @@ export async function blockUser(
   const now = new Date().toISOString();
 
   if (existing) {
+    // Chuẩn hoá hướng: người chặn luôn là `id_nguoi_gui` để về sau liệt kê
+    // "người tôi đã chặn" và bỏ chặn được xác định đúng chủ thể.
     const { data, error } = await admin
       .from("user_ket_ban")
-      .update({ trang_thai: "blocked", xu_ly_luc: now })
+      .update({
+        id_nguoi_gui: actorId,
+        id_nguoi_nhan: targetId,
+        trang_thai: "blocked",
+        xu_ly_luc: now,
+      })
       .eq("id", existing.id)
       .select("id, id_nguoi_gui, id_nguoi_nhan, trang_thai, tao_luc, xu_ly_luc")
       .single<KetBanRow>();
@@ -264,6 +271,27 @@ export async function blockUser(
     return { ok: false, error: error?.message ?? "Không chặn được." };
   }
   return { ok: true, data: mapRow(data) };
+}
+
+/** Bỏ chặn — chỉ người đã chặn (`id_nguoi_gui`) mới được gỡ. */
+export async function unblockUser(
+  actorId: string,
+  targetId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!actorId || !targetId || actorId === targetId) {
+    return { ok: false, error: "Yêu cầu không hợp lệ." };
+  }
+  const row = await findPairRecord(actorId, targetId);
+  if (!row || row.trangThai !== "blocked") {
+    return { ok: false, error: "Người này chưa bị chặn." };
+  }
+  if (row.idNguoiGui !== actorId) {
+    return { ok: false, error: "Chỉ người đã chặn mới có thể bỏ chặn." };
+  }
+  const admin = createServiceRoleClient();
+  const { error } = await admin.from("user_ket_ban").delete().eq("id", row.id);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
 }
 
 /**
@@ -431,7 +459,15 @@ export async function listMutualFriendProfilesPage(
   }
 
   const admin = createServiceRoleClient();
-  const friends = await loadFollowProfiles(admin, slice, slice.length);
+  const [profiles, recordIdByFriend] = await Promise.all([
+    loadFollowProfiles(admin, slice, slice.length),
+    loadAcceptedRecordIds(userId, slice),
+  ]);
+  // Gắn `ketBanId` để UI hủy kết bạn qua DELETE /api/ket-ban/:ketBanId.
+  const friends = profiles.map((p) => ({
+    ...p,
+    ketBanId: recordIdByFriend.get(p.idNguoiDung),
+  }));
   const nextOffset = offset + friends.length;
   return {
     friends,
@@ -439,6 +475,81 @@ export async function listMutualFriendProfilesPage(
     nextOffset,
     hasMore: nextOffset < friendIds.length,
     totalCount: friendIds.length,
+  };
+}
+
+/** Map friendUserId → record id `user_ket_ban` (trạng thái accepted). */
+async function loadAcceptedRecordIds(
+  userId: string,
+  friendIds: string[],
+): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  if (friendIds.length === 0) return map;
+  const admin = createServiceRoleClient();
+  const { data } = await admin
+    .from("user_ket_ban")
+    .select("id, id_nguoi_gui, id_nguoi_nhan")
+    .eq("trang_thai", "accepted")
+    .or(`id_nguoi_gui.eq.${userId},id_nguoi_nhan.eq.${userId}`)
+    .returns<
+      Array<{ id: string; id_nguoi_gui: string; id_nguoi_nhan: string }>
+    >();
+  const wanted = new Set(friendIds);
+  for (const row of data ?? []) {
+    const other =
+      row.id_nguoi_gui === userId ? row.id_nguoi_nhan : row.id_nguoi_gui;
+    if (wanted.has(other)) map.set(other, row.id);
+  }
+  return map;
+}
+
+/** Danh sách người mà `userId` đã chặn (phân trang), mới chặn hiện trước. */
+export async function listBlockedProfilesPage(
+  userId: string,
+  params: { offset?: number; limit?: number } = {},
+): Promise<{
+  users: MutualFriendProfile[];
+  offset: number;
+  nextOffset: number;
+  hasMore: boolean;
+  totalCount: number;
+}> {
+  const admin = createServiceRoleClient();
+  const { data } = await admin
+    .from("user_ket_ban")
+    .select("id_nguoi_nhan, xu_ly_luc")
+    .eq("trang_thai", "blocked")
+    .eq("id_nguoi_gui", userId)
+    .order("xu_ly_luc", { ascending: false })
+    .returns<Array<{ id_nguoi_nhan: string; xu_ly_luc: string | null }>>();
+
+  const blockedIds = await filterActiveUserIds(
+    (data ?? []).map((row) => row.id_nguoi_nhan),
+  );
+  const offset = Math.max(0, params.offset ?? 0);
+  const limit = Math.min(
+    24,
+    Math.max(1, params.limit ?? FRIENDS_SCROLL_PAGE_SIZE),
+  );
+  const slice = blockedIds.slice(offset, offset + limit);
+  if (slice.length === 0) {
+    return {
+      users: [],
+      offset,
+      nextOffset: offset,
+      hasMore: false,
+      totalCount: blockedIds.length,
+    };
+  }
+
+  const users = await loadFollowProfiles(admin, slice, slice.length);
+  const nextOffset = offset + slice.length;
+  return {
+    users,
+    offset,
+    nextOffset,
+    hasMore: nextOffset < blockedIds.length,
+    totalCount: blockedIds.length,
   };
 }
 

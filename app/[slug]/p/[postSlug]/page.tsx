@@ -5,6 +5,7 @@ import { PostPageArticle } from "@/app/[slug]/p/[postSlug]/_components/PostPageA
 import { PostPageInstantFallback } from "@/app/[slug]/p/[postSlug]/_components/PostPageInstantFallback";
 import { PostPageShell } from "@/app/[slug]/p/[postSlug]/_components/PostPageShell";
 import { CinsShell } from "@/components/cins/CinsShell";
+import { getConfiguredSiteOrigin } from "@/lib/auth/auth-origin";
 import { getCachedPostPageCore } from "@/lib/journey/post-page-cache";
 
 export const dynamic = "force-dynamic";
@@ -17,10 +18,12 @@ export async function generateMetadata({
   params: Params;
 }): Promise<Metadata> {
   const { slug, postSlug } = await params;
+  const metadataBase = new URL(getConfiguredSiteOrigin() ?? "https://cins.vn");
   const res = await getCachedPostPageCore(slug, postSlug);
 
   if (!res.ok) {
     return {
+      metadataBase,
       title: "Bài viết · CINS",
       description: "Bài viết trên CINs.",
       robots: { index: false, follow: false },
@@ -34,8 +37,12 @@ export async function generateMetadata({
     posts[0]?.moTa ||
     `Bài viết của ${owner.tenHienThi} trên CINs.`;
   const isPrivate = milestone.cheDoHienThi === "chi_minh";
+  const shortDesc = desc.slice(0, 200);
+  const pagePath = `/${encodeURIComponent(slug)}/p/${encodeURIComponent(postSlug)}`;
+  const ogImagePath = `${pagePath}/opengraph-image`;
 
   return {
+    metadataBase,
     title: `${title} · ${owner.tenHienThi} · CINS`,
     description: desc.slice(0, 160),
     robots: isPrivate
@@ -43,9 +50,19 @@ export async function generateMetadata({
       : { index: true, follow: true },
     openGraph: {
       title,
-      description: desc.slice(0, 200),
+      description: shortDesc,
       type: "article",
+      siteName: "CINs",
+      locale: "vi_VN",
+      url: pagePath,
       authors: [owner.tenHienThi],
+      images: [{ url: ogImagePath, alt: title }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description: shortDesc,
+      images: [ogImagePath],
     },
   };
 }

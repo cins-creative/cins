@@ -49,9 +49,17 @@ export default async function Image({
 
   const element = ctx ? (
     kind === "gallery" ? (
-      <OgGalleryShareCard profile={ctx.profile} logoUrl={logoUrl} />
+      <OgGalleryShareCard
+        profile={ctx.profile}
+        logoUrl={logoUrl}
+        theme={ctx.theme}
+      />
     ) : (
-      <OgJourneyShareCard profile={ctx.profile} logoUrl={logoUrl} />
+      <OgJourneyShareCard
+        profile={ctx.profile}
+        logoUrl={logoUrl}
+        theme={ctx.theme}
+      />
     )
   ) : (
     <OgFallbackShareCard slug={slug} logoUrl={logoWhiteUrl} />

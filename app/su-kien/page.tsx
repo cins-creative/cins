@@ -7,10 +7,28 @@ import { SuKienListingSkeleton } from "@/components/su-kien/SuKienListing.skelet
 import { CinsShell } from "@/components/cins/CinsShell";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 
+const HUB_TITLE = "Sự kiện | CINs";
+const HUB_DESC =
+  "Open day, workshop, talkshow và festival ngành sáng tạo — khám phá sự kiện sắp diễn ra trên CINs.";
+
 export const metadata: Metadata = {
-  title: "Sự kiện | CINs",
-  description:
-    "Open day, workshop, talkshow và festival ngành sáng tạo — khám phá sự kiện sắp diễn ra trên CINs.",
+  title: HUB_TITLE,
+  description: HUB_DESC,
+  openGraph: {
+    type: "website",
+    siteName: "CINs",
+    locale: "vi_VN",
+    url: "/su-kien",
+    title: HUB_TITLE,
+    description: HUB_DESC,
+    images: [{ url: "/su-kien/opengraph-image", alt: HUB_TITLE }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: HUB_TITLE,
+    description: HUB_DESC,
+    images: ["/su-kien/opengraph-image"],
+  },
 };
 
 export const dynamic = "force-dynamic";

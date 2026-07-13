@@ -8,6 +8,7 @@ import { CinsComingSoonModal } from "@/components/cins/CinsComingSoonModal";
 import { CinsSidebarRiveBrand } from "@/components/cins/CinsSidebarRiveBrand";
 import { SidebarNavIcon } from "@/components/cins/SidebarNavIcon";
 import { SidebarOrgFlyout } from "@/components/cins/SidebarOrgFlyout";
+import { UserAccountSettingsModal } from "@/components/cins/UserAccountSettingsModal";
 import { useCinsSidebarNav } from "@/components/cins/useCinsSidebarNav";
 import {
   MAIN_NAV_FOOT_ITEMS,
@@ -31,13 +32,28 @@ function SidebarAnchor({
   item,
   pathname,
   onComingSoon,
+  onSettings,
 }: {
   item: MainNavItem;
   pathname: string;
   onComingSoon?: () => void;
+  onSettings?: () => void;
 }) {
   const active = item.isActive(pathname);
   const className = `sb-item${active ? " active" : ""}${item.highlight ? " sb-item--highlight" : ""}`;
+
+  if (item.opensSettings) {
+    return (
+      <button
+        type="button"
+        className={className}
+        data-tip={item.tip}
+        onClick={onSettings}
+      >
+        <SidebarItemContent item={item} />
+      </button>
+    );
+  }
 
   if (item.comingSoon) {
     return (
@@ -92,6 +108,7 @@ function SidebarLink({
 export function CinsAppSidebar() {
   const pathname = usePathname() ?? "/";
   const [comingSoonOpen, setComingSoonOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
     <>
@@ -118,6 +135,7 @@ export function CinsAppSidebar() {
               item={item}
               pathname={pathname}
               onComingSoon={() => setComingSoonOpen(true)}
+              onSettings={() => setSettingsOpen(true)}
             />
           ))}
         </div>
@@ -125,6 +143,10 @@ export function CinsAppSidebar() {
       <CinsComingSoonModal
         open={comingSoonOpen}
         onClose={() => setComingSoonOpen(false)}
+      />
+      <UserAccountSettingsModal
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
       />
     </>
   );

@@ -5,9 +5,22 @@ import {
   fetchOgShareContext,
   type OgShareKind,
 } from "@/lib/journey/og-share-fetch";
+import type { ShareOgTheme } from "@/lib/journey/share-og-theme";
 
 function ogKindFromSearch(view: string | undefined): OgShareKind {
   return view === "gallery" ? "gallery" : "journey";
+}
+
+/**
+ * Token phiên bản OG suy ra từ theme đang active. Đổi theme → URL ảnh OG đổi
+ * theo, buộc Facebook/Zalo/… refetch ảnh mới thay vì dùng bản đã cache.
+ */
+function ogThemeVersion(theme: ShareOgTheme | null | undefined): string | null {
+  if (!theme) return null;
+  if (theme.kind === "custom") {
+    return `c${theme.imageId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 12)}`;
+  }
+  return `p${theme.id}`;
 }
 
 /** Metadata journey/gallery — nhận giá trị đã resolve, không nhận Promise params. */
@@ -29,10 +42,14 @@ export async function buildJourneyMetadata(
   const description =
     ctx?.description ?? `Hành trình sáng tạo của ${slug} trên CINS.`;
 
-  const ogImagePath =
+  const ogBase =
     kind === "gallery"
       ? `/${encodeURIComponent(slug)}/opengraph-image?view=gallery`
       : `/${encodeURIComponent(slug)}/opengraph-image`;
+  const themeVersion = ctx ? ogThemeVersion(ctx.theme) : null;
+  const ogImagePath = themeVersion
+    ? `${ogBase}${ogBase.includes("?") ? "&" : "?"}v=${themeVersion}`
+    : ogBase;
 
   return {
     metadataBase: new URL(siteOrigin),
@@ -52,6 +69,7 @@ export async function buildJourneyMetadata(
       card: "summary_large_image",
       title,
       description,
+      images: [ogImagePath],
     },
   };
 }

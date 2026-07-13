@@ -9,6 +9,7 @@ import {
 } from "@/components/nganh/inline/NganhInlineEditContext";
 import { NganhChiTietView } from "@/components/nganh/NganhChiTietView";
 import type { NganhDetailBundle } from "@/lib/nganh/queries";
+import type { CongDongOrgCategoryPreview } from "@/lib/cong-dong/categories";
 
 type Props = Pick<
   NganhDetailBundle,
@@ -23,6 +24,7 @@ type Props = Pick<
 > & {
   canEdit: boolean;
   persistEnabled: boolean;
+  congDong: CongDongOrgCategoryPreview[];
 };
 
 export function NganhChiTietPageShell({

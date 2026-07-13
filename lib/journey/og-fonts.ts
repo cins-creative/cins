@@ -10,15 +10,15 @@ type OgFont = {
 const FONT_SOURCES: Array<{ weight: 400 | 600 | 700; url: string }> = [
   {
     weight: 400,
-    url: "https://cdn.jsdelivr.net/gh/googlefonts/be-vietnam-pro@main/fonts/ttf/BeVietnamPro-Regular.ttf",
+    url: "https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/bevietnampro/BeVietnamPro-Regular.ttf",
   },
   {
     weight: 600,
-    url: "https://cdn.jsdelivr.net/gh/googlefonts/be-vietnam-pro@main/fonts/ttf/BeVietnamPro-SemiBold.ttf",
+    url: "https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/bevietnampro/BeVietnamPro-SemiBold.ttf",
   },
   {
     weight: 700,
-    url: "https://cdn.jsdelivr.net/gh/googlefonts/be-vietnam-pro@main/fonts/ttf/BeVietnamPro-Bold.ttf",
+    url: "https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/bevietnampro/BeVietnamPro-Bold.ttf",
   },
 ];
 

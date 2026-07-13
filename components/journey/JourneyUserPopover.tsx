@@ -144,6 +144,7 @@ export function JourneyUserPopover({
         aria-expanded={open}
         onClick={(event) => {
           event.stopPropagation();
+          event.preventDefault();
           toggle();
         }}
       >

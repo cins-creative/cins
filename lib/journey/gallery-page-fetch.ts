@@ -11,6 +11,7 @@ import type {
   MilestoneVariant,
   MilestoneCardLayout,
 } from "@/components/journey/milestone-types";
+import type { FeedSourceKind } from "@/lib/cins/worldJourneyFeedSource";
 import { journeyImageFields } from "@/lib/journey/images";
 import { computeFilterCounts } from "@/lib/journey/milestone-filter-options";
 import type { MilestoneFilterCounts } from "@/lib/journey/milestones-page-fetch";
@@ -74,6 +75,13 @@ export type GalleryMainItem = {
   authorName?: string | null;
   authorAvatarUrl?: string | null;
   videoCanvasRatio?: VideoCanvasRatio;
+  /**
+   * World Journey — nguồn nội dung để lọc theo `FeedSourceFilter`
+   * (`user` / `cong_dong` / `org`). Gắn ở server khi dựng pool trang chủ.
+   */
+  feedSource?: FeedSourceKind;
+  /** World Journey — item đến từ quan hệ theo dõi (mình / bạn bè / theo dõi / thành viên). */
+  feedFollowing?: boolean;
 };
 
 const getGalleryStubsCached = cache(collectGalleryStubs);

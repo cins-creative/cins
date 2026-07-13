@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { MessageCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
 import { JourneyFollowButton } from "@/components/journey/JourneyFollowButton";
+import { JourneyUserFollowButton } from "@/components/journey/JourneyUserFollowButton";
 import { avatarHueFromSeed, avatarInitialFromName } from "@/lib/chat/avatar";
 import { useKetBanStatus } from "@/lib/social/use-ket-ban-status";
 import type { MutualFriendProfile } from "@/lib/social/types";
@@ -27,12 +29,6 @@ export function JourneyFriendCardActions({
   const [error, setError] = useState<string | null>(null);
   const ketBan = useKetBanStatus(friend.idNguoiDung, viewerProfileId);
   const isSelf = viewerProfileId === friend.idNguoiDung;
-  const showFriendBtn =
-    Boolean(viewerProfileId) &&
-    !isSelf &&
-    !friendsAreMutual &&
-    ketBan.quanHe !== "accepted" &&
-    ketBan.quanHe !== "blocked";
 
   const openMessage = () => {
     if (!viewerProfileId) {
@@ -65,16 +61,18 @@ export function JourneyFriendCardActions({
 
   return (
     <div className="j-friend-actions">
-      <div className="j-friend-actions-row">
+      <div className="j-friend-actions-row j-friend-actions-row--icons">
         <button
           type="button"
-          className="j-friend-message"
+          className="j-friend-message is-icon"
           disabled={isSelf}
+          title="Nhắn tin"
+          aria-label="Nhắn tin"
           onClick={openMessage}
         >
-          Nhắn tin
+          <MessageCircle size={17} strokeWidth={2} aria-hidden />
         </button>
-        {showFriendBtn ? (
+        {!isSelf ? (
           <div className="j-friend-card-follow">
             <JourneyFollowButton
               compact
@@ -83,6 +81,15 @@ export function JourneyFriendCardActions({
               status={ketBan.status}
               ready={ketBan.ready}
               refreshStatus={ketBan.refresh}
+            />
+          </div>
+        ) : null}
+        {!isSelf ? (
+          <div className="j-friend-card-follow">
+            <JourneyUserFollowButton
+              compact
+              targetUserId={friend.idNguoiDung}
+              viewerProfileId={viewerProfileId}
             />
           </div>
         ) : null}

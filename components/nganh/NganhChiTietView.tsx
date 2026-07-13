@@ -1,9 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { Users } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { NGHE_NGHIEP_HUB_PATH } from "@/lib/cins/hubPaths";
+import { getAvatarUrl } from "@/lib/journey/profile";
+import type { CongDongOrgCategoryPreview } from "@/lib/cong-dong/categories";
 
 import { NganhArticleMedia } from "@/components/nganh/NganhArticleMedia";
 import { NganhEditableIntro } from "@/components/nganh/NganhEditableIntro";
@@ -32,7 +35,10 @@ type Props = Pick<
   | "khoiThiLabels"
   | "lienQuan"
   | "soTruong"
->;
+> & {
+  /** Cộng đồng gắn với ngành (qua `cau_hinh.danh_muc`) — hiển thị link khám phá. */
+  congDong: CongDongOrgCategoryPreview[];
+};
 
 function ngheLabel(row: NgheNganhRow): string {
   return (row.tieu_de_viet ?? row.tieu_de).trim();
@@ -75,6 +81,7 @@ export function NganhChiTietView({
   truong,
   khoiThiLabels,
   lienQuan,
+  congDong,
 }: Props) {
   const ctx = useNganhInlineEdit();
   const parsed = ctx?.isEditing ? ctx.parsed : parsedProp;
@@ -121,6 +128,10 @@ export function NganhChiTietView({
     parsed.introHtml && editorialImages.length > 0
       ? stripImageBreakFromHtml(parsed.introHtml)
       : parsed.introHtml;
+
+  const congDongCount = congDong.length;
+  const congDongAvatars = congDong.slice(0, 5);
+  const congDongHref = `/cong-dong?nganh=${encodeURIComponent(article.slug)}`;
 
   return (
     <>
@@ -182,6 +193,58 @@ export function NganhChiTietView({
               </NctInlineField>
             ) : heroDesc ? (
               <p className="nct-hero-desc">{heroDesc}</p>
+            ) : null}
+            {!ctx?.isEditing ? (
+              <Link
+                href={congDongHref}
+                className={`hn-hero-cong-dong${
+                  congDongCount > 0 ? " hn-hero-cong-dong--pile" : ""
+                }`}
+                aria-label={`Xem cộng đồng liên quan đến ngành ${titleVi}`}
+              >
+                {congDongCount > 0 ? (
+                  <span className="hn-hero-cong-dong-avatars" aria-hidden>
+                    {congDongAvatars.map((org) => {
+                      const avatarUrl = getAvatarUrl(org.avatarId);
+                      return (
+                        <span
+                          key={org.id}
+                          className="hn-hero-cong-dong-avatar"
+                          title={org.ten}
+                        >
+                          {avatarUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={avatarUrl} alt="" />
+                          ) : (
+                            <span>{org.ten.charAt(0).toUpperCase()}</span>
+                          )}
+                        </span>
+                      );
+                    })}
+                  </span>
+                ) : (
+                  <span className="hn-hero-cong-dong-icon" aria-hidden>
+                    <Users size={18} strokeWidth={2} />
+                  </span>
+                )}
+                <span className="hn-hero-cong-dong-body">
+                  <span className="hn-hero-cong-dong-copy">
+                    <strong>
+                      {congDongCount > 0
+                        ? `${congDongCount} cộng đồng`
+                        : "Cộng đồng"}
+                    </strong>
+                    <span>
+                      {congDongCount > 0
+                        ? `đang hoạt động quanh ngành ${titleVi}`
+                        : `Khám phá nhóm quanh ngành ${titleVi}`}
+                    </span>
+                  </span>
+                  <span className="hn-hero-cong-dong-go" aria-hidden>
+                    Xem →
+                  </span>
+                </span>
+              </Link>
             ) : null}
           </div>
 

@@ -1766,6 +1766,92 @@
   border-radius: var(--radius-pill);
 }
 
+/* ══════════════════════════════════════════════════════════════
+   DARK MODE — trang /tim-khoa-hoc dựng theo phong cách frosted-glass
+   nền sáng, nên override tường minh (light mode giữ nguyên 100%).
+   ══════════════════════════════════════════════════════════════ */
+:root[data-theme="dark"] .cins-main:has(> .tkh-page) {
+  background-color: var(--bg-page);
+  background-image:
+    radial-gradient(ellipse 82% 52% at 6% 0%, rgba(79, 155, 232, 0.16), transparent 56%),
+    radial-gradient(ellipse 68% 48% at 94% 6%, rgba(79, 155, 232, 0.12), transparent 54%),
+    radial-gradient(ellipse 55% 40% at 50% 100%, rgba(79, 155, 232, 0.07), transparent 58%),
+    linear-gradient(180deg, #12161f 0%, #0e1117 52%, #0b0e14 100%);
+}
+
+:root[data-theme="dark"] .tkh-hub-header__glass {
+  background: rgba(16, 20, 28, 0.72);
+  border-bottom-color: rgba(79, 155, 232, 0.2);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 8px 32px rgba(0, 0, 0, 0.42),
+    0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  :root[data-theme="dark"] .tkh-hub-header__glass {
+    background: rgba(16, 20, 28, 0.94);
+  }
+}
+
+/* Controls (select, search, scope, filter panel) */
+:root[data-theme="dark"] .tkh-hub-filter-select,
+:root[data-theme="dark"] .tkh-hub-ctl select,
+:root[data-theme="dark"] .tkh-hero-filter-select,
+:root[data-theme="dark"] .tkh-hub-search,
+:root[data-theme="dark"] .tkh-hero-search-field input {
+  background: var(--bg-surface);
+  border-color: var(--border);
+}
+
+:root[data-theme="dark"] .tkh-hub-scope,
+:root[data-theme="dark"] .tkh-hero-scope-tab,
+:root[data-theme="dark"] .tkh-hero-tag,
+:root[data-theme="dark"] .tkh-nganh-wrap .hn-dept-badge {
+  background: var(--neutral-100);
+  border-color: var(--border);
+}
+
+:root[data-theme="dark"] .tkh-hub-scope-tab.is-on,
+:root[data-theme="dark"] .tkh-hero-tag:hover {
+  background: var(--bg-surface);
+}
+
+:root[data-theme="dark"] .tkh-hero-filters {
+  background: var(--bg-surface);
+  border-color: var(--border);
+}
+
+:root[data-theme="dark"] .tkh-hero-filters--sk {
+  background: var(--neutral-50);
+}
+
+:root[data-theme="dark"] .tkh-hero {
+  background: linear-gradient(
+    135deg,
+    rgba(79, 155, 232, 0.1) 0%,
+    var(--bg-surface) 55%,
+    var(--bg-page) 100%
+  );
+}
+
+/* Chip dùng --bg-muted (không có token → luôn sáng) */
+:root[data-theme="dark"] .tkh-chip,
+:root[data-theme="dark"] .tkh-hub-search-clear:hover {
+  background: var(--neutral-100);
+}
+
+/* Ảnh bìa placeholder + badge trạng thái trên bìa */
+:root[data-theme="dark"] .tkh-card-cover {
+  background:
+    radial-gradient(circle at 20% 20%, rgba(79, 155, 232, 0.16), transparent 42%),
+    linear-gradient(145deg, #1a2230, #141a24);
+}
+
+:root[data-theme="dark"] .tkh-card-status {
+  background: rgba(23, 27, 36, 0.92);
+}
+
 @media (max-width: 640px) {
   .tkh-page {
     --tkh-page-pad: 16px;

@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { getConfiguredSiteOrigin } from "@/lib/auth/auth-origin";
 import { getCoSoMetaBySlugCached } from "@/lib/to-chuc/co-so-page-queries";
+import { fetchKhoaHocOgContext } from "@/lib/to-chuc/khoa-hoc-og-fetch";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 
 export const revalidate = 60;
@@ -18,19 +20,46 @@ function titleFromKhoaSlug(khoaSlug: string): string {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug, khoaSlug } = await params;
+  const metadataBase = new URL(getConfiguredSiteOrigin() ?? "https://cins.vn");
+
   if (!hasSupabaseEnv() || !khoaSlug?.trim()) {
-    return { title: "Cơ sở đào tạo | CINs" };
+    return { metadataBase, title: "Cơ sở đào tạo | CINs" };
   }
 
-  const meta = await getCoSoMetaBySlugCached(slug);
+  const [meta, og] = await Promise.all([
+    getCoSoMetaBySlugCached(slug),
+    fetchKhoaHocOgContext(slug, khoaSlug),
+  ]);
   if (!meta) {
-    return { title: "Không tìm thấy cơ sở | CINs" };
+    return { metadataBase, title: "Không tìm thấy cơ sở | CINs" };
   }
 
-  const tenKhoa = titleFromKhoaSlug(khoaSlug);
+  const tenKhoa = og?.title || titleFromKhoaSlug(khoaSlug);
+  const title = `${tenKhoa} — ${meta.ten} | CINs`;
+  const description =
+    og?.summary || `Khóa học ${tenKhoa} tại ${meta.ten} trên CINs.`;
+  const pagePath = `/co-so/${encodeURIComponent(slug)}/khoa-hoc/${encodeURIComponent(khoaSlug)}`;
+  const ogImagePath = `${pagePath}/opengraph-image`;
+
   return {
-    title: `${tenKhoa} — ${meta.ten} | CINs`,
-    description: `Khóa học ${tenKhoa} tại ${meta.ten} trên CINs.`,
+    metadataBase,
+    title,
+    description,
+    openGraph: {
+      type: "article",
+      siteName: "CINs",
+      locale: "vi_VN",
+      url: pagePath,
+      title,
+      description,
+      images: [{ url: ogImagePath, alt: tenKhoa }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogImagePath],
+    },
   };
 }
 

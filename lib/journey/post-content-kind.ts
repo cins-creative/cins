@@ -162,6 +162,14 @@ function isRiveFileEmbedBlock(block: Block): boolean {
   return cls?.provider === "rive-file";
 }
 
+function isLottieFileEmbedBlock(block: Block): boolean {
+  if (block.loai !== "embed") return false;
+  const url = typeof block.config?.url === "string" ? block.config.url : "";
+  if (!url.trim()) return false;
+  const cls = classifyEmbedUrl(url);
+  return cls?.provider === "lottie-file";
+}
+
 function hasInlineIframeEmbed(blocks: ReadonlyArray<Block>): boolean {
   return embedBlocks(blocks).some(isInlineIframeEmbedBlock);
 }
@@ -170,16 +178,28 @@ function hasRiveFileEmbed(blocks: ReadonlyArray<Block>): boolean {
   return embedBlocks(blocks).some(isRiveFileEmbedBlock);
 }
 
-/** Embed fill peek trên timeline — iframe Tier 1 hoặc file .riv host CINs. */
+function hasLottieFileEmbed(blocks: ReadonlyArray<Block>): boolean {
+  return embedBlocks(blocks).some(isLottieFileEmbedBlock);
+}
+
+/** Embed fill peek trên timeline — iframe Tier 1 hoặc file .riv/.lottie host CINs. */
 function hasArticleEmbedPeek(blocks: ReadonlyArray<Block>): boolean {
-  return hasInlineIframeEmbed(blocks) || hasRiveFileEmbed(blocks);
+  return (
+    hasInlineIframeEmbed(blocks) ||
+    hasRiveFileEmbed(blocks) ||
+    hasLottieFileEmbed(blocks)
+  );
 }
 
 function isGalleryEmbedBlock(block: Block): boolean {
-  return isInlineIframeEmbedBlock(block) || isRiveFileEmbedBlock(block);
+  return (
+    isInlineIframeEmbedBlock(block) ||
+    isRiveFileEmbedBlock(block) ||
+    isLottieFileEmbedBlock(block)
+  );
 }
 
-/** Bài có nhúng Tier 1 / file .riv (embed picker). */
+/** Bài có nhúng Tier 1 / file .riv/.lottie (embed picker). */
 export function hasGalleryEmbedContent(
   blocks: ReadonlyArray<Block> | null | undefined,
 ): boolean {
@@ -194,6 +214,7 @@ export function resolveGalleryEmbedProvider(
   if (!blocks?.length) return null;
   for (const block of blocks) {
     if (isRiveFileEmbedBlock(block)) return "rive-file";
+    if (isLottieFileEmbedBlock(block)) return "lottie-file";
     if (!isInlineIframeEmbedBlock(block)) continue;
     const url = typeof block.config?.url === "string" ? block.config.url : "";
     const cls = classifyEmbedUrl(url);

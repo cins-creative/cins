@@ -19,6 +19,17 @@ export type SearchEntityKind =
   | "user_post"
   | "org_post";
 
+/** Thứ tự hiển thị section — cũng là thứ tự stream trên /tim-kiem. */
+export const SEARCH_ENTITY_KINDS: readonly SearchEntityKind[] = [
+  "article",
+  "khoa_hoc",
+  "org_tuyen_dung",
+  "org",
+  "user",
+  "user_post",
+  "org_post",
+] as const;
+
 export type SearchOrgMeta = {
   coverUrl: string | null;
   officialName: string | null;

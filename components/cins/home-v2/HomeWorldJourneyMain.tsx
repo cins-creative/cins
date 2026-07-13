@@ -25,8 +25,10 @@ import { buildWorldJourneyFilterChips } from "@/lib/cins/worldJourneyFeedFilters
 import { mapLinhVucForGuestAside } from "@/lib/cins/worldJourneyGuestAside";
 import { WORLD_JOURNEY_FEED_PAGE_SIZE } from "@/lib/cins/worldJourneyFeedConstants";
 import { fetchWorldJourneyFeedPageCached } from "@/lib/cins/worldJourneyFeedFetch";
+import { fetchWorldJourneyGalleryPageCached } from "@/lib/cins/worldJourneyGalleryFetch";
 import { loadFeedInlinePromos } from "@/lib/cins/worldJourneyFeedPromos";
 import { listLinhVucForHub } from "@/lib/career/queries";
+import { GALLERY_SCROLL_PAGE_SIZE } from "@/lib/journey/gallery-page-fetch";
 
 import "@/app/[slug]/journey/journey.css";
 
@@ -47,6 +49,7 @@ export async function HomeWorldJourneyMain() {
   const giaiDoan = owner.giai_doan as GiaiDoan | null;
   const [
     feedPage,
+    galleryPage,
     coAuthorPendingInvites,
     coSoStaffPendingInvites,
     membershipPendingOutbound,
@@ -57,6 +60,11 @@ export async function HomeWorldJourneyMain() {
       session.profile.id,
       0,
       WORLD_JOURNEY_FEED_PAGE_SIZE,
+    ),
+    fetchWorldJourneyGalleryPageCached(
+      session.profile.id,
+      0,
+      GALLERY_SCROLL_PAGE_SIZE,
     ),
     getCachedPendingCoAuthorInvites(session.profile.id),
     getCachedPendingCoSoStaffInvites(session.profile.id),
@@ -110,6 +118,9 @@ export async function HomeWorldJourneyMain() {
       milestones={feedPage.milestones}
       feedHasMore={feedPage.hasMore}
       feedNextOffset={feedPage.nextOffset}
+      galleryItems={galleryPage.items}
+      galleryHasMore={galleryPage.hasMore}
+      galleryNextOffset={galleryPage.nextOffset}
       feedPromos={feedPromos}
     />
   );

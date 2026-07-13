@@ -3852,3 +3852,218 @@ a.cins-chat-ctx-card:hover {
   opacity: 0.45;
   cursor: not-allowed;
 }
+
+/* =========================================================
+   DARK THEME — chat overlay (data-theme="dark")
+   Panel/bubble/border/ink đã dùng token nên tự đổi màu.
+   Block này chỉ override các giá trị hard-code còn sót:
+   nền sáng (#f4f5f8, #fff), chữ đen rgba(0,0,0,…),
+   overlay tối rgba(15,23,42,…) và color-scheme.
+   ======================================================== */
+:root[data-theme="dark"] .cins-chat-root {
+  color-scheme: dark;
+}
+
+/* Vùng hội thoại + tin nhắn — nền lõm sâu hơn panel */
+:root[data-theme="dark"] .cins-chat-convo,
+:root[data-theme="dark"] .cins-chat-convo-empty,
+:root[data-theme="dark"] .j-chat-mini-messages {
+  background: var(--bg-page);
+}
+
+/* Ô tìm kiếm / filter bạn bè / pin — tách khỏi nền list */
+:root[data-theme="dark"] .cins-chat-search,
+:root[data-theme="dark"] .cins-chat-banbe-filter,
+:root[data-theme="dark"] .cins-chat-side-pin {
+  background: var(--neutral-100);
+}
+
+/* Thread list: hover + track tab + pinned */
+:root[data-theme="dark"] .cins-chat-thread:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+:root[data-theme="dark"] .cins-chat-thread-tabs {
+  background: rgba(255, 255, 255, 0.06);
+}
+:root[data-theme="dark"]
+  .cins-chat-thread-item.is-list-pinned
+  .cins-chat-thread:not(.is-active) {
+  background: rgba(79, 155, 232, 0.12);
+}
+
+/* Trạng thái active phải nổi lên trên nền tối (bg-surface trùng list) */
+:root[data-theme="dark"] .cins-chat-thread.is-active,
+:root[data-theme="dark"] .cins-chat-thread-tab.is-active,
+:root[data-theme="dark"] .cins-chat-side-tab.is-active {
+  background: var(--neutral-200);
+}
+
+/* Nút menu 3 chấm trên thread */
+:root[data-theme="dark"] .cins-chat-thread-menu-trigger {
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+/* Overlay tối → sáng cho các hover/nền dùng rgba(15,23,42,…) */
+:root[data-theme="dark"] .cins-chat-thread-menu-trigger:hover,
+:root[data-theme="dark"] .cins-chat-thread-menu-item:hover,
+:root[data-theme="dark"] .cins-chat-msg-menu button:hover,
+:root[data-theme="dark"] .cins-chat-msg-react-picker button:hover,
+:root[data-theme="dark"] .cins-chat-side-pin-body:hover,
+:root[data-theme="dark"] .cins-chat-side-tab:hover,
+:root[data-theme="dark"] .cins-chat-group-pick:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+:root[data-theme="dark"] .cins-chat-banbe-filter-count,
+:root[data-theme="dark"] .cins-chat-side-media-cell,
+:root[data-theme="dark"] .cins-chat-album-cell,
+:root[data-theme="dark"] .cins-chat-sticker-picker-tab-fallback {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Meta thời gian ảnh/album: chữ đen mờ → sáng mờ */
+:root[data-theme="dark"] .cins-chat-media-meta,
+:root[data-theme="dark"] .cins-chat-album-time,
+:root[data-theme="dark"] .cins-chat-album-block .cins-chat-media-meta {
+  color: var(--ink-muted);
+}
+
+/* Ô nhập tin nhắn — nền + chữ */
+:root[data-theme="dark"] .cins-chat-input-wrap {
+  background: var(--neutral-100);
+}
+:root[data-theme="dark"] .cins-chat-input-wrap:focus-within {
+  background: var(--neutral-50);
+}
+:root[data-theme="dark"] .cins-chat-input-wrap textarea {
+  color: var(--ink-display);
+  -webkit-text-fill-color: var(--ink-display);
+}
+:root[data-theme="dark"] .cins-chat-input-wrap textarea::placeholder {
+  color: var(--ink-muted);
+}
+:root[data-theme="dark"] .cins-chat-attach {
+  color: var(--ink-muted);
+}
+:root[data-theme="dark"] .j-chat-mini-compose-row textarea {
+  background: var(--neutral-100);
+}
+:root[data-theme="dark"] .j-chat-mini-compose-row textarea:focus {
+  background: var(--neutral-50);
+}
+
+/* Picker reaction (thanh tròn nổi) */
+:root[data-theme="dark"] .cins-chat-msg-react-picker {
+  background: var(--bg-surface);
+  border-color: var(--border);
+  box-shadow:
+    0 10px 32px rgba(0, 0, 0, 0.5),
+    0 2px 8px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.06) inset;
+}
+:root[data-theme="dark"] .cins-chat-msg-react-picker button.is-active {
+  background: var(--cins-blue-soft);
+}
+
+/* Card ngữ cảnh trong bubble */
+:root[data-theme="dark"] .cins-chat-ctx-card {
+  background: var(--neutral-100);
+  color: var(--ink-display);
+  border-color: var(--border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+:root[data-theme="dark"] a.cins-chat-ctx-card:hover {
+  background: var(--neutral-200);
+  border-color: var(--border-strong);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+/* Chip ngữ cảnh ở ô soạn */
+:root[data-theme="dark"] .cins-chat-compose-ctx {
+  background: linear-gradient(
+    180deg,
+    var(--neutral-100) 0%,
+    var(--neutral-50) 100%
+  );
+  border-color: color-mix(in srgb, var(--cins-blue) 30%, transparent);
+}
+:root[data-theme="dark"] .cins-chat-compose-ctx-text strong {
+  color: var(--ink-display);
+}
+:root[data-theme="dark"] .cins-chat-compose-ctx-sub {
+  color: var(--ink-muted);
+}
+:root[data-theme="dark"] .cins-chat-compose-ctx-remove {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--ink-body);
+}
+
+/* Sticker / meme picker */
+:root[data-theme="dark"] .cins-chat-sticker-picker {
+  background: var(--bg-surface);
+  border-color: var(--border);
+}
+:root[data-theme="dark"] .cins-chat-sticker-picker-title {
+  color: var(--ink-body);
+}
+:root[data-theme="dark"] .cins-chat-sticker-picker-icon,
+:root[data-theme="dark"] .cins-chat-sticker-picker-count,
+:root[data-theme="dark"] .cins-chat-sticker-picker-status,
+:root[data-theme="dark"] .cins-chat-sticker-picker-empty {
+  color: var(--ink-muted);
+}
+:root[data-theme="dark"] .cins-chat-sticker-picker-tab {
+  background: var(--neutral-100);
+  border-color: var(--border);
+  color: var(--ink-body);
+}
+:root[data-theme="dark"] .cins-chat-sticker-picker-tab-thumb {
+  background: var(--neutral-200);
+}
+:root[data-theme="dark"] .cins-chat-sticker-picker-sticker {
+  background: var(--neutral-100);
+}
+:root[data-theme="dark"] .cins-chat-sticker-picker-new-bo input {
+  background: var(--neutral-100);
+  border-color: var(--border);
+  color: var(--ink-display);
+}
+:root[data-theme="dark"] .cins-chat-sticker-picker-foot {
+  border-top-color: var(--border);
+}
+
+/* Mini panel (dock) */
+:root[data-theme="dark"] .j-chat-mini-head {
+  background: linear-gradient(
+    180deg,
+    var(--neutral-50) 0%,
+    var(--bg-surface) 100%
+  );
+}
+
+/* Group avatar: nền custom + khe mosaic */
+:root[data-theme="dark"] .cins-chat-group-avatar.has-custom {
+  background: var(--neutral-100);
+}
+:root[data-theme="dark"] .cins-chat-group-avatar-mosaic {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+/* Kind pill — chữ màu tối → sáng hơn cho đủ tương phản trên nền tối */
+:root[data-theme="dark"] .cins-chat-kind-pill.is-co_so_dao_tao {
+  background: rgba(16, 185, 129, 0.18);
+  color: #4ade80;
+}
+:root[data-theme="dark"] .cins-chat-kind-pill.is-truong_dai_hoc {
+  background: rgba(79, 155, 232, 0.2);
+  color: #7db4ee;
+}
+:root[data-theme="dark"] .cins-chat-kind-pill.is-cong_dong {
+  background: rgba(249, 115, 22, 0.2);
+  color: #fdba74;
+}
+:root[data-theme="dark"] .cins-chat-kind-pill.is-studio {
+  background: rgba(139, 92, 246, 0.22);
+  color: #c4b5fd;
+}

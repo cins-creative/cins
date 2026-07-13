@@ -248,6 +248,7 @@ function ChatThreadRow({
   onLeaveGroup,
   onDeleteGroup,
   onHideThread,
+  onBlockUser,
 }: {
   thread: ChatThread;
   isActive: boolean;
@@ -263,6 +264,7 @@ function ChatThreadRow({
   onLeaveGroup: (thread: ChatThread) => void;
   onDeleteGroup: (thread: ChatThread) => void;
   onHideThread: (thread: ChatThread) => void;
+  onBlockUser: (thread: ChatThread) => void;
 }) {
   const preview = thread.typing ? "… đang gõ" : thread.preview;
   const { touchHandlers, consumeLongPress } = useThreadLongPress(
@@ -275,6 +277,11 @@ function ChatThreadRow({
     thread.kind === "user" &&
     Boolean(thread.peerSlug?.trim());
 
+  const canBlock =
+    !thread.isGroup &&
+    thread.kind === "user" &&
+    Boolean(thread.peerUserId?.trim());
+
   const menuActions = buildThreadMenuActions({
     isListPinned,
     isMuted,
@@ -282,6 +289,8 @@ function ChatThreadRow({
     isGroupAdmin: Boolean(thread.isGroupAdmin),
     canViewProfile,
     onViewProfile: () => onViewProfile(thread),
+    canBlock,
+    onBlockUser: () => onBlockUser(thread),
     onToggleListPin: () => onToggleListPin(thread),
     onToggleMute: () => onToggleMute(thread),
     onLeaveGroup: () => onLeaveGroup(thread),
@@ -1285,6 +1294,37 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     [removeThreadFromSidebar],
   );
 
+  const handleBlockUser = useCallback(
+    async (thread: ChatThread) => {
+      const targetUserId = thread.peerUserId?.trim();
+      if (!targetUserId) return;
+      if (
+        !window.confirm(
+          `Chặn ${thread.name}? Hai bạn sẽ không nhắn tin cho nhau được nữa và hội thoại này sẽ bị ẩn.`,
+        )
+      ) {
+        return;
+      }
+      try {
+        const res = await fetch(`/api/ket-ban/${targetUserId}/block`, {
+          method: "POST",
+        });
+        const json = (await res.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        if (!res.ok) {
+          window.alert(json?.error ?? "Không chặn được người dùng.");
+          return;
+        }
+        hideRoom(thread.roomId);
+        removeThreadFromSidebar(thread);
+      } catch {
+        window.alert("Không chặn được người dùng.");
+      }
+    },
+    [hideRoom, removeThreadFromSidebar],
+  );
+
   const handleGroupCreated = useCallback(
     (thread: ChatThread) => {
       setThreads((prev) => mergeLaunchThread(prev, thread));
@@ -2076,6 +2116,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                     onLeaveGroup={handleLeaveGroup}
                     onDeleteGroup={handleDeleteGroup}
                     onHideThread={handleHideThread}
+                    onBlockUser={handleBlockUser}
                   />
                 ))}
               </ul>

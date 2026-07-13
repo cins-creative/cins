@@ -38,6 +38,18 @@ import {
   type AdminMonThiPatch,
   type AdminMonThiRow,
 } from "@/lib/admin/mon-thi-server";
+import {
+  createLinhVucForAdmin,
+  createLinhVucNhomForAdmin,
+  deleteLinhVucForAdmin,
+  deleteLinhVucNhomForAdmin,
+  listLinhVucForAdmin,
+  listLinhVucNhomForAdmin,
+  persistLinhVucThumbnail,
+  updateLinhVucForAdmin,
+  updateLinhVucNhomForAdmin,
+  type AdminLinhVucNhomGanInput,
+} from "@/lib/admin/linh-vuc-server";
 import type { ArticleMeta } from "@/lib/articles/types";
 import { getCoverUrl } from "@/lib/articles/cover";
 import { persistMonThiCloudflareThumbnail } from "@/lib/admin/mon-thi-thumbnail-persist";
@@ -609,6 +621,226 @@ export async function adminFetchToHopMon(): Promise<
   if (!gate.ok) return { ok: false, message: gate.message };
   const res = await listToHopMonForAdmin();
   if (res.ok) revalidatePath("/admin/mon-thi");
+  return res;
+}
+
+function parseLinhVucGansFromForm(
+  formData: FormData,
+): AdminLinhVucNhomGanInput[] {
+  const raw = String(formData.get("nhom_ids") ?? "").trim();
+  const chinhId = String(formData.get("nhom_chinh_id") ?? "").trim();
+  if (!raw) return [];
+  const ids = [
+    ...new Set(
+      raw
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean),
+    ),
+  ];
+  return ids.map((id_nhom, i) => ({
+    id_nhom,
+    la_chinh: chinhId ? id_nhom === chinhId : i === 0,
+    thu_tu: i,
+  }));
+}
+
+export async function adminFetchLinhVuc(): Promise<
+  ReturnType<typeof listLinhVucForAdmin>
+> {
+  const gate = await requireDraftTools();
+  if (!gate.ok) return { ok: false, message: gate.message };
+  return listLinhVucForAdmin();
+}
+
+export async function adminFetchLinhVucNhom(): Promise<
+  ReturnType<typeof listLinhVucNhomForAdmin>
+> {
+  const gate = await requireDraftTools();
+  if (!gate.ok) return { ok: false, message: gate.message };
+  return listLinhVucNhomForAdmin();
+}
+
+export async function adminCreateLinhVuc(
+  formData: FormData,
+): Promise<{ ok: true; id: string } | { ok: false; message: string }> {
+  const gate = await requireDraftTools();
+  if (!gate.ok) return { ok: false, message: gate.message };
+  if (!canEditContent(await getCurrentUserSystemRole())) {
+    return { ok: false, message: "Chỉ editor được thêm lĩnh vực." };
+  }
+
+  const thuTuRaw = String(formData.get("thu_tu") ?? "0").trim();
+  const thu_tu = Number(thuTuRaw);
+  const res = await createLinhVucForAdmin(
+    {
+      ten: String(formData.get("ten") ?? ""),
+      slug: String(formData.get("slug") ?? ""),
+      ten_eng: String(formData.get("ten_eng") ?? ""),
+      mo_ta: String(formData.get("mo_ta") ?? ""),
+      thumbnail_id: String(formData.get("thumbnail_id") ?? ""),
+      thu_tu: Number.isFinite(thu_tu) ? thu_tu : 0,
+      trang_thai: String(formData.get("trang_thai") ?? "active"),
+    },
+    parseLinhVucGansFromForm(formData),
+  );
+  if (!res.ok) return res;
+  revalidatePath("/admin/linh-vuc");
+  revalidatePath("/nghe-nghiep");
+  return res;
+}
+
+export async function adminSaveLinhVuc(
+  formData: FormData,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const gate = await requireDraftTools();
+  if (!gate.ok) return { ok: false, message: gate.message };
+  if (!canEditContent(await getCurrentUserSystemRole())) {
+    return { ok: false, message: "Chỉ editor được lưu lĩnh vực." };
+  }
+
+  const id = String(formData.get("id") ?? "").trim();
+  if (!id) return { ok: false, message: "Thiếu id lĩnh vực." };
+
+  const thuTuRaw = String(formData.get("thu_tu") ?? "0").trim();
+  const thu_tu = Number(thuTuRaw);
+  const res = await updateLinhVucForAdmin(
+    id,
+    {
+      ten: String(formData.get("ten") ?? ""),
+      slug: String(formData.get("slug") ?? ""),
+      ten_eng: String(formData.get("ten_eng") ?? ""),
+      mo_ta: String(formData.get("mo_ta") ?? ""),
+      thumbnail_id: String(formData.get("thumbnail_id") ?? ""),
+      thu_tu: Number.isFinite(thu_tu) ? thu_tu : 0,
+      trang_thai: String(formData.get("trang_thai") ?? "active"),
+    },
+    parseLinhVucGansFromForm(formData),
+  );
+  if (!res.ok) return res;
+  revalidatePath("/admin/linh-vuc");
+  revalidatePath("/nghe-nghiep");
+  return res;
+}
+
+export async function adminDeleteLinhVuc(
+  id: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const gate = await requireDraftTools();
+  if (!gate.ok) return { ok: false, message: gate.message };
+  if (!canEditContent(await getCurrentUserSystemRole())) {
+    return { ok: false, message: "Chỉ editor được xóa lĩnh vực." };
+  }
+  const res = await deleteLinhVucForAdmin(id);
+  if (!res.ok) return res;
+  revalidatePath("/admin/linh-vuc");
+  revalidatePath("/nghe-nghiep");
+  return res;
+}
+
+export async function adminUploadLinhVucThumbnail(
+  linhVucId: string,
+  formData: FormData,
+): Promise<
+  | { ok: true; thumbnail_id: string; thumbnail_url: string }
+  | { ok: false; message: string }
+> {
+  const gate = await requireDraftTools();
+  if (!gate.ok) return { ok: false, message: gate.message };
+  if (!canEditContent(await getCurrentUserSystemRole())) {
+    return { ok: false, message: "Chỉ editor được upload ảnh lĩnh vực." };
+  }
+
+  const id = linhVucId.trim();
+  if (!id) return { ok: false, message: "Thiếu id lĩnh vực." };
+
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) {
+    return { ok: false, message: "Chọn file ảnh hợp lệ." };
+  }
+
+  const uploaded = await uploadToCloudflareImages(file);
+  if (!uploaded.ok) {
+    return { ok: false, message: uploaded.error };
+  }
+
+  rememberCfAccountHashFromDeliveryUrl(uploaded.data.url);
+  const saved = await persistLinhVucThumbnail(
+    id,
+    uploaded.data.imageId,
+    uploaded.data.url,
+  );
+  if (!saved.ok) return saved;
+
+  revalidatePath("/admin/linh-vuc");
+  revalidatePath("/nghe-nghiep");
+  return saved;
+}
+
+export async function adminCreateLinhVucNhom(
+  formData: FormData,
+): Promise<{ ok: true; id: string } | { ok: false; message: string }> {
+  const gate = await requireDraftTools();
+  if (!gate.ok) return { ok: false, message: gate.message };
+  if (!canEditContent(await getCurrentUserSystemRole())) {
+    return { ok: false, message: "Chỉ editor được thêm nhóm lĩnh vực." };
+  }
+
+  const thuTuRaw = String(formData.get("thu_tu") ?? "0").trim();
+  const thu_tu = Number(thuTuRaw);
+  const res = await createLinhVucNhomForAdmin({
+    ten: String(formData.get("ten") ?? ""),
+    slug: String(formData.get("slug") ?? ""),
+    ten_eng: String(formData.get("ten_eng") ?? ""),
+    mo_ta: String(formData.get("mo_ta") ?? ""),
+    thu_tu: Number.isFinite(thu_tu) ? thu_tu : 0,
+    trang_thai: String(formData.get("trang_thai") ?? "active"),
+  });
+  if (!res.ok) return res;
+  revalidatePath("/admin/linh-vuc");
+  return res;
+}
+
+export async function adminSaveLinhVucNhom(
+  formData: FormData,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const gate = await requireDraftTools();
+  if (!gate.ok) return { ok: false, message: gate.message };
+  if (!canEditContent(await getCurrentUserSystemRole())) {
+    return { ok: false, message: "Chỉ editor được lưu nhóm lĩnh vực." };
+  }
+
+  const id = String(formData.get("id") ?? "").trim();
+  if (!id) return { ok: false, message: "Thiếu id nhóm." };
+
+  const thuTuRaw = String(formData.get("thu_tu") ?? "0").trim();
+  const thu_tu = Number(thuTuRaw);
+  const res = await updateLinhVucNhomForAdmin(id, {
+    ten: String(formData.get("ten") ?? ""),
+    slug: String(formData.get("slug") ?? ""),
+    ten_eng: String(formData.get("ten_eng") ?? ""),
+    mo_ta: String(formData.get("mo_ta") ?? ""),
+    thu_tu: Number.isFinite(thu_tu) ? thu_tu : 0,
+    trang_thai: String(formData.get("trang_thai") ?? "active"),
+  });
+  if (!res.ok) return res;
+  revalidatePath("/admin/linh-vuc");
+  revalidatePath("/nghe-nghiep");
+  return res;
+}
+
+export async function adminDeleteLinhVucNhom(
+  id: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const gate = await requireDraftTools();
+  if (!gate.ok) return { ok: false, message: gate.message };
+  if (!canEditContent(await getCurrentUserSystemRole())) {
+    return { ok: false, message: "Chỉ editor được xóa nhóm lĩnh vực." };
+  }
+  const res = await deleteLinhVucNhomForAdmin(id);
+  if (!res.ok) return res;
+  revalidatePath("/admin/linh-vuc");
+  revalidatePath("/nghe-nghiep");
   return res;
 }
 

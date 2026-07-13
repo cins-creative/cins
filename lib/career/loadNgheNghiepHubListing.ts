@@ -88,7 +88,7 @@ export async function loadNgheNghiepHubListing(
 
   const communities =
     activeLv?.id && !searchQuery
-      ? await listCongDongOrgsForLinhVuc(activeLv.id, 8)
+      ? await listCongDongOrgsForLinhVuc(activeLv.id, 24)
       : [];
 
   return {

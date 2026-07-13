@@ -414,3 +414,52 @@
   background: var(--cins-blue);
   color: #fff;
 }
+
+/* =========================================================
+   DARK THEME — card popover người dùng
+   Card dùng token nên phần lớn tự đổi; block này chỉ sửa các
+   giá trị hard-code nền sáng (#fff, #f8fafc, sheen trắng…).
+   ======================================================== */
+
+/* Lớp sáng bóng phủ trên card — giảm mạnh để khỏi làm bạc nền tối */
+:root[data-theme="dark"] .j-user-popover .j-friend-card::after {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.06),
+    transparent 42%
+  );
+  opacity: 0.6;
+}
+
+/* Hộp AI gợi ý */
+:root[data-theme="dark"] .j-user-pop-ai {
+  background: var(--neutral-50);
+  border-color: var(--border);
+}
+
+/* Pill "bạn chung" (đang gần như trắng) */
+:root[data-theme="dark"] .j-user-popover .j-friend-mutual {
+  background: var(--neutral-100);
+  border-color: var(--border);
+}
+
+/* Nút "Nhắn tin" — cái ô trắng trong ảnh */
+:root[data-theme="dark"] .j-user-popover .j-friend-message {
+  background: var(--neutral-100);
+  border-color: var(--border);
+  color: var(--ink-body);
+}
+
+/* Avatar / mặt bạn chung khi không có ảnh (fallback gradient sáng) */
+:root[data-theme="dark"] .j-user-popover .j-friend-avatar,
+:root[data-theme="dark"] .j-user-popover .j-friend-mutual-face {
+  background: linear-gradient(
+    135deg,
+    rgba(79, 155, 232, 0.32),
+    rgba(253, 232, 89, 0.2)
+  );
+  color: #7db4ee;
+}
+:root[data-theme="dark"] .j-user-popover .j-friend-mutual-ini {
+  color: #7db4ee;
+}

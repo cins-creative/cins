@@ -730,8 +730,26 @@
   color: var(--cins-blue);
 }
 
-/* ── User cards ── */
-/* ── User cards — mirror JourneyFriendCard (j-friend-card) ── */
+/* ── User cards — tái dùng nguyên JourneyFriendCard (.j-friend-card).
+   Chỉ cần ép card lấp đầy ô grid & đẩy cụm action xuống đáy cho đều hàng. ── */
+.tk-grid--people > li > .j-friend-card {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.tk-grid--people .j-friend-card .j-friend-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.tk-grid--people .j-friend-card .j-friend-actions {
+  margin-top: auto;
+}
+
+/* ── (Legacy) User cards — mirror JourneyFriendCard (j-friend-card) ── */
 .tk-user-card {
   position: relative;
   display: flex;
@@ -756,6 +774,12 @@
   pointer-events: none;
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.5), transparent 42%);
   opacity: 0.75;
+}
+
+/* Dark: vệt sáng bóng dịu lại để không bị wash trên nền tối */
+:root[data-theme="dark"] .tk-user-card::after {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 42%);
+  opacity: 0.6;
 }
 
 .tk-user-card:hover {
@@ -861,8 +885,8 @@
   min-width: 0;
   padding: 6px 4px;
   border-radius: 11px;
-  background: rgba(248, 250, 252, 0.92);
-  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: var(--neutral-100);
+  border: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1451,6 +1475,108 @@
   100% {
     background-position: -200% 0;
   }
+}
+
+/* ── Streaming: khối stream + skeleton từng section ── */
+.tk-slot {
+  display: contents;
+}
+
+.tk-slot[hidden] {
+  display: none;
+}
+
+.tk-shimmer,
+.tk-skel-icon,
+.tk-skel-line,
+.tk-skel-card,
+.tk-skel-tab {
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.04) 0%,
+    var(--cins-blue-soft) 50%,
+    rgba(0, 0, 0, 0.04) 100%
+  );
+  background-size: 200% 100%;
+  animation: tk-shimmer 1.2s ease-in-out infinite;
+}
+
+.tk-section--pending {
+  pointer-events: none;
+}
+
+.tk-skel-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.tk-skel-icon {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+}
+
+.tk-skel-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.tk-skel-line {
+  height: 12px;
+  border-radius: 6px;
+}
+
+.tk-skel-line--title {
+  width: 42%;
+  max-width: 220px;
+  height: 16px;
+}
+
+.tk-skel-line--sub {
+  width: 60%;
+  max-width: 340px;
+}
+
+.tk-skel-card {
+  width: 100%;
+  border-radius: var(--radius-lg);
+}
+
+.tk-skel-card--knowledge {
+  aspect-ratio: 3 / 4;
+}
+
+.tk-skel-card--orgs,
+.tk-skel-card--people {
+  height: 220px;
+}
+
+.tk-skel-card--courses {
+  height: 250px;
+}
+
+.tk-skel-card--posts {
+  height: 132px;
+}
+
+.tk-skel-card--jobs {
+  height: 118px;
+}
+
+.tk-toolbar--skeleton {
+  gap: 8px;
+}
+
+.tk-skel-tab {
+  width: 92px;
+  height: 38px;
+  border-radius: var(--radius-pill, 999px);
 }
 
 /* ── Responsive ── */

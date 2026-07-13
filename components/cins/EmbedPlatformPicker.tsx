@@ -2,8 +2,14 @@
 
 import "@/app/cins-embed-picker.css";
 
-import { ChevronRight, Code2, Upload, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { ChevronDown, Code2, Upload, X } from "lucide-react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+  type RefObject,
+} from "react";
 import { createPortal } from "react-dom";
 
 import {
@@ -16,12 +22,21 @@ import { EMBED_PLATFORM_LOGO } from "@/lib/editor/embed-platform-logos";
 
 export type EmbedPlatformPickerSelection =
   | { type: "platform"; platform: Tier1EmbedPlatformId }
-  | { type: "rive-file"; file: File };
+  | { type: "rive-file"; file: File }
+  | { type: "lottie-file"; file: File };
 
 type Props = {
   open: boolean;
   onClose: () => void;
   onSelect: (selection: EmbedPlatformPickerSelection) => void;
+};
+
+type FlyoutOption = {
+  id: string;
+  label: string;
+  hint: string;
+  icon: ReactNode;
+  onPick: () => void;
 };
 
 function PlatformRow({
@@ -58,9 +73,148 @@ function PlatformRow({
   );
 }
 
+function MotionEmbedFlyoutItem({
+  platform,
+  flyoutId,
+  expanded,
+  onExpandedChange,
+  menuLabel,
+  options,
+  fileInputRef,
+  accept,
+  onFile,
+}: {
+  platform: Tier1EmbedPlatformMeta;
+  flyoutId: "rive" | "lottie";
+  expanded: boolean;
+  onExpandedChange: (next: boolean) => void;
+  menuLabel: string;
+  options: FlyoutOption[];
+  fileInputRef: RefObject<HTMLInputElement | null>;
+  accept: string;
+  onFile: (file: File) => void;
+}) {
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearCloseTimer = () => {
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+  };
+
+  useEffect(() => () => clearCloseTimer(), []);
+
+  return (
+    <li
+      className={`cins-embed-picker-list-item cins-embed-picker-list-item--${flyoutId}${expanded ? " is-expanded" : ""}`}
+      onMouseEnter={() => {
+        clearCloseTimer();
+        onExpandedChange(true);
+      }}
+      onMouseLeave={() => {
+        clearCloseTimer();
+        closeTimerRef.current = setTimeout(() => {
+          onExpandedChange(false);
+          closeTimerRef.current = null;
+        }, 120);
+      }}
+    >
+      <div className="cins-embed-picker-rive-anchor">
+        <button
+          type="button"
+          className={`cins-embed-picker-item cins-embed-picker-item--${flyoutId} cins-embed-picker-item--has-flyout`}
+          aria-expanded={expanded}
+          aria-haspopup="menu"
+          onClick={() => {
+            const canHover =
+              typeof window !== "undefined" &&
+              window.matchMedia("(hover: hover)").matches;
+            if (canHover) return;
+            onExpandedChange(!expanded);
+          }}
+        >
+          <span className="cins-embed-picker-item-mark" aria-hidden>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={EMBED_PLATFORM_LOGO[flyoutId]}
+              alt=""
+              width={34}
+              height={34}
+              loading="lazy"
+              decoding="async"
+            />
+          </span>
+          <span className="cins-embed-picker-item-body">
+            <span className="cins-embed-picker-item-label">
+              {platform.label}
+            </span>
+            <span className="cins-embed-picker-item-hint">{platform.hint}</span>
+          </span>
+          <ChevronDown
+            size={16}
+            strokeWidth={2}
+            className="cins-embed-picker-item-chevron"
+            aria-hidden
+          />
+        </button>
+        <div
+          className="cins-embed-picker-rive-flyout"
+          role="menu"
+          aria-label={menuLabel}
+        >
+          <p className="cins-embed-picker-rive-flyout-title">Chọn cách thêm</p>
+          <div className="cins-embed-picker-rive-flyout-grid">
+            {options.map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                role="menuitem"
+                className="cins-embed-picker-rive-option"
+                onClick={option.onPick}
+              >
+                <span
+                  className="cins-embed-picker-rive-option-icon"
+                  aria-hidden
+                >
+                  {option.icon}
+                </span>
+                <span className="cins-embed-picker-rive-option-body">
+                  <span className="cins-embed-picker-rive-option-label">
+                    {option.label}
+                  </span>
+                  <span className="cins-embed-picker-rive-option-hint">
+                    {option.hint}
+                  </span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept={accept}
+        hidden
+        aria-hidden
+        tabIndex={-1}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          if (!file) return;
+          onFile(file);
+        }}
+      />
+    </li>
+  );
+}
+
 export function EmbedPlatformPicker({ open, onClose, onSelect }: Props) {
   const riveFileInputRef = useRef<HTMLInputElement>(null);
+  const lottieFileInputRef = useRef<HTMLInputElement>(null);
   const [riveExpanded, setRiveExpanded] = useState(false);
+  const [lottieExpanded, setLottieExpanded] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -72,7 +226,10 @@ export function EmbedPlatformPicker({ open, onClose, onSelect }: Props) {
   }, [open, onClose]);
 
   useEffect(() => {
-    if (!open) setRiveExpanded(false);
+    if (!open) {
+      setRiveExpanded(false);
+      setLottieExpanded(false);
+    }
   }, [open]);
 
   if (!open || typeof document === "undefined") return null;
@@ -84,6 +241,11 @@ export function EmbedPlatformPicker({ open, onClose, onSelect }: Props) {
 
   const pickRiveFile = (file: File) => {
     onSelect({ type: "rive-file", file });
+    onClose();
+  };
+
+  const pickLottieFile = (file: File) => {
+    onSelect({ type: "lottie-file", file });
     onClose();
   };
 
@@ -138,115 +300,72 @@ export function EmbedPlatformPicker({ open, onClose, onSelect }: Props) {
                   {platforms.map((platform) => {
                     if (platform.id === "rive") {
                       return (
-                        <li
+                        <MotionEmbedFlyoutItem
                           key={platform.id}
-                          className={`cins-embed-picker-list-item cins-embed-picker-list-item--rive${riveExpanded ? " is-expanded" : ""}`}
-                        >
-                          <div className="cins-embed-picker-rive-anchor">
-                            <button
-                              type="button"
-                              className="cins-embed-picker-item cins-embed-picker-item--rive cins-embed-picker-item--has-flyout"
-                              aria-expanded={riveExpanded}
-                              aria-haspopup="menu"
-                              onClick={() =>
-                                setRiveExpanded((prev) => !prev)
-                              }
-                            >
-                              <span
-                                className="cins-embed-picker-item-mark"
-                                aria-hidden
-                              >
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img
-                                  src={EMBED_PLATFORM_LOGO.rive}
-                                  alt=""
-                                  width={34}
-                                  height={34}
-                                  loading="lazy"
-                                  decoding="async"
-                                />
-                              </span>
-                              <span className="cins-embed-picker-item-body">
-                                <span className="cins-embed-picker-item-label">
-                                  {platform.label}
-                                </span>
-                                <span className="cins-embed-picker-item-hint">
-                                  {platform.hint}
-                                </span>
-                              </span>
-                              <ChevronRight
-                                size={16}
-                                strokeWidth={2}
-                                className="cins-embed-picker-item-chevron"
-                                aria-hidden
-                              />
-                            </button>
-                            <div
-                              className="cins-embed-picker-rive-flyout"
-                              role="menu"
-                              aria-label="Chọn cách nhúng Rive"
-                            >
-                              <button
-                                type="button"
-                                role="menuitem"
-                                className="cins-embed-picker-rive-option"
-                                onClick={() => pickPlatform("rive")}
-                              >
-                                <span
-                                  className="cins-embed-picker-rive-option-icon"
-                                  aria-hidden
-                                >
-                                  <Code2 size={16} strokeWidth={2} />
-                                </span>
-                                <span className="cins-embed-picker-rive-option-body">
-                                  <span className="cins-embed-picker-rive-option-label">
-                                    Link embed HTML
-                                  </span>
-                                  <span className="cins-embed-picker-rive-option-hint">
-                                    Dán link từ rive.app
-                                  </span>
-                                </span>
-                              </button>
-                              <button
-                                type="button"
-                                role="menuitem"
-                                className="cins-embed-picker-rive-option"
-                                onClick={() =>
-                                  riveFileInputRef.current?.click()
-                                }
-                              >
-                                <span
-                                  className="cins-embed-picker-rive-option-icon"
-                                  aria-hidden
-                                >
-                                  <Upload size={16} strokeWidth={2} />
-                                </span>
-                                <span className="cins-embed-picker-rive-option-body">
-                                  <span className="cins-embed-picker-rive-option-label">
-                                    Tải file .riv
-                                  </span>
-                                  <span className="cins-embed-picker-rive-option-hint">
-                                    Chạy animation trực tiếp trên CINs
-                                  </span>
-                                </span>
-                              </button>
-                            </div>
-                          </div>
-                          <input
-                            ref={riveFileInputRef}
-                            type="file"
-                            accept=".riv,application/octet-stream"
-                            hidden
-                            aria-hidden
-                            tabIndex={-1}
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              e.target.value = "";
-                              if (!file) return;
-                              pickRiveFile(file);
-                            }}
-                          />
-                        </li>
+                          platform={platform}
+                          flyoutId="rive"
+                          expanded={riveExpanded}
+                          onExpandedChange={(next) => {
+                            setRiveExpanded(next);
+                            if (next) setLottieExpanded(false);
+                          }}
+                          menuLabel="Chọn cách nhúng Rive"
+                          fileInputRef={riveFileInputRef}
+                          accept=".riv,application/octet-stream"
+                          onFile={pickRiveFile}
+                          options={[
+                            {
+                              id: "rive-link",
+                              label: "Link embed",
+                              hint: "Dán từ rive.app",
+                              icon: <Code2 size={18} strokeWidth={2} />,
+                              onPick: () => pickPlatform("rive"),
+                            },
+                            {
+                              id: "rive-file",
+                              label: "Tải file .riv",
+                              hint: "Chạy trên CINs",
+                              icon: <Upload size={18} strokeWidth={2} />,
+                              onPick: () => riveFileInputRef.current?.click(),
+                            },
+                          ]}
+                        />
+                      );
+                    }
+
+                    if (platform.id === "lottie") {
+                      return (
+                        <MotionEmbedFlyoutItem
+                          key={platform.id}
+                          platform={platform}
+                          flyoutId="lottie"
+                          expanded={lottieExpanded}
+                          onExpandedChange={(next) => {
+                            setLottieExpanded(next);
+                            if (next) setRiveExpanded(false);
+                          }}
+                          menuLabel="Chọn cách nhúng Lottie"
+                          fileInputRef={lottieFileInputRef}
+                          accept=".lottie,.json,application/json,application/zip"
+                          onFile={pickLottieFile}
+                          options={[
+                            {
+                              id: "lottie-link",
+                              label: "Link embed",
+                              hint: "lottie.host/embed/…",
+                              icon: <Code2 size={18} strokeWidth={2} />,
+                              onPick: () => pickPlatform("lottie"),
+                            },
+                            {
+                              id: "lottie-file",
+                              label: "Tải file",
+                              hint: ".lottie hoặc .json",
+                              icon: <Upload size={18} strokeWidth={2} />,
+                              onPick: () =>
+                                lottieFileInputRef.current?.click(),
+                            },
+                          ]}
+                        />
                       );
                     }
 

@@ -1,27 +1,18 @@
 import type { JourneyShareProfile } from "@/lib/journey/profile-share";
-
-const COLORS = {
-  ink: "#0f172a",
-  muted: "#64748b",
-  soft: "#94a3b8",
-  line: "#e2e8f0",
-  panel: "#f8fafc",
-  blue: "#2563eb",
-  indigo: "#6366f1",
-  milestone: "#d97706",
-  works: "#7c3aed",
-  white: "#ffffff",
-};
-
-const COVER_FALLBACK =
-  "linear-gradient(125deg, #1f74c9 0%, #6366f1 38%, #06b6d4 72%, #10b981 100%)";
+import {
+  resolveShareOgThemeTokens,
+  shareOgBackgroundStyle,
+  type ShareOgTheme,
+} from "@/lib/journey/share-og-theme";
 
 function OgAvatar({
   profile,
   size = 88,
+  borderColor = "#ffffff",
 }: {
   profile: JourneyShareProfile;
   size?: number;
+  borderColor?: string;
 }) {
   if (profile.avatarUrl) {
     return (
@@ -36,7 +27,7 @@ function OgAvatar({
           height: size,
           borderRadius: "50%",
           objectFit: "cover",
-          border: "4px solid #ffffff",
+          border: `4px solid ${borderColor}`,
           boxShadow: "0 8px 24px rgba(15, 23, 42, 0.18)",
           flexShrink: 0,
         }}
@@ -53,11 +44,11 @@ function OgAvatar({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "linear-gradient(135deg, #2563eb, #6366f1)",
-        color: COLORS.white,
+        background: "linear-gradient(135deg, #0ea5e9, #0284c7)",
+        color: "#ffffff",
         fontSize: size * 0.34,
         fontWeight: 700,
-        border: "4px solid #ffffff",
+        border: `4px solid ${borderColor}`,
         boxShadow: "0 8px 24px rgba(15, 23, 42, 0.18)",
         flexShrink: 0,
       }}
@@ -67,7 +58,13 @@ function OgAvatar({
   );
 }
 
-function OgBrand({ logoUrl }: { logoUrl: string }) {
+function OgBrand({
+  logoUrl,
+  ink,
+}: {
+  logoUrl: string;
+  ink: string;
+}) {
   return (
     <div
       style={{
@@ -86,9 +83,9 @@ function OgBrand({ logoUrl }: { logoUrl: string }) {
       />
       <span
         style={{
-          fontSize: 22,
+          fontSize: 20,
           fontWeight: 700,
-          color: COLORS.ink,
+          color: ink,
           letterSpacing: "0.04em",
         }}
       >
@@ -98,89 +95,45 @@ function OgBrand({ logoUrl }: { logoUrl: string }) {
   );
 }
 
-function OgStat({
-  value,
-  label,
+function OgUrlChip({
+  slug,
   accent,
+  panel,
 }: {
-  value: number;
-  label: string;
+  slug: string;
   accent: string;
+  panel: string;
 }) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 4,
-        padding: "12px 18px",
-        borderRadius: 16,
-        background: COLORS.white,
-        border: `1px solid ${COLORS.line}`,
-        minWidth: 108,
-      }}
-    >
-      <span
-        style={{
-          fontSize: 28,
-          fontWeight: 700,
-          color: accent,
-          lineHeight: 1,
-        }}
-      >
-        {value}
-      </span>
-      <span
-        style={{
-          fontSize: 14,
-          fontWeight: 600,
-          color: COLORS.muted,
-        }}
-      >
-        {label}
-      </span>
-    </div>
-  );
-}
-
-function OgTag({ label }: { label: string }) {
   return (
     <div
       style={{
         display: "flex",
         alignItems: "center",
-        gap: 8,
         padding: "10px 18px",
         borderRadius: 999,
-        background: `linear-gradient(135deg, ${COLORS.blue}, ${COLORS.indigo})`,
-        color: COLORS.white,
-        fontSize: 14,
+        background: panel,
+        color: accent,
+        fontSize: 18,
         fontWeight: 700,
-        letterSpacing: "0.06em",
-        textTransform: "uppercase",
       }}
     >
-      <div
-        style={{
-          width: 8,
-          height: 8,
-          borderRadius: "50%",
-          background: "rgba(255,255,255,0.9)",
-        }}
-      />
-      {label}
+      cins.vn/{slug}
     </div>
   );
 }
 
-/** Journey — layout Hồ sơ (cover cinematic + strip thông tin). */
+/** Journey — cover cinematic + identity strip theo theme. */
 export function OgJourneyShareCard({
   profile,
   logoUrl,
+  theme,
 }: {
   profile: JourneyShareProfile;
   logoUrl: string;
+  theme?: ShareOgTheme | null;
 }) {
+  const tokens = resolveShareOgThemeTokens(theme, profile.slug);
+  const bg = shareOgBackgroundStyle(tokens);
   const cotMoc = profile.stats?.cotMoc ?? 0;
   const tacPham = profile.stats?.tacPham ?? 0;
   const bio =
@@ -194,15 +147,41 @@ export function OgJourneyShareCard({
         height: "100%",
         display: "flex",
         flexDirection: "column",
-        background: "linear-gradient(180deg, #ffffff 0%, #f8fbff 100%)",
+        backgroundColor: bg.backgroundColor,
+        ...(tokens.isCustom
+          ? {}
+          : {
+              backgroundImage: bg.backgroundImage,
+              backgroundSize: bg.backgroundSize,
+            }),
+        color: tokens.ink,
         fontFamily: "Be Vietnam Pro",
+        position: "relative",
       }}
     >
+      {tokens.backgroundImage ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={tokens.backgroundImage}
+          alt=""
+          width={1200}
+          height={630}
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            opacity: 0.35,
+          }}
+        />
+      ) : null}
+
       <div
         style={{
           position: "relative",
           width: "100%",
-          height: 250,
+          height: 320,
           overflow: "hidden",
           display: "flex",
         }}
@@ -213,7 +192,7 @@ export function OgJourneyShareCard({
             src={profile.coverUrl}
             alt=""
             width={1200}
-            height={250}
+            height={320}
             style={{
               width: "100%",
               height: "100%",
@@ -221,14 +200,22 @@ export function OgJourneyShareCard({
             }}
           />
         ) : (
-          <div style={{ width: "100%", height: "100%", background: COVER_FALLBACK }} />
+          <div
+            style={{
+              width: "100%",
+              height: "100%",
+              background: tokens.accent,
+              opacity: 0.35,
+            }}
+          />
         )}
         <div
           style={{
             position: "absolute",
             inset: 0,
-            background:
-              "linear-gradient(180deg, rgba(15,23,42,0.12) 0%, transparent 38%), linear-gradient(0deg, rgba(248,251,255,1) 0%, rgba(248,251,255,0) 42%)",
+            background: `linear-gradient(180deg, transparent 30%, ${
+              tokens.lightInk ? "rgba(15,23,42,0.9)" : "rgba(255,255,255,0.92)"
+            } 100%)`,
           }}
         />
       </div>
@@ -239,8 +226,9 @@ export function OgJourneyShareCard({
           display: "flex",
           flexDirection: "column",
           padding: "0 48px 40px",
-          marginTop: -44,
+          marginTop: -72,
           position: "relative",
+          gap: 20,
         }}
       >
         <div
@@ -251,15 +239,20 @@ export function OgJourneyShareCard({
             gap: 24,
           }}
         >
-          <div style={{ display: "flex", alignItems: "flex-end", gap: 24 }}>
-            <OgAvatar profile={profile} />
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 22 }}>
+            <OgAvatar
+              profile={profile}
+              size={96}
+              borderColor={tokens.lightInk ? "#0f172a" : "#ffffff"}
+            />
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <div
                 style={{
-                  fontSize: 42,
-                  fontWeight: 700,
-                  color: COLORS.ink,
-                  lineHeight: 1.1,
+                  fontSize: 44,
+                  fontWeight: 800,
+                  color: tokens.ink,
+                  lineHeight: 1.05,
+                  letterSpacing: "-0.02em",
                 }}
               >
                 {profile.displayName}
@@ -269,7 +262,7 @@ export function OgJourneyShareCard({
                   style={{
                     fontSize: 20,
                     fontWeight: 600,
-                    color: COLORS.muted,
+                    color: tokens.muted,
                   }}
                 >
                   {profile.roleLine}
@@ -277,64 +270,93 @@ export function OgJourneyShareCard({
               ) : null}
             </div>
           </div>
-          <OgTag label="Journey" />
+          <OgUrlChip
+            slug={profile.slug}
+            accent={tokens.accent}
+            panel={tokens.panel}
+          />
         </div>
 
         <div
           style={{
             display: "flex",
-            marginTop: 28,
-            gap: 32,
+            gap: 28,
             alignItems: "flex-start",
           }}
         >
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 14 }}>
-            <div
-              style={{
-                fontSize: 22,
-                lineHeight: 1.45,
-                color: COLORS.ink,
-              }}
-            >
-              {bio}
-            </div>
-            <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+          <div
+            style={{
+              flex: 1,
+              fontSize: 22,
+              lineHeight: 1.4,
+              color: tokens.ink,
+              opacity: 0.92,
+            }}
+          >
+            {bio}
+          </div>
+          <div
+            style={{
+              display: "flex",
+              gap: 20,
+              flexShrink: 0,
+              padding: "14px 22px",
+              borderRadius: 18,
+              background: tokens.panel,
+            }}
+          >
+            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
               <span
                 style={{
-                  fontSize: 18,
-                  fontWeight: 700,
-                  color: COLORS.blue,
+                  fontSize: 28,
+                  fontWeight: 800,
+                  color: tokens.accent,
+                  lineHeight: 1,
                 }}
               >
-                cins.vn/{profile.slug}
+                {cotMoc}
               </span>
-              {profile.locationLine ? (
-                <span style={{ fontSize: 18, color: COLORS.soft }}>
-                  {profile.locationLine}
-                </span>
-              ) : null}
+              <span style={{ fontSize: 14, fontWeight: 600, color: tokens.muted }}>
+                Cột mốc
+              </span>
             </div>
-          </div>
-
-          <div style={{ display: "flex", gap: 14, flexShrink: 0 }}>
-            <OgStat value={cotMoc} label="Cột mốc" accent={COLORS.milestone} />
-            <OgStat value={tacPham} label="Tác phẩm" accent={COLORS.works} />
+            <div
+              style={{
+                width: 1,
+                alignSelf: "stretch",
+                background: tokens.muted,
+                opacity: 0.35,
+              }}
+            />
+            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <span
+                style={{
+                  fontSize: 28,
+                  fontWeight: 800,
+                  color: tokens.accent,
+                  lineHeight: 1,
+                }}
+              >
+                {tacPham}
+              </span>
+              <span style={{ fontSize: 14, fontWeight: 600, color: tokens.muted }}>
+                Tác phẩm
+              </span>
+            </div>
           </div>
         </div>
 
         <div
           style={{
             marginTop: "auto",
-            paddingTop: 24,
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            borderTop: `1px solid ${COLORS.line}`,
           }}
         >
-          <OgBrand logoUrl={logoUrl} />
-          <span style={{ fontSize: 16, color: COLORS.soft, fontWeight: 600 }}>
-            Hành trình sáng tạo trên CINs
+          <OgBrand logoUrl={logoUrl} ink={tokens.ink} />
+          <span style={{ fontSize: 16, color: tokens.muted, fontWeight: 600 }}>
+            Journey trên CINs
           </span>
         </div>
       </div>
@@ -342,20 +364,26 @@ export function OgJourneyShareCard({
   );
 }
 
-function OgGalleryThumb({ src }: { src: string | null }) {
+function OgGalleryThumb({
+  src,
+  radius = 18,
+}: {
+  src: string | null;
+  radius?: number;
+}) {
   if (src) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={src}
         alt=""
-        width={260}
-        height={195}
+        width={280}
+        height={210}
         style={{
           width: "100%",
           height: "100%",
           objectFit: "cover",
-          borderRadius: 16,
+          borderRadius: radius,
         }}
       />
     );
@@ -366,21 +394,25 @@ function OgGalleryThumb({ src }: { src: string | null }) {
       style={{
         width: "100%",
         height: "100%",
-        borderRadius: 16,
+        borderRadius: radius,
         background: "linear-gradient(135deg, #e2e8f0, #cbd5e1)",
       }}
     />
   );
 }
 
-/** Portfolio / Gallery — mosaic 2×2 + header hồ sơ. */
+/** Portfolio — mosaic lớn + identity theo theme. */
 export function OgGalleryShareCard({
   profile,
   logoUrl,
+  theme,
 }: {
   profile: JourneyShareProfile;
   logoUrl: string;
+  theme?: ShareOgTheme | null;
 }) {
+  const tokens = resolveShareOgThemeTokens(theme, profile.slug);
+  const bg = shareOgBackgroundStyle(tokens);
   const tacPham = profile.stats?.tacPham ?? 0;
   const cells = [...(profile.galleryThumbs ?? []).slice(0, 4)];
   while (cells.length < 4) cells.push("");
@@ -392,64 +424,123 @@ export function OgGalleryShareCard({
         height: "100%",
         display: "flex",
         flexDirection: "column",
-        background: COLORS.panel,
+        backgroundColor: bg.backgroundColor,
+        ...(tokens.isCustom
+          ? {}
+          : {
+              backgroundImage: bg.backgroundImage,
+              backgroundSize: bg.backgroundSize,
+            }),
+        color: tokens.ink,
         fontFamily: "Be Vietnam Pro",
-        padding: 40,
+        padding: 36,
+        position: "relative",
       }}
     >
+      {tokens.backgroundImage ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={tokens.backgroundImage}
+          alt=""
+          width={1200}
+          height={630}
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            opacity: 0.28,
+          }}
+        />
+      ) : null}
+
       <div
         style={{
+          position: "relative",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          marginBottom: 28,
+          marginBottom: 22,
+          gap: 20,
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-          <OgAvatar profile={profile} size={72} />
+        <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+          <OgAvatar profile={profile} size={68} />
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             <div
               style={{
-                fontSize: 36,
-                fontWeight: 700,
-                color: COLORS.ink,
+                fontSize: 34,
+                fontWeight: 800,
+                color: tokens.ink,
                 lineHeight: 1.1,
+                letterSpacing: "-0.02em",
               }}
             >
               {profile.displayName}
             </div>
-            <div style={{ fontSize: 20, fontWeight: 600, color: COLORS.muted }}>
-              {tacPham} tác phẩm · cins.vn/{profile.slug}
+            <div
+              style={{
+                fontSize: 18,
+                fontWeight: 600,
+                color: tokens.muted,
+              }}
+            >
+              {tacPham} tác phẩm
             </div>
           </div>
         </div>
-        <OgTag label="Portfolio" />
+        <OgUrlChip
+          slug={profile.slug}
+          accent={tokens.accent}
+          panel={tokens.panel}
+        />
       </div>
 
       <div
         style={{
+          position: "relative",
           flex: 1,
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gridTemplateRows: "1fr 1fr",
-          gap: 16,
+          display: "flex",
+          gap: 14,
         }}
       >
-        {cells.map((src, index) => (
-          <OgGalleryThumb key={index} src={src || null} />
-        ))}
+        <div style={{ flex: 1.35, display: "flex" }}>
+          <OgGalleryThumb src={cells[0] || null} radius={20} />
+        </div>
+        <div
+          style={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            gap: 14,
+          }}
+        >
+          <div style={{ flex: 1, display: "flex" }}>
+            <OgGalleryThumb src={cells[1] || null} />
+          </div>
+          <div style={{ flex: 1, display: "flex", gap: 14 }}>
+            <div style={{ flex: 1, display: "flex" }}>
+              <OgGalleryThumb src={cells[2] || null} />
+            </div>
+            <div style={{ flex: 1, display: "flex" }}>
+              <OgGalleryThumb src={cells[3] || null} />
+            </div>
+          </div>
+        </div>
       </div>
 
       <div
         style={{
-          marginTop: 24,
+          position: "relative",
+          marginTop: 20,
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
         }}
       >
-        <OgBrand logoUrl={logoUrl} />
-        <span style={{ fontSize: 16, color: COLORS.soft, fontWeight: 600 }}>
+        <OgBrand logoUrl={logoUrl} ink={tokens.ink} />
+        <span style={{ fontSize: 16, color: tokens.muted, fontWeight: 600 }}>
           Portfolio trên CINs
         </span>
       </div>
@@ -474,9 +565,9 @@ export function OgFallbackShareCard({
         alignItems: "center",
         justifyContent: "center",
         gap: 24,
-        background: COVER_FALLBACK,
+        background: "linear-gradient(125deg, #0f172a 0%, #0c4a6e 55%, #134e4a 100%)",
         fontFamily: "Be Vietnam Pro",
-        color: COLORS.white,
+        color: "#ffffff",
         padding: 48,
       }}
     >
@@ -493,7 +584,7 @@ export function OgFallbackShareCard({
           style={{
             fontSize: 24,
             fontWeight: 700,
-            color: COLORS.white,
+            color: "#ffffff",
             letterSpacing: "0.04em",
           }}
         >

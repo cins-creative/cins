@@ -17,6 +17,36 @@
 }
 
 .ttda-root {
+  /* Deck luôn là bản trình chiếu nền sáng — khai lại token light để KHÔNG
+     bị đảo màu khi site đang ở dark mode (slide.dark dùng --neutral-900). */
+  --cins-blue: #1f74c9;
+  --cins-blue-dark: #1656a0;
+  --cins-blue-soft: #e7f0fb;
+  --cins-yellow-soft: #fff8c9;
+  --cins-mint-soft: #d9fbed;
+  --cins-violet-soft: #ecddfe;
+  --neutral-0: #ffffff;
+  --neutral-50: #f8f9fb;
+  --neutral-100: #f1f2f5;
+  --neutral-200: #e4e6eb;
+  --neutral-300: #c9ccd3;
+  --neutral-400: #9aa0ab;
+  --neutral-500: #6b7280;
+  --neutral-600: #4a5160;
+  --neutral-700: #2f3441;
+  --neutral-800: #1b1f2a;
+  --neutral-900: #0e1117;
+  --ink-display: rgba(0, 0, 0, 0.85);
+  --ink-title: rgba(0, 0, 0, 0.6);
+  --ink-body: rgba(0, 0, 0, 0.55);
+  --ink-muted: rgba(0, 0, 0, 0.4);
+  --bg-page: #f4f5f8;
+  --bg-surface: #ffffff;
+  --border-strong: #c9ccd3;
+  --success: #1fb36b;
+  --warning: #f4a52a;
+  --danger: #e5484d;
+
   --border: #e9ebef;
   --radius-lg: 18px;
   --shadow-sm: 0 3px 10px rgba(15, 23, 42, 0.06);
@@ -1997,9 +2027,20 @@
 }
 
 .ttda-root .close-slide .sub {
+  /* Reset card-styling của .ttda-root .sub (trùng tên class) — đây chỉ là
+     dòng chữ footer nhỏ trên nền slide tối, không phải thẻ card nền trắng. */
+  background: none;
+  border: none;
+  padding: 0;
+  box-shadow: none;
+  overflow: visible;
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(255, 255, 255, 0.55);
   margin-top: 20px;
+}
+
+.ttda-root .close-slide .sub::before {
+  content: none;
 }
 
 @media (max-width: 820px) {

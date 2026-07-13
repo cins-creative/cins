@@ -108,6 +108,19 @@ export function JourneySidebar({
     bio: profile.bio,
     roleLine,
     locationLine: cityLabel,
+    emailLine: profile.emailLienHe?.trim() || null,
+    socialLine: socialLinks[0]
+      ? (() => {
+          try {
+            const u = new URL(socialLinks[0]!.url);
+            const host = u.hostname.replace(/^www\./, "");
+            const path = u.pathname.replace(/\/$/, "");
+            return path && path !== "/" ? `${host}${path}` : host;
+          } catch {
+            return socialLinks[0]!.label;
+          }
+        })()
+      : null,
   };
 
   return (

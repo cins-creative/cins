@@ -11,6 +11,14 @@ function hitMatchesKind(hit: SearchHit, kind: SearchKindTab): boolean {
   return true;
 }
 
+/** Section `entity` có thuộc tab đang chọn không (dùng để ẩn/hiện khối stream). */
+export function entityKindMatchesTab(
+  entity: SearchEntityKind,
+  tab: SearchKindTab,
+): boolean {
+  return hitMatchesKind({ kind: entity } as SearchHit, tab);
+}
+
 export function parseSearchKindTab(raw: string | null | undefined): SearchKindTab {
   const kind = (raw ?? "all").trim();
   if (

@@ -5,11 +5,17 @@ import { BookOpen, Briefcase, FileText, ShieldCheck, Users, X } from "lucide-rea
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
+import {
+  JourneyOrgPopoverActions,
+  type OrgActionKind,
+} from "@/components/journey/JourneyOrgPopoverActions";
 import { truongRootPath } from "@/lib/truong/truong-routes";
 
 type OrgPopoverKind = "cong_dong" | "co_so_dao_tao" | "truong" | "studio";
 
 type OrgPreview = {
+  /** UUID org (`org_to_chuc.id`) — cần cho theo dõi + nhắn tin. */
+  id?: string;
   slug: string;
   ten: string;
   moTa: string | null;
@@ -90,6 +96,15 @@ function orgDialogLabel(orgKind: OrgPopoverKind): string {
   if (orgKind === "truong") return "Thông tin trường đại học";
   if (orgKind === "studio") return "Thông tin studio";
   return "Thông tin cộng đồng";
+}
+
+/** Org profile (trường / cơ sở / studio) có hàng hành động theo dõi + nhắn tin.
+ *  Cộng đồng theo mô hình tham gia riêng → giữ CTA đơn. */
+function orgActionKind(orgKind: OrgPopoverKind): OrgActionKind | null {
+  if (orgKind === "co_so_dao_tao") return "co_so_dao_tao";
+  if (orgKind === "truong") return "truong";
+  if (orgKind === "studio") return "studio";
+  return null;
 }
 
 function isPopoverKind(
@@ -310,11 +325,23 @@ export function JourneyOrgPopover({
                         )}
                         {visible.tinhThanh ? <span>{visible.tinhThanh}</span> : null}
                       </div>
-                      <div className="j-org-pop-actions">
-                        <Link href={visible.href} className="j-org-pop-primary">
-                          {orgPrimaryCta(popoverKind)}
-                        </Link>
-                      </div>
+                      {visible.id && orgActionKind(popoverKind) ? (
+                        <JourneyOrgPopoverActions
+                          orgId={visible.id}
+                          orgKind={orgActionKind(popoverKind)!}
+                          orgName={visible.ten}
+                          avatarUrl={visible.avatarUrl}
+                          href={visible.href}
+                          primaryLabel={orgPrimaryCta(popoverKind)}
+                          onClose={() => setOpen(false)}
+                        />
+                      ) : (
+                        <div className="j-org-pop-actions">
+                          <Link href={visible.href} className="j-org-pop-primary">
+                            {orgPrimaryCta(popoverKind)}
+                          </Link>
+                        </div>
+                      )}
                     </div>
                   </article>
                 ) : loading ? (

@@ -1,5 +1,6 @@
 import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import type { Block as ServerBlock } from "@/lib/editor/types";
+import type { FeedSourceKind } from "@/lib/cins/worldJourneyFeedSource";
 import type { PersonalFilterRef } from "@/lib/filter/types";
 import type { BookmarkFrameKind } from "@/lib/journey/bookmark-source-theme";
 
@@ -280,10 +281,16 @@ export type MilestoneItem = {
 
   /**
    * World Journey feed — số lần viewer đã "tiếp cận" (`hien_thi`) nội dung này.
-   * 0/undefined = chưa xem. Dùng để ưu tiên nội dung chưa xem / xem ít lên trên
-   * khi sắp xếp trong mỗi năm (không ảnh hưởng Journey cá nhân).
+   * 0/undefined = chưa xem. Dùng để ưu tiên nội dung chưa xem lên trên
+   * (không ảnh hưởng Journey cá nhân). Bài của chính viewer không demote bằng field này.
    */
   viewerSeenCount?: number | null;
+
+  /**
+   * World Journey feed — impression `hien_thi` toàn cục (mọi người).
+   * Cold-start: bài mới + reach thấp lên trước. Không hiển thị công khai như vanity.
+   */
+  feedGlobalReach?: number | null;
 
   /**
    * World Journey feed — bài/sự kiện org từ tổ chức viewer đang theo dõi
@@ -293,6 +300,14 @@ export type MilestoneItem = {
 
   /** World Journey — bài từ pool Khám phá (chưa theo dõi), dùng sort «Theo dõi». */
   feedExplore?: boolean;
+
+  /**
+   * World Journey — nguồn nội dung để lọc theo `FeedSourceFilter`
+   * (`user` / `cong_dong` / `org`). Gắn ở server khi dựng pool.
+   */
+  feedSource?: FeedSourceKind;
+  /** World Journey — item đến từ quan hệ theo dõi (mình / bạn bè / theo dõi / thành viên). */
+  feedFollowing?: boolean;
 
   /**
    * Thời điểm xếp trên World Journey feed — sự kiện org tương lai dùng thay cho

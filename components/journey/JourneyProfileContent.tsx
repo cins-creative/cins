@@ -20,6 +20,7 @@ import { JourneyPersonalFilterProvider } from "@/components/journey/JourneyPerso
 import { useJourneyView } from "@/components/journey/JourneyViewContext";
 import type { MilestoneItem } from "@/components/journey/milestone-types";
 import type { LoaiMocVisibilityMap } from "@/lib/journey/filter-visibility";
+import { galleryItemThumbSrc } from "@/lib/journey/gallery-filter-share";
 import {
   hydrateJourneyPanelsFromLocalStorage,
   isJourneyPanelCacheStale,
@@ -676,7 +677,7 @@ export function JourneyProfileContent({
     galleryThumbs:
       galleryCache && galleryCache !== "loading" && galleryCache !== "error"
         ? galleryCache.items
-            .map((item) => item.src)
+            .map(galleryItemThumbSrc)
             .filter(Boolean)
             .slice(0, 6)
         : undefined,

@@ -1,10 +1,14 @@
 "use client";
 
 import { Share2 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useState } from "react";
 
 import { JourneyProfileShareModal } from "@/components/journey/JourneyProfileShareModal";
-import { dispatchJourneyShareOpen } from "@/lib/journey/gallery-filter-share";
+import {
+  dispatchJourneyShareOpen,
+  getLiveGalleryItemsForShare,
+} from "@/lib/journey/gallery-filter-share";
+import type { GalleryMainItem } from "@/lib/journey/gallery-page-fetch";
 import type { JourneyShareProfile } from "@/lib/journey/profile-share";
 
 type Props = {
@@ -23,8 +27,16 @@ export function JourneyProfileShareTrigger({
   variant = "sidebar-icon",
 }: Props) {
   const [open, setOpen] = useState(false);
-  const anchorRef = useRef<HTMLButtonElement>(null);
-  const isPopover = variant === "sidebar-icon";
+  const [liveGalleryItems, setLiveGalleryItems] = useState<
+    ReadonlyArray<GalleryMainItem>
+  >([]);
+
+  const openShare = () => {
+    dispatchJourneyShareOpen();
+    // Sidebar nằm ngoài FilterShareProvider — đọc snapshot module từ grid.
+    setLiveGalleryItems(getLiveGalleryItemsForShare());
+    setOpen(true);
+  };
 
   const button =
     variant === "icon-row" ? (
@@ -33,17 +45,13 @@ export function JourneyProfileShareTrigger({
         className="j-act-btn j-act-btn--icon"
         title="Chia sẻ"
         aria-label="Chia sẻ"
-        onClick={() => {
-          dispatchJourneyShareOpen();
-          setOpen(true);
-        }}
+        onClick={openShare}
       >
         <Share2 size={17} strokeWidth={2} aria-hidden />
         <span className="j-act-btn-cap">Chia sẻ</span>
       </button>
     ) : (
       <button
-        ref={anchorRef}
         type="button"
         className="j-btn-icon"
         title="Chia sẻ Journey"
@@ -51,8 +59,11 @@ export function JourneyProfileShareTrigger({
         aria-expanded={open}
         aria-haspopup="dialog"
         onClick={() => {
-          dispatchJourneyShareOpen();
-          setOpen((v) => !v);
+          if (open) {
+            setOpen(false);
+            return;
+          }
+          openShare();
         }}
       >
         <Share2 size={14} strokeWidth={1.8} aria-hidden />
@@ -67,8 +78,8 @@ export function JourneyProfileShareTrigger({
         onClose={() => setOpen(false)}
         profile={shareProfile}
         viewerProfileId={viewerProfileId}
-        presentation={isPopover ? "popover" : "modal"}
-        anchorRef={isPopover ? anchorRef : undefined}
+        liveGalleryItems={liveGalleryItems}
+        presentation="modal"
       />
     </>
   );

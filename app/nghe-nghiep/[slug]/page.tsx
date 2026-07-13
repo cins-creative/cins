@@ -7,6 +7,7 @@ import {
   getArticleSlugById,
   getNgheArticleMetaBySlug,
 } from "@/lib/articles/nghe-page-queries";
+import { getConfiguredSiteOrigin } from "@/lib/auth/auth-origin";
 import { parseTagAggSort } from "@/lib/tag/aggregation-queries";
 import type { TagAggSort } from "@/lib/tag/aggregation-types";
 import { hasSupabaseEnv } from "@/lib/supabase/server";
@@ -22,13 +23,16 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
+  const siteOrigin = getConfiguredSiteOrigin() ?? "https://cins.vn";
+  const metadataBase = new URL(siteOrigin);
+
   if (!hasSupabaseEnv()) {
-    return { title: "Nghề nghiệp | CINs" };
+    return { metadataBase, title: "Nghề nghiệp | CINs" };
   }
 
   const meta = await getNgheArticleMetaBySlug(slug);
   if (!meta) {
-    return { title: "Không tìm thấy | CINs" };
+    return { metadataBase, title: "Không tìm thấy | CINs" };
   }
 
   const title =
@@ -36,7 +40,30 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     `${meta.tieu_de_viet?.trim() || meta.tieu_de} | CINs`;
   const description =
     meta.meta_description?.trim() || meta.tom_tat?.trim() || undefined;
-  return { title, description };
+
+  const pagePath = `/nghe-nghiep/${encodeURIComponent(slug)}`;
+  const ogImagePath = `${pagePath}/opengraph-image`;
+
+  return {
+    metadataBase,
+    title,
+    description,
+    openGraph: {
+      type: "article",
+      siteName: "CINs",
+      locale: "vi_VN",
+      url: pagePath,
+      title,
+      description,
+      images: [{ url: ogImagePath, alt: title }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogImagePath],
+    },
+  };
 }
 
 async function NgheNghiepDetailGate({

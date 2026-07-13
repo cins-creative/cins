@@ -108,13 +108,28 @@ function redirectLegacyJourneyPath(request: NextRequest): NextResponse | null {
   return NextResponse.redirect(url, 308);
 }
 
+/** Segment file metadata (OG/twitter/icon…) — không coi là slug tổ chức. */
+const RESERVED_ORG_SEGMENTS = new Set([
+  "opengraph-image",
+  "twitter-image",
+  "icon",
+  "apple-icon",
+  "sitemap.xml",
+  "robots.txt",
+  "favicon.ico",
+]);
+
+function isReservedOrgSegment(seg: string): boolean {
+  return seg.startsWith("_") || seg.includes(".") || RESERVED_ORG_SEGMENTS.has(seg);
+}
+
 /** `/co-so/:slug` → `/co-so/:slug/bai-dang` — tránh redirect RSC (meta refresh) gây lỗi lần đầu. */
 function redirectCoSoRootToDefaultTab(
   request: NextRequest,
 ): NextResponse | null {
   const { pathname } = request.nextUrl;
   const match = pathname.match(/^\/co-so\/([^/]+)\/?$/);
-  if (!match || match[1].startsWith("_")) return null;
+  if (!match || isReservedOrgSegment(match[1])) return null;
 
   const url = request.nextUrl.clone();
   url.pathname = `/co-so/${match[1]}/bai-dang`;
@@ -127,7 +142,7 @@ function redirectStudioRootToDefaultTab(
 ): NextResponse | null {
   const { pathname } = request.nextUrl;
   const match = pathname.match(/^\/studio\/([^/]+)\/?$/);
-  if (!match || match[1].startsWith("_")) return null;
+  if (!match || isReservedOrgSegment(match[1])) return null;
 
   const url = request.nextUrl.clone();
   url.pathname = `/studio/${match[1]}/bai-dang`;

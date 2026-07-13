@@ -34,7 +34,7 @@
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(244, 245, 248, 0.9);
+  background: color-mix(in srgb, var(--bg-page, #f4f5f8) 90%, transparent);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--border);

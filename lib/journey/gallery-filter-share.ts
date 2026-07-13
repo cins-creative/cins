@@ -123,7 +123,16 @@ export type ShareGallerySourceItem = Pick<
   "src" | "type" | "variant" | "personalFilterSlugs"
 > & {
   visibility?: MilestoneItem["visibility"];
+  /** Frame đầu video khi `src` trống — dùng cho thumb share. */
+  videoPreviewSrc?: string | null;
 };
+
+/** URL thumb cho share card: ảnh cover trước, fallback preview video. */
+export function galleryItemThumbSrc(
+  item: Pick<ShareGallerySourceItem, "src" | "videoPreviewSrc">,
+): string {
+  return item.src?.trim() || item.videoPreviewSrc?.trim() || "";
+}
 
 export function milestonesToShareGalleryItems(
   milestones: ReadonlyArray<
@@ -148,7 +157,7 @@ export function milestonesToShareGalleryItems(
   return out;
 }
 
-/** Gộp nguồn gallery — ưu tiên thứ tự, bỏ trùng `src`. */
+/** Gộp nguồn gallery — ưu tiên thứ tự, bỏ trùng URL thumb. */
 export function mergeShareGallerySources(
   ...sources: ReadonlyArray<ReadonlyArray<ShareGallerySourceItem>>
 ): ShareGallerySourceItem[] {
@@ -156,10 +165,10 @@ export function mergeShareGallerySources(
   const merged: ShareGallerySourceItem[] = [];
   for (const list of sources) {
     for (const item of list) {
-      const src = item.src?.trim();
+      const src = galleryItemThumbSrc(item);
       if (!src || seen.has(src)) continue;
       seen.add(src);
-      merged.push(item);
+      merged.push({ ...item, src });
     }
   }
   return merged;
@@ -179,6 +188,22 @@ export async function fetchGalleryItemsForShare(
   } catch {
     return [];
   }
+}
+
+/**
+ * Snapshot gallery đang render trên lưới — dùng khi mở share từ sidebar
+ * (ngoài `JourneyFilterShareProvider`).
+ */
+let liveGalleryItemsForShare: ReadonlyArray<GalleryMainItem> = [];
+
+export function setLiveGalleryItemsForShare(
+  items: ReadonlyArray<GalleryMainItem>,
+): void {
+  liveGalleryItemsForShare = items;
+}
+
+export function getLiveGalleryItemsForShare(): ReadonlyArray<GalleryMainItem> {
+  return liveGalleryItemsForShare;
 }
 
 export function filterGalleryItemsForShare<T extends ShareGallerySourceItem>(
@@ -202,7 +227,7 @@ export function galleryThumbsForShareSpec(
   limit = 6,
 ): string[] {
   return filterGalleryItemsForShare(items, spec)
-    .map((item) => item.src)
+    .map(galleryItemThumbSrc)
     .filter(Boolean)
     .slice(0, limit);
 }

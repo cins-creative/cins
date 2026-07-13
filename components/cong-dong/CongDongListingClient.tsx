@@ -2,13 +2,24 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Check, ChevronDown, Lock, Plus, Search, UsersRound, X } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  Lock,
+  MailPlus,
+  Plus,
+  Search,
+  UsersRound,
+  X,
+} from "lucide-react";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 
+import { CongDongInviteMessage } from "@/components/journey/CongDongInviteMessage";
 import {
   CONG_DONG_CHE_DO,
   congDongCheDoLabel,
 } from "@/lib/cong-dong/constants";
+import type { PendingCongDongInviteNotification } from "@/lib/cong-dong/invite";
 import { getCoverUrl } from "@/lib/articles/cover";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import type { CongDongListingFacet, CongDongOrg } from "@/lib/cong-dong/types";
@@ -19,6 +30,7 @@ type Props = {
   communities: CongDongOrg[];
   linhVucFacets: CongDongListingFacet[];
   nganhFacets: CongDongListingFacet[];
+  pendingInvites?: PendingCongDongInviteNotification[];
   initialLinhVucSlug?: string | null;
   initialNganhSlug?: string | null;
   initialMine?: boolean;
@@ -232,6 +244,7 @@ export function CongDongListingClient({
   communities,
   linhVucFacets,
   nganhFacets,
+  pendingInvites = [],
   initialLinhVucSlug = null,
   initialNganhSlug = null,
   initialMine = false,
@@ -244,6 +257,12 @@ export function CongDongListingClient({
   const [openFilter, setOpenFilter] = useState<"linh_vuc" | "nganh" | null>(
     null,
   );
+  const [handledInviteIds, setHandledInviteIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [respondingInviteId, setRespondingInviteId] = useState<string | null>(
+    null,
+  );
 
   const linhVucSlug =
     searchParams.get("linh_vuc")?.trim() || initialLinhVucSlug?.trim() || null;
@@ -254,12 +273,24 @@ export function CongDongListingClient({
     (searchParams.get("mine") === "1" ||
       searchParams.get("mine") === "true" ||
       initialMine);
+  const invitesOnly =
+    canFilterMine &&
+    (searchParams.get("invites") === "1" ||
+      searchParams.get("invites") === "true");
+
+  const invites = useMemo(
+    () =>
+      pendingInvites.filter(
+        (invite) => !handledInviteIds.has(invite.notificationId),
+      ),
+    [pendingInvites, handledInviteIds],
+  );
 
   const activeLinhVucId = resolveFacetId(linhVucFacets, linhVucSlug);
   const activeNganhId = resolveFacetId(nganhFacets, nganhSlug);
 
   const setFilterParam = (
-    key: "linh_vuc" | "nganh" | "mine",
+    key: "linh_vuc" | "nganh" | "mine" | "invites",
     value: string | null,
   ) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -294,16 +325,45 @@ export function CongDongListingClient({
 
   const activeLinhVuc = linhVucFacets.find((f) => f.id === activeLinhVucId);
   const activeNganh = nganhFacets.find((f) => f.id === activeNganhId);
-  const hasActiveFilters = Boolean(activeLinhVucId || activeNganhId || mineOnly);
+  const hasActiveFilters = Boolean(
+    activeLinhVucId || activeNganhId || mineOnly || invitesOnly,
+  );
 
   const clearFilters = () => {
     const params = new URLSearchParams(searchParams.toString());
     params.delete("linh_vuc");
     params.delete("nganh");
     params.delete("mine");
+    params.delete("invites");
     const qs = params.toString();
     setOpenFilter(null);
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  };
+
+  const respondInvite = async (
+    invite: PendingCongDongInviteNotification,
+    action: "accept" | "decline",
+  ) => {
+    if (respondingInviteId) return;
+    setRespondingInviteId(invite.notificationId);
+    try {
+      const res = await fetch(
+        `/api/cong-dong/invites/${encodeURIComponent(invite.notificationId)}/respond`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action }),
+        },
+      );
+      if (!res.ok) return;
+      setHandledInviteIds((prev) => new Set(prev).add(invite.notificationId));
+      window.dispatchEvent(new Event("cins:notifications-changed"));
+      if (action === "accept") router.refresh();
+    } catch {
+      /* giữ nguyên — user có thể thử lại */
+    } finally {
+      setRespondingInviteId(null);
+    }
   };
 
   return (
@@ -351,6 +411,27 @@ export function CongDongListingClient({
               </button>
             ) : null}
 
+            {canFilterMine && invites.length > 0 ? (
+              <button
+                type="button"
+                className={
+                  invitesOnly
+                    ? "cd-list-mine-chip cd-list-invite-chip is-active"
+                    : "cd-list-mine-chip cd-list-invite-chip"
+                }
+                aria-pressed={invitesOnly}
+                onClick={() =>
+                  setFilterParam("invites", invitesOnly ? null : "1")
+                }
+              >
+                <MailPlus size={14} strokeWidth={2.25} aria-hidden />
+                Lời mời chờ xác nhận
+                <span className="cd-list-mine-chip-count">
+                  {invites.length}
+                </span>
+              </button>
+            ) : null}
+
             {linhVucFacets.length > 0 ? (
               <CongDongFilterDropdown
                 label="Lĩnh vực"
@@ -392,7 +473,11 @@ export function CongDongListingClient({
           </div>
         ) : null}
 
-        {hasActiveFilters ? (
+        {invitesOnly ? (
+          <p className="cd-list-toolbar-meta-text">
+            {invites.length} lời mời chờ xác nhận
+          </p>
+        ) : hasActiveFilters ? (
           <p className="cd-list-toolbar-meta-text">
             {visible.length} kết quả
             {mineOnly ? " · Cộng đồng của tôi" : ""}
@@ -402,7 +487,66 @@ export function CongDongListingClient({
         ) : null}
       </div>
 
-      {visible.length === 0 ? (
+      {invitesOnly ? (
+        invites.length === 0 ? (
+          <div className="cd-list-empty">
+            <p>Không có lời mời cộng đồng nào đang chờ xác nhận.</p>
+            <button
+              type="button"
+              className="cd-list-clear-filters cd-list-clear-filters--empty"
+              onClick={clearFilters}
+            >
+              Xem tất cả cộng đồng
+            </button>
+          </div>
+        ) : (
+          <div className="cd-list-invites">
+            {invites.map((invite) => {
+              const responding = respondingInviteId === invite.notificationId;
+              return (
+                <div key={invite.notificationId} className="cd-list-invite">
+                  <div className="cd-list-invite-body">
+                    <CongDongInviteMessage
+                      inviterName={invite.inviterName}
+                      inviterSlug={invite.inviterSlug}
+                      inviterAvatarUrl={invite.inviterAvatarUrl}
+                      orgTen={invite.orgTen}
+                      orgSlug={invite.orgSlug}
+                      className="cd-list-invite-message"
+                    />
+                  </div>
+                  <div className="cd-list-invite-actions">
+                    <Link
+                      href={`/cong-dong/${invite.orgSlug}`}
+                      className="cd-list-invite-btn is-view"
+                    >
+                      Xem cộng đồng
+                    </Link>
+                    <button
+                      type="button"
+                      className="cd-list-invite-btn is-accept"
+                      disabled={responding}
+                      onClick={() => respondInvite(invite, "accept")}
+                    >
+                      <Check size={14} strokeWidth={2.5} aria-hidden />
+                      Tham gia
+                    </button>
+                    <button
+                      type="button"
+                      className="cd-list-invite-btn is-decline"
+                      disabled={responding}
+                      onClick={() => respondInvite(invite, "decline")}
+                    >
+                      <X size={14} strokeWidth={2.25} aria-hidden />
+                      Bỏ qua
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )
+      ) : visible.length === 0 ? (
         <div className="cd-list-empty">
           <p>
             {communities.length === 0

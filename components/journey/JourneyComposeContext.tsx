@@ -28,6 +28,7 @@ type JourneyComposeContextValue = {
   openComposeWithVideo: (file: File) => void;
   openComposeWithEmbed: (platform: Tier1EmbedPlatformId) => void;
   openComposeWithRiveFile: (file: File) => void;
+  openComposeWithLottieFile: (file: File) => void;
   closeCompose: () => void;
   canCompose: boolean;
   ownerSlug: string;
@@ -127,7 +128,7 @@ export function JourneyComposeProvider({
   const openComposeWithEmbed = useCallback(
     (platform: Tier1EmbedPlatformId) => {
       if (!isOwner) return;
-      openCompose({ kind: "embed", platform, riveSource: "url" });
+      openCompose({ kind: "embed", platform, fileSource: "url" });
     },
     [isOwner, openCompose],
   );
@@ -138,8 +139,21 @@ export function JourneyComposeProvider({
       openCompose({
         kind: "embed",
         platform: "rive",
-        riveSource: "file",
-        pendingRiveFile: file,
+        fileSource: "file",
+        pendingEmbedFile: file,
+      });
+    },
+    [isOwner, openCompose],
+  );
+
+  const openComposeWithLottieFile = useCallback(
+    (file: File) => {
+      if (!isOwner) return;
+      openCompose({
+        kind: "embed",
+        platform: "lottie",
+        fileSource: "file",
+        pendingEmbedFile: file,
       });
     },
     [isOwner, openCompose],
@@ -255,6 +269,7 @@ export function JourneyComposeProvider({
       openComposeWithVideo,
       openComposeWithEmbed,
       openComposeWithRiveFile,
+      openComposeWithLottieFile,
       closeCompose,
       canCompose: isOwner,
       ownerSlug,
@@ -268,6 +283,7 @@ export function JourneyComposeProvider({
       openComposeWithVideo,
       openComposeWithEmbed,
       openComposeWithRiveFile,
+      openComposeWithLottieFile,
       closeCompose,
       isOwner,
       ownerSlug,
@@ -306,6 +322,7 @@ export function useJourneyCompose(): JourneyComposeContextValue {
       openComposeWithVideo: () => {},
       openComposeWithEmbed: () => {},
       openComposeWithRiveFile: () => {},
+      openComposeWithLottieFile: () => {},
       closeCompose: () => {},
       canCompose: false,
       ownerSlug: "",

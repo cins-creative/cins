@@ -97,6 +97,10 @@ function compileEmbedHtml(url: string): string {
     return `<div class="rich-embed rich-embed-rive-file" data-provider="rive-file" data-rive-src="${escapeHtml(cls.url)}"></div>`;
   }
 
+  if (cls.provider === "lottie-file") {
+    return `<div class="rich-embed rich-embed-lottie-file" data-provider="lottie-file" data-lottie-src="${escapeHtml(cls.url)}"></div>`;
+  }
+
   const src = buildEmbedIframeSrc(cls);
   if (src) {
     const allow = embedIframeAllow(cls.provider);

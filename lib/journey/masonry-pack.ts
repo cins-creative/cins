@@ -39,7 +39,7 @@ export function resolveMasonryColumnCount(
     if (width <= 900) return 4;
     return 5;
   }
-  if (width <= 576) return 2;
-  if (width <= 992) return 2;
-  return 3;
+  if (width <= 640) return 2;
+  if (width <= 1000) return 3;
+  return 4;
 }

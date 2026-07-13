@@ -3,6 +3,7 @@ import { CinsShell } from "@/components/cins/CinsShell";
 import { SiteFooter } from "@/components/cins/SiteFooter";
 import { getNganhAdminStatus } from "@/lib/nganh/article-admin";
 import { getNganhDetailBySlugCached } from "@/lib/nganh/nganh-page-queries";
+import { listCongDongOrgsForArticle } from "@/lib/cong-dong/categories";
 import { hasServiceRoleEnv } from "@/lib/supabase/service-role";
 import { notFound } from "next/navigation";
 
@@ -14,9 +15,10 @@ export async function NganhChiTietLoader({ slug }: Props) {
   const bundle = await getNganhDetailBySlugCached(slug);
   if (!bundle) notFound();
 
-  const [canEdit, persistEnabled] = await Promise.all([
+  const [canEdit, persistEnabled, congDong] = await Promise.all([
     getNganhAdminStatus(slug),
     Promise.resolve(hasServiceRoleEnv()),
+    listCongDongOrgsForArticle(bundle.article.id, 12),
   ]);
 
   return (
@@ -32,6 +34,7 @@ export async function NganhChiTietLoader({ slug }: Props) {
         khoiThiLabels={bundle.khoiThiLabels}
         lienQuan={bundle.lienQuan}
         soTruong={bundle.soTruong}
+        congDong={congDong}
       />
       <SiteFooter />
     </CinsShell>

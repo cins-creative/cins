@@ -4,29 +4,24 @@ import { useEffect, useState } from "react";
 
 import type { Block } from "@/lib/editor/types";
 import { PostRiveFileEmbed } from "@/components/journey/PostRiveFileEmbed";
+import { PostLottieFileEmbed } from "@/components/journey/PostLottieFileEmbed";
 import { ViewportGatedEmbed } from "@/components/journey/ViewportGatedEmbed";
+import { EmbedInteractionGate } from "@/components/journey/EmbedInteractionGate";
 import {
   resolveEmbedIframePeek,
+  resolveLottieFileEmbedPeek,
   resolveRiveFileEmbedPeek,
 } from "@/lib/journey/post-media";
-import {
-  embedIframeAllowAttr,
-  embedIframeTitle,
-  type EmbedProviderId,
-} from "@/lib/editor/embed-providers";
 
 type Props = {
   body?: string | null;
   blocks: ReadonlyArray<Block>;
 };
 
-function embedIframeAllow(provider: EmbedProviderId): string | undefined {
-  return embedIframeAllowAttr(provider);
-}
-
-/** Peek embed trên timeline card — iframe Tier 1 hoặc file .riv trên R2. */
+/** Peek embed trên timeline card — iframe Tier 1 hoặc file .riv/.lottie trên R2. */
 export function JourneyCardEmbedPeek({ body, blocks }: Props) {
   const riveFilePeek = resolveRiveFileEmbedPeek(body, blocks);
+  const lottieFilePeek = resolveLottieFileEmbedPeek(body, blocks);
   const [riveAspectRatio, setRiveAspectRatio] = useState<number | null>(null);
 
   useEffect(() => {
@@ -53,6 +48,20 @@ export function JourneyCardEmbedPeek({ body, blocks }: Props) {
     );
   }
 
+  if (lottieFilePeek) {
+    return (
+      <ViewportGatedEmbed
+        className="preview preview--article-peek jcard-embed-peek"
+        data-provider="lottie-file"
+      >
+        <PostLottieFileEmbed
+          src={lottieFilePeek.url}
+          className="jcard-lottie-file"
+        />
+      </ViewportGatedEmbed>
+    );
+  }
+
   const peek = resolveEmbedIframePeek(body, blocks);
   if (!peek) return null;
 
@@ -61,17 +70,9 @@ export function JourneyCardEmbedPeek({ body, blocks }: Props) {
       className="preview preview--article-peek jcard-embed-peek"
       data-provider={peek.provider}
     >
-      <iframe
-        src={peek.iframeSrc}
-        title={embedIframeTitle(peek.provider)}
-        allow={embedIframeAllow(peek.provider)}
-        referrerPolicy={
-          peek.provider === "youtube" || peek.provider === "vimeo"
-            ? "strict-origin-when-cross-origin"
-            : undefined
-        }
-        allowFullScreen
-        loading="lazy"
+      <EmbedInteractionGate
+        provider={peek.provider}
+        iframeSrc={peek.iframeSrc}
       />
     </ViewportGatedEmbed>
   );

@@ -161,6 +161,12 @@ export function blocksToHtml(blocks: ReadonlyArray<Block>): string {
           );
           break;
         }
+        if (cls?.provider === "lottie-file") {
+          parts.push(
+            `<div class="rich-embed rich-embed-lottie-file" data-provider="lottie-file" data-lottie-src="${escapeHtml(cls.url)}"></div>`,
+          );
+          break;
+        }
         if (cls) {
           /* YouTube/Figma → iframe thật để render trực tiếp trong HTML cache.
              Behance (không bóc được project ID) fallback anchor link. */

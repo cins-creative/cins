@@ -6,10 +6,28 @@ import { CongDongListingLoader } from "@/components/cong-dong/CongDongListingLoa
 import { CinsShell } from "@/components/cins/CinsShell";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 
+const HUB_TITLE = "Cộng đồng | CINs";
+const HUB_DESC =
+  "Danh sách cộng đồng nghề trên CINs — thảo luận, chia sẻ kinh nghiệm và kết nối người trong ngành sáng tạo.";
+
 export const metadata: Metadata = {
-  title: "Cộng đồng | CINs",
-  description:
-    "Danh sách cộng đồng nghề trên CINs — thảo luận, chia sẻ kinh nghiệm và kết nối người trong ngành sáng tạo.",
+  title: HUB_TITLE,
+  description: HUB_DESC,
+  openGraph: {
+    type: "website",
+    siteName: "CINs",
+    locale: "vi_VN",
+    url: "/cong-dong",
+    title: HUB_TITLE,
+    description: HUB_DESC,
+    images: [{ url: "/cong-dong/opengraph-image", alt: HUB_TITLE }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: HUB_TITLE,
+    description: HUB_DESC,
+    images: ["/cong-dong/opengraph-image"],
+  },
 };
 
 export const dynamic = "force-dynamic";

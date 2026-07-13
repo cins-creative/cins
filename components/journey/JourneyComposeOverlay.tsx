@@ -130,10 +130,14 @@ export function JourneyComposeOverlay({
     compose.kind === "video" ? compose.pendingFile : undefined;
   const embedPlatform =
     compose.kind === "embed" ? compose.platform : undefined;
-  const riveSource =
-    compose.kind === "embed" ? compose.riveSource : undefined;
-  const pendingRiveFile =
-    compose.kind === "embed" ? compose.pendingRiveFile : undefined;
+  const fileSource =
+    compose.kind === "embed"
+      ? (compose.fileSource ?? compose.riveSource)
+      : undefined;
+  const pendingEmbedFile =
+    compose.kind === "embed"
+      ? (compose.pendingEmbedFile ?? compose.pendingRiveFile)
+      : undefined;
 
   const createEditorIntent = useMemo((): ComposeIntent | undefined => {
     if (compose.kind === "article") {
@@ -285,10 +289,15 @@ export function JourneyComposeOverlay({
               presentation="overlay"
               composeIntent={createEditorIntent}
               embedPlatform={embedPlatform}
-              riveSource={riveSource}
+              riveSource={fileSource}
               initialPhotoFiles={pendingPhotoFiles}
               initialVideoFile={pendingVideoFile}
-              initialRiveFile={pendingRiveFile}
+              initialRiveFile={
+                embedPlatform === "rive" ? pendingEmbedFile : undefined
+              }
+              initialLottieFile={
+                embedPlatform === "lottie" ? pendingEmbedFile : undefined
+              }
               congDongCompose={congDongCompose}
               orgBaiDangCompose={orgBaiDangCompose}
               onClose={onClose}
@@ -338,7 +347,7 @@ export function JourneyComposeOverlay({
                 presentation="overlay"
                 composeIntent={editEditorIntent}
                 embedPlatform={editEmbedMeta?.embedPlatform}
-                riveSource={editEmbedMeta?.riveSource}
+                riveSource={editEmbedMeta?.fileSource ?? editEmbedMeta?.riveSource}
                 congDongCompose={congDongCompose}
                 orgBaiDangCompose={orgBaiDangCompose}
                 onClose={onClose}

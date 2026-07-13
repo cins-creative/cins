@@ -129,6 +129,58 @@
 }
 
 /* ========================================================
+   DARK THEME — override token nền tảng (data-theme="dark")
+   Áp bởi script no-flash trong layout + lib/theme/theme-mode.ts.
+   Chỉ override token; component nào dùng token sẽ tự đổi màu.
+   ======================================================== */
+:root[data-theme="dark"] {
+  /* Brand blue sáng hơn chút để đủ tương phản trên nền tối */
+  --cins-blue:      #4f9be8;
+  --cins-blue-dark: #6fb0f0;
+  --cins-blue-soft: rgba(79, 155, 232, 0.16);
+
+  --cins-yellow-soft: rgba(253, 232, 89, 0.16);
+  --cins-mint-soft:   rgba(110, 254, 192, 0.16);
+  --cins-violet-soft: rgba(187, 137, 248, 0.18);
+
+  /* Neutrals đảo chiều (0 = tối nhất, 900 = sáng nhất) */
+  --neutral-0:   #12151d;
+  --neutral-50:  #171b24;
+  --neutral-100: #1c212c;
+  --neutral-200: #2a3040;
+  --neutral-300: #3a4152;
+  --neutral-400: #6b7280;
+  --neutral-500: #9aa0ab;
+  --neutral-600: #b8bdc7;
+  --neutral-700: #d2d6dd;
+  --neutral-800: #e7eaf0;
+  --neutral-900: #f5f6f9;
+
+  /* Mực chữ trên nền tối */
+  --ink-display: rgba(255, 255, 255, 0.92);
+  --ink-title:   rgba(255, 255, 255, 0.72);
+  --ink-body:    rgba(255, 255, 255, 0.64);
+  --ink-muted:   rgba(255, 255, 255, 0.46);
+
+  --bg-page:    #0e1117;
+  --bg-surface: #171b24;
+  --bg-tint:    var(--cins-blue-soft);
+
+  --border:        #2a3040;
+  --border-strong: #3a4152;
+
+  --success: #34c98a;
+  --warning: #f4b74e;
+  --danger:  #f0656a;
+
+  /* Bóng đổ đậm hơn để tách lớp trên nền tối */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.45);
+  --shadow-md: 0 6px 16px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 14px 32px rgba(0, 0, 0, 0.55);
+}
+
+/* ========================================================
    SEMANTIC TYPE STYLES
    ======================================================== */
 

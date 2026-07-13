@@ -1,7 +1,7 @@
 "use client";
 
 import { Share2 } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { JourneyProfileShareModal } from "@/components/journey/JourneyProfileShareModal";
 import { dispatchJourneyShareOpen } from "@/lib/journey/gallery-filter-share";
@@ -16,10 +16,9 @@ type Props = {
   source: OrgShareSource;
 };
 
-/** Nút chia sẻ icon-only trên sidebar org — popover giống JourneyProfileShareTrigger. */
+/** Nút chia sẻ icon-only trên sidebar org — overlay modal. */
 export function OrgSidebarShareButton({ kind, source }: Props) {
   const [open, setOpen] = useState(false);
-  const anchorRef = useRef<HTMLButtonElement>(null);
   const { profile, orgShare } = useMemo(
     () => buildOrgShareBundle(kind, source),
     [kind, source],
@@ -28,7 +27,6 @@ export function OrgSidebarShareButton({ kind, source }: Props) {
   return (
     <>
       <button
-        ref={anchorRef}
         type="button"
         className="cso-ss-btn-share"
         title="Chia sẻ"
@@ -47,8 +45,7 @@ export function OrgSidebarShareButton({ kind, source }: Props) {
         onClose={() => setOpen(false)}
         profile={profile}
         orgShare={orgShare}
-        presentation="popover"
-        anchorRef={anchorRef}
+        presentation="modal"
       />
     </>
   );

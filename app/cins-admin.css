@@ -6635,3 +6635,102 @@
     transform: rotate(360deg);
   }
 }
+
+/* ── Admin lĩnh vực ─────────────────────────────────────────── */
+.cins-admin .admin-linh-vuc-edit-hero {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.cins-admin .admin-linh-vuc-edit-hero .admin-article-thumb {
+  width: 96px;
+  flex-shrink: 0;
+}
+
+/* File input không phủ cả ô — chỉ nút Chọn/Đổi ảnh mở folder */
+.cins-admin .admin-linh-vuc-thumb .admin-article-thumb__actions {
+  pointer-events: none;
+  z-index: 5;
+}
+
+.cins-admin .admin-linh-vuc-thumb .admin-article-thumb__pick {
+  pointer-events: auto;
+}
+
+.cins-admin .admin-linh-vuc-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.cins-admin .admin-linh-vuc-nhom-fieldset {
+  margin: 8px 0 0;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+.cins-admin .admin-linh-vuc-nhom-fieldset legend {
+  padding: 0 4px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.cins-admin .admin-linh-vuc-nhom-check-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cins-admin .admin-linh-vuc-nhom-check-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.cins-admin .admin-linh-vuc-nhom-check-list label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+}
+
+.cins-admin .admin-linh-vuc-nhom-chinh {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.cins-admin .admin-linh-vuc-nhom-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.cins-admin .admin-pill--chinh {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.cins-admin .admin-table-sub {
+  margin-top: 2px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.cins-admin .admin-table-actions {
+  white-space: nowrap;
+  text-align: right;
+}
+
+@media (max-width: 720px) {
+  .cins-admin .admin-linh-vuc-form-row {
+    grid-template-columns: 1fr;
+  }
+}

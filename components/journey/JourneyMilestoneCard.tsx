@@ -412,6 +412,7 @@ export function JourneyMilestoneCard({
     congDongOrg,
     personalFilterSlugs = [],
     membershipPending,
+    feedSuggestion = false,
   } = milestone;
 
   const articleTagsKey = articleTags.map((t) => t.id).join("\0");
@@ -856,6 +857,14 @@ export function JourneyMilestoneCard({
     null;
   const entityPosterAvatar =
     authorAvatarUrl ?? milestone.lensOwnerAvatarUrl ?? null;
+  /* Người đăng entity là 1 TỔ CHỨC (bài org đăng, không phải org tag bài user)
+   * → dùng card org (cover + theo dõi + nhắn tin) thay vì card cá nhân. */
+  const entityPosterOrgKind =
+    attribution?.isOrg &&
+    attribution.slug?.trim() &&
+    attribution.slug.trim() === entityPosterSlug
+      ? orgKindForOrgPopover(attribution.orgKind)
+      : undefined;
   /** Trang entity / feed tổng hợp — datebar đọc-only cho người xem.
    * Chủ bài (`canManage`) dùng datebar chuẩn như `/[slug]/journey`. */
   const showEntityDatebar =
@@ -1366,13 +1375,51 @@ export function JourneyMilestoneCard({
               }
             >
               {isCongDongPost && congDongOrg ? (
-                <CongDongSourceChip
-                  org={congDongOrg}
-                  dateLabel={displayDate}
-                  posterName={entityPosterLabel}
-                  posterSlug={entityPosterSlug}
-                  posterAvatarUrl={entityPosterAvatar}
-                />
+                <>
+                  <CongDongSourceChip
+                    org={congDongOrg}
+                    dateLabel={displayDate}
+                    posterName={entityPosterLabel}
+                    posterSlug={entityPosterSlug}
+                    posterAvatarUrl={entityPosterAvatar}
+                  />
+                  {feedSuggestion ? (
+                    <span className="ctx-badge j-feed-suggestion-badge">
+                      Gợi ý
+                    </span>
+                  ) : null}
+                </>
+              ) : entityPosterOrgKind ? (
+                <JourneyOrgPopover
+                  slug={entityPosterSlug ?? attribution?.slug ?? ""}
+                  orgKind={entityPosterOrgKind}
+                  href={attribution?.href ?? undefined}
+                  fallbackName={
+                    entityPosterLabel ?? entityPosterSlug ?? "Tổ chức"
+                  }
+                  fallbackAvatarUrl={entityPosterAvatar}
+                >
+                  <span className="org-chip">
+                    <span className="org-logo" aria-hidden>
+                      {entityPosterAvatar ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img src={entityPosterAvatar} alt="" />
+                      ) : (
+                        getNameInitials(
+                          entityPosterLabel ?? null,
+                          entityPosterSlug ?? "C",
+                        )
+                      )}
+                    </span>
+                    <span className="org-copy">
+                      <strong>
+                        {entityPosterLabel ||
+                          (ownerSlug ? `@${ownerSlug}` : "Tổ chức")}
+                      </strong>
+                      <small>{displayDate}</small>
+                    </span>
+                  </span>
+                </JourneyOrgPopover>
               ) : (
                 <JourneyUserPopover
                   slug={entityPosterSlug ?? ""}
@@ -1500,12 +1547,19 @@ export function JourneyMilestoneCard({
                 />
               ) : null}
               {isCongDongPost && congDongOrg ? (
-                <CongDongSourceChip
-                  org={congDongOrg}
-                  dateLabel={displayDate}
-                  posterName={useForeignFrame ? undefined : entityPosterLabel}
-                  frameInner={useForeignFrame}
-                />
+                <>
+                  <CongDongSourceChip
+                    org={congDongOrg}
+                    dateLabel={displayDate}
+                    posterName={useForeignFrame ? undefined : entityPosterLabel}
+                    frameInner={useForeignFrame}
+                  />
+                  {feedSuggestion ? (
+                    <span className="ctx-badge j-feed-suggestion-badge">
+                      Gợi ý
+                    </span>
+                  ) : null}
+                </>
               ) : isTaggedFromOthers && attribution ? (
                 <TaggedOriginalAuthorChip
                   attr={attribution}
@@ -2058,11 +2112,12 @@ function CongDongSourceChip({
 
 function orgKindForOrgPopover(
   kind: MilestoneAttribution["orgKind"],
-): "cong_dong" | "truong" | "co_so_dao_tao" | undefined {
+): "cong_dong" | "truong" | "co_so_dao_tao" | "studio" | undefined {
   if (
     kind === "cong_dong" ||
     kind === "truong" ||
-    kind === "co_so_dao_tao"
+    kind === "co_so_dao_tao" ||
+    kind === "studio"
   ) {
     return kind;
   }
@@ -2183,11 +2238,10 @@ function TaggedByPanel({
   }
 
   const initial = (attr.initial || attr.name.charAt(0) || "?").toUpperCase();
-  const isOrgSource = Boolean(
-    attr.isOrg &&
-      (attr.orgKind === "cong_dong" ||
-        attr.orgKind === "co_so_dao_tao"),
-  );
+  const orgPopoverKind = attr.isOrg
+    ? orgKindForOrgPopover(attr.orgKind)
+    : undefined;
+  const isOrgSource = Boolean(orgPopoverKind);
   const Popover = isOrgSource ? JourneyOrgPopover : JourneyUserPopover;
   const avatarClass = isOrgSource ? "via-avatar is-org" : "via-avatar";
 
@@ -2199,7 +2253,7 @@ function TaggedByPanel({
       <span>{viaBarPrefixLabel(attr)}</span>
       <Popover
         slug={attr.slug}
-        orgKind={orgKindForOrgPopover(attr.orgKind)}
+        orgKind={orgPopoverKind}
         href={attr.href}
         fallbackName={attr.name}
         fallbackAvatarUrl={attr.avatarUrl}
@@ -2598,8 +2652,10 @@ function TaggedOriginalAuthorChip({
   dateLabel: string;
 }) {
   const initial = (attr.initial || attr.name.charAt(0) || "?").toUpperCase();
-  const isCongDong = attr.isOrg && attr.orgKind === "cong_dong";
-  const Popover = isCongDong ? JourneyOrgPopover : JourneyUserPopover;
+  const orgPopoverKind = attr.isOrg
+    ? orgKindForOrgPopover(attr.orgKind)
+    : undefined;
+  const Popover = orgPopoverKind ? JourneyOrgPopover : JourneyUserPopover;
   const chip = (
     <span className="org-chip">
       <span className="org-logo" aria-hidden>
@@ -2622,7 +2678,7 @@ function TaggedOriginalAuthorChip({
   return (
     <Popover
       slug={attr.slug}
-      orgKind={orgKindForOrgPopover(attr.orgKind)}
+      orgKind={orgPopoverKind}
       href={attr.href ?? undefined}
       fallbackName={attr.name}
       fallbackAvatarUrl={attr.avatarUrl}

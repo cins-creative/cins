@@ -41,7 +41,7 @@ function normalizeLinhVucRow(r: Record<string, unknown>): LinhVucRow {
     nhomRaw.includes("_");
   const tenColumnOnly = pick(["ten"]);
   const moTa = pick(["mo_ta"]);
-  const coverId = pick(["cover_id"]);
+  const coverId = pick(["cover_id", "thumbnail_id"]);
   const trangThai =
     r.trang_thai != null && String(r.trang_thai).trim() !== ""
       ? String(r.trang_thai).trim()

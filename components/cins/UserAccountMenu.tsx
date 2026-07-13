@@ -12,6 +12,7 @@ import {
 } from "@/app/auth/switch-account-action";
 import { CinsComingSoonModal } from "@/components/cins/CinsComingSoonModal";
 import { SidebarNavIcon } from "@/components/cins/SidebarNavIcon";
+import { UserAccountSettingsModal } from "@/components/cins/UserAccountSettingsModal";
 import { getNameInitials } from "@/lib/journey/profile";
 
 export type UserAccountProfile = {
@@ -44,6 +45,7 @@ export function UserAccountMenu({
   const [open, setOpen] = useState(false);
   const [switchOpen, setSwitchOpen] = useState(false);
   const [comingSoonOpen, setComingSoonOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const cardRef = useRef<HTMLDivElement | null>(null);
   const menuId = useId();
   // Giá trị mặc định (SSR-safe, không dùng useSearchParams để tránh deopt toàn
@@ -237,7 +239,7 @@ export function UserAccountMenu({
             role="menuitem"
             onClick={() => {
               setOpen(false);
-              setComingSoonOpen(true);
+              setSettingsOpen(true);
             }}
           >
             <span className="app-user-menu-ico" aria-hidden>
@@ -313,6 +315,10 @@ export function UserAccountMenu({
       <CinsComingSoonModal
         open={comingSoonOpen}
         onClose={() => setComingSoonOpen(false)}
+      />
+      <UserAccountSettingsModal
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
       />
     </>
   );

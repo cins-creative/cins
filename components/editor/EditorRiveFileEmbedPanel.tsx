@@ -5,6 +5,7 @@ import { useEffect, useMemo } from "react";
 
 import { ensureRiveRuntime } from "@/lib/cins/rive-runtime";
 import { useInteractiveRiveEmbed } from "@/lib/cins/rive-embed";
+import { EMBED_PLATFORM_LOGO } from "@/lib/editor/embed-platform-logos";
 
 if (typeof window !== "undefined") {
   ensureRiveRuntime();
@@ -59,9 +60,21 @@ export function EditorRiveFileEmbedPanel({
   return (
     <div className="ed-embed-compose">
       <div className="ed-embed-compose-tab" data-platform="rive">
-        <span className="ed-embed-compose-tab-label">Rive</span>
-        <span className="ed-embed-compose-tab-hint">
-          File .riv — lưu trên Cloudflare R2
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          className="ed-embed-compose-tab-logo"
+          src={EMBED_PLATFORM_LOGO.rive}
+          alt=""
+          width={28}
+          height={28}
+          loading="lazy"
+          decoding="async"
+        />
+        <span className="ed-embed-compose-tab-text">
+          <span className="ed-embed-compose-tab-label">Rive</span>
+          <span className="ed-embed-compose-tab-hint">
+            File .riv — lưu trên Cloudflare R2
+          </span>
         </span>
       </div>
       <div className="ed-embed-compose-field">

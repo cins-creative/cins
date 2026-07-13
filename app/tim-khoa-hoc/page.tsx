@@ -20,14 +20,28 @@ import "@/app/cins-huong-nghiep-hub.css";
 
 
 
+const HUB_TITLE = "Học nghề sáng tạo — Khóa học & ngành đại học | CINs";
+const HUB_DESC =
+  "Khóa học online & offline từ cơ sở đào tạo và tra cứu ngành đại học — mã ngành, khối thi, môn học và trường đào tạo trên CINs.";
+
 export const metadata: Metadata = {
-
-  title: "Học nghề sáng tạo — Khóa học & ngành đại học | CINs",
-
-  description:
-
-    "Khóa học online & offline từ cơ sở đào tạo và tra cứu ngành đại học — mã ngành, khối thi, môn học và trường đào tạo trên CINs.",
-
+  title: HUB_TITLE,
+  description: HUB_DESC,
+  openGraph: {
+    type: "website",
+    siteName: "CINs",
+    locale: "vi_VN",
+    url: "/tim-khoa-hoc",
+    title: HUB_TITLE,
+    description: HUB_DESC,
+    images: [{ url: "/tim-khoa-hoc/opengraph-image", alt: HUB_TITLE }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: HUB_TITLE,
+    description: HUB_DESC,
+    images: ["/tim-khoa-hoc/opengraph-image"],
+  },
 };
 
 

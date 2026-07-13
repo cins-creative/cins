@@ -12,7 +12,12 @@ export type JourneyComposeState =
   | {
       kind: "embed";
       platform: import("@/lib/editor/embed-providers").Tier1EmbedPlatformId;
+      /** url = dán link; file = upload .riv / .lottie */
+      fileSource?: "url" | "file";
+      pendingEmbedFile?: File;
+      /** @deprecated dùng fileSource */
       riveSource?: "url" | "file";
+      /** @deprecated dùng pendingEmbedFile */
       pendingRiveFile?: File;
     }
   | { kind: "milestone" }

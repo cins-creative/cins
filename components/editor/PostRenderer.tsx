@@ -18,6 +18,7 @@ import {
 import { VideoProcessingPlaceholder } from "@/components/journey/VideoProcessingPlaceholder";
 import { PostBunnyEmbed } from "@/components/journey/PostBunnyEmbed";
 import { PostRiveFileEmbed } from "@/components/journey/PostRiveFileEmbed";
+import { PostLottieFileEmbed } from "@/components/journey/PostLottieFileEmbed";
 import { ViewportGatedEmbed } from "@/components/journey/ViewportGatedEmbed";
 import {
   handleBlockImageError,
@@ -249,6 +250,13 @@ function ReadOnlyBlock({
       return (
         <ViewportGatedEmbed>
           <PostRiveFileEmbed src={cls.url} fit="native" />
+        </ViewportGatedEmbed>
+      );
+    }
+    if (cls?.provider === "lottie-file") {
+      return (
+        <ViewportGatedEmbed>
+          <PostLottieFileEmbed src={cls.url} />
         </ViewportGatedEmbed>
       );
     }

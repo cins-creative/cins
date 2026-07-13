@@ -538,6 +538,15 @@ export function JourneyNotifications({
         const target = event.target as Node;
         if (triggerRef.current?.contains(target)) return;
         if (menuRef.current?.contains(target)) return;
+        /* Popover người/tổ chức render qua portal ra body (ngoài menuRef).
+           Click trong card không được đóng menu — nếu không card sẽ bị unmount
+           theo menu ngay khi vừa hiện. */
+        if (
+          target instanceof Element &&
+          target.closest(".j-user-popover-backdrop")
+        ) {
+          return;
+        }
         setOpen(false);
       }
       document.addEventListener("click", onDocClick, true);

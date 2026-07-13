@@ -2,6 +2,7 @@
 
 import {
   ArrowUpToLine,
+  Ban,
   Bell,
   BellOff,
   EyeOff,
@@ -162,6 +163,9 @@ export function buildThreadMenuActions(options: {
   /** DM cá nhân có slug Journey — hiện «Xem người dùng». */
   canViewProfile?: boolean;
   onViewProfile?: () => void;
+  /** DM cá nhân đã biết id người dùng — hiện «Chặn người dùng này». */
+  canBlock?: boolean;
+  onBlockUser?: () => void;
   onToggleListPin: () => void;
   onToggleMute: () => void;
   onLeaveGroup: () => void;
@@ -221,6 +225,15 @@ export function buildThreadMenuActions(options: {
       icon: <EyeOff size={15} strokeWidth={2.1} />,
       onSelect: options.onHideThread,
     });
+    if (options.canBlock && options.onBlockUser) {
+      actions.push({
+        id: "block",
+        label: "Chặn người dùng này",
+        icon: <Ban size={15} strokeWidth={2.1} />,
+        destructive: true,
+        onSelect: options.onBlockUser,
+      });
+    }
   }
 
   return actions;

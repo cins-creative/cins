@@ -1,9 +1,10 @@
 "use client";
 
 import { Bell, BellPlus } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, useTransition } from "react";
 
-import { useAuthGate } from "@/components/auth/AuthGateProvider";
+import { useOptionalAuthGate } from "@/components/auth/AuthGateProvider";
 
 type Props = {
   targetUserId: string;
@@ -18,7 +19,8 @@ export function JourneyUserFollowButton({
   viewerProfileId,
   compact = false,
 }: Props) {
-  const { isAuthenticated, openAuthModal } = useAuthGate();
+  const router = useRouter();
+  const authGate = useOptionalAuthGate();
   const [following, setFollowing] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,8 +55,18 @@ export function JourneyUserFollowButton({
   const label = following ? "Đang theo dõi" : "Theo dõi";
 
   function toggle() {
+    // Nếu không có AuthGateRoot bao ngoài (ví dụ popover trong dropdown
+    // thông báo ở topbar), suy ra trạng thái đăng nhập từ viewerProfileId.
+    const isAuthenticated = authGate
+      ? authGate.isAuthenticated
+      : Boolean(viewerProfileId);
+
     if (!isAuthenticated) {
-      openAuthModal(AUTH_MESSAGE);
+      if (authGate) {
+        authGate.openAuthModal(AUTH_MESSAGE);
+      } else {
+        router.push("/login");
+      }
       return;
     }
 

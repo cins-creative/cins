@@ -1,14 +1,26 @@
 "use client";
 
-import type { RefObject } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+  type RefObject,
+} from "react";
 
-import { JourneyShareCardQr } from "@/components/journey/JourneyShareCardQr";
 import type {
+  JourneyGalleryCardVariant,
   JourneyJourneyCardVariant,
   JourneyShareCardKind,
   JourneyShareCardVariant,
   JourneyShareProfile,
 } from "@/lib/journey/profile-share";
+import {
+  resolveShareOgThemeTokens,
+  shareOgBackgroundStyle,
+  type ShareOgTheme,
+} from "@/lib/journey/share-og-theme";
 
 type Props = {
   kind: JourneyShareCardKind;
@@ -18,29 +30,29 @@ type Props = {
   exportRef?: RefObject<HTMLElement | null>;
   /** Org share — thay nhãn Portfolio trên thẻ gallery. */
   galleryFeatureLabel?: string;
+  /** Theme nền thẻ (preset / ảnh custom). */
+  theme?: ShareOgTheme | null;
 };
 
-const SHARE_CARD_LOGO_SRC = "/assets/logo-cins-64.png";
+/** Canvas thẻ mặt trước — khớp mockup; preview scale bằng transform. */
+export const JOURNEY_NAMECARD_W = 1040;
+export const JOURNEY_NAMECARD_H = 548;
 
-function ShareCardBrand({
-  className = "",
-  size = 64,
-}: {
-  className?: string;
-  size?: number;
-}) {
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={SHARE_CARD_LOGO_SRC}
-      alt="CINs"
-      className={"j-share-card-brand" + (className ? ` ${className}` : "")}
-      width={size}
-      height={size}
-      decoding="async"
-    />
-  );
-}
+const JOURNEY_VARIANTS = new Set<JourneyJourneyCardVariant>([
+  "banner",
+  "frame",
+  "center",
+  "split",
+  "immersive",
+]);
+
+const GALLERY_VARIANTS = new Set<JourneyGalleryCardVariant>([
+  "strip",
+  "panel",
+  "sidebar",
+  "film",
+  "stack",
+]);
 
 function ShareAvatar({
   profile,
@@ -50,7 +62,7 @@ function ShareAvatar({
   className?: string;
 }) {
   return (
-    <div className={"j-share-card-avatar" + (className ? ` ${className}` : "")}>
+    <div className={"j-nc-avatar" + (className ? ` ${className}` : "")}>
       {profile.avatarUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={profile.avatarUrl} alt="" crossOrigin="anonymous" />
@@ -64,18 +76,17 @@ function ShareAvatar({
 function ShareCover({
   profile,
   className = "",
-  tall = false,
+  children,
 }: {
   profile: JourneyShareProfile;
   className?: string;
-  tall?: boolean;
+  children?: ReactNode;
 }) {
   return (
     <div
       className={[
-        "j-share-card-cover",
+        "j-nc-cover",
         profile.coverUrl ? "has-img" : "",
-        tall ? "j-share-card-cover--tall" : "",
         className,
       ]
         .filter(Boolean)
@@ -85,103 +96,137 @@ function ShareCover({
       {profile.coverUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={profile.coverUrl} alt="" crossOrigin="anonymous" />
-      ) : (
-        <div className="j-share-card-cover-blob" />
-      )}
+      ) : null}
+      {children}
     </div>
   );
 }
 
-function CardAside({
-  slug,
-  targetUrl,
-  hideUrl = false,
+function StatusPill({
+  roleLine,
+  className = "",
 }: {
-  slug: string;
-  targetUrl: string;
-  hideUrl?: boolean;
-}) {
-  return (
-    <aside className="j-share-card-aside" aria-label="Mã QR và liên kết CINs">
-      <ShareCardBrand size={32} className="j-share-card-brand--aside" />
-      <JourneyShareCardQr url={targetUrl} />
-      {hideUrl ? null : (
-        <span className="j-share-card-url">cins.vn/{slug}</span>
-      )}
-    </aside>
-  );
-}
-
-function GalleryThumb({
-  src,
-  className,
-}: {
-  src: string | null;
+  roleLine: string;
   className?: string;
 }) {
-  if (src) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img src={src} alt="" className={className} loading="lazy" decoding="async" crossOrigin="anonymous" />
-    );
-  }
-  return <span className={className + " j-share-card-ph"} aria-hidden />;
+  if (!roleLine.trim()) return null;
+  return (
+    <span className={"j-nc-pill" + (className ? ` ${className}` : "")}>
+      <span className="j-nc-dot" aria-hidden />
+      {roleLine}
+    </span>
+  );
 }
 
-/** Layout 1 — cinematic cover + profile strip (16:9). */
-function JourneyProfileLayout({ profile }: { profile: JourneyShareProfile }) {
+function StatusInline({ roleLine }: { roleLine: string }) {
+  if (!roleLine.trim()) return null;
+  return (
+    <span className="j-nc-st">
+      <span className="j-nc-dot" aria-hidden />
+      {roleLine}
+    </span>
+  );
+}
+
+function UrlChip({
+  slug,
+  light = false,
+  className = "",
+}: {
+  slug: string;
+  light?: boolean;
+  className?: string;
+}) {
+  return (
+    <div
+      className={
+        "j-nc-url-chip" +
+        (light ? " is-light" : "") +
+        (className ? ` ${className}` : "")
+      }
+    >
+      cins.vn/{slug}
+    </div>
+  );
+}
+
+function StatsPair({
+  profile,
+  className = "",
+}: {
+  profile: JourneyShareProfile;
+  className?: string;
+}) {
   const cotMoc = profile.stats?.cotMoc ?? 0;
   const tacPham = profile.stats?.tacPham ?? 0;
-
   return (
-    <div className="j-share-journey j-share-journey--profile">
-      <div className="j-share-profile-cover-wrap">
-        <ShareCover profile={profile} className="j-share-journey-cover" />
-        <div className="j-share-profile-cover-shimmer" aria-hidden />
-        <div className="j-share-profile-cover-fade" aria-hidden />
+    <div className={"j-nc-stats" + (className ? ` ${className}` : "")}>
+      <div className="j-nc-stat">
+        <strong>{cotMoc}</strong>
+        <span>Cột mốc</span>
       </div>
-      <div className="j-share-journey-body j-share-profile-body">
-        <div className="j-share-journey-head j-share-profile-head">
-          <ShareAvatar
-            profile={profile}
-            className="j-share-journey-avatar j-share-profile-avatar"
-          />
-          <div className="j-share-journey-ident j-share-profile-ident">
-            <strong>{profile.displayName}</strong>
-            {profile.roleLine ? (
-              <span className="j-share-profile-role">{profile.roleLine}</span>
-            ) : null}
+      <div className="j-nc-stat">
+        <strong>{tacPham}</strong>
+        <span>Tác phẩm</span>
+      </div>
+    </div>
+  );
+}
+
+/* ── 1 · Banner ─────────────────────────────────────────────── */
+function BannerLayout({ profile }: { profile: JourneyShareProfile }) {
+  const cotMoc = profile.stats?.cotMoc ?? 0;
+  const tacPham = profile.stats?.tacPham ?? 0;
+  return (
+    <div className="j-nc j-nc--banner">
+      <div className="j-nc-b-cover">
+        <ShareCover profile={profile} />
+      </div>
+      <div className="j-nc-b-body">
+        <ShareAvatar profile={profile} className="j-nc-b-avatar" />
+        <div className="j-nc-b-text">
+          <div className="j-nc-b-name">
+            <h3>{profile.displayName}</h3>
+            <StatusInline roleLine={profile.roleLine} />
           </div>
+          {profile.bio ? <p className="j-nc-bio">{profile.bio}</p> : null}
         </div>
-        <div className="j-share-profile-mid">
-          <div className="j-share-profile-copy">
-            {profile.bio ? (
-              <p className="j-share-journey-bio j-share-profile-bio">{profile.bio}</p>
-            ) : (
-              <p className="j-share-journey-bio j-share-profile-bio j-share-profile-bio--placeholder">
-                Khám phá hành trình sáng tạo — cột mốc, tác phẩm và kết nối trên CINs.
-              </p>
-            )}
-            <span className="j-share-profile-url">cins.vn/{profile.slug}</span>
-            {profile.locationLine ? (
-              <span className="j-share-profile-loc">{profile.locationLine}</span>
-            ) : null}
-          </div>
-          <div className="j-share-profile-side">
-            <div className="j-share-profile-stats">
-              <div className="j-share-journey-stat j-share-profile-stat j-share-profile-stat--milestone">
-                <strong>{cotMoc}</strong>
-                <span>Cột mốc</span>
-              </div>
-              <div className="j-share-journey-stat j-share-profile-stat j-share-profile-stat--works">
-                <strong>{tacPham}</strong>
-                <span>Tác phẩm</span>
-              </div>
-            </div>
-            <span className="j-share-journey-tag j-share-profile-tag">
-              <span className="j-share-profile-tag-dot" aria-hidden />
-              Journey
-            </span>
+        <div className="j-nc-b-stats">
+          <span>
+            <b>{cotMoc}</b> Cột mốc
+          </span>
+          <span className="j-nc-sep">•</span>
+          <span>
+            <b>{tacPham}</b> Tác phẩm
+          </span>
+        </div>
+        <div className="j-nc-b-right">
+          <UrlChip slug={profile.slug} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── 2 · Frame ──────────────────────────────────────────────── */
+function FrameLayout({ profile }: { profile: JourneyShareProfile }) {
+  return (
+    <div className="j-nc j-nc--frame">
+      <div className="j-nc-f-bg" aria-hidden>
+        <ShareCover profile={profile} />
+      </div>
+      <div className="j-nc-f-panel">
+        <div className="j-nc-f-cover">
+          <ShareCover profile={profile} />
+        </div>
+        <div className="j-nc-f-side">
+          <ShareAvatar profile={profile} className="j-nc-f-avatar" />
+          <h3 className="j-nc-name">{profile.displayName}</h3>
+          <StatusPill roleLine={profile.roleLine} />
+          {profile.bio ? <p className="j-nc-bio">{profile.bio}</p> : null}
+          <StatsPair profile={profile} className="j-nc-f-stats" />
+          <div className="j-nc-f-foot">
+            <UrlChip slug={profile.slug} />
           </div>
         </div>
       </div>
@@ -189,127 +234,80 @@ function JourneyProfileLayout({ profile }: { profile: JourneyShareProfile }) {
   );
 }
 
-/** Layout 2 — frosted panel trên mesh gradient, đủ thông tin hồ sơ. */
-function JourneyGlassLayout({ profile }: { profile: JourneyShareProfile }) {
+/* ── 3 · Center ─────────────────────────────────────────────── */
+function CenterLayout({ profile }: { profile: JourneyShareProfile }) {
   const cotMoc = profile.stats?.cotMoc ?? 0;
   const tacPham = profile.stats?.tacPham ?? 0;
-
   return (
-    <div className="j-share-journey j-share-journey--glass">
-      <div className="j-share-journey-glass-bg" aria-hidden />
-      <div className="j-share-journey-glass-panel">
-        <div className="j-share-glass-head">
-          <ShareAvatar
-            profile={profile}
-            className="j-share-journey-avatar j-share-glass-avatar"
-          />
-          <div className="j-share-glass-ident">
-            <strong>{profile.displayName}</strong>
-            {profile.roleLine ? (
-              <span className="j-share-glass-role">{profile.roleLine}</span>
-            ) : null}
-          </div>
-        </div>
-        <div className="j-share-glass-mid">
-          <div className="j-share-glass-copy">
-            {profile.bio ? (
-              <p className="j-share-journey-bio j-share-glass-bio">{profile.bio}</p>
-            ) : (
-              <p className="j-share-journey-bio j-share-glass-bio j-share-glass-bio--placeholder">
-                Khám phá hành trình sáng tạo — cột mốc, tác phẩm và kết nối trên CINs.
-              </p>
-            )}
-            <span className="j-share-glass-url">cins.vn/{profile.slug}</span>
-            {profile.locationLine ? (
-              <span className="j-share-glass-loc">{profile.locationLine}</span>
-            ) : null}
-          </div>
-          <div className="j-share-glass-side">
-            <div className="j-share-glass-stats">
-              <div className="j-share-journey-stat j-share-glass-stat j-share-glass-stat--milestone">
-                <strong>{cotMoc}</strong>
-                <span>Cột mốc</span>
-              </div>
-              <div className="j-share-journey-stat j-share-glass-stat j-share-glass-stat--works">
-                <strong>{tacPham}</strong>
-                <span>Tác phẩm</span>
-              </div>
-            </div>
-            <span className="j-share-journey-tag j-share-glass-tag">
-              <span className="j-share-glass-tag-dot" aria-hidden />
-              Journey
-            </span>
-          </div>
-        </div>
+    <div className="j-nc j-nc--center">
+      <div className="j-nc-c-strip" aria-hidden>
+        <ShareCover profile={profile} />
       </div>
-    </div>
-  );
-}
-
-/** Layout 3 — cover trái · hồ sơ phải. */
-function JourneyHeroLayout({ profile }: { profile: JourneyShareProfile }) {
-  const cotMoc = profile.stats?.cotMoc ?? 0;
-  const tacPham = profile.stats?.tacPham ?? 0;
-
-  return (
-    <div className="j-share-journey j-share-journey--hero">
-      <ShareCover profile={profile} className="j-share-journey-hero-visual" />
-      <div className="j-share-journey-hero-panel">
-        <div className="j-share-journey-head">
-          <ShareAvatar profile={profile} className="j-share-journey-avatar" />
-          <div className="j-share-journey-ident">
-            <strong>{profile.displayName}</strong>
-            {profile.roleLine ? <span>{profile.roleLine}</span> : null}
-          </div>
-        </div>
-        {profile.bio ? (
-          <p className="j-share-journey-bio">{profile.bio}</p>
-        ) : null}
-        <div className="j-share-journey-foot j-share-journey-foot--hero">
-          <div className="j-share-journey-stat">
-            <strong>{cotMoc}</strong>
-            <span>Cột mốc</span>
-          </div>
-          <div className="j-share-journey-stat">
+      <div className="j-nc-c-inner">
+        <ShareAvatar profile={profile} className="j-nc-c-avatar" />
+        <h3 className="j-nc-name j-nc-name--lg">{profile.displayName}</h3>
+        <StatusPill roleLine={profile.roleLine} />
+        {profile.bio ? <p className="j-nc-bio j-nc-bio--center">{profile.bio}</p> : null}
+        <div className="j-nc-c-boxes">
+          <div className="j-nc-c-box">
             <strong>{tacPham}</strong>
             <span>Tác phẩm</span>
           </div>
-          <span className="j-share-journey-cta">Xem Journey</span>
+          <div className="j-nc-c-box">
+            <strong>{cotMoc}</strong>
+            <span>Cột mốc</span>
+          </div>
         </div>
+      </div>
+      <div className="j-nc-c-foot">
+        <UrlChip slug={profile.slug} />
       </div>
     </div>
   );
 }
 
-/** Layout 4 — visual trái · panel ấm phải. */
-function JourneyTabLayout({ profile }: { profile: JourneyShareProfile }) {
+/* ── 4 · Split ──────────────────────────────────────────────── */
+function SplitLayout({ profile }: { profile: JourneyShareProfile }) {
   return (
-    <div className="j-share-journey j-share-journey--tab">
-      <div className="j-share-journey-tab-visual">
-        {profile.coverUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={profile.coverUrl}
-            alt=""
-            className="j-share-journey-tab-img"
-            crossOrigin="anonymous"
-          />
-        ) : (
-          <div className="j-share-journey-tab-img j-share-journey-tab-img--grad" aria-hidden />
-        )}
+    <div className="j-nc j-nc--split">
+      <div className="j-nc-s-cover">
+        <ShareCover profile={profile} />
       </div>
-      <div className="j-share-journey-tab-panel">
-        <div className="j-share-journey-head">
-          <ShareAvatar profile={profile} className="j-share-journey-avatar" />
-          <div className="j-share-journey-ident">
-            <strong>{profile.displayName}</strong>
-            {profile.roleLine ? <span>{profile.roleLine}</span> : null}
+      <div className="j-nc-s-side">
+        <ShareAvatar profile={profile} className="j-nc-s-avatar" />
+        <h3 className="j-nc-name">{profile.displayName}</h3>
+        <StatusPill roleLine={profile.roleLine} />
+        {profile.bio ? <p className="j-nc-bio">{profile.bio}</p> : null}
+        <StatsPair profile={profile} className="j-nc-s-stats" />
+        <UrlChip slug={profile.slug} className="j-nc-s-url" />
+      </div>
+    </div>
+  );
+}
+
+/* ── 5 · Immersive ──────────────────────────────────────────── */
+function ImmersiveLayout({ profile }: { profile: JourneyShareProfile }) {
+  return (
+    <div className="j-nc j-nc--immersive">
+      <ShareCover profile={profile} className="j-nc-i-cover" />
+      <div className="j-nc-i-dark" aria-hidden />
+      <div className="j-nc-i-url">
+        <UrlChip slug={profile.slug} light />
+      </div>
+      <div className="j-nc-i-foot">
+        <div className="j-nc-i-info">
+          <div className="j-nc-i-idrow">
+            <ShareAvatar profile={profile} className="j-nc-i-avatar" />
+            <div>
+              <h3 className="j-nc-i-name">
+                {profile.displayName}
+                <StatusInline roleLine={profile.roleLine} />
+              </h3>
+            </div>
           </div>
+          {profile.bio ? <p className="j-nc-i-bio">{profile.bio}</p> : null}
         </div>
-        <p className="j-share-journey-bio">
-          {profile.bio?.trim() ||
-            "Khám phá hành trình sáng tạo trên CINs — cột mốc, tác phẩm và kết nối."}
-        </p>
+        <StatsPair profile={profile} className="j-nc-i-stats" />
       </div>
     </div>
   );
@@ -323,126 +321,316 @@ function JourneyLayout({
   profile: JourneyShareProfile;
 }) {
   switch (variant) {
-    case "glass":
-      return <JourneyGlassLayout profile={profile} />;
-    case "hero":
-      return <JourneyHeroLayout profile={profile} />;
-    case "tab":
-      return <JourneyTabLayout profile={profile} />;
-    case "profile":
+    case "frame":
+      return <FrameLayout profile={profile} />;
+    case "center":
+      return <CenterLayout profile={profile} />;
+    case "split":
+      return <SplitLayout profile={profile} />;
+    case "immersive":
+      return <ImmersiveLayout profile={profile} />;
+    case "banner":
     default:
-      return <JourneyProfileLayout profile={profile} />;
+      return <BannerLayout profile={profile} />;
   }
 }
 
-function GalleryGridLayout({
+function GalleryThumb({
+  src,
+  className,
+}: {
+  src: string | null;
+  className?: string;
+}) {
+  if (src) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={src}
+        alt=""
+        className={className}
+        loading="lazy"
+        decoding="async"
+        crossOrigin="anonymous"
+      />
+    );
+  }
+  return <span className={className + " j-ps-ph"} aria-hidden />;
+}
+
+function padThumbs(thumbs: string[], n: number): string[] {
+  const cells = [...thumbs.slice(0, n)];
+  while (cells.length < n) cells.push("");
+  return cells;
+}
+
+function PsAvatar({
   profile,
-  variant,
-  thumbs,
+  className = "",
 }: {
   profile: JourneyShareProfile;
-  variant: "mosaic" | "spotlight" | "filmstrip";
-  thumbs: string[];
+  className?: string;
 }) {
-  const tacPham = profile.stats?.tacPham ?? 0;
-  const cells = [...thumbs.slice(0, variant === "filmstrip" ? 5 : 4)];
-  const minCells = variant === "filmstrip" ? 5 : 4;
-  while (cells.length < minCells) cells.push("");
-
   return (
-    <div className="j-share-card-body j-share-card-body--gallery">
-      <div className="j-share-card-head j-share-card-head--compact">
-        <ShareAvatar profile={profile} />
-        <div className="j-share-card-ident">
-          <strong>{profile.displayName}</strong>
-          <span>{tacPham} tác phẩm</span>
-        </div>
-      </div>
-      {variant === "mosaic" ? (
-        <div className="j-share-card-gallery j-share-card-gallery--mosaic">
-          {cells.slice(0, 4).map((src, i) => (
-            <GalleryThumb
-              key={i}
-              src={src || null}
-              className="j-share-card-g-cell"
-            />
-          ))}
-        </div>
-      ) : variant === "spotlight" ? (
-        <div className="j-share-card-gallery j-share-card-gallery--spotlight">
-          <GalleryThumb
-            src={cells[0] || null}
-            className="j-share-card-g-spot"
-          />
-          <div className="j-share-card-g-row">
-            {cells.slice(1, 4).map((src, i) => (
-              <GalleryThumb
-                key={i}
-                src={src || null}
-                className="j-share-card-g-cell"
-              />
-            ))}
-          </div>
-        </div>
+    <div className={"j-ps-avatar" + (className ? ` ${className}` : "")}>
+      {profile.avatarUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={profile.avatarUrl} alt="" crossOrigin="anonymous" />
       ) : (
-        <div className="j-share-card-gallery j-share-card-gallery--filmstrip">
-          {cells.slice(0, 5).map((src, i) => (
-            <GalleryThumb
-              key={i}
-              src={src || null}
-              className="j-share-card-g-strip"
-            />
-          ))}
-        </div>
+        <span>{profile.initials}</span>
       )}
     </div>
   );
 }
 
-function PortfolioLayout({
+function PsStatsInline({ profile }: { profile: JourneyShareProfile }) {
+  const cotMoc = profile.stats?.cotMoc ?? 0;
+  const tacPham = profile.stats?.tacPham ?? 0;
+  return (
+    <div className="j-ps-stats-inline">
+      <span>
+        <b>{cotMoc}</b> Cột mốc
+      </span>
+      <span className="j-ps-dot" aria-hidden>
+        •
+      </span>
+      <span>
+        <b>{tacPham}</b> Tác phẩm
+      </span>
+    </div>
+  );
+}
+
+function PsStatsPair({ profile }: { profile: JourneyShareProfile }) {
+  const cotMoc = profile.stats?.cotMoc ?? 0;
+  const tacPham = profile.stats?.tacPham ?? 0;
+  return (
+    <div className="j-ps-stats-pair">
+      <div className="j-ps-stat">
+        <strong>{cotMoc}</strong>
+        <span>Cột mốc</span>
+      </div>
+      <div className="j-ps-stat-vr" aria-hidden />
+      <div className="j-ps-stat">
+        <strong>{tacPham}</strong>
+        <span>Tác phẩm</span>
+      </div>
+    </div>
+  );
+}
+
+/* ── Portfolio Strip ────────────────────────────────────────── */
+function StripLayout({
   profile,
   thumbs,
-  featureLabel = "Portfolio",
 }: {
   profile: JourneyShareProfile;
   thumbs: string[];
-  featureLabel?: string;
 }) {
-  const cells = [...thumbs.slice(0, 4)];
-  while (cells.length < 4) cells.push("");
+  const cells = padThumbs(thumbs, 4);
+  return (
+    <div className="j-ps j-ps--strip">
+      <header className="j-ps-strip-head">
+        <PsAvatar profile={profile} className="j-ps-strip-avatar" />
+        <div className="j-ps-strip-ident">
+          <h3>{profile.displayName}</h3>
+          <p className="j-ps-url">cins.vn/{profile.slug}</p>
+          <PsStatsInline profile={profile} />
+        </div>
+      </header>
+      <div className="j-ps-strip-grid" aria-hidden>
+        <GalleryThumb src={cells[0] || null} className="j-ps-cell j-ps-cell--wide" />
+        <GalleryThumb src={cells[1] || null} className="j-ps-cell" />
+        <GalleryThumb src={cells[2] || null} className="j-ps-cell" />
+        <GalleryThumb src={cells[3] || null} className="j-ps-cell" />
+      </div>
+    </div>
+  );
+}
+
+/* ── Portfolio Panel ────────────────────────────────────────── */
+function PanelLayout({
+  profile,
+  thumbs,
+}: {
+  profile: JourneyShareProfile;
+  thumbs: string[];
+}) {
+  const cells = padThumbs(thumbs, 5);
+  return (
+    <div className="j-ps j-ps--panel">
+      <div className="j-ps-panel-bg" aria-hidden />
+      <aside className="j-ps-panel-card">
+        <PsAvatar profile={profile} className="j-ps-panel-avatar" />
+        <h3>{profile.displayName}</h3>
+        <p className="j-ps-url j-ps-url--dot">cins.vn/{profile.slug}</p>
+      </aside>
+      <div className="j-ps-panel-main">
+        <PsStatsInline profile={profile} />
+        <div className="j-ps-panel-grid" aria-hidden>
+          <GalleryThumb src={cells[0] || null} className="j-ps-cell j-ps-cell--hero" />
+          <GalleryThumb src={cells[1] || null} className="j-ps-cell j-ps-cell--tall" />
+          <GalleryThumb src={cells[2] || null} className="j-ps-cell" />
+          <GalleryThumb src={cells[3] || null} className="j-ps-cell" />
+          <GalleryThumb src={cells[4] || null} className="j-ps-cell" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Portfolio Sidebar ──────────────────────────────────────── */
+function SidebarLayout({
+  profile,
+  thumbs,
+}: {
+  profile: JourneyShareProfile;
+  thumbs: string[];
+}) {
+  const cells = padThumbs(thumbs, 5);
+  return (
+    <div className="j-ps j-ps--sidebar">
+      <aside className="j-ps-side">
+        <PsAvatar profile={profile} className="j-ps-side-avatar" />
+        <h3>{profile.displayName}</h3>
+        <p className="j-ps-url j-ps-url--mint">cins.vn/{profile.slug}</p>
+        <PsStatsPair profile={profile} />
+      </aside>
+      <div className="j-ps-side-gallery" aria-hidden>
+        <GalleryThumb src={cells[0] || null} className="j-ps-cell j-ps-cell--hero" />
+        <GalleryThumb src={cells[1] || null} className="j-ps-cell j-ps-cell--mid" />
+        <GalleryThumb src={cells[2] || null} className="j-ps-cell" />
+        <GalleryThumb src={cells[3] || null} className="j-ps-cell" />
+        <GalleryThumb src={cells[4] || null} className="j-ps-cell" />
+      </div>
+    </div>
+  );
+}
+
+/* ── Portfolio Film ─────────────────────────────────────────── */
+function FilmLayout({
+  profile,
+  thumbs,
+}: {
+  profile: JourneyShareProfile;
+  thumbs: string[];
+}) {
+  const cells = padThumbs(thumbs, 4);
+  return (
+    <div className="j-ps j-ps--film">
+      <div className="j-ps-film-bg" aria-hidden />
+      <header className="j-ps-film-head">
+        <PsAvatar profile={profile} className="j-ps-film-avatar" />
+        <div className="j-ps-film-ident">
+          <h3>{profile.displayName}</h3>
+          <p className="j-ps-url j-ps-url--dot">cins.vn/{profile.slug}</p>
+        </div>
+      </header>
+      <div className="j-ps-film-row" aria-hidden>
+        {cells.map((src, i) => (
+          <GalleryThumb
+            key={i}
+            src={src || null}
+            className={`j-ps-cell j-ps-film-shot j-ps-film-shot--${i}`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ── Portfolio Stack ────────────────────────────────────────── */
+function StackLayout({
+  profile,
+  thumbs,
+}: {
+  profile: JourneyShareProfile;
+  thumbs: string[];
+}) {
+  const cells = padThumbs(thumbs, 5);
+  return (
+    <div className="j-ps j-ps--stack">
+      <div className="j-ps-stack-bg" aria-hidden />
+      <header className="j-ps-stack-head">
+        <PsAvatar profile={profile} className="j-ps-stack-avatar" />
+        <div className="j-ps-stack-ident">
+          <h3>{profile.displayName}</h3>
+          <PsStatsPair profile={profile} />
+        </div>
+      </header>
+      <div className="j-ps-url-pill">
+        <span>cins.vn/{profile.slug}</span>
+        <span className="j-ps-url-pill-ic" aria-hidden>
+          ↗
+        </span>
+      </div>
+      <div className="j-ps-stack-fan" aria-hidden>
+        {cells.map((src, i) => (
+          <div key={i} className={`j-ps-stack-card j-ps-stack-card--${i}`}>
+            <GalleryThumb src={src || null} className="j-ps-cell" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function GalleryLayout({
+  variant,
+  profile,
+  thumbs,
+}: {
+  variant: JourneyGalleryCardVariant;
+  profile: JourneyShareProfile;
+  thumbs: string[];
+}) {
+  switch (variant) {
+    case "panel":
+      return <PanelLayout profile={profile} thumbs={thumbs} />;
+    case "sidebar":
+      return <SidebarLayout profile={profile} thumbs={thumbs} />;
+    case "film":
+      return <FilmLayout profile={profile} thumbs={thumbs} />;
+    case "stack":
+      return <StackLayout profile={profile} thumbs={thumbs} />;
+    case "strip":
+    default:
+      return <StripLayout profile={profile} thumbs={thumbs} />;
+  }
+}
+
+/** Scale canvas 1040×548 cho vừa khung preview (giống mockup). */
+function NamecardStage({ children }: { children: ReactNode }) {
+  const stageRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState<number | null>(null);
+
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el) return;
+    const fit = () => {
+      const w = el.clientWidth;
+      setScale(w > 0 ? Math.min(1, w / JOURNEY_NAMECARD_W) : 1);
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const s = scale ?? 0;
 
   return (
-    <div className="j-share-card-portfolio">
-      <header className="j-share-card-portfolio-head">
-        <ShareAvatar
-          profile={profile}
-          className="j-share-card-avatar--portfolio"
-        />
-        <div className="j-share-card-portfolio-ident">
-          <strong>{profile.displayName}</strong>
-          <span className="j-share-card-portfolio-url">
-            cins.vn/{profile.slug}
-          </span>
-        </div>
-        <span className="j-share-card-portfolio-badge">{featureLabel}</span>
-      </header>
-      <div className="j-share-card-portfolio-mosaic" aria-hidden>
-        <GalleryThumb
-          src={cells[0] || null}
-          className="j-share-card-portfolio-cell j-share-card-portfolio-cell--hero"
-        />
-        <GalleryThumb
-          src={cells[1] || null}
-          className="j-share-card-portfolio-cell"
-        />
-        <GalleryThumb
-          src={cells[2] || null}
-          className="j-share-card-portfolio-cell"
-        />
-        <GalleryThumb
-          src={cells[3] || null}
-          className="j-share-card-portfolio-cell"
-        />
+    <div
+      ref={stageRef}
+      className="j-share-preview-stage"
+      style={{ height: JOURNEY_NAMECARD_H * s }}
+      data-ready={scale != null ? "1" : "0"}
+    >
+      <div
+        className="j-share-preview-stage-inner"
+        style={{ transform: `scale(${s})` }}
+      >
+        {children}
       </div>
     </div>
   );
@@ -455,73 +643,83 @@ export function JourneyShareCardPreview({
   targetUrl,
   exportRef,
   galleryFeatureLabel,
+  theme = null,
 }: Props) {
   const galleryLabel = galleryFeatureLabel ?? "Portfolio";
   const journeyVariant: JourneyJourneyCardVariant =
     kind === "journey" &&
-    (variant === "profile" ||
-      variant === "glass" ||
-      variant === "hero" ||
-      variant === "tab")
-      ? variant
-      : "profile";
+    JOURNEY_VARIANTS.has(variant as JourneyJourneyCardVariant)
+      ? (variant as JourneyJourneyCardVariant)
+      : "banner";
 
-  const galleryVariant: "mosaic" | "spotlight" | "filmstrip" | "portfolio" =
+  const galleryVariant: JourneyGalleryCardVariant =
     kind === "gallery" &&
-    (variant === "mosaic" ||
-      variant === "spotlight" ||
-      variant === "filmstrip" ||
-      variant === "portfolio")
-      ? variant
-      : "mosaic";
+    GALLERY_VARIANTS.has(variant as JourneyGalleryCardVariant)
+      ? (variant as JourneyGalleryCardVariant)
+      : "strip";
 
   const thumbs = profile.galleryThumbs ?? [];
+  const isJourney = kind === "journey";
+  const cardModifier = isJourney ? journeyVariant : galleryVariant;
+  const tokens = resolveShareOgThemeTokens(theme, profile.slug);
+  const themeClass = tokens.isCustom
+    ? "j-share-card--theme-custom"
+    : `j-share-card--theme-${tokens.presetId ?? "paper"}`;
+  const bg = shareOgBackgroundStyle(tokens);
 
-  const cardModifier =
-    kind === "journey"
-      ? journeyVariant
-      : galleryVariant === "portfolio"
-        ? "portfolio"
-        : galleryVariant;
+  const themeStyle = {
+    "--og-surface": tokens.surface,
+    "--og-ink": tokens.ink,
+    "--og-muted": tokens.muted,
+    "--og-accent": tokens.accent,
+    "--og-panel": tokens.panel,
+    ...(tokens.backgroundImage
+      ? { "--og-bg-image": `url(${tokens.backgroundImage})` }
+      : {}),
+    backgroundColor: bg.backgroundColor,
+    ...(tokens.isCustom
+      ? {}
+      : {
+          backgroundImage: bg.backgroundImage,
+          backgroundSize: bg.backgroundSize,
+        }),
+    color: tokens.ink,
+  } as CSSProperties;
 
   return (
-    <article
-      ref={exportRef as RefObject<HTMLElement>}
-      className={[
-        "j-share-card",
-        `j-share-card--${kind}`,
-        `j-share-card--${cardModifier}`,
-      ].join(" ")}
-      data-share-url={targetUrl}
-      aria-label={
-        kind === "journey"
-          ? `Thẻ giới thiệu Journey — ${profile.displayName}`
-          : `Thẻ ${galleryLabel} — ${profile.displayName}`
-      }
-    >
-      <div className="j-share-card-main">
-        {kind === "journey" ? (
-          <JourneyLayout variant={journeyVariant} profile={profile} />
-        ) : galleryVariant === "portfolio" ? (
-          <PortfolioLayout
-            profile={profile}
-            thumbs={thumbs}
-            featureLabel={galleryLabel}
-          />
-        ) : (
-          <GalleryGridLayout
-            profile={profile}
-            variant={galleryVariant}
-            thumbs={thumbs}
-          />
-        )}
-      </div>
-
-      <CardAside
-        slug={profile.slug}
-        targetUrl={targetUrl}
-        hideUrl={kind === "gallery" && galleryVariant === "portfolio"}
-      />
-    </article>
+    <NamecardStage>
+      <article
+        ref={exportRef as RefObject<HTMLElement>}
+        className={[
+          "j-share-card",
+          `j-share-card--${kind}`,
+          `j-share-card--${cardModifier}`,
+          "j-share-card--namecard",
+          themeClass,
+        ].join(" ")}
+        style={themeStyle}
+        data-share-url={targetUrl}
+        aria-label={
+          isJourney
+            ? `Thẻ giới thiệu Journey — ${profile.displayName}`
+            : `Thẻ ${galleryLabel} — ${profile.displayName}`
+        }
+      >
+        {tokens.backgroundImage ? (
+          <div className="j-share-card-theme-bg" aria-hidden />
+        ) : null}
+        <div className="j-share-card-main">
+          {isJourney ? (
+            <JourneyLayout variant={journeyVariant} profile={profile} />
+          ) : (
+            <GalleryLayout
+              variant={galleryVariant}
+              profile={profile}
+              thumbs={thumbs}
+            />
+          )}
+        </div>
+      </article>
+    </NamecardStage>
   );
 }

@@ -7,6 +7,7 @@ import {
   getTier1EmbedPlatformMeta,
   type Tier1EmbedPlatformId,
 } from "@/lib/editor/embed-providers";
+import { EMBED_PLATFORM_LOGO } from "@/lib/editor/embed-platform-logos";
 
 type Props = {
   platform: Tier1EmbedPlatformId;
@@ -24,12 +25,25 @@ export function EditorExternalEmbedPanel({
   const valid = trimmed ? embedUrlMatchesPlatform(trimmed, platform) : false;
   const iframeSrc = valid ? buildEmbedIframeSrcFromUrl(trimmed) : null;
   const iframeAllow = embedIframeAllowAttr(platform);
+  const logoSrc = EMBED_PLATFORM_LOGO[platform];
 
   return (
     <div className="ed-embed-compose">
       <div className="ed-embed-compose-tab" data-platform={platform}>
-        <span className="ed-embed-compose-tab-label">{meta.label}</span>
-        <span className="ed-embed-compose-tab-hint">{meta.hint}</span>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          className="ed-embed-compose-tab-logo"
+          src={logoSrc}
+          alt=""
+          width={28}
+          height={28}
+          loading="lazy"
+          decoding="async"
+        />
+        <span className="ed-embed-compose-tab-text">
+          <span className="ed-embed-compose-tab-label">{meta.label}</span>
+          <span className="ed-embed-compose-tab-hint">{meta.hint}</span>
+        </span>
       </div>
       <label className="ed-embed-compose-field">
         <span className="ed-embed-compose-field-label">Link embed</span>
@@ -47,13 +61,17 @@ export function EditorExternalEmbedPanel({
         <p className="ed-embed-compose-error" role="alert">
           {platform === "sketchfab"
             ? "Link không hợp lệ — dán URL trang model Sketchfab (https://sketchfab.com/3d-models/…), không dán code HTML."
-            : `Link không hợp lệ — cần URL ${meta.label} (https://…).`}
+            : platform === "lottie"
+              ? "Link không hợp lệ — dán URL iframe từ Handoff (https://lottie.host/embed/…), không dán asset .lottie."
+              : `Link không hợp lệ — cần URL ${meta.label} (https://…).`}
         </p>
       ) : (
         <p className="ed-embed-compose-help">
           {platform === "sketchfab"
             ? "Dán link trang model Sketchfab — CINs tự tạo iframe tương tác (xoay/zoom 3D). Không cần copy code HTML."
-            : `Dán link chia sẻ / embed từ ${meta.label}. CINs tự nhúng khi link hợp lệ.`}
+            : platform === "lottie"
+              ? "Trong LottieFiles → Handoff → iFrame code, copy URL src (lottie.host/embed/…). Asset .lottie thì dùng Tải file."
+              : `Dán link chia sẻ / embed từ ${meta.label}. CINs tự nhúng khi link hợp lệ.`}
         </p>
       )}
       {iframeSrc ? (

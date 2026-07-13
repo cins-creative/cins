@@ -47,6 +47,10 @@ export type JourneyShareProfile = {
   bio: string | null;
   roleLine: string;
   locationLine?: string | null;
+  /** Email liên hệ công khai — thẻ mặt trước. */
+  emailLine?: string | null;
+  /** Dòng MXH ngắn (vd. behance.net/…) — thẻ mặt trước. */
+  socialLine?: string | null;
   stats?: { cotMoc: number; tacPham: number };
   /** Thumbnail gallery — lấy từ cache panel khi có. */
   galleryThumbs?: string[];
@@ -54,23 +58,32 @@ export type JourneyShareProfile = {
 
 export type JourneyShareCardKind = "journey" | "gallery";
 
+/** Journey = thẻ mặt trước (5 style). Gallery = thẻ mặt sau Portfolio (5 style). */
 export type JourneyShareCardVariant =
-  | "profile"
-  | "glass"
-  | "hero"
-  | "tab"
-  | "mosaic"
-  | "spotlight"
-  | "filmstrip"
-  | "portfolio";
+  | "banner"
+  | "frame"
+  | "center"
+  | "split"
+  | "immersive"
+  | "strip"
+  | "panel"
+  | "sidebar"
+  | "film"
+  | "stack";
 
-export type JourneyJourneyCardVariant = "profile" | "glass" | "hero" | "tab";
+export type JourneyJourneyCardVariant =
+  | "banner"
+  | "frame"
+  | "center"
+  | "split"
+  | "immersive";
 
 export type JourneyGalleryCardVariant =
-  | "mosaic"
-  | "spotlight"
-  | "filmstrip"
-  | "portfolio";
+  | "strip"
+  | "panel"
+  | "sidebar"
+  | "film"
+  | "stack";
 
 export type JourneyShareMenuStep =
   | "menu"
@@ -87,19 +100,57 @@ export const JOURNEY_SHARE_CARD_VARIANTS: Record<
   }>
 > = {
   journey: [
-    { id: "profile", label: "Hồ sơ", hint: "Cover cinematic · avatar gradient · thống kê nổi bật" },
-    { id: "glass", label: "Glass", hint: "Mesh màu · thẻ frosted · đủ thông tin hồ sơ" },
-    { id: "hero", label: "Hero", hint: "Cover trái · hồ sơ phải" },
-    { id: "tab", label: "Tab", hint: "Visual trái · panel ấm phải" },
+    {
+      id: "banner",
+      label: "Banner",
+      hint: "Ảnh bìa full trên · info-bar dưới · 1040×548",
+    },
+    {
+      id: "frame",
+      label: "Frame",
+      hint: "Thẻ trong thẻ · bìa khung trái · panel phải",
+    },
+    {
+      id: "center",
+      label: "Center",
+      hint: "Căn giữa · logo trên · 2 ô số liệu",
+    },
+    {
+      id: "split",
+      label: "Split",
+      hint: "Bìa tràn viền trái · panel gradient phải",
+    },
+    {
+      id: "immersive",
+      label: "Immersive",
+      hint: "Bìa full nền · overlay tối · chữ trắng",
+    },
   ],
   gallery: [
-    { id: "mosaic", label: "Mosaic", hint: "Lưới 2×2 — ảnh ngang 4:3" },
-    { id: "spotlight", label: "Spotlight", hint: "Hero 16:9 + hàng 4:3" },
-    { id: "filmstrip", label: "Filmstrip", hint: "Dải ngang 16:9" },
     {
-      id: "portfolio",
-      label: "Portfolio",
-      hint: "Header hồ sơ · mosaic tác phẩm nổi bật",
+      id: "strip",
+      label: "Strip",
+      hint: "Header hồ sơ · 1 ảnh ngang + 3 dọc · 1040×548",
+    },
+    {
+      id: "panel",
+      label: "Panel",
+      hint: "Thẻ profile trái · lưới 5 ảnh · 1040×548",
+    },
+    {
+      id: "sidebar",
+      label: "Sidebar",
+      hint: "Cột info trái · lưới ấm 5 ảnh · 1040×548",
+    },
+    {
+      id: "film",
+      label: "Film",
+      hint: "Header gọn · dải 4 ảnh ngang · 1040×548",
+    },
+    {
+      id: "stack",
+      label: "Stack",
+      hint: "Header + pill URL · chồng 5 thẻ ảnh · 1040×548",
     },
   ],
 };

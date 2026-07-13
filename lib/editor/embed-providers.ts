@@ -4,6 +4,7 @@
  */
 
 import { getYoutubeId } from "@/lib/youtube";
+import { isLottieAssetEmbedUrl } from "@/lib/editor/lottie-asset-url";
 import { isRiveAssetEmbedUrl } from "@/lib/editor/rive-asset-url";
 
 export type Tier1EmbedPlatformId =
@@ -19,12 +20,13 @@ export type Tier1EmbedPlatformId =
   | "codepen"
   | "soundcloud";
 
-/** Mọi provider embed được lưu / render (gồm legacy Behance, Framer + file .riv trên R2). */
+/** Mọi provider embed được lưu / render (gồm legacy Behance, Framer + file .riv/.lottie trên R2). */
 export type EmbedProviderId =
   | Tier1EmbedPlatformId
   | "behance"
   | "framer"
-  | "rive-file";
+  | "rive-file"
+  | "lottie-file";
 
 export type ClassifiedEmbed = {
   provider: EmbedProviderId;
@@ -132,8 +134,9 @@ export const TIER1_EMBED_PLATFORMS: readonly Tier1EmbedPlatformMeta[] = [
     id: "lottie",
     label: "LottieFiles",
     hint: "Lottie animation",
-    placeholder: "https://embed.lottiefiles.com/animation/…",
-    exampleUrl: "https://embed.lottiefiles.com/animation/78003",
+    placeholder: "https://lottie.host/embed/…",
+    exampleUrl:
+      "https://lottie.host/embed/69b2d0a0-d887-435c-9be7-4db55796f227/j73MAwZiE2",
     group: "motion",
   },
   {
@@ -191,6 +194,7 @@ const EMBED_HOST_RULES: Array<{
     host: /^(www\.|embed\.)?lottiefiles\.com$/i,
     provider: "lottie",
   },
+  { host: /^lottie\.host$/i, provider: "lottie" },
   { host: /^(www\.)?codepen\.io$/i, provider: "codepen" },
   {
     host: /^(www\.|w\.|api\.)?soundcloud\.com$/i,
@@ -218,6 +222,9 @@ export function classifyEmbedUrl(
   if (isRiveAssetEmbedUrl(rawUrl)) {
     return { provider: "rive-file", url: rawUrl!.trim() };
   }
+  if (isLottieAssetEmbedUrl(rawUrl)) {
+    return { provider: "lottie-file", url: rawUrl!.trim() };
+  }
   const parsed = parseEmbedUrl(rawUrl);
   if (!parsed) return null;
   const host = parsed.hostname.replace(/^www\./, "");
@@ -234,6 +241,9 @@ export function embedUrlMatchesPlatform(
   platform: Tier1EmbedPlatformId,
 ): boolean {
   if (platform === "rive" && isRiveAssetEmbedUrl(rawUrl)) {
+    return true;
+  }
+  if (platform === "lottie" && isLottieAssetEmbedUrl(rawUrl)) {
     return true;
   }
   const cls = classifyEmbedUrl(rawUrl);
@@ -382,6 +392,18 @@ function normalizeLottieEmbedSrc(url: string): string | null {
   if (!parsed) return null;
   const host = parsed.hostname.replace(/^www\./, "").toLowerCase();
 
+  /* Handoff hiện tại — iFrame / oEmbed: lottie.host/embed/{uuid}/{slug} */
+  if (host === "lottie.host") {
+    const embed = parsed.pathname.match(
+      /^\/embed\/([0-9a-f-]{36})\/([A-Za-z0-9_-]+)\/?$/i,
+    );
+    if (embed?.[1] && embed[2]) {
+      return `https://lottie.host/embed/${embed[1].toLowerCase()}/${encodeURIComponent(embed[2])}`;
+    }
+    /* Asset CDN (.lottie/.json) — không phải iframe; dùng upload file hoặc player. */
+    return null;
+  }
+
   if (host === "embed.lottiefiles.com") {
     const m = parsed.pathname.match(/\/animation\/([^/?#]+)/i);
     if (!m?.[1]) return null;
@@ -487,6 +509,7 @@ export function embedIframeAllowAttr(
     case "soundcloud":
       return "autoplay; encrypted-media";
     case "lottie":
+    case "lottie-file":
       return "autoplay";
     case "codepen":
       return "fullscreen; clipboard-write";
@@ -517,6 +540,7 @@ export function embedIframeTitle(provider: EmbedProviderId | string): string {
     case "rive-file":
       return "Rive animation";
     case "lottie":
+    case "lottie-file":
       return "Lottie animation";
     case "codepen":
       return "CodePen embed";

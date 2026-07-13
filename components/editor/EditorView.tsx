@@ -82,6 +82,7 @@ import { updatePost } from "@/app/[slug]/p/[postSlug]/edit/actions";
 import { publishPost } from "@/app/[slug]/p/new/actions";
 import "@/app/cins-embed-picker.css";
 import { EditorExternalEmbedPanel } from "@/components/editor/EditorExternalEmbedPanel";
+import { EditorLottieFileEmbedPanel } from "@/components/editor/EditorLottieFileEmbedPanel";
 import { EditorRiveFileEmbedPanel } from "@/components/editor/EditorRiveFileEmbedPanel";
 import {
   classifyEmbedUrl,
@@ -89,6 +90,7 @@ import {
   getTier1EmbedPlatformMeta,
   type Tier1EmbedPlatformId,
 } from "@/lib/editor/embed-providers";
+import { isLottieAssetEmbedUrl } from "@/lib/editor/lottie-asset-url";
 import { isRiveAssetEmbedUrl } from "@/lib/editor/rive-asset-url";
 import { resolveAlbumGridCell } from "@/lib/editor/album-grid-block";
 import { isEditorEmptyImageSeed } from "@/lib/editor/editor-stock-image-seeds";
@@ -158,6 +160,7 @@ import {
 } from "@/lib/journey/compose-preview-kind";
 import { useEditorVideoUpload } from "@/lib/journey/use-editor-video-upload";
 import { useEditorRiveFileUpload } from "@/lib/journey/use-editor-rive-file-upload";
+import { useEditorLottieFileUpload } from "@/lib/journey/use-editor-lottie-file-upload";
 import { readImageFileDimensions } from "@/lib/journey/probe-image-dimensions";
 import { videoCanvasRatioClass } from "@/lib/journey/video-canvas-ratio";
 import { bunnyIframeSrc, buildBunnyVideoMp4Url, buildBunnyVideoThumbnailUrl, classifyBunnyVideoUrl } from "@/lib/bunny/embed";
@@ -712,11 +715,12 @@ type Props = {
   composeIntent?: ComposeIntent;
   /** Nền tảng embed khi `composeIntent === "embed"`. */
   embedPlatform?: Tier1EmbedPlatformId;
-  /** `file` — upload .riv; mặc định dán link embed. */
+  /** `file` — upload .riv/.lottie; mặc định dán link embed. */
   riveSource?: "url" | "file";
   initialPhotoFiles?: File[];
   initialVideoFile?: File;
   initialRiveFile?: File;
+  initialLottieFile?: File;
   onClose?: () => void;
   onPublished?: (detail?: ComposePublishedDetail) => void;
 };
@@ -775,6 +779,7 @@ export function EditorView({
   initialPhotoFiles,
   initialVideoFile,
   initialRiveFile,
+  initialLottieFile,
   onClose,
   onPublished,
 }: Props) {
@@ -785,7 +790,8 @@ export function EditorView({
     isCreateCompose &&
     !initialPhotoFiles?.length &&
     !initialVideoFile &&
-    !initialRiveFile;
+    !initialRiveFile &&
+    !initialLottieFile;
   const composeDraftKey = useMemo(() => {
     const base = buildComposeEditorDraftKey({
       ownerSlug,
@@ -822,6 +828,10 @@ export function EditorView({
   const isRiveFileEmbedComposeIntent =
     isExternalEmbedCompose &&
     embedPlatform === "rive" &&
+    riveSource === "file";
+  const isLottieFileEmbedComposeIntent =
+    isExternalEmbedCompose &&
+    embedPlatform === "lottie" &&
     riveSource === "file";
   const usesMinimalFlow =
     (isCreateCompose &&
@@ -1006,7 +1016,15 @@ export function EditorView({
     uploadRiveFile,
   } = useEditorRiveFileUpload();
 
+  const {
+    lottieAssetUrl,
+    lottieUploading,
+    lottieUploadError,
+    uploadLottieFile,
+  } = useEditorLottieFileUpload();
+
   const initialRiveStartedRef = useRef(false);
+  const initialLottieStartedRef = useRef(false);
   const videoEncodeReadyNotifiedRef = useRef(false);
   useEffect(() => {
     if (videoUploading) {
@@ -1322,9 +1340,17 @@ export function EditorView({
     () =>
       videoUploading ||
       riveUploading ||
+      lottieUploading ||
       editorBlocksHaveUnpersistedImages(blocks, coverSeed) ||
       Object.values(imageUploads).some((track) => track.status === "uploading"),
-    [blocks, coverSeed, imageUploads, videoUploading, riveUploading],
+    [
+      blocks,
+      coverSeed,
+      imageUploads,
+      videoUploading,
+      riveUploading,
+      lottieUploading,
+    ],
   );
 
   const previewKind = useMemo(
@@ -1350,6 +1376,16 @@ export function EditorView({
   const isRiveFileEmbedCompose =
     isRiveFileEmbedComposeIntent &&
     Boolean(initialRiveFile || riveFileEmbedPreviewUrl);
+
+  const lottieFileEmbedPreviewUrl = useMemo(() => {
+    if (!isLottieFileEmbedComposeIntent) return null;
+    const url = externalEmbedBlock?.embedUrl?.trim();
+    if (url && isLottieAssetEmbedUrl(url)) return url;
+    return null;
+  }, [externalEmbedBlock, isLottieFileEmbedComposeIntent]);
+  const isLottieFileEmbedCompose =
+    isLottieFileEmbedComposeIntent &&
+    Boolean(initialLottieFile || lottieFileEmbedPreviewUrl);
 
   const previewMeta =
     isExternalEmbedCompose && embedPlatform
@@ -1798,6 +1834,18 @@ export function EditorView({
   }, [initialRiveFile, isEdit, isRiveFileEmbedComposeIntent, uploadRiveFile]);
 
   useEffect(() => {
+    if (!initialLottieFile || isEdit || !isLottieFileEmbedComposeIntent) return;
+    if (initialLottieStartedRef.current) return;
+    initialLottieStartedRef.current = true;
+    void uploadLottieFile(initialLottieFile);
+  }, [
+    initialLottieFile,
+    isEdit,
+    isLottieFileEmbedComposeIntent,
+    uploadLottieFile,
+  ]);
+
+  useEffect(() => {
     if (!isEdit || !isExternalEmbedCompose) return;
     const embedBlock = blocks.find((b) => b.t === "embed");
     if (embedBlock) {
@@ -1807,7 +1855,7 @@ export function EditorView({
 
   useEffect(() => {
     if (!isExternalEmbedCompose || !embedPlatform || isEdit) return;
-    if (isRiveFileEmbedCompose) {
+    if (isRiveFileEmbedCompose || isLottieFileEmbedCompose) {
       if (initialEmbedStartedRef.current) return;
       initialEmbedStartedRef.current = true;
       setEditorExpanded(true);
@@ -1820,7 +1868,14 @@ export function EditorView({
     pushHistory();
     setBlocks([{ id: blockId, t: "embed", embedUrl: "" }]);
     setEditorExpanded(true);
-  }, [isExternalEmbedCompose, embedPlatform, isEdit, isRiveFileEmbedCompose, pushHistory]);
+  }, [
+    isExternalEmbedCompose,
+    embedPlatform,
+    isEdit,
+    isRiveFileEmbedCompose,
+    isLottieFileEmbedCompose,
+    pushHistory,
+  ]);
 
   useEffect(() => {
     const blockId = videoBlockIdRef.current;
@@ -1859,6 +1914,18 @@ export function EditorView({
     embedBlockIdRef.current = createdId;
     setBlocks([{ id: createdId, t: "embed", embedUrl: riveAssetUrl }]);
   }, [riveAssetUrl, updateBlock]);
+
+  useEffect(() => {
+    if (!lottieAssetUrl) return;
+    const blockId = embedBlockIdRef.current;
+    if (blockId) {
+      updateBlock(blockId, { embedUrl: lottieAssetUrl });
+      return;
+    }
+    const createdId = newId();
+    embedBlockIdRef.current = createdId;
+    setBlocks([{ id: createdId, t: "embed", embedUrl: lottieAssetUrl }]);
+  }, [lottieAssetUrl, updateBlock]);
 
   const moveBlock = useCallback((id: string, dir: -1 | 1) => {
     setBlocks((prev) => {
@@ -2149,9 +2216,11 @@ export function EditorView({
           ? "Đang tải video lên — vui lòng đợi hoàn tất."
           : riveUploading
             ? "Đang tải file .riv lên — vui lòng đợi hoàn tất."
-          : editorBlocksHaveUnpersistedImages(blocks, coverSeed)
-            ? "Đang tải ảnh lên Cloudflare — vui lòng đợi hoàn tất."
-            : "Đang tải ảnh lên — vui lòng đợi hoàn tất.",
+            : lottieUploading
+              ? "Đang tải file Lottie lên — vui lòng đợi hoàn tất."
+              : editorBlocksHaveUnpersistedImages(blocks, coverSeed)
+                ? "Đang tải ảnh lên Cloudflare — vui lòng đợi hoàn tất."
+                : "Đang tải ảnh lên — vui lòng đợi hoàn tất.",
       );
       return;
     }
@@ -2166,6 +2235,11 @@ export function EditorView({
       return;
     }
 
+    if (lottieUploadError) {
+      setToast(lottieUploadError);
+      return;
+    }
+
     if (isExternalEmbedCompose && embedPlatform) {
       if (isRiveFileEmbedCompose) {
         const embedUrl = blocks
@@ -2176,6 +2250,22 @@ export function EditorView({
             riveUploading
               ? "Đang tải file .riv lên — vui lòng đợi hoàn tất."
               : "Upload file .riv chưa xong — thử lại trước khi lưu.",
+          );
+          return;
+        }
+      } else if (isLottieFileEmbedCompose) {
+        const embedUrl = blocks
+          .find((b) => b.t === "embed")
+          ?.embedUrl?.trim();
+        if (
+          lottieUploading ||
+          !embedUrl ||
+          !embedUrlMatchesPlatform(embedUrl, "lottie")
+        ) {
+          setToast(
+            lottieUploading
+              ? "Đang tải file Lottie lên — vui lòng đợi hoàn tất."
+              : "Upload file Lottie chưa xong — thử lại trước khi lưu.",
           );
           return;
         }
@@ -2668,6 +2758,14 @@ export function EditorView({
                     uploading={riveUploading}
                     uploadError={riveUploadError}
                     uploadedUrl={riveAssetUrl}
+                  />
+                ) : isLottieFileEmbedCompose ? (
+                  <EditorLottieFileEmbedPanel
+                    file={initialLottieFile}
+                    previewSrc={lottieFileEmbedPreviewUrl ?? undefined}
+                    uploading={lottieUploading}
+                    uploadError={lottieUploadError}
+                    uploadedUrl={lottieAssetUrl}
                   />
                 ) : (
                   <EditorExternalEmbedPanel
@@ -4640,6 +4738,9 @@ function toServerBlocks(blocks: Block[]): ServerBlock[] {
         const cls = classifyEmbedUrl(url);
         if (cls?.provider === "rive-file") {
           config.provider = "rive-file";
+        }
+        if (cls?.provider === "lottie-file") {
+          config.provider = "lottie-file";
         }
         if (b.videoCanvasRatio) {
           config.videoCanvasRatio = b.videoCanvasRatio;

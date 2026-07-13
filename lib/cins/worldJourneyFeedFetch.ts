@@ -14,7 +14,10 @@ import { getAvatarUrl } from "@/lib/journey/profile";
 import { rankWorldJourneyFeedHybrid } from "@/lib/cins/worldJourneyFeedSort";
 import { worldJourneyAnalyticsId } from "@/lib/cins/worldJourneyAnalytics";
 import { listFriends } from "@/lib/social/ket-ban";
-import { demLuotXemCuaViewer } from "@/lib/social/su-kien";
+import {
+  demLuotXemCuaViewer,
+  demLuotXemToanCuc,
+} from "@/lib/social/su-kien";
 import { loadUserSuKienPhanHoiMap } from "@/lib/to-chuc/su-kien-dang-ky";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import {
@@ -25,7 +28,15 @@ import {
   fetchFollowedOrgSuKienMilestones,
   fetchFriendSuggestedSuKienMilestones,
 } from "@/lib/cins/worldJourneyOrgSuKienFeed";
-import { WORLD_JOURNEY_FEED_PAGE_SIZE } from "@/lib/cins/worldJourneyFeedConstants";
+import {
+  fetchWorldJourneyMemberCongDongMilestones,
+  fetchWorldJourneySuggestedCongDongMilestones,
+  listActiveCongDongOrgIds,
+} from "@/lib/cins/worldJourneyCongDongFeed";
+import {
+  WORLD_JOURNEY_FEED_PAGE_SIZE,
+  WORLD_JOURNEY_FEED_RANK_REVALIDATE_SEC,
+} from "@/lib/cins/worldJourneyFeedConstants";
 
 const FEED_POOL_LIMIT = 80;
 const QUERY_LIMIT = 120;
@@ -147,6 +158,7 @@ function dedupeCotMocs(rows: LinkRow[]): CotMocFeedRow[] {
   const byId = new Map<string, CotMocFeedRow>();
   for (const row of rows) {
     const cm = row.content_cot_moc;
+    /* Bài cộng đồng lấy riêng qua worldJourneyCongDongFeed — tránh lẫn pool user. */
     if (!cm || cm.che_do_hien_thi === "cong_dong") continue;
     if (!byId.has(cm.id)) byId.set(cm.id, cm);
   }
@@ -221,12 +233,12 @@ function applyLensOwners(
 }
 
 /**
- * Xếp hạng feed mặc định (hybrid):
- * 1. Chưa xem / xem ít của viewer trước
- * 2. Org đã follow trước org lạ
- * 3. Trong cùng nhóm: comment×3 + like (không cộng view toàn cục)
- * 4. Soft quota theo tác giả / org
- * 5. Timeline làm tie-break
+ * Xếp hạng feed mặc định (phân bổ scoped):
+ * 1. Author echo — bài mình vừa đăng
+ * 2. Chưa xem của viewer (không demote bằng self-view)
+ * 3. Bài mới trong cửa sổ freshness
+ * 4. Reach toàn cục thấp (cold-start)
+ * 5. Org đã follow · soft quota · thời gian đăng
  * Cắt còn `FEED_POOL_LIMIT`.
  */
 async function rankFeedByUnseen(
@@ -235,17 +247,25 @@ async function rankFeedByUnseen(
 ): Promise<MilestoneItem[]> {
   if (items.length === 0) return [];
 
-  const seen = await demLuotXemCuaViewer(
-    viewerId,
-    items.map(worldJourneyAnalyticsId),
+  const analyticsIds = items.map(worldJourneyAnalyticsId);
+  const [seen, globalReach] = await Promise.all([
+    demLuotXemCuaViewer(viewerId, analyticsIds),
+    demLuotXemToanCuc(analyticsIds),
+  ]);
+
+  const withSeen = items.map((m) => {
+    const id = worldJourneyAnalyticsId(m);
+    return {
+      ...m,
+      viewerSeenCount: seen.get(id) ?? 0,
+      feedGlobalReach: globalReach.get(id) ?? 0,
+    };
+  });
+
+  return rankWorldJourneyFeedHybrid(withSeen, viewerId).slice(
+    0,
+    FEED_POOL_LIMIT,
   );
-
-  const withSeen = items.map((m) => ({
-    ...m,
-    viewerSeenCount: seen.get(worldJourneyAnalyticsId(m)) ?? 0,
-  }));
-
-  return rankWorldJourneyFeedHybrid(withSeen).slice(0, FEED_POOL_LIMIT);
 }
 
 export type WorldJourneyFeedPage = {
@@ -258,14 +278,21 @@ export type WorldJourneyFeedPage = {
 async function buildWorldJourneyFeedRanked(
   viewerId: string,
 ): Promise<MilestoneItem[]> {
-  const [friendIds, followingIds, followingTagIds, followingOrgIds, phanHoiMap] =
-    await Promise.all([
-      listFriends(viewerId),
-      listFollowingUserIds(viewerId),
-      listFollowingTagIds(viewerId),
-      listFollowingOrgIds(viewerId),
-      loadUserSuKienPhanHoiMap(viewerId),
-    ]);
+  const [
+    friendIds,
+    followingIds,
+    followingTagIds,
+    followingOrgIds,
+    phanHoiMap,
+    memberCongDongOrgIds,
+  ] = await Promise.all([
+    listFriends(viewerId),
+    listFollowingUserIds(viewerId),
+    listFollowingTagIds(viewerId),
+    listFollowingOrgIds(viewerId),
+    loadUserSuKienPhanHoiMap(viewerId),
+    listActiveCongDongOrgIds(viewerId),
+  ]);
 
   /* Sự kiện viewer đã phản hồi (Quan tâm / Đã đăng ký) → ẩn khỏi feed: đã hành
      động rồi thì không lặp lại. `loadUserSuKienPhanHoiMap` đã bỏ trạng thái huỷ. */
@@ -289,6 +316,7 @@ async function buildWorldJourneyFeedRanked(
     orgMilestones,
     orgSuKienMilestonesAll,
     friendSuKienSuggestionsAll,
+    memberCongDongMilestones,
   ] = await Promise.all([
     fetchLinkRowsForAuthors(
       [viewerId],
@@ -301,7 +329,21 @@ async function buildWorldJourneyFeedRanked(
     fetchWorldJourneyOrgBaiDangMilestones(followingOrgIds),
     fetchFollowedOrgSuKienMilestones(followingOrgIds, friendIds),
     fetchFriendSuggestedSuKienMilestones(friendIds),
+    fetchWorldJourneyMemberCongDongMilestones(
+      viewerId,
+      followingOrgIds,
+      memberCongDongOrgIds,
+    ),
   ]);
+
+  const congDongConnectedOrgIds = [
+    ...new Set([...memberCongDongOrgIds, ...followingOrgIds]),
+  ];
+  const suggestedCongDongMilestones =
+    await fetchWorldJourneySuggestedCongDongMilestones(
+      viewerId,
+      congDongConnectedOrgIds,
+    );
 
   /* Ẩn sự kiện viewer đã phản hồi (Quan tâm / Đã đăng ký) khỏi mọi nguồn feed. */
   const orgSuKienMilestones = orgSuKienMilestonesAll.filter(dropRespondedSuKien);
@@ -349,17 +391,59 @@ async function buildWorldJourneyFeedRanked(
     (m) => !followedSuKienIds.has(m.orgSuKienRef?.suKienId ?? ""),
   );
 
-  followingPool = filterFeedMilestonesForViewer(
-    [
-      ...followingPool,
-      ...orgMilestones,
-      ...orgSuKienMilestones,
-      ...dedupedFriendSuKien,
-    ],
-    viewerId,
-  ).map((m) => {
+  const congDongIds = new Set(
+    [...memberCongDongMilestones, ...suggestedCongDongMilestones].map(
+      (m) => m.cotMocId ?? m.id,
+    ),
+  );
+
+  /* Gắn nhãn nguồn (`feedSource` / `feedFollowing`) để client lọc theo
+     FeedSourceFilter (Khám phá tất cả / Theo dõi / Chỉ người dùng / Chỉ tổ chức). */
+  const userPool = followingPool
+    .filter((m) => !congDongIds.has(m.cotMocId ?? m.id))
+    .map((m) => {
+      const ownerId = m.postOwnerId ?? m.lensOwnerId ?? null;
+      return {
+        ...m,
+        feedSource: "user" as const,
+        feedFollowing: ownerId ? knownAuthorIds.has(ownerId) : false,
+      };
+    });
+
+  const taggedPool: MilestoneItem[] = [
+    ...userPool,
+    ...memberCongDongMilestones.map((m) => ({
+      ...m,
+      feedSource: "cong_dong" as const,
+      feedFollowing: true,
+    })),
+    ...suggestedCongDongMilestones.map((m) => ({
+      ...m,
+      feedSource: "cong_dong" as const,
+      feedFollowing: false,
+    })),
+    ...orgMilestones.map((m) => ({
+      ...m,
+      feedSource: "org" as const,
+      feedFollowing: true,
+    })),
+    ...orgSuKienMilestones.map((m) => ({
+      ...m,
+      feedSource: "org" as const,
+      feedFollowing: true,
+    })),
+    /* Sự kiện org do bạn bè tham gia — coi là "theo dõi" (qua quan hệ bạn bè). */
+    ...dedupedFriendSuKien.map((m) => ({
+      ...m,
+      feedSource: "org" as const,
+      feedFollowing: true,
+    })),
+  ];
+
+  followingPool = filterFeedMilestonesForViewer(taggedPool, viewerId).map((m) => {
     const ownerId = m.postOwnerId ?? m.lensOwnerId ?? null;
-    if (ownerId && !knownAuthorIds.has(ownerId)) {
+    if (m.feedSuggestion) return m;
+    if (ownerId && !knownAuthorIds.has(ownerId) && !m.congDongOrg) {
       return { ...m, feedExplore: true as const };
     }
     return m;
@@ -410,7 +494,7 @@ function fetchWorldJourneyFeedRankedForApi(viewerId: string) {
   return unstable_cache(
     () => buildWorldJourneyFeedRanked(viewerId),
     ["world-journey-feed-ranked", viewerId],
-    { revalidate: 45 },
+    { revalidate: WORLD_JOURNEY_FEED_RANK_REVALIDATE_SEC },
   )();
 }
 

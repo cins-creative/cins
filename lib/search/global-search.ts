@@ -418,6 +418,43 @@ function mergeHits(groups: SearchHit[][]): SearchHit[] {
   return groups.flat();
 }
 
+/**
+ * Tìm kiếm cho **một** loại entity — phục vụ streaming từng khối trên /tim-kiem
+ * (mỗi kind là 1 Suspense boundary, xong trước hiện trước). Mỗi kind tự bọc
+ * try/catch để một loại lỗi/chậm không kéo sập các loại còn lại.
+ */
+export async function searchByEntityKind(
+  entityKind: SearchEntityKind,
+  rawQuery: string | null | undefined,
+): Promise<SearchHit[]> {
+  const query = (rawQuery ?? "").trim();
+  if (!hasSupabaseEnv() || query.length < 1) return [];
+
+  try {
+    switch (entityKind) {
+      case "article":
+        return await searchArticles(query);
+      case "khoa_hoc":
+        return await searchKhoaHoc(query);
+      case "org_tuyen_dung":
+        return await searchTuyenDung(query);
+      case "org":
+        return await searchOrgs(query);
+      case "user":
+        return await searchUsers(query);
+      case "user_post":
+        return await searchUserPosts(query);
+      case "org_post":
+        return await searchOrgPosts(query);
+      default:
+        return [];
+    }
+  } catch (error) {
+    console.error(`[global-search:${entityKind}]`, error);
+    return [];
+  }
+}
+
 export async function runGlobalSearch(options: {
   q?: string | null;
   kind?: string | null;

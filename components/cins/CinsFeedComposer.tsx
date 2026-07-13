@@ -36,6 +36,7 @@ export function CinsFeedComposer({
     openComposeWithVideo,
     openComposeWithEmbed,
     openComposeWithRiveFile,
+    openComposeWithLottieFile,
     canCompose,
     ownerSlug: ctxSlug,
     ownerName: ctxName,
@@ -187,6 +188,16 @@ export function CinsFeedComposer({
               return;
             }
             router.push(`/${ownerSlug}/p/new?compose=embed&platform=rive&source=file`);
+            return;
+          }
+          if (selection.type === "lottie-file") {
+            if (canCompose) {
+              openComposeWithLottieFile(selection.file);
+              return;
+            }
+            router.push(
+              `/${ownerSlug}/p/new?compose=embed&platform=lottie&source=file`,
+            );
             return;
           }
           if (canCompose) {

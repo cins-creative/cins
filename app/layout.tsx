@@ -3,6 +3,7 @@ import { Anton, Be_Vietnam_Pro } from "next/font/google";
 
 import { AuthSessionRemember } from "@/components/auth/AuthSessionRemember";
 import { GopYButton } from "@/components/feedback/GopYButton";
+import { getConfiguredSiteOrigin } from "@/lib/auth/auth-origin";
 import "./globals.css";
 import "./cins-design-tokens.css";
 import "./cins-font-bridge.css";
@@ -25,7 +26,10 @@ const anton = Anton({
   weight: "400",
 });
 
+const siteOrigin = getConfiguredSiteOrigin() ?? "https://cins.vn";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteOrigin),
   title: "CINs — Khám phá ngành sáng tạo thị giác tại Việt Nam",
   description:
     "120+ vị trí nghề · 38 trường đại học · Lộ trình 4 bước. Tìm ra đúng nghề trước khi chọn ngành.",
@@ -35,6 +39,21 @@ export const metadata: Metadata = {
       { url: "/favicon.ico", sizes: "32x32" },
     ],
     apple: "/apple-touch-icon.png",
+  },
+  openGraph: {
+    type: "website",
+    siteName: "CINs",
+    locale: "vi_VN",
+    url: "/",
+    title: "CINs — Khám phá ngành sáng tạo thị giác tại Việt Nam",
+    description:
+      "Khám phá nghề, ngành đào tạo, trường học, khóa học và sự kiện ngành sáng tạo thị giác — dữ liệu thật trên CINs.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "CINs — Khám phá ngành sáng tạo thị giác tại Việt Nam",
+    description:
+      "Khám phá nghề, ngành đào tạo, trường học, khóa học và sự kiện ngành sáng tạo thị giác — dữ liệu thật trên CINs.",
   },
 };
 
@@ -50,6 +69,12 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
+        {/* No-flash theme: áp data-theme trước khi paint để tránh nháy nền. Khớp key với lib/theme/theme-mode.ts */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var m=localStorage.getItem("cins-theme");if(m!=="light"&&m!=="dark"&&m!=="system")m="system";var d=m==="dark"||(m==="system"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);var t=d?"dark":"light";var r=document.documentElement;r.setAttribute("data-theme",t);r.style.colorScheme=t;}catch(e){}})();`,
+          }}
+        />
         {/* Load Material Symbols in <head> — @import in CSS is easy to block or apply late; icon text shows as words if the font never loads. */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link

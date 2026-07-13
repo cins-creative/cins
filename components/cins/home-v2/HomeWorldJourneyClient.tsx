@@ -10,6 +10,7 @@ import type { WjLinhVucAsideItem } from "@/lib/cins/worldJourneyGuestAside";
 import type { WjFilterChip } from "@/lib/cins/worldJourneyFeedFilters";
 import type { FeedPromoVariant } from "@/lib/cins/worldJourneyFeedPromosTypes";
 import type { MilestoneItem } from "@/components/journey/milestone-types";
+import type { GalleryMainItem } from "@/lib/journey/gallery-page-fetch";
 
 type Props = {
   sidebarProfile: SidebarProfile;
@@ -21,6 +22,9 @@ type Props = {
   /** Còn trang feed để load thêm khi scroll. */
   feedHasMore?: boolean;
   feedNextOffset?: number;
+  galleryItems?: ReadonlyArray<GalleryMainItem>;
+  galleryHasMore?: boolean;
+  galleryNextOffset?: number;
   /** Cột module adaptive (server components) truyền xuống feed. */
   leftAside?: ReactNode;
   rightAside?: ReactNode;
@@ -39,6 +43,9 @@ export function HomeWorldJourneyClient({
   milestones,
   feedHasMore = false,
   feedNextOffset = milestones.length,
+  galleryItems = [],
+  galleryHasMore = false,
+  galleryNextOffset = 0,
   leftAside,
   rightAside,
   pendingConfirmations,
@@ -61,6 +68,9 @@ export function HomeWorldJourneyClient({
         milestones={milestones}
         feedHasMore={feedHasMore}
         feedNextOffset={feedNextOffset}
+        galleryItems={galleryItems}
+        galleryHasMore={galleryHasMore}
+        galleryNextOffset={galleryNextOffset}
         leftAside={leftAside}
         rightAside={rightAside}
         pendingConfirmations={pendingConfirmations}

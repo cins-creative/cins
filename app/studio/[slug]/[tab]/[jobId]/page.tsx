@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { getConfiguredSiteOrigin } from "@/lib/auth/auth-origin";
 import { getStudioMetaBySlugCached } from "@/lib/to-chuc/studio-page-queries";
+import { fetchJobOgContext } from "@/lib/to-chuc/tuyen-dung-og-fetch";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 
 export const revalidate = 60;
@@ -9,19 +11,48 @@ export const revalidate = 60;
 type Props = { params: Promise<{ slug: string; tab: string; jobId: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { slug, tab } = await params;
+  const { slug, tab, jobId } = await params;
+  const metadataBase = new URL(getConfiguredSiteOrigin() ?? "https://cins.vn");
+
   if (!hasSupabaseEnv() || tab !== "tuyen-dung") {
-    return { title: "Tuyển dụng | CINs" };
+    return { metadataBase, title: "Tuyển dụng | CINs" };
   }
 
-  const meta = await getStudioMetaBySlugCached(slug);
-  if (!meta) return { title: "Không tìm thấy studio | CINs" };
+  const [meta, job] = await Promise.all([
+    getStudioMetaBySlugCached(slug),
+    fetchJobOgContext(slug, jobId),
+  ]);
+  if (!meta) return { metadataBase, title: "Không tìm thấy studio | CINs" };
+
+  const title = job?.title
+    ? `${job.title} — ${meta.ten} | CINs`
+    : `Tuyển dụng — ${meta.ten} | CINs`;
+  const description =
+    job?.summary ??
+    meta.moTa ??
+    `Chi tiết vị trí tuyển dụng tại ${meta.ten} trên CINs.`;
+  const pagePath = `/studio/${encodeURIComponent(slug)}/${tab}/${encodeURIComponent(jobId)}`;
+  const ogImagePath = `${pagePath}/opengraph-image`;
 
   return {
-    title: `Tuyển dụng — ${meta.ten} | CINs`,
-    description:
-      meta.moTa ??
-      `Chi tiết vị trí tuyển dụng tại ${meta.ten} trên CINs.`,
+    metadataBase,
+    title,
+    description,
+    openGraph: {
+      type: "article",
+      siteName: "CINs",
+      locale: "vi_VN",
+      url: pagePath,
+      title,
+      description,
+      images: [{ url: ogImagePath, alt: title }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogImagePath],
+    },
   };
 }
 

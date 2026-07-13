@@ -41,6 +41,10 @@ import {
   type GalleryMediaFilter,
 } from "@/lib/journey/post-media";
 import { matchesPersonalFilterSlug } from "@/lib/filter/client-utils";
+import {
+  matchesFeedSource,
+  type FeedSourceFilter,
+} from "@/lib/cins/worldJourneyFeedSource";
 import { useJourneyPersonalFilterOptional } from "@/components/journey/JourneyPersonalFilterContext";
 import { useJourneyFilterShareOptional } from "@/components/journey/JourneyFilterShareContext";
 import {
@@ -65,6 +69,8 @@ type ScrollLoadConfig = {
   hasMore: boolean;
   nextOffset: number;
   filterCounts?: MilestoneFilterCounts;
+  /** Override API — mặc định `/api/journey/:slug/gallery`. */
+  endpoint?: string;
 };
 
 type Props = {
@@ -75,6 +81,11 @@ type Props = {
   filterVisibility?: LoaiMocVisibilityMap;
   /** Ẩn toolbar filter — dùng khi filter nằm ngoài (World Journey home). */
   hideToolbar?: boolean;
+  /**
+   * Lọc theo nguồn nội dung (World Journey home) — áp cho cả item tải thêm khi
+   * cuộn. Mặc định `"all"` (không lọc) để không ảnh hưởng trang profile.
+   */
+  sourceFilter?: FeedSourceFilter;
   /** Legacy — pinned + grid tách (aside / mock). Không dùng cùng scrollLoad. */
   pinned?: ReadonlyArray<{
     id: string;
@@ -227,13 +238,13 @@ function GalleryMainItemTile({
     );
   }
 
-  if (isGalleryPostPermalink(item.href)) {
+  if (item.href) {
     return (
       <Link
         href={item.href}
         className={className}
         prefetch={false}
-        scroll={false}
+        scroll={isGalleryPostPermalink(item.href) ? false : undefined}
         aria-label={viewLabel}
       >
         {body}
@@ -260,6 +271,7 @@ export function JourneyGalleryGridView({
   isOwner = false,
   filterVisibility,
   hideToolbar = false,
+  sourceFilter = "all",
   pinned = [],
   items = [],
 }: Props) {
@@ -416,6 +428,9 @@ export function JourneyGalleryGridView({
 
   useEffect(() => {
     filterShare?.registerGalleryItems(galleryItems);
+    return () => {
+      filterShare?.registerGalleryItems([]);
+    };
   }, [filterShare, galleryItems]);
 
   useEffect(() => {
@@ -437,9 +452,11 @@ export function JourneyGalleryGridView({
     setLoadingMore(true);
     setLoadError(false);
     try {
-      const res = await fetch(
-        `/api/journey/${encodeURIComponent(scrollLoad.ownerSlug)}/gallery?offset=${nextOffset}`,
-      );
+      const endpoint =
+        scrollLoad.endpoint ??
+        `/api/journey/${encodeURIComponent(scrollLoad.ownerSlug)}/gallery`;
+      const sep = endpoint.includes("?") ? "&" : "?";
+      const res = await fetch(`${endpoint}${sep}offset=${nextOffset}`);
       if (!res.ok) throw new Error("load failed");
       const data = (await res.json()) as {
         items: GalleryMainItem[];
@@ -482,6 +499,7 @@ export function JourneyGalleryGridView({
 
   const baseForTypeCounts = useMemo(() => {
     return visibleItems.filter((item) => {
+      if (!matchesFeedSource(item, sourceFilter)) return false;
       if (!matchesGalleryMediaFilter(item.mediaKind, mediaFilter)) return false;
       if (
         personalFilter?.activeSlug &&
@@ -491,7 +509,7 @@ export function JourneyGalleryGridView({
       }
       return true;
     });
-  }, [visibleItems, mediaFilter, personalFilter?.activeSlug]);
+  }, [visibleItems, sourceFilter, mediaFilter, personalFilter?.activeSlug]);
 
   const typeCounts = useMemo((): MilestoneFilterCounts => {
     if (scrollLoad?.filterCounts && mediaFilter === "all" && !personalFilter?.activeSlug) {
@@ -506,7 +524,9 @@ export function JourneyGalleryGridView({
   ]);
 
   const filtered = useMemo(() => {
-    let rows = visibleItems;
+    let rows = visibleItems.filter((item) =>
+      matchesFeedSource(item, sourceFilter),
+    );
     if (personalFilter?.activeSlug) {
       rows = rows.filter((item) =>
         matchesPersonalFilterSlug(item.personalFilterSlugs, personalFilter.activeSlug),
@@ -514,7 +534,7 @@ export function JourneyGalleryGridView({
     }
     rows = filterByGroup(rows, typeFilter);
     return rows.filter((item) => matchesGalleryMediaFilter(item.mediaKind, mediaFilter));
-  }, [visibleItems, typeFilter, mediaFilter, personalFilter?.activeSlug]);
+  }, [visibleItems, sourceFilter, typeFilter, mediaFilter, personalFilter?.activeSlug]);
 
   const showPortraitRail = effectiveView === "card" && !hideToolbar;
   const showMasonry = effectiveView === "grid";

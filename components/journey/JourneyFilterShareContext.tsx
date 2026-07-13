@@ -14,6 +14,7 @@ import { JourneyProfileShareModal } from "@/components/journey/JourneyProfileSha
 import type { GalleryDisplay } from "@/lib/journey/gallery-display-url";
 import {
   dispatchJourneyShareOpen,
+  setLiveGalleryItemsForShare,
   type JourneyGalleryFilterShareSpec,
 } from "@/lib/journey/gallery-filter-share";
 import type { GalleryMainItem } from "@/lib/journey/gallery-page-fetch";
@@ -23,6 +24,8 @@ type ContextValue = {
   openGalleryFilterShare: (spec: JourneyGalleryFilterShareSpec) => void;
   /** Gallery grid đang mở — cập nhật để share lấy thumb đúng filter. */
   registerGalleryItems: (items: ReadonlyArray<GalleryMainItem>) => void;
+  /** Snapshot items đang hiện trên grid (sidebar share / Portfolio card). */
+  getLiveGalleryItems: () => ReadonlyArray<GalleryMainItem>;
   /** Chế độ xem gallery (card / lưới gọn) — gắn vào URL chia sẻ. */
   registerGalleryDisplay: (display: GalleryDisplay) => void;
 };
@@ -54,7 +57,13 @@ export function JourneyFilterShareProvider({
   const registerGalleryItems = useCallback(
     (items: ReadonlyArray<GalleryMainItem>) => {
       liveGalleryItemsRef.current = items;
+      setLiveGalleryItemsForShare(items);
     },
+    [],
+  );
+
+  const getLiveGalleryItems = useCallback(
+    () => liveGalleryItemsRef.current,
     [],
   );
 
@@ -81,8 +90,18 @@ export function JourneyFilterShareProvider({
   }, []);
 
   const value = useMemo(
-    () => ({ openGalleryFilterShare, registerGalleryItems, registerGalleryDisplay }),
-    [openGalleryFilterShare, registerGalleryItems, registerGalleryDisplay],
+    () => ({
+      openGalleryFilterShare,
+      registerGalleryItems,
+      getLiveGalleryItems,
+      registerGalleryDisplay,
+    }),
+    [
+      openGalleryFilterShare,
+      registerGalleryItems,
+      getLiveGalleryItems,
+      registerGalleryDisplay,
+    ],
   );
 
   return (

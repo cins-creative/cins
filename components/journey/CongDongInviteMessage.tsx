@@ -1,4 +1,9 @@
-import Link from "next/link";
+"use client";
+
+import type { ReactNode } from "react";
+
+import { JourneyOrgPopover } from "@/components/journey/JourneyOrgPopover";
+import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
 
 type Props = {
   inviterName: string;
@@ -9,47 +14,51 @@ type Props = {
   className?: string;
 };
 
+/** Câu mời cộng đồng — banner timeline + dropdown thông báo. */
 export function CongDongInviteMessage({
   inviterName,
-  inviterSlug,
-  inviterAvatarUrl,
+  inviterSlug = null,
+  inviterAvatarUrl = null,
   orgTen,
   orgSlug,
   className = "j-coauthor-pending-message j-cong-dong-invite-message",
-}: Props) {
+}: Props): ReactNode {
+  const initial = (inviterName || "?").slice(0, 1).toUpperCase();
   const orgHref = `/cong-dong/${encodeURIComponent(orgSlug)}`;
-  const inviterHref = inviterSlug ? `/${encodeURIComponent(inviterSlug)}` : null;
+
+  const sender = (
+    <span className="j-coauthor-invite-sender">
+      <span className="j-coauthor-invite-avatar" aria-hidden>
+        {inviterAvatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={inviterAvatarUrl} alt="" />
+        ) : (
+          <span>{initial}</span>
+        )}
+      </span>
+      <strong>{inviterName}</strong>
+    </span>
+  );
 
   return (
     <p className={className}>
-      {inviterAvatarUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={inviterAvatarUrl}
-          alt=""
-          className="j-coauthor-pending-avatar"
-          width={28}
-          height={28}
-        />
-      ) : (
-        <span className="j-coauthor-pending-avatar is-fallback" aria-hidden>
-          {(inviterName || "?").charAt(0).toUpperCase()}
-        </span>
-      )}
-      <span>
-        {inviterHref ? (
-          <Link href={inviterHref} className="j-coauthor-pending-name">
-            {inviterName}
-          </Link>
-        ) : (
-          <strong>{inviterName}</strong>
-        )}{" "}
-        mời bạn tham gia cộng đồng{" "}
-        <Link href={orgHref} className="j-coso-staff-invite-org-link">
-          {orgTen}
-        </Link>
-        .
-      </span>
+      <JourneyUserPopover
+        slug={inviterSlug}
+        fallbackName={inviterName}
+        fallbackAvatarUrl={inviterAvatarUrl}
+      >
+        {sender}
+      </JourneyUserPopover>{" "}
+      mời bạn tham gia cộng đồng{" "}
+      <JourneyOrgPopover
+        slug={orgSlug}
+        orgKind="cong_dong"
+        fallbackName={orgTen}
+        href={orgHref}
+      >
+        <span className="j-coso-staff-invite-org-link">{orgTen}</span>
+      </JourneyOrgPopover>
+      .
     </p>
   );
 }

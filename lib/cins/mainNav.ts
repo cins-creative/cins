@@ -38,6 +38,8 @@ export type MainNavItem = {
   flyout?: OrgFlyoutKind;
   /** Chưa có trang — click mở overlay thông báo. */
   comingSoon?: boolean;
+  /** Click mở modal cài đặt tài khoản (giống menu user ở topbar). */
+  opensSettings?: boolean;
 };
 
 export const MAIN_NAV_ITEMS: MainNavItem[] = [
@@ -139,6 +141,6 @@ export const MAIN_NAV_FOOT_ITEMS: MainNavItem[] = [
     tip: "Cập nhật thông tin cá nhân, thông báo, quyền riêng tư và ngôn ngữ",
     icon: "settings",
     isActive: () => false,
-    comingSoon: true,
+    opensSettings: true,
   },
 ];

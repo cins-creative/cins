@@ -4,10 +4,12 @@ import {
   type TimelineSortable,
 } from "@/lib/journey/timeline-sort";
 
-import { WORLD_JOURNEY_FEED_AUTHOR_SOFT_QUOTA } from "./worldJourneyFeedConstants";
 import {
-  WORLD_JOURNEY_SORT_OPTIONS,
-} from "./worldJourneyFeedFilters";
+  WORLD_JOURNEY_AUTHOR_ECHO_MS,
+  WORLD_JOURNEY_FEED_AUTHOR_SOFT_QUOTA,
+  WORLD_JOURNEY_FRESHNESS_WINDOW_MS,
+} from "./worldJourneyFeedConstants";
+import { WORLD_JOURNEY_SORT_OPTIONS } from "./worldJourneyFeedFilters";
 
 export type WorldJourneySortOption =
   (typeof WORLD_JOURNEY_SORT_OPTIONS)[number];
@@ -65,9 +67,8 @@ function worldJourneyOrgFollowRank(m: MilestoneItem): number {
 }
 
 /**
- * Điểm chất lượng cho sort mặc định (hybrid).
- * Comment nặng hơn like; **không** cộng view toàn cục (tránh bảng xếp hạng).
- * View toàn cục chỉ dùng ở «Đang sôi nổi».
+ * Điểm chất lượng — chỉ dùng sort «Đang sôi nổi».
+ * Comment nặng hơn like; không cộng view toàn cục vào chất lượng vanity.
  */
 export function hybridQualityScore(m: MilestoneItem): number {
   const likes = m.social?.likeCount ?? 0;
@@ -79,28 +80,100 @@ export function hybridQualityScore(m: MilestoneItem): number {
 export function worldJourneyFeedAuthorKey(m: MilestoneItem): string {
   const orgId = m.orgBaiDangRef?.orgId ?? m.orgSuKienRef?.orgId;
   if (orgId) return `org:${orgId}`;
+  const congDongId = m.congDongOrg?.orgId;
+  if (congDongId && m.visibility === "cong-dong") {
+    /* Soft-quota theo phòng — tránh một cộng đồng nuốt feed giữa. */
+    return `cong_dong:${congDongId}`;
+  }
   const userId = m.postOwnerId ?? m.lensOwnerId;
   if (userId) return `user:${userId}`;
   return `item:${m.id}`;
 }
 
+function feedPostedAtMs(m: MilestoneItem): number {
+  const raw =
+    m.feedSortAt ?? m.createdAt ?? resolveWorldJourneyFeedSortable(m).createdAt;
+  if (!raw) return 0;
+  const ms = Date.parse(raw);
+  return Number.isNaN(ms) ? 0 : ms;
+}
+
+/** Bài của viewer trong cửa sổ echo — luôn gần đầu feed của họ. */
+export function isWorldJourneyAuthorEcho(
+  m: MilestoneItem,
+  viewerId: string | null | undefined,
+  nowMs = Date.now(),
+): boolean {
+  if (!viewerId) return false;
+  const ownerId = m.postOwnerId ?? m.lensOwnerId;
+  if (!ownerId || ownerId !== viewerId) return false;
+  const posted = feedPostedAtMs(m);
+  if (posted <= 0) return false;
+  return nowMs - posted <= WORLD_JOURNEY_AUTHOR_ECHO_MS;
+}
+
+export function isWorldJourneyFreshPost(
+  m: MilestoneItem,
+  nowMs = Date.now(),
+): boolean {
+  const posted = feedPostedAtMs(m);
+  if (posted <= 0) return false;
+  return nowMs - posted <= WORLD_JOURNEY_FRESHNESS_WINDOW_MS;
+}
+
 /**
- * Mặc định hybrid: chưa xem → org đã follow → chất lượng (comment/like) → timeline.
- * Không dùng view toàn cục ở tầng này.
+ * Seen dùng để demote: bài của chính viewer không bị tự demote bởi impression của mình.
+ */
+export function effectiveViewerSeenCount(
+  m: MilestoneItem,
+  viewerId: string | null | undefined,
+): number {
+  const ownerId = m.postOwnerId ?? m.lensOwnerId;
+  if (viewerId && ownerId && ownerId === viewerId) return 0;
+  return m.viewerSeenCount ?? 0;
+}
+
+/**
+ * Mặc định phân bổ (Facebook-like, scoped):
+ * 1. Author echo (bài mình vừa đăng)
+ * 2. Chưa xem của viewer trước
+ * 3. Trong unseen: bài mới (cửa sổ freshness) trước
+ * 4. Reach toàn cục thấp trước (cold-start nội dung)
+ * 5. Org đã follow trước org lạ
+ * 6. Tie-break thời gian đăng / timeline
+ *
+ * Không dùng like/comment ở tầng này (tránh bảng xếp hạng).
  */
 export function compareWorldJourneyFeedByUnseen(
   a: MilestoneItem,
   b: MilestoneItem,
+  viewerId?: string | null,
+  nowMs = Date.now(),
 ): number {
-  const sa = a.viewerSeenCount ?? 0;
-  const sb = b.viewerSeenCount ?? 0;
+  const echoA = isWorldJourneyAuthorEcho(a, viewerId, nowMs) ? 0 : 1;
+  const echoB = isWorldJourneyAuthorEcho(b, viewerId, nowMs) ? 0 : 1;
+  if (echoA !== echoB) return echoA - echoB;
+
+  const sa = effectiveViewerSeenCount(a, viewerId);
+  const sb = effectiveViewerSeenCount(b, viewerId);
   if (sa !== sb) return sa - sb;
+
+  const freshA = isWorldJourneyFreshPost(a, nowMs) ? 0 : 1;
+  const freshB = isWorldJourneyFreshPost(b, nowMs) ? 0 : 1;
+  if (freshA !== freshB) return freshA - freshB;
+
+  const reachA = a.feedGlobalReach ?? a.views ?? 0;
+  const reachB = b.feedGlobalReach ?? b.views ?? 0;
+  if (reachA !== reachB) return reachA - reachB;
+
   const fa = worldJourneyOrgFollowRank(a);
   const fb = worldJourneyOrgFollowRank(b);
   if (fa !== fb) return fa - fb;
-  const qa = hybridQualityScore(a);
-  const qb = hybridQualityScore(b);
-  if (qa !== qb) return qb - qa;
+
+  const postedA = feedPostedAtMs(a);
+  const postedB = feedPostedAtMs(b);
+  if (postedA !== postedB) return postedB - postedA;
+
   return compareWorldJourneyFeedOrder(a, b);
 }
 
@@ -135,10 +208,14 @@ export function applyAuthorSoftQuota(
 /** Rank mặc định server: hybrid comparator + soft quota tác giả. */
 export function rankWorldJourneyFeedHybrid(
   items: ReadonlyArray<MilestoneItem>,
+  viewerId?: string | null,
   maxPerAuthor = WORLD_JOURNEY_FEED_AUTHOR_SOFT_QUOTA,
+  nowMs = Date.now(),
 ): MilestoneItem[] {
   return applyAuthorSoftQuota(
-    items.slice().sort(compareWorldJourneyFeedByUnseen),
+    items
+      .slice()
+      .sort((a, b) => compareWorldJourneyFeedByUnseen(a, b, viewerId, nowMs)),
     maxPerAuthor,
   );
 }
@@ -147,7 +224,7 @@ export function rankWorldJourneyFeedHybrid(
 function engagementScore(m: MilestoneItem): number {
   const likes = m.social?.likeCount ?? 0;
   const comments = m.comments ?? 0;
-  const views = m.views ?? 0;
+  const views = m.views ?? m.feedGlobalReach ?? 0;
   return likes * 2 + comments * 3 + views;
 }
 
@@ -162,6 +239,7 @@ function isVerifiedMilestone(m: MilestoneItem): boolean {
 export function buildWorldJourneyFeedComparator(
   sort: WorldJourneySortOption,
   exploreIds: ReadonlySet<string>,
+  viewerId?: string | null,
 ): (a: MilestoneItem, b: MilestoneItem) => number {
   switch (sort) {
     case "Đang sôi nổi":
@@ -185,7 +263,7 @@ export function buildWorldJourneyFeedComparator(
       };
     case "Mới nhất":
     default:
-      return compareWorldJourneyFeedByUnseen;
+      return (a, b) => compareWorldJourneyFeedByUnseen(a, b, viewerId);
   }
 }
 
@@ -193,8 +271,9 @@ export function sortWorldJourneyMilestones(
   milestones: ReadonlyArray<MilestoneItem>,
   sort: WorldJourneySortOption,
   exploreIds: ReadonlySet<string>,
+  viewerId?: string | null,
 ): MilestoneItem[] {
-  const cmp = buildWorldJourneyFeedComparator(sort, exploreIds);
+  const cmp = buildWorldJourneyFeedComparator(sort, exploreIds, viewerId);
   const sorted = milestones.slice().sort(cmp);
   /* Soft quota chỉ áp mặc định «Mới nhất» — các sort tường minh giữ đúng tiêu chí. */
   if (sort === "Mới nhất") {

@@ -6,6 +6,11 @@ export type WorldJourneyViewerRelation = {
   ownerId: string;
   viewerIsFriend: boolean;
   viewerIsFollowing: boolean;
+  /**
+   * Bài `cong_dong`: true khi viewer được xem feed phòng đó
+   * (member · follow `cong_khai` · hoặc gợi ý `cong_khai` đã chọn).
+   */
+  canViewCongDongPost?: boolean;
 };
 
 const WORLD_JOURNEY_FEED_MODES = new Set<CheDoHienThiMoc>([
@@ -13,6 +18,7 @@ const WORLD_JOURNEY_FEED_MODES = new Set<CheDoHienThiMoc>([
   "public",
   "theo_nhom",
   "chi_minh",
+  "cong_dong",
 ]);
 
 export const WORLD_JOURNEY_VISIBILITY_LABEL: Record<
@@ -27,24 +33,25 @@ export const WORLD_JOURNEY_VISIBILITY_LABEL: Record<
 };
 
 /**
- * Feed trang chủ World Journey — 3 lớp công khai (+ chỉ mình):
+ * Feed trang chủ World Journey — 3 lớp công khai (+ chỉ mình + cộng đồng scoped):
  *
  * • `feature` — portfolio / khoe: mọi người thấy (kể cả không bạn bè, không theo dõi).
  * • `public` — bạn bè hoặc người đang theo dõi tác giả.
  * • `theo_nhom` — chỉ bạn bè (2 chiều).
  * • `chi_minh` — chỉ chủ bài; không lên feed người khác.
- *
- * Post `cong_dong` không thuộc World Journey feed.
+ * • `cong_dong` — phân bổ theo quan hệ phòng (member / follow công khai / gợi ý).
  */
 export function isVisibleOnWorldJourneyFeed(
   cheDoHienThi: string,
   relation: WorldJourneyViewerRelation,
 ): boolean {
-  if (cheDoHienThi === "cong_dong") return false;
-
   const { viewerId, ownerId, viewerIsFriend, viewerIsFollowing } = relation;
 
   if (viewerId && viewerId === ownerId) return true;
+
+  if (cheDoHienThi === "cong_dong") {
+    return Boolean(relation.canViewCongDongPost);
+  }
 
   if (cheDoHienThi === "chi_minh") return false;
 

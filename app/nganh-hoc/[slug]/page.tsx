@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { NganhChiTietLoader } from "@/app/nganh-hoc/[slug]/_components/NganhChiTietLoader";
+import { getConfiguredSiteOrigin } from "@/lib/auth/auth-origin";
 import { getNganhMetaBySlugCached } from "@/lib/nganh/nganh-page-queries";
 import { hasSupabaseEnv } from "@/lib/supabase/server";
 
@@ -14,13 +15,16 @@ type Props = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
+  const siteOrigin = getConfiguredSiteOrigin() ?? "https://cins.vn";
+  const metadataBase = new URL(siteOrigin);
+
   if (!hasSupabaseEnv()) {
-    return { title: "Ngành đào tạo | CINs" };
+    return { metadataBase, title: "Ngành đào tạo | CINs" };
   }
 
   const meta = await getNganhMetaBySlugCached(slug);
   if (!meta) {
-    return { title: "Không tìm thấy ngành | CINs" };
+    return { metadataBase, title: "Không tìm thấy ngành | CINs" };
   }
 
   const title =
@@ -28,9 +32,30 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const desc =
     meta.tom_tat?.trim() ||
     `Thông tin ngành ${title} — mã ngành, khối thi, môn học và trường đào tạo trên CINs.`;
+  const fullTitle = `${title} — Ngành đào tạo | CINs`;
+
+  const pagePath = `/nganh-hoc/${encodeURIComponent(slug)}`;
+  const ogImagePath = `${pagePath}/opengraph-image`;
+
   return {
-    title: `${title} — Ngành đào tạo | CINs`,
+    metadataBase,
+    title: fullTitle,
     description: desc,
+    openGraph: {
+      type: "article",
+      siteName: "CINs",
+      locale: "vi_VN",
+      url: pagePath,
+      title: fullTitle,
+      description: desc,
+      images: [{ url: ogImagePath, alt: fullTitle }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: fullTitle,
+      description: desc,
+      images: [ogImagePath],
+    },
   };
 }
 

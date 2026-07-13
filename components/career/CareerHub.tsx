@@ -12,12 +12,14 @@ import { NganhHubAdminToolbar } from "@/components/nganh/hub/NganhHubAdminToolba
 import { NganhHubEditProvider } from "@/components/nganh/hub/NganhHubEditContext";
 import { NganhHubCard } from "@/components/nganh/NganhHubCard";
 import { MissingSupabaseEnvNotice } from "@/components/cins/MissingSupabaseEnvNotice";
+import { getCoverUrl } from "@/lib/articles/cover";
 import type { CongDongOrgCategoryPreview } from "@/lib/cong-dong/categories";
 import type { CareerHubSection } from "@/lib/career/hubSections";
 import { NGHE_NGHIEP_HUB_PATH } from "@/lib/cins/hubPaths";
 import { deptCardThemeByIndex } from "@/lib/career/hubRailTheme";
 import type { LinhVucSidebarGroup } from "@/lib/career/groupLinhVuc";
 import type { LinhVucRow, NgheNghiepHubItem } from "@/lib/career/types";
+import { getAvatarUrl } from "@/lib/journey/profile";
 import type { NganhHubItem, NganhHubSection, NganhSidebarGroup } from "@/lib/nganh/types";
 
 function linhTitle(lv: LinhVucRow | null): string {
@@ -104,6 +106,7 @@ export function CareerHub({
     slugForLink.includes("game") || heroTitle.toLowerCase().includes("game")
       ? "/assets/illustration-gamepad.png"
       : "/assets/career-illustration-1.png";
+  const heroThumbUrl = getCoverUrl(activeLinhVuc?.cover_id);
 
   const careerCount = sampleCareers.length;
   const deptCount = sectionsNav.length;
@@ -119,7 +122,6 @@ export function CareerHub({
   }));
 
   if (tab === "nganh-hoc") {
-    const nganhCount = sampleNganh.length;
     const heroNhom = activeNhomLabel?.trim() || "đại học";
     const nganhDeptTabs = nganhGroups.map((g) => ({
       id: g.id,
@@ -163,20 +165,14 @@ export function CareerHub({
                 </p>
               </div>
               <div className="hn-ad-hero-visual" aria-hidden>
-                <span className="hn-ad-pin hn-ad-pin-1">
-                  {nganhCount} ngành · CINs
-                </span>
-                <div className="hn-ad-hero-card hn-ad-hero-card--nganh">
-                  <Image
-                    src="/assets/career-illustration-1.png"
-                    alt=""
-                    width={200}
-                    height={200}
-                    className="hn-ad-hero-card-img"
-                    priority
-                  />
-                </div>
-                <span className="hn-ad-pin hn-ad-pin-2">Mã ngành · Khối thi</span>
+                <Image
+                  src="/assets/nganh-hub-character.png"
+                  alt=""
+                  width={500}
+                  height={500}
+                  className="hn-ad-hero-visual-img"
+                  priority
+                />
               </div>
             </section>
 
@@ -319,45 +315,66 @@ export function CareerHub({
               {tab === "nghe" && slugForLink ? (
                 <Link
                   href={congDongHref}
-                  className="hn-hero-cong-dong"
+                  className={`hn-hero-cong-dong${
+                    communityCount > 0 ? " hn-hero-cong-dong--pile" : ""
+                  }`}
                   aria-label={`Xem cộng đồng trong lĩnh vực ${heroTitleVi}`}
                 >
-                  <span className="hn-hero-cong-dong-icon" aria-hidden>
-                    <Users size={18} strokeWidth={2} />
-                  </span>
-                  <span className="hn-hero-cong-dong-copy">
-                    <strong>
-                      {communityCount > 0
-                        ? `${communityCount} cộng đồng`
-                        : "Cộng đồng"}
-                    </strong>
-                    <span>
-                      {communityCount > 0
-                        ? `đang hoạt động quanh ${heroTitleVi}`
-                        : `Khám phá nhóm quanh ${heroTitleVi}`}
+                  {communityCount > 0 ? (
+                    <span className="hn-hero-cong-dong-avatars" aria-hidden>
+                      {communities.map((org) => {
+                        const avatarUrl = getAvatarUrl(org.avatarId);
+                        return (
+                          <span
+                            key={org.id}
+                            className="hn-hero-cong-dong-avatar"
+                            title={org.ten}
+                          >
+                            {avatarUrl ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={avatarUrl} alt="" />
+                            ) : (
+                              <span>{org.ten.charAt(0).toUpperCase()}</span>
+                            )}
+                          </span>
+                        );
+                      })}
                     </span>
-                  </span>
-                  <span className="hn-hero-cong-dong-go" aria-hidden>
-                    Xem →
+                  ) : (
+                    <span className="hn-hero-cong-dong-icon" aria-hidden>
+                      <Users size={18} strokeWidth={2} />
+                    </span>
+                  )}
+                  <span className="hn-hero-cong-dong-body">
+                    <span className="hn-hero-cong-dong-copy">
+                      <strong>
+                        {communityCount > 0
+                          ? `${communityCount} cộng đồng`
+                          : "Cộng đồng"}
+                      </strong>
+                      <span>
+                        {communityCount > 0
+                          ? `đang hoạt động quanh ${heroTitleVi}`
+                          : `Khám phá nhóm quanh ${heroTitleVi}`}
+                      </span>
+                    </span>
+                    <span className="hn-hero-cong-dong-go" aria-hidden>
+                      Xem →
+                    </span>
                   </span>
                 </Link>
               ) : null}
             </div>
             <div className="hn-ad-hero-visual" aria-hidden>
-              <span className="hn-ad-pin hn-ad-pin-1">
-                {careerCount} vị trí · CINs
-              </span>
-              <div className="hn-ad-hero-card">
-                <Image
-                  src={heroArtSrc}
-                  alt=""
-                  width={200}
-                  height={200}
-                  className="hn-ad-hero-card-img"
-                  priority
-                />
-              </div>
-              <span className="hn-ad-pin hn-ad-pin-2">Khám phá nghề</span>
+              <Image
+                src={heroThumbUrl ?? heroArtSrc}
+                alt=""
+                width={200}
+                height={200}
+                className="hn-ad-hero-visual-img"
+                priority
+                unoptimized={Boolean(heroThumbUrl)}
+              />
             </div>
           </section>
 

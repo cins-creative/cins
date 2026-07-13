@@ -8,6 +8,10 @@ import {
   normalizeLoaiMocVisibility,
   type LoaiMocVisibilityMap,
 } from "@/lib/journey/filter-visibility";
+import {
+  journeyDefaultViewHref,
+  normalizeJourneyDefaultView,
+} from "@/lib/journey/journey-default-view";
 import { parseComposeSearchParams } from "@/lib/journey/compose-types";
 import {
   getAvatarUrl,
@@ -53,6 +57,16 @@ export async function JourneyProfilePageLoader({
 
   if (!isOwner && owner.giai_doan === null) {
     notFound();
+  }
+
+  // Áp chế độ hiển thị mặc định (do chủ trang cài trong Cài đặt) khi mở trang mà
+  // chưa chỉ định ?view=. Mặc định chỉ áp cho khách; áp cho chính chủ khi bật
+  // "Áp dụng cho tôi".
+  if (view === undefined && (!isOwner || owner.journey_mac_dinh_ap_dung_toi)) {
+    const defaultView = normalizeJourneyDefaultView(owner.journey_mac_dinh_view);
+    if (defaultView !== "timeline") {
+      redirect(journeyDefaultViewHref(slug, defaultView));
+    }
   }
 
   const viewerProfileId = session?.profile?.id ?? null;

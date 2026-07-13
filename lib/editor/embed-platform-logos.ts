@@ -3,8 +3,11 @@ import type {
   Tier1EmbedPlatformId,
 } from "@/lib/editor/embed-providers";
 
-/** Logo mini trên gallery / embed picker — Tier 1 + file .riv (CF Images 64×64). */
-export type EmbedPlatformLogoId = Tier1EmbedPlatformId | "rive-file";
+/** Logo mini trên gallery / embed picker — Tier 1 + file .riv/.lottie (CF Images 64×64). */
+export type EmbedPlatformLogoId =
+  | Tier1EmbedPlatformId
+  | "rive-file"
+  | "lottie-file";
 
 const CF_EMBED_LOGO = (id: string) =>
   `https://imagedelivery.net/uJ2XS8GFEXi_dIXASK1Fkw/cins-embed-logo-${id}/public`;
@@ -20,6 +23,7 @@ export const EMBED_PLATFORM_LOGO: Record<EmbedPlatformLogoId, string> = {
   rive: CF_EMBED_LOGO("rive"),
   "rive-file": CF_EMBED_LOGO("rive"),
   lottie: CF_EMBED_LOGO("lottie"),
+  "lottie-file": CF_EMBED_LOGO("lottie"),
   codepen: CF_EMBED_LOGO("codepen"),
   soundcloud: CF_EMBED_LOGO("soundcloud"),
 };

@@ -1,102 +1,486 @@
 /* Trang tuyển dụng toàn sàn — /tuyen-dung. Token CINS (blue, Lucide, Be Vietnam Pro). */
 
+.cins-main:has(> .tuyen-dung-page) {
+  position: relative;
+  background-color: #f4f6f8;
+  background-image:
+    radial-gradient(ellipse 82% 52% at 6% 0%, rgba(31, 116, 201, 0.14), transparent 56%),
+    radial-gradient(ellipse 68% 48% at 94% 6%, rgba(31, 116, 201, 0.1), transparent 54%),
+    radial-gradient(ellipse 55% 40% at 50% 100%, rgba(31, 116, 201, 0.06), transparent 58%),
+    linear-gradient(
+      180deg,
+      #eef5fc 0%,
+      #f4f9ff 26%,
+      #fafcff 52%,
+      #f6f8fb 78%,
+      #f4f6f8 100%
+    );
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  background-attachment: fixed;
+}
+
 .tuyen-dung-page {
   --td-content-max: 1120px;
   --td-page-pad: 20px;
+  position: relative;
   width: 100%;
   max-width: none;
   margin: 0;
   padding: 0 0 56px;
+  min-height: calc(100dvh - var(--site-nav-height, 64px));
+  background: transparent;
 }
 
-/* ── Hero (theme /tim-kiem) ── */
-.tuyen-dung-hero {
-  position: relative;
-  width: 100%;
-  margin: 0 0 28px;
-  padding: 36px 0 32px;
-  overflow: hidden;
-  background: linear-gradient(
-    135deg,
-    var(--cins-blue-soft) 0%,
-    #fff 52%,
-    var(--bg-page) 100%
-  );
-  border-bottom: 1px solid var(--border);
+/* ── Hub header (lọc) — frosted glass, sticky (theme /tim-khoa-hoc) ── */
+.td-hub-header {
+  position: sticky;
+  top: var(--site-nav-height, 64px);
+  z-index: 30;
+  margin: 0 0 18px;
 }
 
-.tuyen-dung-hero-blob {
+.td-hub-header__glass {
   position: absolute;
-  border-radius: 50%;
+  inset: 0;
+  z-index: 0;
   pointer-events: none;
+  background: rgba(248, 251, 255, 0.78);
+  -webkit-backdrop-filter: blur(24px) saturate(1.45);
+  backdrop-filter: blur(24px) saturate(1.45);
+  border-bottom: 1px solid rgba(31, 116, 201, 0.14);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.88),
+    0 8px 32px rgba(31, 116, 201, 0.1),
+    0 2px 8px rgba(15, 23, 42, 0.05);
+  transform: translateZ(0);
 }
 
-.tuyen-dung-hero-blob--yellow {
-  width: 220px;
-  height: 220px;
-  top: -90px;
-  right: 8%;
-  background: var(--cins-yellow);
-  opacity: 0.45;
+@supports not (backdrop-filter: blur(1px)) {
+  .td-hub-header__glass {
+    background: rgba(248, 251, 255, 0.94);
+  }
 }
 
-.tuyen-dung-hero-blob--mint {
-  width: 140px;
-  height: 140px;
-  bottom: -40px;
-  left: 55%;
-  background: var(--cins-mint);
-  opacity: 0.35;
-  border-radius: 55% 45% 60% 40% / 50% 60% 40% 50%;
-}
-
-.tuyen-dung-hero-inner {
-  position: relative;
+.td-hub-header::before {
+  content: "";
+  position: absolute;
+  inset: 0;
   z-index: 1;
+  pointer-events: none;
+  opacity: 0.4;
+  background:
+    radial-gradient(ellipse 70% 120% at 0% -20%, rgba(31, 116, 201, 0.12), transparent 58%),
+    radial-gradient(ellipse 55% 90% at 100% 120%, rgba(31, 116, 201, 0.08), transparent 52%);
+}
+
+.td-hub-header::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(31, 116, 201, 0.45) 22%,
+    rgba(31, 116, 201, 0.75) 50%,
+    rgba(31, 116, 201, 0.45) 78%,
+    transparent 100%
+  );
+  opacity: 0.55;
+}
+
+.td-hub-header__inner {
+  position: relative;
+  z-index: 2;
   max-width: var(--td-content-max);
   margin: 0 auto;
-  padding: 0 var(--td-page-pad);
+  padding: 8px var(--td-page-pad);
 }
 
-.tuyen-dung-eyebrow {
-  margin: 0 0 10px;
+.td-hub-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.td-hub-panel--sk {
+  gap: 10px;
+}
+
+.td-hub-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  min-width: 0;
+}
+
+.td-hub-row--main {
+  justify-content: flex-start;
+}
+
+.td-hub-row__end {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 11px;
+  flex: 1 1 auto;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+/* Toggle trạng thái (Tất cả / Đang tuyển) — pill segmented */
+.td-hub-scope {
+  display: inline-flex;
+  flex-shrink: 0;
+  padding: 2px;
+  border-radius: var(--radius-pill, 999px);
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(31, 116, 201, 0.14);
+  box-shadow: 0 1px 2px rgba(31, 116, 201, 0.06);
+}
+
+.td-hub-scope-tab {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 14px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-pill, 999px);
+  font: inherit;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  color: var(--ink-body);
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.td-hub-scope-tab.is-on {
+  background: #fff;
   color: var(--cins-blue);
+  box-shadow: var(--shadow-sm);
 }
 
-.tuyen-dung-eyebrow::before {
-  content: "";
-  width: 22px;
-  height: 2px;
-  border-radius: 1px;
-  background: var(--cins-blue);
+.td-hub-search {
+  flex: 0 1 auto;
+  width: min(100%, 320px);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 6px 0 10px;
+  border: 1px solid rgba(31, 116, 201, 0.16);
+  border-radius: var(--radius-pill, 999px);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 1px 3px rgba(31, 116, 201, 0.08);
 }
 
-.tuyen-dung-title {
-  margin: 0 0 10px;
-  font-size: clamp(1.85rem, 4.5vw, 2.75rem);
-  font-weight: 900;
-  line-height: 1.05;
-  letter-spacing: -0.03em;
+.td-hub-search:focus-within {
+  border-color: var(--cins-blue);
+  box-shadow: 0 0 0 3px rgba(31, 116, 201, 0.1);
+}
+
+.td-hub-search-ico {
+  flex-shrink: 0;
+  color: var(--ink-muted);
+}
+
+.td-hub-search-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
   color: var(--ink-display);
 }
 
-.tuyen-dung-title-accent {
+.td-hub-search-input:focus {
+  outline: none;
+}
+
+.td-hub-search-clear {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: none;
+  border-radius: 50%;
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+
+.td-hub-search-clear:hover {
+  color: var(--ink-display);
+  background: var(--bg-muted, #f4f6f8);
+}
+
+.td-hub-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.td-hub-count {
+  font-size: 12px;
+  color: var(--fg-3);
+  white-space: nowrap;
+}
+
+.td-hub-count strong {
+  color: var(--fg-1);
+  font-weight: 800;
+}
+
+.td-hub-reset {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--cins-blue);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* Nhóm bộ lọc — Lĩnh vực · Loại hình · Cấp độ · Nơi làm · Mức lương */
+.td-hub-filter-groups {
+  display: grid;
+  grid-template-columns:
+    repeat(4, minmax(120px, 1fr))
+    minmax(0, 1.7fr);
+  gap: 0;
+  align-items: stretch;
+  padding-top: 10px;
+  border-top: 1px solid rgba(31, 116, 201, 0.1);
+}
+
+.td-hub-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 0 14px;
+}
+
+.td-hub-filter-group:first-child {
+  padding-left: 0;
+}
+
+.td-hub-filter-group:last-child {
+  padding-right: 0;
+}
+
+.td-hub-filter-group + .td-hub-filter-group {
+  border-left: 1px solid rgba(31, 116, 201, 0.12);
+}
+
+.td-hub-filter-group-label {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.td-hub-filter-select {
+  width: 100%;
+  min-height: 32px;
+  padding: 0 8px;
+  border: 1px solid rgba(31, 116, 201, 0.16);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.92);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-display);
+  cursor: pointer;
+}
+
+.td-hub-filter-select:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.td-hub-filter-select:focus {
+  outline: none;
+  border-color: var(--cins-blue);
+  box-shadow: 0 0 0 3px rgba(31, 116, 201, 0.1);
+}
+
+.td-hub-filter-group--price {
+  gap: 8px;
+}
+
+.td-hub-price-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.td-hub-price-chip {
+  min-height: 24px;
+  padding: 0 8px;
+  border-radius: var(--radius-pill, 999px);
+  border: 1px solid var(--border);
+  background: var(--bg-page);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-body);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.td-hub-price-chip.is-on {
+  border-color: var(--cins-blue);
+  background: var(--cins-blue-soft, #e7f0fb);
   color: var(--cins-blue);
 }
 
-.tuyen-dung-lead {
+.td-hub-price-slider {
+  width: 100%;
+  margin-top: 2px;
+}
+
+.td-hub-range-wrap {
+  position: relative;
+  height: 36px;
+  width: 100%;
+  padding-top: 14px;
+}
+
+.td-hub-price-range-labels {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 14px;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.td-hub-price-range-label {
+  position: absolute;
+  top: 0;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--cins-blue);
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+.td-hub-price-range-label--min {
+  left: var(--range-min-pct, 0%);
+}
+
+.td-hub-price-range-label--max {
+  left: var(--range-max-pct, 100%);
+}
+
+.td-hub-range-wrap::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(14px + 11px);
+  height: 4px;
+  margin-top: -2px;
+  border-radius: 999px;
+  background: rgba(31, 116, 201, 0.12);
+  pointer-events: none;
+}
+
+.td-hub-range-wrap::after {
+  content: "";
+  position: absolute;
+  left: var(--range-min-pct, 0%);
+  right: calc(100% - var(--range-max-pct, 100%));
+  top: calc(14px + 11px);
+  height: 4px;
+  margin-top: -2px;
+  border-radius: 999px;
+  background: var(--cins-blue);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.td-hub-range {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 14px;
+  width: 100%;
+  height: 22px;
   margin: 0;
-  max-width: 54ch;
-  font-size: 15px;
-  line-height: 1.6;
-  color: var(--ink-body);
+  pointer-events: none;
+  appearance: none;
+  background: transparent;
+  z-index: 2;
+}
+
+.td-hub-range::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: transparent;
+}
+
+.td-hub-range::-webkit-slider-thumb {
+  appearance: none;
+  pointer-events: auto;
+  width: 14px;
+  height: 14px;
+  margin-top: -5px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  background: var(--cins-blue);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+  cursor: pointer;
+}
+
+.td-hub-range::-moz-range-thumb {
+  pointer-events: auto;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  background: var(--cins-blue);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+  cursor: pointer;
+}
+
+.td-hub-range--max {
+  z-index: 3;
+}
+
+/* Skeleton header */
+.td-hub-sk-scope {
+  width: 168px;
+  height: 34px;
+  border-radius: var(--radius-pill, 999px);
+}
+
+.td-hub-sk-search {
+  width: min(320px, 60%);
+  height: 36px;
+  margin-left: auto;
+  border-radius: var(--radius-pill, 999px);
+}
+
+.td-hub-sk-group {
+  height: 46px;
+  border-radius: 8px;
 }
 
 /* ── Body ── */
@@ -413,18 +797,109 @@
   border-radius: var(--radius-pill);
 }
 
+/* ── Responsive bộ lọc ── */
+@media (max-width: 920px) {
+  .td-hub-filter-groups {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 16px;
+  }
+  .td-hub-filter-group {
+    padding: 0;
+  }
+  .td-hub-filter-group + .td-hub-filter-group {
+    border-left: none;
+  }
+  .td-hub-filter-group--price {
+    grid-column: 1 / -1;
+  }
+}
+
 @media (max-width: 640px) {
   .tuyen-dung-page {
     --td-page-pad: 16px;
     padding-bottom: 40px;
   }
-  .tuyen-dung-hero {
-    padding-top: 24px;
+  .td-hub-header {
+    margin-bottom: 14px;
+  }
+  .td-hub-row__end {
+    flex-basis: 100%;
+    justify-content: flex-start;
+  }
+  .td-hub-search {
+    width: 100%;
   }
 }
 
 @media (max-width: 520px) {
+  .td-hub-filter-groups {
+    grid-template-columns: 1fr;
+  }
   .tuyen-dung-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   DARK MODE — /tuyen-dung dựng theo phong cách frosted-glass nền
+   sáng, nên override tường minh các giá trị hardcode (light mode
+   giữ nguyên 100%). Phần dùng token nền tảng tự đổi màu.
+   ══════════════════════════════════════════════════════════════ */
+:root[data-theme="dark"] .cins-main:has(> .tuyen-dung-page) {
+  background-color: var(--bg-page);
+  background-image:
+    radial-gradient(ellipse 82% 52% at 6% 0%, rgba(79, 155, 232, 0.16), transparent 56%),
+    radial-gradient(ellipse 68% 48% at 94% 6%, rgba(79, 155, 232, 0.12), transparent 54%),
+    radial-gradient(ellipse 55% 40% at 50% 100%, rgba(79, 155, 232, 0.07), transparent 58%),
+    linear-gradient(180deg, #12161f 0%, #0e1117 52%, #0b0e14 100%);
+}
+
+:root[data-theme="dark"] .td-hub-header__glass {
+  background: rgba(16, 20, 28, 0.72);
+  border-bottom-color: rgba(79, 155, 232, 0.2);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 8px 32px rgba(0, 0, 0, 0.42),
+    0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  :root[data-theme="dark"] .td-hub-header__glass {
+    background: rgba(16, 20, 28, 0.94);
+  }
+}
+
+/* Controls (select, search, scope) */
+:root[data-theme="dark"] .td-hub-filter-select,
+:root[data-theme="dark"] .td-hub-search {
+  background: var(--bg-surface);
+  border-color: var(--border);
+}
+
+:root[data-theme="dark"] .td-hub-scope {
+  background: var(--neutral-100);
+  border-color: var(--border);
+}
+
+:root[data-theme="dark"] .td-hub-scope-tab.is-on {
+  background: var(--bg-surface);
+}
+
+:root[data-theme="dark"] .td-hub-search-clear:hover {
+  background: var(--neutral-100);
+}
+
+/* Badge trạng thái card + lương — bản sáng dùng màu cố định */
+:root[data-theme="dark"] .tuyen-dung-status[data-tone="open"] {
+  color: #4bd89b;
+  background: rgba(52, 201, 138, 0.15);
+}
+
+:root[data-theme="dark"] .tuyen-dung-status[data-tone="expired"] {
+  color: #f4b74e;
+  background: rgba(244, 183, 78, 0.15);
+}
+
+:root[data-theme="dark"] .tuyen-dung-salary {
+  color: #4bd89b;
 }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { getConfiguredSiteOrigin } from "@/lib/auth/auth-origin";
 import { getTruongMetaBySlugCached } from "@/lib/truong/truong-page-queries";
 import {
   isTruongTabId,
@@ -14,18 +15,41 @@ type Props = { params: Promise<{ slug: string; tab: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug, tab } = await params;
+  const metadataBase = new URL(getConfiguredSiteOrigin() ?? "https://cins.vn");
+
   if (!hasSupabaseEnv() || !isTruongTabId(tab)) {
-    return { title: "Trường đại học | CINs" };
+    return { metadataBase, title: "Trường đại học | CINs" };
   }
 
   const meta = await getTruongMetaBySlugCached(slug);
   if (!meta) {
-    return { title: "Không tìm thấy trường | CINs" };
+    return { metadataBase, title: "Không tìm thấy trường | CINs" };
   }
 
+  const title = `${meta.ten} — ${TRUONG_TAB_LABELS[tab]} | CINs`;
+  const description = `Thông tin ${TRUONG_TAB_LABELS[tab].toLowerCase()} tại ${meta.ten} trên CINs.`;
+  const pagePath = `/co-so-dao-tao/${encodeURIComponent(slug)}`;
+  const ogImagePath = `${pagePath}/opengraph-image`;
+
   return {
-    title: `${meta.ten} — ${TRUONG_TAB_LABELS[tab]} | CINs`,
-    description: `Thông tin ${TRUONG_TAB_LABELS[tab].toLowerCase()} tại ${meta.ten} trên CINs.`,
+    metadataBase,
+    title,
+    description,
+    openGraph: {
+      type: "profile",
+      siteName: "CINs",
+      locale: "vi_VN",
+      url: pagePath,
+      title,
+      description,
+      images: [{ url: ogImagePath, alt: meta.ten }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogImagePath],
+    },
   };
 }
 

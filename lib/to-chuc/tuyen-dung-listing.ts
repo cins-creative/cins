@@ -4,8 +4,14 @@ import { getAvatarUrl } from "@/lib/journey/profile";
 import { createPublicSupabaseClient } from "@/lib/supabase/public";
 import { orgJobPath } from "@/lib/to-chuc/tuyen-dung-href";
 import { formatStudioDateShort } from "@/lib/to-chuc/studio-tuyen-dung-format";
-import { capDoLabels } from "@/lib/to-chuc/studio-tuyen-dung-distribution";
-import { STUDIO_JOB_LOAI_HINH_LABEL } from "@/lib/to-chuc/studio-tuyen-dung-types";
+import {
+  capDoLabels,
+  normalizeCapDo,
+} from "@/lib/to-chuc/studio-tuyen-dung-distribution";
+import {
+  STUDIO_JOB_LOAI_HINH_LABEL,
+  type StudioJobLoaiHinh,
+} from "@/lib/to-chuc/studio-tuyen-dung-types";
 
 export type TuyenDungListItem = {
   id: string;
@@ -14,10 +20,19 @@ export type TuyenDungListItem = {
   orgTen: string;
   orgSlug: string | null;
   avatarUrl: string | null;
+  /** Loại hình raw (toan_thoi_gian…) dùng cho bộ lọc. */
+  loaiHinh: StudioJobLoaiHinh;
   loaiHinhLabel: string;
   place: string;
+  /** Tin cho phép làm từ xa — dùng cho bộ lọc nơi làm. */
+  remote: boolean;
   linhVucTen: string | null;
+  /** Cấp độ raw (junior…) dùng cho bộ lọc; `capDo` là nhãn hiển thị. */
+  capDoValues: string[];
   capDo: string[];
+  /** Lương thấp/cao nhất (VND, null nếu ẩn lương) dùng cho bộ lọc mức lương. */
+  salaryMin: number | null;
+  salaryMax: number | null;
   salary: string | null;
   /** Hạn nộp dạng ngắn "dd/mm/yyyy" (null nếu không có hạn). */
   deadline: string | null;
@@ -120,7 +135,11 @@ export async function loadTuyenDungListing(
     const items = data.map((row): TuyenDungListItem => {
       const org = pickOrg(row.org_to_chuc);
       const orgSlug = org?.slug ?? null;
-      const loai = row.loai_hinh ?? "toan_thoi_gian";
+      const loaiRaw = row.loai_hinh ?? "toan_thoi_gian";
+      const loai = (
+        loaiRaw in STUDIO_JOB_LOAI_HINH_LABEL ? loaiRaw : "toan_thoi_gian"
+      ) as StudioJobLoaiHinh;
+      const luongVisible = row.hien_thi_luong !== false;
       return {
         id: row.id,
         tieuDe: row.tieu_de,
@@ -128,13 +147,15 @@ export async function loadTuyenDungListing(
         orgTen: org?.ten ?? "Tổ chức",
         orgSlug,
         avatarUrl: getAvatarUrl(org?.avatar_id),
-        loaiHinhLabel:
-          STUDIO_JOB_LOAI_HINH_LABEL[
-            loai as keyof typeof STUDIO_JOB_LOAI_HINH_LABEL
-          ] ?? loai,
+        loaiHinh: loai,
+        loaiHinhLabel: STUDIO_JOB_LOAI_HINH_LABEL[loai],
         place: place(row),
+        remote: Boolean(row.lam_tu_xa) || loai === "remote",
         linhVucTen: pickLinhVuc(row.linh_vuc),
+        capDoValues: normalizeCapDo(row.cap_do),
         capDo: capDoLabels(row.cap_do),
+        salaryMin: luongVisible ? row.muc_luong_tu : null,
+        salaryMax: luongVisible ? row.muc_luong_den : null,
         salary: salary(row),
         deadline: formatStudioDateShort(row.han_nop),
         posted: formatStudioDateShort(row.tao_luc),

@@ -7,6 +7,7 @@ import {
   type EmbedProviderId,
   type Tier1EmbedPlatformId,
 } from "@/lib/editor/embed-providers";
+import { isLottieAssetEmbedUrl } from "@/lib/editor/lottie-asset-url";
 import { isRiveAssetEmbedUrl } from "@/lib/editor/rive-asset-url";
 import type { ComposeIntent } from "@/lib/journey/compose-types";
 import {
@@ -81,7 +82,7 @@ export function detectExternalEmbedPlatform(
     if (!url) continue;
     const classified = classifyEmbedUrl(url);
     if (!classified || classified.provider === "behance" || classified.provider === "framer") continue;
-    if (classified.provider === "rive-file") continue;
+    if (classified.provider === "rive-file" || classified.provider === "lottie-file") continue;
     if (buildEmbedIframeSrc(classified) === null) continue;
     return classified.provider as Tier1EmbedPlatformId;
   }
@@ -104,8 +105,26 @@ export function detectRiveFileEmbedUrl(
   return null;
 }
 
+/** URL file .lottie trên R2 — block embed đã lưu. */
+export function detectLottieFileEmbedUrl(
+  blocks: ReadonlyArray<Block> | null | undefined,
+): string | null {
+  if (!blocks?.length) return null;
+  for (const block of blocks) {
+    if (block.loai !== "embed") continue;
+    const url = blockEmbedConfigUrl(block);
+    if (!url) continue;
+    const classified = classifyEmbedUrl(url);
+    if (classified?.provider === "lottie-file") return classified.url;
+    if (isLottieAssetEmbedUrl(url)) return url.trim();
+  }
+  return null;
+}
+
 export type EditEmbedComposeMeta = {
   embedPlatform: Tier1EmbedPlatformId;
+  fileSource?: "url" | "file";
+  /** @deprecated dùng fileSource */
   riveSource?: "url" | "file";
 };
 
@@ -114,11 +133,14 @@ export function resolveEditEmbedComposeMeta(
   blocks: ReadonlyArray<Block> | null | undefined,
 ): EditEmbedComposeMeta | null {
   if (detectRiveFileEmbedUrl(blocks)) {
-    return { embedPlatform: "rive", riveSource: "file" };
+    return { embedPlatform: "rive", fileSource: "file", riveSource: "file" };
+  }
+  if (detectLottieFileEmbedUrl(blocks)) {
+    return { embedPlatform: "lottie", fileSource: "file", riveSource: "file" };
   }
   const platform = detectExternalEmbedPlatform(blocks);
   if (platform) {
-    return { embedPlatform: platform, riveSource: "url" };
+    return { embedPlatform: platform, fileSource: "url", riveSource: "url" };
   }
   return null;
 }
@@ -841,6 +863,22 @@ export function resolveRiveFileEmbedPeek(
   return { url: cls.url };
 }
 
+/** Timeline card — file .lottie host trên CINs (R2). */
+export function resolveLottieFileEmbedPeek(
+  body: string | null | undefined,
+  blocks: ReadonlyArray<Block> | null | undefined,
+): { url: string } | null {
+  const peek = blocksForArticleCardUnfold(body, blocks);
+  if (!peek.length) return null;
+  if (!peek.every((b) => b.loai === "embed" || b.loai === "spacer")) return null;
+  const embeds = peek.filter((b) => b.loai === "embed");
+  if (embeds.length !== 1) return null;
+  const url = blockEmbedConfigUrl(embeds[0]!);
+  const cls = classifyEmbedUrl(url);
+  if (cls?.provider !== "lottie-file") return null;
+  return { url: cls.url };
+}
+
 /** Timeline card — embed Tier 1 fill peek, tương tác trực tiếp (không overlay «Xem đầy đủ»). */
 export function resolveEmbedIframePeek(
   body: string | null | undefined,
@@ -867,7 +905,8 @@ export function articleCardEmbedInteractivePeek(
 ): boolean {
   return (
     resolveEmbedIframePeek(body, blocks) !== null ||
-    resolveRiveFileEmbedPeek(body, blocks) !== null
+    resolveRiveFileEmbedPeek(body, blocks) !== null ||
+    resolveLottieFileEmbedPeek(body, blocks) !== null
   );
 }
 

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
-import { blockUser } from "@/lib/social/ket-ban";
+import { blockUser, unblockUser } from "@/lib/social/ket-ban";
 
 type RouteCtx = { params: Promise<{ id: string }> };
 
@@ -19,4 +19,20 @@ export async function POST(_req: Request, ctx: RouteCtx) {
   }
 
   return NextResponse.json({ ok: true, trang_thai: "blocked" });
+}
+
+/** Bỏ chặn — `:id` = `user_nguoi_dung.id` của người đang bị chặn. */
+export async function DELETE(_req: Request, ctx: RouteCtx) {
+  const session = await getCurrentSessionAndProfile();
+  if (!session?.profile) {
+    return NextResponse.json({ error: "Cần đăng nhập." }, { status: 401 });
+  }
+
+  const { id: targetUserId } = await ctx.params;
+  const result = await unblockUser(session.profile.id, targetUserId);
+  if (!result.ok) {
+    return NextResponse.json({ error: result.error }, { status: 400 });
+  }
+
+  return NextResponse.json({ ok: true });
 }

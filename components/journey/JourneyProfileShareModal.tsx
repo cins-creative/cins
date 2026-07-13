@@ -14,6 +14,7 @@ import { createPortal } from "react-dom";
 
 import { CongDongInviteFriendsPanel } from "@/components/cong-dong/CongDongInviteFriendsPanel";
 import { JourneyShareCardPreview } from "@/components/journey/JourneyShareCardPreview";
+import { JourneyShareThemePicker } from "@/components/journey/JourneyShareThemePicker";
 import {
   fetchGalleryItemsForShare,
   filterGalleryItemsForShare,
@@ -40,6 +41,11 @@ import {
   type JourneyShareMenuStep,
   type JourneyShareProfile,
 } from "@/lib/journey/profile-share";
+import {
+  defaultShareOgThemeState,
+  type ShareOgPresetId,
+  type ShareOgThemeState,
+} from "@/lib/journey/share-og-theme";
 import type { OrgShareContext } from "@/lib/org/org-profile-share";
 import {
   orgGalleryShareUrl,
@@ -144,9 +150,9 @@ export function JourneyProfileShareModal({
   } | null>(null);
   const [step, setStep] = useState<JourneyShareMenuStep>("menu");
   const [journeyVariant, setJourneyVariant] =
-    useState<JourneyShareCardVariant>("profile");
+    useState<JourneyShareCardVariant>("banner");
   const [galleryVariant, setGalleryVariant] =
-    useState<JourneyShareCardVariant>("mosaic");
+    useState<JourneyShareCardVariant>("strip");
   const [flash, setFlash] = useState<string | null>(null);
   const [galleryThumbs, setGalleryThumbs] = useState<string[]>(
     profile.galleryThumbs ?? [],
@@ -156,6 +162,10 @@ export function JourneyProfileShareModal({
   /** Filter Portfolio đang áp dụng trên bước gallery-card (menu hoặc dropdown). */
   const [portfolioFilter, setPortfolioFilter] =
     useState<JourneyGalleryFilterShareSpec | null>(null);
+  const [themeState, setThemeState] = useState<ShareOgThemeState>(() =>
+    defaultShareOgThemeState(profile.slug),
+  );
+  const [themeSaving, setThemeSaving] = useState(false);
   const skipMenu = Boolean(galleryFilter);
   const isPopover = presentation === "popover";
 
@@ -225,43 +235,135 @@ export function JourneyProfileShareModal({
     }
   }, [open, galleryFilter]);
 
+  const showFlash = useCallback((message: string) => {
+    setFlash(message);
+    window.setTimeout(() => setFlash(null), 2200);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    const qs = orgShare?.orgId
+      ? `orgId=${encodeURIComponent(orgShare.orgId)}`
+      : `slug=${encodeURIComponent(profile.slug)}`;
+    void (async () => {
+      try {
+        const res = await fetch(`/api/share-theme?${qs}`);
+        if (!res.ok || cancelled) return;
+        const json = (await res.json()) as {
+          state?: ShareOgThemeState;
+          canEdit?: boolean;
+        };
+        if (cancelled || !json.state) return;
+        setThemeState(json.state);
+      } catch {
+        if (!cancelled) {
+          setThemeState(defaultShareOgThemeState(profile.slug));
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, profile.slug, orgShare?.orgId]);
+
+  const persistTheme = useCallback(
+    async (next: ShareOgThemeState, removeImageId?: string) => {
+      // Áp dụng ngay cho preview; sau đó cố gắng lưu.
+      setThemeState(next);
+      setThemeSaving(true);
+      try {
+        const res = await fetch("/api/share-theme", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            orgId: orgShare?.orgId,
+            active: next.active,
+            customs: next.customs,
+            removeImageId,
+          }),
+        });
+        if (!res.ok) {
+          // 401/403: không phải chủ hồ sơ — giữ preview cục bộ, không phá UX.
+          if (res.status !== 401 && res.status !== 403) {
+            const err = (await res.json().catch(() => null)) as {
+              error?: string;
+            } | null;
+            showFlash(err?.error ?? "Không lưu được theme.");
+          }
+          return;
+        }
+        const json = (await res.json()) as { state?: ShareOgThemeState };
+        if (json.state) setThemeState(json.state);
+      } catch {
+        showFlash("Không lưu được theme.");
+      } finally {
+        setThemeSaving(false);
+      }
+    },
+    [orgShare?.orgId, showFlash],
+  );
+
   useEffect(() => {
     if (!open || step !== "gallery-card") return;
-
-    if (orgShare) {
-      const fromLive = liveGalleryItems
-        .map((item) => item.src)
-        .filter(Boolean)
-        .slice(0, 6);
-      setGalleryThumbs(
-        fromLive.length > 0 ? fromLive : (profile.galleryThumbs ?? []),
-      );
-      setShareStats(profile.stats ?? { cotMoc: 0, tacPham: 0 });
-      return;
-    }
 
     const filterSpec = portfolioFilter ?? PORTFOLIO_ALL_FILTER_SHARE_SPEC;
     const timeline = readJourneyTimelinePanelCache(profile.slug, viewerProfileId);
     const gallery = readJourneyGalleryPanelCache(profile.slug, viewerProfileId);
+    let cancelled = false;
 
-    if (filterSpec.kind === "all") {
-      const galleryItems = gallery?.items ?? [];
-      const fromCache =
-        galleryItems
-          .map((item) => item.src)
-          .filter(Boolean)
-          .slice(0, 6) ?? [];
+    const applyThumbs = (
+      sources: ReadonlyArray<ReadonlyArray<ShareGallerySourceItem>>,
+      stats: { cotMoc: number; tacPham: number },
+    ) => {
+      const merged = mergeShareGallerySources(...sources);
+      const thumbs = galleryThumbsForShareSpec(merged, filterSpec);
+      if (cancelled) return;
       setGalleryThumbs(
-        fromCache.length > 0 ? fromCache : (profile.galleryThumbs ?? []),
+        thumbs.length > 0 ? thumbs : (profile.galleryThumbs ?? []),
       );
-      setShareStats({
-        cotMoc: timeline?.page.totalCount ?? profile.stats?.cotMoc ?? 0,
-        tacPham: gallery?.totalCount ?? profile.stats?.tacPham ?? 0,
+      setShareStats(stats);
+    };
+
+    if (orgShare) {
+      applyThumbs([liveGalleryItems], {
+        cotMoc: profile.stats?.cotMoc ?? 0,
+        tacPham: profile.stats?.tacPham ?? 0,
       });
-      return;
+      void (async () => {
+        const fetched = await fetchGalleryItemsForShare(profile.slug);
+        if (cancelled || fetched.length === 0) return;
+        applyThumbs([liveGalleryItems, fetched], {
+          cotMoc: profile.stats?.cotMoc ?? 0,
+          tacPham: profile.stats?.tacPham ?? fetched.length,
+        });
+      })();
+      return () => {
+        cancelled = true;
+      };
     }
 
-    let cancelled = false;
+    const baseStats = {
+      cotMoc: timeline?.page.totalCount ?? profile.stats?.cotMoc ?? 0,
+      tacPham: gallery?.totalCount ?? profile.stats?.tacPham ?? 0,
+    };
+
+    if (filterSpec.kind === "all") {
+      applyThumbs([liveGalleryItems, gallery?.items ?? []], baseStats);
+      void (async () => {
+        const fetched = await fetchGalleryItemsForShare(profile.slug);
+        if (cancelled || fetched.length === 0) return;
+        applyThumbs([liveGalleryItems, fetched, gallery?.items ?? []], {
+          ...baseStats,
+          tacPham:
+            gallery?.totalCount ??
+            (fetched.length > 0 ? fetched.length : baseStats.tacPham),
+        });
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }
 
     const applyFiltered = (
       sources: ReadonlyArray<ReadonlyArray<ShareGallerySourceItem>>,
@@ -317,11 +419,6 @@ export function JourneyProfileShareModal({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, handleClose]);
-
-  const showFlash = useCallback((message: string) => {
-    setFlash(message);
-    window.setTimeout(() => setFlash(null), 2200);
-  }, []);
 
   const copyJourneyLink = useCallback(async () => {
     const url = orgShare
@@ -619,12 +716,7 @@ export function JourneyProfileShareModal({
                     cardKind === "journey"
                       ? journeyVariant === opt.id
                       : galleryVariant === opt.id;
-                  const chipLabel =
-                    orgShare &&
-                    cardKind === "gallery" &&
-                    opt.id === "portfolio"
-                      ? orgShare.galleryFeatureLabel
-                      : opt.label;
+                  const chipLabel = opt.label;
                   return (
                     <button
                       key={opt.id}
@@ -648,6 +740,71 @@ export function JourneyProfileShareModal({
               </div>
               ) : null}
 
+              <JourneyShareThemePicker
+                state={themeState}
+                saving={themeSaving}
+                onSelectPreset={(id: ShareOgPresetId) => {
+                  void persistTheme({
+                    ...themeState,
+                    active: { kind: "preset", id },
+                  });
+                }}
+                onSelectCustom={(imageId) => {
+                  void persistTheme({
+                    ...themeState,
+                    active: { kind: "custom", imageId },
+                  });
+                }}
+                onUpload={async (file) => {
+                  const form = new FormData();
+                  form.set("file", file);
+                  const res = await fetch("/api/share-theme/upload", {
+                    method: "POST",
+                    body: form,
+                  });
+                  if (!res.ok) {
+                    const err = (await res.json().catch(() => null)) as {
+                      error?: string;
+                    } | null;
+                    showFlash(err?.error ?? "Upload nền thất bại.");
+                    return;
+                  }
+                  const json = (await res.json()) as { imageId?: string };
+                  if (!json.imageId) {
+                    showFlash("Upload nền thất bại.");
+                    return;
+                  }
+                  await persistTheme({
+                    active: { kind: "custom", imageId: json.imageId },
+                    customs: [
+                      {
+                        imageId: json.imageId,
+                        createdAt: new Date().toISOString(),
+                      },
+                      ...themeState.customs.filter(
+                        (c) => c.imageId !== json.imageId,
+                      ),
+                    ].slice(0, 6),
+                  });
+                }}
+                onRemoveCustom={(imageId) => {
+                  void persistTheme(
+                    {
+                      ...themeState,
+                      customs: themeState.customs.filter(
+                        (c) => c.imageId !== imageId,
+                      ),
+                      active:
+                        themeState.active.kind === "custom" &&
+                        themeState.active.imageId === imageId
+                          ? { kind: "preset", id: "paper" }
+                          : themeState.active,
+                    },
+                    imageId,
+                  );
+                }}
+              />
+
               <div className="j-share-preview-wrap">
                 <JourneyShareCardPreview
                   kind={cardKind}
@@ -656,6 +813,7 @@ export function JourneyProfileShareModal({
                   targetUrl={cardTargetUrl}
                   exportRef={cardExportRef}
                   galleryFeatureLabel={orgShare?.galleryFeatureLabel}
+                  theme={themeState.active}
                 />
               </div>
 
@@ -672,7 +830,7 @@ export function JourneyProfileShareModal({
                   type="button"
                   className="j-share-action"
                   disabled={copyingImage}
-                  title="Copy ảnh PNG thẻ (kèm QR) — dán gửi chat/MXH"
+                  title="Copy ảnh PNG thẻ — dán gửi chat/MXH"
                   onClick={() => void copyCardImage()}
                 >
                   <ImageDown size={15} strokeWidth={1.8} aria-hidden />
