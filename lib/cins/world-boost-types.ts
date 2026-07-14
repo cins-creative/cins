@@ -9,6 +9,15 @@ export type WorldBoostDinhDangFilter = "all" | GalleryMediaKind;
 /** Xác thực org trên cột mốc user (`verify_xac_nhan`). */
 export type WorldBoostXacThucFilter = "all" | "verified" | "unverified";
 
+/** Snapshot `content_diem_feed` — client tính diem_hien_tai realtime. */
+export type WorldBoostDiemFeedSnapshot = {
+  diem_co_ban: number;
+  diem_noi_dung: number;
+  diem_verify: number;
+  diem_engagement: number;
+  bat_dau_luc: string;
+};
+
 export type WorldBoostCatalogItem = {
   loai: WorldBoostLoai;
   id: string;
@@ -28,6 +37,11 @@ export type WorldBoostCatalogItem = {
   taoLuc: string;
   dangBoost: boolean;
   hetHanLuc: string | null;
+  /**
+   * Điểm Timeline (`content_diem_feed`).
+   * `null` với `org_su_kien` (không vào hệ điểm) hoặc chưa có dòng.
+   */
+  diemFeed: WorldBoostDiemFeedSnapshot | null;
 };
 
 export type WorldBoostStats = {

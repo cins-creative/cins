@@ -16,6 +16,7 @@ import {
 import type {
   WorldBoostCatalogItem,
   WorldBoostCatalogNguon,
+  WorldBoostDiemFeedSnapshot,
   WorldBoostDinhDangFilter,
   WorldBoostGrowth,
   WorldBoostGrowthDays,
@@ -311,7 +312,10 @@ export async function listWorldBoostCatalog(
   const admin = createServiceRoleClient();
   const poolLimit = Math.min(240, offset + limit + 80);
 
-  type RawItem = Omit<WorldBoostCatalogItem, "dangBoost" | "hetHanLuc" | "key">;
+  type RawItem = Omit<
+    WorldBoostCatalogItem,
+    "dangBoost" | "hetHanLuc" | "key" | "diemFeed"
+  >;
 
   const raw: RawItem[] = [];
 
@@ -535,6 +539,7 @@ export async function listWorldBoostCatalog(
       key,
       dangBoost: Boolean(boost),
       hetHanLuc: boost?.het_han_luc ?? null,
+      diemFeed: null,
     };
   });
 
@@ -567,11 +572,76 @@ export async function listWorldBoostCatalog(
   });
 
   const sliced = items.slice(offset, offset + limit);
+  const withDiem = await attachDiemFeedSnapshots(sliced);
   return {
-    items: sliced,
+    items: withDiem,
     hasMore: offset + limit < items.length,
     totalApprox: items.length,
   };
+}
+
+type DiemFeedRow = WorldBoostDiemFeedSnapshot & {
+  loai_doi_tuong: "cot_moc" | "org_bai_dang";
+  id_doi_tuong: string;
+};
+
+async function attachDiemFeedSnapshots(
+  items: WorldBoostCatalogItem[],
+): Promise<WorldBoostCatalogItem[]> {
+  if (items.length === 0) return items;
+
+  const cotIds = [
+    ...new Set(items.filter((i) => i.loai === "cot_moc").map((i) => i.id)),
+  ];
+  const orgIds = [
+    ...new Set(
+      items.filter((i) => i.loai === "org_bai_dang").map((i) => i.id),
+    ),
+  ];
+  if (cotIds.length === 0 && orgIds.length === 0) return items;
+
+  const admin = createServiceRoleClient();
+  const map = new Map<string, WorldBoostDiemFeedSnapshot>();
+
+  async function loadLoai(
+    loai: "cot_moc" | "org_bai_dang",
+    ids: string[],
+  ) {
+    if (ids.length === 0) return;
+    const chunkSize = 80;
+    for (let i = 0; i < ids.length; i += chunkSize) {
+      const slice = ids.slice(i, i + chunkSize);
+      const { data } = await admin
+        .from("content_diem_feed")
+        .select(
+          "loai_doi_tuong, id_doi_tuong, diem_co_ban, diem_noi_dung, diem_verify, diem_engagement, bat_dau_luc",
+        )
+        .eq("loai_doi_tuong", loai)
+        .in("id_doi_tuong", slice)
+        .returns<DiemFeedRow[]>();
+      for (const row of data ?? []) {
+        map.set(worldBoostKey(row.loai_doi_tuong, row.id_doi_tuong), {
+          diem_co_ban: row.diem_co_ban,
+          diem_noi_dung: row.diem_noi_dung,
+          diem_verify: row.diem_verify,
+          diem_engagement: row.diem_engagement,
+          bat_dau_luc: row.bat_dau_luc,
+        });
+      }
+    }
+  }
+
+  await Promise.all([loadLoai("cot_moc", cotIds), loadLoai("org_bai_dang", orgIds)]);
+
+  return items.map((item) => {
+    if (item.loai !== "cot_moc" && item.loai !== "org_bai_dang") {
+      return item;
+    }
+    return {
+      ...item,
+      diemFeed: map.get(item.key) ?? null,
+    };
+  });
 }
 
 export function assertWorldBoostLoai(raw: string): WorldBoostLoai | null {

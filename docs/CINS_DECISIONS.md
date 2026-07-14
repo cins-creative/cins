@@ -11,7 +11,6 @@
 
 | # | Câu hỏi | Trạng thái tạm | Điều kiện đóng |
 |---|---|---|---|
-| O13 | Mô hình rank Gallery follow-feed: thời gian thực (MVP) hay engagement-weighted? | **Thời gian thực** ở MVP | Khi feed quá loãng hoặc có đủ data tương tác thật để rank mà không thành clickbait. Chốt trước khi scale ngoài cohort Sine Art. |
 | O2 | Chat 1-1 có gate sau kết bạn không? | Chưa gate — giữ logic chat cũ | Khi có báo cáo spam/quấy rối từ user thật, hoặc trước khi mở chat cho user ngoài cohort Sine Art. |
 | O3 | `studio` vs `doanh_nghiep` | ✅ **ĐÃ CHỐT — gộp** (xem L7). Còn lại: bao giờ `doanh_nghiep` cần tab/field riêng tách lại? | Khi có org doanh_nghiep yêu cầu tính năng studio không có. Hiện không. |
 | O4 | Cap file video | 300MB (đang cân nhắc 500MB) | Khi đo được chi phí Bunny + hành vi upload thật của cohort đầu. Chốt 1 con số trước launch. |
@@ -24,7 +23,7 @@
 | O12 | Học phí theo gói tháng (1/2/3/6) cho mô hình liên tục | **Defer** | `org_khoa_hoc.hoc_phi` đọc là giá/tháng ở MVP. Thêm bảng giá bundle khi có nhu cầu thật. |
 | O15 | Tỉ lệ chèn bài org chưa-follow vào feed giữa + có nên chèn không? | **Tạm 1 org / 10 người, tối đa 1 bài/org, gắn nhãn "Gợi ý", không engagement-sort** (L21 #3) | Khi đo được feed thật: org-post có bị bỏ qua / báo phiền không. Có thể hạ về 0 (chỉ giữ kênh gợi ý + attribution) nếu chèn feed gây loãng. Chốt trước khi scale ngoài cohort đầu. |
 | O16 | Dedupe phòng nhóm trùng tập thành viên | **Defer** — quản lý nhóm cơ bản + project workspace đã có (L25/L28) | Khi có báo cáo spam hoặc nhiều phòng trùng thành viên từ cohort thật. |
-| O17 | Nhắc mốc chat (`chat_moc`) — push/email thật khi tới `nhac_truoc_ngay` | **Defer** — MVP chỉ lưu metadata + hiện timeline | Khi có cron/worker thông báo ổn định hoặc ≥ vài nhóm dùng mốc thật. |
+| O17 | Nhắc mốc chat (`chat_moc`) — tin system trong phòng khi tạo / tới lúc nhắc / đến hạn; tick client + `POST /api/chat/mocs/tick` | **Partial** — chưa push/email ngoài app | Mở rộng push/email khi có worker ổn định. |
 
 > O7 (lớp "uy tín/hữu ích" cho `content_thao_luan`) → **đã đóng / không còn áp dụng** (xem L12): `content_thao_luan` đã bỏ, thảo luận giờ là comment trên cột mốc.
 
@@ -32,9 +31,40 @@
 
 > O14 (escape hatch admin gán quyền org) → **đã đóng** (xem **L22**, 2026-07-01): panel `/admin/to-chuc` + mật khẩu ủy quyền env, chỉ `super_admin` — không mở lại god-mode inline trên trang org (giữ L20).
 
+> O13 (mô hình rank Gallery follow-feed / feed: chronological vs engagement-weighted?) → **đã đóng** (xem **L30**, 2026-07-14): World Timeline = hybrid điểm (không chronological thuần, không engagement-rank thuần). Gallery follow-feed vẫn thời gian thực + L29 editorial.
+
 ---
 
 ## LOG — quyết định đã chốt
+
+### Hệ thống điểm World Timeline + đóng O13 (2026-07-14)
+
+- **L30 — Điểm feed World Timeline (`content_diem_feed`); đóng O13.**
+  • **Chốt mô hình (đóng O13):** không chronological thuần, không engagement-rank thuần. Công thức = **base thời gian (decay) + verified weight + content quality + engagement log-scale + admin boost**. Điểm theo **bài**, không theo người / thâm niên.
+  • **Phạm vi:** chỉ **World Feed Timeline** (trang chủ). **Không** áp entity lens, Gallery, Journey cá nhân, feed cộng đồng. `org_su_kien` chỉ L29 boost-old — **không** vào `content_diem_feed`.
+  • **Thành phần (`FEED_SCORE`):** `diem_co_ban` 40 (đăng) / **100 khi admin đẩy**; `diem_noi_dung` 0–20 (+5 thumbnail · mô tả >50 ký tự · tag · embed sống); `diem_verify` 0|20 (Loại 2 `da_xac_nhan`, chỉ `cot_moc`); `diem_engagement` 0–20 = `min(20, round(8 * log10(n+1)))` với `n` = reaction×1 + comment×2 + lưu×3. `diem_hien_tai` = tổng × decay tuyến tính 7 ngày từ `bat_dau_luc` (không lưu cột — tính realtime).
+  • **Pipeline rank:** pool (visibility) → sort `diem_hien_tai DESC` → **author echo** + **soft quota max 2/author** → merge transitional `withWorldBoostMilestones` (L29).
+  • **Hooks:** publish → upsert điểm; reaction/comment/lưu → `engagement_can_tinh_lai=true`; verify approve → `diem_verify=20`; sửa bài → recalc `diem_noi_dung`; admin đẩy ON → base 100 + reset `bat_dau_luc` (giữ thành phần khác); OFF không đụng `content_diem_feed`.
+  • **Engagement recalc:** **lazy** khi load Timeline (`flushDirtyEngagementScores`, cap **40 dirty/request**) — **không** pg_cron ở tầng hiện tại (repo chưa có cron feed).
+  • **Lộ trình scale (3 tầng, không làm sớm):** (1) WHERE `bat_dau_luc` 7 ngày + index — đủ ~100K DAU; (2) ~100K DAU: cột `diem_hien_tai` + pg_cron ~15 phút + `ORDER BY` index; (3) ~500K+ DAU: Redis top-N TTL ngắn + cursor pagination.
+  • **Admin UI:** `/admin/noi-dung-dang` Grid + Listing — cột Điểm (realtime `breakdownDiemHienTai`), progress 0–100/120, tooltip breakdown, cột Còn lại (`gioConLaiDecay`); Dashboard số liệu giữ nguyên.
+  • **Schema / code:** `content_diem_feed` · `migration_content_diem_feed.sql` · `scripts/run-content-diem-feed-migration.mjs` · `scripts/backfill-content-diem-feed.mjs` · `lib/cins/feed-scoring.ts` · `feed-scoring-load.ts` · `feed-scoring-write.ts`.
+  • *Hệ quả file:* FOUNDATIONS quy tắc 22; IMPLEMENTATION Engagement + phân bổ; đóng **O13**. L29 vẫn là lớp editorial (Gallery + cap rank + TTL boost).
+
+### World editorial boost — đẩy nội dung sáng tạo (ẩn với user) (2026-07-14)
+
+- **L29 — Admin highlight ẩn trên World (Timeline + Gallery); không đụng Journey cá nhân.**
+  • **Mục đích:** định hướng MXH sang cộng đồng sáng tạo bằng *phân bổ editorial* — viewer không thấy badge / “Được chọn” / “Gợi ý”; chỉ thấy thứ tự khác. **Không** phải engagement-rank toàn cục (xem **L30** cho điểm Timeline). **Không** gộp với `che_do_hien_thi='feature'` (user tự chọn “Nổi bật”). **Không** chiếm đất `ad_` (nhãn trả phí sau).
+  • **Phạm vi surface:** chỉ **World** (`WorldJourneyFeed` dòng thời gian + lưới `JourneyGalleryGridView` / `worldJourneyGalleryFetch`). Không apply lên Journey profile, entity lens, feed cộng đồng.
+  • **Đối tượng boost:** mọi item **đã đủ điều kiện xuất hiện** trên World timeline / Gallery pool hiện tại (milestone user theo L18, `org_bai_dang`, showcase org, v.v. — cùng visibility gate sẵn có). Boost **không** nới visibility (không làm lộ `chi_minh` / `theo_nhom` / `cong_dong`).
+  • **Ai:** `super_admin` + `admin` (cùng lớp `canManageUsers`). **`curator` không.** Toggle tắt = hết boost ngay.
+  • **TTL:** chu kỳ **3 ngày**; hết hạn thì **tự gia hạn +3 ngày** khi vẫn `dang_bat=true`. Chỉ tắt thủ công mới dừng. Audit: ai bật/tắt, lần gia hạn gần nhất.
+  • **Hai luồng quản lý (cùng nguồn truth):**
+    1. **`/admin` — tab quản lý nội dung đăng (World):** dashboard số liệu nội dung mới + bộ lọc (loại đăng user/org, loại nội dung, đang boost / hết hạn sắp tới…) · **Grid** — toggle đẩy + điểm Timeline (L30) · **Listing** — bảng + điểm / còn lại.
+    2. **Trên World feed** (Timeline và/hoặc Grid khi admin đang xem): toggle đẩy nhanh cùng API — chỉ hiện với `super_admin`/`admin`.
+  • **Rank merge:** Timeline base sort theo **L30** (`diem_hien_tai`); bật đẩy → upsert `content_diem_feed` (base 100 + reset decay) + giữ merge `withWorldBoostMilestones` (cap `WORLD_BOOST_RANK_CAP=15`). Gallery vẫn thời gian thực + ưu tiên boost — **không** dùng `content_diem_feed`.
+  • **Schema:** `content_world_boost` — `loai_doi_tuong` + `id_doi_tuong`, `dang_bat`, `bat_dau_luc`, `het_han_luc`, `gia_han_luc`, `cap_boi`, `tat_boi`. RLS/service-role theo gate admin. Lazy-renew khi đọc hết `het_han_luc`.
+  • *Hệ quả file:* FOUNDATIONS quy tắc 22; IMPLEMENTATION World feed/gallery + `/admin` nav; `cursor_map_admin.md`. Điểm Timeline → **L30**.
 
 ### Workspace nhóm chat — project con + thẻ tài nguyên + mốc (2026-07-13)
 
@@ -42,7 +72,7 @@
   • **Phòng project con:** `chat_phong.id_phong_cha` → nhóm gốc (`loai_phong='nhom'`). Chỉ **1 cấp** (trigger chặn lồng sâu). Owner/admin nhóm cha tạo; thành viên mặc định = toàn bộ thành viên cha (có thể subset ⊆ cha). Cap: `MAX_PROJECT_ROOMS_PER_PARENT` (20).
   • **Ẩn / lịch sử:** `chat_phong.trang_thai` = `active` | `an`. `an` = ẩn khỏi list/FAB, còn trong lịch sử nhóm cha để khôi phục. Gợi ý UI khi im ≥ `PROJECT_IDLE_DAYS_HINT` (45 ngày) — chưa auto-notify.
   • **Thẻ tài nguyên:** `chat_the_tai_nguyen` + `chat_the_gan` — nhãn **cục bộ theo phòng**, member tự tạo; gắn lên tin có ảnh/URL. **Không** reuse `filter_nhan` / Journey (quy tắc 29 vẫn đúng cho Journey; chat dùng primitive riêng cùng mental model).
-  • **Mốc phòng:** `chat_moc` — timeline (tên, ngày, mô tả, URL, `nhac_truoc_ngay`); owner/admin CRUD; member xem. Không phải “gửi tin hẹn giờ”. Push nhắc thật → **O17**.
+  • **Mốc phòng:** `chat_moc` — timeline + tin nhắc trong phòng (tạo / nhắc trước / đến hạn qua `loai_tin=system`); owner/admin CRUD. Push/email ngoài app → **O17** còn mở.
   • **UI:** tab Project trong `ChatGroupManageModal`; list indent + pill `Project`; side panel thêm **Tài nguyên** / **Mốc**.
   • Migration: `migration_chat_project_workspace.sql`. Chi tiết → **FOUNDATIONS §C**, API → **IMPLEMENTATION**.
   • *Vì sao không `loai_phong='du_an'` ngay:* project vẫn scoped bạn bè trong nhóm cha; entity `du_an` để khi có object dự án trên CINs.
@@ -143,7 +173,7 @@
   3. **Chèn feed tỉ lệ thấp** (xem O15): bài org *liên quan* (dùng lại bộ chấm điểm #1) chèn vào feed giữa với **hạn mức cứng** (~1 bài org / 10 bài người), **tối đa 1 bài/org/lần tải**, gắn nhãn **"Gợi ý"**, **không** xếp theo engagement. Né free-ads + giữ lằn ranh reach trả phí → `ad_` phase sau.
 - **Cộng đồng (`cong_dong`) — bài KHÔNG rò ra feed; chỉ lan tỏa "căn phòng".**
   Bài `che_do_hien_thi='cong_dong'` giữ trong feed cộng đồng (đã loại trừ khỏi World Journey feed — quy tắc 26, L18). Lan tỏa cộng đồng = (a) gợi ý **"Tham gia cộng đồng X"** cho người hợp gu, (b) bài "tốt nghiệp" sang `public`/`theo_nhom` → chảy ra theo đường của *người*. Giữ tính phòng-riêng (chống spam).
-- **Bất biến giữ nguyên**: số follower **ẩn** (L18); không feed thuật toán toàn cục / engagement-rank (quy tắc 22, O13); org reach hữu cơ **siết hơn** user `feature` (chừa đất `ad_`).
+- **Bất biến giữ nguyên**: số follower **ẩn** (L18); không engagement-rank toàn cục (quy tắc 22, L30 = hybrid theo bài trên Timeline); org reach hữu cơ **siết hơn** user `feature` (chừa đất `ad_`).
 - *Thứ tự build*: gợi ý org (#1) → attribution studio (#2) → cộng đồng → chèn feed (#3, đụng luật feed, làm sau cùng).
 - *Hệ quả file*: FOUNDATIONS quy tắc 22 (thêm bất đối xứng org); §13 (việc tương lai: bảng nối org↔nghề cho `co_so`/`studio`). Mở **O15**. IMPLEMENTATION: `lib/cins/home-adaptive/suggestions.ts` (gợi ý org), `lib/cins/worldJourneyFeedFetch.ts` (chèn tỉ lệ thấp — bước sau).
 

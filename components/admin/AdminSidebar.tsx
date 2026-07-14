@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 const NAV = [
   { section: "Nội dung" },
   { href: "/admin/bai-viet", label: "Bài viết", icon: "doc" },
+  { href: "/admin/noi-dung-dang", label: "Nội dung đăng", icon: "grid" },
   { href: "/admin/tuyen-dung", label: "Tuyển dụng", icon: "briefcase" },
   { href: "/admin/tag", label: "Quản lý Tag", icon: "tag" },
   { href: "/admin/de-xuat", label: "Đề xuất tag", icon: "alert", badge: 12 },

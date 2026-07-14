@@ -37,6 +37,12 @@ Nội dung
   /admin/bai-viet/keyword     → loại keyword
   /admin/bai-viet/software    → loại phan_mem
   /admin/de-xuat              → article_de_xuat trang_thai = cho_review
+  /admin/noi-dung-dang        → **L29** quản lý nội dung World (boost ẩn)
+      · Dashboard: số liệu nội dung mới, đang boost, lọc user/org + loại đăng
+      · View Grid: masonry kiểu World Gallery (`JourneyGalleryGridView`) — toggle đánh dấu đẩy
+      · View Listing: bảng + loại nội dung
+      · Gate: super_admin | admin (`canManageUsers`); curator không
+      · Cùng API với toggle trên World feed (Timeline / lưới khi admin xem)
 
 Trường đại học
   /admin/truong               → tabs: Trường / Ngành / Tuyển sinh / Cấu hình / Tổ hợp
@@ -66,6 +72,7 @@ Hệ thống
 // admin/curator: user_quyen_he_thong + legacy CINS_ADMIN_EMAILS → admin
 // Panel /admin: canAccessAdminPanel (super_admin | admin | curator)
 // Tab /admin/nguoi-dung: canManageUsers (super_admin | admin)
+// Tab /admin/noi-dung-dang + toggle boost World feed (L29): canManageUsers (super_admin | admin) — curator không
 // Phân quyền org /admin/to-chuc: canGrantAdmin (super_admin only) + CINS_ORG_DELEGATION_PASSWORD + delegationPassword mỗi mutation (L22)
 // Sửa nội dung: canEditContent (super_admin | admin | curator)
 ```
