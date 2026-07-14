@@ -27,6 +27,7 @@ import {
 import { PostBlockRenderer } from "@/components/journey/PostBlockRenderer";
 import { PostCover } from "@/components/editor/PostRenderer";
 import { JourneyArticleTagLink } from "@/components/journey/JourneyArticleTagLink";
+import { JourneyMilestoneCardBodyContent } from "@/components/journey/JourneyMilestoneCardBodyContent";
 import { JourneyMilestoneOwnerMenu } from "@/components/journey/JourneyMilestoneOwnerMenu";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
 import { CommentBlock } from "@/components/journey/CommentBlock";
@@ -277,25 +278,30 @@ export function JourneyPostBody({
     showBlocks && (!isInline || !inlineSkip?.contributors);
   const isSplit = variant === "full" && layout === "split";
   const Wrapper = isInline ? "div" : "main";
-  const wrapperClass = isInline
-    ? `cins-editor-page cins-post-view j-m-unfold-post${mediaPost ? " j-m-unfold-post--media" : ""}${commentsOnlyInline ? " j-m-unfold-post--comments-only" : ""}`
-    : `cins-editor-page cins-post-view editor-canvas post-canvas${mediaPost ? " post-canvas--media" : ""}${isSplit ? " post-canvas--split" : ""}`;
 
   const postDisplayKind = resolvePostDisplayKind({
     moTa: heroSub,
     coverId: coverSeed,
     blocks: blocks ?? [],
   });
+  /** Bài chỉ chữ — đồng bộ panel `.jcard-chi-chu` với timeline card. */
+  const isTextPost = postDisplayKind.kind === "text";
+
+  const wrapperClass = isInline
+    ? `cins-editor-page cins-post-view j-m-unfold-post${mediaPost ? " j-m-unfold-post--media" : ""}${isTextPost ? " j-m-unfold-post--chi-chu" : ""}${commentsOnlyInline ? " j-m-unfold-post--comments-only" : ""}`
+    : `cins-editor-page cins-post-view editor-canvas post-canvas${mediaPost ? " post-canvas--media" : ""}${isTextPost ? " post-canvas--chi-chu" : ""}${isSplit ? " post-canvas--split" : ""}`;
+
   /** `cover_id` chỉ thumb Gallery — bài viết dài không lặp ảnh bìa khi đọc. */
   const showCoverInReadView =
     variant === "full" &&
     !mediaPost &&
+    !isTextPost &&
     Boolean(coverSeed) &&
     postDisplayKind.kind !== "article";
   const coverEl = showCoverInReadView ? <PostCover seed={coverSeed} /> : null;
 
   const heroEl =
-    variant === "full" && !mediaPost ? (
+    variant === "full" && !mediaPost && !isTextPost ? (
       <>
         <h1 className="title-in title-ro">{heroTitle}</h1>
         {heroSub ? <p className="sub-in sub-ro">{heroSub}</p> : null}
@@ -339,7 +345,11 @@ export function JourneyPostBody({
   const KickerIcon = mainPost?.articleTags[0] ? FileText : TypeIcon;
 
   const kickerEl =
-    isSplit && variant === "full" && !mediaPost && !splitSkip?.kicker ? (
+    isSplit &&
+    variant === "full" &&
+    !mediaPost &&
+    !isTextPost &&
+    !splitSkip?.kicker ? (
       <span className="post-view-kicker">
         <KickerIcon size={13} strokeWidth={2} aria-hidden />
         {kickerLabel}
@@ -347,7 +357,7 @@ export function JourneyPostBody({
     ) : null;
 
   const splitHeroEl =
-    isSplit && variant === "full" && !mediaPost ? (
+    isSplit && variant === "full" && !mediaPost && !isTextPost ? (
       <>
         {kickerEl}
         <h1 className="title-in title-ro">{heroTitle}</h1>
@@ -405,6 +415,25 @@ export function JourneyPostBody({
             <TypeIcon size={12} strokeWidth={1.9} aria-hidden />
             <span>{typeLabel}</span>
           </span>
+          {milestone.verifier?.name || milestone.verifiedBy?.trim() ? (
+            <span
+              className="verify-badge"
+              title={
+                milestone.verifier?.name
+                  ? `Đã xác thực bởi ${milestone.verifier.name}`
+                  : milestone.verifiedBy ?? undefined
+              }
+              aria-label={
+                milestone.verifier?.name
+                  ? `Đã xác thực bởi ${milestone.verifier.name}`
+                  : milestone.verifiedBy ?? "Đã xác thực"
+              }
+            >
+              {milestone.verifier?.name
+                ? `✓ ${milestone.verifier.name}`
+                : "Verify"}
+            </span>
+          ) : null}
           <span
             className={`post-byline-vis post-byline-vis--${milestone.cheDoHienThi}`}
             aria-label={vis.text}
@@ -443,7 +472,10 @@ export function JourneyPostBody({
   ) : null;
 
   const tagsEl =
-    showTags && mainPost && mainPost.articleTags.length > 0 ? (
+    showTags &&
+    !isTextPost &&
+    mainPost &&
+    mainPost.articleTags.length > 0 ? (
       <div className="post-art-tags" aria-label="Bài viết liên quan">
         {mainPost.articleTags.map((t) => (
           <JourneyArticleTagLink
@@ -454,6 +486,28 @@ export function JourneyPostBody({
         ))}
       </div>
     ) : null;
+
+  /** Permalink/modal bài chỉ chữ — cùng UI timeline (nền màu + đoạn chữ). */
+  const chiChuEl = isTextPost ? (
+    <div className="j-m-card jcard jcard--text post-view-chi-chu">
+      <JourneyMilestoneCardBodyContent
+        title={heroTitle}
+        body={heroSub}
+        noiDungBlocks={blocks}
+        contentKind="text"
+        articleTags={
+          isSplit || !showTags ? [] : (mainPost?.articleTags ?? [])
+        }
+        canEditChiChuNen={isOwner && Boolean(mainPost?.id)}
+        tacPhamId={mainPost?.id ?? null}
+        hasLinkedPost={Boolean(postSlug)}
+        chiChuExpanded
+        onChiChuExpandedChange={() => {
+          /* Permalink luôn mở đủ nội dung — không thu gọn lại. */
+        }}
+      />
+    </div>
+  ) : null;
 
   const contributorsEl =
     showContributors && mainPost ? (
@@ -502,7 +556,7 @@ export function JourneyPostBody({
       : null;
 
   const splitContentLeadEl =
-    isSplit && variant === "full" && !mediaPost ? (
+    isSplit && variant === "full" && !mediaPost && !isTextPost ? (
       <>
         {splitHeroEl}
         {coverEl}
@@ -528,22 +582,23 @@ export function JourneyPostBody({
     variant === "inline" && !mediaPost ? inlineUnfoldBlocks : blocks;
 
   const blocksEl =
-    showBlocks && renderBlocks && renderBlocks.length > 0 ? (
+    !isTextPost && showBlocks && renderBlocks && renderBlocks.length > 0 ? (
       <PostBlockRenderer
         blocks={renderBlocks}
         mediaAutoplay={mediaAutoplay}
       />
-    ) : showBlocks && mainPost?.noiDungHtml ? (
+    ) : !isTextPost && showBlocks && mainPost?.noiDungHtml ? (
       <div
         className="post-html-fallback article-rich-content"
         dangerouslySetInnerHTML={{ __html: mainPost.noiDungHtml }}
       />
-    ) : showBlocks ? (
+    ) : !isTextPost && showBlocks ? (
       <div className="post-empty">Cột mốc này chưa có nội dung chi tiết.</div>
     ) : null;
 
-  const splitContentBlocksEl =
-    moveTextToRail && showBlocks
+  const splitContentBlocksEl = isTextPost
+    ? chiChuEl
+    : moveTextToRail && showBlocks
       ? (renderPostBlocks(splitBlockParts.mediaBlocks) ??
         (mainPost?.noiDungHtml ? (
           <div
@@ -558,7 +613,7 @@ export function JourneyPostBody({
       <Wrapper className={wrapperClass} aria-label="Bài viết">
         <div className="post-view-layout post-view-layout--2col">
           <div
-            className={`post-view-content${mediaPost ? " post-view-content--media" : ""}`}
+            className={`post-view-content${mediaPost ? " post-view-content--media" : ""}${isTextPost ? " post-view-content--chi-chu" : ""}`}
           >
             {splitContentLeadEl}
             <div className="post-view-content-inner">
@@ -575,6 +630,7 @@ export function JourneyPostBody({
     <Wrapper className={wrapperClass} aria-label="Bài viết">
       {heroEl}
       {coverEl}
+      {isTextPost ? chiChuEl : null}
       {bylineEl}
       {tagsEl}
       {contributorsEl}

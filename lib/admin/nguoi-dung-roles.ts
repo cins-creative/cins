@@ -10,8 +10,21 @@ import {
   type DbSystemRole,
   type SystemRole,
 } from "@/lib/auth/system-role";
+import {
+  ADMIN_GIAI_DOAN_FILTERS,
+  emptyAdminGiaiDoanStats,
+  type AdminGiaiDoanFilter,
+  type AdminGiaiDoanStats,
+} from "@/lib/admin/nguoi-dung-giai-doan";
+import { giaiDoanLabel } from "@/lib/cins/home-adaptive/labels";
+import type { GiaiDoan } from "@/lib/cins/home-adaptive/persona";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+
+export type {
+  AdminGiaiDoanFilter,
+  AdminGiaiDoanStats,
+} from "@/lib/admin/nguoi-dung-giai-doan";
 
 export type AdminUserListRow = {
   id: string;
@@ -27,6 +40,9 @@ export type AdminUserListRow = {
   taoLuc: string;
   /** `lan_cuoi_active` hoặc fallback Auth `last_sign_in_at`. */
   lanCuoiHoatDong: string | null;
+  /** `user_nguoi_dung.giai_doan` — tình trạng học/làm. */
+  giaiDoan: GiaiDoan | null;
+  giaiDoanLabel: string;
 };
 
 export type AdminUserListResponse = {
@@ -35,6 +51,7 @@ export type AdminUserListResponse = {
   actorRole: SystemRole;
   canGrantAdmin: boolean;
   roleStats: Record<SystemRole, number>;
+  giaiDoanStats: AdminGiaiDoanStats;
 };
 
 export type SetUserRoleInput = {
@@ -55,7 +72,38 @@ type ProfileRow = {
   da_xac_minh: boolean | null;
   tao_luc: string;
   lan_cuoi_active: string | null;
+  giai_doan: GiaiDoan | null;
 };
+
+const GIAI_DOAN_SET = new Set<string>(
+  ADMIN_GIAI_DOAN_FILTERS.filter((f) => f.id !== "all" && f.id !== "chua_chon").map(
+    (f) => f.id,
+  ),
+);
+
+function parseGiaiDoanFilter(
+  raw: string | undefined,
+): AdminGiaiDoanFilter | null {
+  const v = raw?.trim() ?? "";
+  if (!v || v === "all") return null;
+  if (v === "chua_chon") return "chua_chon";
+  if (GIAI_DOAN_SET.has(v)) return v as GiaiDoan;
+  return null;
+}
+
+function matchesGiaiDoanFilter(
+  row: AdminUserListRow,
+  filter: AdminGiaiDoanFilter | null,
+): boolean {
+  if (!filter) return true;
+  if (filter === "chua_chon") return row.giaiDoan == null;
+  return row.giaiDoan === filter;
+}
+
+function adminGiaiDoanLabel(giaiDoan: GiaiDoan | null): string {
+  if (!giaiDoan) return "Chưa chọn";
+  return giaiDoanLabel(giaiDoan);
+}
 
 type AuthUserMeta = {
   email: string | null;
@@ -118,17 +166,19 @@ function isRoleLocked(
 
 export async function fetchAdminUserList(params: {
   q?: string;
+  giaiDoan?: string;
   actorRole: SystemRole;
 }): Promise<AdminUserListResponse> {
   const admin = createServiceRoleClient();
   const q = params.q?.trim() ?? "";
+  const giaiDoanFilter = parseGiaiDoanFilter(params.giaiDoan);
 
   const [{ data: profiles, error: profileErr }, authMetaMap, { data: roleRows }] =
     await Promise.all([
       admin
         .from("user_nguoi_dung")
         .select(
-          "id, auth_user_id, slug, ten_hien_thi, avatar_id, email_lien_he, trang_thai_tai_khoan, da_xac_minh, tao_luc, lan_cuoi_active",
+          "id, auth_user_id, slug, ten_hien_thi, avatar_id, email_lien_he, trang_thai_tai_khoan, da_xac_minh, tao_luc, lan_cuoi_active, giai_doan",
         )
         .order("tao_luc", { ascending: false })
         .limit(LIST_LIMIT)
@@ -152,6 +202,7 @@ export async function fetchAdminUserList(params: {
         curator: 0,
         thanh_vien: 0,
       },
+      giaiDoanStats: emptyAdminGiaiDoanStats(),
     };
   }
 
@@ -171,6 +222,7 @@ export async function fetchAdminUserList(params: {
       profile.lan_cuoi_active?.trim() ||
       authMeta?.lastSignInAt?.trim() ||
       null;
+    const giaiDoan = profile.giai_doan ?? null;
 
     return {
       id: profile.id,
@@ -185,10 +237,14 @@ export async function fetchAdminUserList(params: {
       daXacMinh: profile.da_xac_minh ?? false,
       taoLuc: profile.tao_luc,
       lanCuoiHoatDong,
+      giaiDoan,
+      giaiDoanLabel: adminGiaiDoanLabel(giaiDoan),
     };
   });
 
-  const rows = allRows.filter((row) => matchesQuery(row, q));
+  const rows = allRows.filter(
+    (row) => matchesQuery(row, q) && matchesGiaiDoanFilter(row, giaiDoanFilter),
+  );
 
   const roleStats: Record<SystemRole, number> = {
     super_admin: 0,
@@ -196,8 +252,15 @@ export async function fetchAdminUserList(params: {
     curator: 0,
     thanh_vien: 0,
   };
+  const giaiDoanStats = emptyAdminGiaiDoanStats();
   for (const row of allRows) {
     roleStats[row.role] += 1;
+    giaiDoanStats.all += 1;
+    if (row.giaiDoan == null) {
+      giaiDoanStats.chua_chon += 1;
+    } else {
+      giaiDoanStats[row.giaiDoan] += 1;
+    }
   }
 
   return {
@@ -206,6 +269,7 @@ export async function fetchAdminUserList(params: {
     actorRole: params.actorRole,
     canGrantAdmin: canGrantAdmin(params.actorRole),
     roleStats,
+    giaiDoanStats,
   };
 }
 

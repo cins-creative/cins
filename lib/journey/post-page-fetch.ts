@@ -12,6 +12,7 @@ import { fetchArticleTagsForTacPham } from "@/lib/journey/article-tags-batch";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { isFriend } from "@/lib/social/ket-ban";
 import { fetchCommentsForSocialObject } from "@/lib/social/comments/fetch-for-object";
+import { loadVerifiedMetaForCotMocs } from "@/lib/journey/milestone-verify";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { enrichBlocksVideoCanvasRatio } from "@/lib/journey/enrich-blocks-video-canvas-ratio";
 
@@ -373,10 +374,12 @@ export async function fetchMilestonePostDetail(
     .filter((x): x is TacPhamRow => x !== null);
 
   const tacPhamIds = tacPhamRows.map((t) => t.id);
-  const [tagsByTacPham, contributorsByTacPham] = await Promise.all([
-    fetchArticleTagsForTacPham(admin, tacPhamIds),
-    loadPostContributors(admin, tacPhamIds),
-  ]);
+  const [tagsByTacPham, contributorsByTacPham, verifiedMeta] =
+    await Promise.all([
+      fetchArticleTagsForTacPham(admin, tacPhamIds),
+      loadPostContributors(admin, tacPhamIds),
+      loadVerifiedMetaForCotMocs([milestoneId]),
+    ]);
 
   const posts: MilestonePostContent[] = await Promise.all(
     tacPhamRows.map(async (tp) => ({
@@ -394,6 +397,19 @@ export async function fetchMilestonePostDetail(
     })),
   );
 
+  const verified = verifiedMeta.get(milestoneId);
+  const verifierAttr = verified?.attribution;
+  const verifier = verifierAttr
+    ? {
+        name: verifierAttr.name,
+        slug: verifierAttr.slug?.trim() || null,
+        avatarUrl: verifierAttr.avatarUrl ?? null,
+        href: verified.orgHref ?? verifierAttr.href ?? null,
+        role: verifierAttr.role ?? null,
+        orgKind: verifierAttr.orgKind ?? null,
+      }
+    : null;
+
   return {
     ok: true,
     data: {
@@ -404,6 +420,8 @@ export async function fetchMilestonePostDetail(
         thoiDiem: cotMoc.thoi_diem,
         loaiMoc: cotMoc.loai_moc,
         cheDoHienThi: cotMoc.che_do_hien_thi,
+        verifiedBy: verified?.verifiedBy ?? null,
+        verifier,
       },
       owner,
       posts,

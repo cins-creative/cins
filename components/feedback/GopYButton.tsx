@@ -1,8 +1,11 @@
 "use client";
 
 import { HeartHandshake, MessageSquarePlus, Route, X } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+
+import { isPersonalPostViewPath } from "@/lib/journey/post-view-path";
 
 import { GopYContentEditor, type GopYContent } from "./GopYContentEditor";
 import "./gop-y-button.css";
@@ -21,6 +24,8 @@ const EMPTY_CONTENT: GopYContent = {
 };
 
 export function GopYButton() {
+  const pathname = usePathname() ?? "";
+  const hideFab = isPersonalPostViewPath(pathname);
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [content, setContent] = useState<GopYContent>(EMPTY_CONTENT);
@@ -101,18 +106,22 @@ export function GopYButton() {
     }
   }
 
+  if (hideFab && !open) return null;
+
   return (
     <>
-      <button
-        type="button"
-        className="gopy-fab"
-        onClick={() => setOpen(true)}
-        aria-haspopup="dialog"
-        aria-expanded={open}
-      >
-        <MessageSquarePlus size={18} strokeWidth={2.2} aria-hidden />
-        <span className="gopy-fab-label">Góp ý</span>
-      </button>
+      {hideFab ? null : (
+        <button
+          type="button"
+          className="gopy-fab"
+          onClick={() => setOpen(true)}
+          aria-haspopup="dialog"
+          aria-expanded={open}
+        >
+          <MessageSquarePlus size={18} strokeWidth={2.2} aria-hidden />
+          <span className="gopy-fab-label">Góp ý</span>
+        </button>
+      )}
 
       {mounted && open
         ? createPortal(

@@ -468,7 +468,9 @@ function MilestoneTagDetail({
   onReject: () => void;
   onDetach: () => void;
 }) {
-  const nganhOrKhoa = row.nganhLabel ?? row.khoaHocTen;
+  const nganhOrKhoa = [row.nganhLabel ?? row.khoaHocTen, row.monHocLabel]
+    .filter(Boolean)
+    .join(" · ");
   const kindLabel = milestoneKindLabel(
     row.milestoneKind as "du_an" | "hoc" | "lam_viec" | "thanh_tuu",
   );

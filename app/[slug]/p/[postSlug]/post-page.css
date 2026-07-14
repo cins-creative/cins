@@ -560,6 +560,55 @@
   padding: 0;
 }
 
+/* Bài chỉ chữ — full-bleed panel `.jcard-chi-chu` (đồng bộ timeline card). */
+.cins-post-view.post-canvas--split .post-view-content--chi-chu,
+.cins-post-view .post-canvas--split .post-view-content--chi-chu {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 0;
+  background: transparent;
+  overflow: hidden;
+}
+
+.cins-post-view .post-view-content--chi-chu .post-view-content-inner {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.cins-post-view .post-view-chi-chu {
+  border: none;
+  box-shadow: none;
+  background: transparent;
+  overflow: hidden;
+  border-radius: 16px 0 0 16px;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+}
+
+.cins-post-view .post-view-chi-chu .jcard-body {
+  padding: 0;
+  height: 100%;
+}
+
+.cins-post-view .post-view-chi-chu .jcard-chi-chu {
+  border-radius: inherit;
+  min-height: clamp(280px, 46vh, 420px);
+  height: 100%;
+}
+
+.cins-post-view.editor-canvas.post-canvas.post-canvas--chi-chu:not(.post-canvas--split)
+  .post-view-chi-chu,
+.cins-post-view
+  .editor-canvas.post-canvas.post-canvas--chi-chu:not(.post-canvas--split)
+  .post-view-chi-chu {
+  border-radius: var(--radius-lg, 20px);
+  margin: 0 0 20px;
+}
+
 .cins-post-view .post-view-content-inner {
   min-width: 0;
 }
@@ -783,6 +832,17 @@
   gap: 6px;
 }
 
+.cins-post-view .post-rail-author > .j-user-pop-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+.cins-post-view .post-rail-author > .j-user-pop-wrap > .j-user-pop-trigger {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+}
+
 .cins-post-view .post-rail-author-link {
   display: flex;
   align-items: center;
@@ -791,9 +851,11 @@
   flex: 1;
   text-decoration: none;
   color: inherit;
+  cursor: pointer;
 }
 
-.cins-post-view .post-rail-author-link:hover strong {
+.cins-post-view .post-rail-author-link:hover strong,
+.cins-post-view .post-rail-author .j-user-pop-trigger:hover .post-rail-author-link strong {
   color: var(--cins-blue, #1f74c9);
 }
 
@@ -851,6 +913,186 @@
 
 .cins-post-view .post-rail-blk--author .post-rail-meta-chips {
   margin-top: 10px;
+}
+
+/* ── Org verify callout — highlight ai xác thực ── */
+.cins-post-view .post-rail-blk--author.is-verified {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--j-verified, #45bd62) 10%, var(--bg-surface, #fff)) 0%,
+      var(--bg-surface, #fff) 72%
+    );
+}
+
+.cins-post-view .post-rail-verifier {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--j-verified, #45bd62) 38%, transparent);
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--j-verified, #45bd62) 14%, #fff) 0%,
+      color-mix(in srgb, var(--j-verified-soft, #dcfce7) 88%, #fff) 100%
+    );
+  box-shadow: 0 1px 0 rgba(21, 128, 61, 0.06);
+}
+
+.cins-post-view .post-rail-verifier-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.cins-post-view .post-rail-verifier-icon {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--j-verified, #45bd62);
+  color: #fff;
+}
+
+.cins-post-view .post-rail-verifier-lead {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--j-verified-ink, #15803d);
+}
+
+.cins-post-view .post-rail-verifier > .j-user-pop-wrap,
+.cins-post-view .post-rail-verifier > .j-org-pop-wrap {
+  min-width: 0;
+  width: 100%;
+}
+
+.cins-post-view .post-rail-verifier > .j-user-pop-wrap > .j-user-pop-trigger,
+.cins-post-view .post-rail-verifier > .j-org-pop-wrap > .j-org-pop-trigger {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  text-align: left;
+}
+
+.cins-post-view .post-rail-verifier-link {
+  display: block;
+  min-width: 0;
+  text-decoration: none;
+  color: inherit;
+}
+
+.cins-post-view .post-rail-verifier-org {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: color-mix(in srgb, #fff 82%, transparent);
+  border: 1px solid color-mix(in srgb, var(--j-verified, #45bd62) 22%, transparent);
+  transition:
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    transform 140ms ease;
+}
+
+.cins-post-view .post-rail-verifier-link:hover .post-rail-verifier-org,
+.cins-post-view .post-rail-verifier .j-user-pop-trigger:hover .post-rail-verifier-org,
+.cins-post-view .post-rail-verifier .j-org-pop-trigger:hover .post-rail-verifier-org {
+  border-color: color-mix(in srgb, var(--j-verified, #45bd62) 48%, transparent);
+  box-shadow: 0 4px 14px rgba(21, 128, 61, 0.12);
+  transform: translateY(-1px);
+}
+
+.cins-post-view .post-rail-verifier-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #166534;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  border: 1px solid color-mix(in srgb, var(--j-verified, #45bd62) 35%, transparent);
+}
+
+.cins-post-view .post-rail-verifier-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.cins-post-view .post-rail-verifier-org-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cins-post-view .post-rail-verifier-org-copy strong {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #14532d;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cins-post-view .post-rail-verifier-org-copy span {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--j-verified-ink, #15803d);
+  opacity: 0.88;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:root[data-theme="dark"] .cins-post-view .post-rail-blk--author.is-verified {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--j-verified, #45bd62) 16%, var(--bg-surface, #171b24)) 0%,
+      var(--bg-surface, #171b24) 74%
+    );
+}
+
+:root[data-theme="dark"] .cins-post-view .post-rail-verifier {
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--j-verified, #45bd62) 22%, #171b24) 0%,
+      color-mix(in srgb, #14532d 55%, #171b24) 100%
+    );
+  border-color: color-mix(in srgb, var(--j-verified, #45bd62) 42%, transparent);
+}
+
+:root[data-theme="dark"] .cins-post-view .post-rail-verifier-org {
+  background: color-mix(in srgb, #0f172a 72%, transparent);
+}
+
+:root[data-theme="dark"] .cins-post-view .post-rail-verifier-org-copy strong {
+  color: #bbf7d0;
+}
+
+:root[data-theme="dark"] .cins-post-view .post-rail-verifier-lead,
+:root[data-theme="dark"] .cins-post-view .post-rail-verifier-org-copy span {
+  color: #86efac;
 }
 
 .cins-post-view .post-rail-hero {
@@ -964,6 +1206,15 @@
 .cins-post-view .post-rail-chip svg {
   flex-shrink: 0;
   color: var(--ink-muted);
+}
+
+.cins-post-view .post-rail-verify.verify-badge {
+  min-height: 22px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
 }
 
 .cins-post-view .post-rail-blk--actions {
@@ -1720,17 +1971,28 @@
   overflow: hidden;
 }
 .cins-post-view .post-byline-badges .post-byline-type,
-.cins-post-view .post-byline-badges .post-byline-vis {
+.cins-post-view .post-byline-badges .post-byline-vis,
+.cins-post-view .post-byline-badges .verify-badge {
   border: none;
   border-radius: 0;
   background: transparent;
   padding: 5px 10px;
   font-size: 11px;
   font-weight: 600;
+  min-height: 0;
 }
 .cins-post-view .post-byline-badges .post-byline-type {
   border-right: 1px solid var(--border);
   color: var(--ink-title);
+}
+.cins-post-view .post-byline-badges .verify-badge {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-right: 1px solid var(--border);
+  color: var(--j-verified-ink, #15803d);
+  background: color-mix(in srgb, var(--j-verified, #45bd62) 12%, transparent);
 }
 .cins-post-view .post-byline-badges .post-byline-vis--feature {
   box-shadow: none;

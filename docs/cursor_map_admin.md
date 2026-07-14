@@ -42,6 +42,7 @@ Nội dung
       · View Grid: toggle đẩy + nút **+** cộng `diem_uu_tien` (+10, không hoàn lại)
       · View Listing: bảng + đẩy / + điểm
       · View Công thức: Chỉnh sửa → Lưu phiên bản (bắt buộc lý do) + lịch sử/khôi phục (`content_feed_score_phien_ban`); BASE/BOOST_RESET liên kết ON/OFF đẩy; không sửa TTL/cap L29
+      · View **Nội dung chờ xác thực**: hàng đợi toàn site `verify_yeu_cau` `cho_xu_ly` (payload `org_milestone_tag_v1`); badge số trên tab; chỉ xem + mở bài/org (không duyệt tại đây). Lib `lib/admin/pending-content-verify.ts` · API `GET ?pendingVerify=1` / `?pendingVerifyStats=1`
       · Gate: super_admin | admin (`canManageUsers`); curator không
       · Cùng API với toggle trên World feed (Timeline / lưới khi admin xem)
 

@@ -37,6 +37,17 @@
 
 ## LOG — quyết định đã chốt
 
+### Môn chuyên ngành trên đồ án trường (2026-07-14)
+
+- **L31 — `mon_hoc` thuộc chương trình ngành trường; dual-write lens + filter đồ án.**
+  • **Vấn đề:** tab đồ án trường chỉ lọc theo ngành → nhiều môn trong cùng ngành trộn chung. Cơ sở đã có 2 cấp (khóa → bài); trường thiếu cấp 2.
+  • **Chốt mô hình:** môn chuyên ngành = entity `article_bai_viet` loại **`mon_hoc`** (không tạo tên nội bộ rời tag). Chương trình trường nối qua bảng **`org_truong_nganh_mon`** (`id_truong_nganh` → `id_mon_hoc`, `thu_tu`, unique cặp). Hub ngành (`article_lien_quan` + `cap_do` gồm `chuyen_nganh`) vẫn là gợi ý phổ quát — **không** phải source of truth filter đồ án.
+  • **Gắn org (sinh viên):** form gắn chọn Ngành → Môn (bắt buộc nếu ngành đã cấu hình ≥1 môn; chưa có môn → vẫn gắn chỉ ngành). Payload `org_milestone_tag_v1`: `monHocId` / `monHocLabel`. Khi submit (+ lại lúc approve nếu thiếu): upsert `article_gan_cot_moc` (+ gắn `article_gan_tac_pham` nếu có tác phẩm) → lens trang môn thấy bài.
+  • **Quản trị:** admin trường thêm/gỡ môn trong Sửa ngành; gõ tên mới → `createTag(mon_hoc)` (dedup exact alias) rồi gắn junction. Sinh viên không tạo môn lúc gắn đồ án.
+  • **Filter UI:** Năm → Ngành → Môn trên tab đồ án; card hiện `Ngành · Môn · Năm`.
+  • **Không nhầm** `edu_mon_thi` / `org_cau_hinh_mon` (môn *thi tuyển*).
+  • *Hệ quả file:* IMPLEMENTATION (SQL + API + lib); UI `JourneyOrgAttachTrigger` · `TruongDoanToolbar` · `TruongNganhMonChuongTrinh`. Không đổi FOUNDATIONS (đã neo entity `mon_hoc` + quy tắc 25).
+
 ### Hệ thống điểm World Timeline + đóng O13 (2026-07-14)
 
 - **L30 — Điểm feed World Timeline (`content_diem_feed`); đóng O13.**

@@ -165,6 +165,7 @@ export function enrichTagSuggestRows(
       linh_vuc_ten: row.linh_vuc_ten ?? cached.linh_vuc_ten,
       so_nguoi_tagged: cached.so_nguoi_tagged || row.so_nguoi_tagged,
       da_verify: row.da_verify || cached.da_verify,
+      cover_id: row.cover_id ?? cached.cover_id ?? null,
     };
   });
 }

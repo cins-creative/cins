@@ -1,4 +1,4 @@
-/* Album layout — no-crop: ảnh giữ nguyên tỉ lệ gốc, nền trắng lấp phần thừa */
+/* Album layout — no-crop: ảnh giữ nguyên tỉ lệ gốc, nền xám trắng lấp phần thừa */
 /* Khe giữa ô — khớp editor / article-rich (`--cins-img-slot-gap`). */
 .image-grid,
 .image-grid-row,
@@ -17,7 +17,7 @@
   max-width: 100%;
   margin-left: auto;
   margin-right: auto;
-  background: #fff;
+  background: var(--bg-page, #f4f5f8);
 }
 
 .image-grid-col {
@@ -33,7 +33,7 @@
 /* ── 1 ảnh: giữ tỉ lệ gốc, không crop ── */
 .image-grid--single {
   display: block;
-  background: #fff;
+  background: var(--bg-page, #f4f5f8);
 }
 /* 1 ảnh dọc — tỉ lệ gốc; nếu cao hơn max canvas thì thu ngang (không crop).
    Desktop max 3:4 · mobile max 9:16 */
@@ -50,7 +50,7 @@
   max-width: 100%;
   margin-inline: auto;
   aspect-ratio: var(--media-natural-aspect, var(--media-canvas-max-aspect));
-  background: #fff;
+  background: var(--bg-page, #f4f5f8);
 }
 .image-grid--single.is-portrait .image-grid-cell {
   width: 100%;
@@ -139,13 +139,13 @@
   border: 0;
   margin: 0;
   overflow: hidden;
-  background: #fff;
+  background: var(--bg-page, #f4f5f8);
   cursor: pointer;
   min-height: 0;
 }
 
 /* 2+ ảnh: KHÔNG crop. Masonry/justified có tỉ lệ ô = tỉ lệ ảnh nên lấp đầy khít;
-   các ô có tỉ lệ cố định (square/3 ảnh/>6) hiển thị trọn ảnh, nền trắng lấp phần thừa. */
+   các ô có tỉ lệ cố định (square/3 ảnh/>6) hiển thị trọn ảnh, nền xám trắng lấp phần thừa. */
 .image-grid:not(.image-grid--single) .image-grid-cell img {
   width: 100%;
   height: 100%;
@@ -154,7 +154,7 @@
 }
 
 /* Justified / Masonry: ô đã có aspect-ratio = tỉ lệ ảnh nên `cover` lấp khít,
-   không để lộ nền trắng (letterbox), cũng gần như không crop. */
+   không để lộ nền letterbox, cũng gần như không crop. */
 .image-grid.image-grid--justified .image-grid-cell img,
 .image-grid.image-grid--masonry .image-grid-cell img {
   object-fit: cover;

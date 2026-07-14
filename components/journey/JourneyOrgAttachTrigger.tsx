@@ -287,7 +287,9 @@ function OrgAttachStatusRow({
   selected: boolean;
   onSelect: () => void;
 }) {
-  const contextLabel = row.nganhLabel ?? row.khoaHocTen;
+  const contextLabel = [row.nganhLabel ?? row.khoaHocTen, row.monHocLabel]
+    .filter(Boolean)
+    .join(" · ");
   const orgHref = orgPublicPath(row.orgLoai, row.orgSlug);
 
   return (
@@ -445,6 +447,7 @@ export function JourneyOrgAttachTrigger({
   const [options, setOptions] = useState<OrgAttachOption[]>([]);
   const [loadingOptions, setLoadingOptions] = useState(false);
   const [selectedOptionId, setSelectedOptionId] = useState("");
+  const [selectedMonHocId, setSelectedMonHocId] = useState("");
   const [nam, setNam] = useState(String(CURRENT_YEAR));
   const [evidence, setEvidence] = useState<OrgAttachEvidence[]>([emptyEvidence()]);
   const [activeEvidenceIndex, setActiveEvidenceIndex] = useState(0);
@@ -468,6 +471,20 @@ export function JourneyOrgAttachTrigger({
   const selectedOptionLabel = useMemo(
     () => options.find((o) => o.id === selectedOptionId)?.label ?? null,
     [options, selectedOptionId],
+  );
+
+  const selectedNganhMonOptions = useMemo(() => {
+    if (selectedOrg?.loaiToChuc !== "truong_dai_hoc") return [];
+    return (
+      options.find((o) => o.id === selectedOptionId)?.monOptions ?? []
+    );
+  }, [options, selectedOptionId, selectedOrg?.loaiToChuc]);
+
+  const selectedMonHocLabel = useMemo(
+    () =>
+      selectedNganhMonOptions.find((m) => m.id === selectedMonHocId)?.label ??
+      null,
+    [selectedMonHocId, selectedNganhMonOptions],
   );
 
   const pendingCount = useMemo(
@@ -505,15 +522,28 @@ export function JourneyOrgAttachTrigger({
     setEvidence(item.evidence.length > 0 ? item.evidence : [emptyEvidence()]);
     const contextLabel = item.nganhLabel ?? item.khoaHocTen;
     const contextId = item.nganhId ?? item.khoaHocId;
+    const monOption =
+      item.monHocId && item.monHocLabel
+        ? [{ id: item.monHocId, label: item.monHocLabel }]
+        : [];
     if (contextLabel && contextId) {
-      setOptions([{ id: contextId, label: contextLabel }]);
+      setOptions([
+        {
+          id: contextId,
+          label: contextLabel,
+          monOptions: monOption.length > 0 ? monOption : undefined,
+        },
+      ]);
       setSelectedOptionId(contextId);
+      setSelectedMonHocId(item.monHocId ?? "");
     } else if (contextLabel) {
       setOptions([{ id: contextLabel, label: contextLabel }]);
       setSelectedOptionId(contextLabel);
+      setSelectedMonHocId("");
     } else {
       setOptions([]);
       setSelectedOptionId("");
+      setSelectedMonHocId("");
     }
   }, []);
 
@@ -547,6 +577,7 @@ export function JourneyOrgAttachTrigger({
     setSelectedOrg(null);
     setOptions([]);
     setSelectedOptionId("");
+    setSelectedMonHocId("");
     setNam(String(CURRENT_YEAR));
     setEvidence([emptyEvidence()]);
     setActiveEvidenceIndex(0);
@@ -724,6 +755,7 @@ export function JourneyOrgAttachTrigger({
       }
       setOptions(Array.isArray(json.options) ? json.options : []);
       setSelectedOptionId("");
+      setSelectedMonHocId("");
     } catch {
       setMessage("Lỗi mạng.");
       setOptions([]);
@@ -742,9 +774,19 @@ export function JourneyOrgAttachTrigger({
       );
       return;
     }
+    const monOpts =
+      options.find((o) => o.id === selectedOptionId)?.monOptions ?? [];
+    if (
+      selectedOrg.loaiToChuc === "truong_dai_hoc" &&
+      monOpts.length > 0 &&
+      !selectedMonHocId
+    ) {
+      setMessage("Chọn môn học.");
+      return;
+    }
     setMessage(null);
     setStep("evidence");
-  }, [selectedOrg, selectedOptionId]);
+  }, [options, selectedMonHocId, selectedOrg, selectedOptionId]);
 
   const submit = useCallback(async () => {
     if (!selectedOrg) return;
@@ -776,6 +818,10 @@ export function JourneyOrgAttachTrigger({
             selectedOrg.loaiToChuc === "co_so_dao_tao" ? selectedOptionId : null,
           nganhId:
             selectedOrg.loaiToChuc === "truong_dai_hoc" ? selectedOptionId : null,
+          monHocId:
+            selectedOrg.loaiToChuc === "truong_dai_hoc"
+              ? selectedMonHocId || null
+              : null,
           milestoneTitle,
           milestoneKind,
           projectTitle: milestoneTitle,
@@ -820,6 +866,7 @@ export function JourneyOrgAttachTrigger({
     milestoneTitle,
     nam,
     photoCount,
+    selectedMonHocId,
     selectedOptionId,
     selectedOrg,
     tacPhamId,
@@ -1031,7 +1078,10 @@ export function JourneyOrgAttachTrigger({
                     </span>
                     <select
                       value={selectedOptionId}
-                      onChange={(e) => setSelectedOptionId(e.target.value)}
+                      onChange={(e) => {
+                        setSelectedOptionId(e.target.value);
+                        setSelectedMonHocId("");
+                      }}
                       disabled={isReviewing}
                     >
                       <option value="">— Chọn —</option>
@@ -1042,6 +1092,24 @@ export function JourneyOrgAttachTrigger({
                       ))}
                     </select>
                   </label>
+                  {selectedOrg.loaiToChuc === "truong_dai_hoc" &&
+                  selectedNganhMonOptions.length > 0 ? (
+                    <label className="j-org-attach-field">
+                      <span>Môn học</span>
+                      <select
+                        value={selectedMonHocId}
+                        onChange={(e) => setSelectedMonHocId(e.target.value)}
+                        disabled={isReviewing || !selectedOptionId}
+                      >
+                        <option value="">— Chọn —</option>
+                        {selectedNganhMonOptions.map((opt) => (
+                          <option key={opt.id} value={opt.id}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  ) : null}
                   <label className="j-org-attach-field">
                     <span>Năm</span>
                     <select
@@ -1078,6 +1146,19 @@ export function JourneyOrgAttachTrigger({
                     {selectedOptionLabel ?? "—"}
                   </span>
                 </div>
+                {selectedOrg?.loaiToChuc === "truong_dai_hoc" &&
+                (selectedMonHocLabel ||
+                  reviewItem?.monHocLabel ||
+                  selectedNganhMonOptions.length > 0) ? (
+                  <div className="j-org-attach-summary-row">
+                    <span className="j-org-attach-summary-k">Môn học</span>
+                    <span className="j-org-attach-summary-v">
+                      {selectedMonHocLabel ??
+                        reviewItem?.monHocLabel ??
+                        "—"}
+                    </span>
+                  </div>
+                ) : null}
                 <div className="j-org-attach-summary-row">
                   <span className="j-org-attach-summary-k">Năm</span>
                   <span className="j-org-attach-summary-v">{nam}</span>

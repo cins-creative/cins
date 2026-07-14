@@ -59,6 +59,16 @@ export type MilestonePostComment = {
   replies?: MilestonePostComment[];
 };
 
+/** Tổ chức đã xác thực cột mốc — dùng highlight trên PostMetaRail / byline. */
+export type MilestonePostVerifier = {
+  name: string;
+  slug: string | null;
+  avatarUrl: string | null;
+  href: string | null;
+  role: string | null;
+  orgKind: "cong_dong" | "truong" | "co_so_dao_tao" | "studio" | null;
+};
+
 export type MilestonePostDetail = {
   milestone: {
     id: string;
@@ -67,6 +77,13 @@ export type MilestonePostDetail = {
     thoiDiem: string;
     loaiMoc: string;
     cheDoHienThi: "public" | "theo_nhom" | "chi_minh" | "feature" | "cong_dong";
+    /**
+     * Org đã xác thực cột mốc (`verify_xac_nhan`) — chuỗi hiển thị kiểu `✓ Tên org`
+     * (đồng bộ timeline `verifiedBy`). `null` khi chưa xác thực.
+     */
+    verifiedBy?: string | null;
+    /** Chi tiết org xác thực — avatar / link / loại. */
+    verifier?: MilestonePostVerifier | null;
   };
   owner: MilestonePostAuthor;
   posts: MilestonePostContent[];

@@ -71,6 +71,13 @@ const RESERVED_SLUGS = new Set<string>([
   "gallery",
   "invite",
   "verify",
+  "termandservice",
+  "term-and-service",
+  "dieu-khoan",
+  "terms",
+  "terms-of-service",
+  "chinh-sach-rieng-tu",
+  "thong-tin-du-an",
 ]);
 
 export type { ActionResult } from "@/lib/journey/action-result";

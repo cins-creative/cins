@@ -14,6 +14,30 @@ function pickEnv(...keys: string[]): string {
 }
 
 const nextConfig: NextConfig = {
+  async redirects() {
+    return [
+      {
+        source: "/dieu-khoan",
+        destination: "/termandservice",
+        permanent: true,
+      },
+      {
+        source: "/terms",
+        destination: "/termandservice",
+        permanent: true,
+      },
+      {
+        source: "/terms-of-service",
+        destination: "/termandservice",
+        permanent: true,
+      },
+      {
+        source: "/term-and-service",
+        destination: "/termandservice",
+        permanent: true,
+      },
+    ];
+  },
   /** Client Journey video — fallback tên env server / typo CND trong `.env.local`. */
   env: {
     NEXT_PUBLIC_BUNNY_LIBRARY_ID: pickEnv(

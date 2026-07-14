@@ -28,6 +28,8 @@ type Options = {
   query: string;
   loaiFilter: LoaiFilter;
   excludeIds: ReadonlySet<string>;
+  /** Giới hạn số gợi ý (mặc định TAG_SUGGEST_MAX). */
+  max?: number;
 };
 
 export function useTagSuggestSearch({
@@ -35,6 +37,7 @@ export function useTagSuggestSearch({
   query,
   loaiFilter,
   excludeIds,
+  max = TAG_SUGGEST_MAX,
 }: Options) {
   const [index, setIndex] = useState<IndexedTagSuggest[] | null>(null);
   const [indexLoading, setIndexLoading] = useState(false);
@@ -85,17 +88,31 @@ export function useTagSuggestSearch({
     return filterTagSuggestIndex(index, trimmed, {
       loaiFilter,
       excludeIds,
-      max: TAG_SUGGEST_MAX,
+      max,
     });
-  }, [index, trimmed, loaiFilter, excludeIds]);
+  }, [index, trimmed, loaiFilter, excludeIds, max]);
 
   const suggestions = useMemo(() => {
-    const base = serverSuggestions ?? localSuggestions;
-    if (serverSuggestions) {
-      return enrichTagSuggestRows(base, indexById).slice(0, TAG_SUGGEST_MAX);
+    if (!serverSuggestions) return localSuggestions;
+    const server = enrichTagSuggestRows(serverSuggestions, indexById);
+    const seen = new Set(localSuggestions.map((r) => r.id));
+    const merged = [...localSuggestions];
+    for (const row of server) {
+      if (seen.has(row.id)) continue;
+      if (loaiFilter !== "all" && row.loai_bai_viet !== loaiFilter) continue;
+      if (excludeIds.has(row.id)) continue;
+      seen.add(row.id);
+      merged.push(row);
     }
-    return base;
-  }, [serverSuggestions, localSuggestions, indexById]);
+    return merged.slice(0, max);
+  }, [
+    serverSuggestions,
+    localSuggestions,
+    indexById,
+    loaiFilter,
+    excludeIds,
+    max,
+  ]);
 
   const runDedup = useCallback(
     async (ten: string) => {
@@ -147,7 +164,7 @@ export function useTagSuggestSearch({
           const enriched = enrichTagSuggestRows(
             (json.suggestions ?? []) as TagSuggestRow[],
             indexById,
-          ).slice(0, TAG_SUGGEST_MAX);
+          ).slice(0, max);
           setServerSuggestions(enriched);
         }
       } catch (err) {
@@ -160,7 +177,7 @@ export function useTagSuggestSearch({
         }
       }
     },
-    [indexById],
+    [indexById, max],
   );
 
   useEffect(() => {

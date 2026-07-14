@@ -5,6 +5,11 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 import { AdminNguoiDungGrowthDashboard } from "@/components/admin/AdminNguoiDungGrowthDashboard";
+import {
+  ADMIN_GIAI_DOAN_FILTERS,
+  emptyAdminGiaiDoanStats,
+  type AdminGiaiDoanStats,
+} from "@/lib/admin/nguoi-dung-giai-doan";
 import type {
   AdminUserListResponse,
   AdminUserListRow,
@@ -12,6 +17,7 @@ import type {
 import type { SystemRole } from "@/lib/auth/system-role";
 
 type ViewMode = "list" | "dashboard";
+type GiaiDoanFilterId = (typeof ADMIN_GIAI_DOAN_FILTERS)[number]["id"];
 
 const ROLE_OPTIONS: { value: SystemRole; label: string }[] = [
   { value: "super_admin", label: "Admin tối cao" },
@@ -118,6 +124,8 @@ function RoleSelect({
 export function AdminNguoiDungScreen() {
   const [view, setView] = useState<ViewMode>("list");
   const [query, setQuery] = useState("");
+  const [giaiDoanFilter, setGiaiDoanFilter] =
+    useState<GiaiDoanFilterId>("all");
   const [rows, setRows] = useState<AdminUserListRow[]>([]);
   const [total, setTotal] = useState(0);
   const [actorRole, setActorRole] = useState<SystemRole>("thanh_vien");
@@ -128,6 +136,9 @@ export function AdminNguoiDungScreen() {
     curator: 0,
     thanh_vien: 0,
   });
+  const [giaiDoanStats, setGiaiDoanStats] = useState<AdminGiaiDoanStats>(
+    emptyAdminGiaiDoanStats,
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -141,6 +152,7 @@ export function AdminNguoiDungScreen() {
     try {
       const qs = new URLSearchParams();
       if (query.trim()) qs.set("q", query.trim());
+      if (giaiDoanFilter !== "all") qs.set("giaiDoan", giaiDoanFilter);
       const res = await fetch(`/api/admin/nguoi-dung/list?${qs.toString()}`);
       if (!res.ok) {
         const json = (await res.json()) as { error?: string };
@@ -159,14 +171,16 @@ export function AdminNguoiDungScreen() {
           thanh_vien: 0,
         },
       );
+      setGiaiDoanStats(data.giaiDoanStats ?? emptyAdminGiaiDoanStats());
     } catch (e) {
       setRows([]);
       setTotal(0);
+      setGiaiDoanStats(emptyAdminGiaiDoanStats());
       setError(e instanceof Error ? e.message : "Lỗi không xác định.");
     } finally {
       setLoading(false);
     }
-  }, [query, view]);
+  }, [query, giaiDoanFilter, view]);
 
   useEffect(() => {
     if (view !== "list") return;
@@ -294,6 +308,28 @@ export function AdminNguoiDungScreen() {
           </article>
         </div>
 
+        <div
+          className="admin-to-chuc-filters admin-nguoi-dung-giai-filters"
+          role="group"
+          aria-label="Lọc theo tình trạng"
+        >
+          {ADMIN_GIAI_DOAN_FILTERS.map((filter) => (
+            <button
+              key={filter.id}
+              type="button"
+              className={`admin-to-chuc-filter${
+                giaiDoanFilter === filter.id ? " is-active" : ""
+              }`}
+              onClick={() => setGiaiDoanFilter(filter.id)}
+            >
+              {filter.label}
+              <span className="admin-to-chuc-filter-count">
+                {giaiDoanStats[filter.id]}
+              </span>
+            </button>
+          ))}
+        </div>
+
         {actorRole === "admin" ? (
           <div className="alert alert-warn admin-nguoi-dung-alert">
             <span>ℹ</span>
@@ -354,6 +390,7 @@ export function AdminNguoiDungScreen() {
                   <th>Người dùng</th>
                   <th>Email</th>
                   <th>Lần cuối hoạt động</th>
+                  <th>Tình trạng</th>
                   <th>Tick xanh</th>
                   <th>Vai trò hệ thống</th>
                 </tr>
@@ -361,7 +398,7 @@ export function AdminNguoiDungScreen() {
               <tbody>
                 {!loading && rows.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="admin-table-empty">
+                    <td colSpan={6} className="admin-table-empty">
                       Không có user phù hợp bộ lọc.
                     </td>
                   </tr>
@@ -391,6 +428,15 @@ export function AdminNguoiDungScreen() {
                       </td>
                       <td className="admin-nguoi-dung-muted">
                         {fmtLanCuoiHoatDong(row.lanCuoiHoatDong)}
+                      </td>
+                      <td>
+                        <span
+                          className={`admin-nguoi-dung-giai admin-nguoi-dung-giai--${
+                            row.giaiDoan ?? "chua_chon"
+                          }`}
+                        >
+                          {row.giaiDoanLabel}
+                        </span>
                       </td>
                       <td>
                         <button

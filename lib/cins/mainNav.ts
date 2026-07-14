@@ -38,6 +38,8 @@ export type MainNavItem = {
   flyout?: OrgFlyoutKind;
   /** Chưa có trang — click mở overlay thông báo. */
   comingSoon?: boolean;
+  /** Click mở modal trợ giúp (FAQ / hỗ trợ / liên hệ). */
+  opensHelp?: boolean;
   /** Click mở modal cài đặt tài khoản (giống menu user ở topbar). */
   opensSettings?: boolean;
 };
@@ -132,7 +134,7 @@ export const MAIN_NAV_FOOT_ITEMS: MainNavItem[] = [
     tip: "Câu hỏi thường gặp, hỗ trợ tài khoản và liên hệ với đội ngũ CINs",
     icon: "help",
     isActive: () => false,
-    comingSoon: true,
+    opensHelp: true,
   },
   {
     id: "settings",

@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 
+import type { DoanMonOption } from "@/components/truong/TruongDoanToolbar";
 import type { DoanViewMode } from "@/lib/truong/doan-project-sort";
 import type { TagAggSort } from "@/lib/tag/aggregation-types";
 
@@ -18,10 +19,13 @@ export type TruongDoanToolbarModel = {
   yearOptions: number[];
   nganhFilter: string;
   nganhOptions: string[];
+  monFilter: string;
+  monOptions: DoanMonOption[];
   onViewChange: (view: DoanViewMode) => void;
   onSortChange: (sort: TagAggSort) => void;
   onYearChange: (year: string) => void;
   onNganhChange: (nganh: string) => void;
+  onMonChange: (monId: string) => void;
 };
 
 type ContextValue = {

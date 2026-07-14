@@ -31,9 +31,10 @@ type UserRow = {
 };
 
 /**
- * Gợi ý người để theo dõi (module `goi_y_theo_doi`, luôn có — brief §5).
- * Loại bản thân + người đã theo dõi; ưu tiên hoạt động gần đây.
- * MVP gợi ý người dùng; gợi ý org/tag để session sau.
+ * Gợi ý người để kết nối (module `goi_y_theo_doi` / `nguoi_cung_nganh`, feed promo).
+ * Loại: bản thân · chưa xong onboarding (`giai_doan` null) · đã có quan hệ
+ * `user_ket_ban` (pending / accepted / blocked) · đã theo dõi (legacy).
+ * Ưu tiên hoạt động gần đây.
  */
 export async function loadFollowSuggestions(
   viewerId: string,
@@ -41,29 +42,42 @@ export async function loadFollowSuggestions(
 ): Promise<FollowSuggestion[]> {
   const admin = createServiceRoleClient();
 
-  const { data: followed } = await admin
-    .from("user_theo_doi")
-    .select("id_doi_tuong")
-    .eq("id_nguoi_theo_doi", viewerId)
-    .eq("loai_doi_tuong", "nguoi_dung")
-    .returns<Array<{ id_doi_tuong: string }>>();
+  const [{ data: followed }, { data: ketBanRows }] = await Promise.all([
+    admin
+      .from("user_theo_doi")
+      .select("id_doi_tuong")
+      .eq("id_nguoi_theo_doi", viewerId)
+      .eq("loai_doi_tuong", "nguoi_dung")
+      .returns<Array<{ id_doi_tuong: string }>>(),
+    admin
+      .from("user_ket_ban")
+      .select("id_nguoi_gui, id_nguoi_nhan")
+      .or(`id_nguoi_gui.eq.${viewerId},id_nguoi_nhan.eq.${viewerId}`)
+      .returns<Array<{ id_nguoi_gui: string; id_nguoi_nhan: string }>>(),
+  ]);
 
   const excluded = new Set<string>([
     viewerId,
     ...(followed ?? []).map((r) => r.id_doi_tuong),
   ]);
+  for (const row of ketBanRows ?? []) {
+    excluded.add(
+      row.id_nguoi_gui === viewerId ? row.id_nguoi_nhan : row.id_nguoi_gui,
+    );
+  }
 
   const { data } = await admin
     .from("user_nguoi_dung")
     .select("id, slug, ten_hien_thi, avatar_id, giai_doan")
     .eq("trang_thai_tai_khoan", "dang_hoat_dong")
+    .not("giai_doan", "is", null)
     .order("lan_cuoi_active", { ascending: false, nullsFirst: false })
     .limit(limit + excluded.size + 12)
     .returns<UserRow[]>();
 
   const out: FollowSuggestion[] = [];
   for (const row of data ?? []) {
-    if (excluded.has(row.id) || !row.slug?.trim()) continue;
+    if (excluded.has(row.id) || !row.slug?.trim() || !row.giai_doan) continue;
     out.push({
       id: row.id,
       slug: row.slug.trim(),

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { EntityLightJourneyFeed } from "@/components/tag/EntityLightJourneyFeed";
+import type { DoanMonOption } from "@/components/truong/TruongDoanToolbar";
 import { TruongDoanProjectMasonry } from "@/components/truong/TruongDoanProjectMasonry";
 import { useTruongDoanToolbarSlot } from "@/components/truong/TruongDoanToolbarContext";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
@@ -17,6 +18,7 @@ import type { TagAggSort } from "@/lib/tag/aggregation-types";
 
 const ALL_YEAR = "";
 const ALL_NGANH = "";
+const ALL_MON = "";
 
 async function fetchJson<T>(
   url: string,
@@ -37,6 +39,7 @@ export function TruongTabDoanSinhVien() {
   const [loadingMilestones, setLoadingMilestones] = useState(false);
   const [view, setView] = useState<DoanViewMode>("grid");
   const [sort, setSort] = useState<TagAggSort>("moi_nhat");
+  const [catalogMons, setCatalogMons] = useState<DoanMonOption[]>([]);
 
   useEffect(() => {
     if (!orgId) {
@@ -96,6 +99,7 @@ export function TruongTabDoanSinhVien() {
   const yearOptions = useMemo(() => doanProjectYearOptions(projects), [projects]);
   const [yearFilter, setYearFilter] = useState(ALL_YEAR);
   const [nganhFilter, setNganhFilter] = useState(ALL_NGANH);
+  const [monFilter, setMonFilter] = useState(ALL_MON);
 
   const nganhOptions = useMemo(() => {
     const fromPrograms = (inline?.programs ?? []).map((p) => p.nganhTitle);
@@ -107,14 +111,69 @@ export function TruongTabDoanSinhVien() {
     );
   }, [inline?.programs, projects]);
 
+  const selectedProgramId = useMemo(() => {
+    if (!nganhFilter) return null;
+    return (
+      inline?.programs.find((p) => p.nganhTitle === nganhFilter)?.id ?? null
+    );
+  }, [inline?.programs, nganhFilter]);
+
+  useEffect(() => {
+    setMonFilter(ALL_MON);
+    if (!orgId || !selectedProgramId) {
+      setCatalogMons([]);
+      return;
+    }
+    const controller = new AbortController();
+    void fetchJson<{
+      items?: Array<{ monHocId: string; label: string }>;
+    }>(
+      `/api/truong/${orgId}/nganh/${selectedProgramId}/mon`,
+      controller.signal,
+    )
+      .then((json) => {
+        const items = Array.isArray(json?.items) ? json.items : [];
+        setCatalogMons(
+          items.map((m) => ({ id: m.monHocId, label: m.label })),
+        );
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setCatalogMons([]);
+      });
+    return () => controller.abort();
+  }, [orgId, selectedProgramId]);
+
+  const monOptions = useMemo(() => {
+    if (!nganhFilter) return [];
+    const byId = new Map<string, string>();
+    for (const m of catalogMons) {
+      byId.set(m.id, m.label);
+    }
+    for (const p of projects) {
+      if (p.nganhLabel !== nganhFilter) continue;
+      if (p.monHocId && p.monHocLabel) {
+        byId.set(p.monHocId, p.monHocLabel);
+      }
+    }
+    return [...byId.entries()]
+      .map(([id, label]) => ({ id, label }))
+      .sort((a, b) => a.label.localeCompare(b.label, "vi"));
+  }, [catalogMons, nganhFilter, projects]);
+
+  const handleNganhChange = (value: string) => {
+    setNganhFilter(value);
+    setMonFilter(ALL_MON);
+  };
+
   const filteredProjects = useMemo(() => {
     const yearNum = yearFilter ? Number(yearFilter) : null;
     return projects.filter((p) => {
       if (yearNum != null && p.nam !== yearNum) return false;
       if (nganhFilter && p.nganhLabel !== nganhFilter) return false;
+      if (monFilter && p.monHocId !== monFilter) return false;
       return true;
     });
-  }, [projects, yearFilter, nganhFilter]);
+  }, [projects, yearFilter, nganhFilter, monFilter]);
 
   const sortedProjects = useMemo(
     () => sortDoanProjects(filteredProjects, sort),
@@ -143,6 +202,8 @@ export function TruongTabDoanSinhVien() {
       ? sortedProjects.length === 0
       : filteredMilestones.length === 0);
 
+  const monFilterLabel = monOptions.find((m) => m.id === monFilter)?.label;
+
   useEffect(() => {
     setToolbar({
       sort,
@@ -151,10 +212,13 @@ export function TruongTabDoanSinhVien() {
       yearOptions,
       nganhFilter,
       nganhOptions,
+      monFilter,
+      monOptions,
       onViewChange: setView,
       onSortChange: setSort,
       onYearChange: setYearFilter,
-      onNganhChange: setNganhFilter,
+      onNganhChange: handleNganhChange,
+      onMonChange: setMonFilter,
     });
     return () => setToolbar(null);
   }, [
@@ -164,6 +228,8 @@ export function TruongTabDoanSinhVien() {
     yearOptions,
     nganhFilter,
     nganhOptions,
+    monFilter,
+    monOptions,
     setToolbar,
   ]);
 
@@ -182,6 +248,7 @@ export function TruongTabDoanSinhVien() {
         <p className="tdh-placeholder">
           Chưa có đồ án nào được gắn vào trường
           {nganhFilter ? ` — ngành ${nganhFilter}` : ""}
+          {monFilterLabel ? ` · môn ${monFilterLabel}` : ""}
           {yearFilter ? ` trong năm ${yearFilter}` : ""}.
           Sinh viên gắn tổ chức từ Journey — admin duyệt tại nút Thông báo.
         </p>

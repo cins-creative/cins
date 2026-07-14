@@ -10,7 +10,7 @@ import {
   removeSavedAccountAction,
   switchAccountAction,
 } from "@/app/auth/switch-account-action";
-import { CinsComingSoonModal } from "@/components/cins/CinsComingSoonModal";
+import { HelpCenterModal } from "@/components/cins/HelpCenterModal";
 import { SidebarNavIcon } from "@/components/cins/SidebarNavIcon";
 import { UserAccountSettingsModal } from "@/components/cins/UserAccountSettingsModal";
 import { getNameInitials } from "@/lib/journey/profile";
@@ -44,7 +44,7 @@ export function UserAccountMenu({
 }: Props) {
   const [open, setOpen] = useState(false);
   const [switchOpen, setSwitchOpen] = useState(false);
-  const [comingSoonOpen, setComingSoonOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const cardRef = useRef<HTMLDivElement | null>(null);
   const menuId = useId();
@@ -253,7 +253,7 @@ export function UserAccountMenu({
             role="menuitem"
             onClick={() => {
               setOpen(false);
-              setComingSoonOpen(true);
+              setHelpOpen(true);
             }}
           >
             <span className="app-user-menu-ico" aria-hidden>
@@ -312,10 +312,7 @@ export function UserAccountMenu({
         </span>
       </button>
     </div>
-      <CinsComingSoonModal
-        open={comingSoonOpen}
-        onClose={() => setComingSoonOpen(false)}
-      />
+      <HelpCenterModal open={helpOpen} onClose={() => setHelpOpen(false)} />
       <UserAccountSettingsModal
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}

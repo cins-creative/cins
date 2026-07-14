@@ -1,0 +1,477 @@
+/* Trang Điều khoản dịch vụ — layout đọc dài + hero brand CINs */
+
+.cins-shell-column:has(.tas-root),
+.cins-main:has(.tas-root) {
+  background: var(--bg-page, #f4f5f8);
+}
+
+.tas-root {
+  --tas-max: 1120px;
+  --tas-doc: 40rem;
+  width: 100%;
+  min-height: 100%;
+  color: var(--ink-body, rgba(0, 0, 0, 0.55));
+  font-family: var(--font-sans);
+}
+
+/* —— Hero —— */
+.tas-hero {
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid var(--border, #e4e6eb);
+  background: var(--bg-surface, #fff);
+}
+
+.tas-hero-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      900px 420px at 12% -10%,
+      color-mix(in srgb, var(--cins-blue, #1f74c9) 22%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      700px 380px at 88% 0%,
+      color-mix(in srgb, var(--cins-mint, #6efec0) 16%, transparent),
+      transparent 68%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--cins-blue-soft, #e7f0fb) 70%, #fff) 0%,
+      var(--bg-surface, #fff) 78%
+    );
+}
+
+.tas-hero-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.35;
+  background-image:
+    linear-gradient(
+      to right,
+      color-mix(in srgb, var(--cins-blue, #1f74c9) 8%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--cins-blue, #1f74c9) 8%, transparent) 1px,
+      transparent 1px
+    );
+  background-size: 48px 48px;
+  mask-image: linear-gradient(180deg, #000 0%, transparent 85%);
+}
+
+.tas-hero-inner {
+  position: relative;
+  z-index: 1;
+  width: min(var(--tas-max), calc(100% - 40px));
+  margin: 0 auto;
+  padding: clamp(36px, 6vw, 72px) 0 clamp(28px, 4vw, 48px);
+}
+
+.tas-brand {
+  margin: 0 0 10px;
+  font-size: clamp(2.4rem, 5.5vw, 3.6rem);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 0.95;
+  color: var(--cins-blue, #1f74c9);
+}
+
+.tas-kicker {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.4));
+}
+
+.tas-title {
+  margin: 0 0 6px;
+  max-width: 16ch;
+  font-size: clamp(1.75rem, 3.2vw, 2.35rem);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+}
+
+.tas-title-en {
+  margin: 0 0 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.4));
+}
+
+.tas-lede {
+  margin: 0 0 22px;
+  max-width: 38rem;
+  font-size: clamp(15px, 1.4vw, 17px);
+  font-weight: 400;
+  line-height: 1.55;
+  color: var(--ink-title, rgba(0, 0, 0, 0.6));
+}
+
+.tas-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px 28px;
+  margin: 0;
+  padding-top: 18px;
+  border-top: 1px solid
+    color-mix(in srgb, var(--cins-blue, #1f74c9) 18%, var(--border, #e4e6eb));
+}
+
+.tas-facts dt {
+  margin: 0 0 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.4));
+}
+
+.tas-facts dd {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+  word-break: break-word;
+}
+
+.tas-facts a {
+  color: var(--cins-blue, #1f74c9);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.tas-facts a:hover {
+  color: var(--cins-blue-dark, #1656a0);
+  text-decoration: underline;
+}
+
+/* —— Shell: toc + doc —— */
+.tas-shell {
+  width: min(var(--tas-max), calc(100% - 40px));
+  margin: 0 auto;
+  padding: clamp(28px, 4vw, 48px) 0 72px;
+  display: grid;
+  grid-template-columns: minmax(200px, 240px) minmax(0, 1fr);
+  gap: clamp(28px, 4vw, 56px);
+  align-items: start;
+}
+
+.tas-toc {
+  position: sticky;
+  top: 72px;
+  max-height: calc(100vh - 96px);
+  overflow: auto;
+  padding: 4px 2px 8px 0;
+  scrollbar-width: thin;
+}
+
+.tas-toc-title {
+  margin: 0 0 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.4));
+}
+
+.tas-toc ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tas-toc a {
+  display: grid;
+  grid-template-columns: 1.75rem minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm, 10px);
+  text-decoration: none;
+  color: var(--ink-title, rgba(0, 0, 0, 0.6));
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.tas-toc a:hover {
+  background: color-mix(in srgb, var(--cins-blue-soft, #e7f0fb) 80%, transparent);
+  color: var(--cins-blue-dark, #1656a0);
+}
+
+.tas-toc-n {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.45;
+  letter-spacing: 0.02em;
+  color: var(--cins-blue, #1f74c9);
+  font-variant-numeric: tabular-nums;
+}
+
+.tas-toc-label {
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.tas-doc {
+  min-width: 0;
+  max-width: var(--tas-doc);
+  padding: 0 0 8px;
+}
+
+.tas-accept {
+  margin: 0 0 36px;
+  padding: 16px 18px;
+  border-left: 3px solid var(--cins-blue, #1f74c9);
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--cins-blue-soft, #e7f0fb) 90%, transparent),
+    transparent 92%
+  );
+  border-radius: 0 var(--radius-md, 14px) var(--radius-md, 14px) 0;
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--ink-title, rgba(0, 0, 0, 0.6));
+}
+
+.tas-section {
+  margin: 0 0 40px;
+  padding-top: 4px;
+  scroll-margin-top: 88px;
+}
+
+.tas-section + .tas-section {
+  border-top: 1px solid var(--border, #e4e6eb);
+  padding-top: 32px;
+}
+
+.tas-section h2 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px 14px;
+  margin: 0 0 14px;
+  font-size: clamp(1.05rem, 1.5vw, 1.2rem);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.3;
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+}
+
+.tas-n {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--cins-blue, #1f74c9);
+  font-variant-numeric: tabular-nums;
+}
+
+.tas-section p,
+.tas-section li {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--ink-body, rgba(0, 0, 0, 0.55));
+}
+
+.tas-section p {
+  margin: 0 0 12px;
+}
+
+.tas-section ul {
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tas-section li {
+  position: relative;
+  padding-left: 1.15rem;
+}
+
+.tas-section li::before {
+  content: "";
+  position: absolute;
+  top: 0.62em;
+  left: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--cins-blue, #1f74c9);
+  opacity: 0.55;
+}
+
+.tas-section strong {
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+  font-weight: 600;
+}
+
+.tas-section a {
+  color: var(--cins-blue, #1f74c9);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.tas-section a:hover {
+  color: var(--cins-blue-dark, #1656a0);
+  text-decoration: underline;
+}
+
+.tas-foot {
+  margin-top: 8px;
+  padding: 24px 0 0;
+  border-top: 1px solid var(--border, #e4e6eb);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.4));
+}
+
+.tas-foot p {
+  margin: 0 0 10px;
+}
+
+.tas-foot-url {
+  color: var(--ink-title, rgba(0, 0, 0, 0.6));
+}
+
+.tas-foot a {
+  color: var(--cins-blue, #1f74c9);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.tas-foot a:hover {
+  text-decoration: underline;
+}
+
+/* —— Responsive —— */
+@media (max-width: 900px) {
+  .tas-shell {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+
+  .tas-toc {
+    position: static;
+    max-height: none;
+    margin: 0 -4px;
+    padding: 0 0 4px;
+    overflow-x: auto;
+    border-bottom: 1px solid var(--border, #e4e6eb);
+  }
+
+  .tas-toc-title {
+    padding-left: 4px;
+  }
+
+  .tas-toc ol {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 6px;
+    width: max-content;
+    padding: 0 4px 12px;
+  }
+
+  .tas-toc a {
+    grid-template-columns: auto;
+    width: max-content;
+    max-width: 200px;
+    padding: 8px 12px;
+    background: var(--bg-surface, #fff);
+    border: 1px solid var(--border, #e4e6eb);
+    border-radius: var(--radius-pill, 999px);
+  }
+
+  .tas-toc-n {
+    display: none;
+  }
+
+  .tas-toc-label {
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 168px;
+  }
+
+  .tas-facts {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+}
+
+@media (max-width: 560px) {
+  .tas-hero-inner,
+  .tas-shell {
+    width: calc(100% - 28px);
+  }
+
+  .tas-brand {
+    font-size: 2.2rem;
+  }
+
+  .tas-section p,
+  .tas-section li {
+    font-size: 14.5px;
+  }
+}
+
+/* —— Dark —— */
+:root[data-theme="dark"] .tas-hero {
+  background: var(--bg-surface);
+  border-color: var(--border);
+}
+
+:root[data-theme="dark"] .tas-hero-bg {
+  background:
+    radial-gradient(
+      900px 420px at 12% -10%,
+      color-mix(in srgb, var(--cins-blue, #1f74c9) 28%, transparent),
+      transparent 70%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--cins-blue, #1f74c9) 12%, var(--bg-surface)) 0%,
+      var(--bg-surface) 80%
+    );
+}
+
+:root[data-theme="dark"] .tas-accept {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--cins-blue, #1f74c9) 16%, transparent),
+    transparent 92%
+  );
+}
+
+:root[data-theme="dark"] .tas-toc a:hover {
+  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 16%, transparent);
+}
+
+@media (max-width: 900px) {
+  :root[data-theme="dark"] .tas-toc a {
+    background: var(--bg-surface);
+    border-color: var(--border);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tas-toc a {
+    transition: none;
+  }
+}

@@ -12215,6 +12215,49 @@ select.j-edit-input {
   color: var(--cins-blue);
 }
 
+/* Nút Kết bạn / Theo dõi — pastel sáng cứng (#ecfdf5 / #fff7ed) lệch trên nền tối */
+:root[data-theme="dark"] .j-friend-btn.is-idle {
+  background: color-mix(in srgb, var(--cins-blue, #4f9be8) 12%, var(--bg-surface));
+  color: var(--cins-blue, #4f9be8);
+  border-color: color-mix(in srgb, var(--cins-blue, #4f9be8) 45%, var(--border));
+}
+
+:root[data-theme="dark"] .j-friend-btn.is-pending {
+  background: rgba(245, 158, 11, 0.14);
+  color: #fbbf24;
+  border-color: rgba(251, 191, 36, 0.4);
+}
+
+:root[data-theme="dark"] .j-friend-btn.is-friends {
+  background: rgba(52, 201, 138, 0.14);
+  color: #6ee7b7;
+  border-color: rgba(52, 201, 138, 0.4);
+}
+
+:root[data-theme="dark"] .j-friend-request-actions {
+  background: var(--bg-surface, #171b24);
+  border-color: var(--border, #2a3040);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+}
+
+:root[data-theme="dark"] .j-friend-action.is-accept {
+  color: #6ee7b7;
+}
+
+:root[data-theme="dark"] .j-friend-action.is-accept:hover:not(:disabled) {
+  background: rgba(52, 201, 138, 0.14);
+}
+
+:root[data-theme="dark"] .j-friend-action.is-decline,
+:root[data-theme="dark"] .j-friend-action.is-unfriend {
+  color: #f87171;
+}
+
+:root[data-theme="dark"] .j-friend-action.is-decline:hover:not(:disabled),
+:root[data-theme="dark"] .j-friend-action.is-unfriend:hover:not(:disabled) {
+  background: rgba(248, 113, 113, 0.12);
+}
+
 /* Theo dõi (xanh) + duyệt đồng tác giả (tím) */
 :root[data-theme="dark"] .j-follow-request-pending {
   border-color: color-mix(in srgb, var(--cins-blue) 34%, var(--border));
@@ -14411,22 +14454,23 @@ select.j-edit-input {
   max-width: none;
   width: 100%;
 }
-/* Bài ngắn — quote căn giữa, khung co theo chữ (không poster 5:3). */
+/* Bài ngắn — quote căn giữa khung, đủ cao để không bị dẹp (không poster 5:3). */
 .jcard-chi-chu.is-compact {
   aspect-ratio: auto;
   height: auto;
-  min-height: clamp(132px, 24vw, 188px);
+  min-height: clamp(220px, 38vw, 300px);
   justify-content: center;
   align-items: center;
   text-align: center;
-  padding: 28px 32px;
-  gap: 10px;
+  padding: 36px 36px;
+  gap: 12px;
 }
 .jcard-chi-chu.is-compact .jcard-chi-chu-title,
 .jcard-chi-chu.is-compact .jcard-chi-chu-body {
   width: 100%;
   max-width: 34em;
   margin-inline: auto;
+  flex: 0 1 auto;
 }
 .jcard-chi-chu.is-compact .jcard-chi-chu-title {
   font-size: clamp(19px, 4vw, 26px);
@@ -14612,8 +14656,8 @@ select.j-edit-input {
     padding: 28px 20px;
   }
   .jcard-chi-chu.is-compact {
-    padding: 24px 20px;
-    min-height: clamp(120px, 34vw, 168px);
+    padding: 32px 22px;
+    min-height: clamp(200px, 52vw, 260px);
   }
   .jcard-chi-chu.is-collapsed {
     padding: 20px 20px 0;
@@ -16057,6 +16101,26 @@ a.action-btn-part {
   color: var(--cins-blue);
   background: var(--cins-blue-soft);
 }
+
+/* Dark — like/bookmark dùng pastel sáng (#fff1f2) lệch trên nền tối */
+:root[data-theme="dark"] .action-btn.is-liked,
+:root[data-theme="dark"] .action-btn--split.is-liked {
+  color: #fb7185;
+  background: rgba(244, 63, 94, 0.16);
+}
+
+:root[data-theme="dark"] .action-btn--split.is-liked:hover,
+:root[data-theme="dark"] .action-btn--split.is-liked:focus-within {
+  background: rgba(244, 63, 94, 0.26);
+  color: #fda4af;
+}
+
+:root[data-theme="dark"] .action-btn.is-bookmarked,
+:root[data-theme="dark"] .action-btn--split.is-bookmarked {
+  color: var(--cins-blue, #4f9be8);
+  background: var(--cins-blue-soft, rgba(79, 155, 232, 0.16));
+}
+
 .action-btn-count:hover {
   text-decoration: underline;
   text-underline-offset: 2px;
@@ -18324,18 +18388,9 @@ a.action-btn-part {
  * PROFILE SHARE MODAL — portal vào document.body (JourneyProfileShareModal)
  * ──────────────────────────────────────────────────────────────── */
 .j-share-backdrop {
+  /* Inherit --bg-* / --ink-* / --font-* từ design tokens (light + dark).
+   * Không hardcode nền sáng — cùng pattern `.j-edit-backdrop`. */
   --j-ease: cubic-bezier(0.2, 0.7, 0.3, 1);
-  --ink-display: #0f172a;
-  --ink-body: #334155;
-  --ink-muted: #64748b;
-  --bg-surface: #ffffff;
-  --border: #e2e8f0;
-  --border-soft: #e5e7eb;
-  --cins-blue: #1f74c9;
-  --cins-blue-dark: #1656a0;
-  --cins-blue-soft: #eef6ff;
-  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-mono: ui-monospace, "Cascadia Code", monospace;
   position: fixed;
   inset: 0;
   z-index: 10100;
@@ -18361,21 +18416,14 @@ a.action-btn-part {
   flex-direction: column;
   max-height: calc(100vh - 72px);
   overflow: hidden;
+  font-family: var(--font-sans);
+  color: var(--ink-body);
 }
 .j-share-sheet.is-card-step {
   width: min(720px, calc(100vw - 24px));
 }
 .j-share-sheet--popover {
   --j-ease: cubic-bezier(0.2, 0.7, 0.3, 1);
-  --ink-display: #0f172a;
-  --ink-body: #334155;
-  --ink-muted: #64748b;
-  --bg-surface: #ffffff;
-  --border: #e2e8f0;
-  --border-soft: #e5e7eb;
-  --cins-blue: #1f74c9;
-  --cins-blue-dark: #1656a0;
-  --cins-blue-soft: #eef6ff;
   position: fixed;
   z-index: 10100;
   width: 100%;
@@ -18394,10 +18442,11 @@ a.action-btn-part {
 .j-share-sheet--popover .j-share-title {
   font-family: var(--font-sans);
   font-size: 15px;
-  font-weight: var(--weight-bold);
+  font-weight: var(--weight-bold, 700);
   letter-spacing: -0.1px;
 }
 .j-share-sheet--popover .j-share-sub {
+  font-family: var(--font-sans);
   font-size: 11.5px;
 }
 .j-share-sheet--popover .j-share-body {
@@ -18465,8 +18514,8 @@ a.action-btn-part {
 }
 .j-share-title {
   margin: 0;
-  font-family: var(--font-serif);
-  font-weight: 600;
+  font-family: var(--font-sans);
+  font-weight: 700;
   font-size: 21px;
   letter-spacing: -0.01em;
   color: var(--ink-display);
@@ -18475,7 +18524,7 @@ a.action-btn-part {
   margin: 4px 0 0;
   font-size: 12.5px;
   color: var(--ink-muted);
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
 }
 .j-share-close {
   appearance: none;
@@ -18558,6 +18607,23 @@ a.action-btn-part {
 .j-share-menu-ic--invite {
   background: #fff7ed;
   color: #c2410c;
+}
+/* Dark — pastel cứng (#eef2ff…) lệch trên nền tối của sheet */
+:root[data-theme="dark"] .j-share-menu-ic--link {
+  background: rgba(99, 102, 241, 0.2);
+  color: #a5b4fc;
+}
+:root[data-theme="dark"] .j-share-menu-ic--journey {
+  background: rgba(16, 185, 129, 0.18);
+  color: #6ee7b7;
+}
+:root[data-theme="dark"] .j-share-menu-ic--gallery {
+  background: rgba(168, 85, 247, 0.2);
+  color: #d8b4fe;
+}
+:root[data-theme="dark"] .j-share-menu-ic--invite {
+  background: rgba(249, 115, 22, 0.18);
+  color: #fdba74;
 }
 .j-share-invite {
   display: flex;
@@ -18663,9 +18729,9 @@ a.action-btn-part {
   flex-shrink: 0;
 }
 .j-share-invite-check.is-on {
-  border-color: #1f74c9;
-  background: #1f74c9;
-  box-shadow: inset 0 0 0 3px #fff;
+  border-color: var(--cins-blue, #1f74c9);
+  background: var(--cins-blue, #1f74c9);
+  box-shadow: inset 0 0 0 3px var(--bg-surface, #fff);
 }
 .j-share-invite-send {
   width: 100%;

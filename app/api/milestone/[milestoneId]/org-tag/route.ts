@@ -42,6 +42,7 @@ export async function POST(req: Request, ctx: RouteContext) {
     nam?: number;
     khoaHocId?: string | null;
     nganhId?: string | null;
+    monHocId?: string | null;
     tacPhamId?: string;
     milestoneTitle?: string;
     milestoneKind?: string;
@@ -83,6 +84,7 @@ export async function POST(req: Request, ctx: RouteContext) {
     nam,
     khoaHocId: body.khoaHocId ?? null,
     nganhId: body.nganhId ?? null,
+    monHocId: body.monHocId ?? null,
     tacPhamId,
     milestoneTitle: body.milestoneTitle?.trim() || "Cột mốc",
     milestoneKind: body.milestoneKind?.trim() || "du_an",

@@ -1,0 +1,201 @@
+/* Bổ sung nội dung modal Trợ giúp — layout dùng chung .uas-* */
+
+.help-faq {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.help-faq-item {
+  border: 1px solid var(--border, #e4e6eb);
+  border-radius: var(--radius-md, 14px);
+  background: var(--bg-surface, #fff);
+  overflow: hidden;
+}
+
+.help-faq-q {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  padding: 12px 14px;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+  cursor: pointer;
+  line-height: 1.35;
+}
+
+.help-faq-q:hover {
+  background: var(--bg-page, #f4f5f8);
+}
+
+.help-faq-q.on {
+  background: var(--cins-blue-soft, #e7f0fb);
+  color: var(--cins-blue-dark, #1656a0);
+}
+
+.help-faq-q svg {
+  flex-shrink: 0;
+  color: var(--cins-blue, #1f74c9);
+}
+
+.help-faq-a {
+  margin: 0;
+  padding: 0 14px 14px 40px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--ink-body, rgba(0, 0, 0, 0.55));
+}
+
+.help-tip-card {
+  cursor: default;
+}
+
+.help-tip-card:hover {
+  border-color: var(--border, #e4e6eb);
+}
+
+.help-contact {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.help-mailto {
+  color: var(--cins-blue, #1f74c9);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.help-mailto:hover {
+  text-decoration: underline;
+  color: var(--cins-blue-dark, #1656a0);
+}
+
+.help-formula {
+  font-weight: 600;
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+}
+
+.help-formula-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md, 14px);
+  background: var(--cins-blue-soft, #e7f0fb);
+  color: var(--cins-blue-dark, #1656a0);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.help-formula-box p {
+  margin: 0;
+}
+
+.help-formula-box svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.help-subhead {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+}
+
+.help-score-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.help-score-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 12px;
+}
+
+.help-score-points {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--cins-blue, #1f74c9);
+}
+
+.help-score-tip {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-title, rgba(0, 0, 0, 0.6));
+}
+
+.help-footnote {
+  margin: 16px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.45));
+}
+
+.help-diff-gap {
+  margin-bottom: 20px;
+}
+
+.help-vs-line {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 6px;
+}
+
+.help-vs-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.4));
+}
+
+.help-vs-label.cins {
+  color: var(--cins-blue, #1f74c9);
+}
+
+.help-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink-display, rgba(0, 0, 0, 0.75));
+}
+
+:root[data-theme="dark"] .help-formula-box {
+  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 18%, transparent);
+  color: var(--ink-body, rgba(255, 255, 255, 0.75));
+}
+
+.uas-foot-actions .uas-btn.primary {
+  text-decoration: none;
+}
+
+:root[data-theme="dark"] .help-faq-item {
+  background: var(--bg-surface);
+  border-color: var(--border);
+}
+
+:root[data-theme="dark"] .help-faq-q:hover {
+  background: var(--bg-page);
+}
+
+:root[data-theme="dark"] .help-faq-q.on {
+  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 18%, transparent);
+  color: var(--cins-blue, #1f74c9);
+}

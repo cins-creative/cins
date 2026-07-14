@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  BadgeCheck,
   BookOpen,
   Briefcase,
   Calendar,
@@ -13,11 +14,11 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
-import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { JourneyArticleTagLink } from "@/components/journey/JourneyArticleTagLink";
 import { JourneyMilestoneOwnerMenu } from "@/components/journey/JourneyMilestoneOwnerMenu";
+import { JourneyOrgPopover } from "@/components/journey/JourneyOrgPopover";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
 import {
   articleTagLoaiClass,
@@ -26,6 +27,7 @@ import type {
   MilestonePostAuthor,
   MilestonePostContributor,
   MilestonePostContent,
+  MilestonePostVerifier,
 } from "@/lib/journey/milestone-post-types";
 import {
   mapCheDoToMilestoneVisibility,
@@ -66,6 +68,9 @@ type Props = {
     thoiDiem: string;
     loaiMoc: string;
     cheDoHienThi: string;
+    /** Org xác thực — `✓ Tên` (timeline `verifiedBy`). */
+    verifiedBy?: string | null;
+    verifier?: MilestonePostVerifier | null;
   };
   mainPost?: MilestonePostContent;
   postSlug?: string | null;
@@ -104,6 +109,9 @@ export function PostMetaRail({
   const articleTags = mainPost?.articleTags ?? [];
   const verifyTags = articleTags.filter((t) => t.da_verify === true);
   const attachTags = articleTags.filter((t) => t.da_verify !== true);
+  const verifiedBy = milestone.verifiedBy?.trim() || null;
+  const verifier = resolveVerifierDisplay(milestone.verifier, verifiedBy);
+  const isVerified = Boolean(verifier);
 
   const authorBody = (
     <>
@@ -128,24 +136,27 @@ export function PostMetaRail({
 
   return (
     <aside
-      className="post-view-rail"
+      className={
+        "post-view-rail" + (isVerified ? " post-view-rail--verified" : "")
+      }
       aria-label="Thông tin bài viết"
     >
       <div className="post-rail-scroll">
-        <div className="post-rail-blk post-rail-blk--author">
+        <div
+          className={
+            "post-rail-blk post-rail-blk--author" +
+            (isVerified ? " is-verified" : "")
+          }
+        >
         <div className="post-rail-author">
           <JourneyUserPopover
             slug={owner.slug}
             fallbackName={owner.tenHienThi}
             fallbackAvatarUrl={ownerAvatarUrl}
+            track={{ idBoiCanh: milestone.id }}
           >
-            <Link
-              href={`/${owner.slug}`}
-              className="post-rail-author-link"
-              prefetch={false}
-            >
-              {authorBody}
-            </Link>
+            {/* Không dùng <Link> trong trigger — click mở card, vào hồ sơ từ trong popover. */}
+            <span className="post-rail-author-link">{authorBody}</span>
           </JourneyUserPopover>
           {isOwner ? (
             <JourneyMilestoneOwnerMenu
@@ -171,6 +182,7 @@ export function PostMetaRail({
             {vis.text}
           </span>
         </div>
+        {verifier ? <PostRailVerifierCallout verifier={verifier} /> : null}
         {heroRail ? <div className="post-rail-hero">{heroRail}</div> : null}
         {coverRail ? <div className="post-rail-cover">{coverRail}</div> : null}
         {contentRail ? (
@@ -180,7 +192,7 @@ export function PostMetaRail({
 
       {verifyTags.length > 0 ? (
         <div className="post-rail-blk post-rail-blk--tags post-rail-blk--verify">
-          <div className="post-rail-lbl">Xác thực</div>
+          <div className="post-rail-lbl">Thẻ xác thực</div>
           <div className="post-rail-tags">
             {verifyTags.map((t) => (
               <JourneyArticleTagLink
@@ -276,6 +288,88 @@ function buildRailPeople(
   if (contributors.length === 0) return [];
   if (contributors.length === 1 && contributors[0]?.laChuSoHuu) return [];
   return [...contributors];
+}
+
+function resolveVerifierDisplay(
+  verifier: MilestonePostVerifier | null | undefined,
+  verifiedBy: string | null,
+): MilestonePostVerifier | null {
+  if (verifier?.name?.trim()) return verifier;
+  if (!verifiedBy) return null;
+  const name = verifiedBy.replace(/^✓\s*/, "").trim();
+  if (!name) return null;
+  return {
+    name,
+    slug: null,
+    avatarUrl: null,
+    href: null,
+    role: "Xác nhận bởi tổ chức",
+    orgKind: null,
+  };
+}
+
+function PostRailVerifierCallout({
+  verifier,
+}: {
+  verifier: MilestonePostVerifier;
+}) {
+  const initial = (verifier.name.charAt(0) || "?").toUpperCase();
+  const orgCluster = (
+    <span className="post-rail-verifier-org">
+      <span className="post-rail-verifier-avatar" aria-hidden>
+        {verifier.avatarUrl ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img src={verifier.avatarUrl} alt="" />
+        ) : (
+          initial
+        )}
+      </span>
+      <span className="post-rail-verifier-org-copy">
+        <strong>{verifier.name}</strong>
+        {verifier.role ? <span>{verifier.role}</span> : null}
+      </span>
+    </span>
+  );
+
+  const orgKind = verifier.orgKind;
+  const canPopover = Boolean(verifier.slug?.trim() && orgKind);
+
+  return (
+    <div
+      className="post-rail-verifier"
+      role="status"
+      aria-label={`Đã xác thực bởi ${verifier.name}`}
+    >
+      <div className="post-rail-verifier-head">
+        <span className="post-rail-verifier-icon" aria-hidden>
+          <BadgeCheck size={14} strokeWidth={2.4} />
+        </span>
+        <span className="post-rail-verifier-lead">Đã xác thực bởi</span>
+      </div>
+      {canPopover && orgKind ? (
+        <JourneyOrgPopover
+          slug={verifier.slug}
+          orgKind={orgKind}
+          href={verifier.href}
+          fallbackName={verifier.name}
+          fallbackAvatarUrl={verifier.avatarUrl}
+        >
+          {orgCluster}
+        </JourneyOrgPopover>
+      ) : verifier.href ? (
+        <a
+          href={verifier.href}
+          className="post-rail-verifier-link"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {orgCluster}
+        </a>
+      ) : (
+        orgCluster
+      )}
+    </div>
+  );
 }
 
 function formatVnDate(iso: string): string {

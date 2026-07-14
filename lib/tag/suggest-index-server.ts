@@ -20,6 +20,7 @@ type IndexRow = {
   loai_bai_viet: string;
   linh_vuc_ten: string | null;
   so_nguoi_tagged: number;
+  cover_id: string | null;
 };
 
 function mapIndexRow(r: IndexRow): TagSuggestRow {
@@ -36,6 +37,8 @@ function mapIndexRow(r: IndexRow): TagSuggestRow {
     loai_bai_viet: parsePickableTagLoai(r.loai_bai_viet),
     linh_vuc_ten: r.linh_vuc_ten?.trim() || null,
     so_nguoi_tagged: Number(r.so_nguoi_tagged) || 0,
+    cover_id:
+      r.cover_id == null ? null : String(r.cover_id).trim() || null,
   };
 }
 
@@ -66,6 +69,7 @@ async function loadTagSuggestIndexViaPostgres(): Promise<TagSuggestRow[] | null>
         bv.tieu_de_eng,
         bv.da_verify,
         bv.loai_bai_viet,
+        bv.cover_id,
         lv.ten AS linh_vuc_ten,
         COALESCE(uc.so_nguoi, 0) AS so_nguoi_tagged
       FROM article_bai_viet bv
@@ -149,7 +153,7 @@ async function loadTagSuggestIndexViaSupabase(): Promise<TagSuggestRow[]> {
   const { data, error } = await admin
     .from("article_bai_viet")
     .select(
-      "id, tieu_de, tieu_de_viet, tieu_de_eng, da_verify, loai_bai_viet, linh_vuc:id_linh_vuc(ten)",
+      "id, tieu_de, tieu_de_viet, tieu_de_eng, da_verify, loai_bai_viet, cover_id, linh_vuc:id_linh_vuc(ten)",
     )
     .in("loai_bai_viet", [...PICKABLE_TAG_LOAI])
     .eq("trang_thai_noi_dung", "published")
@@ -170,6 +174,7 @@ async function loadTagSuggestIndexViaSupabase(): Promise<TagSuggestRow[]> {
       loai_bai_viet: String(row.loai_bai_viet ?? "keyword"),
       linh_vuc_ten: lvNode?.ten?.trim() || null,
       so_nguoi_tagged: 0,
+      cover_id: (row.cover_id as string | null) ?? null,
     });
   });
 

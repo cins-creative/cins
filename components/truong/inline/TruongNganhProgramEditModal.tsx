@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { TruongInlineModal } from "@/components/truong/inline/TruongInlineModal";
+import { TruongNganhMonChuongTrinh } from "@/components/truong/inline/TruongNganhMonChuongTrinh";
 import { TruongNganhMonThiEditModal } from "@/components/truong/inline/TruongNganhMonThiEditModal";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
 import { useYearFilter } from "@/components/truong/YearFilterProvider";
@@ -662,6 +663,13 @@ export function TruongNganhProgramEditModal({
             </tbody>
           </table>
         </div>
+
+        <TruongNganhMonChuongTrinh
+          orgId={orgId}
+          programId={prog.id}
+          busy={busy}
+          onToast={(msg) => ctx?.showToast(msg)}
+        />
 
         {removeConfirm ? (
           <div className="tdh-inline-modal-warning tdh-nganh-program-edit-remove-warn" role="alert">

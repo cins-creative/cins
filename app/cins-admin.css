@@ -1468,7 +1468,7 @@
   padding: 4px 10px;
   border-radius: 999px;
   border: 1px solid var(--border);
-  background: var(--bg-muted, #f8fafc);
+  background: var(--neutral-50);
   color: var(--fg-3);
   font-size: 12px;
   font-weight: 600;
@@ -1482,7 +1482,7 @@
 }
 
 .cins-admin .admin-dong-gop-badge.is-pending {
-  background: color-mix(in srgb, #f59e0b 14%, white);
+  background: color-mix(in srgb, #f59e0b 16%, var(--bg-surface));
   border-color: color-mix(in srgb, #f59e0b 40%, var(--border));
   color: #9a6700;
 }
@@ -4936,7 +4936,7 @@
 
 .cins-admin .admin-to-chuc-stat--warn {
   border-color: #fde68a;
-  background: linear-gradient(180deg, #fffbeb 0%, #fff 100%);
+  background: linear-gradient(180deg, #fffbeb 0%, var(--bg-surface) 100%);
 }
 
 .cins-admin .admin-to-chuc-stat--warn .admin-to-chuc-stat-v {
@@ -4945,7 +4945,7 @@
 
 .cins-admin .admin-to-chuc-stat--ok {
   border-color: #bbf7d0;
-  background: linear-gradient(180deg, #f0fdf4 0%, #fff 100%);
+  background: linear-gradient(180deg, #f0fdf4 0%, var(--bg-surface) 100%);
 }
 
 .cins-admin .admin-to-chuc-stat--ok .admin-to-chuc-stat-v {
@@ -4966,7 +4966,11 @@
   gap: 12px;
   padding: 14px 16px;
   border-bottom: 1px solid var(--border);
-  background: linear-gradient(180deg, #fafbfc 0%, var(--bg-surface) 100%);
+  background: linear-gradient(
+    180deg,
+    var(--neutral-50) 0%,
+    var(--bg-surface) 100%
+  );
 }
 
 .cins-admin .admin-to-chuc-search {
@@ -4976,7 +4980,7 @@
   padding: 0 12px;
   border: 1px solid var(--border);
   border-radius: 10px;
-  background: #fff;
+  background: var(--bg-surface);
   color: var(--fg-4);
   transition:
     border-color 0.12s ease,
@@ -5012,7 +5016,7 @@
   align-items: center;
   gap: 6px;
   border: 1px solid var(--border);
-  background: #fff;
+  background: var(--bg-surface);
   color: var(--fg-3);
   font: inherit;
   font-size: 12px;
@@ -5861,6 +5865,65 @@
   text-transform: capitalize;
 }
 
+.cins-admin .admin-nguoi-dung-giai-filters {
+  margin-top: -4px;
+}
+
+.cins-admin .admin-nguoi-dung-giai {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.3;
+  white-space: nowrap;
+  border: 1px solid var(--border);
+  background: var(--neutral-50);
+  color: var(--fg-2);
+}
+
+.cins-admin .admin-nguoi-dung-giai--moi_bat_dau {
+  background: color-mix(in srgb, #eab308 14%, var(--bg-surface));
+  border-color: color-mix(in srgb, #eab308 35%, var(--border));
+  color: #a16207;
+}
+
+.cins-admin .admin-nguoi-dung-giai--dang_hoc {
+  background: color-mix(in srgb, #14b8a6 14%, var(--bg-surface));
+  border-color: color-mix(in srgb, #14b8a6 35%, var(--border));
+  color: #0f766e;
+}
+
+.cins-admin .admin-nguoi-dung-giai--dang_lam {
+  background: color-mix(in srgb, var(--cins-blue) 14%, var(--bg-surface));
+  border-color: color-mix(in srgb, var(--cins-blue) 35%, var(--border));
+  color: var(--cins-blue-dark);
+}
+
+.cins-admin .admin-nguoi-dung-giai--tim_viec {
+  background: color-mix(in srgb, #f97316 14%, var(--bg-surface));
+  border-color: color-mix(in srgb, #f97316 35%, var(--border));
+  color: #c2410c;
+}
+
+.cins-admin .admin-nguoi-dung-giai--freelance {
+  background: color-mix(in srgb, #8b5cf6 14%, var(--bg-surface));
+  border-color: color-mix(in srgb, #8b5cf6 35%, var(--border));
+  color: #6d28d9;
+}
+
+.cins-admin .admin-nguoi-dung-giai--dang_day {
+  background: color-mix(in srgb, #0ea5e9 14%, var(--bg-surface));
+  border-color: color-mix(in srgb, #0ea5e9 35%, var(--border));
+  color: #0369a1;
+}
+
+.cins-admin .admin-nguoi-dung-giai--chua_chon {
+  background: var(--neutral-100);
+  color: var(--fg-4);
+}
+
 .cins-admin .admin-nguoi-dung-tick {
   display: inline-flex;
   align-items: center;
@@ -6675,10 +6738,10 @@
   align-items: center;
   gap: 6px;
   padding: 7px 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
   border-radius: 8px;
-  background: #fff;
-  color: #475569;
+  background: var(--bg-surface);
+  color: var(--fg-3);
   font-size: 13px;
   cursor: pointer;
 }
@@ -6687,6 +6750,47 @@
   background: #f0fdf4;
   color: #15803d;
 }
+.cins-admin .ndd-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #ffedd5;
+  color: #c2410c;
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.cins-admin .ndd-view-toggle button.is-active .ndd-tab-badge {
+  background: rgba(22, 163, 74, 0.18);
+  color: #15803d;
+}
+.cins-admin .ndd-pending-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.cins-admin .ndd-pending-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--cins-blue, #1f74c9);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.cins-admin .ndd-pending-link:hover {
+  text-decoration: underline;
+}
+.cins-admin .ndd-pending-col-actions {
+  width: 1%;
+  white-space: nowrap;
+}
 .cins-admin .ndd-stats {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -6694,20 +6798,20 @@
   margin: 0 0 16px;
 }
 .cins-admin .ndd-stat {
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 12px 14px;
-  background: #fff;
+  background: var(--bg-surface);
 }
 .cins-admin .ndd-stat strong {
   display: block;
   font-size: 22px;
   line-height: 1.1;
-  color: #0f172a;
+  color: var(--fg-1);
 }
 .cins-admin .ndd-stat span {
   font-size: 12px;
-  color: #64748b;
+  color: var(--fg-4);
 }
 .cins-admin .ndd-filters {
   display: flex;
@@ -6720,10 +6824,11 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 0 10px;
-  background: #fff;
+  background: var(--bg-surface);
+  color: var(--fg-4);
   min-width: 240px;
 }
 .cins-admin .ndd-search input {
@@ -6732,20 +6837,23 @@
   padding: 8px 0;
   flex: 1;
   font-size: 13px;
+  background: transparent;
+  color: var(--fg-1);
 }
 .cins-admin .ndd-filters select {
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 8px 10px;
   font-size: 13px;
-  background: #fff;
+  background: var(--bg-surface);
+  color: var(--fg-2);
 }
 .cins-admin .ndd-check {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   font-size: 13px;
-  color: #475569;
+  color: var(--fg-3);
 }
 .cins-admin .ndd-error { color: #b91c1c; font-size: 13px; }
 .cins-admin .ndd-grid {
@@ -7607,4 +7715,149 @@
     gap: 4px;
   }
   .cins-admin .ndd-dash-bar-row strong { text-align: left; }
+}
+
+/* ========================================================
+   DARK THEME — admin surfaces còn hard-code nền sáng
+   ======================================================== */
+:root[data-theme="dark"] .cins-admin .admin-dong-gop-badge.is-pending {
+  background: color-mix(in srgb, #f59e0b 18%, var(--bg-surface));
+  border-color: color-mix(in srgb, #f59e0b 42%, var(--border));
+  color: #fbbf24;
+}
+
+:root[data-theme="dark"] .cins-admin .admin-to-chuc-stat--ok {
+  border-color: color-mix(in srgb, #34c98a 40%, var(--border));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, #34c98a 16%, var(--bg-surface)) 0%,
+    var(--bg-surface) 100%
+  );
+}
+
+:root[data-theme="dark"] .cins-admin .admin-to-chuc-stat--ok .admin-to-chuc-stat-v {
+  color: #4ade80;
+}
+
+:root[data-theme="dark"] .cins-admin .admin-to-chuc-stat--warn {
+  border-color: color-mix(in srgb, #f4b74e 42%, var(--border));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, #f4b74e 14%, var(--bg-surface)) 0%,
+    var(--bg-surface) 100%
+  );
+}
+
+:root[data-theme="dark"] .cins-admin .admin-to-chuc-stat--warn .admin-to-chuc-stat-v {
+  color: #fbbf24;
+}
+
+:root[data-theme="dark"] .cins-admin .admin-to-chuc-filter.is-active .admin-to-chuc-filter-count {
+  background: color-mix(in srgb, var(--cins-blue) 22%, var(--bg-surface));
+  color: var(--cins-blue-dark);
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-view-toggle button.is-active {
+  border-color: color-mix(in srgb, #34c98a 55%, var(--border));
+  background: color-mix(in srgb, #34c98a 16%, var(--bg-surface));
+  color: #4ade80;
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-filters select {
+  color-scheme: dark;
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-filters select option {
+  background: var(--bg-surface);
+  color: var(--fg-1);
+}
+
+/* Alert cảnh báo — chữ sáng trên nền vàng-soft tối */
+:root[data-theme="dark"] .cins-admin .alert-warn {
+  background: color-mix(in srgb, #fbbf24 18%, var(--bg-surface));
+  border-color: color-mix(in srgb, #fbbf24 42%, var(--border));
+  color: #fde68a;
+}
+
+:root[data-theme="dark"] .cins-admin .alert-info {
+  color: var(--cins-blue-dark);
+}
+
+/* RoleSelect / badge vai trò — nền sáng cứng → tonal tối + chữ sáng */
+:root[data-theme="dark"] .cins-admin .admin-nguoi-dung-role--super_admin {
+  background-color: #0f172a;
+  color: #f8fafc;
+  box-shadow: inset 0 0 0 1px rgba(248, 250, 252, 0.12);
+}
+
+:root[data-theme="dark"] .cins-admin .admin-nguoi-dung-role--admin {
+  background-color: color-mix(in srgb, var(--cins-blue) 22%, var(--bg-surface));
+  color: #93c5fd;
+}
+
+:root[data-theme="dark"] .cins-admin .admin-nguoi-dung-role--curator {
+  background-color: color-mix(in srgb, #a8a29e 18%, var(--bg-surface));
+  color: #e7e5e4;
+}
+
+:root[data-theme="dark"] .cins-admin .admin-nguoi-dung-role--thanh_vien {
+  background-color: var(--neutral-100);
+  color: var(--fg-2);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+
+:root[data-theme="dark"] .cins-admin .admin-nguoi-dung-role-select {
+  color-scheme: dark;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23cbd5e1' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+}
+
+:root[data-theme="dark"]
+  .cins-admin
+  .admin-nguoi-dung-role-select.admin-nguoi-dung-role--super_admin {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23f8fafc' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+}
+
+:root[data-theme="dark"] .cins-admin .admin-nguoi-dung-role-select:hover {
+  filter: brightness(1.12);
+}
+
+:root[data-theme="dark"] .cins-admin .admin-nguoi-dung-role-select:focus-visible {
+  outline-color: #94a3b8;
+}
+
+:root[data-theme="dark"] .cins-admin .admin-nguoi-dung-role-select option {
+  color: var(--fg-1);
+  background: var(--bg-surface);
+}
+
+:root[data-theme="dark"] .cins-admin .admin-nguoi-dung-role-spin {
+  color: var(--fg-4);
+}
+
+:root[data-theme="dark"] .cins-admin .admin-nguoi-dung-giai--moi_bat_dau {
+  color: #facc15;
+}
+
+:root[data-theme="dark"] .cins-admin .admin-nguoi-dung-giai--dang_hoc {
+  color: #2dd4bf;
+}
+
+:root[data-theme="dark"] .cins-admin .admin-nguoi-dung-giai--dang_lam {
+  color: #93c5fd;
+}
+
+:root[data-theme="dark"] .cins-admin .admin-nguoi-dung-giai--tim_viec {
+  color: #fdba74;
+}
+
+:root[data-theme="dark"] .cins-admin .admin-nguoi-dung-giai--freelance {
+  color: #c4b5fd;
+}
+
+:root[data-theme="dark"] .cins-admin .admin-nguoi-dung-giai--dang_day {
+  color: #7dd3fc;
+}
+
+:root[data-theme="dark"] .cins-admin .admin-nguoi-dung-giai--chua_chon {
+  color: var(--fg-3);
 }

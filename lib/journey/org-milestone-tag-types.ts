@@ -33,6 +33,8 @@ export type OrgMilestoneTagPayload = {
   khoaHocTen?: string | null;
   nganhId?: string | null;
   nganhLabel?: string | null;
+  monHocId?: string | null;
+  monHocLabel?: string | null;
   milestoneTitle: string;
   milestoneKind: string;
   projectTitle: string;
@@ -62,6 +64,8 @@ export type OrgAttachOption = {
   id: string;
   label: string;
   slug?: string | null;
+  /** Môn học thuộc ngành (chỉ `truong_dai_hoc`). */
+  monOptions?: OrgAttachOption[];
 };
 
 export type OrgMilestoneTagRequestItem = {
@@ -76,6 +80,7 @@ export type OrgMilestoneTagRequestItem = {
   milestoneTitle: string;
   milestoneKind: string;
   nganhLabel: string | null;
+  monHocLabel: string | null;
   khoaHocTen: string | null;
   nam: number;
   album: OrgMilestoneTagAlbum;
@@ -98,6 +103,8 @@ export type OrgMilestoneTagOwnerItem = {
   khoaHocTen: string | null;
   nganhId: string | null;
   nganhLabel: string | null;
+  monHocId: string | null;
+  monHocLabel: string | null;
   milestoneTitle: string;
   projectTitle: string;
   album: OrgMilestoneTagAlbum;
@@ -113,6 +120,8 @@ export type OrgDoanProjectItem = {
   studentSlug: string;
   studentAvatarUrl: string | null;
   nganhLabel: string | null;
+  monHocId?: string | null;
+  monHocLabel?: string | null;
   milestoneTitle: string;
   href: string;
   submittedAt: string;

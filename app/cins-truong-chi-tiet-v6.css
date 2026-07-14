@@ -1627,6 +1627,17 @@
   background: var(--ink4, #b9c0cc);
 }
 
+/* Dark — badge tab inactive (#b9c0cc + chữ trắng nhạt trên nền tối) */
+:root[data-theme="dark"] .tdh-page--v6 .tdh-v6-tab-badge {
+  background: var(--cins-blue, #4f9be8);
+  color: #fff;
+}
+
+:root[data-theme="dark"] .tdh-page--v6 .tdh-v6-tab:not(.on) .tdh-v6-tab-badge {
+  background: var(--neutral-300, #3a4152);
+  color: var(--ink-display, rgba(255, 255, 255, 0.92));
+}
+
 .tdh-page--v6 .cover-frame {
   width: 100%;
   height: 220px;

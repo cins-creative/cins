@@ -8,6 +8,10 @@ import {
   type WorldBoostDinhDangFilter,
   type WorldBoostXacThucFilter,
 } from "@/lib/cins/world-boost-admin";
+import {
+  countPendingOrgMilestoneTagVerifies,
+  listPendingOrgMilestoneTagVerifies,
+} from "@/lib/admin/pending-content-verify";
 import { bumpAdminDiemUuTien } from "@/lib/cins/feed-scoring-write";
 import type { FeedScoringLoai } from "@/lib/cins/feed-scoring";
 import {
@@ -42,6 +46,35 @@ export async function GET(request: Request) {
   if (searchParams.get("stats") === "1") {
     const stats = await fetchWorldBoostStats();
     return NextResponse.json({ stats });
+  }
+
+  if (searchParams.get("pendingVerifyStats") === "1") {
+    try {
+      const pendingVerifyCount = await countPendingOrgMilestoneTagVerifies();
+      return NextResponse.json({ pendingVerifyCount });
+    } catch (e) {
+      const message =
+        e instanceof Error
+          ? e.message
+          : "Không tải được số nội dung chờ xác thực.";
+      return NextResponse.json({ error: message }, { status: 500 });
+    }
+  }
+
+  if (searchParams.get("pendingVerify") === "1") {
+    try {
+      const page = await listPendingOrgMilestoneTagVerifies({
+        offset: Math.max(0, Number(searchParams.get("offset") ?? 0) || 0),
+        limit: Math.max(1, Number(searchParams.get("limit") ?? 60) || 60),
+      });
+      return NextResponse.json(page);
+    } catch (e) {
+      const message =
+        e instanceof Error
+          ? e.message
+          : "Không tải được hàng đợi chờ xác thực.";
+      return NextResponse.json({ error: message }, { status: 500 });
+    }
   }
 
   if (searchParams.get("growth") === "1") {

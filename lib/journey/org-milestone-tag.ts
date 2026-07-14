@@ -33,6 +33,10 @@ import {
 import { isCoSoOrgAdmin } from "@/lib/to-chuc/co-so-membership";
 import { orgPublicHref } from "@/lib/search/helpers";
 import { isTruongOrgAdmin } from "@/lib/truong/org-admin";
+import {
+  listMonByTruongNganhIds,
+  validateMonBelongsToNganh,
+} from "@/lib/truong/nganh-mon";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 type DoanCoverVisual = {
@@ -240,6 +244,9 @@ export async function loadOrgAttachOptions(
       }>
     >();
 
+  const programIds = (rows ?? []).map((r) => r.id);
+  const monByNganh = await listMonByTruongNganhIds(admin, programIds);
+
   return {
     ok: true,
     loaiToChuc: "truong_dai_hoc",
@@ -250,8 +257,48 @@ export async function loadOrgAttachOptions(
         r.article_bai_viet?.tieu_de?.trim() ||
         r.slug,
       slug: r.slug,
+      monOptions: (monByNganh.get(r.id) ?? []).map((m) => ({
+        id: m.monHocId,
+        label: m.label,
+        slug: m.slug,
+      })),
     })),
   };
+}
+
+/** Gắn `mon_hoc` lên cột mốc + tác phẩm để lens trang môn thấy bài. */
+async function linkMonHocToMilestone(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  params: {
+    cotMocId: string;
+    tacPhamId: string;
+    monHocId: string;
+  },
+): Promise<void> {
+  const { cotMocId, tacPhamId, monHocId } = params;
+  await admin
+    .from("article_gan_cot_moc")
+    .upsert(
+      { id_bai_viet: monHocId, id_cot_moc: cotMocId },
+      { onConflict: "id_bai_viet,id_cot_moc" },
+    );
+
+  const tpId = tacPhamId.trim();
+  if (!tpId) return;
+
+  const { data: existing } = await admin
+    .from("article_gan_tac_pham")
+    .select("id_bai_viet")
+    .eq("id_bai_viet", monHocId)
+    .eq("id_tac_pham", tpId)
+    .maybeSingle();
+
+  if (!existing) {
+    await admin.from("article_gan_tac_pham").insert({
+      id_bai_viet: monHocId,
+      id_tac_pham: tpId,
+    });
+  }
 }
 
 export async function submitOrgMilestoneTagRequest(params: {
@@ -261,6 +308,7 @@ export async function submitOrgMilestoneTagRequest(params: {
   nam: number;
   khoaHocId?: string | null;
   nganhId?: string | null;
+  monHocId?: string | null;
   evidence: OrgAttachEvidence[];
   album: OrgMilestoneTagAlbum;
   milestoneTitle: string;
@@ -311,6 +359,8 @@ export async function submitOrgMilestoneTagRequest(params: {
 
   let khoaHocTen: string | null = null;
   let nganhLabel: string | null = null;
+  let monHocId: string | null = null;
+  let monHocLabel: string | null = null;
 
   if (org.loai_to_chuc === "co_so_dao_tao") {
     if (!params.khoaHocId) {
@@ -333,6 +383,31 @@ export async function submitOrgMilestoneTagRequest(params: {
     const match = options.options.find((o) => o.id === params.nganhId);
     if (!match) return { ok: false, error: "Ngành không thuộc trường này." };
     nganhLabel = match.label;
+
+    const monOptions = match.monOptions ?? [];
+    const requestedMon = params.monHocId?.trim() || null;
+    if (monOptions.length > 0) {
+      if (!requestedMon) {
+        return { ok: false, error: "Chọn môn học." };
+      }
+      const monOk = await validateMonBelongsToNganh(
+        admin,
+        params.nganhId,
+        requestedMon,
+      );
+      if (!monOk.ok) return monOk;
+      monHocId = requestedMon;
+      monHocLabel = monOk.label;
+    } else if (requestedMon) {
+      const monOk = await validateMonBelongsToNganh(
+        admin,
+        params.nganhId,
+        requestedMon,
+      );
+      if (!monOk.ok) return monOk;
+      monHocId = requestedMon;
+      monHocLabel = monOk.label;
+    }
   }
 
   const { data: pendingDup } = await admin
@@ -360,6 +435,8 @@ export async function submitOrgMilestoneTagRequest(params: {
     khoaHocTen,
     nganhId: params.nganhId ?? null,
     nganhLabel,
+    monHocId,
+    monHocLabel,
     milestoneTitle: params.milestoneTitle,
     milestoneKind: params.milestoneKind || cotMoc.loai_moc,
     projectTitle: params.projectTitle,
@@ -400,6 +477,14 @@ export async function submitOrgMilestoneTagRequest(params: {
     };
   }
 
+  if (monHocId) {
+    await linkMonHocToMilestone(admin, {
+      cotMocId: params.cotMocId,
+      tacPhamId: params.tacPhamId,
+      monHocId,
+    });
+  }
+
   return { ok: true, requestId: inserted.id };
 }
 
@@ -425,6 +510,7 @@ function rowToRequestItem(
     milestoneTitle: payload.milestoneTitle,
     milestoneKind: payload.milestoneKind,
     nganhLabel: payload.nganhLabel ?? null,
+    monHocLabel: payload.monHocLabel ?? null,
     khoaHocTen: payload.khoaHocTen ?? null,
     nam: payload.nam,
     album: payload.album,
@@ -450,6 +536,8 @@ function rowToOwnerItem(row: DbYeuCauRow): OrgMilestoneTagOwnerItem | null {
     khoaHocTen: payload.khoaHocTen ?? null,
     nganhId: payload.nganhId ?? null,
     nganhLabel: payload.nganhLabel ?? null,
+    monHocId: payload.monHocId ?? null,
+    monHocLabel: payload.monHocLabel ?? null,
     milestoneTitle: payload.milestoneTitle,
     projectTitle: payload.projectTitle,
     album: payload.album,
@@ -670,6 +758,14 @@ export async function respondOrgMilestoneTagRequest(params: {
     }
 
     await setDiemVerifyChoCotMoc(row.id_cot_moc);
+
+    if (payload.monHocId?.trim()) {
+      await linkMonHocToMilestone(admin, {
+        cotMocId: row.id_cot_moc,
+        tacPhamId: payload.tacPhamId,
+        monHocId: payload.monHocId.trim(),
+      });
+    }
 
     await notifyOrgMilestoneTagApproved({
       studentId: row.nguoi_yeu_cau,
@@ -1140,6 +1236,8 @@ export async function listApprovedOrgDoanProjects(
         avatarByUserId.get(row.nguoi_yeu_cau) ??
         null,
       nganhLabel: payload.nganhLabel ?? payload.khoaHocTen ?? null,
+      monHocId: payload.monHocId ?? null,
+      monHocLabel: payload.monHocLabel ?? null,
       milestoneTitle: payload.milestoneTitle,
       href:
         hrefByMoc.get(row.id_cot_moc) ??

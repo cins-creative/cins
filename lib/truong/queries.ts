@@ -844,7 +844,10 @@ async function fetchOrgToChucBySlug(
       .select(ORG_DETAIL_SELECT_BASE)
       .eq("slug", slug)
       .maybeSingle();
-    if (base.error || !base.data) return null;
+    if (base.error) {
+      throw new Error(`org_to_chuc: ${base.error.message}`);
+    }
+    if (!base.data) return null;
     return {
       ...(base.data as OrgEmbed & {
         org_truong_dai_hoc?: OrgDaiHocEmbed | OrgDaiHocEmbed[] | null;
@@ -853,45 +856,54 @@ async function fetchOrgToChucBySlug(
     };
   }
 
+  if (full.error) {
+    throw new Error(`org_to_chuc: ${full.error.message}`);
+  }
+
   return null;
 }
+
+/**
+ * Miss thật (không có org) — throw trong `unstable_cache` để Next không cache `null`
+ * (lỗi tạm trước đây bị nuốt → 404 giả trong 60s).
+ */
+const TRUONG_PAYLOAD_MISS = "TRUONG_PAGE_PAYLOAD_MISS";
 
 async function loadTruongPagePayloadUncached(
   slugNorm: string,
 ): Promise<TruongPagePayload | null> {
   if (!hasSupabaseEnv()) return null;
 
-  try {
-    const supabase = createPublicSupabaseClient();
-    const year = defaultTruongNganhYear();
+  const supabase = createPublicSupabaseClient();
+  const year = defaultTruongNganhYear();
 
-    const org = await fetchOrgToChucBySlug(supabase, slugNorm);
-    if (!org) return null;
+  const org = await fetchOrgToChucBySlug(supabase, slugNorm);
+  if (!org) return null;
 
-    const id = org.id?.trim();
-    const ten = org.ten?.trim();
-    const orgSlug = org.slug?.trim();
-    if (!id || !ten || !orgSlug) return null;
+  const id = org.id?.trim();
+  const ten = org.ten?.trim();
+  const orgSlug = org.slug?.trim();
+  if (!id || !ten || !orgSlug) return null;
 
-    const otd = pickDaiHoc(org.org_truong_dai_hoc);
-    const { programs: programsFetched, tagSet } = await fetchPrograms(
-      supabase,
-      id,
-    );
-    const programsRaw = enrichProgramsWithCoverSrcSync(programsFetched);
-    const programIds = programsRaw.map((p) => p.id);
+  const otd = pickDaiHoc(org.org_truong_dai_hoc);
+  const { programs: programsFetched, tagSet } = await fetchPrograms(
+    supabase,
+    id,
+  );
+  const programsRaw = enrichProgramsWithCoverSrcSync(programsFetched);
+  const programIds = programsRaw.map((p) => p.id);
 
-    const baseSchool = mapListFields(org, otd, tagSet);
-    const avatarImageId = baseSchool.avatar_id ?? baseSchool.logo_id;
-    const avatar_src = avatarImageId
-      ? resolveTruongImageSrcSync(avatarImageId, ORG_AVATAR_VARIANTS)
-      : null;
-    const cover_src = baseSchool.cover_id
-      ? resolveTruongImageSrcSync(baseSchool.cover_id, ORG_COVER_VARIANTS)
-      : null;
+  const baseSchool = mapListFields(org, otd, tagSet);
+  const avatarImageId = baseSchool.avatar_id ?? baseSchool.logo_id;
+  const avatar_src = avatarImageId
+    ? resolveTruongImageSrcSync(avatarImageId, ORG_AVATAR_VARIANTS)
+    : null;
+  const cover_src = baseSchool.cover_id
+    ? resolveTruongImageSrcSync(baseSchool.cover_id, ORG_COVER_VARIANTS)
+    : null;
 
-    const [cauHinhYears, stats, baidang, hinhanh, tuyenSinh, journeyMembers] =
-      await Promise.all([
+  const [cauHinhYears, stats, baidang, hinhanh, tuyenSinh, journeyMembers] =
+    await Promise.all([
       listCauHinhYearsForOrg(id),
       fetchStats(
         supabase,
@@ -907,42 +919,64 @@ async function loadTruongPagePayloadUncached(
       fetchJourneyMembers(supabase, id),
     ]);
 
-    const programs = mergeTuyenSinhIntoPrograms(programsRaw, tuyenSinh);
-    const school: TruongDetail = {
-      ...baseSchool,
-      avatar_src,
-      cover_src,
-      programs,
-    };
+  const programs = mergeTuyenSinhIntoPrograms(programsRaw, tuyenSinh);
+  const school: TruongDetail = {
+    ...baseSchool,
+    avatar_src,
+    cover_src,
+    programs,
+  };
 
-    const yearOptions = mergeTruongYearOptions(programs, tuyenSinh, cauHinhYears);
-    const prefetchYear = pickDefaultTruongYear(yearOptions, cauHinhYears);
-    const prefetchYears = [
-      ...new Set([prefetchYear, ...cauHinhYears, ...yearOptions]),
-    ].sort((a, b) => b - a);
-    const cauHinhMonThiByKey = await prefetchCauHinhMonThiByKey(
-      id,
-      programIds,
-      prefetchYears,
-    );
+  const yearOptions = mergeTruongYearOptions(programs, tuyenSinh, cauHinhYears);
+  const prefetchYear = pickDefaultTruongYear(yearOptions, cauHinhYears);
+  const prefetchYears = [
+    ...new Set([prefetchYear, ...cauHinhYears, ...yearOptions]),
+  ].sort((a, b) => b - a);
+  const cauHinhMonThiByKey = await prefetchCauHinhMonThiByKey(
+    id,
+    programIds,
+    prefetchYears,
+  );
 
-    return {
-      school,
-      stats,
-      baidang,
-      hinhanh,
-      tuyenSinh,
-      journeyMembers,
-      cauHinhYears,
-      cauHinhMonThiByKey,
-    };
-  } catch {
-    return null;
-  }
+  return {
+    school,
+    stats,
+    baidang,
+    hinhanh,
+    tuyenSinh,
+    journeyMembers,
+    cauHinhYears,
+    cauHinhMonThiByKey,
+  };
+}
+
+async function loadTruongPagePayloadHit(
+  slugNorm: string,
+): Promise<TruongPagePayload> {
+  const payload = await loadTruongPagePayloadUncached(slugNorm);
+  if (!payload) throw new Error(TRUONG_PAYLOAD_MISS);
+  return payload;
+}
+
+function isTruongPayloadMiss(err: unknown): boolean {
+  return err instanceof Error && err.message === TRUONG_PAYLOAD_MISS;
 }
 
 /** Dedupe trong 1 request (metadata + page). */
-const getTruongPagePayloadCached = cache(loadTruongPagePayloadUncached);
+const getTruongPagePayloadRequestCached = cache(
+  async (slugNorm: string): Promise<TruongPagePayload | null> => {
+    try {
+      return await unstable_cache(
+        () => loadTruongPagePayloadHit(slugNorm),
+        ["truong-page-payload", slugNorm],
+        { revalidate: 60, tags: [`truong:${slugNorm}`] },
+      )();
+    } catch (err) {
+      if (isTruongPayloadMiss(err)) return null;
+      throw err;
+    }
+  },
+);
 
 export async function getTruongPagePayload(
   slug: string,
@@ -950,11 +984,7 @@ export async function getTruongPagePayload(
   const slugNorm = slug.trim();
   if (!slugNorm) return null;
 
-  return unstable_cache(
-    () => getTruongPagePayloadCached(slugNorm),
-    ["truong-page-payload", slugNorm],
-    { revalidate: 60, tags: [`truong:${slugNorm}`] },
-  )();
+  return getTruongPagePayloadRequestCached(slugNorm);
 }
 
 export {

@@ -14,7 +14,8 @@ export async function GET(req: Request) {
 
   const url = new URL(req.url);
   const q = url.searchParams.get("q")?.trim() ?? "";
+  const giaiDoan = url.searchParams.get("giaiDoan")?.trim() ?? "";
 
-  const data = await fetchAdminUserList({ q, actorRole });
+  const data = await fetchAdminUserList({ q, giaiDoan, actorRole });
   return NextResponse.json(data);
 }

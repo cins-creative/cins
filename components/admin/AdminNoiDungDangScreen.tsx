@@ -1,6 +1,16 @@
 "use client";
 
-import { BarChart3, ExternalLink, LayoutGrid, List, Loader2, Plus, Scale, Search } from "lucide-react";
+import {
+  BadgeCheck,
+  BarChart3,
+  ExternalLink,
+  LayoutGrid,
+  List,
+  Loader2,
+  Plus,
+  Scale,
+  Search,
+} from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 import {
@@ -9,6 +19,7 @@ import {
 } from "@/components/admin/AdminFeedScoreCell";
 import { AdminNoiDungFeedScoreRules } from "@/components/admin/AdminNoiDungFeedScoreRules";
 import { AdminNoiDungGrowthDashboard } from "@/components/admin/AdminNoiDungGrowthDashboard";
+import type { PendingContentVerifyItem } from "@/lib/admin/pending-content-verify-types";
 import { ADMIN_DIEM_UU_TIEN } from "@/lib/cins/feed-scoring";
 import type { FeedScoreConfig } from "@/lib/cins/feed-scoring-config";
 import type {
@@ -18,7 +29,7 @@ import type {
   WorldBoostXacThucFilter,
 } from "@/lib/cins/world-boost-types";
 
-type ViewMode = "grid" | "listing" | "dashboard" | "score";
+type ViewMode = "grid" | "listing" | "dashboard" | "score" | "pendingVerify";
 
 /** Khớp `WORLD_BOOST_TTL_MS` (server-only) — TTL đẩy 3 ngày. */
 const WORLD_BOOST_TTL_MS = 3 * 24 * 60 * 60 * 1000;
@@ -40,6 +51,10 @@ export function AdminNoiDungDangScreen() {
   const [view, setView] = useState<ViewMode>("grid");
   const [stats, setStats] = useState<WorldBoostStats | null>(null);
   const [items, setItems] = useState<WorldBoostCatalogItem[]>([]);
+  const [pendingItems, setPendingItems] = useState<PendingContentVerifyItem[]>(
+    [],
+  );
+  const [pendingVerifyCount, setPendingVerifyCount] = useState(0);
   const [nguon, setNguon] = useState<"all" | "user" | "org">("all");
   const [dinhDang, setDinhDang] = useState<WorldBoostDinhDangFilter>("all");
   const [xacThuc, setXacThuc] = useState<WorldBoostXacThucFilter>("all");
@@ -105,6 +120,46 @@ export function AdminNoiDungDangScreen() {
     }
   }, []);
 
+  const loadPendingCount = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/world-boost?pendingVerifyStats=1");
+      if (!res.ok) return;
+      const json = (await res.json()) as { pendingVerifyCount?: number };
+      setPendingVerifyCount(
+        typeof json.pendingVerifyCount === "number"
+          ? json.pendingVerifyCount
+          : 0,
+      );
+    } catch {
+      /* badge giữ số cũ */
+    }
+  }, []);
+
+  const loadPending = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(
+        "/api/admin/world-boost?pendingVerify=1&limit=100",
+      );
+      if (!res.ok) throw new Error("Không tải được hàng đợi chờ xác thực.");
+      const json = (await res.json()) as {
+        items: PendingContentVerifyItem[];
+        total: number;
+      };
+      setPendingItems(json.items ?? []);
+      setPendingVerifyCount(
+        typeof json.total === "number" ? json.total : (json.items?.length ?? 0),
+      );
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Lỗi tải hàng đợi chờ xác thực.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   const load = useCallback(async (opts?: { silent?: boolean }) => {
     const silent = opts?.silent === true;
     if (!silent) {
@@ -142,12 +197,20 @@ export function AdminNoiDungDangScreen() {
   }, [nguon, dinhDang, xacThuc, chiBoost, qDebounced]);
 
   useEffect(() => {
+    void loadPendingCount();
+  }, [loadPendingCount]);
+
+  useEffect(() => {
     if (view === "dashboard" || view === "score") {
       void loadStats();
       return;
     }
+    if (view === "pendingVerify") {
+      void loadPending();
+      return;
+    }
     void load();
-  }, [view, load, loadStats]);
+  }, [view, load, loadStats, loadPending]);
 
   function canBumpScore(item: WorldBoostCatalogItem): boolean {
     return item.loai === "cot_moc" || item.loai === "org_bai_dang";
@@ -377,10 +440,23 @@ export function AdminNoiDungDangScreen() {
           >
             <Scale size={16} /> Công thức
           </button>
+          <button
+            type="button"
+            className={view === "pendingVerify" ? "is-active" : ""}
+            onClick={() => setView("pendingVerify")}
+          >
+            <BadgeCheck size={16} />
+            Nội dung chờ xác thực
+            {pendingVerifyCount > 0 ? (
+              <span className="ndd-tab-badge">
+                {pendingVerifyCount > 99 ? "99+" : pendingVerifyCount}
+              </span>
+            ) : null}
+          </button>
         </div>
       </header>
 
-      {stats ? (
+      {view !== "pendingVerify" && stats ? (
         <div className="ndd-stats" aria-label="Thống kê nội dung">
           <div className="ndd-stat">
             <strong>{stats.dangBoost}</strong>
@@ -409,6 +485,134 @@ export function AdminNoiDungDangScreen() {
         <AdminNoiDungGrowthDashboard stats={stats} />
       ) : view === "score" ? (
         <AdminNoiDungFeedScoreRules onConfigSaved={setScoreConfig} />
+      ) : view === "pendingVerify" ? (
+        <>
+          {error ? <p className="ndd-error">{error}</p> : null}
+          {loading ? (
+            <p className="admin-panel-loading">
+              <Loader2 className="bc-spin" size={18} /> Đang tải…
+            </p>
+          ) : pendingItems.length === 0 ? (
+            <div className="bc-empty">
+              <p>Không có nội dung chờ xác thực.</p>
+            </div>
+          ) : (
+            <div className="table-wrap table-wrap--ndd">
+              <table className="data-table ndd-list-table ndd-pending-table">
+                <thead>
+                  <tr>
+                    <th className="ndd-list-col-thumb" aria-label="Ảnh" />
+                    <th>Nội dung</th>
+                    <th>Người gửi</th>
+                    <th>Tổ chức</th>
+                    <th>Chi tiết</th>
+                    <th>Gửi lúc</th>
+                    <th className="ndd-pending-col-actions">Liên kết</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pendingItems.map((item) => {
+                    const metaParts = [
+                      item.nam ? `Năm ${item.nam}` : null,
+                      item.nganhLabel,
+                      item.monHocLabel,
+                    ].filter(Boolean);
+                    return (
+                      <tr key={item.requestId}>
+                        <td className="ndd-list-col-thumb">
+                          <span className="ndd-list-thumb">
+                            {item.thumbUrl ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={item.thumbUrl}
+                                alt=""
+                                loading="lazy"
+                              />
+                            ) : (
+                              <span
+                                className="ndd-list-thumb-fallback"
+                                aria-hidden
+                              >
+                                {item.projectTitle.slice(0, 2).toUpperCase()}
+                              </span>
+                            )}
+                          </span>
+                        </td>
+                        <td className="ndd-list-content">
+                          <strong className="ndd-list-title">
+                            {item.projectTitle}
+                          </strong>
+                          {item.milestoneTitle &&
+                          item.milestoneTitle !== item.projectTitle ? (
+                            <span className="ndd-list-meta">
+                              {item.milestoneTitle}
+                            </span>
+                          ) : null}
+                        </td>
+                        <td>
+                          {item.studentSlug ? (
+                            <a
+                              href={`/${encodeURIComponent(item.studentSlug)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              {item.studentName || item.studentSlug}
+                            </a>
+                          ) : (
+                            item.studentName || "—"
+                          )}
+                        </td>
+                        <td>
+                          {item.orgUrl ? (
+                            <a
+                              href={item.orgUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              {item.orgTen}
+                            </a>
+                          ) : (
+                            item.orgTen
+                          )}
+                        </td>
+                        <td className="ndd-list-muted">
+                          {metaParts.length > 0 ? metaParts.join(" · ") : "—"}
+                        </td>
+                        <td>{fmtDate(item.submittedAt)}</td>
+                        <td className="ndd-pending-col-actions">
+                          <span className="ndd-pending-actions">
+                            {item.postUrl ? (
+                              <a
+                                className="ndd-pending-link"
+                                href={item.postUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                Mở bài
+                                <ExternalLink size={12} aria-hidden />
+                              </a>
+                            ) : null}
+                            {item.orgUrl ? (
+                              <a
+                                className="ndd-pending-link"
+                                href={item.orgUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                Mở org
+                                <ExternalLink size={12} aria-hidden />
+                              </a>
+                            ) : null}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
       ) : (
         <>
           <div className="ndd-filters">

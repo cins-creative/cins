@@ -8,6 +8,11 @@ import {
 } from "@/lib/truong/doan-project-sort";
 import type { TagAggSort } from "@/lib/tag/aggregation-types";
 
+export type DoanMonOption = {
+  id: string;
+  label: string;
+};
+
 type Props = {
   sort: TagAggSort;
   view: DoanViewMode;
@@ -15,10 +20,13 @@ type Props = {
   yearOptions: number[];
   nganhFilter: string;
   nganhOptions: string[];
+  monFilter: string;
+  monOptions: DoanMonOption[];
   onViewChange: (view: DoanViewMode) => void;
   onSortChange: (sort: TagAggSort) => void;
   onYearChange: (year: string) => void;
   onNganhChange: (nganh: string) => void;
+  onMonChange: (monId: string) => void;
   embedded?: boolean;
 };
 
@@ -87,8 +95,11 @@ function DoanFilterSelects({
   yearOptions,
   nganhFilter,
   nganhOptions,
+  monFilter,
+  monOptions,
   onYearChange,
   onNganhChange,
+  onMonChange,
   showLabels = false,
   compactOptions = false,
 }: Pick<
@@ -97,13 +108,18 @@ function DoanFilterSelects({
   | "yearOptions"
   | "nganhFilter"
   | "nganhOptions"
+  | "monFilter"
+  | "monOptions"
   | "onYearChange"
   | "onNganhChange"
+  | "onMonChange"
 > & { showLabels?: boolean; compactOptions?: boolean }) {
   const yearLabelClass = showLabels ? "tdh-doan-ctl-label" : "sr-only";
   const nganhLabelClass = showLabels ? "tdh-doan-ctl-label" : "sr-only";
+  const monLabelClass = showLabels ? "tdh-doan-ctl-label" : "sr-only";
   const allYearLabel = compactOptions ? "Tất cả" : "Tất cả các năm";
   const allNganhLabel = compactOptions ? "Tất cả" : "Tất cả ngành";
+  const allMonLabel = compactOptions ? "Tất cả" : "Tất cả môn";
 
   return (
     <>
@@ -138,6 +154,25 @@ function DoanFilterSelects({
           ))}
         </select>
       </label>
+
+      {monOptions.length > 0 ? (
+        <label className="tdh-doan-ctl-wrap tdh-doan-ctl-wrap--grow">
+          <span className={monLabelClass}>{showLabels ? "Môn" : "Môn học"}</span>
+          <select
+            className="tdh-doan-ctl tdh-doan-ctl--mon"
+            value={monFilter}
+            onChange={(e) => onMonChange(e.target.value)}
+            disabled={!nganhFilter}
+          >
+            <option value="">{allMonLabel}</option>
+            {monOptions.map((opt) => (
+              <option key={opt.id} value={opt.id}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
     </>
   );
 }
@@ -149,10 +184,13 @@ export function TruongDoanToolbar({
   yearOptions,
   nganhFilter,
   nganhOptions,
+  monFilter,
+  monOptions,
   onViewChange,
   onSortChange,
   onYearChange,
   onNganhChange,
+  onMonChange,
   embedded = false,
 }: Props) {
   if (embedded) {
@@ -169,8 +207,11 @@ export function TruongDoanToolbar({
           yearOptions={yearOptions}
           nganhFilter={nganhFilter}
           nganhOptions={nganhOptions}
+          monFilter={monFilter}
+          monOptions={monOptions}
           onYearChange={onYearChange}
           onNganhChange={onNganhChange}
+          onMonChange={onMonChange}
           showLabels
           compactOptions
         />
@@ -206,8 +247,11 @@ export function TruongDoanToolbar({
           yearOptions={yearOptions}
           nganhFilter={nganhFilter}
           nganhOptions={nganhOptions}
+          monFilter={monFilter}
+          monOptions={monOptions}
           onYearChange={onYearChange}
           onNganhChange={onNganhChange}
+          onMonChange={onMonChange}
         />
       </div>
     </div>

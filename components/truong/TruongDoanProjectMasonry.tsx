@@ -109,9 +109,13 @@ function DoanStudentMeta({
       </span>
       <span className="tdh-doan-gallery-student-text">
         <span className="tdh-doan-gallery-student-name">{item.studentName}</span>
-        {item.nganhLabel || item.nam ? (
+        {item.nganhLabel || item.monHocLabel || item.nam ? (
           <span className="tdh-doan-gallery-student-nganh">
-            {[item.nganhLabel, item.nam ? `Năm ${item.nam}` : null]
+            {[
+              item.nganhLabel,
+              item.monHocLabel,
+              item.nam ? `Năm ${item.nam}` : null,
+            ]
               .filter(Boolean)
               .join(" · ")}
           </span>
