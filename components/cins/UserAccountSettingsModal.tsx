@@ -316,7 +316,9 @@ export function UserAccountSettingsModal({ open, onClose }: Props) {
                 {layoutTab === "profile" ? (
                   <>
                     <p className="uas-section-hint uas-tab-hint">
-                      Chọn chế độ trang cá nhân sẽ hiện khi người khác truy cập.
+                      Chọn chế độ hiện khi vào trang từ bên ngoài. Đang xem
+                      Journey hay Gallery thì refresh và tương tác sẽ giữ nguyên
+                      chế độ đó.
                     </p>
 
                     {loading ? (

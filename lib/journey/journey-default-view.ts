@@ -1,7 +1,9 @@
-/** Chế độ hiển thị mặc định của trang cá nhân Journey khi người khác truy cập.
- *  - `timeline`     → dòng thời gian Journey (mặc định)
+/** Chế độ hiển thị mặc định của trang cá nhân Journey khi người khác truy cập
+ *  (chỉ áp khi mở bare `/{slug}`, không có `?view=`).
+ *  - `timeline`     → dòng thời gian Journey (ở lại bare URL; client sẽ pin
+ *                     `?view=journey` để sticky sau action/F5)
  *  - `gallery`      → Gallery dạng thẻ   (?view=gallery)
- *  - `gallery_luoi` → Gallery lưới gọn   (?view=gallery&display=luoi) */
+ *  - `gallery_luoi` → Masonry layout     (?view=gallery&display=luoi) */
 export type JourneyDefaultView = "timeline" | "gallery" | "gallery_luoi";
 
 export const JOURNEY_DEFAULT_VIEW_VALUES: readonly JourneyDefaultView[] = [
@@ -14,7 +16,8 @@ export function normalizeJourneyDefaultView(value: unknown): JourneyDefaultView 
   return value === "gallery" || value === "gallery_luoi" ? value : "timeline";
 }
 
-/** URL trang cá nhân tương ứng chế độ mặc định. */
+/** URL lần vào trang cá nhân theo chế độ mặc định (entry từ trang khác).
+ *  Timeline dùng bare `/{slug}` — loader coi đó là tín hiệu áp mặc định. */
 export function journeyDefaultViewHref(
   slug: string,
   view: JourneyDefaultView,

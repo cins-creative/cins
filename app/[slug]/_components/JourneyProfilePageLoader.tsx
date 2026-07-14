@@ -25,6 +25,7 @@ import type { KetBanStatusSummary } from "@/lib/social/types";
 type Params = Promise<{ slug: string }>;
 type SearchParams = Promise<{
   welcome?: string;
+  /** `journey` | `gallery` | `friends` | `organizations` — thiếu = bare entry. */
   view?: string;
   compose?: string;
   edit?: string;
@@ -59,9 +60,10 @@ export async function JourneyProfilePageLoader({
     notFound();
   }
 
-  // Áp chế độ hiển thị mặc định (do chủ trang cài trong Cài đặt) khi mở trang mà
-  // chưa chỉ định ?view=. Mặc định chỉ áp cho khách; áp cho chính chủ khi bật
-  // "Áp dụng cho tôi".
+  // Chỉ áp chế độ mặc định khi vào bare `/{slug}` (chưa có ?view=) — tức lần
+  // đến từ trang khác / link hồ sơ. Khi user đã chọn Journey (`?view=journey`)
+  // hoặc Gallery / Friends… thì giữ nguyên qua F5 và các action (like, comment).
+  // Mặc định chỉ áp cho khách; áp cho chính chủ khi bật "Áp dụng cho tôi".
   if (view === undefined && (!isOwner || owner.journey_mac_dinh_ap_dung_toi)) {
     const defaultView = normalizeJourneyDefaultView(owner.journey_mac_dinh_view);
     if (defaultView !== "timeline") {
@@ -83,7 +85,10 @@ export async function JourneyProfilePageLoader({
   const emailForView = isOwner || emailPublic ? owner.email_lien_he : null;
 
   const activeView: JourneyProfileView =
-    view === "gallery" || view === "friends" || view === "organizations"
+    view === "gallery" ||
+    view === "friends" ||
+    view === "organizations" ||
+    view === "journey"
       ? view
       : "journey";
 
